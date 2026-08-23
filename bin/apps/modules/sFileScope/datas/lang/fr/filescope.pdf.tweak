@@ -2,6 +2,8 @@
 
 ui_Previous  Page précédente
 ui_Next      Page suivante
+ui_ZoomOut   Réduire
+ui_ZoomIn    Agrandir
 ui_Fit       Ajuster
 ui_Actual    100 %
 ui_Page      page

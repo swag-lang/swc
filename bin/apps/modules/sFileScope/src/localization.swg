@@ -18,6 +18,8 @@ struct AppStrings
     ui_WrapOff:          string = "Wrap off"                                                                               // Wrapping button while long lines run off the edge.
     ui_Encoding:         string = "Character encoding"                                                                     // Tooltip of the encoding selector.
     ui_Files:            string = "Files beside this one"                                                                  // Tooltip of the file-panel button.
+    ui_FullScreen:       string = "Full screen (F11)"                                                                      // Tooltip of the enter-full-screen button.
+    ui_ExitFullScreen:   string = "Exit full screen (F11)"                                                                 // Tooltip of the leave-full-screen button.
     ui_SameKind:         string = "Only files of the same kind"                                                            // Tooltip of the folder-navigation filter toggle.
     ui_Recent:           string = "Recent"                                                                                 // Panel section listing what was read before.
     ui_Folder:           string = "Folder"                                                                                 // Panel section listing the current folder, before one is open.
@@ -31,6 +33,7 @@ struct AppStrings
     ui_Searching:        string = "Searching…"                                                                             // Status line while a search scans the file.
     ui_DropTitle:        string = "Drop a file to view it"                                                                 // Invitation shown while no file is open.
     ui_Ready:            string = "Ready"                                                                                  // Neutral status line.
+    ui_TextDetails:      string = "% · streamed"                                                                           // Summary of the basic text viewer, starting with its encoding.
     ui_Unsupported:      string = "No viewer can show this file."                                                          // No viewer claimed the file.
     ui_OpenStopped:      string = "The file could not be shown."                                                           // A viewer refused the file it claimed.
     ui_ViewerError:      string = "This viewer could not decode the file."                                                 // Heading above a viewer's exact decoder error.

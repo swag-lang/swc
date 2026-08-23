@@ -15,6 +15,37 @@ alias ViewerIsLoading = func(*Wnd)->bool
 // Hands a decoder error discovered after creation back to the application that owns its presentation.
 alias ViewerReportFailure = func(*Wnd, string)
 
+// Hands format statistics that changed after creation back to the application status band.
+alias ViewerReportDetails = func(*Wnd, string)
+
+private func mediaWholeTimeText(total: u64)->String
+{
+    let hours   = total / 3_600
+    let minutes = total / 60 % 60
+    let rest    = total % 60
+    if hours do
+        return Format.toString("%:%{02}:%{02}", hours, minutes, rest)
+    return Format.toString("%:%{02}", total / 60, rest)
+}
+
+// Formats a media clock as m:ss, or h:mm:ss once an hour is reached.
+func mediaTimeText(seconds: f64)->String
+{
+    return mediaWholeTimeText(cast(u64) Math.max(Math.floor(seconds), 0))
+}
+
+// Formats a total duration, rounding a non-empty final fraction up so it never reads as zero.
+func mediaDurationText(seconds: f64)->String
+{
+    return mediaWholeTimeText(cast(u64) Math.max(Math.ceil(seconds), 0))
+}
+
+// Formats the current and total positions of a media transport.
+func mediaTimeRangeText(current, duration: f64)->String
+{
+    return Format.toString("% / %", mediaTimeText(current), mediaDurationText(duration))
+}
+
 // What the application asks one integrated viewer to display.
 struct ViewerRequest
 {
@@ -22,6 +53,7 @@ struct ViewerRequest
     commandParent: *Wnd = undefined              // Parent the optional command group must be created under.
     fileName:      string                        // File the view has to show.
     reportFailure: #null ViewerReportFailure     // Reports a decoder error discovered after creation.
+    reportDetails: #null ViewerReportDetails     // Reports format statistics that changed after creation.
 }
 
 // What one integrated viewer gives back.

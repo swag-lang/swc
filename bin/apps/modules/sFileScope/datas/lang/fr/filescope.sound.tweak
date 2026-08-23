@@ -3,6 +3,12 @@
 ui_TipPlay       Lire
 ui_TipPause      Mettre en pause
 ui_TipStop       Arrêter
+ui_TipBackward   Reculer de 10 secondes (Gauche)
+ui_TipForward    Avancer de 10 secondes (Droite)
+ui_TipSeek       Se déplacer
+ui_Mute          Muet
+ui_TipMute       Couper ou rétablir le son (M)
+ui_TipVolume     Volume
 ui_NoEngine      Lecture indisponible
 
 word_Channel     canal

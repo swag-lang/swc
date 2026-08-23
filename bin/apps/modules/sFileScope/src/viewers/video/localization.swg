@@ -5,15 +5,20 @@ using Core, Gui
 // Visible strings of the video viewer.
 struct VideoStrings
 {
-    ui_TipPlay:  string = "Play"       // Tooltip while playback is stopped or paused.
-    ui_TipPause: string = "Pause"      // Tooltip while playback is running.
-    ui_TipStop:  string = "Stop"       // Tooltip of the stop button.
-    ui_TipSeek:  string = "Seek"       // Tooltip of the frame timeline.
-    word_Frame:  string = "frame"      // One video frame.
-    word_Frames: string = "frames"     // Several video frames.
+    ui_TipPlay:     string = "Play"                           // Tooltip while playback is stopped or paused.
+    ui_TipPause:    string = "Pause"                          // Tooltip while playback is running.
+    ui_TipStop:     string = "Stop"                           // Tooltip of the stop button.
+    ui_TipBackward: string = "Back 10 seconds (Left)"         // Tooltip of the backward seek button.
+    ui_TipForward:  string = "Forward 10 seconds (Right)"     // Tooltip of the forward seek button.
+    ui_TipSeek:     string = "Seek"                           // Tooltip of the time timeline.
+    ui_Mute:        string = "Mute"                           // Label of the mute switch.
+    ui_TipMute:     string = "Mute or unmute (M)"             // Tooltip of the mute switch.
+    ui_TipVolume:   string = "Volume"                         // Tooltip of the volume slider.
+    word_Frame:     string = "frame"                          // One video frame.
+    word_Frames:    string = "frames"                         // Several video frames.
 
     // Summary the host shows beside the file size: geometry, frame count, frame rate, and duration.
-    ui_Details: string = "% × % · % · %{f2} fps · %{f2} s · Swag CPU"
+    ui_Details: string = "% × % px · % · %{f2} fps · % · Swag CPU"
 }
 
 private const FrenchStringsName = "lang/fr/filescope.video.tweak"

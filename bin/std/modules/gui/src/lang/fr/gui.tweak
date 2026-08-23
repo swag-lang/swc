@@ -11,12 +11,17 @@ dlg_ErrorTitle   Erreur
 dlg_InfoTitle    Information
 dlg_MultiLineHint Appuyez sur Maj+Entrée pour ajouter une nouvelle ligne
 
-appearance_ToolTip        Thème et langue
+appearance_ToolTip        Apparence et informations sur l'application
 appearance_Theme          Thème
 appearance_Language       Langue
 appearance_SystemLanguage Langue du système
 appearance_Dark           Sombre
 appearance_Light          Clair
+appearance_About          À propos...
+
+about_Build     Compilé le %{f}
+about_Source    % est un logiciel libre écrit en <url>Swag</url>. Son code est <url>ici</url>.
+about_Copyright Copyright © % %
 
 fileDlg_TitleSaveFile     Enregistrer un fichier
 fileDlg_TitleSelectFile   Sélectionner un fichier

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- sFileScope icon set, vector source. One glyph per viewer, drawn on the same
-     24-unit grid and the same 2-unit weight as the theme icon set, in ViewerIcons
-     order. Rasterized at runtime per size and scale, and painted in one theme color,
-     so every glyph is white here. -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 48">
+<!-- sFileScope icon set, vector source. Viewer glyphs come first in registry order,
+     followed by application actions. Every glyph uses the same 24-unit grid and
+     2-unit weight as the theme icon set. Rasterized at runtime per size and scale,
+     and painted in one theme color, so every glyph is white here. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 72">
   <g id="Html" transform="translate(0 0)" fill="none" stroke="#ffffff" stroke-width="2">
     <circle cx="12" cy="12" r="9"/>
     <ellipse cx="12" cy="12" rx="4.2" ry="9"/>
@@ -66,5 +66,17 @@
     <line x1="4" y1="10.2" x2="16" y2="10.2"/>
     <line x1="4" y1="14.9" x2="20" y2="14.9"/>
     <line x1="4" y1="19.6" x2="13" y2="19.6"/>
+  </g>
+  <g id="FullScreen" transform="translate(120 24)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter">
+    <polyline points="9,4 4,4 4,9"/>
+    <polyline points="15,4 20,4 20,9"/>
+    <polyline points="4,15 4,20 9,20"/>
+    <polyline points="20,15 20,20 15,20"/>
+  </g>
+  <g id="ExitFullScreen" transform="translate(0 48)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter">
+    <polyline points="4,9 9,9 9,4"/>
+    <polyline points="20,9 15,9 15,4"/>
+    <polyline points="4,15 9,15 9,20"/>
+    <polyline points="20,15 15,15 15,20"/>
   </g>
 </svg>

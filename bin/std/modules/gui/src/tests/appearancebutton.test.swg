@@ -44,7 +44,7 @@ using Swag, Core, Pixel
     @assert(host.surfaceWnd.captionButtons.count == 1)
     @assert(button.position.right() < host.surfaceWnd.clientRect().right())
 
-    var themeChanges, languageChanges: u32
+    var themeChanges, languageChanges, aboutRequests: u32
     button.sigThemeChanged += func|count = &themeChanges|(appearance)
     {
         @assert(appearance.appearanceTheme == .Light)
@@ -55,11 +55,19 @@ using Swag, Core, Pixel
         @assert(appearance.language == "fr")
         count[] += 1
     }
+    button.sigAboutRequested += func|count = &aboutRequests|(appearance)
+    {
+        discard appearance
+        count[] += 1
+    }
 
     button.setAppearanceTheme(.Light, notify: true)
     expect button.setAppearanceLanguage("fr", notify: true)
     @assert(themeChanges == 1 and languageChanges == 1)
     @assert(host.app.language() == "fr")
+
+    button.applyAppearanceSelection("Gui.Appearance.About")
+    @assert(aboutRequests == 1)
 
     button.destroy()
     host.pump()

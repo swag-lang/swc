@@ -18,7 +18,7 @@ impl IActionUI for ActionAbout
         {
         case .About:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = appStrings().act_About
+            evt.name          = strings().appearance_About
             evt.icon          = main.theme().icon(.About)
         }
 
@@ -30,39 +30,14 @@ impl IActionUI for ActionAbout
         let main = cast(*MainWnd) cxt.wnd!
         let view = main.editWnd.editView
 
-        const Date = #run Time.DateTime.now()
-
-        let texts = appStrings()
-
-        var params: AboutDlgParams = undefined
-        params.surfaceTitle = "sSnapForge"
-        params.contentTitle = Format.toString("sSnapForge %.%.%", #swcversion, #swcrevision, #swcbuildnum).toString()
-
-        // Three short paragraphs, in this order: when it was built, what it is made of, who
-        // holds it. Anything a reader would not act on stays out of the box.
-        var msg: String
-        msg            += Format.toString(texts.msg_AboutBuild, Date)
-        msg            += "\n\n"
-        msg            += texts.msg_AboutSource
-        msg            += "\n\n"
-        msg            += Format.toString(texts.msg_AboutCopyright, Date.year)
-        params.message = msg.toString()
-
-        params.surfaceIcon       = Icon.from(&main.appIcon, 0)
-        params.surfaceIcon.color = Argb.White
-        params.contentIcon       = Icon.from(&main.appIcon, 0)
-        params.contentIcon.sizeX, params.contentIcon.sizeY = 64
-        params.contentIcon.color = Argb.White
-
-        let dlg = AboutDlg.create(view.surface!, params, height: 300)
-        dlg.labelMessage.sigLinkActivated += func(lbl, txt)
-        {
-            switch txt
-            {
-            case "Swag":        Env.openUrl("https://www.swag-lang.org/")
-            case "here", "ici": Env.openUrl("https://github.com/swag-lang/swag/tree/master/bin/apps/modules/sSnapForge/")
-            }
-        }
+        const BuildDate = #run Time.DateTime.now()
+        let version = Format.toString("%.%.%", #swcversion, #swcrevision, #swcbuildnum)
+        let dlg     = AboutDlg.createApplication(view.surface!, {
+            productName: "sSnapForge",
+            version: version.toString(),
+            buildDate: BuildDate,
+            sourceUrl: "https://github.com/swag-lang/swc/tree/master/bin/apps/modules/sSnapForge",
+            copyrightHolder: "Christophe Beaudet"})
 
         discard dlg.doModal()
 

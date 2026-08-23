@@ -2,7 +2,7 @@
 
 using Core, Pixel, Gui
 
-private const PdfCommandWidth = 292.0
+private const PdfCommandWidth = 380.0
 
 internal struct PdfViewer
 {
@@ -17,6 +17,27 @@ internal struct PdfViewer
         previousButton: *IconButton
         nextButton:     *IconButton
         pageLabel:      *Label
+    }
+}
+
+private impl IWnd for PdfViewer
+{
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        if evt.kind != .Pressed
+        {
+            evt.accepted = false
+            return
+        }
+
+        switch evt.key
+        {
+        case .Add, .OemPlus:                        .pdfView.zoomIn()
+        case .Subtract, .OemMinus:                  .pdfView.zoomOut()
+        case .D0 where evt.modifiers.has(.Control): .pdfView.actualSize()
+        case .F where evt.modifiers == .None:       .pdfView.zoomToFit()
+        default:                                    evt.accepted = false
+        }
     }
 }
 
@@ -74,6 +95,29 @@ private impl PdfViewer
             .dockStyle = .Left
             .margin.x  = 8
             .setTextAlignment(.Center, .Center)
+        }
+
+        with let zoomOut = IconButton.create(result.commands, result.theme().icon(.ZoomOut, 18), {0, 0, 36, 36})
+        {
+            .dockStyle  = .Left
+            .margin.x   = 8
+            .toolTip    = pdfStrings().ui_ZoomOut
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                view.pdfView.zoomOut()
+            }
+        }
+
+        with let zoomIn = IconButton.create(result.commands, result.theme().icon(.ZoomIn, 18), {0, 0, 36, 36})
+        {
+            .dockStyle  = .Left
+            .toolTip    = pdfStrings().ui_ZoomIn
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                view.pdfView.zoomIn()
+            }
         }
 
         with let fit = PushButton.create(result.commands, pdfStrings().ui_Fit, {0, 0, 58, 36})

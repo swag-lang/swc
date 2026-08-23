@@ -3,7 +3,7 @@
 using Core, Pixel, Gui, Video, Audio
 
 private const VideoGlyphSize = 18.0
-private const VideoCommandWidth = 350.0
+private const VideoSeekSeconds = 10.0
 
 // How far behind the clock playback is allowed to fall before it gives up and jumps.
 //
@@ -52,12 +52,16 @@ internal struct VideoViewer
 
     #[Swag.Late]
     {
-        commands:   *Wnd
-        playButton: *IconButton
-        stopButton: *IconButton
-        timeline:   *Slider
-        frameLabel: *Label
-        imageView:  *ImageView
+        commands:       *Wnd
+        playButton:     *IconButton
+        stopButton:     *IconButton
+        backwardButton: *PushButton
+        forwardButton:  *PushButton
+        timeline:       *Slider
+        timeLabel:      *Label
+        muteButton:     *CheckButton
+        volumeSlider:   *Slider
+        imageView:      *ImageView
     }
 
     // The stream is read through its own header alone, so a video of any size opens instantly.
@@ -87,10 +91,10 @@ internal struct VideoViewer
     // Queue state, all read and written under `queueLock`.
     ready:       Array'u32     // Slots holding a decoded picture, in ascending frame order.
     freeSlots:   Array'u32
-    nextDecode:  u64           // Frame the producer takes next.
-    produceFrom: u64           // Frame the producer was last aimed at.
-    inFlight:    u32           // Whether a picture is being decoded right now.
-    generation:  u32           // Bumped by every reposition, so a stale result is dropped.
+    nextDecode:  u64     // Frame the producer takes next.
+    produceFrom: u64     // Frame the producer was last aimed at.
+    inFlight:    u32     // Whether a picture is being decoded right now.
+    generation:  u32     // Bumped by every reposition, so a stale result is dropped.
     failureText: String
     hasFailure:  bool
 
@@ -108,6 +112,8 @@ internal struct VideoViewer
     elapsed:       f64
     frameIndex:    u64
     playing:       bool
+    muted:         bool
+    volume = 1'f32
     details:       String
     reportFailure: #null ViewerReportFailure
 }
@@ -173,8 +179,42 @@ internal impl VideoViewer
         .playButton.toolTip = .playing ? videoStrings().ui_TipPause : videoStrings().ui_TipPlay
         .playButton.enable(.hasFrame)
         .stopButton.enable(.hasFrame and (.frameIndex != 0 or .playing))
-        .timeline.setValueWithoutGesture(cast(f32) .frameIndex)
-        .frameLabel.setText(Format.toString("% / %", .frameIndex + 1, .video.frameCount()))
+        .refreshTime()
+    }
+
+    mtd refreshTime()
+    {
+        let duration = cast(f64) .video.durationInSeconds()
+        let seconds  = Math.clamp(.currentSeconds(), 0, duration)
+        .timeline.setValueWithoutGesture(cast(f32) seconds)
+        .timeLabel.setText(mediaTimeRangeText(seconds, duration))
+    }
+
+    mtd seekSeconds(seconds: f64)
+    {
+        let duration = cast(f64) .video.durationInSeconds()
+        let target   = Math.clamp(seconds, 0, duration)
+        .seekFrame(.video.frameAtTime(target))
+    }
+
+    mtd seekRelative(seconds: f64)
+    {
+        .seekSeconds(.currentSeconds() + seconds)
+    }
+
+    mtd setMuted(muted: bool)
+    {
+        .muted = muted
+        .muteButton.setState(muted ? .Checked : .Unchecked)
+        if .voice do
+            catch .voice!.setVolume(muted ? 0 : .volume)
+    }
+
+    mtd setVolume(volume: f32)
+    {
+        .volume = Math.clamp(volume, 0, 1)
+        if .voice and !.muted do
+            catch .voice!.setVolume(.volume)
     }
 
     // Sizes the run-ahead queue from the picture size.
@@ -268,9 +308,7 @@ internal impl VideoViewer
     // Runs the producer until it can make no further progress.
     mtd produceUntilBlocked()
     {
-        while .produceOne()
-        {
-        }
+        while .produceOne() {}
     }
 
     // Publishes the oldest queued picture, and reports whether one reached the screen.
@@ -553,6 +591,8 @@ private impl IWnd for VideoViewer
         }
 
         .updatePlayback()
+        if !.isPendingDestroy do
+            .refreshTime()
     }
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)
@@ -584,15 +624,25 @@ private impl IWnd for VideoViewer
             releaseSoundEngine()
             .audioEngineAcquired = false
         }
-
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if evt.kind == .Pressed and evt.key == .Space do
-            .togglePlayback()
-        else do
+        if evt.kind != .Pressed or evt.modifiers != .None
+        {
             evt.accepted = false
+            return
+        }
+
+        switch evt.key
+        {
+        case .Space, .MediaPlayPause: .togglePlayback()
+        case .Left:                   .seekRelative(-VideoSeekSeconds)
+        case .Right:                  .seekRelative(VideoSeekSeconds)
+        case .M, .VolumeMute:         .setMuted(!.muted)
+        case .MediaStop:              .stopPlayback()
+        default:                      evt.accepted = false
+        }
     }
 }
 
@@ -622,7 +672,7 @@ private impl VideoViewer
         result.backgroundStyle = .View
         result.reportFailure   = reportFailure
 
-        with result.commands = Wnd.create'Wnd(commandParent, {0, 0, VideoCommandWidth, 36})
+        with result.commands = Wnd.create'Wnd(commandParent, {0, 0, 0, 36})
         {
             .backgroundStyle = .Window
         }
@@ -651,24 +701,73 @@ private impl VideoViewer
             }
         }
 
-        with result.timeline = Slider.create(result.commands, {0, 0, 180, 36})
+        with result.backwardButton = PushButton.create(result.commands, "-10 s", {0, 0, 64, 36})
         {
-            .dockStyle = .Left
-            .margin    = {8, 1, 8, 1}
+            .dockStyle  = .Left
+            .margin.x   = 8
+            .toolTip    = videoStrings().ui_TipBackward
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                view.seekRelative(-VideoSeekSeconds)
+            }
+        }
+
+        with result.forwardButton = PushButton.create(result.commands, "+10 s", {0, 0, 64, 36})
+        {
+            .dockStyle  = .Left
+            .margin.x   = 8
+            .toolTip    = videoStrings().ui_TipForward
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                view.seekRelative(VideoSeekSeconds)
+            }
+        }
+
+        with result.volumeSlider = Slider.create(result.commands, {0, 0, 96, 36})
+        {
+            .dockStyle = .Right
+            .margin    = {8, 1, 0, 1}
+            .toolTip   = videoStrings().ui_TipVolume
+            .setBounds(0, 1, 0.05)
+            .setValueWithoutGesture(1)
+            .sigChanged += func|view = result|(slider)
+            {
+                view.setVolume(slider.value())
+            }
+        }
+
+        with result.muteButton = CheckButton.create(result.commands, videoStrings().ui_Mute, {0, 0, 84, 36})
+        {
+            .dockStyle  = .Right
+            .margin.x   = 8
+            .toolTip    = videoStrings().ui_TipMute
+            .sigChanged += func|view = result|(button)
+            {
+                view.setMuted(button.isChecked())
+            }
+        }
+
+        with result.timeLabel = Label.create(result.commands, "", {0, 0, 112, 36}, null, .SecondaryText)
+        {
+            .dockStyle = .Right
+            .margin.x  = 8
+            .setTextAlignment(.Right, .Center)
+        }
+
+        with result.timeline = Slider.create(result.commands, {0, 0, 0, 36})
+        {
+            .dockStyle = .Center
+            .margin    = {12, 1, 12, 1}
             .toolTip   = videoStrings().ui_TipSeek
 
             // A drag may cross hundreds of frames. Decode its final position once instead of
             // serially decoding every intermediate value queued by the pointer movement.
             .sigEndChange += func|view = result|(slider)
             {
-                view.seekFrame(cast(u64) Math.round(slider.value()))
+                view.seekSeconds(slider.value())
             }
-        }
-
-        with result.frameLabel = Label.create(result.commands, "", {0, 0, 74, 36}, null, .SecondaryText)
-        {
-            .dockStyle = .Left
-            .setTextAlignment(.Right, .Center)
         }
 
         result.imageView           = ImageView.create(result)
@@ -684,6 +783,11 @@ private impl VideoViewer
             result.audio               = result.video.audioTrack(0)
             result.voice               = Voice.create(result.audio!)
         }
+        else
+        {
+            result.muteButton.hide()
+            result.volumeSlider.hide()
+        }
 
         if !Jobs.isSynchronous()
         {
@@ -691,14 +795,17 @@ private impl VideoViewer
             result.decodeThread.init(&runVideoViewerDecode, result, priority: .BelowNormal)
             result.decodeThread.start()
         }
+
         result.refreshTransport()
 
-        // A stream whose format cannot report a frame count still plays, but it cannot be
-        // seeked through a timeline that has no end to point at.
-        let lastFrame = result.video.frameCount() ? result.video.frameCount() - 1 : 0
-        result.timeline.setBounds(0, cast(f32) lastFrame, 1)
-        result.timeline.enable(lastFrame != 0)
-        result.details = Format.toString(videoStrings().ui_Details, result.video.width(), result.video.height(), videoFrameCountText(result.video.frameCount()), result.video.frameRate().framesPerSecond(), result.video.durationInSeconds())
+        // A stream whose format cannot report a duration still plays, but it cannot be seeked
+        // through a timeline that has no end to point at.
+        let duration = result.video.durationInSeconds()
+        let step     = result.video.frameRate().framesPerSecond() > 0 ? 1 / result.video.frameRate().framesPerSecond() : 0.01
+        if duration > 0 do
+            result.timeline.setBounds(0, duration, cast(f32) Math.min(step, duration / 100))
+        result.timeline.enable(duration > 0 and result.video.frameCount() > 1)
+        result.details = Format.toString(videoStrings().ui_Details, result.video.width(), result.video.height(), videoFrameCountText(result.video.frameCount()), result.video.frameRate().framesPerSecond(), mediaDurationText(duration))
         result.timer   = result.addTimer(10'ms)
         result.applyLayout()
         result.setInitialFocus(result.playButton)
@@ -714,9 +821,7 @@ private func runVideoViewerDecode(thread: Threading.Thread)
     while !thread.requestEnd
     {
         view.decodeWake.wait()
-        while !thread.requestEnd and view.produceOne()
-        {
-        }
+        while !thread.requestEnd and view.produceOne() {}
     }
 }
 

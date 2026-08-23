@@ -72,10 +72,6 @@ msg_FailedSaveMetadata Impossible d'enregistrer les métadonnées de la capture
 msg_FailedExportCaptures Impossible d'exporter les captures sélectionnées
 msg_ShortcutTaken      Impossible d'enregistrer le raccourci global '%'. 
 msg_ShortcutTakenWhy   Une autre application l'utilise probablement déjà !
-msg_AboutBuild         Compilé le %{f}
-msg_AboutSource        sSnapForge est un logiciel libre écrit en <url>Swag</url>. Son code est <url>ici</url>.
-msg_AboutCopyright     Copyright © % Christophe Beaudet
-act_About              À propos...
 act_ActualSize         Taille réelle
 act_Arrow              Flèche
 act_BigView            Grandes vignettes

@@ -794,8 +794,6 @@ impl MainWnd
         with let helpMenu = MenuCtrl.createPopup(me.parent, owner: me)
         {
             .addItem(ActionOptions.Options)
-            .addSeparator()
-            .addItem(ActionAbout.About)
             topMenu.addPopup(func()->string => appStrings().ui_MenuHelp, helpMenu)
         }
     }
@@ -1062,6 +1060,11 @@ impl MainWnd
             else do
                 main.editorOptions.language = .English
             main.saveAppState()
+        }
+        res.appearanceButton.sigAboutRequested += func|main = res|(button)
+        {
+            discard button
+            main.postCommandEvent(ActionAbout.About)
         }
 
         // One Voltage rail identifies every standard Swag application surface.

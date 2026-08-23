@@ -4,9 +4,14 @@ const ViewerBarHeight       = 48.0
 const ViewerInfoHeight      = 36.0
 const ViewerGlyphSize       = 20.0
 const ViewerRowGlyphSize    = 16.0
-const ViewerMinWidth        = 1224
+const ViewerMinWidth        = 880
 const ViewerSearchChunkSize = 256 * 1024'u64
 const ViewerErrorTextWidth  = 512.0
+const ViewerInfoStatsWidth  = 560.0
+const ViewerInfoSizeWidth   = 112.0
+
+const ViewerFullScreenRemovedFlags = SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.MaximizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
+const ViewerFullScreenAddedFlags   = SurfaceFlags.NoShadow | SurfaceFlags.TopMost
 
 // The panel that lists what is beside the current file, and what was read before it.
 const ViewerPanelWidth   = 268.0
@@ -147,13 +152,16 @@ struct ViewerWindow
         kindButton:       *IconButton
         openButton:       *IconButton
         filesButton:      *IconButton
+        fullScreenButton: *IconButton
         searchBox:        *EditBox
         viewerCombo:      *ComboBox
         appearanceButton: *AppearanceButton
         infoBar:          *ViewerInfoBar
         infoNameLabel:    *Label
         infoStatsLabel:   *Label
+        infoSizeLabel:    *Label
         loadingSpinner:   *Spinner
+        viewerBar:        *Wnd
         emptyLabel:       *Label
         filePanel:        *SplitterCtrl
         recentPane:       *Wnd
@@ -193,15 +201,31 @@ struct ViewerWindow
 
     // Guards the one nested dispatch [[forwardKeyToViewer]] makes, so a key the viewer
     // declines falls back to file navigation instead of being offered again.
-    forwardingViewerKey: bool
-    recent:              Array'String
-    preferences:         Array'ViewerPreference
-    panelVisible:        bool
+    forwardingViewerKey:       bool
+    recent:                    Array'String
+    preferences:               Array'ViewerPreference
+    panelVisible:              bool
     recentPaneSize = ViewerRecentHeight
-    refreshingLists:     bool
-    fileDlgState:        FileDlgState
-    themeIndex:          u32
-    language:            String
+    refreshingLists:           bool
+    fileDlgState:              FileDlgState
+    themeIndex:                u32
+    language:                  String
+    fullScreen:                bool
+    fullScreenWasMaximized:    bool
+    fullScreenRestorePosition: Math.Rectangle
+    fullScreenRestoreFlags:    SurfaceFlags
+}
+
+func reportViewerDetails(view: *Wnd, details: string)
+{
+    let window = cast(*ViewerWindow) view.parent!
+    for &instance, index in window.instances where instance.view == view
+    {
+        instance.details = details
+        if index == window.activeChoiceIndex do
+            window.updateFileInfo(details)
+        return
+    }
 }
 
 impl IWnd for ViewerWindow
@@ -232,7 +256,11 @@ impl IWnd for ViewerWindow
             return
         }
 
-        if evt.key == .O and evt.modifiers.has(.Control) do
+        if evt.key == .F11 and evt.modifiers == .None do
+            .setFullScreen(!.fullScreen)
+        elif evt.key == .Escape and evt.modifiers == .None and .fullScreen do
+            .setFullScreen(false)
+        elif evt.key == .O and evt.modifiers.has(.Control) do
             .chooseFile()
         elif evt.key == .F and evt.modifiers.has(.Control) do
             .showSearch()
@@ -283,7 +311,9 @@ impl IWnd for ViewerWindow
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
-        catch g_App.saveState()
+        if .fullScreen do
+            .setFullScreen(false)
+        catch .saveState()
         .stopSearch()
         .stopLoadingIndicator()
         .icons.free()
@@ -368,6 +398,49 @@ impl ViewerWindow
         discard catch .appearanceButton.setAppearanceLanguage(.language.toString())
     }
 
+    // A monitor-sized full-screen placement is transient and must never replace the saved
+    // window placement. Closing first restores the regular placement, then persists it.
+    private mtd saveState() fail
+    {
+        if .fullScreen do
+            return
+        try g_App.saveState()
+    }
+
+    // Enters or leaves a borderless monitor-sized presentation without losing the reader's
+    // previous window placement or maximized state.
+    mtd setFullScreen(enabled: bool)
+    {
+        if .fullScreen == enabled do
+            return
+
+        let srfn = .surface!
+        if enabled
+        {
+            .fullScreenRestorePosition = srfn.isMaximized ? srfn.restoredPosition : srfn.position
+            .fullScreenRestoreFlags    = srfn.flags
+            .fullScreenWasMaximized    = srfn.isMaximized
+            if srfn.isMaximized do
+                srfn.showNormal()
+
+            .fullScreen = true
+            srfn.updateFlags(add: ViewerFullScreenAddedFlags, remove: ViewerFullScreenRemovedFlags)
+            srfn.setPosition(Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds)
+        }
+        else
+        {
+            .fullScreen = false
+            srfn.updateFlags(add: .fullScreenRestoreFlags & (ViewerFullScreenRemovedFlags | ViewerFullScreenAddedFlags), remove: (ViewerFullScreenRemovedFlags | ViewerFullScreenAddedFlags) & ~.fullScreenRestoreFlags)
+            srfn.setPosition(.fullScreenRestorePosition)
+            if .fullScreenWasMaximized do
+                srfn.showMaximized()
+        }
+
+        .fullScreenButton.setChecked(.fullScreen)
+        .fullScreenButton.setIcon(.icon(.fullScreen ? .ExitFullScreen : .FullScreen, ViewerGlyphSize))
+        .fullScreenButton.toolTip = .fullScreen ? appStrings().ui_ExitFullScreen : appStrings().ui_FullScreen
+    }
+
     func create(parent: *Wnd, index: ViewerIndex)->*ViewerWindow
     {
         let result = Wnd.create'ViewerWindow(parent, "sFileScope.main")
@@ -382,12 +455,17 @@ impl ViewerWindow
         result.appearanceButton.sigThemeChanged += func|window = result|(button)
         {
             window.themeIndex = button.appearanceTheme == .Light ? 1 : 0
-            catch g_App.saveState()
+            catch window.saveState()
         }
         result.appearanceButton.sigLanguageChanged += func|window = result|(button)
         {
             window.language = button.language
-            catch g_App.saveState()
+            catch window.saveState()
+        }
+        result.appearanceButton.sigAboutRequested += func|window = result|(button)
+        {
+            discard button
+            window.showAbout()
         }
 
         Separator.create(result, .Top, .Accent)
@@ -420,7 +498,18 @@ impl ViewerWindow
             .sigCheckedChanged += func|window = result|(button)
             {
                 window.setFilePanelVisible(button.isChecked)
-                catch g_App.saveState()
+                catch window.saveState()
+            }
+        }
+
+        with result.fullScreenButton = IconButton.create(result.commandBar, result.icon(.FullScreen, ViewerGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
+        {
+            .dockStyle = .Right
+            .toolTip   = appStrings().ui_FullScreen
+            .setCheckIndicator(.Frame)
+            .sigCheckedChanged += func|window = result|(button)
+            {
+                window.setFullScreen(button.isChecked)
             }
         }
 
@@ -467,10 +556,8 @@ impl ViewerWindow
             }
         }
 
-        // Wide enough for the longest viewer name a shipped viewer registers, beside the glyph
-        // column every entry carries, so the selector never cuts the one word that says which
-        // viewer is showing the file. That column is what the window's minimum width grew by:
-        // the widest contextual bar a viewer brings still has to start after this field.
+        // Wide enough for the longest viewer name a shipped viewer registers beside its glyph.
+        // Viewer commands now have their own row, so this global bar stays compact at every width.
         with result.viewerCombo = ComboBox.create(result.commandBar, {0, 0, 180, 36})
         {
             .dockStyle = .Left
@@ -484,18 +571,26 @@ impl ViewerWindow
             }
         }
 
-        // File identity belongs to a quiet, compact band under the document. The only band above
-        // the content is the contextual action bar shared by navigation, viewer choice and tools.
+        // File identity and content statistics are read before the document. Viewer tools belong
+        // to the dedicated band below it, where a transport can spend the width it needs.
         with result.infoBar = Wnd.create'ViewerInfoBar(result, {0, 0, 0, ViewerInfoHeight})
         {
-            .dockStyle       = .Bottom
+            .dockStyle       = .Top
             .backgroundStyle = .Window
             .padding         = {14, 4, 14, 4}
         }
 
-        with result.infoStatsLabel = Label.create(result.infoBar, appStrings().ui_Ready, {0, 0, 280, 28}, null, .SecondaryText)
+        with result.infoSizeLabel = Label.create(result.infoBar, "", {0, 0, ViewerInfoSizeWidth, 28}, null, .SecondaryText)
         {
             .dockStyle = .Right
+            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .setTextAlignment(.Right, .Center)
+        }
+
+        with result.infoStatsLabel = Label.create(result.infoBar, appStrings().ui_Ready, {0, 0, ViewerInfoStatsWidth, 28}, null, .SecondaryText)
+        {
+            .dockStyle = .Right
+            .margin.z  = 16
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Right, .Center)
         }
@@ -512,6 +607,14 @@ impl ViewerWindow
             .dockStyle = .Center
             .style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
             .setTextAlignment(.Left, .Center)
+        }
+
+        with result.viewerBar = Wnd.create'Wnd(result, {0, 0, 0, ViewerBarHeight})
+        {
+            .dockStyle       = .Bottom
+            .backgroundStyle = .Window
+            .padding         = {12, 6, 12, 6}
+            .hide()
         }
 
         // What is beside the current file, and what was read before it. The panel is docked before
@@ -625,6 +728,20 @@ impl ViewerWindow
         return result
     }
 
+    // Opens the standard product identity and provenance dialog.
+    mtd showAbout()
+    {
+        const BuildDate = #run Time.DateTime.now()
+        let version = Format.toString("%.%.%", #swcversion, #swcrevision, #swcbuildnum)
+        let dlg     = AboutDlg.createApplication(.surface!, {
+            productName: "sFileScope",
+            version: version.toString(),
+            buildDate: BuildDate,
+            sourceUrl: "https://github.com/swag-lang/swc/tree/master/bin/apps/modules/sFileScope",
+            copyrightHolder: "Christophe Beaudet"})
+        discard dlg.doModal()
+    }
+
     // Opens `fileName` after the surface has had a chance to paint its first frame.
     mtd queueFile(fileName: string)
     {
@@ -666,6 +783,10 @@ impl ViewerWindow
         .infoNameLabel.setText("")
         .infoNameLabel.toolTip = ""
         .infoStatsLabel.setText(appStrings().ui_Ready)
+        .infoStatsLabel.toolTip = ""
+        .infoSizeLabel.setText("")
+        .infoSizeLabel.toolTip = ""
+        .viewerBar.hide()
         .surface!.setTitle(appStrings().ui_WindowTitle)
         .previousButton.enable(false)
         .nextButton.enable(false)
@@ -685,6 +806,7 @@ impl ViewerWindow
         .instances.clear()
         .currentCommands = null
         .currentView     = null
+        .viewerBar.hide()
     }
 
     // Replaces a viewer that stopped after creation with the application's standard error surface.
@@ -718,6 +840,7 @@ impl ViewerWindow
             .stopLoadingIndicator()
             .currentView     = errorView
             .currentCommands = null
+            .viewerBar.hide()
             .updateFileInfo("")
             .updateSearchAvailability()
             .applyLayout()
@@ -746,6 +869,7 @@ impl ViewerWindow
         instance.details.clear()
         .currentView     = null
         .currentCommands = null
+        .viewerBar.hide()
     }
 
     mtd stopLoadingIndicator()
@@ -794,6 +918,7 @@ impl ViewerWindow
             .currentCommands = instance.commands
             .currentView!.show()
             .currentCommands?.show()
+            .viewerBar.show(.currentCommands != null)
             .activeChoiceIndex = index
             .viewerCombo.setSelectedIndex(index, notify: false)
             .updateFileInfo(instance.details.toString())
@@ -807,17 +932,17 @@ impl ViewerWindow
         var next: ViewerResult
         if choice.kind == .BasicText
         {
-            let basic = BasicTextView.create(me, .commandBar, .currentFile.toString())
+            let basic = BasicTextView.create(me, .viewerBar, .currentFile.toString(), &reportViewerDetails)
             next.view        = basic
             next.commands    = basic.commands
             next.revealMatch = &basicTextRevealMatch
             next.isLoading   = &basicTextIsLoading
-            next.details     = "UTF-8 · streamed"
+            next.details     = Format.toString(appStrings().ui_TextDetails, basic.encodingName())
         }
         else
         {
             let spec    = &.index.specs[choice.specIndex]
-            let request = ViewerRequest{me, .commandBar, .currentFile.toString(), &reportViewerFailure}
+            let request = ViewerRequest{me, .viewerBar, .currentFile.toString(), &reportViewerFailure, &reportViewerDetails}
             catch spec.createView(&request, &next) as viewerError
             if viewerError != null
             {
@@ -849,8 +974,13 @@ impl ViewerWindow
         .currentCommands        = next.commands
         .activeChoiceIndex      = index
         .currentView!.dockStyle = .Center
-        if .currentCommands do
-            .currentCommands!.dockStyle = .Right
+        if .currentCommands
+        {
+            .currentCommands!.dockStyle = .Center
+            .viewerBar.show()
+        }
+        else do
+            .viewerBar.hide()
         instance.view          = .currentView
         instance.commands      = .currentCommands
         instance.revealMatch   = next.revealMatch
@@ -1071,18 +1201,17 @@ impl ViewerWindow
     mtd updateFileInfo(details: string)
     {
         let baseName = Path.fileName(.currentFile.toString()) orelse .currentFile.toString()
-        var stats    = String.from(details)
+        var size: String
         let fileInfo = catch File.info(.currentFile.toString()) as infoError
-        if infoError == null
-        {
-            let size = StrConv.toDisplaySize(fileInfo.size)
-            stats = stats.isEmpty() ? String.from(size) : Format.toString("%  ·  %", stats, size)
-        }
+        if infoError == null do
+            size = StrConv.toDisplaySize(fileInfo.size)
 
         .infoNameLabel.setText(baseName)
         .infoNameLabel.toolTip = .currentFile
-        .infoStatsLabel.setText(stats)
-        .infoStatsLabel.toolTip = stats
+        .infoStatsLabel.setText(details)
+        .infoStatsLabel.toolTip = details
+        .infoSizeLabel.setText(size.toString())
+        .infoSizeLabel.toolTip = size.toString()
     }
 
     mtd selectViewer(index: u32)
@@ -1123,14 +1252,14 @@ impl ViewerWindow
                 .preferences.removeAtOrdered(entry)
             else do
                 one.viewer = viewer
-            catch g_App.saveState()
+            catch .saveState()
             return
         }
 
         if isDefault do
             return
         .preferences.add(ViewerPreference{String.from(kind), String.from(viewer)})
-        catch g_App.saveState()
+        catch .saveState()
     }
 
     // Returns the viewer the reader last chose for the kind of the open file, or the first one.
@@ -1209,12 +1338,13 @@ impl ViewerWindow
     {
         let texts = appStrings()
         .surface?.setTitle(texts.ui_WindowTitle)
-        .openButton.toolTip     = texts.ui_Open
-        .filesButton.toolTip    = texts.ui_Files
-        .previousButton.toolTip = texts.ui_Previous
-        .nextButton.toolTip     = texts.ui_Next
-        .kindButton.toolTip     = texts.ui_SameKind
-        .viewerCombo.toolTip    = texts.ui_Viewer
+        .openButton.toolTip       = texts.ui_Open
+        .filesButton.toolTip      = texts.ui_Files
+        .fullScreenButton.toolTip = .fullScreen ? texts.ui_ExitFullScreen : texts.ui_FullScreen
+        .previousButton.toolTip   = texts.ui_Previous
+        .nextButton.toolTip       = texts.ui_Next
+        .kindButton.toolTip       = texts.ui_SameKind
+        .viewerCombo.toolTip      = texts.ui_Viewer
         .searchBox.setPlaceholder(texts.ui_Search)
         .recentLabel.setText(texts.ui_Recent)
         for &instance in .instances where instance.view and !instance.failureReason.isEmpty() do
@@ -1234,7 +1364,7 @@ impl ViewerWindow
     mtd toggleFilePanel()
     {
         .setFilePanelVisible(!.panelVisible)
-        catch g_App.saveState()
+        catch .saveState()
     }
 
     mtd setFilePanelVisible(visible: bool)
@@ -1388,7 +1518,7 @@ impl ViewerWindow
         }
 
         .refreshFileLists()
-        catch g_App.saveState()
+        catch .saveState()
     }
 
     // Empties the history. What is open stays open: the list says what was read, not what is.
@@ -1396,7 +1526,7 @@ impl ViewerWindow
     {
         .recent.clear()
         .refreshFileLists()
-        catch g_App.saveState()
+        catch .saveState()
     }
 
     // Opens the file a panel row names, unless the row was selected by the refresh itself.
@@ -1456,7 +1586,7 @@ impl ViewerWindow
         .siblingsDirty = true
         if .panelVisible and !.currentFile.isEmpty() do
             .refreshFileLists()
-        catch g_App.saveState()
+        catch .saveState()
     }
 
     mtd navigate(delta: s32)

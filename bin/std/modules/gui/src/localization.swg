@@ -23,12 +23,17 @@ struct Strings
         dlg_InfoTitle:     string = "Information"                             // Title of an informational dialog.
         dlg_MultiLineHint: string = "Press Shift+Enter to add a new line"     // Keyboard hint above a multi-line dialog editor.
 
-        appearance_ToolTip:        string = "Theme and language"     // Tooltip of the application appearance caption button.
-        appearance_Theme:          string = "Theme"                  // Theme submenu label.
-        appearance_Language:       string = "Language"               // Language submenu label.
-        appearance_SystemLanguage: string = "System language"        // Language choice following the user account.
-        appearance_Dark:           string = "Dark"                   // Dark application theme.
-        appearance_Light:          string = "Light"                  // Light application theme.
+        appearance_ToolTip:        string = "Appearance and application information"     // Tooltip of the application appearance caption button.
+        appearance_Theme:          string = "Theme"                                      // Theme submenu label.
+        appearance_Language:       string = "Language"                                   // Language submenu label.
+        appearance_SystemLanguage: string = "System language"                            // Language choice following the user account.
+        appearance_Dark:           string = "Dark"                                       // Dark application theme.
+        appearance_Light:          string = "Light"                                      // Light application theme.
+        appearance_About:          string = "About..."                                   // Action opening application information.
+
+        about_Build:     string = "Build of %{f}"                                                                     // Application build date in the standard about dialog.
+        about_Source:    string = "% is open source and written in <url>Swag</url>. Its code is <url>here</url>."     // Product and source links in the standard about dialog.
+        about_Copyright: string = "Copyright © % %"                                                                   // Copyright year and holder in the standard about dialog.
 
         fileDlg_TitleSaveFile:     string = "Save File"                                   // File dialog title when saving a file.
         fileDlg_TitleSelectFile:   string = "Select File"                                 // File dialog title when picking one file.

@@ -93,6 +93,11 @@ func finishWaveform(view: *SoundViewer)
     @assert(!isEngineCreated())
     @assert(soundDurationText(0.25) == "250 ms")
     @assert(soundDurationText(2.5) == "2.50 s")
+    @assert(mediaTimeText(5.9) == "0:05")
+    @assert(mediaTimeText(65.9) == "1:05")
+    @assert(mediaTimeText(3_665.0) == "1:01:05")
+    @assert(mediaTimeRangeText(5, 65) == "0:05 / 1:05")
+    @assert(mediaTimeRangeText(0, 0.5) == "0:00 / 0:01")
 }
 
 // A WAV decoder refusal crosses the viewer boundary without constructing playback controls.
@@ -137,6 +142,7 @@ func finishWaveform(view: *SoundViewer)
     @assert(view.waveform.samples.count == 4)
     finishWaveform(view)
     @assert(view.waveform.readyCount == 4)
+    @assert(view.timeline.isEnabled() and view.timeLabel.text() == "0:00 / 0:01")
 
     // A second file opened after the engine exists must decode exactly like the first one: the
     // waveform of every file but the first went missing when a failure inside the engine was
@@ -155,6 +161,15 @@ func finishWaveform(view: *SoundViewer)
 
     view.togglePlayback()
     @assert(view.playing and view.voice != null)
+    view.seekSeconds(view.duration * 0.5)
+    @assert(view.voice!.playbackSampleFrame() == 2)
+    view.setVolume(0.4)
+    @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.4, 0.001))
+    view.setMuted(true)
+    @assert(view.muted and view.muteButton.isChecked())
+    @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0, 0.001))
+    view.setMuted(false)
+    @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.4, 0.001))
     view.togglePlayback()
     @assert(!view.playing)
     view.stopPlayback()
@@ -181,7 +196,7 @@ func finishWaveform(view: *SoundViewer)
     host.notify(.ThemeChanged)
 
     let commandBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 52})
-    commandBar.dockStyle       = .Top
+    commandBar.dockStyle       = .Bottom
     commandBar.backgroundStyle = .Window
     commandBar.padding         = {16, 8, 16, 8}
     let request = ViewerRequest{&host.root, commandBar, fileName}
@@ -191,7 +206,7 @@ func finishWaveform(view: *SoundViewer)
     let view = cast(*SoundViewer) result.view!
     finishWaveform(view)
     view.dockStyle          = .Center
-    view.commands.dockStyle = .Right
+    view.commands.dockStyle = .Center
 
     // Photographed mid-playback: the picture has to show the played part apart from the rest, the
     // play head between them, and the graduated scale under both.

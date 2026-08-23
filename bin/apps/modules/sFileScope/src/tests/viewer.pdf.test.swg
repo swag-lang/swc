@@ -50,6 +50,14 @@ private func createPdfFixture()->String
     pdf.setZoom(shown * 4)
     @assert(Math.isEqualEpsilon(pdf.effectiveZoom(), shown * 4, 0.001))
 
+    let beforeZoomOut = pdf.effectiveZoom()
+    var zoomOut       = KeyEvent{kind: .Pressed, key: .Subtract}
+    view.sendEvent(&zoomOut)
+    @assert(pdf.effectiveZoom() < beforeZoomOut)
+    var actual = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}
+    view.sendEvent(&actual)
+    @assert(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
+
     pdf.zoomToFit()
     @assert(pdf.isFitted)
     @assert(!view.previousButton.isEnabled() and view.nextButton.isEnabled())

@@ -551,6 +551,11 @@ impl MainWindow
             window.language = button.language
             catch g_App.saveState()
         }
+        result.appearanceButton.sigAboutRequested += func|window = result|(button)
+        {
+            discard button
+            window.showAbout()
+        }
 
         // One accent rule across the top identifies every standard Swag application surface.
         Separator.create(result, .Top, .Accent)
@@ -591,6 +596,20 @@ impl MainWindow
         // the three, and a hidden card holds no keyboard stop.
         result.setInitialFocus(result.initialStop())
         return result
+    }
+
+    // Opens the standard product identity and provenance dialog.
+    mtd showAbout()
+    {
+        const BuildDate = #run Time.DateTime.now()
+        let version = Format.toString("%.%.%", #swcversion, #swcrevision, #swcbuildnum)
+        let dlg     = AboutDlg.createApplication(.surface!, {
+            productName: "sVaultDrive",
+            version: version.toString(),
+            buildDate: BuildDate,
+            sourceUrl: "https://github.com/swag-lang/swc/tree/master/bin/apps/modules/sVaultDrive",
+            copyrightHolder: "Christophe Beaudet"})
+        discard dlg.doModal()
     }
 
     // The stop the window opens on: the first thing there is to fill in on the page that is up.

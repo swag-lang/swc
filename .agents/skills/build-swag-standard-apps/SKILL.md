@@ -148,7 +148,7 @@ glyph, another app's icon, or a letter tile.
 - Design both palettes together, verify narrow and minimum-size layouts, and inspect a real native
   surface rather than trusting constants alone.
 
-## Put Theme And Language In The Caption
+## Put Appearance And About In The Caption
 
 Every standard application exposes presentation choices through one
 `Gui.AppearanceButton.create(surface)` action in the title bar. The toolkit positions its dedicated
@@ -160,6 +160,10 @@ placement in application layout code.
 - Offer both shipped Swag palettes and every registered language, plus the system-language choice,
   through this menu. Do not keep a second theme picker, language combo, property-grid row, or
   options-menu entry in the application body.
+- Connect `sigAboutRequested` and open one `Gui.AboutDlg.createApplication` box after the theme and
+  language groups. Supply the product name, compiler-derived application version, build date,
+  repository source URL, and copyright holder; the shared dialog supplies the application icon,
+  wording, links, spacing, and fit. Do not keep a second About item in an application menu.
 - Restore the persisted choices while the main window is still hidden with
   `setAppearanceTheme` and `setAppearanceLanguage`. Persist the control's `appearanceTheme` and
   `language` from `sigThemeChanged` and `sigLanguageChanged`; an empty language means follow the
@@ -169,7 +173,7 @@ placement in application layout code.
   not apply the palette or language a second time.
 - A language switch must retranslate text assigned at construction and re-run any layout whose
   measurements depend on that wording. Test the caption action, both palettes, the system choice,
-  and every language the application ships.
+  every language the application ships, and the About item through its normal modal Close action.
 
 ## Keep The Chrome Small And The Air Large
 

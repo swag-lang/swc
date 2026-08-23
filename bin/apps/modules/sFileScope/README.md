@@ -2,8 +2,8 @@
 
 sFileScope is the universal read-only viewer shipped with Swag. One executable owns navigation,
 drag and drop, the shared search and information bands, the basic text surface, and every
-format-specific viewer. Viewer selection and contextual actions share one compact bar, so the
-document keeps the clear majority of the window.
+format-specific viewer. Global navigation and file information stay above the document; the
+active viewer gets a dedicated tool band below it, visible only when that viewer has commands.
 
 ## Integrated viewer registry
 
@@ -47,12 +47,15 @@ guessing an encoding.
   script, style, template, and embedded-document content never executes.
 - `Image` uses Pixel decoders for BMP, GIF, ICO, JPEG, PNG, TGA, TIFF, and WebP, plus Pixel's SVG
   parser. It provides zoom, pan, fit, actual size, rotation, transparency, and GIF playback.
-- `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, and ISO-BMFF streams. It indexes
+- `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, and ISO-BMFF streams. Its transport
+  provides play/pause, stop, ten-second seeks, a time-based timeline, elapsed/total time, mute,
+  volume, and matching keyboard controls. It indexes
   packets without decoding the file up front and materializes only the selected picture and the
   few audio buffers queued at the device. MP4, M4V, and MOV accept Motion JPEG or H.264 picture
   tracks and AAC-LC mono/stereo sound. The output-device sample cursor is the master clock: slow
   picture decoding drops to a clean video sync frame without moving or stretching sound.
-- `Sound` uses the Audio module to stream PCM or float WAV files. Playback does not retain the
+- `Sound` uses the Audio module to stream PCM or float WAV files. Its transport provides the same
+  basic time, seek, mute, volume, and keyboard controls as video. Playback does not retain the
   complete payload, and a low-priority worker builds the waveform from bounded blocks.
 - `Font` renders TrueType fonts and the first face of a TrueType collection as a live specimen.
   Its paged character map walks mapped Unicode scalars without materializing the whole map.
@@ -70,14 +73,16 @@ scan with format-aware search. The information band shows a spinner while the ac
 still producing visible content, and switching viewers retires hidden progressive work.
 
 The application stores its palette, language, window state, recent files, and remembered viewer
-choices in the user's application-data folder. It navigates the current folder with Left/Right,
-reloads with F5, opens with Ctrl+O, and accepts one file dropped anywhere on the surface. An
+choices in the user's application-data folder. It toggles full screen with F11, navigates the
+current folder with Left/Right, reloads with F5, opens with Ctrl+O, and accepts one file dropped
+anywhere on the surface. Audio and video claim bare Left/Right for ten-second seeks while active,
+and use Space for play/pause and M for mute. An
 installer may run `sFileScope.exe --register-file-types`; normal launches never write the registry.
 
-A right click names what a file offers. On the band under the document it answers for the open
-file, and on a panel row for the file that row names: show it in the system file explorer, or hand
-it to the system chooser of applications. A row of the history offers two more, because the
-history is the one list the reader owns: drop that file from it, or clear it entirely. Nothing
+A right click names what a file offers. On the information band above the document it answers for
+the open file, and on a panel row for the file that row names: show it in the system file explorer,
+or hand it to the system chooser of applications. A row of the history offers two more, because
+the history is the one list the reader owns: drop that file from it, or clear it entirely. Nothing
 here writes to the file, and the chooser runs in its own process.
 
 ## Adding a viewer

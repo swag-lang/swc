@@ -53,6 +53,7 @@ struct BasicTextView
     encoding:          Text.Encoding
     contentStart:      u64
     wrapping = true
+    reportDetails:     #null ViewerReportDetails
 }
 
 func basicTextRevealMatch(wnd: *Wnd, offset: u64, text: string)->bool
@@ -64,6 +65,13 @@ func basicTextIsLoading(wnd: *Wnd)->bool => (cast(*BasicTextView) wnd).loadTimer
 
 impl BasicTextView
 {
+    mtd encodingName()->string
+    {
+        for candidate, index in TextEncodings where candidate == .encoding do
+            return TextEncodingNames[index]
+        return TextEncodingNames[0]
+    }
+
     // Reads the head of a file once and reports how it spells its characters.
     //
     // Deciding and accepting are two questions: code page 1252 gives every byte a meaning, so an
@@ -289,6 +297,8 @@ impl BasicTextView
         .contentStart  = Text.hasBom(head.toSlice(), encoding) ? Text.bomLength(encoding) : 0
         .virtualHeight = 0
         discard .revealOffset(Math.max(.residentStart, .contentStart), "")
+        if .reportDetails do
+            .reportDetails!(me, Format.toString(appStrings().ui_TextDetails, .encodingName()))
     }
 
     mtd toggleWrap()
@@ -340,11 +350,12 @@ impl IWnd for BasicTextView
 
 impl BasicTextView
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string)->*BasicTextView
+    func create(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails = null)->*BasicTextView
     {
         let result = Wnd.create'BasicTextView(contentParent, "sFileScope.basicText")
         result.backgroundStyle = .View
         result.fileName        = fileName
+        result.reportDetails   = reportDetails
 
         let probed = probe(fileName)
         result.encoding     = probed.encoding

@@ -10,6 +10,8 @@ ui_WrapOn       Retour
 ui_WrapOff      Sans retour
 ui_Encoding     Encodage des caractères
 ui_Files        Fichiers à côté de celui-ci
+ui_FullScreen   Plein écran (F11)
+ui_ExitFullScreen Quitter le plein écran (F11)
 ui_SameKind     Seulement les fichiers du même type
 ui_Recent       Récents
 ui_Folder       Dossier
@@ -23,6 +25,7 @@ ui_NoMatch      Aucun résultat
 ui_Searching    Recherche…
 ui_DropTitle    Déposez un fichier pour l'afficher
 ui_Ready        Prêt
+ui_TextDetails  % · en flux
 ui_Unsupported  Aucune visionneuse ne peut afficher ce fichier.
 ui_OpenStopped  Le fichier n'a pas pu être affiché.
 ui_ViewerError  Cette visionneuse n'a pas pu décoder le fichier.

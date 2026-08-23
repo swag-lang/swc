@@ -4,21 +4,23 @@ using Core, Gui
 // document. The set is rasterized on demand per size and scale through [[Gui.IconSet]], so every
 // glyph stays sharp at any display density.
 //
-// One glyph per viewer, and no glyph without a viewer: the selector names the viewer beside its
-// mark, so a mark shared by two viewers would say less than the name it stands next to.
+// Viewer glyphs lead the atlas in registry order. The application actions that follow use the
+// same grid and weight, so global and viewer-specific command bars remain one visual family.
 enum ViewerIcons
 {
-    Html         // Markup document viewer.
-    Code         // Source-code viewer.
-    Markdown     // Markdown document viewer.
-    Image        // Picture viewer.
-    Video        // Movie player.
-    Pdf          // PDF document viewer.
-    Sound        // Waveform player.
-    Font         // Type-specimen viewer.
-    Binary       // Executable and archive inspector.
-    Hex          // Raw byte viewer.
-    Text         // Plain text viewer.
+    Html               // Markup document viewer.
+    Code               // Source-code viewer.
+    Markdown           // Markdown document viewer.
+    Image              // Picture viewer.
+    Video              // Movie player.
+    Pdf                // PDF document viewer.
+    Sound              // Waveform player.
+    Font               // Type-specimen viewer.
+    Binary             // Executable and archive inspector.
+    Hex                // Raw byte viewer.
+    Text               // Plain text viewer.
+    FullScreen         // Enter-full-screen action.
+    ExitFullScreen     // Leave-full-screen action.
 }
 
 private const IconsSvg = #include("../datas/icons.svg")

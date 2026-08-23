@@ -107,6 +107,22 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     @assert(window.startupVaults.isEmpty())
 }
 
+// The caption appearance action reaches the standard application about dialog.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    @assert(!window.appearanceButton.sigAboutRequested.isEmpty())
+    host.clickModalButtonWhenShown(Dialog.BtnCancel)
+    window.showAbout()
+    host.pump()
+
+    @assert(host.autoHandled)
+    @assert(host.openedSurfaceCount() == 0)
+}
+
 // A card's form has to end inside the card, in every language.
 //
 // A card is exactly as tall as the page it fills and no taller: a form that grows past its body

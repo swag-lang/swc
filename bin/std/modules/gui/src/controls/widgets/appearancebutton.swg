@@ -9,11 +9,12 @@ enum AppearanceTheme
     Light     // Uses the light Swag palette.
 }
 
-// Hosts the standard theme and language menu in an application title bar.
+// Hosts the standard theme, language, and application-information menu in a title bar.
 //
 // An empty [[language]] follows the user account. A non-empty value is a tag registered through
 // [[Gui.registerLanguage]]. The control applies both choices before emitting their signals, so an
-// application only has to persist them and refresh state derived from the palette.
+// application only has to persist them and refresh state derived from the palette. The About item
+// is present when [[sigAboutRequested]] has a callback.
 struct AppearanceButton
 {
     public
@@ -22,6 +23,7 @@ struct AppearanceButton
 
         sigThemeChanged:    SigArray'func||(*AppearanceButton)     // Emitted after the user changes the theme.
         sigLanguageChanged: SigArray'func||(*AppearanceButton)     // Emitted after the user changes the language.
+        sigAboutRequested:  SigArray'func||(*AppearanceButton)     // Emitted after the user chooses the About item.
 
         readonly
         {
@@ -34,6 +36,7 @@ struct AppearanceButton
 private const AppearanceThemeDarkId = "Gui.Appearance.Theme.Dark"
 private const AppearanceThemeLightId = "Gui.Appearance.Theme.Light"
 private const AppearanceLanguageSysId = "Gui.Appearance.Language.System"
+private const AppearanceAboutId = "Gui.Appearance.About"
 
 impl IWnd for AppearanceButton
 {
@@ -102,6 +105,13 @@ impl AppearanceButton
 
     private mtd showAppearanceMenu()
     {
+        let root = .createAppearanceMenu()
+        let rect = .surfaceRect()
+        .applyAppearanceSelection(root.doModal({rect.horzCenter(), rect.bottom()}, .AnchorTopCenter, autoDestroy: true))
+    }
+
+    private mtd createAppearanceMenu()->*MenuCtrl
+    {
         let root = MenuCtrl.createPopup(me, owner: me)
         root.updateFlags(.HideShortcuts)
 
@@ -116,14 +126,25 @@ impl AppearanceButton
             languageMenu.addItem(one.nativeName.toString(), one.tag.toString(), checked: !.language.isEmpty() and one.tag == .language)
         root.addPopup(strings().appearance_Language, languageMenu)
 
-        let rect     = .surfaceRect()
-        let selected = root.doModal({rect.horzCenter(), rect.bottom()}, .AnchorTopCenter, autoDestroy: true)
+        if !.sigAboutRequested.isEmpty()
+        {
+            root.addSeparator()
+            root.addItem(strings().appearance_About, AppearanceAboutId, icon: .theme().icon(.About))
+        }
+
+        return root
+    }
+
+    internal mtd applyAppearanceSelection(selected: #null WndId)
+    {
         if selected == AppearanceThemeDarkId do
             .setAppearanceTheme(.Dark, notify: true)
         elif selected == AppearanceThemeLightId do
             .setAppearanceTheme(.Light, notify: true)
         elif selected == AppearanceLanguageSysId do
             discard catch .setAppearanceLanguage("", notify: true)
+        elif selected == AppearanceAboutId do
+            .sigAboutRequested.call(me)
         elif selected and findLanguage(selected!) do
             discard catch .setAppearanceLanguage(selected!, notify: true)
     }

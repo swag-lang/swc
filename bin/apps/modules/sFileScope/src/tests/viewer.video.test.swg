@@ -85,10 +85,17 @@ func videoAudioFixturePath()->String
     @assert(view.details.indexOf("160") != Swag.U64.Max)
     @assert(view.details.indexOf("4 frames") != Swag.U64.Max)
     @assert(view.details.indexOf("Swag CPU") != Swag.U64.Max)
+    @assert(view.timeLabel.text() == "0:00 / 0:01")
 
     view.seekFrame(2)
     waitForVideoFrame(view)
     @assert(view.frameIndex == 2)
+    view.seekRelative(-10)
+    waitForVideoFrame(view)
+    @assert(view.frameIndex == 0)
+    view.seekRelative(10)
+    waitForVideoFrame(view)
+    @assert(view.frameIndex == 3)
     view.timeline.setValue(3)
     waitForVideoFrame(view)
     @assert(view.frameIndex == 3)
@@ -115,7 +122,7 @@ func videoAudioFixturePath()->String
     host.notify(.ThemeChanged)
 
     let commandBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 52})
-    commandBar.dockStyle       = .Top
+    commandBar.dockStyle       = .Bottom
     commandBar.backgroundStyle = .Window
     commandBar.padding         = {16, 8, 16, 8}
     let request = ViewerRequest{&host.root, commandBar, fileName}
@@ -125,7 +132,7 @@ func videoAudioFixturePath()->String
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
     view.dockStyle          = .Center
-    view.commands.dockStyle = .Right
+    view.commands.dockStyle = .Center
     view.seekFrame(2)
     waitForVideoFrame(view)
 
@@ -169,6 +176,13 @@ func videoAudioFixturePath()->String
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
     @assert(view.audio != null and view.voice != null and view.video.audioTrackCount() == 1)
+    view.setVolume(0.35)
+    @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.35, 0.001))
+    view.setMuted(true)
+    @assert(view.muted and view.muteButton.isChecked())
+    @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0, 0.001))
+    view.setMuted(false)
+    @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.35, 0.001))
 
     view.togglePlayback()
     @assert(view.playing and view.voice!.isPlaying())

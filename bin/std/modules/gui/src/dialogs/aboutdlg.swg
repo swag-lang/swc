@@ -3,16 +3,21 @@ using Core, Pixel
 // Displays application identity, title, descriptive rich text, and optional icons.
 public struct AboutDlg
 {
-    public using dialog: Dialog     // Embedded dialog state.
-    public readonly
+    public
     {
-        #[Swag.Late]
+        using dialog: Dialog     // Embedded dialog state.
+        readonly
         {
-            labelIcon:         *Label     // Optional large application icon.
-            labelMessageTitle: *Label     // Prominent application or product title.
-            labelMessage:      *Label     // Rich descriptive message.
+            #[Swag.Late]
+            {
+                labelIcon:         *Label     // Optional large application icon.
+                labelMessageTitle: *Label     // Prominent application or product title.
+                labelMessage:      *Label     // Rich descriptive message.
+            }
         }
     }
+
+    sourceUrl: String     // Source page owned for the lifetime of an application about dialog.
 }
 
 // Configures the content and icons of an [[Gui.AboutDlg]].
@@ -28,8 +33,60 @@ public struct AboutDlgParams
     }
 }
 
+// Configures the standard identity and provenance shown for an application.
+public struct ApplicationAboutDlgParams
+{
+    public
+    {
+        productName:     string            // Product name used by the surface and content heading.
+        version:         string            // Version appended to the product heading.
+        buildDate:       Time.DateTime     // Build date reported in the first paragraph.
+        sourceUrl:       string            // Source page opened by the source link.
+        copyrightHolder: string            // Holder named after the build year.
+    }
+}
+
 public impl AboutDlg
 {
+    // Creates the standard application about dialog from product identity and provenance.
+    //
+    // The application icon supplies both marks. The dialog owns the source URL until it closes
+    // and opens it from the second link; the first link opens the Swag website.
+    #[Swag.Discardable]
+    func createApplication(from: *Surface, params: ApplicationAboutDlgParams)->*AboutDlg
+    {
+        let texts = strings()
+
+        var message: String
+        message += Format.toString(texts.about_Build, params.buildDate)
+        message += "\n\n"
+        message += Format.toString(texts.about_Source, params.productName)
+        message += "\n\n"
+        message += Format.toString(texts.about_Copyright, params.buildDate.year, params.copyrightHolder)
+
+        let app     = from.app
+        let metrics = app.theme.metrics
+        let colors  = app.theme.colors
+        let title   = Format.toString("% %", params.productName, params.version)
+        let dlg     = create(from, {
+            surfaceTitle: params.productName,
+            contentTitle: title.toString(),
+            message: message.toString(),
+            surfaceIcon: app.appIconAt(metrics.wnd_CaptionIconSize, colors.wnd_CaptionBk),
+            contentIcon: app.appIconAt(64, colors.dlg_Bk)})
+        dlg.sourceUrl = String.from(params.sourceUrl)
+        dlg.labelMessage.sigLinkActivated += func|dlg|(label, text)
+        {
+            discard label
+            if text == "Swag" do
+                Env.openUrl("https://www.swag-lang.org/")
+            elif !dlg.sourceUrl.isEmpty() do
+                Env.openUrl(dlg.sourceUrl.toString())
+        }
+
+        return dlg
+    }
+
     // Creates an about dialog; a zero width uses 500 units and a zero height fits the content.
     #[Swag.Discardable]
     func create(from: *Surface, params: AboutDlgParams, width, height: s32 = 0)->*AboutDlg

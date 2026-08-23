@@ -131,6 +131,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     view.applyLayout()
 
     @assert(view.encoding == .Utf16Le)
+    @assert(view.encodingName() == "UTF-16 LE")
     @assert(view.editor.text() == "Hello, wide world")
     @assert(view.encodingCombo.selectedIndex == 1)
 }
@@ -603,6 +604,24 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.themeColors().view_Bk == 0xFFFFFFFF)
 }
 
+// The caption appearance action reaches the standard application about dialog.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let index  = createViewerIndex()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    @assert(!window.appearanceButton.sigAboutRequested.isEmpty())
+    host.clickModalButtonWhenShown(Dialog.BtnCancel)
+    window.showAbout()
+    host.pump()
+
+    @assert(host.autoHandled)
+    @assert(host.openedSurfaceCount() == 0)
+}
+
 // Finds a match split across scanner chunks in a multi-megabyte file and materializes it in the
 // resident text window without losing the virtual scroll range.
 #test
@@ -667,10 +686,13 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.viewerCombo.parent == window.commandBar)
     @assert(window.appearanceButton.parent == &host.surfaceWnd)
     @assert(window.searchBox.parent == window.commandBar)
+    @assert(window.fullScreenButton.parent == window.commandBar)
+    @assert(window.fullScreenButton.flags.has(.Toggle) and window.fullScreenButton.checkIndicator == .Frame)
     @assert(window.searchBox.isLocallyVisible() and !window.searchBox.isEnabled())
     @assert(window.infoBar.position.height == ViewerInfoHeight)
-    @assert(window.infoBar.dockStyle == .Bottom)
+    @assert(window.infoBar.dockStyle == .Top)
     @assert(window.infoBar.backgroundStyle != window.backgroundStyle)
+    @assert(window.viewerBar.dockStyle == .Bottom and !window.viewerBar.isLocallyVisible())
     @assert(window.openButton.position.x < window.previousButton.position.x)
     @assert(window.openButton.position.x < window.searchBox.position.x)
     @assert(window.searchBox.position.x < window.previousButton.position.x)
@@ -687,14 +709,40 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(!window.viewerCombo.isLocallyVisible())
     Testing.assertContentFits(window)
 
-    // The widest shipped contextual bar (animated images) still starts after the viewer selector
-    // at the declared minimum width.
+    // Viewer tools have their own full-width band and cannot collide with the global selector.
     window.resize(ViewerMinWidth, 680)
     window.viewerCombo.show()
-    let widestCommands = Wnd.create'Wnd(window.commandBar, {0, 0, 590, 36})
-    widestCommands.dockStyle = .Right
+    let widestCommands = Wnd.create'Wnd(window.viewerBar, {0, 0, 0, 36})
+    widestCommands.dockStyle = .Center
+    window.viewerBar.show()
     window.applyLayout()
-    @assert(window.viewerCombo.position.right() <= widestCommands.position.x)
+    @assert(window.viewerCombo.parent == window.commandBar and widestCommands.parent == window.viewerBar)
+    @assert(window.viewerCombo.position.bottom() <= window.infoBar.position.y)
+    @assert(widestCommands.position.y >= window.viewerBar.clientRect().y)
+}
+
+// F11 and the matching command preserve the exact window state around a monitor-sized,
+// borderless presentation.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let index    = createViewerIndex()
+    let window   = ViewerWindow.create(&host.surfaceWnd, #move index)
+    let position = host.surface.position
+    let flags    = host.surface.flags
+
+    var key = KeyEvent{kind: .Pressed, key: .F11}
+    window.sendEvent(&key)
+    @assert(window.fullScreen and window.fullScreenButton.isChecked)
+    @assert(host.surface.flags.has(.NoShadow) and host.surface.flags.has(.TopMost))
+    @assert(!host.surface.flags.has(.LargeCaption) and !host.surface.flags.has(.Border))
+
+    window.setFullScreen(false)
+    @assert(!window.fullScreen and !window.fullScreenButton.isChecked)
+    @assert(host.surface.flags == flags and host.surface.position == position)
 }
 
 // The framework owns one centered, themed presentation for every viewer decoder reason.
@@ -734,7 +782,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let index    = createViewerIndex()
     let window   = ViewerWindow.create(&host.surfaceWnd, #move index)
     let failed   = Wnd.create'Wnd(window)
-    let commands = Wnd.create'Wnd(window.commandBar)
+    let commands = Wnd.create'Wnd(window.viewerBar)
     window.choices.add(ViewerChoice{.Viewer, 0, "Decoder"})
     window.instances.add(ViewerInstance{view: failed, commands: commands})
     window.currentView       = failed
@@ -798,7 +846,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let index  = createViewerIndex()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.currentView     = Wnd.create'Wnd(window)
-    window.currentCommands = Wnd.create'Wnd(window.commandBar)
+    window.currentCommands = Wnd.create'Wnd(window.viewerBar)
     window.instances.resize(1)
     window.instances[0].view     = window.currentView
     window.instances[0].commands = window.currentCommands
@@ -845,13 +893,13 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let cachedView     = window.currentView
     let cachedCommands = window.currentCommands
     let childCount     = window.children.count
-    let commandCount   = window.commandBar.children.count
+    let commandCount   = window.viewerBar.children.count
     window.activeChoiceIndex = 1
     @assert(window.activateChoice(0))
     @assert(window.currentView == cachedView)
     @assert(window.currentCommands == cachedCommands)
     @assert(window.children.count == childCount)
-    @assert(window.commandBar.children.count == commandCount)
+    @assert(window.viewerBar.children.count == commandCount)
     @assert(window.surface!.wnd.name.raw == appStrings().ui_WindowTitle)
 }
 
@@ -914,8 +962,8 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     Pixel.Testing.assertImageGolden(&image, "sfilescope.surface")
 }
 
-// Pins the open-document composition in both application palettes: navigation, viewer selection
-// and contextual actions share one row above the document, with persistent file identity below.
+// Pins the open-document composition in both application palettes: global navigation and file
+// identity stay above the document, while the active viewer owns the dedicated band below it.
 #test
 {
     var host: Testing.HeadlessHost
@@ -935,7 +983,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     host.settleAnimations(window, 4)
 
     @assert(window.viewerCombo.isLocallyVisible())
-    @assert(window.currentCommands!.parent == window.commandBar)
+    @assert(window.currentCommands!.parent == window.viewerBar and window.viewerBar.isLocallyVisible())
     @assert(window.searchBox.isLocallyVisible() and window.searchBox.isEnabled())
     var dark = host.render(window)
     Pixel.Testing.assertImageGolden(&dark, "sfilescope.viewer.dark")

@@ -95,6 +95,28 @@ using Swag, Core
     @assert(Math.abs(dlg.surface!.position.height - Math.ceil(expected) * dlg.surface!.dpiScale) < 0.5)
 }
 
+// The application form supplies the common version, build, source, copyright, and icon shape.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    defer host.shutdown()
+
+    let icon = Image.create(32, 32, .RGBA8)
+    host.app.setAppIcon(icon)
+    let dlg = AboutDlg.createApplication(&host.surface, {
+        productName: "sTestBench",
+        version: "1.2.3",
+        buildDate: {year: 2026, month: 8, day: 23},
+        sourceUrl: "https://example.com/source",
+        copyrightHolder: "Test Holder"})
+
+    @assert(dlg.surface!.wnd.name.raw == "sTestBench")
+    @assert(dlg.labelMessageTitle.text() == "sTestBench 1.2.3")
+    @assert(Utf8.contains(dlg.labelMessage.text(), "Test Holder"))
+    @assert(dlg.labelIcon.icon.isValid())
+}
+
 // A question is as wide as its actions need, and never narrower than the family's floor.
 #test
 {

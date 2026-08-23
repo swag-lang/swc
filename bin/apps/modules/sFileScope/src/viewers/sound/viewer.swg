@@ -3,6 +3,7 @@
 using Core, Pixel, Gui, Audio, Threading
 
 private const SoundGlyphSize = 18.0
+private const SoundSeekSeconds = 10.0
 
 // Slices the payload is reduced to. It is read back one column of pixels at a time, so it only
 // has to stay ahead of the widest plot a window can give it; past that the columns repeat.
@@ -300,10 +301,16 @@ internal struct SoundViewer
 
     #[Swag.Late]
     {
-        commands:   *Wnd
-        playButton: *IconButton
-        stopButton: *IconButton
-        waveform:   *SoundWaveformView
+        commands:       *Wnd
+        playButton:     *IconButton
+        stopButton:     *IconButton
+        backwardButton: *PushButton
+        forwardButton:  *PushButton
+        timeline:       *Slider
+        timeLabel:      *Label
+        muteButton:     *CheckButton
+        volumeSlider:   *Slider
+        waveform:       *SoundWaveformView
     }
 
     sound:          SoundFile
@@ -316,6 +323,8 @@ internal struct SoundViewer
     elapsed:        f32
     engineReady:    bool
     playing:        bool
+    muted:          bool
+    volume = 1'f32
     details:        String
 }
 
@@ -431,20 +440,63 @@ internal impl SoundViewer
         .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, SoundGlyphSize))
         .playButton.toolTip = .playing ? soundStrings().ui_TipPause : soundStrings().ui_TipPlay
         .stopButton.enable(.voice != null)
+        .timeline.setValueWithoutGesture(.elapsed)
+        .timeLabel.setText(mediaTimeRangeText(.elapsed, .duration))
         .waveform.progress = .duration > 0 ? .elapsed / .duration : 0
         .waveform.invalidate()
+    }
+
+    mtd ensureVoice()->bool
+    {
+        if .voice do
+            return true
+        .voice = catch Voice.create(&.sound)! as createError
+        if createError != null or !.voice do
+            return false
+        catch .voice!.setVolume(.muted ? 0 : .volume)
+        return true
+    }
+
+    mtd seekSeconds(seconds: f32)
+    {
+        if !.engineReady or !.ensureVoice() do
+            return
+        let target = Math.clamp(seconds, 0, .duration)
+        let frame  = cast(u64) Math.round(target * cast(f32) .sound.sampleRateHz())
+        catch .voice!.seekSampleFrame(frame) as seekError
+        if seekError != null do
+            return
+        .elapsed = target
+        .updatePlaybackUi()
+    }
+
+    mtd seekRelative(seconds: f32)
+    {
+        let current = .voice ? cast(f32) .voice!.playbackPositionSeconds() : .elapsed
+        .seekSeconds(current + seconds)
+    }
+
+    mtd setMuted(muted: bool)
+    {
+        .muted = muted
+        .muteButton.setState(muted ? .Checked : .Unchecked)
+        if .voice do
+            catch .voice!.setVolume(muted ? 0 : .volume)
+    }
+
+    mtd setVolume(volume: f32)
+    {
+        .volume = Math.clamp(volume, 0, 1)
+        if .voice and !.muted do
+            catch .voice!.setVolume(.volume)
     }
 
     mtd togglePlayback()
     {
         if !.engineReady do
             return
-        if !.voice
-        {
-            .voice = catch Voice.create(&.sound)! as createError
-            if createError != null or !.voice do
-                return
-        }
+        if !.ensureVoice() do
+            return
 
         if .playing
         {
@@ -490,9 +542,9 @@ internal impl IWnd for SoundViewer
         }
 
         .syncWaveform()
-        if !.playing do
+        if !.playing or !.voice do
             return
-        .elapsed += 0.033
+        .elapsed = cast(f32) .voice!.playbackPositionSeconds()
         if .elapsed >= .duration
         {
             .stopPlayback()
@@ -532,10 +584,21 @@ internal impl IWnd for SoundViewer
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if evt.kind == .Pressed and evt.key == .Space do
-            .togglePlayback()
-        else do
+        if evt.kind != .Pressed or evt.modifiers != .None
+        {
             evt.accepted = false
+            return
+        }
+
+        switch evt.key
+        {
+        case .Space, .MediaPlayPause: .togglePlayback()
+        case .Left:                   .seekRelative(-SoundSeekSeconds)
+        case .Right:                  .seekRelative(SoundSeekSeconds)
+        case .M, .VolumeMute:         .setMuted(!.muted)
+        case .MediaStop:              .stopPlayback()
+        default:                      evt.accepted = false
+        }
     }
 }
 
@@ -547,7 +610,7 @@ internal impl SoundViewer
         let result = Wnd.create'SoundViewer(contentParent, "sFileScope.sound")
         result.backgroundStyle = .View
 
-        result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, 80, 36})
+        result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, 0, 36})
         result.commands.backgroundStyle = .Window
         with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, SoundGlyphSize), {0, 0, 36, 36})
         {
@@ -574,6 +637,72 @@ internal impl SoundViewer
             }
         }
 
+        with result.backwardButton = PushButton.create(result.commands, "-10 s", {0, 0, 64, 36})
+        {
+            .dockStyle  = .Left
+            .margin.x   = 8
+            .toolTip    = soundStrings().ui_TipBackward
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                view.seekRelative(-SoundSeekSeconds)
+            }
+        }
+
+        with result.forwardButton = PushButton.create(result.commands, "+10 s", {0, 0, 64, 36})
+        {
+            .dockStyle  = .Left
+            .margin.x   = 8
+            .toolTip    = soundStrings().ui_TipForward
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                view.seekRelative(SoundSeekSeconds)
+            }
+        }
+
+        with result.volumeSlider = Slider.create(result.commands, {0, 0, 96, 36})
+        {
+            .dockStyle = .Right
+            .margin    = {8, 1, 0, 1}
+            .toolTip   = soundStrings().ui_TipVolume
+            .setBounds(0, 1, 0.05)
+            .setValueWithoutGesture(1)
+            .sigChanged += func|view = result|(slider)
+            {
+                view.setVolume(slider.value())
+            }
+        }
+
+        with result.muteButton = CheckButton.create(result.commands, soundStrings().ui_Mute, {0, 0, 84, 36})
+        {
+            .dockStyle  = .Right
+            .margin.x   = 8
+            .toolTip    = soundStrings().ui_TipMute
+            .sigChanged += func|view = result|(button)
+            {
+                view.setMuted(button.isChecked())
+            }
+        }
+
+        with result.timeLabel = Label.create(result.commands, "", {0, 0, 112, 36}, null, .SecondaryText)
+        {
+            .dockStyle = .Right
+            .margin.x  = 8
+            .setTextAlignment(.Right, .Center)
+        }
+
+        with result.timeline = Slider.create(result.commands, {0, 0, 0, 36})
+        {
+            .dockStyle    = .Center
+            .margin       = {12, 1, 12, 1}
+            .toolTip      = soundStrings().ui_TipSeek
+            .sigEndChange += func|view = result|(slider)
+            {
+                view.seekSeconds(slider.value())
+            }
+        }
+
         result.waveform                 = Wnd.create'SoundWaveformView(result, "sFileScope.sound.waveform")
         result.waveform.dockStyle       = .Center
         result.waveform.backgroundStyle = .View
@@ -581,6 +710,8 @@ internal impl SoundViewer
         result.sound             = #move sound
         result.duration          = result.sound.durationInSeconds()
         result.waveform.duration = result.duration
+        if result.duration > 0 do
+            result.timeline.setBounds(0, result.duration, Math.min(0.01'f32, result.duration / 100))
         result.startWaveform()
         let durationText = soundDurationText(result.duration)
         result.details     = Format.toString(soundStrings().ui_Details, result.sound.sampleRateHz(), channelCountText(result.sound.numChannels()), result.sound.sampleStorageBits(), durationText)
@@ -588,6 +719,11 @@ internal impl SoundViewer
         result.timer       = result.addTimer(33'ms)
         if result.engineReady do
             result.playButton.enable(true)
+        result.backwardButton.enable(result.engineReady and result.duration > 0)
+        result.forwardButton.enable(result.engineReady and result.duration > 0)
+        result.timeline.enable(result.engineReady and result.duration > 0)
+        result.muteButton.enable(result.engineReady)
+        result.volumeSlider.enable(result.engineReady)
         result.updatePlaybackUi()
         if !result.engineReady do
             result.playButton.toolTip = soundStrings().ui_NoEngine

@@ -88,6 +88,9 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
 - Intent: complete signed and unsigned integer-to-float, the float-to-integer directions beyond
   the existing four-lane `f32` to `s32` truncation, and widening/narrowing numeric conversions
   distinct from bit reinterpretation and saturating pack.
+- Cost of the gap: the JPEG encoder converts colour with packed 16.16 arithmetic but its forward
+  transform reads floats, and with no `s32` to `f32` lane conversion the samples have to land in a
+  `s16` staging array that the transform then converts one lane at a time.
 - Complete when: every legal 128-bit conversion has specified overflow/NaN behavior, constant and
   runtime coverage, idiomatic hardware lowering, and wider equivalents where the target supports
   them.
@@ -416,8 +419,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
 
 ### T-548 — PNG packed samples, filters, and color conversion remain scalar
 
-- Intent: complete non-paletted color conversion, decoder Sub for byte strides 1/3/6, and decoder
-  Average/Paeth with prefix-scan strategies where left dependencies require them.
+- Intent: complete non-paletted color conversion and decoder Sub for byte strides 1/3/6.
   Decode and encode `Up` now process 64 bytes per iteration (1.59x and 1.27x), exact RGB/RGBA
   16-to-8 reduction processes eight samples per iteration (1.27x), and 4-bit expansion processes
   32 samples per iteration (1.34x). The 1-bit and 2-bit paths now expand 16 samples per iteration
@@ -448,50 +450,47 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   three-byte stride they leave scalar is the commonest PNG pixel layout. PNG is also the one place
   where the window biased the other way: the encoder Paeth figures were measured against a scalar
   `filterPaeth` calling `Math.abs` three times per byte, against roughly a quarter of a call per
-  byte on the packed side, so 3.24x and 3.55x are inflated. Decoder `Average` and `Paeth` are
-  still byte-at-a-time and have never been measured at all; the libpng SSE2 kernels carry the left
-  dependency in a register rather than through memory, which is exactly the shape a call made
-  hopeless. Note the ceiling before spending: Inflate dominates the large fixtures, so a 2x filter
-  or conversion kernel shows as 1.02x end to end.
+  byte on the packed side, so 3.24x and 3.55x are inflated.
+  Decoder `Average` and `Paeth` now widen one whole pixel to a lane per byte and carry the left
+  pixel in a register, the shape libpng's SSE2 kernels use; a pixel is at most eight bytes wide at
+  any depth, so one kernel covers every stride from two upward. Timed against the scalar form in
+  the same process over 441 rows of a 2,640-byte scanline, Paeth improves from 5,999 to 3,690 us
+  (1.63x) and Average from 1,265 to 1,204 us (1.05x) — Average was already cheap enough that the
+  packed form only pays for the load and store. The rewrite also bounds both by the row: the
+  scalar prefix wrote `bytesPerPixel` bytes without checking the row length, which overran a
+  narrow Adam7 pass whose stride is shorter than one pixel.
+  Note the ceiling before spending: a decode is about two-thirds Inflate, so a 2x filter or
+  conversion kernel shows as a few percent end to end.
 - Complete when: the PNG fixture corpus is byte/pixel identical, malformed inputs remain rejected,
   every filter and bit depth covers odd tails, and encode/decode throughput improves.
 - Related: T-514, T-516, T-517, T-520.
 
-### T-549 — JPEG DCT, IDCT, quantization, and color conversion remain scalar
+### T-549 — The JPEG forward transform and quantization remain scalar
 
-- Intent: vectorize RGB/YCbCr conversion, chroma upsampling, 8x8 FDCT/IDCT, and quantization with
-  explicit rounding semantics. A six-shuffle prototype for the eight-pixel direct-RGB planar pack
-  regressed 192 MiB in native Release from 62,379 to 224,940 us (3.61x slower), so it was discarded.
-  The common H2V2 YCbCr path was then tried with the new `s32x4` gather, amortizing four chroma
-  lookups over sixteen output pixels. Forty 1024x768 decodes regressed from 682,359 to 752,853 us
-  on the portable target (1.10x slower) and from 612,948 to 791,885 us with AVX2 (1.29x slower).
-  Recomputing the LUT coefficients as packed fixed-point arithmetic regressed portable decoding
-  to 2,362,812 us (3.46x slower), and replacing the eight contiguous IDCT DC stores by one SIMD
-  splat/store regressed a 32 MiB microkernel from 5,650 to 5,760 us (1.02x slower). A byte-exact
-  second IDCT pass that kept four columns packed through the complete `s32` butterfly regressed the
-  measured transform stage from 80,085 to 132,055 us (1.65x slower). A block-level DC fast path
-  applied to 32.6% of the H2V2 fixture but still regressed paired median IDCT time by 10.9% and
-  end-to-end decode by 1.8%, because its seven-row zero test ran on every block. All prototypes
-  were discarded. Grayscale MCU-row copies now move each eight-pixel block with one `u64`
-  load/store; 100 complete 660x441 decodes improve from 767,355 to 720,712 us (1.06x). Pairing two
-  blocks into one `U64x2` store regressed that result to 760,409 us (1.06x slower) and was rejected.
-  Replacing the fixed 128-byte coefficient `Memory.copy` before each IDCT with eight explicit
-  vector transfers also regressed 20,000,000 hot copies from 201,741 to 464,830 us (2.30x slower).
-  The coefficient row is disposable, so the IDCT now runs in place and clears each block afterward;
-  as in libjpeg-turbo, baseline Huffman decoding can then rely on pre-zeroed blocks and drops its
-  stale-coefficient bounds and sparse clearing. Seven pinned samples of twenty complete 2048x2048
-  H2V2 decodes improve from a 1,652,390 us median to 1,553,230 us (1.06x), with identical pixel
-  checksums.
-  JPEG still needs a lower-shuffle combined conversion/packing layout, narrower IDCT arithmetic,
-  or cheaper backend packed multiply/narrow sequences rather than isolated SIMD work.
-  There is no packed code in `pixel/src/image/decode/jpg` at all, and every prototype above was
-  measured inside the call window — including the six-shuffle planar pack and the packed
-  fixed-point conversion, which are pure data movement and therefore the two worst served by it.
-  The conclusion just above was drawn from those numbers and does not survive them. The entry also
-  has no stage profile: measure the Huffman, IDCT and conversion split of a baseline decode before
-  choosing which one to pack.
-- Complete when: baseline and progressive fixtures preserve accepted pixel tolerances, coefficient
-  extremes are covered, and encode/decode stages improve independently.
+- State: the decoder is packed. Colour conversion of every layout, the direct-RGB interleave and
+  the inverse transform all run on vectors, and the encoder converts colour packed as well. All of
+  it is byte-exact with the scalar form it replaced, checked by hashing decoded pixels and encoded
+  bytes of the 4:4:4, 4:2:2, 4:2:0, grayscale, progressive and large fixtures against a worktree at
+  pristine master. Interleaved A/B in native Release: decode 1.15x to 1.38x, encode 1.37x to 1.76x.
+- Intent: pack the forward transform and the quantization that follows it, which is where the
+  encoder now spends most of its time.
+- Problem to settle first: the forward transform is the float AAN one, and its samples reach it
+  through a `s16` staging array only because no packed `s32` to `f32` lane conversion exists
+  (T-511). Packing it therefore means either keeping the float operation order lane by lane —
+  where the optimizer is free to contract a multiply and an add and change the last bit — or
+  moving to an integer transform, which changes the encoded bytes outright. Decide whether
+  byte-exactness with today's output is a property to keep before writing the kernel.
+- What the decoder work showed, since the prototypes recorded here before had concluded the
+  opposite: measure end to end, never inside the call window, and profile the stages first. One
+  1024x768 4:2:0 decode split as 2.3 ms entropy, 3.0 ms inverse transform, 2.5 ms conversion, which
+  is what made those two the ones worth packing. Recomputing the conversion coefficients as packed
+  fixed point — rejected here before as 3.46x slower — is exactly what the shipped conversion
+  does; what cost that prototype its time was the gather beside it, not the arithmetic. The inverse
+  transform keeps `s16` lanes through a multiply-add decomposition of the same integer transform
+  instead of widening to `s32` columns, which is the narrower arithmetic this entry asked for, and
+  a whole-block DC shortcut is worth 16% on a smooth fixture where a per-line one had regressed.
+- Complete when: fixtures preserve accepted pixel tolerances, coefficient extremes are covered, and
+  encode throughput improves in an interleaved A/B on a quiet machine.
 - Related: T-511, T-514, T-520.
 
 ### T-550 — WebP reconstruction and transforms remain mostly scalar

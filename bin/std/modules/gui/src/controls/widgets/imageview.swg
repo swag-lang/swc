@@ -121,7 +121,7 @@ impl IWnd for ImageView
     mtd impl onPaint(evt: *PaintEvent)
     {
         let painter = evt.paintContext.painter
-        painter.fillRect(.clientRect(), .themeColors().view_Bk)
+        let client  = .clientRect()
 
         if .movie.isValid() and .movie.update(.app().timing.deltaSeconds)
         {
@@ -129,14 +129,26 @@ impl IWnd for ImageView
             .sigFrameChanged.call(me)
         }
 
-        if !.hasContent() or !.uploadedTexture.isValid() do
+        if !.hasContent() or !.uploadedTexture.isValid()
+        {
+            painter.fillRect(client, .themeColors().view_Bk)
             return
+        }
 
         let source      = .currentImage()
         let destination = .contentRect()
-        if source.isValid() and source.pixelFormat.hasAlpha() do
+        let tint        = .themeColors().imageRect_Fg
+        let transparent = source.isValid() and source.pixelFormat.hasAlpha()
+
+        // A picture that covers the view with opaque samples hides the ground completely, and a
+        // video repaints this view as many times a second as it has frames. Filling first would
+        // be one whole-view fill per frame that nothing can ever see.
+        if transparent or !tint.isOpaque() or !destination.contains(client) do
+            painter.fillRect(client, .themeColors().view_Bk)
+
+        if transparent do
             painter.fillRect(destination, Brush.createHatch(.CheckBoardLarge, .themeColors().colorPicker_BackAlpha))
-        painter.drawTexture(destination, .uploadedTexture, .themeColors().imageRect_Fg)
+        painter.drawTexture(destination, .uploadedTexture, tint)
 
         if .movie.isValid() and .movie.frameCount > 1 and !.movie.isPaused do
             .invalidate()

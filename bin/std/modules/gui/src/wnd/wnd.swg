@@ -535,6 +535,10 @@ impl IWnd for Wnd
 
 impl Wnd
 {
+    // How far outside its logical rectangle a window is allowed to paint, in logical units.
+    // Borders, focus rings and shadows all sit in this margin.
+    private const PaintExtentMargin = 32'f32
+
     //////////////////////////////////////////////
     // Setup
     //////////////////////////////////////////////
@@ -1016,19 +1020,56 @@ impl Wnd
         painter.pushState()
         if !child.wndFlags.has(.NoScroll) do
             painter.translateTransform(-.scrollPos.x, -.scrollPos.y)
+
+        // A window that cannot reach the region being repainted is skipped whole, rather than
+        // recording commands for the painter to clip away. A repaint is usually one control
+        // wide -- a caret, a hovered row, the picture of a playing video -- while the tree it
+        // sits in is the whole window, so this is most of the frame.
+        //
+        // Only a window whose subtree stays inside its own rectangle can be rejected on that
+        // rectangle: one with no children, and one that clips the children it has. Any other
+        // may have a descendant reaching outside it, and nothing here records how far.
+        if child.children.isEmpty() or child.wndFlags.has(.ClipChildren)
+        {
+            var bounds = child.presentationRect()
+            bounds.offset(painter.transform().tx, painter.transform().ty)
+            if !child.paintExtent(bounds).intersects(painter.clippingRect())
+            {
+                let srf = .surface
+                if srf do
+                    srf.skippedWnds += 1
+                painter.popState()
+                return
+            }
+        }
+
+        let srf = .surface
+        if srf do
+            srf.paintedWnds += 1
         child.paint(bc)
         painter.popState()
+    }
+
+    // Grows a rectangle of this window to everything the window may paint into.
+    //
+    // A window draws a border, a focus ring or a shadow outside its logical rectangle, so the
+    // region [invalidate] marks dirty is wider than [position]. A paint pass rejects a window on
+    // the same rectangle, and that is why the two share this: rejecting on a tighter bound than
+    // the one that was dirtied would leave the difference stale on screen.
+    mtd const paintExtent(rect: Math.Rectangle)->Math.Rectangle
+    {
+        var result: retval = rect
+        result.applyPadding(.invalidatePadding)
+        result.applyPadding({-PaintExtentMargin, -PaintExtentMargin, -PaintExtentMargin, -PaintExtentMargin})
+        return result
     }
 
     // Force the window to be repainted
     mtd invalidate()
     {
-        var rect = .surfaceRect()
-        rect.applyPadding(.invalidatePadding)
-        rect.applyPadding({-32, -32, -32, -32})
         let srf = .surface
         if srf do
-            srf.invalidateRect(rect)
+            srf.invalidateRect(.paintExtent(.surfaceRect()))
     }
 
     // Invalidates one local rectangle after converting it to surface coordinates.
@@ -1062,11 +1103,9 @@ impl Wnd
         let anchor = .surfaceRect()
         var rect   = .presentationRect()
         rect.offset(anchor.x - .position.x, anchor.y - .position.y)
-        rect.applyPadding(.invalidatePadding)
-        rect.applyPadding({-32, -32, -32, -32})
         let srf = .surface
         if srf do
-            srf.invalidateRect(rect)
+            srf.invalidateRect(.paintExtent(rect))
     }
 
     // Keeps a logically hidden window in its parent's paint order during a visual handoff.

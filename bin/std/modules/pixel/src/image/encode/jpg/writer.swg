@@ -7,45 +7,58 @@ impl Encoder
     #[Swag.Inline]
     mtd writeByte(b: u8)
     {
-        let stream = .stream!
-        stream.addNative(b)
+        .outBuf[.outCount] = b
+        .outCount          += 1
+        if .outCount == OutBufSize do
+            .flushStaged()
     }
 
     #[Swag.Inline]
     mtd writeWord(w: u16)
     {
-        let stream = .stream!
-        stream.addNative(cast(u8) (w >> 8))
-        stream.addNative(cast(u8) (w & 0xFF))
+        .writeByte(cast(u8) (w >> 8))
+        .writeByte(cast(u8) (w & 0xFF))
     }
 
-    #[Swag.Inline]
     mtd writeBytes(s: const [..] u8)
     {
+        // Everything the encoder emits goes through the staging buffer, so a bulk segment has to
+        // hand over what is already staged before appending itself.
+        .flushStaged()
         let stream = .stream!
         stream.addBytes(s)
     }
 
+    // Hands the staged bytes to the output buffer. Call it once the stream is complete.
+    mtd flushStaged()
+    {
+        if !.outCount do
+            return
+
+        let stream = .stream!
+        stream.addBytes(@mkslice(cast(const [*] u8) &.outBuf[0], cast(u64) .outCount))
+        .outCount = 0
+    }
+
+    // Appends one Huffman or magnitude code to the entropy-coded segment.
+    //
+    // The pending bits are kept right-aligned in an accumulator that never holds a full byte on
+    // entry, so a code costs one shift and the loop below only runs when a byte completed.
     mtd writeBits(bs: BitString)
     {
-        let value  = bs.value
-        var posval = cast(s32) bs.length - 1
-        while posval >= 0
-        {
-            if value & Mask[posval] do
-                .bytenew |= cast(u8) Mask[.bytepos]
-            posval   -= 1
-            .bytepos -= 1
-            if .bytepos < 0
-            {
-                let written = .bytenew
-                .writeByte(written)
-                if written == 0xFF do
-                    .writeByte(0)
+        let length = cast(u32) bs.length
+        .bitBuffer = (.bitBuffer << #wrap length) | (cast(u32) bs.value & ((1'u32 << length) - 1))
+        .bitCount  += length
 
-                .bytepos = 7
-                .bytenew = 0
-            }
+        while .bitCount >= 8
+        {
+            .bitCount -= 8
+            let written = cast(u8) ((.bitBuffer >> .bitCount) & 0xFF)
+            .writeByte(written)
+
+            // A 0xFF inside entropy-coded data is stuffed, or a decoder reads it as a marker.
+            if written == 0xFF do
+                .writeByte(0)
         }
     }
 

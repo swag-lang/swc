@@ -23,6 +23,19 @@ impl Icon
     #[Swag.Inline]
     mtd const isValid() => .imageList != null
 
+    // Reports whether two descriptors name the same frame, drawn the same way.
+    //
+    // A caller that hands an icon over on every frame of a video or an animation needs this to
+    // tell an actual change from a repetition, since the second must not cost a repaint.
+    mtd const opEquals(other: Icon)->bool
+    {
+        return .imageList == other.imageList and
+               .index == other.index and
+               .sizeX == other.sizeX and
+               .sizeY == other.sizeY and
+               .color == other.color
+    }
+
     // Restores an invalid icon with the default draw size.
     mtd clear()
     {

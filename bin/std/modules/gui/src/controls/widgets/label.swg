@@ -257,6 +257,8 @@ impl Label
     // Replaces the displayed rich text and reapplies automatic sizing.
     mtd setText(text: #null string)
     {
+        if .name == (text orelse "") do
+            return
         .name.set(text)
         .invalidate()
         .updateAutomaticHeight()

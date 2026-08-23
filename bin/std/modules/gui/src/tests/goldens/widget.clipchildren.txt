@@ -62,8 +62,6 @@ Transform 1 0 0 1 10 10
 SetBlendingMode Alpha
 ColorMask rgb-
 SetClippingRect 10 10 100 50
-Transform 1 0 0 1 15 210
-SetClippingRect 10 10 100 50
 Transform 1 0 0 1 10 10
 SetBlendingMode Alpha
 ColorMask rgb-

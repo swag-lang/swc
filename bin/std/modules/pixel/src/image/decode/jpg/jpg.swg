@@ -37,11 +37,22 @@ private
     const Fix_2_562915447 = 20995
     const Fix_3_072711026 = 25172
 
+    // Fixed-point chroma-to-colour coefficients, in 16.16. The rounding of each one is part of
+    // the decoded value, so the scalar and vector paths must read them from here.
+    const FixCrToR = cast(s32) ((1.40200 / 2) * (1 << 16) + 0.5)
+    const FixCbToB = cast(s32) ((1.77200 / 2) * (1 << 16) + 0.5)
+    const FixCrToG = cast(s32) -((0.71414 / 2) * (1 << 16) + 0.5)
+    const FixCbToG = cast(s32) -((0.34414 / 2) * (1 << 16) + 0.5)
+
+    // One decoding table of a scan.
+    //
+    // A prefix of eight bits selects a `lookUp` entry that packs the code length in its high byte
+    // and the symbol in its low one, so the common case resolves in a single load. A negative
+    // entry means the code is longer and continues bit by bit through `tree`.
     struct HuffTables
     {
-        lookUp:   [256] s32
-        codeSize: [256] u8
-        tree:     [512] s32
+        lookUp: [256] s32
+        tree:   [512] s32
     }
 
     struct CoeffBuf
@@ -215,10 +226,6 @@ internal struct Decoder
         lastDcVal:   [MaxComponents] s32
         dcCoeffs:    [MaxComponents] CoeffBuf
         acCoeffs:    [MaxComponents] CoeffBuf
-        crr:         [256] s32
-        cbb:         [256] s32
-        crg:         [256] s32
-        cbg:         [256] s32
 
         huffNum:    [MaxHuffTables] Array'u8
         huffVal:    [MaxHuffTables] Array'u8

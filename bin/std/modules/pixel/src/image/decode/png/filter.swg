@@ -226,24 +226,127 @@ func defilterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPi
     }
 }
 
-impl Decoder
+func filterPaeth(left, up, upLeft: u8)->u8
 {
-    func filterPaeth(left, up, upLeft: u8)->u8
+    let aa = cast(s16) left
+    let bb = cast(s16) up
+    let cc = cast(s16) upLeft
+    let p  = aa + bb - cc
+    let pa = Math.abs(cast(s16) (p - aa))
+    let pb = Math.abs(cast(s16) (p - bb))
+    let pc = Math.abs(cast(s16) (p - cc))
+    if pa <= pb and pa <= pc do
+        return left
+    if pb <= pc do
+        return up
+    return upLeft
+}
+
+// Reads one pixel as sixteen-bit lanes, one lane per byte.
+//
+// A PNG pixel is at most eight bytes wide whatever the bit depth, so the low half of a
+// vector always holds a whole one, and an eight-byte read never leaves the row.
+#[Swag.Inline]
+func loadPixelLanes(source: const [*] u8)->Math.Simd.S16x8
+{
+    let bytes = cast #bit(Math.Simd.U8x16) Math.Simd.splat((cast(const [*] u64) source)[0])
+    return cast #bit(Math.Simd.S16x8) Math.Simd.widenLow(bytes)
+}
+
+// Adds two lane-per-byte pixels the way PNG reconstruction does, modulo 256.
+//
+// Every lane holds a byte in its low half and zero above it, so adding as bytes wraps each
+// channel on its own and leaves the lanes in that same shape.
+#[Swag.Inline]
+func addPixelLanes(x, y: Math.Simd.S16x8)->Math.Simd.S16x8 => cast #bit(Math.Simd.S16x8) (cast #bit(Math.Simd.U8x16) x + cast #bit(Math.Simd.U8x16) y)
+
+// Picks the Paeth predictor per lane, with the same ties as the scalar rule.
+//
+// The three distances reduce to differences of the neighbours, which keeps every lane inside
+// 's16': 'p - left' is 'up - upLeft', 'p - up' is 'left - upLeft', and 'p - upLeft' is their
+// sum. Taking the smallest and preferring left, then up, reproduces the ordered comparisons.
+#[Swag.Inline]
+func paethPredict(left, up, upLeft: Math.Simd.S16x8)->Math.Simd.S16x8
+{
+    let deltaUp        = up - upLeft
+    let deltaLeft      = left - upLeft
+    let distanceLeft   = Math.abs(deltaUp)
+    let distanceUp     = Math.abs(deltaLeft)
+    let distanceUpLeft = Math.abs(deltaUp + deltaLeft)
+    let smallest       = Math.min(distanceUpLeft, Math.min(distanceLeft, distanceUp))
+    return Math.Simd.select(smallest == distanceLeft, left, Math.Simd.select(smallest == distanceUp, up, upLeft))
+}
+
+// Reverses the Average predictor, carrying the reconstructed left pixel in a register.
+//
+// PNG filters a row byte by byte and every byte depends on the byte one pixel to its left,
+// which the scalar form reads back from memory the instant it writes it. Widening a whole
+// pixel to one lane per byte carries that dependency in a register instead, so a row costs
+// one step per pixel rather than one per channel.
+//
+// A step writes eight bytes whatever the pixel is wide: the bytes past the current pixel are
+// rewritten by the following step, and the scalar tail rewrites the last of them.
+func defilterAverageRow(source, previous: const [*] u8, destination: [*] u8, count, bytesPerPixel: u64)
+{
+    var offset = 0'u64
+    if bytesPerPixel >= 2
     {
-        let aa = cast(s16) left
-        let bb = cast(s16) up
-        let cc = cast(s16) upLeft
-        let p  = aa + bb - cc
-        let pa = Math.abs(cast(s16) (p - aa))
-        let pb = Math.abs(cast(s16) (p - bb))
-        let pc = Math.abs(cast(s16) (p - cc))
-        if pa <= pb and pa <= pc do
-            return left
-        if pb <= pc do
-            return up
-        return upLeft
+        var left = Math.Simd.splat(0's16)
+        while offset + 8 <= count
+        {
+            let up        = loadPixelLanes(previous + offset)
+            let delta     = loadPixelLanes(source + offset)
+            let recovered = addPixelLanes(delta, (left + up) >> 1)
+            Math.Simd.storeLow8(destination + offset, Math.Simd.packUnsigned(recovered, recovered))
+            left   = recovered
+            offset += bytesPerPixel
+        }
     }
 
+    while offset < count
+    {
+        let left    = offset >= bytesPerPixel ? destination[offset - bytesPerPixel] : 0'u8
+        let average = cast(u8) ((cast(u16) previous[offset] + left) >> 1)
+        destination[offset] = cast #bit(u8) (source[offset] + #wrap average)
+        offset              += 1
+    }
+}
+
+// Reverses the Paeth predictor, carrying the reconstructed left pixel in a register.
+//
+// Same shape as [[Png.defilterAverageRow]], and for the same reason: the predictor of a byte
+// needs the byte one pixel to its left, which the scalar form has only just stored.
+func defilterPaethRow(source, previous: const [*] u8, destination: [*] u8, count, bytesPerPixel: u64)
+{
+    var offset = 0'u64
+    if bytesPerPixel >= 2
+    {
+        var left   = Math.Simd.splat(0's16)
+        var upLeft = Math.Simd.splat(0's16)
+        while offset + 8 <= count
+        {
+            let up        = loadPixelLanes(previous + offset)
+            let delta     = loadPixelLanes(source + offset)
+            let recovered = addPixelLanes(delta, paethPredict(left, up, upLeft))
+            Math.Simd.storeLow8(destination + offset, Math.Simd.packUnsigned(recovered, recovered))
+            left   = recovered
+            upLeft = up
+            offset += bytesPerPixel
+        }
+    }
+
+    while offset < count
+    {
+        let left      = offset >= bytesPerPixel ? destination[offset - bytesPerPixel] : 0'u8
+        let upLeft    = offset >= bytesPerPixel ? previous[offset - bytesPerPixel] : 0'u8
+        let predictor = filterPaeth(left, previous[offset], upLeft)
+        destination[offset] = cast #bit(u8) (source[offset] + #wrap predictor)
+        offset              += 1
+    }
+}
+
+impl Decoder
+{
     mtd expand8(width, height: u32, output: [*] u8)
     {
         let rowStrideIn  = .getStrideIn(width)
@@ -318,7 +421,6 @@ impl Decoder
         // samples (bit depths below 8) have an effective byte offset of 1, not
         // the number of channels; otherwise narrow Adam7 passes underflow here.
         let filterOffset = .header.bitDepth < 8 ? 1'u64 : cast(u64) .inChannels * (.header.bitDepth / 8)
-        let nk           = rowStrideIn > filterOffset ? rowStrideIn - filterOffset : 0
         var row          = 0'u32
         while row < height
         {
@@ -328,54 +430,11 @@ impl Decoder
             var destOff = dest + destOffset
             switch filter
             {
-            case .None:
-                Memory.copy(destOff, src, rowStrideIn)
-
-            case .Sub:
-                defilterSubRow(src, destOff, rowStrideIn, filterOffset)
-
-            case .Up:
-                defilterUpRow(src, up, destOff, rowStrideIn)
-
-            case .Average:
-                var i = 0'u64
-                while i < filterOffset
-                {
-                    let avg = up[i] >> 1
-                    destOff[i] = cast #bit (u8) (src[i] + #wrap avg)
-                    i          += 1
-                }
-
-                var k = 0'u64
-                while k < nk
-                {
-                    let idx = filterOffset + k
-                    if idx >= rowStrideIn do
-                        break
-                    let avg = cast(u8) ((cast(u16) up[idx] + cast(u16) destOff[k]) >> 1)
-                    destOff[idx] = cast #bit (u8) (src[idx] + #wrap avg)
-                    k            += 1
-                }
-
-            case .Paeth:
-                var i = 0'u64
-                while i < filterOffset
-                {
-                    let paeth = cast(u32) filterPaeth(0, up[i], 0)
-                    destOff[i] = cast #bit (u8) (src[i] + paeth)
-                    i          += 1
-                }
-
-                var k = 0'u64
-                while k < nk
-                {
-                    let idx = filterOffset + k
-                    if idx >= rowStrideIn do
-                        break
-                    let paeth = cast(u32) filterPaeth(destOff[k], up[idx], up[k])
-                    destOff[idx] = cast #bit (u8) (src[idx] + #wrap paeth)
-                    k            += 1
-                }
+            case .None:    Memory.copy(destOff, src, rowStrideIn)
+            case .Sub:     defilterSubRow(src, destOff, rowStrideIn, filterOffset)
+            case .Up:      defilterUpRow(src, up, destOff, rowStrideIn)
+            case .Average: defilterAverageRow(src, up, destOff, rowStrideIn, filterOffset)
+            case .Paeth:   defilterPaethRow(src, up, destOff, rowStrideIn, filterOffset)
             }
 
             src += rowStrideIn

@@ -4,33 +4,65 @@ using Core
 
 impl Encoder
 {
+    // Lifts one colour channel of four consecutive pixels into four 32-bit lanes.
+    #[Swag.Inline]
+    func channelOf(source: const [*] u8, lanes: Math.Simd.U8x16)->Math.Simd.S32x4 => cast #bit(Math.Simd.S32x4) Math.Simd.shuffle(Math.Simd.load(source), lanes)
+
+    // The fixed-point dot product one component of the format is defined as.
+    #[Swag.Inline]
+    func componentOf(red, green, blue: Math.Simd.S32x4, coeffRed, coeffGreen, coeffBlue: s32)->Math.Simd.S32x4
+    {
+        return (Math.Simd.splat(coeffRed) * red + Math.Simd.splat(coeffGreen) * green + Math.Simd.splat(coeffBlue) * blue) >> 16
+    }
+
+    // Reads the eight-by-eight block at the given position as the three components of the format.
+    //
+    // Each component is a dot product of the pixel, so a row is converted eight pixels at a time
+    // and the luma one carries the level shift of the format.
     mtd loadFromRGB(xpos: u16, ypos: u16)
     {
-        var pos      = 0
         var location = cast(s32) ypos * .imageX + xpos
-        let pdst     = .bufferRGB.buffer!
+        let pixels   = cast(const [*] u8) .bufferRGB.buffer!
+        let luma     = cast([*] s16) &.duY[0]
+        let blue     = cast([*] s16) &.duCb[0]
+        let red      = cast([*] s16) &.duCr[0]
+
+        let levelShift = Math.Simd.splat(128's32)
+        var pos        = 0
 
         for y in 8
         {
-            for x in 8
-            {
-                let r = pdst[location].r
-                let g = pdst[location].g
-                let b = pdst[location].b
-                .duY[pos]  = cast(s8) (((TabYR[r] + TabYG[g] + TabYB[b]) >> 16) - 128)
-                .duCb[pos] = cast(s8) ((TabCbR[r] + TabCbG[g] + TabCbB[b]) >> 16)
-                .duCr[pos] = cast(s8) ((TabCrR[r] + TabCrG[g] + TabCrB[b]) >> 16)
-                location   += 1
-                pos        += 1
-            }
+            let row  = pixels + cast(u64) location * #sizeof(ColorRGB)
+            let next = row + 4 * #sizeof(ColorRGB)
 
-            location += .imageX - 8
+            let redLow    = channelOf(row, RedLanes)
+            let greenLow  = channelOf(row, GreenLanes)
+            let blueLow   = channelOf(row, BlueLanes)
+            let redHigh   = channelOf(next, RedLanes)
+            let greenHigh = channelOf(next, GreenLanes)
+            let blueHigh  = channelOf(next, BlueLanes)
+
+            Math.Simd.store(luma + pos,
+                            Math.Simd.packSigned(componentOf(redLow, greenLow, blueLow, CoeffYR, CoeffYG, CoeffYB) - levelShift,
+                                                 componentOf(redHigh, greenHigh, blueHigh, CoeffYR, CoeffYG, CoeffYB) - levelShift))
+            Math.Simd.store(blue + pos,
+                            Math.Simd.packSigned(componentOf(redLow, greenLow, blueLow, CoeffCbR, CoeffCbG, CoeffCbB),
+                                                 componentOf(redHigh, greenHigh, blueHigh, CoeffCbR, CoeffCbG, CoeffCbB)))
+            Math.Simd.store(red + pos,
+                            Math.Simd.packSigned(componentOf(redLow, greenLow, blueLow, CoeffCrR, CoeffCrG, CoeffCrB),
+                                                 componentOf(redHigh, greenHigh, blueHigh, CoeffCrR, CoeffCrG, CoeffCrB)))
+
+            location += .imageX
+            pos      += 8
         }
     }
 
-    func quantization(data: [*] s8, fdtbl: [*] f32, outData: [*] s16)
+    // Transforms one block and quantizes it straight into zigzag order.
+    //
+    // The zigzag is applied while the coefficients are scaled, rather than in a pass of its own.
+    func quantization(data: [*] s16, fdtbl: [*] f32, outData: [*] s16)
     {
-        var dataFloat: [64] f32
+        var dataFloat: [64] f32 = undefined
         for i in 64 do
             dataFloat[i] = data[i]
 
@@ -126,19 +158,17 @@ impl Encoder
         for i in 64
         {
             let temp = dataFloat[i] * fdtbl[i]
-            outData[i] = cast(s16) (cast(s16) (temp + 16384.5) - 16384)
+            outData[ZigZag[i]] = cast(s16) (cast(s16) (temp + 16384.5) - 16384)
         }
     }
 
-    mtd processDU(componentDU: [*] s8, fdtbl: [*] f32, dC: *s16, hTDC, hTAC: [*] BitString)
+    mtd processDU(componentDU: [*] s16, fdtbl: [*] f32, dC: *s16, hTDC, hTAC: [*] BitString)
     {
         let eob       = hTAC[0x00]
         let m16Zeroes = hTAC[0xF0]
 
-        quantization(componentDU, fdtbl, .duDct)
+        quantization(componentDU, fdtbl, .du)
 
-        for i in 64 do
-            .du[ZigZag[i]] = .duDct[i]
         let diff = .du[0] - dC[]
         dC[] = .du[0]
 

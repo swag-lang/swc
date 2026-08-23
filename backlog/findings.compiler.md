@@ -212,3 +212,26 @@ Entries are sorted by identifier, ascending; position carries no priority.
   lowering emitting a zero-extend that the optimizing pipeline rewrites away before it reaches the
   encoder. Then promote the probe into `bin/unittests/native/literals/array.swg` coverage that runs
   under `debug`.
+
+### F-189 - The RGB-plane fillHsl test fails at pristine master under fast-debug
+
+- Symptom: `bin/std/modules/pixel/src/tests/image.filter.fillhsl.test.swg` fails one pixel
+  comparison in the RGB-plane test -- the one that fills an `RGBA8` image through
+  `fillHsl(.RedGreen, ...)` and asserts the four corners. The panic arrives through
+  `assertPixel` at `helpers.swg:72`, so the fill produced a colour the test did not expect.
+- Evidence: it is not a working-tree defect. Reproduced from a worktree checked out at committed
+  `HEAD` with nothing modified:
+
+  ```text
+  git worktree add --detach ../swc-check HEAD
+  bin\swc.exe tools/std.swgs test pixel --test-file image.filter.fillhsl.test.swg -bc fast-debug
+  ```
+
+  The whole rest of the module is green in the same run (421 of 422 tests pass), and the failure is
+  unrelated to whatever change is being validated when it shows up. It surfaced while validating an
+  unrelated JPEG change, and cost that validation a full detour before being pinned to `HEAD`.
+- Next step: run the same file under `debug` and under `release`. If it passes there, the shape
+  matches the RGB-plane codegen defect this filter already had once, and the next move is to dump
+  the Micro IR of the plane loop per configuration. If it fails in every configuration, the defect
+  is in `fillHsl` itself and belongs to the filter, not to the backend -- print the produced pixel
+  next to the expected one before assuming either.

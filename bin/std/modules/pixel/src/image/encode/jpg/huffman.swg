@@ -24,6 +24,10 @@ impl Encoder
         .setQuantTable(ChrominanceQt, .dqtInfo.tableCb)
     }
 
+    // Writes the Huffman tables of the specification into the stream.
+    //
+    // They live beside the decoder, in `decode/jpg.huffman.swg`: this encoder writes them into
+    // every stream, and that decoder substitutes them into a stream that defines none.
     mtd setDHTinfo()
     {
         .dhtInfo.marker     = 0xFFC4

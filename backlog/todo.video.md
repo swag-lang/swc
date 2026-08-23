@@ -68,6 +68,40 @@ is the layout it does not read yet.
   row to `Core.Jobs`, per row and batched four and sixteen rows, which is neutral (best of three,
   warm: 21.0 to 24.9 ms against 22.6 to 23.3 with the filter inside the entropy pass) and costs
   about a tenth more processor time in scheduling.
+- A fifth attempt, kept but worth much less than its instruction count suggests: hold `range` and
+  `low` in locals for the length of one bin, and share renormalization between the MPS and LPS
+  outcomes instead of writing it twice. The context write in between stores into the same
+  structure as the arithmetic registers, so left in place they were reloaded after every step —
+  the emitted code read `range` five times and wrote it three, for one bin. `CabacReader.decision`
+  goes from 217 to 143 emitted instructions, a third fewer, and it is byte-exact.
+  **The time barely moves**: five interleaved A/B rounds on a quiet machine give 96.4 ms against
+  95.4 ms of processor time per picture, about one percent, and the native halves alone are
+  93.6 against 93.9 — inside the noise. An earlier three-run reading said four percent and was
+  contaminated by another agent building; do not trust an unpaired figure here.
+  This is the same verdict the shift-guard elision got in
+  [F-136](findings.optimization.md#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots):
+  the bin is latency-bound on its serial chain — context byte, table load, subtract, compare,
+  context store — so removing a third of its instructions buys almost nothing. The change is kept
+  because it is strictly less code and less memory traffic, not because it made the decoder fast.
+- The same hoisting applied to `motionAt` and `mbAvailable` — resolving the neighbor macroblock
+  once instead of re-addressing it through two pointers at each of the four questions asked of
+  it — measured at nothing beyond the noise floor, and is kept only because it is plainly less
+  work. Do not expect the per-4x4 grid caching below to pay merely because it removes accesses.
+- What the emitted code says is left, and it is not a source shape:
+  [F-190](findings.optimization.md#f-190--a-short-branching-function-spills-with-the-whole-register-file-free).
+  After the hoisting the bin still opens with seven callee-saved pushes and a 160-byte frame, and
+  still spills three values across its one branch with sixteen integer registers available. At
+  roughly 568,000 context-coded bins per picture that prologue alone is about nine million
+  instructions. The parse will not approach FFmpeg's until the register allocator stops doing
+  this, so the entropy half of this entry is now waiting on that work rather than on another
+  attempt here.
+- Measuring this at all, in the shape that worked: a `#test` in the module that opens the real
+  recording, decodes twenty pictures to warm the lanes and the file cache, then decodes 250 more
+  and reports `GetProcessTimes` divided by the count. Jobs are synchronous in a test process, so
+  `laneCount` is one and the figure is serial cost, which is what every change here targets.
+  Wall time equals processor time there, and both are worthless while another agent builds: one
+  contended run read 128 ms against a 90 ms baseline. Alternate the two variants in one session
+  and compare means, never a single pair.
 - Four attempts on that parse were measured and rejected, each byte-exact and each neutral or
   slightly worse (processor time per picture, best of three alternating runs on a quiet machine,
   74.6 ms for the unmodified decoder):

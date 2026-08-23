@@ -83,6 +83,8 @@ impl Button
     // Replaces the displayed icon and repaints the button.
     mtd setIcon(icon: Icon)
     {
+        if .icon == icon do
+            return
         .icon = icon
         .invalidate()
     }

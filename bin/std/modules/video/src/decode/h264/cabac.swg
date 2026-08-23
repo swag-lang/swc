@@ -114,38 +114,47 @@ impl CabacReader
     }
 
     // Decodes one bin with the context at `contextIndex`, section 9.3.3.2.1.
+    //
+    // The two arithmetic registers are held in locals for the whole bin. They are read and written
+    // several times each, and the context update in between writes into this same structure, so
+    // left in place they are reloaded after every step: the emitted code read `range` five times
+    // and wrote it three for one bin. Renormalization is shared by the two outcomes for the same
+    // reason, since it is the same code on a value the branches only have to agree on.
     mtd decision(contextIndex: u32)->u32
     {
+        var range  = .range
+        var low    = .low
         let state  = cast(u32) .contexts[contextIndex]
         let pState = cast(u64) (state >> 1)
         let mps    = state & 1
-        let lps    = cast(u32) CabacRangeLps[pState * 4 + cast(u64) ((.range >> 6) & 3)]
-        .range -= lps
-        if .low < .range
+        let lps    = cast(u32) CabacRangeLps[pState * 4 + cast(u64) ((range >> 6) & 3)]
+
+        range -= lps
+        var result: u32
+        if low < range
         {
             .contexts[contextIndex] = cast(u8) ((cast(u32) CabacTransMps[pState] << 1) | mps)
-            let shift = max0S32(cast(s32) @bitcountlz(.range) - 23)
-            if shift != 0
-            {
-                .range <<= cast(u32) shift
-                .low   = (.low << cast(u32) shift) | .takeBits(cast(u32) shift)
-            }
-
-            return mps
+            result = mps
+        }
+        else
+        {
+            low    -= range
+            range  = lps
+            let lpsMps = mps ^ cast(u32) ((pState - #wrap 1) >> 63)
+            .contexts[contextIndex] = cast(u8) ((cast(u32) CabacTransLps[pState] << 1) | lpsMps)
+            result = mps ^ 1
         }
 
-        .low   -= .range
-        .range = lps
-        let lpsMps = mps ^ cast(u32) ((pState - #wrap 1) >> 63)
-        .contexts[contextIndex] = cast(u8) ((cast(u32) CabacTransLps[pState] << 1) | lpsMps)
-        let shift = max0S32(cast(s32) @bitcountlz(.range) - 23)
+        let shift = max0S32(cast(s32) @bitcountlz(range) - 23)
         if shift != 0
         {
-            .range <<= cast(u32) shift
-            .low   = (.low << cast(u32) shift) | .takeBits(cast(u32) shift)
+            range <<= cast(u32) shift
+            low   = (low << cast(u32) shift) | .takeBits(cast(u32) shift)
         }
 
-        return mps ^ 1
+        .range = range
+        .low   = low
+        return result
     }
 
     // Kept separate from the generic decision so only the significance-map loop pays the code

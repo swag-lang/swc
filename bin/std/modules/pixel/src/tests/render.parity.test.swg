@@ -13,6 +13,8 @@ private const RenderSvgHeight = 64
 private const RenderSvgSupersample = 4'u8
 private const RenderBlendWidth = 180
 private const RenderBlendHeight = 48
+private const RenderPlanarWidth = 64
+private const RenderPlanarHeight = 48
 
 private const ArtisticBlendModes: [15] BlendingMode = [.Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion, .Hue, .Saturation, .Color, .Luminosity]
 
@@ -489,4 +491,116 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
     let expected = renderCpu(&renderLayerClipParityScene)
     let image    = expect renderOgl("SWAG_PIXEL_LAYER_CLIP_PARITY", "Pixel layer clip parity", RenderLayerWidth, RenderLayerHeight, &renderLayerClipParityScene)
     Testing.assertImagesNear(&expected, &image, "render.parity.layer.clip.cpu-ogl", {maxChannelDelta: 6, maxDifferentPixels: 1500})
+}
+
+// Builds a planar 4:2:0 picture with a different value in every corner: a luma ramp that rises
+// along both axes, and chroma held constant over each half so bilinear chroma upsampling only
+// differs at one seam. A backend that uploads the planes in the wrong row order, or samples them
+// mirrored, cannot reproduce it.
+private func makeRenderPlanarPicture(storage: *Array'u8)->Yuv420View
+{
+    const Width        = cast(u64) RenderPlanarWidth
+    const Height       = cast(u64) RenderPlanarHeight
+    const ChromaWidth  = (Width + 1) / 2
+    const ChromaHeight = (Height + 1) / 2
+
+    storage.resize(Width * Height + ChromaWidth * ChromaHeight * 2)
+    let luma    = storage.buffer!
+    let chromaB = luma + Width * Height
+    let chromaR = chromaB + ChromaWidth * ChromaHeight
+
+    for y in Height
+    {
+        for x in Width do
+            luma[y * Width + x] = cast(u8) (16 + x * 110 / (Width - 1) + y * 109 / (Height - 1))
+    }
+
+    for y in ChromaHeight
+    {
+        for x in ChromaWidth
+        {
+            chromaB[y * ChromaWidth + x] = x < ChromaWidth / 2 ? 96'u8 : 168'u8
+            chromaR[y * ChromaWidth + x] = y < ChromaHeight / 2 ? 96'u8 : 168'u8
+        }
+    }
+
+    return {
+        luma: luma,
+        chromaB: chromaB,
+        chromaR: chromaR,
+        lumaStride: Width,
+        chromaStride: ChromaWidth,
+        width: RenderPlanarWidth,
+        height: RenderPlanarHeight}
+}
+
+// Draws one planar picture at its own size, which is what a video view does for every frame.
+private func renderPlanarParityScene(renderer: IRenderer)->Image
+{
+    var storage: Array'u8
+    let picture = makeRenderPlanarPicture(&storage)
+    var texture = renderer.addImage(&picture)
+    defer renderer.removeTexture(&texture)
+
+    var target = renderer.createRenderTarget(RenderPlanarWidth, RenderPlanarHeight)
+    defer renderer.deleteRenderTarget(&target)
+
+    var painter = Painter.create(renderer)
+    painter.begin()
+    painter.bindRenderTarget(&target)
+    painter.setColorMaskFull()
+    painter.setBlendingMode(.Copy)
+    painter.clear(Color.fromArgb(Argb.Zero))
+    painter.drawTexture({0, 0, RenderPlanarWidth, RenderPlanarHeight}, texture)
+    painter.unbindRenderTarget()
+    painter.end()
+    renderer.draw(&painter)
+
+    return renderer.readRenderTarget(&target, 0, 0, RenderPlanarWidth, RenderPlanarHeight)
+}
+
+// Checks the four corners of a drawn picture against the conversion of the corner samples of the
+// planes it came from. Orientation is the whole point: a flipped picture still matches everywhere
+// a test uses one flat colour, and only a corner states which way round the rows went.
+private func assertPlanarCornersUpright(image: const *Image, view: const *Yuv420View)
+{
+    for corner in 4's32
+    {
+        let x        = corner & 1 ? view.width - 1 : 0
+        let y        = corner & 2 ? view.height - 1 : 0
+        let chromaAt = cast(u64) (y >> 1) * view.chromaStride + cast(u64) (x >> 1)
+        let expected = expectedPlanarColor(view.luma[cast(u64) y * view.lumaStride + cast(u64) x], view.chromaB[chromaAt], view.chromaR[chromaAt])
+        let actual   = image.pixelColor(x, y)
+        @assert(Math.abs(cast(s32) actual.r - cast(s32) expected.r) <= 1)
+        @assert(Math.abs(cast(s32) actual.g - cast(s32) expected.g) <= 1)
+        @assert(Math.abs(cast(s32) actual.b - cast(s32) expected.b) <= 1)
+    }
+}
+
+// A picture handed over as planes reaches the surface the way it was decoded: the first row of the
+// planes is the top of the picture and the first sample of a row is its left edge.
+#test
+{
+    var storage: Array'u8
+    let picture = makeRenderPlanarPicture(&storage)
+    let image   = renderCpu(&renderPlanarParityScene)
+    assertPlanarCornersUpright(&image, &picture)
+}
+
+// The backend with shaders keeps the three planes and converts while it samples; the one without
+// converts once on upload. Disagreeing on row order there turns every decoded video upside down,
+// which no test made of one flat colour can see.
+//
+// The two do differ where chroma changes: sampling the half-resolution planes with the luma
+// coordinates interpolates across the boundary, while converting on upload replicates one sample
+// over its two-by-two block. That is one chroma texel either side of each seam of the picture
+// below, and nowhere else, which is what the pixel budget stands for.
+#test
+{
+    var storage: Array'u8
+    let picture  = makeRenderPlanarPicture(&storage)
+    let expected = renderCpu(&renderPlanarParityScene)
+    let image    = expect renderOgl("SWAG_PIXEL_PLANAR_PARITY", "Pixel planar parity", RenderPlanarWidth, RenderPlanarHeight, &renderPlanarParityScene)
+    Testing.assertImagesNear(&expected, &image, "render.parity.planar.cpu-ogl", {maxChannelDelta: 4, maxDifferentPixels: 400})
+    assertPlanarCornersUpright(&image, &picture)
 }

@@ -269,6 +269,35 @@ unsafe legacy modes excluded from the default surface.
 
 ---
 
+## Tier B — Compression throughput
+
+### T-561 — Deflate is still four-fifths match search
+
+- Intent: close the rest of the gap between `Compress.Deflate` and the compressors it competes
+  with. It is the whole cost of writing a PNG — 97% of an encode is Deflate — and it is also what
+  `TagBin` and every future container pay.
+- Where it stands: the match finder used to hash the three bytes miniz hashes, and on filtered
+  image data one three-byte sequence repeats about twenty-six times inside a window, so the chain
+  was a list of genuine duplicates walked to the end. It now hashes four bytes multiplicatively
+  with a one-slot three-byte table beside it for the matches four bytes cannot hold. Search work
+  per byte fell 1.6-1.8x, level 6 measured 1.27-1.67x faster on image data with the compressed
+  size unchanged, and PNG encoding 1.31-1.52x faster with files 2-11% smaller.
+- What is left: search is still about 85% of the time. Level 6 walks up to 132 candidates per
+  position and comes back with a match three to six bytes long on filtered data, and level 1
+  compresses the same input 4x faster for 5% more bytes, which is the size of the prize.
+  The two untried levers are zlib's `nice_match` — stop the chain once a match is long enough,
+  128 at level 6 — and tuning the lazy-match rule miniz inherited. Both change which matches are
+  chosen, so each has to report compressed size beside time.
+- The other half is not in this file: the block loop spends its time in stack slots rather than
+  registers, which [F-136](findings.optimization.md) measured at 1.6x against clang for the
+  matching Inflate loop and is a backend problem, not a library one.
+- Complete when: level 6 on the PNG and `.scapture` fixtures is at least 1.5x faster than it is
+  now with no more than 1% growth in compressed size, and every `core` compression test still
+  round-trips.
+- Related: T-032, T-154
+
+---
+
 ## Tier C — Archives, calendars, and time zones
 
 ### T-032 — No gzip container support

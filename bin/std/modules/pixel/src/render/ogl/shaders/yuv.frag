@@ -15,11 +15,16 @@ out vec4 color;
 
 void main()
 {
+    // The planes arrive in the order a decoder reconstructs them, first row at the top, while
+    // every packed image this renderer uploads is stored bottom-up. The vertex stage resolves
+    // uv for the bottom-up case, so the one program that knows the storage class undoes it.
+    vec2 uv = vec2(vuv0.x, 1.0 - vuv0.y);
+
     // The limited-range BT.601 arithmetic every decoder in this repository uses, written in the
     // same fixed-point terms so the picture on screen matches the one Pixel.Yuv420View produces.
-    float luma = texture(inTexture0, vuv0).r * 255.0;
-    float d    = texture(inChromaB, vuv0).r * 255.0 - 128.0;
-    float e    = texture(inChromaR, vuv0).r * 255.0 - 128.0;
+    float luma = texture(inTexture0, uv).r * 255.0;
+    float d    = texture(inChromaB, uv).r * 255.0 - 128.0;
+    float e    = texture(inChromaR, uv).r * 255.0 - 128.0;
     float c    = max(luma - 16.0, 0.0) * 298.0;
 
     vec3 rgb = vec3(c + 409.0 * e + 128.0,

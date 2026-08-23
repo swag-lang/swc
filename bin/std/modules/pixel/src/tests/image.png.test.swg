@@ -145,8 +145,94 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
 
 #test
 {
+    // The packed reconstruction carries the left pixel in a register and writes eight bytes a
+    // step, so this covers every pixel stride, both sides of that eight-byte window, the bytes
+    // a step writes past its own pixel, unaligned pointers, and the sentinel around the row.
+    const Capacity = 192
+    var source:   [Capacity] u8
+    var previous: [Capacity] u8
+    var actual:   [Capacity] u8
+    var expected: [Capacity] u8
+    for bytesPerPixelIndex in 8
+    {
+        let bytesPerPixel = bytesPerPixelIndex + 1
+        for count in 162
+        {
+            for i in Capacity
+            {
+                source[i]   = cast(u8) ((cast(u32) i * 37 + cast(u32) count * 11 + cast(u32) bytesPerPixel * 17) & 0xFF)
+                previous[i] = cast(u8) ((cast(u32) i * 53 + cast(u32) count * 7) & 0xFF)
+                actual[i]   = 0xA5
+                expected[i] = 0xA5
+            }
+
+            source[1]   = 255
+            previous[2] = 255
+
+            for i in count
+            {
+                let left    = i >= bytesPerPixel ? expected[3 + i - bytesPerPixel] : 0'u8
+                let average = cast(u8) ((cast(u16) previous[2 + i] + left) >> 1)
+                expected[3 + i] = cast(u8) ((cast(u16) source[1 + i] + average) & 0xFF)
+            }
+
+            Png.defilterAverageRow(&source[1], &previous[2], &actual[3], count, bytesPerPixel)
+            for i in Capacity do
+                @assert(actual[i] == expected[i])
+        }
+    }
+}
+
+#test
+{
+    // Same coverage as the Average reconstruction, plus the Paeth ties: the extremes planted in
+    // the first two pixels make the three distances collide, which is where a packed predictor
+    // and the ordered scalar comparisons part company if the preference order is wrong.
+    const Capacity = 192
+    var source:   [Capacity] u8
+    var previous: [Capacity] u8
+    var actual:   [Capacity] u8
+    var expected: [Capacity] u8
+    for bytesPerPixelIndex in 8
+    {
+        let bytesPerPixel = bytesPerPixelIndex + 1
+        for count in 162
+        {
+            for i in Capacity
+            {
+                source[i]   = cast(u8) ((cast(u32) i * 37 + cast(u32) count * 11 + cast(u32) bytesPerPixel * 17) & 0xFF)
+                previous[i] = cast(u8) ((cast(u32) i * 53 + cast(u32) count * 7) & 0xFF)
+                actual[i]   = 0xA5
+                expected[i] = 0xA5
+            }
+
+            source[1]                   = 0
+            source[1 + bytesPerPixel]   = 255
+            previous[2]                 = 255
+            previous[2 + bytesPerPixel] = 0
+
+            for i in count
+            {
+                let left      = i >= bytesPerPixel ? expected[3 + i - bytesPerPixel] : 0'u8
+                let upLeft    = i >= bytesPerPixel ? previous[2 + i - bytesPerPixel] : 0'u8
+                let predictor = Png.filterPaeth(left, previous[2 + i], upLeft)
+                expected[3 + i] = cast(u8) ((cast(u16) source[1 + i] + predictor) & 0xFF)
+            }
+
+            Png.defilterPaethRow(&source[1], &previous[2], &actual[3], count, bytesPerPixel)
+            for i in Capacity do
+                @assert(actual[i] == expected[i])
+        }
+    }
+}
+
+#test
+{
     // Every pixel stride, vector/tail boundary, unaligned pointer, Paeth tie,
     // extreme predictor, wrapping subtraction, and sentinel matches scalar.
+    //
+    // A score reads the residual as the byte PNG stores, so it is never negative:
+    // scoring the signed difference lets a noisy row cancel itself out.
     const Capacity = 192
     var source:   [Capacity] u8
     var previous: [Capacity] u8
@@ -175,9 +261,9 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
                 let left      = i >= bytesPerPixel ? source[1 + i - bytesPerPixel] : 0'u8
                 let upLeft    = i >= bytesPerPixel ? previous[2 + i - bytesPerPixel] : 0'u8
                 let predictor = Png.paethScalar(left, previous[2 + i], upLeft)
-                let value     = cast(s32) source[1 + i] - predictor
-                expected[3 + i] = cast #bit(u8) value
-                expectedScore   += 128 - Math.abs(value - 128)
+                let value     = cast #bit(u8) (cast(s32) source[1 + i] - predictor)
+                expected[3 + i] = value
+                expectedScore   += 128 - Math.abs(cast(s32) value - 128)
             }
 
             Png.filterPaethRow(&source[1], &previous[2], &actual[3], count, bytesPerPixel)
@@ -215,9 +301,9 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
             {
                 let left    = i >= bytesPerPixel ? source[1 + i - bytesPerPixel] : 0'u8
                 let average = (cast(s32) left + previous[2 + i]) / 2
-                let value   = cast(s32) source[1 + i] - average
-                expected[3 + i] = cast #bit(u8) value
-                expectedScore   += 128 - Math.abs(value - 128)
+                let value   = cast #bit(u8) (cast(s32) source[1 + i] - average)
+                expected[3 + i] = value
+                expectedScore   += 128 - Math.abs(cast(s32) value - 128)
             }
 
             Png.filterAverageRow(&source[1], &previous[2], &actual[3], count, bytesPerPixel)
@@ -254,9 +340,9 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
             for i in count
             {
                 let left  = i >= bytesPerPixel ? source[1 + i - bytesPerPixel] : 0'u8
-                let value = cast(s32) source[1 + i] - left
-                expected[3 + i] = cast #bit(u8) value
-                expectedScore   += 128 - Math.abs(value - 128)
+                let value = cast #bit(u8) (cast(s32) source[1 + i] - left)
+                expected[3 + i] = value
+                expectedScore   += 128 - Math.abs(cast(s32) value - 128)
             }
 
             Png.filterSubRow(&source[1], &actual[3], count, bytesPerPixel)
@@ -290,9 +376,10 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
         var expectedNone, expectedUp: s32
         for i in count
         {
-            let value = cast(s32) source[1 + i]
-            expectedNone += 128 - Math.abs(value - 128)
-            expectedUp   += 128 - Math.abs(value - previous[2 + i] - 128)
+            let none = source[1 + i]
+            let up   = cast #bit(u8) (none - #wrap previous[2 + i])
+            expectedNone += 128 - Math.abs(cast(s32) none - 128)
+            expectedUp   += 128 - Math.abs(cast(s32) up - 128)
         }
 
         @assert(Png.filterSumIndependent(&source[1], &previous[2], count, false) == expectedNone)

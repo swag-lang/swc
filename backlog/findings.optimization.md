@@ -179,6 +179,11 @@ Entries are sorted by identifier, ascending; position carries no priority.
     removing twelve independent instructions changes nothing. Reverted. Worth revisiting only
     *after* the register half lands, when the loop may become instruction-bound.
   - **Two symbols per refill, and pre-tabulated masks and packed base+extra words.** Zero each.
+  - **A shuffle-based fill for matches closer than eight bytes**, which libdeflate carries and
+    this loop still copies one byte at a time. Counted rather than timed, over the IDAT of the
+    PNG fixtures: matches at a distance of two to seven bytes produce 2.7% of the output on
+    `rgb.png` and 3.3% on `rgba.png`, against 78% for distances of sixteen bytes and up, which
+    already run on vectors. The whole path is too small to pay for the two shuffle tables.
 - The register half was then traced to its mechanism and moved to
   [F-138](#f-138--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers), which
   carries the numbers.
@@ -277,3 +282,38 @@ Entries are sorted by identifier, ascending; position carries no priority.
   plain `MOV` on x86-64, with the same acquire guarantee the current form provides — and make
   `Atomic.get` use it. Measure `tools/unittests.swgs dm cpp` for the intrinsic itself, then the
   `Jobs` scheduler and the deblocking wavefront before and after; both spin on it today.
+
+### F-190 — A short branching function spills with the whole register file free
+
+- Area: compiler/backend
+- Found while: T-504, closing the distance between the H.264 entropy parse and FFmpeg's, starting
+  from the emitted code of one bin as that entry says to.
+- Observation: `CabacReader.decision` decodes one arithmetic bin. It is small, straight-line apart
+  from one two-way branch, and its whole live set is about eight scalars. It is called roughly
+  568,000 times per 3840x2160 picture, which is where the parse spends most of its time.
+  `#[Swag.PrintMicro("post-emit")]` in release shows the function opening with seven callee-saved
+  pushes and `sub rsp, 0xA0`, then storing three values — the address of the context byte, `mps`,
+  and the result — to that frame before the branch and reloading them on both sides. Sixteen
+  integer registers exist and the function needs about half of them.
+- This is [F-136](#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and
+  [F-138](#f-138--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers) without
+  the loop: no value here is loop-carried, no hull is being reserved, and the eviction still
+  happens. That makes it a much smaller reproducer than the inflate block loop for the same
+  allocator policy, which is why it is worth keeping separately.
+- Evidence: the same dump also measured what source shape can and cannot reach. Holding `range`
+  and `low` in locals for the length of the bin, and sharing renormalization between the two
+  outcomes, took the function from 217 to 143 instructions — a third fewer — and about one percent off the
+  serial decode of one picture, which is inside the noise floor of this machine — the arithmetic registers were being reloaded after every step because
+  the context write in between stores into the same structure. What did not move is the frame:
+  it is still 160 bytes with three spill slots live across a branch, and the seven pushes are
+  still there. Two smaller costs sit in the same function and belong to the same dump:
+  `@bitcountlz` lowers to `mov 32 / cmp / je / xor / bsr / mov 31 / sub` where `lzcnt` is one
+  instruction, and each of the three variable shifts carries a width guard of `cmp` plus `cmovae`.
+  Both are cheap next to the spills, and the shift guard was already elided once for
+  [F-136](#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and measured at zero.
+- Next step: this is the global interval allocator's case, not a peephole's. Use it as the small
+  reproducer while that work proceeds: `#[Swag.PrintMicro("post-emit")]` on
+  `CabacReader.decision`, release, and watch the seven pushes and the 160-byte frame. Separately,
+  `lzcnt`/`tzcnt` would retire the `@bitcountlz` sequence, but they are ABM/BMI1 and the backend's
+  stated baseline is AVX, so adopting them raises the Intel floor from Sandy Bridge to Haswell —
+  a decision about what the compiler targets, not an optimization to slip in.

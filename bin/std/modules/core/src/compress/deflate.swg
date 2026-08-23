@@ -82,13 +82,32 @@ internal
     const MaxMatchLen              = 258
 
     const LzCodeBufSize = 24 * 1024
-    const LzHashBits    = 12
+    const LzHashBits    = 15
 
-    const OutBufSize         = (LzCodeBufSize * 13) / 10
-    const MaxHuffSymbols     = 288
-    const Level1HashSizeMask = 4095
-    const LzHashShift        = (LzHashBits + 2) / 3
-    const LzHashSize         = 1 << LzHashBits
+    const OutBufSize     = (LzCodeBufSize * 13) / 10
+    const MaxHuffSymbols = 288
+    const LzHashSize     = 1 << LzHashBits
+
+    // The hash covers the four bytes at a position, mixed by the golden-ratio constant and
+    // taken from the top of the product, where every input byte has spread.
+    //
+    // Three bytes is what the format's shortest match needs, and it is what miniz hashes, but
+    // on filtered image data three-byte sequences repeat about twenty-six times inside one
+    // window: the chain stops being a hash bucket and becomes a list of genuine duplicates the
+    // search has to walk to the end. A fourth byte splits those apart. A match shorter than
+    // four bytes can still be recorded when the search finds one, it is just no longer what
+    // the chain is built to find, which is the same trade libdeflate and zlib-ng make.
+    const LzHashMultiplier = 0x9E3779B1'u32
+    const LzHashDiscard    = 32 - LzHashBits
+
+    // Shortest-match table: one slot per three-byte sequence, no chain.
+    //
+    // The chain above cannot produce a three-byte match, and dropping those costs about 7% of
+    // the compressed size on data whose repeats really are that short - a photograph stored as
+    // raw pixels repeats a colour, not a run. One slot is enough to get them back: a match this
+    // short only pays for itself at a short distance, so the most recent position is the only
+    // candidate worth keeping, and it is consulted only when the chain came back empty.
+    const LzHash3Multiplier = 0x2C9277B5'u32
 
     const GreedyParsing           = 0x04000
     const NonDeterministicParsing = 0x08000
@@ -140,6 +159,8 @@ internal
         lzCodeBuf:        [LzCodeBufSize] u8                      // Lz code buf associated with this value.
         next:             [LzDictSize] u16                        // Next associated with this value.
         hash:             [LzHashSize] u16                        // Whether this value has h.
+        hash3:            [LzHashSize] u16                        // Most recent position of each three-byte sequence.
+        prev3:            [LzDictSize] u16                        // Position that held a three-byte sequence before this one.
         outputBuf:        [OutBufSize] u8                         // Output buf associated with this value.
         result:           #null *Array'u8                         // Result associated with this value.
     }
@@ -336,6 +357,33 @@ impl Deflate
                 c1 = d.dict[pos + matchLen - 1]
             }
         }
+    }
+
+    // Recovers a three-byte match, which the four-byte chain cannot hold.
+    //
+    // One candidate and one comparison: 'prev3' already names the position that held this
+    // sequence before the current one, so there is nothing to walk. It runs only where the
+    // chain came back with nothing, which is exactly where three bytes are worth the pair of
+    // codes they cost. The three unmasked reads stay inside the dictionary because its last
+    // 'MaxMatchLen - 1' bytes mirror its first ones.
+    #[Swag.Safety(.All, false)]
+    mtd findShortMatch(pos: u32, matchDistAddr, matchLenAddr: *u32)
+    {
+        let d    = .state!
+        let head = cast(u32) d.prev3[pos]
+        if !head do
+            return
+
+        let dist = cast(u16) (d.lookaheadPos - head)
+        if !dist or dist > d.dictSize do
+            return
+
+        let probePos = head & LzDictSizeMask
+        if d.dict[probePos] != d.dict[pos] or d.dict[probePos + 1] != d.dict[pos + 1] or d.dict[probePos + 2] != d.dict[pos + 2] do
+            return
+
+        matchDistAddr[] = dist
+        matchLenAddr[]  = MinMatchLen
     }
 
     //#[Swag.Macro]
@@ -959,12 +1007,16 @@ impl Deflate
 
         while srcBufLeft or d.lookaheadSize
         {
-            if (d.lookaheadSize + d.dictSize) >= (MinMatchLen - 1)
+            if (d.lookaheadSize + d.dictSize) >= MinMatchLen
             {
                 var dstPos: u32 = (d.lookaheadPos + d.lookaheadSize) & LzDictSizeMask
-                var insPos: u32 = d.lookaheadPos + d.lookaheadSize - 2
-                var hash:   u32 = (cast(u32) d.dict[insPos & LzDictSizeMask] << LzHashShift)
-                hash ^= d.dict[(insPos + 1) & LzDictSizeMask]
+                var insPos: u32 = d.lookaheadPos + d.lookaheadSize - 3
+
+                // The three bytes already in the dictionary at 'insPos'; the loop shifts the
+                // fourth one in before it hashes, so the window always names four bytes.
+                var window: u32 = (cast(u32) d.dict[insPos & LzDictSizeMask] << 16) |
+                                  (cast(u32) d.dict[(insPos + 1) & LzDictSizeMask] << 8) |
+                                  cast(u32) d.dict[(insPos + 2) & LzDictSizeMask]
 
                 let numBytesToProcess = cast(u32) Math.min(cast(u32) srcBufLeft, cast(u32) (MaxMatchLen - d.lookaheadSize))
 
@@ -980,11 +1032,15 @@ impl Deflate
                     d.dict[dstPos] = c
                     if dstPos < (MaxMatchLen - 1) do
                         d.dict[LzDictSize + dstPos] = c
-                    hash         = ((hash << LzHashShift) ^ c) & (LzHashSize - 1)
+                    window = (window << 8) | c
+                    let hash = (window * LzHashMultiplier) >> LzHashDiscard
                     d.next[insPos & LzDictSizeMask] = d.hash[hash]
                     d.hash[hash] = cast(u16) insPos
-                    dstPos       = (dstPos + 1) & LzDictSizeMask
-                    insPos       += 1
+                    let hash3 = ((window >> 8) * LzHash3Multiplier) >> LzHashDiscard
+                    d.prev3[insPos & LzDictSizeMask] = d.hash3[hash3]
+                    d.hash3[hash3] = cast(u16) insPos
+                    dstPos         = (dstPos + 1) & LzDictSizeMask
+                    insPos         += 1
                 }
             }
             else
@@ -999,14 +1055,19 @@ impl Deflate
                     if dstPos < (MaxMatchLen - 1) do
                         d.dict[LzDictSize + dstPos] = c
                     d.lookaheadSize += 1
-                    if (d.lookaheadSize + d.dictSize) >= MinMatchLen
+                    if (d.lookaheadSize + d.dictSize) >= MinMatchLen + 1
                     {
-                        let insPos: u32 = d.lookaheadPos + (d.lookaheadSize - 1) - 2
-                        var hash:   u32 = (cast(u32) d.dict[insPos & LzDictSizeMask] << (LzHashShift * 2))
-                        hash         = (hash ^ (cast(u32) d.dict[(insPos + 1) & LzDictSizeMask] << LzHashShift) ^ c)
-                        hash         &= (LzHashSize - 1)
+                        let insPos: u32 = d.lookaheadPos + (d.lookaheadSize - 1) - 3
+                        let window: u32 = (cast(u32) d.dict[insPos & LzDictSizeMask] << 24) |
+                                          (cast(u32) d.dict[(insPos + 1) & LzDictSizeMask] << 16) |
+                                          (cast(u32) d.dict[(insPos + 2) & LzDictSizeMask] << 8) |
+                                          cast(u32) c
+                        let hash = (window * LzHashMultiplier) >> LzHashDiscard
                         d.next[insPos & LzDictSizeMask] = d.hash[hash]
                         d.hash[hash] = cast(u16) insPos
+                        let hash3 = ((window >> 8) * LzHash3Multiplier) >> LzHashDiscard
+                        d.prev3[insPos & LzDictSizeMask] = d.hash3[hash3]
+                        d.hash3[hash3] = cast(u16) insPos
                     }
                 }
             }
@@ -1040,6 +1101,8 @@ impl Deflate
             else
             {
                 .findMatch(d.lookaheadPos, d.dictSize, d.lookaheadSize, &curMatchDist, &curMatchLen)
+                if !curMatchDist and d.dictSize and d.lookaheadSize >= MinMatchLen do
+                    .findShortMatch(curPos, &curMatchDist, &curMatchLen)
             }
 
             if ((curMatchLen == MinMatchLen) and (curMatchDist >= 8 * 1024)) or

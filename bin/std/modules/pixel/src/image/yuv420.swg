@@ -11,6 +11,11 @@ using Core, Core.Math
 // The offsets are already applied, so a cropped picture is described by pointing the planes at
 // its visible corner. A 4:2:0 crop is always an even number of luma samples — the format states
 // it in chroma units — which is what lets the chroma plane be addressed at half the coordinates.
+//
+// Rows run top-down: the plane pointers address the top-left visible sample, which is the order
+// every codec reconstructs a picture in. [[Pixel.Image]] stores its rows the other way round, so
+// a conversion into one writes them in reverse, and a renderer that samples the planes directly
+// accounts for the difference itself.
 struct Yuv420View
 {
     public

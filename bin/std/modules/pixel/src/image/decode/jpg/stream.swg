@@ -33,10 +33,27 @@ impl Decoder
         if .bitsLeft <= 0
         {
             .bitBuf = rol(.bitBuf, cast(u32) (numBits + .bitsLeft))
-            let c1 = .getOctet()
-            let c2 = .getOctet()
 
-            .bitBuf   = (.bitBuf & 0xFFFF) | (cast(u32) c1 << 24) | (cast(u32) c2 << 16)
+            var c1, c2: u32
+            let inBufOfs = .inBufOfs!
+
+            // Two bytes that are neither a marker nor a stuffed 0xFF are what entropy-coded data
+            // is almost entirely made of, and taking them here keeps the marker rules, the buffer
+            // refill and their two calls out of the inner decoding loop.
+            if .inBufLeft >= 2 and inBufOfs[0] != 0xFF and inBufOfs[1] != 0xFF
+            {
+                c1         = inBufOfs[0]
+                c2         = inBufOfs[1]
+                .inBufOfs  += 2
+                .inBufLeft -= 2
+            }
+            else
+            {
+                c1 = .getOctet()
+                c2 = .getOctet()
+            }
+
+            .bitBuf   = (.bitBuf & 0xFFFF) | (c1 << 24) | (c2 << 16)
             .bitBuf   = rol(.bitBuf, cast(u32) -.bitsLeft)
             .bitsLeft += 16
         }

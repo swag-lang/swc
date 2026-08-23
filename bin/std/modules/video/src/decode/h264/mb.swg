@@ -115,9 +115,10 @@ impl Slice
     mtd const mbAvailable(mbX, mbY: s32)->bool
     {
         let dec = .dec!
-        if mbX < 0 or mbY < 0 or mbX >= dec.sps!.mbWidth or mbY >= dec.sps!.mbHeight do
+        let sps = dec.sps!
+        if mbX < 0 or mbY < 0 or mbX >= sps.mbWidth or mbY >= sps.mbHeight do
             return false
-        return dec.mbInfo[cast(u64) (mbY * dec.sps!.mbWidth + mbX)].sliceId == .sliceId
+        return dec.mbInfo[cast(u64) (mbY * sps.mbWidth + mbX)].sliceId == .sliceId
     }
 
     // Returns the macroblock info at a position the caller knows is valid.
@@ -131,17 +132,26 @@ impl Slice
     //
     // A block of the current macroblock is available once its motion is final; a block of
     // another macroblock once that macroblock belongs to the same slice.
+    //
+    // The neighbor is resolved once. Reached through two pointers and indexed from a geometry
+    // that lives behind a third, it is otherwise re-addressed at every question asked of it, and
+    // this is one of the roughly 295,000 neighbor queries a picture makes.
     mtd const motionAt(mb: *Mb, list: u32, x4, y4: s32)->NeighborMotion
     {
         var result: retval
         let dec = .dec!
-        let gw  = dec.sps!.mbWidth * 4
-        if x4 < 0 or y4 < 0 or x4 >= gw or y4 >= dec.sps!.mbHeight * 4 do
+        let sps = dec.sps!
+        let gw  = sps.mbWidth * 4
+        if x4 < 0 or y4 < 0 or x4 >= gw or y4 >= sps.mbHeight * 4 do
             return result
 
-        let nMbX = x4 >> 2
-        let nMbY = y4 >> 2
-        if nMbX == mb.mbX and nMbY == mb.mbY
+        let nMbX          = x4 >> 2
+        let nMbY          = y4 >> 2
+        let isCurrent     = nMbX == mb.mbX and nMbY == mb.mbY
+        let neighborIndex = cast(u64) (nMbY * sps.mbWidth + nMbX)
+        let neighbor      = &dec.mbInfo[neighborIndex]
+
+        if isCurrent
         {
             // A block of the current macroblock contributes as soon as its motion for this
             // list is assigned, which is how earlier partitions feed the entropy contexts
@@ -150,11 +160,11 @@ impl Slice
             if (mb.motionMask[list] & (1'u32 << raster)) == 0 do
                 return result
         }
-        elif dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].sliceId != .sliceId
+        elif neighbor.sliceId != .sliceId
         {
             return result
         }
-        elif dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].class != MbClassInter
+        elif neighbor.class != MbClassInter
         {
             result.available = true
             result.intra     = true
@@ -162,8 +172,7 @@ impl Slice
             return result
         }
 
-        let neighborIndex = cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)
-        if (nMbX != mb.mbX or nMbY != mb.mbY) and .header.type == SliceTypeP and dec.mbInfo[neighborIndex].skipped
+        if !isCurrent and .header.type == SliceTypeP and neighbor.skipped
         {
             let job = &dec.parsedMbs[neighborIndex].firstJob
             result.available = true
@@ -197,11 +206,11 @@ impl Slice
         }
 
         result.isDirect = dec.directFlags[index] != 0
-        if nMbX == mb.mbX and nMbY == mb.mbY do
+        if isCurrent do
             return result
 
         // A block of a decoded neighbor may still be intra.
-        if dec.mbInfo[cast(u64) (nMbY * dec.sps!.mbWidth + nMbX)].class != MbClassInter
+        if neighbor.class != MbClassInter
         {
             result.intra  = true
             result.refIdx = -1

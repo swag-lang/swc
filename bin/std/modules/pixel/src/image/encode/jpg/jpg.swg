@@ -83,10 +83,12 @@ private
     const SOF0info = SOF0InfoType{0xFFC0, 17, 8, 0, 0, 3, 1, 0x11, 0, 2, 0x11, 1, 3, 0x11, 1}
     const SOSinfo  = SOSInfoType{0xFFDA, 12, 3, 1, 0, 2, 0x11, 3, 0x11, 0, 0x3F, 0}
 
-    // The Huffman tables of the specification live beside the decoder, in `decode/jpg.huffman.swg`:
-    // this encoder writes them into every stream, and that decoder substitutes them into a stream
-    // that defines none.
-    const Mask = [1'u16, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768]
+    // Bytes the encoder stages before handing them to the output buffer.
+    //
+    // The entropy coder produces one byte at a time, and appending each of them to a
+    // `ConcatBuffer` costs more than the coding itself; staging turns that into one append
+    // per full buffer.
+    const OutBufSize = 4096
 
     const ZigZag: [?] u8 = [
         0, 1, 5, 6, 14, 15, 27, 28, 2, 4, 7, 13, 16, 26, 29, 42, 3, 8, 12, 17, 25, 30,
@@ -101,15 +103,22 @@ private
         17, 18, 24, 47, 99, 99, 99, 99, 18, 21, 26, 66, 99, 99, 99, 99, 24, 26, 56, 99, 99, 99, 99, 99, 47, 66, 99, 99, 99, 99, 99, 99,
         99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99]
 
-    var TabYR:  [256] s32 = undefined
-    var TabYG:  [256] s32 = undefined
-    var TabYB:  [256] s32 = undefined
-    var TabCbR: [256] s32 = undefined
-    var TabCbG: [256] s32 = undefined
-    var TabCbB: [256] s32 = undefined
-    var TabCrR: [256] s32 = undefined
-    var TabCrG: [256] s32 = undefined
-    var TabCrB: [256] s32 = undefined
+    // Fixed-point coefficients of the colour conversion, in 16.16. The rounding of each one is
+    // part of the sample the transform receives.
+    const CoeffYR  = cast(s32) (65536.0 * 0.299 + 0.5)
+    const CoeffYG  = cast(s32) (65536.0 * 0.587 + 0.5)
+    const CoeffYB  = cast(s32) (65536.0 * 0.114 + 0.5)
+    const CoeffCbR = cast(s32) (65536.0 * -0.16874 + 0.5)
+    const CoeffCbG = cast(s32) (65536.0 * -0.33126 + 0.5)
+    const CoeffCbB = 32768
+    const CoeffCrR = 32768
+    const CoeffCrG = cast(s32) (65536.0 * -0.41869 + 0.5)
+    const CoeffCrB = cast(s32) (65536.0 * -0.08131 + 0.5)
+
+    // Byte permutations that lift one colour channel of four pixels into four 32-bit lanes.
+    const RedLanes   = cast(Math.Simd.U8x16) [2'u8, 0x80, 0x80, 0x80, 5, 0x80, 0x80, 0x80, 8, 0x80, 0x80, 0x80, 11, 0x80, 0x80, 0x80]
+    const GreenLanes = cast(Math.Simd.U8x16) [1'u8, 0x80, 0x80, 0x80, 4, 0x80, 0x80, 0x80, 7, 0x80, 0x80, 0x80, 10, 0x80, 0x80, 0x80]
+    const BlueLanes  = cast(Math.Simd.U8x16) [0'u8, 0x80, 0x80, 0x80, 3, 0x80, 0x80, 0x80, 6, 0x80, 0x80, 0x80, 9, 0x80, 0x80, 0x80]
 }
 
 impl ColorRGB
@@ -140,26 +149,6 @@ impl BitString
     }
 }
 
-// Precalculate YCbCr tables
-#run
-{
-    for r in 256
-    {
-        let rr = cast(s32) r
-        TabYR[r]  = cast(s32) (65536.0 * 0.299 + 0.5) * rr
-        TabCbR[r] = cast(s32) (65536.0 * -0.16874 + 0.5) * rr
-        TabCrR[r] = cast(s32) 32768 * rr
-
-        TabYG[r]  = cast(s32) (65536.0 * 0.587 + 0.5) * rr
-        TabCbG[r] = cast(s32) (65536.0 * -0.33126 + 0.5) * rr
-        TabCrG[r] = cast(s32) (65536.0 * -0.41869 + 0.5) * rr
-
-        TabYB[r]  = cast(s32) (65536.0 * 0.114 + 0.5) * rr
-        TabCbB[r] = cast(s32) 32768 * rr
-        TabCrB[r] = cast(s32) (65536.0 * -0.08131 + 0.5) * rr
-    }
-}
-
 // Encodes baseline JPEG images with configurable quality.
 //
 // The encoder is opaque; pass [[Jpg.EncodeOptions]] through the generic image
@@ -177,8 +166,11 @@ internal struct Encoder
 
         stream: #null *ConcatBuffer     // Output buffer segments are appended to.
 
-        bytenew: u8     // Bit accumulator of the entropy coder.
-        bytepos: s8     // Free bit position inside 'bytenew'.
+        bitBuffer: u32     // Pending entropy bits, right-aligned in the accumulator.
+        bitCount:  u32     // Number of valid bits held in 'bitBuffer'.
+
+        outBuf:   [OutBufSize] u8     // Bytes staged before they reach 'stream'.
+        outCount: u32                 // Bytes currently staged in 'outBuf'.
 
         scaleFactor: u8 = 10     // Quality scale applied to the quantization tables.
 
@@ -192,11 +184,11 @@ internal struct Encoder
         fdtblY:  [64] f32     // Scaled luma quantization table.
         fdtblCb: [64] f32     // Scaled chroma quantization table.
 
-        duY:   [64] s8      // Luma samples of the current block.
-        duCb:  [64] s8      // Blue-chroma samples of the current block.
-        duCr:  [64] s8      // Red-chroma samples of the current block.
-        duDct: [64] s16     // Transformed coefficients of the current block.
-        du:    [64] s16     // Quantized coefficients of the current block.
+        // Samples of the current block, already level shifted.
+        duY:  [64] s16     // Luma samples of the current block.
+        duCb: [64] s16     // Blue-chroma samples of the current block.
+        duCr: [64] s16     // Red-chroma samples of the current block.
+        du:   [64] s16     // Quantized coefficients of the current block, in zigzag order.
 
         categoryAlloc: Array'u8                // Storage for the magnitude-category table.
         category:      #null [*] u8            // Magnitude-category table, biased to signed input.
@@ -222,13 +214,17 @@ impl Encoder
         else do
             yDiv8 = .imageY
 
-        .bufferRGB.resize(cast(u64) xDiv8 * yDiv8)
+        // The conversion reads whole vectors, so the last pixels of the source are followed by
+        // enough slack for a sixteen-byte read that starts on them.
+        .bufferRGB.resize(cast(u64) xDiv8 * yDiv8 + 8)
         let pdst = .bufferRGB.buffer!
         var pref = image.pixels.buffer!
 
+        // The image rows are stored bottom up and a scan is coded top down, so each row is
+        // written straight to its mirrored position instead of being copied and then swapped.
         for nrline in .imageY
         {
-            let line = pdst + nrline * xDiv8
+            let line = pdst + (cast(u32) .imageY - 1 - nrline) * xDiv8
             switch image.pixelFormat
             {
             case .BGR8:
@@ -274,25 +270,12 @@ impl Encoder
         }
 
         .imageX = cast(u16) xDiv8
-        let tmpline = Array'u8.createBuffer(cast(u64) .imageX * #sizeof(ColorRGB))
 
-        // Reorder in memory the inversed bitmap
-        var nrLineUp = cast(u32) .imageY - 1
-        var nrLineDn = 0'u32
+        // Height completion: the padded rows repeat the last coded row.
         let dimline  = cast(u64) .imageX * #sizeof(ColorRGB)
-        while nrLineUp > nrLineDn
-        {
-            Memory.copy(tmpline.buffer, pdst + nrLineUp * .imageX, dimline)
-            Memory.copy(pdst + nrLineUp * .imageX, pdst + nrLineDn * .imageX, dimline)
-            Memory.copy(pdst + nrLineDn * .imageX, tmpline.buffer, dimline)
-            nrLineUp -= 1
-            nrLineDn += 1
-        }
-
-        // Y completion
-        Memory.copy(tmpline.buffer, pdst + (.imageY - 1) * cast(u32) .imageX, dimline)
-        for var nrLine = .imageY; nrLine < yDiv8; nrLine += 1 do
-            Memory.copy(pdst + nrLine * cast(u32) .imageX, tmpline.buffer, dimline)
+        let lastLine = pdst + (cast(u32) .imageY - 1) * cast(u32) .imageX
+        for var nrLine = cast(u32) .imageY; nrLine < yDiv8; nrLine += 1 do
+            Memory.copy(pdst + nrLine * cast(u32) .imageX, lastLine, dimline)
 
         .imageY = cast(u16) yDiv8
     }
@@ -347,18 +330,16 @@ internal impl IImageEncoder for Encoder
         .writeDHTinfo()
         .writeSOSinfo()
 
-        .bytenew = 0
-        .bytepos = 7
+        .bitBuffer = 0
+        .bitCount  = 0
         .encoder()
 
-        if .bytepos >= 0
-        {
-            var fillbits: BitString
-            fillbits.length = cast(u8) (.bytepos + 1)
-            fillbits.value  = cast(u16) ((1 << (.bytepos + 1)) - 1)
-            .writeBits(fillbits)
-        }
+        // The last byte of the scan is padded with one bits, so a decoder cannot read the marker
+        // that follows as entropy-coded data.
+        let padding = 8 - .bitCount
+        .writeBits({cast(u8) padding, cast(u16) ((1'u32 << padding) - 1)})
 
         .writeWord(0xFFD9)     // EOI
+        .flushStaged()
     }
 }

@@ -119,20 +119,21 @@ impl Decoder
 
     mtd huffDecode(ph: *HuffTables)->s32
     {
+        // A code of eight bits or less is fully described by the entry the next eight bits select:
+        // it carries its own length, so the symbol costs one load.
         var symbol = ph.lookUp[(.bitBuf >> 8) & 0xFF]
-        if symbol < 0
+        if symbol >= 0
         {
-            .getBits2(8)
-            for
-            {
-                symbol = ph.tree[~symbol + (1 - .getBits2(1))]
-                if symbol >= 0 do
-                    break
-            }
+            .getBits2(symbol >> 8)
+            return symbol & 0xFF
         }
-        else
+
+        .getBits2(8)
+        for
         {
-            .getBits2(cast(s32) ph.codeSize[symbol])
+            symbol = ph.tree[~symbol + (1 - .getBits2(1))]
+            if symbol >= 0 do
+                break
         }
 
         return symbol
@@ -371,30 +372,13 @@ impl Decoder
             .blockSeg[i] = cast([*] s16) (cast([*] u8) .quantBuf.buffer! + i * 64 * #sizeof(s16))
         }
 
-        .sampleBuf.resize(cast(u64) .maxBlocksPerRow * 64 + 8)
+        // The conversions read whole vectors, so the last sample of a row is followed by enough
+        // slack for a sixteen-byte read that starts on it.
+        .sampleBuf.resize(cast(u64) .maxBlocksPerRow * 64 + 64)
         .pSampleBuf = .sampleBuf.buffer
 
         .totalLinesLeft = .imageSizeY
         .mcuLinesLeft   = 0
-        .createLookUps()
-    }
-
-    mtd createLookUps()
-    {
-        var fix: [4] s32 = undefined
-        fix[0] = cast(s32) ((1.40200 / 2) * (1 << 16) + 0.5)
-        fix[1] = cast(s32) ((1.77200 / 2) * (1 << 16) + 0.5)
-        fix[2] = cast(s32) -((0.71414 / 2) * (1 << 16) + 0.5)
-        fix[3] = cast(s32) -((0.34414 / 2) * (1 << 16) + 0.5)
-
-        for i in 256
-        {
-            let k = cast(s32) i * 2 - 256
-            .crr[i] = (fix[0] * k + (1 << (16 - 1))) >> 16
-            .cbb[i] = (fix[1] * k + (1 << (16 - 1))) >> 16
-            .crg[i] = (fix[2] * k)
-            .cbg[i] = (fix[3] * k + (1 << (16 - 1)))
-        }
     }
 
     mtd initScan()->bool fail
@@ -486,9 +470,12 @@ impl Decoder
             si  += 1
         }
 
-        Memory.clear(hs.lookUp, #sizeof(hs.lookUp))
         Memory.clear(hs.tree, #sizeof(hs.tree))
-        Memory.clear(hs.codeSize, #sizeof(hs.codeSize))
+
+        // A prefix that no code covers only appears in a malformed stream. Reading it as a
+        // one-bit symbol keeps the scan moving, where an entry consuming no bit would not.
+        for i in 256 do
+            hs.lookUp[i] = 1 << 8
 
         var nextFreeEntry = -1
         let huffValBuf    = .huffVal[idx].buffer!
@@ -498,21 +485,23 @@ impl Decoder
             let i = huffValBuf[p]
             cde = huffCode[p]
             let codeSize = huffSize[p]
-            hs.codeSize[i] = cast(u8) codeSize
             if codeSize <= 8
             {
                 cde <<= (8 - codeSize)
+                let entry = (cast(s32) codeSize << 8) | cast(s32) i
                 for var l = 1 << (8 - codeSize); l > 0; l -= 1
                 {
-                    hs.lookUp[cde] = i
+                    hs.lookUp[cde] = entry
                     cde            += 1
                 }
             }
             else
             {
+                // A long code reaches a subtree instead, and a subtree entry is the only negative
+                // value a prefix can hold: anything else means the slot is still free.
                 let subtree      = (cde >> (codeSize - 8)) & 0xFF
                 var currentEntry = hs.lookUp[subtree]
-                if currentEntry == 0
+                if currentEntry >= 0
                 {
                     hs.lookUp[subtree] = nextFreeEntry
                     currentEntry       = nextFreeEntry

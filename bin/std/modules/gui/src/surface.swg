@@ -76,6 +76,11 @@ struct Surface
     dirtyRect: Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0}     // Region to repaint.
     isDirty:   bool                                                    // Whether a repaint is pending.
 
+    // What the last pass did with the window tree. A repaint covers one region, so most of a
+    // tree is normally rejected before it records anything; these say how much.
+    paintedWnds: u32     // Windows the last pass painted.
+    skippedWnds: u32     // Windows the last pass rejected as unable to reach the repainted region.
+
     // Where the keyboard stood on this surface, kept so a surface a modal box covered resumes at
     // the control the reader left rather than at the top of its traversal.
     //
@@ -392,6 +397,8 @@ impl Surface
         // never-repainted seam along the dirty edge.
         var clipRect = .dirtyRect
         clipRect.round()
+        .paintedWnds = 0
+        .skippedWnds = 0
         .dirtyRect = {Swag.F32.Max, Swag.F32.Max, 0, 0}
         .isDirty   = false
 

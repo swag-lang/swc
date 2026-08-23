@@ -37,6 +37,13 @@ initialized with `null` and has no implicit default. A struct field of such a ty
 therefore be supplied by an aggregate initializer unless it declares an explicit non-null
 default. Use `#null` to opt into nullability when null is part of the intended contract.
 
+Because these types answer a condition by testing their first pointer-sized word against
+null, only a `#null` one asks a real question there. A bare `*u8`, `[*] u8`, slice,
+`string`, `cstring`, `func` value, `interface` or `typeinfo` in a condition is a constant
+that can only be true, and every boolean context rejects it. A slice and a string test
+their data pointer, never their count, so an empty one is still present: emptiness is
+`@countof(x) == 0`.
+
 A `#null` value cannot flow into a bare (non-null) slot directly, and it cannot be
 dereferenced, indexed, member-accessed or called while it is still nullable: every use
 site needs a proof. Flow narrowing provides it implicitly (a dominating null test such
@@ -102,6 +109,11 @@ plain value (an integer, a bool...) cannot carry the null outcome and must hand 
 an immediate `orelse` fallback. A void call through `?.` is a statement that does
 nothing when the value is null.
 
+A proof made inside a branch belongs to that branch, and what holds after an `if` is what
+both paths prove: when every path assigns a present value, the value is proven for the
+code that follows without a `!`. A path that leaves the block — a `return`, a `break`, a
+`fail` — reaches none of that code, so the other path's proof holds alone.
+
 Write `!` where an invariant makes the value always present and a null would be a bug
 worth stopping on; write `?.` where absence is an ordinary outcome the code handles.
 Both are tolerated on a value the flow already proved, so a redundant one in a narrowed
@@ -151,6 +163,11 @@ region is dead, not wrong.
     p = null
     @assert((p?.count orelse -1) == -1)
     @assert(p?.next == null)
+
+    // Every path assigns a present value, so the value is proven after the 'if'.
+    if second.count > 0 do p = &first
+    else do p = &second
+    @assert(p.count == 2)
 }
 
 /**

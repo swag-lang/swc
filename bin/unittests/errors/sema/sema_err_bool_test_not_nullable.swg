@@ -54,6 +54,16 @@ func nonNullConditionPointee(flag: *bool)->s32
     return 0
 }
 
+// An inlined body asks the question of its own parameter, so a guard written against a '#null'
+// parameter keeps typechecking whatever the call site passes.
+#[Swag.Inline]
+func nonNullConditionInlinedGuard(item: #null *NonNullConditionItem)->s32 => item ? item!.value : 0
+
+func nonNullConditionInlinedCaller(item: *NonNullConditionItem)->s32
+{
+    return nonNullConditionInlinedGuard(item)
+}
+
 // -----------------------------------------------------------------------------
 // Rejected patterns.
 // -----------------------------------------------------------------------------
@@ -97,9 +107,11 @@ func nonNullConditionErrExplicitCast(item: *NonNullConditionItem)->bool
     return cast(bool) item     // swc-expected-error {{sema_err_bool_test_not_nullable}}
 }
 
-func nonNullConditionErrAssert(item: *NonNullConditionItem)
+func nonNullConditionErrBlockPointer(bytes: [*] u8)->s32
 {
-    @assert(item)     // swc-expected-error {{sema_err_bool_test_not_nullable}}
+    if bytes do     // swc-expected-error {{sema_err_bool_test_not_nullable}}
+        return cast(s32) bytes[0]
+    return 0
 }
 
 impl NonNullConditionItem

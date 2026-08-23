@@ -91,12 +91,13 @@
     @assert(!s == false)
 }
 
+// A slice answers a condition with its data pointer, so only a '#null' slice asks a question.
 #test
 {
     var a: [2] s32
-    var s: [..] s32 = a
+    var s: #null [..] s32 = a
     @assert(!s == false)
 
-    var n: #null [..] s32 = null
-    @assert(!n)
+    s = null
+    @assert(!s)
 }

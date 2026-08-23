@@ -48,12 +48,12 @@
 #test
 {
     var buf: [512] u8
-    var p:   const [*] u8 = &buf[0]
-    p = p + (256 - (cast(u64) p & 0xFF))     // force the address low byte to 0
-    @assert((cast(u64) p & 0xFF) == 0)
+    var p:   #null const [*] u8 = &buf[0]
+    p = p! + (256 - (cast(u64) p! & 0xFF))     // force the address low byte to 0
+    @assert((cast(u64) p! & 0xFF) == 0)
 
     // through @dataof (the original @print swallowed-strings repro)
-    let s = @mkstring(p, 1)
+    let s: #null string = @mkstring(p!, 1)
     if !@dataof(s) do
         @assert(false)
 

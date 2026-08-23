@@ -11,6 +11,16 @@ const E: string = "e"
 const F         = E orelse "f"
 #assert(F == "e")
 
+// Presence, not truthiness: a constant left operand folds the same way a runtime one selects,
+// for every nullable-capable family including the ones that answer no condition at all.
+#test
+{
+    let missing:  #null any = null
+    let fallback: any       = true
+    let resolved            = missing orelse fallback
+    @assert(@kindof(resolved) == bool)
+}
+
 const S0: #null const [..] u8 = null
 const S1 = S0 orelse "abc"
 #assert(#typeof(S1) == const [..] u8)

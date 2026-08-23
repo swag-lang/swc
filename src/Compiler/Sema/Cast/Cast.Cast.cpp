@@ -1049,6 +1049,11 @@ Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
     if (!srcType.isConvertibleToBool())
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
+    // A value handed to a bool parameter, initializer or assignment is not a condition: it does
+    // not convert at all, so that is the answer it gets, before any truthiness rule applies.
+    if (isImplicitValueBoolCastKind(castRequest.kind) && !srcType.isBool() && !srcType.isIntLike() && !srcType.isFloat() && !srcType.isEnumFlags())
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
     if (isBoolTestAlwaysTrue(sema, castRequest, srcTypeRef))
     {
         // A 'Swag.Late' slot is the one non-null value that legitimately starts empty, and the
@@ -1059,9 +1064,6 @@ Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
         castRequest.failure.addArgument(Diagnostic::ARG_A_TYPE_FAM, srcType.toArticleFamily(sema.ctx()));
         return res;
     }
-
-    if (isImplicitValueBoolCastKind(castRequest.kind) && !srcType.isBool() && !srcType.isIntLike() && !srcType.isFloat() && !srcType.isEnumFlags())
-        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     if (castRequest.isConstantFolding())
     {

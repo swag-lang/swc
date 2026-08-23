@@ -342,10 +342,11 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
     // Constant folding
     if (nodeLeftView.cstRef().isValid())
     {
-        ConstantRef nodeBoolCstRef = ConstantRef::invalid();
-        SWC_RESULT(Cast::castConstant(sema, nodeBoolCstRef, nodeLeftView.cstRef(), sema.typeMgr().typeBool(), nodeLeftView.nodeRef(), CastKind::Condition));
-
-        const bool        leftIsFalse = nodeBoolCstRef == sema.cstMgr().cstFalse();
+        // 'orelse' asks presence, not truthiness, and its operand is always a nullable-capable
+        // family: a constant left selects the fallback exactly when it is null. Reading that
+        // from the constant keeps the condition rules off a spelling that is not a condition,
+        // where they would reject the dead fallback a non-null left deliberately keeps.
+        const bool        leftIsFalse = sema.cstMgr().get(nodeLeftView.cstRef()).isNull();
         const auto        selectedRef = leftIsFalse ? nodeRightView.nodeRef() : nodeLeftView.nodeRef();
         const ConstantRef selectedCst = leftIsFalse ? nodeRightView.cstRef() : nodeLeftView.cstRef();
         if (selectedCst.isValid())

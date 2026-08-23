@@ -288,7 +288,15 @@ namespace
         TypeRef resultTypeRef = TypeRef::invalid();
         if (type->isString() || type->isCString())
         {
-            resultTypeRef = sema.typeMgr().typeConstBlockPtrU8();
+            // A '#null' text carries no buffer, so the pointer it hands back carries that
+            // absence too: answering with the plain block pointer would lose it silently.
+            if (!flags.has(TypeInfoFlagsE::Nullable))
+                resultTypeRef = sema.typeMgr().typeConstBlockPtrU8();
+            else
+            {
+                const TypeInfo ty = TypeInfo::makeBlockPointer(sema.typeMgr().typeU8(), TypeInfoFlagsE::Const | TypeInfoFlagsE::Nullable);
+                resultTypeRef     = sema.typeMgr().addType(ty);
+            }
         }
         else if (type->isSlice())
         {

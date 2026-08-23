@@ -164,7 +164,7 @@
       "patterns": [
         {
           "name": "entity.name.tag",
-          "match": "(@)(rol|ror|muladd|byteswap|bitcountnz|bitcounttz|bitcountlz|min|max|sqrt|sin|cos|tan|sinh|cosh|tanh|asin|acos|atan|atan2|log|log2|log10|floor|ceil|trunc|round|abs|exp|exp2|pow|alloc|realloc|free|memcpy|memmove|memset|memcmp|atomadd|atomand|atomor|atomxor|atomxchg|atomcmpxchg|vecsplat|vecsatadd|vecsatsub|vecpackus|vecpackss|vecinterleavelo|vecinterleavehi|vecwidenlo|vecwidenhi|vecavgr|vecmadd|vecsum|vectruncs32|vecgather|vecperm|vecselect|vecmask|vecany|vecall)\\b"
+          "match": "(@)(rol|ror|muladd|byteswap|bitcountnz|bitcounttz|bitcountlz|min|max|sqrt|sin|cos|tan|sinh|cosh|tanh|asin|acos|atan|atan2|log|log2|log10|floor|ceil|trunc|round|abs|exp|exp2|pow|memcpy|memmove|memset|memcmp|atomadd|atomand|atomor|atomxor|atomxchg|atomcmpxchg|vecsplat|vecsatadd|vecsatsub|vecpackus|vecpackss|vecinterleavelo|vecinterleavehi|vecwidenlo|vecwidenhi|vecavgr|vecmadd|vecsum|vectruncs32|vecgather|vecperm|vecselect|vecmask|vecany|vecall)\\b"
         }
       ]
     },
@@ -172,7 +172,7 @@
       "patterns": [
         {
           "name": "constant.character.escape",
-          "match": "(@)(index|err|args|jit|compiler|pinfos|modules|gvtd|rtflags)\\b"
+          "match": "(@)(index|args|jit|compiler|pinfos|modules|gvtd|rtflags)\\b"
         }
       ]
     },
@@ -443,7 +443,7 @@
       "patterns": [
         {
           "name": "constant.numeric.binary",
-          "match": "0b[01][01_]*"
+          "match": "0[bB][01][01_]*(?:'[A-Za-z_]\\w*)?"
         }
       ]
     },
@@ -451,7 +451,7 @@
       "patterns": [
         {
           "name": "constant.numeric.hex",
-          "match": "0x([[:xdigit:]][[:xdigit:]_]*)((\\.\\g<1>)?[pP][-+]?\\d[\\d_]*)?"
+          "match": "0[xX][0-9A-Fa-f][0-9A-Fa-f_]*(?:'[A-Za-z_]\\w*)?"
         }
       ]
     },
@@ -459,11 +459,11 @@
       "patterns": [
         {
           "name": "constant.numeric.float",
-          "match": "(\\d[\\d_]*)(\\.\\g<1>)([eE][-+]?\\g<1>)?"
+          "match": "\\d[\\d_]*\\.\\d[\\d_]*(?:[eE][-+]?\\d[\\d_]*)?(?:'[A-Za-z_]\\w*)?"
         },
         {
           "name": "constant.numeric.float",
-          "match": "(\\d[\\d_]*)([eE][-+]?\\g<1>)"
+          "match": "\\d[\\d_]*[eE][-+]?\\d[\\d_]*(?:'[A-Za-z_]\\w*)?"
         }
       ]
     },
@@ -471,7 +471,7 @@
       "patterns": [
         {
           "name": "constant.numeric.integer",
-          "match": "(\\d[\\d_]*)"
+          "match": "\\d[\\d_]*(?:'[A-Za-z_]\\w*)?"
         }
       ]
     },

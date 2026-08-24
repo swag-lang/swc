@@ -141,8 +141,7 @@ namespace
 
         for (size_t i = 0; i < args.size(); ++i)
         {
-            const JITArgument&          arg         = args[i];
-            const ResolvedCallArgument& resolvedArg = resolvedArgs[i];
+            const JITArgument& arg = args[i];
             if (!arg.typeRef.isValid() || !arg.valuePtr)
                 return false;
 
@@ -150,21 +149,12 @@ namespace
             uint64_t        byteSize  = argType.sizeOf(ctx);
             const void*     sourcePtr = arg.valuePtr;
 
-            // Cache keys must reflect the referenced value, not the transient
-            // address of the JIT argument storage used to pass it.
-            if (resolvedArg.bindsReferenceToValue && argType.isReference())
-            {
-                const TypeRef pointeeTypeRef = argType.payloadTypeRef();
-                if (!pointeeTypeRef.isValid())
-                    return false;
-
-                byteSize                  = sema.typeMgr().get(pointeeTypeRef).sizeOf(ctx);
-                const auto pointeeAddress = *static_cast<const uint64_t*>(arg.valuePtr);
-                if (byteSize && !pointeeAddress)
-                    return false;
-
-                sourcePtr = reinterpret_cast<const void*>(pointeeAddress);
-            }
+            // Pointer-like arguments can denote either a real pointer constant or
+            // compiler-owned storage materialized for a reference/value receiver.
+            // The latter address is transient and can be recycled between folds,
+            // so such calls are not safe cache candidates.
+            if (argType.isPointerOrReference())
+                return false;
 
             if (byteSize > std::numeric_limits<uint32_t>::max())
                 return false;

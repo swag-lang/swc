@@ -23,6 +23,22 @@ impl Extent
     }
 }
 
+struct Channels
+{
+    red:   u8
+    green: u8
+    blue:  u8
+}
+
+impl Channels
+{
+    #[Swag.ConstExpr]
+    mtd const packed()->u32
+    {
+        return (cast(u32) .red << 16) | (cast(u32) .green << 8) | .blue
+    }
+}
+
 const G_Extent = Extent{width: 4, height: 2}
 
 #assert(G_Extent.area() == 8)
@@ -33,4 +49,17 @@ const G_Extent = Extent{width: 4, height: 2}
     let local = Extent{width: 3, height: 5}
     @assert(local.area() == 15)
     @assert(!local.isWide())
+}
+
+#test
+{
+    // Method receivers use compiler-owned pointer storage while folding. A
+    // recycled storage address must not turn these distinct values into one
+    // cached const call.
+    let first  = Channels{red: 0x7F, green: 0xFF, blue: 0xFF}.packed()
+    let second = Channels{red: 0xFF, green: 0x7F, blue: 0xFF}.packed()
+    let third  = Channels{red: 0xFF, green: 0xFF, blue: 0x7F}.packed()
+    @assert(first == 0x007FFFFF)
+    @assert(second == 0x00FF7FFF)
+    @assert(third == 0x00FFFF7F)
 }

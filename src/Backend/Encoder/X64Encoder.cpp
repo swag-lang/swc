@@ -1668,7 +1668,8 @@ void X64Encoder::encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint6
 void X64Encoder::encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
 {
     SWC_ASSERT(numBitsSrc != numBitsDst);
-    SWC_ASSERT(!(regDst.isFloat() || regSrc.isFloat()));
+    SWC_ASSERT(!regDst.isFloat());
+    SWC_ASSERT(!regSrc.isFloat() || (numBitsSrc == MicroOpBits::B32 && numBitsDst == MicroOpBits::B64));
 
     if (numBitsSrc == MicroOpBits::B8 && (numBitsDst == MicroOpBits::B16 || numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64))
     {

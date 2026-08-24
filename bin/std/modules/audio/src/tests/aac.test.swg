@@ -133,6 +133,12 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     var full    = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024, packets.toSlice(), Config)
     var trimmed = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024, packets.toSlice(), Config, {leadingTrimFrames: Trim})
     @assert(trimmed.sampleFrameCount() == full.sampleFrameCount() - Trim)
+    @assert(full.timelineStartSeconds() == 0)
+
+    var window = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024, packets.toSlice(), Config, {timelineStartSeconds: 125.5})
+    @assert(window.timelineStartSeconds() == 125.5 and window.sampleFrameCount() == full.sampleFrameCount())
+    discard catch SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024, packets.toSlice(), Config, {timelineStartSeconds: -1}) as invalidTimeline
+    @assert(invalidTimeline is BadParameterError)
 
     discard expect createNoSoundEngine()
     defer destroyEngine()

@@ -64,7 +64,6 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
 #test
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
-    waitForMatroskaAudio(&reader, 2)
     @assert(reader.audioTrackCount() == 2)
     let primary   = reader.audioTrack(0)!
     let alternate = reader.audioTrack(1)!
@@ -121,9 +120,12 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
     var longStream = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac-10min.mkv"))
     var reference  = expect Reader.open(videoFixturePath("ffmpeg-h264-baseline.mp4"))
     var indexed: Image
-    expect longStream.decodeFrameInto(&indexed, 0)
+    expect longStream.decodeFrameInto(&indexed, 12_007)
     @assert(longStream.frameCount() == 0)
     @assert(Math.isEqualEpsilon(longStream.durationInSeconds(), 600.0, 0.001))
+    let seekSound = longStream.audioTrack(0)!
+    @assert(seekSound.timelineStartSeconds() == 0 or seekSound.timelineStartSeconds() < 480.28)
+    @assert(480.28 - seekSound.timelineStartSeconds() < seekSound.durationInSeconds())
 
     // The frame immediately after a distant seek also proves that seek-only decode bounding is
     // removed as soon as the requested picture has been returned.
@@ -138,6 +140,23 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
     }
 
     @assert(longStream.frameAtTime(599.96) == 14_999)
+}
+
+// The complete audio-only pass must not require picture samples after disabling picture indexing.
+// The opening cluster is playable immediately; the background pass then replaces it with the
+// complete ten-minute packet table instead of failing at the end of the segment.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac-10min.mkv"))
+    @assert(reader.audioTrackCount() == 2)
+    var attempts: u32
+    while reader.audioTrack(0)!.durationInSeconds() < 100 and attempts < 5000
+    {
+        Threading.Thread.sleep(1'ms)
+        attempts += 1
+    }
+
+    @assert(reader.audioTrack(0)!.durationInSeconds() >= 100)
 }
 
 // Memory-backed Matroska uses the borrowed bytes for video and does not manufacture file cursors

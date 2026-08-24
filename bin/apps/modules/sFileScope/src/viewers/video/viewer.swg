@@ -39,12 +39,19 @@ private const VideoPrefetchMin = 2'u64
 // Names the absence of a queue slot.
 private const VideoNoSlot = Swag.U32.Max
 
-private func videoSoundCovers(sound: const *SoundFile, seconds: f64)->bool
+func videoSoundCovers(sound: const *SoundFile, seconds: f64)->bool
 {
-    if seconds <= 0 do
-        return true
-    let wanted = cast(u64) Math.ceil(seconds * cast(f64) sound.sampleRateHz())
+    let local = seconds - sound.timelineStartSeconds()
+    if local < 0 do
+        return false
+    let wanted = cast(u64) Math.ceil(local * cast(f64) sound.sampleRateHz())
     return wanted < sound.sampleFrameCount()
+}
+
+func videoSoundSample(sound: const *SoundFile, seconds: f64)->u64
+{
+    let local = Math.max(seconds - sound.timelineStartSeconds(), 0)
+    return cast(u64) Math.round(local * cast(f64) sound.sampleRateHz())
 }
 
 private func videoAudioTrackCommand(index: u32)->String
@@ -241,7 +248,7 @@ internal impl VideoViewer
         if !.playing or !.voice or .audioRangePending or .resumeAudioAfterSeek do
             return
 
-        let position = .voice!.playbackPositionSeconds()
+        let position = .audio!.timelineStartSeconds() + .voice!.playbackPositionSeconds()
         if position == .audioClockLast do
             return
 
@@ -360,7 +367,7 @@ internal impl VideoViewer
         defer #fail newVoice.destroy()
         newVoice.setVolume(.muted ? 0 : .volume)
         if coversRange do
-            newVoice.seekSampleFrame(cast(u64) Math.round(position * cast(f64) sound.sampleRateHz()))
+            newVoice.seekSampleFrame(videoSoundSample(sound, position))
         if wasPlaying and coversRange and !.resumeAudioAfterSeek do
             newVoice.play()
 
@@ -572,7 +579,7 @@ internal impl VideoViewer
             .resumeAudioAfterSeek = false
             if .voice
             {
-                .elapsed = .voice!.playbackPositionSeconds()
+                .elapsed = .audio!.timelineStartSeconds() + .voice!.playbackPositionSeconds()
                 catch .voice!.pause()
             }
 
@@ -672,7 +679,7 @@ internal impl VideoViewer
             .audioRangePending = !coversRange
             if coversRange
             {
-                let sample = cast(u64) Math.round(.elapsed * cast(f64) .audio!.sampleRateHz())
+                let sample = videoSoundSample(.audio!, .elapsed)
                 catch .voice!.seekSampleFrame(sample) as seekError
                 if seekError != null
                 {
@@ -780,6 +787,8 @@ internal impl VideoViewer
         }
 
         .followAudioClock()
+        if .audioRangePending and .audio and videoSoundCovers(.audio!, .currentSeconds()) do
+            .resumeAudio()
 
         var head  = 0'u64
         var empty = true

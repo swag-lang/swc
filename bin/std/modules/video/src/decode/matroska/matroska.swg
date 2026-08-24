@@ -73,6 +73,9 @@ private struct Track
     hasEncodings:    bool
     videoSamples:    Array'H264.SampleEntry
     audioPackets:    Array'SoundPacket
+    audioFrameCount: u64
+    audioStart:      s64
+    hasAudioStart:   bool
 }
 
 private impl Track
@@ -268,10 +271,57 @@ private impl Layout
         if .scanPosition >= .segment.end
         {
             .indexComplete = true
-            if !.tracks[.selectedVideo].videoSamples.count do
+            if .indexPictures and !.tracks[.selectedVideo].videoSamples.count do
                 fail InvalidFormatError{"Matroska video track has no blocks"}
         }
 
+        return true
+    }
+
+    mtd const hasAudioThrough(timestampNanoseconds: s64)->bool
+    {
+        if !.audioTracks.count do
+            return false
+        for trackIndex in .audioTracks
+        {
+            let track = &.tracks[trackIndex]
+            if !track.hasAudioStart or !track.audioFrameCount do
+                return false
+            let duration = cast(f64) track.audioFrameCount * 1_000_000_000.0 / track.sampleRate
+            if cast(f64) track.audioStart + duration <= cast(f64) timestampNanoseconds do
+                return false
+        }
+
+        return true
+    }
+
+    // Extends an audio-only window until every playable track reaches the requested timestamp.
+    mtd indexAudioThrough(bytes: const [..] u8, timestampNanoseconds: s64, cancelled: #null *u32 = null, paused: #null *u32 = null)->bool fail
+    {
+        if .indexComplete or .hasAudioThrough(timestampNanoseconds) do
+            return true
+
+        var cursor = Cursor.open(bytes)
+        cursor.seek(.scanPosition)
+        while cursor.position < .segment.end and !.hasAudioThrough(timestampNanoseconds)
+        {
+            while paused and Atomic.get(paused!)
+            {
+                if cancelled and Atomic.get(cancelled!) do
+                    return false
+                Threading.Thread.sleep(1'ms)
+            }
+            if cancelled and Atomic.get(cancelled!) do
+                return false
+            let element = cursor.readElement(.segment.end)
+            if element.id == ClusterId and !.parseCluster(&cursor, element, cancelled, paused) do
+                return false
+            .scanPosition = element.end
+            cursor.seek(element.end)
+        }
+
+        if .scanPosition >= .segment.end do
+            .indexComplete = true
         return true
     }
 
@@ -317,6 +367,9 @@ private impl Layout
         {
             track.videoSamples.clear()
             track.audioPackets.clear()
+            track.audioFrameCount = 0
+            track.audioStart      = 0
+            track.hasAudioStart   = false
         }
 
         .videoChunkEnds.clear()
@@ -961,6 +1014,13 @@ private impl Layout
             return
         }
 
+        let timestamp = .timestampNanoseconds(clusterTimestamp, relative)
+        if !track.hasAudioStart
+        {
+            track.audioStart    = timestamp
+            track.hasAudioStart = true
+        }
+
         var offset = payload
         for size in .laceSizes
         {
@@ -968,6 +1028,9 @@ private impl Layout
                 fail InvalidFormatError{"Matroska audio packet exceeds the supported size"}
             let frameCount = .audioPacketFrames(cursor.bytes, offset, size, track.soundEncoding())
             track.audioPackets.add({offset, cast(u32) size, frameCount})
+            if track.audioFrameCount > Swag.U64.Max - frameCount do
+                fail OverflowError{"Matroska audio packet table is too large"}
+            track.audioFrameCount += frameCount
             offset += size
         }
     }
@@ -1021,40 +1084,52 @@ private func frameRateFromDuration(durationNanoseconds: u64)->FrameRate fail
 
 private const SoundIndexIdle = 0'u32
 private const SoundIndexRunning = 1'u32
-private const SoundIndexPreview = 2'u32
-private const SoundIndexReady = 3'u32
-private const SoundIndexFailed = 4'u32
+private const SoundIndexReady = 2'u32
+private const SoundIndexFailed = 3'u32
+private const SoundSeekRunAheadNanoseconds = 10_000_000_000's64
+private const SoundSeekPreRollNanoseconds = 1_000_000_000'u64
+private const SoundSeekPreRollSeconds = 1.0
+
+#[Swag.NoCopy]
+private struct PublishedSound
+{
+    tracks: Array'SoundFile
+}
 
 #[Swag.NoCopy]
 private struct FileIndex
 {
-    progressive: #null *Layout
-    region:      File.MappedRegion
-    path:        String
-    previewSoundTracks0: Array'SoundFile
-    previewSoundTracks1: Array'SoundFile
-    previewSoundTracks2: Array'SoundFile
-    previewSoundTracks3: Array'SoundFile
+    progressive:        #null *Layout
+    region:             File.MappedRegion
+    path:               String
     soundTracks:         Array'SoundFile
-    soundThread: Threading.Thread
-    cancel:      u32
-    soundPause:  u32
-    soundStatus: u32
-    soundStage:  u32
+    soundThread:         Threading.Thread
+    seekSounds:          Array'*PublishedSound
+    soundLock:           Sync.Mutex
+    cancel:              u32
+    soundPause:          u32
+    soundStatus:         u32
+    soundStage:          u32
+    currentSeekSound:    u64
 }
 
-private func publishSoundStage(index: *FileIndex, stageIndex: u32, tracks: *Array'SoundFile)
+private func publishFullSound(index: *FileIndex, tracks: *Array'SoundFile)
 {
-    switch stageIndex
-    {
-    case 0: index.previewSoundTracks0 = #move tracks[]
-    case 1: index.previewSoundTracks1 = #move tracks[]
-    case 2: index.previewSoundTracks2 = #move tracks[]
-    case 3: index.previewSoundTracks3 = #move tracks[]
-    default: index.soundTracks = #move tracks[]
-    }
+    Sync.scopedLock(&index.soundLock)
+    index.soundTracks = #move tracks[]
+    Atomic.exchange(&index.soundStage, 1)
+    if !Atomic.get(&index.soundPause) do
+        Atomic.exchange(&index.currentSeekSound, 0)
+}
 
-    Atomic.exchange(&index.soundStage, stageIndex + 1)
+private func publishSeekSound(index: *FileIndex, tracks: *Array'SoundFile)
+{
+    let published = Memory.new'PublishedSound()
+    published.tracks = #move tracks[]
+
+    Sync.scopedLock(&index.soundLock)
+    index.seekSounds.add(published)
+    Atomic.exchange(&index.currentSeekSound, cast(u64) published)
 }
 
 private impl FileIndex
@@ -1064,6 +1139,8 @@ private impl FileIndex
         Atomic.exchange(&.cancel, 1)
         if .soundThread.isValid() do
             .soundThread.wait()
+        for sound in .seekSounds do
+            Memory.delete(sound)
         if .progressive do
             Memory.delete(.progressive!)
     }
@@ -1077,72 +1154,70 @@ private func buildSoundTracks(path: string, bytes: const [..] u8, layout: *Layou
         let track = &layout.tracks[trackIndex]
         if !track.audioPackets.count do
             continue
-        var frameCount: u64
-        for packet in track.audioPackets
-        {
-            if frameCount > Swag.U64.Max - packet.sampleFrameCount do
-                fail OverflowError{"Matroska audio packet table is too large"}
-            frameCount += packet.sampleFrameCount
-        }
-
-        let options = PacketStreamOptions{leadingTrimFrames: try track.leadingTrimFrames(), speakerMask: try track.speakerMask(bytes)}
-        let sound   = SoundFile.openPacketStream(path, track.soundEncoding(), cast(u32) Math.round(track.sampleRate), track.channels, frameCount, track.audioPackets.toSlice(), track.codecPrivate.toSlice(), options)
+        let timelineStart = Math.max(cast(f64) track.audioStart / 1_000_000_000.0, 0)
+        let leadingTrim   = timelineStart == 0 ? try track.leadingTrimFrames() : 0
+        let options       = PacketStreamOptions{leadingTrimFrames: leadingTrim, speakerMask: try track.speakerMask(bytes), timelineStartSeconds: timelineStart}
+        let sound         = SoundFile.openPacketStream(path, track.soundEncoding(), cast(u32) Math.round(track.sampleRate), track.channels, track.audioFrameCount, track.audioPackets.toSlice(), track.codecPrivate.toSlice(), options)
         result.add(#move sound)
     }
 }
 
-// Publishes a short playable prefix quickly, then replaces it with the complete packet tables.
+// Publishes a bounded packet window around one media-timeline position.
+private func buildSoundWindow(index: *FileIndex, timestampNanoseconds: u64) fail
+{
+    var layout: Layout
+    let bytes = index.region.bytes()
+    layout.parseMetadata(bytes)
+    layout.indexPictures = false
+
+    let cueTimestamp = timestampNanoseconds > SoundSeekPreRollNanoseconds ? timestampNanoseconds - SoundSeekPreRollNanoseconds : 0
+    let cue          = layout.cueAtOrBefore(cueTimestamp)
+    try layout.resetMediaAt(cue ? cue!.clusterOffset : layout.segment.data)
+
+    var requestedEnd: s64
+    if timestampNanoseconds
+    {
+        requestedEnd = timestampNanoseconds > cast(u64) Swag.S64.Max - cast(u64) SoundSeekRunAheadNanoseconds ? Swag.S64.Max : cast(s64) timestampNanoseconds + SoundSeekRunAheadNanoseconds
+    }
+    if !layout.indexAudioThrough(bytes, requestedEnd, &index.cancel) do
+        fail BadParameterError{"video reader operation was cancelled"}
+
+    var tracks: Array'SoundFile
+    try buildSoundTracks(index.path.toString(), bytes, &layout, &tracks)
+    if tracks.count != layout.audioTracks.count do
+        fail InvalidFormatError{"Matroska audio window has no packets"}
+    let seconds = cast(f64) timestampNanoseconds / 1_000_000_000.0
+    for sound in tracks
+    {
+        let local = seconds - sound.timelineStartSeconds()
+        if local < -SoundSeekPreRollSeconds or local >= sound.durationInSeconds() do
+            fail InvalidFormatError{"Matroska audio window does not cover its requested timestamp"}
+    }
+
+    publishSeekSound(index, &tracks)
+}
+
+// Builds complete packet tables while the opening and seek windows remain playable.
 private func buildSoundIndex(index: *FileIndex) fail
 {
     var layout: Layout
     let bytes = index.region.bytes()
     layout.parseMetadata(bytes)
-
-    let video = &layout.tracks[layout.selectedVideo]
-    var stageIndex: u32
-    for previewSeconds in [2'u64, 10, 60, 300]
-    {
-        var previewPictures = previewSeconds * 30
-        if video.defaultDuration
-        {
-            let previewNanoseconds = previewSeconds * 1_000_000_000
-            previewPictures = previewNanoseconds / video.defaultDuration
-            if previewNanoseconds % video.defaultDuration do
-                previewPictures += 1
-            previewPictures = Math.max(previewPictures, 1)
-        }
-
-        if !layout.indexUntil(bytes, previewPictures, &index.cancel, &index.soundPause) do
-            fail BadParameterError{"video reader operation was cancelled"}
-        var tracks: Array'SoundFile
-        try buildSoundTracks(index.path.toString(), bytes, &layout, &tracks)
-        if layout.indexComplete or tracks.count == layout.audioTracks.count
-        {
-            publishSoundStage(index, stageIndex, &tracks)
-            Atomic.exchange(&index.soundStatus, layout.indexComplete ? SoundIndexReady : SoundIndexPreview)
-        }
-        if layout.indexComplete do
-            return
-        stageIndex += 1
-    }
-
-    for &track in layout.tracks do
-        track.videoSamples.clear()
-    layout.videoChunkEnds.clear()
     layout.indexPictures = false
     if !layout.indexUntil(bytes, 1, &index.cancel, &index.soundPause) do
         fail BadParameterError{"video reader operation was cancelled"}
     var tracks: Array'SoundFile
     try buildSoundTracks(index.path.toString(), bytes, &layout, &tracks)
-    publishSoundStage(index, 4, &tracks)
+    publishFullSound(index, &tracks)
 }
 
 // Reads Matroska files carrying H.264 pictures and supported AAC-LC, AC-3, or E-AC-3 tracks.
 //
-// Opening reads only seek, track, and cue metadata. Decoding advances one demux cursor through
-// complete clusters on demand; random access restarts that cursor at a cue cluster. A low-priority
-// audio-only scanner builds streamed sound packet tables without retaining another H.264 index.
-// Compressed payloads remain in the file throughout.
+// Opening reads seek, track, and cue metadata plus the first audio-bearing cluster. Decoding
+// advances one demux cursor through complete clusters on demand; random access restarts that
+// cursor at a cue cluster and publishes a bounded sound window around the target. A low-priority
+// scanner still builds complete sound packet tables in the background. Compressed payloads remain
+// in the file throughout.
 struct Decoder
 {
     internal
@@ -1266,6 +1341,8 @@ private impl Decoder
         let layout    = fileIndex.progressive!
         let bytes     = fileIndex.region.bytes()
         let target    = .targetTimestamp(index)
+        if target >= 0 do
+            discard catch buildSoundWindow(fileIndex, cast(u64) target) as soundWindowError
         let cue       = target >= 0 ? layout.cueAtOrBefore(cast(u64) target) : null
         if cue do
             layout.resetMediaAt(cue!.clusterOffset)
@@ -1380,6 +1457,8 @@ private impl Decoder
             return
         .resumeSoundIndexAfterDecode = false
         Atomic.exchange(&.fileIndex!.soundPause, 0)
+        if Atomic.get(&.fileIndex!.soundStage) do
+            Atomic.exchange(&.fileIndex!.currentSeekSound, 0)
     }
 
     mtd opDrop()
@@ -1421,6 +1500,8 @@ impl IDecoder for Decoder
             .fileIndex!.progressive!.parseMetadata(.fileIndex!.region.bytes())
             .fileIndex!.path = path
             .configureMetadata(.fileIndex!.progressive!)
+            if .fileIndex!.progressive!.audioTracks.count do
+                discard catch buildSoundWindow(.fileIndex!, 0) as initialSoundError
             .startSoundIndex()
             return .info
         }
@@ -1489,15 +1570,10 @@ impl IAudioDecoder for Decoder
         let fileIndex = .fileIndex
         if !fileIndex do
             return 0
-        switch Atomic.get(&fileIndex!.soundStage)
-        {
-        case 1:  return cast(u32) fileIndex!.previewSoundTracks0.count
-        case 2:  return cast(u32) fileIndex!.previewSoundTracks1.count
-        case 3:  return cast(u32) fileIndex!.previewSoundTracks2.count
-        case 4:  return cast(u32) fileIndex!.previewSoundTracks3.count
-        case 5:  return cast(u32) fileIndex!.soundTracks.count
-        default: return 0
-        }
+        let seekSound = Atomic.get(&fileIndex!.currentSeekSound)
+        if seekSound do
+            return cast(u32) (cast(*PublishedSound) seekSound).tracks.count
+        return Atomic.get(&fileIndex!.soundStage) ? cast(u32) fileIndex!.soundTracks.count : 0
     }
 
     mtd impl audioTrack(index: u32)->#null const *SoundFile
@@ -1505,15 +1581,15 @@ impl IAudioDecoder for Decoder
         let fileIndex = .fileIndex
         if !fileIndex do
             return null
-        switch Atomic.get(&fileIndex!.soundStage)
+        let seekSound = Atomic.get(&fileIndex!.currentSeekSound)
+        if seekSound
         {
-        case 1:  return index < fileIndex!.previewSoundTracks0.count ? &fileIndex!.previewSoundTracks0[index] : null
-        case 2:  return index < fileIndex!.previewSoundTracks1.count ? &fileIndex!.previewSoundTracks1[index] : null
-        case 3:  return index < fileIndex!.previewSoundTracks2.count ? &fileIndex!.previewSoundTracks2[index] : null
-        case 4:  return index < fileIndex!.previewSoundTracks3.count ? &fileIndex!.previewSoundTracks3[index] : null
-        case 5:  return index < fileIndex!.soundTracks.count ? &fileIndex!.soundTracks[index] : null
-        default: return null
+            let tracks = &(cast(*PublishedSound) seekSound).tracks
+            return index < tracks.count ? &tracks[index] : null
         }
+        if !Atomic.get(&fileIndex!.soundStage) do
+            return null
+        return index < fileIndex!.soundTracks.count ? &fileIndex!.soundTracks[index] : null
     }
 }
 

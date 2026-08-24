@@ -365,6 +365,23 @@ func videoMatroskaFixturePath()->String
     @assert(view.currentSeconds() >= 1.9)
 }
 
+// A Matroska seek window carries a media-timeline origin. The viewer maps that absolute movie
+// position to the window's local sample frames instead of treating the window as time zero.
+#test
+{
+    let soundPath = Gui.Testing.tempFilePath("filescope-video-audio-window-", ".ac3")
+    defer discard catch File.delete(soundPath)
+    expect File.writeAllBytes(soundPath, [0x0B'u8, 0x77, 0, 0, 0, 0, 0])
+    const Packets: [1] SoundPacket = [{0, 7, 1536}]
+    var config: Array'u8
+    var sound = expect SoundFile.openPacketStream(soundPath, .Ac3, 48_000, 2, 1536, Packets, config.toSlice(), {timelineStartSeconds: 100})
+
+    @assert(!videoSoundCovers(&sound, 99.99))
+    @assert(videoSoundCovers(&sound, 100.01))
+    @assert(videoSoundSample(&sound, 100.01) == 480)
+    @assert(!videoSoundCovers(&sound, 101))
+}
+
 // An output device that never consumes what it was given reports the same position for ever.
 // Presentation follows the sound, but it may not stop when the sound does: the no-sound backend
 // consumes nothing here, and the picture still has to advance.

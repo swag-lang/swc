@@ -31,3 +31,8 @@ The codec interface is an extension point for converting a source
 implementations with [[Audio.registerCodec]] during initialization. Codecs operate on
 caller-owned buffers and report both consumed input bytes and produced output
 bytes.
+
+The built-in packet codecs decode AAC-LC, AC-3, and the common independent E-AC-3 profile without
+calling an operating-system media decoder. E-AC-3 streams using dependent substreams, Adaptive
+Hybrid Transform, enhanced coupling, spectral extension, or transient processing fail explicitly
+instead of producing approximate PCM.

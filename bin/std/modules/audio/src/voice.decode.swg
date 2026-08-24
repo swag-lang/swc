@@ -330,7 +330,7 @@ impl Voice
     {
         .streamCurSeek     = 0
         .streamPacketIdx   = 0
-        .seekDiscardFrames = 0
+        .seekDiscardFrames = .file ? cast(u32) .file!.leadingTrim : 0
         .destroyCodec()
         if .packetCodec do
             .packetCodec!.reset()

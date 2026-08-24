@@ -44,7 +44,7 @@ The extension of the file selects the codec, so choosing one is choosing a name.
 | `.y4m` | 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4 planar YCbCr | 4:4:4 planar YCbCr | Nothing is lost, and nothing is compressed either: one second of 720p costs about forty megabytes. |
 | `.avi` | Motion JPEG, and uncompressed 24- and 32-bit frames | Motion JPEG | Each frame is a JPEG image, so the file is one to two orders of magnitude smaller and the picture loses what JPEG loses. |
 | `.mp4`, `.m4v`, `.mov` | Motion JPEG or H.264 in ISO-BMFF sample tables; AAC-LC audio | Motion JPEG | Motion JPEG seeks directly. H.264 seeks to a sync sample and decodes forward while returning pictures in presentation order. |
-| `.mkv` | H.264 in Matroska EBML blocks; multiple AAC-LC audio tracks | — | Opening maps the file read-only long enough to index block headers without reading media payloads. H.264 seek and presentation ordering match the ISO-BMFF path. |
+| `.mkv` | H.264 in Matroska EBML blocks; multiple AAC-LC, AC-3, or E-AC-3 audio tracks | — | Opening maps the file read-only long enough to index block headers without reading media payloads. H.264 seek and presentation ordering match the ISO-BMFF path. |
 
 YUV4MPEG2 computes an offset from the constant size of a frame, AVI reads one from the index the
 container carries, and ISO-BMFF expands its chunk and sample tables once when the stream opens.
@@ -54,15 +54,17 @@ one frame.
 
 ## Reading sound tracks
 
-File-backed ISO-BMFF and Matroska readers expose playable AAC-LC tracks through
+File-backed ISO-BMFF and Matroska readers expose playable sound tracks through
 [[Video.Reader.audioTrackCount]] and [[Video.Reader.audioTrack]]. Each [[Audio.SoundFile]] owns a
 compact packet table and reopens the container through its own cursor, so sound and picture stream
 in parallel without sharing a seek position or retaining compressed payloads. Matroska preserves
 every supported track and puts the container's default track at index zero.
 
 Memory-backed readers expose pictures but no sound track because a voice needs an independently
-owned streaming cursor. AAC-LC is currently limited to mono and stereo 1024-sample access units;
-unsupported sound codecs remain unavailable while a supported picture track stays playable.
+owned streaming cursor. ISO-BMFF currently exposes AAC-LC mono/stereo tracks. Matroska exposes
+AAC-LC with up to six channels plus AC-3 and the supported independent E-AC-3 profile, preserves
+their speaker order, and subtracts `CodecDelay` priming from playback and seeking. Unsupported
+sound codecs remain unavailable while a supported picture track stays playable.
 
 ## Controlling how a stream is encoded
 

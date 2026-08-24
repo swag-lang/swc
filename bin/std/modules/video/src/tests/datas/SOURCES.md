@@ -117,6 +117,23 @@ needs real encoder output to be caught:
 The matching `.yuv` files are the same streams decoded by FFmpeg, which is what the tests demand
 byte for byte.
 
+`ffmpeg-h264-aac-5.1.mkv`, `ffmpeg-h264-ac3-5.1.mkv`, and
+`ffmpeg-h264-eac3-5.1.mkv` combine the repository's synthetic H.264 fixture with the corresponding
+six-tone audio fixtures documented by std/audio. FFmpeg `N-126262-g1019f8f036-20260824`
+stream-copied the H.264 access units and muxed each audio stream into Matroska; it is a fixture
+generator, not a build or runtime dependency.
+
+- `ffmpeg-h264-aac-5.1.mkv` SHA-256: `c31573d33584b7e9b10efd651570eb67f148a0020dfd261c7a8a8ca69a11e854`
+- `ffmpeg-h264-ac3-5.1.mkv` SHA-256: `84b5a44e6e0962d51f4dcd18fe1b5088c44dd3a31f2632099c8915f52748d861`
+- `ffmpeg-h264-eac3-5.1.mkv` SHA-256: `6b5fcb7458b0b234165164d3b36f81862e6bc4ef3e087743f364e2c811842f0a`
+- License: same as this repository.
+
+`mkv-aac-codec-delay.mkv` is `ffmpeg-h264-two-aac.mkv` with track 1's Matroska `CodecDelay` set
+to 23,219,954 ns by MKVToolNix. At 44.1 kHz this removes exactly 1,024 decoded AAC priming frames.
+
+- SHA-256: `f015d034f3226285f969b6c3f15bd0f79b7985494f07ecb56c6c810940b3f560`
+- License: same as `ffmpeg-h264-two-aac.mkv`.
+
 ## Expected values
 
 The colours the tests assert were read by decoding the same file with ffmpeg, not with this

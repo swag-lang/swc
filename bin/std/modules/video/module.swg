@@ -1,6 +1,6 @@
 /*
-Video reads and writes timed sequences of [[Pixel.Image]] frames. File-backed ISO-BMFF readers
-also expose streamed AAC-LC sound tracks through [[Audio.SoundFile]].
+Video reads and writes timed sequences of [[Pixel.Image]] frames. File-backed ISO-BMFF and
+Matroska readers also expose streamed sound tracks through [[Audio.SoundFile]].
 
 Reading and writing are streamed: [[Video.Reader]] opens a stream by reading its
 metadata and decodes one frame at a time, and [[Video.Writer]] encodes one frame
@@ -42,13 +42,14 @@ Four codecs ship in the box:
   and exposes AAC-LC mono/stereo audio. It expands compact sample tables into direct packet
   offsets while payloads remain in the file. Exact composition timestamps are retained for
   variable-rate playback and H.264 display reordering.
-- Matroska (`.mkv`) reads H.264 pictures and exposes every AAC-LC mono/stereo audio track. Opening
-  reads only seek, track, and cue metadata. Decoding advances one foreground demux cursor through
-  complete cluster windows as playback reaches them; random access restarts it at the preceding
-  video cue and reconstructs H.264 prediction through the requested picture. No full-file scan
-  competes with playback. Sound tracks become available when that progressive cursor reaches the
-  end of the file, and work may be interrupted through [[Video.Reader.requestCancel]]. Media
-  payloads stay in the file.
+- Matroska (`.mkv`) reads H.264 pictures and exposes every AAC-LC, AC-3, and independent E-AC-3
+  audio track with up to six channels. Matroska `CodecDelay` is removed from the audible timeline.
+  Opening reads only seek, track, and cue metadata. Decoding advances one foreground demux cursor
+  through complete cluster windows as playback reaches them; random access restarts it at the
+  preceding video cue and reconstructs H.264 prediction through the requested picture. No
+  full-file scan competes with playback. Sound tracks become available when that progressive
+  cursor reaches the end of the file, and work may be interrupted through
+  [[Video.Reader.requestCancel]]. Media payloads stay in the file.
 
 Decoding and encoding are separate implementations of a format, under `src/decode`
 and `src/encode`, laid out as the Pixel image codecs are. A format that has

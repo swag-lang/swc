@@ -4,6 +4,7 @@ using Core, Core.Errors, Core.Math
 
 private const FrameSamples = 1024
 private const MaxBands = 8 * 52
+private const MaxChannels = 6
 
 private struct BitReader
 {
@@ -302,17 +303,17 @@ private struct AacCodec
 
     sampleRateIndex: s32
     channels:        s32
-    ics:             [2] Ics
-    books:           [2, MaxBands] s32
-    scaleFactors:    [2, MaxBands] s32
-    coefficients:    [2, FrameSamples] f64
-    tns:             [2, 8, 3] TnsFilter
-    tnsFilterCount:  [2, 8] s32
-    msMaskPresent:   s32
-    usesMs:          bool
-    msUsed:          [MaxBands] u8
-    overlap:         [2, FrameSamples] f64
-    previousShape:   [2] s32
+    ics:             [MaxChannels] Ics
+    books:           [MaxChannels, MaxBands] s32
+    scaleFactors:    [MaxChannels, MaxBands] s32
+    coefficients:    [MaxChannels, FrameSamples] f64
+    tns:             [MaxChannels, 8, 3] TnsFilter
+    tnsFilterCount:  [MaxChannels, 8] s32
+    pairStart:       [MaxChannels] bool
+    usesMs:          [MaxChannels] bool
+    msUsed:          [MaxChannels, MaxBands] u8
+    overlap:         [MaxChannels, FrameSamples] f64
+    previousShape:   [MaxChannels] s32
     pnsState:        u32
 }
 
@@ -838,57 +839,93 @@ private impl AacCodec
         .decodeSpectral(reader, channel, bandCount)
     }
 
+    mtd applyStereoPair(left: s32)
+    {
+        let right     = left + 1
+        let value     = &.ics[left]
+        let offsets   = value.windowSequence == 2 ? swbShort(.sampleRateIndex) : swbLong(.sampleRateIndex)
+        let bandCount = value.windowSequence == 2 ? value.numWindowGroups * value.maxSfb : value.maxSfb
+        var line: s32
+        for band in bandCount
+        {
+            var width: s32
+            if value.windowSequence == 2
+            {
+                let group     = band / value.maxSfb
+                let scaleBand = band % value.maxSfb
+                width = cast(s32) (offsets[scaleBand + 1] - offsets[scaleBand]) * value.groupLength[group]
+            }
+            else do
+                width = cast(s32) (offsets[band + 1] - offsets[band])
+
+            let rightBook = .books[right, band]
+            let intensity = rightBook == 14 or rightBook == 15
+            if .usesMs[left] and .msUsed[left, band] and !intensity
+            {
+                for index in line until line + width
+                {
+                    let middle = .coefficients[left, index]
+                    let side   = .coefficients[right, index]
+                    .coefficients[left, index]  = middle + side
+                    .coefficients[right, index] = middle - side
+                }
+            }
+
+            if intensity
+            {
+                var sign = rightBook == 15 ? 1'f64 : -1'f64
+                if .usesMs[left] and .msUsed[left, band] do
+                    sign = -sign
+                let scale = sign * Math.pow(2.0, 0.25 * cast(f64) .scaleFactors[right, band])
+                for index in line until line + width do
+                    .coefficients[right, index] = scale * .coefficients[left, index]
+            }
+
+            line += width
+        }
+    }
+
+    mtd sourceChannel(destinationChannel: s32)->s32
+    {
+        if .channels <= 2 do
+            return destinationChannel
+        switch destinationChannel
+        {
+        case 0:
+            return 1
+
+        case 1:
+            return 2
+
+        case 2:
+            return 0
+
+        case 3:
+            if .channels == 6 do
+                return 5
+            return 3
+
+        case 4:
+            if .channels == 6 do
+                return 3
+            return 4
+
+        case 5:
+            return 4
+
+        default:
+            return destinationChannel
+        }
+    }
+
     mtd reconstruct(destination: [*] s16)
     {
         for channel in .channels do
             .inverseQuantize(channel)
+        for channel in .channels where .pairStart[channel] do
+            .applyStereoPair(channel)
 
-        if .channels == 2
-        {
-            let value     = &.ics[0]
-            let offsets   = value.windowSequence == 2 ? swbShort(.sampleRateIndex) : swbLong(.sampleRateIndex)
-            let bandCount = value.windowSequence == 2 ? value.numWindowGroups * value.maxSfb : value.maxSfb
-            var line      = 0's32
-            for band in bandCount
-            {
-                var width: s32
-                if value.windowSequence == 2
-                {
-                    let group     = band / value.maxSfb
-                    let scaleBand = band % value.maxSfb
-                    width = cast(s32) (offsets[scaleBand + 1] - offsets[scaleBand]) * value.groupLength[group]
-                }
-                else do
-                    width = cast(s32) (offsets[band + 1] - offsets[band])
-
-                let rightBook = .books[1, band]
-                let intensity = rightBook == 14 or rightBook == 15
-                if .usesMs and .msUsed[band] and !intensity
-                {
-                    for index in line until line + width
-                    {
-                        let middle = .coefficients[0, index]
-                        let side   = .coefficients[1, index]
-                        .coefficients[0, index] = middle + side
-                        .coefficients[1, index] = middle - side
-                    }
-                }
-
-                if intensity
-                {
-                    var sign = rightBook == 15 ? 1'f64 : -1'f64
-                    if .usesMs and .msUsed[band] do
-                        sign = -sign
-                    let scale = sign * Math.pow(2.0, 0.25 * cast(f64) .scaleFactors[1, band])
-                    for index in line until line + width do
-                        .coefficients[1, index] = scale * .coefficients[0, index]
-                }
-
-                line += width
-            }
-        }
-
-        var channelPcm: [2, FrameSamples] f64
+        var channelPcm: [MaxChannels, FrameSamples] f64
         for channel in .channels
         {
             .deinterleaveShort(channel)
@@ -900,7 +937,8 @@ private impl AacCodec
         {
             for channel in .channels
             {
-                let scaled = Math.clamp(cast(s32) Math.round(channelPcm[channel, frame] * 32768.0), -32768, 32767)
+                let source = .sourceChannel(channel)
+                let scaled = Math.clamp(cast(s32) Math.round(channelPcm[source, frame] * 32768.0), -32768, 32767)
                 destination[frame * .channels + channel] = cast(s16) scaled
             }
         }
@@ -910,8 +948,8 @@ private impl AacCodec
     {
         var reader          = BitReader.create(@dataof(packet), @countof(packet))
         var decodedChannels = 0's32
-        .usesMs        = false
-        .msMaskPresent = 0
+        Memory.set(&.pairStart, 0, #sizeof(.pairStart))
+        Memory.set(&.usesMs, 0, #sizeof(.usesMs))
         Memory.set(&.msUsed, 0, #sizeof(.msUsed))
 
         for
@@ -922,43 +960,47 @@ private impl AacCodec
             if element == 7 do
                 break
 
-            if element == 0 or element == 1
+            if element == 0 or element == 1 or element == 3
             {
                 let isPair       = element == 1
                 let elementCount = isPair ? 2 : 1
+                if decodedChannels + elementCount > .channels or decodedChannels + elementCount > MaxChannels do
+                    fail UnsupportedFormatError{"AAC access unit carries more channels than its configuration"}
+                let pair = decodedChannels
                 discard reader.get(4)
                 let commonWindow = isPair and reader.get1() != 0
                 if commonWindow
                 {
                     var shared: Ics
                     .parseIcsInfo(&reader, &shared)
-                    .msMaskPresent = cast(s32) reader.get(2)
-                    if .msMaskPresent == 3 do
+                    let msMaskPresent = cast(s32) reader.get(2)
+                    if msMaskPresent == 3 do
                         fail InvalidFormatError{"AAC M/S mask mode is reserved"}
-                    .ics[0] = shared
-                    .ics[1] = shared
+                    .ics[pair]     = shared
+                    .ics[pair + 1] = shared
                     let bandCount = shared.windowSequence == 2 ? shared.numWindowGroups * shared.maxSfb : shared.maxSfb
-                    if .msMaskPresent == 1
+                    if msMaskPresent == 1
                     {
                         for band in bandCount do
-                            .msUsed[band] = cast(u8) reader.get1()
+                            .msUsed[pair, band] = cast(u8) reader.get1()
                     }
-                    elif .msMaskPresent == 2
+                    elif msMaskPresent == 2
                     {
                         for band in bandCount do
-                            .msUsed[band] = 1
+                            .msUsed[pair, band] = 1
                     }
+
+                    .usesMs[pair] = msMaskPresent != 0
                 }
 
                 for channelOffset in elementCount
                 {
                     let channel = decodedChannels + channelOffset
-                    if channel >= .channels or channel >= 2 do
-                        fail UnsupportedFormatError{"AAC access unit carries more than two channels"}
                     .decodeChannel(&reader, channel, commonWindow)
                 }
 
-                .usesMs         = isPair and commonWindow and .msMaskPresent != 0
+                if isPair do
+                    .pairStart[pair] = true
                 decodedChannels += elementCount
             }
             elif element == 6
@@ -970,7 +1012,7 @@ private impl AacCodec
                     discard reader.get(8)
             }
             else do
-                fail UnsupportedFormatError{"AAC element is not supported by the mono/stereo Low Complexity decoder"}
+                fail UnsupportedFormatError{"AAC element is not supported by the Low Complexity decoder"}
         }
 
         if reader.overrun do
@@ -997,8 +1039,8 @@ impl IPacketCodec for AacCodec
         if rateIndex >= 12 do
             fail UnsupportedFormatError{"AAC explicit and reserved sample rates are not supported"}
         let channelConfig = reader.get(4)
-        if channelConfig < 1 or channelConfig > 2 do
-            fail UnsupportedFormatError{"audio decoder supports mono and stereo AAC only"}
+        if channelConfig < 1 or channelConfig > MaxChannels do
+            fail UnsupportedFormatError{"audio decoder supports AAC channel configurations 1 through 6"}
         if SampleRates[rateIndex] != sampleRateHz or channelConfig != channels do
             fail InvalidFormatError{"AAC configuration does not match its container track"}
         if reader.get1() do

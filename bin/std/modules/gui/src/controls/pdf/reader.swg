@@ -15,7 +15,7 @@ internal struct PageSource
 // Owns a mapped PDF source and decodes its pages on demand.
 //
 // Opening indexes the object and page trees but does not decompress page content, images, or
-// fonts. Each call to [[Pdf.Reader.loadPage]] returns an independent owned page; releasing that
+// fonts. Each call to [[Gui.Pdf.Reader.loadPage]] returns an independent owned page; releasing that
 // page releases its decoded resources without affecting this reader.
 #[Swag.Opaque, Swag.NoCopy]
 struct Reader
@@ -35,7 +35,7 @@ impl Reader
 {
     // Opens a PDF file through a read-only mapping and indexes its pages.
     //
-    // Page streams and resources are decoded only by [[Pdf.Reader.loadPage]]. Encryption and
+    // Page streams and resources are decoded only by [[Gui.Pdf.Reader.loadPage]]. Encryption and
     // embedded executable content are not supported; embedded actions are ignored rather than
     // executed.
     func open(fileName: string)->Reader fail

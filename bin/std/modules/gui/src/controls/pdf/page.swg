@@ -71,7 +71,7 @@ impl Page
     //
     // `(x, y)` is the top-left of the text line box. `font` selects one of the standard
     // faces every reader provides; the writer accepts the characters Windows-1252 can
-    // represent. Use [[Pdf.StandardFont.textWidth]] to measure the run before placing it.
+    // represent. Use [[Gui.Pdf.StandardFont.textWidth]] to measure the run before placing it.
     mtd addText(text: string, x, y, size: f32, color = Color.fromArgb(Argb.Black), font = StandardFont.Helvetica)
     {
         Debug.assert(size > 0 and Math.isFinite(size) and Math.isFinite(x) and Math.isFinite(y), "invalid text placement")

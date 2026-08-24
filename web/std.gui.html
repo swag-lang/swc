@@ -1861,7 +1861,7 @@ group.<span class="SFct">addPoint</span>(card, <span class="SCst"><a href="#Gui_
 <li><span class="code-inline">EaseOutElastic</span> springs well past the endpoint and oscillates onto it.</li>
 <li><span class="code-inline">EaseOutBounce</span> lands and rebounds, each rebound shorter than the last.</li>
 </ul>
-<p>[[Gui.AnimationEasing.evaluate]] answers the same function the scheduler applies, so a preview plots exactly what a track will do.</p>
+<p><a href="std.core.html#Core_Math_CurvePreset_evaluate">Core.Math.CurvePreset.evaluate</a> answers the same function the scheduler applies, so a preview plots exactly what a track will do.</p>
 <h3 id="guide_Animation_Repeat_a_track">Repeat a track</h3>
 <p><a href="#Gui_AnimationOptions_repeatCount">Gui.AnimationOptions.repeatCount</a> plays a track several times in a row, and zero repeats it until something cancels it. <a href="#Gui_AnimationOptions_autoReverse">Gui.AnimationOptions.autoReverse</a> runs every second play backwards, which turns a pair of plays into a ping-pong that ends where it started.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> options: <span class="SCst"><a href="#Gui_AnimationOptions">AnimationOptions</a></span>
@@ -2494,7 +2494,8 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_MarkInk">Gui.MarkInk</a></td><td><p>The two colors every Swag product mark is cut from, one glyph over one ground.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Gui_MarkVoltage">Gui.MarkVoltage</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_MarkVoltage">Gui.MarkVoltage</a></td><td><p>Secondary brand color used for the energized edge of the Swag mark.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_ReferenceLanguage">Gui.ReferenceLanguage</a></td><td><p>Tag of the reference wording declared by the string tables.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Voltage">Gui.Voltage</a></td><td><p>The signature: what to do, what is active, where the focus is.</p>
@@ -3227,7 +3228,8 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_HtmlEdges_auto">HtmlEdges.auto</a></td><td><p>The four automatic offsets a statically placed box carries, which is what <span class="code-inline">inset</span> means</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Gui_HtmlLength_auto">HtmlLength.auto</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_HtmlLength_auto">HtmlLength.auto</a></td><td><p>Creates the CSS <span class="code-inline">auto</span> length.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_HtmlStyle_theme">HtmlStyle.theme</a></td><td><p>Returns the document defaults that follow the active GUI theme.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_HtmlView_clearSelection">HtmlView.clearSelection</a></td><td><p>Empties the selection.</p>
@@ -4248,7 +4250,8 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_SigArray_isEmpty">SigArray.isEmpty</a></td><td><p>Reports whether no callback is registered.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Gui_SigArray_opAssign">SigArray.opAssign</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_SigArray_opAssign">SigArray.opAssign</a></td><td><p>Registers a callback through the <span class="code-inline">+=</span> operator.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_Slider_create">Slider.create</a></td><td><p>Creates a horizontal slider, optionally configured for ranges or vertical layout.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Slider_lowerValue">Slider.lowerValue</a></td><td><p>Returns the lower value in configured value-space units.</p>
@@ -5354,7 +5357,8 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_MarkInk">Gui.MarkInk</a></td><td><p>The two colors every Swag product mark is cut from, one glyph over one ground.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Gui_MarkVoltage">Gui.MarkVoltage</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_MarkVoltage">Gui.MarkVoltage</a></td><td><p>Secondary brand color used for the energized edge of the Swag mark.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_ReferenceLanguage">Gui.ReferenceLanguage</a></td><td><p>Tag of the reference wording declared by the string tables.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Voltage">Gui.Voltage</a></td><td><p>The signature: what to do, what is active, where the focus is.</p>
@@ -5849,7 +5853,7 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Gui_Application" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Application</span> <a class="api-item-permalink" href="#Gui_Application" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L33">src</a></div>
+<div class="api-item api-item-struct"><span id="Gui_Application" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Application</span> <a class="api-item-permalink" href="#Gui_Application" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L34">src</a></div>
 <p>Owns GUI resources, top-level surfaces, input state, and the event loop.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_Application">Application</a></span></span></div>
 </section>
@@ -10310,7 +10314,8 @@ view.<span class="SFct">setZoom</span>(<span class="SNum">2.0</span>)</span></di
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_SigArray_isEmpty">isEmpty</a></td><td><p>Reports whether no callback is registered.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Gui_SigArray_opAssign">opAssign</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_SigArray_opAssign">opAssign</a></td><td><p>Registers a callback through the <span class="code-inline">+=</span> operator.</p>
+</td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
@@ -13316,7 +13321,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Gui_Pdf_Item" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pdf.Item</span> <a class="api-item-permalink" href="#Gui_Pdf_Item" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/item.swg#L49">src</a></div>
 <p>Describes one page item in Pixel's top-left coordinate system.</p>
-<p>Use the matching [[Pdf.Page.addText]], [[Pdf.Page.addPath]], or [[Pdf.Page.addImage]] operation to construct an item. Fields unrelated to <span class="code-inline">kind</span> retain their defaults.</p>
+<p>Use the matching <a href="#Gui_Pdf_Page_addText">Gui.Pdf.Page.addText</a>, <a href="#Gui_Pdf_Page_addPath">Gui.Pdf.Page.addPath</a>, or <a href="#Gui_Pdf_Page_addImage">Gui.Pdf.Page.addImage</a> operation to construct an item. Fields unrelated to <span class="code-inline">kind</span> retain their defaults.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Item</span></span></div>
 </section>
 <h3>Fields</h3>
@@ -13458,7 +13463,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Gui_Pdf_Reader" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pdf.Reader</span> <a class="api-item-permalink" href="#Gui_Pdf_Reader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/reader.swg#L22">src</a></div>
 <p>Owns a mapped PDF source and decodes its pages on demand.</p>
-<p>Opening indexes the object and page trees but does not decompress page content, images, or fonts. Each call to [[Pdf.Reader.loadPage]] returns an independent owned page; releasing that page releases its decoded resources without affecting this reader.</p>
+<p>Opening indexes the object and page trees but does not decompress page content, images, or fonts. Each call to <a href="#Gui_Pdf_Reader_loadPage">Gui.Pdf.Reader.loadPage</a> returns an independent owned page; releasing that page releases its decoded resources without affecting this reader.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque, Swag.NoCopy]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_Pdf_Reader">Reader</a></span></span></div>
 </section>
@@ -16116,7 +16121,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gui_Ink">Ink</a></span>:     <span class="SCst">Color</span> = <span class="SNum">0xFF0B0B0D</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Gui_MarkGlyphContrast" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.MarkGlyphContrast</span> <a class="api-item-permalink" href="#Gui_MarkGlyphContrast" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L20">src</a></div>
+<div class="api-item api-item-const"><span id="Gui_MarkGlyphContrast" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.MarkGlyphContrast</span> <a class="api-item-permalink" href="#Gui_MarkGlyphContrast" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L21">src</a></div>
 <p>How much contrast the glyph of a mark owes a caption band before the band is allowed to show it without its tile. Three is where a shape stops being separated from what it is drawn over.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gui_MarkGlyphContrast">MarkGlyphContrast</a></span> = <span class="SNum">3.0</span>'<span class="STpe">f32</span></span></div>
 </section>
@@ -16127,7 +16132,8 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gui_MarkInk">MarkInk</a></span> = <span class="SCst"><a href="#Gui_Ink">Ink</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Gui_MarkVoltage" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.MarkVoltage</span> <a class="api-item-permalink" href="#Gui_MarkVoltage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L16">src</a></div>
+<div class="api-item api-item-const"><span id="Gui_MarkVoltage" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.MarkVoltage</span> <a class="api-item-permalink" href="#Gui_MarkVoltage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L17">src</a></div>
+<p>Secondary brand color used for the energized edge of the Swag mark.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gui_MarkVoltage">MarkVoltage</a></span> = <span class="SCst"><a href="#Gui_Voltage">Voltage</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -16326,12 +16332,12 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setAppearanceTheme</span>(theme: <span class="SCst"><a href="#Gui_AppearanceTheme">AppearanceTheme</a></span>, notify = <span class="SKwd">false</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_addTimer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.addTimer</span> <a class="api-item-permalink" href="#Gui_Application_addTimer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1383">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_addTimer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.addTimer</span> <a class="api-item-permalink" href="#Gui_Application_addTimer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1384">src</a></div>
 <p>Creates a repeating timer that sends <a href="#Gui_TimerEvent">TimerEvent</a> values to <span class="code-inline">target</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addTimer</span>(time: <span class="SCst"><a href="std.core.html#namespace_Core_Time">Time</a></span>.<span class="SCst"><a href="std.core.html#Core_Time_Duration">Duration</a></span>, target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>)-&gt;*<span class="SCst"><a href="#Gui_Timer">Timer</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_appIconAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.appIconAt</span> <a class="api-item-permalink" href="#Gui_Application_appIconAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1033">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_appIconAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.appIconAt</span> <a class="api-item-permalink" href="#Gui_Application_appIconAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1034">src</a></div>
 <p>Returns the application mark at <span class="code-inline">size</span> logical pixels, cut to sit on <span class="code-inline">ground</span>, or an invalid icon when the application declares none.</p>
 <p>The mark ships flattened — one glyph over one ink tile — because that is what a taskbar, a file list and an installer need. A drawn caption has a ground of its own, so on a dark band the tile is keyed out and the glyph floats free, where the tile would have read as a black square around it.</p>
 <p>On a light band it cannot be, and this is the whole reason <span class="code-inline">ground</span> is asked for: the glyph is Voltage, and Voltage on paper is a mark nobody sees. The tile stays there, and the window carries the identity the way the chart says a light surface has to — as a block of brand rather than as a hairline of it. Below the threshold a keyed-out mark simply disappeared from the title bar of every application in the light theme.</p>
@@ -16339,107 +16345,107 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">appIconAt</span>(size: <span class="STpe">f32</span>, ground: <span class="SCst">Pixel</span>.<span class="SCst">Color</span>)-&gt;<span class="SCst"><a href="#Gui_Icon">Icon</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_applyTestArgs" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.applyTestArgs</span> <a class="api-item-permalink" href="#Gui_Application_applyTestArgs" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L897">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_applyTestArgs" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.applyTestArgs</span> <a class="api-item-permalink" href="#Gui_Application_applyTestArgs" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L898">src</a></div>
 <p>Kept for callers that still bound their own run; a smoke run already bounds itself.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Deprecated("a smoke run sets the frame budget itself")]</span>
 <span class="SKwd">mtd</span> <span class="SFct">applyTestArgs</span>(testFrames: <span class="STpe">u32</span> = <span class="SNum">50</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_createSurface" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.createSurface</span> <a class="api-item-permalink" href="#Gui_Application_createSurface" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L930">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_createSurface" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.createSurface</span> <a class="api-item-permalink" href="#Gui_Application_createSurface" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L931">src</a></div>
 <p>Creates an initially hidden top-level surface.</p>
 <p>The first surface initializes the shared renderer and theme and becomes <a href="#Gui_Application_mainSurface">mainSurface</a>. <span class="code-inline">width</span> and <span class="code-inline">height</span> are logical units: on a scaled display the native window is created proportionally larger, in physical pixels. <span class="code-inline">x</span> and <span class="code-inline">y</span> are physical desktop pixels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">createSurface</span>(x, y, width, height: <span class="STpe">s32</span>, flags = <span class="SCst"><a href="#Gui_SurfaceFlags">SurfaceFlags</a></span>.<span class="SCst"><a href="#Gui_SurfaceFlags_StandardWindow">StandardWindow</a></span>, view: <span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span> = <span class="SKwd">null</span>, hook: <span class="SItr">#null</span> <span class="SCst"><a href="#Gui_HookEvent">HookEvent</a></span> = <span class="SKwd">null</span>, surfaceId: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_Surface">Surface</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_deltaSeconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.deltaSeconds</span> <a class="api-item-permalink" href="#Gui_Application_deltaSeconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L870">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_deltaSeconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.deltaSeconds</span> <a class="api-item-permalink" href="#Gui_Application_deltaSeconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L871">src</a></div>
 <p>Returns the duration of the current frame, in seconds.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">deltaSeconds</span>() =&gt; .timing</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_directoryIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.directoryIcon</span> <a class="api-item-permalink" href="#Gui_Application_directoryIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1507">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_directoryIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.directoryIcon</span> <a class="api-item-permalink" href="#Gui_Application_directoryIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1508">src</a></div>
 <p>Returns the native shell icon for a directory.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">directoryIcon</span>(name: <span class="STpe">string</span>, small = <span class="SKwd">true</span>)-&gt;<span class="SCst"><a href="#Gui_Icon">Icon</a></span> =&gt; .fileOrDirectoryIcon</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_doModalLoop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.doModalLoop</span> <a class="api-item-permalink" href="#Gui_Application_doModalLoop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L687">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_doModalLoop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.doModalLoop</span> <a class="api-item-permalink" href="#Gui_Application_doModalLoop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L688">src</a></div>
 <p>Runs a nested event loop for <span class="code-inline">surface</span> and returns the identifier passed to <a href="#Gui_Application_exitModal">exitModal</a>.</p>
 <p>Other enabled surfaces are disabled for the duration of the loop and restored to their previous state afterwards. The modal surface is destroyed when the loop ends.</p>
 <p><span class="code-inline">restoreTo</span> is the surface the keyboard belongs to once the box is gone — the one that raised it. It is asked for its own focus rather than being handed a position captured here, because a box that opens ready for the keyboard has already moved it onto itself by the time this runs: what was read here was a rank inside the box, applied to the ring of the form underneath it. See <span class="code-inline">Surface.focusWnd</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">doModalLoop</span>(surface: <span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_Surface">Surface</a></span>, cb: <span class="SItr">#null</span> <span class="SKwd">func</span>||(*<span class="SCst"><a href="#Gui_Application">Application</a></span>) = <span class="SKwd">null</span>, restoreTo: <span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_Surface">Surface</a></span> = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Gui_WndId">WndId</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_exitModal" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.exitModal</span> <a class="api-item-permalink" href="#Gui_Application_exitModal" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1497">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_exitModal" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.exitModal</span> <a class="api-item-permalink" href="#Gui_Application_exitModal" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1498">src</a></div>
 <p>Ends the innermost modal loop with <span class="code-inline">exitId</span> as its result.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">exitModal</span>(exitId: <span class="STpe">string</span> = <span class="SStr">""</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_fileIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.fileIcon</span> <a class="api-item-permalink" href="#Gui_Application_fileIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1504">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_fileIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.fileIcon</span> <a class="api-item-permalink" href="#Gui_Application_fileIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1505">src</a></div>
 <p>Returns the native shell icon for a file name or extension.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fileIcon</span>(name: <span class="STpe">string</span>, small = <span class="SKwd">true</span>)-&gt;<span class="SCst"><a href="#Gui_Icon">Icon</a></span> =&gt; .fileOrDirectoryIcon</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_invalidate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.invalidate</span> <a class="api-item-permalink" href="#Gui_Application_invalidate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1355">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_invalidate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.invalidate</span> <a class="api-item-permalink" href="#Gui_Application_invalidate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1356">src</a></div>
 <p>Schedules every surface for a complete repaint.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">invalidate</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_isReducedMotion" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.isReducedMotion</span> <a class="api-item-permalink" href="#Gui_Application_isReducedMotion" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1119">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_isReducedMotion" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.isReducedMotion</span> <a class="api-item-permalink" href="#Gui_Application_isReducedMotion" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1120">src</a></div>
 <p>Reports whether decorative finite transitions complete immediately.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isReducedMotion</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_keyboardRef" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.keyboardRef</span> <a class="api-item-permalink" href="#Gui_Application_keyboardRef" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L864">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_keyboardRef" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.keyboardRef</span> <a class="api-item-permalink" href="#Gui_Application_keyboardRef" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L865">src</a></div>
 <p>Returns a mutable borrow of the keyboard state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">keyboardRef</span>() =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_language" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.language</span> <a class="api-item-permalink" href="#Gui_Application_language" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1107">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_language" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.language</span> <a class="api-item-permalink" href="#Gui_Application_language" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1108">src</a></div>
 <p>Returns the active language tag, <span class="code-inline">"en"</span> by default.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">language</span>()-&gt;<span class="STpe">string</span> =&gt; activeLanguage</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_loadState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.loadState</span> <a class="api-item-permalink" href="#Gui_Application_loadState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1242">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_loadState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.loadState</span> <a class="api-item-permalink" href="#Gui_Application_loadState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1243">src</a></div>
 <p>Loads serializable surface placement from the configured state file.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">loadState</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_loadTheme" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.loadTheme</span> <a class="api-item-permalink" href="#Gui_Application_loadTheme" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1068">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_loadTheme" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.loadTheme</span> <a class="api-item-permalink" href="#Gui_Application_loadTheme" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1069">src</a></div>
 <p>Applies the theme sheet resource <span class="code-inline">themes/&lt;name&gt;.tweak</span> and refreshes every surface.</p>
 <p>The sheet is resolved through <a href="#Gui_Application_resources">resources</a>, so it can come from a disk folder or from embedded bytes. Values not named by the sheet keep the current theme, which makes a sheet a delta over whatever palette is already applied.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">loadTheme</span>(name: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_mouseCapture" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.mouseCapture</span> <a class="api-item-permalink" href="#Gui_Application_mouseCapture" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1270">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_mouseCapture" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.mouseCapture</span> <a class="api-item-permalink" href="#Gui_Application_mouseCapture" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1271">src</a></div>
 <p>Returns the window currently holding mouse capture.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">mouseCapture</span>()-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_mouseRef" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.mouseRef</span> <a class="api-item-permalink" href="#Gui_Application_mouseRef" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L867">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_mouseRef" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.mouseRef</span> <a class="api-item-permalink" href="#Gui_Application_mouseRef" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L868">src</a></div>
 <p>Returns a mutable borrow of the mouse state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">mouseRef</span>() =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_notifyThemeChanged" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.notifyThemeChanged</span> <a class="api-item-permalink" href="#Gui_Application_notifyThemeChanged" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1163">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_notifyThemeChanged" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.notifyThemeChanged</span> <a class="api-item-permalink" href="#Gui_Application_notifyThemeChanged" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1164">src</a></div>
 <p>Recomputes styles and emits a theme-change notification throughout every surface tree.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">notifyThemeChanged</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.opDrop</span> <a class="api-item-permalink" href="#Gui_Application_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L799">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.opDrop</span> <a class="api-item-permalink" href="#Gui_Application_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L800">src</a></div>
 <p>Releases resources owned by this value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_postEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.postEvent</span> <a class="api-item-permalink" href="#Gui_Application_postEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1370">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_postEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.postEvent</span> <a class="api-item-permalink" href="#Gui_Application_postEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1371">src</a></div>
 <p>Queues an event from any thread for delivery during the next frame.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">postEvent</span>(event: <span class="SCst"><a href="#Gui_IEvent">IEvent</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_postQuitEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.postQuitEvent</span> <a class="api-item-permalink" href="#Gui_Application_postQuitEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1362">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_postQuitEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.postQuitEvent</span> <a class="api-item-permalink" href="#Gui_Application_postQuitEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1363">src</a></div>
 <p>Posts a thread-safe request to leave the event loop with <span class="code-inline">quitCode</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">postQuitEvent</span>(quitCode: <span class="STpe">s32</span> = <span class="SNum">0</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_registerFrameEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.registerFrameEvent</span> <a class="api-item-permalink" href="#Gui_Application_registerFrameEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1445">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_registerFrameEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.registerFrameEvent</span> <a class="api-item-permalink" href="#Gui_Application_registerFrameEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1446">src</a></div>
 <p>Asks for <a href="#Gui_IWnd_onFrameEvent">Gui.IWnd.onFrameEvent</a> on <span class="code-inline">target</span> at the start of every rendered frame.</p>
 <p>A surface view is sent one <span class="code-inline">FrameEvent</span> before the loop starts, carrying <span class="code-inline">firstFrame</span>; that is a startup hook. This is the per-frame half, and it is how a window defers work to the next frame — a rebuild asked for from inside a change notification, where rebuilding on the spot would destroy the control that is reporting.</p>
 <p>Registration was <span class="code-inline">internal</span> and had no caller, so <span class="code-inline">sendFrameEvents</span> walked an empty array for the whole run and every deferral written against it silently never happened.</p>
@@ -16447,99 +16453,99 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">registerFrameEvent</span>(target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_registerHotKey" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.registerHotKey</span> <a class="api-item-permalink" href="#Gui_Application_registerHotKey" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1526">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_registerHotKey" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.registerHotKey</span> <a class="api-item-permalink" href="#Gui_Application_registerHotKey" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1527">src</a></div>
 <p>Registers or replaces a system-wide keyboard shortcut routed to <span class="code-inline">target</span> as <span class="code-inline">wndId</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">registerHotKey</span>(modifiers: <span class="SCst"><a href="std.core.html#namespace_Core_Input">Input</a></span>.<span class="SCst"><a href="std.core.html#Core_Input_KeyModifiers">KeyModifiers</a></span>, key: <span class="SCst"><a href="std.core.html#namespace_Core_Input">Input</a></span>.<span class="SCst"><a href="std.core.html#Core_Input_Key">Key</a></span>, wndId: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>, target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_removeTimer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.removeTimer</span> <a class="api-item-permalink" href="#Gui_Application_removeTimer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1402">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_removeTimer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.removeTimer</span> <a class="api-item-permalink" href="#Gui_Application_removeTimer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1403">src</a></div>
 <p>Removes and destroys a timer created by <span class="code-inline">addTimer</span>.</p>
 <p>Scheduling a target window for destruction retires its timers, so a window that still names one from its own cleanup lands here on a timer this application no longer owns. The registry is what answers that: once a retirement has been flushed the timer is released, and reading its own fields to recognize the duplicate request would read freed memory.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeTimer</span>(timer: *<span class="SCst"><a href="#Gui_Timer">Timer</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_run" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.run</span> <a class="api-item-permalink" href="#Gui_Application_run" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1476">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_run" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.run</span> <a class="api-item-permalink" href="#Gui_Application_run" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1477">src</a></div>
 <p>Processes frames until a quit event is received and returns its exit code.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">run</span>()-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_runFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.runFrame</span> <a class="api-item-permalink" href="#Gui_Application_runFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L651">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_runFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.runFrame</span> <a class="api-item-permalink" href="#Gui_Application_runFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L652">src</a></div>
 <p>Processes one complete input, event, paint, and frame-callback cycle.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">runFrame</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_runSurface" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.runSurface</span> <a class="api-item-permalink" href="#Gui_Application_runSurface" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L906">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_runSurface" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.runSurface</span> <a class="api-item-permalink" href="#Gui_Application_runSurface" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L907">src</a></div>
 <p>Creates a main surface and runs its application until shutdown.</p>
 <p>A smoke run stops on its own after the frame budget its launcher set, so an example written with this needs nothing special to be exercised by the test suite.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">runSurface</span>(x, y, width, height: <span class="STpe">s32</span>, title: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>, view: <span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span> = <span class="SKwd">null</span>, borders = <span class="SKwd">true</span>, canSize = <span class="SKwd">true</span>, hook: <span class="SItr">#null</span> <span class="SCst"><a href="#Gui_HookEvent">HookEvent</a></span> = <span class="SKwd">null</span>, init: <span class="SItr">#null</span> <span class="SKwd">func</span>(*<span class="SCst"><a href="#Gui_Application">Application</a></span>) = <span class="SKwd">null</span>, testFrames: <span class="STpe">u32</span> = <span class="SNum">50</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_saveState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.saveState</span> <a class="api-item-permalink" href="#Gui_Application_saveState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1208">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_saveState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.saveState</span> <a class="api-item-permalink" href="#Gui_Application_saveState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1209">src</a></div>
 <p>Saves serializable surface placement to the configured state file.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">saveState</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_sendEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.sendEvent</span> <a class="api-item-permalink" href="#Gui_Application_sendEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1377">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_sendEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.sendEvent</span> <a class="api-item-permalink" href="#Gui_Application_sendEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1378">src</a></div>
 <p>Delivers an event synchronously through the GUI routing chain.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sendEvent</span>(event: <span class="SCst"><a href="#Gui_IEvent">IEvent</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_setAppIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setAppIcon</span> <a class="api-item-permalink" href="#Gui_Application_setAppIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1011">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_setAppIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setAppIcon</span> <a class="api-item-permalink" href="#Gui_Application_setAppIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1012">src</a></div>
 <p>Selects the application icon before the first surface is created.</p>
 <p>The image becomes the native window icon — taskbar, task switcher, native caption — and the mark a drawn caption shows beside its title. A surface that wants another one there overrides it with <a href="#Gui_Surface_setIcon">Gui.Surface.setIcon</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setAppIcon</span>(img: <span class="SCst">Pixel</span>.<span class="SCst"><a href="#Gui_Pdf_ItemKind_Image">Image</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_setFrameCursor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setFrameCursor</span> <a class="api-item-permalink" href="#Gui_Application_setFrameCursor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1469">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_setFrameCursor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setFrameCursor</span> <a class="api-item-permalink" href="#Gui_Application_setFrameCursor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1470">src</a></div>
 <p>Selects the cursor for the current frame; the next frame restores automatic selection.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFrameCursor</span>(cursor: <span class="SCst"><a href="#Gui_Cursor">Cursor</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_setGlobalHotKeysEnabled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setGlobalHotKeysEnabled</span> <a class="api-item-permalink" href="#Gui_Application_setGlobalHotKeysEnabled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1510">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_setGlobalHotKeysEnabled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setGlobalHotKeysEnabled</span> <a class="api-item-permalink" href="#Gui_Application_setGlobalHotKeysEnabled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1511">src</a></div>
 <p>Enables or disables all shortcuts registered with <a href="#Gui_Application_registerHotKey">registerHotKey</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setGlobalHotKeysEnabled</span>(enabled = <span class="SKwd">true</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_setLanguage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setLanguage</span> <a class="api-item-permalink" href="#Gui_Application_setLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1091">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_setLanguage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setLanguage</span> <a class="api-item-permalink" href="#Gui_Application_setLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1092">src</a></div>
 <p>Applies the language <span class="code-inline">tag</span> to every registered string table and refreshes every surface.</p>
 <p><a href="#Gui_ReferenceLanguage">Gui.ReferenceLanguage</a> restores the built-in reference strings. Any other tag resets the tables to their reference values, then applies the <span class="code-inline">lang/&lt;tag&gt;/&lt;file&gt;.tweak</span> resource of each registered table; a table without a file for that tag keeps its reference strings. Fails when the tag is not registered through <a href="#Gui_registerLanguage">Gui.registerLanguage</a> or has no language file for any registered table, so a mistyped tag cannot silently present itself as applied. Menus and command-driven controls pick the new strings up on their next update; text set once at construction keeps its wording until the window is created again, so a window that must follow the switch listens for the <a href="#Gui_NotifyEvent_Kind_LanguageChanged">Gui.NotifyEvent.Kind.LanguageChanged</a> notification.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setLanguage</span>(tag: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_setMotionPreference" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setMotionPreference</span> <a class="api-item-permalink" href="#Gui_Application_setMotionPreference" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1110">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_setMotionPreference" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setMotionPreference</span> <a class="api-item-permalink" href="#Gui_Application_setMotionPreference" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1111">src</a></div>
 <p>Overrides or restores the platform reduced-motion preference.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setMotionPreference</span>(preference: <span class="SCst"><a href="#Gui_MotionPreference">MotionPreference</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_setRenderer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setRenderer</span> <a class="api-item-permalink" href="#Gui_Application_setRenderer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L877">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_setRenderer" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setRenderer</span> <a class="api-item-permalink" href="#Gui_Application_setRenderer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L878">src</a></div>
 <p>Selects the renderer borrowed by every painter and surface of this application.</p>
 <p>Call this before <a href="#Gui_Application_createSurface">Gui.Application.createSurface</a>. The concrete renderer must outlive the application. When omitted, the first surface selects <a href="std.pixel.html#Pixel_RenderOgl">Pixel.RenderOgl</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRenderer</span>(renderer: <span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_IRenderer">IRenderer</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_setStatePath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setStatePath</span> <a class="api-item-permalink" href="#Gui_Application_setStatePath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1001">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_setStatePath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setStatePath</span> <a class="api-item-permalink" href="#Gui_Application_setStatePath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1002">src</a></div>
 <p>Selects the file used to persist surface placement with <a href="#Gui_Application_saveState">saveState</a> and <a href="#Gui_Application_loadState">loadState</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setStatePath</span>(path: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_setSystemLanguage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setSystemLanguage</span> <a class="api-item-permalink" href="#Gui_Application_setSystemLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1101">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_setSystemLanguage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.setSystemLanguage</span> <a class="api-item-permalink" href="#Gui_Application_setSystemLanguage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1102">src</a></div>
 <p>Applies the registered language that best matches the language of the user account.</p>
 <p><a href="#Gui_systemLanguage">Gui.systemLanguage</a> falls back to <a href="#Gui_ReferenceLanguage">Gui.ReferenceLanguage</a>, so this only fails on an installation whose language resources are missing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setSystemLanguage</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_unregisterAllHotKeys" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.unregisterAllHotKeys</span> <a class="api-item-permalink" href="#Gui_Application_unregisterAllHotKeys" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1561">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_unregisterAllHotKeys" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.unregisterAllHotKeys</span> <a class="api-item-permalink" href="#Gui_Application_unregisterAllHotKeys" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1562">src</a></div>
 <p>Unregisters every system-wide keyboard shortcut owned by this application.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">unregisterAllHotKeys</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_unregisterFrameEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.unregisterFrameEvent</span> <a class="api-item-permalink" href="#Gui_Application_unregisterFrameEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1452">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_unregisterFrameEvent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.unregisterFrameEvent</span> <a class="api-item-permalink" href="#Gui_Application_unregisterFrameEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1453">src</a></div>
 <p>Stops sending <span class="code-inline">target</span> the per-frame event. Sending it one it no longer wants is harmless.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">unregisterFrameEvent</span>(target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Application_unregisterHotKey" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.unregisterHotKey</span> <a class="api-item-permalink" href="#Gui_Application_unregisterHotKey" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1544">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Application_unregisterHotKey" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Application.unregisterHotKey</span> <a class="api-item-permalink" href="#Gui_Application_unregisterHotKey" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L1545">src</a></div>
 <p>Unregisters a system-wide keyboard shortcut and returns whether it existed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">unregisterHotKey</span>(modifiers: <span class="SCst"><a href="std.core.html#namespace_Core_Input">Input</a></span>.<span class="SCst"><a href="std.core.html#Core_Input_KeyModifiers">KeyModifiers</a></span>, key: <span class="SCst"><a href="std.core.html#namespace_Core_Input">Input</a></span>.<span class="SCst"><a href="std.core.html#Core_Input_Key">Key</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -17062,7 +17068,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Pdf_Document_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.load</span> <a class="api-item-permalink" href="#Gui_Pdf_Document_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/document.swg#L53">src</a></div>
 <p>Loads and decodes every page of a PDF file.</p>
-<p>Use [[Pdf.Reader.open]] when pages should be decoded on demand.</p>
+<p>Use <a href="#Gui_Pdf_Reader_open">Gui.Pdf.Reader.open</a> when pages should be decoded on demand.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Gui_Pdf_Document">Document</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -17623,7 +17629,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">languages</span>()-&gt;<span class="SKwd">const</span> [..] <span class="SCst"><a href="#Gui_Language">Language</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_markReadsOn" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.markReadsOn</span> <a class="api-item-permalink" href="#Gui_markReadsOn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L27">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_markReadsOn" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.markReadsOn</span> <a class="api-item-permalink" href="#Gui_markReadsOn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/application.swg#L28">src</a></div>
 <p>Whether a band of <span class="code-inline">ground</span> can show a product mark with its tile keyed out.</p>
 <p>It is the one question that decides which cut of the mark a caption draws, so it is named rather than written inside the paint: a dark band shows the glyph alone, and a light band keeps the tile, because Voltage on paper is a mark nobody sees.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">markReadsOn</span>(ground: <span class="SCst">Pixel</span>.<span class="SCst">Color</span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -18073,7 +18079,8 @@ busy.<span class="SFct">hide</span>()</span></div>
 <span class="SKwd">func</span> <span class="SFct">auto</span>()-&gt;<span class="SCst">HtmlEdges</span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlLength_auto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlLength.auto</span> <a class="api-item-permalink" href="#Gui_HtmlLength_auto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/value.swg#L188">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlLength_auto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlLength.auto</span> <a class="api-item-permalink" href="#Gui_HtmlLength_auto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/value.swg#L189">src</a></div>
+<p>Creates the CSS <span class="code-inline">auto</span> length.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">auto</span>()-&gt;<span class="SCst">HtmlLength</span> =&gt;</span></div>
 </section>
@@ -19409,7 +19416,7 @@ view.<span class="SFct">updateVideoFrame</span>(picture.<span class="SFct">view<
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Pdf_Page_addText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addText</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_addText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L76">src</a></div>
 <p>Appends one UTF-8 text run.</p>
-<p><span class="code-inline">(x, y)</span> is the top-left of the text line box. <span class="code-inline">font</span> selects one of the standard faces every reader provides; the writer accepts the characters Windows-1252 can represent. Use [[Pdf.StandardFont.textWidth]] to measure the run before placing it.</p>
+<p><span class="code-inline">(x, y)</span> is the top-left of the text line box. <span class="code-inline">font</span> selects one of the standard faces every reader provides; the writer accepts the characters Windows-1252 can represent. Use <a href="#Gui_Pdf_StandardFont_textWidth">Gui.Pdf.StandardFont.textWidth</a> to measure the run before placing it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addText</span>(text: <span class="STpe">string</span>, x, y, size: <span class="STpe">f32</span>, color = <span class="SCst">Color</span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="std.pixel.html#Pixel_Argb">Argb</a></span>.<span class="SCst">Black</span>), font = <span class="SCst"><a href="#Gui_Pdf_StandardFont">StandardFont</a></span>.<span class="SCst"><a href="#Gui_Pdf_StandardFont_Helvetica">Helvetica</a></span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -20154,7 +20161,7 @@ view.<span class="SFct">updateVideoFrame</span>(picture.<span class="SFct">view<
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Pdf_Reader_open" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.open</span> <a class="api-item-permalink" href="#Gui_Pdf_Reader_open" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/reader.swg#L42">src</a></div>
 <p>Opens a PDF file through a read-only mapping and indexes its pages.</p>
-<p>Page streams and resources are decoded only by [[Pdf.Reader.loadPage]]. Encryption and embedded executable content are not supported; embedded actions are ignored rather than executed.</p>
+<p>Page streams and resources are decoded only by <a href="#Gui_Pdf_Reader_loadPage">Gui.Pdf.Reader.loadPage</a>. Encryption and embedded executable content are not supported; embedded actions are ignored rather than executed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">open</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Gui_Pdf_Reader">Reader</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -20724,47 +20731,48 @@ view.<span class="SFct">updateVideoFrame</span>(picture.<span class="SFct">view<
 <span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, dock: <span class="SCst"><a href="#Gui_DockStyle">DockStyle</a></span>, form = <span class="SCst"><a href="#Gui_SeparatorForm">SeparatorForm</a></span>.<span class="SCst"><a href="#Gui_SeparatorForm_Hairline">Hairline</a></span>, id: <span class="SItr">#null</span> <span class="SCst"><a href="#Gui_WndId">WndId</a></span> = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_Separator">Separator</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.add</span> <a class="api-item-permalink" href="#Gui_SigArray_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L25">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.add</span> <a class="api-item-permalink" href="#Gui_SigArray_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L26">src</a></div>
 <p>Registers a callback at the end of the invocation order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">add</span>(fn: <span class="SCst">T</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_call" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.call</span> <a class="api-item-permalink" href="#Gui_SigArray_call" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L60">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_call" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.call</span> <a class="api-item-permalink" href="#Gui_SigArray_call" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L61">src</a></div>
 <p>Invokes all registered callbacks in registration order unless disabled.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">call</span>(params: ...)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.clear</span> <a class="api-item-permalink" href="#Gui_SigArray_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L53">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.clear</span> <a class="api-item-permalink" href="#Gui_SigArray_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L54">src</a></div>
 <p>Removes every callback and restores the enabled state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_count" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.count</span> <a class="api-item-permalink" href="#Gui_SigArray_count" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L44">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_count" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.count</span> <a class="api-item-permalink" href="#Gui_SigArray_count" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L45">src</a></div>
 <p>Returns the number of registered callbacks.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">count</span>()-&gt;<span class="STpe">u64</span> =&gt; .callbacks</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_disable" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.disable</span> <a class="api-item-permalink" href="#Gui_SigArray_disable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L31">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_disable" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.disable</span> <a class="api-item-permalink" href="#Gui_SigArray_disable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L32">src</a></div>
 <p>Suspends callback invocation until every nested disable is matched by <span class="code-inline">enable</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">disable</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_enable" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.enable</span> <a class="api-item-permalink" href="#Gui_SigArray_enable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L37">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_enable" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.enable</span> <a class="api-item-permalink" href="#Gui_SigArray_enable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L38">src</a></div>
 <p>Ends one nested callback suspension.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">enable</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_isDisabled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.isDisabled</span> <a class="api-item-permalink" href="#Gui_SigArray_isDisabled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L50">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_isDisabled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.isDisabled</span> <a class="api-item-permalink" href="#Gui_SigArray_isDisabled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L51">src</a></div>
 <p>Reports whether callback invocation is currently suspended.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isDisabled</span>()-&gt;<span class="STpe">bool</span> =&gt; .suspendDepth</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_isEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.isEmpty</span> <a class="api-item-permalink" href="#Gui_SigArray_isEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L47">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_isEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.isEmpty</span> <a class="api-item-permalink" href="#Gui_SigArray_isEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L48">src</a></div>
 <p>Reports whether no callback is registered.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isEmpty</span>()-&gt;<span class="STpe">bool</span> =&gt; .callbacks.isEmpty</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_SigArray_opAssign" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.opAssign</span> <a class="api-item-permalink" href="#Gui_SigArray_opAssign" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L18">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_SigArray_opAssign" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SigArray.opAssign</span> <a class="api-item-permalink" href="#Gui_SigArray_opAssign" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/sigarray.swg#L19">src</a></div>
+<p>Registers a callback through the <span class="code-inline">+=</span> operator.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(op: <span class="SCst">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SFct">opAssign</span>(fn: <span class="SCst">T</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -24988,7 +24996,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "k|Gui.WndFlags.TopMost|Gui_WndFlags_TopMost|Keeps the window after normal siblings in paint order.",
 "c|Gui.MarkGlyphContrast|Gui_MarkGlyphContrast|How much contrast the glyph of a mark owes a caption band before the band is allowed to show",
 "c|Gui.MarkInk|Gui_MarkInk|The two colors every Swag product mark is cut from, one glyph over one ground.",
-"c|Gui.MarkVoltage|Gui_MarkVoltage|",
+"c|Gui.MarkVoltage|Gui_MarkVoltage|Secondary brand color used for the energized edge of the Swag mark.",
 "c|Gui.ReferenceLanguage|Gui_ReferenceLanguage|Tag of the reference wording declared by the string tables.",
 "c|Gui.Markdown.View.CtxCopy|Gui_Markdown_View_CtxCopy|Command the context menu's copy entry posts.",
 "c|Gui.Markdown.View.CtxSelectAll|Gui_Markdown_View_CtxSelectAll|Command the context menu's select-all entry posts.",
@@ -25171,7 +25179,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "f|Gui.SigArray.enable|Gui_SigArray_enable|Ends one nested callback suspension.",
 "f|Gui.SigArray.isDisabled|Gui_SigArray_isDisabled|Reports whether callback invocation is currently suspended.",
 "f|Gui.SigArray.isEmpty|Gui_SigArray_isEmpty|Reports whether no callback is registered.",
-"f|Gui.SigArray.opAssign|Gui_SigArray_opAssign|",
+"f|Gui.SigArray.opAssign|Gui_SigArray_opAssign|Registers a callback through the += operator.",
 "f|Gui.strings|Gui_strings|Returns the visible strings of the GUI module in the active language.",
 "f|Gui.Surface.bringToFront|Gui_Surface_bringToFront|Brings the surface to the front of its current Z-order group.",
 "f|Gui.Surface.center|Gui_Surface_center|Centers this surface over from without changing its size.",
@@ -25390,7 +25398,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "f|Gui.WrapLayoutCtrl.computeLayout|Gui_WrapLayoutCtrl_computeLayout|Recomputes the flow of all visible children.",
 "f|Gui.WrapLayoutCtrl.create|Gui_WrapLayoutCtrl_create|Creates an empty wrapping layout.",
 "f|Gui.HtmlEdges.auto|Gui_HtmlEdges_auto|The four automatic offsets a statically placed box carries, which is what inset means",
-"f|Gui.HtmlLength.auto|Gui_HtmlLength_auto|",
+"f|Gui.HtmlLength.auto|Gui_HtmlLength_auto|Creates the CSS auto length.",
 "f|Gui.HtmlStyle.theme|Gui_HtmlStyle_theme|Returns the document defaults that follow the active GUI theme.",
 "f|Gui.HtmlView.clearSelection|Gui_HtmlView_clearSelection|Empties the selection.",
 "f|Gui.HtmlView.copySelection|Gui_HtmlView_copySelection|Puts the selected text on the clipboard, and reports whether there was one.",

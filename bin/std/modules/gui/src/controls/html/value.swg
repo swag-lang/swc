@@ -183,6 +183,7 @@ impl HtmlValuePool
 
 impl HtmlLength
 {
+    // Creates the CSS `auto` length.
     #[ConstExpr]
     public func auto()->HtmlLength => {.Auto, 0}
 

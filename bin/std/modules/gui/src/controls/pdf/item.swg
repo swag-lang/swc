@@ -42,8 +42,8 @@ struct PathStrokeStyle
 
 // Describes one page item in Pixel's top-left coordinate system.
 //
-// Use the matching [[Pdf.Page.addText]], [[Pdf.Page.addPath]], or
-// [[Pdf.Page.addImage]] operation to construct an item. Fields unrelated to
+// Use the matching [[Gui.Pdf.Page.addText]], [[Gui.Pdf.Page.addPath]], or
+// [[Gui.Pdf.Page.addImage]] operation to construct an item. Fields unrelated to
 // `kind` retain their defaults.
 struct Item
 {

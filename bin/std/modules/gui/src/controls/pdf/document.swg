@@ -48,7 +48,7 @@ impl Document
 
     // Loads and decodes every page of a PDF file.
     //
-    // Use [[Pdf.Reader.open]] when pages should be decoded on demand.
+    // Use [[Gui.Pdf.Reader.open]] when pages should be decoded on demand.
     func load(fileName: string)->Document fail
     {
         var reader = try Reader.open(fileName)

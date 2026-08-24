@@ -12,6 +12,7 @@ alias FrameCallback = func||(*Application)
 // They are the identity colors and nothing else: a mark that drifts from them stops being one.
 const MarkInk = Ink
 
+// Secondary brand color used for the energized edge of the Swag mark.
 const MarkVoltage = Voltage
 
 // How much contrast the glyph of a mark owes a caption band before the band is allowed to show

@@ -63,7 +63,7 @@ compositor clamps:
 - `EaseOutElastic` springs well past the endpoint and oscillates onto it.
 - `EaseOutBounce` lands and rebounds, each rebound shorter than the last.
 
-[[Gui.AnimationEasing.evaluate]] answers the same function the scheduler applies, so a preview
+[[Core.Math.CurvePreset.evaluate]] answers the same function the scheduler applies, so a preview
 plots exactly what a track will do.
 
 ## Repeat a track

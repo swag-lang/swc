@@ -14,6 +14,7 @@ struct(T) SigArray
 
 impl SigArray
 {
+    // Registers a callback through the `+=` operator.
     mtd(op: Swag.Operator) opAssign(fn: T)
     {
         #assert(op == .AddAssign)

@@ -261,6 +261,12 @@ private:
     // instruction index; entries pair a dense virtual index with the physical
     // register it occupied on that edge.
     using BoundarySnapshot = SmallVector<std::pair<uint32_t, MicroReg>, 8>;
+
+    // The register each value held on the last control-flow edge that recorded one. Consulted
+    // as a preference when a value is given a register again, so the two arms of a diamond
+    // tend to leave it in the same place and the join can keep the mapping instead of dropping
+    // it. A hint only: the register still has to be free and allowed where it is taken.
+    std::vector<MicroReg> edgeRegisterHint_;
     std::unordered_map<uint32_t, BoundarySnapshot> boundarySnapshots_;
     bool                                           keepAcrossBoundaries_ = false;
     std::vector<uint32_t>                          virtualSpanLo_;

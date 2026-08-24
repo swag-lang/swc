@@ -3209,7 +3209,11 @@ void MicroRegisterAllocationPass::flushAtBoundary(const uint32_t instructionInde
         BoundarySnapshot& snapshot = boundarySnapshots_[instructionIndex];
         snapshot.clear();
         for (const uint32_t denseIndex : mappedVirtualIndices_)
+        {
             snapshot.push_back({denseIndex, states_[denseIndex].phys});
+            if (denseIndex < edgeRegisterHint_.size())
+                edgeRegisterHint_[denseIndex] = states_[denseIndex].phys;
+        }
     }
 }
 
@@ -3287,6 +3291,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     // kept register silently wrong. When the gate is off, every boundary
     // falls back to the full flush.
     boundarySnapshots_.clear();
+    edgeRegisterHint_.assign(denseVirtualRegs_.regs().size(), MicroReg::invalid());
     keepAcrossBoundaries_ = hasControlFlow_ &&
                             controlFlowGraph_ != nullptr &&
                             !controlFlowGraph_->hasUnsupportedControlFlowForCfgLiveness() &&
@@ -3459,6 +3464,20 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 request.transferSource = srcReg;
             else if (srcReg.isInt() || srcReg.isFloat())
                 request.preferredPhysReg = srcReg;
+        }
+
+        // Failing anything better, put a value back where the last edge left it. The two arms of
+        // a diamond otherwise pick freely, the join finds them disagreeing and drops the mapping,
+        // and the value both arms just computed goes to memory and comes back. A value that a
+        // copy can keep in its source register is left alone: outranking that transfer was
+        // measured to change nothing, so the cheaper rule stands.
+        for (auto& request : allocRequests)
+        {
+            if (request.preferredPhysReg.isValid() || request.transferSource.isValid())
+                continue;
+            const uint32_t denseIndex = denseVirtualIndex(request.virtKey);
+            if (denseIndex < edgeRegisterHint_.size() && edgeRegisterHint_[denseIndex].isValid())
+                request.preferredPhysReg = edgeRegisterHint_[denseIndex];
         }
 
         std::ranges::stable_sort(allocRequests, compareAllocRequests);

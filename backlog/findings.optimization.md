@@ -348,3 +348,26 @@ Entries are sorted by identifier, ascending; position carries no priority.
   (`SymbolVariable::codeGenLocalSize`); giving the post-RA hoist the same view would let it hoist
   slots that no escaped object contains. Beyond that the remaining traffic is
   [F-136](#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) again.
+
+### F-194 — Loop-invariant code motion stops at a lane broadcast
+
+- Area: compiler/backend
+- Found while: T-504, reading the chroma interpolation loop of the H.264 decoder after the
+  vector temporaries stopped round-tripping through the frame.
+- Observation: the loop rebuilds the same four lane broadcasts on every row. Each is `movd`
+  from an integer register followed by `pshufd`, and both operands are loop-invariant: the
+  replication that feeds them (`zero_extend` then `imul 0x10001`) is already in the preheader,
+  so the pass is running and hoisting from this very loop. It just stops one instruction short.
+- Evidence: `#[Swag.PrintMicro("pre-legalize")]` on `Video.H264.mcChroma`, release. The four
+  `imul 0x10001` sit between the loop guard and the header label; the four `LoadRegReg` /
+  `VecShuffleRegRegImm` pairs that consume them sit inside the body. Adding
+  `OpBinaryRegRegReg`, `OpBinaryRegRegImm`, `VecShuffleRegRegImm`, `VecUnaryRegReg` and
+  `LoadVecRegMem` to `isEligibleOpcode` — none of them touches memory, the flags or the stack,
+  and all write a destination they do not read — changed nothing: `pixel.dll` came out byte for
+  byte identical, and the loop kept its broadcasts. So the opcode filter is not what refuses
+  them, and that change was reverted rather than shipped dead.
+- Next step: instrument the candidate loop of `hoistRound` for one function — print, per body
+  instruction, which of `isEligibleOpcode`, `defCount`, `allInvariant` and the memory guards
+  turned it away. The `movd` is `LoadRegReg` with a float destination and an integer source,
+  which is already eligible today, so the answer is in one of the other four tests and the
+  trace names it in one run.

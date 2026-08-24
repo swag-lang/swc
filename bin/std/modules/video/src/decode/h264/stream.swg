@@ -126,6 +126,28 @@ impl AvcStream
         if laneBytes do
             .laneCount = Math.max(1'u32, Math.min(.laneCount, cast(u32) Math.max(AvcLaneMemoryBudget / laneBytes, 1'u64)))
 
+        .installFrames(#move frames)
+    }
+
+    // Replaces the container window while retaining the configured decoder contexts.
+    // The first sample must start a clean decode, as it does after a Matroska cue seek.
+    mtd replaceFrames(frames: Array'SampleEntry) fail
+    {
+        .stopFrameThreads()
+        .releasePending()
+        .clearFrameThreads()
+        for &decoder in .decoders do
+            decoder.restart()
+
+        .nextDecode = 0
+        .nextRank   = 0
+        .skipBefore = 0
+        .reachedEnd = false
+        .installFrames(#move frames)
+    }
+
+    private mtd installFrames(frames: Array'SampleEntry) fail
+    {
         .frames = #move frames
         let count = .frames.count
 
@@ -144,6 +166,8 @@ impl AvcStream
             order.insertAt(position, cast(u32) index)
         }
 
+        .rankOfSample.clear()
+        .sampleAtRank.clear()
         .rankOfSample.resize(count)
         .sampleAtRank.resize(count)
         for rank in order.count
@@ -152,6 +176,7 @@ impl AvcStream
             .rankOfSample[cast(u64) order[rank]] = cast(u32) rank
         }
 
+        .syncFlags.clear()
         .syncFlags.resize(count)
         for index in count where .frames[index].isSync do
             .syncFlags[index] = 1
@@ -160,11 +185,12 @@ impl AvcStream
             .syncFlags[0] = 1
     }
 
-    // Extends a running stream with a presentation-ordered container chunk.
+    // Extends a running stream and merges presentation order beyond the consumed prefix.
     //
-    // Matroska clusters begin on presentation boundaries, so ranks already handed to the
-    // decoder never move when the next cluster arrives. Decode state and queued pictures stay
-    // intact while the new access units become available.
+    // Container chunks are decode-order boundaries, not presentation-order boundaries: B-frames
+    // from a new chunk can precede the tail of the previous one. Ranks already returned remain
+    // fixed. The live decode pipeline continues when the insertion is beyond every sample already
+    // handed to it; only an overlap with in-flight work requires a restart from the preceding sync.
     mtd appendFrames(frames: const [..] SampleEntry) fail
     {
         if !@countof(frames) do
@@ -186,23 +212,75 @@ impl AvcStream
             order.insertAt(position, cast(u32) index)
         }
 
-        if first and frames[cast(u64) order[0]].presentationTime < .presentationTimeAtRank(first - 1) do
-            fail InvalidFormatError{"H.264 container chunks overlap in presentation order"}
+        let mutableRank = Math.min(.nextRank, .sampleAtRank.count)
+        if mutableRank and frames[cast(u64) order[0]].presentationTime < .presentationTimeAtRank(mutableRank - 1) do
+            fail InvalidFormatError{"H.264 container chunk overlaps pictures already presented"}
+
+        let firstNewTimestamp = frames[cast(u64) order[0]].presentationTime
+        var insertionRank     = mutableRank
+        while insertionRank < first and .presentationTimeAtRank(insertionRank) <= firstNewTimestamp do
+            insertionRank += 1
+
+        var stableRank = mutableRank
+        for sample in Math.min(.nextDecode, first) do
+            stableRank = Math.max(stableRank, cast(u64) .rankOfSample[sample] + 1)
+        let restart = insertionRank < stableRank
+
+        var merged: Array'u32
+        merged.reserve(first + @countof(frames))
+        if mutableRank do
+            merged.add(.sampleAtRank.toSlice()[0 until mutableRank])
+
+        var oldRank = mutableRank
+        var newRank = 0'u64
+        while oldRank < first or newRank < order.count
+        {
+            let useOld = newRank >= order.count or (oldRank < first and .presentationTimeAtRank(oldRank) <= frames[cast(u64) order[newRank]].presentationTime)
+            if useOld
+            {
+                merged.add(.sampleAtRank[oldRank])
+                oldRank += 1
+            }
+            else
+            {
+                merged.add(cast(u32) (first + cast(u64) order[newRank]))
+                newRank += 1
+            }
+        }
+
+        if restart
+        {
+            .stopFrameThreads()
+            .releasePending()
+            .clearFrameThreads()
+            for &decoder in .decoders do
+                decoder.restart()
+        }
 
         .frames.add(frames)
-        .rankOfSample.resize(.frames.count)
         .syncFlags.resize(.frames.count)
-        for rankOffset in order.count
+        for localSample in @countof(frames)
         {
-            let sample = first + cast(u64) order[rankOffset]
-            let rank   = .sampleAtRank.count
-            .sampleAtRank.add(cast(u32) sample)
-            .rankOfSample[sample] = cast(u32) rank
+            let sample = first + localSample
             if .frames[sample].isSync do
                 .syncFlags[sample] = 1
         }
 
+        .sampleAtRank = #move merged
+        .rankOfSample.resize(.frames.count)
+        for rank in mutableRank until .sampleAtRank.count do
+            .rankOfSample[cast(u64) .sampleAtRank[rank]] = cast(u32) rank
+
         .reachedEnd = false
+        if !restart do
+            return
+
+        let nextSample = cast(u64) .sampleAtRank[.nextRank]
+        var sync       = nextSample
+        while sync > 0 and .syncFlags[sync] == 0 do
+            sync -= 1
+        .nextDecode = sync
+        .skipBefore = .nextRank
     }
 
     mtd opDrop()

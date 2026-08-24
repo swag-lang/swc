@@ -3,6 +3,52 @@
 
 using Core, Core.Errors, Pixel
 
+// A container chunk can begin with B-frames presented before the previous chunk's decode-order
+// tail. Extending a live AVC stream preserves consumed ranks and merges that unconsumed overlap.
+#test
+{
+    var stream: H264.AvcStream
+    stream.frames.add([{0, 0, 0, true}, {0, 0, 400, false}, {0, 0, 100, false}, {0, 0, 500, false}])
+    stream.sampleAtRank.add([0, 2, 1, 3])
+    stream.rankOfSample.add([0, 2, 1, 3])
+    stream.syncFlags.add([1, 0, 0, 0])
+    stream.nextRank   = 2
+    stream.nextDecode = 3
+
+    const Added: [2] H264.SampleEntry = [{0, 0, 300, false}, {0, 0, 200, false}]
+    expect stream.appendFrames(Added)
+
+    @assert(stream.sampleAtRank.count == 6)
+    @assert(stream.sampleAtRank[0] == 0 and stream.sampleAtRank[1] == 2)
+    @assert(stream.sampleAtRank[2] == 5 and stream.sampleAtRank[3] == 4)
+    @assert(stream.sampleAtRank[4] == 1 and stream.sampleAtRank[5] == 3)
+    for rank in stream.sampleAtRank.count do
+        @assert(stream.rankOfSample[cast(u64) stream.sampleAtRank[rank]] == cast(u32) rank)
+    @assert(stream.nextRank == 2 and stream.nextDecode == 0 and stream.skipBefore == 2)
+}
+
+// Appending ahead of every sample already handed to H.264 updates presentation ranks without
+// flushing the live prediction state. A cluster boundary during playback must not replay the GOP.
+#test
+{
+    var stream: H264.AvcStream
+    stream.frames.add([{0, 0, 0, true}, {0, 0, 100, false}, {0, 0, 400, false}, {0, 0, 500, false}])
+    stream.sampleAtRank.add([0, 1, 2, 3])
+    stream.rankOfSample.add([0, 1, 2, 3])
+    stream.syncFlags.add([1, 0, 0, 0])
+    stream.nextRank   = 1
+    stream.nextDecode = 2
+
+    const Added: [2] H264.SampleEntry = [{0, 0, 300, false}, {0, 0, 200, false}]
+    expect stream.appendFrames(Added)
+
+    @assert(stream.sampleAtRank.count == 6)
+    @assert(stream.sampleAtRank[0] == 0 and stream.sampleAtRank[1] == 1)
+    @assert(stream.sampleAtRank[2] == 5 and stream.sampleAtRank[3] == 4)
+    @assert(stream.sampleAtRank[4] == 2 and stream.sampleAtRank[5] == 3)
+    @assert(stream.nextRank == 1 and stream.nextDecode == 2 and stream.skipBefore == 0)
+}
+
 // Geometry and content of `bars-scroll-c420.y4m`, the long fixture of this suite.
 //
 // It is 400 frames of eight scrolling colour bars, with a corner block whose luma identifies the

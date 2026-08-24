@@ -63,6 +63,7 @@ interface IDeferredDecoder
 {
     mtd frameCount()->u64
     mtd frameRate()->FrameRate
+    mtd durationInSeconds()->f64
     mtd requestCancel()
 }
 
@@ -367,9 +368,11 @@ impl Reader
         return .decoder.syncFrameAt(index)
     }
 
-    // Returns the stream duration in seconds, or zero when the frame count is unknown.
+    // Returns the stream duration in seconds, or zero when the format cannot report it.
     mtd const durationInSeconds()->f64
     {
+        if .deferred do
+            return .deferred!.durationInSeconds()
         let rate = .frameRate()
         if !rate.isValid() do
             return 0

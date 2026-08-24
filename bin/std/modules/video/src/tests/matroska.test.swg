@@ -3,16 +3,18 @@
 
 using Core, Core.Errors, Pixel
 
-private func waitForMatroskaIndex(reader: *Reader)
+// Indexed duration and track timing make a file-backed stream seekable before its complete frame
+// table exists. The requested frame is indexed on demand without scanning the rest of the file.
+#test
 {
-    var attempts = 0
-    while !reader.frameCount() and attempts < 10_000
-    {
-        Threading.Thread.sleep(1'ms)
-        attempts += 1
-    }
+    var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
+    @assert(reader.frameCount() == 0 and reader.durationInSeconds() > 0)
+    let target = reader.frameAtTime(0.4)
+    @assert(target == 10)
 
-    @assert(reader.frameCount() != 0)
+    var frame: Image
+    expect reader.decodeFrameInto(&frame, target)
+    @assert(frame.width == 64 and frame.height == 48)
 }
 
 // Matroska retains the AVC access units of the source MP4 byte for byte. Decoding both containers
@@ -24,10 +26,9 @@ private func waitForMatroskaIndex(reader: *Reader)
     var mp4      = expect Reader.open(videoFixturePath("ffmpeg-h264-baseline.mp4"))
     var indexed: Image
     expect matroska.decodeFrameInto(&indexed, 0)
-    waitForMatroskaIndex(&matroska)
     @assert(matroska.streamFormat().extensions == ".mkv")
     @assert(matroska.width() == 64 and matroska.height() == 48)
-    @assert(matroska.frameCount() == 20 and matroska.frameRate() == expect FrameRate.create(25, 1))
+    @assert(matroska.frameCount() == 0 and matroska.frameRate() == expect FrameRate.create(25, 1))
     @assert(matroska.hasPlanarFrames())
 
     const Frames: [5] u64 = [19, 0, 7, 12, 3]
@@ -41,6 +42,7 @@ private func waitForMatroskaIndex(reader: *Reader)
         @assert(Math.isEqualEpsilon(matroska.frameTimestamp(index), mp4.frameTimestamp(index), 0.000001))
     }
 
+    @assert(matroska.frameCount() == 20)
     @assert(matroska.frameAtTime(0.3) == 7)
 }
 
@@ -51,8 +53,7 @@ private func waitForMatroskaIndex(reader: *Reader)
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
     var indexed: Image
-    expect reader.decodeFrameInto(&indexed, 0)
-    waitForMatroskaIndex(&reader)
+    expect reader.decodeFrameInto(&indexed, 19)
     @assert(reader.audioTrackCount() == 2)
     let primary   = reader.audioTrack(0)!
     let alternate = reader.audioTrack(1)!
@@ -66,18 +67,17 @@ private func waitForMatroskaIndex(reader: *Reader)
     @assert(Slice.equals(primaryBytes.toSlice(), alternateBytes.toSlice()))
 }
 
-// A long container catches index truncation, timestamp accumulation, and distant-seek defects
-// that the compact fixture cannot reach. Its pictures repeat the short source stream, so a seek
-// near ten minutes can still be checked pixel for pixel without storing another reference image.
+// A long container catches cue-offset, timestamp accumulation, and distant-seek defects that the
+// compact fixture cannot reach. Its pictures repeat the short source stream, so a seek near ten
+// minutes can still be checked pixel for pixel without storing another reference image.
 #test
 {
     var longStream = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac-10min.mkv"))
     var reference  = expect Reader.open(videoFixturePath("ffmpeg-h264-baseline.mp4"))
     var indexed: Image
     expect longStream.decodeFrameInto(&indexed, 0)
-    waitForMatroskaIndex(&longStream)
-    @assert(longStream.frameCount() == 15_000 and longStream.audioTrackCount() == 2)
-    @assert(longStream.audioTrack(0)!.packetCount() == 14_250 and longStream.audioTrack(1)!.packetCount() == 14_250)
+    @assert(longStream.frameCount() == 0 and longStream.audioTrackCount() == 0)
+    @assert(Math.isEqualEpsilon(longStream.durationInSeconds(), 600.0, 0.001))
 
     const Frames: [4] u64 = [14_999, 12_007, 7_500, 20]
     var actual, expected: Image

@@ -238,15 +238,13 @@ func videoMatroskaFixturePath()->String
     createVideoViewer(&request, &result)
     @assert(result.view != null)
     let view = cast(*VideoViewer) result.view!
+    @assert(view.timeline.isEnabled())
     waitForVideoFrame(view)
 
-    var metadataAttempts = 0
-    while !view.video.audioTrackCount() and metadataAttempts < 10_000
-    {
-        Threading.Thread.sleep(1'ms)
-        view.updatePlayback()
-        metadataAttempts += 1
-    }
+    // Reaching the compact fixture's last cluster completes its sound packet tables through the
+    // same foreground demux cursor; there is no background full-file scan to wait for.
+    view.seekFrame(19)
+    waitForVideoFrame(view)
 
     @assert(view.video.audioTrackCount() == 2 and view.audioCombo != null)
     @assert(view.audioCombo!.items.count == 2 and view.audioCombo!.selectedIndex == 0)

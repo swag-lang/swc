@@ -132,6 +132,8 @@ internal struct VideoViewer
     volume = 1'f32
     details:       String
     metadataReady: bool
+    audioReady:    bool
+    timelineReady: bool
     reportDetails: #null ViewerReportDetails
     reportFailure: #null ViewerReportFailure
 
@@ -555,9 +557,10 @@ internal impl VideoViewer
 
     mtd seekFrame(index: u64)
     {
-        if !.video.frameCount() do
+        let count = .video.frameCount()
+        if !count and .video.durationInSeconds() <= 0 do
             return
-        let target      = Math.min(index, .video.frameCount() - 1)
+        let target      = count ? Math.min(index, count - 1) : index
         let resumeAudio = .playing and .voice != null
         .resumeAudioAfterSeek = false
         if resumeAudio do
@@ -818,31 +821,46 @@ private impl VideoViewer
 {
     mtd finishMetadata() fail
     {
-        if .metadataReady or !.video.frameCount() do
-            return
-        .metadataReady = true
-
         let duration = .video.durationInSeconds()
         let rate     = .video.frameRate().framesPerSecond()
-        let step     = rate > 0 ? 1 / rate : 0.01
-        if duration > 0 do
-            .timeline.setBounds(0, duration, cast(f32) Math.min(step, duration / 100))
-        .timeline.enable(duration > 0 and .video.frameCount() > 1)
-        .details = Format.toString(videoStrings().ui_Details, .video.width(), .video.height(), videoFrameCountText(.video.frameCount()), rate, mediaDurationText(duration))
-        if .reportDetails do
-            .reportDetails!(me, .details.toString())
-
-        let audioCount = .video.audioTrackCount()
-        if audioCount > 1
+        let count    = .video.frameCount()
+        if !.timelineReady
         {
-            for index in audioCount do
-                .audioCombo!.addItem(videoAudioTrackText(index, .video.audioTrack(index)!))
-            .audioCombo!.setSelectedIndex(0, notify: false)
-            .audioCombo!.show()
+            let step = rate > 0 ? 1 / rate : 0.01
+            if duration > 0 do
+                .timeline.setBounds(0, duration, cast(f32) Math.min(step, duration / 100))
+            .timeline.enable(duration > 0 and (!count or count > 1))
+            .timelineReady = true
         }
 
-        if audioCount
+        var changed: bool
+        if !.metadataReady and count
         {
+            .metadataReady = true
+            changed        = true
+
+            let step = rate > 0 ? 1 / rate : 0.01
+            if duration > 0 do
+                .timeline.setBounds(0, duration, cast(f32) Math.min(step, duration / 100))
+            .timeline.enable(duration > 0 and count > 1)
+            .details = Format.toString(videoStrings().ui_Details, .video.width(), .video.height(), videoFrameCountText(count), rate, mediaDurationText(duration))
+            if .reportDetails do
+                .reportDetails!(me, .details.toString())
+        }
+
+        let audioCount = .video.audioTrackCount()
+        if !.audioReady and audioCount
+        {
+            .audioReady = true
+            changed     = true
+            if audioCount > 1
+            {
+                for index in audioCount do
+                    .audioCombo!.addItem(videoAudioTrackText(index, .video.audioTrack(index)!))
+                .audioCombo!.setSelectedIndex(0, notify: false)
+                .audioCombo!.show()
+            }
+
             .muteButton.show()
             .volumeSlider.show()
             if !acquireSoundEngine() do
@@ -851,7 +869,8 @@ private impl VideoViewer
             .selectAudioTrack(0)
         }
 
-        .applyLayout()
+        if changed do
+            .applyLayout()
     }
 
     func create(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails = null, reportFailure: #null ViewerReportFailure = null)->*VideoViewer fail

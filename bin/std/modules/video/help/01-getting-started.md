@@ -1,9 +1,9 @@
 # Reading and writing video
 
-A video is read as a stream and written as a stream. [[Video.Reader]] opens a file by
-reading its header alone and decodes one frame at a time; [[Video.Writer]] encodes one frame
-at a time into its destination. Neither ever holds the encoded stream, so a video of any
-length costs the memory of a single frame. [[Video.Clip]] is the other half: the frames a
+A video is read as a stream and written as a stream. [[Video.Reader]] opens a file by reading its
+metadata and decodes one frame at a time; [[Video.Writer]] encodes one frame at a time into its
+destination. Neither ever holds the encoded stream, so a video of any length costs the memory of
+one active frame plus compact container indexes. [[Video.Clip]] is the other half: the frames a
 program builds in memory before encoding them.
 
 ## Playing a stream
@@ -43,13 +43,26 @@ The extension of the file selects the codec, so choosing one is choosing a name.
 | --- | --- | --- | --- |
 | `.y4m` | 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4 planar YCbCr | 4:4:4 planar YCbCr | Nothing is lost, and nothing is compressed either: one second of 720p costs about forty megabytes. |
 | `.avi` | Motion JPEG, and uncompressed 24- and 32-bit frames | Motion JPEG | Each frame is a JPEG image, so the file is one to two orders of magnitude smaller and the picture loses what JPEG loses. |
-| `.mp4`, `.m4v`, `.mov` | Motion JPEG in ISO-BMFF sample tables | Motion JPEG | Every frame is independently seekable. H.264 and other inter-frame codecs are identified and refused until their picture decoders exist. |
+| `.mp4`, `.m4v`, `.mov` | Motion JPEG or H.264 in ISO-BMFF sample tables; AAC-LC audio | Motion JPEG | Motion JPEG seeks directly. H.264 seeks to a sync sample and decodes forward while returning pictures in presentation order. |
+| `.mkv` | H.264 in Matroska EBML blocks; multiple AAC-LC audio tracks | — | Opening maps the file read-only long enough to index block headers without reading media payloads. H.264 seek and presentation ordering match the ISO-BMFF path. |
 
-All three code every frame on its own, so they seek anywhere at the cost of one frame: YUV4MPEG2
-computes the offset from the constant size of a frame, AVI reads it from the index the container
-carries, and ISO-BMFF expands its chunk and sample tables once when the stream opens. None holds a
-decoded frame between two calls, which is why decoding a stream out of order costs the same as
-decoding it in order.
+YUV4MPEG2 computes an offset from the constant size of a frame, AVI reads one from the index the
+container carries, and ISO-BMFF expands its chunk and sample tables once when the stream opens.
+H.264 in ISO-BMFF or Matroska seeks to the nearest preceding sync picture and decodes prediction
+dependencies forward, so a distant random seek costs the group of pictures it enters rather than
+one frame.
+
+## Reading sound tracks
+
+File-backed ISO-BMFF and Matroska readers expose playable AAC-LC tracks through
+[[Video.Reader.audioTrackCount]] and [[Video.Reader.audioTrack]]. Each [[Audio.SoundFile]] owns a
+compact packet table and reopens the container through its own cursor, so sound and picture stream
+in parallel without sharing a seek position or retaining compressed payloads. Matroska preserves
+every supported track and puts the container's default track at index zero.
+
+Memory-backed readers expose pictures but no sound track because a voice needs an independently
+owned streaming cursor. AAC-LC is currently limited to mono and stereo 1024-sample access units;
+unsupported sound codecs remain unavailable while a supported picture track stays playable.
 
 ## Controlling how a stream is encoded
 
@@ -74,7 +87,8 @@ way, one file per format on each side:
 src/decode/reader.swg    the registry, and Video.Reader
 src/decode/y4m.swg       Y4m.Decoder, and the layout of the format
 src/decode/avi.swg       Avi.Decoder, and the layout of the container
-src/decode/mp4.swg       Mp4.Decoder, and the ISO-BMFF sample tables
+src/decode/mp4/mp4.swg   Mp4.Decoder, and the ISO-BMFF sample tables
+src/decode/matroska/     Matroska.Decoder, EBML, tracks, blocks, and lacing
 src/encode/writer.swg    the registry, and Video.Writer
 src/encode/y4m.swg       Y4m.Encoder
 src/encode/avi.swg       Avi.Encoder
@@ -103,7 +117,3 @@ have. The corpus holds a camera recording, sequences from the standard research 
 synthetic clip encoded in the tested layouts by ffmpeg, and copies of that clip with a container
 shape injected into them that no single writer produces. `datas/SOURCES.md` states where each one
 came from, what it exercises, and under what terms it is redistributed.
-
-The current reader exposes no audio stream. ISO-BMFF audio tracks are skipped while the Motion
-JPEG picture track remains playable. Audio-track decoding and synchronization will compose with
-the standard Audio module rather than adding a second sound implementation here.

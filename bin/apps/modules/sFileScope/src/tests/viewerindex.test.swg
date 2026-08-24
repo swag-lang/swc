@@ -48,6 +48,9 @@ using Core
 
     let mp4Choices = index.choices("movie.mp4")
     @assert(mp4Choices[0].name == "Video" and mp4Choices[1].name == "Binary" and mp4Choices[2].name == "Hexadecimal")
+
+    let matroskaChoices = index.choices("movie.mkv")
+    @assert(matroskaChoices[0].name == "Video" and matroskaChoices[1].name == "Binary" and matroskaChoices[2].name == "Hexadecimal")
 }
 
 // Every viewer carries the stable identity a remembered choice is written under, and the glyph

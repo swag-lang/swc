@@ -14,3 +14,11 @@ viewer takes a different path for those.
 
 - SHA-256: `bd42f819cf870879a1e7152adb804feb0329969d094ef756a57ea9651081b6e2`
 - License: same as this repository; the picture is generated, not a third-party recording.
+
+`ffmpeg-h264-two-aac.mkv` is the Matroska fixture documented in std/video's test corpus. It
+stream-copies the synthetic H.264 clip above and maps the generated AAC-LC track of
+`glint-aac-mjpeg.mp4` twice, with the first copy marked as default. The video viewer uses it to
+exercise the visible audio-track selector and its transport handoff.
+
+- SHA-256: `36c7ad0fdee8156478589265ad51a3025d8c7822904fd504c82e7dd50bfd2c5d`
+- License: same as this repository and its two generated source fixtures.

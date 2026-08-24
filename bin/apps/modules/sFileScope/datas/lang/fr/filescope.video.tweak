@@ -8,6 +8,8 @@ ui_TipForward    Avancer de 10 secondes (Droite)
 ui_TipSeek       Rechercher une image
 ui_TipMute       Couper ou rétablir le son (M)
 ui_TipVolume     Volume
+ui_TipAudio      Piste audio
+ui_AudioTrack    Audio % · % can. · %{f1} kHz
 
 word_Frame       image
 word_Frames      images

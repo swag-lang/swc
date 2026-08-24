@@ -194,7 +194,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | Motion JPEG video | `.avi` `.mp4` `.m4v` `.mov` | full, seeked through sample tables; MP4/M4V/MOV play AAC-LC sound | AVI audio, and the chroma layouts ffmpeg writes | T-426, T-424 |
 | Compressed audio | `.mp3` `.flac` `.ogg` `.opus` `.m4a` | structure | Audio codec, then a viewer path | T-404 |
 | Video containers | `.mp4` `.mkv` `.webm` `.mov` `.avi` | signature | box, EBML and RIFF tree | T-412 |
-| Video playback | `.mp4` `.m4v` `.mov` | Motion JPEG, H.264 | VP9 and AV1 in WebM and Matroska | T-420 |
+| Video playback | `.mp4` `.m4v` `.mov` `.mkv` | Motion JPEG and H.264; AAC-LC sound with track selection | VP9, AV1, Opus, and WebM | T-420 |
 | MIDI | `.mid` | none | — | — |
 
 #### Binaries, containers and developer artifacts
@@ -329,18 +329,16 @@ viewer" claim is currently weakest. Read the `Today` column as:
   displayed, with the metadata panel from T-405 beside it.
 - Related: T-405
 
-### T-420 — WebM and Matroska video cannot be played
+### T-420 — WebM and VP9/AV1 Matroska video cannot be played
 
-- Intent: MP4, M4V, and MOV files now play Motion JPEG and H.264 through their ISO-BMFF sample
-  tables, but WebM and Matroska carry VP9 or AV1 and neither picture codec nor the EBML container
-  is read. What is missing is decoders, not a design: `std/video` streams frames through a codec
-  registry, so a format is a `Video.IDecoder` reading a `Video.Source` and answering `seekFrame`
-  its own way — a container index, or a keyframe followed by decoding forward for an inter-coded
-  codec, as the H.264 decoder already does.
+- Intent: Matroska now plays H.264 with one or several selectable AAC-LC tracks through a compact
+  EBML block index. WebM, and Matroska streams carrying VP9, AV1, Opus, or Vorbis, remain unread.
+  The container already retains timestamps, synchronization points, lacing, and payload offsets;
+  what remains is picture and sound codec support rather than another container design.
 - Complete when: the `Video` viewer shows the picture with transport, a seekable timeline and the
   frame position for VP9 or AV1 in WebM and Matroska, and the registry moves those extensions off
   the binary line for playback while T-412 keeps the structure reader available as a second
-  viewer. Audio uses `std/audio` and stays synchronized with the picture.
+  viewer. Opus and Vorbis use `std/audio` and stay synchronized with the picture.
 - Related: T-412, T-404
 
 ### T-415 — EPUB stops at the ZIP structure

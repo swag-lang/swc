@@ -69,11 +69,14 @@ internal struct VideoViewer
         imageView:      *ImageView
     }
 
-    // The stream is read through its own header alone, so a video of any size opens instantly.
+    audioCombo: #null *ComboBox
+
+    // Opening retains compact metadata indexes while encoded payloads stay in the source file.
     video:               Reader
     planar:              bool     // The codec hands its pictures over without converting them.
     audio:               #null const *SoundFile
     voice:               #null *Voice
+    audioTrackIndex:     u32
     audioEngineAcquired: bool
 
     // Decoded pictures waiting for their turn on screen.
@@ -133,6 +136,28 @@ internal struct VideoViewer
     // Pixel column the timeline thumb was last pushed to, so a value that would not move it is
     // not pushed at all.
     timelinePixel: s32 = -1
+}
+
+private impl VideoViewer
+{
+    mtd retranslate()
+    {
+        .playButton.toolTip     = .playing ? videoStrings().ui_TipPause : videoStrings().ui_TipPlay
+        .stopButton.toolTip     = videoStrings().ui_TipStop
+        .backwardButton.toolTip = videoStrings().ui_TipBackward
+        .forwardButton.toolTip  = videoStrings().ui_TipForward
+        .timeline.toolTip       = videoStrings().ui_TipSeek
+        .muteButton.toolTip     = videoStrings().ui_TipMute
+        .volumeSlider.toolTip   = videoStrings().ui_TipVolume
+
+        if .audioCombo
+        {
+            .audioCombo!.toolTip = videoStrings().ui_TipAudio
+            for index in .audioCombo!.items.count do
+                .audioCombo!.items[index]!.name = videoAudioTrackText(cast(u32) index, .video.audioTrack(cast(u32) index)!)
+            .audioCombo!.invalidate()
+        }
+    }
 }
 
 internal impl VideoViewer
@@ -254,6 +279,39 @@ internal impl VideoViewer
         .volume = Math.clamp(volume, 0, 1)
         if .voice and !.muted do
             catch .voice!.setVolume(.volume)
+    }
+
+    // Replaces the active sound track without disturbing picture transport state.
+    //
+    // The new voice is fully positioned and configured before the old one is released, so an
+    // unsupported track cannot turn a playing video silent halfway through the operation.
+    mtd selectAudioTrack(index: u32) fail
+    {
+        if index >= .video.audioTrackCount() do
+            fail BadParameterError{"video audio-track index exceeds the track count"}
+        if .voice and index == .audioTrackIndex do
+            return
+
+        let sound      = .video.audioTrack(index)!
+        let position   = .currentSeconds()
+        let wasPlaying = .playing
+        let newVoice   = Voice.create(sound)!
+        defer #fail newVoice.destroy()
+        newVoice.setVolume(.muted ? 0 : .volume)
+        newVoice.seekSampleFrame(cast(u64) Math.round(position * cast(f64) sound.sampleRateHz()))
+        if wasPlaying do
+            newVoice.play()
+
+        if .voice
+        {
+            catch .voice!.stop()
+            .voice!.destroy()
+        }
+
+        .audio           = sound
+        .voice           = newVoice
+        .audioTrackIndex = index
+        .audioClockLast  = -1
     }
 
     // Sizes the run-ahead queue from the picture size.
@@ -663,6 +721,14 @@ internal impl VideoViewer
 
 private impl IWnd for VideoViewer
 {
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged do
+            .retranslate()
+        else do
+            evt.accepted = false
+    }
+
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
         if evt.timer != .timer
@@ -835,6 +901,31 @@ private impl VideoViewer
             .setTextAlignment(.Right, .Center)
         }
 
+        if video.audioTrackCount() > 1
+        {
+            let audioCombo = ComboBox.create(result.commands, {0, 0, 208, 36})
+            result.audioCombo = audioCombo
+            with audioCombo
+            {
+                .dockStyle = .Right
+                .margin.x  = 8
+                .toolTip   = videoStrings().ui_TipAudio
+                for index in video.audioTrackCount() do
+                    .addItem(videoAudioTrackText(index, video.audioTrack(index)!))
+                .setSelectedIndex(0, notify: false)
+                .sigChanged += func|view = result|(combo, index)
+                {
+                    catch view.selectAudioTrack(index) as trackError
+                    if trackError != null
+                    {
+                        combo.setSelectedIndex(view.audioTrackIndex, notify: false)
+                        if view.reportFailure do
+                            view.reportFailure!(view, Errors.message(trackError))
+                    }
+                }
+            }
+        }
+
         with result.timeline = Slider.create(result.commands, {0, 0, 0, 36})
         {
             .dockStyle = .Center
@@ -860,8 +951,7 @@ private impl VideoViewer
             if !acquireSoundEngine() do
                 fail UnsupportedFormatError{"cannot create the audio engine for video playback"}
             result.audioEngineAcquired = true
-            result.audio               = result.video.audioTrack(0)
-            result.voice               = Voice.create(result.audio!)
+            result.selectAudioTrack(0)
         }
         else
         {

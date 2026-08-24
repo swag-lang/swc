@@ -1,4 +1,4 @@
-#global namespace Mp4
+#global namespace H264
 
 using Core, Core.Errors, Pixel
 
@@ -57,7 +57,16 @@ private struct DecodedAvcSample
     rank:  u64
 }
 
-// Drives the H.264 track of an ISO-BMFF stream.
+// One length-prefixed AVC access unit in decode order.
+struct SampleEntry
+{
+    offset:           u64
+    size:             u64
+    presentationTime: s64
+    isSync:           bool
+}
+
+// Drives an indexed H.264 stream independently of its container.
 //
 // Up to sixteen complete decoder contexts run pictures concurrently. The owner publishes the
 // prediction setup of picture N before its CABAC data starts, immediately prepares N+1 from that
@@ -71,10 +80,10 @@ struct AvcStream
     payloads:     [AvcMaxFrameThreads] Array'u8
     laneStates:   [AvcMaxFrameThreads] AvcLaneState
     threaded:     [AvcMaxFrameThreads] ThreadedAvcSample
-    frames:       Array'FrameEntry     // Sample offsets and sizes, in decode order.
-    rankOfSample: Array'u32            // Display rank of each decode-order sample.
-    sampleAtRank: Array'u32            // Decode-order sample of each display rank.
-    syncFlags:    Array'u8             // Whether each sample starts a clean decode.
+    frames:       Array'SampleEntry     // Samples in decode order.
+    rankOfSample: Array'u32             // Display rank of each decode-order sample.
+    sampleAtRank: Array'u32             // Decode-order sample of each display rank.
+    syncFlags:    Array'u8              // Whether each sample starts a clean decode.
     pending:      Array'PendingFrame
 
     threadedHead:      u32
@@ -97,17 +106,17 @@ struct AvcStream
 impl AvcStream
 {
     // Configures every decoder context and builds the display-order tables.
-    mtd open(track: *Track, frames: Array'FrameEntry) fail
+    mtd open(config: const [..] u8, frames: Array'SampleEntry) fail
     {
-        if !track.avcConfig.count do
-            fail InvalidFormatError{"MP4 AVC track has no decoder configuration"}
+        if !@countof(config) do
+            fail InvalidFormatError{"H.264 track has no decoder configuration"}
         for &decoder in .decoders do
-            decoder.configure(track.avcConfig.toSlice())
+            decoder.configure(config)
 
         .laneCount = Math.max(1'u32, Math.min(Jobs.workerCount(), AvcMaxFrameThreads))
         let sps = .decoders[0].firstSps()
         if !sps do
-            fail InvalidFormatError{"MP4 AVC configuration carries no sequence parameter set"}
+            fail InvalidFormatError{"H.264 decoder configuration has no sequence parameter set"}
         .width    = sps.width()
         .height   = sps.height()
         .cropLeft = sps.cropLeft
@@ -122,13 +131,12 @@ impl AvcStream
 
         // Display ranks: stable order of the composition times. Real streams are already
         // nearly sorted, off by at most the reorder depth, so an insertion pass is linear.
-        let times = track.sampleTimes()
         var order: Array'u32
         order.reserve(count)
         for index in count
         {
             var position = order.count
-            while position > 0 and times[cast(u64) order[position - 1]] > times[index]
+            while position > 0 and .frames[cast(u64) order[position - 1]].presentationTime > .frames[index].presentationTime
             {
                 position -= 1
             }
@@ -145,19 +153,8 @@ impl AvcStream
         }
 
         .syncFlags.resize(count)
-        if track.syncSamples.count
-        {
-            for sample in track.syncSamples
-            {
-                if cast(u64) sample < count do
-                    .syncFlags[cast(u64) sample] = 1
-            }
-        }
-        else
-        {
-            for index in count do
-                .syncFlags[index] = 1
-        }
+        for index in count where .frames[index].isSync do
+            .syncFlags[index] = 1
 
         if count do
             .syncFlags[0] = 1
@@ -184,6 +181,13 @@ impl AvcStream
         }
 
         return .frames.count
+    }
+
+    // Returns the container presentation timestamp of one display-order picture.
+    mtd const presentationTimeAtRank(rank: u64)->s64
+    {
+        Debug.assert(rank < .sampleAtRank.count)
+        return .frames[cast(u64) .sampleAtRank[rank]].presentationTime
     }
 
     // Positions the stream so the next decoded frame has display rank `rank`.
@@ -360,7 +364,7 @@ impl AvcStream
             if rank < .skipBefore and decoder.canSkipWhileSeeking(payload.toSlice()) do
                 continue
             if !try decoder.prepareAccessUnit(payload.toSlice()) do
-                fail InvalidFormatError{"MP4 video sample carries no picture"}
+                fail InvalidFormatError{"H.264 access unit carries no picture"}
 
             let frameThread = &.frameThreads[lane]
             frameThread.decoder   = decoder
@@ -400,7 +404,7 @@ impl AvcStream
     {
         .fillFrameThreads(source)
         if .threadedCount == 0 do
-            fail InvalidFormatError{"MP4 stream ends before the requested frame"}
+            fail InvalidFormatError{"H.264 stream ends before the requested frame"}
 
         let threaded = .threaded[.threadedHead]
         .threadedHead  = (.threadedHead + 1) % AvcMaxFrameThreads
@@ -411,7 +415,7 @@ impl AvcStream
         if frameThread.errorText.length do
             fail InvalidFormatError{Errors.mkString(frameThread.errorText.toString())}
         if !frameThread.frame do
-            fail InvalidFormatError{"MP4 video sample carries no picture"}
+            fail InvalidFormatError{"H.264 access unit carries no picture"}
 
         let frame = frameThread.frame!
         frameThread.frame          = null
@@ -437,7 +441,7 @@ impl AvcStream
             }
 
             if .threadedCount == 0 and .reachedEnd do
-                fail InvalidFormatError{"MP4 stream ends before the requested frame"}
+                fail InvalidFormatError{"H.264 stream ends before the requested frame"}
 
             let decoded = try .decodeStoredSample(source)
             if decoded.rank < wanted
@@ -448,7 +452,7 @@ impl AvcStream
 
             .pending.add({decoded.frame, decoded.rank})
             if .pending.count > 34 do
-                fail InvalidFormatError{"MP4 stream reorders more frames than a valid stream can"}
+                fail InvalidFormatError{"H.264 stream reorders more than 34 frames"}
         }
     }
 

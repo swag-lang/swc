@@ -42,6 +42,11 @@ func videoAvcFixturePath()->String
     return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/ffmpeg-h264-baseline.mp4")
 }
 
+func videoMatroskaFixturePath()->String
+{
+    return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/ffmpeg-h264-two-aac.mkv")
+}
+
 #test
 {
     let fileName = expect videoPreviewFile(Format.toString("filescope-video-clock-%.mp4", Guid64.random()).toString(), 12)
@@ -204,6 +209,67 @@ func videoAvcFixturePath()->String
     @assert(!view.playing and !view.voice!.isPlaying())
     view.stopPlayback()
     @assert(view.voice!.playbackSampleFrame() == 0)
+}
+
+// A Matroska file carrying several sound tracks exposes a compact selector. Changing it creates
+// and positions the replacement voice before releasing the previous one, so transport, volume,
+// and mute state survive the handoff.
+#test
+{
+    @assert(acquireSoundEngine(.NoSound))
+    defer releaseSoundEngine()
+
+    var host: Testing.HeadlessHost
+    host.setup(ViewerMinWidth, 450)
+    defer host.shutdown()
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
+    host.theme.setSwagDark()
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
+
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 0, 52})
+    commands.dockStyle       = .Bottom
+    commands.backgroundStyle = .Window
+    commands.padding         = {16, 8, 16, 8}
+    let path    = videoMatroskaFixturePath()
+    let request = ViewerRequest{&host.root, commands, path}
+    var result: ViewerResult
+    createVideoViewer(&request, &result)
+    @assert(result.view != null)
+    let view = cast(*VideoViewer) result.view!
+    waitForVideoFrame(view)
+
+    @assert(view.video.audioTrackCount() == 2 and view.audioCombo != null)
+    @assert(view.audioCombo!.items.count == 2 and view.audioCombo!.selectedIndex == 0)
+    @assert(view.audioCombo!.items[0]!.name.raw.indexOf("44.1 kHz") != Swag.U64.Max)
+    view.setVolume(0.4)
+    view.setMuted(true)
+    view.seekFrame(5)
+    waitForVideoFrame(view)
+    let previousVoice = view.voice!
+
+    view.audioCombo!.setSelectedIndex(1)
+    @assert(view.audioTrackIndex == 1 and view.audio == view.video.audioTrack(1))
+    @assert(view.voice != null and view.voice != previousVoice)
+    @assert(view.muted and Math.isEqualEpsilon(expect view.voice!.volume(), 0, 0.001))
+    @assert(view.voice!.playbackSampleFrame() == cast(u64) Math.round(view.video.frameTimestamp(5) * 44_100.0))
+
+    view.setMuted(false)
+    @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.4, 0.001))
+
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    @assert(view.audioCombo!.toolTip == "Piste audio")
+    @assert(view.audioCombo!.items[1]!.name.raw.indexOf("can.") != Swag.U64.Max)
+
+    view.dockStyle          = .Center
+    view.commands.dockStyle = .Center
+    host.root.applyLayout()
+    host.settleAnimations(&host.root, 4)
+    Testing.assertContentFits(view.commands)
+    var image = host.render(&host.root)
+    Pixel.Testing.assertImageGolden(&image, "viewer.video.multiaudio")
 }
 
 // An output device that never consumes what it was given reports the same position for ever.

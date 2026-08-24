@@ -61,6 +61,23 @@ the same six pictures.
 
 ## Generated for this repository
 
+`ffmpeg-h264-two-aac.mkv` stream-copies `ffmpeg-h264-baseline.mp4` and the AAC-LC track of
+`glint-aac-mjpeg.mp4` through FFmpeg 9.0.1. The sound stream is mapped twice, with the first copy
+marked as the default track, so one small file exercises Matroska AVC blocks, AAC packet indexing,
+multiple-track ordering, and independent sound cursors without introducing new encoded content.
+
+- FFmpeg arguments: `-map 0:v:0 -map 1:a:0 -map 1:a:0 -c copy -disposition:a:0 default -disposition:a:1 0`
+- SHA-256: `36c7ad0fdee8156478589265ad51a3025d8c7822904fd504c82e7dd50bfd2c5d`
+- License: same as this repository and its two generated source fixtures.
+
+`ffmpeg-h264-two-aac-10min.mkv` repeats that complete Matroska fixture 750 times through FFmpeg
+9.0.1. Its 15,000 pictures and 28,500 audio packets exercise accumulated timestamps, compact index
+growth, and random seeks near the end of a file without adding different encoded content.
+
+- FFmpeg arguments: `-stream_loop 749 -i ffmpeg-h264-two-aac.mkv -t 600 -map 0:v:0 -map 0:a:0 -map 0:a:1 -c copy`
+- SHA-256: `03c0948040a70ce37684557ea355d6b15b722171135692d65f534c9c893d61e6`
+- License: same as this repository and `ffmpeg-h264-two-aac.mkv`.
+
 `glint-aac-mjpeg.mp4` combines the ten synthetic pictures from `ffmpeg-mjpeg.mp4` with the
 mathematically generated stereo sine stream documented by std/audio's
 `aac-lc-stereo-44100.aac`. The tracks were stream-copied into MP4 through PyAV 17.1; no

@@ -285,12 +285,13 @@ using Core, Core.Errors, Pixel
     @assert(!Reader.canOpen("clip") and !Reader.canOpen(""))
     @assert(Writer.canCreate("clip.y4m") and Writer.canCreate("clip.avi") and Writer.canCreate("clip.mp4") and !Writer.canCreate("clip.mkv"))
 
-    // Every format is both read and written; a codec registered on one side alone would be a
-    // stream this module can produce and not open again, or the reverse.
+    // The three writable formats are readable in the same order; Matroska is the read-only
+    // container that follows them.
     let decodable = Reader.decodableFormats()
     let encodable = Writer.encodableFormats()
-    @assert(decodable.count == 3 and encodable.count == 3)
-    for format, index in decodable do
-        @assert(format.name == encodable[index].name)
+    @assert(decodable.count == 4 and encodable.count == 3)
+    for index in encodable.count do
+        @assert(decodable[index].name == encodable[index].name)
     @assert(decodable[0].matches("a.y4m") and decodable[1].matches("a.avi") and decodable[2].matches("a.mp4") and decodable[2].matches("a.MOV"))
+    @assert(decodable[3].matches("a.mkv") and !decodable[3].matches("a.webm"))
 }

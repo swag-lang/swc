@@ -30,7 +30,7 @@ for index in reader.frameCount() do
 A format is a codec registered against [[Video.IDecoder]] and [[Video.IEncoder]],
 selected by filename extension; both read and write through [[Video.Source]] and
 [[Video.Sink]], which are what make a codec independent of files and memory alike.
-Three codecs ship in the box:
+Four codecs ship in the box:
 
 - YUV4MPEG2 (`.y4m`) reads progressive 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4
   YCbCr frames and writes 4:4:4 ones. It does not compress, so it favors a small
@@ -42,6 +42,9 @@ Three codecs ship in the box:
   and exposes AAC-LC mono/stereo audio. It expands compact sample tables into direct packet
   offsets while payloads remain in the file. Exact composition timestamps are retained for
   variable-rate playback and H.264 display reordering.
+- Matroska (`.mkv`) reads H.264 pictures and exposes every AAC-LC mono/stereo audio track. It maps
+  the file read-only while indexing EBML block headers, then releases the mapping; media payloads
+  stay in the file and picture plus sound read them through independent cursors.
 
 Decoding and encoding are separate implementations of a format, under `src/decode`
 and `src/encode`, laid out as the Pixel image codecs are. A format that has

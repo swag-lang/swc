@@ -1,6 +1,6 @@
 #global internal
 
-using Core, Gui
+using Core, Gui, Audio
 
 // Visible strings of the video viewer.
 struct VideoStrings
@@ -13,6 +13,8 @@ struct VideoStrings
     ui_TipSeek:     string = "Seek"                           // Tooltip of the time timeline.
     ui_TipMute:     string = "Mute or unmute (M)"             // Tooltip of the mute switch.
     ui_TipVolume:   string = "Volume"                         // Tooltip of the volume slider.
+    ui_TipAudio:    string = "Audio track"                    // Tooltip of the sound-track selector.
+    ui_AudioTrack:  string = "Audio % · % ch · %{f1} kHz"     // One sound-track selector entry.
     word_Frame:     string = "frame"                          // One video frame.
     word_Frames:    string = "frames"                         // Several video frames.
 
@@ -32,6 +34,12 @@ func videoStrings()->const *VideoStrings => &g_VideoStrings
 func videoFrameCountText(count: u64)->String
 {
     return Format.toString("% %", count, count == 1 ? videoStrings().word_Frame : videoStrings().word_Frames)
+}
+
+// Formats one sound-track selector entry from the properties its decoder validated.
+func videoAudioTrackText(index: u32, sound: const *Audio.SoundFile)->String
+{
+    return Format.toString(videoStrings().ui_AudioTrack, index + 1, sound.numChannels(), cast(f64) sound.sampleRateHz() / 1_000.0)
 }
 
 // Registers this viewer's string table with the application.

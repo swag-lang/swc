@@ -2,10 +2,10 @@
 
 The module reads and writes video as a stream: a codec registered against `Video.IDecoder` and
 `Video.IEncoder`, selected by extension, reading a `Video.Source` and writing a `Video.Sink`.
-Four picture codecs ship — YUV4MPEG2, AVI, ISO-BMFF with Motion JPEG, and ISO-BMFF with H.264 —;
-file-backed ISO-BMFF also exposes streamed AAC-LC tracks to std/audio. Encoded payloads stay on
-disk; readers retain compact per-sample indexes plus one picture, the reference frames H.264
-prediction needs, and a bounded audio queue.
+Five picture codecs ship — YUV4MPEG2, AVI, ISO-BMFF with Motion JPEG, ISO-BMFF with H.264, and
+Matroska with H.264. File-backed ISO-BMFF and Matroska also expose streamed AAC-LC tracks to
+std/audio. Encoded payloads stay on disk; readers retain compact per-sample indexes plus one
+picture, the reference frames H.264 prediction needs, and a bounded audio queue.
 
 What the module competes with is ffmpeg's demuxers, and the distance is measured in formats rather
 than in design: what is missing is decoders.

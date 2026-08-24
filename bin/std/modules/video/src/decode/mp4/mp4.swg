@@ -877,7 +877,7 @@ struct Decoder
         payload:               Array'u8
         nextIndex:             u64
         isAvc:                 bool
-        avc:                   AvcStream
+        avc:                   H264.AvcStream
         soundTracks:           Array'SoundFile
         presentationTimes:     Array's64
         presentationTimescale: u32
@@ -940,8 +940,29 @@ impl IDecoder for Decoder
 
         if layout.track.isAvc
         {
+            var syncFlags: Array'u8
+            syncFlags.resize(frames.count)
+            if layout.track.syncSamples.count
+            {
+                for sample in layout.track.syncSamples where cast(u64) sample < syncFlags.count do
+                    syncFlags[cast(u64) sample] = 1
+            }
+            else
+            {
+                for &flag in syncFlags do
+                    flag[] = 1
+            }
+
+            if syncFlags.count do
+                syncFlags[0] = 1
+
+            var samples: Array'H264.SampleEntry
+            samples.reserve(frames.count)
+            for frame, index in frames do
+                samples.add({frame.offset, frame.size, times[index], syncFlags[index] != 0})
+
             .isAvc = true
-            .avc.open(&layout.track, #move frames)
+            .avc.open(layout.track.avcConfig.toSlice(), #move samples)
             .info.width  = .avc.width
             .info.height = .avc.height
         }

@@ -109,14 +109,14 @@ struct Reader
 {
     internal
     {
-        source:       Source                               // Bytes of the encoded stream.
-        info:         StreamInfo                           // What the decoder reported when opening.
-        format:       StreamFormat                         // Format claimed by the selected decoder.
-        decoder:      #null IDecoder                       // Decoder instance owned by this reader.
-        audioDecoder: #null IAudioDecoder                  // Optional sound-track capability.
-        planarDecoder: #null IPlanarDecoder                // Optional unconverted-picture capability.
-        timedDecoder: #null ITimedDecoder                  // Optional exact-timestamp capability.
-        decoderType:  #null const *Swag.TypeInfoStruct     // Concrete decoder type, used to release it.
+        source:        Source                               // Bytes of the encoded stream.
+        info:          StreamInfo                           // What the decoder reported when opening.
+        format:        StreamFormat                         // Format claimed by the selected decoder.
+        decoder:       #null IDecoder                       // Decoder instance owned by this reader.
+        audioDecoder:  #null IAudioDecoder                  // Optional sound-track capability.
+        planarDecoder: #null IPlanarDecoder                 // Optional unconverted-picture capability.
+        timedDecoder:  #null ITimedDecoder                  // Optional exact-timestamp capability.
+        decoderType:   #null const *Swag.TypeInfoStruct     // Concrete decoder type, used to release it.
     }
 }
 
@@ -218,8 +218,8 @@ impl Reader
         let instance = @dataof(.decoder)
         .audioDecoder  = @mkinterface(instance, selected.type, IAudioDecoder)
         .planarDecoder = @mkinterface(instance, selected.type, IPlanarDecoder)
-        .timedDecoder = @mkinterface(instance, selected.type, ITimedDecoder)
-        .info         = .decoder.open(&.source)
+        .timedDecoder  = @mkinterface(instance, selected.type, ITimedDecoder)
+        .info          = .decoder.open(&.source)
     }
 
     // Releases the decoder instance and the source when the reader leaves scope.
@@ -383,4 +383,5 @@ impl Reader
     Reader.registerDecoder'(Y4m.Decoder)()
     Reader.registerDecoder'(Avi.Decoder)()
     Reader.registerDecoder'(Mp4.Decoder)()
+    Reader.registerDecoder'(Matroska.Decoder)()
 }

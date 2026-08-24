@@ -61,7 +61,7 @@ func createViewerIndex()->ViewerIndex
     addViewer(&result, "code", "Code", .Code, &createCodeViewer, ".swg;.swgs;.c;.h;.cc;.cpp;.cxx;.hh;.hpp;.hxx;.inl;.ipp;.cs;.java;.js;.jsx;.mjs;.cjs;.ts;.tsx;.mts;.cts;.go;.rs;.py;.pyw;.pyi;.rb;.rake;.gemspec;.sh;.bash;.zsh;.fish;.ps1;.psm1;.psd1;.php;.phtml;.lua;.sql;.json;.jsonc;.json5;.xml;.xsd;.xsl;.xslt;.csproj;.vcxproj;.props;.targets;.css;.scss;.sass;.less;.yaml;.yml;.toml;.ini;.cfg;.conf;.properties;.kt;.kts;.swift;.dart;.r;.pl;.pm;.vb;.glsl;.vert;.frag;.geom;.comp;.hlsl;.fx;.cmake;.bat;.cmd;.htm;.html;.shtml;.xht;.xhtml;.asm;.s;.zig;.nim;.nims;.nimble;.hs;.lhs;.scala;.sc;.groovy;.gvy;.gy;.gsh;.ex;.exs;.erl;.hrl;.clj;.cljs;.cljc;.edn;.jl;.f;.for;.f77;.f90;.f95;.f03;.f08;.pas;.pp;.lpr;.d;.di;.m;.mm;.tcl;.tk;.awk;.vim;.tex;.sty;.cls;.bib;.proto;.graphql;.gql;.gradle;.mk;.mak;.make;makefile;gnumakefile;bsdmakefile;.dockerfile;dockerfile;containerfile;.nix")
     addViewer(&result, "markdown", "Markdown", .Markdown, &createMarkdownViewer, ".markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd")
     addViewer(&result, "image", "Image", .Image, &createImageViewer, ".bmp;.cur;.gif;.ico;.jpeg;.jpg;.png;.svg;.tga;.tif;.tiff;.webp")
-    addViewer(&result, "video", "Video", .Video, &createVideoViewer, ".y4m;.avi;.mp4;.m4v;.mov")
+    addViewer(&result, "video", "Video", .Video, &createVideoViewer, ".y4m;.avi;.mp4;.m4v;.mov;.mkv")
     addViewer(&result, "pdf", "PDF", .Pdf, &createPdfViewer, ".pdf")
     addViewer(&result, "sound", "Sound", .Sound, &createSoundViewer, ".wav")
     addViewer(&result, "font", "Font", .Font, &createFontViewer, ".ttf;.ttc")

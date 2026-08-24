@@ -47,13 +47,15 @@ guessing an encoding.
   script, style, template, and embedded-document content never executes.
 - `Image` uses Pixel decoders for BMP, GIF, ICO, JPEG, PNG, TGA, TIFF, and WebP, plus Pixel's SVG
   parser. It provides zoom, pan, fit, actual size, rotation, transparency, and GIF playback.
-- `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, and ISO-BMFF streams. Its transport
-  provides play/pause, stop, ten-second seeks, a time-based timeline, elapsed/total time, mute,
-  volume, and matching keyboard controls. It indexes
-  packets without decoding the file up front and materializes only the selected picture and the
-  few audio buffers queued at the device. MP4, M4V, and MOV accept Motion JPEG or H.264 picture
-  tracks and AAC-LC mono/stereo sound. The output-device sample cursor is the master clock: slow
-  picture decoding drops to a clean video sync frame without moving or stretching sound.
+- `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, ISO-BMFF, and Matroska streams. Its
+  transport provides play/pause, stop, ten-second seeks, a time-based timeline, elapsed/total time,
+  mute, volume, and matching keyboard controls. It indexes packets without decoding the file up
+  front and materializes only the selected picture and the few audio buffers queued at the device.
+  MP4, M4V, and MOV accept Motion JPEG or H.264 picture
+  tracks and AAC-LC mono/stereo sound; MKV accepts H.264 pictures and every AAC-LC mono/stereo
+  track, with a selector when several are present. The output-device sample cursor is the master
+  clock: slow picture decoding drops to a clean video sync frame without moving or stretching
+  sound.
 - `Sound` uses the Audio module to stream PCM or float WAV files. Its transport provides the same
   basic time, seek, mute, volume, and keyboard controls as video. Playback does not retain the
   complete payload, and a low-priority worker builds the waveform from bounded blocks.

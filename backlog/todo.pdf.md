@@ -5,8 +5,8 @@ This file is the roadmap for the PDF family inside `std/gui` — the `Pdf` engin
 competes with: PDFium, MuPDF, Poppler and pdf.js on the reading side, PDFBox and iText on the
 document side, and QuestPDF, ReportLab and wkhtmltopdf on the writing side.
 
-It is not the repository's discovery backlog. Defects and leads belong in the `findings.*` files,
-which hold evidence; compiler and language intent belongs in [todo.compiler.md](todo.compiler.md)
+It is not the repository's discovery backlog. Defects and leads belong in
+[findings.pdf.md](findings.pdf.md), which holds evidence; compiler and language intent belongs in [todo.compiler.md](todo.compiler.md)
 and [todo.language.md](todo.language.md). This file holds intent about
 `bin/std/modules/gui/src/controls/pdf`. [README.md](README.md) has the whole layout.
 

@@ -1056,7 +1056,7 @@ impl Wnd
     // region [invalidate] marks dirty is wider than [position]. A paint pass rejects a window on
     // the same rectangle, and that is why the two share this: rejecting on a tighter bound than
     // the one that was dirtied would leave the difference stale on screen.
-    mtd const paintExtent(rect: Math.Rectangle)->Math.Rectangle
+    internal mtd const paintExtent(rect: Math.Rectangle)->Math.Rectangle
     {
         var result: retval = rect
         result.applyPadding(.invalidatePadding)

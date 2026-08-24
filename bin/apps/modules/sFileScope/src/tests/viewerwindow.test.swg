@@ -691,7 +691,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.searchBox.isLocallyVisible() and !window.searchBox.isEnabled())
     @assert(window.infoBar.position.height == ViewerInfoHeight)
     @assert(window.infoBar.dockStyle == .Top)
-    @assert(window.infoBar.backgroundStyle != window.backgroundStyle)
+    @assert(window.infoBar.backgroundStyle == window.backgroundStyle)
     @assert(!window.infoBar.isLocallyVisible())
     @assert(window.viewerBar.dockStyle == .Bottom and !window.viewerBar.isLocallyVisible())
     @assert(window.openButton.position.x < window.previousButton.position.x)
@@ -717,6 +717,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.viewerCombo.show()
     let widestCommands = Wnd.create'Wnd(window.viewerBar, {0, 0, 0, 36})
     widestCommands.dockStyle = .Center
+    window.infoBar.show()
     window.viewerBar.show()
     window.applyLayout()
     @assert(window.viewerCombo.parent == window.commandBar and widestCommands.parent == window.viewerBar)

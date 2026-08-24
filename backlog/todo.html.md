@@ -6,8 +6,8 @@ them. It is measured against the embedded engines it competes with — litehtml,
 Ultralight — with a browser as the reference for what a page means, while staying what none of
 them are: an offline, script-free, network-free document viewer.
 
-It is not the repository's discovery backlog. Defects and leads belong in the `findings.*`
-files; where a document engine lives is decided — beside its widget, inside `gui`, as
+It is not the repository's discovery backlog. Defects and leads belong in
+[findings.html.md](findings.html.md); where a document engine lives is decided — beside its widget, inside `gui`, as
 [todo.pdf.md](todo.pdf.md#where-this-family-lives-and-why) records for the whole family;
 the view selects and copies, as the Markdown one now does too. This file holds
 intent about the HTML engine itself. [README.md](README.md) has the whole layout.

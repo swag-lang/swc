@@ -55,12 +55,18 @@ allowed to stop.
 | [findings.optimization.md](findings.optimization.md) | Backend optimization passes, register allocation, and generated-code performance |
 | [findings.safety.md](findings.safety.md) | Borrow, lifetime, and sanity analysis |
 | [findings.gui.md](findings.gui.md) | `std/gui`, and the widgets and dialogs it ships |
+| [findings.html.md](findings.html.md) | The HTML engine behind `Gui.HtmlView` |
+| [findings.pdf.md](findings.pdf.md) | The PDF engine and `PdfView` inside `std/gui` |
+| [findings.pixel.md](findings.pixel.md) | `std/pixel`: images, text, and rendering |
+| [findings.win32.md](findings.win32.md) | Windows native modules and their checked API boundary |
+| [findings.filescope.md](findings.filescope.md) | The sFileScope application |
 | [findings.snapforge.md](findings.snapforge.md) | The sSnapForge application |
 | [findings.tooling.md](findings.tooling.md) | The build, the sandbox, and the test harness |
 
-Put an entry in the file whose area it will be *fixed* in, not the one it was noticed from. Create
-a new file only when a real cluster forms — a category holding one entry costs more to navigate
-than it saves.
+Put an entry in the file whose area it will be *fixed* in, not the one it was noticed from. Major
+engines and applications with their own `todo.*` roadmap use the matching `findings.*` category;
+for smaller areas, create a new file only when a real cluster forms — a category holding one
+entry costs more to navigate than it saves.
 
 An application follows the same rule as a module: it gets its own `findings.<app>.md` beside its
 `todo.<app>.md` once it has entries of its own, and a lead an application merely *exposed* stays in

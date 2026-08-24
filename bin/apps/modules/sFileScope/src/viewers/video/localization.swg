@@ -14,7 +14,9 @@ struct VideoStrings
     ui_TipMute:     string = "Mute or unmute (M)"             // Tooltip of the mute switch.
     ui_TipVolume:   string = "Volume"                         // Tooltip of the volume slider.
     ui_TipAudio:    string = "Audio track"                    // Tooltip of the sound-track selector.
-    ui_AudioTrack:  string = "Audio % · % ch · %{f1} kHz"     // One sound-track selector entry.
+    ui_AudioTrack:       string = "% · % · % ch · %{f1} kHz"     // One sound-track selector entry.
+    ui_AudioTrackNumber: string = "Audio %"                           // Fallback name for an unnamed sound track.
+    ui_AudioTrackLang:   string = "% (%)"                             // A sound-track name followed by its language code.
     ui_AudioDetails: string = "% · % ch · %{f1} kHz"          // Encoding, channel count, and sample rate in the host summary.
     word_Frame:     string = "frame"                          // One video frame.
     word_Frames:    string = "frames"                         // Several video frames.
@@ -40,7 +42,11 @@ func videoFrameCountText(count: u64)->String
 // Formats one sound-track selector entry from the properties its decoder validated.
 func videoAudioTrackText(index: u32, sound: const *Audio.SoundFile)->String
 {
-    return Format.toString(videoStrings().ui_AudioTrack, index + 1, sound.numChannels(), cast(f64) sound.sampleRateHz() / 1_000.0)
+    let strings = videoStrings()
+    var name    = @countof(sound.displayName()) ? String.from(sound.displayName()) : Format.toString(strings.ui_AudioTrackNumber, index + 1)
+    if @countof(sound.language()) and sound.language() != "und" do
+        name = Format.toString(strings.ui_AudioTrackLang, name.toString(), sound.language())
+    return Format.toString(strings.ui_AudioTrack, name.toString(), videoAudioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64) sound.sampleRateHz() / 1_000.0)
 }
 
 // Returns the established technical name of an audio payload encoding.

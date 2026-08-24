@@ -40,6 +40,8 @@ struct PacketStreamOptions
         leadingTrimFrames: u64     // Decoded priming frames omitted before audible frame zero.
         speakerMask:       u32     // WAVE speaker-position mask; zero derives the standard mask from the channel count.
         timelineStartSeconds: f64  // Position of audible frame zero on the containing media timeline, in seconds.
+        displayName: string = ""    // Optional human-readable track name supplied by the containing media.
+        language:    string = ""    // Optional media language code, such as `eng` or `fra`.
     }
 }
 
@@ -73,6 +75,8 @@ struct SoundFile
         packets:       Array'SoundPacket     // Indexed source packets or chunks, empty for one contiguous byte stream.
         packetStarts:  Array'u64             // Decoded sample-frame start of every packet.
         decoderConfig: Array'u8              // Codec initialization bytes copied from the container.
+        mediaName:     Array'u8              // Human-readable track name copied from the container.
+        mediaLanguage: Array'u8              // Media language code copied from the container.
         leadingTrim:   u64                   // Decoded priming frames before audible frame zero.
         timelineStart: f64                   // Position of frame zero on an enclosing media timeline.
 
@@ -214,6 +218,12 @@ impl SoundFile
     // media file first.
     mtd const timelineStartSeconds()->f64 => .timelineStart
 
+    // Returns the human-readable track name supplied by the containing media, or an empty string.
+    mtd const displayName()->string => cast(string) .mediaName.toSlice()
+
+    // Returns the language code supplied by the containing media, or an empty string.
+    mtd const language()->string => cast(string) .mediaLanguage.toSlice()
+
     // Returns whether the loader validated the requested property.
     mtd const hasField(field: SoundFileFields)->bool => .availableFields.has(field)
 
@@ -239,7 +249,8 @@ impl SoundFile
     // `path` and are read only as playback reaches them. Memory holds the compact packet index,
     // never the compressed media payload. `frameCount` is validated against the sum of packet
     // durations. `options.timelineStartSeconds` locates frame zero on an enclosing media timeline;
-    // voice seeking and playback positions remain local to this sound.
+    // voice seeking and playback positions remain local to this sound. The optional display name
+    // and language are copied from `options` and remain valid for this value's lifetime.
     func openPacketStream(path: string, encoding: SoundFileEncoding, sampleRateHz, channels: u32, frameCount: u64, packets: const [..] SoundPacket, decoderConfig: const [..] u8, options: PacketStreamOptions = {})->SoundFile fail
     {
         if encoding != .AacLc and encoding != .Ac3 and encoding != .Eac3 do
@@ -263,6 +274,8 @@ impl SoundFile
         result.validBitsPerSample = 16
         result.waveSpeakerMask    = options.speakerMask
         result.timelineStart      = options.timelineStartSeconds
+        result.mediaName.add(cast(const [..] u8) options.displayName)
+        result.mediaLanguage.add(cast(const [..] u8) options.language)
         if !Math.isFinite(result.timelineStart) or result.timelineStart < 0 do
             fail BadParameterError{"sound timeline start is not finite and non-negative"}
         if !result.waveSpeakerMask

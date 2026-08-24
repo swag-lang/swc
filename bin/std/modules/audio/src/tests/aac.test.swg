@@ -135,8 +135,9 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     @assert(trimmed.sampleFrameCount() == full.sampleFrameCount() - Trim)
     @assert(full.timelineStartSeconds() == 0)
 
-    var window = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024, packets.toSlice(), Config, {timelineStartSeconds: 125.5})
+    var window = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024, packets.toSlice(), Config, {timelineStartSeconds: 125.5, displayName: "Commentary", language: "eng"})
     @assert(window.timelineStartSeconds() == 125.5 and window.sampleFrameCount() == full.sampleFrameCount())
+    @assert(window.displayName() == "Commentary" and window.language() == "eng")
     discard catch SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024, packets.toSlice(), Config, {timelineStartSeconds: -1}) as invalidTimeline
     @assert(invalidTimeline is BadParameterError)
 

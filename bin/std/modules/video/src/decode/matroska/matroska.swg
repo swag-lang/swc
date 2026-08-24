@@ -58,6 +58,8 @@ private struct Track
 {
     number:          u64
     kind:            u64
+    name:            String
+    language:        String
     codecId:         String
     codecPrivate:    Array'u8
     defaultDuration: u64
@@ -671,6 +673,8 @@ private impl Layout
             case FlagEnabledId:      track.isEnabled = cursor.readUnsigned(element) != 0
             case FlagDefaultId:      track.isDefault = cursor.readUnsigned(element) != 0
             case DefaultDurationId:  track.defaultDuration = cursor.readUnsigned(element)
+            case NameId:             track.name = cursor.readString(element)
+            case LanguageId:         track.language = cursor.readString(element)
             case CodecIdId:          track.codecId = cursor.readString(element)
             case CodecPrivateId:     track.codecPrivate = cursor.readBytes(element)
             case CodecDelayId:       track.codecDelay = cursor.readUnsigned(element)
@@ -1156,7 +1160,7 @@ private func buildSoundTracks(path: string, bytes: const [..] u8, layout: *Layou
             continue
         let timelineStart = Math.max(cast(f64) track.audioStart / 1_000_000_000.0, 0)
         let leadingTrim   = timelineStart == 0 ? try track.leadingTrimFrames() : 0
-        let options       = PacketStreamOptions{leadingTrimFrames: leadingTrim, speakerMask: try track.speakerMask(bytes), timelineStartSeconds: timelineStart}
+        let options       = PacketStreamOptions{leadingTrimFrames: leadingTrim, speakerMask: try track.speakerMask(bytes), timelineStartSeconds: timelineStart, displayName: track.name.toString(), language: track.language.toString()}
         let sound         = SoundFile.openPacketStream(path, track.soundEncoding(), cast(u32) Math.round(track.sampleRate), track.channels, track.audioFrameCount, track.audioPackets.toSlice(), track.codecPrivate.toSlice(), options)
         result.add(#move sound)
     }

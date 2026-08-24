@@ -116,9 +116,46 @@ SWC_TEST_BEGIN(PostRALoopHoist_SlotWrittenInBody_Blocks)
 }
 SWC_TEST_END()
 
-// A store through a register the pass cannot resolve to a frame slot could
-// alias anything, so nothing moves.
+// A store through a register the pass cannot resolve to a frame slot could alias
+// anything, so nothing moves - provided a pointer into the frame exists at all.
+// The function has to hand one out for that to be true: with a frame no address
+// is ever taken of, the pass proves no program pointer can reach a slot and
+// hoists regardless, which is the case the test after this one covers.
 SWC_TEST_BEGIN(PostRALoopHoist_OpaqueStoreInBody_Blocks)
+{
+    const CallConv& conv  = CallConv::get(CallConvKind::Swag);
+    const MicroReg  sp    = conv.stackPointer;
+    const MicroReg  base  = conv.intTransientRegs[3];
+    const MicroReg  cnt   = conv.intTransientRegs[4];
+    const MicroReg  other = conv.intTransientRegs[5];
+    MicroBuilder    builder(ctx);
+
+    const MicroLabelRef top = builder.createLabel();
+    builder.emitLoadRegImm(cnt, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitLoadAddressRegMem(other, sp, 0x80, MicroOpBits::B64);
+    builder.placeLabel(top);
+    builder.emitLoadRegMem(base, sp, 0x40, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(cnt, base, MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadMemReg(other, 0, cnt, MicroOpBits::B64);
+    builder.emitCmpRegImm(cnt, ApInt(10, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, top);
+    builder.emitRet();
+
+    SWC_RESULT(runPostRaLoopHoistPass(builder));
+
+    const uint32_t posLoad  = firstPosition(builder, MicroInstrOpcode::LoadRegMem);
+    const uint32_t posLabel = firstPosition(builder, MicroInstrOpcode::Label);
+    if (posLoad < posLabel)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The same body over a frame whose address is never taken. No program pointer
+// can reach a slot of it, so the opaque store cannot alias the reload however
+// unresolvable its base is, and the load leaves the loop.
+SWC_TEST_BEGIN(PostRALoopHoist_OpaqueStoreOverPrivateFrame_Hoists)
 {
     const CallConv& conv  = CallConv::get(CallConvKind::Swag);
     const MicroReg  sp    = conv.stackPointer;
@@ -142,7 +179,7 @@ SWC_TEST_BEGIN(PostRALoopHoist_OpaqueStoreInBody_Blocks)
 
     const uint32_t posLoad  = firstPosition(builder, MicroInstrOpcode::LoadRegMem);
     const uint32_t posLabel = firstPosition(builder, MicroInstrOpcode::Label);
-    if (posLoad < posLabel)
+    if (posLoad > posLabel)
         return Result::Error;
 
     return Result::Continue;

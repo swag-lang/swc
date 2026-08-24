@@ -206,3 +206,39 @@ Entries are sorted by identifier, ascending; position carries no priority.
   module whose compile-time path crosses two shared-library dependencies. Trace how the doc command
   registers dependency runtime artifacts, then make it build or publish every required artifact
   before JIT relocation instead of relying on a binary left by an earlier command.
+### F-196 — A safety guard firing under the JIT kills the compiler instead of being reported
+
+- Area: compiler
+- Found while: closing a register-allocation change with the full compiler campaign, which stops
+  at the `safety` suite.
+- Observation: the suite cannot run. `tools/unittests.swgs dm safety` prints its header and the
+  compiler process ends, with no diagnostic on either stream and nothing written. The exit code is
+  666 — the raise the runtime uses for a failed assertion, which a shell reports as 154 after
+  truncation to a byte, so the number in a log is misleading. The suite's tests state their
+  expectation as `// swc-expected-error {{safety_err_runtime}}`, and that diagnostic exists and is
+  wired: `runtimeExceptionDiagnosticInfo` in `src/Backend/JIT/JIT.cpp` maps
+  `Runtime::ExceptionKind::Safety` onto it with `SWC_EXCEPTION_EXECUTE_HANDLER`. The guard's raise
+  never reaches that handler; it ends the process instead, so every expectation in the file goes
+  unmatched and unreported.
+- Evidence: reproduced at pristine `master` (d3ed8c745) in a clean worktree, so it is not a local
+  change; a `bin/swc_devmode.exe` built earlier from an older commit runs the same suite and
+  reports 88 tests passing, which dates the regression between that build and the current head.
+  Narrowed to one file, and it is the whole suite's blocker:
+
+  ```
+  swc test --artifact-kind executable -d bin/unittests/safety --module-namespace Safety \
+      --out-dir <out> --work-dir <work> --build-cfg fast-debug --no-output --num-cores 1
+  ```
+
+  Copying `bin/unittests/safety/overflow.swg` alone into a directory reproduces it; each of the
+  ten other files in the suite passes on its own. The configuration decides it: `release` runs the
+  file's 31 tests and exits 0, because the overflow guards are compiled out and nothing raises;
+  `fast-debug` and `debug` both exit 666 without output. So the failure is exactly the path where
+  a guard fires.
+- Next step: run that one-file reproducer under a debugger and find where the raise leaves the
+  JIT call. The two candidates are the runtime deciding it has no hook installed and ending the
+  process — the `@panic` path that returns under a hook and calls `__exitError` otherwise — and
+  the JIT's structured-exception filter not being in place for a `#test` entry the way it is for
+  `#run`. `__exitError` is not the one: it exits with `-666` cast to unsigned, not 666. Whichever
+  it is, the suite has been silently unrunnable, so add a harness check that fails loudly when a
+  suite ends without reporting a count.

@@ -159,7 +159,7 @@ namespace
         MicroInstrRef loadRef;
         MicroInstrRef storeRef;
         MicroInstrRef seedBeforeRef;  // insert the seeding load before this, or invalid if not needed
-        MicroInstrRef writeBackAfter; // insert the write-back after this
+        MicroInstrRef writeBackBefore; // insert the write-back before this
         MicroReg      reg;
         MicroReg      base;
         uint64_t      offset = 0;
@@ -355,9 +355,23 @@ namespace
                 return;
         }
 
-        const MicroInstrRef writeBackAfter = instrRefs[exitTarget];
-        if (!storage.findNextInstructionRef(writeBackAfter).isValid())
+        // The write-back belongs at the start of the exit block. When the loop leaves through a
+        // label, that start is after the label, since every edge into the block passes it. When
+        // it leaves by falling through onto an ordinary instruction the block starts at that
+        // instruction, and placing the store after it puts the store past whatever that
+        // instruction is - past an unconditional jump, nothing ever runs it, and the loop's
+        // result is silently left in the register it was promoted into.
+        const MicroInstr* exitInst = storage.ptr(instrRefs[exitTarget]);
+        if (!exitInst)
             return;
+
+        MicroInstrRef writeBackBefore = instrRefs[exitTarget];
+        if (exitInst->op == MicroInstrOpcode::Label)
+        {
+            writeBackBefore = storage.findNextInstructionRef(writeBackBefore);
+            if (!writeBackBefore.isValid())
+                return;
+        }
 
         // Index every constant-offset frame access of the body by slot.
         struct SlotUse
@@ -479,7 +493,7 @@ namespace
             out.push_back({.loadRef        = instrRefs[use.loadIndex],
                            .storeRef       = instrRefs[use.storeIndex],
                            .seedBeforeRef  = seedBefore,
-                           .writeBackAfter = writeBackAfter,
+                           .writeBackBefore = writeBackBefore,
                            .reg            = use.reg,
                            .base           = use.base,
                            .offset         = offset,
@@ -811,17 +825,14 @@ namespace
                 storage.insertDerivedBefore(operands, promo.seedBeforeRef, MicroInstrOpcode::LoadRegMem, std::span(seedOps, 4));
             }
 
-            // Write it back once, on the single instruction every exit reaches.
-            const MicroInstrRef afterRef = storage.findNextInstructionRef(promo.writeBackAfter);
-            if (!afterRef.isValid())
-                continue;
+            // Write it back once, at the start of the block every exit reaches.
 
             MicroInstrOperand backOps[4] = {};
             backOps[0].reg               = promo.base;
             backOps[1].reg               = promo.reg;
             backOps[2].opBits            = promo.bits;
             backOps[3].valueU64          = promo.offset;
-            storage.insertDerivedBefore(operands, afterRef, MicroInstrOpcode::LoadMemReg, std::span(backOps, 4));
+            storage.insertDerivedBefore(operands, promo.writeBackBefore, MicroInstrOpcode::LoadMemReg, std::span(backOps, 4));
 
             storage.erase(promo.loadRef);
             storage.erase(promo.storeRef);

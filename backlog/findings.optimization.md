@@ -371,7 +371,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   turned it away. The `movd` is `LoadRegReg` with a float destination and an integer source,
   which is already eligible today, so the answer is in one of the other four tests and the
   trace names it in one run.
-### F-195 — A reload is placed where registers are free, so the spill decision is what is wrong
+### F-195 — A loop header drops every mapping, and that is where the reloads come from
 
 - Area: compiler/backend
 - Found while: taking
@@ -380,24 +380,19 @@ Entries are sorted by identifier, ascending; position carries no priority.
   word and instrumenting the allocator instead of reading its output.
 - Observation: **the allocator reloads values at points where it has registers to spare, so what
   costs is the decision that put them in memory, not the supply at the use.** Over a release build
-  of `core` — thirteen thousand emitted reloads, each recorded with the pool state at that
+  of `core` — twelve thousand emitted reloads, each recorded with the pool state at that
   instruction and with why the value had lost its register — four reloads in five happen with at
   least one usable register, and one in three with eight or more. Eviction under genuine pressure
-  accounts for 5%. Everything above it is a rule that gave a register away while registers were
-  plentiful.
-- A first pass at this entry read the opposite, and the mistake is worth stating so it is not
-  repeated: counting the times `allocatePhysical` exhausts its free pools says almost nothing.
-  Those counts came out as 100% hull-owned, which looked decisive. They are not, because an
-  exhausted pool is followed by an eviction that is usually free — `isCandidateBetter` ranks dead
-  values first and `allocatePhysical` takes them without emitting a spill. Measure emitted spills
-  and reloads, never failed lookups.
-- Evidence: `swc tools/std.swgs dm build core -bc release --rebuild`, one line per emitted reload,
-  after the copy-source repair below. What is left, ranked:
+  accounts for 7%. Everything above it is a rule that gave a register away while registers were
+  plentiful, and one rule dominates: **a label with a back-edge predecessor drops every mapping,
+  because the linear scan has not seen the back-edge state yet.**
+- Evidence: `swc tools/std.swgs dm build core -bc release --rebuild`, one line per emitted reload.
+  12211 reloads. Why the value had lost its register:
 
-  | why the value had lost its register | reloads | share |
+  | cause | reloads | share |
   | --- | --- | --- |
   | boundary drop: next use more than 48 instructions away | 3795 | 31% |
-  | join: a back-edge or an edge with no recorded state | 2147 | 18% |
+  | join: a back-edge, or an edge with no recorded state | 2147 | 18% |
   | join: the incoming edges disagreed on the register | 1874 | 15% |
   | never mapped: first use of a value with a memory home | 1691 | 14% |
   | its register was taken by a copy destination | 1181 | 10% |
@@ -405,12 +400,20 @@ Entries are sorted by identifier, ascending; position carries no priority.
   | boundary: not live out | 353 | 3% |
   | cleared after a terminator that does not fall through | 350 | 3% |
 
-  The largest, `K_KEEP_MAX_NEXT_USE_DISTANCE`, is a fixed distance of 48 instructions: a value
-  live across a boundary whose next use is further than that is dropped on the spot. Four in five
-  of the reloads it causes land where a register was free, so the hostage it exists to prevent
-  mostly does not happen. Removing the bound outright was measured to lose once (sha256 1.27 to
-  1.57 against clang, 2026-08-04), which is what put the constant there; the two join rows beneath
-  it have never been measured at all.
+  The first row is not a cause, and that is the useful part. Removing
+  `K_KEEP_MAX_NEXT_USE_DISTANCE` entirely — keeping every mapping across a boundary however far
+  its next use — moves the total by **59 reloads out of 12211**. Its 3795 do not disappear; they
+  redistribute, 1787 of them onto the back-edge row, which grows to 3934 and becomes a third of
+  all reloads on its own. So the constant is only the first mechanism that happens to catch these
+  values, and tuning it is pointless in either direction. The same measurement retires the other
+  cheap idea beside it: letting the edge-register hint outrank a copy's transfer source, which the
+  code declines to do, is worth 12 reloads out of 1874 on the row it targets.
+- A first pass at this entry read all of this from the wrong counter, and the mistake is worth
+  stating so it is not repeated: counting the times `allocatePhysical` exhausts its free pools says
+  almost nothing. Those counts came out as 100% hull-owned, which looked decisive. They are not,
+  because an exhausted pool is followed by an eviction that is usually free — `isCandidateBetter`
+  ranks dead values first and `allocatePhysical` takes them without emitting a spill. Measure
+  emitted spills and reloads, never failed lookups.
 - Ruled out, with numbers, so none of it is tried again. Admitting values that cross no
   control-flow boundary as hull candidates on the access ranking: the raytrace kernel gained 7
   instructions and 3 frame accesses, the Levenshtein loop lost 7 and 6, a byte scan lost 3 and 4.
@@ -420,10 +423,14 @@ Entries are sorted by identifier, ascending; position carries no priority.
   the blocking hulls were live at every contended point in all four kernels, so there is nothing
   to hand back. And removing every hull from the CABAC bin of F-190 changes its emitted code by
   not one instruction, so the mechanism is inert there.
-- Next step: the two join rows, worth 4000 reloads together and never measured. A back-edge drops
-  every mapping at a loop header because the linear scan has not seen the back-edge state yet; a
-  second pass over the function could supply it, since the first pass ends knowing what each value
-  held at every back-edge tail. Disagreeing edges are a narrower question — `edgeRegisterHint_`
-  already exists to make the two arms of a diamond pick the same register, and the row says how
-  often it fails. Both reduce to one line per emitted reload with the instrumentation above, so
-  either is measurable before it is built.
+- Next step: the loop header, worth a third of every reload the compiler emits. Its join has to
+  drop everything because it cannot know what the back-edge brings, and there are only two ways to
+  give it that: learn it, or decide it. Learning it means a probe run of the scan that records
+  what each value holds at every back-edge tail and emits nothing, which the pass is not currently
+  able to do — every step of `rewriteInstructions` inserts, rewrites or allocates a slot. Deciding
+  it means reserving a register for the value over the loop's extent alone, so both edges agree by
+  construction: the hull mechanism, scoped to `[header, back-edge tail]` instead of to the whole
+  live range, with the load placed on the pre-header edge and a store on each exit. That is the
+  interval splitting F-138 asks for, and the loop scope is what makes its entry and exit
+  enumerable — a natural loop has one header, and `computeLoopDepth` already finds the back-edges
+  it needs. Measure it with the instrumentation above: the back-edge row is the number to move.

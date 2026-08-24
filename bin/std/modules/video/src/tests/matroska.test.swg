@@ -3,6 +3,18 @@
 
 using Core, Core.Errors, Pixel
 
+private func waitForMatroskaIndex(reader: *Reader)
+{
+    var attempts = 0
+    while !reader.frameCount() and attempts < 10_000
+    {
+        Threading.Thread.sleep(1'ms)
+        attempts += 1
+    }
+
+    @assert(reader.frameCount() != 0)
+}
+
 // Matroska retains the AVC access units of the source MP4 byte for byte. Decoding both containers
 // at non-sequential positions proves the EBML block index, presentation ordering, and sync seeks
 // reach the same pictures without making the codec itself the oracle.
@@ -10,6 +22,9 @@ using Core, Core.Errors, Pixel
 {
     var matroska = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
     var mp4      = expect Reader.open(videoFixturePath("ffmpeg-h264-baseline.mp4"))
+    var indexed: Image
+    expect matroska.decodeFrameInto(&indexed, 0)
+    waitForMatroskaIndex(&matroska)
     @assert(matroska.streamFormat().extensions == ".mkv")
     @assert(matroska.width() == 64 and matroska.height() == 48)
     @assert(matroska.frameCount() == 20 and matroska.frameRate() == expect FrameRate.create(25, 1))
@@ -35,6 +50,9 @@ using Core, Core.Errors, Pixel
 #test
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
+    var indexed: Image
+    expect reader.decodeFrameInto(&indexed, 0)
+    waitForMatroskaIndex(&reader)
     @assert(reader.audioTrackCount() == 2)
     let primary   = reader.audioTrack(0)!
     let alternate = reader.audioTrack(1)!
@@ -55,6 +73,9 @@ using Core, Core.Errors, Pixel
 {
     var longStream = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac-10min.mkv"))
     var reference  = expect Reader.open(videoFixturePath("ffmpeg-h264-baseline.mp4"))
+    var indexed: Image
+    expect longStream.decodeFrameInto(&indexed, 0)
+    waitForMatroskaIndex(&longStream)
     @assert(longStream.frameCount() == 15_000 and longStream.audioTrackCount() == 2)
     @assert(longStream.audioTrack(0)!.packetCount() == 14_250 and longStream.audioTrack(1)!.packetCount() == 14_250)
 
@@ -114,4 +135,34 @@ using Core, Core.Errors, Pixel
 
     discard catch Reader.openMemory("unsupported.mkv", bytes.toSlice()) as unsupported
     @assert(unsupported is UnsupportedFormatError)
+}
+
+// A file-backed reader returns after metadata even when the first media cluster is malformed.
+// The deferred decoder is the operation that reaches the cluster and reports its error.
+#test
+{
+    var bytes = expect File.readAllBytes(videoFixturePath("ffmpeg-h264-two-aac.mkv").toString())
+    const ClusterId: [4] u8 = [0x1F, 0x43, 0xB6, 0x75]
+    let clusterOffset = Slice.findSubslice(bytes.toSlice(), ClusterId)
+    @assert(clusterOffset != Swag.U64.Max)
+    bytes[clusterOffset] = 0
+
+    let fileName = videoTempPath("matroska-deferred-index", "mkv")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+
+    var reader = expect Reader.open(fileName)
+    @assert(reader.frameCount() == 0)
+    discard catch reader.decodeFrame(0) as clusterError
+    @assert(clusterError is InvalidFormatError)
+}
+
+// Cancellation can come from a viewer thread while a file-backed reader is about to build its
+// block index. The pending decode fails promptly and the reader remains safe to close.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
+    reader.requestCancel()
+    discard catch reader.decodeFrame(0) as cancelled
+    @assert(cancelled is BadParameterError)
 }

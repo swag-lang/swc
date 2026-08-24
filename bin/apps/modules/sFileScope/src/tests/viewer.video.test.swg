@@ -240,6 +240,14 @@ func videoMatroskaFixturePath()->String
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
 
+    var metadataAttempts = 0
+    while !view.video.audioTrackCount() and metadataAttempts < 10_000
+    {
+        Threading.Thread.sleep(1'ms)
+        view.updatePlayback()
+        metadataAttempts += 1
+    }
+
     @assert(view.video.audioTrackCount() == 2 and view.audioCombo != null)
     @assert(view.audioCombo!.items.count == 2 and view.audioCombo!.selectedIndex == 0)
     @assert(view.audioCombo!.items[0]!.name.raw.indexOf("44.1 kHz") != Swag.U64.Max)

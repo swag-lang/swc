@@ -5,6 +5,10 @@ using Core, Core.Errors
 const EbmlId               = 0x1A45DFA3'u32
 const DocTypeId            = 0x4282'u32
 const SegmentId            = 0x18538067'u32
+const SeekHeadId           = 0x114D9B74'u32
+const SeekId               = 0x4DBB'u32
+const SeekTargetId         = 0x53AB'u32
+const SeekPositionId       = 0x53AC'u32
 const InfoId               = 0x1549A966'u32
 const TimestampScaleId     = 0x2AD7B1'u32
 const DurationId           = 0x4489'u32

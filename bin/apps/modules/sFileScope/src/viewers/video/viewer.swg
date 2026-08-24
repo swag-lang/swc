@@ -71,7 +71,7 @@ internal struct VideoViewer
 
     audioCombo: #null *ComboBox
 
-    // Opening retains compact metadata indexes while encoded payloads stay in the source file.
+    // Opening retains bounded metadata while progressive indexes and payloads stay in the file.
     video:               Reader
     planar:              bool     // The codec hands its pictures over without converting them.
     audio:               #null const *SoundFile
@@ -131,6 +131,8 @@ internal struct VideoViewer
     muted:         bool
     volume = 1'f32
     details:       String
+    metadataReady: bool
+    reportDetails: #null ViewerReportDetails
     reportFailure: #null ViewerReportFailure
 
     // Pixel column the timeline thumb was last pushed to, so a value that would not move it is
@@ -382,7 +384,8 @@ internal impl VideoViewer
             Sync.scopedLock(&.queueLock)
             if .hasFailure or !.freeSlots.count do
                 return false
-            if .nextDecode >= .video.frameCount() do
+            let count = .video.frameCount()
+            if count and .nextDecode >= count do
                 return false
 
             // A paused viewer wants the picture it is parked on and nothing more.
@@ -491,6 +494,13 @@ internal impl VideoViewer
         .frameIndex    = .slots[cast(u64) chosen].index
         .hasFrame      = true
         .awaitingFrame = false
+        catch .finishMetadata() as metadataError
+        if metadataError != null and .reportFailure
+        {
+            .reportFailure!(me, Errors.message(metadataError))
+            return false
+        }
+
         if .anchorPending
         {
             // A jump moved the producer, so the silent clock follows the picture that came back
@@ -532,7 +542,8 @@ internal impl VideoViewer
     // Positions playback on one picture and asks the producer for it.
     mtd showFrame(index: u64)->bool
     {
-        if index >= .video.frameCount() do
+        let count = .video.frameCount()
+        if count and index >= count do
             return false
         if .hasFrame and !.awaitingFrame and index == .frameIndex do
             return true
@@ -585,7 +596,7 @@ internal impl VideoViewer
 
     mtd togglePlayback()
     {
-        if !.video.frameCount() or !.hasFrame do
+        if !.hasFrame do
             return
         if .playing
         {
@@ -598,7 +609,8 @@ internal impl VideoViewer
         }
         else
         {
-            if .frameIndex + 1 >= .video.frameCount()
+            let count = .video.frameCount()
+            if count and .frameIndex + 1 >= count
             {
                 .elapsed = 0
                 discard .showFrame(0)
@@ -628,7 +640,7 @@ internal impl VideoViewer
 
     mtd stopPlayback()
     {
-        if !.video.frameCount() do
+        if !.hasFrame do
             return
         .playing              = false
         .resumeAudioAfterSeek = false
@@ -655,6 +667,13 @@ internal impl VideoViewer
     // decode of everything in between.
     mtd updatePlayback()
     {
+        catch .finishMetadata() as metadataError
+        if metadataError != null and .reportFailure
+        {
+            .reportFailure!(me, Errors.message(metadataError))
+            return
+        }
+
         if !.playing
         {
             discard .publishHead()
@@ -684,7 +703,8 @@ internal impl VideoViewer
             return
         }
 
-        if clock >= .video.frameCount() and .frameIndex + 1 >= .video.frameCount()
+        let count = .video.frameCount()
+        if count and clock >= count and .frameIndex + 1 >= count
         {
             .playing              = false
             .resumeAudioAfterSeek = false
@@ -711,7 +731,7 @@ internal impl VideoViewer
 
         let sync = .video.syncFrameAt(clock)
         let cap  = cast(u64) (rate.framesPerSecond() * VideoResyncMaxJumpSeconds)
-        if sync >= .video.frameCount() or sync - clock > cap do
+        if (count and sync >= count) or sync - clock > cap do
             return
 
         .repositionTo(sync)
@@ -753,6 +773,7 @@ private impl IWnd for VideoViewer
 
         if .decodeThread.isValid()
         {
+            .video.requestCancel()
             .decodeThread.safeForceEnd()
             .decodeWake.signal()
             .decodeThread.wait()
@@ -795,7 +816,45 @@ private impl IWnd for VideoViewer
 
 private impl VideoViewer
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null)->*VideoViewer fail
+    mtd finishMetadata() fail
+    {
+        if .metadataReady or !.video.frameCount() do
+            return
+        .metadataReady = true
+
+        let duration = .video.durationInSeconds()
+        let rate     = .video.frameRate().framesPerSecond()
+        let step     = rate > 0 ? 1 / rate : 0.01
+        if duration > 0 do
+            .timeline.setBounds(0, duration, cast(f32) Math.min(step, duration / 100))
+        .timeline.enable(duration > 0 and .video.frameCount() > 1)
+        .details = Format.toString(videoStrings().ui_Details, .video.width(), .video.height(), videoFrameCountText(.video.frameCount()), rate, mediaDurationText(duration))
+        if .reportDetails do
+            .reportDetails!(me, .details.toString())
+
+        let audioCount = .video.audioTrackCount()
+        if audioCount > 1
+        {
+            for index in audioCount do
+                .audioCombo!.addItem(videoAudioTrackText(index, .video.audioTrack(index)!))
+            .audioCombo!.setSelectedIndex(0, notify: false)
+            .audioCombo!.show()
+        }
+
+        if audioCount
+        {
+            .muteButton.show()
+            .volumeSlider.show()
+            if !acquireSoundEngine() do
+                fail UnsupportedFormatError{"cannot create the audio engine for video playback"}
+            .audioEngineAcquired = true
+            .selectAudioTrack(0)
+        }
+
+        .applyLayout()
+    }
+
+    func create(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails = null, reportFailure: #null ViewerReportFailure = null)->*VideoViewer fail
     {
         registerVideoStrings(contentParent.app())
         var video  = try Reader.open(fileName)
@@ -817,6 +876,7 @@ private impl VideoViewer
         }
 
         result.backgroundStyle = .View
+        result.reportDetails   = reportDetails
         result.reportFailure   = reportFailure
 
         result.commands = ViewerCommandBar.create(commandParent, 0)
@@ -901,27 +961,22 @@ private impl VideoViewer
             .setTextAlignment(.Right, .Center)
         }
 
-        if video.audioTrackCount() > 1
+        let audioCombo = ComboBox.create(result.commands, {0, 0, 208, 36})
+        result.audioCombo = audioCombo
+        with audioCombo
         {
-            let audioCombo = ComboBox.create(result.commands, {0, 0, 208, 36})
-            result.audioCombo = audioCombo
-            with audioCombo
+            .dockStyle = .Right
+            .margin.x  = 8
+            .toolTip   = videoStrings().ui_TipAudio
+            .hide()
+            .sigChanged += func|view = result|(combo, index)
             {
-                .dockStyle = .Right
-                .margin.x  = 8
-                .toolTip   = videoStrings().ui_TipAudio
-                for index in video.audioTrackCount() do
-                    .addItem(videoAudioTrackText(index, video.audioTrack(index)!))
-                .setSelectedIndex(0, notify: false)
-                .sigChanged += func|view = result|(combo, index)
+                catch view.selectAudioTrack(index) as trackError
+                if trackError != null
                 {
-                    catch view.selectAudioTrack(index) as trackError
-                    if trackError != null
-                    {
-                        combo.setSelectedIndex(view.audioTrackIndex, notify: false)
-                        if view.reportFailure do
-                            view.reportFailure!(view, Errors.message(trackError))
-                    }
+                    combo.setSelectedIndex(view.audioTrackIndex, notify: false)
+                    if view.reportFailure do
+                        view.reportFailure!(view, Errors.message(trackError))
                 }
             }
         }
@@ -946,18 +1001,9 @@ private impl VideoViewer
         result.video  = #move video
         result.planar = result.video.hasPlanarFrames()
         result.prepareSlots()
-        if result.video.audioTrackCount()
-        {
-            if !acquireSoundEngine() do
-                fail UnsupportedFormatError{"cannot create the audio engine for video playback"}
-            result.audioEngineAcquired = true
-            result.selectAudioTrack(0)
-        }
-        else
-        {
-            result.muteButton.hide()
-            result.volumeSlider.hide()
-        }
+        result.muteButton.hide()
+        result.volumeSlider.hide()
+        try result.finishMetadata()
 
         if !Jobs.isSynchronous()
         {
@@ -968,13 +1014,7 @@ private impl VideoViewer
 
         result.refreshTransport()
 
-        // A stream whose format cannot report a duration still plays, but it cannot be seeked
-        // through a timeline that has no end to point at.
         let duration = result.video.durationInSeconds()
-        let step     = result.video.frameRate().framesPerSecond() > 0 ? 1 / result.video.frameRate().framesPerSecond() : 0.01
-        if duration > 0 do
-            result.timeline.setBounds(0, duration, cast(f32) Math.min(step, duration / 100))
-        result.timeline.enable(duration > 0 and result.video.frameCount() > 1)
         result.details = Format.toString(videoStrings().ui_Details, result.video.width(), result.video.height(), videoFrameCountText(result.video.frameCount()), result.video.frameRate().framesPerSecond(), mediaDurationText(duration))
         result.timer   = result.addTimer(10'ms)
         result.applyLayout()
@@ -995,12 +1035,12 @@ private func runVideoViewerDecode(thread: Threading.Thread)
     }
 }
 
-private func loadVideoViewer(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure)->#null *VideoViewer fail => try VideoViewer.create(contentParent, commandParent, fileName, reportFailure)
+private func loadVideoViewer(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails, reportFailure: #null ViewerReportFailure)->#null *VideoViewer fail => try VideoViewer.create(contentParent, commandParent, fileName, reportDetails, reportFailure)
 
 // Creates the integrated video playback view.
 func createVideoViewer(request: const *ViewerRequest, result: *ViewerResult)
 {
-    let view = catch loadVideoViewer(request.contentParent, request.commandParent, request.fileName, request.reportFailure) as decodeError
+    let view = catch loadVideoViewer(request.contentParent, request.commandParent, request.fileName, request.reportDetails, request.reportFailure) as decodeError
     if decodeError != null
     {
         result.failureReason = Errors.message(decodeError)

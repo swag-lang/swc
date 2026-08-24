@@ -160,6 +160,51 @@ impl AvcStream
             .syncFlags[0] = 1
     }
 
+    // Extends a running stream with a presentation-ordered container chunk.
+    //
+    // Matroska clusters begin on presentation boundaries, so ranks already handed to the
+    // decoder never move when the next cluster arrives. Decode state and queued pictures stay
+    // intact while the new access units become available.
+    mtd appendFrames(frames: const [..] SampleEntry) fail
+    {
+        if !@countof(frames) do
+            return
+        if @countof(frames) > Swag.U32.Max - .frames.count do
+            fail OverflowError{"H.264 video sample table is too large"}
+
+        let first = .frames.count
+        var order: Array'u32
+        order.reserve(@countof(frames))
+        for index in @countof(frames)
+        {
+            var position = order.count
+            while position > 0 and frames[cast(u64) order[position - 1]].presentationTime > frames[index].presentationTime
+            {
+                position -= 1
+            }
+
+            order.insertAt(position, cast(u32) index)
+        }
+
+        if first and frames[cast(u64) order[0]].presentationTime < .presentationTimeAtRank(first - 1) do
+            fail InvalidFormatError{"H.264 container chunks overlap in presentation order"}
+
+        .frames.add(frames)
+        .rankOfSample.resize(.frames.count)
+        .syncFlags.resize(.frames.count)
+        for rankOffset in order.count
+        {
+            let sample = first + cast(u64) order[rankOffset]
+            let rank   = .sampleAtRank.count
+            .sampleAtRank.add(cast(u32) sample)
+            .rankOfSample[sample] = cast(u32) rank
+            if .frames[sample].isSync do
+                .syncFlags[sample] = 1
+        }
+
+        .reachedEnd = false
+    }
+
     mtd opDrop()
     {
         .stopFrameThreads()

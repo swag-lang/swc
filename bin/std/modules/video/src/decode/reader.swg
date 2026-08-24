@@ -57,6 +57,15 @@ interface IDecoder
     mtd syncFrameAt(index: u64)->u64
 }
 
+// Internal capability for a container whose sample index is built on first decode.
+#[Swag.NoDoc]
+interface IDeferredDecoder
+{
+    mtd frameCount()->u64
+    mtd frameRate()->FrameRate
+    mtd requestCancel()
+}
+
 // Optional decoder capability exposing sound tracks carried by a video container.
 interface IAudioDecoder
 {
@@ -116,6 +125,7 @@ struct Reader
         audioDecoder:  #null IAudioDecoder                  // Optional sound-track capability.
         planarDecoder: #null IPlanarDecoder                 // Optional unconverted-picture capability.
         timedDecoder:  #null ITimedDecoder                  // Optional exact-timestamp capability.
+        deferred:      #null IDeferredDecoder               // Optional deferred sample-index capability.
         decoderType:   #null const *Swag.TypeInfoStruct     // Concrete decoder type, used to release it.
     }
 }
@@ -219,6 +229,7 @@ impl Reader
         .audioDecoder  = @mkinterface(instance, selected.type, IAudioDecoder)
         .planarDecoder = @mkinterface(instance, selected.type, IPlanarDecoder)
         .timedDecoder  = @mkinterface(instance, selected.type, ITimedDecoder)
+        .deferred      = @mkinterface(instance, selected.type, IDeferredDecoder)
         .info          = .decoder.open(&.source)
     }
 
@@ -238,10 +249,12 @@ impl Reader
             if type.opDrop do
                 type.opDrop(instance)
             Memory.free(instance, cast(u64) type.sizeof)
-            .decoder      = null
-            .audioDecoder = null
-            .timedDecoder = null
-            .decoderType  = null
+            .decoder       = null
+            .audioDecoder  = null
+            .planarDecoder = null
+            .timedDecoder  = null
+            .deferred      = null
+            .decoderType   = null
         }
 
         .source.close()
@@ -266,10 +279,21 @@ impl Reader
     mtd const height()->s32 => .info.height
 
     // Returns the exact frame rate.
-    mtd const frameRate()->FrameRate => .info.frameRate
+    mtd const frameRate()->FrameRate => .deferred ? .deferred!.frameRate() : .info.frameRate
 
     // Returns the number of frames, or zero when the format cannot report it.
-    mtd const frameCount()->u64 => .info.frameCount
+    mtd const frameCount()->u64 => .deferred ? .deferred!.frameCount() : .info.frameCount
+
+    // Requests cancellation of deferred container indexing.
+    //
+    // This operation is safe from another thread and does nothing when the decoder has no
+    // deferred work. Cancellation is permanent for this reader: close it after the interrupted
+    // operation has returned.
+    mtd requestCancel()
+    {
+        if .deferred do
+            .deferred!.requestCancel()
+    }
 
     // Returns the number of decoded sound tracks carried by the opened stream.
     mtd const audioTrackCount()->u32 => .audioDecoder ? .audioDecoder!.audioTrackCount() : 0
@@ -289,7 +313,8 @@ impl Reader
     {
         if .timedDecoder do
             return .timedDecoder!.frameTimestamp(index)
-        return cast(f64) index * cast(f64) .info.frameRate.denominator() / cast(f64) .info.frameRate.numerator()
+        let rate = .frameRate()
+        return cast(f64) index * cast(f64) rate.denominator() / cast(f64) rate.numerator()
     }
 
     // Returns the picture presented at `seconds`, or the frame count past the end.
@@ -299,7 +324,8 @@ impl Reader
             return .timedDecoder!.frameAtTime(seconds)
         if seconds < 0 do
             return 0
-        return Math.min(cast(u64) (seconds * cast(f64) .info.frameRate.numerator() / cast(f64) .info.frameRate.denominator()), .info.frameCount)
+        let rate = .frameRate()
+        return Math.min(cast(u64) (seconds * cast(f64) rate.numerator() / cast(f64) rate.denominator()), .frameCount())
     }
 
     // Reports whether this stream can be decoded without converting its pictures to RGB.
@@ -322,10 +348,12 @@ impl Reader
             fail BadParameterError{"video reader has no open stream"}
         if !.planarDecoder do
             fail UnsupportedFormatError{"video stream does not decode to planar pictures"}
-        if .info.frameCount and index >= .info.frameCount do
+        let count = .frameCount()
+        if count and index >= count do
             fail BadParameterError{"video frame index exceeds the stream frame count"}
 
         .decoder.seekFrame(&.source, index)
+        .refreshDeferredInfo()
         .planarDecoder!.decodeFramePlanes(&.source, target)
     }
 
@@ -342,9 +370,10 @@ impl Reader
     // Returns the stream duration in seconds, or zero when the frame count is unknown.
     mtd const durationInSeconds()->f64
     {
-        if !.info.frameRate.isValid() do
+        let rate = .frameRate()
+        if !rate.isValid() do
             return 0
-        return cast(f64) .info.frameCount * cast(f64) .info.frameRate.denominator() / cast(f64) .info.frameRate.numerator()
+        return cast(f64) .frameCount() * cast(f64) rate.denominator() / cast(f64) rate.numerator()
     }
 
     // Decodes frame `index` into an owned RGB8 image.
@@ -369,11 +398,21 @@ impl Reader
     {
         if !.decoder do
             fail BadParameterError{"video reader has no open stream"}
-        if .info.frameCount and index >= .info.frameCount do
+        let count = .frameCount()
+        if count and index >= count do
             fail BadParameterError{"video frame index exceeds the stream frame count"}
 
         .decoder.seekFrame(&.source, index)
+        .refreshDeferredInfo()
         .decoder.decodeFrame(&.source, target)
+    }
+
+    private mtd refreshDeferredInfo()
+    {
+        if !.deferred do
+            return
+        .info.frameCount = .deferred!.frameCount()
+        .info.frameRate  = .deferred!.frameRate()
     }
 }
 

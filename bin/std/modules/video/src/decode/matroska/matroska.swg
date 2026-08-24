@@ -6,10 +6,30 @@ private const VideoTrackType = 1'u64
 private const AudioTrackType = 2'u64
 private const AvcCodecId = "V_MPEG4/ISO/AVC"
 private const AacCodecId = "A_AAC"
+private const Ac3CodecId = "A_AC3"
+private const Eac3CodecId = "A_EAC3"
 private const DefaultTimestampScale = 1_000_000'u64
 private const AacFrameSamples = 1024'u32
 private const NoTrack = Swag.U64.Max
 private const NoOffset = Swag.U64.Max
+
+private func packetBits(bytes: const [..] u8, offset: u64, bitPosition, count: u32)->u32
+{
+    var result: u32
+    for bit in count
+    {
+        let position = cast(u64) bitPosition + bit
+        result = (result << 1) | ((cast(u32) bytes[offset + (position >> 3)] >> cast(u32) (7 - (position & 7))) & 1)
+    }
+
+    return result
+}
+
+private func dolbySpeakerMask(acmod: u32, lfeon: bool)->u32
+{
+    const Masks: [8] u32 = [0x0003, 0x0004, 0x0003, 0x0007, 0x0103, 0x0107, 0x0033, 0x0037]
+    return Masks[acmod] | (lfeon ? 0x0008 : 0)
+}
 
 // Container root resolved once from the EBML header.
 private struct Container
@@ -58,7 +78,68 @@ private struct Track
 private impl Track
 {
     mtd const isPlayableVideo()->bool => .isEnabled and !.hasEncodings and .kind == VideoTrackType and .codecId == AvcCodecId and .codecPrivate.count != 0
-    mtd const isPlayableAudio()->bool => .isEnabled and !.hasEncodings and .kind == AudioTrackType and .codecId == AacCodecId and .codecPrivate.count != 0 and .sampleRate > 0 and .sampleRate <= cast(f64) Swag.U32.Max and .channels != 0 and .channels <= 2 and !.codecDelay
+
+    mtd const soundEncoding()->SoundFileEncoding
+    {
+        if .codecId == AacCodecId do
+            return .AacLc
+        if .codecId == Ac3CodecId do
+            return .Ac3
+        if .codecId == Eac3CodecId do
+            return .Eac3
+        return .Unknown
+    }
+
+    mtd const isPlayableAudio()->bool
+    {
+        let encoding = .soundEncoding()
+        if !.isEnabled or .hasEncodings or .kind != AudioTrackType or encoding == .Unknown do
+            return false
+        if .sampleRate <= 0 or .sampleRate > cast(f64) Swag.U32.Max or !.channels or .channels > 6 do
+            return false
+        return encoding != .AacLc or .codecPrivate.count != 0
+    }
+
+    mtd const leadingTrimFrames()->u64 fail
+    {
+        if !.codecDelay do
+            return 0
+        let frames = cast(f64) .codecDelay * .sampleRate / 1_000_000_000.0
+        if frames > cast(f64) Swag.U32.Max do
+            fail UnsupportedFormatError{"Matroska audio codec delay exceeds the supported range"}
+        return cast(u64) Math.round(frames)
+    }
+
+    mtd const speakerMask(bytes: const [..] u8)->u32 fail
+    {
+        let encoding = .soundEncoding()
+        if encoding == .AacLc do
+            return 0
+        let packet = .audioPackets[0]
+        if packet.sourceOffset > @countof(bytes) or packet.byteSize > @countof(bytes) - packet.sourceOffset do
+            fail InvalidFormatError{"Matroska Dolby audio packet is truncated"}
+        if encoding == .Eac3
+        {
+            if packet.byteSize < 5 do
+                fail InvalidFormatError{"Matroska E-AC-3 packet header is truncated"}
+            let acmod = packetBits(bytes, packet.sourceOffset, 36, 3)
+            let lfeon = packetBits(bytes, packet.sourceOffset, 39, 1) != 0
+            return dolbySpeakerMask(acmod, lfeon)
+        }
+
+        if packet.byteSize < 7 do
+            fail InvalidFormatError{"Matroska AC-3 packet header is truncated"}
+        let acmod       = packetBits(bytes, packet.sourceOffset, 48, 3)
+        var lfePosition = 51'u32
+        if acmod & 1 and acmod != 1 do
+            lfePosition += 2
+        if acmod & 4 do
+            lfePosition += 2
+        if acmod == 2 do
+            lfePosition += 2
+        let lfeon = packetBits(bytes, packet.sourceOffset, lfePosition, 1) != 0
+        return dolbySpeakerMask(acmod, lfeon)
+    }
 }
 
 // Matroska metadata retained while the mapped stream is indexed.
@@ -600,7 +681,7 @@ private impl Layout
         }
     }
 
-    // Chooses one default H.264 picture track and every playable AAC sound track.
+    // Chooses one default H.264 picture track and every playable sound track.
     mtd selectTracks() fail
     {
         var firstVideoCodec: String
@@ -842,9 +923,31 @@ private impl Layout
         {
             if size > Swag.U32.Max do
                 fail InvalidFormatError{"Matroska audio packet exceeds the supported size"}
-            track.audioPackets.add({offset, cast(u32) size, AacFrameSamples})
+            let frameCount = .audioPacketFrames(cursor.bytes, offset, size, track.soundEncoding())
+            track.audioPackets.add({offset, cast(u32) size, frameCount})
             offset += size
         }
+    }
+
+    mtd const audioPacketFrames(bytes: const [..] u8, offset, size: u64, encoding: SoundFileEncoding)->u32 fail
+    {
+        if encoding == .AacLc do
+            return AacFrameSamples
+        if size < 5 or offset > @countof(bytes) or size > @countof(bytes) - offset do
+            fail InvalidFormatError{"Matroska Dolby audio packet is truncated"}
+        if bytes[offset] != 0x0B or bytes[offset + 1] != 0x77 do
+            fail InvalidFormatError{"Matroska Dolby audio packet has no sync word"}
+        if encoding == .Ac3 do
+            return 1536
+        if encoding != .Eac3 do
+            fail UnsupportedFormatError{"unsupported Matroska audio codec"}
+
+        let fscod = (bytes[offset + 4] >> 6) & 3
+        if fscod == 3 do
+            return 1536
+        const Blocks: [4] u32 = [1, 2, 3, 6]
+        let numblkscod = (bytes[offset + 4] >> 4) & 3
+        return Blocks[numblkscod] * 256
     }
 }
 
@@ -894,7 +997,7 @@ private impl FileIndex
     }
 }
 
-// Reads Matroska files carrying H.264 pictures and AAC-LC mono/stereo sound tracks.
+// Reads Matroska files carrying H.264 pictures and supported AAC-LC, AC-3, or E-AC-3 tracks.
 //
 // Opening reads only seek, track, and cue metadata. Decoding advances one demux cursor through
 // complete clusters on demand; random access restarts that cursor at a cue cluster. Compressed
@@ -1012,10 +1115,16 @@ private impl Decoder
             let track = &layout.tracks[trackIndex]
             if !track.audioPackets.count do
                 continue
-            if track.audioPackets.count > Swag.U64.Max / AacFrameSamples do
-                fail OverflowError{"Matroska audio packet table is too large"}
-            let frameCount = track.audioPackets.count * AacFrameSamples
-            let sound      = SoundFile.openPacketStream(fileIndex.path.toString(), .AacLc, cast(u32) Math.round(track.sampleRate), track.channels, frameCount, track.audioPackets.toSlice(), track.codecPrivate.toSlice())
+            var frameCount: u64
+            for packet in track.audioPackets
+            {
+                if frameCount > Swag.U64.Max - packet.sampleFrameCount do
+                    fail OverflowError{"Matroska audio packet table is too large"}
+                frameCount += packet.sampleFrameCount
+            }
+
+            let options = PacketStreamOptions{leadingTrimFrames: try track.leadingTrimFrames(), speakerMask: try track.speakerMask(fileIndex.region.bytes())}
+            let sound   = SoundFile.openPacketStream(fileIndex.path.toString(), track.soundEncoding(), cast(u32) Math.round(track.sampleRate), track.channels, frameCount, track.audioPackets.toSlice(), track.codecPrivate.toSlice(), options)
             fileIndex.soundTracks.add(#move sound)
         }
 

@@ -67,6 +67,44 @@ using Core, Core.Errors, Pixel
     @assert(Slice.equals(primaryBytes.toSlice(), alternateBytes.toSlice()))
 }
 
+// Matroska maps every native multichannel packet codec to std/audio without copying payloads.
+// The packet duration comes from the codec framing: AAC has 1,024 samples and both fixtures here
+// carry six-block Dolby sync frames with 1,536 samples.
+#test
+{
+    const Files:        [3] string = ["ffmpeg-h264-aac-5.1.mkv", "ffmpeg-h264-ac3-5.1.mkv", "ffmpeg-h264-eac3-5.1.mkv"]
+    const Encodings:    [3] Audio.SoundFileEncoding = [.AacLc, .Ac3, .Eac3]
+    const PacketFrames: [3] u32    = [1024, 1536, 1536]
+    const LastFrames:   [3] u64    = [12, 11, 11]
+    for fileIndex in 3
+    {
+        var reader = expect Reader.open(videoFixturePath(Files[fileIndex]))
+        var indexed: Image
+        expect reader.decodeFrameInto(&indexed, LastFrames[fileIndex])
+        @assert(reader.audioTrackCount() == 1)
+        let sound = reader.audioTrack(0)!
+        @assert(sound.sampleEncoding() == Encodings[fileIndex])
+        @assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == 6)
+        @assert(sound.speakerChannelMask() == 0x3F and !sound.isDataPreloaded())
+        @assert((expect sound.packet(0)).sampleFrameCount == PacketFrames[fileIndex])
+    }
+}
+
+// CodecDelay belongs to the decoded timeline, not to the audible one. Matroska converts its
+// nanoseconds to sample frames and leaves the compressed packet index unchanged.
+#test
+{
+    var plain   = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
+    var delayed = expect Reader.open(videoFixturePath("mkv-aac-codec-delay.mkv"))
+    var indexed: Image
+    expect plain.decodeFrameInto(&indexed, 19)
+    expect delayed.decodeFrameInto(&indexed, 19)
+    let plainSound   = plain.audioTrack(0)!
+    let delayedSound = delayed.audioTrack(0)!
+    @assert(delayedSound.packetCount() == plainSound.packetCount())
+    @assert(delayedSound.sampleFrameCount() + 1024 == plainSound.sampleFrameCount())
+}
+
 // A long container catches cue-offset, timestamp accumulation, and distant-seek defects that the
 // compact fixture cannot reach. Its pictures repeat the short source stream, so a seek near ten
 // minutes can still be checked pixel for pixel without storing another reference image.

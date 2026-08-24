@@ -138,7 +138,8 @@ public impl Voice
             Memory.delete(voice, allocator)
         }
 
-        voice.file = file
+        voice.file              = file
+        voice.seekDiscardFrames = cast(u32) file.leadingTrim
 
         voice.createNative(createFlags)
         g_Driver.updateVoice(voice, .Register)
@@ -211,6 +212,7 @@ public impl Voice
             .stopNative()
         .resetNative()
         .closeBuffer()
+        .seekDiscardFrames = cast(u32) .file!.leadingTrim
         .playbackBaseFrame = 0
         .nativeFrameOrigin = .playedFramesNative()
         .resetState(.Playing | .PlayedOnce)
@@ -246,23 +248,23 @@ public impl Voice
 
         if file.usesPacketCodec() and target < file.frameCount
         {
-            var low  = 0'u64
-            var high = file.packetStarts.count
+            let decodedTarget = target + file.leadingTrim
+            var low           = 0'u64
+            var high          = file.packetStarts.count
             while low + 1 < high
             {
                 let middle = low + (high - low) / 2
-                if file.packetStarts[middle] <= target do
+                if file.packetStarts[middle] <= decodedTarget do
                     low = middle
                 else do
                     high = middle
             }
 
-            // AAC synthesis overlaps the current transform with the preceding access unit.
-            // Decode one preroll packet and discard it so a random seek has the same samples as
-            // uninterrupted playback from the very first audible frame.
+            // Transform codecs overlap adjacent blocks. Decode one preroll packet and discard it
+            // so a random seek has the same samples as uninterrupted playback.
             let preroll = low ? low - 1 : low
             .streamPacketIdx   = preroll
-            .seekDiscardFrames = cast(u32) (target - file.packetStarts[preroll])
+            .seekDiscardFrames = cast(u32) (decodedTarget - file.packetStarts[preroll])
         }
         elif !file.usesPacketCodec()
         {

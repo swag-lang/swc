@@ -28,6 +28,18 @@ enum SoundFileEncoding
     Pcm32       // Signed, uncompressed 32-bit PCM.
     Float32     // Uncompressed 32-bit IEEE floating-point samples.
     AacLc       // MPEG-4 AAC Low Complexity access units.
+    Ac3         // Dolby Digital AC-3 sync frames.
+    Eac3        // Dolby Digital Plus E-AC-3 sync frames.
+}
+
+// Configures an indexed compressed sound stream.
+struct PacketStreamOptions
+{
+    public
+    {
+        leadingTrimFrames: u64     // Decoded priming frames omitted before audible frame zero.
+        speakerMask:       u32     // WAVE speaker-position mask; zero derives the standard mask from the channel count.
+    }
 }
 
 // Locates one indexed packet or chunk in a source file.
@@ -60,6 +72,7 @@ struct SoundFile
         packets:       Array'SoundPacket     // Indexed source packets or chunks, empty for one contiguous byte stream.
         packetStarts:  Array'u64             // Decoded sample-frame start of every packet.
         decoderConfig: Array'u8              // Codec initialization bytes copied from the container.
+        leadingTrim:   u64                   // Decoded priming frames before audible frame zero.
 
         frameCount: u64     // Number of sample frames across all channels.
         dataSize:   u64     // Payload size in bytes.
@@ -95,7 +108,7 @@ impl SoundFile
     mtd const isPacketStream()->bool => .packets.count != 0
 
     // Returns whether indexed packets need the compressed packet codec.
-    internal mtd const usesPacketCodec()->bool => .encoding == .AacLc and .packets.count != 0
+    internal mtd const usesPacketCodec()->bool => (.encoding == .AacLc or .encoding == .Ac3 or .encoding == .Eac3) and .packets.count != 0
 
     // Returns the number of indexed packets or chunks in this source.
     mtd const packetCount()->u64 => .packets.count
@@ -217,14 +230,16 @@ impl SoundFile
     // `path` and are read only as playback reaches them. Memory holds the compact packet index,
     // never the compressed media payload. `frameCount` is validated against the sum of packet
     // durations.
-    func openPacketStream(path: string, encoding: SoundFileEncoding, sampleRateHz, channels: u32, frameCount: u64, packets: const [..] SoundPacket, decoderConfig: const [..] u8)->SoundFile fail
+    func openPacketStream(path: string, encoding: SoundFileEncoding, sampleRateHz, channels: u32, frameCount: u64, packets: const [..] SoundPacket, decoderConfig: const [..] u8, options: PacketStreamOptions = {})->SoundFile fail
     {
-        if encoding != .AacLc do
+        if encoding != .AacLc and encoding != .Ac3 and encoding != .Eac3 do
             fail UnsupportedFormatError{"unsupported packetized sound encoding"}
-        if !sampleRateHz or !channels or channels > 2 do
-            fail BadParameterError{"packetized sound needs one or two channels and a non-zero sample rate"}
-        if !@countof(packets) or !@countof(decoderConfig) do
-            fail BadParameterError{"packetized sound needs packets and decoder configuration"}
+        if !sampleRateHz or !channels or channels > 8 do
+            fail BadParameterError{"packetized sound needs one to eight channels and a non-zero sample rate"}
+        if !@countof(packets) do
+            fail BadParameterError{"packetized sound needs packets"}
+        if encoding == .AacLc and !@countof(decoderConfig) do
+            fail BadParameterError{"AAC packetized sound needs decoder configuration"}
 
         var stream     = File.openRead(path)
         let sourceSize = stream.size()
@@ -236,7 +251,23 @@ impl SoundFile
         result.channelCount       = channels
         result.bitsPerSample      = 16
         result.validBitsPerSample = 16
-        result.waveSpeakerMask    = channels == 1 ? 4 : 3
+        result.waveSpeakerMask    = options.speakerMask
+        if !result.waveSpeakerMask
+        {
+            switch channels
+            {
+            case 1: result.waveSpeakerMask = 0x0004
+            case 2: result.waveSpeakerMask = 0x0003
+            case 3: result.waveSpeakerMask = 0x0007
+            case 4: result.waveSpeakerMask = 0x0107
+            case 5: result.waveSpeakerMask = 0x0037
+            case 6: result.waveSpeakerMask = 0x003F
+            case 7: result.waveSpeakerMask = 0x070F
+            case 8: result.waveSpeakerMask = 0x063F
+            }
+        }
+
+        result.leadingTrim = options.leadingTrimFrames
         result.packets.reserve(@countof(packets))
         result.packetStarts.reserve(@countof(packets))
         result.decoderConfig.add(decoderConfig)
@@ -260,10 +291,14 @@ impl SoundFile
 
         if decodedFrames != frameCount do
             fail InvalidFormatError{"sound packet durations do not match the declared frame count"}
+        if result.leadingTrim > Swag.U32.Max do
+            fail UnsupportedFormatError{"sound priming exceeds the supported seek-discard range"}
+        if result.leadingTrim >= decodedFrames do
+            fail InvalidFormatError{"sound priming consumes every decoded frame"}
 
-        result.frameCount      = frameCount
+        result.frameCount      = frameCount - result.leadingTrim
         result.dataSize        = payloadBytes
-        result.durationSeconds = cast(f32) frameCount / cast(f32) sampleRateHz
+        result.durationSeconds = cast(f32) result.frameCount / cast(f32) sampleRateHz
         result.availableFields = .Format | .SampleRate | .ChannelCount | .SpeakerMask | .BitsPerSample | .ValidBitsPerSample | .Duration | .FrameCount | .Data
         return result
     }

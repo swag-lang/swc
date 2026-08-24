@@ -1,6 +1,6 @@
 /*
-Video reads and writes timed sequences of [[Pixel.Image]] frames. File-backed ISO-BMFF readers
-also expose streamed AAC-LC sound tracks through [[Audio.SoundFile]].
+Video reads and writes timed sequences of [[Pixel.Image]] frames. File-backed ISO-BMFF and
+Matroska readers also expose streamed sound tracks through [[Audio.SoundFile]].
 
 Reading and writing are streamed: [[Video.Reader]] opens a stream by reading its
 metadata and decodes one frame at a time, and [[Video.Writer]] encodes one frame
@@ -42,7 +42,9 @@ Four codecs ship in the box:
   and exposes AAC-LC mono/stereo audio. It expands compact sample tables into direct packet
   offsets while payloads remain in the file. Exact composition timestamps are retained for
   variable-rate playback and H.264 display reordering.
-- Matroska (`.mkv`) reads H.264 pictures and exposes every AAC-LC mono/stereo audio track. Opening
+- Matroska (`.mkv`) reads H.264 pictures and exposes AAC-LC tracks with up to six channels plus
+  AC-3 and independent E-AC-3 tracks with up to six channels. Matroska `CodecDelay` is removed
+  from the audible timeline. Opening
   reads only indexed container and track metadata. Decoding indexes a small cluster window as
   playback reaches it, while a background scan completes the seek and sound tables after the
   first picture; both may be interrupted through [[Video.Reader.requestCancel]]. Media payloads

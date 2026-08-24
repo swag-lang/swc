@@ -29,13 +29,21 @@ private func aacTestSound()->SoundFile fail
     return SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024, packets.toSlice(), Config)
 }
 
-private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channel: u64, frequency: f64)->f64
+private func aacTestSound51()->SoundFile fail
+{
+    const Config: [2] u8 = [0x11, 0xB0]
+    let path    = audioGetTestDataPath("aac-lc-5.1-48000.aac")
+    let packets = try aacTestPackets(path)
+    return SoundFile.openPacketStream(path, .AacLc, 48_000, 6, packets.count * 1024, packets.toSlice(), Config)
+}
+
+private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channels, channel: u64, sampleRate, frequency: f64)->f64
 {
     var real, imaginary: f64
     for frame in frameCount
     {
-        let angle = 2.0 * Math.ConstF64.Pi * frequency * cast(f64) frame / 44_100.0
-        let value = cast(f64) samples[(firstFrame + frame) * 2 + channel]
+        let angle = 2.0 * Math.ConstF64.Pi * frequency * cast(f64) frame / sampleRate
+        let value = cast(f64) samples[(firstFrame + frame) * channels + channel]
         real      += value * Math.cos(angle)
         imaginary -= value * Math.sin(angle)
     }
@@ -71,8 +79,8 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     for index in decoded.size / #sizeof(s16) do
         peak = Math.max(peak, Math.abs(cast(s32) samples[index]))
     @assert(peak > 1_000)
-    @assert(aacTonePower(samples, 2_048, 2_048, 0, 440) > 10.0 * aacTonePower(samples, 2_048, 2_048, 0, 660))
-    @assert(aacTonePower(samples, 2_048, 2_048, 1, 660) > 10.0 * aacTonePower(samples, 2_048, 2_048, 1, 440))
+    @assert(aacTonePower(samples, 2_048, 2_048, 2, 0, 44_100, 440) > 10.0 * aacTonePower(samples, 2_048, 2_048, 2, 0, 44_100, 660))
+    @assert(aacTonePower(samples, 2_048, 2_048, 2, 1, 44_100, 660) > 10.0 * aacTonePower(samples, 2_048, 2_048, 2, 1, 44_100, 440))
 
     discard expect voice.seekSampleFrame(5 * 1024 + 256)
     let afterSeek = expect voice.readBuffer()
@@ -81,6 +89,71 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     voice.destroy()
 }
 
+// AAC channel configuration 6 arrives as C, L, R, SL, SR, LFE. The packet codec emits the WAVE
+// 5.1 order L, R, C, LFE, SL, SR that the backend speaker mask describes.
+#test
+{
+    var sound = expect aacTestSound51()
+    @assert(sound.numChannels() == 6 and sound.speakerChannelMask() == 0x3F)
+    discard expect createNoSoundEngine()
+    defer destroyEngine()
+    let voice = (expect Voice.create(&sound))!
+    defer voice.destroy()
+
+    let decoded = expect voice.readBuffer()
+    @assert(decoded.size == 4 * 1024 * 6 * #sizeof(s16))
+    let samples = cast(const [*] s16) decoded.buffer!
+    const Frequencies: [6] f64 = [300, 400, 500, 600, 700, 800]
+    for channel in 6
+    {
+        // The AAC encoder deliberately low-passes LFE; its 600 Hz probe is almost entirely
+        // removed, so channel 3 is checked for decoded activity rather than tone dominance.
+        if channel == 3 do
+            continue
+        let wanted = aacTonePower(samples, 2_048, 2_048, 6, channel, 48_000, Frequencies[channel])
+        let other  = aacTonePower(samples, 2_048, 2_048, 6, channel, 48_000, Frequencies[(channel + 1) % 6])
+        @assert(wanted > 8.0 * other)
+    }
+
+    var lfePeak = 0's32
+    for frame in 4 * 1024 do
+        lfePeak = Math.max(lfePeak, Math.abs(cast(s32) samples[frame * 6 + 3]))
+    @assert(lfePeak > 100)
+}
+
+// Codec priming is part of the decoded timeline, but not of the audible one. Opening a stream
+// with leading trim must therefore produce exactly the same first samples as seeking an otherwise
+// identical stream to that decoded position, including the AAC overlap pre-roll.
+#test
+{
+    const Trim           = 1280'u64
+    const Config: [2] u8 = [0x12, 0x10]
+    let path    = audioGetTestDataPath("aac-lc-stereo-44100.aac")
+    let packets = expect aacTestPackets(path)
+    var full    = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024, packets.toSlice(), Config)
+    var trimmed = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024, packets.toSlice(), Config, {leadingTrimFrames: Trim})
+    @assert(trimmed.sampleFrameCount() == full.sampleFrameCount() - Trim)
+
+    discard expect createNoSoundEngine()
+    defer destroyEngine()
+    let fullVoice    = (expect Voice.create(&full))!
+    let trimmedVoice = (expect Voice.create(&trimmed))!
+    defer fullVoice.destroy()
+    defer trimmedVoice.destroy()
+    discard expect fullVoice.seekSampleFrame(Trim)
+    let expected = expect fullVoice.readBuffer()
+    let actual   = expect trimmedVoice.readBuffer()
+    @assert(actual.size == expected.size)
+    @assert(Memory.compare(actual.buffer!, expected.buffer!, actual.size) == 0)
+    var firstRead: Array'u8
+    firstRead.resize(actual.size)
+    Memory.copy(firstRead.buffer!, actual.buffer!, actual.size)
+
+    discard expect trimmedVoice.seekSampleFrame(0)
+    let rewound = expect trimmedVoice.readBuffer()
+    @assert(rewound.size == actual.size)
+    @assert(Memory.compare(rewound.buffer!, firstRead.buffer!, actual.size) == 0)
+}
 
 #test
 {

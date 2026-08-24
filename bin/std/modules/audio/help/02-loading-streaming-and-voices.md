@@ -17,6 +17,12 @@ try voice.play(.Loop)
 The [[Audio.SoundFile]] must outlive every [[Audio.Voice]] created from it.
 Streaming voices also keep the source path and open the file on demand.
 
+Container modules can create indexed packet streams with
+[[Audio.SoundFile.openPacketStream]]. AAC-LC supports one to six channels; AC-3 and independent
+E-AC-3 support one to six channels. All three decode to interleaved 16-bit PCM in the module's
+native Swag codecs. `leadingTrimFrames` removes codec priming from the public timeline, so frame
+zero and a seek to frame zero begin at the first audible sample.
+
 [[Audio.SoundFile.readPayload]] reads an owned, bounded range without changing a
 voice's streaming position. It is suitable for background analysis such as a
 waveform: walk the payload in small blocks and publish partial results while the

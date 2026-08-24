@@ -280,6 +280,17 @@ bool X64UnwindWindows::tryTrackSetFramePointer(const MicroInstr& inst, const Mic
         return false;
     if (unwindHasFrameRegister_)
         return false;
+    // Only the register the calling convention dedicates to the frame may be
+    // recorded here. A prologue holds more than one copy of the stack pointer:
+    // a function without a frame pointer still takes a local stack base into a
+    // callee-saved register, and it then moves that register wherever the
+    // frame's layout wants it. Recording that one tells the unwinder to derive
+    // the stack pointer from a register the body has since changed, so it
+    // computes the wrong frame, fails to walk out, and an exception raised
+    // underneath finds no handler at all - which took the compiler down with
+    // exit 666 on every safety guard that fired under the JIT.
+    if (!abiFrameRegister_.isValid())
+        return false;
 
     MicroReg frameReg;
     uint64_t frameOffset = 0;
@@ -308,6 +319,9 @@ bool X64UnwindWindows::tryTrackSetFramePointer(const MicroInstr& inst, const Mic
     {
         return false;
     }
+
+    if (frameReg != abiFrameRegister_)
+        return false;
 
     uint8_t reg = 0;
     if (!tryMapUnwindReg(reg, frameReg))

@@ -813,6 +813,36 @@ SWC_TEST_BEGIN(EncodeX64_UnwindUpdatesFramePointerWhenAssignedTwice)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(EncodeX64_UnwindLocalStackBaseIsNotAFrameRegister)
+{
+    // A function without a frame pointer still takes a local stack base into a
+    // callee-saved register, and then moves that register where its layout wants
+    // it. Recording that copy as the unwind frame register would tell the
+    // unwinder to derive the stack pointer from a register the body has since
+    // changed. Only the calling convention's frame register may be recorded, so
+    // this prologue ends at the allocation and carries no frame register at all.
+    //   ver/flags=01, prologSize=05, codeCount=02, frameReg=none=0x00
+    //   ALLOC_SMALL 0x20 @5, PUSH_NONVOL rbx @1
+    constexpr std::array<uint8_t, 8> expected = {
+        0x01,
+        0x05,
+        0x02,
+        0x00,
+        0x05,
+        0x32,
+        0x01,
+        0x30,
+    };
+
+    SWC_RESULT(runUnwindCase(ctx, [](MicroBuilder& b) {
+        b.emitPush(RBX);
+        b.emitOpBinaryRegImm(RSP, ApInt(0x20, 64), MicroOp::Subtract, MicroOpBits::B64);
+        b.emitLoadRegReg(RBX, RSP, MicroOpBits::B64);
+        b.emitOpBinaryRegImm(RBX, ApInt(0x10, 64), MicroOp::Add, MicroOpBits::B64);
+        b.emitRet(); }, expected));
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(EncodeX64_UnwindStopsAfterBodyStart)
 {
     constexpr std::array<uint8_t, 4> expected = {

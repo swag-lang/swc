@@ -101,6 +101,10 @@ public:
     const Runtime::BuildCfgBackend& backendBuildCfg() const { return backendBuildCfg_; }
 
     virtual void        buildUnwindInfo(ByteArray& outUnwindInfo) const {}
+    // Names the calling convention's frame register before encoding, so the
+    // unwind builder can tell it from the other stack-pointer copies a prologue
+    // makes.
+    virtual void setUnwindFrameRegister(MicroReg reg) { SWC_UNUSED(reg); }
     virtual std::string formatRegisterName(MicroReg reg) const;
     virtual MicroReg    stackPointerReg() const = 0;
 

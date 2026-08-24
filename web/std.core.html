@@ -8913,7 +8913,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Compress_Deflate" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Compress.Deflate</span> <a class="api-item-permalink" href="#Core_Compress_Deflate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/deflate.swg#L151">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Compress_Deflate" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Compress.Deflate</span> <a class="api-item-permalink" href="#Core_Compress_Deflate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/deflate.swg#L172">src</a></div>
 <p>Main structure representing a Deflate compression context</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Compress_Deflate">Deflate</a></span></span></div>
@@ -14581,7 +14581,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Core_Compress_Deflate_CompressionFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Deflate.CompressionFlags</span> <a class="api-item-permalink" href="#Core_Compress_Deflate_CompressionFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/deflate.swg#L1117">src</a></div>
+<div class="api-item api-item-enum"><span id="Core_Compress_Deflate_CompressionFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Deflate.CompressionFlags</span> <a class="api-item-permalink" href="#Core_Compress_Deflate_CompressionFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/deflate.swg#L1180">src</a></div>
 <p>Flags controlling compression behavior</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Compress_Deflate_CompressionFlags">CompressionFlags</a></span></span></div>
@@ -14599,7 +14599,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Core_Compress_Deflate_CompressionLevel" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Deflate.CompressionLevel</span> <a class="api-item-permalink" href="#Core_Compress_Deflate_CompressionLevel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/deflate.swg#L1126">src</a></div>
+<div class="api-item api-item-enum"><span id="Core_Compress_Deflate_CompressionLevel" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Deflate.CompressionLevel</span> <a class="api-item-permalink" href="#Core_Compress_Deflate_CompressionLevel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/deflate.swg#L1189">src</a></div>
 <p>Compression level to use (mapped to number of probes and strategies)</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Incomplete]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Compress_Deflate_CompressionLevel">CompressionLevel</a></span>: <span class="STpe">u32</span></span></div>
@@ -14621,7 +14621,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Core_Compress_Deflate_CompressionStrategy" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Deflate.CompressionStrategy</span> <a class="api-item-permalink" href="#Core_Compress_Deflate_CompressionStrategy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/deflate.swg#L1136">src</a></div>
+<div class="api-item api-item-enum"><span id="Core_Compress_Deflate_CompressionStrategy" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Deflate.CompressionStrategy</span> <a class="api-item-permalink" href="#Core_Compress_Deflate_CompressionStrategy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/deflate.swg#L1199">src</a></div>
 <p>Strategy for compression to influence algorithm behavior</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Compress_Deflate_CompressionStrategy">CompressionStrategy</a></span></span></div>
 </section>
@@ -18334,17 +18334,17 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">start</span>(input: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Compress_Deflate_compress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deflate.compress</span> <a class="api-item-permalink" href="#Core_Compress_Deflate_compress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/deflate.swg#L1164">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Compress_Deflate_compress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deflate.compress</span> <a class="api-item-permalink" href="#Core_Compress_Deflate_compress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/deflate.swg#L1227">src</a></div>
 <p>Compress the source buffer</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">compress</span>(result: *<span class="SFct">Array</span>'<span class="STpe">u8</span>, src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Compress_Deflate_init" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deflate.init</span> <a class="api-item-permalink" href="#Core_Compress_Deflate_init" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/deflate.swg#L1153">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Compress_Deflate_init" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deflate.init</span> <a class="api-item-permalink" href="#Core_Compress_Deflate_init" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/deflate.swg#L1216">src</a></div>
 <p>Initialize the compressor Can be called multiple times</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">init</span>(level = <span class="SCst"><a href="#Core_Compress_Deflate_CompressionLevel">CompressionLevel</a></span>.<span class="SCst">Default</span>, strategy = <span class="SCst"><a href="#Core_Compress_Deflate_CompressionStrategy">CompressionStrategy</a></span>.<span class="SCst">Default</span>, flags = <span class="SCst"><a href="#Core_Compress_Deflate_CompressionFlags">CompressionFlags</a></span>.<span class="SCst">Default</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Compress_Deflate_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deflate.opDrop</span> <a class="api-item-permalink" href="#Core_Compress_Deflate_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/deflate.swg#L1146">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Compress_Deflate_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Deflate.opDrop</span> <a class="api-item-permalink" href="#Core_Compress_Deflate_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/deflate.swg#L1209">src</a></div>
 <p>Releases resources owned by this value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
@@ -26103,7 +26103,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.186</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.187</div>
 </footer>
 </section>
 </main>

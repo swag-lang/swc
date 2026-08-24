@@ -2264,7 +2264,16 @@ void MicroRegisterAllocationPass::queueRematerializedLoad(PendingInsert& out, Mi
     }
 }
 
-void MicroRegisterAllocationPass::queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth) const
+// The emitted spill slots bound a region of the frame that belongs to the allocator alone. A
+// post-RA pass reasoning about aliasing needs to know where it is: everything else in the frame
+// is a source object, which a pointer can be made to reach.
+void MicroRegisterAllocationPass::noteSpillAccess(const uint64_t offset, const MicroOpBits bits)
+{
+    spillAreaLo_ = std::min(spillAreaLo_, offset);
+    spillAreaHi_ = std::max(spillAreaHi_, offset + getNumBytes(bits));
+}
+
+void MicroRegisterAllocationPass::queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth)
 {
     out.op              = MicroInstrOpcode::LoadMemReg;
     out.numOps          = 4;
@@ -2272,9 +2281,10 @@ void MicroRegisterAllocationPass::queueSpillStore(PendingInsert& out, MicroReg p
     out.ops[1].reg      = physReg;
     out.ops[2].opBits   = regState.spillBits;
     out.ops[3].valueU64 = spillMemOffset(regState.spillOffset, stackDepth);
+    noteSpillAccess(out.ops[3].valueU64, regState.spillBits);
 }
 
-void MicroRegisterAllocationPass::queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth) const
+void MicroRegisterAllocationPass::queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth)
 {
     out.op              = MicroInstrOpcode::LoadRegMem;
     out.numOps          = 4;
@@ -2282,6 +2292,7 @@ void MicroRegisterAllocationPass::queueSpillLoad(PendingInsert& out, MicroReg ph
     out.ops[1].reg      = conv_->stackPointer;
     out.ops[2].opBits   = regState.spillBits;
     out.ops[3].valueU64 = spillMemOffset(regState.spillOffset, stackDepth);
+    noteSpillAccess(out.ops[3].valueU64, regState.spillBits);
 }
 
 bool MicroRegisterAllocationPass::spillOrRematerializeLiveValue(MicroReg physReg, VRegState& regState, int64_t stackDepth, std::vector<PendingInsert>& pending)
@@ -2752,6 +2763,7 @@ bool MicroRegisterAllocationPass::tryBorrowReservedRegister(const AllocRequest& 
         save.ops[1].reg      = reg;
         save.ops[2].opBits   = bits;
         save.ops[3].valueU64 = spillMemOffset(slotOffset, stackDepth);
+        noteSpillAccess(save.ops[3].valueU64, bits);
         pending.push_back(save);
 
         pendingBorrowRestores_.push_back({.physReg = reg, .slotOffset = slotOffset, .slotBits = bits, .atIndex = hi + 1});
@@ -3338,6 +3350,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             reload.ops[1].reg      = conv_->stackPointer;
             reload.ops[2].opBits   = restore.slotBits;
             reload.ops[3].valueU64 = spillMemOffset(restore.slotOffset, stackDepth);
+            noteSpillAccess(reload.ops[3].valueU64, restore.slotBits);
             insertPending(instructionRef, reload);
             pendingBorrowRestores_.erase(pendingBorrowRestores_.begin() + restoreIndex);
         }
@@ -3752,6 +3765,8 @@ void MicroRegisterAllocationPass::clearState()
     operands_         = nullptr;
     instructionCount_ = 0;
     spillFrameUsed_   = 0;
+    spillAreaLo_      = std::numeric_limits<uint64_t>::max();
+    spillAreaHi_      = 0;
     hasControlFlow_   = false;
     hasVirtualRegs_   = false;
     controlFlowGraph_ = nullptr;
@@ -3832,6 +3847,11 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     rewriteInstructions();
     flushQueuedErasures();
     insertSpillFrame();
+
+    // Merged, not assigned: the legalize/allocate loop runs this pass more than once and each
+    // sweep carves its own slots, all of them contiguous with the previous ones.
+    context.spillAreaLo = std::min(context.spillAreaLo, spillAreaLo_);
+    context.spillAreaHi = std::max(context.spillAreaHi, spillAreaHi_);
 
     return Result::Continue;
 }

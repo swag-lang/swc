@@ -325,6 +325,7 @@ namespace
                              const MicroInstrRef          headerRef,
                              const uint32_t               preheaderIndex,
                              const CallConv&              conv,
+                             const FrameRef&              privateArea,
                              std::vector<Carried>&        out)
     {
         const auto     instrRefs = cfg.instructionRefs();
@@ -429,6 +430,8 @@ namespace
         for (auto& [offset, use] : slots)
         {
             if (use.accesses != 2)
+                continue;
+            if (privateArea.lo < privateArea.hi && (offset < privateArea.lo || offset + getNumBytes(use.bits) > privateArea.hi))
                 continue;
             if (use.loadIndex == std::numeric_limits<uint32_t>::max() ||
                 use.storeIndex == std::numeric_limits<uint32_t>::max())
@@ -624,7 +627,8 @@ namespace
 
             // Classify the body once: every frame slot it writes, and whether it
             // does anything the slot analysis cannot account for.
-            bool                  bodyOpaque = false;
+            bool                  bodyOpaque          = false;
+            bool                  hasUnplaceableWrite = false;
             std::vector<FrameRef> writes;
             for (uint32_t i = 0; i < n && !bodyOpaque; ++i)
             {
@@ -660,20 +664,28 @@ namespace
                 FrameRef written;
                 if (!frameWriteRange(written, *inst, inst->ops(operands), conv))
                 {
-                    // A write this pass cannot place. When no pointer into the frame exists
-                    // it cannot be a frame write at all, so it constrains nothing; otherwise
-                    // it could land anywhere and the body stays opaque.
-                    if (!framePrivate)
-                    {
-                        bodyOpaque = true;
-                        break;
-                    }
+                    // A write this pass cannot place. It reaches nothing in the frame when no
+                    // pointer into the frame exists, and nothing in the allocator's own spill
+                    // area in any case - that area holds no source object, so no pointer can be
+                    // made to land in it. Outside those two, it could go anywhere.
+                    hasUnplaceableWrite = true;
                     continue;
                 }
                 writes.push_back(written);
             }
             if (bodyOpaque)
                 continue;
+
+            // What an unplaceable write leaves reachable, as a byte range a candidate slot has
+            // to fall inside. Empty means no restriction.
+            FrameRef privateArea;
+            if (hasUnplaceableWrite && !framePrivate)
+            {
+                if (context.spillAreaLo >= context.spillAreaHi)
+                    continue;
+                privateArea.lo = context.spillAreaLo;
+                privateArea.hi = context.spillAreaHi;
+            }
 
             for (uint32_t i = 0; i < n; ++i)
             {
@@ -694,6 +706,8 @@ namespace
                 if (!dst.isInt() && !dst.isFloat())
                     continue;
                 if (isFrameBaseRegister(dst, conv))
+                    continue;
+                if (privateArea.lo < privateArea.hi && (slot.lo < privateArea.lo || slot.hi > privateArea.hi))
                     continue;
 
                 bool aliased = false;
@@ -784,7 +798,7 @@ namespace
             // accumulator round-trips through the frame on every iteration; this
             // keeps it in its register for the whole loop and writes it back once
             // on the way out.
-            promoteCarriedSlots(storage, operands, cfg, liveness, *loop, headerRef, preheaderIndex, conv, carried);
+            promoteCarriedSlots(storage, operands, cfg, liveness, *loop, headerRef, preheaderIndex, conv, privateArea, carried);
         }
 
         if (hoists.empty() && carried.empty())

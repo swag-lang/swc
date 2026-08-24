@@ -8,6 +8,7 @@ class X64UnwindWindows final : public X64Unwind
 public:
     void buildInfo(ByteArray& outUnwindInfo, uint32_t codeSize) const override;
     void onInstructionEncoded(const MicroInstr& inst, const MicroInstrOperand* ops, uint32_t codeStartOffset, uint32_t codeEndOffset) override;
+    void setFrameRegister(MicroReg reg) override { abiFrameRegister_ = reg; }
 
 private:
     enum class UnwindOpKind : uint8_t
@@ -33,6 +34,7 @@ private:
     void closeProlog();
     bool canTrackInstruction(uint32_t codeEndOffset);
 
+    MicroReg              abiFrameRegister_         = MicroReg::invalid();
     bool                  unwindPrologClosed_       = false;
     bool                  unwindHasStackAllocation_ = false;
     bool                  unwindHasFrameRegister_   = false;

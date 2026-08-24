@@ -307,6 +307,11 @@ Result MicroEmitPass::run(MicroPassContext& context)
     auto&       encoder     = *(context.encoder);
     const auto& relocations = context.builder->codeRelocations();
 
+    // The unwind builder has to tell the frame register from the other copies of
+    // the stack pointer a prologue makes, and only the calling convention knows
+    // which one that is.
+    encoder.setUnwindFrameRegister(CallConv::get(context.callConvKind).framePointer);
+
     labelOffsets_.clear();
     pendingLabelJumps_.clear();
     relocationByInstructionRef_.clear();

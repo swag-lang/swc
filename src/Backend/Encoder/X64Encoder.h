@@ -43,6 +43,7 @@ protected:
     void encodeNop() override;
     void encodeBreakpoint() override;
     void encodeRet() override;
+    void setUnwindFrameRegister(MicroReg reg) override;
     void encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv) override;
     void encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, CallConvKind callConv) override;
     void encodeCallReg(MicroReg reg, CallConvKind callConv) override;

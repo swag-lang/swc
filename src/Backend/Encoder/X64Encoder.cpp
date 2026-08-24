@@ -1004,6 +1004,12 @@ void X64Encoder::buildUnwindInfo(ByteArray& outUnwindInfo) const
     unwind_->buildInfo(outUnwindInfo, size());
 }
 
+void X64Encoder::setUnwindFrameRegister(const MicroReg reg)
+{
+    SWC_ASSERT(unwind_);
+    unwind_->setFrameRegister(reg);
+}
+
 void X64Encoder::onInstructionEncoded(const MicroInstr& inst, const MicroInstrOperand* ops, const uint32_t codeStartOffset, const uint32_t codeEndOffset)
 {
     SWC_ASSERT(unwind_);

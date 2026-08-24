@@ -310,6 +310,146 @@ namespace InstructionCombine
         return true;
     }
 
+    namespace
+    {
+        // Walks back from `reg` at `atRef` through one optional single-use 64-bit copy, and
+        // reports the instruction that produced the value.
+        bool resolveThroughCopy(const Context& ctx, MicroReg reg, MicroInstrRef atRef, MicroInstrRef& outCopyRef, MicroSsaState::ReachingDef& outDef)
+        {
+            outCopyRef = MicroInstrRef::invalid();
+            outDef     = ctx.ssa->reachingDef(reg, atRef);
+            if (!outDef.valid() || outDef.isPhi || !outDef.inst)
+                return false;
+            if (outDef.inst->op != MicroInstrOpcode::LoadRegReg)
+                return true;
+
+            const MicroInstrOperand* copyOps = outDef.inst->ops(*ctx.operands);
+            if (!copyOps || copyOps[2].opBits != MicroOpBits::B64 || !copyOps[1].reg.isVirtualInt())
+                return true;
+            if (!valueHasSingleUse(*ctx.ssa, copyOps[0].reg, outDef.instRef))
+                return true;
+
+            const MicroInstrRef copyRef = outDef.instRef;
+            const auto          through = ctx.ssa->reachingDef(copyOps[1].reg, copyRef);
+            if (!through.valid() || through.isPhi || !through.inst)
+                return false;
+
+            outCopyRef = copyRef;
+            outDef     = through;
+            return true;
+        }
+
+        struct ScaledIndex
+        {
+            MicroReg      indexReg;
+            uint64_t      scale     = 0;
+            MicroInstrRef shiftRef  = MicroInstrRef::invalid();
+            MicroInstrRef afterCopy = MicroInstrRef::invalid();
+            MicroInstrRef inCopyRef = MicroInstrRef::invalid();
+        };
+
+        // Recognizes what a subscript of a two, four or eight byte element lowers to: a copy of
+        // the index, a shift of that copy, and a copy of the result into whatever the add works
+        // on. Every link has to be single-use, since the fold erases all three.
+        bool matchScaledIndex(ScaledIndex& out, const Context& ctx, MicroReg reg, MicroInstrRef atRef)
+        {
+            MicroSsaState::ReachingDef def;
+            if (!resolveThroughCopy(ctx, reg, atRef, out.afterCopy, def))
+                return false;
+            if (def.inst->op != MicroInstrOpcode::OpBinaryRegImm)
+                return false;
+
+            const MicroInstrOperand* shiftOps = def.inst->ops(*ctx.operands);
+            if (!shiftOps || shiftOps[1].opBits != MicroOpBits::B64 || shiftOps[2].microOp != MicroOp::ShiftLeft)
+                return false;
+            if (shiftOps[3].hasWideImmediateValue())
+                return false;
+
+            const uint64_t shiftAmount = shiftOps[3].valueU64;
+            if (shiftAmount < 1 || shiftAmount > 3)
+                return false;
+            if (!valueHasSingleUse(*ctx.ssa, shiftOps[0].reg, def.instRef))
+                return false;
+
+            // The shift is two-address, so the value it scales arrives through its own copy.
+            const auto shifted = ctx.ssa->reachingDef(shiftOps[0].reg, def.instRef);
+            if (!shifted.valid() || shifted.isPhi || !shifted.inst || shifted.inst->op != MicroInstrOpcode::LoadRegReg)
+                return false;
+
+            const MicroInstrOperand* inOps = shifted.inst->ops(*ctx.operands);
+            if (!inOps || inOps[2].opBits != MicroOpBits::B64 || !inOps[1].reg.isVirtualInt())
+                return false;
+            if (!valueHasSingleUse(*ctx.ssa, inOps[0].reg, shifted.instRef))
+                return false;
+            if (!sameValueAt(ctx, inOps[1].reg, shifted.instRef, atRef))
+                return false;
+
+            out.indexReg  = inOps[1].reg;
+            out.scale     = 1ull << shiftAmount;
+            out.shiftRef  = def.instRef;
+            out.inCopyRef = shifted.instRef;
+            return true;
+        }
+    }
+
+    // Fold a scaling shift and the add that follows it into one address:
+    //
+    //     idx2 = index; idx2 <<= K; sum = idx2; sum += base
+    //   ->
+    //     sum = &[base + index * (1 << K)]
+    //
+    // The shape every subscript of a two, four or eight byte element lowers to. Left alone it
+    // is four instructions and three dependent steps in front of the load that wants the
+    // address, where the machine has one instruction that does all of it.
+    bool tryFoldShiftAddIntoScaledAddress(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (!ctx.ssa || ctx.isClaimed(ref))
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[2].opBits != MicroOpBits::B64 || ops[3].microOp != MicroOp::Add)
+            return false;
+
+        const MicroReg dst = ops[0].reg;
+        const MicroReg src = ops[1].reg;
+        if (!dst.isVirtualInt() || !src.isVirtualInt() || dst == src)
+            return false;
+
+        // Either operand can be the scaled one; the other is the base.
+        for (uint32_t attempt = 0; attempt < 2; ++attempt)
+        {
+            const MicroReg scaledReg = attempt == 0 ? src : dst;
+            const MicroReg baseReg   = attempt == 0 ? dst : src;
+
+            ScaledIndex scaled;
+            if (!matchScaledIndex(scaled, ctx, scaledReg, ref))
+                continue;
+            if (scaled.indexReg == dst || scaled.indexReg == baseReg)
+                continue;
+
+            if (!ctx.claimAll({ref, scaled.shiftRef, scaled.inCopyRef}))
+                continue;
+            if (scaled.afterCopy.isValid() && !ctx.claimAll({scaled.afterCopy}))
+                continue;
+
+            MicroInstrOperand newOps[8] = {};
+            newOps[0].reg               = dst;
+            newOps[1].reg               = baseReg;
+            newOps[2].reg               = scaled.indexReg;
+            newOps[3].opBits            = MicroOpBits::B64;
+            newOps[4].opBits            = MicroOpBits::B64;
+            newOps[5].valueU64          = scaled.scale;
+            newOps[6].valueU64          = 0;
+            ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrAmcRegMem, std::span{newOps, 8}, true);
+            ctx.emitErase(scaled.shiftRef);
+            ctx.emitErase(scaled.inCopyRef);
+            if (scaled.afterCopy.isValid())
+                ctx.emitErase(scaled.afterCopy);
+            return true;
+        }
+
+        return false;
+    }
     // Fold `lea addr, [base + C]` into the displacement of a plain access:
     //
     //     LoadAddrRegMem addr, [base + C]

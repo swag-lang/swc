@@ -51,6 +51,13 @@ struct MicroPassContext
     MicroReg debugStackBaseVirtualReg = MicroReg::invalid();
     MicroReg debugStackBasePhysReg    = MicroReg::invalid();
 
+    // The byte range of the frame register allocation gave its own spill slots, as the emitted
+    // code addresses it. Those slots are the compiler's: no source object overlaps one and no
+    // pointer can be made to reach one, which is what lets a post-RA pass reason about them in a
+    // function whose other frame objects escape. Empty (lo >= hi) when nothing spilled.
+    uint64_t spillAreaLo = std::numeric_limits<uint64_t>::max();
+    uint64_t spillAreaHi = 0;
+
     // Shared use-def map for pre-RA optimization passes.
     // Built once at the start of the optimization loop, invalidated when a pass mutates the IR.
     MicroUseDefMap* useDefMap = nullptr;

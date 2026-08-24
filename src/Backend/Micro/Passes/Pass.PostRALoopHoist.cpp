@@ -159,7 +159,7 @@ namespace
         MicroInstrRef loadRef;
         MicroInstrRef storeRef;
         MicroInstrRef seedBeforeRef;  // insert the seeding load before this, or invalid if not needed
-        MicroInstrRef writeBackAfter; // insert the write-back after this
+        MicroInstrRef writeBackBefore; // insert the write-back before this
         MicroReg      reg;
         MicroReg      base;
         uint64_t      offset = 0;
@@ -325,6 +325,7 @@ namespace
                              const MicroInstrRef          headerRef,
                              const uint32_t               preheaderIndex,
                              const CallConv&              conv,
+                             const FrameRef&              privateArea,
                              std::vector<Carried>&        out)
     {
         const auto     instrRefs = cfg.instructionRefs();
@@ -355,9 +356,23 @@ namespace
                 return;
         }
 
-        const MicroInstrRef writeBackAfter = instrRefs[exitTarget];
-        if (!storage.findNextInstructionRef(writeBackAfter).isValid())
+        // The write-back belongs at the start of the exit block. When the loop leaves through a
+        // label, that start is after the label, since every edge into the block passes it. When
+        // it leaves by falling through onto an ordinary instruction the block starts at that
+        // instruction, and placing the store after it puts the store past whatever that
+        // instruction is - past an unconditional jump, nothing ever runs it, and the loop's
+        // result is silently left in the register it was promoted into.
+        const MicroInstr* exitInst = storage.ptr(instrRefs[exitTarget]);
+        if (!exitInst)
             return;
+
+        MicroInstrRef writeBackBefore = instrRefs[exitTarget];
+        if (exitInst->op == MicroInstrOpcode::Label)
+        {
+            writeBackBefore = storage.findNextInstructionRef(writeBackBefore);
+            if (!writeBackBefore.isValid())
+                return;
+        }
 
         // Index every constant-offset frame access of the body by slot.
         struct SlotUse
@@ -415,6 +430,8 @@ namespace
         for (auto& [offset, use] : slots)
         {
             if (use.accesses != 2)
+                continue;
+            if (privateArea.lo < privateArea.hi && (offset < privateArea.lo || offset + getNumBytes(use.bits) > privateArea.hi))
                 continue;
             if (use.loadIndex == std::numeric_limits<uint32_t>::max() ||
                 use.storeIndex == std::numeric_limits<uint32_t>::max())
@@ -479,7 +496,7 @@ namespace
             out.push_back({.loadRef        = instrRefs[use.loadIndex],
                            .storeRef       = instrRefs[use.storeIndex],
                            .seedBeforeRef  = seedBefore,
-                           .writeBackAfter = writeBackAfter,
+                           .writeBackBefore = writeBackBefore,
                            .reg            = use.reg,
                            .base           = use.base,
                            .offset         = offset,
@@ -610,7 +627,8 @@ namespace
 
             // Classify the body once: every frame slot it writes, and whether it
             // does anything the slot analysis cannot account for.
-            bool                  bodyOpaque = false;
+            bool                  bodyOpaque          = false;
+            bool                  hasUnplaceableWrite = false;
             std::vector<FrameRef> writes;
             for (uint32_t i = 0; i < n && !bodyOpaque; ++i)
             {
@@ -646,20 +664,28 @@ namespace
                 FrameRef written;
                 if (!frameWriteRange(written, *inst, inst->ops(operands), conv))
                 {
-                    // A write this pass cannot place. When no pointer into the frame exists
-                    // it cannot be a frame write at all, so it constrains nothing; otherwise
-                    // it could land anywhere and the body stays opaque.
-                    if (!framePrivate)
-                    {
-                        bodyOpaque = true;
-                        break;
-                    }
+                    // A write this pass cannot place. It reaches nothing in the frame when no
+                    // pointer into the frame exists, and nothing in the allocator's own spill
+                    // area in any case - that area holds no source object, so no pointer can be
+                    // made to land in it. Outside those two, it could go anywhere.
+                    hasUnplaceableWrite = true;
                     continue;
                 }
                 writes.push_back(written);
             }
             if (bodyOpaque)
                 continue;
+
+            // What an unplaceable write leaves reachable, as a byte range a candidate slot has
+            // to fall inside. Empty means no restriction.
+            FrameRef privateArea;
+            if (hasUnplaceableWrite && !framePrivate)
+            {
+                if (context.spillAreaLo >= context.spillAreaHi)
+                    continue;
+                privateArea.lo = context.spillAreaLo;
+                privateArea.hi = context.spillAreaHi;
+            }
 
             for (uint32_t i = 0; i < n; ++i)
             {
@@ -680,6 +706,8 @@ namespace
                 if (!dst.isInt() && !dst.isFloat())
                     continue;
                 if (isFrameBaseRegister(dst, conv))
+                    continue;
+                if (privateArea.lo < privateArea.hi && (slot.lo < privateArea.lo || slot.hi > privateArea.hi))
                     continue;
 
                 bool aliased = false;
@@ -770,7 +798,7 @@ namespace
             // accumulator round-trips through the frame on every iteration; this
             // keeps it in its register for the whole loop and writes it back once
             // on the way out.
-            promoteCarriedSlots(storage, operands, cfg, liveness, *loop, headerRef, preheaderIndex, conv, carried);
+            promoteCarriedSlots(storage, operands, cfg, liveness, *loop, headerRef, preheaderIndex, conv, privateArea, carried);
         }
 
         if (hoists.empty() && carried.empty())
@@ -811,17 +839,14 @@ namespace
                 storage.insertDerivedBefore(operands, promo.seedBeforeRef, MicroInstrOpcode::LoadRegMem, std::span(seedOps, 4));
             }
 
-            // Write it back once, on the single instruction every exit reaches.
-            const MicroInstrRef afterRef = storage.findNextInstructionRef(promo.writeBackAfter);
-            if (!afterRef.isValid())
-                continue;
+            // Write it back once, at the start of the block every exit reaches.
 
             MicroInstrOperand backOps[4] = {};
             backOps[0].reg               = promo.base;
             backOps[1].reg               = promo.reg;
             backOps[2].opBits            = promo.bits;
             backOps[3].valueU64          = promo.offset;
-            storage.insertDerivedBefore(operands, afterRef, MicroInstrOpcode::LoadMemReg, std::span(backOps, 4));
+            storage.insertDerivedBefore(operands, promo.writeBackBefore, MicroInstrOpcode::LoadMemReg, std::span(backOps, 4));
 
             storage.erase(promo.loadRef);
             storage.erase(promo.storeRef);

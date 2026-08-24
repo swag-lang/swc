@@ -190,8 +190,9 @@ private:
     static void      setRematerializedImmediate(VRegState& regState, const MicroInstrOperand& immediate, MicroOpBits opBits);
     static uint64_t  spillMemOffset(uint64_t spillOffset, int64_t stackDepth);
     static void      queueRematerializedLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState);
-    void             queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth) const;
-    void             queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth) const;
+    void             noteSpillAccess(uint64_t offset, MicroOpBits bits);
+    void             queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth);
+    void             queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth);
     bool             spillOrRematerializeLiveValue(MicroReg physReg, VRegState& regState, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void             updateRematerializationForDef(VRegState& regState, MicroReg virtKey, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* instOps) const;
     static void      noteRematDefConsumed(VRegState& regState);
@@ -232,6 +233,8 @@ private:
 
     uint32_t instructionCount_ = 0;
     uint64_t spillFrameUsed_   = 0;
+    uint64_t spillAreaLo_      = std::numeric_limits<uint64_t>::max();
+    uint64_t spillAreaHi_      = 0;
     bool     hasControlFlow_   = false;
     bool     hasVirtualRegs_   = false;
 
@@ -258,6 +261,12 @@ private:
     // instruction index; entries pair a dense virtual index with the physical
     // register it occupied on that edge.
     using BoundarySnapshot = SmallVector<std::pair<uint32_t, MicroReg>, 8>;
+
+    // The register each value held on the last control-flow edge that recorded one. Consulted
+    // as a preference when a value is given a register again, so the two arms of a diamond
+    // tend to leave it in the same place and the join can keep the mapping instead of dropping
+    // it. A hint only: the register still has to be free and allowed where it is taken.
+    std::vector<MicroReg> edgeRegisterHint_;
     std::unordered_map<uint32_t, BoundarySnapshot> boundarySnapshots_;
     bool                                           keepAcrossBoundaries_ = false;
     std::vector<uint32_t>                          virtualSpanLo_;

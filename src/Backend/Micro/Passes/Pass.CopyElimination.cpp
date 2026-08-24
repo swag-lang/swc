@@ -66,12 +66,55 @@ namespace
                inst.op == MicroInstrOpcode::LoadRegReg;
     }
 
-    bool isExactVirtualIntCopy(const MicroInstr& inst, const MicroInstrOperand* ops)
+    // Whether the instruction leaves the top half of its destination register clear.
+    //
+    // A 32-bit write does on x86-64, which is what makes a 32-bit copy forwardable: the copy
+    // itself clears that half, so reading the source instead of the destination is only the same
+    // value when the source has it clear too. Everything not listed here answers no, including
+    // the sign-extending forms and the eight-bit ones that preserve what was already there.
+    bool definesZeroHighBits(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        if (!ops)
+            return false;
+
+        switch (inst.op)
+        {
+            // The width operand sits at a different index per opcode; each of these is the one
+            // that governs the destination register.
+            case MicroInstrOpcode::ClearReg:
+            case MicroInstrOpcode::LoadRegImm:
+            case MicroInstrOpcode::OpUnaryReg:
+            case MicroInstrOpcode::OpBinaryRegImm:
+                return ops[1].opBits == MicroOpBits::B32;
+
+            case MicroInstrOpcode::LoadRegReg:
+            case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::OpBinaryRegReg:
+            case MicroInstrOpcode::OpBinaryRegMem:
+                return ops[2].opBits == MicroOpBits::B32;
+
+            case MicroInstrOpcode::LoadAmcRegMem:
+            case MicroInstrOpcode::LoadCondRegReg:
+                return ops[3].opBits == MicroOpBits::B32;
+
+            // A zero-extension writes the whole register with the top half clear whatever the
+            // width it reads.
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+            case MicroInstrOpcode::LoadZeroExtRegMem:
+            case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    bool isVirtualIntCopy(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         return isCopyInstruction(inst, ops) &&
                ops[0].reg.isVirtualInt() &&
                ops[1].reg.isVirtualInt() &&
-               ops[2].opBits == MicroOpBits::B64;
+               (ops[2].opBits == MicroOpBits::B64 || ops[2].opBits == MicroOpBits::B32);
     }
 
     bool isSelfCopy(const MicroInstr& inst, const MicroInstrOperand* ops)
@@ -102,7 +145,7 @@ namespace
         if (!ops)
             return false;
 
-        if (!isExactVirtualIntCopy(*inst, ops))
+        if (!isVirtualIntCopy(*inst, ops))
         {
             outValue.reg     = valueInfo.reg;
             outValue.valueId = valueId;
@@ -116,6 +159,18 @@ namespace
         const auto rootReachingDef = context.ssaState->reachingDef(srcValue.reg, valueInfo.instRef);
         if (!rootReachingDef.valid() || rootReachingDef.valueId != srcValue.valueId)
             return false;
+
+        // A 32-bit copy is only the same value as its source when the source already has its top
+        // half clear. Most of the copies the front end emits are 32 bits, and refusing all of
+        // them left a third of a hot function in register-to-register moves that also cost the
+        // allocator one live value each.
+        if (ops[2].opBits != MicroOpBits::B64)
+        {
+            if (rootReachingDef.isPhi || !rootReachingDef.inst)
+                return false;
+            if (!definesZeroHighBits(*rootReachingDef.inst, rootReachingDef.inst->ops(*context.operands)))
+                return false;
+        }
 
         outValue = srcValue;
         return true;

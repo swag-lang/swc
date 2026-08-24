@@ -37,6 +37,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldConstBinaryRhs);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryCommuteConstantLhs);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFuseInPlaceUpdate);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldShiftAddIntoScaledAddress);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryFuseInPlaceUpdate);
         r.add(MicroInstrOpcode::OpBinaryRegMem, tryFuseInPlaceUpdate);
         r.add(MicroInstrOpcode::LoadRegMem, tryMemoryFoldTriple);

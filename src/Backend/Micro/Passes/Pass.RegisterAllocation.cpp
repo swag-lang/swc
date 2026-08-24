@@ -2264,7 +2264,16 @@ void MicroRegisterAllocationPass::queueRematerializedLoad(PendingInsert& out, Mi
     }
 }
 
-void MicroRegisterAllocationPass::queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth) const
+// The emitted spill slots bound a region of the frame that belongs to the allocator alone. A
+// post-RA pass reasoning about aliasing needs to know where it is: everything else in the frame
+// is a source object, which a pointer can be made to reach.
+void MicroRegisterAllocationPass::noteSpillAccess(const uint64_t offset, const MicroOpBits bits)
+{
+    spillAreaLo_ = std::min(spillAreaLo_, offset);
+    spillAreaHi_ = std::max(spillAreaHi_, offset + getNumBytes(bits));
+}
+
+void MicroRegisterAllocationPass::queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth)
 {
     out.op              = MicroInstrOpcode::LoadMemReg;
     out.numOps          = 4;
@@ -2272,9 +2281,10 @@ void MicroRegisterAllocationPass::queueSpillStore(PendingInsert& out, MicroReg p
     out.ops[1].reg      = physReg;
     out.ops[2].opBits   = regState.spillBits;
     out.ops[3].valueU64 = spillMemOffset(regState.spillOffset, stackDepth);
+    noteSpillAccess(out.ops[3].valueU64, regState.spillBits);
 }
 
-void MicroRegisterAllocationPass::queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth) const
+void MicroRegisterAllocationPass::queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth)
 {
     out.op              = MicroInstrOpcode::LoadRegMem;
     out.numOps          = 4;
@@ -2282,6 +2292,7 @@ void MicroRegisterAllocationPass::queueSpillLoad(PendingInsert& out, MicroReg ph
     out.ops[1].reg      = conv_->stackPointer;
     out.ops[2].opBits   = regState.spillBits;
     out.ops[3].valueU64 = spillMemOffset(regState.spillOffset, stackDepth);
+    noteSpillAccess(out.ops[3].valueU64, regState.spillBits);
 }
 
 bool MicroRegisterAllocationPass::spillOrRematerializeLiveValue(MicroReg physReg, VRegState& regState, int64_t stackDepth, std::vector<PendingInsert>& pending)
@@ -2524,7 +2535,7 @@ MicroRegisterAllocationPass::FreePools MicroRegisterAllocationPass::pickFreePool
     // No callee-saved fallback for an ordinary float: every nonvolatile float
     // taken costs the prologue a 16-byte store/load pair, which a short-lived
     // value never repays. Momentary pressure is better served by evicting a
-    // caller-saved mapping â€” the class floor keeps enough of them hull-free.
+    // caller-saved mapping - the class floor keeps enough of them hull-free.
     return FreePools{&freeFloatTransient_, nullptr};
 }
 
@@ -2752,6 +2763,7 @@ bool MicroRegisterAllocationPass::tryBorrowReservedRegister(const AllocRequest& 
         save.ops[1].reg      = reg;
         save.ops[2].opBits   = bits;
         save.ops[3].valueU64 = spillMemOffset(slotOffset, stackDepth);
+        noteSpillAccess(save.ops[3].valueU64, bits);
         pending.push_back(save);
 
         pendingBorrowRestores_.push_back({.physReg = reg, .slotOffset = slotOffset, .slotBits = bits, .atIndex = hi + 1});
@@ -3197,7 +3209,11 @@ void MicroRegisterAllocationPass::flushAtBoundary(const uint32_t instructionInde
         BoundarySnapshot& snapshot = boundarySnapshots_[instructionIndex];
         snapshot.clear();
         for (const uint32_t denseIndex : mappedVirtualIndices_)
+        {
             snapshot.push_back({denseIndex, states_[denseIndex].phys});
+            if (denseIndex < edgeRegisterHint_.size())
+                edgeRegisterHint_[denseIndex] = states_[denseIndex].phys;
+        }
     }
 }
 
@@ -3275,6 +3291,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     // kept register silently wrong. When the gate is off, every boundary
     // falls back to the full flush.
     boundarySnapshots_.clear();
+    edgeRegisterHint_.assign(denseVirtualRegs_.regs().size(), MicroReg::invalid());
     keepAcrossBoundaries_ = hasControlFlow_ &&
                             controlFlowGraph_ != nullptr &&
                             !controlFlowGraph_->hasUnsupportedControlFlowForCfgLiveness() &&
@@ -3338,6 +3355,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             reload.ops[1].reg      = conv_->stackPointer;
             reload.ops[2].opBits   = restore.slotBits;
             reload.ops[3].valueU64 = spillMemOffset(restore.slotOffset, stackDepth);
+            noteSpillAccess(reload.ops[3].valueU64, restore.slotBits);
             insertPending(instructionRef, reload);
             pendingBorrowRestores_.erase(pendingBorrowRestores_.begin() + restoreIndex);
         }
@@ -3446,6 +3464,20 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 request.transferSource = srcReg;
             else if (srcReg.isInt() || srcReg.isFloat())
                 request.preferredPhysReg = srcReg;
+        }
+
+        // Failing anything better, put a value back where the last edge left it. The two arms of
+        // a diamond otherwise pick freely, the join finds them disagreeing and drops the mapping,
+        // and the value both arms just computed goes to memory and comes back. A value that a
+        // copy can keep in its source register is left alone: outranking that transfer was
+        // measured to change nothing, so the cheaper rule stands.
+        for (auto& request : allocRequests)
+        {
+            if (request.preferredPhysReg.isValid() || request.transferSource.isValid())
+                continue;
+            const uint32_t denseIndex = denseVirtualIndex(request.virtKey);
+            if (denseIndex < edgeRegisterHint_.size() && edgeRegisterHint_[denseIndex].isValid())
+                request.preferredPhysReg = edgeRegisterHint_[denseIndex];
         }
 
         std::ranges::stable_sort(allocRequests, compareAllocRequests);
@@ -3752,6 +3784,8 @@ void MicroRegisterAllocationPass::clearState()
     operands_         = nullptr;
     instructionCount_ = 0;
     spillFrameUsed_   = 0;
+    spillAreaLo_      = std::numeric_limits<uint64_t>::max();
+    spillAreaHi_      = 0;
     hasControlFlow_   = false;
     hasVirtualRegs_   = false;
     controlFlowGraph_ = nullptr;
@@ -3832,6 +3866,11 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     rewriteInstructions();
     flushQueuedErasures();
     insertSpillFrame();
+
+    // Merged, not assigned: the legalize/allocate loop runs this pass more than once and each
+    // sweep carves its own slots, all of them contiguous with the previous ones.
+    context.spillAreaLo = std::min(context.spillAreaLo, spillAreaLo_);
+    context.spillAreaHi = std::max(context.spillAreaHi, spillAreaHi_);
 
     return Result::Continue;
 }

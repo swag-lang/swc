@@ -30,13 +30,20 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 //
 // `cogliati-turning-pages.avi` was written by a Canon camera and nothing here matches what this
 // module produces: its frames are 4:2:2 Motion JPEG with restart intervals and no Huffman table
-// of their own, it interleaves a PCM audio stream this module has no use for, and its header
-// list carries chunks this decoder never heard of.
+// of their own, it interleaves a PCM audio stream, and its header list carries chunks this
+// decoder does not otherwise need.
 #test
 {
     var reader = expect Reader.open(videoFixturePath("cogliati-turning-pages.avi"))
     @assert(reader.width() == 160 and reader.height() == 120)
     @assert(reader.frameCount() == 233)
+    @assert(reader.audioTrackCount() == 1)
+
+    let sound = reader.audioTrack(0)!
+    @assert(sound.sampleEncoding() == .Pcm8 and sound.sampleRateHz() == 11_024 and sound.numChannels() == 1)
+    @assert(sound.sampleFrameCount() == 171_240 and sound.payloadSize() == 171_240 and sound.isPacketStream())
+    let crossing = expect sound.readPayload(11_020, 8)
+    @assert(Slice.equals(crossing.toSlice(), [127'u8, 127, 127, 126, 126, 125, 125, 125]))
 
     // The camera states its rate as 1000000/66666 rather than 15/1, and the decoder keeps what
     // the file says instead of rounding it to the rate the camera meant.
@@ -179,6 +186,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     @assert(reader.width() == Size and reader.height() == Size)
     @assert(reader.frameRate() == rate)
     @assert(reader.frameCount() == 2)
+    @assert(reader.audioTrackCount() == 0)
     @assert(reader.streamFormat().extensions == ".avi")
     @assert(Math.isEqualEpsilon(reader.durationInSeconds(), 2.0 / 30.0, 0.0001))
 

@@ -30,17 +30,17 @@ enum SoundFileEncoding
     AacLc       // MPEG-4 AAC Low Complexity access units.
 }
 
-// Locates one indexed compressed access unit in a source file.
+// Locates one indexed packet or chunk in a source file.
 //
-// Packet payloads need not be contiguous. `sampleFrameCount` is the number of
-// decoded sample frames contributed by the packet, across all interleaved
-// channels. Packet order is playback order.
+// Payloads need not be contiguous. `sampleFrameCount` is the number of decoded
+// sample frames contributed by the packet, across all interleaved channels.
+// Packet order is playback order.
 struct SoundPacket
 {
     public
     {
         sourceOffset:     u64     // Absolute byte offset of the packet payload in the source file.
-        byteSize:         u32     // Compressed payload size in bytes.
+        byteSize:         u32     // Packet or chunk payload size in bytes.
         sampleFrameCount: u32     // Decoded sample frames contributed by this packet.
     }
 }
@@ -57,7 +57,7 @@ struct SoundFile
     {
         path:          String                // Source path used for deferred streaming reads.
         data:          Array'u8              // Prefetched payload bytes in [[Audio.SoundFile.sampleEncoding]].
-        packets:       Array'SoundPacket     // Compressed access units, empty for a byte stream.
+        packets:       Array'SoundPacket     // Indexed source packets or chunks, empty for one contiguous byte stream.
         packetStarts:  Array'u64             // Decoded sample-frame start of every packet.
         decoderConfig: Array'u8              // Codec initialization bytes copied from the container.
 
@@ -94,7 +94,10 @@ impl SoundFile
     // Returns whether this source is made of independently indexed packets.
     mtd const isPacketStream()->bool => .packets.count != 0
 
-    // Returns the number of compressed packets in this source.
+    // Returns whether indexed packets need the compressed packet codec.
+    internal mtd const usesPacketCodec()->bool => .encoding == .AacLc and .packets.count != 0
+
+    // Returns the number of indexed packets or chunks in this source.
     mtd const packetCount()->u64 => .packets.count
 
     // Returns packet `index` in playback order.
@@ -135,7 +138,7 @@ impl SoundFile
                     let readSize   = Math.min(available, wanted - written)
                     stream.seek(.Begin, packet.sourceOffset + packetSkip)
                     if stream.read(result.buffer! + written, readSize) != readSize do
-                        fail InvalidFormatError{"compressed sound packet is truncated"}
+                        fail InvalidFormatError{"sound packet or chunk is truncated"}
                     written       += readSize
                     logicalOffset += readSize
                 }
@@ -262,6 +265,69 @@ impl SoundFile
         result.dataSize        = payloadBytes
         result.durationSeconds = cast(f32) frameCount / cast(f32) sampleRateHz
         result.availableFields = .Format | .SampleRate | .ChannelCount | .SpeakerMask | .BitsPerSample | .ValidBitsPerSample | .Duration | .FrameCount | .Data
+        return result
+    }
+
+    // Creates a streamed PCM sound from a container's chunk index.
+    //
+    // The chunk table is copied, while sample bytes stay in `path` and are read only as playback
+    // reaches them. Every chunk must hold complete interleaved sample frames in playback order.
+    // Supported encodings are 8-, 16-, 24-, and 32-bit integer PCM.
+    func openPcmPacketStream(path: string, encoding: SoundFileEncoding, sampleRateHz, channels: u32, packets: const [..] SoundPacket)->SoundFile fail
+    {
+        var bitsPerSample: u32
+        switch encoding
+        {
+        case .Pcm8:  bitsPerSample = 8
+        case .Pcm16: bitsPerSample = 16
+        case .Pcm24: bitsPerSample = 24
+        case .Pcm32: bitsPerSample = 32
+        default:     fail UnsupportedFormatError{"packetized PCM stream only supports 8-, 16-, 24-, and 32-bit integer PCM"}
+        }
+
+        if !sampleRateHz or !channels do
+            fail BadParameterError{"packetized PCM needs channels and a non-zero sample rate"}
+        if !@countof(packets) do
+            fail BadParameterError{"packetized PCM needs source chunks"}
+        let bytesPerFrame = cast(u64) channels * cast(u64) (bitsPerSample / 8)
+        var stream        = File.openRead(path)
+        let sourceSize    = stream.size()
+
+        var result: retval
+        result.path               = path
+        result.encoding           = encoding
+        result.sampleRate         = sampleRateHz
+        result.channelCount       = channels
+        result.bitsPerSample      = bitsPerSample
+        result.validBitsPerSample = cast(u16) bitsPerSample
+        if channels == 1 do
+            result.waveSpeakerMask = 4
+        elif channels == 2 do
+            result.waveSpeakerMask = 3
+        result.packets.reserve(@countof(packets))
+        result.packetStarts.reserve(@countof(packets))
+
+        for packet in packets
+        {
+            if !packet.byteSize or !packet.sampleFrameCount do
+                fail BadParameterError{"PCM source chunks need non-zero byte and sample-frame counts"}
+            if packet.sourceOffset > sourceSize or cast(u64) packet.byteSize > sourceSize - packet.sourceOffset do
+                fail InvalidFormatError{"PCM source chunk runs past the end of its source file"}
+            if cast(u64) packet.sampleFrameCount > Swag.U64.Max / bytesPerFrame or cast(u64) packet.sampleFrameCount * bytesPerFrame != packet.byteSize do
+                fail InvalidFormatError{"PCM source chunk size does not match its sample-frame count"}
+            if result.frameCount > Swag.U64.Max - packet.sampleFrameCount or result.dataSize > Swag.U64.Max - packet.byteSize do
+                fail OverflowError{"packetized PCM stream exceeds the supported size"}
+
+            result.packetStarts.add(result.frameCount)
+            result.packets.add(packet)
+            result.frameCount += packet.sampleFrameCount
+            result.dataSize   += packet.byteSize
+        }
+
+        result.durationSeconds = cast(f32) result.frameCount / cast(f32) sampleRateHz
+        result.availableFields = .Format | .SampleRate | .ChannelCount | .BitsPerSample | .ValidBitsPerSample | .Duration | .FrameCount | .Data
+        if result.waveSpeakerMask do
+            result.availableFields |= .SpeakerMask
         return result
     }
 }

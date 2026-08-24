@@ -1,7 +1,7 @@
 /*
 Audio streams decoded sound through a process-wide audio engine. It loads PCM and floating-point
-WAV files directly, and container readers can expose indexed AAC-LC access units without copying
-their media payload.
+WAV files directly, and container readers can expose indexed AAC-LC access units or scattered PCM
+chunks without copying their media payload.
 
 The high-level API revolves around three objects: [[Audio.SoundFile]] describes
 decoded or streamable source data, [[Audio.Voice]] controls one playback

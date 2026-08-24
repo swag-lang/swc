@@ -23,7 +23,7 @@ impl Voice
     {
         let file   = .file!
         var target = Math.max(cast(u64) file.sampleRate / 10 * .decodedBytesPerFrame(), 1)
-        if file.packets.count
+        if file.usesPacketCodec()
         {
             let firstPacket = file.packets[Math.min(.streamPacketIdx, file.packets.count - 1)]
             target = Math.max(target, cast(u64) firstPacket.sampleFrameCount * .decodedBytesPerFrame())
@@ -36,7 +36,7 @@ impl Voice
     {
         let file = .file!
 
-        if file.packets.count
+        if file.usesPacketCodec()
         {
             if .streamPacketIdx >= file.packets.count
             {
@@ -248,6 +248,9 @@ impl Voice
 
         var wantedLength = length
 
+        if file.packets.count do
+            return .readPacketBytes(destBuffer, wantedLength)
+
         // First take from the prefetched buffer if there's something there, instead of reading
         // from the file.
         if .streamCurSeek < file.data.count
@@ -271,6 +274,56 @@ impl Voice
         .stream.seek(.Begin, file.dataOffset + .streamCurSeek)
         wantedLength = Math.min(wantedLength, file.dataSize - .streamCurSeek)
         return .stream.read(destBuffer, wantedLength)
+    }
+
+    // Reads a logical byte range from PCM chunks that are scattered through a container.
+    mtd readPacketBytes(destBuffer: [*] void, length: u64)->u64 fail
+    {
+        let file          = .file!
+        let bytesPerFrame = cast(u64) file.channelCount * cast(u64) (file.bitsPerSample / 8)
+        var written       = 0'u64
+        var logicalOffset = .streamCurSeek
+        var low           = 0'u64
+        var high          = file.packetStarts.count
+
+        let targetFrame = logicalOffset / bytesPerFrame
+        while low + 1 < high
+        {
+            let middle = low + (high - low) / 2
+            if file.packetStarts[middle] <= targetFrame do
+                low = middle
+            else do
+                high = middle
+        }
+
+        var packetIndex = low
+
+        if !.stream.isOpen() do
+            .stream = File.open(file.path, File.FileMode.Open, File.FileAccess.Read, File.FileShare.Read)
+
+        while written < length and packetIndex < file.packets.count
+        {
+            let packet      = file.packets[packetIndex]
+            let packetStart = file.packetStarts[packetIndex] * bytesPerFrame
+            let packetEnd   = packetStart + packet.byteSize
+            if logicalOffset >= packetEnd
+            {
+                packetIndex += 1
+                continue
+            }
+
+            let packetSkip = logicalOffset - packetStart
+            let readSize   = Math.min(cast(u64) packet.byteSize - packetSkip, length - written)
+            .stream.seek(.Begin, packet.sourceOffset + packetSkip)
+            if .stream.read(cast([*] u8) destBuffer + written, readSize) != readSize do
+                fail InvalidFormatError{"PCM source chunk is truncated"}
+            written       += readSize
+            logicalOffset += readSize
+            if logicalOffset == packetEnd do
+                packetIndex += 1
+        }
+
+        return written
     }
 
     mtd rewindData() fail

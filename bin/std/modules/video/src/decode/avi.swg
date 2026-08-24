@@ -1,6 +1,6 @@
 #global namespace Avi
 
-using Core, Core.Errors, Pixel
+using Core, Core.Errors, Pixel, Audio
 
 // Builds the 32-bit value a RIFF file stores for a four-character identifier.
 //
@@ -21,6 +21,10 @@ const StreamHeaderId = fourCc('s'u32, 't'u32, 'r'u32, 'h'u32)
 const StreamFormatId = fourCc('s'u32, 't'u32, 'r'u32, 'f'u32)
 const IndexId        = fourCc('i'u32, 'd'u32, 'x'u32, '1'u32)
 const VideoStreamId  = fourCc('v'u32, 'i'u32, 'd'u32, 's'u32)
+const AudioStreamId  = fourCc('a'u32, 'u'u32, 'd'u32, 's'u32)
+
+// WAVE format tag used by uncompressed integer PCM streams.
+private const PcmFormatTag = 1'u16
 
 // Identifier of the list an OpenDML file groups its frames into.
 private const RecordListId = fourCc('r'u32, 'e'u32, 'c'u32, ' 'u32)
@@ -109,6 +113,20 @@ struct StreamHeader
 
 #assert(#sizeof(StreamHeader) == 56)
 
+// Layout of the base WAVE format structure carried by an audio `strf` chunk.
+#[Swag.Pack(1)]
+private struct AudioFormat
+{
+    formatTag:     u16
+    channels:      u16
+    sampleRate:    u32
+    averageBytes:  u32
+    blockAlign:    u16
+    bitsPerSample: u16
+}
+
+#assert(#sizeof(AudioFormat) == 16)
+
 // One chunk header: what it identifies, where its payload lies, and where the next one starts.
 private struct Chunk
 {
@@ -125,17 +143,25 @@ private struct FrameEntry
     size:   u64     // Length of the payload, in bytes; zero for a frame that repeats the previous one.
 }
 
+// One playable audio stream found in the AVI header.
+private struct AudioTrack
+{
+    format:      AudioFormat
+    streamIndex: u32
+}
+
 // What walking the container found, before it is turned into a stream description.
 private struct Layout
 {
-    main:        MainHeader       // Contents of the `avih` chunk.
-    stream:      StreamHeader     // Stream header of the first video stream.
-    format:      Bmp.Header       // Bitmap header describing the frames of that stream.
-    frameList:   u64              // Offset of the `movi` identifier.
-    frameEnd:    u64              // Offset just past the frames of the `movi` list.
-    indexStart:  u64              // Offset of the `idx1` payload, or zero when the file has none.
-    indexSize:   u64              // Length of the `idx1` payload, in bytes.
-    streamIndex: u32              // Ordinal of the video stream among the streams of the file.
+    main:        MainHeader           // Contents of the `avih` chunk.
+    stream:      StreamHeader         // Stream header of the first video stream.
+    format:      Bmp.Header           // Bitmap header describing the frames of that stream.
+    frameList:   u64                  // Offset of the `movi` identifier.
+    frameEnd:    u64                  // Offset just past the frames of the `movi` list.
+    indexStart:  u64                  // Offset of the `idx1` payload, or zero when the file has none.
+    indexSize:   u64                  // Length of the `idx1` payload, in bytes.
+    streamIndex: u32                  // Ordinal of the video stream among the streams of the file.
+    audioTracks: Array'AudioTrack     // Playable PCM streams, in declaration order.
     hasMain:     bool
     hasStream:   bool
 }
@@ -252,11 +278,12 @@ private impl Layout
         }
     }
 
-    // Reads one `strl` list, keeping the first video stream the file declares.
+    // Reads one `strl` list, keeping the first video stream and every playable audio stream.
     mtd parseStreamList(source: *Source, end: u64, index: u32) fail
     {
         var header:    StreamHeader
         var hasHeader: bool
+        var hasAudio:  bool
 
         while source.position() + ChunkHeaderSize <= end
         {
@@ -275,6 +302,15 @@ private impl Layout
                 .stream      = header
                 .streamIndex = index
                 .hasStream   = true
+            }
+            elif chunk.id == StreamFormatId and hasHeader and !hasAudio and header.kind == AudioStreamId and chunk.size >= #sizeof(AudioFormat)
+            {
+                let format = readValue'AudioFormat(source)
+                if format.isPlayable()
+                {
+                    .audioTracks.add({format, index})
+                    hasAudio = true
+                }
             }
 
             source.seek(chunk.next)
@@ -295,6 +331,35 @@ private impl Layout
     }
 }
 
+private impl AudioFormat
+{
+    // Reports whether std/audio can stream this interleaved AVI format without conversion.
+    mtd const isPlayable()->bool
+    {
+        if .formatTag != PcmFormatTag or !.channels or !.sampleRate do
+            return false
+        if .bitsPerSample != 8 and .bitsPerSample != 16 and .bitsPerSample != 24 and .bitsPerSample != 32 do
+            return false
+
+        let bytesPerFrame = cast(u32) .channels * cast(u32) (.bitsPerSample / 8)
+        return bytesPerFrame <= Swag.U16.Max and .blockAlign == bytesPerFrame
+    }
+
+    // Returns the std/audio encoding matching this validated PCM format.
+    mtd const encoding()->SoundFileEncoding
+    {
+        switch .bitsPerSample
+        {
+        case 8:  return .Pcm8
+        case 16: return .Pcm16
+        case 24: return .Pcm24
+        case 32: return .Pcm32
+        }
+
+        return .Unknown
+    }
+}
+
 // Reads AVI files one frame at a time.
 //
 // The container says where every frame lies, either in its own index or in the list holding the
@@ -303,7 +368,8 @@ private impl Layout
 // bytes per frame, whatever a frame itself weighs.
 //
 // Frames are Motion JPEG or uncompressed bitmap rows. A Motion JPEG frame is a complete JPEG
-// image and is decoded by the Pixel image codec, so both modules read the same pictures.
+// image and is decoded by the Pixel image codec, so both modules read the same pictures. PCM sound
+// chunks remain in file order and stream through their own std/audio cursor.
 struct Decoder
 {
     internal
@@ -311,6 +377,7 @@ struct Decoder
         info:          StreamInfo           // What the container headers described.
         frames:        Array'FrameEntry     // Where every frame of the video stream lies.
         payload:       Array'u8             // Scratch storage of one encoded frame.
+        soundTracks:   Array'SoundFile      // PCM tracks streamed from the AVI file.
         bytesPerPixel: u64                  // Source bytes of one pixel of an uncompressed frame.
         rowBytes:      u64                  // Padded length of one row of an uncompressed frame.
         nextIndex:     u64                  // Index of the frame the decoder is positioned on.
@@ -341,6 +408,7 @@ impl IDecoder for Decoder
 
         .info.frameCount = .frames.count
         .nextIndex       = 0
+        .buildSoundTracks(source, &layout)
         return .info
     }
 
@@ -381,8 +449,70 @@ impl IDecoder for Decoder
     }
 }
 
+impl IAudioDecoder for Decoder
+{
+    mtd impl audioTrackCount()->u32 => cast(u32) .soundTracks.count
+
+    mtd impl audioTrack(index: u32)->#null const *SoundFile
+    {
+        if index >= .soundTracks.count do
+            return null
+        return &.soundTracks[index]
+    }
+}
+
 private impl Decoder
 {
+    // Exposes every supported PCM stream as a sparse, file-backed std/audio source.
+    mtd buildSoundTracks(source: *Source, layout: const *Layout) fail
+    {
+        let path = source.sourcePath()
+        if !@countof(path) do
+            return
+
+        .soundTracks.reserve(layout.audioTracks.count)
+        for track in layout.audioTracks
+        {
+            if track.streamIndex > MaxStreamIndex do
+                continue
+
+            var packets: Array'SoundPacket
+            .walkSoundPackets(source, layout, track, &packets)
+            if !packets.count do
+                continue
+
+            let sound = SoundFile.openPcmPacketStream(path, track.format.encoding(), track.format.sampleRate, track.format.channels, packets.toSlice())
+            .soundTracks.add(#move sound)
+        }
+    }
+
+    // Records the PCM chunks of one audio stream in playback order.
+    mtd walkSoundPackets(source: *Source, layout: const *Layout, track: const *AudioTrack, packets: *Array'SoundPacket) fail
+    {
+        let audioId  = frameChunkId(track.streamIndex, 'w'u32, 'b'u32)
+        var position = layout.frameList + FourCcSize
+        while position + ChunkHeaderSize <= layout.frameEnd
+        {
+            source.seek(position)
+            let chunk = readChunk(source, layout.frameEnd)
+            if chunk.id == audioId
+            {
+                if chunk.size
+                {
+                    if chunk.size % track.format.blockAlign do
+                        fail InvalidFormatError{"AVI PCM chunk does not hold complete sample frames"}
+                    packets.add({chunk.data, cast(u32) chunk.size, cast(u32) (chunk.size / track.format.blockAlign)})
+                }
+
+                position = chunk.next
+                continue
+            }
+
+            let isGroup = chunk.id == ListId and chunk.size >= FourCcSize and readValue'u32(source) == RecordListId
+            position = isGroup ? chunk.data + FourCcSize : chunk.next
+        }
+    }
+
     // Turns the bitmap header of the video stream into everything decoding a frame needs.
     mtd describeFrames(layout: const *Layout) fail
     {

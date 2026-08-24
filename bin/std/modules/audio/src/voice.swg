@@ -51,9 +51,9 @@ public struct Voice
         file:                #null const *SoundFile     // Borrowed source, alive for the voice's lifetime.
         dataMutex:           Sync.Mutex                 // Serializes buffer feeding with transport changes.
 
-        requestedEncoding = SoundFileEncoding.Unknown     // Encoding the caller asked to decode to.
-        codec:       #null ICodec       = null     // Decoder instance for a streamed source.
-        packetCodec: #null IPacketCodec = null     // Decoder instance for packetized media.
+        requestedEncoding               = SoundFileEncoding.Unknown     // Encoding the caller asked to decode to.
+        codec:       #null ICodec       = null                          // Decoder instance for a streamed source.
+        packetCodec: #null IPacketCodec = null                          // Decoder instance for packetized media.
 
         playFlags:         VoicePlayFlags                   // Flags 'play' was given.
         state:             VoiceState                       // Where the voice is in its lifecycle.
@@ -220,9 +220,10 @@ public impl Voice
 
     // Seeks to a decoded sample frame and preserves whether playback was running.
     //
-    // Packetized sources restart on the packet containing `frame`; decoded frames before the
-    // requested position are discarded before submission. The backend queue is flushed, so
-    // [[Audio.Voice.playbackSampleFrame]] immediately uses the new position as its origin.
+    // Compressed packet sources restart on the packet containing `frame`; decoded frames before
+    // the requested position are discarded before submission. Indexed PCM sources seek directly
+    // inside their chunk. The backend queue is flushed, so [[Audio.Voice.playbackSampleFrame]]
+    // immediately uses the new position as its origin.
     mtd seekSampleFrame(frame: u64) fail
     {
         .dataMutex.lock()
@@ -243,7 +244,7 @@ public impl Voice
         .seekDiscardFrames = 0
         .playbackBaseFrame = target
 
-        if file.packets.count and target < file.frameCount
+        if file.usesPacketCodec() and target < file.frameCount
         {
             var low  = 0'u64
             var high = file.packetStarts.count
@@ -263,7 +264,7 @@ public impl Voice
             .streamPacketIdx   = preroll
             .seekDiscardFrames = cast(u32) (target - file.packetStarts[preroll])
         }
-        elif !file.packets.count
+        elif !file.usesPacketCodec()
         {
             let bytesPerFrame = cast(u64) file.channelCount * cast(u64) (file.bitsPerSample / 8)
             .streamCurSeek = Math.min(target * bytesPerFrame, file.dataSize)

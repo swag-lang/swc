@@ -3,6 +3,52 @@
 
 using Swag, Core
 
+// Builds a two-chunk PCM stream whose playback order differs from its file layout.
+func audioPcmPacketSound()->SoundFile fail
+{
+    let path   = audioGetTestDataPath("pcm16_stereo.wav")
+    let source = try SoundFile.load(path, preloadData: false)
+    let packets: [2] SoundPacket = [{source.dataOffset + 4, 4, 1},
+                                    {source.dataOffset, 4, 1}]
+    return SoundFile.openPcmPacketStream(path, .Pcm16, 44_100, 2, packets)
+}
+
+#test
+{
+    var file = expect audioPcmPacketSound()
+    @assert(file.sampleEncoding() == .Pcm16 and file.sampleFrameCount() == 2 and file.payloadSize() == 8)
+    @assert(file.isPacketStream() and file.packetCount() == 2 and !file.isDataPreloaded())
+
+    let payload = expect file.readPayload(0, 8)
+    @assert(audioAssertBytes(payload.toSlice(), [0x00'u8, 0x00, 0xFF, 0x7F, 0x00, 0x80, 0xFF, 0xFF]))
+
+    var voice: Voice
+    voice.file              = &file
+    voice.requestedEncoding = .Pcm16
+    let decoded = expect voice.readBuffer()
+    audioAssertBufferBytes(decoded.buffer, decoded.size, payload.toSlice())
+    @assert(voice.streamCurSeek == file.payloadSize())
+
+    let first = expect file.packet(0)
+    let malformed: [1] SoundPacket = [{first.sourceOffset, 3, 1}]
+    discard catch SoundFile.openPcmPacketStream(file.sourcePath(), .Pcm16, 44_100, 2, malformed) as chunkSize
+    @assert(chunkSize is Errors.InvalidFormatError)
+}
+
+#test
+{
+    var file = expect audioPcmPacketSound()
+    discard expect createNoSoundEngine()
+    defer destroyEngine()
+    let voice = (expect Voice.create(&file))!
+    defer voice.destroy()
+
+    discard expect voice.seekSampleFrame(1)
+    let decoded = expect voice.readBuffer()
+    audioAssertBufferBytes(decoded.buffer, decoded.size, [0x00'u8, 0x80, 0xFF, 0xFF])
+    @assert(voice.streamCurSeek == file.payloadSize())
+}
+
 #test
 {
     var file = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))

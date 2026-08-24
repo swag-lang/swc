@@ -2792,8 +2792,6 @@ MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest& reque
         return physReg;
     if (tryTakeFreePhysical(request, forbiddenPhysRegs, true, physReg))
         return physReg;
-    if (tryTransferCopySource(request, forbiddenPhysRegs, stamp, stackDepth, pending, true, true, physReg))
-        return physReg;
 
     MicroReg victimKey = MicroReg::invalid();
     MicroReg victimReg;
@@ -2804,6 +2802,21 @@ MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest& reque
     {
         if (!selectEvictionCandidateWithFallback(request.virtKey, request.instructionIndex, isFloatReg, preferPersistentPool, protectedKeys, forbiddenPhysRegs, stamp, true, victimKey, victimReg))
         {
+            // Taking over the register of a copy source that is still live is a
+            // spill like any other, except that it names its victim in advance
+            // instead of choosing one. Tried before eviction it always picked
+            // the worst possible victim: a value being copied FROM is by
+            // definition about to be read again, while eviction looks for the
+            // one whose next use is furthest away. Measured over a release
+            // build of the standard library, it was the second largest source
+            // of reloads in the whole compiler - 17% of them, four times what
+            // eviction under real pressure produces - and four in five of those
+            // reloads landed at an instruction that had a register free. It
+            // stays as the last resort it should always have been: when nothing
+            // can be evicted at all, a named victim beats no register.
+            if (tryTransferCopySource(request, forbiddenPhysRegs, stamp, stackDepth, pending, true, true, physReg))
+                return physReg;
+
             MicroReg borrowed;
             if (tryBorrowReservedRegister(request, protectedKeys, forbiddenPhysRegs, stackDepth, pending, borrowed))
                 return borrowed;

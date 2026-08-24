@@ -378,55 +378,52 @@ Entries are sorted by identifier, ascending; position carries no priority.
   [F-138](#f-138--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers) and
   [F-190](#f-190--a-short-branching-function-spills-with-the-whole-register-file-free) at their
   word and instrumenting the allocator instead of reading its output.
-- Observation: **the allocator reloads values at points where it has registers to spare.**
-  Classifying every reload the pass actually emits — pool size at that instruction, and how many
-  of those registers a whole-span hull owns, a concrete value blocks, the instruction forbids, or
-  nothing prevents — gives sixteen reloads over four kernels, and only two of them happen with no
-  usable register at all. The other fourteen have between two and twelve. So the reload is never
-  the moment the allocator ran out; it is the consequence of an eviction or a boundary drop taken
-  earlier, under a pressure that had eased by the time the value was wanted again. The lever is
-  the spill decision and where its reload lands, not the supply at the use.
+- Observation: **the allocator reloads values at points where it has registers to spare, so what
+  costs is the decision that put them in memory, not the supply at the use.** Over a release build
+  of `core` — thirteen thousand emitted reloads, each recorded with the pool state at that
+  instruction and with why the value had lost its register — four reloads in five happen with at
+  least one usable register, and one in three with eight or more. Eviction under genuine pressure
+  accounts for 5%. Everything above it is a rule that gave a register away while registers were
+  plentiful.
 - A first pass at this entry read the opposite, and the mistake is worth stating so it is not
   repeated: counting the times `allocatePhysical` exhausts its free pools says almost nothing.
   Those counts came out as 100% hull-owned, which looked decisive. They are not, because an
   exhausted pool is followed by an eviction that is usually free — `isCandidateBetter` ranks dead
   values first and `allocatePhysical` takes them without emitting a spill. Measure emitted spills
   and reloads, never failed lookups.
-- Evidence: release, four kernels — the Levenshtein inner loop of F-136, the CABAC bin of F-190, a
-  branching byte scan, and the raytrace sphere intersection.
+- Evidence: `swc tools/std.swgs dm build core -bc release --rebuild`, one line per emitted reload,
+  after the copy-source repair below. What is left, ranked:
 
-  | kernel | reloads emitted | with no usable register | usable registers at the others |
-  | --- | --- | --- | --- |
-  | `decision` (F-190 shape) | 3 | 1 | 3 and 12 |
-  | `levenRows` (F-136 shape) | 7 | 1 | 2 to 7 |
-  | `scanFields` (branching scan) | 1 | 0 | 6 |
-  | `intersect` (raytrace shape) | 5 | 0 | 2 each |
+  | why the value had lost its register | reloads | share |
+  | --- | --- | --- |
+  | boundary drop: next use more than 48 instructions away | 3795 | 31% |
+  | join: a back-edge or an edge with no recorded state | 2147 | 18% |
+  | join: the incoming edges disagreed on the register | 1874 | 15% |
+  | never mapped: first use of a value with a memory home | 1691 | 14% |
+  | its register was taken by a copy destination | 1181 | 10% |
+  | evicted to make room | 820 | 7% |
+  | boundary: not live out | 353 | 3% |
+  | cleared after a terminator that does not fall through | 350 | 3% |
 
-  Two more measurements bound what is worth chasing there, and both say these kernels are the
-  wrong place to look next. Removing **every** hull from `decision` — the depth-zero boundary
-  weight that admits candidates in a function with no loop — changes its emitted code by not one
-  instruction, so the hull mechanism is inert on it. And of `intersect`'s thirty frame accesses,
-  eighteen are the prologue and epilogue saving the nine callee-saved xmm registers its hulls
-  took; the loop body itself holds six. Its working set is fourteen values against sixteen
-  registers, so there is no large win in it either way.
-- Ruled out on the way, with numbers, so none of it is tried a third time. Admitting values that
-  cross no control-flow boundary as hull candidates on the access ranking: `intersect` gained 7
-  instructions and 3 frame accesses, `levenRows` lost 7 and 6, `scanFields` lost 3 and 4 —
-  promoting a value out of the local allocator's supply costs as much as the reloads it saves.
+  The largest, `K_KEEP_MAX_NEXT_USE_DISTANCE`, is a fixed distance of 48 instructions: a value
+  live across a boundary whose next use is further than that is dropped on the spot. Four in five
+  of the reloads it causes land where a register was free, so the hostage it exists to prevent
+  mostly does not happen. Removing the bound outright was measured to lose once (sha256 1.27 to
+  1.57 against clang, 2026-08-04), which is what put the constant there; the two join rows beneath
+  it have never been measured at all.
+- Ruled out, with numbers, so none of it is tried again. Admitting values that cross no
+  control-flow boundary as hull candidates on the access ranking: the raytrace kernel gained 7
+  instructions and 3 frame accesses, the Levenshtein loop lost 7 and 6, a byte scan lost 3 and 4.
   A callee-saved fallback for ordinary floats gated on loop depth (the variant F-136 left open):
-  seventeen failed lookups became eleven and the emitted loop went from thirty frame accesses to
-  twenty-nine, for two more instructions. And reserving only the live sub-ranges of a hull rather
-  than its whole span, which is the cheap half of interval splitting: the blocking hulls were live
-  at **every** contended point in all four kernels, so there is nothing to hand back.
-- Next step: measure a workload whose loop actually runs, because these four do not separate the
-  policies. `Inflate.parseBlock` from
-  [F-136](#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and
-  `CabacReader.decision` from F-190 are both real and both hot, and the instrumentation above
-  reduces to one line per emitted reload. Then attack the eviction itself: when the pool empties,
-  the victim is chosen among mapped values only, and the hull owners — which by construction are
-  the values the function reads most across its whole span — are not in the running at all. Giving
-  every hull-granted value a home slot and letting it be displaced over a range with no
-  control-flow boundary in it would put them in the running without touching the property the hull
-  design rests on, since the owner is back in its register at every boundary. That is interval
-  splitting expressed as an eviction policy, and the straight-line restriction is what keeps it
-  from needing edge resolution.
+  seventeen failed lookups became eleven for two more instructions. Reserving only the live
+  sub-ranges of a hull instead of its whole span, which is the cheap half of interval splitting:
+  the blocking hulls were live at every contended point in all four kernels, so there is nothing
+  to hand back. And removing every hull from the CABAC bin of F-190 changes its emitted code by
+  not one instruction, so the mechanism is inert there.
+- Next step: the two join rows, worth 4000 reloads together and never measured. A back-edge drops
+  every mapping at a loop header because the linear scan has not seen the back-edge state yet; a
+  second pass over the function could supply it, since the first pass ends knowing what each value
+  held at every back-edge tail. Disagreeing edges are a narrower question — `edgeRegisterHint_`
+  already exists to make the two arms of a diamond pick the same register, and the row says how
+  often it fails. Both reduce to one line per emitted reload with the instrumentation above, so
+  either is measurable before it is built.

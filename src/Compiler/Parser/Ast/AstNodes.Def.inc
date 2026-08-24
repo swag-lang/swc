@@ -85,7 +85,6 @@ SWC_NODE_DEF(AnonymousUnionDecl, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(EnumDecl, AstNodeIdFlagsE::SemaJob)
 SWC_NODE_DEF(EnumBody, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(EnumValue, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(UsingEnumDecl, AstNodeIdFlagsE::Zero)
 
 // Implementations
 SWC_NODE_DEF(Impl, AstNodeIdFlagsE::SemaJob)

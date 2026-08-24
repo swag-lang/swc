@@ -134,25 +134,6 @@ namespace
         return Result::Continue;
     }
 
-    const SymbolEnum* importedUsingEnumSymbol(Sema& sema, const Symbol& sym)
-    {
-        if (sym.isEnum())
-            return &sym.cast<SymbolEnum>();
-
-        if (!sym.isAlias())
-            return nullptr;
-
-        const auto& alias = sym.cast<SymbolAlias>();
-        if (alias.aliasedSymbol() && alias.aliasedSymbol()->isEnum())
-            return &alias.aliasedSymbol()->cast<SymbolEnum>();
-
-        const TypeRef   enumTypeRef = sema.typeMgr().get(alias.underlyingTypeRef()).unwrap(sema.ctx(), alias.underlyingTypeRef(), TypeExpandE::Alias);
-        const TypeInfo& enumType    = sema.typeMgr().get(enumTypeRef);
-        if (enumType.isEnum())
-            return &enumType.payloadSymEnum();
-
-        return nullptr;
-    }
 }
 
 Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -190,32 +171,11 @@ Result AstEnumDecl::semaPostNode(Sema& sema) const
     if (sym.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_empty_enum, SourceCodeRef{srcViewRef(), tokNameRef});
 
-    for (SymbolMap* usingSymMap : sema.curScope().usingSymMaps())
-        sym.addUsingSymMap(usingSymMap);
-
     // Runtime enum
     if (sym.inSwagNamespace(sema.ctx()))
         sema.typeMgr().registerRuntimeType(sym.idRef(), sym.typeRef());
 
     sym.setSemaCompleted(sema.ctx());
-    return Result::Continue;
-}
-
-Result AstUsingEnumDecl::semaPostNode(Sema& sema) const
-{
-    const SemaNodeView usingView = sema.viewSymbol(nodeNameRef);
-    SWC_ASSERT(usingView.sym());
-    const SymbolEnum* importedEnum = importedUsingEnumSymbol(sema, *usingView.sym());
-    SWC_ASSERT(importedEnum);
-
-    auto& ownerEnum = sema.curSymMap()->cast<SymbolEnum>();
-
-    if (ownerEnum.underlyingTypeRef() != importedEnum->underlyingTypeRef())
-        return SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, nodeNameRef);
-
-    auto* usingSymMap = const_cast<SymbolMap*>(importedEnum->asSymMap());
-    sema.curScope().addUsingSymMap(usingSymMap);
-    ownerEnum.addUsingSymMap(usingSymMap);
     return Result::Continue;
 }
 

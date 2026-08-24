@@ -347,13 +347,6 @@ AstNodeRef Parser::parseForLoop()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForStmt>(consume());
 
-    while (is(TokenId::SharpIdentifier))
-    {
-        const Diagnostic diag = reportError(DiagnosticId::parser_err_for_selector_removed, ref());
-        diag.report(*ctx_);
-        consume();
-    }
-
     nodePtr->modifierFlags = parseModifiers();
 
     // The element-iteration forms ('&name' or several names) are
@@ -371,20 +364,6 @@ AstNodeRef Parser::parseForLoop()
         const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
         tokNames.push_back(tokName);
         hasValueBinding = true;
-    }
-    else if (is(TokenId::SymLeftBracket))
-    {
-        const TokenRef openRef = consume();
-        const TokenRef nameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-        expectAndConsumeClosing(TokenId::SymRightBracket, openRef);
-
-        Diagnostic diag = reportError(DiagnosticId::parser_err_for_binding_brackets_removed, openRef);
-        if (nameRef.isValid())
-            diag.addArgument(Diagnostic::ARG_TOK, ast_->srcView().tokenString(nameRef));
-        diag.report(*ctx_);
-
-        nodePtr->addFlag(AstForeachStmtFlagsE::IndexOnly);
-        tokNames.push_back(nameRef);
     }
     else if (is(TokenId::SymQuestion) && nextIs(TokenId::SymComma))
     {
@@ -410,20 +389,6 @@ AstNodeRef Parser::parseForLoop()
     while (hasValueBinding && consumeIf(TokenId::SymComma).isValid())
     {
         isElementForm = true;
-        if (is(TokenId::SymLeftBracket))
-        {
-            const TokenRef openRef = consume();
-            const TokenRef nameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-            expectAndConsumeClosing(TokenId::SymRightBracket, openRef);
-
-            Diagnostic diag = reportError(DiagnosticId::parser_err_for_binding_brackets_removed, openRef);
-            if (nameRef.isValid())
-                diag.addArgument(Diagnostic::ARG_TOK, ast_->srcView().tokenString(nameRef));
-            diag.report(*ctx_);
-            tokNames.push_back(nameRef);
-            continue;
-        }
-
         tokNames.push_back(expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before));
     }
 
@@ -1016,14 +981,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return parseIf();
         case TokenId::KwdWhile:
             return parseWhile();
-        case TokenId::KwdForeach:
-        {
-            // 'foreach' has been merged into 'for'; keep the keyword for the dedicated
-            // diagnostic and recover by parsing the statement as a 'for'.
-            const Diagnostic diag = reportError(DiagnosticId::parser_err_foreach_removed, ref());
-            diag.report(*ctx_);
-            return parseForLoop();
-        }
         case TokenId::KwdSwitch:
             return parseSwitch();
         case TokenId::KwdFor:

@@ -73,8 +73,7 @@
 #assert('\u0000'u32 == 0)
 
 // The closing quote separates the literal from its suffix, so the suffix follows it
-// immediately. A second quote before the suffix is reported, see
-// 'parser_err_char_literal_suffix_quote'.
+// immediately.
 #assert('A'u8 == 65)
 #assert(' 'u32 == 32)
 

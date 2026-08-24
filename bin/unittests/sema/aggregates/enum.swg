@@ -177,15 +177,3 @@ const SliceBackedA = cast(const [..] s32) SliceBacked.A
 const SliceBackedB = cast(const [..] s32) SliceBacked.B
 #assert(@countof(SliceBackedA) == 2)
 #assert(@countof(SliceBackedB) == 3)
-
-enum ImportedBasicErrors { FailedToLoad, FailedToSave }
-enum ImportedMyErrors
-{
-    using ImportedBasicErrors
-    NotFound = 100
-}
-const ImportedError0 = ImportedMyErrors.FailedToSave
-#assert(#typeof(ImportedMyErrors.FailedToLoad) == ImportedBasicErrors)
-#assert(#typeof(ImportedError0) == ImportedBasicErrors)
-#assert(ImportedError0 == ImportedBasicErrors.FailedToSave)
-#assert(ImportedMyErrors.NotFound == 100)

@@ -176,3 +176,26 @@ Entries are sorted by identifier, ascending; position carries no priority.
   ordinary scheduling jitter. If it reproduces, capture the emitted code for `setRange` and compare
   it against a warm-cache run of the same function before looking any further at the allocator or
   at global-segment publication.
+
+### F-192 — A clean documentation workspace cannot JIT a transitive dependency
+
+- Area: compiler
+- Found while: regenerating the website after removing unused runtime attributes, which changed
+  the runtime API and forced the standard modules to regenerate their dependency artifacts.
+- Observation: `swc doc --workspace bin/std --doc-output-dir <dir> --rebuild` cannot document
+  `video` after `bin/std/.output` has been cleaned. Its compile-time evaluation calls through the
+  generated `pixel` API into `audio`, but the host has no `audio` function address to satisfy that
+  relocation. Building `audio` once before the documentation command makes the unchanged command
+  pass, so the documentation workspace depends on an artifact a previous command happened to
+  publish.
+- Evidence: two consecutive `tools/web.swgs dm` runs stopped after documenting eleven of twelve
+  standard modules with `native backend cannot resolve a foreign function relocation` for
+  `__swc_rt_stage_a875fccb` from module `audio`, followed by `cannot evaluate 'opSet' at compile
+  time` in the generated `pixel.swg`. Running `tools/std.swgs dm build audio` produced `audio.dll`;
+  the next `tools/web.swgs dm` run documented all twelve standard modules and the complete
+  reference. The same documentation command also passes in the main worktree while its standard
+  module output is populated.
+- Next step: add a workspace regression that cleans the standard-module output and documents a
+  module whose compile-time path crosses two shared-library dependencies. Trace how the doc command
+  registers dependency runtime artifacts, then make it build or publish every required artifact
+  before JIT relocation instead of relying on a binary left by an earlier command.

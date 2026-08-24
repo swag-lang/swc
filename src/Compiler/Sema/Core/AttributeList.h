@@ -28,7 +28,6 @@ enum class RtAttributeFlagsE : uint64_t
     Inline         = 1 << 10,
     NoInline       = 1 << 11,
     PlaceHolder    = 1 << 12,
-    NoPrint        = 1 << 13,
     Macro          = 1 << 14,
     Mixin          = 1 << 15,
     Implicit       = 1 << 16,

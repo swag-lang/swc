@@ -21,13 +21,6 @@ AstNodeRef Parser::parseEnumValue()
         case TokenId::CompilerStatic:
             return parseCompilerStatic<AstNodeId::EnumBody>();
 
-        case TokenId::KwdUsing:
-        {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingEnumDecl>(consume());
-            nodePtr->nodeNameRef    = parseQualifiedIdentifier();
-            return nodeRef;
-        }
-
         case TokenId::Identifier:
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumValue>(consume());

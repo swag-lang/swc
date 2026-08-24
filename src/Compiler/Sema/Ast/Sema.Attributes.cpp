@@ -169,7 +169,6 @@ namespace
             {.name = IdentifierManager::PredefinedName::Inline, .flag = RtAttributeFlagsE::Inline},
             {.name = IdentifierManager::PredefinedName::NoInline, .flag = RtAttributeFlagsE::NoInline},
             {.name = IdentifierManager::PredefinedName::PlaceHolder, .flag = RtAttributeFlagsE::PlaceHolder},
-            {.name = IdentifierManager::PredefinedName::NoPrint, .flag = RtAttributeFlagsE::NoPrint},
             {.name = IdentifierManager::PredefinedName::Macro, .flag = RtAttributeFlagsE::Macro},
             {.name = IdentifierManager::PredefinedName::Mixin, .flag = RtAttributeFlagsE::Mixin},
             {.name = IdentifierManager::PredefinedName::Implicit, .flag = RtAttributeFlagsE::Implicit},

@@ -65,10 +65,6 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function)]
     attr PlaceHolder()
 
-    // Disable '@print'
-    #[AttrUsage(AttributeUsage.Function)]
-    attr NoPrint()
-
     // The following function is a 'macro'
     #[AttrUsage(AttributeUsage.Function)]
     attr Macro()
@@ -324,18 +320,6 @@ namespace Swag
     // attribute outranks both [[BuildCfgWarnings]] and the `--warn-*` command-line options.
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]
     attr Warning(what: string, level: WarningLevel)
-
-    #[Swag.EnumFlags]
-    enum MatchWhat: u32
-    {
-        Where = 0x00000001
-        Me    = 0x00000002
-        None  = 0x00000000
-        All   = 0xFFFFFFFF
-    }
-
-    #[AttrUsage(AttributeUsage.All)]
-    attr Match(what: MatchWhat, value: bool)
 
     // Keep the following alias distinct from its target for implicit conversions
     #[AttrUsage(AttributeUsage.Alias)]

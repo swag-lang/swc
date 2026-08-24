@@ -1111,7 +1111,6 @@ namespace
 
                 case AstNodeId::UsingDecl:
                 case AstNodeId::UsingNamespaceStmt:
-                case AstNodeId::UsingEnumDecl:
                     addRole(span.minPiece, FormatRoleE::UsingStart);
                     break;
 

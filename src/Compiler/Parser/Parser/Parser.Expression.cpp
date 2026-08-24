@@ -916,7 +916,6 @@ AstNodeRef Parser::parsePrimaryExpression()
 
         case TokenId::StringLine:
         case TokenId::StringMultiLine:
-        case TokenId::StringRaw:
         case TokenId::KwdTrue:
         case TokenId::KwdFalse:
         case TokenId::KwdNull:

@@ -11,7 +11,6 @@ SWC_TOKEN_DEF(CommentBlock, "", TokenIdKindE::Trivia)
 // LITERALS
 
 SWC_TOKEN_DEF(StringLine, "", TokenIdKindE::Literal)
-SWC_TOKEN_DEF(StringRaw, "", TokenIdKindE::Literal)
 SWC_TOKEN_DEF(StringMultiLine, "", TokenIdKindE::Literal)
 
 SWC_TOKEN_DEF(Character, "", TokenIdKindE::Literal)
@@ -29,7 +28,6 @@ SWC_TOKEN_DEF(SharpIdentifier, "", TokenIdKindE::Compiler)
 SWC_TOKEN_DEF(KwdMe, "me", TokenIdKindE::Keyword)
 
 SWC_TOKEN_DEF(KwdExport, "export", TokenIdKindE::Zero)
-SWC_TOKEN_DEF(KwdGenerated, "generated", TokenIdKindE::Zero)
 SWC_TOKEN_DEF(KwdLocation, "location", TokenIdKindE::Zero)
 SWC_TOKEN_DEF(KwdLink, "link", TokenIdKindE::Zero)
 SWC_TOKEN_DEF(KwdVersion, "version", TokenIdKindE::Zero)
@@ -100,8 +98,6 @@ SWC_TOKEN_DEF(KwdFor, "for", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdWhile, "while", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdSwitch, "switch", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdDefer, "defer", TokenIdKindE::Keyword | TokenIdKindE::Logic)
-// Removed keyword, kept for the dedicated "replaced by 'for'" diagnostic.
-SWC_TOKEN_DEF(KwdForeach, "foreach", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdWhere, "where", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdBreak, "break", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdFallThrough, "fallthrough", TokenIdKindE::Keyword | TokenIdKindE::Logic)

@@ -187,40 +187,6 @@ Enums can also store slices.
 }
 
 /**
-# Importing Enum Values
-
-Enums can import values from another enum using `using`. Both enums must share the same base type.
-*/
-enum BasicErrors { FailedToLoad, FailedToSave }
-
-enum MyErrors
-{
-    using BasicErrors
-    NotFound = 100
-}
-
-/**
-# Accessing Imported Enum Values
-
-Imported enum values are available through the parent enum scope and keep their original enum type.
-*/
-const MyError0 = MyErrors.FailedToSave
-
-#test
-{
-    const E0: BasicErrors = MyErrors.FailedToLoad
-    const E1: BasicErrors = BasicErrors.FailedToLoad
-
-    func toto(err: BasicErrors)
-    {
-        @assert(err == BasicErrors.FailedToLoad)
-    }
-
-    toto(E0)
-    toto(E1)
-}
-
-/**
 # Enum-indexed Arrays
 
 An enum can define the index domain of an array. Its values must be unique integers

@@ -73,7 +73,6 @@ private:
     void lexWhitespace();
     void lexSingleLineStringLiteral();
     void lexMultiLineStringLiteral();
-    void lexRawStringLiteral();
     void lexCharacterLiteral();
     void lexHexNumber();
     void lexBinNumber();

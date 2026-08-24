@@ -1168,23 +1168,6 @@ namespace
         return lookupScopedMember(sema, targetNodeRef, node, namespaceSym, idRef, tokNameRef, allowOverloadSet);
     }
 
-    Result waitPendingEnumUsingSymMaps(Sema& sema, const SymbolEnum& enumSym, const SourceCodeRef& codeRef)
-    {
-        SmallVector<const SymbolMap*> usingSymMaps;
-        enumSym.copyUsingSymMaps(usingSymMaps);
-        for (const SymbolMap* usingSymMap : usingSymMaps)
-        {
-            if (!usingSymMap || !usingSymMap->isEnum())
-                continue;
-
-            const auto& usingEnum = usingSymMap->cast<SymbolEnum>();
-            if (!usingEnum.isSemaCompleted())
-                return sema.waitSemaCompleted(&usingEnum, codeRef);
-        }
-
-        return Result::Continue;
-    }
-
     Result waitPendingStructImplSymMaps(Sema& sema, const SymbolStruct& symStruct, const SourceCodeRef& codeRef)
     {
         const SymbolImpl* currentImpl = sema.frame().currentImpl();
@@ -1212,7 +1195,6 @@ namespace
         SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
         if (lookUpCxt.empty())
         {
-            SWC_RESULT(waitPendingEnumUsingSymMaps(sema, enumSym, codeRef));
             if (sema.compiler().pendingImplRegistrations(enumSym.idRef()) != 0)
                 return sema.waitImplRegistrations(enumSym.idRef(), codeRef);
 

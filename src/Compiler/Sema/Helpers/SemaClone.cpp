@@ -2515,14 +2515,6 @@ AstNodeRef AstEnumValue::semaClone(Sema& sema, const CloneContext& cloneContext)
     return newRef;
 }
 
-AstNodeRef AstUsingEnumDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
-{
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::UsingEnumDecl>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstUsingEnumDecl>();
-    cloned.nodeNameRef      = cloneNodeRef(sema, nodeNameRef, cloneContextAsInline(cloneContext));
-    return newRef;
-}
-
 AstNodeRef AstSuffixLiteral::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     const auto&      inlineContext = cloneContextAsInline(cloneContext);

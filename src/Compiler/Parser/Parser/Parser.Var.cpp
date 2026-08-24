@@ -183,15 +183,6 @@ AstNodeRef Parser::parseVarDecl()
         const TokenRef tokAssign = consumeIf(TokenId::SymEqual);
         if (tokAssign.isValid())
             nodeInit = parseInitializerExpression(tokAssign);
-        else if (nodeType.isValid() && is(TokenId::SymLeftCurly) && !tok().hasFlag(TokenFlagsE::BlankBefore))
-        {
-            // 'name: Type{...}' used to be a second spelling of an initialized declaration. It
-            // was the only declaration form that initialized without '=', and it only parsed as
-            // an initializer when no blank separated the type from '{'. The literal is still
-            // consumed so the rest of the statement reports its own errors normally.
-            raiseError(DiagnosticId::parser_err_var_decl_brace_init, ref());
-            nodeInit = parseLiteralStruct();
-        }
 
         if (tokNames.size() == 1)
         {

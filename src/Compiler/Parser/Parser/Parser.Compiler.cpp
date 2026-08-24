@@ -477,13 +477,7 @@ AstNodeRef Parser::parseCompilerGlobal()
     nodePtr->spanNameRef.setInvalid();
     nodePtr->nodeModeRef.setInvalid();
 
-    if (tokStr == Token::toName(TokenId::KwdGenerated))
-    {
-        nodePtr->mode        = AstCompilerGlobal::Mode::Generated;
-        nodePtr->nodeModeRef = AstNodeRef::invalid();
-        consume();
-    }
-    else if (tokStr == Token::toName(TokenId::KwdExport))
+    if (tokStr == Token::toName(TokenId::KwdExport))
     {
         nodePtr->mode        = AstCompilerGlobal::Mode::Export;
         nodePtr->nodeModeRef = AstNodeRef::invalid();

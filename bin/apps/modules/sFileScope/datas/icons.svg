@@ -114,4 +114,12 @@
     <polyline points="13,14 10,17 13,20"/>
     <line x1="4" y1="17" x2="7" y2="17"/>
   </g>
+  <g id="AudioTracks" transform="translate(48 72)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round">
+    <line x1="4" y1="6" x2="20" y2="6"/>
+    <line x1="4" y1="12" x2="20" y2="12"/>
+    <line x1="4" y1="18" x2="20" y2="18"/>
+    <circle cx="9" cy="6" r="2" fill="#ffffff" stroke="none"/>
+    <circle cx="15" cy="12" r="2" fill="#ffffff" stroke="none"/>
+    <circle cx="7" cy="18" r="2" fill="#ffffff" stroke="none"/>
+  </g>
 </svg>

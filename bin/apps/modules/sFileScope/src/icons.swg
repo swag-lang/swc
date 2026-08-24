@@ -28,6 +28,7 @@ enum ViewerIcons
     FitView            // Fit the complete document inside its viewport.
     ActualSize         // Show one source pixel or point at its native scale.
     Wrap               // Fold long text lines into the viewport.
+    AudioTracks        // Choose one of several sound tracks.
 }
 
 private const IconsSvg = #include("../datas/icons.svg")

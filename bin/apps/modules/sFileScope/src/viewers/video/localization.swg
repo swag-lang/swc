@@ -15,6 +15,7 @@ struct VideoStrings
     ui_TipVolume:   string = "Volume"                         // Tooltip of the volume slider.
     ui_TipAudio:    string = "Audio track"                    // Tooltip of the sound-track selector.
     ui_AudioTrack:  string = "Audio % · % ch · %{f1} kHz"     // One sound-track selector entry.
+    ui_AudioDetails: string = "% · % ch · %{f1} kHz"          // Encoding, channel count, and sample rate in the host summary.
     word_Frame:     string = "frame"                          // One video frame.
     word_Frames:    string = "frames"                         // Several video frames.
 
@@ -40,6 +41,29 @@ func videoFrameCountText(count: u64)->String
 func videoAudioTrackText(index: u32, sound: const *Audio.SoundFile)->String
 {
     return Format.toString(videoStrings().ui_AudioTrack, index + 1, sound.numChannels(), cast(f64) sound.sampleRateHz() / 1_000.0)
+}
+
+// Returns the established technical name of an audio payload encoding.
+func videoAudioEncodingText(encoding: Audio.SoundFileEncoding)->string
+{
+    switch encoding
+    {
+    case .Pcm8:    return "PCM 8-bit"
+    case .Pcm16:   return "PCM 16-bit"
+    case .Pcm24:   return "PCM 24-bit"
+    case .Pcm32:   return "PCM 32-bit"
+    case .Float32: return "PCM float32"
+    case .AacLc:   return "AAC-LC"
+    case .Ac3:     return "AC-3"
+    case .Eac3:    return "E-AC-3"
+    default:       return "Audio"
+    }
+}
+
+// Formats the active sound track for the information bar.
+func videoAudioDetailsText(sound: const *Audio.SoundFile)->String
+{
+    return Format.toString(videoStrings().ui_AudioDetails, videoAudioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64) sound.sampleRateHz() / 1_000.0)
 }
 
 // Registers this viewer's string table with the application.

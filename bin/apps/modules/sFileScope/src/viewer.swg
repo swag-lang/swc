@@ -12,6 +12,9 @@ alias ViewerFindText = func(*Wnd, string)->bool
 // Reports whether a view is still doing work whose result has not reached the screen.
 alias ViewerIsLoading = func(*Wnd)->bool
 
+// Releases a viewer's external resources before its window storage is destroyed at frame end.
+alias ViewerRetire = func(*Wnd)
+
 // Notifies the application that [[ViewerIsLoading]] may now answer differently.
 alias ViewerReportLoadingChanged = func(*Wnd)
 
@@ -75,6 +78,7 @@ struct ViewerResult
     revealMatch:   #null ViewerRevealMatch     // Reveals a byte offset, or null when not searchable.
     findText:      #null ViewerFindText        // Viewer-owned search, or null to scan the file.
     isLoading:     #null ViewerIsLoading       // Reports unfinished visible work, or null for an immediate view.
+    retire:        #null ViewerRetire          // Releases resources that must not wait for deferred window deletion.
 }
 
 // Creates an integrated view and reports its optional commands, details, and search callbacks.

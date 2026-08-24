@@ -10,6 +10,7 @@ ui_TipMute       Couper ou rétablir le son (M)
 ui_TipVolume     Volume
 ui_TipAudio      Piste audio
 ui_AudioTrack    Audio % · % can. · %{f1} kHz
+ui_AudioDetails  % · % can. · %{f1} kHz
 
 word_Frame       image
 word_Frames      images

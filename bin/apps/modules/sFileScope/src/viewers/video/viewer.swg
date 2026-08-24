@@ -39,6 +39,19 @@ private const VideoPrefetchMin = 2'u64
 // Names the absence of a queue slot.
 private const VideoNoSlot = Swag.U32.Max
 
+private func videoSoundCovers(sound: const *SoundFile, seconds: f64)->bool
+{
+    if seconds <= 0 do
+        return true
+    let wanted = cast(u64) Math.ceil(seconds * cast(f64) sound.sampleRateHz())
+    return wanted < sound.sampleFrameCount()
+}
+
+private func videoAudioTrackCommand(index: u32)->String
+{
+    return Format.toString("sFileScope.video.audioTrack.%", index)
+}
+
 // One decoded picture of the run-ahead queue.
 //
 // A codec reconstructs planar 4:2:0 and the renderer converts where it draws, so a queued picture
@@ -64,12 +77,11 @@ internal struct VideoViewer
         forwardButton:  *IconButton
         timeline:       *Slider
         timeLabel:      *Label
+        audioButton:    *IconButton
         muteButton:     *IconButton
         volumeSlider:   *Slider
         imageView:      *ImageView
     }
-
-    audioCombo: #null *ComboBox
 
     // Opening retains bounded metadata while progressive indexes and payloads stay in the file.
     video:               Reader
@@ -122,6 +134,7 @@ internal struct VideoViewer
     anchorPending:        bool     // The next published picture re-anchors the playback clock on itself.
     hasFrame:             bool
     resumeAudioAfterSeek: bool
+    audioRangePending:    bool     // The progressive sound index does not reach the picture yet.
 
     timer:         #null *Timer
     clock:         Time.Stopwatch
@@ -137,6 +150,7 @@ internal struct VideoViewer
     reportDetails:        #null ViewerReportDetails
     reportFailure:        #null ViewerReportFailure
     reportLoadingChanged: #null ViewerReportLoadingChanged
+    retired:              bool
 
     // Pixel column the timeline thumb was last pushed to, so a value that would not move it is
     // not pushed at all.
@@ -145,6 +159,44 @@ internal struct VideoViewer
 
 private impl VideoViewer
 {
+    // Stops every external owner before GUI deletion keeps this hidden viewer alive until frame end.
+    mtd retire()
+    {
+        if .retired do
+            return
+        .retired = true
+
+        if .timer
+        {
+            .removeTimer(.timer!)
+            .timer = null
+        }
+
+        if .decodeThread.isValid()
+        {
+            .video.requestCancel()
+            .decodeThread.safeForceEnd()
+            .decodeWake.signal()
+            .decodeThread.wait()
+            .decodeWake.release()
+        }
+
+        if .voice
+        {
+            catch .voice!.stop()
+            .voice!.destroy()
+            .voice = null
+        }
+
+        if .audioEngineAcquired
+        {
+            releaseSoundEngine()
+            .audioEngineAcquired = false
+        }
+
+        .video.close()
+    }
+
     mtd retranslate()
     {
         .playButton.toolTip     = .playing ? videoStrings().ui_TipPause : videoStrings().ui_TipPlay
@@ -155,13 +207,9 @@ private impl VideoViewer
         .muteButton.toolTip     = videoStrings().ui_TipMute
         .volumeSlider.toolTip   = videoStrings().ui_TipVolume
 
-        if .audioCombo
-        {
-            .audioCombo!.toolTip = videoStrings().ui_TipAudio
-            for index in .audioCombo!.items.count do
-                .audioCombo!.items[index]!.name = videoAudioTrackText(cast(u32) index, .video.audioTrack(cast(u32) index)!)
-            .audioCombo!.invalidate()
-        }
+        .audioButton.toolTip = videoStrings().ui_TipAudio
+
+        .refreshDetails()
     }
 }
 
@@ -190,7 +238,7 @@ internal impl VideoViewer
     // the jitter of following a position that only moves once per output buffer.
     mtd followAudioClock()
     {
-        if !.playing or !.voice do
+        if !.playing or !.voice or .audioRangePending or .resumeAudioAfterSeek do
             return
 
         let position = .voice!.playbackPositionSeconds()
@@ -208,8 +256,15 @@ internal impl VideoViewer
     mtd resumeAudio()
     {
         .resumeAudioAfterSeek = false
-        if !.voice do
+        if !.voice or !.audio do
             return
+        if !videoSoundCovers(.audio!, .currentSeconds())
+        {
+            .audioRangePending = true
+            return
+        }
+
+        .audioRangePending = false
         catch .voice!.play() as playError
         if playError != null
         {
@@ -294,17 +349,19 @@ internal impl VideoViewer
     {
         if index >= .video.audioTrackCount() do
             fail BadParameterError{"video audio-track index exceeds the track count"}
-        if .voice and index == .audioTrackIndex do
-            return
 
         let sound      = .video.audioTrack(index)!
-        let position   = .currentSeconds()
-        let wasPlaying = .playing
-        let newVoice   = Voice.create(sound)!
+        if .voice and index == .audioTrackIndex and .audio == sound do
+            return
+        let position    = .currentSeconds()
+        let wasPlaying  = .playing
+        let coversRange = videoSoundCovers(sound, position)
+        let newVoice    = Voice.create(sound)!
         defer #fail newVoice.destroy()
         newVoice.setVolume(.muted ? 0 : .volume)
-        newVoice.seekSampleFrame(cast(u64) Math.round(position * cast(f64) sound.sampleRateHz()))
-        if wasPlaying do
+        if coversRange do
+            newVoice.seekSampleFrame(cast(u64) Math.round(position * cast(f64) sound.sampleRateHz()))
+        if wasPlaying and coversRange and !.resumeAudioAfterSeek do
             newVoice.play()
 
         if .voice
@@ -313,10 +370,39 @@ internal impl VideoViewer
             .voice!.destroy()
         }
 
-        .audio           = sound
-        .voice           = newVoice
-        .audioTrackIndex = index
-        .audioClockLast  = -1
+        .audio             = sound
+        .voice             = newVoice
+        .audioTrackIndex   = index
+        .audioRangePending = !coversRange
+        .audioClockLast    = -1
+        .refreshDetails()
+    }
+
+    // Offers the available sound tracks without reserving label width in the transport bar.
+    mtd showAudioTrackMenu()
+    {
+        let menu = MenuCtrl.createPopup(.audioButton, owner: me)
+        var commands: Array'String
+        commands.reserve(.video.audioTrackCount())
+        for index in .video.audioTrackCount()
+        {
+            let sound = .video.audioTrack(index)!
+            commands.add(videoAudioTrackCommand(index))
+            menu.addItem(videoAudioTrackText(index, sound), commands[index].toString(), checked: index == .audioTrackIndex)
+        }
+
+        let rect   = .audioButton.surfaceRect()
+        let chosen = menu.doModal({rect.horzCenter(), rect.y}, .AnchorBottomCenter, autoDestroy: true)
+        if !chosen do
+            return
+
+        for index in .video.audioTrackCount() where chosen! == commands[index].toString()
+        {
+            catch .selectAudioTrack(index) as trackError
+            if trackError != null and .reportFailure do
+                .reportFailure!(me, Errors.message(trackError))
+            return
+        }
     }
 
     // Sizes the run-ahead queue from the picture size.
@@ -580,26 +666,32 @@ internal impl VideoViewer
             return
 
         .elapsed = .frameSeconds(target)
-        if .voice
+        if .voice and .audio
         {
-            let sample = cast(u64) Math.round(.elapsed * cast(f64) .audio!.sampleRateHz())
-            catch .voice!.seekSampleFrame(sample) as seekError
-            if seekError != null
+            let coversRange = videoSoundCovers(.audio!, .elapsed)
+            .audioRangePending = !coversRange
+            if coversRange
             {
-                .resumeAudioAfterSeek = false
-                .playing              = false
-                catch .voice!.pause()
-                if .reportFailure do
-                    .reportFailure!(me, Errors.message(seekError))
-                return
-            }
+                let sample = cast(u64) Math.round(.elapsed * cast(f64) .audio!.sampleRateHz())
+                catch .voice!.seekSampleFrame(sample) as seekError
+                if seekError != null
+                {
+                    .resumeAudioAfterSeek = false
+                    .playing              = false
+                    .audioRangePending    = false
+                    catch .voice!.pause()
+                    if .reportFailure do
+                        .reportFailure!(me, Errors.message(seekError))
+                    return
+                }
 
-            if resumeAudio
-            {
-                if .frameIndex != target do
-                    .resumeAudioAfterSeek = true
-                else do
-                    .resumeAudio()
+                if resumeAudio
+                {
+                    if .frameIndex != target do
+                        .resumeAudioAfterSeek = true
+                    else do
+                        .resumeAudio()
+                }
             }
         }
 
@@ -632,20 +724,12 @@ internal impl VideoViewer
                     catch .voice!.seekSampleFrame(0)
             }
 
-            if .voice
-            {
-                catch .voice!.play() as playError
-                if playError != null
-                {
-                    if .reportFailure do
-                        .reportFailure!(me, Errors.message(playError))
-                    return
-                }
-            }
-
             .audioClockLast = -1
             .clock.restart()
             .playing = true
+            .resumeAudio()
+            if !.playing do
+                return
             .decodeWake.signal()
         }
 
@@ -658,6 +742,7 @@ internal impl VideoViewer
             return
         .playing              = false
         .resumeAudioAfterSeek = false
+        .audioRangePending    = false
         .elapsed              = 0
         .clock.reset()
         if .voice do
@@ -722,6 +807,7 @@ internal impl VideoViewer
         {
             .playing              = false
             .resumeAudioAfterSeek = false
+            .audioRangePending    = false
             .elapsed              = .video.durationInSeconds()
             .clock.reset()
             if .voice do
@@ -779,33 +865,7 @@ private impl IWnd for VideoViewer
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         discard evt
-        if .timer
-        {
-            .removeTimer(.timer!)
-            .timer = null
-        }
-
-        if .decodeThread.isValid()
-        {
-            .video.requestCancel()
-            .decodeThread.safeForceEnd()
-            .decodeWake.signal()
-            .decodeThread.wait()
-            .decodeWake.release()
-        }
-
-        if .voice
-        {
-            catch .voice!.stop()
-            .voice!.destroy()
-            .voice = null
-        }
-
-        if .audioEngineAcquired
-        {
-            releaseSoundEngine()
-            .audioEngineAcquired = false
-        }
+        .retire()
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -830,6 +890,16 @@ private impl IWnd for VideoViewer
 
 private impl VideoViewer
 {
+    mtd refreshDetails()
+    {
+        let duration = .video.durationInSeconds()
+        .details = Format.toString(videoStrings().ui_Details, .video.width(), .video.height(), videoFrameCountText(.video.frameCount()), .video.frameRate().framesPerSecond(), mediaDurationText(duration))
+        if .audio do
+            .details = Format.toString("% · %", .details.toString(), videoAudioDetailsText(.audio!).toString())
+        if .reportDetails do
+            .reportDetails!(me, .details.toString())
+    }
+
     mtd finishMetadata() fail
     {
         let duration = .video.durationInSeconds()
@@ -854,9 +924,7 @@ private impl VideoViewer
             if duration > 0 do
                 .timeline.setBounds(0, duration, cast(f32) Math.min(step, duration / 100))
             .timeline.enable(duration > 0 and count > 1)
-            .details = Format.toString(videoStrings().ui_Details, .video.width(), .video.height(), videoFrameCountText(count), rate, mediaDurationText(duration))
-            if .reportDetails do
-                .reportDetails!(me, .details.toString())
+            .refreshDetails()
         }
 
         let audioCount = .video.audioTrackCount()
@@ -866,10 +934,7 @@ private impl VideoViewer
             changed     = true
             if audioCount > 1
             {
-                for index in audioCount do
-                    .audioCombo!.addItem(videoAudioTrackText(index, .video.audioTrack(index)!))
-                .audioCombo!.setSelectedIndex(0, notify: false)
-                .audioCombo!.show()
+                .audioButton.show()
             }
 
             .muteButton.show()
@@ -879,9 +944,15 @@ private impl VideoViewer
             .audioEngineAcquired = true
             .selectAudioTrack(0)
         }
+        elif .audioReady
+        {
+            let sound = .video.audioTrack(.audioTrackIndex)
+            if sound and sound != .audio do
+                .selectAudioTrack(.audioTrackIndex)
+        }
 
         if changed do
-            .applyLayout()
+            .commands.applyLayout()
     }
 
     func create(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails = null, reportFailure: #null ViewerReportFailure = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*VideoViewer fail
@@ -992,23 +1063,16 @@ private impl VideoViewer
             .setTextAlignment(.Right, .Center)
         }
 
-        let audioCombo = ComboBox.create(result.commands, {0, 0, 208, 36})
-        result.audioCombo = audioCombo
-        with audioCombo
+        with result.audioButton = IconButton.create(result.commands, result.commands.icon(.AudioTracks, VideoGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Right
             .margin.x  = 8
             .toolTip   = videoStrings().ui_TipAudio
             .hide()
-            .sigChanged += func|view = result|(combo, index)
+            .sigPressed += func|view = result|(button)
             {
-                catch view.selectAudioTrack(index) as trackError
-                if trackError != null
-                {
-                    combo.setSelectedIndex(view.audioTrackIndex, notify: false)
-                    if view.reportFailure do
-                        view.reportFailure!(view, Errors.message(trackError))
-                }
+                discard button
+                view.showAudioTrackMenu()
             }
         }
 
@@ -1045,8 +1109,7 @@ private impl VideoViewer
 
         result.refreshTransport()
 
-        let duration = result.video.durationInSeconds()
-        result.details = Format.toString(videoStrings().ui_Details, result.video.width(), result.video.height(), videoFrameCountText(result.video.frameCount()), result.video.frameRate().framesPerSecond(), mediaDurationText(duration))
+        result.refreshDetails()
         result.timer   = result.addTimer(10'ms)
         result.applyLayout()
         result.setInitialFocus(result.playButton)
@@ -1081,6 +1144,7 @@ func createVideoViewer(request: const *ViewerRequest, result: *ViewerResult)
     result.view      = view
     result.commands  = view!.commands
     result.details   = view!.details
+    result.retire    = func(wnd) { (cast(*VideoViewer) wnd).retire() }
     result.isLoading = func(wnd)->bool
     {
         let videoView = cast(*VideoViewer) wnd

@@ -42,8 +42,21 @@ struct ViewerInstance
     revealMatch:   #null ViewerRevealMatch
     findText:      #null ViewerFindText
     isLoading:     #null ViewerIsLoading
+    retire:        #null ViewerRetire
     details:       String
     failureReason: String
+}
+
+impl ViewerInstance
+{
+    // Releases resources before GUI destruction keeps the hidden window alive until frame end.
+    mtd retireView()
+    {
+        if !.view or !.retire do
+            return
+        .retire!(.view!)
+        .retire = null
+    }
 }
 
 // Application-owned presentation for every viewer failure.
@@ -62,8 +75,8 @@ struct ViewerErrorView
 // Application-owned wait surface shared by every progressive viewer.
 //
 // A renderer only reports whether it is waiting; it neither chooses nor paints the feedback.
-// Keeping the veil here gives HTML, pictures, video, and future viewers the same presentation,
-// and prevents a stale document frame from looking like an application freeze.
+// The transparent host leaves the document exactly as it was and adds only the activity mark,
+// so loading HTML or a picture cannot appear to change the document background.
 struct ViewerLoadingOverlay
 {
     using wnd: Wnd
@@ -72,21 +85,14 @@ struct ViewerLoadingOverlay
     spinner: *Spinner
 }
 
-impl IWnd for ViewerLoadingOverlay
-{
-    mtd impl onPaint(evt: *PaintEvent)
-    {
-        evt.paintContext.painter.fillRect(.clientRect(), .themeColors().veilStrong)
-    }
-}
-
 impl ViewerLoadingOverlay
 {
     func create(parent: *Wnd)->*ViewerLoadingOverlay
     {
         let result = Wnd.create'ViewerLoadingOverlay(parent, "sFileScope.loading")
         result.wndFlags |= WndFlags.TopMost
-        result.spinner   = Spinner.create(result, {0, 0, 32, 32})
+        result.backgroundStyle = .Transparent
+        result.spinner         = Spinner.create(result, {0, 0, 24, 24})
         result.hide()
         return result
     }
@@ -887,6 +893,7 @@ impl ViewerWindow
         .stopLoadingIndicator()
         for &instance in .instances
         {
+            instance.retireView()
             instance.commands?.destroy()
             instance.view?.destroy()
         }
@@ -906,6 +913,7 @@ impl ViewerWindow
 
         for &instance, index in .instances where instance.view == view
         {
+            instance.retireView()
             instance.commands?.destroy()
             instance.view?.destroy()
 
@@ -916,6 +924,7 @@ impl ViewerWindow
             instance.revealMatch   = null
             instance.findText      = null
             instance.isLoading     = null
+            instance.retire        = null
             instance.failureReason = #move message
             instance.details.clear()
 
@@ -947,6 +956,7 @@ impl ViewerWindow
         if !instance.view or !instance.isLoading or !instance.isLoading!(instance.view!) do
             return
 
+        instance.retireView()
         instance.commands?.destroy()
         instance.view!.destroy()
         instance.view        = null
@@ -954,6 +964,7 @@ impl ViewerWindow
         instance.revealMatch = null
         instance.findText    = null
         instance.isLoading   = null
+        instance.retire      = null
         instance.details.clear()
         .currentView     = null
         .currentCommands = null
@@ -1048,6 +1059,8 @@ impl ViewerWindow
 
             if !next.failureReason.isEmpty()
             {
+                if next.view and next.retire do
+                    next.retire!(next.view!)
                 next.commands?.destroy()
                 next.view?.destroy()
                 next.commands    = null
@@ -1055,6 +1068,7 @@ impl ViewerWindow
                 next.revealMatch = null
                 next.findText    = null
                 next.isLoading   = null
+                next.retire      = null
                 next.details.clear()
             }
         }
@@ -1081,6 +1095,7 @@ impl ViewerWindow
         instance.revealMatch   = next.revealMatch
         instance.findText      = next.findText
         instance.isLoading     = next.isLoading
+        instance.retire        = next.retire
         instance.details       = #move next.details
         instance.failureReason = #move next.failureReason
         .viewerCombo.setSelectedIndex(index, notify: false)

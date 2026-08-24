@@ -39,6 +39,12 @@ func createPassiveTestViewer(request: const *ViewerRequest, result: *ViewerResul
     result.details = "Passive test viewer"
 }
 
+func markTestViewerRetired(wnd: *Wnd)
+{
+    let retired = cast(*bool) wnd.userData!
+    retired[] = true
+}
+
 #test
 {
     let executable         = Env.executablePath()
@@ -787,8 +793,10 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let window   = ViewerWindow.create(&host.surfaceWnd, #move index)
     let failed   = Wnd.create'Wnd(window)
     let commands = Wnd.create'Wnd(window.viewerBar)
+    var retired: bool
+    failed.userData = &retired
     window.choices.add(ViewerChoice{.Viewer, 0, "Decoder"})
-    window.instances.add(ViewerInstance{view: failed, commands: commands})
+    window.instances.add(ViewerInstance{view: failed, commands: commands, retire: &markTestViewerRetired})
     window.currentView       = failed
     window.currentCommands   = commands
     window.activeChoiceIndex = 0
@@ -796,7 +804,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     reportViewerFailure(failed, "payload ends before its declared length")
 
-    @assert(failed.isPendingDestroy and commands.isPendingDestroy)
+    @assert(retired and failed.isPendingDestroy and commands.isPendingDestroy)
     @assert(window.currentCommands == null)
     @assert(window.currentView != null and window.currentView != failed)
     @assert(window.instances[0].failureReason == "payload ends before its declared length")
@@ -825,9 +833,12 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.instances.resize(2)
 
     let loading = Wnd.create'Wnd(window)
+    var retired: bool
+    loading.userData              = &retired
     window.instances[0].view      = loading
     window.instances[0].details   = "streamed"
     window.instances[0].isLoading = func(wnd)->bool { discard wnd; return true }
+    window.instances[0].retire    = &markTestViewerRetired
     window.currentView            = loading
     window.activeChoiceIndex      = 0
     loading.setPosition({17, 83, 611, 391})
@@ -835,6 +846,8 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     reportViewerLoadingChanged(loading)
     @assert(window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
     @assert(window.loadingOverlay.position == loading.position)
+    @assert(window.loadingOverlay.backgroundStyle == .Transparent)
+    @assert(window.loadingOverlay.spinner.preferredSize == {24, 24})
     let spinnerCenter = window.loadingOverlay.spinner.position.center()
     let overlayCenter = window.loadingOverlay.clientRect().center()
     @assert(Math.abs(spinnerCenter.x - overlayCenter.x) <= 1 and Math.abs(spinnerCenter.y - overlayCenter.y) <= 1)
@@ -842,7 +855,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "sfilescope.loading")
     @assert(window.activateChoice(1))
-    @assert(loading.isPendingDestroy)
+    @assert(retired and loading.isPendingDestroy)
     @assert(window.instances[0].view == null)
     @assert(window.currentView != null and window.currentView != loading)
     @assert(window.instances[1].view == window.currentView)

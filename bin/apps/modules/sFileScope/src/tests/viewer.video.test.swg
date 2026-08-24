@@ -38,6 +38,19 @@ func waitForVideoFrame(view: *VideoViewer)
     }
 }
 
+func waitForVideoAudio(view: *VideoViewer, count: u32)
+{
+    var attempts: u32
+    while view.video.audioTrackCount() != count and attempts < 5000
+    {
+        Threading.Thread.sleep(1'ms)
+        view.updatePlayback()
+        attempts += 1
+    }
+
+    @assert(view.video.audioTrackCount() == count)
+}
+
 func videoAudioFixturePath()->String
 {
     return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/glint-aac-mjpeg.mp4")
@@ -51,6 +64,29 @@ func videoAvcFixturePath()->String
 func videoMatroskaFixturePath()->String
 {
     return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/ffmpeg-h264-two-aac.mkv")
+}
+
+// Switching files retires the old decoder immediately, before deferred GUI deletion keeps its
+// frame buffers alive while the replacement allocates its H.264 contexts.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+
+    let index    = createViewerIndex()
+    let window   = ViewerWindow.create(&host.surfaceWnd, #move index)
+    let fileName = videoAvcFixturePath()
+    window.openFile(fileName, remember: false)
+    @assert(window.currentView != null)
+    let previous = cast(*VideoViewer) window.currentView!
+    waitForVideoFrame(previous)
+    @assert(previous.video.isOpen())
+
+    window.openFile(fileName, remember: false)
+    @assert(previous.isPendingDestroy)
+    @assert(previous.retired and !previous.video.isOpen())
+    @assert(window.currentView != null and window.currentView != previous)
 }
 
 #test
@@ -246,22 +282,22 @@ func videoMatroskaFixturePath()->String
     let view = cast(*VideoViewer) result.view!
     @assert(view.timeline.isEnabled())
     waitForVideoFrame(view)
+    waitForVideoAudio(view, 2)
 
-    // Reaching the compact fixture's last cluster completes its sound packet tables through the
-    // same foreground demux cursor; there is no background full-file scan to wait for.
-    view.seekFrame(19)
-    waitForVideoFrame(view)
-
-    @assert(view.video.audioTrackCount() == 2 and view.audioCombo != null)
-    @assert(view.audioCombo!.items.count == 2 and view.audioCombo!.selectedIndex == 0)
-    @assert(view.audioCombo!.items[0]!.name.raw.indexOf("44.1 kHz") != Swag.U64.Max)
+    @assert(view.video.audioTrackCount() == 2)
+    @assert(view.audioButton.isVisible() and view.audioButton.icon.isValid() and view.audioTrackIndex == 0)
+    @assert(videoAudioTrackText(0, view.video.audioTrack(0)!).indexOf("44.1 kHz") != Swag.U64.Max)
+    @assert(view.muteButton.isVisible() and view.volumeSlider.isVisible())
+    @assert(view.details.indexOf("AAC-LC") != Swag.U64.Max and view.details.indexOf("2 ch") != Swag.U64.Max)
+    @assert(videoAudioEncodingText(.Ac3) == "AC-3" and videoAudioEncodingText(.Eac3) == "E-AC-3")
     view.setVolume(0.4)
     view.setMuted(true)
     view.seekFrame(5)
     waitForVideoFrame(view)
     let previousVoice = view.voice!
 
-    view.audioCombo!.setSelectedIndex(1)
+    host.clickPopupMenuItemWhenShown("sFileScope.video.audioTrack.1")
+    view.showAudioTrackMenu()
     @assert(view.audioTrackIndex == 1 and view.audio == view.video.audioTrack(1))
     @assert(view.voice != null and view.voice != previousVoice)
     @assert(view.muted and Math.isEqualEpsilon(expect view.voice!.volume(), 0, 0.001))
@@ -272,16 +308,61 @@ func videoMatroskaFixturePath()->String
 
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    @assert(view.audioCombo!.toolTip == "Piste audio")
-    @assert(view.audioCombo!.items[1]!.name.raw.indexOf("can.") != Swag.U64.Max)
+    @assert(view.audioButton.toolTip == "Piste audio")
+    @assert(videoAudioTrackText(1, view.video.audioTrack(1)!).indexOf("can.") != Swag.U64.Max)
+    @assert(view.details.indexOf("2 can.") != Swag.U64.Max)
 
     view.dockStyle          = .Center
     view.commands.dockStyle = .Center
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
+    @assert(view.audioButton.position.width == 36)
+    @assert(view.audioButton.position.x > view.forwardButton.position.right())
+    @assert(view.audioButton.position.right() <= view.timeLabel.position.x)
     Testing.assertContentFits(view.commands)
     var image = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&image, "viewer.video.multiaudio")
+}
+
+// A progressive sound prefix must not become the master clock for a seek beyond that prefix.
+// It stays paused until a longer index arrives, while the picture timeline remains at the point
+// the user requested instead of snapping back to the last indexed sound sample.
+#test
+{
+    @assert(acquireSoundEngine(.NoSound))
+    defer releaseSoundEngine()
+
+    let fileName = expect videoPreviewFile(Format.toString("filescope-video-audio-range-%.mp4", Guid64.random()).toString(), 12)
+    defer discard catch File.delete(fileName)
+    let soundPath = Gui.Testing.tempFilePath("filescope-video-audio-range-", ".pcm")
+    defer discard catch File.delete(soundPath)
+    var pcm: Array'u8
+    pcm.resize(200)
+    expect File.writeAllBytes(soundPath, pcm.toSlice())
+    let packets: [1] SoundPacket = [{0, 200, 100}]
+    var sound = expect SoundFile.openPcmPacketStream(soundPath, .Pcm16, 100, 1, packets)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let request  = ViewerRequest{&host.root, commands, fileName}
+    var result: ViewerResult
+    createVideoViewer(&request, &result)
+    @assert(result.view != null)
+    let view = cast(*VideoViewer) result.view!
+    waitForVideoFrame(view)
+
+    view.audio   = &sound
+    view.voice   = expect Voice.create(&sound)
+    view.playing = true
+    view.clock.restart()
+    view.seekFrame(8)
+    waitForVideoFrame(view)
+    @assert(view.audioRangePending and !view.voice!.isPlaying())
+    @assert(view.currentSeconds() >= 1.9 and view.voice!.playbackSampleFrame() == 0)
+    view.followAudioClock()
+    @assert(view.currentSeconds() >= 1.9)
 }
 
 // An output device that never consumes what it was given reports the same position for ever.

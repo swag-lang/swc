@@ -3,6 +3,18 @@
 
 using Core, Core.Errors, Pixel
 
+func waitForMatroskaAudio(reader: *Reader, count: u32)
+{
+    var attempts: u32
+    while reader.audioTrackCount() != count and attempts < 1000
+    {
+        Threading.Thread.sleep(1'ms)
+        attempts += 1
+    }
+
+    @assert(reader.audioTrackCount() == count)
+}
+
 // Indexed duration and track timing make a file-backed stream seekable before its complete frame
 // table exists. The requested frame is indexed on demand without scanning the rest of the file.
 #test
@@ -52,8 +64,7 @@ using Core, Core.Errors, Pixel
 #test
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
-    var indexed: Image
-    expect reader.decodeFrameInto(&indexed, 19)
+    waitForMatroskaAudio(&reader, 2)
     @assert(reader.audioTrackCount() == 2)
     let primary   = reader.audioTrack(0)!
     let alternate = reader.audioTrack(1)!
@@ -75,12 +86,10 @@ using Core, Core.Errors, Pixel
     const Files:        [3] string = ["ffmpeg-h264-aac-5.1.mkv", "ffmpeg-h264-ac3-5.1.mkv", "ffmpeg-h264-eac3-5.1.mkv"]
     const Encodings:    [3] Audio.SoundFileEncoding = [.AacLc, .Ac3, .Eac3]
     const PacketFrames: [3] u32    = [1024, 1536, 1536]
-    const LastFrames:   [3] u64    = [12, 11, 11]
     for fileIndex in 3
     {
         var reader = expect Reader.open(videoFixturePath(Files[fileIndex]))
-        var indexed: Image
-        expect reader.decodeFrameInto(&indexed, LastFrames[fileIndex])
+        waitForMatroskaAudio(&reader, 1)
         @assert(reader.audioTrackCount() == 1)
         let sound = reader.audioTrack(0)!
         @assert(sound.sampleEncoding() == Encodings[fileIndex])
@@ -96,9 +105,8 @@ using Core, Core.Errors, Pixel
 {
     var plain   = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
     var delayed = expect Reader.open(videoFixturePath("mkv-aac-codec-delay.mkv"))
-    var indexed: Image
-    expect plain.decodeFrameInto(&indexed, 19)
-    expect delayed.decodeFrameInto(&indexed, 19)
+    waitForMatroskaAudio(&plain, 2)
+    waitForMatroskaAudio(&delayed, 2)
     let plainSound   = plain.audioTrack(0)!
     let delayedSound = delayed.audioTrack(0)!
     @assert(delayedSound.packetCount() == plainSound.packetCount())
@@ -114,7 +122,7 @@ using Core, Core.Errors, Pixel
     var reference  = expect Reader.open(videoFixturePath("ffmpeg-h264-baseline.mp4"))
     var indexed: Image
     expect longStream.decodeFrameInto(&indexed, 0)
-    @assert(longStream.frameCount() == 0 and longStream.audioTrackCount() == 0)
+    @assert(longStream.frameCount() == 0)
     @assert(Math.isEqualEpsilon(longStream.durationInSeconds(), 600.0, 0.001))
 
     // The frame immediately after a distant seek also proves that seek-only decode bounding is

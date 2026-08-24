@@ -27,6 +27,16 @@ is the layout it does not read yet.
   entropy parse 33.4, reconstruction 17.4, loop filter 8.6 — plus 13.4 for the conversion to RGB.
   FFmpeg on the same machine needs about 27 ms of processor time per picture single-threaded and
   about 3 ms of wall time frame-threaded.
+- What the gap is no longer responsible for (2026-08-24, release, the same recording played in
+  sFileScope at half and nine tenths of its length, sixty-second runs): the decoder is not what
+  limits playback of this stream on this machine. Its run-ahead queue stayed full at ten pictures
+  in every run, and handing one picture over cost 3 to 8 ms. What limited the picture rate was the
+  presentation path — see F-191 in findings.gui.md — and two defects in the player, both fixed:
+  the run-ahead was taken with an unstable array removal, which left eight of its ten slots holding
+  pictures that would never be shown, and presentation was capped at one picture per turn of the
+  application loop, which let the picture fall up to 79 frames behind the clock without anything
+  reporting it. Playing the stream is therefore no longer evidence about this entry; measure the
+  serial cost of one picture instead.
 - The conversion to RGB has since left the decode path entirely: `Video.Reader.decodeFramePlanesInto`
   hands the reconstructed planes over as they are, `Pixel.PixelFormat.Yuv420` carries them as a
   texture, and the renderer converts where it samples. Every figure below that adds a conversion cost

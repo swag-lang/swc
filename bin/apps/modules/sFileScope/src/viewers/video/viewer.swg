@@ -95,7 +95,14 @@ internal struct VideoViewer
     queueLock:    Sync.Mutex
 
     // Queue state, all read and written under `queueLock`.
-    ready:       Array'u32     // Slots holding a decoded picture, in ascending frame order.
+    //
+    // `ready` holds the slots that carry a decoded picture, oldest first. The order *is* the
+    // queue, so taking from the front has to preserve it, which is what `removeAtOrdered` is for:
+    // the unstable remove swaps the newest picture to the front, and the ones it steps over are
+    // then never taken at all. Playback still looks sequential when that happens, because the
+    // front keeps advancing by one — what is lost is the run-ahead itself, which silently shrinks
+    // to two pictures however many slots are reported full.
+    ready:       Array'u32
     freeSlots:   Array'u32
     nextDecode:  u64     // Frame the producer takes next.
     produceFrom: u64     // Frame the producer was last aimed at.
@@ -122,6 +129,10 @@ internal struct VideoViewer
     volume = 1'f32
     details:       String
     reportFailure: #null ViewerReportFailure
+
+    // Pixel column the timeline thumb was last pushed to, so a value that would not move it is
+    // not pushed at all.
+    timelinePixel: s32 = -1
 }
 
 internal impl VideoViewer
@@ -192,7 +203,28 @@ internal impl VideoViewer
     {
         let duration = cast(f64) .video.durationInSeconds()
         let seconds  = Math.clamp(.currentSeconds(), 0, duration)
-        .timeline.setValueWithoutGesture(cast(f32) seconds)
+
+        // Push the thumb only where it would actually move. A timeline is a couple of thousand
+        // pixels at most and a recording is hours long, so one pixel of travel is seconds of
+        // playback: pushed on every tick the slider invalidates a hundred times a second for a
+        // position nobody can tell apart. What that costs is not the slider — it is that the
+        // repainted region then spans from the command bar to the picture, so the surface repaints
+        // its whole hierarchy and chrome instead of the one view that changed.
+        let width = .timeline.position.width
+        if duration <= 0 or width <= 0
+        {
+            .timeline.setValueWithoutGesture(cast(f32) seconds)
+        }
+        else
+        {
+            let pixel = cast(s32) (seconds / duration * cast(f64) width)
+            if pixel != .timelinePixel
+            {
+                .timelinePixel = pixel
+                .timeline.setValueWithoutGesture(cast(f32) seconds)
+            }
+        }
+
         .timeLabel.setText(mediaTimeRangeText(seconds, duration))
     }
 
@@ -336,12 +368,20 @@ internal impl VideoViewer
         while .produceOne() {}
     }
 
-    // Publishes the oldest queued picture, and reports whether one reached the screen.
+    // Publishes the queued picture the clock is on, and reports whether one reached the screen.
     //
-    // Every decoded picture is presented rather than dropped. The decoder is asked only for the
-    // pictures playback intends to show, so a queued one is never obsolete, and presenting them
-    // in order is what keeps motion smooth when the clock has run ahead.
-    mtd publishHead()->bool
+    // Every decoded picture is presented while playback keeps up: the decoder is asked only for
+    // the pictures playback intends to show, so a queued one is never obsolete, and presenting
+    // them in order is what keeps motion smooth when the clock has run ahead.
+    //
+    // Past that, one picture per call is a ceiling, and the caller is the event loop of the
+    // application: one turn of that loop presents the window, which costs tens of milliseconds
+    // whenever the compositor is busy. A stream asking for more pictures than the loop turns
+    // would then fall behind by the difference for as long as it plays — silently, since the
+    // queue stays full and nothing looks starved. `catchUpTo` names the last picture the clock
+    // has reached: everything before it is released unshown, so the picture stays on the clock
+    // and the loss is bounded to pictures whose time has already gone.
+    mtd publishHead(catchUpTo: u64 = 0, catchUp = false)->bool
     {
         // App tests deliberately do not start global worker threads. Preserve their
         // deterministic behavior while the shipped application always produces in background.
@@ -354,8 +394,14 @@ internal impl VideoViewer
             Sync.scopedLock(&.queueLock)
             if .ready.count
             {
+                while catchUp and .ready.count > 1 and .slots[cast(u64) .ready[1]].index <= catchUpTo
+                {
+                    .freeSlots.add(.ready[0])
+                    .ready.removeAtOrdered(0)
+                }
+
                 chosen = .ready[0]
-                .ready.removeAt(0)
+                .ready.removeAtOrdered(0)
             }
             elif .hasFailure
             {
@@ -573,9 +619,10 @@ internal impl VideoViewer
         let clock = .clockFrame()
         if !empty
         {
-            // Nothing is dropped, so the clock only gates when the next picture is due.
+            // While playback keeps up the clock only gates when the next picture is due; past
+            // that it also decides how many of the queued ones are already too late to show.
             if .anchorPending or head <= clock do
-                discard .publishHead()
+                discard .publishHead(clock, !.anchorPending)
             return
         }
 

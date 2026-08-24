@@ -274,3 +274,60 @@ func videoAvcFixturePath()->String
     @assert(view.frameIndex == 12 and !view.hasFailure)
     @assert(view.planar)
 }
+
+// The run-ahead queue stays a FIFO as pictures are taken from it.
+//
+// Taking the front with an unstable removal put the newest picture there instead, and the ones it
+// stepped over were never taken at all: the queue reported itself full while the run-ahead it
+// exists for had shrunk to two pictures, so any decode longer than one frame period reached the
+// screen as a stall. Playback still looked sequential, which is why this needs an assertion on the
+// order rather than on what was shown.
+#test
+{
+    let fileName = expect videoPreviewFile(Format.toString("filescope-video-queue-%.mp4", Guid64.random()).toString(), 40)
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let request  = ViewerRequest{&host.root, commands, fileName}
+    var result: ViewerResult
+    createVideoViewer(&request, &result)
+    @assert(result.view != null)
+    let view = cast(*VideoViewer) result.view!
+    waitForVideoFrame(view)
+    @assert(view.frameIndex == 0)
+
+    // A paused viewer decodes only the picture it is parked on, so let the producer run and wait
+    // until it has filled every slot, which is also when it stops touching the queue.
+    view.playing = true
+    view.clock.reset()
+    view.decodeWake.signal()
+    var attempts = 0
+    while view.ready.count < cast(u64) view.slotCount and attempts < 5000
+    {
+        Threading.Thread.sleep(1'ms)
+        attempts += 1
+    }
+
+    @assert(view.ready.count == cast(u64) view.slotCount)
+
+    for step in 1 to 5
+    {
+        view.elapsed = view.frameSeconds(step)
+        view.clock.reset()
+        @assert(view.publishHead(step, true))
+        @assert(view.frameIndex == step)
+
+        // Everything still queued follows what is on screen, in order and without a hole.
+        Sync.scopedLock(&view.queueLock)
+        var expected = view.frameIndex
+        for slot in view.ready
+        {
+            expected += 1
+            @assert(view.slots[cast(u64) slot].index == expected)
+        }
+    }
+}

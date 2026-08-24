@@ -11,12 +11,6 @@
     let a = #raw 'x'     // swc-expected-error {{parser_err_raw_needs_string}}
 }
 
-// The delimiter-pair spelling is gone.
-#test
-{
-    let a = #"still raw"#     // swc-expected-error {{parser_err_raw_string_delimiter}}
-}
-
 // The supported spellings stay valid.
 #test
 {

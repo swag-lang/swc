@@ -579,46 +579,6 @@ void Lexer::lexMultiLineStringLiteral()
     pushToken();
 }
 
-void Lexer::lexRawStringLiteral()
-{
-    token_.id = TokenId::StringRaw;
-    buffer_ += 2;
-
-    bool foundClosing = false;
-
-    // Safe to read buffer_[1] due to padding after endBuffer_
-    while (buffer_ < endBuffer_)
-    {
-        // Check for null byte (invalid UTF-8)
-        if (buffer_[0] == '\0')
-        {
-            raiseUtf8Error(DiagnosticId::lex_err_not_utf8, static_cast<uint32_t>(buffer_ - startBuffer_));
-            buffer_++;
-            continue;
-        }
-
-        if (buffer_[0] == '"' && buffer_[1] == '#')
-        {
-            buffer_ += 2;
-            foundClosing = true;
-            break;
-        }
-
-        if (buffer_[0] == '\n' || buffer_[0] == '\r')
-        {
-            eatOneEol();
-            continue;
-        }
-
-        buffer_++;
-    }
-
-    if (!foundClosing)
-        raiseTokenError(DiagnosticId::lex_err_unclosed_string, startTokenOffset_, 2);
-
-    pushToken();
-}
-
 void Lexer::lexCharacterLiteral()
 {
     token_.id = TokenId::Character;
@@ -999,14 +959,7 @@ bool Lexer::canPrecedeQuoteOperator() const
         case TokenId::NumberFloat:
         case TokenId::StringLine:
         case TokenId::StringMultiLine:
-        case TokenId::StringRaw:
             return true;
-
-        // A character literal opens and closes with the same delimiter, so only adjacency
-        // tells the removed suffix separator ("'a''u8") from two literals in a row. The
-        // quote is kept here so the parser can report the removed spelling precisely.
-        case TokenId::Character:
-            return prevToken_.id == TokenId::Character;
 
         default:
             return false;
@@ -1581,13 +1534,6 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
             token_.byteLength = 1;
             buffer_ += 2;
             pushToken();
-            continue;
-        }
-
-        // String literal (raw) - safe to read buffer_[1] due to padding after endBuffer_
-        if (buffer_[0] == '#' && buffer_[1] == '"')
-        {
-            lexRawStringLiteral();
             continue;
         }
 

@@ -61,12 +61,6 @@ AstNodeRef Parser::parseLiteral()
             return nodeRef;
         }
 
-        case TokenId::StringRaw:
-            // Still lexed so the whole literal is consumed and the rest of the statement keeps
-            // parsing normally; only the spelling is rejected.
-            raiseError(DiagnosticId::parser_err_raw_string_delimiter, ref());
-            [[fallthrough]];
-
         case TokenId::StringLine:
         case TokenId::StringMultiLine:
         {
@@ -137,12 +131,6 @@ AstNodeRef Parser::parseLiteralExpression()
     // break is not: a statement ends at the end of a line, so the suffix stays on it.
     if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::EolBefore))
     {
-        // A character literal already ends with a quote, and that closing quote is what
-        // separates it from its suffix. A second one is the removed spelling: report it,
-        // then read the suffix anyway so one mistake produces one diagnostic.
-        if (ast_->node(literal).is(AstNodeId::CharacterLiteral))
-            raiseError(DiagnosticId::parser_err_char_literal_suffix_quote, ref());
-
         quoteTknRef  = ref();
         suffixTknRef = consume();
     }

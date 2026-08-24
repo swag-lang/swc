@@ -33,8 +33,6 @@ namespace
                 return 1;
             case TokenId::StringMultiLine:
                 return 3;
-            case TokenId::StringRaw:
-                return 2;
             default:
                 SWC_UNREACHABLE();
         }
@@ -42,7 +40,7 @@ namespace
 
     uint32_t stringAlignColumn(const Token& tok, const SourceView& srcView)
     {
-        SWC_ASSERT(tok.isAny({TokenId::StringMultiLine, TokenId::StringRaw}));
+        SWC_ASSERT(tok.id == TokenId::StringMultiLine);
 
         const auto it = std::ranges::upper_bound(srcView.lines(), tok.byteStart);
         SWC_ASSERT(it != srcView.lines().begin());
@@ -373,9 +371,6 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
         case TokenId::StringMultiLine:
             str = str.substr(3, str.size() - 6);
             break;
-        case TokenId::StringRaw:
-            str = str.substr(2, str.size() - 4);
-            break;
         default:
             SWC_UNREACHABLE();
     }
@@ -385,7 +380,7 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
     Utf8             normalized;
     std::string_view value = str;
 
-    if (tok.isAny({TokenId::StringMultiLine, TokenId::StringRaw}) && tok.hasFlag(TokenFlagsE::EolInside))
+    if (tok.id == TokenId::StringMultiLine && tok.hasFlag(TokenFlagsE::EolInside))
     {
         // Re-indentation is layout, not escaping, so it still applies to a raw literal. Folding
         // an escaped end-of-line is an escape, so it does not.
@@ -395,7 +390,7 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
         value = normalized;
     }
 
-    if (tok.id == TokenId::StringRaw || isRaw)
+    if (isRaw)
     {
         auto val = ConstantValue::makeString(ctx, value);
         val.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString()));

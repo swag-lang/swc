@@ -65,7 +65,6 @@ public:
         NoInline,
         Optimize,
         PlaceHolder,
-        NoPrint,
         Macro,
         Mixin,
         Implicit,

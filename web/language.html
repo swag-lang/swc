@@ -743,14 +743,12 @@ indent-style = spaces</span></div>
 <div class="code-block"><span class="SCde"><span class="SLgc">and</span>  <span class="SLgc">as</span>  <span class="SLgc">break</span>  <span class="SLgc">case</span>  <span class="SLgc">continue</span>  <span class="SLgc">default</span>  <span class="SLgc">defer</span>  <span class="SLgc">do</span>  <span class="SLgc">elif</span>  <span class="SLgc">else</span>
 <span class="SLgc">fallthrough</span>  <span class="SLgc">for</span>  <span class="SLgc">if</span>  <span class="SLgc">in</span>  <span class="SLgc">is</span>  <span class="STpe">me</span>  <span class="SLgc">or</span>  <span class="SLgc">orelse</span>  <span class="SLgc">return</span>  <span class="SLgc">switch</span>
 <span class="SLgc">to</span>  <span class="SLgc">unreachable</span>  <span class="SLgc">until</span>  <span class="SLgc">where</span>  <span class="SLgc">while</span></span></div>
-<p><span class="code-inline">foreach</span> is no longer part of the language; the compiler recognizes it only to produce a migration diagnostic that points to <span class="code-inline">for</span>.</p>
-<p><span class="code-inline">verify</span> is no longer part of the language either, and is now an ordinary identifier. It used to be accepted on function declarations but was never executed. Express a compile-time overload contract with a <span class="code-inline">where</span> constraint, and a runtime precondition with ordinary code.</p>
 <h3 id="_002_007_keywords_swg_Values__Errors__and_Conversion">Values, Errors, and Conversion</h3>
 <div class="code-block"><span class="SCde"><span class="SKwd">cast</span>  <span class="SKwd">catch</span>  <span class="SKwd">discard</span>  <span class="SKwd">expect</span>  <span class="SKwd">fail</span>  <span class="SKwd">false</span>  <span class="SKwd">null</span>
 <span class="SKwd">retval</span>  <span class="SKwd">true</span>  <span class="SKwd">try</span>  <span class="SKwd">undefined</span></span></div>
 <p><span class="code-inline">not</span> is reserved for future use.</p>
 <h3 id="_002_007_keywords_swg_Contextual_Source_and_Module_Names">Contextual Source and Module Names</h3>
-<p><span class="code-inline">export</span>, <span class="code-inline">generated</span>, <span class="code-inline">location</span>, <span class="code-inline">link</span>, and <span class="code-inline">version</span> are recognized in specific module-setup or generated-source positions. Outside those positions the lexer treats them as ordinary identifiers; they are not part of the reserved keyword set above.</p>
+<p><span class="code-inline">export</span>, <span class="code-inline">location</span>, <span class="code-inline">link</span>, and <span class="code-inline">version</span> are recognized in specific module-setup positions. Outside those positions the lexer treats them as ordinary identifiers; they are not part of the reserved keyword set above.</p>
 <h3 id="_002_007_keywords_swg_Built-In_Types">Built-In Types</h3>
 <div class="code-block"><span class="SCde"><span class="STpe">any</span>  <span class="STpe">bool</span>  <span class="STpe">cstring</span>  <span class="STpe">f32</span>  <span class="STpe">f64</span>  <span class="STpe">rune</span>
 <span class="STpe">s8</span>  <span class="STpe">s16</span>  <span class="STpe">s32</span>  <span class="STpe">s64</span>  <span class="STpe">string</span>  <span class="STpe">typeinfo</span>
@@ -1424,10 +1422,6 @@ indent-style = spaces</span></div>
 <p>Character literals remain adaptable until their context selects a concrete type. To select one explicitly, place an unsigned integer type or <span class="code-inline">rune</span> directly after the closing quote. The literal is already closed by that quote, so it is the quote that separates the literal from its suffix and the suffix follows it immediately.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> letter = '<span class="SNum">0</span>'<span class="STpe">u8</span>      <span class="SCmt">// a 'u8'</span>
 <span class="SKwd">let</span> space  = ' '<span class="STpe">u32</span>     <span class="SCmt">// the literal is a space, the suffix still follows the quote</span></span></div>
-<div class="blockquote blockquote-note">
-<div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
-<p>A second quote before the suffix ("<span class="code-inline">0</span>'u8") was an earlier spelling and is now reported as an error. Remove it: the closing quote is the separator.</p>
-</div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> a = '<span class="SNum">0</span>'<span class="STpe">u8</span>
@@ -2751,32 +2745,6 @@ indent-style = spaces</span></div>
     <span class="SCmp">#assert</span>(<span class="SItr">@countof</span>(a) == <span class="SNum">2</span>)
     <span class="SCmp">#assert</span>(<span class="SItr">@countof</span>(b) == <span class="SNum">3</span>)
     <span class="SItr">@assert</span>(b[<span class="SNum">2</span>] == <span class="SNum">30</span>)
-}</span></div>
-<h3 id="_004_004_enum_swg_Importing_Enum_Values">Importing Enum Values</h3>
-<p>Enums can import values from another enum using <span class="code-inline">using</span>. Both enums must share the same base type.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">BasicErrors</span> { <span class="SCst">FailedToLoad</span>, <span class="SCst">FailedToSave</span> }
-
-<span class="SKwd">enum</span> <span class="SCst">MyErrors</span>
-{
-    <span class="SKwd">using</span> <span class="SCst">BasicErrors</span>
-    <span class="SCst">NotFound</span> = <span class="SNum">100</span>
-}</span></div>
-<h3 id="_004_004_enum_swg_Accessing_Imported_Enum_Values">Accessing Imported Enum Values</h3>
-<p>Imported enum values are available through the parent enum scope and keep their original enum type.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">MyError0</span> = <span class="SCst">MyErrors</span>.<span class="SCst">FailedToSave</span>
-
-<span class="SFct">#test</span>
-{
-    <span class="SKwd">const</span> <span class="SCst">E0</span>: <span class="SCst">BasicErrors</span> = <span class="SCst">MyErrors</span>.<span class="SCst">FailedToLoad</span>
-    <span class="SKwd">const</span> <span class="SCst">E1</span>: <span class="SCst">BasicErrors</span> = <span class="SCst">BasicErrors</span>.<span class="SCst">FailedToLoad</span>
-
-    <span class="SKwd">func</span> <span class="SFct">toto</span>(err: <span class="SCst">BasicErrors</span>)
-    {
-        <span class="SItr">@assert</span>(err == <span class="SCst">BasicErrors</span>.<span class="SCst">FailedToLoad</span>)
-    }
-
-    <span class="SFct">toto</span>(<span class="SCst">E0</span>)
-    <span class="SFct">toto</span>(<span class="SCst">E1</span>)
 }</span></div>
 <h3 id="_004_004_enum_swg_Enum-indexed_Arrays">Enum-indexed Arrays</h3>
 <p>An enum can define the index domain of an array. Its values must be unique integers forming the contiguous range from zero to the last value.</p>
@@ -7087,7 +7055,6 @@ indent-style = spaces</span></div>
 <tr><td><span class="code-inline">Inline()</span></td><td>Require inlining</td></tr>
 <tr><td><span class="code-inline">NoInline()</span></td><td>Ask the backend not to inline</td></tr>
 <tr><td><span class="code-inline">PlaceHolder()</span></td><td>Generate an empty function body</td></tr>
-<tr><td><span class="code-inline">NoPrint()</span></td><td>Disable <span class="code-inline">@print</span> in the annotated function</td></tr>
 <tr><td>'Optimize(level: bool)'</td><td>Enable or disable optimized code generation</td></tr>
 </tbody>
 </table>
@@ -7119,11 +7086,9 @@ indent-style = spaces</span></div>
 <tr><td><span class="code-inline">Incomplete()</span></td><td>Document that an enum's declared values are not the full set</td></tr>
 <tr><td><span class="code-inline">EnumFlags()</span></td><td>Define an enum whose values form a bit mask</td></tr>
 <tr><td><span class="code-inline">NoDuplicate()</span></td><td>Reject duplicate enum values</td></tr>
-<tr><td>'Match(what: MatchWhat, value: bool)'</td><td>Adjust compiler overload-matching rules</td></tr>
 </tbody>
 </table>
 <p>Exhaustive matching is not an attribute: a <span class="code-inline">switch</span> carries no symbol, so it is requested with the 'switch #complete' modifier.</p>
-<p><span class="code-inline">Swag.Match</span> is a low-level compiler contract. Application code should normally express overload selection with types and <span class="code-inline">where</span> constraints.</p>
 <h3 id="_010_002_predefined_attributes_swg_Layout__Ownership__and_Export">Layout, Ownership, and Export</h3>
 <table class="table-markdown">
 <thead>
@@ -9289,7 +9254,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.187</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.189</div>
 </footer>
 </section>
 </main>
@@ -9766,8 +9731,6 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Enums as Flags|_004_004_enum_swg_Enums_as_Flags|",
 "h|Enums with Arrays|_004_004_enum_swg_Enums_with_Arrays|",
 "h|Enums with Slices|_004_004_enum_swg_Enums_with_Slices|",
-"h|Importing Enum Values|_004_004_enum_swg_Importing_Enum_Values|",
-"h|Accessing Imported Enum Values|_004_004_enum_swg_Accessing_Imported_Enum_Values|",
 "h|Enum-indexed Arrays|_004_004_enum_swg_Enum-indexed_Arrays|",
 "h|Specific Enum Attributes|_004_004_enum_swg_Specific_Enum_Attributes|",
 "h|Enum Type Inference|_004_004_enum_swg_Enum_Type_Inference|",

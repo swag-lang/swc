@@ -24,13 +24,6 @@ fallthrough  for  if  in  is  me  or  orelse  return  switch
 to  unreachable  until  where  while
 ```
 
-'foreach' is no longer part of the language; the compiler recognizes it only to
-produce a migration diagnostic that points to 'for'.
-
-'verify' is no longer part of the language either, and is now an ordinary identifier. It
-used to be accepted on function declarations but was never executed. Express a compile-time
-overload contract with a 'where' constraint, and a runtime precondition with ordinary code.
-
 # Values, Errors, and Conversion
 
 ```swag
@@ -42,10 +35,9 @@ retval  true  try  undefined
 
 # Contextual Source and Module Names
 
-'export', 'generated', 'location', 'link', and 'version' are recognized in
-specific module-setup or generated-source positions. Outside those positions
-the lexer treats them as ordinary identifiers; they are not part of the
-reserved keyword set above.
+'export', 'location', 'link', and 'version' are recognized in specific module-setup
+positions. Outside those positions the lexer treats them as ordinary identifiers; they are
+not part of the reserved keyword set above.
 
 # Built-In Types
 

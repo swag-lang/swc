@@ -100,7 +100,6 @@ struct AstCompilerGlobal : AstNodeT<AstNodeId::CompilerGlobal>
 {
     enum class Mode
     {
-        Generated,
         Export,
         AttributeList,
         AccessPublic,
@@ -945,16 +944,6 @@ struct AstEnumValue : AstNodeT<AstNodeId::EnumValue>
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeInitRef}); }
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result     semaPostNode(Sema& sema) const;
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
-};
-
-// -----------------------------------------------------------------------------
-struct AstUsingEnumDecl : AstNodeT<AstNodeId::UsingEnumDecl>
-{
-    AstNodeRef nodeNameRef;
-
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeNameRef}); }
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

@@ -57,7 +57,6 @@ needs 'typeinfo' and cannot exist in the bootstrap.
 | 'Inline()' | Require inlining |
 | 'NoInline()' | Ask the backend not to inline |
 | 'PlaceHolder()' | Generate an empty function body |
-| 'NoPrint()' | Disable '@print' in the annotated function |
 | 'Optimize(level: bool)' | Enable or disable optimized code generation |
 
 'PrintAst' and 'PrintMicro' are development aids: they write compiler output and
@@ -85,13 +84,9 @@ should not be used for program logic.
 | 'Incomplete()' | Document that an enum's declared values are not the full set |
 | 'EnumFlags()' | Define an enum whose values form a bit mask |
 | 'NoDuplicate()' | Reject duplicate enum values |
-| 'Match(what: MatchWhat, value: bool)' | Adjust compiler overload-matching rules |
 
 Exhaustive matching is not an attribute: a 'switch' carries no symbol, so it is
 requested with the 'switch #complete' modifier.
-
-'Swag.Match' is a low-level compiler contract. Application code should normally
-express overload selection with types and 'where' constraints.
 
 # Layout, Ownership, and Export
 

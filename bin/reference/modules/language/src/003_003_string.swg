@@ -165,10 +165,6 @@ separates the literal from its suffix and the suffix follows it immediately.
 let letter = '0'u8      // a 'u8'
 let space  = ' 'u32     // the literal is a space, the suffix still follows the quote
 ```
-
-> NOTE:
-> A second quote before the suffix ("'0''u8") was an earlier spelling and is now
-> reported as an error. Remove it: the closing quote is the separator.
 */
 #test
 {

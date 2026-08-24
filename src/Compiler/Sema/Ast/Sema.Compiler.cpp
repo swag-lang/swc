@@ -998,7 +998,6 @@ Result AstCompilerGlobal::semaPostNode(Sema& sema) const
 {
     switch (mode)
     {
-        case Mode::Generated:
         case Mode::AttributeList:
         case Mode::Using:
             return Result::Continue;

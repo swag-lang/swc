@@ -93,3 +93,25 @@ using Core, Core.Errors, Pixel
     discard catch Reader.openMemory("broken.mkv", Truncated) as truncated
     @assert(truncated is InvalidFormatError)
 }
+
+// An unsupported picture codec is rejected as soon as the track metadata names it. The damaged
+// first cluster proves opening never reaches media data after that answer is already known.
+#test
+{
+    var bytes = expect File.readAllBytes(videoFixturePath("ffmpeg-h264-two-aac.mkv").toString())
+
+    const AvcId     = "V_MPEG4/ISO/AVC"
+    const UnknownId = "V_MPEG4/ISO/XYZ"
+    #assert(@countof(AvcId) == @countof(UnknownId))
+    let codecOffset = Utf8.indexOf(bytes.toSlice(), AvcId)
+    @assert(codecOffset != Swag.U64.Max)
+    Memory.copy(bytes.buffer! + codecOffset, @dataof(UnknownId), @countof(UnknownId))
+
+    const ClusterId: [4] u8 = [0x1F, 0x43, 0xB6, 0x75]
+    let clusterOffset = Slice.findSubslice(bytes.toSlice(), ClusterId)
+    @assert(clusterOffset != Swag.U64.Max)
+    bytes[clusterOffset] = 0
+
+    discard catch Reader.openMemory("unsupported.mkv", bytes.toSlice()) as unsupported
+    @assert(unsupported is UnsupportedFormatError)
+}

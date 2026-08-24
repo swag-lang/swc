@@ -84,7 +84,6 @@ private impl Layout
             fail InvalidFormatError{"Matroska stream has no segment"}
 
         .parseSegment(&cursor, segment)
-        .selectTracks()
         for cluster in .clusters do
             .parseCluster(&cursor, cluster)
 
@@ -118,13 +117,22 @@ private impl Layout
             let element = cursor.readElement(segment.end)
             switch element.id
             {
-            case InfoId:    .parseInfo(cursor, element)
-            case TracksId:  .parseTracks(cursor, element)
-            case ClusterId: .clusters.add(element)
+            case InfoId:
+                .parseInfo(cursor, element)
+
+            case TracksId:
+                .parseTracks(cursor, element)
+                .selectTracks()
+
+            case ClusterId:
+                .clusters.add(element)
             }
 
             cursor.seek(element.end)
         }
+
+        if .selectedVideo == NoTrack do
+            .selectTracks()
     }
 
     mtd parseInfo(cursor: *Cursor, info: Element) fail

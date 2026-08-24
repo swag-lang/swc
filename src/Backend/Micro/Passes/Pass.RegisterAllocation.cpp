@@ -1475,6 +1475,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                 break;
             }
         }
+
         if (!picked.isValid())
             continue;
 
@@ -2155,6 +2156,7 @@ void MicroRegisterAllocationPass::ensureSpillSlot(VRegState& regState, bool isFl
 
 void MicroRegisterAllocationPass::clearRematerialization(VRegState& regState)
 {
+    regState.rematDefErased   = false;
     regState.rematerializable = false;
     regState.rematImmediate   = {};
     regState.rematBits        = MicroOpBits::B64;
@@ -2176,7 +2178,10 @@ void MicroRegisterAllocationPass::retireRematDef(VRegState& regState)
         return;
 
     if (!regState.rematDefConsumed)
+    {
         queueErase(regState.rematDefInstRef);
+        regState.rematDefErased = true;
+    }
 
     regState.rematDefInstRef  = MicroInstrRef::invalid();
     regState.rematDefConsumed = false;
@@ -3155,7 +3160,7 @@ void MicroRegisterAllocationPass::flushAtBoundary(const uint32_t instructionInde
                     dropAll = true; // back-edge: state unseen
                     break;
                 }
-                if (pred + 1 == instructionIndex)
+                if (fallThroughStateValid_ && pred + 1 == instructionIndex)
                     continue; // fall-through edge: the current state
                 const auto snapshotIt = boundarySnapshots_.find(pred);
                 if (snapshotIt == boundarySnapshots_.end())
@@ -3200,6 +3205,9 @@ void MicroRegisterAllocationPass::flushAtBoundary(const uint32_t instructionInde
             }
             dropMappedVirtualNoStore(denseIndex);
         }
+
+        if (!fallThroughStateValid_ && !dropAll && !edgeSnapshots.empty())
+            adoptBoundarySnapshots(instructionIndex, std::span(edgeSnapshots.begin(), edgeSnapshots.size()));
     }
     else if (inst.op == MicroInstrOpcode::JumpCond)
     {
@@ -3214,6 +3222,67 @@ void MicroRegisterAllocationPass::flushAtBoundary(const uint32_t instructionInde
             if (denseIndex < edgeRegisterHint_.size())
                 edgeRegisterHint_[denseIndex] = states_[denseIndex].phys;
         }
+    }
+}
+
+void MicroRegisterAllocationPass::adoptBoundarySnapshots(const uint32_t instructionIndex, const std::span<const BoundarySnapshot* const> edgeSnapshots)
+{
+    // A label the instruction before it does not fall into is not reached by the
+    // state the linear scan is holding: that state belongs to a path that ended
+    // at the jump or return above. Intersecting with it drops mappings that are
+    // valid on every edge that does arrive here, and the block then reloads a
+    // live set already sitting in registers - the else arm of every diamond paid
+    // for it. Rebuild the state from the edges instead of from the listing.
+    //
+    // What a snapshot promises is exactly what is needed: nothing executes
+    // between the jump that recorded it and this label, so the register named
+    // there still holds the value on that edge. A value is taken back only when
+    // every edge agrees on the same register, which is the same rule the
+    // intersection above applies, and only when the register is still free and
+    // allowed here.
+    SWC_ASSERT(!edgeSnapshots.empty());
+    const auto& virtualRegs = denseVirtualRegs_.regs();
+
+    for (const auto& [denseIndex, physReg] : *edgeSnapshots.front())
+    {
+        bool agreed = true;
+        for (size_t snapshotIndex = 1; snapshotIndex < edgeSnapshots.size() && agreed; ++snapshotIndex)
+        {
+            agreed = false;
+            for (const auto& [otherDense, otherPhys] : *edgeSnapshots[snapshotIndex])
+            {
+                if (otherDense != denseIndex)
+                    continue;
+                agreed = otherPhys == physReg;
+                break;
+            }
+        }
+
+        if (!agreed || denseIndex >= virtualRegs.size())
+            continue;
+
+        const MicroReg virtKey = virtualRegs[denseIndex];
+        if (!isLiveInAt(virtKey, instructionIndex))
+            continue;
+
+        auto& regState = states_[denseIndex];
+        if (regState.mapped || regState.pinned || regState.rematDefErased)
+            continue;
+
+        // The home is coherent: the boundary that recorded the snapshot stored
+        // the value (or holds it rematerializable) before recording it.
+        SmallVector<MicroReg>& transientPool  = physReg.isFloat() ? freeFloatTransient_ : freeIntTransient_;
+        SmallVector<MicroReg>& persistentPool = physReg.isFloat() ? freeFloatPersistent_ : freeIntPersistent_;
+
+        MicroReg taken = MicroReg::invalid();
+        if (!tryTakeSpecificPhysical(transientPool, virtKey, instructionIndex, physReg, MicroRegSpan{}, false, taken) &&
+            !tryTakeSpecificPhysical(persistentPool, virtKey, instructionIndex, physReg, MicroRegSpan{}, false, taken))
+            continue;
+
+        mapVirtReg(virtKey, physReg);
+        regState.dirty = false;
+        if (denseIndex < edgeRegisterHint_.size())
+            edgeRegisterHint_[denseIndex] = physReg;
     }
 }
 
@@ -3291,6 +3360,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     // kept register silently wrong. When the gate is off, every boundary
     // falls back to the full flush.
     boundarySnapshots_.clear();
+    fallThroughStateValid_ = true;
     edgeRegisterHint_.assign(denseVirtualRegs_.regs().size(), MicroReg::invalid());
     keepAcrossBoundaries_ = hasControlFlow_ &&
                             controlFlowGraph_ != nullptr &&
@@ -3728,7 +3798,31 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             applyStackPointerDelta(stackDepth, *it);
 
         if (hasControlFlow_ && isTerminator)
-            clearAllMappedVirtuals();
+        {
+            // A conditional jump falls through, and nothing runs between it and
+            // the instruction after it: the registers it leaves are the
+            // registers that instruction starts with, so the mapping is still
+            // valid there. That is the whole premise of the write-back protocol
+            // in flushAtBoundary, which clearing here used to undo - every
+            // conditional branch reloaded its live set on the path that did not
+            // even jump. Any other terminator ends the path; whatever follows is
+            // reached through a label, whose join rebuilds the state from the
+            // edges that actually arrive there.
+            bool fallsThrough = false;
+            if (keepAcrossBoundaries_ && controlFlowGraph_)
+            {
+                for (const uint32_t succIdx : controlFlowGraph_->successors(idx))
+                    fallsThrough = fallsThrough || succIdx == idx + 1;
+            }
+
+            if (!fallsThrough)
+                clearAllMappedVirtuals();
+            fallThroughStateValid_ = fallsThrough;
+        }
+        else
+        {
+            fallThroughStateValid_ = true;
+        }
 
         ++idx;
     }

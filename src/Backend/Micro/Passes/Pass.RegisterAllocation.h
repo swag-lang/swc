@@ -43,6 +43,11 @@ public:
         bool          dirty            = false;
         bool          rematerializable = false;
         bool          rematDefConsumed = false;
+        // The defining instruction was pruned because nothing had read the
+        // mapping yet. The value is remade wherever it is next needed, so no
+        // register can be claimed to hold it any more - which is what a
+        // boundary snapshot would otherwise promise.
+        bool          rematDefErased   = false;
         // Pinned values live permanently in a reserved callee-saved register for
         // the whole function. They bypass the spill/flush machinery entirely (they
         // are never placed in mappedVirtualIndices_) so loop-carried values stay
@@ -120,6 +125,12 @@ private:
         uint32_t hi         = 0;
         uint32_t ownerDense = 0;
     };
+
+    // Register-mapping snapshots recorded at each forward jump, consumed by
+    // the join intersection in flushAtBoundary. Keyed by the jump's
+    // instruction index; entries pair a dense virtual index with the physical
+    // register it occupied on that edge.
+    using BoundarySnapshot = SmallVector<std::pair<uint32_t, MicroReg>, 8>;
 
     void clearState();
     void initState(MicroPassContext& context);
@@ -221,6 +232,7 @@ private:
     void             flushAllMappedVirtuals(uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void             dropMappedVirtualNoStore(uint32_t denseIndex);
     void             flushAtBoundary(uint32_t instructionIndex, const MicroInstr& inst, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
+    void             adoptBoundarySnapshots(uint32_t instructionIndex, std::span<const BoundarySnapshot* const> edgeSnapshots);
     void             clearAllMappedVirtuals();
     void             expireDeadMappings(uint32_t stamp);
     void             rewriteInstructions();
@@ -256,12 +268,6 @@ private:
     bool                                  functionHasLoop_ = false;
     std::vector<uint8_t>                  concreteLoopCarried_;
 
-    // Register-mapping snapshots recorded at each forward jump, consumed by
-    // the join intersection in flushAtBoundary. Keyed by the jump's
-    // instruction index; entries pair a dense virtual index with the physical
-    // register it occupied on that edge.
-    using BoundarySnapshot = SmallVector<std::pair<uint32_t, MicroReg>, 8>;
-
     // The register each value held on the last control-flow edge that recorded one. Consulted
     // as a preference when a value is given a register again, so the two arms of a diamond
     // tend to leave it in the same place and the join can keep the mapping instead of dropping
@@ -269,6 +275,11 @@ private:
     std::vector<MicroReg> edgeRegisterHint_;
     std::unordered_map<uint32_t, BoundarySnapshot> boundarySnapshots_;
     bool                                           keepAcrossBoundaries_ = false;
+    // Whether the mapping the scan is currently holding belongs to a path that
+    // reaches the next instruction. It does after anything that falls through,
+    // and it does not after a return or an unconditional jump: what follows one
+    // of those is entered through a label, from edges recorded as snapshots.
+    bool                                           fallThroughStateValid_ = true;
     std::vector<uint32_t>                          virtualSpanLo_;
     std::vector<uint32_t>                          virtualSpanHi_;
     std::vector<std::vector<uint32_t>>             concreteClaimPositionsByDenseIndex_;

@@ -59,6 +59,51 @@ struct ViewerErrorView
     }
 }
 
+// Application-owned wait surface shared by every progressive viewer.
+//
+// A renderer only reports whether it is waiting; it neither chooses nor paints the feedback.
+// Keeping the veil here gives HTML, pictures, video, and future viewers the same presentation,
+// and prevents a stale document frame from looking like an application freeze.
+struct ViewerLoadingOverlay
+{
+    using wnd: Wnd
+
+    #[Swag.Late]
+    spinner: *Spinner
+}
+
+impl IWnd for ViewerLoadingOverlay
+{
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        evt.paintContext.painter.fillRect(.clientRect(), .themeColors().veilStrong)
+    }
+}
+
+impl ViewerLoadingOverlay
+{
+    func create(parent: *Wnd)->*ViewerLoadingOverlay
+    {
+        let result = Wnd.create'ViewerLoadingOverlay(parent, "sFileScope.loading")
+        result.wndFlags |= WndFlags.TopMost
+        result.spinner   = Spinner.create(result, {0, 0, 32, 32})
+        result.hide()
+        return result
+    }
+
+    // Covers `rect`, expressed in the shared parent coordinates, and centers the activity mark.
+    mtd cover(rect: Math.Rectangle)
+    {
+        .setPosition(rect, computeLayout: false)
+        let size = .spinner.preferredSize
+        .spinner.setPosition({
+            Math.floor((rect.width - size.x) * 0.5),
+            Math.floor((rect.height - size.y) * 0.5),
+            size.x,
+            size.y}, computeLayout: false)
+    }
+}
+
 impl ViewerErrorView
 {
     func create(parent: *Wnd, reason: string)->*ViewerErrorView
@@ -160,7 +205,7 @@ struct ViewerWindow
         infoNameLabel:    *Label
         infoStatsLabel:   *Label
         infoSizeLabel:    *Label
-        loadingSpinner:   *Spinner
+        loadingOverlay:   *ViewerLoadingOverlay
         viewerBar:        *Wnd
         emptyView:        *StackLayoutCtrl
         emptyIconLabel:   *Label
@@ -229,6 +274,12 @@ func reportViewerDetails(view: *Wnd, details: string)
             window.updateFileInfo(details)
         return
     }
+}
+
+// Lets a viewer wake the generic wait presentation when work starts again after being idle.
+func reportViewerLoadingChanged(view: *Wnd)
+{
+    (cast(*ViewerWindow) view.parent!).updateLoadingIndicator()
 }
 
 impl IWnd for ViewerWindow
@@ -610,13 +661,6 @@ impl ViewerWindow
             .setTextAlignment(.Right, .Center)
         }
 
-        with result.loadingSpinner = Spinner.create(result.infoBar, {0, 0, 18, 18})
-        {
-            .dockStyle = .Right
-            .margin.x  = 8
-            .hide()
-        }
-
         with result.infoIconLabel = Label.create(result.infoBar, "", {0, 0, 24, 32})
         {
             .dockStyle = .Left
@@ -762,6 +806,8 @@ impl ViewerWindow
             .layoutSpec.alignX = .Center
             .setTextAlignment(.Center, .Center)
         }
+
+        result.loadingOverlay = ViewerLoadingOverlay.create(result)
 
         result.applyLanguage()
         result.refreshArtwork()
@@ -922,7 +968,7 @@ impl ViewerWindow
             .loadingTimer = null
         }
 
-        .loadingSpinner.hide()
+        .loadingOverlay.hide()
     }
 
     mtd updateLoadingIndicator()
@@ -934,7 +980,14 @@ impl ViewerWindow
             loading = instance.view and instance.isLoading and instance.isLoading!(instance.view!)
         }
 
-        .loadingSpinner.show(loading)
+        if loading and .currentView
+        {
+            .loadingOverlay.cover(.currentView!.position)
+            .loadingOverlay.show()
+            .loadingOverlay.bringToFront()
+        }
+        else do
+            .loadingOverlay.hide()
         if loading and !.loadingTimer do
             .loadingTimer = .addTimer(50'ms)
         elif !loading and .loadingTimer
@@ -965,8 +1018,8 @@ impl ViewerWindow
             .viewerCombo.setSelectedIndex(index, notify: false)
             .updateFileInfo(instance.details.toString())
             .updateSearchAvailability()
-            .updateLoadingIndicator()
             .applyLayout()
+            .updateLoadingIndicator()
             .invalidate()
             return true
         }
@@ -984,7 +1037,7 @@ impl ViewerWindow
         else
         {
             let spec    = &.index.specs[choice.specIndex]
-            let request = ViewerRequest{me, .viewerBar, .currentFile.toString(), &reportViewerFailure, &reportViewerDetails}
+            let request = ViewerRequest{me, .viewerBar, .currentFile.toString(), &reportViewerFailure, &reportViewerDetails, &reportViewerLoadingChanged}
             catch spec.createView(&request, &next) as viewerError
             if viewerError != null
             {
@@ -1033,8 +1086,8 @@ impl ViewerWindow
         .viewerCombo.setSelectedIndex(index, notify: false)
         .updateFileInfo(instance.details.toString())
         .updateSearchAvailability()
-        .updateLoadingIndicator()
         .applyLayout()
+        .updateLoadingIndicator()
         .invalidate()
         return true
     }

@@ -134,8 +134,9 @@ internal struct VideoViewer
     metadataReady: bool
     audioReady:    bool
     timelineReady: bool
-    reportDetails: #null ViewerReportDetails
-    reportFailure: #null ViewerReportFailure
+    reportDetails:        #null ViewerReportDetails
+    reportFailure:        #null ViewerReportFailure
+    reportLoadingChanged: #null ViewerReportLoadingChanged
 
     // Pixel column the timeline thumb was last pushed to, so a value that would not move it is
     // not pushed at all.
@@ -345,19 +346,26 @@ internal impl VideoViewer
     // never let it fill.
     mtd repositionTo(index: u64)
     {
-        Sync.scopedLock(&.queueLock)
-        if .anchorPending and .produceFrom == index and !.hasFailure do
-            return
+        var notify: bool
+        {
+            Sync.scopedLock(&.queueLock)
+            if .anchorPending and .produceFrom == index and !.hasFailure do
+                return
 
-        for slot in .ready do
-            .freeSlots.add(slot)
-        .ready.clear()
-        .nextDecode    = index
-        .produceFrom   = index
-        .generation    += 1
-        .hasFailure    = false
-        .awaitingFrame = true
-        .anchorPending = true
+            notify = .hasFrame and !.awaitingFrame
+            for slot in .ready do
+                .freeSlots.add(slot)
+            .ready.clear()
+            .nextDecode    = index
+            .produceFrom   = index
+            .generation    += 1
+            .hasFailure    = false
+            .awaitingFrame = true
+            .anchorPending = true
+        }
+
+        if notify and .reportLoadingChanged do
+            .reportLoadingChanged!(me)
     }
 
     // Decodes one picture into a slot, and answers with the error the stream raised, if any.
@@ -493,6 +501,7 @@ internal impl VideoViewer
         if chosen == VideoNoSlot do
             return false
 
+        let notifyLoading = .hasFrame and .awaitingFrame
         .frameIndex    = .slots[cast(u64) chosen].index
         .hasFrame      = true
         .awaitingFrame = false
@@ -533,6 +542,8 @@ internal impl VideoViewer
 
         .decodeWake.signal()
         .refreshTransport()
+        if notifyLoading and .reportLoadingChanged do
+            .reportLoadingChanged!(me)
 
         // A transport seek holds the audio clock until its target picture is on screen. This
         // avoids showing the previous picture while sound has already jumped to the new time.
@@ -873,7 +884,7 @@ private impl VideoViewer
             .applyLayout()
     }
 
-    func create(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails = null, reportFailure: #null ViewerReportFailure = null)->*VideoViewer fail
+    func create(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails = null, reportFailure: #null ViewerReportFailure = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*VideoViewer fail
     {
         registerVideoStrings(contentParent.app())
         var video  = try Reader.open(fileName)
@@ -895,8 +906,9 @@ private impl VideoViewer
         }
 
         result.backgroundStyle = .View
-        result.reportDetails   = reportDetails
-        result.reportFailure   = reportFailure
+        result.reportDetails        = reportDetails
+        result.reportFailure        = reportFailure
+        result.reportLoadingChanged = reportLoadingChanged
 
         result.commands = ViewerCommandBar.create(commandParent, 0)
 
@@ -1054,12 +1066,12 @@ private func runVideoViewerDecode(thread: Threading.Thread)
     }
 }
 
-private func loadVideoViewer(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails, reportFailure: #null ViewerReportFailure)->#null *VideoViewer fail => try VideoViewer.create(contentParent, commandParent, fileName, reportDetails, reportFailure)
+private func loadVideoViewer(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails, reportFailure: #null ViewerReportFailure, reportLoadingChanged: #null ViewerReportLoadingChanged)->#null *VideoViewer fail => try VideoViewer.create(contentParent, commandParent, fileName, reportDetails, reportFailure, reportLoadingChanged)
 
 // Creates the integrated video playback view.
 func createVideoViewer(request: const *ViewerRequest, result: *ViewerResult)
 {
-    let view = catch loadVideoViewer(request.contentParent, request.commandParent, request.fileName, request.reportDetails, request.reportFailure) as decodeError
+    let view = catch loadVideoViewer(request.contentParent, request.commandParent, request.fileName, request.reportDetails, request.reportFailure, request.reportLoadingChanged) as decodeError
     if decodeError != null
     {
         result.failureReason = Errors.message(decodeError)
@@ -1072,6 +1084,6 @@ func createVideoViewer(request: const *ViewerRequest, result: *ViewerResult)
     result.isLoading = func(wnd)->bool
     {
         let videoView = cast(*VideoViewer) wnd
-        return !videoView.hasFrame and videoView.awaitingFrame
+        return videoView.awaitingFrame
     }
 }

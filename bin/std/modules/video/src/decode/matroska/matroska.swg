@@ -629,35 +629,62 @@ private impl Layout
         }
     }
 
-    // Finds the cluster timestamp, then indexes every selected block in that cluster.
+    // Indexes a cluster in one forward pass.
+    //
+    // Muxers normally put Timestamp before the first block, so packets are indexed as their
+    // headers are encountered. Matroska does not require that order: blocks seen first are kept
+    // as tiny element descriptors until Timestamp arrives. This avoids the old full preliminary
+    // pass over every block header and the repeated cursor jumps it imposed on a mapped file.
     mtd parseCluster(cursor: *Cursor, cluster: Element, cancelled: #null *u32 = null)->bool fail
     {
         let firstVideoSample = .tracks[.selectedVideo].videoSamples.count
         var clusterTimestamp = 0'u64
+        var hasTimestamp:       bool
+        var pending:            Array'Element
         cursor.seek(cluster.data)
         while cursor.position < cluster.end
         {
             if cancelled and Atomic.get(cancelled!) do
                 return false
             let element = cursor.readElement(cluster.end)
-            if element.id == ClusterTimestampId do
-                clusterTimestamp = cursor.readUnsigned(element)
-            cursor.seek(element.end)
-        }
-
-        cursor.seek(cluster.data)
-        while cursor.position < cluster.end
-        {
-            if cancelled and Atomic.get(cancelled!) do
-                return false
-            let element = cursor.readElement(cluster.end)
-            switch element.id
+            if element.id == ClusterTimestampId
             {
-            case SimpleBlockId: .indexBlock(cursor, element, clusterTimestamp, true)
-            case BlockGroupId:  .parseBlockGroup(cursor, element, clusterTimestamp)
+                clusterTimestamp = cursor.readUnsigned(element)
+                hasTimestamp     = true
+                for queued in pending
+                {
+                    if cancelled and Atomic.get(cancelled!) do
+                        return false
+                    if queued.id == SimpleBlockId do
+                        .indexBlock(cursor, queued, clusterTimestamp, true)
+                    else do
+                        .parseBlockGroup(cursor, queued, clusterTimestamp)
+                }
+                pending.clear()
+            }
+            elif element.id == SimpleBlockId or element.id == BlockGroupId
+            {
+                if !hasTimestamp do
+                    pending.add(element)
+                elif element.id == SimpleBlockId do
+                    .indexBlock(cursor, element, clusterTimestamp, true)
+                else do
+                    .parseBlockGroup(cursor, element, clusterTimestamp)
             }
 
             cursor.seek(element.end)
+        }
+
+        // Preserve the existing zero-timestamp interpretation for a cluster that omits the
+        // schema's mandatory Timestamp element.
+        for queued in pending
+        {
+            if cancelled and Atomic.get(cancelled!) do
+                return false
+            if queued.id == SimpleBlockId do
+                .indexBlock(cursor, queued, clusterTimestamp, true)
+            else do
+                .parseBlockGroup(cursor, queued, clusterTimestamp)
         }
 
         let videoSampleCount = .tracks[.selectedVideo].videoSamples.count

@@ -708,7 +708,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.currentView == null)
     @assert(window.currentCommands == null)
     @assert(window.filesButton.flags.has(.Toggle) and window.filesButton.checkIndicator == .Frame)
-    @assert(!window.filesButton.isChecked and !window.loadingSpinner.isLocallyVisible())
+    @assert(!window.filesButton.isChecked and !window.loadingOverlay.isLocallyVisible())
     @assert(!window.viewerCombo.isLocallyVisible())
     Testing.assertContentFits(window)
 
@@ -830,15 +830,23 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.instances[0].isLoading = func(wnd)->bool { discard wnd; return true }
     window.currentView            = loading
     window.activeChoiceIndex      = 0
+    loading.setPosition({17, 83, 611, 391})
 
-    window.updateLoadingIndicator()
-    @assert(window.loadingSpinner.isLocallyVisible() and window.loadingTimer != null)
+    reportViewerLoadingChanged(loading)
+    @assert(window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
+    @assert(window.loadingOverlay.position == loading.position)
+    let spinnerCenter = window.loadingOverlay.spinner.position.center()
+    let overlayCenter = window.loadingOverlay.clientRect().center()
+    @assert(Math.abs(spinnerCenter.x - overlayCenter.x) <= 1 and Math.abs(spinnerCenter.y - overlayCenter.y) <= 1)
+    @assert(window.children.back() == window.loadingOverlay)
+    var image = host.render(window)
+    Pixel.Testing.assertImageGolden(&image, "sfilescope.loading")
     @assert(window.activateChoice(1))
     @assert(loading.isPendingDestroy)
     @assert(window.instances[0].view == null)
     @assert(window.currentView != null and window.currentView != loading)
     @assert(window.instances[1].view == window.currentView)
-    @assert(!window.loadingSpinner.isLocallyVisible() and window.loadingTimer == null)
+    @assert(!window.loadingOverlay.isLocallyVisible() and window.loadingTimer == null)
 }
 
 #test

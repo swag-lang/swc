@@ -12,6 +12,9 @@ alias ViewerFindText = func(*Wnd, string)->bool
 // Reports whether a view is still doing work whose result has not reached the screen.
 alias ViewerIsLoading = func(*Wnd)->bool
 
+// Notifies the application that [[ViewerIsLoading]] may now answer differently.
+alias ViewerReportLoadingChanged = func(*Wnd)
+
 // Hands a decoder error discovered after creation back to the application that owns its presentation.
 alias ViewerReportFailure = func(*Wnd, string)
 
@@ -49,11 +52,12 @@ func mediaTimeRangeText(current, duration: f64)->String
 // What the application asks one integrated viewer to display.
 struct ViewerRequest
 {
-    contentParent: *Wnd = undefined              // Parent the document view must be created under.
-    commandParent: *Wnd = undefined              // Parent the optional command group must be created under.
-    fileName:      string                        // File the view has to show.
-    reportFailure: #null ViewerReportFailure     // Reports a decoder error discovered after creation.
-    reportDetails: #null ViewerReportDetails     // Reports format statistics that changed after creation.
+    contentParent:        *Wnd = undefined                 // Parent the document view must be created under.
+    commandParent:        *Wnd = undefined                 // Parent the optional command group must be created under.
+    fileName:             string                           // File the view has to show.
+    reportFailure:        #null ViewerReportFailure        // Reports a decoder error discovered after creation.
+    reportDetails:        #null ViewerReportDetails        // Reports format statistics that changed after creation.
+    reportLoadingChanged: #null ViewerReportLoadingChanged // Re-evaluates application-owned wait feedback.
 }
 
 // What one integrated viewer gives back.

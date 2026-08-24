@@ -3,6 +3,12 @@
 
 using Core, Pixel, Gui, Video, Audio
 
+func countVideoLoadingChange(wnd: *Wnd)
+{
+    let count = cast(*u32) wnd.userData!
+    count[] += 1
+}
+
 func videoPreviewFile(name: string, frameCount = 4'u32)->String fail
 {
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), name)
@@ -330,21 +336,36 @@ func videoMatroskaFixturePath()->String
 
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
     let fileName = videoAvcFixturePath()
-    let request  = ViewerRequest{&host.root, commands, fileName}
+    let request  = ViewerRequest{
+        contentParent: &host.root,
+        commandParent: commands,
+        fileName: fileName,
+        reportLoadingChanged: &countVideoLoadingChange}
     var result: ViewerResult
     createVideoViewer(&request, &result)
     @assert(result.view != null)
     let view = cast(*VideoViewer) result.view!
+    var loadingChanges: u32
+    view.userData = &loadingChanges
     waitForVideoFrame(view)
 
     @assert(view.planar)
     @assert(view.video.width() == 64 and view.video.height() == 48)
     @assert(view.frameIndex == 0 and !view.hasFailure)
+    @assert(result.isLoading != null and !result.isLoading!(view))
 
-    view.seekFrame(12)
+    // A viewer reports every outstanding visible picture, not only its first one. The application
+    // can therefore cover a stale frame while this exact seek reconstructs its target.
+    view.repositionTo(12)
+    @assert(result.isLoading!(view))
+    @assert(loadingChanges == 1)
+    view.decodeWake.signal()
     waitForVideoFrame(view)
     @assert(view.frameIndex == 12 and !view.hasFailure)
+    @assert(!result.isLoading!(view))
+    @assert(loadingChanges == 2)
     @assert(view.planar)
+    view.userData = null
 }
 
 // The run-ahead queue stays a FIFO as pictures are taken from it.

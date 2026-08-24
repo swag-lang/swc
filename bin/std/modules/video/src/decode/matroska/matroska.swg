@@ -1193,6 +1193,15 @@ impl IDecoder for Decoder
 
     mtd impl decodeFrame(source: *Source, target: *Image) fail
     {
+        // The demuxer already owns a mapped view. Serving payloads from it avoids turning every
+        // video packet separated by another track into a small seek on the original file handle.
+        if .fileIndex
+        {
+            var media = Source.openMemory(.fileIndex!.region.bytes())
+            .avc.decodeNext(&media, target)
+            return
+        }
+
         .avc.decodeNext(source, target)
     }
 }
@@ -1203,6 +1212,13 @@ impl IPlanarDecoder for Decoder
 
     mtd impl decodeFramePlanes(source: *Source, target: *PlanarFrame) fail
     {
+        if .fileIndex
+        {
+            var media = Source.openMemory(.fileIndex!.region.bytes())
+            .avc.decodeNextPlanes(&media, target)
+            return
+        }
+
         .avc.decodeNextPlanes(source, target)
     }
 }

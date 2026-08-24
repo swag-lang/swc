@@ -49,6 +49,23 @@ using Core, Core.Errors, Pixel
     @assert(stream.nextRank == 1 and stream.nextDecode == 2 and stream.skipBefore == 0)
 }
 
+// Seeking decodes through the requested access unit, but does not fill spare frame lanes with
+// later pictures. Once the requested picture is returned, normal playback removes this ceiling.
+#test
+{
+    var stream: H264.AvcStream
+    stream.frames.add([{0, 0, 0, true}, {0, 0, 200, false}, {0, 0, 100, false}, {0, 0, 300, false}])
+    stream.sampleAtRank.add([0, 2, 1, 3])
+    stream.rankOfSample.add([0, 2, 1, 3])
+    stream.syncFlags.add([1, 0, 0, 0])
+
+    stream.seekTo(1)
+
+    @assert(stream.nextDecode == 0 and stream.skipBefore == 1)
+    @assert(stream.decodeLimit == 3)
+    @assert(!stream.reachedEnd)
+}
+
 // Geometry and content of `bars-scroll-c420.y4m`, the long fixture of this suite.
 //
 // It is 400 frames of eight scrolling colour bars, with a corner block whose luma identifies the

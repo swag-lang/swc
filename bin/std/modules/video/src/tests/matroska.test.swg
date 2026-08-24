@@ -79,7 +79,9 @@ using Core, Core.Errors, Pixel
     @assert(longStream.frameCount() == 0 and longStream.audioTrackCount() == 0)
     @assert(Math.isEqualEpsilon(longStream.durationInSeconds(), 600.0, 0.001))
 
-    const Frames: [4] u64 = [14_999, 12_007, 7_500, 20]
+    // The frame immediately after a distant seek also proves that seek-only decode bounding is
+    // removed as soon as the requested picture has been returned.
+    const Frames: [5] u64 = [14_999, 12_007, 12_008, 7_500, 20]
     var actual, expected: Image
     for index in Frames
     {

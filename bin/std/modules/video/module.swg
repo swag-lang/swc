@@ -43,10 +43,12 @@ Four codecs ship in the box:
   offsets while payloads remain in the file. Exact composition timestamps are retained for
   variable-rate playback and H.264 display reordering.
 - Matroska (`.mkv`) reads H.264 pictures and exposes every AAC-LC mono/stereo audio track. Opening
-  reads only indexed container and track metadata. Decoding indexes a small cluster window as
-  playback reaches it, while a background scan completes the seek and sound tables after the
-  first picture; both may be interrupted through [[Video.Reader.requestCancel]]. Media payloads
-  stay in the file, and picture plus sound read them through independent cursors.
+  reads only seek, track, and cue metadata. Decoding advances one foreground demux cursor through
+  complete cluster windows as playback reaches them; random access restarts it at the preceding
+  video cue and reconstructs H.264 prediction through the requested picture. No full-file scan
+  competes with playback. Sound tracks become available when that progressive cursor reaches the
+  end of the file, and work may be interrupted through [[Video.Reader.requestCancel]]. Media
+  payloads stay in the file.
 
 Decoding and encoding are separate implementations of a format, under `src/decode`
 and `src/encode`, laid out as the Pixel image codecs are. A format that has

@@ -95,6 +95,7 @@ struct AvcStream
     threadsStarted:    bool
     reachedEnd:        bool
     skipBefore:        u64
+    decodeLimit:       u64 = Swag.U64.Max     // Exclusive decode-order ceiling during seek preroll.
     nextDecode:        u64     // Next sample to hand a frame context.
     nextRank:          u64     // Display rank the next decode call returns.
     width:             s32
@@ -142,6 +143,7 @@ impl AvcStream
         .nextDecode = 0
         .nextRank   = 0
         .skipBefore = 0
+        .decodeLimit = Swag.U64.Max
         .reachedEnd = false
         .installFrames(#move frames)
     }
@@ -347,6 +349,7 @@ impl AvcStream
         }
 
         .skipBefore = rank
+        .decodeLimit = sample + 1
         .nextRank   = rank
     }
 
@@ -474,7 +477,7 @@ impl AvcStream
             decoder.inheritPredictionState(&.decoders[.lastSetupLane])
 
         let payload = &.payloads[lane]
-        while .nextDecode < .frames.count
+        while .nextDecode < .frames.count and .nextDecode < .decodeLimit
         {
             let entry = .frames[.nextDecode]
             if payload.count != entry.size do
@@ -507,7 +510,10 @@ impl AvcStream
         }
 
         .laneStates[lane] = .Free
-        .reachedEnd       = true
+        if .nextDecode >= .decodeLimit do
+            return false
+
+        .reachedEnd = true
         return false
     }
 
@@ -559,7 +565,8 @@ impl AvcStream
             {
                 let frame = .pending[index].frame!
                 .pending.removeAt(index)
-                .nextRank = wanted + 1
+                .nextRank    = wanted + 1
+                .decodeLimit = Swag.U64.Max
                 return frame
             }
 

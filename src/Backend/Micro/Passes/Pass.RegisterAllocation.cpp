@@ -2535,7 +2535,7 @@ MicroRegisterAllocationPass::FreePools MicroRegisterAllocationPass::pickFreePool
     // No callee-saved fallback for an ordinary float: every nonvolatile float
     // taken costs the prologue a 16-byte store/load pair, which a short-lived
     // value never repays. Momentary pressure is better served by evicting a
-    // caller-saved mapping â€” the class floor keeps enough of them hull-free.
+    // caller-saved mapping - the class floor keeps enough of them hull-free.
     return FreePools{&freeFloatTransient_, nullptr};
 }
 

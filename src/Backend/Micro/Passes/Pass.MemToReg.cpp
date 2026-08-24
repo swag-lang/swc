@@ -695,15 +695,40 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         if (touchesPoisoned)
             continue;
 
-        const MicroOpBits bits       = slot.accesses[0].bits;
-        bool              consistent = isPromotableBits(bits);
+        MicroOpBits bits = slot.accesses[0].bits;
         for (const SlotAccess& acc : slot.accesses)
         {
-            if (acc.bits != bits)
+            if (getNumBits(acc.bits) > getNumBits(bits))
+                bits = acc.bits;
+        }
+
+        bool consistent = isPromotableBits(bits);
+        for (const SlotAccess& acc : slot.accesses)
+        {
+            if (!consistent)
+                break;
+            if (acc.bits == bits)
+                continue;
+
+            // One width disagreement is allowed, because it has a register form: reading the
+            // low half of a vector into an integer register, which is what a lane-zero read
+            // compiles to. Promoted, the pair becomes one move out of the vector register
+            // instead of a sixteen-byte store followed by a narrower load of the same slot.
+            // A narrower WRITE has no such form - it would have to preserve the rest of the
+            // register - so it still disqualifies the slot.
+            if (bits != MicroOpBits::B128 || acc.isWrite ||
+                (acc.bits != MicroOpBits::B32 && acc.bits != MicroOpBits::B64))
             {
                 consistent = false;
                 break;
             }
+
+            const MicroInstr*        narrowInst = storage.ptr(acc.ref);
+            const MicroInstrOperand* narrowOps  = narrowInst ? narrowInst->ops(operands) : nullptr;
+            if (!narrowInst || !narrowOps ||
+                narrowInst->op != MicroInstrOpcode::LoadRegMem ||
+                !narrowOps[0].reg.isAnyInt())
+                consistent = false;
         }
         if (!consistent)
             continue;
@@ -716,6 +741,11 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         bool isFloat    = false;
         for (const SlotAccess& acc : slot.accesses)
         {
+            // A narrow read of a vector slot lands in an integer register; the slot itself is
+            // still a vector, so it is the full-width accesses that name the class.
+            if (acc.bits != bits)
+                continue;
+
             const MicroInstr*        inst = storage.ptr(acc.ref);
             const MicroInstrOperand* iops = inst ? inst->ops(operands) : nullptr;
             if (!iops)
@@ -841,11 +871,14 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // ---- Rewrite all accesses of the promoted slots to register ops. ----
     for (const Promotion& p : promotions)
     {
-        const MicroReg    vreg = slotReg[p.offset];
-        const MicroOpBits bits = p.bits;
+        const MicroReg vreg = slotReg[p.offset];
 
         for (const SlotAccess& acc : slots[p.offset].accesses)
         {
+            // Each access keeps the width it read or wrote: they all agree except for the
+            // narrow read of a vector slot, whose register form is a move of that width.
+            const MicroOpBits bits = acc.bits;
+
             MicroInstr* inst = storage.ptr(acc.ref);
             if (!inst)
                 continue;

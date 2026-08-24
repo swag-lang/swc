@@ -371,7 +371,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   turned it away. The `movd` is `LoadRegReg` with a float destination and an integer source,
   which is already eligible today, so the answer is in one of the other four tests and the
   trace names it in one run.
-### F-195 — A loop header drops every mapping, and that is where the reloads come from
+### F-195 — A loop header drops every mapping, and the register to fix it is already spoken for
 
 - Area: compiler/backend
 - Found while: taking
@@ -408,6 +408,21 @@ Entries are sorted by identifier, ascending; position carries no priority.
   values, and tuning it is pointless in either direction. The same measurement retires the other
   cheap idea beside it: letting the edge-register hint outrank a copy's transfer source, which the
   code declines to do, is worth 12 reloads out of 1874 on the row it targets.
+- **The shape of what the back-edge drops, and why the obvious repair does not land.** Of the 2113
+  mappings dropped at a loop header, **1696 — four in five — are values the loop never writes**.
+  Such a value asks for almost nothing: give it a register for `[header, back-edge tail]` and the
+  two edges agree by construction, its memory home stays coherent so leaving the loop owes no
+  store, and no edge anywhere needs a reconciliation copy. All it costs is one load, placed before
+  the header label so the back-edge jumps over it. Every loop header measured is entered by
+  falling into it, so even the load has nowhere awkward to go.
+
+  That was built and measured, as a reservation pass running after `assignGlobalRegisters`. All
+  suites pass and it is worth **17 reloads out of 12211**, because it almost never fires: 30
+  grants against 491 refusals for a class budget already spent by the whole-span reservations, and
+  899 refusals for no register free of concrete claims over the loop's extent. Most loop bodies
+  contain a call, which claims every caller-saved register across the range, so only callee-saved
+  registers qualify — and those are exactly what the whole-span reservations took first. Two
+  mechanisms cannot be appended one after the other when they compete for the same six registers.
 - A first pass at this entry read all of this from the wrong counter, and the mistake is worth
   stating so it is not repeated: counting the times `allocatePhysical` exhausts its free pools says
   almost nothing. Those counts came out as 100% hull-owned, which looked decisive. They are not,
@@ -419,18 +434,19 @@ Entries are sorted by identifier, ascending; position carries no priority.
   instructions and 3 frame accesses, the Levenshtein loop lost 7 and 6, a byte scan lost 3 and 4.
   A callee-saved fallback for ordinary floats gated on loop depth (the variant F-136 left open):
   seventeen failed lookups became eleven for two more instructions. Reserving only the live
-  sub-ranges of a hull instead of its whole span, which is the cheap half of interval splitting:
-  the blocking hulls were live at every contended point in all four kernels, so there is nothing
-  to hand back. And removing every hull from the CABAC bin of F-190 changes its emitted code by
-  not one instruction, so the mechanism is inert there.
-- Next step: the loop header, worth a third of every reload the compiler emits. Its join has to
-  drop everything because it cannot know what the back-edge brings, and there are only two ways to
-  give it that: learn it, or decide it. Learning it means a probe run of the scan that records
-  what each value holds at every back-edge tail and emits nothing, which the pass is not currently
-  able to do — every step of `rewriteInstructions` inserts, rewrites or allocates a slot. Deciding
-  it means reserving a register for the value over the loop's extent alone, so both edges agree by
-  construction: the hull mechanism, scoped to `[header, back-edge tail]` instead of to the whole
-  live range, with the load placed on the pre-header edge and a store on each exit. That is the
-  interval splitting F-138 asks for, and the loop scope is what makes its entry and exit
-  enumerable — a natural loop has one header, and `computeLoopDepth` already finds the back-edges
-  it needs. Measure it with the instrumentation above: the back-edge row is the number to move.
+  sub-ranges of a hull instead of its whole span: the blocking hulls were live at every contended
+  point in all four kernels, so there is nothing to hand back. And removing every hull from the
+  CABAC bin of F-190 changes its emitted code by not one instruction, so the mechanism is inert
+  there.
+- Next step: rank the two kinds of reservation together instead of running one after the other.
+  `assignGlobalRegisters` decides which values get a register for their whole live range; a
+  loop-scoped range is the same offer over a much shorter span, and it buys the same per-iteration
+  saving for a fraction of the register-time — which is exactly what the existing density ranking
+  (benefit divided by span length) is built to compare. Generating one candidate per (value, loop)
+  pair beside the whole-span candidates, and letting them compete on that ranking, is a change to
+  the candidate list rather than a second mechanism. Two traps found while building the standalone
+  version, both cheap to avoid the second time: a range-scoped reservation must keep its reserved
+  register apart from `VRegState::phys`, because outside the range the value is allocated normally
+  and `mapVirtReg` overwrites `phys`; and the load that fills it must be emitted after the
+  boundary flush at the header, never before, because the flush still has to read whatever that
+  register held on the way in.

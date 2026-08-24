@@ -362,6 +362,13 @@ void MicroRegisterAllocationPass::appendUniqueReg(SmallVector<MicroReg>& regs, M
         regs.push_back(reg);
 }
 
+bool MicroRegisterAllocationPass::isPoolRegister(const MicroReg reg) const
+{
+    if (reg.isFloat())
+        return containsKey(freeFloatPersistent_, reg) || containsKey(freeFloatTransient_, reg);
+    return containsKey(freeIntPersistent_, reg) || containsKey(freeIntTransient_, reg);
+}
+
 bool MicroRegisterAllocationPass::isPersistentPhysReg(MicroReg reg) const
 {
     if (reg.isInt())
@@ -1434,6 +1441,14 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                     {
                         if (used.isFloat() != isFloat)
                             continue;
+                        // Only registers the pools actually offer count against these floors:
+                        // the floors exist to keep the local allocator supplied, and the local
+                        // allocator draws from the pools. The local-stack-base register is
+                        // reserved outside both of them, so counting it charged the class for a
+                        // carrier it never had - one of the four callee-saved hulls a function
+                        // with calls is allowed, spent on nothing.
+                        if (!isPoolRegister(used))
+                            continue;
                         ++distinctClass;
                         if (isPersistentPhysReg(used))
                             ++distinctPersistent;
@@ -2094,7 +2109,12 @@ void MicroRegisterAllocationPass::setupPools()
     {
         if (reg == conv_->framePointer)
             continue;
-        if (reg == conv_->preferredLocalStackBaseReg())
+
+        // The local-stack-base register is only owed to the function that has one. Holding it
+        // back everywhere else costs the scarcest class a carrier for a value that does not
+        // exist: the callee-saved pool is what a value living across a call has to ride, and it
+        // is six registers wide before this.
+        if (context_->debugStackBaseVirtualReg.isValid() && reg == conv_->preferredLocalStackBaseReg())
             continue;
 
         if (containsKey(intPersistentRegs_, reg))

@@ -40,6 +40,42 @@ namespace PostRaPeephole
                    inst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem;
         }
 
+        // A frame write the scan can prove lands somewhere else. Two accesses through the
+        // same private frame base at disjoint byte ranges cannot alias, and the scans below
+        // already stop at anything that moves that base, so stepping over such a write is
+        // exact rather than optimistic. It matters because the allocator emits its spill
+        // stores in runs: without this, the first neighbouring store ended every forward
+        // scan and the reload it could have answered stayed in the loop.
+        bool writesDisjointFrameSlot(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg baseReg, const MicroInstrOperand* storeOps)
+        {
+            if (!ops || !storeOps)
+                return false;
+
+            uint64_t offset = 0;
+            uint64_t size   = 0;
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::LoadMemReg:
+                case MicroInstrOpcode::StoreVecMemReg:
+                    if (ops[0].reg != baseReg)
+                        return false;
+                    offset = ops[3].valueU64;
+                    size   = getNumBytes(ops[2].opBits);
+                    break;
+                case MicroInstrOpcode::LoadMemImm:
+                    if (ops[0].reg != baseReg)
+                        return false;
+                    offset = ops[2].valueU64;
+                    size   = getNumBytes(ops[1].opBits);
+                    break;
+                default:
+                    return false;
+            }
+
+            const uint64_t storeOffset = storeOps[3].valueU64;
+            const uint64_t storeSize   = getNumBytes(storeOps[2].opBits);
+            return offset + size <= storeOffset || storeOffset + storeSize <= offset;
+        }
         bool isSameStoreLocation(const MicroInstrOperand* lhs, const MicroInstrOperand* rhs)
         {
             return lhs && rhs &&
@@ -241,13 +277,15 @@ namespace PostRaPeephole
             const MicroInstrDef& info            = MicroInstr::info(scanInst->op);
             const bool           conditionalJump = info.flags.has(MicroInstrFlagsE::JumpInstruction) &&
                                          info.flags.has(MicroInstrFlagsE::ConditionalJump);
+            const bool disjointFrameWrite = info.flags.has(MicroInstrFlagsE::WritesMemory) &&
+                                            writesDisjointFrameSlot(*scanInst, scanOps, baseReg, storeOps);
             if (scanInst->op == MicroInstrOpcode::Label ||
                 (info.flags.has(MicroInstrFlagsE::TerminatorInstruction) && !conditionalJump) ||
                 info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-                info.flags.has(MicroInstrFlagsE::WritesMemory) ||
+                (info.flags.has(MicroInstrFlagsE::WritesMemory) && !disjointFrameWrite) ||
                 scanInst->op == MicroInstrOpcode::Push ||
                 scanInst->op == MicroInstrOpcode::Pop ||
-                instructionMayReadMemory(*scanInst))
+                (instructionMayReadMemory(*scanInst) && !disjointFrameWrite))
                 return false;
 
             if (info.flags.has(MicroInstrFlagsE::JumpInstruction) && !conditionalJump)
@@ -305,10 +343,12 @@ namespace PostRaPeephole
             const MicroInstrDef& info            = MicroInstr::info(scanInst->op);
             const bool           conditionalJump = info.flags.has(MicroInstrFlagsE::JumpInstruction) &&
                                          info.flags.has(MicroInstrFlagsE::ConditionalJump);
+            const bool disjointFrameWrite = info.flags.has(MicroInstrFlagsE::WritesMemory) &&
+                                            writesDisjointFrameSlot(*scanInst, scanOps, baseReg, storeOps);
             if (scanInst->op == MicroInstrOpcode::Label ||
                 (info.flags.has(MicroInstrFlagsE::TerminatorInstruction) && !conditionalJump) ||
                 info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-                info.flags.has(MicroInstrFlagsE::WritesMemory) ||
+                (info.flags.has(MicroInstrFlagsE::WritesMemory) && !disjointFrameWrite) ||
                 scanInst->op == MicroInstrOpcode::Push ||
                 scanInst->op == MicroInstrOpcode::Pop)
                 return false;

@@ -291,7 +291,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Observation: `CabacReader.decision` decodes one arithmetic bin. It is small, straight-line apart
   from one two-way branch, and its whole live set is about eight scalars. It is called roughly
   568,000 times per 3840x2160 picture, which is where the parse spends most of its time.
-  `#[Swag.PrintMicro("post-emit")]` in release shows the function opening with seven callee-saved
+  `#[Swag.PrintMicro("post-emit")]` in release showed the function opening with seven callee-saved
   pushes and `sub rsp, 0xA0`, then storing three values — the address of the context byte, `mps`,
   and the result — to that frame before the branch and reloading them on both sides. Sixteen
   integer registers exist and the function needs about half of them.
@@ -307,13 +307,44 @@ Entries are sorted by identifier, ascending; position carries no priority.
   the context write in between stores into the same structure. What did not move is the frame:
   it is still 160 bytes with three spill slots live across a branch, and the seven pushes are
   still there. Two smaller costs sit in the same function and belong to the same dump:
-  `@bitcountlz` lowers to `mov 32 / cmp / je / xor / bsr / mov 31 / sub` where `lzcnt` is one
-  instruction, and each of the three variable shifts carries a width guard of `cmp` plus `cmovae`.
-  Both are cheap next to the spills, and the shift guard was already elided once for
+  each of the three variable shifts carries a width guard of `cmp` plus `cmovae`, which is cheap
+  next to the spills and was already elided once for
   [F-136](#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and measured at zero.
-- Next step: this is the global interval allocator's case, not a peephole's. Use it as the small
-  reproducer while that work proceeds: `#[Swag.PrintMicro("post-emit")]` on
-  `CabacReader.decision`, release, and watch the seven pushes and the 160-byte frame. Separately,
-  `lzcnt`/`tzcnt` would retire the `@bitcountlz` sequence, but they are ABM/BMI1 and the backend's
-  stated baseline is AVX, so adopting them raises the Intel floor from Sandy Bridge to Haswell —
-  a decision about what the compiler targets, not an optimization to slip in.
+- Two of the three costs are gone (2026-08-24). `@bitcountlz` no longer branches: the scan runs
+  unconditionally and a conditional move supplies the operand-width answer for zero, so the
+  sequence is one basic block instead of two and the caller keeps one fewer allocation boundary.
+  And the function no longer carries a frame register: it names none, its stack shape is one
+  subtract at entry and one add before the return, so the unwind codes describe it in full
+  without one. The prologue is six pushes and `sub rsp, 0x98`, and the emitted function is 138
+  instructions against 143.
+- Next step: what remains is the spills themselves — three values still cross the one branch
+  through the frame while a dozen registers are free. That half is the global interval
+  allocator's case, not a peephole's. Use it as the small reproducer while that work proceeds:
+  `#[Swag.PrintMicro("post-emit")]` on `CabacReader.decision`, release. Separately, `lzcnt`/`tzcnt`
+  would retire the remaining bit-scan sequence, but they are ABM/BMI1 and the backend's stated
+  baseline is AVX, so adopting them raises the Intel floor from Sandy Bridge to Haswell — a
+  decision about what the compiler targets, not an optimization to slip in.
+
+### F-193 — A SIMD routine keeps its strides and counts in the frame
+
+- Area: compiler/backend
+- Found while: T-504, after mem2reg was taught the vector load and store and the memory traffic
+  of the motion-compensation path fell by a quarter.
+- Observation: promotion now reaches the vector temporaries, so the intermediate values of a
+  `#simd` expression stay in registers. What is still in memory is everything the local
+  allocator put there: `Video.H264.mcChroma` emits 635 instructions with 81 frame stores and 119
+  frame loads, and its interpolation loop reloads the two splat sources on every row. The loop of
+  `Video.H264.copyPlane` shows what the shape should be — after post-RA hoisting learned that a
+  private frame cannot be reached by a store through a program pointer, its sixteen-byte copy is
+  seven instructions with no frame access at all — and mcChroma does not get there because its
+  own locals escape into helpers, which keeps its frame from being private.
+- Evidence: 2026-08-24, release, `#[Swag.PrintMicro("post-emit")]`. mcChroma 707 -> 635
+  instructions and 108 -> 81 frame stores across this pass; copyPlane 111 -> 104 instructions,
+  its hot loop 10 -> 7 with 3 -> 0 frame accesses. The decode of one 2496x1440 picture went from
+  10.1 to 8.5 ms of processor time (minimum of five interleaved pairs), and motion compensation
+  is 44 percent of that picture.
+- Next step: the frame-privacy test is a function-level property today, so one escaping local
+  disables hoisting for every loop of the function. Per-object extents already exist in mem2reg
+  (`SymbolVariable::codeGenLocalSize`); giving the post-RA hoist the same view would let it hoist
+  slots that no escaped object contains. Beyond that the remaining traffic is
+  [F-136](#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) again.

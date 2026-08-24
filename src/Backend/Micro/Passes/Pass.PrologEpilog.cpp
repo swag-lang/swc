@@ -216,6 +216,85 @@ namespace
         return false;
     }
 
+    bool isStackPointerAdjust(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg stackPointer, MicroOp expectedOp)
+    {
+        if (!ops || inst.op != MicroInstrOpcode::OpBinaryRegImm)
+            return false;
+        if (ops[0].reg != stackPointer || ops[1].opBits != MicroOpBits::B64)
+            return false;
+        return ops[2].microOp == expectedOp;
+    }
+
+    bool definesStackPointer(const MicroPassContext& context, const MicroInstr& inst, MicroReg stackPointer)
+    {
+        SmallVector<MicroInstrRegOperandRef> refs;
+        inst.collectRegOperands(*context.operands, refs, context.encoder);
+        for (const MicroInstrRegOperandRef& regRef : refs)
+        {
+            if (regRef.reg && regRef.def && *regRef.reg == stackPointer)
+                return true;
+        }
+
+        return false;
+    }
+
+    // Windows unwind data describes the prologue it can see: the nonvolatile pushes and the
+    // one stack allocation that follows them. A body that moves the stack pointer afterwards
+    // leaves that description short, and recovering the stack pointer from a frame register is
+    // what covers the difference. A function whose whole stack shape is one subtract at entry
+    // and one add before each return needs no such cover: it can keep the frame register as an
+    // ordinary callee-saved one and skip three instructions on every call.
+    bool bodyMovesStackPointerAfterPrologue(const MicroPassContext& context, const CallConv& conv)
+    {
+        SWC_ASSERT(context.instructions);
+        SWC_ASSERT(context.operands);
+
+        const MicroReg stackPointer = conv.stackPointer;
+        if (!stackPointer.isValid())
+            return true;
+
+        bool       inEntryRun = true;
+        const auto view       = context.instructions->view();
+        const auto endIt      = view.end();
+        for (auto it = view.begin(); it != endIt; ++it)
+        {
+            const MicroInstrOperand* ops = it->ops(*context.operands);
+
+            if (it->op == MicroInstrOpcode::Push || it->op == MicroInstrOpcode::Pop)
+                return true;
+
+            if (isStackPointerAdjust(*it, ops, stackPointer, MicroOp::Subtract))
+            {
+                if (!inEntryRun)
+                    return true;
+                continue;
+            }
+
+            if (isStackPointerAdjust(*it, ops, stackPointer, MicroOp::Add))
+            {
+                // Register allocation adds its own release beside the one lowering already
+                // emitted, so an epilogue is a run of adds, not a single one.
+                auto nextIt = it;
+                ++nextIt;
+                while (nextIt != endIt &&
+                       (nextIt->op == MicroInstrOpcode::Nop ||
+                        isStackPointerAdjust(*nextIt, nextIt->ops(*context.operands), stackPointer, MicroOp::Add)))
+                    ++nextIt;
+                if (nextIt == endIt || nextIt->op != MicroInstrOpcode::Ret)
+                    return true;
+                continue;
+            }
+
+            if (definesStackPointer(context, *it, stackPointer))
+                return true;
+
+            if (it->op != MicroInstrOpcode::Nop && it->op != MicroInstrOpcode::Label)
+                inEntryRun = false;
+        }
+
+        return false;
+    }
+
     bool remapPersistentIntRegsToUnusedTransient(MicroPassContext& context, const CallConv& conv)
     {
         if (hasCallInstruction(context))
@@ -376,7 +455,7 @@ bool MicroPrologEpilogPass::containsPushedReg(MicroReg reg) const
     return false;
 }
 
-void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, const CallConv& conv)
+void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const CallConv& conv)
 {
     SWC_ASSERT(context.instructions);
 
@@ -384,6 +463,7 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
     savedRegSlots_.clear();
     savedRegsStackSubSize_ = 0;
     useFramePointer_       = context.forceFramePointer;
+    bool framePointerNamed = false;
 
     // Scan concrete register operands and collect only ABI-persistent regs that are used.
     auto& storeOps = *context.operands;
@@ -407,7 +487,8 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
 
                 if (reg == conv.framePointer)
                 {
-                    useFramePointer_ = true;
+                    useFramePointer_  = true;
+                    framePointerNamed = true;
                     continue;
                 }
 
@@ -433,6 +514,22 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
                 }
             }
         }
+    }
+
+    // The frame register is only owed to the unwinder by a function whose stack pointer moves
+    // where the unwind codes cannot describe it. Two shapes qualify: a body that adjusts the
+    // stack pointer after the prologue, and a float save area, whose stores sit between this
+    // pass's allocation and the body's own and keep the sanitize pass from coalescing the two
+    // into the single allocation the unwind description can hold. Everything else is described
+    // in full by the pushes and one allocation, so the frame register buys nothing and costs a
+    // push, a move and a pop on every call.
+    //
+    // The request is cleared, not just ignored: the sanitize pass synthesizes a setup for any
+    // function that still asks for one, so both passes have to read the same answer.
+    if (useFramePointer_ && !framePointerNamed && savedRegSlots_.empty() && !bodyMovesStackPointerAfterPrologue(context, conv))
+    {
+        useFramePointer_          = false;
+        context.forceFramePointer = false;
     }
 
     if (pushedRegs_.empty() && savedRegSlots_.empty() && !useFramePointer_)

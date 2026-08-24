@@ -171,11 +171,18 @@ Entries are sorted by identifier, ascending; position carries no priority.
   passed, so the two failures sit on the changed tree and the eight successes sit on the same
   changed tree; the discriminator is not the diff. Both failures were on caches invalidated by the
   version bump, which is the one condition the eight green runs did not share.
-- Next step: loop `swc tools/unittests.swgs dm native -bc release --rebuild` with the version bumped
-  between iterations, to test whether cold-cache artifact regeneration is the trigger rather than
-  ordinary scheduling jitter. If it reproduces, capture the emitted code for `setRange` and compare
-  it against a warm-cache run of the same function before looking any further at the allocator or
-  at global-segment publication.
+- It is deterministic, and the discriminator is the suite, not the cache (2026-08-24). The same
+  assertion fires on every run of `swc tools/unittests.swgs native -bc release` and never on
+  `--file-filter autocast_pointer_receiver`, with a warm cache, with the release compiler built
+  from an untouched `master`, and equally with one carrying unrelated backend changes. So the
+  trigger is compiling the whole `native` suite as one module: the failing `#test` is the same,
+  and what changes around it is the rest of the sources. That also means the failure halts the
+  release run of that suite for everyone, and every file after `casts/` goes untested there.
+- Next step: bisect the suite by removing files rather than by repeating the run — take the
+  `native` directory, keep `casts/autocast_pointer_receiver.swg`, and halve the rest until the
+  smallest set that still fails is known. Then dump `setRange` and the `#test` body from that set
+  and from the filtered one and compare; two compiles of the same function that differ is what to
+  look for before the allocator or global-segment publication.
 
 ### F-192 — A clean documentation workspace cannot JIT a transitive dependency
 

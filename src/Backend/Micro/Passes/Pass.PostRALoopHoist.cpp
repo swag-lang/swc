@@ -35,11 +35,10 @@ namespace
         return reg.isValid() && (reg == conv.stackPointer || reg == conv.framePointer);
     }
 
-    // A constant-offset frame write, the only memory write shape this pass
-    // tolerates inside a loop it hoists from. Anything else — a store through a
-    // program pointer, an indexed write, a vector store — could alias the slot
-    // being hoisted, and post-RA there is no aliasing information left to
-    // prove otherwise.
+    // A constant-offset frame write, whose range the slot analysis can compare
+    // against the one being hoisted. An indexed write reaches an offset this pass
+    // cannot bound and still makes the body opaque; a write through a program
+    // pointer is answered by the frame-privacy test below instead.
     bool frameWriteRange(FrameRef& out, const MicroInstr& inst, const MicroInstrOperand* ops, const CallConv& conv)
     {
         if (!ops)
@@ -50,6 +49,7 @@ namespace
         switch (inst.op)
         {
             case MicroInstrOpcode::LoadMemReg:
+            case MicroInstrOpcode::StoreVecMemReg:
                 bits   = ops[2].opBits;
                 offset = ops[3].valueU64;
                 break;
@@ -95,6 +95,51 @@ namespace
         return true;
     }
 
+    // Whether any pointer into this function's own frame exists at all.
+    //
+    // The frame is the compiler's: nothing outside reaches it unless the function
+    // hands out an address into it. When it never does, a store through a program
+    // pointer cannot land on a frame slot however opaque that pointer is - which is
+    // what lets a loop that writes pixels keep hoisting the strides and counts it
+    // reloads on every iteration. Every appearance of a frame base has to be
+    // accounted for: as the base of a constant-offset access, as the target of a
+    // stack adjust or the frame setup, or in the prologue push. Anything else -
+    // an address materialized out of it, an indexed access, the base handed to
+    // something as a value - means a pointer exists and the answer is no.
+    bool frameAddressEscapes(MicroStorage& storage, MicroOperandStorage& operands, const CallConv& conv, const Encoder* encoder)
+    {
+        for (const MicroInstr& inst : storage.view())
+        {
+            const MicroInstrOperand* ops  = inst.ops(operands);
+            const MicroInstrDef&     info = MicroInstr::info(inst.op);
+
+            if (inst.op == MicroInstrOpcode::LoadAddrRegMem || inst.op == MicroInstrOpcode::LoadAddrAmcRegMem)
+            {
+                if (ops && isFrameBaseRegister(ops[1].reg, conv))
+                    return true;
+            }
+
+            SmallVector<MicroInstrRegOperandRef> refs;
+            inst.collectRegOperands(operands, refs, encoder);
+            for (const MicroInstrRegOperandRef& ref : refs)
+            {
+                if (!ref.reg || !isFrameBaseRegister(*ref.reg, conv))
+                    continue;
+                if (inst.op == MicroInstrOpcode::Push || inst.op == MicroInstrOpcode::Pop)
+                    continue;
+                if (ref.def)
+                    continue;
+                if (inst.op == MicroInstrOpcode::LoadRegReg && ops && isFrameBaseRegister(ops[0].reg, conv))
+                    continue;
+                if (info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
+                    ops && ref.reg == &const_cast<MicroInstrOperand*>(ops)[info.memBaseOperandIndex].reg)
+                    continue;
+                return true;
+            }
+        }
+
+        return false;
+    }
     bool overlaps(const FrameRef& a, const FrameRef& b)
     {
         return a.base == b.base && a.lo < b.hi && b.lo < a.hi;
@@ -359,8 +404,9 @@ namespace
                 continue;
             }
 
-            // Any other frame access at all disqualifies the slot it touches;
-            // the caller has already refused bodies with opaque writes.
+            // Any other frame access at all disqualifies the slot it touches. A write the
+            // caller could not place is either refused there or proven unable to reach the
+            // frame at all, so nothing else needs accounting for here.
             FrameRef written;
             if (frameWriteRange(written, *inst, ops, conv))
                 slots[written.lo].accesses = 99;
@@ -443,7 +489,13 @@ namespace
 
     // One sweep: hoist every qualifying reload out of every loop whose body it
     // is invariant in. Returns true when the IR changed.
-    bool hoistRound(MicroPassContext& context, const CallConv& conv)
+    struct FramePrivacy
+    {
+        bool computed  = false;
+        bool isPrivate = false;
+    };
+
+    bool hoistRound(MicroPassContext& context, const CallConv& conv, FramePrivacy& framePrivacy)
     {
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
@@ -474,6 +526,13 @@ namespace
         }
         if (!anyFrameLoad)
             return false;
+
+        if (!framePrivacy.computed)
+        {
+            framePrivacy.computed  = true;
+            framePrivacy.isPrivate = !frameAddressEscapes(storage, operands, conv, context.encoder);
+        }
+        const bool framePrivate = framePrivacy.isPrivate;
 
         const auto dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry);
         auto       loopsByHeader = MicroPassHelpers::findNaturalLoops(cfg, dom);
@@ -587,8 +646,15 @@ namespace
                 FrameRef written;
                 if (!frameWriteRange(written, *inst, inst->ops(operands), conv))
                 {
-                    bodyOpaque = true;
-                    break;
+                    // A write this pass cannot place. When no pointer into the frame exists
+                    // it cannot be a frame write at all, so it constrains nothing; otherwise
+                    // it could land anywhere and the body stays opaque.
+                    if (!framePrivate)
+                    {
+                        bodyOpaque = true;
+                        break;
+                    }
+                    continue;
                 }
                 writes.push_back(written);
             }
@@ -799,9 +865,11 @@ Result MicroPostRaLoopHoistPass::run(MicroPassContext& context)
 
     const CallConv& conv = CallConv::get(context.callConvKind);
 
+    // The frame-privacy answer is a property of the function, so the rounds below share one.
+    FramePrivacy framePrivacy;
     for (uint32_t level = 0; level < K_MAX_LEVELS; ++level)
     {
-        if (!hoistRound(context, conv))
+        if (!hoistRound(context, conv, framePrivacy))
             break;
         context.passChanged = true;
     }

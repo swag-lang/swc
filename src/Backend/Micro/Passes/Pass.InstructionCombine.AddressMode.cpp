@@ -31,7 +31,15 @@ namespace InstructionCombine
                     out.offIdx  = 3;
                     return true;
                 case MicroInstrOpcode::LoadRegMem:
+                // The 128-bit vector pair carries the same base/offset operands as the
+                // scalar one, and SIMD code is where the front end materializes an address
+                // per access most often.
+                case MicroInstrOpcode::LoadVecRegMem:
                     out.baseIdx = 1;
+                    out.offIdx  = 3;
+                    return true;
+                case MicroInstrOpcode::StoreVecMemReg:
+                    out.baseIdx = 0;
                     out.offIdx  = 3;
                     return true;
                 default:

@@ -41,6 +41,29 @@ is the layout it does not read yet.
   hands the reconstructed planes over as they are, `Pixel.PixelFormat.Yuv420` carries them as a
   texture, and the renderer converts where it samples. Every figure below that adds a conversion cost
   to a picture is therefore describing a path the player no longer takes.
+- The mix depends on the stream, and one class of stream is not entropy-bound at all (2026-08-24,
+  release, a 2496x1440 High/CABAC screen recording, one AVC lane so the figure is serial).
+  Measured by disabling one stage at a time rather than by timing each: motion compensation is 44
+  percent of a picture, the loop filter 10, and the whole entropy parse plus per-macroblock
+  bookkeeping the remaining 46. Most macroblocks are skipped, and a skipped macroblock still costs
+  a full 16x16 luma and two 8x8 chroma predictions. A per-macroblock timer cannot see this: on
+  this machine `Time.monotonicTicks` costs enough that three calls per macroblock quadruple the
+  decode, which is how the first attempt read its own overhead back as the answer.
+- What that mix bought when the compiler was fixed rather than the decoder (2026-08-24): 10.1 ->
+  8.5 ms of processor time per picture on that recording, the minimum of five interleaved pairs,
+  every pair in the same direction. Four backend changes, none of them specific to video:
+  mem2reg was blind to the 128-bit vector load and store, so one `#simd` temporary made the whole
+  function unpromotable and every intermediate vector, stride and trip count round-tripped
+  through the frame; post-RA loop hoisting treated a store through a program pointer as able to
+  alias the frame, which it cannot when no address into the frame exists; the frame register is
+  no longer set up in a function that names none and whose stack shape the unwind codes already
+  describe; and `@bitcountlz`/`@bitcounttz` no longer branch. See
+  [F-193](findings.optimization.md#f-193--a-simd-routine-keeps-its-strides-and-counts-in-the-frame)
+  for what the same dumps say is left.
+- Do not repeat this measurement of the call cost: marking `CabacReader.decision` `#[Swag.Inline]`
+  reads as a 32 percent gain under a harness that lets the AVC lanes run, and as nothing at all
+  (1.02) once the decode is serial. The first figure was the lanes rebalancing, not the call
+  overhead disappearing.
 - Measured shape of the remaining gap (2026-08-23, release, 3840x2160p25 High/CABAC, one lane and
   one worker so the figures are processor time for one picture): entropy parse 37.7 ms,
   reconstruction 19.7 ms, loop filter 9.6 ms, and 15.7 ms more for the conversion to RGB, which

@@ -66,6 +66,12 @@ namespace
                op == MicroInstrOpcode::CmpMemImm;
     }
 
+    // The 128-bit vector load and store are the same shape as the scalar pair, and a slot
+    // reached only through them is a vector local. Leaving them out was not neutral: an
+    // unrecognized access to a frame-derived address abandons promotion for the whole
+    // function, so one vector temporary kept every scalar of a SIMD routine in memory -
+    // its strides, its trip counts, and every intermediate vector, each stored and reloaded
+    // around the operation that produced it.
     bool isHandledScalarMemOp(MicroInstrOpcode op)
     {
         return op == MicroInstrOpcode::LoadRegMem ||
@@ -73,6 +79,8 @@ namespace
                op == MicroInstrOpcode::LoadMemImm ||
                op == MicroInstrOpcode::LoadSignedExtRegMem ||
                op == MicroInstrOpcode::LoadZeroExtRegMem ||
+               op == MicroInstrOpcode::LoadVecRegMem ||
+               op == MicroInstrOpcode::StoreVecMemReg ||
                isMemOperandAluOp(op);
     }
 
@@ -87,7 +95,9 @@ namespace
             case MicroInstrOpcode::LoadSignedExtRegMem:
             case MicroInstrOpcode::LoadZeroExtRegMem:
             case MicroInstrOpcode::OpBinaryRegMem:
+            case MicroInstrOpcode::LoadVecRegMem:
                 return ops[0].reg;
+            case MicroInstrOpcode::StoreVecMemReg:
             case MicroInstrOpcode::LoadMemReg:
             case MicroInstrOpcode::OpBinaryMemReg:
             case MicroInstrOpcode::CmpMemReg:
@@ -107,6 +117,10 @@ namespace
 
     bool isPromotableBits(MicroOpBits bits)
     {
+        // 128 bits is the vector width, and a float register copy of it is full width too;
+        // the class check downstream is what keeps it off the integer file.
+        if (bits == MicroOpBits::B128)
+            return true;
         // b32/b64 only. For integers, 64-bit copies are full width and 32-bit
         // writes zero-extend to the full register on x86-64, so a register copy
         // matches the zero-extending memory load (b8/b16 would leave stale upper
@@ -444,6 +458,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         switch (inst.op)
         {
             case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadVecRegMem:
                 resolveBase(ops[1].reg, ops[3].valueU64);
                 valueReg = ops[0].reg;
                 if (baseValid)
@@ -453,6 +468,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 }
                 break;
             case MicroInstrOpcode::LoadMemReg:
+            case MicroInstrOpcode::StoreVecMemReg:
                 resolveBase(ops[0].reg, ops[3].valueU64);
                 valueReg = ops[1].reg;
                 if (baseValid)
@@ -730,6 +746,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         if (!ok || !classKnown)
             continue;
 
+        // The integer file has no 128-bit register to promote into.
+        if (bits == MicroOpBits::B128 && !isFloat)
+            continue;
+
         if (isFloat)
         {
             // A float slot reached by an integer immediate — a store, an
@@ -833,7 +853,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             if (!ops)
                 continue;
 
-            if (inst->op == MicroInstrOpcode::LoadRegMem)
+            if (inst->op == MicroInstrOpcode::LoadRegMem || inst->op == MicroInstrOpcode::LoadVecRegMem)
             {
                 const MicroReg dst = ops[0].reg;
                 ops[0].reg         = dst;
@@ -842,7 +862,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 inst->op           = MicroInstrOpcode::LoadRegReg;
                 inst->numOperands  = 3;
             }
-            else if (inst->op == MicroInstrOpcode::LoadMemReg)
+            else if (inst->op == MicroInstrOpcode::LoadMemReg || inst->op == MicroInstrOpcode::StoreVecMemReg)
             {
                 const MicroReg src = ops[1].reg;
                 ops[0].reg         = vreg;

@@ -142,6 +142,7 @@ private:
     static bool      containsKey(MicroRegSpan keys, MicroReg key);
     static void      appendUniqueReg(SmallVector<MicroReg>& regs, MicroReg reg);
     bool             isPersistentPhysReg(MicroReg reg) const;
+    bool             isPoolRegister(MicroReg reg) const;
     bool             isPhysRegForbiddenForVirtual(MicroReg virtKey, MicroReg physReg) const;
     bool             isLiveInAt(MicroReg key, uint32_t instructionIndex) const;
     bool             isConcreteLiveInAt(MicroReg key, uint32_t instructionIndex) const;

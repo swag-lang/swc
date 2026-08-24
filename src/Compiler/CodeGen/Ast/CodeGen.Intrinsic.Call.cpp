@@ -1551,26 +1551,41 @@ namespace
             return Result::Continue;
         }
 
-        builder.emitLoadRegImm(resultPayload.reg, ApInt(logicalBitWidth, 64), resultBits);
-        builder.emitCmpRegImm(materializedValue, ApInt(0, 64), resultBits);
-        const MicroLabelRef doneLabel = builder.createLabel();
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+        // A bit scan answers the whole intrinsic except at zero, where the language
+        // defines the result as the operand width and the instruction defines nothing.
+        // Selecting that case with a conditional move instead of branching around the
+        // scan keeps the sequence one basic block. The branch form put an allocation
+        // boundary in the middle of every caller, which flushed the live set for a case
+        // that never happens on a hot path. The compare is kept rather than read from
+        // the scan flags: it is the shape every other conditional move in the backend
+        // has, and it is what keeps a spill or a rematerialized constant inserted
+        // between the two from silently changing the answer.
+        const MicroReg bitPosReg = codeGen.nextVirtualIntRegister();
 
         if (kind == BitCountKind::Tz)
         {
-            builder.emitOpBinaryRegReg(resultPayload.reg, materializedValue, MicroOp::BitScanForward, resultBits);
-        }
-        else
-        {
-            SWC_ASSERT(kind == BitCountKind::Lz);
-            const MicroReg bitPosReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegImm(resultPayload.reg, ApInt(logicalBitWidth, 64), resultBits);
             builder.emitClearReg(bitPosReg, resultBits);
-            builder.emitOpBinaryRegReg(bitPosReg, materializedValue, MicroOp::BitScanReverse, resultBits);
-            builder.emitLoadRegImm(resultPayload.reg, ApInt(logicalBitWidth - 1, 64), resultBits);
-            builder.emitOpBinaryRegReg(resultPayload.reg, bitPosReg, MicroOp::Subtract, resultBits);
+            builder.emitOpBinaryRegReg(bitPosReg, materializedValue, MicroOp::BitScanForward, resultBits);
+            builder.emitCmpRegImm(materializedValue, ApInt(0, 64), resultBits);
+            builder.emitLoadCondRegReg(resultPayload.reg, bitPosReg, MicroCond::NotEqual, resultBits);
+            return Result::Continue;
         }
 
-        builder.placeLabel(doneLabel);
+        SWC_ASSERT(kind == BitCountKind::Lz);
+
+        // `width - 1 - bitScanReverse(value)` is the leading-zero count of every
+        // non-zero operand. The zero operand takes the same subtraction by forcing
+        // the scan position to all-ones, which reads as -1 at every width.
+        const MicroReg zeroCaseReg  = codeGen.nextVirtualIntRegister();
+        const uint64_t allOnesValue = logicalBitWidth >= 64 ? std::numeric_limits<uint64_t>::max() : (1ull << logicalBitWidth) - 1ull;
+        builder.emitLoadRegImm(zeroCaseReg, ApInt(allOnesValue, 64), resultBits);
+        builder.emitClearReg(bitPosReg, resultBits);
+        builder.emitOpBinaryRegReg(bitPosReg, materializedValue, MicroOp::BitScanReverse, resultBits);
+        builder.emitCmpRegImm(materializedValue, ApInt(0, 64), resultBits);
+        builder.emitLoadCondRegReg(bitPosReg, zeroCaseReg, MicroCond::Equal, resultBits);
+        builder.emitLoadRegImm(resultPayload.reg, ApInt(logicalBitWidth - 1, 64), resultBits);
+        builder.emitOpBinaryRegReg(resultPayload.reg, bitPosReg, MicroOp::Subtract, resultBits);
         return Result::Continue;
     }
 

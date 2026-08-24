@@ -20,7 +20,7 @@ private:
     };
 
     bool containsPushedReg(MicroReg reg) const;
-    void buildSavedRegsPlan(const MicroPassContext& context, const CallConv& conv);
+    void buildSavedRegsPlan(MicroPassContext& context, const CallConv& conv);
     void insertSavedRegsPrologue(const MicroPassContext& context, const CallConv& conv, MicroInstrRef insertBeforeRef) const;
     void insertSavedRegsEpilogue(const MicroPassContext& context, const CallConv& conv, MicroInstrRef insertBeforeRef) const;
     bool containsSavedSlot(MicroReg reg) const;

@@ -371,62 +371,62 @@ Entries are sorted by identifier, ascending; position carries no priority.
   turned it away. The `movd` is `LoadRegReg` with a float destination and an integer source,
   which is already eligible today, so the answer is in one of the other four tests and the
   trace names it in one run.
-### F-195 — Every spill left in a hot loop is a live hull holding its register
+### F-195 — A reload is placed where registers are free, so the spill decision is what is wrong
 
 - Area: compiler/backend
-- Found while: taking [F-138](#f-138--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers)
-  and [F-190](#f-190--a-short-branching-function-spills-with-the-whole-register-file-free) at their
-  word and classifying, instead of counting, the allocator's failures — a counter per reason
-  `canUsePhysical` can refuse a register, read at the moment `allocatePhysical` gives up on the free
-  pools.
-- Observation: the answer is the same in every kernel, and it is one reason out of five. **Hull
-  ownership accounts for every refusal; a concrete register live across the point, a register the
-  instruction forbids, and a future concrete touch account for none at all.** So the supply reading
-  of F-136 and F-190 is retired: the ABI costs nothing here, and neither does instruction shape.
-  Each of these spills is a register that `assignGlobalRegisters` reserved for one value over its
-  whole span, taken at an instant where the local allocator had a value to place and nowhere to put
-  it.
-- The obvious cheap repair does not exist. A hull covers the *hull* of a live range, holes
-  included, so the natural first move is to reserve only the sub-ranges where the value is actually
-  live and hand the holes back. Counting, at each refusal, how many of the blocking hulls held a
-  value that was dead there gives **zero, in all four kernels**. The holders are live wherever they
-  block; there is nothing to hand back.
-- Evidence: release, four kernels chosen to bracket the two shapes the earlier entries describe —
-  the Levenshtein inner loop of F-136, the CABAC bin of F-190, a branching byte scan, and the
-  raytrace sphere intersection. Per failed allocation: registers in the class pools, how many were
-  hull-owned, how many of those were idle, and how many were usable.
+- Found while: taking
+  [F-138](#f-138--a-whole-hull-reservation-cannot-keep-a-loops-working-set-in-registers) and
+  [F-190](#f-190--a-short-branching-function-spills-with-the-whole-register-file-free) at their
+  word and instrumenting the allocator instead of reading its output.
+- Observation: **the allocator reloads values at points where it has registers to spare.**
+  Classifying every reload the pass actually emits — pool size at that instruction, and how many
+  of those registers a whole-span hull owns, a concrete value blocks, the instruction forbids, or
+  nothing prevents — gives sixteen reloads over four kernels, and only two of them happen with no
+  usable register at all. The other fourteen have between two and twelve. So the reload is never
+  the moment the allocator ran out; it is the consequence of an eviction or a boundary drop taken
+  earlier, under a pressure that had eased by the time the value was wanted again. The lever is
+  the spill decision and where its reload lands, not the supply at the use.
+- A first pass at this entry read the opposite, and the mistake is worth stating so it is not
+  repeated: counting the times `allocatePhysical` exhausts its free pools says almost nothing.
+  Those counts came out as 100% hull-owned, which looked decisive. They are not, because an
+  exhausted pool is followed by an eviction that is usually free — `isCandidateBetter` ranks dead
+  values first and `allocatePhysical` takes them without emitting a spill. Measure emitted spills
+  and reloads, never failed lookups.
+- Evidence: release, four kernels — the Levenshtein inner loop of F-136, the CABAC bin of F-190, a
+  branching byte scan, and the raytrace sphere intersection.
 
-  | kernel | failures | in pools | hull-owned | idle hulls | usable |
-  | --- | --- | --- | --- | --- | --- |
-  | `decision` (F-190 shape) | 4 | 4 int | 4 | 0 | 0 |
-  | `levenRows` (F-136 shape) | 6 | 6 int | 6 | 0 | 0 |
-  | `scanFields` (branching scan) | 0 | — | — | — | — |
-  | `intersect` (raytrace shape) | 17 | 10 float | 7–9 | 0 | 1–3 |
+  | kernel | reloads emitted | with no usable register | usable registers at the others |
+  | --- | --- | --- | --- |
+  | `decision` (F-190 shape) | 3 | 1 | 3 and 12 |
+  | `levenRows` (F-136 shape) | 7 | 1 | 2 to 7 |
+  | `scanFields` (branching scan) | 1 | 0 | 6 |
+  | `intersect` (raytrace shape) | 5 | 0 | 2 each |
 
-  `intersect` names a second, independent cost in the same table: its one to three usable
-  registers are all callee-saved, and `pickFreePools` offers an ordinary float no callee-saved
-  fallback at all, so they stay idle while the loop spills. Gating that fallback on loop depth —
-  the prologue pair runs once per call, the reload it replaces once per iteration, which is the
-  variant [F-136](#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) left untried —
-  took the failures from 17 to 11 and the emitted loop from 30 frame accesses to 29, for two more
-  instructions. Not worth shipping on its own, and recorded so it is not tried a third time.
-- Also ruled out, with numbers: letting values that cross no control-flow boundary compete for
-  hulls on the access ranking. The reasoning is sound — in `intersect` the six float parameters
-  hold callee-saved registers from entry to return for one read an iteration each, while `ex`,
-  `ey` and `ez`, read three times an iteration, round-trip through the frame — and the result is
-  not: `intersect` improved by 7 instructions and 3 frame accesses, `levenRows` lost 7 instructions
-  and 6 frame accesses, `scanFields` lost 3 and 4. Promoting a value into a hull removes it from
-  the local allocator's supply as surely as it removes its reloads, and on these shapes the trade
-  goes the wrong way more often than not. Rebalancing who holds the whole-span registers cannot
-  win; there are not enough of them either way.
-- Next step: make a hull a *reservation* rather than a *residence*. Today a granted value is
-  `pinned`: it never enters the mapping, so nothing can ever displace it, which is what makes the
-  register unavailable at the instants above. Give it instead a stable home slot and an ordinary
-  mapping into its reserved register, and let the local allocator evict it like any other value on
-  furthest-next-use. The property the hull design rests on survives untouched — a reserved register
-  can only ever hold its owner, so both sides of every edge agree by construction and the mapping
-  needs no store to cross a boundary — while the register becomes borrowable exactly where the
-  owner is cold. That is interval splitting driven from the eviction side, and it is the one
-  formulation of it that does not need edge resolution. The reproducers above are small enough to
-  drive it: `#[Swag.PrintMicro("post-emit")]` in release on each, with the refusal classifier put
-  back in `allocatePhysical` to confirm the refusals go away rather than move.
+  Two more measurements bound what is worth chasing there, and both say these kernels are the
+  wrong place to look next. Removing **every** hull from `decision` — the depth-zero boundary
+  weight that admits candidates in a function with no loop — changes its emitted code by not one
+  instruction, so the hull mechanism is inert on it. And of `intersect`'s thirty frame accesses,
+  eighteen are the prologue and epilogue saving the nine callee-saved xmm registers its hulls
+  took; the loop body itself holds six. Its working set is fourteen values against sixteen
+  registers, so there is no large win in it either way.
+- Ruled out on the way, with numbers, so none of it is tried a third time. Admitting values that
+  cross no control-flow boundary as hull candidates on the access ranking: `intersect` gained 7
+  instructions and 3 frame accesses, `levenRows` lost 7 and 6, `scanFields` lost 3 and 4 —
+  promoting a value out of the local allocator's supply costs as much as the reloads it saves.
+  A callee-saved fallback for ordinary floats gated on loop depth (the variant F-136 left open):
+  seventeen failed lookups became eleven and the emitted loop went from thirty frame accesses to
+  twenty-nine, for two more instructions. And reserving only the live sub-ranges of a hull rather
+  than its whole span, which is the cheap half of interval splitting: the blocking hulls were live
+  at **every** contended point in all four kernels, so there is nothing to hand back.
+- Next step: measure a workload whose loop actually runs, because these four do not separate the
+  policies. `Inflate.parseBlock` from
+  [F-136](#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and
+  `CabacReader.decision` from F-190 are both real and both hot, and the instrumentation above
+  reduces to one line per emitted reload. Then attack the eviction itself: when the pool empties,
+  the victim is chosen among mapped values only, and the hull owners — which by construction are
+  the values the function reads most across its whole span — are not in the running at all. Giving
+  every hull-granted value a home slot and letting it be displaced over a range with no
+  control-flow boundary in it would put them in the running without touching the property the hull
+  design rests on, since the owner is back in its register at every boundary. That is interval
+  splitting expressed as an eviction policy, and the straight-line restriction is what keeps it
+  from needing edge resolution.

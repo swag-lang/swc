@@ -106,6 +106,7 @@ impl CabacReader
     }
 
     // Reports whether decoding consumed bits past the end of the substream.
+    #[Swag.Inline]
     mtd const hasOverrun()->bool => (.position + .padBytes) * 8 - cast(u64) .bitCount > .size * 8
 
     // Refills the top of the bit buffer, padding with zero bytes past the end of the data.
@@ -155,6 +156,7 @@ impl CabacReader
     // The two arithmetic registers are held in locals for the whole bin. They are read and written
     // several times each, and the context update in between writes into this same structure, so
     // left in place they would be reloaded after every step.
+    #[Swag.Inline]
     mtd decision(contextIndex: u32)->u32
     {
         var range  = .range
@@ -196,6 +198,7 @@ impl CabacReader
     }
 
     // Decodes one bypass bin, clause 9.3.4.3.4.
+    #[Swag.Inline]
     mtd bypass()->u32
     {
         .low = (.low << 1) | .takeBits(1)
@@ -209,6 +212,7 @@ impl CabacReader
     }
 
     // Decodes `count` bypass bins as an unsigned value, most significant bin first.
+    #[Swag.Inline]
     mtd bypassBits(count: u32)->u32
     {
         var result = 0'u32
@@ -220,6 +224,7 @@ impl CabacReader
     // Decodes the termination bin, clause 9.3.4.3.5.
     //
     // A returned one ends the slice segment or the substream; the caller is what knows which.
+    #[Swag.Inline]
     mtd terminate()->u32
     {
         .range -= 2

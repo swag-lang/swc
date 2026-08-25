@@ -121,6 +121,16 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
 {
     var longStream = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac-10min.mkv"))
     var reference  = expect Reader.open(videoFixturePath("ffmpeg-h264-baseline.mp4"))
+
+    // Before any media window exists, resynchronization still resolves through the container's
+    // cues. Returning the requested non-sync frame here makes a slow player decode the whole GOP
+    // under its loading overlay instead of jumping to one independently decodable picture.
+    @assert(longStream.syncFrameAt(1) == 12)
+    @assert(longStream.syncFrameAt(20) == 20)
+    @assert(longStream.syncFrameAt(21) == 32)
+    @assert(longStream.syncFrameAt(12_007) == 12_012)
+    @assert(longStream.syncFrameAt(14_999) == 15_000)
+
     var indexed: Image
     expect longStream.decodeFrameInto(&indexed, 12_007)
     @assert(longStream.frameCount() == 0)

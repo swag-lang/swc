@@ -528,17 +528,15 @@ impl RenderOgl
     }
 
     // Finishes and presents the current frame.
+    //
+    // Presenting does not wait for the picture to be drawn. A swap is ordered after everything
+    // submitted before it, so what reaches the screen is always the frame that was just recorded;
+    // waiting for the processor to see it finish only stops this thread for the whole of the
+    // drawing. On a shared-memory adapter that is tens of milliseconds a frame, and a caller that
+    // presents on a clock — a video player above all — loses exactly that much of every period.
     internal mtd endImpl()
     {
-        // The surface renders into a persistent FBO and then samples it to blit
-        // onscreen, so the frame must be fully resolved and presented before we
-        // return. With on-demand rendering (paint only when dirty) SwapBuffers
-        // alone does not guarantee the last submitted frame is presented before
-        // the next one is built, which makes hot-tracking visuals (menu/listctrl
-        // highlight) lag one update behind. Flush + finish keeps the swap chain
-        // in lockstep with what was just drawn.
         glFlush()
-        glFinish()
         .native.swapBuffers(oglContext(.curRC)[])
     }
 

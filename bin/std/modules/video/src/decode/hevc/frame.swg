@@ -242,12 +242,16 @@ impl Frame
             // index that never goes below zero.
             let rowBase = plane + cast(u64) (row + FramePadding) * stride
             let line    = rowBase + cast(u64) FramePadding
-            let left    = line[0]
-            let right   = line[width - 1]
-            for offset in FramePadding
+            let left    = Simd.splat(line[0])
+            let right   = Simd.splat(line[width - 1])
+
+            // The padding is a multiple of eight samples wide, so both sides fill in whole vectors.
+            var offset = 0'u32
+            while offset < FramePadding
             {
-                rowBase[cast(u64) (FramePadding - 1 - offset)] = left
-                line[cast(u64) width + cast(u64) offset]       = right
+                Simd.store(rowBase + cast(u64) offset, left)
+                Simd.store(line + cast(u64) width + cast(u64) offset, right)
+                offset += 8
             }
         }
     }

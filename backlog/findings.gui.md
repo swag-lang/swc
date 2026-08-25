@@ -328,26 +328,47 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
 - Area: bin/std
 - Found while: chasing the small, regular stalls the sFileScope video viewer showed on the
-  3840x2160 25 fps recording (2026-08-24).
+  3840x2160 25 fps recording (2026-08-24), and measured again on a 3840x2076 Main10 film
+  (2026-08-25).
 - Observation: `Surface.paintWnd` takes the union of everything invalidated since the last present
   as a single clip rectangle, and paints the hierarchy and the border, silhouette and shadow passes
   through it. Two widgets that changed at opposite ends of the window therefore cost as much as
   repainting the window. A video player is the case that makes it visible: the picture fills the
   content area and the timeline sits in the command bar, so any tick that touches both unions to
   the whole client rectangle, and there is one such tick per presented picture at best.
-- Evidence: the viewer's timer handler instrumented with the wall time between two handlers, which
-  is the message pump plus the paint and the present, split by whether the handler before it
-  published a picture. Release, three quarters into the file, sixty-second runs interleaved both
-  ways. **One publish-and-present interval costs 36 ms when the dirty region also covers the
-  command bar and 18 ms when it covers only the picture view**, and an interval that painted
-  nothing costs the 10 ms of the timer. Twenty-five presents a second at 36 ms is the whole second,
-  which is why the shipped policy delivered 16 to 31 pictures a second and the picture ran up to 79
-  frames behind the clock, against a steady 25 and no lag at 18. Over the runs: 86 and 14
-  presentation gaps over 60 ms per minute against 17 and 2, and ten and two seconds below 22 fps
-  against two and none. The decoder was never the limit in any run — its queue stayed full and one
-  picture cost 3 to 7 ms to hand over.
-- Next step: measure the three chrome passes separately first, since a full-window clip makes each
-  of them draw its whole ring; then decide whether the clip should stay one rectangle. A short list
-  of dirty rectangles, or painting each dirty subtree under its own clip, would remove the coupling
-  between two widgets that happen to be far apart, which is the common shape for any animated
-  widget beside a static one.
+- What the cost actually is, measured per pass with a synchronizing probe between them (2026-08-25,
+  release, sFileScope on a 1650x915 logical window at 150%, so a 1.5 megapixel clip and a
+  3.4 megapixel one in device pixels; Intel Arc integrated adapter). Recording the hierarchy costs
+  0.5 ms of processor time and the three chrome passes 0.7; **executing the frame costs the adapter
+  13 to 21 ms**, of which the render-target pass is two thirds and the copy of that target to the
+  back buffer one third. The same window with the picture hidden costs the same, so this is the
+  cost of the passes and not of the video. It is also strongly load-dependent: with the decoder
+  running on eight threads the same frame took 70 to 215 ms, which is the adapter and the decoder
+  sharing one power and memory budget.
+- What is no longer part of it: the presentation used to block the caller until the adapter had
+  finished, so the whole of that figure was paid on the application thread once per picture. That
+  wait is gone (`RenderOgl.endImpl`), and the same run now presents every picture of a 23.976-fps
+  4K stream with 12 ms between two turns of the loop. What remains is adapter time, which limits
+  how much else the window can do per second rather than stalling one thread.
+- Next step: the two full-clip passes are the render-target draw and the copy of that target to the
+  screen. Decide whether the copy can be avoided for a surface whose chrome has not changed, and
+  whether the clip should stay one rectangle: a short list of dirty rectangles, or painting each
+  dirty subtree under its own clip, would remove the coupling between two widgets that happen to be
+  far apart, which is the common shape for any animated widget beside a static one.
+
+### F-199 — Two module tests do not pass on master
+
+- Area: std/gui, apps/sFileScope
+- Found while: validating an unrelated video change on a checkout of `master` at 3dae5fd34
+  (2026-08-25); both fail with the change reverted, so neither belongs to it.
+- Observation: `swc tools\std.swgs dm test gui` fails one of 602 tests, and
+  `swc toolspps.swgs dm test sFileScope` fails one of 115.
+- Evidence: `gui/src/tests/htmlview.test.swg:777` — the large-Rustdoc virtual-window test asserts
+  `virtualHeight > layout.documentHeight * 10` and does not hold. `sFileScope` fails the golden of
+  `viewer.sound.test.swg:182` (`viewer.sound.document.png`) with **one** maximum channel difference,
+  first at (117, 391): 0xFF2D2D28 expected against 0xFF2E2E29 produced, which is a one-step tone
+  drift rather than a layout change.
+- Next step: for the sound golden, find which colour token moved by one step and decide whether the
+  golden or the token is stale — a single-step difference over a whole document is a rounding change
+  somewhere in the theme, not a rendering defect. For the HTML one, print `virtualHeight` and
+  `documentHeight` on that fixture and see which of the two moved.

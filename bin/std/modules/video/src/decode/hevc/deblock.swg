@@ -255,32 +255,11 @@ impl Decoder
         return dx >= 4 or dy >= 4
     }
 
-    // Returns where one sample of an edge sits in its plane, with the orientation folded in.
-    //
-    // `line` runs along the edge and `offset` crosses it, so one body reads both directions. The
-    // padding is added here, which is what keeps a sample four columns before the picture inside
-    // the buffer instead of underflowing its index.
-    #[Swag.Inline]
-    private mtd const edgeIndex(stride: u64, vertical: bool, x, y, line, offset: s32)->u64
-    {
-        let px = vertical ? x + offset : x + line
-        let py = vertical ? y + line : y + offset
-        return cast(u64) (py + cast(s32) FramePadding) * stride + cast(u64) (px + cast(s32) FramePadding)
-    }
-
-    #[Swag.Inline]
-    private mtd const edgeSample(plane: const [*] u16, stride: u64, vertical: bool, x, y, line, offset: s32)->u16
-    {
-        return plane[.edgeIndex(stride, vertical, x, y, line, offset)]
-    }
-
-    #[Swag.Inline]
-    private mtd setEdgeSample(plane: [*] u16, stride: u64, vertical: bool, x, y, line, offset: s32, value: u16)
-    {
-        plane[.edgeIndex(stride, vertical, x, y, line, offset)] = value
-    }
-
     // Filters one four-line luma edge, clauses 8.7.2.5.3 and 8.7.2.5.7.
+    //
+    // The segment is addressed by two steps rather than by a coordinate pair: one that walks the
+    // four lines of the edge and one that crosses it. Both directions then read and write through
+    // the same offsets, and the whole filter costs no address arithmetic beyond an index.
     private mtd filterLumaEdge(x, y: s32, vertical: bool, strength: u32, qpP, qpQ: s32, slice: const *SliceDeblock)
     {
         if slice.disabled do
@@ -299,29 +278,32 @@ impl Decoder
         if !beta do
             return
 
-        // The edge runs along `line`, and `offset` crosses it, so one body filters both
-        // directions.
-        let plane  = frame.luma.buffer!
-        let stride = frame.strideLuma
+        let stride = cast(s64) frame.strideLuma
+        let origin = frame.luma.buffer! + cast(u64) (y + cast(s32) FramePadding) * frame.strideLuma + cast(u64) (x + cast(s32) FramePadding)
+        let lineStep   = vertical ? stride : 1's64
+        let crossStep  = vertical ? 1's64 : stride
 
         // The two outer lines of the segment decide for all four, clause 8.7.2.5.3.
-        let p0a = cast(s32) .edgeSample(plane, stride, vertical, x, y, 0, -1)
-        let p1a = cast(s32) .edgeSample(plane, stride, vertical, x, y, 0, -2)
-        let p2a = cast(s32) .edgeSample(plane, stride, vertical, x, y, 0, -3)
-        let p3a = cast(s32) .edgeSample(plane, stride, vertical, x, y, 0, -4)
-        let q0a = cast(s32) .edgeSample(plane, stride, vertical, x, y, 0, 0)
-        let q1a = cast(s32) .edgeSample(plane, stride, vertical, x, y, 0, 1)
-        let q2a = cast(s32) .edgeSample(plane, stride, vertical, x, y, 0, 2)
-        let q3a = cast(s32) .edgeSample(plane, stride, vertical, x, y, 0, 3)
+        let a = origin
+        let d = origin + 3 * lineStep
 
-        let p0d = cast(s32) .edgeSample(plane, stride, vertical, x, y, 3, -1)
-        let p1d = cast(s32) .edgeSample(plane, stride, vertical, x, y, 3, -2)
-        let p2d = cast(s32) .edgeSample(plane, stride, vertical, x, y, 3, -3)
-        let p3d = cast(s32) .edgeSample(plane, stride, vertical, x, y, 3, -4)
-        let q0d = cast(s32) .edgeSample(plane, stride, vertical, x, y, 3, 0)
-        let q1d = cast(s32) .edgeSample(plane, stride, vertical, x, y, 3, 1)
-        let q2d = cast(s32) .edgeSample(plane, stride, vertical, x, y, 3, 2)
-        let q3d = cast(s32) .edgeSample(plane, stride, vertical, x, y, 3, 3)
+        let p0a = cast(s32) a[-crossStep]
+        let p1a = cast(s32) a[-2 * crossStep]
+        let p2a = cast(s32) a[-3 * crossStep]
+        let p3a = cast(s32) a[-4 * crossStep]
+        let q0a = cast(s32) a[0]
+        let q1a = cast(s32) a[crossStep]
+        let q2a = cast(s32) a[2 * crossStep]
+        let q3a = cast(s32) a[3 * crossStep]
+
+        let p0d = cast(s32) d[-crossStep]
+        let p1d = cast(s32) d[-2 * crossStep]
+        let p2d = cast(s32) d[-3 * crossStep]
+        let p3d = cast(s32) d[-4 * crossStep]
+        let q0d = cast(s32) d[0]
+        let q1d = cast(s32) d[crossStep]
+        let q2d = cast(s32) d[2 * crossStep]
+        let q3d = cast(s32) d[3 * crossStep]
 
         let dp0  = Math.abs(p2a - 2 * p1a + p0a)
         let dp3  = Math.abs(p2d - 2 * p1d + p0d)
@@ -331,8 +313,8 @@ impl Decoder
         let dpq3 = dp3 + dq3
         let dp   = dp0 + dp3
         let dq   = dq0 + dq3
-        let d    = dpq0 + dpq3
-        if d >= beta do
+        let d0   = dpq0 + dpq3
+        if d0 >= beta do
             return
 
         let strong0 = .strongFilterDecision(2 * dpq0, beta, tc, p3a, p0a, q0a, q3a)
@@ -341,51 +323,57 @@ impl Decoder
         let filterP = dp < ((beta + (beta >> 1)) >> 3)
         let filterQ = dq < ((beta + (beta >> 1)) >> 3)
 
-        for line in 4'u32
+        var line = origin
+        for index in 4'u32
         {
-            let index = cast(s32) line
-            let p0    = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, -1)
-            let p1    = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, -2)
-            let p2    = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, -3)
-            let p3    = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, -4)
-            let q0    = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, 0)
-            let q1    = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, 1)
-            let q2    = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, 2)
-            let q3    = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, 3)
+            let p0 = cast(s32) line[-crossStep]
+            let p1 = cast(s32) line[-2 * crossStep]
+            let p2 = cast(s32) line[-3 * crossStep]
+            let q0 = cast(s32) line[0]
+            let q1 = cast(s32) line[crossStep]
+            let q2 = cast(s32) line[2 * crossStep]
 
             if strong
             {
+                let p3    = cast(s32) line[-4 * crossStep]
+                let q3    = cast(s32) line[3 * crossStep]
                 let limit = 2 * tc
-                .setEdgeSample(plane, stride, vertical, x, y, index, -1, cast(u16) Math.clamp((p2 + 2 * p1 + 2 * p0 + 2 * q0 + q1 + 4) >> 3, p0 - limit, p0 + limit))
-                .setEdgeSample(plane, stride, vertical, x, y, index, -2, cast(u16) Math.clamp((p2 + p1 + p0 + q0 + 2) >> 2, p1 - limit, p1 + limit))
-                .setEdgeSample(plane, stride, vertical, x, y, index, -3, cast(u16) Math.clamp((2 * p3 + 3 * p2 + p1 + p0 + q0 + 4) >> 3, p2 - limit, p2 + limit))
-                .setEdgeSample(plane, stride, vertical, x, y, index, 0, cast(u16) Math.clamp((p1 + 2 * p0 + 2 * q0 + 2 * q1 + q2 + 4) >> 3, q0 - limit, q0 + limit))
-                .setEdgeSample(plane, stride, vertical, x, y, index, 1, cast(u16) Math.clamp((p0 + q0 + q1 + q2 + 2) >> 2, q1 - limit, q1 + limit))
-                .setEdgeSample(plane, stride, vertical, x, y, index, 2, cast(u16) Math.clamp((p0 + q0 + q1 + 3 * q2 + 2 * q3 + 4) >> 3, q2 - limit, q2 + limit))
+                line[-crossStep]     = cast(u16) Math.clamp((p2 + 2 * p1 + 2 * p0 + 2 * q0 + q1 + 4) >> 3, p0 - limit, p0 + limit)
+                line[-2 * crossStep] = cast(u16) Math.clamp((p2 + p1 + p0 + q0 + 2) >> 2, p1 - limit, p1 + limit)
+                line[-3 * crossStep] = cast(u16) Math.clamp((2 * p3 + 3 * p2 + p1 + p0 + q0 + 4) >> 3, p2 - limit, p2 + limit)
+                line[0]              = cast(u16) Math.clamp((p1 + 2 * p0 + 2 * q0 + 2 * q1 + q2 + 4) >> 3, q0 - limit, q0 + limit)
+                line[crossStep]      = cast(u16) Math.clamp((p0 + q0 + q1 + q2 + 2) >> 2, q1 - limit, q1 + limit)
+                line[2 * crossStep]  = cast(u16) Math.clamp((p0 + q0 + q1 + 3 * q2 + 2 * q3 + 4) >> 3, q2 - limit, q2 + limit)
+                line += lineStep
                 continue
             }
 
             var delta = (9 * (q0 - p0) - 3 * (q1 - p1) + 8) >> 4
-            if Math.abs(delta) >= tc * 10 do
+            if Math.abs(delta) >= tc * 10
+            {
+                line += lineStep
                 continue
+            }
 
             delta = Math.clamp(delta, -tc, tc)
-            .setEdgeSample(plane, stride, vertical, x, y, index, -1, cast(u16) Math.clamp(p0 + delta, 0, maximum))
-            .setEdgeSample(plane, stride, vertical, x, y, index, 0, cast(u16) Math.clamp(q0 - delta, 0, maximum))
+            line[-crossStep] = cast(u16) Math.clamp(p0 + delta, 0, maximum)
+            line[0]          = cast(u16) Math.clamp(q0 - delta, 0, maximum)
 
             if filterP
             {
                 let half  = tc >> 1
                 let value = Math.clamp((((p2 + p0 + 1) >> 1) - p1 + delta) >> 1, -half, half)
-                .setEdgeSample(plane, stride, vertical, x, y, index, -2, cast(u16) Math.clamp(p1 + value, 0, maximum))
+                line[-2 * crossStep] = cast(u16) Math.clamp(p1 + value, 0, maximum)
             }
 
             if filterQ
             {
                 let half  = tc >> 1
                 let value = Math.clamp((((q2 + q0 + 1) >> 1) - q1 - delta) >> 1, -half, half)
-                .setEdgeSample(plane, stride, vertical, x, y, index, 1, cast(u16) Math.clamp(q1 + value, 0, maximum))
+                line[crossStep] = cast(u16) Math.clamp(q1 + value, 0, maximum)
             }
+
+            line += lineStep
         }
     }
 
@@ -433,22 +421,27 @@ impl Decoder
             return
 
         let plane  = component == 1 ? frame.chromaB.buffer! : frame.chromaR.buffer!
-        let stride = frame.strideChroma
+        let stride = cast(s64) frame.strideChroma
         let cx     = x / cast(s32) sps.subWidthC
         let cy     = y / cast(s32) sps.subHeightC
 
+        let origin    = plane + cast(u64) (cy + cast(s32) FramePadding) * frame.strideChroma + cast(u64) (cx + cast(s32) FramePadding)
+        let lineStep  = vertical ? stride : 1's64
+        let crossStep = vertical ? 1's64 : stride
+
         // One luma segment of four lines covers two chroma lines.
-        for line in 2'u32
+        var line = origin
+        for index in 2'u32
         {
-            let index = cast(s32) line
-            let p0    = cast(s32) .edgeSample(plane, stride, vertical, cx, cy, index, -1)
-            let p1    = cast(s32) .edgeSample(plane, stride, vertical, cx, cy, index, -2)
-            let q0    = cast(s32) .edgeSample(plane, stride, vertical, cx, cy, index, 0)
-            let q1    = cast(s32) .edgeSample(plane, stride, vertical, cx, cy, index, 1)
+            let p0 = cast(s32) line[-crossStep]
+            let p1 = cast(s32) line[-2 * crossStep]
+            let q0 = cast(s32) line[0]
+            let q1 = cast(s32) line[crossStep]
 
             let delta = Math.clamp((((q0 - p0) << 2) + p1 - q1 + 4) >> 3, -tc, tc)
-            .setEdgeSample(plane, stride, vertical, cx, cy, index, -1, cast(u16) Math.clamp(p0 + delta, 0, maximum))
-            .setEdgeSample(plane, stride, vertical, cx, cy, index, 0, cast(u16) Math.clamp(q0 - delta, 0, maximum))
+            line[-crossStep] = cast(u16) Math.clamp(p0 + delta, 0, maximum)
+            line[0]          = cast(u16) Math.clamp(q0 - delta, 0, maximum)
+            line += lineStep
         }
     }
 }

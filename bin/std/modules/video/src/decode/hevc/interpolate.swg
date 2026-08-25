@@ -302,7 +302,10 @@ impl Decoder
             destinationStride = .current!.strideChroma
         }
 
-        if source0X >= 0 and source0Y >= 0 and source1X >= 0 and source1Y >= 0 and source0X + cast(s32) width <= source0Width and source1X + cast(s32) width <= source1Width and source0Y + cast(s32) height <= source0Height and source1Y + cast(s32) height <= source1Height
+        // The padding of a completed reference already holds the clamped edge samples, so a
+        // block that reaches past an edge but stays inside it is still read where it lies.
+        let pad = cast(s32) FramePadding
+        if source0X >= -pad and source0Y >= -pad and source1X >= -pad and source1Y >= -pad and source0X + cast(s32) width <= source0Width + pad and source1X + cast(s32) width <= source1Width + pad and source0Y + cast(s32) height <= source0Height + pad and source1Y + cast(s32) height <= source1Height + pad
         {
             let first0 = source0 + cast(u64) (source0Y + cast(s32) FramePadding) * source0Stride + cast(u64) (source0X + cast(s32) FramePadding)
             let first1 = source1 + cast(u64) (source1Y + cast(s32) FramePadding) * source1Stride + cast(u64) (source1X + cast(s32) FramePadding)
@@ -377,9 +380,11 @@ impl Decoder
             destinationStride = .current!.strideChroma
         }
 
-        // Motion vectors normally keep the whole block inside the picture. Copying complete rows
-        // is the common path; only a vector beyond an edge needs per-sample clamping.
-        if sourceX >= 0 and sourceY >= 0 and sourceX + cast(s32) width <= sourceWidth and sourceY + cast(s32) height <= sourceHeight
+        // Motion vectors normally keep the whole block inside the picture or inside the padding
+        // that repeats its edges. Copying complete rows is the common path; only a vector past that
+        // padding needs per-sample clamping.
+        let pad = cast(s32) FramePadding
+        if sourceX >= -pad and sourceY >= -pad and sourceX + cast(s32) width <= sourceWidth + pad and sourceY + cast(s32) height <= sourceHeight + pad
         {
             let first = source + cast(u64) (sourceY + cast(s32) FramePadding) * sourceStride + cast(u64) (sourceX + cast(s32) FramePadding)
             for row in height do
@@ -462,7 +467,12 @@ impl Decoder
         var referenceStride: u64
         let firstX                                         = xInt - 3
         let firstY                                         = yInt - 3
-        if firstX >= 0 and firstY >= 0 and firstX + cast(s32) width + 7 <= cast(s32) frame.width and firstY + cast(s32) height + 7 <= cast(s32) frame.height
+        // A reference picture is complete before any block predicts from it, and completing it
+        // replicates its edges through the whole padding. A window that stays inside that padding
+        // therefore already holds what the clamp of clause 8.5.3.3.3 would produce, so it is read
+        // where it lies instead of being gathered into a scratch block first.
+        let pad = cast(s32) FramePadding
+        if firstX >= -pad and firstY >= -pad and firstX + cast(s32) width + 7 <= cast(s32) frame.width + pad and firstY + cast(s32) height + 7 <= cast(s32) frame.height + pad
         {
             reference       = frame.lumaAt(firstX, firstY)!
             referenceStride = frame.strideLuma
@@ -625,7 +635,8 @@ impl Decoder
         var referenceStride: u64
         let firstX                                         = xInt - 1
         let firstY                                         = yInt - 1
-        if firstX >= 0 and firstY >= 0 and firstX + cast(s32) width + 3 <= cast(s32) frame.chromaWidth and firstY + cast(s32) height + 3 <= cast(s32) frame.chromaHeight
+        let pad = cast(s32) FramePadding
+        if firstX >= -pad and firstY >= -pad and firstX + cast(s32) width + 3 <= cast(s32) frame.chromaWidth + pad and firstY + cast(s32) height + 3 <= cast(s32) frame.chromaHeight + pad
         {
             let plane = component == 1 ? frame.chromaB.buffer! : frame.chromaR.buffer!
             reference       = plane + cast(u64) (firstY + cast(s32) FramePadding) * frame.strideChroma + cast(u64) (firstX + cast(s32) FramePadding)

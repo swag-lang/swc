@@ -182,32 +182,57 @@ is the layout it does not read yet.
 - Complete when: the decoder reads the `indx` hierarchy and follows `AVIX` continuations, and the
   encoder emits them instead of failing once the stream approaches the limit.
 
-### T-563 — H.265 reads 4:2:0 alone, and nothing has measured what it costs
+### T-563 — H.265 costs twice what FFmpeg does per picture, and reads 4:2:0 alone
 
 - Intent: the decoder is byte-exact against five JCT-VC conformance bitstreams and against x265
-  output in both containers, so what it decodes it decodes correctly. Two things are unknown or
-  absent, and both are what a real library is judged on next.
+  output in both containers, so what it decodes it decodes correctly. What it is judged on next is
+  what one picture costs and what chroma formats it refuses.
+- Measured cost of one picture (2026-08-25, release, one lane so the figure is serial processor
+  time, on a 3840x2076 23.976-fps Main10 Matroska film of 10.3 Mbit/s): **142 ms**, against
+  **66 ms** for FFmpeg single-threaded on the same machine and the same file, and 10.3 ms of wall
+  time for FFmpeg frame-threaded. The margin is therefore about 2.1x, the same shape T-504 records
+  for H.264.
+- Where that time goes, measured by disabling one stage at a time rather than by timing each
+  (before the pass below; the sum of the parts exceeds the whole because disabling one stage
+  changes what the next one reads): motion compensation 47, the loop filter 37, the inverse
+  transform 34, adding the residual 14, the reduction to eight bits 10, intra prediction 5, sample
+  adaptive offset 5, and the entropy parse and per-block bookkeeping the remaining 12.
+- What the stream asks for, counted per picture rather than guessed: **15.7 million luma samples
+  and 8.0 million chroma samples go through fractional interpolation** — the whole picture,
+  bi-predicted — against 0.6 million taken at an integer position. **8.0 million samples pass
+  through a 32x32 inverse transform**, 0.8 million through a 16x16, and 1.1 million of those are
+  a DC coefficient alone. A low-bitrate 4K stream is therefore not entropy-bound at all: it is
+  sample work from end to end.
+- What this pass changed (2026-08-25), all byte-exact against the conformance digests:
+  - The loop filter addressed every sample by recomputing `(y + padding) * stride + (x + padding)`
+    and re-testing the edge direction, about seventy times per four-line segment and half a million
+    segments a picture. It now resolves one base pointer and two steps per segment, one that walks
+    the edge and one that crosses it. **37 -> 19 ms.**
+  - Motion compensation gathered a reference block into scratch whenever its window left the
+    picture, although a finished reference already repeats its edges through eighty samples of
+    padding, which is exactly what the clamp of clause 8.5.3.3.3 produces. Reading the padded plane
+    where it lies leaves 24 gathers a picture instead of thousands.
+  - Edge replication wrote its eighty samples one at a time; it fills whole vectors now.
+  - The frame lanes ran at normal priority while the H.264 ones run below it, so a decoder that is
+    deliberately ahead of the clock competed with the thread that has to present on it.
+- Next, in expected order of value: the second pass of the 16x16 and 32x32 inverse transform
+  broadcasts one intermediate value per output group instead of once per basis, and neither pass
+  uses `pmaddwd`, which would carry two basis functions per instruction; the fractional filters and
+  the transform are both 128 bits wide, and this stream is the case where 256-bit forms would pay;
+  and a uni-predicted block is filtered into `predBuffer` and then read again to be combined, where
+  one pass could write the picture directly.
 - What it refuses, and where: `sets.swg` fails a sequence parameter set whose `chroma_format_idc`
   is not 1, whose bit depth is neither 8 nor 10, that enables pulse code modulation blocks, or that
   carries the range extension, multilayer, 3D or screen content tools. The 4:2:2 and 4:4:4 formats
   and the range extension are what a capture or mastering file uses; a delivery file does not.
-- What is unmeasured: no figure exists for the processor time of one H.265 picture, on any stream,
-  next to anything. T-504 measured H.264 that way and the measurement is what found every gain
-  since; the same harness applies here unchanged, and the entropy decode is the same shape.
-- Measured on a real stream (2026-08-25): the integer-predicted opening access units of a 3840x2076,
-  23.976-fps Main10 Matroska stream fell from 165-185 ms to 23-35 ms after direct integer prediction,
-  row-banded deblocking and packed 10-to-8-bit output. That was not representative of playback:
-  later pictures route roughly ten million predicted samples through fractional interpolation and
-  took 150-550 ms in the real sFileScope path, repeatedly forcing playback resynchronization.
-- Direct padded-plane reads and eight-sample SIMD fractional filters reduce that serial work. A
-  bounded frame pipeline overlaps complete decoder contexts and waits explicitly for unfinished
-  references. WPP pictures additionally reconstruct their CTB rows in parallel, preserving the
-  normative two-CTU lead and publishing loop-filtered references only after all rows complete.
-- On the same file, five seeks spread from frame 14,386 to frame 150,000 took 0.3-5.4 s in
-  the native consumer path, then 120 consecutive pictures decoded in 3.3 s (36.4 fps for a
-  23.976-fps source). The 48-picture Main10 WPP conformance stream retains its normative digests.
-- Next step: compare one 1080p and one 4K stream against FFmpeg on the same machine, and widen the
-  fractional kernels beyond the current 128-bit SIMD if profiles without WPP still miss real time.
+- How to measure it: a `#test` in the module that opens the real film, decodes twenty pictures to
+  warm the file cache and the reference set, then decodes twenty-five more and reports
+  `GetProcessTimes` divided by the count, three interleaved rounds reduced to their minimum. Jobs
+  are synchronous in a test process, so the lane count is one and the figure is serial cost. Wall
+  time on this machine is worthless on its own — the same window reads 7 ms and 25 ms for the same
+  work depending on how warm the package is.
+- Complete when: the serial cost of one 3840x2076 Main10 picture is within a third of FFmpeg's on
+  the same machine.
 - Related: T-504
 
 ### T-565 — MPEG-4 Part 2 in Matroska is delivered; the AVI files are not

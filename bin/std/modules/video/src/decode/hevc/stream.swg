@@ -425,6 +425,13 @@ impl HevcStream
         }
     }
 
+    // Creates the persistent frame owners.
+    //
+    // They run below normal priority. Frame threading deliberately decodes far ahead of whatever
+    // consumes the pictures, so a lane is almost always working on something that is not needed
+    // yet; at this resolution there are enough of them to keep a consumer that has to present on
+    // a clock off the processor, and a decoder that races ahead while the picture on screen
+    // stutters has won nothing.
     private mtd ensureFrameThreads() fail
     {
         if .threadsStarted do
@@ -436,7 +443,7 @@ impl HevcStream
             let frameThread = &.frameThreads[lane]
             frameThread.wake.init(false)
             frameThread.done.init(true)
-            frameThread.thread.init(&runHevcFrameThread, frameThread, priority: .Normal)
+            frameThread.thread.init(&runHevcFrameThread, frameThread, priority: .BelowNormal)
             frameThread.thread.start()
         }
 

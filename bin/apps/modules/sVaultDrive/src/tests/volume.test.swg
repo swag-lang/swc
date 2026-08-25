@@ -621,8 +621,8 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
 #test
 {
-    // A password only ever unwraps the master key, so changing one is a single
-    // key-slot write and leaves every encrypted block alone.
+    // A password only ever unwraps the master key, so changing one rotates key slots and leaves
+    // every encrypted block alone. The replacement is verified before the old slot is erased.
     let path = testContainerPath("keyslots")
     defer discard catch File.delete(path)
 
@@ -633,6 +633,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     @assert(volume.keySlotCount() == 1)
 
     expect volume.changePassword(testPassword(), secondPassword())
+    @assert(volume.keySlotCount() == 1)
     volume.close()
 
     @assert(rejectsPassword(path, testPassword()))
@@ -683,7 +684,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     @assert(keySlotIndex(2) == 2)
     @assert(keySlotIndex(3) == 3)
 
-    var volume = expect Volume.create(path, testPassword(), MinimumSize)
+    var volume      = expect Volume.create(path, testPassword(), MinimumSize)
     let initialMask = volume.keySlotMask
     @assert(initialMask != 0 and (initialMask & (initialMask - 1)) == 0)
     volume.close()

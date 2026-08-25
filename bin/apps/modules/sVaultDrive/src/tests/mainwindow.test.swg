@@ -189,6 +189,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 
     @assert(unmount.text() == "Démonter")
     @assert(window.createButton.text() == "Créer le coffre chiffré")
+    @assert(window.createKeyFiles.generate.toolTip == "Créer un fichier clé aléatoire")
 
     // The third card follows too, headings and all.
     @assert(window.mountedDrives.list.header.itemAt(cast(u32) MountedColumn.Startup).name.raw == "AU DÉMARRAGE")
@@ -250,16 +251,23 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     let secretBytes = @mkslice(cast(const [*] u8) @dataof(secret), @countof(secret))
     @assert(!containsStateBytes(state.toSlice(), secretBytes))
 
+    window.mountKeyFiles.paths.add(String.from("C:\\private\\access.key"))
+    state = saveMainWindowState(window)
+    @assert(!containsStateBytes(state.toSlice(), @mkslice(cast(const [*] u8) @dataof("access.key"), 10)))
+
     window.mountSettings = {}
     window.mountPath.setText("")
     window.readOnly.setState(.Unchecked)
     window.mountPassword.clear()
+    var noKeyFiles: Array'String
+    window.mountKeyFiles.setPaths(noKeyFiles.toSlice())
     loadMainWindowState(window, state.toSlice())
 
     @assert(window.mountPath.text() == "C:\\vaults\\remembered")
     @assert(window.selectedMountPoint() == drive)
     @assert(window.readOnly.isChecked())
     @assert(window.mountPassword.isEmpty())
+    @assert(window.mountKeyFiles.paths.isEmpty())
 }
 
 // Automatic-unmount choices are explicit persistent policy, and the timeout is only actionable
@@ -338,7 +346,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     // A button that cannot work is down, and the keyboard does not stop on it: on a form with
     // nothing filled in, the action of the create page is out of the ring. So is every control
     // of the two pages that are not on show.
-    @assert(order.stops.count == 7)
+    @assert(order.stops.count == 9)
     @assert(order.stops[0] == cast(*Wnd) window.tabs)
     @assert(order.stops[1] == cast(*Wnd) window.createPath)
 
@@ -348,9 +356,10 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     window.mountButton.enable(true)
     window.resizeButton.enable(true)
     window.passwordButton.enable(true)
+    window.keyFilesButton.enable(true)
 
     let full = Gui.FocusOrder.collect(window)
-    @assert(full.stops.count == 8)
+    @assert(full.stops.count == 10)
     @assert(full.stops[0] == cast(*Wnd) window.tabs)
     @assert(full.stops[1] == cast(*Wnd) window.createPath)
     @assert(full.stops[2] == cast(*Wnd) window.browseCreate)
@@ -358,22 +367,27 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     @assert(full.stops[4] == cast(*Wnd) window.createUnit)
     @assert(full.stops[5] == cast(*Wnd) window.createPassword)
     @assert(full.stops[6] == cast(*Wnd) window.confirmPassword)
-    @assert(full.stops[7] == cast(*Wnd) window.createButton)
+    @assert(full.stops[7] == cast(*Wnd) window.createKeyFiles.add)
+    @assert(full.stops[8] == cast(*Wnd) window.createKeyFiles.generate)
+    @assert(full.stops[9] == cast(*Wnd) window.createButton)
 
     // Bringing up another page swaps the whole middle of the ring for that page's controls, and
     // the dominant action still comes last on its card because the bar stacks from its right edge.
     window.showTab(1)
     let opened = Gui.FocusOrder.collect(window)
-    @assert(opened.stops.count == 9)
+    @assert(opened.stops.count == 12)
     @assert(opened.stops[0] == cast(*Wnd) window.tabs)
     @assert(opened.stops[1] == cast(*Wnd) window.mountPath)
     @assert(opened.stops[2] == cast(*Wnd) window.browseMount)
     @assert(opened.stops[3] == cast(*Wnd) window.mountPassword)
-    @assert(opened.stops[4] == cast(*Wnd) window.drive)
-    @assert(opened.stops[5] == cast(*Wnd) window.readOnly)
-    @assert(opened.stops[6] == cast(*Wnd) window.passwordButton)
-    @assert(opened.stops[7] == cast(*Wnd) window.resizeButton)
-    @assert(opened.stops[8] == cast(*Wnd) window.mountButton)
+    @assert(opened.stops[4] == cast(*Wnd) window.mountKeyFiles.add)
+    @assert(opened.stops[5] == cast(*Wnd) window.mountKeyFiles.generate)
+    @assert(opened.stops[6] == cast(*Wnd) window.drive)
+    @assert(opened.stops[7] == cast(*Wnd) window.readOnly)
+    @assert(opened.stops[8] == cast(*Wnd) window.keyFilesButton)
+    @assert(opened.stops[9] == cast(*Wnd) window.passwordButton)
+    @assert(opened.stops[10] == cast(*Wnd) window.resizeButton)
+    @assert(opened.stops[11] == cast(*Wnd) window.mountButton)
 
     window.showTab(3)
     let options = Gui.FocusOrder.collect(window)
@@ -496,17 +510,17 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     }
 
     // The English diagnostic never reaches the reader, in either language.
-    @assert(messageFor(.PasswordOrDamaged) == "The password is incorrect or the container is damaged.")
+    @assert(messageFor(.PasswordOrDamaged) == "The password or key files are incorrect, or the container is damaged.")
     @assert(messageFor(.Corrupted) == "The container is damaged.")
     @assert(messageFor(.PasswordRequired) == "A password is required.")
     @assert(messageFor(.Canceled) == "The operation stopped.")
 
-    // Every way a container can refuse to open answers the same sentence: telling a wrong
-    // password from a damaged container is exactly what the format refuses to do.
+    // Every way a container can refuse to open answers the same sentence: telling wrong access
+    // from a damaged container is exactly what the format refuses to do.
     @assert(messageFor(.PasswordOrDamaged) != messageFor(.Corrupted))
 
     expect g_App.setLanguage("fr")
-    @assert(messageFor(.PasswordOrDamaged) == "Le mot de passe est incorrect ou le conteneur est endommagé.")
+    @assert(messageFor(.PasswordOrDamaged) == "Le mot de passe ou les fichiers clés sont incorrects, ou le conteneur est endommagé.")
     @assert(messageFor(.PasswordRequired) == appStrings().msg_PasswordRequired)
     @assert(messageFor(.DiskFull) == appStrings().msg_ErrDiskFull)
 
@@ -549,12 +563,8 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     @assert(host.autoHandled)
 }
 
-// A box that changes a vault opens on the password the vault already has.
-//
-// This is the whole of the rule: the container refuses a wrong password either way, so what the
-// box adds is that the reader has to say it. Read off the open card instead, a password typed to
-// mount a drive becomes permission to take the vault over, and a field left filled in hands that
-// permission to whoever reaches the keyboard next.
+// Boxes contain only the change being made. Current password and key files stay on the open card,
+// where mounting, resizing, and both access changes read the same input once.
 #test
 {
     var host: Testing.HeadlessHost
@@ -567,21 +577,18 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     let change = FormDlg.create(&host.surface, options)
     let fields = buildPasswordChangeForm(change)
 
-    @assert(change.form.rows.count == 3)
-    @assert(change.form.rows[0].field == cast(*Wnd) fields.current)
-    @assert(change.form.rows[0].label.name.raw == texts.ui_CurrentPassword)
-    @assert(change.form.rows[1].field == cast(*Wnd) fields.replacement)
-    @assert(change.form.rows[2].field == cast(*Wnd) fields.confirm)
+    @assert(change.form.rows.count == 2)
+    @assert(change.form.rows[0].field == cast(*Wnd) fields.replacement)
+    @assert(change.form.rows[0].label.name.raw == texts.ui_NewPassword)
+    @assert(change.form.rows[1].field == cast(*Wnd) fields.confirm)
     openAndDismiss(&host, change)
 
-    // Resizing asks the same question first, and in the same words: one shape for every box that
-    // changes a vault is one thing to learn instead of two.
     let resize       = FormDlg.create(&host.surface, options)
     let resizeFields = buildVaultResizeForm(resize)
 
-    @assert(resize.form.rows.count == 3)
-    @assert(resize.form.rows[0].field == cast(*Wnd) resizeFields.current)
-    @assert(resize.form.rows[0].label.name.raw == texts.ui_CurrentPassword)
+    @assert(resize.form.rows.count == 2)
+    @assert(resize.form.rows[0].field == cast(*Wnd) resizeFields.capacity)
+    @assert(resize.form.rows[0].label.name.raw == texts.ui_NewCapacity)
     @assert(resizeFields.capacity.text() == "256")
     @assert(resizeFields.unit.selectedIndex == 0)
     @assert(resizeFields.keepCapacity.isChecked())
@@ -591,9 +598,18 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     @assert(resizeFields.capacity.isEnabled())
     @assert(resizeFields.unit.isEnabled())
     openAndDismiss(&host, resize)
+
+    var currentFiles: Array'String
+    currentFiles.add(String.from("C:\\keys\\first.key"))
+    let keyFiles      = FormDlg.create(&host.surface, options)
+    let keyFileFields = buildKeyFileChangeForm(keyFiles, currentFiles.toSlice())
+    @assert(keyFiles.form.rows.count == 1)
+    @assert(keyFiles.form.rows[0].field == cast(*Wnd) keyFileFields)
+    @assert(keyFileFields.samePaths(currentFiles.toSlice()))
+    openAndDismiss(&host, keyFiles)
 }
 
-// Both boxes end up as tall as what they ask for, in every language.
+// Every change box ends up as tall as what it asks for, in every language.
 //
 // A dialog height is measured, not authored: a help paragraph takes one more line in a language
 // that says the same thing in more words, and a box tuned on English cuts that line off with
@@ -631,6 +647,12 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
         let resize = FormDlg.create(&host.surface, options)
         discard buildVaultResizeForm(resize)
         assertFormFits(&host, resize)
+
+        var currentFiles: Array'String
+        currentFiles.add(String.from("C:\\keys\\first.key"))
+        let keyFiles = FormDlg.create(&host.surface, options)
+        discard buildKeyFileChangeForm(keyFiles, currentFiles.toSlice())
+        assertFormFits(&host, keyFiles)
     }
 }
 
@@ -743,6 +765,38 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     @assert(host.autoHandled)
     @assert(window.createPath.text() == path.toString())
+}
+
+// The panel can add an existing key file, generate a cryptographically random one, and remove
+// either selection without storing the paths anywhere else.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    let existing = Testing.tempFilePath("vaultdrive-key-existing-", ".key")
+    defer discard catch File.delete(existing)
+    discard expect File.writeAllBytes(existing.toString(), [1'u8, 2, 3])
+
+    host.acceptModalFileDialog(existing.toString())
+    window.createKeyFiles.add.sigPressed.call(cast(*Button) window.createKeyFiles.add)
+    @assert(host.autoHandled)
+    @assert(window.createKeyFiles.paths.count == 1)
+    @assert(window.createKeyFiles.paths[0] == existing)
+
+    let generated = Testing.tempFilePath("vaultdrive-key-random-", ".key")
+    defer discard catch File.delete(generated)
+    host.acceptModalFileDialog(generated.toString())
+    window.createKeyFiles.generate.sigPressed.call(cast(*Button) window.createKeyFiles.generate)
+    @assert(host.autoHandled)
+    @assert(window.createKeyFiles.paths.count == 2)
+    @assert((expect File.info(generated.toString())).size == 64)
+
+    window.createKeyFiles.files.setSelectedIndex(0, notify: false)
+    window.createKeyFiles.remove.sigPressed.call(cast(*Button) window.createKeyFiles.remove)
+    @assert(window.createKeyFiles.paths.count == 1)
+    @assert(window.createKeyFiles.paths[0] == generated)
 }
 
 // A container dropped on the path field of a card fills it, exactly as browsing to it would.

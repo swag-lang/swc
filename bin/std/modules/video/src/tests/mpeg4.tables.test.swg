@@ -171,3 +171,32 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
         @assert(Mpeg4.DefaultInterMatrix[index] > 0)
     }
 }
+
+// The escape limits are not separate data.
+//
+// The standard prints them as Tables B.19 to B.22, but each is the largest level, or the largest
+// run, the coefficient table itself holds for that key. Reproducing all four tabulations from the
+// two coefficient tables is what says the coefficient tables are right: a wrong entry would move
+// one of these maxima and no longer agree with what the standard printed.
+#test
+{
+    // Table B.19: the intra levels, by run, for a coefficient that does not end its block.
+    const IntraLevelMax: [15] u32 = [27, 10, 5, 4, 3, 3, 3, 3, 2, 2, 1, 1, 1, 1, 1]
+    for run in 15'u32 do
+        @assert(Mpeg4.levelMax(false, 0, run) == IntraLevelMax[cast(u64) run])
+
+    // Table B.20: the same for an inter block, which codes longer runs and smaller levels.
+    const InterLevelMax: [3] u32 = [12, 6, 4]
+    for run in 3'u32 do
+        @assert(Mpeg4.levelMax(true, 0, run) == InterLevelMax[cast(u64) run])
+
+    // Table B.21 and B.22: the runs, by level.
+    @assert(Mpeg4.runMax(false, 0, 1) == 14)
+    @assert(Mpeg4.runMax(true, 0, 1) == 26)
+    @assert(Mpeg4.runMax(true, 1, 1) == 40)
+
+    // A key the table does not hold has no maximum, and the decoder must not widen against one.
+    @assert(Mpeg4.levelMax(false, 0, 40) == 0)
+    @assert(Mpeg4.levelMax(true, 1, 63) == 0)
+}
+

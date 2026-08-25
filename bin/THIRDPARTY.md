@@ -1,25 +1,22 @@
 # Third-party notices
 
-Swag itself is distributed under the repository-level `LICENCE`. Files derived from third-party
-work carry compact `@LICENCE`, `@ORIGIN`, `@MODIFIED`, and `@NOTICE` metadata beside the code.
-This file preserves the corresponding attribution and licence text in one place.
-
-`NOASSERTION` means that the upstream source does not state redistribution terms. It is an
-explicit review finding, not a licence grant.
+Swag itself is distributed under the repository-level `LICENCE`. The sVaultDrive application is
+separately distributed under the GPL terms in `apps/modules/sVaultDrive/LICENCE.md`; neither licence
+is a third-party notice. Files derived from third-party work carry compact `@LICENCE`, `@ORIGIN`,
+`@MODIFIED`, and `@NOTICE` metadata beside the code. This file preserves the corresponding
+attribution and licence text in one place.
 
 ## Scoped notices and fixture licences
 
 Some redistributions are documented closer to the files they cover:
 
-- `std/modules/audio/THIRD_PARTY_NOTICES.md`: clean-room comparison sources for the native audio
-  decoders.
-- `apps/modules/sVaultDrive/THIRD-PARTY-NOTICES.md`: WinFsp and the other sVaultDrive
-  dependencies.
-- `std/modules/gui/src/theme/icons.license.txt`: GUI icon sources.
-- `std/modules/gui/src/tests/datas/pdf-fixture-license-apache-2.0.txt` and
-  `pdf-fixture-license-llvm.txt`: PDF test fixtures.
-- `std/modules/pixel/src/tests/datas/svg-wpt.license.md`: SVG Web Platform Tests fixtures.
-- `std/modules/video/src/tests/datas/LICENSE.bsd-2-clause.txt`: video test fixture.
+- `apps/modules/sFileScope/src/tests/datas/THIRDPARTY.md`: media viewer test fixtures.
+- `apps/modules/sVaultDrive/THIRDPARTY.md`: WinFsp and the other sVaultDrive dependencies.
+- `std/modules/audio/src/tests/datas/THIRDPARTY.md`: audio test fixtures.
+- `std/modules/gui/src/theme/THIRDPARTY.md`: GUI icon sources.
+- `std/modules/gui/src/tests/datas/THIRDPARTY.md`: HTML and PDF test fixtures.
+- `std/modules/pixel/src/tests/datas/THIRDPARTY.md`: SVG Web Platform Tests fixtures.
+- `std/modules/video/src/tests/datas/THIRDPARTY.md`: video test fixtures.
 
 ## Go standard library
 
@@ -113,15 +110,6 @@ Some redistributions are documented closer to the files they cover:
 - Origin: <https://www.geometrictools.com/GTE/Mathematics/DistSegmentSegment.h>
 - Used by: closest-point computation between two line segments in Core.
 
-## Game Programming Gems smooth damping
-
-- Licence: NOASSERTION
-- Origin: *Game Programming Gems 4*, chapter 1.10.
-- Used by: `Math.smoothDamp` in Core.
-- The existing source attribution does not identify a code archive or redistribution licence.
-  Provenance must be clarified or the implementation independently replaced before it can be
-  described as fully cleared.
-
 ## libspng
 
 - Licence: BSD-2-Clause
@@ -143,20 +131,16 @@ Some redistributions are documented closer to the files they cover:
 - Origin: <https://github.com/alexjamesmacpherson/pacman>
 - The Swag port and its redistributed data files are modified from the upstream project.
 
-## Invaders example assets
+## Invaders example audio
 
-- Example inspiration and asset bundle: <https://github.com/clear-code-projects/Space-invaders>
+The example code and vector artwork were written for Swag. Its game structure acknowledges the
+Clear Code [Space Invaders tutorial](https://github.com/clear-code-projects/Space-invaders);
+no source code, graphics, or fonts from that repository are redistributed.
+
 - `music.wav`: CC-BY-SA-3.0, by wyver9, from
   <https://opengameart.org/content/arcade-boss-tracks-8-bitchiptune>.
 - `explosion.wav` and `laser.wav`: CC0-1.0, by SubspaceAudio, from
   <https://opengameart.org/content/512-sound-effects-8-bit-style>.
-- `Pixeled.ttf`: LicenseRef-Pixeled-Freeware, by OmegaPC777; the distributor describes it as
-  "100% Free" at <https://www.dafont.com/pixeled.font> but supplies no SPDX licence text.
-- `extra.png`, `green.png`, `player.png`, `red.png`, `tv.png`, and `yellow.png`: NOASSERTION.
-  The tutorial repository says that its publisher created the graphics but provides no licence.
-
-The Invaders graphics therefore still require either permission from their author or replacement
-before a redistribution can be described as fully cleared.
 
 ## Licence texts
 

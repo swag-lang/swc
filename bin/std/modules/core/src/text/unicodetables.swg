@@ -1,7 +1,7 @@
 // @LICENCE: BSD-3-Clause
 // @ORIGIN: Go standard library, https://github.com/golang/go
 // @MODIFIED: Ported and modified for Swag.
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#go-standard-library
+// @NOTICE: /bin/THIRDPARTY.md#go-standard-library
 
 #global namespace Unicode
 

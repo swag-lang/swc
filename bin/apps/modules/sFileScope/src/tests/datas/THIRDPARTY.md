@@ -1,4 +1,4 @@
-# sFileScope fixture sources
+# sFileScope fixture sources and licences
 
 `glint-aac-mjpeg.mp4` is the 10-frame synthetic MP4 fixture documented in std/video's test
 corpus. Its picture is generated colour blocks and its sound is generated stereo sine waves.

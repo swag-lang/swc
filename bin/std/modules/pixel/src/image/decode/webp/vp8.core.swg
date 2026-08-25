@@ -10,7 +10,7 @@ using Core, Core.Errors
 // @LICENCE: BSD-3-Clause
 // @ORIGIN: Go x/image VP8 decoder, https://github.com/golang/image/tree/master/vp8
 // @MODIFIED: Ported and modified for Swag.
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#go-x-image
+// @NOTICE: /bin/THIRDPARTY.md#go-x-image
 
 const VP8_UNIFORM_PROB     = 128'u8
 const VP8_SEGMENTS         = 4

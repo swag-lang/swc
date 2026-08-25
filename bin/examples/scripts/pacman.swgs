@@ -1,7 +1,7 @@
 // @LICENCE: BSD-3-Clause
 // @ORIGIN: Pacman by Alex Macpherson, https://github.com/alexjamesmacpherson/pacman
 // @MODIFIED: Ported and modified for Swag.
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#pacman-example
+// @NOTICE: /bin/THIRDPARTY.md#pacman-example
 
 #import("gui", location: "swag@std")
 #import("audio", location: "swag@std")

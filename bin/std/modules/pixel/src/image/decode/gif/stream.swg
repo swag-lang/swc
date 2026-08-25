@@ -6,7 +6,7 @@
 // @LICENCE: LicenseRef-Public-Domain
 // @ORIGIN: gifdec, https://github.com/lecram/gifdec
 // @MODIFIED: Ported and modified for Swag.
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#gifdec
+// @NOTICE: /bin/THIRDPARTY.md#gifdec
 
 #global namespace Gif
 

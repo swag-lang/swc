@@ -1,6 +1,6 @@
-// @LICENCE: MIT
-// @ORIGIN: Inspired by the Clear Code Space Invaders tutorial, https://github.com/clear-code-projects/Space-invaders
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#invaders-example-assets
+// The game structure was inspired by the Clear Code Space Invaders tutorial.
+// This implementation and its vector artwork were written for Swag.
+// @NOTICE: /bin/THIRDPARTY.md#invaders-example-audio
 
 #import("gui", location: "swag@std")
 #import("audio", location: "swag@std")
@@ -29,8 +29,6 @@ var g_GreenImg:  Texture
 var g_RedImg:    Texture
 var g_YellowImg: Texture
 var g_PlayerImg: Texture
-var g_TvImg:     Texture
-
 var g_SoundMusic:     Audio.SoundFile
 var g_SoundLaser:     Audio.SoundFile
 var g_SoundExplosion: Audio.SoundFile
@@ -326,8 +324,15 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 func loadBindTextures()
 {
-    func loadAndBindTexture(name: string)->Texture fail => g_Wnd!.app().renderer.addImage(Path.combine(g_DataPath, name))
-    func loadSound(name: string)->Audio.SoundFile fail  => Audio.SoundFile.load(Path.combine(g_DataPath, name), true)
+    func loadAndBindTexture(name: string)->Texture fail
+    {
+        let text    = try File.readAllText(Path.combine(g_DataPath, name))
+        let drawing = try Svg.Drawing.parse(text.toString())
+        let image   = drawing.rasterize(cast(s32) drawing.width, cast(s32) drawing.height)
+        return g_Wnd!.app().renderer.addImage(image)
+    }
+
+    func loadSound(name: string)->Audio.SoundFile fail => Audio.SoundFile.load(Path.combine(g_DataPath, name), true)
 
     g_DataPath = Path.directoryName(#curlocation.fileName)
     g_DataPath = Path.combine(g_DataPath, "datas")
@@ -335,18 +340,17 @@ func loadBindTextures()
 
     expect
     {
-        g_ExtraImg  = loadAndBindTexture("extra.png")
-        g_RedImg    = loadAndBindTexture("red.png")
-        g_GreenImg  = loadAndBindTexture("green.png")
-        g_YellowImg = loadAndBindTexture("yellow.png")
-        g_PlayerImg = loadAndBindTexture("player.png")
-        g_TvImg     = loadAndBindTexture("tv.png")
+        g_ExtraImg  = loadAndBindTexture("bonus.svg")
+        g_RedImg    = loadAndBindTexture("alien-red.svg")
+        g_GreenImg  = loadAndBindTexture("alien-green.svg")
+        g_YellowImg = loadAndBindTexture("alien-yellow.svg")
+        g_PlayerImg = loadAndBindTexture("player.svg")
 
         g_SoundExplosion = loadSound("explosion.wav")
         g_SoundLaser     = loadSound("laser.wav")
         g_SoundMusic     = loadSound("music.wav")
 
-        g_Font = g_Wnd!.app().renderer.fontCache().createFont(Path.combine(g_DataPath, "pixeled.ttf"), 40)
+        g_Font = g_Wnd!.theme().res.fontDefaultFs.regular
     }
 }
 

@@ -6,7 +6,7 @@
 // @LICENCE: Zlib
 // @ORIGIN: Odin PNG decoder, https://github.com/odin-lang/Odin/blob/master/core/image/png/png.odin
 // @MODIFIED: Ported and modified for Swag.
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#odin
+// @NOTICE: /bin/THIRDPARTY.md#odin
 
 #global namespace Png
 

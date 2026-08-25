@@ -1,7 +1,7 @@
 // @LICENCE: BSD-3-Clause
 // @ORIGIN: Poly2Tri, https://github.com/jhasse/poly2tri
 // @MODIFIED: Ported and modified for Swag.
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#poly2tri
+// @NOTICE: /bin/THIRDPARTY.md#poly2tri
 
 #global namespace Poly2Tri
 

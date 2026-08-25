@@ -78,7 +78,7 @@ func distanceFromPointToSegment(point, segmentStart, segmentEnd: Vector2)->f32
 // @LICENCE: BSL-1.0
 // @ORIGIN: Geometric Tools by David Eberly, https://www.geometrictools.com/GTE/Mathematics/DistSegmentSegment.h
 // @MODIFIED: Adapted to Swag's two-dimensional vector API.
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#geometric-tools
+// @NOTICE: /bin/THIRDPARTY.md#geometric-tools
 func closestPointsBetweenSegments(firstStart, firstEnd, secondStart, secondEnd: Math.Vector2)->{ first: Math.Vector2, second: Math.Vector2, distance: f32 }
 {
     let p1p0 = firstEnd - firstStart

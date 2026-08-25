@@ -10,7 +10,7 @@ using Core, Core.Errors
 // @LICENCE: BSD-3-Clause
 // @ORIGIN: Go x/image VP8L decoder, https://github.com/golang/image/tree/master/vp8l
 // @MODIFIED: Ported and modified for Swag.
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#go-x-image
+// @NOTICE: /bin/THIRDPARTY.md#go-x-image
 
 const LOSSLESS_COLOR_CACHE_MULTIPLIER = 0x1E35A7BD'u32
 const LOSSLESS_LUT_BITS               = 7'u32

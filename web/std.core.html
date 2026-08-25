@@ -4585,7 +4585,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_sinh">Math.sinh</a></td><td><p>Performs the sinh operation.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Math_smoothDamp">Math.smoothDamp</a></td><td><p>Perform smooth damping interpolation towards <span class="code-inline">target</span>.</p>
+<tr><td class="code-type"><a href="#Core_Math_smoothDamp">Math.smoothDamp</a></td><td><p>Perform critically damped interpolation towards <span class="code-inline">target</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_smoothstep">Math.smoothstep</a></td><td><p>Smoothstep interpolation between <span class="code-inline">edge0</span> and <span class="code-inline">edge1</span></p>
 </td></tr>
@@ -7597,7 +7597,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_sinh">Math.sinh</a></td><td><p>Performs the sinh operation.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Math_smoothDamp">Math.smoothDamp</a></td><td><p>Perform smooth damping interpolation towards <span class="code-inline">target</span>.</p>
+<tr><td class="code-type"><a href="#Core_Math_smoothDamp">Math.smoothDamp</a></td><td><p>Perform critically damped interpolation towards <span class="code-inline">target</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_smoothstep">Math.smoothstep</a></td><td><p>Smoothstep interpolation between <span class="code-inline">edge0</span> and <span class="code-inline">edge1</span></p>
 </td></tr>
@@ -20622,7 +20622,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writableBytes</span>()-&gt;[..] <span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_abs" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.abs</span> <a class="api-item-permalink" href="#Core_Math_abs" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L353">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_abs" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.abs</span> <a class="api-item-permalink" href="#Core_Math_abs" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L333">src</a></div>
 <p>Performs the abs operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">abs</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the absolute value.</p>
@@ -20638,28 +20638,28 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">abs</span>(x: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_S64x2">S64x2</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_S64x2">S64x2</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_acos" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.acos</span> <a class="api-item-permalink" href="#Core_Math_acos" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L275">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_acos" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.acos</span> <a class="api-item-permalink" href="#Core_Math_acos" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L255">src</a></div>
 <p>Performs the acos operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">acos</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the arc cosine in radians.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">acos</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_asin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.asin</span> <a class="api-item-permalink" href="#Core_Math_asin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L269">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_asin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.asin</span> <a class="api-item-permalink" href="#Core_Math_asin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L249">src</a></div>
 <p>Performs the asin operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">asin</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the arc sine in radians.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">asin</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_atan" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.atan</span> <a class="api-item-permalink" href="#Core_Math_atan" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L281">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_atan" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.atan</span> <a class="api-item-permalink" href="#Core_Math_atan" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L261">src</a></div>
 <p>Performs the atan operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the arc tangent in radians.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_atan2" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.atan2</span> <a class="api-item-permalink" href="#Core_Math_atan2" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L221">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_atan2" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.atan2</span> <a class="api-item-permalink" href="#Core_Math_atan2" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L201">src</a></div>
 <p>Returns the signed arc tangent of the coordinates <span class="code-inline">y</span> and <span class="code-inline">x</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan2</span>(y, x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the signed arc tangent of the coordinates <span class="code-inline">y</span> and <span class="code-inline">x</span>.</p>
@@ -20679,7 +20679,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">byteswap</span>(x: <span class="STpe">u64</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_ceil" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.ceil</span> <a class="api-item-permalink" href="#Core_Math_ceil" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L311">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_ceil" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.ceil</span> <a class="api-item-permalink" href="#Core_Math_ceil" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L291">src</a></div>
 <p>Performs the ceil operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ceil</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Rounds upward to an integer-valued number.</p>
@@ -20689,12 +20689,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ceil</span>(x: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_ceilS32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.ceilS32</span> <a class="api-item-permalink" href="#Core_Math_ceilS32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L335">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_ceilS32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.ceilS32</span> <a class="api-item-permalink" href="#Core_Math_ceilS32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L315">src</a></div>
 <p>Performs the ceil s32 operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ceilS32</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_ceilS64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.ceilS64</span> <a class="api-item-permalink" href="#Core_Math_ceilS64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L338">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_ceilS64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.ceilS64</span> <a class="api-item-permalink" href="#Core_Math_ceilS64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L318">src</a></div>
 <p>Performs the ceil s64 operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ceilS64</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
 </section>
@@ -20705,14 +20705,14 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">clamp</span>(x, low, up: <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)-&gt;<span class="SCst"><a href="#Core_Input_Key_T">T</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_cos" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.cos</span> <a class="api-item-permalink" href="#Core_Math_cos" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L239">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_cos" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.cos</span> <a class="api-item-permalink" href="#Core_Math_cos" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L219">src</a></div>
 <p>Performs the cos operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cos</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the cosine of an angle in radians.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cos</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_cosh" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.cosh</span> <a class="api-item-permalink" href="#Core_Math_cosh" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L257">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_cosh" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.cosh</span> <a class="api-item-permalink" href="#Core_Math_cosh" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L237">src</a></div>
 <p>Performs the cosh operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cosh</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the hyperbolic cosine.</p>
@@ -20733,21 +20733,21 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cubicLerp</span>(a, b, c, d, t: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_exp" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.exp</span> <a class="api-item-permalink" href="#Core_Math_exp" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L371">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_exp" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.exp</span> <a class="api-item-permalink" href="#Core_Math_exp" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L351">src</a></div>
 <p>Performs the exp operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Raises Euler's number to the requested power.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_exp2" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.exp2</span> <a class="api-item-permalink" href="#Core_Math_exp2" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L377">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_exp2" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.exp2</span> <a class="api-item-permalink" href="#Core_Math_exp2" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L357">src</a></div>
 <p>Performs the exp2 operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp2</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Raises two to the requested power.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp2</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_floor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.floor</span> <a class="api-item-permalink" href="#Core_Math_floor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L305">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_floor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.floor</span> <a class="api-item-permalink" href="#Core_Math_floor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L285">src</a></div>
 <p>Performs the floor operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">floor</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Rounds downward to an integer-valued number.</p>
@@ -20757,12 +20757,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">floor</span>(x: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_floorS32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.floorS32</span> <a class="api-item-permalink" href="#Core_Math_floorS32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L329">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_floorS32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.floorS32</span> <a class="api-item-permalink" href="#Core_Math_floorS32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L309">src</a></div>
 <p>Performs the floor s32 operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">floorS32</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_floorS64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.floorS64</span> <a class="api-item-permalink" href="#Core_Math_floorS64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L332">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_floorS64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.floorS64</span> <a class="api-item-permalink" href="#Core_Math_floorS64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L312">src</a></div>
 <p>Performs the floor s64 operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">floorS64</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
 </section>
@@ -20811,20 +20811,20 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">interpQuintic</span>(t: <span class="STpe">f64</span>) =&gt; t * t * t</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_isEqualEpsilon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.isEqualEpsilon</span> <a class="api-item-permalink" href="#Core_Math_isEqualEpsilon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L150">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_isEqualEpsilon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.isEqualEpsilon</span> <a class="api-item-permalink" href="#Core_Math_isEqualEpsilon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L130">src</a></div>
 <p>Check if <span class="code-inline">x</span> and <span class="code-inline">y</span> are approximately equal within an epsilon threshold</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isEqualEpsilon</span>(x, y: <span class="STpe">f32</span>, eps = <span class="SCst"><a href="#Core_Math_ConstF32">ConstF32</a></span>.<span class="SCst">Epsilon</span>) =&gt; <span class="SFct">abs</span>(x - y)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isEqualEpsilon</span>(x, y: <span class="STpe">f64</span>, eps = <span class="SCst"><a href="#Core_Math_ConstF64">ConstF64</a></span>.<span class="SCst">Epsilon</span>) =&gt; <span class="SFct">abs</span>(x - y)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_isFinite" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.isFinite</span> <a class="api-item-permalink" href="#Core_Math_isFinite" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L161">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_isFinite" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.isFinite</span> <a class="api-item-permalink" href="#Core_Math_isFinite" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L141">src</a></div>
 <p>Returns true if the value is finite (not infinite and not NaN). A finite number is any real number that is not positive infinity, negative infinity, or NaN.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isFinite</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">bool</span></span></div>
 <p>Returns true if the value is finite (not infinite and not NaN). A finite number is any real number that is not positive infinity, negative infinity, or NaN.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isFinite</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_isNaN" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.isNaN</span> <a class="api-item-permalink" href="#Core_Math_isNaN" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L155">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_isNaN" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.isNaN</span> <a class="api-item-permalink" href="#Core_Math_isNaN" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L135">src</a></div>
 <p>Check if <span class="code-inline">x</span> is NaN (not a number)</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.NaN, false)]</span>
 <span class="SKwd">func</span> <span class="SFct">isNaN</span>(x: <span class="STpe">f32</span>) =&gt; x</span></div>
@@ -20842,7 +20842,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isPowerOf2</span>(x: <span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span> =&gt; x</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_isZeroEpsilon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.isZeroEpsilon</span> <a class="api-item-permalink" href="#Core_Math_isZeroEpsilon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L146">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_isZeroEpsilon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.isZeroEpsilon</span> <a class="api-item-permalink" href="#Core_Math_isZeroEpsilon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L126">src</a></div>
 <p>Check if <span class="code-inline">x</span> is approximately zero within an epsilon threshold</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isZeroEpsilon</span>(x: <span class="STpe">f32</span>, eps = <span class="SCst"><a href="#Core_Math_ConstF32">ConstF32</a></span>.<span class="SCst">Epsilon</span>) =&gt; <span class="SFct">abs</span>(x)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isZeroEpsilon</span>(x: <span class="STpe">f64</span>, eps = <span class="SCst"><a href="#Core_Math_ConstF64">ConstF64</a></span>.<span class="SCst">Epsilon</span>) =&gt; <span class="SFct">abs</span>(x)</span></div>
@@ -20874,21 +20874,21 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">littleEndianToNative</span>(x: <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)-&gt;<span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_log" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.log</span> <a class="api-item-permalink" href="#Core_Math_log" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L287">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_log" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.log</span> <a class="api-item-permalink" href="#Core_Math_log" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L267">src</a></div>
 <p>Performs the log operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the natural logarithm.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_log10" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.log10</span> <a class="api-item-permalink" href="#Core_Math_log10" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L299">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_log10" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.log10</span> <a class="api-item-permalink" href="#Core_Math_log10" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L279">src</a></div>
 <p>Performs the log10 operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log10</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the base-ten logarithm.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log10</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_log2" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.log2</span> <a class="api-item-permalink" href="#Core_Math_log2" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L293">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_log2" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.log2</span> <a class="api-item-permalink" href="#Core_Math_log2" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L273">src</a></div>
 <p>Performs the log2 operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log2</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the base-two logarithm.</p>
@@ -20919,13 +20919,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span> <span class="SFct">makeRepeat64</span>(v: <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_map" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.map</span> <a class="api-item-permalink" href="#Core_Math_map" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L189">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_map" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.map</span> <a class="api-item-permalink" href="#Core_Math_map" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L169">src</a></div>
 <p>Maps <span class="code-inline">val</span> from the range [minSrc, maxSrc] to [minDst, maxDst]</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">map</span>(val, minSrc, maxSrc, minDst, maxDst: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">map</span>(val, minSrc, maxSrc, minDst, maxDst: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_max" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.max</span> <a class="api-item-permalink" href="#Core_Math_max" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L365">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_max" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.max</span> <a class="api-item-permalink" href="#Core_Math_max" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L345">src</a></div>
 <p>Performs the max operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">max</span>(x, y: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the greater value.</p>
@@ -20946,7 +20946,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">max</span>(x, y: <span class="STpe">u64</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_min" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.min</span> <a class="api-item-permalink" href="#Core_Math_min" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L359">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_min" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.min</span> <a class="api-item-permalink" href="#Core_Math_min" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L339">src</a></div>
 <p>Performs the min operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">min</span>(x, y: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the lesser value.</p>
@@ -20973,7 +20973,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">moveTowards</span>(current, target, speed: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_mulAdd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.mulAdd</span> <a class="api-item-permalink" href="#Core_Math_mulAdd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L389">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_mulAdd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.mulAdd</span> <a class="api-item-permalink" href="#Core_Math_mulAdd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L369">src</a></div>
 <p>Performs the mul add operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">mulAdd</span>(x, y, z: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Multiplies two values and adds a third.</p>
@@ -21001,14 +21001,14 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">nativeToLittleEndian</span>(x: <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)-&gt;<span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_nextPowerOfTen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.nextPowerOfTen</span> <a class="api-item-permalink" href="#Core_Math_nextPowerOfTen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L202">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_nextPowerOfTen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.nextPowerOfTen</span> <a class="api-item-permalink" href="#Core_Math_nextPowerOfTen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L182">src</a></div>
 <p>Returns the smallest power of ten strictly greater than <span class="code-inline">value</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">nextPowerOfTen</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <p>Returns the smallest power of ten strictly greater than <span class="code-inline">value</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">nextPowerOfTen</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_pow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.pow</span> <a class="api-item-permalink" href="#Core_Math_pow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L383">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_pow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.pow</span> <a class="api-item-permalink" href="#Core_Math_pow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L363">src</a></div>
 <p>Performs the pow operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">pow</span>(x, y: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Raises a value to a power.</p>
@@ -21046,7 +21046,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ror</span>(x: <span class="STpe">u64</span>, y: <span class="STpe">u8</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_round" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.round</span> <a class="api-item-permalink" href="#Core_Math_round" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L323">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_round" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.round</span> <a class="api-item-permalink" href="#Core_Math_round" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L303">src</a></div>
 <p>Performs the round operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">round</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Rounds to the nearest integer-valued number.</p>
@@ -21060,12 +21060,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">roundDownToPowerOf2</span>(x: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span> =&gt; x == <span class="SNum">0</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_roundS32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.roundS32</span> <a class="api-item-permalink" href="#Core_Math_roundS32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L347">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_roundS32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.roundS32</span> <a class="api-item-permalink" href="#Core_Math_roundS32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L327">src</a></div>
 <p>Performs the round s32 operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">roundS32</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_roundS64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.roundS64</span> <a class="api-item-permalink" href="#Core_Math_roundS64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L350">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_roundS64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.roundS64</span> <a class="api-item-permalink" href="#Core_Math_roundS64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L330">src</a></div>
 <p>Performs the round s64 operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">roundS64</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
 </section>
@@ -21093,32 +21093,32 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sign</span>(x: <span class="STpe">s64</span>) =&gt; <span class="SKwd">cast</span>(<span class="STpe">s64</span>) (x &gt; <span class="SNum">0</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_sin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.sin</span> <a class="api-item-permalink" href="#Core_Math_sin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L233">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_sin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.sin</span> <a class="api-item-permalink" href="#Core_Math_sin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L213">src</a></div>
 <p>Performs the sin operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sin</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the sine of an angle in radians.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sin</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_sinh" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.sinh</span> <a class="api-item-permalink" href="#Core_Math_sinh" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L251">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_sinh" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.sinh</span> <a class="api-item-permalink" href="#Core_Math_sinh" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L231">src</a></div>
 <p>Performs the sinh operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sinh</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the hyperbolic sine.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sinh</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_smoothDamp" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.smoothDamp</span> <a class="api-item-permalink" href="#Core_Math_smoothDamp" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L97">src</a></div>
-<p>Perform smooth damping interpolation towards <span class="code-inline">target</span>. Uses <span class="code-inline">smoothTime</span> and <span class="code-inline">deltaTime</span> for frame-rate independent smooth movement. <span class="code-inline">currentVelocity</span> is modified to track the current rate of change.</p>
+<div class="api-item api-item-func"><span id="Core_Math_smoothDamp" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.smoothDamp</span> <a class="api-item-permalink" href="#Core_Math_smoothDamp" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L93">src</a></div>
+<p>Perform critically damped interpolation towards <span class="code-inline">target</span>. Uses <span class="code-inline">smoothTime</span> and <span class="code-inline">deltaTime</span> for frame-rate independent smooth movement. <span class="code-inline">currentVelocity</span> is modified to track the current rate of change.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">smoothDamp</span>(current, target: <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>, currentVelocity: *<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>, smoothTime, deltaTime: <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)-&gt;<span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_smoothstep" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.smoothstep</span> <a class="api-item-permalink" href="#Core_Math_smoothstep" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L176">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_smoothstep" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.smoothstep</span> <a class="api-item-permalink" href="#Core_Math_smoothstep" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L156">src</a></div>
 <p>Smoothstep interpolation between <span class="code-inline">edge0</span> and <span class="code-inline">edge1</span></p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">smoothstep</span>(edge0, edge1, x: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">smoothstep</span>(edge0, edge1, x: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_sqrt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.sqrt</span> <a class="api-item-permalink" href="#Core_Math_sqrt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L227">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_sqrt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.sqrt</span> <a class="api-item-permalink" href="#Core_Math_sqrt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L207">src</a></div>
 <p>Performs the sqrt operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sqrt</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the square root.</p>
@@ -21128,27 +21128,27 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sqrt</span>(x: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_tan" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.tan</span> <a class="api-item-permalink" href="#Core_Math_tan" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L245">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_tan" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.tan</span> <a class="api-item-permalink" href="#Core_Math_tan" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L225">src</a></div>
 <p>Performs the tan operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tan</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the tangent of an angle in radians.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tan</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_tanh" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.tanh</span> <a class="api-item-permalink" href="#Core_Math_tanh" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L263">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_tanh" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.tanh</span> <a class="api-item-permalink" href="#Core_Math_tanh" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L243">src</a></div>
 <p>Performs the tanh operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tanh</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Returns the hyperbolic tangent.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tanh</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_toDegrees" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.toDegrees</span> <a class="api-item-permalink" href="#Core_Math_toDegrees" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L136">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_toDegrees" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.toDegrees</span> <a class="api-item-permalink" href="#Core_Math_toDegrees" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L116">src</a></div>
 <p>Convert radians to degrees</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toDegrees</span>(x: <span class="STpe">f32</span>) =&gt; x</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toDegrees</span>(x: <span class="STpe">f64</span>) =&gt; x</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_toRadians" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.toRadians</span> <a class="api-item-permalink" href="#Core_Math_toRadians" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L139">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_toRadians" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.toRadians</span> <a class="api-item-permalink" href="#Core_Math_toRadians" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L119">src</a></div>
 <p>Converts degrees to radians.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toRadians</span>(x: <span class="STpe">f32</span>) =&gt; x</span></div>
 <p>Converts this value to radians.</p>
@@ -21163,7 +21163,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">trailingZeros</span>(x: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_trunc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.trunc</span> <a class="api-item-permalink" href="#Core_Math_trunc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L317">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_trunc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.trunc</span> <a class="api-item-permalink" href="#Core_Math_trunc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L297">src</a></div>
 <p>Performs the trunc operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">trunc</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 <p>Removes the fractional part.</p>
@@ -21173,12 +21173,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">trunc</span>(x: <span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Math_Simd">Simd</a></span>.<span class="SCst"><a href="#Core_Math_Simd_F64x2">F64x2</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_truncS32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.truncS32</span> <a class="api-item-permalink" href="#Core_Math_truncS32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L341">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_truncS32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.truncS32</span> <a class="api-item-permalink" href="#Core_Math_truncS32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L321">src</a></div>
 <p>Performs the trunc s32 operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">truncS32</span>(x: <span class="STpe">f32</span>) =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Math_truncS64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.truncS64</span> <a class="api-item-permalink" href="#Core_Math_truncS64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L344">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Math_truncS64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Math.truncS64</span> <a class="api-item-permalink" href="#Core_Math_truncS64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/math/float.swg#L324">src</a></div>
 <p>Performs the trunc s64 operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">truncS64</span>(x: <span class="STpe">f64</span>) =&gt;</span></div>
 </section>
@@ -28329,7 +28329,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Math.Simd.widenLow|Core_Math_Simd_widenLow|Extends the low half of the lanes to double width, zero-extended for unsigned",
 "f|Core.Math.sin|Core_Math_sin|Performs the sin operation.",
 "f|Core.Math.sinh|Core_Math_sinh|Performs the sinh operation.",
-"f|Core.Math.smoothDamp|Core_Math_smoothDamp|Perform smooth damping interpolation towards 'target'.",
+"f|Core.Math.smoothDamp|Core_Math_smoothDamp|Perform critically damped interpolation towards 'target'.",
 "f|Core.Math.smoothstep|Core_Math_smoothstep|Smoothstep interpolation between 'edge0' and 'edge1'",
 "f|Core.Math.sqrt|Core_Math_sqrt|Performs the sqrt operation.",
 "f|Core.Math.tan|Core_Math_tan|Performs the tan operation.",

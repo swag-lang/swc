@@ -1,7 +1,7 @@
 // @LICENCE: BSL-1.0
 // @ORIGIN: Clipper by Angus Johnson, https://www.angusj.com/clipper2/Docs/Overview.htm
 // @MODIFIED: Ported and modified for Swag.
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#clipper
+// @NOTICE: /bin/THIRDPARTY.md#clipper
 
 #global namespace Clipper
 

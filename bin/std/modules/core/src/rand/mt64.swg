@@ -1,7 +1,7 @@
 // @LICENCE: BSD-3-Clause
 // @ORIGIN: MT19937-64 via CwlUtils, https://github.com/mattgallagher/CwlUtils/blob/master/Sources/ReferenceRandomGenerators/mt19937-64.c
 // @MODIFIED: Ported and modified for Swag.
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#mt19937-64
+// @NOTICE: /bin/THIRDPARTY.md#mt19937-64
 
 #global namespace Random
 

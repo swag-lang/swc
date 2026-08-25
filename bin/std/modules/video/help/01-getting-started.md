@@ -117,5 +117,5 @@ Every decoding test reads a file from `src/tests/datas/`, and none of those file
 by this module: a codec that only reads back what it wrote proves nothing about the files people
 have. The corpus holds a camera recording, sequences from the standard research collection, one
 synthetic clip encoded in the tested layouts by ffmpeg, and copies of that clip with a container
-shape injected into them that no single writer produces. `datas/SOURCES.md` states where each one
+shape injected into them that no single writer produces. `datas/THIRDPARTY.md` states where each one
 came from, what it exercises, and under what terms it is redistributed.

@@ -8,8 +8,7 @@
 using Core
 
 // AAC-LC normative lookup data. This is a Swag representation of tables from the
-// ISO/IEC 13818-7 and ISO/IEC 14496-3 specifications. See THIRD_PARTY_NOTICES.md
-// for the clean-room reference implementation used to cross-check this port.
+// ISO/IEC 13818-7 and ISO/IEC 14496-3 specifications.
 
 const SampleRates: [12] s32 = [96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000]
 

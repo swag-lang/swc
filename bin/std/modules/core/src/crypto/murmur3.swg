@@ -1,7 +1,7 @@
 // @LICENCE: LicenseRef-Public-Domain
 // @ORIGIN: MurmurHash3 by Austin Appleby, https://github.com/aappleby/smhasher
 // @MODIFIED: Ported and modified for Swag.
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#murmurhash3
+// @NOTICE: /bin/THIRDPARTY.md#murmurhash3
 
 #global namespace Hash
 

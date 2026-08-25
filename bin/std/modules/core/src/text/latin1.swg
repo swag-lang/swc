@@ -249,7 +249,7 @@ func compare(src, dst: const [..] u8, ignoreCase = false)->s32
 // @LICENCE: Zlib
 // @ORIGIN: Natural sort by Martin Pool, https://github.com/sourcefrog/natsort
 // @MODIFIED: Ported and modified for Swag.
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#natural-sort
+// @NOTICE: /bin/THIRDPARTY.md#natural-sort
 #[Swag.Sanity(Swag.SafetyWhat.All, false)]
 func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
 {

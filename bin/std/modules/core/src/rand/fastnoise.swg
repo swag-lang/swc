@@ -1,7 +1,7 @@
 // @LICENCE: MIT
 // @ORIGIN: FastNoise Legacy, https://github.com/Auburn/FastNoiseLite/tree/FastNoise-Legacy
 // @MODIFIED: Ported and modified for Swag.
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#fastnoise
+// @NOTICE: /bin/THIRDPARTY.md#fastnoise
 
 #global namespace Noise
 #global #[Swag.Safety(.All, false)]

@@ -1,7 +1,7 @@
 // @LICENCE: MIT
 // @ORIGIN: CityHash by Geoff Pike and Jyrki Alakuijala, https://github.com/google/cityhash
 // @MODIFIED: Ported and modified for Swag.
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#cityhash
+// @NOTICE: /bin/THIRDPARTY.md#cityhash
 
 #global namespace Hash
 

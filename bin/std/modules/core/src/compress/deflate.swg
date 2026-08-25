@@ -1,7 +1,7 @@
 // @LICENCE: MIT
 // @ORIGIN: miniz, https://github.com/richgel999/miniz
 // @MODIFIED: Ported and modified for Swag.
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#miniz
+// @NOTICE: /bin/THIRDPARTY.md#miniz
 
 #global namespace Compress
 #global #[Swag.Safety(.Overflow, false)]

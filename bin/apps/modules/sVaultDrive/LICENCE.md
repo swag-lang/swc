@@ -9,5 +9,5 @@ or (at your option) any later version.
 sVaultDrive is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
 even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-The complete GNU GPL version 3 text is included in `vendor/winfsp/LICENSE.txt`, after WinFsp's own
-license exception.
+The complete GNU GPL version 3 text is included in `THIRDPARTY.md`, after WinFsp's own license
+exception.

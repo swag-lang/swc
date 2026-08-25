@@ -6,7 +6,7 @@
 // @LICENCE: BSD-2-Clause
 // @ORIGIN: libspng, https://github.com/randy408/libspng
 // @MODIFIED: Ported and modified for Swag.
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#libspng
+// @NOTICE: /bin/THIRDPARTY.md#libspng
 
 #global namespace Png
 

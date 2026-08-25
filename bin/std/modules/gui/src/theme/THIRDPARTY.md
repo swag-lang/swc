@@ -1,3 +1,5 @@
+# GUI icon licence
+
 MIT License
 
 Copyright (c) 2020 Microsoft Corporation

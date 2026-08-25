@@ -1,4 +1,4 @@
-# Video fixture sources
+# Video fixture sources and licences
 
 Every decoding test of this module reads a file from this directory. None of them is produced by
 this module's own encoders: a codec that only reads back what it wrote proves nothing about the
@@ -16,7 +16,7 @@ The corpus has three origins, and each file states which one it has.
 | `xiph-bus-qcif-15fps.y4m` | [`bus_qcif_15fps.y4m`](https://media.xiph.org/video/derf/y4m/bus_qcif_15fps.y4m), unmodified | 176x144, 75 frames, 5 s, same implicit default, read from its last frame backwards | 2 851 688 | `868fc3446d37d0c6959a48b68906486bd64788b2e795f0e29613cbb1fa73480e` |
 
 `cogliati-turning-pages.avi` is granted to the public domain by its author, on the page linked
-above. `rav1e-c420jpeg.y4m` is BSD 2-Clause; see `LICENSE.bsd-2-clause.txt`. The two `xiph-`
+above. `rav1e-c420jpeg.y4m` is BSD 2-Clause; see the BSD 2-Clause text below. The two `xiph-`
 sequences come from the Xiph.org video test media collection, which states that its sequences
 "were available at one time on publicly accessible servers or were given to us explicitly to host
 here, and are believed to be freely redistributable".
@@ -138,3 +138,31 @@ to 23,219,954 ns by MKVToolNix. At 44.1 kHz this removes exactly 1,024 decoded A
 
 The colours the tests assert were read by decoding the same file with ffmpeg, not with this
 module. A change here therefore cannot move an expectation along with it.
+
+## rav1e BSD 2-Clause licence
+
+BSD 2-Clause License
+
+Copyright (c) 2017-2020, the rav1e contributors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

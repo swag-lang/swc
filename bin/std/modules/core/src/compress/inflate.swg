@@ -1,7 +1,7 @@
 // @LICENCE: Zlib
 // @ORIGIN: Odin, https://github.com/odin-lang/Odin/tree/master/core/compress/zlib
 // @MODIFIED: Ported and modified for Swag.
-// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#odin
+// @NOTICE: /bin/THIRDPARTY.md#odin
 
 #global namespace Compress
 

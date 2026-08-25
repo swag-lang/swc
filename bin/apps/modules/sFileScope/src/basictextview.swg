@@ -135,8 +135,13 @@ impl BasicTextView
         }
 
         let loadedHeight = .editor.loadedDocumentHeight()
-        if loadedHeight <= 0 do
+        .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
+        if loadedHeight <= 0
+        {
+            if .virtualHeight > 0 do
+                .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
             return
+        }
         .virtualHeight   = Math.max(.virtualHeight, loadedHeight * cast(f32) .fileSize / cast(f32) consumed, loadedHeight)
         .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
         .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
@@ -410,13 +415,16 @@ impl BasicTextView
                 return
             if view.pauseStreaming and newPosition.y < oldPosition.y do
                 view.pauseStreaming = false
-            let loadedHeight = view.editor.loadedDocumentHeight()
-            if loadedHeight > 0 and view.virtualHeight > 0 and (newPosition.y + view.editor.paddedClientRect().height < view.residentOffsetY or newPosition.y > view.residentOffsetY + loadedHeight)
+            let laidOutHeight  = view.editor.loadedDocumentHeight()
+            let residentHeight = laidOutHeight > 0 ? laidOutHeight : (view.fileSize ? view.virtualHeight * cast(f32) (view.bytesRead - view.residentStart) / cast(f32) view.fileSize : 0)
+            if view.virtualHeight > 0 and (newPosition.y + view.editor.paddedClientRect().height < view.residentOffsetY or newPosition.y > view.residentOffsetY + residentHeight)
             {
                 let ratio = Math.clamp(newPosition.y / view.virtualHeight, 0, 1)
                 view.pendingSeekOffset = cast(u64) (ratio * cast(f32) view.fileSize)
                 view.pendingSeek       = true
             }
+            else do
+                view.pendingSeek = false
 
             view.scheduleMore()
         }

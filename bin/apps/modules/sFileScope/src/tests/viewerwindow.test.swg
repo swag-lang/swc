@@ -610,6 +610,57 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(view.editor.scrollPosition().y == 0)
 }
 
+// Rapid scrollbar scrubbing coalesces to the latest byte window and remains stable when the
+// direction changes repeatedly. Each completed seek keeps the requested viewport instead of
+// snapping back to the resident window it replaced.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("sfilescope_text_scrub_%.txt", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+
+    var source: String
+    for index in 70_000 do
+        source += Format.toString("Distinct streamed line % keeps scrollbar seeks observable.\n", index)
+    @assert(source.length >= 2 * 1024 * 1024)
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+
+    var host: Testing.HeadlessHost
+    host.setup(800, 560)
+    defer host.shutdown()
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
+    let view     = BasicTextView.create(&host.root, commands, fileName)
+    view.resize(800, 520)
+    view.applyLayout()
+    discard host.render(view)
+    view.updateEstimatedHeight()
+
+    view.editor.setScrollPosition({0, view.virtualHeight * 0.85})
+    @assert(view.pendingSeek)
+    view.editor.setScrollPosition({0, 0})
+    @assert(!view.pendingSeek)
+
+    view.editor.setScrollPosition({0, view.virtualHeight * 0.85})
+    view.editor.setScrollPosition({0, view.virtualHeight * 0.2})
+    @assert(view.pendingSeek and view.loadTimer != null)
+    host.fireTimer(view.loadTimer)
+    let lowOffset = cast(u64) (0.2 * cast(f32) view.fileSize)
+    @assert(view.residentStart <= lowOffset and view.bytesRead >= lowOffset)
+
+    let ratios = [0.8'f32, 0.1'f32, 0.65'f32, 0.3'f32, 0.9'f32, 0.05'f32]
+    for ratio in ratios
+    {
+        let requestedY = view.virtualHeight * ratio
+        view.editor.setScrollPosition({0, requestedY})
+        @assert(view.pendingSeek and view.loadTimer != null)
+        host.fireTimer(view.loadTimer)
+        let offset = cast(u64) (ratio * cast(f32) view.fileSize)
+        @assert(view.residentStart <= offset and view.bytesRead >= offset)
+        @assert(Math.abs(view.editor.scrollPosition().y - requestedY) <= 1)
+        @assert(!view.editor.text().isEmpty())
+    }
+}
+
 // The global palette choice crosses the same state boundary as the surface placement.
 #test
 {

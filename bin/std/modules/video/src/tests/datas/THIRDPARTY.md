@@ -72,6 +72,15 @@ the same six pictures.
 | `edited-record-groups.avi` | Every frame is wrapped in a `rec ` list and the index removed, as an OpenDML file groups its frames |
 | `edited-dropped-frames.avi` | The payloads of frames 3 and 4 are emptied and the index updated, which is how the container says a frame repeats the picture before it |
 
+`glint-aac-drift.mp4` is `glint-aac-mjpeg.mp4` with the sound track's time-to-sample table rewritten
+from one entry of nineteen samples at 1024 into three entries of 1023, 1024 and 1025. The total is
+unchanged and so is every byte of media; only the table stops stating one number, which is what
+several real files carry. The movie box sits after the media data there, so growing it left every
+chunk offset where it was.
+
+- SHA-256: `85418e5dae5ad937490fc6def9b091c47655ec49ec7747766b7f8adac140eeea`
+- License: same as `glint-aac-mjpeg.mp4`.
+
 ## Generated for this repository
 
 `ffmpeg-h264-two-aac.mkv` stream-copies `ffmpeg-h264-baseline.mp4` and the AAC-LC track of

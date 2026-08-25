@@ -242,7 +242,11 @@ private impl Layout
 
         while source.position() + ChunkHeaderSize <= end
         {
-            let chunk = readChunk(source, end)
+            // The declared size says where the writer meant the form to end, and writers of that
+            // era got it wrong by a few bytes often enough that a last chunk overruns it while
+            // still lying inside the file. What the file holds is readable, so the file is what
+            // bounds a chunk; the declared size only says how far to walk.
+            let chunk = readChunk(source, source.size())
             if chunk.id == IndexId
             {
                 .indexStart = chunk.data
@@ -694,12 +698,16 @@ private impl Decoder
         var samples: Array'SampleEntry
         samples.reserve(.frames.count)
 
+        // How long one frame lasts, which is all these times are: an AVI numbers its frames and
+        // states how fast they run, and says nothing else about when they are shown. The duration
+        // is reduced once rather than per frame, because a writer is free to state a rate as two
+        // large numbers and multiplying by a frame number before dividing overflows on a long file.
         let rate = .info.frameRate
+        let step = 1_000_000_000'u64 * cast(u64) rate.denominator() / cast(u64) rate.numerator()
         for index in .frames.count
         {
             let entry = .frames[index]
-            let time  = cast(s64) (index * 1_000_000_000 * cast(u64) rate.denominator() / cast(u64) rate.numerator())
-            samples.add({entry.offset, entry.size, time, entry.isSync})
+            samples.add({entry.offset, entry.size, cast(s64) (index * step), entry.isSync})
         }
 
         // The setup headers of such a file live at the front of its first frame, never in the

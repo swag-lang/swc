@@ -190,10 +190,18 @@ impl Cursor
     }
 
     // Copies a textual element into owned storage.
+    // Copies a string element, without the padding a writer is free to leave behind.
+    //
+    // A string element states its length, and a writer that reserved room for a longer value fills
+    // what it did not use with zeros. Those zeros are padding, not content, and clause 7 of the
+    // specification says to read the value as ending at the first of them.
     mtd readString(element: Element)->String fail
     {
         .seek(element.end)
-        return String.from(@mkstring(@dataof(.bytes) + element.data, element.end - element.data))
+        var size = element.end - element.data
+        while size and !.bytes[element.data + size - 1] do
+            size -= 1
+        return String.from(@mkstring(@dataof(.bytes) + element.data, size))
     }
 
     // Copies a binary element into owned storage.

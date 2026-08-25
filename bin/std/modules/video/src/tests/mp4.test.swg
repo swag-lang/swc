@@ -155,3 +155,21 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64
     @assert(Math.isEqualEpsilon(reader.frameTimestamp(5), 0.2, 0.000001))
     @assert(reader.frameAtTime(0.219) == 5)
 }
+
+// A sample table states presentation durations, and a writer is free to spread them so a track's
+// total lands where it wants. What a packet decodes to is the codec's business, so a table stating
+// 1023 and 1025 either side of 1024 changes nothing about the sound that comes out of it.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("glint-aac-drift.mp4"))
+    @assert(reader.frameCount() == 10 and reader.audioTrackCount() == 1)
+
+    let drifted = reader.audioTrack(0)!
+    @assert(drifted.sampleEncoding() == .AacLc)
+    @assert(drifted.sampleRateHz() == 44_100 and drifted.numChannels() == 2)
+
+    var steady = expect Reader.open(videoFixturePath("glint-aac-mjpeg.mp4"))
+    let even   = steady.audioTrack(0)!
+    @assert(drifted.packetCount() == even.packetCount())
+    @assert(drifted.sampleFrameCount() == even.sampleFrameCount())
+}

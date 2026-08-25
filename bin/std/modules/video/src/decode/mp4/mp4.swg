@@ -853,29 +853,31 @@ impl Track
     }
 
     // Expands this AAC track into the packet index consumed by std/audio.
+    //
+    // The duration a sample table states is a presentation time, and a writer is free to spread it
+    // across packets so that a track's total lands on a clock it cares about: durations of 1023 and
+    // 1025 either side of 1024 are common, and so are runs of 1008 and 1032. What a packet decodes
+    // to is the codec's business, not the container's, and an AAC-LC access unit decodes to a fixed
+    // number of frames whatever the table says. The table is still required to describe every
+    // packet, because a table that does not is a broken one.
     mtd buildSoundPackets(sourceSize: u64)->{ packets: Array'SoundPacket, frameCount: u64 } fail
     {
         let frames = .buildFrames(sourceSize)
         var result: retval
         result.packets.reserve(frames.count)
-        var sampleIndex = 0'u64
-        for timing in .times
+
+        var timed = 0'u64
+        for timing in .times do
+            timed += timing.sampleCount
+        if timed != frames.count do
+            fail InvalidFormatError{"MP4 audio timing does not describe every packet"}
+
+        for frame in frames
         {
-            if timing.sampleDelta != AacFrameSamples do
-                fail UnsupportedFormatError{"audio decoder supports 1024-sample AAC access units only"}
-            for timing.sampleCount
-            {
-                if sampleIndex >= frames.count do
-                    fail InvalidFormatError{"MP4 audio timing describes more packets than its sample table"}
-                let frame = frames[sampleIndex]
-                result.packets.add({frame.offset, cast(u32) frame.size, timing.sampleDelta})
-                result.frameCount += timing.sampleDelta
-                sampleIndex       += 1
-            }
+            result.packets.add({frame.offset, cast(u32) frame.size, AacFrameSamples})
+            result.frameCount += AacFrameSamples
         }
 
-        if sampleIndex != frames.count do
-            fail InvalidFormatError{"MP4 audio timing does not describe every packet"}
         return result
     }
 }

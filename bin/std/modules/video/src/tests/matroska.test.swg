@@ -245,3 +245,24 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
     discard catch reader.decodeFrame(0) as cancelled
     @assert(cancelled is BadParameterError)
 }
+
+// A string element states its length, and a writer that reserved room for a longer value fills the
+// rest with zeros. Those zeros are padding, not content: a codec identifier written that way names
+// the same codec, and a reader that keeps them matches nothing.
+#test
+{
+    let padded: [8] u8 = ['V', '_', 'X', 0, 0, 0, 0, 0]
+    var cursor = Matroska.Cursor.open(padded[0 until 8])
+    let value  = expect cursor.readString({0, 0, 8, false})
+    @assert(value.toString() == "V_X")
+    @assert(@countof(value.toString()) == 3)
+}
+
+// A value that fills its element is kept whole.
+#test
+{
+    let exact: [3] u8 = ['V', '_', 'X']
+    var cursor = Matroska.Cursor.open(exact[0 until 3])
+    let value  = expect cursor.readString({0, 0, 3, false})
+    @assert(value.toString() == "V_X")
+}

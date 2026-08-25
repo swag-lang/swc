@@ -36,6 +36,7 @@ enum SoundFileEncoding
     Ac3         // Dolby Digital AC-3 sync frames.
     Eac3        // Dolby Digital Plus E-AC-3 sync frames.
     Flac        // Free Lossless Audio Codec frames.
+    Mp3         // MPEG-1, MPEG-2, and MPEG-2.5 Layer III frames.
 }
 
 // Configures an indexed compressed sound stream.
@@ -236,15 +237,20 @@ impl SoundFile
     // Loads and validates a sound file.
     //
     // `preloadData` keeps the complete payload in memory; otherwise voices stream
-    // it from `path`. A FLAC file is always streamed — its audio is compressed, so keeping it in
-    // memory would keep the wrong bytes — and `preloadData` does not apply to it. Unsupported
-    // extensions, encodings, and malformed files fail.
+    // it from `path`. A FLAC or MP3 file is always streamed — its audio is compressed, so keeping
+    // it in memory would keep the wrong bytes — and `preloadData` does not apply to either.
+    // Unsupported extensions, encodings, and malformed files fail.
     func load(path: string, preloadData = true)->SoundFile fail
     {
         let extension = Path.lowercaseExtension(path)
         if extension == ".flac"
         {
             return try Flac.openFile(path)
+        }
+
+        if extension == ".mp3"
+        {
+            return try Mp3.openFile(path)
         }
 
         if extension != ".wav" do

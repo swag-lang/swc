@@ -61,7 +61,7 @@ public func isPacketEncoding(encoding: SoundFileEncoding)->bool
 {
     switch encoding
     {
-    case .AacLc, .Ac3, .Eac3, .Flac:
+    case .AacLc, .Ac3, .Eac3, .Flac, .Mp3:
         return true
     default:
         return false
@@ -85,6 +85,8 @@ public func packetFrameCount(encoding: SoundFileEncoding, packet: const [..] u8)
         return try Dolby.eac3PacketFrameCount(packet)
     case .Flac:
         return try Flac.packetFrameCount(packet)
+    case .Mp3:
+        return try Mp3.packetFrameCount(packet)
     default:
         fail UnsupportedFormatError{"unsupported packetized sound encoding"}
     }

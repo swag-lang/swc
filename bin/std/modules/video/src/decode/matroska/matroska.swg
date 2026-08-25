@@ -1,5 +1,5 @@
 //! Format: Matroska/EBML container decoder component.
-//! Supported: H.264 and H.265 picture tracks and AAC-LC, AC-3, independent E-AC-3, or FLAC audio tracks, with cues, timestamps, codec delay, and common block lacing for audio.
+//! Supported: H.264 and H.265 picture tracks and AAC-LC, AC-3, independent E-AC-3, FLAC, or Layer III audio tracks, with cues, timestamps, codec delay, and common block lacing for audio.
 //! Not supported: Picture codecs other than H.264/H.265, laced or invisible picture blocks, dependent E-AC-3 substreams, encrypted tracks, and writing Matroska.
 //! Role: This file owns tracks, clusters, cues, timestamps, progressive indexing, and media dispatch.
 //
@@ -15,6 +15,7 @@ private const AacCodecId = "A_AAC"
 private const Ac3CodecId = "A_AC3"
 private const Eac3CodecId = "A_EAC3"
 private const FlacCodecId = "A_FLAC"
+private const Mp3CodecId = "A_MPEG/L3"
 private const DefaultTimestampScale = 1_000_000'u64
 private const NoTrack = Swag.U64.Max
 private const NoOffset = Swag.U64.Max
@@ -102,6 +103,8 @@ private impl Track
             return .Eac3
         if .codecId == FlacCodecId do
             return .Flac
+        if .codecId == Mp3CodecId do
+            return .Mp3
         return .Unknown
     }
 

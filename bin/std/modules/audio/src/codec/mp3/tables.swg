@@ -1,6 +1,6 @@
 //! Format: MPEG-1, MPEG-2, and MPEG-2.5 Layer III packet decoder component.
-//! Supported: Nothing yet decodes. This file is the format's normative data alone; the decoder that reads it is T-058 and is not written.
-//! Not supported: Layer I and Layer II, whose tables are not here either.
+//! Supported: Layer III at every sampling frequency and bit rate of the three versions, mono, dual channel, joint stereo with mid/side and intensity coupling, long, short and mixed blocks, and the bit reservoir.
+//! Not supported: Layer I and Layer II, free-format streams, and the CRC the frame header may carry.
 //! Role: This file owns the normative tables of ISO/IEC 11172-3 and 13818-3, and the derived decoding trees a test proves equivalent to them.
 //
 // @LICENCE: CC0-1.0 and Unlicence

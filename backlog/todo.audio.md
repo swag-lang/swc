@@ -16,9 +16,10 @@ ships; history lives in git, not here.
 A process-wide engine with an explicit lifecycle, a bus tree with parent routing and per-bus gain,
 voices with linear and decibel gain, pitch through a frequency ratio, looping, fire-and-forget
 lifetime, and streaming through three rotating 64 KiB decoded buffers. A codec registry
-(`ICodec`, `registerCodec`) that makes decoding extensible from outside the module, with
-AAC-LC, AC-3, independent E-AC-3 and FLAC decoders in the box; FLAC also has its own file reader,
-so a `.flac` opens through `SoundFile.load` and streams from disk. A no-sound
+(`ICodec`, `registerCodec`) that makes decoding extensible from outside the module, with AAC-LC,
+AC-3, independent E-AC-3, FLAC and MPEG Layer III decoders in the box. FLAC and MP3 also have
+their own file readers, so a `.flac` or a `.mp3` opens through `SoundFile.load` and streams from
+disk; that is the answer to "no music", and what is left below is breadth beside it. A no-sound
 driver that preserves the entire lifecycle without opening a device, wired into the sandbox so a
 test run never makes noise — that last part is better integrated than in most libraries of this
 size.
@@ -30,51 +31,15 @@ effects, no capture.
 
 ## Tier A — Compressed audio formats
 
-### T-058 — No MP3 decoder
-
-- Problem: `SoundFile.load` accepts WAV alone, and `src/file/wav.swg` accepts only `WAVE_FORMAT_PCM`
-  (8, 16, 24 and 32 bit), `WAVE_FORMAT_IEEE_FLOAT`, and `WAVE_FORMAT_EXTENSIBLE` wrapping those two.
-  `WAVE_FORMAT_ADPCM` is declared as a constant and then rejected. One codec is registered:
-  `CodecPcmToPcm16`.
-- Consequence: no music. A three-minute track as 16-bit stereo WAV is about 30 MiB, so any
-  application with a soundtrack is pushed off this module immediately. miniaudio ships WAV, FLAC
-  and MP3 in the box; SoLoud adds Vorbis.
-- Add a clean-room or permissively licensed MP3 decoder behind the existing `ICodec` registry.
-  The extension point is already designed and used, so this is decoder work rather than
-  architecture work.
-- Where it stands (2026-08-25): the format's normative data is in
-  `src/codec/mp3/tables.swg` and proved by `mp3.tables.test.swg`. Its provenance is the point:
-  the Huffman code tables were recovered independently from minimp3 (CC0) and PDMP3 (Unlicence),
-  and all 1,298 code words agree between the two; every table is a complete prefix code, and the
-  test walks each normative code word through the tree the decoder will use. The MPEG-1
-  scalefactor bands agree between the two sources as well. The MPEG-2 and MPEG-2.5 band rows have
-  one source only, so the first decoder that reads them must be measured at every sampling
-  frequency, not just at 44.1 kHz.
-- What is left is the decoder: frame header, side information, the bit reservoir, scalefactors
-  (MPEG-1 and the low sampling frequency form), Huffman and count1 decoding, requantization,
-  mid/side and intensity stereo, short-block reordering, alias reduction, the inverse transform,
-  and the polyphase filter bank. Then a `.mp3` file reader beside `src/file/flac`, which needs
-  ID3v2 skipping, a frame index, and the Xing/LAME encoder delay so a decode lines up with what
-  every other player produces.
-- How to prove it: a lossy codec cannot be compared byte for byte, so measure the root mean
-  square difference against FFmpeg's decode of the same file, as the ISO compliance criterion
-  does. Fixtures are producible here — libmp3lame through PyAV 17.1 encodes the repository's own
-  synthetic tones — and one per sampling frequency is what covers the band tables. Add one
-  transient clip at a high bit rate as well, or short blocks and the escape-coded tables never
-  run.
-- Why first: everything else on this list is a refinement of a library that plays audio. This is
-  what decides whether it can be used at all.
-- Related: T-166, T-168, T-169, T-562
-
 ### T-166 — No Ogg Vorbis decoder
 
 Add Ogg framing and Vorbis decoding behind `ICodec`, including streaming and seek-table behavior.
-
-- Related: T-058
+Vorbis transmits its codebooks in the stream, so unlike Layer III it needs no normative code table
+to be recovered from anywhere.
 
 ### T-168 — No Opus decoder
 
-Add Ogg Opus decoding only as its own optional codec; do not make it part of MP3, Vorbis, or FLAC
+Add Ogg Opus decoding only as its own optional codec; do not make it part of Vorbis or FLAC
 completion.
 
 - Related: T-166
@@ -83,8 +48,6 @@ completion.
 
 Implement the declared `WAVE_FORMAT_ADPCM` path independently of adding compressed music
 containers.
-
-- Related: T-058
 
 ## Tier A — Playback control
 
@@ -228,9 +191,11 @@ Expose desktop/output loopback as a distinct capture source when the backend sup
 runtimes — banks, events, parameters, adaptive music, and a designer-facing editor. That is a
 product, not a standard-library module.
 
-**Bundled codec licensing.** Any format added under T-058 must be a clean-room or
-permissively-licensed implementation. Do not vendor a decoder whose terms cannot be satisfied by a
-standard library shipped with a compiler.
+**Bundled codec licensing.** Every format added here must be a clean-room or permissively-licensed
+implementation. Do not vendor a decoder whose terms cannot be satisfied by a standard library
+shipped with a compiler. Normative tables are a separate question from code: Layer III's were
+recovered from two public-domain implementations and checked against each other, with the
+provenance in `bin/THIRDPARTY.md`; a table is a fact of the format, a decoder is expression.
 
 ### T-562 — No DTS decoder
 
@@ -243,4 +208,18 @@ standard library shipped with a compiler.
   audio fixture here uses cannot produce one. Settle that first — an encoder that can be run
   reproducibly, or a permissively licensed conformance stream with a stated origin — because a
   decoder with no reference decodes into an opinion.
-- Related: T-058
+
+### T-564 — MP3 costs more per frame than it needs to, and two containers do not carry it
+
+- Intent: Layer III decodes correctly at every sampling frequency of the three versions, within
+  2.3e-5 of full scale of FFmpeg. Nothing about its speed has been measured, and two ways of
+  carrying it are not read.
+- What is slow by construction, and was written that way on purpose: the inverse transform is the
+  normative matrix, 648 multiplications a subband where a factored transform needs a fraction of
+  that, and the polyphase bank is the normative 64 by 32 matrixing per block. Both are stated in
+  `synthesis.swg` exactly as clause 2.4.3.4.10 states them, which is what made them checkable.
+  `Math.pow` also computes every magnitude above fifteen. Measure before replacing any of it: at
+  128 kbit/s a frame is 26 ms of audio and the whole decode may already be far below that.
+- What is not carried: an ISO-BMFF `mp4a` entry whose object type is 0x69 or 0x6B is Layer III,
+  and `mp4.swg` rejects every object type but AAC's 0x40. The Matroska side is done.
+- Related: T-562

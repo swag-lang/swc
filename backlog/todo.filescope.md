@@ -261,7 +261,9 @@ viewer" claim is currently weakest. Read the `Today` column as:
   files on a disk cannot be played by the viewer that ships a player.
 - Complete when: the `Sound` viewer claims `.mp3`, `.flac`, `.ogg` and `.opus`, streams them with the
   same waveform behaviour as WAV, and the registry moves those extensions off the binary line.
-- Related: T-058, T-166, T-168
+- What is no longer blocking: `.mp3` and `.flac` now open through `Audio.SoundFile.load` and stream
+  from disk, so those two are viewer work alone.
+- Related: T-166, T-168
 
 ### T-405 — An image's metadata is not shown
 

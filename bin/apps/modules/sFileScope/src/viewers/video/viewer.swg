@@ -5,6 +5,7 @@ using Core, Pixel, Gui, Video, Audio
 private const VideoGlyphSize = 18.0
 private const VideoSeekSeconds = 10.0
 private const VideoSeekOverlaySize = Math.Point{112, 64}
+private const VideoSeekOverlayOffsetY = 56.0
 private const VideoSeekOverlayLifetime: Time.Duration = 650'ms
 
 // Briefly reports a relative timeline jump over the picture itself.
@@ -108,7 +109,9 @@ internal impl VideoSeekOverlay
 
         let rect = .parent!.clientRect()
         let size = .preferredSize
-        .setPosition({Math.floor((rect.width - size.x) * 0.5), Math.floor((rect.height - size.y) * 0.5), size.x, size.y}, computeLayout: false)
+        let x    = Math.floor((rect.width - size.x) * 0.5)
+        let y    = Math.floor(Math.clamp((rect.height - size.y) * 0.5 + VideoSeekOverlayOffsetY, 0, Math.max(rect.height - size.y, 0)))
+        .setPosition({x, y, size.x, size.y}, computeLayout: false)
         .resetPresentation()
         .show()
         .bringToFront()

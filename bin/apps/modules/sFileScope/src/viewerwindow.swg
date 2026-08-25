@@ -11,7 +11,7 @@ const ViewerInfoStatsWidth                    = 560.0
 const ViewerFullScreenRevealEdge              = 32.0
 const ViewerRetirePollInterval: Time.Duration = 16'ms
 const ViewerLoadingSpinnerRadius              = 20.0
-const ViewerLoadingSpinnerSweep               = 110.0
+const ViewerLoadingSpinnerSweep               = 150.0
 
 const ViewerFullScreenRemovedFlags = SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.MaximizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
 const ViewerFullScreenAddedFlags   = SurfaceFlags.NoShadow | SurfaceFlags.TopMost
@@ -748,7 +748,7 @@ impl ViewerWindow
         {
             .dockStyle = .Right
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
-            .setTextAlignment(.Right, .Center)
+            .setTextAlignment(.Right, .OpticalCenter)
         }
 
         with result.infoFileGroup = StackLayoutCtrl.create(result.infoBar, .Left, {0, 0, 0, 32})
@@ -769,14 +769,14 @@ impl ViewerWindow
             .layoutSpec.policyX = .Expand
             .layoutSpec.weightX = 0
             .style.setFont(result.theme().createDefaultFont(13, .Bold), .Regular)
-            .setTextAlignment(.Left, .Center)
+            .setTextAlignment(.Left, .OpticalCenter)
         }
 
         with result.infoSizeLabel = Label.create(result.infoFileGroup, "", {0, 0, 0, 32}, null, .SecondaryText)
         {
             .margin.x = 8
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
-            .setTextAlignment(.Left, .Center)
+            .setTextAlignment(.Left, .OpticalCenter)
         }
 
         with result.viewerBar = Wnd.create'Wnd(result, {0, 0, 0, ViewerBarHeight})
@@ -1615,6 +1615,7 @@ impl ViewerWindow
         if .activeChoiceIndex < .choices.count do
             .infoIconLabel.setIcon(.icon(.choices[.activeChoiceIndex].icon))
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
+        .infoFileGroup.computeLayout()
         .infoBar.show(!.fullScreen or .fullScreenTopVisible)
     }
 

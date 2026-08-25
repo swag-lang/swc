@@ -56,7 +56,7 @@ guessing an encoding.
   track, with a selector when several are present. The output-device sample cursor is the master
   clock: slow picture decoding drops to a clean video sync frame without moving or stretching
   sound.
-- `Sound` uses the Audio module to stream PCM or float WAV files. Its transport provides the same
+- `Sound` uses the Audio module to stream WAV, FLAC, MP3, AAC, AC-3, and E-AC-3 files. Its transport provides the same
   basic time, seek, mute, volume, and keyboard controls as video. Playback does not retain the
   complete payload, and a low-priority worker builds the waveform from bounded blocks.
 - `Font` renders TrueType fonts and the first face of a TrueType collection as a live specimen.

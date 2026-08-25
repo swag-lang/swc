@@ -1,4 +1,4 @@
-using Core, Core.Errors, Gui
+using Core, Core.Errors, Gui, Audio
 
 // The stable identity of the host's own text surface, in the persisted vocabulary its
 // registered neighbours use.
@@ -53,6 +53,18 @@ private func addViewer(index: *ViewerIndex, key, name: string, icon: ViewerIcons
     index.specs.add(#move spec)
 }
 
+private func addViewer(index: *ViewerIndex, key, name: string, icon: ViewerIcons, create: ViewerCreate, selectors: const [..] String)
+{
+    var spec: ViewerSpec
+    spec.key         = String.from(key)
+    spec.displayName = String.from(name)
+    spec.icon        = icon
+    spec.create      = create
+    for selector in selectors do
+        spec.extensions.add(String.from(selector.toString()))
+    index.specs.add(#move spec)
+}
+
 // Creates the complete built-in viewer table.
 func createViewerIndex()->ViewerIndex
 {
@@ -63,7 +75,8 @@ func createViewerIndex()->ViewerIndex
     addViewer(&result, "image", "Image", .Image, &createImageViewer, ".bmp;.cur;.gif;.ico;.jpeg;.jpg;.png;.svg;.tga;.tif;.tiff;.webp")
     addViewer(&result, "video", "Video", .Video, &createVideoViewer, ".y4m;.avi;.mp4;.m4v;.mov;.mkv")
     addViewer(&result, "pdf", "PDF", .Pdf, &createPdfViewer, ".pdf")
-    addViewer(&result, "sound", "Sound", .Sound, &createSoundViewer, ".wav")
+    let soundExtensions = SoundFile.decodableExtensions()
+    addViewer(&result, "sound", "Sound", .Sound, &createSoundViewer, soundExtensions.toSlice())
     addViewer(&result, "font", "Font", .Font, &createFontViewer, ".ttf;.ttc")
     addViewer(&result, "binary", "Binary", .Binary, &createBinaryViewer, ".exe;.dll;.sys;.ocx;.cpl;.scr;.efi;.drv;.mui;.mun;.winmd;.node;.pyd;.obj;.o;.lib;.a;.so;.elf;.ko;.axf;.dylib;.bundle;.wasm;.scc;.zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp;.otf;.woff;.woff2;.ico;.cur;.gz;.tgz;.bz2;.tbz2;.xz;.txz;.zst;.tzst;.7z;.rar;.cab;.msi;.doc;.xls;.ppt;.ps;.eps;.class;.dex;.sqlite;.db;.pdb;.wav;.avi;.webp;.mp3;.flac;.ogg;.oga;.ogv;.mp4;.m4a;.m4v;.mov;.3gp;.3g2;.mkv;.webm")
     addViewer(&result, "hex", "Hexadecimal", .Hex, &createHexViewer, "*")

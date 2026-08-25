@@ -738,6 +738,9 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(!window.viewerCombo.isLocallyVisible())
     @assert(window.infoNameLabel.parent == window.infoFileGroup)
     @assert(window.infoSizeLabel.parent == window.infoFileGroup)
+    @assert(window.infoNameLabel.textVerticalAlignment == .OpticalCenter)
+    @assert(window.infoSizeLabel.textVerticalAlignment == .OpticalCenter)
+    @assert(window.infoStatsLabel.textVerticalAlignment == .OpticalCenter)
     @assert(window.recentClearButton.parent == window.recentLabel.parent)
     @assert(window.infoStatsLabel.parent == window.infoBar)
     Testing.assertContentFits(window)
@@ -752,6 +755,31 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.viewerCombo.parent == window.commandBar and widestCommands.parent == window.viewerBar)
     @assert(window.viewerCombo.position.bottom() <= window.infoBar.position.y)
     @assert(widestCommands.position.y >= window.viewerBar.clientRect().y)
+}
+
+// File metadata can arrive after the first frame. Publishing it lays out the identity row
+// immediately, without waiting for a resize, theme change, or another outer layout pass.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let index  = createViewerIndex()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+    window.applyLayout()
+    @assert(window.infoNameLabel.position.width == 0 and window.infoSizeLabel.position.width == 0)
+
+    window.currentFile = viewerFixturePath()
+    window.choices.add(ViewerChoice{.BasicText, Swag.U64.Max, "Basic text"})
+    window.activeChoiceIndex = 0
+    window.updateFileInfo("")
+
+    @assert(@countof(window.infoNameLabel.text()) > 0 and @countof(window.infoSizeLabel.text()) > 0)
+    @assert(window.infoNameLabel.position.width > 0 and window.infoSizeLabel.position.width > 0)
+    @assert(window.infoIconLabel.position.right() <= window.infoNameLabel.position.x)
+    @assert(window.infoNameLabel.position.right() <= window.infoSizeLabel.position.x)
 }
 
 // F11 preserves the exact window state around a content-only presentation. Moving at either

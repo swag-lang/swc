@@ -984,7 +984,7 @@ impl IDecoder for Decoder
                 samples.add({frame.offset, frame.size, times[index], syncFlags[index] != 0})
 
             .isCoded = true
-            try .video.open(layout.track.isHevc, layout.track.videoConfig.toSlice(), samples.toSlice())
+            try .video.open(layout.track.isHevc ? PictureHevc : PictureAvc, layout.track.videoConfig.toSlice(), samples.toSlice())
             .info.width  = .video.width()
             .info.height = .video.height()
         }

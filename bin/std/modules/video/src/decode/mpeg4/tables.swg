@@ -284,3 +284,18 @@ const DefaultInterMatrix: [64] u8 = [
      21,  22,  23,  24,  26,  27,  28,  30,
      22,  23,  24,  26,  27,  28,  30,  31,
      23,  24,  25,  27,  28,  30,  31,  33]
+
+// Tables 7-10 to 7-13, the rounding of a chrominance vector, clause 7.6.5.
+//
+// A chrominance vector is the sum of the luminance vectors of the blocks that contributed to it,
+// divided by twice their count. The division leaves a residue on a sixteenth, twelfth, eighth or
+// quarter sample grid, and these say which half sample that residue rounds to. Only the first and
+// the last apply to a rectangular object, whose macroblocks always contribute one block or four.
+const ChromaRoundOneBlock:    [4] u8  = [0, 1, 1, 1]
+const ChromaRoundTwoBlocks:   [8] u8  = [0, 0, 1, 1, 1, 1, 1, 2]
+const ChromaRoundThreeBlocks: [12] u8 = [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 2]
+const ChromaRoundFourBlocks:  [16] u8 = [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2]
+
+// The step a `dquant` field moves the quantiser by, clause 6.3.7.
+const DquantDelta: [4] s8 = [-1, -2, 1, 2]
+

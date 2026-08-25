@@ -190,8 +190,8 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | Family | Extensions | Today | Missing | Entry |
 | --- | --- | --- | --- | --- |
 | WAV PCM and float | `.wav` | full, streamed | ADPCM | T-169 |
-| Raw YUV4MPEG2 video | `.y4m` | full, silent, streamed by frame | audio | T-424 |
-| Motion JPEG video | `.avi` `.mp4` `.m4v` `.mov` | full, seeked through sample tables; MP4/M4V/MOV play AAC-LC sound | AVI audio, and the chroma layouts ffmpeg writes | T-426, T-424 |
+| Raw YUV4MPEG2 video | `.y4m` | full, silent, streamed by frame | the format carries no sound | — |
+| Motion JPEG video | `.avi` `.mp4` `.m4v` `.mov` | full, seeked through sample tables; AVI plays its PCM sound and MP4/M4V/MOV their AAC-LC | the chroma layouts ffmpeg writes | T-426 |
 | Compressed audio | `.mp3` `.flac` `.ogg` `.opus` `.m4a` | structure | Audio codec, then a viewer path | T-404 |
 | Video containers | `.mp4` `.mkv` `.webm` `.mov` `.avi` | signature | box, EBML and RIFF tree | T-412 |
 | Video playback | `.mp4` `.m4v` `.mov` `.mkv` | Motion JPEG and H.264; AAC-LC sound with track selection | VP9, AV1, Opus, and WebM | T-420 |

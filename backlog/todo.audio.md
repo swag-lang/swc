@@ -35,7 +35,16 @@ effects, no capture.
 
 Add Ogg framing and Vorbis decoding behind `ICodec`, including streaming and seek-table behavior.
 Vorbis transmits its codebooks in the stream, so unlike Layer III it needs no normative code table
-to be recovered from anywhere.
+to be recovered from anywhere, which makes it the cheapest remaining format to be certain about.
+
+- What the packet index has to do differently, worked out and not yet built: a Vorbis packet may
+  span Ogg pages, so it is not one contiguous byte range and `SoundPacket` cannot name it. Index
+  whole pages instead, merging consecutive pages until the granule position advances, and let the
+  codec assemble packets across the boundary in its own state. The granule delta of the merged run
+  is exactly the sample-frame count the entry owes, which is what `Voice.decodePacketData`
+  demands; no mode simulation is needed to compute it.
+- How much it is worth, measured (2026-08-25, 592 films of one personal library): 2 Vorbis tracks.
+  It is the right next audio format for correctness reasons, not for reach.
 
 ### T-168 — No Opus decoder
 
@@ -201,6 +210,9 @@ provenance in `bin/THIRDPARTY.md`; a table is a fact of the format, a decoder is
 
 - Problem: a film track that is not Dolby is usually DTS, and the module decodes nothing of it.
   Matroska and ISO-BMFF both index the packets already, so what is missing is the codec alone.
+- How much it is worth, measured (2026-08-25, 592 films of one personal library): 22 DTS tracks,
+  against 659 AC-3, 296 AAC, 53 E-AC-3 and 21 Layer III. It is the largest remaining sound gap and
+  a small one; see T-565 for the same measurement on the picture side.
 - Consequence: a `.mkv` whose only audio track is DTS plays silently, and the reader reports the
   track as unavailable rather than wrong — correct, and still a file the user cannot hear.
 - What blocks it beyond the work itself: there is no fixture. FFmpeg's DTS encoder is experimental

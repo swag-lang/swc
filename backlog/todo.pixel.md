@@ -53,7 +53,7 @@ The gaps are in composition fidelity, color, and the GPU backend.
 - Fix by walking a minimum coded unit and upsampling chroma from the sampling factors themselves,
   instead of dispatching to four hand-written converters. Complete when both fixtures decode to
   the same pictures as their 4:2:0 sibling.
-- Related: T-424 in [todo.video.md](todo.video.md)
+- Related: [todo.video.md](todo.video.md)
 
 ### T-049 — No image filter graph
 

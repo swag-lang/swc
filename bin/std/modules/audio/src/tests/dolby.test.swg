@@ -136,3 +136,44 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
         @assert(wanted > 8.0 * other)
     }
 }
+
+// An `.ac3` file opens on its own, and the index it builds is the one this suite builds by hand.
+#test
+{
+    let path   = audioGetTestDataPath("ac3-5.1-48000.ac3")
+    let wanted = expect ac3TestPackets(path)
+    var sound  = expect SoundFile.load(path.toString())
+
+    @assert(sound.sampleEncoding() == .Ac3)
+    @assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == 6)
+    @assert(sound.packetCount() == wanted.count)
+    for index in wanted.count
+    {
+        let got = expect sound.packet(index)
+        @assert(got.sourceOffset == wanted[index].sourceOffset)
+        @assert(got.byteSize == wanted[index].byteSize)
+        @assert(got.sampleFrameCount == wanted[index].sampleFrameCount)
+    }
+}
+
+// The same for `.eac3`, whose frames state their own length and block count.
+#test
+{
+    let path   = audioGetTestDataPath("eac3-5.1-48000.eac3")
+    let wanted = expect eac3TestPackets(path)
+    var sound  = expect SoundFile.load(path.toString())
+
+    @assert(sound.sampleEncoding() == .Eac3)
+    @assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == 6)
+    @assert(sound.packetCount() == wanted.count)
+    for index in wanted.count
+    {
+        let got = expect sound.packet(index)
+        @assert(got.sourceOffset == wanted[index].sourceOffset)
+        @assert(got.byteSize == wanted[index].byteSize)
+        @assert(got.sampleFrameCount == wanted[index].sampleFrameCount)
+    }
+
+    var stereo = expect SoundFile.load(audioGetTestDataPath("eac3-stereo-48000.eac3").toString())
+    @assert(stereo.numChannels() == 2 and stereo.sampleRateHz() == 48_000)
+}

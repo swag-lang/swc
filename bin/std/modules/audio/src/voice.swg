@@ -181,8 +181,12 @@ public impl Voice
         {
             .setState(.PlayedOnce)
             .nativeFrameOrigin = .playedFramesNative()
-            g_Driver.updateVoice(me, .UpdateBuffers)
         }
+
+        // A buffer callback queued just before pause is deliberately ignored while the voice is
+        // offline. Always request a refill on resume so that callback cannot leave a running
+        // backend with an empty queue.
+        g_Driver.updateVoice(me, .UpdateBuffers)
     }
 
     // Pauses playback while preserving the current stream position.

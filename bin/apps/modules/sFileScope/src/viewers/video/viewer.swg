@@ -152,18 +152,18 @@ internal struct VideoViewer
     resumeAudioAfterSeek: bool
     audioRangePending:    bool     // The progressive sound index does not reach the picture yet.
 
-    timer:         #null *Timer
-    clock:         Time.Stopwatch
-    elapsed:       f64
-    frameIndex:    u64
-    playing:       bool
-    muted:         bool
+    timer:                #null *Timer
+    clock:                Time.Stopwatch
+    elapsed:              f64
+    frameIndex:           u64
+    playing:              bool
+    muted:                bool
     volume = 1'f32
-    details:       String
-    metadataReady: bool
-    audioReady:    bool
-    timelineReady: bool
-    timelineChanging: bool
+    details:              String
+    metadataReady:        bool
+    audioReady:           bool
+    timelineReady:        bool
+    timelineChanging:     bool
     reportDetails:        #null ViewerReportDetails
     reportFailure:        #null ViewerReportFailure
     reportLoadingChanged: #null ViewerReportLoadingChanged
@@ -188,12 +188,12 @@ private impl VideoViewer
         if .decodeWake.isValid() do
             .decodeWake.release()
 
-        // GUI destruction is deferred until the frame ends. Release the large decoded-picture
-        // queue now so opening the replacement movie does not overlap two viewers' frame stores.
+        // GUI destruction is deferred until the replacement has a picture to present. Release
+        // the run-ahead queue now, but leave the displayed image alive so the content does not
+        // flash to its background between two movies.
         .slots.clear()
         .ready.clear()
         .freeSlots.clear()
-        .imageView.clear()
 
         if .voice
         {
@@ -425,31 +425,33 @@ internal impl VideoViewer
         if index >= .video.audioTrackCount() do
             fail BadParameterError{"video audio-track index exceeds the track count"}
 
-        let sound      = .video.audioTrack(index)!
+        let sound = .video.audioTrack(index)!
         if .voice and index == .audioTrackIndex and .audio == sound do
             return
-        let position    = .currentSeconds()
-        let wasPlaying  = .playing
-        let coversRange = videoSoundCovers(sound, position)
-        let newVoice    = Voice.create(sound)!
-        let oldVoice    = .voice
-        let oldPlaying  = oldVoice and oldVoice!.isPlaying()
-        var restoreOld  = oldPlaying
+        let position      = .currentSeconds()
+        let wasPlaying    = .playing
+        let coversRange   = videoSoundCovers(sound, position)
+        let shouldPlay    = wasPlaying and coversRange and !.resumeAudioAfterSeek
+        let restoreOld    = wasPlaying and .voice != null and !.audioRangePending and !.resumeAudioAfterSeek
+        let newVoice      = Voice.create(sound)!
+        let oldVoice      = .voice
+        var restoreNeeded = restoreOld
         defer #fail
         {
             newVoice.destroy()
-            if restoreOld do
+            if restoreNeeded do
                 catch oldVoice!.play()
         }
+
         newVoice.setVolume(.muted ? 0 : .volume)
         if coversRange do
             newVoice.seekSampleFrame(videoSoundSample(sound, position))
-        if oldPlaying do
+        if oldVoice do
             oldVoice!.pause()
-        if wasPlaying and coversRange and !.resumeAudioAfterSeek do
+        if shouldPlay do
             newVoice.play()
 
-        restoreOld = false
+        restoreNeeded = false
         if oldVoice
         {
             catch oldVoice!.stop()
@@ -461,11 +463,12 @@ internal impl VideoViewer
         .audioTrackIndex   = index
         .audioRangePending = !coversRange
         .audioClockLast    = -1
-        if wasPlaying and coversRange and !.resumeAudioAfterSeek
+        if shouldPlay
         {
             .elapsed = position
             .clock.restart()
         }
+
         .refreshDetails()
     }
 
@@ -673,7 +676,7 @@ internal impl VideoViewer
         if chosen == VideoNoSlot do
             return false
 
-        let notifyLoading = .hasFrame and .awaitingFrame
+        let notifyLoading = .awaitingFrame
         .frameIndex    = .slots[cast(u64) chosen].index
         .hasFrame      = true
         .awaitingFrame = false
@@ -773,7 +776,6 @@ internal impl VideoViewer
                         .reportFailure!(me, Errors.message(seekError))
                     return
                 }
-
             }
         }
 
@@ -858,6 +860,7 @@ internal impl VideoViewer
                 .reportFailure!(me, Errors.message(openError))
             return
         }
+
         if !.video.isOpen() do
             return
 
@@ -1047,11 +1050,9 @@ private impl VideoViewer
             .timelineReady = true
         }
 
-        var changed: bool
         if !.metadataReady and count
         {
             .metadataReady = true
-            changed        = true
 
             let step = rate > 0 ? 1 / rate : 0.01
             if duration > 0 do
@@ -1064,14 +1065,9 @@ private impl VideoViewer
         if !.audioReady and audioCount
         {
             .audioReady = true
-            changed     = true
-            if audioCount > 1
-            {
-                .audioButton.show()
-            }
-
-            .muteButton.show()
-            .volumeSlider.show()
+            .audioButton.enable(audioCount > 1)
+            .muteButton.enable(true)
+            .volumeSlider.enable(true)
             if !acquireSoundEngine() do
                 fail UnsupportedFormatError{"cannot create the audio engine for video playback"}
             .audioEngineAcquired = true
@@ -1083,9 +1079,6 @@ private impl VideoViewer
             if sound and sound != .audio do
                 .selectAudioTrack(.audioTrackIndex)
         }
-
-        if changed do
-            .commands.applyLayout()
     }
 
     func create(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails = null, reportFailure: #null ViewerReportFailure = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*VideoViewer fail
@@ -1108,7 +1101,7 @@ private impl VideoViewer
             }
         }
 
-        result.backgroundStyle = .View
+        result.backgroundStyle      = .View
         result.reportDetails        = reportDetails
         result.reportFailure        = reportFailure
         result.reportLoadingChanged = reportLoadingChanged
@@ -1167,7 +1160,7 @@ private impl VideoViewer
         {
             .dockStyle = .Right
             .toolTip   = videoStrings().ui_TipAudio
-            .hide()
+            .enable(false)
             .sigPressed += func|view = result|(button)
             {
                 discard button
@@ -1182,6 +1175,7 @@ private impl VideoViewer
             .toolTip   = videoStrings().ui_TipVolume
             .setBounds(0, 1, 0.05)
             .setValueWithoutGesture(1)
+            .enable(false)
             .sigChanged += func|view = result|(slider)
             {
                 view.setVolume(slider.value())
@@ -1194,6 +1188,7 @@ private impl VideoViewer
             .margin.x  = 8
             .toolTip   = videoStrings().ui_TipMute
             .setCheckIndicator(.Frame)
+            .enable(false)
             .sigCheckedChanged += func|view = result|(button)
             {
                 view.setMuted(button.isChecked)
@@ -1232,8 +1227,6 @@ private impl VideoViewer
         result.style.setStyleSheetColors(VideoBackdropColors)
         result.imageView.style.setStyleSheetColors(VideoBackdropColors)
 
-        result.muteButton.hide()
-        result.volumeSlider.hide()
         result.playButton.enable(false)
         result.timeline.enable(false)
         result.refreshTransport()
@@ -1252,7 +1245,7 @@ private impl VideoViewer
 // both phases on one runtime context avoids moving codec allocations between thread caches.
 private func runVideoViewerDecode(thread: Threading.Thread)
 {
-    let view = cast(*VideoViewer) thread.userParam!
+    let view  = cast(*VideoViewer) thread.userParam!
     var video = catch Reader.open(view.openFileName.toString()) as openError
     if openError != null
     {
@@ -1260,6 +1253,7 @@ private func runVideoViewerDecode(thread: Threading.Thread)
         Atomic.exchange(&view.openState, 2)
         return
     }
+
     if thread.requestEnd
     {
         video.close()
@@ -1306,4 +1300,5 @@ func createVideoViewer(request: const *ViewerRequest, result: *ViewerResult)
         let videoView = cast(*VideoViewer) wnd
         return !videoView.openFinished or videoView.awaitingFrame
     }
+    result.needsLoadingOverlay = func(wnd)->bool { return !(cast(*VideoViewer) wnd).hasFrame }
 }

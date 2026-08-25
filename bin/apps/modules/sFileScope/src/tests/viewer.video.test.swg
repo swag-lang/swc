@@ -38,6 +38,7 @@ func waitForVideoFrame(view: *VideoViewer)
         view.updatePlayback()
         attempts += 1
     }
+
     @assert(view.openFinished and !view.awaitingFrame)
 }
 
@@ -87,17 +88,24 @@ func videoMatroskaFixturePath()->String
     @assert(previous.video.isOpen())
 
     window.openFile(fileName, remember: false)
+    @assert(window.currentView == previous)
     var attempts: u32
-    while window.currentView == previous and attempts < 5_000
+    while (window.outgoingView != previous or window.instances.isEmpty()) and attempts < 5_000
     {
         Threading.Thread.sleep(1'ms)
         if window.startupTimer do
             host.fireTimer(window.startupTimer)
         attempts += 1
     }
+
+    @assert(window.outgoingView == previous and window.currentView == previous)
+    @assert(!previous.isPendingDestroy)
+    let incoming = cast(*VideoViewer) window.instances[window.activeChoiceIndex].view!
+    @assert(incoming != previous)
+    waitForVideoFrame(incoming)
+    window.commitViewerTransition(incoming)
     @assert(previous.isPendingDestroy)
-    @assert(window.currentView != null and window.currentView != previous)
-    waitForVideoFrame(cast(*VideoViewer) window.currentView!)
+    @assert(window.currentView == incoming and window.outgoingView == null)
 }
 
 #test
@@ -201,6 +209,9 @@ func videoMatroskaFixturePath()->String
     view.commands.dockStyle = .Center
     view.seekFrame(2)
     waitForVideoFrame(view)
+    @assert(view.audioButton.isVisible() and !view.audioButton.isEnabled())
+    @assert(view.muteButton.isVisible() and !view.muteButton.isEnabled())
+    @assert(view.volumeSlider.isVisible() and !view.volumeSlider.isEnabled())
 
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
@@ -292,6 +303,39 @@ func videoMatroskaFixturePath()->String
     @assert(view.playing and view.voice == voice and voice.isPlaying())
 }
 
+// Playback shortcuts belong to the active media viewer, not to whichever toolbar or panel
+// happens to own focus. Held-key repeats are consumed without toggling transport again.
+#test
+{
+    @assert(acquireSoundEngine(.NoSound))
+    defer releaseSoundEngine()
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+    let index  = createViewerIndex()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.openFile(videoAudioFixturePath(), remember: false)
+    let view = cast(*VideoViewer) window.currentView!
+    @assert(window.loadingOverlay.isLocallyVisible())
+    waitForVideoFrame(view)
+    window.updateLoadingIndicator()
+    @assert(!window.loadingOverlay.isLocallyVisible())
+
+    window.viewerCombo.setFocus()
+    var press = KeyEvent{kind: .Pressed, key: .Space}
+    @assert(window.hookOnChildEvent!(window.viewerCombo, &press))
+    @assert(view.playing and view.voice!.isPlaying() and window.viewerCombo.hasFocus())
+    @assert(window.hookOnChildEvent!(window.viewerCombo, &press))
+    @assert(view.playing and view.voice!.isPlaying())
+
+    var release = KeyEvent{kind: .Released, key: .Space}
+    @assert(window.hookOnChildEvent!(window.viewerCombo, &release))
+    @assert(window.hookOnChildEvent!(window.viewerCombo, &press))
+    @assert(!view.playing and !view.voice!.isPlaying() and window.viewerCombo.hasFocus())
+    @assert(window.hookOnChildEvent!(window.viewerCombo, &release))
+}
+
 // A Matroska file carrying several sound tracks exposes a compact selector. Changing it creates
 // and positions the replacement voice before releasing the previous one, so transport, volume,
 // and mute state survive the handoff.
@@ -351,6 +395,10 @@ func videoMatroskaFixturePath()->String
 
     view.setMuted(false)
     @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.4, 0.001))
+    expect view.selectAudioTrack(0)
+    @assert(view.playing and view.audioTrackIndex == 0 and view.voice!.isPlaying())
+    expect view.selectAudioTrack(1)
+    @assert(view.playing and view.audioTrackIndex == 1 and view.voice!.isPlaying())
     view.togglePlayback()
     view.seekFrame(5)
     waitForVideoFrame(view)

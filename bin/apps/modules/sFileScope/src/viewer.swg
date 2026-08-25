@@ -12,6 +12,9 @@ alias ViewerFindText = func(*Wnd, string)->bool
 // Reports whether a view is still doing work whose result has not reached the screen.
 alias ViewerIsLoading = func(*Wnd)->bool
 
+// Reports whether unfinished work has left the viewer with no useful content to present.
+alias ViewerNeedsLoadingOverlay = func(*Wnd)->bool
+
 // Requests release of a viewer's external resources without blocking the GUI thread.
 //
 // Returns true once the view can be destroyed. A false result is polled by the host while the
@@ -58,12 +61,12 @@ func mediaTimeRangeText(current, duration: f64)->String
 // What the application asks one integrated viewer to display.
 struct ViewerRequest
 {
-    contentParent:        *Wnd = undefined                 // Parent the document view must be created under.
-    commandParent:        *Wnd = undefined                 // Parent the optional command group must be created under.
-    fileName:             string                           // File the view has to show.
-    reportFailure:        #null ViewerReportFailure        // Reports a decoder error discovered after creation.
-    reportDetails:        #null ViewerReportDetails        // Reports format statistics that changed after creation.
-    reportLoadingChanged: #null ViewerReportLoadingChanged // Re-evaluates application-owned wait feedback.
+    contentParent:        *Wnd = undefined                     // Parent the document view must be created under.
+    commandParent:        *Wnd = undefined                     // Parent the optional command group must be created under.
+    fileName:             string                               // File the view has to show.
+    reportFailure:        #null ViewerReportFailure            // Reports a decoder error discovered after creation.
+    reportDetails:        #null ViewerReportDetails            // Reports format statistics that changed after creation.
+    reportLoadingChanged: #null ViewerReportLoadingChanged     // Re-evaluates application-owned wait feedback.
 }
 
 // What one integrated viewer gives back.
@@ -74,14 +77,15 @@ struct ViewerRequest
 // offset leaves `revealMatch` null. A view that does no progressive work leaves `isLoading` null.
 struct ViewerResult
 {
-    view:          #null *Wnd                  // Document view the viewer owns, or null when decoding stopped.
-    commands:      #null *Wnd                  // One group of compact controls, or null.
-    details:       String                      // Short format-specific summary shown by the application.
-    failureReason: String                      // Decoder explanation when `view` is null, or empty on success.
-    revealMatch:   #null ViewerRevealMatch     // Reveals a byte offset, or null when not searchable.
-    findText:      #null ViewerFindText        // Viewer-owned search, or null to scan the file.
-    isLoading:     #null ViewerIsLoading       // Reports unfinished visible work, or null for an immediate view.
-    retire:        #null ViewerRetire          // Cooperatively releases resources before deferred window deletion.
+    view:                #null *Wnd                          // Document view the viewer owns, or null when decoding stopped.
+    commands:            #null *Wnd                          // One group of compact controls, or null.
+    details:             String                              // Short format-specific summary shown by the application.
+    failureReason:       String                              // Decoder explanation when `view` is null, or empty on success.
+    revealMatch:         #null ViewerRevealMatch             // Reveals a byte offset, or null when not searchable.
+    findText:            #null ViewerFindText                // Viewer-owned search, or null to scan the file.
+    isLoading:           #null ViewerIsLoading               // Reports unfinished visible work, or null for an immediate view.
+    needsLoadingOverlay: #null ViewerNeedsLoadingOverlay     // Reports that loading currently has no useful presentation.
+    retire:              #null ViewerRetire                  // Cooperatively releases resources before deferred window deletion.
 }
 
 // Creates an integrated view and reports its optional commands, details, and search callbacks.

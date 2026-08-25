@@ -762,8 +762,8 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index    = createViewerIndex()
-    let window   = ViewerWindow.create(&host.surfaceWnd, #move index)
+    let index  = createViewerIndex()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(viewerFixturePath(), remember: false)
     window.setFilePanelVisible(true)
     let position = host.surface.position
@@ -849,8 +849,8 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(errorView.reasonLabel.text() == window.instances[0].failureReason.toString())
 }
 
-// The host shows progressive work and retires a still-loading renderer before switching views,
-// so a hidden HTML document cannot keep parsing while its source view opens.
+// Progressive content keeps streaming without covering useful output. A viewer asks for the
+// shared wait presentation separately when it has nothing useful to show yet.
 #test
 {
     var host: Testing.HeadlessHost
@@ -881,7 +881,11 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     loading.setPosition({17, 83, 611, 391})
 
     reportViewerLoadingChanged(loading)
-    @assert(window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
+    @assert(!window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
+
+    window.instances[0].needsLoadingOverlay = func(wnd)->bool { discard wnd; return true }
+    reportViewerLoadingChanged(loading)
+    @assert(window.loadingOverlay.isLocallyVisible())
     @assert(window.loadingOverlay.position == loading.position)
     @assert(window.loadingOverlay.backgroundStyle == .Transparent)
     @assert(window.loadingOverlay.spinner.preferredSize == {24, 24})
@@ -891,6 +895,9 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.children.back() == window.loadingOverlay)
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "sfilescope.loading")
+    window.instances[0].needsLoadingOverlay = null
+    reportViewerLoadingChanged(loading)
+    @assert(!window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
     @assert(window.activateChoice(1))
     @assert(retired and loading.isPendingDestroy)
     @assert(window.instances[0].view == null)
@@ -900,7 +907,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
 }
 
 // File selection never waits for a viewer that needs another event-loop turn to retire. The
-// generic host keeps the previous content covered, then opens the queued file on its timer.
+// generic host keeps the previous content visible, then opens the queued file on its timer.
 #test
 {
     var host: Testing.HeadlessHost
@@ -920,7 +927,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.openFile(fileName, remember: false)
     @assert(window.currentView == old and retireCalls == 1)
     @assert(window.pendingFile == fileName and window.startupTimer != null)
-    @assert(window.loadingOverlay.isLocallyVisible())
+    @assert(!window.loadingOverlay.isLocallyVisible())
 
     host.fireTimer(window.startupTimer)
     @assert(retireCalls == 2 and old.isPendingDestroy)

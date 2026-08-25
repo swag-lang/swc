@@ -219,9 +219,12 @@ is the layout it does not read yet.
 - What has to be settled first, exactly as it was for Layer III: the variable length code tables of
   ISO/IEC 14496-2 — macroblock type, coded block pattern, motion vector, and the two coefficient
   tables — have to come from somewhere that can be redistributed. Xvid and FFmpeg are both
-  copyleft, so neither is a source here. Find a permissively licensed or public-domain
-  implementation to recover them from, or a way to derive them; without one this entry cannot start
-  honestly. See `bin/THIRDPARTY.md` for how the Layer III tables were handled.
+  copyleft, so neither is a source here. One candidate exists and is worth checking before
+  anything else is written: `OxideAV/oxideav-mpeg4video`, a pure-Rust Part 2 codec under the MIT
+  licence. Recover the tables from it and from one other independent implementation, require the
+  two to agree entry for entry, and check every table is a complete prefix code — that is what was
+  done for Layer III, and `bin/THIRDPARTY.md` records how. Without a second source the tables
+  should not be called normative.
 - Also worth doing whatever happens to this entry: a container whose picture codec is unsupported
   could still expose its sound tracks instead of failing to open. Twenty-two DTS tracks aside, the
   twenty-three files above all carry AC-3 this module decodes.

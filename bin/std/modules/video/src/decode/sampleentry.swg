@@ -1,3 +1,8 @@
+//! Format: Format-neutral description of one coded access unit.
+//! Supported: Where an access unit lives in its source, how long it is, when it is shown, and whether it starts a clean decode.
+//! Not supported: This file does not decode or encode a concrete picture format.
+//! Role: This file owns the container's view of one sample, which every coded picture format shares.
+//
 #global internal
 
 // One length-prefixed access unit of a coded video track, in decode order.

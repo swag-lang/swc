@@ -246,10 +246,10 @@ func compare(src, dst: const [..] u8, ignoreCase = false)->s32
 // Compare two utf8 strings in a natural way, dealing only with latin1 table
 // Returns -1, 0 or 1
 //
-// :LICENCE
-// This code is based on 'natsort' by Martin Pool (https://github.com/sourcefrog/natsort)
-// The original code has been modified for Swag
-// See LICENCE.md for the corresponding licence.
+// @LICENCE: Zlib
+// @ORIGIN: Natural sort by Martin Pool, https://github.com/sourcefrog/natsort
+// @MODIFIED: Ported and modified for Swag.
+// @NOTICE: /bin/THIRDPARTY.md#natural-sort
 #[Swag.Sanity(Swag.SafetyWhat.All, false)]
 func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
 {

@@ -1,3 +1,8 @@
+//! Format: WebP still-image decoder component.
+//! Supported: RIFF WebP containing lossy VP8 or lossless VP8L still images, including supported alpha chunks.
+//! Not supported: Animated WebP and unsupported alpha preprocessing or compression methods.
+//! Role: This file owns RIFF chunk parsing, alpha integration, and top-level decoding.
+//
 #global namespace Webp
 
 using Core, Core.Errors

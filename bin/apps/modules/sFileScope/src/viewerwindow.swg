@@ -1,14 +1,16 @@
 using Core, Pixel, Gui
 
-const ViewerBarHeight       = 48.0
-const ViewerInfoHeight      = 40.0
-const ViewerGlyphSize       = 20.0
-const ViewerRowGlyphSize    = 16.0
-const ViewerMinWidth        = 880
-const ViewerSearchChunkSize = 256 * 1024'u64
-const ViewerErrorTextWidth  = 512.0
-const ViewerInfoStatsWidth  = 560.0
-const ViewerInfoSizeWidth   = 112.0
+const ViewerBarHeight                         = 48.0
+const ViewerInfoHeight                        = 40.0
+const ViewerGlyphSize                         = 20.0
+const ViewerRowGlyphSize                      = 16.0
+const ViewerMinWidth                          = 880
+const ViewerSearchChunkSize                   = 256 * 1024'u64
+const ViewerErrorTextWidth                    = 512.0
+const ViewerInfoStatsWidth                    = 560.0
+const ViewerInfoSizeWidth                     = 112.0
+const ViewerFullScreenRevealEdge              = 32.0
+const ViewerRetirePollInterval: Time.Duration = 16'ms
 
 const ViewerFullScreenRemovedFlags = SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.MaximizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
 const ViewerFullScreenAddedFlags   = SurfaceFlags.NoShadow | SurfaceFlags.TopMost
@@ -37,25 +39,28 @@ struct ViewerPreference
 
 struct ViewerInstance
 {
-    view:          #null *Wnd
-    commands:      #null *Wnd
-    revealMatch:   #null ViewerRevealMatch
-    findText:      #null ViewerFindText
-    isLoading:     #null ViewerIsLoading
-    retire:        #null ViewerRetire
-    details:       String
-    failureReason: String
+    view:                #null *Wnd
+    commands:            #null *Wnd
+    revealMatch:         #null ViewerRevealMatch
+    findText:            #null ViewerFindText
+    isLoading:           #null ViewerIsLoading
+    needsLoadingOverlay: #null ViewerNeedsLoadingOverlay
+    retire:              #null ViewerRetire
+    details:             String
+    failureReason:       String
 }
 
 impl ViewerInstance
 {
-    // Releases resources before GUI destruction keeps the hidden window alive until frame end.
-    mtd retireView()
+    // Requests resource release and reports whether GUI destruction may proceed.
+    mtd retireView()->bool
     {
         if !.view or !.retire do
-            return
-        .retire!(.view!)
+            return true
+        if !.retire!(.view!) do
+            return false
         .retire = null
+        return true
     }
 }
 
@@ -82,7 +87,10 @@ struct ViewerLoadingOverlay
     using wnd: Wnd
 
     #[Swag.Late]
-    spinner: *Spinner
+    {
+        spinnerPanel: *Wnd
+        spinner:      *Spinner
+    }
 }
 
 impl ViewerLoadingOverlay
@@ -90,9 +98,11 @@ impl ViewerLoadingOverlay
     func create(parent: *Wnd)->*ViewerLoadingOverlay
     {
         let result = Wnd.create'ViewerLoadingOverlay(parent, "sFileScope.loading")
-        result.wndFlags |= WndFlags.TopMost
-        result.backgroundStyle = .Transparent
-        result.spinner         = Spinner.create(result, {0, 0, 24, 24})
+        result.wndFlags                     |= WndFlags.TopMost
+        result.backgroundStyle              = .Transparent
+        result.spinnerPanel                 = Wnd.create'Wnd(result, {0, 0, 88, 88})
+        result.spinnerPanel.backgroundStyle = .Panel
+        result.spinner                      = Spinner.create(result.spinnerPanel, {16, 16, 56, 56})
         result.hide()
         return result
     }
@@ -101,12 +111,8 @@ impl ViewerLoadingOverlay
     mtd cover(rect: Math.Rectangle)
     {
         .setPosition(rect, computeLayout: false)
-        let size = .spinner.preferredSize
-        .spinner.setPosition({
-            Math.floor((rect.width - size.x) * 0.5),
-            Math.floor((rect.height - size.y) * 0.5),
-            size.x,
-            size.y}, computeLayout: false)
+        let size = .spinnerPanel.preferredSize
+        .spinnerPanel.setPosition({Math.floor((rect.width - size.x) * 0.5), Math.floor((rect.height - size.y) * 0.5), size.x, size.y}, computeLayout: false)
     }
 }
 
@@ -206,7 +212,9 @@ struct ViewerWindow
         searchBox:        *EditBox
         viewerCombo:      *ComboBox
         appearanceButton: *AppearanceButton
+        accentRail:       *Separator
         infoBar:          *ViewerInfoBar
+        infoFileGroup:    *Wnd
         infoIconLabel:    *Label
         infoNameLabel:    *Label
         infoStatsLabel:   *Label
@@ -226,27 +234,31 @@ struct ViewerWindow
         folderList:       *ListCtrl
     }
 
-    index:           ViewerIndex
-    icons:           IconSet
-    currentView:     #null *Wnd
-    currentCommands: #null *Wnd
-    choices:         Array'ViewerChoice
-    instances:       Array'ViewerInstance
-    activeChoiceIndex    = Swag.U32.Max
-    startupTimer:    #null *Timer
-    searchTimer:     #null *Timer
-    loadingTimer:    #null *Timer
-    searchStream:    File.FileStream
-    searchQuery:     String
-    searchCarry:     String
-    searchOffset:    u64
-    searchMatch:     u64 = Swag.U64.Max
-    searchWrapped:   bool
-    pendingFile:     String
-    currentFile:     String
-    siblings:        Array'String
-    siblingIndex:    u64
-    siblingsDirty        = true
+    index:            ViewerIndex
+    icons:            IconSet
+    currentView:      #null *Wnd
+    currentCommands:  #null *Wnd
+    outgoingView:     #null *Wnd
+    outgoingCommands: #null *Wnd
+    choices:          Array'ViewerChoice
+    instances:        Array'ViewerInstance
+    activeChoiceIndex      = Swag.U32.Max
+    startupTimer:     #null *Timer
+    searchTimer:      #null *Timer
+    loadingTimer:     #null *Timer
+    searchStream:     File.FileStream
+    searchQuery:      String
+    searchCarry:      String
+    searchOffset:     u64
+    searchMatch:      u64  = Swag.U64.Max
+    searchWrapped:    bool
+    pendingFile:      String
+    pendingEmpty:     String
+    pendingRemember:  bool = true
+    currentFile:      String
+    siblings:         Array'String
+    siblingIndex:     u64
+    siblingsDirty          = true
 
     // Whether next/previous and the folder list keep only the neighbours the current file's
     // viewer would open, so a reader flips through the pictures of a folder without landing on
@@ -256,6 +268,7 @@ struct ViewerWindow
     // Guards the one nested dispatch [[forwardKeyToViewer]] makes, so a key the viewer
     // declines falls back to file navigation instead of being offered again.
     forwardingViewerKey:       bool
+    playPauseKeyDown:          bool
     recent:                    Array'String
     preferences:               Array'ViewerPreference
     panelVisible:              bool
@@ -268,6 +281,8 @@ struct ViewerWindow
     fullScreenWasMaximized:    bool
     fullScreenRestorePosition: Math.Rectangle
     fullScreenRestoreFlags:    SurfaceFlags
+    fullScreenTopVisible:      bool
+    fullScreenBottomVisible:   bool
 }
 
 func reportViewerDetails(view: *Wnd, details: string)
@@ -285,11 +300,26 @@ func reportViewerDetails(view: *Wnd, details: string)
 // Lets a viewer wake the generic wait presentation when work starts again after being idle.
 func reportViewerLoadingChanged(view: *Wnd)
 {
-    (cast(*ViewerWindow) view.parent!).updateLoadingIndicator()
+    let window = cast(*ViewerWindow) view.parent!
+    window.commitViewerTransition(view)
+    window.updateLoadingIndicator()
 }
 
 impl IWnd for ViewerWindow
 {
+    mtd impl onMouseEvent(evt: *MouseEvent)
+    {
+        if evt.kind == .Move or evt.kind == .Enter do
+            .updateFullScreenChrome(evt.surfacePos)
+        evt.accepted = false
+    }
+
+    mtd impl onResizeEvent(evt: *ResizeEvent)
+    {
+        discard evt
+        .layoutFullScreenChrome()
+    }
+
     mtd impl onDragDropEvent(evt: *DragDropEvent)
     {
         let fileName = evt.data.singleFile()
@@ -310,6 +340,8 @@ impl IWnd for ViewerWindow
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
+        if .routePlaybackKey(evt) do
+            return
         if evt.kind != .Pressed
         {
             evt.accepted = false
@@ -331,7 +363,7 @@ impl IWnd for ViewerWindow
         elif evt.key == .Right and evt.modifiers == .None do
             .navigateOrForward(1, evt)
         elif evt.key == .F5 and !.currentFile.isEmpty() do
-            .openFile(.currentFile.toString())
+            .queueFile(.currentFile.toString())
         else do
             evt.accepted = false
     }
@@ -365,7 +397,12 @@ impl IWnd for ViewerWindow
         if !.pendingFile.isEmpty()
         {
             let fileName = #move .pendingFile
-            .openFile(fileName.toString())
+            .openFile(fileName.toString(), .pendingRemember)
+        }
+        elif !.pendingEmpty.isEmpty()
+        {
+            let message = #move .pendingEmpty
+            .showEmpty(message.toString())
         }
     }
 
@@ -497,6 +534,17 @@ impl ViewerWindow
             .fullScreen = true
             srfn.updateFlags(add: ViewerFullScreenAddedFlags, remove: ViewerFullScreenRemovedFlags)
             srfn.setPosition(Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds)
+            .accentRail.hide()
+            .commandBar.dockStyle = .None
+            .infoBar.dockStyle    = .None
+            .viewerBar.dockStyle  = .None
+            .commandBar.hide()
+            .infoBar.hide()
+            .viewerBar.hide()
+            .filePanel.hide()
+            .fullScreenTopVisible    = false
+            .fullScreenBottomVisible = false
+            .applyLayout()
         }
         else
         {
@@ -505,11 +553,64 @@ impl ViewerWindow
             srfn.setPosition(.fullScreenRestorePosition)
             if .fullScreenWasMaximized do
                 srfn.showMaximized()
+            .accentRail.show()
+            .commandBar.dockStyle = .Top
+            .infoBar.dockStyle    = .Top
+            .viewerBar.dockStyle  = .Bottom
+            .commandBar.show()
+            .infoBar.show(!.currentFile.isEmpty())
+            .viewerBar.show(.currentCommands != null)
+            .filePanel.show(.panelVisible)
+            .fullScreenTopVisible    = false
+            .fullScreenBottomVisible = false
+            .applyLayout()
         }
 
         .fullScreenButton.setChecked(.fullScreen)
         .fullScreenButton.setIcon(.icon(.fullScreen ? .ExitFullScreen : .FullScreen, ViewerGlyphSize))
         .fullScreenButton.toolTip = .fullScreen ? appStrings().ui_ExitFullScreen : appStrings().ui_FullScreen
+    }
+
+    // Reveals full-screen chrome only while the pointer is at the corresponding screen edge.
+    mtd updateFullScreenChrome(position: Math.Point)
+    {
+        if !.fullScreen do
+            return
+        let height = .clientRect().height
+        let top    = position.y <= ViewerFullScreenRevealEdge or (.fullScreenTopVisible and position.y <= ViewerBarHeight + ViewerInfoHeight)
+        let bottom = position.y >= height - ViewerFullScreenRevealEdge or (.fullScreenBottomVisible and position.y >= height - ViewerBarHeight)
+        if top == .fullScreenTopVisible and bottom == .fullScreenBottomVisible do
+            return
+        .fullScreenTopVisible    = top
+        .fullScreenBottomVisible = bottom
+        .layoutFullScreenChrome()
+    }
+
+    // Positions the transient bars over the content without changing its full-screen rectangle.
+    mtd layoutFullScreenChrome()
+    {
+        if !.fullScreen do
+            return
+        let rect = .clientRect()
+        .commandBar.show(.fullScreenTopVisible)
+        .infoBar.show(.fullScreenTopVisible and !.currentFile.isEmpty())
+        .viewerBar.show(.fullScreenBottomVisible and .currentCommands != null)
+        if .fullScreenTopVisible
+        {
+            .commandBar.setPosition({rect.x, rect.y, rect.width, ViewerBarHeight}, computeLayout: false)
+            .infoBar.setPosition({rect.x, rect.y + ViewerBarHeight, rect.width, ViewerInfoHeight}, computeLayout: false)
+            .commandBar.applyLayout()
+            .infoBar.applyLayout()
+            .commandBar.bringToFront()
+            .infoBar.bringToFront()
+        }
+
+        if .fullScreenBottomVisible
+        {
+            .viewerBar.setPosition({rect.x, rect.bottom() - ViewerBarHeight, rect.width, ViewerBarHeight}, computeLayout: false)
+            .viewerBar.applyLayout()
+            .viewerBar.bringToFront()
+        }
     }
 
     func create(parent: *Wnd, index: ViewerIndex)->*ViewerWindow
@@ -539,7 +640,7 @@ impl ViewerWindow
             window.showAbout()
         }
 
-        Separator.create(result, .Top, .Accent)
+        result.accentRail = Separator.create(result, .Top, .Accent)
 
         with result.commandBar = Wnd.create'Wnd(result, {0, 0, 0, ViewerBarHeight})
         {
@@ -652,29 +753,35 @@ impl ViewerWindow
             .hide()
         }
 
-        with result.infoSizeLabel = Label.create(result.infoBar, "", {0, 0, ViewerInfoSizeWidth, 32}, null, .SecondaryText)
-        {
-            .dockStyle = .Right
-            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
-            .setTextAlignment(.Right, .Center)
-        }
-
         with result.infoStatsLabel = Label.create(result.infoBar, "", {0, 0, ViewerInfoStatsWidth, 32}, null, .SecondaryText)
         {
             .dockStyle = .Right
-            .margin.z  = 16
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Right, .Center)
         }
 
-        with result.infoIconLabel = Label.create(result.infoBar, "", {0, 0, 24, 32})
+        with result.infoFileGroup = Wnd.create'Wnd(result.infoBar, {0, 0, 0, 32})
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .Transparent
+        }
+
+        with result.infoIconLabel = Label.create(result.infoFileGroup, "", {0, 0, 24, 32})
         {
             .dockStyle = .Left
             .margin.z  = 8
             .setIconAlignment(.Center, .Center)
         }
 
-        with result.infoNameLabel = Label.create(result.infoBar, "", {0, 0, 0, 32})
+        with result.infoSizeLabel = Label.create(result.infoFileGroup, "", {0, 0, ViewerInfoSizeWidth, 32}, null, .SecondaryText)
+        {
+            .dockStyle = .Right
+            .margin.x  = 12
+            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .setTextAlignment(.Left, .Center)
+        }
+
+        with result.infoNameLabel = Label.create(result.infoFileGroup, "", {0, 0, 0, 32})
         {
             .dockStyle = .Center
             .style.setFont(result.theme().createDefaultFont(13, .Bold), .Regular)
@@ -815,6 +922,18 @@ impl ViewerWindow
 
         result.loadingOverlay = ViewerLoadingOverlay.create(result)
 
+        result.hookOnChildEvent = func|window = result|(wnd, evt)
+        {
+            discard wnd
+            switch evt
+            {
+            case KeyEvent as key where window.routePlaybackKey(key): return true
+            case MouseEvent as mouse where mouse.kind == .Move or mouse.kind == .Enter: window.updateFullScreenChrome(mouse.surfacePos)
+            }
+
+            return false
+        }
+
         result.applyLanguage()
         result.refreshArtwork()
         result.applyLayout()
@@ -836,11 +955,14 @@ impl ViewerWindow
     }
 
     // Opens `fileName` after the surface has had a chance to paint its first frame.
-    mtd queueFile(fileName: string)
+    mtd queueFile(fileName: string, remember = true, retry = false)
     {
         .pendingFile = fileName
+        .pendingEmpty.clear()
+        .pendingRemember = remember
+        .updateLoadingIndicator()
         if !.startupTimer do
-            .startupTimer = .addTimer(1'ms)
+            .startupTimer = .addTimer(retry ? ViewerRetirePollInterval : 1'ms)
     }
 
     mtd chooseFile()
@@ -854,7 +976,7 @@ impl ViewerWindow
 
         let dialog = FileDlg.create(.surface!, options)
         if dialog.doModal() == Dialog.BtnOk do
-            .openFile(dialog.selectedPath())
+            .queueFile(dialog.selectedPath())
     }
 
     mtd showEmpty(message: string)
@@ -862,7 +984,15 @@ impl ViewerWindow
         .stopSearch()
         .searchQuery.clear()
         .searchMatch = Swag.U64.Max
-        .destroyInstances()
+        if !.destroyInstances()
+        {
+            .pendingEmpty = message
+            if !.startupTimer do
+                .startupTimer = .addTimer(ViewerRetirePollInterval)
+            return
+        }
+
+        .stopLoadingIndicator()
 
         .emptyLabel.setText(Format.toString("<b>%</b>", message))
         .emptyView.show()
@@ -888,20 +1018,87 @@ impl ViewerWindow
         .applyLayout()
     }
 
-    mtd destroyInstances()
+    // Cooperatively retires every viewer without waiting on the GUI thread.
+    mtd destroyInstances(preserveVisible = false)->bool
     {
-        .stopLoadingIndicator()
+        if !preserveVisible do
+            .discardOutgoingViewer()
+
         for &instance in .instances
         {
-            instance.retireView()
-            instance.commands?.destroy()
-            instance.view?.destroy()
+            if !instance.retireView() do
+                return false
+        }
+
+        let keepCurrent = preserveVisible and .currentView != null
+        for &instance in .instances
+        {
+            if keepCurrent and instance.view == .currentView
+            {
+                .outgoingView     = instance.view
+                .outgoingCommands = instance.commands
+                instance.view     = null
+                instance.commands = null
+            }
+            else
+            {
+                instance.commands?.destroy()
+                instance.view?.destroy()
+            }
         }
 
         .instances.clear()
-        .currentCommands = null
-        .currentView     = null
-        .viewerBar.hide()
+        if !keepCurrent
+        {
+            .currentCommands = null
+            .currentView     = null
+            .viewerBar.hide()
+        }
+
+        return true
+    }
+
+    // Releases the retired presentation once its replacement is ready to cover it.
+    private mtd discardOutgoingViewer()
+    {
+        if !.outgoingView do
+            return
+        let oldView     = .outgoingView!
+        let oldCommands = .outgoingCommands
+        .outgoingView     = null
+        .outgoingCommands = null
+        if .currentView == oldView do
+            .currentView = null
+        if oldCommands and .currentCommands == oldCommands do
+            .currentCommands = null
+        oldCommands?.destroy()
+        oldView.destroy()
+    }
+
+    // Swaps presentations only after the incoming progressive viewer has something to show.
+    mtd commitViewerTransition(expected: #null *Wnd = null)
+    {
+        if !.outgoingView or .activeChoiceIndex >= .instances.count do
+            return
+        let instance = &.instances[.activeChoiceIndex]
+        if !instance.view or (expected and instance.view != expected) do
+            return
+        if instance.needsLoadingOverlay and instance.needsLoadingOverlay!(instance.view!) do
+            return
+
+        .discardOutgoingViewer()
+        .currentView            = instance.view
+        .currentCommands        = instance.commands
+        .currentView!.dockStyle = .Center
+        if .currentCommands do
+            .currentCommands!.dockStyle = .Center
+        .currentView!.show()
+        .currentCommands?.show()
+        .viewerBar.show(.currentCommands != null and (!.fullScreen or .fullScreenBottomVisible))
+        .updateFileInfo(instance.details.toString())
+        .updateSearchAvailability()
+        .applyLayout()
+        .invalidate()
     }
 
     // Replaces a viewer that stopped after creation with the application's standard error surface.
@@ -913,24 +1110,33 @@ impl ViewerWindow
 
         for &instance, index in .instances where instance.view == view
         {
-            instance.retireView()
+            if !instance.retireView() do
+                return
             instance.commands?.destroy()
             instance.view?.destroy()
 
             let errorView = ViewerErrorView.create(me, message.toString())
-            errorView.dockStyle    = .Center
-            instance.view          = errorView
-            instance.commands      = null
-            instance.revealMatch   = null
-            instance.findText      = null
-            instance.isLoading     = null
-            instance.retire        = null
-            instance.failureReason = #move message
+            errorView.dockStyle          = .Center
+            instance.view                = errorView
+            instance.commands            = null
+            instance.revealMatch         = null
+            instance.findText            = null
+            instance.isLoading           = null
+            instance.needsLoadingOverlay = null
+            instance.retire              = null
+            instance.failureReason       = #move message
             instance.details.clear()
 
             if index != .activeChoiceIndex
             {
                 errorView.hide()
+                return
+            }
+
+            if .outgoingView
+            {
+                .commitViewerTransition(errorView)
+                .updateLoadingIndicator()
                 return
             }
 
@@ -948,27 +1154,30 @@ impl ViewerWindow
 
     // Discards a hidden progressive view before opening another renderer. HTML and Markdown
     // otherwise keep parsing and laying out a document the reader can no longer see.
-    private mtd retireActiveLoadingChoice(nextIndex: u32)
+    private mtd retireActiveLoadingChoice(nextIndex: u32)->bool
     {
         if .activeChoiceIndex == nextIndex or .activeChoiceIndex >= .instances.count do
-            return
+            return true
         let instance = &.instances[.activeChoiceIndex]
         if !instance.view or !instance.isLoading or !instance.isLoading!(instance.view!) do
-            return
+            return true
 
-        instance.retireView()
+        if !instance.retireView() do
+            return false
         instance.commands?.destroy()
         instance.view!.destroy()
-        instance.view        = null
-        instance.commands    = null
-        instance.revealMatch = null
-        instance.findText    = null
-        instance.isLoading   = null
-        instance.retire      = null
+        instance.view                = null
+        instance.commands            = null
+        instance.revealMatch         = null
+        instance.findText            = null
+        instance.isLoading           = null
+        instance.needsLoadingOverlay = null
+        instance.retire              = null
         instance.details.clear()
         .currentView     = null
         .currentCommands = null
         .viewerBar.hide()
+        return true
     }
 
     mtd stopLoadingIndicator()
@@ -984,18 +1193,22 @@ impl ViewerWindow
 
     mtd updateLoadingIndicator()
     {
-        var loading: bool
-        if .activeChoiceIndex < .instances.count
+        .commitViewerTransition()
+        var loading = !.pendingFile.isEmpty() or !.pendingEmpty.isEmpty()
+        var showOverlay: bool
+        if !loading and .activeChoiceIndex < .instances.count
         {
             let instance = &.instances[.activeChoiceIndex]
-            loading = instance.view and instance.isLoading and instance.isLoading!(instance.view!)
+            loading     = instance.view and instance.isLoading and instance.isLoading!(instance.view!)
+            showOverlay = loading and !.outgoingView and instance.needsLoadingOverlay and instance.needsLoadingOverlay!(instance.view!)
         }
 
-        if loading and .currentView
+        if showOverlay and .currentView
         {
             .loadingOverlay.cover(.currentView!.position)
             .loadingOverlay.show()
             .loadingOverlay.bringToFront()
+            .layoutFullScreenChrome()
         }
         else do
             .loadingOverlay.hide()
@@ -1017,14 +1230,15 @@ impl ViewerWindow
         let instance = &.instances[index]
         if instance.view
         {
-            .retireActiveLoadingChoice(index)
+            if !.retireActiveLoadingChoice(index) do
+                return false
             .currentCommands?.hide()
             .currentView?.hide()
             .currentView     = instance.view
             .currentCommands = instance.commands
             .currentView!.show()
             .currentCommands?.show()
-            .viewerBar.show(.currentCommands != null)
+            .viewerBar.show(.currentCommands != null and (!.fullScreen or .fullScreenBottomVisible))
             .activeChoiceIndex = index
             .viewerCombo.setSelectedIndex(index, notify: false)
             .updateFileInfo(instance.details.toString())
@@ -1060,15 +1274,16 @@ impl ViewerWindow
             if !next.failureReason.isEmpty()
             {
                 if next.view and next.retire do
-                    next.retire!(next.view!)
+                    discard next.retire!(next.view!)
                 next.commands?.destroy()
                 next.view?.destroy()
-                next.commands    = null
-                next.view        = ViewerErrorView.create(me, next.failureReason.toString())
-                next.revealMatch = null
-                next.findText    = null
-                next.isLoading   = null
-                next.retire      = null
+                next.commands            = null
+                next.view                = ViewerErrorView.create(me, next.failureReason.toString())
+                next.revealMatch         = null
+                next.findText            = null
+                next.isLoading           = null
+                next.needsLoadingOverlay = null
+                next.retire              = null
                 next.details.clear()
             }
         }
@@ -1076,32 +1291,66 @@ impl ViewerWindow
         if !next.view do
             return false
 
-        .retireActiveLoadingChoice(index)
-        .currentCommands?.hide()
-        .currentView?.hide()
-        .currentView            = next.view
-        .currentCommands        = next.commands
-        .activeChoiceIndex      = index
-        .currentView!.dockStyle = .Center
-        if .currentCommands
+        if !.retireActiveLoadingChoice(index)
         {
-            .currentCommands!.dockStyle = .Center
-            .viewerBar.show()
+            if next.retire do
+                discard next.retire!(next.view!)
+            next.commands?.destroy()
+            next.view!.destroy()
+            return false
         }
-        else do
+
+        let stage = .outgoingView != null
+        if stage
+        {
+            next.view!.dockStyle = .None
+            next.view!.setPosition(.outgoingView!.position, computeLayout: false)
+            if next.commands
+            {
+                next.commands!.dockStyle = .None
+                if .outgoingCommands do
+                    next.commands!.setPosition(.outgoingCommands!.position, computeLayout: false)
+            }
+
+            .outgoingView!.bringToFront()
+            .outgoingCommands?.bringToFront()
+        }
+        else
+        {
+            .currentCommands?.hide()
+            .currentView?.hide()
+            .currentView     = next.view
+            .currentCommands = next.commands
+        }
+
+        .activeChoiceIndex = index
+        if !stage do
+            next.view!.dockStyle = .Center
+        if next.commands
+        {
+            if !stage do
+                next.commands!.dockStyle = .Center
+            if !stage do
+                .viewerBar.show(!.fullScreen or .fullScreenBottomVisible)
+        }
+        elif !stage do
             .viewerBar.hide()
-        instance.view          = .currentView
-        instance.commands      = .currentCommands
-        instance.revealMatch   = next.revealMatch
-        instance.findText      = next.findText
-        instance.isLoading     = next.isLoading
-        instance.retire        = next.retire
-        instance.details       = #move next.details
-        instance.failureReason = #move next.failureReason
+        instance.view                = next.view
+        instance.commands            = next.commands
+        instance.revealMatch         = next.revealMatch
+        instance.findText            = next.findText
+        instance.isLoading           = next.isLoading
+        instance.needsLoadingOverlay = next.needsLoadingOverlay
+        instance.retire              = next.retire
+        instance.details             = #move next.details
+        instance.failureReason       = #move next.failureReason
         .viewerCombo.setSelectedIndex(index, notify: false)
         .updateFileInfo(instance.details.toString())
         .updateSearchAvailability()
-        .applyLayout()
+        if stage do
+            .commitViewerTransition(next.view)
+        else do
+            .applyLayout()
         .updateLoadingIndicator()
         .invalidate()
         return true
@@ -1180,7 +1429,45 @@ impl ViewerWindow
         .navigate(delta)
     }
 
-    private mtd forwardKeyToViewer(evt: *KeyEvent)->bool
+    // Routes playback keys before a focused child can consume them. One physical press toggles
+    // once even when the operating system emits repeated pressed transitions while it is held.
+    mtd routePlaybackKey(evt: *KeyEvent)->bool
+    {
+        if .forwardingViewerKey or evt.modifiers != .None do
+            return false
+
+        let toggle = evt.key == .Space or evt.key == .MediaPlayPause
+        if toggle and evt.kind == .Released
+        {
+            let handled = .playPauseKeyDown
+            .playPauseKeyDown = false
+            return handled
+        }
+
+        if evt.kind != .Pressed do
+            return false
+        if .activeChoiceIndex >= .choices.count do
+            return false
+        let key            = .choices[.activeChoiceIndex].key.toString()
+        let playbackViewer = key == "video" or key == "sound" or key == "image"
+        if !playbackViewer do
+            return false
+
+        if toggle
+        {
+            if .playPauseKeyDown do
+                return true
+            let handled = .forwardKeyToViewer(evt, skipFocused: false, takeFocus: false)
+            .playPauseKeyDown = handled
+            return handled
+        }
+
+        if evt.key != .MediaStop and evt.key != .VolumeMute and evt.key != .M do
+            return false
+        return .forwardKeyToViewer(evt, skipFocused: false, takeFocus: false)
+    }
+
+    private mtd forwardKeyToViewer(evt: *KeyEvent, skipFocused = true, takeFocus = true)->bool
     {
         let target = .viewerFocusTarget()
         if !target do
@@ -1188,7 +1475,7 @@ impl ViewerWindow
 
         // A key the viewer's key owner already saw and declined must not be offered twice.
         let focused = .focusedWindow()
-        if focused and (focused! == target! or target!.isOwnerOf(focused!)) do
+        if skipFocused and focused and (focused! == target! or target!.isOwnerOf(focused!)) do
             return false
 
         let view = .currentView
@@ -1199,7 +1486,7 @@ impl ViewerWindow
 
         // A declined key bubbles back here and navigates to another file, which destroys the
         // viewer the key was offered to; only a viewer that is still showing takes the keyboard.
-        if copy.accepted and .currentView == view do
+        if takeFocus and copy.accepted and .currentView == view do
             target!.setFocus()
         return copy.accepted
     }
@@ -1325,7 +1612,7 @@ impl ViewerWindow
         if .activeChoiceIndex < .choices.count do
             .infoIconLabel.setIcon(.icon(.choices[.activeChoiceIndex].icon))
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
-        .infoBar.show()
+        .infoBar.show(!.fullScreen or .fullScreenTopVisible)
     }
 
     mtd selectViewer(index: u32)
@@ -1404,7 +1691,12 @@ impl ViewerWindow
             return
         }
 
-        .destroyInstances()
+        if !.destroyInstances(preserveVisible: true)
+        {
+            .queueFile(fileName, remember, retry: true)
+            return
+        }
+
         var absolute = catch Path.absolute(fileName) as pathError
         if pathError != null do
             absolute = fileName
@@ -1486,7 +1778,7 @@ impl ViewerWindow
     {
         .panelVisible = visible
         .filesButton.setChecked(visible)
-        if visible
+        if visible and !.fullScreen
         {
             .refreshFileLists()
             .filePanel.show()
@@ -1657,7 +1949,7 @@ impl ViewerWindow
             return
         let fileName = files[index].toString()
         if .currentFile != fileName do
-            .openFile(fileName, remember: list != .recentList)
+            .queueFile(fileName, remember: list != .recentList)
     }
 
     mtd rebuildSiblings()
@@ -1718,6 +2010,6 @@ impl ViewerWindow
             index = cast(s64) .siblings.count - 1
         elif index >= cast(s64) .siblings.count do
             index = 0
-        .openFile(.siblings[cast(u64) index].toString())
+        .queueFile(.siblings[cast(u64) index].toString())
     }
 }

@@ -1,11 +1,16 @@
+//! Format: WebP still-image decoder component.
+//! Supported: RIFF WebP containing lossy VP8 or lossless VP8L still images, including supported alpha chunks.
+//! Not supported: Animated WebP and unsupported alpha preprocessing or compression methods.
+//! Role: This file owns VP8 frame headers, entropy partitions, and macroblock traversal.
+//
 #global namespace Webp
 
 using Core, Core.Errors
 
-/*
-    The VP8 decoder is derived from golang.org/x/image/vp8.
-    See webp.LICENSE for the original BSD license.
-*/
+// @LICENCE: BSD-3-Clause
+// @ORIGIN: Go x/image VP8 decoder, https://github.com/golang/image/tree/master/vp8
+// @MODIFIED: Ported and modified for Swag.
+// @NOTICE: /bin/THIRDPARTY.md#go-x-image
 
 const VP8_UNIFORM_PROB     = 128'u8
 const VP8_SEGMENTS         = 4

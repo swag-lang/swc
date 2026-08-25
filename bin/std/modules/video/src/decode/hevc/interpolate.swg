@@ -1,3 +1,8 @@
+//! Format: H.265/HEVC decoder component.
+//! Supported: Progressive Main and Main 10 streams: 8- and 10-bit 4:2:0, I/P/B slices, tiles, wavefront parallel processing, dependent slice segments, sample adaptive offset, and in-loop deblocking.
+//! Not supported: 4:2:2 and 4:4:4 chroma, bit depths above 10, pulse code modulation blocks, separate colour planes, and the range, multilayer, 3D, and screen content extensions.
+//! Role: This file owns the luma and chroma sample interpolation filters.
+//
 #global namespace Hevc
 #global internal
 

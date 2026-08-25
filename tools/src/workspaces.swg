@@ -228,9 +228,15 @@ private func packageApplication(context: *Context, options: *Options, name: stri
 
     try copyBeside(Path.combine(vendor.toString(), "runtime", "winfsp-x64.dll").toString(), appDir.toString(), "winfsp-x64.dll")
     try copyBeside(Path.combine(vendor.toString(), "runtime", "winfsp-x64.sys").toString(), appDir.toString(), "winfsp-x64.sys")
-    try copyBeside(Path.combine(vendor.toString(), "LICENSE.txt").toString(), appDir.toString(), "WinFsp-LICENSE.txt")
-    try copyBeside(Path.combine(moduleDir.toString(), "LICENSE.md").toString(), appDir.toString(), "LICENSE.md")
-    try copyBeside(Path.combine(moduleDir.toString(), "THIRD-PARTY-NOTICES.md").toString(), appDir.toString(), "THIRD-PARTY-NOTICES.md")
+    try copyBeside(Path.combine(moduleDir.toString(), "LICENCE.md").toString(), appDir.toString(), "LICENCE.md")
+    try copyBeside(Path.combine(moduleDir.toString(), "THIRDPARTY.md").toString(), appDir.toString(), "THIRDPARTY.md")
+
+    for obsoleteName in ["LICENSE.md", "THIRD-PARTY-NOTICES.md", "WinFsp-LICENSE.txt"]
+    {
+        let obsolete = Path.combine(appDir.toString(), obsoleteName)
+        if File.exists(obsolete) do
+            discard catch File.delete(obsolete.toString())
+    }
 
     let installer = Path.combine(appDir.toString(), "winfsp-2.2.26215.msi")
     if File.exists(installer) do

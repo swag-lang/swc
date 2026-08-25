@@ -1,9 +1,7 @@
-/*
-    :LICENCE
-    This code is based on the Clipper library (http://www.angusj.com)
-    The original code has been modified for Swag
-    See LICENCE.md for the corresponding licence.
-*/
+// @LICENCE: BSL-1.0
+// @ORIGIN: Clipper by Angus Johnson, https://www.angusj.com/clipper2/Docs/Overview.htm
+// @MODIFIED: Ported and modified for Swag.
+// @NOTICE: /bin/THIRDPARTY.md#clipper
 
 #global namespace Clipper
 

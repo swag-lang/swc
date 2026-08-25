@@ -1,9 +1,7 @@
-/*
-    :LICENCE
-    See LICENCE.md for the corresponding licence.
-    Copyright (c) 2011 Google, Inc.
-    CityHash, by Geoff Pike and Jyrki Alakuijala
-*/
+// @LICENCE: MIT
+// @ORIGIN: CityHash by Geoff Pike and Jyrki Alakuijala, https://github.com/google/cityhash
+// @MODIFIED: Ported and modified for Swag.
+// @NOTICE: /bin/THIRDPARTY.md#cityhash
 
 #global namespace Hash
 

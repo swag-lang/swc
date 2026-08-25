@@ -18090,38 +18090,38 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">theme</span>()-&gt;<span class="SCst"><a href="#Gui_HtmlStyle">HtmlStyle</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_clearSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.clearSelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_clearSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L753">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_clearSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.clearSelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_clearSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L756">src</a></div>
 <p>Empties the selection.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clearSelection</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_copySelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.copySelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_copySelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L798">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_copySelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.copySelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_copySelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L801">src</a></div>
 <p>Puts the selected text on the clipboard, and reports whether there was one.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">copySelection</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_createFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.createFile</span> <a class="api-item-permalink" href="#Gui_HtmlView_createFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1113">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_createFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.createFile</span> <a class="api-item-permalink" href="#Gui_HtmlView_createFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1116">src</a></div>
 <p>Creates a view and progressively loads an HTML file.</p>
 <p>The encoding is decided from the file itself — its byte-order mark, its <span class="code-inline">&lt;meta charset&gt;</span>, or its bytes — so a legacy code page 1252 page reads as the accented text it means. File-open and decoding failures remain visible in the document and are also exposed through <a href="#Gui_HtmlView_failureReason">Gui.HtmlView.failureReason</a> and <a href="#Gui_HtmlView_sigLoadFailed">Gui.HtmlView.sigLoadFailed</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createFile</span>(contentParent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, fileName: <span class="STpe">string</span>, documentStyle: <span class="SCst"><a href="#Gui_HtmlStyle">HtmlStyle</a></span> = {})-&gt;*<span class="SCst"><a href="#Gui_HtmlView">HtmlView</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_createText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.createText</span> <a class="api-item-permalink" href="#Gui_HtmlView_createText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1082">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_createText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.createText</span> <a class="api-item-permalink" href="#Gui_HtmlView_createText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1085">src</a></div>
 <p>Creates a view and renders the complete in-memory HTML source.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createText</span>(contentParent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, source: <span class="STpe">string</span>, documentStyle: <span class="SCst"><a href="#Gui_HtmlStyle">HtmlStyle</a></span> = {})-&gt;*<span class="SCst"><a href="#Gui_HtmlView">HtmlView</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_elementById" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.elementById</span> <a class="api-item-permalink" href="#Gui_HtmlView_elementById" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L556">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_elementById" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.elementById</span> <a class="api-item-permalink" href="#Gui_HtmlView_elementById" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L559">src</a></div>
 <p>Returns the element carrying an identifier, or <span class="code-inline">HtmlNoNode</span> when the document has none.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">elementById</span>(id: <span class="STpe">string</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_findText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.findText</span> <a class="api-item-permalink" href="#Gui_HtmlView_findText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L687">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_findText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.findText</span> <a class="api-item-permalink" href="#Gui_HtmlView_findText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L690">src</a></div>
 <p>Scrolls to the next node whose text contains <span class="code-inline">text</span>, wrapping once at the end.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">findText</span>(text: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_hasSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.hasSelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_hasSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L750">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_hasSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.hasSelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_hasSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L753">src</a></div>
 <p>Reports whether the reader selected something.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">hasSelection</span>()-&gt;<span class="STpe">bool</span> =&gt; .<span class="SFct">selectionRange</span>()</span></div>
 </section>
@@ -18131,29 +18131,29 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isLoading</span>()-&gt;<span class="STpe">bool</span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_navigateToFragment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.navigateToFragment</span> <a class="api-item-permalink" href="#Gui_HtmlView_navigateToFragment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L569">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_navigateToFragment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.navigateToFragment</span> <a class="api-item-permalink" href="#Gui_HtmlView_navigateToFragment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L572">src</a></div>
 <p>Scrolls to the element a document-internal reference names.</p>
 <p>Returns false when the reference points outside the document, which is what tells the caller to treat the link as a destination of its own.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">navigateToFragment</span>(url: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_revealFileOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.revealFileOffset</span> <a class="api-item-permalink" href="#Gui_HtmlView_revealFileOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L933">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_revealFileOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.revealFileOffset</span> <a class="api-item-permalink" href="#Gui_HtmlView_revealFileOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L936">src</a></div>
 <p>Repositions a streamed document on the node a byte offset belongs to.</p>
 <p>The document is read up to that offset first when it is not there yet, so a match reported by a search over the raw file always lands on what draws it. An empty <span class="code-inline">text</span> only scrolls.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">revealFileOffset</span>(offset: <span class="STpe">u64</span>, text: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_selectAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.selectAll</span> <a class="api-item-permalink" href="#Gui_HtmlView_selectAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L765">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_selectAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.selectAll</span> <a class="api-item-permalink" href="#Gui_HtmlView_selectAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L768">src</a></div>
 <p>Selects the whole document text.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectAll</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_selectedText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.selectedText</span> <a class="api-item-permalink" href="#Gui_HtmlView_selectedText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L789">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_selectedText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.selectedText</span> <a class="api-item-permalink" href="#Gui_HtmlView_selectedText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L792">src</a></div>
 <p>Returns the selected text, one space per soft line break and one line per block.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectedText</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_setDocumentStyle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.setDocumentStyle</span> <a class="api-item-permalink" href="#Gui_HtmlView_setDocumentStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L957">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_setDocumentStyle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.setDocumentStyle</span> <a class="api-item-permalink" href="#Gui_HtmlView_setDocumentStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L960">src</a></div>
 <p>Replaces the document defaults and restyles what is already loaded.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setDocumentStyle</span>(documentStyle: <span class="SCst"><a href="#Gui_HtmlStyle">HtmlStyle</a></span>)</span></div>
 </section>
@@ -22278,7 +22278,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.189</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.214</div>
 </footer>
 </section>
 </main>

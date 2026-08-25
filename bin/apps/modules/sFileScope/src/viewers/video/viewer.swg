@@ -4,6 +4,151 @@ using Core, Pixel, Gui, Video, Audio
 
 private const VideoGlyphSize = 18.0
 private const VideoSeekSeconds = 10.0
+private const VideoSeekOverlaySize = Math.Point{136, 88}
+private const VideoSeekOverlayLifetime: Time.Duration = 650'ms
+
+// Briefly reports a relative timeline jump over the picture itself.
+//
+// The tile is painted from the active theme rather than from the movie palette, so it remains
+// legible over both bright and dark frames. Presentation transforms move the complete sign in
+// the direction of travel without disturbing layout or hit testing.
+internal struct VideoSeekOverlay
+{
+    using wnd: Wnd
+
+    #[Swag.Late]
+    commands:     *ViewerCommandBar
+    backwardIcon: Icon
+    forwardIcon:  Icon
+    text:         String
+    direction:    s32
+    fontReady:    bool
+    timer:        #null *Timer
+    offsetAni:    AnimationHandle
+    scaleAni:     AnimationHandle
+    opacityAni:   AnimationHandle
+}
+
+private impl IWnd for VideoSeekOverlay
+{
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        let painter = evt.paintContext.painter
+        let rect    = .clientRect()
+        let theme   = .theme()
+        let colors  = .themeColors()
+        let ink     = colors.text
+
+        theme.drawSubRect(painter, rect, &theme.rects.selectionBox_Bk, colors.wnd_Bk.withAlphaF32(0.94))
+
+        let icon     = .direction < 0 ? .backwardIcon : .forwardIcon
+        let font     = .font().regular!
+        let textSize = Painter.measureString(.text.toString(), font)
+        let gap      = 8'f32
+        let width    = icon.sizeX + gap + textSize.width
+        let iconX    = Math.floor(rect.horzCenter() - width * 0.5)
+        let iconY    = Math.floor(rect.vertCenter() - icon.sizeY * 0.5)
+        let textX    = iconX + icon.sizeX + gap
+        let textY    = Math.floor(rect.vertCenter() - font.height * 0.5)
+
+        icon.paint(painter, iconX, iconY, ink)
+        painter.drawString(textX, textY, .text.toString(), font, ink)
+    }
+
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer != .timer
+        {
+            evt.accepted = false
+            return
+        }
+
+        .removeTimer(evt.timer)
+        .timer = null
+        .hide()
+        .resetPresentation()
+    }
+
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    {
+        discard evt
+        if .timer do
+            .removeTimer(.timer!)
+    }
+}
+
+internal impl VideoSeekOverlay
+{
+    func create(parent: *Wnd, commands: *ViewerCommandBar)->*VideoSeekOverlay
+    {
+        let result = Wnd.create'VideoSeekOverlay(parent, "sFileScope.video.seek", {0, 0, VideoSeekOverlaySize.x, VideoSeekOverlaySize.y})
+        result.wndFlags |= WndFlags.TopMost | WndFlags.Disabled
+        result.commands = commands
+        result.hide()
+        return result
+    }
+
+    // Restarts the feedback for one signed jump in seconds.
+    mtd showSeek(seconds: f64)
+    {
+        if seconds == 0 do
+            return
+
+        let animator = &.app().animator
+        if animator.isActive(.offsetAni) do
+            animator.cancel(.offsetAni)
+        if animator.isActive(.scaleAni) do
+            animator.cancel(.scaleAni)
+        if animator.isActive(.opacityAni) do
+            animator.cancel(.opacityAni)
+        if .timer do
+            .removeTimer(.timer!)
+
+        .direction = seconds < 0 ? -1 : 1
+        .text      = Format.toString(seconds < 0 ? "-%" : "+%", cast(u64) Math.round(Math.abs(seconds)))
+        if !.fontReady
+        {
+            .style.setFont(.theme().createDefaultFont(24, .Bold), .Regular)
+            .fontReady = true
+        }
+
+        if .direction < 0 and !.backwardIcon.isValid() do
+            .backwardIcon = .commands.icon(.SeekBackward, 30)
+        if .direction > 0 and !.forwardIcon.isValid() do
+            .forwardIcon = .commands.icon(.SeekForward, 30)
+        let rect = .parent!.clientRect()
+        let size = .preferredSize
+        .setPosition({Math.floor((rect.width - size.x) * 0.5), Math.floor((rect.height - size.y) * 0.5), size.x, size.y}, computeLayout: false)
+        .resetPresentation()
+        .show()
+        .bringToFront()
+        .timer = .addTimer(VideoSeekOverlayLifetime)
+
+        // Reduced motion keeps the information but removes its travel and zoom.
+        if .app().isReducedMotion() do
+            return
+
+        let direction = cast(f32) .direction
+        .setPresentationOffset({-10 * direction, 0})
+        .setPresentationScale({0.9, 0.9})
+
+        var travel: AnimationOptions
+        travel.duration = 600'ms
+        travel.easing   = .EaseOut
+        .offsetAni      = animator.animatePoint(me, AnimationChannel.from("sFileScope.VideoSeek.Offset"), {-10 * direction, 0}, {14 * direction, 0}, func(wnd, value) { wnd.setPresentationOffset(value); }, travel)
+
+        var scale: AnimationOptions
+        scale.duration = 180'ms
+        scale.easing   = .EaseOut
+        .scaleAni      = animator.animatePoint(me, AnimationChannel.from("sFileScope.VideoSeek.Scale"), {0.9, 0.9}, {1, 1}, func(wnd, value) { wnd.setPresentationScale(value); }, scale)
+
+        var fade: AnimationOptions
+        fade.delay    = 350'ms
+        fade.duration = 250'ms
+        fade.easing   = .EaseIn
+        .opacityAni   = animator.animateF32(me, AnimationChannel.from("sFileScope.VideoSeek.Opacity"), 1, 0, func(wnd, value) { wnd.setPresentationOpacity(value); }, fade)
+    }
+}
 
 // How far behind the clock playback is allowed to fall before it gives up and jumps.
 //
@@ -19,6 +164,7 @@ private const VideoResyncSeconds = 2.0
 // would jitter the presentation by the size of one output buffer. Playback therefore runs its own
 // clock and only re-anchors it when the two have actually separated.
 private const VideoAudioDriftSeconds = 0.1
+private const VideoBackdropColors = "view_Bk 0xFF000000"
 
 // How far past the clock a resync jump may land.
 //
@@ -90,6 +236,16 @@ internal struct VideoViewer
         imageView:      *ImageView
     }
 
+    seekOverlay: #null *VideoSeekOverlay
+
+    // Opening and decoding run on the same persistent worker, preserving codec allocator and
+    // thread affinity. `openState` is zero while opening, one on success and two on failure.
+    openFileName: String
+    pendingVideo: Reader
+    openFailure:  String
+    openState:    u32
+    openFinished: bool
+
     // Opening retains bounded metadata while progressive indexes and payloads stay in the file.
     video:               Reader
     planar:              bool     // The codec hands its pictures over without converting them.
@@ -143,20 +299,22 @@ internal struct VideoViewer
     resumeAudioAfterSeek: bool
     audioRangePending:    bool     // The progressive sound index does not reach the picture yet.
 
-    timer:         #null *Timer
-    clock:         Time.Stopwatch
-    elapsed:       f64
-    frameIndex:    u64
-    playing:       bool
-    muted:         bool
+    timer:                #null *Timer
+    clock:                Time.Stopwatch
+    elapsed:              f64
+    frameIndex:           u64
+    playing:              bool
+    muted:                bool
     volume = 1'f32
-    details:       String
-    metadataReady: bool
-    audioReady:    bool
-    timelineReady: bool
+    details:              String
+    metadataReady:        bool
+    audioReady:           bool
+    timelineReady:        bool
+    timelineChanging:     bool
     reportDetails:        #null ViewerReportDetails
     reportFailure:        #null ViewerReportFailure
     reportLoadingChanged: #null ViewerReportLoadingChanged
+    retireRequested:      bool
     retired:              bool
 
     // Pixel column the timeline thumb was last pushed to, so a value that would not move it is
@@ -166,27 +324,23 @@ internal struct VideoViewer
 
 private impl VideoViewer
 {
-    // Stops every external owner before GUI deletion keeps this hidden viewer alive until frame end.
-    mtd retire()
+    // Finishes teardown after the decoder thread has stopped touching the reader and frame queue.
+    mtd finishRetire()
     {
         if .retired do
             return
-        .retired = true
 
-        if .timer
-        {
-            .removeTimer(.timer!)
-            .timer = null
-        }
-
-        if .decodeThread.isValid()
-        {
-            .video.requestCancel()
-            .decodeThread.safeForceEnd()
-            .decodeWake.signal()
+        if .decodeThread.isValid() do
             .decodeThread.wait()
+        if .decodeWake.isValid() do
             .decodeWake.release()
-        }
+
+        // GUI destruction is deferred until the replacement has a picture to present. Release
+        // the run-ahead queue now, but leave the displayed image alive so the content does not
+        // flash to its background between two movies.
+        .slots.clear()
+        .ready.clear()
+        .freeSlots.clear()
 
         if .voice
         {
@@ -201,7 +355,60 @@ private impl VideoViewer
             .audioEngineAcquired = false
         }
 
+        .pendingVideo.close()
         .video.close()
+        .retired = true
+    }
+
+    // Requests teardown and reports when deferred GUI destruction may release this view.
+    mtd retire()->bool
+    {
+        if .retired do
+            return true
+        if !.retireRequested
+        {
+            .retireRequested = true
+            if .timer
+            {
+                .removeTimer(.timer!)
+                .timer = null
+            }
+
+            // A voice borrows its SoundFile from the reader. Release it before the decoder
+            // thread closes that reader in the background.
+            if .voice
+            {
+                catch .voice!.stop()
+                .voice!.destroy()
+                .voice = null
+                .audio = null
+            }
+
+            if .audioEngineAcquired
+            {
+                releaseSoundEngine()
+                .audioEngineAcquired = false
+            }
+
+            if .decodeThread.isValid()
+            {
+                .video.requestCancel()
+                .decodeThread.safeForceEnd()
+                .decodeWake.signal()
+            }
+        }
+
+        if .decodeThread.isValid() and !.decodeThread.isDone() do
+            return false
+        .finishRetire()
+        return true
+    }
+
+    // Window destruction is the terminal fallback; unlike file selection it may wait.
+    mtd retireBlocking()
+    {
+        discard .retire()
+        .finishRetire()
     }
 
     mtd retranslate()
@@ -279,7 +486,12 @@ internal impl VideoViewer
             .refreshTransport()
             if .reportFailure do
                 .reportFailure!(me, Errors.message(playError))
+            return
         }
+
+        .audioClockLast = .audio!.timelineStartSeconds() + .voice!.playbackPositionSeconds()
+        .elapsed        = .audioClockLast
+        .clock.restart()
     }
 
     mtd refreshTransport()
@@ -302,18 +514,21 @@ internal impl VideoViewer
         // position nobody can tell apart. What that costs is not the slider — it is that the
         // repainted region then spans from the command bar to the picture, so the surface repaints
         // its whole hierarchy and chrome instead of the one view that changed.
-        let width = .timeline.position.width
-        if duration <= 0 or width <= 0
+        if !.timelineChanging
         {
-            .timeline.setValueWithoutGesture(cast(f32) seconds)
-        }
-        else
-        {
-            let pixel = cast(s32) (seconds / duration * cast(f64) width)
-            if pixel != .timelinePixel
+            let width = .timeline.position.width
+            if duration <= 0 or width <= 0
             {
-                .timelinePixel = pixel
                 .timeline.setValueWithoutGesture(cast(f32) seconds)
+            }
+            else
+            {
+                let pixel = cast(s32) (seconds / duration * cast(f64) width)
+                if pixel != .timelinePixel
+                {
+                    .timelinePixel = pixel
+                    .timeline.setValueWithoutGesture(cast(f32) seconds)
+                }
             }
         }
 
@@ -330,6 +545,14 @@ internal impl VideoViewer
     mtd seekRelative(seconds: f64)
     {
         .seekSeconds(.currentSeconds() + seconds)
+        .showSeekFeedback(seconds)
+    }
+
+    mtd showSeekFeedback(seconds: f64)
+    {
+        if !.seekOverlay do
+            .seekOverlay = VideoSeekOverlay.create(me, .commands)
+        .seekOverlay!.showSeek(seconds)
     }
 
     mtd setMuted(muted: bool)
@@ -357,24 +580,37 @@ internal impl VideoViewer
         if index >= .video.audioTrackCount() do
             fail BadParameterError{"video audio-track index exceeds the track count"}
 
-        let sound      = .video.audioTrack(index)!
+        let sound = .video.audioTrack(index)!
         if .voice and index == .audioTrackIndex and .audio == sound do
             return
-        let position    = .currentSeconds()
-        let wasPlaying  = .playing
-        let coversRange = videoSoundCovers(sound, position)
-        let newVoice    = Voice.create(sound)!
-        defer #fail newVoice.destroy()
+        let position      = .currentSeconds()
+        let wasPlaying    = .playing
+        let coversRange   = videoSoundCovers(sound, position)
+        let shouldPlay    = wasPlaying and coversRange and !.resumeAudioAfterSeek
+        let restoreOld    = wasPlaying and .voice != null and !.audioRangePending and !.resumeAudioAfterSeek
+        let newVoice      = Voice.create(sound)!
+        let oldVoice      = .voice
+        var restoreNeeded = restoreOld
+        defer #fail
+        {
+            newVoice.destroy()
+            if restoreNeeded do
+                catch oldVoice!.play()
+        }
+
         newVoice.setVolume(.muted ? 0 : .volume)
         if coversRange do
             newVoice.seekSampleFrame(videoSoundSample(sound, position))
-        if wasPlaying and coversRange and !.resumeAudioAfterSeek do
+        if oldVoice do
+            oldVoice!.pause()
+        if shouldPlay do
             newVoice.play()
 
-        if .voice
+        restoreNeeded = false
+        if oldVoice
         {
-            catch .voice!.stop()
-            .voice!.destroy()
+            catch oldVoice!.stop()
+            oldVoice!.destroy()
         }
 
         .audio             = sound
@@ -382,6 +618,12 @@ internal impl VideoViewer
         .audioTrackIndex   = index
         .audioRangePending = !coversRange
         .audioClockLast    = -1
+        if shouldPlay
+        {
+            .elapsed = position
+            .clock.restart()
+        }
+
         .refreshDetails()
     }
 
@@ -547,11 +789,6 @@ internal impl VideoViewer
     // and the loss is bounded to pictures whose time has already gone.
     mtd publishHead(catchUpTo: u64 = 0, catchUp = false)->bool
     {
-        // App tests deliberately do not start global worker threads. Preserve their
-        // deterministic behavior while the shipped application always produces in background.
-        if Jobs.isSynchronous() do
-            .produceUntilBlocked()
-
         var chosen = VideoNoSlot
         var failure: String
         {
@@ -594,7 +831,7 @@ internal impl VideoViewer
         if chosen == VideoNoSlot do
             return false
 
-        let notifyLoading = .hasFrame and .awaitingFrame
+        let notifyLoading = .awaitingFrame
         .frameIndex    = .slots[cast(u64) chosen].index
         .hasFrame      = true
         .awaitingFrame = false
@@ -611,10 +848,11 @@ internal impl VideoViewer
             // rather than the position it asked for. Sound is the master clock when there is
             // one, and its timeline is never moved to conceal video decode latency.
             .anchorPending = false
-            if .playing and !.voice
+            if .playing
             {
                 .elapsed = .frameSeconds(.frameIndex)
-                .clock.restart()
+                if !.voice do
+                    .clock.restart()
             }
         }
 
@@ -666,13 +904,15 @@ internal impl VideoViewer
             return
         let target      = count ? Math.min(index, count - 1) : index
         let resumeAudio = .playing and .voice != null
-        .resumeAudioAfterSeek = false
+        .resumeAudioAfterSeek = resumeAudio
         if resumeAudio do
             catch .voice!.pause()
-        if !.showFrame(target) do
-            return
-
+        if .playing do
+            .clock.reset()
         .elapsed = .frameSeconds(target)
+
+        // Position sound before publishing a picture that may already be queued. Otherwise an
+        // immediate publish can resume the old sample position and leave the clocks separated.
         if .voice and .audio
         {
             let coversRange = videoSoundCovers(.audio!, .elapsed)
@@ -691,20 +931,16 @@ internal impl VideoViewer
                         .reportFailure!(me, Errors.message(seekError))
                     return
                 }
-
-                if resumeAudio
-                {
-                    if .frameIndex != target do
-                        .resumeAudioAfterSeek = true
-                    else do
-                        .resumeAudio()
-                }
             }
         }
 
+        if !.showFrame(target) do
+            return
+        .refreshTransport()
+        if .resumeAudioAfterSeek and .frameIndex == target do
+            .resumeAudio()
+
         .audioClockLast = -1
-        if .playing do
-            .clock.restart()
     }
 
     mtd togglePlayback()
@@ -773,6 +1009,17 @@ internal impl VideoViewer
     // decode of everything in between.
     mtd updatePlayback()
     {
+        if !.openFinished
+        {
+            catch .completeOpen() as openError
+            if openError != null and .reportFailure do
+                .reportFailure!(me, Errors.message(openError))
+            return
+        }
+
+        if !.video.isOpen() do
+            return
+
         catch .finishMetadata() as metadataError
         if metadataError != null and .reportFailure
         {
@@ -874,7 +1121,7 @@ private impl IWnd for VideoViewer
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         discard evt
-        .retire()
+        .retireBlocking()
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -909,6 +1156,42 @@ private impl VideoViewer
             .reportDetails!(me, .details.toString())
     }
 
+    // Publishes the reader opened by the background worker and starts picture production. This
+    // method runs only on the GUI timer, so no window or audio object is ever touched off-thread.
+    mtd completeOpen() fail
+    {
+        if .openFinished do
+            return
+
+        let state = Atomic.get(&.openState)
+        if !state do
+            return
+        if state == 2
+        {
+            // Failure exits the worker. Join only after termination, so reporting the error can
+            // retire the view without ever turning this poll into a wait.
+            if .decodeThread.isValid() and !.decodeThread.isDone() do
+                return
+            if .decodeThread.isValid() do
+                .decodeThread.wait()
+        }
+
+        .openFinished = true
+        if .openFailure.length do
+            fail InvalidFormatError{Errors.mkString(.openFailure.toString())}
+
+        .video  = #move .pendingVideo
+        .planar = .video.hasPlanarFrames()
+        .prepareSlots()
+        try .finishMetadata()
+
+        .refreshTransport()
+        .refreshDetails()
+        discard .showFrame(0)
+        if .reportLoadingChanged do
+            .reportLoadingChanged!(me)
+    }
+
     mtd finishMetadata() fail
     {
         let duration = .video.durationInSeconds()
@@ -923,11 +1206,9 @@ private impl VideoViewer
             .timelineReady = true
         }
 
-        var changed: bool
         if !.metadataReady and count
         {
             .metadataReady = true
-            changed        = true
 
             let step = rate > 0 ? 1 / rate : 0.01
             if duration > 0 do
@@ -940,14 +1221,9 @@ private impl VideoViewer
         if !.audioReady and audioCount
         {
             .audioReady = true
-            changed     = true
-            if audioCount > 1
-            {
-                .audioButton.show()
-            }
-
-            .muteButton.show()
-            .volumeSlider.show()
+            .audioButton.enable(audioCount > 1)
+            .muteButton.enable(true)
+            .volumeSlider.enable(true)
             if !acquireSoundEngine() do
                 fail UnsupportedFormatError{"cannot create the audio engine for video playback"}
             .audioEngineAcquired = true
@@ -959,15 +1235,11 @@ private impl VideoViewer
             if sound and sound != .audio do
                 .selectAudioTrack(.audioTrackIndex)
         }
-
-        if changed do
-            .commands.applyLayout()
     }
 
     func create(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails = null, reportFailure: #null ViewerReportFailure = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*VideoViewer fail
     {
         registerVideoStrings(contentParent.app())
-        var video  = try Reader.open(fileName)
         let result = Wnd.create'VideoViewer(contentParent, "sFileScope.video")
         defer #fail
         {
@@ -985,7 +1257,7 @@ private impl VideoViewer
             }
         }
 
-        result.backgroundStyle = .View
+        result.backgroundStyle      = .View
         result.reportDetails        = reportDetails
         result.reportFailure        = reportFailure
         result.reportLoadingChanged = reportLoadingChanged
@@ -1006,7 +1278,7 @@ private impl VideoViewer
         with result.stopButton = IconButton.create(result.commands, result.theme().icon(.Stop, VideoGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
-            .margin.x  = 8
+            .margin.x  = 4
             .toolTip   = videoStrings().ui_TipStop
             .enable(false)
             .sigPressed += func|view = result|(button)
@@ -1019,7 +1291,7 @@ private impl VideoViewer
         with result.backwardButton = IconButton.create(result.commands, result.commands.icon(.SeekBackward, VideoGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
-            .margin.x   = 8
+            .margin.x   = 4
             .toolTip    = videoStrings().ui_TipBackward
             .sigPressed += func|view = result|(button)
             {
@@ -1031,7 +1303,7 @@ private impl VideoViewer
         with result.forwardButton = IconButton.create(result.commands, result.commands.icon(.SeekForward, VideoGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
-            .margin.x   = 8
+            .margin.x   = 4
             .toolTip    = videoStrings().ui_TipForward
             .sigPressed += func|view = result|(button)
             {
@@ -1040,13 +1312,26 @@ private impl VideoViewer
             }
         }
 
+        with result.audioButton = IconButton.create(result.commands, result.commands.icon(.AudioTracks, VideoGlyphSize), {0, 0, 36, 36})
+        {
+            .dockStyle = .Right
+            .toolTip   = videoStrings().ui_TipAudio
+            .enable(false)
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                view.showAudioTrackMenu()
+            }
+        }
+
         with result.volumeSlider = Slider.create(result.commands, {0, 0, 96, 36})
         {
             .dockStyle = .Right
-            .margin    = {8, 1, 0, 1}
+            .margin    = {0, 1, 8, 1}
             .toolTip   = videoStrings().ui_TipVolume
             .setBounds(0, 1, 0.05)
             .setValueWithoutGesture(1)
+            .enable(false)
             .sigChanged += func|view = result|(slider)
             {
                 view.setVolume(slider.value())
@@ -1059,6 +1344,7 @@ private impl VideoViewer
             .margin.x  = 8
             .toolTip   = videoStrings().ui_TipMute
             .setCheckIndicator(.Frame)
+            .enable(false)
             .sigCheckedChanged += func|view = result|(button)
             {
                 view.setMuted(button.isChecked)
@@ -1072,19 +1358,6 @@ private impl VideoViewer
             .setTextAlignment(.Right, .Center)
         }
 
-        with result.audioButton = IconButton.create(result.commands, result.commands.icon(.AudioTracks, VideoGlyphSize), {0, 0, 36, 36})
-        {
-            .dockStyle = .Right
-            .margin.x  = 8
-            .toolTip   = videoStrings().ui_TipAudio
-            .hide()
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.showAudioTrackMenu()
-            }
-        }
-
         with result.timeline = Slider.create(result.commands, {0, 0, 0, 36})
         {
             .dockStyle = .Center
@@ -1093,49 +1366,73 @@ private impl VideoViewer
 
             // A drag may cross hundreds of frames. Decode its final position once instead of
             // serially decoding every intermediate value queued by the pointer movement.
+            .sigStartChange += func|view = result|(slider)
+            {
+                discard slider
+                view.timelineChanging = true
+            }
             .sigEndChange += func|view = result|(slider)
             {
+                view.timelineChanging = false
                 view.seekSeconds(slider.value())
             }
         }
 
         result.imageView           = ImageView.create(result)
         result.imageView.dockStyle = .Center
+        result.style.setStyleSheetColors(VideoBackdropColors)
+        result.imageView.style.setStyleSheetColors(VideoBackdropColors)
 
-        result.video  = #move video
-        result.planar = result.video.hasPlanarFrames()
-        result.prepareSlots()
-        result.muteButton.hide()
-        result.volumeSlider.hide()
-        try result.finishMetadata()
-
-        if !Jobs.isSynchronous()
-        {
-            result.decodeWake.init()
-            result.decodeThread.init(&runVideoViewerDecode, result, priority: .BelowNormal)
-            result.decodeThread.start()
-        }
-
+        result.playButton.enable(false)
+        result.timeline.enable(false)
         result.refreshTransport()
-
-        result.refreshDetails()
-        result.timer   = result.addTimer(10'ms)
+        result.openFileName = fileName
+        result.decodeWake.init()
+        try result.decodeThread.init(&runVideoViewerDecode, result, priority: .BelowNormal)
+        try result.decodeThread.start()
+        result.timer = result.addTimer(10'ms)
         result.applyLayout()
         result.setInitialFocus(result.playButton)
-        discard result.showFrame(0)
         return result
     }
 }
 
-// Keeps the run-ahead queue as full as the viewer currently wants it.
+// Opens the container and keeps its run-ahead queue full on the same persistent thread. Keeping
+// both phases on one runtime context avoids moving codec allocations between thread caches.
 private func runVideoViewerDecode(thread: Threading.Thread)
 {
-    let view = cast(*VideoViewer) thread.userParam!
+    let view  = cast(*VideoViewer) thread.userParam!
+    var video = catch Reader.open(view.openFileName.toString()) as openError
+    if openError != null
+    {
+        view.openFailure = Errors.message(openError)
+        Atomic.exchange(&view.openState, 2)
+        return
+    }
+
+    if thread.requestEnd
+    {
+        video.close()
+        return
+    }
+
+    view.pendingVideo = #move video
+    Atomic.exchange(&view.openState, 1)
     while !thread.requestEnd
     {
         view.decodeWake.wait()
         while !thread.requestEnd and view.produceOne() {}
     }
+
+    // `Reader.close` joins codec-owned frame and indexing threads. It can take as long as a key
+    // picture, so it belongs to this worker rather than the GUI retirement poll.
+    view.slots.clear()
+    view.ready.clear()
+    view.freeSlots.clear()
+    if view.openFinished do
+        view.video.close()
+    else do
+        view.pendingVideo.close()
 }
 
 private func loadVideoViewer(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails, reportFailure: #null ViewerReportFailure, reportLoadingChanged: #null ViewerReportLoadingChanged)->#null *VideoViewer fail => try VideoViewer.create(contentParent, commandParent, fileName, reportDetails, reportFailure, reportLoadingChanged)
@@ -1153,10 +1450,11 @@ func createVideoViewer(request: const *ViewerRequest, result: *ViewerResult)
     result.view      = view
     result.commands  = view!.commands
     result.details   = view!.details
-    result.retire    = func(wnd) { (cast(*VideoViewer) wnd).retire() }
+    result.retire    = func(wnd)->bool { return (cast(*VideoViewer) wnd).retire() }
     result.isLoading = func(wnd)->bool
     {
         let videoView = cast(*VideoViewer) wnd
-        return videoView.awaitingFrame
+        return !videoView.openFinished or videoView.awaitingFrame
     }
+    result.needsLoadingOverlay = func(wnd)->bool { return !(cast(*VideoViewer) wnd).hasFrame }
 }

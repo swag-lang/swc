@@ -132,6 +132,14 @@ func audioStartNoSoundEngine()
     @assert(!handle.isPlaying)
 
     discard expect voice.play(.Loop)
+    for 4
+    {
+        discard expect voice.pause()
+        @assert(!voice.isPlaying() and !handle.isPlaying)
+        discard expect voice.play(.Loop)
+        @assert(voice.isPlaying() and handle.isPlaying)
+    }
+
     let shouldKeepUpdating = expect voice.updateNoSound()
     @assert(shouldKeepUpdating)
     @assert(handle.isPlaying)

@@ -6,6 +6,7 @@ private const BinaryGlyphSize = 18.0
 private const BinaryCommandWidth = 36.0
 private const BinaryOffsetWidth = 116.0
 private const BinaryDetailMinWidth = 200.0
+private const BinaryFillRows = 128'u64
 
 // Commands shared by the context menu, keyboard, and command bar.
 internal struct ActionBinary {}
@@ -43,33 +44,51 @@ internal struct BinaryViewer
         list:       *ListCtrl
     }
 
-    previewBand:   #null *StackLayoutCtrl
-    doc:           BinaryDocument
-    rowLines:      Array'(#null *ListLine)     // Line created for each report row, in row order.
-    details:       String
-    failureReason: String
+    previewBand:          #null *StackLayoutCtrl
+    doc:                  BinaryDocument
+    pendingDoc:           BinaryDocument
+    rowLines:             Array'(#null *ListLine)     // Line created for each report row, in row order.
+    fillParents:          Array'(#null *ListLine)
+    fillIndex:            u64
+    details:              String
+    failureReason:        String
+    loadFileName:         String
+    loadThread:           Threading.Thread
+    loadTimer:            #null *Timer
+    loadState:            u32
+    loadPublished:        bool
+    reportFailure:        #null ViewerReportFailure
+    reportDetails:        #null ViewerReportDetails
+    reportLoadingChanged: #null ViewerReportLoadingChanged
+    retireRequested:      bool
+    retired:              bool
 }
 
 internal impl BinaryViewer
 {
     // Rebuilds the tree from the report, parents before the rows they own.
-    mtd fillList()
+    mtd beginFillList()
     {
         .list.clear()
         .rowLines.clear()
         .rowLines.resize(.doc.report.rows.count)
+        .fillParents.clear()
+        .fillIndex = 0
+    }
+
+    // Publishes a bounded number of report rows per GUI turn.
+    mtd fillListStep()->bool
+    {
+        let end = Math.min(.fillIndex + BinaryFillRows, .doc.report.rows.count)
 
         let faint = .themeColors().label_TextFaint
-
-        // One entry per depth, holding the row every deeper row currently hangs from.
-        var parents: Array'(#null *ListLine)
-
-        for row, index in .doc.report.rows
+        for index in .fillIndex until end
         {
+            let row   = &.doc.report.rows[index]
             let depth = cast(u64) row.level
             var parent: #null *ListLine = null
-            if depth and depth <= parents.count do
-                parent = parents[depth - 1]
+            if depth and depth <= .fillParents.count do
+                parent = .fillParents[depth - 1]
 
             let line = .list.createLine(parent)
             line.setItem(cast(u32) BinaryColumn.Field, row.label.toString())
@@ -89,13 +108,17 @@ internal impl BinaryViewer
             if row.kind == .Note do
                 line.colorFg = faint
 
-            parents.resize(depth + 1)
-            parents[depth]   = line
-            .rowLines[index] = line
+            .fillParents.resize(depth + 1)
+            .fillParents[depth] = line
+            .rowLines[index]    = line
         }
 
+        .fillIndex = end
+        if end != .doc.report.rows.count do
+            return false
         .applyInitialExpansion()
         .list.computeLayout()
+        return true
     }
 
     // Opens the groups the report asked to start open.
@@ -362,6 +385,48 @@ internal impl IActionUI for ActionBinary
 
 internal impl IWnd for BinaryViewer
 {
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer != .loadTimer
+        {
+            evt.accepted = false
+            return
+        }
+
+        let state = Atomic.get(&.loadState)
+        if !state do
+            return
+        if !.loadPublished
+        {
+            if .loadThread.isValid() do
+                .loadThread.wait()
+            if state == 2
+            {
+                .finishLoadTimer()
+                .failureReason = #move .pendingDoc.image.failureReason
+                if .reportFailure do
+                    .reportFailure!(me, .failureReason.toString())
+                return
+            }
+
+            .doc           = #move .pendingDoc
+            .details       = .doc.report.summary
+            .loadPublished = true
+            .beginFillList()
+            if .reportDetails do
+                .reportDetails!(me, .details.toString())
+        }
+
+        if !.fillListStep() do
+            return
+        .fillPreviews()
+        .applyLayout()
+        .layoutPreviews()
+        .layoutColumns()
+        .copyButton.enable(true)
+        .finishLoadTimer()
+    }
+
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
@@ -386,11 +451,62 @@ internal impl IWnd for BinaryViewer
         else do
             evt.accepted = false
     }
+
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    {
+        discard evt
+        .retireBlocking()
+    }
 }
 
 internal impl BinaryViewer
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string)->*BinaryViewer
+    private mtd finishLoadTimer()
+    {
+        if .loadTimer
+        {
+            .removeTimer(.loadTimer!)
+            .loadTimer = null
+        }
+
+        if .reportLoadingChanged do
+            .reportLoadingChanged!(me)
+    }
+
+    mtd retire()->bool
+    {
+        if .retired do
+            return true
+        if !.retireRequested
+        {
+            .retireRequested = true
+            if .loadTimer
+            {
+                .removeTimer(.loadTimer!)
+                .loadTimer = null
+            }
+
+            if .loadThread.isValid() do
+                .loadThread.safeForceEnd()
+        }
+
+        if .loadThread.isValid() and !.loadThread.isDone() do
+            return false
+        if .loadThread.isValid() do
+            .loadThread.wait()
+        .retired = true
+        return true
+    }
+
+    mtd retireBlocking()
+    {
+        discard .retire()
+        if .loadThread.isValid() do
+            .loadThread.wait()
+        .retired = true
+    }
+
+    func create(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails = null, reportFailure: #null ViewerReportFailure = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->#null *BinaryViewer fail
     {
         registerBinaryStrings(contentParent.app())
         let s = binStrings()
@@ -398,14 +514,18 @@ internal impl BinaryViewer
         let result = Wnd.create'BinaryViewer(contentParent, "sFileScope.binary")
         result.backgroundStyle = .View
         result.registerAction'ActionBinary()
+        result.reportDetails        = reportDetails
+        result.reportFailure        = reportFailure
+        result.reportLoadingChanged = reportLoadingChanged
 
         result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, BinaryCommandWidth, 36})
         result.commands.backgroundStyle = .Window
 
         with result.copyButton = IconButton.create(result.commands, result.theme().icon(.Copy, BinaryGlyphSize), {0, 0, 36, 36})
         {
-            .dockStyle  = .Left
-            .toolTip    = s.ui_MenuCopyAll
+            .dockStyle = .Left
+            .toolTip   = s.ui_MenuCopyAll
+            .enable(false)
             .sigPressed += func|view = result|(button)
             {
                 discard button
@@ -432,37 +552,47 @@ internal impl BinaryViewer
             }
         }
 
-        if !result.doc.open(fileName)
-        {
-            result.failureReason = result.doc.image.failureReason
-            return result
-        }
-
-        result.fillList()
-        result.fillPreviews()
-        result.details = result.doc.report.summary
         result.applyLayout()
-        result.layoutPreviews()
         result.layoutColumns()
         result.setInitialFocus(result.list)
+        result.loadFileName = fileName
+        defer #fail
+        {
+            result.commands.destroy()
+            result.destroy()
+        }
+
+        try result.loadThread.init(&runBinaryViewerLoad, result, priority: .BelowNormal)
+        try result.loadThread.start()
+        result.loadTimer = result.addTimer(1'ms)
         return result
     }
+}
+
+// Reads and analyzes the bounded binary image without occupying the GUI event loop.
+private func runBinaryViewerLoad(thread: Threading.Thread)
+{
+    let view    = cast(*BinaryViewer) thread.userParam!
+    let context = @getcontext()
+    context.allocator = context.defaultAllocator!
+    let opened = view.pendingDoc.open(view.loadFileName.toString())
+    Atomic.exchange(&view.loadState, opened ? 1 : 2)
 }
 
 // Creates the integrated binary format view.
 func createBinaryViewer(request: const *ViewerRequest, result: *ViewerResult)
 {
-    let view = BinaryViewer.create(request.contentParent, request.commandParent, request.fileName)
-    if !view.failureReason.isEmpty()
+    let view = catch BinaryViewer.create(request.contentParent, request.commandParent, request.fileName, request.reportDetails, request.reportFailure, request.reportLoadingChanged) as createError
+    if createError != null
     {
-        result.failureReason = #move view.failureReason
-        view.commands.destroy()
-        view.destroy()
+        result.failureReason = Errors.message(createError)
         return
     }
 
-    result.view        = view
-    result.commands    = view.commands
-    result.details     = view.details
+    result.view        = view!
+    result.commands    = view!.commands
+    result.details     = view!.details
     result.revealMatch = func(wnd, offset, text)->bool { return (cast(*BinaryViewer) wnd).revealOffset(offset, text) }
+    result.isLoading   = func(wnd)->bool { return (cast(*BinaryViewer) wnd).loadTimer != null }
+    result.retire      = func(wnd)->bool { return (cast(*BinaryViewer) wnd).retire() }
 }

@@ -86,43 +86,26 @@ alias ConstF64 = Const'f64
         return current + sign(distance) * speed
     }
 
-    // Perform smooth damping interpolation towards 'target'.
+    // Perform critically damped interpolation towards 'target'.
     // Uses 'smoothTime' and 'deltaTime' for frame-rate independent smooth movement.
     // 'currentVelocity' is modified to track the current rate of change.
-    // Based on Game Programming Gems 4 Chapter 1.10
     func(T) smoothDamp(current, target: T, currentVelocity: *T, smoothTime, deltaTime: T)->T
     {
-        // Clamp smoothTime to prevent division by zero and ensure stability
+        // Solve the critically damped spring exactly over this time step.
         let smoothTimeActual = Math.max(0.0001, smoothTime)
+        let omega            = 2.0 / smoothTimeActual
+        let displacement     = current - target
+        let velocity         = currentVelocity[]
+        let offset           = (velocity + omega * displacement) * deltaTime
+        let decay            = Math.exp(-omega * deltaTime)
+        currentVelocity[]    = (velocity - omega * offset) * decay
+        var result           = target + (displacement + offset) * decay
 
-        // Calculate the omega (frequency) and zeta (damping coefficient)
-        let omega = 2.0 / smoothTimeActual
-        let x     = omega * deltaTime
-        let exp   = 1.0 / (1.0 + x + 0.48 * x * x + 0.235 * x * x * x)
-
-        // Calculate change and target offset
-        let change     = current - target
-        let originalTo = target
-
-        // Clamp maximum change (optional speed limit)
-        #static if T == f32 do
-            let maxChange = Swag.F32.Max * smoothTimeActual
-        else do
-            let maxChange = Swag.F64.Max * smoothTimeActual
-        let clampedChange = Math.clamp(change, -maxChange, maxChange)
-        let newTarget     = current - clampedChange
-
-        // Calculate new velocity and position
-        let currentVelocityValue = currentVelocity[]
-        let temp                 = (currentVelocityValue + omega * clampedChange) * deltaTime
-        currentVelocity[] = (currentVelocityValue - omega * temp) * exp
-        var result = newTarget + (clampedChange + temp) * exp
-
-        // Prevent overshooting
-        if (originalTo - current > 0.0) == (result > originalTo)
+        // A large incoming velocity can still cross the target.
+        if (target - current > 0.0) == (result > target)
         {
-            result            = originalTo
-            currentVelocity[] = (result - originalTo) / deltaTime
+            result            = target
+            currentVelocity[] = 0
         }
 
         return result

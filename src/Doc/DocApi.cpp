@@ -108,6 +108,57 @@ namespace
         return comment;
     }
 
+    // A `//!` line opts one source comment into the module-wide file documentation. The
+    // marker is deliberately distinct from ordinary declaration and legal comments, and
+    // separated marked blocks remain separate Markdown paragraphs on the generated page.
+    std::vector<Utf8> extractFileDocComments(const std::string_view source)
+    {
+        std::vector<Utf8> result;
+        bool              inMarkedBlock  = false;
+        bool              hasMarkedBlock = false;
+        for (const Utf8& line : Utf8Helper::splitLines(source))
+        {
+            std::string_view view = Utf8Helper::trim(line);
+            if (!view.starts_with("//!"))
+            {
+                inMarkedBlock = false;
+                continue;
+            }
+
+            if (hasMarkedBlock && !inMarkedBlock)
+                result.emplace_back();
+            view = view.substr(3);
+            if (view.starts_with(' '))
+                view.remove_prefix(1);
+            result.emplace_back(view);
+            inMarkedBlock  = true;
+            hasMarkedBlock = true;
+        }
+        return result;
+    }
+
+    void collectFileDocComments(const CompilerInstance& compiler, std::vector<DocFileComment>& comments, const bool runtime)
+    {
+        for (const SourceFile* file : compiler.files())
+        {
+            if (!file)
+                continue;
+            if (runtime != file->isRuntime())
+                continue;
+            if (!runtime && !file->hasFlag(FileFlagsE::ModuleSrc) && !file->hasFlag(FileFlagsE::CustomSrc))
+                continue;
+
+            std::vector<Utf8> lines = extractFileDocComments(file->sourceView());
+            if (!lines.empty())
+                comments.push_back({.file = file, .lines = std::move(lines)});
+        }
+
+        std::ranges::sort(comments, [](const DocFileComment& lhs, const DocFileComment& rhs) {
+            SWC_ASSERT(lhs.file != nullptr && rhs.file != nullptr);
+            return lhs.file->path().generic_string() < rhs.file->path().generic_string();
+        });
+    }
+
     // What the reader can reach on an API page: every namespace, every documented symbol under
     // its qualified spelling, and the guides that open the page.
     std::vector<DocSearchEntry> collectSearchEntries(const DocApiDocument& document)
@@ -158,6 +209,8 @@ namespace
 
         for (const DocGuide& guide : document.guides)
             entries.push_back({.name = guide.title, .anchor = guide.anchor, .kind = 'h'});
+        if (!document.fileComments.empty())
+            entries.push_back({.name = "File documentation", .anchor = "file-documentation", .kind = 'h'});
         return entries;
     }
 
@@ -202,6 +255,7 @@ Result DocApi::generate(TaskContext& ctx, DocPageOptions options, const bool run
     DocApiDocument document;
     if (!runtime)
         SWC_RESULT(collectApiGuides(ctx, document.guides));
+    collectFileDocComments(ctx.compiler(), document.fileComments, runtime);
     collectDocItems(ctx, document.items, runtime);
     renderApiDocument(ctx, document, options, runtime);
 

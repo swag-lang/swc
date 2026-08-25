@@ -1,12 +1,7 @@
-/*
-    :LICENCE
-    Mt19937-64 Mersenne Twister 64 bits.
-    This code is based on the C-program by Matt Gallagher
-    (https://github.com/mattgallagher/CwlUtils/blob/master/Sources/ReferenceRandomGenerators/mt19937-64.c)
-    (http://www.cocoawithlove.com/blog/2016/05/19/random-numbers.html)
-    Original code by Takuji Nishimura and Makoto Matsumoto.
-    See LICENCE.md for the corresponding licence.
-*/
+// @LICENCE: BSD-3-Clause
+// @ORIGIN: MT19937-64 via CwlUtils, https://github.com/mattgallagher/CwlUtils/blob/master/Sources/ReferenceRandomGenerators/mt19937-64.c
+// @MODIFIED: Ported and modified for Swag.
+// @NOTICE: /bin/THIRDPARTY.md#mt19937-64
 
 #global namespace Random
 

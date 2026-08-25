@@ -1,3 +1,8 @@
+//! Format: Joint Photographic Experts Group (JPEG) encoder component.
+//! Supported: Baseline Huffman-coded lossy output from 8-bit RGB/BGR images with configurable quality.
+//! Not supported: Progressive, arithmetic, lossless, CMYK/YCCK, and alpha output.
+//! Role: This file owns Huffman table construction and entropy encoding.
+//
 #global namespace Jpg
 
 using Core

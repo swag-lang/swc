@@ -9,6 +9,19 @@ func binaryFixturePath(name: string)->String
     return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
 }
 
+func finishBinaryViewer(host: *Testing.HeadlessHost, view: *BinaryViewer)
+{
+    var attempts: u32
+    while view.loadTimer and attempts < 10_000
+    {
+        Threading.Thread.sleep(1'ms)
+        host.fireTimer(view.loadTimer)
+        attempts += 1
+    }
+
+    @assert(view.loadTimer == null)
+}
+
 // Total size of the synthesized image. Two sections of one file-alignment unit each, behind a
 // header block of the same size.
 const FixtureSize = 0x800'u64
@@ -248,7 +261,8 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     host.setup(860, 520)
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 36, 36})
-    let view     = BinaryViewer.create(&host.root, commands, fileName.toString())
+    let view     = (expect BinaryViewer.create(&host.root, commands, fileName.toString()))!
+    finishBinaryViewer(&host, view)
     view.resize(860, 520)
     view.applyLayout()
     view.layoutPreviews()
@@ -688,14 +702,17 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let request = ViewerRequest{&host.root, &host.root, "this-file-does-not-exist.bin"}
     var result: ViewerResult
     createBinaryViewer(&request, &result)
-    @assert(result.view == null and result.commands == null)
-    @assert(!result.failureReason.isEmpty())
+    @assert(result.view != null and result.commands != null and result.isLoading != null)
+    let view = cast(*BinaryViewer) result.view!
+    finishBinaryViewer(&host, view)
+    @assert(!view.failureReason.isEmpty())
 }
 
 func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*BinaryViewer
 {
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 124, 36})
-    let view     = BinaryViewer.create(&host.root, commands, fileName)
+    let view     = (expect BinaryViewer.create(&host.root, commands, fileName))!
+    finishBinaryViewer(host, view)
     view.dockStyle = .Center
     view.resize(width, height)
     view.applyLayout()

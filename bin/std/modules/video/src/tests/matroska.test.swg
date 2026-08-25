@@ -68,6 +68,8 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
     let primary   = reader.audioTrack(0)!
     let alternate = reader.audioTrack(1)!
     @assert(primary.sampleEncoding() == .AacLc and alternate.sampleEncoding() == .AacLc)
+    @assert(primary.displayName() == "Primary" and alternate.displayName() == "Alternate")
+    @assert(primary.language() == "und" and alternate.language() == "und")
     @assert(primary.sampleRateHz() == 44_100 and alternate.sampleRateHz() == 44_100)
     @assert(primary.numChannels() == 2 and alternate.numChannels() == 2)
     @assert(primary.packetCount() != 0 and primary.packetCount() == alternate.packetCount())

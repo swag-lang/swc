@@ -39,10 +39,24 @@ func createPassiveTestViewer(request: const *ViewerRequest, result: *ViewerResul
     result.details = "Passive test viewer"
 }
 
-func markTestViewerRetired(wnd: *Wnd)
+func markTestViewerRetired(wnd: *Wnd)->bool
 {
     let retired = cast(*bool) wnd.userData!
     retired[] = true
+    return true
+}
+
+func delayTestViewerRetirement(wnd: *Wnd)->bool
+{
+    let calls = cast(*u32) wnd.userData!
+    calls[] += 1
+    return calls[] >= 2
+}
+
+func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow)
+{
+    if window.startupTimer do
+        host.fireTimer(window.startupTimer)
 }
 
 #test
@@ -247,11 +261,13 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     // Choosing a sibling opens it, and the recent list grows by exactly that file.
     window.folderList.selectLine(2)
+    completeQueuedViewerFile(&host, window)
     @assert(window.currentFile == names[2])
     @assert(window.recent.count == 2 and window.recent[0] == names[2])
 
     // A recent row keeps the list under the pointer stable while it opens its file.
     window.recentList.selectLine(1)
+    completeQueuedViewerFile(&host, window)
     @assert(window.currentFile == names[0])
     @assert(window.recent.count == 2 and window.recent[0] == names[2] and window.recent[1] == names[0])
 
@@ -304,6 +320,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let before = window.recentList.scrollWnd.scrollPosition()
     @assert(before.y > 0)
     window.recentList.selectLine(8)
+    completeQueuedViewerFile(&host, window)
     @assert(window.currentFile == names[8])
     @assert(window.recentList.scrollWnd.scrollPosition() == before)
 
@@ -417,6 +434,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     // The row naming the file read before the one that is open, which the panel opens on its own
     // when it is picked: what the menu acts on is the row, not the document.
     list.selectLine(1)
+    completeQueuedViewerFile(&host, window)
     @assert(window.currentFile == names[1])
 
     host.clickPopupMenuItemWhenShown("sFileScope.file.forget")
@@ -429,12 +447,14 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     // A folder row names a file the folder holds, and nothing offers to take it out of a list it
     // was never in: the armed step finds no such entry and dismisses the menu instead.
     window.folderList.selectLine(0)
+    completeQueuedViewerFile(&host, window)
     host.clickPopupMenuItemWhenShown("sFileScope.file.forget", maxFrames: 4)
     window.showFileMenu(window.folderList, window.siblings.toSlice(), {120, 120})
     host.pump()
     @assert(!host.autoHandled)
 
     list.selectLine(0)
+    completeQueuedViewerFile(&host, window)
     host.clickPopupMenuItemWhenShown("sFileScope.file.clearHistory")
     window.showFileMenu(list, window.recent.toSlice(), {120, 120})
     host.pump()
@@ -716,6 +736,9 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.filesButton.flags.has(.Toggle) and window.filesButton.checkIndicator == .Frame)
     @assert(!window.filesButton.isChecked and !window.loadingOverlay.isLocallyVisible())
     @assert(!window.viewerCombo.isLocallyVisible())
+    @assert(window.infoNameLabel.parent == window.infoFileGroup)
+    @assert(window.infoSizeLabel.parent == window.infoFileGroup)
+    @assert(window.infoStatsLabel.parent == window.infoBar)
     Testing.assertContentFits(window)
 
     // Viewer tools have their own full-width band and cannot collide with the global selector.
@@ -731,16 +754,18 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(widestCommands.position.y >= window.viewerBar.clientRect().y)
 }
 
-// F11 and the matching command preserve the exact window state around a monitor-sized,
-// borderless presentation.
+// F11 preserves the exact window state around a content-only presentation. Moving at either
+// screen edge reveals the corresponding chrome over the content without shrinking it.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index    = createViewerIndex()
-    let window   = ViewerWindow.create(&host.surfaceWnd, #move index)
+    let index  = createViewerIndex()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.openFile(viewerFixturePath(), remember: false)
+    window.setFilePanelVisible(true)
     let position = host.surface.position
     let flags    = host.surface.flags
 
@@ -749,10 +774,22 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.fullScreen and window.fullScreenButton.isChecked)
     @assert(host.surface.flags.has(.NoShadow) and host.surface.flags.has(.TopMost))
     @assert(!host.surface.flags.has(.LargeCaption) and !host.surface.flags.has(.Border))
+    @assert(!window.commandBar.isLocallyVisible() and !window.infoBar.isLocallyVisible())
+    @assert(!window.viewerBar.isLocallyVisible() and !window.filePanel.isLocallyVisible())
+
+    window.updateFullScreenChrome({10, 1})
+    @assert(window.commandBar.isLocallyVisible() and window.infoBar.isLocallyVisible())
+    @assert(!window.viewerBar.isLocallyVisible())
+    window.updateFullScreenChrome({10, window.clientRect().height / 2})
+    @assert(!window.commandBar.isLocallyVisible() and !window.infoBar.isLocallyVisible())
+    window.updateFullScreenChrome({10, window.clientRect().height - 1})
+    @assert(window.viewerBar.isLocallyVisible())
 
     window.setFullScreen(false)
     @assert(!window.fullScreen and !window.fullScreenButton.isChecked)
     @assert(host.surface.flags == flags and host.surface.position == position)
+    @assert(window.commandBar.isLocallyVisible() and window.infoBar.isLocallyVisible())
+    @assert(window.viewerBar.isLocallyVisible() and window.filePanel.isLocallyVisible())
 }
 
 // The framework owns one centered, themed presentation for every viewer decoder reason.
@@ -812,8 +849,8 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(errorView.reasonLabel.text() == window.instances[0].failureReason.toString())
 }
 
-// The host shows progressive work and retires a still-loading renderer before switching views,
-// so a hidden HTML document cannot keep parsing while its source view opens.
+// Progressive content keeps streaming without covering useful output. A viewer asks for the
+// shared wait presentation separately when it has nothing useful to show yet.
 #test
 {
     var host: Testing.HeadlessHost
@@ -844,22 +881,62 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     loading.setPosition({17, 83, 611, 391})
 
     reportViewerLoadingChanged(loading)
-    @assert(window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
+    @assert(!window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
+
+    window.instances[0].needsLoadingOverlay = func(wnd)->bool { discard wnd; return true }
+    reportViewerLoadingChanged(loading)
+    @assert(window.loadingOverlay.isLocallyVisible())
     @assert(window.loadingOverlay.position == loading.position)
     @assert(window.loadingOverlay.backgroundStyle == .Transparent)
-    @assert(window.loadingOverlay.spinner.preferredSize == {24, 24})
+    @assert(window.loadingOverlay.spinnerPanel.backgroundStyle == .Panel)
+    @assert(window.loadingOverlay.spinnerPanel.preferredSize == {88, 88})
+    @assert(window.loadingOverlay.spinner.preferredSize == {56, 56})
+    let panelCenter   = window.loadingOverlay.spinnerPanel.position.center()
     let spinnerCenter = window.loadingOverlay.spinner.position.center()
     let overlayCenter = window.loadingOverlay.clientRect().center()
-    @assert(Math.abs(spinnerCenter.x - overlayCenter.x) <= 1 and Math.abs(spinnerCenter.y - overlayCenter.y) <= 1)
+    @assert(Math.abs(panelCenter.x - overlayCenter.x) <= 1 and Math.abs(panelCenter.y - overlayCenter.y) <= 1)
+    @assert(Math.abs(spinnerCenter.x - 44) <= 1 and Math.abs(spinnerCenter.y - 44) <= 1)
     @assert(window.children.back() == window.loadingOverlay)
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "sfilescope.loading")
+    window.instances[0].needsLoadingOverlay = null
+    reportViewerLoadingChanged(loading)
+    @assert(!window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
     @assert(window.activateChoice(1))
     @assert(retired and loading.isPendingDestroy)
     @assert(window.instances[0].view == null)
     @assert(window.currentView != null and window.currentView != loading)
     @assert(window.instances[1].view == window.currentView)
     @assert(!window.loadingOverlay.isLocallyVisible() and window.loadingTimer == null)
+}
+
+// File selection never waits for a viewer that needs another event-loop turn to retire. The
+// generic host keeps the previous content visible, then opens the queued file on its timer.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 560)
+    defer host.shutdown()
+
+    let index  = createViewerIndex()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    let old    = Wnd.create'Wnd(window)
+    var retireCalls: u32
+    old.userData = &retireCalls
+    window.instances.add(ViewerInstance{view: old, retire: &delayTestViewerRetirement})
+    window.currentView       = old
+    window.activeChoiceIndex = 0
+
+    let fileName = viewerFixturePath()
+    window.openFile(fileName, remember: false)
+    @assert(window.currentView == old and retireCalls == 1)
+    @assert(window.pendingFile == fileName and window.startupTimer != null)
+    @assert(!window.loadingOverlay.isLocallyVisible())
+
+    host.fireTimer(window.startupTimer)
+    @assert(retireCalls == 2 and old.isPendingDestroy)
+    @assert(window.currentView != null and window.currentView != old)
+    @assert(window.pendingFile.isEmpty() and window.startupTimer == null)
 }
 
 #test
@@ -1053,8 +1130,10 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.rebuildSiblings()
     @assert(window.siblings.count == 2)
     window.navigate(1)
+    completeQueuedViewerFile(&host, window)
     @assert(Path.fileName(window.currentFile.toString()) == "pic2.jpg")
     window.navigate(1)
+    completeQueuedViewerFile(&host, window)
     @assert(Path.fileName(window.currentFile.toString()) == "pic1.png")
 
     // A kind nothing registers falls back to the extension.
@@ -1118,5 +1197,6 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.openFile(Path.combine(folder.toString(), "raw1.bin").toString())
     window.openButton.setFocus()
     host.keyPress(Input.Key.Right)
+    completeQueuedViewerFile(&host, window)
     @assert(Path.fileName(window.currentFile.toString()) == "raw2.bin")
 }

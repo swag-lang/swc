@@ -1,6 +1,12 @@
-// :LICENCE
-// This code is based on "gifdec" (https://github.com/lecram/gifdec)
-// The original code has been modified for Swag
+//! Format: Graphics Interchange Format (GIF87a/GIF89a) decoder component.
+//! Supported: Global/local palettes, transparency, interlacing, disposal, timing, loops, and sequential animation frames.
+//! Not supported: Unknown extension labels and malformed or truncated sub-block streams.
+//! Role: This file owns bounded byte reads and GIF extension parsing.
+//
+// @LICENCE: LicenseRef-Public-Domain
+// @ORIGIN: gifdec, https://github.com/lecram/gifdec
+// @MODIFIED: Ported and modified for Swag.
+// @NOTICE: /bin/THIRDPARTY.md#gifdec
 
 #global namespace Gif
 

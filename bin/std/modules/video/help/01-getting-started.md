@@ -83,18 +83,18 @@ frames. YUV4MPEG2 writes one plane layout and one colour range and so has nothin
 
 A format is a codec registered against [[Video.IDecoder]] and [[Video.IEncoder]] and selected
 by filename extension, exactly like the image codecs of the Pixel module — and laid out the same
-way, one file per format on each side:
+way, one subfolder per format on each side, even when that subfolder contains one source file:
 
 ```
 src/decode/reader.swg    the registry, and Video.Reader
-src/decode/y4m.swg       Y4m.Decoder, and the layout of the format
-src/decode/avi.swg       Avi.Decoder, and the layout of the container
+src/decode/y4m/y4m.swg   Y4m.Decoder, and the layout of the format
+src/decode/avi/avi.swg   Avi.Decoder, and the layout of the container
 src/decode/mp4/mp4.swg   Mp4.Decoder, and the ISO-BMFF sample tables
 src/decode/matroska/     Matroska.Decoder, EBML, tracks, blocks, and lacing
 src/encode/writer.swg    the registry, and Video.Writer
-src/encode/y4m.swg       Y4m.Encoder
-src/encode/avi.swg       Avi.Encoder
-src/encode/mp4.swg       Mp4.Encoder
+src/encode/y4m/y4m.swg   Y4m.Encoder
+src/encode/avi/avi.swg   Avi.Encoder
+src/encode/mp4/mp4.swg   Mp4.Encoder
 ```
 
 Decoding and encoding one format are two independent implementations that share only its binary
@@ -117,5 +117,5 @@ Every decoding test reads a file from `src/tests/datas/`, and none of those file
 by this module: a codec that only reads back what it wrote proves nothing about the files people
 have. The corpus holds a camera recording, sequences from the standard research collection, one
 synthetic clip encoded in the tested layouts by ffmpeg, and copies of that clip with a container
-shape injected into them that no single writer produces. `datas/SOURCES.md` states where each one
+shape injected into them that no single writer produces. `datas/THIRDPARTY.md` states where each one
 came from, what it exercises, and under what terms it is redistributed.

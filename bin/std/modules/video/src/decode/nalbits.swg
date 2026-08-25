@@ -1,3 +1,8 @@
+//! Format: Format-neutral network abstraction layer bit reader.
+//! Supported: Bounded RBSP bit reading, Exp-Golomb decoding, and emulation-prevention unescaping, for both H.264 and H.265.
+//! Not supported: This file does not decode or encode a concrete picture format.
+//! Role: This file owns what the two coded picture formats read their syntax elements with.
+//
 #global internal
 
 using Core, Core.Errors

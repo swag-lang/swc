@@ -1,3 +1,8 @@
+//! Format: Format-neutral coded picture track.
+//! Supported: Opening, extending, replacing, seeking, and decoding an indexed H.264 or H.265 track through one surface.
+//! Not supported: This file does not decode or encode a concrete picture format.
+//! Role: This file owns which of the two coded picture formats a container opened, so no reader has to ask.
+//
 #global internal
 
 using Core, Core.Errors, Pixel

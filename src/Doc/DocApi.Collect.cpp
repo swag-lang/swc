@@ -169,6 +169,11 @@ namespace
 
 void DocApi::appendNormalizedComment(std::vector<Utf8>& outLines, std::string_view text)
 {
+    // File documentation is rendered once in its module-wide section. Never let the same
+    // marked line become declaration or module prose merely because it is adjacent to one.
+    if (text.starts_with("//!") || text.starts_with("// @LICENCE:") || text.starts_with("// @LICENSE:") || text.starts_with("// @ORIGIN:") || text.starts_with("// @MODIFIED:") || text.starts_with("// @NOTICE:"))
+        return;
+
     if (text.starts_with("//"))
     {
         text.remove_prefix(2);

@@ -75,17 +75,10 @@ func distanceFromPointToSegment(point, segmentStart, segmentEnd: Vector2)->f32
 }
 
 // Find the closest points between two line segments and their distance.
-// Implementation based on David Eberly's Geometric Tools library algorithm.
-//
-// ---
-// David Eberly, Geometric Tools, Redmond WA 98052
-// Copyright (c) 1998-2022
-// Distributed under the Boost Software License, Version 1.0.
-// https://www.boost.org/LICENSE_1_0.txt
-// https://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
-// https://www.geometrictools.com/Documentation/DistanceSegments3D.pdf
-// https://www.geometrictools.com/GTE/Mathematics/DistSegmentSegment.h
-// ---
+// @LICENCE: BSL-1.0
+// @ORIGIN: Geometric Tools by David Eberly, https://www.geometrictools.com/GTE/Mathematics/DistSegmentSegment.h
+// @MODIFIED: Adapted to Swag's two-dimensional vector API.
+// @NOTICE: /bin/THIRDPARTY.md#geometric-tools
 func closestPointsBetweenSegments(firstStart, firstEnd, secondStart, secondEnd: Math.Vector2)->{ first: Math.Vector2, second: Math.Vector2, distance: f32 }
 {
     let p1p0 = firstEnd - firstStart

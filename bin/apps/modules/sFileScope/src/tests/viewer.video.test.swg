@@ -31,11 +31,15 @@ func waitForVideoFrame(view: *VideoViewer)
 {
     // Playback runs a producer ahead of the clock, so a picture reaches the screen only when
     // the viewer is next pumped. Drive that pump until the requested picture is published.
-    while view.awaitingFrame
+    var attempts: u32
+    while (!view.openFinished or view.awaitingFrame) and attempts < 5_000
     {
-        Threading.Thread.yield()
+        Threading.Thread.sleep(1'ms)
         view.updatePlayback()
+        attempts += 1
     }
+
+    @assert(view.openFinished and !view.awaitingFrame)
 }
 
 func waitForVideoAudio(view: *VideoViewer, count: u32)
@@ -84,9 +88,24 @@ func videoMatroskaFixturePath()->String
     @assert(previous.video.isOpen())
 
     window.openFile(fileName, remember: false)
+    @assert(window.currentView == previous)
+    var attempts: u32
+    while (window.outgoingView != previous or window.instances.isEmpty()) and attempts < 5_000
+    {
+        Threading.Thread.sleep(1'ms)
+        if window.startupTimer do
+            host.fireTimer(window.startupTimer)
+        attempts += 1
+    }
+
+    @assert(window.outgoingView == previous and window.currentView == previous)
+    @assert(!previous.isPendingDestroy)
+    let incoming = cast(*VideoViewer) window.instances[window.activeChoiceIndex].view!
+    @assert(incoming != previous)
+    waitForVideoFrame(incoming)
+    window.commitViewerTransition(incoming)
     @assert(previous.isPendingDestroy)
-    @assert(previous.retired and !previous.video.isOpen())
-    @assert(window.currentView != null and window.currentView != previous)
+    @assert(window.currentView == incoming and window.outgoingView == null)
 }
 
 #test
@@ -124,6 +143,7 @@ func videoMatroskaFixturePath()->String
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
+    host.setReducedMotion(true)
 
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
     let request  = ViewerRequest{&host.root, commands, fileName}
@@ -146,9 +166,12 @@ func videoMatroskaFixturePath()->String
     waitForVideoFrame(view)
     @assert(view.frameIndex == 2)
     view.seekRelative(-10)
+    @assert(view.seekOverlay!.isLocallyVisible() and view.seekOverlay!.direction == -1 and view.seekOverlay!.text == "-10")
+    @assert(view.seekOverlay!.presentationOffset == {} and view.seekOverlay!.presentationScale == {1, 1})
     waitForVideoFrame(view)
     @assert(view.frameIndex == 0)
     view.seekRelative(10)
+    @assert(view.seekOverlay!.isLocallyVisible() and view.seekOverlay!.direction == 1 and view.seekOverlay!.text == "+10")
     waitForVideoFrame(view)
     @assert(view.frameIndex == 3)
     view.timeline.setValue(3)
@@ -190,11 +213,29 @@ func videoMatroskaFixturePath()->String
     view.commands.dockStyle = .Center
     view.seekFrame(2)
     waitForVideoFrame(view)
+    @assert(view.audioButton.isVisible() and !view.audioButton.isEnabled())
+    @assert(view.muteButton.isVisible() and !view.muteButton.isEnabled())
+    @assert(view.volumeSlider.isVisible() and !view.volumeSlider.isEnabled())
 
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
+    host.setReducedMotion(false)
+    view.showSeekFeedback(10)
+    @assert(view.seekOverlay!.timer != null and view.seekOverlay!.presentationOffset.x < 0)
+    host.advanceAnimations(0.15)
     var image = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&image, "viewer.video.document")
+
+    let overlayTimer = view.seekOverlay!.timer!
+    host.fireTimer(overlayTimer)
+    @assert(!view.seekOverlay!.isLocallyVisible() and view.seekOverlay!.timer == null)
+
+    host.theme.setSwagLight()
+    host.notify(.ThemeChanged)
+    view.showSeekFeedback(-10)
+    let overlayColors = view.seekOverlay!.themeColors()
+    @assert(overlayColors.text.contrastRatio(overlayColors.wnd_Bk) >= 4.5)
+    host.fireTimer(view.seekOverlay!.timer!)
 }
 
 #test
@@ -209,8 +250,10 @@ func videoMatroskaFixturePath()->String
     let request = ViewerRequest{&host.root, &host.root, fileName}
     var result: ViewerResult
     createVideoViewer(&request, &result)
-    @assert(result.view == null and result.commands == null)
-    @assert(!result.failureReason.isEmpty())
+    @assert(result.view != null and result.commands != null)
+    let view = cast(*VideoViewer) result.view!
+    waitForVideoFrame(view)
+    @assert(!view.openFailure.isEmpty() and !view.video.isOpen())
 }
 
 #test
@@ -253,6 +296,65 @@ func videoMatroskaFixturePath()->String
     @assert(view.voice!.playbackSampleFrame() == 0)
 }
 
+// Full-screen chrome is presentation-only: resizing and revealing either bar preserves the
+// active voice and the transport state.
+#test
+{
+    @assert(acquireSoundEngine(.NoSound))
+    defer releaseSoundEngine()
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+    let index  = createViewerIndex()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.openFile(videoAudioFixturePath(), remember: false)
+    let view = cast(*VideoViewer) window.currentView!
+    waitForVideoFrame(view)
+    view.togglePlayback()
+    let voice = view.voice!
+
+    window.setFullScreen(true)
+    window.updateFullScreenChrome({10, 1})
+    window.updateFullScreenChrome({10, window.clientRect().height - 1})
+    window.setFullScreen(false)
+
+    @assert(view.playing and view.voice == voice and voice.isPlaying())
+}
+
+// Playback shortcuts belong to the active media viewer, not to whichever toolbar or panel
+// happens to own focus. Held-key repeats are consumed without toggling transport again.
+#test
+{
+    @assert(acquireSoundEngine(.NoSound))
+    defer releaseSoundEngine()
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+    let index  = createViewerIndex()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.openFile(videoAudioFixturePath(), remember: false)
+    let view = cast(*VideoViewer) window.currentView!
+    @assert(window.loadingOverlay.isLocallyVisible())
+    waitForVideoFrame(view)
+    window.updateLoadingIndicator()
+    @assert(!window.loadingOverlay.isLocallyVisible())
+
+    window.viewerCombo.setFocus()
+    var press = KeyEvent{kind: .Pressed, key: .Space}
+    @assert(window.hookOnChildEvent!(window.viewerCombo, &press))
+    @assert(view.playing and view.voice!.isPlaying() and window.viewerCombo.hasFocus())
+    @assert(window.hookOnChildEvent!(window.viewerCombo, &press))
+    @assert(view.playing and view.voice!.isPlaying())
+
+    var release = KeyEvent{kind: .Released, key: .Space}
+    @assert(window.hookOnChildEvent!(window.viewerCombo, &release))
+    @assert(window.hookOnChildEvent!(window.viewerCombo, &press))
+    @assert(!view.playing and !view.voice!.isPlaying() and window.viewerCombo.hasFocus())
+    @assert(window.hookOnChildEvent!(window.viewerCombo, &release))
+}
+
 // A Matroska file carrying several sound tracks exposes a compact selector. Changing it creates
 // and positions the replacement voice before releasing the previous one, so transport, volume,
 // and mute state survive the handoff.
@@ -280,12 +382,14 @@ func videoMatroskaFixturePath()->String
     createVideoViewer(&request, &result)
     @assert(result.view != null)
     let view = cast(*VideoViewer) result.view!
-    @assert(view.timeline.isEnabled())
     waitForVideoFrame(view)
+    @assert(view.timeline.isEnabled())
     waitForVideoAudio(view, 2)
 
     @assert(view.video.audioTrackCount() == 2)
     @assert(view.audioButton.isVisible() and view.audioButton.icon.isValid() and view.audioTrackIndex == 0)
+    @assert(videoAudioTrackText(0, view.video.audioTrack(0)!).indexOf("Primary") != Swag.U64.Max)
+    @assert(videoAudioTrackText(1, view.video.audioTrack(1)!).indexOf("Alternate") != Swag.U64.Max)
     @assert(videoAudioTrackText(0, view.video.audioTrack(0)!).indexOf("44.1 kHz") != Swag.U64.Max)
     @assert(view.muteButton.isVisible() and view.volumeSlider.isVisible())
     @assert(view.details.indexOf("AAC-LC") != Swag.U64.Max and view.details.indexOf("2 ch") != Swag.U64.Max)
@@ -294,17 +398,30 @@ func videoMatroskaFixturePath()->String
     view.setMuted(true)
     view.seekFrame(5)
     waitForVideoFrame(view)
+    view.togglePlayback()
+    @assert(view.playing and view.voice!.isPlaying())
     let previousVoice = view.voice!
 
     host.clickPopupMenuItemWhenShown("sFileScope.video.audioTrack.1")
     view.showAudioTrackMenu()
     @assert(view.audioTrackIndex == 1 and view.audio == view.video.audioTrack(1))
     @assert(view.voice != null and view.voice != previousVoice)
+    @assert(view.voice!.isPlaying())
     @assert(view.muted and Math.isEqualEpsilon(expect view.voice!.volume(), 0, 0.001))
-    @assert(view.voice!.playbackSampleFrame() == cast(u64) Math.round(view.video.frameTimestamp(5) * 44_100.0))
+    let switchedSample = view.voice!.playbackSampleFrame()
+    let seekSample     = cast(u64) Math.round(view.video.frameTimestamp(5) * 44_100.0)
+    @assert(switchedSample >= seekSample and switchedSample - seekSample < 4_410)
 
     view.setMuted(false)
     @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.4, 0.001))
+    expect view.selectAudioTrack(0)
+    @assert(view.playing and view.audioTrackIndex == 0 and view.voice!.isPlaying())
+    expect view.selectAudioTrack(1)
+    @assert(view.playing and view.audioTrackIndex == 1 and view.voice!.isPlaying())
+    view.togglePlayback()
+    view.seekFrame(5)
+    waitForVideoFrame(view)
+    @assert(Math.isEqualEpsilon(view.timeline.value(), cast(f32) view.frameSeconds(5), 0.001))
 
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
@@ -317,8 +434,10 @@ func videoMatroskaFixturePath()->String
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
     @assert(view.audioButton.position.width == 36)
-    @assert(view.audioButton.position.x > view.forwardButton.position.right())
-    @assert(view.audioButton.position.right() <= view.timeLabel.position.x)
+    @assert(view.timeline.position.right() <= view.timeLabel.position.x)
+    @assert(view.timeLabel.position.right() <= view.muteButton.position.x)
+    @assert(view.volumeSlider.position.right() <= view.audioButton.position.x)
+    @assert(view.audioButton.position.right() == view.commands.clientRect().right())
     Testing.assertContentFits(view.commands)
     var image = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&image, "viewer.video.multiaudio")
@@ -446,6 +565,7 @@ func videoMatroskaFixturePath()->String
     var loadingChanges: u32
     view.userData = &loadingChanges
     waitForVideoFrame(view)
+    loadingChanges = 0
 
     @assert(view.planar)
     @assert(view.video.width() == 64 and view.video.height() == 48)

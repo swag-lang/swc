@@ -1,9 +1,7 @@
-/*
-    :LICENCE
-    This code is based on the miniz library (https://github.com/richgel999/miniz)
-    The original code has been modified for Swag
-    See LICENCE.md for the corresponding licence.
-*/
+// @LICENCE: MIT
+// @ORIGIN: miniz, https://github.com/richgel999/miniz
+// @MODIFIED: Ported and modified for Swag.
+// @NOTICE: /bin/THIRDPARTY.md#miniz
 
 #global namespace Compress
 #global #[Swag.Safety(.Overflow, false)]

@@ -1,3 +1,8 @@
+//! Format: ISO Base Media File Format (MP4/M4V/MOV) decoder component.
+//! Supported: Classic sample-table files containing Motion JPEG, H.264, or H.265 video and AAC-LC audio, including composition offsets and sync-sample seeking.
+//! Not supported: Fragmented or encrypted media, unsupported sample-entry versions, picture codecs other than Motion JPEG/H.264/H.265, and audio codecs other than AAC-LC.
+//! Role: This file owns box parsing, sample tables, track selection, timestamps, and top-level decoding.
+//
 #global namespace Mp4
 
 using Core, Core.Errors, Pixel, Audio

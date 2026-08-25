@@ -372,7 +372,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     defer host.shutdown()
 
     var source: String = "<style>body { margin: 0; font-size: 16px }</style><p id=\"p\">"
-    for 40 do
+    for 400 do
         source += "word "
     source += "</p><p id=\"q\">one<br>two</p>"
 
@@ -382,9 +382,16 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.rebuild()
 
     let wrapped = view.layout.constBox(view.boxOfNode(view.elementById("p")))
-    @assert(wrapped.lines.count > 3)
+    @assert(wrapped.lines.count > 20)
     for line in wrapped.lines where line.width > wrapped.content.width + 1 do
         @assert(false)
+
+    // Painting and hit testing use the line index instead of scanning every run in the block.
+    let lineIndex = 12'u64
+    let range     = htmlLineItemRange(wrapped, wrapped.lines[lineIndex].top, wrapped.lines[lineIndex].top + 1)
+    @assert(range.first == wrapped.lines[lineIndex - 1].first)
+    @assert(range.last == wrapped.lines[lineIndex + 1].last)
+    @assert(range.last - range.first < wrapped.items.count / 4)
 
     let broken = view.layout.constBox(view.boxOfNode(view.elementById("q")))
     @assert(broken.lines.count == 2)
@@ -696,9 +703,38 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     // The match is what the viewport shows, not an estimate of where it might be.
     let box = view.boxOfNode(view.searchNode)
     @assert(box != HtmlNoNode)
-    let top      = view.layout.constBox(box).rect.y
+    let top      = view.layout.constBox(box).rect.y + (view.virtualSource ? view.virtualOrigin : 0)
     let position = view.scroll.scrollPosition().y
     @assert(top >= position and top <= position + view.scroll.paddedClientRect().height)
+}
+
+// Progressive refreshes spread out fourfold, so a large generated page does not repeatedly
+// rebuild almost the same prefix while the reader is still interacting with it.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("gui_html_refresh_%.html", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+
+    var source: String = "<pre>"
+    for 2_400 do
+        source += "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ repeated source line\n"
+    source += "</pre>"
+    @assert(source.length > 192 * 1024)
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+
+    let view = HtmlView.createFile(&host.root, fileName)
+    view.resize(640, 360)
+    view.applyLayout()
+    while view.bytesRead < 192 * 1024 do
+        view.streamStep()
+
+    @assert(view.nextRefresh == view.bytesRead * 4)
+    view.stopLoading()
 }
 
 // Painting a search hit survives every split of the match across inline items: an item that
@@ -721,11 +757,97 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     discard host.render(view)
 }
 
+// A real generated Rustdoc page keeps its full production scale. Its highlighted source expands
+// to hundreds of thousands of nodes, and its structural selectors used to rescan tens of
+// thousands of siblings for each match. Small documents cannot expose that failure mode.
+#test
+{
+    let allocator = Swag.defaultAllocator()
+    let initial   = allocator.stats()
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let path = guiFixturePath("html.rustdoc-large.html")
+    let view = HtmlView.createFile(&host.root, path)
+    view.resize(960, 680)
+    view.applyLayout()
+
+    @assert(view.fileSize == 8_153_570)
+    @assert(view.virtualSource)
+    @assert(view.sourceDone)
+    @assert(view.virtualWindowEnd - view.virtualWindowStart < 256 * 1024)
+    @assert(view.document.nodes.count < 20_000)
+    @assert(view.layout.boxes.count < 10_000)
+    @assert(view.layout.styles.count < 10_000)
+    @assert(view.virtualHeight > view.layout.documentHeight * 10)
+
+    // Visiting the middle replaces the resident document instead of appending to it. Returning
+    // to the same source offset materializes the same bounded window and the same pixels.
+    let middle = view.fileSize / 2
+    @assert(view.revealFileOffset(middle, ""))
+    let middleStart = view.virtualWindowStart
+    let middleEnd   = view.virtualWindowEnd
+    let first       = Hash.hashBytes32(host.render(view).pixels.toSlice())
+    @assert(middleStart < middle and middleEnd > middle)
+    @assert(middle - middleStart > (middleEnd - middleStart) / 4)
+    @assert(middleEnd - middle > (middleEnd - middleStart) / 4)
+    @assert(!view.virtualPendingSeek)
+    @assert(view.document.nodes.count < 20_000)
+
+    @assert(view.revealFileOffset(view.virtualContentStart, ""))
+    @assert(view.revealFileOffset(middle, ""))
+    @assert(view.virtualWindowStart == middleStart and view.virtualWindowEnd == middleEnd)
+    let second = Hash.hashBytes32(host.render(view).pixels.toSlice())
+    @assert(second == first)
+
+    let resident = allocator.stats()
+    @assert(resident.sizeAlloc < initial.sizeAlloc + 128 * 1024 * 1024)
+}
+
+// Large ordinary HTML is bounded too, even when it has no generated-source `<pre>` shape. The
+// generic window may start at a recovery boundary, but it must never make file size become DOM
+// size and revisiting one byte offset must choose the same resident source.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("gui_html_large_window_%.html", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+
+    var source: String = "<html><head><style>p { margin: 4px }</style></head><body>"
+    for index in 28_000 do
+        source += Format.toString("<p id='row-%'>Paragraph % carries enough ordinary HTML to exercise a generic resident window.</p>\n", index, index)
+    source += "</body></html>"
+    @assert(source.length > 2 * 1024 * 1024)
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 480)
+    defer host.shutdown()
+
+    let view = HtmlView.createFile(&host.root, fileName)
+    view.resize(720, 480)
+    view.applyLayout()
+    @assert(view.virtualSource and !view.virtualPreformatted)
+    @assert(view.document.nodes.count < 20_000)
+
+    let middle = view.fileSize / 2
+    @assert(view.revealFileOffset(middle, ""))
+    let residentStart = view.virtualWindowStart
+    let residentEnd   = view.virtualWindowEnd
+    @assert(residentStart < middle and residentEnd > middle)
+    @assert(view.document.nodes.count < 20_000)
+    @assert(view.revealFileOffset(view.virtualContentStart, ""))
+    @assert(view.revealFileOffset(middle, ""))
+    @assert(view.virtualWindowStart == residentStart and view.virtualWindowEnd == residentEnd)
+}
+
 // What a scroll position shows does not depend on how the reader got there.
 //
-// This is the contract the previous viewer could not keep: it held a moving window of source
-// bytes and re-parsed it from a guessed offset, so travelling with the scrollbar rewrote the text
-// and sometimes emptied the page. A laid-out document is scrolled, not re-read.
+// This is the contract the previous viewer could not keep: its scroll-to-byte estimate changed as
+// it moved the resident source window, so travelling with the scrollbar rewrote the text and
+// sometimes emptied the page. A virtual window must map a position deterministically.
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)

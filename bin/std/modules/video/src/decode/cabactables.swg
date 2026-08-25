@@ -1,3 +1,8 @@
+//! Format: Format-neutral context-adaptive binary arithmetic coding tables.
+//! Supported: The range, transition, and renormalization tables H.264 and H.265 specify identically.
+//! Not supported: This file does not decode or encode a concrete picture format.
+//! Role: This file owns the one copy of the arithmetic engine tables both coded picture formats read.
+//
 #global internal
 
 // The arithmetic decoding tables of context-adaptive binary arithmetic coding.

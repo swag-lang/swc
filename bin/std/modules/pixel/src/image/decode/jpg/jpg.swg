@@ -1,3 +1,8 @@
+//! Format: Joint Photographic Experts Group (JPEG) decoder component.
+//! Supported: Baseline and progressive Huffman-coded grayscale, YCbCr, and directly sampled RGB images.
+//! Not supported: Arithmetic coding, lossless JPEG, CMYK/YCCK, and unsupported chroma sampling layouts.
+//! Role: This file owns marker parsing, component metadata, and top-level decoding.
+//
 #global namespace Jpg
 
 using Swag, Core, Core.Errors

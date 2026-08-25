@@ -1,3 +1,8 @@
+//! Format: Tagged Image File Format (TIFF) encoder component.
+//! Supported: Little-endian baseline 8-bit grayscale, RGB, and RGBA in one strip using no compression, PackBits, or LZW.
+//! Not supported: Big-endian, planar, tiled, multi-page, JPEG/Deflate, and non-8-bit output.
+//! Role: This file owns IFD and strip emission, sample packing, and top-level encoding.
+//
 #global namespace Tiff
 
 using Core, Core.Errors

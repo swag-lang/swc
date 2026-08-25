@@ -1,3 +1,8 @@
+//! Format: Image decoder registry.
+//! Supported: Extension-selected registration and dispatch for every built-in and user-registered image decoder.
+//! Not supported: This file does not parse a concrete image format.
+//! Role: This file owns format-neutral decoder registration and dispatch.
+//
 using Swag, Core, Core.Errors
 
 // One registered decoder: the format it reads, and the type that reads it.

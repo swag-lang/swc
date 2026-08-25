@@ -1,9 +1,12 @@
-/*
-    :LICENCE
-    This code is based on the libspng library by Randy (https://libspng.org/)
-    The original code has been modified for Swag
-    See LICENCE.md for the corresponding licence.
-*/
+//! Format: Portable Network Graphics (PNG) encoder component.
+//! Supported: 8-bit grayscale and RGB/BGR images with optional alpha, PNG filters, Deflate compression, and optional Adam7 interlacing.
+//! Not supported: APNG animation, palette generation, and non-8-bit output.
+//! Role: This file owns PNG chunk emission, validation, and top-level encoding.
+//
+// @LICENCE: BSD-2-Clause
+// @ORIGIN: libspng, https://github.com/randy408/libspng
+// @MODIFIED: Ported and modified for Swag.
+// @NOTICE: /bin/THIRDPARTY.md#libspng
 
 #global namespace Png
 

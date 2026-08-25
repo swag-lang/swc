@@ -1,8 +1,7 @@
-/*
-    :LICENCE
-    MurmurHash3 was written by Austin Appleby, and is placed in the public
-    domain. The author hereby disclaims copyright to this source code.
-*/
+// @LICENCE: LicenseRef-Public-Domain
+// @ORIGIN: MurmurHash3 by Austin Appleby, https://github.com/aappleby/smhasher
+// @MODIFIED: Ported and modified for Swag.
+// @NOTICE: /bin/THIRDPARTY.md#murmurhash3
 
 #global namespace Hash
 

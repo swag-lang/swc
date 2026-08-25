@@ -89,6 +89,12 @@ struct DocGuide
     std::vector<Utf8> lines;
 };
 
+struct DocFileComment
+{
+    const SourceFile* file = nullptr;
+    std::vector<Utf8> lines;
+};
+
 struct DocRenderContext
 {
     TaskContext*                              ctx                = nullptr;
@@ -105,6 +111,7 @@ struct DocApiDocument
 {
     std::vector<DocItem>           items;
     std::vector<DocGuide>          guides;
+    std::vector<DocFileComment>    fileComments;
     std::vector<Utf8>              namespaceNames;
     std::unordered_map<Utf8, Utf8> references;
     std::unordered_map<Utf8, Utf8> externalReferences;

@@ -700,8 +700,8 @@ namespace
 
 void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const DocPageOptions& options, const bool runtime)
 {
-    document.toc.reserve(document.items.size() * 96 + document.guides.size() * 96 + 512);
-    document.content.reserve(document.items.size() * 1024 + document.guides.size() * 4096 + 4096);
+    document.toc.reserve(document.items.size() * 96 + document.guides.size() * 96 + document.fileComments.size() * 96 + 512);
+    document.content.reserve(document.items.size() * 1024 + document.guides.size() * 4096 + document.fileComments.size() * 1024 + 4096);
 
     ReferenceTable references;
     buildReferences(document, references);
@@ -763,6 +763,8 @@ void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const
     document.toc += "<h3>Start here</h3>\n<ul>\n<li><a href=\"#overview\">Overview</a></li>\n";
     for (const DocGuide& guide : document.guides)
         document.toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", guide.anchor, Utf8Helper::escapeHtml(guide.title)));
+    if (!document.fileComments.empty())
+        document.toc += "<li><a href=\"#file-documentation\">File documentation</a></li>\n";
     document.toc += "</ul>\n<h3>API reference</h3>\n<ul>\n<li><a href=\"#api-reference\">At a glance</a></li>\n<li><a href=\"#detailed-reference\">Detailed reference</a></li>\n</ul>\n";
 
     std::vector<const DocItem*> types;
@@ -847,6 +849,21 @@ void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const
         renderCtx.headingAnchorPrefix = guide.anchor;
         document.content.append(std::format("<section class=\"api-guide\"><h2 id=\"{}\">{}</h2>\n", guide.anchor, Utf8Helper::escapeHtml(guide.title)));
         document.content += DocMarkdown::renderLines(renderCtx, guide.lines, 1);
+        document.content += "</section>\n";
+    }
+
+    if (!document.fileComments.empty())
+    {
+        document.content += "<section class=\"api-guide api-file-documentation\"><h2 id=\"file-documentation\">File documentation</h2>\n";
+        for (const DocFileComment& comment : document.fileComments)
+        {
+            SWC_ASSERT(comment.file != nullptr);
+            const Utf8 path   = buildSourcePath(ctx.compiler(), *comment.file, runtime);
+            const Utf8 anchor = std::format("file_{}", DocMarkdown::makeAnchor(path));
+            document.content.append(std::format("<h3 id=\"{}\"><code>{}</code></h3>\n", anchor, Utf8Helper::escapeHtml(path)));
+            renderCtx.headingAnchorPrefix = anchor;
+            document.content += DocMarkdown::renderLines(renderCtx, comment.lines, 2);
+        }
         document.content += "</section>\n";
     }
 

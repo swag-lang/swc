@@ -1,3 +1,8 @@
+//! Format: Tagged Image File Format (TIFF) decoder component.
+//! Supported: 8-bit chunky grayscale, palette, RGB, and RGBA strips using no compression, PackBits, or LZW with predictors.
+//! Not supported: Planar samples, tiled images, JPEG/Deflate compression, and sample depths other than 8-bit.
+//! Role: This file owns TIFF LZW dictionary decoding.
+//
 #global namespace Tiff
 
 using Core, Core.Errors

@@ -43,6 +43,7 @@ public struct HtmlStyleResolver
     defaults: HtmlStyleDefaults
 
     styles:      Array'HtmlComputedStyle
+    nodeStyles:  Array'u32
     pseudos:     Array'HtmlPseudoStyle
     pseudoIndex: HashTable'(u64, u32)
 
@@ -520,7 +521,8 @@ impl HtmlStyleResolver
             style.margin.bottom = HtmlLength.pixels(0)
         }
 
-        .styles[element] = style
+        .nodeStyles[element] = cast(u32) .styles.count
+        .styles.add(style)
 
         // Both generated boxes are resolved before the children, while the candidate list still
         // describes this element and its custom properties are still in scope.
@@ -552,18 +554,22 @@ impl HtmlStyleResolver
         state.darkScheme     = darkScheme
         .media               = sheet.evaluateMedia(state)
 
-        .match.document = document
-        .match.mediaOn  = .media
+        .match.prepare(document)
+        .match.mediaOn = .media
 
         .customNames.clear()
         .customValues.clear()
         .pseudos.clear()
         .pseudoIndex.clear()
         .styles.clear()
-        .styles.resize(document.nodes.count)
+        .styles.reserve(.match.numElements + 1)
+        .nodeStyles.clear()
+        .nodeStyles.resize(document.nodes.count)
+        .nodeStyles.fill(HtmlNoNode)
 
         let root = HtmlComputedStyle.fromDefaults(defaults)
-        .styles[0] = root
+        .nodeStyles[0] = 0
+        .styles.add(root)
         for child in document.constNode(0).children where document.constNode(child).kind == .Element do
             .resolveElement(child, root)
     }

@@ -70,7 +70,7 @@ struct Decoder
     planesInSample: u32
     pictureTime: s64                      // Stream time of the picture just produced.
     pictureKind: u32
-    packed:      bool                     // The stream stores a bidirectional plane behind its anchor.
+    paddingOwed: u32                      // Padding planes a sample that carried two pictures still owes.
     showsCurrent: bool                    // The last plane decoded is in `current` rather than in an anchor.
 }
 
@@ -111,29 +111,11 @@ impl Decoder
                 var reader = BitReader.create(bytes[body until @countof(bytes)])
                 try .layer.readVideoObjectLayer(&reader)
             }
-            elif code == CodeUserData do
-                .readUserData(bytes, body)
 
             at = nextStartCode(bytes, body)
         }
 
         return -1
-    }
-
-    // Reads what an encoder wrote about itself, clause 6.2.2.
-    //
-    // A stream muxed for a container that states no decoding order stores a bidirectional plane
-    // behind the plane it refers forward to, and pads the sample it would have taken with a plane
-    // that codes nothing. An encoder that does that ends its build string with a `p`.
-    mtd readUserData(bytes: const [..] u8, body: u64)
-    {
-        let end = nextStartCode(bytes, body)
-        if end <= body + 4 or end > @countof(bytes) do
-            return
-        if bytes[body] != 'D' or bytes[body + 1] != 'i' or bytes[body + 2] != 'v' or bytes[body + 3] != 'X' do
-            return
-        if bytes[end - 1] == 'p' do
-            .packed = true
     }
 
     // Starts reading one access unit.
@@ -166,9 +148,18 @@ impl Decoder
             if !header.coded
             {
                 // A plane that codes nothing repeats the one before it, which is what a stream
-                // says when nothing moved. A packed stream writes one as padding, where it stands
-                // for a picture another sample already carried.
-                if .packed or !.anchors do
+                // says when nothing moved. A packed stream also writes one to pad the sample a
+                // plane it stored early would have taken, and there it stands for nothing. The two
+                // are told apart by counting: padding is owed only by a sample that gave up more
+                // than one picture, so a debt is what a padding plane pays off, and a plane that
+                // pays off no debt is a repeat.
+                if .paddingOwed
+                {
+                    .paddingOwed -= 1
+                    continue
+                }
+
+                if !.anchors do
                     continue
                 .pictureTime  = time
                 .pictureKind  = 9
@@ -190,10 +181,11 @@ impl Decoder
             .pictureTime = time
             .pictureKind = header.codingType
 
-            // Two planes in one sample is what packing looks like from the inside.
+            // A sample that gives up more than one picture takes the place of a later one, which
+            // the stream pads out.
             .planesInSample += 1
             if .planesInSample > 1 do
-                .packed = true
+                .paddingOwed += 1
 
             if header.codingType == VopBidirectional
             {
@@ -274,6 +266,7 @@ impl Decoder
         .planeSpan    = 0
         .sampleAt     = 0
         .planesInSample = 0
+        .paddingOwed  = 0
     }
 
     // The state of one block of one macroblock, or the default when it is outside the picture.

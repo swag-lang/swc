@@ -80,6 +80,8 @@ struct AvcStream
     rankOfSample: Array'u32             // Display rank of each decode-order sample.
     sampleAtRank: Array'u32             // Decode-order sample of each display rank.
     syncFlags:    Array'u8              // Whether each sample starts a clean decode.
+    assumedSync:  bool                  // The first sample was taken to start one for want of any mark.
+    positioned:   bool                  // A position was chosen rather than merely assumed.
     pending:      Array'PendingFrame
 
     threadedHead:      u32
@@ -141,6 +143,7 @@ impl AvcStream
         .skipBefore = 0
         .decodeLimit = Swag.U64.Max
         .reachedEnd = false
+        .positioned = false
         .installFrames(#move frames)
     }
 
@@ -176,10 +179,19 @@ impl AvcStream
 
         .syncFlags.clear()
         .syncFlags.resize(count)
-        for index in count where .frames[index].isSync do
+        var marked = false
+        for index in count where .frames[index].isSync
+        {
             .syncFlags[index] = 1
+            marked = true
+        }
 
-        if count do
+        // A container that marks nothing says nothing, and the first sample is then the only place
+        // a decode can start. One that marks something is believed about the rest: a stream clipped
+        // in the middle of a group has no clean start before its first marked sample, and assuming
+        // one there decodes slices whose references were cut away with the file they came from.
+        .assumedSync = count != 0 and !marked
+        if .assumedSync do
             .syncFlags[0] = 1
     }
 
@@ -264,6 +276,18 @@ impl AvcStream
                 .syncFlags[sample] = 1
         }
 
+        // A first sample taken to start a clean decode only because nothing said otherwise gives
+        // that up as soon as the container marks one it does mark.
+        if .assumedSync
+        {
+            for localSample in @countof(frames) where frames[localSample].isSync
+            {
+                .syncFlags[0] = cast(u8) (.frames[0].isSync ? 1 : 0)
+                .assumedSync  = false
+                break
+            }
+        }
+
         .sampleAtRank = #move merged
         .rankOfSample.resize(.frames.count)
         for rank in mutableRank until .sampleAtRank.count do
@@ -314,23 +338,40 @@ impl AvcStream
     // Positions the stream so the next decoded frame has display rank `rank`.
     mtd seekTo(rank: u64)
     {
-        if rank == .nextRank do
+        // The position a stream starts at is an assumption until it is worked out here, and a
+        // stream clipped in the middle of a group does not start where it says it does.
+        if rank == .nextRank and .positioned do
             return
 
         .stopFrameThreads()
-        let sample = cast(u64) .sampleAtRank[rank]
+        var wanted = rank
+        var sample = cast(u64) .sampleAtRank[wanted]
         var sync   = sample
         while sync > 0 and .syncFlags[sync] == 0 do
             sync -= 1
 
+        // A stream that begins in the middle of a group holds no picture standing on its own
+        // before its first sync point: the pictures ahead of it were cut away with the file they
+        // came from, and the earliest one this stream can answer with is that sync point itself.
+        if .syncFlags[sync] == 0
+        {
+            let first = .syncRankAt(wanted)
+            if first < .frames.count
+            {
+                wanted = first
+                sample = cast(u64) .sampleAtRank[wanted]
+                sync   = sample
+            }
+        }
+
         var alreadyPending = false
-        for entry in .pending where entry.rank == rank
+        for entry in .pending where entry.rank == wanted
         {
             alreadyPending = true
             break
         }
 
-        if rank < .nextRank or (!alreadyPending and sync > .nextDecode)
+        if wanted < .nextRank or (!alreadyPending and sync > .nextDecode)
         {
             .releasePending()
             .clearFrameThreads()
@@ -341,12 +382,13 @@ impl AvcStream
         }
         else
         {
-            .releasePendingBelow(rank)
+            .releasePendingBelow(wanted)
         }
 
-        .skipBefore = rank
+        .skipBefore  = wanted
         .decodeLimit = sample + 1
-        .nextRank   = rank
+        .nextRank    = wanted
+        .positioned  = true
     }
 
     // Releases every pending frame whose display rank precedes `rank`.

@@ -114,3 +114,42 @@ using Core, Core.Errors, Pixel
         videoAssertReferenceFrame(frame, reference.toSlice(), index, 64, 48)
     }
 }
+
+// A stream can begin in the middle of a group: the pictures its first slices refer back to were
+// cut away with the file they came from. Nothing before the first sample the container marks can
+// be reconstructed, so that is what the reader answers with until the stream reaches it, and from
+// there on it decodes what every other decoder decodes.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("edited-mid-group-start.mkv"))
+    @assert(reader.width() == 96 and reader.height() == 64)
+
+    let reference = expect File.readAllBytes(videoFixturePath("edited-mid-group-start.yuv").toString())
+    let bytes     = reference.toSlice()
+    let frameSize = 96 * 64 * 3 / 2
+
+    // A picture before the first sample the container marks cannot be reconstructed, and is
+    // answered with the first that can. Asking for one is also what settles where that is.
+    var early: PlanarFrame
+    expect reader.decodeFramePlanesInto(&early, 0)
+    let first = reader.syncFrameAt(0)
+    @assert(first > 0)
+
+    var frame: PlanarFrame
+    for rank in 12'u64
+    {
+        expect reader.decodeFramePlanesInto(&frame, first + rank)
+        for y in 64'u64
+        {
+            for x in 96'u64 do
+                @assert(frame.luma[y * cast(u64) frame.strideLuma + x] == bytes[rank * frameSize + y * 96 + x])
+        }
+    }
+
+    expect reader.decodeFramePlanesInto(&frame, first)
+    for y in 64'u64
+    {
+        for x in 96'u64 do
+            @assert(early.luma[y * cast(u64) early.strideLuma + x] == frame.luma[y * cast(u64) frame.strideLuma + x])
+    }
+}

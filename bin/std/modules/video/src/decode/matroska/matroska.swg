@@ -1328,6 +1328,8 @@ struct Decoder
         streamOpen:         bool
         memoryComplete:     bool
         resumeSoundIndexAfterDecode: bool
+        sawVideoSync:       bool        // A sample the container marks as a clean decode point was seen.
+        syncScanAt:         u64         // How far the search for one has read.
     }
 }
 
@@ -1674,11 +1676,53 @@ impl IDecoder for Decoder
         return .frameAtTimestamp(.currentDuration() * 1_000_000_000.0 + cast(f64) .presentationOrigin)
     }
 
+    // Makes sure the window reaches a sample the container marks as a clean decode point.
+    //
+    // A container that marks nothing leaves the first sample as the only place a decode can start.
+    // A window that stops short of the first mark looks exactly the same, so it is widened until
+    // one shows up or the file runs out; only then is the absence of a mark a fact rather than a
+    // consequence of how little has been read. A stream clipped in the middle of a group has no
+    // clean start before its first mark, and starting anyway decodes slices whose references were
+    // cut away with the file they came from.
+    mtd ensureDecodablePoint() fail
+    {
+        if .memoryComplete or .sawVideoSync do
+            return
+
+        let fileIndex = .fileIndex!
+        let layout    = fileIndex.progressive!
+        let bytes     = fileIndex.region.bytes()
+        var reach     = .streamSampleCount
+        while true
+        {
+            let samples = layout.tracks[layout.selectedVideo].videoSamples.toSlice()
+            while .syncScanAt < @countof(samples)
+            {
+                if samples[.syncScanAt].isSync
+                {
+                    .sawVideoSync = true
+                    return
+                }
+
+                .syncScanAt += 1
+            }
+
+            if layout.indexComplete do
+                return
+
+            reach += 64
+            if !layout.indexWindow(bytes, reach, &fileIndex.cancel) do
+                fail BadParameterError{"video reader operation was cancelled"}
+            try .appendAvailableFrames(&layout.tracks[layout.selectedVideo])
+        }
+    }
+
     mtd impl seekFrame(source: *Source, index: u64) fail
     {
         discard source
         defer #fail .resumeSoundIndex()
         .ensureFrames(index)
+        try .ensureDecodablePoint()
         .video.seekTo(index - .windowBaseRank)
     }
 

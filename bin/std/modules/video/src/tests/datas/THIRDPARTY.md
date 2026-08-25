@@ -80,6 +80,16 @@ untouched, so the pictures it did write still decode; the cue table it never wro
 - SHA-256: `88964b22b9d771197b8ca4493f32230d13cf0f72c5bebb39da1368c70d6252c4`
 - License: same as `ffmpeg-h264-two-aac.mkv`.
 
+`edited-mid-group-start.mkv` is the first five access units of `ffmpeg-h264-pyramid.mp4` dropped and
+the rest copied into Matroska, which cuts away the picture its next slices refer back to. A file
+clipped that way begins in the middle of a group: nothing before its first marked sample can be
+reconstructed, and one file of a real library begins exactly so. `edited-mid-group-start.yuv` is
+FFmpeg's decode of it, forty-four pictures rather than fifty-five.
+
+- SHA-256: `b8dd76e9e4ae6dfdd09baddbb524662d9bf8fbc8ef2af0c5dbee931a58af395d` and
+  `1822c0be6c417f5710cc636d7d0fb4b7d28b1c60d024a932ea2b765998f89942`.
+- License: same as `ffmpeg-h264-pyramid.mp4`.
+
 `glint-aac-drift.mp4` is `glint-aac-mjpeg.mp4` with the sound track's time-to-sample table rewritten
 from one entry of nineteen samples at 1024 into three entries of 1023, 1024 and 1025. The total is
 unchanged and so is every byte of media; only the table stops stating one number, which is what

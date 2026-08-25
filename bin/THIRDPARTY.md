@@ -124,6 +124,21 @@ Some redistributions are documented closer to the files they cover:
 - Upstream releases all gifdec source code and documentation into the public domain without
   warranty.
 
+## MP3 normative tables
+
+- Licence: CC0-1.0 (minimp3) and the Unlicence (PDMP3)
+- Copyright: both projects are dedicated to the public domain by their authors.
+- Origin: <https://github.com/lieff/minimp3> and <https://github.com/technosaurus/PDMP3>
+- Used by: the Layer III tables in `std/modules/audio/src/codec/mp3/tables.swg`.
+
+The tables themselves are the normative content of ISO/IEC 11172-3 and 13818-3 — Huffman code
+tables, scalefactor band widths, and the synthesis window — and are facts of the format rather
+than either project's expression of them. Both projects store them in their own packed decoding
+structures; those were unpacked, compared code by code against each other, and written out in the
+form the standard prints. The 1,298 Huffman code words agree between the two sources, every table
+is a complete prefix code, and `mp3.tables.test.swg` re-checks that inside this repository. No
+source line of either project is reproduced here.
+
 ## Pacman example
 
 - Licence: BSD-3-Clause

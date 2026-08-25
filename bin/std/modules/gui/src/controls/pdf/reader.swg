@@ -40,9 +40,9 @@ impl Reader
     // executed.
     func open(fileName: string)->Reader fail
     {
-        var file = try File.MappedFile.open(fileName)
+        var file = #move try File.MappedFile.open(fileName)
         var result: retval
-        result.region       = try file.mapAll()
+        result.region       = #move try file.mapAll()
         result.parser.bytes = result.region.bytes()
         try indexDocument(&result.parser, &result.documentMetadata, &result.sources)
         return result
@@ -63,6 +63,7 @@ impl Reader
         if index >= .sources.count do
             fail Errors.BadParameterError{"PDF page index exceeds the document page count"}
         let source = .sources[index]
-        return try decodePage(&.parser, source.objectId, source.resourcesId, source.mediaBoxId, source.cropBoxId, source.rotate)
+        var result = #move try decodePage(&.parser, source.objectId, source.resourcesId, source.mediaBoxId, source.cropBoxId, source.rotate)
+        return #move result
     }
 }

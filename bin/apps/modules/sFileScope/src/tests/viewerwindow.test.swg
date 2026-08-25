@@ -588,12 +588,23 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     let firstVirtualHeight = view.virtualHeight
     @assert(firstVirtualHeight > view.editor.paddedClientRect().height)
-    for 8
+    for 64
     {
         view.loadNextChunk()
         @assert(view.virtualHeight >= firstVirtualHeight)
         @assert(view.editor.scrollableClientRect().height >= firstVirtualHeight)
     }
+
+    @assert(view.bytesRead - view.residentStart <= 256 * 1024 + 16 * 1024)
+    @assert(@countof(view.editor.text()) <= 256 * 1024 + 16 * 1024)
+    @assert(view.bytesRead < view.fileSize)
+
+    let firstStart = view.residentStart
+    view.editor.setScrollPosition({0, view.virtualHeight * 0.5})
+    @assert(view.pendingSeek)
+    host.fireTimers()
+    @assert(view.residentStart > firstStart)
+    @assert(view.bytesRead - view.residentStart <= 256 * 1024 + 16 * 1024)
 
     host.keyPress(Input.Key.End)
     discard host.render(view)

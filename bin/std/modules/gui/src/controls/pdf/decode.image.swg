@@ -217,7 +217,8 @@ func resolveNamedColorSpace(parser: *PdfParser, name: string, resourcesId: u32, 
     let named = parser.dictRaw(parser.dict(resourcesId, "ColorSpace"), name)
     if named == InvalidNode do
         fail UnsupportedFormatError{"PDF color space is not supported"}
-    return try resolveImageSpace(parser, named, resourcesId, depth + 1)
+    var result = #move try resolveImageSpace(parser, named, resourcesId, depth + 1)
+    return #move result
 }
 
 // Reduces a color space object, however it is spelled, to the family and component count
@@ -236,8 +237,11 @@ func resolveImageSpace(parser: *PdfParser, spaceRaw, resourcesId: u32, depth: u3
         return result
     }
 
-    if parser.nodes[spaceId].kind == .Name do
-        return try resolveNamedColorSpace(parser, parser.nodes[spaceId].text.toString(), resourcesId, depth)
+    if parser.nodes[spaceId].kind == .Name
+    {
+        var result = #move try resolveNamedColorSpace(parser, parser.nodes[spaceId].text.toString(), resourcesId, depth)
+        return #move result
+    }
 
     if parser.nodes[spaceId].kind != .Array or !parser.nodes[spaceId].values.count do
         fail UnsupportedFormatError{"PDF image color space is not supported"}
@@ -294,7 +298,7 @@ func resolveImageSpace(parser: *PdfParser, spaceRaw, resourcesId: u32, depth: u3
     case "Indexed", "I":
         if @countof(values) < 4 do
             fail InvalidFormatError{"PDF indexed color space is incomplete"}
-        let base = try resolveImageSpace(parser, values[1], resourcesId, depth + 1)
+        let base = #move try resolveImageSpace(parser, values[1], resourcesId, depth + 1)
         if base.kind == .Indexed do
             fail InvalidFormatError{"PDF indexed color space cannot index another one"}
         let hival = parser.integer(values[2])
@@ -314,7 +318,7 @@ func resolveImageSpace(parser: *PdfParser, spaceRaw, resourcesId: u32, depth: u3
         if parser.nodes[lookup].kind == .String do
             result.palette = cast(const [..] u8) parser.nodes[lookup].text.toString()
         else do
-            result.palette = try parser.decodeStream(lookup)
+            result.palette = #move try parser.decodeStream(lookup)
 
         let needed = cast(u64) (result.hival + 1) * cast(u64) base.components
         if result.palette.count < needed do
@@ -429,8 +433,8 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->Samp
         fail UnsupportedFormatError{"PDF image bit depth is not supported"}
     let depth = cast(u32) bits
 
-    let space      = try resolveImageSpace(parser, parser.dictRaw(nodeId, "ColorSpace"), resourcesId, 0)
-    let bytes      = try parser.decodeStream(nodeId)
+    let space      = #move try resolveImageSpace(parser, parser.dictRaw(nodeId, "ColorSpace"), resourcesId, 0)
+    let bytes      = #move try parser.decodeStream(nodeId)
     let pixelCount = cast(u64) width * cast(u64) height
     let rowBytes   = (cast(u64) space.components * cast(u64) depth * cast(u64) width + 7) / 8
     if bytes.count < rowBytes * cast(u64) height do
@@ -586,8 +590,8 @@ private func readMaskPlane(parser: *PdfParser, nodeId, resourcesId: u32, stencil
     var result: retval
     if parser.imageCodec(nodeId) == "DCTDecode"
     {
-        let raw     = try parser.decodeStream(nodeId, true)
-        let decoded = try Image.decode(".jpg", raw.toSlice())
+        let raw     = #move try parser.decodeStream(nodeId, true)
+        let decoded = #move try Image.decode(".jpg", raw.toSlice())
         result.width  = decoded.width
         result.height = decoded.height
         result.alpha.resize(cast(u64) decoded.width * cast(u64) decoded.height)
@@ -612,7 +616,7 @@ private func readMaskPlane(parser: *PdfParser, nodeId, resourcesId: u32, stencil
         fail UnsupportedFormatError{"PDF image mask bit depth is not supported"}
 
     let depth    = cast(u32) bits
-    let bytes    = try parser.decodeStream(nodeId)
+    let bytes    = #move try parser.decodeStream(nodeId)
     let rowBytes = (cast(u64) depth * cast(u64) width + 7) / 8
     if bytes.count < rowBytes * cast(u64) height do
         fail InvalidFormatError{"PDF image mask stream is truncated"}
@@ -671,7 +675,8 @@ private func planeToImage(plane: const *SamplePlane, fill: #null const *Color)->
             opaque.add(plane.rgb.toSlice()[row * width * 3 until (row + 1) * width * 3])
         }
 
-        return Image.create(plane.width, plane.height, .RGB8, opaque.toSlice())
+        var result = #move Image.create(plane.width, plane.height, .RGB8, opaque.toSlice())
+        return #move result
     }
 
     var pixels: Array'u8
@@ -700,7 +705,8 @@ private func planeToImage(plane: const *SamplePlane, fill: #null const *Color)->
         }
     }
 
-    return Image.create(plane.width, plane.height, .RGBA8, pixels.toSlice())
+    var result = #move Image.create(plane.width, plane.height, .RGBA8, pixels.toSlice())
+    return #move result
 }
 
 // Decodes one image XObject or inline image into an owned Pixel image.
@@ -710,18 +716,19 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
 {
     if parser.boolean(parser.dict(nodeId, "ImageMask"))
     {
-        let stencil = try readMaskPlane(parser, nodeId, resourcesId, true)
-        return planeToImage(&stencil, &fillColor)
+        let stencil = #move try readMaskPlane(parser, nodeId, resourcesId, true)
+        var result = #move planeToImage(&stencil, &fillColor)
+        return #move result
     }
 
-    let codec = parser.imageCodec(nodeId)
+    let codec = #move parser.imageCodec(nodeId)
     var plane: SamplePlane
     if !codec.isEmpty()
     {
         if codec != "DCTDecode" and codec != "DCT" do
             fail UnsupportedFormatError{"PDF image codec is not supported"}
-        let raw     = try parser.decodeStream(nodeId, true)
-        let decoded = try Image.decode(".jpg", raw.toSlice())
+        let raw     = #move try parser.decodeStream(nodeId, true)
+        let decoded = #move try Image.decode(".jpg", raw.toSlice())
         plane.width  = decoded.width
         plane.height = decoded.height
         plane.rgb.resize(cast(u64) decoded.width * cast(u64) decoded.height * 3)
@@ -741,7 +748,7 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         }
     }
     else do
-        plane = try readSamplePlane(parser, nodeId, resourcesId)
+        plane = #move try readSamplePlane(parser, nodeId, resourcesId)
 
     // A soft mask, or a stencil named through /Mask, supplies the alpha channel.
     var maskId  = parser.dict(nodeId, "SMask")
@@ -758,7 +765,7 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
 
     if maskId != InvalidNode
     {
-        let mask = try readMaskPlane(parser, maskId, resourcesId, stencil)
+        let mask = #move try readMaskPlane(parser, maskId, resourcesId, stencil)
         if mask.alpha.count
         {
             let width  = cast(u64) plane.width
@@ -772,5 +779,6 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         }
     }
 
-    return planeToImage(&plane, null)
+    var result = #move planeToImage(&plane, null)
+    return #move result
 }

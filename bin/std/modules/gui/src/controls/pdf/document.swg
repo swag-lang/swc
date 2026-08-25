@@ -43,7 +43,8 @@ impl Document
     // supported; embedded actions are ignored rather than executed.
     func decode(bytes: const [..] u8)->Document fail
     {
-        return try decodeDocument(bytes)
+        var result = #move try decodeDocument(bytes)
+        return #move result
     }
 
     // Loads and decodes every page of a PDF file.
@@ -51,12 +52,12 @@ impl Document
     // Use [[Gui.Pdf.Reader.open]] when pages should be decoded on demand.
     func load(fileName: string)->Document fail
     {
-        var reader = try Reader.open(fileName)
+        var reader = #move try Reader.open(fileName)
         var result = Document.create()
         result.metadata = reader.metadata()
         for index in reader.pageCount()
         {
-            var page = try reader.loadPage(index)
+            var page = #move try reader.loadPage(index)
             result.addPage(#move page)
         }
 
@@ -93,13 +94,14 @@ impl Document
     // by the writer's Windows-1252 Helvetica encoding.
     mtd const encode()->Array'u8 fail
     {
-        return try encodeDocument(me)
+        var result = #move try encodeDocument(me)
+        return #move result
     }
 
     // Encodes and writes the complete document to `fileName`.
     mtd const save(fileName: string) fail
     {
-        let bytes = try .encode()
+        let bytes = #move try .encode()
         discard try File.writeAllBytes(fileName, bytes.toSlice())
     }
 }

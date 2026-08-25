@@ -8,6 +8,7 @@ private const StreamCarryLimit = 16 * 1024'u64
 private const RevealContextSize = 64 * 1024'u64
 private const ReverseContextSize = StreamChunkSize
 private const RevealChunkSize = RevealContextSize + StreamChunkSize
+private const ResidentSourceSize = 256 * 1024'u64
 private const StreamLookAhead = 2.0
 private const StreamFrameBudget = 3_000'u64
 private const StreamBlockBudget = 8'u32
@@ -372,6 +373,8 @@ private impl View
             return false
         if .blocks.isEmpty() do
             return true
+        if .bytesRead - .residentStart >= ResidentSourceSize and !.jumpToEnd and !.hasPendingTarget do
+            return false
         if .jumpToEnd or .hasPendingTarget do
             return true
         let viewport = .scroll.paddedClientRect()
@@ -584,6 +587,13 @@ private impl View
         .jumpToEnd = false
         if forward and .hasUnloadedSource() and target + viewport.height > .contentHeight
         {
+            if .bytesRead - .residentStart >= ResidentSourceSize and .virtualHeight > 0 and .fileSize
+            {
+                let offset = cast(u64) (Math.clamp(target / .virtualHeight, 0, 1) * cast(f32) .fileSize)
+                discard .revealFileOffset(offset, "")
+                return true
+            }
+
             .hasPendingTarget    = true
             .pendingTarget       = target
             .pendingTargetOffset = Swag.U64.Max

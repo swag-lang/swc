@@ -245,3 +245,64 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
     discard catch reader.decodeFrame(0) as cancelled
     @assert(cancelled is BadParameterError)
 }
+
+// A string element states its length, and a writer that reserved room for a longer value fills the
+// rest with zeros. Those zeros are padding, not content: a codec identifier written that way names
+// the same codec, and a reader that keeps them matches nothing.
+#test
+{
+    let padded: [8] u8 = ['V', '_', 'X', 0, 0, 0, 0, 0]
+    var cursor = Matroska.Cursor.open(padded[0 until 8])
+    let value  = expect cursor.readString({0, 0, 8, false})
+    @assert(value.toString() == "V_X")
+    @assert(@countof(value.toString()) == 3)
+}
+
+// A value that fills its element is kept whole.
+#test
+{
+    let exact: [3] u8 = ['V', '_', 'X']
+    var cursor = Matroska.Cursor.open(exact[0 until 3])
+    let value  = expect cursor.readString({0, 0, 3, false})
+    @assert(value.toString() == "V_X")
+}
+
+// A write that stopped part way leaves reserved space behind, filled with nothing. The first byte
+// of an element identifier always carries a marker bit, so a run of zeros is where the elements
+// stop: what was written is still there and still plays, and the cue table that was never written
+// only costs the seeking it would have made cheaper.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("edited-truncated-tail.mkv"))
+    @assert(reader.width() == 64 and reader.height() == 48)
+
+    var whole  = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
+    var cut:     Image
+    var entire:  Image
+    for index in 12'u64
+    {
+        expect reader.decodeFrameInto(&cut, index)
+        expect whole.decodeFrameInto(&entire, index)
+        @assert(cut.width == entire.width and cut.height == entire.height)
+        @assert(Memory.compare(cut.pixels.buffer!, entire.pixels.buffer!, cut.pixels.count) == 0)
+    }
+}
+
+// A writer that knows every frame of a track begins with the same bytes may state them once and
+// store the frames without them, which is what mkvmerge does by default to several codecs. The
+// frames are the same frames, so what comes out of them is the same pictures.
+#test
+{
+    var stripped = expect Reader.open(videoFixturePath("edited-header-stripped.mkv"))
+    var whole    = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
+    @assert(stripped.width() == whole.width() and stripped.height() == whole.height())
+
+    var cut:    Image
+    var entire: Image
+    for index in 12'u64
+    {
+        expect stripped.decodeFrameInto(&cut, index)
+        expect whole.decodeFrameInto(&entire, index)
+        @assert(Memory.compare(cut.pixels.buffer!, entire.pixels.buffer!, cut.pixels.count) == 0)
+    }
+}

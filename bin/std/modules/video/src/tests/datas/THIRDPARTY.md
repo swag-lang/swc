@@ -72,6 +72,50 @@ the same six pictures.
 | `edited-record-groups.avi` | Every frame is wrapped in a `rec ` list and the index removed, as an OpenDML file groups its frames |
 | `edited-dropped-frames.avi` | The payloads of frames 3 and 4 are emptied and the index updated, which is how the container says a frame repeats the picture before it |
 
+`edited-truncated-tail.mkv` is `ffmpeg-h264-two-aac.mkv` with everything from its second cluster
+onward replaced by zeros, which is what a write that stopped part way leaves behind, and what two
+files of a real library turned out to hold. The first cluster and every element before it are
+untouched, so the pictures it did write still decode; the cue table it never wrote does not.
+
+- SHA-256: `88964b22b9d771197b8ca4493f32230d13cf0f72c5bebb39da1368c70d6252c4`
+- License: same as `ffmpeg-h264-two-aac.mkv`.
+
+`edited-header-stripped.mkv` is `ffmpeg-h264-two-aac.mkv` rewritten with the leading zero byte
+taken off every video frame and stated once in a ContentEncoding, which is what mkvmerge does by
+default to several codecs and what one file of a real library carries. Its seek head and cue table
+are dropped because every offset in them moves; nothing else about the file changes.
+
+- SHA-256: `292b613741335cbced6daca10ec62bdc3fe7283840380db2f3f8445dddbd5b22`
+- License: same as `ffmpeg-h264-two-aac.mkv`.
+
+`edited-open-group-start.mkv` is the first twenty-six access units of `ffmpeg-hevc-main.mp4`
+dropped and the rest copied into Matroska, so it begins at a clean random access point whose four
+leading pictures predict from what came before it. `edited-open-group-start.yuv` is FFmpeg's decode
+of it, thirty pictures rather than thirty-four: the four the standard says not to show are absent.
+
+- SHA-256: `c3b58963cc5f276b63c7d2b28388e7788e914e799d765397b95e28f6e138b485` and
+  `6865d4101605c287efb2a14eae6eca0379c6488ab607d25cfd91cab9db17e49e`.
+- License: same as `ffmpeg-hevc-main.mp4`.
+
+`edited-mid-group-start.mkv` is the first five access units of `ffmpeg-h264-pyramid.mp4` dropped and
+the rest copied into Matroska, which cuts away the picture its next slices refer back to. A file
+clipped that way begins in the middle of a group: nothing before its first marked sample can be
+reconstructed, and one file of a real library begins exactly so. `edited-mid-group-start.yuv` is
+FFmpeg's decode of it, forty-four pictures rather than fifty-five.
+
+- SHA-256: `b8dd76e9e4ae6dfdd09baddbb524662d9bf8fbc8ef2af0c5dbee931a58af395d` and
+  `1822c0be6c417f5710cc636d7d0fb4b7d28b1c60d024a932ea2b765998f89942`.
+- License: same as `ffmpeg-h264-pyramid.mp4`.
+
+`glint-aac-drift.mp4` is `glint-aac-mjpeg.mp4` with the sound track's time-to-sample table rewritten
+from one entry of nineteen samples at 1024 into three entries of 1023, 1024 and 1025. The total is
+unchanged and so is every byte of media; only the table stops stating one number, which is what
+several real files carry. The movie box sits after the media data there, so growing it left every
+chunk offset where it was.
+
+- SHA-256: `85418e5dae5ad937490fc6def9b091c47655ec49ec7747766b7f8adac140eeea`
+- License: same as `glint-aac-mjpeg.mp4`.
+
 ## Generated for this repository
 
 `ffmpeg-h264-two-aac.mkv` stream-copies `ffmpeg-h264-baseline.mp4` and the AAC-LC track of

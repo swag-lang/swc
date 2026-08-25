@@ -50,7 +50,10 @@ Four codecs ship in the box:
   track remuxed from a legacy file is read as well: such a track names its codec through a Video
   for Windows header, states its setup headers inside the stream rather than in the container, and
   may store a bidirectional plane behind the plane it refers forward to. Display order is then
-  taken from the clock the stream states, not from the order the container hands samples over. Matroska `CodecDelay` is removed from the audible timeline.
+  taken from the clock the stream states, not from the order the container hands samples over.
+  Frames stored without the bytes they all begin with, which is what mkvmerge does by default to
+  several codecs, are handed to the decoder whole; a track compressed or encrypted any other way is
+  not offered. A file whose tail never made it to disk is read as far as it goes. Matroska `CodecDelay` is removed from the audible timeline.
   Opening reads only seek, track, and cue metadata. Decoding advances one foreground demux cursor
   through complete cluster windows as playback reaches them; random access restarts it at the
   preceding video cue and reconstructs the coded prediction through the requested picture. No

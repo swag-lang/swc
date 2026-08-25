@@ -16,3 +16,18 @@ struct SampleEntry
     presentationTime: s64     // Presentation timestamp, in the container's own units.
     isSync:           bool    // Whether the unit starts a decode that needs nothing before it.
 }
+
+// Reads one stored frame, putting back whatever the container took off its front.
+//
+// A writer that knows every frame of a track begins with the same bytes may store them once and
+// strip them, so what lies in the file is not the whole frame. A decoder is handed the frame.
+func readStoredFrame(source: *Source, entry: SampleEntry, prefix: const [..] u8, payload: *Array'u8) fail
+{
+    let count = @countof(prefix)
+    if payload.count != entry.size + count do
+        payload.resize(entry.size + count)
+    if count do
+        Memory.copy(payload.buffer!, @dataof(prefix), count)
+    try source.seek(entry.offset)
+    try source.readExact(payload.toSlice()[count until payload.count])
+}

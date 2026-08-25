@@ -85,6 +85,8 @@ struct HevcStream
     nextDecode:          u64     // Next sample to decode.
     nextRank:            u64     // Display rank the next decode call returns.
     skipBefore:          u64
+    prefix:              Array'u8    // Bytes the container took off the front of every stored frame.
+    dropped:             Array'u64   // Display ranks of pictures the standard says not to show.
     decodeLimit:         u64 = Swag.U64.Max
     reachedEnd:          bool
     skippedNonReference: u64
@@ -139,6 +141,7 @@ impl HevcStream
         .nextRank    = 0
         .skipBefore  = 0
         .decodeLimit = Swag.U64.Max
+        .dropped.clear()
         .reachedEnd  = false
         .installFrames(#move frames)
     }
@@ -381,6 +384,10 @@ impl HevcStream
     {
         for
         {
+            // A rank whose picture turned out not to be shown moves on to the next one.
+            while .takeDropped(.nextRank) do
+                .nextRank += 1
+
             for index in .pending.count where .pending[index].rank == .nextRank
             {
                 let frame = .pending[index].frame!
@@ -397,6 +404,15 @@ impl HevcStream
                 fail InvalidFormatError{"H.265 stream has no picture for the requested position"}
 
             let decoded = try .decodeStoredSample(source)
+            if !decoded.frame.outputNeeded
+            {
+                // A picture the standard says not to show still takes a place in the numbering the
+                // container states, and that place is answered by the next picture that is shown.
+                .dropped.add(decoded.rank)
+                .release(decoded.frame)
+                continue
+            }
+
             if decoded.rank < .skipBefore
             {
                 .release(decoded.frame)
@@ -511,10 +527,7 @@ impl HevcStream
         let sample  = .nextDecode
         let entry   = .frames[sample]
         let payload = &.payloads[lane]
-        if payload.count != entry.size do
-            payload.resize(entry.size)
-        try source.seek(entry.offset)
-        try source.readExact(payload.toSlice())
+        try readStoredFrame(source, entry, .prefix.toSlice(), payload)
 
         .nextDecode += 1
         if .nextDecode >= .frames.count do
@@ -665,6 +678,18 @@ impl HevcStream
         }
 
         return picture
+    }
+
+    // Takes a display rank off the list of pictures never shown, saying whether it was on it.
+    private mtd takeDropped(rank: u64)->bool
+    {
+        for index in .dropped.count where .dropped[index] == rank
+        {
+            .dropped.removeAt(index)
+            return true
+        }
+
+        return false
     }
 
     // Decodes one length-prefixed access unit through the multi-slice fallback.

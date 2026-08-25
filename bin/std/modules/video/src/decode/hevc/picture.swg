@@ -214,6 +214,16 @@ impl Decoder
         // A random access point after a break in the stream drops the pictures that would have
         // predicted from what came before it, clause 8.1.3.
         .noRaslOutput = isIdrNal(nalType) or nalType == NalCraNut or .firstPicture
+
+        // A random access point that begins a stream, one reached after a break, and one that
+        // states the link is broken all leave nothing for their skipped leading pictures to
+        // predict from: those are decoded from references that were never there and are not shown,
+        // clause 8.1.3. They precede the point in output order, so keeping them would put wrong
+        // pictures before the first real one. A clean random access point met in the middle of a
+        // stream is not in that position: what its leading pictures predict from is right there.
+        if isIrapNal(nalType) do
+            .raslSuppressed = isIdrNal(nalType) or isBlaNal(nalType) or .firstPicture
+
         .computePoc(nalType, header, sps)
         if isReferenceNal(nalType) and header.temporalId == 0
         {
@@ -228,7 +238,7 @@ impl Decoder
         frame!.prepare(sps)
         frame!.poc          = .pocValue
         frame!.marking      = .ShortTerm
-        frame!.outputNeeded = header.picOutputFlag
+        frame!.outputNeeded = header.picOutputFlag and !(isRaslNal(nalType) and .raslSuppressed)
         frame!.isIrap       = isIrapNal(nalType)
         frame!.noRaslOutput = .noRaslOutput
         try .holdReference(frame!, .ShortTerm)

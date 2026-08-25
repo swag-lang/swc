@@ -57,6 +57,12 @@ func isIdrNal(nalType: u32)->bool => nalType == NalIdrWRadl or nalType == NalIdr
 // Reports whether a unit type carries a picture that is skipped after a random access point.
 func isRaslNal(nalType: u32)->bool => nalType == 8 or nalType == NalRaslR
 
+// Reports whether a unit type starts a broken link access picture.
+//
+// Such a picture states outright that what came before it is gone, which is what a stream spliced
+// at that point leaves behind, clause 7.4.2.2.
+func isBlaNal(nalType: u32)->bool => nalType >= NalBlaWLp and nalType <= NalBlaWLp + 2
+
 // Reports whether a unit type marks its picture as a reference for later pictures.
 //
 // The sub-layer non-reference types are the even ones below sixteen, clause 7.4.2.2.

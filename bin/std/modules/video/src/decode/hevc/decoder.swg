@@ -103,12 +103,13 @@ struct Decoder
     dependentState: CabacState
 
     // Picture order count state, clause 8.3.1.
-    pocMsb:       s32
-    prevPocLsb:   u32
-    prevPocMsb:   s32
-    pocValue:     s32
-    firstPicture: bool = true
-    noRaslOutput: bool
+    pocMsb:         s32
+    prevPocLsb:     u32
+    prevPocMsb:     s32
+    pocValue:       s32
+    firstPicture:   bool = true
+    noRaslOutput:   bool
+    raslSuppressed: bool    // The random access point in force drops its skipped leading pictures.
 
     // Picture geometry, recomputed when a sequence or picture parameter set is activated.
     gridWidth:     u32
@@ -202,6 +203,7 @@ impl Decoder
         .pocValue       = previous.pocValue
         .firstPicture   = previous.firstPicture
         .noRaslOutput   = previous.noRaslOutput
+        .raslSuppressed = previous.raslSuppressed
     }
 
     // Releases the frame storage borrowed by this lane's logical decoded-picture buffer.

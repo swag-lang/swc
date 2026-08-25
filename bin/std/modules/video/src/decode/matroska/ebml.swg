@@ -31,6 +31,12 @@ const CodecPrivateId       = 0x63A2'u32
 const CodecDelayId         = 0x56AA'u32
 const SeekPreRollId        = 0x56BB'u32
 const ContentEncodingsId   = 0x6D80'u32
+const ContentEncodingId    = 0x6240'u32
+const ContentEncodingScopeId = 0x5032'u32
+const ContentEncodingTypeId  = 0x5033'u32
+const ContentCompressionId = 0x5034'u32
+const ContentCompAlgoId    = 0x4254'u32
+const ContentCompSettingsId = 0x4255'u32
 const VideoId              = 0xE0'u32
 const PixelWidthId         = 0xB0'u32
 const PixelHeightId        = 0xBA'u32
@@ -125,6 +131,18 @@ impl Cursor
     }
 
     // Reads an element header and bounds it by its parent.
+    // Whether a walk of sibling elements has reached the end of what the stream holds.
+    //
+    // The first byte of an element identifier always carries a marker bit, so a zero there begins
+    // nothing. A file whose tail never made it to disk, or one written into space reserved ahead of
+    // time and left unfilled, ends in a run of zeros: that is where its elements stop, and reading
+    // on is reading nothing.
+    mtd const atEnd(limit: u64)->bool
+    {
+        let end = Math.min(limit, @countof(.bytes))
+        return .position >= end or !.bytes[.position]
+    }
+
     mtd readElement(limit: u64)->Element fail
     {
         if limit > @countof(.bytes) do
@@ -190,10 +208,18 @@ impl Cursor
     }
 
     // Copies a textual element into owned storage.
+    // Copies a string element, without the padding a writer is free to leave behind.
+    //
+    // A string element states its length, and a writer that reserved room for a longer value fills
+    // what it did not use with zeros. Those zeros are padding, not content, and clause 7 of the
+    // specification says to read the value as ending at the first of them.
     mtd readString(element: Element)->String fail
     {
         .seek(element.end)
-        return String.from(@mkstring(@dataof(.bytes) + element.data, element.end - element.data))
+        var size = element.end - element.data
+        while size and !.bytes[element.data + size - 1] do
+            size -= 1
+        return String.from(@mkstring(@dataof(.bytes) + element.data, size))
     }
 
     // Copies a binary element into owned storage.

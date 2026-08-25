@@ -261,3 +261,39 @@ is the layout it does not read yet.
   forty pictures, the rest at a mean of at most 0.0024. The sixth is refused before any picture is
   read, with `AVI chunk runs past the end of the stream`: it is an OpenDML file of 1.16 GB with no
   `idx1`, which is T-425 rather than anything to do with this codec.
+
+### T-567 — Interlaced H.264 is the last picture feature a real library asks for
+
+- Measured 2025-08-25 over 592 films of one personal library, twelve pictures each against FFmpeg:
+  590 decode, and one of the two that do not is refused with `video decoder does not support
+  interlaced H.264 streams`. It is a 1968 film telecined to fields.
+- What it needs is field coding: `field_pic_flag`, a picture built from two fields with their own
+  reference lists and their own picture order counts, and the deblocking and prediction rules that
+  follow from a field being half a picture. That is a real piece of the standard rather than a
+  corner of it, and nothing else in the library needs it.
+- Worth knowing before starting: the same library holds no interlaced H.265 and no interlaced
+  MPEG-4 Part 2, so this is one codec's feature rather than a shape the module lacks everywhere.
+
+### T-568 — RealVideo RV40 is one film, and a whole codec
+
+- The last film of the 592 that does not open is `V_REAL/RV40`, a 1999 encode. RealVideo 9/10 is an
+  H.264 relative with its own slice format, its own bitstream syntax, and no relationship to
+  anything this module reads.
+- It is recorded because the sweep found it, not because it is worth writing: one film against a
+  codec of that size is a poor trade, and remuxing that one file is the cheaper answer.
+- Related: T-565
+
+### F-198 — A differential harness must line pictures up by time, not by rank
+
+- Found while measuring the library: FFmpeg numbers the pictures it emits densely, and this reader
+  numbers them the way the container does. The two disagree wherever a container holds a sample
+  that produces no picture — a plane that codes nothing, a leading picture a random access point
+  says to skip, an access unit before the first one that can be reconstructed.
+- Neither numbering is wrong. A player seeks by the frame number its container states, so this
+  reader answers every one of them, and a rank whose picture cannot or must not be shown is
+  answered by the next one that can. FFmpeg hands out packets and frames with timestamps, so it
+  drops them instead.
+- Consequence for measurement: comparing picture `k` against FFmpeg's picture `k` reports a defect
+  where there is none. Two files of the library did exactly that, and both proved bit-exact once
+  their pictures were lined up by presentation time. A harness that compares against FFmpeg has to
+  record the timestamp of each reference picture and ask this reader for the rank that carries it.

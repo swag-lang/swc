@@ -199,3 +199,38 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     discard expect voice.updateNoSound()
     @assert(voice.playbackSampleFrame() > 2 * 1024)
 }
+
+// An `.aac` file opens on its own, and the index it builds is the one this suite builds by hand.
+//
+// The hand-built stream is what every other test here decodes, so proving the reader agrees with
+// it proves the reader without decoding anything twice.
+#test
+{
+    let path    = audioGetTestDataPath("aac-lc-stereo-44100.aac")
+    let wanted  = expect aacTestPackets(path)
+    var sound   = expect SoundFile.load(path.toString())
+
+    @assert(sound.sampleEncoding() == .AacLc)
+    @assert(sound.sampleRateHz() == 44_100 and sound.numChannels() == 2)
+    @assert(sound.packetCount() == wanted.count)
+    @assert(sound.sampleFrameCount() == wanted.count * 1024)
+    @assert(sound.decoderConfig.count == 2 and sound.decoderConfig[0] == 0x12 and sound.decoderConfig[1] == 0x10)
+    for index in wanted.count
+    {
+        let got = expect sound.packet(index)
+        @assert(got.sourceOffset == wanted[index].sourceOffset)
+        @assert(got.byteSize == wanted[index].byteSize)
+        @assert(got.sampleFrameCount == wanted[index].sampleFrameCount)
+    }
+}
+
+// A six-channel stream states its own configuration in every frame, and the reader turns that
+// into the two bytes a codec expects.
+#test
+{
+    let path  = audioGetTestDataPath("aac-lc-5.1-48000.aac")
+    var sound = expect SoundFile.load(path.toString())
+    @assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == 6)
+    @assert(sound.speakerChannelMask() == 0x3F)
+    @assert(sound.decoderConfig.count == 2 and sound.decoderConfig[0] == 0x11 and sound.decoderConfig[1] == 0xB0)
+}

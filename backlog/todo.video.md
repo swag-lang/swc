@@ -4,7 +4,7 @@ The module reads and writes video as a stream: a codec registered against `Video
 `Video.IEncoder`, selected by extension, reading a `Video.Source` and writing a `Video.Sink`.
 Seven picture codecs ship — YUV4MPEG2, AVI, ISO-BMFF with Motion JPEG, ISO-BMFF with H.264 or
 H.265, and Matroska with H.264 or H.265. File-backed ISO-BMFF and Matroska also expose streamed
-AAC-LC tracks to std/audio, and Matroska adds AC-3, E-AC-3 and FLAC. Encoded payloads stay on disk;
+AAC-LC tracks to std/audio, and Matroska adds AC-3, E-AC-3, FLAC and Layer III. Encoded payloads stay on disk;
 readers retain compact per-sample indexes plus one picture, the reference frames prediction needs,
 and a bounded audio queue.
 
@@ -173,15 +173,6 @@ is the layout it does not read yet.
 - Complete when: the serial cost of one 3840x2160 picture is within a third of FFmpeg's on the same
   machine.
 
-### T-424 — AVI video carries no sound
-
-- Intent: ISO-BMFF now reports AAC-LC tracks to `std/audio`, streams their access units through an
-  independent cursor, and exposes exact picture timestamps for an audio-master player. AVI still
-  skips the PCM stream it already declares.
-- Complete when: AVI exposes its audio streams through the same reader contract instead of staying
-  silent.
-- Related: T-420
-
 ### T-425 — An AVI larger than four gigabytes is refused
 
 - Intent: every size in the AVI container is a 32-bit field, so the encoder refuses a stream that
@@ -207,3 +198,31 @@ is the layout it does not read yet.
   one lane and one worker, processor time per picture and the stage split, against FFmpeg on the
   same machine — that figure decides whether this entry is about speed or about formats.
 - Related: T-504
+
+### T-565 — MPEG-4 Part 2 is the last picture codec a real library still needs
+
+- Measured, not guessed (2026-08-25, 592 films of one personal library, header probe only):
+  H.264 531, H.265 37, **MPEG-4 Part 2 23**, RealVideo 1. On the sound side, AC-3 659, AAC 296,
+  E-AC-3 53, DTS 22, Layer III 21, FLAC 2, Vorbis 2, TrueHD 2. Everything but the twenty-three
+  MPEG-4 Part 2 files and the one RealVideo file now opens.
+- Consequence: those twenty-three are wholly unreadable, sound included, because a Matroska or AVI
+  file with no picture track this module decodes fails to open at all. The message is correct —
+  `video decoder does not support Matroska codec 'V_MPEG4/ISO/ASP'` — and the file is still lost.
+- What those files actually need, from their own video object layer headers, all twenty-three
+  parsed: rectangular shape, 8-bit 4:2:0, **no quarter-sample motion, no interlacing, no data
+  partitioning** in any of them; twenty-two carry version 1 syntax and one version 2; seven use the
+  MPEG quantizer and the rest the H.263 one; one file enables global motion compensation and
+  overlapped block compensation. So the target is not Advanced Simple Profile in full: it is
+  I, P and B video object planes with half-sample motion, four motion vectors a macroblock,
+  unrestricted vectors, intra AC/DC prediction, and both quantizers. That is the subset every
+  DivX and Xvid encoder of that era produced.
+- What has to be settled first, exactly as it was for Layer III: the variable length code tables of
+  ISO/IEC 14496-2 — macroblock type, coded block pattern, motion vector, and the two coefficient
+  tables — have to come from somewhere that can be redistributed. Xvid and FFmpeg are both
+  copyleft, so neither is a source here. Find a permissively licensed or public-domain
+  implementation to recover them from, or a way to derive them; without one this entry cannot start
+  honestly. See `bin/THIRDPARTY.md` for how the Layer III tables were handled.
+- Also worth doing whatever happens to this entry: a container whose picture codec is unsupported
+  could still expose its sound tracks instead of failing to open. Twenty-two DTS tracks aside, the
+  twenty-three files above all carry AC-3 this module decodes.
+- Related: T-562

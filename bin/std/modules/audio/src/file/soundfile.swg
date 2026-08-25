@@ -236,10 +236,10 @@ impl SoundFile
 
     // Loads and validates a sound file.
     //
-    // `preloadData` keeps the complete payload in memory; otherwise voices stream
-    // it from `path`. A FLAC or MP3 file is always streamed — its audio is compressed, so keeping
-    // it in memory would keep the wrong bytes — and `preloadData` does not apply to either.
-    // Unsupported extensions, encodings, and malformed files fail.
+    // `preloadData` keeps the complete payload in memory; otherwise voices stream it from `path`.
+    // A compressed file is always streamed — keeping it in memory would keep the wrong bytes — so
+    // `preloadData` applies to WAV alone. Unsupported extensions, encodings, and malformed files
+    // fail.
     func load(path: string, preloadData = true)->SoundFile fail
     {
         let extension = Path.lowercaseExtension(path)
@@ -251,6 +251,21 @@ impl SoundFile
         if extension == ".mp3"
         {
             return try Mp3.openFile(path)
+        }
+
+        if extension == ".aac"
+        {
+            return try Aac.openFile(path)
+        }
+
+        if extension == ".ac3"
+        {
+            return try Dolby.openElementaryStream(path, .Ac3)
+        }
+
+        if extension == ".eac3" or extension == ".ec3"
+        {
+            return try Dolby.openElementaryStream(path, .Eac3)
         }
 
         if extension != ".wav" do

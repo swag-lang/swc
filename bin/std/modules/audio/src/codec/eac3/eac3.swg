@@ -710,6 +710,42 @@ impl IPacketCodec for Eac3Codec
     }
 }
 
+// Reads the shape of one E-AC-3 sync frame without decoding it, clause E.1.3.1.
+internal func eac3FrameInfo(packet: const [..] u8)->FrameInfo fail
+{
+    const Rates:   [3] u32 = [48_000, 44_100, 32_000]
+    const Reduced: [3] u32 = [24_000, 22_050, 16_000]
+    const Blocks:  [4] u32 = [1, 2, 3, 6]
+
+    if @countof(packet) < 5 do
+        fail InvalidFormatError{"E-AC-3 packet header is truncated"}
+    if packet[0] != 0x0B or packet[1] != 0x77 do
+        fail InvalidFormatError{"E-AC-3 packet has no sync word"}
+
+    var result: retval
+    result.frameBytes = 2 * ((((cast(u64) packet[2]) & 7) << 8) | cast(u64) packet[3]) + 2
+
+    let fscod = cast(u32) (packet[4] >> 6) & 3
+    if fscod == 3
+    {
+        let fscod2 = cast(u32) (packet[4] >> 4) & 3
+        if fscod2 == 3 do
+            fail InvalidFormatError{"E-AC-3 frame states a reserved sampling frequency"}
+        result.sampleRate = Reduced[cast(u64) fscod2]
+        result.frames     = 1536
+    }
+    else
+    {
+        result.sampleRate = Rates[cast(u64) fscod]
+        result.frames     = Blocks[(packet[4] >> 4) & 3] * 256
+    }
+
+    let acmod = cast(u32) (packet[4] >> 1) & 7
+    let lfe   = cast(u32) packet[4] & 1
+    result.channels = AcmodChannels[cast(u64) acmod] + lfe
+    return result
+}
+
 // Returns the number of sample frames one E-AC-3 sync frame decodes to.
 //
 // Unlike AC-3, an E-AC-3 frame may carry one, two, three, or six blocks of 256 samples, and

@@ -591,6 +591,60 @@ impl IPacketCodec for Ac3Codec
     }
 }
 
+// What one sync frame says about the stream it belongs to.
+internal struct FrameInfo
+{
+    frameBytes: u64
+    sampleRate: u32
+    channels:   u32
+    frames:     u32     // Sample frames the frame decodes to.
+}
+
+// The channels each `acmod` names, before the low frequency effects channel is counted.
+private const AcmodChannels: [8] u32 = [2, 1, 2, 3, 3, 4, 4, 5]
+
+// Reads the shape of one AC-3 sync frame without decoding it, clause 5.3.
+internal func ac3FrameInfo(packet: const [..] u8)->FrameInfo fail
+{
+    const BitRates: [19] u32 = [32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 448, 512, 576, 640]
+    const Rates:    [3] u32  = [48_000, 44_100, 32_000]
+
+    if @countof(packet) < 7 do
+        fail InvalidFormatError{"AC-3 packet header is truncated"}
+    if packet[0] != 0x0B or packet[1] != 0x77 do
+        fail InvalidFormatError{"AC-3 packet has no sync word"}
+
+    let fscod    = cast(u32) (packet[4] >> 6) & 3
+    let sizeCode = cast(u32) packet[4] & 0x3F
+    if fscod >= 3 or sizeCode >= 38 do
+        fail InvalidFormatError{"AC-3 frame states a reserved sampling frequency or size"}
+
+    var result: retval
+    result.sampleRate = Rates[cast(u64) fscod]
+    result.frames     = 1536
+
+    let bitRate = cast(u64) BitRates[cast(u64) sizeCode >> 1]
+    if !fscod do
+        result.frameBytes = 4 * bitRate
+    elif fscod == 1 do
+        result.frameBytes = 2 * ((320 * bitRate) / 147 + cast(u64) (sizeCode & 1))
+    else do
+        result.frameBytes = 6 * bitRate
+
+    // The channel mode and the low frequency effects flag follow the bit stream identification.
+    let acmod = cast(u32) (packet[6] >> 5) & 7
+    var skip  = 3'u32
+    if (acmod & 1) != 0 and acmod != 1 do
+        skip += 2
+    if (acmod & 4) != 0 do
+        skip += 2
+    if acmod == 2 do
+        skip += 2
+    let lfe = (cast(u32) packet[6] >> (7 - skip)) & 1
+    result.channels = AcmodChannels[cast(u64) acmod] + lfe
+    return result
+}
+
 // Returns the number of sample frames one AC-3 sync frame decodes to.
 //
 // Every AC-3 frame carries six blocks of 256 samples, so only the sync word needs checking.

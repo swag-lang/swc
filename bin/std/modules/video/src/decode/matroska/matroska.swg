@@ -412,6 +412,29 @@ private impl Layout
         return .cues[low].timestamp <= timestamp ? &.cues[low] : null
     }
 
+    // Finds the first random-access point not earlier than `timestampNanoseconds`.
+    mtd const cueAtOrAfter(timestampNanoseconds: u64)->#null const *CueEntry
+    {
+        if !.cues.count do
+            return null
+        var timestamp = timestampNanoseconds / .timestampScale
+        if timestampNanoseconds % .timestampScale do
+            timestamp += 1
+
+        var low  = 0'u64
+        var high = .cues.count
+        while low < high
+        {
+            let middle = low + (high - low) / 2
+            if .cues[middle].timestamp < timestamp do
+                low = middle + 1
+            else do
+                high = middle
+        }
+
+        return low < .cues.count ? &.cues[low] : null
+    }
+
     // Returns the end of the complete cluster containing `sampleCount` pictures.
     mtd const videoWindowEnd(sampleCount: u64)->u64
     {
@@ -1466,6 +1489,16 @@ private impl Decoder
         return .durationSeconds
     }
 
+    // Converts an absolute container timestamp to the first display rank not earlier than it.
+    mtd const frameAtTimestamp(timestampNanoseconds: f64)->u64
+    {
+        let rate = .currentFrameRate()
+        if !rate.isValid() do
+            return 0
+        let seconds = Math.max((timestampNanoseconds - cast(f64) .presentationOrigin) / 1_000_000_000.0, 0)
+        return cast(u64) Math.ceil(seconds * cast(f64) rate.numerator() / cast(f64) rate.denominator())
+    }
+
     mtd resumeSoundIndex()
     {
         if !.resumeSoundIndexAfterDecode do
@@ -1531,9 +1564,28 @@ impl IDecoder for Decoder
 
     mtd impl syncFrameAt(index: u64)->u64
     {
-        if index < .windowBaseRank or index - .windowBaseRank >= .streamSampleCount do
+        let fileIndex = .fileIndex
+        if index >= .windowBaseRank and index - .windowBaseRank < .streamSampleCount
+        {
+            let local = .video.syncRankAt(index - .windowBaseRank)
+            if local < .streamSampleCount or !fileIndex or fileIndex!.progressive!.indexComplete do
+                return .windowBaseRank + local
+        }
+
+        if !fileIndex do
             return index
-        return .windowBaseRank + .video.syncRankAt(index - .windowBaseRank)
+        let timestamp = .targetTimestamp(index)
+        if timestamp < 0 do
+            return index
+        let layout = fileIndex!.progressive!
+        let cue    = layout.cueAtOrAfter(cast(u64) timestamp)
+        if cue
+        {
+            let cueNanoseconds = cast(f64) cue!.timestamp * cast(f64) layout.timestampScale
+            return Math.max(index, .frameAtTimestamp(cueNanoseconds))
+        }
+
+        return .frameAtTimestamp(.currentDuration() * 1_000_000_000.0 + cast(f64) .presentationOrigin)
     }
 
     mtd impl seekFrame(source: *Source, index: u64) fail

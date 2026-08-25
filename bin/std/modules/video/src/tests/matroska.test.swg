@@ -266,3 +266,24 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
     let value  = expect cursor.readString({0, 0, 3, false})
     @assert(value.toString() == "V_X")
 }
+
+// A write that stopped part way leaves reserved space behind, filled with nothing. The first byte
+// of an element identifier always carries a marker bit, so a run of zeros is where the elements
+// stop: what was written is still there and still plays, and the cue table that was never written
+// only costs the seeking it would have made cheaper.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("edited-truncated-tail.mkv"))
+    @assert(reader.width() == 64 and reader.height() == 48)
+
+    var whole  = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
+    var cut:     Image
+    var entire:  Image
+    for index in 12'u64
+    {
+        expect reader.decodeFrameInto(&cut, index)
+        expect whole.decodeFrameInto(&entire, index)
+        @assert(cut.width == entire.width and cut.height == entire.height)
+        @assert(Memory.compare(cut.pixels.buffer!, entire.pixels.buffer!, cut.pixels.count) == 0)
+    }
+}

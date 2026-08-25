@@ -125,6 +125,18 @@ impl Cursor
     }
 
     // Reads an element header and bounds it by its parent.
+    // Whether a walk of sibling elements has reached the end of what the stream holds.
+    //
+    // The first byte of an element identifier always carries a marker bit, so a zero there begins
+    // nothing. A file whose tail never made it to disk, or one written into space reserved ahead of
+    // time and left unfilled, ends in a run of zeros: that is where its elements stop, and reading
+    // on is reading nothing.
+    mtd const atEnd(limit: u64)->bool
+    {
+        let end = Math.min(limit, @countof(.bytes))
+        return .position >= end or !.bytes[.position]
+    }
+
     mtd readElement(limit: u64)->Element fail
     {
         if limit > @countof(.bytes) do

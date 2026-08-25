@@ -72,6 +72,14 @@ the same six pictures.
 | `edited-record-groups.avi` | Every frame is wrapped in a `rec ` list and the index removed, as an OpenDML file groups its frames |
 | `edited-dropped-frames.avi` | The payloads of frames 3 and 4 are emptied and the index updated, which is how the container says a frame repeats the picture before it |
 
+`edited-truncated-tail.mkv` is `ffmpeg-h264-two-aac.mkv` with everything from its second cluster
+onward replaced by zeros, which is what a write that stopped part way leaves behind, and what two
+files of a real library turned out to hold. The first cluster and every element before it are
+untouched, so the pictures it did write still decode; the cue table it never wrote does not.
+
+- SHA-256: `88964b22b9d771197b8ca4493f32230d13cf0f72c5bebb39da1368c70d6252c4`
+- License: same as `ffmpeg-h264-two-aac.mkv`.
+
 `glint-aac-drift.mp4` is `glint-aac-mjpeg.mp4` with the sound track's time-to-sample table rewritten
 from one entry of nineteen samples at 1024 into three entries of 1023, 1024 and 1025. The total is
 unchanged and so is every byte of media; only the table stops stating one number, which is what

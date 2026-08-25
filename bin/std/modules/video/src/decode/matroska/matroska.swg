@@ -259,7 +259,7 @@ private impl Layout
         var hasTracks: bool
 
         cursor.seek(segment.data)
-        while cursor.position < segment.end and !hasTracks
+        while !cursor.atEnd(segment.end) and !hasTracks
         {
             let element = cursor.readElement(segment.end)
             switch element.id
@@ -276,8 +276,19 @@ private impl Layout
                     hasTracks = true
                 }
 
-                if hasTracks and targets.cues != NoOffset do
-                    .parseMetadataElement(cursor, targets.cues, CuesId, segment)
+                // The cue table is an index, not content. A file whose tail never made it to disk
+                // still holds every picture it wrote, and is played by reading through it rather
+                // than by seeking, so a cue table that is not there is not a reason to refuse it.
+                if hasTracks and targets.cues != NoOffset
+                {
+                    let mark = cursor.position
+                    catch .parseMetadataElement(cursor, targets.cues, CuesId, segment) as cuesError
+                    if cuesError != null
+                    {
+                        .cues.clear()
+                        cursor.seek(mark)
+                    }
+                }
 
             case InfoId:
                 .parseInfo(cursor, element)
@@ -312,7 +323,7 @@ private impl Layout
 
         var cursor = Cursor.open(bytes)
         cursor.seek(.scanPosition)
-        while cursor.position < .segment.end and .tracks[.selectedVideo].videoSamples.count < sampleCount
+        while !cursor.atEnd(.segment.end) and .tracks[.selectedVideo].videoSamples.count < sampleCount
         {
             while paused and Atomic.get(paused!)
             {
@@ -329,8 +340,12 @@ private impl Layout
             cursor.seek(element.end)
         }
 
-        if .scanPosition >= .segment.end
+        // The walk is done when there is nothing left to read, which is not always where the
+        // segment says it ends: a file whose tail never made it to disk stops earlier, and a
+        // reader that waits for the declared end waits forever.
+        if cursor.atEnd(.segment.end)
         {
+            .scanPosition  = .segment.end
             .indexComplete = true
             if .indexPictures and !.tracks[.selectedVideo].videoSamples.count do
                 fail InvalidFormatError{"Matroska video track has no blocks"}
@@ -364,7 +379,7 @@ private impl Layout
 
         var cursor = Cursor.open(bytes)
         cursor.seek(.scanPosition)
-        while cursor.position < .segment.end and !.hasAudioThrough(timestampNanoseconds)
+        while !cursor.atEnd(.segment.end) and !.hasAudioThrough(timestampNanoseconds)
         {
             while paused and Atomic.get(paused!)
             {
@@ -381,8 +396,12 @@ private impl Layout
             cursor.seek(element.end)
         }
 
-        if .scanPosition >= .segment.end do
+        if cursor.atEnd(.segment.end)
+        {
+            .scanPosition  = .segment.end
             .indexComplete = true
+        }
+
         return true
     }
 
@@ -603,7 +622,7 @@ private impl Layout
     mtd parseSegment(cursor: *Cursor, segment: Element, cancelled: #null *u32 = null)->bool fail
     {
         cursor.seek(segment.data)
-        while cursor.position < segment.end
+        while !cursor.atEnd(segment.end)
         {
             if cancelled and Atomic.get(cancelled!) do
                 return false

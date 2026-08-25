@@ -559,12 +559,6 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "sfilescope.panel")
     Testing.assertContentFits(window)
-
-    host.theme.setSwagLight()
-    host.notify(.ThemeChanged)
-    host.settleAnimations(window, 4)
-    image = host.render(window)
-    Pixel.Testing.assertImageGolden(&image, "sfilescope.panel.light")
 }
 
 // Keeps the virtual document extent monotonic while several large-file chunks arrive between

@@ -740,7 +740,7 @@ impl ViewerWindow
         with result.infoBar = Wnd.create'ViewerInfoBar(result, {0, 0, 0, ViewerInfoHeight})
         {
             .dockStyle       = .Top
-            .backgroundStyle = .Window
+            .backgroundStyle = .View
             .padding         = {14, 4, 14, 4}
         }
 
@@ -795,7 +795,7 @@ impl ViewerWindow
             .dockStyle       = .Left
             .minSize.x       = ViewerPanelWidth
             .maxSize.x       = ViewerPanelWidth
-            .backgroundStyle = .View
+            .backgroundStyle = .Window
             .hide()
         }
 
@@ -803,7 +803,7 @@ impl ViewerWindow
 
         with result.recentPane = Wnd.create'Wnd(result.filePanel)
         {
-            .backgroundStyle = .View
+            .backgroundStyle = .Window
             .padding         = {0, 8, 0, 8}
         }
 
@@ -853,7 +853,7 @@ impl ViewerWindow
 
         with result.folderPane = Wnd.create'Wnd(result.filePanel)
         {
-            .backgroundStyle = .View
+            .backgroundStyle = .Window
             .padding         = {0, 8, 0, 8}
         }
 

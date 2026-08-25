@@ -4,53 +4,49 @@ using Core, Pixel, Gui, Video, Audio
 
 private const VideoGlyphSize = 18.0
 private const VideoSeekSeconds = 10.0
-private const VideoSeekOverlaySize = Math.Point{136, 88}
+private const VideoSeekOverlaySize = Math.Point{112, 64}
 private const VideoSeekOverlayLifetime: Time.Duration = 650'ms
 
 // Briefly reports a relative timeline jump over the picture itself.
 //
-// The tile is painted from the active theme rather than from the movie palette, so it remains
-// legible over both bright and dark frames. Presentation transforms move the complete sign in
-// the direction of travel without disturbing layout or hit testing.
+// The Voltage mark carries an Ink keyline rather than a tile, so it remains legible over both
+// bright and dark frames without covering the picture. Presentation transforms move the complete
+// sign in the direction of travel without disturbing layout or hit testing.
 internal struct VideoSeekOverlay
 {
     using wnd: Wnd
 
-    backwardIcon: Icon
-    forwardIcon:  Icon
-    text:         String
-    direction:    s32
-    fontReady:    bool
-    timer:        #null *Timer
-    offsetAni:    AnimationHandle
-    scaleAni:     AnimationHandle
-    opacityAni:   AnimationHandle
+    text:       String
+    direction:  s32
+    fontReady:  bool
+    timer:      #null *Timer
+    offsetAni:  AnimationHandle
+    scaleAni:   AnimationHandle
+    opacityAni: AnimationHandle
 }
 
 private impl IWnd for VideoSeekOverlay
 {
     mtd impl onPaint(evt: *PaintEvent)
     {
-        let painter = evt.paintContext.painter
-        let rect    = .clientRect()
-        let theme   = .theme()
-        let colors  = .themeColors()
-        let ink     = colors.text
-
-        theme.drawSubRect(painter, rect, &theme.rects.selectionBox_Bk, colors.wnd_Bk.withAlphaF32(0.94))
-
-        let icon     = .direction < 0 ? .backwardIcon : .forwardIcon
+        let painter  = evt.paintContext.painter
+        let rect     = .clientRect()
         let font     = .font().regular!
         let textSize = Painter.measureString(.text.toString(), font)
-        let gap      = 8'f32
-        let width    = icon.sizeX + gap + textSize.width
-        let iconX    = Math.floor(rect.horzCenter() - width * 0.5)
-        let iconY    = Math.floor(rect.vertCenter() - icon.sizeY * 0.5)
-        let textX    = iconX + icon.sizeX + gap
+        let textX    = Math.floor(rect.horzCenter() - textSize.width * 0.5)
         let textY    = Math.floor(rect.vertCenter() - font.height * 0.5)
+        let edge     = 1'f32
 
-        icon.paint(painter, iconX, iconY, ink)
-        painter.drawString(textX, textY, .text.toString(), font, ink)
+        painter.setAntialiased(true)
+        painter.drawString(textX - edge, textY - edge, .text.toString(), font, Ink)
+        painter.drawString(textX, textY - edge, .text.toString(), font, Ink)
+        painter.drawString(textX + edge, textY - edge, .text.toString(), font, Ink)
+        painter.drawString(textX - edge, textY, .text.toString(), font, Ink)
+        painter.drawString(textX + edge, textY, .text.toString(), font, Ink)
+        painter.drawString(textX - edge, textY + edge, .text.toString(), font, Ink)
+        painter.drawString(textX, textY + edge, .text.toString(), font, Ink)
+        painter.drawString(textX + edge, textY + edge, .text.toString(), font, Ink)
+        painter.drawString(textX, textY, .text.toString(), font, Voltage)
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
@@ -80,7 +76,8 @@ internal impl VideoSeekOverlay
     func create(parent: *Wnd)->*VideoSeekOverlay
     {
         let result = Wnd.create'VideoSeekOverlay(parent, "sFileScope.video.seek", {0, 0, VideoSeekOverlaySize.x, VideoSeekOverlaySize.y})
-        result.wndFlags |= WndFlags.TopMost | WndFlags.Disabled
+        result.wndFlags        |= WndFlags.TopMost | WndFlags.Disabled
+        result.backgroundStyle = .Transparent
         result.hide()
         return result
     }
@@ -109,10 +106,6 @@ internal impl VideoSeekOverlay
             .fontReady = true
         }
 
-        if .direction < 0 and !.backwardIcon.isValid() do
-            .backwardIcon = .theme().icon(.SeekBackward, 30)
-        if .direction > 0 and !.forwardIcon.isValid() do
-            .forwardIcon = .theme().icon(.SeekForward, 30)
         let rect = .parent!.clientRect()
         let size = .preferredSize
         .setPosition({Math.floor((rect.width - size.x) * 0.5), Math.floor((rect.height - size.y) * 0.5), size.x, size.y}, computeLayout: false)

@@ -233,8 +233,8 @@ func videoMatroskaFixturePath()->String
     host.theme.setSwagLight()
     host.notify(.ThemeChanged)
     view.showSeekFeedback(-10)
-    let overlayColors = view.seekOverlay!.themeColors()
-    @assert(overlayColors.text.contrastRatio(overlayColors.wnd_Bk) >= 4.5)
+    @assert(view.seekOverlay!.backgroundStyle == .Transparent)
+    @assert(Voltage.contrastRatio(Ink) >= 4.5)
     host.fireTimer(view.seekOverlay!.timer!)
 }
 

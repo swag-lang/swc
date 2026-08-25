@@ -8,9 +8,10 @@ const ViewerMinWidth                          = 880
 const ViewerSearchChunkSize                   = 256 * 1024'u64
 const ViewerErrorTextWidth                    = 512.0
 const ViewerInfoStatsWidth                    = 560.0
-const ViewerInfoSizeWidth                     = 88.0
 const ViewerFullScreenRevealEdge              = 32.0
 const ViewerRetirePollInterval: Time.Duration = 16'ms
+const ViewerLoadingSpinnerRadius              = 20.0
+const ViewerLoadingSpinnerSweep               = 110.0
 
 const ViewerFullScreenRemovedFlags = SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.MaximizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
 const ViewerFullScreenAddedFlags   = SurfaceFlags.NoShadow | SurfaceFlags.TopMost
@@ -86,10 +87,24 @@ struct ViewerLoadingOverlay
 {
     using wnd: Wnd
 
-    #[Swag.Late]
+    animationPhase: f32
+}
+
+impl IWnd for ViewerLoadingOverlay
+{
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        spinnerPanel: *Wnd
-        spinner:      *Spinner
+        let painter = evt.paintContext.painter
+        let center  = .clientRect().center()
+        let start   = .animationPhase * 360 - 90
+        let end     = start + ViewerLoadingSpinnerSweep
+
+        painter.setAntialiased(true)
+        painter.drawArc(center.x, center.y, ViewerLoadingSpinnerRadius, Math.Angle.fromDegrees(start), Math.Angle.fromDegrees(end), Ink, 9)
+        painter.drawArc(center.x, center.y, ViewerLoadingSpinnerRadius, Math.Angle.fromDegrees(start), Math.Angle.fromDegrees(end), Voltage, 5)
+
+        .animationPhase = Math.fract(.animationPhase + .timing().deltaSeconds * 0.8)
+        .invalidate()
     }
 }
 
@@ -98,21 +113,16 @@ impl ViewerLoadingOverlay
     func create(parent: *Wnd)->*ViewerLoadingOverlay
     {
         let result = Wnd.create'ViewerLoadingOverlay(parent, "sFileScope.loading")
-        result.wndFlags                     |= WndFlags.TopMost
-        result.backgroundStyle              = .Transparent
-        result.spinnerPanel                 = Wnd.create'Wnd(result, {0, 0, 88, 88})
-        result.spinnerPanel.backgroundStyle = .Panel
-        result.spinner                      = Spinner.create(result.spinnerPanel, {16, 16, 56, 56})
+        result.wndFlags        |= WndFlags.TopMost | WndFlags.Disabled
+        result.backgroundStyle = .Transparent
         result.hide()
         return result
     }
 
-    // Covers `rect`, expressed in the shared parent coordinates, and centers the activity mark.
+    // Covers `rect`, expressed in the shared parent coordinates; painting centers the activity mark.
     mtd cover(rect: Math.Rectangle)
     {
         .setPosition(rect, computeLayout: false)
-        let size = .spinnerPanel.preferredSize
-        .spinnerPanel.setPosition({Math.floor((rect.width - size.x) * 0.5), Math.floor((rect.height - size.y) * 0.5), size.x, size.y}, computeLayout: false)
     }
 }
 
@@ -212,7 +222,7 @@ struct ViewerWindow
         appearanceButton:  *AppearanceButton
         accentRail:        *Separator
         infoBar:           *ViewerInfoBar
-        infoFileGroup:     *Wnd
+        infoFileGroup:     *StackLayoutCtrl
         infoIconLabel:     *Label
         infoNameLabel:     *Label
         infoStatsLabel:    *Label
@@ -741,31 +751,31 @@ impl ViewerWindow
             .setTextAlignment(.Right, .Center)
         }
 
-        with result.infoFileGroup = Wnd.create'Wnd(result.infoBar, {0, 0, 0, 32})
+        with result.infoFileGroup = StackLayoutCtrl.create(result.infoBar, .Left, {0, 0, 0, 32})
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
+            .spacing         = 0
         }
 
         with result.infoIconLabel = Label.create(result.infoFileGroup, "", {0, 0, 24, 32})
         {
-            .dockStyle = .Left
-            .margin.z  = 8
+            .margin.z = 4
             .setIconAlignment(.Center, .Center)
         }
 
-        with result.infoSizeLabel = Label.create(result.infoFileGroup, "", {0, 0, ViewerInfoSizeWidth, 32}, null, .SecondaryText)
+        with result.infoNameLabel = Label.create(result.infoFileGroup, "", {0, 0, 0, 32}, null, .Ellipsis)
         {
-            .dockStyle = .Left
-            .margin.z  = 12
-            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .layoutSpec.policyX = .Expand
+            .layoutSpec.weightX = 0
+            .style.setFont(result.theme().createDefaultFont(13, .Bold), .Regular)
             .setTextAlignment(.Left, .Center)
         }
 
-        with result.infoNameLabel = Label.create(result.infoFileGroup, "", {0, 0, 0, 32})
+        with result.infoSizeLabel = Label.create(result.infoFileGroup, "", {0, 0, 0, 32}, null, .SecondaryText)
         {
-            .dockStyle = .Center
-            .style.setFont(result.theme().createDefaultFont(13, .Bold), .Regular)
+            .margin.x = 8
+            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Left, .Center)
         }
 
@@ -1197,7 +1207,7 @@ impl ViewerWindow
         {
             let instance = &.instances[.activeChoiceIndex]
             loading     = instance.view and instance.isLoading and instance.isLoading!(instance.view!)
-            showOverlay = loading and !.outgoingView and instance.needsLoadingOverlay and instance.needsLoadingOverlay!(instance.view!)
+            showOverlay = loading and instance.needsLoadingOverlay and instance.needsLoadingOverlay!(instance.view!)
         }
 
         if showOverlay and .currentView

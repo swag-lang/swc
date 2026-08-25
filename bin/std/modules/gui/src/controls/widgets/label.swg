@@ -261,6 +261,7 @@ impl Label
             return
         .name.set(text)
         .invalidate()
+        .invalidateLayout()
         .updateAutomaticHeight()
     }
 

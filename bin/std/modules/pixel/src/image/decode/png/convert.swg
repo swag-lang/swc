@@ -1,9 +1,12 @@
-/*
-    :LICENCE
-    This code is based on the libspng library by Randy (https://libspng.org/)
-    The original code has been modified for Swag
-    See LICENCE.md for the corresponding licence.
-*/
+//! Format: Portable Network Graphics (PNG) decoder component.
+//! Supported: Standard grayscale, true-color, indexed, grayscale-alpha, and true-color-alpha images, including Adam7 and supported metadata.
+//! Not supported: APNG animation, unknown critical chunks, and images requiring more than 2 GiB of decoded storage.
+//! Role: This file owns decoded sample expansion and pixel-format conversion.
+//
+// @LICENCE: BSD-2-Clause
+// @ORIGIN: libspng, https://github.com/randy408/libspng
+// @MODIFIED: Ported and modified for Swag.
+// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#libspng
 
 #global namespace Png
 

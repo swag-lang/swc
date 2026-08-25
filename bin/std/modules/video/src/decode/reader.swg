@@ -1,3 +1,8 @@
+//! Format: Format-neutral video decoder registry and reader.
+//! Supported: Extension-based decoder selection, streamed frame decoding, metadata, seeking, and optional audio packets.
+//! Not supported: This file does not parse a concrete video or container format.
+//! Role: This file owns decoder registration and the public reader that delegates to concrete format subfolders.
+//
 #global public
 
 using Core, Core.Errors, Pixel, Audio

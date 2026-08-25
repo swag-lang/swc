@@ -1,3 +1,8 @@
+//! Format: Windows icon/cursor (ICO/CUR) decoder component.
+//! Supported: Multi-entry containers with PNG images or uncompressed 1-, 4-, 8-, 24-, and 32-bit DIB images and AND masks.
+//! Not supported: Compressed DIB entries and DIB bit depths outside the supported set.
+//! Role: This file owns container directory parsing and embedded-image decoding.
+//
 #global namespace Ico
 
 using Core, Core.Errors

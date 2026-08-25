@@ -33,6 +33,7 @@
 <li><a href="#guide_Vector_drawing">Vector drawing</a></li>
 <li><a href="#guide_Text_and_mathematical_layout">Text and mathematical layout</a></li>
 <li><a href="#guide_Rendering_recorded_commands">Rendering recorded commands</a></li>
+<li><a href="#file-documentation">File documentation</a></li>
 </ul>
 <h3>API reference</h3>
 <ul>
@@ -896,6 +897,102 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 <div class="blockquote-title-block"><span class="blockquote-title">Warning</span></div>
 <p>End a painter before calling <a href="#Pixel_Painter_render">Pixel.Painter.render</a>. Do not mutate its command or vertex buffers while a renderer is consuming them.</p>
 </div>
+</section>
+<section class="api-guide api-file-documentation"><h2 id="file-documentation">File documentation</h2>
+<h3 id="file_src_image_decode_bmp_bmp_swg"><code>src/image/decode/bmp/bmp.swg</code></h3>
+<p>Format: Windows Bitmap (BMP/DIB) decoder component. Supported: Windows and OS/2 headers; 1-, 4-, 8-, 16-, 24-, and 32-bit pixels; palettes, RGB, bitfields, RLE4, RLE8, and either row direction. Not supported: JPEG/PNG-compressed BMP payloads and other compression modes. Role: This file owns container header parsing, validation, decoder registration, and top-level pixel dispatch.</p>
+<h3 id="file_src_image_decode_bmp_pixels_swg"><code>src/image/decode/bmp/pixels.swg</code></h3>
+<p>Format: Windows Bitmap (BMP/DIB) decoder component. Supported: Windows and OS/2 headers; 1-, 4-, 8-, 16-, 24-, and 32-bit pixels; palettes, RGB, bitfields, RLE4, RLE8, and either row direction. Not supported: JPEG/PNG-compressed BMP payloads and other compression modes. Role: This file owns palette, packed-index, direct-color, and bitfield row expansion.</p>
+<h3 id="file_src_image_decode_bmp_rle_swg"><code>src/image/decode/bmp/rle.swg</code></h3>
+<p>Format: Windows Bitmap (BMP/DIB) decoder component. Supported: Windows and OS/2 headers; 1-, 4-, 8-, 16-, 24-, and 32-bit pixels; palettes, RGB, bitfields, RLE4, RLE8, and either row direction. Not supported: JPEG/PNG-compressed BMP payloads and other compression modes. Role: This file owns RLE4 and RLE8 command decoding.</p>
+<h3 id="file_src_image_decode_decode_swg"><code>src/image/decode/decode.swg</code></h3>
+<p>Format: Image decoder registry. Supported: Extension-selected registration and dispatch for every built-in and user-registered image decoder. Not supported: This file does not parse a concrete image format. Role: This file owns format-neutral decoder registration and dispatch.</p>
+<h3 id="file_src_image_decode_gif_frame_swg"><code>src/image/decode/gif/frame.swg</code></h3>
+<p>Format: Graphics Interchange Format (GIF87a/GIF89a) decoder component. Supported: Global/local palettes, transparency, interlacing, disposal, timing, loops, and sequential animation frames. Not supported: Unknown extension labels and malformed or truncated sub-block streams. Role: This file owns image descriptors, palettes, disposal, and compositing.</p>
+<h3 id="file_src_image_decode_gif_gif_swg"><code>src/image/decode/gif/gif.swg</code></h3>
+<p>Format: Graphics Interchange Format (GIF87a/GIF89a) decoder component. Supported: Global/local palettes, transparency, interlacing, disposal, timing, loops, and sequential animation frames. Not supported: Unknown extension labels and malformed or truncated sub-block streams. Role: This file owns decoder state and top-level GIF parsing.</p>
+<h3 id="file_src_image_decode_gif_lzw_swg"><code>src/image/decode/gif/lzw.swg</code></h3>
+<p>Format: Graphics Interchange Format (GIF87a/GIF89a) decoder component. Supported: Global/local palettes, transparency, interlacing, disposal, timing, loops, and sequential animation frames. Not supported: Unknown extension labels and malformed or truncated sub-block streams. Role: This file owns GIF LZW dictionary decoding.</p>
+<h3 id="file_src_image_decode_gif_stream_swg"><code>src/image/decode/gif/stream.swg</code></h3>
+<p>Format: Graphics Interchange Format (GIF87a/GIF89a) decoder component. Supported: Global/local palettes, transparency, interlacing, disposal, timing, loops, and sequential animation frames. Not supported: Unknown extension labels and malformed or truncated sub-block streams. Role: This file owns bounded byte reads and GIF extension parsing.</p>
+<h3 id="file_src_image_decode_ico_ico_swg"><code>src/image/decode/ico/ico.swg</code></h3>
+<p>Format: Windows icon/cursor (ICO/CUR) decoder component. Supported: Multi-entry containers with PNG images or uncompressed 1-, 4-, 8-, 24-, and 32-bit DIB images and AND masks. Not supported: Compressed DIB entries and DIB bit depths outside the supported set. Role: This file owns container directory parsing and embedded-image decoding.</p>
+<h3 id="file_src_image_decode_jpg_huffman_swg"><code>src/image/decode/jpg/huffman.swg</code></h3>
+<p>Format: Joint Photographic Experts Group (JPEG) decoder component. Supported: Baseline and progressive Huffman-coded grayscale, YCbCr, and directly sampled RGB images. Not supported: Arithmetic coding, lossless JPEG, CMYK/YCCK, and unsupported chroma sampling layouts. Role: This file owns Huffman table construction and entropy decoding.</p>
+<h3 id="file_src_image_decode_jpg_jpg_swg"><code>src/image/decode/jpg/jpg.swg</code></h3>
+<p>Format: Joint Photographic Experts Group (JPEG) decoder component. Supported: Baseline and progressive Huffman-coded grayscale, YCbCr, and directly sampled RGB images. Not supported: Arithmetic coding, lossless JPEG, CMYK/YCCK, and unsupported chroma sampling layouts. Role: This file owns marker parsing, component metadata, and top-level decoding.</p>
+<h3 id="file_src_image_decode_jpg_progressive_swg"><code>src/image/decode/jpg/progressive.swg</code></h3>
+<p>Format: Joint Photographic Experts Group (JPEG) decoder component. Supported: Baseline and progressive Huffman-coded grayscale, YCbCr, and directly sampled RGB images. Not supported: Arithmetic coding, lossless JPEG, CMYK/YCCK, and unsupported chroma sampling layouts. Role: This file owns progressive scan coefficient refinement.</p>
+<h3 id="file_src_image_decode_jpg_scan_swg"><code>src/image/decode/jpg/scan.swg</code></h3>
+<p>Format: Joint Photographic Experts Group (JPEG) decoder component. Supported: Baseline and progressive Huffman-coded grayscale, YCbCr, and directly sampled RGB images. Not supported: Arithmetic coding, lossless JPEG, CMYK/YCCK, and unsupported chroma sampling layouts. Role: This file owns scan parsing, entropy decode, sampling, and color conversion.</p>
+<h3 id="file_src_image_decode_jpg_stream_swg"><code>src/image/decode/jpg/stream.swg</code></h3>
+<p>Format: Joint Photographic Experts Group (JPEG) decoder component. Supported: Baseline and progressive Huffman-coded grayscale, YCbCr, and directly sampled RGB images. Not supported: Arithmetic coding, lossless JPEG, CMYK/YCCK, and unsupported chroma sampling layouts. Role: This file owns buffered bit reads, byte stuffing, marker traversal, and marker payload parsing.</p>
+<h3 id="file_src_image_decode_jpg_transform_swg"><code>src/image/decode/jpg/transform.swg</code></h3>
+<p>Format: Joint Photographic Experts Group (JPEG) decoder component. Supported: Baseline and progressive Huffman-coded grayscale, YCbCr, and directly sampled RGB images. Not supported: Arithmetic coding, lossless JPEG, CMYK/YCCK, and unsupported chroma sampling layouts. Role: This file owns inverse DCT and sample reconstruction.</p>
+<h3 id="file_src_image_decode_packed16_swg"><code>src/image/decode/packed16.swg</code></h3>
+<p>Format: Shared packed-pixel decoder support. Supported: SIMD and scalar expansion of RGB565, BGR565, RGBA5551, and BGRA5551 rows used by image codecs. Not supported: This file does not recognize or decode a container format by itself. Role: This file owns shared SIMD and scalar expansion of packed 16-bit pixels.</p>
+<h3 id="file_src_image_decode_png_convert_swg"><code>src/image/decode/png/convert.swg</code></h3>
+<p>Format: Portable Network Graphics (PNG) decoder component. Supported: Standard grayscale, true-color, indexed, grayscale-alpha, and true-color-alpha images, including Adam7 and supported metadata. Not supported: APNG animation, unknown critical chunks, and images requiring more than 2 GiB of decoded storage. Role: This file owns decoded sample expansion and pixel-format conversion.</p>
+<h3 id="file_src_image_decode_png_filter_swg"><code>src/image/decode/png/filter.swg</code></h3>
+<p>Format: Portable Network Graphics (PNG) decoder component. Supported: Standard grayscale, true-color, indexed, grayscale-alpha, and true-color-alpha images, including Adam7 and supported metadata. Not supported: APNG animation, unknown critical chunks, and images requiring more than 2 GiB of decoded storage. Role: This file owns PNG row unfiltering.</p>
+<h3 id="file_src_image_decode_png_png_swg"><code>src/image/decode/png/png.swg</code></h3>
+<p>Format: Portable Network Graphics (PNG) decoder component. Supported: Standard grayscale, true-color, indexed, grayscale-alpha, and true-color-alpha images, including Adam7 and supported metadata. Not supported: APNG animation, unknown critical chunks, and images requiring more than 2 GiB of decoded storage. Role: This file owns PNG chunk parsing, validation, and top-level decoding.</p>
+<h3 id="file_src_image_decode_tga_tga_swg"><code>src/image/decode/tga/tga.swg</code></h3>
+<p>Format: Truevision TGA decoder component. Supported: Mapped, grayscale, and true-color images; raw or RLE packets; 8-, 15-, 16-, 24-, and 32-bit layouts; all image origins. Not supported: Huffman/delta-compressed TGA 2.0 images and unsupported palette or pixel depths. Role: This file owns TGA header parsing, packet traversal, and top-level decoding.</p>
+<h3 id="file_src_image_decode_tiff_lzw_swg"><code>src/image/decode/tiff/lzw.swg</code></h3>
+<p>Format: Tagged Image File Format (TIFF) decoder component. Supported: 8-bit chunky grayscale, palette, RGB, and RGBA strips using no compression, PackBits, or LZW with predictors. Not supported: Planar samples, tiled images, JPEG/Deflate compression, and sample depths other than 8-bit. Role: This file owns TIFF LZW dictionary decoding.</p>
+<h3 id="file_src_image_decode_tiff_tiff_swg"><code>src/image/decode/tiff/tiff.swg</code></h3>
+<p>Format: Tagged Image File Format (TIFF) decoder component. Supported: 8-bit chunky grayscale, palette, RGB, and RGBA strips using no compression, PackBits, or LZW with predictors. Not supported: Planar samples, tiled images, JPEG/Deflate compression, and sample depths other than 8-bit. Role: This file owns IFD and strip parsing, sample expansion, and top-level decoding.</p>
+<h3 id="file_src_image_decode_webp_lossless_swg"><code>src/image/decode/webp/lossless.swg</code></h3>
+<p>Format: WebP still-image decoder component. Supported: RIFF WebP containing lossy VP8 or lossless VP8L still images, including supported alpha chunks. Not supported: Animated WebP and unsupported alpha preprocessing or compression methods. Role: This file owns VP8L transforms, Huffman decoding, and pixel reconstruction.</p>
+<h3 id="file_src_image_decode_webp_vp8_core_swg"><code>src/image/decode/webp/vp8.core.swg</code></h3>
+<p>Format: WebP still-image decoder component. Supported: RIFF WebP containing lossy VP8 or lossless VP8L still images, including supported alpha chunks. Not supported: Animated WebP and unsupported alpha preprocessing or compression methods. Role: This file owns VP8 frame headers, entropy partitions, and macroblock traversal.</p>
+<h3 id="file_src_image_decode_webp_vp8_filter_swg"><code>src/image/decode/webp/vp8.filter.swg</code></h3>
+<p>Format: WebP still-image decoder component. Supported: RIFF WebP containing lossy VP8 or lossless VP8L still images, including supported alpha chunks. Not supported: Animated WebP and unsupported alpha preprocessing or compression methods. Role: This file owns VP8 in-loop filtering.</p>
+<h3 id="file_src_image_decode_webp_vp8_pred_swg"><code>src/image/decode/webp/vp8.pred.swg</code></h3>
+<p>Format: WebP still-image decoder component. Supported: RIFF WebP containing lossy VP8 or lossless VP8L still images, including supported alpha chunks. Not supported: Animated WebP and unsupported alpha preprocessing or compression methods. Role: This file owns VP8 intra prediction.</p>
+<h3 id="file_src_image_decode_webp_vp8_reconstruct_swg"><code>src/image/decode/webp/vp8.reconstruct.swg</code></h3>
+<p>Format: WebP still-image decoder component. Supported: RIFF WebP containing lossy VP8 or lossless VP8L still images, including supported alpha chunks. Not supported: Animated WebP and unsupported alpha preprocessing or compression methods. Role: This file owns VP8 coefficient transforms and block reconstruction.</p>
+<h3 id="file_src_image_decode_webp_vp8_tables_swg"><code>src/image/decode/webp/vp8.tables.swg</code></h3>
+<p>Format: WebP still-image decoder component. Supported: RIFF WebP containing lossy VP8 or lossless VP8L still images, including supported alpha chunks. Not supported: Animated WebP and unsupported alpha preprocessing or compression methods. Role: This file owns normative VP8 probability and lookup tables.</p>
+<h3 id="file_src_image_decode_webp_webp_swg"><code>src/image/decode/webp/webp.swg</code></h3>
+<p>Format: WebP still-image decoder component. Supported: RIFF WebP containing lossy VP8 or lossless VP8L still images, including supported alpha chunks. Not supported: Animated WebP and unsupported alpha preprocessing or compression methods. Role: This file owns RIFF chunk parsing, alpha integration, and top-level decoding.</p>
+<h3 id="file_src_image_encode_bmp_bmp_swg"><code>src/image/encode/bmp/bmp.swg</code></h3>
+<p>Format: Windows Bitmap (BMP) encoder component. Supported: Uncompressed 24- and 32-bit RGB/BGR source images with four-byte row alignment. Not supported: Paletted, RLE, bitfield, and embedded-compression output. Role: This file owns container header emission, validation, encoder registration, and top-level pixel dispatch.</p>
+<h3 id="file_src_image_encode_encode_swg"><code>src/image/encode/encode.swg</code></h3>
+<p>Format: Image encoder registry. Supported: Extension-selected registration and dispatch for every built-in and user-registered image encoder. Not supported: This file does not write a concrete image format. Role: This file owns format-neutral encoder registration and dispatch.</p>
+<h3 id="file_src_image_encode_gif_gif_swg"><code>src/image/encode/gif/gif.swg</code></h3>
+<p>Format: Graphics Interchange Format (GIF89a) encoder component. Supported: One indexed frame with generated palette, LZW compression, and binary transparency. Not supported: Animation, per-frame timing, interlaced output, and partial alpha. Role: This file owns encoder state and top-level GIF emission.</p>
+<h3 id="file_src_image_encode_gif_lzw_swg"><code>src/image/encode/gif/lzw.swg</code></h3>
+<p>Format: Graphics Interchange Format (GIF89a) encoder component. Supported: One indexed frame with generated palette, LZW compression, and binary transparency. Not supported: Animation, per-frame timing, interlaced output, and partial alpha. Role: This file owns GIF LZW dictionary encoding.</p>
+<h3 id="file_src_image_encode_gif_palette_swg"><code>src/image/encode/gif/palette.swg</code></h3>
+<p>Format: Graphics Interchange Format (GIF89a) encoder component. Supported: One indexed frame with generated palette, LZW compression, and binary transparency. Not supported: Animation, per-frame timing, interlaced output, and partial alpha. Role: This file owns palette construction and pixel quantization.</p>
+<h3 id="file_src_image_encode_ico_ico_swg"><code>src/image/encode/ico/ico.swg</code></h3>
+<p>Format: Windows icon (ICO) encoder component. Supported: One or more images up to 256 by 256, stored as 32-bit BGRA DIB entries with alpha. Not supported: CUR output, PNG-compressed entries, paletted entries, and dimensions above 256. Role: This file owns container directory emission and embedded-image encoding.</p>
+<h3 id="file_src_image_encode_jpg_dct_swg"><code>src/image/encode/jpg/dct.swg</code></h3>
+<p>Format: Joint Photographic Experts Group (JPEG) encoder component. Supported: Baseline Huffman-coded lossy output from 8-bit RGB/BGR images with configurable quality. Not supported: Progressive, arithmetic, lossless, CMYK/YCCK, and alpha output. Role: This file owns forward DCT and quantization.</p>
+<h3 id="file_src_image_encode_jpg_huffman_swg"><code>src/image/encode/jpg/huffman.swg</code></h3>
+<p>Format: Joint Photographic Experts Group (JPEG) encoder component. Supported: Baseline Huffman-coded lossy output from 8-bit RGB/BGR images with configurable quality. Not supported: Progressive, arithmetic, lossless, CMYK/YCCK, and alpha output. Role: This file owns Huffman table construction and entropy encoding.</p>
+<h3 id="file_src_image_encode_jpg_jpg_swg"><code>src/image/encode/jpg/jpg.swg</code></h3>
+<p>Format: Joint Photographic Experts Group (JPEG) encoder component. Supported: Baseline Huffman-coded lossy output from 8-bit RGB/BGR images with configurable quality. Not supported: Progressive, arithmetic, lossless, CMYK/YCCK, and alpha output. Role: This file owns marker emission, component metadata, and top-level encoding.</p>
+<h3 id="file_src_image_encode_jpg_options_swg"><code>src/image/encode/jpg/options.swg</code></h3>
+<p>Format: Joint Photographic Experts Group (JPEG) encoder component. Supported: Baseline Huffman-coded lossy output from 8-bit RGB/BGR images with configurable quality. Not supported: Progressive, arithmetic, lossless, CMYK/YCCK, and alpha output. Role: This file owns public encoder options.</p>
+<h3 id="file_src_image_encode_jpg_writer_swg"><code>src/image/encode/jpg/writer.swg</code></h3>
+<p>Format: Joint Photographic Experts Group (JPEG) encoder component. Supported: Baseline Huffman-coded lossy output from 8-bit RGB/BGR images with configurable quality. Not supported: Progressive, arithmetic, lossless, CMYK/YCCK, and alpha output. Role: This file owns JPEG bitstream and marker emission.</p>
+<h3 id="file_src_image_encode_png_filter_swg"><code>src/image/encode/png/filter.swg</code></h3>
+<p>Format: Portable Network Graphics (PNG) encoder component. Supported: 8-bit grayscale and RGB/BGR images with optional alpha, PNG filters, Deflate compression, and optional Adam7 interlacing. Not supported: APNG animation, palette generation, and non-8-bit output. Role: This file owns PNG encoder filter selection.</p>
+<h3 id="file_src_image_encode_png_png_swg"><code>src/image/encode/png/png.swg</code></h3>
+<p>Format: Portable Network Graphics (PNG) encoder component. Supported: 8-bit grayscale and RGB/BGR images with optional alpha, PNG filters, Deflate compression, and optional Adam7 interlacing. Not supported: APNG animation, palette generation, and non-8-bit output. Role: This file owns PNG chunk emission, validation, and top-level encoding.</p>
+<h3 id="file_src_image_encode_png_scanline_swg"><code>src/image/encode/png/scanline.swg</code></h3>
+<p>Format: Portable Network Graphics (PNG) encoder component. Supported: 8-bit grayscale and RGB/BGR images with optional alpha, PNG filters, Deflate compression, and optional Adam7 interlacing. Not supported: APNG animation, palette generation, and non-8-bit output. Role: This file owns PNG scanline packing and Adam7 pass traversal.</p>
+<h3 id="file_src_image_encode_tga_tga_swg"><code>src/image/encode/tga/tga.swg</code></h3>
+<p>Format: Truevision TGA encoder component. Supported: Raw or RLE true-color 24- and 32-bit output from 8-bit RGB/BGR images. Not supported: Mapped, grayscale, color-corrected, and non-true-color output. Role: This file owns TGA header emission, packet writing, and top-level encoding.</p>
+<h3 id="file_src_image_encode_tiff_lzw_swg"><code>src/image/encode/tiff/lzw.swg</code></h3>
+<p>Format: Tagged Image File Format (TIFF) encoder component. Supported: Little-endian baseline 8-bit grayscale, RGB, and RGBA in one strip using no compression, PackBits, or LZW. Not supported: Big-endian, planar, tiled, multi-page, JPEG/Deflate, and non-8-bit output. Role: This file owns TIFF LZW dictionary encoding.</p>
+<h3 id="file_src_image_encode_tiff_tiff_swg"><code>src/image/encode/tiff/tiff.swg</code></h3>
+<p>Format: Tagged Image File Format (TIFF) encoder component. Supported: Little-endian baseline 8-bit grayscale, RGB, and RGBA in one strip using no compression, PackBits, or LZW. Not supported: Big-endian, planar, tiled, multi-page, JPEG/Deflate, and non-8-bit output. Role: This file owns IFD and strip emission, sample packing, and top-level encoding.</p>
+<h3 id="file_src_image_encode_webp_webp_swg"><code>src/image/encode/webp/webp.swg</code></h3>
+<p>Format: WebP still-image encoder component. Supported: Lossless VP8L output with alpha from 8-bit RGB/BGR source images up to 16384 pixels per dimension. Not supported: Lossy VP8, animation, metadata chunks, and dimensions above 16384. Role: This file owns RIFF chunk emission, lossless VP8L payloads, and top-level encoding.</p>
 </section>
 <section class="api-overview">
 <h2 id="api-reference">API reference</h2>
@@ -2596,7 +2693,7 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 </section>
 <h3 id="types">Types</h3>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Pixel_Bmp_Header" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Bmp.Header</span> <a class="api-item-permalink" href="#Pixel_Bmp_Header" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/bmp/bmp.swg#L23">src</a></div>
+<div class="api-item api-item-struct"><span id="Pixel_Bmp_Header" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Bmp.Header</span> <a class="api-item-permalink" href="#Pixel_Bmp_Header" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/bmp/bmp.swg#L28">src</a></div>
 <p>Represents the Windows <span class="code-inline">BITMAPINFOHEADER</span> binary layout.</p>
 <p>Fields retain the names and units defined by the BMP file format. The structure can also be used when exchanging DIB data with Windows APIs.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Pack(1)]</span>
@@ -2631,12 +2728,12 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Pixel_Clipper_CInt" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Clipper.CInt</span> <a class="api-item-permalink" href="#Pixel_Clipper_CInt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L19">src</a></div>
+<div class="api-item api-item-alias"><span id="Pixel_Clipper_CInt" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Clipper.CInt</span> <a class="api-item-permalink" href="#Pixel_Clipper_CInt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L17">src</a></div>
 <p>Signed integer coordinate used by clipping operations.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Pixel_Clipper_CInt">CInt</a></span>  = <span class="STpe">s64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Pixel_Clipper_IntPoint" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Clipper.IntPoint</span> <a class="api-item-permalink" href="#Pixel_Clipper_IntPoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L77">src</a></div>
+<div class="api-item api-item-struct"><span id="Pixel_Clipper_IntPoint" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Clipper.IntPoint</span> <a class="api-item-permalink" href="#Pixel_Clipper_IntPoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L75">src</a></div>
 <p>Stores one integer clipping coordinate.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_Clipper_IntPoint">IntPoint</a></span></span></div>
 </section>
@@ -2651,7 +2748,7 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Pixel_Clipper_Transform" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Clipper.Transform</span> <a class="api-item-permalink" href="#Pixel_Clipper_Transform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L204">src</a></div>
+<div class="api-item api-item-struct"><span id="Pixel_Clipper_Transform" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Clipper.Transform</span> <a class="api-item-permalink" href="#Pixel_Clipper_Transform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L202">src</a></div>
 <p>Performs integer polygon clipping and Boolean operations.</p>
 <p>Add subject and clip paths with <span class="code-inline">addPath</span>, then call <span class="code-inline">execute</span>. The structure is opaque because its edge graph and scanline state are implementation details.</p>
 <h2 id="Pixel_Clipper_Transform_0_Example">Example</h2>
@@ -2677,7 +2774,7 @@ transform.<span class="SFct">execute</span>(.<span class="SCst"><a href="#Pixel_
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Pixel_Gif_Decoder" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gif.Decoder</span> <a class="api-item-permalink" href="#Pixel_Gif_Decoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/gif/gif.swg#L63">src</a></div>
+<div class="api-item api-item-struct"><span id="Pixel_Gif_Decoder" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gif.Decoder</span> <a class="api-item-permalink" href="#Pixel_Gif_Decoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/gif/gif.swg#L69">src</a></div>
 <p>Decodes GIF images and retains animation state for sequential frames.</p>
 <p>Treat the structure as opaque. Use it through <a href="#Pixel_IImageDecoder">Pixel.IImageDecoder</a> or the GIF animation operations exposed by this module.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
@@ -2779,7 +2876,7 @@ transform.<span class="SFct">execute</span>(.<span class="SCst"><a href="#Pixel_
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Pixel_Jpg_EncodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Jpg.EncodeOptions</span> <a class="api-item-permalink" href="#Pixel_Jpg_EncodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/jpg/options.swg#L6">src</a></div>
+<div class="api-item api-item-struct"><span id="Pixel_Jpg_EncodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Jpg.EncodeOptions</span> <a class="api-item-permalink" href="#Pixel_Jpg_EncodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/jpg/options.swg#L11">src</a></div>
 <p>Configures JPEG lossy compression.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">EncodeOptions</span></span></div>
 </section>
@@ -3024,7 +3121,7 @@ brush.<span class="SFct">addGradientStop</span>(<span class="SNum">0.5</span>, <
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Pixel_DecodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pixel.DecodeOptions</span> <a class="api-item-permalink" href="#Pixel_DecodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L12">src</a></div>
+<div class="api-item api-item-struct"><span id="Pixel_DecodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pixel.DecodeOptions</span> <a class="api-item-permalink" href="#Pixel_DecodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L17">src</a></div>
 <p>Controls which parts of an encoded image are materialized.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_DecodeOptions">DecodeOptions</a></span></span></div>
 </section>
@@ -3272,7 +3369,7 @@ painter.<span class="SFct">drawString</span>(<span class="SNum">20</span>, <span
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-interface"><span id="Pixel_IImageDecoder" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Pixel.IImageDecoder</span> <a class="api-item-permalink" href="#Pixel_IImageDecoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L23">src</a></div>
+<div class="api-item api-item-interface"><span id="Pixel_IImageDecoder" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Pixel.IImageDecoder</span> <a class="api-item-permalink" href="#Pixel_IImageDecoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L28">src</a></div>
 <p>Defines a decoder selected by filename extension and applied to encoded bytes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst"><a href="#Pixel_IImageDecoder">IImageDecoder</a></span></span></div>
 </section>
@@ -3287,7 +3384,7 @@ painter.<span class="SFct">drawString</span>(<span class="SNum">20</span>, <span
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-interface"><span id="Pixel_IImageEncoder" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Pixel.IImageEncoder</span> <a class="api-item-permalink" href="#Pixel_IImageEncoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L12">src</a></div>
+<div class="api-item api-item-interface"><span id="Pixel_IImageEncoder" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Pixel.IImageEncoder</span> <a class="api-item-permalink" href="#Pixel_IImageEncoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L17">src</a></div>
 <p>Defines an encoder selected by filename extension.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst"><a href="#Pixel_IImageEncoder">IImageEncoder</a></span></span></div>
 </section>
@@ -5159,7 +5256,7 @@ label.<span class="SFct">compute</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Pixel_Png_EncodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Png.EncodeOptions</span> <a class="api-item-permalink" href="#Pixel_Png_EncodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/png/png.swg#L247">src</a></div>
+<div class="api-item api-item-struct"><span id="Pixel_Png_EncodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Png.EncodeOptions</span> <a class="api-item-permalink" href="#Pixel_Png_EncodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/png/png.swg#L250">src</a></div>
 <p>Configures PNG filtering, Deflate behavior, and Adam7 interlacing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">EncodeOptions</span></span></div>
 </section>
@@ -5176,7 +5273,7 @@ label.<span class="SFct">compute</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Pixel_Poly2Tri_Result" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Poly2Tri.Result</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Result" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L70">src</a></div>
+<div class="api-item api-item-struct"><span id="Pixel_Poly2Tri_Result" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Poly2Tri.Result</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Result" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L68">src</a></div>
 <p>Owns the triangle vertices produced by one tessellation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_Poly2Tri_Result">Result</a></span></span></div>
 </section>
@@ -5197,7 +5294,7 @@ label.<span class="SFct">compute</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Pixel_Poly2Tri_Tessellate" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Poly2Tri.Tessellate</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L42">src</a></div>
+<div class="api-item api-item-struct"><span id="Pixel_Poly2Tri_Tessellate" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Poly2Tri.Tessellate</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L40">src</a></div>
 <p>Owns the working state for constrained Delaunay triangulation.</p>
 <p>Treat this type as opaque and use its tessellation entry points. The returned <a href="#Pixel_Poly2Tri_Result">Poly2Tri.Result</a> owns the flattened triangle vertices.</p>
 <h2 id="Pixel_Poly2Tri_Tessellate_0_Example">Example</h2>
@@ -5390,7 +5487,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Pixel_Tga_EncodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Tga.EncodeOptions</span> <a class="api-item-permalink" href="#Pixel_Tga_EncodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/tga.swg#L10">src</a></div>
+<div class="api-item api-item-struct"><span id="Pixel_Tga_EncodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Tga.EncodeOptions</span> <a class="api-item-permalink" href="#Pixel_Tga_EncodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/tga/tga.swg#L15">src</a></div>
 <p>Configures TGA packet encoding.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">EncodeOptions</span></span></div>
 </section>
@@ -5403,7 +5500,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Pixel_Tiff_EncodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Tiff.EncodeOptions</span> <a class="api-item-permalink" href="#Pixel_Tiff_EncodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/tiff/tiff.swg#L18">src</a></div>
+<div class="api-item api-item-struct"><span id="Pixel_Tiff_EncodeOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Tiff.EncodeOptions</span> <a class="api-item-permalink" href="#Pixel_Tiff_EncodeOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/tiff/tiff.swg#L23">src</a></div>
 <p>Configures TIFF strip compression.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">EncodeOptions</span></span></div>
 </section>
@@ -5417,7 +5514,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 </table>
 <h3 id="enumerations">Enumerations</h3>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Pixel_Clipper_ClipType" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Clipper.ClipType</span> <a class="api-item-permalink" href="#Pixel_Clipper_ClipType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L31">src</a></div>
+<div class="api-item api-item-enum"><span id="Pixel_Clipper_ClipType" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Clipper.ClipType</span> <a class="api-item-permalink" href="#Pixel_Clipper_ClipType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L29">src</a></div>
 <p>Selects the Boolean operation applied to subject and clip paths.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Pixel_Clipper_ClipType">ClipType</a></span></span></div>
 </section>
@@ -5436,7 +5533,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Pixel_Clipper_InitOptions" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Clipper.InitOptions</span> <a class="api-item-permalink" href="#Pixel_Clipper_InitOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L49">src</a></div>
+<div class="api-item api-item-enum"><span id="Pixel_Clipper_InitOptions" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Clipper.InitOptions</span> <a class="api-item-permalink" href="#Pixel_Clipper_InitOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L47">src</a></div>
 <p>Defines optional initialization behavior for clipping transforms.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Pixel_Clipper_InitOptions">InitOptions</a></span></span></div>
 </section>
@@ -5453,7 +5550,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Pixel_Clipper_JoinType" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Clipper.JoinType</span> <a class="api-item-permalink" href="#Pixel_Clipper_JoinType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L57">src</a></div>
+<div class="api-item api-item-enum"><span id="Pixel_Clipper_JoinType" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Clipper.JoinType</span> <a class="api-item-permalink" href="#Pixel_Clipper_JoinType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L55">src</a></div>
 <p>Selects how offset polygon corners are joined.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Pixel_Clipper_JoinType">JoinType</a></span></span></div>
 </section>
@@ -5470,7 +5567,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Pixel_Clipper_PolyFillType" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Clipper.PolyFillType</span> <a class="api-item-permalink" href="#Pixel_Clipper_PolyFillType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L40">src</a></div>
+<div class="api-item api-item-enum"><span id="Pixel_Clipper_PolyFillType" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Clipper.PolyFillType</span> <a class="api-item-permalink" href="#Pixel_Clipper_PolyFillType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L38">src</a></div>
 <p>Selects the winding rule used to determine polygon interiors.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Pixel_Clipper_PolyFillType">PolyFillType</a></span></span></div>
 </section>
@@ -5489,7 +5586,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Pixel_Clipper_PolyType" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Clipper.PolyType</span> <a class="api-item-permalink" href="#Pixel_Clipper_PolyType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L24">src</a></div>
+<div class="api-item api-item-enum"><span id="Pixel_Clipper_PolyType" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Clipper.PolyType</span> <a class="api-item-permalink" href="#Pixel_Clipper_PolyType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L22">src</a></div>
 <p>Selects whether an input path belongs to the subject or clipping set.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Pixel_Clipper_PolyType">PolyType</a></span></span></div>
 </section>
@@ -6590,7 +6687,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Pixel_Tiff_Compression" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Tiff.Compression</span> <a class="api-item-permalink" href="#Pixel_Tiff_Compression" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/tiff/tiff.swg#L10">src</a></div>
+<div class="api-item api-item-enum"><span id="Pixel_Tiff_Compression" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Tiff.Compression</span> <a class="api-item-permalink" href="#Pixel_Tiff_Compression" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/tiff/tiff.swg#L15">src</a></div>
 <p>Selects the strip compression used by the TIFF encoder.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Pixel_Tiff_Compression">Compression</a></span></span></div>
 </section>
@@ -6608,22 +6705,22 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 </table>
 <h3 id="constants">Constants</h3>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Pixel_Bmp_BI_BITFIELDS" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Bmp.BI_BITFIELDS</span> <a class="api-item-permalink" href="#Pixel_Bmp_BI_BITFIELDS" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/bmp/bmp.swg#L14">src</a></div>
+<div class="api-item api-item-const"><span id="Pixel_Bmp_BI_BITFIELDS" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Bmp.BI_BITFIELDS</span> <a class="api-item-permalink" href="#Pixel_Bmp_BI_BITFIELDS" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/bmp/bmp.swg#L19">src</a></div>
 <p>Direct-color data described by channel masks.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Pixel_Bmp_BI_BITFIELDS">BI_BITFIELDS</a></span> = <span class="SNum">3</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Pixel_Bmp_BI_RGB" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Bmp.BI_RGB</span> <a class="api-item-permalink" href="#Pixel_Bmp_BI_RGB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/bmp/bmp.swg#L11">src</a></div>
+<div class="api-item api-item-const"><span id="Pixel_Bmp_BI_RGB" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Bmp.BI_RGB</span> <a class="api-item-permalink" href="#Pixel_Bmp_BI_RGB" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/bmp/bmp.swg#L16">src</a></div>
 <p>Uncompressed RGB bitmap data.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Pixel_Bmp_BI_RGB">BI_RGB</a></span> = <span class="SNum">0</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Pixel_Bmp_BI_RLE4" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Bmp.BI_RLE4</span> <a class="api-item-permalink" href="#Pixel_Bmp_BI_RLE4" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/bmp/bmp.swg#L13">src</a></div>
+<div class="api-item api-item-const"><span id="Pixel_Bmp_BI_RLE4" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Bmp.BI_RLE4</span> <a class="api-item-permalink" href="#Pixel_Bmp_BI_RLE4" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/bmp/bmp.swg#L18">src</a></div>
 <p>Run-length encoded 4-bit indexed data.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Pixel_Bmp_BI_RLE4">BI_RLE4</a></span> = <span class="SNum">2</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Pixel_Bmp_BI_RLE8" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Bmp.BI_RLE8</span> <a class="api-item-permalink" href="#Pixel_Bmp_BI_RLE8" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/bmp/bmp.swg#L12">src</a></div>
+<div class="api-item api-item-const"><span id="Pixel_Bmp_BI_RLE8" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Bmp.BI_RLE8</span> <a class="api-item-permalink" href="#Pixel_Bmp_BI_RLE8" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/bmp/bmp.swg#L17">src</a></div>
 <p>Run-length encoded 8-bit indexed data.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Pixel_Bmp_BI_RLE8">BI_RLE8</a></span> = <span class="SNum">1</span></span></div>
 </section>
@@ -7070,25 +7167,25 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">withAlphaF32</span>(alpha: <span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Pixel_Color">Color</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Gif_Decoder_frameCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.frameCount</span> <a class="api-item-permalink" href="#Pixel_Gif_Decoder_frameCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/gif/gif.swg#L220">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Gif_Decoder_frameCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.frameCount</span> <a class="api-item-permalink" href="#Pixel_Gif_Decoder_frameCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/gif/gif.swg#L226">src</a></div>
 <p>Counts the frames in the GIF and rewinds the decoder.</p>
 <p>GIF does not store this count, so the first call scans the remaining stream.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">frameCount</span>()-&gt;<span class="STpe">s32</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Gif_Decoder_nextFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.nextFrame</span> <a class="api-item-permalink" href="#Pixel_Gif_Decoder_nextFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/gif/gif.swg#L198">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Gif_Decoder_nextFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.nextFrame</span> <a class="api-item-permalink" href="#Pixel_Gif_Decoder_nextFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/gif/gif.swg#L204">src</a></div>
 <p>Decodes the next composited frame into <span class="code-inline">image</span>.</p>
 <p>The image is allocated or reconfigured as needed. Returns false after the GIF trailer has been reached.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">nextFrame</span>(img: *<span class="SCst"><a href="#Pixel_Image">Image</a></span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Gif_Decoder_open" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.open</span> <a class="api-item-permalink" href="#Pixel_Gif_Decoder_open" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/gif/gif.swg#L112">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Gif_Decoder_open" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.open</span> <a class="api-item-permalink" href="#Pixel_Gif_Decoder_open" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/gif/gif.swg#L118">src</a></div>
 <p>Opens an animated GIF for sequential frame decoding.</p>
 <p>The decoder borrows <span class="code-inline">buffer</span>; its storage must remain valid until the decoder is no longer used or another buffer is opened.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">open</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Gif_Decoder_rewind" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.rewind</span> <a class="api-item-permalink" href="#Pixel_Gif_Decoder_rewind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/gif/gif.swg#L235">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Gif_Decoder_rewind" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.rewind</span> <a class="api-item-permalink" href="#Pixel_Gif_Decoder_rewind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/gif/gif.swg#L241">src</a></div>
 <p>Rewinds frame iteration to the first frame.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">rewind</span>()</span></div>
 </section>
@@ -7287,7 +7384,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isDistanceField</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Ico_encodeAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ico.encodeAll</span> <a class="api-item-permalink" href="#Pixel_Ico_encodeAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/ico.swg#L34">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Ico_encodeAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ico.encodeAll</span> <a class="api-item-permalink" href="#Pixel_Ico_encodeAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/ico/ico.swg#L39">src</a></div>
 <p>Encodes an icon holding every image, in the order given.</p>
 <p>An icon is picked by size at display time, so a favicon carrying 16, 32, and 48 pixel entries stays sharp in a tab, a bookmark, and a shortcut alike. Each image is written as a 32-bit BGRA entry whose alpha channel carries transparency.</p>
 <h2 id="Pixel_Ico_encodeAll_0_Example">Example</h2>
@@ -7296,30 +7393,30 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">encodeAll</span>(images: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Pixel_Image">Image</a></span>)-&gt;<span class="SCst"><a href="std.core.html#Core_ConcatBuffer">ConcatBuffer</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Ico_save" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ico.save</span> <a class="api-item-permalink" href="#Pixel_Ico_save" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/ico.swg#L88">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Ico_save" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Ico.save</span> <a class="api-item-permalink" href="#Pixel_Ico_save" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/ico/ico.swg#L93">src</a></div>
 <p>Writes an icon file holding every image, in the order given.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">save</span>(fileName: <span class="STpe">string</span>, images: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Pixel_Image">Image</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_IImageDecoder_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IImageDecoder.decode</span> <a class="api-item-permalink" href="#Pixel_IImageDecoder_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L35">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_IImageDecoder_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IImageDecoder.decode</span> <a class="api-item-permalink" href="#Pixel_IImageDecoder_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L40">src</a></div>
 <p>Decodes one complete encoded buffer according to <span class="code-inline">opt</span>.</p>
 <p>Fails when the data is malformed, truncated, or uses unsupported features.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">decode</span>(buf: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, opt: <span class="SCst"><a href="#Pixel_DecodeOptions">DecodeOptions</a></span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_IImageDecoder_format" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IImageDecoder.format</span> <a class="api-item-permalink" href="#Pixel_IImageDecoder_format" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L30">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_IImageDecoder_format" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IImageDecoder.format</span> <a class="api-item-permalink" href="#Pixel_IImageDecoder_format" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L35">src</a></div>
 <p>Describes the format this decoder reads.</p>
 <p>The registry stores the result once, at registration, and derives extension matching from it. It is called on a decoder with no instance behind it, so it must return a constant and must not read the decoder's own state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">format</span>()-&gt;<span class="SCst"><a href="#Pixel_ImageFormat">ImageFormat</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_IImageEncoder_encode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IImageEncoder.encode</span> <a class="api-item-permalink" href="#Pixel_IImageEncoder_encode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L25">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_IImageEncoder_encode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IImageEncoder.encode</span> <a class="api-item-permalink" href="#Pixel_IImageEncoder_encode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L30">src</a></div>
 <p>Appends an encoded image to <span class="code-inline">buf</span>.</p>
 <p><span class="code-inline">opt</span> is <span class="code-inline">null</span> for defaults or points to the encoder-specific options structure. Fails for invalid images or unsupported dimensions/formats.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">encode</span>(buf: *<span class="SCst"><a href="std.core.html#Core_ConcatBuffer">ConcatBuffer</a></span>, img: <span class="SCst"><a href="#Pixel_Image">Image</a></span>, opt: <span class="SItr">#null</span> <span class="STpe">any</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_IImageEncoder_format" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IImageEncoder.format</span> <a class="api-item-permalink" href="#Pixel_IImageEncoder_format" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L19">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_IImageEncoder_format" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IImageEncoder.format</span> <a class="api-item-permalink" href="#Pixel_IImageEncoder_format" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L24">src</a></div>
 <p>Describes the format this encoder writes.</p>
 <p>The registry stores the result once, at registration, and derives extension matching from it. It is called on an encoder with no instance behind it, so it must return a constant and must not read the encoder's own state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">format</span>()-&gt;<span class="SCst"><a href="#Pixel_ImageFormat">ImageFormat</a></span></span></div>
@@ -7335,12 +7432,12 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">aspectRatio</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_canLoad" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.canLoad</span> <a class="api-item-permalink" href="#Pixel_Image_canLoad" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L98">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_canLoad" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.canLoad</span> <a class="api-item-permalink" href="#Pixel_Image_canLoad" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L103">src</a></div>
 <p>Returns <span class="code-inline">true</span> if the given filename has a corresponding decoder</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">canLoad</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span> =&gt; <span class="SFct">getDecoder</span>(fileName)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_canSave" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.canSave</span> <a class="api-item-permalink" href="#Pixel_Image_canSave" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L66">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_canSave" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.canSave</span> <a class="api-item-permalink" href="#Pixel_Image_canSave" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L71">src</a></div>
 <p>Returns <span class="code-inline">true</span> if the given filename has a corresponding encoder</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">canSave</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span> =&gt; <span class="SFct">getEncoder</span>(fileName)</span></div>
 </section>
@@ -7405,30 +7502,30 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cropped</span>(cropRect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_decodableFormats" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.decodableFormats</span> <a class="api-item-permalink" href="#Pixel_Image_decodableFormats" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L88">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_decodableFormats" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.decodableFormats</span> <a class="api-item-permalink" href="#Pixel_Image_decodableFormats" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L93">src</a></div>
 <p>Returns the format read by each registered decoder, in registration order.</p>
 <p>The result is owned by the caller and is a snapshot: registering another decoder afterwards does not change it. Use it to build the format list of an open dialog.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decodableFormats</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#Pixel_ImageFormat">ImageFormat</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.decode</span> <a class="api-item-permalink" href="#Pixel_Image_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L101">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.decode</span> <a class="api-item-permalink" href="#Pixel_Image_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L106">src</a></div>
 <p>Decode the given image buffer</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decode</span>(fileName: <span class="STpe">string</span>, bytes: <span class="SItr">#null</span> <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, options: <span class="SCst"><a href="#Pixel_DecodeOptions">DecodeOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_encodableFormats" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.encodableFormats</span> <a class="api-item-permalink" href="#Pixel_Image_encodableFormats" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L56">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_encodableFormats" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.encodableFormats</span> <a class="api-item-permalink" href="#Pixel_Image_encodableFormats" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L61">src</a></div>
 <p>Returns the format written by each registered encoder, in registration order.</p>
 <p>The result is owned by the caller and is a snapshot: registering another encoder afterwards does not change it. Use it to build the format list of a save dialog.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">encodableFormats</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#Pixel_ImageFormat">ImageFormat</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_encode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.encode</span> <a class="api-item-permalink" href="#Pixel_Image_encode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L72">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_encode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.encode</span> <a class="api-item-permalink" href="#Pixel_Image_encode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L77">src</a></div>
 <p>Encodes the image to an owned segmented memory buffer.</p>
 <p><span class="code-inline">fileName</span> selects the encoder by extension; no file is opened. Fails if the image is invalid or no encoder accepts the extension.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">encode</span>(fileName: <span class="STpe">string</span>, options: <span class="SItr">#null</span> <span class="STpe">any</span> = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="std.core.html#Core_ConcatBuffer">ConcatBuffer</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_encodeToBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.encodeToBytes</span> <a class="api-item-permalink" href="#Pixel_Image_encodeToBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L104">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_encodeToBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.encodeToBytes</span> <a class="api-item-permalink" href="#Pixel_Image_encodeToBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L109">src</a></div>
 <p>Encodes the image to one contiguous owned block.</p>
 <p>Selection works exactly as in <a href="#Pixel_Image_encode">Pixel.Image.encode</a>. This is what a caller handing the bytes to something that wants a single slice asks for — a clipboard medium, a drag payload, a request body — rather than flattening the segmented buffer itself every time.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">encodeToBytes</span>(fileName: <span class="STpe">string</span>, options: <span class="SItr">#null</span> <span class="STpe">any</span> = <span class="SKwd">null</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
@@ -7495,7 +7592,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">from</span>(hbitmap: <span class="SCst"><a href="std.win32.html#Win32_HBITMAP">HBITMAP</a></span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_fromDataUri" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.fromDataUri</span> <a class="api-item-permalink" href="#Pixel_Image_fromDataUri" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L128">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_fromDataUri" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.fromDataUri</span> <a class="api-item-permalink" href="#Pixel_Image_fromDataUri" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L133">src</a></div>
 <p>Decodes an image carried inline in a <span class="code-inline">data:</span> URI.</p>
 <p>This is how HTML and SVG documents embed a picture in their own source. Only the base64 form is read: <span class="code-inline">data:image/png;base64,...</span>. The media type selects the decoder the same way a file extension does, and the payload is decoded with <a href="std.core.html#Core_Base64_decode">Core.Base64.decode</a>. A reference that is not an image data URI or names a media type with no decoder reports <span class="code-inline">UnsupportedFormatError</span>; a malformed payload reports the codec's own failure.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">fromDataUri</span>(uri: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Pixel_DecodeOptions">DecodeOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
@@ -7550,7 +7647,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">lightness</span>(factor: <span class="STpe">f32</span> = <span class="SNum">0.5</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.load</span> <a class="api-item-permalink" href="#Pixel_Image_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L112">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.load</span> <a class="api-item-permalink" href="#Pixel_Image_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L117">src</a></div>
 <p>Load the given image file</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(fileName: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Pixel_DecodeOptions">DecodeOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -7597,12 +7694,12 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">pixelColor</span>(pixX, pixY: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Pixel_Color">Color</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_registerDecoder" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.registerDecoder</span> <a class="api-item-permalink" href="#Pixel_Image_registerDecoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L73">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_registerDecoder" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.registerDecoder</span> <a class="api-item-permalink" href="#Pixel_Image_registerDecoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/decode/decode.swg#L78">src</a></div>
 <p>Registers a decoder type unless it is already present.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">registerDecoder</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_registerEncoder" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.registerEncoder</span> <a class="api-item-permalink" href="#Pixel_Image_registerEncoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L41">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_registerEncoder" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.registerEncoder</span> <a class="api-item-permalink" href="#Pixel_Image_registerEncoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L46">src</a></div>
 <p>Registers an encoder type unless it is already present.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">registerEncoder</span>()</span></div>
 </section>
@@ -7632,7 +7729,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">rotated</span>(angle: <span class="SCst"><a href="#Pixel_Image_Rotation">Rotation</a></span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_save" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.save</span> <a class="api-item-permalink" href="#Pixel_Image_save" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L115">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_save" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.save</span> <a class="api-item-permalink" href="#Pixel_Image_save" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/encode/encode.swg#L120">src</a></div>
 <p>Encodes the image and writes it to <span class="code-inline">fileName</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">save</span>(fileName: <span class="STpe">string</span>, options: <span class="SItr">#null</span> <span class="STpe">any</span> = <span class="SKwd">null</span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -8933,7 +9030,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">supportsAdvancedBlending</span>()-&gt;<span class="STpe">bool</span> =&gt; .advancedBlending</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Result_triangleCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Result.triangleCount</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Result_triangleCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L150">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Result_triangleCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Result.triangleCount</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Result_triangleCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L148">src</a></div>
 <p>Returns the number of triangles in the result.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">triangleCount</span>()-&gt;<span class="STpe">u64</span> =&gt; .vertices.count</span></div>
 </section>
@@ -9043,43 +9140,43 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">trace</span>(image: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_Image">Image</a></span>, options: <span class="SCst"><a href="#Pixel_Svg_TraceOptions">TraceOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_Svg_Document">Document</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Tessellate_addPoint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tessellate.addPoint</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate_addPoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L780">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Tessellate_addPoint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tessellate.addPoint</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate_addPoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L778">src</a></div>
 <p>Register a new point</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addPoint</span>(pt: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Vector2">Vector2</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Tessellate_addPolyLine" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tessellate.addPolyLine</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate_addPolyLine" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L845">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Tessellate_addPolyLine" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tessellate.addPolyLine</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate_addPolyLine" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L843">src</a></div>
 <p>Register a polygon as a polyline</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addPolyLine</span>(poly: <span class="SCst"><a href="#Pixel_Polygon">Polygon</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Tessellate_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tessellate.clear</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L709">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Tessellate_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tessellate.clear</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L707">src</a></div>
 <p>Clear content</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Tessellate_endPolyLine" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tessellate.endPolyLine</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate_endPolyLine" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L790">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Tessellate_endPolyLine" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tessellate.endPolyLine</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate_endPolyLine" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L788">src</a></div>
 <p>To call to register the polyline. The polyline registration should have been done before with <a href="#Pixel_Poly2Tri_Tessellate_startPolyLine">startPolyLine</a></p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endPolyLine</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Tessellate_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tessellate.opDrop</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L652">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Tessellate_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tessellate.opDrop</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L650">src</a></div>
 <p>Releases all working geometry and cached sweep nodes owned by the tessellator.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Tessellate_startPolyLine" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tessellate.startPolyLine</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate_startPolyLine" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L774">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Tessellate_startPolyLine" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tessellate.startPolyLine</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate_startPolyLine" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L772">src</a></div>
 <p>To call before adding a polyline. A polyline is a polygon border. See <a href="#Pixel_Poly2Tri_Tessellate_addPoint">addPoint</a> and <a href="#Pixel_Poly2Tri_Tessellate_endPolyLine">endPolyLine</a></p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">startPolyLine</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Tessellate_takeResult" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tessellate.takeResult</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate_takeResult" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L755">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Tessellate_takeResult" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tessellate.takeResult</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate_takeResult" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L753">src</a></div>
 <p>Transfers the triangulation result out of this tessellator.</p>
 <p>The tessellator remains reusable after the transfer. Its point, edge, triangle, and index arrays are empty until new input is added.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">takeResult</span>()-&gt;<span class="SCst"><a href="#Pixel_Poly2Tri_Result">Result</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Tessellate_triangulate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tessellate.triangulate</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate_triangulate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L887">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Poly2Tri_Tessellate_triangulate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tessellate.triangulate</span> <a class="api-item-permalink" href="#Pixel_Poly2Tri_Tessellate_triangulate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/poly2tri.swg#L885">src</a></div>
 <p>Triangulate</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">triangulate</span>()</span></div>
 </section>
@@ -9155,7 +9252,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span> =&gt; .handle</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Clipper_Transform_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Transform.opDrop</span> <a class="api-item-permalink" href="#Pixel_Clipper_Transform_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L250">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Clipper_Transform_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Transform.opDrop</span> <a class="api-item-permalink" href="#Pixel_Clipper_Transform_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/poly/clipper.swg#L248">src</a></div>
 <p>Releases edge storage owned by the transform.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
@@ -9239,7 +9336,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.189</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.214</div>
 </footer>
 </section>
 </main>
@@ -9562,14 +9659,14 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 "v|Pixel.Bmp.Header.biXPelsPerMeter|Pixel_Bmp_Header_biXPelsPerMeter|Preferred horizontal resolution in pixels per meter.",
 "v|Pixel.Bmp.Header.biYPelsPerMeter|Pixel_Bmp_Header_biYPelsPerMeter|Preferred vertical resolution in pixels per meter.",
 "s|Pixel.Gif.Decoder|Pixel_Gif_Decoder|Decodes GIF images and retains animation state for sequential frames.",
-"s|Pixel.Tga.EncodeOptions|Pixel_Tga_EncodeOptions|Configures TGA packet encoding.",
-"v|Pixel.Tga.EncodeOptions.rle|Pixel_Tga_EncodeOptions_rle|Use TGA run-length encoded packets when true.",
 "s|Pixel.Jpg.EncodeOptions|Pixel_Jpg_EncodeOptions|Configures JPEG lossy compression.",
 "v|Pixel.Jpg.EncodeOptions.quality|Pixel_Jpg_EncodeOptions_quality|Quality in 1, 100; higher values preserve more detail and produce larger files.",
 "s|Pixel.Png.EncodeOptions|Pixel_Png_EncodeOptions|Configures PNG filtering, Deflate behavior, and Adam7 interlacing.",
 "v|Pixel.Png.EncodeOptions.compressionLevel|Pixel_Png_EncodeOptions_compressionLevel|Deflate compression level.",
 "v|Pixel.Png.EncodeOptions.filtering|Pixel_Png_EncodeOptions_filtering|Select adaptive PNG scanline filters.",
 "v|Pixel.Png.EncodeOptions.interlace|Pixel_Png_EncodeOptions_interlace|Encode seven-pass Adam7 interlacing.",
+"s|Pixel.Tga.EncodeOptions|Pixel_Tga_EncodeOptions|Configures TGA packet encoding.",
+"v|Pixel.Tga.EncodeOptions.rle|Pixel_Tga_EncodeOptions_rle|Use TGA run-length encoded packets when true.",
 "s|Pixel.Tiff.EncodeOptions|Pixel_Tiff_EncodeOptions|Configures TIFF strip compression.",
 "v|Pixel.Tiff.EncodeOptions.compression|Pixel_Tiff_EncodeOptions_compression|Compression applied to image strips; defaults to .None.",
 "s|Pixel.ImageStatistics.HaarFeatures|Pixel_ImageStatistics_HaarFeatures|Structure to store Haar coefficients",
@@ -10462,8 +10559,6 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 "f|Pixel.Gif.Decoder.nextFrame|Pixel_Gif_Decoder_nextFrame|Decodes the next composited frame into image.",
 "f|Pixel.Gif.Decoder.open|Pixel_Gif_Decoder_open|Opens an animated GIF for sequential frame decoding.",
 "f|Pixel.Gif.Decoder.rewind|Pixel_Gif_Decoder_rewind|Rewinds frame iteration to the first frame.",
-"f|Pixel.Ico.encodeAll|Pixel_Ico_encodeAll|Encodes an icon holding every image, in the order given.",
-"f|Pixel.Ico.save|Pixel_Ico_save|Writes an icon file holding every image, in the order given.",
 "f|Pixel.IImageEncoder.encode|Pixel_IImageEncoder_encode|Appends an encoded image to buf.",
 "f|Pixel.IImageEncoder.format|Pixel_IImageEncoder_format|Describes the format this encoder writes.",
 "f|Pixel.Image.canSave|Pixel_Image_canSave|Returns 'true' if the given filename has a corresponding encoder",
@@ -10472,6 +10567,8 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 "f|Pixel.Image.encodeToBytes|Pixel_Image_encodeToBytes|Encodes the image to one contiguous owned block.",
 "f|Pixel.Image.registerEncoder|Pixel_Image_registerEncoder|Registers an encoder type unless it is already present.",
 "f|Pixel.Image.save|Pixel_Image_save|Encodes the image and writes it to fileName.",
+"f|Pixel.Ico.encodeAll|Pixel_Ico_encodeAll|Encodes an icon holding every image, in the order given.",
+"f|Pixel.Ico.save|Pixel_Ico_save|Writes an icon file holding every image, in the order given.",
 "f|Pixel.Image.applyKernel|Pixel_Image_applyKernel|Apply a kernel to the image",
 "f|Pixel.Image.colorize|Pixel_Image_colorize|Colorize the image by setting the hue and saturation.",
 "f|Pixel.Image.contrast|Pixel_Image_contrast|Change the contrast. 'factor' is -1, 1",
@@ -10857,6 +10954,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 "h|Vector drawing|guide_Vector_drawing|",
 "h|Text and mathematical layout|guide_Text_and_mathematical_layout|",
 "h|Rendering recorded commands|guide_Rendering_recorded_commands|",
+"h|File documentation|file-documentation|",
 ]);
 </script>
 </body>

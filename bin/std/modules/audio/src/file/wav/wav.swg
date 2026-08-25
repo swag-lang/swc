@@ -1,3 +1,8 @@
+//! Format: RIFF/WAVE sound-file decoder.
+//! Supported: PCM8/16/24/32 and IEEE Float32 in classic or WAVE_FORMAT_EXTENSIBLE `fmt ` chunks, including speaker masks and streamed `data` chunks.
+//! Not supported: Compressed WAV codecs, IEEE Float64, RF64/WAVE64, big-endian RIFX, and multiple data segments.
+//! Role: This file owns RIFF chunk traversal, WAVE format validation, metadata, and SoundFile construction.
+//
 #global namespace Wav
 
 using Core, Core.Errors

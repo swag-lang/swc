@@ -1,3 +1,8 @@
+//! Format: Windows icon (ICO) encoder component.
+//! Supported: One or more images up to 256 by 256, stored as 32-bit BGRA DIB entries with alpha.
+//! Not supported: CUR output, PNG-compressed entries, paletted entries, and dimensions above 256.
+//! Role: This file owns container directory emission and embedded-image encoding.
+//
 #global namespace Ico
 
 using Core, Core.Errors

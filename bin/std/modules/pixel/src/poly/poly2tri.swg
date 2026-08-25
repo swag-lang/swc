@@ -1,9 +1,7 @@
-/*
-    :LICENCE
-    This code is based on the Poly2Tri library (https://github.com/jhasse/poly2tri)
-    The original code has been modified for Swag
-    See LICENCE.md for the corresponding licence.
-*/
+// @LICENCE: BSD-3-Clause
+// @ORIGIN: Poly2Tri, https://github.com/jhasse/poly2tri
+// @MODIFIED: Ported and modified for Swag.
+// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#poly2tri
 
 #global namespace Poly2Tri
 

@@ -1,3 +1,8 @@
+//! Format: YUV4MPEG2 (Y4M) encoder component.
+//! Supported: Progressive 8-bit 4:4:4 limited-range planar output from 8-bit RGB/BGR images.
+//! Not supported: Audio, alpha preservation, interlacing, alternative chroma modes, full-range output, and compression.
+//! Role: This file owns stream headers, frame markers, RGB-to-planar conversion, and top-level encoding.
+//
 #global namespace Y4m
 
 using Core, Core.Errors, Pixel

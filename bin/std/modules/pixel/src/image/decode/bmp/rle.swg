@@ -1,3 +1,8 @@
+//! Format: Windows Bitmap (BMP/DIB) decoder component.
+//! Supported: Windows and OS/2 headers; 1-, 4-, 8-, 16-, 24-, and 32-bit pixels; palettes, RGB, bitfields, RLE4, RLE8, and either row direction.
+//! Not supported: JPEG/PNG-compressed BMP payloads and other compression modes.
+//! Role: This file owns RLE4 and RLE8 command decoding.
+//
 #global namespace Bmp
 
 using Core, Core.Errors

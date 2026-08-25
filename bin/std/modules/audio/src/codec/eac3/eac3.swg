@@ -1,3 +1,8 @@
+//! Format: Dolby Digital Plus (E-AC-3) packet decoder component.
+//! Supported: Common independent E-AC-3 substreams through 5.1 channels with standard transform, coupling, exponent, bit-allocation, and LFE paths.
+//! Not supported: Dependent substreams, Adaptive Hybrid Transform, enhanced coupling, spectral extension, transient processing, attenuation data, and mixing metadata.
+//! Role: This file owns E-AC-3 frame syntax, audio blocks, coupling, and packet dispatch.
+//
 #global namespace Dolby
 
 using Core, Core.Errors, Core.Math

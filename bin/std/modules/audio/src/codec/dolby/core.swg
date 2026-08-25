@@ -1,3 +1,8 @@
+//! Format: Shared AC-3/E-AC-3 decoder support.
+//! Supported: Common bit reading, channel layouts, exponents, bit allocation, transforms, windows, dither, and normative tables used by both Dolby packet decoders.
+//! Not supported: This directory does not select or decode a complete packet format by itself.
+//! Role: This file owns shared Dolby bit allocation, exponents, transforms, channel mapping, and PCM output.
+//
 #global namespace Dolby
 
 using Core, Core.Errors, Core.Math

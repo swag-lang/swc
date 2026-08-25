@@ -1,3 +1,8 @@
+//! Format: H.264/AVC decoder component.
+//! Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
+//! Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
+//! Role: This file owns normative entropy, scan, quantization, and filter tables.
+//
 #global namespace H264
 
 // Constant tables of ITU-T H.264, grouped here so every other decoding file holds logic only.

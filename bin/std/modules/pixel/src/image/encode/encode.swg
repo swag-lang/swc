@@ -1,3 +1,8 @@
+//! Format: Image encoder registry.
+//! Supported: Extension-selected registration and dispatch for every built-in and user-registered image encoder.
+//! Not supported: This file does not write a concrete image format.
+//! Role: This file owns format-neutral encoder registration and dispatch.
+//
 using Swag, Core, Core.Errors
 
 // One registered encoder: the format it writes, and the type that writes it.

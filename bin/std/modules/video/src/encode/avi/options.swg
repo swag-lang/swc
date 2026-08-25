@@ -1,3 +1,8 @@
+//! Format: Audio Video Interleave (AVI/RIFF) encoder component.
+//! Supported: Indexed Motion JPEG video with a standard `idx1` index and files up to the 32-bit RIFF size limit.
+//! Not supported: OpenDML/AVI 2.0, audio tracks, uncompressed output, and files of 4 GiB or more.
+//! Role: This file owns public AVI Motion JPEG encoder options.
+//
 #global public
 #global namespace Avi
 

@@ -1,3 +1,8 @@
+//! Format: Truevision TGA decoder component.
+//! Supported: Mapped, grayscale, and true-color images; raw or RLE packets; 8-, 15-, 16-, 24-, and 32-bit layouts; all image origins.
+//! Not supported: Huffman/delta-compressed TGA 2.0 images and unsupported palette or pixel depths.
+//! Role: This file owns TGA header parsing, packet traversal, and top-level decoding.
+//
 #global namespace Tga
 
 using Core, Core.Errors

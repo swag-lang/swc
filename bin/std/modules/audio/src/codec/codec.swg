@@ -1,3 +1,8 @@
+//! Format: Format-neutral sound codec registry.
+//! Supported: Incremental and packet decoder registration, lookup, lifecycle, and byte-progress reporting.
+//! Not supported: This file does not decode or encode a concrete sound format.
+//! Role: This file owns the common codec contracts and registry used by concrete codec subfolders.
+//
 using Core
 
 var g_Codecs:       Array'CodecDesc

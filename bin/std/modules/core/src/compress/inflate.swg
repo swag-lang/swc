@@ -1,9 +1,7 @@
-/*
-    :LICENCE
-    This code is based on the Odin library (https://github.com/odin-lang/Odin/blob/master/core/compress/zlib/zlib.odin)
-    The original code has been modified for Swag
-    See LICENCE.md for the corresponding licence.
-*/
+// @LICENCE: Zlib
+// @ORIGIN: Odin, https://github.com/odin-lang/Odin/tree/master/core/compress/zlib
+// @MODIFIED: Ported and modified for Swag.
+// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#odin
 
 #global namespace Compress
 

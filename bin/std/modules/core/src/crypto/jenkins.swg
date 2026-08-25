@@ -1,7 +1,7 @@
-/*
-    :LICENCE
-    By Bob Jenkins, public domain.
-*/
+// @LICENCE: LicenseRef-Public-Domain
+// @ORIGIN: Bob Jenkins integer hash, https://burtleburtle.net/bob/hash/integer.html
+// @MODIFIED: Ported and modified for Swag.
+// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#jenkins-hash
 
 #global namespace Hash
 

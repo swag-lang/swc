@@ -1,3 +1,8 @@
+//! Format: Shared AC-3/E-AC-3 decoder support.
+//! Supported: Common bit reading, channel layouts, exponents, bit allocation, transforms, windows, dither, and normative tables used by both Dolby packet decoders.
+//! Not supported: This directory does not select or decode a complete packet format by itself.
+//! Role: This file owns normative stream metadata, bit-allocation, hearing-threshold, rematrix, and transform-window tables.
+//
 #global namespace Dolby
 
 // Normative AC-3 tables from ATSC A/52:2018, sections 5 and 7.

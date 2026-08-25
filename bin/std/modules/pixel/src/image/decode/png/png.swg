@@ -1,9 +1,12 @@
-/*
-    :LICENCE
-    This code is based on the Odin library (https://github.com/odin-lang/Odin/blob/master/core/image/png/png.odin)
-    The original code has been modified for Swag
-    See LICENCE.md for the corresponding licence.
-*/
+//! Format: Portable Network Graphics (PNG) decoder component.
+//! Supported: Standard grayscale, true-color, indexed, grayscale-alpha, and true-color-alpha images, including Adam7 and supported metadata.
+//! Not supported: APNG animation, unknown critical chunks, and images requiring more than 2 GiB of decoded storage.
+//! Role: This file owns PNG chunk parsing, validation, and top-level decoding.
+//
+// @LICENCE: Zlib
+// @ORIGIN: Odin PNG decoder, https://github.com/odin-lang/Odin/blob/master/core/image/png/png.odin
+// @MODIFIED: Ported and modified for Swag.
+// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#odin
 
 #global namespace Png
 

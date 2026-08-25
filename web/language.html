@@ -516,6 +516,7 @@ indent-style = spaces</span></div>
 <tr><td><span class="code-inline">--output-doc</span> / <span class="code-inline">--no-output-doc</span></td><td>Enable or suppress documentation files</td></tr>
 </tbody>
 </table>
+<p>In an API module, prefix a source comment line with <span class="code-inline">//!</span> to include it in the module-wide <b>File documentation</b> section. Mark every line that belongs to the block; the marker is removed before Markdown rendering. A later <span class="code-inline">//!</span> block in the same file starts a new paragraph. Marked lines are emitted only in that section, even when adjacent to a declaration. Ordinary <span class="code-inline">//</span> comments remain local to their declarations and licence comments are not published implicitly.</p>
 <p>The command also generates the public runtime API page once per output directory.</p>
 <h3 id="_001_004_swc_command_line_swg_Test_Controls">Test Controls</h3>
 <p>By default, 'swc test' runs <span class="code-inline">#test</span> functions through both the JIT and native backend and emits native output. Narrow that behavior when diagnosing a layer:</p>
@@ -9254,7 +9255,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.189</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.214</div>
 </footer>
 </section>
 </main>

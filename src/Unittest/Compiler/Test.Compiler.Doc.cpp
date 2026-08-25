@@ -302,6 +302,10 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_DocGeneratesPublicApiAndHonorsNoDoc)
     static constexpr std::string_view SOURCE      = R"(#global namespace DocApi
 #global public
 
+//! Format: Documentation generator fixture.
+//! Supported: Explicit file comments marked for the module-wide documentation.
+//! Not supported: Publishing neighboring ordinary comments implicitly.
+// @LICENCE: LicenseRef-Documentation-Fixture
 // Returns the next integer.
 // The long description belongs only to the standalone symbol documentation.
 func documented(value: s32)->s32
@@ -471,6 +475,13 @@ func hidden(value: s32)->s32
     std::string             content;
     FileSystem::IoErrorInfo ioError;
     SWC_RESULT(FileSystem::readTextFile(outputPath, content, ioError));
+    if (!content.contains("<h2 id=\"file-documentation\">File documentation</h2>") ||
+        !content.contains("<p>Format: Documentation generator fixture. Supported: Explicit file comments marked for the module-wide documentation. Not supported: Publishing neighboring ordinary comments implicitly.</p>"))
+        return Result::Error;
+    if (countOccurrences(content, "Format: Documentation generator fixture.") != 1)
+        return Result::Error;
+    if (content.contains("LicenseRef-Documentation-Fixture"))
+        return Result::Error;
     if (!content.contains("documented") || !content.contains("Returns the next integer.") || !content.contains("The long description belongs only to the standalone symbol documentation."))
         return Result::Error;
     const size_t documentedSummary = content.find("href=\"#Compiler_doc_test_DocApi_documented\"");

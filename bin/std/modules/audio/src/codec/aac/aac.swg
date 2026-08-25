@@ -1,3 +1,8 @@
+//! Format: MPEG-4 AAC Low Complexity packet decoder component.
+//! Supported: 1024-sample AAC-LC access units, standard sample-rate indexes, channel configurations 1 through 6, long/short windows, TNS, intensity stereo, and perceptual noise substitution.
+//! Not supported: Other AAC profiles, 960-sample frames, explicit sample rates, pulse data, gain control, core-coder dependencies, and extension flags.
+//! Role: This file owns AAC syntax, scale factors, spectral decoding, stereo tools, IMDCT, overlap, and PCM output.
+//
 #global namespace Aac
 
 using Core, Core.Errors, Core.Math

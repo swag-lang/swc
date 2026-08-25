@@ -1,3 +1,8 @@
+//! Format: Dolby Digital (AC-3) packet decoder component.
+//! Supported: Independent AC-3 sync frames through 5.1 channels, including coupling, rematrixing, exponent reuse, bit allocation, and LFE.
+//! Not supported: Dependent substreams and formats other than AC-3.
+//! Role: This file owns AC-3 frame syntax, audio blocks, coupling, rematrixing, and packet dispatch.
+//
 #global namespace Dolby
 
 using Core, Core.Errors, Core.Math

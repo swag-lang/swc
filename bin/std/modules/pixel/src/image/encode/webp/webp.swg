@@ -1,3 +1,8 @@
+//! Format: WebP still-image encoder component.
+//! Supported: Lossless VP8L output with alpha from 8-bit RGB/BGR source images up to 16384 pixels per dimension.
+//! Not supported: Lossy VP8, animation, metadata chunks, and dimensions above 16384.
+//! Role: This file owns RIFF chunk emission, lossless VP8L payloads, and top-level encoding.
+//
 #global namespace Webp
 
 using Core, Core.Errors

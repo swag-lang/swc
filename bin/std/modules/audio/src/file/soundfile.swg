@@ -1,3 +1,8 @@
+//! Format: Format-neutral sound-file model.
+//! Supported: Describing decoded PCM and indexed packet streams, validated metadata fields, and source ownership.
+//! Not supported: This file does not parse or write a concrete sound container.
+//! Role: This file owns the shared sound-file metadata and storage contracts used by container subfolders.
+//
 #global public
 
 using Core, Core.Errors

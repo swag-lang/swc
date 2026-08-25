@@ -202,6 +202,13 @@ per source file.
 | `--css PATH` | Override the generated stylesheet path |
 | `--output-doc` / `--no-output-doc` | Enable or suppress documentation files |
 
+In an API module, prefix a source comment line with `//!` to include it in the
+module-wide **File documentation** section. Mark every line that belongs to the
+block; the marker is removed before Markdown rendering. A later `//!` block in
+the same file starts a new paragraph. Marked lines are emitted only in that
+section, even when adjacent to a declaration. Ordinary `//` comments remain
+local to their declarations and licence comments are not published implicitly.
+
 The command also generates the public runtime API page once per output
 directory.
 

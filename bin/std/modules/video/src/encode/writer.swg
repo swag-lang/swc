@@ -1,3 +1,8 @@
+//! Format: Format-neutral video encoder registry and writer.
+//! Supported: Extension-based encoder selection, streamed frame submission, finalization, and sink patching.
+//! Not supported: This file does not write a concrete video or container format.
+//! Role: This file owns encoder registration and the public writer that delegates to concrete format subfolders.
+//
 #global public
 
 using Core, Core.Errors, Pixel

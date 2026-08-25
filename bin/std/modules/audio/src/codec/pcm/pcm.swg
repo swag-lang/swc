@@ -1,3 +1,8 @@
+//! Format: Pulse-code modulation conversion codec.
+//! Supported: Little-endian unsigned PCM8, signed PCM16/24/32, and IEEE Float32 input converted incrementally to interleaved PCM16.
+//! Not supported: Big-endian PCM, Float64, compressed audio, channel remixing, and sample-rate conversion.
+//! Role: This file owns SIMD/scalar sample conversion and streaming progress accounting.
+//
 using Core, Core.Errors, Core.Math
 
 struct CodecPcmToPcm16

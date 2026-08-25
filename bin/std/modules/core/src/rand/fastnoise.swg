@@ -1,8 +1,7 @@
-/*
-    :LICENCE
-    This code is based on FastNoise by Jordan Peck (https://github.com/Auburn/FastNoiseLite/tree/FastNoise-Legacy)
-    See LICENCE.md for the corresponding licence.
-*/
+// @LICENCE: MIT
+// @ORIGIN: FastNoise Legacy, https://github.com/Auburn/FastNoiseLite/tree/FastNoise-Legacy
+// @MODIFIED: Ported and modified for Swag.
+// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#fastnoise
 
 #global namespace Noise
 #global #[Swag.Safety(.All, false)]

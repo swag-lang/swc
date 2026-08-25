@@ -1,3 +1,8 @@
+//! Format: Windows Bitmap (BMP) encoder component.
+//! Supported: Uncompressed 24- and 32-bit RGB/BGR source images with four-byte row alignment.
+//! Not supported: Paletted, RLE, bitfield, and embedded-compression output.
+//! Role: This file owns container header emission, validation, encoder registration, and top-level pixel dispatch.
+//
 #global namespace Bmp
 
 using Core, Core.Errors

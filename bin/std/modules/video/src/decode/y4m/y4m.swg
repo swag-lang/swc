@@ -1,3 +1,8 @@
+//! Format: YUV4MPEG2 (Y4M) decoder component.
+//! Supported: Progressive 8-bit mono, 4:2:0, 4:2:2, and 4:4:4 planar frames with limited or full range.
+//! Not supported: Interlaced streams, bit depths above 8, alpha, 4:1:1, and other chroma modes.
+//! Role: This file owns stream headers, frame markers, planar decoding, seeking, and top-level decoding.
+//
 #global namespace Y4m
 
 using Core, Core.Errors, Pixel

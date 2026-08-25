@@ -1,3 +1,8 @@
+//! Format: Audio Video Interleave (AVI/RIFF) decoder component.
+//! Supported: Indexed Motion JPEG and uncompressed 24-/32-bit video, plus integer PCM audio tracks of 8, 16, 24, or 32 bits.
+//! Not supported: OpenDML files beyond the supported RIFF index model and video codecs other than Motion JPEG or uncompressed RGB.
+//! Role: This file owns RIFF chunks, stream indexes, frame/audio packet lookup, and top-level decode.
+//
 #global namespace Avi
 
 using Core, Core.Errors, Pixel, Audio

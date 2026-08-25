@@ -1,3 +1,8 @@
+//! Format: Truevision TGA encoder component.
+//! Supported: Raw or RLE true-color 24- and 32-bit output from 8-bit RGB/BGR images.
+//! Not supported: Mapped, grayscale, color-corrected, and non-true-color output.
+//! Role: This file owns TGA header emission, packet writing, and top-level encoding.
+//
 #global namespace Tga
 
 using Core, Core.Errors

@@ -1,9 +1,7 @@
-/*
-    :LICENCE
-    This code is based on the Go library (https://github.com/golang/go/blob/master/src/strconv/ftoa.go)
-    The original code has been modified for Swag
-    See LICENCE.md for the corresponding licence.
-*/
+// @LICENCE: BSD-3-Clause
+// @ORIGIN: Go standard library, https://github.com/golang/go
+// @MODIFIED: Ported and modified for Swag.
+// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#go-standard-library
 
 #global namespace StrConv
 #global namespace Dtoa

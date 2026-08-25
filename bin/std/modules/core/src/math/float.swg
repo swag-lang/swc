@@ -89,7 +89,10 @@ alias ConstF64 = Const'f64
     // Perform smooth damping interpolation towards 'target'.
     // Uses 'smoothTime' and 'deltaTime' for frame-rate independent smooth movement.
     // 'currentVelocity' is modified to track the current rate of change.
-    // Based on Game Programming Gems 4 Chapter 1.10
+    // @LICENCE: NOASSERTION
+    // @ORIGIN: Smooth damping method from Game Programming Gems 4, chapter 1.10.
+    // @MODIFIED: Adapted to Swag's generic floating-point API.
+    // @NOTICE: /bin/THIRD_PARTY_NOTICES.md#game-programming-gems-smooth-damping
     func(T) smoothDamp(current, target: T, currentVelocity: *T, smoothTime, deltaTime: T)->T
     {
         // Clamp smoothTime to prevent division by zero and ensure stability

@@ -1,3 +1,8 @@
+//! Format: Shared packed-pixel decoder support.
+//! Supported: SIMD and scalar expansion of RGB565, BGR565, RGBA5551, and BGRA5551 rows used by image codecs.
+//! Not supported: This file does not recognize or decode a container format by itself.
+//! Role: This file owns shared SIMD and scalar expansion of packed 16-bit pixels.
+//
 #global namespace PackedPixel
 
 using Core

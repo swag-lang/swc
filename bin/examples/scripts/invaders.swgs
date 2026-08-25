@@ -1,8 +1,6 @@
-/*
-    :LICENCE
-    This was inspired by Clear Code, video is https://www.youtube.com/watch?v=o-6pADy5Mdg.
-    Ressources (images/sounds) come from the corresponding https://github.com/clear-code-projects/Space-invaders.
-*/
+// @LICENCE: MIT
+// @ORIGIN: Inspired by the Clear Code Space Invaders tutorial, https://github.com/clear-code-projects/Space-invaders
+// @NOTICE: /bin/THIRD_PARTY_NOTICES.md#invaders-example-assets
 
 #import("gui", location: "swag@std")
 #import("audio", location: "swag@std")

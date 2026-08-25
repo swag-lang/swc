@@ -3,8 +3,8 @@
 using Core, Pixel, Gui
 
 private const ImageGlyphSize = 18.0
-private const ImageCommandWidth = 316.0
-private const GifCommandWidth = 544.0
+private const ImageCommandWidth = 396.0
+private const GifCommandWidth = 624.0
 private const SvgRasterLimit = 2048.0
 
 internal func loadViewerImage(fileName: string)->Image fail
@@ -28,13 +28,17 @@ internal struct ImageViewer
 
     #[Swag.Late]
     {
-        commands:   *ViewerCommandBar
-        imageView:  *ImageView
-        zoomLabel:  *Label
-        playButton: *IconButton
-        timeline:   *Slider
-        frameLabel: *Label
+        commands:       *ViewerCommandBar
+        previousButton: *IconButton
+        nextButton:     *IconButton
+        imageView:      *ImageView
+        zoomLabel:      *Label
+        playButton:     *IconButton
+        timeline:       *Slider
+        frameLabel:     *Label
     }
+
+    navigateFile: #null ViewerNavigateFile
 }
 
 internal impl ImageViewer
@@ -63,6 +67,12 @@ internal impl ImageViewer
         .timeline.setBounds(0, cast(f32) .imageView.movie.frameCount - 1, 1)
         .refreshFrame()
     }
+
+    mtd navigate(delta: s32)
+    {
+        if .navigateFile do
+            .navigateFile!(me, delta)
+    }
 }
 
 private impl IWnd for ImageViewer
@@ -77,6 +87,18 @@ private impl IWnd for ImageViewer
 
         switch evt.key
         {
+        case .Left where evt.modifiers == .None:
+            if .navigateFile do
+                .navigate(-1)
+            else do
+                evt.accepted = false
+
+        case .Right where evt.modifiers == .None:
+            if .navigateFile do
+                .navigate(1)
+            else do
+                evt.accepted = false
+
         case .Add, .OemPlus:
             .imageView.zoomIn()
 
@@ -104,16 +126,43 @@ private impl IWnd for ImageViewer
 
 private impl ImageViewer
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string)->*ImageViewer fail
+    func create(contentParent, commandParent: *Wnd, fileName: string, navigateFile: #null ViewerNavigateFile = null)->*ImageViewer fail
     {
         let result = Wnd.create'ImageViewer(contentParent, "sFileScope.image")
         result.backgroundStyle = .View
+        result.navigateFile    = navigateFile
 
         result.commands = ViewerCommandBar.create(commandParent, ImageCommandWidth)
+
+        with result.previousButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, ImageGlyphSize), {0, 0, 36, 36})
+        {
+            .dockStyle = .Left
+            .toolTip   = imageStrings().ui_TipPrevious
+            .enable(navigateFile != null)
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                view.navigate(-1)
+            }
+        }
+
+        with result.nextButton = IconButton.create(result.commands, result.theme().icon(.ChevronRight, ImageGlyphSize), {0, 0, 36, 36})
+        {
+            .dockStyle = .Left
+            .margin.z  = 8
+            .toolTip   = imageStrings().ui_TipNext
+            .enable(navigateFile != null)
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                view.navigate(1)
+            }
+        }
 
         with let zoomOut = IconButton.create(result.commands, result.theme().icon(.ZoomOut, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
+            .margin.x   = 8
             .toolTip    = imageStrings().ui_TipZoomOut
             .sigPressed += func|view = result|(button)
             {
@@ -134,7 +183,7 @@ private impl ImageViewer
             }
         }
 
-        with let fit = IconButton.create(result.commands, result.commands.icon(.FitView, ImageGlyphSize), {0, 0, 36, 36})
+        with let fit = IconButton.create(result.commands, result.theme().icon(.FitView, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -146,7 +195,7 @@ private impl ImageViewer
             }
         }
 
-        with let actual = IconButton.create(result.commands, result.commands.icon(.ActualSize, ImageGlyphSize), {0, 0, 36, 36})
+        with let actual = IconButton.create(result.commands, result.theme().icon(.ActualSize, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -253,12 +302,12 @@ private impl ImageViewer
     }
 }
 
-private func loadImageViewer(contentParent, commandParent: *Wnd, fileName: string)->#null *ImageViewer fail => try ImageViewer.create(contentParent, commandParent, fileName)
+private func loadImageViewer(contentParent, commandParent: *Wnd, fileName: string, navigateFile: #null ViewerNavigateFile)->#null *ImageViewer fail => try ImageViewer.create(contentParent, commandParent, fileName, navigateFile)
 
 // Creates the integrated image view.
 func createImageViewer(request: const *ViewerRequest, result: *ViewerResult)
 {
-    let view = catch loadImageViewer(request.contentParent, request.commandParent, request.fileName) as decodeError
+    let view = catch loadImageViewer(request.contentParent, request.commandParent, request.fileName, request.navigateFile) as decodeError
     if decodeError != null
     {
         result.failureReason = Errors.message(decodeError)

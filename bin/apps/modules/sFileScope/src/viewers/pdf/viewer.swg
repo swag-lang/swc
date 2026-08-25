@@ -117,7 +117,7 @@ private impl PdfViewer
             }
         }
 
-        with let fit = IconButton.create(result.commands, result.commands.icon(.FitView, 18), {0, 0, 36, 36})
+        with let fit = IconButton.create(result.commands, result.theme().icon(.FitView, 18), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -129,7 +129,7 @@ private impl PdfViewer
             }
         }
 
-        with let actual = IconButton.create(result.commands, result.commands.icon(.ActualSize, 18), {0, 0, 36, 36})
+        with let actual = IconButton.create(result.commands, result.theme().icon(.ActualSize, 18), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8

@@ -286,7 +286,8 @@ func videoMatroskaFixturePath()->String
 
     view.togglePlayback()
     @assert(view.playing and view.voice!.isPlaying())
-    view.seekFrame(5)
+    view.timeline.setValue(cast(f32) view.frameSeconds(5))
+    @assert(view.awaitingFrame and view.resumeAudioAfterSeek)
     waitForVideoFrame(view)
     @assert(!view.resumeAudioAfterSeek and view.voice!.isPlaying())
     @assert(view.voice!.playbackSampleFrame() == cast(u64) Math.round(view.video.frameTimestamp(5) * 44_100.0))
@@ -311,6 +312,15 @@ func videoMatroskaFixturePath()->String
     window.openFile(videoAudioFixturePath(), remember: false)
     let view = cast(*VideoViewer) window.currentView!
     waitForVideoFrame(view)
+
+    // A click on the bottom timeline replaces the stale picture with the central wait overlay
+    // until the decoder publishes the requested frame.
+    view.timeline.setValue(cast(f32) view.frameSeconds(5))
+    @assert(view.awaitingFrame and window.loadingOverlay.isLocallyVisible())
+    waitForVideoFrame(view)
+    window.updateLoadingIndicator()
+    @assert(!window.loadingOverlay.isLocallyVisible())
+
     view.togglePlayback()
     let voice = view.voice!
 
@@ -478,10 +488,25 @@ func videoMatroskaFixturePath()->String
     view.clock.restart()
     view.seekFrame(8)
     waitForVideoFrame(view)
-    @assert(view.audioRangePending and !view.voice!.isPlaying())
+    @assert(view.audioRangePending and view.resumeAudioAfterSeek and !view.voice!.isPlaying())
     @assert(view.currentSeconds() >= 1.9 and view.voice!.playbackSampleFrame() == 0)
     view.followAudioClock()
     @assert(view.currentSeconds() >= 1.9)
+
+    // Once the progressive index reaches the target, the deferred seek is still remembered and
+    // positions the replacement voice before sound resumes.
+    let longerPath = Gui.Testing.tempFilePath("filescope-video-audio-range-long-", ".pcm")
+    defer discard catch File.delete(longerPath)
+    pcm.resize(800)
+    expect File.writeAllBytes(longerPath, pcm.toSlice())
+    const LongerPackets: [1] SoundPacket = [{0, 800, 400}]
+    var longerSound = expect SoundFile.openPcmPacketStream(longerPath, .Pcm16, 100, 1, LongerPackets)
+    view.voice!.destroy()
+    view.audio = &longerSound
+    view.voice = expect Voice.create(&longerSound)
+    view.resumeAudio()
+    @assert(!view.audioRangePending and !view.resumeAudioAfterSeek and view.voice!.isPlaying())
+    @assert(view.voice!.playbackSampleFrame() >= 200)
 }
 
 // A Matroska seek window carries a media-timeline origin. The viewer maps that absolute movie

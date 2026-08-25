@@ -3,6 +3,12 @@
 
 using Core, Pixel, Gui
 
+func countImageNavigation(wnd: *Wnd, delta: s32)
+{
+    let count = cast(*s32) wnd.userData!
+    count[] += delta
+}
+
 #test
 {
     let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg")
@@ -28,12 +34,19 @@ using Core, Pixel, Gui
     commandBar.backgroundStyle = .Window
     commandBar.padding         = {16, 8, 16, 8}
 
-    let request = ViewerRequest{&host.root, commandBar, fileName}
+    let request = ViewerRequest{contentParent: &host.root, commandParent: commandBar, fileName: fileName, navigateFile: &countImageNavigation}
     var result: ViewerResult
     createImageViewer(&request, &result)
     @assert(result.view != null and result.commands != null)
 
     let view = cast(*ImageViewer) result.view!
+    var navigation: s32
+    view.userData = &navigation
+    @assert(view.previousButton.isEnabled() and view.nextButton.isEnabled())
+    @assert(view.previousButton.icon.isValid() and view.nextButton.icon.isValid())
+    view.navigate(-1)
+    view.navigate(1)
+    @assert(navigation == 0)
     view.dockStyle          = .Center
     view.commands.dockStyle = .Center
     host.root.applyLayout()

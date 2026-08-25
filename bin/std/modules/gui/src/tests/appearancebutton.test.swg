@@ -26,6 +26,30 @@ using Swag, Core, Pixel
     Pixel.Testing.assertImageGolden(&image, "themeicons.application-actions")
 }
 
+// Generic document and media actions come from the same atlas in every application.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(248, 96)
+    defer host.shutdown()
+
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    let icons = [ThemeIcons.FullScreen, .ExitFullScreen, .SeekBackward, .SeekForward, .Volume,
+                 ThemeIcons.VolumeMute, .FitView, .ActualSize, .Wrap, .AudioTracks]
+    for icon, idx in icons
+    {
+        let x = 8 + cast(f32) (idx % 5) * 48
+        let y = 8 + cast(f32) (idx / 5) * 44
+        IconButton.create(&host.root, host.theme.icon(icon, 20), {x, y, 40, 36})
+    }
+
+    host.settleAnimations(&host.root, 4)
+    var image = host.render(&host.root)
+    Pixel.Testing.assertImageGolden(&image, "themeicons.document-media-actions")
+}
+
 // The standard appearance action occupies the caption slot immediately before native controls
 // and applies both kinds of presentation choice before notifying its owner.
 #test

@@ -22,14 +22,16 @@ impl IActionUI for ActionZoom
         switch cxt.id
         {
         case .Zoom1:
-            evt.updatedFields |= .Name | .Disabled
+            evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = appStrings().act_ActualSize
             evt.disabled      = !capture
+            evt.icon          = main.theme().icon(.ActualSize)
 
         case .ZoomFit:
-            evt.updatedFields |= .Name | .Disabled
+            evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = appStrings().act_FitToView
             evt.disabled      = !capture
+            evt.icon          = main.theme().icon(.FitView)
 
         case .ZoomIn:
             evt.updatedFields |= .Name | .Disabled | .Icon

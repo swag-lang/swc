@@ -30,6 +30,9 @@ alias ViewerReportFailure = func(*Wnd, string)
 // Hands format statistics that changed after creation back to the application status band.
 alias ViewerReportDetails = func(*Wnd, string)
 
+// Requests a neighboring file from the host when a viewer assigns meaning to that direction.
+alias ViewerNavigateFile = func(*Wnd, s32)
+
 private func mediaWholeTimeText(total: u64)->String
 {
     let hours   = total / 3_600
@@ -67,6 +70,7 @@ struct ViewerRequest
     reportFailure:        #null ViewerReportFailure            // Reports a decoder error discovered after creation.
     reportDetails:        #null ViewerReportDetails            // Reports format statistics that changed after creation.
     reportLoadingChanged: #null ViewerReportLoadingChanged     // Re-evaluates application-owned wait feedback.
+    navigateFile:         #null ViewerNavigateFile             // Opens a neighboring file when this viewer owns that gesture.
 }
 
 // What one integrated viewer gives back.

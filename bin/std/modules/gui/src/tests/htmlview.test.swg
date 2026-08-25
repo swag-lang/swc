@@ -372,7 +372,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     defer host.shutdown()
 
     var source: String = "<style>body { margin: 0; font-size: 16px }</style><p id=\"p\">"
-    for 40 do
+    for 400 do
         source += "word "
     source += "</p><p id=\"q\">one<br>two</p>"
 
@@ -382,9 +382,16 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.rebuild()
 
     let wrapped = view.layout.constBox(view.boxOfNode(view.elementById("p")))
-    @assert(wrapped.lines.count > 3)
+    @assert(wrapped.lines.count > 20)
     for line in wrapped.lines where line.width > wrapped.content.width + 1 do
         @assert(false)
+
+    // Painting and hit testing use the line index instead of scanning every run in the block.
+    let lineIndex = 12'u64
+    let range     = htmlLineItemRange(wrapped, wrapped.lines[lineIndex].top, wrapped.lines[lineIndex].top + 1)
+    @assert(range.first == wrapped.lines[lineIndex - 1].first)
+    @assert(range.last == wrapped.lines[lineIndex + 1].last)
+    @assert(range.last - range.first < wrapped.items.count / 4)
 
     let broken = view.layout.constBox(view.boxOfNode(view.elementById("q")))
     @assert(broken.lines.count == 2)
@@ -701,6 +708,35 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     @assert(top >= position and top <= position + view.scroll.paddedClientRect().height)
 }
 
+// Progressive refreshes spread out fourfold, so a large generated page does not repeatedly
+// rebuild almost the same prefix while the reader is still interacting with it.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("gui_html_refresh_%.html", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+
+    var source: String = "<pre>"
+    for 2_400 do
+        source += "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ repeated source line\n"
+    source += "</pre>"
+    @assert(source.length > 192 * 1024)
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+
+    let view = HtmlView.createFile(&host.root, fileName)
+    view.resize(640, 360)
+    view.applyLayout()
+    while view.bytesRead < 192 * 1024 do
+        view.streamStep()
+
+    @assert(view.nextRefresh == view.bytesRead * 4)
+    view.stopLoading()
+}
+
 // Painting a search hit survives every split of the match across inline items: an item that
 // begins inside the hit has an empty prefix, which must never reach String.opSlice.
 #test
@@ -719,6 +755,77 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     discard host.render(view)
     @assert(view.findText("gamma delta"))
     discard host.render(view)
+}
+
+// A real generated Rustdoc page keeps its full production scale. Its highlighted source expands
+// to hundreds of thousands of nodes, and its structural selectors used to rescan tens of
+// thousands of siblings for each match. Small documents cannot expose that failure mode.
+#test
+{
+    let allocator = Swag.defaultAllocator()
+    let initial   = allocator.stats()
+    Console.printf("HTML MEMORY sizes node=% style=% box=% item=% line=% initial live=% cached=% committed=%\n", #sizeof(HtmlNode), #sizeof(HtmlComputedStyle), #sizeof(HtmlBox), #sizeof(HtmlInlineItem), #sizeof(HtmlLineBox), initial.sizeAlloc, initial.sizeCached, initial.sizeCommitted)
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let path   = guiFixturePath("html.rustdoc-large.html")
+    let source = expect File.readAllText(path)
+    @assert(source.length == 8_153_570)
+
+    let view   = HtmlView.createBase(&host.root, {})
+    view.fileName        = path
+    view.images.basePath = Path.directoryName(path) orelse ""
+    view.resize(960, 680)
+    view.applyLayout()
+
+    view.parser.feed(source.toString())
+    view.parser.finish()
+    @assert(view.document.nodes.count == 429_782)
+    let parsed = allocator.stats()
+    Console.printf("HTML MEMORY parsed live=% cached=% committed=% nodes-cap=%\n", parsed.sizeAlloc, parsed.sizeCached, parsed.sizeCommitted, view.document.nodes.capacity)
+
+    view.collectStyleSheets()
+    for cssName in ["html.rustdoc-large.normalize.css", "html.rustdoc-large.rustdoc.css", "html.rustdoc-large.noscript.css"] do
+        view.sheet.parse((expect File.readAllText(guiFixturePath(cssName))).toString())
+    @assert(view.sheet.rules.count == 815)
+    @assert(view.sheet.universal.count == 37)
+
+    view.resolver.resolve(&view.document, &view.sheet, &view.pool, view.styleDefaults(), view.viewportSize(), view.darkScheme())
+    @assert(view.resolver.styles.count == view.resolver.match.numElements + 1)
+    @assert(view.resolver.styles.count * 2 < view.document.nodes.count)
+    @assert(view.resolver.match.elementCount.count == view.document.nodes.count)
+
+    var maximumSiblings: u32
+    for count in view.resolver.match.elementCount do
+        maximumSiblings = Math.max(maximumSiblings, count)
+    @assert(maximumSiblings > 10_000)
+    let styled = allocator.stats()
+    Console.printf("HTML MEMORY styled live=% cached=% committed=% styles-cap=% match=%\n", styled.sizeAlloc, styled.sizeCached, styled.sizeCommitted, view.resolver.styles.capacity, view.resolver.match.elementIndex.capacity * 5)
+
+    view.layout.build(&view.document, &view.resolver, view.theme(), &view.images)
+    @assert(view.layout.boxes.count > 100_000)
+    var childCapacity, itemCapacity, lineCapacity: u64
+    for box in view.layout.boxes
+    {
+        childCapacity += box.children.capacity
+        itemCapacity  += box.items.capacity
+        lineCapacity  += box.lines.capacity
+    }
+    let built = allocator.stats()
+    Console.printf("HTML MEMORY built live=% cached=% committed=% styles-cap=% boxes-cap=% child-cap=% item-cap=% line-cap=% width-cap=% nodebox-cap=%\n", built.sizeAlloc, built.sizeCached, built.sizeCommitted, view.layout.styles.capacity, view.layout.boxes.capacity, childCapacity, itemCapacity, lineCapacity, view.layout.widthCache.capacity, view.layout.nodeBox.capacity)
+
+    view.applyLayout()
+    view.placeDocument()
+    @assert(view.layout.documentHeight > 1_000_000)
+
+    discard host.render(view)
+    view.scroll.setScrollPos(0, view.layout.documentHeight / 2)
+    discard host.render(view)
+    @assert(view.painter().nodeAt({480, 340}) != HtmlNoNode)
+    let rendered = allocator.stats()
+    Console.printf("HTML MEMORY rendered live=% cached=% committed=%\n", rendered.sizeAlloc, rendered.sizeCached, rendered.sizeCommitted)
 }
 
 // What a scroll position shows does not depend on how the reader got there.

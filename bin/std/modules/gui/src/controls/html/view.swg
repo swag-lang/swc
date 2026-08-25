@@ -455,11 +455,14 @@ internal impl HtmlView
         }
 
         // A partial rendering is produced at growing intervals, so a long document shows its
-        // beginning quickly without paying for a full pass on every chunk.
-        if .sourceDone or .bytesRead >= .nextRefresh or (.layout.root == HtmlNoNode and .bytesRead > 0)
+        // beginning quickly without paying for a full pass on every chunk. A pending navigation
+        // rebuilds as soon as its parsed target is ready instead of waiting behind that schedule.
+        let fragmentReady = .hasPendingFragment and .elementById(.pendingFragment.toString()) != HtmlNoNode
+        let revealReady   = .hasReveal and .revealOffset < .bytesRead
+        if .sourceDone or .bytesRead >= .nextRefresh or (.layout.root == HtmlNoNode and .bytesRead > 0) or fragmentReady or revealReady
         {
             if !.sourceDone do
-                .nextRefresh = .bytesRead * 2
+                .nextRefresh = .bytesRead * 4
             .rebuild()
             .resolvePending()
         }

@@ -21,6 +21,7 @@ public struct HtmlLayout
 
     defaults:     HtmlStyleDefaults
     styles:       Array'HtmlComputedStyle
+    nodeStyles:   Array'u32
     boxes:        Array'HtmlBox
     pseudoStyles: HashTable'(u64, u32)
     nodeBox:      HashTable'(u32, u32)
@@ -91,7 +92,7 @@ impl HtmlLayout
         var walk = node
         while walk != HtmlNoNode and .document.constNode(walk).kind != .Element do
             walk = .document.constNode(walk).parent
-        return &.styles[walk == HtmlNoNode ? 0 : walk]
+        return &.styles[walk == HtmlNoNode ? 0 : .nodeStyles[walk]]
     }
 
     // Returns the font a style asks for, mapped onto the faces the theme actually carries.
@@ -218,7 +219,9 @@ impl HtmlLayout
         .images   = images
         .defaults = resolver.defaults
         .pool     = resolver.pool
+        resolver.styles.reserve(resolver.styles.count + resolver.pseudos.count + 1)
         .styles   = #move resolver.styles
+        .nodeStyles = #move resolver.nodeStyles
         .boxes.clear()
         .fontCache.clear()
         .listOrdinals.clear()
@@ -270,7 +273,8 @@ impl HtmlLayout
         if child.kind != .Element do
             return
 
-        let style = &.styles[node]
+        let styleIndex = .styleIndexOf(node)
+        let style      = &.styles[styleIndex]
         if style.display == .None do
             return
 
@@ -284,7 +288,7 @@ impl HtmlLayout
         {
             var item: HtmlInlineItem
             item.kind  = .Break
-            item.style = node
+            item.style = styleIndex
             item.node  = node
             pending.add(#move item)
             return
@@ -333,7 +337,7 @@ impl HtmlLayout
             let box = .buildBox(parentBox, node)
             var item: HtmlInlineItem
             item.kind  = .Atomic
-            item.style = node
+            item.style = styleIndex
             item.node  = node
             item.box   = box
             pending.add(#move item)
@@ -350,13 +354,14 @@ impl HtmlLayout
     {
         // The two edge widths are read before anything else runs, because building the content of
         // this element can append generated styles and move the table they were read from.
+        let style     = .styleIndexOf(node)
         let basis     = .viewport.x
-        let leftEdge  = .resolveLength(.styles[node].padding.left, node, basis) + .styles[node].borderLeft.width
-        let rightEdge = .resolveLength(.styles[node].padding.right, node, basis) + .styles[node].borderRight.width
+        let leftEdge  = .resolveLength(.styles[style].padding.left, style, basis) + .styles[style].borderLeft.width
+        let rightEdge = .resolveLength(.styles[style].padding.right, style, basis) + .styles[style].borderRight.width
 
         var open: HtmlInlineItem
         open.kind  = .OpenInline
-        open.style = node
+        open.style = style
         open.node  = node
         open.width = leftEdge
         pending.add(#move open)
@@ -367,7 +372,7 @@ impl HtmlLayout
 
         var close: HtmlInlineItem
         close.kind  = .CloseInline
-        close.style = node
+        close.style = style
         close.node  = node
         close.width = rightEdge
         pending.add(#move close)
@@ -440,8 +445,9 @@ impl HtmlLayout
     // Builds one box and everything it contains.
     private mtd buildBox(parentBox: u32, node: u32)->u32
     {
-        let display = .styles[node].display
-        let box     = .newBox(node, node, HtmlLayout.kindFor(display))
+        let style   = .styleIndexOf(node)
+        let display = .styles[style].display
+        let box     = .newBox(node, style, HtmlLayout.kindFor(display))
         .boxes[box].parent = parentBox
 
         if .document.constNode(node).tag == .Img or .document.constNode(node).tag == .Embed
@@ -538,7 +544,7 @@ impl HtmlLayout
             ordinal     = entry.value
         }
 
-        let style = &.styles[node]
+        let style = &.styles[.styleIndexOf(node)]
         if style.listStyleType == .None do
             return
 
@@ -655,7 +661,7 @@ impl HtmlLayout
         var walk = node
         while walk != HtmlNoNode and .document.constNode(walk).kind != .Element do
             walk = .document.constNode(walk).parent
-        return walk == HtmlNoNode ? 0 : walk
+        return walk == HtmlNoNode ? 0 : .nodeStyles[walk]
     }
 }
 

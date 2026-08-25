@@ -193,9 +193,9 @@ func markdownFixturePath()->String
     for node, index in view.blocks[0].html!.document.nodes where node.tag == .P do
         paragraph = cast(u32) index
     @assert(hasImage)
-    @assert(paragraph != HtmlNoNode and view.blocks[0].html!.layout.styles[paragraph].textAlign == .Center)
-    @assert(imageNode != HtmlNoNode and view.blocks[0].html!.layout.styles[imageNode].width == HtmlLength.pixels(120))
-    @assert(view.blocks[0].html!.layout.styles[imageNode].height == HtmlLength.pixels(120))
+    @assert(paragraph != HtmlNoNode and view.blocks[0].html!.layout.styleOfNode(paragraph).textAlign == .Center)
+    @assert(imageNode != HtmlNoNode and view.blocks[0].html!.layout.styleOfNode(imageNode).width == HtmlLength.pixels(120))
+    @assert(view.blocks[0].html!.layout.styleOfNode(imageNode).height == HtmlLength.pixels(120))
     @assert(view.blocks[1].html!.document.textContent(0) == "Swag")
     @assert(view.blocks[0].wnd.position.height > 0 and view.blocks[1].wnd.position.height > 0)
     Testing.assertContentFits(view)
@@ -254,7 +254,7 @@ func markdownFixturePath()->String
     for node, index in view.blocks[0].html!.document.nodes where node.tag == .Img do
         imageNode = cast(u32) index
     @assert(imageNode != HtmlNoNode)
-    @assert(view.blocks[0].html!.layout.styles[imageNode].width.kind == .Percent and view.blocks[0].html!.layout.styles[imageNode].width.value == 0.8)
+    @assert(view.blocks[0].html!.layout.styleOfNode(imageNode).width.kind == .Percent and view.blocks[0].html!.layout.styleOfNode(imageNode).width.value == 0.8)
 }
 
 // Ordered markers renumber from the first written value, per nesting level.

@@ -157,6 +157,96 @@ public struct HtmlMatchContext
 
     target:  String
     mediaOn: Array'bool
+
+    elementIndex:    Array'u32
+    elementCount:    Array'u32
+    typeIndex:       Array'u32
+    typeCount:       Array'u32
+    previousElement: Array'u32
+    numElements:     u64
+}
+
+impl HtmlMatchContext
+{
+    // Records sibling relationships once so structural pseudo-classes do not repeatedly scan a
+    // large parent's children. Stored previous-element indices are offset by one, leaving zero as
+    // the sentinel for nodes without a previous element.
+    mtd prepare(document: *HtmlDocument)
+    {
+        .document = document
+        .elementIndex.clear()
+        .elementCount.clear()
+        .typeIndex.clear()
+        .typeCount.clear()
+        .previousElement.clear()
+        .numElements = 0
+        .elementIndex.resize(document.nodes.count)
+        .elementCount.resize(document.nodes.count)
+        .typeIndex.resize(document.nodes.count)
+        .typeCount.resize(document.nodes.count)
+        .previousElement.resize(document.nodes.count)
+
+        var totals: HashTable'(String, u32)
+        var indices: HashTable'(String, u32)
+        for parentIndex in document.nodes.count
+        {
+            let children = document.constNode(cast(u32) parentIndex).children
+            if children.isEmpty() do
+                continue
+
+            totals.clear()
+            var count = 0'u32
+            var previous = HtmlNoNode
+            for child in children
+            {
+                let node = document.constNode(child)
+                if node.kind != .Element do
+                    continue
+
+                count += 1
+                .numElements += 1
+                .elementIndex[child]    = count
+                .previousElement[child] = previous == HtmlNoNode ? 0 : previous + 1
+                previous                = child
+                totals.findOrAdd(node.name).value += 1
+            }
+
+            indices.clear()
+            for child in children
+            {
+                let node = document.constNode(child)
+                if node.kind != .Element do
+                    continue
+
+                .elementCount[child] = count
+                let index            = indices.findOrAdd(node.name)
+                index.value += 1
+                .typeIndex[child] = index.value
+                .typeCount[child] = totals.tryFind(node.name)!.value
+            }
+        }
+    }
+
+    mtd const elementPosition(element: u32)->{ index: u32, count: u32 }
+    {
+        if element >= @countof(.elementIndex) or !.elementIndex[element] do
+            return {1, 1}
+        return {.elementIndex[element], .elementCount[element]}
+    }
+
+    mtd const typePosition(element: u32)->{ index: u32, count: u32 }
+    {
+        if element >= @countof(.typeIndex) or !.typeIndex[element] do
+            return {1, 1}
+        return {.typeIndex[element], .typeCount[element]}
+    }
+
+    mtd const previous(element: u32)->u32
+    {
+        if element >= @countof(.previousElement) or !.previousElement[element] do
+            return HtmlNoNode
+        return .previousElement[element] - 1
+    }
 }
 
 impl HtmlSelectorPart
@@ -341,7 +431,7 @@ impl HtmlStyleSheet
         if (pseudo & structural) == .None do
             return true
 
-        let position = document.elementPosition(element)
+        let position = context.elementPosition(element)
         if pseudo.has(.FirstChild) and position.index != 1 do
             return false
         if pseudo.has(.LastChild) and position.index != position.count do
@@ -353,7 +443,7 @@ impl HtmlStyleSheet
 
         if pseudo.has(.FirstOfType) or pseudo.has(.LastOfType) or pseudo.has(.NthOfType)
         {
-            let ofType = .typePosition(element, document)
+            let ofType = context.typePosition(element)
             if pseudo.has(.FirstOfType) and ofType.index != 1 do
                 return false
             if pseudo.has(.LastOfType) and ofType.index != ofType.count do
@@ -376,31 +466,6 @@ impl HtmlStyleSheet
         if a > 0 do
             return delta >= 0 and delta % a == 0
         return delta <= 0 and delta % a == 0
-    }
-
-    private mtd const typePosition(element: u32, document: const *HtmlDocument)->{ index: u32, count: u32 }
-    {
-        var result: retval
-        let node   = document.constNode(element)
-        let parent = node.parent
-        if parent == HtmlNoNode do
-            return {1, 1}
-
-        // Unknown elements share one interned tag, so they only count as the same type when
-        // their names agree too.
-        for value in document.constNode(parent).children
-        {
-            let sibling = document.constNode(value)
-            if sibling.kind != .Element or sibling.tag != node.tag do
-                continue
-            if node.tag == .Unknown and sibling.name != node.name do
-                continue
-            result.count += 1
-            if value == element do
-                result.index = result.count
-        }
-
-        return result
     }
 
     // Reports whether a whole selector chain describes an element.
@@ -447,42 +512,24 @@ impl HtmlStyleSheet
             return false
 
         case .NextSibling:
-            let sibling = .previousElement(element, document)
+            let sibling = context.previous(element)
             if sibling == HtmlNoNode or !.matchesPart(previous, sibling, context) do
                 return false
             return .matchesAncestors(rule, partIndex - 1, sibling, context)
 
         case .LaterSibling:
-            var sibling = .previousElement(element, document)
+            var sibling = context.previous(element)
             while sibling != HtmlNoNode
             {
                 if .matchesPart(previous, sibling, context) and .matchesAncestors(rule, partIndex - 1, sibling, context) do
                     return true
-                sibling = .previousElement(sibling, document)
+                sibling = context.previous(sibling)
             }
 
             return false
         }
 
         return false
-    }
-
-    private mtd const previousElement(element: u32, document: const *HtmlDocument)->u32
-    {
-        let parent = document.constNode(element).parent
-        if parent == HtmlNoNode do
-            return HtmlNoNode
-
-        var previous = HtmlNoNode
-        for value in document.constNode(parent).children
-        {
-            if value == element do
-                return previous
-            if document.constNode(value).kind == .Element do
-                previous = value
-        }
-
-        return HtmlNoNode
     }
 
     // Answers every media query the sheet carries, in rule-index order.

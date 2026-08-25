@@ -50,6 +50,52 @@ struct HtmlRegionScrollBar
     thumb: Math.Rectangle
 }
 
+// Returns the inline items carried by the lines nearest a vertical band.
+//
+// Lines are ordered by their laid-out top edge. Keeping one neighbour on either side covers the
+// small visual escape of superscript and subscript runs while a code listing with hundreds of
+// thousands of items still visits only the few lines a viewport can show.
+func htmlLineItemRange(box: const *HtmlBox, top, bottom: f32)->{ first: u64, last: u64 }
+{
+    var result: retval
+    if box.lines.isEmpty()
+    {
+        result.last = box.items.count
+        return result
+    }
+
+    var low  = 0'u64
+    var high = box.lines.count
+    while low < high
+    {
+        let middle = low + (high - low) / 2
+        let line   = &box.lines[middle]
+        if line.top + line.height <= top do
+            low = middle + 1
+        else do
+            high = middle
+    }
+
+    let firstLine = low > 0 ? low - 1 : 0
+    low  = 0
+    high = box.lines.count
+    while low < high
+    {
+        let middle = low + (high - low) / 2
+        if box.lines[middle].top <= bottom do
+            low = middle + 1
+        else do
+            high = middle
+    }
+
+    var lastLine = low
+    if lastLine < box.lines.count do
+        lastLine += 1
+    result.first = box.lines[firstLine].first
+    result.last  = box.lines[lastLine - 1].last
+    return result
+}
+
 impl HtmlPainter
 {
     private func withAlpha(color: Color, alpha: f32)->Color
@@ -377,7 +423,8 @@ impl HtmlPainter
     private mtd paintItems(box: u32, offset: Math.Point, alpha: f32)
     {
         let target = .layout.constBox(box)
-        for index in target.items.count
+        let range  = htmlLineItemRange(target, .visible.y - offset.y, .visible.bottom() - offset.y)
+        for index in range.first until range.last
         {
             let item = &target.items[index]
             if !item.visible do
@@ -949,7 +996,11 @@ impl HtmlPainter
         offset.y += .stickyOffset(box, parentOffset)
 
         var rect = .layout.constBox(box).rect
+        var bounds = .layout.constBox(box).paintBounds
         rect.offset(offset.x, offset.y)
+        bounds.offset(offset.x, offset.y)
+        if !bounds.contains(point) do
+            return HtmlNoNode
 
         var inner = offset
         if style.overflowX != .Visible or style.overflowY != .Visible
@@ -964,7 +1015,8 @@ impl HtmlPainter
             return child
 
         let target = .layout.constBox(box)
-        for index in target.items.count
+        let range  = htmlLineItemRange(target, point.y - inner.y, point.y - inner.y)
+        for index in range.first until range.last
         {
             let item = &target.items[index]
             if !item.visible do
@@ -1121,7 +1173,8 @@ impl HtmlPainter
         }
 
         let target = .layout.constBox(box)
-        for index in target.items.count
+        let range  = htmlLineItemRange(target, point.y - inner.y, point.y - inner.y)
+        for index in range.first until range.last
         {
             let item = &target.items[index]
             if !item.visible do

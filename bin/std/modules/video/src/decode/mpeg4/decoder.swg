@@ -57,12 +57,20 @@ struct Decoder
     quant:       u32
     packetStart: u64                      // The first macroblock of the packet being read.
     anchors:     u32                      // How many anchors have been decoded, saturating at two.
-    oldTime:     s64                      // Container timestamps of the two anchors and this plane.
-    newTime:     s64
-    planeTime:   s64
+    planeTime:   s64                      // Container timestamp of the plane being decoded.
+    timeBase:    s64                      // The stream clock, clause 6.3.5, in time-increment units.
+    lastTimeBase: s64
+    anchorTime:  s64                      // Stream time of the newer anchor.
+    anchorSpan:  s64                      // Stream time between the two anchors.
+    planeSpan:   s64                      // Stream time from the older anchor to this plane.
     forward:     Vector                   // The running vector predictors of a bidirectional plane.
     backward:    Vector
     blend:       [64] u8
+    sampleAt:    u64                      // Where in the access unit the next plane is looked for.
+    planesInSample: u32
+    pictureTime: s64                      // Stream time of the picture just produced.
+    pictureKind: u32
+    packed:      bool                     // The stream stores a bidirectional plane behind its anchor.
     showsCurrent: bool                    // The last plane decoded is in `current` rather than in an anchor.
 }
 
@@ -76,13 +84,13 @@ impl Decoder
             fail InvalidFormatError{"MPEG-4 decoder configuration holds no video object layer"}
     }
 
-    // Walks the start codes of one byte run, reading what each introduces.
+    // Walks the start codes of one byte run from `from`, reading what each introduces.
     //
     // When `header` is given, a video object plane stops the walk and its header is read into it;
-    // the plane payload starts where the reader was left.
-    mtd readStartCodes(bytes: const [..] u8, header: #null *PlaneHeader)->u64 fail
+    // the answer is the bit its payload starts at, or -1 when the run holds no further plane.
+    mtd readStartCodes(bytes: const [..] u8, header: #null *PlaneHeader, from = 0'u64)->s64 fail
     {
-        var at = nextStartCode(bytes, 0)
+        var at = nextStartCode(bytes, from)
         while at + 4 <= @countof(bytes)
         {
             let code = cast(u32) bytes[at + 3]
@@ -90,12 +98,12 @@ impl Decoder
             if code == CodeVop
             {
                 if !header do
-                    return body
+                    return cast(s64) (body * 8)
                 if !.layer.configured do
                     fail InvalidFormatError{"MPEG-4 plane arrived before its layer"}
                 var reader = BitReader.create(bytes[body until @countof(bytes)])
                 try readPlaneHeader(&.layer, &reader, header)
-                return body * 8 + reader.bitPos
+                return cast(s64) (body * 8 + reader.bitPos)
             }
 
             if code >= 0x20 and code <= 0x2F
@@ -103,54 +111,125 @@ impl Decoder
                 var reader = BitReader.create(bytes[body until @countof(bytes)])
                 try .layer.readVideoObjectLayer(&reader)
             }
+            elif code == CodeUserData do
+                .readUserData(bytes, body)
 
             at = nextStartCode(bytes, body)
         }
 
-        return @countof(bytes) * 8
+        return -1
     }
 
-    // Decodes one access unit and returns whether a picture came out of it.
+    // Reads what an encoder wrote about itself, clause 6.2.2.
     //
-    // A plane the stream marks as not coded repeats the one before it, which is what a stream
-    // says when nothing moved.
-    mtd decodeSample(bytes: const [..] u8, presentationTime: s64)->bool fail
+    // A stream muxed for a container that states no decoding order stores a bidirectional plane
+    // behind the plane it refers forward to, and pads the sample it would have taken with a plane
+    // that codes nothing. An encoder that does that ends its build string with a `p`.
+    mtd readUserData(bytes: const [..] u8, body: u64)
     {
-        .planeTime = presentationTime
-        var header: PlaneHeader
-        let bitAt = try .readStartCodes(bytes, &header)
-        if !.layer.configured do
-            fail InvalidFormatError{"MPEG-4 sample arrived before its video object layer"}
+        let end = nextStartCode(bytes, body)
+        if end <= body + 4 or end > @countof(bytes) do
+            return
+        if bytes[body] != 'D' or bytes[body + 1] != 'i' or bytes[body + 2] != 'v' or bytes[body + 3] != 'X' do
+            return
+        if bytes[end - 1] == 'p' do
+            .packed = true
+    }
 
-        .allocate()
-        if !header.coded
+    // Starts reading one access unit.
+    mtd beginSample(presentationTime: s64)
+    {
+        .sampleAt       = 0
+        .planesInSample = 0
+        .planeTime      = presentationTime
+    }
+
+    // Reads planes of the access unit until one produces a picture, and says whether one did.
+    //
+    // A sample can carry more than one plane, so a caller asks again, handing the same bytes back
+    // each time, until the answer is no.
+    mtd nextPicture(bytes: const [..] u8)->bool fail
+    {
+        while true
         {
-            // A plane that codes nothing repeats the anchor before it.
-            return .anchors != 0
-        }
+            var header: PlaneHeader
+            let bitAt = try .readStartCodes(bytes, &header, .sampleAt)
+            if bitAt < 0 do
+                return false
+            if !.layer.configured do
+                fail InvalidFormatError{"MPEG-4 sample arrived before its video object layer"}
 
-        if header.codingType == VopSprite do
-            fail UnsupportedFormatError{"video decoder does not read MPEG-4 sprite planes"}
-        if header.codingType == VopPredicted and !.anchors do
-            return false
-        if header.codingType == VopBidirectional and .anchors < 2 do
-            return false
+            .sampleAt = (cast(u64) bitAt + 7) / 8
+            .allocate()
+            let time = .readClock(&header)
 
-        var reader = BitReader.create(bytes)
-        reader.bitPos = bitAt
-        try .decodePlane(&reader, &header)
+            if !header.coded
+            {
+                // A plane that codes nothing repeats the one before it, which is what a stream
+                // says when nothing moved. A packed stream writes one as padding, where it stands
+                // for a picture another sample already carried.
+                if .packed or !.anchors do
+                    continue
+                .pictureTime  = time
+                .pictureKind  = 9
+                .showsCurrent = false
+                return true
+            }
 
-        if header.codingType == VopBidirectional
-        {
-            // A bidirectional plane is shown and forgotten: no plane refers back to it.
-            .showsCurrent = true
+            if header.codingType == VopSprite do
+                fail UnsupportedFormatError{"video decoder does not read MPEG-4 sprite planes"}
+            if header.codingType == VopPredicted and !.anchors do
+                continue
+            if header.codingType == VopBidirectional and .anchors < 2 do
+                continue
+
+            var reader = BitReader.create(bytes)
+            reader.bitPos = cast(u64) bitAt
+            try .decodePlane(&reader, &header)
+            .sampleAt    = (reader.bitPos + 7) / 8
+            .pictureTime = time
+            .pictureKind = header.codingType
+
+            // Two planes in one sample is what packing looks like from the inside.
+            .planesInSample += 1
+            if .planesInSample > 1 do
+                .packed = true
+
+            if header.codingType == VopBidirectional
+            {
+                // A bidirectional plane is shown and forgotten: no plane refers back to it.
+                .showsCurrent = true
+                return true
+            }
+
+            // An intra or predicted plane becomes the newer anchor, and the newer becomes the older.
+            .rotateAnchors()
+            .showsCurrent = false
             return true
         }
+    }
 
-        // An intra or predicted plane becomes the newer anchor, and the newer becomes the older.
-        .rotateAnchors()
-        .showsCurrent = false
-        return true
+    // Advances the stream clock and answers the time of the plane about to be read, clause 6.3.5.
+    //
+    // The direct mode divides by this clock, and the display order follows it: a container
+    // timestamp is close but does not divide the same way, and a container muxed from a format
+    // that states no decoding order does not order its samples by it at all.
+    mtd readClock(header: const *PlaneHeader)->s64
+    {
+        let resolution = cast(s64) .layer.timeResolution
+        if header.codingType == VopBidirectional
+        {
+            let time   = (.lastTimeBase + cast(s64) header.moduloTime) * resolution + cast(s64) header.timeIncrement
+            .planeSpan = .anchorSpan - (.anchorTime - time)
+            return time
+        }
+
+        .lastTimeBase = .timeBase
+        .timeBase    += cast(s64) header.moduloTime
+        let time      = .timeBase * resolution + cast(s64) header.timeIncrement
+        .anchorSpan   = time - .anchorTime
+        .anchorTime   = time
+        return time
     }
 
     // Moves the picture just decoded into the anchor pair.
@@ -163,8 +242,6 @@ impl Decoder
 
         for index in .macroblocks.count do
             .coLocated[index] = .macroblocks[index]
-        .oldTime = .newTime
-        .newTime = .planeTime
         .anchors = Math.min(.anchors + 1, 2'u32)
     }
 
@@ -189,7 +266,14 @@ impl Decoder
     // Forgets every reference, which is what a seek to a random access point needs.
     mtd reset()
     {
-        .anchors = 0
+        .anchors      = 0
+        .timeBase     = 0
+        .lastTimeBase = 0
+        .anchorTime   = 0
+        .anchorSpan   = 0
+        .planeSpan    = 0
+        .sampleAt     = 0
+        .planesInSample = 0
     }
 
     // The state of one block of one macroblock, or the default when it is outside the picture.
@@ -247,8 +331,6 @@ impl Decoder
         // Motion compensation reads through the padding rather than clamping, so the padding has
         // to hold what a clamp would have produced.
         .current.extendEdges()
-
-        let probe = .current.lumaOrigin()
     }
 
     // Reads one bit of the reader without moving it.
@@ -449,6 +531,22 @@ impl Decoder
         state[] = MacroblockState{}
         .clearBlockState(mbIndex)
 
+        // Each direction predicts from the macroblock before it, and a row starts over: the
+        // macroblock at the end of a row is no neighbour of the one that opens the next.
+        if !mbX
+        {
+            .forward  = Vector{}
+            .backward = Vector{}
+        }
+
+        // A macroblock the anchor ahead did not code is not coded here either, and the stream
+        // spends no bit on it: it takes that macroblock's motion, which was none.
+        if !.coLocated[mbIndex].coded
+        {
+            .predictDirect(mbX, mbY, Vector{}, header.rounding)
+            return
+        }
+
         var kind    = TypeDirect
         var pattern = 0'u32
         var delta:  Vector
@@ -515,6 +613,7 @@ impl Decoder
             }
         }
 
+
         if kind == TypeDirect do
             .predictDirect(mbX, mbY, delta, header.rounding)
         else do
@@ -523,6 +622,7 @@ impl Decoder
         // A bidirectional macroblock is never intra, so its blocks carry a residual or nothing.
         for block in 6'u64 where (pattern & (32 >> block)) != 0 do
             try .decodeBlock(reader, header, mbX, mbY, block, false, false, true)
+
 
         if reader.overran() do
             fail InvalidFormatError{"MPEG-4 plane is truncated"}
@@ -552,8 +652,8 @@ impl Decoder
     {
         let mbIndex = cast(u64) mbY * cast(u64) .layer.mbWidth + cast(u64) mbX
         let source  = &.coLocated[mbIndex]
-        let trd     = .newTime - .oldTime
-        let trb     = .planeTime - .oldTime
+        let trd     = .anchorSpan
+        let trb     = .planeSpan
         if trd <= 0 do
             return
 

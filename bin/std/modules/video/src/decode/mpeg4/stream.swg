@@ -1,5 +1,5 @@
 //! Format: MPEG-4 Part 2 (Simple and Advanced Simple Profile) decoder component.
-//! Supported: Rectangular 8-bit 4:2:0 video object layers: I, P and B video object planes, half-sample motion, four motion vectors a macroblock, unrestricted vectors, intra AC/DC prediction, and both the H.263 and MPEG quantisers.
+//! Supported: Rectangular 8-bit 4:2:0 video object layers: I, P and B video object planes, half-sample motion, four motion vectors a macroblock, unrestricted vectors, intra AC/DC prediction, both the H.263 and MPEG quantisers, and packed bitstreams.
 //! Not supported: Quarter-sample motion, global motion compensation, interlacing, data partitioning, reversible codes, sprites, and arbitrary object shapes.
 //! Role: This file owns an indexed track: display order, seeking, and decoding on demand.
 //
@@ -8,19 +8,38 @@
 
 using Core, Core.Errors, Pixel
 
+// One picture decoded and waiting for its turn to be shown.
+private struct Picture
+{
+    time:   s64             // Stream time, which is the order pictures are shown in.
+    kind:   u32
+    planes: PlanarFrame
+}
+
+// How many pictures can be held back while their order is settled.
+//
+// A stream refers forward once and no further: every bidirectional plane follows the plane it
+// refers to, so one picture held back is enough to know which comes first. One sample can carry
+// two of them, and the answer is emitted after the fill, so four slots cover the widest moment.
+private const HeldPictures = 4'u64
+
 // Drives an indexed MPEG-4 Part 2 track independently of its container.
 //
-// A stream with bidirectional planes stores them after the plane they refer forward to, so the
-// order a container hands samples over is not the order they are shown in. The container states
-// when each is shown, and that is what the display order is built from.
+// The order a container hands samples over is not the order they are shown in, and a container
+// muxed from a format that states no decoding order does not even state the display times: it
+// numbers its samples as they are stored. The stream states its own clock, so that is what the
+// display order is taken from, and pictures are held back only until their turn is known.
 #[Swag.NoCopy]
 struct Mpeg4Stream
 {
     decoder:      Decoder
     config:       Array'u8
     frames:       Array'SampleEntry     // Samples in decoding order.
-    sampleAtRank: Array'u32             // Decoding-order sample of each display rank.
+    sampleAtRank: Array'u32             // Sample of each display rank, by container time.
     payload:      Array'u8
+    queue:        [HeldPictures] Picture
+    queued:       u64
+    emitRank:     u64                   // Display rank of the next picture the queue gives up.
     nextRank:     u64                   // Display rank the next call returns.
     nextDecode:   u64                   // Decoding-order sample the decoder is about to read.
     started:      bool
@@ -30,7 +49,7 @@ struct Mpeg4Stream
 
 impl Mpeg4Stream
 {
-    // Configures the decoder from a container's decoder configuration and installs the samples.
+    // Configures the decoder from a container's setup headers and installs the samples.
     mtd open(config: const [..] u8, frames: Array'SampleEntry) fail
     {
         if !@countof(config) do
@@ -73,6 +92,7 @@ impl Mpeg4Stream
         .nextRank   = 0
         .nextDecode = 0
         .started    = false
+        .queued     = 0
         .decoder.reset()
     }
 
@@ -123,11 +143,56 @@ impl Mpeg4Stream
             return
         .nextRank = rank
         .started  = false
-        .decoder.reset()
     }
 
     mtd releasePending()
     {
+    }
+
+    // Reads samples until enough pictures are held to know which of them comes first.
+    mtd fill(source: *Source) fail
+    {
+        while .queued < 2 and .nextDecode < .frames.count
+        {
+            let entry = .frames[.nextDecode]
+            .payload.resize(entry.size)
+            try source.seek(entry.offset)
+            try source.readExact(.payload.toSlice())
+            .nextDecode += 1
+
+            .decoder.beginSample(entry.presentationTime)
+            while try .decoder.nextPicture(.payload.toSlice())
+            {
+                if .queued >= HeldPictures do
+                    break
+                .decoder.reference().writePlanar(&.queue[.queued].planes)
+                .queue[.queued].time = .decoder.pictureTime
+                .queue[.queued].kind = .decoder.pictureKind
+                .queued += 1
+            }
+        }
+    }
+
+    // Which held picture is shown first.
+    mtd const earliest()->u64
+    {
+        var at = 0'u64
+        for index in .queued where .queue[index].time < .queue[at].time do
+            at = index
+        return at
+    }
+
+    // Gives up one held picture, either to the caller or to the floor.
+    mtd release(at: u64, target: #null *PlanarFrame)
+    {
+        if target do
+            @print("emit ", .emitRank, " kind ", .queue[at].kind, " time ", .queue[at].time, "\n")
+        if target do
+            target[] = #move .queue[at].planes
+        .queued -= 1
+        if at != .queued do
+            .queue[at] = #move .queue[.queued]
+        .emitRank += 1
     }
 
     // Decodes forward until the picture of the current rank is reconstructed.
@@ -136,28 +201,34 @@ impl Mpeg4Stream
         if .nextRank >= .sampleAtRank.count do
             fail InvalidFormatError{"MPEG-4 stream has no picture at the requested position"}
 
-        let wanted = cast(u64) .sampleAtRank[.nextRank]
-
         // A picture that is not a clean decode point needs everything back to the last one.
-        if !.started or wanted < .nextDecode
+        if !.started or .emitRank > .nextRank
         {
             .decoder.reset()
-            .nextDecode = cast(u64) .sampleAtRank[.syncRankAt(.nextRank)]
+            .queued     = 0
+            .emitRank   = .syncRankAt(.nextRank)
+            .nextDecode = cast(u64) .sampleAtRank[.emitRank]
             .started    = true
         }
 
-        while .nextDecode <= wanted
+        while true
         {
-            let entry = .frames[.nextDecode]
-            .payload.resize(entry.size)
-            try source.seek(entry.offset)
-            try source.readExact(.payload.toSlice())
-            discard try .decoder.decodeSample(.payload.toSlice(), entry.presentationTime)
-            .nextDecode += 1
-        }
+            try .fill(source)
+            if !.queued do
+                fail InvalidFormatError{"MPEG-4 stream ends before the picture asked for"}
 
-        .decoder.reference().writePlanar(target)
-        .nextRank += 1
+            let at = .earliest()
+            if .emitRank == .nextRank
+            {
+                .release(at, target)
+                .nextRank += 1
+                return
+            }
+
+            // A picture shown before the one asked for is decoded for what it anchors, not for
+            // itself.
+            .release(at, null)
+        }
     }
 
     // Decodes the picture of the current rank and converts it to packed colour.

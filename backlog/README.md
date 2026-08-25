@@ -87,7 +87,7 @@ another backlog entry, in a code comment. A title gets rewritten, a position mov
 changes file; the identifier does not.
 
 Next identifier: F-198
-Next identifier: T-566
+Next identifier: T-567
 
 - Take the next identifier of the matching kind from the lines above, then advance that line. Each
   is a counter, not an entry count: it keeps rising as entries are deleted. The `F` counter is

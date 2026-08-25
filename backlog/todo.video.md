@@ -3,7 +3,7 @@
 The module reads and writes video as a stream: a codec registered against `Video.IDecoder` and
 `Video.IEncoder`, selected by extension, reading a `Video.Source` and writing a `Video.Sink`.
 Seven picture codecs ship — YUV4MPEG2, AVI, ISO-BMFF with Motion JPEG, ISO-BMFF with H.264 or
-H.265, and Matroska with H.264 or H.265. File-backed ISO-BMFF and Matroska also expose streamed
+H.265, and Matroska with H.264, H.265, or MPEG-4 Part 2. File-backed ISO-BMFF and Matroska also expose streamed
 AAC-LC tracks to std/audio, and Matroska adds AC-3, E-AC-3, FLAC and Layer III. Encoded payloads stay on disk;
 readers retain compact per-sample indexes plus one picture, the reference frames prediction needs,
 and a bounded audio queue.
@@ -199,33 +199,52 @@ is the layout it does not read yet.
   same machine — that figure decides whether this entry is about speed or about formats.
 - Related: T-504
 
-### T-565 — MPEG-4 Part 2 is the last picture codec a real library still needs
+### T-565 — MPEG-4 Part 2 in Matroska is delivered; the AVI files are not
 
+- Delivered 2026-08-25. The decoder reads I, P and B video object planes, half-sample motion, four
+  motion vectors a macroblock, unrestricted vectors, intra AC/DC prediction, video packets, and
+  both the H.263 and MPEG quantisers. Matroska reads it under `V_MPEG4/ISO/ASP` and under
+  `V_MS/VFW/FOURCC`, where a bitmap header names the codec by four characters.
+- Measured against FFmpeg: the two 96x64 fixtures decode to a mean absolute difference of 0.069 and
+  0.028 with no sample off by more than 2, and all seventeen MPEG-4 Part 2 Matroska files of the
+  library measured below decode their first forty pictures at a mean of at most 0.053 with no
+  sample off by more than 3 — six of them bit for bit. What remains is the inverse transform, which
+  clause A.1 does not state bit-exactly, so two conforming decoders drift along a chain of
+  predicted pictures. One 720x272 file was checked to 120 pictures: mean 0.045, worst 4.
+- The tables came from `OxideAV/oxideav-mpeg4video` under the MIT licence, checked entry for entry
+  as `bin/THIRDPARTY.md` records. Tables B.19 to B.22, which bound a coefficient's level and run,
+  were not copied at all: they are derivable from the coefficient tables, and a test rebuilds all
+  four and requires them to agree, which corroborates the coefficient tables independently.
+- Two things a real file needed that the specification alone does not lead to, both found by
+  decoding one and comparing every sample:
+  - A stream muxed from a format that states no decoding order **packs**: one sample carries a
+    predicted plane and the bidirectional plane shown before it, and a plane that codes nothing
+    pads the sample that plane would have taken. Display order therefore has to come from the clock
+    the stream states, not from container timestamps, which are stored in decoding order there.
+  - In a bidirectional plane the forward and backward vector predictors start over **at every row
+    of macroblocks**, not only at the plane and at each video packet. Getting this wrong costs no
+    bits, so nothing desynchronises and the pictures are merely, quietly, slightly wrong.
+- What remains, and it is a container gap rather than a codec one: six of the twenty-three files
+  are AVI, and the AVI reader decodes Motion JPEG and uncompressed frames alone — T-566.
+- Also still open: a container whose picture codec is unsupported could expose its sound tracks
+  instead of failing to open. That is what the one RealVideo file and the twenty-two DTS tracks
+  need.
 - Measured, not guessed (2026-08-25, 592 films of one personal library, header probe only):
   H.264 531, H.265 37, **MPEG-4 Part 2 23**, RealVideo 1. On the sound side, AC-3 659, AAC 296,
-  E-AC-3 53, DTS 22, Layer III 21, FLAC 2, Vorbis 2, TrueHD 2. Everything but the twenty-three
-  MPEG-4 Part 2 files and the one RealVideo file now opens.
-- Consequence: those twenty-three are wholly unreadable, sound included, because a Matroska or AVI
-  file with no picture track this module decodes fails to open at all. The message is correct —
-  `video decoder does not support Matroska codec 'V_MPEG4/ISO/ASP'` — and the file is still lost.
-- What those files actually need, from their own video object layer headers, all twenty-three
-  parsed: rectangular shape, 8-bit 4:2:0, **no quarter-sample motion, no interlacing, no data
-  partitioning** in any of them; twenty-two carry version 1 syntax and one version 2; seven use the
-  MPEG quantizer and the rest the H.263 one; one file enables global motion compensation and
-  overlapped block compensation. So the target is not Advanced Simple Profile in full: it is
-  I, P and B video object planes with half-sample motion, four motion vectors a macroblock,
-  unrestricted vectors, intra AC/DC prediction, and both quantizers. That is the subset every
-  DivX and Xvid encoder of that era produced.
-- What has to be settled first, exactly as it was for Layer III: the variable length code tables of
-  ISO/IEC 14496-2 — macroblock type, coded block pattern, motion vector, and the two coefficient
-  tables — have to come from somewhere that can be redistributed. Xvid and FFmpeg are both
-  copyleft, so neither is a source here. One candidate exists and is worth checking before
-  anything else is written: `OxideAV/oxideav-mpeg4video`, a pure-Rust Part 2 codec under the MIT
-  licence. Recover the tables from it and from one other independent implementation, require the
-  two to agree entry for entry, and check every table is a complete prefix code — that is what was
-  done for Layer III, and `bin/THIRDPARTY.md` records how. Without a second source the tables
-  should not be called normative.
-- Also worth doing whatever happens to this entry: a container whose picture codec is unsupported
-  could still expose its sound tracks instead of failing to open. Twenty-two DTS tracks aside, the
-  twenty-three files above all carry AC-3 this module decodes.
-- Related: T-562
+  E-AC-3 53, DTS 22, Layer III 21, FLAC 2, Vorbis 2, TrueHD 2.
+- Related: T-562, T-566
+
+### T-566 — AVI reads no MPEG-4 Part 2, so six files of the library stay shut
+
+- The decoder is there and Matroska drives it; AVI does not. Its reader accepts Motion JPEG and
+  uncompressed frames alone, so a file whose stream header names `XVID` or `DX50` fails to open,
+  sound included.
+- Six of the twenty-three MPEG-4 Part 2 files measured in T-565 are AVI, and all six state their
+  codec exactly the way the Video for Windows tracks of the seventeen Matroska ones do: a bitmap
+  header whose compression field holds four characters. The mapping from those four characters to
+  a picture codec already exists, in `matroska.swg`, and wants to be shared rather than repeated.
+- Two things AVI will need that Matroska did not: the setup headers are always inside the stream
+  there, never in the container, so the geometry has to be answered from the first sample or from
+  the stream header; and packing is the norm rather than the exception, which the decoder already
+  reads but which makes the picture count and the frame index disagree unless the padding planes
+  are counted the way T-565 counts them.

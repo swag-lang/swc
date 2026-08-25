@@ -42,8 +42,12 @@ Four codecs ship in the box:
   Motion JPEG, and exposes AAC-LC mono/stereo audio. It expands compact sample tables into direct
   packet offsets while payloads remain in the file. Exact composition timestamps are retained for
   variable-rate playback and coded display reordering.
-- Matroska (`.mkv`) reads H.264 and H.265 pictures and exposes every AAC-LC, AC-3, independent
-  E-AC-3, and FLAC audio track with up to eight channels. Matroska `CodecDelay` is removed from the audible timeline.
+- Matroska (`.mkv`) reads H.264, H.265, and MPEG-4 Part 2 pictures and exposes every AAC-LC, AC-3,
+  independent E-AC-3, FLAC, and MPEG Layer III audio track with up to eight channels. A picture
+  track remuxed from a legacy file is read as well: such a track names its codec through a Video
+  for Windows header, states its setup headers inside the stream rather than in the container, and
+  may store a bidirectional plane behind the plane it refers forward to. Display order is then
+  taken from the clock the stream states, not from the order the container hands samples over. Matroska `CodecDelay` is removed from the audible timeline.
   Opening reads only seek, track, and cue metadata. Decoding advances one foreground demux cursor
   through complete cluster windows as playback reaches them; random access restarts it at the
   preceding video cue and reconstructs the coded prediction through the requested picture. No

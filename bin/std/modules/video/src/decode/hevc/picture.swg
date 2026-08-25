@@ -575,6 +575,11 @@ impl Decoder
         worker.sliceAddrRs = .sliceAddrRs
         worker.sliceIndex  = .sliceIndex
 
+        // Motion vector scaling states its distances against the order count of the picture being
+        // decoded, clause 8.5.3.2.8. A row decoder that does not carry that count scales every
+        // temporal and spatial candidate against zero, and predicts from the wrong place.
+        worker.pocValue = .pocValue
+
         worker.zScan.buffer = .zScan.buffer
         worker.zScan.count  = .zScan.count
         worker.ctbRsToTs.buffer = .ctbRsToTs.buffer

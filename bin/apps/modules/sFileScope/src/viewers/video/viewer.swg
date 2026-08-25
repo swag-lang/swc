@@ -291,6 +291,7 @@ internal struct VideoViewer
     audioClockLast: f64 = -1
 
     awaitingFrame:        bool
+    waitOverlayPending:   bool     // A user-selected position makes the previous picture misleading.
     anchorPending:        bool     // The next published picture re-anchors the playback clock on itself.
     hasFrame:             bool
     resumeAudioAfterSeek: bool
@@ -698,24 +699,30 @@ internal impl VideoViewer
     // A reposition that is still waiting for its own picture is not repeated: a starved queue
     // asks for the same sync frame on every tick, and restarting the decoder each time would
     // never let it fill.
-    mtd repositionTo(index: u64)
+    mtd repositionTo(index: u64, showWaitOverlay = true)
     {
         var notify: bool
         {
             Sync.scopedLock(&.queueLock)
-            if .anchorPending and .produceFrom == index and !.hasFailure do
-                return
-
-            notify = .hasFrame and !.awaitingFrame
-            for slot in .ready do
-                .freeSlots.add(slot)
-            .ready.clear()
-            .nextDecode    = index
-            .produceFrom   = index
-            .generation    += 1
-            .hasFailure    = false
-            .awaitingFrame = true
-            .anchorPending = true
+            if .anchorPending and .produceFrom == index and !.hasFailure
+            {
+                notify              = showWaitOverlay and !.waitOverlayPending
+                .waitOverlayPending = .waitOverlayPending or showWaitOverlay
+            }
+            else
+            {
+                notify = .hasFrame and !.awaitingFrame
+                for slot in .ready do
+                    .freeSlots.add(slot)
+                .ready.clear()
+                .nextDecode         = index
+                .produceFrom        = index
+                .generation         += 1
+                .hasFailure         = false
+                .awaitingFrame      = true
+                .waitOverlayPending = showWaitOverlay
+                .anchorPending      = true
+            }
         }
 
         if notify and .reportLoadingChanged do
@@ -839,8 +846,9 @@ internal impl VideoViewer
                 catch .voice!.pause()
             }
 
-            .playing       = false
-            .awaitingFrame = false
+            .playing            = false
+            .awaitingFrame      = false
+            .waitOverlayPending = false
             .clock.reset()
             if .reportFailure do
                 .reportFailure!(me, failure.toString())
@@ -851,9 +859,10 @@ internal impl VideoViewer
             return false
 
         let notifyLoading = .awaitingFrame
-        .frameIndex    = .slots[cast(u64) chosen].index
-        .hasFrame      = true
-        .awaitingFrame = false
+        .frameIndex         = .slots[cast(u64) chosen].index
+        .hasFrame           = true
+        .awaitingFrame      = false
+        .waitOverlayPending = false
         catch .finishMetadata() as metadataError
         if metadataError != null and .reportFailure
         {
@@ -1109,7 +1118,10 @@ internal impl VideoViewer
         if (count and sync >= count) or sync - clock > cap do
             return
 
-        .repositionTo(sync)
+        // Automatic recovery keeps the last useful picture visible. Covering it with the same
+        // wait overlay as an explicit seek made a stream below decode speed flash a spinner at
+        // every resynchronization, obscuring most of the movie it was trying to recover.
+        .repositionTo(sync, showWaitOverlay: false)
         .decodeWake.signal()
     }
 }
@@ -1478,6 +1490,6 @@ func createVideoViewer(request: const *ViewerRequest, result: *ViewerResult)
     result.needsLoadingOverlay = func(wnd)->bool
     {
         let view = cast(*VideoViewer) wnd
-        return !view.hasFrame or view.awaitingFrame
+        return !view.hasFrame or (view.awaitingFrame and view.waitOverlayPending)
     }
 }

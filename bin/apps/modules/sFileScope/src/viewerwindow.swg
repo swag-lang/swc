@@ -564,7 +564,7 @@ impl ViewerWindow
             .infoBar.dockStyle    = .Top
             .viewerBar.dockStyle  = .Bottom
             .commandBar.show()
-            .infoBar.show(!.currentFile.isEmpty())
+            .infoBar.show()
             .viewerBar.show(.currentCommands != null)
             .filePanel.show(.panelVisible)
             .fullScreenTopVisible    = false
@@ -599,7 +599,7 @@ impl ViewerWindow
             return
         let rect = .clientRect()
         .commandBar.show(.fullScreenTopVisible)
-        .infoBar.show(.fullScreenTopVisible and !.currentFile.isEmpty())
+        .infoBar.show(.fullScreenTopVisible)
         .viewerBar.show(.fullScreenBottomVisible and .currentCommands != null)
         if .fullScreenTopVisible
         {
@@ -732,7 +732,6 @@ impl ViewerWindow
             .dockStyle       = .Top
             .backgroundStyle = .View
             .padding         = {14, 4, 14, 4}
-            .hide()
         }
 
         with result.infoStatsLabel = Label.create(result.infoBar, "", {0, 0, ViewerInfoStatsWidth, 32}, null, .SecondaryText)
@@ -1008,7 +1007,8 @@ impl ViewerWindow
         .infoStatsLabel.toolTip = ""
         .infoSizeLabel.setText("")
         .infoSizeLabel.toolTip = ""
-        .infoBar.hide()
+        .infoIconLabel.setIcon({})
+        .infoBar.show(!.fullScreen or .fullScreenTopVisible)
         .viewerBar.hide()
         .surface!.setTitle(appStrings().ui_WindowTitle)
         .searchBox.enable(false)

@@ -667,3 +667,35 @@ func videoMatroskaFixturePath()->String
         }
     }
 }
+
+// Falling behind may jump to a clean sync picture, but it keeps the last useful picture visible.
+// The central wait overlay is reserved for a position the user selected, where the old picture
+// would actively misrepresent that selection.
+#test
+{
+    let fileName = expect videoPreviewFile(Format.toString("filescope-video-resync-%.mp4", Guid64.random()).toString(), 40)
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer host.shutdown()
+
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let request  = ViewerRequest{&host.root, commands, fileName}
+    var result: ViewerResult
+    createVideoViewer(&request, &result)
+    @assert(result.view != null and result.isLoading != null and result.needsLoadingOverlay != null)
+    let view = cast(*VideoViewer) result.view!
+    waitForVideoFrame(view)
+    @assert(view.frameIndex == 0)
+
+    view.playing = true
+    view.elapsed = view.frameSeconds(12)
+    view.clock.reset()
+    view.updatePlayback()
+
+    @assert(view.awaitingFrame and result.isLoading!(view))
+    @assert(!result.needsLoadingOverlay!(view))
+    waitForVideoFrame(view)
+    @assert(view.frameIndex == 12)
+}

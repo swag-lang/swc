@@ -722,13 +722,14 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.infoBar.position.height == ViewerInfoHeight)
     @assert(window.infoBar.dockStyle == .Top)
     @assert(window.infoBar.backgroundStyle == window.backgroundStyle)
-    @assert(!window.infoBar.isLocallyVisible())
+    @assert(window.infoBar.isLocallyVisible())
     @assert(window.viewerBar.dockStyle == .Bottom and !window.viewerBar.isLocallyVisible())
     @assert(window.openButton.position.x < window.searchBox.position.x)
     @assert(window.infoNameLabel.name.raw.isEmpty())
     @assert(window.surface!.minSize.x == ViewerMinWidth)
     @assert(Utf8.contains(window.emptyLabel.name.raw, appStrings().ui_DropTitle))
     @assert(window.emptyView.isLocallyVisible() and window.emptyIconLabel.icon.isValid())
+    @assert(window.emptyView.position.y >= window.infoBar.position.bottom())
     @assert(window.emptyHintLabel.text() == appStrings().ui_DropHint)
     @assert(window.currentView == null)
     @assert(window.currentCommands == null)
@@ -746,7 +747,6 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.viewerCombo.show()
     let widestCommands = Wnd.create'Wnd(window.viewerBar, {0, 0, 0, 36})
     widestCommands.dockStyle = .Center
-    window.infoBar.show()
     window.viewerBar.show()
     window.applyLayout()
     @assert(window.viewerCombo.parent == window.commandBar and widestCommands.parent == window.viewerBar)
@@ -959,7 +959,8 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.instances.isEmpty())
     @assert(window.currentFile.isEmpty())
     @assert(window.infoNameLabel.name.raw.isEmpty())
-    @assert(!window.infoBar.isLocallyVisible() and window.emptyView.isLocallyVisible())
+    @assert(window.infoBar.isLocallyVisible() and !window.infoIconLabel.icon.isValid())
+    @assert(window.emptyView.isLocallyVisible() and window.emptyView.position.y >= window.infoBar.position.bottom())
 }
 
 #test

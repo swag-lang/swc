@@ -136,6 +136,7 @@ func finishWaveform(view: *SoundViewer)
     var result: ViewerResult
     createSoundViewer(&request, &result)
     @assert(result.view != null)
+    @assert(result.commands != null and result.isLoading == null)
     let view = cast(*SoundViewer) result.view!
     @assert(view.engineReady and view.playButton.isEnabled())
     @assert(view.backwardButton.icon.isValid() and view.forwardButton.icon.isValid())

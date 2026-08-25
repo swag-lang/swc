@@ -208,6 +208,7 @@ struct XAUDIO2_BUFFER_WMA
     }
 }
 
+#[Swag.Pack(1)]
 struct XAUDIO2_VOICE_STATE
 {
     public
@@ -217,6 +218,8 @@ struct XAUDIO2_VOICE_STATE
         samplesPlayed:         UINT64
     }
 }
+
+#assert(#sizeof(XAUDIO2_VOICE_STATE) == 20)
 
 // Used in XAUDIO2_FILTER_PARAMETERS below
 enum XAUDIO2_FILTER_TYPE

@@ -31,6 +31,43 @@ private func mp3DecodeAll(sound: const *SoundFile)->Array's16 fail
     return result
 }
 
+// Device-independent decoding follows the same audible timeline as playback, including the MP3
+// encoder delay that must be removed before frame zero reaches analysis consumers.
+#test
+{
+    var sound = expect SoundFile.load(audioGetTestDataPath("mp3-stereo-44100.mp3").toString())
+    var decoded: Array's16
+    expect sound.decodePcm16(func|decoded = &decoded|(samples: const [..] s16)->bool
+    {
+        decoded.add(samples)
+        return true
+    })
+
+    @assert(decoded.count == sound.sampleFrameCount() * sound.numChannels())
+    var visible: bool
+    for sample in decoded where Math.abs(cast(s32) sample) > 256
+    {
+        visible = true
+        break
+    }
+    @assert(visible)
+}
+
+// Packetized MP3 playback advances the same public cursor the player polls for its timeline.
+#test
+{
+    destroyEngine()
+    discard expect createNoSoundEngine()
+    defer destroyEngine()
+
+    var sound = expect SoundFile.load(audioGetTestDataPath("mp3-stereo-44100.mp3").toString())
+    let voice = (expect Voice.create(&sound))!
+    defer voice.destroy()
+    discard expect voice.play(.Loop)
+    discard expect voice.updateNoSound()
+    @assert(voice.playbackSampleFrame() > 0 and voice.playbackSampleFrame() < sound.sampleFrameCount())
+}
+
 // Compares a decode against FFmpeg's, the way the standard's own compliance criterion does.
 //
 // Layer III is lossy, so two correct decoders differ in the last bits; what a defect produces is

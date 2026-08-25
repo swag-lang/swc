@@ -15,7 +15,7 @@ struct AppStrings
     ui_CreateCardTitle:  string = "Create a new vault"
     ui_CreateCardHelp:   string = "Choose a fixed capacity. The complete container is randomized before it is ready."
     ui_MountCardTitle:   string = "Open an existing vault"
-    ui_MountCardHelp:    string = "Unlock a container and expose it on any available drive letter. Resizing the vault and changing its password ask for that same password."
+    ui_MountCardHelp:    string = "Enter the vault access once here. Mounting and every change below use the same password and key files."
     ui_MountedCardTitle: string = "Mounted drives"
     ui_OptionsCardTitle: string = "Privacy and automatic unmounting"
 
@@ -34,13 +34,17 @@ struct AppStrings
     ui_FixedCapacity:        string = "FIXED CAPACITY"
     ui_NewCapacity:          string = "NEW CAPACITY"
     ui_Password:             string = "PASSWORD"
-    ui_CurrentPassword:      string = "CURRENT PASSWORD"
-    ui_CurrentPasswordHelp:  string = "The vault only changes for whoever can already open it."
     ui_NewPassword:          string = "NEW PASSWORD"
     ui_ConfirmPassword:      string = "CONFIRM PASSWORD"
     ui_OptionalPassword:     string = "Optional — leave empty for none"
     ui_EnterAgain:           string = "Enter the password again"
     ui_ContainerPassword:    string = "Empty if the vault has none"
+    ui_KeyFiles:             string = "KEY FILES"
+    ui_KeyFilesHelp:         string = "Every listed file is required. File contents are used; the files can be moved without changing access."
+    ui_NoKeyFiles:           string = "No key files"
+    ui_AddKeyFiles:          string = "Add existing key files"
+    ui_GenerateKeyFile:      string = "Create a random key file"
+    ui_RemoveKeyFile:        string = "Remove the selected key file"
     ui_ExistingContainer:    string = "Encrypted container"
     ui_DriveLetter:          string = "DRIVE LETTER"
     ui_DriveHelp:            string = "The drive is available to Windows while sVaultDrive runs, and appears under Mounted."
@@ -56,7 +60,7 @@ struct AppStrings
     ui_UnmountOnIdleHelp:    string = "Protected drives close after Windows has received no keyboard or pointer input for the selected time."
     ui_IdleTimeout:          string = "INACTIVITY TIMEOUT"
     ui_Minutes:              string = "% minutes"
-    ui_RemovePasswordHelp:   string = "Leave it empty to remove the password. The vault then opens without one."
+    ui_RemovePasswordHelp:   string = "Leave it empty to remove only the password. Any selected key files remain required."
     ui_NewCapacityHelp:      string = "Changing capacity may move used blocks that no longer fit."
     ui_KeepCapacity:         string = "Keep the current capacity"
     ui_KeepCapacityHelp:     string = "Refresh the randomized physical size without moving vault data."
@@ -64,6 +68,7 @@ struct AppStrings
     ui_StopCreating:         string = "Stop creating"
     ui_StopResizing:         string = "Stop resizing"
     ui_ChangePassword:       string = "Password…"
+    ui_ChangeKeyFiles:       string = "Key files…"
     ui_Resize:               string = "Capacity and camouflage…"
     ui_MountDrive:           string = "Mount drive"
     ui_Unmount:              string = "Unmount"
@@ -76,10 +81,14 @@ struct AppStrings
     dlg_TitleCreate:         string = "Create an sVaultDrive container"
     dlg_TitleOpen:           string = "Open an encrypted container"
     dlg_TitlePassword:       string = "Change the vault password"
+    dlg_TitleKeyFiles:       string = "Select key files"
+    dlg_TitleGenerateKey:    string = "Create a random key file"
+    dlg_TitleChangeKeyFiles: string = "Change the vault key files"
     dlg_TitleResize:         string = "Change capacity or camouflage"
     dlg_TitleUnlock:         string = "Unlock %"     // '%' is the file name of the container being mounted at startup.
     dlg_BtnCreate:           string = "Create"
     dlg_BtnOpen:             string = "Open"
+    dlg_BtnAdd:              string = "Add"
     dlg_BtnApply:            string = "Apply"
     dlg_BtnSkip:             string = "Skip"
     msg_Ready:               string = "Ready — create a vault or choose one to open."
@@ -92,6 +101,7 @@ struct AppStrings
     msg_FileExists:          string = "This file already exists. Choose a new name to avoid data loss."
     msg_PasswordRequired:    string = "A password is required."
     msg_PasswordMismatch:    string = "The passwords do not match."
+    msg_KeyFileCreateFailed: string = "Could not create the random key file."
     msg_CreateFailed:        string = "Could not create the container."
     msg_Randomizing:         string = "Creating and randomizing the container... %{#0}%%"     // '%{#0}' is the percentage; '%%' is the percent sign itself.
     msg_StopRequested:       string = "Stopping..."
@@ -121,18 +131,21 @@ struct AppStrings
     msg_AutoUnmountStopped:  string = "Protected drives were unmounted, but final synchronization stopped."
     msg_ChangingPassword:    string = "Rewriting the key slot..."
     msg_PasswordChanged:     string = "The vault now opens with the new password."
-    msg_PasswordRemoved:     string = "The password was removed. The vault now opens without one."
+    msg_PasswordRemoved:     string = "The password was removed. Any selected key files are still required."
     msg_PasswordFailed:      string = "Could not change the password."
     msg_PasswordStopped:     string = "The password change stopped."
+    msg_KeyFilesChanged:     string = "The vault now opens with the selected key files."
+    msg_KeyFilesStopped:     string = "The key-file change stopped."
+    msg_KeyFilesFailed:      string = "Could not change the key files."
 
     // What a failure of each [[ErrorKind]] says. The volume layer reports the kind and an
     // English diagnostic for a report; these are the sentences a reader sees instead.
-    msg_ErrPasswordOrDamaged: string = "The password is incorrect or the container is damaged."     // The container did not open, and the format refuses to say which of the two it was.
-    msg_ErrDamaged:           string = "The container is damaged."                                  // An open container no longer reads back what it stored.
-    msg_ErrNotFound:          string = "The container could not be found."                          // The named container or entry does not exist.
-    msg_ErrAlreadyExists:     string = "A file with this name already exists."                      // The name is taken.
-    msg_ErrAccessDenied:      string = "Access to the container was refused."                       // The entry exists and refuses the operation.
-    msg_ErrReadOnly:          string = "The vault is mounted read only."                            // The container refuses every change.
+    msg_ErrPasswordOrDamaged: string = "The password or key files are incorrect, or the container is damaged."     // The container did not open, and the format refuses to say which input gave up.
+    msg_ErrDamaged:           string = "The container is damaged."                                                 // An open container no longer reads back what it stored.
+    msg_ErrNotFound:          string = "The container could not be found."                                         // The named container or entry does not exist.
+    msg_ErrAlreadyExists:     string = "A file with this name already exists."                                     // The name is taken.
+    msg_ErrAccessDenied:      string = "Access to the container was refused."                                      // The entry exists and refuses the operation.
+    msg_ErrReadOnly:          string = "The vault is mounted read only."                                           // The container refuses every change.
     msg_ErrSparse:            string = "The container is sparse. Convert it to a fully allocated file before opening it."
     msg_ErrDiskFull:          string = "There is no room left in the container."         // No room is left for blocks, metadata, or key slots.
     msg_ErrIo:                string = "The container could not be read or written."     // The underlying file could not be reached.

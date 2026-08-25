@@ -7,6 +7,39 @@
 
 using Core, Core.Errors
 
+private enum SoundFileLoader
+{
+    Wav
+    Flac
+    Mp3
+    Aac
+    Ac3
+    Eac3
+}
+
+private struct SoundFileFormatSpec
+{
+    extension: string
+    loader:    SoundFileLoader
+}
+
+private const SoundFileFormats: [7] SoundFileFormatSpec = [
+    {".wav",  .Wav},
+    {".flac", .Flac},
+    {".mp3",  .Mp3},
+    {".aac",  .Aac},
+    {".ac3",  .Ac3},
+    {".eac3", .Eac3},
+    {".ec3",  .Eac3}]
+
+private func findSoundFileFormat(path: string)->u64
+{
+    let extension = Path.lowercaseExtension(path)
+    for format, index in SoundFileFormats where extension == format.extension do
+        return index
+    return Swag.U64.Max
+}
+
 // Identifies which sound-file properties were discovered while loading.
 #[Swag.EnumFlags]
 enum SoundFileFields
@@ -105,6 +138,25 @@ struct SoundFile
 
 impl SoundFile
 {
+    // Returns the filename extensions accepted by [[Audio.SoundFile.load]].
+    //
+    // Entries are lowercase and dot-prefixed. The returned array is owned by the caller and
+    // can be used to build file-dialog filters or format-viewer registries.
+    func decodableExtensions()->Array'String
+    {
+        var result: retval
+        result.reserve(@countof(SoundFileFormats))
+        for format in SoundFileFormats do
+            result.add(String.from(format.extension))
+        return result
+    }
+
+    // Reports whether [[Audio.SoundFile.load]] accepts the extension of `fileName`.
+    //
+    // The comparison is case-insensitive and does not open the file or validate its contents.
+    // An empty name or a name without an extension returns `false`.
+    func canLoad(fileName: string)->bool => findSoundFileFormat(fileName) != Swag.U64.Max
+
     // Returns the source path used to load this sound.
     mtd const sourcePath()->string => .path
 
@@ -242,40 +294,34 @@ impl SoundFile
     // fail.
     func load(path: string, preloadData = true)->SoundFile fail
     {
-        let extension = Path.lowercaseExtension(path)
-        if extension == ".flac"
-        {
-            return try Flac.openFile(path)
-        }
-
-        if extension == ".mp3"
-        {
-            return try Mp3.openFile(path)
-        }
-
-        if extension == ".aac"
-        {
-            return try Aac.openFile(path)
-        }
-
-        if extension == ".ac3"
-        {
-            return try Dolby.openElementaryStream(path, .Ac3)
-        }
-
-        if extension == ".eac3" or extension == ".ec3"
-        {
-            return try Dolby.openElementaryStream(path, .Eac3)
-        }
-
-        if extension != ".wav" do
+        let format = findSoundFileFormat(path)
+        if format == Swag.U64.Max do
             fail UnsupportedFormatError{"unsupported file extension"}
 
-        var result: retval
-        var stream = File.openRead(path)
-        Wav.load(&result, &stream, preloadData)
-        result.path = path
-        return result
+        switch #complete SoundFileFormats[format].loader
+        {
+        case .Flac:
+            return try Flac.openFile(path)
+
+        case .Mp3:
+            return try Mp3.openFile(path)
+
+        case .Aac:
+            return try Aac.openFile(path)
+
+        case .Ac3:
+            return try Dolby.openElementaryStream(path, .Ac3)
+
+        case .Eac3:
+            return try Dolby.openElementaryStream(path, .Eac3)
+
+        case .Wav:
+            var result: retval
+            var stream = File.openRead(path)
+            Wav.load(&result, &stream, preloadData)
+            result.path = path
+            return result
+        }
     }
 
     // Creates a streamed compressed sound from a container's packet index.

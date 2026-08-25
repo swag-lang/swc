@@ -66,6 +66,28 @@ using Swag, Core, Pixel
     @assert(narrow == host.root.themeMetrics().comboBox_Width)
 }
 
+// An unsized label invalidates its cached measurement when its wording changes. This is the
+// common status-band path: the row is first arranged empty, then populated when work completes.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(500, 80)
+    defer host.shutdown()
+
+    let row  = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 500, 40})
+    let name = Label.create(row, "", {0, 0, 0, 32})
+    let size = Label.create(row, "", {0, 0, 0, 32})
+    size.margin.x = 8
+    row.computeLayout()
+    @assert(name.position.width == 0 and size.position.width == 0)
+
+    name.setText("recording.mp4")
+    size.setText("24 MB")
+    row.computeLayout()
+
+    @assert(name.position.width > 0 and size.position.width > 0)
+}
+
 // A band docked without a height is as tall as the stack it holds, and follows it when
 // the text inside changes.
 #test

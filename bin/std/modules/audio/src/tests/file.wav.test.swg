@@ -126,6 +126,22 @@ using Swag, Core
 
 #test
 {
+    const Files: [7] string = ["clip.wav", "clip.flac", "clip.mp3", "clip.aac", "clip.ac3", "clip.eac3", "clip.ec3"]
+
+    let extensions = SoundFile.decodableExtensions()
+    @assert(extensions.count == @countof(Files))
+    for file, index in Files
+    {
+        @assert(SoundFile.canLoad(file))
+        @assert(extensions[index] == Path.lowercaseExtension(file))
+    }
+
+    @assert(SoundFile.canLoad("CLIP.MP3"))
+    @assert(!SoundFile.canLoad("clip.ogg") and !SoundFile.canLoad("clip"))
+}
+
+#test
+{
     discard catch SoundFile.load("audio.unsupported") as err9
     @assert(err9 is Errors.UnsupportedFormatError)
 }

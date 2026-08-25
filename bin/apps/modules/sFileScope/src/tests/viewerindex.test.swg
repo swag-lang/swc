@@ -51,6 +51,10 @@ using Core
 
     let matroskaChoices = index.choices("movie.mkv")
     @assert(matroskaChoices[0].name == "Video" and matroskaChoices[1].name == "Binary" and matroskaChoices[2].name == "Hexadecimal")
+
+    const SoundFiles: [7] string = ["sound.wav", "sound.flac", "sound.mp3", "sound.aac", "sound.ac3", "sound.eac3", "sound.ec3"]
+    for file in SoundFiles do
+        @assert(index.choices(file)[0].key == "sound")
 }
 
 // Every viewer carries the stable identity a remembered choice is written under, and the glyph

@@ -6,7 +6,7 @@ ui_Subtitle            Un stockage chiffré qui se présente et se comporte comm
 ui_CreateCardTitle     Créer un nouveau coffre
 ui_CreateCardHelp      Choisissez une capacité fixe. Le conteneur complet est randomisé avant d'être prêt.
 ui_MountCardTitle      Ouvrir un coffre existant
-ui_MountCardHelp       Déverrouillez un conteneur et exposez-le sur une lettre de lecteur disponible. Redimensionner le coffre et changer son mot de passe demandent ce même mot de passe.
+ui_MountCardHelp       Saisissez une fois l'accès au coffre ici. Le montage et chaque modification ci-dessous utilisent le même mot de passe et les mêmes fichiers clés.
 ui_MountedCardTitle    Lecteurs montés
 ui_OptionsCardTitle    Vie privée et démontage automatique
 ui_MountedCardHelp     Tous les lecteurs actuellement exposés par sVaultDrive. Cochez-en un pour qu'il soit remonté au prochain démarrage de sVaultDrive.
@@ -21,13 +21,17 @@ ui_Browse              Parcourir
 ui_FixedCapacity       CAPACITÉ FIXE
 ui_NewCapacity         NOUVELLE CAPACITÉ
 ui_Password            MOT DE PASSE
-ui_CurrentPassword     MOT DE PASSE ACTUEL
-ui_CurrentPasswordHelp Le coffre ne change que pour qui peut déjà l'ouvrir.
 ui_NewPassword         NOUVEAU MOT DE PASSE
 ui_ConfirmPassword     CONFIRMER LE MOT DE PASSE
 ui_OptionalPassword    Facultatif — laissez vide pour aucun
 ui_EnterAgain          Saisissez à nouveau le mot de passe
 ui_ContainerPassword   Vide si le coffre n'en a pas
+ui_KeyFiles            FICHIERS CLÉS
+ui_KeyFilesHelp        Chaque fichier listé est requis. Seul son contenu est utilisé : vous pouvez le déplacer sans modifier l'accès.
+ui_NoKeyFiles          Aucun fichier clé
+ui_AddKeyFiles         Ajouter des fichiers clés existants
+ui_GenerateKeyFile     Créer un fichier clé aléatoire
+ui_RemoveKeyFile       Retirer le fichier clé sélectionné
 ui_ExistingContainer   Conteneur chiffré
 ui_DriveLetter         LETTRE DE LECTEUR
 ui_DriveHelp           Le lecteur est disponible pour Windows tant que sVaultDrive s'exécute, et apparaît sous Montés.
@@ -43,7 +47,7 @@ ui_UnmountOnIdle       Démonter après une période d'inactivité
 ui_UnmountOnIdleHelp   Les lecteurs protégés se ferment lorsque Windows n'a reçu aucune entrée clavier ou souris pendant la durée choisie.
 ui_IdleTimeout         DÉLAI D'INACTIVITÉ
 ui_Minutes             % minutes
-ui_RemovePasswordHelp  Laissez vide pour supprimer le mot de passe. Le coffre s'ouvrira alors sans mot de passe.
+ui_RemovePasswordHelp  Laissez vide pour supprimer seulement le mot de passe. Les fichiers clés sélectionnés restent requis.
 ui_NewCapacityHelp     Modifier la capacité peut déplacer les blocs utilisés qui ne tiendraient plus.
 ui_KeepCapacity        Conserver la capacité actuelle
 ui_KeepCapacityHelp    Renouvelle la taille physique aléatoire sans déplacer les données du coffre.
@@ -51,6 +55,7 @@ ui_CreateVault         Créer le coffre chiffré
 ui_StopCreating        Arrêter la création
 ui_StopResizing        Arrêter le redimensionnement
 ui_ChangePassword      Mot de passe…
+ui_ChangeKeyFiles      Fichiers clés…
 ui_Resize              Capacité et camouflage…
 ui_MountDrive          Monter
 ui_Unmount             Démonter
@@ -63,10 +68,14 @@ ui_Desktop             Bureau
 dlg_TitleCreate        Créer un conteneur sVaultDrive
 dlg_TitleOpen          Ouvrir un conteneur chiffré
 dlg_TitlePassword      Changer le mot de passe du coffre
+dlg_TitleKeyFiles      Sélectionner des fichiers clés
+dlg_TitleGenerateKey     Créer un fichier clé aléatoire
+dlg_TitleChangeKeyFiles Modifier les fichiers clés du coffre
 dlg_TitleResize        Modifier la capacité ou le camouflage
 dlg_TitleUnlock        Déverrouiller %
 dlg_BtnCreate          Créer
 dlg_BtnOpen            Ouvrir
+dlg_BtnAdd             Ajouter
 dlg_BtnApply           Appliquer
 dlg_BtnSkip            Ignorer
 msg_Ready              Prêt — créez un coffre ou choisissez-en un à ouvrir.
@@ -79,6 +88,7 @@ msg_ChooseCreateFile   Choisissez le fichier conteneur à créer.
 msg_FileExists         Ce fichier existe déjà. Choisissez un autre nom pour éviter toute perte de données.
 msg_PasswordRequired   Un mot de passe est requis.
 msg_PasswordMismatch   Les mots de passe ne correspondent pas.
+msg_KeyFileCreateFailed Impossible de créer le fichier clé aléatoire.
 msg_CreateFailed       Impossible de créer le conteneur.
 msg_Randomizing        Création et randomisation du conteneur... %{#0} %%
 msg_StopRequested      Arrêt en cours...
@@ -108,12 +118,15 @@ msg_AutoUnmounted      Les lecteurs protégés ont été démontés automatiquem
 msg_AutoUnmountStopped Les lecteurs protégés ont été démontés, mais la synchronisation finale s'est arrêtée.
 msg_ChangingPassword   Réécriture de l'emplacement de clé...
 msg_PasswordChanged    Le coffre s'ouvre désormais avec le nouveau mot de passe.
-msg_PasswordRemoved    Le mot de passe a été supprimé. Le coffre s'ouvre désormais sans mot de passe.
+msg_PasswordRemoved    Le mot de passe a été supprimé. Les fichiers clés sélectionnés restent requis.
 msg_PasswordFailed     Impossible de changer le mot de passe.
 msg_PasswordStopped    Le changement de mot de passe s'est arrêté.
+msg_KeyFilesChanged    Le coffre s'ouvre désormais avec les fichiers clés sélectionnés.
+msg_KeyFilesStopped    La modification des fichiers clés s'est arrêtée.
+msg_KeyFilesFailed     Impossible de modifier les fichiers clés.
 
 # Sentences a failure shows, one per ErrorKind.
-msg_ErrPasswordOrDamaged Le mot de passe est incorrect ou le conteneur est endommagé.
+msg_ErrPasswordOrDamaged Le mot de passe ou les fichiers clés sont incorrects, ou le conteneur est endommagé.
 msg_ErrDamaged           Le conteneur est endommagé.
 msg_ErrNotFound          Le conteneur est introuvable.
 msg_ErrAlreadyExists     Un fichier portant ce nom existe déjà.

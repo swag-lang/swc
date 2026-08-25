@@ -7,7 +7,7 @@ internal enum AppState
     Mounting
     Unmounting
     Resizing
-    ChangingPassword
+    ChangingAccess
 }
 
 internal enum OperationKind
@@ -17,7 +17,13 @@ internal enum OperationKind
     Mount
     Unmount
     Resize
-    ChangePassword
+    ChangeAccess
+}
+
+internal enum AccessChangeKind
+{
+    Password
+    KeyFiles
 }
 
 // Emphasis of the status line, from what the latest step left behind.
@@ -59,6 +65,9 @@ internal enum StatusMessage
     PasswordChanged        // The container now opens with the new password.
     PasswordRemoved        // The container now opens without a password.
     PasswordStopped        // The password change stopped.
+    ChangingKeyFiles       // A verified key-slot rotation is in progress.
+    KeyFilesChanged        // The container now opens with the selected key files.
+    KeyFilesStopped        // The key-file change stopped.
 }
 
 // Rows of the "create a new vault" form, in the order `createNewVaultCard` adds them.
@@ -71,6 +80,7 @@ internal enum CreateRow
     Capacity     // Fixed size and its unit.
     Password     // Password protecting the container, or empty for none.
     Confirm      // Same password, entered again.
+    KeyFiles     // Ordered files combined with the password.
 }
 
 // Rows of the "open an existing vault" form, in the order `createOpenVaultCard` adds them.
@@ -78,6 +88,7 @@ internal enum MountRow
 {
     Path         // Container file to open.
     Password     // Password unlocking the container, or empty when it has none.
+    KeyFiles     // Ordered files combined with the password.
     Drive        // Drive letter the volume appears on.
     ReadOnly     // Whether the drive opens for reading alone.
 }
@@ -122,23 +133,22 @@ internal struct ContainerSize
 
 // A container the window mounts again the next time sVaultDrive starts.
 //
-// `needsPassword` is what keeps the start quiet: a vault that opens without one comes up on its
-// own, and only a protected vault is worth asking about. It says nothing the first Argon2
-// attempt would not have said, and it saves that attempt — which costs one full derivation per
-// key slot when it fails.
+// `needsPassword` retains its serialized name for existing settings, but means that some access
+// input is required: a password, key files, or both. An unprotected vault comes up on its own;
+// only a protected one is worth asking about at startup.
 struct StartupVault
 {
     path:          String     // Container file to mount.
     drive:         String     // Stable backend destination identifier; the name preserves saved-state compatibility.
-    needsPassword: bool       // Whether opening it needs a password.
+    needsPassword: bool       // Whether opening it needs transient access input; serialized name kept for compatibility.
     readOnly:      bool       // Whether it was mounted read only, which the next start repeats.
 }
 
 // Settings of the last mount that completed successfully.
 //
 // These are the three choices needed to prepare the open-vault form at the next start. A
-// credential is deliberately absent: a password lives only in its edit box and the operation
-// that consumes it, both of which wipe their bytes when they are done.
+// credential is deliberately absent: passwords and key-file paths live only in their controls
+// and the operation that consumes them.
 struct MountSettings
 {
     path:     String     // Container file that was mounted.
@@ -159,17 +169,20 @@ struct VaultOperation
     mountLabel:     String                  // Host-facing destination name reported when the operation completes.
     size:           u64                     // Container size requested by a create or a grow.
     camouflageOnly: bool                    // Whether resize only refreshes the random physical tail.
-    password:       Array'u8                // Password copy owned by the operation and wiped when it ends.
-    replacement:    Array'u8                // New password of a change, empty when the change removes it.
+    access:         VaultAccess             // Current password and key files, owned and cleared by the operation.
+    replacement:    VaultAccess             // Access installed by a password or key-file change.
+    resultKeyFiles: Array'String            // Key-file selection published after a verified change.
     volume:         #null *MountedVault     // Mount a mount operation produced, or the one an unmount closes.
 
     // What the result has to report but the wiped inputs no longer say.
-    readOnly:        bool     // Whether a mount operation exposes the drive read only.
-    usedPassword:    bool     // Whether the container was opened with a password.
-    removesPassword: bool     // Whether a password change leaves the container without one.
-    fromStartup:     bool     // Whether the mount came from the startup list rather than from the card.
-    securityEpoch:   u64      // Security-event generation at which this mount started.
-    securityStopped: bool     // Whether a security event interrupted this mount.
+    readOnly:          bool                 // Whether a mount operation exposes the drive read only.
+    usedProtection:    bool                 // Whether the container was opened with a password or key file.
+    leavesUnprotected: bool                 // Whether an access change leaves neither a password nor a key file.
+    removesPassword:   bool                 // Whether a password change leaves its password field empty.
+    accessChange:      AccessChangeKind     // Which control family the change and its result belong to.
+    fromStartup:       bool                 // Whether the mount came from the startup list rather than from the card.
+    securityEpoch:     u64                  // Security-event generation at which this mount started.
+    securityStopped:   bool                 // Whether a security event interrupted this mount.
 
     progress: VolumeProgress     // What the job has done, and the way to ask it to stop.
 }
@@ -205,6 +218,7 @@ struct MainWindow
         createUnit:      *ComboBox
         createPassword:  *PasswordEdit
         confirmPassword: *PasswordEdit
+        createKeyFiles:  *KeyFileField
         createButton:    *PushButton
         browseCreate:    *PushButton
     }
@@ -214,10 +228,12 @@ struct MainWindow
     {
         mountPath:      *EditBox
         mountPassword:  *PasswordEdit
+        mountKeyFiles:  *KeyFileField
         drive:          *ComboBox
         readOnly:       *CheckButton
         mountButton:    *PushButton
         passwordButton: *PushButton
+        keyFilesButton: *PushButton
         resizeButton:   *PushButton
         browseMount:    *PushButton
     }
@@ -443,16 +459,9 @@ internal func parseCapacity(text: string, unitIndex: u32)->ContainerSize
     return result
 }
 
-// What the change-password box asks for.
-//
-// The password the container opens with today is asked for here rather than read off the open
-// card. A credential typed to mount a drive is not permission to take the vault over, and a field
-// left filled in would otherwise hand that permission to whoever reaches the keyboard next. The
-// container refuses a wrong password either way; what the box adds is that nothing is changed
-// until the reader has said it.
+// What the change-password box asks for after the open card already states current access.
 internal struct PasswordChangeFields
 {
-    current:     *PasswordEdit     // Password the vault opens with today.
     replacement: *PasswordEdit     // Password it opens with from now on, or empty to remove it.
     confirm:     *PasswordEdit     // `replacement`, entered again.
 }
@@ -460,10 +469,9 @@ internal struct PasswordChangeFields
 // What the resize box asks for.
 internal struct VaultResizeFields
 {
-    current:      *PasswordEdit     // Password the vault opens with.
-    capacity:     *EditBox          // Capacity the vault should hold from now on.
-    unit:         *ComboBox         // Unit `capacity` is written in; `parseCapacity` reads this order.
-    keepCapacity: *CheckButton      // Whether only the physical camouflage is refreshed.
+    capacity:     *EditBox         // Capacity the vault should hold from now on.
+    unit:         *ComboBox        // Unit `capacity` is written in; `parseCapacity` reads this order.
+    keepCapacity: *CheckButton     // Whether only the physical camouflage is refreshed.
 }
 
 // Fills `dialog` with what a password change asks for, and returns its fields.
@@ -475,24 +483,19 @@ internal func buildPasswordChangeForm(dialog: *FormDlg)->PasswordChangeFields
     let texts = appStrings()
     let form  = dialog.form
 
-    let current     = form.addPasswordField(texts.ui_CurrentPassword, placeholder: texts.ui_ContainerPassword, help: texts.ui_CurrentPasswordHelp)
     let replacement = form.addPasswordField(texts.ui_NewPassword, placeholder: texts.ui_OptionalPassword, help: texts.ui_RemovePasswordHelp)
     let confirm     = form.addPasswordField(texts.ui_ConfirmPassword, placeholder: texts.ui_EnterAgain)
 
     form.computeLayout()
-    return {current, replacement, confirm}
+    return {replacement, confirm}
 }
 
-// Fills `dialog` with what resizing a vault of `currentSize` bytes asks for, and returns its fields.
+// Fills `dialog` with the work-specific choices for resizing a vault, and returns its fields.
 //
-// The password comes first here as it does in the box above: every box that changes a vault opens
-// on the one question that has to be answered before any of the others matter.
 internal func buildVaultResizeForm(dialog: *FormDlg)->VaultResizeFields
 {
     let texts = appStrings()
     let form  = dialog.form
-
-    let current = form.addPasswordField(texts.ui_CurrentPassword, placeholder: texts.ui_ContainerPassword, help: texts.ui_CurrentPasswordHelp)
 
     let capacity = form.addTextField(texts.ui_NewCapacity, "256", help: texts.ui_NewCapacityHelp)
     capacity.setUnsignedIntegerRange(1, 1024 * 1024)
@@ -517,7 +520,18 @@ internal func buildVaultResizeForm(dialog: *FormDlg)->VaultResizeFields
     }
 
     form.computeLayout()
-    return {current, capacity, unit, keepCapacity}
+    return {capacity, unit, keepCapacity}
+}
+
+// Builds the complete replacement key-file set from the current selection. The current files
+// remain on the open card; the box contains only the list being changed.
+internal func buildKeyFileChangeForm(dialog: *FormDlg, current: const [..] String)->*KeyFileField
+{
+    let result = KeyFileField.create(dialog.form)
+    result.setPaths(current)
+    discard dialog.form.addField(appStrings().ui_KeyFiles, result, help: appStrings().ui_KeyFilesHelp)
+    dialog.form.computeLayout()
+    return result
 }
 
 impl MainWindow
@@ -526,7 +540,7 @@ impl MainWindow
     // the widest card's form plus its padding, and French wraps widest, so it is the language
     // that sizes this. The height is the tallest card, which is the one that opens a vault.
     const WindowWidth  = 720's32
-    const WindowHeight = 930's32
+    const WindowHeight = 1000's32
 
     // The page that opens a vault.
     const OpenTabIndex = 1'u32
@@ -1069,9 +1083,10 @@ impl MainWindow
              .MountedReadOnly,
              .Resizing,
              .Camouflaging,
-             .ChangingPassword: return .Active
+             .ChangingPassword,
+             .ChangingKeyFiles: return .Active
 
-        case .CreateStopped, .MountStopped, .ResizeStopped, .PasswordStopped, .AutoUnmountStopped: return .Stopped
+        case .CreateStopped, .MountStopped, .ResizeStopped, .PasswordStopped, .KeyFilesStopped, .AutoUnmountStopped: return .Stopped
 
         case .Ready,
              .CreateCanceled,
@@ -1082,7 +1097,8 @@ impl MainWindow
              .Camouflaged,
              .AutoUnmounted,
              .PasswordChanged,
-             .PasswordRemoved: return .Idle
+             .PasswordRemoved,
+             .KeyFilesChanged: return .Idle
         }
     }
 
@@ -1116,6 +1132,9 @@ impl MainWindow
         case .PasswordChanged:    return String.from(texts.msg_PasswordChanged)
         case .PasswordRemoved:    return String.from(texts.msg_PasswordRemoved)
         case .PasswordStopped:    return String.from(texts.msg_PasswordStopped)
+        case .ChangingKeyFiles:   return String.from(texts.msg_ChangingPassword)
+        case .KeyFilesChanged:    return String.from(texts.msg_KeyFilesChanged)
+        case .KeyFilesStopped:    return String.from(texts.msg_KeyFilesStopped)
         }
     }
 
@@ -1150,6 +1169,8 @@ impl MainWindow
         // field: it is a fact about what this card produces, not a note about one control.
         .createPassword  = form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_OptionalPassword)
         .confirmPassword = form.addPasswordField(appStrings().ui_ConfirmPassword, placeholder: appStrings().ui_EnterAgain)
+        .createKeyFiles  = KeyFileField.create(form)
+        discard form.addField(appStrings().ui_KeyFiles, .createKeyFiles, help: appStrings().ui_KeyFilesHelp)
 
         // Creation is long enough to be worth stopping, so its own button becomes the way out
         // of it. A second control would sit dead on the card the rest of the time, and the card
@@ -1191,6 +1212,8 @@ impl MainWindow
         }
 
         .mountPassword = form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_ContainerPassword)
+        .mountKeyFiles = KeyFileField.create(form)
+        discard form.addField(appStrings().ui_KeyFiles, .mountKeyFiles, help: appStrings().ui_KeyFilesHelp)
 
         // The lifetime of the drive belongs to the letter that carries it, so it is said under
         // that field rather than as a loose paragraph at the bottom of the card.
@@ -1205,11 +1228,9 @@ impl MainWindow
         // The action bar stacks from its right edge, so the dominant action is created first and
         // ends up under the reader's thumb, with the two secondary ones to its left.
         //
-        // Those two are secondary on purpose: mounting is what a reader comes to this card for,
-        // and changing the password or the capacity is what the same file happens to also allow.
-        // Both name what they change rather than what they do, because both open a box that asks
-        // for the rest — starting with the password the container opens with, which is never
-        // taken from the field above.
+        // The remaining actions are secondary on purpose: mounting is what a reader comes to this
+        // card for. Each box asks only for the value it changes; the current password and key files
+        // are stated once in this form and consumed from here.
         .mountButton = PushButton.create(card.actions, appStrings().ui_MountDrive, {0, 0, 0, 36}, form: .Strong)
         .mountButton.setIcon(.theme().icon(ThemeIcons.Play, 18))
         .mountButton.sigPressed += func|window = me|(btn)
@@ -1233,6 +1254,13 @@ impl MainWindow
         {
             discard btn
             window.changeVaultPassword()
+        }
+
+        .keyFilesButton            = PushButton.create(card.actions, appStrings().ui_ChangeKeyFiles, {0, 0, 0, 36})
+        .keyFilesButton.sigPressed += func|window = me|(btn)
+        {
+            discard btn
+            window.changeVaultKeyFiles()
         }
 
         card.actions.computeLayout()
@@ -1331,6 +1359,7 @@ impl MainWindow
         .createButton.enable(.canCreate())
         .mountButton.enable(.canMount())
         .passwordButton.enable(.canModifyVault())
+        .keyFilesButton.enable(.canModifyVault())
         .resizeButton.enable(.canModifyVault())
         .mountedDrives.unmountButton.enable(.mountedDrives.selectedIndex() != Swag.U64.Max)
     }
@@ -1358,6 +1387,7 @@ impl MainWindow
         .mountCard.form.enable(ready)
         .mountButton.enable(ready and .canMount())
         .passwordButton.enable(ready and .canModifyVault())
+        .keyFilesButton.enable(ready and .canModifyVault())
         .mountedDrives.list.enable(ready)
         .mountedDrives.unmountButton.enable(ready and .mountedDrives.selectedIndex() != Swag.U64.Max)
     }
@@ -1384,22 +1414,29 @@ impl MainWindow
         .createCard.form.setRowLabel(cast(u64) CreateRow.Capacity, texts.ui_FixedCapacity)
         .createCard.form.setRowLabel(cast(u64) CreateRow.Password, texts.ui_Password)
         .createCard.form.setRowLabel(cast(u64) CreateRow.Confirm, texts.ui_ConfirmPassword)
+        .createCard.form.setRowLabel(cast(u64) CreateRow.KeyFiles, texts.ui_KeyFiles)
+        .createCard.form.setRowHelp(cast(u64) CreateRow.KeyFiles, texts.ui_KeyFilesHelp)
         .createPassword.setPlaceholder(texts.ui_OptionalPassword)
         .confirmPassword.setPlaceholder(texts.ui_EnterAgain)
+        .createKeyFiles.retranslate()
         .browseCreate.setText(texts.ui_Browse)
 
         .mountCard.setTexts(texts.ui_MountCardTitle, texts.ui_MountCardHelp)
         .mountCard.form.setRowLabel(cast(u64) MountRow.Path, texts.ui_ContainerFile)
         .mountCard.form.setRowLabel(cast(u64) MountRow.Password, texts.ui_Password)
+        .mountCard.form.setRowLabel(cast(u64) MountRow.KeyFiles, texts.ui_KeyFiles)
+        .mountCard.form.setRowHelp(cast(u64) MountRow.KeyFiles, texts.ui_KeyFilesHelp)
         .mountCard.form.setRowLabel(cast(u64) MountRow.Drive, texts.ui_DriveLetter)
         .mountCard.form.setRowHelp(cast(u64) MountRow.Drive, texts.ui_DriveHelp)
         .mountCard.form.setRowHelp(cast(u64) MountRow.ReadOnly, texts.ui_ReadOnlyHelp)
         .readOnly.setText(texts.ui_ReadOnly)
         .mountPath.setPlaceholder(texts.ui_ExistingContainer)
         .mountPassword.setPlaceholder(texts.ui_ContainerPassword)
+        .mountKeyFiles.retranslate()
         .browseMount.setText(texts.ui_Browse)
         .mountButton.setText(texts.ui_MountDrive)
         .passwordButton.setText(texts.ui_ChangePassword)
+        .keyFilesButton.setText(texts.ui_ChangeKeyFiles)
 
         .optionsCard.setTexts(texts.ui_OptionsCardTitle, texts.ui_OptionsCardHelp)
         .optionsCard.form.setRowHelp(cast(u64) OptionsRow.Privacy, texts.ui_PrivacyModeHelp)
@@ -1489,7 +1526,7 @@ impl MainWindow
 
         .securityEpoch += 1
         .startupQueue.clear()
-        let interruptedMount = .operation.kind == .Mount and .operation.usedPassword
+        let interruptedMount = .operation.kind == .Mount and .operation.usedProtection
 
         // A protected mount already in flight belongs to the event too. Waiting here lets the
         // worker hand its handle back before the notification returns; `finishOperation` sees the
@@ -1585,7 +1622,7 @@ impl MainWindow
 
         .operation.path = path
         .operation.size = size.bytes
-        .operation.password.add(.createPassword.bytes())
+        .operation.access.setInputs(.createPassword.bytes(), .createKeyFiles.paths.toSlice())
         .createPassword.clear()
         .confirmPassword.clear()
         .statusProgress = 0
@@ -1631,7 +1668,7 @@ impl MainWindow
             return
         }
 
-        .operation.password.add(.mountPassword.bytes())
+        .operation.access.setInputs(.mountPassword.bytes(), .mountKeyFiles.paths.toSlice())
         .mountPassword.clear()
         .startMount(String.from(path), mountPoint, false, .readOnly.state == .Checked)
     }
@@ -1639,13 +1676,13 @@ impl MainWindow
     // Starts the mount the password already staged in the operation opens.
     mtd startMount(path, mountPoint: String, fromStartup: bool, readOnly: bool)
     {
-        .operation.path          = path
-        .operation.mount         = mountPoint
-        .operation.mountLabel    = .mountPointLabel(.operation.mount.toString())
-        .operation.fromStartup   = fromStartup
-        .operation.readOnly      = readOnly
-        .operation.usedPassword  = .operation.password.count != 0
-        .operation.securityEpoch = .securityEpoch
+        .operation.path           = path
+        .operation.mount          = mountPoint
+        .operation.mountLabel     = .mountPointLabel(.operation.mount.toString())
+        .operation.fromStartup    = fromStartup
+        .operation.readOnly       = readOnly
+        .operation.usedProtection = .operation.access.isProtected()
+        .operation.securityEpoch  = .securityEpoch
         .setStatus(.StartingDriver)
         .setState(.Mounting)
         .beginOperation(.Mount)
@@ -1668,11 +1705,8 @@ impl MainWindow
         .beginOperation(.Unmount)
     }
 
-    // Asks for the password the vault opens with today and the one it should open with from now
-    // on, then rewrites the key slot.
-    //
-    // An empty new password removes the protection, which is the whole of "remove a password":
-    // a container no password opens at all is unrecoverable and is never offered.
+    // Changes only the password. Current access and the retained key-file set come from the open
+    // card, so the box contains the new password and its confirmation alone.
     mtd changeVaultPassword()
     {
         if .state != .Ready or !.canModifyVault() do
@@ -1703,15 +1737,53 @@ impl MainWindow
         }
 
         .operation.path = path
-        .operation.password.add(fields.current.bytes())
-        .operation.replacement.add(fields.replacement.bytes())
-        .operation.removesPassword = fields.replacement.isEmpty()
+        .operation.access.setInputs(.mountPassword.bytes(), .mountKeyFiles.paths.toSlice())
+        .operation.replacement.setInputs(fields.replacement.bytes(), .mountKeyFiles.paths.toSlice())
+        .mountPassword.clear()
+        .operation.accessChange      = .Password
+        .operation.leavesUnprotected = !.operation.replacement.isProtected()
+        .operation.removesPassword   = fields.replacement.isEmpty()
         .setStatus(.ChangingPassword)
-        .setState(.ChangingPassword)
-        .beginOperation(.ChangePassword)
+        .setState(.ChangingAccess)
+        .beginOperation(.ChangeAccess)
     }
 
-    // Asks for the password the vault opens with and another capacity, then resizes the container.
+    // Changes only the ordered key-file set. The box starts from the files already stated on the
+    // open card, and current access is verified before the replacement slot is published.
+    mtd changeVaultKeyFiles()
+    {
+        if .state != .Ready or !.canModifyVault() do
+            return
+
+        let path = String.from(.mountPath.text())
+        if .isMounted(path.toString())
+        {
+            .showError(appStrings().msg_UnmountFirst)
+            return
+        }
+
+        var options: FormDlgOptions
+        options.title             = appStrings().dlg_TitleChangeKeyFiles
+        options.confirmButtonText = appStrings().dlg_BtnApply
+
+        let dialog = FormDlg.create(.surface!, options)
+        let files  = buildKeyFileChangeForm(dialog, .mountKeyFiles.paths.toSlice())
+        if dialog.doModal() != Dialog.BtnOk or files.samePaths(.mountKeyFiles.paths.toSlice()) do
+            return
+
+        .operation.path = path
+        .operation.access.setInputs(.mountPassword.bytes(), .mountKeyFiles.paths.toSlice())
+        .operation.replacement.setInputs(.mountPassword.bytes(), files.paths.toSlice())
+        files.copyPaths(&.operation.resultKeyFiles)
+        .mountPassword.clear()
+        .operation.accessChange      = .KeyFiles
+        .operation.leavesUnprotected = !.operation.replacement.isProtected()
+        .setStatus(.ChangingKeyFiles)
+        .setState(.ChangingAccess)
+        .beginOperation(.ChangeAccess)
+    }
+
+    // Asks only for another capacity, then resizes with the access stated on the open card.
     mtd resizeVault()
     {
         if .state != .Ready or !.canModifyVault() do
@@ -1758,7 +1830,8 @@ impl MainWindow
         .operation.path           = path
         .operation.size           = requestedSize
         .operation.camouflageOnly = camouflageOnly
-        .operation.password.add(fields.current.bytes())
+        .operation.access.setInputs(.mountPassword.bytes(), .mountKeyFiles.paths.toSlice())
+        .mountPassword.clear()
         .statusProgress = 0
         .setStatus(camouflageOnly ? .Camouflaging : .Resizing)
         .setState(.Resizing)
@@ -1767,20 +1840,33 @@ impl MainWindow
 
     mtd runOperation()
     {
+        var current: VaultCredential
+        if .operation.kind != .None and .operation.kind != .Unmount
+        {
+            current = catch .operation.access.derive() as accessError
+            if accessError != null
+            {
+                .operation.error = accessError
+                .operation.access.clear()
+                .operation.replacement.clear()
+                return
+            }
+        }
+
         switch #complete .operation.kind
         {
         case .None:
             return
 
         case .Create:
-            var volume = catch Volume.create(.operation.path.toString(), .operation.password.toSlice(), .operation.size, &.operation.progress) as createError
+            var volume = catch Volume.create(.operation.path.toString(), current.toSlice(), .operation.size, &.operation.progress) as createError
             .operation.error = createError
             if createError == null do
                 volume.close()
 
         case .Mount:
             let mounted = Memory.new'MountedVault()
-            discard catch mounted.open(.operation.path.toString(), .operation.password.toSlice(), .operation.mount.toString(), .operation.readOnly) as mountError
+            discard catch mounted.open(.operation.path.toString(), current.toSlice(), .operation.mount.toString(), .operation.readOnly) as mountError
             .operation.error = mountError
             if mountError != null
             {
@@ -1801,7 +1887,7 @@ impl MainWindow
             }
 
         case .Resize:
-            var volume = catch Volume.open(.operation.path.toString(), .operation.password.toSlice()) as openError
+            var volume = catch Volume.open(.operation.path.toString(), current.toSlice()) as openError
             .operation.error = openError
             if openError == null
             {
@@ -1819,20 +1905,23 @@ impl MainWindow
                 volume.close()
             }
 
-        case .ChangePassword:
-            var volume = catch Volume.open(.operation.path.toString(), .operation.password.toSlice()) as openError
+        case .ChangeAccess:
+            var replacement = catch .operation.replacement.derive() as deriveError
+            .operation.error = deriveError
+            if deriveError != null do
+                break
+
+            var volume = catch Volume.open(.operation.path.toString(), current.toSlice()) as openError
             .operation.error = openError
             if openError == null
             {
-                discard catch volume.changePassword(.operation.password.toSlice(), .operation.replacement.toSlice()) as changeError
+                discard catch volume.changePassword(current.toSlice(), replacement.toSlice()) as changeError
                 .operation.error = changeError
                 volume.close()
             }
         }
 
-        Core.Crypto.secureClear(.operation.password.toSlice())
-        .operation.password.clear()
-        Core.Crypto.secureClear(.operation.replacement.toSlice())
+        .operation.access.clear()
         .operation.replacement.clear()
     }
 
@@ -1883,6 +1972,7 @@ impl MainWindow
             {
                 .setStatus(.Created)
                 .mountPath.setText(.operation.path)
+                .mountKeyFiles.setPaths(.createKeyFiles.paths.toSlice())
             }
 
         case .Mount:
@@ -1894,7 +1984,7 @@ impl MainWindow
                     .showError(appStrings().msg_MountFailed, .operation.error)
                 .setStatus(.operation.securityStopped ? StatusMessage.AutoUnmounted : StatusMessage.MountStopped)
             }
-            elif .operation.usedPassword and .operation.securityEpoch != .securityEpoch
+            elif .operation.usedProtection and .operation.securityEpoch != .securityEpoch
             {
                 let mounted = .operation.volume
                 if mounted
@@ -1945,30 +2035,41 @@ impl MainWindow
                 }
             }
 
-        case .ChangePassword:
+        case .ChangeAccess:
             if .operation.error != null
             {
-                .showError(appStrings().msg_PasswordFailed, .operation.error)
-                .setStatus(.PasswordStopped)
+                let keyFiles = .operation.accessChange == .KeyFiles
+                .showError(keyFiles ? appStrings().msg_KeyFilesFailed : appStrings().msg_PasswordFailed, .operation.error)
+                .setStatus(keyFiles ? StatusMessage.KeyFilesStopped : StatusMessage.PasswordStopped)
             }
             else
             {
-                .rememberPasswordChange()
-                .setStatus(.operation.removesPassword ? StatusMessage.PasswordRemoved : StatusMessage.PasswordChanged)
+                .rememberAccessChange()
+                if .operation.accessChange == .KeyFiles
+                {
+                    .mountKeyFiles.setPaths(.operation.resultKeyFiles.toSlice())
+                    .setStatus(.KeyFilesChanged)
+                }
+                else do
+                    .setStatus(.operation.removesPassword ? StatusMessage.PasswordRemoved : StatusMessage.PasswordChanged)
             }
         }
 
         .setState(.Ready)
-        .operation.kind            = .None
-        .operation.error           = null
-        .operation.volume          = null
-        .operation.removesPassword = false
-        .operation.fromStartup     = false
-        .operation.securityStopped = false
-        .operation.camouflageOnly  = false
+        .operation.kind              = .None
+        .operation.error             = null
+        .operation.volume            = null
+        .operation.usedProtection    = false
+        .operation.leavesUnprotected = false
+        .operation.removesPassword   = false
+        .operation.accessChange      = .Password
+        .operation.fromStartup       = false
+        .operation.securityStopped   = false
+        .operation.camouflageOnly    = false
         .operation.path.clear()
         .operation.mount.clear()
         .operation.mountLabel.clear()
+        .operation.resultKeyFiles.clear()
         .operation.size = 0
 
         if .startupQueue.count do
@@ -1993,7 +2094,7 @@ impl MainWindow
             .path          = me.operation.path
             .drive         = me.operation.mount
             .mountLabel    = me.operation.mountLabel
-            .needsPassword = me.operation.usedPassword
+            .needsPassword = me.operation.usedProtection
             .readOnly      = me.operation.readOnly
             .atStartup     = !me.privacyMode and known != Swag.U64.Max
         }
@@ -2018,15 +2119,15 @@ impl MainWindow
         catch g_App.saveState()
     }
 
-    // Keeps the startup list truthful after a password change.
-    mtd rememberPasswordChange()
+    // Keeps the startup list truthful after any change to what opens the vault.
+    mtd rememberAccessChange()
     {
         if .privacyMode do
             return
         let index = .startupIndex(.operation.path.toString())
         if index != Swag.U64.Max
         {
-            .startupVaults[index].needsPassword = !.operation.removesPassword
+            .startupVaults[index].needsPassword = !.operation.leavesUnprotected
             catch g_App.saveState()
         }
     }
@@ -2070,7 +2171,7 @@ impl MainWindow
         catch g_App.saveState()
     }
 
-    // Mounts the next container marked for startup, asking for its password when it has one.
+    // Mounts the next container marked for startup, asking for its transient access when needed.
     //
     // One at a time: a mount is a job, and the operation that finishes is what calls this
     // again, so the drives come up in order instead of all at once on one worker.
@@ -2084,8 +2185,8 @@ impl MainWindow
             if entry.drive.isEmpty() or !File.exists(entry.path.toString()) or .isMounted(entry.path.toString()) do
                 continue
 
-            .operation.password.clear()
-            if entry.needsPassword and !.askStartupPassword(entry.path.toString()) do
+            .operation.access.clear()
+            if entry.needsPassword and !.askStartupAccess(entry.path.toString()) do
                 continue
 
             .startMount(entry.path, entry.drive, true, entry.readOnly)
@@ -2093,11 +2194,11 @@ impl MainWindow
         }
     }
 
-    // Asks for the password of one startup container, and reports whether the reader gave one.
+    // Asks for the password and key files of one protected startup container.
     //
-    // Skipping is an answer: a vault whose password is not at hand simply does not come up,
+    // Skipping is an answer: a vault whose access material is not at hand simply does not come up,
     // and the mark it carries is left alone for the next start.
-    mtd askStartupPassword(path: string)->bool
+    mtd askStartupAccess(path: string)->bool
     {
         var options: FormDlgOptions
         options.title             = Format.toString(appStrings().dlg_TitleUnlock, Path.fileName(path) orelse path).toString()
@@ -2108,11 +2209,13 @@ impl MainWindow
 
         let dialog   = FormDlg.create(.surface!, options)
         let password = dialog.form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_ContainerPassword, help: path)
+        let keyFiles = KeyFileField.create(dialog.form)
+        discard dialog.form.addField(appStrings().ui_KeyFiles, keyFiles, help: appStrings().ui_KeyFilesHelp)
         dialog.form.computeLayout()
         if dialog.doModal() != Dialog.BtnOk do
             return false
 
-        .operation.password.add(password.bytes())
+        .operation.access.setInputs(password.bytes(), keyFiles.paths.toSlice())
         return true
     }
 
@@ -2170,10 +2273,9 @@ impl MainWindow
         }
 
         .mountedDrives.drives.clear()
-        Core.Crypto.secureClear(.operation.password.toSlice())
-        .operation.password.clear()
-        Core.Crypto.secureClear(.operation.replacement.toSlice())
+        .operation.access.clear()
         .operation.replacement.clear()
+        .operation.resultKeyFiles.clear()
         .createPassword.clear()
         .confirmPassword.clear()
         .mountPassword.clear()
@@ -2187,7 +2289,7 @@ impl IWnd for MainWindow
     //
     // Dropping one file says "open this" regardless of its name: the container format, not a
     // filename extension, identifies a vault. The window brings up the page that mounts it, fills
-    // its path and puts the keyboard on it, which leaves the reader one password away from a
+    // its path and puts the keyboard on it, which leaves the reader one access entry away from a
     // drive. A drop that lands on a path field is that field's own business and never reaches here.
     mtd impl onDragDropEvent(evt: *DragDropEvent)
     {
@@ -2256,8 +2358,8 @@ impl IWnd for MainWindow
             .securityMonitor.start(me)
             .securityTimer = .app().addTimer(1's, me)
 
-            // The startup mounts wait for a surface a reader can see: the first one may need a
-            // password, and a box on a window that is not up yet has nothing to sit on.
+            // The startup mounts wait for a surface a reader can see: the first one may need
+            // access input, and a box on a window that is not up yet has nothing to sit on.
             if !.privacyMode do
                 .startupQueue.add(.startupVaults.toSlice())
             if .startupQueue.count do

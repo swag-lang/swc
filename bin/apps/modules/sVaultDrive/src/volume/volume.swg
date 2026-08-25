@@ -305,7 +305,7 @@ impl Volume
         Core.Crypto.randomBytes(result.master)
         Core.Crypto.randomBytes(result.slotSalt)
         result.file.writeAllAt(KeySlotAreaOffset, result.slotSalt)
-        result.keys        = try Crypto.deriveKeys(result.master)
+        result.keys = try Crypto.deriveKeys(result.master)
         let initialKeySlot = try randomKeySlotIndex()
         result.keySlotMask = keySlotBit(initialKeySlot)
         try result.writeKeySlot(initialKeySlot, password)
@@ -490,10 +490,11 @@ impl Volume
         return Swag.U64.Max
     }
 
-    // Replaces the password of the slot `current` opens.
+    // Replaces the access bytes of the slot `current` opens.
     //
-    // This rewrites one key slot and nothing else: the master key, and therefore
-    // every encrypted block in the container, is untouched.
+    // A fresh slot is written and read back before the current one is erased. The master key,
+    // and therefore every encrypted block in the container, stays untouched; an interrupted
+    // rotation always leaves at least one verified way to unwrap it.
     //
     // An empty `replacement` removes the protection: the slot then unwraps under the
     // empty password, which is how a container stops asking for one. That is a
@@ -501,10 +502,44 @@ impl Volume
     // which refuses to add an unprotected way into a container that has one.
     mtd changePassword(current, replacement: const [..] u8) fail
     {
-        let index = try .findKeySlot(current)
-        if index == Swag.U64.Max do
+        let currentIndex = try .findKeySlot(current)
+        if currentIndex == Swag.U64.Max do
             failWith("The current password is incorrect.", .AccessDenied)
-        try .writeKeySlot(index, replacement)
+
+        let existingReplacement = try .findKeySlot(replacement)
+        if existingReplacement == currentIndex do
+            return
+
+        var replacementIndex = existingReplacement
+        if replacementIndex == Swag.U64.Max
+        {
+            for index in KeySlotCount where (.keySlotMask & keySlotBit(index)) == 0
+            {
+                replacementIndex = index
+                break
+            }
+
+            if replacementIndex == Swag.U64.Max do
+                failWith("Every key slot is already in use.", .DiskFull)
+
+            // Reserve before writing. A stopped write may waste this slot, but it cannot expose
+            // the current one to reuse or make the vault lose its existing access.
+            .keySlotMask  |= keySlotBit(replacementIndex)
+            .scalarsDirty = true
+            .dirty        = true
+            try .checkpoint()
+            try .writeKeySlot(replacementIndex, replacement)
+
+            if (try .findKeySlot(replacement)) != replacementIndex do
+                failWith("The replacement key slot could not be verified.", .Io)
+        }
+
+        // Only a verified replacement makes the previous access removable.
+        try .eraseKeySlot(currentIndex)
+        .keySlotMask  &= ~keySlotBit(currentIndex)
+        .scalarsDirty = true
+        .dirty        = true
+        try .checkpoint()
     }
 
     // Adds `additional` as another password that opens this container.

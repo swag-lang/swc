@@ -168,6 +168,7 @@ func videoMatroskaFixturePath()->String
     view.seekRelative(-10)
     @assert(view.seekOverlay!.isLocallyVisible() and view.seekOverlay!.direction == -1 and view.seekOverlay!.text == "-10")
     @assert(view.seekOverlay!.presentationOffset == {} and view.seekOverlay!.presentationScale == {1, 1})
+    @assert(view.seekOverlay!.position.vertCenter() > view.clientRect().vertCenter())
     waitForVideoFrame(view)
     @assert(view.frameIndex == 0)
     view.seekRelative(10)
@@ -233,8 +234,8 @@ func videoMatroskaFixturePath()->String
     host.theme.setSwagLight()
     host.notify(.ThemeChanged)
     view.showSeekFeedback(-10)
-    let overlayColors = view.seekOverlay!.themeColors()
-    @assert(overlayColors.text.contrastRatio(overlayColors.wnd_Bk) >= 4.5)
+    @assert(view.seekOverlay!.backgroundStyle == .Transparent)
+    @assert(Voltage.contrastRatio(Ink) >= 4.5)
     host.fireTimer(view.seekOverlay!.timer!)
 }
 

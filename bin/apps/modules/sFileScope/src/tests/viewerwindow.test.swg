@@ -738,6 +738,9 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(!window.viewerCombo.isLocallyVisible())
     @assert(window.infoNameLabel.parent == window.infoFileGroup)
     @assert(window.infoSizeLabel.parent == window.infoFileGroup)
+    @assert(window.infoNameLabel.textVerticalAlignment == .OpticalCenter)
+    @assert(window.infoSizeLabel.textVerticalAlignment == .OpticalCenter)
+    @assert(window.infoStatsLabel.textVerticalAlignment == .OpticalCenter)
     @assert(window.recentClearButton.parent == window.recentLabel.parent)
     @assert(window.infoStatsLabel.parent == window.infoBar)
     Testing.assertContentFits(window)
@@ -752,6 +755,31 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.viewerCombo.parent == window.commandBar and widestCommands.parent == window.viewerBar)
     @assert(window.viewerCombo.position.bottom() <= window.infoBar.position.y)
     @assert(widestCommands.position.y >= window.viewerBar.clientRect().y)
+}
+
+// File metadata can arrive after the first frame. Publishing it lays out the identity row
+// immediately, without waiting for a resize, theme change, or another outer layout pass.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let index  = createViewerIndex()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+    window.applyLayout()
+    @assert(window.infoNameLabel.position.width == 0 and window.infoSizeLabel.position.width == 0)
+
+    window.currentFile = viewerFixturePath()
+    window.choices.add(ViewerChoice{.BasicText, Swag.U64.Max, "Basic text"})
+    window.activeChoiceIndex = 0
+    window.updateFileInfo("")
+
+    @assert(@countof(window.infoNameLabel.text()) > 0 and @countof(window.infoSizeLabel.text()) > 0)
+    @assert(window.infoNameLabel.position.width > 0 and window.infoSizeLabel.position.width > 0)
+    @assert(window.infoIconLabel.position.right() <= window.infoNameLabel.position.x)
+    @assert(window.infoNameLabel.position.right() <= window.infoSizeLabel.position.x)
 }
 
 // F11 preserves the exact window state around a content-only presentation. Moving at either
@@ -888,17 +916,23 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.loadingOverlay.isLocallyVisible())
     @assert(window.loadingOverlay.position == loading.position)
     @assert(window.loadingOverlay.backgroundStyle == .Transparent)
-    @assert(window.loadingOverlay.spinnerPanel.backgroundStyle == .Panel)
-    @assert(window.loadingOverlay.spinnerPanel.preferredSize == {88, 88})
-    @assert(window.loadingOverlay.spinner.preferredSize == {56, 56})
-    let panelCenter   = window.loadingOverlay.spinnerPanel.position.center()
-    let spinnerCenter = window.loadingOverlay.spinner.position.center()
-    let overlayCenter = window.loadingOverlay.clientRect().center()
-    @assert(Math.abs(panelCenter.x - overlayCenter.x) <= 1 and Math.abs(panelCenter.y - overlayCenter.y) <= 1)
-    @assert(Math.abs(spinnerCenter.x - 44) <= 1 and Math.abs(spinnerCenter.y - 44) <= 1)
+    @assert(window.loadingOverlay.wndFlags.has(.Disabled))
     @assert(window.children.back() == window.loadingOverlay)
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "sfilescope.loading")
+
+    // A newly selected progressive viewer loads behind the preceding document. The activity
+    // mark belongs over that preserved document until the replacement can publish its first frame.
+    let outgoing = Wnd.create'Wnd(window)
+    outgoing.setPosition({23, 71, 577, 363})
+    window.outgoingView = outgoing
+    window.currentView  = outgoing
+    reportViewerLoadingChanged(loading)
+    @assert(window.loadingOverlay.isLocallyVisible() and window.loadingOverlay.position == outgoing.position)
+    window.outgoingView = null
+    window.currentView  = loading
+    outgoing.destroy()
+
     window.instances[0].needsLoadingOverlay = null
     reportViewerLoadingChanged(loading)
     @assert(!window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
@@ -1085,8 +1119,8 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.viewerCombo.isLocallyVisible())
     @assert(window.infoBar.isLocallyVisible() and !window.emptyView.isLocallyVisible())
     @assert(window.infoIconLabel.icon.isValid())
-    @assert(window.infoIconLabel.position.right() <= window.infoSizeLabel.position.x)
-    @assert(window.infoSizeLabel.position.right() <= window.infoNameLabel.position.x)
+    @assert(window.infoIconLabel.position.right() <= window.infoNameLabel.position.x)
+    @assert(window.infoNameLabel.position.right() <= window.infoSizeLabel.position.x)
     @assert(window.currentCommands!.parent == window.viewerBar and window.viewerBar.isLocallyVisible())
     @assert(window.searchBox.isLocallyVisible() and window.searchBox.isEnabled())
     var dark = host.render(window)

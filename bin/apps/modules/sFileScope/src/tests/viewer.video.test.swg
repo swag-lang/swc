@@ -143,6 +143,7 @@ func videoMatroskaFixturePath()->String
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
+    host.setReducedMotion(true)
 
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
     let request  = ViewerRequest{&host.root, commands, fileName}
@@ -165,9 +166,12 @@ func videoMatroskaFixturePath()->String
     waitForVideoFrame(view)
     @assert(view.frameIndex == 2)
     view.seekRelative(-10)
+    @assert(view.seekOverlay!.isLocallyVisible() and view.seekOverlay!.direction == -1 and view.seekOverlay!.text == "-10")
+    @assert(view.seekOverlay!.presentationOffset == {} and view.seekOverlay!.presentationScale == {1, 1})
     waitForVideoFrame(view)
     @assert(view.frameIndex == 0)
     view.seekRelative(10)
+    @assert(view.seekOverlay!.isLocallyVisible() and view.seekOverlay!.direction == 1 and view.seekOverlay!.text == "+10")
     waitForVideoFrame(view)
     @assert(view.frameIndex == 3)
     view.timeline.setValue(3)
@@ -215,8 +219,23 @@ func videoMatroskaFixturePath()->String
 
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
+    host.setReducedMotion(false)
+    view.showSeekFeedback(10)
+    @assert(view.seekOverlay!.timer != null and view.seekOverlay!.presentationOffset.x < 0)
+    host.advanceAnimations(0.15)
     var image = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&image, "viewer.video.document")
+
+    let overlayTimer = view.seekOverlay!.timer!
+    host.fireTimer(overlayTimer)
+    @assert(!view.seekOverlay!.isLocallyVisible() and view.seekOverlay!.timer == null)
+
+    host.theme.setSwagLight()
+    host.notify(.ThemeChanged)
+    view.showSeekFeedback(-10)
+    let overlayColors = view.seekOverlay!.themeColors()
+    @assert(overlayColors.text.contrastRatio(overlayColors.wnd_Bk) >= 4.5)
+    host.fireTimer(view.seekOverlay!.timer!)
 }
 
 #test
@@ -402,6 +421,7 @@ func videoMatroskaFixturePath()->String
     view.togglePlayback()
     view.seekFrame(5)
     waitForVideoFrame(view)
+    @assert(Math.isEqualEpsilon(view.timeline.value(), cast(f32) view.frameSeconds(5), 0.001))
 
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)

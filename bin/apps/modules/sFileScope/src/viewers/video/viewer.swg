@@ -4,6 +4,151 @@ using Core, Pixel, Gui, Video, Audio
 
 private const VideoGlyphSize = 18.0
 private const VideoSeekSeconds = 10.0
+private const VideoSeekOverlaySize = Math.Point{136, 88}
+private const VideoSeekOverlayLifetime: Time.Duration = 650'ms
+
+// Briefly reports a relative timeline jump over the picture itself.
+//
+// The tile is painted from the active theme rather than from the movie palette, so it remains
+// legible over both bright and dark frames. Presentation transforms move the complete sign in
+// the direction of travel without disturbing layout or hit testing.
+internal struct VideoSeekOverlay
+{
+    using wnd: Wnd
+
+    #[Swag.Late]
+    commands:     *ViewerCommandBar
+    backwardIcon: Icon
+    forwardIcon:  Icon
+    text:         String
+    direction:    s32
+    fontReady:    bool
+    timer:        #null *Timer
+    offsetAni:    AnimationHandle
+    scaleAni:     AnimationHandle
+    opacityAni:   AnimationHandle
+}
+
+private impl IWnd for VideoSeekOverlay
+{
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        let painter = evt.paintContext.painter
+        let rect    = .clientRect()
+        let theme   = .theme()
+        let colors  = .themeColors()
+        let ink     = colors.text
+
+        theme.drawSubRect(painter, rect, &theme.rects.selectionBox_Bk, colors.wnd_Bk.withAlphaF32(0.94))
+
+        let icon     = .direction < 0 ? .backwardIcon : .forwardIcon
+        let font     = .font().regular!
+        let textSize = Painter.measureString(.text.toString(), font)
+        let gap      = 8'f32
+        let width    = icon.sizeX + gap + textSize.width
+        let iconX    = Math.floor(rect.horzCenter() - width * 0.5)
+        let iconY    = Math.floor(rect.vertCenter() - icon.sizeY * 0.5)
+        let textX    = iconX + icon.sizeX + gap
+        let textY    = Math.floor(rect.vertCenter() - font.height * 0.5)
+
+        icon.paint(painter, iconX, iconY, ink)
+        painter.drawString(textX, textY, .text.toString(), font, ink)
+    }
+
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer != .timer
+        {
+            evt.accepted = false
+            return
+        }
+
+        .removeTimer(evt.timer)
+        .timer = null
+        .hide()
+        .resetPresentation()
+    }
+
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    {
+        discard evt
+        if .timer do
+            .removeTimer(.timer!)
+    }
+}
+
+internal impl VideoSeekOverlay
+{
+    func create(parent: *Wnd, commands: *ViewerCommandBar)->*VideoSeekOverlay
+    {
+        let result = Wnd.create'VideoSeekOverlay(parent, "sFileScope.video.seek", {0, 0, VideoSeekOverlaySize.x, VideoSeekOverlaySize.y})
+        result.wndFlags |= WndFlags.TopMost | WndFlags.Disabled
+        result.commands = commands
+        result.hide()
+        return result
+    }
+
+    // Restarts the feedback for one signed jump in seconds.
+    mtd showSeek(seconds: f64)
+    {
+        if seconds == 0 do
+            return
+
+        let animator = &.app().animator
+        if animator.isActive(.offsetAni) do
+            animator.cancel(.offsetAni)
+        if animator.isActive(.scaleAni) do
+            animator.cancel(.scaleAni)
+        if animator.isActive(.opacityAni) do
+            animator.cancel(.opacityAni)
+        if .timer do
+            .removeTimer(.timer!)
+
+        .direction = seconds < 0 ? -1 : 1
+        .text      = Format.toString(seconds < 0 ? "-%" : "+%", cast(u64) Math.round(Math.abs(seconds)))
+        if !.fontReady
+        {
+            .style.setFont(.theme().createDefaultFont(24, .Bold), .Regular)
+            .fontReady = true
+        }
+
+        if .direction < 0 and !.backwardIcon.isValid() do
+            .backwardIcon = .commands.icon(.SeekBackward, 30)
+        if .direction > 0 and !.forwardIcon.isValid() do
+            .forwardIcon = .commands.icon(.SeekForward, 30)
+        let rect = .parent!.clientRect()
+        let size = .preferredSize
+        .setPosition({Math.floor((rect.width - size.x) * 0.5), Math.floor((rect.height - size.y) * 0.5), size.x, size.y}, computeLayout: false)
+        .resetPresentation()
+        .show()
+        .bringToFront()
+        .timer = .addTimer(VideoSeekOverlayLifetime)
+
+        // Reduced motion keeps the information but removes its travel and zoom.
+        if .app().isReducedMotion() do
+            return
+
+        let direction = cast(f32) .direction
+        .setPresentationOffset({-10 * direction, 0})
+        .setPresentationScale({0.9, 0.9})
+
+        var travel: AnimationOptions
+        travel.duration = 600'ms
+        travel.easing   = .EaseOut
+        .offsetAni      = animator.animatePoint(me, AnimationChannel.from("sFileScope.VideoSeek.Offset"), {-10 * direction, 0}, {14 * direction, 0}, func(wnd, value) { wnd.setPresentationOffset(value); }, travel)
+
+        var scale: AnimationOptions
+        scale.duration = 180'ms
+        scale.easing   = .EaseOut
+        .scaleAni      = animator.animatePoint(me, AnimationChannel.from("sFileScope.VideoSeek.Scale"), {0.9, 0.9}, {1, 1}, func(wnd, value) { wnd.setPresentationScale(value); }, scale)
+
+        var fade: AnimationOptions
+        fade.delay    = 350'ms
+        fade.duration = 250'ms
+        fade.easing   = .EaseIn
+        .opacityAni   = animator.animateF32(me, AnimationChannel.from("sFileScope.VideoSeek.Opacity"), 1, 0, func(wnd, value) { wnd.setPresentationOpacity(value); }, fade)
+    }
+}
 
 // How far behind the clock playback is allowed to fall before it gives up and jumps.
 //
@@ -90,6 +235,8 @@ internal struct VideoViewer
         volumeSlider:   *Slider
         imageView:      *ImageView
     }
+
+    seekOverlay: #null *VideoSeekOverlay
 
     // Opening and decoding run on the same persistent worker, preserving codec allocator and
     // thread affinity. `openState` is zero while opening, one on success and two on failure.
@@ -398,6 +545,14 @@ internal impl VideoViewer
     mtd seekRelative(seconds: f64)
     {
         .seekSeconds(.currentSeconds() + seconds)
+        .showSeekFeedback(seconds)
+    }
+
+    mtd showSeekFeedback(seconds: f64)
+    {
+        if !.seekOverlay do
+            .seekOverlay = VideoSeekOverlay.create(me, .commands)
+        .seekOverlay!.showSeek(seconds)
     }
 
     mtd setMuted(muted: bool)
@@ -781,6 +936,7 @@ internal impl VideoViewer
 
         if !.showFrame(target) do
             return
+        .refreshTransport()
         if .resumeAudioAfterSeek and .frameIndex == target do
             .resumeAudio()
 

@@ -87,7 +87,10 @@ struct ViewerLoadingOverlay
     using wnd: Wnd
 
     #[Swag.Late]
-    spinner: *Spinner
+    {
+        spinnerPanel: *Wnd
+        spinner:      *Spinner
+    }
 }
 
 impl ViewerLoadingOverlay
@@ -95,9 +98,11 @@ impl ViewerLoadingOverlay
     func create(parent: *Wnd)->*ViewerLoadingOverlay
     {
         let result = Wnd.create'ViewerLoadingOverlay(parent, "sFileScope.loading")
-        result.wndFlags        |= WndFlags.TopMost
-        result.backgroundStyle = .Transparent
-        result.spinner         = Spinner.create(result, {0, 0, 24, 24})
+        result.wndFlags                     |= WndFlags.TopMost
+        result.backgroundStyle              = .Transparent
+        result.spinnerPanel                 = Wnd.create'Wnd(result, {0, 0, 88, 88})
+        result.spinnerPanel.backgroundStyle = .Panel
+        result.spinner                      = Spinner.create(result.spinnerPanel, {16, 16, 56, 56})
         result.hide()
         return result
     }
@@ -106,13 +111,8 @@ impl ViewerLoadingOverlay
     mtd cover(rect: Math.Rectangle)
     {
         .setPosition(rect, computeLayout: false)
-        let size = .spinner.preferredSize
-        .spinner.setPosition({
-            Math.floor((rect.width - size.x) * 0.5),
-            Math.floor((rect.height - size.y) * 0.5),
-            size.x,
-            size.y},
-                             computeLayout: false)
+        let size = .spinnerPanel.preferredSize
+        .spinnerPanel.setPosition({Math.floor((rect.width - size.x) * 0.5), Math.floor((rect.height - size.y) * 0.5), size.x, size.y}, computeLayout: false)
     }
 }
 

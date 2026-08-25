@@ -42,6 +42,26 @@ effects, no capture.
 - Add a clean-room or permissively licensed MP3 decoder behind the existing `ICodec` registry.
   The extension point is already designed and used, so this is decoder work rather than
   architecture work.
+- Where it stands (2026-08-25): the format's normative data is in
+  `src/codec/mp3/tables.swg` and proved by `mp3.tables.test.swg`. Its provenance is the point:
+  the Huffman code tables were recovered independently from minimp3 (CC0) and PDMP3 (Unlicence),
+  and all 1,298 code words agree between the two; every table is a complete prefix code, and the
+  test walks each normative code word through the tree the decoder will use. The MPEG-1
+  scalefactor bands agree between the two sources as well. The MPEG-2 and MPEG-2.5 band rows have
+  one source only, so the first decoder that reads them must be measured at every sampling
+  frequency, not just at 44.1 kHz.
+- What is left is the decoder: frame header, side information, the bit reservoir, scalefactors
+  (MPEG-1 and the low sampling frequency form), Huffman and count1 decoding, requantization,
+  mid/side and intensity stereo, short-block reordering, alias reduction, the inverse transform,
+  and the polyphase filter bank. Then a `.mp3` file reader beside `src/file/flac`, which needs
+  ID3v2 skipping, a frame index, and the Xing/LAME encoder delay so a decode lines up with what
+  every other player produces.
+- How to prove it: a lossy codec cannot be compared byte for byte, so measure the root mean
+  square difference against FFmpeg's decode of the same file, as the ISO compliance criterion
+  does. Fixtures are producible here — libmp3lame through PyAV 17.1 encodes the repository's own
+  synthetic tones — and one per sampling frequency is what covers the band tables. Add one
+  transient clip at a high bit rate as well, or short blocks and the escape-coded tables never
+  run.
 - Why first: everything else on this list is a refinement of a library that plays audio. This is
   what decides whether it can be used at all.
 - Related: T-166, T-168, T-169, T-562

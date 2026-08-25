@@ -1198,6 +1198,10 @@ private impl VideoViewer
         .video  = #move .pendingVideo
         .planar = .video.hasPlanarFrames()
         .prepareSlots()
+
+        // A stream whose samples are not square is stored with fewer columns than it is shown
+        // with; the view stretches the picture back to the shape it was mastered in.
+        .imageView.setDisplaySize(.video.displayWidth(), .video.displayHeight())
         try .finishMetadata()
 
         .refreshTransport()

@@ -127,3 +127,27 @@ using Swag, Core, Pixel
     @assert(!view.hasContent())
     @assert(!view.uploadedTexture.isValid())
 }
+
+// A picture whose samples are not square is laid out and fitted with the size it is shown at,
+// while the storage it was given keeps every column it holds.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 220)
+    defer host.shutdown()
+
+    let view  = ImageView.create(&host.root, {0, 0, 300, 200})
+    var image = Image.create(100, 50, .RGBA8)
+    image.fill(Argb.White)
+    view.setImage(image)
+    @assert(view.isFitted)
+    @assert(Math.isEqualEpsilon(view.effectiveZoom(), 3, 0.001))
+
+    // Two hundred columns across the same fifty rows: the fit halves.
+    view.setDisplaySize(200, 50)
+    @assert(view.isFitted)
+    @assert(Math.isEqualEpsilon(view.effectiveZoom(), 1.5, 0.001))
+
+    view.setDisplaySize(0, 0)
+    @assert(Math.isEqualEpsilon(view.effectiveZoom(), 3, 0.001))
+}

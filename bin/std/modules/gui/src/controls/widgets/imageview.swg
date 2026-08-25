@@ -35,6 +35,13 @@ struct ImageView
     // produced and converts it where it samples, so the view knows its geometry and nothing else.
     planarWidth:     s32
     planarHeight:    s32
+
+    // Size the content is laid out and drawn at, when that is not its own pixel size.
+    //
+    // A picture whose samples are not square is stored with fewer or more columns than it is
+    // shown with. Zero on either axis means the content states its own shape.
+    displayWidth:    s32
+    displayHeight:   s32
 }
 
 private impl ImageView
@@ -49,9 +56,15 @@ private impl ImageView
     // Reports whether the view has something to paint, whatever kind of content it holds.
     mtd const hasContent()->bool => .currentImage().isValid() or .planarWidth > 0
 
-    // Returns the size of the content in its own pixels.
+    // Returns the size the content is laid out and drawn at.
+    //
+    // That is its own pixel size unless a caller stated another one, which is what a picture
+    // whose samples are not square needs: the texture keeps every sample it was given and the
+    // rectangle it is drawn into carries the shape.
     mtd const contentSize()->{ width, height: s32 }
     {
+        if .displayWidth > 0 and .displayHeight > 0 do
+            return {.displayWidth, .displayHeight}
         let source = .currentImage()
         if source.isValid() do
             return {source.width, source.height}
@@ -282,6 +295,27 @@ impl ImageView
     // try reader.decodeFramePlanesInto(&picture, index)
     // view.updateVideoFrame(picture.view())
     // ```
+    // States the size the content is shown at, whatever size it is stored in.
+    //
+    // A picture mastered for a television standard stores samples that are not square: 720 by 576
+    // samples shown across sixteen units by nine. Pass that shown size here and the view lays out
+    // and draws the picture with it; pass zero to go back to the content's own size. The texture
+    // is untouched, so nothing is resampled twice.
+    //
+    // ```swag
+    // view.setDisplaySize(reader.displayWidth(), reader.displayHeight())
+    // ```
+    mtd setDisplaySize(width, height: s32)
+    {
+        if width == .displayWidth and height == .displayHeight do
+            return
+        .displayWidth  = Math.max(width, 0)
+        .displayHeight = Math.max(height, 0)
+        if .isFitted do
+            .zoomToFit()
+        .invalidate()
+    }
+
     mtd updateVideoFrame(view: const *Yuv420View)
     {
         if view.width <= 0 or view.height <= 0

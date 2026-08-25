@@ -13,6 +13,15 @@ struct StreamInfo
         width:  s32     // Frame width, in pixels.
         height: s32     // Frame height, in pixels.
 
+        // Size the frame is meant to be shown at, in pixels, when that is not its stored size.
+        //
+        // A picture whose samples are not square — anything mastered for a television standard,
+        // and most of what a disc was encoded from — stores fewer or more columns than it is
+        // shown with. Zero means the stored size is the shown size, which is what every modern
+        // encode states.
+        displayWidth:  s32
+        displayHeight: s32
+
         frameRate: FrameRate     // Exact playback rate.
 
         // Number of frames in the stream, or zero when the format cannot report it without

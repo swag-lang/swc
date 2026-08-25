@@ -306,3 +306,12 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
         @assert(Memory.compare(cut.pixels.buffer!, entire.pixels.buffer!, cut.pixels.count) == 0)
     }
 }
+
+// A track that states no display size is shown at the size it stores.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv").toString())
+    @assert(reader.displayWidth() == reader.width())
+    @assert(reader.displayHeight() == reader.height())
+    reader.close()
+}

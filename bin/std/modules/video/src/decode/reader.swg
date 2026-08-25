@@ -284,6 +284,16 @@ impl Reader
     // Returns the frame height, in pixels.
     mtd const height()->s32 => .info.height
 
+    // Returns the width the frames are meant to be shown at, or the stored width.
+    //
+    // A stream whose samples are not square states a size to show its pictures at that is not
+    // the size it stores them in. Draw a frame into a rectangle of this shape and the picture
+    // has the geometry it was mastered with; use [[Video.Reader.width]] to size a buffer.
+    mtd const displayWidth()->s32 => .info.displayWidth ? .info.displayWidth : .info.width
+
+    // Returns the height the frames are meant to be shown at, or the stored height.
+    mtd const displayHeight()->s32 => .info.displayHeight ? .info.displayHeight : .info.height
+
     // Returns the exact frame rate.
     mtd const frameRate()->FrameRate => .deferred ? .deferred!.frameRate() : .info.frameRate
 

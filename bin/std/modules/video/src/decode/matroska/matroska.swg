@@ -81,6 +81,9 @@ private struct Track
     seekPreRoll:     u64
     width:           s32
     height:          s32
+    displayWidth:    u64     // What the track states it is shown at, in the unit below.
+    displayHeight:   u64
+    displayUnit:     u64     // 0 is pixels, 3 is a bare ratio; everything else is unusable here.
     sampleRate:      f64  = 8_000
     channels:        u32  = 1
     bitsPerSample:   u32
@@ -97,6 +100,27 @@ private struct Track
 
 private impl Track
 {
+    // Returns the size the pictures of this track are shown at, or nothing when it is their own.
+    //
+    // A track states the two sizes separately, and their ratio is what matters: a display size
+    // equal to the stored one, or missing, means square samples. Unit 0 states pixels and unit 3
+    // states a bare ratio; the physical units are not something a window can act on.
+    mtd const displaySize(width, height: s32)->{ width, height: s32 }
+    {
+        if .displayUnit != 0 and .displayUnit != 3 do
+            return {0, 0}
+        if !.displayWidth or !.displayHeight or width <= 0 or height <= 0 do
+            return {0, 0}
+        if .displayWidth * cast(u64) height == .displayHeight * cast(u64) width do
+            return {0, 0}
+
+        // The taller of the two axes keeps its stored resolution, so a picture is only ever
+        // stretched: shrinking one instead would throw away samples the stream carries.
+        if .displayWidth * cast(u64) height > .displayHeight * cast(u64) width do
+            return {cast(s32) ((cast(u64) height * .displayWidth + .displayHeight / 2) / .displayHeight), height}
+        return {width, cast(s32) ((cast(u64) width * .displayHeight + .displayWidth / 2) / .displayWidth)}
+    }
+
     mtd const isPlayableVideo()->bool
     {
         if !.isEnabled or .hasEncodings or .kind != VideoTrackType do
@@ -359,10 +383,16 @@ private impl Layout
         return true
     }
 
+    // Reports whether every playable sound track is indexed through `timestampNanoseconds`.
+    //
+    // A file whose sound this module cannot read has nothing to index and nothing to wait for, so
+    // the answer is yes. Answering no there made the window scan walk the whole file looking for
+    // packets that were never going to appear: a seek in a fourteen-gigabyte film whose only
+    // tracks are unsupported never returned.
     mtd const hasAudioThrough(timestampNanoseconds: s64)->bool
     {
         if !.audioTracks.count do
-            return false
+            return true
         for trackIndex in .audioTracks
         {
             let track = &.tracks[trackIndex]
@@ -892,6 +922,10 @@ private impl Layout
                 if height > cast(u64) Swag.S32.Max do
                     fail InvalidFormatError{"Matroska video height exceeds the supported range"}
                 track.height = cast(s32) height
+
+            case DisplayWidthId:  track.displayWidth = cursor.readUnsigned(element)
+            case DisplayHeightId: track.displayHeight = cursor.readUnsigned(element)
+            case DisplayUnitId:   track.displayUnit = cursor.readUnsigned(element)
             }
 
             cursor.seek(element.end)
@@ -1261,7 +1295,15 @@ private const SoundIndexIdle = 0'u32
 private const SoundIndexRunning = 1'u32
 private const SoundIndexReady = 2'u32
 private const SoundIndexFailed = 3'u32
-private const SoundSeekRunAheadNanoseconds = 10_000_000_000's64
+// How much sound one bounded window carries, and how close the picture may come to its end.
+//
+// The complete packet tables are built by a background walk of the whole file, which on a large
+// film held on a network share takes minutes. Until they arrive the sound is whatever window the
+// last seek published, so a window that ends while the picture is still playing is silence. These
+// two decide how long a window lasts and how early the next one is built.
+private const SoundSeekRunAheadNanoseconds = 60_000_000_000's64
+private const SoundWindowRefreshNanoseconds = 20_000_000_000's64
+private const SoundWindowRetryNanoseconds = 5_000_000_000's64
 private const SoundSeekPreRollNanoseconds = 1_000_000_000'u64
 private const SoundSeekPreRollSeconds = 1.0
 
@@ -1286,6 +1328,7 @@ private struct FileIndex
     soundStatus:         u32
     soundStage:          u32
     currentSeekSound:    u64
+    seekSoundEnd:        s64     // Where the published window stops carrying sound.
 }
 
 private func publishFullSound(index: *FileIndex, tracks: *Array'SoundFile)
@@ -1299,11 +1342,20 @@ private func publishFullSound(index: *FileIndex, tracks: *Array'SoundFile)
 
 private func publishSeekSound(index: *FileIndex, tracks: *Array'SoundFile)
 {
+    // The window ends where its shortest track does: sound stops there whatever the others hold.
+    var coverEnd = Swag.S64.Max
+    for sound in tracks
+    {
+        let end = cast(s64) Math.round((sound.timelineStartSeconds() + sound.durationInSeconds()) * 1_000_000_000.0)
+        coverEnd = Math.min(coverEnd, end)
+    }
+
     let published = Memory.new'PublishedSound()
     published.tracks = #move tracks[]
 
     Sync.scopedLock(&index.soundLock)
     index.seekSounds.add(published)
+    Atomic.exchange(&index.seekSoundEnd, coverEnd)
     Atomic.exchange(&index.currentSeekSound, cast(u64) published)
 }
 
@@ -1349,11 +1401,9 @@ private func buildSoundWindow(index: *FileIndex, timestampNanoseconds: u64) fail
     let cue          = layout.cueAtOrBefore(cueTimestamp)
     try layout.resetMediaAt(cue ? cue!.clusterOffset : layout.segment.data)
 
-    var requestedEnd: s64
-    if timestampNanoseconds
-    {
-        requestedEnd = timestampNanoseconds > cast(u64) Swag.S64.Max - cast(u64) SoundSeekRunAheadNanoseconds ? Swag.S64.Max : cast(s64) timestampNanoseconds + SoundSeekRunAheadNanoseconds
-    }
+    // The run-ahead applies at the start of the file too: a window built without it holds only
+    // whatever one cluster happened to carry, which is about two seconds of sound.
+    let requestedEnd = timestampNanoseconds > cast(u64) Swag.S64.Max - cast(u64) SoundSeekRunAheadNanoseconds ? Swag.S64.Max : cast(s64) timestampNanoseconds + SoundSeekRunAheadNanoseconds
     if !layout.indexAudioThrough(bytes, requestedEnd, &index.cancel) do
         fail BadParameterError{"video reader operation was cancelled"}
 
@@ -1407,6 +1457,7 @@ struct Decoder
         streamOpen:         bool
         memoryComplete:     bool
         resumeSoundIndexAfterDecode: bool
+        soundWindowAttempt: s64     // Earliest picture time the next window extension may be built at.
         sawVideoSync:       bool        // A sample the container marks as a clean decode point was seen.
         syncScanAt:         u64         // How far the search for one has read.
     }
@@ -1454,6 +1505,9 @@ private impl Decoder
             .info.width  = sps!.width()
             .info.height = sps!.height()
         }
+        let display = video.displaySize(.info.width, .info.height)
+        .info.displayWidth  = display.width
+        .info.displayHeight = display.height
         if video.defaultDuration do
             .info.frameRate = frameRateFromDuration(video.defaultDuration)
         if layout.durationTicks > 0 do
@@ -1546,7 +1600,11 @@ private impl Decoder
         let layout    = fileIndex.progressive!
         let bytes     = fileIndex.region.bytes()
         let target    = .targetTimestamp(index)
-        if target >= 0 do
+        .soundWindowAttempt = 0
+
+        // A container whose sound this module cannot read has no window to build; asking for one
+        // walked the whole file looking for packets that were never going to appear.
+        if target >= 0 and layout.audioTracks.count do
             discard catch buildSoundWindow(fileIndex, cast(u64) target) as soundWindowError
         let cue       = target >= 0 ? layout.cueAtOrBefore(cast(u64) target) : null
         if cue do
@@ -1614,6 +1672,7 @@ private impl Decoder
             let video = &layout.tracks[layout.selectedVideo]
             try .appendAvailableFrames(video)
             .presentationOrigin = .video.presentationTimeAtRank(0)
+            .refineFrameRate()
         }
 
         if index < .windowBaseRank or index - .windowBaseRank > .streamSampleCount
@@ -1633,6 +1692,31 @@ private impl Decoder
             fail BadParameterError{"Matroska frame index exceeds the stream frame count"}
         if layout.indexComplete and !.windowBaseRank do
             .info.frameCount = .streamSampleCount
+    }
+
+    // Replaces a declared frame duration the pictures themselves contradict.
+    //
+    // `DefaultDuration` is what a track states about itself, and a muxer can state anything: one
+    // film of a real library declares one millisecond, which reads as a thousand pictures a
+    // second and puts the playback clock a thousand times past where the picture is. The times
+    // the pictures actually carry are the answer, and by here the first window of them is
+    // indexed. They are believed only when they disagree with the declaration by half again,
+    // which no rounding of a real rate ever does.
+    mtd refineFrameRate()
+    {
+        if .streamSampleCount < 2 do
+            return
+
+        let span = cast(u64) (.video.presentationTimeAtRank(.streamSampleCount - 1) - .presentationOrigin)
+        if !span do
+            return
+
+        let observed = Math.max(span / (.streamSampleCount - 1), 1)
+        let declared = .info.frameRate.isValid() ? cast(u64) Math.round(1_000_000_000.0 * cast(f64) .info.frameRate.denominator() / cast(f64) .info.frameRate.numerator()) : 0
+        if declared and observed * 2 < declared * 3 and declared * 2 < observed * 3 do
+            return
+
+        .info.frameRate = catch frameRateFromDuration(observed)
     }
 
     mtd const currentFrameCount()->u64
@@ -1664,6 +1748,32 @@ private impl Decoder
             return 0
         let seconds = Math.max((timestampNanoseconds - cast(f64) .presentationOrigin) / 1_000_000_000.0, 0)
         return cast(u64) Math.ceil(seconds * cast(f64) rate.numerator() / cast(f64) rate.denominator())
+    }
+
+    // Keeps the bounded sound window ahead of the picture being decoded.
+    //
+    // A window covers a fixed run of sound from where it was built. Playing past its end is
+    // silence until the background walk publishes the complete tables, which is minutes on a
+    // large file; building the next window as the picture approaches the end of this one is what
+    // keeps the sound running in between.
+    mtd extendSoundWindow(index: u64)
+    {
+        let fileIndex = .fileIndex
+        if !fileIndex or !fileIndex!.progressive!.audioTracks.count do
+            return
+        if !Atomic.get(&fileIndex!.currentSeekSound) do
+            return
+
+        let target = .targetTimestamp(index)
+        if target < 0 or target < .soundWindowAttempt do
+            return
+        if target + SoundWindowRefreshNanoseconds < Atomic.get(&fileIndex!.seekSoundEnd) do
+            return
+
+        // A window that cannot be built is not retried on the next picture: the walk that would
+        // fix it is already running, and asking again every frame would stall every one of them.
+        .soundWindowAttempt = target + SoundWindowRetryNanoseconds
+        discard catch buildSoundWindow(fileIndex!, cast(u64) target) as extendError
     }
 
     mtd resumeSoundIndex()
@@ -1808,6 +1918,7 @@ impl IDecoder for Decoder
             .resumeSoundIndexAfterDecode = true
         }
         defer #fail .resumeSoundIndex()
+        .extendSoundWindow(index)
         .ensureFrames(index)
         try .ensureDecodablePoint()
         .video.seekTo(index - .windowBaseRank)

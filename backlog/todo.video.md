@@ -173,6 +173,30 @@ is the layout it does not read yet.
 - Complete when: the serial cost of one 3840x2160 picture is within a third of FFmpeg's on the same
   machine.
 
+### T-569 — A bounded sound window carries playback until the packet tables arrive
+
+- Intent: a Matroska file states its sound in clusters spread through the whole file, so the
+  complete packet tables cost a walk of every byte of it — 171 seconds for a 4.6 GB film on a
+  network share, against 1.9 once the operating system holds it. Until they arrive, sound comes
+  from a bounded window built around the position being played, and that window has to keep up
+  with the picture on its own.
+- Where it stands (2026-08-25): the window carries sixty seconds and is rebuilt when the picture
+  comes within twenty of its end, which is one rebuild about every forty seconds of playback and
+  costs 110 to 140 ms on the thread that decodes — absorbed by the run-ahead queue. Before this it
+  was built once, and only around a seek: sound played for the two seconds the opening window
+  happened to hold, then stopped for the rest of the film. Verified over two minutes of playback
+  and across a seek: the window slid 0-60, 38-101, 80-142 and never stopped covering the picture.
+- What it costs the listener, and what would remove it: every rebuild publishes a new sound file,
+  so the player builds a new voice and the sound is interrupted for as long as that takes. The
+  window slides rather than grows because a packet table cannot be extended once opened —
+  `Audio.SoundFile.openPacketStream` takes its packets by value and the voice reads them with no
+  lock. An append that a playing voice can survive would let one window grow instead, and the
+  seam would disappear along with the rebuild.
+- Also worth doing: every window published stays alive until the file is closed, since a caller
+  may still hold a pointer into the previous one. That is bounded in practice — the complete
+  tables end the rebuilds after a few minutes — but nothing retires them.
+- Related: T-563
+
 ### T-425 — An AVI larger than four gigabytes is refused
 
 - Intent: every size in the AVI container is a 32-bit field, so the encoder refuses a stream that

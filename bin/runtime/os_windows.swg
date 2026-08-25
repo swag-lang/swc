@@ -35,6 +35,7 @@ namespace __Win32RT
     const PAGE_NOACCESS        = 0x0000_0001'u32
 
     const PF_AVX2_INSTRUCTIONS_AVAILABLE = 40'u32
+    const CP_UTF8                        = 65001'u32
 
     #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
     {
@@ -44,6 +45,8 @@ namespace __Win32RT
         func GetModuleHandleA(lpModuleName: #null const *u8)->#null *void
         func GetModuleHandleExA(dwFlags: DWORD, lpModuleName: #null const *u8, phModule: *#null *void)->BOOL
         func GetCommandLineA()->#null const [*] u8
+        func GetCommandLineW()->#null const [*] u16
+        func WideCharToMultiByte(codePage, dwFlags: DWORD, lpWideCharStr: const [*] u16, cchWideChar: s32, lpMultiByteStr: #null [*] u8, cbMultiByte: s32, lpDefaultChar: #null const *u8, lpUsedDefaultChar: #null *s32)->s32
         func GetStdHandle(nStdHandle: u32)->HANDLE
         func WriteFile(hFile: HANDLE, lpBuffer: #null const *void, nNumberOfBytesToWrite: u32, lpNumberOfBytesWritten: #null *u32, lpOverlapped: #null *void)->u32
         func GetCurrentProcess()->HANDLE
@@ -241,7 +244,26 @@ impl MutexRW
 // arguments, which is the shape '@args' parses.
 func __osCommandLine()->#null string
 {
-    let cmdLine = __Win32RT.GetCommandLineA()
+    // The system states the command line in both eight-bit and wide forms, and only the wide one
+    // carries what the user actually typed: the eight-bit one is folded into the machine's legacy
+    // code page, where every character outside it becomes a question mark. A path is then a path
+    // that does not exist, which is how a program launched on a file whose name holds an accent
+    // opened nothing at all. The conversion below is the only place this run does it, and the
+    // buffer it writes into is never released, matching the lifetime the system's own has.
+    using __Win32RT
+    let wide = GetCommandLineW()
+    if wide
+    {
+        let bytes = WideCharToMultiByte(CP_UTF8, 0, wide!, -1, null, 0, null, null)
+        if bytes > 1
+        {
+            let buffer = cast(#null [*] u8) VirtualAlloc(null, cast(u64) bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)
+            if buffer and WideCharToMultiByte(CP_UTF8, 0, wide!, -1, buffer, bytes, null, null) == bytes do
+                return @mkstring(buffer!, cast(u64) (bytes - 1))
+        }
+    }
+
+    let cmdLine = GetCommandLineA()
     if !cmdLine do
         return null
     return @mkstring(cmdLine!, @countof(cast(const cstring) cmdLine!))

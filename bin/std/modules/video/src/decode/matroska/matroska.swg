@@ -18,34 +18,9 @@ private const FlacCodecId = "A_FLAC"
 private const Mp3CodecId = "A_MPEG/L3"
 private const Mpeg4CodecId = "V_MPEG4/ISO/ASP"
 private const VfwCodecId = "V_MS/VFW/FOURCC"
-private const BitmapInfoHeaderSize = 40'u64
-private const FourCcOffset = 16'u64
-
-// The four-character codes a Video for Windows header can name for MPEG-4 Part 2.
-//
-// A track muxed from an AVI file states its codec the way that file did: a bitmap header whose
-// compression field holds four characters an encoder stamped there. Only codes that name ISO
-// Part 2 belong here. The Microsoft codecs of the same era share the lineage but not the
-// bitstream, so their codes are absent and a track naming one is refused rather than guessed at.
-private const Mpeg4FourCcs = ["XVID", "DIVX", "DX50", "FMP4", "MP4V", "MP4S", "M4S2", "BLZ0",
-                              "RMP4", "SEDG", "WV1F", "FFDS", "FVFW", "3IV2", "UMP4", "HDX4",
-                              "DXGM", "SMP4", "PM4V"]
 private const DefaultTimestampScale = 1_000_000'u64
 private const NoTrack = Swag.U64.Max
 private const NoOffset = Swag.U64.Max
-
-// The setup headers at the front of a coded sample: everything before the first coded plane.
-//
-// A track muxed from a legacy file states no setup headers in the container, and the decoder needs
-// them before it can read anything, so they are taken from where the stream itself carries them.
-private func inlineSetupHeaders(sample: const [..] u8)->const [..] u8
-{
-    if @countof(sample) < 4 do
-        return sample
-    for at in @countof(sample) - 3 where !sample[at] and !sample[at + 1] and sample[at + 2] == 1 and cast(u32) sample[at + 3] == Mpeg4.CodeVop do
-        return sample[0 until at]
-    return sample
-}
 
 private func packetBits(bytes: const [..] u8, offset: u64, bitPosition, count: u32)->u32
 {
@@ -131,22 +106,9 @@ private impl Track
     // Whether a Video for Windows header names a codec this decoder reads.
     mtd const isVfwMpeg4()->bool
     {
-        if .codecId != VfwCodecId or .codecPrivate.count < BitmapInfoHeaderSize do
+        if .codecId != VfwCodecId or .codecPrivate.count < Video.BitmapInfoHeaderSize do
             return false
-
-        var code: [4] u8
-        for index in 4'u64 do
-            code[index] = Latin1.toUpper(.codecPrivate[FourCcOffset + index])
-        for name in Mpeg4FourCcs
-        {
-            var same = true
-            for index in 4'u64 where code[index] != name[index] do
-                same = false
-            if same do
-                return true
-        }
-
-        return false
+        return Video.isMpeg4FourCc(Video.bitmapCompression(.codecPrivate.toSlice()))
     }
 
     // The setup headers of a picture track, wherever the file states them.
@@ -154,15 +116,15 @@ private impl Track
     {
         if .codecId != VfwCodecId do
             return .codecPrivate.toSlice()
-        if .codecPrivate.count > BitmapInfoHeaderSize do
-            return .codecPrivate.toSlice()[BitmapInfoHeaderSize until .codecPrivate.count]
+        if .codecPrivate.count > Video.BitmapInfoHeaderSize do
+            return .codecPrivate.toSlice()[Video.BitmapInfoHeaderSize until .codecPrivate.count]
 
         // A bitmap header that names the codec and nothing more leaves the layer to the stream.
         return .setup.toSlice()
     }
 
     // Whether the setup headers have to be taken from the first sample.
-    mtd const needsInlineSetup()->bool => .codecId == VfwCodecId and .codecPrivate.count <= BitmapInfoHeaderSize
+    mtd const needsInlineSetup()->bool => .codecId == VfwCodecId and .codecPrivate.count <= Video.BitmapInfoHeaderSize
 
     // Which coded picture format this track names.
     mtd const pictureKind()->u32
@@ -1138,7 +1100,7 @@ private impl Layout
             if track.videoSamples.count == 1 and track.needsInlineSetup()
             {
                 let end = Math.min(payload + .laceSizes[0], @countof(cursor.bytes))
-                track.setup.add(inlineSetupHeaders(cursor.bytes[payload until end]))
+                track.setup.add(Video.inlineSetupHeaders(cursor.bytes[payload until end]))
             }
             return
         }

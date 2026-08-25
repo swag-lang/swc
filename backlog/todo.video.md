@@ -224,8 +224,9 @@ is the layout it does not read yet.
   - In a bidirectional plane the forward and backward vector predictors start over **at every row
     of macroblocks**, not only at the plane and at each video packet. Getting this wrong costs no
     bits, so nothing desynchronises and the pictures are merely, quietly, slightly wrong.
-- What remains, and it is a container gap rather than a codec one: six of the twenty-three files
-  are AVI, and the AVI reader decodes Motion JPEG and uncompressed frames alone — T-566.
+- The six AVI files of the twenty-three were delivered the same day through T-566; one of those is
+  refused for a reason that has nothing to do with this codec, so twenty-two of twenty-three now
+  decode.
 - Also still open: a container whose picture codec is unsupported could expose its sound tracks
   instead of failing to open. That is what the one RealVideo file and the twenty-two DTS tracks
   need.
@@ -234,17 +235,18 @@ is the layout it does not read yet.
   E-AC-3 53, DTS 22, Layer III 21, FLAC 2, Vorbis 2, TrueHD 2.
 - Related: T-562, T-566
 
-### T-566 — AVI reads no MPEG-4 Part 2, so six files of the library stay shut
+### T-566 — AVI reads MPEG-4 Part 2; one file of the library still needs OpenDML
 
-- The decoder is there and Matroska drives it; AVI does not. Its reader accepts Motion JPEG and
-  uncompressed frames alone, so a file whose stream header names `XVID` or `DX50` fails to open,
-  sound included.
-- Six of the twenty-three MPEG-4 Part 2 files measured in T-565 are AVI, and all six state their
-  codec exactly the way the Video for Windows tracks of the seventeen Matroska ones do: a bitmap
-  header whose compression field holds four characters. The mapping from those four characters to
-  a picture codec already exists, in `matroska.swg`, and wants to be shared rather than repeated.
-- Two things AVI will need that Matroska did not: the setup headers are always inside the stream
-  there, never in the container, so the geometry has to be answered from the first sample or from
-  the stream header; and packing is the norm rather than the exception, which the decoder already
-  reads but which makes the picture count and the frame index disagree unless the padding planes
-  are counted the way T-565 counts them.
+- Delivered 2026-08-25, the same day the Matroska side was. The AVI reader drives the same picture
+  decoder the other containers do, names the codec through the four characters of its bitmap
+  header, reads the setup headers from the front of the first frame because AVI states none of its
+  own, and takes clean decode points from the `AVIIF_KEYFRAME` flag of the index. The mapping from
+  four characters to a picture codec is shared with Matroska in `decode/videoforwindows.swg`
+  rather than repeated.
+- `ffmpeg-mpeg4-packed.avi` is the fixture: the same 96x64, 60-picture content as the other MPEG-4
+  fixtures, muxed into AVI so that packing, in-stream setup headers, and the index are all read.
+  It decodes at a mean absolute difference of 0.053 with no sample off by more than 2.
+- Of the six AVI files of the library measured in T-565, five decode — one of them bit for bit over
+  forty pictures, the rest at a mean of at most 0.0024. The sixth is refused before any picture is
+  read, with `AVI chunk runs past the end of the stream`: it is an OpenDML file of 1.16 GB with no
+  `idx1`, which is T-425 rather than anything to do with this codec.

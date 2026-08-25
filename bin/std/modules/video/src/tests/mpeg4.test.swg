@@ -70,6 +70,15 @@ func mpeg4AssertStream(name: string, container: string, width, height: s32, fram
     mpeg4AssertStream("ffmpeg-mpeg4-bvop", "mkv", 96, 64, 60, 0.1, 4)
 }
 
+// The same content in AVI, which is where this codec mostly lived. That container states no
+// decoding order, so the setup headers ride in the stream, a bidirectional plane is stored behind
+// the plane it refers forward to, and a plane that codes nothing pads the sample it would have
+// taken. Display order therefore comes from the clock the stream states.
+#test
+{
+    mpeg4AssertStream("ffmpeg-mpeg4-packed", "avi", 96, 64, 60, 0.1, 4)
+}
+
 // The reader states the geometry from the setup headers, before any plane is read.
 #test
 {

@@ -35,8 +35,11 @@ Four codecs ship in the box:
 - YUV4MPEG2 (`.y4m`) reads progressive 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4
   YCbCr frames and writes 4:4:4 ones. It does not compress, so it favors a small
   implementation over the size of what it produces.
-- AVI (`.avi`) reads Motion JPEG and uncompressed frames, exposes integer PCM sound tracks, and
-  writes Motion JPEG pictures. It seeks through the index the container carries rather than
+- AVI (`.avi`) reads Motion JPEG, MPEG-4 Part 2, and uncompressed frames, exposes integer PCM sound
+  tracks, and writes Motion JPEG pictures. A coded stream states its codec through the bitmap
+  header of the container and its setup headers inside the stream, and stores a bidirectional plane
+  behind the plane it refers forward to, which is what this container's lack of a decoding order
+  costs. It seeks through the index the container carries rather than
   through the frames themselves, so a seek costs one frame whatever the length of the file.
 - ISO-BMFF (`.mp4`, `.m4v`, and `.mov`) reads Motion JPEG, H.264, and H.265 pictures, writes
   Motion JPEG, and exposes AAC-LC mono/stereo audio. It expands compact sample tables into direct

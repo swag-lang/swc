@@ -1,10 +1,10 @@
-using Core, Core.Errors, Gui, Audio
+using Core, Core.Errors, Gui, Audio, Pixel, Video
 
 // The stable identity of the host's own text surface, in the persisted vocabulary its
 // registered neighbours use.
 const BasicTextViewerKey = "text"
 
-// One integrated viewer associated with lowercase extensions or exact file names.
+// One integrated viewer associated with lowercase extensions, exact file names, or every file.
 struct ViewerSpec
 {
     // Stable identity of the viewer, written into the persisted state. It is the name a reader's
@@ -70,16 +70,36 @@ func createViewerIndex()->ViewerIndex
 {
     var result: retval
     addViewer(&result, "html", "HTML", .Html, &createHtmlViewer, ".htm;.html;.shtml;.xht;.xhtml")
-    addViewer(&result, "code", "Code", .Code, &createCodeViewer, ".swg;.swgs;.c;.h;.cc;.cpp;.cxx;.hh;.hpp;.hxx;.inl;.ipp;.cs;.java;.js;.jsx;.mjs;.cjs;.ts;.tsx;.mts;.cts;.go;.rs;.py;.pyw;.pyi;.rb;.rake;.gemspec;.sh;.bash;.zsh;.fish;.ps1;.psm1;.psd1;.php;.phtml;.lua;.sql;.json;.jsonc;.json5;.xml;.xsd;.xsl;.xslt;.csproj;.vcxproj;.props;.targets;.css;.scss;.sass;.less;.yaml;.yml;.toml;.ini;.cfg;.conf;.properties;.kt;.kts;.swift;.dart;.r;.pl;.pm;.vb;.glsl;.vert;.frag;.geom;.comp;.hlsl;.fx;.cmake;.bat;.cmd;.htm;.html;.shtml;.xht;.xhtml;.asm;.s;.zig;.nim;.nims;.nimble;.hs;.lhs;.scala;.sc;.groovy;.gvy;.gy;.gsh;.ex;.exs;.erl;.hrl;.clj;.cljs;.cljc;.edn;.jl;.f;.for;.f77;.f90;.f95;.f03;.f08;.pas;.pp;.lpr;.d;.di;.m;.mm;.tcl;.tk;.awk;.vim;.tex;.sty;.cls;.bib;.proto;.graphql;.gql;.gradle;.mk;.mak;.make;makefile;gnumakefile;bsdmakefile;.dockerfile;dockerfile;containerfile;.nix")
+    addViewer(&result, "code", "Code", .Code, &createCodeViewer, ".swg;.swgs;.c;.h;.cc;.cpp;.cxx;.hh;.hpp;.hxx;.inl;.ipp;.cs;.java;.js;.jsx;.mjs;.cjs;.ts;.tsx;.mts;.cts;.go;.rs;.py;.pyw;.pyi;.rb;.rake;.gemspec;.sh;.bash;.zsh;.fish;.ps1;.psm1;.psd1;.php;.phtml;.lua;.sql;.json;.jsonc;.json5;.xml;.xsd;.xsl;.xslt;.csproj;.vcxproj;.props;.targets;.css;.scss;.sass;.less;.yaml;.yml;.toml;.ini;.cfg;.conf;.properties;.kt;.kts;.swift;.dart;.r;.pl;.pm;.vb;.glsl;.vert;.frag;.geom;.comp;.hlsl;.fx;.cmake;.bat;.cmd;.htm;.html;.shtml;.xht;.xhtml;.asm;.s;.incasm;.zig;.nim;.nims;.nimble;.hs;.lhs;.scala;.sc;.groovy;.gvy;.gy;.gsh;.ex;.exs;.erl;.hrl;.clj;.cljs;.cljc;.edn;.jl;.f;.for;.f77;.f90;.f95;.f03;.f08;.pas;.pp;.lpr;.d;.di;.m;.mm;.tcl;.tk;.awk;.vim;.tex;.sty;.cls;.bib;.proto;.graphql;.gql;.gradle;.mk;.mak;.make;makefile;gnumakefile;bsdmakefile;.dockerfile;dockerfile;containerfile;cmakelists.txt;justfile;rakefile;gemfile;vagrantfile;podfile;brewfile;jenkinsfile;meson.build;.gitignore;.gitattributes;.gitmodules;.editorconfig;.clang-format;.clang-tidy;.prettierrc;.eslintrc;.npmrc;.yarnrc;.env;.nix")
     addViewer(&result, "markdown", "Markdown", .Markdown, &createMarkdownViewer, ".markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd")
-    addViewer(&result, "image", "Image", .Image, &createImageViewer, ".bmp;.cur;.gif;.ico;.jpeg;.jpg;.png;.svg;.tga;.tif;.tiff;.webp")
-    addViewer(&result, "video", "Video", .Video, &createVideoViewer, ".y4m;.avi;.mp4;.m4v;.mov;.mkv")
+
+    var imageExtensions: Array'String
+    let imageFormats = Image.decodableFormats()
+    for format in imageFormats
+    {
+        for extension in Tokenize.split(format.extensions, ';'u8) do
+            imageExtensions.add(String.from(extension))
+    }
+
+    imageExtensions.add(String.from(".svg"))
+    addViewer(&result, "image", "Image", .Image, &createImageViewer, imageExtensions.toSlice())
+
+    var videoExtensions: Array'String
+    let videoFormats = Reader.decodableFormats()
+    for format in videoFormats
+    {
+        for extension in Tokenize.split(format.extensions, ';'u8) do
+            videoExtensions.add(String.from(extension))
+    }
+
+    addViewer(&result, "video", "Video", .Video, &createVideoViewer, videoExtensions.toSlice())
     addViewer(&result, "pdf", "PDF", .Pdf, &createPdfViewer, ".pdf")
     let soundExtensions = SoundFile.decodableExtensions()
     addViewer(&result, "sound", "Sound", .Sound, &createSoundViewer, soundExtensions.toSlice())
     addViewer(&result, "font", "Font", .Font, &createFontViewer, ".ttf;.ttc")
-    addViewer(&result, "binary", "Binary", .Binary, &createBinaryViewer, ".exe;.dll;.sys;.ocx;.cpl;.scr;.efi;.drv;.mui;.mun;.winmd;.node;.pyd;.obj;.o;.lib;.a;.so;.elf;.ko;.axf;.dylib;.bundle;.wasm;.scc;.zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp;.otf;.woff;.woff2;.ico;.cur;.gz;.tgz;.bz2;.tbz2;.xz;.txz;.zst;.tzst;.7z;.rar;.cab;.msi;.doc;.xls;.ppt;.ps;.eps;.class;.dex;.sqlite;.db;.pdb;.wav;.avi;.webp;.mp3;.flac;.ogg;.oga;.ogv;.mp4;.m4a;.m4v;.mov;.3gp;.3g2;.mkv;.webm")
+    addViewer(&result, "binary", "Binary", .Binary, &createBinaryViewer, ".exe;.dll;.sys;.ocx;.cpl;.scr;.efi;.drv;.mui;.mun;.winmd;.node;.pyd;.obj;.o;.lib;.a;.so;.elf;.ko;.axf;.dylib;.bundle;.wasm;.scc;.zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp;.otf;.woff;.woff2;.ico;.cur;.gz;.tgz;.bz2;.tbz2;.xz;.txz;.zst;.tzst;.7z;.rar;.cab;.msi;.doc;.xls;.ppt;.ps;.eps;.class;.dex;.sqlite;.db;.pdb;.wav;.avi;.webp;.mp3;.flac;.ogg;.oga;.ogv;.mp4;.m4a;.m4v;.mov;.3gp;.3g2;.mkv;.webm;*")
     addViewer(&result, "hex", "Hexadecimal", .Hex, &createHexViewer, "*")
+    addViewer(&result, "table", "Table", .Table, &createTableViewer, ".csv;.tsv;.tab")
     return result
 }
 
@@ -110,21 +130,40 @@ impl ViewerIndex
     // Returns every viewer available for `fileName` in selection order.
     mtd const choices(fileName: string)->Array'ViewerChoice
     {
-        var result: retval
+        var result:  retval
+        var matched: Array'bool
+        matched.resize(.specs.count)
+        var hasExplicitMatch: bool
         var extension = String.from(Path.extension(fileName) orelse "")
         extension = extension.toLower()
         var baseName = String.from(Path.fileName(fileName) orelse "")
         baseName = baseName.toLower()
 
-        for spec, index in .specs where .matches(spec, baseName.toString(), extension.toString(), wildcard: false) do
+        for spec, index in .specs where .matches(spec, baseName.toString(), extension.toString(), wildcard: false)
+        {
             result.add(ViewerChoice{.Viewer, index, spec.key, spec.displayName, spec.icon})
+            matched[index]   = true
+            hasExplicitMatch = true
+        }
+
+        // A shebang is the extension of a script the filesystem deliberately left unnamed.
+        let shebang = !hasExplicitMatch ? codeShebang(fileName) : CodeShebang{}
+        if shebang.found
+        {
+            for spec, index in .specs where spec.key == "code" and !matched[index]
+            {
+                result.add(ViewerChoice{.Viewer, index, spec.key, spec.displayName, spec.icon})
+                matched[index] = true
+                break
+            }
+        }
 
         // The key is converted explicitly: an untyped string constant used directly as an
         // aggregate-literal field of type String arrives empty (F-173).
         if BasicTextView.supports(fileName) do
             result.add(ViewerChoice{.BasicText, Swag.U64.Max, String.from(BasicTextViewerKey), appStrings().ui_BasicText, .Text})
 
-        for spec, index in .specs where .matches(spec, baseName.toString(), extension.toString(), wildcard: true) do
+        for spec, index in .specs where !matched[index] and .matches(spec, baseName.toString(), extension.toString(), wildcard: true) do
             result.add(ViewerChoice{.Viewer, index, spec.key, spec.displayName, spec.icon})
         return result
     }

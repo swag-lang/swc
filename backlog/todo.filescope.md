@@ -85,14 +85,14 @@ where files are actually selected, and the format table below is what a reader c
 - Complete when: case sensitivity and whole-word are togglable, Shift+F3 walks backwards, the status
   bar reports the match ordinal, and the chosen semantics are documented in the README.
 
-### T-393 — The file being viewed cannot be handed to its own application
+### T-393 — The file being viewed cannot be opened with its default application
 
 - Intent: after looking at a file, the next action is always outside the viewer. Showing it in the
-  file explorer and handing it to the system application chooser now answer from the context menu
-  of the status bar and of both panel lists; what is still missing is opening it with its
-  *default* application, and taking its path or its name out as text.
-- Complete when: open-with-default, copy-full-path and copy-name join that menu, and the actions a
-  reader uses most are reachable from the action bar rather than only from a right click.
+  file explorer, handing it to the system application chooser, and copying either its full path or
+  its file name now answer from the context menu of the status bar and of both panel lists. What is
+  still missing is opening it with its *default* application.
+- Complete when: open-with-default joins that menu, and the actions a reader uses most are
+  reachable from the action bar rather than only from a right click.
 
 ### T-394 — No zoom or text-size control
 
@@ -154,13 +154,13 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | --- | --- | --- | --- | --- |
 | Plain text | `.txt` `.ini` `.cfg` | full, streamed | — | — |
 | Other encodings | UTF-16/32, Windows-1252 | full, detected and overridable | the multi-byte pages: Shift-JIS, GBK, EUC | — |
-| Source code | registered extensions and build-file names | full, lexer coloring | content-based detection for unregistered names | T-399 |
+| Source code | registered extensions, common build/config names, and shebang scripts | full, lexer coloring | — | — |
 | Markdown | `.md` `.markdown` | full | — | — |
 | HTML | `.html` `.htm` `.xhtml` | full | box model | T-387 |
 | JSON, XML, YAML, TOML | `.json` `.xml` `.yaml` `.toml` | code | folding and value tree | — |
 | Diff and patch | `.diff` `.patch` | text | hunk coloring and navigation | T-408 |
 | Log | `.log` | text | level coloring, timestamps, tail | T-409 |
-| Tabular text | `.csv` `.tsv` | text | aligned table, frozen header | T-402 |
+| Tabular text | `.csv` `.tsv` `.tab` | full up to 32 MiB, detected delimiter and quoting, fixed header | bounded streaming beyond 32 MiB | T-402 |
 | PDF | `.pdf` | page rendering, editing and writing | encryption, annotations, shadings, Type1/CFF, scanned-image codecs | T-401, [todo.pdf.md](todo.pdf.md) |
 | Office OOXML | `.docx` `.xlsx` `.pptx` | structure | readable text and sheets | T-407 |
 | OpenDocument | `.odt` `.ods` `.odp` | structure | readable text and sheets | T-407 |
@@ -192,9 +192,9 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | WAV PCM and float | `.wav` | full, streamed | ADPCM | T-169 |
 | Raw YUV4MPEG2 video | `.y4m` | full, silent, streamed by frame | the format carries no sound | — |
 | Motion JPEG video | `.avi` `.mp4` `.m4v` `.mov` | full, seeked through sample tables; AVI plays its PCM sound and MP4/M4V/MOV their AAC-LC | the chroma layouts ffmpeg writes | T-426 |
-| Compressed audio | `.mp3` `.flac` `.ogg` `.opus` `.m4a` | structure | Audio codec, then a viewer path | T-404 |
-| Video containers | `.mp4` `.mkv` `.webm` `.mov` `.avi` | signature | box, EBML and RIFF tree | T-412 |
-| Video playback | `.mp4` `.m4v` `.mov` `.mkv` | Motion JPEG and H.264; AAC-LC sound with track selection | VP9, AV1, Opus, and WebM | T-420 |
+| Compressed audio | `.mp3` `.flac` `.aac` `.ac3` `.eac3` | full, streamed | Ogg Vorbis, Opus, M4A | T-166, T-168 |
+| Video containers | `.mp4` `.mkv` `.webm` `.mov` `.avi` | AVI structure; ISO-BMFF, Matroska and WebM signature | box and EBML trees | T-412 |
+| Video playback | `.avi` `.mp4` `.m4v` `.mov` `.mkv` | Motion JPEG, uncompressed AVI, H.264, H.265 and MPEG-4 Part 2; container-supported sound with track selection | VP9, AV1, Opus, Vorbis, and WebM | T-420 |
 | MIDI | `.mid` | none | — | — |
 
 #### Binaries, containers and developer artifacts
@@ -219,14 +219,6 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | Disk images | `.iso` `.vhd` | none | — | — |
 | Unknown | any | signature, size, entropy | — | — |
 
-### T-399 — A file without an extension gets no viewer
-
-- Intent: the registry now claims exact names such as `Makefile` and `Dockerfile`, but it cannot
-  express patterns for `CMakeLists.txt`, `.gitignore`, `.editorconfig`, `LICENSE` and families of
-  dotfiles, and a mislabelled file is never recognized.
-- Complete when: a registry line can carry a filename pattern, the code viewer claims the remaining
-  usual extensionless names, and a first-bytes rule catches a shebang.
-
 ### T-401 — A PDF the module cannot fully decode is shown as a failure, not as a page
 
 - Intent: the module's own coverage gaps now live in [todo.pdf.md](todo.pdf.md), which is the
@@ -239,12 +231,14 @@ viewer" claim is currently weakest. Read the `Today` column as:
 - Note: never execute an embedded action, and keep interactive form filling out of the viewer.
 - Related: T-431, T-441, T-447
 
-### T-402 — Tabular text has no table view
+### T-402 — The table viewer is bounded to 32 MiB
 
-- Intent: a CSV or TSV opens as raw lines. A separator-aligned grid is what the format is for, and
-  it is cheap next to the rest of this tier.
-- Complete when: a table view detects the separator and the quoting, streams rows in a bounded
-  window, keeps the header visible, and states the row count as it is discovered.
+- Intent: the table viewer detects comma, semicolon, tab or pipe separators, understands quoted
+  fields and embedded line breaks, keeps its header visible, and virtualizes the GUI rows. It reads
+  at most 32 MiB because the parsed source rows are still resident; the streamed basic-text viewer
+  remains selectable for a larger file instead of the table exhausting memory.
+- Complete when: source rows are themselves streamed through a bounded window and the row count is
+  updated as the file is indexed, without weakening quoting across chunk boundaries.
 
 ### T-403 — An archive's entries cannot be opened
 
@@ -254,16 +248,6 @@ viewer" claim is currently weakest. Read the `Today` column as:
 - Complete when: a directory entry can be selected and its content handed to the matching viewer
   without extracting the whole archive, starting with the deflate and stored methods that
   `Core.Inflate` already covers, and with `tar`/`gzip` listing.
-
-### T-404 — The Sound viewer reads WAV and nothing else
-
-- Intent: every compressed format is routed to the binary structure tree, so the most common audio
-  files on a disk cannot be played by the viewer that ships a player.
-- Complete when: the `Sound` viewer claims `.mp3`, `.flac`, `.ogg` and `.opus`, streams them with the
-  same waveform behaviour as WAV, and the registry moves those extensions off the binary line.
-- What is no longer blocking: `.mp3` and `.flac` now open through `Audio.SoundFile.load` and stream
-  from disk, so those two are viewer work alone.
-- Related: T-166, T-168
 
 ### T-405 — An image's metadata is not shown
 
@@ -278,7 +262,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 - Intent: `.docx` and `.odt` show a list of parts, which is right for an archive and useless for a
   document. Full fidelity is not the target; readable content is.
 - Complete when: paragraphs, headings, lists and tables come out as a readable document through the
-  existing reading column, and a spreadsheet's cells come out through the T-402 table view.
+  existing reading column, and a spreadsheet's cells come out through the table view.
 - Related: T-402, T-403
 
 ### T-408 — Diff and patch files read as plain text
@@ -311,8 +295,9 @@ viewer" claim is currently weakest. Read the `Today` column as:
 
 ### T-412 — MP4 and Matroska containers are only identified
 
-- Intent: decoding video is out of scope; reading the container is not, and it is exactly what
-  the `Binary` viewer already does for every other container.
+- Intent: playback and structural inspection answer different questions. The `Video` viewer reads
+  the supported picture and sound tracks, while the `Binary` alternative should expose the
+  container itself like it already does for RIFF and the other structured formats.
 - Complete when: the ISO-BMFF box tree, the Matroska EBML tree, and the track, codec, duration and
   resolution summaries are reported like any other structure.
 
@@ -333,15 +318,16 @@ viewer" claim is currently weakest. Read the `Today` column as:
 
 ### T-420 — WebM and VP9/AV1 Matroska video cannot be played
 
-- Intent: Matroska now plays H.264 with one or several selectable AAC-LC tracks through a compact
-  EBML block index. WebM, and Matroska streams carrying VP9, AV1, Opus, or Vorbis, remain unread.
+- Intent: Matroska now plays H.264, H.265, or MPEG-4 Part 2 with selectable AAC-LC, AC-3, E-AC-3,
+  FLAC, or MPEG Layer III tracks through a compact EBML block index. WebM, and Matroska streams
+  carrying VP9, AV1, Opus, or Vorbis, remain unread.
   The container already retains timestamps, synchronization points, lacing, and payload offsets;
   what remains is picture and sound codec support rather than another container design.
 - Complete when: the `Video` viewer shows the picture with transport, a seekable timeline and the
   frame position for VP9 or AV1 in WebM and Matroska, and the registry moves those extensions off
   the binary line for playback while T-412 keeps the structure reader available as a second
   viewer. Opus and Vorbis use `std/audio` and stay synchronized with the picture.
-- Related: T-412, T-404
+- Related: T-412, T-166, T-168
 
 ### T-415 — EPUB stops at the ZIP structure
 

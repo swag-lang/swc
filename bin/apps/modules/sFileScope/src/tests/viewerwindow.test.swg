@@ -251,6 +251,14 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.recentList.scrollWnd.flags.has(.DisableHorizontal) and window.folderList.scrollWnd.flags.has(.DisableHorizontal))
     @assert(window.folderList.lineCount() == 3)
     @assert(window.recentList.lineCount() == 1)
+    for i in window.folderList.lineCount()
+    {
+        let icon = window.folderList.lineAt(i)!.itemAt(0).icon
+        @assert(icon.isValid() and icon.index == cast(s32) ViewerIcons.Text)
+    }
+
+    let recentIcon = window.recentList.lineAt(0)!.itemAt(0).icon
+    @assert(recentIcon.isValid() and recentIcon.index == cast(s32) ViewerIcons.Text)
 
     // Choosing a sibling opens it, and the recent list grows by exactly that file.
     window.folderList.selectLine(2)
@@ -440,6 +448,16 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     completeQueuedViewerFile(&host, window)
     @assert(window.currentFile == names[1])
 
+    host.clickPopupMenuItemWhenShown("sFileScope.file.copyPath")
+    window.showFileMenu(list, window.recent.toSlice(), {120, 120})
+    host.pump()
+    @assert(host.autoHandled and Clipboard.getString() == names[1])
+
+    host.clickPopupMenuItemWhenShown("sFileScope.file.copyName")
+    window.showFileMenu(list, window.recent.toSlice(), {120, 120})
+    host.pump()
+    @assert(host.autoHandled and Clipboard.getString() == "file1.txt")
+
     host.clickPopupMenuItemWhenShown("sFileScope.file.forget")
     window.showFileMenu(list, window.recent.toSlice(), {120, 120})
     host.pump()
@@ -479,7 +497,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.resize(960, 680)
 
     window.openFile(first.toString())
-    @assert(window.choices.count == 2 and window.choices[0].key == BasicTextViewerKey)
+    @assert(window.choices.count == 3 and window.choices[0].key == BasicTextViewerKey)
     @assert(window.activeChoiceIndex == 0 and window.preferences.isEmpty())
 
     // Every entry of the selector says which viewer it is before its name is read.
@@ -487,7 +505,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     for item in window.viewerCombo.items do
         @assert(item!.icon.isValid())
 
-    window.selectViewer(1)
+    window.selectViewer(2)
     @assert(window.choices[window.activeChoiceIndex].key == "hex")
     @assert(window.preferences.count == 1 and window.preferences[0].kind == BasicTextViewerKey and window.preferences[0].viewer == "hex")
 
@@ -541,6 +559,12 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "sfilescope.panel")
     Testing.assertContentFits(window)
+
+    host.theme.setSwagLight()
+    host.notify(.ThemeChanged)
+    host.settleAnimations(window, 4)
+    image = host.render(window)
+    Pixel.Testing.assertImageGolden(&image, "sfilescope.panel.light")
 }
 
 // Keeps the virtual document extent monotonic while several large-file chunks arrive between

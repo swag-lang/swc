@@ -14,19 +14,21 @@ using Core
     expect File.writeAllBytes(binaryFile, [0x89'u8, 0x50'u8, 0x4E'u8, 0x47'u8, 0'u8, 0xFF'u8])
 
     let index = createViewerIndex()
-    @assert(index.specs.count == 10)
+    @assert(index.specs.count == 11)
     for spec in index.specs do
         @assert(spec.create != null and !spec.extensions.isEmpty())
 
     let picture = index.choices(binaryFile)
-    @assert(picture.count == 2)
+    @assert(picture.count == 3)
     @assert(picture[0].name == "Image")
-    @assert(picture[1].name == "Hexadecimal")
+    @assert(picture[1].name == "Binary")
+    @assert(picture[2].name == "Hexadecimal")
 
     let unknown = index.choices(textFile)
-    @assert(unknown.count == 2)
+    @assert(unknown.count == 3)
     @assert(unknown[0].kind == .BasicText)
-    @assert(unknown[1].name == "Hexadecimal")
+    @assert(unknown[1].name == "Binary")
+    @assert(unknown[2].name == "Hexadecimal")
     @assert(index.explicitlySupports("clip.gif"))
     @assert(!index.explicitlySupports("clip.bin"))
 }
@@ -36,14 +38,21 @@ using Core
     let index = createViewerIndex()
     @assert(index.explicitlySupports("Makefile"))
     @assert(index.explicitlySupports("DOCKERFILE"))
+    @assert(index.explicitlySupports("CMakeLists.txt"))
+    @assert(index.explicitlySupports(".gitignore"))
 
     let html = index.choices("page.html")
     @assert(html[0].name == "HTML" and html[1].name == "Code")
     @assert(index.choices("Makefile")[0].name == "Code")
     @assert(index.choices("Dockerfile")[0].name == "Code")
+    @assert(index.choices("CMakeLists.txt")[0].name == "Code")
+    @assert(index.choices(".gitignore")[0].name == "Code")
+
+    let tableChoices = index.choices("data.csv")
+    @assert(tableChoices[0].name == "Table" and tableChoices[1].name == "Binary" and tableChoices[2].name == "Hexadecimal")
 
     let fontChoices = index.choices("family.ttf")
-    @assert(fontChoices[0].name == "Font" and fontChoices[1].name == "Hexadecimal")
+    @assert(fontChoices[0].name == "Font" and fontChoices[1].name == "Binary" and fontChoices[2].name == "Hexadecimal")
     @assert(index.choices("outlines.otf")[0].name == "Binary")
 
     let mp4Choices = index.choices("movie.mp4")
@@ -55,6 +64,19 @@ using Core
     const SoundFiles: [7] string = ["sound.wav", "sound.flac", "sound.mp3", "sound.aac", "sound.ac3", "sound.eac3", "sound.ec3"]
     for file in SoundFiles do
         @assert(index.choices(file)[0].key == "sound")
+}
+
+// The interpreter line claims an extensionless script and drives its syntax coloring.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("filescope-shebang-", "")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, "#!/usr/bin/env python3\nprint('hello')\n")
+
+    let index   = createViewerIndex()
+    let choices = index.choices(fileName)
+    @assert(choices[0].key == "code" and choices[1].kind == .BasicText and choices[2].key == "binary" and choices[3].key == "hex")
+    @assert(codeLanguage(fileName) == .Python)
 }
 
 // Every viewer carries the stable identity a remembered choice is written under, and the glyph

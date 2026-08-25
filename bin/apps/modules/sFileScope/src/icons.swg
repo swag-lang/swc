@@ -19,6 +19,7 @@ enum ViewerIcons
     Binary       // Executable and archive inspector.
     Hex          // Raw byte viewer.
     Text         // Plain text viewer.
+    Table        // Delimited-text table viewer.
 }
 
 private const IconsSvg = #include("../datas/icons.svg")

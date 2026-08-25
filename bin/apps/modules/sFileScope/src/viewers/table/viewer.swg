@@ -1,0 +1,343 @@
+#global internal
+
+using Core, Core.Errors, Pixel, Gui
+
+private const TableFileLimit = 32 * 1024 * 1024'u64
+private const TableColumnLimit = 256'u64
+private const TableColumnMinWidth = 96.0
+private const TableColumnMaxWidth = 320.0
+private const TableCellWidth = 8.0
+
+internal struct TableRow
+{
+    cells: Array'String
+}
+
+internal struct TableDocument
+{
+    columns:   Array'String
+    rows:      Array'TableRow
+    delimiter: u8
+}
+
+private func finishTableCell(row: *TableRow, cell: *Array'u8)
+{
+    row.cells.add(String.from(cell.isEmpty() ? "" : @mkstring(cell.buffer!, cell.count)))
+    cell.clear()
+}
+
+private func finishTableRow(document: *TableDocument, row: *TableRow, cell: *Array'u8)
+{
+    finishTableCell(row, cell)
+    document.rows.add(#move row[])
+    row[] = {}
+}
+
+// Parses RFC-4180 quoting and the line-ending forms commonly found in CSV and TSV files.
+internal func parseTableDocument(text: string, delimiter: u8)->TableDocument fail
+{
+    var result: retval
+    result.delimiter = delimiter
+
+    var row:         TableRow
+    var cell:        Array'u8
+    var quoted:      bool
+    var closedQuote: bool
+    var touched:     bool
+    var at = 0'u64
+    while at < @countof(text)
+    {
+        let value = text[at]
+        if quoted
+        {
+            if value == '"'
+            {
+                if at + 1 < @countof(text) and text[at + 1] == '"'
+                {
+                    cell.add('"'u8)
+                    at += 2
+                    continue
+                }
+
+                quoted      = false
+                closedQuote = true
+                at          += 1
+                continue
+            }
+
+            if value == '\r'
+            {
+                cell.add('\n'u8)
+                at += at + 1 < @countof(text) and text[at + 1] == '\n' ? 2 : 1
+                continue
+            }
+
+            cell.add(value)
+            at += 1
+            continue
+        }
+
+        if value == delimiter
+        {
+            finishTableCell(&row, &cell)
+            touched     = true
+            closedQuote = false
+            at          += 1
+            continue
+        }
+
+        if value == '\r' or value == '\n'
+        {
+            finishTableRow(&result, &row, &cell)
+            touched     = false
+            closedQuote = false
+            at          += value == '\r' and at + 1 < @countof(text) and text[at + 1] == '\n' ? 2 : 1
+            continue
+        }
+
+        if value == '"' and cell.isEmpty() and !closedQuote
+        {
+            quoted  = true
+            touched = true
+            at      += 1
+            continue
+        }
+
+        // Spaces after a closing quote are presentation whitespace, not part of the field.
+        if closedQuote and (value == ' ' or value == '\t')
+        {
+            at += 1
+            continue
+        }
+
+        cell.add(value)
+        touched     = true
+        closedQuote = false
+        at          += 1
+    }
+
+    if quoted do
+        fail InvalidFormatError{Errors.mkString(tableStrings().err_UnclosedQuote)}
+    if touched or !cell.isEmpty() or !row.cells.isEmpty() do
+        finishTableRow(&result, &row, &cell)
+    if result.rows.isEmpty() do
+        return result
+
+    result.columns = #move result.rows[0].cells
+    result.rows.removeAtOrdered(0)
+
+    var columnCount = result.columns.count
+    for one in result.rows do
+        columnCount = Math.max(columnCount, one.cells.count)
+    if columnCount > TableColumnLimit do
+        fail UnsupportedFormatError{Errors.mkString(tableStrings().err_TooManyColumns)}
+
+    while result.columns.count < columnCount do
+        result.columns.add(Format.toString(tableStrings().ui_Column, result.columns.count + 1))
+    for column, index in result.columns where column.isEmpty() do
+        result.columns[index] = Format.toString(tableStrings().ui_Column, index + 1)
+    return result
+}
+
+private func delimiterCount(text: string, delimiter: u8)->u64
+{
+    var result: u64
+    var quoted: bool
+    var at      = 0'u64
+    var records = 0'u32
+    while at < @countof(text) and at < 16 * 1024 and records < 8
+    {
+        let value = text[at]
+        if value == '"'
+        {
+            if quoted and at + 1 < @countof(text) and text[at + 1] == '"' do
+                at += 2
+            else
+            {
+                quoted = !quoted
+                at     += 1
+            }
+
+            continue
+        }
+
+        if !quoted and value == delimiter do
+            result += 1
+        if !quoted and (value == '\r' or value == '\n')
+        {
+            records += 1
+            if value == '\r' and at + 1 < @countof(text) and text[at + 1] == '\n' do
+                at += 2
+            else do
+                at += 1
+            continue
+        }
+
+        at += 1
+    }
+
+    return result
+}
+
+// Chooses the strongest delimiter in the first records; a TSV extension remains unambiguous.
+internal func detectTableDelimiter(fileName, text: string)->u8
+{
+    let extension = Path.lowercaseExtension(fileName)
+    if extension == ".tsv" or extension == ".tab" do
+        return '\t'
+
+    const Candidates: [4] u8 = [','u8, ';'u8, '\t'u8, '|'u8]
+    var result = ','u8
+    var best: u64
+    for candidate in Candidates
+    {
+        let count = delimiterCount(text, candidate)
+        if count > best
+        {
+            best   = count
+            result = candidate
+        }
+    }
+
+    return result
+}
+
+private func tableCountText(count: u64, one, many: string)->String
+{
+    if count == 1 do
+        return String.from(one)
+    return Format.toString(many, count)
+}
+
+internal struct TableViewer
+{
+    using wnd: Wnd
+
+    #[Swag.Late]
+    list: *ListCtrl
+
+    document:     TableDocument
+    searchRow:    u64 = Swag.U64.Max
+    searchColumn: u64
+}
+
+private impl TableViewer
+{
+    mtd fillLine(line: *ListLine, index: u32)
+    {
+        if index >= .document.rows.count do
+            return
+        let row = &.document.rows[index]
+        for column in .document.columns.count
+        {
+            let value = column < row.cells.count ? row.cells[column].toString() : ""
+            line.setItem(cast(u32) column, value)
+        }
+    }
+
+    mtd findText(text: string)->bool
+    {
+        if @countof(text) == 0 or .document.rows.isEmpty() do
+            return false
+
+        let startRow    = .searchRow == Swag.U64.Max ? 0 : .searchRow
+        let startColumn = .searchRow == Swag.U64.Max ? 0 : .searchColumn + 1
+        for step in .document.rows.count
+        {
+            let rowIndex    = (startRow + step) % .document.rows.count
+            let row         = &.document.rows[rowIndex]
+            let firstColumn = step == 0 ? startColumn : 0
+            for column in firstColumn until row.cells.count
+            {
+                if Utf8.indexOf(row.cells[column].toString(), text, 0, .Latin1NoCase) == Swag.U64.Max do
+                    continue
+                .searchRow    = rowIndex
+                .searchColumn = column
+                .list.selectLine(cast(u32) rowIndex)
+                .list.setFocusedIndex(cast(u32) rowIndex)
+                return true
+            }
+        }
+
+        // The first row may still contain an earlier column when the search wrapped inside it.
+        if .searchRow != Swag.U64.Max
+        {
+            let row = &.document.rows[.searchRow]
+            for column in Math.min(startColumn, row.cells.count)
+            {
+                if Utf8.indexOf(row.cells[column].toString(), text, 0, .Latin1NoCase) == Swag.U64.Max do
+                    continue
+                .searchColumn = column
+                .list.selectLine(cast(u32) .searchRow)
+                .list.setFocusedIndex(cast(u32) .searchRow)
+                return true
+            }
+        }
+
+        return false
+    }
+
+    func create(parent: *Wnd, fileName: string)->#null *TableViewer fail
+    {
+        let info = try File.info(fileName)
+        if info.size > TableFileLimit do
+            fail UnsupportedFormatError{Errors.mkString(tableStrings().err_TooLarge)}
+
+        let source    = try File.readAllText(fileName)
+        let delimiter = detectTableDelimiter(fileName, source.toString())
+        let result    = Wnd.create'TableViewer(parent, "sFileScope.table")
+        result.backgroundStyle = .View
+        result.document        = parseTableDocument(source.toString(), delimiter)
+
+        with result.list = ListCtrl.createMultiColumns(result)
+        {
+            .dockStyle = .Center
+            .style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
+            .setSelectionMode(.Single)
+            .setFirstColumnIconMargin(false)
+            .updateFlags(.HotTrack | .AlternateLines | .Ellipsis)
+            .header.form       = .Transparent
+            .onFillVirtualLine = &fillTableVirtualLine
+        }
+
+        for column, index in result.document.columns
+        {
+            var longest = column.length
+            for row in result.document.rows.toSlice()[0 until Math.min(result.document.rows.count, 128)] where index < row.cells.count do
+                longest = Math.max(longest, row.cells[index].length)
+            let width = Math.clamp(cast(f32) longest * TableCellWidth + 24, TableColumnMinWidth, TableColumnMaxWidth)
+            result.list.addColumn(column.toString(), width)
+        }
+
+        result.list.setVirtualCount(cast(u32) result.document.rows.count)
+        result.applyLayout()
+        result.setInitialFocus(result.list)
+        return result
+    }
+}
+
+private func fillTableVirtualLine(list: *ListCtrl, line: #null *ListLine, index: u32)
+{
+    if line == null do
+        return
+    (cast(*TableViewer) list.parent!).fillLine(line!, index)
+}
+
+// Creates the integrated CSV/TSV table view.
+func createTableViewer(request: const *ViewerRequest, result: *ViewerResult)
+{
+    registerTableStrings(request.contentParent.app())
+    let view = catch TableViewer.create(request.contentParent, request.fileName) as createError
+    if createError != null
+    {
+        result.failureReason = Errors.message(createError)
+        return
+    }
+
+    let rows    = tableCountText(view!.document.rows.count, tableStrings().ui_Row, tableStrings().ui_Rows)
+    let columns = tableCountText(view!.document.columns.count, tableStrings().ui_OneColumn, tableStrings().ui_Columns)
+    let kind    = view!.document.delimiter == '\t' ? "TSV" : "CSV"
+    result.view     = view!
+    result.details  = Format.toString(tableStrings().ui_Details, kind, rows.toString(), columns.toString())
+    result.findText = func(wnd, text)->bool { return (cast(*TableViewer) wnd).findText(text) }
+}

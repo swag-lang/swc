@@ -26,6 +26,8 @@ struct AppStrings
     ui_NotText:             string = "This file does not contain readable text. Select Hexadecimal to inspect its bytes."     // No encoding reads it as text.
     ui_MenuLocate:          string = "Show this file in its folder"                                                           // Panel menu entry selecting the file in the system file explorer.
     ui_MenuOpenWith:        string = "Open with another application…"                                                         // Panel menu entry offering the system application chooser.
+    ui_MenuCopyPath:        string = "Copy full path"                                                                         // Panel menu entry copying the complete file name.
+    ui_MenuCopyName:        string = "Copy file name"                                                                         // Panel menu entry copying the final path component.
     ui_MenuForget:          string = "Remove this file from the history"                                                      // Panel menu entry dropping one file from the recent list.
     ui_Search:              string = "Find in document"                                                                       // Placeholder of the search field.
     ui_NoMatch:             string = "No match"                                                                               // Status line when a search reached the end with nothing.

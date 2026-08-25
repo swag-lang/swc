@@ -219,7 +219,7 @@ private func appendText(parser: const *PdfParser, page: *Page, resourcesId: u32,
     // Render modes 3 and 7 add no marks; the text still moves the position, which is how
     // an invisible layer over a scanned page stays aligned with what it transcribes.
     let invisible = state.renderMode == 3 or state.renderMode == 7
-    let text      = font ? font.decodeText(bytes) : Text.decode(cast(const [..] u8) bytes, .Windows1252)
+    let text      = #move (font ? font.decodeText(bytes) : Text.decode(cast(const [..] u8) bytes, .Windows1252))
     if !invisible and !text.isEmpty()
     {
         var combined = Transform2{state.horizScale, 0, 0, 1, 0, state.rise}
@@ -235,8 +235,8 @@ private func appendText(parser: const *PdfParser, page: *Page, resourcesId: u32,
         item.text = #move text
         if font
         {
-            item.textCodes    = font.decodeCodes(bytes)
-            item.textAdvances = font.codeAdvances(bytes, state.fontSize, state.charSpacing, state.wordSpacing)
+            item.textCodes    = #move font.decodeCodes(bytes)
+            item.textAdvances = #move font.codeAdvances(bytes, state.fontSize, state.charSpacing, state.wordSpacing)
         }
 
         item.fontSize  = state.fontSize
@@ -256,7 +256,7 @@ private func appendText(parser: const *PdfParser, page: *Page, resourcesId: u32,
 private func appendImageItem(parser: *PdfParser, page: *Page, state: const *GraphicsState, imageId, resourcesId: u32) fail
 {
     var item = Item.createImage()
-    item.image = try decodeImage(parser, imageId, resourcesId, state.fillColor)
+    item.image = #move try decodeImage(parser, imageId, resourcesId, state.fillColor)
     let top    = transformPoint(state, page, 0, 1)
     let right  = transformPoint(state, page, 1, 1)
     let bottom = transformPoint(state, page, 0, 0)
@@ -310,7 +310,7 @@ private func appendXObject(parser: *PdfParser, page: *Page, resourcesId: u32, st
         let resources    = ownResources != InvalidNode ? ownResources : resourcesId
         if resources != InvalidNode do
             try decodeFonts(parser, page, resources)
-        let bytes = try parser.decodeStream(id)
+        let bytes = #move try parser.decodeStream(id)
         try parseContent(parser, page, resources, bytes.toSlice(), &formState, depth + 1)
         return
     }
@@ -377,7 +377,7 @@ private func appendInlineImage(parser: *PdfParser, content: *PdfParser, page: *P
         let width   = parser.integer(parser.dict(imageId, "Width"))
         let height  = parser.integer(parser.dict(imageId, "Height"))
         let bits    = parser.boolean(parser.dict(imageId, "ImageMask")) ? 1's64 : parser.integer(parser.dict(imageId, "BitsPerComponent"), 8)
-        let space   = try resolveImageSpace(parser, parser.dictRaw(imageId, "ColorSpace"), resourcesId, 0)
+        let space   = #move try resolveImageSpace(parser, parser.dictRaw(imageId, "ColorSpace"), resourcesId, 0)
         let rowBits = cast(s64) space.components * bits * width
         if width > 0 and height > 0 and bits > 0 do
             length = (rowBits + 7) / 8 * height
@@ -483,8 +483,13 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             stack.add(state)
 
         case "Q":
-            if stack.count do
-                state = stack.popBack()
+            if stack.count
+            {
+                var restored = #move stack.popBack()
+                @drop(&state, 1)
+                @init(&state, 1)
+                state = #move restored
+            }
 
         case "cm":
             if operands.count >= 6
@@ -579,6 +584,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                         pattern.add(pattern[i])
                 }
 
+                state.strokeStyle.dashPattern.free()
                 state.strokeStyle.dashPattern = #move pattern
                 state.strokeStyle.dashPhase   = phase
             }
@@ -590,6 +596,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
         case "g":
             if operands.count
             {
+                state.fillSpace.palette.free()
                 state.fillSpace = deviceSpace(.Gray, 1)
                 state.fillColor = grayColor(content.number(operands.back()))
             }
@@ -597,6 +604,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
         case "G":
             if operands.count
             {
+                state.strokeSpace.palette.free()
                 state.strokeSpace = deviceSpace(.Gray, 1)
                 state.strokeColor = grayColor(content.number(operands.back()))
             }
@@ -604,6 +612,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
         case "rg":
             if operands.count >= 3
             {
+                state.fillSpace.palette.free()
                 state.fillSpace = deviceSpace(.Rgb, 3)
                 state.fillColor = rgbColor(content.number(operands[operands.count - 3]), content.number(operands[operands.count - 2]), content.number(operands[operands.count - 1]))
             }
@@ -611,6 +620,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
         case "RG":
             if operands.count >= 3
             {
+                state.strokeSpace.palette.free()
                 state.strokeSpace = deviceSpace(.Rgb, 3)
                 state.strokeColor = rgbColor(content.number(operands[operands.count - 3]), content.number(operands[operands.count - 2]), content.number(operands[operands.count - 1]))
             }
@@ -618,6 +628,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
         case "k":
             if operands.count >= 4
             {
+                state.fillSpace.palette.free()
                 state.fillSpace = deviceSpace(.Cmyk, 4)
                 state.fillColor = cmykColor(content.number(operands[operands.count - 4]), content.number(operands[operands.count - 3]), content.number(operands[operands.count - 2]), content.number(operands[operands.count - 1]))
             }
@@ -625,6 +636,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
         case "K":
             if operands.count >= 4
             {
+                state.strokeSpace.palette.free()
                 state.strokeSpace = deviceSpace(.Cmyk, 4)
                 state.strokeColor = cmykColor(content.number(operands[operands.count - 4]), content.number(operands[operands.count - 3]), content.number(operands[operands.count - 2]), content.number(operands[operands.count - 1]))
             }
@@ -643,11 +655,13 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 if op == "cs"
                 {
                     state.fillColor = initialSpaceColor(&picked)
+                    state.fillSpace.palette.free()
                     state.fillSpace = #move picked
                 }
                 else
                 {
                     state.strokeColor = initialSpaceColor(&picked)
+                    state.strokeSpace.palette.free()
                     state.strokeSpace = #move picked
                 }
             }
@@ -878,6 +892,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
 
         operands.clear()
     }
+
 }
 
 private func decodeFonts(parser: *PdfParser, page: *Page, resourcesId: u32) fail
@@ -899,7 +914,8 @@ private func decodeFonts(parser: *PdfParser, page: *Page, resourcesId: u32) fail
 
         if found do
             continue
-        page.fonts.add(try decodeFontResource(parser, fontId, name.toString()))
+        var font = #move try decodeFontResource(parser, fontId, name.toString())
+        page.fonts.add(#move font)
     }
 }
 
@@ -960,14 +976,14 @@ internal func decodePage(parser: *PdfParser, pageId, inheritedResources, inherit
         {
             for value in parser.nodes[contents].values
             {
-                let stream = try parser.decodeStream(value)
+                let stream = #move try parser.decodeStream(value)
                 contentBytes.add(stream.toSlice())
                 contentBytes.add('\n')
             }
         }
         else
         {
-            let stream = try parser.decodeStream(contents)
+            let stream = #move try parser.decodeStream(contents)
             contentBytes = #move stream
         }
 
@@ -1020,10 +1036,12 @@ private func metadataString(parser: const *PdfParser, dictId: u32, key: string)-
     let raw = parser.stringValue(parser.dict(dictId, key))
     if @countof(raw) >= 2 and raw[0] == 0xFE and raw[1] == 0xFF
     {
-        return Text.decode(cast(const [..] u8) raw[2 until], .Utf16Be)
+        var result = #move Text.decode(cast(const [..] u8) raw[2 until], .Utf16Be)
+        return #move result
     }
 
-    return Text.decode(cast(const [..] u8) raw, .Windows1252)
+    var result = #move Text.decode(cast(const [..] u8) raw, .Windows1252)
+    return #move result
 }
 
 internal func indexDocument(parser: *PdfParser, metadata: *Metadata, pages: *Array'PageSource) fail
@@ -1059,12 +1077,12 @@ internal func indexDocument(parser: *PdfParser, metadata: *Metadata, pages: *Arr
 
     if info != InvalidNode
     {
-        metadata.title    = metadataString(parser, info, "Title")
-        metadata.author   = metadataString(parser, info, "Author")
-        metadata.subject  = metadataString(parser, info, "Subject")
-        metadata.keywords = metadataString(parser, info, "Keywords")
-        metadata.creator  = metadataString(parser, info, "Creator")
-        metadata.producer = metadataString(parser, info, "Producer")
+        metadata.title    = #move metadataString(parser, info, "Title")
+        metadata.author   = #move metadataString(parser, info, "Author")
+        metadata.subject  = #move metadataString(parser, info, "Subject")
+        metadata.keywords = #move metadataString(parser, info, "Keywords")
+        metadata.creator  = #move metadataString(parser, info, "Creator")
+        metadata.producer = #move metadataString(parser, info, "Producer")
     }
 
     let pageTree = parser.dict(catalog, "Pages")
@@ -1083,7 +1101,7 @@ func decodeDocument(bytes: const [..] u8)->Document fail
     try indexDocument(&parser, &result.metadata, &sources)
     for source in sources
     {
-        var page = try decodePage(&parser, source.objectId, source.resourcesId, source.mediaBoxId, source.cropBoxId, source.rotate)
+        var page = #move try decodePage(&parser, source.objectId, source.resourcesId, source.mediaBoxId, source.cropBoxId, source.rotate)
         result.addPage(#move page)
     }
 

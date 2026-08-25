@@ -480,7 +480,7 @@ internal impl SoundViewer
     {
         .muted = muted
         .muteButton.setChecked(muted)
-        .muteButton.setIcon(.commands.icon(muted ? .VolumeMute : .Volume, SoundGlyphSize))
+        .muteButton.setIcon(.theme().icon(muted ? .VolumeMute : .Volume, SoundGlyphSize))
         if .voice do
             catch .voice!.setVolume(muted ? 0 : .volume)
     }
@@ -637,7 +637,7 @@ internal impl SoundViewer
             }
         }
 
-        with result.backwardButton = IconButton.create(result.commands, result.commands.icon(.SeekBackward, SoundGlyphSize), {0, 0, 36, 36})
+        with result.backwardButton = IconButton.create(result.commands, result.theme().icon(.SeekBackward, SoundGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -649,7 +649,7 @@ internal impl SoundViewer
             }
         }
 
-        with result.forwardButton = IconButton.create(result.commands, result.commands.icon(.SeekForward, SoundGlyphSize), {0, 0, 36, 36})
+        with result.forwardButton = IconButton.create(result.commands, result.theme().icon(.SeekForward, SoundGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -674,7 +674,7 @@ internal impl SoundViewer
             }
         }
 
-        with result.muteButton = IconButton.create(result.commands, result.commands.icon(.Volume, SoundGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
+        with result.muteButton = IconButton.create(result.commands, result.theme().icon(.Volume, SoundGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
         {
             .dockStyle = .Right
             .margin.x  = 8

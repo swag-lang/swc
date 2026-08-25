@@ -4,31 +4,21 @@ using Core, Gui
 // document. The set is rasterized on demand per size and scale through [[Gui.IconSet]], so every
 // glyph stays sharp at any display density.
 //
-// Viewer glyphs lead the atlas in registry order. The application actions that follow use the
-// same grid and weight, so global and viewer-specific command bars remain one visual family.
+// Viewer glyphs follow registry order. Generic action glyphs come from [[Gui.ThemeIcons]], so an
+// action keeps the same mark in every application.
 enum ViewerIcons
 {
-    Html               // Markup document viewer.
-    Code               // Source-code viewer.
-    Markdown           // Markdown document viewer.
-    Image              // Picture viewer.
-    Video              // Movie player.
-    Pdf                // PDF document viewer.
-    Sound              // Waveform player.
-    Font               // Type-specimen viewer.
-    Binary             // Executable and archive inspector.
-    Hex                // Raw byte viewer.
-    Text               // Plain text viewer.
-    FullScreen         // Enter-full-screen action.
-    ExitFullScreen     // Leave-full-screen action.
-    SeekBackward       // Media seek toward an earlier position.
-    SeekForward        // Media seek toward a later position.
-    Volume             // Audible media volume.
-    VolumeMute         // Muted media volume.
-    FitView            // Fit the complete document inside its viewport.
-    ActualSize         // Show one source pixel or point at its native scale.
-    Wrap               // Fold long text lines into the viewport.
-    AudioTracks        // Choose one of several sound tracks.
+    Html         // Markup document viewer.
+    Code         // Source-code viewer.
+    Markdown     // Markdown document viewer.
+    Image        // Picture viewer.
+    Video        // Movie player.
+    Pdf          // PDF document viewer.
+    Sound        // Waveform player.
+    Font         // Type-specimen viewer.
+    Binary       // Executable and archive inspector.
+    Hex          // Raw byte viewer.
+    Text         // Plain text viewer.
 }
 
 private const IconsSvg = #include("../datas/icons.svg")
@@ -50,23 +40,10 @@ func viewerIcons()->*IconAtlas
     return &g_ViewerIcons
 }
 
-// Owns the application glyph textures used by one viewer toolbar.
-//
-// The vector rasterizations stay shared in [[viewerIcons]]; only the renderer textures belong to
-// the toolbar and are released with it.
+// Gives every viewer toolbar the same type and dimensions.
 struct ViewerCommandBar
 {
     using wnd: Wnd
-    icons:     IconSet
-}
-
-impl IWnd for ViewerCommandBar
-{
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
-    {
-        discard evt
-        .icons.free()
-    }
 }
 
 impl ViewerCommandBar
@@ -75,12 +52,6 @@ impl ViewerCommandBar
     {
         let result = Wnd.create'ViewerCommandBar(parent, {0, 0, width, 36})
         result.backgroundStyle = .Window
-        result.icons.setup(parent.app().renderer, viewerIcons())
         return result
-    }
-
-    mtd icon(index: ViewerIcons, size = 20'f32)->Icon
-    {
-        return .icons.icon(cast(s32) index, size, .theme().res.atlasScale)
     }
 }

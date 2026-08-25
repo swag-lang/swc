@@ -226,7 +226,7 @@ impl FontResource
     mtd const codeAdvances(bytes: string, fontSize, charSpacing, wordSpacing: f32)->Array'f32
     {
         var result: retval
-        let codes = .decodeCodes(bytes)
+        let codes = #move .decodeCodes(bytes)
         result.reserve(codes.count)
         for code in codes
         {
@@ -302,7 +302,7 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
                         result.identityGlyphs = true
                     elif parser.nodes[mapping].kind != .Name
                     {
-                        let bytes = try parser.decodeStream(mapping)
+                        let bytes = #move try parser.decodeStream(mapping)
                         result.glyphIndices.reserve(bytes.count / 2)
                         for i in bytes.count / 2 do
                             result.glyphIndices.add(cast(u32) bytes[i * 2] << 8 | bytes[i * 2 + 1])
@@ -335,7 +335,7 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
     let toUnicode = parser.dict(fontId, "ToUnicode")
     if toUnicode != InvalidNode
     {
-        let cmap = try parser.decodeStream(toUnicode)
+        let cmap = #move try parser.decodeStream(toUnicode)
         readToUnicode(&result, cmap.toSlice())
     }
 
@@ -382,7 +382,7 @@ private func readFontProgram(parser: *PdfParser, font: *FontResource, descriptor
     let file2 = parser.dict(descriptor, "FontFile2")
     if file2 != InvalidNode
     {
-        font.bytes   = try parser.decodeStream(file2)
+        font.bytes   = #move try parser.decodeStream(file2)
         font.program = .TrueType
         return
     }
@@ -391,7 +391,7 @@ private func readFontProgram(parser: *PdfParser, font: *FontResource, descriptor
     if file3 != InvalidNode
     {
         let subtype = parser.name(parser.dict(file3, "Subtype"))
-        font.bytes = try parser.decodeStream(file3)
+        font.bytes = #move try parser.decodeStream(file3)
 
         // An OpenType wrapper may carry either outline flavour; the loader tells them
         // apart from the file itself, so the distinction that matters here is only
@@ -403,7 +403,7 @@ private func readFontProgram(parser: *PdfParser, font: *FontResource, descriptor
     let file1 = parser.dict(descriptor, "FontFile")
     if file1 != InvalidNode
     {
-        font.bytes   = try parser.decodeStream(file1)
+        font.bytes   = #move try parser.decodeStream(file1)
         font.program = .Type1
     }
 }
@@ -495,7 +495,8 @@ private func readEncoding(parser: const *PdfParser, font: *FontResource, encodin
         // only what the text extracts as, and may well be unknown.
         let name  = parser.nodes[id].text.toString()
         let glyph = glyphNameRune(name)
-        font.glyphNames[code] = String.from(name)
+        var glyphName = #move String.from(name)
+        font.glyphNames[code] = #move glyphName
         if glyph do
             font.encoding[code] = glyph
         code += 1
@@ -628,7 +629,8 @@ private func applyCMapChars(font: *FontResource, scanner: const *PdfParser, pend
             continue
         if source.text.length == 1 or source.text.length == 2 do
             font.codeBytes = cast(u32) source.text.length
-        font.unicode[cmapCode(source.text.toString())] = Text.decode(cast(const [..] u8) target.text.toString(), .Utf16Be)
+        var decoded = #move Text.decode(cast(const [..] u8) target.text.toString(), .Utf16Be)
+        font.unicode[cmapCode(source.text.toString())] = #move decoded
     }
 }
 
@@ -656,8 +658,11 @@ private func applyCMapRanges(font: *FontResource, scanner: const *PdfParser, pen
             for value, offset in dest.values where offset <= cast(u64) (last - first)
             {
                 let entry = &scanner.nodes[value]
-                if entry.kind == .String do
-                    font.unicode[first + cast(u32) offset] = Text.decode(cast(const [..] u8) entry.text.toString(), .Utf16Be)
+                if entry.kind == .String
+                {
+                    var decoded = #move Text.decode(cast(const [..] u8) entry.text.toString(), .Utf16Be)
+                    font.unicode[first + cast(u32) offset] = #move decoded
+                }
             }
 
             continue
@@ -667,7 +672,8 @@ private func applyCMapRanges(font: *FontResource, scanner: const *PdfParser, pen
             continue
         if dest.text.length > 2
         {
-            font.unicode[first] = Text.decode(cast(const [..] u8) dest.text.toString(), .Utf16Be)
+            var decoded = #move Text.decode(cast(const [..] u8) dest.text.toString(), .Utf16Be)
+            font.unicode[first] = #move decoded
             continue
         }
 
@@ -676,7 +682,8 @@ private func applyCMapRanges(font: *FontResource, scanner: const *PdfParser, pen
         {
             var builder: StrConv.StringBuilder
             builder.appendRune(cast(rune) (base + code - first))
-            font.unicode[code] = builder.toString()
+            var decoded = #move builder.toString()
+            font.unicode[code] = #move decoded
         }
     }
 }

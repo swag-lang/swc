@@ -108,7 +108,7 @@ private func windows1252(text: string)->Array'u8 fail
 
 private func appendPdfString(result: *String, text: string) fail
 {
-    let encoded = try windows1252(text)
+    let encoded = #move try windows1252(text)
     result[] += '('
     for c in encoded
     {
@@ -490,9 +490,9 @@ func encodeDocument(document: const *Document)->Array'u8 fail
         writer.append(Format.toString(" >> /Contents % 0 R >>\n", objects.content).toString())
         writer.endObject()
 
-        let content    = try pageContent(page, fonts.toSlice())
+        let content    = #move try pageContent(page, fonts.toSlice())
         var zlib: Compress.ZLib
-        let compressed = try zlib.compress(cast(const [..] u8) content)
+        let compressed = #move try zlib.compress(cast(const [..] u8) content)
         writer.streamObject(objects.content, compressed.toSlice(), "/Filter /FlateDecode")
 
         var imageIndex = 0'u64
@@ -500,7 +500,7 @@ func encodeDocument(document: const *Document)->Array'u8 fail
         {
             let encoded    = encodeImagePixels(&item.image)
             var samplesZlib: Compress.ZLib
-            let samples    = try samplesZlib.compress(encoded.samples.toSlice())
+            let samples    = #move try samplesZlib.compress(encoded.samples.toSlice())
             let maskObject = objects.masks[imageIndex]
             var dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent 8 /Filter /FlateDecode", item.image.width, item.image.height, encoded.isGray ? "Gray" : "RGB")
             if maskObject and encoded.alpha.count do
@@ -520,7 +520,7 @@ func encodeDocument(document: const *Document)->Array'u8 fail
                 }
 
                 var maskZlib: Compress.ZLib
-                let maskData = try maskZlib.compress(alpha.toSlice())
+                let maskData = #move try maskZlib.compress(alpha.toSlice())
                 let maskDict = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode", item.image.width, item.image.height)
                 writer.streamObject(maskObject, maskData.toSlice(), maskDict.toString())
             }

@@ -8,7 +8,7 @@ const ViewerMinWidth                          = 880
 const ViewerSearchChunkSize                   = 256 * 1024'u64
 const ViewerErrorTextWidth                    = 512.0
 const ViewerInfoStatsWidth                    = 560.0
-const ViewerInfoSizeWidth                     = 112.0
+const ViewerInfoSizeWidth                     = 88.0
 const ViewerFullScreenRevealEdge              = 32.0
 const ViewerRetirePollInterval: Time.Duration = 16'ms
 
@@ -202,36 +202,35 @@ struct ViewerWindow
 
     #[Swag.Late]
     {
-        commandBar:       *Wnd
-        previousButton:   *IconButton
-        nextButton:       *IconButton
-        kindButton:       *IconButton
-        openButton:       *IconButton
-        filesButton:      *IconButton
-        fullScreenButton: *IconButton
-        searchBox:        *EditBox
-        viewerCombo:      *ComboBox
-        appearanceButton: *AppearanceButton
-        accentRail:       *Separator
-        infoBar:          *ViewerInfoBar
-        infoFileGroup:    *Wnd
-        infoIconLabel:    *Label
-        infoNameLabel:    *Label
-        infoStatsLabel:   *Label
-        infoSizeLabel:    *Label
-        loadingOverlay:   *ViewerLoadingOverlay
-        viewerBar:        *Wnd
-        emptyView:        *StackLayoutCtrl
-        emptyIconLabel:   *Label
-        emptyLabel:       *Label
-        emptyHintLabel:   *Label
-        filePanel:        *SplitterCtrl
-        recentPane:       *Wnd
-        recentLabel:      *Label
-        recentList:       *ListCtrl
-        folderPane:       *Wnd
-        folderLabel:      *Label
-        folderList:       *ListCtrl
+        commandBar:        *Wnd
+        kindButton:        *IconButton
+        openButton:        *IconButton
+        filesButton:       *IconButton
+        fullScreenButton:  *IconButton
+        searchBox:         *EditBox
+        viewerCombo:       *ComboBox
+        appearanceButton:  *AppearanceButton
+        accentRail:        *Separator
+        infoBar:           *ViewerInfoBar
+        infoFileGroup:     *Wnd
+        infoIconLabel:     *Label
+        infoNameLabel:     *Label
+        infoStatsLabel:    *Label
+        infoSizeLabel:     *Label
+        loadingOverlay:    *ViewerLoadingOverlay
+        viewerBar:         *Wnd
+        emptyView:         *StackLayoutCtrl
+        emptyIconLabel:    *Label
+        emptyLabel:        *Label
+        emptyHintLabel:    *Label
+        filePanel:         *SplitterCtrl
+        recentPane:        *Wnd
+        recentLabel:       *Label
+        recentClearButton: *IconButton
+        recentList:        *ListCtrl
+        folderPane:        *Wnd
+        folderLabel:       *Label
+        folderList:        *ListCtrl
     }
 
     index:            ViewerIndex
@@ -297,6 +296,12 @@ func reportViewerDetails(view: *Wnd, details: string)
     }
 }
 
+// Opens a neighboring file for the viewer that chose to own directional navigation.
+func navigateViewerFile(view: *Wnd, delta: s32)
+{
+    (cast(*ViewerWindow) view.parent!).navigate(delta)
+}
+
 // Lets a viewer wake the generic wait presentation when work starts again after being idle.
 func reportViewerLoadingChanged(view: *Wnd)
 {
@@ -358,10 +363,11 @@ impl IWnd for ViewerWindow
             .showSearch()
         elif evt.key == .F3 and evt.modifiers == .None do
             .findNext()
-        elif evt.key == .Left and evt.modifiers == .None do
-            .navigateOrForward(-1, evt)
-        elif evt.key == .Right and evt.modifiers == .None do
-            .navigateOrForward(1, evt)
+        elif (evt.key == .Left or evt.key == .Right) and evt.modifiers == .None
+        {
+            if .forwardingViewerKey or !.forwardKeyToViewer(evt) do
+                evt.accepted = false
+        }
         elif evt.key == .F5 and !.currentFile.isEmpty() do
             .queueFile(.currentFile.toString())
         else do
@@ -567,7 +573,7 @@ impl ViewerWindow
         }
 
         .fullScreenButton.setChecked(.fullScreen)
-        .fullScreenButton.setIcon(.icon(.fullScreen ? .ExitFullScreen : .FullScreen, ViewerGlyphSize))
+        .fullScreenButton.setIcon(.theme().icon(.fullScreen ? .ExitFullScreen : .FullScreen, ViewerGlyphSize))
         .fullScreenButton.toolTip = .fullScreen ? appStrings().ui_ExitFullScreen : appStrings().ui_FullScreen
     }
 
@@ -674,7 +680,7 @@ impl ViewerWindow
             }
         }
 
-        with result.fullScreenButton = IconButton.create(result.commandBar, result.icon(.FullScreen, ViewerGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
+        with result.fullScreenButton = IconButton.create(result.commandBar, result.theme().icon(.FullScreen, ViewerGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
         {
             .dockStyle = .Right
             .toolTip   = appStrings().ui_FullScreen
@@ -702,30 +708,6 @@ impl ViewerWindow
                 window.hideSearch()
             }
             .enable(false)
-        }
-
-        with result.previousButton = IconButton.create(result.commandBar, result.theme().icon(.ChevronLeft, ViewerGlyphSize), {0, 0, 36, 36})
-        {
-            .dockStyle = .Left
-            .toolTip   = appStrings().ui_Previous
-            .enable(false)
-            .sigPressed += func|window = result|(button)
-            {
-                discard button
-                window.navigate(-1)
-            }
-        }
-
-        with result.nextButton = IconButton.create(result.commandBar, result.theme().icon(.ChevronRight, ViewerGlyphSize), {0, 0, 36, 36})
-        {
-            .dockStyle = .Left
-            .toolTip   = appStrings().ui_Next
-            .enable(false)
-            .sigPressed += func|window = result|(button)
-            {
-                discard button
-                window.navigate(1)
-            }
         }
 
         // Wide enough for the longest viewer name a shipped viewer registers beside its glyph.
@@ -775,8 +757,8 @@ impl ViewerWindow
 
         with result.infoSizeLabel = Label.create(result.infoFileGroup, "", {0, 0, ViewerInfoSizeWidth, 32}, null, .SecondaryText)
         {
-            .dockStyle = .Right
-            .margin.x  = 12
+            .dockStyle = .Left
+            .margin.z  = 12
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Left, .Center)
         }
@@ -816,9 +798,26 @@ impl ViewerWindow
             .padding         = {10, 8, 10, 8}
         }
 
-        with result.recentLabel = Label.create(result.recentPane, appStrings().ui_Recent, {0, 0, 0, ViewerPanelLabel}, null, .SecondaryText)
+        with let recentHeader = Wnd.create'Wnd(result.recentPane, {0, 0, 0, ViewerPanelLabel})
         {
-            .dockStyle = .Top
+            .dockStyle       = .Top
+            .backgroundStyle = .Window
+        }
+
+        with result.recentClearButton = IconButton.create(recentHeader, result.theme().icon(.RemoveAll, 16), {0, 0, 24, 24})
+        {
+            .dockStyle  = .Right
+            .toolTip    = appStrings().ui_ClearHistory
+            .sigPressed += func|window = result|(button)
+            {
+                discard button
+                window.confirmClearRecent()
+            }
+        }
+
+        with result.recentLabel = Label.create(recentHeader, appStrings().ui_Recent, {0, 0, 0, ViewerPanelLabel}, null, .SecondaryText)
+        {
+            .dockStyle = .Center
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Left, .Center)
         }
@@ -1012,8 +1011,6 @@ impl ViewerWindow
         .infoBar.hide()
         .viewerBar.hide()
         .surface!.setTitle(appStrings().ui_WindowTitle)
-        .previousButton.enable(false)
-        .nextButton.enable(false)
         .searchBox.enable(false)
         .applyLayout()
     }
@@ -1262,7 +1259,14 @@ impl ViewerWindow
         else
         {
             let spec    = &.index.specs[choice.specIndex]
-            let request = ViewerRequest{me, .viewerBar, .currentFile.toString(), &reportViewerFailure, &reportViewerDetails, &reportViewerLoadingChanged}
+            let request = ViewerRequest{
+                contentParent: me,
+                commandParent: .viewerBar,
+                fileName: .currentFile.toString(),
+                reportFailure: &reportViewerFailure,
+                reportDetails: &reportViewerDetails,
+                reportLoadingChanged: &reportViewerLoadingChanged,
+                navigateFile: &navigateViewerFile}
             catch spec.createView(&request, &next) as viewerError
             if viewerError != null
             {
@@ -1416,17 +1420,6 @@ impl ViewerWindow
         let order = FocusOrder.collect(view!)
         let stop  = order.stops.isEmpty() ? view! : order.stops[0]!
         return stop!.focusTarget()
-    }
-
-    // Gives the active viewer the first say on a bare navigation key, wherever the focus sits.
-    //
-    // A viewer that turns pages with the arrows keeps them even while a toolbar button holds
-    // the keyboard; only a key the viewer declines falls back to the previous or next file.
-    mtd navigateOrForward(delta: s32, evt: *KeyEvent)
-    {
-        if !.forwardingViewerKey and .forwardKeyToViewer(evt) do
-            return
-        .navigate(delta)
     }
 
     // Routes playback keys before a focused child can consume them. One physical press toggles
@@ -1734,8 +1727,6 @@ impl ViewerWindow
         if .panelVisible do
             .refreshFileLists()
 
-        .previousButton.enable(true)
-        .nextButton.enable(true)
         .applyLayout()
         .invalidate()
     }
@@ -1744,13 +1735,12 @@ impl ViewerWindow
     {
         let texts = appStrings()
         .surface?.setTitle(texts.ui_WindowTitle)
-        .openButton.toolTip       = texts.ui_Open
-        .filesButton.toolTip      = texts.ui_Files
-        .fullScreenButton.toolTip = .fullScreen ? texts.ui_ExitFullScreen : texts.ui_FullScreen
-        .previousButton.toolTip   = texts.ui_Previous
-        .nextButton.toolTip       = texts.ui_Next
-        .kindButton.toolTip       = texts.ui_SameKind
-        .viewerCombo.toolTip      = texts.ui_Viewer
+        .openButton.toolTip        = texts.ui_Open
+        .filesButton.toolTip       = texts.ui_Files
+        .fullScreenButton.toolTip  = .fullScreen ? texts.ui_ExitFullScreen : texts.ui_FullScreen
+        .kindButton.toolTip        = texts.ui_SameKind
+        .recentClearButton.toolTip = texts.ui_ClearHistory
+        .viewerCombo.toolTip       = texts.ui_Viewer
         .searchBox.setPlaceholder(texts.ui_Search)
         .recentLabel.setText(texts.ui_Recent)
         for &instance in .instances where instance.view and !instance.failureReason.isEmpty() do
@@ -1899,7 +1889,6 @@ impl ViewerWindow
         {
             menu.addSeparator()
             menu.addItem(texts.ui_MenuForget, "sFileScope.file.forget", .theme().icon(.Remove, ViewerRowGlyphSize))
-            menu.addItem(texts.ui_MenuClearHistory, "sFileScope.file.clearHistory", .theme().icon(.RemoveAll, ViewerRowGlyphSize))
         }
 
         let chosen = menu.doModal(position, .TopLeft, autoDestroy: true)
@@ -1908,10 +1897,9 @@ impl ViewerWindow
 
         switch chosen!
         {
-        case "sFileScope.file.locate":       Env.showInFileExplorer(fileName)
-        case "sFileScope.file.openWith":     Env.openFileWith(fileName)
-        case "sFileScope.file.forget":       .forgetRecent(fileName)
-        case "sFileScope.file.clearHistory": .clearRecent()
+        case "sFileScope.file.locate":   Env.showInFileExplorer(fileName)
+        case "sFileScope.file.openWith": Env.openFileWith(fileName)
+        case "sFileScope.file.forget":   .forgetRecent(fileName)
         }
     }
 
@@ -1934,6 +1922,13 @@ impl ViewerWindow
         .recent.clear()
         .refreshFileLists()
         catch .saveState()
+    }
+
+    // Confirms the destructive history action before applying it.
+    mtd confirmClearRecent()
+    {
+        if MessageDlg.confirm(.surface!, appStrings().ui_ConfirmClearHistory) == Dialog.BtnYes do
+            .clearRecent()
     }
 
     // Opens the file a panel row names, unless the row was selected by the refresh itself.

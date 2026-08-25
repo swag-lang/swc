@@ -116,6 +116,8 @@ impl BasicTextView
             return false
         if .pauseStreaming do
             return false
+        if .bytesRead - .residentStart >= TextResidentWindowSize do
+            return false
         let viewport     = .editor.paddedClientRect()
         let loadedHeight = .editor.loadedDocumentHeight()
         return loadedHeight <= 0 or .editor.scrollPosition().y + viewport.height * TextStreamLookAhead >= .residentOffsetY + loadedHeight
@@ -180,6 +182,8 @@ impl BasicTextView
     mtd loadNextChunk()
     {
         if !.hasMore() do
+            return
+        if .bytesRead - .residentStart >= TextResidentWindowSize do
             return
 
         let oldPosition = .editor.scrollPosition()
@@ -364,7 +368,7 @@ impl BasicTextView
 
         result.commands = ViewerCommandBar.create(commandParent, 200)
 
-        with result.wrapButton = IconButton.create(result.commands, result.commands.icon(.Wrap), {0, 0, 36, 36}, flags: .Toggle)
+        with result.wrapButton = IconButton.create(result.commands, result.theme().icon(.Wrap), {0, 0, 36, 36}, flags: .Toggle)
         {
             .dockStyle = .Left
             .toolTip   = appStrings().ui_WrapOn

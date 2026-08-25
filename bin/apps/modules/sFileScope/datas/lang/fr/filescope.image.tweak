@@ -1,5 +1,7 @@
 # French strings of the sFileScope image viewer. A key omitted here keeps its English value.
 
+ui_TipPrevious Image précédente
+ui_TipNext     Image suivante
 ui_TipZoomOut  Dézoomer
 ui_TipZoomIn   Zoomer
 ui_TipFit      Ajuster l'image à la fenêtre

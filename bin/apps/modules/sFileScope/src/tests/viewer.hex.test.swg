@@ -5,7 +5,7 @@ using Core, Pixel, Gui
 
 // Payload every streaming test reads. It is larger than one resident window, so a test that walks
 // to its end proves the window moved instead of proving the file was small.
-const StreamedFileSize = HexWindowSize * 3 + 1234'u64
+const StreamedFileSize = HexWindowSize * 32 + 1234'u64
 
 // Writes readable content at exact offsets. A checked-in fixture would carry whatever line endings
 // the checkout gave it, which moves every offset an assertion names.
@@ -153,6 +153,8 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
 {
     let fileName = writeStreamedFile(StreamedFileSize)
     defer discard catch File.delete(fileName.toString())
+    let allocator = Swag.defaultAllocator()
+    let baseline  = allocator.stats()
 
     var doc: HexDocument
     defer doc.close()
@@ -176,6 +178,9 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     @assert(bytes.count == 4 and bytes[0] == 0xE8 and bytes[3] == 0xEB)
     @assert(doc.windowStart == windowStart)
     @assert(doc.read(StreamedFileSize, 16).isEmpty())
+
+    let resident = allocator.stats()
+    @assert(resident.sizeAlloc < baseline.sizeAlloc + 2 * 1024 * 1024)
 }
 
 // Walking a file larger than one window keeps the resident bytes bounded, and the end is one key

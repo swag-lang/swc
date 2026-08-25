@@ -191,6 +191,13 @@ using Swag, Core
     evt = Gui.Testing.commandState(ActionZoom.ZoomOut)
     @assert(Gui.Testing.actionUpdate'ActionZoom(f.main, ActionZoom.ZoomOut, &evt))
     @assert(evt.disabled)
+
+    evt = Gui.Testing.commandState(ActionZoom.Zoom1)
+    @assert(Gui.Testing.actionUpdate'ActionZoom(f.main, ActionZoom.Zoom1, &evt))
+    @assert(evt.updatedFields.has(.Icon) and evt.icon.isValid())
+    evt = Gui.Testing.commandState(ActionZoom.ZoomFit)
+    @assert(Gui.Testing.actionUpdate'ActionZoom(f.main, ActionZoom.ZoomFit, &evt))
+    @assert(evt.updatedFields.has(.Icon) and evt.icon.isValid())
 }
 
 // Edit, pixsel, image and undo actions report enabled/hidden state from current selection.

@@ -54,6 +54,33 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     return result
 }
 
+// A real multi-megabyte document keeps only its mapped source, lightweight page index and current
+// decoded page. Walking the whole document twice must replace page resources rather than cache a
+// second document's worth of streams, fonts, paths and images.
+#test
+{
+    let allocator = Swag.defaultAllocator()
+    let baseline  = allocator.stats()
+
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    defer host.shutdown()
+
+    let view = PdfView.create(&host.root)
+    expect view.open(corpusPdfPath("llvm-polly-kernelgen-ncar-2012-slides.pdf"))
+    @assert(view.pageCount() == 28)
+    for pageIndex in view.pageCount() do
+        expect view.showPage(pageIndex)
+    let firstPass = allocator.stats()
+    @assert(firstPass.sizeAlloc < baseline.sizeAlloc + 64 * 1024 * 1024)
+
+    for pageIndex in view.pageCount() do
+        expect view.showPage(pageIndex)
+    let secondPass = allocator.stats()
+    @assert(secondPass.sizeAlloc < baseline.sizeAlloc + 64 * 1024 * 1024)
+    @assert(secondPass.sizeAlloc <= firstPass.sizeAlloc + 2 * 1024 * 1024)
+}
+
 // The view paints the decoded page straight through the widget's painter: one rendered frame
 // shows the page ground and its text, with no offline rasterization in between.
 #test

@@ -16,8 +16,6 @@ internal struct VideoSeekOverlay
 {
     using wnd: Wnd
 
-    #[Swag.Late]
-    commands:     *ViewerCommandBar
     backwardIcon: Icon
     forwardIcon:  Icon
     text:         String
@@ -79,11 +77,10 @@ private impl IWnd for VideoSeekOverlay
 
 internal impl VideoSeekOverlay
 {
-    func create(parent: *Wnd, commands: *ViewerCommandBar)->*VideoSeekOverlay
+    func create(parent: *Wnd)->*VideoSeekOverlay
     {
         let result = Wnd.create'VideoSeekOverlay(parent, "sFileScope.video.seek", {0, 0, VideoSeekOverlaySize.x, VideoSeekOverlaySize.y})
         result.wndFlags |= WndFlags.TopMost | WndFlags.Disabled
-        result.commands = commands
         result.hide()
         return result
     }
@@ -113,9 +110,9 @@ internal impl VideoSeekOverlay
         }
 
         if .direction < 0 and !.backwardIcon.isValid() do
-            .backwardIcon = .commands.icon(.SeekBackward, 30)
+            .backwardIcon = .theme().icon(.SeekBackward, 30)
         if .direction > 0 and !.forwardIcon.isValid() do
-            .forwardIcon = .commands.icon(.SeekForward, 30)
+            .forwardIcon = .theme().icon(.SeekForward, 30)
         let rect = .parent!.clientRect()
         let size = .preferredSize
         .setPosition({Math.floor((rect.width - size.x) * 0.5), Math.floor((rect.height - size.y) * 0.5), size.x, size.y}, computeLayout: false)
@@ -469,16 +466,36 @@ internal impl VideoViewer
 
     mtd resumeAudio()
     {
-        .resumeAudioAfterSeek = false
-        if !.voice or !.audio do
+        if !.voice or !.audio
+        {
+            .resumeAudioAfterSeek = false
             return
+        }
+
         if !videoSoundCovers(.audio!, .currentSeconds())
         {
             .audioRangePending = true
             return
         }
 
-        .audioRangePending = false
+        if .resumeAudioAfterSeek
+        {
+            let sample = videoSoundSample(.audio!, .currentSeconds())
+            catch .voice!.seekSampleFrame(sample) as seekError
+            if seekError != null
+            {
+                .resumeAudioAfterSeek = false
+                .playing              = false
+                .audioRangePending    = false
+                catch .voice!.pause()
+                if .reportFailure do
+                    .reportFailure!(me, Errors.message(seekError))
+                return
+            }
+        }
+
+        .resumeAudioAfterSeek = false
+        .audioRangePending    = false
         catch .voice!.play() as playError
         if playError != null
         {
@@ -551,7 +568,7 @@ internal impl VideoViewer
     mtd showSeekFeedback(seconds: f64)
     {
         if !.seekOverlay do
-            .seekOverlay = VideoSeekOverlay.create(me, .commands)
+            .seekOverlay = VideoSeekOverlay.create(me)
         .seekOverlay!.showSeek(seconds)
     }
 
@@ -559,7 +576,7 @@ internal impl VideoViewer
     {
         .muted = muted
         .muteButton.setChecked(muted)
-        .muteButton.setIcon(.commands.icon(muted ? .VolumeMute : .Volume, VideoGlyphSize))
+        .muteButton.setIcon(.theme().icon(muted ? .VolumeMute : .Volume, VideoGlyphSize))
         if .voice do
             catch .voice!.setVolume(muted ? 0 : .volume)
     }
@@ -623,6 +640,8 @@ internal impl VideoViewer
             .elapsed = position
             .clock.restart()
         }
+        elif .resumeAudioAfterSeek and coversRange do
+            .resumeAudio()
 
         .refreshDetails()
     }
@@ -911,21 +930,21 @@ internal impl VideoViewer
             .clock.reset()
         .elapsed = .frameSeconds(target)
 
-        // Position sound before publishing a picture that may already be queued. Otherwise an
-        // immediate publish can resume the old sample position and leave the clocks separated.
         if .voice and .audio
         {
             let coversRange = videoSoundCovers(.audio!, .elapsed)
             .audioRangePending = !coversRange
-            if coversRange
+
+            // A paused transport has no later resume point at which to position the sound.
+            // Playing seeks wait for the requested picture and are handled by `resumeAudio`.
+            if coversRange and !resumeAudio
             {
                 let sample = videoSoundSample(.audio!, .elapsed)
                 catch .voice!.seekSampleFrame(sample) as seekError
                 if seekError != null
                 {
-                    .resumeAudioAfterSeek = false
-                    .playing              = false
-                    .audioRangePending    = false
+                    .playing           = false
+                    .audioRangePending = false
                     catch .voice!.pause()
                     if .reportFailure do
                         .reportFailure!(me, Errors.message(seekError))
@@ -1288,7 +1307,7 @@ private impl VideoViewer
             }
         }
 
-        with result.backwardButton = IconButton.create(result.commands, result.commands.icon(.SeekBackward, VideoGlyphSize), {0, 0, 36, 36})
+        with result.backwardButton = IconButton.create(result.commands, result.theme().icon(.SeekBackward, VideoGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 4
@@ -1300,7 +1319,7 @@ private impl VideoViewer
             }
         }
 
-        with result.forwardButton = IconButton.create(result.commands, result.commands.icon(.SeekForward, VideoGlyphSize), {0, 0, 36, 36})
+        with result.forwardButton = IconButton.create(result.commands, result.theme().icon(.SeekForward, VideoGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 4
@@ -1312,7 +1331,7 @@ private impl VideoViewer
             }
         }
 
-        with result.audioButton = IconButton.create(result.commands, result.commands.icon(.AudioTracks, VideoGlyphSize), {0, 0, 36, 36})
+        with result.audioButton = IconButton.create(result.commands, result.theme().icon(.AudioTracks, VideoGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Right
             .toolTip   = videoStrings().ui_TipAudio
@@ -1338,7 +1357,7 @@ private impl VideoViewer
             }
         }
 
-        with result.muteButton = IconButton.create(result.commands, result.commands.icon(.Volume, VideoGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
+        with result.muteButton = IconButton.create(result.commands, result.theme().icon(.Volume, VideoGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
         {
             .dockStyle = .Right
             .margin.x  = 8
@@ -1456,5 +1475,9 @@ func createVideoViewer(request: const *ViewerRequest, result: *ViewerResult)
         let videoView = cast(*VideoViewer) wnd
         return !videoView.openFinished or videoView.awaitingFrame
     }
-    result.needsLoadingOverlay = func(wnd)->bool { return !(cast(*VideoViewer) wnd).hasFrame }
+    result.needsLoadingOverlay = func(wnd)->bool
+    {
+        let view = cast(*VideoViewer) wnd
+        return !view.hasFrame or view.awaitingFrame
+    }
 }

@@ -505,7 +505,7 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
 
     var cpu:      RenderCpu
     let renderer: IRenderer = &cpu
-    var context             = try renderer.createContext(null, width, height)
+    var context             = #move try renderer.createContext(null, width, height)
     defer renderer.deleteContext(&context)
 
     renderer.begin(context)

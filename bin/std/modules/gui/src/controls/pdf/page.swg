@@ -212,7 +212,8 @@ impl Page
     // again — another scale, another region — does not pay that preparation twice.
     mtd render(options: RenderOptions = {})->Image fail
     {
-        return try renderPage(me, options)
+        var result = #move try renderPage(me, options)
+        return #move result
     }
 }
 

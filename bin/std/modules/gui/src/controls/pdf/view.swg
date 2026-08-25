@@ -514,7 +514,7 @@ impl PdfView
     // are not supported; embedded actions are ignored rather than executed.
     mtd open(fileName: string) fail
     {
-        var reader = try Pdf.Reader.open(fileName)
+        var reader = #move try Pdf.Reader.open(fileName)
         if !reader.pageCount() do
             fail Errors.InvalidFormatError{"PDF document contains no page"}
 
@@ -559,7 +559,7 @@ impl PdfView
         if index >= .reader.pageCount() do
             fail Errors.BadParameterError{"PDF page index exceeds the document page count"}
 
-        var page = try .reader.loadPage(index)
+        var page = #move try .reader.loadPage(index)
         .releaseTextures()
         @drop(&.page, 1)
         @init(&.page, 1)

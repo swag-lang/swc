@@ -537,7 +537,7 @@ impl PdfParser
             let first = .integer(.dict(streamId, "First"))
             if count < 0 or first < 0 do
                 fail InvalidFormatError{"PDF object stream has invalid bounds"}
-            let decoded = try .decodeStream(streamId)
+            let decoded = #move try .decodeStream(streamId)
             if cast(u64) first > decoded.count do
                 fail InvalidFormatError{"PDF object stream header exceeds its data"}
 
@@ -728,7 +728,7 @@ impl PdfParser
     mtd const imageCodec(nodeId: u32)->String
     {
         var result: retval
-        let filters = .streamFilters(nodeId)
+        let filters = #move .streamFilters(nodeId)
         if !filters.count do
             return result
         switch filters.back().toString()
@@ -749,7 +749,7 @@ impl PdfParser
         if id == InvalidNode or .nodes[id].kind != .Dictionary do
             fail InvalidFormatError{"PDF stream dictionary is missing"}
         var result: Array'u8 = .nodes[id].stream
-        let filters          = .streamFilters(id)
+        let filters          = #move .streamFilters(id)
         var count            = filters.count
         if stopAtImageCodec and count and @countof(.imageCodec(id)) do
             count -= 1
@@ -761,24 +761,42 @@ impl PdfParser
             {
             case "FlateDecode", "Fl":
                 var zlib: Compress.ZLib
-                result = try zlib.decompress(result.toSlice())
-                if parameters != InvalidNode do
-                    result = try .applyPredictor(result.toSlice(), parameters)
+                var decoded = #move try zlib.decompress(result.toSlice())
+                result.free()
+                result = #move decoded
+                if parameters != InvalidNode
+                {
+                    var predicted = #move try .applyPredictor(result.toSlice(), parameters)
+                    result.free()
+                    result = #move predicted
+                }
 
             case "LZWDecode", "LZW":
                 let earlyChange = .integer(.dict(parameters, "EarlyChange"), 1) != 0
-                result = try decodeLzw(result.toSlice(), earlyChange)
-                if parameters != InvalidNode do
-                    result = try .applyPredictor(result.toSlice(), parameters)
+                var decoded = #move try decodeLzw(result.toSlice(), earlyChange)
+                result.free()
+                result = #move decoded
+                if parameters != InvalidNode
+                {
+                    var predicted = #move try .applyPredictor(result.toSlice(), parameters)
+                    result.free()
+                    result = #move predicted
+                }
 
             case "ASCIIHexDecode", "AHx":
-                result = try decodeAsciiHex(result.toSlice())
+                var decoded = #move try decodeAsciiHex(result.toSlice())
+                result.free()
+                result = #move decoded
 
             case "ASCII85Decode", "A85":
-                result = try decodeAscii85(result.toSlice())
+                var decoded = #move try decodeAscii85(result.toSlice())
+                result.free()
+                result = #move decoded
 
             case "RunLengthDecode", "RL":
-                result = try decodeRunLength(result.toSlice())
+                var decoded = #move try decodeRunLength(result.toSlice())
+                result.free()
+                result = #move decoded
 
             case "Crypt":
                 break

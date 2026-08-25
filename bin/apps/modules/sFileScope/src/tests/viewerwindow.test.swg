@@ -32,13 +32,6 @@ func viewerFixturePath()->String
     return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.txt")
 }
 
-// A deliberately passive viewer used to exercise the application's file-navigation fallback.
-func createPassiveTestViewer(request: const *ViewerRequest, result: *ViewerResult)
-{
-    result.view    = Wnd.create'Wnd(request.contentParent)
-    result.details = "Passive test viewer"
-}
-
 func markTestViewerRetired(wnd: *Wnd)->bool
 {
     let retired = cast(*bool) wnd.userData!
@@ -390,14 +383,24 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.forgetRecent(Path.combine(folder.toString(), "absent.txt").toString())
     @assert(window.recent.count == 2 and window.currentFile == names[2])
 
-    window.clearRecent()
+    @assert(window.recentClearButton.parent == window.recentLabel.parent)
+    @assert(window.recentClearButton.icon.isValid())
+
+    host.clickModalButtonWhenShown(Dialog.BtnNo)
+    window.confirmClearRecent()
+    host.pump()
+    @assert(host.autoHandled and window.recent.count == 2)
+
+    host.clickModalButtonWhenShown(Dialog.BtnYes)
+    window.confirmClearRecent()
+    host.pump()
+    @assert(host.autoHandled)
     @assert(window.recent.isEmpty() and window.recentList.lineCount() == 0)
     @assert(!window.filePanel.isPaneVisible(0) and !window.recentPane.isLocallyVisible())
     @assert(window.currentFile == names[2] and window.folderList.lineCount() == 3)
 }
 
-// The history row menu offers what that file can do, and the two entries only the history can
-// answer for take one file out of the list, then all of them.
+// The history row menu offers what that file can do, and its own entry removes one file.
 //
 // The folder list is not a list the reader owns, so the same menu there stops at the actions that
 // do not touch the history.
@@ -452,16 +455,6 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.showFileMenu(window.folderList, window.siblings.toSlice(), {120, 120})
     host.pump()
     @assert(!host.autoHandled)
-
-    list.selectLine(0)
-    completeQueuedViewerFile(&host, window)
-    host.clickPopupMenuItemWhenShown("sFileScope.file.clearHistory")
-    window.showFileMenu(list, window.recent.toSlice(), {120, 120})
-    host.pump()
-    @assert(host.autoHandled)
-    @assert(window.recent.isEmpty() and list.lineCount() == 0)
-    @assert(!window.filePanel.isPaneVisible(0))
-    @assert(window.folderList.lineCount() == 3)
 }
 
 // The viewer a reader picks for one file becomes the viewer that kind of file opens in, and
@@ -588,12 +581,23 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     let firstVirtualHeight = view.virtualHeight
     @assert(firstVirtualHeight > view.editor.paddedClientRect().height)
-    for 8
+    for 64
     {
         view.loadNextChunk()
         @assert(view.virtualHeight >= firstVirtualHeight)
         @assert(view.editor.scrollableClientRect().height >= firstVirtualHeight)
     }
+
+    @assert(view.bytesRead - view.residentStart <= 256 * 1024 + 16 * 1024)
+    @assert(@countof(view.editor.text()) <= 256 * 1024 + 16 * 1024)
+    @assert(view.bytesRead < view.fileSize)
+
+    let firstStart = view.residentStart
+    view.editor.setScrollPosition({0, view.virtualHeight * 0.5})
+    @assert(view.pendingSeek)
+    host.fireTimers()
+    @assert(view.residentStart > firstStart)
+    @assert(view.bytesRead - view.residentStart <= 256 * 1024 + 16 * 1024)
 
     host.keyPress(Input.Key.End)
     discard host.render(view)
@@ -720,17 +724,12 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.infoBar.backgroundStyle == window.backgroundStyle)
     @assert(!window.infoBar.isLocallyVisible())
     @assert(window.viewerBar.dockStyle == .Bottom and !window.viewerBar.isLocallyVisible())
-    @assert(window.openButton.position.x < window.previousButton.position.x)
     @assert(window.openButton.position.x < window.searchBox.position.x)
-    @assert(window.searchBox.position.x < window.previousButton.position.x)
-    @assert(window.previousButton.position.x < window.nextButton.position.x)
     @assert(window.infoNameLabel.name.raw.isEmpty())
     @assert(window.surface!.minSize.x == ViewerMinWidth)
     @assert(Utf8.contains(window.emptyLabel.name.raw, appStrings().ui_DropTitle))
     @assert(window.emptyView.isLocallyVisible() and window.emptyIconLabel.icon.isValid())
     @assert(window.emptyHintLabel.text() == appStrings().ui_DropHint)
-    @assert(!window.previousButton.isEnabled())
-    @assert(!window.nextButton.isEnabled())
     @assert(window.currentView == null)
     @assert(window.currentCommands == null)
     @assert(window.filesButton.flags.has(.Toggle) and window.filesButton.checkIndicator == .Frame)
@@ -738,6 +737,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(!window.viewerCombo.isLocallyVisible())
     @assert(window.infoNameLabel.parent == window.infoFileGroup)
     @assert(window.infoSizeLabel.parent == window.infoFileGroup)
+    @assert(window.recentClearButton.parent == window.recentLabel.parent)
     @assert(window.infoStatsLabel.parent == window.infoBar)
     Testing.assertContentFits(window)
 
@@ -953,15 +953,11 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.instances[0].view     = window.currentView
     window.instances[0].commands = window.currentCommands
     window.currentFile           = "sample.cpp"
-    window.previousButton.enable(true)
-    window.nextButton.enable(true)
-
     window.showEmpty(appStrings().ui_Unsupported)
     @assert(window.currentView == null)
     @assert(window.currentCommands == null)
     @assert(window.instances.isEmpty())
     @assert(window.currentFile.isEmpty())
-    @assert(!window.previousButton.isEnabled() and !window.nextButton.isEnabled())
     @assert(window.infoNameLabel.name.raw.isEmpty())
     @assert(!window.infoBar.isLocallyVisible() and window.emptyView.isLocallyVisible())
 }
@@ -1088,6 +1084,8 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.viewerCombo.isLocallyVisible())
     @assert(window.infoBar.isLocallyVisible() and !window.emptyView.isLocallyVisible())
     @assert(window.infoIconLabel.icon.isValid())
+    @assert(window.infoIconLabel.position.right() <= window.infoSizeLabel.position.x)
+    @assert(window.infoSizeLabel.position.right() <= window.infoNameLabel.position.x)
     @assert(window.currentCommands!.parent == window.viewerBar and window.viewerBar.isLocallyVisible())
     @assert(window.searchBox.isLocallyVisible() and window.searchBox.isEnabled())
     var dark = host.render(window)
@@ -1153,8 +1151,8 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.folderSameKind)
 }
 
-// A bare arrow gives the active viewer the first say, wherever the focus sits; only a viewer
-// that declines the key changes the file.
+// Bare arrows never navigate files globally. The image viewer is the one document type that
+// deliberately owns that gesture and asks the host for its neighboring image.
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -1162,24 +1160,18 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     expect Directory.create(folder.toString())
     defer discard catch Directory.delete(folder.toString(), recurse: true)
 
-    var opaque: Array'u8
-    for value in 64 do
-        opaque.add(cast(u8) value)
-    discard expect File.writeAllBytes(Path.combine(folder.toString(), "raw1.bin").toString(), opaque.toSlice())
-    discard expect File.writeAllBytes(Path.combine(folder.toString(), "raw2.bin").toString(), opaque.toSlice())
     discard expect File.writeAllBytes(Path.combine(folder.toString(), "t1.txt").toString(), cast(const [..] u8) "a readable line\n")
     discard expect File.writeAllBytes(Path.combine(folder.toString(), "t2.txt").toString(), cast(const [..] u8) "a readable line\n")
+    let imageSource = expect File.readAllText(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg"))
+    let imageBytes  = @mkslice(cast(const [*] u8) imageSource.buffer!, imageSource.length)
+    discard expect File.writeAllBytes(Path.combine(folder.toString(), "pic1.svg").toString(), imageBytes)
+    discard expect File.writeAllBytes(Path.combine(folder.toString(), "pic2.svg").toString(), imageBytes)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
 
-    var index:   ViewerIndex
-    var passive: ViewerSpec
-    passive.displayName = "Passive"
-    passive.create      = &createPassiveTestViewer
-    passive.extensions.add("*")
-    index.specs.add(#move passive)
+    let index  = createViewerIndex()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
 
@@ -1193,10 +1185,11 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(Path.fileName(window.currentFile.toString()) == "t1.txt")
     @assert(textView.editor.hasFocus())
 
-    // A view with no use for the arrows lets them walk the folder, from wherever the focus is.
-    window.openFile(Path.combine(folder.toString(), "raw1.bin").toString())
+    // The same key does navigate once an image viewer explicitly owns it.
+    window.openFile(Path.combine(folder.toString(), "pic1.svg").toString())
+    window.setFolderSameKind(true)
     window.openButton.setFocus()
     host.keyPress(Input.Key.Right)
     completeQueuedViewerFile(&host, window)
-    @assert(Path.fileName(window.currentFile.toString()) == "raw2.bin")
+    @assert(Path.fileName(window.currentFile.toString()) == "pic2.svg")
 }

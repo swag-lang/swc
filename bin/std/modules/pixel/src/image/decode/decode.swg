@@ -66,7 +66,8 @@ impl Image
         // Decode
         // The registry only ever holds types that implement the interface, so the table resolves.
         let itf = @mkinterface(ptrDecoder, decoder.type, IImageDecoder)!
-        return try itf.decode(bytes, options)
+        var result = #move try itf.decode(bytes, options)
+        return #move result
     }
 }
 
@@ -109,7 +110,8 @@ public impl Image
         let found = getDecoder(fileName)
         if !found do
             fail UnsupportedFormatError{"no matching image decoder"}
-        return decode(cast(*ImageDecoder) (found), cast(const [..] u8) (bytes), options)
+        var result = #move try decode(cast(*ImageDecoder) (found), cast(const [..] u8) (bytes), options)
+        return #move result
     }
 
     // Load the given image file
@@ -118,8 +120,9 @@ public impl Image
         let found = getDecoder(fileName)
         if !found do
             fail UnsupportedFormatError{"no matching image decoder"}
-        var bytes = File.readAllBytes(fileName)
-        return decode(fileName, bytes.toSlice(), options)
+        var bytes  = #move File.readAllBytes(fileName)
+        var result = #move try decode(fileName, bytes.toSlice(), options)
+        return #move result
     }
 
     // Decodes an image carried inline in a `data:` URI.
@@ -151,9 +154,10 @@ public impl Image
         case "x-icon", "vnd.microsoft.icon": extension = "ico"
         }
 
-        let fileName = Format.toString("embedded.%", extension.toString())
-        let bytes    = try Base64.decode(uri[marker + 8 to])
-        return decode(fileName.toString(), bytes.toSlice(), options)
+        let fileName = #move Format.toString("embedded.%", extension.toString())
+        let bytes    = #move try Base64.decode(uri[marker + 8 to])
+        var result   = #move try decode(fileName.toString(), bytes.toSlice(), options)
+        return #move result
     }
 }
 

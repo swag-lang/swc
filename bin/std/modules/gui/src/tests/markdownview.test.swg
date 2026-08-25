@@ -690,6 +690,51 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     @assert(view.scroll.scrollPosition().y > 0)
 }
 
+// Sequential wheel reading evicts the old blocks once one bounded source window has been
+// materialized. Reading in small chunks is not enough: without this cap a trip to EOF retains the
+// complete Markdown document as windows, inline atoms and nested HTML views.
+#test
+{
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("gui_markdown_resident_cap_%.md", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+
+    var source: String
+    for index in 16_000 do
+        source += Format.toString("## Bounded section %\n\nA paragraph is evicted after the resident source budget.\n\n", index)
+    @assert(source.length > 1024 * 1024)
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 360)
+    defer host.shutdown()
+    let view = Markdown.View.createFile(&host.root, fileName)
+    view.resize(720, 360)
+    view.applyLayout()
+
+    var steps = 0'u32
+    while view.bytesRead - view.residentStart < 256 * 1024 and steps < 8_000
+    {
+        let viewport = view.scroll.paddedClientRect()
+        view.scroll.setScrollPos(0, Math.max(view.contentHeight - viewport.height * 0.5, 0))
+        view.streamStep()
+        steps += 1
+    }
+
+    @assert(steps < 8_000)
+    @assert(view.bytesRead - view.residentStart <= 256 * 1024 + 8 * 1024)
+    @assert(view.blocks.count < 10_000)
+    @assert(view.hasUnloadedSource())
+    @assert(!view.needsMore())
+
+    let firstStart = view.residentStart
+    view.scroll.setScrollPos(0, view.virtualHeight * 0.75)
+    @assert(view.pendingSeek)
+    host.fireTimers()
+    @assert(view.residentStart > firstStart)
+    @assert(view.bytesRead - view.residentStart <= 256 * 1024 + 8 * 1024)
+    @assert(view.blocks.count < 10_000)
+}
+
 // A multi-megabyte streamed document moves by one rendered line, one viewport page, or a document
 // boundary through the real focused keyboard path; End still waits for the real EOF.
 #test

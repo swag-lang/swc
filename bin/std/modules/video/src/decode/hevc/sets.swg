@@ -9,7 +9,7 @@
 using Core, Core.Errors
 
 // The largest coding tree block the format allows, and the smallest coding block, in luma samples.
-const MaxCtbLog2SizeY = 6'u32
+const MaxCtbLog2SizeY      = 6'u32
 const MinCbLog2SizeAllowed = 3'u32
 
 // A short-term reference picture set holds at most sixteen pictures, clause 7.4.8.
@@ -23,9 +23,9 @@ struct ShortTermRps
 {
     negativeCount: u32
     positiveCount: u32
-    negativeDelta: [MaxRefPics] s32     // Picture order count deltas, most recent first.
-    positiveDelta: [MaxRefPics] s32     // Picture order count deltas, nearest first.
-    negativeUsed:  [MaxRefPics] bool    // Whether the current picture may predict from it.
+    negativeDelta: [MaxRefPics] s32      // Picture order count deltas, most recent first.
+    positiveDelta: [MaxRefPics] s32      // Picture order count deltas, nearest first.
+    negativeUsed:  [MaxRefPics] bool     // Whether the current picture may predict from it.
     positiveUsed:  [MaxRefPics] bool
 }
 
@@ -122,7 +122,7 @@ impl ScalingLists
                 }
                 else
                 {
-                    let count   = sizeId == 0 ? 16'u32 : 64'u32
+                    let count    = sizeId == 0 ? 16'u32 : 64'u32
                     var nextCoef = 8's32
                     if sizeId > 1
                     {
@@ -130,7 +130,7 @@ impl ScalingLists
                         if dcMinus8 < -7 or dcMinus8 > 247 do
                             fail InvalidFormatError{"HEVC scaling list direct-current coefficient is out of range"}
                         .dc[sizeId - 2, matrixId] = cast(u8) (dcMinus8 + 8)
-                        nextCoef                  = dcMinus8 + 8
+                        nextCoef = dcMinus8 + 8
                     }
 
                     for index in count
@@ -170,82 +170,84 @@ struct Sps
 {
     valid: bool
 
-    chromaFormatIdc:  u32
-    separateColour:   bool
-    width:            u32     // pic_width_in_luma_samples.
-    height:           u32     // pic_height_in_luma_samples.
-    cropLeft:         u32
-    cropRight:        u32
-    cropTop:          u32
-    cropBottom:       u32
-    bitDepthLuma:     u32
-    bitDepthChroma:   u32
-    log2MaxPocLsb:    u32
+    chromaFormatIdc:    u32
+    separateColour:     bool
+    width:              u32     // pic_width_in_luma_samples.
+    height:             u32     // pic_height_in_luma_samples.
+    cropLeft:           u32
+    cropRight:          u32
+    cropTop:            u32
+    cropBottom:         u32
+    bitDepthLuma:       u32
+    bitDepthChroma:     u32
+    log2MaxPocLsb:      u32
     maxDecPicBuffering: u32
-    maxNumReorder:    u32
+    maxNumReorder:      u32
 
-    minCbLog2Size:    u32     // MinCbLog2SizeY.
-    ctbLog2Size:      u32     // CtbLog2SizeY.
-    minTbLog2Size:    u32     // MinTbLog2SizeY.
-    maxTbLog2Size:    u32     // MaxTbLog2SizeY.
+    minCbLog2Size:      u32     // MinCbLog2SizeY.
+    ctbLog2Size:        u32     // CtbLog2SizeY.
+    minTbLog2Size:      u32     // MinTbLog2SizeY.
+    maxTbLog2Size:      u32     // MaxTbLog2SizeY.
     maxTrafoDepthInter: u32
     maxTrafoDepthIntra: u32
 
-    scalingListEnabled:   bool
-    ampEnabled:           bool
-    saoEnabled:           bool
-    pcmEnabled:           bool
-    pcmBitDepthLuma:      u32
-    pcmBitDepthChroma:    u32
-    pcmLog2MinSize:       u32
-    pcmLog2MaxSize:       u32
+    scalingListEnabled:    bool
+    ampEnabled:            bool
+    saoEnabled:            bool
+    pcmEnabled:            bool
+    pcmBitDepthLuma:       u32
+    pcmBitDepthChroma:     u32
+    pcmLog2MinSize:        u32
+    pcmLog2MaxSize:        u32
     pcmLoopFilterDisabled: bool
 
-    numShortTermRps:  u32
-    shortTermRps:     [65] ShortTermRps
+    numShortTermRps: u32
+    shortTermRps:    [65] ShortTermRps
 
-    longTermRefPics:      bool
+    longTermRefPics:       bool
     numLongTermRefPicsSps: u32
-    ltPocLsbSps:          [32] u32
-    ltUsedByCurrSps:      [32] bool
+    ltPocLsbSps:           [32] u32
+    ltUsedByCurrSps:       [32] bool
 
     temporalMvpEnabled:   bool
     strongIntraSmoothing: bool
+    fullRange:            bool
+    matrixCoefficients:   u8 = 2     // H.273 matrix_coefficients; 2 means unspecified.
 
     // Clause 7.4.3.2.2: the range extensions, which Main 10 leaves off.
-    transformSkipRotation:   bool
-    transformSkipContext:    bool
-    implicitRdpcm:           bool
-    explicitRdpcm:           bool
-    extendedPrecision:       bool
-    intraSmoothingDisabled:  bool
-    highPrecisionOffsets:    bool
+    transformSkipRotation:    bool
+    transformSkipContext:     bool
+    implicitRdpcm:            bool
+    explicitRdpcm:            bool
+    extendedPrecision:        bool
+    intraSmoothingDisabled:   bool
+    highPrecisionOffsets:     bool
     persistentRiceAdaptation: bool
-    cabacBypassAlignment:    bool
+    cabacBypassAlignment:     bool
 
     scalingLists: ScalingLists
 
     // Derived geometry.
-    ctbSize:          u32
-    minCbSize:        u32
-    widthInCtbs:      u32
-    heightInCtbs:     u32
-    sizeInCtbs:       u32
-    widthInMinCbs:    u32
-    heightInMinCbs:   u32
-    widthInMinTbs:    u32
-    heightInMinTbs:   u32
-    qpBdOffsetY:      s32
-    qpBdOffsetC:      s32
-    subWidthC:        u32
-    subHeightC:       u32
-    chromaArrayType:  u32
+    ctbSize:         u32
+    minCbSize:       u32
+    widthInCtbs:     u32
+    heightInCtbs:    u32
+    sizeInCtbs:      u32
+    widthInMinCbs:   u32
+    heightInMinCbs:  u32
+    widthInMinTbs:   u32
+    heightInMinTbs:  u32
+    qpBdOffsetY:     s32
+    qpBdOffsetC:     s32
+    subWidthC:       u32
+    subHeightC:      u32
+    chromaArrayType: u32
 }
 
 impl Sps
 {
     // Returns the visible picture size after the conformance window is applied.
-    mtd const visibleWidth()->u32 => .width - (.cropLeft + .cropRight) * .subWidthC
+    mtd const visibleWidth()->u32  => .width - (.cropLeft + .cropRight) * .subWidthC
     mtd const visibleHeight()->u32 => .height - (.cropTop + .cropBottom) * .subHeightC
 
     // Reads one sequence parameter set, clause 7.3.2.2.1.
@@ -349,10 +351,10 @@ impl Sps
         .temporalMvpEnabled   = reader.bit() != 0
         .strongIntraSmoothing = reader.bit() != 0
 
-        // The video usability information carries no decoding parameter this decoder needs, and
-        // the range extensions follow it, so it is parsed only far enough to skip it.
+        // Video usability information carries the range and colour matrix used when the decoded
+        // planes are presented. The rest is walked far enough to reach the following syntax.
         if reader.bit() do
-            try skipVuiParameters(reader, maxSubLayersMinus1)
+            try readVuiParameters(reader, maxSubLayersMinus1, me)
 
         if reader.bit()
         {
@@ -425,43 +427,43 @@ struct Pps
 {
     valid: bool
 
-    spsId:                     u32
-    dependentSliceSegments:    bool
-    outputFlagPresent:         bool
-    numExtraSliceHeaderBits:   u32
-    signDataHiding:            bool
-    cabacInitPresent:          bool
-    numRefIdxL0Default:        u32
-    numRefIdxL1Default:        u32
-    initQp:                    s32
-    constrainedIntraPred:      bool
-    transformSkipEnabled:      bool
-    cuQpDeltaEnabled:          bool
-    diffCuQpDeltaDepth:        u32
-    cbQpOffset:                s32
-    crQpOffset:                s32
+    spsId:                       u32
+    dependentSliceSegments:      bool
+    outputFlagPresent:           bool
+    numExtraSliceHeaderBits:     u32
+    signDataHiding:              bool
+    cabacInitPresent:            bool
+    numRefIdxL0Default:          u32
+    numRefIdxL1Default:          u32
+    initQp:                      s32
+    constrainedIntraPred:        bool
+    transformSkipEnabled:        bool
+    cuQpDeltaEnabled:            bool
+    diffCuQpDeltaDepth:          u32
+    cbQpOffset:                  s32
+    crQpOffset:                  s32
     sliceChromaQpOffsetsPresent: bool
-    weightedPred:              bool
-    weightedBipred:            bool
-    transquantBypassEnabled:   bool
-    tilesEnabled:              bool
-    entropyCodingSync:         bool
-    numTileColumns:            u32 = 1
-    numTileRows:               u32 = 1
-    uniformSpacing:            bool = true
-    columnWidth:               [32] u32
-    rowHeight:                 [32] u32
-    loopFilterAcrossTiles:     bool = true
-    loopFilterAcrossSlices:    bool
-    deblockingControlPresent:  bool
-    deblockingOverrideEnabled: bool
-    deblockingDisabled:        bool
-    betaOffsetDiv2:            s32
-    tcOffsetDiv2:              s32
-    scalingListDataPresent:    bool
-    listsModificationPresent:  bool
-    log2ParallelMergeLevel:    u32
-    sliceHeaderExtension:      bool
+    weightedPred:                bool
+    weightedBipred:              bool
+    transquantBypassEnabled:     bool
+    tilesEnabled:                bool
+    entropyCodingSync:           bool
+    numTileColumns:              u32  = 1
+    numTileRows:                 u32  = 1
+    uniformSpacing:              bool = true
+    columnWidth:                 [32] u32
+    rowHeight:                   [32] u32
+    loopFilterAcrossTiles:       bool = true
+    loopFilterAcrossSlices:      bool
+    deblockingControlPresent:    bool
+    deblockingOverrideEnabled:   bool
+    deblockingDisabled:          bool
+    betaOffsetDiv2:              s32
+    tcOffsetDiv2:                s32
+    scalingListDataPresent:      bool
+    listsModificationPresent:    bool
+    log2ParallelMergeLevel:      u32
+    sliceHeaderExtension:        bool
 
     // Clause 7.3.2.3.2: the range extensions.
     log2MaxTransformSkipSize:  u32 = 2
@@ -489,18 +491,18 @@ impl Pps
     // set carries: the tile geometry cannot be derived without it.
     mtd read(reader: *BitReader, sps: const *Sps) fail
     {
-        .spsId                    = reader.ue()
-        .dependentSliceSegments   = reader.bit() != 0
-        .outputFlagPresent        = reader.bit() != 0
-        .numExtraSliceHeaderBits  = reader.read(3)
-        .signDataHiding           = reader.bit() != 0
-        .cabacInitPresent         = reader.bit() != 0
-        .numRefIdxL0Default       = reader.ue() + 1
-        .numRefIdxL1Default       = reader.ue() + 1
-        .initQp                   = reader.se() + 26
-        .constrainedIntraPred     = reader.bit() != 0
-        .transformSkipEnabled     = reader.bit() != 0
-        .cuQpDeltaEnabled         = reader.bit() != 0
+        .spsId                   = reader.ue()
+        .dependentSliceSegments  = reader.bit() != 0
+        .outputFlagPresent       = reader.bit() != 0
+        .numExtraSliceHeaderBits = reader.read(3)
+        .signDataHiding          = reader.bit() != 0
+        .cabacInitPresent        = reader.bit() != 0
+        .numRefIdxL0Default      = reader.ue() + 1
+        .numRefIdxL1Default      = reader.ue() + 1
+        .initQp                  = reader.se() + 26
+        .constrainedIntraPred    = reader.bit() != 0
+        .transformSkipEnabled    = reader.bit() != 0
+        .cuQpDeltaEnabled        = reader.bit() != 0
         if .cuQpDeltaEnabled do
             .diffCuQpDeltaDepth = reader.ue()
         .cbQpOffset                  = reader.se()
@@ -703,15 +705,15 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
         var previous = 0's32
         for entry in negative
         {
-            previous                     -= cast(s32) (reader.ue() + 1)
-            target.negativeDelta[entry]  = previous
-            target.negativeUsed[entry]   = reader.bit() != 0
+            previous -= cast(s32) (reader.ue() + 1)
+            target.negativeDelta[entry] = previous
+            target.negativeUsed[entry]  = reader.bit() != 0
         }
 
         previous = 0
         for entry in positive
         {
-            previous                    += cast(s32) (reader.ue() + 1)
+            previous += cast(s32) (reader.ue() + 1)
             target.positiveDelta[entry] = previous
             target.positiveUsed[entry]  = reader.bit() != 0
         }
@@ -728,16 +730,16 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
     if deltaIdx > index do
         fail InvalidFormatError{"HEVC reference picture set predicts from a set that does not precede it"}
 
-    let sign      = reader.bit()
-    let absDelta  = cast(s32) (reader.ue() + 1)
-    let deltaRps  = sign ? -absDelta : absDelta
-    let source    = &sets[index - deltaIdx]
+    let sign        = reader.bit()
+    let absDelta    = cast(s32) (reader.ue() + 1)
+    let deltaRps    = sign ? -absDelta : absDelta
+    let source      = &sets[index - deltaIdx]
     let sourceTotal = source.totalCount()
 
     var used, useDelta: [MaxRefPics + 1] bool
     for entry in sourceTotal + 1
     {
-        used[entry] = reader.bit() != 0
+        used[entry]     = reader.bit() != 0
         useDelta[entry] = true
         if !used[entry] do
             useDelta[entry] = reader.bit() != 0
@@ -812,17 +814,14 @@ func readShortTermRps(reader: *BitReader, sets: [*] ShortTermRps, index, count: 
 
     target.negativeCount = negativeCount
     target.positiveCount = positiveCount
-    sets[index] = target
+    sets[index]          = target
 
     if reader.overran do
         fail InvalidFormatError{"HEVC reference picture set is truncated"}
 }
 
-// Reads and discards one `vui_parameters` structure, clause E.2.1.
-//
-// The video usability information describes how a picture should be shown, never how it decodes,
-// so it is only walked far enough to reach the syntax that follows it.
-func skipVuiParameters(reader: *BitReader, maxSubLayersMinus1: u32) fail
+// Reads the presentation fields of one `vui_parameters` structure and skips the rest, clause E.2.1.
+func readVuiParameters(reader: *BitReader, maxSubLayersMinus1: u32, sps: *Sps) fail
 {
     if reader.bit()
     {
@@ -839,12 +838,12 @@ func skipVuiParameters(reader: *BitReader, maxSubLayersMinus1: u32) fail
     if reader.bit()
     {
         discard reader.read(3)
-        discard reader.bit()
+        sps.fullRange = reader.bit() != 0
         if reader.bit()
         {
             discard reader.read(8)
             discard reader.read(8)
-            discard reader.read(8)
+            sps.matrixCoefficients = cast(u8) reader.read(8)
         }
     }
 

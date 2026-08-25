@@ -2,6 +2,14 @@
 
 using Core, Core.Math
 
+// Selects the matrix that converts luma and chroma samples to RGB.
+enum YuvMatrix
+{
+    Bt601      // ITU-R BT.601, used by standard-definition video.
+    Bt709      // ITU-R BT.709, used by high-definition SDR video.
+    Bt2020     // ITU-R BT.2020 non-constant-luminance conversion.
+}
+
 // One picture in planar 4:2:0, borrowed from whatever produced it.
 //
 // Every video codec reconstructs this layout: full-resolution luma and two chroma planes at half
@@ -29,6 +37,9 @@ struct Yuv420View
 
         width:  s32     // Visible width in luma samples.
         height: s32     // Visible height in luma samples.
+
+        matrix:      YuvMatrix = .Bt601     // Matrix used when the planes are converted to RGB.
+        studioRange: bool      = true       // Whether luma uses 16..235 rather than the full 0..255 range.
     }
 }
 
@@ -66,6 +77,7 @@ impl Yuv420View
     // Bands write disjoint destination rows, so they run concurrently on one target.
     mtd const convertRowsToRgb(target: *Image, firstY, endY: s32)
     {
+        let factors = .conversionFactors()
         for y in firstY until endY
         {
             var destination = target.pixels.buffer! + cast(u64) (.height - y - 1) * cast(u64) target.rowStride
@@ -80,7 +92,7 @@ impl Yuv420View
             var remaining = .width
             while remaining >= 16
             {
-                convertYuvRgb16(destination, luma, cbRow + chromaAt, crRow + chromaAt)
+                convertYuvRgb16(destination, luma, cbRow + chromaAt, crRow + chromaAt, &factors)
                 destination += 48
                 luma        += 16
                 chromaAt    += 8
@@ -91,11 +103,11 @@ impl Yuv420View
             {
                 let d     = cast(s32) cbRow[chromaAt] - 128
                 let e     = cast(s32) crRow[chromaAt] - 128
-                let rTerm = 409 * e + 128
-                let gTerm = -100 * d - 208 * e + 128
-                let bTerm = 516 * d + 128
-                storeYuvRgbPixel(destination, yuvLumaTerm(luma[0]), rTerm, gTerm, bTerm)
-                storeYuvRgbPixel(destination + 3, yuvLumaTerm(luma[1]), rTerm, gTerm, bTerm)
+                let rTerm = factors.redCr * e + 128
+                let gTerm = factors.greenCb * d + factors.greenCr * e + 128
+                let bTerm = factors.blueCb * d + 128
+                storeYuvRgbPixel(destination, yuvLumaTerm(luma[0], &factors), rTerm, gTerm, bTerm)
+                storeYuvRgbPixel(destination + 3, yuvLumaTerm(luma[1], &factors), rTerm, gTerm, bTerm)
                 destination += 6
                 luma        += 2
                 chromaAt    += 1
@@ -106,20 +118,49 @@ impl Yuv420View
             {
                 let d = cast(s32) cbRow[chromaAt] - 128
                 let e = cast(s32) crRow[chromaAt] - 128
-                storeYuvRgbPixel(destination, yuvLumaTerm(luma[0]), 409 * e + 128, -100 * d - 208 * e + 128, 516 * d + 128)
+                storeYuvRgbPixel(destination,
+                                 yuvLumaTerm(luma[0], &factors),
+                                 factors.redCr * e + 128,
+                                 factors.greenCb * d + factors.greenCr * e + 128,
+                                 factors.blueCb * d + 128)
             }
+        }
+    }
+
+    // Returns the fixed-point factors shared by the scalar, SIMD, CPU-renderer, and shader paths.
+    internal mtd const conversionFactors()->YuvConversionFactors
+    {
+        let lumaScale  = .studioRange ? 298 : 256
+        let lumaOffset = .studioRange ? 16 : 0
+        switch #complete .matrix
+        {
+        case .Bt601:  return .studioRange ? {lumaScale, lumaOffset, 409, -100, -208, 516} : {lumaScale, lumaOffset, 359, -88, -183, 454}
+        case .Bt709:  return .studioRange ? {lumaScale, lumaOffset, 459, -55, -136, 541} : {lumaScale, lumaOffset, 403, -48, -120, 475}
+        case .Bt2020: return .studioRange ? {lumaScale, lumaOffset, 430, -48, -167, 548} : {lumaScale, lumaOffset, 377, -42, -146, 483}
         }
     }
 }
 
 private const Yuv420Bands = 16'u32
 
-// Returns the scaled luma term of the limited-range BT.601 conversion.
-#[Swag.Inline]
-private func yuvLumaTerm(luma: u8)->s32
+// Public only because it is embedded in backend-owned storage; callers never construct it.
+#[Swag.NoDoc]
+struct YuvConversionFactors
 {
-    let above = cast(s32) luma - 16
-    return (above & ~(above >> 31)) * 298
+    lumaScale:  s32
+    lumaOffset: s32
+    redCr:      s32
+    greenCb:    s32
+    greenCr:    s32
+    blueCb:     s32
+}
+
+// Returns the scaled luma term of the selected conversion.
+#[Swag.Inline]
+private func yuvLumaTerm(luma: u8, factors: const *YuvConversionFactors)->s32
+{
+    let above = cast(s32) luma - factors.lumaOffset
+    return (above & ~(above >> 31)) * factors.lumaScale
 }
 
 // Clamps one converted channel to a byte without branching.
@@ -145,18 +186,18 @@ private func storeYuvRgbPixel(destination: [*] u8, c298, rTerm, gTerm, bTerm: s3
 // and the unsigned pack is exactly the scalar clamp. The three packed color vectors
 // then interleave into the 48 output bytes.
 #[Swag.Inline]
-private func convertYuvRgb16(destination: [*] u8, luma, cb, cr: const [*] u8)
+private func convertYuvRgb16(destination: [*] u8, luma, cb, cr: const [*] u8, factors: const *YuvConversionFactors)
 {
     // Each chroma byte serves a pair of pixels.
     const DupPairs = cast(Simd.U8x16) [0'u8, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7]
 
-    let y16 = Simd.subSaturating(Simd.load(luma), Simd.splat(16'u8))
+    let y16 = Simd.subSaturating(Simd.load(luma), Simd.splat(cast(u8) factors.lumaOffset))
     let yLo = Simd.widenLow(y16)
     let yHi = Simd.widenHigh(y16)
-    let y0  = (cast #bit(Simd.S32x4) Simd.widenLow(yLo)) * 298
-    let y1  = (cast #bit(Simd.S32x4) Simd.widenHigh(yLo)) * 298
-    let y2  = (cast #bit(Simd.S32x4) Simd.widenLow(yHi)) * 298
-    let y3  = (cast #bit(Simd.S32x4) Simd.widenHigh(yHi)) * 298
+    let y0  = (cast #bit(Simd.S32x4) Simd.widenLow(yLo)) * factors.lumaScale
+    let y1  = (cast #bit(Simd.S32x4) Simd.widenHigh(yLo)) * factors.lumaScale
+    let y2  = (cast #bit(Simd.S32x4) Simd.widenLow(yHi)) * factors.lumaScale
+    let y3  = (cast #bit(Simd.S32x4) Simd.widenHigh(yHi)) * factors.lumaScale
 
     let dBytes = Simd.shuffle(Simd.load(cb), DupPairs)
     let eBytes = Simd.shuffle(Simd.load(cr), DupPairs)
@@ -174,12 +215,12 @@ private func convertYuvRgb16(destination: [*] u8, luma, cb, cr: const [*] u8)
     let e2 = Simd.widenLow(eSHi)
     let e3 = Simd.widenHigh(eSHi)
 
-    let r8 = Simd.packUnsigned(Simd.packSigned((y0 + e0 * 409 + 128) >> 8, (y1 + e1 * 409 + 128) >> 8),
-                               Simd.packSigned((y2 + e2 * 409 + 128) >> 8, (y3 + e3 * 409 + 128) >> 8))
-    let g8 = Simd.packUnsigned(Simd.packSigned((y0 - d0 * 100 - e0 * 208 + 128) >> 8, (y1 - d1 * 100 - e1 * 208 + 128) >> 8),
-                               Simd.packSigned((y2 - d2 * 100 - e2 * 208 + 128) >> 8, (y3 - d3 * 100 - e3 * 208 + 128) >> 8))
-    let b8 = Simd.packUnsigned(Simd.packSigned((y0 + d0 * 516 + 128) >> 8, (y1 + d1 * 516 + 128) >> 8),
-                               Simd.packSigned((y2 + d2 * 516 + 128) >> 8, (y3 + d3 * 516 + 128) >> 8))
+    let r8 = Simd.packUnsigned(Simd.packSigned((y0 + e0 * factors.redCr + 128) >> 8, (y1 + e1 * factors.redCr + 128) >> 8),
+                               Simd.packSigned((y2 + e2 * factors.redCr + 128) >> 8, (y3 + e3 * factors.redCr + 128) >> 8))
+    let g8 = Simd.packUnsigned(Simd.packSigned((y0 + d0 * factors.greenCb + e0 * factors.greenCr + 128) >> 8, (y1 + d1 * factors.greenCb + e1 * factors.greenCr + 128) >> 8),
+                               Simd.packSigned((y2 + d2 * factors.greenCb + e2 * factors.greenCr + 128) >> 8, (y3 + d3 * factors.greenCb + e3 * factors.greenCr + 128) >> 8))
+    let b8 = Simd.packUnsigned(Simd.packSigned((y0 + d0 * factors.blueCb + 128) >> 8, (y1 + d1 * factors.blueCb + 128) >> 8),
+                               Simd.packSigned((y2 + d2 * factors.blueCb + 128) >> 8, (y3 + d3 * factors.blueCb + 128) >> 8))
 
     // Byte k of the 48 output bytes is color k % 3 of pixel k / 3; a permutation index
     // of 128 clears the lane, so the three spreads combine with plain ors.

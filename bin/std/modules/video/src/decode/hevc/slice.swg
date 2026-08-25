@@ -8,23 +8,34 @@
 
 using Core, Core.Errors
 
+// Derives the signaled chroma offset, equations 7-57 and 7-58.
+//
+// The syntax always states this offset around the eight-bit midpoint. Sample prediction scales
+// the result to the stream bit depth later; using the Main 10 midpoint here would scale it twice.
+func deriveChromaOffset(deltaOffset, weight: s32, denominator: u32)->s32
+{
+    const Midpoint = 128's32
+    let predicted = Midpoint - ((Midpoint * weight) >> denominator)
+    return Math.clamp(deltaOffset + predicted, -Midpoint, Midpoint - 1)
+}
+
 // Network abstraction layer unit types, Table 7-1. Only the ones this decoder acts on are named.
-const NalTrailN = 0'u32
-const NalRaslR = 9'u32
-const NalBlaWLp = 16'u32
-const NalIdrWRadl = 19'u32
-const NalIdrNLp = 20'u32
-const NalCraNut = 21'u32
+const NalTrailN            = 0'u32
+const NalRaslR             = 9'u32
+const NalBlaWLp            = 16'u32
+const NalIdrWRadl          = 19'u32
+const NalIdrNLp            = 20'u32
+const NalCraNut            = 21'u32
 const NalReservedIrapVcl23 = 23'u32
-const NalVps = 32'u32
-const NalSps = 33'u32
-const NalPps = 34'u32
-const NalAud = 35'u32
-const NalEos = 36'u32
-const NalEob = 37'u32
-const NalFillerData = 38'u32
-const NalPrefixSei = 39'u32
-const NalSuffixSei = 40'u32
+const NalVps               = 32'u32
+const NalSps               = 33'u32
+const NalPps               = 34'u32
+const NalAud               = 35'u32
+const NalEos               = 36'u32
+const NalEob               = 37'u32
+const NalFillerData        = 38'u32
+const NalPrefixSei         = 39'u32
+const NalSuffixSei         = 40'u32
 
 // Slice types, clause 7.4.7.1.
 const SliceTypeB = 0'u32
@@ -69,55 +80,55 @@ struct PredWeight
 // rather than re-parsed.
 struct SliceHeader
 {
-    firstSliceInPic:    bool
+    firstSliceInPic:     bool
     noOutputOfPriorPics: bool
-    ppsId:              u32
-    dependent:          bool
-    segmentAddress:     u32
+    ppsId:               u32
+    dependent:           bool
+    segmentAddress:      u32
 
-    sliceType:          u32 = SliceTypeI
-    picOutputFlag:      bool = true
-    pocLsb:             u32
+    sliceType:           u32  = SliceTypeI
+    picOutputFlag:       bool = true
+    pocLsb:              u32
     shortTermRpsSpsFlag: bool
-    shortTermRpsIdx:    u32
-    localRps:           ShortTermRps
-    usesLocalRps:       bool
+    shortTermRpsIdx:     u32
+    localRps:            ShortTermRps
+    usesLocalRps:        bool
 
-    numLongTermSps:     u32
-    numLongTermPics:    u32
-    ltPocLsb:           [32] u32
-    ltUsedByCurr:       [32] bool
-    ltMsbPresent:       [32] bool
-    ltMsbCycle:         [32] u32
+    numLongTermSps:  u32
+    numLongTermPics: u32
+    ltPocLsb:        [32] u32
+    ltUsedByCurr:    [32] bool
+    ltMsbPresent:    [32] bool
+    ltMsbCycle:      [32] u32
 
     temporalMvpEnabled: bool
     saoLuma:            bool
     saoChroma:          bool
 
-    numRefIdx:          [ListCount] u32
-    listModification:   [ListCount] bool
-    listEntry:          [ListCount, MaxRefPics] u32
-    mvdL1Zero:          bool
-    cabacInitFlag:      bool
-    collocatedFromL0:   bool = true
-    collocatedRefIdx:   u32
-    maxNumMergeCand:    u32 = 5
+    numRefIdx:        [ListCount] u32
+    listModification: [ListCount] bool
+    listEntry:        [ListCount, MaxRefPics] u32
+    mvdL1Zero:        bool
+    cabacInitFlag:    bool
+    collocatedFromL0: bool = true
+    collocatedRefIdx: u32
+    maxNumMergeCand:  u32  = 5
 
     lumaLog2WeightDenom:   u32
     chromaLog2WeightDenom: u32
     weights:               [ListCount, MaxRefPics] PredWeight
     hasWeights:            bool
 
-    sliceQpDelta:       s32
-    sliceQp:            s32
-    cbQpOffset:         s32
-    crQpOffset:         s32
+    sliceQpDelta:            s32
+    sliceQp:                 s32
+    cbQpOffset:              s32
+    crQpOffset:              s32
     cuChromaQpOffsetEnabled: bool
 
-    deblockingOverride: bool
-    deblockingDisabled: bool
-    betaOffsetDiv2:     s32
-    tcOffsetDiv2:       s32
+    deblockingOverride:     bool
+    deblockingDisabled:     bool
+    betaOffsetDiv2:         s32
+    tcOffsetDiv2:           s32
     loopFilterAcrossSlices: bool
 
     numEntryPointOffsets: u32
@@ -461,12 +472,8 @@ impl SliceHeader
 
                     weight.chromaWeight[component] = (1 << .chromaLog2WeightDenom) + reader.se()
 
-                    // Clause 7.4.7.3: the chroma offset is stated relative to what the weight
-                    // already predicts, around the middle of the sample range.
-                    let half        = 1 << (sps.bitDepthChroma - 1)
                     let deltaOffset = reader.se()
-                    let predicted   = half - ((half * weight.chromaWeight[component]) >> .chromaLog2WeightDenom)
-                    weight.chromaOffset[component] = Math.clamp(deltaOffset + predicted, -half, half - 1)
+                    weight.chromaOffset[component] = deriveChromaOffset(deltaOffset, weight.chromaWeight[component], .chromaLog2WeightDenom)
                 }
             }
         }
@@ -478,19 +485,19 @@ impl SliceHeader
     // Takes everything a dependent slice segment inherits from the segment it continues.
     private mtd inheritFrom(previous: const *SliceHeader)
     {
-        let address   = .segmentAddress
-        let dependent = .dependent
+        let address    = .segmentAddress
+        let dependent  = .dependent
         let firstInPic = .firstSliceInPic
-        let ppsId     = .ppsId
-        let priorPics = .noOutputOfPriorPics
+        let ppsId      = .ppsId
+        let priorPics  = .noOutputOfPriorPics
 
         me[] = previous[]
 
-        .segmentAddress      = address
-        .dependent           = dependent
-        .firstSliceInPic     = firstInPic
-        .ppsId               = ppsId
-        .noOutputOfPriorPics = priorPics
+        .segmentAddress       = address
+        .dependent            = dependent
+        .firstSliceInPic      = firstInPic
+        .ppsId                = ppsId
+        .noOutputOfPriorPics  = priorPics
         .numEntryPointOffsets = 0
         .entryPointOffsets.clear()
     }

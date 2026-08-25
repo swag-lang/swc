@@ -63,8 +63,12 @@ const InvalidRenderTargetSurfaceHandle: RenderTargetSurfaceHandle = cast() 0    
 #[Swag.NoDoc]
 struct ChromaPlanes
 {
-    chromaB: GLuint
-    chromaR: GLuint
+    internal
+    {
+        chromaB: GLuint
+        chromaR: GLuint
+        factors: YuvConversionFactors
+    }
 }
 
 // A renderer is non-copyable and owns its shaders, textures, buffers, and queued
@@ -99,13 +103,13 @@ struct RenderOgl
     // OpenGL context this renderer owns; reaching in from outside would desynchronize the mirror.
     private
     {
-        using native:            NativeRenderOgl                              // Platform-specific context operations.
-        vertexbuffer:            GLuint                                       // OpenGL streaming vertex buffer.
-        worldTransform:          Transform2                                   // Current painter world transform.
-        orthoMatrix:             Matrix4x4                                    // Current surface projection matrix.
-        modelMatrix:             Matrix4x4                                    // Current model matrix.
-        whiteTexture:            GLuint                                       // Built-in one-pixel white texture.
-        hatchTextures:           [HatchStyle] GLuint                          // Built-in hatch texture handles.
+        using native:   NativeRenderOgl         // Platform-specific context operations.
+        vertexbuffer:   GLuint                  // OpenGL streaming vertex buffer.
+        worldTransform: Transform2              // Current painter world transform.
+        orthoMatrix:    Matrix4x4               // Current surface projection matrix.
+        modelMatrix:    Matrix4x4               // Current model matrix.
+        whiteTexture:   GLuint                  // Built-in one-pixel white texture.
+        hatchTextures:  [HatchStyle] GLuint     // Built-in hatch texture handles.
         // The two chroma planes of every planar texture, keyed by the luma handle the caller
         // holds. A texture is one handle everywhere else in this module, and a planar picture is
         // three: keeping the other two here is what lets it travel as an ordinary texture.
@@ -256,6 +260,8 @@ private impl RenderOgl
             let text0   = glGetUniformLocation(cast(GLuint) .shaderYuv.handle, @dataof("inTexture0"))
             let chromaB = glGetUniformLocation(cast(GLuint) .shaderYuv.handle, @dataof("inChromaB"))
             let chromaR = glGetUniformLocation(cast(GLuint) .shaderYuv.handle, @dataof("inChromaR"))
+            .shaderYuv.lumaRed = cast(ShaderParamHandle) glGetUniformLocation(cast(GLuint) .shaderYuv.handle, @dataof("yuvLumaRed"))
+            .shaderYuv.green   = cast(ShaderParamHandle) glGetUniformLocation(cast(GLuint) .shaderYuv.handle, @dataof("yuvGreen"))
             glUseProgram(cast(GLuint) .shaderYuv.handle)
             glUniform1i(text0, 0)
             glUniform1i(chromaB, 3)
@@ -852,6 +858,7 @@ impl RenderOgl
         .uploadPlane(cast(GLuint) texture.handle, view.luma, view.lumaStride, texture.width, texture.height)
         .uploadPlane(planes!.value.chromaB, view.chromaB, view.chromaStride, chromaWidth, chromaHeight)
         .uploadPlane(planes!.value.chromaR, view.chromaR, view.chromaStride, chromaWidth, chromaHeight)
+        planes!.value.factors = view.conversionFactors()
     }
 
     // Load and register an image for rendering
@@ -875,6 +882,7 @@ impl RenderOgl
         switch #complete image.pixelFormat
         {
         case .Yuv420:
+
             // A planar picture has no single upload format; it goes through the plane path.
             Debug.assert(false, "a planar picture is added through its view")
             return {}
@@ -910,11 +918,20 @@ impl RenderOgl
     {
         switch #complete pixelFormat
         {
-        case .Yuv420: return GL_RED     // One plane at a time.
-        case .BGR8:  return GL_BGR
-        case .BGRA8: return GL_BGRA
-        case .RGB8:  return GL_RGB
-        case .RGBA8: return GL_RGBA
+        case .Yuv420:
+            return GL_RED     // One plane at a time.
+
+        case .BGR8:
+            return GL_BGR
+
+        case .BGRA8:
+            return GL_BGRA
+
+        case .RGB8:
+            return GL_RGB
+
+        case .RGBA8:
+            return GL_RGBA
         }
 
         return GL_RGBA
@@ -957,6 +974,7 @@ impl RenderOgl
             glDeleteTextures(1, &chromaR)
             .chromaPlanes.remove(texture.handle)
         }
+
         var id: GLuint = cast() texture.handle
         glDeleteTextures(1, &id)
         texture.clear()
@@ -1254,6 +1272,15 @@ impl RenderOgl
                 glActiveTexture(GL_TEXTURE4)
                 glBindTexture(GL_TEXTURE_2D, planarPlanes!.value.chromaR)
                 .setShader(&.shaderYuv)
+                let factors = &planarPlanes!.value.factors
+                glUniform4f(cast(GLint) .shaderYuv.lumaRed,
+                            cast(GLfloat) factors.lumaOffset,
+                            cast(GLfloat) factors.lumaScale,
+                            cast(GLfloat) factors.redCr,
+                            cast(GLfloat) factors.blueCb)
+                glUniform2f(cast(GLint) .shaderYuv.green,
+                            cast(GLfloat) factors.greenCb,
+                            cast(GLfloat) factors.greenCr)
             }
             elif .planarPrevShader
             {

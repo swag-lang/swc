@@ -187,8 +187,8 @@ impl Mpeg4Stream
     {
         if target do
             @print("emit ", .emitRank, " kind ", .queue[at].kind, " time ", .queue[at].time, "\n")
-        if target do
-            target[] = #move .queue[at].planes
+        if let output = target do
+            output[] = #move .queue[at].planes
         .queued -= 1
         if at != .queued do
             .queue[at] = #move .queue[.queued]

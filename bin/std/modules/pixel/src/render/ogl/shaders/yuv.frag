@@ -6,6 +6,8 @@
 // for free, which is exactly the two-by-two spread the format defines.
 uniform sampler2D inChromaB;
 uniform sampler2D inChromaR;
+uniform vec4 yuvLumaRed; // Luma offset, luma scale, red-from-Cr, blue-from-Cb.
+uniform vec2 yuvGreen;   // Green-from-Cb and green-from-Cr.
 
 in vec4 vcolor;
 in vec2 vuv0;
@@ -20,16 +22,15 @@ void main()
     // uv for the bottom-up case, so the one program that knows the storage class undoes it.
     vec2 uv = vec2(vuv0.x, 1.0 - vuv0.y);
 
-    // The limited-range BT.601 arithmetic every decoder in this repository uses, written in the
-    // same fixed-point terms so the picture on screen matches the one Pixel.Yuv420View produces.
+    // Fixed-point terms match Pixel.Yuv420View for the range and matrix carried by this texture.
     float luma = texture(inTexture0, uv).r * 255.0;
     float d    = texture(inChromaB, uv).r * 255.0 - 128.0;
     float e    = texture(inChromaR, uv).r * 255.0 - 128.0;
-    float c    = max(luma - 16.0, 0.0) * 298.0;
+    float c    = max(luma - yuvLumaRed.x, 0.0) * yuvLumaRed.y;
 
-    vec3 rgb = vec3(c + 409.0 * e + 128.0,
-                    c - 100.0 * d - 208.0 * e + 128.0,
-                    c + 516.0 * d + 128.0);
+    vec3 rgb = vec3(c + yuvLumaRed.z * e + 128.0,
+                    c + yuvGreen.x * d + yuvGreen.y * e + 128.0,
+                    c + yuvLumaRed.w * d + 128.0);
 
     color = vcolor * vec4(clamp(rgb / 256.0, 0.0, 255.0) / 255.0, 1.0);
     applyBlendingMode(color);

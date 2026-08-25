@@ -3,6 +3,15 @@
 
 using Core, Core.Errors, Pixel
 
+// Prediction-weight chroma offsets stay in their eight-bit syntax domain for Main 10. The
+// reconstruction path applies the bit-depth scale exactly once after this derivation.
+#test
+{
+    @assert(Hevc.deriveChromaOffset(0, 3, 1) == -64)
+    @assert(Hevc.deriveChromaOffset(300, 3, 1) == 127)
+    @assert(Hevc.deriveChromaOffset(-300, 1, 1) == -128)
+}
+
 // The same access units, muxed two ways, decode to the same pictures.
 //
 // `ffmpeg-hevc-main.mkv` is a stream copy of `ffmpeg-hevc-main.mp4`, so a difference between these
@@ -43,6 +52,30 @@ using Core, Core.Errors, Pixel
     var frame: Image
     expect idecoder.decodeFrame(&source, &frame)
     videoAssertReferenceFrame(frame, reference.toSlice(), 47, 96, 64)
+    @assert(decoder.video.hevc.skippedNonReference > 0)
+}
+
+// A player that falls behind may advance by several display ranks. That is a forward decode, not
+// a random seek back through the group of pictures; references and already queued frames survive.
+#test
+{
+    var source             = expect Source.openFile(videoFixturePath("ffmpeg-hevc-main.mp4").toString())
+    var decoder:  Mp4.Decoder
+    let idecoder: IDecoder = &decoder
+    discard expect idecoder.open(&source)
+
+    let reference = expect File.readAllBytes(videoFixturePath("ffmpeg-hevc-main.yuv").toString())
+    var frame: Image
+    var index     = 0'u64
+    while index < 60
+    {
+        expect idecoder.seekFrame(&source, index)
+        expect idecoder.decodeFrame(&source, &frame)
+        videoAssertReferenceFrame(frame, reference.toSlice(), index, 96, 64)
+        index += 3
+    }
+
+    @assert(decoder.video.hevc.pending.count <= 4)
 }
 
 // The reader reports the track geometry from the decoder configuration record, before any access
@@ -60,13 +93,15 @@ using Core, Core.Errors, Pixel
 #test
 {
     var sps: Hevc.Sps
-    sps.width           = 32
-    sps.height          = 32
-    sps.subWidthC       = 2
-    sps.subHeightC      = 2
-    sps.chromaArrayType = 1
-    sps.bitDepthLuma    = 10
-    sps.bitDepthChroma  = 10
+    sps.width              = 32
+    sps.height             = 32
+    sps.subWidthC          = 2
+    sps.subHeightC         = 2
+    sps.chromaArrayType    = 1
+    sps.bitDepthLuma       = 10
+    sps.bitDepthChroma     = 10
+    sps.matrixCoefficients = 1
+    sps.fullRange          = true
 
     var current, reference0, reference1: Hevc.Frame
     current.prepare(&sps)
@@ -115,7 +150,8 @@ using Core, Core.Errors, Pixel
     decoder.interPredict(0, 0, 32, 32, &motion)
 
     var picture: PlanarFrame
-    current.writePlanar(&picture, &sps)
+    current.writePlanar(&picture)
+    @assert(picture.matrix == .Bt709 and !picture.studioRange)
     for y in 32's32
     {
         for x in 32's32

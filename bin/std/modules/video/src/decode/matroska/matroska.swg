@@ -1658,6 +1658,14 @@ impl IDecoder for Decoder
     mtd impl seekFrame(source: *Source, index: u64) fail
     {
         discard source
+        if .fileIndex and Atomic.get(&.fileIndex!.soundStatus) == SoundIndexRunning
+        {
+            // Video reconstruction has the foreground deadline. The complete audio packet scan
+            // can use every idle gap, but must not compete for a core or mapped pages while one
+            // picture is being sought and decoded; the bounded sound window remains available.
+            Atomic.exchange(&.fileIndex!.soundPause, 1)
+            .resumeSoundIndexAfterDecode = true
+        }
         defer #fail .resumeSoundIndex()
         .ensureFrames(index)
         .video.seekTo(index - .windowBaseRank)

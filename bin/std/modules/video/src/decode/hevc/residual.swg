@@ -33,6 +33,8 @@ impl Decoder
 
         var result: retval
         Memory.set(&.coefficients, 0, cast(u64) (size * size) * #sizeof(s16))
+        Memory.set(&.coefficientRows, 0, #sizeof(.coefficientRows))
+        .coefficientColumns = 0
 
         if pps.transformSkipEnabled and !bypass and log2TrafoSize <= pps.log2MaxTransformSkipSize
         {
@@ -314,6 +316,8 @@ impl Decoder
                 let yC = (yS << 2) + cast(u32) ScanY[2, scanIdx, scanPos]
                 let value = cast(s32) Math.min(level, 32767'u32)
                 .coefficients[yC * size + xC] = cast(s16) (sign ? -value : value)
+                .coefficientRows[xC] |= 1'u32 << yC
+                .coefficientColumns |= 1'u32 << xC
                 maxX = Math.max(maxX, xC)
                 maxY = Math.max(maxY, yC)
                 numSigCoeff += 1

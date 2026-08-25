@@ -18,21 +18,21 @@ const MinBlockSize = 1'u32 << MinBlockLog2
 // Prediction modes, clause 7.4.9.5.
 const ModeInter = 0'u8
 const ModeIntra = 1'u8
-const ModeSkip = 2'u8
+const ModeSkip  = 2'u8
 
 // Partition modes, Table 7-10.
 const Part2Nx2N = 0'u32
-const Part2NxN = 1'u32
-const PartNx2N = 2'u32
-const PartNxN = 3'u32
+const Part2NxN  = 1'u32
+const PartNx2N  = 2'u32
+const PartNxN   = 3'u32
 const Part2NxnU = 4'u32
 const Part2NxnD = 5'u32
 const PartnLx2N = 6'u32
 const PartnRx2N = 7'u32
 
 // Intra prediction modes, Table 8-1.
-const IntraPlanar = 0'u8
-const IntraDc = 1'u8
+const IntraPlanar    = 0'u8
+const IntraDc        = 1'u8
 const IntraAngular26 = 26'u8
 const IntraAngular10 = 10'u8
 
@@ -44,7 +44,7 @@ struct PuMotion
 {
     mv:        [2, 2] s16     // [list][component], in quarter luma samples.
     refIdx:    [2] s8 = [-1, -1]
-    predFlags: u8             // Bit 0 for list 0, bit 1 for list 1.
+    predFlags: u8     // Bit 0 for list 0, bit 1 for list 1.
 }
 
 // The reference pictures one slice predicts from, resolved to entries of the decoded picture
@@ -57,6 +57,16 @@ struct RefPicList
     count:    [ListCount] u32
 }
 
+// One picture in a decoder lane's logical decoded-picture buffer.
+//
+// The storage can belong to another lane. Marking therefore stays with the lane state while the
+// frame carries an atomic hold that prevents its owner from reusing it during reconstruction.
+struct DpbReference
+{
+    frame:   #null *Frame
+    marking: FrameMarking
+}
+
 // Decodes one H.265 stream, one access unit at a time.
 //
 // The decoder owns its parameter sets and its decoded picture buffer; a caller hands it the
@@ -66,41 +76,46 @@ struct RefPicList
 #[Swag.NoCopy]
 struct Decoder
 {
-    sps:      [16] Sps
-    pps:      [64] Pps
+    sps:       [16] Sps
+    pps:       [64] Pps
     activeSps: #null const *Sps
     activePps: #null const *Pps
 
-    dpb:     [MaxDpbFrames] Frame
-    current: #null *Frame
+    dpb:            [MaxDpbFrames] Frame
+    current:        #null *Frame
+    references:     [MaxDpbFrames] DpbReference
+    referenceCount: u32
 
     // The picture the last slice header closed, for a caller that feeds units one at a time.
     finishedFrame: #null *Frame
 
-    header:      SliceHeader
-    previousHeader: SliceHeader
-    refList:     RefPicList
-    cabac:       CabacReader
-    rbsp:        Array'u8
+    header:            SliceHeader
+    previousHeader:    SliceHeader
+    refList:           RefPicList
+    cabac:             CabacReader
+    rbsp:              Array'u8
+    preparedBody:      Array'u8
+    preparedHeaderBit: u64
+    preparedPicture:   bool
 
     // Wavefront and dependent-slice context storage, clause 9.3.2.4.
     wppState:       CabacState
     dependentState: CabacState
 
     // Picture order count state, clause 8.3.1.
-    pocMsb:        s32
-    prevPocLsb:    u32
-    prevPocMsb:    s32
-    pocValue:      s32
-    firstPicture:  bool = true
-    noRaslOutput:  bool
+    pocMsb:       s32
+    prevPocLsb:   u32
+    prevPocMsb:   s32
+    pocValue:     s32
+    firstPicture: bool = true
+    noRaslOutput: bool
 
     // Picture geometry, recomputed when a sequence or picture parameter set is activated.
-    gridWidth:    u32
-    gridHeight:   u32
-    zScan:        Array'u32
-    ctbRsToTs:    Array'u32
-    ctbTsToRs:    Array'u32
+    gridWidth:     u32
+    gridHeight:    u32
+    zScan:         Array'u32
+    ctbRsToTs:     Array'u32
+    ctbTsToRs:     Array'u32
     tileId:        Array'u16
     ctbSliceAddr:  Array'u32
     ctbSliceIndex: Array'u16
@@ -124,27 +139,37 @@ struct Decoder
 
     // Coefficient and prediction scratch, reused by every transform block.
     coefficients: [32 * 32] s16
+    coefficientRows: [32] u32     // Significant coefficient rows, one bitset per column.
+    coefficientColumns: u32       // Columns that contain at least one significant coefficient.
     residual:     [32 * 32] s32
     predSamples:  [64 * 64] u16
     predBuffer:   [2, 64 * 64] s16     // Intermediate inter prediction, one per list.
+    transformMatrix:      [32 * 32] s16
+    transformMatrixReady: bool
 
     // Slice-scoped decoding state.
-    qpYPred:         s32
-    sliceAddrRs:     u32
-    currentQp:       s32
-    qpYPrev:         s32
+    qpYPred:          s32
+    sliceAddrRs:      u32
+    currentQp:        s32
+    qpYPrev:          s32
     isCuQpDeltaCoded: bool
-    cuQpDeltaVal:    s32
-    ctbAddrTs:       u32
-    ctbAddrRs:       u32
-    sliceIndex:      u32
+    cuQpDeltaVal:     s32
+    ctbAddrTs:        u32
+    ctbAddrRs:        u32
+    sliceIndex:       u32
 }
 
 impl Decoder
 {
+    mtd opDrop()
+    {
+        .releaseReferenceState()
+    }
+
     // Releases every picture the decoder still holds.
     mtd reset()
     {
+        .releaseReferenceState()
         for &frame in .dpb
         {
             frame.marking      = .Unused
@@ -158,6 +183,49 @@ impl Decoder
         .pocMsb       = 0
         .prevPocLsb   = 0
         .prevPocMsb   = 0
+    }
+
+    // Starts from the prediction state published by the preceding frame lane.
+    mtd inheritPredictionState(previous: *Decoder)
+    {
+        .releaseReferenceState()
+        for index in previous.referenceCount
+        {
+            .references[index] = previous.references[index]
+            Atomic.add(&.references[index].frame!.reconstructionHolds, 1)
+        }
+
+        .referenceCount = previous.referenceCount
+        .pocMsb         = previous.pocMsb
+        .prevPocLsb     = previous.prevPocLsb
+        .prevPocMsb     = previous.prevPocMsb
+        .pocValue       = previous.pocValue
+        .firstPicture   = previous.firstPicture
+        .noRaslOutput   = previous.noRaslOutput
+    }
+
+    // Releases the frame storage borrowed by this lane's logical decoded-picture buffer.
+    private mtd releaseReferenceState()
+    {
+        for index in .referenceCount
+        {
+            let frame = .references[index].frame
+            if frame do
+                Atomic.add(&frame!.reconstructionHolds, ~0'u32)
+            .references[index] = {}
+        }
+
+        .referenceCount = 0
+    }
+
+    // Adds a newly started picture to the lane's decoded-picture buffer.
+    mtd holdReference(frame: *Frame, marking: FrameMarking) fail
+    {
+        if .referenceCount >= MaxDpbFrames do
+            fail InvalidFormatError{"HEVC decoded picture buffer holds too many pictures"}
+        .references[.referenceCount] = {frame, marking}
+        .referenceCount              += 1
+        Atomic.add(&frame.reconstructionHolds, 1)
     }
 
     // Returns the sequence parameter set the active picture parameter set names.
@@ -178,6 +246,7 @@ impl Decoder
         switch nalType
         {
         case NalSps:
+
             // The identifier sits after the profile structure, so the set is parsed into a
             // scratch value and only stored once its identifier is known.
             var parsed: Sps
@@ -211,13 +280,23 @@ impl Decoder
     // Rebuilds the scan and availability tables of a newly activated picture parameter set.
     mtd activate(sps: const *Sps, pps: const *Pps) fail
     {
+        if !.transformMatrixReady
+        {
+            for basis in 32'u32
+            {
+                for sample in 32'u32 do
+                    .transformMatrix[basis * 32 + sample] = TransMatrix32[basis, sample]
+            }
+            .transformMatrixReady = true
+        }
+
         if .activeSps == sps and .activePps == pps do
             return
 
         .activeSps = sps
         .activePps = pps
 
-        let ctbSize   = sps.sizeInCtbs
+        let ctbSize      = sps.sizeInCtbs
         let blocksPerCtb = 1'u32 << (sps.ctbLog2Size - MinBlockLog2)
         .gridWidth  = sps.widthInCtbs * blocksPerCtb
         .gridHeight = sps.heightInCtbs * blocksPerCtb
@@ -240,9 +319,6 @@ impl Decoder
         .cbfLuma.resize(blocks)
         .motion.resize(blocks)
         .edgeFlags.resize(blocks)
-
-        for &frame in .dpb do
-            frame.prepare(sps)
     }
 
     // Builds the raster-to-tile scan conversion of clause 6.5.1.
@@ -302,9 +378,9 @@ impl Decoder
         {
             for x in .gridWidth
             {
-                let ctbX      = (x << MinBlockLog2) >> sps.ctbLog2Size
-                let ctbY      = (y << MinBlockLog2) >> sps.ctbLog2Size
-                var address   = .ctbRsToTs[ctbY * sps.widthInCtbs + ctbX] << (depth * 2)
+                let ctbX    = (x << MinBlockLog2) >> sps.ctbLog2Size
+                let ctbY    = (y << MinBlockLog2) >> sps.ctbLog2Size
+                var address = .ctbRsToTs[ctbY * sps.widthInCtbs + ctbX] << (depth * 2)
                 for bit in depth
                 {
                     let mask = 1'u32 << bit
@@ -406,11 +482,13 @@ impl Decoder
     // Finds a decoded picture by its order count.
     mtd findByPoc(poc: s32, shortTerm: bool)->#null *Frame
     {
-        for &frame in .dpb
+        for index in .referenceCount
         {
-            if frame.marking == .Unused or frame.poc != poc do
+            let reference = &.references[index]
+            let frame     = reference.frame!
+            if frame.poc != poc do
                 continue
-            if shortTerm and frame.marking != .ShortTerm do
+            if shortTerm and reference.marking != .ShortTerm do
                 continue
             return frame
         }
@@ -421,8 +499,13 @@ impl Decoder
     // Finds a long-term picture by the low bits of its order count.
     mtd findByPocLsb(pocLsb: u32, mask: u32)->#null *Frame
     {
-        for &frame in .dpb where frame.marking != .Unused and (cast(u32) frame.poc & mask) == pocLsb do
-            return frame
+        for index in .referenceCount
+        {
+            let frame = .references[index].frame!
+            if (cast(u32) frame.poc & mask) == pocLsb do
+                return frame
+        }
+
         return null
     }
 
@@ -431,7 +514,7 @@ impl Decoder
     {
         for &frame in .dpb
         {
-            if frame.marking == .Unused and !frame.outputNeeded and Atomic.get(&frame.heldByCaller) == 0 do
+            if Atomic.get(&frame.reconstructionHolds) == 0 and Atomic.get(&frame.heldByCaller) == 0 do
                 return frame
         }
 
@@ -447,7 +530,7 @@ impl Decoder
         var stCurrBefore, stCurrAfter, stFoll: [MaxRefPics] s32
         var ltCurr, ltFoll: [MaxRefPics] s32
         var beforeCount, afterCount, follCount = 0'u32
-        var ltCurrCount, ltFollCount = 0'u32
+        var ltCurrCount, ltFollCount           = 0'u32
 
         let rps = header.activeRps(sps)
         for index in rps.negativeCount
@@ -456,12 +539,12 @@ impl Decoder
             if rps.negativeUsed[index]
             {
                 stCurrBefore[beforeCount] = poc
-                beforeCount += 1
+                beforeCount               += 1
             }
             else
             {
                 stFoll[follCount] = poc
-                follCount += 1
+                follCount         += 1
             }
         }
 
@@ -471,12 +554,12 @@ impl Decoder
             if rps.positiveUsed[index]
             {
                 stCurrAfter[afterCount] = poc
-                afterCount += 1
+                afterCount              += 1
             }
             else
             {
                 stFoll[follCount] = poc
-                follCount += 1
+                follCount         += 1
             }
         }
 
@@ -490,21 +573,22 @@ impl Decoder
             if header.ltUsedByCurr[index]
             {
                 ltCurr[ltCurrCount] = poc
-                ltCurrCount += 1
+                ltCurrCount         += 1
             }
             else
             {
                 ltFoll[ltFollCount] = poc
-                ltFollCount += 1
+                ltFollCount         += 1
             }
         }
 
         // Mark first, so a picture named by the set keeps its marking whatever order it is in.
         var keep: [MaxDpbFrames] bool
-        for index in MaxDpbFrames
+        for index in .referenceCount
         {
-            let frame = &.dpb[index]
-            if frame.marking == .Unused or frame == .current do
+            let reference = &.references[index]
+            let frame     = reference.frame!
+            if frame == .current do
                 continue
 
             var named = false
@@ -516,8 +600,8 @@ impl Decoder
                 named = true
             if named
             {
-                frame.marking = .ShortTerm
-                keep[index]   = true
+                reference.marking = .ShortTerm
+                keep[index]       = true
                 continue
             }
 
@@ -528,16 +612,26 @@ impl Decoder
                 named = true
             if named
             {
-                frame.marking = .LongTerm
-                keep[index]   = true
+                reference.marking = .LongTerm
+                keep[index]       = true
             }
         }
 
-        for index in MaxDpbFrames
+        var index = 0'u32
+        while index < .referenceCount
         {
-            let frame = &.dpb[index]
-            if frame.marking != .Unused and frame != .current and !keep[index] do
-                frame.marking = .Unused
+            let frame = .references[index].frame!
+            if frame != .current and !keep[index]
+            {
+                Atomic.add(&frame.reconstructionHolds, ~0'u32)
+                .referenceCount              -= 1
+                .references[index]           = .references[.referenceCount]
+                .references[.referenceCount] = {}
+                keep[index]                  = keep[.referenceCount]
+                continue
+            }
+
+            index += 1
         }
 
         // Build the two current sets in the order clause 8.3.4 consumes them.
@@ -552,9 +646,9 @@ impl Decoder
         if header.sliceType == SliceTypeI do
             return
 
-        var temp:     [ListCount, 3 * MaxRefPics] #null *Frame
-        var tempPoc:  [ListCount, 3 * MaxRefPics] s32
-        var tempLong: [ListCount, 3 * MaxRefPics] bool
+        var temp:      [ListCount, 3 * MaxRefPics] #null *Frame
+        var tempPoc:   [ListCount, 3 * MaxRefPics] s32
+        var tempLong:  [ListCount, 3 * MaxRefPics] bool
         var tempCount: [ListCount] u32
 
         let totalCurr = cast(u32) (@countof(before) + @countof(after) + @countof(longTerm))
@@ -575,7 +669,7 @@ impl Decoder
                     temp[list, tempCount[list]]     = .findByPoc(poc, shortTerm: true)
                     tempPoc[list, tempCount[list]]  = poc
                     tempLong[list, tempCount[list]] = false
-                    tempCount[list] += 1
+                    tempCount[list]                 += 1
                 }
 
                 for poc in second
@@ -585,7 +679,7 @@ impl Decoder
                     temp[list, tempCount[list]]     = .findByPoc(poc, shortTerm: true)
                     tempPoc[list, tempCount[list]]  = poc
                     tempLong[list, tempCount[list]] = false
-                    tempCount[list] += 1
+                    tempCount[list]                 += 1
                 }
 
                 for poc in longTerm
@@ -595,7 +689,7 @@ impl Decoder
                     temp[list, tempCount[list]]     = .findByPocLsb(cast(u32) poc & lsbMask, lsbMask)
                     tempPoc[list, tempCount[list]]  = poc
                     tempLong[list, tempCount[list]] = true
-                    tempCount[list] += 1
+                    tempCount[list]                 += 1
                 }
             }
 
@@ -628,9 +722,10 @@ impl Decoder
     {
         var best: #null *Frame
         var bestDistance = Swag.S32.Max
-        for &frame in .dpb
+        for index in .referenceCount
         {
-            if frame.marking == .Unused or frame == .current do
+            let frame = .references[index].frame!
+            if frame == .current do
                 continue
             let distance = Math.abs(frame.poc - poc)
             if distance < bestDistance

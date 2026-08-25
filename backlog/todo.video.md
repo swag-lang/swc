@@ -194,15 +194,20 @@ is the layout it does not read yet.
 - What is unmeasured: no figure exists for the processor time of one H.265 picture, on any stream,
   next to anything. T-504 measured H.264 that way and the measurement is what found every gain
   since; the same harness applies here unchanged, and the entropy decode is the same shape.
-- Measured on a real stream (2026-08-25): the opening predictive sequence of a 3840x2076,
-  23.976-fps Main10 Matroska stream took 165-185 ms per displayed picture in a quiet release run;
-  140-160 ms was HEVC reconstruction. Identity weighted integer predictions were still taking the
-  generic gather/interpolate/combine path. Direct copy/rounded-average prediction, row-banded
-  deblocking and packed 10-to-8-bit output reduced the same sequence to 23-25 ms per picture. This
-  measures that sequence only; fractional motion and frame-level parallelism remain unmeasured.
-- Next step: measure before optimizing and before widening. One 1080p and one 4K stream, serial,
-  one lane and one worker, processor time per picture and the stage split, against FFmpeg on the
-  same machine — that figure decides whether this entry is about speed or about formats.
+- Measured on a real stream (2026-08-25): the integer-predicted opening access units of a 3840x2076,
+  23.976-fps Main10 Matroska stream fell from 165-185 ms to 23-35 ms after direct integer prediction,
+  row-banded deblocking and packed 10-to-8-bit output. That was not representative of playback:
+  later pictures route roughly ten million predicted samples through fractional interpolation and
+  took 150-550 ms in the real sFileScope path, repeatedly forcing playback resynchronization.
+- Direct padded-plane reads and eight-sample SIMD fractional filters reduce that serial work. A
+  bounded frame pipeline overlaps complete decoder contexts and waits explicitly for unfinished
+  references. WPP pictures additionally reconstruct their CTB rows in parallel, preserving the
+  normative two-CTU lead and publishing loop-filtered references only after all rows complete.
+- On the same file, five seeks spread from frame 14,386 to frame 150,000 took 0.3-5.4 s in
+  the native consumer path, then 120 consecutive pictures decoded in 3.3 s (36.4 fps for a
+  23.976-fps source). The 48-picture Main10 WPP conformance stream retains its normative digests.
+- Next step: compare one 1080p and one 4K stream against FFmpeg on the same machine, and widen the
+  fractional kernels beyond the current 128-bit SIMD if profiles without WPP still miss real time.
 - Related: T-504
 
 ### T-565 — MPEG-4 Part 2 in Matroska is delivered; the AVI files are not

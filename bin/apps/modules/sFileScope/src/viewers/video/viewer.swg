@@ -1407,7 +1407,7 @@ private impl VideoViewer
         result.refreshTransport()
         result.openFileName = fileName
         result.decodeWake.init()
-        try result.decodeThread.init(&runVideoViewerDecode, result, priority: .BelowNormal)
+        try result.decodeThread.init(&runVideoViewerDecode, result, priority: .Normal)
         try result.decodeThread.start()
         result.timer = result.addTimer(10'ms)
         result.applyLayout()

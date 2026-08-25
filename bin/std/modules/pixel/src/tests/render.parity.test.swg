@@ -13,8 +13,8 @@ private const RenderSvgHeight = 64
 private const RenderSvgSupersample = 4'u8
 private const RenderBlendWidth = 180
 private const RenderBlendHeight = 48
-private const RenderPlanarWidth = 64
-private const RenderPlanarHeight = 48
+const RenderPlanarWidth  = 64
+const RenderPlanarHeight = 48
 
 private const ArtisticBlendModes: [15] BlendingMode = [.Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion, .Hue, .Saturation, .Color, .Luminosity]
 
@@ -34,9 +34,9 @@ private const RenderSvgSource = "<svg width='96' height='64'>" ++
                                 "<stop offset='1' stop-color='#0000ff'/></linearGradient></defs>" ++
                                 "</svg>"
 
-private alias RenderParityScene = func||(IRenderer)->Image
+alias RenderParityScene = func||(IRenderer)->Image
 
-private func renderCpu(scene: RenderParityScene)->Image
+func renderCpu(scene: RenderParityScene)->Image
 {
     var cpu:      RenderCpu
     let renderer: IRenderer = &cpu
@@ -44,7 +44,7 @@ private func renderCpu(scene: RenderParityScene)->Image
     return scene(renderer)
 }
 
-private func renderOgl(className, title: string, width, height: s32, scene: RenderParityScene, needsAdvancedBlending = false)->Image fail
+func renderOgl(className, title: string, width, height: s32, scene: RenderParityScene, needsAdvancedBlending = false)->Image fail
 {
     var window = try Env.createWindow({identifier: className, title: title, width: width, height: height})
 
@@ -531,11 +531,12 @@ private func makeRenderPlanarPicture(storage: *Array'u8)->Yuv420View
         lumaStride: Width,
         chromaStride: ChromaWidth,
         width: RenderPlanarWidth,
-        height: RenderPlanarHeight}
+        height: RenderPlanarHeight,
+        matrix: .Bt709}
 }
 
 // Draws one planar picture at its own size, which is what a video view does for every frame.
-private func renderPlanarParityScene(renderer: IRenderer)->Image
+func renderPlanarParityScene(renderer: IRenderer)->Image
 {
     var storage: Array'u8
     let picture = makeRenderPlanarPicture(&storage)
@@ -569,7 +570,7 @@ private func assertPlanarCornersUpright(image: const *Image, view: const *Yuv420
         let x        = corner & 1 ? view.width - 1 : 0
         let y        = corner & 2 ? view.height - 1 : 0
         let chromaAt = cast(u64) (y >> 1) * view.chromaStride + cast(u64) (x >> 1)
-        let expected = expectedPlanarColor(view.luma[cast(u64) y * view.lumaStride + cast(u64) x], view.chromaB[chromaAt], view.chromaR[chromaAt])
+        let expected = expectedPlanarColor(view.luma[cast(u64) y * view.lumaStride + cast(u64) x], view.chromaB[chromaAt], view.chromaR[chromaAt], view.matrix, view.studioRange)
         let actual   = image.pixelColor(x, y)
         @assert(Math.abs(cast(s32) actual.r - cast(s32) expected.r) <= 1)
         @assert(Math.abs(cast(s32) actual.g - cast(s32) expected.g) <= 1)

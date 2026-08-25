@@ -26,9 +26,9 @@ struct PlanarFrame
 {
     public
     {
-        luma:   Array'u8     // Full-resolution luma, `height` rows of `strideLuma`.
-        chromaB: Array'u8    // Blue-difference chroma at half resolution.
-        chromaR: Array'u8    // Red-difference chroma at half resolution.
+        luma:    Array'u8     // Full-resolution luma, `height` rows of `strideLuma`.
+        chromaB: Array'u8     // Blue-difference chroma at half resolution.
+        chromaR: Array'u8     // Red-difference chroma at half resolution.
 
         width:  s32     // Visible picture width in luma samples.
         height: s32     // Visible picture height in luma samples.
@@ -39,6 +39,9 @@ struct PlanarFrame
         // Whether the samples use the studio range of 16 to 235, which is what a camera or a
         // screen recorder writes, rather than the full range of 0 to 255.
         studioRange: bool = true
+
+        // Matrix the renderer uses to convert these planes to RGB.
+        matrix: YuvMatrix = .Bt601
     }
 }
 
@@ -63,16 +66,18 @@ impl PlanarFrame
             lumaStride: cast(u64) .strideLuma,
             chromaStride: cast(u64) .strideChroma,
             width: .width,
-            height: .height}
+            height: .height,
+            matrix: .matrix,
+            studioRange: .studioRange}
     }
 
     // Resizes the planes for a picture of `width` by `height`, keeping the storage it can.
     mtd resize(width, height: s32)
     {
-        let chromaWidth  = cast(u32) ((width + 1) / 2)
-        let chromaRows   = cast(u64) ((height + 1) / 2)
-        let lumaSize     = cast(u64) width * cast(u64) height
-        let chromaSize   = cast(u64) chromaWidth * chromaRows
+        let chromaWidth = cast(u32) ((width + 1) / 2)
+        let chromaRows  = cast(u64) ((height + 1) / 2)
+        let lumaSize    = cast(u64) width * cast(u64) height
+        let chromaSize  = cast(u64) chromaWidth * chromaRows
 
         .width        = width
         .height       = height

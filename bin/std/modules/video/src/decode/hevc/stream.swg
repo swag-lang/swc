@@ -13,11 +13,44 @@ using Core, Core.Errors, Pixel
 // The format allows sixteen pictures in the buffer, and a picture waiting for display holds one;
 // past that the stream is not reordering, it is malformed.
 private const MaxReorderDepth = 17'u64
+private const HevcMaxFrameThreads = 8'u32
+private const HevcNoLane = Swag.U32.Max
+private const HevcBytesPerLanePixel = 6'u64
+private const HevcLaneMemoryBudget = 640 * 1024 * 1024'u64
 
 // One reconstructed picture waiting for its display turn.
 private struct PendingFrame
 {
     frame: #null *Frame
+    rank:  u64
+}
+
+private enum HevcLaneState
+{
+    Free
+    Decoding
+}
+
+#[Swag.NoCopy]
+private struct HevcFrameThread
+{
+    thread:    Threading.Thread
+    wake:      Sync.Event
+    done:      Sync.Event
+    decoder:   #null *Decoder
+    frame:     #null *Frame
+    errorText: String
+}
+
+private struct ThreadedHevcSample
+{
+    lane: u32
+    rank: u64
+}
+
+private struct DecodedHevcSample
+{
+    frame: *Frame
     rank:  u64
 }
 
@@ -29,7 +62,11 @@ private struct PendingFrame
 #[Swag.NoCopy]
 struct HevcStream
 {
-    decoder:      Decoder
+    decoders:     [HevcMaxFrameThreads] Decoder
+    frameThreads: [HevcMaxFrameThreads] HevcFrameThread
+    payloads:     [HevcMaxFrameThreads] Array'u8
+    laneStates:   [HevcMaxFrameThreads] HevcLaneState
+    threaded:     [HevcMaxFrameThreads] ThreadedHevcSample
     config:       Array'u8
     lengthSize:   u32 = 4
     frames:       Array'SampleEntry     // Samples in decode order.
@@ -37,15 +74,22 @@ struct HevcStream
     sampleAtRank: Array'u32             // Decode-order sample of each display rank.
     syncFlags:    Array'u8
     pending:      Array'PendingFrame
-    payload:      Array'u8
 
-    nextDecode:  u64                    // Next sample to decode.
-    nextRank:    u64                    // Display rank the next decode call returns.
-    skipBefore:  u64
-    decodeLimit: u64 = Swag.U64.Max
-    reachedEnd:  bool
-    width:       s32
-    height:      s32
+    threadedHead:   u32
+    threadedTail:   u32
+    threadedCount:  u32
+    laneCount:      u32 = 1
+    lastSetupLane:  u32 = HevcNoLane
+    threadsStarted: bool
+
+    nextDecode:          u64     // Next sample to decode.
+    nextRank:            u64     // Display rank the next decode call returns.
+    skipBefore:          u64
+    decodeLimit:         u64 = Swag.U64.Max
+    reachedEnd:          bool
+    skippedNonReference: u64
+    width:               s32
+    height:              s32
 }
 
 impl HevcStream
@@ -58,16 +102,38 @@ impl HevcStream
 
         .config.clear()
         .config.add(config)
-        try .configure()
+        for lane in HevcMaxFrameThreads do
+            try .configure(&.decoders[lane])
+
+        .laneCount = Math.max(1'u32, Math.min(Jobs.workerCount(), HevcMaxFrameThreads))
+        let laneBytes = cast(u64) .width * cast(u64) .height * HevcBytesPerLanePixel
+        if laneBytes do
+            .laneCount = Math.max(1'u32, Math.min(.laneCount, cast(u32) Math.max(HevcLaneMemoryBudget / laneBytes, 1'u64)))
+        if .hasWavefrontConfiguration() do
+            .laneCount = Math.min(.laneCount, 4'u32)
         .installFrames(#move frames)
+    }
+
+    // Wavefront pictures already spend the global workers across their independently coded rows.
+    // Starting several such pictures at once would fill that same queue with dependency waiters.
+    private mtd const hasWavefrontConfiguration()->bool
+    {
+        for index in 64'u32 where .decoders[0].pps[index].valid and .decoders[0].pps[index].entropyCodingSync do
+            return true
+        return false
     }
 
     // Replaces the container window while keeping the configured decoder.
     mtd replaceFrames(frames: Array'SampleEntry) fail
     {
+        .stopFrameThreads()
         .releasePending()
-        .decoder.reset()
-        try .configure()
+        .clearFrameThreads()
+        for lane in HevcMaxFrameThreads
+        {
+            .decoders[lane].reset()
+            try .configure(&.decoders[lane])
+        }
 
         .nextDecode  = 0
         .nextRank    = 0
@@ -78,7 +144,7 @@ impl HevcStream
     }
 
     // Reads the parameter sets a container carries beside the stream, ISO/IEC 14496-15.
-    private mtd configure() fail
+    private mtd configure(decoder: *Decoder) fail
     {
         let config = .config.toSlice()
         if @countof(config) < 23 do
@@ -87,7 +153,7 @@ impl HevcStream
             fail UnsupportedFormatError{"H.265 decoder configuration uses an unknown version"}
 
         .lengthSize = cast(u32) (config[21] & 3) + 1
-        let arrays  = cast(u32) config[22]
+        let arrays = cast(u32) config[22]
 
         var offset = 23'u64
         for arrays
@@ -105,16 +171,16 @@ impl HevcStream
                 offset += 2
                 if offset + length > @countof(config) do
                     fail InvalidFormatError{"H.265 decoder configuration is truncated"}
-                discard try .decoder.readNalUnit(config[offset until offset + length])
+                discard try decoder.readNalUnit(config[offset until offset + length])
                 offset += length
             }
         }
 
         // The geometry the reader reports comes from the sequence the sets describe.
         var sequence: #null const *Sps
-        for index in 16'u32 where .decoder.sps[index].valid
+        for index in 16'u32 where decoder.sps[index].valid
         {
-            sequence = &.decoder.sps[index]
+            sequence = &decoder.sps[index]
             break
         }
 
@@ -186,7 +252,10 @@ impl HevcStream
 
     mtd opDrop()
     {
+        .stopFrameThreads()
         .releasePending()
+        .clearFrameThreads()
+        .shutdownFrameThreads()
     }
 
     // Returns the first display rank at or after `rank` whose sample starts a clean decode.
@@ -216,6 +285,7 @@ impl HevcStream
         if rank == .nextRank do
             return
 
+        .stopFrameThreads()
         let sample = cast(u64) .sampleAtRank[rank]
         var sync   = sample
         while sync > 0 and .syncFlags[sync] == 0 do
@@ -228,11 +298,19 @@ impl HevcStream
             break
         }
 
+        // Advancing within the current decode window keeps every reference picture already
+        // reconstructed. Restart only for a backward seek, or when the requested picture needs
+        // a clean decode point beyond the samples currently queued.
         if rank < .nextRank or (!alreadyPending and sync > .nextDecode)
         {
             .releasePending()
-            .decoder.reset()
-            discard catch .configure()
+            .clearFrameThreads()
+            for lane in HevcMaxFrameThreads
+            {
+                .decoders[lane].reset()
+                discard catch .configure(&.decoders[lane])
+            }
+
             .nextDecode = sync
             .reachedEnd = false
         }
@@ -286,9 +364,7 @@ impl HevcStream
     mtd decodeNextPlanes(source: *Source, target: *PlanarFrame) fail
     {
         let frame = try .nextDisplayFrame(source)
-        let sequence = .decoder.activeSps
-        if sequence do
-            frame.writePlanar(target, sequence!)
+        frame.writePlanar(target)
         .release(frame)
     }
 
@@ -309,64 +385,336 @@ impl HevcStream
             {
                 let frame = .pending[index].frame!
                 .pending.removeAtOrdered(index)
-                .nextRank   += 1
+                .nextRank    += 1
                 .decodeLimit = Swag.U64.Max
                 return frame
             }
 
-            if .nextDecode >= .frames.count or .nextDecode >= .decodeLimit
-            {
-                if .reachedEnd or .nextDecode >= .frames.count do
-                    fail InvalidFormatError{"H.265 stream has no picture for the requested position"}
+            if .threadedCount == 0 and .nextDecode >= .decodeLimit and .decodeLimit != Swag.U64.Max do
                 .decodeLimit = Swag.U64.Max
-            }
 
-            let sample = .nextDecode
-            .nextDecode += 1
-            if .nextDecode >= .frames.count do
-                .reachedEnd = true
+            if .threadedCount == 0 and .reachedEnd do
+                fail InvalidFormatError{"H.265 stream has no picture for the requested position"}
 
-            let entry = .frames[sample]
-            .payload.resize(entry.size)
-            try source.seek(entry.offset)
-            try source.readExact(.payload.toSlice())
-
-            let picture = try .decodeAccessUnit(.payload.toSlice())
-            if !picture do
-                continue
-
-            let rank = cast(u64) .rankOfSample[sample]
-            if rank < .skipBefore
+            let decoded = try .decodeStoredSample(source)
+            if decoded.rank < .skipBefore
             {
-                // A picture decoded only to reach the requested one is never shown.
-                .release(picture!)
+                .release(decoded.frame)
                 continue
             }
 
-            Atomic.exchange(&picture!.heldByCaller, 1)
-            .pending.add({picture, rank})
+            .pending.add({decoded.frame, decoded.rank})
             if .pending.count > MaxReorderDepth do
                 fail InvalidFormatError{"H.265 stream reorders more pictures than the buffer holds"}
         }
     }
 
-    // Decodes one length-prefixed access unit and returns the picture it completed.
-    private mtd decodeAccessUnit(data: const [..] u8)->#null *Frame fail
+    private mtd ensureFrameThreads() fail
+    {
+        if .threadsStarted do
+            return
+
+        defer #fail .shutdownFrameThreads()
+        for lane in .laneCount
+        {
+            let frameThread = &.frameThreads[lane]
+            frameThread.wake.init(false)
+            frameThread.done.init(true)
+            frameThread.thread.init(&runHevcFrameThread, frameThread, priority: .Normal)
+            frameThread.thread.start()
+        }
+
+        .threadsStarted = true
+    }
+
+    private mtd shutdownFrameThreads()
+    {
+        for lane in .laneCount where .frameThreads[lane].thread.isValid() do
+            .frameThreads[lane].thread.safeForceEnd()
+        for lane in .laneCount where .frameThreads[lane].wake.isValid() do
+            .frameThreads[lane].wake.signal()
+        for lane in .laneCount where .frameThreads[lane].thread.isValid() do
+            .frameThreads[lane].thread.wait()
+        for lane in .laneCount
+        {
+            .frameThreads[lane].wake.release()
+            .frameThreads[lane].done.release()
+        }
+
+        .threadsStarted = false
+    }
+
+    private mtd stopFrameThreads()
+    {
+        var index = .threadedHead
+        for .threadedCount
+        {
+            .frameThreads[.threaded[index].lane].done.wait()
+            index = (index + 1) % HevcMaxFrameThreads
+        }
+    }
+
+    private mtd clearFrameThreads()
+    {
+        var index = .threadedHead
+        for .threadedCount
+        {
+            let lane        = .threaded[index].lane
+            let frameThread = &.frameThreads[lane]
+            if frameThread.frame do
+                .release(frameThread.frame!)
+            frameThread.frame = null
+            .laneStates[lane] = .Free
+            index             = (index + 1) % HevcMaxFrameThreads
+        }
+
+        .threadedHead  = 0
+        .threadedTail  = 0
+        .threadedCount = 0
+        .lastSetupLane = HevcNoLane
+    }
+
+    private mtd reserveLane()->u32
+    {
+        for lane in .laneCount
+        {
+            if .laneCount > 1 and lane == .lastSetupLane do
+                continue
+            if .laneStates[lane] == .Free
+            {
+                .laneStates[lane] = .Decoding
+                return lane
+            }
+        }
+
+        return HevcNoLane
+    }
+
+    private mtd startFrame(source: *Source)->bool fail
+    {
+        let lane = .reserveLane()
+        if lane == HevcNoLane do
+            return false
+
+        let decoder = &.decoders[lane]
+        if .lastSetupLane != HevcNoLane and lane != .lastSetupLane do
+            decoder.inheritPredictionState(&.decoders[.lastSetupLane])
+
+        if .nextDecode >= .frames.count or .nextDecode >= .decodeLimit
+        {
+            .laneStates[lane] = .Free
+            if .nextDecode >= .frames.count do
+                .reachedEnd = true
+            return false
+        }
+
+        let sample  = .nextDecode
+        let entry   = .frames[sample]
+        let payload = &.payloads[lane]
+        if payload.count != entry.size do
+            payload.resize(entry.size)
+        try source.seek(entry.offset)
+        try source.readExact(payload.toSlice())
+
+        .nextDecode += 1
+        if .nextDecode >= .frames.count do
+            .reachedEnd = true
+
+        let frameThread = &.frameThreads[lane]
+        frameThread.decoder   = decoder
+        frameThread.frame     = null
+        frameThread.errorText = ""
+        frameThread.done.reset()
+
+        let codedUnits = try .codedUnitCount(payload.toSlice())
+        let rank       = cast(u64) .rankOfSample[sample]
+        if rank < .skipBefore and !try .isReferenceAccessUnit(payload.toSlice())
+        {
+            try .readAuxiliaryUnits(decoder, payload.toSlice())
+            .laneStates[lane]    = .Free
+            .skippedNonReference += 1
+            return true
+        }
+
+        if codedUnits == 1
+        {
+            if !try .prepareAccessUnit(decoder, payload.toSlice()) do
+                fail InvalidFormatError{"H.265 access unit carries no picture"}
+        }
+        else
+        {
+            let frame = try .decodeAccessUnit(decoder, payload.toSlice())
+            if !frame do
+                fail InvalidFormatError{"H.265 access unit carries no picture"}
+            Atomic.exchange(&frame!.heldByCaller, 1)
+            frameThread.frame = frame
+            frameThread.done.signal()
+        }
+
+        .threaded[.threadedTail] = {lane, rank}
+        .threadedTail            = (.threadedTail + 1) % HevcMaxFrameThreads
+        .threadedCount           += 1
+        .lastSetupLane           = lane
+        if codedUnits == 1 do
+            frameThread.wake.signal()
+        return true
+    }
+
+    private mtd fillFrameThreads(source: *Source) fail
+    {
+        .ensureFrameThreads()
+        while .threadedCount < .laneCount and !.reachedEnd
+        {
+            if !try .startFrame(source) do
+                break
+        }
+    }
+
+    private mtd decodeStoredSample(source: *Source)->DecodedHevcSample fail
+    {
+        try .fillFrameThreads(source)
+        if .threadedCount == 0 do
+            fail InvalidFormatError{"H.265 stream ends before the requested picture"}
+
+        let threaded = .threaded[.threadedHead]
+        .threadedHead  = (.threadedHead + 1) % HevcMaxFrameThreads
+        .threadedCount -= 1
+
+        let frameThread = &.frameThreads[threaded.lane]
+        frameThread.done.wait()
+        if frameThread.errorText.length do
+            fail InvalidFormatError{Errors.mkString(frameThread.errorText.toString())}
+        if !frameThread.frame do
+            fail InvalidFormatError{"H.265 access unit carries no picture"}
+
+        let frame = frameThread.frame!
+        frameThread.frame          = null
+        .laneStates[threaded.lane] = .Free
+        try .fillFrameThreads(source)
+        return {frame, threaded.rank}
+    }
+
+    private mtd codedUnitCount(data: const [..] u8)->u32 fail
+    {
+        var count  = 0'u32
+        var offset = 0'u64
+        while offset + cast(u64) .lengthSize <= @countof(data)
+        {
+            let length = try .unitLength(data, &offset)
+            if length < 2 do
+                fail InvalidFormatError{"H.265 access unit holds a truncated network abstraction layer unit"}
+            let nalType = cast(u32) (data[offset] >> 1) & 0x3F
+            if isVideoCodingNal(nalType) do
+                count += 1
+            offset += length
+        }
+
+        return count
+    }
+
+    // Reports whether an access unit can be referenced by a later picture.
+    private mtd isReferenceAccessUnit(data: const [..] u8)->bool fail
+    {
+        var hasPicture = false
+        var offset     = 0'u64
+        while offset + cast(u64) .lengthSize <= @countof(data)
+        {
+            let length = try .unitLength(data, &offset)
+            if length < 2 do
+                fail InvalidFormatError{"H.265 access unit holds a truncated network abstraction layer unit"}
+            let nalType = cast(u32) (data[offset] >> 1) & 0x3F
+            if isVideoCodingNal(nalType)
+            {
+                hasPicture = true
+                if isReferenceNal(nalType) do
+                    return true
+            }
+
+            offset += length
+        }
+
+        if !hasPicture do
+            fail InvalidFormatError{"H.265 access unit carries no picture"}
+        return false
+    }
+
+    // Keeps in-band parameter sets from a discarded non-reference picture.
+    private mtd readAuxiliaryUnits(decoder: *Decoder, data: const [..] u8) fail
     {
         var offset = 0'u64
         while offset + cast(u64) .lengthSize <= @countof(data)
         {
-            var length = 0'u64
-            for index in .lengthSize do
-                length = (length << 8) | cast(u64) data[offset + cast(u64) index]
-            offset += cast(u64) .lengthSize
-            if !length or offset + length > @countof(data) do
-                fail InvalidFormatError{"H.265 access unit holds a truncated network abstraction layer unit"}
+            let length  = try .unitLength(data, &offset)
+            let nalType = cast(u32) (data[offset] >> 1) & 0x3F
+            if !isVideoCodingNal(nalType) do
+                discard try decoder.readNalUnit(data[offset until offset + length])
+            offset += length
+        }
+    }
 
-            discard try .decoder.readNalUnit(data[offset until offset + length])
+    private mtd prepareAccessUnit(decoder: *Decoder, data: const [..] u8)->bool fail
+    {
+        var picture = false
+        var offset  = 0'u64
+        while offset + cast(u64) .lengthSize <= @countof(data)
+        {
+            let length = try .unitLength(data, &offset)
+            if try decoder.prepareNalUnit(data[offset until offset + length]) do
+                picture = true
             offset += length
         }
 
-        return try .decoder.finishPicture()
+        return picture
+    }
+
+    // Decodes one length-prefixed access unit through the multi-slice fallback.
+    private mtd decodeAccessUnit(decoder: *Decoder, data: const [..] u8)->#null *Frame fail
+    {
+        var offset = 0'u64
+        while offset + cast(u64) .lengthSize <= @countof(data)
+        {
+            let length = try .unitLength(data, &offset)
+            discard try decoder.readNalUnit(data[offset until offset + length])
+            offset += length
+        }
+
+        return try decoder.finishPicture()
+    }
+
+    private mtd unitLength(data: const [..] u8, offset: *u64)->u64 fail
+    {
+        var length = 0'u64
+        for index in .lengthSize do
+            length = (length << 8) | cast(u64) data[offset[] + cast(u64) index]
+        offset[] += cast(u64) .lengthSize
+        if !length or offset[] + length > @countof(data) do
+            fail InvalidFormatError{"H.265 access unit holds a truncated network abstraction layer unit"}
+        return length
+    }
+}
+
+private func runHevcFrameThread(thread: Threading.Thread)
+{
+    let frameThread = cast(*HevcFrameThread) thread.userParam!
+    while !thread.requestEnd
+    {
+        frameThread.wake.wait()
+        if thread.requestEnd do
+            break
+
+        var frame: #null *Frame
+        frame = catch frameThread.decoder!.decodePreparedPicture() as decodeError
+        if decodeError != null
+        {
+            frameThread.decoder!.failPreparedPicture()
+            frameThread.errorText = Errors.message(decodeError)
+        }
+        elif frame
+        {
+            Atomic.exchange(&frame!.heldByCaller, 1)
+            frameThread.frame = frame
+        }
+
+        frameThread.done.signal()
     }
 }

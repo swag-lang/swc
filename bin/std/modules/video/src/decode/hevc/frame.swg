@@ -52,16 +52,24 @@ enum FrameMarking
 // and ten bit streams in one layout keeps the reconstruction free of a second set of paths.
 struct Frame
 {
-    luma:         Array'u16     // Padded luma plane.
-    chromaB:      Array'u16     // Padded blue-difference plane.
-    chromaR:      Array'u16     // Padded red-difference plane.
-    strideLuma:   u64
-    strideChroma: u64
-    width:        u32     // Coded luma width, before the conformance window.
-    height:       u32
-    chromaWidth:  u32
-    chromaHeight: u32
-    bitDepth:     u32
+    luma:          Array'u16     // Padded luma plane.
+    chromaB:       Array'u16     // Padded blue-difference plane.
+    chromaR:       Array'u16     // Padded red-difference plane.
+    strideLuma:    u64
+    strideChroma:  u64
+    width:         u32     // Coded luma width, before the conformance window.
+    height:        u32
+    chromaWidth:   u32
+    chromaHeight:  u32
+    bitDepth:      u32
+    visibleWidth:  u32
+    visibleHeight: u32
+    cropLeft:      u32
+    cropTop:       u32
+    subWidthC:     u32
+    subHeightC:    u32
+    matrix:        YuvMatrix
+    studioRange:   bool
 
     poc:          s32
     marking:      FrameMarking
@@ -89,11 +97,26 @@ impl Frame
     // Allocates or reuses storage for a picture of the sequence `sps` describes.
     mtd prepare(sps: const *Sps)
     {
-        .width        = sps.width
-        .height       = sps.height
-        .chromaWidth  = sps.width / sps.subWidthC
-        .chromaHeight = sps.height / sps.subHeightC
-        .bitDepth     = sps.bitDepthLuma
+        .width         = sps.width
+        .height        = sps.height
+        .chromaWidth   = sps.width / sps.subWidthC
+        .chromaHeight  = sps.height / sps.subHeightC
+        .bitDepth      = sps.bitDepthLuma
+        .visibleWidth  = sps.visibleWidth()
+        .visibleHeight = sps.visibleHeight()
+        .cropLeft      = sps.cropLeft
+        .cropTop       = sps.cropTop
+        .subWidthC     = sps.subWidthC
+        .subHeightC    = sps.subHeightC
+        .studioRange   = !sps.fullRange
+        switch sps.matrixCoefficients
+        {
+        case 1:     .matrix = .Bt709
+        case 9, 10: .matrix = .Bt2020
+        case 5, 6:  .matrix = .Bt601
+        default:    .matrix = sps.width >= 1280 or sps.height > 576 ? .Bt709 : .Bt601
+        }
+
         .strideLuma   = cast(u64) (.width + FramePadding * 2)
         .strideChroma = cast(u64) (.chromaWidth + FramePadding * 2)
 
@@ -117,6 +140,7 @@ impl Frame
         if !.progressEvent.isValid() do
             .progressEvent.init(manual: true)
         Atomic.exchange(&.heldByCaller, 0)
+        Atomic.exchange(&.reconstructionHolds, 0)
         Atomic.exchange(&.progressRows, 0)
     }
 
@@ -244,21 +268,22 @@ impl Frame
     //
     // The renderer samples eight-bit planes, so a ten-bit picture is reduced on the way out with
     // the rounding the standard uses for a bit-depth decrease.
-    mtd const writePlanar(target: *PlanarFrame, sps: const *Sps)
+    mtd const writePlanar(target: *PlanarFrame)
     {
-        let visibleWidth  = cast(s32) sps.visibleWidth()
-        let visibleHeight = cast(s32) sps.visibleHeight()
+        let visibleWidth  = cast(s32) .visibleWidth
+        let visibleHeight = cast(s32) .visibleHeight
         target.resize(visibleWidth, visibleHeight)
-        target.studioRange = true
+        target.studioRange = .studioRange
+        target.matrix      = .matrix
 
-        let left  = cast(s32) (sps.cropLeft * sps.subWidthC)
-        let top   = cast(s32) (sps.cropTop * sps.subHeightC)
+        let left  = cast(s32) (.cropLeft * .subWidthC)
+        let top   = cast(s32) (.cropTop * .subHeightC)
         let shift = .bitDepth - 8
 
         .reducePlane(target.luma.buffer!, cast(u64) target.strideLuma, .luma.buffer!, .strideLuma, left, top, visibleWidth, visibleHeight, shift)
 
-        let chromaLeft   = left / cast(s32) sps.subWidthC
-        let chromaTop    = top / cast(s32) sps.subHeightC
+        let chromaLeft   = left / cast(s32) .subWidthC
+        let chromaTop    = top / cast(s32) .subHeightC
         let chromaWidth  = (visibleWidth + 1) / 2
         let chromaHeight = (visibleHeight + 1) / 2
         .reducePlane(target.chromaB.buffer!, cast(u64) target.strideChroma, .chromaB.buffer!, .strideChroma, chromaLeft, chromaTop, chromaWidth, chromaHeight, shift)

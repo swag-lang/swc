@@ -26,14 +26,66 @@ func flatPlanarPicture(storage: *Array'u8, width, height: s32, luma, chromaB, ch
 }
 
 // Returns what the conversion answers for one sample, which is what a drawn picture must show.
-func expectedPlanarColor(luma, chromaB, chromaR: u8)->Color
+func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, studioRange = true)->Color
 {
-    let c = Math.max(cast(s32) luma - 16, 0) * 298
+    let c = Math.max(cast(s32) luma - (studioRange ? 16 : 0), 0) * (studioRange ? 298 : 256)
     let d = cast(s32) chromaB - 128
     let e = cast(s32) chromaR - 128
-    return Color.fromRgb(cast(u8) Math.clamp((c + 409 * e + 128) >> 8, 0, 255),
-                         cast(u8) Math.clamp((c - 100 * d - 208 * e + 128) >> 8, 0, 255),
-                         cast(u8) Math.clamp((c + 516 * d + 128) >> 8, 0, 255))
+    var redCr, greenCb, greenCr, blueCb: s32
+    switch #complete matrix
+    {
+    case .Bt601:
+        if studioRange
+        {
+            redCr   = 409
+            greenCb = -100
+            greenCr = -208
+            blueCb  = 516
+        }
+        else
+        {
+            redCr   = 359
+            greenCb = -88
+            greenCr = -183
+            blueCb  = 454
+        }
+
+    case .Bt709:
+        if studioRange
+        {
+            redCr   = 459
+            greenCb = -55
+            greenCr = -136
+            blueCb  = 541
+        }
+        else
+        {
+            redCr   = 403
+            greenCb = -48
+            greenCr = -120
+            blueCb  = 475
+        }
+
+    case .Bt2020:
+        if studioRange
+        {
+            redCr   = 430
+            greenCb = -48
+            greenCr = -167
+            blueCb  = 548
+        }
+        else
+        {
+            redCr   = 377
+            greenCb = -42
+            greenCr = -146
+            blueCb  = 483
+        }
+    }
+
+    return Color.fromRgb(cast(u8) Math.clamp((c + redCr * e + 128) >> 8, 0, 255),
+                         cast(u8) Math.clamp((c + greenCb * d + greenCr * e + 128) >> 8, 0, 255),
+                         cast(u8) Math.clamp((c + blueCb * d + 128) >> 8, 0, 255))
 }
 
 // A planar format is a pixel format like any other: it names a channel set and a storage class,
@@ -47,6 +99,29 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8)->Color
     @assert(PixelFormat.Yuv420.bitDepth() == 8)
     @assert(!PixelFormat.Yuv420.hasAlpha())
     @assert(PixelFormat.Yuv420.bitsPerPixel() == 12)
+}
+
+// Matrix and range metadata select distinct conversions, including the sixteen-pixel SIMD path.
+#test
+{
+    const Luma    = 100'u8
+    const ChromaB = 90'u8
+    const ChromaR = 200'u8
+
+    var storage: Array'u8
+    var source = flatPlanarPicture(&storage, 16, 2, Luma, ChromaB, ChromaR)
+    source.matrix = .Bt709
+
+    var image: Image
+    source.convertToRgb(&image)
+    let studio = expectedPlanarColor(Luma, ChromaB, ChromaR, .Bt709, true)
+    @assert(image.pixelColor(0, 0) == studio and image.pixelColor(15, 1) == studio)
+
+    source.studioRange = false
+    source.convertToRgb(&image)
+    let full = expectedPlanarColor(Luma, ChromaB, ChromaR, .Bt709, false)
+    @assert(image.pixelColor(0, 0) == full and image.pixelColor(15, 1) == full)
+    @assert(full != studio)
 }
 
 // A picture handed over as planes travels as an ordinary texture and reaches the surface as the
@@ -187,4 +262,12 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8)->Color
     let image = renderer.readRenderTarget(&target, 0, 0, 4, 4)
     @assert(image.pixelColor(0, 0).r >= 250)
     @assert(image.pixelColor(3, 3).r >= 250)
+}
+
+// The OpenGL shader consumes the same BT.709 factors as the CPU conversion.
+#test
+{
+    let expected = renderCpu(&renderPlanarParityScene)
+    let image    = expect renderOgl("SWAG_PIXEL_YUV_MATRIX", "Pixel YUV matrix", RenderPlanarWidth, RenderPlanarHeight, &renderPlanarParityScene)
+    Testing.assertImagesNear(&expected, &image, "render.planar.bt709.cpu-ogl", {maxChannelDelta: 4, maxDifferentPixels: 400})
 }

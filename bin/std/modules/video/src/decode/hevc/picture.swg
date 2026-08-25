@@ -8,6 +8,29 @@
 
 using Core, Core.Errors
 
+// One independently entropy-coded wavefront row.
+//
+// The row borrows all picture-wide storage from `owner`, while `worker` owns the arithmetic,
+// prediction, coefficient, and transform scratch that makes reconstruction independent. HEVC
+// lets a row advance once the row above is two coding tree blocks ahead.
+private struct WppRowJob
+{
+    using base: Jobs.Job
+    owner:       #null *Decoder
+    worker:      #null *Decoder
+    bounds:      #null const [*] u64
+    jobs:        #null [*] WppRowJob
+    progress:    #null [*] u32
+    states:      #null [*] CabacState
+    events:      #null [*] Sync.Event
+    failed:      #null *u32
+    row:         u32
+    rowCount:    u32
+    width:       u32
+    nextScheduled: bool
+    errorText:   String
+}
+
 impl Decoder
 {
     // Reads one network abstraction layer unit, clause 7.3.1.
@@ -15,6 +38,17 @@ impl Decoder
     // A unit that carries coded picture data starts a picture when it says so, and continues the
     // one already open otherwise. `payload` still carries the two-byte unit header.
     mtd readNalUnit(payload: const [..] u8)->bool fail
+    {
+        return try .readNalUnitMode(payload, false)
+    }
+
+    // Reads one unit while leaving a coded picture's entropy data for a frame owner.
+    mtd prepareNalUnit(payload: const [..] u8)->bool fail
+    {
+        return try .readNalUnitMode(payload, true)
+    }
+
+    private mtd readNalUnitMode(payload: const [..] u8, deferPicture: bool)->bool fail
     {
         if @countof(payload) < 3 do
             fail InvalidFormatError{"HEVC network abstraction layer unit is truncated"}
@@ -29,23 +63,25 @@ impl Decoder
         {
         case NalVps:
             return false
+
         case NalSps, NalPps:
             try .readParameterSet(nalType, body)
             return false
+
         case NalAud, NalEos, NalEob, NalFillerData, NalPrefixSei, NalSuffixSei:
             return false
         }
 
         if !isVideoCodingNal(nalType) do
             return false
-        return try .decodeSliceSegment(body, nalType, temporalId)
+        return try .decodeSliceSegment(body, nalType, temporalId, deferPicture)
     }
 
     // Decodes one slice segment, clauses 7.3.6.1 and 7.3.8.1.
     //
     // Returns whether the unit started a new picture, which is what tells the caller a picture
     // finished before it.
-    private mtd decodeSliceSegment(body: const [..] u8, nalType, temporalId: u32)->bool fail
+    private mtd decodeSliceSegment(body: const [..] u8, nalType, temporalId: u32, deferPicture: bool)->bool fail
     {
         unescapeRbsp(&.rbsp, body)
         var reader: BitReader
@@ -91,15 +127,70 @@ impl Decoder
             .sliceParams.add({header.deblockingDisabled, header.loopFilterAcrossSlices, cast(s8) header.betaOffsetDiv2, cast(s8) header.tcOffsetDiv2})
         }
 
-        .header   = header
+        .header              = header
         .header.sliceAddress = .sliceAddrRs
         .header.initType     = .initTypeOf(&header)
 
         if !header.dependent do
             try .applyReferencePictureSet(&header, sps!)
 
+        if deferPicture
+        {
+            .preparedBody.clear()
+            .preparedBody.add(body)
+            .preparedHeaderBit = reader.bitPos
+            .preparedPicture   = true
+            return started
+        }
+
+        try .awaitReferencePictures()
         try .decodeSliceData(&reader, body, sps!, pps)
         return started
+    }
+
+    // Completes the picture header published by [[prepareNalUnit]].
+    mtd decodePreparedPicture()->#null *Frame fail
+    {
+        if !.preparedPicture do
+            return null
+
+        var reader: BitReader
+        reader.bitPos    = .preparedHeaderBit
+        .preparedPicture = false
+        try .awaitReferencePictures()
+        try .decodeSliceData(&reader, .preparedBody.toSlice(), .activeSps!, .activePps!)
+        return try .finishPicture()
+    }
+
+    // Publishes failure so pictures already prepared from this one never wait forever.
+    mtd failPreparedPicture()
+    {
+        .preparedPicture = false
+        if .current
+        {
+            .current!.publishProgress(FrameProgressFailed)
+            .current = null
+        }
+    }
+
+    // Waits until every picture this slice predicts from is complete.
+    //
+    // A single-lane decoder observes completed references immediately. Frame-threaded streams
+    // can publish prediction state before reconstruction, so their later lanes wait here instead
+    // of reading a reference plane while its owner is still writing it.
+    private mtd awaitReferencePictures() fail
+    {
+        for list in ListCount
+        {
+            for index in .refList.count[list]
+            {
+                let frame = .refList.frames[list, index]
+                if !frame do
+                    continue
+                if frame!.waitProgress(frame!.progressComplete()) == FrameProgressFailed do
+                    fail InvalidFormatError{"HEVC inter block has no decoded reference picture"}
+            }
+        }
     }
 
     // Returns the context initialization type of one slice, equation 9-7.
@@ -140,12 +231,13 @@ impl Decoder
         frame!.outputNeeded = header.picOutputFlag
         frame!.isIrap       = isIrapNal(nalType)
         frame!.noRaslOutput = .noRaslOutput
+        try .holdReference(frame!, .ShortTerm)
         .current = frame
 
         .sliceParams.clear()
-        .sliceIndex  = 0
-        .sliceAddrRs = 0
-        .saoUsed     = false
+        .sliceIndex   = 0
+        .sliceAddrRs  = 0
+        .saoUsed      = false
         .firstPicture = false
 
         let blocks = cast(u64) .gridWidth * cast(u64) .gridHeight
@@ -253,6 +345,15 @@ impl Decoder
         unescapeRbspWithBounds(&.rbsp, data, escapedBounds.toSlice(), &bounds)
         bounds.add(.rbsp.count)
 
+        // A complete untiled WPP picture has one independently coded substream per coding tree
+        // block row. Decode those rows concurrently; less regular slice layouts keep the exact
+        // sequential path below.
+        if pps.entropyCodingSync and !pps.tilesEnabled and !.header.dependent and !.header.segmentAddress and sps.widthInCtbs >= 2 and bounds.count == cast(u64) sps.heightInCtbs + 1 and Jobs.workerCount() > 1
+        {
+            try .decodeWavefrontRows(&bounds, sps)
+            return
+        }
+
         var substream = 0'u64
         .ctbAddrTs = .ctbRsToTs[.header.segmentAddress]
         .ctbAddrRs = .header.segmentAddress
@@ -309,9 +410,9 @@ impl Decoder
             if .ctbAddrTs >= sps.sizeInCtbs do
                 fail InvalidFormatError{"HEVC slice segment does not end inside its picture"}
 
-            let nextRs   = .ctbTsToRs[.ctbAddrTs]
-            let newTile  = pps.tilesEnabled and .tileId[.ctbAddrTs] != .tileId[.ctbAddrTs - 1]
-            let newRow   = pps.entropyCodingSync and (nextRs % sps.widthInCtbs) == 0
+            let nextRs  = .ctbTsToRs[.ctbAddrTs]
+            let newTile = pps.tilesEnabled and .tileId[.ctbAddrTs] != .tileId[.ctbAddrTs - 1]
+            let newRow  = pps.entropyCodingSync and (nextRs % sps.widthInCtbs) == 0
             if !newTile and !newRow do
                 continue
 
@@ -342,7 +443,7 @@ impl Decoder
     // and to the right before the block itself is decoded, so it is claimed first.
     private mtd claimCodingTreeBlock()
     {
-        .ctbAddrRs = .ctbTsToRs[.ctbAddrTs]
+        .ctbAddrRs                 = .ctbTsToRs[.ctbAddrTs]
         .ctbSliceAddr[.ctbAddrRs]  = .sliceAddrRs
         .ctbSliceIndex[.ctbAddrRs] = cast(u16) .sliceIndex
     }
@@ -378,4 +479,251 @@ impl Decoder
             fail InvalidFormatError{"HEVC slice segment substream is empty"}
         .cabac.start(.rbsp.buffer! + first, last - first)
     }
+
+    // Decodes a full-picture wavefront slice using one private scratch decoder per row.
+    private mtd decodeWavefrontRows(bounds: *Array'u64, sps: const *Sps) fail
+    {
+        let rowCount = sps.heightInCtbs
+        let width    = sps.widthInCtbs
+
+        var jobs:     Array'WppRowJob
+        var progress: Array'u32
+        var states:   Array'CabacState
+        jobs.resize(rowCount)
+        progress.resize(rowCount)
+        states.resize(rowCount)
+
+        let workersSize = cast(u64) rowCount * #sizeof(Decoder)
+        let workers     = cast([*] Decoder) Memory.alloc(workersSize)
+        @init(workers, rowCount)
+        let eventsSize = cast(u64) rowCount * #sizeof(Sync.Event)
+        let events     = cast([*] Sync.Event) Memory.alloc(eventsSize)
+        @init(events, rowCount)
+        for row in rowCount do
+            events[row].init(manual: true)
+        defer
+        {
+            for row in rowCount do
+                events[row].release()
+            @drop(events, rowCount)
+            Memory.free(events, eventsSize)
+            for row in rowCount do
+                .detachWavefrontWorker(&workers[row])
+            @drop(workers, rowCount)
+            Memory.free(workers, workersSize)
+        }
+
+        for row in rowCount do
+            .prepareWavefrontWorker(&workers[row])
+
+        var failed = 0'u32
+        for row in rowCount
+        {
+            let job = &jobs[row]
+            job.owner     = me
+            job.worker    = &workers[row]
+            job.bounds    = bounds.buffer
+            job.jobs      = jobs.buffer
+            job.progress  = progress.buffer
+            job.states    = states.buffer
+            job.events    = events
+            job.failed    = &failed
+            job.row       = row
+            job.rowCount  = rowCount
+            job.width     = width
+            job.lambda    = &runWppRow
+            job.data      = job
+        }
+        Jobs.schedule(&jobs[0])
+
+        for index in rowCount do
+            Jobs.wait(&jobs[index])
+
+        for index in rowCount
+        {
+            if jobs[index].errorText.length do
+                fail InvalidFormatError{Errors.mkString(jobs[index].errorText.toString())}
+            .saoUsed = .saoUsed or workers[index].saoUsed
+        }
+
+        workers[rowCount - 1].cabac.save(&.dependentState)
+        .ctbAddrTs = sps.sizeInCtbs
+        .ctbAddrRs = sps.sizeInCtbs - 1
+    }
+
+    // Gives a row decoder borrowed views of the picture-wide arrays. Its own fixed scratch and
+    // arithmetic reader stay private, so concurrently reconstructed rows never share temporaries.
+    private mtd prepareWavefrontWorker(worker: *Decoder)
+    {
+        worker.activeSps   = .activeSps
+        worker.activePps   = .activePps
+        worker.current     = .current
+        worker.header      = .header
+        worker.refList     = .refList
+        worker.gridWidth   = .gridWidth
+        worker.gridHeight  = .gridHeight
+        worker.sliceAddrRs = .sliceAddrRs
+        worker.sliceIndex  = .sliceIndex
+
+        worker.zScan.buffer = .zScan.buffer
+        worker.zScan.count  = .zScan.count
+        worker.ctbRsToTs.buffer = .ctbRsToTs.buffer
+        worker.ctbRsToTs.count  = .ctbRsToTs.count
+        worker.ctbTsToRs.buffer = .ctbTsToRs.buffer
+        worker.ctbTsToRs.count  = .ctbTsToRs.count
+        worker.tileId.buffer = .tileId.buffer
+        worker.tileId.count  = .tileId.count
+        worker.ctbSliceAddr.buffer = .ctbSliceAddr.buffer
+        worker.ctbSliceAddr.count  = .ctbSliceAddr.count
+        worker.ctbSliceIndex.buffer = .ctbSliceIndex.buffer
+        worker.ctbSliceIndex.count  = .ctbSliceIndex.count
+        worker.sliceParams.buffer = .sliceParams.buffer
+        worker.sliceParams.count  = .sliceParams.count
+        worker.predMode.buffer = .predMode.buffer
+        worker.predMode.count  = .predMode.count
+        worker.intraModeY.buffer = .intraModeY.buffer
+        worker.intraModeY.count  = .intraModeY.count
+        worker.ctDepth.buffer = .ctDepth.buffer
+        worker.ctDepth.count  = .ctDepth.count
+        worker.skipFlag.buffer = .skipFlag.buffer
+        worker.skipFlag.count  = .skipFlag.count
+        worker.qpY.buffer = .qpY.buffer
+        worker.qpY.count  = .qpY.count
+        worker.cbfLuma.buffer = .cbfLuma.buffer
+        worker.cbfLuma.count  = .cbfLuma.count
+        worker.motion.buffer = .motion.buffer
+        worker.motion.count  = .motion.count
+        worker.edgeFlags.buffer = .edgeFlags.buffer
+        worker.edgeFlags.count  = .edgeFlags.count
+        worker.sao.buffer = .sao.buffer
+        worker.sao.count  = .sao.count
+
+        for index in 32'u32 * 32 do
+            worker.transformMatrix[index] = .transformMatrix[index]
+        worker.transformMatrixReady = true
+    }
+
+    // Removes borrowed array headers before normal Decoder destruction sees the worker.
+    private mtd detachWavefrontWorker(worker: *Decoder)
+    {
+        worker.zScan.buffer = null
+        worker.ctbRsToTs.buffer = null
+        worker.ctbTsToRs.buffer = null
+        worker.tileId.buffer = null
+        worker.ctbSliceAddr.buffer = null
+        worker.ctbSliceIndex.buffer = null
+        worker.sliceParams.buffer = null
+        worker.predMode.buffer = null
+        worker.intraModeY.buffer = null
+        worker.ctDepth.buffer = null
+        worker.skipFlag.buffer = null
+        worker.qpY.buffer = null
+        worker.cbfLuma.buffer = null
+        worker.motion.buffer = null
+        worker.edgeFlags.buffer = null
+        worker.sao.buffer = null
+        worker.current = null
+        worker.activeSps = null
+        worker.activePps = null
+    }
+
+    // Reconstructs one row while maintaining the two-CTU WPP lead over the row below.
+    private mtd decodeWavefrontRow(job: *WppRowJob) fail
+    {
+        let row = job.row
+        .currentQp       = .header.sliceQp
+        .qpYPred         = .header.sliceQp
+        .qpYPrev         = .header.sliceQp
+        .cuQpDeltaVal    = 0
+        .isCuQpDeltaCoded = false
+        let first = job.bounds![row]
+        let last  = job.bounds![row + 1]
+        .cabac.start(job.owner!.rbsp.buffer! + first, last - first)
+
+        if row
+        {
+            if !.waitWavefrontProgress(job, row - 1, 2) do
+                return
+            .cabac.restore(job.states! + row - 1)
+        }
+        else do
+            .cabac.initContexts(.header.initType, .header.sliceQp)
+
+        for column in job.width
+        {
+            if row
+            {
+                let needed = Math.min(column + 2, job.width)
+                if !.waitWavefrontProgress(job, row - 1, needed) do
+                    return
+            }
+
+            .ctbAddrRs = row * job.width + column
+            .ctbAddrTs = .ctbAddrRs
+            .claimCodingTreeBlock()
+            try .codingTreeUnit()
+
+            if column == 1
+            {
+                .cabac.save(job.states! + row)
+                scheduleNextWppRow(job)
+            }
+
+            let endOfSlice = .cabac.terminate() != 0
+            if .cabac.hasOverrun() do
+                fail InvalidFormatError{"HEVC slice segment data is truncated"}
+
+            Atomic.exchange(job.progress! + row, column + 1)
+            job.events![row].signal()
+            let finalBlock = row + 1 == job.rowCount and column + 1 == job.width
+            if endOfSlice != finalBlock do
+                fail InvalidFormatError{"HEVC wavefront slice ends outside its final coding tree block"}
+        }
+    }
+
+    // Sleeps until the row above has made enough progress. Resetting before the second check
+    // closes the signal race without burning a worker core while another row reconstructs.
+    private mtd waitWavefrontProgress(job: *WppRowJob, row, needed: u32)->bool
+    {
+        while Atomic.get(job.progress! + row) < needed and Atomic.get(job.failed!) == 0
+        {
+            job.events![row].reset()
+            if Atomic.get(job.progress! + row) < needed and Atomic.get(job.failed!) == 0 do
+                job.events![row].wait()
+        }
+
+        return Atomic.get(job.failed!) == 0
+    }
+}
+
+private func runWppRow(data: #null *void)
+{
+    let job = cast(*WppRowJob) data!
+    if Atomic.get(job.failed!) != 0
+    {
+        scheduleNextWppRow(job)
+        return
+    }
+
+    catch job.worker!.decodeWavefrontRow(job) as rowError
+    if rowError != null
+    {
+        job.errorText = Errors.message(rowError)
+        Atomic.exchange(job.failed!, 1)
+        for index in job.rowCount do
+            job.events![index].signal()
+    }
+
+    scheduleNextWppRow(job)
+}
+
+// A WPP row becomes runnable when its predecessor has decoded its second coding tree block.
+// Submission at that exact point keeps every scheduler job useful instead of queueing waiters.
+private func scheduleNextWppRow(job: *WppRowJob)
+{
+    if job.nextScheduled do
+        return
+    job.nextScheduled = true
+    if job.row + 1 < job.rowCount do
+        Jobs.schedule(job.jobs! + job.row + 1)
 }

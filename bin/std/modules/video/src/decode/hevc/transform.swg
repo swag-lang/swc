@@ -13,23 +13,23 @@ const LevelScale: [6] u16 = [40, 45, 51, 57, 64, 72]
 
 // Clause 7.4.3.2.1: the range a transform coefficient is kept in without the range extensions.
 const Log2TransformRange = 15'u32
-const CoeffMin = -32768's32
-const CoeffMax = 32767's32
+const CoeffMin           = -32768's32
+const CoeffMax           = 32767's32
 
 // The state one transform block needs from the coding unit that contains it.
 struct TransformBlock
 {
-    x:            s32     // Luma position of the block, whatever the component.
-    y:            s32
-    size:         u32     // Block size in samples of its own component.
-    log2Size:     u32
-    component:    u32     // Zero luma, one blue-difference chroma, two red-difference chroma.
-    isIntra:      bool
+    x:             s32     // Luma position of the block, whatever the component.
+    y:             s32
+    size:          u32     // Block size in samples of its own component.
+    log2Size:      u32
+    component:     u32     // Zero luma, one blue-difference chroma, two red-difference chroma.
+    isIntra:       bool
     transformSkip: bool
-    bypass:       bool
-    qp:           s32
-    lastX:        u32     // Highest column holding a coefficient, for the column pass.
-    lastY:        u32     // Highest row holding a coefficient, for the row pass.
+    bypass:        bool
+    qp:            s32
+    lastX:         u32     // Highest column holding a coefficient, for the column pass.
+    lastY:         u32     // Highest row holding a coefficient, for the row pass.
 }
 
 impl Decoder
@@ -89,7 +89,7 @@ impl Decoder
         let size     = block.size
 
         var destination: [*] u16 = undefined
-        var stride: u64
+        var stride:      u64
         if !block.component
         {
             destination = frame.lumaAtMutable(block.x, block.y)
@@ -101,11 +101,28 @@ impl Decoder
             stride      = frame.strideChroma
         }
 
+        let zeros  = Simd.splat(0's32)
+        let maxima = Simd.splat(maximum)
+
         for row in size
         {
-            let out = destination + cast(u64) row * stride
-            for column in size do
-                out[column] = cast(u16) Math.clamp(cast(s32) out[column] + .residual[row * size + column], 0, maximum)
+            let out    = destination + cast(u64) row * stride
+            let base   = row * size
+            var column = 0'u32
+            while column + 8 <= size
+            {
+                let pixels = Simd.load(out + column)
+                let low    = cast #bit(Simd.S32x4) Simd.widenLow(pixels) + Simd.load(&.residual[base + column])
+                let high   = cast #bit(Simd.S32x4) Simd.widenHigh(pixels) + Simd.load(&.residual[base + column + 4])
+                Simd.store(out + column, Simd.packUnsigned(Math.max(Math.min(low, maxima), zeros), Math.max(Math.min(high, maxima), zeros)))
+                column += 8
+            }
+
+            while column < size
+            {
+                out[column] = cast(u16) Math.clamp(cast(s32) out[column] + .residual[base + column], 0, maximum)
+                column      += 1
+            }
         }
     }
 
@@ -155,25 +172,33 @@ impl Decoder
     // Scales the parsed coefficients into the coefficient array, clause 8.6.3.
     private mtd scaleCoefficients(block: const *TransformBlock, bitDepth: u32)
     {
-        let sps     = .activeSps!
-        let pps     = .activePps!
-        let size    = block.size
-        let bdShift = cast(s32) (bitDepth + block.log2Size + 10 - Log2TransformRange)
+        let sps      = .activeSps!
+        let pps      = .activePps!
+        let size     = block.size
+        let bdShift  = cast(s32) (bitDepth + block.log2Size + 10 - Log2TransformRange)
         let rounding = 1's32 << (bdShift - 1)
-        let scale   = cast(s32) LevelScale[block.qp % 6]
-        let shift   = cast(u32) (block.qp / 6)
+        let scale    = cast(s32) LevelScale[block.qp % 6]
+        let shift    = cast(u32) (block.qp / 6)
 
         // A flat matrix is the common case, and it collapses the whole derivation to one multiply.
         let flat = !sps.scalingListEnabled or (block.transformSkip and size > 4)
         if flat
         {
             let factor = scale * 16
-            for index in size * size
+            var columnMask = .coefficientColumns
+            while columnMask
             {
-                let level = cast(s32) .coefficients[index]
-                if !level do
-                    continue
-                .coefficients[index] = cast(s16) Math.clamp((((level * factor) << shift) + rounding) >> bdShift, CoeffMin, CoeffMax)
+                let x = Math.trailingZeros(columnMask)
+                columnMask &= columnMask - 1
+                var rowMask = .coefficientRows[x]
+                while rowMask
+                {
+                    let y = Math.trailingZeros(rowMask)
+                    rowMask &= rowMask - 1
+                    let index = y * size + x
+                    let level = cast(s32) .coefficients[index]
+                    .coefficients[index] = cast(s16) Math.clamp((((level * factor) << shift) + rounding) >> bdShift, CoeffMin, CoeffMax)
+                }
             }
 
             return
@@ -181,14 +206,18 @@ impl Decoder
 
         let sizeId   = block.log2Size - 2
         let matrixId = .scalingMatrixId(block, sizeId)
-        for y in size
+        var columnMask = .coefficientColumns
+        while columnMask
         {
-            for x in size
+            let x = Math.trailingZeros(columnMask)
+            columnMask &= columnMask - 1
+            var rowMask = .coefficientRows[x]
+            while rowMask
             {
+                let y = Math.trailingZeros(rowMask)
+                rowMask &= rowMask - 1
                 let index = y * size + x
                 let level = cast(s32) .coefficients[index]
-                if !level do
-                    continue
                 let factor = scale * cast(s32) .scalingFactor(&pps.scalingLists, sizeId, matrixId, x, y, size)
                 .coefficients[index] = cast(s16) Math.clamp((((level * factor) << shift) + rounding) >> bdShift, CoeffMin, CoeffMax)
             }
@@ -223,32 +252,103 @@ impl Decoder
     // Applies the two-dimensional inverse transform of clause 8.6.4 to the scaled coefficients.
     private mtd inverseTransform(size, log2Size: u32, useDst: bool, lastX, lastY: u32, bdShift: s32)
     {
+        // Quantized video leaves a large share of transform blocks with a DC coefficient only.
+        // The first DCT basis is constant, so both matrix passes collapse to one value.
+        if !useDst and !lastX and !lastY
+        {
+            let first    = Math.clamp((64 * cast(s32) .coefficients[0] + 64) >> 7, CoeffMin, CoeffMax)
+            let rounding = 1's32 << (bdShift - 1)
+            let value    = (64 * first + rounding) >> bdShift
+            let values   = Simd.splat(value)
+            var index    = 0'u32
+            let count    = size * size
+            while index < count
+            {
+                Simd.store(&.residual[index], values)
+                index += 4
+            }
+
+            return
+        }
+
+        // The four-point DCT is frequent at residual boundaries. Its even/odd factorization
+        // produces exactly the same integer sums as the matrix form with twelve multiplies per
+        // pass instead of sixty-four.
+        if size == 4 and !useDst
+        {
+            .inverseDct4(lastX, lastY, bdShift)
+            return
+        }
+
+        if size == 8 and !useDst
+        {
+            .inverseDct8(lastX, lastY, bdShift)
+            return
+        }
+
         var intermediate: [32 * 32] s32 = undefined
 
-        // Only the rows and columns that hold a coefficient contribute, and the entropy decoder
-        // already reported where the last one was: a block whose energy sits in its first rows
-        // costs a fraction of the full transform.
-        let rows    = lastY + 1
-        let columns = lastX + 1
-        let step    = 32 >> log2Size
-
-        for x in columns
+        if useDst
         {
-            for i in size
+            let rows    = lastY + 1
+            let columns = lastX + 1
+            for x in columns
             {
-                var sum = 0's32
-                if useDst
+                for sample in size
                 {
-                    for j in rows do
-                        sum += cast(s32) TransMatrixDst4[j, i] * cast(s32) .coefficients[j * size + x]
+                    var sum = 0's32
+                    for basis in rows do
+                        sum += cast(s32) TransMatrixDst4[basis, sample] * cast(s32) .coefficients[basis * size + x]
+                    intermediate[sample * size + x] = Math.clamp((sum + 64) >> 7, CoeffMin, CoeffMax)
                 }
-                else
+            }
+
+            let rounding = 1's32 << (bdShift - 1)
+            for y in size
+            {
+                let base = y * size
+                for sample in size
                 {
-                    for j in rows do
-                        sum += cast(s32) TransMatrix32[j * step, i] * cast(s32) .coefficients[j * size + x]
+                    var sum = 0's32
+                    for basis in columns do
+                        sum += cast(s32) TransMatrixDst4[basis, sample] * intermediate[base + basis]
+                    .residual[base + sample] = (sum + rounding) >> bdShift
+                }
+            }
+
+            return
+        }
+
+        // Only significant coefficients contribute to the first pass, and only their columns
+        // contribute to the second. Quantized large blocks are sparse even when one high-frequency
+        // coefficient makes their rectangular extent cover most of the transform.
+        let step    = 32 >> log2Size
+        let matrix  = cast([*] s16) &.transformMatrix[0]
+
+        var activeColumns = .coefficientColumns
+        while activeColumns
+        {
+            let x = Math.trailingZeros(activeColumns)
+            activeColumns &= activeColumns - 1
+            var sample = 0'u32
+            while sample < size
+            {
+                var sums: Simd.S32x4 = Simd.splat(0's32)
+                var activeRows = .coefficientRows[x]
+                while activeRows
+                {
+                    let basis = Math.trailingZeros(activeRows)
+                    activeRows &= activeRows - 1
+                    let matrixRow = basis * step
+                    let packed    = sample == 28 ? Simd.widenHigh(Simd.load(matrix + matrixRow * 32 + 24)) : Simd.widenLow(Simd.load(matrix + matrixRow * 32 + sample))
+                    let weights   = cast #bit(Simd.S32x4) packed
+                    sums += weights * cast(s32) .coefficients[basis * size + x]
                 }
 
-                intermediate[i * size + x] = Math.clamp((sum + 64) >> 7, CoeffMin, CoeffMax)
+                let values = cast([4] s32) ((sums + 64) >> 7)
+                for lane in 4'u32 do
+                    intermediate[(sample + lane) * size + x] = Math.clamp(values[lane], CoeffMin, CoeffMax)
+                sample += 4
             }
         }
 
@@ -256,22 +356,145 @@ impl Decoder
         for y in size
         {
             let base = y * size
-            for i in size
+            var sample = 0'u32
+            while sample < size
             {
-                var sum = 0's32
-                if useDst
+                var sums: Simd.S32x4 = Simd.splat(0's32)
+                var activeBasis = .coefficientColumns
+                while activeBasis
                 {
-                    for j in columns do
-                        sum += cast(s32) TransMatrixDst4[j, i] * intermediate[base + j]
-                }
-                else
-                {
-                    for j in columns do
-                        sum += cast(s32) TransMatrix32[j * step, i] * intermediate[base + j]
+                    let basis = Math.trailingZeros(activeBasis)
+                    activeBasis &= activeBasis - 1
+                    let matrixRow = basis * step
+                    let packed    = sample == 28 ? Simd.widenHigh(Simd.load(matrix + matrixRow * 32 + 24)) : Simd.widenLow(Simd.load(matrix + matrixRow * 32 + sample))
+                    let weights   = cast #bit(Simd.S32x4) packed
+                    sums += weights * intermediate[base + basis]
                 }
 
-                .residual[base + i] = (sum + rounding) >> bdShift
+                let values = cast([4] s32) ((sums + rounding) >> cast(u32) bdShift)
+                for lane in 4'u32 do
+                    .residual[base + sample + lane] = values[lane]
+                sample += 4
             }
+        }
+    }
+
+    // Applies both passes of the HEVC four-point inverse DCT.
+    private mtd inverseDct4(lastX, lastY: u32, bdShift: s32)
+    {
+        var intermediate: [16] s32 = undefined
+        let rows = lastY + 1
+        for x in lastX + 1
+        {
+            let c0 = cast(s32) .coefficients[x]
+            let c1 = rows > 1 ? cast(s32) .coefficients[4 + x] : 0
+            let c2 = rows > 2 ? cast(s32) .coefficients[8 + x] : 0
+            let c3 = rows > 3 ? cast(s32) .coefficients[12 + x] : 0
+            let e0 = 64 * (c0 + c2)
+            let e1 = 64 * (c0 - c2)
+            let o0 = 83 * c1 + 36 * c3
+            let o1 = 36 * c1 - 83 * c3
+            intermediate[x]      = Math.clamp((e0 + o0 + 64) >> 7, CoeffMin, CoeffMax)
+            intermediate[4 + x]  = Math.clamp((e1 + o1 + 64) >> 7, CoeffMin, CoeffMax)
+            intermediate[8 + x]  = Math.clamp((e1 - o1 + 64) >> 7, CoeffMin, CoeffMax)
+            intermediate[12 + x] = Math.clamp((e0 - o0 + 64) >> 7, CoeffMin, CoeffMax)
+        }
+
+        let columns  = lastX + 1
+        let rounding = 1's32 << (bdShift - 1)
+        for y in 4'u32
+        {
+            let base = y * 4
+            let c0   = intermediate[base]
+            let c1   = columns > 1 ? intermediate[base + 1] : 0
+            let c2   = columns > 2 ? intermediate[base + 2] : 0
+            let c3   = columns > 3 ? intermediate[base + 3] : 0
+            let e0   = 64 * (c0 + c2)
+            let e1   = 64 * (c0 - c2)
+            let o0   = 83 * c1 + 36 * c3
+            let o1   = 36 * c1 - 83 * c3
+            .residual[base]     = (e0 + o0 + rounding) >> bdShift
+            .residual[base + 1] = (e1 + o1 + rounding) >> bdShift
+            .residual[base + 2] = (e1 - o1 + rounding) >> bdShift
+            .residual[base + 3] = (e0 - o0 + rounding) >> bdShift
+        }
+    }
+
+    // Applies both passes of the HEVC eight-point inverse DCT. Splitting even and odd basis
+    // rows removes the repeated products shared by the mirrored output samples.
+    private mtd inverseDct8(lastX, lastY: u32, bdShift: s32)
+    {
+        var intermediate: [64] s32 = undefined
+        let rows = lastY + 1
+        for x in lastX + 1
+        {
+            let c0 = cast(s32) .coefficients[x]
+            let c1 = rows > 1 ? cast(s32) .coefficients[8 + x] : 0
+            let c2 = rows > 2 ? cast(s32) .coefficients[16 + x] : 0
+            let c3 = rows > 3 ? cast(s32) .coefficients[24 + x] : 0
+            let c4 = rows > 4 ? cast(s32) .coefficients[32 + x] : 0
+            let c5 = rows > 5 ? cast(s32) .coefficients[40 + x] : 0
+            let c6 = rows > 6 ? cast(s32) .coefficients[48 + x] : 0
+            let c7 = rows > 7 ? cast(s32) .coefficients[56 + x] : 0
+
+            let o0  = 89 * c1 + 75 * c3 + 50 * c5 + 18 * c7
+            let o1  = 75 * c1 - 18 * c3 - 89 * c5 - 50 * c7
+            let o2  = 50 * c1 - 89 * c3 + 18 * c5 + 75 * c7
+            let o3  = 18 * c1 - 50 * c3 + 75 * c5 - 89 * c7
+            let eo0 = 83 * c2 + 36 * c6
+            let eo1 = 36 * c2 - 83 * c6
+            let ee0 = 64 * (c0 + c4)
+            let ee1 = 64 * (c0 - c4)
+            let e0  = ee0 + eo0
+            let e1  = ee1 + eo1
+            let e2  = ee1 - eo1
+            let e3  = ee0 - eo0
+
+            intermediate[x]      = Math.clamp((e0 + o0 + 64) >> 7, CoeffMin, CoeffMax)
+            intermediate[8 + x]  = Math.clamp((e1 + o1 + 64) >> 7, CoeffMin, CoeffMax)
+            intermediate[16 + x] = Math.clamp((e2 + o2 + 64) >> 7, CoeffMin, CoeffMax)
+            intermediate[24 + x] = Math.clamp((e3 + o3 + 64) >> 7, CoeffMin, CoeffMax)
+            intermediate[32 + x] = Math.clamp((e3 - o3 + 64) >> 7, CoeffMin, CoeffMax)
+            intermediate[40 + x] = Math.clamp((e2 - o2 + 64) >> 7, CoeffMin, CoeffMax)
+            intermediate[48 + x] = Math.clamp((e1 - o1 + 64) >> 7, CoeffMin, CoeffMax)
+            intermediate[56 + x] = Math.clamp((e0 - o0 + 64) >> 7, CoeffMin, CoeffMax)
+        }
+
+        let columns  = lastX + 1
+        let rounding = 1's32 << (bdShift - 1)
+        for y in 8'u32
+        {
+            let base = y * 8
+            let c0   = intermediate[base]
+            let c1   = columns > 1 ? intermediate[base + 1] : 0
+            let c2   = columns > 2 ? intermediate[base + 2] : 0
+            let c3   = columns > 3 ? intermediate[base + 3] : 0
+            let c4   = columns > 4 ? intermediate[base + 4] : 0
+            let c5   = columns > 5 ? intermediate[base + 5] : 0
+            let c6   = columns > 6 ? intermediate[base + 6] : 0
+            let c7   = columns > 7 ? intermediate[base + 7] : 0
+
+            let o0  = 89 * c1 + 75 * c3 + 50 * c5 + 18 * c7
+            let o1  = 75 * c1 - 18 * c3 - 89 * c5 - 50 * c7
+            let o2  = 50 * c1 - 89 * c3 + 18 * c5 + 75 * c7
+            let o3  = 18 * c1 - 50 * c3 + 75 * c5 - 89 * c7
+            let eo0 = 83 * c2 + 36 * c6
+            let eo1 = 36 * c2 - 83 * c6
+            let ee0 = 64 * (c0 + c4)
+            let ee1 = 64 * (c0 - c4)
+            let e0  = ee0 + eo0
+            let e1  = ee1 + eo1
+            let e2  = ee1 - eo1
+            let e3  = ee0 - eo0
+
+            .residual[base]     = (e0 + o0 + rounding) >> bdShift
+            .residual[base + 1] = (e1 + o1 + rounding) >> bdShift
+            .residual[base + 2] = (e2 + o2 + rounding) >> bdShift
+            .residual[base + 3] = (e3 + o3 + rounding) >> bdShift
+            .residual[base + 4] = (e3 - o3 + rounding) >> bdShift
+            .residual[base + 5] = (e2 - o2 + rounding) >> bdShift
+            .residual[base + 6] = (e1 - o1 + rounding) >> bdShift
+            .residual[base + 7] = (e0 - o0 + rounding) >> bdShift
         }
     }
 
@@ -285,7 +508,7 @@ impl Decoder
         let size     = block.size
 
         var destination: [*] u16 = undefined
-        var stride: u64
+        var stride:      u64
         if !block.component
         {
             destination = frame.lumaAtMutable(block.x, block.y)
@@ -302,20 +525,33 @@ impl Decoder
             for row in size
             {
                 let out = destination + cast(u64) row * stride
-                for column in size do
-                    out[column] = .predSamples[row * size + column]
+                Memory.copy(out, &.predSamples[row * size], cast(u64) size * #sizeof(u16))
             }
 
             return
         }
 
+        let zeros  = Simd.splat(0's32)
+        let maxima = Simd.splat(maximum)
         for row in size
         {
-            let out = destination + cast(u64) row * stride
-            for column in size
+            let out    = destination + cast(u64) row * stride
+            let base   = row * size
+            var column = 0'u32
+            while column + 8 <= size
             {
-                let value = cast(s32) .predSamples[row * size + column] + .residual[row * size + column]
+                let prediction = Simd.load(&.predSamples[base + column])
+                let low        = cast #bit(Simd.S32x4) Simd.widenLow(prediction) + Simd.load(&.residual[base + column])
+                let high       = cast #bit(Simd.S32x4) Simd.widenHigh(prediction) + Simd.load(&.residual[base + column + 4])
+                Simd.store(out + column, Simd.packUnsigned(Math.max(Math.min(low, maxima), zeros), Math.max(Math.min(high, maxima), zeros)))
+                column += 8
+            }
+
+            while column < size
+            {
+                let value = cast(s32) .predSamples[base + column] + .residual[base + column]
                 out[column] = cast(u16) Math.clamp(value, 0, maximum)
+                column      += 1
             }
         }
     }

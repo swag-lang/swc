@@ -80,6 +80,12 @@ struct ShaderFont
 struct ShaderYuv
 {
     public using base: ShaderBase     // Shared program and uniform handles.
+
+    internal
+    {
+        lumaRed: ShaderParamHandle
+        green:   ShaderParamHandle
+    }
 }
 
 // Extends the simple shader with separable-blur controls.

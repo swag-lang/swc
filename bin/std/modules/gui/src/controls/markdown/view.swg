@@ -129,6 +129,7 @@ struct View
     hasPendingTarget:    bool
     pendingTarget:       f32
     pendingTargetOffset: u64 = Swag.U64.Max
+    repositioning:       bool
     searchBlockIndex:    u64 = Swag.U64.Max
     documentThemeColors: String
     blocks:              Array'VisualBlock
@@ -716,17 +717,30 @@ impl View
         result.scroll.sigScrollPositionChanged += func|view = result|(scroll, oldPosition, newPosition)
         {
             discard scroll
-            if view.jumpToEnd do
+            if view.jumpToEnd or view.repositioning do
                 return
+
+            // A direct scrollbar gesture supersedes a target that is still being materialized.
+            // Keeping the old target here lets its next timer pull the reader back after a
+            // reversal, which makes resident windows appear to oscillate.
+            let supersededTarget = view.hasPendingTarget and view.pendingSearch.isEmpty()
+            if supersededTarget
+            {
+                view.hasPendingTarget    = false
+                view.pendingTargetOffset = Swag.U64.Max
+            }
+
             let viewport                 = view.scroll.paddedClientRect()
             let beforeResident           = newPosition.y + viewport.height < view.virtualOrigin
             let approachingResidentStart = view.residentStart and newPosition.y < oldPosition.y and newPosition.y < view.virtualOrigin + viewport.height * StreamLookAhead
-            if view.virtualHeight > 0 and !view.blocks.isEmpty() and view.pendingSearch.isEmpty() and !view.hasPendingTarget and (beforeResident or approachingResidentStart or newPosition.y > view.contentHeight)
+            if view.virtualHeight > 0 and (supersededTarget or !view.blocks.isEmpty()) and view.pendingSearch.isEmpty() and (beforeResident or approachingResidentStart or newPosition.y > view.contentHeight)
             {
                 let ratio = Math.clamp(newPosition.y / view.virtualHeight, 0, 1)
                 view.pendingSeekOffset = cast(u64) (ratio * cast(f32) view.fileSize)
                 view.pendingSeek       = true
             }
+            else do
+                view.pendingSeek = false
 
             view.scheduleMore()
         }
@@ -1054,6 +1068,8 @@ impl View
             .pendingTarget       = .fileSize ? .virtualHeight * cast(f32) requested / cast(f32) .fileSize : 0
             .hasPendingTarget    = !.jumpToEnd
             .pendingTargetOffset = .hasPendingTarget ? requested : Swag.U64.Max
+            .repositioning       = true
+            defer .repositioning = false
             .layoutDocument()
             if !.jumpToEnd do
                 .scroll.setScrollPos(0, .virtualOrigin)

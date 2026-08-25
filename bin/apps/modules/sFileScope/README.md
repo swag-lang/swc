@@ -9,11 +9,13 @@ active viewer gets a dedicated tool band below it, visible only when that viewer
 
 `src/viewerindex.swg` is the only registry. It binds each stable key, display name, glyph, and set
 of lowercase extensions or exact file names directly to a `ViewerCreate` function compiled into
-sFileScope. There is no runtime index, dynamic library, exported entry point, or versioned ABI.
+sFileScope. Image, video, and sound selectors are derived from their modules' decoder registries,
+so their application coverage cannot drift behind the formats the modules expose. There is no
+runtime index, dynamic library, exported entry point, or versioned ABI.
 
 Several viewers may claim the same extension. The selector lists format-specific viewers first,
-`Basic text` next when the file is readable UTF-8, then every viewer registered for `*`, each
-beside the glyph its viewer owns. Changing the selector reuses a view already opened for the
+`Basic text` next when the file is readable UTF-8, then the `Binary` and `Hexadecimal` fallbacks,
+each beside the glyph its viewer owns. Changing the selector reuses a view already opened for the
 current file or creates it on demand; it does not reopen the window.
 
 The first choice is the default, and choosing another one is remembered for that kind of file: the
@@ -31,9 +33,10 @@ guessing an encoding.
 
 - `Code` streams source with syntax coloring for Swag, C-family languages, JavaScript and
   TypeScript, Go, Rust, Python, shell languages, structured data, shaders, build files, and the
-  other extensions declared by the registry. Swag vocabulary follows the compiler's current
-  keywords, intrinsics, directives, and modifiers. HTML keeps its rendered viewer first and offers
-  Code as the source alternative.
+  other extensions and common exact file names declared by the registry. An otherwise unregistered
+  script with a shebang is recognized from its first line. Swag vocabulary follows the compiler's
+  current keywords, intrinsics, directives, and modifiers. HTML keeps its rendered viewer first
+  and offers Code as the source alternative.
 - `Markdown` adapts the reusable GUI `Markdown.View`. It supports headings, prose, GFM alerts,
   nested lists and tasks, fenced code, aligned tables, metadata, footnotes, references, a table of
   contents, inline formatting, and native mathematical layout. Reader themes and reading widths
@@ -45,17 +48,22 @@ guessing an encoding.
 - `HTML` adapts the reusable GUI `HtmlView`. It streams document blocks into a centered page,
   keeps links explicit, follows the active palette, and applies the supported CSS subset. Head,
   script, style, template, and embedded-document content never executes.
+- `Table` reads CSV, TSV, and tabular `.tab` files into a virtual multi-column list. It detects
+  comma, semicolon, tab, or pipe separators, understands quoted separators and embedded line
+  breaks, keeps the first row as a fixed header, and participates in shared search. Source files
+  are capped at 32 MiB; larger tables retain the bounded streamed basic-text alternative.
 - `Image` uses Pixel decoders for BMP, GIF, ICO, JPEG, PNG, TGA, TIFF, and WebP, plus Pixel's SVG
   parser. It provides zoom, pan, fit, actual size, rotation, transparency, and GIF playback.
 - `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, ISO-BMFF, and Matroska streams. Its
   transport provides play/pause, stop, ten-second seeks, a time-based timeline, elapsed/total time,
   mute, volume, and matching keyboard controls. It indexes packets without decoding the file up
   front and materializes only the selected picture and the few audio buffers queued at the device.
-  MP4, M4V, and MOV accept Motion JPEG or H.264 picture
-  tracks and AAC-LC mono/stereo sound; MKV accepts H.264 pictures and every AAC-LC mono/stereo
-  track, with a selector when several are present. The output-device sample cursor is the master
-  clock: slow picture decoding drops to a clean video sync frame without moving or stretching
-  sound.
+  AVI accepts Motion JPEG, MPEG-4 Part 2, or uncompressed picture tracks and integer PCM sound.
+  MP4, M4V, and MOV accept Motion JPEG, H.264, or H.265 picture tracks and AAC-LC mono/stereo
+  sound. MKV accepts H.264, H.265, or MPEG-4 Part 2 pictures and every AAC-LC, AC-3, independent
+  E-AC-3, FLAC, or MPEG Layer III track, with a selector when several are present. The
+  output-device sample cursor is the master clock: slow picture decoding drops to a clean video
+  sync frame without moving or stretching sound.
 - `Sound` uses the Audio module to stream WAV, FLAC, MP3, AAC, AC-3, and E-AC-3 files. Its transport provides the same
   basic time, seek, mute, volume, and keyboard controls as video. Playback does not retain the
   complete payload, and a low-priority worker builds the waveform from bounded blocks.
@@ -77,15 +85,16 @@ still producing visible content, and switching viewers retires hidden progressiv
 The application stores its palette, language, window state, recent files, and remembered viewer
 choices in the user's application-data folder. It toggles full screen with F11, navigates the
 current folder with Left/Right, reloads with F5, opens with Ctrl+O, and accepts one file dropped
-anywhere on the surface. Audio and video claim bare Left/Right for ten-second seeks while active,
-and use Space for play/pause and M for mute. An
+anywhere on the surface. The recent and current-folder lists show the glyph of each file's default
+viewer. Audio and video claim bare Left/Right for ten-second seeks while active, and use Space for
+play/pause and M for mute. An
 installer may run `sFileScope.exe --register-file-types`; normal launches never write the registry.
 
 A right click names what a file offers. On the information band above the document it answers for
 the open file, and on a panel row for the file that row names: show it in the system file explorer,
-or hand it to the system chooser of applications. A row of the history offers two more, because
-the history is the one list the reader owns: drop that file from it, or clear it entirely. Nothing
-here writes to the file, and the chooser runs in its own process.
+hand it to the system chooser of applications, or copy its full path or file name. A row of the
+history offers two more, because the history is the one list the reader owns: drop that file from
+it, or clear it entirely. Nothing here writes to the file, and the chooser runs in its own process.
 
 ## Adding a viewer
 

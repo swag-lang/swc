@@ -59,6 +59,7 @@ private func registerViewerFileTypes(index: const *ViewerIndex)
     registerMarkdownStrings(&g_App)
     registerPdfStrings(&g_App)
     registerSoundStrings(&g_App)
+    registerTableStrings(&g_App)
     registerVideoStrings(&g_App)
 
     let stateFolder = Path.combine(Env.getSpecialDirectory(.UserAppData), "sFileScope")

@@ -148,6 +148,45 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     @assert(view.panOffset.y == before + 60)
 }
 
+// Wheel scrolling is bounded by the page, and reversing at an edge responds on the first notch.
+// A fitted page cannot be pushed into empty space; a zoomed page can reach, but not cross, its
+// physical edges.
+#test
+{
+    let fileName = pdfViewFixture()
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 450)
+    defer host.shutdown()
+
+    let view = PdfView.create(&host.root)
+    expect view.open(fileName.toString())
+    view.resize(640, 420)
+    view.applyLayout()
+
+    for 32 do
+        host.mouseWheel({320, 210}, 120)
+    @assert(view.panOffset == Math.Point{})
+
+    view.setZoom(4)
+    let client      = view.paddedClientRect()
+    let page        = view.pageSize()
+    let verticalMax = Math.max(page.y * view.effectiveZoom() - client.height, 0) * 0.5
+    for 128 do
+        host.mouseWheel({320, 210}, 120)
+    @assert(view.panOffset.y <= verticalMax + 0.01)
+    @assert(view.panOffset.y >= verticalMax - 0.01)
+
+    let edge = view.panOffset.y
+    host.mouseWheel({320, 210}, -120)
+    @assert(view.panOffset.y == edge - PdfView.WheelScrollStep)
+
+    for 256 do
+        host.mouseWheel({320, 210}, -120)
+    @assert(view.panOffset.y >= -verticalMax - 0.01)
+}
+
 // The images of a page are uploaded to the renderer once per page and released with it.
 #test
 {

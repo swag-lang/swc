@@ -251,6 +251,14 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.recentList.scrollWnd.flags.has(.DisableHorizontal) and window.folderList.scrollWnd.flags.has(.DisableHorizontal))
     @assert(window.folderList.lineCount() == 3)
     @assert(window.recentList.lineCount() == 1)
+    for i in window.folderList.lineCount()
+    {
+        let icon = window.folderList.lineAt(i)!.itemAt(0).icon
+        @assert(icon.isValid() and icon.index == cast(s32) ViewerIcons.Text)
+    }
+
+    let recentIcon = window.recentList.lineAt(0)!.itemAt(0).icon
+    @assert(recentIcon.isValid() and recentIcon.index == cast(s32) ViewerIcons.Text)
 
     // Choosing a sibling opens it, and the recent list grows by exactly that file.
     window.folderList.selectLine(2)
@@ -440,6 +448,16 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     completeQueuedViewerFile(&host, window)
     @assert(window.currentFile == names[1])
 
+    host.clickPopupMenuItemWhenShown("sFileScope.file.copyPath")
+    window.showFileMenu(list, window.recent.toSlice(), {120, 120})
+    host.pump()
+    @assert(host.autoHandled and Clipboard.getString() == names[1])
+
+    host.clickPopupMenuItemWhenShown("sFileScope.file.copyName")
+    window.showFileMenu(list, window.recent.toSlice(), {120, 120})
+    host.pump()
+    @assert(host.autoHandled and Clipboard.getString() == "file1.txt")
+
     host.clickPopupMenuItemWhenShown("sFileScope.file.forget")
     window.showFileMenu(list, window.recent.toSlice(), {120, 120})
     host.pump()
@@ -479,7 +497,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.resize(960, 680)
 
     window.openFile(first.toString())
-    @assert(window.choices.count == 2 and window.choices[0].key == BasicTextViewerKey)
+    @assert(window.choices.count == 3 and window.choices[0].key == BasicTextViewerKey)
     @assert(window.activeChoiceIndex == 0 and window.preferences.isEmpty())
 
     // Every entry of the selector says which viewer it is before its name is read.
@@ -487,7 +505,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     for item in window.viewerCombo.items do
         @assert(item!.icon.isValid())
 
-    window.selectViewer(1)
+    window.selectViewer(2)
     @assert(window.choices[window.activeChoiceIndex].key == "hex")
     @assert(window.preferences.count == 1 and window.preferences[0].kind == BasicTextViewerKey and window.preferences[0].viewer == "hex")
 
@@ -608,6 +626,57 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(view.residentStart == 0)
     @assert(view.editor.selectionEnd().lineIndex == 0)
     @assert(view.editor.scrollPosition().y == 0)
+}
+
+// Rapid scrollbar scrubbing coalesces to the latest byte window and remains stable when the
+// direction changes repeatedly. Each completed seek keeps the requested viewport instead of
+// snapping back to the resident window it replaced.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("sfilescope_text_scrub_%.txt", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+
+    var source: String
+    for index in 70_000 do
+        source += Format.toString("Distinct streamed line % keeps scrollbar seeks observable.\n", index)
+    @assert(source.length >= 2 * 1024 * 1024)
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+
+    var host: Testing.HeadlessHost
+    host.setup(800, 560)
+    defer host.shutdown()
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
+    let view     = BasicTextView.create(&host.root, commands, fileName)
+    view.resize(800, 520)
+    view.applyLayout()
+    discard host.render(view)
+    view.updateEstimatedHeight()
+
+    view.editor.setScrollPosition({0, view.virtualHeight * 0.85})
+    @assert(view.pendingSeek)
+    view.editor.setScrollPosition({0, 0})
+    @assert(!view.pendingSeek)
+
+    view.editor.setScrollPosition({0, view.virtualHeight * 0.85})
+    view.editor.setScrollPosition({0, view.virtualHeight * 0.2})
+    @assert(view.pendingSeek and view.loadTimer != null)
+    host.fireTimer(view.loadTimer)
+    let lowOffset = cast(u64) (0.2 * cast(f32) view.fileSize)
+    @assert(view.residentStart <= lowOffset and view.bytesRead >= lowOffset)
+
+    let ratios = [0.8'f32, 0.1'f32, 0.65'f32, 0.3'f32, 0.9'f32, 0.05'f32]
+    for ratio in ratios
+    {
+        let requestedY = view.virtualHeight * ratio
+        view.editor.setScrollPosition({0, requestedY})
+        @assert(view.pendingSeek and view.loadTimer != null)
+        host.fireTimer(view.loadTimer)
+        let offset = cast(u64) (ratio * cast(f32) view.fileSize)
+        @assert(view.residentStart <= offset and view.bytesRead >= offset)
+        @assert(Math.abs(view.editor.scrollPosition().y - requestedY) <= 1)
+        @assert(!view.editor.text().isEmpty())
+    }
 }
 
 // The global palette choice crosses the same state boundary as the surface placement.

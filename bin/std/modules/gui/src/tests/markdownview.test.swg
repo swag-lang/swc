@@ -879,6 +879,63 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     @assert(visibleBlock)
 }
 
+// A scrollbar reversal supersedes a seek that is still materializing. The earlier target must
+// never win one timer later and pull the document back in the direction the reader just left.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("gui_markdown_seek_reversal_%.md", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+
+    var source: String
+    for index in 16_000 do
+        source += Format.toString("## Direction %\n\nA distinct paragraph makes every resident window observable.\n\n", index)
+    @assert(source.length > 1024 * 1024)
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 360)
+    defer host.shutdown()
+    let view = Markdown.View.createFile(&host.root, fileName)
+    view.resize(720, 360)
+    view.applyLayout()
+    host.fireTimer(view.loadTimer)
+
+    // A seek abandoned before its timer fires cannot displace the resident first window later.
+    view.scroll.setScrollPos(0, view.virtualHeight * 0.8)
+    @assert(view.pendingSeek)
+    view.scroll.setScrollPos(0, 0)
+    @assert(!view.pendingSeek)
+
+    let high = view.virtualHeight * 0.8
+    view.scroll.setScrollPos(0, high)
+    @assert(view.pendingSeek and view.loadTimer != null)
+    host.fireTimer(view.loadTimer)
+    @assert(view.hasPendingTarget)
+    let staleOffset = view.pendingTargetOffset
+
+    // Reverse before the high target has finished producing blocks. This is a real scrollbar
+    // gesture, not a direct reveal call, and must replace the outstanding target immediately.
+    let low = view.virtualHeight * 0.2
+    view.scroll.setScrollPos(0, low)
+    @assert(view.pendingSeek)
+    @assert(view.pendingSeekOffset < staleOffset / 2)
+    host.fireTimer(view.loadTimer)
+    @assert(view.hasPendingTarget)
+    @assert(view.pendingTargetOffset < staleOffset / 2)
+
+    var steps = 0'u32
+    while view.hasPendingTarget and steps < 1_024
+    {
+        host.fireTimers()
+        steps += 1
+    }
+
+    @assert(!view.hasPendingTarget)
+    @assert(view.residentStart < staleOffset / 2)
+    @assert(Math.abs(view.scroll.scrollPosition().y - view.virtualHeight * 0.2) <= view.scroll.paddedClientRect().height)
+}
+
 // A file-open failure stays inspectable even when no observer was connected during construction.
 #test
 {

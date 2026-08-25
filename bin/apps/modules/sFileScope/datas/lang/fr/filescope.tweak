@@ -18,6 +18,8 @@ ui_Folder       Dossier
 ui_NotText      Ce fichier ne contient pas de texte lisible. Choisissez Hexadécimal pour en inspecter les octets.
 ui_MenuLocate       Afficher ce fichier dans son dossier
 ui_MenuOpenWith     Ouvrir avec une autre application…
+ui_MenuCopyPath     Copier le chemin complet
+ui_MenuCopyName     Copier le nom du fichier
 ui_MenuForget       Retirer ce fichier de l'historique
 ui_Search       Rechercher dans le document
 ui_NoMatch      Aucun résultat

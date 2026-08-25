@@ -902,6 +902,75 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     @assert(downward[0] != downward[1] and downward[1] != downward[2])
 }
 
+// A virtual HTML document follows the latest scrollbar position through repeated long seeks and
+// reversals. Revisiting a stop must materialize the same source window and the same pixels.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("gui_html_virtual_scrub_%.html", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+
+    var source: String = "<html><body><style>p { margin: 4px } h2 { color: #2255aa }</style>"
+    for index in 32_000 do
+        source += Format.toString("<h2>Scrub section %</h2><p>Unique paragraph % keeps a virtual seek visible and deterministic.</p>\n", index, index)
+    source += "</body></html>"
+    @assert(source.length > 2 * 1024 * 1024)
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 480)
+    defer host.shutdown()
+    let view = HtmlView.createFile(&host.root, fileName)
+    view.resize(720, 480)
+    view.applyLayout()
+    @assert(view.virtualSource and view.virtualHeight > 0)
+
+    // Returning to the resident window before the timer fires cancels the obsolete long seek.
+    let residentY = view.scroll.scrollPosition().y
+    view.scroll.setScrollPos(0, view.virtualHeight * 0.85)
+    @assert(view.virtualPendingSeek)
+    view.scroll.setScrollPos(0, residentY)
+    @assert(!view.virtualPendingSeek)
+
+    // Two gestures before the timer fires coalesce to the newest request.
+    view.scroll.setScrollPos(0, view.virtualHeight * 0.85)
+    view.scroll.setScrollPos(0, view.virtualHeight * 0.15)
+    @assert(view.virtualPendingSeek and view.loadTimer != null)
+    host.fireTimer(view.loadTimer)
+    let lowOffset = view.virtualContentStart + cast(u64) (0.15 * cast(f32) (view.fileSize - view.virtualContentStart))
+    @assert(view.virtualWindowStart <= lowOffset and view.virtualWindowEnd >= lowOffset)
+    @assert(!view.virtualPendingSeek)
+
+    let ratios             = [0.15'f32, 0.75'f32, 0.35'f32, 0.9'f32]
+    var firstPass: [4] u32 = undefined
+    for ratio, index in ratios
+    {
+        view.scroll.setScrollPos(0, view.virtualHeight * ratio)
+        if view.virtualPendingSeek
+        {
+            @assert(view.loadTimer != null)
+            host.fireTimer(view.loadTimer)
+        }
+        @assert(!view.virtualPendingSeek)
+        @assert(view.layout.boxes.count > 1)
+        var image = host.render(view)
+        firstPass[index] = Hash.hashBytes32(image.pixels.toSlice())
+    }
+
+    for index in @countof(ratios)
+    {
+        let reverse = @countof(ratios) - index - 1
+        view.scroll.setScrollPos(0, view.virtualHeight * ratios[reverse])
+        if view.virtualPendingSeek
+        {
+            @assert(view.loadTimer != null)
+            host.fireTimer(view.loadTimer)
+        }
+        var image = host.render(view)
+        @assert(Hash.hashBytes32(image.pixels.toSlice()) == firstPass[reverse])
+    }
+}
+
 // The focused document answers the whole keyboard scrolling contract.
 #test
 {

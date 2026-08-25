@@ -120,8 +120,27 @@ private impl PdfView
             .panOffset.y += point.y - (next.y + next.height * ratioY)
         }
 
+        .clampPan()
         .sigZoomChanged.call(me)
         .invalidate()
+    }
+
+    // Keeps every scroll and drag against a real page edge. A page smaller than the viewport is
+    // centred on that axis; a larger page may move only until its opposite edge reaches the view.
+    mtd clampPan()
+    {
+        if !.hasPage
+        {
+            .panOffset = {}
+            return
+        }
+
+        let client = .paddedClientRect()
+        let scale  = .effectiveZoom()
+        let limitX = Math.max(.page.width * scale - client.width, 0) * 0.5
+        let limitY = Math.max(.page.height * scale - client.height, 0) * 0.5
+        .panOffset.x = Math.clamp(.panOffset.x, -limitX, limitX)
+        .panOffset.y = Math.clamp(.panOffset.y, -limitY, limitY)
     }
 
     mtd showPageOrReport(index: u64)
@@ -204,6 +223,7 @@ private impl PdfView
         {
             .panOffset.x += dx
             .panOffset.y += dy
+            .clampPan()
             .invalidate()
         }
     }
@@ -261,6 +281,7 @@ impl IWnd for PdfView
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
+        .clampPan()
         if .isFitted do
             .sigZoomChanged.call(me)
     }
@@ -337,6 +358,7 @@ impl IWnd for PdfView
                     .panOffset.x += step
                 else do
                     .panOffset.y += step
+                .clampPan()
                 .invalidate()
             }
 
@@ -409,6 +431,7 @@ impl IWnd for PdfView
             }
 
             .panOffset   += evt.surfacePos - .lastPointer
+            .clampPan()
             .lastPointer = evt.surfacePos
             .invalidate()
 

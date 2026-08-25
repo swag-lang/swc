@@ -62,6 +62,41 @@ internal enum CodeLanguage
     Nix
 }
 
+internal struct CodeShebang
+{
+    found:    bool
+    language: CodeLanguage
+}
+
+// Reads the interpreter named by an extensionless script without retaining the file.
+internal func codeShebang(fileName: string)->CodeShebang
+{
+    var stream = catch File.openRead(fileName) as openError
+    if openError != null do
+        return {}
+    defer stream.close()
+
+    let head = catch stream.readUtf8Chunk(512) as readError
+    if readError != null or !head.startsWith("#!") do
+        return {}
+    let lines = Tokenize.split(head.toString(), '\n'u8, maxSplit: 1)
+    let line  = String.from(lines[0])
+    let lower = line.toLower()
+    if Utf8.contains(lower.toString(), "python") do
+        return {true, .Python}
+    if Utf8.contains(lower.toString(), "ruby") do
+        return {true, .Ruby}
+    if Utf8.contains(lower.toString(), "perl") do
+        return {true, .Perl}
+    if Utf8.contains(lower.toString(), "pwsh") or Utf8.contains(lower.toString(), "powershell") do
+        return {true, .PowerShell}
+    if Utf8.contains(lower.toString(), "deno") do
+        return {true, .TypeScript}
+    if Utf8.contains(lower.toString(), "node") or Utf8.contains(lower.toString(), "bun") do
+        return {true, .JavaScript}
+    return {true, .Shell}
+}
+
 private func codeLooksLikeObjectiveC(fileName: string)->bool
 {
     var stream = catch File.openRead(fileName) as openError
@@ -85,7 +120,12 @@ internal func codeLanguage(fileName: string)->CodeLanguage
     switch baseName.toString()
     {
     case "makefile", "gnumakefile", "bsdmakefile": return .Makefile
+    case "justfile":                               return .Makefile
     case "dockerfile", "containerfile":            return .Dockerfile
+    case "cmakelists.txt":                         return .CMake
+    case "rakefile", "gemfile", "vagrantfile", "podfile", "brewfile": return .Ruby
+    case "jenkinsfile":                            return .Groovy
+    case "meson.build", ".gitignore", ".gitattributes", ".gitmodules", ".editorconfig", ".clang-format", ".clang-tidy", ".prettierrc", ".eslintrc", ".npmrc", ".yarnrc", ".env": return .Config
     }
 
     let extension = Path.lowercaseExtension(fileName)
@@ -149,7 +189,8 @@ internal func codeLanguage(fileName: string)->CodeLanguage
     case ".nix":                                                                       return .Nix
     }
 
-    return .C
+    let shebang = codeShebang(fileName)
+    return shebang.found ? shebang.language : .C
 }
 
 internal func codeLanguageName(language: CodeLanguage)->string

@@ -804,13 +804,14 @@ impl ViewerWindow
         with result.recentPane = Wnd.create'Wnd(result.filePanel)
         {
             .backgroundStyle = .Window
-            .padding         = {10, 8, 10, 8}
+            .padding         = {0, 8, 0, 8}
         }
 
         with let recentHeader = Wnd.create'Wnd(result.recentPane, {0, 0, 0, ViewerPanelLabel})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
+            .margin          = {10, 0, 10, 0}
         }
 
         with result.recentClearButton = IconButton.create(recentHeader, result.theme().icon(.RemoveAll, 16), {0, 0, 24, 24})
@@ -834,8 +835,11 @@ impl ViewerWindow
         with result.recentList = ListCtrl.createSimple(result.recentPane)
         {
             .dockStyle = .Center
+            .setIconSize(ViewerRowGlyphSize)
             .setSelectionMode(.Single)
             .updateFlags(.HotTrack | .Ellipsis)
+            .scrollWnd.padding.x = 0
+            .scrollWnd.padding.z = 0
             .scrollWnd.updateFlags(.DisableHorizontal)
             .sigSelectionChanged += func|window = result|(list)
             {
@@ -850,7 +854,7 @@ impl ViewerWindow
         with result.folderPane = Wnd.create'Wnd(result.filePanel)
         {
             .backgroundStyle = .Window
-            .padding         = {10, 8, 10, 8}
+            .padding         = {0, 8, 0, 8}
         }
 
         // The header carries the filter beside the folder name: the toggle changes what this
@@ -859,6 +863,7 @@ impl ViewerWindow
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
+            .margin          = {10, 0, 10, 0}
         }
 
         with result.kindButton = IconButton.create(folderHeader, result.theme().icon(.Filter, 16), {0, 0, 24, 24}, flags: .Toggle)
@@ -882,8 +887,11 @@ impl ViewerWindow
         with result.folderList = ListCtrl.createSimple(result.folderPane)
         {
             .dockStyle = .Center
+            .setIconSize(ViewerRowGlyphSize)
             .setSelectionMode(.Single)
             .updateFlags(.HotTrack | .Ellipsis)
+            .scrollWnd.padding.x = 0
+            .scrollWnd.padding.z = 0
             .scrollWnd.updateFlags(.DisableHorizontal)
             .sigSelectionChanged += func|window = result|(list)
             {
@@ -1820,8 +1828,10 @@ impl ViewerWindow
         list.clear()
         for one, index in files
         {
-            let name = one[].toString()
-            discard list.createLine(Path.fileName(name) orelse name)
+            let name    = one[].toString()
+            let choices = .index.choices(name)
+            let icon    = choices.isEmpty() ? Icon{} : .icon(choices[0].icon)
+            discard list.createLine(Path.fileName(name) orelse name, icon)
             if .currentFile == name do
                 list.selectLine(cast(u32) index)
         }
@@ -1896,6 +1906,9 @@ impl ViewerWindow
         let menu  = MenuCtrl.createPopup(me, owner: me)
         menu.addItem(texts.ui_MenuLocate, "sFileScope.file.locate", .theme().icon(.OpenFile, ViewerRowGlyphSize))
         menu.addItem(texts.ui_MenuOpenWith, "sFileScope.file.openWith", .theme().icon(.Export, ViewerRowGlyphSize))
+        menu.addSeparator()
+        menu.addItem(texts.ui_MenuCopyPath, "sFileScope.file.copyPath", .theme().icon(.Copy, ViewerRowGlyphSize))
+        menu.addItem(texts.ui_MenuCopyName, "sFileScope.file.copyName", .theme().icon(.Copy, ViewerRowGlyphSize))
         if history
         {
             menu.addSeparator()
@@ -1910,6 +1923,8 @@ impl ViewerWindow
         {
         case "sFileScope.file.locate":   Env.showInFileExplorer(fileName)
         case "sFileScope.file.openWith": Env.openFileWith(fileName)
+        case "sFileScope.file.copyPath": Clipboard.addString(fileName)
+        case "sFileScope.file.copyName": Clipboard.addString(Path.fileName(fileName) orelse fileName)
         case "sFileScope.file.forget":   .forgetRecent(fileName)
         }
     }

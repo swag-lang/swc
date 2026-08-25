@@ -51,6 +51,15 @@ using Swag, Core
     @assert(@countof(file.preloadedData()) == 0)
     @assert(file.frameCount == 2)
 
+    var decoded: Array's16
+    expect file.decodePcm16(func|decoded = &decoded|(samples: const [..] s16)->bool
+    {
+        decoded.add(samples)
+        return true
+    })
+    @assert(decoded.count == 4)
+    @assert(decoded[0] == Swag.S16.Min and decoded[1] == -1 and decoded[2] == 0 and decoded[3] == Swag.S16.Max)
+
     let first = expect file.readPayload(0, 3)
     @assert(audioAssertBytes(first.toSlice(), [0x00, 0x80, 0xFF]))
     let tail = expect file.readPayload(6, 10)

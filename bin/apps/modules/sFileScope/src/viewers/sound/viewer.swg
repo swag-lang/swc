@@ -9,10 +9,6 @@ private const SoundSeekSeconds = 10.0
 // has to stay ahead of the widest plot a window can give it; past that the columns repeat.
 private const WaveformPointCount = 4096'u64
 
-// The analyzer yields after each bounded read. Playback uses its own stream, so neither cursor can
-// stall or reposition the other while a very large file is still becoming visible.
-private const WaveformReadSize = 256 * 1024'u64
-
 // Air around the plot, and the band the time scale is read in.
 private const WaveformInsetX = 24.0
 private const WaveformInsetY = 32.0
@@ -145,6 +141,59 @@ internal struct SoundWaveformView
     readyCount: u64
     duration:   f32
     progress:   f32
+}
+
+// Reduces successive interleaved PCM16 chunks without retaining their borrowed storage.
+internal struct WaveformReducer
+{
+    points:       *Array'WaveformPoint
+    frameCount:   u64
+    pointCount:   u64
+    channels:     u32
+    frameOffset:  u64
+    currentPoint: u64
+    peak:         f32
+    sum:          f64
+    sampleCount:  u64
+    readyCount:   u64
+}
+
+internal impl WaveformReducer
+{
+    mtd consume(samples: const [..] s16)
+    {
+        let frames = @countof(samples) / .channels
+        for frame in frames
+        {
+            let target = Math.min(.frameOffset * .pointCount / .frameCount, .pointCount - 1)
+            if target != .currentPoint
+            {
+                .points[][.currentPoint] = {.peak, .sampleCount ? cast(f32) (.sum / cast(f64) .sampleCount) : 0}
+                .readyCount = .currentPoint + 1
+                .currentPoint = target
+                .peak         = 0
+                .sum          = 0
+                .sampleCount  = 0
+            }
+
+            var mixed = 0'f32
+            for channel in .channels do
+                mixed += cast(f32) samples[frame * .channels + channel] / 32768
+            let level = Math.abs(mixed / .channels)
+            .peak         = Math.max(.peak, level)
+            .sum          += level
+            .sampleCount  += 1
+            .frameOffset  += 1
+        }
+    }
+
+    mtd finish()
+    {
+        if !.sampleCount or .currentPoint >= .pointCount do
+            return
+        .points[][.currentPoint] = {.peak, cast(f32) (.sum / cast(f64) .sampleCount)}
+        .readyCount = .currentPoint + 1
+    }
 }
 
 // Returns the interval a time scale is graduated at, so the marks land on numbers a reader
@@ -338,73 +387,26 @@ internal impl SoundViewer
         .waveformBuilt = count
     }
 
-    // Walks the payload sequentially and reduces it to a fixed visual budget. This is independent
-    // from Voice streaming and deliberately owns every block it reads.
+    // Decodes the sound independently from Voice streaming and reduces successive PCM16 chunks to
+    // a fixed visual budget. The callback never retains the decoder's borrowed storage.
     mtd buildWaveformInBackground(thread: Thread)
     {
-        let encoding       = .sound.sampleEncoding()
-        let channels       = .sound.numChannels()
-        let bytesPerSample = encoding == .Pcm8 ? 1'u64 : (encoding == .Pcm16 ? 2 : (encoding == .Pcm24 ? 3 : 4))
-        let bytesPerFrame  = bytesPerSample * channels
-        let frameCount     = .sound.sampleFrameCount()
-        let pointCount     = .waveform.samples.count
-        if !bytesPerFrame or !frameCount or !pointCount do
+        let frameCount = .sound.sampleFrameCount()
+        let pointCount = .waveform.samples.count
+        let channels   = .sound.numChannels()
+        if !frameCount or !pointCount or !channels do
             return
 
-        var byteOffset:   u64
-        var frameOffset:  u64
-        var currentPoint: u64
-        var peak:         f32
-        var sum:          f64
-        var sampleCount:  u64
-
-        while byteOffset < .sound.payloadSize() and !thread.requestEnd
+        var reducer = WaveformReducer{&.waveform.samples, frameCount, pointCount, channels}
+        catch .sound.decodePcm16(func|reducer = &reducer, view = me, worker = &thread|(samples: const [..] s16)->bool
         {
-            var wanted = Math.min(WaveformReadSize, .sound.payloadSize() - byteOffset)
-            wanted -= wanted % bytesPerFrame
-            if !wanted do
-                break
-
-            let bytes = catch .sound.readPayload(byteOffset, wanted) as readError
-            if readError != null or bytes.count < bytesPerFrame do
-                break
-            let frames = bytes.count / bytesPerFrame
-            for frame in frames
-            {
-                let target = Math.min(frameOffset * pointCount / frameCount, pointCount - 1)
-                if target != currentPoint
-                {
-                    .waveform.samples[currentPoint] = {peak, sampleCount ? cast(f32) (sum / cast(f64) sampleCount) : 0}
-                    if (currentPoint + 1) % 32 == 0 do
-                        .publishWaveform(currentPoint + 1)
-                    currentPoint = target
-                    peak         = 0
-                    sum          = 0
-                    sampleCount  = 0
-                }
-
-                var mixed = 0'f32
-                for channel in channels
-                {
-                    let offset = frame * bytesPerFrame + channel * bytesPerSample
-                    mixed += soundSample(bytes.toSlice(), offset, encoding)
-                }
-
-                let level = Math.abs(mixed / channels)
-                peak        = Math.max(peak, level)
-                sum         += level
-                sampleCount += 1
-                frameOffset += 1
-            }
-
-            byteOffset += frames * bytesPerFrame
-        }
-
-        if sampleCount and currentPoint < pointCount
-        {
-            .waveform.samples[currentPoint] = {peak, cast(f32) (sum / cast(f64) sampleCount)}
-            .publishWaveform(currentPoint + 1)
-        }
+            reducer.consume(samples)
+            if reducer.readyCount do
+                view.publishWaveform(reducer.readyCount)
+            return !worker[].requestEnd
+        })
+        reducer.finish()
+        .publishWaveform(reducer.readyCount)
     }
 
     mtd startWaveform()
@@ -736,7 +738,7 @@ internal impl SoundViewer
 
 private func loadSoundViewer(contentParent, commandParent: *Wnd, fileName: string)->#null *SoundViewer fail => try SoundViewer.create(contentParent, commandParent, fileName)
 
-// Creates the integrated WAV playback and waveform view.
+// Creates the integrated sound playback and waveform view.
 func createSoundViewer(request: const *ViewerRequest, result: *ViewerResult)
 {
     registerSoundStrings(request.contentParent.app())
@@ -747,12 +749,7 @@ func createSoundViewer(request: const *ViewerRequest, result: *ViewerResult)
         return
     }
 
-    result.view      = view
-    result.commands  = view!.commands
-    result.details   = view!.details
-    result.isLoading = func(wnd)->bool
-    {
-        let soundView = cast(*SoundViewer) wnd
-        return soundView.waveform.readyCount < soundView.waveform.samples.count
-    }
+    result.view     = view
+    result.commands = view!.commands
+    result.details  = view!.details
 }

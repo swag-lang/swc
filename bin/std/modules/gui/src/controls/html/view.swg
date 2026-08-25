@@ -193,6 +193,7 @@ struct HtmlView
         virtualHeight:        f32
         virtualPendingSeek:   bool
         virtualPendingOffset: u64
+        virtualPendingY:      f32
 
         pendingSearch:      String
         pendingFragment:    String
@@ -473,7 +474,7 @@ internal impl HtmlView
     // Materializes one deterministic byte window of a generated source page. Replacing the
     // window releases the previous document's text, nodes, styles and boxes before parsing the
     // next one, so memory depends on this constant window rather than on file size.
-    private mtd loadVirtualWindow(requestedOffset: u64)->bool
+    private mtd loadVirtualWindow(requestedOffset: u64, requestedY = -1.0'f32)->bool
     {
         let requested = Math.clamp(requestedOffset, .virtualContentStart, .fileSize)
         let wanted    = requested > .virtualContentStart + HtmlVirtualLookBehind ? requested - HtmlVirtualLookBehind : .virtualContentStart
@@ -550,7 +551,7 @@ internal impl HtmlView
         let localRatio  = cast(f32) (requested - .virtualWindowStart) / cast(f32) windowBytes
         let globalRatio = cast(f32) (requested - .virtualContentStart) / cast(f32) contentBytes
         let localY      = Math.clamp(localRatio, 0, 1) * .layout.documentHeight
-        let targetY     = Math.clamp(globalRatio, 0, 1) * .virtualHeight
+        let targetY     = requestedY >= 0 ? Math.clamp(requestedY, 0, .virtualHeight) : Math.clamp(globalRatio, 0, 1) * .virtualHeight
         .virtualOrigin  = targetY - localY
         .placeDocument()
         .scroll.setScrollPos(.scroll.scrollPosition().x, targetY)
@@ -1207,9 +1208,12 @@ internal impl HtmlView
                 if before or after
                 {
                     target.virtualPendingOffset = offset
+                    target.virtualPendingY      = newPosition.y
                     target.virtualPendingSeek   = true
                     target.scheduleMore()
                 }
+                else do
+                    target.virtualPendingSeek = false
             }
             target.canvas.invalidate()
         }
@@ -1383,8 +1387,9 @@ internal impl IWnd for HtmlView
         if .virtualPendingSeek
         {
             let offset = .virtualPendingOffset
+            let y      = .virtualPendingY
             .virtualPendingSeek = false
-            discard .loadVirtualWindow(offset)
+            discard .loadVirtualWindow(offset, y)
             return
         }
         .streamStep()

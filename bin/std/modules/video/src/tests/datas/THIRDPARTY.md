@@ -80,6 +80,15 @@ untouched, so the pictures it did write still decode; the cue table it never wro
 - SHA-256: `88964b22b9d771197b8ca4493f32230d13cf0f72c5bebb39da1368c70d6252c4`
 - License: same as `ffmpeg-h264-two-aac.mkv`.
 
+`edited-open-group-start.mkv` is the first twenty-six access units of `ffmpeg-hevc-main.mp4`
+dropped and the rest copied into Matroska, so it begins at a clean random access point whose four
+leading pictures predict from what came before it. `edited-open-group-start.yuv` is FFmpeg's decode
+of it, thirty pictures rather than thirty-four: the four the standard says not to show are absent.
+
+- SHA-256: `c3b58963cc5f276b63c7d2b28388e7788e914e799d765397b95e28f6e138b485` and
+  `6865d4101605c287efb2a14eae6eca0379c6488ab607d25cfd91cab9db17e49e`.
+- License: same as `ffmpeg-hevc-main.mp4`.
+
 `edited-mid-group-start.mkv` is the first five access units of `ffmpeg-h264-pyramid.mp4` dropped and
 the rest copied into Matroska, which cuts away the picture its next slices refer back to. A file
 clipped that way begins in the middle of a group: nothing before its first marked sample can be

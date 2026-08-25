@@ -137,3 +137,39 @@ using Core, Core.Errors, Pixel
         }
     }
 }
+
+// A stream can begin at a clean random access point whose leading pictures predict from what came
+// before it. Those pictures are decoded from references that were never there, and clause 8.1.3
+// says not to show them: they precede the point in output order, so keeping them would put wrong
+// pictures before the first real one. The rank each would have had is answered by the first
+// picture that is shown, and everything after it is what any other decoder produces.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("edited-open-group-start.mkv"))
+    @assert(reader.width() == 96 and reader.height() == 64)
+
+    let reference = expect File.readAllBytes(videoFixturePath("edited-open-group-start.yuv").toString())
+    let bytes     = reference.toSlice()
+    let frameSize = 96 * 64 * 3 / 2
+    const Skipped = 4'u64
+
+    var frame: PlanarFrame
+    for rank in 12'u64
+    {
+        expect reader.decodeFramePlanesInto(&frame, Skipped + rank)
+        for y in 64'u64
+        {
+            for x in 96'u64 do
+                @assert(frame.luma[y * cast(u64) frame.strideLuma + x] == bytes[rank * frameSize + y * 96 + x])
+        }
+    }
+
+    // Every rank the skipped pictures would have taken answers with the first one that is shown.
+    var early: PlanarFrame
+    expect reader.decodeFramePlanesInto(&early, 0)
+    for y in 64'u64
+    {
+        for x in 96'u64 do
+            @assert(early.luma[y * cast(u64) early.strideLuma + x] == bytes[y * 96 + x])
+    }
+}

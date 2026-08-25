@@ -94,6 +94,7 @@ struct Decoder
     pocValue:      s32
     firstPicture:  bool = true
     noRaslOutput:  bool
+    raslSuppressed: bool                  // The random access point in force drops its skipped leading pictures.
 
     // Picture geometry, recomputed when a sequence or picture parameter set is activated.
     gridWidth:    u32
@@ -154,7 +155,8 @@ impl Decoder
         .current      = null
         .activeSps    = null
         .activePps    = null
-        .firstPicture = true
+        .firstPicture   = true
+        .raslSuppressed = true
         .pocMsb       = 0
         .prevPocLsb   = 0
         .prevPocMsb   = 0

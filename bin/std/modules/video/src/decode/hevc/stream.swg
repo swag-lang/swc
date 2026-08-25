@@ -42,6 +42,7 @@ struct HevcStream
     nextDecode:  u64                    // Next sample to decode.
     nextRank:    u64                    // Display rank the next decode call returns.
     skipBefore:  u64
+    dropped:     Array'u64                // Display ranks of pictures the standard says not to show.
     decodeLimit: u64 = Swag.U64.Max
     reachedEnd:  bool
     width:       s32
@@ -73,6 +74,7 @@ impl HevcStream
         .nextRank    = 0
         .skipBefore  = 0
         .decodeLimit = Swag.U64.Max
+        .dropped.clear()
         .reachedEnd  = false
         .installFrames(#move frames)
     }
@@ -305,6 +307,10 @@ impl HevcStream
     {
         for
         {
+            // A rank whose picture turned out not to be shown moves on to the next one.
+            while .takeDropped(.nextRank) do
+                .nextRank += 1
+
             for index in .pending.count where .pending[index].rank == .nextRank
             {
                 let frame = .pending[index].frame!
@@ -336,6 +342,15 @@ impl HevcStream
                 continue
 
             let rank = cast(u64) .rankOfSample[sample]
+            if !picture!.outputNeeded
+            {
+                // A picture the standard says not to show still takes a place in the numbering the
+                // container states, and that place is answered by the next picture that is shown.
+                .dropped.add(rank)
+                .release(picture!)
+                continue
+            }
+
             if rank < .skipBefore
             {
                 // A picture decoded only to reach the requested one is never shown.
@@ -348,6 +363,18 @@ impl HevcStream
             if .pending.count > MaxReorderDepth do
                 fail InvalidFormatError{"H.265 stream reorders more pictures than the buffer holds"}
         }
+    }
+
+    // Takes a display rank off the list of pictures never shown, saying whether it was on it.
+    private mtd takeDropped(rank: u64)->bool
+    {
+        for index in .dropped.count where .dropped[index] == rank
+        {
+            .dropped.removeAt(index)
+            return true
+        }
+
+        return false
     }
 
     // Decodes one length-prefixed access unit and returns the picture it completed.

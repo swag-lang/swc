@@ -15,6 +15,15 @@ private const HtmlFirstRefreshSize = 192 * 1024'u64
 // rather than shown a rendering that silently drops content.
 private const HtmlMaxDocumentSize = 48 * 1024 * 1024'u64
 
+// File-backed source pages above this size are rendered through a bounded source window. Generated
+// documentation routinely wraps an entire source file in one `<pre><code>` element; retaining the
+// corresponding DOM, cascade and inline layout multiplies a few megabytes into hundreds of
+// megabytes. The window keeps the real HTML engine and author CSS, but only for nearby source.
+private const HtmlVirtualSourceThreshold = 2 * 1024 * 1024'u64
+private const HtmlVirtualProbeSize       = 256 * 1024'u64
+private const HtmlVirtualWindowSize      = 192 * 1024'u64
+private const HtmlVirtualLookBehind      = HtmlVirtualWindowSize / 2
+
 // Source bytes inspected before the first parse to decide how the file spells its characters.
 private const HtmlCharsetProbeSize = 4 * 1024'u64
 
@@ -164,11 +173,26 @@ struct HtmlView
         stream:      File.FileStream
         fileName:    String
         encoding:    Text.Encoding
+        fileSize:    u64
         bytesRead:   u64
         sourceDone:  bool
         loadTimer:   #null *Timer
         nextRefresh: u64
         embedded:    bool
+
+        // A generated source page is one enormous preformatted block. Only this deterministic
+        // byte window is materialized; the outer scroll range represents the complete file.
+        virtualSource:        bool
+        virtualPreformatted:  bool
+        virtualPrefix:        String
+        virtualSuffix:        String
+        virtualContentStart:  u64
+        virtualWindowStart:   u64
+        virtualWindowEnd:     u64
+        virtualOrigin:        f32
+        virtualHeight:        f32
+        virtualPendingSeek:   bool
+        virtualPendingOffset: u64
 
         pendingSearch:      String
         pendingFragment:    String
@@ -385,13 +409,154 @@ internal impl HtmlView
         // The canvas is one viewport tall whatever the document measures, and the paint applies
         // the scroll offset itself. A window as tall as the document would be a window of a
         // quarter of a million pixels, which is not a shape the surface geometry is built for.
-        let height   = .embedded ? viewport.y : Math.max(.layout.documentHeight, viewport.y)
+        let laidOutHeight = Math.max(.layout.documentHeight, viewport.y)
+        let height        = .embedded ? viewport.y : (.virtualSource and .virtualHeight > 0 ? .virtualHeight : laidOutHeight)
         let position = .scroll.scrollPosition()
         .canvas.setPosition({0, 0, viewport.x, viewport.y})
         .scroll.setScrollSize(viewport.x, height)
         .scroll.setScrollPos(position)
         .scroll.verticalScrollStep = Math.max(cast(f32) .documentStyle.bodyFontSize * 3, 24)
         .canvas.invalidate()
+    }
+
+    // Recognizes the shape generated documentation uses for source listings and retains the
+    // bounded shell needed to style independent windows of its `<pre><code>` content.
+    private mtd prepareVirtualSource()->bool
+    {
+        if .fileSize < HtmlVirtualSourceThreshold or .encoding != .Utf8 do
+            return false
+
+        let contentStart = catch .stream.position() as positionError
+        if positionError != null do
+            return false
+        let probe = catch .stream.readTextChunk(HtmlVirtualProbeSize, .encoding) as readError
+        if readError != null
+        {
+            discard catch .stream.seek(.Begin, contentStart)
+            return false
+        }
+
+        let headClose = Utf8.indexOf(probe.toString(), "</head>", 0, .Latin1NoCase)
+        let bodyStart = Utf8.indexOf(probe.toString(), "<body", 0, .Latin1NoCase)
+        let preStart  = Utf8.indexOf(probe.toString(), "<pre", bodyStart == Swag.U64.Max ? 0 : bodyStart, .Latin1NoCase)
+        let codeStart = Utf8.indexOf(probe.toString(), "<code", preStart == Swag.U64.Max ? 0 : preStart, .Latin1NoCase)
+        let bodyEnd  = bodyStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'rune, bodyStart)
+        let preEnd   = preStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'rune, preStart)
+        let codeEnd  = codeStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'rune, codeStart)
+        let sourceListing = bodyEnd != Swag.U64.Max and preEnd != Swag.U64.Max and codeEnd != Swag.U64.Max and
+                            Utf8.indexOf(probe.toString(), "<a href=#", codeEnd + 1, .Latin1NoCase) != Swag.U64.Max
+
+        .virtualPrefix = headClose == Swag.U64.Max ? "<html><head></head>" : String.from(probe.toString()[0 until headClose + @countof("</head>")])
+        if bodyEnd != Swag.U64.Max do
+            .virtualPrefix += probe.toString()[bodyStart to bodyEnd]
+        else do
+            .virtualPrefix += "<body>"
+
+        if sourceListing
+        {
+            .virtualPrefix += probe.toString()[preStart to preEnd]
+            .virtualPrefix += probe.toString()[codeStart to codeEnd]
+            .virtualSuffix        = "</code></pre></body></html>"
+            .virtualContentStart  = contentStart + codeEnd + 1
+            .virtualPreformatted = true
+        }
+        else
+        {
+            .virtualSuffix       = "</body></html>"
+            .virtualContentStart = bodyEnd == Swag.U64.Max ? contentStart : contentStart + bodyEnd + 1
+        }
+        .virtualSource = true
+        .stream.close()
+        return true
+    }
+
+    // Materializes one deterministic byte window of a generated source page. Replacing the
+    // window releases the previous document's text, nodes, styles and boxes before parsing the
+    // next one, so memory depends on this constant window rather than on file size.
+    private mtd loadVirtualWindow(requestedOffset: u64)->bool
+    {
+        let requested = Math.clamp(requestedOffset, .virtualContentStart, .fileSize)
+        let wanted    = requested > .virtualContentStart + HtmlVirtualLookBehind ? requested - HtmlVirtualLookBehind : .virtualContentStart
+
+        .stream = catch File.openRead(.fileName.toString()) as openError
+        if openError != null do
+            return false
+        let actual = Math.min(wanted, .fileSize)
+        discard catch .stream.seek(.Begin, actual)
+        var bytes: Array'u8
+        bytes.resize(Math.min(HtmlVirtualWindowSize + HtmlVirtualLookBehind * 2, .fileSize - actual))
+        let count = catch .stream.read(bytes.toSlice()) as readError
+        .stream.close()
+        if readError != null do
+            return false
+        bytes.resize(count)
+        let chunk = Text.decode(bytes.toSlice(), .Utf8)
+
+        var begin = 0'u64
+        if actual != .virtualContentStart
+        {
+            // The seek begins inside an arbitrary source line. Drop only that incomplete line;
+            // keeping the rest of the look-behind makes the requested point land near the middle
+            // of the resident window instead of immediately scheduling the same seek again.
+            let anchor = .virtualPreformatted ? Utf8.indexOf(chunk.toString(), "\n<a ", 0, .Latin1NoCase) : Swag.U64.Max
+            if anchor != Swag.U64.Max do
+                begin = anchor + 1
+            else
+            {
+                let line = Utf8.indexOf(chunk.toString(), '\n'rune)
+                if line != Swag.U64.Max do
+                    begin = line + 1
+            }
+        }
+        var end = Math.min(begin + HtmlVirtualWindowSize, chunk.length)
+        if end < chunk.length
+        {
+            let boundary = Utf8.indexOf(chunk.toString(), "\n<a ", end, .Latin1NoCase)
+            if boundary != Swag.U64.Max do
+                end = boundary + 1
+        }
+        if end <= begin do
+            return false
+
+        .document.clear()
+        .parser.start(&.document)
+        .layout.boxes.clear()
+        .layout.root = HtmlNoNode
+        .images.clear()
+        .images.basePath = Path.directoryName(.fileName.toString()) orelse ""
+        .searchNode       = HtmlNoNode
+        .hovered          = HtmlNoNode
+        .clearSelection()
+
+        var source = String.from(.virtualPrefix.toString())
+        source += chunk.toString()[begin until end]
+        source += .virtualSuffix
+        .parser.feed(source.toString())
+        .parser.finish()
+        .sourceDone         = true
+        .bytesRead          = actual + end
+        .virtualWindowStart = actual + begin
+        .virtualWindowEnd   = actual + end
+        .rebuild()
+
+        let contentBytes = Math.max(.fileSize - .virtualContentStart, 1)
+        let windowBytes  = Math.max(.virtualWindowEnd - .virtualWindowStart, 1)
+        if .virtualHeight <= 0
+        {
+            let measured = Math.max(.layout.documentHeight, .viewportSize().y)
+            .virtualHeight = Math.max(measured * cast(f32) contentBytes / cast(f32) windowBytes, .viewportSize().y)
+        }
+
+        let localRatio  = cast(f32) (requested - .virtualWindowStart) / cast(f32) windowBytes
+        let globalRatio = cast(f32) (requested - .virtualContentStart) / cast(f32) contentBytes
+        let localY      = Math.clamp(localRatio, 0, 1) * .layout.documentHeight
+        let targetY     = Math.clamp(globalRatio, 0, 1) * .virtualHeight
+        .virtualOrigin  = targetY - localY
+        .placeDocument()
+        .scroll.setScrollPos(.scroll.scrollPosition().x, targetY)
+        .resolvePending()
+        .canvas.invalidate()
+        return true
     }
 
     // Decides how the open stream spells its characters and leaves it at the first content byte.
@@ -490,7 +655,7 @@ internal impl HtmlView
 
     mtd scheduleMore()
     {
-        if .loadTimer or .sourceDone do
+        if .loadTimer or (.sourceDone and !.virtualPendingSeek) do
             return
         .loadTimer = .addTimer(4'ms)
     }
@@ -638,7 +803,8 @@ internal impl HtmlView
         }
 
         let position = .scroll.scrollPosition()
-        .scroll.setScrollPos(position.x, Math.max(top - clearance, 0))
+        let origin = .virtualSource ? .virtualOrigin : 0
+        .scroll.setScrollPos(position.x, Math.max(origin + top - clearance, 0))
         .canvas.invalidate()
         return true
     }
@@ -904,7 +1070,7 @@ internal impl HtmlView
         result.layout      = &.layout
         result.images      = &.images
         result.renderer    = .app().renderer
-        result.scrollY     = .scroll.scrollPosition().y
+        result.scrollY     = .scroll.scrollPosition().y - (.virtualSource ? .virtualOrigin : 0)
         result.visible     = .scroll.paddedClientRect()
         result.hotLink     = .themeColors().url_HotText
         result.hoverLink   = .linkElementAt(.hovered)
@@ -936,6 +1102,14 @@ internal impl HtmlView
     {
         if .fileName.isEmpty() and !.sourceDone do
             return false
+
+        if .virtualSource
+        {
+            .stopLoading()
+            .virtualPendingSeek = false
+            .pendingSearch = text
+            return .loadVirtualWindow(offset)
+        }
 
         .pendingSearch = text
         if .sourceDone or offset < .bytesRead
@@ -1022,7 +1196,21 @@ internal impl HtmlView
         {
             discard scroll
             discard oldPosition
-            discard newPosition
+            if target.virtualSource and target.virtualHeight > 0 and target.fileSize > target.virtualContentStart
+            {
+                let contentBytes = target.fileSize - target.virtualContentStart
+                let ratio        = Math.clamp(newPosition.y / target.virtualHeight, 0, 1)
+                let offset       = target.virtualContentStart + cast(u64) (ratio * cast(f32) contentBytes)
+                let margin       = (target.virtualWindowEnd - target.virtualWindowStart) / 4
+                let before       = target.virtualWindowStart > target.virtualContentStart and offset < target.virtualWindowStart + margin
+                let after        = target.virtualWindowEnd < target.fileSize and offset + margin > target.virtualWindowEnd
+                if before or after
+                {
+                    target.virtualPendingOffset = offset
+                    target.virtualPendingSeek   = true
+                    target.scheduleMore()
+                }
+            }
             target.canvas.invalidate()
         }
 
@@ -1045,24 +1233,36 @@ internal impl HtmlView
         .layout.boxes.clear()
         .layout.root = HtmlNoNode
 
-        .fileName           = fileName
-        .images.basePath    = Path.directoryName(fileName) orelse ""
-        .bytesRead          = 0
-        .sourceDone         = false
-        .nextRefresh        = HtmlFirstRefreshSize
-        .revealOffset       = 0
-        .hasReveal          = false
-        .hasPendingFragment = !fragmentCopy.isEmpty()
-        .pendingFragment    = fragmentCopy
-        .searchNode         = HtmlNoNode
-        .searchStart        = 0
-        .searchEnd          = 0
-        .hovered            = HtmlNoNode
-        .selAnchorNode      = HtmlNoNode
-        .selCaretNode       = HtmlNoNode
-        .selAnchorOffset    = 0
-        .selCaretOffset     = 0
-        .selecting          = false
+        .fileName             = fileName
+        .images.basePath      = Path.directoryName(fileName) orelse ""
+        .fileSize             = 0
+        .bytesRead            = 0
+        .sourceDone           = false
+        .nextRefresh          = HtmlFirstRefreshSize
+        .revealOffset         = 0
+        .hasReveal            = false
+        .hasPendingFragment   = !fragmentCopy.isEmpty()
+        .pendingFragment      = fragmentCopy
+        .searchNode           = HtmlNoNode
+        .searchStart          = 0
+        .searchEnd            = 0
+        .hovered              = HtmlNoNode
+        .selAnchorNode        = HtmlNoNode
+        .selCaretNode         = HtmlNoNode
+        .selAnchorOffset      = 0
+        .selCaretOffset       = 0
+        .selecting            = false
+        .virtualSource        = false
+        .virtualPreformatted  = false
+        .virtualContentStart  = 0
+        .virtualWindowStart   = 0
+        .virtualWindowEnd     = 0
+        .virtualOrigin        = 0
+        .virtualHeight        = 0
+        .virtualPendingSeek   = false
+        .virtualPendingOffset = 0
+        .virtualPrefix.clear()
+        .virtualSuffix.clear()
         .pendingSearch.clear()
         .failureReason.clear()
         .scroll.setScrollPos(0, 0)
@@ -1076,7 +1276,16 @@ internal impl HtmlView
             return
         }
 
+        let size = catch .stream.size() as sizeError
+        if sizeError == null do
+            .fileSize = size
+
         .encoding = .detectDocumentEncoding()
+        if .prepareVirtualSource()
+        {
+            discard .loadVirtualWindow(.virtualContentStart)
+            return
+        }
         .streamStep()
     }
 
@@ -1171,6 +1380,13 @@ internal impl IWnd for HtmlView
 
         .removeTimer(evt.timer)
         .loadTimer = null
+        if .virtualPendingSeek
+        {
+            let offset = .virtualPendingOffset
+            .virtualPendingSeek = false
+            discard .loadVirtualWindow(offset)
+            return
+        }
         .streamStep()
     }
 }

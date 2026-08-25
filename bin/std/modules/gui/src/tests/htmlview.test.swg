@@ -703,7 +703,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     // The match is what the viewport shows, not an estimate of where it might be.
     let box = view.boxOfNode(view.searchNode)
     @assert(box != HtmlNoNode)
-    let top      = view.layout.constBox(box).rect.y
+    let top      = view.layout.constBox(box).rect.y + (view.virtualSource ? view.virtualOrigin : 0)
     let position = view.scroll.scrollPosition().y
     @assert(top >= position and top <= position + view.scroll.paddedClientRect().height)
 }
@@ -764,75 +764,90 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     let allocator = Swag.defaultAllocator()
     let initial   = allocator.stats()
-    Console.printf("HTML MEMORY sizes node=% style=% box=% item=% line=% initial live=% cached=% committed=%\n", #sizeof(HtmlNode), #sizeof(HtmlComputedStyle), #sizeof(HtmlBox), #sizeof(HtmlInlineItem), #sizeof(HtmlLineBox), initial.sizeAlloc, initial.sizeCached, initial.sizeCommitted)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
 
-    let path   = guiFixturePath("html.rustdoc-large.html")
-    let source = expect File.readAllText(path)
-    @assert(source.length == 8_153_570)
-
-    let view   = HtmlView.createBase(&host.root, {})
-    view.fileName        = path
-    view.images.basePath = Path.directoryName(path) orelse ""
+    let path = guiFixturePath("html.rustdoc-large.html")
+    let view = HtmlView.createFile(&host.root, path)
     view.resize(960, 680)
     view.applyLayout()
 
-    view.parser.feed(source.toString())
-    view.parser.finish()
-    @assert(view.document.nodes.count == 429_782)
-    let parsed = allocator.stats()
-    Console.printf("HTML MEMORY parsed live=% cached=% committed=% nodes-cap=%\n", parsed.sizeAlloc, parsed.sizeCached, parsed.sizeCommitted, view.document.nodes.capacity)
+    @assert(view.fileSize == 8_153_570)
+    @assert(view.virtualSource)
+    @assert(view.sourceDone)
+    @assert(view.virtualWindowEnd - view.virtualWindowStart < 256 * 1024)
+    @assert(view.document.nodes.count < 20_000)
+    @assert(view.layout.boxes.count < 10_000)
+    @assert(view.layout.styles.count < 10_000)
+    @assert(view.virtualHeight > view.layout.documentHeight * 10)
 
-    view.collectStyleSheets()
-    for cssName in ["html.rustdoc-large.normalize.css", "html.rustdoc-large.rustdoc.css", "html.rustdoc-large.noscript.css"] do
-        view.sheet.parse((expect File.readAllText(guiFixturePath(cssName))).toString())
-    @assert(view.sheet.rules.count == 815)
-    @assert(view.sheet.universal.count == 37)
+    // Visiting the middle replaces the resident document instead of appending to it. Returning
+    // to the same source offset materializes the same bounded window and the same pixels.
+    let middle = view.fileSize / 2
+    @assert(view.revealFileOffset(middle, ""))
+    let middleStart = view.virtualWindowStart
+    let middleEnd   = view.virtualWindowEnd
+    let first       = Hash.hashBytes32(host.render(view).pixels.toSlice())
+    @assert(middleStart < middle and middleEnd > middle)
+    @assert(middle - middleStart > (middleEnd - middleStart) / 4)
+    @assert(middleEnd - middle > (middleEnd - middleStart) / 4)
+    @assert(!view.virtualPendingSeek)
+    @assert(view.document.nodes.count < 20_000)
 
-    view.resolver.resolve(&view.document, &view.sheet, &view.pool, view.styleDefaults(), view.viewportSize(), view.darkScheme())
-    @assert(view.resolver.styles.count == view.resolver.match.numElements + 1)
-    @assert(view.resolver.styles.count * 2 < view.document.nodes.count)
-    @assert(view.resolver.match.elementCount.count == view.document.nodes.count)
+    @assert(view.revealFileOffset(view.virtualContentStart, ""))
+    @assert(view.revealFileOffset(middle, ""))
+    @assert(view.virtualWindowStart == middleStart and view.virtualWindowEnd == middleEnd)
+    let second = Hash.hashBytes32(host.render(view).pixels.toSlice())
+    @assert(second == first)
 
-    var maximumSiblings: u32
-    for count in view.resolver.match.elementCount do
-        maximumSiblings = Math.max(maximumSiblings, count)
-    @assert(maximumSiblings > 10_000)
-    let styled = allocator.stats()
-    Console.printf("HTML MEMORY styled live=% cached=% committed=% styles-cap=% match=%\n", styled.sizeAlloc, styled.sizeCached, styled.sizeCommitted, view.resolver.styles.capacity, view.resolver.match.elementIndex.capacity * 5)
+    let resident = allocator.stats()
+    @assert(resident.sizeAlloc < initial.sizeAlloc + 128 * 1024 * 1024)
+}
 
-    view.layout.build(&view.document, &view.resolver, view.theme(), &view.images)
-    @assert(view.layout.boxes.count > 100_000)
-    var childCapacity, itemCapacity, lineCapacity: u64
-    for box in view.layout.boxes
-    {
-        childCapacity += box.children.capacity
-        itemCapacity  += box.items.capacity
-        lineCapacity  += box.lines.capacity
-    }
-    let built = allocator.stats()
-    Console.printf("HTML MEMORY built live=% cached=% committed=% styles-cap=% boxes-cap=% child-cap=% item-cap=% line-cap=% width-cap=% nodebox-cap=%\n", built.sizeAlloc, built.sizeCached, built.sizeCommitted, view.layout.styles.capacity, view.layout.boxes.capacity, childCapacity, itemCapacity, lineCapacity, view.layout.widthCache.capacity, view.layout.nodeBox.capacity)
+// Large ordinary HTML is bounded too, even when it has no generated-source `<pre>` shape. The
+// generic window may start at a recovery boundary, but it must never make file size become DOM
+// size and revisiting one byte offset must choose the same resident source.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let fileName      = Path.combine(tempDirectory.toString(), Format.toString("gui_html_large_window_%.html", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
 
+    var source: String = "<html><head><style>p { margin: 4px }</style></head><body>"
+    for index in 28_000 do
+        source += Format.toString("<p id='row-%'>Paragraph % carries enough ordinary HTML to exercise a generic resident window.</p>\n", index, index)
+    source += "</body></html>"
+    @assert(source.length > 2 * 1024 * 1024)
+    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 480)
+    defer host.shutdown()
+
+    let view = HtmlView.createFile(&host.root, fileName)
+    view.resize(720, 480)
     view.applyLayout()
-    view.placeDocument()
-    @assert(view.layout.documentHeight > 1_000_000)
+    @assert(view.virtualSource and !view.virtualPreformatted)
+    @assert(view.document.nodes.count < 20_000)
 
-    discard host.render(view)
-    view.scroll.setScrollPos(0, view.layout.documentHeight / 2)
-    discard host.render(view)
-    @assert(view.painter().nodeAt({480, 340}) != HtmlNoNode)
-    let rendered = allocator.stats()
-    Console.printf("HTML MEMORY rendered live=% cached=% committed=%\n", rendered.sizeAlloc, rendered.sizeCached, rendered.sizeCommitted)
+    let middle = view.fileSize / 2
+    @assert(view.revealFileOffset(middle, ""))
+    let residentStart = view.virtualWindowStart
+    let residentEnd   = view.virtualWindowEnd
+    @assert(residentStart < middle and residentEnd > middle)
+    @assert(view.document.nodes.count < 20_000)
+    @assert(view.revealFileOffset(view.virtualContentStart, ""))
+    @assert(view.revealFileOffset(middle, ""))
+    @assert(view.virtualWindowStart == residentStart and view.virtualWindowEnd == residentEnd)
 }
 
 // What a scroll position shows does not depend on how the reader got there.
 //
-// This is the contract the previous viewer could not keep: it held a moving window of source
-// bytes and re-parsed it from a guessed offset, so travelling with the scrollbar rewrote the text
-// and sometimes emptied the page. A laid-out document is scrolled, not re-read.
+// This is the contract the previous viewer could not keep: its scroll-to-byte estimate changed as
+// it moved the resident source window, so travelling with the scrollbar rewrote the text and
+// sometimes emptied the page. A virtual window must map a position deterministically.
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)

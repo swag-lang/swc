@@ -54,3 +54,86 @@ using Core, Core.Errors, Pixel
     @assert(reader.frameCount() == 60)
     @assert(reader.hasPlanarFrames())
 }
+
+// Identity weights at integer positions go directly from the reference pictures to the result.
+// This covers both the packed two-reference average and the packed ten-to-eight-bit handoff.
+#test
+{
+    var sps: Hevc.Sps
+    sps.width           = 32
+    sps.height          = 32
+    sps.subWidthC       = 2
+    sps.subHeightC      = 2
+    sps.chromaArrayType = 1
+    sps.bitDepthLuma    = 10
+    sps.bitDepthChroma  = 10
+
+    var current, reference0, reference1: Hevc.Frame
+    current.prepare(&sps)
+    reference0.prepare(&sps)
+    reference1.prepare(&sps)
+    for y in 32's32
+    {
+        for x in 32's32
+        {
+            reference0.lumaAtMutable(x, y)[0] = cast(u16) (x + y)
+            reference1.lumaAtMutable(x, y)[0] = cast(u16) (100 + 2 * x + y)
+        }
+    }
+
+    for y in 16's32
+    {
+        for x in 16's32
+        {
+            reference0.chromaAtMutable(0, x, y)[0] = cast(u16) (20 + x + y)
+            reference1.chromaAtMutable(0, x, y)[0] = cast(u16) (60 + 2 * x + y)
+            reference0.chromaAtMutable(1, x, y)[0] = cast(u16) (40 + x + y)
+            reference1.chromaAtMutable(1, x, y)[0] = cast(u16) (80 + 2 * x + y)
+        }
+    }
+
+    var pps: Hevc.Pps
+    pps.weightedBipred = true
+    var decoder: Hevc.Decoder
+    decoder.activeSps            = &sps
+    decoder.activePps            = &pps
+    decoder.current              = &current
+    decoder.header.sliceType     = Hevc.SliceTypeB
+    decoder.header.hasWeights    = true
+    decoder.refList.frames[0, 0] = &reference0
+    decoder.refList.frames[1, 0] = &reference1
+    for list in Hevc.ListCount
+    {
+        decoder.header.weights[list, 0].lumaWeight      = 1
+        decoder.header.weights[list, 0].chromaWeight[0] = 1
+        decoder.header.weights[list, 0].chromaWeight[1] = 1
+    }
+
+    var motion: Hevc.PuMotion
+    motion.predFlags = 3
+    motion.refIdx    = [0, 0]
+    decoder.interPredict(0, 0, 32, 32, &motion)
+
+    var picture: PlanarFrame
+    current.writePlanar(&picture, &sps)
+    for y in 32's32
+    {
+        for x in 32's32
+        {
+            let reconstructed = (x + y + 100 + 2 * x + y + 1) >> 1
+            @assert(picture.luma[cast(u64) y * cast(u64) picture.strideLuma + cast(u64) x] == cast(u8) ((reconstructed + 2) >> 2))
+        }
+    }
+
+    for y in 16's32
+    {
+        for x in 16's32
+        {
+            let blue  = (20 + x + y + 60 + 2 * x + y + 1) >> 1
+            let red   = (40 + x + y + 80 + 2 * x + y + 1) >> 1
+            let index = cast(u64) y * cast(u64) picture.strideChroma + cast(u64) x
+            @assert(picture.chromaB[index] == cast(u8) ((blue + 2) >> 2))
+            @assert(picture.chromaR[index] == cast(u8) ((red + 2) >> 2))
+        }
+    }
+}

@@ -20,10 +20,22 @@ struct SliceDeblock
 
 // The bits of the per-block edge grid: which of a block's two leading edges start a transform or
 // a prediction block, which is what decides whether the loop filter looks at them at all.
-const EdgeTransformLeft = 1'u8
-const EdgeTransformTop = 2'u8
+const EdgeTransformLeft  = 1'u8
+const EdgeTransformTop   = 2'u8
 const EdgePredictionLeft = 4'u8
-const EdgePredictionTop = 8'u8
+const EdgePredictionTop  = 8'u8
+
+private const DeblockLanes = 8'u32
+
+private struct DeblockContext
+{
+    decoder:   *Decoder
+    vertical:  bool
+    stepX:     u32
+    stepY:     u32
+    bandCount: u32
+    laneCount: u32
+}
 
 impl Decoder
 {
@@ -53,9 +65,36 @@ impl Decoder
     // Filters every edge of one direction, clause 8.7.2.3.
     private mtd filterEdges(vertical: bool)
     {
-        let sps = .activeSps!
-        let stepX = vertical ? 8'u32 : 4'u32
-        let stepY = vertical ? 4'u32 : 8'u32
+        let sps       = .activeSps!
+        let stepX     = vertical ? 8'u32 : 4'u32
+        let stepY     = vertical ? 4'u32 : 8'u32
+        let bandCount = (sps.height + stepY - 1) / stepY
+        let laneCount = Math.min(Math.min(Jobs.workerCount(), DeblockLanes), bandCount)
+
+        if laneCount > 1
+        {
+            var context = DeblockContext{me, vertical, stepX, stepY, bandCount, laneCount}
+            Jobs.parallelFor(laneCount, &context)
+            {
+                let state = cast(*DeblockContext) data!
+                let width = state.decoder.activeSps!.width
+                var band  = index
+                while band < state.bandCount
+                {
+                    let y = band * state.stepY
+                    var x = 0'u32
+                    while x < width
+                    {
+                        state.decoder.filterBlockEdge(cast(s32) x, cast(s32) y, state.vertical)
+                        x += state.stepX
+                    }
+
+                    band += state.laneCount
+                }
+            }
+
+            return
+        }
 
         var y = 0'u32
         while y < sps.height
@@ -95,8 +134,8 @@ impl Decoder
         if !strength do
             return
 
-        let qpP = cast(s32) .qpY[.blockIndex(xP, yP)]
-        let qpQ = cast(s32) .qpY[index]
+        let qpP   = cast(s32) .qpY[.blockIndex(xP, yP)]
+        let qpQ   = cast(s32) .qpY[index]
         let slice = &.sliceParams[cast(u64) .ctbSliceIndex[.ctbAddressRs(x, y)]]
         .filterLumaEdge(x, y, vertical, strength, qpP, qpQ, slice)
 
@@ -164,13 +203,13 @@ impl Decoder
             if (cast(u32) left.predFlags & (1'u32 << list)) != 0
             {
                 leftPoc[leftCount] = .refList.poc[list, cast(u32) left.refIdx[list]]
-                leftCount += 1
+                leftCount          += 1
             }
 
             if (cast(u32) right.predFlags & (1'u32 << list)) != 0
             {
                 rightPoc[rightCount] = .refList.poc[list, cast(u32) right.refIdx[list]]
-                rightCount += 1
+                rightCount           += 1
             }
         }
 
@@ -284,10 +323,10 @@ impl Decoder
         let q2d = cast(s32) .edgeSample(plane, stride, vertical, x, y, 3, 2)
         let q3d = cast(s32) .edgeSample(plane, stride, vertical, x, y, 3, 3)
 
-        let dp0 = Math.abs(p2a - 2 * p1a + p0a)
-        let dp3 = Math.abs(p2d - 2 * p1d + p0d)
-        let dq0 = Math.abs(q2a - 2 * q1a + q0a)
-        let dq3 = Math.abs(q2d - 2 * q1d + q0d)
+        let dp0  = Math.abs(p2a - 2 * p1a + p0a)
+        let dp3  = Math.abs(p2d - 2 * p1d + p0d)
+        let dq0  = Math.abs(q2a - 2 * q1a + q0a)
+        let dq3  = Math.abs(q2d - 2 * q1d + q0d)
         let dpq0 = dp0 + dq0
         let dpq3 = dp3 + dq3
         let dp   = dp0 + dp3
@@ -305,14 +344,14 @@ impl Decoder
         for line in 4'u32
         {
             let index = cast(s32) line
-            let p0 = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, -1)
-            let p1 = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, -2)
-            let p2 = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, -3)
-            let p3 = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, -4)
-            let q0 = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, 0)
-            let q1 = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, 1)
-            let q2 = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, 2)
-            let q3 = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, 3)
+            let p0    = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, -1)
+            let p1    = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, -2)
+            let p2    = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, -3)
+            let p3    = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, -4)
+            let q0    = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, 0)
+            let q1    = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, 1)
+            let q2    = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, 2)
+            let q3    = cast(s32) .edgeSample(plane, stride, vertical, x, y, index, 3)
 
             if strong
             {
@@ -402,10 +441,10 @@ impl Decoder
         for line in 2'u32
         {
             let index = cast(s32) line
-            let p0 = cast(s32) .edgeSample(plane, stride, vertical, cx, cy, index, -1)
-            let p1 = cast(s32) .edgeSample(plane, stride, vertical, cx, cy, index, -2)
-            let q0 = cast(s32) .edgeSample(plane, stride, vertical, cx, cy, index, 0)
-            let q1 = cast(s32) .edgeSample(plane, stride, vertical, cx, cy, index, 1)
+            let p0    = cast(s32) .edgeSample(plane, stride, vertical, cx, cy, index, -1)
+            let p1    = cast(s32) .edgeSample(plane, stride, vertical, cx, cy, index, -2)
+            let q0    = cast(s32) .edgeSample(plane, stride, vertical, cx, cy, index, 0)
+            let q1    = cast(s32) .edgeSample(plane, stride, vertical, cx, cy, index, 1)
 
             let delta = Math.clamp((((q0 - p0) << 2) + p1 - q1 + 4) >> 3, -tc, tc)
             .setEdgeSample(plane, stride, vertical, cx, cy, index, -1, cast(u16) Math.clamp(p0 + delta, 0, maximum))

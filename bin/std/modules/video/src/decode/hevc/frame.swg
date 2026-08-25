@@ -6,7 +6,7 @@
 #global namespace Hevc
 #global internal
 
-using Core, Core.Errors
+using Core, Core.Errors, Core.Math
 
 // Padding kept around each plane so motion compensation can read past the picture edge.
 //
@@ -57,7 +57,7 @@ struct Frame
     chromaR:      Array'u16     // Padded red-difference plane.
     strideLuma:   u64
     strideChroma: u64
-    width:        u32           // Coded luma width, before the conformance window.
+    width:        u32     // Coded luma width, before the conformance window.
     height:       u32
     chromaWidth:  u32
     chromaHeight: u32
@@ -65,7 +65,7 @@ struct Frame
 
     poc:          s32
     marking:      FrameMarking
-    outputNeeded: bool          // The picture has not been handed to the consumer yet.
+    outputNeeded: bool     // The picture has not been handed to the consumer yet.
     isIrap:       bool
     noRaslOutput: bool
 
@@ -79,9 +79,9 @@ struct Frame
     progressLock:    Sync.Mutex
     progressEvent:   Sync.Event
 
-    colMotion:      Array'ColMotion
-    colWidth:       u32     // Collocated motion records per row.
-    colHeight:      u32
+    colMotion: Array'ColMotion
+    colWidth:  u32     // Collocated motion records per row.
+    colHeight: u32
 }
 
 impl Frame
@@ -251,8 +251,8 @@ impl Frame
         target.resize(visibleWidth, visibleHeight)
         target.studioRange = true
 
-        let left = cast(s32) (sps.cropLeft * sps.subWidthC)
-        let top  = cast(s32) (sps.cropTop * sps.subHeightC)
+        let left  = cast(s32) (sps.cropLeft * sps.subWidthC)
+        let top   = cast(s32) (sps.cropTop * sps.subHeightC)
         let shift = .bitDepth - 8
 
         .reducePlane(target.luma.buffer!, cast(u64) target.strideLuma, .luma.buffer!, .strideLuma, left, top, visibleWidth, visibleHeight, shift)
@@ -272,23 +272,49 @@ impl Frame
         {
             for row in height
             {
-                let line = origin + cast(u64) row * sourceStride
-                let out  = destination + cast(u64) row * destinationStride
-                for column in width do
+                let line   = origin + cast(u64) row * sourceStride
+                let out    = destination + cast(u64) row * destinationStride
+                var column = 0's32
+                while column + 16 <= width
+                {
+                    let low  = cast #bit(Simd.S16x8) Simd.load(line + column)
+                    let high = cast #bit(Simd.S16x8) Simd.load(line + column + 8)
+                    Simd.store(out + column, Simd.packUnsigned(low, high))
+                    column += 16
+                }
+
+                while column < width
+                {
                     out[column] = cast(u8) line[column]
+                    column      += 1
+                }
             }
 
             return
         }
 
-        let rounding = 1'u32 << (shift - 1)
-        let maximum  = cast(u32) ((1'u32 << .bitDepth) - 1)
+        let rounding       = 1'u32 << (shift - 1)
+        let maximum        = cast(u32) ((1'u32 << .bitDepth) - 1)
+        let packedRounding = Simd.splat(cast(u16) rounding)
+        let packedMaximum  = Simd.splat(cast(u16) maximum)
         for row in height
         {
-            let line = origin + cast(u64) row * sourceStride
-            let out  = destination + cast(u64) row * destinationStride
-            for column in width do
+            let line   = origin + cast(u64) row * sourceStride
+            let out    = destination + cast(u64) row * destinationStride
+            var column = 0's32
+            while column + 16 <= width
+            {
+                let low  = cast #bit(Simd.S16x8) (Math.min(Simd.load(line + column) + packedRounding, packedMaximum) >> shift)
+                let high = cast #bit(Simd.S16x8) (Math.min(Simd.load(line + column + 8) + packedRounding, packedMaximum) >> shift)
+                Simd.store(out + column, Simd.packUnsigned(low, high))
+                column += 16
+            }
+
+            while column < width
+            {
                 out[column] = cast(u8) (Math.min(cast(u32) line[column] + rounding, maximum) >> shift)
+                column      += 1
+            }
         }
     }
 }

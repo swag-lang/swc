@@ -6,7 +6,7 @@
 #global namespace Hevc
 #global internal
 
-using Core
+using Core, Core.Math
 
 impl Decoder
 {
@@ -17,7 +17,10 @@ impl Decoder
     // rather than twice.
     mtd interPredict(xPb, yPb, nPbW, nPbH: s32, motion: const *PuMotion)
     {
-        let sps = .activeSps!
+        let sps      = .activeSps!
+        let usesL0   = (motion.predFlags & 1) != 0
+        let usesL1   = (motion.predFlags & 2) != 0
+        let weighted = .header.hasWeights and ((.header.sliceType == SliceTypeP and .activePps!.weightedPred) or (.header.sliceType == SliceTypeB and .activePps!.weightedBipred))
         for component in 3'u32
         {
             let scale  = component == 0 ? 1's32 : 2's32
@@ -27,6 +30,63 @@ impl Decoder
             let y      = yPb / scale
             if !width or !height do
                 continue
+
+            // A signaled weight table often carries the identity weights. Those samples follow
+            // the same direct paths as an unweighted prediction.
+            var identityWeights = !weighted
+            if weighted
+            {
+                identityWeights = true
+                let denominator = component == 0 ? .header.lumaLog2WeightDenom : .header.chromaLog2WeightDenom
+                for list in ListCount where (cast(u32) motion.predFlags & (1'u32 << list)) != 0
+                {
+                    let entry = &.header.weights[list, cast(u32) motion.refIdx[list]]
+                    if (!component and (entry.lumaWeight != 1 << denominator or entry.lumaOffset != 0)) or (component and (entry.chromaWeight[component - 1] != 1 << denominator or entry.chromaOffset[component - 1] != 0))
+                    {
+                        identityWeights = false
+                        break
+                    }
+                }
+            }
+
+            if identityWeights and usesL0 and usesL1
+            {
+                let unit = component == 0 ? 4's32 : 8's32
+                let mv0X = cast(s32) motion.mv[0, 0]
+                let mv0Y = cast(s32) motion.mv[0, 1]
+                let mv1X = cast(s32) motion.mv[1, 0]
+                let mv1Y = cast(s32) motion.mv[1, 1]
+                if (mv0X & (unit - 1)) == 0 and (mv0Y & (unit - 1)) == 0 and (mv1X & (unit - 1)) == 0 and (mv1Y & (unit - 1)) == 0
+                {
+                    let reference0 = .refList.frames[0, cast(u32) motion.refIdx[0]]
+                    let reference1 = .refList.frames[1, cast(u32) motion.refIdx[1]]
+                    if reference0 and reference1
+                    {
+                        .averageIntegerPrediction(reference0!, reference1!, component, x + mv0X / unit, y + mv0Y / unit, x + mv1X / unit, y + mv1Y / unit, x, y, width, height)
+                        continue
+                    }
+                }
+            }
+
+            // An unweighted prediction from one list at an integer sample position is already
+            // the final block. Routing it through the interpolation and combination buffers
+            // would copy every sample three times and shift it out and back for no change.
+            if identityWeights and usesL0 != usesL1
+            {
+                let list = usesL0 ? 0'u32 : 1'u32
+                let unit = component == 0 ? 4's32 : 8's32
+                let mvX  = cast(s32) motion.mv[list, 0]
+                let mvY  = cast(s32) motion.mv[list, 1]
+                if (mvX & (unit - 1)) == 0 and (mvY & (unit - 1)) == 0
+                {
+                    let reference = .refList.frames[list, cast(u32) motion.refIdx[list]]
+                    if reference
+                    {
+                        .copyIntegerPrediction(reference!, component, x + mvX / unit, y + mvY / unit, x, y, width, height)
+                        continue
+                    }
+                }
+            }
 
             for list in ListCount
             {
@@ -48,6 +108,131 @@ impl Decoder
         }
     }
 
+    // Averages two integer-position predictions directly into the reconstructed picture.
+    private mtd averageIntegerPrediction(reference0, reference1: *Frame, component: u32, source0X, source0Y, source1X, source1Y, destinationX, destinationY: s32, width, height: u32)
+    {
+        var source0, source1:             const [*] u16 = undefined
+        var source0Stride, source1Stride: u64
+        var source0Width, source0Height:  s32
+        var source1Width, source1Height:  s32
+        var destination:                  [*] u16       = undefined
+        var destinationStride:            u64
+        if !component
+        {
+            source0           = reference0.luma.buffer!
+            source1           = reference1.luma.buffer!
+            source0Stride     = reference0.strideLuma
+            source1Stride     = reference1.strideLuma
+            source0Width      = cast(s32) reference0.width
+            source0Height     = cast(s32) reference0.height
+            source1Width      = cast(s32) reference1.width
+            source1Height     = cast(s32) reference1.height
+            destination       = .current!.lumaAtMutable(destinationX, destinationY)
+            destinationStride = .current!.strideLuma
+        }
+        else
+        {
+            source0           = component == 1 ? reference0.chromaB.buffer! : reference0.chromaR.buffer!
+            source1           = component == 1 ? reference1.chromaB.buffer! : reference1.chromaR.buffer!
+            source0Stride     = reference0.strideChroma
+            source1Stride     = reference1.strideChroma
+            source0Width      = cast(s32) reference0.chromaWidth
+            source0Height     = cast(s32) reference0.chromaHeight
+            source1Width      = cast(s32) reference1.chromaWidth
+            source1Height     = cast(s32) reference1.chromaHeight
+            destination       = .current!.chromaAtMutable(component - 1, destinationX, destinationY)
+            destinationStride = .current!.strideChroma
+        }
+
+        if source0X >= 0 and source0Y >= 0 and source1X >= 0 and source1Y >= 0 and source0X + cast(s32) width <= source0Width and source1X + cast(s32) width <= source1Width and source0Y + cast(s32) height <= source0Height and source1Y + cast(s32) height <= source1Height
+        {
+            let first0 = source0 + cast(u64) (source0Y + cast(s32) FramePadding) * source0Stride + cast(u64) (source0X + cast(s32) FramePadding)
+            let first1 = source1 + cast(u64) (source1Y + cast(s32) FramePadding) * source1Stride + cast(u64) (source1X + cast(s32) FramePadding)
+            for row in height
+            {
+                let line0  = first0 + cast(u64) row * source0Stride
+                let line1  = first1 + cast(u64) row * source1Stride
+                let out    = destination + cast(u64) row * destinationStride
+                var column = 0'u32
+                while column + 8 <= width
+                {
+                    Simd.store(out + column, Simd.average(Simd.load(line0 + column), Simd.load(line1 + column)))
+                    column += 8
+                }
+
+                while column < width
+                {
+                    out[column] = cast(u16) ((cast(u32) line0[column] + cast(u32) line1[column] + 1) >> 1)
+                    column      += 1
+                }
+            }
+
+            return
+        }
+
+        for row in height
+        {
+            let y0    = Math.clamp(source0Y + cast(s32) row, 0, source0Height - 1)
+            let y1    = Math.clamp(source1Y + cast(s32) row, 0, source1Height - 1)
+            let line0 = source0 + cast(u64) (y0 + cast(s32) FramePadding) * source0Stride + cast(u64) FramePadding
+            let line1 = source1 + cast(u64) (y1 + cast(s32) FramePadding) * source1Stride + cast(u64) FramePadding
+            let out   = destination + cast(u64) row * destinationStride
+            for column in width
+            {
+                let x0 = Math.clamp(source0X + cast(s32) column, 0, source0Width - 1)
+                let x1 = Math.clamp(source1X + cast(s32) column, 0, source1Width - 1)
+                out[column] = cast(u16) ((cast(u32) line0[cast(u64) x0] + cast(u32) line1[cast(u64) x1] + 1) >> 1)
+            }
+        }
+    }
+
+    // Copies one integer-position prediction directly into the reconstructed picture.
+    private mtd copyIntegerPrediction(reference: *Frame, component: u32, sourceX, sourceY, destinationX, destinationY: s32, width, height: u32)
+    {
+        var source:                    const [*] u16 = undefined
+        var sourceStride:              u64
+        var sourceWidth, sourceHeight: s32
+        var destination:               [*] u16       = undefined
+        var destinationStride:         u64
+        if !component
+        {
+            source            = reference.luma.buffer!
+            sourceStride      = reference.strideLuma
+            sourceWidth       = cast(s32) reference.width
+            sourceHeight      = cast(s32) reference.height
+            destination       = .current!.lumaAtMutable(destinationX, destinationY)
+            destinationStride = .current!.strideLuma
+        }
+        else
+        {
+            source            = component == 1 ? reference.chromaB.buffer! : reference.chromaR.buffer!
+            sourceStride      = reference.strideChroma
+            sourceWidth       = cast(s32) reference.chromaWidth
+            sourceHeight      = cast(s32) reference.chromaHeight
+            destination       = .current!.chromaAtMutable(component - 1, destinationX, destinationY)
+            destinationStride = .current!.strideChroma
+        }
+
+        // Motion vectors normally keep the whole block inside the picture. Copying complete rows
+        // is the common path; only a vector beyond an edge needs per-sample clamping.
+        if sourceX >= 0 and sourceY >= 0 and sourceX + cast(s32) width <= sourceWidth and sourceY + cast(s32) height <= sourceHeight
+        {
+            let first = source + cast(u64) (sourceY + cast(s32) FramePadding) * sourceStride + cast(u64) (sourceX + cast(s32) FramePadding)
+            for row in height do
+                Memory.copy(destination + cast(u64) row * destinationStride, first + cast(u64) row * sourceStride, cast(u64) width * #sizeof(u16))
+            return
+        }
+
+        for row in height
+        {
+            let sy   = Math.clamp(sourceY + cast(s32) row, 0, sourceHeight - 1)
+            let line = source + cast(u64) (sy + cast(s32) FramePadding) * sourceStride + cast(u64) FramePadding
+            let out  = destination + cast(u64) row * destinationStride
+            for column in width do
+                out[column] = line[cast(u64) Math.clamp(sourceX + cast(s32) column, 0, sourceWidth - 1)]
+        }
+    }
+
     // Copies the reference samples one interpolation reads, clamping to the picture edges.
     //
     // A motion vector may point arbitrarily far outside the picture, and the standard answers
@@ -55,7 +240,7 @@ impl Decoder
     // copy instead of a clamp inside the filter loop.
     private mtd const gatherReference(frame: *Frame, component: u32, xInt, yInt: s32, width, height, before, taps: u32, destination: [*] u16, destinationStride: u64)
     {
-        var plane: const [*] u16 = undefined
+        var plane:  const [*] u16 = undefined
         var stride: u64
         var planeWidth, planeHeight: s32
         if !component
@@ -281,7 +466,7 @@ impl Decoder
         let maximum  = cast(s32) ((1'u32 << bitDepth) - 1)
 
         var destination: [*] u16 = undefined
-        var stride: u64
+        var stride:      u64
         if !component
         {
             destination = frame.lumaAtMutable(x, y)
@@ -339,10 +524,10 @@ impl Decoder
     // Combines the interpolated lists with the weights the slice header carries, clause 8.5.3.3.4.3.
     private mtd combineWeighted(destination: [*] u16, stride: u64, component, width, height: u32, motion: const *PuMotion, usesL0, usesL1: bool, bitDepth: u32, maximum: s32)
     {
-        let header    = &.header
-        let shift1    = Math.max(2'u32, 14 - bitDepth)
-        let denom     = component == 0 ? header.lumaLog2WeightDenom : header.chromaLog2WeightDenom
-        let log2Wd    = denom + shift1
+        let header      = &.header
+        let shift1      = Math.max(2'u32, 14 - bitDepth)
+        let denom       = component == 0 ? header.lumaLog2WeightDenom : header.chromaLog2WeightDenom
+        let log2Wd      = denom + shift1
         let offsetShift = bitDepth - 8
 
         var weight: [ListCount] s32

@@ -194,6 +194,12 @@ is the layout it does not read yet.
 - What is unmeasured: no figure exists for the processor time of one H.265 picture, on any stream,
   next to anything. T-504 measured H.264 that way and the measurement is what found every gain
   since; the same harness applies here unchanged, and the entropy decode is the same shape.
+- Measured on a real stream (2026-08-25): the opening predictive sequence of a 3840x2076,
+  23.976-fps Main10 Matroska stream took 165-185 ms per displayed picture in a quiet release run;
+  140-160 ms was HEVC reconstruction. Identity weighted integer predictions were still taking the
+  generic gather/interpolate/combine path. Direct copy/rounded-average prediction, row-banded
+  deblocking and packed 10-to-8-bit output reduced the same sequence to 23-25 ms per picture. This
+  measures that sequence only; fractional motion and frame-level parallelism remain unmeasured.
 - Next step: measure before optimizing and before widening. One 1080p and one 4K stream, serial,
   one lane and one worker, processor time per picture and the stage split, against FFmpeg on the
   same machine — that figure decides whether this entry is about speed or about formats.

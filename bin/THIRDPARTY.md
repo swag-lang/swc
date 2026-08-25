@@ -124,6 +124,23 @@ Some redistributions are documented closer to the files they cover:
 - Upstream releases all gifdec source code and documentation into the public domain without
   warranty.
 
+## MPEG-4 Part 2 normative tables
+
+- Licence: MIT
+- Copyright: Copyright (c) 2026 Karpeles Lab Inc.
+- Origin: <https://github.com/OxideAV/oxideav-mpeg4video>
+- Used by: the Part 2 tables in `std/modules/video/src/decode/mpeg4/tables.swg`.
+
+The tables themselves are the normative content of ISO/IEC 14496-2 - the macroblock type, coded
+block pattern, motion vector, direct-current size and coefficient code tables of Annex B, the scan
+orders, and the default quantiser matrices - and are facts of the format rather than that project's
+expression of them. They were recovered from its transcription of the standard and rewritten in the
+form this decoder reads. Every one was then re-checked here: each is prefix-free, no Kraft sum
+exceeds one, each coefficient table names 102 distinct events, the motion vector table covers minus
+thirty-two to thirty-two without a hole, and each scan order is a permutation of the sixty-four
+positions. `mpeg4.tables.test.swg` re-checks all of that inside this repository. No source line of
+that project is reproduced here.
+
 ## MP3 normative tables
 
 - Licence: CC0-1.0 (minimp3) and the Unlicence (PDMP3)

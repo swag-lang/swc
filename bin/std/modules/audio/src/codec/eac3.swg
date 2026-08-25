@@ -705,6 +705,25 @@ impl IPacketCodec for Eac3Codec
     }
 }
 
+// Returns the number of sample frames one E-AC-3 sync frame decodes to.
+//
+// Unlike AC-3, an E-AC-3 frame may carry one, two, three, or six blocks of 256 samples, and
+// which it carries is stated in the frame header.
+internal func eac3PacketFrameCount(packet: const [..] u8)->u32 fail
+{
+    if @countof(packet) < 5 do
+        fail InvalidFormatError{"E-AC-3 packet header is truncated"}
+    if packet[0] != 0x0B or packet[1] != 0x77 do
+        fail InvalidFormatError{"E-AC-3 packet has no sync word"}
+
+    // A reduced sampling rate always uses six blocks; otherwise the block count is coded.
+    let fscod = cast(u32) (packet[4] >> 6) & 3
+    if fscod == 3 do
+        return 1536
+    const Blocks: [4] u32 = [1, 2, 3, 6]
+    return Blocks[(packet[4] >> 4) & 3] * 256
+}
+
 #init
 {
     registerPacketCodec'Eac3Codec()

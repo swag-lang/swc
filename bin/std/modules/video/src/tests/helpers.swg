@@ -123,3 +123,74 @@ func videoAssertFixtureLumaFrame(frame: Image, index: u64, tolerance = 3)
         videoAssertGray(frame.pixelColor(samples[position].x, samples[position].y), value, tolerance)
     videoAssertGray(frame.pixelColor(samples[3].x, samples[3].y), videoFixtureGray(index), tolerance)
 }
+
+// Converts one frame of a raw 4:2:0 reference dump with the exact arithmetic the module's
+// decoders use, so a correct H.264 decode matches it byte for byte.
+func videoReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32)->Image
+{
+    let lumaSize     = cast(u64) width * cast(u64) height
+    let chromaWidth  = cast(u64) (width + 1) / 2
+    let chromaHeight = cast(u64) (height + 1) / 2
+    let chromaSize   = chromaWidth * chromaHeight
+    let frameSize    = lumaSize + chromaSize * 2
+    let base         = index * frameSize
+    @assert(base + frameSize <= @countof(bytes))
+
+    var result: retval = Image.create(width, height, .RGB8)
+    for y in height
+    {
+        let destinationRow = cast(u64) (height - y - 1) * cast(u64) result.rowStride
+        for x in width
+        {
+            let luma         = cast(s32) bytes[base + cast(u64) y * cast(u64) width + cast(u64) x]
+            let chromaSource = cast(u64) (y >> 1) * chromaWidth + cast(u64) (x >> 1)
+            let d            = cast(s32) bytes[base + lumaSize + chromaSource] - 128
+            let e            = cast(s32) bytes[base + lumaSize + chromaSize + chromaSource] - 128
+            let c            = Math.max(luma - 16, 0)
+            let destination  = result.pixels.buffer! + destinationRow + cast(u64) x * 3
+            destination[0] = cast(u8) Math.clamp((298 * c + 409 * e + 128) >> 8, 0, 255)
+            destination[1] = cast(u8) Math.clamp((298 * c - 100 * d - 208 * e + 128) >> 8, 0, 255)
+            destination[2] = cast(u8) Math.clamp((298 * c + 516 * d + 128) >> 8, 0, 255)
+        }
+    }
+
+    return result
+}
+
+// Compares a decoded frame against the reference, reporting the first difference.
+func videoAssertReferenceFrame(frame: Image, reference: const [..] u8, index: u64, width, height: s32)
+{
+    @assert(frame.width == width and frame.height == height and frame.pixelFormat == .RGB8)
+    let expected   = videoReferenceFrame(reference, index, width, height)
+    var mismatches = 0'u64
+    for position in frame.pixels.count where frame.pixels.buffer![position] != expected.pixels.buffer![position] do
+        mismatches += 1
+    if mismatches > 0 do
+        @print("frame ", index, ": ", mismatches, " of ", frame.pixels.count, " bytes differ\n")
+    @assert(mismatches == 0)
+}
+
+// Decodes a whole stream in order and demands byte-exact frames.
+//
+// `container` carries no leading dot: it names the file beside `name.yuv` the stream is read from,
+// so one reference dump serves every container the same access units were muxed into.
+func videoAssertReferenceStream(name: string, width, height: s32, frameCount: u64, container = "mp4")
+{
+    if Jobs.isSynchronous() do
+        discard expect Jobs.initialize(16)
+
+    var reader = expect Reader.open(videoFixturePath(Format.toString("%.%", name, container).toString()))
+    @assert(reader.width() == width and reader.height() == height)
+
+    let reference = expect File.readAllBytes(videoFixturePath(Format.toString("%.yuv", name).toString()).toString())
+    var frame: Image
+    for index in frameCount
+    {
+        expect reader.decodeFrameInto(&frame, index)
+        videoAssertReferenceFrame(frame, reference.toSlice(), index, width, height)
+    }
+
+    // A progressive container only knows its length once the stream has been walked, so the count
+    // is demanded here rather than at open.
+    @assert(reader.frameCount() == frameCount)
+}

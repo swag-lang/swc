@@ -43,14 +43,14 @@ The extension of the file selects the codec, so choosing one is choosing a name.
 | --- | --- | --- | --- |
 | `.y4m` | 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4 planar YCbCr | 4:4:4 planar YCbCr | Nothing is lost, and nothing is compressed either: one second of 720p costs about forty megabytes. |
 | `.avi` | Motion JPEG, and uncompressed 24- and 32-bit frames | Motion JPEG | Each frame is a JPEG image, so the file is one to two orders of magnitude smaller and the picture loses what JPEG loses. |
-| `.mp4`, `.m4v`, `.mov` | Motion JPEG or H.264 in ISO-BMFF sample tables; AAC-LC audio | Motion JPEG | Motion JPEG seeks directly. H.264 seeks to a sync sample and decodes forward while returning pictures in presentation order. |
-| `.mkv` | H.264 in Matroska EBML blocks; multiple AAC-LC, AC-3, or E-AC-3 audio tracks | — | Opening maps the file read-only long enough to index block headers without reading media payloads. H.264 seek and presentation ordering match the ISO-BMFF path. |
+| `.mp4`, `.m4v`, `.mov` | Motion JPEG, H.264 or H.265 in ISO-BMFF sample tables; AAC-LC audio | Motion JPEG | Motion JPEG seeks directly. A coded stream seeks to a sync sample and decodes forward while returning pictures in presentation order. |
+| `.mkv` | H.264 or H.265 in Matroska EBML blocks; multiple AAC-LC, AC-3, E-AC-3, or FLAC audio tracks | — | Opening maps the file read-only long enough to index block headers without reading media payloads. Seek and presentation ordering match the ISO-BMFF path. |
 
 YUV4MPEG2 computes an offset from the constant size of a frame, AVI reads one from the index the
 container carries, and ISO-BMFF expands its chunk and sample tables once when the stream opens.
-H.264 in ISO-BMFF or Matroska seeks to the nearest preceding sync picture and decodes prediction
-dependencies forward, so a distant random seek costs the group of pictures it enters rather than
-one frame.
+H.264 and H.265 in ISO-BMFF or Matroska seek to the nearest preceding sync picture and decode
+prediction dependencies forward, so a distant random seek costs the group of pictures it enters
+rather than one frame.
 
 ## Reading sound tracks
 

@@ -16,7 +16,9 @@ ships; history lives in git, not here.
 A process-wide engine with an explicit lifecycle, a bus tree with parent routing and per-bus gain,
 voices with linear and decibel gain, pitch through a frequency ratio, looping, fire-and-forget
 lifetime, and streaming through three rotating 64 KiB decoded buffers. A codec registry
-(`ICodec`, `registerCodec`) that makes decoding extensible from outside the module. A no-sound
+(`ICodec`, `registerCodec`) that makes decoding extensible from outside the module, with
+AAC-LC, AC-3, independent E-AC-3 and FLAC decoders in the box; FLAC also has its own file reader,
+so a `.flac` opens through `SoundFile.load` and streams from disk. A no-sound
 driver that preserves the entire lifecycle without opening a device, wired into the sandbox so a
 test run never makes noise — that last part is better integrated than in most libraries of this
 size.
@@ -42,17 +44,11 @@ effects, no capture.
   architecture work.
 - Why first: everything else on this list is a refinement of a library that plays audio. This is
   what decides whether it can be used at all.
-- Related: T-166, T-167, T-168, T-169
+- Related: T-166, T-168, T-169, T-562
 
 ### T-166 — No Ogg Vorbis decoder
 
 Add Ogg framing and Vorbis decoding behind `ICodec`, including streaming and seek-table behavior.
-
-- Related: T-058
-
-### T-167 — No FLAC decoder
-
-Add native FLAC decoding with streaming, metadata bounds, and exact PCM output tests.
 
 - Related: T-058
 
@@ -215,3 +211,16 @@ product, not a standard-library module.
 **Bundled codec licensing.** Any format added under T-058 must be a clean-room or
 permissively-licensed implementation. Do not vendor a decoder whose terms cannot be satisfied by a
 standard library shipped with a compiler.
+
+### T-562 — No DTS decoder
+
+- Problem: a film track that is not Dolby is usually DTS, and the module decodes nothing of it.
+  Matroska and ISO-BMFF both index the packets already, so what is missing is the codec alone.
+- Consequence: a `.mkv` whose only audio track is DTS plays silently, and the reader reports the
+  track as unavailable rather than wrong — correct, and still a file the user cannot hear.
+- What blocks it beyond the work itself: there is no fixture. FFmpeg's DTS encoder is experimental
+  and the PyAV build on this machine does not expose it at all, so the six-tone recipe every other
+  audio fixture here uses cannot produce one. Settle that first — an encoder that can be run
+  reproducibly, or a permissively licensed conformance stream with a stated origin — because a
+  decoder with no reference decodes into an opinion.
+- Related: T-058

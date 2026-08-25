@@ -586,6 +586,18 @@ impl IPacketCodec for Ac3Codec
     }
 }
 
+// Returns the number of sample frames one AC-3 sync frame decodes to.
+//
+// Every AC-3 frame carries six blocks of 256 samples, so only the sync word needs checking.
+internal func ac3PacketFrameCount(packet: const [..] u8)->u32 fail
+{
+    if @countof(packet) < 7 do
+        fail InvalidFormatError{"AC-3 packet header is truncated"}
+    if packet[0] != 0x0B or packet[1] != 0x77 do
+        fail InvalidFormatError{"AC-3 packet has no sync word"}
+    return 1536
+}
+
 #init
 {
     initializeDolbyCore()

@@ -26,7 +26,7 @@ func assertRbspUnescape(data: const [..] u8)
 {
     let expected = referenceUnescapeRbsp(data)
     var actual: Array'u8
-    H264.unescapeRbsp(&actual, data)
+    unescapeRbsp(&actual, data)
     @assert(actual.count == expected.count)
     @assert(!actual.count or Memory.compare(actual.buffer!, expected.buffer!, actual.count) == 0)
 }

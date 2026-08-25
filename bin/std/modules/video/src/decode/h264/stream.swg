@@ -57,15 +57,6 @@ private struct DecodedAvcSample
     rank:  u64
 }
 
-// One length-prefixed AVC access unit in decode order.
-struct SampleEntry
-{
-    offset:           u64
-    size:             u64
-    presentationTime: s64
-    isSync:           bool
-}
-
 // Drives an indexed H.264 stream independently of its container.
 //
 // Up to sixteen complete decoder contexts run pictures concurrently. The owner publishes the

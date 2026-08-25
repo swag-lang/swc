@@ -1,7 +1,12 @@
-#global namespace H264
 #global internal
 
 using Core, Core.Errors
+
+// The NAL unit bit layer H.264 and H.265 share.
+//
+// Both formats carry their syntax in the same raw byte sequence payload: the same emulation
+// prevention, the same most-significant-bit-first order, and the same Exp-Golomb codes. This
+// sits at module scope so both decoders read one implementation.
 
 // Reads the bits of one raw byte sequence payload, most significant bit first.
 //
@@ -179,4 +184,81 @@ func unescapeRbsp(destination: *Array'u8, data: const [..] u8)
     }
 
     destination.resize(outputIndex)
+}
+
+// Returns the position in `data` of the byte that unescapes to output byte `unescapedCount`.
+//
+// A container states the entry points of a slice in bytes of the escaped payload, while the
+// parser works on the unescaped one; this converts between the two without keeping a map.
+func escapedOffsetOf(data: const [..] u8, unescapedCount: u64)->u64
+{
+    let count = @countof(data)
+    var produced = 0'u64
+    var index    = 0'u64
+    var zeros    = 0'u32
+    while index < count and produced < unescapedCount
+    {
+        let value = data[index]
+        if zeros >= 2 and value == 3
+        {
+            zeros = 0
+            index += 1
+            continue
+        }
+
+        zeros    = value == 0 ? zeros + 1 : 0
+        produced += 1
+        index    += 1
+    }
+
+    return index
+}
+
+// Appends the raw byte sequence payload of `data`, reporting where each escaped boundary landed.
+//
+// `escapedBounds` holds byte positions in `data`, in increasing order; `unescapedBounds` receives
+// the position each of them takes in the unescaped output. Unescaping the substreams of a slice
+// in one pass is what keeps a zero run that crosses a boundary from being read twice.
+func unescapeRbspWithBounds(destination: *Array'u8, data: const [..] u8, escapedBounds: const [..] u64, unescapedBounds: *Array'u64)
+{
+    let count = @countof(data)
+    destination.clear()
+    destination.resize(count)
+    unescapedBounds.clear()
+
+    let output   = destination.buffer!
+    var index    = 0'u64
+    var produced = 0'u64
+    var zeros    = 0'u32
+    var boundary = 0'u64
+
+    while index < count
+    {
+        while boundary < @countof(escapedBounds) and escapedBounds[boundary] <= index
+        {
+            unescapedBounds.add(produced)
+            boundary += 1
+        }
+
+        let value = data[index]
+        if zeros >= 2 and value == 3
+        {
+            zeros = 0
+            index += 1
+            continue
+        }
+
+        zeros           = value == 0 ? zeros + 1 : 0
+        output[produced] = value
+        produced        += 1
+        index           += 1
+    }
+
+    while boundary < @countof(escapedBounds)
+    {
+        unescapedBounds.add(produced)
+        boundary += 1
+    }
+
+    destination.resize(produced)
 }

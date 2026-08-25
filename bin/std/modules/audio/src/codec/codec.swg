@@ -1,4 +1,4 @@
-using Core
+using Core, Core.Errors
 
 var g_Codecs:       Array'CodecDesc
 var g_PacketCodecs: Array'PacketCodecDesc
@@ -48,6 +48,43 @@ public interface IPacketCodec
     mtd decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
 }
 
+// Reports whether `encoding` names packets a packet codec decodes.
+//
+// A packetized sound is one whose payload is a sequence of independently indexed compressed
+// access units; the uncompressed encodings are chunked instead, and go through the PCM path.
+public func isPacketEncoding(encoding: SoundFileEncoding)->bool
+{
+    switch encoding
+    {
+    case .AacLc, .Ac3, .Eac3, .Flac:
+        return true
+    default:
+        return false
+    }
+}
+
+// Returns the number of sample frames one packet of `encoding` decodes to.
+//
+// A container builds its packet index before any decoding happens, so this reads the count out
+// of the packet header rather than decoding the packet. `packet` needs to hold the header only,
+// not the whole access unit.
+public func packetFrameCount(encoding: SoundFileEncoding, packet: const [..] u8)->u32 fail
+{
+    switch encoding
+    {
+    case .AacLc:
+        return 1024
+    case .Ac3:
+        return try Dolby.ac3PacketFrameCount(packet)
+    case .Eac3:
+        return try Dolby.eac3PacketFrameCount(packet)
+    case .Flac:
+        return try Flac.packetFrameCount(packet)
+    default:
+        fail UnsupportedFormatError{"unsupported packetized sound encoding"}
+    }
+}
+
 // Reports the byte-level progress of one incremental codec operation.
 public struct CodecProgress
 {
@@ -70,6 +107,26 @@ struct PacketCodecDesc
     itf:  IPacketCodec
 }
 
+// Reports whether `type` opens with the registry header every codec instance is destroyed through.
+//
+// A voice allocates a codec by its type, hands the caller an interface, and later reads the
+// concrete type and the allocator back out of the first bytes of the instance. A codec that does
+// not start with [[Audio.Codec]] therefore destroys something else, and nothing says so until the
+// process faults inside the destructor.
+#[Swag.ConstExpr]
+private func startsWithCodecHeader(type: const *Swag.TypeInfoStruct)->bool
+{
+    for field in type.fields
+    {
+        if field.offset != 0 or !field.pointedType do
+            continue
+        if field.pointedType!.crc == #typeof(Codec).crc do
+            return true
+    }
+
+    return false
+}
+
 // Registers a codec implementation for subsequent voice creation.
 //
 // `T` must implement [[Audio.ICodec]]. Registration stores its type and
@@ -77,6 +134,7 @@ struct PacketCodecDesc
 public func(T) registerCodec()
 {
     #assert(Reflection.hasInterface(#typeof(T), ICodec))
+    #assert(startsWithCodecHeader(#typeof(T)))
 
     registerCodecImplementation(#typeof(T), @mkinterface(null, #typeof(T), ICodec))
 }
@@ -99,6 +157,7 @@ public func registerCodecImplementation(type: const *Swag.TypeInfoStruct, itf: I
 public func(T) registerPacketCodec()
 {
     #assert(Reflection.hasInterface(#typeof(T), IPacketCodec))
+    #assert(startsWithCodecHeader(#typeof(T)))
 
     registerPacketCodecImplementation(#typeof(T), @mkinterface(null, #typeof(T), IPacketCodec))
 }

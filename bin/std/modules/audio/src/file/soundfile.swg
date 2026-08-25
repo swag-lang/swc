@@ -30,6 +30,7 @@ enum SoundFileEncoding
     AacLc       // MPEG-4 AAC Low Complexity access units.
     Ac3         // Dolby Digital AC-3 sync frames.
     Eac3        // Dolby Digital Plus E-AC-3 sync frames.
+    Flac        // Free Lossless Audio Codec frames.
 }
 
 // Configures an indexed compressed sound stream.
@@ -110,7 +111,7 @@ impl SoundFile
     mtd const isPacketStream()->bool => .packets.count != 0
 
     // Returns whether indexed packets need the compressed packet codec.
-    internal mtd const usesPacketCodec()->bool => (.encoding == .AacLc or .encoding == .Ac3 or .encoding == .Eac3) and .packets.count != 0
+    internal mtd const usesPacketCodec()->bool => isPacketEncoding(.encoding) and .packets.count != 0
 
     // Returns the number of indexed packets or chunks in this source.
     mtd const packetCount()->u64 => .packets.count
@@ -217,13 +218,21 @@ impl SoundFile
     // Returns whether the loader validated the requested property.
     mtd const hasField(field: SoundFileFields)->bool => .availableFields.has(field)
 
-    // Loads and validates a WAV sound file.
+    // Loads and validates a sound file.
     //
     // `preloadData` keeps the complete payload in memory; otherwise voices stream
-    // it from `path`. Unsupported extensions, encodings, and malformed files fail.
+    // it from `path`. A FLAC file is always streamed — its audio is compressed, so keeping it in
+    // memory would keep the wrong bytes — and `preloadData` does not apply to it. Unsupported
+    // extensions, encodings, and malformed files fail.
     func load(path: string, preloadData = true)->SoundFile fail
     {
-        if Path.lowercaseExtension(path) != ".wav" do
+        let extension = Path.lowercaseExtension(path)
+        if extension == ".flac"
+        {
+            return try Flac.openFile(path)
+        }
+
+        if extension != ".wav" do
             fail UnsupportedFormatError{"unsupported file extension"}
 
         var result: retval
@@ -242,14 +251,14 @@ impl SoundFile
     // voice seeking and playback positions remain local to this sound.
     func openPacketStream(path: string, encoding: SoundFileEncoding, sampleRateHz, channels: u32, frameCount: u64, packets: const [..] SoundPacket, decoderConfig: const [..] u8, options: PacketStreamOptions = {})->SoundFile fail
     {
-        if encoding != .AacLc and encoding != .Ac3 and encoding != .Eac3 do
+        if !isPacketEncoding(encoding) do
             fail UnsupportedFormatError{"unsupported packetized sound encoding"}
         if !sampleRateHz or !channels or channels > 8 do
             fail BadParameterError{"packetized sound needs one to eight channels and a non-zero sample rate"}
         if !@countof(packets) do
             fail BadParameterError{"packetized sound needs packets"}
-        if encoding == .AacLc and !@countof(decoderConfig) do
-            fail BadParameterError{"AAC packetized sound needs decoder configuration"}
+        if (encoding == .AacLc or encoding == .Flac) and !@countof(decoderConfig) do
+            fail BadParameterError{"packetized sound needs decoder configuration"}
 
         var stream     = File.openRead(path)
         let sourceSize = stream.size()

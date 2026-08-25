@@ -850,3 +850,39 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `@dataof` uses and the interface form is the common one, so the sweep is `cast(*T) @dataof(itf)!`
   at every site. Measure it before committing, and consider whether a non-null `any` should instead
   be the type that promises a payload, making `@mkany(null, type)` the thing that needs `#null`.
+
+## Which construct an `else` belongs to
+
+### F-197 — An `else` after a one-line `do try` binds to the `try`, not to the `if`
+
+- Area: language
+- Found while: adding H.265 to the ISO-BMFF and Matroska readers. The codec dispatch was written as
+  a plain two-branch `if`, and the H.264 branch silently never ran: fifteen of the module's tests
+  failed with an empty sample table, a zero picture size, and no diagnostic anywhere.
+- Observation: `try expr else expr` is the error-handling form that supplies a fallback value, and
+  `if cond do stmt else stmt` is the ordinary conditional. When the `do` branch is a single `try`
+  call, the two spellings collide, and the `else` is taken by the `try`. The reading that loses is
+  the one the indentation states:
+
+```
+if useHevc do
+    try hevc.open(config, frames)     // taken when useHevc
+else do
+    try avc.open(config, frames)      // NEVER taken: this is the try's fallback
+```
+
+  Nothing reports it. The `else` branch is reachable code that the parser has attached to a
+  construct that only enters it on failure, so a condition that is false does nothing at all.
+- Evidence: `bin/std/modules/video/src/decode/picturestream.swg` in its first form, against 0.0.213.
+  Bracing both branches restores the intended behaviour and is the only difference. The same shape
+  was present in the Matroska reader's codec dispatch and had the same effect there.
+- Elsewhere: no language that has both a value-level `else` and a statement-level `else` leaves the
+  ambiguity to precedence. Zig's `catch` fallback is written `f() catch fallback` with no `else`
+  spelling at all; Kotlin's `?:` is an operator, not a keyword; Rust has `let ... else`, which is
+  terminated by a mandatory block, so it cannot swallow a following `else`.
+- Next step: decide whether a `try` that is the entire body of a `do` branch may take an `else` at
+  all. Forbidding it there is a one-line parser rule with an exact diagnostic — "this `else` would
+  belong to `try`; brace the branch, or write the fallback on the same line" — and `bin/` holds no
+  site that wants the current reading: a sweep for a `do`-line followed by a lone `try` and then an
+  `else` returns nothing outside the file above. Confirm that count before choosing between an
+  error and a warning.

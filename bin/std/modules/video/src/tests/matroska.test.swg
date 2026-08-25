@@ -78,14 +78,14 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
 }
 
 // Matroska maps every native multichannel packet codec to std/audio without copying payloads.
-// The packet duration comes from the codec framing: AAC has 1,024 samples and both fixtures here
-// carry six-block Dolby sync frames with 1,536 samples.
+// The packet duration comes from the codec framing: AAC has 1,024 samples, both Dolby fixtures
+// carry six-block sync frames with 1,536, and a FLAC frame states its own block size, 4,608 here.
 #test
 {
-    const Files:        [3] string = ["ffmpeg-h264-aac-5.1.mkv", "ffmpeg-h264-ac3-5.1.mkv", "ffmpeg-h264-eac3-5.1.mkv"]
-    const Encodings:    [3] Audio.SoundFileEncoding = [.AacLc, .Ac3, .Eac3]
-    const PacketFrames: [3] u32    = [1024, 1536, 1536]
-    for fileIndex in 3
+    const Files:        [4] string = ["ffmpeg-h264-aac-5.1.mkv", "ffmpeg-h264-ac3-5.1.mkv", "ffmpeg-h264-eac3-5.1.mkv", "ffmpeg-h264-flac-5.1.mkv"]
+    const Encodings:    [4] Audio.SoundFileEncoding = [.AacLc, .Ac3, .Eac3, .Flac]
+    const PacketFrames: [4] u32    = [1024, 1536, 1536, 4608]
+    for fileIndex in @countof(Files)
     {
         var reader = expect Reader.open(videoFixturePath(Files[fileIndex]))
         waitForMatroskaAudio(&reader, 1)

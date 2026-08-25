@@ -38,15 +38,15 @@ Four codecs ship in the box:
 - AVI (`.avi`) reads Motion JPEG and uncompressed frames, exposes integer PCM sound tracks, and
   writes Motion JPEG pictures. It seeks through the index the container carries rather than
   through the frames themselves, so a seek costs one frame whatever the length of the file.
-- ISO-BMFF (`.mp4`, `.m4v`, and `.mov`) reads Motion JPEG and H.264 pictures, writes Motion JPEG,
-  and exposes AAC-LC mono/stereo audio. It expands compact sample tables into direct packet
-  offsets while payloads remain in the file. Exact composition timestamps are retained for
-  variable-rate playback and H.264 display reordering.
-- Matroska (`.mkv`) reads H.264 pictures and exposes every AAC-LC, AC-3, and independent E-AC-3
-  audio track with up to six channels. Matroska `CodecDelay` is removed from the audible timeline.
+- ISO-BMFF (`.mp4`, `.m4v`, and `.mov`) reads Motion JPEG, H.264, and H.265 pictures, writes
+  Motion JPEG, and exposes AAC-LC mono/stereo audio. It expands compact sample tables into direct
+  packet offsets while payloads remain in the file. Exact composition timestamps are retained for
+  variable-rate playback and coded display reordering.
+- Matroska (`.mkv`) reads H.264 and H.265 pictures and exposes every AAC-LC, AC-3, independent
+  E-AC-3, and FLAC audio track with up to eight channels. Matroska `CodecDelay` is removed from the audible timeline.
   Opening reads only seek, track, and cue metadata. Decoding advances one foreground demux cursor
   through complete cluster windows as playback reaches them; random access restarts it at the
-  preceding video cue and reconstructs H.264 prediction through the requested picture. No
+  preceding video cue and reconstructs the coded prediction through the requested picture. No
   full-file scan competes with playback. Sound tracks become available when that progressive
   cursor reaches the end of the file, and work may be interrupted through
   [[Video.Reader.requestCancel]]. Media payloads stay in the file.

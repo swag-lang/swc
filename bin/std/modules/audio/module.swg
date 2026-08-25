@@ -1,7 +1,7 @@
 /*
 Audio streams decoded sound through a process-wide audio engine. It loads PCM and floating-point
-WAV files directly, and container readers can expose indexed AAC-LC, AC-3, and E-AC-3 access
-units or scattered PCM chunks without copying their media payload. The compressed decoders are
+WAV files directly, and container readers can expose indexed AAC-LC, AC-3, E-AC-3, and FLAC
+access units or scattered PCM chunks without copying their media payload. The compressed decoders are
 implemented in Swag and add no platform codec dependency.
 
 The high-level API revolves around three objects: [[Audio.SoundFile]] describes

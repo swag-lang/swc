@@ -5,11 +5,12 @@ using Core, Core.Errors, Pixel, Audio
 private const VideoTrackType = 1'u64
 private const AudioTrackType = 2'u64
 private const AvcCodecId = "V_MPEG4/ISO/AVC"
+private const HevcCodecId = "V_MPEGH/ISO/HEVC"
 private const AacCodecId = "A_AAC"
 private const Ac3CodecId = "A_AC3"
 private const Eac3CodecId = "A_EAC3"
+private const FlacCodecId = "A_FLAC"
 private const DefaultTimestampScale = 1_000_000'u64
-private const AacFrameSamples = 1024'u32
 private const NoTrack = Swag.U64.Max
 private const NoOffset = Swag.U64.Max
 
@@ -71,7 +72,7 @@ private struct Track
     isEnabled:       bool = true
     isDefault:       bool = true
     hasEncodings:    bool
-    videoSamples:    Array'H264.SampleEntry
+    videoSamples:    Array'SampleEntry
     audioPackets:    Array'SoundPacket
     audioFrameCount: u64
     audioStart:      s64
@@ -80,7 +81,9 @@ private struct Track
 
 private impl Track
 {
-    mtd const isPlayableVideo()->bool => .isEnabled and !.hasEncodings and .kind == VideoTrackType and .codecId == AvcCodecId and .codecPrivate.count != 0
+    mtd const isPlayableVideo()->bool => .isEnabled and !.hasEncodings and .kind == VideoTrackType and (.codecId == AvcCodecId or .codecId == HevcCodecId) and .codecPrivate.count != 0
+
+    mtd const isHevcVideo()->bool => .codecId == HevcCodecId
 
     mtd const soundEncoding()->SoundFileEncoding
     {
@@ -90,6 +93,8 @@ private impl Track
             return .Ac3
         if .codecId == Eac3CodecId do
             return .Eac3
+        if .codecId == FlacCodecId do
+            return .Flac
         return .Unknown
     }
 
@@ -98,9 +103,9 @@ private impl Track
         let encoding = .soundEncoding()
         if !.isEnabled or .hasEncodings or .kind != AudioTrackType or encoding == .Unknown do
             return false
-        if .sampleRate <= 0 or .sampleRate > cast(f64) Swag.U32.Max or !.channels or .channels > 6 do
+        if .sampleRate <= 0 or .sampleRate > cast(f64) Swag.U32.Max or !.channels or .channels > 8 do
             return false
-        return encoding != .AacLc or .codecPrivate.count != 0
+        return (encoding != .AacLc and encoding != .Flac) or .codecPrivate.count != 0
     }
 
     mtd const leadingTrimFrames()->u64 fail
@@ -116,7 +121,10 @@ private impl Track
     mtd const speakerMask(bytes: const [..] u8)->u32 fail
     {
         let encoding = .soundEncoding()
-        if encoding == .AacLc do
+
+        // AAC states its channel configuration in the decoder setup, and FLAC in its stream
+        // information; only Dolby hides it in the first packet.
+        if encoding != .Ac3 and encoding != .Eac3 do
             return 0
         let packet = .audioPackets[0]
         if packet.sourceOffset > @countof(bytes) or packet.byteSize > @countof(bytes) - packet.sourceOffset do
@@ -1037,23 +1045,9 @@ private impl Layout
 
     mtd const audioPacketFrames(bytes: const [..] u8, offset, size: u64, encoding: SoundFileEncoding)->u32 fail
     {
-        if encoding == .AacLc do
-            return AacFrameSamples
-        if size < 5 or offset > @countof(bytes) or size > @countof(bytes) - offset do
-            fail InvalidFormatError{"Matroska Dolby audio packet is truncated"}
-        if bytes[offset] != 0x0B or bytes[offset + 1] != 0x77 do
-            fail InvalidFormatError{"Matroska Dolby audio packet has no sync word"}
-        if encoding == .Ac3 do
-            return 1536
-        if encoding != .Eac3 do
-            fail UnsupportedFormatError{"unsupported Matroska audio codec"}
-
-        let fscod = (bytes[offset + 4] >> 6) & 3
-        if fscod == 3 do
-            return 1536
-        const Blocks: [4] u32 = [1, 2, 3, 6]
-        let numblkscod = (bytes[offset + 4] >> 4) & 3
-        return Blocks[numblkscod] * 256
+        if offset > @countof(bytes) or size > @countof(bytes) - offset do
+            fail InvalidFormatError{"Matroska audio packet is truncated"}
+        return try Audio.packetFrameCount(encoding, bytes[offset until offset + size])
     }
 }
 
@@ -1223,13 +1217,13 @@ struct Decoder
     internal
     {
         info:               StreamInfo
-        avc:                H264.AvcStream
+        video:              PictureStream
         fileIndex:          #null *FileIndex
         presentationOrigin: s64
         durationSeconds:    f64
-        avcSampleCount:     u64
+        streamSampleCount:  u64
         windowBaseRank:     u64
-        avcOpen:            bool
+        streamOpen:         bool
         memoryComplete:     bool
         resumeSoundIndexAfterDecode: bool
     }
@@ -1240,13 +1234,27 @@ private impl Decoder
     mtd configureMetadata(layout: *Layout) fail
     {
         let video = &layout.tracks[layout.selectedVideo]
-        var probe: H264.Decoder
-        probe.configure(video.codecPrivate.toSlice())
-        let sps = probe.firstSps()
-        if !sps do
-            fail InvalidFormatError{"H.264 decoder configuration has no sequence parameter set"}
-        .info.width  = sps!.width()
-        .info.height = sps!.height()
+        if video.isHevcVideo()
+        {
+            // The stream answers its own geometry, so the parameter sets are read once here and
+            // once more when the sample table exists.
+            var probe: Hevc.HevcStream
+            var empty: Array'SampleEntry
+            empty.add({0, 0, 0, true})
+            try probe.open(video.codecPrivate.toSlice(), #move empty)
+            .info.width  = probe.width
+            .info.height = probe.height
+        }
+        else
+        {
+            var probe: H264.Decoder
+            probe.configure(video.codecPrivate.toSlice())
+            let sps = probe.firstSps()
+            if !sps do
+                fail InvalidFormatError{"H.264 decoder configuration has no sequence parameter set"}
+            .info.width  = sps!.width()
+            .info.height = sps!.height()
+        }
         if video.defaultDuration do
             .info.frameRate = frameRateFromDuration(video.defaultDuration)
         if layout.durationTicks > 0 do
@@ -1259,11 +1267,11 @@ private impl Decoder
         if video.videoSamples.count > Swag.U32.Max do
             fail OverflowError{"Matroska video sample table is too large"}
         .info.frameCount = video.videoSamples.count
-        .avc.open(video.codecPrivate.toSlice(), #move video.videoSamples)
-        .avcOpen            = true
-        .avcSampleCount     = .info.frameCount
-        .presentationOrigin = .avc.presentationTimeAtRank(0)
-        let lastTimestamp = .avc.presentationTimeAtRank(.info.frameCount - 1)
+        try .video.open(video.isHevcVideo(), video.codecPrivate.toSlice(), video.videoSamples.toSlice())
+        .streamOpen         = true
+        .streamSampleCount  = .info.frameCount
+        .presentationOrigin = .video.presentationTimeAtRank(0)
+        let lastTimestamp = .video.presentationTimeAtRank(.info.frameCount - 1)
         let timestampSpan = cast(u64) (lastTimestamp - .presentationOrigin)
         var frameDuration = video.defaultDuration
         if !frameDuration and .info.frameCount > 1 do
@@ -1273,36 +1281,34 @@ private impl Decoder
         .memoryComplete  = true
     }
 
-    mtd appendAvailableFrames(samples: const [..] H264.SampleEntry, codecPrivate: const [..] u8) fail
+    mtd appendAvailableFrames(track: const *Track) fail
     {
-        if @countof(samples) <= .avcSampleCount do
+        let samples = track.videoSamples.toSlice()
+        if @countof(samples) <= .streamSampleCount do
             return
-        let added = samples[.avcSampleCount until @countof(samples)]
-        if !.avcOpen
+        let added = samples[.streamSampleCount until @countof(samples)]
+        if !.streamOpen
         {
-            var initial: Array'H264.SampleEntry
-            initial.add(added)
-            .avc.open(codecPrivate, #move initial)
-            .avcOpen            = true
-            .presentationOrigin = .avc.presentationTimeAtRank(0)
+            try .video.open(track.isHevcVideo(), track.codecPrivate.toSlice(), added)
+            .streamOpen         = true
+            .presentationOrigin = .video.presentationTimeAtRank(0)
         }
         else do
-            .avc.appendFrames(added)
-        .avcSampleCount = @countof(samples)
+            try .video.appendFrames(added)
+        .streamSampleCount = @countof(samples)
     }
 
-    mtd replaceAvailableFrames(samples: const [..] H264.SampleEntry, codecPrivate: const [..] u8) fail
+    mtd replaceAvailableFrames(track: const *Track) fail
     {
-        var replacement: Array'H264.SampleEntry
-        replacement.add(samples)
-        if !.avcOpen
+        let samples = track.videoSamples.toSlice()
+        if !.streamOpen
         {
-            .avc.open(codecPrivate, #move replacement)
-            .avcOpen = true
+            try .video.open(track.isHevcVideo(), track.codecPrivate.toSlice(), samples)
+            .streamOpen = true
         }
         else do
-            .avc.replaceFrames(#move replacement)
-        .avcSampleCount = @countof(samples)
+            try .video.replaceFrames(samples)
+        .streamSampleCount = @countof(samples)
     }
 
     mtd targetTimestamp(index: u64)->s64
@@ -1378,11 +1384,11 @@ private impl Decoder
                 fail BadParameterError{"video reader operation was cancelled"}
         }
 
-        .replaceAvailableFrames(video.videoSamples.toSlice(), video.codecPrivate.toSlice())
+        try .replaceAvailableFrames(video)
         var localRank = 0'u64
-        while localRank < .avcSampleCount and .avc.presentationTimeAtRank(localRank) < target do
+        while localRank < .streamSampleCount and .video.presentationTimeAtRank(localRank) < target do
             localRank += 1
-        if localRank >= .avcSampleCount do
+        if localRank >= .streamSampleCount do
             fail BadParameterError{"Matroska frame index exceeds the stream frame count"}
         .windowBaseRank = index >= localRank ? index - localRank : 0
     }
@@ -1402,16 +1408,16 @@ private impl Decoder
 
         let layout = fileIndex.progressive!
         let bytes  = fileIndex.region.bytes()
-        if !.avcOpen
+        if !.streamOpen
         {
             if !layout.indexWindow(bytes, 0, &fileIndex.cancel) do
                 fail BadParameterError{"video reader operation was cancelled"}
             let video = &layout.tracks[layout.selectedVideo]
-            .appendAvailableFrames(video.videoSamples.toSlice(), video.codecPrivate.toSlice())
-            .presentationOrigin = .avc.presentationTimeAtRank(0)
+            try .appendAvailableFrames(video)
+            .presentationOrigin = .video.presentationTimeAtRank(0)
         }
 
-        if index < .windowBaseRank or index - .windowBaseRank > .avcSampleCount
+        if index < .windowBaseRank or index - .windowBaseRank > .streamSampleCount
         {
             .seekWindow(index)
         }
@@ -1421,13 +1427,13 @@ private impl Decoder
             if !layout.indexWindow(bytes, localIndex, &fileIndex.cancel) do
                 fail BadParameterError{"video reader operation was cancelled"}
             let video = &layout.tracks[layout.selectedVideo]
-            .appendAvailableFrames(video.videoSamples.toSlice(), video.codecPrivate.toSlice())
+            try .appendAvailableFrames(video)
         }
 
-        if index < .windowBaseRank or index - .windowBaseRank >= .avcSampleCount do
+        if index < .windowBaseRank or index - .windowBaseRank >= .streamSampleCount do
             fail BadParameterError{"Matroska frame index exceeds the stream frame count"}
         if layout.indexComplete and !.windowBaseRank do
-            .info.frameCount = .avcSampleCount
+            .info.frameCount = .streamSampleCount
     }
 
     mtd const currentFrameCount()->u64
@@ -1516,9 +1522,9 @@ impl IDecoder for Decoder
 
     mtd impl syncFrameAt(index: u64)->u64
     {
-        if index < .windowBaseRank or index - .windowBaseRank >= .avcSampleCount do
+        if index < .windowBaseRank or index - .windowBaseRank >= .streamSampleCount do
             return index
-        return .windowBaseRank + .avc.syncRankAt(index - .windowBaseRank)
+        return .windowBaseRank + .video.syncRankAt(index - .windowBaseRank)
     }
 
     mtd impl seekFrame(source: *Source, index: u64) fail
@@ -1526,7 +1532,7 @@ impl IDecoder for Decoder
         discard source
         defer #fail .resumeSoundIndex()
         .ensureFrames(index)
-        .avc.seekTo(index - .windowBaseRank)
+        .video.seekTo(index - .windowBaseRank)
     }
 
     mtd impl decodeFrame(source: *Source, target: *Image) fail
@@ -1537,11 +1543,11 @@ impl IDecoder for Decoder
         if .fileIndex
         {
             var media = Source.openMemory(.fileIndex!.region.bytes())
-            .avc.decodeNext(&media, target)
+            try .video.decodeNext(&media, target)
             return
         }
 
-        .avc.decodeNext(source, target)
+        try .video.decodeNext(source, target)
     }
 }
 
@@ -1555,11 +1561,11 @@ impl IPlanarDecoder for Decoder
         if .fileIndex
         {
             var media = Source.openMemory(.fileIndex!.region.bytes())
-            .avc.decodeNextPlanes(&media, target)
+            try .video.decodeNextPlanes(&media, target)
             return
         }
 
-        .avc.decodeNextPlanes(source, target)
+        try .video.decodeNextPlanes(source, target)
     }
 }
 
@@ -1597,8 +1603,8 @@ impl ITimedDecoder for Decoder
 {
     mtd impl frameTimestamp(index: u64)->f64
     {
-        if index >= .windowBaseRank and index - .windowBaseRank < .avcSampleCount do
-            return cast(f64) (.avc.presentationTimeAtRank(index - .windowBaseRank) - .presentationOrigin) / 1_000_000_000.0
+        if index >= .windowBaseRank and index - .windowBaseRank < .streamSampleCount do
+            return cast(f64) (.video.presentationTimeAtRank(index - .windowBaseRank) - .presentationOrigin) / 1_000_000_000.0
         let rate = .currentFrameRate()
         return rate.isValid() ? cast(f64) index * cast(f64) rate.denominator() / cast(f64) rate.numerator() : 0
     }

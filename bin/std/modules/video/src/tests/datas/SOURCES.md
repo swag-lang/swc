@@ -14,6 +14,16 @@ The corpus has three origins, and each file states which one it has.
 | `rav1e-c420jpeg.y4m` | [rav1e `tests/small_input.y4m`](https://github.com/xiph/rav1e/blob/6a8dbbe966744a98090337fc642839234a315fbe/tests/small_input.y4m), unmodified | 64x64 8-bit `C420jpeg`, progressive, 5 frames | 30 807 | `c21278d4d829764b3bb4d1b3285ce660d1b0d0abc19c6f174a6d52ef5b853a70` |
 | `xiph-claire-qcif.y4m` | [`claire_qcif-5.994Hz.y4m`](https://media.xiph.org/video/derf/y4m/claire_qcif-5.994Hz.y4m), unmodified | 176x144, 30 frames, no chroma tag so the implicit 4:2:0 default applies, `F6000:1001`, non-square pixel aspect | 1 140 703 | `c60601ce09c8470921d1a217f4f1326c6d40efb08c3cce6c9b71209a42c149c6` |
 | `xiph-bus-qcif-15fps.y4m` | [`bus_qcif_15fps.y4m`](https://media.xiph.org/video/derf/y4m/bus_qcif_15fps.y4m), unmodified | 176x144, 75 frames, 5 s, same implicit default, read from its last frame backwards | 2 851 688 | `868fc3446d37d0c6959a48b68906486bd64788b2e795f0e29613cbb1fa73480e` |
+| `hevc-ipred-a-docomo-2.bit` | JCT-VC `IPRED_A_docomo_2`, unmodified | Every H.265 intra prediction mode at every transform size, 20 pictures | 335 377 | `db440d8ce43ba3706a42b7c42095464dace247dbc4651d37c9787e5eb4aa3875` |
+| `hevc-merge-a-ti-3.bit` | JCT-VC `MERGE_A_TI_3`, unmodified | Merge candidate derivation at every permitted candidate count, 8 pictures | 16 374 | `0a84103e548cf8944851cc33c7826ea5213245fd94517fd1071895740abce749` |
+| `hevc-tmvp-a-ms-3.bit` | JCT-VC `TMVP_A_MS_3`, unmodified | Temporal motion vector prediction, which reads motion a reference picture exported, 17 pictures | 17 238 | `33556aa42355ba43575a6e6f1b579420a9217f576fc0ae07ee57fa2750a38d52` |
+| `hevc-sao-a-mediatek-4.bit` | JCT-VC `SAO_A_MediaTek_4`, unmodified | Sample adaptive offset with random merge decisions, over intra and predicted pictures, 60 pictures | 52 606 | `88f693ac4aec4dea03cb4bc0cb9d8c98a4023a015905369bb62688064fb58944` |
+| `hevc-wpp-a-ericsson-main10-2.bit` | JCT-VC `WPP_A_ericsson_MAIN10_2`, unmodified | Ten-bit samples through wavefront parallel processing, with independent and dependent slice segments, 48 pictures | 67 071 | `3b0d7323bf81d64d3c1443c9cebb8df6a42e0719ed422e64125e03971999b956` |
+
+The five `hevc-*.bit` files are H.265 conformance bitstreams of the Joint Collaborative Team on
+Video Coding, published for the purpose of testing decoders against the standard. Each carries the
+digest of every picture it decodes to inside the stream, so it is its own reference and no separate
+expectation is stored for it.
 
 `cogliati-turning-pages.avi` is granted to the public domain by its author, on the page linked
 above. `rav1e-c420jpeg.y4m` is BSD 2-Clause; see `LICENSE.bsd-2-clause.txt`. The two `xiph-`
@@ -133,6 +143,35 @@ to 23,219,954 ns by MKVToolNix. At 44.1 kHz this removes exactly 1,024 decoded A
 
 - SHA-256: `f015d034f3226285f969b6c3f15bd0f79b7985494f07ecb56c6c810940b3f560`
 - License: same as `ffmpeg-h264-two-aac.mkv`.
+
+`ffmpeg-hevc-main.mp4`, `ffmpeg-hevc-inband.mp4`, and `ffmpeg-hevc-main.mkv` re-encode the source
+pictures of `ffmpeg-h264-pyramid.yuv` with x265 through PyAV 17.1, so the H.264 and H.265 fixtures
+carry the same 96x64, 60-frame content and a difference between them is the codec alone.
+
+- `ffmpeg-hevc-main.mp4`: `preset=medium keyint=30 bframes=4 b-pyramid=1`, written with an `hvc1`
+  sample entry, whose parameter sets live only in the sample description. SHA-256:
+  `4176a643fec7f415cba4a0d73129efba39f88a9e96929cccc05cfe1ae7b6fae5`.
+- `ffmpeg-hevc-inband.mp4`: `preset=slow keyint=30 bframes=3 b-pyramid=1 slices=3 repeat-headers=1`,
+  written with an `hev1` sample entry, so every access unit repeats the parameter sets and three
+  slices divide each picture. `preset=slow` is what turns on rectangular prediction partitions, and
+  those are what the transform tree of an inter unit reads differently. SHA-256:
+  `8562b02e9736fdc377e44317f3f29f43bf1a97a5d0d39d67b80567a6b16780c2`.
+- `ffmpeg-hevc-main.mkv` is a stream copy of the first into Matroska, so the two decode to the same
+  pictures and only the container reader differs. SHA-256:
+  `6a2bcffbac7d879dd3a7051e367abeec4278eee4af51fc4c6563d33a6d1a5670`.
+- `ffmpeg-hevc-main.yuv` and `ffmpeg-hevc-inband.yuv` are those streams decoded by FFmpeg, which is
+  what the tests demand byte for byte. SHA-256:
+  `2ffedc6334a2514efed9367ba8b699317849b7152f5ea4b1ff362d7a1e33b021` and
+  `c62100124f47f6ce646d22e1c6c710c231281d36a5525a1a865ae9594592cfb6`.
+- License: same as this repository.
+
+`ffmpeg-h264-flac-5.1.mkv` stream-copies the H.264 access units of `ffmpeg-h264-baseline.mp4` and
+the FLAC track documented by std/audio's `flac-5.1-48000.flac` into Matroska through PyAV 17.1. Its
+audio frames carry 4,608 samples each, which is what a FLAC frame states in its own header rather
+than something the container knows.
+
+- SHA-256: `dd3b3c5d0eb5a0c72e4f3cadf4023d40a0002f8880e2c39e8b0f6e55dccefab8`
+- License: same as this repository.
 
 ## Expected values
 

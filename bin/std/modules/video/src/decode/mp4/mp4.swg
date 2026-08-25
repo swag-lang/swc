@@ -31,6 +31,7 @@ const Mpeg4AudioObjectType = 0x40'u8
 const SyncSampleId  = fourCc('s'u32, 't'u32, 's'u32, 's'u32)
 const CompositionId = fourCc('c'u32, 't'u32, 't'u32, 's'u32)
 const AvcConfigId   = fourCc('a'u32, 'v'u32, 'c'u32, 'C'u32)
+const HevcConfigId  = fourCc('h'u32, 'v'u32, 'c'u32, 'C'u32)
 
 const JpegCodecIds: [3] u32 = [
     fourCc('j'u32, 'p'u32, 'e'u32, 'g'u32),
@@ -40,6 +41,12 @@ const JpegCodecIds: [3] u32 = [
 const AvcCodecIds: [2] u32 = [
     fourCc('a'u32, 'v'u32, 'c'u32, '1'u32),
     fourCc('a'u32, 'v'u32, 'c'u32, '3'u32)]
+
+// `hvc1` keeps its parameter sets in the sample entry alone; `hev1` may repeat them in the access
+// units as well. Both are read the same way, because the decoder accepts either source.
+const HevcCodecIds: [2] u32 = [
+    fourCc('h'u32, 'v'u32, 'c'u32, '1'u32),
+    fourCc('h'u32, 'e'u32, 'v'u32, '1'u32)]
 
 const JpegName        = ".jpg"
 const JpegObjectType  = 0x6C'u8
@@ -99,7 +106,7 @@ struct Track
     offsets:        Array'u64
     syncSamples:    Array'u32          // Zero-based sync sample indices; empty means every sample.
     ctsEntries:     Array'CtsEntry     // Composition offset runs, empty for decode-order streams.
-    avcConfig:      Array'u8           // The `avcC` decoder configuration of an AVC track.
+    videoConfig:    Array'u8           // The `avcC` or `hvcC` decoder configuration of a coded track.
     aacConfig:      Array'u8           // MPEG-4 AudioSpecificConfig of an AAC track.
     channelCount:   u32
     sampleRate:     u32
@@ -107,7 +114,15 @@ struct Track
     hasDescription: bool
     isJpeg:         bool
     isAvc:          bool
+    isHevc:         bool
     isAac:          bool
+}
+
+private impl Track
+{
+    // Whether the track carries a coded picture stream this module decodes across access units,
+    // as opposed to the still images a Motion JPEG track stores.
+    mtd const isCodedVideo()->bool => .isAvc or .isHevc
 }
 
 // One run of samples sharing a composition-time offset.
@@ -276,7 +291,7 @@ private impl Layout
                 if candidate.handler == VideoHandlerId
                 {
                     .hasVideo = true
-                    if candidate.hasDescription and (candidate.isJpeg or candidate.isAvc) and !.track.hasDescription do
+                    if candidate.hasDescription and (candidate.isJpeg or candidate.isCodedVideo()) and !.track.hasDescription do
                         .track = #move candidate
                     elif !.unsupportedCodec do
                         .unsupportedCodec = candidate.codec
@@ -426,7 +441,9 @@ impl Track
         if .codec == Mpeg4VisualId do
             .isJpeg = .parseMpeg4VisualDescription(source, entry)
         if Slice.contains(AvcCodecIds, .codec) do
-            .isAvc = .parseAvcDescription(source, entry)
+            .isAvc = .parseCodecConfiguration(source, entry, AvcConfigId)
+        if Slice.contains(HevcCodecIds, .codec) do
+            .isHevc = .parseCodecConfiguration(source, entry, HevcConfigId)
     }
 
     // Reads an MPEG-4 audio sample entry and locates its AudioSpecificConfig.
@@ -511,8 +528,8 @@ impl Track
         return true
     }
 
-    // Locates and keeps the `avcC` decoder configuration of an AVC sample entry.
-    mtd parseAvcDescription(source: *Source, entry: Box)->bool fail
+    // Locates and keeps the decoder configuration record of a coded visual sample entry.
+    mtd parseCodecConfiguration(source: *Source, entry: Box, kind: u32)->bool fail
     {
         const VisualSampleEntrySize = 78'u64
         var position = entry.data + VisualSampleEntrySize
@@ -520,11 +537,11 @@ impl Track
         {
             source.seek(position)
             let child = readBox(source, entry.end)
-            if child.kind == AvcConfigId
+            if child.kind == kind
             {
                 let size = child.end - child.data
-                .avcConfig.resize(size)
-                source.readExact(.avcConfig.toSlice())
+                .videoConfig.resize(size)
+                source.readExact(.videoConfig.toSlice())
                 return true
             }
 
@@ -858,11 +875,11 @@ impl Track
     }
 }
 
-// Reads ISO-BMFF files carrying Motion JPEG or H.264 video samples.
+// Reads ISO-BMFF files carrying Motion JPEG, H.264, or H.265 video samples.
 //
 // Opening walks only the movie metadata and expands its compact sample tables into one direct
 // offset-and-size entry per frame. Frame payloads remain in the source and are read only when
-// requested. A Motion JPEG sample is a key frame, so seeking costs one table lookup; an H.264
+// requested. A Motion JPEG sample is a key frame, so seeking costs one table lookup; a coded
 // stream seeks by decoding forward from the nearest sync sample, and its frames are returned
 // in display order whatever order the file stores them in.
 //
@@ -876,8 +893,8 @@ struct Decoder
         frames:                Array'FrameEntry
         payload:               Array'u8
         nextIndex:             u64
-        isAvc:                 bool
-        avc:                   H264.AvcStream
+        isCoded:               bool
+        video:                 PictureStream
         soundTracks:           Array'SoundFile
         presentationTimes:     Array's64
         presentationTimescale: u32
@@ -897,7 +914,7 @@ impl IDecoder for Decoder
         let times = layout.track.sampleTimes()
         .presentationTimescale = layout.track.timescale
         .presentationTimes.reserve(times.count)
-        if layout.track.isAvc
+        if layout.track.isCodedVideo()
         {
             var order: Array'u32
             order.reserve(times.count)
@@ -938,7 +955,7 @@ impl IDecoder for Decoder
         .info.frameCount = frames.count
         .nextIndex       = 0
 
-        if layout.track.isAvc
+        if layout.track.isCodedVideo()
         {
             var syncFlags: Array'u8
             syncFlags.resize(frames.count)
@@ -956,15 +973,15 @@ impl IDecoder for Decoder
             if syncFlags.count do
                 syncFlags[0] = 1
 
-            var samples: Array'H264.SampleEntry
+            var samples: Array'SampleEntry
             samples.reserve(frames.count)
             for frame, index in frames do
                 samples.add({frame.offset, frame.size, times[index], syncFlags[index] != 0})
 
-            .isAvc = true
-            .avc.open(layout.track.avcConfig.toSlice(), #move samples)
-            .info.width  = .avc.width
-            .info.height = .avc.height
+            .isCoded = true
+            try .video.open(layout.track.isHevc, layout.track.videoConfig.toSlice(), samples.toSlice())
+            .info.width  = .video.width()
+            .info.height = .video.height()
         }
         else
         {
@@ -978,9 +995,9 @@ impl IDecoder for Decoder
 
     mtd impl syncFrameAt(index: u64)->u64
     {
-        if !.isAvc do
+        if !.isCoded do
             return index
-        return .avc.syncRankAt(index)
+        return .video.syncRankAt(index)
     }
 
     mtd impl seekFrame(source: *Source, index: u64) fail
@@ -988,17 +1005,17 @@ impl IDecoder for Decoder
         discard source
         if index >= .info.frameCount do
             fail BadParameterError{"MP4 frame index exceeds the stream frame count"}
-        if .isAvc do
-            .avc.seekTo(index)
+        if .isCoded do
+            .video.seekTo(index)
         else do
             .nextIndex = index
     }
 
     mtd impl decodeFrame(source: *Source, target: *Image) fail
     {
-        if .isAvc
+        if .isCoded
         {
-            .avc.decodeNext(source, target)
+            try .video.decodeNext(source, target)
             return
         }
 
@@ -1026,13 +1043,13 @@ impl IDecoder for Decoder
 
 impl IPlanarDecoder for Decoder
 {
-    mtd impl hasPlanarFrames()->bool => .isAvc
+    mtd impl hasPlanarFrames()->bool => .isCoded
 
     mtd impl decodeFramePlanes(source: *Source, target: *PlanarFrame) fail
     {
-        if !.isAvc do
+        if !.isCoded do
             fail UnsupportedFormatError{"MP4 track does not decode to planar pictures"}
-        .avc.decodeNextPlanes(source, target)
+        try .video.decodeNextPlanes(source, target)
     }
 }
 

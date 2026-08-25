@@ -15,7 +15,7 @@ using Core, Core.Errors, Pixel
     stream.nextRank   = 2
     stream.nextDecode = 3
 
-    const Added: [2] H264.SampleEntry = [{0, 0, 300, false}, {0, 0, 200, false}]
+    const Added: [2] SampleEntry = [{0, 0, 300, false}, {0, 0, 200, false}]
     expect stream.appendFrames(Added)
 
     @assert(stream.sampleAtRank.count == 6)
@@ -39,7 +39,7 @@ using Core, Core.Errors, Pixel
     stream.nextRank   = 1
     stream.nextDecode = 2
 
-    const Added: [2] H264.SampleEntry = [{0, 0, 300, false}, {0, 0, 200, false}]
+    const Added: [2] SampleEntry = [{0, 0, 300, false}, {0, 0, 200, false}]
     expect stream.appendFrames(Added)
 
     @assert(stream.sampleAtRank.count == 6)

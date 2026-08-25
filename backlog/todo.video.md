@@ -2,10 +2,11 @@
 
 The module reads and writes video as a stream: a codec registered against `Video.IDecoder` and
 `Video.IEncoder`, selected by extension, reading a `Video.Source` and writing a `Video.Sink`.
-Five picture codecs ship — YUV4MPEG2, AVI, ISO-BMFF with Motion JPEG, ISO-BMFF with H.264, and
-Matroska with H.264. File-backed ISO-BMFF and Matroska also expose streamed AAC-LC tracks to
-std/audio. Encoded payloads stay on disk; readers retain compact per-sample indexes plus one
-picture, the reference frames H.264 prediction needs, and a bounded audio queue.
+Seven picture codecs ship — YUV4MPEG2, AVI, ISO-BMFF with Motion JPEG, ISO-BMFF with H.264 or
+H.265, and Matroska with H.264 or H.265. File-backed ISO-BMFF and Matroska also expose streamed
+AAC-LC tracks to std/audio, and Matroska adds AC-3, E-AC-3 and FLAC. Encoded payloads stay on disk;
+readers retain compact per-sample indexes plus one picture, the reference frames prediction needs,
+and a bounded audio queue.
 
 What the module competes with is ffmpeg's demuxers, and the distance is measured in formats rather
 than in design: what is missing is decoders.
@@ -189,3 +190,20 @@ is the layout it does not read yet.
   few minutes at a usable bitrate produces.
 - Complete when: the decoder reads the `indx` hierarchy and follows `AVIX` continuations, and the
   encoder emits them instead of failing once the stream approaches the limit.
+
+### T-563 — H.265 reads 4:2:0 alone, and nothing has measured what it costs
+
+- Intent: the decoder is byte-exact against five JCT-VC conformance bitstreams and against x265
+  output in both containers, so what it decodes it decodes correctly. Two things are unknown or
+  absent, and both are what a real library is judged on next.
+- What it refuses, and where: `sets.swg` fails a sequence parameter set whose `chroma_format_idc`
+  is not 1, whose bit depth is neither 8 nor 10, that enables pulse code modulation blocks, or that
+  carries the range extension, multilayer, 3D or screen content tools. The 4:2:2 and 4:4:4 formats
+  and the range extension are what a capture or mastering file uses; a delivery file does not.
+- What is unmeasured: no figure exists for the processor time of one H.265 picture, on any stream,
+  next to anything. T-504 measured H.264 that way and the measurement is what found every gain
+  since; the same harness applies here unchanged, and the entropy decode is the same shape.
+- Next step: measure before optimizing and before widening. One 1080p and one 4K stream, serial,
+  one lane and one worker, processor time per picture and the stage split, against FFmpeg on the
+  same machine — that figure decides whether this entry is about speed or about formats.
+- Related: T-504

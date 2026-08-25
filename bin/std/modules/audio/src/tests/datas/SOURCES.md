@@ -27,3 +27,19 @@ coupling and rematrixing, complementing the multichannel fixture.
 
 - SHA-256: `4b5cfef8680e681e82745a30abe5166fbfc316908b504f13b8e487da8e78ef4c`
 - License: same as this repository.
+
+`flac-stereo-44100.flac` and `flac-5.1-48000.flac` are FLAC streams generated for this repository
+with PyAV 17.1 from mathematically generated sine waves, so they contain no third-party recording.
+The stereo file is one second of a 440 Hz left and 660 Hz right sine at 44.1 kHz; the multichannel
+one is the same half-second six-tone 5.1 input as the fixtures above. The encoder chose 4,608
+sample frames per FLAC frame.
+
+`flac-stereo-44100.pcm` and `flac-5.1-48000.pcm` are the interleaved 16-bit inputs those two files
+were encoded from. FLAC is lossless, so they are what a correct decode must produce, byte for byte,
+and they were not produced by this module.
+
+- `flac-stereo-44100.flac` SHA-256: `079c942489f90df0093df3f80eae4dafdd796a536a21b1d50169d615c1c49f53`
+- `flac-stereo-44100.pcm` SHA-256: `39c52cb32e0e8ca25d7f4af7565e37f7794bdd8dba7adc16890645a0a5c3073c`
+- `flac-5.1-48000.flac` SHA-256: `c6bf538b517d18795cccd5317f44f1c0b996da783ce12f9ee93cde122a98d3a2`
+- `flac-5.1-48000.pcm` SHA-256: `e2038b86051b34518ae4b5ce35db8d7d23cdcade1c846e066a0c19fe499e63e6`
+- License: same as this repository.

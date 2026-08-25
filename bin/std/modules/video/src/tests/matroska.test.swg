@@ -287,3 +287,22 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
         @assert(Memory.compare(cut.pixels.buffer!, entire.pixels.buffer!, cut.pixels.count) == 0)
     }
 }
+
+// A writer that knows every frame of a track begins with the same bytes may state them once and
+// store the frames without them, which is what mkvmerge does by default to several codecs. The
+// frames are the same frames, so what comes out of them is the same pictures.
+#test
+{
+    var stripped = expect Reader.open(videoFixturePath("edited-header-stripped.mkv"))
+    var whole    = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
+    @assert(stripped.width() == whole.width() and stripped.height() == whole.height())
+
+    var cut:    Image
+    var entire: Image
+    for index in 12'u64
+    {
+        expect stripped.decodeFrameInto(&cut, index)
+        expect whole.decodeFrameInto(&entire, index)
+        @assert(Memory.compare(cut.pixels.buffer!, entire.pixels.buffer!, cut.pixels.count) == 0)
+    }
+}

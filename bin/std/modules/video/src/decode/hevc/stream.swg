@@ -42,6 +42,7 @@ struct HevcStream
     nextDecode:  u64                    // Next sample to decode.
     nextRank:    u64                    // Display rank the next decode call returns.
     skipBefore:  u64
+    prefix:      Array'u8               // Bytes the container took off the front of every stored frame.
     dropped:     Array'u64                // Display ranks of pictures the standard says not to show.
     decodeLimit: u64 = Swag.U64.Max
     reachedEnd:  bool
@@ -333,9 +334,7 @@ impl HevcStream
                 .reachedEnd = true
 
             let entry = .frames[sample]
-            .payload.resize(entry.size)
-            try source.seek(entry.offset)
-            try source.readExact(.payload.toSlice())
+            try readStoredFrame(source, entry, .prefix.toSlice(), &.payload)
 
             let picture = try .decodeAccessUnit(.payload.toSlice())
             if !picture do

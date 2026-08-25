@@ -37,6 +37,7 @@ struct Mpeg4Stream
     frames:       Array'SampleEntry     // Samples in decoding order.
     sampleAtRank: Array'u32             // Sample of each display rank, by container time.
     payload:      Array'u8
+    prefix:       Array'u8              // Bytes the container took off the front of every stored frame.
     queue:        [HeldPictures] Picture
     queued:       u64
     emitRank:     u64                   // Display rank of the next picture the queue gives up.
@@ -155,9 +156,7 @@ impl Mpeg4Stream
         while .queued < 2 and .nextDecode < .frames.count
         {
             let entry = .frames[.nextDecode]
-            .payload.resize(entry.size)
-            try source.seek(entry.offset)
-            try source.readExact(.payload.toSlice())
+            try readStoredFrame(source, entry, .prefix.toSlice(), &.payload)
             .nextDecode += 1
 
             .decoder.beginSample(entry.presentationTime)

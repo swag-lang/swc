@@ -93,6 +93,7 @@ struct AvcStream
     threadsStarted:    bool
     reachedEnd:        bool
     skipBefore:        u64
+    prefix:            Array'u8         // Bytes the container took off the front of every stored frame.
     decodeLimit:       u64 = Swag.U64.Max     // Exclusive decode-order ceiling during seek preroll.
     nextDecode:        u64     // Next sample to hand a frame context.
     nextRank:          u64     // Display rank the next decode call returns.
@@ -518,10 +519,7 @@ impl AvcStream
         while .nextDecode < .frames.count and .nextDecode < .decodeLimit
         {
             let entry = .frames[.nextDecode]
-            if payload.count != entry.size do
-                payload.resize(entry.size)
-            source.seek(entry.offset)
-            source.readExact(payload.toSlice())
+            readStoredFrame(source, entry, .prefix.toSlice(), payload)
 
             let rank = cast(u64) .rankOfSample[.nextDecode]
             .nextDecode += 1

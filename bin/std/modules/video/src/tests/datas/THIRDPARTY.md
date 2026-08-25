@@ -80,6 +80,14 @@ untouched, so the pictures it did write still decode; the cue table it never wro
 - SHA-256: `88964b22b9d771197b8ca4493f32230d13cf0f72c5bebb39da1368c70d6252c4`
 - License: same as `ffmpeg-h264-two-aac.mkv`.
 
+`edited-header-stripped.mkv` is `ffmpeg-h264-two-aac.mkv` rewritten with the leading zero byte
+taken off every video frame and stated once in a ContentEncoding, which is what mkvmerge does by
+default to several codecs and what one file of a real library carries. Its seek head and cue table
+are dropped because every offset in them moves; nothing else about the file changes.
+
+- SHA-256: `292b613741335cbced6daca10ec62bdc3fe7283840380db2f3f8445dddbd5b22`
+- License: same as `ffmpeg-h264-two-aac.mkv`.
+
 `edited-open-group-start.mkv` is the first twenty-six access units of `ffmpeg-hevc-main.mp4`
 dropped and the rest copied into Matroska, so it begins at a clean random access point whose four
 leading pictures predict from what came before it. `edited-open-group-start.yuv` is FFmpeg's decode

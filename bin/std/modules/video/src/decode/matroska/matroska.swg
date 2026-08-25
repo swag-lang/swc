@@ -18,6 +18,10 @@ private const FlacCodecId = "A_FLAC"
 private const Mp3CodecId = "A_MPEG/L3"
 private const Mpeg4CodecId = "V_MPEG4/ISO/ASP"
 private const VfwCodecId = "V_MS/VFW/FOURCC"
+
+// The one compression a stored frame can carry that this reader undoes, clause 12.3 of the
+// Matroska specification: the bytes every frame began with, taken off and stated once.
+private const HeaderStrippingAlgorithm = 3'u64
 private const DefaultTimestampScale = 1_000_000'u64
 private const NoTrack = Swag.U64.Max
 private const NoOffset = Swag.U64.Max
@@ -82,7 +86,8 @@ private struct Track
     bitsPerSample:   u32
     isEnabled:       bool = true
     isDefault:       bool = true
-    hasEncodings:    bool
+    hasEncodings:    bool            // The track states an encoding this reader does not undo.
+    headerStrip:     Array'u8        // Bytes a writer took off the front of every frame.
     videoSamples:    Array'SampleEntry
     audioPackets:    Array'SoundPacket
     audioFrameCount: u64
@@ -780,7 +785,7 @@ private impl Layout
             case CodecPrivateId:     track.codecPrivate = cursor.readBytes(element)
             case CodecDelayId:       track.codecDelay = cursor.readUnsigned(element)
             case SeekPreRollId:      track.seekPreRoll = cursor.readUnsigned(element)
-            case ContentEncodingsId: track.hasEncodings = true
+            case ContentEncodingsId: .parseContentEncodings(cursor, element, track)
             case VideoId:            .parseVideo(cursor, element, track)
             case AudioId:            .parseAudio(cursor, element, track)
             }
@@ -792,6 +797,80 @@ private impl Layout
             fail InvalidFormatError{"Matroska track has no positive track number"}
         if track.codecId.isEmpty() do
             fail InvalidFormatError{"Matroska track has no codec identifier"}
+    }
+
+    // Reads what was done to the frames of a track before they were stored.
+    //
+    // The one thing done to them that this reader undoes is header stripping: a writer that knows
+    // every frame of a track begins with the same bytes stores them once and takes them off, which
+    // is what mkvmerge does by default to several codecs. Anything else — a compressed or an
+    // encrypted track — is recorded as an encoding this reader cannot undo, and the track is not
+    // offered rather than offered wrong.
+    mtd parseContentEncodings(cursor: *Cursor, encodings: Element, track: *Track) fail
+    {
+        var count = 0'u32
+        while !cursor.atEnd(encodings.end)
+        {
+            let element = cursor.readElement(encodings.end)
+            if element.id == ContentEncodingId
+            {
+                count += 1
+                if count > 1 or !try .parseContentEncoding(cursor, element, track) do
+                    track.hasEncodings = true
+            }
+
+            cursor.seek(element.end)
+        }
+
+        if !count do
+            track.hasEncodings = true
+    }
+
+    // Reads one encoding and answers whether it is one this reader undoes.
+    mtd parseContentEncoding(cursor: *Cursor, encoding: Element, track: *Track)->bool fail
+    {
+        var scope     = 1'u64
+        var kind      = 0'u64
+        var algorithm = Swag.U64.Max
+        var stripped:  Array'u8
+        while !cursor.atEnd(encoding.end)
+        {
+            let element = cursor.readElement(encoding.end)
+            switch element.id
+            {
+            case ContentEncodingScopeId:
+                scope = cursor.readUnsigned(element)
+
+            case ContentEncodingTypeId:
+                kind = cursor.readUnsigned(element)
+
+            case ContentCompressionId:
+                while !cursor.atEnd(element.end)
+                {
+                    let field = cursor.readElement(element.end)
+                    switch field.id
+                    {
+                    case ContentCompAlgoId:
+                        algorithm = cursor.readUnsigned(field)
+
+                    case ContentCompSettingsId:
+                        stripped = cursor.readBytes(field)
+                    }
+
+                    cursor.seek(field.end)
+                }
+            }
+
+            cursor.seek(element.end)
+        }
+
+        // Scope one is the frames themselves; the other scopes describe what was done to the
+        // private data or to a later encoding, and neither is a thing this reader undoes.
+        if scope != 1 or kind != 0 or algorithm != HeaderStrippingAlgorithm do
+            return false
+
+        track.headerStrip = #move stripped
+        return true
     }
 
     mtd parseVideo(cursor: *Cursor, video: Element, track: *Track) fail
@@ -1387,7 +1466,7 @@ private impl Decoder
         if video.videoSamples.count > Swag.U32.Max do
             fail OverflowError{"Matroska video sample table is too large"}
         .info.frameCount = video.videoSamples.count
-        try .video.open(video.pictureKind(), video.videoConfiguration(), video.videoSamples.toSlice())
+        try .video.open(video.pictureKind(), video.videoConfiguration(), video.videoSamples.toSlice(), video.headerStrip.toSlice())
         .streamOpen         = true
         .streamSampleCount  = .info.frameCount
         .presentationOrigin = .video.presentationTimeAtRank(0)
@@ -1409,7 +1488,7 @@ private impl Decoder
         let added = samples[.streamSampleCount until @countof(samples)]
         if !.streamOpen
         {
-            try .video.open(track.pictureKind(), track.videoConfiguration(), added)
+            try .video.open(track.pictureKind(), track.videoConfiguration(), added, track.headerStrip.toSlice())
             .streamOpen         = true
             .presentationOrigin = .video.presentationTimeAtRank(0)
         }
@@ -1423,7 +1502,7 @@ private impl Decoder
         let samples = track.videoSamples.toSlice()
         if !.streamOpen
         {
-            try .video.open(track.pictureKind(), track.videoConfiguration(), samples)
+            try .video.open(track.pictureKind(), track.videoConfiguration(), samples, track.headerStrip.toSlice())
             .streamOpen = true
         }
         else do

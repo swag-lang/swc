@@ -31,7 +31,8 @@ impl PictureStream
 {
     // Configures the decoder from the container's decoder configuration record and installs the
     // access units of the track. `hevc` selects H.265, and with it an `hvcC` record.
-    mtd open(kind: u32, config: const [..] u8, frames: const [..] SampleEntry) fail
+    // `prefix` is what the container took off the front of every stored frame, if it did.
+    mtd open(kind: u32, config: const [..] u8, frames: const [..] SampleEntry, prefix: const [..] u8) fail
     {
         var owned: Array'SampleEntry
         owned.add(frames)
@@ -39,10 +40,16 @@ impl PictureStream
         switch kind
         {
         case PictureHevc:
+            .hevc.prefix.clear()
+            .hevc.prefix.add(prefix)
             try .hevc.open(config, #move owned)
         case PictureMpeg4:
+            .mpeg4.prefix.clear()
+            .mpeg4.prefix.add(prefix)
             try .mpeg4.open(config, #move owned)
         default:
+            .avc.prefix.clear()
+            .avc.prefix.add(prefix)
             try .avc.open(config, #move owned)
         }
     }

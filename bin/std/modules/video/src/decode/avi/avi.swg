@@ -719,7 +719,7 @@ private impl Decoder
         source.seek(first.offset)
         source.readExact(.payload.toSlice())
 
-        try .pictures.open(PictureMpeg4, Video.inlineSetupHeaders(.payload.toSlice()), samples.toSlice())
+        try .pictures.open(PictureMpeg4, Video.inlineSetupHeaders(.payload.toSlice()), samples.toSlice(), Video.storedNothing())
         .info.width  = .pictures.width()
         .info.height = .pictures.height()
     }

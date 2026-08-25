@@ -8,6 +8,10 @@
 
 using Core
 
+// What a container that stored its frames whole took off their front, which is nothing.
+var noStoredPrefix: [1] u8
+func storedNothing()->const [..] u8 => noStoredPrefix[0 until 0]
+
 // Size of the bitmap header a track of that era carries before anything else it states.
 const BitmapInfoHeaderSize = 40'u64
 

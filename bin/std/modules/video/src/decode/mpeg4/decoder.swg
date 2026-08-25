@@ -19,6 +19,12 @@ const TypeIntra    = 3'u32
 const TypeIntraQ   = 4'u32
 const TypeStuffing = 5'u32
 
+// Bidirectional macroblock types, Table B.4, in the order their codes name them.
+const TypeDirect       = 0'u32
+const TypeInterpolated = 1'u32
+const TypeBackward     = 2'u32
+const TypeForward      = 3'u32
+
 // What one block leaves behind for the blocks that predict from it.
 struct BlockState
 {
@@ -42,13 +48,22 @@ struct MacroblockState
 struct Decoder
 {
     layer:       Layer
-    past:        Frame                    // The last plane a predicted one refers back to.
+    anchorOld:   Frame                    // The older of the two planes a bidirectional one sits between.
+    anchorNew:   Frame                    // The last intra or predicted plane, which a predicted one refers to.
     current:     Frame
     blocks:      Array'BlockState         // Six per macroblock, in decoding order.
     macroblocks: Array'MacroblockState
+    coLocated:   Array'MacroblockState    // The macroblocks of `anchorNew`, for the direct mode.
     quant:       u32
     packetStart: u64                      // The first macroblock of the packet being read.
-    hasPast:     bool
+    anchors:     u32                      // How many anchors have been decoded, saturating at two.
+    oldTime:     s64                      // Container timestamps of the two anchors and this plane.
+    newTime:     s64
+    planeTime:   s64
+    forward:     Vector                   // The running vector predictors of a bidirectional plane.
+    backward:    Vector
+    blend:       [64] u8
+    showsCurrent: bool                    // The last plane decoded is in `current` rather than in an anchor.
 }
 
 impl Decoder
@@ -99,62 +114,82 @@ impl Decoder
     //
     // A plane the stream marks as not coded repeats the one before it, which is what a stream
     // says when nothing moved.
-    mtd decodeSample(bytes: const [..] u8)->bool fail
+    mtd decodeSample(bytes: const [..] u8, presentationTime: s64)->bool fail
     {
+        .planeTime = presentationTime
         var header: PlaneHeader
         let bitAt = try .readStartCodes(bytes, &header)
         if !.layer.configured do
             fail InvalidFormatError{"MPEG-4 sample arrived before its video object layer"}
 
         .allocate()
-        if !header.coded do
-            return .hasPast
+        if !header.coded
+        {
+            // A plane that codes nothing repeats the anchor before it.
+            return .anchors != 0
+        }
 
-        if header.codingType == VopBidirectional do
-            fail UnsupportedFormatError{"video decoder does not read bidirectional MPEG-4 planes yet"}
         if header.codingType == VopSprite do
             fail UnsupportedFormatError{"video decoder does not read MPEG-4 sprite planes"}
-        if header.codingType == VopPredicted and !.hasPast do
+        if header.codingType == VopPredicted and !.anchors do
+            return false
+        if header.codingType == VopBidirectional and .anchors < 2 do
             return false
 
         var reader = BitReader.create(bytes)
         reader.bitPos = bitAt
         try .decodePlane(&reader, &header)
 
-        // What was just decoded is what the next predicted plane refers back to.
-        .swapReferences()
-        .hasPast = true
+        if header.codingType == VopBidirectional
+        {
+            // A bidirectional plane is shown and forgotten: no plane refers back to it.
+            .showsCurrent = true
+            return true
+        }
+
+        // An intra or predicted plane becomes the newer anchor, and the newer becomes the older.
+        .rotateAnchors()
+        .showsCurrent = false
         return true
     }
 
-    // Exchanges the picture just decoded with the one it referred back to.
-    mtd swapReferences()
+    // Moves the picture just decoded into the anchor pair.
+    mtd rotateAnchors()
     {
-        var temp: Frame = #move .past
-        .past    = #move .current
-        .current = #move temp
+        var temp: Frame = #move .anchorOld
+        .anchorOld = #move .anchorNew
+        .anchorNew = #move .current
+        .current   = #move temp
+
+        for index in .macroblocks.count do
+            .coLocated[index] = .macroblocks[index]
+        .oldTime = .newTime
+        .newTime = .planeTime
+        .anchors = Math.min(.anchors + 1, 2'u32)
     }
 
     // The picture the last call produced.
-    mtd reference()->*Frame => &.past
+    mtd reference()->*Frame => .showsCurrent ? &.current : &.anchorNew
 
     // Sizes the pictures and the prediction state for the layer geometry.
     mtd allocate()
     {
         let coded = .layer.mbWidth * 16
         let rows  = .layer.mbHeight * 16
-        .past.prepare(coded, rows, .layer.width, .layer.height)
+        .anchorOld.prepare(coded, rows, .layer.width, .layer.height)
+        .anchorNew.prepare(coded, rows, .layer.width, .layer.height)
         .current.prepare(coded, rows, .layer.width, .layer.height)
 
         let count = cast(u64) .layer.mbWidth * cast(u64) .layer.mbHeight
         .blocks.resize(count * 6)
         .macroblocks.resize(count)
+        .coLocated.resize(count)
     }
 
     // Forgets every reference, which is what a seek to a random access point needs.
     mtd reset()
     {
-        .hasPast = false
+        .anchors = 0
     }
 
     // The state of one block of one macroblock, or the default when it is outside the picture.
@@ -182,6 +217,8 @@ impl Decoder
         var active = header[]
         .quant       = active.quant
         .packetStart = 0
+        .forward     = Vector{}
+        .backward    = Vector{}
 
         let total = cast(u64) .layer.mbWidth * cast(u64) .layer.mbHeight
         var index = 0'u64
@@ -195,6 +232,8 @@ impl Decoder
                     reader.bitPos = cast(u64) after
                     try .readPacketHeader(reader, &active, &index)
                     .packetStart = index
+                    .forward     = Vector{}
+                    .backward    = Vector{}
                     if index >= total do
                         break
                 }
@@ -309,6 +348,12 @@ impl Decoder
         let state   = &.macroblocks[mbIndex]
         state[] = MacroblockState{}
 
+        if header.codingType == VopBidirectional
+        {
+            try .decodeBidirectionalMacroblock(reader, header, mbX, mbY)
+            return
+        }
+
         var coded = true
         if header.codingType == VopPredicted and reader.read(1) != 0 do
             coded = false
@@ -391,6 +436,190 @@ impl Decoder
 
         if reader.overran() do
             fail InvalidFormatError{"MPEG-4 plane is truncated"}
+    }
+
+    // Decodes one macroblock of a bidirectional plane, clause 6.2.6.
+    //
+    // A bidirectional macroblock says which of its two references it uses, or says nothing at all
+    // and takes the motion of the plane that follows it, scaled to where it sits between them.
+    mtd decodeBidirectionalMacroblock(reader: *BitReader, header: const *PlaneHeader, mbX, mbY: s32) fail
+    {
+        let mbIndex = cast(u64) mbY * cast(u64) .layer.mbWidth + cast(u64) mbX
+        let state   = &.macroblocks[mbIndex]
+        state[] = MacroblockState{}
+        .clearBlockState(mbIndex)
+
+        var kind    = TypeDirect
+        var pattern = 0'u32
+        var delta:  Vector
+        var mvForward:  Vector
+        var mvBackward: Vector
+
+        if reader.read(1) == 0
+        {
+            let hasPattern = reader.read(1) == 0
+
+            // The type is a run of zeros closed by a one: 1, 01, 001, 0001.
+            if reader.read(1) == 0
+            {
+                if reader.read(1) != 0 do
+                    kind = TypeInterpolated
+                elif reader.read(1) != 0 do
+                    kind = TypeBackward
+                else
+                {
+                    discard reader.read(1)
+                    kind = TypeForward
+                }
+            }
+
+            if hasPattern do
+                pattern = reader.read(6)
+
+            // The quantiser moves only when the macroblock carries something to quantise.
+            if kind != TypeDirect and pattern and reader.read(1) != 0
+            {
+                let step = reader.read(1) != 0 ? 2's32 : -2's32
+                .quant = cast(u32) Math.clamp(cast(s32) .quant + step, 1's32, 31's32)
+            }
+
+            if kind == TypeDirect
+            {
+                // The direct mode states one delta, read as though the code were one.
+                if !readVectorDelta(reader, 1, &delta) do
+                    fail InvalidFormatError{"MPEG-4 direct macroblock states no motion vector"}
+            }
+            else
+            {
+                // A bidirectional plane predicts each direction from the macroblock before it,
+                // not from a median, clause 7.6.6.
+                if kind == TypeForward or kind == TypeInterpolated
+                {
+                    var step: Vector
+                    if !readVectorDelta(reader, header.fcodeForward, &step) do
+                        fail InvalidFormatError{"MPEG-4 macroblock states no forward vector"}
+                    .forward.x = wrapVector(.forward.x + step.x, header.fcodeForward)
+                    .forward.y = wrapVector(.forward.y + step.y, header.fcodeForward)
+                    mvForward  = .forward
+                }
+
+                if kind == TypeBackward or kind == TypeInterpolated
+                {
+                    var step: Vector
+                    if !readVectorDelta(reader, header.fcodeBackward, &step) do
+                        fail InvalidFormatError{"MPEG-4 macroblock states no backward vector"}
+                    .backward.x = wrapVector(.backward.x + step.x, header.fcodeBackward)
+                    .backward.y = wrapVector(.backward.y + step.y, header.fcodeBackward)
+                    mvBackward  = .backward
+                }
+            }
+        }
+
+        if kind == TypeDirect do
+            .predictDirect(mbX, mbY, delta, header.rounding)
+        else do
+            .predictBidirectional(mbX, mbY, kind, mvForward, mvBackward, header.rounding)
+
+        // A bidirectional macroblock is never intra, so its blocks carry a residual or nothing.
+        for block in 6'u64 where (pattern & (32 >> block)) != 0 do
+            try .decodeBlock(reader, header, mbX, mbY, block, false, false, true)
+
+        if reader.overran() do
+            fail InvalidFormatError{"MPEG-4 plane is truncated"}
+    }
+
+    // Predicts one macroblock from one anchor or from both.
+    mtd predictBidirectional(mbX, mbY: s32, kind: u32, mvForward, mvBackward: Vector, rounding: u32)
+    {
+        var vectors: [4] Vector = undefined
+        if kind != TypeBackward
+        {
+            for index in 4'u64 do
+                vectors[index] = mvForward
+            .predictFrom(&.anchorOld, mbX, mbY, vectors, rounding, false)
+        }
+
+        if kind != TypeForward
+        {
+            for index in 4'u64 do
+                vectors[index] = mvBackward
+            .predictFrom(&.anchorNew, mbX, mbY, vectors, rounding, kind == TypeInterpolated)
+        }
+    }
+
+    // Predicts one macroblock the way the plane that follows it moved, clause 7.6.7.
+    mtd predictDirect(mbX, mbY: s32, delta: Vector, rounding: u32)
+    {
+        let mbIndex = cast(u64) mbY * cast(u64) .layer.mbWidth + cast(u64) mbX
+        let source  = &.coLocated[mbIndex]
+        let trd     = .newTime - .oldTime
+        let trb     = .planeTime - .oldTime
+        if trd <= 0 do
+            return
+
+        var forward:  [4] Vector = undefined
+        var backward: [4] Vector = undefined
+        for block in 4'u64
+        {
+            var mv: Vector
+            if !source.intra do
+                mv = source.vectors[block]
+            forward[block].x  = cast(s32) ((trb * cast(s64) mv.x) / trd) + delta.x
+            forward[block].y  = cast(s32) ((trb * cast(s64) mv.y) / trd) + delta.y
+            backward[block].x = !delta.x ? cast(s32) (((trb - trd) * cast(s64) mv.x) / trd) : forward[block].x - mv.x
+            backward[block].y = !delta.y ? cast(s32) (((trb - trd) * cast(s64) mv.y) / trd) : forward[block].y - mv.y
+        }
+
+        .predictFrom(&.anchorOld, mbX, mbY, forward, rounding, false)
+        .predictFrom(&.anchorNew, mbX, mbY, backward, rounding, true)
+    }
+
+    // Fills one macroblock from one anchor, either outright or averaged into what is there.
+    mtd predictFrom(anchor: *Frame, mbX, mbY: s32, vectors: [4] Vector, rounding: u32, average: bool)
+    {
+        let lumaAt   = anchor.lumaOrigin()
+        let chromaAt = anchor.chromaOrigin()
+        let x        = mbX * 16
+        let y        = mbY * 16
+
+        for block in 4'u64
+        {
+            let bx = x + cast(s32) (block & 1) * 8
+            let by = y + cast(s32) (block >> 1) * 8
+            let target = .current.lumaOrigin() + cast(u64) cast(s64) (cast(s64) by * cast(s64) .current.strideLuma + cast(s64) bx)
+            if average
+            {
+                compensate(&.blend[0], 8, anchor.luma.buffer!, lumaAt, anchor.strideLuma,
+                           bx, by, vectors[block], 8, 8, rounding, anchor.width, anchor.height)
+                blendInto(.current.luma.buffer! + target, .current.strideLuma, &.blend[0], 8, 8, 8)
+            }
+            else
+            {
+                compensate(.current.luma.buffer! + target, .current.strideLuma,
+                           anchor.luma.buffer!, lumaAt, anchor.strideLuma,
+                           bx, by, vectors[block], 8, 8, rounding, anchor.width, anchor.height)
+            }
+        }
+
+        let chroma = chromaVector(vectors)
+        let cx     = mbX * 8
+        let cy     = mbY * 8
+        let target = .current.chromaOrigin() + cast(u64) cast(s64) (cast(s64) cy * cast(s64) .current.strideChroma + cast(s64) cx)
+        for plane in 2'u32
+        {
+            let from = plane == 0 ? anchor.chromaB.buffer! : anchor.chromaR.buffer!
+            let into = plane == 0 ? .current.chromaB.buffer! : .current.chromaR.buffer!
+            if average
+            {
+                compensate(&.blend[0], 8, from, chromaAt, anchor.strideChroma, cx, cy, chroma, 8, 8, rounding, anchor.width / 2, anchor.height / 2)
+                blendInto(into + target, .current.strideChroma, &.blend[0], 8, 8, 8)
+            }
+            else
+            {
+                compensate(into + target, .current.strideChroma, from, chromaAt, anchor.strideChroma,
+                           cx, cy, chroma, 8, 8, rounding, anchor.width / 2, anchor.height / 2)
+            }
+        }
     }
 
     // Marks the six blocks of a macroblock as carrying no intra prediction.
@@ -477,11 +706,11 @@ impl Decoder
     // Fills one macroblock of the current picture from the reference it points at.
     mtd predictMacroblock(mbX, mbY: s32, state: const *MacroblockState, rounding: u32)
     {
-        if !.hasPast do
+        if !.anchors do
             return
 
-        let lumaAt   = .past.lumaOrigin()
-        let chromaAt = .past.chromaOrigin()
+        let lumaAt   = .anchorNew.lumaOrigin()
+        let chromaAt = .anchorNew.chromaOrigin()
         let x        = mbX * 16
         let y        = mbY * 16
 
@@ -491,8 +720,8 @@ impl Decoder
             let by = y + cast(s32) (block >> 1) * 8
             let target = .current.lumaOrigin() + cast(u64) cast(s64) (cast(s64) by * cast(s64) .current.strideLuma + cast(s64) bx)
             compensate(.current.luma.buffer! + target, .current.strideLuma,
-                       .past.luma.buffer!, lumaAt, .past.strideLuma,
-                       bx, by, state.vectors[block], 8, 8, rounding)
+                       .anchorNew.luma.buffer!, lumaAt, .anchorNew.strideLuma,
+                       bx, by, state.vectors[block], 8, 8, rounding, .anchorNew.width, .anchorNew.height)
         }
 
         var vectors: [4] Vector = state.vectors
@@ -501,9 +730,9 @@ impl Decoder
         let cy     = mbY * 8
         let target = .current.chromaOrigin() + cast(u64) cast(s64) (cast(s64) cy * cast(s64) .current.strideChroma + cast(s64) cx)
         compensate(.current.chromaB.buffer! + target, .current.strideChroma,
-                   .past.chromaB.buffer!, chromaAt, .past.strideChroma, cx, cy, chroma, 8, 8, rounding)
+                   .anchorNew.chromaB.buffer!, chromaAt, .anchorNew.strideChroma, cx, cy, chroma, 8, 8, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
         compensate(.current.chromaR.buffer! + target, .current.strideChroma,
-                   .past.chromaR.buffer!, chromaAt, .past.strideChroma, cx, cy, chroma, 8, 8, rounding)
+                   .anchorNew.chromaR.buffer!, chromaAt, .anchorNew.strideChroma, cx, cy, chroma, 8, 8, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
     }
 
     // Decodes one block and writes its samples, clause 6.3.7.3.

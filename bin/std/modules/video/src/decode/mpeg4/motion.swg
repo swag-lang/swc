@@ -120,14 +120,18 @@ private func reduceChroma(sum, span: s32, table: const [..] u8)->s32
 // the buffer, so no coordinate is tested here. Rounding control shifts every average by half a
 // level, which is what keeps a long chain of predicted pictures from drifting.
 func compensate(destination: [*] u8, destinationStride: u64, source: const [*] u8, sourceOrigin, sourceStride: u64,
-                x, y: s32, vector: Vector, width, height, rounding: u32)
+                x, y: s32, vector: Vector, width, height, rounding: u32, planeWidth, planeHeight: u32)
 {
-    // A vector may point outside the picture, so the sample the block starts at is computed
-    // against the origin of the padded plane and stays positive because the padding is wider
-    // than any vector the format allows.
+    // A vector may point outside the picture. The padding holds what the edge holds, so reading
+    // from the padding is what the format's unrestricted vectors mean; a vector that points
+    // further than the padding reaches reads the same samples the padding would have repeated,
+    // which is what clamping the position to it produces.
     let full  = 1 - cast(s32) rounding
-    let fullX = x + (vector.x >> 1)
-    let fullY = y + (vector.y >> 1)
+    let limit = cast(s32) FramePadding - cast(s32) height - 2
+    var fullX = x + (vector.x >> 1)
+    var fullY = y + (vector.y >> 1)
+    fullX = Math.clamp(fullX, -cast(s32) FramePadding, cast(s32) planeWidth + limit)
+    fullY = Math.clamp(fullY, -cast(s32) FramePadding, cast(s32) planeHeight + limit)
     let halfX = (vector.x & 1) != 0
     let halfY = (vector.y & 1) != 0
     let at    = cast(u64) (cast(s64) sourceOrigin + cast(s64) fullY * cast(s64) sourceStride + cast(s64) fullX)
@@ -178,3 +182,21 @@ func compensate(destination: [*] u8, destinationStride: u64, source: const [*] u
         }
     }
 }
+
+// Averages a second prediction into a block that already holds the first.
+//
+// A bidirectional block is the mean of what its two references say, rounded up, clause 7.6.7.
+func blendInto(destination: [*] u8, destinationStride: u64, source: const [*] u8, sourceStride: u64,
+               width, height: u32)
+{
+    for row in cast(u64) height
+    {
+        for column in cast(u64) width
+        {
+            let a = cast(u32) destination[row * destinationStride + column]
+            let b = cast(u32) source[row * sourceStride + column]
+            destination[row * destinationStride + column] = cast(u8) ((a + b + 1) >> 1)
+        }
+    }
+}
+

@@ -33,6 +33,10 @@ func mpeg4AssertStream(name: string, container: string, width, height: s32, fram
         expect reader.decodeFramePlanesInto(&frame, index)
         @assert(frame.width == width and frame.height == height)
 
+        var frameTotal = 0.0'f64
+        var frameWorst = 0's32
+        var worstX = 0'u64
+        var worstY = 0'u64
         let base = index * frameSize
         for y in cast(u64) height
         {
@@ -41,16 +45,27 @@ func mpeg4AssertStream(name: string, container: string, width, height: s32, fram
                 let got  = cast(s32) frame.luma[y * cast(u64) frame.strideLuma + x]
                 let want = cast(s32) bytes[base + y * cast(u64) width + x]
                 let difference = Math.abs(got - want)
+                frameTotal += cast(f64) difference
+                if difference > frameWorst
+                {
+                    frameWorst = difference
+                    worstX = x
+                    worstY = y
+                }
                 total += cast(f64) difference
                 worst  = Math.max(worst, difference)
                 count += 1
             }
         }
+
+        let frameMean = frameTotal / (cast(f64) width * cast(f64) height)
+        if frameMean > 0.3'f64 do
+            @print("   frame ", index, " mean ", frameMean, " worst ", frameWorst,
+                   " at ", worstX, ",", worstY, " macroblock ", worstX / 16, ",", worstY / 16, "\n")
     }
 
     let mean = total / cast(f64) count
-    if mean > meanLimit or worst > worstLimit do
-        @print("mpeg4 ", name, ": mean ", mean, " worst ", worst, " over ", count, " samples\n")
+    @print("mpeg4 ", name, ": mean ", mean, " worst ", worst, " over ", count, " samples\n")
     @assert(mean <= meanLimit)
     @assert(worst <= worstLimit)
 }
@@ -60,6 +75,13 @@ func mpeg4AssertStream(name: string, container: string, width, height: s32, fram
 #test
 {
     mpeg4AssertStream("ffmpeg-mpeg4-simple", "mkv", 96, 64, 60, 0.2, 4)
+}
+
+// Bidirectional planes: the shape every DivX and Xvid file of that era has, with the MPEG
+// quantiser and a display order that is not the decoding order.
+#test
+{
+    mpeg4AssertStream("ffmpeg-mpeg4-bvop", "mkv", 96, 64, 60, 0.2, 4)
 }
 
 // The reader states the geometry from the setup headers, before any plane is read.

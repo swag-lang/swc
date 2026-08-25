@@ -84,7 +84,7 @@ impl PictureStream
     mtd const height()->s32 => .kind == PictureHevc ? .hevc.height : (.kind == PictureMpeg4 ? .mpeg4.height : .avc.height)
 
     // Number of access units the stream currently holds.
-    mtd const frameCount()->u64 => .kind == PictureHevc ? .hevc.frames.count : (.kind == PictureMpeg4 ? .mpeg4.frames.count : .avc.frames.count)
+    mtd const frameCount()->u64 => .kind == PictureHevc ? .hevc.frames.count : (.kind == PictureMpeg4 ? .mpeg4.sampleAtRank.count : .avc.frames.count)
 
     // Returns the container presentation timestamp of one display-order picture.
     mtd const presentationTimeAtRank(rank: u64)->s64

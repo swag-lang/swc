@@ -7,6 +7,11 @@
 
 using Core, Core.Errors, Pixel
 
+// Which coded picture format a container named.
+const PictureAvc   = 0'u32
+const PictureHevc  = 1'u32
+const PictureMpeg4 = 2'u32
+
 // The coded picture track of one container, whichever picture codec named it.
 //
 // H.264 and H.265 present a container with the same thing: a table of length-prefixed access
@@ -16,26 +21,28 @@ using Core, Core.Errors, Pixel
 #[Swag.NoCopy]
 struct PictureStream
 {
-    avc:    H264.AvcStream
-    hevc:   Hevc.HevcStream
-    isHevc: bool
+    avc:   H264.AvcStream
+    hevc:  Hevc.HevcStream
+    mpeg4: Mpeg4.Mpeg4Stream
+    kind:  u32
 }
 
 impl PictureStream
 {
     // Configures the decoder from the container's decoder configuration record and installs the
     // access units of the track. `hevc` selects H.265, and with it an `hvcC` record.
-    mtd open(hevc: bool, config: const [..] u8, frames: const [..] SampleEntry) fail
+    mtd open(kind: u32, config: const [..] u8, frames: const [..] SampleEntry) fail
     {
         var owned: Array'SampleEntry
         owned.add(frames)
-        .isHevc = hevc
-        if hevc
+        .kind = kind
+        switch kind
         {
+        case PictureHevc:
             try .hevc.open(config, #move owned)
-        }
-        else
-        {
+        case PictureMpeg4:
+            try .mpeg4.open(config, #move owned)
+        default:
             try .avc.open(config, #move owned)
         }
     }
@@ -43,12 +50,13 @@ impl PictureStream
     // Extends the container window with access units the reader has since indexed.
     mtd appendFrames(frames: const [..] SampleEntry) fail
     {
-        if .isHevc
+        switch .kind
         {
+        case PictureHevc:
             try .hevc.appendFrames(frames)
-        }
-        else
-        {
+        case PictureMpeg4:
+            try .mpeg4.appendFrames(frames)
+        default:
             try .avc.appendFrames(frames)
         }
     }
@@ -58,46 +66,53 @@ impl PictureStream
     {
         var owned: Array'SampleEntry
         owned.add(frames)
-        if .isHevc
+        switch .kind
         {
+        case PictureHevc:
             try .hevc.replaceFrames(#move owned)
-        }
-        else
-        {
+        case PictureMpeg4:
+            try .mpeg4.replaceFrames(#move owned)
+        default:
             try .avc.replaceFrames(#move owned)
         }
     }
 
     // Frame width, in pixels, after the stream's own cropping.
-    mtd const width()->s32 => .isHevc ? .hevc.width : .avc.width
+    mtd const width()->s32 => .kind == PictureHevc ? .hevc.width : (.kind == PictureMpeg4 ? .mpeg4.width : .avc.width)
 
     // Frame height, in pixels, after the stream's own cropping.
-    mtd const height()->s32 => .isHevc ? .hevc.height : .avc.height
+    mtd const height()->s32 => .kind == PictureHevc ? .hevc.height : (.kind == PictureMpeg4 ? .mpeg4.height : .avc.height)
 
     // Number of access units the stream currently holds.
-    mtd const frameCount()->u64 => .isHevc ? .hevc.frames.count : .avc.frames.count
+    mtd const frameCount()->u64 => .kind == PictureHevc ? .hevc.frames.count : (.kind == PictureMpeg4 ? .mpeg4.sampleAtRank.count : .avc.frames.count)
 
     // Returns the container presentation timestamp of one display-order picture.
     mtd const presentationTimeAtRank(rank: u64)->s64
     {
-        if .isHevc do
+        if .kind == PictureHevc do
             return .hevc.presentationTimeAtRank(rank)
+        if .kind == PictureMpeg4 do
+            return .mpeg4.presentationTimeAtRank(rank)
         return .avc.presentationTimeAtRank(rank)
     }
 
     // Returns the first display rank at or after `rank` whose sample starts a clean decode.
     mtd const syncRankAt(rank: u64)->u64
     {
-        if .isHevc do
+        if .kind == PictureHevc do
             return .hevc.syncRankAt(rank)
+        if .kind == PictureMpeg4 do
+            return .mpeg4.syncRankAt(rank)
         return .avc.syncRankAt(rank)
     }
 
     // Positions the stream so the next decoded picture has display rank `rank`.
     mtd seekTo(rank: u64)
     {
-        if .isHevc do
+        if .kind == PictureHevc do
             .hevc.seekTo(rank)
+        elif .kind == PictureMpeg4 do
+            .mpeg4.seekTo(rank)
         else do
             .avc.seekTo(rank)
     }
@@ -105,12 +120,13 @@ impl PictureStream
     // Decodes the picture with the current display rank and converts it to packed colour.
     mtd decodeNext(source: *Source, target: *Image) fail
     {
-        if .isHevc
+        switch .kind
         {
+        case PictureHevc:
             try .hevc.decodeNext(source, target)
-        }
-        else
-        {
+        case PictureMpeg4:
+            try .mpeg4.decodeNext(source, target)
+        default:
             try .avc.decodeNext(source, target)
         }
     }
@@ -118,12 +134,13 @@ impl PictureStream
     // Decodes the picture with the current display rank and hands over its planes unconverted.
     mtd decodeNextPlanes(source: *Source, target: *PlanarFrame) fail
     {
-        if .isHevc
+        switch .kind
         {
+        case PictureHevc:
             try .hevc.decodeNextPlanes(source, target)
-        }
-        else
-        {
+        case PictureMpeg4:
+            try .mpeg4.decodeNextPlanes(source, target)
+        default:
             try .avc.decodeNextPlanes(source, target)
         }
     }
@@ -131,8 +148,10 @@ impl PictureStream
     // Releases every picture waiting for its display turn.
     mtd releasePending()
     {
-        if .isHevc do
+        if .kind == PictureHevc do
             .hevc.releasePending()
+        elif .kind == PictureMpeg4 do
+            .mpeg4.releasePending()
         else do
             .avc.releasePending()
     }

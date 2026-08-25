@@ -1,6 +1,6 @@
 //! Format: Audio Video Interleave (AVI/RIFF) decoder component.
-//! Supported: Indexed Motion JPEG and uncompressed 24-/32-bit video, plus integer PCM audio tracks of 8, 16, 24, or 32 bits.
-//! Not supported: OpenDML files beyond the supported RIFF index model and video codecs other than Motion JPEG or uncompressed RGB.
+//! Supported: Indexed Motion JPEG, MPEG-4 Part 2, and uncompressed 24-/32-bit video, plus integer PCM audio tracks of 8, 16, 24, or 32 bits.
+//! Not supported: OpenDML files beyond the supported RIFF index model and video codecs other than Motion JPEG, MPEG-4 Part 2, or uncompressed RGB.
 //! Role: This file owns RIFF chunks, stream indexes, frame/audio packet lookup, and top-level decode.
 //
 #global namespace Avi
@@ -146,7 +146,11 @@ private struct FrameEntry
 {
     offset: u64     // Offset of the payload in the stream, in bytes.
     size:   u64     // Length of the payload, in bytes; zero for a frame that repeats the previous one.
+    isSync: bool    // Whether the frame starts a decode that depends on nothing before it.
 }
+
+// Index flag a frame carries when it depends on nothing before it.
+private const IndexKeyFrameFlag = 0x0000_0010'u32
 
 // One playable audio stream found in the AVI header.
 private struct AudioTrack
@@ -372,9 +376,10 @@ private impl AudioFormat
 // table is what makes a seek free, and it is the only part of the file the decoder holds: sixteen
 // bytes per frame, whatever a frame itself weighs.
 //
-// Frames are Motion JPEG or uncompressed bitmap rows. A Motion JPEG frame is a complete JPEG
-// image and is decoded by the Pixel image codec, so both modules read the same pictures. PCM sound
-// chunks remain in file order and stream through their own std/audio cursor.
+// Frames are Motion JPEG, planes of a coded picture stream, or uncompressed bitmap rows. A Motion
+// JPEG frame is a complete JPEG image and is decoded by the Pixel image codec, so both modules read
+// the same pictures. A coded stream is driven by the same picture decoders the other containers
+// use. PCM sound chunks remain in file order and stream through their own std/audio cursor.
 struct Decoder
 {
     internal
@@ -386,8 +391,10 @@ struct Decoder
         bytesPerPixel: u64                  // Source bytes of one pixel of an uncompressed frame.
         rowBytes:      u64                  // Padded length of one row of an uncompressed frame.
         nextIndex:     u64                  // Index of the frame the decoder is positioned on.
+        pictures:      PictureStream        // Coded pictures, when frames are a coded stream.
         isTopDown:     bool                 // Whether uncompressed rows start with the top one.
         isJpeg:        bool                 // Whether frames are complete JPEG images.
+        isCoded:       bool                 // Whether frames are planes of a coded picture stream.
     }
 }
 
@@ -413,11 +420,13 @@ impl IDecoder for Decoder
 
         .info.frameCount = .frames.count
         .nextIndex       = 0
+        if .isCoded do
+            try .openPictures(source)
         .buildSoundTracks(source, &layout)
         return .info
     }
 
-    mtd impl syncFrameAt(index: u64)->u64 => index
+    mtd impl syncFrameAt(index: u64)->u64 => .isCoded ? .pictures.syncRankAt(index) : index
 
     mtd impl seekFrame(source: *Source, index: u64) fail
     {
@@ -436,6 +445,15 @@ impl IDecoder for Decoder
         if current >= .frames.count do
             fail InvalidFormatError{"AVI stream has no frame at this position"}
 
+        if .isCoded
+        {
+            .nextIndex = NoFrameIndex
+            .pictures.seekTo(current)
+            try .pictures.decodeNext(source, target)
+            .nextIndex = current + 1
+            return
+        }
+
         .nextIndex = NoFrameIndex
         let entry = .frames[.resolveFrame(current)]
         if entry.offset > source.size() or entry.size > source.size() - entry.offset do
@@ -450,6 +468,26 @@ impl IDecoder for Decoder
             .decodeJpegFrame(target)
         else do
             .decodeBitmapFrame(target)
+        .nextIndex = current + 1
+    }
+}
+
+impl IPlanarDecoder for Decoder
+{
+    mtd impl hasPlanarFrames()->bool => .isCoded
+
+    mtd impl decodeFramePlanes(source: *Source, target: *PlanarFrame) fail
+    {
+        if !.isCoded do
+            fail UnsupportedFormatError{"AVI frames of this codec are not coded planes"}
+
+        let current = .nextIndex
+        if current >= .frames.count do
+            fail InvalidFormatError{"AVI stream has no frame at this position"}
+
+        .nextIndex = NoFrameIndex
+        .pictures.seekTo(current)
+        try .pictures.decodeNextPlanes(source, target)
         .nextIndex = current + 1
     }
 }
@@ -539,6 +577,12 @@ private impl Decoder
             return
         }
 
+        if Video.isMpeg4FourCc(compression)
+        {
+            .isCoded = true
+            return
+        }
+
         if !Slice.contains(UncompressedIds, compression) do
             fail UnsupportedFormatError{Errors.mkString(Format.toString("video decoder does not support the AVI '%' video codec", describeId(compression)))}
 
@@ -599,7 +643,7 @@ private impl Decoder
                 continue
             }
 
-            source.skip(FourCcSize)
+            let flags  = readValue'u32(source)
             let offset = cast(u64) readValue'u32(source)
             let size   = cast(u64) readValue'u32(source)
             if base == Swag.U64.Max do
@@ -609,7 +653,7 @@ private impl Decoder
             if start > source.size() or size > source.size() - start do
                 fail InvalidFormatError{"AVI index points past the end of the stream"}
 
-            .frames.add({start, size})
+            .frames.add({start, size, (flags & IndexKeyFrameFlag) != 0})
         }
     }
 
@@ -626,7 +670,7 @@ private impl Decoder
             let chunk = readChunk(source, layout.frameEnd)
             if chunk.id == dataId or chunk.id == compressedId
             {
-                .frames.add({chunk.data, chunk.size})
+                .frames.add({chunk.data, chunk.size, .frames.count == 0})
                 position = chunk.next
                 continue
             }
@@ -637,6 +681,39 @@ private impl Decoder
             let isGroup = chunk.id == ListId and chunk.size >= FourCcSize and readValue'u32(source) == RecordListId
             position = isGroup ? chunk.data + FourCcSize : chunk.next
         }
+    }
+
+    // Hands the frame table to the picture decoder the stream header named.
+    //
+    // An AVI file states no timestamps: its frames are stored in decoding order and numbered as
+    // they come, so the times below are what the frame rate says and not what the pictures are
+    // shown at. A coded stream that reorders states its own clock, and the picture stream reads
+    // the display order from that rather than from these.
+    mtd openPictures(source: *Source) fail
+    {
+        var samples: Array'SampleEntry
+        samples.reserve(.frames.count)
+
+        let rate = .info.frameRate
+        for index in .frames.count
+        {
+            let entry = .frames[index]
+            let time  = cast(s64) (index * 1_000_000_000 * cast(u64) rate.denominator() / cast(u64) rate.numerator())
+            samples.add({entry.offset, entry.size, time, entry.isSync})
+        }
+
+        // The setup headers of such a file live at the front of its first frame, never in the
+        // container, so that is where the layer is read from.
+        let first = .frames[0]
+        if first.size > source.size() or first.offset > source.size() - first.size do
+            fail InvalidFormatError{"AVI frame payload is truncated"}
+        .payload.resize(first.size)
+        source.seek(first.offset)
+        source.readExact(.payload.toSlice())
+
+        try .pictures.open(PictureMpeg4, Video.inlineSetupHeaders(.payload.toSlice()), samples.toSlice())
+        .info.width  = .pictures.width()
+        .info.height = .pictures.height()
     }
 
     // Returns the frame that really holds the picture of frame `index`.

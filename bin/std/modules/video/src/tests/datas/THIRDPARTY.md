@@ -176,6 +176,28 @@ than something the container knows.
 - SHA-256: `dd3b3c5d0eb5a0c72e4f3cadf4023d40a0002f8880e2c39e8b0f6e55dccefab8`
 - License: same as this repository.
 
+`ffmpeg-mpeg4-simple.mkv` and `ffmpeg-mpeg4-bvop.mkv` re-encode the source pictures of
+`ffmpeg-h264-pyramid.yuv` with FFmpeg's MPEG-4 Part 2 encoder through PyAV 17.1, so they carry the
+same 96x64, 60-frame content as the H.264 and H.265 fixtures and a difference is the codec alone.
+
+- `ffmpeg-mpeg4-simple.mkv`: no bidirectional planes, the H.263 quantiser, and four motion vectors
+  where the encoder chose them, which is Simple Profile as an encoder of that era wrote it. SHA-256:
+  `d007e84e10e1593aa91f33444c481e8abde596dd9643e5dc9032334977c0d4f5`.
+- `ffmpeg-mpeg4-bvop.mkv`: `max_b_frames=2 mpeg_quant=1`, so bidirectional planes and the MPEG
+  quantiser are both exercised and the display order is not the decoding order. SHA-256:
+  `8f5f712d015d24729495365cdfd6f853937ff2c9d02a1e2821498e20b36ced32`.
+- `ffmpeg-mpeg4-packed.avi`: the same 60 pictures with `max_b_frames=2`, muxed into AVI, which is
+  the container this codec mostly lived in. AVI states no decoding order, so the stream carries its
+  own setup headers, a bidirectional plane is stored behind the plane it refers forward to, and a
+  plane that codes nothing pads the frame it would have taken. SHA-256:
+  `4db4b1ccb5aaa544fe4f6333fba6798a76896eeb551fbf5cfd224a21d6c3f537`.
+- `ffmpeg-mpeg4-simple.yuv`, `ffmpeg-mpeg4-bvop.yuv`, and `ffmpeg-mpeg4-packed.yuv` are those
+  streams decoded by FFmpeg, which is what the tests measure against. SHA-256:
+  `5a5ace6350c62eafc6bb2d38e823b1f489d1c28184a2301733a188b9b55382e5`,
+  `75cdee3b18cb7b056be4265a91fcc9defbd0b45c59ac1620786549a0455c56f5`, and
+  `d099ba62af714cff4f93034a03a0ff8887853616091cccfe3182e3195d19b9e1`.
+- License: same as this repository.
+
 ## Expected values
 
 The colours the tests assert were read by decoding the same file with ffmpeg, not with this

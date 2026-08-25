@@ -35,15 +35,22 @@ Four codecs ship in the box:
 - YUV4MPEG2 (`.y4m`) reads progressive 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4
   YCbCr frames and writes 4:4:4 ones. It does not compress, so it favors a small
   implementation over the size of what it produces.
-- AVI (`.avi`) reads Motion JPEG and uncompressed frames, exposes integer PCM sound tracks, and
-  writes Motion JPEG pictures. It seeks through the index the container carries rather than
+- AVI (`.avi`) reads Motion JPEG, MPEG-4 Part 2, and uncompressed frames, exposes integer PCM sound
+  tracks, and writes Motion JPEG pictures. A coded stream states its codec through the bitmap
+  header of the container and its setup headers inside the stream, and stores a bidirectional plane
+  behind the plane it refers forward to, which is what this container's lack of a decoding order
+  costs. It seeks through the index the container carries rather than
   through the frames themselves, so a seek costs one frame whatever the length of the file.
 - ISO-BMFF (`.mp4`, `.m4v`, and `.mov`) reads Motion JPEG, H.264, and H.265 pictures, writes
   Motion JPEG, and exposes AAC-LC mono/stereo audio. It expands compact sample tables into direct
   packet offsets while payloads remain in the file. Exact composition timestamps are retained for
   variable-rate playback and coded display reordering.
-- Matroska (`.mkv`) reads H.264 and H.265 pictures and exposes every AAC-LC, AC-3, independent
-  E-AC-3, and FLAC audio track with up to eight channels. Matroska `CodecDelay` is removed from the audible timeline.
+- Matroska (`.mkv`) reads H.264, H.265, and MPEG-4 Part 2 pictures and exposes every AAC-LC, AC-3,
+  independent E-AC-3, FLAC, and MPEG Layer III audio track with up to eight channels. A picture
+  track remuxed from a legacy file is read as well: such a track names its codec through a Video
+  for Windows header, states its setup headers inside the stream rather than in the container, and
+  may store a bidirectional plane behind the plane it refers forward to. Display order is then
+  taken from the clock the stream states, not from the order the container hands samples over. Matroska `CodecDelay` is removed from the audible timeline.
   Opening reads only seek, track, and cue metadata. Decoding advances one foreground demux cursor
   through complete cluster windows as playback reaches them; random access restarts it at the
   preceding video cue and reconstructs the coded prediction through the requested picture. No

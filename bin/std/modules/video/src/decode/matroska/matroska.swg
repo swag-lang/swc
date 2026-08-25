@@ -1,6 +1,6 @@
 //! Format: Matroska/EBML container decoder component.
-//! Supported: H.264 and H.265 picture tracks and AAC-LC, AC-3, independent E-AC-3, FLAC, or Layer III audio tracks, with cues, timestamps, codec delay, and common block lacing for audio.
-//! Not supported: Picture codecs other than H.264/H.265, laced or invisible picture blocks, dependent E-AC-3 substreams, encrypted tracks, and writing Matroska.
+//! Supported: H.264, H.265 and MPEG-4 Part 2 picture tracks, the last also through a Video for Windows header, and AAC-LC, AC-3, independent E-AC-3, FLAC, or Layer III audio tracks, with cues, timestamps, codec delay, and common block lacing for audio.
+//! Not supported: Picture codecs other than those three, laced or invisible picture blocks, dependent E-AC-3 substreams, encrypted tracks, and writing Matroska.
 //! Role: This file owns tracks, clusters, cues, timestamps, progressive indexing, and media dispatch.
 //
 #global namespace Matroska
@@ -16,6 +16,8 @@ private const Ac3CodecId = "A_AC3"
 private const Eac3CodecId = "A_EAC3"
 private const FlacCodecId = "A_FLAC"
 private const Mp3CodecId = "A_MPEG/L3"
+private const Mpeg4CodecId = "V_MPEG4/ISO/ASP"
+private const VfwCodecId = "V_MS/VFW/FOURCC"
 private const DefaultTimestampScale = 1_000_000'u64
 private const NoTrack = Swag.U64.Max
 private const NoOffset = Swag.U64.Max
@@ -69,6 +71,7 @@ private struct Track
     language:        String
     codecId:         String
     codecPrivate:    Array'u8
+    setup:           Array'u8       // Setup headers a legacy track states in its stream, not in the container.
     defaultDuration: u64
     codecDelay:      u64
     seekPreRoll:     u64
@@ -89,9 +92,49 @@ private struct Track
 
 private impl Track
 {
-    mtd const isPlayableVideo()->bool => .isEnabled and !.hasEncodings and .kind == VideoTrackType and (.codecId == AvcCodecId or .codecId == HevcCodecId) and .codecPrivate.count != 0
+    mtd const isPlayableVideo()->bool
+    {
+        if !.isEnabled or .hasEncodings or .kind != VideoTrackType do
+            return false
+        if .codecId == AvcCodecId or .codecId == HevcCodecId or .codecId == Mpeg4CodecId do
+            return .codecPrivate.count != 0
+        return .isVfwMpeg4()
+    }
 
     mtd const isHevcVideo()->bool => .codecId == HevcCodecId
+
+    // Whether a Video for Windows header names a codec this decoder reads.
+    mtd const isVfwMpeg4()->bool
+    {
+        if .codecId != VfwCodecId or .codecPrivate.count < Video.BitmapInfoHeaderSize do
+            return false
+        return Video.isMpeg4FourCc(Video.bitmapCompression(.codecPrivate.toSlice()))
+    }
+
+    // The setup headers of a picture track, wherever the file states them.
+    mtd const videoConfiguration()->const [..] u8
+    {
+        if .codecId != VfwCodecId do
+            return .codecPrivate.toSlice()
+        if .codecPrivate.count > Video.BitmapInfoHeaderSize do
+            return .codecPrivate.toSlice()[Video.BitmapInfoHeaderSize until .codecPrivate.count]
+
+        // A bitmap header that names the codec and nothing more leaves the layer to the stream.
+        return .setup.toSlice()
+    }
+
+    // Whether the setup headers have to be taken from the first sample.
+    mtd const needsInlineSetup()->bool => .codecId == VfwCodecId and .codecPrivate.count <= Video.BitmapInfoHeaderSize
+
+    // Which coded picture format this track names.
+    mtd const pictureKind()->u32
+    {
+        if .codecId == HevcCodecId do
+            return PictureHevc
+        if .codecId == Mpeg4CodecId or .codecId == VfwCodecId do
+            return PictureMpeg4
+        return PictureAvc
+    }
 
     mtd const soundEncoding()->SoundFileEncoding
     {
@@ -1054,6 +1097,11 @@ private impl Layout
             let timestamp = .timestampNanoseconds(clusterTimestamp, relative)
             let isSync    = keyFromContainer and (block.id != SimpleBlockId or flags & 0x80 != 0)
             track.videoSamples.add({payload, .laceSizes[0], timestamp, isSync})
+            if track.videoSamples.count == 1 and track.needsInlineSetup()
+            {
+                let end = Math.min(payload + .laceSizes[0], @countof(cursor.bytes))
+                track.setup.add(Video.inlineSetupHeaders(cursor.bytes[payload until end]))
+            }
             return
         }
 
@@ -1268,8 +1316,24 @@ private impl Decoder
 {
     mtd configureMetadata(layout: *Layout) fail
     {
-        let video = &layout.tracks[layout.selectedVideo]
-        if video.isHevcVideo()
+        var video = &layout.tracks[layout.selectedVideo]
+        if video.needsInlineSetup() and !video.setup.count
+        {
+            // A track that carries its layer in the stream needs one sample read before it can
+            // answer anything about itself.
+            discard layout.indexUntil(.fileIndex!.region.bytes(), 1)
+            video = &layout.tracks[layout.selectedVideo]
+        }
+
+        if video.pictureKind() == PictureMpeg4
+        {
+            // The setup headers state the geometry outright.
+            var probe: Mpeg4.Decoder
+            try probe.configure(video.videoConfiguration())
+            .info.width  = cast(s32) probe.layer.width
+            .info.height = cast(s32) probe.layer.height
+        }
+        elif video.isHevcVideo()
         {
             // The stream answers its own geometry, so the parameter sets are read once here and
             // once more when the sample table exists.
@@ -1302,7 +1366,7 @@ private impl Decoder
         if video.videoSamples.count > Swag.U32.Max do
             fail OverflowError{"Matroska video sample table is too large"}
         .info.frameCount = video.videoSamples.count
-        try .video.open(video.isHevcVideo(), video.codecPrivate.toSlice(), video.videoSamples.toSlice())
+        try .video.open(video.pictureKind(), video.videoConfiguration(), video.videoSamples.toSlice())
         .streamOpen         = true
         .streamSampleCount  = .info.frameCount
         .presentationOrigin = .video.presentationTimeAtRank(0)
@@ -1324,7 +1388,7 @@ private impl Decoder
         let added = samples[.streamSampleCount until @countof(samples)]
         if !.streamOpen
         {
-            try .video.open(track.isHevcVideo(), track.codecPrivate.toSlice(), added)
+            try .video.open(track.pictureKind(), track.videoConfiguration(), added)
             .streamOpen         = true
             .presentationOrigin = .video.presentationTimeAtRank(0)
         }
@@ -1338,7 +1402,7 @@ private impl Decoder
         let samples = track.videoSamples.toSlice()
         if !.streamOpen
         {
-            try .video.open(track.isHevcVideo(), track.codecPrivate.toSlice(), samples)
+            try .video.open(track.pictureKind(), track.videoConfiguration(), samples)
             .streamOpen = true
         }
         else do

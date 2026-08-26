@@ -2737,10 +2737,12 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // caller's scope (which can't see the callee's private/internal symbols, picks wrong
     // overloads, and trips shadowing). That resolution only exists once the callee has been
     // sema-completed, so wait for it before proceeding.
-    // Generic functions instantiated cross-Ast still re-bind their generic parameters and
-    // intrinsic argument matching in the caller's Ast, which isn't handled yet; keep them on
-    // the previous (no cross-Ast inline) path. The hot inline accessors are non-generic.
-    if (isCrossAstInline && isOrdinaryInline && (fn.isGenericInstance() || fn.isGenericRoot()))
+    // A generic root is not a callee: a call resolves to one of its instances, and an instance
+    // carries its generic bindings through appendGenericInstanceBindings below, which the
+    // cross-Ast path already applies. Refusing instances here left every `#[Inline]` generic a
+    // real call from another file - `Math.clamp` and every vector `Math.min`/`Math.max` among
+    // them, which the standard library calls per group of samples in its packed loops.
+    if (isCrossAstInline && isOrdinaryInline && fn.isGenericRoot())
         return Result::Continue;
     if (isCrossAstInline && isOrdinaryInline && bodyHasNestedCallExpr(*declAst, decl->nodeBodyRef))
         return Result::Continue;

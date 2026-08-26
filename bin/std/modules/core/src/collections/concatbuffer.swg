@@ -488,8 +488,8 @@ impl ConcatBuffer
         return null
     }
 
-    // Initializes the buffer to use an external, existing slice of data as its first bucket.
-    // This is a "view" mode; the buffer does not own or free this data.
+    // Initializes the buffer by taking ownership of an existing slice as its first bucket.
+    // The slice is released through the buffer's allocator; its bucket header remains embedded.
     mtd setFirstBucket(data: [..] u8)
     {
         Debug.assert(.firstBucket == null)

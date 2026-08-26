@@ -3431,7 +3431,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_setBucketSize">ConcatBuffer.setBucketSize</a></td><td><p>Sets the minimum size for new buckets allocated by the buffer.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_setFirstBucket">ConcatBuffer.setFirstBucket</a></td><td><p>Initializes the buffer to use an external, existing slice of data as its first bucket.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_setFirstBucket">ConcatBuffer.setFirstBucket</a></td><td><p>Initializes the buffer by taking ownership of an existing slice as its first bucket.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_setPosition">ConcatBuffer.setPosition</a></td><td><p>Sets the current read/write position.</p>
 </td></tr>
@@ -9311,7 +9311,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_setBucketSize">setBucketSize</a></td><td><p>Sets the minimum size for new buckets allocated by the buffer.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_setFirstBucket">setFirstBucket</a></td><td><p>Initializes the buffer to use an external, existing slice of data as its first bucket.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_setFirstBucket">setFirstBucket</a></td><td><p>Initializes the buffer by taking ownership of an existing slice as its first bucket.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_setPosition">setPosition</a></td><td><p>Sets the current read/write position.</p>
 </td></tr>
@@ -17733,7 +17733,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_ConcatBuffer_setFirstBucket" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.setFirstBucket</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_setFirstBucket" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L494">src</a></div>
-<p>Initializes the buffer to use an external, existing slice of data as its first bucket. This is a "view" mode; the buffer does not own or free this data.</p>
+<p>Initializes the buffer by taking ownership of an existing slice as its first bucket. The slice is released through the buffer's allocator; its bucket header remains embedded.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFirstBucket</span>(data: [..] <span class="STpe">u8</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -21237,12 +21237,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span> <span class="SFct">align</span>(value: <span class="SKwd">const</span> [*] <span class="STpe">void</span>, alignment: <span class="STpe">u32</span>)-&gt;<span class="SKwd">const</span> [*] <span class="STpe">void</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Memory_alloc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.alloc</span> <a class="api-item-permalink" href="#Core_Memory_alloc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/alloc.swg#L99">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Memory_alloc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.alloc</span> <a class="api-item-permalink" href="#Core_Memory_alloc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/alloc.swg#L143">src</a></div>
 <p>Allocates an uninitialized byte range. The returned pointer is non-null; a zero size raises a panic.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">alloc</span>(size: <span class="STpe">u64</span>, allocator: <span class="SItr">#null</span> <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span> = <span class="SKwd">null</span>, alignment: <span class="STpe">u32</span> = <span class="SNum">0</span>, hint: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)-&gt;[*] <span class="STpe">void</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Memory_assertIsAllocated" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.assertIsAllocated</span> <a class="api-item-permalink" href="#Core_Memory_assertIsAllocated" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/alloc.swg#L30">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Memory_assertIsAllocated" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.assertIsAllocated</span> <a class="api-item-permalink" href="#Core_Memory_assertIsAllocated" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/alloc.swg#L71">src</a></div>
 <p>Asserts that a byte range belongs to the selected allocator. A null buffer is accepted and performs no check.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">assertIsAllocated</span>(buffer: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, size: <span class="STpe">u64</span>, allocator: <span class="SItr">#null</span> <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span> = <span class="SKwd">null</span>, hint: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
@@ -21277,7 +21277,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span> <span class="SFct">copyOverlapping</span>(destination: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, source: <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">void</span>, size: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Memory_delete" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.delete</span> <a class="api-item-permalink" href="#Core_Memory_delete" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/alloc.swg#L163">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Memory_delete" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.delete</span> <a class="api-item-permalink" href="#Core_Memory_delete" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/alloc.swg#L206">src</a></div>
 <p>Drops and releases one value of T.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">delete</span>(ptr: <span class="SItr">#null</span> *<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>, allocator: <span class="SItr">#null</span> <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span> = <span class="SKwd">null</span>, hint: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 <p>Drops and releases a value described at runtime.</p>
@@ -21286,17 +21286,17 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">delete</span>(ptr: <span class="SItr">#null</span> [*] <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>, num: <span class="STpe">u64</span>, allocator: <span class="SItr">#null</span> <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span> = <span class="SKwd">null</span>, hint: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Memory_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.free</span> <a class="api-item-permalink" href="#Core_Memory_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/alloc.swg#L47">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Memory_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.free</span> <a class="api-item-permalink" href="#Core_Memory_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/alloc.swg#L88">src</a></div>
 <p>Releases a byte range through the selected allocator. A null buffer is accepted and performs no operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">free</span>(buffer: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, size: <span class="STpe">u64</span>, allocator: <span class="SItr">#null</span> <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span> = <span class="SKwd">null</span>, hint: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Memory_freeAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.freeAll</span> <a class="api-item-permalink" href="#Core_Memory_freeAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/alloc.swg#L63">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Memory_freeAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.freeAll</span> <a class="api-item-permalink" href="#Core_Memory_freeAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/alloc.swg#L104">src</a></div>
 <p>Releases every allocation owned by the selected allocator, when supported.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">freeAll</span>(allocator: <span class="SItr">#null</span> <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>, hint: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Memory_new" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.new</span> <a class="api-item-permalink" href="#Core_Memory_new" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/alloc.swg#L139">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Memory_new" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.new</span> <a class="api-item-permalink" href="#Core_Memory_new" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/alloc.swg#L182">src</a></div>
 <p>Allocates and default-initializes a value described at runtime. Returns null after reporting a panic when the type requires explicit initialization.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">new</span>(type: <span class="STpe">typeinfo</span>, allocator: <span class="SItr">#null</span> <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span> = <span class="SKwd">null</span>, alignment: <span class="STpe">u32</span> = <span class="SNum">0</span>, hint: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)-&gt;<span class="SItr">#null</span> *<span class="STpe">u8</span></span></div>
 <p>Allocates and default-initializes one value of T.</p>
@@ -21305,7 +21305,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">new</span>(num: <span class="STpe">u64</span>, allocator: <span class="SItr">#null</span> <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span> = <span class="SKwd">null</span>, alignment: <span class="STpe">u32</span> = <span class="SNum">0</span>, hint: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)-&gt;[*] <span class="SCst"><a href="#Core_Input_Key_T">T</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Memory_realloc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.realloc</span> <a class="api-item-permalink" href="#Core_Memory_realloc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/alloc.swg#L75">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Memory_realloc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.realloc</span> <a class="api-item-permalink" href="#Core_Memory_realloc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/alloc.swg#L116">src</a></div>
 <p>Resizes a byte allocation, preserving its existing contents. The returned pointer is non-null; a zero new size raises a panic.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">realloc</span>(buffer: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, newSize: <span class="STpe">u64</span>, oldSize: <span class="STpe">u64</span>, allocator: <span class="SItr">#null</span> <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span> = <span class="SKwd">null</span>, alignment: <span class="STpe">u32</span> = <span class="SNum">0</span>, hint: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)-&gt;[*] <span class="STpe">void</span></span></div>
 </section>
@@ -21321,7 +21321,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span> <span class="SFct">set</span>(dest: [*] <span class="STpe">void</span>, value: <span class="STpe">u8</span>, size: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Memory_tempAlloc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.tempAlloc</span> <a class="api-item-permalink" href="#Core_Memory_tempAlloc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/alloc.swg#L120">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Memory_tempAlloc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.tempAlloc</span> <a class="api-item-permalink" href="#Core_Memory_tempAlloc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/alloc.swg#L163">src</a></div>
 <p>Allocates an uninitialized byte range from the current temporary allocator.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tempAlloc</span>(size: <span class="STpe">u64</span>, alignment: <span class="STpe">u32</span> = <span class="SNum">0</span>, hint: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)-&gt;[*] <span class="STpe">void</span></span></div>
 </section>
@@ -26099,7 +26099,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.217</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.219</div>
 </footer>
 </section>
 </main>
@@ -27679,7 +27679,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.ConcatBuffer.reversed|Core_ConcatBuffer_reversed|Returns an immutable zero-allocation view that traverses buckets from last to first.",
 "f|Core.ConcatBuffer.setAllocator|Core_ConcatBuffer_setAllocator|Associates a specific allocator with the buffer.",
 "f|Core.ConcatBuffer.setBucketSize|Core_ConcatBuffer_setBucketSize|Sets the minimum size for new buckets allocated by the buffer.",
-"f|Core.ConcatBuffer.setFirstBucket|Core_ConcatBuffer_setFirstBucket|Initializes the buffer to use an external, existing slice of data as its first bucket.",
+"f|Core.ConcatBuffer.setFirstBucket|Core_ConcatBuffer_setFirstBucket|Initializes the buffer by taking ownership of an existing slice as its first bucket.",
 "f|Core.ConcatBuffer.setPosition|Core_ConcatBuffer_setPosition|Sets the current read/write position.",
 "f|Core.ConcatBuffer.toSlice|Core_ConcatBuffer_toSlice|Returns the buffer's content as a slice, but only if the buffer is 'linear'.",
 "f|Core.ConcatBuffer.toString|Core_ConcatBuffer_toString|Converts the buffer to a Core.String by copying its content.",

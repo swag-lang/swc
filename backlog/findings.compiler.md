@@ -206,3 +206,22 @@ Entries are sorted by identifier, ascending; position carries no priority.
   module whose compile-time path crosses two shared-library dependencies. Trace how the doc command
   registers dependency runtime artifacts, then make it build or publish every required artifact
   before JIT relocation instead of relying on a binary left by an earlier command.
+
+### F-202 — A constant struct initializer with a casted pointer asserts in semantic analysis
+
+- Area: compiler
+- Found while: adding `std/core` tests for allocation-panic details in
+  `bin/std/modules/core/src/tests/memory/alloc.test.swg`.
+- Observation: a constant `Swag.AllocatorRequest` initializer whose `address` field is initialized
+  with `cast(#null *void) 0x1234` makes the DevMode compiler assert instead of accepting or
+  diagnosing the initializer. Assigning the same value to the field after a zero initialization
+  compiles, so the failure belongs to aggregate constant folding rather than the cast itself.
+- Evidence: `bin\swc_devmode.exe --num-cores 6 tools\std.swgs dm test core --test-file
+  alloc.test.swg --num-cores 6` asserts in `foldAggregateStructConstant` at
+  `src/Compiler/Sema/Cast/Cast.Struct.cpp:643` because `args.castRequest->outConstRef` is invalid;
+  the source token is the opening brace of
+  `Swag.AllocatorRequest{address: cast(#null *void) 0x1234, ...}`.
+- Next step: reduce the initializer to a standalone `bin/unittests/sema` input, trace why the
+  pointer-valued field cast has no `outConstRef`, and replace the assertion with correct constant
+  folding or a source diagnostic according to whether integer-to-pointer aggregate constants are
+  part of the language contract.

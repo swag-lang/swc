@@ -3,25 +3,66 @@
 
 using Swag
 
-private func allocationSizeError(kind: string, size: u64, hint: #null string, location: Swag.SourceCodeLocation)->String
+private const AllocationPanicHintMaxBytes = 512'u64
+
+private struct AllocationPanicBufferAllocator {}
+
+private impl IAllocator for AllocationPanicBufferAllocator
 {
-    var result: retval
-    result.append(kind)
-    result.append(" expects a non-zero size")
-    result.append(", got ")
-    result.appendFormat("%", size)
-    if @countof(hint)
+    mtd impl alloc(request: *AllocatorRequest) { request.address = null }
+    mtd impl realloc(request: *AllocatorRequest) { request.address = null }
+    mtd impl free(request: *AllocatorRequest) {}
+    mtd impl freeAll(request: *AllocatorRequest) {}
+    mtd impl assertAllocated(request: *AllocatorRequest) {}
+}
+
+internal func appendAllocationFailure(message: *ConcatBuffer, operation: string, request: AllocatorRequest, includeOldAllocation: bool)
+{
+    message.addBytes(operation)
+    message.addBytes(includeOldAllocation ? " cannot reallocate memory: requested size " : " cannot allocate memory: requested size ")
+    Format.append(message, "%", request.size)
+    message.addBytes(" bytes")
+
+    if includeOldAllocation
     {
-        result.append(" [")
-        result.append(hint)
-        result.append("]")
+        message.addBytes(", old size ")
+        Format.append(message, "%", request.oldSize)
+        message.addBytes(" bytes")
     }
 
-    result.append(" at ")
-    result.append(location.fileName)
-    result.append(":")
-    result.appendFormat("%", location.lineStart)
-    return result
+    message.addBytes(", alignment ")
+    Format.append(message, "%", request.alignment)
+    message.addBytes(" bytes")
+
+    if includeOldAllocation
+    {
+        message.addBytes(", address 0x")
+        Format.append(message, "%{X}", cast(u64) request.address)
+    }
+
+    let hintLength = @countof(request.hint)
+    if hintLength
+    {
+        let shownHintLength = @min(hintLength, AllocationPanicHintMaxBytes)
+        message.addBytes(" [")
+        message.addBytes(@mkstring(@dataof(request.hint), shownHintLength))
+        if shownHintLength != hintLength do
+            message.addBytes("...")
+        message.addBytes("]")
+    }
+}
+
+private func panicAllocationFailure(operation: string, request: *AllocatorRequest, includeOldAllocation: bool)
+{
+    // Allocation failures must not allocate again while constructing their panic message.
+    var storage:           [1024] u8
+    var stackAllocator:    AllocationPanicBufferAllocator
+    var message:           ConcatBuffer
+    let stackAllocatorItf: IAllocator = &stackAllocator
+    message.allocator = stackAllocatorItf
+    message.setFirstBucket(storage)
+    appendAllocationFailure(&message, operation, request[], includeOldAllocation)
+    @panic(cast(string) message.toSlice()!, request.callerLoc)
 }
 
 // Asserts that a byte range belongs to the selected allocator.
@@ -73,9 +114,6 @@ func freeAll(allocator: #null IAllocator, hint: #null string = null, loc = #call
 // The returned pointer is non-null; a zero new size raises a panic.
 func realloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #null IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->[*] void
 {
-    if !newSize do
-        @panic(allocationSizeError("Memory.realloc", newSize, hint, loc), loc)
-
     var req: AllocatorRequest
     req.callerLoc = loc
     req.hint      = hint
@@ -84,53 +122,58 @@ func realloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #nul
     req.oldSize   = oldSize
     req.alignment = alignment
 
+    if !newSize do
+        panicAllocationFailure("Memory.realloc", &req, true)
+
     let talloc = (allocator orelse @getcontext().allocator)!
     talloc.realloc(&req)
 
-    let address = req.address
-    if !address do
-        @panic("Memory.realloc returned null", loc)
-    return address
+    if !req.address
+    {
+        req.address = buffer
+        panicAllocationFailure("Memory.realloc", &req, true)
+    }
+
+    return req.address!
 }
 
 // Allocates an uninitialized byte range.
 // The returned pointer is non-null; a zero size raises a panic.
 func alloc(size: u64, allocator: #null IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->[*] void
 {
-    if !size do
-        @panic(allocationSizeError("Memory.alloc", size, hint, loc), loc)
-
     var req: AllocatorRequest
     req.callerLoc = loc
     req.hint      = hint
     req.size      = size
     req.alignment = alignment
 
+    if !size do
+        panicAllocationFailure("Memory.alloc", &req, false)
+
     let talloc = (allocator orelse @getcontext().allocator)!
     talloc.alloc(&req)
 
-    let address = req.address
-    if !address do
-        @panic("Memory.alloc returned null", loc)
-    return address
+    if !req.address do
+        panicAllocationFailure("Memory.alloc", &req, false)
+    return req.address!
 }
 
 // Allocates an uninitialized byte range from the current temporary allocator.
 func tempAlloc(size: u64, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->[*] void
 {
-    if !size do
-        @panic(allocationSizeError("Memory.tempAlloc", size, hint, loc), loc)
-
     var req: AllocatorRequest
     req.callerLoc = loc
     req.hint      = hint
     req.size      = size
     req.alignment = alignment
+
+    if !size do
+        panicAllocationFailure("Memory.tempAlloc", &req, false)
+
     @getcontext().tempAllocator.IAllocator.alloc(&req)
-    let address = req.address
-    if !address do
-        @panic("Memory.tempAlloc returned null", loc)
-    return address
+    if !req.address do
+        panicAllocationFailure("Memory.tempAlloc", &req, false)
+    return req.address!
 }
 
 // Allocates and default-initializes a value described at runtime.

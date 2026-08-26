@@ -241,7 +241,7 @@ is the layout it does not read yet.
     deliberately ahead of the clock competed with the thread that has to present on it.
 - What the pass of 2026-08-26 changed in the 16x16 and 32x32 inverse transform, byte-exact
   against the conformance digests and against a hash of the film's own planes. **The two matrix
-  passes are about twice as fast** — 19 ms of a 3840x2076 Main10 picture against 40, the
+  passes are about twice as fast** — about 12 ms of a 3840x2076 Main10 picture instead of about 24, the
   ratio read as 1.9 to 2.1 over three runs of 625,000 real transform blocks each. Three changes,
   of which the first is most of it:
   - Both passes pair two basis functions into one `pmaddwd`. Every value they multiply is already
@@ -258,10 +258,33 @@ is the layout it does not read yet.
     reads one sample per basis, for which the stride costs nothing. **Neutral in time** (1.00 and
     1.03 against the strided form, measured against each other), kept because it is less code and
     no longer round-trips a vector through the frame.
-- Next, in expected order of value: the fractional filters and the transform are both 128 bits
-  wide, and this stream is the case where 256-bit forms would pay; and a uni-predicted block is
-  filtered into `predBuffer` and then read again to be combined, where one pass could write the
-  picture directly.
+- What one picture actually spends per stage, measured 2026-08-26 in one run by timing each
+  stage into its own counter rather than by disabling it, on a fifteen-second 3840x2076 Main10
+  clip (236 ms a picture at the time): **sample adaptive offset 90 ms**, deblocking 18, the
+  inverse transform 13, adding the residual 9, combining predictions 7, integer-position
+  prediction 10, chroma interpolation 10, the reduction to eight bits 4, intra 0.5, and the
+  entropy parse and bookkeeping the rest. The recorded profile above puts sample adaptive offset
+  at 5 ms, which is what disabling one stage at a time said; timing it says it was the largest
+  stage in the decoder. **Prefer a counter per stage to a stage switched off** — a switch also
+  removes the work every later stage does on what it wrote, and here it hid a factor of eighteen.
+  Two figures in that list are mostly probe: interpolation is timed per prediction block, and a
+  4x4 chroma block costs less than the two clock reads around it.
+- What the sample adaptive offset pass of 2026-08-26 changed, byte-exact against the conformance
+  digests, which include the MediaTek sample adaptive offset stream, and against a hash of the
+  clip's own planes. **90 ms a picture became 30, and the whole picture went from 186 to 137**
+  (four interleaved runs each, no overlap between the two sets). The edge offset filter tested
+  four picture boundaries and recomputed three addresses for every sample of the picture, the
+  same shape the loop filter was fixed for the day before. The block is now trimmed once to
+  where both neighbours exist, each row resolves three line bases, and eight samples are
+  filtered at a time: a comparison already answers with a lane of ones, so the sign of a
+  difference is the difference of two comparisons, and the offset is selected by category
+  instead of looked up. The band offset path is still one sample at a time.
+- Next, in expected order of value: what is left of sample adaptive offset is the band offset
+  path, still one sample at a time, and three full-plane copies a picture, which exist so that a
+  block never reads what an earlier one wrote and could be a swap of two buffers instead; the
+  fractional filters and the transform are both 128 bits wide, and this stream is the case where
+  256-bit forms would pay; and a uni-predicted block is filtered into `predBuffer` and then read
+  again to be combined, where one pass could write the picture directly.
 - What it refuses, and where: `sets.swg` fails a sequence parameter set whose `chroma_format_idc`
   is not 1, whose bit depth is neither 8 nor 10, that enables pulse code modulation blocks, or that
   carries the range extension, multilayer, 3D or screen content tools. The 4:2:2 and 4:4:4 formats

@@ -12,6 +12,16 @@ using Core
 #[Swag.Inline]
 private func signOf(value: s32)->s32 => value > 0 ? 1 : (value < 0 ? -1 : 0)
 
+// Returns the same sign for eight samples at once, as the lane values 1, 0 and -1.
+//
+// A comparison answers with a lane of ones, which is minus one read as a number, so the two
+// comparisons carry the whole answer and the subtraction the clause writes never runs.
+#[Swag.Inline]
+private func signOfDifference(centre, other: Simd.S16x8)->Simd.S16x8
+{
+    return cast #bit(Simd.S16x8) (other > centre) - cast #bit(Simd.S16x8) (centre > other)
+}
+
 // Table 8-13: the two neighbours each edge offset class compares a sample against.
 const SaoEdgeHPos: [4, 2] s8 = [[-1, 1], [0, 0], [-1, 1], [1, -1]]
 const SaoEdgeVPos: [4, 2] s8 = [[0, 0], [-1, 1], [-1, 1], [-1, 1]]
@@ -231,22 +241,59 @@ impl Decoder
         let v0 = cast(s32) SaoEdgeVPos[eoClass, 0]
         let v1 = cast(s32) SaoEdgeVPos[eoClass, 1]
 
-        for row in height
+        // A sample whose comparison would leave the picture keeps the value deblocking gave it,
+        // and the samples that do are a border of the picture rather than a property of the
+        // sample. Trimming the block to where both neighbours exist takes the four tests out of
+        // the loop, which then addresses three lines instead of recomputing three offsets.
+        let xBegin = Math.max(x0, -Math.min(h0, h1))
+        let xEnd   = Math.min(x0 + width, planeWidth - Math.max(h0, h1))
+        let yBegin = Math.max(y0, -Math.min(v0, v1))
+        let yEnd   = Math.min(y0 + height, planeHeight - Math.max(v0, v1))
+        if xBegin >= xEnd or yBegin >= yEnd do
+            return
+
+        // The categories the standard derives from two comparisons index the offsets directly,
+        // and category two, the flat one, carries no offset. Selecting the offset by category
+        // rather than the category itself leaves nothing to look up.
+        let zeros   = Simd.splat(0's16)
+        let ones    = Simd.splat(1's16)
+        let twos    = Simd.splat(2's16)
+        let threes  = Simd.splat(3's16)
+        let fours   = Simd.splat(4's16)
+        let maxima  = Simd.splat(cast(s16) maximum)
+        let offset1 = Simd.splat(parameters.offsets[component, 1])
+        let offset2 = Simd.splat(parameters.offsets[component, 2])
+        let offset3 = Simd.splat(parameters.offsets[component, 3])
+        let offset4 = Simd.splat(parameters.offsets[component, 4])
+
+        for y in yBegin until yEnd
         {
-            let y = y0 + row
-            for column in width
+            let centreLine = origin + cast(u64) y * stride
+            let firstLine  = origin + cast(u64) (y + v0) * stride
+            let secondLine = origin + cast(u64) (y + v1) * stride
+            var x          = xBegin
+
+            while x + 8 <= xEnd
             {
-                let x = x0 + column
+                let centre = cast #bit(Simd.S16x8) Simd.load(&source[centreLine + cast(u64) x])
+                let first  = cast #bit(Simd.S16x8) Simd.load(&source[firstLine + cast(u64) (x + h0)])
+                let second = cast #bit(Simd.S16x8) Simd.load(&source[secondLine + cast(u64) (x + h1)])
 
-                // A sample whose comparison would leave the picture is left alone.
-                if x + h0 < 0 or x + h0 >= planeWidth or x + h1 < 0 or x + h1 >= planeWidth do
-                    continue
-                if y + v0 < 0 or y + v0 >= planeHeight or y + v1 < 0 or y + v1 >= planeHeight do
-                    continue
+                let category = twos + signOfDifference(centre, first) + signOfDifference(centre, second)
+                var shift    = Simd.select(category == zeros, offset1, zeros)
+                shift = Simd.select(category == ones, offset2, shift)
+                shift = Simd.select(category == threes, offset3, shift)
+                shift = Simd.select(category == fours, offset4, shift)
 
-                let centre = cast(s32) source[origin + cast(u64) y * stride + cast(u64) x]
-                let first  = cast(s32) source[origin + cast(u64) (y + v0) * stride + cast(u64) (x + h0)]
-                let second = cast(s32) source[origin + cast(u64) (y + v1) * stride + cast(u64) (x + h1)]
+                Simd.store(&destination[centreLine + cast(u64) x], cast #bit(Simd.U16x8) Math.max(Math.min(centre + shift, maxima), zeros))
+                x += 8
+            }
+
+            while x < xEnd
+            {
+                let centre = cast(s32) source[centreLine + cast(u64) x]
+                let first  = cast(s32) source[firstLine + cast(u64) (x + h0)]
+                let second = cast(s32) source[secondLine + cast(u64) (x + h1)]
 
                 var edge = 2 + signOf(centre - first) + signOf(centre - second)
                 if edge <= 2 do
@@ -254,7 +301,8 @@ impl Decoder
 
                 let offset = parameters.offsets[component, cast(u32) edge]
                 if offset != 0 do
-                    destination[origin + cast(u64) y * stride + cast(u64) x] = cast(u16) Math.clamp(centre + cast(s32) offset, 0, maximum)
+                    destination[centreLine + cast(u64) x] = cast(u16) Math.clamp(centre + cast(s32) offset, 0, maximum)
+                x += 1
             }
         }
     }

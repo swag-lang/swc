@@ -6,6 +6,11 @@ const ViewerGlyphSize                         = 20.0
 const ViewerRowGlyphSize                      = 16.0
 const ViewerMinWidth                          = 880
 const ViewerSearchChunkSize                   = 256 * 1024'u64
+const ViewerSearchBarWidth                    = 364.0
+const ViewerSearchFieldWidth                  = 180.0
+const ViewerSearchCountWidth                  = 52.0
+const ViewerSearchButtonSize                  = 28.0
+const ViewerSearchCarryMargin                 = 4'u64
 const ViewerErrorTextWidth                    = 512.0
 const ViewerInfoStatsMaxWidth                 = 560.0
 const ViewerFullScreenRevealEdge              = 32.0
@@ -43,12 +48,50 @@ struct ViewerInstance
     view:                #null *Wnd
     commands:            #null *Wnd
     revealMatch:         #null ViewerRevealMatch
-    findText:            #null ViewerFindText
+    collectMatches:      #null ViewerCollectMatches
     isLoading:           #null ViewerIsLoading
     needsLoadingOverlay: #null ViewerNeedsLoadingOverlay
     retire:              #null ViewerRetire
     details:             String
     failureReason:       String
+}
+
+// Keeps the search group centered on the complete action bar, independently of the file actions
+// and viewer selector docked at its edges.
+struct ViewerActionBar
+{
+    using wnd: Wnd
+    searchGroup: #null *Wnd
+}
+
+impl IWnd for ViewerActionBar
+{
+    mtd impl onResizeEvent(evt: *ResizeEvent)
+    {
+        discard evt
+        .centerSearchGroup()
+    }
+}
+
+impl ViewerActionBar
+{
+    func create(parent: *Wnd)->*ViewerActionBar
+    {
+        let result = Wnd.create'ViewerActionBar(parent, {0, 0, 0, ViewerBarHeight})
+        result.dockStyle       = .Top
+        result.backgroundStyle = .Window
+        result.padding         = {12, 6, 12, 6}
+        return result
+    }
+
+    mtd centerSearchGroup()
+    {
+        if !.searchGroup do
+            return
+        let client = .paddedClientRect()
+        .searchGroup!.setPosition({client.horzCenter() - ViewerSearchBarWidth * 0.5, client.vertCenter() - 18, ViewerSearchBarWidth, 36}, computeLayout: false)
+        .searchGroup!.applyLayout()
+    }
 }
 
 impl ViewerInstance
@@ -212,12 +255,18 @@ struct ViewerWindow
 
     #[Swag.Late]
     {
-        commandBar:        *Wnd
+        commandBar:        *ViewerActionBar
         kindButton:        *IconButton
         openButton:        *IconButton
         filesButton:       *IconButton
         fullScreenButton:  *IconButton
+        searchGroup:       *StackLayoutCtrl
         searchBox:         *EditBox
+        searchCountLabel:  *Label
+        searchPrevious:    *IconButton
+        searchNext:        *IconButton
+        searchMatchCase:   *IconButton
+        searchWholeWord:   *IconButton
         viewerCombo:       *ComboBox
         appearanceButton:  *AppearanceButton
         accentRail:        *Separator
@@ -258,9 +307,15 @@ struct ViewerWindow
     searchStream:     File.FileStream
     searchQuery:      String
     searchCarry:      String
-    searchOffset:     u64
+    searchCarryBase:  u64
+    searchProcessed:  u64
+    searchMatches:    Array'ViewerSearchMatch
+    searchIndex:      u64 = Swag.U64.Max
     searchMatch:      u64  = Swag.U64.Max
-    searchWrapped:    bool
+    searchComplete:   bool
+    searchSelectLast: bool
+    searchMatchCaseOption: bool
+    searchWholeWordOption: bool
     pendingFile:      String
     pendingEmpty:     String
     pendingRemember:  bool = true
@@ -371,6 +426,8 @@ impl IWnd for ViewerWindow
             .chooseFile()
         elif evt.key == .F and evt.modifiers.has(.Control) do
             .showSearch()
+        elif evt.key == .F3 and evt.modifiers.has(.Shift) do
+            .findPrevious()
         elif evt.key == .F3 and evt.modifiers == .None do
             .findNext()
         elif (evt.key == .Left or evt.key == .Right) and evt.modifiers == .None
@@ -467,6 +524,8 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.panelVisible", &me.panelVisible)
         catch evt.serializer.serialize("ViewerWindow.recentPaneSize", &me.recentPaneSize)
         catch evt.serializer.serialize("ViewerWindow.folderSameKind", &me.folderSameKind)
+        catch evt.serializer.serialize("ViewerWindow.searchMatchCase", &me.searchMatchCaseOption)
+        catch evt.serializer.serialize("ViewerWindow.searchWholeWord", &me.searchWholeWordOption)
         if evt.serializer.isReading()
         {
             .themeIndex     = Math.min(.themeIndex, 1)
@@ -475,6 +534,8 @@ impl IWnd for ViewerWindow
                 .filePanel.items[0]!.size = .recentPaneSize
             while .recent.count > ViewerRecentCount do
                 .recent.removeAtOrdered(.recent.count - 1)
+            .searchMatchCase.setChecked(.searchMatchCaseOption)
+            .searchWholeWord.setChecked(.searchWholeWordOption)
         }
     }
 
@@ -658,12 +719,7 @@ impl ViewerWindow
 
         result.accentRail = Separator.create(result, .Top, .Accent)
 
-        with result.commandBar = Wnd.create'Wnd(result, {0, 0, 0, ViewerBarHeight})
-        {
-            .dockStyle       = .Top
-            .backgroundStyle = .Window
-            .padding         = {12, 6, 12, 6}
-        }
+        result.commandBar = ViewerActionBar.create(result)
 
         with result.openButton = IconButton.create(result.commandBar, result.theme().icon(.OpenFile, ViewerGlyphSize), {0, 0, 36, 36})
         {
@@ -701,12 +757,22 @@ impl ViewerWindow
             }
         }
 
-        with result.searchBox = EditBox.create(result.commandBar, "", {0, 0, 240, 36})
+        with result.searchGroup = StackLayoutCtrl.create(result.commandBar, .Center, {0, 0, ViewerSearchBarWidth, 36})
         {
-            .dockStyle = .Left
-            .margin.x  = 12
+            .backgroundStyle = .Transparent
+            .spacing         = 0
+        }
+        result.commandBar.searchGroup = result.searchGroup
+
+        with result.searchBox = EditBox.create(result.searchGroup, "", {0, 0, ViewerSearchFieldWidth, 36})
+        {
             .setIcon(result.theme().icon(.Search, 18))
             .setPlaceholder(appStrings().ui_Search)
+            .sigTextChanged += func|window = result|(edit)
+            {
+                discard edit
+                window.restartSearch()
+            }
             .sigSubmitted += func|window = result|(edit)
             {
                 discard edit
@@ -720,12 +786,73 @@ impl ViewerWindow
             .enable(false)
         }
 
+        with result.searchCountLabel = Label.create(result.searchGroup, "", {0, 0, ViewerSearchCountWidth, 36}, null, .SecondaryText)
+        {
+            .margin.x = 8
+            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .setTextAlignment(.Center, .OpticalCenter)
+        }
+
+        with result.searchPrevious = IconButton.create(result.searchGroup, result.theme().icon(.ChevronUp, 14), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize})
+        {
+            .layoutSpec.alignY = .Center
+            .toolTip           = appStrings().ui_SearchPrevious
+            .sigPressed += func|window = result|(button)
+            {
+                discard button
+                window.findPrevious()
+            }
+            .enable(false)
+        }
+
+        with result.searchNext = IconButton.create(result.searchGroup, result.theme().icon(.ChevronDown, 14), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize})
+        {
+            .layoutSpec.alignY = .Center
+            .toolTip           = appStrings().ui_SearchNext
+            .sigPressed += func|window = result|(button)
+            {
+                discard button
+                window.findNext()
+            }
+            .enable(false)
+        }
+
+        with result.searchMatchCase = IconButton.create(result.searchGroup, {}, {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize}, flags: .Toggle | .CenterContent)
+        {
+            .layoutSpec.alignY = .Center
+            .toolTip           = appStrings().ui_SearchMatchCase
+            .setText("Aa")
+            .setCheckIndicator(.Frame)
+            .sigCheckedChanged += func|window = result|(button)
+            {
+                window.searchMatchCaseOption = button.isChecked
+                window.restartSearch()
+                catch window.saveState()
+            }
+        }
+
+        with result.searchWholeWord = IconButton.create(result.searchGroup, {}, {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize}, flags: .Toggle | .CenterContent)
+        {
+            .layoutSpec.alignY = .Center
+            .toolTip           = appStrings().ui_SearchWholeWord
+            .setText("ab")
+            .setCheckIndicator(.Frame)
+            .sigCheckedChanged += func|window = result|(button)
+            {
+                window.searchWholeWordOption = button.isChecked
+                window.restartSearch()
+                catch window.saveState()
+            }
+        }
+
+        result.commandBar.centerSearchGroup()
+
         // Wide enough for the longest viewer name a shipped viewer registers beside its glyph.
         // Viewer commands now have their own row, so this global bar stays compact at every width.
         with result.viewerCombo = ComboBox.create(result.commandBar, {0, 0, 180, 36})
         {
-            .dockStyle = .Left
-            .margin.x  = 12
+            .dockStyle = .Right
+            .margin.z  = 12
             .toolTip   = appStrings().ui_Viewer
             .hide()
             .sigChanged += func|window = result|(combo, index)
@@ -1000,7 +1127,10 @@ impl ViewerWindow
     {
         .stopSearch()
         .searchQuery.clear()
+        .searchMatches.clear()
+        .searchIndex = Swag.U64.Max
         .searchMatch = Swag.U64.Max
+        .searchComplete = false
         if !.destroyInstances()
         {
             .pendingEmpty = message
@@ -1032,6 +1162,9 @@ impl ViewerWindow
         .viewerBar.hide()
         .surface!.setTitle(appStrings().ui_WindowTitle)
         .searchBox.enable(false)
+        .searchMatchCase.enable(false)
+        .searchWholeWord.enable(false)
+        .refreshSearchReadout()
         .applyLayout()
     }
 
@@ -1137,7 +1270,7 @@ impl ViewerWindow
             instance.view                = errorView
             instance.commands            = null
             instance.revealMatch         = null
-            instance.findText            = null
+            instance.collectMatches      = null
             instance.isLoading           = null
             instance.needsLoadingOverlay = null
             instance.retire              = null
@@ -1186,7 +1319,7 @@ impl ViewerWindow
         instance.view                = null
         instance.commands            = null
         instance.revealMatch         = null
-        instance.findText            = null
+        instance.collectMatches      = null
         instance.isLoading           = null
         instance.needsLoadingOverlay = null
         instance.retire              = null
@@ -1304,7 +1437,7 @@ impl ViewerWindow
                 next.commands            = null
                 next.view                = ViewerErrorView.create(me, next.failureReason.toString())
                 next.revealMatch         = null
-                next.findText            = null
+                next.collectMatches      = null
                 next.isLoading           = null
                 next.needsLoadingOverlay = null
                 next.retire              = null
@@ -1362,7 +1495,7 @@ impl ViewerWindow
         instance.view                = next.view
         instance.commands            = next.commands
         instance.revealMatch         = next.revealMatch
-        instance.findText            = next.findText
+        instance.collectMatches      = next.collectMatches
         instance.isLoading           = next.isLoading
         instance.needsLoadingOverlay = next.needsLoadingOverlay
         instance.retire              = next.retire
@@ -1382,39 +1515,113 @@ impl ViewerWindow
 
     mtd findNext()
     {
-        if !.searchBox.isEnabled() do
-            return
-        let text = .searchBox.text()
-        if !@countof(text) or .currentFile.isEmpty() do
-            return
+        .navigateSearch(1)
+    }
 
-        // A viewer that owns its search replaces the raw byte scan entirely: it knows what its
-        // document's text looks like where the file's bytes do not show it.
-        if .activeChoiceIndex < .instances.count
-        {
-            let instance = &.instances[.activeChoiceIndex]
-            if instance.findText and instance.view
-            {
-                .stopSearch()
-                if instance.findText!(instance.view!, text) do
-                    .updateFileInfo(instance.details.toString())
-                else do
-                    .infoStatsLabel.setText(appStrings().ui_NoMatch)
-                return
-            }
-        }
+    mtd findPrevious()
+    {
+        .navigateSearch(-1)
+    }
 
-        let sameQuery = .searchQuery == text
+    private mtd searchOptions()->ViewerSearchOptions => {.searchMatchCaseOption, .searchWholeWordOption}
+
+    mtd restartSearch(selectLast = false)
+    {
         .stopSearch()
-        .searchWrapped = false
-        let offset = sameQuery and .searchMatch != Swag.U64.Max ? .searchMatch + @countof(text) : 0
-        if !sameQuery
+        .searchMatches.clear()
+        .searchIndex      = Swag.U64.Max
+        .searchMatch      = Swag.U64.Max
+        .searchComplete   = false
+        .searchSelectLast = selectLast
+        .searchQuery      = .searchBox.text()
+        .refreshSearchReadout()
+
+        if !.searchBox.isEnabled() or .searchQuery.isEmpty() or .currentFile.isEmpty() or .activeChoiceIndex >= .instances.count do
+            return
+
+        let instance = &.instances[.activeChoiceIndex]
+        if instance.collectMatches and instance.view
         {
-            .searchQuery = text
-            .searchMatch = Swag.U64.Max
+            instance.collectMatches!(instance.view!, .searchQuery.toString(), .searchOptions(), &.searchMatches)
+            .finishSearch()
+            return
         }
 
-        .beginSearch(offset)
+        .beginSearch()
+    }
+
+    private mtd navigateSearch(direction: s32)
+    {
+        if !.searchBox.isEnabled() or !@countof(.searchBox.text()) do
+            return
+        if .searchQuery != .searchBox.text()
+        {
+            .restartSearch(selectLast: direction < 0)
+            return
+        }
+        if !.searchComplete or .searchMatches.isEmpty() do
+            return
+
+        if direction < 0 do
+            .searchIndex = .searchIndex ? .searchIndex - 1 : .searchMatches.count - 1
+        else do
+            .searchIndex = (.searchIndex + 1) % .searchMatches.count
+        .revealCurrentSearchMatch()
+    }
+
+    private mtd refreshSearchReadout()
+    {
+        if .searchQuery.isEmpty()
+        {
+            .searchCountLabel.setText("")
+            .searchCountLabel.toolTip = ""
+        }
+        elif !.searchComplete
+        {
+            .searchCountLabel.setText("â€¦")
+            .searchCountLabel.toolTip = appStrings().ui_Searching
+        }
+        elif .searchMatches.isEmpty()
+        {
+            .searchCountLabel.setText("0/0")
+            .searchCountLabel.toolTip = appStrings().ui_NoMatch
+        }
+        else
+        {
+            .searchCountLabel.setText(Format.toString("%/%", .searchIndex + 1, .searchMatches.count))
+            .searchCountLabel.toolTip = .searchCountLabel.text()
+        }
+
+        let canNavigate = .searchComplete and !.searchMatches.isEmpty()
+        .searchPrevious.enable(canNavigate)
+        .searchNext.enable(canNavigate)
+    }
+
+    private mtd revealCurrentSearchMatch()
+    {
+        if .searchIndex >= .searchMatches.count or .activeChoiceIndex >= .instances.count do
+            return
+        let instance = &.instances[.activeChoiceIndex]
+        if !instance.revealMatch or !instance.view do
+            return
+
+        let match = .searchMatches[.searchIndex]
+        if !instance.revealMatch!(instance.view!, match, .searchQuery.toString()) do
+            return
+        .searchMatch = match.offset
+        .refreshSearchReadout()
+    }
+
+    private mtd finishSearch()
+    {
+        .stopSearch()
+        .searchComplete = true
+        if !.searchMatches.isEmpty()
+        {
+            .searchIndex = .searchSelectLast ? .searchMatches.count - 1 : 0
+            .revealCurrentSearchMatch()
+        }
+        .refreshSearchReadout()
     }
 
     mtd showSearch()
@@ -1507,13 +1714,11 @@ impl ViewerWindow
     mtd updateSearchAvailability()
     {
         let active    = .activeChoiceIndex < .instances.count
-        let available = active and (.instances[.activeChoiceIndex].revealMatch != null or .instances[.activeChoiceIndex].findText != null)
+        let available = active and .instances[.activeChoiceIndex].revealMatch != null
         .searchBox.enable(available)
-        if !available
-        {
-            .stopSearch()
-            .searchMatch = Swag.U64.Max
-        }
+        .searchMatchCase.enable(available)
+        .searchWholeWord.enable(available)
+        .restartSearch()
     }
 
     mtd stopSearch()
@@ -1528,19 +1733,18 @@ impl ViewerWindow
         .searchCarry.clear()
     }
 
-    mtd beginSearch(offset: u64)
+    mtd beginSearch()
     {
         .searchStream = catch File.openRead(.currentFile.toString()) as openError
         if openError != null
         {
-            .infoStatsLabel.setText(appStrings().ui_NoMatch)
+            .finishSearch()
             return
         }
 
-        discard catch .searchStream.seek(.Begin, offset)
-        .searchOffset = offset
+        .searchCarryBase = 0
+        .searchProcessed = 0
         .searchCarry.clear()
-        .infoStatsLabel.setText(appStrings().ui_Searching)
         .searchTimer = .addTimer(1'ms)
     }
 
@@ -1548,63 +1752,37 @@ impl ViewerWindow
     {
         if !.searchStream.isOpen() do
             return
-        let before = catch .searchStream.position() as positionError
-        if positionError != null
-        {
-            .stopSearch()
-            .infoStatsLabel.setText(appStrings().ui_NoMatch)
-            return
-        }
 
         var bytes: Array'u8
         bytes.resize(ViewerSearchChunkSize)
         let count = catch .searchStream.read(bytes.toSlice()) as readError
         if readError != null
         {
-            .stopSearch()
-            .infoStatsLabel.setText(appStrings().ui_NoMatch)
+            .finishSearch()
             return
         }
 
         bytes.resize(count)
-
-        let carryLength = .searchCarry.length
         .searchCarry += @mkstring(bytes.buffer!, bytes.count)
-        let found = Utf8.indexOf(.searchCarry.toString(), .searchQuery.toString(), 0, .Latin1NoCase)
-        if found != Swag.U64.Max
-        {
-            .searchMatch = before - carryLength + found
-            .stopSearch()
-            if .activeChoiceIndex < .instances.count
-            {
-                let instance = &.instances[.activeChoiceIndex]
-                if instance.revealMatch and instance.view and instance.revealMatch!(instance.view!, .searchMatch, .searchQuery.toString())
-                {
-                    .updateFileInfo(instance.details.toString())
-                    return
-                }
-            }
+        let eof       = count == 0
+        let deferSize = .searchQuery.length + ViewerSearchCarryMargin
+        let stableEnd = eof ? .searchCarry.length : (.searchCarry.length > deferSize ? .searchCarry.length - deferSize : 0)
 
-            .infoStatsLabel.setText(appStrings().ui_NoMatch)
+        var candidates: Array'ViewerSearchMatch
+        collectViewerTextMatches(.searchCarry.toString(), .searchQuery.toString(), .searchOptions(), 0, 0, .searchCarryBase, &candidates)
+        for match in candidates where match.offset >= .searchProcessed and (eof or match.offset < .searchCarryBase + stableEnd) do
+            .searchMatches.add(match)
+
+        .searchProcessed = .searchCarryBase + stableEnd
+        if eof
+        {
+            .finishSearch()
             return
         }
 
-        if !count
-        {
-            .stopSearch()
-            if !.searchWrapped and .searchOffset
-            {
-                .searchWrapped = true
-                .beginSearch(0)
-                return
-            }
-
-            .infoStatsLabel.setText(appStrings().ui_NoMatch)
-            return
-        }
-
-        let keep = Math.min(.searchQuery.length ? .searchQuery.length - 1 : 0, .searchCarry.length)
-        .searchCarry = String.from(.searchCarry.toString()[.searchCarry.length - keep to])
+        let retainStart = stableEnd > ViewerSearchCarryMargin ? stableEnd - ViewerSearchCarryMargin : 0
+        .searchCarryBase += retainStart
+        .searchCarry = String.from(.searchCarry.toString()[retainStart to])
         .searchTimer = .addTimer(1'ms)
     }
 
@@ -1771,7 +1949,12 @@ impl ViewerWindow
         .kindButton.toolTip        = texts.ui_SameKind
         .recentClearButton.toolTip = texts.ui_ClearHistory
         .viewerCombo.toolTip       = texts.ui_Viewer
+        .searchPrevious.toolTip    = texts.ui_SearchPrevious
+        .searchNext.toolTip        = texts.ui_SearchNext
+        .searchMatchCase.toolTip   = texts.ui_SearchMatchCase
+        .searchWholeWord.toolTip   = texts.ui_SearchWholeWord
         .searchBox.setPlaceholder(texts.ui_Search)
+        .refreshSearchReadout()
         .recentLabel.setText(texts.ui_Recent)
         for &instance in .instances where instance.view and !instance.failureReason.isEmpty() do
             (cast(*ViewerErrorView) instance.view!).retranslate()

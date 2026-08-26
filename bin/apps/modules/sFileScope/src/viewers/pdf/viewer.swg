@@ -43,6 +43,22 @@ private impl IWnd for PdfViewer
 
 private impl PdfViewer
 {
+    mtd collectMatches(text: string, options: ViewerSearchOptions, result: *Array'ViewerSearchMatch)
+    {
+        var pdfOptions: PdfTextSearchOptions
+        pdfOptions.comparison = options.matchCase ? .Latin1 : .Latin1NoCase
+        pdfOptions.wholeWord  = options.wholeWord
+        let matches = .pdfView.findTextMatches(text, pdfOptions)
+        for match in matches do
+            result.add({match.pageIndex, 0, match.byteOffset, match.byteLength})
+    }
+
+    mtd revealMatch(match: ViewerSearchMatch, text: string)->bool
+    {
+        discard text
+        return .pdfView.revealTextMatch({match.major, match.offset, match.length})
+    }
+
     mtd refreshNavigation()
     {
         .previousButton.enable(.pdfView.pageIndex > 0)
@@ -187,7 +203,8 @@ func createPdfViewer(request: const *ViewerRequest, result: *ViewerResult)
     result.commands = view!.commands
     result.details  = view!.details
 
-    // PDF text lives compressed inside the file, so the host's raw byte scan would never find
-    // it: the viewer owns the search, walking pages and revealing what it finds.
-    result.findText = func(wnd, text)->bool { return (cast(*PdfViewer) wnd).pdfView.findText(text) }
+    // PDF text lives compressed inside the file, so the viewer indexes every page and hands the
+    // host stable logical matches for counting and bidirectional navigation.
+    result.collectMatches = func(wnd, text, options, matches) { (cast(*PdfViewer) wnd).collectMatches(text, options, matches) }
+    result.revealMatch    = func(wnd, match, text)->bool { return (cast(*PdfViewer) wnd).revealMatch(match, text) }
 }

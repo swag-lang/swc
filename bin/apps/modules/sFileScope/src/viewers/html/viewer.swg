@@ -22,7 +22,7 @@ func createHtmlViewer(request: const *ViewerRequest, result: *ViewerResult)
 
     result.view           = view
     result.details        = htmlStrings().ui_Details
-    result.revealMatch    = func(wnd, offset, text)->bool { return (cast(*HtmlView) wnd).revealFileOffset(offset, text) }
+    result.revealMatch    = func(wnd, match, text)->bool { return (cast(*HtmlView) wnd).revealFileOffset(match.offset, text) }
     result.isLoading      = func(wnd)->bool { return (cast(*HtmlView) wnd).isLoading() }
     view.sigLinkActivated += func(html, url)
     {

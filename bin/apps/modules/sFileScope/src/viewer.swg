@@ -2,12 +2,30 @@
 
 using Core, Gui
 
-// Reveals `text` at its absolute byte offset without loading the preceding file content.
-alias ViewerRevealMatch = func(*Wnd, u64, string)->bool
+// Options shared by file-backed and viewer-owned searches.
+struct ViewerSearchOptions
+{
+    matchCase: bool     // Whether letter case has to match.
+    wholeWord: bool     // Whether word characters may touch either side of a match.
+}
 
-// Finds and reveals the next occurrence of `text`, wrapping once, and reports whether the
-// document holds it. A viewer owning its search decides what "next" means.
-alias ViewerFindText = func(*Wnd, string)->bool
+// One searchable location. `major` and `minor` identify viewer-owned containers such as a PDF
+// page or table cell; `offset` is a byte offset inside that container, or inside the source file
+// when both container indexes are zero.
+struct ViewerSearchMatch
+{
+    major:  u64
+    minor:  u64
+    offset: u64
+    length: u64
+}
+
+// Reveals one exact match without loading the preceding file content.
+alias ViewerRevealMatch = func(*Wnd, ViewerSearchMatch, string)->bool
+
+// Collects every logical-text match owned by a viewer. A null callback asks the host to scan the
+// file bytes and use `revealMatch` to materialize the selected occurrence.
+alias ViewerCollectMatches = func(*Wnd, string, ViewerSearchOptions, *Array'ViewerSearchMatch)
 
 // Reports whether a view is still doing work whose result has not reached the screen.
 alias ViewerIsLoading = func(*Wnd)->bool
@@ -86,7 +104,7 @@ struct ViewerResult
     details:             String                              // Short format-specific summary shown by the application.
     failureReason:       String                              // Decoder explanation when `view` is null, or empty on success.
     revealMatch:         #null ViewerRevealMatch             // Reveals a byte offset, or null when not searchable.
-    findText:            #null ViewerFindText                // Viewer-owned search, or null to scan the file.
+    collectMatches:      #null ViewerCollectMatches          // Viewer-owned text indexing, or null to scan the file.
     isLoading:           #null ViewerIsLoading               // Reports unfinished visible work, or null for an immediate view.
     needsLoadingOverlay: #null ViewerNeedsLoadingOverlay     // Reports that loading currently has no useful presentation.
     retire:              #null ViewerRetire                  // Cooperatively releases resources before deferred window deletion.
@@ -94,3 +112,77 @@ struct ViewerResult
 
 // Creates an integrated view and reports its optional commands, details, and search callbacks.
 alias ViewerCreate = func(const *ViewerRequest, *ViewerResult)
+
+// Reports whether `match` is bounded by non-word runes in `source`.
+func viewerMatchIsWholeWord(source: string, match: u64, length: u64)->bool
+{
+    if match
+    {
+        let {c, ?} = Utf8.decodeLastRune(source[0 until match])
+        if Unicode.isWord(c) do
+            return false
+    }
+
+    let end = match + length
+    if end < @countof(source)
+    {
+        let {c, ?} = Utf8.decodeRune(source[end to])
+        if Unicode.isWord(c) do
+            return false
+    }
+
+    return true
+}
+
+// Appends every non-overlapping match in one text container.
+func collectViewerTextMatches(source, query: string, options: ViewerSearchOptions, major, minor, baseOffset: u64, result: *Array'ViewerSearchMatch)
+{
+    if !@countof(query) do
+        return
+
+    let comparison = options.matchCase ? Utf8.ComparisonType.Latin1 : Utf8.ComparisonType.Latin1NoCase
+    var from = 0'u64
+    while from < @countof(source)
+    {
+        let found = Utf8.indexOf(source, query, from, comparison)
+        if found == Swag.U64.Max do
+            break
+
+        if !options.wholeWord or viewerMatchIsWholeWord(source, found, @countof(query)) do
+            result.add({major, minor, baseOffset + found, @countof(query)})
+        from = found + Math.max(@countof(query), 1)
+    }
+}
+
+// Selects an exact UTF-8 byte range in a rich editor whose text came from `source`.
+func highlightRichEditMatch(editor: *RichEditCtrl, source: string, start, length: u64)
+{
+    func cursorAt(source: string, byteOffset: u64)->RichEditCursor
+    {
+        var result: retval
+        var scan = 0'u64
+        while scan < Math.min(byteOffset, @countof(source))
+        {
+            let {c, eat} = Utf8.decodeRune(source[scan to])
+            if !eat do
+                break
+            scan += eat
+            if c == '\r' do
+                continue
+            if c == '\n'
+            {
+                result.lineIndex += 1
+                result.charPosInLine = 0
+            }
+            else do
+                result.charPosInLine += 1
+        }
+        return result
+    }
+
+    let first = cursorAt(source, start)
+    let last  = cursorAt(source, Math.min(start + length, @countof(source)))
+    editor.setSelection(first, last)
+    editor.ensureCaretIsVisible(center: true)
+    editor.invalidate()
+}

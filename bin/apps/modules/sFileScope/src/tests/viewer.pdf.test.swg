@@ -130,14 +130,18 @@ private func createPdfFixture()->String
     let request = ViewerRequest{&host.root, &host.root, fileName.toString()}
     var result: ViewerResult
     createPdfViewer(&request, &result)
-    @assert(result.findText != null and result.revealMatch == null)
+    @assert(result.collectMatches != null and result.revealMatch != null)
 
     let view = cast(*PdfViewer) result.view!
     view.resize(640, 420)
     view.applyLayout()
 
-    @assert(result.findText!(result.view!, "second"))
+    var matches: Array'ViewerSearchMatch
+    result.collectMatches!(result.view!, "second", {}, &matches)
+    @assert(matches.count == 1 and result.revealMatch!(result.view!, matches[0], "second"))
     @assert(view.pdfView.pageIndex == 1)
     @assert(view.pdfView.selectedText() == "Second")
-    @assert(!result.findText!(result.view!, "absent"))
+    matches.clear()
+    result.collectMatches!(result.view!, "absent", {}, &matches)
+    @assert(matches.isEmpty())
 }

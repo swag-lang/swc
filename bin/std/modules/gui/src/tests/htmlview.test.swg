@@ -757,6 +757,24 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     discard host.render(view)
 }
 
+// A source-backed reveal marks the requested occurrence, not the first equal word in its node.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 180)
+    defer host.shutdown()
+
+    const Source = "<p>same same same</p>"
+    let second   = Utf8.indexOf(Source, "same", Utf8.indexOf(Source, "same") + 1)
+    let view     = HtmlView.createText(&host.root, Source)
+    view.resize(320, 180)
+    view.applyLayout()
+    view.rebuild()
+
+    @assert(view.revealFileOffset(second, "same"))
+    @assert(view.searchNode != HtmlNoNode and view.searchStart == 5 and view.searchEnd == 9)
+}
+
 // A real generated Rustdoc page keeps its full production scale. Its highlighted source expands
 // to hundreds of thousands of nodes, and its structural selectors used to rescan tens of
 // thousands of siblings for each match. Small documents cannot expose that failure mode.

@@ -694,7 +694,10 @@ internal impl HtmlView
         if .hasReveal and (.sourceDone or .revealOffset < .bytesRead)
         {
             .hasReveal = false
-            discard .scrollToNode(.nodeAtSourceOffset(.revealOffset))
+            if !.pendingSearch.isEmpty() and .highlightSourceMatch(.revealOffset, .pendingSearch.toString()) do
+                .pendingSearch.clear()
+            else do
+                discard .scrollToNode(.nodeAtSourceOffset(.revealOffset))
         }
 
         if !.pendingSearch.isEmpty() and .findText(.pendingSearch.toString()) do
@@ -718,6 +721,29 @@ internal impl HtmlView
         }
 
         return best
+    }
+
+    // Highlights the exact rendered text range named by a source-file match.
+    private mtd highlightSourceMatch(offset: u64, text: string)->bool
+    {
+        if .virtualSource do
+            return false
+        let nodeIndex = .nodeAtSourceOffset(offset)
+        if nodeIndex == HtmlNoNode do
+            return false
+        let node = .document.constNode(nodeIndex)
+        if node.kind != .Text or offset < node.sourceOffset do
+            return false
+        let start = offset - node.sourceOffset
+        if start + @countof(text) > node.text.length do
+            return false
+
+        .searchNode  = nodeIndex
+        .searchStart = start
+        .searchEnd   = start + @countof(text)
+        discard .scrollToNode(nodeIndex)
+        .canvas.invalidate()
+        return true
     }
 
     // Returns the element carrying an identifier, or `HtmlNoNode` when the document has none.
@@ -1098,7 +1124,8 @@ internal impl HtmlView
     // Repositions a streamed document on the node a byte offset belongs to.
     //
     // The document is read up to that offset first when it is not there yet, so a match reported
-    // by a search over the raw file always lands on what draws it. An empty `text` only scrolls.
+    // by a search over the raw file marks that exact rendered range when source and text offsets
+    // agree. An empty `text` only scrolls.
     public mtd revealFileOffset(offset: u64, text: string)->bool
     {
         if .fileName.isEmpty() and !.sourceDone do
@@ -1115,6 +1142,11 @@ internal impl HtmlView
         .pendingSearch = text
         if .sourceDone or offset < .bytesRead
         {
+            if @countof(text) and .highlightSourceMatch(offset, text)
+            {
+                .pendingSearch.clear()
+                return true
+            }
             let node = .nodeAtSourceOffset(Math.min(offset, .bytesRead))
             .searchNode  = node == 0 ? HtmlNoNode : node - 1
             .searchStart = 0

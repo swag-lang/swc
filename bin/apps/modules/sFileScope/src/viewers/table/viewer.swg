@@ -219,6 +219,8 @@ internal struct TableViewer
     document:     TableDocument
     searchRow:    u64 = Swag.U64.Max
     searchColumn: u64
+    searchOffset: u64
+    searchLength: u64
 }
 
 private impl TableViewer
@@ -231,50 +233,47 @@ private impl TableViewer
         for column in .document.columns.count
         {
             let value = column < row.cells.count ? row.cells[column].toString() : ""
-            line.setItem(cast(u32) column, value)
+            let item  = line.setItem(cast(u32) column, value)
+            if index == .searchRow and column == .searchColumn
+            {
+                item.colorBk = .themeColors().edit_SelectedBk
+                item.colorFg = .themeColors().label_Text
+                if .searchLength and .searchOffset + .searchLength <= @countof(value)
+                {
+                    var marked: String
+                    marked += value[0 until .searchOffset]
+                    marked += "<b>"
+                    marked += value[.searchOffset until .searchOffset + .searchLength]
+                    marked += "</b>"
+                    marked += value[.searchOffset + .searchLength to]
+                    item.name = marked.toString()
+                }
+            }
         }
     }
 
-    mtd findText(text: string)->bool
+    mtd collectMatches(text: string, options: ViewerSearchOptions, result: *Array'ViewerSearchMatch)
     {
-        if @countof(text) == 0 or .document.rows.isEmpty() do
+        for row, rowIndex in .document.rows
+        {
+            for cell, column in row.cells do
+                collectViewerTextMatches(cell.toString(), text, options, rowIndex, column, 0, result)
+        }
+    }
+
+    mtd revealMatch(match: ViewerSearchMatch)->bool
+    {
+        if match.major >= .document.rows.count or match.minor >= .document.rows[match.major].cells.count do
             return false
 
-        let startRow    = .searchRow == Swag.U64.Max ? 0 : .searchRow
-        let startColumn = .searchRow == Swag.U64.Max ? 0 : .searchColumn + 1
-        for step in .document.rows.count
-        {
-            let rowIndex    = (startRow + step) % .document.rows.count
-            let row         = &.document.rows[rowIndex]
-            let firstColumn = step == 0 ? startColumn : 0
-            for column in firstColumn until row.cells.count
-            {
-                if Utf8.indexOf(row.cells[column].toString(), text, 0, .Latin1NoCase) == Swag.U64.Max do
-                    continue
-                .searchRow    = rowIndex
-                .searchColumn = column
-                .list.selectLine(cast(u32) rowIndex)
-                .list.setFocusedIndex(cast(u32) rowIndex)
-                return true
-            }
-        }
-
-        // The first row may still contain an earlier column when the search wrapped inside it.
-        if .searchRow != Swag.U64.Max
-        {
-            let row = &.document.rows[.searchRow]
-            for column in Math.min(startColumn, row.cells.count)
-            {
-                if Utf8.indexOf(row.cells[column].toString(), text, 0, .Latin1NoCase) == Swag.U64.Max do
-                    continue
-                .searchColumn = column
-                .list.selectLine(cast(u32) .searchRow)
-                .list.setFocusedIndex(cast(u32) .searchRow)
-                return true
-            }
-        }
-
-        return false
+        .searchRow    = match.major
+        .searchColumn = match.minor
+        .searchOffset = match.offset
+        .searchLength = match.length
+        .list.unselectAll()
+        .list.setFocusedIndex(cast(u32) match.major)
+        .list.invalidate()
+        return true
     }
 
     func create(parent: *Wnd, fileName: string)->#null *TableViewer fail
@@ -337,7 +336,12 @@ func createTableViewer(request: const *ViewerRequest, result: *ViewerResult)
     let rows    = tableCountText(view!.document.rows.count, tableStrings().ui_Row, tableStrings().ui_Rows)
     let columns = tableCountText(view!.document.columns.count, tableStrings().ui_OneColumn, tableStrings().ui_Columns)
     let kind    = view!.document.delimiter == '\t' ? "TSV" : "CSV"
-    result.view     = view!
-    result.details  = Format.toString(tableStrings().ui_Details, kind, rows.toString(), columns.toString())
-    result.findText = func(wnd, text)->bool { return (cast(*TableViewer) wnd).findText(text) }
+    result.view           = view!
+    result.details        = Format.toString(tableStrings().ui_Details, kind, rows.toString(), columns.toString())
+    result.collectMatches = func(wnd, text, options, matches) { (cast(*TableViewer) wnd).collectMatches(text, options, matches) }
+    result.revealMatch    = func(wnd, match, text)->bool
+    {
+        discard text
+        return (cast(*TableViewer) wnd).revealMatch(match)
+    }
 }

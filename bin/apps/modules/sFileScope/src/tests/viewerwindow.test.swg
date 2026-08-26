@@ -52,6 +52,33 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
         host.fireTimer(window.startupTimer)
 }
 
+func completeViewerSearch(host: *Testing.HeadlessHost, window: *ViewerWindow)
+{
+    var steps = 0'u32
+    while window.searchTimer and steps < 128
+    {
+        host.fireTimer(window.searchTimer)
+        steps += 1
+    }
+    @assert(window.searchTimer == null)
+}
+
+#test
+{
+    const Source = "Cat catalog cat catapult\ncat"
+    var matches: Array'ViewerSearchMatch
+    collectViewerTextMatches(Source, "cat", {}, 0, 0, 0, &matches)
+    @assert(matches.count == 5)
+
+    matches.clear()
+    collectViewerTextMatches(Source, "cat", {wholeWord: true}, 0, 0, 0, &matches)
+    @assert(matches.count == 3 and matches[0].offset == 0 and matches[1].offset == 12 and matches[2].offset == 25)
+
+    matches.clear()
+    collectViewerTextMatches(Source, "cat", {matchCase: true, wholeWord: true}, 0, 0, 0, &matches)
+    @assert(matches.count == 2 and matches[0].offset == 12 and matches[1].offset == 25)
+}
+
 #test
 {
     let executable         = Env.executablePath()
@@ -752,21 +779,59 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.searchBox.setText(query)
     window.findNext()
 
-    var steps = 0'u32
-    while window.searchTimer and steps < 32
-    {
-        host.fireTimer(window.searchTimer)
-        steps += 1
-    }
-
-    @assert(window.searchTimer == null)
+    completeViewerSearch(&host, window)
     @assert(window.searchMatch == target)
+    @assert(window.searchMatches.count == 1 and window.searchIndex == 0)
+    @assert(window.searchCountLabel.text() == "1/1")
     let textView = cast(*BasicTextView) window.currentView!
     @assert(textView.editor.selectedText() == query)
     @assert(textView.bytesRead < textView.fileSize)
     discard host.render(textView)
     textView.updateEstimatedHeight()
     @assert(textView.editor.scrollableClientRect().height > textView.editor.paddedClientRect().height)
+}
+
+// The shared result set drives counts, wraparound navigation, case matching and whole-word
+// boundaries without changing what the viewer marks.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("sfilescope-search-", ".txt")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, "Cat catalog cat catapult\ncat")
+
+    var host: Testing.HeadlessHost
+    host.setup(880, 560)
+    defer host.shutdown()
+    var index: ViewerIndex
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.openFile(fileName)
+    window.searchBox.setText("cat")
+    completeViewerSearch(&host, window)
+
+    @assert(window.searchMatches.count == 5 and window.searchIndex == 0 and window.searchMatch == 0)
+    @assert(window.searchCountLabel.text() == "1/5")
+    @assert((cast(*BasicTextView) window.currentView!).editor.selectedText() == "Cat")
+
+    window.findPrevious()
+    @assert(window.searchIndex == 4 and window.searchMatch == 25 and window.searchCountLabel.text() == "5/5")
+    window.findNext()
+    @assert(window.searchIndex == 0 and window.searchMatch == 0)
+
+    window.searchWholeWordOption = true
+    window.searchWholeWord.setChecked(true)
+    window.restartSearch()
+    completeViewerSearch(&host, window)
+    @assert(window.searchMatches.count == 3 and window.searchCountLabel.text() == "1/3")
+
+    window.searchMatchCaseOption = true
+    window.searchMatchCase.setChecked(true)
+    window.restartSearch()
+    completeViewerSearch(&host, window)
+    @assert(window.searchMatches.count == 2 and window.searchMatch == 12 and window.searchCountLabel.text() == "1/2")
+
+    window.searchBox.setText("absent")
+    completeViewerSearch(&host, window)
+    @assert(window.searchMatches.isEmpty() and window.searchCountLabel.text() == "0/0")
 }
 
 #test
@@ -785,16 +850,20 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.commandBar.position.height == ViewerBarHeight)
     @assert(window.viewerCombo.parent == window.commandBar)
     @assert(window.appearanceButton.parent == &host.surfaceWnd)
-    @assert(window.searchBox.parent == window.commandBar)
+    @assert(window.searchGroup.parent == window.commandBar)
+    @assert(window.searchBox.parent == window.searchGroup)
     @assert(window.fullScreenButton.parent == window.commandBar)
     @assert(window.fullScreenButton.flags.has(.Toggle) and window.fullScreenButton.checkIndicator == .Frame)
     @assert(window.searchBox.isLocallyVisible() and !window.searchBox.isEnabled())
+    @assert(!window.searchPrevious.isEnabled() and !window.searchNext.isEnabled())
     @assert(window.infoBar.position.height == ViewerInfoHeight)
     @assert(window.infoBar.dockStyle == .Top)
     @assert(window.infoBar.backgroundStyle == window.backgroundStyle)
     @assert(window.infoBar.isLocallyVisible())
     @assert(window.viewerBar.dockStyle == .Bottom and !window.viewerBar.isLocallyVisible())
-    @assert(window.openButton.position.x < window.searchBox.position.x)
+    @assert(Math.abs(window.searchGroup.position.horzCenter() - window.commandBar.paddedClientRect().horzCenter()) < 0.01)
+    @assert(window.openButton.position.right() < window.searchGroup.position.x)
+    @assert(window.searchGroup.position.right() < window.viewerCombo.position.x or !window.viewerCombo.isLocallyVisible())
     @assert(window.infoNameLabel.name.raw.isEmpty())
     @assert(window.surface!.minSize.x == ViewerMinWidth)
     @assert(Utf8.contains(window.emptyLabel.name.raw, appStrings().ui_DropTitle))
@@ -823,6 +892,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.viewerBar.show()
     window.applyLayout()
     @assert(window.viewerCombo.parent == window.commandBar and widestCommands.parent == window.viewerBar)
+    @assert(window.searchGroup.position.right() < window.viewerCombo.position.x)
     @assert(window.viewerCombo.position.bottom() <= window.infoBar.position.y)
     @assert(widestCommands.position.y >= window.viewerBar.clientRect().y)
 }
@@ -1263,10 +1333,15 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     // The choice survives a session like the other panel decisions.
     window.setFolderSameKind(true)
+    window.searchMatchCaseOption = true
+    window.searchWholeWordOption = true
     let state = saveViewerState(window)
     window.setFolderSameKind(false)
+    window.searchMatchCaseOption = false
+    window.searchWholeWordOption = false
     loadViewerState(window, cast(const [..] u8) state.toString())
-    @assert(window.folderSameKind)
+    @assert(window.folderSameKind and window.searchMatchCaseOption and window.searchWholeWordOption)
+    @assert(window.searchMatchCase.isChecked and window.searchWholeWord.isChecked)
 }
 
 // Bare arrows never navigate files globally. The image viewer is the one document type that

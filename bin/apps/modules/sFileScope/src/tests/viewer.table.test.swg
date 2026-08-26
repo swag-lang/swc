@@ -45,7 +45,7 @@ using Core, Pixel, Gui
     let request = ViewerRequest{&host.root, &host.root, fileName}
     var result: ViewerResult
     createTableViewer(&request, &result)
-    @assert(result.view != null and result.commands == null and result.findText != null)
+    @assert(result.view != null and result.commands == null and result.collectMatches != null and result.revealMatch != null)
     @assert(result.details.indexOf("3 rows") != Swag.U64.Max and result.details.indexOf("3 columns") != Swag.U64.Max)
 
     let view = cast(*TableViewer) result.view!
@@ -53,7 +53,10 @@ using Core, Pixel, Gui
     var line: ListLine
     view.fillLine(&line, 1)
     @assert(line.itemAt(0).name.raw == "Reykjavik" and line.itemAt(2).name.raw == "rain")
-    @assert(view.findText("humid") and view.searchRow == 2 and view.searchColumn == 2)
+    var matches: Array'ViewerSearchMatch
+    result.collectMatches!(result.view!, "humid", {}, &matches)
+    @assert(matches.count == 1 and result.revealMatch!(result.view!, matches[0], "humid"))
+    @assert(view.searchRow == 2 and view.searchColumn == 2 and view.searchOffset == 0 and view.searchLength == 5)
 }
 
 #test

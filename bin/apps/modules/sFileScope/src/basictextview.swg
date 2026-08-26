@@ -56,9 +56,9 @@ struct BasicTextView
     reportDetails:     #null ViewerReportDetails
 }
 
-func basicTextRevealMatch(wnd: *Wnd, offset: u64, text: string)->bool
+func basicTextRevealMatch(wnd: *Wnd, match: ViewerSearchMatch, text: string)->bool
 {
-    return (cast(*BasicTextView) wnd).revealOffset(offset, text)
+    return (cast(*BasicTextView) wnd).revealOffset(match.offset, text)
 }
 
 func basicTextIsLoading(wnd: *Wnd)->bool => (cast(*BasicTextView) wnd).loadTimer != null
@@ -267,8 +267,13 @@ impl BasicTextView
             .hasText       = !chunk.isEmpty()
             .virtualHeight = previousHeight
             .updateEstimatedHeight()
-            if @countof(text) do
-                discard .editor.findText(text)
+            if @countof(text)
+            {
+                if .encoding == .Utf8 do
+                    highlightRichEditMatch(.editor, chunk.toString(), requested - actual, @countof(text))
+                else do
+                    discard .editor.findText(text)
+            }
             .scheduleMore()
             return true
         }

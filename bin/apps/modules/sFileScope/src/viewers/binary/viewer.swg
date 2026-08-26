@@ -592,7 +592,7 @@ func createBinaryViewer(request: const *ViewerRequest, result: *ViewerResult)
     result.view        = view!
     result.commands    = view!.commands
     result.details     = view!.details
-    result.revealMatch = func(wnd, offset, text)->bool { return (cast(*BinaryViewer) wnd).revealOffset(offset, text) }
+    result.revealMatch = func(wnd, match, text)->bool { return (cast(*BinaryViewer) wnd).revealOffset(match.offset, text) }
     result.isLoading   = func(wnd)->bool { return (cast(*BinaryViewer) wnd).loadTimer != null }
     result.retire      = func(wnd)->bool { return (cast(*BinaryViewer) wnd).retire() }
 }

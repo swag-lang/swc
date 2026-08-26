@@ -172,7 +172,7 @@ internal impl CodeViewer
             .virtualHeight = previousHeight
             .updateEstimatedHeight()
             if @countof(text) do
-                discard .editor.findText(text)
+                highlightRichEditMatch(.editor, chunk.toString(), requested - actual, @countof(text))
             .scheduleMore()
             return true
         }
@@ -333,6 +333,6 @@ func createCodeViewer(request: const *ViewerRequest, result: *ViewerResult)
 
     result.view        = view
     result.details     = Format.toString(codeStrings().ui_Details, view.languageName)
-    result.revealMatch = func(wnd, offset, text)->bool { return (cast(*CodeViewer) wnd).revealOffset(offset, text) }
+    result.revealMatch = func(wnd, match, text)->bool { return (cast(*CodeViewer) wnd).revealOffset(match.offset, text) }
     result.isLoading   = func(wnd)->bool { return (cast(*CodeViewer) wnd).loadTimer != null }
 }

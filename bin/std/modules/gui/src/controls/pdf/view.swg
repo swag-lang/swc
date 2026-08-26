@@ -2,6 +2,27 @@
 
 using Core, Pixel
 
+// Selects how [[Gui.PdfView.findTextMatches]] compares document text.
+struct PdfTextSearchOptions
+{
+    public
+    {
+        comparison = Utf8.ComparisonType.Latin1NoCase     // Text comparison, case-insensitive by default.
+        wholeWord: bool                                    // Whether word characters may touch either side of a match.
+    }
+}
+
+// Identifies one text match in a PDF document.
+struct PdfTextMatch
+{
+    public
+    {
+        pageIndex: u64     // Zero-based page containing the match.
+        byteOffset: u64    // UTF-8 byte offset in that page's indexed text.
+        byteLength: u64    // UTF-8 byte length of the match.
+    }
+}
+
 // Displays a PDF document with viewer-oriented zooming, panning, and page navigation.
 //
 // The view opens a document through [[Gui.Pdf.Reader]], so pages are decoded on demand and the
@@ -673,6 +694,87 @@ impl PdfView
         .selCaret  = Swag.U64.Max
         .selecting = false
         .invalidate()
+    }
+
+    // Finds every non-overlapping text occurrence in page order.
+    //
+    // Pages are decoded as needed. The returned value owns stable page and UTF-8 text coordinates;
+    // pass one of its entries to [[Gui.PdfView.revealTextMatch]] while this document remains open.
+    mtd findTextMatches(text: string, options: PdfTextSearchOptions = {})->Array'PdfTextMatch
+    {
+        var result: retval
+        if !.hasPage or !@countof(text) do
+            return result
+
+        func isWholeWord(source: string, offset, length: u64)->bool
+        {
+            if offset
+            {
+                let {c, ?} = Utf8.decodeLastRune(source[0 until offset])
+                if Unicode.isWord(c) do
+                    return false
+            }
+            let end = offset + length
+            if end < @countof(source)
+            {
+                let {c, ?} = Utf8.decodeRune(source[end to])
+                if Unicode.isWord(c) do
+                    return false
+            }
+            return true
+        }
+
+        func appendPage(result: *Array'PdfTextMatch, source, text: string, pageIndex: u64, options: PdfTextSearchOptions)
+        {
+            var from = 0'u64
+            while from < @countof(source)
+            {
+                let found = Utf8.indexOf(source, text, from, options.comparison)
+                if found == Swag.U64.Max do
+                    break
+                if !options.wholeWord or isWholeWord(source, found, @countof(text)) do
+                    result.add({pageIndex, found, @countof(text)})
+                from = found + Math.max(@countof(text), 1)
+            }
+        }
+
+        for pageIndex in .reader.pageCount()
+        {
+            if pageIndex == .pageIndex
+            {
+                .ensureTextIndex()
+                appendPage(&result, .textIndex.text.toString(), text, pageIndex, options)
+                continue
+            }
+
+            var page = catch .reader.loadPage(pageIndex) as pageError
+            if pageError != null do
+                continue
+            let index = Pdf.TextIndex.build(&page)
+            appendPage(&result, index.text.toString(), text, pageIndex, options)
+        }
+        return result
+    }
+
+    // Selects and reveals one match returned by [[Gui.PdfView.findTextMatches]].
+    //
+    // Returns false when its page or byte range no longer belongs to the open document.
+    mtd revealTextMatch(match: PdfTextMatch)->bool
+    {
+        if match.pageIndex >= .reader.pageCount() do
+            return false
+        if match.pageIndex != .pageIndex
+        {
+            catch .showPage(match.pageIndex) as pageError
+            if pageError != null do
+                return false
+        }
+
+        .ensureTextIndex()
+        if match.byteOffset + match.byteLength > .textIndex.text.length do
+            return false
+        .revealMatch(match.pageIndex, match.byteOffset, match.byteLength)
+        return true
     }
 
     // Selects the whole text of the displayed page.

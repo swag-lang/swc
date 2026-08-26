@@ -158,5 +158,5 @@ func createHexViewer(request: const *ViewerRequest, result: *ViewerResult)
     result.view        = view
     result.commands    = view.commands
     result.details     = view.details
-    result.revealMatch = func(wnd, offset, text)->bool { return (cast(*HexViewer) wnd).revealOffset(offset, text) }
+    result.revealMatch = func(wnd, match, text)->bool { return (cast(*HexViewer) wnd).revealOffset(match.offset, text) }
 }

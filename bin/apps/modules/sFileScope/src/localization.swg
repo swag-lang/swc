@@ -30,6 +30,10 @@ struct AppStrings
     ui_MenuCopyName:        string = "Copy file name"                                                                         // Panel menu entry copying the final path component.
     ui_MenuForget:          string = "Remove this file from the history"                                                      // Panel menu entry dropping one file from the recent list.
     ui_Search:              string = "Find in document"                                                                       // Placeholder of the search field.
+    ui_SearchPrevious:      string = "Previous match (Shift+F3)"                                                              // Tooltip of the previous-match button.
+    ui_SearchNext:          string = "Next match (F3)"                                                                        // Tooltip of the next-match button.
+    ui_SearchMatchCase:     string = "Match case"                                                                             // Tooltip of the case-sensitive search toggle.
+    ui_SearchWholeWord:     string = "Match whole words"                                                                      // Tooltip of the whole-word search toggle.
     ui_NoMatch:             string = "No match"                                                                               // Status line when a search reached the end with nothing.
     ui_Searching:           string = "Searching…"                                                                             // Status line while a search scans the file.
     ui_DropTitle:           string = "Drop a file to view it"                                                                 // Invitation shown while no file is open.

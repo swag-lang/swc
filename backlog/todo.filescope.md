@@ -187,7 +187,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | Compressed audio | `.mp3` `.flac` `.aac` `.ac3` `.eac3` | full, streamed | Ogg Vorbis, Opus, M4A | T-166, T-168 |
 | Video containers | `.mp4` `.mkv` `.webm` `.mov` `.avi` | AVI structure; ISO-BMFF, Matroska and WebM signature | box and EBML trees | T-412 |
 | Video playback | `.avi` `.mp4` `.m4v` `.mov` `.mkv` | Motion JPEG, uncompressed AVI, H.264, H.265 and MPEG-4 Part 2; container-supported sound with track selection | VP9, AV1, Opus, Vorbis, and WebM | T-420 |
-| MIDI | `.mid` | none | — | — |
+| MIDI | `.mid` `.midi` | structure | playback and synthesis | — |
 
 #### Binaries, containers and developer artifacts
 

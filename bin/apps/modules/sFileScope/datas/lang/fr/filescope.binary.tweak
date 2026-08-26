@@ -37,6 +37,10 @@ word_Library      bibliothèque
 word_Libraries    bibliothèques
 word_Property     propriété
 word_Properties   propriétés
+word_Track        piste
+word_Tracks       pistes
+word_Event        événement
+word_Events       événements
 
 shr_Sections      Sections
 shr_Imports       Importations
@@ -215,6 +219,18 @@ wasm_Malformed    la chaîne des sections s'arrête avant la fin du module
 riff_Container    Conteneur RIFF
 riff_Chunks       Blocs
 riff_Form         Forme
+
+midi_File         Fichier MIDI standard
+midi_Tracks       Pistes
+midi_Track        Piste %
+midi_TicksQuarter % impulsions par noire
+midi_Smpte        % images par seconde · % impulsions par image
+midi_At           impulsion %
+midi_AtChannel    impulsion % · canal %
+midi_Malformed    la chaîne d'événements s'arrête avant la fin déclarée de la piste
+midi_NoEnd        la piste ne porte aucun événement End of Track
+midi_Major        majeur
+midi_Minor        mineur
 
 font_Font         Police
 font_Tables       Tables

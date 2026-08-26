@@ -71,8 +71,8 @@ guessing an encoding.
   Its paged character map walks mapped Unicode scalars without materializing the whole map.
 - `Binary` displays a format's structure tree with field name, decoded value, file offset, and
   meaning. It recognizes Windows images, COFF and `ar` libraries, ELF, Mach-O, WebAssembly, ZIP,
-  RIFF, sfnt fonts, Windows icons, and Swag Chunk Containers. Unknown files still receive signature,
-  size, and entropy analysis.
+  RIFF, Standard MIDI Files, sfnt fonts, Windows icons, and Swag Chunk Containers. Unknown files
+  still receive signature, size, and entropy analysis.
 - `Hexadecimal` is available for every file. It pages through 64 KiB at a time, uses 64-bit
   offsets, and supports independent scalar width, representation, and byte order.
 

@@ -623,6 +623,52 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     @assert(data.offset == 44 and data.length == 8)
 }
 
+// A Standard MIDI File exposes its timing, track metadata, and running-status channel events.
+#test
+{
+    var bytes: Array'u8
+    bytes.resize(22)
+
+    pokeText(&bytes, 0, "MThd")
+    pokeBig(&bytes, 4, 6, 4)
+    pokeBig(&bytes, 8, 1, 2)        // Format 1.
+    pokeBig(&bytes, 10, 1, 2)       // One track.
+    pokeBig(&bytes, 12, 480, 2)     // Ticks per quarter note.
+    pokeText(&bytes, 14, "MTrk")
+
+    const Track = [0'u8, 0xFF, 0x03, 5, 'P'u8, 'i'u8, 'a'u8, 'n'u8, 'o'u8,
+                   0, 0xFF, 0x51, 3, 0x07, 0xA1, 0x20,
+                   0, 0xFF, 0x58, 4, 4, 2, 24, 8,
+                   0, 0xFF, 0x59, 2, 0xFD, 1,
+                   0, 0xF0, 3, 1, 2, 0xF7,
+                   0, 0xC0, 40,
+                   0, 0x90, 60, 96,
+                   0x83, 0x60, 60, 0,
+                   0, 0xFF, 0x2F, 0]
+    pokeBig(&bytes, 18, @countof(Track), 4)
+    bytes.add(Track)
+
+    let fileName = writeFixture("midi", bytes.toSlice())
+    defer discard catch File.delete(fileName.toString())
+
+    var doc: BinaryDocument
+    @assert(doc.open(fileName.toString()))
+    @assert(doc.kind == .Midi)
+    @assert(doc.report.formatName == binStrings().midi_File)
+    @assert(rowDetail(&doc.report, "Division") == "480 ticks per quarter note")
+    @assert(rowValue(&doc.report, "Sequence/Track Name") == "Piano")
+    @assert(rowValue(&doc.report, "Set Tempo") == "120 BPM")
+    @assert(rowValue(&doc.report, "Time Signature") == "4/4")
+    @assert(rowValue(&doc.report, "Key Signature") == "E-flat minor")
+    @assert(findRow(&doc.report, "System Exclusive") != null)
+    @assert(rowValue(&doc.report, "Program Change") == "40")
+
+    let note = findRow(&doc.report, "Note On")
+    @assert(note != null and note.value == "60 · velocity 96")
+    @assert(Utf8.contains(doc.report.summary.toSlice(), "9 events"))
+    @assert(!doc.image.truncated)
+}
+
 // A font is read through the directory of tables it is assembled from.
 #test
 {

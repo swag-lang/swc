@@ -17,6 +17,11 @@ const ViewerFullScreenRevealEdge              = 32.0
 const ViewerRetirePollInterval: Time.Duration = 16'ms
 const ViewerLoadingSpinnerRadius              = 20.0
 const ViewerLoadingSpinnerSweep               = 150.0
+const ViewerSearchGlowInset                   = 7.0
+const ViewerSearchTextMargin                  = 3.0
+const ViewerSearchOverlayInset                = ViewerSearchGlowInset + ViewerSearchTextMargin
+const ViewerSearchGlowPeriod:   f32           = 1.35
+const ViewerSearchBoundsPoll:   Time.Duration = 16'ms
 
 const ViewerFullScreenRemovedFlags = SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.MaximizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
 const ViewerFullScreenAddedFlags   = SurfaceFlags.NoShadow | SurfaceFlags.TopMost
@@ -48,6 +53,8 @@ struct ViewerInstance
     view:                #null *Wnd
     commands:            #null *Wnd
     revealMatch:         #null ViewerRevealMatch
+    searchBounds:        #null ViewerSearchBounds
+    clearSearch:         #null ViewerClearSearch
     collectMatches:      #null ViewerCollectMatches
     isLoading:           #null ViewerIsLoading
     needsLoadingOverlay: #null ViewerNeedsLoadingOverlay
@@ -60,7 +67,7 @@ struct ViewerInstance
 // and viewer selector docked at its edges.
 struct ViewerActionBar
 {
-    using wnd: Wnd
+    using wnd:   Wnd
     searchGroup: #null *Wnd
 }
 
@@ -131,6 +138,63 @@ struct ViewerLoadingOverlay
     using wnd: Wnd
 
     animationPhase: f32
+}
+
+// One application-owned marker for every current occurrence. Viewers report only the surface
+// bounds of what they revealed; this layer supplies the themed band, crisp edge and quiet electric
+// pulse, so PDF text and a byte in the hexadecimal view speak exactly the same visual language.
+struct ViewerSearchOverlay
+{
+    using wnd: Wnd
+    phase:     f32
+}
+
+impl IWnd for ViewerSearchOverlay
+{
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        let painter = evt.paintContext.painter
+        let colors  = .themeColors()
+        let pulse   = 0.5'f32 + 0.5'f32 * Math.sin(.phase * Math.ConstF32.TwoPi)
+        let rect    = .clientRect()
+        var marked  = rect
+        marked.applyPadding({ViewerSearchGlowInset, ViewerSearchGlowInset, ViewerSearchGlowInset, ViewerSearchGlowInset})
+
+        var glow = colors.searchMatch_Glow
+        glow.a = cast(u8) (cast(f32) glow.a * (0.45 + pulse * 0.55))
+
+        // Crisp pixel-aligned strokes avoid the renderer's antialiased no-overlap scratch pass on
+        // this translucent top layer; that pass is appropriate for opaque silhouettes, but here
+        // it can leave cleared-alpha seams while the pulse changes intensity.
+        painter.setAntialiased(false)
+        painter.drawRect(marked, glow, 5)
+        painter.fillRect(marked, colors.searchMatch_Bk)
+        painter.drawRect(marked, colors.searchMatch_Border, 2)
+    }
+}
+
+impl ViewerSearchOverlay
+{
+    func create(parent: *Wnd)->*ViewerSearchOverlay
+    {
+        let result = Wnd.create'ViewerSearchOverlay(parent, "sFileScope.search.highlight")
+        result.wndFlags        |= WndFlags.TopMost | WndFlags.Disabled
+        result.backgroundStyle = .Transparent
+        result.hide()
+        return result
+    }
+
+    // Follows a surface-coordinate match without entering the viewer's own layout or hit testing.
+    mtd showMatch(bounds: Math.Rectangle)
+    {
+        let parent  = .parent!
+        let topLeft = parent.surfaceToLocal(Math.Point{bounds.x, bounds.y})
+        .setPosition({topLeft.x - ViewerSearchOverlayInset, topLeft.y - ViewerSearchOverlayInset,
+                      bounds.width + ViewerSearchOverlayInset * 2, bounds.height + ViewerSearchOverlayInset * 2},
+                     computeLayout: false)
+        .show()
+        .bringToFront()
+    }
 }
 
 impl IWnd for ViewerLoadingOverlay
@@ -277,6 +341,7 @@ struct ViewerWindow
         infoStatsLabel:    *Label
         infoSizeLabel:     *Label
         loadingOverlay:    *ViewerLoadingOverlay
+        searchOverlay:     *ViewerSearchOverlay
         viewerBar:         *Wnd
         emptyView:         *StackLayoutCtrl
         emptyIconLabel:    *Label
@@ -292,37 +357,38 @@ struct ViewerWindow
         folderList:        *ListCtrl
     }
 
-    index:            ViewerIndex
-    icons:            IconSet
-    currentView:      #null *Wnd
-    currentCommands:  #null *Wnd
-    outgoingView:     #null *Wnd
-    outgoingCommands: #null *Wnd
-    choices:          Array'ViewerChoice
-    instances:        Array'ViewerInstance
-    activeChoiceIndex      = Swag.U32.Max
-    startupTimer:     #null *Timer
-    searchTimer:      #null *Timer
-    loadingTimer:     #null *Timer
-    searchStream:     File.FileStream
-    searchQuery:      String
-    searchCarry:      String
-    searchCarryBase:  u64
-    searchProcessed:  u64
-    searchMatches:    Array'ViewerSearchMatch
-    searchIndex:      u64 = Swag.U64.Max
-    searchMatch:      u64  = Swag.U64.Max
-    searchComplete:   bool
-    searchSelectLast: bool
+    index:                 ViewerIndex
+    icons:                 IconSet
+    currentView:           #null *Wnd
+    currentCommands:       #null *Wnd
+    outgoingView:          #null *Wnd
+    outgoingCommands:      #null *Wnd
+    choices:               Array'ViewerChoice
+    instances:             Array'ViewerInstance
+    activeChoiceIndex           = Swag.U32.Max
+    startupTimer:          #null *Timer
+    searchTimer:           #null *Timer
+    searchBoundsTimer:     #null *Timer
+    loadingTimer:          #null *Timer
+    searchStream:          File.FileStream
+    searchQuery:           String
+    searchCarry:           String
+    searchCarryBase:       u64
+    searchProcessed:       u64
+    searchMatches:         Array'ViewerSearchMatch
+    searchIndex:           u64  = Swag.U64.Max
+    searchMatch:           u64  = Swag.U64.Max
+    searchComplete:        bool
+    searchSelectLast:      bool
     searchMatchCaseOption: bool
     searchWholeWordOption: bool
-    pendingFile:      String
-    pendingEmpty:     String
-    pendingRemember:  bool = true
-    currentFile:      String
-    siblings:         Array'String
-    siblingIndex:     u64
-    siblingsDirty          = true
+    pendingFile:           String
+    pendingEmpty:          String
+    pendingRemember:       bool = true
+    currentFile:           String
+    siblings:              Array'String
+    siblingIndex:          u64
+    siblingsDirty               = true
 
     // Whether next/previous and the folder list keep only the neighbours the current file's
     // viewer would open, so a reader flips through the pictures of a folder without landing on
@@ -459,6 +525,14 @@ impl IWnd for ViewerWindow
             return
         }
 
+        if evt.timer == .searchBoundsTimer
+        {
+            .removeTimer(evt.timer)
+            .searchBoundsTimer = null
+            .refreshSearchHighlight()
+            return
+        }
+
         if evt.timer != .startupTimer
         {
             evt.accepted = false
@@ -579,6 +653,8 @@ impl ViewerWindow
         .emptyIconLabel.setIcon(.theme().icon(.OpenFile, 48))
         .emptyIconLabel.setIconColor(.themeColors().label_TextFaint)
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
+        .searchPrevious.setIcon(.theme().icon(.SearchPrevious, 16))
+        .searchNext.setIcon(.theme().icon(.SearchNext, 16))
         if .activeChoiceIndex < .choices.count do
             .infoIconLabel.setIcon(.icon(.choices[.activeChoiceIndex].icon))
     }
@@ -762,9 +838,10 @@ impl ViewerWindow
             .backgroundStyle = .Transparent
             .spacing         = 0
         }
+
         result.commandBar.searchGroup = result.searchGroup
 
-        with result.searchBox = EditBox.create(result.searchGroup, "", {0, 0, ViewerSearchFieldWidth, 36})
+        with result.searchBox = EditBox.create(result.searchGroup, "", {0, 0, ViewerSearchFieldWidth, 36}, flags: .ClearButton)
         {
             .setIcon(result.theme().icon(.Search, 18))
             .setPlaceholder(appStrings().ui_Search)
@@ -793,11 +870,11 @@ impl ViewerWindow
             .setTextAlignment(.Center, .OpticalCenter)
         }
 
-        with result.searchPrevious = IconButton.create(result.searchGroup, result.theme().icon(.ChevronUp, 14), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize})
+        with result.searchPrevious = IconButton.create(result.searchGroup, result.theme().icon(.SearchPrevious, 16), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize})
         {
             .layoutSpec.alignY = .Center
             .toolTip           = appStrings().ui_SearchPrevious
-            .sigPressed += func|window = result|(button)
+            .sigPressed        += func|window = result|(button)
             {
                 discard button
                 window.findPrevious()
@@ -805,11 +882,11 @@ impl ViewerWindow
             .enable(false)
         }
 
-        with result.searchNext = IconButton.create(result.searchGroup, result.theme().icon(.ChevronDown, 14), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize})
+        with result.searchNext = IconButton.create(result.searchGroup, result.theme().icon(.SearchNext, 16), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize})
         {
             .layoutSpec.alignY = .Center
             .toolTip           = appStrings().ui_SearchNext
-            .sigPressed += func|window = result|(button)
+            .sigPressed        += func|window = result|(button)
             {
                 discard button
                 window.findNext()
@@ -1065,13 +1142,15 @@ impl ViewerWindow
         }
 
         result.loadingOverlay = ViewerLoadingOverlay.create(result)
+        result.searchOverlay  = ViewerSearchOverlay.create(result)
 
         result.hookOnChildEvent = func|window = result|(wnd, evt)
         {
             discard wnd
             switch evt
             {
-            case KeyEvent as key where window.routePlaybackKey(key): return true
+            case KeyEvent as key where window.routePlaybackKey(key):                    return true
+            case KeyEvent as key where window.routeSearchNavigationKey(key):            return true
             case MouseEvent as mouse where mouse.kind == .Move or mouse.kind == .Enter: window.updateFullScreenChrome(mouse.surfacePos)
             }
 
@@ -1128,8 +1207,8 @@ impl ViewerWindow
         .stopSearch()
         .searchQuery.clear()
         .searchMatches.clear()
-        .searchIndex = Swag.U64.Max
-        .searchMatch = Swag.U64.Max
+        .searchIndex    = Swag.U64.Max
+        .searchMatch    = Swag.U64.Max
         .searchComplete = false
         if !.destroyInstances()
         {
@@ -1270,6 +1349,8 @@ impl ViewerWindow
             instance.view                = errorView
             instance.commands            = null
             instance.revealMatch         = null
+            instance.searchBounds        = null
+            instance.clearSearch         = null
             instance.collectMatches      = null
             instance.isLoading           = null
             instance.needsLoadingOverlay = null
@@ -1319,6 +1400,8 @@ impl ViewerWindow
         instance.view                = null
         instance.commands            = null
         instance.revealMatch         = null
+        instance.searchBounds        = null
+        instance.clearSearch         = null
         instance.collectMatches      = null
         instance.isLoading           = null
         instance.needsLoadingOverlay = null
@@ -1403,11 +1486,13 @@ impl ViewerWindow
         if choice.kind == .BasicText
         {
             let basic = BasicTextView.create(me, .viewerBar, .currentFile.toString(), &reportViewerDetails)
-            next.view        = basic
-            next.commands    = basic.commands
-            next.revealMatch = &basicTextRevealMatch
-            next.isLoading   = &basicTextIsLoading
-            next.details     = Format.toString(appStrings().ui_TextDetails, basic.encodingName())
+            next.view         = basic
+            next.commands     = basic.commands
+            next.revealMatch  = &basicTextRevealMatch
+            next.searchBounds = &basicTextSearchBounds
+            next.clearSearch  = &basicTextClearSearch
+            next.isLoading    = &basicTextIsLoading
+            next.details      = Format.toString(appStrings().ui_TextDetails, basic.encodingName())
         }
         else
         {
@@ -1437,6 +1522,8 @@ impl ViewerWindow
                 next.commands            = null
                 next.view                = ViewerErrorView.create(me, next.failureReason.toString())
                 next.revealMatch         = null
+                next.searchBounds        = null
+                next.clearSearch         = null
                 next.collectMatches      = null
                 next.isLoading           = null
                 next.needsLoadingOverlay = null
@@ -1495,6 +1582,8 @@ impl ViewerWindow
         instance.view                = next.view
         instance.commands            = next.commands
         instance.revealMatch         = next.revealMatch
+        instance.searchBounds        = next.searchBounds
+        instance.clearSearch         = next.clearSearch
         instance.collectMatches      = next.collectMatches
         instance.isLoading           = next.isLoading
         instance.needsLoadingOverlay = next.needsLoadingOverlay
@@ -1559,6 +1648,7 @@ impl ViewerWindow
             .restartSearch(selectLast: direction < 0)
             return
         }
+
         if !.searchComplete or .searchMatches.isEmpty() do
             return
 
@@ -1605,11 +1695,60 @@ impl ViewerWindow
         if !instance.revealMatch or !instance.view do
             return
 
+        // Revealing may legitimately focus a document when invoked outside the search bar. Live
+        // typing is different: the viewer scrolls and selects behind the field, while the caret
+        // stays in the query so the next letter extends it instead of going into the document.
+        let preserveSearchFocus = .searchBox.hasFocus()
+        defer if preserveSearchFocus do
+            .searchBox.setFocus()
+
         let match = .searchMatches[.searchIndex]
         if !instance.revealMatch!(instance.view!, match, .searchQuery.toString()) do
             return
         .searchMatch = match.offset
         .refreshSearchReadout()
+        .refreshSearchHighlight()
+    }
+
+    private mtd refreshSearchHighlight()
+    {
+        if .searchIndex >= .searchMatches.count or .activeChoiceIndex >= .instances.count
+        {
+            .searchOverlay.hide()
+            return
+        }
+
+        let instance = &.instances[.activeChoiceIndex]
+        if !instance.view or !instance.searchBounds
+        {
+            .searchOverlay.hide()
+            return
+        }
+
+        var bounds: Math.Rectangle
+        if instance.searchBounds!(instance.view!, .searchMatches[.searchIndex], &bounds)
+        {
+            let viewport = instance.view!.surfaceRect()
+            bounds.intersect(viewport)
+            if !bounds.isEmpty() do
+                .searchOverlay.showMatch(bounds)
+            else do
+                .searchOverlay.hide()
+        }
+        else do
+            .searchOverlay.hide()
+
+        // Animation advances on the host timer, outside painting. Invalidating from inside a
+        // translucent paint pass can enqueue another partial pass before the backing content has
+        // been restored, which accumulates alpha and leaves trails around the word.
+        .searchOverlay.phase = Math.fract(.searchOverlay.phase + cast(f32) ViewerSearchBoundsPoll.seconds / ViewerSearchGlowPeriod)
+        .searchOverlay.invalidate()
+
+        // A streamed document can materialize the result after revealMatch returns, and any
+        // viewer can still adjust its scroll or layout. Follow the geometry for as long as this
+        // occurrence is current rather than freezing an overlay at yesterday's coordinates.
+        if !.searchBoundsTimer do
+            .searchBoundsTimer = .addTimer(ViewerSearchBoundsPoll)
     }
 
     private mtd finishSearch()
@@ -1621,6 +1760,7 @@ impl ViewerWindow
             .searchIndex = .searchSelectLast ? .searchMatches.count - 1 : 0
             .revealCurrentSearchMatch()
         }
+
         .refreshSearchReadout()
     }
 
@@ -1647,6 +1787,24 @@ impl ViewerWindow
         let order = FocusOrder.collect(view!)
         let stop  = order.stops.isEmpty() ? view! : order.stops[0]!
         return stop!.focusTarget()
+    }
+
+    // Keeps document navigation available while the search field owns the keyboard. Page keys
+    // also work from the rest of the action bar; when focus is already inside the viewer the
+    // forwarding helper declines and the original event follows its normal path.
+    mtd routeSearchNavigationKey(evt: *KeyEvent)->bool
+    {
+        if .forwardingViewerKey or evt.kind != .Pressed or .searchIndex >= .searchMatches.count do
+            return false
+
+        let pageKey         = evt.modifiers == .None and (evt.key == .PageUp or evt.key == .PageDown)
+        let focused         = .focusedWindow()
+        let inSearchField   = focused and (focused! == .searchBox or .searchBox.isOwnerOf(focused!))
+        let fieldNavigation = inSearchField and ((evt.modifiers == .None and (evt.key == .Up or evt.key == .Down)) or (evt.modifiers == .Control and (evt.key == .Home or evt.key == .End)))
+        if !pageKey and !fieldNavigation do
+            return false
+
+        return .forwardKeyToViewer(evt, takeFocus: false)
     }
 
     // Routes playback keys before a focused child can consume them. One physical press toggles
@@ -1731,6 +1889,20 @@ impl ViewerWindow
 
         .searchStream.close()
         .searchCarry.clear()
+        if .activeChoiceIndex < .instances.count
+        {
+            let instance = &.instances[.activeChoiceIndex]
+            if instance.view and instance.clearSearch do
+                instance.clearSearch!(instance.view!)
+        }
+
+        if .searchBoundsTimer
+        {
+            .removeTimer(.searchBoundsTimer!)
+            .searchBoundsTimer = null
+        }
+
+        .searchOverlay.hide()
     }
 
     mtd beginSearch()
@@ -1782,8 +1954,8 @@ impl ViewerWindow
 
         let retainStart = stableEnd > ViewerSearchCarryMargin ? stableEnd - ViewerSearchCarryMargin : 0
         .searchCarryBase += retainStart
-        .searchCarry = String.from(.searchCarry.toString()[retainStart to])
-        .searchTimer = .addTimer(1'ms)
+        .searchCarry     = String.from(.searchCarry.toString()[retainStart to])
+        .searchTimer     = .addTimer(1'ms)
     }
 
     mtd updateFileInfo(details: string)

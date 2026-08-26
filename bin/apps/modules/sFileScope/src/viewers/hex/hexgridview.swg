@@ -409,6 +409,40 @@ impl HexGridView
 
     mtd hasSelection()->bool => .caret != .anchor or .valueSize() > 1
 
+    // Reports the printable lane occupied by the current raw-byte match. The grid also marks the
+    // hexadecimal lane for forensic reading; the shared application halo chooses the text lane so
+    // one occurrence still has one unmistakable visual anchor.
+    mtd matchBounds(result: *Math.Rectangle)->bool
+    {
+        if !.matchLength or !.doc.fileSize do
+            return false
+
+        let matchLast    = Math.min(.matchStart + .matchLength - 1, .lastOffset())
+        let visibleFirst = .topRow * .bytesPerRow
+        let visibleLast  = Math.min((.topRow + .visibleRows()) * .bytesPerRow - 1, .lastOffset())
+        if matchLast < visibleFirst or .matchStart > visibleLast do
+            return false
+
+        let first    = Math.max(.matchStart, visibleFirst)
+        let last     = Math.min(matchLast, visibleLast)
+        let firstRow = first / .bytesPerRow
+        let lastRow  = last / .bytesPerRow
+        var local: Math.Rectangle
+        if firstRow == lastRow
+        {
+            let column = first % .bytesPerRow
+            local = {.textCellX(column) - .scrollPos.x, .rowTop(firstRow), cast(f32) (last - first + 1) * .charWidth, .rowHeight}
+        }
+        else
+        {
+            local = {.textColumnLeft() - .scrollPos.x, .rowTop(firstRow), cast(f32) .bytesPerRow * .charWidth,
+                     cast(f32) (lastRow - firstRow + 1) * .rowHeight}
+        }
+
+        result[] = .localToSurface(local)
+        return !result.isEmpty()
+    }
+
     // Returns the widest row that still fits, in whole groups.
     //
     // Auto-fitting is what makes the view a window on the file rather than a fixed report: a wide
@@ -652,6 +686,14 @@ impl HexGridView
         .sigCaretChanged.call(me)
         .invalidate()
         return true
+    }
+
+    mtd clearSearchMatch()
+    {
+        .matchStart  = 0
+        .matchLength = 0
+        .anchor      = .caret
+        .invalidate()
     }
 
     mtd setBytesPerRow(count: u64, auto: bool)

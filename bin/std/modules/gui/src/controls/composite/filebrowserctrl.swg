@@ -107,14 +107,8 @@ impl IWnd for FileBrowserCtrl
 {
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
-        if .options.state
-        {
-            let state = me .options.state!
-            state.currentFolder       = me.currentFolder
-            state.nameColumnWidth     = cast() me.listCtrl.header.itemWidthForColumn(0)
-            state.modifiedColumnWidth = cast() me.listCtrl.header.itemWidthForColumn(1)
-            state.sizeColumnWidth     = cast() me.listCtrl.header.itemWidthForColumn(2)
-        }
+        discard evt
+        .saveState()
     }
 }
 
@@ -463,6 +457,19 @@ private impl FileBrowserCtrl
 
 impl FileBrowserCtrl
 {
+    // Copies the current browsing state into the optional borrowed state object.
+    internal mtd saveState()
+    {
+        if !.options.state do
+            return
+
+        let state = me .options.state!
+        state.currentFolder       = me.currentFolder
+        state.nameColumnWidth     = cast() me.listCtrl.header.itemWidthForColumn(0)
+        state.modifiedColumnWidth = cast() me.listCtrl.header.itemWidthForColumn(1)
+        state.sizeColumnWidth     = cast() me.listCtrl.header.itemWidthForColumn(2)
+    }
+
     // Returns the inset every band of the browser keeps from the edges of its column.
     //
     // The navigation bar, the list, the status line and the name form are four bands of one

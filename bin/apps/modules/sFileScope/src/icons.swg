@@ -20,6 +20,7 @@ enum ViewerIcons
     Hex          // Raw byte viewer.
     Text         // Plain text viewer.
     Table        // Delimited-text table viewer.
+    Midi         // Piano-roll viewer.
 }
 
 private const IconsSvg = #include("../datas/icons.svg")

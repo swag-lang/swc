@@ -23,6 +23,14 @@ struct ViewerSearchMatch
 // Reveals one exact match without loading the preceding file content.
 alias ViewerRevealMatch = func(*Wnd, ViewerSearchMatch, string)->bool
 
+// Returns the current rendered bounds of one revealed match in surface coordinates. Progressive
+// viewers may answer false until the requested window has been materialized; the host polls while
+// the occurrence remains current and owns all highlight presentation.
+alias ViewerSearchBounds = func(*Wnd, ViewerSearchMatch, *Math.Rectangle)->bool
+
+// Removes presentation left by the last revealed match.
+alias ViewerClearSearch = func(*Wnd)
+
 // Collects every logical-text match owned by a viewer. A null callback asks the host to scan the
 // file bytes and use `revealMatch` to materialize the selected occurrence.
 alias ViewerCollectMatches = func(*Wnd, string, ViewerSearchOptions, *Array'ViewerSearchMatch)
@@ -104,6 +112,8 @@ struct ViewerResult
     details:             String                              // Short format-specific summary shown by the application.
     failureReason:       String                              // Decoder explanation when `view` is null, or empty on success.
     revealMatch:         #null ViewerRevealMatch             // Reveals a byte offset, or null when not searchable.
+    searchBounds:        #null ViewerSearchBounds            // Reports rendered match geometry, or null when unavailable.
+    clearSearch:         #null ViewerClearSearch             // Removes the viewer-owned selection or marker.
     collectMatches:      #null ViewerCollectMatches          // Viewer-owned text indexing, or null to scan the file.
     isLoading:           #null ViewerIsLoading               // Reports unfinished visible work, or null for an immediate view.
     needsLoadingOverlay: #null ViewerNeedsLoadingOverlay     // Reports that loading currently has no useful presentation.
@@ -141,7 +151,7 @@ func collectViewerTextMatches(source, query: string, options: ViewerSearchOption
         return
 
     let comparison = options.matchCase ? Utf8.ComparisonType.Latin1 : Utf8.ComparisonType.Latin1NoCase
-    var from = 0'u64
+    var from       = 0'u64
     while from < @countof(source)
     {
         let found = Utf8.indexOf(source, query, from, comparison)
@@ -171,12 +181,13 @@ func highlightRichEditMatch(editor: *RichEditCtrl, source: string, start, length
                 continue
             if c == '\n'
             {
-                result.lineIndex += 1
+                result.lineIndex     += 1
                 result.charPosInLine = 0
             }
             else do
                 result.charPosInLine += 1
         }
+
         return result
     }
 
@@ -185,4 +196,52 @@ func highlightRichEditMatch(editor: *RichEditCtrl, source: string, start, length
     editor.setSelection(first, last)
     editor.ensureCaretIsVisible(center: true)
     editor.invalidate()
+}
+
+// Reports the visible selection of a rich editor in surface coordinates.
+func richEditSearchBounds(editor: *RichEditCtrl, result: *Math.Rectangle)->bool
+{
+    if editor.isSelectionEmpty() do
+        return false
+
+    let first  = editor.selectionStart()
+    let last   = editor.selectionEnd()
+    let height = editor.xGlyphSize().y
+    let start  = editor.cursorDisplayPosition(first)
+    let end    = editor.cursorDisplayPosition(last)
+    let view   = editor.view
+
+    var local: Math.Rectangle
+    if first.lineIndex == last.lineIndex
+    {
+        local = {start.x, start.y - height, Math.max(end.x - start.x, 2), height}
+    }
+    else
+    {
+        local = {view.clientRect().x, start.y - height, view.clientRect().width, Math.max(end.y - start.y + height, height)}
+    }
+
+    local.offset(-view.scrollPos.x, -view.scrollPos.y)
+    result[] = view.localToSurface(local)
+    return !result.isEmpty()
+}
+
+func clearRichEditSearch(editor: *RichEditCtrl)
+{
+    editor.clearSelection()
+    editor.invalidate()
+}
+
+// Reports one list row in surface coordinates. Structured and tabular viewers still provide the
+// semantic row; the application gives that geometry the same current-occurrence treatment as an
+// exact glyph range.
+func listRowSearchBounds(list: *ListCtrl, index: u32, result: *Math.Rectangle)->bool
+{
+    if index >= list.lineCount() do
+        return false
+    let view       = list.listView
+    let lineHeight = list.lineHeight()
+    let local      = Math.Rectangle{view.clientRect().x, cast(f32) index * lineHeight - view.scrollPos.y, view.clientRect().width, lineHeight}
+    result[] = view.localToSurface(local)
+    return !result.isEmpty()
 }

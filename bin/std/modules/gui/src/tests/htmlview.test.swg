@@ -765,14 +765,18 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     defer host.shutdown()
 
     const Source = "<p>same same same</p>"
-    let second   = Utf8.indexOf(Source, "same", Utf8.indexOf(Source, "same") + 1)
-    let view     = HtmlView.createText(&host.root, Source)
+    let second = Utf8.indexOf(Source, "same", Utf8.indexOf(Source, "same") + 1)
+    let view   = HtmlView.createText(&host.root, Source)
     view.resize(320, 180)
     view.applyLayout()
     view.rebuild()
 
     @assert(view.revealFileOffset(second, "same"))
     @assert(view.searchNode != HtmlNoNode and view.searchStart == 5 and view.searchEnd == 9)
+    var bounds: Math.Rectangle
+    @assert(view.searchMatchRect(&bounds) and !bounds.isEmpty())
+    view.clearSearch()
+    @assert(!view.searchMatchRect(&bounds))
 }
 
 // A real generated Rustdoc page keeps its full production scale. Its highlighted source expands
@@ -969,6 +973,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
             @assert(view.loadTimer != null)
             host.fireTimer(view.loadTimer)
         }
+
         @assert(!view.virtualPendingSeek)
         @assert(view.layout.boxes.count > 1)
         var image = host.render(view)
@@ -984,6 +989,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
             @assert(view.loadTimer != null)
             host.fireTimer(view.loadTimer)
         }
+
         var image = host.render(view)
         @assert(Hash.hashBytes32(image.pixels.toSlice()) == firstPass[reverse])
     }

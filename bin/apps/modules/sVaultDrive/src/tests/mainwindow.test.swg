@@ -98,9 +98,11 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
 
     window.mountSettings.path = String.from("C:\\private\\unlisted")
     window.startupVaults.add({String.from("C:\\private\\startup"), String.from("mount-x"), true, false})
+    window.fileDlgState.currentFolder = String.from("C:\\private\\browse-private")
     var state = saveMainWindowState(window)
     @assert(!containsStateBytes(state.toSlice(), @mkslice(cast(const [*] u8) @dataof("unlisted"), 8)))
     @assert(!containsStateBytes(state.toSlice(), @mkslice(cast(const [*] u8) @dataof("startup"), 7)))
+    @assert(!containsStateBytes(state.toSlice(), @mkslice(cast(const [*] u8) @dataof("browse-private"), 14)))
 
     window.clearPrivateState()
     @assert(window.mountSettings.path.isEmpty())
@@ -375,19 +377,19 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     // the dominant action still comes last on its card because the bar stacks from its right edge.
     window.showTab(1)
     let opened = Gui.FocusOrder.collect(window)
-    @assert(opened.stops.count == 12)
+    @assert(opened.stops.count == 11)
     @assert(opened.stops[0] == cast(*Wnd) window.tabs)
     @assert(opened.stops[1] == cast(*Wnd) window.mountPath)
     @assert(opened.stops[2] == cast(*Wnd) window.browseMount)
     @assert(opened.stops[3] == cast(*Wnd) window.mountPassword)
     @assert(opened.stops[4] == cast(*Wnd) window.mountKeyFiles.add)
-    @assert(opened.stops[5] == cast(*Wnd) window.mountKeyFiles.generate)
-    @assert(opened.stops[6] == cast(*Wnd) window.drive)
-    @assert(opened.stops[7] == cast(*Wnd) window.readOnly)
-    @assert(opened.stops[8] == cast(*Wnd) window.keyFilesButton)
-    @assert(opened.stops[9] == cast(*Wnd) window.passwordButton)
-    @assert(opened.stops[10] == cast(*Wnd) window.resizeButton)
-    @assert(opened.stops[11] == cast(*Wnd) window.mountButton)
+    @assert(!window.mountKeyFiles.generate.isVisible())
+    @assert(opened.stops[5] == cast(*Wnd) window.drive)
+    @assert(opened.stops[6] == cast(*Wnd) window.readOnly)
+    @assert(opened.stops[7] == cast(*Wnd) window.keyFilesButton)
+    @assert(opened.stops[8] == cast(*Wnd) window.passwordButton)
+    @assert(opened.stops[9] == cast(*Wnd) window.resizeButton)
+    @assert(opened.stops[10] == cast(*Wnd) window.mountButton)
 
     window.showTab(3)
     let options = Gui.FocusOrder.collect(window)
@@ -765,6 +767,31 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     @assert(host.autoHandled)
     @assert(window.createPath.text() == path.toString())
+}
+
+// Privacy keeps browse history off disk, but the open dialog still returns to its last folder
+// while this process is running.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    let path = Testing.tempFilePath("vaultdrive-open-state-", ".vault")
+    defer discard catch File.delete(path)
+    discard expect File.writeAllBytes(path.toString(), [1'u8])
+
+    host.acceptModalFileDialog(path.toString())
+    window.chooseContainer(window.mountPath, false)
+
+    @assert(host.autoHandled)
+    @assert(window.mountPath.text() == path.toString())
+    @assert(Path.equals(window.fileDlgState.currentFolder.toString(), Path.directoryName(path) orelse ""))
+
+    host.clickModalButtonWhenShown(Dialog.BtnCancel)
+    window.chooseContainer(window.mountPath, false)
+    @assert(host.autoHandled)
+    @assert(Path.equals(window.fileDlgState.currentFolder.toString(), Path.directoryName(path) orelse ""))
 }
 
 // The panel can add an existing key file, generate a cryptographically random one, and remove

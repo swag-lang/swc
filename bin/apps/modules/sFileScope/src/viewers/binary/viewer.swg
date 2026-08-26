@@ -62,6 +62,7 @@ internal struct BinaryViewer
     reportLoadingChanged: #null ViewerReportLoadingChanged
     retireRequested:      bool
     retired:              bool
+    searchVisibleIndex = Swag.U32.Max
 }
 
 internal impl BinaryViewer
@@ -175,7 +176,22 @@ internal impl BinaryViewer
         .list.selectLine(visible)
         .list.setFocusedIndex(visible)
         .list.setFocus()
+        .searchVisibleIndex = visible
         return true
+    }
+
+    mtd searchBounds(result: *Math.Rectangle)->bool
+    {
+        if .searchVisibleIndex == Swag.U32.Max do
+            return false
+        return listRowSearchBounds(.list, .searchVisibleIndex, result)
+    }
+
+    mtd clearSearch()
+    {
+        .searchVisibleIndex = Swag.U32.Max
+        .list.unselectAll()
+        .list.invalidate()
     }
 
     // Opens every group between the root and `line`, outermost first.
@@ -589,10 +605,16 @@ func createBinaryViewer(request: const *ViewerRequest, result: *ViewerResult)
         return
     }
 
-    result.view        = view!
-    result.commands    = view!.commands
-    result.details     = view!.details
-    result.revealMatch = func(wnd, match, text)->bool { return (cast(*BinaryViewer) wnd).revealOffset(match.offset, text) }
+    result.view         = view!
+    result.commands     = view!.commands
+    result.details      = view!.details
+    result.revealMatch  = func(wnd, match, text)->bool { return (cast(*BinaryViewer) wnd).revealOffset(match.offset, text) }
+    result.searchBounds = func(wnd, match, bounds)->bool
+    {
+        discard match
+        return (cast(*BinaryViewer) wnd).searchBounds(bounds)
+    }
+    result.clearSearch = func(wnd) { (cast(*BinaryViewer) wnd).clearSearch() }
     result.isLoading   = func(wnd)->bool { return (cast(*BinaryViewer) wnd).loadTimer != null }
     result.retire      = func(wnd)->bool { return (cast(*BinaryViewer) wnd).retire() }
 }

@@ -366,6 +366,8 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     let matches = view.findTextMatches("second")
     @assert(matches.count == 1 and matches[0].pageIndex == 1)
     @assert(view.revealTextMatch(matches[0]) and view.selectedText() == "Second")
+    var matchRect: Math.Rectangle
+    @assert(view.textMatchRect(matches[0], &matchRect) and !matchRect.isEmpty())
 
     var exact: PdfTextSearchOptions
     exact.comparison = .Latin1

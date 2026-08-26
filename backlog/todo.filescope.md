@@ -77,14 +77,6 @@ where files are actually selected, and the format table below is what a reader c
   has to be usable without the application window. That constraint is worth checking before committing.
 - Related: T-396, T-418
 
-### T-391 — Search cannot be constrained, reversed, or counted
-
-- Intent: `viewerwindow.searchStep` scans forward with `Utf8.indexOf(..., .Latin1NoCase)` and wraps
-  once. There is no case toggle, no whole-word constraint, no previous match, no match count, and no
-  regular expression.
-- Complete when: case sensitivity and whole-word are togglable, Shift+F3 walks backwards, the status
-  bar reports the match ordinal, and the chosen semantics are documented in the README.
-
 ### T-393 — The file being viewed cannot be opened with its default application
 
 - Intent: after looking at a file, the next action is always outside the viewer. Showing it in the
@@ -195,7 +187,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | Compressed audio | `.mp3` `.flac` `.aac` `.ac3` `.eac3` | full, streamed | Ogg Vorbis, Opus, M4A | T-166, T-168 |
 | Video containers | `.mp4` `.mkv` `.webm` `.mov` `.avi` | AVI structure; ISO-BMFF, Matroska and WebM signature | box and EBML trees | T-412 |
 | Video playback | `.avi` `.mp4` `.m4v` `.mov` `.mkv` | Motion JPEG, uncompressed AVI, H.264, H.265 and MPEG-4 Part 2; container-supported sound with track selection | VP9, AV1, Opus, Vorbis, and WebM | T-420 |
-| MIDI | `.mid` | none | — | — |
+| MIDI | `.mid` `.midi` | full, piano roll; structure alternative | playback and synthesis | — |
 
 #### Binaries, containers and developer artifacts
 

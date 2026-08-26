@@ -18,6 +18,7 @@ enum BinaryFormatKind
     Wasm           // A WebAssembly module.
     Zip            // A ZIP archive, whatever the container built on it is called.
     Riff           // A RIFF container such as WAV, AVI, or WebP.
+    Midi           // A Standard MIDI File.
     Font           // An sfnt font or a collection of them.
     Scc            // A Swag Chunk Container.
     Icon           // A Windows icon containing one or more image resources.
@@ -71,6 +72,7 @@ impl BinaryDocument
         case .Wasm:       reportWasmModule(&.image, &.report)
         case .Zip:        reportZipArchive(&.image, &.report)
         case .Riff:       reportRiffContainer(&.image, &.report)
+        case .Midi:       reportMidiFile(&.image, &.report)
         case .Font:       reportSfntFont(&.image, &.report)
         case .Scc:        reportSccContainer(&.image, &.report, fileName)
         case .Icon:       reportIconContainer(&.image, &.report, &.previews)
@@ -216,6 +218,8 @@ func detectBinaryFormat(image: *BinaryImage)->BinaryFormatKind
         return .Wasm
     if isRiffContainer(image) do
         return .Riff
+    if isMidiFile(image) do
+        return .Midi
     if isSfntFont(image) do
         return .Font
 

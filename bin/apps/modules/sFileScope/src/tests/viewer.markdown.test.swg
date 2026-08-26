@@ -51,7 +51,7 @@ private func markdownWhiteyFixturePath()->String
     let wnd = result.view
     @assert(wnd != null)
     @assert(result.commands != null)
-    @assert(result.revealMatch != null)
+    @assert(result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
     @assert(result.isLoading != null and result.isLoading!(wnd!))
     @assert(Utf8.contains(result.details.toString(), "Markdown"))
     let commands = result.commands
@@ -115,16 +115,24 @@ private func markdownWhiteyFixturePath()->String
     view.applyLayout()
     @assert(view.revealFileOffset(offset, query))
 
-    var found: bool
+    var found:  bool
+    var bounds: Math.Rectangle
     for 4_000 where view.hasUnloadedSource() and !found
     {
         host.fireTimers()
-        found = view.findText(query)
+        found = view.searchMatchRect(&bounds)
     }
 
-    @assert(found)
+    @assert(found and !bounds.isEmpty())
     @assert(view.hasUnloadedSource())
     @assert(view.loadedDocumentHeight() > view.documentStyle.topInset)
+    let revealedBounds = bounds
+    for 64 do
+        host.fireTimers()
+    @assert(view.searchMatchRect(&bounds))
+    @assert(Math.abs(bounds.y - revealedBounds.y) < 1)
+    view.clearSearchHighlight()
+    @assert(!view.searchMatchRect(&bounds))
 }
 
 #test

@@ -35,6 +35,9 @@ using Swag, Core
     @assert(colors.btnPush_AlternateBk == 0xFF38BDF8)
     @assert(colors.btnPush_AlternateText == 0xFF0B0B0D)
     @assert(colors.url_Text == 0xFF38BDF8)
+    @assert(colors.searchMatch_Bk == 0x3C38BDF8)
+    @assert(colors.searchMatch_Border.toHsl().s > 0.5)
+    @assert(colors.searchMatch_Glow == 0x7038BDF8)
 
     // A row, an entry and a tab carry that tone rather than a grey, which is where a theme
     // spends most of its color and where a signature never can.
@@ -80,6 +83,8 @@ using Swag, Core
     @assert(colors.btnPush_AlternateBk == 0xFF38BDF8)
     @assert(colors.btnPush_AlternateText == 0xFF0B0B0D)
     @assert(colors.hilightLightContrast == 0xFF0B0B0D)
+    @assert(colors.searchMatch_Bk.a == 0x3C and colors.searchMatch_Glow.a == 0x70)
+    @assert(colors.searchMatch_Border.toHsl().s > 0.5)
 
     @assert(colors.hilight == 0xFF7E8000)
     @assert(colors.activeRail == 0xFF7E8000)
@@ -125,6 +130,7 @@ using Swag, Core
         {
             @assert(colors.hilight.contrastRatio(ground) >= 3.5)
             @assert(colors.error.contrastRatio(ground) >= 3.5)
+            @assert(colors.searchMatch_Border.contrastRatio(ground) >= 3.5)
         }
     }
 }

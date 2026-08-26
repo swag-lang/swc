@@ -155,8 +155,14 @@ func createHexViewer(request: const *ViewerRequest, result: *ViewerResult)
         return
     }
 
-    result.view        = view
-    result.commands    = view.commands
-    result.details     = view.details
-    result.revealMatch = func(wnd, match, text)->bool { return (cast(*HexViewer) wnd).revealOffset(match.offset, text) }
+    result.view         = view
+    result.commands     = view.commands
+    result.details      = view.details
+    result.revealMatch  = func(wnd, match, text)->bool { return (cast(*HexViewer) wnd).revealOffset(match.offset, text) }
+    result.searchBounds = func(wnd, match, bounds)->bool
+    {
+        discard match
+        return (cast(*HexViewer) wnd).grid.matchBounds(bounds)
+    }
+    result.clearSearch = func(wnd) { (cast(*HexViewer) wnd).grid.clearSearchMatch() }
 }

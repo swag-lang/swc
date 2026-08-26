@@ -150,10 +150,16 @@ func createMarkdownViewer(request: const *ViewerRequest, result: *ViewerResult)
     }
 
     applyMarkdownViewerStyle(view, 0, 1)
-    result.view           = view
-    result.commands       = commandGroup
-    result.details        = markdownStrings().ui_Details
-    result.revealMatch    = func(wnd, match, text)->bool { return (cast(*Markdown.View) wnd).revealFileOffset(match.offset, text) }
+    result.view         = view
+    result.commands     = commandGroup
+    result.details      = markdownStrings().ui_Details
+    result.revealMatch  = func(wnd, match, text)->bool { return (cast(*Markdown.View) wnd).revealFileOffset(match.offset, text) }
+    result.searchBounds = func(wnd, match, bounds)->bool
+    {
+        discard match
+        return (cast(*Markdown.View) wnd).searchMatchRect(bounds)
+    }
+    result.clearSearch    = func(wnd) { (cast(*Markdown.View) wnd).clearSearchHighlight() }
     result.isLoading      = func(wnd)->bool { return (cast(*Markdown.View) wnd).isLoading() }
     themeCombo.sigChanged += func|view, widthCombo|(combo, index)
     {

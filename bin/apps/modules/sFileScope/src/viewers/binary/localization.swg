@@ -47,6 +47,10 @@ struct BinaryStrings
     word_Libraries:  string = "libraries"      // Several shared libraries.
     word_Property:   string = "property"       // One metadata property.
     word_Properties: string = "properties"     // Several metadata properties.
+    word_Track:      string = "track"          // One MIDI track.
+    word_Tracks:     string = "tracks"         // Several MIDI tracks.
+    word_Event:      string = "event"          // One MIDI event.
+    word_Events:     string = "events"         // Several MIDI events.
 
     shr_Sections:    string = "Sections"                                                  // Group of whatever a format calls a section.
     shr_Imports:     string = "Imports"                                                   // Group of what a file needs from elsewhere.
@@ -225,6 +229,18 @@ struct BinaryStrings
     riff_Container: string = "RIFF container"     // Format name of a RIFF file.
     riff_Chunks:    string = "Chunks"             // Group of the chunk chain.
     riff_Form:      string = "Form"               // Row giving the form the container carries.
+
+    midi_File:         string = "Standard MIDI file"                                        // Format name of an SMF file.
+    midi_Tracks:       string = "Tracks"                                                    // Group of the track chunks.
+    midi_Track:        string = "Track %"                                                   // Label of one numbered track.
+    midi_TicksQuarter: string = "% ticks per quarter note"                                  // Meaning of a metric time division.
+    midi_Smpte:        string = "% frames per second · % ticks per frame"                   // Meaning of an SMPTE time division.
+    midi_At:           string = "tick %"                                                    // Position of an event in a track.
+    midi_AtChannel:    string = "tick % · channel %"                                        // Position and channel of an event.
+    midi_Malformed:    string = "the event chain stops before the track's declared end"     // Broken track event stream.
+    midi_NoEnd:        string = "the track carries no End of Track event"                   // Track missing its required terminator.
+    midi_Major:        string = "major"                                                     // Major key signature.
+    midi_Minor:        string = "minor"                                                     // Minor key signature.
 
     font_Font:       string = "Font"                          // Format name of an sfnt font.
     font_Tables:     string = "Tables"                        // Group of the table directory.

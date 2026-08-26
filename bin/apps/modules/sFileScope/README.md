@@ -69,18 +69,25 @@ guessing an encoding.
   complete payload, and a low-priority worker builds the waveform from bounded blocks.
 - `Font` renders TrueType fonts and the first face of a TrueType collection as a live specimen.
   Its paged character map walks mapped Unicode scalars without materializing the whole map.
+- `MIDI` parses Standard MIDI Files into a dedicated piano roll. It shows musical duration,
+  tempo, meter, key signature, named tracks and note ranges, offers an all-tracks or per-track
+  view, and provides horizontal zoom without synthesizing or executing file content.
 - `Binary` displays a format's structure tree with field name, decoded value, file offset, and
   meaning. It recognizes Windows images, COFF and `ar` libraries, ELF, Mach-O, WebAssembly, ZIP,
-  RIFF, sfnt fonts, Windows icons, and Swag Chunk Containers. Unknown files still receive signature,
-  size, and entropy analysis.
+  RIFF, Standard MIDI Files, sfnt fonts, Windows icons, and Swag Chunk Containers. Unknown files
+  still receive signature, size, and entropy analysis.
 - `Hexadecimal` is available for every file. It pages through 64 KiB at a time, uses 64-bit
   offsets, and supports independent scalar width, representation, and byte order.
 
 Text-oriented viewers handle normal keyboard and scrollbar navigation while content is streaming.
 Home, End, distant scrollbar jumps, and search open a bounded resident window near the requested
 offset. Ctrl+F scans in asynchronous 256 KiB chunks, while viewers such as PDF can replace that
-scan with format-aware search. The information band shows a spinner while the active viewer is
-still producing visible content, and switching viewers retires hidden progressive work.
+scan with format-aware search. Search is case-insensitive by default; `Aa` requires the same case
+and `ab` restricts matches to whole words. The result counter reports the current and total
+occurrences, F3 and Shift+F3 move forward and backward with wrapping, and every viewer supplies
+only match geometry to the same animated, theme-derived current-result marker. The information
+band shows a spinner while the active viewer is still producing visible content, and switching
+viewers retires hidden progressive work.
 
 The application stores its palette, language, window state, recent files, and remembered viewer
 choices in the user's application-data folder. It toggles full screen with F11, navigates the

@@ -265,7 +265,7 @@ struct MainWindow
     // before the window can put anything in it.
     mountedDrives: MountedDrives
 
-    fileDlgState: FileDlgState
+    fileDlgState: FileDlgState     // Session browse state; serialized only when privacy mode is off.
     privacyMode:  bool = true
     state:        AppState
     shuttingDown: bool
@@ -1212,7 +1212,7 @@ impl MainWindow
         }
 
         .mountPassword = form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_ContainerPassword)
-        .mountKeyFiles = KeyFileField.create(form)
+        .mountKeyFiles = KeyFileField.create(form, canGenerate: false)
         discard form.addField(appStrings().ui_KeyFiles, .mountKeyFiles, help: appStrings().ui_KeyFilesHelp)
 
         // The lifetime of the drive belongs to the letter that carries it, so it is said under
@@ -1472,7 +1472,10 @@ impl MainWindow
     mtd chooseContainer(target: *EditBox, create: bool)
     {
         var options: FileDlgOptions
-        options.state             = .privacyMode ? null : &.fileDlgState
+
+        // Privacy controls persistence, not the convenience of returning to the last folder
+        // during this run. Serialization below remains the only path from this state to disk.
+        options.state             = &.fileDlgState
         options.mode              = create ? .CreateFile : .SelectFile
         options.title             = create ? appStrings().dlg_TitleCreate : appStrings().dlg_TitleOpen
         options.confirmButtonText = create ? appStrings().dlg_BtnCreate : appStrings().dlg_BtnOpen

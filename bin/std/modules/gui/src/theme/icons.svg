@@ -229,4 +229,13 @@
     <circle cx="15" cy="12" r="2" fill="#ffffff" stroke="none"/>
     <circle cx="7" cy="18" r="2" fill="#ffffff" stroke="none"/>
   </g>
+  <!-- Search navigation uses an outlined caret of its own. The solid chevrons remain reserved
+       for disclosure, sorting and spatial navigation, so these controls cannot be mistaken for
+       a drop-down or a collapsed branch. -->
+  <g id="SearchPrevious" transform="translate(144 168)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="5,15.5 12,8.5 19,15.5"/>
+  </g>
+  <g id="SearchNext" transform="translate(168 168)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="5,8.5 12,15.5 19,8.5"/>
+  </g>
 </svg>

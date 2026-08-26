@@ -266,6 +266,16 @@ is the layout it does not read yet.
     instructions per cycle their instruction counts predict. See
     [F-193](findings.optimization.md#f-193--a-simd-routine-keeps-its-strides-and-counts-in-the-frame),
     which now carries these numbers. This is the first lever, ahead of the two below.
+  - **Deblocking is bound by the memory it touches, not by the instructions it runs.** Two
+    independent attempts removed work from it and neither moved the clock: filtering the four
+    lines of a horizontal edge in lanes rather than one at a time (7.5 ms to 6.5), and a
+    compiler fix that took fifteen `Math.clamp` calls and forty frame accesses out of every
+    segment (776 instructions to 688, 171 frame accesses to 130) for **no change at all**
+    (15.3 ms to 15.7, which is noise). A segment costs about 600 cycles and touches six to
+    eight cache lines spread over as many rows; the picture's luma plane is 8 MB and the filter
+    walks it twice, once per direction. What would change that is filtering both directions
+    inside one band of coding tree units while its samples are still hot, which is how the
+    standard's one-unit delay is meant to be used, rather than two passes over the picture.
   - **The sample work is at the ceiling of 128-bit vectors.** The interpolation filters already
     pair their taps through `pmaddwd`, and 16 ms for 15.7 million bi-predicted luma samples is
     about what that instruction count costs. FFmpeg runs the same filters 256 bits wide. This is

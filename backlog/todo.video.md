@@ -273,6 +273,14 @@ is the layout it does not read yet.
     library at once. After it, the stages still written scalar — the loop filter (15.7 ms) and
     the residual add (3) — and then 256-bit forms for what is already paired through `pmaddwd`:
     motion compensation (33) and the inverse transform (8.5), which T-506 covers.
+    First backend instalment measured (2026-08-26): loop residency in the register allocator
+    plus per-object frame reachability in the post-RA hoist took the serial conformance decode
+    (wpp-main10 + ipred, alternated processor time of the test binary) down 3 to 7 percent, and
+    the back-edge reload cause across the `video` workspace from 5060 to 242. What bounds the
+    next instalment is eviction churn under real pressure — see
+    [F-193](findings.optimization.md#f-193--a-simd-routine-keeps-its-strides-and-counts-in-the-frame)
+    and the residency notes under
+    [F-195](findings.optimization.md#f-195--a-loop-header-drops-every-mapping-and-the-register-to-fix-it-is-already-spoken-for).
   - **What the emitted code spends on the frame is worth removing anyway.**
     `filterLumaEdge` emits 776 instructions with 171 frame accesses, `interpolateLuma` spills
     its accumulators inside the innermost body, and both run at roughly a third of the

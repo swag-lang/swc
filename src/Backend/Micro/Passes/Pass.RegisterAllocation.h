@@ -126,6 +126,36 @@ private:
         uint32_t ownerDense = 0;
     };
 
+    // A natural loop the residency machinery supports: entered only by
+    // falling into its header label, with no jump from outside landing past
+    // it, so code placed before the header runs exactly on entry and every
+    // other way to the header is a back-edge.
+    struct LoopRegion
+    {
+        uint32_t header = 0;
+        uint32_t tail   = 0;
+    };
+
+    // One sealed loop the scan is currently inside. Instead of dropping every
+    // mapping at the header (the back-edge state is unseen when the linear
+    // scan reaches it), the mappings that can survive the loop are kept and
+    // recorded, home-resident values the loop reads are preloaded into free
+    // registers, and every back-edge restores exactly this state before
+    // jumping — so the two sides of the back-edge agree by construction.
+    struct LoopResidency
+    {
+        uint32_t                                      header = 0;
+        uint32_t                                      tail   = 0;
+        SmallVector<std::pair<uint32_t, MicroReg>, 8> expected;
+        // Whether a use read the pair's register through the mapping. Only a
+        // consumed pair obligates the back-edge: the emitted body reads that
+        // register before any reload, so iteration two must find the value
+        // there. A pair broken before anything consumed it is demoted at the
+        // next back-edge instead of being refilled forever.
+        SmallVector<uint8_t, 8>  consumed;
+        SmallVector<uint32_t, 2> backEdges;
+    };
+
     // Register-mapping snapshots recorded at each forward jump, consumed by
     // the join intersection in flushAtBoundary. Keyed by the jump's
     // instruction index; entries pair a dense virtual index with the physical
@@ -185,6 +215,12 @@ private:
     bool             hasConcreteTouchInRange(MicroReg physReg, uint32_t lo, uint32_t hi) const;
     bool             isStraightLineRange(uint32_t lo, uint32_t hi) const;
     bool             tryBorrowReservedRegister(const AllocRequest& request, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, int64_t stackDepth, std::vector<PendingInsert>& pending, MicroReg& outPhys);
+    void             collectLoopRegions(SmallVector<LoopRegion>& outRegions) const;
+    const LoopRegion* findSealedLoopRegion(uint32_t headerIndex) const;
+    bool             isExpectedResident(uint32_t denseIndex) const;
+    void             markResidencyConsumed(uint32_t denseIndex, MicroReg physReg);
+    void             beginLoopResidency(const LoopRegion& region, int64_t stackDepth, std::vector<PendingInsert>& pending);
+    void             conformLoopResidency(uint32_t instructionIndex, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void             assignGlobalRegisters();
     void             preallocateLoopCarriedSlots();
     void             computeReachability();
@@ -323,8 +359,10 @@ private:
     // are parked in their slot around every call inside the hull
     // (saveRestorePinnedAcrossCall), so the call paths pay for the register
     // instead of the straight-line code.
-    SmallVector<uint32_t>      pinnedCallSavedDense_;
-    std::vector<PendingInsert> boundaryPending_;
+    SmallVector<uint32_t>       pinnedCallSavedDense_;
+    SmallVector<LoopRegion>     sealedLoopRegions_;
+    std::vector<LoopResidency>  activeLoopResidency_;
+    std::vector<PendingInsert>  boundaryPending_;
     // Write-through stores for loop-carried values: queued right after the
     // instruction that defines such a value and flushed before the next one, so
     // the value's stable home slot always holds its latest value across the

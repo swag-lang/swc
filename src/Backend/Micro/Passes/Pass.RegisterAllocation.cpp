@@ -1064,6 +1064,471 @@ bool MicroRegisterAllocationPass::isReservedByGlobalFor(const MicroReg virtKey, 
     return false;
 }
 
+void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& outRegions) const
+{
+    // A loop region is [header, tail]: a label with a back-edge predecessor,
+    // up to the furthest such predecessor. The load that seeds a range-scoped
+    // reservation sits before the header label, where only the entry path
+    // runs it, so a region qualifies only when entry cannot bypass that load:
+    // the sole outside predecessor of the header is the instruction just
+    // above falling through, and no label inside the region is reachable from
+    // outside it.
+    outRegions.clear();
+    if (!hasControlFlow_ || !instructionCount_)
+        return;
+
+    std::vector<uint8_t> isLabelAt(instructionCount_, 0);
+    std::vector<uint8_t> jumpsToOwnNextLabel(instructionCount_, 0);
+    {
+        std::unordered_map<uint64_t, uint32_t> labelIndexByRef;
+        uint32_t                               idx = 0;
+        for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
+        {
+            if (it->op != MicroInstrOpcode::Label)
+                continue;
+            isLabelAt[idx]               = 1;
+            const MicroInstrOperand* ops = it->ops(*operands_);
+            if (ops)
+                labelIndexByRef[ops[0].valueU64] = idx;
+        }
+
+        // A jump whose target is the very next label lands after anything
+        // inserted before that label, so such a predecessor cannot be the
+        // entry that runs the fill.
+        idx = 0;
+        for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
+        {
+            if (!MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::JumpInstruction))
+                continue;
+            if (MicroInstrInfo::isUnconditionalJumpInstruction(*it, it->ops(*operands_)))
+            {
+                jumpsToOwnNextLabel[idx] = 1;
+                continue;
+            }
+            if (it->op != MicroInstrOpcode::JumpCond && it->op != MicroInstrOpcode::JumpCondImm)
+            {
+                jumpsToOwnNextLabel[idx] = 1;
+                continue;
+            }
+
+            const MicroInstrOperand* ops = it->ops(*operands_);
+            if (!ops)
+            {
+                jumpsToOwnNextLabel[idx] = 1;
+                continue;
+            }
+            const auto targetIt = labelIndexByRef.find(ops[2].valueU64);
+            if (targetIt == labelIndexByRef.end() || targetIt->second == idx + 1)
+                jumpsToOwnNextLabel[idx] = 1;
+        }
+    }
+
+    for (uint32_t header = 0; header < instructionCount_; ++header)
+    {
+        if (!isLabelAt[header] || predecessors_[header].empty())
+            continue;
+
+        uint32_t tail        = 0;
+        bool     hasBackEdge = false;
+        bool     entryOk     = true;
+        for (const uint32_t pred : predecessors_[header])
+        {
+            if (pred >= header)
+            {
+                hasBackEdge = true;
+                tail        = std::max(tail, pred);
+                continue;
+            }
+            if (pred + 1 != header || jumpsToOwnNextLabel[pred])
+            {
+                entryOk = false;
+                break;
+            }
+        }
+        if (!hasBackEdge || !entryOk || tail >= instructionCount_)
+            continue;
+
+        bool sealed = true;
+        for (uint32_t inner = header + 1; inner <= tail && sealed; ++inner)
+        {
+            if (!isLabelAt[inner])
+                continue;
+            for (const uint32_t pred : predecessors_[inner])
+                sealed = sealed && pred >= header && pred <= tail;
+        }
+        if (!sealed)
+            continue;
+
+        outRegions.push_back({.header = header, .tail = tail});
+    }
+}
+
+const MicroRegisterAllocationPass::LoopRegion* MicroRegisterAllocationPass::findSealedLoopRegion(const uint32_t headerIndex) const
+{
+    for (const LoopRegion& region : sealedLoopRegions_)
+    {
+        if (region.header == headerIndex)
+            return &region;
+    }
+
+    return nullptr;
+}
+
+bool MicroRegisterAllocationPass::isExpectedResident(const uint32_t denseIndex) const
+{
+    for (const LoopResidency& residency : activeLoopResidency_)
+    {
+        for (const auto& [expectedDense, expectedPhys] : residency.expected)
+        {
+            if (expectedDense == denseIndex)
+                return true;
+        }
+    }
+
+    return false;
+}
+
+void MicroRegisterAllocationPass::markResidencyConsumed(const uint32_t denseIndex, const MicroReg physReg)
+{
+    for (LoopResidency& residency : activeLoopResidency_)
+    {
+        for (size_t pairIndex = 0; pairIndex < residency.expected.size(); ++pairIndex)
+        {
+            const auto& [expectedDense, expectedPhys] = residency.expected[pairIndex];
+            if (expectedDense == denseIndex && expectedPhys == physReg)
+                residency.consumed[pairIndex] = 1;
+        }
+    }
+}
+
+void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, const int64_t stackDepth, std::vector<PendingInsert>& pending)
+{
+    // The linear scan reaches a loop header before it has seen the back-edge
+    // state, which is why the header used to drop every mapping and the loop
+    // reloaded its whole working set on every iteration. Reverse the
+    // reconciliation instead: commit to the state the entry path arrives
+    // with, augmented with what the loop reads from memory homes, and make
+    // every back-edge restore exactly that state before jumping. Both sides
+    // of the back-edge then agree by construction, without splitting any
+    // edge: the fixups sit before the back-edge jump, and the preloads sit
+    // before the header label, which every back-edge jumps over.
+    LoopResidency residency;
+    residency.header = region.header;
+    residency.tail   = region.tail;
+    for (const uint32_t pred : predecessors_[region.header])
+    {
+        if (pred >= region.header)
+            residency.backEdges.push_back(pred);
+    }
+
+    // Registers each class must keep out of the committed pairs: the pairs
+    // are protected from eviction at the back-edge, and preloads must not
+    // drain what the body's own short-lived values allocate from.
+    constexpr size_t K_RESIDENT_MIN_FREE_INT   = 4;
+    constexpr size_t K_RESIDENT_MIN_FREE_FLOAT = 2;
+
+    const auto countMappedOfClass = [&](const bool forFloat) {
+        size_t count = 0;
+        for (const uint32_t denseIndex : mappedVirtualIndices_)
+            count += states_[denseIndex].phys.isFloat() == forFloat ? 1 : 0;
+        return count;
+    };
+
+    // Keep only mappings the loop actually reads and whose register nothing
+    // fixed can touch inside the region. A value merely carried through holds
+    // a register for nothing; a register with a concrete claim inside the
+    // loop could not be restored at the back-edge; and a caller-saved
+    // register does not survive the calls the loop makes.
+    const bool loopHasCall = intervalHasCall(region.header, region.tail);
+    for (size_t listIndex = 0; listIndex < mappedVirtualIndices_.size();)
+    {
+        const uint32_t denseIndex = mappedVirtualIndices_[listIndex];
+        const MicroReg physReg    = states_[denseIndex].phys;
+
+        const auto& usePositions = usePositionsByDenseVirtual_[denseIndex];
+        const auto  useIt        = std::ranges::lower_bound(usePositions, region.header);
+        const bool  usedInLoop   = useIt != usePositions.end() && *useIt <= region.tail;
+
+        const bool keep = usedInLoop &&
+                          !hasConcreteTouchInRange(physReg, region.header, region.tail) &&
+                          !(loopHasCall && !isPersistentPhysReg(physReg));
+        if (!keep)
+        {
+            dropMappedVirtualNoStore(denseIndex);
+            continue;
+        }
+
+        ++listIndex;
+    }
+
+    // Solvency cap: the pairs are protected from eviction at every back-edge,
+    // so each class must keep enough unprotected registers for the worst
+    // instruction there. Shed the least-read pairs beyond the cap.
+    const size_t totalIntRegs   = freeIntTransient_.size() + freeIntPersistent_.size() + countMappedOfClass(false);
+    const size_t totalFloatRegs = freeFloatTransient_.size() + freeFloatPersistent_.size() + countMappedOfClass(true);
+    for (int classPass = 0; classPass < 2; ++classPass)
+    {
+        const bool   forFloat = classPass == 1;
+        const size_t cap      = forFloat ? (totalFloatRegs > K_RESIDENT_MIN_FREE_FLOAT ? totalFloatRegs - K_RESIDENT_MIN_FREE_FLOAT : 0)
+                                         : (totalIntRegs > K_RESIDENT_MIN_FREE_INT ? totalIntRegs - K_RESIDENT_MIN_FREE_INT : 0);
+        while (countMappedOfClass(forFloat) > cap)
+        {
+            uint32_t worstDense = std::numeric_limits<uint32_t>::max();
+            uint32_t worstUses  = std::numeric_limits<uint32_t>::max();
+            for (const uint32_t denseIndex : mappedVirtualIndices_)
+            {
+                if (states_[denseIndex].phys.isFloat() != forFloat)
+                    continue;
+                const auto& usePositions = usePositionsByDenseVirtual_[denseIndex];
+                uint32_t    useCount     = 0;
+                for (auto it = std::ranges::lower_bound(usePositions, region.header); it != usePositions.end() && *it <= region.tail; ++it)
+                    ++useCount;
+                if (useCount < worstUses)
+                {
+                    worstUses  = useCount;
+                    worstDense = denseIndex;
+                }
+            }
+            if (worstDense == std::numeric_limits<uint32_t>::max())
+                break;
+            dropMappedVirtualNoStore(worstDense);
+        }
+    }
+
+    // Preload: home-resident values the loop reads take whatever registers
+    // are left, hottest first. This is ordinary allocation, not a
+    // reservation: the mapping is evictable under pressure like any other,
+    // and the back-edge fixup below repairs whatever an eviction broke.
+    struct PreloadCandidate
+    {
+        uint32_t denseIndex = 0;
+        uint32_t useCount   = 0;
+    };
+    SmallVector<PreloadCandidate> preloads;
+
+    const auto&                     vregs         = denseVirtualRegs_.regs();
+    const uint32_t                  wordCount     = denseVirtualRegs_.wordCount();
+    const std::span<const uint64_t> headerLiveRow = DenseBits::row(liveInVirtualBits_, region.header, wordCount);
+    for (uint32_t denseIndex = 0; denseIndex < vregs.size(); ++denseIndex)
+    {
+        if (!vregs[denseIndex].isVirtual())
+            continue;
+        if (!DenseBits::contains(headerLiveRow, denseIndex))
+            continue;
+
+        auto& regState = states_[denseIndex];
+        if (regState.mapped || regState.pinned)
+            continue;
+        // The load below reads the value's home, so the value must have one
+        // it can be trusted to be in: a spill slot every boundary keeps
+        // coherent, or a rematerialization recipe.
+        if (!regState.hasSpill && !regState.rematerializable)
+            continue;
+
+        const auto& usePositions = usePositionsByDenseVirtual_[denseIndex];
+        uint32_t    useCount     = 0;
+        for (auto it = std::ranges::lower_bound(usePositions, region.header); it != usePositions.end() && *it <= region.tail; ++it)
+            ++useCount;
+        if (!useCount)
+            continue;
+
+        preloads.push_back({.denseIndex = denseIndex, .useCount = useCount});
+    }
+
+    std::ranges::stable_sort(preloads, [](const PreloadCandidate& a, const PreloadCandidate& b) { return a.useCount > b.useCount; });
+
+    // Preloads stop before they drain a class: the body's own short-lived
+    // values need free registers too, and measured without this floor the
+    // preloads took exactly the claim-free ones, pushing the body's values
+    // onto ABI-touched registers where every concrete touch spilled them.
+    for (const PreloadCandidate& candidate : preloads)
+    {
+        const MicroReg virtKey = vregs[candidate.denseIndex];
+        const bool     isFloat = virtKey.isVirtualFloat();
+
+        const size_t freeInClass = isFloat ? freeFloatTransient_.size() + freeFloatPersistent_.size()
+                                           : freeIntTransient_.size() + freeIntPersistent_.size();
+        if (freeInClass <= (isFloat ? K_RESIDENT_MIN_FREE_FLOAT : K_RESIDENT_MIN_FREE_INT))
+            continue;
+
+        // Ints may fall back to a callee-saved register (one push); floats
+        // stay on caller-saved ones, whose preload costs nothing extra — a
+        // callee-saved float register would charge the prologue a sixteen-byte
+        // store/load pair for a heuristic.
+        SmallVector<MicroReg>* pools[2] = {};
+        pools[0]                        = isFloat ? &freeFloatTransient_ : &freeIntTransient_;
+        pools[1]                        = isFloat ? nullptr : &freeIntPersistent_;
+
+        MicroReg taken = MicroReg::invalid();
+        for (int poolIndex = 0; poolIndex < 2 && !taken.isValid(); ++poolIndex)
+        {
+            SmallVector<MicroReg>* pool = pools[poolIndex];
+            if (!pool)
+                continue;
+            for (size_t regIndex = pool->size(); regIndex > 0 && !taken.isValid(); --regIndex)
+            {
+                const MicroReg reg = (*pool)[regIndex - 1];
+                if (loopHasCall && !isPersistentPhysReg(reg))
+                    continue;
+                if (hasConcreteTouchInRange(reg, region.header, region.tail))
+                    continue;
+                if (!canUsePhysical(virtKey, region.header, reg, MicroRegSpan{}, false))
+                    continue;
+
+                taken               = reg;
+                (*pool)[regIndex - 1] = pool->back();
+                pool->pop_back();
+            }
+        }
+        if (!taken.isValid())
+            continue;
+
+        auto&         regState = states_[candidate.denseIndex];
+        PendingInsert preload;
+        if (regState.rematerializable)
+        {
+            queueRematerializedLoad(preload, taken, regState);
+        }
+        else
+        {
+            SWC_ASSERT(regState.hasSpill);
+            queueSpillLoad(preload, taken, regState, stackDepth);
+        }
+        pending.push_back(preload);
+
+        mapVirtReg(virtKey, taken);
+        regState.dirty = false;
+    }
+
+    for (const uint32_t denseIndex : mappedVirtualIndices_)
+        residency.expected.push_back({denseIndex, states_[denseIndex].phys});
+    residency.consumed.clear();
+    residency.consumed.resize(residency.expected.size());
+
+    activeLoopResidency_.push_back(std::move(residency));
+}
+
+void MicroRegisterAllocationPass::conformLoopResidency(const uint32_t instructionIndex, const int64_t stackDepth, std::vector<PendingInsert>& pending)
+{
+    // Restore the header's committed state on a back-edge. The boundary store
+    // phase already made every home coherent, so a mapping that contradicts
+    // the expected state is dropped without a store, and every broken pair is
+    // refilled from its home (or remade) into exactly the register the header
+    // committed to. The fixups land right before the back-edge jump, after
+    // the jump's own operands were allocated, so nothing can break the state
+    // between here and the label.
+    for (size_t residencyIndex = activeLoopResidency_.size(); residencyIndex > 0; --residencyIndex)
+    {
+        LoopResidency& residency = activeLoopResidency_[residencyIndex - 1];
+
+        bool isBackEdge = false;
+        for (const uint32_t backEdge : residency.backEdges)
+            isBackEdge = isBackEdge || backEdge == instructionIndex;
+        if (!isBackEdge)
+            continue;
+
+        // Demote pairs nothing consumed: no emitted read depends on them, so
+        // the back-edge owes them nothing, now or ever. A broken one stays
+        // wherever its value went; an intact one keeps its mapping and simply
+        // stops being maintained. This is what keeps the fixups from eagerly
+        // refilling registers for values the body reloads lazily anyway.
+        for (size_t pairIndex = residency.expected.size(); pairIndex > 0; --pairIndex)
+        {
+            const size_t   index      = pairIndex - 1;
+            const auto& [pairDense, pairPhys] = residency.expected[index];
+            auto&          pairState  = states_[pairDense];
+            const bool     intact     = pairState.mapped && pairState.phys == pairPhys;
+            if (residency.consumed[index] || intact)
+                continue;
+
+            residency.expected[index] = residency.expected.back();
+            residency.expected.pop_back();
+            residency.consumed[index] = residency.consumed.back();
+            residency.consumed.pop_back();
+        }
+
+        // Drop whatever contradicts the surviving pairs: a pair's register
+        // held by another value, or a pair's value sitting in the wrong
+        // register. The store phase already made every home coherent.
+        for (size_t listIndex = 0; listIndex < mappedVirtualIndices_.size();)
+        {
+            const uint32_t denseIndex = mappedVirtualIndices_[listIndex];
+            const MicroReg physReg    = states_[denseIndex].phys;
+
+            bool contradicts = false;
+            for (const auto& [expectedDense, expectedPhys] : residency.expected)
+            {
+                if (expectedDense == denseIndex)
+                    contradicts = contradicts || expectedPhys != physReg;
+                else if (expectedPhys == physReg)
+                    contradicts = true;
+            }
+
+            if (!contradicts)
+            {
+                ++listIndex;
+                continue;
+            }
+            dropMappedVirtualNoStore(denseIndex);
+        }
+
+        const auto& vregs = denseVirtualRegs_.regs();
+        for (const auto& [expectedDense, expectedPhys] : residency.expected)
+        {
+            auto& regState = states_[expectedDense];
+            if (regState.mapped)
+            {
+                SWC_ASSERT(regState.phys == expectedPhys);
+                continue;
+            }
+
+            const MicroReg         virtKey        = vregs[expectedDense];
+            SmallVector<MicroReg>& transientPool  = expectedPhys.isFloat() ? freeFloatTransient_ : freeIntTransient_;
+            SmallVector<MicroReg>& persistentPool = expectedPhys.isFloat() ? freeFloatPersistent_ : freeIntPersistent_;
+
+            // The relaxed path: a concrete touch of this register after the
+            // loop, with the value still live there, must not veto the fixup —
+            // the original mapping was made under the same future conflict,
+            // and the concrete-touch spill handles the collision when it
+            // comes. What admission proved is the strict part: no claim
+            // inside the region, and never live-at-point here.
+            MicroReg taken = MicroReg::invalid();
+            if (!tryTakeSpecificPhysical(transientPool, virtKey, instructionIndex, expectedPhys, MicroRegSpan{}, true, taken) &&
+                !tryTakeSpecificPhysical(persistentPool, virtKey, instructionIndex, expectedPhys, MicroRegSpan{}, true, taken))
+            {
+                // Every contradicting mapping was just dropped, so the
+                // register must be takeable here. A pair left broken would
+                // make the next iteration read a stale register, so failing
+                // the compile is the only acceptable fallback.
+                SWC_INTERNAL_CHECK(false);
+                continue;
+            }
+
+            PendingInsert fixup;
+            if (regState.rematerializable)
+            {
+                queueRematerializedLoad(fixup, expectedPhys, regState);
+            }
+            else
+            {
+                SWC_ASSERT(regState.hasSpill);
+                queueSpillLoad(fixup, expectedPhys, regState, stackDepth);
+            }
+            pending.push_back(fixup);
+
+            mapVirtReg(virtKey, expectedPhys);
+            regState.dirty = false;
+        }
+    }
+
+    // Loops whose furthest back-edge this was are finished.
+    for (size_t residencyIndex = activeLoopResidency_.size(); residencyIndex > 0; --residencyIndex)
+    {
+        if (activeLoopResidency_[residencyIndex - 1].tail == instructionIndex)
+            activeLoopResidency_.erase(activeLoopResidency_.begin() + static_cast<ptrdiff_t>(residencyIndex - 1));
+    }
+}
+
 void MicroRegisterAllocationPass::assignGlobalRegisters()
 {
     // Give every value that crosses a control-flow boundary one physical
@@ -1135,13 +1600,16 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     struct GlobalCandidate
     {
         uint32_t denseIndex    = 0;
+        uint32_t lo            = 0;
+        uint32_t hi            = 0;
         uint64_t density       = 0;
         uint64_t rawBenefit    = 0;
         uint64_t accessBenefit = 0;
     };
     SmallVector<GlobalCandidate> candidates;
 
-    const auto& vregs = denseVirtualRegs_.regs();
+    const uint32_t lastIndex = instructionCount_ ? instructionCount_ - 1 : 0;
+    const auto&    vregs     = denseVirtualRegs_.regs();
     for (uint32_t denseIndex = 0; denseIndex < vregs.size(); ++denseIndex)
     {
         if (!vregs[denseIndex].isVirtual() || !benefits[denseIndex])
@@ -1161,13 +1629,23 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
 
         candidates.push_back({
             .denseIndex    = denseIndex,
+            .lo            = virtualSpanLo_[denseIndex],
+            .hi            = std::min(virtualSpanHi_[denseIndex], lastIndex),
             .density       = density,
             .rawBenefit    = benefits[denseIndex],
             .accessBenefit = accessBenefits[denseIndex],
         });
     }
+
     if (candidates.empty())
         return;
+
+    // Supply and budget are two different things. Widening which registers may be granted (below)
+    // is worth it for the values that dominate a hot loop; handing one to every candidate that
+    // merely earns something starves the local allocator instead, because a hull holds its
+    // register across its holes as well.
+    const auto     maxDensityIt         = std::ranges::max_element(candidates, {}, &GlobalCandidate::density);
+    const uint64_t spanScopedMinDensity = maxDensityIt->density / K_SPAN_SCOPED_DENSITY_DIVISOR;
 
     // Grant the scarce carriers to values accessed most often in the hottest
     // loops. Density breaks ties without pushing long-lived cursors behind
@@ -1177,13 +1655,6 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
             return a.accessBenefit > b.accessBenefit;
         return a.density > b.density;
     });
-
-    // Supply and budget are two different things. Widening which registers may be granted (below)
-    // is worth it for the values that dominate a hot loop; handing one to every candidate that
-    // merely earns something starves the local allocator instead, because a hull holds its
-    // register across its holes as well.
-    const auto     maxDensityIt         = std::ranges::max_element(candidates, {}, &GlobalCandidate::density);
-    const uint64_t spanScopedMinDensity = maxDensityIt->density / K_SPAN_SCOPED_DENSITY_DIVISOR;
 
     // The local allocator must keep enough of each class to satisfy the worst
     // single instruction â€” its register operands plus what a destructive
@@ -1221,8 +1692,8 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     {
         const MicroReg vreg    = vregs[cand.denseIndex];
         const bool     isFloat = vreg.isVirtualFloat();
-        const uint32_t lo      = virtualSpanLo_[cand.denseIndex];
-        const uint32_t hi      = std::min(virtualSpanHi_[cand.denseIndex], instructionCount_ ? instructionCount_ - 1 : 0);
+        const uint32_t lo      = cand.lo;
+        const uint32_t hi      = cand.hi;
 
         // The ABI keeps one callee-saved register outside both allocation
         // pools specifically for the local-stack base. Put that value in its
@@ -1341,6 +1812,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
             const bool                   poolIsPersistent = &pool == &persistentPool;
             if (isFloat && (poolIsPersistent ? !persistentHeadroom : !transientHeadroom))
                 continue;
+
             for (const MicroReg reg : pool)
             {
                 // Int hulls take only proven-free registers: later legalize
@@ -1388,6 +1860,13 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                     // order-of-magnitude-per-level weighting.
                     constexpr uint64_t K_PERSISTENT_MIN_RAW_BENEFIT = 100;
 
+                    // Loop-scoped candidates obey the same density gate: a
+                    // reservation over a fat loop body starves the local
+                    // allocator exactly the way a whole-span hull would, and
+                    // granting one below the gate was measured to add frame
+                    // traffic, not remove it. A tight hot loop clears the gate
+                    // easily; a three-hundred-instruction body does not, and
+                    // should not.
                     const bool persistentPick  = isPersistentPhysReg(reg);
                     const bool benefitClears   = persistentPick ? cand.rawBenefit >= K_PERSISTENT_MIN_RAW_BENEFIT
                                                                 : cand.density >= spanScopedMinDensity;
@@ -2649,7 +3128,6 @@ bool MicroRegisterAllocationPass::tryTransferCopySource(const AllocRequest& requ
 
     if (sourceLiveOut)
         spillOrRematerializeLiveValue(sourcePhys, sourceState, stackDepth, pending);
-
     unmapVirtReg(request.transferSource);
     mapVirtReg(request.virtKey, sourcePhys);
     outPhys = sourcePhys;
@@ -2837,7 +3315,6 @@ MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest& reque
     const bool victimLiveOut = isLiveOut(victimKey, stamp);
     if (victimLiveOut)
         spillOrRematerializeLiveValue(victimReg, victimState, stackDepth, pending);
-
     unmapVirtReg(victimKey);
     return victimReg;
 }
@@ -2917,7 +3394,6 @@ MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest& request,
         const MicroReg conflictedPhys = regState.phys;
         if (request.isUse)
             spillOrRematerializeLiveValue(conflictedPhys, regState, stackDepth, pending);
-
         unmapVirtReg(request.virtKey);
         returnToFreePool(conflictedPhys);
     }
@@ -2925,9 +3401,15 @@ MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest& request,
     if (regState.mapped)
     {
         // Reusing the original mapping for a use means the defining instruction's
-        // physical write is actually observed; keep its remat def alive.
+        // physical write is actually observed; keep its remat def alive. It
+        // also commits any loop residency holding this pair: the emitted read
+        // depends on the register holding the value at the loop header.
         if (request.isUse)
+        {
             noteRematDefConsumed(regState);
+            if (!activeLoopResidency_.empty())
+                markResidencyConsumed(denseVirtualIndex(request.virtKey), regState.phys);
+        }
         return regState.phys;
     }
 
@@ -2991,7 +3473,6 @@ void MicroRegisterAllocationPass::spillMappedVirtualsForConcreteTouches(const Mi
 
         if (isLiveOut(virtKey, stamp))
             spillOrRematerializeLiveValue(physReg, regState, stackDepth, pending);
-
         unmapVirtReg(virtKey);
         returnToFreePool(physReg);
     }
@@ -3017,7 +3498,6 @@ void MicroRegisterAllocationPass::spillCallLiveOut(uint32_t stamp, int64_t stack
         }
 
         spillOrRematerializeLiveValue(physReg, regState, stackDepth, pending);
-
         unmapVirtReg(virtKey);
         returnToFreePool(physReg);
     }
@@ -3060,7 +3540,6 @@ void MicroRegisterAllocationPass::flushAllMappedVirtuals(uint32_t stamp, int64_t
         const bool     liveOut = isLiveOut(virtKey, stamp);
         if (liveOut)
             spillOrRematerializeLiveValue(physReg, regState, stackDepth, pending);
-
         regState.mapped          = false;
         regState.mappedListIndex = std::numeric_limits<uint32_t>::max();
         regState.phys            = MicroReg::invalid();
@@ -3129,8 +3608,12 @@ void MicroRegisterAllocationPass::flushAtBoundary(const uint32_t instructionInde
     // next use makes that a hostage, not a cache — the local allocator loses
     // a scratch register for dozens of instructions to save one reload. The
     // bound keeps the tight-loop and join-heavy shapes (next use within a
-    // few instructions) and releases the rest, clean, to the pool.
+    // few instructions) and releases the rest, clean, to the pool. A value a
+    // surrounding loop's residency committed to is exempt: dropping it here
+    // would only make the back-edge fixup reload it again every iteration.
     constexpr uint32_t K_KEEP_MAX_NEXT_USE_DISTANCE = 48;
+
+    const LoopRegion* sealedRegion = inst.op == MicroInstrOpcode::Label ? findSealedLoopRegion(instructionIndex) : nullptr;
 
     // Store phase: identical coverage to the full flush.
     for (size_t listIndex = 0; listIndex < mappedVirtualIndices_.size();)
@@ -3149,7 +3632,9 @@ void MicroRegisterAllocationPass::flushAtBoundary(const uint32_t instructionInde
 
         spillOrRematerializeLiveValue(regState.phys, regState, stackDepth, pending);
 
-        if (distanceToNextUse(virtKey, instructionIndex) > K_KEEP_MAX_NEXT_USE_DISTANCE)
+        if (!sealedRegion &&
+            distanceToNextUse(virtKey, instructionIndex) > K_KEEP_MAX_NEXT_USE_DISTANCE &&
+            !isExpectedResident(denseIndex))
         {
             dropMappedVirtualNoStore(denseIndex);
             continue;
@@ -3160,6 +3645,17 @@ void MicroRegisterAllocationPass::flushAtBoundary(const uint32_t instructionInde
 
     if (inst.op == MicroInstrOpcode::Label)
     {
+        // A sealed loop's header commits to the arriving state instead of
+        // joining edges: the store phase above made every home coherent, the
+        // preloads seed what the loop reads from memory, and every back-edge
+        // will restore exactly this state (conformLoopResidency) — so both
+        // sides of each back-edge agree by construction and no intersection
+        // is needed.
+        if (sealedRegion)
+        {
+            beginLoopResidency(*sealedRegion, stackDepth, pending);
+            return;
+        }
         // Join: intersect the surviving mappings with every incoming edge.
         bool dropAll = false;
 
@@ -3234,6 +3730,13 @@ void MicroRegisterAllocationPass::flushAtBoundary(const uint32_t instructionInde
             snapshot.push_back({denseIndex, states_[denseIndex].phys});
             if (denseIndex < edgeRegisterHint_.size())
                 edgeRegisterHint_[denseIndex] = states_[denseIndex].phys;
+
+            // Exporting a residency pair through a snapshot is a read of it:
+            // the adoption at the target lets later code read the register on
+            // every iteration this edge can leave from, so the back-edge must
+            // keep restoring the pair — it can never be demoted as unread.
+            if (!activeLoopResidency_.empty())
+                markResidencyConsumed(denseIndex, states_[denseIndex].phys);
         }
     }
 }
@@ -3379,6 +3882,17 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                             controlFlowGraph_ != nullptr &&
                             !controlFlowGraph_->hasUnsupportedControlFlowForCfgLiveness() &&
                             controlFlowGraph_->supportsDeadCodeLiveness();
+
+    // Loop residency needs the same CFG precision the write-back protocol
+    // does: a kept register is only sound when every edge into the region is
+    // known. Only the sweep that allocates the whole function runs it: a
+    // later legalize sweep allocates a handful of scratch values into
+    // committed code, where a kept or preloaded register has almost nothing
+    // to win and everything to collide with.
+    sealedLoopRegions_.clear();
+    activeLoopResidency_.clear();
+    if (keepAcrossBoundaries_ && context_->isFirstAllocationSweep)
+        collectLoopRegions(sealedLoopRegions_);
     for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it)
     {
         if (stamp == std::numeric_limits<uint32_t>::max())
@@ -3459,6 +3973,21 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             }
         }
 
+        // On a back-edge, restore the header's committed state before the
+        // jump's own operands are allocated: a fixup emitted after them could
+        // overwrite a register the jump just chose to read. The pair values
+        // are then protected from the jump's allocation below, so nothing can
+        // break the state between here and the label.
+        if (!activeLoopResidency_.empty())
+        {
+            boundaryPending_.clear();
+            conformLoopResidency(idx, stackDepth, boundaryPending_);
+            for (const auto& pendingInst : boundaryPending_)
+            {
+                insertPending(instructionRef, pendingInst);
+            }
+        }
+
         // A fixed-register write must never land on a register a global owns at
         // this point: the global is not in the mapping, so nothing else would
         // notice the clobber.
@@ -3495,6 +4024,25 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
             if (!containsKey(protectedKeys, reg))
                 protectedKeys.push_back(reg);
+        }
+
+        // On a back-edge, the header's committed pairs were just restored
+        // (conformLoopResidency above); the jump's own operand allocation must
+        // not evict one, or the state would be broken with nothing left to
+        // repair it before the label.
+        if (!activeLoopResidency_.empty())
+        {
+            const auto& vregsForPairs = denseVirtualRegs_.regs();
+            for (const LoopResidency& residency : activeLoopResidency_)
+            {
+                bool isBackEdge = false;
+                for (const uint32_t backEdge : residency.backEdges)
+                    isBackEdge = isBackEdge || backEdge == idx;
+                if (!isBackEdge)
+                    continue;
+                for (const auto& [expectedDense, expectedPhys] : residency.expected)
+                    appendUniqueReg(protectedKeys, vregsForPairs[expectedDense]);
+            }
         }
 
         SmallVector<AllocRequest> allocRequests;
@@ -3922,6 +4470,8 @@ void MicroRegisterAllocationPass::clearState()
     denseGlobalPhysRegs_.clear();
     pendingBorrowRestores_.clear();
     pinnedCallSavedDense_.clear();
+    sealedLoopRegions_.clear();
+    activeLoopResidency_.clear();
     globalRangesByPhysDense_.clear();
     reachableInstructions_.clear();
     worklist_.clear();

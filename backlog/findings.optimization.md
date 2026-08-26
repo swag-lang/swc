@@ -371,10 +371,18 @@ Entries are sorted by identifier, ascending; position carries no priority.
   forms of T-506, and larger than anything left in the decoder's own algorithms. The frame
   traffic above is the visible half of it: 171 frame accesses in 776 instructions for one
   routine, against 61 in 443 for clang's build of the same function.
-- Next step: the frame-privacy test is a function-level property today, so one escaping local
-  disables hoisting for every loop of the function. Per-object extents already exist in mem2reg
-  (`SymbolVariable::codeGenLocalSize`); giving the post-RA hoist the same view would let it hoist
-  slots that no escaped object contains. Beyond that the remaining traffic is
+- The per-object view shipped (2026-08-26): `Pass.PostRALoopHoist` now classifies escapes per
+  source object from the extents `SymbolFunction::localVariables()` carries, recognizes the
+  prologue's local-base register, and keeps the two address spaces apart — a value use of the
+  stack pointer (call staging) reaches sp-addressed slots, never the locals behind the base. A
+  slot inside no escaped object hoists even when the frame as a whole is handed out.
+- What that revealed: the pass fires only about twenty times across the whole `video` workspace,
+  and in none of the hot decoder functions. The binding constraint is not aliasing any more — it
+  is that a hoist needs the reload's destination register to have **no other definition in the
+  whole loop body**, and after allocation every register in a fat body is reused many times.
+  Post-RA hoisting cannot rename, so it is capped by the allocator's register reuse; the fix
+  belongs in allocation (keep the value resident so no hoist is needed), not in a smarter hoist.
+  The remaining traffic is
   [F-136](#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) again.
 
 ### F-194 — Loop-invariant code motion stops at a lane broadcast
@@ -466,15 +474,39 @@ Entries are sorted by identifier, ascending; position carries no priority.
   point in all four kernels, so there is nothing to hand back. And removing every hull from the
   CABAC bin of F-190 changes its emitted code by not one instruction, so the mechanism is inert
   there.
-- Next step: rank the two kinds of reservation together instead of running one after the other.
-  `assignGlobalRegisters` decides which values get a register for their whole live range; a
-  loop-scoped range is the same offer over a much shorter span, and it buys the same per-iteration
-  saving for a fraction of the register-time — which is exactly what the existing density ranking
-  (benefit divided by span length) is built to compare. Generating one candidate per (value, loop)
-  pair beside the whole-span candidates, and letting them compete on that ranking, is a change to
-  the candidate list rather than a second mechanism. Two traps found while building the standalone
-  version, both cheap to avoid the second time: a range-scoped reservation must keep its reserved
-  register apart from `VRegState::phys`, because outside the range the value is allocated normally
-  and `mapVirtReg` overwrites `phys`; and the load that fills it must be emitted after the
-  boundary flush at the header, never before, because the flush still has to read whatever that
-  register held on the way in.
+- The candidate-list route was built next and measured to lose, so it is retired: one loop-scoped
+  reservation candidate per (value, loop), competing on the whole-span ranking, displaces short
+  whole-span hulls that were already loop-scoped in effect and are strictly better (no fill, no
+  write-through, no out-of-range reload) — `Decoder.interpolateChroma` gained 15 stores that way.
+  Granting loop candidates only on leftover capacity was neutral: the same budgets that starve the
+  standalone pass starve the leftovers.
+- **What shipped instead (2026-08-26): loop residency in `rewriteInstructions`.** At the header of
+  a sealed loop — entered only by falling in, no outside jump landing past it
+  (`collectLoopRegions`) — the boundary flush keeps the arriving mappings instead of dropping
+  them, preloads home-resident values the loop reads into whatever registers are free, and every
+  back-edge restores exactly that committed state before jumping (`conformLoopResidency`), so the
+  two sides of each back-edge agree by construction with no edge split. The mappings stay
+  ordinary — evictable under pressure — and a pair nothing ever read through the mapping is
+  demoted at the back-edge rather than refilled forever. On the `video` workspace the back-edge
+  reload cause fell 5060 to 242 and `Video.H264.mcChroma` lost 19 of its 61 emitted reloads; the
+  serial HEVC conformance decode (wpp-main10 + ipred, processor time of the test binary, order
+  alternated) came out 3 to 7 percent faster across five interleaved campaigns — real, and far
+  from the 2.2x.
+- Three invariants paid for in miscompiles while building it, recorded so they are not
+  rediscovered: **exporting a pair through a boundary snapshot is a consumption** — the adoption
+  at the target lets later iterations read the register, so a snapshotted pair may never be
+  demoted (`interpolateChroma` read a demoted taps pointer as garbage through exactly that path);
+  back-edge fixups must be emitted before the jump's own operands are allocated and the pair
+  values protected from that allocation, or a fixup overwrites the register the jump just chose;
+  and preloads must stop above a per-class free floor, or they take exactly the claim-free
+  registers and push the body's short-lived values onto ABI-touched ones where every concrete
+  touch spills them.
+- Next step, from the residency-era cause histogram of the hot decoder functions
+  (`interpolateLuma` with residency: keep 31, back-edge 7, evict 65 of 117 use-reloads): the
+  boundary family is now mostly paid for, and what is left is eviction churn under genuine
+  pressure in fat bodies plus the join-disagree row. Swapping eviction priority to
+  distance-before-clean measured flat on the HEVC decode and was reverted; the remaining lever is
+  allocation quality with a real cost model — interval-style assignment with live-range
+  splitting, whose justification stands unchanged in
+  [F-190](#f-190--a-short-branching-function-spills-with-the-whole-register-file-free): at equal
+  supply this allocator spills an order of magnitude more than clang on the same body.

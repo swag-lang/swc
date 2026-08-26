@@ -268,7 +268,15 @@ namespace PostRaPeephole
                 scanOps[2].opBits == storeOps[2].opBits &&
                 scanOps[3].valueU64 == storeOps[3].valueU64)
             {
-                if (!ctx.claimAll({scanRef}))
+                // The store is claimed as well, though it is not modified: this
+                // erasure depends on `sourceReg` still carrying the stored
+                // value, and a sibling rule that folds the store's source as an
+                // immediate (tryForwardLoadRegImm) erases the very definition
+                // that guarantees it. Actions are batched, so at its scan time
+                // this reload still looks like the redefinition that makes the
+                // source register dead. Claiming the store makes the two rules
+                // mutually exclusive within a sweep.
+                if (!ctx.claimAll({storeRef, scanRef}))
                     return false;
                 ctx.emitErase(scanRef);
                 return true;
@@ -329,7 +337,13 @@ namespace PostRaPeephole
                 scanOps[2].opBits == storeOps[2].opBits &&
                 scanOps[3].valueU64 == storeOps[3].valueU64)
             {
-                if (!ctx.claimAll({scanRef}))
+                // The rewritten copy is a new read of `sourceReg`, which no
+                // other rule of this sweep can see: actions are batched, so a
+                // sibling that folds the store's source as an immediate
+                // (tryForwardLoadRegImm) still sees a source register with no
+                // reader and erases its definition. Claiming the store, which
+                // that fold must also claim, makes the two mutually exclusive.
+                if (!ctx.claimAll({storeRef, scanRef}))
                     return false;
 
                 MicroInstrOperand newOps[3] = {};

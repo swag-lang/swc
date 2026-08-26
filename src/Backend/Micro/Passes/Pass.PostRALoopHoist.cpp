@@ -6,6 +6,8 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Report/Assert.h"
 
 // Post-RA loop-invariant reload hoisting. See the header for why this exists.
@@ -38,8 +40,8 @@ namespace
     // A constant-offset frame write, whose range the slot analysis can compare
     // against the one being hoisted. An indexed write reaches an offset this pass
     // cannot bound and still makes the body opaque; a write through a program
-    // pointer is answered by the frame-privacy test below instead.
-    bool frameWriteRange(FrameRef& out, const MicroInstr& inst, const MicroInstrOperand* ops, const CallConv& conv)
+    // pointer is answered by the frame-reachability test below instead.
+    bool frameWriteRange(FrameRef& out, const MicroInstr& inst, const MicroInstrOperand* ops, const CallConv& conv, const MicroReg localBaseReg)
     {
         if (!ops)
             return false;
@@ -73,7 +75,7 @@ namespace
                 return false;
         }
 
-        if (!isFrameBaseRegister(ops[0].reg, conv))
+        if (!isFrameBaseRegister(ops[0].reg, conv) && !(localBaseReg.isValid() && ops[0].reg == localBaseReg))
             return false;
 
         out.base = ops[0].reg;
@@ -82,11 +84,11 @@ namespace
         return true;
     }
 
-    bool isFrameLoad(FrameRef& out, const MicroInstr& inst, const MicroInstrOperand* ops, const CallConv& conv)
+    bool isFrameLoad(FrameRef& out, const MicroInstr& inst, const MicroInstrOperand* ops, const CallConv& conv, const MicroReg localBaseReg)
     {
         if (inst.op != MicroInstrOpcode::LoadRegMem || !ops)
             return false;
-        if (!isFrameBaseRegister(ops[1].reg, conv))
+        if (!isFrameBaseRegister(ops[1].reg, conv) && !(localBaseReg.isValid() && ops[1].reg == localBaseReg))
             return false;
 
         out.base = ops[1].reg;
@@ -95,47 +97,229 @@ namespace
         return true;
     }
 
-    // Whether any pointer into this function's own frame exists at all.
+    // What a program pointer can reach in this function's frame.
     //
     // The frame is the compiler's: nothing outside reaches it unless the function
     // hands out an address into it. When it never does, a store through a program
     // pointer cannot land on a frame slot however opaque that pointer is - which is
     // what lets a loop that writes pixels keep hoisting the strides and counts it
-    // reloads on every iteration. Every appearance of a frame base has to be
-    // accounted for: as the base of a constant-offset access, as the target of a
-    // stack adjust or the frame setup, or in the prologue push. Anything else -
-    // an address materialized out of it, an indexed access, the base handed to
-    // something as a value - means a pointer exists and the answer is no.
-    bool frameAddressEscapes(MicroStorage& storage, MicroOperandStorage& operands, const CallConv& conv, const Encoder* encoder)
+    // reloads on every iteration.
+    //
+    // A function with local variables addresses them through one register that
+    // copies the resting stack pointer once in the prologue. Handing out
+    // `&local` is then an address computed from that register, and it reaches
+    // the one object it points into, nothing else - a pointer into one object
+    // cannot roam the rest of the frame, which is the same per-object rule
+    // mem2reg already relies on. So the escapes are classified per source
+    // object, from the extents the function's symbols carry, and a slot no
+    // escaped object contains stays private even when the frame as a whole
+    // does not. Any appearance of a frame base this cannot account for - the
+    // base handed out as a value, an address whose object extents are unknown -
+    // falls back to the old answer: everything is reachable.
+    struct FrameObject
     {
+        int64_t  start   = 0;
+        uint64_t size    = 0;
+        bool     escaped = false;
+    };
+
+    // The two address spaces escape independently. A value use of the stack
+    // pointer - call-argument staging, a parameter home handed out - reaches
+    // sp-addressed slots, never the locals behind the base register: nothing
+    // lands in local space without naming the base register, and the base
+    // register's own leaks are classified per object. The allocator's spill
+    // area stays unreachable under either: it holds no source object, so no
+    // pointer can be made to land in it.
+    struct FrameReachability
+    {
+        bool                     computed          = false;
+        bool                     wholeFramePrivate = false;
+        bool                     spSpaceEscapes    = false;
+        bool                     localSpaceEscapes = false;
+        MicroReg                 localBaseReg;
+        bool                     extentsKnown = false;
+        std::vector<FrameObject> objects;
+    };
+
+    // The single prologue copy of the resting stack pointer that all locals are
+    // addressed against. Only a register defined exactly once, by that copy,
+    // qualifies: a register the allocator later reuses means the same name
+    // addresses two different things.
+    MicroReg findLocalBaseRegister(MicroStorage& storage, MicroOperandStorage& operands, const CallConv& conv, const Encoder* encoder)
+    {
+        MicroReg candidate;
+        for (const MicroInstr& inst : storage.view())
+        {
+            if (inst.op != MicroInstrOpcode::LoadRegReg)
+                continue;
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (!ops || ops[1].reg != conv.stackPointer)
+                continue;
+            if (isFrameBaseRegister(ops[0].reg, conv))
+                continue;
+            if (candidate.isValid() && candidate != ops[0].reg)
+                return MicroReg::invalid();
+            candidate = ops[0].reg;
+        }
+        if (!candidate.isValid())
+            return MicroReg::invalid();
+
+        uint32_t defCount = 0;
+        for (const MicroInstr& inst : storage.view())
+        {
+            const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
+            for (const MicroReg def : useDef.defs)
+                defCount += def == candidate ? 1 : 0;
+        }
+
+        return defCount == 1 ? candidate : MicroReg::invalid();
+    }
+
+    void markEscapedObject(FrameReachability& out, const int64_t offset)
+    {
+        for (FrameObject& object : out.objects)
+        {
+            if (offset >= object.start && offset < object.start + static_cast<int64_t>(object.size))
+            {
+                object.escaped = true;
+                return;
+            }
+        }
+
+        // An address into no known object: the extents cannot vouch for what it
+        // reaches.
+        out.localSpaceEscapes = true;
+    }
+
+    void analyzeFrameReachability(FrameReachability& out, const MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, const CallConv& conv, const Encoder* encoder)
+    {
+        out.computed     = true;
+        out.localBaseReg = findLocalBaseRegister(storage, operands, conv, encoder);
+
+        if (context.sanitizerFunction)
+        {
+            out.extentsKnown = true;
+            for (const SymbolVariable* symVar : context.sanitizerFunction->localVariables())
+            {
+                if (symVar && symVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && symVar->codeGenLocalSize())
+                    out.objects.push_back({.start = static_cast<int64_t>(symVar->offset()), .size = symVar->codeGenLocalSize()});
+            }
+            for (const SymbolVariable* symVar : context.sanitizerFunction->parameters())
+            {
+                if (symVar && symVar->debugStackSlotSize())
+                    out.objects.push_back({.start = static_cast<int64_t>(symVar->debugStackSlotOffset()), .size = symVar->debugStackSlotSize()});
+            }
+        }
+
+        bool anyBaseNamed = false;
         for (const MicroInstr& inst : storage.view())
         {
             const MicroInstrOperand* ops  = inst.ops(operands);
             const MicroInstrDef&     info = MicroInstr::info(inst.op);
 
+            const auto isTrackedBase = [&](const MicroReg reg) {
+                return isFrameBaseRegister(reg, conv) || (out.localBaseReg.isValid() && reg == out.localBaseReg);
+            };
+
             if (inst.op == MicroInstrOpcode::LoadAddrRegMem || inst.op == MicroInstrOpcode::LoadAddrAmcRegMem)
             {
                 if (ops && isFrameBaseRegister(ops[1].reg, conv))
-                    return true;
+                {
+                    // An address into the stack-pointer space: call-area
+                    // staging and other shapes the extents cannot describe.
+                    out.spSpaceEscapes = true;
+                }
+                else if (ops && out.localBaseReg.isValid() && ops[1].reg == out.localBaseReg)
+                {
+                    if (!out.extentsKnown)
+                        out.localSpaceEscapes = true;
+                    else if (inst.op == MicroInstrOpcode::LoadAddrRegMem)
+                        markEscapedObject(out, static_cast<int64_t>(ops[3].valueU64));
+                    else
+                        markEscapedObject(out, static_cast<int64_t>(ops[6].valueU64));
+                }
             }
 
             SmallVector<MicroInstrRegOperandRef> refs;
             inst.collectRegOperands(operands, refs, encoder);
             for (const MicroInstrRegOperandRef& ref : refs)
             {
-                if (!ref.reg || !isFrameBaseRegister(*ref.reg, conv))
+                if (!ref.reg || !isTrackedBase(*ref.reg))
                     continue;
                 if (inst.op == MicroInstrOpcode::Push || inst.op == MicroInstrOpcode::Pop)
                     continue;
                 if (ref.def)
                     continue;
-                if (inst.op == MicroInstrOpcode::LoadRegReg && ops && isFrameBaseRegister(ops[0].reg, conv))
+                // The prologue copy that defines the local base is the one
+                // legitimate value use of the stack pointer.
+                if (inst.op == MicroInstrOpcode::LoadRegReg && ops &&
+                    (isFrameBaseRegister(ops[0].reg, conv) || (out.localBaseReg.isValid() && ops[0].reg == out.localBaseReg)))
                     continue;
                 if (info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
                     ops && ref.reg == &const_cast<MicroInstrOperand*>(ops)[info.memBaseOperandIndex].reg)
                     continue;
+                if (inst.op == MicroInstrOpcode::LoadAddrRegMem || inst.op == MicroInstrOpcode::LoadAddrAmcRegMem)
+                    continue; // classified above, per object
+                if (isFrameBaseRegister(*ref.reg, conv))
+                    out.spSpaceEscapes = true;
+                else
+                    out.localSpaceEscapes = true;
+            }
+        }
+
+        bool anyEscapedObject = false;
+        for (const FrameObject& object : out.objects)
+            anyEscapedObject = anyEscapedObject || object.escaped;
+        out.wholeFramePrivate = !out.spSpaceEscapes && !out.localSpaceEscapes && !anyEscapedObject;
+    }
+
+    // The extent of the source object containing `offset`, as a write range
+    // over the local-base space. An indexed access through the local base
+    // stays inside the object its displacement names, so widening it to that
+    // object is what makes it placeable.
+    bool findContainingObject(FrameRef& out, const FrameReachability& reach, const MicroReg base, const int64_t offset)
+    {
+        if (!reach.extentsKnown)
+            return false;
+
+        for (const FrameObject& object : reach.objects)
+        {
+            if (offset >= object.start && offset < object.start + static_cast<int64_t>(object.size))
+            {
+                out.base = base;
+                out.lo   = static_cast<uint64_t>(object.start);
+                out.hi   = static_cast<uint64_t>(object.start) + object.size;
                 return true;
             }
+        }
+
+        return false;
+    }
+
+    // Whether no program pointer can land on this slot: the whole frame is
+    // private, the slot is the allocator's own (no source object overlaps the
+    // spill area and no pointer can be made to reach it), or every escaped
+    // object lies elsewhere and the slot sits wholly inside a known one.
+    bool slotIsUnreachable(const FrameReachability& reach, const MicroPassContext& context, const FrameRef& slot, const CallConv& conv)
+    {
+        if (reach.wholeFramePrivate)
+            return true;
+
+        if (isFrameBaseRegister(slot.base, conv))
+        {
+            if (!reach.spSpaceEscapes)
+                return true;
+            return context.spillAreaLo < context.spillAreaHi && slot.lo >= context.spillAreaLo && slot.hi <= context.spillAreaHi;
+        }
+
+        if (reach.localSpaceEscapes || !reach.extentsKnown)
+            return false;
+
+        for (const FrameObject& object : reach.objects)
+        {
+            const auto start = static_cast<uint64_t>(object.start);
+            if (slot.lo >= start && slot.hi <= start + object.size)
+                return !object.escaped;
         }
 
         return false;
@@ -325,7 +509,9 @@ namespace
                              const MicroInstrRef          headerRef,
                              const uint32_t               preheaderIndex,
                              const CallConv&              conv,
-                             const FrameRef&              privateArea,
+                             const FrameReachability&     reach,
+                             const bool                   restrictToUnreachable,
+                             const MicroPassContext&      context,
                              std::vector<Carried>&        out)
     {
         const auto     instrRefs = cfg.instructionRefs();
@@ -374,7 +560,7 @@ namespace
                 return;
         }
 
-        // Index every constant-offset frame access of the body by slot.
+        // Index every constant-offset frame access of the body by (base, slot).
         struct SlotUse
         {
             uint32_t    loadIndex  = std::numeric_limits<uint32_t>::max();
@@ -382,9 +568,14 @@ namespace
             uint32_t    accesses   = 0;
             MicroReg    reg;
             MicroReg    base;
-            MicroOpBits bits = MicroOpBits::Zero;
+            uint64_t    offset = 0;
+            MicroOpBits bits   = MicroOpBits::Zero;
+        };
+        const auto slotKey = [](const MicroReg base, const uint64_t offset) {
+            return (static_cast<uint64_t>(base.hash()) << 32) ^ offset;
         };
         std::unordered_map<uint64_t, SlotUse> slots;
+        std::vector<FrameRef>                 blockedRanges;
 
         for (uint32_t i = 0; i < n; ++i)
         {
@@ -396,11 +587,12 @@ namespace
             const MicroInstrOperand* ops = inst->ops(operands);
 
             FrameRef ref;
-            if (isFrameLoad(ref, *inst, ops, conv))
+            if (isFrameLoad(ref, *inst, ops, conv, reach.localBaseReg))
             {
-                SlotUse& use = slots[ref.lo];
+                SlotUse& use = slots[slotKey(ref.base, ref.lo)];
                 ++use.accesses;
-                use.base = ref.base;
+                use.base   = ref.base;
+                use.offset = ref.lo;
                 if (use.loadIndex != std::numeric_limits<uint32_t>::max())
                     use.accesses = 99; // a second load: not the shape
                 use.loadIndex = i;
@@ -409,10 +601,13 @@ namespace
                 continue;
             }
 
-            if (inst->op == MicroInstrOpcode::LoadMemReg && ops && isFrameBaseRegister(ops[0].reg, conv))
+            if (inst->op == MicroInstrOpcode::LoadMemReg && ops &&
+                (isFrameBaseRegister(ops[0].reg, conv) || (reach.localBaseReg.isValid() && ops[0].reg == reach.localBaseReg)))
             {
-                SlotUse& use = slots[ops[3].valueU64];
+                SlotUse& use = slots[slotKey(ops[0].reg, ops[3].valueU64)];
                 ++use.accesses;
+                use.base   = ops[0].reg;
+                use.offset = ops[3].valueU64;
                 if (use.storeIndex != std::numeric_limits<uint32_t>::max())
                     use.accesses = 99;
                 use.storeIndex = i;
@@ -423,15 +618,57 @@ namespace
             // caller could not place is either refused there or proven unable to reach the
             // frame at all, so nothing else needs accounting for here.
             FrameRef written;
-            if (frameWriteRange(written, *inst, ops, conv))
-                slots[written.lo].accesses = 99;
+            if (frameWriteRange(written, *inst, ops, conv, reach.localBaseReg))
+            {
+                slots[slotKey(written.base, written.lo)].accesses = 99;
+                continue;
+            }
+
+            // Any other addressed touch of the frame - an indexed access, a
+            // vector load, a compare against memory - disqualifies whatever it
+            // can land on: its whole object through the local base, a
+            // conservative window otherwise. Removing a slot's store while
+            // something else still reads the home would hand that reader a
+            // stale value.
+            const MicroInstrDef& accessInfo = MicroInstr::info(inst->op);
+            if (ops && accessInfo.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
+            {
+                const MicroReg accessBase = ops[accessInfo.memBaseOperandIndex].reg;
+                const bool     tracked    = isFrameBaseRegister(accessBase, conv) ||
+                                        (reach.localBaseReg.isValid() && accessBase == reach.localBaseReg);
+                if (tracked)
+                {
+                    const auto accessOffset = static_cast<int64_t>(ops[accessInfo.memOffsetOperandIndex].valueU64);
+                    FrameRef   touchedRange;
+                    if (!findContainingObject(touchedRange, reach, accessBase, accessOffset))
+                    {
+                        touchedRange.base = accessBase;
+                        touchedRange.lo   = static_cast<uint64_t>(accessOffset);
+                        touchedRange.hi   = touchedRange.lo + 16;
+                    }
+                    blockedRanges.push_back(touchedRange);
+                }
+            }
         }
 
-        for (auto& [offset, use] : slots)
+        for (auto& [key, use] : slots)
         {
+            const uint64_t offset = use.offset;
             if (use.accesses != 2)
                 continue;
-            if (privateArea.lo < privateArea.hi && (offset < privateArea.lo || offset + getNumBytes(use.bits) > privateArea.hi))
+
+            FrameRef slotRef;
+            slotRef.base = use.base;
+            slotRef.lo   = offset;
+            slotRef.hi   = offset + getNumBytes(use.bits);
+
+            bool blocked = false;
+            for (const FrameRef& range : blockedRanges)
+                blocked = blocked || overlaps(slotRef, range);
+            if (blocked)
+                continue;
+
+            if (restrictToUnreachable && !slotIsUnreachable(reach, context, slotRef, conv))
                 continue;
             if (use.loadIndex == std::numeric_limits<uint32_t>::max() ||
                 use.storeIndex == std::numeric_limits<uint32_t>::max())
@@ -448,7 +685,7 @@ namespace
                 continue;
             if (!use.reg.isInt() && !use.reg.isFloat())
                 continue;
-            if (isFrameBaseRegister(use.reg, conv))
+            if (isFrameBaseRegister(use.reg, conv) || (reach.localBaseReg.isValid() && use.reg == reach.localBaseReg))
                 continue;
 
             // The register must carry nothing else around the iteration.
@@ -488,7 +725,7 @@ namespace
             if (prev && prev->op == MicroInstrOpcode::LoadMemReg)
             {
                 const MicroInstrOperand* prevOps = prev->ops(operands);
-                if (prevOps && isFrameBaseRegister(prevOps[0].reg, conv) && prevOps[3].valueU64 == offset &&
+                if (prevOps && prevOps[0].reg == use.base && prevOps[3].valueU64 == offset &&
                     prevOps[1].reg == use.reg && prevOps[2].opBits == use.bits)
                     seedBefore = MicroInstrRef::invalid();
             }
@@ -506,13 +743,7 @@ namespace
 
     // One sweep: hoist every qualifying reload out of every loop whose body it
     // is invariant in. Returns true when the IR changed.
-    struct FramePrivacy
-    {
-        bool computed  = false;
-        bool isPrivate = false;
-    };
-
-    bool hoistRound(MicroPassContext& context, const CallConv& conv, FramePrivacy& framePrivacy)
+    bool hoistRound(MicroPassContext& context, const CallConv& conv, FrameReachability& framePrivacy)
     {
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
@@ -533,23 +764,22 @@ namespace
 
         // Cheap pre-scan: no frame reload anywhere means no work, and the
         // dominator, loop and liveness analyses below are never paid for.
+        if (!framePrivacy.computed)
+            analyzeFrameReachability(framePrivacy, context, storage, operands, conv, context.encoder);
+        const FrameReachability& reach = framePrivacy;
+
         bool anyFrameLoad = false;
         for (uint32_t i = 0; i < n && !anyFrameLoad; ++i)
         {
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
             FrameRef          slot;
-            if (inst && isFrameLoad(slot, *inst, inst->ops(operands), conv))
+            if (inst && isFrameLoad(slot, *inst, inst->ops(operands), conv, reach.localBaseReg))
                 anyFrameLoad = true;
         }
         if (!anyFrameLoad)
             return false;
 
-        if (!framePrivacy.computed)
-        {
-            framePrivacy.computed  = true;
-            framePrivacy.isPrivate = !frameAddressEscapes(storage, operands, conv, context.encoder);
-        }
-        const bool framePrivate = framePrivacy.isPrivate;
+        const bool framePrivate = reach.wholeFramePrivate;
 
         const auto dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry);
         auto       loopsByHeader = MicroPassHelpers::findNaturalLoops(cfg, dom);
@@ -654,20 +884,37 @@ namespace
                 // The frame base must mean the same thing on every iteration.
                 for (const MicroReg def : liveness.useDefs[i].defs)
                 {
-                    if (isFrameBaseRegister(def, conv))
+                    if (isFrameBaseRegister(def, conv) || (reach.localBaseReg.isValid() && def == reach.localBaseReg))
                         bodyOpaque = true;
                 }
                 if (bodyOpaque)
                     break;
                 if (!info.flags.has(MicroInstrFlagsE::WritesMemory))
                     continue;
+
+                // An indexed write through the local base lands somewhere in
+                // the object its displacement names; widen it to that whole
+                // object rather than treating it as reaching anywhere.
+                if (inst->op == MicroInstrOpcode::LoadAmcMemReg || inst->op == MicroInstrOpcode::LoadAmcMemImm)
+                {
+                    const MicroInstrOperand* writeOps = inst->ops(operands);
+                    FrameRef                 objectRange;
+                    if (writeOps && reach.localBaseReg.isValid() && writeOps[0].reg == reach.localBaseReg &&
+                        findContainingObject(objectRange, reach, writeOps[0].reg, static_cast<int64_t>(writeOps[6].valueU64)))
+                    {
+                        writes.push_back(objectRange);
+                        continue;
+                    }
+                }
+
                 FrameRef written;
-                if (!frameWriteRange(written, *inst, inst->ops(operands), conv))
+                if (!frameWriteRange(written, *inst, inst->ops(operands), conv, reach.localBaseReg))
                 {
                     // A write this pass cannot place. It reaches nothing in the frame when no
-                    // pointer into the frame exists, and nothing in the allocator's own spill
-                    // area in any case - that area holds no source object, so no pointer can be
-                    // made to land in it. Outside those two, it could go anywhere.
+                    // pointer into the frame exists, and only what escaped otherwise: not the
+                    // allocator's own spill area - that area holds no source object, so no
+                    // pointer can be made to land in it - and not a source object whose
+                    // address the function never handed out.
                     hasUnplaceableWrite = true;
                     continue;
                 }
@@ -676,16 +923,7 @@ namespace
             if (bodyOpaque)
                 continue;
 
-            // What an unplaceable write leaves reachable, as a byte range a candidate slot has
-            // to fall inside. Empty means no restriction.
-            FrameRef privateArea;
-            if (hasUnplaceableWrite && !framePrivate)
-            {
-                if (context.spillAreaLo >= context.spillAreaHi)
-                    continue;
-                privateArea.lo = context.spillAreaLo;
-                privateArea.hi = context.spillAreaHi;
-            }
+            const bool restrictToUnreachable = hasUnplaceableWrite && !framePrivate;
 
             for (uint32_t i = 0; i < n; ++i)
             {
@@ -699,15 +937,15 @@ namespace
                     continue;
                 const MicroInstrOperand* ops = inst->ops(operands);
                 FrameRef                 slot;
-                if (!isFrameLoad(slot, *inst, ops, conv))
+                if (!isFrameLoad(slot, *inst, ops, conv, reach.localBaseReg))
                     continue;
 
                 const MicroReg dst = ops[0].reg;
                 if (!dst.isInt() && !dst.isFloat())
                     continue;
-                if (isFrameBaseRegister(dst, conv))
+                if (isFrameBaseRegister(dst, conv) || (reach.localBaseReg.isValid() && dst == reach.localBaseReg))
                     continue;
-                if (privateArea.lo < privateArea.hi && (slot.lo < privateArea.lo || slot.hi > privateArea.hi))
+                if (restrictToUnreachable && !slotIsUnreachable(reach, context, slot, conv))
                     continue;
 
                 bool aliased = false;
@@ -761,7 +999,7 @@ namespace
                         continue;
                     const MicroInstrOperand* otherOps = other->ops(operands);
                     FrameRef                 otherSlot;
-                    if (!isFrameLoad(otherSlot, *other, otherOps, conv))
+                    if (!isFrameLoad(otherSlot, *other, otherOps, conv, reach.localBaseReg))
                         continue;
                     if (otherSlot.base != slot.base || otherSlot.lo != slot.lo || otherSlot.hi != slot.hi)
                         continue;
@@ -798,7 +1036,7 @@ namespace
             // accumulator round-trips through the frame on every iteration; this
             // keeps it in its register for the whole loop and writes it back once
             // on the way out.
-            promoteCarriedSlots(storage, operands, cfg, liveness, *loop, headerRef, preheaderIndex, conv, privateArea, carried);
+            promoteCarriedSlots(storage, operands, cfg, liveness, *loop, headerRef, preheaderIndex, conv, reach, restrictToUnreachable, context, carried);
         }
 
         if (hoists.empty() && carried.empty())
@@ -890,8 +1128,8 @@ Result MicroPostRaLoopHoistPass::run(MicroPassContext& context)
 
     const CallConv& conv = CallConv::get(context.callConvKind);
 
-    // The frame-privacy answer is a property of the function, so the rounds below share one.
-    FramePrivacy framePrivacy;
+    // The frame-reachability answer is a property of the function, so the rounds below share one.
+    FrameReachability framePrivacy;
     for (uint32_t level = 0; level < K_MAX_LEVELS; ++level)
     {
         if (!hoistRound(context, conv, framePrivacy))

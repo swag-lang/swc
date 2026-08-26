@@ -278,10 +278,15 @@ is the layout it does not read yet.
   where both neighbours exist, each row resolves three line bases, and eight samples are
   filtered at a time: a comparison already answers with a lane of ones, so the sign of a
   difference is the difference of two comparisons, and the offset is selected by category
-  instead of looked up. The band offset path is still one sample at a time.
-- Next, in expected order of value: what is left of sample adaptive offset is the band offset
-  path, still one sample at a time, and three full-plane copies a picture, which exist so that a
-  block never reads what an earlier one wrote and could be a swap of two buffers instead; the
+  instead of looked up.
+- What the same treatment did to the band offset path, half an hour later and byte-exact the
+  same way: **18 ms a picture became 3.4**. Its four bands are consecutive, so where a sample
+  falls is its distance from the first band rather than an entry of a table of thirty-two, and
+  the four selections that serve an edge category serve it unchanged. Sample adaptive offset now
+  costs about 10 ms of a picture, of which 3.3 is the three plane copies: **90 ms became 10**.
+- Next, in expected order of value: deblocking is now the largest stage measured at 18 ms a
+  picture, and what is left of sample adaptive offset is three full-plane copies, which exist so
+  that a block never reads what an earlier one wrote and could be a swap of two buffers instead; the
   fractional filters and the transform are both 128 bits wide, and this stream is the case where
   256-bit forms would pay; and a uni-predicted block is filtered into `predBuffer` and then read
   again to be combined, where one pass could write the picture directly.

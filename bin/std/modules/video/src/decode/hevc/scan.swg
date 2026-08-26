@@ -22,6 +22,14 @@ const ScanVertical = 2'u32
 var ScanX: [4, 3, 64] u8
 var ScanY: [4, 3, 64] u8
 
+// Where each position of a block sits in the scan, which is the same table read the other way.
+//
+// Residual coding is told the last significant coefficient by its position, and everything it
+// reads afterwards is indexed by scan order. A scan is a permutation, so its inverse answers
+// where that coefficient sits at once; walking the scan backwards to find it costs up to a
+// thousand steps on a 32x32 block, and a block states its last coefficient every time.
+var ScanIndex: [4, 3, 64] u8
+
 // The position of each sample in the up-right diagonal scan, which is the order a quantization
 // matrix is transmitted in, equations 7-44 and 7-45.
 var DiagScan4x4Index: [16] u8
@@ -77,6 +85,20 @@ private func buildScanOrders()
                 ScanX[log2Size, ScanVertical, position] = cast(u8) column
                 ScanY[log2Size, ScanVertical, position] = cast(u8) row
                 position += 1
+            }
+        }
+    }
+
+    for log2Size in 4'u32
+    {
+        let size = 1'u32 << log2Size
+        for order in 3'u32
+        {
+            for position in size * size
+            {
+                let x = cast(u32) ScanX[log2Size, order, position]
+                let y = cast(u32) ScanY[log2Size, order, position]
+                ScanIndex[log2Size, order, y * size + x] = cast(u8) position
             }
         }
     }

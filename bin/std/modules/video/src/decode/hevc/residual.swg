@@ -8,6 +8,7 @@
 
 using Core, Core.Errors
 
+
 // Table 9-50: the significance context of each position of a 4x4 transform block.
 const SigCtxMap4x4: [16] u8 = [0, 1, 4, 5, 2, 3, 4, 5, 6, 6, 8, 8, 7, 7, 8, 8]
 
@@ -83,29 +84,12 @@ impl Decoder
         if lastX >= size or lastY >= size do
             fail InvalidFormatError{"HEVC last significant coefficient is outside its transform block"}
 
-        // Walk back from the end of the scan to the sub-block and position the last coefficient
-        // sits in; everything after it in scan order is zero.
+        // Where the last coefficient sits in the scan, which is where the walk below starts.
+        // The scan is a permutation of the block, so its inverse says that outright.
         let subBlockLog2 = log2TrafoSize - 2
-        var lastSubBlock = (1'u32 << (subBlockLog2 * 2)) - 1
-        var lastScanPos  = 16'u32
-        for
-        {
-            if !lastScanPos
-            {
-                lastScanPos = 16
-                if !lastSubBlock do
-                    break
-                lastSubBlock -= 1
-            }
-
-            lastScanPos -= 1
-            let xS = cast(u32) ScanX[subBlockLog2, scanIdx, lastSubBlock]
-            let yS = cast(u32) ScanY[subBlockLog2, scanIdx, lastSubBlock]
-            let xC = (xS << 2) + cast(u32) ScanX[2, scanIdx, lastScanPos]
-            let yC = (yS << 2) + cast(u32) ScanY[2, scanIdx, lastScanPos]
-            if xC == lastX and yC == lastY do
-                break
-        }
+        let subSide      = 1'u32 << subBlockLog2
+        let lastSubBlock = cast(u32) ScanIndex[subBlockLog2, scanIdx, (lastY >> 2) * subSide + (lastX >> 2)]
+        let lastScanPos  = cast(u32) ScanIndex[2, scanIdx, (lastY & 3) * 4 + (lastX & 3)]
 
         var codedSubBlock: [64] bool
         var maxX, maxY = 0'u32

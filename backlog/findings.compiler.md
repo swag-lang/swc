@@ -128,8 +128,11 @@ Entries are sorted by identifier, ascending; position carries no priority.
 
 - Area: compiler
 - Found while: building the shared `bin/apps` workspace after integrating sFileScope's viewers.
-- Observation: a freshly built `swc_devmode.exe` deterministically asserts while semantically
-  checking the unchanged `tools/src/backlog.swg`; the Release compiler checks the same tool.
+- Observation: at 0.1.166, two consecutive runs of a freshly built `swc_devmode.exe` asserted
+  while semantically checking the unchanged `tools/src/backlog.swg`; the Release compiler checked
+  the same tool. At 0.1.167 the reduced witness and the original commands no longer reproduce,
+  without a change known to target payload ownership, so this is now an unresolved
+  scheduling-dependent lead rather than a deterministic defect.
 - Evidence: two consecutive `bin/swc_devmode.exe tools/apps.swgs dm build sFileScope` runs assert
   in `NodePayload::setSemaPayload` at `NodePayload.cpp:806` because
   `shard->semaPayloads` already contains the node. Both name the `start` reference inside
@@ -141,13 +144,12 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `bytes[first until @countof(bytes)]` directly to `lastNonSpace` triggers the same assertion on
   `first`, while binding that slice to a local before the call compiles. This removes macro
   expansion from the minimum mechanism and leaves a slice expression used as a call argument.
-  It no longer reproduces at 0.1.167: the macro-free witness — a standalone `#test` passing
+  At 0.1.167, the macro-free witness — a standalone `#test` passing
   `bytes[first until @countof(bytes)]` straight into a `const [..] u8` parameter — compiles and
   runs, every `tools/*.swgs` invocation checks `backlog.swg` without asserting, and two
   consecutive `bin/swc_devmode.exe tools/apps.swgs dm build sFileScope` runs are green. Nothing
   in that release targeted payload ownership, so the double visit is more likely scheduling
-  dependent than deterministic, and the "deterministic" wording above describes one machine
-  state rather than the defect.
+  dependent rather than resolved.
 - Next step: re-evaluate on the next occurrence. Persist the failing module when one happens and
   capture both `setSemaPayload` calls for the slice node before changing payload ownership; a
   reduction that does not fail on demand cannot be turned into a `bin/unittests/sema` case.

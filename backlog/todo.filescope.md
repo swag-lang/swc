@@ -153,7 +153,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | Diff and patch | `.diff` `.patch` | text | hunk coloring and navigation | T-408 |
 | Log | `.log` | text | level coloring, timestamps, tail | T-409 |
 | Tabular text | `.csv` `.tsv` `.tab` | full up to 32 MiB, detected delimiter and quoting, fixed header | bounded streaming beyond 32 MiB | T-402 |
-| PDF | `.pdf` | page rendering, editing and writing | encryption, annotations, shadings, Type1/CFF, scanned-image codecs | T-401, [todo.pdf.md](todo.pdf.md) |
+| PDF | `.pdf` | page rendering, editing and writing | encryption, annotations, shadings, scanned-image codecs | T-401, [todo.pdf.md](todo.pdf.md) |
 | Office OOXML | `.docx` `.xlsx` `.pptx` | structure | readable text and sheets | T-407 |
 | OpenDocument | `.odt` `.ods` `.odp` | structure | readable text and sheets | T-407 |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope, see below | — |

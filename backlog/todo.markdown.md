@@ -26,7 +26,9 @@ continuation, block quotes carrying the five GitHub alerts, thematic breaks, YAM
 The inline renderer emits a private markup protocol — emphasis through bold-italic, strikethrough,
 highlight, code spans, sub- and superscript, inline/reference/collapsed links, autolinks and bare
 URLs, escapes, entities, and inline mathematics parsed by `Pixel.MathExpression` rather than
-approximated with text. The view streams multi-megabyte files behind a byte-to-height estimate,
+approximated with text. Inline phrasing HTML is translated into the same rich-text protocol;
+layout-bearing HTML is hosted by the adjacent HTML engine, including its offline image policy.
+The view streams multi-megabyte files behind a byte-to-height estimate,
 reveals an arbitrary byte offset without parsing what precedes it, navigates by line, page and
 document boundary from the keyboard, restyles live from a theme sheet and a typography style —
 the sFileScope viewer ships five complete reading themes on top of it — finds and highlights text,
@@ -108,15 +110,17 @@ heading's byte offset, which is the same currency `revealFileOffset` already tra
 
 ### T-499 — Inline HTML has no documented stance
 
-READMEs written for GitHub lean on a small HTML set — `<br>` in table cells, `<img>` for sized
-logos, `<kbd>`, `<details>`. `<br>` breaks a line and every other tag renders as its literal
-source text, but nothing records that decision, and `<img>` still shows its source. The engine
-will never execute anything; it owes the documented allowlist the HTML engine gives its stances,
-and `<img>` should paint the moment T-491 gives images a path.
+The implementation now does more than this roadmap used to record. Inline phrasing elements are
+parsed through `HtmlParser` and translated into Markdown rich text, while layout-bearing elements
+become embedded `HtmlView` blocks; local and `data:` images in those blocks paint under the HTML
+engine's offline policy. What remains implicit is the public contract: which elements are
+preserved semantically, which merely contribute their children, how unsupported markup falls
+back, and where inline HTML ends and an HTML block begins. Markdown image syntax in T-491 is a
+separate path and must not be presented as a prerequisite for HTML images.
 
-- Intent: a decided, documented behavior for inline HTML instead of an accident
-- Complete when: the stance is recorded beside the engine, and `<img>` paints through T-491's path
-- Related: T-491
+- Intent: the implemented inline/block HTML split is a deliberate, documented contract
+- Complete when: public module documentation records the supported semantics, fallback and
+  offline-resource policy, with fixtures for representative phrasing, block and image elements
 
 ### T-500 — No measured conformance stance
 
@@ -131,9 +135,12 @@ durable artifact; the fixes are the first harvest.
 
 ### T-501 — Find cannot walk its matches
 
-Every occurrence of a find highlights, but `findText` still moves block to block with a single
-wrap: no next/previous within a block, no match count. sFileScope's search panel deserves the
-same behavior over Markdown as over code.
+`findText` clears the current highlight and advances to the next block, selecting occurrence zero
+there. It therefore cannot reach a second match in the same block, move backwards, or report a
+match count. The renderer already has private occurrence-counting and exact-occurrence selection
+for streamed `revealFileOffset`; the remaining work is to expose that machinery as document-wide
+search state and connect it to the host. sFileScope's search panel deserves the same behavior over
+Markdown as over code.
 
 - Intent: find walks matches one by one and says how many there are
 - Complete when: repeated find advances match-by-match across and within blocks, and the match

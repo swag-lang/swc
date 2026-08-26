@@ -165,6 +165,14 @@ private const VideoBackdropColors = "view_Bk 0xFF000000"
 // this bound the player keeps walking below speed instead of teleporting.
 private const VideoResyncMaxJumpSeconds = 15.0
 
+// How many pictures the queue holds again before the clock restarts after a jump.
+//
+// A decoder that has just restarted on a key picture has nothing in hand, and starting the
+// clock on the first one it produces asks it for real time from a standing start: it falls
+// behind within the second and jumps again, which is a stutter that feeds itself. Waiting for a
+// few pictures costs a fraction of a second once and buys a queue to play out of.
+private const VideoRebufferPictures = 4'u64
+
 // How much memory the decoded run-ahead may hold, and how many pictures it may hold at all.
 //
 // A frame-threaded decoder delivers pictures in runs separated by the cost of one key picture,
@@ -718,6 +726,31 @@ internal impl VideoViewer
             .reportLoadingChanged!(me)
     }
 
+    // Gives up every picture between here and `index`, and moves playback there.
+    //
+    // Skipping is a decision that what lies between is not going to be shown; the sound that
+    // goes with it cannot be played either, so the position moves with the picture. Leaving the
+    // clock where it stood would present the picture that comes back only once the clock
+    // reached it, which is a frozen picture for as long as the skip was worth - and a skip is
+    // worth a whole group of pictures on a stream that marks one every ten seconds.
+    mtd skipTo(index: u64)
+    {
+        if .playing and .voice
+        {
+            catch .voice!.pause()
+            .resumeAudioAfterSeek = true
+        }
+
+        .elapsed = .frameSeconds(index)
+        .clock.reset()
+        .audioClockLast = -1
+        if .voice and .audio do
+            .audioRangePending = !videoSoundCovers(.audio!, .elapsed)
+
+        .repositionTo(index)
+        .decodeWake.signal()
+    }
+
     // Decodes one picture into a slot, and answers with the error the stream raised, if any.
     //
     // A codec that reconstructs planes hands them over as they are; one that does not produces the
@@ -1048,6 +1081,25 @@ internal impl VideoViewer
             return
         }
 
+        // A jump left the sound waiting on the queue rather than on the first picture; see
+        // `VideoRebufferPictures`. Until it fills, the clock stands where the jump put it.
+        if .resumeAudioAfterSeek and .voice and .hasFrame
+        {
+            let count = .video.frameCount()
+            var depth = 0'u64
+            var more:   bool
+            {
+                Sync.scopedLock(&.queueLock)
+                depth = .ready.count
+                more  = !.hasFailure and (!count or .nextDecode < count)
+            }
+
+            // The end of the stream is the one place where the queue never reaches the mark.
+            if depth < VideoRebufferPictures and more do
+                return
+            .resumeAudio()
+        }
+
         .followAudioClock()
         if .audioRangePending and .audio and videoSoundCovers(.audio!, .currentSeconds()) do
             .resumeAudio()
@@ -1105,8 +1157,7 @@ internal impl VideoViewer
         if (count and sync >= count) or sync - clock > cap do
             return
 
-        .repositionTo(sync)
-        .decodeWake.signal()
+        .skipTo(sync)
     }
 }
 

@@ -4,6 +4,14 @@ using Core, Core.Errors, Gui, Audio, Pixel, Video
 // registered neighbours use.
 const BasicTextViewerKey = "text"
 
+// What the text surface owns by name.
+//
+// Which viewer a file is offered is still decided by reading it, since a file with no
+// extension at all can be text and one that ends in `.dat` can be anything. This list is what
+// a row of the file panel can say without opening the file it names, and a plain text file
+// says it plainly enough.
+private const TextNamedExtensions = ".txt;.text;.log;.nfo;.diz;.rst;.adoc;.asc;.srt;.vtt;.sub;.ssa;.ass;.lrc;.diff;.patch;readme;license;licence;changelog;authors;copying;install;news;todo"
+
 // One integrated viewer associated with lowercase extensions, exact file names, or every file.
 struct ViewerSpec
 {
@@ -122,6 +130,44 @@ impl ViewerIndex
             }
             elif selector == baseName do
                 return true
+        }
+
+        return false
+    }
+
+    // Returns the glyph that stands for `fileName`, from its name alone.
+    //
+    // A list of files decorates a row per file, and reading the beginning of a file to decide
+    // what it holds costs one open per row. That is invisible on a local disk and thirty
+    // milliseconds a file across a network share, where a folder of six hundred films takes
+    // twenty seconds of it before anything else in the window moves. A row therefore reads its
+    // glyph from the name, which is what names are for; only the file a reader actually opens
+    // is worth looking inside.
+    mtd const nameIcon(fileName: string, icon: *ViewerIcons)->bool
+    {
+        var extension = String.from(Path.extension(fileName) orelse "")
+        extension = extension.toLower()
+        var baseName = String.from(Path.fileName(fileName) orelse "")
+        baseName = baseName.toLower()
+
+        for spec in .specs where .matches(spec, baseName.toString(), extension.toString(), wildcard: false)
+        {
+            icon[] = spec.icon
+            return true
+        }
+
+        for selector in Tokenize.split(TextNamedExtensions, ';'u8)
+        {
+            if selector != (selector[0] == '.' ? extension.toString() : baseName.toString()) do
+                continue
+            icon[] = ViewerIcons.Text
+            return true
+        }
+
+        for spec in .specs where .matches(spec, baseName.toString(), extension.toString(), wildcard: true)
+        {
+            icon[] = spec.icon
+            return true
         }
 
         return false

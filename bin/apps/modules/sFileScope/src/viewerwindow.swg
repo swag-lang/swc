@@ -2022,9 +2022,9 @@ impl ViewerWindow
         list.clear()
         for one, index in files
         {
-            let name    = one[].toString()
-            let choices = .index.choices(name)
-            let icon    = choices.isEmpty() ? Icon{} : .icon(choices[0].icon)
+            let name  = one[].toString()
+            var glyph: ViewerIcons = undefined
+            let icon  = .index.nameIcon(name, &glyph) ? .icon(glyph) : Icon{}
             discard list.createLine(Path.fileName(name) orelse name, icon)
             if .currentFile == name do
                 list.selectLine(cast(u32) index)

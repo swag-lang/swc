@@ -32,6 +32,17 @@ struct TransformBlock
     lastY:         u32     // Highest row holding a coefficient, for the row pass.
 }
 
+// Repeats one pair of sixteen-bit values across a vector, in the layout `pmaddwd` sums.
+//
+// The instruction multiplies neighbours and adds them, so a matrix row interleaved with the next
+// one meets the two values that go with them here.
+#[Swag.Inline]
+private func coefficientPair(first, second: s16)->Simd.S16x8
+{
+    let packed = (cast(u32) cast #wrap(u16) first) | ((cast(u32) cast #wrap(u16) second) << 16)
+    return cast #bit(Simd.S16x8) Simd.splat(packed)
+}
+
 impl Decoder
 {
     // Starts a quantization group and predicts its quantization parameter, clause 8.6.1.
@@ -322,33 +333,61 @@ impl Decoder
         // Only significant coefficients contribute to the first pass, and only their columns
         // contribute to the second. Quantized large blocks are sparse even when one high-frequency
         // coefficient makes their rectangular extent cover most of the transform.
-        let step    = 32 >> log2Size
-        let matrix  = cast([*] s16) &.transformMatrix[0]
+        //
+        // The buffer between the passes holds one column of the block per row, which is the
+        // order the first pass produces: it fills eight consecutive samples of one column at a
+        // time, and the second pass reads one sample per basis, for which a stride costs nothing.
+        //
+        // Two basis functions are carried by one instruction. Every value the passes multiply is
+        // clamped into sixteen bits, so a row of the matrix and a row of the next one interleave
+        // into the pair layout `pmaddwd` sums, and one multiply-add covers eight products where a
+        // widened multiply covered four. What the pair costs is one interleave of two loads the
+        // scalar form was loading anyway.
+        let step   = 32 >> log2Size
+        let matrix = cast([*] s16) &.transformMatrix[0]
+        let minima = Simd.splat(CoeffMin)
+        let maxima = Simd.splat(CoeffMax)
 
         var activeColumns = .coefficientColumns
         while activeColumns
         {
             let x = Math.trailingZeros(activeColumns)
             activeColumns &= activeColumns - 1
+
+            let column = x * size
             var sample = 0'u32
             while sample < size
             {
-                var sums: Simd.S32x4 = Simd.splat(0's32)
+                var low:  Simd.S32x4 = Simd.splat(0's32)
+                var high: Simd.S32x4 = Simd.splat(0's32)
                 var activeRows = .coefficientRows[x]
                 while activeRows
                 {
-                    let basis = Math.trailingZeros(activeRows)
+                    let first = Math.trailingZeros(activeRows)
                     activeRows &= activeRows - 1
-                    let matrixRow = basis * step
-                    let packed    = sample == 28 ? Simd.widenHigh(Simd.load(matrix + matrixRow * 32 + 24)) : Simd.widenLow(Simd.load(matrix + matrixRow * 32 + sample))
-                    let weights   = cast #bit(Simd.S32x4) packed
-                    sums += weights * cast(s32) .coefficients[basis * size + x]
+
+                    // An odd count leaves the last basis on its own: it pairs with itself against
+                    // a zero, which the multiply-add then contributes nothing for.
+                    var second      = first
+                    var secondValue = 0's16
+                    if activeRows
+                    {
+                        second      = Math.trailingZeros(activeRows)
+                        secondValue = .coefficients[second * size + x]
+                        activeRows  &= activeRows - 1
+                    }
+
+                    let rowA   = Simd.load(matrix + first * step * 32 + sample)
+                    let rowB   = Simd.load(matrix + second * step * 32 + sample)
+                    let values = coefficientPair(.coefficients[first * size + x], secondValue)
+                    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8) Simd.interleaveLow(cast #bit(Simd.U16x8) rowA, cast #bit(Simd.U16x8) rowB), values)
+                    high += Simd.mulAddPairs(cast #bit(Simd.S16x8) Simd.interleaveHigh(cast #bit(Simd.U16x8) rowA, cast #bit(Simd.U16x8) rowB), values)
                 }
 
-                let values = cast([4] s32) ((sums + 64) >> 7)
-                for lane in 4'u32 do
-                    intermediate[(sample + lane) * size + x] = Math.clamp(values[lane], CoeffMin, CoeffMax)
-                sample += 4
+                Simd.store(&intermediate[column + sample], Math.max(Math.min((low + 64) >> 7, maxima), minima))
+                Simd.store(&intermediate[column + sample + 4], Math.max(Math.min((high + 64) >> 7, maxima), minima))
+
+                sample += 8
             }
         }
 
@@ -359,22 +398,36 @@ impl Decoder
             var sample = 0'u32
             while sample < size
             {
-                var sums: Simd.S32x4 = Simd.splat(0's32)
+                var low:  Simd.S32x4 = Simd.splat(0's32)
+                var high: Simd.S32x4 = Simd.splat(0's32)
                 var activeBasis = .coefficientColumns
                 while activeBasis
                 {
-                    let basis = Math.trailingZeros(activeBasis)
+                    let first = Math.trailingZeros(activeBasis)
                     activeBasis &= activeBasis - 1
-                    let matrixRow = basis * step
-                    let packed    = sample == 28 ? Simd.widenHigh(Simd.load(matrix + matrixRow * 32 + 24)) : Simd.widenLow(Simd.load(matrix + matrixRow * 32 + sample))
-                    let weights   = cast #bit(Simd.S32x4) packed
-                    sums += weights * intermediate[base + basis]
+
+                    var second      = first
+                    var secondValue = 0's16
+                    if activeBasis
+                    {
+                        second      = Math.trailingZeros(activeBasis)
+                        secondValue = cast(s16) intermediate[second * size + y]
+                        activeBasis &= activeBasis - 1
+                    }
+
+                    let rowA   = Simd.load(matrix + first * step * 32 + sample)
+                    let rowB   = Simd.load(matrix + second * step * 32 + sample)
+                    let values = coefficientPair(cast(s16) intermediate[first * size + y], secondValue)
+                    low  += Simd.mulAddPairs(cast #bit(Simd.S16x8) Simd.interleaveLow(cast #bit(Simd.U16x8) rowA, cast #bit(Simd.U16x8) rowB), values)
+                    high += Simd.mulAddPairs(cast #bit(Simd.S16x8) Simd.interleaveHigh(cast #bit(Simd.U16x8) rowA, cast #bit(Simd.U16x8) rowB), values)
                 }
 
-                let values = cast([4] s32) ((sums + rounding) >> cast(u32) bdShift)
-                for lane in 4'u32 do
-                    .residual[base + sample + lane] = values[lane]
-                sample += 4
+                // A row of the residual is contiguous, so the two vectors are written where they
+                // stand instead of being read back lane by lane.
+                Simd.store(&.residual[base + sample], (low + rounding) >> cast(u32) bdShift)
+                Simd.store(&.residual[base + sample + 4], (high + rounding) >> cast(u32) bdShift)
+
+                sample += 8
             }
         }
     }

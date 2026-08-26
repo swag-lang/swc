@@ -239,22 +239,52 @@ is the layout it does not read yet.
   - Edge replication wrote its eighty samples one at a time; it fills whole vectors now.
   - The frame lanes ran at normal priority while the H.264 ones run below it, so a decoder that is
     deliberately ahead of the clock competed with the thread that has to present on it.
-- Next, in expected order of value: the second pass of the 16x16 and 32x32 inverse transform
-  broadcasts one intermediate value per output group instead of once per basis, and neither pass
-  uses `pmaddwd`, which would carry two basis functions per instruction; the fractional filters and
-  the transform are both 128 bits wide, and this stream is the case where 256-bit forms would pay;
-  and a uni-predicted block is filtered into `predBuffer` and then read again to be combined, where
-  one pass could write the picture directly.
+- What the pass of 2026-08-26 changed in the 16x16 and 32x32 inverse transform, byte-exact
+  against the conformance digests and against a hash of the film's own planes. **The two matrix
+  passes are about twice as fast** — 19 ms of a 3840x2076 Main10 picture against 40, the
+  ratio read as 1.9 to 2.1 over three runs of 625,000 real transform blocks each. Three changes,
+  of which the first is most of it:
+  - Both passes pair two basis functions into one `pmaddwd`. Every value they multiply is already
+    clamped into sixteen bits, so a matrix row interleaved with the next one meets the two
+    coefficients that go with them, and one multiply-add covers eight products where a widened
+    multiply covered four. This is what the interpolation filters had been doing all along. It
+    also retires the special case that read the last group of a 32-wide row from the row above
+    it, since a group of eight now divides a row of thirty-two. **1.52x on its own.**
+  - The second pass wrote its results by converting each vector to a four-element array and
+    storing the lanes one at a time, into a destination that is contiguous. The vectors are
+    stored where they stand. **1.34x on top of the pairing.**
+  - The buffer between the passes now holds one column of the block per row. The first pass fills
+    eight consecutive samples of one column, so its stores are vectors too, and the second pass
+    reads one sample per basis, for which the stride costs nothing. **Neutral in time** (1.00 and
+    1.03 against the strided form, measured against each other), kept because it is less code and
+    no longer round-trips a vector through the frame.
+- Next, in expected order of value: the fractional filters and the transform are both 128 bits
+  wide, and this stream is the case where 256-bit forms would pay; and a uni-predicted block is
+  filtered into `predBuffer` and then read again to be combined, where one pass could write the
+  picture directly.
 - What it refuses, and where: `sets.swg` fails a sequence parameter set whose `chroma_format_idc`
   is not 1, whose bit depth is neither 8 nor 10, that enables pulse code modulation blocks, or that
   carries the range extension, multilayer, 3D or screen content tools. The 4:2:2 and 4:4:4 formats
   and the range extension are what a capture or mastering file uses; a delivery file does not.
-- How to measure it: a `#test` in the module that opens the real film, decodes twenty pictures to
-  warm the file cache and the reference set, then decodes twenty-five more and reports
-  `GetProcessTimes` divided by the count, three interleaved rounds reduced to their minimum. Jobs
-  are synchronous in a test process, so the lane count is one and the figure is serial cost. Wall
-  time on this machine is worthless on its own — the same window reads 7 ms and 25 ms for the same
-  work depending on how warm the package is.
+- What to measure it on: a fifteen-second 3840x2076 Main10 encode of the film carries the same
+  mix and sits beside the work, which the film itself does not — it lives on a drive that
+  is not always mounted, and twenty gigabytes of it never enter a measurement anyway.
+- How to measure it: a `#test` in the module that opens that clip, decodes twenty pictures to
+  warm the file cache and the reference set, then decodes thirty more and reports `GetProcessTimes`
+  divided by the count. Jobs are synchronous in a test process, so the lane count is one and the
+  figure is serial cost. Wall time on this machine is worthless on its own — the same window reads
+  7 ms and 25 ms for the same work depending on how warm the package is.
+- Two traps this measurement fell into, both of which produced confident and opposite verdicts
+  (2026-08-26). **Every decode must walk forward.** Asking for a picture behind the one just
+  produced makes the reader seek to a key picture and decode its way back, so a harness that
+  re-warmed each round from the same start charged sixteen catch-up pictures to the measured
+  window: the same build read 240 ms per picture over ten pictures and 135 over sixty, and the
+  A/B changed sign with the count. And **the whole-picture figure cannot settle a stage worth a
+  few percent on this machine**: eight interleaved runs of the same pair of binaries put the
+  minimum one way and the median the other. What settles it is an intra-process A/B — build both
+  implementations into one binary, run them on the same block with the order alternating so cache
+  warmth favours neither, and accumulate `Time.monotonicTicks` into one counter each. One run of
+  the film then reads the stage directly, with no machine drift in it.
 - Complete when: the serial cost of one 3840x2076 Main10 picture is within a third of FFmpeg's on
   the same machine.
 - Related: T-504

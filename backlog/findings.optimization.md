@@ -115,27 +115,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
   loop hull rather than the whole function. For Leven, record the allocator spill boundary so a
   program pointer can be proved unable to alias those slots.
 
-### F-121 — Text shading and bilinear texture lerps still dominate a CPU-rendered widget frame
-
-- Area: std/pixel (RenderCpu)
-- Found while: cutting headless-test frame times with the batch rasterizer fast paths
-- Observation: after the constant-fill, copy-blit, DstIn-skip, and BGRA8 fetch fast paths, a
-  900x700 fast-debug frame fell from 141 ms to 29 ms when empty, but a frame carrying 80 themed
-  buttons stays near 200 ms. Adding 40 text labels changes almost nothing, and the residual
-  concentrates in the paths that cannot keep bytes stable without care: `shadeMsdf` evaluates
-  four supersample coverages of four bilinear atlas fetches plus a `pow` per shaded pixel, and
-  a bilinear texture paint runs three `lerpColor` round trips through `fromArgbF32` per pixel.
-- Evidence: isolated probe module driving `Gui.Testing.HeadlessHost` (2026-08-12, fast-debug,
-  serial painter scenes): full-surface opaque fill 366 -> 19.6 ms, alpha fill 394 -> 31 ms,
-  empty host frame 141 -> 29 ms, 80-button frame 480 -> ~200 ms, and buttons+labels ~= buttons.
-  The gui suite run dropped 26.9 s -> 10.8 s for 379 tests on the same change.
-- Next step: three leads, in decreasing value. Lower the presentation blit (Copy, Pixel
-  interpolation, content scale 1, same-size integer rectangles) to row copies once the
-  nearest-neighbour mapping is proved an identity over that domain. Share atlas fetches between
-  the four MSDF coverage taps, validating against the pixel image goldens and refreshing them
-  deliberately if bytes move. Replace the bilinear `lerpColor` chain with integer arithmetic
-  under the same golden policy.
-
 ## Decompression
 
 ### F-136 — A hot loop's loop-carried locals all live in stack slots

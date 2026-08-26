@@ -299,7 +299,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   wider layout that amortizes that regrouping; the low-half multiply alone is not a useful feature.
 - Complete when: published vectors pass for all supported parameters and profile benchmarks isolate
   the packed kernel gain from independent-lane parallelism.
-- Related: T-252 in `todo.vaultdrive.md`, T-512, T-513, T-515.
+- Related: T-252 in [todo.core.md](todo.core.md), T-512, T-513, T-515.
 
 ### T-536 — Blake2b compression remains scalar
 

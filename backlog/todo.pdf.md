@@ -20,7 +20,7 @@ document takes end to end: classic indirect objects, compressed object streams, 
 inherited attributes, page rotation, the Flate, LZW, ASCII hexadecimal, ASCII85 and run-length
 filters with the TIFF and PNG predictors at every supported depth, the complete text state, the
 vector path and stroke geometry, simple and composite fonts with `/Widths`, `/W`, `/Differences`
-and `/ToUnicode`, embedded TrueType and OpenType programs addressed the way the file keys them,
+and `/ToUnicode`, embedded TrueType, OpenType, Type 1, and bare CFF programs addressed the way the file keys them,
 and every sample representation a raster can use from one to sixteen bits per component across
 the device, calibrated, ICC-based, indexed, Lab, separation and DeviceN spaces, with decode
 arrays, stencil masks, soft masks and color key masks.
@@ -207,19 +207,6 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 ---
 
 ## Tier B — Fonts a page cannot draw
-
-### T-441 — Type1 and bare CFF programs fall back to a substitute face
-
-- Intent: `readFontProgram` reads `FontFile` and a bare `FontFile3` into the resource, and then
-  `TypeFace.create` refuses both, so every document that embeds a Type1 or CFF program is drawn
-  with a system face that is not the one it embedded. That covers most of what Adobe tools, TeX
-  distributions and a large share of Google Fonts produce. The substitution path is good enough
-  that this failure is invisible — the page is subtly not the document, and nothing reports it.
-- Complete when: an embedded Type1 or CFF program produces the glyphs the file addresses, and
-  `fontprogram.test.swg` shows the corpus reaching those glyphs rather than a substitute.
-- Related: [T-068](todo.truetype.md#t-068--opentype-cff-outlines-are-rejected), which is where the
-  charstring interpreter belongs; this entry is the PDF-side addressing that sits on top of it —
-  name-keyed simple fonts, and CID-keyed CFF reached through its charset.
 
 ### T-442 — Type3 fonts are not decoded
 

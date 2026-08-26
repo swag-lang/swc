@@ -15,9 +15,10 @@ layout.
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.
 
-Several entries are owned by `bin/std` rather than by sVaultDrive. Locked key memory is a
-standard-library primitive that happens to have been discovered here; it must not be reimplemented
-locally.
+Locked key memory is a standard-library primitive that happens to have been discovered here; it
+must not be reimplemented locally. The roadmap keeps the product adoption and its observable
+security result together, while a standalone standard-library optimization belongs to the owning
+module's roadmap.
 
 ---
 
@@ -33,15 +34,6 @@ locally.
 - Related: a bounded cache is also the natural place to put an explicit memory budget, which any
   later working-set investigation will need.
 
-## Tier A — Cryptographic throughput
-
-### T-252 — Independent Argon2 lanes run serially
-
-- Owner: `bin/std` (`bin/std/modules/core/src/crypto/`)
-- Run lanes within each legal slice through `Jobs`, respecting Argon2's synchronization points and
-  measuring the configured `parallelism` contract.
-- Related: T-251 in [todo.simd.md](todo.simd.md)
-
 ## Tier A — Key and release security
 
 ### T-089 — Keys live in pageable memory
@@ -51,26 +43,13 @@ locally.
   minidump can capture the master key. VeraCrypt locks its key pages.
 - Fix: provide a locked-memory allocation in `bin/std` and require sVaultDrive's unwrapped keys to use
   it. Keep dump exclusion and lifecycle wiping independently testable.
-- Related: T-253, T-254, T-255
+- Related: T-253
 
 ### T-253 — Key pages are not excluded from Windows crash dumps
 
 - Owner: sVaultDrive
 - Register key regions for exclusion from Windows Error Reporting dumps and verify the configured
   dump policy.
-- Related: T-089
-
-### T-254 — Session lock does not wipe mounted keys
-
-- Owner: sVaultDrive
-- On workstation/session lock, unmount or wipe every live key according to an explicit failure
-  policy.
-- Related: T-089
-
-### T-255 — System suspend does not wipe mounted keys
-
-- Owner: sVaultDrive
-- Handle suspend independently of session lock and wipe or unmount before sleep completes.
 - Related: T-089
 
 ### T-090 — The executable is not signed
@@ -122,14 +101,6 @@ locally.
   export must cover the key slot area as well, because that is now where the master key lives.
 - Document the trap VeraCrypt also documents: restoring a backed-up header reinstates the passwords
   that were current when the backup was taken.
-
-### T-095 — Keyfiles
-
-- Owner: sVaultDrive
-- Key slots exist, so this is now only mixing: the slot key derives from the password combined with
-  a hash of the keyfiles, under a deterministic ordering. `Core.Crypto.argon2id` already accepts a
-  secret and an associated-data input for exactly this. PKCS#11 tokens are a further step and can
-  wait.
 
 ## Tier B — Filesystem concurrency
 
@@ -202,14 +173,14 @@ locally.
   `Core.File`, plus the WinFsp layer and the mount-point selector. Everything above them — the
   container format, the logical filesystem, the password widget — is platform-independent already.
   Real work, no design risk.
-- Related: T-265, T-307
+- Related: T-265
 
 ### T-265 — No macOS filesystem backend
 
 - Owner: sVaultDrive
 - Add the macOS mount backend and packaging independently of Linux, choosing the supported FUSE or
   native filesystem mechanism explicitly.
-- Related: T-100, T-307
+- Related: T-100
 
 ### T-101 — External audit
 

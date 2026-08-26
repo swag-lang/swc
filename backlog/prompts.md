@@ -247,9 +247,11 @@ zero, overflow, null dereference, constant out-of-bounds, undefined read, use af
 after move) in src/Backend/Sanitizer/Checks. Tests live in bin/unittests/sanity - borrow_escape,
 borrow_invalidation, collection_mutation - and bin/unittests/safety.
 
-What is left is precision, and every open item is written down as a finding: a view judged by
-source order rather than by control flow (F-041), views into a global owner's payload never judged
-(F-042), and a backend check the language rule has made unreachable from source (F-043).
+What is left is precision, and the live entries in `backlog/findings.safety.md` are the authority.
+They currently include control-flow-insensitive reads (F-041), parameter-owned views (F-088),
+macro and inline expansions judged against the wrong body (F-089), and a backend check the
+language rule has made unreachable from source (F-043). Re-read that file before choosing a round;
+do not preserve this summary after an entry moves or is retired.
 
 THE LOOP
 
@@ -724,13 +726,24 @@ Build an inventory before the first fix:
      suspicious expected failures, stale `.actual.txt`/`.actual.png` snapshots, crash dumps, and
      scratch names. Exclude vendored sources and generated outputs from conclusions, not from the
      initial inventory.
-  3. Read every todo and finding against the current code and tests. Remove completed or invalid
-     entries, merge duplicates, refresh stale evidence and next steps, move entries to the area in
-     which they will be fixed, and preserve permanent identifiers.
+  3. Rebuild the backlog from repository reality, file by file; do not merely proofread its prose
+     or assume a recently edited entry is current. For every `todo.*.md`, verify each claim against
+     the current implementation, tests, documentation, and relevant Git history. Delete shipped or
+     invalid outcomes even when their entry contains useful history; history belongs in Git. Cut a
+     partly completed entry down to one independently finishable result, split unrelated remaining
+     results under fresh identifiers, move work to the unit that owns it, refresh acceptance
+     conditions, and re-evaluate semantic priority. For every `findings.*.md`, verify that the
+     observation still reproduces or that the cited code still proves it, refresh stale paths,
+     measurements, commands, and next steps, merge duplicates, delete resolved leads, move the
+     entry to the area where it will be fixed, and graduate decided intent into a fresh todo while
+     retiring the finding identifier. Audit files with no recent commit too, and delete empty
+     category files rather than treating their existence as coverage.
   4. Check backlog invariants mechanically: unique F/T identifiers, ascending finding identifiers,
      `Next identifier` counters above every allocated identifier, valid Markdown anchors and file
-     links, no dangling cross-reference, and no undocumented backlog file. Todo order expresses
-     value and must be judged semantically, not sorted by identifier.
+     links, no dangling live cross-reference, and no undocumented backlog file. A `Related:` line
+     names live entries only; a retired identifier may remain solely as explicit historical
+     provenance. Todo order expresses value and must be judged semantically, not sorted by
+     identifier.
   5. Check repository instructions, READMEs, public API documentation, the language reference,
      examples, command help, and website prose against the code that exists now. Update every stale
      command, count, name, guarantee, prerequisite, or link you find.
@@ -738,6 +751,11 @@ Build an inventory before the first fix:
 If an invariant can regress silently and no automated check protects it, add the smallest useful
 check to the repository tooling or tests. The next health reset should not need to rediscover the
 same class of problem manually.
+
+Repeat the complete todo/finding pass after the last source, test, or documentation fix. A health
+reset changes the facts the backlog describes, so an audit performed only at the start is stale by
+construction. In the live campaign table, record every backlog entry removed, narrowed, split,
+moved, or refreshed, plus the code/test evidence used to keep every entry that remains.
 
 FORMAT AND REGENERATE, THEN REVIEW THE DIFF
 

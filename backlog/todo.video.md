@@ -173,45 +173,25 @@ is the layout it does not read yet.
 - Complete when: the serial cost of one 3840x2160 picture is within a third of FFmpeg's on the same
   machine.
 
-### T-569 — A bounded sound window carries playback until the packet tables arrive
+### T-569 — Refreshing a bounded sound window interrupts playback
 
-- Intent: a Matroska file states its sound in clusters spread through the whole file, so the
-  complete packet tables cost a walk of every byte of it — 171 seconds for a 4.6 GB film on a
-  network share, against 1.9 once the operating system holds it. Until they arrive, sound comes
-  from a bounded window built around the position being played, and that window has to keep up
-  with the picture on its own.
-- Where it stands (2026-08-25): the window carries sixty seconds and is rebuilt when the picture
-  comes within twenty of its end, which is one rebuild about every forty seconds of playback and
-  costs 110 to 140 ms on the thread that decodes — absorbed by the run-ahead queue. Before this it
-  was built once, and only around a seek: sound played for the two seconds the opening window
-  happened to hold, then stopped for the rest of the film. Verified over two minutes of playback
-  and across a seek: the window slid 0-60, 38-101, 80-142 and never stopped covering the picture.
-- **What a larger film across a network share cost, and what it costs now (2026-08-26)**: on an
-  8.5 GB 3840x2076 film on an SMB share, one rebuild takes **1300 to 2200 ms**, not the 110 to
-  140 measured on a smaller file. Built on the thread that decodes, that emptied the run-ahead
-  queue twice a minute, and each time the player found itself two seconds behind and skipped to
-  the next key picture — which on a stream that marks one every ten seconds is a visible jump.
-  The walk now waits on its own thread: the picture path asks for a window and carries on, one
-  build at a time, and the picture that wanted it asks again after its retry delay. Playback of
-  that film holds a full queue at twenty-four pictures a second where it used to drain every
-  twenty seconds. The seek path still builds its window in place, which is where a reader
-  expects to wait.
-- What the same measurement leaves unexplained: once in about forty seconds of that film the
-  producer still delivers nothing for a second, always at the same picture. It is not in the
-  reader — with every step of `seekFrame` and the decode itself timed, nothing in that second
-  exceeded 231 ms — and it is not the background packet scan, which changes nothing when it is
-  disabled. What the same run does show is 33 pictures out of 840 costing 120 to 230 ms against
-  a budget of 41, which is T-563 rather than this entry.
-- What it costs the listener, and what would remove it: every rebuild publishes a new sound file,
-  so the player builds a new voice and the sound is interrupted for as long as that takes. The
-  window slides rather than grows because a packet table cannot be extended once opened —
-  `Audio.SoundFile.openPacketStream` takes its packets by value and the voice reads them with no
-  lock. An append that a playing voice can survive would let one window grow instead, and the
-  seam would disappear along with the rebuild.
-- Also worth doing: every window published stays alive until the file is closed, since a caller
-  may still hold a pointer into the previous one. That is bounded in practice — the complete
-  tables end the rebuilds after a few minutes — but nothing retires them.
-- Related: T-563
+- Intent: the sixty-second Matroska sound window now rebuilds asynchronously and keeps the picture
+  queue full even when an SMB scan takes 1.3 to 2.2 seconds, but every rebuild publishes a new
+  `SoundFile`, so the player replaces its voice and the listener still hears the seam.
+- Complete when: the packet window can grow or hand off without replacing the playing voice, and
+  a long network-share playback crosses several refresh boundaries without an audio interruption.
+- Constraint: `Audio.SoundFile.openPacketStream` currently takes its packet table by value and a
+  voice reads it without a lock. The ownership and synchronization contract must change before a
+  playing stream can observe appended packets safely.
+- Related: T-570
+
+### T-570 — Retired sound windows remain alive until the video closes
+
+- Intent: release superseded bounded `SoundFile` windows as soon as no player or decoder can still
+  hold a pointer into them; today every published window stays alive until the whole file closes.
+- Complete when: window ownership makes the last consumer observable, several refreshes keep only
+  the active and genuinely referenced windows, and a seek cannot read freed packet storage.
+- Related: T-569
 
 ### T-425 — An AVI larger than four gigabytes is refused
 
@@ -442,58 +422,6 @@ is the layout it does not read yet.
   the same machine.
 - Related: T-504
 
-### T-565 — MPEG-4 Part 2 in Matroska is delivered; the AVI files are not
-
-- Delivered 2026-08-25. The decoder reads I, P and B video object planes, half-sample motion, four
-  motion vectors a macroblock, unrestricted vectors, intra AC/DC prediction, video packets, and
-  both the H.263 and MPEG quantisers. Matroska reads it under `V_MPEG4/ISO/ASP` and under
-  `V_MS/VFW/FOURCC`, where a bitmap header names the codec by four characters.
-- Measured against FFmpeg: the two 96x64 fixtures decode to a mean absolute difference of 0.069 and
-  0.028 with no sample off by more than 2, and all seventeen MPEG-4 Part 2 Matroska files of the
-  library measured below decode their first forty pictures at a mean of at most 0.053 with no
-  sample off by more than 3 — six of them bit for bit. What remains is the inverse transform, which
-  clause A.1 does not state bit-exactly, so two conforming decoders drift along a chain of
-  predicted pictures. One 720x272 file was checked to 120 pictures: mean 0.045, worst 4.
-- The tables came from `OxideAV/oxideav-mpeg4video` under the MIT licence, checked entry for entry
-  as `bin/THIRDPARTY.md` records. Tables B.19 to B.22, which bound a coefficient's level and run,
-  were not copied at all: they are derivable from the coefficient tables, and a test rebuilds all
-  four and requires them to agree, which corroborates the coefficient tables independently.
-- Two things a real file needed that the specification alone does not lead to, both found by
-  decoding one and comparing every sample:
-  - A stream muxed from a format that states no decoding order **packs**: one sample carries a
-    predicted plane and the bidirectional plane shown before it, and a plane that codes nothing
-    pads the sample that plane would have taken. Display order therefore has to come from the clock
-    the stream states, not from container timestamps, which are stored in decoding order there.
-  - In a bidirectional plane the forward and backward vector predictors start over **at every row
-    of macroblocks**, not only at the plane and at each video packet. Getting this wrong costs no
-    bits, so nothing desynchronises and the pictures are merely, quietly, slightly wrong.
-- The six AVI files of the twenty-three were delivered the same day through T-566; one of those is
-  refused for a reason that has nothing to do with this codec, so twenty-two of twenty-three now
-  decode.
-- Also still open: a container whose picture codec is unsupported could expose its sound tracks
-  instead of failing to open. That is what the one RealVideo file and the twenty-two DTS tracks
-  need.
-- Measured, not guessed (2026-08-25, 592 films of one personal library, header probe only):
-  H.264 531, H.265 37, **MPEG-4 Part 2 23**, RealVideo 1. On the sound side, AC-3 659, AAC 296,
-  E-AC-3 53, DTS 22, Layer III 21, FLAC 2, Vorbis 2, TrueHD 2.
-- Related: T-562, T-566
-
-### T-566 — AVI reads MPEG-4 Part 2; one file of the library still needs OpenDML
-
-- Delivered 2026-08-25, the same day the Matroska side was. The AVI reader drives the same picture
-  decoder the other containers do, names the codec through the four characters of its bitmap
-  header, reads the setup headers from the front of the first frame because AVI states none of its
-  own, and takes clean decode points from the `AVIIF_KEYFRAME` flag of the index. The mapping from
-  four characters to a picture codec is shared with Matroska in `decode/videoforwindows.swg`
-  rather than repeated.
-- `ffmpeg-mpeg4-packed.avi` is the fixture: the same 96x64, 60-picture content as the other MPEG-4
-  fixtures, muxed into AVI so that packing, in-stream setup headers, and the index are all read.
-  It decodes at a mean absolute difference of 0.053 with no sample off by more than 2.
-- Of the six AVI files of the library measured in T-565, five decode — one of them bit for bit over
-  forty pictures, the rest at a mean of at most 0.0024. The sixth is refused before any picture is
-  read, with `AVI chunk runs past the end of the stream`: it is an OpenDML file of 1.16 GB with no
-  `idx1`, which is T-425 rather than anything to do with this codec.
-
 ### T-567 — Interlaced H.264 is the last picture feature a real library asks for
 
 - Measured 2025-08-25 over 592 films of one personal library, twelve pictures each against FFmpeg:
@@ -513,4 +441,4 @@ is the layout it does not read yet.
   anything this module reads.
 - It is recorded because the sweep found it, not because it is worth writing: one film against a
   codec of that size is a poor trade, and remuxing that one file is the cheaper answer.
-- Related: T-565
+- Related: T-571 in [todo.filescope.md](todo.filescope.md)

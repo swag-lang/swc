@@ -148,7 +148,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | Other encodings | UTF-16/32, Windows-1252 | full, detected and overridable | the multi-byte pages: Shift-JIS, GBK, EUC | — |
 | Source code | registered extensions, common build/config names, and shebang scripts | full, lexer coloring | — | — |
 | Markdown | `.md` `.markdown` | full | — | — |
-| HTML | `.html` `.htm` `.xhtml` | full | box model | T-387 |
+| HTML | `.html` `.htm` `.xhtml` | full | advanced layout, SVG and CSS effects | [HTML roadmap](todo.html.md) |
 | JSON, XML, YAML, TOML | `.json` `.xml` `.yaml` `.toml` | code | folding and value tree | — |
 | Diff and patch | `.diff` `.patch` | text | hunk coloring and navigation | T-408 |
 | Log | `.log` | text | level coloring, timestamps, tail | T-409 |
@@ -202,7 +202,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | ZIP family | `.zip` `.jar` `.apk` `.vsix` | central directory only | open an entry inside the archive | T-403 |
 | Other archives | `.7z` `.rar` `.tar` `.gz` `.xz` `.zst` `.cab` `.msi` | signature | listing, `tar`/`gzip` first | T-403 |
 | TrueType fonts | `.ttf` `.ttc` | specimen and character map, first face | collection face selector | — |
-| CFF and web fonts | `.otf` `.woff` | structure | CFF outlines and WOFF containers | T-177, T-178 |
+| CFF and web fonts | `.otf` `.woff` `.woff2` | OTF specimen; WOFF/WOFF2 structure | WOFF containers | T-177, T-178 |
 | Program databases | `.pdb` | signature | MSF stream directory, CodeView match | T-413 |
 | Databases | `.sqlite` `.db` | signature | schema and table browse | T-410 |
 | Certificates and keys | `.pem` `.der` `.crt` `.p12` | none | ASN.1 and X.509 decode | T-411 |
@@ -221,7 +221,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
   not represent in localized text beside it rather than as a raw module error, and keeps page
   navigation working across a page it could only partly decode.
 - Note: never execute an embedded action, and keep interactive form filling out of the viewer.
-- Related: T-431, T-441, T-447
+- Related: T-431, T-447
 
 ### T-402 — The table viewer is bounded to 32 MiB
 
@@ -320,6 +320,16 @@ viewer" claim is currently weakest. Read the `Today` column as:
   the binary line for playback while T-412 keeps the structure reader available as a second
   viewer. Opus and Vorbis use `std/audio` and stay synchronized with the picture.
 - Related: T-412, T-166, T-168
+
+### T-571 — An unsupported picture codec hides sound tracks the application can play
+
+- Intent: a container currently fails as a video document when its picture codec is unavailable,
+  even if one of its sound tracks has a registered decoder. The measured library exposes this with
+  its single RV40 film; future partial codec coverage must not turn supported audio into no output.
+- Complete when: sFileScope offers a sound-only view for every decodable track when no picture
+  track can be decoded, states that the picture is unavailable, and keeps ordinary video playback
+  unchanged when both sides are supported.
+- Related: T-568 in [todo.video.md](todo.video.md), T-562 in [todo.audio.md](todo.audio.md)
 
 ### T-415 — EPUB stops at the ZIP structure
 

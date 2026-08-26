@@ -13,14 +13,15 @@ ships; history lives in git, not here.
 
 ## Where the module already stands
 
-Twelve tables parsed — `cmap`, `glyf`, `GPOS`, `head`, `hhea`, `hmtx`, `loca`, `maxp`, `name`,
-`post`, `kern`, `OS/2` — plus the `ttcf` collection header. Composite glyphs, a matrix transform,
-outline commands, grayscale rasterization, vertical hinting, and both single- and multi-channel
-signed distance fields. Character map formats 0, 4, 6, 12 and 13, all binary-searched, and format
-14 for variation sequences. Kerning from the `GPOS` `kern` feature, with the legacy `kern` table as
-the fallback. A `Face`/`GlyphSlot` model that mirrors FreeType closely enough to be familiar on
-sight, and eleven test files covering collections, composites, hinting, kerning, lifecycle,
-outlines, parsing and rendering.
+Twelve TrueType tables parsed — `cmap`, `glyf`, `GPOS`, `head`, `hhea`, `hmtx`, `loca`, `maxp`,
+`name`, `post`, `kern`, `OS/2` — plus the `ttcf` collection header, OpenType and bare CFF programs,
+and Type 1 programs. The outline path handles quadratic `glyf` contours and cubic Type 1/Type 2
+charstrings, composite glyphs, matrix transforms, grayscale rasterization, vertical hinting, and
+both single- and multi-channel signed distance fields. Character map formats 0, 4, 6, 12 and 13
+are binary-searched, with format 14 for variation sequences. Kerning comes from the `GPOS` `kern`
+feature, with the legacy `kern` table as fallback. A `Face`/`GlyphSlot` model mirrors FreeType
+closely enough to be familiar on sight, with tests covering collections, charstrings, composites,
+hinting, kerning, lifecycle, outlines, parsing and rendering.
 
 A collection is also searchable without being loaded: `Face.familyNameAt` reads one member's offset
 table and `name` table and nothing else, so finding one face of `msgothic.ttc` costs a name lookup
@@ -37,23 +38,11 @@ The gaps are about coverage: which fonts load at all, and whether text is positi
 
 ## Tier A — Font containers and outlines
 
-### T-068 — OpenType CFF outlines are rejected
-
-- `ttcf` collections now load, but `OTTO` OpenType faces with CFF outlines are rejected by name.
-  Every Adobe font, a large share of Google Fonts, and many system fonts use CFF rather than
-  `glyf`.
-- This is not theoretical, and it reaches the applications. `TypeFace.createFromHfont` in
-  `bin/std/modules/pixel/src/text/typeface.win32.swg` hands `Face.load` whatever GDI returns for an
-  installed font, and for an OpenType font that buffer starts with `OTTO`. Any user-installed OTF
-  is refused, by name, and there is nothing above this module that can do anything about it.
-- Add a CFF charstring interpreter that produces the same `Outline` as the `glyf` loader.
-- Related: T-177, T-178
-
 ### T-177 — WOFF containers are rejected
 
 Add WOFF decompression over the existing face parser using `Core`'s zlib support.
 
-- Related: T-068, T-178
+- Related: T-178
 
 ### T-178 — WOFF2 containers are rejected
 
@@ -158,7 +147,8 @@ Implement Thai mark ordering and positioning independently of Arabic and Indic s
 - No `fvar`, `gvar`, `avar` or `HVAR`. A variable font loads only at its default instance, so a
   single file that should provide a whole weight and width range provides one static face.
 - Variable fonts are now the normal shipping form for large families, so this is a coverage gap
-  rather than an exotic feature. It depends on T-068 for CFF2-based variable fonts.
+  rather than an exotic feature. CFF2 variation data is part of this entry; the CFF1 charstring
+  support already in the module is only its static foundation.
 
 ### T-071 — No COLR/CPAL layered color glyphs
 

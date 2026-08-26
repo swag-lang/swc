@@ -64,7 +64,7 @@ Track both native source lines and, more importantly, native capabilities a new 
 thread storage, context/address capture, image/debug-section access, byte output, library loading,
 and process termination; keep only those irreducible operations in the Windows leaf.
 
-- Related: T-268, T-269, T-270, T-271
+- Related: T-270, T-271
 
 ### T-270 — Linux page-allocation primitives do not exist
 
@@ -73,7 +73,7 @@ The present non-Windows allocator fallbacks are not equivalent: `@alloc` cannot 
   Implement `mmap`/protection/release semantics and thread-exit
   cleanup exist.
 
-- Related: T-165, T-269
+- Related: T-165
 
 ### T-271 — Runtime startup cannot accept an argument vector
 
@@ -139,14 +139,14 @@ Preserve the stronger resource contract deliberately. Windows Job Objects accoun
 Add filesystem conformance tests on each host for Unicode names, links, permissions, partial I/O,
 and recursive traversal.
 
-- Related: T-132, T-282, T-283, T-329
+- Related: T-132, T-329
 
 ### T-329 — Paths have no target-independent lexical conformance suite
 
 Test root forms, case policy, trailing separators, dot segments, invalid names, and normalization
 without touching the filesystem.
 
-- Related: T-107, T-281, T-285
+- Related: T-285
 
 ---
 
@@ -158,8 +158,6 @@ Keep `Pixel.Image` conversions to `HICON`/`HBITMAP`, `Gui.Surface.win32Handle`, 
   virtual-key conversion as optional Windows interop, not methods required of every target.
   Portable callers should use images, opaque render handles, `Input.Key`, and normalized events.
 
-- Related: T-108, T-110
-
 ### T-288 — Desktop actions and application registration share one environment API
 
 Separate generic desktop actions (`openUrl`, reveal a path, enumerate monitors, locale, special
@@ -167,7 +165,7 @@ Separate generic desktop actions (`openUrl`, reveal a path, enumerate monitors, 
   window creation). Registration belongs in an application-integration module with an explicit
   capability/failure contract, not in the portable core environment namespace.
 
-- Related: T-108, T-135
+- Related: T-135
 
 ## Tier B — Installed-font discovery
 
@@ -223,8 +221,6 @@ Give single-instance/application messaging a portable contract. The Windows back
   `FindWindow`/`SendMessage`; another backend may use a local socket or bus. The public identifier,
   payload, delivery, timeout, and failure semantics must be the same.
 
-- Related: T-110
-
 ## Tier B — Portable image and surface policy
 
 ### T-293 — System-icon retrieval and caching are coupled in native GUI code
@@ -232,8 +228,6 @@ Give single-instance/application messaging a portable contract. The Windows back
 Split `Application`'s system-icon code into a native operation that obtains one image and common
   Swag that caches it, resizes it, appends it to an atlas, and returns a GUI `Icon`. Do the same for
   each cache consumer without making unrelated shell behavior part of this entry.
-
-- Related: T-294, T-295
 
 ### T-296 — Clipboard image conversion can grow backend-specific codecs
 
@@ -255,7 +249,7 @@ Keep `Surface` position clamping, headless fallbacks, state updates, and command
   and window-manager events, manage clipboard/drag/drop/tray integration, and expose an opaque
   renderer handle.
 
-- Related: T-045, T-110, T-294
+- Related: T-045
 
 ## Tier B — Backend selection and scheduling
 
@@ -265,7 +259,7 @@ Replace the repeated `#os == Windows` dispatch in `driver/backend.swg` with a ba
   operation table. Driver selection, validation, voice/bus lifecycle, streaming-buffer rotation,
   gain conversion, state transitions, and codec work stay common; XAudio2 is one implementation.
 
-- Related: T-066, T-111, T-299
+- Related: T-066, T-299
 
 ### T-299 — The no-sound backend is not the explicit portable fallback contract
 
@@ -289,8 +283,6 @@ Implement lifecycle, periodic rescheduling, callback/context dispatch, and cance
 
 Reject raw OS imports and native-constant comparisons outside named application backends and
 platform integration tests.
-
-- Related: T-113, T-306
 
 ---
 

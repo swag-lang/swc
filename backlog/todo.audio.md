@@ -31,6 +31,22 @@ effects, no capture.
 
 ## Tier A — Compressed audio formats
 
+### T-562 — No DTS decoder
+
+- Problem: a film track that is not Dolby is usually DTS, and the module decodes nothing of it.
+  Matroska and ISO-BMFF both index the packets already, so what is missing is the codec alone.
+- How much it is worth, measured (2026-08-25, 592 films of one personal library): 22 DTS tracks,
+  against 659 AC-3, 296 AAC, 53 E-AC-3 and 21 Layer III. It is the largest remaining sound gap and
+  a small one; see T-571 in [todo.filescope.md](todo.filescope.md) for the viewer behavior when a
+  container's picture codec is unavailable.
+- Consequence: a `.mkv` whose only audio track is DTS plays silently, and the reader reports the
+  track as unavailable rather than wrong — correct, and still a file the user cannot hear.
+- What blocks it beyond the work itself: there is no fixture. FFmpeg's DTS encoder is experimental
+  and the PyAV build on this machine does not expose it at all, so the six-tone recipe every other
+  audio fixture here uses cannot produce one. Settle that first — an encoder that can be run
+  reproducibly, or a permissively licensed conformance stream with a stated origin — because a
+  decoder with no reference decodes into an opinion.
+
 ### T-166 — No Ogg Vorbis decoder
 
 Add Ogg framing and Vorbis decoding behind `ICodec`, including streaming and seek-table behavior.
@@ -57,6 +73,21 @@ completion.
 
 Implement the declared `WAVE_FORMAT_ADPCM` path independently of adding compressed music
 containers.
+
+### T-564 — MP3 costs more per frame than it needs to, and ISO-BMFF does not carry it
+
+- Intent: Layer III decodes correctly at every sampling frequency of the three versions, within
+  2.3e-5 of full scale of FFmpeg. Nothing about its speed has been measured, and its ISO-BMFF
+  carriage is not read; Matroska carriage is complete.
+- What is slow by construction, and was written that way on purpose: the inverse transform is the
+  normative matrix, 648 multiplications a subband where a factored transform needs a fraction of
+  that, and the polyphase bank is the normative 64 by 32 matrixing per block. Both are stated in
+  `synthesis.swg` exactly as clause 2.4.3.4.10 states them, which is what made them checkable.
+  `Math.pow` also computes every magnitude above fifteen. Measure before replacing any of it: at
+  128 kbit/s a frame is 26 ms of audio and the whole decode may already be far below that.
+- What is not carried: an ISO-BMFF `mp4a` entry whose object type is 0x69 or 0x6B is Layer III,
+  and `mp4.swg` rejects every object type but AAC's 0x40.
+- Related: T-562
 
 ## Tier A — Playback control
 
@@ -206,32 +237,3 @@ shipped with a compiler. Normative tables are a separate question from code: Lay
 recovered from two public-domain implementations and checked against each other, with the
 provenance in `bin/THIRDPARTY.md`; a table is a fact of the format, a decoder is expression.
 
-### T-562 — No DTS decoder
-
-- Problem: a film track that is not Dolby is usually DTS, and the module decodes nothing of it.
-  Matroska and ISO-BMFF both index the packets already, so what is missing is the codec alone.
-- How much it is worth, measured (2026-08-25, 592 films of one personal library): 22 DTS tracks,
-  against 659 AC-3, 296 AAC, 53 E-AC-3 and 21 Layer III. It is the largest remaining sound gap and
-  a small one; see T-565 for the same measurement on the picture side.
-- Consequence: a `.mkv` whose only audio track is DTS plays silently, and the reader reports the
-  track as unavailable rather than wrong — correct, and still a file the user cannot hear.
-- What blocks it beyond the work itself: there is no fixture. FFmpeg's DTS encoder is experimental
-  and the PyAV build on this machine does not expose it at all, so the six-tone recipe every other
-  audio fixture here uses cannot produce one. Settle that first — an encoder that can be run
-  reproducibly, or a permissively licensed conformance stream with a stated origin — because a
-  decoder with no reference decodes into an opinion.
-
-### T-564 — MP3 costs more per frame than it needs to, and two containers do not carry it
-
-- Intent: Layer III decodes correctly at every sampling frequency of the three versions, within
-  2.3e-5 of full scale of FFmpeg. Nothing about its speed has been measured, and two ways of
-  carrying it are not read.
-- What is slow by construction, and was written that way on purpose: the inverse transform is the
-  normative matrix, 648 multiplications a subband where a factored transform needs a fraction of
-  that, and the polyphase bank is the normative 64 by 32 matrixing per block. Both are stated in
-  `synthesis.swg` exactly as clause 2.4.3.4.10 states them, which is what made them checkable.
-  `Math.pow` also computes every magnitude above fifteen. Measure before replacing any of it: at
-  128 kbit/s a frame is 26 ms of audio and the whole decode may already be far below that.
-- What is not carried: an ISO-BMFF `mp4a` entry whose object type is 0x69 or 0x6B is Layer III,
-  and `mp4.swg` rejects every object type but AAC's 0x40. The Matroska side is done.
-- Related: T-562

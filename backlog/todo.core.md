@@ -108,21 +108,19 @@ completion criteria.
 Add process creation, waiting, termination, pipes, exit status, and resource semantics for the
 chosen second platform. The common-policy extraction is tracked separately in T-106 and T-277.
 
-- Related: T-103, T-106, T-277, T-280
+- Related: T-106, T-277, T-280
 
 ### T-132 — Filesystem services have no second-platform backend
 
 Implement directory, file, stream, metadata, path-state, and mutation primitives for the chosen
-second platform behind the contract prepared by T-107, T-282, and T-283.
-
-- Related: T-107, T-282, T-283
+second platform behind the existing common orchestration and path contracts.
 
 ### T-133 — Threads have no second-platform backend
 
 Implement thread creation, start, join, yield, sleep, identity, and priority for the chosen second
 platform without copying common lifecycle policy into the native leaf.
 
-- Related: T-300, T-312
+- Related: T-312
 
 ### T-312 — Synchronization primitives have no second-platform backend
 
@@ -135,7 +133,7 @@ portable contracts.
 
 Implement wall-clock fields and monotonic ticks for the chosen second platform.
 
-- Related: T-302, T-313
+- Related: T-313
 
 ### T-313 — Timers have no second-platform backend
 
@@ -149,14 +147,12 @@ scheduler in T-301.
 Implement environment variables, arguments, locale, special directories, and generic desktop
 actions for the chosen second platform.
 
-- Related: T-271, T-278, T-279, T-288
+- Related: T-271, T-279, T-288
 
 ### T-136 — Native errors have no second-platform mapping
 
 Map the second platform's error domain into the portable `core` failure contract, preserving native
 detail without leaking native codes into portable callers.
-
-- Related: T-103
 
 ### T-137 — The sandbox has no second-platform backend
 
@@ -170,14 +166,10 @@ platform independently of general environment services.
 Implement the portable CPU, memory, display-adjacent, and machine capability queries currently
 provided only by Windows.
 
-- Related: T-103
-
 ### T-139 — Console I/O has no second-platform backend
 
 Implement terminal encoding, capability, color, prompt, and byte output for the chosen second
-platform behind the common formatting work in T-303.
-
-- Related: T-303
+platform behind the existing common formatting layer.
 
 ### T-140 — Stack capture has no second-platform backend
 
@@ -189,9 +181,9 @@ runtime host boundary.
 ### T-342 — Debug-symbol access has no second-platform backend
 
 Locate and read the target's debug information for captured addresses, leaving parsing and
-presentation common under T-328.
+presentation in the existing common layer.
 
-- Related: T-140, T-328
+- Related: T-140
 
 ### T-314 — Debugger integration has no second-platform backend
 
@@ -205,11 +197,17 @@ independently of stack-symbol presentation.
 Implement keyboard and gamepad acquisition for the chosen second platform while keeping normalized
 state and policy in common code.
 
-- Related: T-112
-
 ---
 
 ## Tier B — Cryptography
+
+### T-252 — Independent Argon2 lanes run serially
+
+- Intent: run independent lanes within each legal slice through `Jobs`, respecting Argon2's
+  synchronization points and the configured `parallelism` contract.
+- Complete when: multi-lane published vectors still agree, the requested lane count executes in
+  parallel, and a benchmark separates the lane-parallel gain from the packed permutation work.
+- Related: T-251 in [todo.simd.md](todo.simd.md)
 
 ### T-031 — No AES implementation
 

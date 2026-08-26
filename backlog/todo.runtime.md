@@ -138,7 +138,7 @@ Implement equivalents of `allocatorOsCommit`, `allocatorOsDecommit`, page protec
 thread-exit cleanup before enabling the page path on another target. The compiled fallbacks are
 placeholders, not an implementation.
 
-- Related: T-025, T-269, T-270
+- Related: T-025, T-270
 
 ### T-026 — Decide what the security properties are, and write them down
 

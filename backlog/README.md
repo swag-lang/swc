@@ -16,9 +16,9 @@ graduates into a plan moves to the matching `todo.*` file and disappears from th
 
 [prompts.md](prompts.md) is a third kind of file: one copy-pasteable prompt per long-running
 campaign — generated-code performance, safety, compiler code mass, compilation speed, compiler
-memory, and repository health. A campaign spans many sessions and many failed attempts, so each
-prompt states the target, the numbers as they stand, and the condition under which the work is
-allowed to stop.
+memory, repository health, and compiler code cleanup. A campaign spans many sessions and many
+failed attempts, so each prompt states the target, the numbers as they stand, and the condition
+under which the work is allowed to stop.
 
 ## Intent
 
@@ -56,7 +56,6 @@ allowed to stop.
 | [findings.safety.md](findings.safety.md) | Borrow, lifetime, and sanity analysis |
 | [findings.gui.md](findings.gui.md) | `std/gui`, and the widgets and dialogs it ships |
 | [findings.html.md](findings.html.md) | The HTML engine behind `Gui.HtmlView` |
-| [findings.pdf.md](findings.pdf.md) | The PDF engine and `PdfView` inside `std/gui` |
 | [findings.pixel.md](findings.pixel.md) | `std/pixel`: images, text, and rendering |
 | [findings.win32.md](findings.win32.md) | Windows native modules and their checked API boundary |
 | [findings.filescope.md](findings.filescope.md) | The sFileScope application |
@@ -87,7 +86,7 @@ another backlog entry, in a code comment. A title gets rewritten, a position mov
 changes file; the identifier does not.
 
 Next identifier: F-203
-Next identifier: T-570
+Next identifier: T-572
 
 - Take the next identifier of the matching kind from the lines above, then advance that line. Each
   is a counter, not an entry count: it keeps rising as entries are deleted. The `F` counter is

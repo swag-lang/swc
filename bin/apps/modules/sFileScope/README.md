@@ -7,11 +7,11 @@ active viewer gets a dedicated tool band below it, visible only when that viewer
 
 ## Integrated viewer registry
 
-`src/viewerindex.swg` is the only registry. It binds each stable key, display name, glyph, and set
-of lowercase extensions or exact file names directly to a `ViewerCreate` function compiled into
-sFileScope. Image, video, and sound selectors are derived from their modules' decoder registries,
-so their application coverage cannot drift behind the formats the modules expose. There is no
-runtime index, dynamic library, exported entry point, or versioned ABI.
+`src/viewerindex.swg` is the only registry. It binds each stable key, display name, glyph, smoke
+fixture, and set of lowercase extensions or exact file names directly to a `ViewerCreate` function
+compiled into sFileScope. Image, video, and sound selectors are derived from their modules' decoder
+registries, so their application coverage cannot drift behind the formats the modules expose.
+There is no runtime index, dynamic library, exported entry point, or versioned ABI.
 
 Several viewers may claim the same extension. The selector lists format-specific viewers first,
 `Basic text` next when the file is readable UTF-8, then the `Binary` and `Hexadecimal` fallbacks,
@@ -107,13 +107,16 @@ it, or clear it entirely. Nothing here writes to the file, and the chooser runs 
 
 Add implementation files under `src/viewers/<format>/`, expose one internal
 `func create<Format>Viewer(const *ViewerRequest, *ViewerResult)`, and add that function with its
-key, name, glyph, and selectors to `createViewerIndex`. The key is lowercase, never translated,
-and never reused: it is the spelling a reader's remembered choice is stored under. The glyph is a
-new 24-unit cell appended to `datas/icons.svg` with a matching `ViewerIcons` case in grid order. Create the document under `request.contentParent` and optional
-compact commands under `request.commandParent`. On decode failure, leave `result.view` null and
-return the exact reason through `result.failureReason`; the application presents every failure on
-the same error surface. A viewer may also provide format details, byte-offset reveal, format-aware
-search, progressive-loading state, and late failure reporting through the shared result contract.
+key, name, glyph, immutable fixture, and selectors to `createViewerIndex`. The fixture lives in
+`src/tests/datas`, is unique to that registry entry, and is a valid file the viewer can open. The
+key is lowercase, never translated, and never reused: it is the spelling a reader's remembered
+choice is stored under. The glyph is a new 24-unit cell appended to `datas/icons.svg` with a
+matching `ViewerIcons` case in grid order. Create the document under `request.contentParent` and
+optional compact commands under `request.commandParent`. On decode failure, leave `result.view`
+null and return the exact reason through `result.failureReason`; the application presents every
+failure on the same error surface. A viewer may also provide format details, byte-offset reveal,
+format-aware search, progressive-loading state, and late failure reporting through the shared
+result contract.
 
 Keep tests at `src/tests/viewer.<format>.test.swg`, fixtures in `src/tests/datas`, and image goldens
 in `src/tests/goldens`. Run a focused test with:
@@ -124,3 +127,9 @@ swc tools/apps.swgs dm test sFileScope --test-file viewer.<format>.test.swg
 
 `swc tools/apps.swgs dm build sFileScope` builds one executable containing all viewers and lets
 the workspace publisher place its standard-module runtime dependencies beside it.
+
+`swc tools/apps.swgs dm smoke sFileScope` opens every registered fixture in order, selects its
+owning viewer explicitly, then reviews the streamed Basic text surface with its own fixture. It
+keeps progressive content visible long enough to exercise late failures, waits while a viewer has
+no presentable content, and returns a nonzero exit code when a fixture is missing or a viewer
+cannot open it.

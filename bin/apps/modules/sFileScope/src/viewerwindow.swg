@@ -22,6 +22,9 @@ const ViewerSearchTextMargin                  = 3.0
 const ViewerSearchOverlayInset                = ViewerSearchGlowInset + ViewerSearchTextMargin
 const ViewerSearchGlowPeriod:   f32           = 1.35
 const ViewerSearchBoundsPoll:   Time.Duration = 16'ms
+const ViewerSmokeStepLimit                     = 300'u32
+const ViewerSmokeExposureSteps                 = 25'u32
+const ViewerSmokeMinimumSteps                  = 2'u32
 
 const ViewerFullScreenRemovedFlags = SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.MaximizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
 const ViewerFullScreenAddedFlags   = SurfaceFlags.NoShadow | SurfaceFlags.TopMost
@@ -370,6 +373,7 @@ struct ViewerWindow
     searchTimer:           #null *Timer
     searchBoundsTimer:     #null *Timer
     loadingTimer:          #null *Timer
+    smokeTimer:            #null *Timer
     searchStream:          File.FileStream
     searchQuery:           String
     searchCarry:           String
@@ -413,6 +417,12 @@ struct ViewerWindow
     fullScreenRestoreFlags:    SurfaceFlags
     fullScreenTopVisible:      bool
     fullScreenBottomVisible:   bool
+    smokeDirectory:            String
+    smokeSpecIndex:            u64
+    smokeWaitSteps:            u32
+    smokeOpened:               bool
+    smokeSelected:             bool
+    smokeRunning:              bool
 }
 
 func reportViewerDetails(view: *Wnd, details: string)
@@ -509,6 +519,12 @@ impl IWnd for ViewerWindow
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
+        if evt.timer == .smokeTimer
+        {
+            .reviewSmokeStep()
+            return
+        }
+
         if evt.timer == .loadingTimer
         {
             .removeTimer(evt.timer)
@@ -837,6 +853,7 @@ impl ViewerWindow
         {
             .backgroundStyle = .Transparent
             .spacing         = 0
+            .hide()
         }
 
         result.commandBar.searchGroup = result.searchGroup
@@ -1188,6 +1205,153 @@ impl ViewerWindow
             .startupTimer = .addTimer(retry ? ViewerRetirePollInterval : 1'ms)
     }
 
+    // Starts the application smoke review. Each registered viewer owns one immutable fixture;
+    // the real window opens them in registry order and explicitly selects the owner, including
+    // the Binary and Hexadecimal viewers that normally appear as alternatives.
+    mtd reviewSmokeFixtures(directory: string)
+    {
+        var absolute = catch Path.absolute(directory) as pathError
+        if pathError != null or !Directory.exists(absolute)
+        {
+            .finishSmokeReview(1, Format.toString("sFileScope smoke fixture directory is missing: %", directory).toString())
+            return
+        }
+
+        .smokeDirectory = #move absolute
+        .smokeSpecIndex = 0
+        .smokeWaitSteps = 0
+        .smokeOpened    = false
+        .smokeSelected  = false
+        .smokeRunning   = true
+        // A 10 ms cadence leaves the viewers' own 4-8 ms progressive timers a dispatch turn
+        // between readiness checks instead of letting the review timer dominate a smoke loop.
+        .smokeTimer = .addTimer(10'ms)
+    }
+
+    private mtd finishSmokeReview(exitCode: s32, message: string)
+    {
+        if @countof(message) do
+            Console.println(message)
+        if .smokeTimer
+        {
+            .removeTimer(.smokeTimer!)
+            .smokeTimer = null
+        }
+        .smokeRunning = false
+        .app().postQuitEvent(exitCode)
+    }
+
+    private mtd waitForSmokeViewer(key, fileName: string)
+    {
+        .smokeWaitSteps += 1
+        if .smokeWaitSteps <= ViewerSmokeStepLimit do
+            return
+
+        .finishSmokeReview(1, Format.toString("sFileScope smoke viewer '%' did not finish '%' after % readiness checks", key, fileName, ViewerSmokeStepLimit).toString())
+    }
+
+    private mtd reviewSmokeStep()
+    {
+        if .smokeSpecIndex > .index.specs.count
+        {
+            .finishSmokeReview(0, Format.toString("sFileScope smoke reviewed % viewers", .index.specs.count + 1).toString())
+            return
+        }
+
+        let basicText = .smokeSpecIndex == .index.specs.count
+        var key       = String.from(BasicTextViewerKey)
+        var fixture   = String.from(BasicTextSmokeFixture)
+        if !basicText
+        {
+            key     = .index.specs[.smokeSpecIndex].key
+            fixture = .index.specs[.smokeSpecIndex].smokeFixture
+        }
+
+        let fileName = Path.combine(.smokeDirectory.toString(), fixture.toString())
+        if !File.exists(fileName)
+        {
+            .finishSmokeReview(1, Format.toString("sFileScope smoke fixture is missing: %", fileName).toString())
+            return
+        }
+
+        var absolute = catch Path.absolute(fileName) as pathError
+        if pathError != null
+        {
+            .finishSmokeReview(1, Format.toString("sFileScope smoke cannot resolve fixture path: %", fileName).toString())
+            return
+        }
+
+        if !.smokeOpened
+        {
+            .smokeOpened = true
+            .queueFile(absolute.toString(), remember: false)
+            return
+        }
+
+        if .currentFile != absolute
+        {
+            .waitForSmokeViewer(key.toString(), fileName.toString())
+            return
+        }
+
+        if !.smokeSelected
+        {
+            var selected = Swag.U32.Max
+            for choice, index in .choices where choice.key == key and (basicText ? choice.kind == .BasicText : choice.kind == .Viewer)
+            {
+                selected = cast(u32) index
+                break
+            }
+
+            if selected == Swag.U32.Max
+            {
+                .finishSmokeReview(1, Format.toString("sFileScope smoke fixture '%' has no '%' viewer", fileName, key).toString())
+                return
+            }
+
+            if !.activateChoice(selected)
+            {
+                .waitForSmokeViewer(key.toString(), fileName.toString())
+                return
+            }
+
+            .smokeSelected = true
+            .smokeWaitSteps = 0
+        }
+
+        if .activeChoiceIndex >= .instances.count
+        {
+            .waitForSmokeViewer(key.toString(), fileName.toString())
+            return
+        }
+
+        let instance = &.instances[.activeChoiceIndex]
+        if !instance.failureReason.isEmpty()
+        {
+            .finishSmokeReview(1, Format.toString("sFileScope smoke viewer '%' cannot open '%': %", key, fileName, instance.failureReason).toString())
+            return
+        }
+
+        let loading  = instance.view and instance.isLoading and instance.isLoading!(instance.view!)
+        let blocking = loading and instance.needsLoadingOverlay and instance.needsLoadingOverlay!(instance.view!)
+
+        // Streaming text already has a presentable first chunk while it continues reading. Keep
+        // it visible for a bounded interval so late errors cross the viewer contract; only a
+        // viewer that says it has no presentable content (video before its first frame) blocks the
+        // review until ready.
+        if .smokeWaitSteps < ViewerSmokeMinimumSteps or (loading and (blocking or .smokeWaitSteps < ViewerSmokeExposureSteps))
+        {
+            .waitForSmokeViewer(key.toString(), fileName.toString())
+            return
+        }
+
+        Console.println("sFileScope smoke reviewed '", key, "' with '", fixture, "'")
+        .smokeSpecIndex += 1
+        .smokeWaitSteps = 0
+        .smokeOpened    = false
+        .smokeSelected  = false
+    }
+
     mtd chooseFile()
     {
         var options: FileDlgOptions
@@ -1240,10 +1404,7 @@ impl ViewerWindow
         .infoBar.show(!.fullScreen or .fullScreenTopVisible)
         .viewerBar.hide()
         .surface!.setTitle(appStrings().ui_WindowTitle)
-        .searchBox.enable(false)
-        .searchMatchCase.enable(false)
-        .searchWholeWord.enable(false)
-        .refreshSearchReadout()
+        .updateSearchAvailability()
         .applyLayout()
     }
 
@@ -1873,10 +2034,18 @@ impl ViewerWindow
     {
         let active    = .activeChoiceIndex < .instances.count
         let available = active and .instances[.activeChoiceIndex].revealMatch != null
+        let focused   = .focusedWindow()
+        let searchHadFocus = focused and (focused! == .searchGroup or .searchGroup.isOwnerOf(focused!))
+
         .searchBox.enable(available)
         .searchMatchCase.enable(available)
         .searchWholeWord.enable(available)
+        .searchGroup.show(available)
+        if available do
+            .commandBar.centerSearchGroup()
         .restartSearch()
+        if !available and searchHadFocus do
+            .viewerFocusTarget()?.setFocus()
     }
 
     mtd stopSearch()

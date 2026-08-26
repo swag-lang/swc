@@ -3,53 +3,14 @@
 
 using Core, Pixel, Gui
 
-func midiTestPoke(bytes: *Array'u8, at, value, size: u64)
-{
-    for index in size do
-        bytes[][at + index] = cast(u8) ((cast(u64) value >> cast(u32) ((size - index - 1) * 8)) & 0xFF)
-}
-
-func midiTestPokeText(bytes: *Array'u8, at: u64, text: string)
-{
-    for value, index in text do
-        bytes[][at + index] = value
-}
-
 func midiTestFixture()->String
 {
-    var bytes: Array'u8
-    bytes.resize(22)
-    midiTestPokeText(&bytes, 0, "MThd")
-    midiTestPoke(&bytes, 4, 6, 4)
-    midiTestPoke(&bytes, 8, 0, 2)
-    midiTestPoke(&bytes, 10, 1, 2)
-    midiTestPoke(&bytes, 12, 480, 2)
-    midiTestPokeText(&bytes, 14, "MTrk")
-
-    const Track = [0'u8, 0xFF, 0x03, 10, 'P'u8, 'i'u8, 'a'u8, 'n'u8, 'o'u8, ' 'u8, 'R'u8, 'o'u8, 'l'u8, 'l'u8,
-                   0, 0xFF, 0x51, 3, 0x07, 0xA1, 0x20,
-                   0, 0xFF, 0x58, 4, 4, 2, 24, 8,
-                   0, 0xFF, 0x59, 2, 0, 0,
-                   0, 0x90, 60, 104, 0x81, 0x70, 0x80, 60, 0,
-                   0, 0x90, 64, 96, 0x81, 0x70, 0x80, 64, 0,
-                   0, 0x90, 67, 92, 0x81, 0x70, 0x80, 67, 0,
-                   0, 0x90, 72, 112, 0x83, 0x60, 0x80, 72, 0,
-                   0, 0x90, 67, 88, 0x81, 0x70, 0x80, 67, 0,
-                   0, 0x90, 64, 92, 0x81, 0x70, 0x80, 64, 0,
-                   0, 0x90, 60, 108, 0x83, 0x60, 0x80, 60, 0,
-                   0, 0xFF, 0x2F, 0]
-    midiTestPoke(&bytes, 18, @countof(Track), 4)
-    bytes.add(Track)
-
-    let fileName = Gui.Testing.tempFilePath("filescope-midi-", ".mid")
-    expect File.writeAllBytes(fileName, bytes.toSlice())
-    return fileName
+    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "viewer.mid")
 }
 
 #test
 {
     let fileName = midiTestFixture()
-    defer discard catch File.delete(fileName.toString())
 
     let document = expect loadMidiDocument(fileName.toString())
     @assert(document.format == 0 and document.division == 480)
@@ -79,7 +40,6 @@ func midiTestFixture()->String
     commandBar.padding         = {16, 8, 16, 8}
 
     let fileName = midiTestFixture()
-    defer discard catch File.delete(fileName.toString())
     let request = ViewerRequest{&host.root, commandBar, fileName.toString()}
     var result: ViewerResult
     createMidiViewer(&request, &result)

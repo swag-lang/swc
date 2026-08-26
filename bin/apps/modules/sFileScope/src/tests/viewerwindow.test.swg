@@ -971,7 +971,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.searchBox.parent == window.searchGroup)
     @assert(window.fullScreenButton.parent == window.commandBar)
     @assert(window.fullScreenButton.flags.has(.Toggle) and window.fullScreenButton.checkIndicator == .Frame)
-    @assert(window.searchBox.isLocallyVisible() and !window.searchBox.isEnabled())
+    @assert(!window.searchGroup.isLocallyVisible() and window.searchBox.isHidden())
     @assert(window.searchPrevious.icon.isValid() and window.searchNext.icon.isValid())
     @assert(!window.searchPrevious.isEnabled() and !window.searchNext.isEnabled())
     @assert(window.infoBar.position.height == ViewerInfoHeight)
@@ -979,9 +979,6 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.infoBar.backgroundStyle == window.backgroundStyle)
     @assert(window.infoBar.isLocallyVisible())
     @assert(window.viewerBar.dockStyle == .Bottom and !window.viewerBar.isLocallyVisible())
-    @assert(Math.abs(window.searchGroup.position.horzCenter() - window.commandBar.paddedClientRect().horzCenter()) < 0.01)
-    @assert(window.openButton.position.right() < window.searchGroup.position.x)
-    @assert(window.searchGroup.position.right() < window.viewerCombo.position.x or !window.viewerCombo.isLocallyVisible())
     @assert(window.infoNameLabel.name.raw.isEmpty())
     @assert(window.surface!.minSize.x == ViewerMinWidth)
     @assert(Utf8.contains(window.emptyLabel.name.raw, appStrings().ui_DropTitle))
@@ -1010,9 +1007,41 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.viewerBar.show()
     window.applyLayout()
     @assert(window.viewerCombo.parent == window.commandBar and widestCommands.parent == window.viewerBar)
-    @assert(window.searchGroup.position.right() < window.viewerCombo.position.x)
     @assert(window.viewerCombo.position.bottom() <= window.infoBar.position.y)
     @assert(widestCommands.position.y >= window.viewerBar.clientRect().y)
+}
+
+// Search is chrome only when the selected viewer exposes search. Switching to a viewer without
+// that contract removes the complete group and never leaves keyboard focus in an invisible field.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let index  = createViewerIndex()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+    window.openFile(viewerFixturePath().toString())
+    window.applyLayout()
+
+    @assert(window.searchGroup.isLocallyVisible() and window.searchBox.isVisible() and window.searchBox.isEnabled())
+    @assert(window.searchPrevious.isVisible() and window.searchNext.isVisible())
+    @assert(window.searchMatchCase.isVisible() and window.searchWholeWord.isVisible())
+    @assert(Math.abs(window.searchGroup.position.horzCenter() - window.commandBar.paddedClientRect().horzCenter()) < 0.01)
+
+    window.searchBox.setFocus()
+    @assert(window.searchBox.hasFocus())
+    let midiFile = Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "viewer.mid")
+    window.openFile(midiFile.toString())
+
+    @assert(!window.searchGroup.isLocallyVisible() and window.searchBox.isHidden())
+    @assert(window.searchPrevious.isHidden() and window.searchNext.isHidden())
+    @assert(window.searchMatchCase.isHidden() and window.searchWholeWord.isHidden())
+    @assert(!window.searchBox.hasFocus())
+
+    window.openFile(viewerFixturePath().toString())
+    @assert(window.searchGroup.isLocallyVisible() and window.searchBox.isVisible() and window.searchBox.isEnabled())
 }
 
 // File metadata can arrive after the first frame. Publishing it lays out the identity row

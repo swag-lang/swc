@@ -3,6 +3,7 @@ using Core, Core.Errors, Gui, Audio, Pixel, Video
 // The stable identity of the host's own text surface, in the persisted vocabulary its
 // registered neighbours use.
 const BasicTextViewerKey = "text"
+const BasicTextSmokeFixture = "comprehensive.txt"
 
 // What the text surface owns by name.
 //
@@ -23,6 +24,7 @@ struct ViewerSpec
     displayName: String          // Name shown in the viewer selector.
     icon:        ViewerIcons     // Glyph shown beside that name.
     create:      ViewerCreate = undefined
+    smokeFixture: String         // Immutable file opened by the application smoke review.
     extensions:  Array'String     // Lowercase extensions or file names, or `*` for every file.
 }
 
@@ -49,25 +51,27 @@ struct ViewerIndex
     specs: Array'ViewerSpec
 }
 
-private func addViewer(index: *ViewerIndex, key, name: string, icon: ViewerIcons, create: ViewerCreate, selectors: string)
+private func addViewer(index: *ViewerIndex, key, name: string, icon: ViewerIcons, create: ViewerCreate, smokeFixture, selectors: string)
 {
     var spec: ViewerSpec
-    spec.key         = String.from(key)
-    spec.displayName = String.from(name)
-    spec.icon        = icon
-    spec.create      = create
+    spec.key          = String.from(key)
+    spec.displayName  = String.from(name)
+    spec.icon         = icon
+    spec.create       = create
+    spec.smokeFixture = String.from(smokeFixture)
     for selector in Tokenize.split(selectors, ';'u8) do
         spec.extensions.add(String.from(selector))
     index.specs.add(#move spec)
 }
 
-private func addViewer(index: *ViewerIndex, key, name: string, icon: ViewerIcons, create: ViewerCreate, selectors: const [..] String)
+private func addViewer(index: *ViewerIndex, key, name: string, icon: ViewerIcons, create: ViewerCreate, smokeFixture: string, selectors: const [..] String)
 {
     var spec: ViewerSpec
-    spec.key         = String.from(key)
-    spec.displayName = String.from(name)
-    spec.icon        = icon
-    spec.create      = create
+    spec.key          = String.from(key)
+    spec.displayName  = String.from(name)
+    spec.icon         = icon
+    spec.create       = create
+    spec.smokeFixture = String.from(smokeFixture)
     for selector in selectors do
         spec.extensions.add(String.from(selector.toString()))
     index.specs.add(#move spec)
@@ -77,9 +81,9 @@ private func addViewer(index: *ViewerIndex, key, name: string, icon: ViewerIcons
 func createViewerIndex()->ViewerIndex
 {
     var result: retval
-    addViewer(&result, "html", "HTML", .Html, &createHtmlViewer, ".htm;.html;.shtml;.xht;.xhtml")
-    addViewer(&result, "code", "Code", .Code, &createCodeViewer, ".swg;.swgs;.c;.h;.cc;.cpp;.cxx;.hh;.hpp;.hxx;.inl;.ipp;.cs;.java;.js;.jsx;.mjs;.cjs;.ts;.tsx;.mts;.cts;.go;.rs;.py;.pyw;.pyi;.rb;.rake;.gemspec;.sh;.bash;.zsh;.fish;.ps1;.psm1;.psd1;.php;.phtml;.lua;.sql;.json;.jsonc;.json5;.xml;.xsd;.xsl;.xslt;.csproj;.vcxproj;.props;.targets;.css;.scss;.sass;.less;.yaml;.yml;.toml;.ini;.cfg;.conf;.properties;.kt;.kts;.swift;.dart;.r;.pl;.pm;.vb;.glsl;.vert;.frag;.geom;.comp;.hlsl;.fx;.cmake;.bat;.cmd;.htm;.html;.shtml;.xht;.xhtml;.asm;.s;.incasm;.zig;.nim;.nims;.nimble;.hs;.lhs;.scala;.sc;.groovy;.gvy;.gy;.gsh;.ex;.exs;.erl;.hrl;.clj;.cljs;.cljc;.edn;.jl;.f;.for;.f77;.f90;.f95;.f03;.f08;.pas;.pp;.lpr;.d;.di;.m;.mm;.tcl;.tk;.awk;.vim;.tex;.sty;.cls;.bib;.proto;.graphql;.gql;.gradle;.mk;.mak;.make;makefile;gnumakefile;bsdmakefile;.dockerfile;dockerfile;containerfile;cmakelists.txt;justfile;rakefile;gemfile;vagrantfile;podfile;brewfile;jenkinsfile;meson.build;.gitignore;.gitattributes;.gitmodules;.editorconfig;.clang-format;.clang-tidy;.prettierrc;.eslintrc;.npmrc;.yarnrc;.env;.nix")
-    addViewer(&result, "markdown", "Markdown", .Markdown, &createMarkdownViewer, ".markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd")
+    addViewer(&result, "html", "HTML", .Html, &createHtmlViewer, "viewer.html", ".htm;.html;.shtml;.xht;.xhtml")
+    addViewer(&result, "code", "Code", .Code, &createCodeViewer, "sample.cpp", ".swg;.swgs;.c;.h;.cc;.cpp;.cxx;.hh;.hpp;.hxx;.inl;.ipp;.cs;.java;.js;.jsx;.mjs;.cjs;.ts;.tsx;.mts;.cts;.go;.rs;.py;.pyw;.pyi;.rb;.rake;.gemspec;.sh;.bash;.zsh;.fish;.ps1;.psm1;.psd1;.php;.phtml;.lua;.sql;.json;.jsonc;.json5;.xml;.xsd;.xsl;.xslt;.csproj;.vcxproj;.props;.targets;.css;.scss;.sass;.less;.yaml;.yml;.toml;.ini;.cfg;.conf;.properties;.kt;.kts;.swift;.dart;.r;.pl;.pm;.vb;.glsl;.vert;.frag;.geom;.comp;.hlsl;.fx;.cmake;.bat;.cmd;.htm;.html;.shtml;.xht;.xhtml;.asm;.s;.incasm;.zig;.nim;.nims;.nimble;.hs;.lhs;.scala;.sc;.groovy;.gvy;.gy;.gsh;.ex;.exs;.erl;.hrl;.clj;.cljs;.cljc;.edn;.jl;.f;.for;.f77;.f90;.f95;.f03;.f08;.pas;.pp;.lpr;.d;.di;.m;.mm;.tcl;.tk;.awk;.vim;.tex;.sty;.cls;.bib;.proto;.graphql;.gql;.gradle;.mk;.mak;.make;makefile;gnumakefile;bsdmakefile;.dockerfile;dockerfile;containerfile;cmakelists.txt;justfile;rakefile;gemfile;vagrantfile;podfile;brewfile;jenkinsfile;meson.build;.gitignore;.gitattributes;.gitmodules;.editorconfig;.clang-format;.clang-tidy;.prettierrc;.eslintrc;.npmrc;.yarnrc;.env;.nix")
+    addViewer(&result, "markdown", "Markdown", .Markdown, &createMarkdownViewer, "comprehensive.md", ".markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd")
 
     var imageExtensions: Array'String
     let imageFormats = Image.decodableFormats()
@@ -90,7 +94,7 @@ func createViewerIndex()->ViewerIndex
     }
 
     imageExtensions.add(String.from(".svg"))
-    addViewer(&result, "image", "Image", .Image, &createImageViewer, imageExtensions.toSlice())
+    addViewer(&result, "image", "Image", .Image, &createImageViewer, "sample.svg", imageExtensions.toSlice())
 
     var videoExtensions: Array'String
     let videoFormats = Reader.decodableFormats()
@@ -100,15 +104,15 @@ func createViewerIndex()->ViewerIndex
             videoExtensions.add(String.from(extension))
     }
 
-    addViewer(&result, "video", "Video", .Video, &createVideoViewer, videoExtensions.toSlice())
-    addViewer(&result, "pdf", "PDF", .Pdf, &createPdfViewer, ".pdf")
+    addViewer(&result, "video", "Video", .Video, &createVideoViewer, "glint-aac-mjpeg.mp4", videoExtensions.toSlice())
+    addViewer(&result, "pdf", "PDF", .Pdf, &createPdfViewer, "viewer.pdf", ".pdf")
     let soundExtensions = SoundFile.decodableExtensions()
-    addViewer(&result, "sound", "Sound", .Sound, &createSoundViewer, soundExtensions.toSlice())
-    addViewer(&result, "font", "Font", .Font, &createFontViewer, ".ttf;.ttc")
-    addViewer(&result, "midi", "MIDI", .Midi, &createMidiViewer, ".mid;.midi")
-    addViewer(&result, "binary", "Binary", .Binary, &createBinaryViewer, ".exe;.dll;.sys;.ocx;.cpl;.scr;.efi;.drv;.mui;.mun;.winmd;.node;.pyd;.obj;.o;.lib;.a;.so;.elf;.ko;.axf;.dylib;.bundle;.wasm;.scc;.zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp;.otf;.woff;.woff2;.ico;.cur;.gz;.tgz;.bz2;.tbz2;.xz;.txz;.zst;.tzst;.7z;.rar;.cab;.msi;.doc;.xls;.ppt;.ps;.eps;.class;.dex;.sqlite;.db;.pdb;.mid;.midi;.wav;.avi;.webp;.mp3;.flac;.ogg;.oga;.ogv;.mp4;.m4a;.m4v;.mov;.3gp;.3g2;.mkv;.webm;*")
-    addViewer(&result, "hex", "Hexadecimal", .Hex, &createHexViewer, "*")
-    addViewer(&result, "table", "Table", .Table, &createTableViewer, ".csv;.tsv;.tab")
+    addViewer(&result, "sound", "Sound", .Sound, &createSoundViewer, "pacman_beginning.wav", soundExtensions.toSlice())
+    addViewer(&result, "font", "Font", .Font, &createFontViewer, "segoeui.ttf", ".ttf;.ttc")
+    addViewer(&result, "midi", "MIDI", .Midi, &createMidiViewer, "viewer.mid", ".mid;.midi")
+    addViewer(&result, "binary", "Binary", .Binary, &createBinaryViewer, "appicon.ico", ".exe;.dll;.sys;.ocx;.cpl;.scr;.efi;.drv;.mui;.mun;.winmd;.node;.pyd;.obj;.o;.lib;.a;.so;.elf;.ko;.axf;.dylib;.bundle;.wasm;.scc;.zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp;.otf;.woff;.woff2;.ico;.cur;.gz;.tgz;.bz2;.tbz2;.xz;.txz;.zst;.tzst;.7z;.rar;.cab;.msi;.doc;.xls;.ppt;.ps;.eps;.class;.dex;.sqlite;.db;.pdb;.mid;.midi;.wav;.avi;.webp;.mp3;.flac;.ogg;.oga;.ogv;.mp4;.m4a;.m4v;.mov;.3gp;.3g2;.mkv;.webm;*")
+    addViewer(&result, "hex", "Hexadecimal", .Hex, &createHexViewer, "viewer.hex", "*")
+    addViewer(&result, "table", "Table", .Table, &createTableViewer, "viewer.csv", ".csv;.tsv;.tab")
     return result
 }
 

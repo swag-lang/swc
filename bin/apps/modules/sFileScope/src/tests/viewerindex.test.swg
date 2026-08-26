@@ -3,6 +3,11 @@
 
 using Core
 
+func viewerRegistryFixturePath(name: string)->String
+{
+    return Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
+}
+
 // The compiled registry keeps the format-specific order, basic text fallback, and wildcard viewer.
 #test
 {
@@ -16,7 +21,7 @@ using Core
     let index = createViewerIndex()
     @assert(index.specs.count == 12)
     for spec in index.specs do
-        @assert(spec.create != null and !spec.extensions.isEmpty())
+        @assert(spec.create != null and !spec.extensions.isEmpty() and !spec.smokeFixture.isEmpty())
 
     let picture = index.choices(binaryFile)
     @assert(picture.count == 3)
@@ -31,6 +36,36 @@ using Core
     @assert(unknown[2].name == "Hexadecimal")
     @assert(index.explicitlySupports("clip.gif"))
     @assert(!index.explicitlySupports("clip.bin"))
+}
+
+// A registry entry cannot exist without one immutable file that the real application smoke can
+// open through that exact viewer. Fixtures are kept distinct so every line names its own evidence.
+#test
+{
+    let index = createViewerIndex()
+    let textFixture = viewerRegistryFixturePath(BasicTextSmokeFixture)
+    @assert(File.exists(textFixture))
+    let textChoices = index.choices(textFixture.toString())
+    @assert(textChoices[0].kind == .BasicText and textChoices[0].key == BasicTextViewerKey)
+
+    for spec, i in index.specs
+    {
+        @assert((Path.fileName(spec.smokeFixture.toString()) orelse "") == spec.smokeFixture.toString())
+        let fixture = viewerRegistryFixturePath(spec.smokeFixture.toString())
+        @assert(File.exists(fixture))
+
+        var found: bool
+        for choice in index.choices(fixture.toString()) where choice.kind == .Viewer and choice.key == spec.key
+        {
+            found = true
+            break
+        }
+        @assert(found)
+
+        for other, j in index.specs where j > i do
+            @assert(spec.smokeFixture != other.smokeFixture)
+        @assert(spec.smokeFixture != BasicTextSmokeFixture)
+    }
 }
 
 #test

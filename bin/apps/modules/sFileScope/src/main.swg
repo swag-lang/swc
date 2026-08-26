@@ -1,6 +1,7 @@
 #global using Core, Pixel, Gui
 
 const AppIcon = #include("../datas/appicon.png")
+const ViewerSmokeArgument = "--review-viewers="
 
 var g_App: Application
 
@@ -13,6 +14,21 @@ func viewerStartupFile(arguments: const [..] string)->String
     {
         if Path.isValidPathName(argument) and File.exists(argument) do
             return String.from(argument)
+    }
+
+    return {}
+}
+
+func viewerSmokeDirectory(arguments: const [..] string)->String
+{
+    if @countof(arguments) <= 1 do
+        return {}
+
+    for argument in arguments[1 until @countof(arguments)]
+    {
+        if !Utf8.startsWith(cast(const [..] u8) argument, ViewerSmokeArgument) do
+            continue
+        return String.from(argument[@countof(ViewerSmokeArgument) until @countof(argument)])
     }
 
     return {}
@@ -84,9 +100,22 @@ private func registerViewerFileTypes(index: const *ViewerIndex)
 
     surface.show()
 
-    let startupFile = viewerStartupFile(Env.arguments())
-    if !startupFile.isEmpty() do
-        window.queueFile(startupFile.toString())
+    let smokeDirectory = viewerSmokeDirectory(Env.arguments())
+    if !smokeDirectory.isEmpty()
+    {
+        // The review owns termination after the last fixture. A compiler smoke frame bound would
+        // otherwise be allowed to report success before a progressive viewer had finished.
+        g_App.maxRunFrame = Swag.U32.Max
+        window.reviewSmokeFixtures(smokeDirectory.toString())
+    }
+    else
+    {
+        let startupFile = viewerStartupFile(Env.arguments())
+        if !startupFile.isEmpty() do
+            window.queueFile(startupFile.toString())
+    }
 
-    discard g_App.run()
+    let exitCode = g_App.run()
+    if exitCode do
+        Env.exit(exitCode)
 }

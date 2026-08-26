@@ -22,3 +22,12 @@ exercise the visible audio-track selector and its transport handoff.
 
 - SHA-256: `36c7ad0fdee8156478589265ad51a3025d8c7822904fd504c82e7dd50bfd2c5d`
 - License: same as this repository and its two generated source fixtures.
+
+`viewer.pdf` is an unmodified copy of Apache PDFBox's
+`examples/src/test/resources/org/apache/pdfbox/examples/pdmodel/document.pdf` at commit
+`d74ddf04c6a9d8e1fd58a42d90ab7ce2b62a9b8d`. It gives the PDF viewer a file produced outside the
+Swag PDF writer and covers a PDF 1.4 classic cross-reference table with a Flate content stream.
+
+- SHA-256: `a31f3b5fc79e6ae2703f9d2817af088f29aef4937e370b173512d820a9972c35`
+- License: Apache License 2.0. The complete upstream provenance and license notice are reproduced
+  in `bin/std/modules/gui/src/tests/datas/THIRDPARTY.md`.

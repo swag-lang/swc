@@ -149,6 +149,14 @@ private func runApplicationWorkspace(context: *Context, options: *Options, name,
     {
         options.appendWorkspace(&arguments)
         options.appendRunArguments(&arguments)
+
+        // sFileScope's smoke is a format review, not only a startup check: the application opens
+        // the immutable fixture attached to every registered viewer and exits when all are ready.
+        if command == "smoke" and name == "sFileScope" and !options.hasRunArgument("--review-viewers")
+        {
+            let fixtures = Path.combine(applicationWorkspace(context).toString(), "modules", "sFileScope", "src", "tests", "datas")
+            arguments.add(["--run-arg", Format.toString("--review-viewers=%", fixtures).toString()])
+        }
     }
 
     if command == "test" do

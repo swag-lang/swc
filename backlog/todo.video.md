@@ -284,9 +284,25 @@ is the layout it does not read yet.
   falls is its distance from the first band rather than an entry of a table of thirty-two, and
   the four selections that serve an edge category serve it unchanged. Sample adaptive offset now
   costs about 10 ms of a picture, of which 3.3 is the three plane copies: **90 ms became 10**.
-- Next, in expected order of value: deblocking is now the largest stage measured at 18 ms a
-  picture, and what is left of sample adaptive offset is three full-plane copies, which exist so
-  that a block never reads what an earlier one wrote and could be a swap of two buffers instead; the
+- Where the picture stands once the two passes above landed, same clip and same method
+  (119 ms a picture): the coding tree walk is 94 ms of it, and inside it **coefficient parsing
+  is 44**, inter prediction 19, the inverse transform 9, adding the residual 7, intra 0.4, and
+  the walk's own bookkeeping 14. Outside it, deblocking is 18, sample adaptive offset 10 and the
+  reduction to eight bits 4. One picture decodes **1,055,000 context bins and 288,000 bypass
+  bins**, so the parse spends about 33 ns a bin — the ratio T-504 records for H.264, and the
+  same conclusion: the bin itself is a short serial chain that instruction count barely moves.
+- What the parse gave up anyway (2026-08-26): the `sig_coeff_flag` context was derived per
+  coefficient although only the position inside the sub-block varies — which neighbouring
+  sub-blocks are coded selects one of four patterns, and everything else adds a constant. Both
+  are answered once per sub-block now, and a coefficient reads one byte of a table and adds it.
+  609,000 derivations a picture become 609,000 lookups: **44 ms becomes 42**, three interleaved
+  runs each with no overlap. Small, and kept for being less work rather than for the figure.
+- Next, in expected order of value: **deblocking is the largest stage left that is not the
+  entropy parse**, 18 ms a picture and entirely scalar — it filters four lines at a time and
+  the four lines of a horizontal edge are four consecutive columns, so they load as one vector;
+  a vertical edge needs the transpose the H.264 filter already does. What is left of sample
+  adaptive offset is three full-plane copies, which exist so that a block never reads what an
+  earlier one wrote and could be a swap of two buffers instead; the
   fractional filters and the transform are both 128 bits wide, and this stream is the case where
   256-bit forms would pay; and a uni-predicted block is filtered into `predBuffer` and then read
   again to be combined, where one pass could write the picture directly.

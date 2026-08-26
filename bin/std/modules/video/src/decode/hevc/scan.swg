@@ -9,9 +9,9 @@
 using Core
 
 // The three scan orders residual coding uses, clause 7.4.9.11.
-const ScanDiagonal = 0'u32
+const ScanDiagonal   = 0'u32
 const ScanHorizontal = 1'u32
-const ScanVertical = 2'u32
+const ScanVertical   = 2'u32
 
 // The scan orders of clauses 6.5.3 to 6.5.5, for blocks of one to eight units on a side.
 //

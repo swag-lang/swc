@@ -63,7 +63,6 @@ private struct DeblockContext
     laneCount: u32
 }
 
-
 impl Decoder
 {
     // Marks the leading edges of one block in the edge grid.
@@ -305,10 +304,10 @@ impl Decoder
         if !beta do
             return
 
-        let stride = cast(s64) frame.strideLuma
-        let origin = frame.luma.buffer! + cast(u64) (y + cast(s32) FramePadding) * frame.strideLuma + cast(u64) (x + cast(s32) FramePadding)
-        let lineStep   = vertical ? stride : 1's64
-        let crossStep  = vertical ? 1's64 : stride
+        let stride    = cast(s64) frame.strideLuma
+        let origin    = frame.luma.buffer! + cast(u64) (y + cast(s32) FramePadding) * frame.strideLuma + cast(u64) (x + cast(s32) FramePadding)
+        let lineStep  = vertical ? stride : 1's64
+        let crossStep = vertical ? 1's64 : stride
 
         // The two outer lines of the segment decide for all four, clause 8.7.2.5.3.
         let a = origin
@@ -377,7 +376,7 @@ impl Decoder
                 line[0]              = cast(u16) Math.clamp((p1 + 2 * p0 + 2 * q0 + 2 * q1 + q2 + 4) >> 3, q0 - limit, q0 + limit)
                 line[crossStep]      = cast(u16) Math.clamp((p0 + q0 + q1 + q2 + 2) >> 2, q1 - limit, q1 + limit)
                 line[2 * crossStep]  = cast(u16) Math.clamp((p0 + q0 + q1 + 3 * q2 + 2 * q3 + 4) >> 3, q2 - limit, q2 + limit)
-                line += lineStep
+                line                 += lineStep
                 continue
             }
 
@@ -388,7 +387,7 @@ impl Decoder
                 continue
             }
 
-            delta = Math.clamp(delta, -tc, tc)
+            delta            = Math.clamp(delta, -tc, tc)
             line[-crossStep] = cast(u16) Math.clamp(p0 + delta, 0, maximum)
             line[0]          = cast(u16) Math.clamp(q0 - delta, 0, maximum)
 
@@ -532,7 +531,7 @@ impl Decoder
             let delta = Math.clamp((((q0 - p0) << 2) + p1 - q1 + 4) >> 3, -tc, tc)
             line[-crossStep] = cast(u16) Math.clamp(p0 + delta, 0, maximum)
             line[0]          = cast(u16) Math.clamp(q0 - delta, 0, maximum)
-            line += lineStep
+            line             += lineStep
         }
     }
 }

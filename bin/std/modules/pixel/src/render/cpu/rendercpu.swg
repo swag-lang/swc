@@ -300,6 +300,9 @@ private impl RenderCpu
         return dy < 0 or (dy == 0 and dx > 0)
     }
 
+    // Preserve the rounded f32 edge value at the classification boundary. Auto-inlining this
+    // predicate into the raster loop changes exact-zero decisions in release mode.
+    #[Swag.NoInline]
     func insideEdge(value: f32, topLeft: bool)->bool
     {
         return value > 0 or (value == 0 and topLeft)

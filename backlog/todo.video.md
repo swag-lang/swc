@@ -260,7 +260,20 @@ is the layout it does not read yet.
   about 800 samples in 1.73 microseconds, which is 8.6 cycles a sample where the instruction
   count predicts about three.
 - What that says about where the gap is, and it is not one thing:
-  - **What the emitted code spends on the frame is worth more than the width of its vectors.**
+  - **What the gap is not: this compiler.** The loop filter of clause 8.7.2.5 written twice,
+    statement for statement, in C and in Swag, over the same plane with the same decision mix,
+    takes 34.1 ms a picture under clang 21 `-O2 -march=native` and 40.6 under this compiler in
+    release — **1.2x**. The frame traffic F-193 records is real and worth removing, but a
+    register allocator will not find a factor of three. **What FFmpeg has and this decoder does
+    not is hand-written AVX2 for the loop filter, motion compensation, the transforms and
+    sample adaptive offset.** Every stage of this decoder is within about 1.2x of what a good C
+    compiler makes of the same algorithm, and about 3x of what assembly makes of it.
+  - **Where that leaves the work, in order**: the stages still written scalar are where the
+    factor is largest, because assembly beats scalar by four to eight, not by 1.2 — the loop
+    filter (both directions, 15.7 ms), the residual add (3 ms) and what is left of the parse's
+    bookkeeping. Then the stages already 128 bits wide, where 256-bit forms are worth about a
+    half: motion compensation (33 ms) and the inverse transform (8.5). See T-506.
+  - **What the emitted code spends on the frame is worth removing anyway.**
     `filterLumaEdge` emits 776 instructions with 171 frame accesses, `interpolateLuma` spills
     its accumulators inside the innermost body, and both run at roughly a third of the
     instructions per cycle their instruction counts predict. See

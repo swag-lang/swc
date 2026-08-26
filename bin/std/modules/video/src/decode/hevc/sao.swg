@@ -212,22 +212,49 @@ impl Decoder
 
         if parameters.typeIdx[component] == 1
         {
-            // Band offset: four consecutive bands of the sample range are shifted.
-            var bands: [32] s16
-            let position = cast(u32) parameters.bandPosition[component]
-            for entry in 4'u32 do
-                bands[(position + entry) & 31] = parameters.offsets[component, entry + 1]
+            // Band offset: four consecutive bands of the sample range are shifted. The four are
+            // consecutive, so where a sample falls is its distance from the first band rather
+            // than an entry of a table of thirty-two, and the same four selections that serve an
+            // edge category serve it here.
+            let shift     = bitDepth - 5
+            let zeros     = Simd.splat(0's16)
+            let ones      = Simd.splat(1's16)
+            let twos      = Simd.splat(2's16)
+            let threes    = Simd.splat(3's16)
+            let masks     = Simd.splat(31's16)
+            let maxima    = Simd.splat(cast(s16) maximum)
+            let positions = Simd.splat(cast(s16) parameters.bandPosition[component])
+            let offset1   = Simd.splat(parameters.offsets[component, 1])
+            let offset2   = Simd.splat(parameters.offsets[component, 2])
+            let offset3   = Simd.splat(parameters.offsets[component, 3])
+            let offset4   = Simd.splat(parameters.offsets[component, 4])
 
-            let shift = bitDepth - 5
             for row in height
             {
-                let line = origin + cast(u64) (y0 + row) * stride + cast(u64) x0
-                for column in width
+                let line   = origin + cast(u64) (y0 + row) * stride + cast(u64) x0
+                var column = 0's32
+
+                while column + 8 <= width
+                {
+                    let samples = Simd.load(&source[line + cast(u64) column])
+                    let bands   = (cast #bit(Simd.S16x8) (samples >> shift) - positions) & masks
+                    var offset  = Simd.select(bands == zeros, offset1, zeros)
+                    offset = Simd.select(bands == ones, offset2, offset)
+                    offset = Simd.select(bands == twos, offset3, offset)
+                    offset = Simd.select(bands == threes, offset4, offset)
+
+                    let values = cast #bit(Simd.S16x8) samples + offset
+                    Simd.store(&destination[line + cast(u64) column], cast #bit(Simd.U16x8) Math.max(Math.min(values, maxima), zeros))
+                    column += 8
+                }
+
+                while column < width
                 {
                     let value = cast(s32) source[line + cast(u64) column]
-                    let band  = bands[cast(u32) value >> shift]
-                    if band != 0 do
-                        destination[line + cast(u64) column] = cast(u16) Math.clamp(value + cast(s32) band, 0, maximum)
+                    let band  = (cast(s32) (cast(u32) value >> shift) - cast(s32) parameters.bandPosition[component]) & 31
+                    if band < 4 do
+                        destination[line + cast(u64) column] = cast(u16) Math.clamp(value + cast(s32) parameters.offsets[component, cast(u32) band + 1], 0, maximum)
+                    column += 1
                 }
             }
 

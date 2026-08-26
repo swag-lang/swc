@@ -369,7 +369,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - So this backend is **2.2x behind clang's best on identical scalar code**, and that is the
   largest single factor in the 3x the H.265 decoder is behind FFmpeg — larger than the 256-bit
   forms of T-506, and larger than anything left in the decoder's own algorithms. The frame
-  traffic above is the visible half of it: 130 frame accesses in 688 instructions for one
+  traffic above is the visible half of it: 171 frame accesses in 776 instructions for one
   routine, against 61 in 443 for clang's build of the same function.
 - Next step: the frame-privacy test is a function-level property today, so one escaping local
   disables hoisting for every loop of the function. Per-object extents already exist in mem2reg

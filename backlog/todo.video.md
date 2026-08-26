@@ -186,6 +186,17 @@ is the layout it does not read yet.
   was built once, and only around a seek: sound played for the two seconds the opening window
   happened to hold, then stopped for the rest of the film. Verified over two minutes of playback
   and across a seek: the window slid 0-60, 38-101, 80-142 and never stopped covering the picture.
+- **What a larger film across a network share costs (2026-08-26), and why it is now the first
+  thing to fix here**: on an 8.5 GB 3840x2076 film on an SMB share, one rebuild costs **1300 to
+  2200 ms** on the thread that decodes, not the 110 to 140 measured before. The run-ahead queue
+  does not absorb that: it drains, the player finds itself two seconds behind, and it skips to
+  the next key picture — which on a stream that marks one every ten seconds is a visible jump.
+  Measured by timing `extendSoundWindow` around its call to `buildSoundWindow`: two rebuilds in
+  a sixty-second run, each one drawing a skip behind it. The window is built on the decode
+  thread because it must be published before the picture that needs it; building it on a worker
+  the way the complete tables are built, and letting the picture path run on the sound it
+  already has, is what would take it out of the way — the player already knows how to wait for
+  sound it does not have yet (`audioRangePending`).
 - What it costs the listener, and what would remove it: every rebuild publishes a new sound file,
   so the player builds a new voice and the sound is interrupted for as long as that takes. The
   window slides rather than grows because a packet table cannot be extended once opened —

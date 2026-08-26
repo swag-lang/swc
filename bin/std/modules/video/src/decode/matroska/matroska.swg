@@ -9,6 +9,7 @@ using Core, Core.Errors, Pixel, Audio
 
 private const VideoTrackType = 1'u64
 private const AudioTrackType = 2'u64
+
 private const AvcCodecId = "V_MPEG4/ISO/AVC"
 private const HevcCodecId = "V_MPEGH/ISO/HEVC"
 private const AacCodecId = "A_AAC"
@@ -1304,6 +1305,11 @@ private const SoundIndexFailed = 3'u32
 private const SoundSeekRunAheadNanoseconds = 60_000_000_000's64
 private const SoundWindowRefreshNanoseconds = 20_000_000_000's64
 private const SoundWindowRetryNanoseconds = 5_000_000_000's64
+// How far ahead of the indexed window a picture can be asked for and still be reached by
+// walking the index rather than by restarting the reader at a cue. Two thousand pictures is
+// about eighty seconds of film, which covers every skip playback makes to catch up and
+// leaves a real seek to what a reader asks for by hand.
+private const ForwardWalkSamples = 2000'u64
 private const SoundSeekPreRollNanoseconds = 1_000_000_000'u64
 private const SoundSeekPreRollSeconds = 1.0
 
@@ -1675,13 +1681,22 @@ private impl Decoder
             .refineFrameRate()
         }
 
-        if index < .windowBaseRank or index - .windowBaseRank > .streamSampleCount
+        // A picture ahead of the window is reached by walking the index forward, which is
+        // what the walk is already positioned for: restarting the reader at a cue instead
+        // rebuilds the sound window, forgets every packet location the window holds, and
+        // indexes the same clusters again. That restart costs between a quarter of a second
+        // and two on a film read across a network share, and playback asks for it every time
+        // it skips ahead to recover, which is precisely when it has no time to spare.
+        // A jump longer than what the walk would cover, and every jump backwards, still
+        // restarts at the nearest cue.
+        let ahead = index >= .windowBaseRank ? index - .windowBaseRank : Swag.U64.Max
+        if ahead == Swag.U64.Max or ahead > .streamSampleCount + ForwardWalkSamples
         {
             .seekWindow(index)
         }
         else
         {
-            let localIndex = index - .windowBaseRank
+            let localIndex = ahead
             if !layout.indexWindow(bytes, localIndex, &fileIndex.cancel) do
                 fail BadParameterError{"video reader operation was cancelled"}
             let video = &layout.tracks[layout.selectedVideo]

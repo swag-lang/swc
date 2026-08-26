@@ -13,7 +13,7 @@ ui_ExitFullScreen Quitter le plein écran (F11)
 ui_SameKind     Seulement les fichiers du même type
 ui_Recent       Récents
 ui_ClearHistory Effacer l'historique
-ui_ConfirmClearHistory Effacer tout l'historique des fichiers ?
+ui_ConfirmClearHistory Tout l'historique des fichiers sera effacé.
 ui_Folder       Dossier
 ui_NotText      Ce fichier ne contient pas de texte lisible. Choisissez Hexadécimal pour en inspecter les octets.
 ui_MenuLocate       Afficher ce fichier dans son dossier

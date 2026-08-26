@@ -21,7 +21,7 @@ struct AppStrings
     ui_SameKind:            string = "Only files of the same kind"                                                            // Tooltip of the folder-navigation filter toggle.
     ui_Recent:              string = "Recent"                                                                                 // Panel section listing what was read before.
     ui_ClearHistory:        string = "Clear history"                                                                          // Tooltip of the clear-history button.
-    ui_ConfirmClearHistory: string = "Clear the whole file history?"                                                          // Confirmation before emptying the recent list.
+    ui_ConfirmClearHistory: string = "The whole file history will be cleared."                                                // Consequence stated before confirming that the recent list is emptied.
     ui_Folder:              string = "Folder"                                                                                 // Panel section listing the current folder, before one is open.
     ui_NotText:             string = "This file does not contain readable text. Select Hexadecimal to inspect its bytes."     // No encoding reads it as text.
     ui_MenuLocate:          string = "Show this file in its folder"                                                           // Panel menu entry selecting the file in the system file explorer.

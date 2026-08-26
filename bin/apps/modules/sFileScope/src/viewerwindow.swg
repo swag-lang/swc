@@ -7,7 +7,7 @@ const ViewerRowGlyphSize                      = 16.0
 const ViewerMinWidth                          = 880
 const ViewerSearchChunkSize                   = 256 * 1024'u64
 const ViewerErrorTextWidth                    = 512.0
-const ViewerInfoStatsWidth                    = 560.0
+const ViewerInfoStatsMaxWidth                 = 560.0
 const ViewerFullScreenRevealEdge              = 32.0
 const ViewerRetirePollInterval: Time.Duration = 16'ms
 const ViewerLoadingSpinnerRadius              = 20.0
@@ -744,9 +744,10 @@ impl ViewerWindow
             .padding         = {14, 4, 14, 4}
         }
 
-        with result.infoStatsLabel = Label.create(result.infoBar, "", {0, 0, ViewerInfoStatsWidth, 32}, null, .SecondaryText)
+        with result.infoStatsLabel = Label.create(result.infoBar, "", {0, 0, 0, 32}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Right
+            .maxSize.x = ViewerInfoStatsMaxWidth
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Right, .OpticalCenter)
         }
@@ -1025,6 +1026,7 @@ impl ViewerWindow
         .infoStatsLabel.toolTip = ""
         .infoSizeLabel.setText("")
         .infoSizeLabel.toolTip = ""
+        .layoutFileInfo()
         .infoIconLabel.setIcon({})
         .infoBar.show(!.fullScreen or .fullScreenTopVisible)
         .viewerBar.hide()
@@ -1623,8 +1625,17 @@ impl ViewerWindow
         if .activeChoiceIndex < .choices.count do
             .infoIconLabel.setIcon(.icon(.choices[.activeChoiceIndex].icon))
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
-        .infoFileGroup.computeLayout()
+        .layoutFileInfo()
         .infoBar.show(!.fullScreen or .fullScreenTopVisible)
+    }
+
+    // Measures the identity row again after asynchronous metadata changes. The file name is
+    // rounded outward because the stack places children on whole logical units; rounding its
+    // fractional glyph extent down is enough to paint an ellipsis on an otherwise complete name.
+    private mtd layoutFileInfo()
+    {
+        .infoNameLabel.preferredSize.x = Math.ceil(.infoNameLabel.itf.measureContent({}).x)
+        .infoBar.applyLayout()
     }
 
     mtd selectViewer(index: u32)

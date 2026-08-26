@@ -393,6 +393,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     @assert(window.recentClearButton.parent == window.recentLabel.parent)
     @assert(window.recentClearButton.icon.isValid())
+    @assert(!Utf8.contains(appStrings().ui_ConfirmClearHistory, "?"))
 
     host.clickModalButtonWhenShown(Dialog.BtnNo)
     window.confirmClearRecent()
@@ -836,19 +837,31 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     let index  = createViewerIndex()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    window.resize(960, 680)
+    window.resize(ViewerMinWidth, 680)
     window.applyLayout()
     @assert(window.infoNameLabel.position.width == 0 and window.infoSizeLabel.position.width == 0)
 
     window.currentFile = viewerFixturePath()
     window.choices.add(ViewerChoice{.BasicText, Swag.U64.Max, "Basic text"})
     window.activeChoiceIndex = 0
-    window.updateFileInfo("")
+    window.updateFileInfo("UTF-8 · streamed")
 
     @assert(@countof(window.infoNameLabel.text()) > 0 and @countof(window.infoSizeLabel.text()) > 0)
     @assert(window.infoNameLabel.position.width > 0 and window.infoSizeLabel.position.width > 0)
+    @assert(window.infoNameLabel.position.width >= Math.ceil(window.infoNameLabel.itf.measureContent({}).x))
+    @assert(window.infoStatsLabel.position.width > 0 and window.infoStatsLabel.position.width < ViewerInfoStatsMaxWidth)
     @assert(window.infoIconLabel.position.right() <= window.infoNameLabel.position.x)
     @assert(window.infoNameLabel.position.right() <= window.infoSizeLabel.position.x)
+
+    // Fractional glyph extents vary with the name. Every short name receives the whole measured
+    // line rather than occasionally losing its last glyph to the ellipsis.
+    let shortNames: [6] string = ["a.txt", "ii.txt", "notes.txt", "readme.md", "small.json", "brief-source.swg"]
+    for name in shortNames
+    {
+        window.currentFile = name
+        window.updateFileInfo("UTF-8 · streamed")
+        @assert(window.infoNameLabel.position.width >= Math.ceil(window.infoNameLabel.itf.measureContent({}).x))
+    }
 }
 
 // F11 preserves the exact window state around a content-only presentation. Moving at either
@@ -1062,6 +1075,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.instances.isEmpty())
     @assert(window.currentFile.isEmpty())
     @assert(window.infoNameLabel.name.raw.isEmpty())
+    @assert(window.infoNameLabel.position.width == 0 and window.infoStatsLabel.position.width == 0)
     @assert(window.infoBar.isLocallyVisible() and !window.infoIconLabel.icon.isValid())
     @assert(window.emptyView.isLocallyVisible() and window.emptyView.position.y >= window.infoBar.position.bottom())
 }

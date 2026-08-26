@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- sFileScope viewer icon set, in registry order. Generic actions live in the GUI theme atlas.
      Every glyph uses the same 24-unit grid and 2-unit weight as that shared set. -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 48">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 72">
   <g id="Html" transform="translate(0 0)" fill="none" stroke="#ffffff" stroke-width="2">
     <circle cx="12" cy="12" r="9"/>
     <ellipse cx="12" cy="12" rx="4.2" ry="9"/>
@@ -71,5 +71,11 @@
     <line x1="4" y1="16" x2="20" y2="16"/>
     <line x1="10" y1="4" x2="10" y2="20"/>
     <line x1="16" y1="4" x2="16" y2="20"/>
+  </g>
+  <g id="Midi" transform="translate(0 48)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 17 V6 L19 4 V15"/>
+    <line x1="9" y1="9" x2="19" y2="7"/>
+    <ellipse cx="6.5" cy="18" rx="3.5" ry="2.5" fill="#ffffff" stroke="none"/>
+    <ellipse cx="16.5" cy="16" rx="3.5" ry="2.5" fill="#ffffff" stroke="none"/>
   </g>
 </svg>

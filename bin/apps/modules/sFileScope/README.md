@@ -69,6 +69,9 @@ guessing an encoding.
   complete payload, and a low-priority worker builds the waveform from bounded blocks.
 - `Font` renders TrueType fonts and the first face of a TrueType collection as a live specimen.
   Its paged character map walks mapped Unicode scalars without materializing the whole map.
+- `MIDI` parses Standard MIDI Files into a dedicated piano roll. It shows musical duration,
+  tempo, meter, key signature, named tracks and note ranges, offers an all-tracks or per-track
+  view, and provides horizontal zoom without synthesizing or executing file content.
 - `Binary` displays a format's structure tree with field name, decoded value, file offset, and
   meaning. It recognizes Windows images, COFF and `ar` libraries, ELF, Mach-O, WebAssembly, ZIP,
   RIFF, Standard MIDI Files, sfnt fonts, Windows icons, and Swag Chunk Containers. Unknown files

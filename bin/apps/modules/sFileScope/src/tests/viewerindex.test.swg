@@ -14,7 +14,7 @@ using Core
     expect File.writeAllBytes(binaryFile, [0x89'u8, 0x50'u8, 0x4E'u8, 0x47'u8, 0'u8, 0xFF'u8])
 
     let index = createViewerIndex()
-    @assert(index.specs.count == 11)
+    @assert(index.specs.count == 12)
     for spec in index.specs do
         @assert(spec.create != null and !spec.extensions.isEmpty())
 
@@ -62,7 +62,7 @@ using Core
     @assert(matroskaChoices[0].name == "Video" and matroskaChoices[1].name == "Binary" and matroskaChoices[2].name == "Hexadecimal")
 
     let midiChoices = index.choices("score.mid")
-    @assert(midiChoices[0].name == "Binary" and midiChoices[1].name == "Hexadecimal")
+    @assert(midiChoices[0].name == "MIDI" and midiChoices[1].name == "Binary" and midiChoices[2].name == "Hexadecimal")
 
     const SoundFiles: [7] string = ["sound.wav", "sound.flac", "sound.mp3", "sound.aac", "sound.ac3", "sound.eac3", "sound.ec3"]
     for file in SoundFiles do

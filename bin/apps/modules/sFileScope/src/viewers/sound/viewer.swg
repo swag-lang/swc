@@ -362,23 +362,152 @@ internal struct SoundViewer
         waveform:       *SoundWaveformView
     }
 
-    sound:          SoundFile
-    voice:          #null *Voice
-    timer:          #null *Timer
+    sound:        SoundFile
+    pendingSound: SoundFile
+    openFileName: String
+    openFailure:  String
+    openThread:   Thread
+    openState:    u32
+    openFinished: bool
+
     waveformThread: Thread
     waveformLock:   Sync.Mutex
     waveformBuilt:  u64
-    duration:       f32
-    elapsed:        f32
-    engineReady:    bool
-    playing:        bool
-    muted:          bool
+
+    voice:       #null *Voice
+    timer:       #null *Timer
+    duration:    f32
+    elapsed:     f32
+    engineReady: bool
+    playing:     bool
+    muted:       bool
     volume = 1'f32
-    details:        String
+
+    retireRequested: bool
+    retired:         bool
+
+    details:              String
+    reportDetails:        #null ViewerReportDetails
+    reportFailure:        #null ViewerReportFailure
+    reportLoadingChanged: #null ViewerReportLoadingChanged
 }
 
 internal impl SoundViewer
 {
+    // Reports work whose result has not reached the waveform yet.
+    mtd isLoading()->bool
+    {
+        if !.openFinished do
+            return true
+        if !.waveformThread.isValid() do
+            return false
+
+        .waveformLock.lock()
+        let built = .waveformBuilt
+        .waveformLock.unlock()
+        return !.waveformThread.isDone() or .waveform.readyCount < built
+    }
+
+    // Publishes the file opened by the worker and initializes playback on the GUI thread.
+    mtd completeOpen() fail
+    {
+        if .openFinished do
+            return
+
+        let state = Atomic.get(&.openState)
+        if !state or (.openThread.isValid() and !.openThread.isDone()) do
+            return
+        if .openThread.isValid() do
+            .openThread.wait()
+
+        .openFinished = true
+        if state == 2 do
+            fail InvalidFormatError{Errors.mkString(.openFailure.toString())}
+
+        .sound             = #move .pendingSound
+        .duration          = .sound.durationInSeconds()
+        .waveform.duration = .duration
+        if .duration > 0 do
+            .timeline.setBounds(0, .duration, Math.min(0.01'f32, .duration / 100))
+        .startWaveform()
+
+        let durationText = soundDurationText(.duration)
+        .details     = Format.toString(soundStrings().ui_Details, .sound.sampleRateHz(), channelCountText(.sound.numChannels()), .sound.sampleStorageBits(), durationText)
+        .engineReady = acquireSoundEngine()
+        if .engineReady do
+            .playButton.enable(true)
+        .backwardButton.enable(.engineReady and .duration > 0)
+        .forwardButton.enable(.engineReady and .duration > 0)
+        .timeline.enable(.engineReady and .duration > 0)
+        .muteButton.enable(.engineReady)
+        .volumeSlider.enable(.engineReady)
+        .updatePlaybackUi()
+        if !.engineReady do
+            .playButton.toolTip = soundStrings().ui_NoEngine
+        if .reportDetails do
+            .reportDetails!(me, .details.toString())
+        if .reportLoadingChanged do
+            .reportLoadingChanged!(me)
+    }
+
+    // Finishes teardown once neither worker can touch the sound or waveform storage.
+    mtd finishRetire()
+    {
+        if .retired do
+            return
+        if .openThread.isValid() do
+            .openThread.wait()
+        if .waveformThread.isValid() do
+            .waveformThread.wait()
+        .retired = true
+    }
+
+    // Requests release without waiting on the GUI thread.
+    mtd retire()->bool
+    {
+        if .retired do
+            return true
+        if !.retireRequested
+        {
+            .retireRequested = true
+            if .timer
+            {
+                .removeTimer(.timer!)
+                .timer = null
+            }
+
+            if .voice
+            {
+                catch .voice!.stop()
+                .voice!.destroy()
+                .voice = null
+            }
+            if .engineReady
+            {
+                releaseSoundEngine()
+                .engineReady = false
+            }
+            if .openThread.isValid() do
+                .openThread.safeForceEnd()
+            if .waveformThread.isValid() do
+                .waveformThread.safeForceEnd()
+        }
+
+        if .openThread.isValid() and !.openThread.isDone() do
+            return false
+        if .waveformThread.isValid() and !.waveformThread.isDone() do
+            return false
+        .finishRetire()
+        return true
+    }
+
+    // Window destruction is the terminal fallback and may wait for both workers.
+    mtd retireBlocking()
+    {
+        discard .retire()
+        .finishRetire()
+    }
+
     // Publishes a completed prefix. The worker never changes a published point, so the painter can
     // read that prefix after taking this one synchronized count without copying the whole wave.
     mtd publishWaveform(count: u64)
@@ -544,6 +673,14 @@ internal impl IWnd for SoundViewer
             return
         }
 
+        if !.openFinished
+        {
+            catch .completeOpen() as openError
+            if openError != null and .reportFailure do
+                .reportFailure!(me, Errors.message(openError))
+            return
+        }
+
         .syncWaveform()
         if !.playing or !.voice do
             return
@@ -560,29 +697,7 @@ internal impl IWnd for SoundViewer
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         discard evt
-        if .waveformThread.isValid()
-        {
-            .waveformThread.safeForceEnd()
-            .waveformThread.wait()
-        }
-
-        if .timer
-        {
-            .removeTimer(.timer!)
-            .timer = null
-        }
-
-        if .voice
-        {
-            .voice!.destroy()
-            .voice = null
-        }
-
-        if .engineReady
-        {
-            releaseSoundEngine()
-            .engineReady = false
-        }
+        .retireBlocking()
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -607,11 +722,13 @@ internal impl IWnd for SoundViewer
 
 internal impl SoundViewer
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string)->*SoundViewer fail
+    func create(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails = null, reportFailure: #null ViewerReportFailure = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*SoundViewer fail
     {
-        let sound  = try SoundFile.load(fileName, preloadData: false)
         let result = Wnd.create'SoundViewer(contentParent, "sFileScope.sound")
         result.backgroundStyle = .View
+        result.reportDetails        = reportDetails
+        result.reportFailure        = reportFailure
+        result.reportLoadingChanged = reportLoadingChanged
 
         result.commands = ViewerCommandBar.create(commandParent, 0)
         with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, SoundGlyphSize), {0, 0, 36, 36})
@@ -710,46 +827,66 @@ internal impl SoundViewer
         result.waveform.dockStyle       = .Center
         result.waveform.backgroundStyle = .View
 
-        result.sound             = #move sound
-        result.duration          = result.sound.durationInSeconds()
-        result.waveform.duration = result.duration
-        if result.duration > 0 do
-            result.timeline.setBounds(0, result.duration, Math.min(0.01'f32, result.duration / 100))
-        result.startWaveform()
-        let durationText = soundDurationText(result.duration)
-        result.details     = Format.toString(soundStrings().ui_Details, result.sound.sampleRateHz(), channelCountText(result.sound.numChannels()), result.sound.sampleStorageBits(), durationText)
-        result.engineReady = acquireSoundEngine()
+        result.backwardButton.enable(false)
+        result.forwardButton.enable(false)
+        result.timeline.enable(false)
+        result.muteButton.enable(false)
+        result.volumeSlider.enable(false)
         result.timer       = result.addTimer(33'ms)
-        if result.engineReady do
-            result.playButton.enable(true)
-        result.backwardButton.enable(result.engineReady and result.duration > 0)
-        result.forwardButton.enable(result.engineReady and result.duration > 0)
-        result.timeline.enable(result.engineReady and result.duration > 0)
-        result.muteButton.enable(result.engineReady)
-        result.volumeSlider.enable(result.engineReady)
         result.updatePlaybackUi()
-        if !result.engineReady do
-            result.playButton.toolTip = soundStrings().ui_NoEngine
         result.applyLayout()
         result.setInitialFocus(result.playButton)
+        result.openFileName = fileName
+        defer #fail
+        {
+            result.commands.destroy()
+            result.destroy()
+        }
+
+        try result.openThread.init(&runSoundViewerOpen, result, priority: .Normal)
+        try result.openThread.start()
         return result
     }
 }
 
-private func loadSoundViewer(contentParent, commandParent: *Wnd, fileName: string)->#null *SoundViewer fail => try SoundViewer.create(contentParent, commandParent, fileName)
+// Opens and indexes the sound without occupying the GUI event loop. The default allocator makes
+// the owned packet table safe to publish to the GUI thread once loading completes.
+private func runSoundViewerOpen(thread: Thread)
+{
+    let view          = cast(*SoundViewer) thread.userParam!
+    let context       = @getcontext()
+    context.allocator = context.defaultAllocator!
+    var sound         = catch SoundFile.load(view.openFileName.toString(), preloadData: false) as openError
+    if openError != null
+    {
+        view.openFailure = Errors.message(openError)
+        Atomic.exchange(&view.openState, 2)
+        return
+    }
+
+    if thread.requestEnd do
+        return
+    view.pendingSound = #move sound
+    Atomic.exchange(&view.openState, 1)
+}
+
+private func loadSoundViewer(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails, reportFailure: #null ViewerReportFailure, reportLoadingChanged: #null ViewerReportLoadingChanged)->#null *SoundViewer fail => try SoundViewer.create(contentParent, commandParent, fileName, reportDetails, reportFailure, reportLoadingChanged)
 
 // Creates the integrated sound playback and waveform view.
 func createSoundViewer(request: const *ViewerRequest, result: *ViewerResult)
 {
     registerSoundStrings(request.contentParent.app())
-    let view = catch loadSoundViewer(request.contentParent, request.commandParent, request.fileName) as decodeError
+    let view = catch loadSoundViewer(request.contentParent, request.commandParent, request.fileName, request.reportDetails, request.reportFailure, request.reportLoadingChanged) as decodeError
     if decodeError != null
     {
         result.failureReason = Errors.message(decodeError)
         return
     }
 
-    result.view     = view
-    result.commands = view!.commands
-    result.details  = view!.details
+    result.view                = view
+    result.commands            = view!.commands
+    result.details             = view!.details
+    result.retire              = func(wnd)->bool { return (cast(*SoundViewer) wnd).retire() }
+    result.isLoading           = func(wnd)->bool { return (cast(*SoundViewer) wnd).isLoading() }
+    result.needsLoadingOverlay = func(wnd)->bool { return !(cast(*SoundViewer) wnd).openFinished }
 }

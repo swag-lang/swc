@@ -1254,6 +1254,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let index  = createViewerIndex()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     let old    = Wnd.create'Wnd(window)
+    old.setPosition({19, 73, 617, 389})
     var retireCalls: u32
     old.userData = &retireCalls
     window.instances.add(ViewerInstance{view: old, retire: &delayTestViewerRetirement})
@@ -1264,7 +1265,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.openFile(fileName, remember: false)
     @assert(window.currentView == old and retireCalls == 1)
     @assert(window.pendingFile == fileName and window.startupTimer != null)
-    @assert(!window.loadingOverlay.isLocallyVisible())
+    @assert(window.loadingOverlay.isLocallyVisible() and window.loadingOverlay.position == old.position)
 
     host.fireTimer(window.startupTimer)
     @assert(retireCalls == 2 and old.isPendingDestroy)

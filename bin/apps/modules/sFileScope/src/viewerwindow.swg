@@ -1588,8 +1588,9 @@ impl ViewerWindow
     mtd updateLoadingIndicator()
     {
         .commitViewerTransition()
-        var loading = !.pendingFile.isEmpty() or !.pendingEmpty.isEmpty()
-        var showOverlay: bool
+        let pending = !.pendingFile.isEmpty() or !.pendingEmpty.isEmpty()
+        var loading = pending
+        var showOverlay = pending and .currentView != null
         if !loading and .activeChoiceIndex < .instances.count
         {
             let instance = &.instances[.activeChoiceIndex]

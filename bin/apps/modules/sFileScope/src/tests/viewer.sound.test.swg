@@ -80,6 +80,27 @@ func finishWaveform(view: *SoundViewer)
     view.syncWaveform()
 }
 
+func waitForSoundOpen(host: *Testing.HeadlessHost, view: *SoundViewer)
+{
+    var attempts: u32
+    while !view.openFinished and attempts < 5_000
+    {
+        Threading.Thread.sleep(1'ms)
+        if view.timer do
+            host.fireTimer(view.timer)
+        attempts += 1
+    }
+
+    @assert(view.openFinished)
+}
+
+func markSoundOpenFailure(wnd: *Wnd, reason: string)
+{
+    discard reason
+    let failed = cast(*bool) wnd.userData!
+    failed[] = true
+}
+
 #test
 {
     destroyEngine()
@@ -100,7 +121,7 @@ func finishWaveform(view: *SoundViewer)
     @assert(mediaTimeRangeText(0, 0.5) == "0:00 / 0:01")
 }
 
-// A WAV decoder refusal crosses the viewer boundary without constructing playback controls.
+// A WAV decoder refusal crosses the progressive viewer boundary without blocking its creator.
 #test
 {
     let fileName = Gui.Testing.tempFilePath("filescope-sound-", ".wav")
@@ -111,11 +132,17 @@ func finishWaveform(view: *SoundViewer)
     host.setup(640, 420)
     defer host.shutdown()
 
-    let request = ViewerRequest{&host.root, &host.root, fileName}
+    var failed: bool
+    let request = ViewerRequest{contentParent: &host.root, commandParent: &host.root, fileName: fileName, reportFailure: &markSoundOpenFailure}
     var result: ViewerResult
     createSoundViewer(&request, &result)
-    @assert(result.view == null and result.commands == null)
-    @assert(!result.failureReason.isEmpty())
+    @assert(result.view != null and result.commands != null)
+    @assert(result.isLoading != null and result.needsLoadingOverlay != null)
+    let view = cast(*SoundViewer) result.view!
+    view.userData = &failed
+    @assert(result.isLoading!(view) and result.needsLoadingOverlay!(view))
+    waitForSoundOpen(&host, view)
+    @assert(failed and !view.openFailure.isEmpty())
 }
 
 #test
@@ -136,14 +163,18 @@ func finishWaveform(view: *SoundViewer)
     var result: ViewerResult
     createSoundViewer(&request, &result)
     @assert(result.view != null)
-    @assert(result.commands != null and result.isLoading == null)
+    @assert(result.commands != null and result.isLoading != null and result.needsLoadingOverlay != null)
     let view = cast(*SoundViewer) result.view!
+    @assert(result.isLoading!(view) and result.needsLoadingOverlay!(view))
+    waitForSoundOpen(&host, view)
+    @assert(!result.needsLoadingOverlay!(view))
     @assert(view.engineReady and view.playButton.isEnabled())
     @assert(view.backwardButton.icon.isValid() and view.forwardButton.icon.isValid())
     @assert(view.muteButton.icon.isValid() and view.muteButton.flags.has(.Toggle))
     @assert(!view.sound.isDataPreloaded())
     @assert(view.waveform.samples.count == 4)
     finishWaveform(view)
+    @assert(!result.isLoading!(view))
     @assert(view.waveform.readyCount == 4)
     @assert(view.timeline.isEnabled() and view.timeLabel.text() == "0:00 / 0:01")
 
@@ -156,6 +187,7 @@ func finishWaveform(view: *SoundViewer)
     createSoundViewer(&replacementRequest, &replacementResult)
     @assert(replacementResult.view != null)
     let replacement = cast(*SoundViewer) replacementResult.view!
+    waitForSoundOpen(&host, replacement)
     finishWaveform(replacement)
     @assert(replacement.engineReady and replacement.playButton.isEnabled())
     @assert(replacement.waveform.samples.count == view.waveform.samples.count)
@@ -207,6 +239,7 @@ func finishWaveform(view: *SoundViewer)
     createSoundViewer(&request, &result)
     @assert(result.view != null)
     let view = cast(*SoundViewer) result.view!
+    waitForSoundOpen(&host, view)
     finishWaveform(view)
     view.dockStyle          = .Center
     view.commands.dockStyle = .Center
@@ -298,6 +331,7 @@ func finishWaveform(view: *SoundViewer)
     createSoundViewer(&request, &result)
     @assert(result.view != null)
     let view = cast(*SoundViewer) result.view!
+    waitForSoundOpen(&host, view)
     @assert(!view.sound.isDataPreloaded())
     finishWaveform(view)
     @assert(view.details.indexOf("11025") != Swag.U64.Max)

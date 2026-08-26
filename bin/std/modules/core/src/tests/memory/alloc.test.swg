@@ -51,12 +51,7 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
 
 #test
 {
-    var request: Swag.AllocatorRequest
-    request.address   = cast(#null *void) 0x1234
-    request.size      = 16384
-    request.oldSize   = 4096
-    request.alignment = 128
-    request.hint      = "growing texture cache"
+    let request = Swag.AllocatorRequest{address: cast(#null *void) 0x1234, size: 16384, oldSize: 4096, alignment: 128, hint: "growing texture cache"}
     let message = formatAllocationFailure("Memory.realloc", request, true)
     @assert(message.toString() == "Memory.realloc cannot reallocate memory: requested size 16384 bytes, old size 4096 bytes, alignment 128 bytes, address 0x1234 [growing texture cache]")
 }

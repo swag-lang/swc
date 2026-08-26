@@ -579,6 +579,8 @@ namespace
         return Result::Continue;
     }
 
+    // A runtime-valid pointer can be impossible to relocate into compiler static storage. In that
+    // case the fold deliberately produces no constant and code generation constructs the value.
     Result foldAggregateStructConstant(const CastStructArgs& args, const std::vector<size_t>& srcToDst)
     {
         if (!args.castRequest->isConstantFolding())
@@ -640,10 +642,10 @@ namespace
         }
 
         args.castRequest->outConstRef = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, buffer.span());
-        SWC_ASSERT(args.castRequest->outConstRef.isValid());
         return Result::Continue;
     }
 
+    // Single-field structs follow the same best-effort static-materialization rule.
     Result foldSingleFieldStructConstant(const CastStructArgs& args, const SymbolVariable& field, ConstantRef fieldValueRef)
     {
         const uint64_t structSize = args.dstType->sizeOf(args.sema->ctx());
@@ -660,7 +662,6 @@ namespace
         SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, std::span{bytes.data() + fieldOffset, fieldSize}, fieldValueRef, fieldTypeRef));
 
         args.castRequest->outConstRef = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, buffer.span());
-        SWC_ASSERT(args.castRequest->outConstRef.isValid());
         return Result::Continue;
     }
 

@@ -63,3 +63,24 @@ func semaTest006()
     #assert(cast(s64) P == 0x1234's64)
     #assert(#typeof(cast(s64) P) == s64)
 }
+
+struct PointerCastPayload
+{
+    address: #null *void
+    size:    u64
+}
+
+struct SinglePointerCastPayload
+{
+    address: #null *void
+}
+
+func semaTest007()
+{
+    let payload = PointerCastPayload{address: cast(#null *void) 0x1234'u64, size: 16}
+    let address = payload.address
+    let size    = payload.size
+
+    let single: SinglePointerCastPayload = cast(#null *void) 0x5678'u64
+    let singleAddress = single.address
+}

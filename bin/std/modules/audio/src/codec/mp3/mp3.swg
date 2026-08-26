@@ -13,9 +13,9 @@ const ReservoirBytes = 511'u64
 
 // Sampling frequencies of the three versions, by the header's own index.
 const SampleRates: [3, 3] u32 = [
-    [11_025, 12_000, 8_000],       // MPEG-2.5
-    [22_050, 24_000, 16_000],      // MPEG-2
-    [44_100, 48_000, 32_000]]      // MPEG-1
+    [11_025, 12_000, 8_000],      // MPEG-2.5
+    [22_050, 24_000, 16_000],     // MPEG-2
+    [44_100, 48_000, 32_000]]     // MPEG-1
 
 // Layer III bit rates in kilobits per second, by the header's own index.
 const BitRatesMpeg1: [15] u32 = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320]
@@ -24,24 +24,24 @@ const BitRatesMpeg2: [15] u32 = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 
 // What the four bytes of a frame header say.
 struct FrameHeader
 {
-    isMpeg1:      bool     // A version 1 frame carries two granules and nine-bit scalefactors.
-    isMpeg25:     bool
-    rateIndex:    u32      // Index into the widened band tables: 0-1 MPEG-2.5, 2-4 MPEG-2, 5-7 MPEG-1.
-    sampleRate:   u32
-    channels:     u32
-    mode:         u32      // 0 stereo, 1 joint stereo, 2 dual channel, 3 single channel.
-    modeExtension:u32
-    hasCrc:       bool
-    frameBytes:   u64      // Whole frame, header included.
-    sideInfoBytes:u64
-    frameSamples: u32      // Sample frames one frame decodes to.
-    granules:     u32
+    isMpeg1:       bool     // A version 1 frame carries two granules and nine-bit scalefactors.
+    isMpeg25:      bool
+    rateIndex:     u32     // Index into the widened band tables: 0-1 MPEG-2.5, 2-4 MPEG-2, 5-7 MPEG-1.
+    sampleRate:    u32
+    channels:      u32
+    mode:          u32     // 0 stereo, 1 joint stereo, 2 dual channel, 3 single channel.
+    modeExtension: u32
+    hasCrc:        bool
+    frameBytes:    u64     // Whole frame, header included.
+    sideInfoBytes: u64
+    frameSamples:  u32     // Sample frames one frame decodes to.
+    granules:      u32
 }
 
 impl FrameHeader
 {
-    mtd const isMidSide()->bool      => .mode == 1 and (.modeExtension & 2) != 0
-    mtd const isIntensity()->bool    => .mode == 1 and (.modeExtension & 1) != 0
+    mtd const isMidSide()->bool   => .mode == 1 and (.modeExtension & 2) != 0
+    mtd const isIntensity()->bool => .mode == 1 and (.modeExtension & 1) != 0
 }
 
 // Reads the four header bytes of a frame, or says why they are not one.
@@ -104,9 +104,9 @@ func readHeader(bytes: const [..] u8)->FrameHeader fail
 // Reads syntax elements from the main data, most significant bit first.
 struct BitReader
 {
-    data:    #null const [*] u8
-    bitEnd:  u64
-    bitPos:  u64
+    data:   #null const [*] u8
+    bitEnd: u64
+    bitPos: u64
 }
 
 impl BitReader
@@ -152,9 +152,9 @@ struct GranuleInfo
     scalefacScale:    u32
     count1Table:      u32
     scfsi:            u32
-    longBands:        u32         // Scalefactor bands the granule reads as long blocks.
-    shortBands:       u32         // Scalefactor bands it reads as three short windows.
-    bandKind:         u32         // 0 long, 1 short, 2 mixed: which band table applies.
+    longBands:        u32     // Scalefactor bands the granule reads as long blocks.
+    shortBands:       u32     // Scalefactor bands it reads as three short windows.
+    bandKind:         u32     // 0 long, 1 short, 2 mixed: which band table applies.
 }
 
 impl GranuleInfo
@@ -199,8 +199,8 @@ func readSideInfo(header: const *FrameHeader, bytes: const [..] u8, granules: *[
         for channel in header.channels
         {
             let info = &granules[][cast(u64) granule, cast(u64) channel]
-            info.part23Length     = reader.read(12)
-            info.bigValues        = reader.read(9)
+            info.part23Length = reader.read(12)
+            info.bigValues    = reader.read(9)
             if info.bigValues > 288 do
                 fail InvalidFormatError{"MP3 granule codes more spectral lines than a granule holds"}
             info.globalGain       = reader.read(8)
@@ -285,7 +285,7 @@ struct Codec
     reservoir:    Array'u8
     state:        [2] ChannelState
     lines:        [2] Granule576
-    scalefac:     [2, 40] u8      // The previous granule's, for the bands `scfsi` shares.
+    scalefac:     [2, 40] u8     // The previous granule's, for the bands `scfsi` shares.
     intensityPos: [2, 40] u8
     bandGain:     [2, 40] f32
     output:       [2, 1152] f32
@@ -317,7 +317,7 @@ impl Codec
     {
         var sizes:  [4] u32 = undefined
         var counts: [4] u32 = undefined
-        let shift = info.scalefacScale + 1
+        let shift           = info.scalefacScale + 1
 
         // Long blocks, mixed blocks, and short blocks each partition their scalefactors
         // differently, and the row that says how is the same for both versions.
@@ -346,12 +346,12 @@ impl Codec
                 {
                     let modulus = cast(s32) LsfModulus[k + cast(u64) index]
                     sizes[cast(u64) index] = cast(u32) (remaining / product % modulus)
-                    product *= modulus
-                    index -= 1
+                    product                *= modulus
+                    index                  -= 1
                 }
 
                 remaining -= product
-                k += 4
+                k         += 4
                 if remaining < 0 do
                     break
             }
@@ -363,8 +363,8 @@ impl Codec
             counts[index] = cast(u32) LsfPartitions[partitionRow, partitionAt + index]
 
         var values: [40] u8 = undefined
-        var at     = 0'u64
-        var share  = info.scfsi
+        var at              = 0'u64
+        var share           = info.scfsi
         for partition in 4'u64
         {
             let count = cast(u64) counts[partition]
@@ -408,7 +408,7 @@ impl Codec
         while at < 40
         {
             values[at] = 0
-            at += 1
+            at         += 1
         }
 
         for index in 40'u64 do
@@ -420,7 +420,7 @@ impl Codec
             scaled[index] = cast(s32) values[index]
         if info.shortBands
         {
-            let up = 3 - cast(s32) shift
+            let up    = 3 - cast(s32) shift
             var index = 0'u64
             while index < cast(u64) info.shortBands
             {
@@ -472,36 +472,21 @@ impl Codec
     {
         switch cast(u32) HuffCodeTable[cast(u64) select]
         {
-        case 1:
-            return Huff1Tree
-        case 2:
-            return Huff2Tree
-        case 3:
-            return Huff3Tree
-        case 5:
-            return Huff5Tree
-        case 6:
-            return Huff6Tree
-        case 7:
-            return Huff7Tree
-        case 8:
-            return Huff8Tree
-        case 9:
-            return Huff9Tree
-        case 10:
-            return Huff10Tree
-        case 11:
-            return Huff11Tree
-        case 12:
-            return Huff12Tree
-        case 13:
-            return Huff13Tree
-        case 15:
-            return Huff15Tree
-        case 16:
-            return Huff16Tree
-        case 24:
-            return Huff24Tree
+        case 1:  return Huff1Tree
+        case 2:  return Huff2Tree
+        case 3:  return Huff3Tree
+        case 5:  return Huff5Tree
+        case 6:  return Huff6Tree
+        case 7:  return Huff7Tree
+        case 8:  return Huff8Tree
+        case 9:  return Huff9Tree
+        case 10: return Huff10Tree
+        case 11: return Huff11Tree
+        case 12: return Huff12Tree
+        case 13: return Huff13Tree
+        case 15: return Huff15Tree
+        case 16: return Huff16Tree
+        case 24: return Huff24Tree
         }
 
         return Huff1Tree
@@ -512,18 +497,12 @@ impl Codec
     {
         switch cast(u32) HuffCodeTable[cast(u64) select]
         {
-        case 1:
-            return 2
-        case 2, 3:
-            return 3
-        case 5, 6:
-            return 4
-        case 7, 8, 9:
-            return 6
-        case 10, 11, 12:
-            return 8
-        case 13, 15, 16, 24:
-            return 16
+        case 1:              return 2
+        case 2, 3:           return 3
+        case 5, 6:           return 4
+        case 7, 8, 9:        return 6
+        case 10, 11, 12:     return 8
+        case 13, 15, 16, 24: return 16
         }
 
         return 1
@@ -542,7 +521,7 @@ impl Codec
 
         var line      = 0'u64
         var band      = 0'u64
-        var pairsLeft = 0'u64        // Pairs the current band still holds.
+        var pairsLeft = 0'u64     // Pairs the current band still holds.
         var gain      = 0'f32
         var big       = cast(u64) info.bigValues
         var region    = 0'u64
@@ -570,12 +549,12 @@ impl Codec
                     break
                 }
 
-                gain = .bandGain[cast(u64) channel, band]
-                band += 1
+                gain  = .bandGain[cast(u64) channel, band]
+                band  += 1
                 spans -= 1
 
                 pairsLeft = cast(u64) width / 2
-                var take  = Math.min(big, pairsLeft)
+                var take = Math.min(big, pairsLeft)
                 big       -= take
                 pairsLeft -= take
 
@@ -588,7 +567,7 @@ impl Codec
                         {
                             lines[][line]     = 0
                             lines[][line + 1] = 0
-                            line += 2
+                            line              += 2
                         }
 
                         continue
@@ -616,7 +595,7 @@ impl Codec
                         if line < 576
                         {
                             lines[][line] = sample
-                            line += 1
+                            line          += 1
                         }
                     }
                 }
@@ -643,8 +622,8 @@ impl Codec
                         break
                     }
 
-                    gain = .bandGain[cast(u64) channel, band]
-                    band += 1
+                    gain      = .bandGain[cast(u64) channel, band]
+                    band      += 1
                     pairsLeft = cast(u64) width / 2
                     if !pairsLeft do
                         continue
@@ -664,7 +643,7 @@ impl Codec
                     if line < 576
                     {
                         lines[][line] = sample
-                        line += 1
+                        line          += 1
                     }
                 }
             }
@@ -860,12 +839,12 @@ impl Codec
             fail InvalidFormatError{"MP3 frame is too short for its side information"}
 
         var granules: [2, 2] GranuleInfo = undefined
-        let mainDataBegin = try readSideInfo(&header, packet[at until at + header.sideInfoBytes], &granules)
+        let mainDataBegin                = try readSideInfo(&header, packet[at until at + header.sideInfoBytes], &granules)
         at += header.sideInfoBytes
 
         // The main data of this frame continues what the frames before it left in the reservoir.
         let available = Math.min(mainDataBegin, .reservoir.count)
-        var main:      Array'u8
+        var main: Array'u8
         main.reserve(available + header.frameBytes - at)
         if available do
             main.add(.reservoir.toSlice()[.reservoir.count - available until .reservoir.count])
@@ -874,6 +853,7 @@ impl Codec
         // A frame that reaches further back than what was kept cannot be decoded; every frame
         // after it can, so the stream restarts rather than failing.
         let usable = available >= mainDataBegin
+
         // The history taken is exactly what this frame asked for, so its own data starts at zero.
         var reader = BitReader.create(main.toSlice())
 
@@ -924,7 +904,7 @@ impl Codec
         if kept > ReservoirBytes
         {
             keptFrom += kept - ReservoirBytes
-            kept = ReservoirBytes
+            kept     = ReservoirBytes
         }
 
         .reservoir.clear()
@@ -969,7 +949,7 @@ impl IPacketCodec for Codec
             {
                 let value = .output[channel, index] * 32767.0
                 samples[at] = cast(s16) Math.clamp(value, -32768.0'f32, 32767.0'f32)
-                at += 1
+                at          += 1
             }
         }
 

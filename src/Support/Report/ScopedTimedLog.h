@@ -40,13 +40,13 @@ public:
 
     struct StatsSnapshot
     {
-        size_t   numErrors               = 0;
-        size_t   numWarnings             = 0;
-        size_t   numFiles                = 0;
-        size_t   numTests                = 0;
-        size_t   numTestsFailed          = 0;
-        size_t   numTokens               = 0;
-        size_t   numFormatRewrittenFiles = 0;
+        size_t numErrors               = 0;
+        size_t numWarnings             = 0;
+        size_t numFiles                = 0;
+        size_t numTests                = 0;
+        size_t numTestsFailed          = 0;
+        size_t numTokens               = 0;
+        size_t numFormatRewrittenFiles = 0;
 
         static StatsSnapshot capture();
     };

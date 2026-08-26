@@ -10,8 +10,7 @@ using Core, Core.Errors, Pixel
 // difference accumulates along a chain of predicted pictures. What a defect produces is not that:
 // it is a block, a row, or a whole picture that is wrong. The measure is therefore the mean
 // absolute difference over the sequence, plus a ceiling on any single sample.
-func mpeg4AssertStream(name: string, container: string, width, height: s32, frameCount: u64,
-                       meanLimit: f64, worstLimit: s32)
+func mpeg4AssertStream(name: string, container: string, width, height: s32, frameCount: u64, meanLimit: f64, worstLimit: s32)
 {
     var reader = expect Reader.open(videoFixturePath(Format.toString("%.%", name, container).toString()))
     @assert(reader.width() == width and reader.height() == height)
@@ -38,15 +37,14 @@ func mpeg4AssertStream(name: string, container: string, width, height: s32, fram
         {
             for x in cast(u64) width
             {
-                let got  = cast(s32) frame.luma[y * cast(u64) frame.strideLuma + x]
-                let want = cast(s32) bytes[base + y * cast(u64) width + x]
+                let got        = cast(s32) frame.luma[y * cast(u64) frame.strideLuma + x]
+                let want       = cast(s32) bytes[base + y * cast(u64) width + x]
                 let difference = Math.abs(got - want)
                 total += cast(f64) difference
-                worst  = Math.max(worst, difference)
+                worst = Math.max(worst, difference)
                 count += 1
             }
         }
-
     }
 
     let mean = total / cast(f64) count

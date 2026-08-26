@@ -79,13 +79,12 @@ private func readEncoderInfo(frame: const [..] u8, header: const *FrameHeader)->
 //
 // Only one window of the file is held at a time, so indexing a long recording costs its index and
 // not its audio.
-private func readFrameIndex(stream: *File.FileStream, size, start: u64, packets: *Array'SoundPacket,
-                            info: *EncoderInfo, first: *FrameHeader)->u64 fail
+private func readFrameIndex(stream: *File.FileStream, size, start: u64, packets: *Array'SoundPacket, info: *EncoderInfo, first: *FrameHeader)->u64 fail
 {
     var window: Array'u8
-    var at     = start
-    var total  = 0'u64
-    var seen   = false
+    var at    = start
+    var total = 0'u64
+    var seen  = false
 
     while at + 4 <= size
     {
@@ -108,7 +107,7 @@ private func readFrameIndex(stream: *File.FileStream, size, start: u64, packets:
 
         if !seen
         {
-            seen   = true
+            seen    = true
             first[] = header
             info[]  = readEncoderInfo(window.toSlice()[0 until Math.min(header.frameBytes, want)], &header)
             if info.isHeaderFrame

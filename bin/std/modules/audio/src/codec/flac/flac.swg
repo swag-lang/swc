@@ -199,8 +199,8 @@ private impl Codec
 
         with &.info
         {
-            .minBlockSize  = reader.read(16)
-            .maxBlockSize  = reader.read(16)
+            .minBlockSize = reader.read(16)
+            .maxBlockSize = reader.read(16)
             discard reader.read(24)
             discard reader.read(24)
             .sampleRate    = reader.read(20)
@@ -244,13 +244,13 @@ private impl Codec
 
         var result: retval
         result.channelAssignment = reader.read(4)
-        let depthCode            = reader.read(3)
+        let depthCode = reader.read(3)
         if reader.read(1) do
             fail InvalidFormatError{"FLAC frame sets the reserved header bit"}
 
         // The frame or sample number is a UTF-8-shaped integer whose leading byte states its
         // length. Its value only matters when seeking, which the container index already does.
-        let lead = reader.read(8)
+        let lead       = reader.read(8)
         var extraBytes = 0'u32
         if lead >= 0xFE do
             extraBytes = 6
@@ -272,34 +272,22 @@ private impl Codec
 
         switch blockSizeCode
         {
-        case 0:
-            fail InvalidFormatError{"FLAC frame uses the reserved block size code"}
-        case 1:
-            result.blockSize = 192
-        case 2, 3, 4, 5:
-            result.blockSize = 576'u32 << (blockSizeCode - 2)
-        case 6:
-            result.blockSize = reader.read(8) + 1
-        case 7:
-            result.blockSize = reader.read(16) + 1
-        default:
-            result.blockSize = 256'u32 << (blockSizeCode - 8)
+        case 0:          fail InvalidFormatError{"FLAC frame uses the reserved block size code"}
+        case 1:          result.blockSize = 192
+        case 2, 3, 4, 5: result.blockSize = 576'u32 << (blockSizeCode - 2)
+        case 6:          result.blockSize = reader.read(8) + 1
+        case 7:          result.blockSize = reader.read(16) + 1
+        default:         result.blockSize = 256'u32 << (blockSizeCode - 8)
         }
 
         switch sampleRateCode
         {
-        case 0:
-            result.sampleRate = .info.sampleRate
-        case 12:
-            result.sampleRate = reader.read(8) * 1000
-        case 13:
-            result.sampleRate = reader.read(16)
-        case 14:
-            result.sampleRate = reader.read(16) * 10
-        case 15:
-            fail InvalidFormatError{"FLAC frame uses the invalid sample rate code"}
-        default:
-            result.sampleRate = CodedRates[sampleRateCode]
+        case 0:  result.sampleRate = .info.sampleRate
+        case 12: result.sampleRate = reader.read(8) * 1000
+        case 13: result.sampleRate = reader.read(16)
+        case 14: result.sampleRate = reader.read(16) * 10
+        case 15: fail InvalidFormatError{"FLAC frame uses the invalid sample rate code"}
+        default: result.sampleRate = CodedRates[sampleRateCode]
         }
 
         result.bitsPerSample = depthCode ? CodedDepths[depthCode] : .info.bitsPerSample
@@ -350,7 +338,7 @@ private impl Codec
                 while index < end
                 {
                     output[index] = rawBits ? reader.readSigned(rawBits) : 0
-                    index += 1
+                    index         += 1
                 }
             }
             else
@@ -362,7 +350,7 @@ private impl Codec
 
                     // Residuals are zig-zag coded: the low bit is the sign.
                     output[index] = cast(s32) (value >> 1) ^ -cast(s32) (value & 1)
-                    index += 1
+                    index         += 1
                 }
             }
         }
@@ -456,15 +444,19 @@ private impl Codec
         case 0:
             for index in blockSize do
                 target[index] = source[index]
+
         case 1:
             for index in order until blockSize do
                 target[index] = source[index] + target[index - 1]
+
         case 2:
             for index in order until blockSize do
                 target[index] = source[index] + 2 * target[index - 1] - target[index - 2]
+
         case 3:
             for index in order until blockSize do
                 target[index] = source[index] + 3 * target[index - 1] - 3 * target[index - 2] + target[index - 3]
+
         default:
             for index in order until blockSize do
                 target[index] = source[index] + 4 * target[index - 1] - 6 * target[index - 2] + 4 * target[index - 3] - target[index - 4]
@@ -503,14 +495,19 @@ private impl Codec
         switch assignment
         {
         case 8:
+
             // Left and side: the second channel holds left minus right.
             for index in blockSize do
                 second[index] = first[index] - second[index]
+
         case 9:
+
             // Side and right: the first channel holds left minus right.
             for index in blockSize do
                 first[index] += second[index]
+
         default:
+
             // Mid and side. The mid channel dropped the low bit of the sum, and the side
             // channel is what restores it.
             for index in blockSize
@@ -559,11 +556,11 @@ private impl Codec
         {
             for channel in header.channels
             {
-                let value = .channels[channel][sample]
+                let value  = .channels[channel][sample]
                 var scaled = shift > 0 ? value >> cast(u32) shift : value << cast(u32) -shift
-                scaled = Math.clamp(scaled, -32768, 32767)
+                scaled             = Math.clamp(scaled, -32768, 32767)
                 destination[index] = cast(s16) scaled
-                index += 1
+                index              += 1
             }
         }
     }
@@ -581,9 +578,7 @@ impl IPacketCodec for Codec
         .reserveBlock(.info.maxBlockSize)
     }
 
-    mtd impl reset()
-    {
-    }
+    mtd impl reset() {}
 
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
@@ -610,23 +605,18 @@ internal func packetFrameCount(packet: const [..] u8)->u32 fail
     let blockSizeCode = cast(u32) (packet[2] >> 4)
     switch blockSizeCode
     {
-    case 0:
-        fail InvalidFormatError{"FLAC frame uses the reserved block size code"}
-    case 1:
-        return 192
-    case 2, 3, 4, 5:
-        return 576'u32 << (blockSizeCode - 2)
-    case 6, 7:
-        break
-    default:
-        return 256'u32 << (blockSizeCode - 8)
+    case 0:          fail InvalidFormatError{"FLAC frame uses the reserved block size code"}
+    case 1:          return 192
+    case 2, 3, 4, 5: return 576'u32 << (blockSizeCode - 2)
+    case 6, 7:       break
+    default:         return 256'u32 << (blockSizeCode - 8)
     }
 
     // The block size is stated after the frame number, whose leading byte gives its length.
     var reader = BitReader.create(packet)
     discard reader.read(32)
 
-    let lead = reader.read(8)
+    let lead       = reader.read(8)
     var extraBytes = 0'u32
     if lead >= 0xFE do
         extraBytes = 6

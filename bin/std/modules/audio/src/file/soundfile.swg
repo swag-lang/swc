@@ -77,11 +77,11 @@ struct PacketStreamOptions
 {
     public
     {
-        leadingTrimFrames: u64     // Decoded priming frames omitted before audible frame zero.
-        speakerMask:       u32     // WAVE speaker-position mask; zero derives the standard mask from the channel count.
-        timelineStartSeconds: f64  // Position of audible frame zero on the containing media timeline, in seconds.
-        displayName: string = ""    // Optional human-readable track name supplied by the containing media.
-        language:    string = ""    // Optional media language code, such as `eng` or `fra`.
+        leadingTrimFrames:    u64             // Decoded priming frames omitted before audible frame zero.
+        speakerMask:          u32             // WAVE speaker-position mask; zero derives the standard mask from the channel count.
+        timelineStartSeconds: f64             // Position of audible frame zero on the containing media timeline, in seconds.
+        displayName:          string = ""     // Optional human-readable track name supplied by the containing media.
+        language:             string = ""     // Optional media language code, such as `eng` or `fra`.
     }
 }
 

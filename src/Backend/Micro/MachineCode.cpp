@@ -63,7 +63,6 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debug
 
     debugStackBasePhysReg = passContext.debugStackBasePhysReg;
 
-
     // Diagnostics can abort lowering before any encodable instruction is produced.
     // Propagate the existing failure instead of crashing in the test runner.
     const auto codeSize = encoder.size();

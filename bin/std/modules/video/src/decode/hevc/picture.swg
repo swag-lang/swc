@@ -15,20 +15,20 @@ using Core, Core.Errors
 // lets a row advance once the row above is two coding tree blocks ahead.
 private struct WppRowJob
 {
-    using base: Jobs.Job
-    owner:       #null *Decoder
-    worker:      #null *Decoder
-    bounds:      #null const [*] u64
-    jobs:        #null [*] WppRowJob
-    progress:    #null [*] u32
-    states:      #null [*] CabacState
-    events:      #null [*] Sync.Event
-    failed:      #null *u32
-    row:         u32
-    rowCount:    u32
-    width:       u32
+    using base:    Jobs.Job
+    owner:         #null *Decoder
+    worker:        #null *Decoder
+    bounds:        #null const [*] u64
+    jobs:          #null [*] WppRowJob
+    progress:      #null [*] u32
+    states:        #null [*] CabacState
+    events:        #null [*] Sync.Event
+    failed:        #null *u32
+    row:           u32
+    rowCount:      u32
+    width:         u32
     nextScheduled: bool
-    errorText:   String
+    errorText:     String
 }
 
 impl Decoder
@@ -530,20 +530,21 @@ impl Decoder
         for row in rowCount
         {
             let job = &jobs[row]
-            job.owner     = me
-            job.worker    = &workers[row]
-            job.bounds    = bounds.buffer
-            job.jobs      = jobs.buffer
-            job.progress  = progress.buffer
-            job.states    = states.buffer
-            job.events    = events
-            job.failed    = &failed
-            job.row       = row
-            job.rowCount  = rowCount
-            job.width     = width
-            job.lambda    = &runWppRow
-            job.data      = job
+            job.owner    = me
+            job.worker   = &workers[row]
+            job.bounds   = bounds.buffer
+            job.jobs     = jobs.buffer
+            job.progress = progress.buffer
+            job.states   = states.buffer
+            job.events   = events
+            job.failed   = &failed
+            job.row      = row
+            job.rowCount = rowCount
+            job.width    = width
+            job.lambda   = &runWppRow
+            job.data     = job
         }
+
         Jobs.schedule(&jobs[0])
 
         for index in rowCount do
@@ -580,38 +581,38 @@ impl Decoder
         // temporal and spatial candidate against zero, and predicts from the wrong place.
         worker.pocValue = .pocValue
 
-        worker.zScan.buffer = .zScan.buffer
-        worker.zScan.count  = .zScan.count
-        worker.ctbRsToTs.buffer = .ctbRsToTs.buffer
-        worker.ctbRsToTs.count  = .ctbRsToTs.count
-        worker.ctbTsToRs.buffer = .ctbTsToRs.buffer
-        worker.ctbTsToRs.count  = .ctbTsToRs.count
-        worker.tileId.buffer = .tileId.buffer
-        worker.tileId.count  = .tileId.count
-        worker.ctbSliceAddr.buffer = .ctbSliceAddr.buffer
-        worker.ctbSliceAddr.count  = .ctbSliceAddr.count
+        worker.zScan.buffer         = .zScan.buffer
+        worker.zScan.count          = .zScan.count
+        worker.ctbRsToTs.buffer     = .ctbRsToTs.buffer
+        worker.ctbRsToTs.count      = .ctbRsToTs.count
+        worker.ctbTsToRs.buffer     = .ctbTsToRs.buffer
+        worker.ctbTsToRs.count      = .ctbTsToRs.count
+        worker.tileId.buffer        = .tileId.buffer
+        worker.tileId.count         = .tileId.count
+        worker.ctbSliceAddr.buffer  = .ctbSliceAddr.buffer
+        worker.ctbSliceAddr.count   = .ctbSliceAddr.count
         worker.ctbSliceIndex.buffer = .ctbSliceIndex.buffer
         worker.ctbSliceIndex.count  = .ctbSliceIndex.count
-        worker.sliceParams.buffer = .sliceParams.buffer
-        worker.sliceParams.count  = .sliceParams.count
-        worker.predMode.buffer = .predMode.buffer
-        worker.predMode.count  = .predMode.count
-        worker.intraModeY.buffer = .intraModeY.buffer
-        worker.intraModeY.count  = .intraModeY.count
-        worker.ctDepth.buffer = .ctDepth.buffer
-        worker.ctDepth.count  = .ctDepth.count
-        worker.skipFlag.buffer = .skipFlag.buffer
-        worker.skipFlag.count  = .skipFlag.count
-        worker.qpY.buffer = .qpY.buffer
-        worker.qpY.count  = .qpY.count
-        worker.cbfLuma.buffer = .cbfLuma.buffer
-        worker.cbfLuma.count  = .cbfLuma.count
-        worker.motion.buffer = .motion.buffer
-        worker.motion.count  = .motion.count
-        worker.edgeFlags.buffer = .edgeFlags.buffer
-        worker.edgeFlags.count  = .edgeFlags.count
-        worker.sao.buffer = .sao.buffer
-        worker.sao.count  = .sao.count
+        worker.sliceParams.buffer   = .sliceParams.buffer
+        worker.sliceParams.count    = .sliceParams.count
+        worker.predMode.buffer      = .predMode.buffer
+        worker.predMode.count       = .predMode.count
+        worker.intraModeY.buffer    = .intraModeY.buffer
+        worker.intraModeY.count     = .intraModeY.count
+        worker.ctDepth.buffer       = .ctDepth.buffer
+        worker.ctDepth.count        = .ctDepth.count
+        worker.skipFlag.buffer      = .skipFlag.buffer
+        worker.skipFlag.count       = .skipFlag.count
+        worker.qpY.buffer           = .qpY.buffer
+        worker.qpY.count            = .qpY.count
+        worker.cbfLuma.buffer       = .cbfLuma.buffer
+        worker.cbfLuma.count        = .cbfLuma.count
+        worker.motion.buffer        = .motion.buffer
+        worker.motion.count         = .motion.count
+        worker.edgeFlags.buffer     = .edgeFlags.buffer
+        worker.edgeFlags.count      = .edgeFlags.count
+        worker.sao.buffer           = .sao.buffer
+        worker.sao.count            = .sao.count
 
         for index in 32'u32 * 32 do
             worker.transformMatrix[index] = .transformMatrix[index]
@@ -621,35 +622,35 @@ impl Decoder
     // Removes borrowed array headers before normal Decoder destruction sees the worker.
     private mtd detachWavefrontWorker(worker: *Decoder)
     {
-        worker.zScan.buffer = null
-        worker.ctbRsToTs.buffer = null
-        worker.ctbTsToRs.buffer = null
-        worker.tileId.buffer = null
-        worker.ctbSliceAddr.buffer = null
+        worker.zScan.buffer         = null
+        worker.ctbRsToTs.buffer     = null
+        worker.ctbTsToRs.buffer     = null
+        worker.tileId.buffer        = null
+        worker.ctbSliceAddr.buffer  = null
         worker.ctbSliceIndex.buffer = null
-        worker.sliceParams.buffer = null
-        worker.predMode.buffer = null
-        worker.intraModeY.buffer = null
-        worker.ctDepth.buffer = null
-        worker.skipFlag.buffer = null
-        worker.qpY.buffer = null
-        worker.cbfLuma.buffer = null
-        worker.motion.buffer = null
-        worker.edgeFlags.buffer = null
-        worker.sao.buffer = null
-        worker.current = null
-        worker.activeSps = null
-        worker.activePps = null
+        worker.sliceParams.buffer   = null
+        worker.predMode.buffer      = null
+        worker.intraModeY.buffer    = null
+        worker.ctDepth.buffer       = null
+        worker.skipFlag.buffer      = null
+        worker.qpY.buffer           = null
+        worker.cbfLuma.buffer       = null
+        worker.motion.buffer        = null
+        worker.edgeFlags.buffer     = null
+        worker.sao.buffer           = null
+        worker.current              = null
+        worker.activeSps            = null
+        worker.activePps            = null
     }
 
     // Reconstructs one row while maintaining the two-CTU WPP lead over the row below.
     private mtd decodeWavefrontRow(job: *WppRowJob) fail
     {
         let row = job.row
-        .currentQp       = .header.sliceQp
-        .qpYPred         = .header.sliceQp
-        .qpYPrev         = .header.sliceQp
-        .cuQpDeltaVal    = 0
+        .currentQp        = .header.sliceQp
+        .qpYPred          = .header.sliceQp
+        .qpYPrev          = .header.sliceQp
+        .cuQpDeltaVal     = 0
         .isCuQpDeltaCoded = false
         let first = job.bounds![row]
         let last  = job.bounds![row + 1]

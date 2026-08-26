@@ -496,7 +496,6 @@ impl Slice
             if ref1 do
                 .awaitJobReference(mb, job, 1, ref1!)
 
-
             // Luma.
             let lumaX   = mb.mbX * 16 + job.x
             let lumaY   = mb.mbY * 16 + job.y

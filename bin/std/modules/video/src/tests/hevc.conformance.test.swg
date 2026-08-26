@@ -4,8 +4,8 @@
 using Core, Core.Errors
 
 // Network abstraction layer unit types and the payload type that carries a picture digest.
-const PrefixSeiNal = 39'u32
-const SuffixSeiNal = 40'u32
+const PrefixSeiNal              = 39'u32
+const SuffixSeiNal              = 40'u32
 const DecodedPictureHashPayload = 132'u32
 
 // Decodes an elementary H.265 byte stream and checks every picture against the digest the stream
@@ -98,25 +98,25 @@ impl ConformanceRun
             while offset < @countof(bytes) and bytes[offset] == 0xFF
             {
                 payloadType += 255
-                offset += 1
+                offset      += 1
             }
 
             if offset >= @countof(bytes) do
                 return
             payloadType += cast(u32) bytes[offset]
-            offset += 1
+            offset      += 1
 
             var payloadSize = 0'u64
             while offset < @countof(bytes) and bytes[offset] == 0xFF
             {
                 payloadSize += 255
-                offset += 1
+                offset      += 1
             }
 
             if offset >= @countof(bytes) do
                 return
             payloadSize += cast(u64) bytes[offset]
-            offset += 1
+            offset      += 1
 
             if offset + payloadSize > @countof(bytes) do
                 return
@@ -146,7 +146,7 @@ impl ConformanceRun
     {
         // The harness shows every picture immediately, so the buffer may reuse it at once.
         frame.outputNeeded = false
-        .pictureCount += 1
+        .pictureCount      += 1
 
         let sps = .decoder.activeSps
         if !sps do

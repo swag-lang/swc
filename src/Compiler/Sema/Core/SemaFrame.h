@@ -229,8 +229,8 @@ public:
     static bool                     queryNarrowFact(std::span<const SemaNarrowFact> facts, std::span<const Symbol* const> path, SemaNarrowFactKind kind);
     std::span<const SemaNarrowFact> narrowFacts() const { return narrowFacts_.span(); }
     bool                            hasNarrowFacts() const { return !narrowFacts_.empty(); }
-    void clearNarrowFacts() { narrowFacts_.clear(); }
-    void killNarrowFactsByRootId(std::span<const IdentifierRef> rootIds);
+    void                            clearNarrowFacts() { narrowFacts_.clear(); }
+    void                            killNarrowFactsByRootId(std::span<const IdentifierRef> rootIds);
 
     static SymbolMap* currentSymMap(Sema& sema);
     SymbolFlags       flagsForCurrentAccess() const;

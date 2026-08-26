@@ -158,7 +158,7 @@ namespace
     {
         MicroInstrRef loadRef;
         MicroInstrRef storeRef;
-        MicroInstrRef seedBeforeRef;  // insert the seeding load before this, or invalid if not needed
+        MicroInstrRef seedBeforeRef;   // insert the seeding load before this, or invalid if not needed
         MicroInstrRef writeBackBefore; // insert the write-back before this
         MicroReg      reg;
         MicroReg      base;
@@ -493,14 +493,14 @@ namespace
                     seedBefore = MicroInstrRef::invalid();
             }
 
-            out.push_back({.loadRef        = instrRefs[use.loadIndex],
-                           .storeRef       = instrRefs[use.storeIndex],
-                           .seedBeforeRef  = seedBefore,
+            out.push_back({.loadRef         = instrRefs[use.loadIndex],
+                           .storeRef        = instrRefs[use.storeIndex],
+                           .seedBeforeRef   = seedBefore,
                            .writeBackBefore = writeBackBefore,
-                           .reg            = use.reg,
-                           .base           = use.base,
-                           .offset         = offset,
-                           .bits           = use.bits});
+                           .reg             = use.reg,
+                           .base            = use.base,
+                           .offset          = offset,
+                           .bits            = use.bits});
         }
     }
 

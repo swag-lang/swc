@@ -399,8 +399,8 @@ impl Surface
         clipRect.round()
         .paintedWnds = 0
         .skippedWnds = 0
-        .dirtyRect = {Swag.F32.Max, Swag.F32.Max, 0, 0}
-        .isDirty   = false
+        .dirtyRect   = {Swag.F32.Max, Swag.F32.Max, 0, 0}
+        .isDirty     = false
 
         with var cxt: PaintContext
         {

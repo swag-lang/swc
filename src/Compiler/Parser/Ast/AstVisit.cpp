@@ -100,7 +100,6 @@ AstVisitResult AstVisit::stepPreStage(Frame& frame)
         frame.node = &ast_->node(frame.nodeRef);
         SWC_ASSERT(frame.node->isNot(AstNodeId::Invalid));
         SWC_ASSERT(frame.node->id() < AstNodeId::Count);
-
     }
 
     if (preNodeVisitor_ && frame.preNodeState != Frame::CallState::Done)

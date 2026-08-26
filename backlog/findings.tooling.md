@@ -14,6 +14,22 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Evidence: 22-logical-processor machine saturated by an unbounded `/MP` compile plus unbounded `swc` job managers; caps added 2026-08-13.
 - Next step: when the machine stops hosting several concurrent agents, or when the tools run on a dedicated CI machine, re-evaluate both caps — remove them so builds and campaigns take the whole machine again, or keep them behind an explicit opt-in.
 
+### F-198 — A differential harness must line pictures up by time, not by rank
+
+- Area: tooling
+- Found while: measuring the video library against FFmpeg.
+- Observation: FFmpeg numbers the pictures it emits densely, while this reader numbers them the
+  way the container does. The two disagree wherever a container holds a sample that produces no
+  picture — a plane that codes nothing, a leading picture a random access point says to skip, or
+  an access unit before the first one that can be reconstructed. Neither numbering is wrong: a
+  player seeks by the frame number its container states, while FFmpeg hands out packets and frames
+  with timestamps and drops samples that emit no frame.
+- Evidence: comparing picture `k` against FFmpeg's picture `k` reported defects for two files in
+  the measured library; both proved bit-exact once their pictures were lined up by presentation
+  time.
+- Next step: make the differential harness record the timestamp of each reference picture and ask
+  this reader for the rank that carries it before comparing decoded pixels.
+
 ### F-200 — A Matroska fixture cannot state what a real file states about itself
 
 - Area: tooling

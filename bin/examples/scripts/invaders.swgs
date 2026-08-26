@@ -24,11 +24,11 @@ var g_MoveAlienDirection: f32 = 1
 var g_NumAlienLasers          = 0
 var g_Score                   = 0
 
-var g_ExtraImg:  Texture
-var g_GreenImg:  Texture
-var g_RedImg:    Texture
-var g_YellowImg: Texture
-var g_PlayerImg: Texture
+var g_ExtraImg:       Texture
+var g_GreenImg:       Texture
+var g_RedImg:         Texture
+var g_YellowImg:      Texture
+var g_PlayerImg:      Texture
 var g_SoundMusic:     Audio.SoundFile
 var g_SoundLaser:     Audio.SoundFile
 var g_SoundExplosion: Audio.SoundFile

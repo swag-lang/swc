@@ -165,8 +165,10 @@ region is dead, not wrong.
     @assert(p?.next == null)
 
     // Every path assigns a present value, so the value is proven after the 'if'.
-    if second.count > 0 do p = &first
-    else do p = &second
+    if second.count > 0 do
+        p = &first
+    else do
+        p = &second
     @assert(p.count == 2)
 }
 

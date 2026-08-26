@@ -717,7 +717,7 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
     if parser.boolean(parser.dict(nodeId, "ImageMask"))
     {
         let stencil = #move try readMaskPlane(parser, nodeId, resourcesId, true)
-        var result = #move planeToImage(&stencil, &fillColor)
+        var result  = #move planeToImage(&stencil, &fillColor)
         return #move result
     }
 

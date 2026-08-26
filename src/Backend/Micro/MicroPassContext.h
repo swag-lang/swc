@@ -95,7 +95,6 @@ struct MicroPassContext
     // repair path can notice — the value it displaces has no spill home to be
     // restored from. Reset with the rest of the pipeline state.
     SmallVector<MicroReg> globalReservedRegs;
-
 };
 
 SWC_END_NAMESPACE();

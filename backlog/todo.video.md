@@ -466,18 +466,3 @@ is the layout it does not read yet.
 - It is recorded because the sweep found it, not because it is worth writing: one film against a
   codec of that size is a poor trade, and remuxing that one file is the cheaper answer.
 - Related: T-565
-
-### F-198 — A differential harness must line pictures up by time, not by rank
-
-- Found while measuring the library: FFmpeg numbers the pictures it emits densely, and this reader
-  numbers them the way the container does. The two disagree wherever a container holds a sample
-  that produces no picture — a plane that codes nothing, a leading picture a random access point
-  says to skip, an access unit before the first one that can be reconstructed.
-- Neither numbering is wrong. A player seeks by the frame number its container states, so this
-  reader answers every one of them, and a rank whose picture cannot or must not be shown is
-  answered by the next one that can. FFmpeg hands out packets and frames with timestamps, so it
-  drops them instead.
-- Consequence for measurement: comparing picture `k` against FFmpeg's picture `k` reports a defect
-  where there is none. Two files of the library did exactly that, and both proved bit-exact once
-  their pictures were lined up by presentation time. A harness that compares against FFmpeg has to
-  record the timestamp of each reference picture and ask this reader for the rank that carries it.

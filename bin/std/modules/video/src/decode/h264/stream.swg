@@ -93,10 +93,10 @@ struct AvcStream
     threadsStarted:    bool
     reachedEnd:        bool
     skipBefore:        u64
-    prefix:            Array'u8         // Bytes the container took off the front of every stored frame.
+    prefix:            Array'u8               // Bytes the container took off the front of every stored frame.
     decodeLimit:       u64 = Swag.U64.Max     // Exclusive decode-order ceiling during seek preroll.
-    nextDecode:        u64     // Next sample to hand a frame context.
-    nextRank:          u64     // Display rank the next decode call returns.
+    nextDecode:        u64                    // Next sample to hand a frame context.
+    nextRank:          u64                    // Display rank the next decode call returns.
     width:             s32
     height:            s32
     cropLeft:          s32
@@ -139,12 +139,12 @@ impl AvcStream
         for &decoder in .decoders do
             decoder.restart()
 
-        .nextDecode = 0
-        .nextRank   = 0
-        .skipBefore = 0
+        .nextDecode  = 0
+        .nextRank    = 0
+        .skipBefore  = 0
         .decodeLimit = Swag.U64.Max
-        .reachedEnd = false
-        .positioned = false
+        .reachedEnd  = false
+        .positioned  = false
         .installFrames(#move frames)
     }
 
@@ -184,7 +184,7 @@ impl AvcStream
         for index in count where .frames[index].isSync
         {
             .syncFlags[index] = 1
-            marked = true
+            marked            = true
         }
 
         // A container that marks nothing says nothing, and the first sample is then the only place

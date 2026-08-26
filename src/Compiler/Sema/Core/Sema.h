@@ -258,22 +258,22 @@ public:
     // before the construct owning the branches can compare the paths. These keep one such set
     // alive across the pop: 'arm' asks postNode() to snapshot the body's frame just before it
     // goes, 'capture' snapshots the current frame now, and 'take' hands the set over once.
-    void armNarrowFactCapture(AstNodeRef bodyRef);
-    void captureNarrowFacts(AstNodeRef bodyRef);
-    bool takeNarrowFactCapture(AstNodeRef bodyRef, SmallVector2<SemaNarrowFact>& facts);
-    SemaScope*                 curScopePtr() { return curScope_; }
-    const SemaScope*           curScopePtr() const { return curScope_; }
-    SemaScope&                 curScope() { return *(curScope_); }
-    const SemaScope&           curScope() const { return *(curScope_); }
-    SemaScope*                 lookupScope();
-    const SemaScope*           lookupScope() const;
-    SemaScope*                 upLookupScope() { return frame().upLookupScope(); }
-    const SemaScope*           upLookupScope() const { return frame().upLookupScope(); }
-    SemaScope*                 resolvedUpLookupScope();
-    const SemaScope*           resolvedUpLookupScope() const;
-    static void                configureLookupFrame(SemaFrame& frame, SemaScope* lookupScope, bool ignoreRuntimeAccess = false);
-    void                       restartCurrentNode(AstNodeRef nodeRef);
-    void                       rebindTaskContext(TaskContext& ctx) { ctx_ = &ctx; }
+    void             armNarrowFactCapture(AstNodeRef bodyRef);
+    void             captureNarrowFacts(AstNodeRef bodyRef);
+    bool             takeNarrowFactCapture(AstNodeRef bodyRef, SmallVector2<SemaNarrowFact>& facts);
+    SemaScope*       curScopePtr() { return curScope_; }
+    const SemaScope* curScopePtr() const { return curScope_; }
+    SemaScope&       curScope() { return *(curScope_); }
+    const SemaScope& curScope() const { return *(curScope_); }
+    SemaScope*       lookupScope();
+    const SemaScope* lookupScope() const;
+    SemaScope*       upLookupScope() { return frame().upLookupScope(); }
+    const SemaScope* upLookupScope() const { return frame().upLookupScope(); }
+    SemaScope*       resolvedUpLookupScope();
+    const SemaScope* resolvedUpLookupScope() const;
+    static void      configureLookupFrame(SemaFrame& frame, SemaScope* lookupScope, bool ignoreRuntimeAccess = false);
+    void             restartCurrentNode(AstNodeRef nodeRef);
+    void             rebindTaskContext(TaskContext& ctx) { ctx_ = &ctx; }
 
     AstVisit&        visit() { return visit_; }
     const AstVisit&  visit() const { return visit_; }

@@ -33,15 +33,15 @@ struct ImageView
     //
     // Such a picture never becomes an image: the renderer keeps it in the layout the decoder
     // produced and converts it where it samples, so the view knows its geometry and nothing else.
-    planarWidth:     s32
-    planarHeight:    s32
+    planarWidth:  s32
+    planarHeight: s32
 
     // Size the content is laid out and drawn at, when that is not its own pixel size.
     //
     // A picture whose samples are not square is stored with fewer or more columns than it is
     // shown with. Zero on either axis means the content states its own shape.
-    displayWidth:    s32
-    displayHeight:   s32
+    displayWidth:  s32
+    displayHeight: s32
 }
 
 private impl ImageView
@@ -245,9 +245,9 @@ impl ImageView
         @init(&.image, 1)
         .planarWidth  = 0
         .planarHeight = 0
-        .zoom      = 1
-        .isFitted  = true
-        .panOffset = {}
+        .zoom         = 1
+        .isFitted     = true
+        .panOffset    = {}
         .invalidate()
     }
 

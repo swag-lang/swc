@@ -493,8 +493,8 @@ private func readEncoding(parser: const *PdfParser, font: *FontResource, encodin
 
         // The name is what addresses a PostScript program; the character it stands for is
         // only what the text extracts as, and may well be unknown.
-        let name  = parser.nodes[id].text.toString()
-        let glyph = glyphNameRune(name)
+        let name      = parser.nodes[id].text.toString()
+        let glyph     = glyphNameRune(name)
         var glyphName = #move String.from(name)
         font.glyphNames[code] = #move glyphName
         if glyph do

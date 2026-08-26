@@ -892,7 +892,6 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
 
         operands.clear()
     }
-
 }
 
 private func decodeFonts(parser: *PdfParser, page: *Page, resourcesId: u32) fail

@@ -9,7 +9,7 @@
 using Core, Core.Errors
 
 // Video object plane coding types, clause 6.3.5.
-const VopIntra        = 0'u32
+const VopIntra         = 0'u32
 const VopPredicted     = 1'u32
 const VopBidirectional = 2'u32
 const VopSprite        = 3'u32
@@ -91,28 +91,28 @@ impl BitReader
 // What the setup headers of one video object layer state.
 struct Layer
 {
-    versionId:      u32 = 1
-    shape:          u32
-    width:          u32     // Visible luma samples.
-    height:         u32
-    mbWidth:        u32     // Macroblocks across the coded picture.
-    mbHeight:       u32
-    timeIncrementBits: u32 = 1
-    timeResolution: u32 = 30
-    quantType:      u32
-    quantPrecision: u32 = 5
-    bitsPerPixel:   u32 = 8
-    intraMatrix:    [64] u8
-    interMatrix:    [64] u8
-    interlaced:     bool
-    obmcDisabled:   bool = true
-    spriteEnable:   u32
-    quarterSample:  bool
-    lowDelay:       bool
+    versionId:          u32  = 1
+    shape:              u32
+    width:              u32     // Visible luma samples.
+    height:             u32
+    mbWidth:            u32     // Macroblocks across the coded picture.
+    mbHeight:           u32
+    timeIncrementBits:  u32  = 1
+    timeResolution:     u32  = 30
+    quantType:          u32
+    quantPrecision:     u32  = 5
+    bitsPerPixel:       u32  = 8
+    intraMatrix:        [64] u8
+    interMatrix:        [64] u8
+    interlaced:         bool
+    obmcDisabled:       bool = true
+    spriteEnable:       u32
+    quarterSample:      bool
+    lowDelay:           bool
     complexityDisabled: bool = true
-    dataPartitioned: bool
-    resyncDisabled:  bool
-    configured:      bool
+    dataPartitioned:    bool
+    resyncDisabled:     bool
+    configured:         bool
 }
 
 impl Layer
@@ -140,7 +140,7 @@ impl Layer
             let value = reader.read(8)
             if !value do
                 break
-            last = value
+            last  = value
             target[][cast(u64) ScanZigzag[index]] = cast(u8) value
             index += 1
         }
@@ -156,22 +156,22 @@ impl Layer
     // Reads a video object layer header, clause 6.2.3.
     mtd readVideoObjectLayer(reader: *BitReader) fail
     {
-        discard reader.bit()                    // random_accessible_vol
-        discard reader.read(8)                  // video_object_type_indication
+        discard reader.bit()       // random_accessible_vol
+        discard reader.read(8)     // video_object_type_indication
 
         .versionId = 1
         if reader.bit() != 0
         {
             .versionId = reader.read(4)
-            discard reader.read(3)              // video_object_layer_priority
+            discard reader.read(3)     // video_object_layer_priority
         }
 
         if reader.read(4) == 15 do
-            discard reader.read(16)             // pixel aspect ratio
+            discard reader.read(16)     // pixel aspect ratio
 
         if reader.bit() != 0
         {
-            discard reader.read(2)              // chroma_format
+            discard reader.read(2)     // chroma_format
             .lowDelay = reader.bit() != 0
             if reader.bit() != 0
             {
@@ -206,7 +206,7 @@ impl Layer
             .timeIncrementBits += 1
 
         if reader.bit() != 0 do
-            discard reader.read(.timeIncrementBits)   // fixed_vop_time_increment
+            discard reader.read(.timeIncrementBits)     // fixed_vop_time_increment
 
         reader.marker()
         .width = reader.read(13)
@@ -260,8 +260,8 @@ impl Layer
         if .dataPartitioned do
             fail UnsupportedFormatError{"video decoder does not read data-partitioned MPEG-4 Part 2"}
 
-        .mbWidth  = (.width + 15) / 16
-        .mbHeight = (.height + 15) / 16
+        .mbWidth    = (.width + 15) / 16
+        .mbHeight   = (.height + 15) / 16
         .configured = true
         if reader.overran() do
             fail InvalidFormatError{"MPEG-4 video object layer header is truncated"}
@@ -271,21 +271,21 @@ impl Layer
 // What one video object plane header states.
 struct PlaneHeader
 {
-    codingType:   u32
-    coded:        bool
-    rounding:     u32
+    codingType:       u32
+    coded:            bool
+    rounding:         u32
     intraDcThreshold: u32
-    quant:        u32
-    fcodeForward: u32 = 1
-    fcodeBackward:u32 = 1
-    timeIncrement:u32
-    moduloTime:   u32
+    quant:            u32
+    fcodeForward:     u32 = 1
+    fcodeBackward:    u32 = 1
+    timeIncrement:    u32
+    moduloTime:       u32
 }
 
 // Reads a video object plane header, clause 6.2.5.
 func readPlaneHeader(layer: const *Layer, reader: *BitReader, header: *PlaneHeader) fail
 {
-    header[] = PlaneHeader{}
+    header[]          = PlaneHeader{}
     header.codingType = reader.read(2)
 
     // The time base advances by one for every set bit before the zero that closes it.
@@ -293,7 +293,7 @@ func readPlaneHeader(layer: const *Layer, reader: *BitReader, header: *PlaneHead
     while reader.bit() != 0
     {
         header.moduloTime += 1
-        guard += 1
+        guard             += 1
         if guard > 64 do
             fail InvalidFormatError{"MPEG-4 plane header states an unbounded time base"}
     }

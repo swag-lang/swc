@@ -3006,8 +3006,10 @@ indent-style = spaces</span></div>
     <span class="SItr">@assert</span>(p?.next == <span class="SKwd">null</span>)
 
     <span class="SCmt">// Every path assigns a present value, so the value is proven after the 'if'.</span>
-    <span class="SLgc">if</span> second.count &gt; <span class="SNum">0</span> <span class="SLgc">do</span> p = &amp;first
-    <span class="SLgc">else</span> <span class="SLgc">do</span> p = &amp;second
+    <span class="SLgc">if</span> second.count &gt; <span class="SNum">0</span> <span class="SLgc">do</span>
+        p = &amp;first
+    <span class="SLgc">else</span> <span class="SLgc">do</span>
+        p = &amp;second
     <span class="SItr">@assert</span>(p.count == <span class="SNum">2</span>)
 }</span></div>
 <h3 id="_004_007_pointers_swg_Reaching_Through_a_Pointer">Reaching Through a Pointer</h3>

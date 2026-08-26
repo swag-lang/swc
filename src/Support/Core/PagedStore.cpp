@@ -110,7 +110,6 @@ uint32_t PagedStore::extentSize() const noexcept
     return 0;
 }
 
-
 void PagedStore::copyTo(std::span<std::byte> dst) const
 {
     SWC_ASSERT(dst.size() <= size());

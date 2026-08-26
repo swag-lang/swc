@@ -126,7 +126,7 @@ impl Image
     internal mtd init(width, height: s32, pixelFormat: PixelFormat)
     {
         Debug.assert(width > 0 and height > 0, "invalid dimensions")
-        let bitsPerPixel  = pixelFormat.bitsPerPixel()
+        let bitsPerPixel = pixelFormat.bitsPerPixel()
         Debug.assert(pixelFormat.isPacked(), "an image holds a packed pixel format")
         let bytesPerPixel = cast(u8) (bitsPerPixel >> 3)
         Debug.assert(width <= 0x7FFFFFFF's32 / cast(s32) bytesPerPixel, "image row is too large")
@@ -398,12 +398,20 @@ impl Image
         Debug.assert(.isValid(), "image is invalid")
         switch #complete .pixelFormat
         {
-        case .RGBA8: return .pixelColorDirect'RGBA8(pixX, pixY)
-        case .RGB8:  return .pixelColorDirect'RGB8(pixX, pixY)
-        case .BGRA8: return .pixelColorDirect'BGRA8(pixX, pixY)
-        case .BGR8:  return .pixelColorDirect'BGR8(pixX, pixY)
+        case .RGBA8:
+            return .pixelColorDirect'RGBA8(pixX, pixY)
+
+        case .RGB8:
+            return .pixelColorDirect'RGB8(pixX, pixY)
+
+        case .BGRA8:
+            return .pixelColorDirect'BGRA8(pixX, pixY)
+
+        case .BGR8:
+            return .pixelColorDirect'BGR8(pixX, pixY)
 
         case .Yuv420:
+
             // An image never holds a planar format; 'create' refuses one.
             break
         }

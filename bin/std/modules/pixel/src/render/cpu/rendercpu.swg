@@ -368,6 +368,7 @@ private impl RenderCpu
         switch #complete image.pixelFormat
         {
         case .Yuv420:
+
             // A surface is always packed: this backend converts a planar picture on upload.
             Debug.assert(false, "cannot write one pixel of a planar picture")
 

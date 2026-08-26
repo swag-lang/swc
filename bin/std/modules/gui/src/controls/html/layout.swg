@@ -220,7 +220,7 @@ impl HtmlLayout
         .defaults = resolver.defaults
         .pool     = resolver.pool
         resolver.styles.reserve(resolver.styles.count + resolver.pseudos.count + 1)
-        .styles   = #move resolver.styles
+        .styles     = #move resolver.styles
         .nodeStyles = #move resolver.nodeStyles
         .boxes.clear()
         .fontCache.clear()

@@ -19,16 +19,16 @@ const FramePadding = 32'u32
 #[Swag.NoCopy]
 struct Frame
 {
-    luma:         Array'u8
-    chromaB:      Array'u8
-    chromaR:      Array'u8
-    strideLuma:   u64
-    strideChroma: u64
-    width:        u32     // Coded luma width, a multiple of sixteen.
-    height:       u32
-    displayWidth: u32     // What the layer says is visible.
-    displayHeight:u32
-    inUse:        bool    // The picture is a reference or is waiting for its display turn.
+    luma:          Array'u8
+    chromaB:       Array'u8
+    chromaR:       Array'u8
+    strideLuma:    u64
+    strideChroma:  u64
+    width:         u32     // Coded luma width, a multiple of sixteen.
+    height:        u32
+    displayWidth:  u32     // What the layer says is visible.
+    displayHeight: u32
+    inUse:         bool     // The picture is a reference or is waiting for its display turn.
 }
 
 impl Frame
@@ -60,7 +60,7 @@ impl Frame
     }
 
     // The first sample of the picture inside its padded plane.
-    mtd const lumaOrigin()->u64 => cast(u64) FramePadding * .strideLuma + cast(u64) FramePadding
+    mtd const lumaOrigin()->u64   => cast(u64) FramePadding * .strideLuma + cast(u64) FramePadding
     mtd const chromaOrigin()->u64 => cast(u64) FramePadding * .strideChroma + cast(u64) FramePadding
 
     // Replicates the border of every plane into the padding.
@@ -102,8 +102,8 @@ impl Frame
     // Hands the visible picture over as three tightly packed planes.
     mtd const writePlanar(target: *PlanarFrame)
     {
-        let width  = cast(s32) .displayWidth
-        let height = cast(s32) .displayHeight
+        let width        = cast(s32) .displayWidth
+        let height       = cast(s32) .displayHeight
         let chromaWidth  = cast(u64) ((width + 1) / 2)
         let chromaHeight = cast(u64) ((height + 1) / 2)
 

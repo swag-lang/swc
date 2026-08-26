@@ -281,7 +281,7 @@ impl Encoder
         // A static array
         if Reflection.isStaticArray(type)
         {
-            let typeArr = cast(const *TypeInfoArray) type
+            let typeArr  = cast(const *TypeInfoArray) type
             let elemType = typeArr.pointedType
             let treated  = .serializer.beginSequence(elemType, data, typeArr.count)
             defer .serializer.endSequence()

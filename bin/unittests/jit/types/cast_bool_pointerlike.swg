@@ -21,8 +21,8 @@
 {
     func sliceToBool()->bool
     {
-        let empty                 = cast(#null [..] s32) null
-        var data: [2] s32         = [1, 2]
+        let empty                  = cast(#null [..] s32) null
+        var data:   [2] s32        = [1, 2]
         let values: #null [..] s32 = data
         return !cast(bool) empty and cast(bool) values
     }

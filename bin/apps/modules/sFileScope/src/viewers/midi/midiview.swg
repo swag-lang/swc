@@ -22,17 +22,17 @@ internal struct MidiRollView
         codeFont:  *Font
     }
 
-    document:     MidiDocument
-    selectedTrack = Swag.U32.Max
-    zoom = 1'f32
-    fit: bool = true
-    lowKey:  u8
-    highKey: u8
-    plotTop: f32
-    rowHeight: f32
-    beatTicks: u64
-    pixelsPerTick: f32
-    timelineWidth: f32
+    document:       MidiDocument
+    selectedTrack        = Swag.U32.Max
+    zoom                 = 1'f32
+    fit:            bool = true
+    lowKey:         u8
+    highKey:        u8
+    plotTop:        f32
+    rowHeight:      f32
+    beatTicks:      u64
+    pixelsPerTick:  f32
+    timelineWidth:  f32
     sigZoomChanged: SigArray'func||(*MidiRollView)
 }
 
@@ -56,6 +56,7 @@ private func midiViewKeyName(value: s32)->string
     case 6:  return "F-sharp"
     case 7:  return "C-sharp"
     }
+
     return "?"
 }
 
@@ -77,6 +78,7 @@ private func midiPitchName(key: u8)->String
     case 10: name = "A#"
     case 11: name = "B"
     }
+
     var result = String.from(name)
     let octave = Format.toString("%", cast(s32) key / 12 - 1)
     result.append(octave.toString())
@@ -96,6 +98,7 @@ internal func midiMeterText(document: const *MidiDocument)->String
         let meter = &document.timeSignatures[0]
         return Format.toString("%/%", meter.numerator, meter.denominator)
     }
+
     return String.from("4/4")
 }
 
@@ -139,9 +142,9 @@ internal impl MidiRollView
     mtd refreshLayout()
     {
         let client = .clientRect()
-        .lowKey  = cast(u8) Math.max(cast(s32) .document.minKey - 2, 0)
-        .highKey = cast(u8) Math.min(cast(s32) .document.maxKey + 2, 127)
-        .plotTop = MidiHeaderHeight + MidiAxisHeight
+        .lowKey    = cast(u8) Math.max(cast(s32) .document.minKey - 2, 0)
+        .highKey   = cast(u8) Math.min(cast(s32) .document.maxKey + 2, 127)
+        .plotTop   = MidiHeaderHeight + MidiAxisHeight
         .rowHeight = Math.max((client.height - .plotTop - MidiContentInset) / cast(f32) (.highKey - .lowKey + 1), 3)
 
         if .document.division & 0x8000
@@ -200,9 +203,9 @@ internal impl MidiRollView
 
     mtd paintGrid(painter: *Painter)
     {
-        let colors    = .themeColors()
-        let plotLeft  = MidiKeyboardWidth + MidiContentInset
-        let plotRight = plotLeft + .timelineWidth
+        let colors     = .themeColors()
+        let plotLeft   = MidiKeyboardWidth + MidiContentInset
+        let plotRight  = plotLeft + .timelineWidth
         let plotBottom = .plotTop + cast(f32) (.highKey - .lowKey + 1) * .rowHeight
 
         for keyValue in cast(u32) (.highKey - .lowKey + 1)
@@ -213,16 +216,17 @@ internal impl MidiRollView
                 painter.fillRect(plotLeft, y, .timelineWidth, .rowHeight, colors.edit_Bk)
             painter.drawLine(plotLeft, y, plotRight, y, colors.border, 1)
         }
+
         painter.drawLine(plotLeft, plotBottom, plotRight, plotBottom, colors.border, 1)
 
         let beatWidth = .pixelsPerTick * cast(f32) .beatTicks
-        var stride = 1'u64
+        var stride    = 1'u64
         while beatWidth * cast(f32) stride < 72 do
             stride *= 2
         let firstVisible = cast(u64) Math.max(Math.floor(Math.max(.scrollPos.x - plotLeft, 0) / beatWidth), 0)
-        var beat          = firstVisible / stride * stride
-        let lastBeat      = cast(u64) Math.ceil((.scrollPos.x + .clientRect().width - plotLeft) / beatWidth) + stride
-        let maxBeat   = .document.durationTicks / .beatTicks + 1
+        var beat         = firstVisible / stride * stride
+        let lastBeat     = cast(u64) Math.ceil((.scrollPos.x + .clientRect().width - plotLeft) / beatWidth) + stride
+        let maxBeat      = .document.durationTicks / .beatTicks + 1
         while beat < Math.min(lastBeat, maxBeat + 1)
         {
             let x = plotLeft + cast(f32) (beat * .beatTicks) * .pixelsPerTick
@@ -235,8 +239,8 @@ internal impl MidiRollView
 
     mtd paintNotes(painter: *Painter)
     {
-        let colors   = .themeColors()
-        let plotLeft = MidiKeyboardWidth + MidiContentInset
+        let colors    = .themeColors()
+        let plotLeft  = MidiKeyboardWidth + MidiContentInset
         let alternate = .theme().palette.alternate.mark
 
         for note in .document.notes
@@ -249,9 +253,9 @@ internal impl MidiRollView
             let width = Math.max(cast(f32) (note.endTick - note.startTick) * .pixelsPerTick, 2)
             if x + width < .scrollPos.x + MidiKeyboardWidth do
                 continue
-            let y = .plotTop + cast(f32) (.highKey - note.key) * .rowHeight + 1
+            let y        = .plotTop + cast(f32) (.highKey - note.key) * .rowHeight + 1
             let strength = 0.58'f32 + cast(f32) (note.track % 4) * 0.09
-            let color = Color.lerp(colors.view_Bk, alternate, strength)
+            let color    = Color.lerp(colors.view_Bk, alternate, strength)
             painter.fillRoundRect({x, y, width, Math.max(.rowHeight - 2, 1)}, 2, 2, color)
         }
     }
@@ -276,6 +280,7 @@ internal impl MidiRollView
                 painter.drawString(left + MidiContentInset + 8, y + Math.max((.rowHeight - .codeFont.height) * 0.5, 0), label.toString(), .codeFont, colors.label_TextLight)
             }
         }
+
         painter.drawLine(left + MidiContentInset + MidiKeyboardWidth, .plotTop, left + MidiContentInset + MidiKeyboardWidth, .clientRect().height - MidiContentInset, colors.border, 1)
     }
 }
@@ -309,9 +314,10 @@ internal impl IWnd for MidiRollView
             evt.accepted = false
             return
         }
+
         switch evt.key
         {
-        case .Add, .OemPlus:      .zoomIn()
+        case .Add, .OemPlus:       .zoomIn()
         case .Subtract, .OemMinus: .zoomOut()
         case .F:                   .zoomToFit()
         case .Left:                .scroll.setScrollPos(.scrollPos.x - 96, 0)
@@ -335,6 +341,7 @@ internal impl IWnd for MidiRollView
             let colors = .themeColors()
             painter.drawString(.scrollPos.x + MidiKeyboardWidth + 2 * MidiContentInset, .plotTop + 24, midiStrings().ui_NoNotes, .codeFont, colors.label_TextFaint)
         }
+
         .paintKeyboard(painter)
     }
 }
@@ -353,9 +360,9 @@ internal impl MidiRollView
         result.backgroundStyle = .View
         result.focusPolicy     = .Tab
         result.wndFlags        |= WndFlags.NoFocusRing
-        result.titleFont = result.theme().createDefaultFont(24, .Bold)
-        result.labelFont = result.theme().createDefaultFont(11, .Bold)
-        result.codeFont  = result.theme().createDefaultFontFS(11)
+        result.titleFont       = result.theme().createDefaultFont(24, .Bold)
+        result.labelFont       = result.theme().createDefaultFont(11, .Bold)
+        result.codeFont        = result.theme().createDefaultFontFS(11)
         result.refreshLayout()
         return result
     }

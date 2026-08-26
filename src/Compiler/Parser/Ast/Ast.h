@@ -104,7 +104,6 @@ public:
             local.second->setCodeRef(SourceCodeRef(activeSrcView.ref(), tokRef));
         }
 
-
         std::pair<AstNodeRef, NodeType*> value{globalRef, local.second};
 #if SWC_HAS_REF_DEBUG_INFO
         value.first.dbgPtr     = value.second;

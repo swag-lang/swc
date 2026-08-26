@@ -11,7 +11,7 @@ using Core, Core.Errors
 // Table 8-2: the three directional modes a chroma block may take instead of the luma one, plus
 // the diagonal it falls back to when the chosen one is already the luma mode.
 const ChromaModeCandidates: [4] u8 = [IntraPlanar, 26, 10, IntraDc]
-const IntraAngular34 = 34'u8
+const IntraAngular34               = 34'u8
 
 impl Decoder
 {
@@ -143,9 +143,9 @@ impl Decoder
         let nCbS = 1's32 << log2CbSize
 
         // The four blocks of a split unit each state their own mode; a whole unit states one.
-        let split      = partMode == PartNxN
-        let blocks     = split ? 2'u32 : 1'u32
-        let pbSize     = split ? nCbS >> 1 : nCbS
+        let split  = partMode == PartNxN
+        let blocks = split ? 2'u32 : 1'u32
+        let pbSize = split ? nCbS >> 1 : nCbS
 
         var previousFlag: [4] bool
         var candidate:    [4] u32
@@ -290,9 +290,9 @@ impl Decoder
     // Decodes the prediction and residual of an inter coding unit.
     private mtd interCodingUnit(x0, y0: s32, log2CbSize, partMode: u32, bypass: bool) fail
     {
-        let sps  = .activeSps!
-        let nCbS = 1's32 << log2CbSize
-        let half = nCbS >> 1
+        let sps     = .activeSps!
+        let nCbS    = 1's32 << log2CbSize
+        let half    = nCbS >> 1
         let quarter = nCbS >> 2
 
         .fillBlocks(.intraModeY.buffer!, x0, y0, nCbS, IntraDc)
@@ -302,24 +302,31 @@ impl Decoder
         {
         case Part2Nx2N:
             merge2Nx2N = try .predictionUnit(x0, y0, nCbS, x0, y0, nCbS, nCbS, 0, partMode)
+
         case Part2NxN:
             discard try .predictionUnit(x0, y0, nCbS, x0, y0, nCbS, half, 0, partMode)
             discard try .predictionUnit(x0, y0, nCbS, x0, y0 + half, nCbS, half, 1, partMode)
+
         case PartNx2N:
             discard try .predictionUnit(x0, y0, nCbS, x0, y0, half, nCbS, 0, partMode)
             discard try .predictionUnit(x0, y0, nCbS, x0 + half, y0, half, nCbS, 1, partMode)
+
         case Part2NxnU:
             discard try .predictionUnit(x0, y0, nCbS, x0, y0, nCbS, quarter, 0, partMode)
             discard try .predictionUnit(x0, y0, nCbS, x0, y0 + quarter, nCbS, nCbS - quarter, 1, partMode)
+
         case Part2NxnD:
             discard try .predictionUnit(x0, y0, nCbS, x0, y0, nCbS, nCbS - quarter, 0, partMode)
             discard try .predictionUnit(x0, y0, nCbS, x0, y0 + nCbS - quarter, nCbS, quarter, 1, partMode)
+
         case PartnLx2N:
             discard try .predictionUnit(x0, y0, nCbS, x0, y0, quarter, nCbS, 0, partMode)
             discard try .predictionUnit(x0, y0, nCbS, x0 + quarter, y0, nCbS - quarter, nCbS, 1, partMode)
+
         case PartnRx2N:
             discard try .predictionUnit(x0, y0, nCbS, x0, y0, nCbS - quarter, nCbS, 0, partMode)
             discard try .predictionUnit(x0, y0, nCbS, x0 + nCbS - quarter, y0, quarter, nCbS, 1, partMode)
+
         default:
             discard try .predictionUnit(x0, y0, nCbS, x0, y0, half, half, 0, partMode)
             discard try .predictionUnit(x0, y0, nCbS, x0 + half, y0, half, half, 1, partMode)
@@ -506,7 +513,7 @@ impl Decoder
         if isIntra do
             return PartNxN
 
-        let smallest = log2CbSize == sps.minCbLog2Size
+        let smallest   = log2CbSize == sps.minCbLog2Size
         let horizontal = .cabac.decision(CtxPartMode + 1) != 0
 
         if !smallest
@@ -602,11 +609,11 @@ impl Decoder
 
         // A 4x4 luma block shares one chroma block with its three siblings, so the chroma of the
         // group is decoded once, with the last of them.
-        let smallest      = log2TrafoSize == 2
+        let smallest       = log2TrafoSize == 2
         let log2ChromaSize = smallest ? 2'u32 : log2TrafoSize - 1
-        let xChroma       = smallest ? xBase : x0
-        let yChroma       = smallest ? yBase : y0
-        let hasChroma     = !smallest or blkIdx == 3
+        let xChroma        = smallest ? xBase : x0
+        let yChroma        = smallest ? yBase : y0
+        let hasChroma      = !smallest or blkIdx == 3
 
         if cbfLuma or cbfCb or cbfCr
         {

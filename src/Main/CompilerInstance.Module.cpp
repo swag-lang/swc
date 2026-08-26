@@ -1584,16 +1584,16 @@ struct DependencyPlanBuilder
 {
     explicit DependencyPlanBuilder(CompilerInstance& compilerInstance, TaskContext& taskContext);
 
-    Result      build(CompilerInstance::DependencyPlan& outPlan, std::span<const CompilerInstance::ModuleSetupImport> imports);
-    Result      resolveExplicitDependencyRoot(fs::path& outRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
-    Result      resolveLinkAndSharedDirs(CompilerInstance::ResolvedDependencyPaths& outPaths, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
-    bool        mirrorsDependencies() const;
-    Result      mirrorDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
-    Result      mirrorWorkspaceDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
-    Result      mirrorScriptDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
-    bool        tryResolveDependencyApiDir(CompilerInstance::ResolvedDependencyPaths& outPaths, Utf8& outBecause, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
-    Result      resolveDependencyImportDir(CompilerInstance::ResolvedDependencyPaths& outPaths, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot);
-    Result      captureDependencyImportSnapshot(const fs::path& depsFile, CompilerInstance::ModuleSetupSnapshot& outSnapshot) const;
+    Result build(CompilerInstance::DependencyPlan& outPlan, std::span<const CompilerInstance::ModuleSetupImport> imports);
+    Result resolveExplicitDependencyRoot(fs::path& outRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
+    Result resolveLinkAndSharedDirs(CompilerInstance::ResolvedDependencyPaths& outPaths, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
+    bool   mirrorsDependencies() const;
+    Result mirrorDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
+    Result mirrorWorkspaceDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
+    Result mirrorScriptDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
+    bool   tryResolveDependencyApiDir(CompilerInstance::ResolvedDependencyPaths& outPaths, Utf8& outBecause, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
+    Result resolveDependencyImportDir(CompilerInstance::ResolvedDependencyPaths& outPaths, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot);
+    Result captureDependencyImportSnapshot(const fs::path& depsFile, CompilerInstance::ModuleSetupSnapshot& outSnapshot) const;
     // Parsing and checking dependency metadata is expensive, and several roots can reach the same
     // file. Cache its import list so the global resolution visits it once.
     Result captureDependencyImports(const fs::path& depsFile, const std::vector<CompilerInstance::ModuleSetupImport>** outImports);
@@ -1966,8 +1966,8 @@ bool DependencyPlanBuilder::tryCaptureGeneratedDependencyImports(const fs::path&
     size_t contentPos = 0;
     while (contentPos < content.size())
     {
-        const size_t           lineEnd = content.find('\n', contentPos);
-        std::string_view       line{content.data() + contentPos, (lineEnd == std::string::npos ? content.size() : lineEnd) - contentPos};
+        const size_t                        lineEnd = content.find('\n', contentPos);
+        std::string_view                    line{content.data() + contentPos, (lineEnd == std::string::npos ? content.size() : lineEnd) - contentPos};
         CompilerInstance::ModuleSetupImport importRequest;
         contentPos = lineEnd == std::string::npos ? content.size() : lineEnd + 1;
         if (!line.empty() && line.back() == '\r')
@@ -2204,12 +2204,12 @@ Result CompilerInstance::prepareDependencyPlan(TaskContext& ctx, DependencyPlan&
         stdCmdLine.workDir.clear();
         stdCmdLine.outDirStorage.clear();
         stdCmdLine.workDirStorage.clear();
-        stdCmdLine.outDirExplicit           = false;
-        stdCmdLine.workDirExplicit          = false;
+        stdCmdLine.outDirExplicit  = false;
+        stdCmdLine.workDirExplicit = false;
         stdCmdLine.name.clear();
-        stdCmdLine.artifactNameExplicit     = false;
-        stdCmdLine.backendKind              = Runtime::BuildCfgBackendKind::Executable;
-        stdCmdLine.artifactKindExplicit     = false;
+        stdCmdLine.artifactNameExplicit = false;
+        stdCmdLine.backendKind          = Runtime::BuildCfgBackendKind::Executable;
+        stdCmdLine.artifactKindExplicit = false;
         stdCmdLine.moduleNamespace.clear();
         stdCmdLine.moduleNamespaceStorage.clear();
         stdCmdLine.moduleNamespaceExplicit = false;
@@ -2308,7 +2308,7 @@ Result CompilerInstance::collectWorkspaceModuleDependencyDirs(TaskContext& ctx, 
     outDirs.reserve(imports.size() * 3);
     for (const ModuleSetupImport& importRequest : imports)
     {
-        const DependencyPlan*             selectedPlan = &dependencyPlan;
+        const DependencyPlan*            selectedPlan = &dependencyPlan;
         const ResolvedDependencyBinding* binding      = nullptr;
         for (const ResolvedDependencyBinding& candidate : dependencyPlan.bindings)
         {
@@ -2717,7 +2717,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         // active dependents need an API file for a later module to import.
         const bool                           writeModuleApi = cmdLine().command != CommandKind::Doc || !dependents[moduleIndex].empty();
         std::unique_ptr<WorkspaceModuleLink> modulePending;
-        bool compiled = false;
+        bool                                 compiled = false;
         if (runWorkspaceModule(moduleBuild, *preparedDependencies, buildIndex + 1, buildCount, writeModuleApi, compiled, modulePending) != Result::Continue)
             return ExitCode::CompileError;
 

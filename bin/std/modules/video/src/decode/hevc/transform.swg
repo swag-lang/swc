@@ -195,7 +195,7 @@ impl Decoder
         let flat = !sps.scalingListEnabled or (block.transformSkip and size > 4)
         if flat
         {
-            let factor = scale * 16
+            let factor     = scale * 16
             var columnMask = .coefficientColumns
             while columnMask
             {
@@ -215,8 +215,8 @@ impl Decoder
             return
         }
 
-        let sizeId   = block.log2Size - 2
-        let matrixId = .scalingMatrixId(block, sizeId)
+        let sizeId     = block.log2Size - 2
+        let matrixId   = .scalingMatrixId(block, sizeId)
         var columnMask = .coefficientColumns
         while columnMask
         {
@@ -227,8 +227,8 @@ impl Decoder
             {
                 let y = Math.trailingZeros(rowMask)
                 rowMask &= rowMask - 1
-                let index = y * size + x
-                let level = cast(s32) .coefficients[index]
+                let index  = y * size + x
+                let level  = cast(s32) .coefficients[index]
                 let factor = scale * cast(s32) .scalingFactor(&pps.scalingLists, sizeId, matrixId, x, y, size)
                 .coefficients[index] = cast(s16) Math.clamp((((level * factor) << shift) + rounding) >> bdShift, CoeffMin, CoeffMax)
             }
@@ -360,7 +360,7 @@ impl Decoder
             {
                 var low:  Simd.S32x4 = Simd.splat(0's32)
                 var high: Simd.S32x4 = Simd.splat(0's32)
-                var activeRows = .coefficientRows[x]
+                var activeRows       = .coefficientRows[x]
                 while activeRows
                 {
                     let first = Math.trailingZeros(activeRows)
@@ -394,13 +394,13 @@ impl Decoder
         let rounding = 1's32 << (bdShift - 1)
         for y in size
         {
-            let base = y * size
+            let base   = y * size
             var sample = 0'u32
             while sample < size
             {
                 var low:  Simd.S32x4 = Simd.splat(0's32)
                 var high: Simd.S32x4 = Simd.splat(0's32)
-                var activeBasis = .coefficientColumns
+                var activeBasis      = .coefficientColumns
                 while activeBasis
                 {
                     let first = Math.trailingZeros(activeBasis)

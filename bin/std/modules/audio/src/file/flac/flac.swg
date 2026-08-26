@@ -86,7 +86,7 @@ private struct Prologue
     firstFrame:  u64          // Offset of the first audio frame.
     sampleRate:  u32
     channels:    u32
-    totalFrames: u64          // Sample frames the stream information states, or zero when unknown.
+    totalFrames: u64     // Sample frames the stream information states, or zero when unknown.
 }
 
 // Reads the marker and the metadata blocks that precede the audio.
@@ -152,9 +152,9 @@ private func readPrologue(stream: *File.FileStream, size: u64)->Prologue fail
 // its audio.
 private func readFrameIndex(stream: *File.FileStream, size, firstFrame: u64, packets: *Array'SoundPacket)->u64 fail
 {
-    var window:  Array'u8
+    var window: Array'u8
     var start    = firstFrame
-    var loaded   = 0'u64          // Bytes of `window` that hold file content.
+    var loaded   = 0'u64     // Bytes of `window` that hold file content.
     var capacity = ScanWindow
     var total    = 0'u64
 
@@ -194,14 +194,14 @@ private func readFrameIndex(stream: *File.FileStream, size, firstFrame: u64, pac
             }
 
             capacity *= 2
-            loaded    = 0
+            loaded   = 0
         }
 
         let count = try packetFrameCount(window.toSlice()[0 until Math.min(loaded, next - start)])
         if next - start > Swag.U32.Max do
             fail InvalidFormatError{"FLAC audio frame is larger than a packet may be"}
         packets.add({start, cast(u32) (next - start), count})
-        total += count
+        total  += count
         start  = next
         loaded = 0
     }

@@ -109,7 +109,7 @@ struct Decoder
     pocValue:       s32
     firstPicture:   bool = true
     noRaslOutput:   bool
-    raslSuppressed: bool    // The random access point in force drops its skipped leading pictures.
+    raslSuppressed: bool     // The random access point in force drops its skipped leading pictures.
 
     // Picture geometry, recomputed when a sequence or picture parameter set is activated.
     gridWidth:     u32
@@ -139,12 +139,12 @@ struct Decoder
     saoSourceChromaR: Array'u16
 
     // Coefficient and prediction scratch, reused by every transform block.
-    coefficients: [32 * 32] s16
-    coefficientRows: [32] u32     // Significant coefficient rows, one bitset per column.
-    coefficientColumns: u32       // Columns that contain at least one significant coefficient.
-    residual:     [32 * 32] s32
-    predSamples:  [64 * 64] u16
-    predBuffer:   [2, 64 * 64] s16     // Intermediate inter prediction, one per list.
+    coefficients:         [32 * 32] s16
+    coefficientRows:      [32] u32     // Significant coefficient rows, one bitset per column.
+    coefficientColumns:   u32          // Columns that contain at least one significant coefficient.
+    residual:             [32 * 32] s32
+    predSamples:          [64 * 64] u16
+    predBuffer:           [2, 64 * 64] s16     // Intermediate inter prediction, one per list.
     transformMatrix:      [32 * 32] s16
     transformMatrixReady: bool
 
@@ -289,6 +289,7 @@ impl Decoder
                 for sample in 32'u32 do
                     .transformMatrix[basis * 32 + sample] = TransMatrix32[basis, sample]
             }
+
             .transformMatrixReady = true
         }
 

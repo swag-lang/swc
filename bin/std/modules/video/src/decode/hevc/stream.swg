@@ -85,8 +85,8 @@ struct HevcStream
     nextDecode:          u64     // Next sample to decode.
     nextRank:            u64     // Display rank the next decode call returns.
     skipBefore:          u64
-    prefix:              Array'u8    // Bytes the container took off the front of every stored frame.
-    dropped:             Array'u64   // Display ranks of pictures the standard says not to show.
+    prefix:              Array'u8      // Bytes the container took off the front of every stored frame.
+    dropped:             Array'u64     // Display ranks of pictures the standard says not to show.
     decodeLimit:         u64 = Swag.U64.Max
     reachedEnd:          bool
     skippedNonReference: u64
@@ -142,7 +142,7 @@ impl HevcStream
         .skipBefore  = 0
         .decodeLimit = Swag.U64.Max
         .dropped.clear()
-        .reachedEnd  = false
+        .reachedEnd = false
         .installFrames(#move frames)
     }
 

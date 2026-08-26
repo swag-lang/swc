@@ -292,7 +292,6 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     if (!inserted)
         return it->second;
 
-
     uint32_t  localIndex = INVALID_REF;
     TypeInfo* ptr        = nullptr;
     {

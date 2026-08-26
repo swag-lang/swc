@@ -1087,7 +1087,7 @@ internal impl VideoViewer
         {
             let count = .video.frameCount()
             var depth = 0'u64
-            var more:   bool
+            var more: bool
             {
                 Sync.scopedLock(&.queueLock)
                 depth = .ready.count

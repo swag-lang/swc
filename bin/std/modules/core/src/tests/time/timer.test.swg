@@ -22,7 +22,7 @@ func timerTestCallback(_timer: *Time.Timer)
 {
     let context       = @getcontext()
     let previousUser0 = context.user0
-    context.user0     = TimerTestMarker
+    context.user0 = TimerTestMarker
     defer context.user0 = previousUser0
 
     var timer = expect Time.Timer.create(1'ms, &timerTestCallback)

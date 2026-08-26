@@ -252,8 +252,8 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
 #test
 {
     let padded: [8] u8 = ['V', '_', 'X', 0, 0, 0, 0, 0]
-    var cursor = Matroska.Cursor.open(padded[0 until 8])
-    let value  = expect cursor.readString({0, 0, 8, false})
+    var cursor         = Matroska.Cursor.open(padded[0 until 8])
+    let value          = expect cursor.readString({0, 0, 8, false})
     @assert(value.toString() == "V_X")
     @assert(@countof(value.toString()) == 3)
 }
@@ -262,8 +262,8 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
 #test
 {
     let exact: [3] u8 = ['V', '_', 'X']
-    var cursor = Matroska.Cursor.open(exact[0 until 3])
-    let value  = expect cursor.readString({0, 0, 3, false})
+    var cursor        = Matroska.Cursor.open(exact[0 until 3])
+    let value         = expect cursor.readString({0, 0, 3, false})
     @assert(value.toString() == "V_X")
 }
 
@@ -276,9 +276,9 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
     var reader = expect Reader.open(videoFixturePath("edited-truncated-tail.mkv"))
     @assert(reader.width() == 64 and reader.height() == 48)
 
-    var whole  = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
-    var cut:     Image
-    var entire:  Image
+    var whole = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
+    var cut:    Image
+    var entire: Image
     for index in 12'u64
     {
         expect reader.decodeFrameInto(&cut, index)

@@ -27,6 +27,7 @@ using Core, Gui
         host.app.runFrame()
         attempts += 1
     }
+
     @assert(!result.isLoading!(result.view!))
 }
 

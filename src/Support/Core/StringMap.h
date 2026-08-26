@@ -131,7 +131,7 @@ public:
 
     size_t size() const noexcept { return sizeValue; }
     size_t capacity() const noexcept { return slots.size(); }
-    bool empty() const noexcept { return sizeValue == 0; }
+    bool   empty() const noexcept { return sizeValue == 0; }
 
 private:
     // Control bytes mirror Abseil/Swiss-table style filtering:

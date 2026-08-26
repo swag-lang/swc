@@ -773,7 +773,7 @@ impl PdfParser
 
             case "LZWDecode", "LZW":
                 let earlyChange = .integer(.dict(parameters, "EarlyChange"), 1) != 0
-                var decoded = #move try decodeLzw(result.toSlice(), earlyChange)
+                var decoded     = #move try decodeLzw(result.toSlice(), earlyChange)
                 result.free()
                 result = #move decoded
                 if parameters != InvalidNode

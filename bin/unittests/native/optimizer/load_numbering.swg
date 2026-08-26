@@ -5,27 +5,27 @@
 // between — a store, a call — is still honoured by a fresh load.
 
 #[Swag.Optimize(true)]
-func parseDigits(text: [*] u8, start, eol: u64) -> u64
+func parseDigits(text: [*] u8, start, eol: u64)->u64
 {
     var p   = start
     var qty = 0'u64
     while p < eol and text[p] != ','
     {
         qty = qty * 10 + cast(u64) (text[p] - 48)
-        p += 1
+        p   += 1
     }
 
     return qty
 }
 
 #[Swag.Optimize(true)]
-func sameCellTwice(buf: [*] s32) -> s32
+func sameCellTwice(buf: [*] s32)->s32
 {
     return buf[2] + buf[2]
 }
 
 #[Swag.Optimize(true)]
-func storeBetweenLoads(buf: [*] s32) -> s32
+func storeBetweenLoads(buf: [*] s32)->s32
 {
     let a = buf[0]
     buf[0] = a + 5
@@ -40,7 +40,7 @@ func bump(buf: [*] s32)
 }
 
 #[Swag.Optimize(true)]
-func callBetweenLoads(buf: [*] s32) -> s32
+func callBetweenLoads(buf: [*] s32)->s32
 {
     let a = buf[1]
     bump(buf)
@@ -49,7 +49,7 @@ func callBetweenLoads(buf: [*] s32) -> s32
 }
 
 #[Swag.Optimize(true)]
-func storeThroughOtherPointer(buf, other: [*] s32) -> s32
+func storeThroughOtherPointer(buf, other: [*] s32)->s32
 {
     let a = buf[3]
     other[0] = a + 7

@@ -35,7 +35,7 @@ namespace __Win32RT
     const PAGE_NOACCESS        = 0x0000_0001'u32
 
     const PF_AVX2_INSTRUCTIONS_AVAILABLE = 40'u32
-    const CP_UTF8                        = 65001'u32
+    const CP_UTF8 = 65001'u32
 
     #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
     {

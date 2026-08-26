@@ -27,7 +27,6 @@ Arena::~Arena()
     releaseAll();
 }
 
-
 void* Arena::allocate(std::size_t size, std::size_t alignment)
 {
     // Zero-size allocation is undefined; normalize to 1.

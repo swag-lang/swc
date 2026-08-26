@@ -20,9 +20,9 @@ alias Granule576 = [576] f32
 // alone. A seek resets both.
 struct ChannelState
 {
-    overlap: [32, 18] f32     // Second half of the previous inverse transform, per subband.
-    filter:  [1024] f32       // The filter bank's delay line, addressed through `filterAt`.
-    filterAt: u32             // Where the newest block of 64 starts in `filter`.
+    overlap:  [32, 18] f32     // Second half of the previous inverse transform, per subband.
+    filter:   [1024] f32       // The filter bank's delay line, addressed through `filterAt`.
+    filterAt: u32              // Where the newest block of 64 starts in `filter`.
 }
 
 impl ChannelState
@@ -45,9 +45,9 @@ impl ChannelState
 func reorderShortBlocks(lines: *Granule576, bands: const [..] u8, firstBand, firstLine: u32)
 {
     var scratch: Granule576 = undefined
-    var source  = firstLine
-    var band    = cast(u64) firstBand
-    var written = 0'u64
+    var source              = firstLine
+    var band                = cast(u64) firstBand
+    var written             = 0'u64
 
     while band < @countof(bands)
     {
@@ -101,7 +101,7 @@ func reduceAlias(lines: *Granule576, subbandCount: u32)
 // thirty-six sample result, before the result overlaps its predecessor.
 func inverseTransform(lines: *Granule576, overlap: *[32, 18] f32, subband: u32, blockType: u32)
 {
-    let base = cast(u64) subband * 18
+    let base            = cast(u64) subband * 18
     var input: [18] f32 = undefined
     for index in 18'u64 do
         input[index] = lines[][base + index]
@@ -136,8 +136,8 @@ func inverseTransform(lines: *Granule576, overlap: *[32, 18] f32, subband: u32, 
     // The first half leaves now, added to what the previous granule kept; the second half waits.
     for index in 18'u64
     {
-        lines[][base + index]      = raw[index] + overlap[][subband, index]
-        overlap[][subband, index]  = raw[18 + index]
+        lines[][base + index]     = raw[index] + overlap[][subband, index]
+        overlap[][subband, index] = raw[18 + index]
     }
 }
 
@@ -148,12 +148,12 @@ func invertFrequencies(lines: *Granule576)
     var subband = 1'u64
     while subband < 32
     {
-        let base = subband * 18
+        let base  = subband * 18
         var index = 1'u64
         while index < 18
         {
             lines[][base + index] = -lines[][base + index]
-            index += 2
+            index                 += 2
         }
 
         subband += 2

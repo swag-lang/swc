@@ -98,8 +98,8 @@ alias ConstF64 = Const'f64
         let velocity         = currentVelocity[]
         let offset           = (velocity + omega * displacement) * deltaTime
         let decay            = Math.exp(-omega * deltaTime)
-        currentVelocity[]    = (velocity - omega * offset) * decay
-        var result           = target + (displacement + offset) * decay
+        currentVelocity[] = (velocity - omega * offset) * decay
+        var result = target + (displacement + offset) * decay
 
         // A large incoming velocity can still cross the target.
         if (target - current > 0.0) == (result > target)

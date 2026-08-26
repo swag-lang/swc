@@ -33,13 +33,13 @@ struct CabacReader
 {
     data:      #null const [*] u8     // Substream bytes, with emulation prevention already removed.
     size:      u64
-    position:  u64                    // Next byte to load into the bit buffer.
-    padBytes:  u64                    // Synthetic zero bytes loaded past the end of the data.
-    bitBuffer: u64                    // Raw bits, most significant first.
-    bitCount:  s32                    // Valid bits at the top of `bitBuffer`.
-    low:       u32                    // ivlOffset.
-    range:     u32                    // ivlCurrRange.
-    contexts:  [ContextCount] u8      // Packed state: `(pStateIdx << 1) | valMps`.
+    position:  u64                   // Next byte to load into the bit buffer.
+    padBytes:  u64                   // Synthetic zero bytes loaded past the end of the data.
+    bitBuffer: u64                   // Raw bits, most significant first.
+    bitCount:  s32                   // Valid bits at the top of `bitBuffer`.
+    low:       u32                   // ivlOffset.
+    range:     u32                   // ivlCurrRange.
+    contexts:  [ContextCount] u8     // Packed state: `(pStateIdx << 1) | valMps`.
 
     // Clause 9.3.2.3: the Rice parameter each of the four coefficient statistics starts from.
     // Persistent Rice adaptation belongs to the range extensions; Main 10 leaves these at zero.

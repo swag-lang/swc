@@ -56,7 +56,6 @@ uint32_t MicroSsaState::findRegValue(const std::span<const RegValueEntry> entrie
 
 void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder)
 {
-
     resetForBuild(builder, storage, operands, encoder);
 
     const MicroControlFlowGraph& controlFlowGraph = builder.controlFlowGraph();
@@ -233,7 +232,6 @@ void MicroSsaState::clear()
 
 void MicroSsaState::invalidate()
 {
-
     valid_ = false;
 }
 

@@ -143,8 +143,8 @@ impl CabacReader
         }
         else
         {
-            low    -= range
-            range  = lps
+            low   -= range
+            range = lps
             let lpsMps = mps ^ cast(u32) ((pState - #wrap 1) >> 63)
             .contexts[contextIndex] = cast(u8) ((cast(u32) CabacTransLps[pState] << 1) | lpsMps)
             result = mps ^ 1
@@ -186,7 +186,7 @@ impl CabacReader
         if shift != 0
         {
             arithmetic.range <<= cast(u32) shift
-            arithmetic.low = (arithmetic.low << cast(u32) shift) | .takeBits(cast(u32) shift)
+            arithmetic.low   = (arithmetic.low << cast(u32) shift) | .takeBits(cast(u32) shift)
         }
 
         return mps ^ (1 & ~mask)
@@ -270,12 +270,14 @@ impl Slice
             if left.sliceId == .sliceId and !left.skipped do
                 ctx += 1
         }
+
         if .mbY > 0
         {
             let top = &dec.mbInfo[.mbAddr - cast(u32) width]
             if top.sliceId == .sliceId and !top.skipped do
                 ctx += 1
         }
+
         if .header.type == SliceTypeB do
             ctx += 13
         return .cabac.decision(11 + ctx) != 0

@@ -47,7 +47,7 @@ public:
         // mapping yet. The value is remade wherever it is next needed, so no
         // register can be claimed to hold it any more - which is what a
         // boundary snapshot would otherwise promise.
-        bool          rematDefErased   = false;
+        bool rematDefErased = false;
         // Pinned values live permanently in a reserved callee-saved register for
         // the whole function. They bypass the spill/flush machinery entirely (they
         // are never placed in mappedVirtualIndices_) so loop-carried values stay
@@ -272,29 +272,29 @@ private:
     // as a preference when a value is given a register again, so the two arms of a diamond
     // tend to leave it in the same place and the join can keep the mapping instead of dropping
     // it. A hint only: the register still has to be free and allowed where it is taken.
-    std::vector<MicroReg> edgeRegisterHint_;
+    std::vector<MicroReg>                          edgeRegisterHint_;
     std::unordered_map<uint32_t, BoundarySnapshot> boundarySnapshots_;
     bool                                           keepAcrossBoundaries_ = false;
     // Whether the mapping the scan is currently holding belongs to a path that
     // reaches the next instruction. It does after anything that falls through,
     // and it does not after a return or an unconditional jump: what follows one
     // of those is entered through a label, from edges recorded as snapshots.
-    bool                                           fallThroughStateValid_ = true;
-    std::vector<uint32_t>                          virtualSpanLo_;
-    std::vector<uint32_t>                          virtualSpanHi_;
-    std::vector<std::vector<uint32_t>>             concreteClaimPositionsByDenseIndex_;
-    MicroDenseRegIndex                             denseGlobalPhysRegs_;
-    std::vector<SmallVector<GlobalRange>>          globalRangesByPhysDense_;
-    std::vector<uint8_t>                           reachableInstructions_;
-    std::vector<uint32_t>                          worklist_;
-    std::vector<uint8_t>                           inWorklist_;
-    std::vector<uint64_t>                          tempOutVirtual_;
-    std::vector<uint64_t>                          tempInVirtual_;
-    std::vector<uint64_t>                          tempOutConcrete_;
-    std::vector<uint64_t>                          tempInConcrete_;
-    std::vector<uint32_t>                          definitionCounts_;
-    std::vector<uint32_t>                          liveStampByDenseIndex_;
-    std::vector<uint8_t>                           vregsLiveAcrossCall_;
+    bool                                  fallThroughStateValid_ = true;
+    std::vector<uint32_t>                 virtualSpanLo_;
+    std::vector<uint32_t>                 virtualSpanHi_;
+    std::vector<std::vector<uint32_t>>    concreteClaimPositionsByDenseIndex_;
+    MicroDenseRegIndex                    denseGlobalPhysRegs_;
+    std::vector<SmallVector<GlobalRange>> globalRangesByPhysDense_;
+    std::vector<uint8_t>                  reachableInstructions_;
+    std::vector<uint32_t>                 worklist_;
+    std::vector<uint8_t>                  inWorklist_;
+    std::vector<uint64_t>                 tempOutVirtual_;
+    std::vector<uint64_t>                 tempInVirtual_;
+    std::vector<uint64_t>                 tempOutConcrete_;
+    std::vector<uint64_t>                 tempInConcrete_;
+    std::vector<uint32_t>                 definitionCounts_;
+    std::vector<uint32_t>                 liveStampByDenseIndex_;
+    std::vector<uint8_t>                  vregsLiveAcrossCall_;
     // Calls sitting inside a forward-jumped-over region — a bounds-check panic
     // block, an error path — never execute on the straight-line path. A value
     // whose only calls are guarded is cheaper parked around them (the cost

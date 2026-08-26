@@ -169,21 +169,21 @@ internal impl WaveformReducer
             if target != .currentPoint
             {
                 .points[][.currentPoint] = {.peak, .sampleCount ? cast(f32) (.sum / cast(f64) .sampleCount) : 0}
-                .readyCount = .currentPoint + 1
-                .currentPoint = target
-                .peak         = 0
-                .sum          = 0
-                .sampleCount  = 0
+                .readyCount              = .currentPoint + 1
+                .currentPoint            = target
+                .peak                    = 0
+                .sum                     = 0
+                .sampleCount             = 0
             }
 
             var mixed = 0'f32
             for channel in .channels do
                 mixed += cast(f32) samples[frame * .channels + channel] / 32768
             let level = Math.abs(mixed / .channels)
-            .peak         = Math.max(.peak, level)
-            .sum          += level
-            .sampleCount  += 1
-            .frameOffset  += 1
+            .peak        = Math.max(.peak, level)
+            .sum         += level
+            .sampleCount += 1
+            .frameOffset += 1
         }
     }
 
@@ -192,7 +192,7 @@ internal impl WaveformReducer
         if !.sampleCount or .currentPoint >= .pointCount do
             return
         .points[][.currentPoint] = {.peak, cast(f32) (.sum / cast(f64) .sampleCount)}
-        .readyCount = .currentPoint + 1
+        .readyCount              = .currentPoint + 1
     }
 }
 
@@ -482,11 +482,13 @@ internal impl SoundViewer
                 .voice!.destroy()
                 .voice = null
             }
+
             if .engineReady
             {
                 releaseSoundEngine()
                 .engineReady = false
             }
+
             if .openThread.isValid() do
                 .openThread.safeForceEnd()
             if .waveformThread.isValid() do
@@ -725,7 +727,7 @@ internal impl SoundViewer
     func create(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails = null, reportFailure: #null ViewerReportFailure = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*SoundViewer fail
     {
         let result = Wnd.create'SoundViewer(contentParent, "sFileScope.sound")
-        result.backgroundStyle = .View
+        result.backgroundStyle      = .View
         result.reportDetails        = reportDetails
         result.reportFailure        = reportFailure
         result.reportLoadingChanged = reportLoadingChanged
@@ -832,7 +834,7 @@ internal impl SoundViewer
         result.timeline.enable(false)
         result.muteButton.enable(false)
         result.volumeSlider.enable(false)
-        result.timer       = result.addTimer(33'ms)
+        result.timer = result.addTimer(33'ms)
         result.updatePlaybackUi()
         result.applyLayout()
         result.setInitialFocus(result.playButton)
@@ -853,10 +855,10 @@ internal impl SoundViewer
 // the owned packet table safe to publish to the GUI thread once loading completes.
 private func runSoundViewerOpen(thread: Thread)
 {
-    let view          = cast(*SoundViewer) thread.userParam!
-    let context       = @getcontext()
+    let view    = cast(*SoundViewer) thread.userParam!
+    let context = @getcontext()
     context.allocator = context.defaultAllocator!
-    var sound         = catch SoundFile.load(view.openFileName.toString(), preloadData: false) as openError
+    var sound = catch SoundFile.load(view.openFileName.toString(), preloadData: false) as openError
     if openError != null
     {
         view.openFailure = Errors.message(openError)

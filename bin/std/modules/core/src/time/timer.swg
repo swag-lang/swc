@@ -20,6 +20,7 @@ struct Timer
 private func timerEntry(param: #null *void)
 {
     let timer = cast(*Timer) param!
+
     // The callback runs on an operating-system worker thread, whose context is a default one
     // the runtime creates on first access: install the context of the thread that armed the timer.
     @setcontext(timer.context)

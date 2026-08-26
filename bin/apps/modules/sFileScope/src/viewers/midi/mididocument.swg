@@ -45,18 +45,18 @@ struct MidiKeySignature
 
 struct MidiDocument
 {
-    format:         u16
-    division:       u16
-    declaredTracks: u16
-    tracks:         Array'MidiTrack
-    notes:          Array'MidiNote
-    tempos:         Array'MidiTempo
-    timeSignatures: Array'MidiTimeSignature
-    keySignatures:  Array'MidiKeySignature
-    durationTicks:  u64
+    format:          u16
+    division:        u16
+    declaredTracks:  u16
+    tracks:          Array'MidiTrack
+    notes:           Array'MidiNote
+    tempos:          Array'MidiTempo
+    timeSignatures:  Array'MidiTimeSignature
+    keySignatures:   Array'MidiKeySignature
+    durationTicks:   u64
     durationSeconds: f64
-    minKey:         u8 = 127
-    maxKey:         u8
+    minKey:          u8 = 127
+    maxKey:          u8
 }
 
 private struct MidiVlq
@@ -107,6 +107,7 @@ private func midiVlq(bytes: const [..] u8, at, end: u64)->MidiVlq
             return result
         }
     }
+
     return result
 }
 
@@ -121,6 +122,7 @@ private func midiText(bytes: const [..] u8, at, length: u64)->String
         let value = bytes[at + index]
         text.add(value < 32 or value == 127 ? '.'u8 : value)
     }
+
     if Utf8.isValid(text.toSlice()) do
         return String.from(@mkstring(text.buffer!, text.count))
     for &value in text where value[] >= 128 do
@@ -134,15 +136,15 @@ private func closeMidiNote(document: *MidiDocument, active: *u64, tick: u64)
         return
     let note = &document.notes[active[] - 1]
     note.endTick = Math.max(tick, note.startTick + 1)
-    active[] = 0
+    active[]     = 0
 }
 
 private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, trackIndex: u32, at, end: u64) fail
 {
-    var track: MidiTrack
-    var active: [16 * 128] u64
+    var track:   MidiTrack
+    var active:  [16 * 128] u64
     var scan = at
-    var tick: u64
+    var tick:    u64
     var running: u8
 
     while scan < end
@@ -151,7 +153,7 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
         if !delta.valid do
             fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
         tick += delta.value
-        scan  = delta.next
+        scan = delta.next
         if scan >= end do
             fail InvalidFormatError{Errors.mkString(midiStrings().err_Event)}
 
@@ -160,7 +162,7 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
         if first & 0x80
         {
             status = first
-            scan  += 1
+            scan   += 1
         }
         else do
             status = running
@@ -194,7 +196,7 @@ private func parseMidiTrack(document: *MidiDocument, bytes: const [..] u8, track
                     if document.notes.count >= MidiNoteLimit do
                         fail UnsupportedFormatError{Errors.mkString(midiStrings().err_TooManyNotes)}
                     document.notes.add({tick, Swag.U64.Max, trackIndex, channel, key, data2})
-                    active[index] = document.notes.count
+                    active[index]   = document.notes.count
                     track.noteCount += 1
                     document.minKey = Math.min(document.minKey, key)
                     document.maxKey = Math.max(document.maxKey, key)
@@ -286,9 +288,10 @@ private func computeMidiDuration(document: *MidiDocument)
     for tempo in document.tempos where tempo.tick <= document.durationTicks
     {
         document.durationSeconds += cast(f64) (tempo.tick - previous) * cast(f64) micros / (cast(f64) quarter * 1_000_000)
-        previous = tempo.tick
-        micros   = tempo.microsPerQuarter
+        previous                 = tempo.tick
+        micros                   = tempo.microsPerQuarter
     }
+
     document.durationSeconds += cast(f64) (document.durationTicks - previous) * cast(f64) micros / (cast(f64) quarter * 1_000_000)
 }
 
@@ -327,7 +330,7 @@ func loadMidiDocument(fileName: string)->MidiDocument fail
 
     if result.notes.isEmpty() do
         result.minKey = 48
-        result.maxKey = 72
+    result.maxKey = 72
     result.notes.sort(func(a, b) { return a.startTick <=> b.startTick })
     computeMidiDuration(&result)
     return result

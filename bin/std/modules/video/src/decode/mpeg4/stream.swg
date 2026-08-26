@@ -11,7 +11,7 @@ using Core, Core.Errors, Pixel
 // One picture decoded and waiting for its turn to be shown.
 private struct Picture
 {
-    time:   s64             // Stream time, which is the order pictures are shown in.
+    time:   s64     // Stream time, which is the order pictures are shown in.
     kind:   u32
     planes: PlanarFrame
 }
@@ -37,12 +37,12 @@ struct Mpeg4Stream
     frames:       Array'SampleEntry     // Samples in decoding order.
     sampleAtRank: Array'u32             // Sample of each display rank, by container time.
     payload:      Array'u8
-    prefix:       Array'u8              // Bytes the container took off the front of every stored frame.
+    prefix:       Array'u8     // Bytes the container took off the front of every stored frame.
     queue:        [HeldPictures] Picture
     queued:       u64
-    emitRank:     u64                   // Display rank of the next picture the queue gives up.
-    nextRank:     u64                   // Display rank the next call returns.
-    nextDecode:   u64                   // Decoding-order sample the decoder is about to read.
+    emitRank:     u64     // Display rank of the next picture the queue gives up.
+    nextRank:     u64     // Display rank the next call returns.
+    nextDecode:   u64     // Decoding-order sample the decoder is about to read.
     started:      bool
     width:        s32
     height:       s32
@@ -146,9 +146,7 @@ impl Mpeg4Stream
         .started  = false
     }
 
-    mtd releasePending()
-    {
-    }
+    mtd releasePending() {}
 
     // Reads samples until enough pictures are held to know which of them comes first.
     mtd fill(source: *Source) fail
@@ -167,7 +165,7 @@ impl Mpeg4Stream
                 .decoder.reference().writePlanar(&.queue[.queued].planes)
                 .queue[.queued].time = .decoder.pictureTime
                 .queue[.queued].kind = .decoder.pictureKind
-                .queued += 1
+                .queued              += 1
             }
         }
     }

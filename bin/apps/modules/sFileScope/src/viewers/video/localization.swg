@@ -5,21 +5,21 @@ using Core, Gui, Audio
 // Visible strings of the video viewer.
 struct VideoStrings
 {
-    ui_TipPlay:     string = "Play"                           // Tooltip while playback is stopped or paused.
-    ui_TipPause:    string = "Pause"                          // Tooltip while playback is running.
-    ui_TipStop:     string = "Stop"                           // Tooltip of the stop button.
-    ui_TipBackward: string = "Back 10 seconds (Left)"         // Tooltip of the backward seek button.
-    ui_TipForward:  string = "Forward 10 seconds (Right)"     // Tooltip of the forward seek button.
-    ui_TipSeek:     string = "Seek"                           // Tooltip of the time timeline.
-    ui_TipMute:     string = "Mute or unmute (M)"             // Tooltip of the mute switch.
-    ui_TipVolume:   string = "Volume"                         // Tooltip of the volume slider.
-    ui_TipAudio:    string = "Audio track"                    // Tooltip of the sound-track selector.
-    ui_AudioTrack:       string = "% · % · % ch · %{f1} kHz"     // One sound-track selector entry.
-    ui_AudioTrackNumber: string = "Audio %"                           // Fallback name for an unnamed sound track.
-    ui_AudioTrackLang:   string = "% (%)"                             // A sound-track name followed by its language code.
-    ui_AudioDetails: string = "% · % ch · %{f1} kHz"          // Encoding, channel count, and sample rate in the host summary.
-    word_Frame:     string = "frame"                          // One video frame.
-    word_Frames:    string = "frames"                         // Several video frames.
+    ui_TipPlay:          string = "Play"                           // Tooltip while playback is stopped or paused.
+    ui_TipPause:         string = "Pause"                          // Tooltip while playback is running.
+    ui_TipStop:          string = "Stop"                           // Tooltip of the stop button.
+    ui_TipBackward:      string = "Back 10 seconds (Left)"         // Tooltip of the backward seek button.
+    ui_TipForward:       string = "Forward 10 seconds (Right)"     // Tooltip of the forward seek button.
+    ui_TipSeek:          string = "Seek"                           // Tooltip of the time timeline.
+    ui_TipMute:          string = "Mute or unmute (M)"             // Tooltip of the mute switch.
+    ui_TipVolume:        string = "Volume"                         // Tooltip of the volume slider.
+    ui_TipAudio:         string = "Audio track"                    // Tooltip of the sound-track selector.
+    ui_AudioTrack:       string = "% · % · % ch · %{f1} kHz"       // One sound-track selector entry.
+    ui_AudioTrackNumber: string = "Audio %"                        // Fallback name for an unnamed sound track.
+    ui_AudioTrackLang:   string = "% (%)"                          // A sound-track name followed by its language code.
+    ui_AudioDetails:     string = "% · % ch · %{f1} kHz"           // Encoding, channel count, and sample rate in the host summary.
+    word_Frame:          string = "frame"                          // One video frame.
+    word_Frames:         string = "frames"                         // Several video frames.
 
     // Summary the host shows beside the file size: geometry, frame count, frame rate, and duration.
     ui_Details: string = "% × % px · % · %{f2} fps · % · Swag CPU"

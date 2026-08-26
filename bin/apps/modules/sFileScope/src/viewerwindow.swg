@@ -22,9 +22,9 @@ const ViewerSearchTextMargin                  = 3.0
 const ViewerSearchOverlayInset                = ViewerSearchGlowInset + ViewerSearchTextMargin
 const ViewerSearchGlowPeriod:   f32           = 1.35
 const ViewerSearchBoundsPoll:   Time.Duration = 16'ms
-const ViewerSmokeStepLimit                     = 300'u32
-const ViewerSmokeExposureSteps                 = 25'u32
-const ViewerSmokeMinimumSteps                  = 2'u32
+const ViewerSmokeStepLimit                    = 300'u32
+const ViewerSmokeExposureSteps                = 25'u32
+const ViewerSmokeMinimumSteps                 = 2'u32
 
 const ViewerFullScreenRemovedFlags = SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.MaximizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
 const ViewerFullScreenAddedFlags   = SurfaceFlags.NoShadow | SurfaceFlags.TopMost
@@ -1223,6 +1223,7 @@ impl ViewerWindow
         .smokeOpened    = false
         .smokeSelected  = false
         .smokeRunning   = true
+
         // A 10 ms cadence leaves the viewers' own 4-8 ms progressive timers a dispatch turn
         // between readiness checks instead of letting the review timer dominate a smoke loop.
         .smokeTimer = .addTimer(10'ms)
@@ -1237,6 +1238,7 @@ impl ViewerWindow
             .removeTimer(.smokeTimer!)
             .smokeTimer = null
         }
+
         .smokeRunning = false
         .app().postQuitEvent(exitCode)
     }
@@ -1315,7 +1317,7 @@ impl ViewerWindow
                 return
             }
 
-            .smokeSelected = true
+            .smokeSelected  = true
             .smokeWaitSteps = 0
         }
 
@@ -1588,8 +1590,8 @@ impl ViewerWindow
     mtd updateLoadingIndicator()
     {
         .commitViewerTransition()
-        let pending = !.pendingFile.isEmpty() or !.pendingEmpty.isEmpty()
-        var loading = pending
+        let pending     = !.pendingFile.isEmpty() or !.pendingEmpty.isEmpty()
+        var loading     = pending
         var showOverlay = pending and .currentView != null
         if !loading and .activeChoiceIndex < .instances.count
         {
@@ -2033,9 +2035,9 @@ impl ViewerWindow
 
     mtd updateSearchAvailability()
     {
-        let active    = .activeChoiceIndex < .instances.count
-        let available = active and .instances[.activeChoiceIndex].revealMatch != null
-        let focused   = .focusedWindow()
+        let active         = .activeChoiceIndex < .instances.count
+        let available      = active and .instances[.activeChoiceIndex].revealMatch != null
+        let focused        = .focusedWindow()
         let searchHadFocus = focused and (focused! == .searchGroup or .searchGroup.isOwnerOf(focused!))
 
         .searchBox.enable(available)
@@ -2364,9 +2366,9 @@ impl ViewerWindow
         list.clear()
         for one, index in files
         {
-            let name  = one[].toString()
+            let name               = one[].toString()
             var glyph: ViewerIcons = undefined
-            let icon  = .index.nameIcon(name, &glyph) ? .icon(glyph) : Icon{}
+            let icon               = .index.nameIcon(name, &glyph) ? .icon(glyph) : Icon{}
             discard list.createLine(Path.fileName(name) orelse name, icon)
             if .currentFile == name do
                 list.selectLine(cast(u32) index)

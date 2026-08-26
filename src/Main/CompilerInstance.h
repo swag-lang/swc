@@ -487,10 +487,10 @@ private:
     std::vector<fs::path>                          importedDependencyLinkDirs_;
     std::unordered_set<fs::path>                   importedDependencyLinkDirSet_;
     std::vector<std::unique_ptr<Utf8>>             ownedBuildCfgStrings_;
-    const ModuleSetupSnapshot*                     precomputedModuleSetup_ = nullptr;
+    const ModuleSetupSnapshot*                     precomputedModuleSetup_    = nullptr;
     const DependencyPlan*                          precomputedDependencyPlan_ = nullptr;
-    std::unique_ptr<DependencyPlan>                 ownedDependencyPlan_;
-    bool                                           deferNativeLink_        = false;
+    std::unique_ptr<DependencyPlan>                ownedDependencyPlan_;
+    bool                                           deferNativeLink_ = false;
     std::unique_ptr<NativeBackendBuilder>          deferredBuilder_;
     Utf8                                           lastArtifactLabel_;
     bool                                           nativeArtifactBuilt_ = false;

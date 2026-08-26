@@ -172,7 +172,6 @@ namespace
 
     ConstantRef addCstFinalize(const ConstantManager& manager, ConstantRef cstRef)
     {
-
 #if SWC_HAS_REF_DEBUG_INFO
         cstRef.dbgPtr = &manager.get(cstRef);
 #endif

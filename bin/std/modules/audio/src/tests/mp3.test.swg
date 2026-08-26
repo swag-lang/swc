@@ -12,7 +12,7 @@ private func mp3DecodeAll(sound: const *SoundFile)->Array's16 fail
     let bytes = file.toSlice()
 
     var codec: Mp3.Codec
-    let itf: IPacketCodec = &codec
+    let itf:   IPacketCodec = &codec
     try itf.initialize(sound.decoderConfig.toSlice(), sound.sampleRateHz(), sound.numChannels())
 
     var block: Array'u8
@@ -50,6 +50,7 @@ private func mp3DecodeAll(sound: const *SoundFile)->Array's16 fail
         visible = true
         break
     }
+
     @assert(visible)
 }
 
@@ -96,7 +97,7 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
     {
         let difference = cast(f64) decoded[skip + index] - cast(f64) wantedAt[index]
         energy += difference * difference
-        worst   = Math.max(worst, Math.abs(difference))
+        worst  = Math.max(worst, Math.abs(difference))
     }
 
     let rms = Math.sqrt(energy / cast(f64) count) / 32768.0'f64

@@ -307,7 +307,7 @@ impl Decoder
         // Static array
         if Reflection.isStaticArray(type)
         {
-            let typeArr = cast(const *TypeInfoArray) type
+            let typeArr  = cast(const *TypeInfoArray) type
             let elemType = typeArr.pointedType
             var count    = typeArr.count
             let treated  = .serializer.beginSequence(elemType, data, &count)

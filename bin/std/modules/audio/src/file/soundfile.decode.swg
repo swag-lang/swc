@@ -47,8 +47,8 @@ impl SoundFile
             }
 
             try packetCodec!.initialize(.decoderConfig.toSlice(), .sampleRate, .channelCount)
-            var stream = File.open(.path.toString(), File.FileMode.Open, File.FileAccess.Read, File.FileShare.Read)
-            var packetBytes: Array'u8
+            var stream        = File.open(.path.toString(), File.FileMode.Open, File.FileAccess.Read, File.FileShare.Read)
+            var packetBytes:  Array'u8
             var decodedBytes: Array'u8
             var discardFrames = .leadingTrim
 
@@ -95,13 +95,13 @@ impl SoundFile
 
         var codec: CodecPcmToPcm16
         codec.configure(.encoding, .Pcm16, #typeof(CodecPcmToPcm16), @getcontext().allocator!)
-        let itf: ICodec = &codec
+        let itf:   ICodec = &codec
         var empty: u8
         discard try itf.initialize(&empty, 0)
 
         let bytesPerFrame = bytesPerSample * .channelCount
         var byteOffset: u64
-        var decoded: Array's16
+        var decoded:    Array's16
         while byteOffset < .dataSize
         {
             var wanted = Math.min(SoundDecodeReadSize, .dataSize - byteOffset)

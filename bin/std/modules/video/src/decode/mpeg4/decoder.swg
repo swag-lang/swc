@@ -28,9 +28,9 @@ const TypeForward      = 3'u32
 // What one block leaves behind for the blocks that predict from it.
 struct BlockState
 {
-    dc:    s32          // The reconstructed direct current, before the transform.
-    row:   [7] s16      // The first row of quantised coefficients, after prediction.
-    col:   [7] s16      // The first column.
+    dc:    s32         // The reconstructed direct current, before the transform.
+    row:   [7] s16     // The first row of quantised coefficients, after prediction.
+    col:   [7] s16     // The first column.
     quant: u8
     intra: bool
 }
@@ -47,31 +47,31 @@ struct MacroblockState
 #[Swag.NoCopy]
 struct Decoder
 {
-    layer:       Layer
-    anchorOld:   Frame                    // The older of the two planes a bidirectional one sits between.
-    anchorNew:   Frame                    // The last intra or predicted plane, which a predicted one refers to.
-    current:     Frame
-    blocks:      Array'BlockState         // Six per macroblock, in decoding order.
-    macroblocks: Array'MacroblockState
-    coLocated:   Array'MacroblockState    // The macroblocks of `anchorNew`, for the direct mode.
-    quant:       u32
-    packetStart: u64                      // The first macroblock of the packet being read.
-    anchors:     u32                      // How many anchors have been decoded, saturating at two.
-    planeTime:   s64                      // Container timestamp of the plane being decoded.
-    timeBase:    s64                      // The stream clock, clause 6.3.5, in time-increment units.
-    lastTimeBase: s64
-    anchorTime:  s64                      // Stream time of the newer anchor.
-    anchorSpan:  s64                      // Stream time between the two anchors.
-    planeSpan:   s64                      // Stream time from the older anchor to this plane.
-    forward:     Vector                   // The running vector predictors of a bidirectional plane.
-    backward:    Vector
-    blend:       [64] u8
-    sampleAt:    u64                      // Where in the access unit the next plane is looked for.
+    layer:          Layer
+    anchorOld:      Frame     // The older of the two planes a bidirectional one sits between.
+    anchorNew:      Frame     // The last intra or predicted plane, which a predicted one refers to.
+    current:        Frame
+    blocks:         Array'BlockState     // Six per macroblock, in decoding order.
+    macroblocks:    Array'MacroblockState
+    coLocated:      Array'MacroblockState     // The macroblocks of `anchorNew`, for the direct mode.
+    quant:          u32
+    packetStart:    u64     // The first macroblock of the packet being read.
+    anchors:        u32     // How many anchors have been decoded, saturating at two.
+    planeTime:      s64     // Container timestamp of the plane being decoded.
+    timeBase:       s64     // The stream clock, clause 6.3.5, in time-increment units.
+    lastTimeBase:   s64
+    anchorTime:     s64        // Stream time of the newer anchor.
+    anchorSpan:     s64        // Stream time between the two anchors.
+    planeSpan:      s64        // Stream time from the older anchor to this plane.
+    forward:        Vector     // The running vector predictors of a bidirectional plane.
+    backward:       Vector
+    blend:          [64] u8
+    sampleAt:       u64     // Where in the access unit the next plane is looked for.
     planesInSample: u32
-    pictureTime: s64                      // Stream time of the picture just produced.
-    pictureKind: u32
-    paddingOwed: u32                      // Padding planes a sample that carried two pictures still owes.
-    showsCurrent: bool                    // The last plane decoded is in `current` rather than in an anchor.
+    pictureTime:    s64     // Stream time of the picture just produced.
+    pictureKind:    u32
+    paddingOwed:    u32      // Padding planes a sample that carried two pictures still owes.
+    showsCurrent:   bool     // The last plane decoded is in `current` rather than in an anchor.
 }
 
 impl Decoder
@@ -211,16 +211,16 @@ impl Decoder
         let resolution = cast(s64) .layer.timeResolution
         if header.codingType == VopBidirectional
         {
-            let time   = (.lastTimeBase + cast(s64) header.moduloTime) * resolution + cast(s64) header.timeIncrement
+            let time = (.lastTimeBase + cast(s64) header.moduloTime) * resolution + cast(s64) header.timeIncrement
             .planeSpan = .anchorSpan - (.anchorTime - time)
             return time
         }
 
         .lastTimeBase = .timeBase
-        .timeBase    += cast(s64) header.moduloTime
-        let time      = .timeBase * resolution + cast(s64) header.timeIncrement
-        .anchorSpan   = time - .anchorTime
-        .anchorTime   = time
+        .timeBase     += cast(s64) header.moduloTime
+        let time = .timeBase * resolution + cast(s64) header.timeIncrement
+        .anchorSpan = time - .anchorTime
+        .anchorTime = time
         return time
     }
 
@@ -258,15 +258,15 @@ impl Decoder
     // Forgets every reference, which is what a seek to a random access point needs.
     mtd reset()
     {
-        .anchors      = 0
-        .timeBase     = 0
-        .lastTimeBase = 0
-        .anchorTime   = 0
-        .anchorSpan   = 0
-        .planeSpan    = 0
-        .sampleAt     = 0
+        .anchors        = 0
+        .timeBase       = 0
+        .lastTimeBase   = 0
+        .anchorTime     = 0
+        .anchorSpan     = 0
+        .planeSpan      = 0
+        .sampleAt       = 0
         .planesInSample = 0
-        .paddingOwed  = 0
+        .paddingOwed    = 0
     }
 
     // The state of one block of one macroblock, or the default when it is outside the picture.
@@ -316,8 +316,7 @@ impl Decoder
                 }
             }
 
-            try .decodeMacroblock(reader, &active, cast(s32) (index % cast(u64) .layer.mbWidth),
-                                  cast(s32) (index / cast(u64) .layer.mbWidth))
+            try .decodeMacroblock(reader, &active, cast(s32) (index % cast(u64) .layer.mbWidth), cast(s32) (index / cast(u64) .layer.mbWidth))
             index += 1
         }
 
@@ -445,10 +444,10 @@ impl Decoder
         var cbpc   = 0'u32
         for 64'u32
         {
-            let tree: const [..] s16   = header.codingType == VopIntra ? McbpcITree : McbpcPTree
-            let types: const [..] u8   = header.codingType == VopIntra ? McbpcIType : McbpcPType
+            let tree:   const [..] s16 = header.codingType == VopIntra ? McbpcITree : McbpcPTree
+            let types:  const [..] u8  = header.codingType == VopIntra ? McbpcIType : McbpcPType
             let chroma: const [..] u8  = header.codingType == VopIntra ? McbpcICbpc : McbpcPCbpc
-            let entry = reader.decode(tree)
+            let entry                  = reader.decode(tree)
             if entry < 0 do
                 fail InvalidFormatError{"MPEG-4 macroblock states no coded block pattern"}
             mbType = cast(u32) types[cast(u64) entry]
@@ -542,7 +541,7 @@ impl Decoder
 
         var kind    = TypeDirect
         var pattern = 0'u32
-        var delta:  Vector
+        var delta:      Vector
         var mvForward:  Vector
         var mvBackward: Vector
 
@@ -606,7 +605,6 @@ impl Decoder
             }
         }
 
-
         if kind == TypeDirect do
             .predictDirect(mbX, mbY, delta, header.rounding)
         else do
@@ -615,7 +613,6 @@ impl Decoder
         // A bidirectional macroblock is never intra, so its blocks carry a residual or nothing.
         for block in 6'u64 where (pattern & (32 >> block)) != 0 do
             try .decodeBlock(reader, header, mbX, mbY, block, false, false, true)
-
 
         if reader.overran() do
             fail InvalidFormatError{"MPEG-4 plane is truncated"}
@@ -677,20 +674,17 @@ impl Decoder
 
         for block in 4'u64
         {
-            let bx = x + cast(s32) (block & 1) * 8
-            let by = y + cast(s32) (block >> 1) * 8
+            let bx     = x + cast(s32) (block & 1) * 8
+            let by     = y + cast(s32) (block >> 1) * 8
             let target = .current.lumaOrigin() + cast(u64) cast(s64) (cast(s64) by * cast(s64) .current.strideLuma + cast(s64) bx)
             if average
             {
-                compensate(&.blend[0], 8, anchor.luma.buffer!, lumaAt, anchor.strideLuma,
-                           bx, by, vectors[block], 8, 8, rounding, anchor.width, anchor.height)
+                compensate(&.blend[0], 8, anchor.luma.buffer!, lumaAt, anchor.strideLuma, bx, by, vectors[block], 8, 8, rounding, anchor.width, anchor.height)
                 blendInto(.current.luma.buffer! + target, .current.strideLuma, &.blend[0], 8, 8, 8)
             }
             else
             {
-                compensate(.current.luma.buffer! + target, .current.strideLuma,
-                           anchor.luma.buffer!, lumaAt, anchor.strideLuma,
-                           bx, by, vectors[block], 8, 8, rounding, anchor.width, anchor.height)
+                compensate(.current.luma.buffer! + target, .current.strideLuma, anchor.luma.buffer!, lumaAt, anchor.strideLuma, bx, by, vectors[block], 8, 8, rounding, anchor.width, anchor.height)
             }
         }
 
@@ -709,8 +703,7 @@ impl Decoder
             }
             else
             {
-                compensate(into + target, .current.strideChroma, from, chromaAt, anchor.strideChroma,
-                           cx, cy, chroma, 8, 8, rounding, anchor.width / 2, anchor.height / 2)
+                compensate(into + target, .current.strideChroma, from, chromaAt, anchor.strideChroma, cx, cy, chroma, 8, 8, rounding, anchor.width / 2, anchor.height / 2)
             }
         }
     }
@@ -721,7 +714,7 @@ impl Decoder
         for block in 6'u64
         {
             let state = &.blocks[mbIndex * 6 + block]
-            state[] = BlockState{}
+            state[]     = BlockState{}
             state.dc    = DefaultNeighbourDc
             state.quant = cast(u8) .quant
         }
@@ -742,13 +735,68 @@ impl Decoder
             switch block
             {
             case 0:
-                if !slot { nx -= 1; which = 1 } elif slot == 1 { ny -= 1; which = 2 } else { nx += 1; ny -= 1; which = 2 }
+                if !slot
+                {
+                    nx    -= 1
+                    which = 1
+                }
+                elif slot == 1
+                {
+                    ny    -= 1
+                    which = 2
+                }
+                else
+                {
+                    nx    += 1
+                    ny    -= 1
+                    which = 2
+                }
+
             case 1:
-                if !slot { which = 0 } elif slot == 1 { ny -= 1; which = 3 } else { nx += 1; ny -= 1; which = 2 }
+                if !slot
+                {
+                    which = 0
+                }
+                elif slot == 1
+                {
+                    ny    -= 1
+                    which = 3
+                }
+                else
+                {
+                    nx    += 1
+                    ny    -= 1
+                    which = 2
+                }
+
             case 2:
-                if !slot { nx -= 1; which = 3 } elif slot == 1 { which = 0 } else { which = 1 }
+                if !slot
+                {
+                    nx    -= 1
+                    which = 3
+                }
+                elif slot == 1
+                {
+                    which = 0
+                }
+                else
+                {
+                    which = 1
+                }
+
             default:
-                if !slot { which = 2 } elif slot == 1 { which = 0 } else { which = 1 }
+                if !slot
+                {
+                    which = 2
+                }
+                elif slot == 1
+                {
+                    which = 0
+                }
+                else
+                {
+                    which = 1
+                }
             }
 
             // A candidate inside the current macroblock is always available; one outside the
@@ -809,31 +857,26 @@ impl Decoder
 
         for block in 4'u64
         {
-            let bx = x + cast(s32) (block & 1) * 8
-            let by = y + cast(s32) (block >> 1) * 8
+            let bx     = x + cast(s32) (block & 1) * 8
+            let by     = y + cast(s32) (block >> 1) * 8
             let target = .current.lumaOrigin() + cast(u64) cast(s64) (cast(s64) by * cast(s64) .current.strideLuma + cast(s64) bx)
-            compensate(.current.luma.buffer! + target, .current.strideLuma,
-                       .anchorNew.luma.buffer!, lumaAt, .anchorNew.strideLuma,
-                       bx, by, state.vectors[block], 8, 8, rounding, .anchorNew.width, .anchorNew.height)
+            compensate(.current.luma.buffer! + target, .current.strideLuma, .anchorNew.luma.buffer!, lumaAt, .anchorNew.strideLuma, bx, by, state.vectors[block], 8, 8, rounding, .anchorNew.width, .anchorNew.height)
         }
 
         var vectors: [4] Vector = state.vectors
-        let chroma = chromaVector(vectors)
-        let cx     = mbX * 8
-        let cy     = mbY * 8
-        let target = .current.chromaOrigin() + cast(u64) cast(s64) (cast(s64) cy * cast(s64) .current.strideChroma + cast(s64) cx)
-        compensate(.current.chromaB.buffer! + target, .current.strideChroma,
-                   .anchorNew.chromaB.buffer!, chromaAt, .anchorNew.strideChroma, cx, cy, chroma, 8, 8, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
-        compensate(.current.chromaR.buffer! + target, .current.strideChroma,
-                   .anchorNew.chromaR.buffer!, chromaAt, .anchorNew.strideChroma, cx, cy, chroma, 8, 8, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
+        let chroma              = chromaVector(vectors)
+        let cx                  = mbX * 8
+        let cy                  = mbY * 8
+        let target              = .current.chromaOrigin() + cast(u64) cast(s64) (cast(s64) cy * cast(s64) .current.strideChroma + cast(s64) cx)
+        compensate(.current.chromaB.buffer! + target, .current.strideChroma, .anchorNew.chromaB.buffer!, chromaAt, .anchorNew.strideChroma, cx, cy, chroma, 8, 8, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
+        compensate(.current.chromaR.buffer! + target, .current.strideChroma, .anchorNew.chromaR.buffer!, chromaAt, .anchorNew.strideChroma, cx, cy, chroma, 8, 8, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
     }
 
     // Decodes one block and writes its samples, clause 6.3.7.3.
-    mtd decodeBlock(reader: *BitReader, header: const *PlaneHeader, mbX, mbY: s32,
-                    block: u64, intra, acPred, coded: bool) fail
+    mtd decodeBlock(reader: *BitReader, header: const *PlaneHeader, mbX, mbY: s32, block: u64, intra, acPred, coded: bool) fail
     {
-        let mbIndex = cast(u64) mbY * cast(u64) .layer.mbWidth + cast(u64) mbX
-        let isLuma  = block < 4
+        let mbIndex          = cast(u64) mbY * cast(u64) .layer.mbWidth + cast(u64) mbX
+        let isLuma           = block < 4
         var levels: [64] s32 = undefined
         for index in 64'u64 do
             levels[index] = 0
@@ -850,15 +893,29 @@ impl Decoder
             switch block
             {
             case 0:
-                left = .neighbour(mbX - 1, mbY, 1); corner = .neighbour(mbX - 1, mbY - 1, 3); above = .neighbour(mbX, mbY - 1, 2)
+                left   = .neighbour(mbX - 1, mbY, 1)
+                corner = .neighbour(mbX - 1, mbY - 1, 3)
+                above  = .neighbour(mbX, mbY - 1, 2)
+
             case 1:
-                left = .blocks[mbIndex * 6 + 0]; corner = .neighbour(mbX, mbY - 1, 2); above = .neighbour(mbX, mbY - 1, 3)
+                left   = .blocks[mbIndex * 6 + 0]
+                corner = .neighbour(mbX, mbY - 1, 2)
+                above  = .neighbour(mbX, mbY - 1, 3)
+
             case 2:
-                left = .neighbour(mbX - 1, mbY, 3); corner = .neighbour(mbX - 1, mbY, 1); above = .blocks[mbIndex * 6 + 0]
+                left   = .neighbour(mbX - 1, mbY, 3)
+                corner = .neighbour(mbX - 1, mbY, 1)
+                above  = .blocks[mbIndex * 6 + 0]
+
             case 3:
-                left = .blocks[mbIndex * 6 + 2]; corner = .blocks[mbIndex * 6 + 0]; above = .blocks[mbIndex * 6 + 1]
+                left   = .blocks[mbIndex * 6 + 2]
+                corner = .blocks[mbIndex * 6 + 0]
+                above  = .blocks[mbIndex * 6 + 1]
+
             default:
-                left = .neighbour(mbX - 1, mbY, block); corner = .neighbour(mbX - 1, mbY - 1, block); above = .neighbour(mbX, mbY - 1, block)
+                left   = .neighbour(mbX - 1, mbY, block)
+                corner = .neighbour(mbX - 1, mbY - 1, block)
+                above  = .neighbour(mbX, mbY - 1, block)
             }
 
             fromAbove = Math.abs(left.dc - corner.dc) < Math.abs(corner.dc - above.dc)
@@ -868,9 +925,9 @@ impl Decoder
             // the plane states, clause 6.3.5.
             if usesDcCode(header.intraDcThreshold, .quant)
             {
-                let tree: const [..] s16 = isLuma ? DcLumaTree : DcChromaTree
-                let sizes: const [..] u8 = isLuma ? DcLumaSize : DcChromaSize
-                let entry = reader.decode(tree)
+                let tree:  const [..] s16 = isLuma ? DcLumaTree : DcChromaTree
+                let sizes: const [..] u8  = isLuma ? DcLumaSize : DcChromaSize
+                let entry                 = reader.decode(tree)
                 if entry < 0 do
                     fail InvalidFormatError{"MPEG-4 intra block states no direct-current width"}
                 let size = cast(u32) sizes[cast(u64) entry]
@@ -1005,20 +1062,13 @@ func usesDcCode(threshold, quant: u32)->bool
 {
     switch threshold
     {
-    case 0:
-        return true
-    case 1:
-        return quant < 13
-    case 2:
-        return quant < 15
-    case 3:
-        return quant < 17
-    case 4:
-        return quant < 19
-    case 5:
-        return quant < 21
-    case 6:
-        return quant < 23
+    case 0: return true
+    case 1: return quant < 13
+    case 2: return quant < 15
+    case 3: return quant < 17
+    case 4: return quant < 19
+    case 5: return quant < 21
+    case 6: return quant < 23
     }
 
     return false

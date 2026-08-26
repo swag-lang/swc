@@ -13,7 +13,7 @@ private func flacDecodeAll(sound: const *SoundFile)->Array'u8 fail
     let bytes = file.toSlice()
 
     var codec: Flac.Codec
-    let itf: IPacketCodec = &codec
+    let itf:   IPacketCodec = &codec
     try itf.initialize(sound.decoderConfig.toSlice(), sound.sampleRateHz(), sound.numChannels())
 
     // The largest block a FLAC frame may carry, clause 8.

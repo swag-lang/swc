@@ -1459,7 +1459,6 @@ void Lexer::tokenizeRaw(TaskContext& ctx, SourceView& srcView)
 
 void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
 {
-
     srcView_ = &srcView;
     srcView_->tokens().clear();
     srcView_->lines().clear();

@@ -144,9 +144,9 @@ private struct Chunk
 // One frame of the video stream, as the container places it.
 private struct FrameEntry
 {
-    offset: u64     // Offset of the payload in the stream, in bytes.
-    size:   u64     // Length of the payload, in bytes; zero for a frame that repeats the previous one.
-    isSync: bool    // Whether the frame starts a decode that depends on nothing before it.
+    offset: u64      // Offset of the payload in the stream, in bytes.
+    size:   u64      // Length of the payload, in bytes; zero for a frame that repeats the previous one.
+    isSync: bool     // Whether the frame starts a decode that depends on nothing before it.
 }
 
 // Index flag a frame carries when it depends on nothing before it.

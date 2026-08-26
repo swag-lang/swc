@@ -42,7 +42,7 @@ func viewerRegistryFixturePath(name: string)->String
 // open through that exact viewer. Fixtures are kept distinct so every line names its own evidence.
 #test
 {
-    let index = createViewerIndex()
+    let index       = createViewerIndex()
     let textFixture = viewerRegistryFixturePath(BasicTextSmokeFixture)
     @assert(File.exists(textFixture))
     let textChoices = index.choices(textFixture.toString())
@@ -60,6 +60,7 @@ func viewerRegistryFixturePath(name: string)->String
             found = true
             break
         }
+
         @assert(found)
 
         for other, j in index.specs where j > i do

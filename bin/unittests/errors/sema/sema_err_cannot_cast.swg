@@ -98,7 +98,6 @@ func consumeCannotCastExactGrid(grid: [2, 3] s16) {}
     consumeCannotCastExact4(view)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
-
 #test
 {
     switch &CannotCastSwitchPointerValues[0]

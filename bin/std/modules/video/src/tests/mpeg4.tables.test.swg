@@ -199,4 +199,3 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
     @assert(Mpeg4.levelMax(false, 0, 40) == 0)
     @assert(Mpeg4.levelMax(true, 1, 63) == 0)
 }
-

@@ -1,6 +1,6 @@
 #global using Core, Pixel, Gui
 
-const AppIcon = #include("../datas/appicon.png")
+const AppIcon             = #include("../datas/appicon.png")
 const ViewerSmokeArgument = "--review-viewers="
 
 var g_App: Application

@@ -86,7 +86,6 @@ AstNodeRef Parser::parseGeneratedContent(const ParserGeneratedMode mode)
 
 AstNodeRef Parser::parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcView, const ParserGeneratedMode mode, const TokenRef startTokRef)
 {
-
     ctx_ = &ctx;
     ast_ = &ast;
 
@@ -529,7 +528,6 @@ void Parser::expectEndStatement()
 
 void Parser::parse(TaskContext& ctx, Ast& ast)
 {
-
     ctx_ = &ctx;
     ast_ = &ast;
 

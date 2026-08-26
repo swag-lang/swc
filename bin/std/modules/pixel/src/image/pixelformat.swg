@@ -33,10 +33,10 @@ impl PixelFormat
     {
         switch #complete me
         {
-        case .BGR8:  return true
-        case .BGRA8: return true
-        case .RGB8:  return true
-        case .RGBA8: return true
+        case .BGR8:   return true
+        case .BGRA8:  return true
+        case .RGB8:   return true
+        case .RGBA8:  return true
         case .Yuv420: return false
         }
 
@@ -52,10 +52,10 @@ impl PixelFormat
     {
         switch #complete me
         {
-        case .BGR8:  return 24
-        case .BGRA8: return 32
-        case .RGB8:  return 24
-        case .RGBA8: return 32
+        case .BGR8:   return 24
+        case .BGRA8:  return 32
+        case .RGB8:   return 24
+        case .RGBA8:  return 32
         case .Yuv420: return 12
         }
 
@@ -68,10 +68,10 @@ impl PixelFormat
     {
         switch #complete me
         {
-        case .BGR8:  return 3
-        case .BGRA8: return 4
-        case .RGB8:  return 3
-        case .RGBA8: return 4
+        case .BGR8:   return 3
+        case .BGRA8:  return 4
+        case .RGB8:   return 3
+        case .RGBA8:  return 4
         case .Yuv420: return 3
         }
 
@@ -84,10 +84,10 @@ impl PixelFormat
     {
         switch #complete me
         {
-        case .BGR8:  return 8
-        case .BGRA8: return 8
-        case .RGB8:  return 8
-        case .RGBA8: return 8
+        case .BGR8:   return 8
+        case .BGRA8:  return 8
+        case .RGB8:   return 8
+        case .RGBA8:  return 8
         case .Yuv420: return 8
         }
 
@@ -100,10 +100,10 @@ impl PixelFormat
     {
         switch #complete me
         {
-        case .BGR8:  return false
-        case .BGRA8: return true
-        case .RGB8:  return false
-        case .RGBA8: return true
+        case .BGR8:   return false
+        case .BGRA8:  return true
+        case .RGB8:   return false
+        case .RGBA8:  return true
         case .Yuv420: return false
         }
 

@@ -273,7 +273,6 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
     if (!inserted)
         return *it;
 
-
     uint32_t localIndex = INVALID_REF;
     {
         const std::scoped_lock storeLock(shard.storeMutex);

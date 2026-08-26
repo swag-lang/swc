@@ -18,13 +18,13 @@ private const AdtsRates: [13] u32 = [
 // What one ADTS header says about the frame that follows it.
 private struct AdtsHeader
 {
-    frameBytes:  u64
-    headerBytes: u64
-    rateIndex:   u32
-    channelIndex:u32
-    sampleRate:  u32
-    channels:    u32
-    blocks:      u32     // Raw data blocks the frame carries, each 1024 sample frames.
+    frameBytes:   u64
+    headerBytes:  u64
+    rateIndex:    u32
+    channelIndex: u32
+    sampleRate:   u32
+    channels:     u32
+    blocks:       u32     // Raw data blocks the frame carries, each 1024 sample frames.
 }
 
 // Reads one ADTS header, clause 1.A.3.2.1.

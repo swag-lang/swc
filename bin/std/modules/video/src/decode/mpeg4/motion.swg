@@ -24,8 +24,8 @@ func median(a, b, c: s32)->s32 => Math.max(Math.min(a, b), Math.min(Math.max(a, 
 // that step the vector sits. A code of zero carries no residual whatever the step.
 func readVectorDelta(reader: *BitReader, fcode: u32, result: *Vector)->bool
 {
-    let step  = 1's32 << (fcode - 1)
-    let bits  = fcode - 1
+    let step = 1's32 << (fcode - 1)
+    let bits = fcode - 1
 
     for component in 2'u32
     {
@@ -87,7 +87,7 @@ func chromaVector(vectors: const [..] Vector)->Vector
 
     let table: const [..] u8 = count == 4 ? ChromaRoundFourBlocks
                                : (count == 3 ? ChromaRoundThreeBlocks
-                               : (count == 2 ? ChromaRoundTwoBlocks : ChromaRoundOneBlock))
+                                  : (count == 2 ? ChromaRoundTwoBlocks : ChromaRoundOneBlock))
     let span = 4's32 * cast(s32) count
 
     var result: retval
@@ -119,8 +119,7 @@ private func reduceChroma(sum, span: s32, table: const [..] u8)->s32
 // The plane is padded far enough that a vector pointing outside the picture still reads inside
 // the buffer, so no coordinate is tested here. Rounding control shifts every average by half a
 // level, which is what keeps a long chain of predicted pictures from drifting.
-func compensate(destination: [*] u8, destinationStride: u64, source: const [*] u8, sourceOrigin, sourceStride: u64,
-                x, y: s32, vector: Vector, width, height, rounding: u32, planeWidth, planeHeight: u32)
+func compensate(destination: [*] u8, destinationStride: u64, source: const [*] u8, sourceOrigin, sourceStride: u64, x, y: s32, vector: Vector, width, height, rounding: u32, planeWidth, planeHeight: u32)
 {
     // A vector may point outside the picture. The padding holds what the edge holds, so reading
     // from the padding is what the format's unrestricted vectors mean; a vector that points
@@ -186,8 +185,7 @@ func compensate(destination: [*] u8, destinationStride: u64, source: const [*] u
 // Averages a second prediction into a block that already holds the first.
 //
 // A bidirectional block is the mean of what its two references say, rounded up, clause 7.6.7.
-func blendInto(destination: [*] u8, destinationStride: u64, source: const [*] u8, sourceStride: u64,
-               width, height: u32)
+func blendInto(destination: [*] u8, destinationStride: u64, source: const [*] u8, sourceStride: u64, width, height: u32)
 {
     for row in cast(u64) height
     {
@@ -199,4 +197,3 @@ func blendInto(destination: [*] u8, destinationStride: u64, source: const [*] u8
         }
     }
 }
-

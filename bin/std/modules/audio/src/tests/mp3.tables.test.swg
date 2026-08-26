@@ -112,8 +112,8 @@ private func mp3AssertTable(name: string, lengths: const [..] u8, codes: const [
 {
     const Expected: [32] u8 = [0, 1, 2, 3, 0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 0, 15,
                                16, 16, 16, 16, 16, 16, 16, 16, 24, 24, 24, 24, 24, 24, 24, 24]
-    const Escapes:  [32] u8 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                               1, 2, 3, 4, 6, 8, 10, 13, 4, 5, 6, 7, 8, 9, 11, 13]
+    const Escapes: [32] u8 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                              1, 2, 3, 4, 6, 8, 10, 13, 4, 5, 6, 7, 8, 9, 11, 13]
     for index in 32'u64
     {
         @assert(Mp3.HuffCodeTable[index] == Expected[index])

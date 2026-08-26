@@ -7,22 +7,22 @@
 // that never reaches it.
 
 #[Swag.Optimize(true)]
-func selectMin(a, b: s32) -> s32 => a < b ? a : b
+func selectMin(a, b: s32)->s32 => a < b ? a : b
 
 #[Swag.Optimize(true)]
-func selectMaxU64(a, b: u64) -> u64 => a > b ? a : b
+func selectMaxU64(a, b: u64)->u64 => a > b ? a : b
 
 #[Swag.Optimize(true)]
-func selectConstant(flag: bool) -> s32 => flag ? 7 : 9
+func selectConstant(flag: bool)->s32 => flag ? 7 : 9
 
 #[Swag.Optimize(true)]
-func clampByte(v: s32) -> s32 => v < 0 ? 0 : (v > 255 ? 255 : v)
+func clampByte(v: s32)->s32 => v < 0 ? 0 : (v > 255 ? 255 : v)
 
 #[Swag.Optimize(true)]
-func selectGuardedLoad(buf: [*] s32, i, n: u64) -> s32 => i < n ? buf[i] : -1
+func selectGuardedLoad(buf: [*] s32, i, n: u64)->s32 => i < n ? buf[i] : -1
 
 #[Swag.Optimize(true)]
-func selectWithArithmetic(a, b: s32) -> s32 => a < b ? a + 1 : b * 2
+func selectWithArithmetic(a, b: s32)->s32 => a < b ? a + 1 : b * 2
 
 #[Swag.Optimize(true)]
 func clampLoop(dst: [*] u8, src: [*] s32, n: u64)
@@ -36,7 +36,7 @@ func clampLoop(dst: [*] u8, src: [*] s32, n: u64)
 }
 
 #[Swag.Optimize(true)]
-func absDiffSum(a, b: [*] s32, n: u64) -> s64
+func absDiffSum(a, b: [*] s32, n: u64)->s64
 {
     var sum = 0's64
     for i in 0 until n

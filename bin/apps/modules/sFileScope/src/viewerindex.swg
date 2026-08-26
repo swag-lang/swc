@@ -2,7 +2,7 @@ using Core, Core.Errors, Gui, Audio, Pixel, Video
 
 // The stable identity of the host's own text surface, in the persisted vocabulary its
 // registered neighbours use.
-const BasicTextViewerKey = "text"
+const BasicTextViewerKey    = "text"
 const BasicTextSmokeFixture = "comprehensive.txt"
 
 // What the text surface owns by name.
@@ -21,11 +21,11 @@ struct ViewerSpec
     // order and is never translated.
     key: String
 
-    displayName: String          // Name shown in the viewer selector.
-    icon:        ViewerIcons     // Glyph shown beside that name.
-    create:      ViewerCreate = undefined
-    smokeFixture: String         // Immutable file opened by the application smoke review.
-    extensions:  Array'String     // Lowercase extensions or file names, or `*` for every file.
+    displayName:  String          // Name shown in the viewer selector.
+    icon:         ViewerIcons     // Glyph shown beside that name.
+    create:       ViewerCreate = undefined
+    smokeFixture: String           // Immutable file opened by the application smoke review.
+    extensions:   Array'String     // Lowercase extensions or file names, or `*` for every file.
 }
 
 // Selects whether one available viewer is the basic text surface or a format-specific viewer.

@@ -1139,7 +1139,7 @@ namespace
         // to override the pin with (an auto-inlined `v + @vecsplat(1'u32)` came back as sixteen
         // bytes). Leave the name to re-resolve; the call pins its selected function afterwards
         // whenever the source kept one.
-        const bool intrinsicName = nodeTokInRange && Token::isIntrinsic(sema.token(node.codeRef()).id);
+        const bool intrinsicName               = nodeTokInRange && Token::isIntrinsic(sema.token(node.codeRef()).id);
         const bool sourceSymbolOwnedByFunction = storedView &&
                                                  storedView->sym &&
                                                  storedView->sym->ownerSymMap() &&

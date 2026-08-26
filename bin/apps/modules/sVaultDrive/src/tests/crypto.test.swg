@@ -92,12 +92,12 @@ func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
 {
     // A key slot wraps the master key under the key derived once for the whole
     // slot area. Wrapped bytes never repeat because each slot draws a fresh nonce.
-    let master   = testMasterKey(5)
-    let password = @mkslice(cast(const [*] u8) @dataof("slot password"), 13)
-    let wrongPassword = @mkslice(cast(const [*] u8) @dataof("slot passwore"), 13)
+    let master                     = testMasterKey(5)
+    let password                   = @mkslice(cast(const [*] u8) @dataof("slot password"), 13)
+    let wrongPassword              = @mkslice(cast(const [*] u8) @dataof("slot passwore"), 13)
     let salt: [Crypto.SaltSize] u8 = [11]
-    var slotKey      = expect Crypto.deriveSlotKey(password, salt)
-    var wrongSlotKey = expect Crypto.deriveSlotKey(wrongPassword, salt)
+    var slotKey                    = expect Crypto.deriveSlotKey(password, salt)
+    var wrongSlotKey               = expect Crypto.deriveSlotKey(wrongPassword, salt)
 
     var slot  = expect KeySlot.create(slotKey, master, 0)
     var other = expect KeySlot.create(slotKey, master, 0)
@@ -145,8 +145,8 @@ func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
 {
     // Version 4 uses one fixed KDF profile. Derivation is reproducible and both
     // the password and the common salt contribute to the resulting key.
-    let password = @mkslice(cast(const [*] u8) @dataof("profiles"), 8)
-    let differentPassword = @mkslice(cast(const [*] u8) @dataof("profilet"), 8)
+    let password                            = @mkslice(cast(const [*] u8) @dataof("profiles"), 8)
+    let differentPassword                   = @mkslice(cast(const [*] u8) @dataof("profilet"), 8)
     let salt:          [Crypto.SaltSize] u8 = [17]
     let differentSalt: [Crypto.SaltSize] u8 = [18]
 

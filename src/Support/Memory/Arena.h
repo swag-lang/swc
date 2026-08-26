@@ -38,7 +38,6 @@ public:
         head_ = nullptr;
     }
 
-
 private:
     struct Block
     {

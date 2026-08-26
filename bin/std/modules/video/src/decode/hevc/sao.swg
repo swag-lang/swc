@@ -55,8 +55,8 @@ impl Decoder
             if leftInSlice and leftInTile and .cabac.decision(CtxSaoMergeFlag) != 0
             {
                 .sao[index] = .sao[index - 1]
-                .saoUsed  = .saoUsed or .sao[index].typeIdx[0] != 0 or .sao[index].typeIdx[1] != 0
-                merged = true
+                .saoUsed    = .saoUsed or .sao[index].typeIdx[0] != 0 or .sao[index].typeIdx[1] != 0
+                merged      = true
             }
         }
 
@@ -67,8 +67,8 @@ impl Decoder
             if upInSlice and upInTile and .cabac.decision(CtxSaoMergeFlag) != 0
             {
                 .sao[index] = .sao[index - cast(u64) sps.widthInCtbs]
-                .saoUsed  = .saoUsed or .sao[index].typeIdx[0] != 0 or .sao[index].typeIdx[1] != 0
-                merged = true
+                .saoUsed    = .saoUsed or .sao[index].typeIdx[0] != 0 or .sao[index].typeIdx[1] != 0
+                merged      = true
             }
         }
 
@@ -182,19 +182,19 @@ impl Decoder
         let bitDepth = component == 0 ? sps.bitDepthLuma : sps.bitDepthChroma
         let maximum  = cast(s32) ((1'u32 << bitDepth) - 1)
 
-        let ctbSize    = cast(s32) sps.ctbSize / scale
+        let ctbSize     = cast(s32) sps.ctbSize / scale
         let planeWidth  = cast(s32) (component == 0 ? sps.width : sps.width / sps.subWidthC)
         let planeHeight = cast(s32) (component == 0 ? sps.height : sps.height / sps.subHeightC)
-        let x0 = rx * ctbSize
-        let y0 = ry * ctbSize
-        let width  = Math.min(ctbSize, planeWidth - x0)
-        let height = Math.min(ctbSize, planeHeight - y0)
+        let x0          = rx * ctbSize
+        let y0          = ry * ctbSize
+        let width       = Math.min(ctbSize, planeWidth - x0)
+        let height      = Math.min(ctbSize, planeHeight - y0)
         if width <= 0 or height <= 0 do
             return
 
-        var source: const [*] u16 = undefined
-        var destination: [*] u16 = undefined
-        var stride: u64
+        var source:      const [*] u16 = undefined
+        var destination: [*] u16       = undefined
+        var stride:      u64
         if !component
         {
             source      = .saoSource.buffer!
@@ -263,10 +263,10 @@ impl Decoder
 
         // Edge offset: a sample is shifted by how it compares with two neighbours.
         let eoClass = cast(u32) parameters.eoClass[component]
-        let h0 = cast(s32) SaoEdgeHPos[eoClass, 0]
-        let h1 = cast(s32) SaoEdgeHPos[eoClass, 1]
-        let v0 = cast(s32) SaoEdgeVPos[eoClass, 0]
-        let v1 = cast(s32) SaoEdgeVPos[eoClass, 1]
+        let h0      = cast(s32) SaoEdgeHPos[eoClass, 0]
+        let h1      = cast(s32) SaoEdgeHPos[eoClass, 1]
+        let v0      = cast(s32) SaoEdgeVPos[eoClass, 0]
+        let v1      = cast(s32) SaoEdgeVPos[eoClass, 1]
 
         // A sample whose comparison would leave the picture keeps the value deblocking gave it,
         // and the samples that do are a border of the picture rather than a property of the

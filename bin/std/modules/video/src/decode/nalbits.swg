@@ -197,7 +197,7 @@ func unescapeRbsp(destination: *Array'u8, data: const [..] u8)
 // parser works on the unescaped one; this converts between the two without keeping a map.
 func escapedOffsetOf(data: const [..] u8, unescapedCount: u64)->u64
 {
-    let count = @countof(data)
+    let count    = @countof(data)
     var produced = 0'u64
     var index    = 0'u64
     var zeros    = 0'u32
@@ -253,10 +253,10 @@ func unescapeRbspWithBounds(destination: *Array'u8, data: const [..] u8, escaped
             continue
         }
 
-        zeros           = value == 0 ? zeros + 1 : 0
+        zeros            = value == 0 ? zeros + 1 : 0
         output[produced] = value
-        produced        += 1
-        index           += 1
+        produced         += 1
+        index            += 1
     }
 
     while boundary < @countof(escapedBounds)

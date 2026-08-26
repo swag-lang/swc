@@ -76,7 +76,7 @@ private struct Track
     language:        String
     codecId:         String
     codecPrivate:    Array'u8
-    setup:           Array'u8       // Setup headers a legacy track states in its stream, not in the container.
+    setup:           Array'u8     // Setup headers a legacy track states in its stream, not in the container.
     defaultDuration: u64
     codecDelay:      u64
     seekPreRoll:     u64
@@ -90,8 +90,8 @@ private struct Track
     bitsPerSample:   u32
     isEnabled:       bool = true
     isDefault:       bool = true
-    hasEncodings:    bool            // The track states an encoding this reader does not undo.
-    headerStrip:     Array'u8        // Bytes a writer took off the front of every frame.
+    hasEncodings:    bool         // The track states an encoding this reader does not undo.
+    headerStrip:     Array'u8     // Bytes a writer took off the front of every frame.
     videoSamples:    Array'SampleEntry
     audioPackets:    Array'SoundPacket
     audioFrameCount: u64
@@ -239,12 +239,12 @@ private impl Track
 // Matroska metadata retained while the mapped stream is indexed.
 private struct Layout
 {
-    timestampScale: u64 = DefaultTimestampScale
+    timestampScale: u64  = DefaultTimestampScale
     durationTicks:  f64
     tracks:         Array'Track
     clusters:       Array'Element
     audioTracks:    Array'u64
-    selectedVideo:  u64 = NoTrack
+    selectedVideo:  u64  = NoTrack
     laceSizes:      Array'u64
     segment:        Element
     scanPosition:   u64
@@ -361,6 +361,7 @@ private impl Layout
                     return false
                 Threading.Thread.sleep(1'ms)
             }
+
             if cancelled and Atomic.get(cancelled!) do
                 return false
             let element = cursor.readElement(.segment.end)
@@ -423,6 +424,7 @@ private impl Layout
                     return false
                 Threading.Thread.sleep(1'ms)
             }
+
             if cancelled and Atomic.get(cancelled!) do
                 return false
             let element = cursor.readElement(.segment.end)
@@ -863,7 +865,7 @@ private impl Layout
         var scope     = 1'u64
         var kind      = 0'u64
         var algorithm = Swag.U64.Max
-        var stripped:  Array'u8
+        var stripped: Array'u8
         while !cursor.atEnd(encoding.end)
         {
             let element = cursor.readElement(encoding.end)
@@ -881,11 +883,8 @@ private impl Layout
                     let field = cursor.readElement(element.end)
                     switch field.id
                     {
-                    case ContentCompAlgoId:
-                        algorithm = cursor.readUnsigned(field)
-
-                    case ContentCompSettingsId:
-                        stripped = cursor.readBytes(field)
+                    case ContentCompAlgoId:     algorithm = cursor.readUnsigned(field)
+                    case ContentCompSettingsId: stripped = cursor.readBytes(field)
                     }
 
                     cursor.seek(field.end)
@@ -924,9 +923,14 @@ private impl Layout
                     fail InvalidFormatError{"Matroska video height exceeds the supported range"}
                 track.height = cast(s32) height
 
-            case DisplayWidthId:  track.displayWidth = cursor.readUnsigned(element)
-            case DisplayHeightId: track.displayHeight = cursor.readUnsigned(element)
-            case DisplayUnitId:   track.displayUnit = cursor.readUnsigned(element)
+            case DisplayWidthId:
+                track.displayWidth = cursor.readUnsigned(element)
+
+            case DisplayHeightId:
+                track.displayHeight = cursor.readUnsigned(element)
+
+            case DisplayUnitId:
+                track.displayUnit = cursor.readUnsigned(element)
             }
 
             cursor.seek(element.end)
@@ -1000,8 +1004,8 @@ private impl Layout
     {
         let firstVideoSample = .tracks[.selectedVideo].videoSamples.count
         var clusterTimestamp = 0'u64
-        var hasTimestamp:       bool
-        var pending:            Array'Element
+        var hasTimestamp: bool
+        var pending:      Array'Element
         cursor.seek(cluster.data)
         while cursor.position < cluster.end
         {
@@ -1011,6 +1015,7 @@ private impl Layout
                     return false
                 Threading.Thread.sleep(1'ms)
             }
+
             if cancelled and Atomic.get(cancelled!) do
                 return false
             let element = cursor.readElement(cluster.end)
@@ -1027,6 +1032,7 @@ private impl Layout
                     else do
                         .parseBlockGroup(cursor, queued, clusterTimestamp)
                 }
+
                 pending.clear()
             }
             elif element.id == SimpleBlockId or element.id == BlockGroupId
@@ -1235,6 +1241,7 @@ private impl Layout
                 let end = Math.min(payload + .laceSizes[0], @countof(cursor.bytes))
                 track.setup.add(Video.inlineSetupHeaders(cursor.bytes[payload until end]))
             }
+
             return
         }
 
@@ -1255,7 +1262,7 @@ private impl Layout
             if track.audioFrameCount > Swag.U64.Max - frameCount do
                 fail OverflowError{"Matroska audio packet table is too large"}
             track.audioFrameCount += frameCount
-            offset += size
+            offset                += size
         }
     }
 
@@ -1296,6 +1303,7 @@ private const SoundIndexIdle = 0'u32
 private const SoundIndexRunning = 1'u32
 private const SoundIndexReady = 2'u32
 private const SoundIndexFailed = 3'u32
+
 // How much sound one bounded window carries, and how close the picture may come to its end.
 //
 // The complete packet tables are built by a background walk of the whole file, which on a large
@@ -1305,6 +1313,7 @@ private const SoundIndexFailed = 3'u32
 private const SoundSeekRunAheadNanoseconds = 60_000_000_000's64
 private const SoundWindowRefreshNanoseconds = 20_000_000_000's64
 private const SoundWindowRetryNanoseconds = 5_000_000_000's64
+
 // How far ahead of the indexed window a picture can be asked for and still be reached by
 // walking the index rather than by restarting the reader at a cue. Two thousand pictures is
 // about eighty seconds of film, which covers every skip playback makes to catch up and
@@ -1322,23 +1331,23 @@ private struct PublishedSound
 #[Swag.NoCopy]
 private struct FileIndex
 {
-    progressive:        #null *Layout
-    region:             File.MappedRegion
-    path:               String
-    soundTracks:         Array'SoundFile
-    soundThread:         Threading.Thread
-    windowThread:        Threading.Thread
-    windowWake:          Sync.Event
-    windowTarget:        u64     // Timestamp the window being built must cover.
-    windowBuilding:      u32     // Whether a window build is in flight.
-    seekSounds:          Array'*PublishedSound
-    soundLock:           Sync.Mutex
-    cancel:              u32
-    soundPause:          u32
-    soundStatus:         u32
-    soundStage:          u32
-    currentSeekSound:    u64
-    seekSoundEnd:        s64     // Where the published window stops carrying sound.
+    progressive:      #null *Layout
+    region:           File.MappedRegion
+    path:             String
+    soundTracks:      Array'SoundFile
+    soundThread:      Threading.Thread
+    windowThread:     Threading.Thread
+    windowWake:       Sync.Event
+    windowTarget:     u64     // Timestamp the window being built must cover.
+    windowBuilding:   u32     // Whether a window build is in flight.
+    seekSounds:       Array'*PublishedSound
+    soundLock:        Sync.Mutex
+    cancel:           u32
+    soundPause:       u32
+    soundStatus:      u32
+    soundStage:       u32
+    currentSeekSound: u64
+    seekSoundEnd:     s64     // Where the published window stops carrying sound.
 }
 
 private func publishFullSound(index: *FileIndex, tracks: *Array'SoundFile)
@@ -1464,19 +1473,19 @@ struct Decoder
 {
     internal
     {
-        info:               StreamInfo
-        video:              PictureStream
-        fileIndex:          #null *FileIndex
-        presentationOrigin: s64
-        durationSeconds:    f64
-        streamSampleCount:  u64
-        windowBaseRank:     u64
-        streamOpen:         bool
-        memoryComplete:     bool
+        info:                        StreamInfo
+        video:                       PictureStream
+        fileIndex:                   #null *FileIndex
+        presentationOrigin:          s64
+        durationSeconds:             f64
+        streamSampleCount:           u64
+        windowBaseRank:              u64
+        streamOpen:                  bool
+        memoryComplete:              bool
         resumeSoundIndexAfterDecode: bool
-        soundWindowAttempt: s64     // Earliest picture time the next window extension may be built at.
-        sawVideoSync:       bool        // A sample the container marks as a clean decode point was seen.
-        syncScanAt:         u64         // How far the search for one has read.
+        soundWindowAttempt:          s64      // Earliest picture time the next window extension may be built at.
+        sawVideoSync:                bool     // A sample the container marks as a clean decode point was seen.
+        syncScanAt:                  u64      // How far the search for one has read.
     }
 }
 
@@ -1522,6 +1531,7 @@ private impl Decoder
             .info.width  = sps!.width()
             .info.height = sps!.height()
         }
+
         let display = video.displaySize(.info.width, .info.height)
         .info.displayWidth  = display.width
         .info.displayHeight = display.height
@@ -1614,16 +1624,16 @@ private impl Decoder
         let fileIndex = .fileIndex!
         Atomic.exchange(&fileIndex.soundPause, 1)
         .resumeSoundIndexAfterDecode = true
-        let layout    = fileIndex.progressive!
-        let bytes     = fileIndex.region.bytes()
-        let target    = .targetTimestamp(index)
+        let layout = fileIndex.progressive!
+        let bytes  = fileIndex.region.bytes()
+        let target = .targetTimestamp(index)
         .soundWindowAttempt = 0
 
         // A container whose sound this module cannot read has no window to build; asking for one
         // walked the whole file looking for packets that were never going to appear.
         if target >= 0 and layout.audioTracks.count do
             discard catch buildSoundWindow(fileIndex, cast(u64) target) as soundWindowError
-        let cue       = target >= 0 ? layout.cueAtOrBefore(cast(u64) target) : null
+        let cue = target >= 0 ? layout.cueAtOrBefore(cast(u64) target) : null
         if cue do
             layout.resetMediaAt(cue!.clusterOffset)
         else do
@@ -1992,6 +2002,7 @@ impl IDecoder for Decoder
             Atomic.exchange(&.fileIndex!.soundPause, 1)
             .resumeSoundIndexAfterDecode = true
         }
+
         defer #fail .resumeSoundIndex()
         .extendSoundWindow(index)
         .ensureFrames(index)
@@ -2002,6 +2013,7 @@ impl IDecoder for Decoder
     mtd impl decodeFrame(source: *Source, target: *Image) fail
     {
         defer .resumeSoundIndex()
+
         // The demuxer already owns a mapped view. Serving payloads from it avoids turning every
         // video packet separated by another track into a small seek on the original file handle.
         if .fileIndex
@@ -2057,6 +2069,7 @@ impl IAudioDecoder for Decoder
             let tracks = &(cast(*PublishedSound) seekSound).tracks
             return index < tracks.count ? &tracks[index] : null
         }
+
         if !Atomic.get(&fileIndex!.soundStage) do
             return null
         return index < fileIndex!.soundTracks.count ? &fileIndex!.soundTracks[index] : null

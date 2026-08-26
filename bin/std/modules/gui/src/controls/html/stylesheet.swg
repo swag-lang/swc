@@ -186,7 +186,7 @@ impl HtmlMatchContext
         .typeCount.resize(document.nodes.count)
         .previousElement.resize(document.nodes.count)
 
-        var totals: HashTable'(String, u32)
+        var totals:  HashTable'(String, u32)
         var indices: HashTable'(String, u32)
         for parentIndex in document.nodes.count
         {
@@ -195,7 +195,7 @@ impl HtmlMatchContext
                 continue
 
             totals.clear()
-            var count = 0'u32
+            var count    = 0'u32
             var previous = HtmlNoNode
             for child in children
             {
@@ -203,11 +203,11 @@ impl HtmlMatchContext
                 if node.kind != .Element do
                     continue
 
-                count += 1
-                .numElements += 1
-                .elementIndex[child]    = count
-                .previousElement[child] = previous == HtmlNoNode ? 0 : previous + 1
-                previous                = child
+                count                             += 1
+                .numElements                      += 1
+                .elementIndex[child]              = count
+                .previousElement[child]           = previous == HtmlNoNode ? 0 : previous + 1
+                previous                          = child
                 totals.findOrAdd(node.name).value += 1
             }
 
@@ -219,8 +219,8 @@ impl HtmlMatchContext
                     continue
 
                 .elementCount[child] = count
-                let index            = indices.findOrAdd(node.name)
-                index.value += 1
+                let index = indices.findOrAdd(node.name)
+                index.value       += 1
                 .typeIndex[child] = index.value
                 .typeCount[child] = totals.tryFind(node.name)!.value
             }

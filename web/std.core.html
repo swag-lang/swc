@@ -24567,18 +24567,18 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">timeToTicks</span>(hour, minute, second, millisecond: <span class="STpe">u16</span>)-&gt;<span class="SCst"><a href="#Core_Time_Ticks">Ticks</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_Timer_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Timer.create</span> <a class="api-item-permalink" href="#Core_Time_Timer_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/timer.swg#L42">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_Timer_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Timer.create</span> <a class="api-item-permalink" href="#Core_Time_Timer_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/timer.swg#L43">src</a></div>
 <p>Creates a timer that first fires after <span class="code-inline">delay</span>.</p>
 <p>A periodic timer subsequently fires at the same interval.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(delay: <span class="SCst"><a href="#Core_Time_Duration">Duration</a></span>, callback: <span class="SKwd">func</span>(*<span class="SCst"><a href="#Core_Time_Timer">Timer</a></span>), periodic = <span class="SKwd">false</span>)-&gt;<span class="SCst"><a href="#Core_Time_Timer">Timer</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_Timer_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Timer.opDrop</span> <a class="api-item-permalink" href="#Core_Time_Timer_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/timer.swg#L34">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_Timer_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Timer.opDrop</span> <a class="api-item-permalink" href="#Core_Time_Timer_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/timer.swg#L35">src</a></div>
 <p>Releases the native timer when this value leaves scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_Timer_release" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Timer.release</span> <a class="api-item-permalink" href="#Core_Time_Timer_release" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/timer.swg#L62">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_Timer_release" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Timer.release</span> <a class="api-item-permalink" href="#Core_Time_Timer_release" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/timer.swg#L63">src</a></div>
 <p>Stops the timer and waits for any active callback before returning.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">release</span>()</span></div>
 </section>

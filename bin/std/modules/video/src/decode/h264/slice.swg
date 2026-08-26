@@ -1,5 +1,6 @@
 ﻿#global namespace H264
 #global internal
+
 //! Format: H.264/AVC decoder component.
 //! Supported: Progressive 8-bit 4:2:0 Baseline, Main, and High-profile streams with CAVLC/CABAC, I/P/B slices, weighted prediction, cropping, reordering, and deblocking.
 //! Not supported: Interlacing, non-4:2:0 chroma, bit depths above 8, slice groups, data partitioning, scalable/multiview extensions, and lossless transform bypass.
@@ -38,14 +39,14 @@ struct SliceHeader
 // One resolved reference picture of a slice, with its explicit prediction weights.
 struct RefPic
 {
-    frame:      #null *Frame
-    poc:        s32
-    isLong:     bool
+    frame:  #null *Frame
+    poc:    s32
+    isLong: bool
 
     // Rows of the reference this slice has already seen published. Reconstruction reads it
     // before every predicted block, and the shared counter behind it costs a locked
     // instruction, so the last answer is kept here and only refreshed when a block needs more.
-    readyRows:  s32
+    readyRows: s32
 
     lumaWeight: s32
     lumaOffset: s32

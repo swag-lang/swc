@@ -63,12 +63,9 @@ impl Decoder
 
         switch
         {
-        case mode == IntraPlanar:
-            .predictPlanar(&reference, size, log2Size)
-        case mode == IntraDc:
-            .predictDc(&reference, size, log2Size, component)
-        default:
-            .predictAngular(&reference, size, component, mode, bitDepth)
+        case mode == IntraPlanar: .predictPlanar(&reference, size, log2Size)
+        case mode == IntraDc:     .predictDc(&reference, size, log2Size, component)
+        default:                  .predictAngular(&reference, size, component, mode, bitDepth)
         }
     }
 
@@ -76,11 +73,11 @@ impl Decoder
     // clauses 8.4.4.2.1 and 8.4.4.2.2.
     private mtd gatherReference(reference: *IntraReference, x, y, xLuma, yLuma: s32, size, component, bitDepth: u32)
     {
-        let sps    = .activeSps!
-        let pps    = .activePps!
-        let frame  = .current!
-        let total  = size * 2
-        let scale  = component == 0 ? 1's32 : 2's32
+        let sps   = .activeSps!
+        let pps   = .activePps!
+        let frame = .current!
+        let total = size * 2
+        let scale = component == 0 ? 1's32 : 2's32
 
         reference.size  = size
         reference.count = total * 2 + 1
@@ -201,8 +198,8 @@ impl Decoder
         // what keeps a gradient from banding, clause 8-37.
         if sps.strongIntraSmoothing and size == 32
         {
-            let limit  = 1's32 << (bitDepth - 5)
-            let corner = cast(s32) reference.corner()
+            let limit    = 1's32 << (bitDepth - 5)
+            let corner   = cast(s32) reference.corner()
             let flatTop  = Math.abs(corner + cast(s32) reference.top(total - 1) - 2 * cast(s32) reference.top(size - 1)) < limit
             let flatLeft = Math.abs(corner + cast(s32) reference.left(total - 1) - 2 * cast(s32) reference.left(size - 1)) < limit
             if flatTop and flatLeft
@@ -229,8 +226,8 @@ impl Decoder
             filtered[size * 2 + 1 + index] = cast(u16) ((cast(u32) reference.top(index + 1) + 2 * cast(u32) reference.top(index) + cast(u32) previousTop + 2) >> 2)
         }
 
-        filtered[0]                     = reference.samples[0]
-        filtered[reference.count - 1]   = reference.samples[reference.count - 1]
+        filtered[0] = reference.samples[0]
+        filtered[reference.count - 1] = reference.samples[reference.count - 1]
         Memory.copy(&reference.samples, &filtered, cast(u64) reference.count * #sizeof(u16))
     }
 
@@ -284,7 +281,7 @@ impl Decoder
         // The main reference runs along the direction the prediction comes from, and is extended
         // backwards through the other edge when the angle is negative.
         var main: [160] u16 = undefined
-        let origin = 64'u32     // Index of ref[0] inside the array, leaving room for ref[-32..-1].
+        let origin          = 64'u32     // Index of ref[0] inside the array, leaving room for ref[-32..-1].
 
         for index in size + 1
         {

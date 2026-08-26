@@ -89,9 +89,9 @@ func dequantise(block: *[64] s32, layer: const *Layer, quant: u32, intra, isLuma
             }
         }
 
-        value = Math.clamp(value, CoefficientFloor, CoefficientCeil)
+        value          = Math.clamp(value, CoefficientFloor, CoefficientCeil)
         block[][index] = value
-        sum += value
+        sum            += value
     }
 
     // Clause 7.4.4.5 repairs the parity of the block. Every decoder in the field applies it to
@@ -107,7 +107,7 @@ func dequantise(block: *[64] s32, layer: const *Layer, quant: u32, intra, isLuma
 //
 // The format states the transform as a formula, not as an integer network, and requires only that
 // a decoder stay within the accuracy of clause A.1; this is the formula, evaluated once.
-var g_Cosines: [8, 8] f32
+var g_Cosines:      [8, 8] f32
 var g_CosinesReady: bool
 
 func prepareCosines()

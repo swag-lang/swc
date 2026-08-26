@@ -11,13 +11,13 @@ internal struct MidiViewer
 
     #[Swag.Late]
     {
-        commands:   *ViewerCommandBar
-        trackCombo: *ComboBox
+        commands:      *ViewerCommandBar
+        trackCombo:    *ComboBox
         zoomOutButton: *IconButton
         zoomInButton:  *IconButton
         fitButton:     *IconButton
-        zoomLabel:  *Label
-        roll:       *MidiRollView
+        zoomLabel:     *Label
+        roll:          *MidiRollView
     }
 
     details: String
@@ -40,6 +40,7 @@ private impl MidiViewer
             let label = Format.toString(midiStrings().ui_TrackChoice, track.name, track.noteCount)
             .trackCombo.addItem(label.toString())
         }
+
         .trackCombo.setSelectedIndex(selected == Swag.U32.Max ? 0 : selected, notify: false)
     }
 
@@ -77,8 +78,8 @@ internal impl MidiViewer
         result.commands = ViewerCommandBar.create(commandParent, MidiCommandWidth)
         with result.trackCombo = ComboBox.create(result.commands, {0, 0, 224, 36})
         {
-            .dockStyle = .Left
-            .toolTip   = midiStrings().ui_AllTracks
+            .dockStyle  = .Left
+            .toolTip    = midiStrings().ui_AllTracks
             .sigChanged += func|view = result|(combo, index)
             {
                 discard combo
@@ -131,7 +132,7 @@ internal impl MidiViewer
             .style.setFont(result.theme().createDefaultFontFS(11), .Regular)
         }
 
-        result.roll = MidiRollView.create(result, #move document)
+        result.roll                = MidiRollView.create(result, #move document)
         result.roll.sigZoomChanged += func|view = result|(roll)
         {
             discard roll

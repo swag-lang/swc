@@ -40,7 +40,7 @@ func midiTestFixture()->String
     commandBar.padding         = {16, 8, 16, 8}
 
     let fileName = midiTestFixture()
-    let request = ViewerRequest{&host.root, commandBar, fileName.toString()}
+    let request  = ViewerRequest{&host.root, commandBar, fileName.toString()}
     var result: ViewerResult
     createMidiViewer(&request, &result)
     @assert(result.view != null and result.commands != null)

@@ -9,24 +9,10 @@
 using Core
 
 // Table 8-8: the eight-tap luma interpolation filters, for the three quarter-sample positions.
-const LumaFilter: [4, 8] s8 = [
-    [0, 0, 0, 64, 0, 0, 0, 0],
-    [-1, 4, -10, 58, 17, -5, 1, 0],
-    [-1, 4, -11, 40, 40, -11, 4, -1],
-    [0, 1, -5, 17, 58, -10, 4, -1]
-]
+const LumaFilter: [4, 8] s8 = [[0, 0, 0, 64, 0, 0, 0, 0], [-1, 4, -10, 58, 17, -5, 1, 0], [-1, 4, -11, 40, 40, -11, 4, -1], [0, 1, -5, 17, 58, -10, 4, -1]]
 
 // Table 8-9: the four-tap chroma interpolation filters, for the seven eighth-sample positions.
-const ChromaFilter: [8, 4] s8 = [
-    [0, 64, 0, 0],
-    [-2, 58, 10, -2],
-    [-4, 54, 16, -2],
-    [-6, 46, 28, -4],
-    [-4, 36, 36, -4],
-    [-4, 28, 46, -6],
-    [-2, 16, 54, -4],
-    [-2, 10, 58, -2]
-]
+const ChromaFilter: [8, 4] s8 = [[0, 64, 0, 0], [-2, 58, 10, -2], [-4, 54, 16, -2], [-6, 46, 28, -4], [-4, 36, 36, -4], [-4, 28, 46, -6], [-2, 16, 54, -4], [-2, 10, 58, -2]]
 
 // Table 8-7: the candidate pairs a combined bi-predictive merge candidate is built from.
 const CombinedCandL0: [12] u8 = [0, 1, 0, 2, 1, 2, 0, 3, 1, 3, 2, 3]
@@ -34,7 +20,7 @@ const CombinedCandL1: [12] u8 = [1, 0, 2, 0, 2, 1, 3, 0, 3, 1, 3, 2]
 
 // The largest prediction block, plus the samples the eight-tap filter reads around it.
 const MaxPredSide = 64'u32
-const MaxRefSide = MaxPredSide + 8
+const MaxRefSide  = MaxPredSide + 8
 
 // One temporal motion vector candidate, clause 8.5.3.2.8.
 struct TemporalMotion
@@ -87,15 +73,15 @@ impl Decoder
 
         // Every prediction block of a small coding unit shares one candidate list, so a decoder
         // can build the four of them in parallel, clause 8-110.
-        var xP, yP, wP, hP = 0's32
-        var effectivePartIdx = partIdx
+        var xP, yP, wP, hP    = 0's32
+        var effectivePartIdx  = partIdx
         var effectivePartMode = partMode
         if pps.log2ParallelMergeLevel > 2 and nCbS == 8
         {
-            xP = xCb
-            yP = yCb
-            wP = nCbS
-            hP = nCbS
+            xP                = xCb
+            yP                = yCb
+            wP                = nCbS
+            hP                = nCbS
             effectivePartIdx  = 0
             effectivePartMode = Part2Nx2N
         }
@@ -115,14 +101,14 @@ impl Decoder
         {
             var temporal: PuMotion
             var available = false
-            let l0 = .temporalMotion(xP, yP, wP, hP, 0, 0)
+            let l0        = .temporalMotion(xP, yP, wP, hP, 0, 0)
             if l0.available
             {
                 temporal.mv[0, 0]  = l0.mv[0]
                 temporal.mv[0, 1]  = l0.mv[1]
                 temporal.refIdx[0] = 0
                 temporal.predFlags |= 1
-                available = true
+                available          = true
             }
 
             if header.sliceType == SliceTypeB
@@ -134,14 +120,14 @@ impl Decoder
                     temporal.mv[1, 1]  = l1.mv[1]
                     temporal.refIdx[1] = 0
                     temporal.predFlags |= 2
-                    available = true
+                    available          = true
                 }
             }
 
             if available and count < header.maxNumMergeCand
             {
                 candidates[count] = temporal
-                count += 1
+                count             += 1
             }
         }
 
@@ -172,8 +158,8 @@ impl Decoder
         var motion: [5] PuMotion
 
         // A1, to the left of the bottom of the block.
-        let xA1 = xPb - 1
-        let yA1 = yPb + nPbH - 1
+        let xA1         = xPb - 1
+        let yA1         = yPb + nPbH - 1
         var availableA1 = .isAvailablePrediction(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, xA1, yA1)
         if .sameMergeRegion(xPb, yPb, xA1, yA1, level) do
             availableA1 = false
@@ -186,8 +172,8 @@ impl Decoder
         }
 
         // B1, above the right of the block.
-        let xB1 = xPb + nPbW - 1
-        let yB1 = yPb - 1
+        let xB1         = xPb + nPbW - 1
+        let yB1         = yPb - 1
         var availableB1 = .isAvailablePrediction(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, xB1, yB1)
         if .sameMergeRegion(xPb, yPb, xB1, yB1, level) do
             availableB1 = false
@@ -200,8 +186,8 @@ impl Decoder
         }
 
         // B0, above and to the right of the block.
-        let xB0 = xPb + nPbW
-        let yB0 = yPb - 1
+        let xB0         = xPb + nPbW
+        let yB0         = yPb - 1
         var availableB0 = .isAvailablePrediction(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, xB0, yB0)
         if .sameMergeRegion(xPb, yPb, xB0, yB0, level) do
             availableB0 = false
@@ -212,8 +198,8 @@ impl Decoder
         }
 
         // A0, below and to the left of the block.
-        let xA0 = xPb - 1
-        let yA0 = yPb + nPbH
+        let xA0         = xPb - 1
+        let yA0         = yPb + nPbH
         var availableA0 = .isAvailablePrediction(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, xA0, yA0)
         if .sameMergeRegion(xPb, yPb, xA0, yA0, level) do
             availableA0 = false
@@ -224,8 +210,8 @@ impl Decoder
         }
 
         // B2, diagonally above and to the left, which only fills a list the others left short.
-        let xB2 = xPb - 1
-        let yB2 = yPb - 1
+        let xB2         = xPb - 1
+        let yB2         = yPb - 1
         var availableB2 = .isAvailablePrediction(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, xB2, yB2)
         if .sameMergeRegion(xPb, yPb, xB2, yB2, level) do
             availableB2 = false
@@ -247,7 +233,7 @@ impl Decoder
             if !found[slot] or count[] >= header.maxNumMergeCand do
                 continue
             candidates[count[]] = motion[slot]
-            count[] += 1
+            count[]             += 1
         }
     }
 
@@ -282,7 +268,7 @@ impl Decoder
         if originalCount >= header.maxNumMergeCand do
             return
 
-        let limit = originalCount * (originalCount - 1)
+        let limit   = originalCount * (originalCount - 1)
         var combIdx = 0'u32
         while combIdx < limit and count[] < header.maxNumMergeCand and combIdx < 12
         {
@@ -299,15 +285,15 @@ impl Decoder
                 continue
 
             var combined: PuMotion
-            combined.mv[0, 0]  = first.mv[0, 0]
-            combined.mv[0, 1]  = first.mv[0, 1]
-            combined.mv[1, 0]  = second.mv[1, 0]
-            combined.mv[1, 1]  = second.mv[1, 1]
-            combined.refIdx[0] = first.refIdx[0]
-            combined.refIdx[1] = second.refIdx[1]
-            combined.predFlags = 3
+            combined.mv[0, 0]   = first.mv[0, 0]
+            combined.mv[0, 1]   = first.mv[0, 1]
+            combined.mv[1, 0]   = second.mv[1, 0]
+            combined.mv[1, 1]   = second.mv[1, 1]
+            combined.refIdx[0]  = first.refIdx[0]
+            combined.refIdx[1]  = second.refIdx[1]
+            combined.predFlags  = 3
             candidates[count[]] = combined
-            count[] += 1
+            count[]             += 1
         }
     }
 
@@ -332,8 +318,8 @@ impl Decoder
             }
 
             candidates[count[]] = candidate
-            count[] += 1
-            zeroIdx += 1
+            count[]             += 1
+            zeroIdx             += 1
         }
     }
 
@@ -345,8 +331,8 @@ impl Decoder
         if !header.temporalMvpEnabled do
             return result
 
-        let sps         = .activeSps!
-        let colList     = header.collocatedFromL0 ? 0'u32 : 1'u32
+        let sps     = .activeSps!
+        let colList = header.collocatedFromL0 ? 0'u32 : 1'u32
         if header.collocatedRefIdx >= .refList.count[colList] do
             return result
         let collocated = .refList.frames[colList, header.collocatedRefIdx]
@@ -416,10 +402,10 @@ impl Decoder
         var candidates: [3, 2] s16
         var count = 0'u32
 
-        let xA0 = xPb - 1
-        let yA0 = yPb + nPbH
-        let xA1 = xPb - 1
-        let yA1 = yPb + nPbH - 1
+        let xA0         = xPb - 1
+        let yA0         = yPb + nPbH
+        let xA1         = xPb - 1
+        let yA1         = yPb + nPbH - 1
         let availableA0 = .isAvailablePrediction(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, xA0, yA0)
         let availableA1 = .isAvailablePrediction(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, xA1, yA1)
         let isScaled    = availableA0 or availableA1
@@ -429,12 +415,12 @@ impl Decoder
         if !foundA do
             foundA = .neighbourPredictor(&mvA[0], xA0, yA0, availableA0, xA1, yA1, availableA1, list, refIdx, allowScaling: true)
 
-        let xB0 = xPb + nPbW
-        let yB0 = yPb - 1
-        let xB1 = xPb + nPbW - 1
-        let yB1 = yPb - 1
-        let xB2 = xPb - 1
-        let yB2 = yPb - 1
+        let xB0         = xPb + nPbW
+        let yB0         = yPb - 1
+        let xB1         = xPb + nPbW - 1
+        let yB1         = yPb - 1
+        let xB2         = xPb - 1
+        let yB2         = yPb - 1
         let availableB0 = .isAvailablePrediction(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, xB0, yB0)
         let availableB1 = .isAvailablePrediction(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, xB1, yB1)
         let availableB2 = .isAvailablePrediction(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, xB2, yB2)
@@ -459,14 +445,14 @@ impl Decoder
         {
             candidates[count, 0] = mvA[0]
             candidates[count, 1] = mvA[1]
-            count += 1
+            count                += 1
         }
 
         if foundB and !(foundA and mvA[0] == mvB[0] and mvA[1] == mvB[1])
         {
             candidates[count, 0] = mvB[0]
             candidates[count, 1] = mvB[1]
-            count += 1
+            count                += 1
         }
 
         if count < 2 and .header.temporalMvpEnabled
@@ -476,7 +462,7 @@ impl Decoder
             {
                 candidates[count, 0] = temporal.mv[0]
                 candidates[count, 1] = temporal.mv[1]
-                count += 1
+                count                += 1
             }
         }
 
@@ -484,7 +470,7 @@ impl Decoder
         {
             candidates[count, 0] = 0
             candidates[count, 1] = 0
-            count += 1
+            count                += 1
         }
 
         let selected = Math.min(mvpFlag, 1'u32)
@@ -520,9 +506,9 @@ impl Decoder
     // the ratio of the two distances.
     private mtd takePredictor(target: [*] s16, x, y: s32, list: u32, refIdx: s32, allowScaling: bool)->bool
     {
-        let neighbour     = .motionAt(x, y)
-        let wantedPoc     = .refList.poc[list, cast(u32) refIdx]
-        let wantedLong    = .refList.longTerm[list, cast(u32) refIdx]
+        let neighbour  = .motionAt(x, y)
+        let wantedPoc  = .refList.poc[list, cast(u32) refIdx]
+        let wantedLong = .refList.longTerm[list, cast(u32) refIdx]
 
         for offset in ListCount
         {

@@ -206,9 +206,9 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 // it proves the reader without decoding anything twice.
 #test
 {
-    let path    = audioGetTestDataPath("aac-lc-stereo-44100.aac")
-    let wanted  = expect aacTestPackets(path)
-    var sound   = expect SoundFile.load(path.toString())
+    let path   = audioGetTestDataPath("aac-lc-stereo-44100.aac")
+    let wanted = expect aacTestPackets(path)
+    var sound  = expect SoundFile.load(path.toString())
 
     @assert(sound.sampleEncoding() == .AacLc)
     @assert(sound.sampleRateHz() == 44_100 and sound.numChannels() == 2)

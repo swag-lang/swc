@@ -343,6 +343,23 @@ Entries are sorted by identifier, ascending; position carries no priority.
   its hot loop 10 -> 7 with 3 -> 0 frame accesses. The decode of one 2496x1440 picture went from
   10.1 to 8.5 ms of processor time (minimum of five interleaved pairs), and motion compensation
   is 44 percent of that picture.
+- **The same shape is what the H.265 decoder is now bound by, and it is worth more than any
+  one of its stages (2026-08-26, T-563).** Three hot routines dumped at pre-emit, all of them
+  already vectorized and already at their instruction budget on paper:
+  - `Hevc.Decoder.filterLumaEdge` emits 776 instructions with **87 frame stores and 84 frame
+    loads** — 22 percent of the function is stack traffic. It filters 101,633 four-line
+    segments a picture at about 575 cycles each, where the instructions a segment executes
+    predict something closer to a hundred.
+  - `Hevc.Decoder.interpolateLuma` keeps twelve vector spills and twelve reloads inside its
+    innermost body. One call filters about 800 samples in 1.73 microseconds, which is 8.6
+    cycles a sample against about three from the instruction count.
+  - Reading the filter taps once a block instead of once a pair removed fifteen table-pointer
+    loads and twenty multiplies from the same function and **changed the measured time by less
+    than one percent**, which is what says the loop is not bound by those instructions.
+- What that means for T-563: the H.265 decoder spends 92 ms of processor time on a 3840x2076
+  Main10 picture against FFmpeg's 28.6 single-threaded, and the sample work is already paired
+  through `pmaddwd` and already 128 bits wide. A register allocator that kept these routines'
+  values in registers is worth more of that 3.2x than the 256-bit forms of T-506 are.
 - Next step: the frame-privacy test is a function-level property today, so one escaping local
   disables hoisting for every loop of the function. Per-object extents already exist in mem2reg
   (`SymbolVariable::codeGenLocalSize`); giving the post-RA hoist the same view would let it hoist

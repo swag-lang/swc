@@ -260,6 +260,12 @@ is the layout it does not read yet.
   about 800 samples in 1.73 microseconds, which is 8.6 cycles a sample where the instruction
   count predicts about three.
 - What that says about where the gap is, and it is not one thing:
+  - **What the emitted code spends on the frame is worth more than the width of its vectors.**
+    `filterLumaEdge` emits 776 instructions with 171 frame accesses, `interpolateLuma` spills
+    its accumulators inside the innermost body, and both run at roughly a third of the
+    instructions per cycle their instruction counts predict. See
+    [F-193](findings.optimization.md#f-193--a-simd-routine-keeps-its-strides-and-counts-in-the-frame),
+    which now carries these numbers. This is the first lever, ahead of the two below.
   - **The sample work is at the ceiling of 128-bit vectors.** The interpolation filters already
     pair their taps through `pmaddwd`, and 16 ms for 15.7 million bi-predicted luma samples is
     about what that instruction count costs. FFmpeg runs the same filters 256 bits wide. This is

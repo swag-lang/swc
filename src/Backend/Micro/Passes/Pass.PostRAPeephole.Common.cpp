@@ -245,7 +245,7 @@ namespace PostRaPeephole
         // has not been redefined. Conditional jumps are safe here: the reload
         // only belongs to their fallthrough path, while labels stop the scan.
         const MicroInstrOperand* storeOps = storeInst.ops(*ctx.operands);
-        if (storeInst.op != MicroInstrOpcode::LoadMemReg || !storeOps)
+        if (storeInst.op != MicroInstrOpcode::LoadMemReg || !storeOps || ctx.isClaimed(storeRef))
             return false;
 
         const MicroReg baseReg   = storeOps[0].reg;
@@ -307,7 +307,7 @@ namespace PostRaPeephole
         // memory reads are harmless; writes can alias the frame slot and stop
         // the scan conservatively.
         const MicroInstrOperand* storeOps = storeInst.ops(*ctx.operands);
-        if (storeInst.op != MicroInstrOpcode::LoadMemReg || !storeOps)
+        if (storeInst.op != MicroInstrOpcode::LoadMemReg || !storeOps || ctx.isClaimed(storeRef))
             return false;
 
         const MicroReg baseReg   = storeOps[0].reg;

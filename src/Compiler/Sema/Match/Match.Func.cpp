@@ -1218,14 +1218,28 @@ namespace
 
         const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, argRef);
         SemaNodeView     argNodeView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
-        auto             castKind  = CastKind::Parameter;
-        CastFlags        castFlags = CastFlagsE::Zero;
+        auto             castKind              = CastKind::Parameter;
+        CastFlags        castFlags             = CastFlagsE::Zero;
+        ConstantRef      castSourceCstRef      = argNodeView.cstRef();
+        TypeRef          autoCastSourceTypeRef = TypeRef::invalid();
         SWC_ASSERT(argNodeView.node() != nullptr);
         if (argNodeView.node()->is(AstNodeId::AutoCastExpr))
         {
             const auto& autoCast = argNodeView.node()->cast<AstAutoCastExpr>();
             castKind             = CastKind::Explicit;
             castFlags.add(Cast::autoCastFlags(autoCast.modifierFlags));
+
+            // A previous successful candidate can have given the `cast()` node its contextual
+            // result type. Candidate collection is allowed to restart after a pause, so probing
+            // another call shape must still begin at the written operand, not at that earlier
+            // destination. Otherwise an s32 first rejected for a pointer parameter comes back as
+            // the u64 produced for a different parameter and makes the pointer conversion legal.
+            const SemaNodeView sourceView = sema.viewTypeConstant(autoCast.nodeExprRef);
+            autoCastSourceTypeRef         = sourceView.typeRef();
+            if (autoCastSourceTypeRef.isValid())
+                from = autoCastSourceTypeRef;
+            if (sourceView.cstRef().isValid())
+                castSourceCstRef = sourceView.cstRef();
         }
         if (argNodeView.cstRef().isValid() && sema.isFoldedTypedConst(argRef))
             castFlags.add(CastFlagsE::FoldedTypedConst);
@@ -1240,7 +1254,8 @@ namespace
         const TypeRef bindValueTypeRef = implicitConstReferenceBindingValueTypeRef(sema, to, from);
         const TypeRef castToTypeRef    = bindValueTypeRef.isValid() ? bindValueTypeRef : to;
         SWC_RESULT(normalizeTypeInfoCallArgument(sema, argValueRef, castToTypeRef, argNodeView));
-        from = argNodeView.typeRef().isValid() ? argNodeView.typeRef() : from;
+        from = autoCastSourceTypeRef.isValid() ? autoCastSourceTypeRef : argNodeView.typeRef().isValid() ? argNodeView.typeRef()
+                                                                                                         : from;
 
         CastRequest castRequest(castKind);
         castRequest.flags        = castFlags;
@@ -1251,7 +1266,7 @@ namespace
         // re-runs the real cast (with folding) in applyParameterCasts. Skip throwaway
         // fold-result materialization (whole-value lowering, aggregate/array fold interning).
         castRequest.probing = true;
-        castRequest.setConstantFoldingSrc(argNodeView.cstRef());
+        castRequest.setConstantFoldingSrc(castSourceCstRef);
         if (isUfcsArgument)
             castRequest.flags.add(CastFlagsE::UfcsArgument);
         if (allowUserDefinedLiteralSuffix)

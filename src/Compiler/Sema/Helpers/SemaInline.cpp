@@ -2653,6 +2653,17 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (isDynamicInterfaceDispatchCall(sema, fn, ufcsArg, resolvedArgs.span()))
         return Result::Continue;
 
+    // Overload resolution can select the regular call shape for a symbol reached through
+    // member syntax. In that case the written arguments already include parameter zero; the
+    // syntactic receiver is not part of the resolved call. The inline mapper cannot replay that
+    // shape as a method body, whose implicit member accesses still require the real receiver.
+    // Keep an ordinary function call instead of shifting every written argument by one.
+    if (ufcsArg.isValid() &&
+        (resolvedArgs.empty() || !resolvedArgs[0].isUfcsReceiver) &&
+        !fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) &&
+        !fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        return Result::Continue;
+
     // A flow-proven argument - a nullable-declared place the caller's flow narrowed
     // non-null (a narrowing fact, a `with` binding's narrowed base) - cannot be
     // substituted faithfully: the inlined body re-runs sema with the caller's proofs
@@ -2754,14 +2765,13 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if ((isCrossAstInline || isAutoSelected) && isOrdinaryInline)
         SWC_RESULT(sema.waitSemaCompleted(&fn, sema.node(callRef).codeRef()));
 
-    const AstNodeRef mappedUfcsArg = !resolvedArgs.empty() && resolvedArgs[0].isUfcsReceiver ? ufcsArg : AstNodeRef::invalid();
     const InlineArgumentMapContext context{
         .callRef      = callRef,
         .fn           = &fn,
         .sourceAst    = declAst,
         .args         = args,
         .sourceArgs   = sourceArgs,
-        .ufcsArg      = mappedUfcsArg,
+        .ufcsArg      = ufcsArg,
         .resolvedArgs = resolvedArgs.span(),
     };
 

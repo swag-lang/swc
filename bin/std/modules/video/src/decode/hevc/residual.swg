@@ -11,6 +11,15 @@ using Core, Core.Errors
 // Table 9-50: the significance context of each position of a 4x4 transform block.
 const SigCtxMap4x4: [16] u8 = [0, 1, 4, 5, 2, 3, 4, 5, 6, 6, 8, 8, 7, 7, 8, 8]
 
+// Clause 9.3.4.2.5: what the position inside a sub-block adds to a `sig_coeff_flag` context,
+// one row per pattern of coded neighbouring sub-blocks.
+const SigCtxPattern: [4, 16] u8 = [
+    [2, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    [2, 2, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    [2, 1, 0, 0, 2, 1, 0, 0, 2, 1, 0, 0, 2, 1, 0, 0],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+]
+
 // What one call to residual coding reports back about the block it read.
 struct ResidualResult
 {
@@ -139,15 +148,26 @@ impl Decoder
                 significantCount = 1
             }
 
+            // The whole sub-block shares its context but for the position inside it, and the
+            // first coefficient of the block is the one exception the clause carves out.
+            var pattern = 0'u32
+            var base    = 0'u32
+            let mapped  = log2TrafoSize == 2
+            let dcBlock = !xS and !yS and !mapped
+            if !mapped do
+                base = .significanceContextBase(&codedSubBlock[0], xS, yS, scanIdx, log2TrafoSize, subBlockLog2, component, &pattern)
+            let dcContext = component == 0 ? 0'u32 : 27'u32
+
             var position = first
             while position >= 0
             {
                 let scanPos = cast(u32) position
-                let xC      = (xS << 2) + cast(u32) ScanX[2, scanIdx, scanPos]
-                let yC      = (yS << 2) + cast(u32) ScanY[2, scanIdx, scanPos]
                 if position > 0 or !inferDcSignificant
                 {
-                    let context = .significanceContext(&codedSubBlock[0], xC, yC, xS, yS, scanIdx, log2TrafoSize, subBlockLog2, component)
+                    let inner   = (cast(u32) ScanY[2, scanIdx, scanPos] << 2) + cast(u32) ScanX[2, scanIdx, scanPos]
+                    var context = mapped ? cast(u32) SigCtxMap4x4[inner] + dcContext : cast(u32) SigCtxPattern[pattern, inner] + base
+                    if !inner and dcBlock do
+                        context = dcContext
                     if .cabac.decision(CtxSigCoeffFlag + context) != 0
                     {
                         significant[scanPos] = true
@@ -403,53 +423,33 @@ impl Decoder
         return component == 0 ? context : 2 + context
     }
 
-    // Returns the context of one `sig_coeff_flag`, clause 9.3.4.2.5.
-    private mtd const significanceContext(coded: const [*] bool, xC, yC, xS, yS, scanIdx, log2TrafoSize, subBlockLog2, component: u32)->u32
+    // Returns what every `sig_coeff_flag` of one sub-block shares, clause 9.3.4.2.5.
+    //
+    // Only the position inside the sub-block varies from one coefficient to the next: which
+    // neighbouring sub-blocks are coded selects one of four patterns, and everything else adds a
+    // constant. Both are answered once here, and a coefficient then reads one byte and adds it.
+    private mtd const significanceContextBase(coded: const [*] bool, xS, yS, scanIdx, log2TrafoSize, subBlockLog2, component: u32, pattern: *u32)->u32
     {
-        var sigCtx: u32
-        if log2TrafoSize == 2
+        let limit = (1'u32 << subBlockLog2) - 1
+        var previous = 0'u32
+        if xS < limit and coded[yS * 8 + xS + 1] do
+            previous += 1
+        if yS < limit and coded[(yS + 1) * 8 + xS] do
+            previous += 2
+        pattern[] = previous
+
+        var base = component == 0 ? 0'u32 : 27'u32
+        if !component
         {
-            sigCtx = cast(u32) SigCtxMap4x4[(yC << 2) + xC]
-        }
-        elif !xC and !yC
-        {
-            sigCtx = 0
+            if xS + yS > 0 do
+                base += 3
+            base += log2TrafoSize == 3 ? (scanIdx == ScanDiagonal ? 9'u32 : 15'u32) : 21'u32
         }
         else
         {
-            let limit = (1'u32 << subBlockLog2) - 1
-            var previous = 0'u32
-            if xS < limit and coded[yS * 8 + xS + 1] do
-                previous += 1
-            if yS < limit and coded[(yS + 1) * 8 + xS] do
-                previous += 2
-
-            let xP = xC & 3
-            let yP = yC & 3
-            switch previous
-            {
-            case 0:
-                sigCtx = xP + yP == 0 ? 2 : (xP + yP < 3 ? 1 : 0)
-            case 1:
-                sigCtx = !yP ? 2 : (yP == 1 ? 1 : 0)
-            case 2:
-                sigCtx = !xP ? 2 : (xP == 1 ? 1 : 0)
-            default:
-                sigCtx = 2
-            }
-
-            if !component
-            {
-                if xS + yS > 0 do
-                    sigCtx += 3
-                sigCtx += log2TrafoSize == 3 ? (scanIdx == ScanDiagonal ? 9'u32 : 15'u32) : 21'u32
-            }
-            else
-            {
-                sigCtx += log2TrafoSize == 3 ? 9'u32 : 12'u32
-            }
+            base += log2TrafoSize == 3 ? 9'u32 : 12'u32
         }
 
-        return component == 0 ? sigCtx : 27 + sigCtx
+        return base
     }
 }

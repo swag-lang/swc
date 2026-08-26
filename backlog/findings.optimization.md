@@ -356,10 +356,16 @@ Entries are sorted by identifier, ascending; position carries no priority.
   - Reading the filter taps once a block instead of once a pair removed fifteen table-pointer
     loads and twenty multiplies from the same function and **changed the measured time by less
     than one percent**, which is what says the loop is not bound by those instructions.
-- What that means for T-563: the H.265 decoder spends 92 ms of processor time on a 3840x2076
-  Main10 picture against FFmpeg's 28.6 single-threaded, and the sample work is already paired
-  through `pmaddwd` and already 128 bits wide. A register allocator that kept these routines'
-  values in registers is worth more of that 3.2x than the 256-bit forms of T-506 are.
+- **What that is worth, measured rather than inferred (2026-08-26), and it is less than the
+  numbers above suggest**: the H.265 loop filter of clause 8.7.2.5 was written twice, once in C
+  and once in Swag, statement for statement, over the same synthetic 3840x2076 plane with the
+  same thresholds and the same decision mix (1,612 flat, 430,398 strong, 65,229 weak a
+  picture). clang 21 at `-O2 -march=native` takes 34.1 ms a picture, this compiler in release
+  takes 40.6: **1.2x**, not the 3x the decoder is behind FFmpeg. The spills are real and worth
+  removing, but they are not what the gap is made of — FFmpeg's loop filter, motion
+  compensation and transforms are hand-written AVX2, and that is what the remaining factor is.
+  The two benchmarks are kept out of the tree; they are twenty minutes to write again from this
+  entry.
 - Next step: the frame-privacy test is a function-level property today, so one escaping local
   disables hoisting for every loop of the function. Per-object extents already exist in mem2reg
   (`SymbolVariable::codeGenLocalSize`); giving the post-RA hoist the same view would let it hoist

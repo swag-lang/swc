@@ -18,6 +18,8 @@ const ViewerRetirePollInterval: Time.Duration = 16'ms
 const ViewerLoadingSpinnerRadius              = 20.0
 const ViewerLoadingSpinnerSweep               = 150.0
 const ViewerSearchGlowInset                   = 7.0
+const ViewerSearchTextMargin                  = 3.0
+const ViewerSearchOverlayInset                = ViewerSearchGlowInset + ViewerSearchTextMargin
 const ViewerSearchGlowPeriod:   f32           = 1.35
 const ViewerSearchBoundsPoll:   Time.Duration = 16'ms
 
@@ -168,12 +170,6 @@ impl IWnd for ViewerSearchOverlay
         painter.drawRect(marked, glow, 5)
         painter.fillRect(marked, colors.searchMatch_Bk)
         painter.drawRect(marked, colors.searchMatch_Border, 2)
-
-        // Two short 45-degree discharges make the pulse read as a located result rather than as
-        // keyboard focus, while retaining the cut that identifies Swag surfaces.
-        let spark = 3.0'f32 + pulse * 3
-        painter.drawLine(marked.x - spark, marked.y + spark, marked.x, marked.y, glow, 2)
-        painter.drawLine(marked.right(), marked.bottom(), marked.right() + spark, marked.bottom() - spark, glow, 2)
     }
 }
 
@@ -182,9 +178,8 @@ impl ViewerSearchOverlay
     func create(parent: *Wnd)->*ViewerSearchOverlay
     {
         let result = Wnd.create'ViewerSearchOverlay(parent, "sFileScope.search.highlight")
-        result.wndFlags          |= WndFlags.TopMost | WndFlags.Disabled
-        result.backgroundStyle   = .Transparent
-        result.invalidatePadding = {ViewerSearchGlowInset, ViewerSearchGlowInset, ViewerSearchGlowInset, ViewerSearchGlowInset}
+        result.wndFlags        |= WndFlags.TopMost | WndFlags.Disabled
+        result.backgroundStyle = .Transparent
         result.hide()
         return result
     }
@@ -194,8 +189,8 @@ impl ViewerSearchOverlay
     {
         let parent  = .parent!
         let topLeft = parent.surfaceToLocal(Math.Point{bounds.x, bounds.y})
-        .setPosition({topLeft.x - ViewerSearchGlowInset, topLeft.y - ViewerSearchGlowInset,
-                      bounds.width + ViewerSearchGlowInset * 2, bounds.height + ViewerSearchGlowInset * 2},
+        .setPosition({topLeft.x - ViewerSearchOverlayInset, topLeft.y - ViewerSearchOverlayInset,
+                      bounds.width + ViewerSearchOverlayInset * 2, bounds.height + ViewerSearchOverlayInset * 2},
                      computeLayout: false)
         .show()
         .bringToFront()
@@ -1154,7 +1149,8 @@ impl ViewerWindow
             discard wnd
             switch evt
             {
-            case KeyEvent as key where window.routePlaybackKey(key): return true
+            case KeyEvent as key where window.routePlaybackKey(key):                    return true
+            case KeyEvent as key where window.routeSearchNavigationKey(key):            return true
             case MouseEvent as mouse where mouse.kind == .Move or mouse.kind == .Enter: window.updateFullScreenChrome(mouse.surfacePos)
             }
 
@@ -1791,6 +1787,24 @@ impl ViewerWindow
         let order = FocusOrder.collect(view!)
         let stop  = order.stops.isEmpty() ? view! : order.stops[0]!
         return stop!.focusTarget()
+    }
+
+    // Keeps document navigation available while the search field owns the keyboard. Page keys
+    // also work from the rest of the action bar; when focus is already inside the viewer the
+    // forwarding helper declines and the original event follows its normal path.
+    mtd routeSearchNavigationKey(evt: *KeyEvent)->bool
+    {
+        if .forwardingViewerKey or evt.kind != .Pressed or .searchIndex >= .searchMatches.count do
+            return false
+
+        let pageKey         = evt.modifiers == .None and (evt.key == .PageUp or evt.key == .PageDown)
+        let focused         = .focusedWindow()
+        let inSearchField   = focused and (focused! == .searchBox or .searchBox.isOwnerOf(focused!))
+        let fieldNavigation = inSearchField and ((evt.modifiers == .None and (evt.key == .Up or evt.key == .Down)) or (evt.modifiers == .Control and (evt.key == .Home or evt.key == .End)))
+        if !pageKey and !fieldNavigation do
+            return false
+
+        return .forwardKeyToViewer(evt, takeFocus: false)
     }
 
     // Routes playback keys before a focused child can consume them. One physical press toggles

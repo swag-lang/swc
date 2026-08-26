@@ -816,7 +816,12 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     discard host.render(window)
     host.fireTimers()
     @assert(window.searchOverlay.isLocallyVisible())
-    @assert((cast(*BasicTextView) window.currentView!).editor.selectedText() == "Cat")
+    let basic = cast(*BasicTextView) window.currentView!
+    @assert(basic.editor.selectedText() == "Cat")
+    var matchBounds: Math.Rectangle
+    @assert(basicTextSearchBounds(basic, window.searchMatches[window.searchIndex], &matchBounds))
+    @assert(window.searchOverlay.position.width == matchBounds.width + ViewerSearchOverlayInset * 2)
+    @assert(window.searchOverlay.position.height == matchBounds.height + ViewerSearchOverlayInset * 2)
     window.searchOverlay.phase = 0.25
     let firstPulse = host.render(window)
     window.searchOverlay.invalidate()
@@ -921,6 +926,26 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let markdown = cast(*Markdown.View) window.currentView!
     var bounds: Math.Rectangle
     @assert(markdown.searchMatchRect(&bounds))
+
+    let beforeSearchPage = bounds.y
+    host.keyPress(.PageDown)
+    for 2_048 where bounds.y >= beforeSearchPage
+    {
+        host.fireTimers()
+        discard markdown.searchMatchRect(&bounds)
+    }
+
+    @assert(markdown.searchMatchRect(&bounds))
+    let afterSearchPage = bounds.y
+    @assert(afterSearchPage < beforeSearchPage)
+    @assert(window.searchBox.hasFocus())
+
+    markdown.setFocus()
+    host.keyPress(.PageUp)
+    @assert(markdown.searchMatchRect(&bounds))
+    @assert(bounds.y > afterSearchPage)
+    @assert(markdown.hasFocus())
+
     window.searchBox.setText(null)
     @assert(!markdown.searchMatchRect(&bounds))
     @assert(!window.searchOverlay.isLocallyVisible())

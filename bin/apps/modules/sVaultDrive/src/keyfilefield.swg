@@ -3,8 +3,9 @@ using Core, Gui
 // Compact selector for the ordered key files that participate in one vault access.
 //
 // The combo box exposes the complete list without making the form as tall as it. The three
-// adjacent icon actions add existing files, create a random one, and remove the selected entry;
-// their tooltips carry the wording so the row stays one line high in every language.
+// adjacent icon actions add existing files, optionally create a random one, and remove the
+// selected entry; their tooltips carry the wording so the row stays one line high in every
+// language.
 struct KeyFileField
 {
     using wnd: Wnd
@@ -51,6 +52,8 @@ impl IWnd for KeyFileField
         var right = room.right()
         for button in [cast(*Wnd) .remove, cast(*Wnd) .generate, cast(*Wnd) .add]
         {
+            if !button.isVisible() do
+                continue
             right -= cell
             button.arrange({right, room.y, cell, cell})
             right -= gap
@@ -158,7 +161,7 @@ private impl KeyFileField
 
 impl KeyFileField
 {
-    func create(parent: *Wnd)->*KeyFileField
+    func create(parent: *Wnd, canGenerate = true)->*KeyFileField
     {
         let result = Wnd.create'KeyFileField(parent)
         result.backgroundStyle = .Transparent
@@ -183,6 +186,9 @@ impl KeyFileField
                 field.generateRandom()
             }
         }
+
+        if !canGenerate do
+            result.generate.hide()
 
         with result.remove = IconButton.create(result, result.theme().icon(.Remove, 16), flags: .IconOnly)
         {

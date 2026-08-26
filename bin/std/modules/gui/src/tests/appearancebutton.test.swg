@@ -30,14 +30,15 @@ using Swag, Core, Pixel
 #test
 {
     var host: Testing.HeadlessHost
-    host.setup(248, 96)
+    host.setup(248, 140)
     defer host.shutdown()
 
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
     let icons = [ThemeIcons.FullScreen, .ExitFullScreen, .SeekBackward, .SeekForward, .Volume,
-                 ThemeIcons.VolumeMute, .FitView, .ActualSize, .Wrap, .AudioTracks]
+                 ThemeIcons.VolumeMute, .FitView, .ActualSize, .Wrap, .AudioTracks,
+                 ThemeIcons.SearchPrevious, .SearchNext]
     for icon, idx in icons
     {
         let x = 8 + cast(f32) (idx % 5) * 48

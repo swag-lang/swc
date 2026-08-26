@@ -37,6 +37,12 @@ struct ThemeColors
         // such a block.
         focusRingOnAccent: Color
 
+        // The current search occurrence is an informational destination, not an action. It uses
+        // the alternate tone so the signature remains reserved for focus and commands.
+        searchMatch_Bk:     Color     // Translucent band over the current search occurrence.
+        searchMatch_Border: Color     // Crisp outline of the current search occurrence.
+        searchMatch_Glow:   Color     // Outer animated glow around the current search occurrence.
+
         error:       Color     // Text and glyphs reporting an operation that stopped.
         disabled:    Color     // Ink and rules of anything the reader cannot act on.
         transparent: Color     // Nothing drawn. Always zero; named so a sheet can point a part at it.
@@ -453,6 +459,8 @@ impl ThemeColors
     private const VeilSoftAlpha = 0x14'u8
     private const VeilMediumAlpha = 0x24'u8
     private const VeilStrongAlpha = 0x34'u8
+    private const SearchMatchBandAlpha = 0x3C'u8
+    private const SearchMatchGlowAlpha = 0x70'u8
 
     // Ground of alternating rows. Weaker than a soft veil: it must be found, never noticed.
     private const AlternateAlpha = 0x0A'u8
@@ -622,6 +630,9 @@ impl ThemeColors
         .activeRail           = p.railed ? signature.mark : .transparent
         .focusRing            = signature.mark
         .focusRingOnAccent    = signature.onGround
+        .searchMatch_Bk       = alternate.ground.withAlpha(SearchMatchBandAlpha)
+        .searchMatch_Border   = alternate.mark
+        .searchMatch_Glow     = alternate.mark.withAlpha(SearchMatchGlowAlpha)
         .error                = critical.mark
         .disabled             = p.disabled
         .transparent          = 0

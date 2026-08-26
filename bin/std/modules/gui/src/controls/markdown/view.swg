@@ -109,30 +109,31 @@ struct View
         body:   *Wnd
     }
 
-    stream:              File.FileStream
-    fileName:            String
-    fileSize:            u64
-    bytesRead:           u64
-    residentStart:       u64
-    virtualOrigin:       f32
-    virtualHeight:       f32
-    pendingSearch:       String
-    pendingSeek:         bool
-    pendingSeekOffset:   u64
-    sourceCarry:         String
-    sourceDone:          bool
-    pendingBlocks:       Array'Block
-    pendingIndex:        u64
-    loadTimer:           #null *Timer
-    contentHeight:       f32
-    jumpToEnd:           bool
-    hasPendingTarget:    bool
-    pendingTarget:       f32
-    pendingTargetOffset: u64 = Swag.U64.Max
-    repositioning:       bool
-    searchBlockIndex:    u64 = Swag.U64.Max
-    documentThemeColors: String
-    blocks:              Array'VisualBlock
+    stream:                  File.FileStream
+    fileName:                String
+    fileSize:                u64
+    bytesRead:               u64
+    residentStart:           u64
+    virtualOrigin:           f32
+    virtualHeight:           f32
+    pendingSearch:           String
+    pendingSearchOccurrence: u64
+    pendingSeek:             bool
+    pendingSeekOffset:       u64
+    sourceCarry:             String
+    sourceDone:              bool
+    pendingBlocks:           Array'Block
+    pendingIndex:            u64
+    loadTimer:               #null *Timer
+    contentHeight:           f32
+    jumpToEnd:               bool
+    hasPendingTarget:        bool
+    pendingTarget:           f32
+    pendingTargetOffset:     u64 = Swag.U64.Max
+    repositioning:           bool
+    searchBlockIndex:        u64 = Swag.U64.Max
+    documentThemeColors:     String
+    blocks:                  Array'VisualBlock
 
     // Every text view of the document in reading order, and the two ends of the reader's
     // selection over them. The anchor is where the press landed and the caret follows the
@@ -478,7 +479,11 @@ private impl View
             .appendBlock(#move empty)
         }
 
-        if .hasPendingTarget and (.pendingTarget + .scroll.paddedClientRect().height <= .contentHeight or !.hasUnloadedSource())
+        // A byte-estimated target may finish once enough layout surrounds it. A search target may
+        // not: its exact rendered occurrence is the completion signal. Stopping on the estimate
+        // can leave the requested block just beyond the resident tail, so next/previous appears
+        // to stay on the old page.
+        if .hasPendingTarget and .pendingSearch.isEmpty() and (.pendingTarget + .scroll.paddedClientRect().height <= .contentHeight or !.hasUnloadedSource())
         {
             .hasPendingTarget    = false
             .pendingTargetOffset = Swag.U64.Max
@@ -486,8 +491,17 @@ private impl View
             .scroll.setScrollPos(position.x, .pendingTarget)
         }
 
-        if !.pendingSearch.isEmpty() and .findText(.pendingSearch.toString()) do
+        if !.pendingSearch.isEmpty() and .findTextOccurrence(.pendingSearch.toString(), .pendingSearchOccurrence)
+        {
             .pendingSearch.clear()
+            .pendingSearchOccurrence = 0
+
+            // The exact rendered block now owns the destination. Leaving the byte-estimated
+            // target alive lets the following streaming turn scroll back to that approximation,
+            // producing a correct jump immediately followed by a wrong one.
+            .hasPendingTarget    = false
+            .pendingTargetOffset = Swag.U64.Max
+        }
 
         if .hasUnloadedSource() do
             return
@@ -1001,7 +1015,53 @@ impl View
             .searchBlockIndex = index
             let position = .scroll.scrollPosition()
             .scroll.setScrollPos(position.x, block.wnd.position.y - .documentStyle.topInset)
-            block.wnd.setFocus()
+            return true
+        }
+
+        return false
+    }
+
+    // Selects one rendered occurrence in document order. Streaming reveal derives this ordinal
+    // from the requested file offset, so repeated words inside the resident context do not all
+    // collapse onto its first visible match.
+    private mtd findTextOccurrence(text: string, occurrence: u64)->bool
+    {
+        if !@countof(text) or .blocks.isEmpty() do
+            return false
+
+        for &block in .blocks
+        {
+            if block.inline do
+                block.inline!.clearSearchHighlight()
+            if block.table do
+                block.table!.clearSearchHighlight()
+            if block.html do
+                block.html!.clearSearchHighlight()
+        }
+
+        var remaining = occurrence
+        for index in .blocks.count
+        {
+            let block = &.blocks[index]
+            let count = block.inline ? block.inline!.searchMatchCount(text) :
+                        block.table ? block.table!.searchMatchCount(text) :
+                        block.html ? block.html!.searchMatchCount(text) : 0
+            if remaining >= count
+            {
+                remaining -= count
+                continue
+            }
+
+            let found = block.inline ? block.inline!.highlightText(text, remaining) :
+                        block.table ? block.table!.highlightText(text, remaining) :
+                        block.html ? block.html!.findTextOccurrence(text, remaining) : false
+            if !found do
+                return false
+            .searchBlockIndex = index
+            let position = .scroll.scrollPosition()
+            .repositioning = true
+            .scroll.setScrollPos(position.x, block.wnd.position.y - .documentStyle.topInset)
+            .repositioning = false
             return true
         }
 
@@ -1013,6 +1073,8 @@ impl View
     mtd revealFileOffset(offset: u64, text: string)->bool
     {
         .stopLoading()
+        .pendingSeek       = false
+        .pendingSeekOffset = 0
 
         // The positions a selection is expressed in name views that are about to be destroyed,
         // and the document they addressed is being rebuilt from another offset of the file.
@@ -1027,9 +1089,10 @@ impl View
         .pendingBlocks.clear()
         .pendingIndex = 0
         .sourceCarry.clear()
-        .sourceDone       = false
-        .searchBlockIndex = Swag.U64.Max
-        .pendingSearch    = text
+        .sourceDone              = false
+        .searchBlockIndex        = Swag.U64.Max
+        .pendingSearch           = text
+        .pendingSearchOccurrence = 0
 
         let requested = Math.min(offset, .fileSize)
         let start     = requested > RevealContextSize ? requested - RevealContextSize : 0
@@ -1058,9 +1121,20 @@ impl View
                 boundary = streamBoundary(chunk.toString()[0 until localTarget])
 
             let previousHeight = Math.max(.virtualHeight, .scroll.scrollableClientRect().height)
-            .residentStart       = actual + boundary
-            .bytesRead           = actual + chunk.length
-            .sourceCarry         = String.from(chunk.toString()[boundary to])
+            .residentStart = actual + boundary
+            .bytesRead     = actual + chunk.length
+            .sourceCarry   = String.from(chunk.toString()[boundary to])
+            let targetInResident = requested - .residentStart
+            var searchFrom: u64
+            while true
+            {
+                let match = Utf8.indexOf(.sourceCarry.toString(), text, searchFrom, .Latin1NoCase)
+                if match == Swag.U64.Max or match >= targetInResident do
+                    break
+                .pendingSearchOccurrence += 1
+                searchFrom               = match + Math.max(@countof(text), 1)
+            }
+
             .sourceDone          = .bytesRead >= .fileSize
             .virtualHeight       = Math.max(previousHeight, .scroll.paddedClientRect().height)
             .virtualOrigin       = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
@@ -1077,6 +1151,45 @@ impl View
             return true
         }
 
+        return false
+    }
+
+    // Removes a programmatic search mark and cancels any unfinished reveal destination.
+    mtd clearSearchHighlight()
+    {
+        .pendingSearch.clear()
+        .pendingSearchOccurrence = 0
+        .hasPendingTarget        = false
+        .pendingTargetOffset     = Swag.U64.Max
+        .pendingSeek             = false
+        .pendingSeekOffset       = 0
+        .searchBlockIndex        = Swag.U64.Max
+        for &block in .blocks
+        {
+            if block.inline do
+                block.inline!.clearSearchHighlight()
+            if block.table do
+                block.table!.clearSearchHighlight()
+            if block.html do
+                block.html!.clearSearchHighlight()
+        }
+    }
+
+    // Reports the current search highlight in surface coordinates.
+    //
+    // Returns false while a streamed occurrence has not produced its visual block yet. The host
+    // owns presentation and may poll after [[Gui.Markdown.View.revealFileOffset]].
+    mtd searchMatchRect(result: *Math.Rectangle)->bool
+    {
+        if .searchBlockIndex >= .blocks.count do
+            return false
+        let block = &.blocks[.searchBlockIndex]
+        if block.inline do
+            return block.inline!.searchMatchRect(result)
+        if block.table do
+            return block.table!.searchMatchRect(result)
+        if block.html do
+            return block.html!.searchMatchRect(result)
         return false
     }
 }

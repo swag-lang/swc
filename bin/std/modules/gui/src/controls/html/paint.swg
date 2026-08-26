@@ -551,6 +551,44 @@ impl HtmlPainter
         return result
     }
 
+    // Reports the union of the laid-out runs covered by the current search range, in canvas
+    // coordinates. Presentation stays outside the HTML engine; this only exports its geometry.
+    mtd searchMatchRect(result: *Math.Rectangle)->bool
+    {
+        if .searchNode == HtmlNoNode or .searchEnd <= .searchStart do
+            return false
+
+        var found: bool
+        for box in .layout.boxes
+        {
+            for item in box.items where item.visible and item.node == .searchNode and .searchEnd > item.sourceStart and .searchStart < item.sourceEnd
+            {
+                let span = .coveredSpan(item, .searchStart, .searchEnd, item.x)
+                if span.width <= 0 do
+                    continue
+                let padTop    = item.ascent * 0.28
+                let padBottom = item.descent * 0.4
+                let rect      = Math.Rectangle{span.left, item.y - .scrollY - padTop, span.width,
+                                               item.ascent + item.descent + padTop + padBottom}
+                if !found
+                {
+                    result[] = rect
+                    found    = true
+                    continue
+                }
+
+                let right = Math.max(result.right(), rect.right())
+                let down  = Math.max(result.bottom(), rect.bottom())
+                result.x      = Math.min(result.x, rect.x)
+                result.y      = Math.min(result.y, rect.y)
+                result.width  = right - result.x
+                result.height = down - result.y
+            }
+        }
+
+        return found
+    }
+
     // Returns the part of the selection falling inside one node's source text, in that node's
     // offsets. Node identifiers grow in document order, which is what lets a range spanning
     // several nodes cover every node between its two ends.
@@ -995,7 +1033,7 @@ impl HtmlPainter
         var offset = parentOffset
         offset.y += .stickyOffset(box, parentOffset)
 
-        var rect = .layout.constBox(box).rect
+        var rect   = .layout.constBox(box).rect
         var bounds = .layout.constBox(box).paintBounds
         rect.offset(offset.x, offset.y)
         bounds.offset(offset.x, offset.y)

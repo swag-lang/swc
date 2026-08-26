@@ -571,7 +571,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     @assert(!view.hasSelection())
 }
 
-// Every occurrence of a find highlights, not only the first one.
+// One find result marks one exact text range, even when its atom also carries another word.
 #test
 {
     var host: Testing.HeadlessHost
@@ -584,10 +584,90 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.layoutDocument()
 
     @assert(view.findText("alpha"))
-    var hits = 0'u32
-    for &atom in view.blocks[0].inline!.atoms where atom.searchHit and !atom.isSpace do
-        hits += 1
-    @assert(hits == 2)
+    let inline = view.blocks[0].inline!
+    @assert(inline.searchStart == 0 and inline.searchEnd == 5)
+    var bounds: Math.Rectangle
+    @assert(view.searchMatchRect(&bounds) and bounds.width > 0 and bounds.width < inline.position.width)
+    @assert(inline.highlightText("alpha", 1))
+    @assert(inline.searchStart == 11 and inline.searchEnd == 16)
+}
+
+// A file-offset reveal selects the requested repeated word rather than the first copy retained in
+// its leading context window.
+#test
+{
+    let fileName = Testing.tempFilePath("markdown-search-occurrence-", ".md")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, "alpha beta alpha")
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 240)
+    defer host.shutdown()
+
+    let view = Markdown.View.createFile(&host.root, fileName)
+    view.resize(640, 240)
+    view.applyLayout()
+    @assert(view.revealFileOffset(11, "alpha"))
+
+    var bounds: Math.Rectangle
+    for 128 where !view.searchMatchRect(&bounds) do
+        host.fireTimers()
+    @assert(view.searchMatchRect(&bounds))
+    @assert(view.blocks[0].inline!.searchStart == 11 and view.blocks[0].inline!.searchEnd == 16)
+}
+
+// Repeated distant reveals replace every pending scroll/search target; a later occurrence cannot
+// be pulled back to the page materialized for the previous one.
+#test
+{
+    let fileName = Testing.tempFilePath("markdown-search-pages-", ".md")
+    defer discard catch File.delete(fileName)
+
+    const Query = "streamed-search-anchor"
+    var source:  String
+    var offsets: Array'u64
+    for occurrence in 3
+    {
+        offsets.add(source.length)
+        source += Query
+        source += Format.toString(" occurrence %\n\n", occurrence + 1)
+        for 600 do
+            source += "A long Markdown paragraph separates this result from the next page.\n\n"
+    }
+
+    expect File.writeAllBytes(fileName, source.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 360)
+    defer host.shutdown()
+    let view = Markdown.View.createFile(&host.root, fileName)
+    view.resize(720, 360)
+    view.applyLayout()
+
+    for target in offsets
+    {
+        @assert(view.revealFileOffset(target, Query))
+        if target == offsets[2] do
+            @assert(view.pendingSearchOccurrence == 0)
+        var bounds: Math.Rectangle
+        for 2_048 where !view.searchMatchRect(&bounds) do
+            host.fireTimers()
+        @assert(view.pendingSearch.isEmpty())
+        @assert(view.searchBlockIndex < view.blocks.count)
+        @assert(view.searchMatchRect(&bounds))
+        @assert(view.residentStart <= target and target < view.bytesRead)
+        @assert(!view.pendingSeek and !view.hasPendingTarget and view.pendingSearch.isEmpty())
+        let resident = view.residentStart
+        for 32 do
+            host.fireTimers()
+        @assert(view.residentStart == resident and view.searchMatchRect(&bounds))
+    }
+
+    @assert(view.revealFileOffset(offsets[1], Query))
+    var previousBounds: Math.Rectangle
+    for 2_048 where !view.searchMatchRect(&previousBounds) do
+        host.fireTimers()
+    @assert(view.searchMatchRect(&previousBounds) and view.residentStart <= offsets[1] and offsets[1] < view.bytesRead)
 }
 
 // Table columns size from their content instead of splitting the width evenly.

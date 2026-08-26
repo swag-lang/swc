@@ -241,11 +241,11 @@ private impl TableViewer
                 if .searchLength and .searchOffset + .searchLength <= @countof(value)
                 {
                     var marked: String
-                    marked += value[0 until .searchOffset]
-                    marked += "<b>"
-                    marked += value[.searchOffset until .searchOffset + .searchLength]
-                    marked += "</b>"
-                    marked += value[.searchOffset + .searchLength to]
+                    marked    += value[0 until .searchOffset]
+                    marked    += "<b>"
+                    marked    += value[.searchOffset until .searchOffset + .searchLength]
+                    marked    += "</b>"
+                    marked    += value[.searchOffset + .searchLength to]
                     item.name = marked.toString()
                 }
             }
@@ -274,6 +274,23 @@ private impl TableViewer
         .list.setFocusedIndex(cast(u32) match.major)
         .list.invalidate()
         return true
+    }
+
+    mtd searchBounds(result: *Math.Rectangle)->bool
+    {
+        if .searchRow >= .document.rows.count do
+            return false
+        return listRowSearchBounds(.list, cast(u32) .searchRow, result)
+    }
+
+    mtd clearSearch()
+    {
+        .searchRow    = Swag.U64.Max
+        .searchColumn = 0
+        .searchOffset = 0
+        .searchLength = 0
+        .list.unselectAll()
+        .list.invalidate()
     }
 
     func create(parent: *Wnd, fileName: string)->#null *TableViewer fail
@@ -344,4 +361,10 @@ func createTableViewer(request: const *ViewerRequest, result: *ViewerResult)
         discard text
         return (cast(*TableViewer) wnd).revealMatch(match)
     }
+    result.searchBounds = func(wnd, match, bounds)->bool
+    {
+        discard match
+        return (cast(*TableViewer) wnd).searchBounds(bounds)
+    }
+    result.clearSearch = func(wnd) { (cast(*TableViewer) wnd).clearSearch() }
 }

@@ -78,6 +78,8 @@ enum ThemeIcons
     ActualSize         // Show content at its native size.
     Wrap               // Fold long text lines into the viewport.
     AudioTracks        // Choose one of several sound tracks.
+    SearchPrevious     // Previous occurrence in a search result.
+    SearchNext         // Next occurrence in a search result.
 }
 
 impl Theme

@@ -59,6 +59,11 @@ private impl PdfViewer
         return .pdfView.revealTextMatch({match.major, match.offset, match.length})
     }
 
+    mtd searchBounds(match: ViewerSearchMatch, result: *Math.Rectangle)->bool
+    {
+        return .pdfView.textMatchRect({match.major, match.offset, match.length}, result)
+    }
+
     mtd refreshNavigation()
     {
         .previousButton.enable(.pdfView.pageIndex > 0)
@@ -207,4 +212,6 @@ func createPdfViewer(request: const *ViewerRequest, result: *ViewerResult)
     // host stable logical matches for counting and bidirectional navigation.
     result.collectMatches = func(wnd, text, options, matches) { (cast(*PdfViewer) wnd).collectMatches(text, options, matches) }
     result.revealMatch    = func(wnd, match, text)->bool { return (cast(*PdfViewer) wnd).revealMatch(match, text) }
+    result.searchBounds   = func(wnd, match, bounds)->bool { return (cast(*PdfViewer) wnd).searchBounds(match, bounds) }
+    result.clearSearch    = func(wnd) { (cast(*PdfViewer) wnd).pdfView.clearSelection() }
 }

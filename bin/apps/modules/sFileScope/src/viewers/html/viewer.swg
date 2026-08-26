@@ -20,9 +20,15 @@ func createHtmlViewer(request: const *ViewerRequest, result: *ViewerResult)
         view.sigLoadFailed += func|reportFailure|(html, reason) { reportFailure(cast(*Wnd) html, reason) }
     }
 
-    result.view           = view
-    result.details        = htmlStrings().ui_Details
-    result.revealMatch    = func(wnd, match, text)->bool { return (cast(*HtmlView) wnd).revealFileOffset(match.offset, text) }
+    result.view         = view
+    result.details      = htmlStrings().ui_Details
+    result.revealMatch  = func(wnd, match, text)->bool { return (cast(*HtmlView) wnd).revealFileOffset(match.offset, text) }
+    result.searchBounds = func(wnd, match, bounds)->bool
+    {
+        discard match
+        return (cast(*HtmlView) wnd).searchMatchRect(bounds)
+    }
+    result.clearSearch    = func(wnd) { (cast(*HtmlView) wnd).clearSearch() }
     result.isLoading      = func(wnd)->bool { return (cast(*HtmlView) wnd).isLoading() }
     view.sigLinkActivated += func(html, url)
     {

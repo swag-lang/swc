@@ -476,8 +476,13 @@ private impl EditBox
             .clearBtn           = IconButton.create(me, .theme().icon(ThemeIcons.WndClose, 18), {0, 0, 24, 24})
             .clearBtn.dockStyle = .Right
             .clearBtn.setForm(IconButtonForm.Circle)
-            .clearBtn.sigPressed += func|edit = me|(btn) { edit.setText(null); }
-            .clearBtnTextMargin  = .clearBtn.position.width + .themeMetrics().iconText_Margin
+            .clearBtn.sigPressed += func|edit = me|(btn)
+            {
+                discard btn
+                edit.setText(null)
+                edit.setFocus()
+            }
+            .clearBtnTextMargin = .clearBtn.position.width + .themeMetrics().iconText_Margin
             .applyLayout()
         }
     }

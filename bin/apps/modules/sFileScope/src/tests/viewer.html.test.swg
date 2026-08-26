@@ -20,7 +20,7 @@ using Core, Gui
     var result: ViewerResult
     createHtmlViewer(&request, &result)
     @assert(result.view != null)
-    @assert(result.commands == null and result.revealMatch != null and result.isLoading != null)
+    @assert(result.commands == null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null)
     @assert(result.isLoading!(result.view!))
     @assert(Utf8.contains(result.details.toString(), "HTML"))
 }

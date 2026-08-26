@@ -15,6 +15,21 @@ func editHeadlessEnter(eb: *EditBox)
     EditHeadlessEnterCount += 1
 }
 
+// Clearing from the optional trailing button keeps the edit caret in the field, so a live search
+// can immediately accept the next query.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 120)
+    defer host.shutdown()
+
+    let field = EditBox.create(&host.root, "query", {20, 30, 220, 28}, flags: .ClearButton)
+    field.setFocus()
+    @assert(!field.children.isEmpty())
+    host.click(field.children.back().surfaceRect().center())
+    @assert(!@countof(field.text()) and field.hasFocus())
+}
+
 func editHeadlessEscape(eb: *EditBox)
 {
     discard eb

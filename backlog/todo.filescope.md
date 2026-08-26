@@ -77,14 +77,6 @@ where files are actually selected, and the format table below is what a reader c
   has to be usable without the application window. That constraint is worth checking before committing.
 - Related: T-396, T-418
 
-### T-391 — Search cannot be constrained, reversed, or counted
-
-- Intent: `viewerwindow.searchStep` scans forward with `Utf8.indexOf(..., .Latin1NoCase)` and wraps
-  once. There is no case toggle, no whole-word constraint, no previous match, no match count, and no
-  regular expression.
-- Complete when: case sensitivity and whole-word are togglable, Shift+F3 walks backwards, the status
-  bar reports the match ordinal, and the chosen semantics are documented in the README.
-
 ### T-393 — The file being viewed cannot be opened with its default application
 
 - Intent: after looking at a file, the next action is always outside the viewer. Showing it in the

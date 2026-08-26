@@ -79,8 +79,12 @@ guessing an encoding.
 Text-oriented viewers handle normal keyboard and scrollbar navigation while content is streaming.
 Home, End, distant scrollbar jumps, and search open a bounded resident window near the requested
 offset. Ctrl+F scans in asynchronous 256 KiB chunks, while viewers such as PDF can replace that
-scan with format-aware search. The information band shows a spinner while the active viewer is
-still producing visible content, and switching viewers retires hidden progressive work.
+scan with format-aware search. Search is case-insensitive by default; `Aa` requires the same case
+and `ab` restricts matches to whole words. The result counter reports the current and total
+occurrences, F3 and Shift+F3 move forward and backward with wrapping, and every viewer supplies
+only match geometry to the same animated, theme-derived current-result marker. The information
+band shows a spinner while the active viewer is still producing visible content, and switching
+viewers retires hidden progressive work.
 
 The application stores its palette, language, window state, recent files, and remembered viewer
 choices in the user's application-data folder. It toggles full screen with F11, navigates the

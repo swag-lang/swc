@@ -83,10 +83,32 @@ impl TableView
             cell.view.clearSearchHighlight()
     }
 
-    mtd highlightText(text: string)->bool
+    mtd searchMatchCount(text: string)->u64
+    {
+        var result: u64
+        for &cell in .cells do
+            result += cell.view.searchMatchCount(text)
+        return result
+    }
+
+    mtd highlightText(text: string, occurrence: u64 = 0)->bool
     {
         .clearSearchHighlight()
-        for &cell in .cells where cell.view.highlightText(text) do
+        var remaining = occurrence
+        for &cell in .cells
+        {
+            let count = cell.view.searchMatchCount(text)
+            if remaining < count do
+                return cell.view.highlightText(text, remaining)
+            remaining -= count
+        }
+
+        return false
+    }
+
+    mtd searchMatchRect(result: *Math.Rectangle)->bool
+    {
+        for &cell in .cells where cell.view.searchMatchRect(result) do
             return true
         return false
     }

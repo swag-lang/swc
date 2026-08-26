@@ -8,7 +8,7 @@ struct PdfTextSearchOptions
     public
     {
         comparison = Utf8.ComparisonType.Latin1NoCase     // Text comparison, case-insensitive by default.
-        wholeWord: bool                                    // Whether word characters may touch either side of a match.
+        wholeWord: bool                                   // Whether word characters may touch either side of a match.
     }
 }
 
@@ -17,9 +17,9 @@ struct PdfTextMatch
 {
     public
     {
-        pageIndex: u64     // Zero-based page containing the match.
-        byteOffset: u64    // UTF-8 byte offset in that page's indexed text.
-        byteLength: u64    // UTF-8 byte length of the match.
+        pageIndex:  u64     // Zero-based page containing the match.
+        byteOffset: u64     // UTF-8 byte offset in that page's indexed text.
+        byteLength: u64     // UTF-8 byte length of the match.
     }
 }
 
@@ -451,7 +451,7 @@ impl IWnd for PdfView
                 return
             }
 
-            .panOffset   += evt.surfacePos - .lastPointer
+            .panOffset += evt.surfacePos - .lastPointer
             .clampPan()
             .lastPointer = evt.surfacePos
             .invalidate()
@@ -714,6 +714,7 @@ impl PdfView
                 if Unicode.isWord(c) do
                     return false
             }
+
             let end = offset + length
             if end < @countof(source)
             {
@@ -721,6 +722,7 @@ impl PdfView
                 if Unicode.isWord(c) do
                     return false
             }
+
             return true
         }
 
@@ -753,6 +755,7 @@ impl PdfView
             let index = Pdf.TextIndex.build(&page)
             appendPage(&result, index.text.toString(), text, pageIndex, options)
         }
+
         return result
     }
 
@@ -775,6 +778,44 @@ impl PdfView
             return false
         .revealMatch(match.pageIndex, match.byteOffset, match.byteLength)
         return true
+    }
+
+    // Reports the rendered rectangle of a match on the displayed page in surface coordinates.
+    //
+    // Returns false until the matching page is displayed or when the range no longer belongs to
+    // the open document. This is the geometry-only counterpart of [[Gui.PdfView.revealTextMatch]];
+    // hosts remain responsible for how a current result is presented.
+    mtd textMatchRect(match: PdfTextMatch, result: *Math.Rectangle)->bool
+    {
+        if match.pageIndex != .pageIndex or !.hasPage do
+            return false
+        .ensureTextIndex()
+        if match.byteOffset + match.byteLength > .textIndex.text.length do
+            return false
+
+        var rects: Array'Math.Rectangle
+        .textIndex.rangeRects(match.byteOffset, match.byteOffset + match.byteLength, &rects)
+        if rects.isEmpty() do
+            return false
+
+        var bounds = rects[0]
+        for index in 1 until rects.count
+        {
+            let rect  = rects[index]
+            let right = Math.max(bounds.right(), rect.right())
+            let down  = Math.max(bounds.bottom(), rect.bottom())
+            bounds.x      = Math.min(bounds.x, rect.x)
+            bounds.y      = Math.min(bounds.y, rect.y)
+            bounds.width  = right - bounds.x
+            bounds.height = down - bounds.y
+        }
+
+        let content = .contentRect()
+        let scale   = .effectiveZoom()
+        let local   = Math.Rectangle{content.x + bounds.x * scale, content.y + bounds.y * scale,
+                                     bounds.width * scale, bounds.height * scale}
+        result[] = .localToSurface(local)
+        return !result.isEmpty()
     }
 
     // Selects the whole text of the displayed page.

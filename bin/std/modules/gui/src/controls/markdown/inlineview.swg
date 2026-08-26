@@ -146,13 +146,17 @@ public struct InlineView
     layoutHeight: f32
     hotAtom:      #null *InlineAtom
     horizontalAlignment = StringHorzAlignment.Left
+    searchStart         = Swag.U64.Max
+    searchEnd:    u64
 }
 
 impl InlineView
 {
     mtd clearSearchHighlight()
     {
-        var changed: bool
+        var changed = .searchStart != Swag.U64.Max
+        .searchStart = Swag.U64.Max
+        .searchEnd   = 0
         for &atom in .atoms where atom.searchHit
         {
             atom.searchHit = false
@@ -197,29 +201,46 @@ impl InlineView
         return result
     }
 
-    // Highlights every rendered atom touched by a case-insensitive match, for all matches.
-    mtd highlightText(text: string)->bool
+    mtd searchMatchCount(text: string)->u64
     {
-        .clearSearchHighlight()
-        let source = .text()
+        if !@countof(text) do
+            return 0
 
-        var found      = false
-        var searchFrom = 0'u64
+        let source = .text()
+        var count: u64
+        var from:  u64
         while true
         {
-            let match = Utf8.indexOf(source.toString(), text, searchFrom, .Latin1NoCase)
+            let match = Utf8.indexOf(source.toString(), text, from, .Latin1NoCase)
             if match == Swag.U64.Max do
-                break
+                return count
+            count += 1
+            from  = match + @countof(text)
+        }
+    }
 
-            found = true
-            let matchEnd = match + @countof(text)
-            for &atom in .atoms where atom.textStart < matchEnd and atom.textStart + atomTextLength(atom) > match do
-                atom.searchHit = true
-            searchFrom = match + Math.max(@countof(text), 1)
+    // Highlights the exact rendered range of one case-insensitive match.
+    mtd highlightText(text: string, occurrence: u64 = 0)->bool
+    {
+        .clearSearchHighlight()
+        if !@countof(text) do
+            return false
+
+        let source = .text()
+        var match: u64
+        var from:  u64
+        for occurrence + 1
+        {
+            match = Utf8.indexOf(source.toString(), text, from, .Latin1NoCase)
+            if match == Swag.U64.Max do
+                return false
+            from = match + @countof(text)
         }
 
-        if !found do
-            return false
+        .searchStart = match
+        .searchEnd   = match + @countof(text)
+        for &atom in .atoms where atom.textStart < .searchEnd and atom.textStart + atomTextLength(atom) > .searchStart do
+            atom.searchHit = true
         .invalidate()
         return true
     }
@@ -889,6 +910,65 @@ impl InlineView
         }
     }
 
+    // Fills one exact search band and optionally reports its geometry in local coordinates.
+    private mtd searchMatchRectLocal(result: *Math.Rectangle)->bool
+    {
+        if .searchStart == Swag.U64.Max or .searchEnd <= .searchStart do
+            return false
+
+        var found: bool
+        for &line in .lines
+        {
+            var left  = Swag.F32.Max
+            var right = Swag.F32.Min
+            for index in line.first until line.last where .atoms[index].visible
+            {
+                let atom    = &.atoms[index]
+                let atomEnd = atom.textStart + atomTextLength(atom)
+                if .searchEnd <= atom.textStart or .searchStart >= atomEnd do
+                    continue
+                left  = Math.min(left, atom.position.x + .prefixWidth(atom, Math.max(.searchStart, atom.textStart) - atom.textStart))
+                right = Math.max(right, atom.position.x + .prefixWidth(atom, Math.min(.searchEnd, atomEnd) - atom.textStart))
+            }
+
+            if right <= left do
+                continue
+
+            let rect = Math.Rectangle{left, line.top, right - left, line.height}
+            if !found
+            {
+                result[] = rect
+                found    = true
+                continue
+            }
+
+            let unionRight = Math.max(result.right(), rect.right())
+            let unionDown  = Math.max(result.bottom(), rect.bottom())
+            result.x      = Math.min(result.x, rect.x)
+            result.y      = Math.min(result.y, rect.y)
+            result.width  = unionRight - result.x
+            result.height = unionDown - result.y
+        }
+
+        return found
+    }
+
+    mtd searchMatchRect(result: *Math.Rectangle)->bool
+    {
+        var local: Math.Rectangle
+        if !.searchMatchRectLocal(&local) do
+            return false
+        result[] = .localToSurface(local)
+        return true
+    }
+
+    private mtd paintSearchHighlight(painter: *Painter)
+    {
+        var rect: Math.Rectangle
+        if .searchMatchRectLocal(&rect) do
+            painter.fillRect(rect, .themeColors().edit_SelectedBk)
+    }
+
     // Returns the text offset nearest to a point in this view's coordinates.
     //
     // `distance` is zero when the point landed inside a rendered atom. A point beside a line
@@ -1066,9 +1146,9 @@ impl IWnd for InlineView
         // What a word carries under it comes first, then the reader's selection over all of it,
         // then the glyphs. Painting the selection per atom instead would break it at every word,
         // every space and every change of size, which reads as hatching rather than as a selection.
-        for &atom in .atoms where atom.visible and (atom.flags.has(.Code) or atom.flags.has(.Highlight) or atom.searchHit)
+        for &atom in .atoms where atom.visible and (atom.flags.has(.Code) or atom.flags.has(.Highlight))
         {
-            let ground     = atom.flags.has(.Highlight) or atom.searchHit ? .themeColors().edit_SelectedBk : .themeColors().edit_Bk
+            let ground     = atom.flags.has(.Highlight) ? .themeColors().edit_SelectedBk : .themeColors().edit_Bk
             var background = atom.position
             background.x      -= 2
             background.width  += 4
@@ -1076,6 +1156,8 @@ impl IWnd for InlineView
             background.height += 2
             painter.fillRect(background, ground)
         }
+
+        .paintSearchHighlight(painter)
 
         .paintSelection(painter)
 

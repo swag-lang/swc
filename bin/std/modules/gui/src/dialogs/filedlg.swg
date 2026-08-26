@@ -16,7 +16,7 @@ enum FileDlgMode
 // Keep one instance per dialog role and pass it through [[Gui.FileDlgOptions.state]] so
 // every invocation reopens where the previous one ended. The struct serializes cleanly,
 // so an application can persist it inside its [[Gui.SerializeStateEvent]] handler and
-// give the dialog a memory across runs.
+// give the dialog a memory across runs. Closing or destroying the dialog updates it.
 struct FileDlgState
 {
     public
@@ -43,7 +43,7 @@ struct FileDlgOptions
         mode:              FileDlgMode = SelectFile                                    // Accepted selection kind.
         filters:           Array'{ name: string, extensions: string }                  // Named extension filters; empty means all files.
         shortcuts:         Array'{ type: Core.Env.SpecialDirectory, name: string }     // Locations shown in the shortcuts pane; empty uses common user folders.
-        state:             #null *FileDlgState                                         // Optional borrowed state updated on destruction.
+        state:             #null *FileDlgState                                         // Optional borrowed state captured when the modal closes and on destruction.
     }
 }
 
@@ -63,7 +63,8 @@ impl IWnd for FileDlg
 {
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
-        // The browser saves the folder/column widths; the dialog owns the position.
+        // The browser saves the folder and column widths in its own destruction event. At this
+        // point its child tree may already be gone, so only the dialog-owned rectangle is read.
         let state = .options.state
         if state do
             state.surfacePosition = .surface!.position
@@ -72,6 +73,16 @@ impl IWnd for FileDlg
 
 private impl FileDlg
 {
+    mtd saveState()
+    {
+        .browser.saveState()
+
+        // The browser saves the folder and column widths; the dialog owns the position.
+        let state = .options.state
+        if state do
+            state.surfacePosition = .surface!.position
+    }
+
     mtd onNewFolder()
     {
         var options: FormDlgOptions
@@ -226,6 +237,9 @@ impl FileDlg
                 dlg.browser.noteAccepted()
             }
 
+            // Capture while every child is still alive. A modal backend may release its native
+            // tree as soon as the result exits the loop, before control returns to the caller.
+            dlg.saveState()
             return true
         }
 

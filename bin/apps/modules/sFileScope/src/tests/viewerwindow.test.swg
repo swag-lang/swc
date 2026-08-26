@@ -60,6 +60,7 @@ func completeViewerSearch(host: *Testing.HeadlessHost, window: *ViewerWindow)
         host.fireTimer(window.searchTimer)
         steps += 1
     }
+
     @assert(window.searchTimer == null)
 }
 
@@ -805,12 +806,22 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     var index: ViewerIndex
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(fileName)
+    window.searchBox.setFocus()
     window.searchBox.setText("cat")
     completeViewerSearch(&host, window)
 
     @assert(window.searchMatches.count == 5 and window.searchIndex == 0 and window.searchMatch == 0)
     @assert(window.searchCountLabel.text() == "1/5")
+    @assert(window.searchBox.hasFocus())
+    discard host.render(window)
+    host.fireTimers()
+    @assert(window.searchOverlay.isLocallyVisible())
     @assert((cast(*BasicTextView) window.currentView!).editor.selectedText() == "Cat")
+    window.searchOverlay.phase = 0.25
+    let firstPulse = host.render(window)
+    window.searchOverlay.invalidate()
+    let repeatedPulse = host.render(window)
+    @assert(Hash.hashBytes32(firstPulse.pixels.toSlice()) == Hash.hashBytes32(repeatedPulse.pixels.toSlice()))
 
     window.findPrevious()
     @assert(window.searchIndex == 4 and window.searchMatch == 25 and window.searchCountLabel.text() == "5/5")
@@ -832,6 +843,87 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.searchBox.setText("absent")
     completeViewerSearch(&host, window)
     @assert(window.searchMatches.isEmpty() and window.searchCountLabel.text() == "0/0")
+    @assert(window.searchBox.hasFocus() and !window.searchOverlay.isLocallyVisible())
+
+    window.searchBox.setText("cat")
+    completeViewerSearch(&host, window)
+    @assert(!window.searchBox.children.isEmpty())
+    window.searchBox.setText(null)
+    @assert(!@countof(window.searchBox.text()))
+    @assert(!@countof(window.searchCountLabel.text()) and !window.searchOverlay.isLocallyVisible())
+    @assert((cast(*BasicTextView) window.currentView!).editor.isSelectionEmpty())
+}
+
+// Search navigation over a streamed Markdown file materializes every distant occurrence in both
+// directions, and clearing the query removes the viewer-owned mark as well as the shared halo.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("sfilescope-search-markdown-", ".md")
+    defer discard catch File.delete(fileName)
+
+    const Query = "streamed-search-anchor"
+    var source = String.from("# Search fixture\n\n")
+    var offsets: Array'u64
+    for occurrence in 3
+    {
+        offsets.add(source.length)
+        source += Query
+        source += Format.toString(" occurrence %\n\n", occurrence + 1)
+        for 600 do
+            source += "A long Markdown paragraph separates this result from the next page.\n\n"
+    }
+
+    expect File.writeAllBytes(fileName, source.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+    let index  = createViewerIndex()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.openFile(fileName)
+    completeQueuedViewerFile(&host, window)
+
+    var markdownIndex = Swag.U32.Max
+    for choice, choiceIndex in window.choices where choice.key == "markdown" do
+        markdownIndex = cast(u32) choiceIndex
+    @assert(markdownIndex != Swag.U32.Max)
+    window.selectViewer(markdownIndex)
+    window.searchBox.setFocus()
+    window.searchBox.setText(Query)
+    completeViewerSearch(&host, window)
+    @assert(window.searchMatches.count == 3 and window.searchMatch == offsets[0])
+
+    for 2_048 where !window.searchOverlay.isLocallyVisible() do
+        host.fireTimers()
+    @assert(window.searchOverlay.isLocallyVisible())
+
+    window.findNext()
+    @assert(window.searchIndex == 1 and window.searchMatch == offsets[1])
+    window.searchOverlay.hide()
+    for 2_048 where !window.searchOverlay.isLocallyVisible() do
+        host.fireTimers()
+    @assert(window.searchOverlay.isLocallyVisible())
+
+    window.findNext()
+    @assert(window.searchIndex == 2 and window.searchMatch == offsets[2])
+    window.searchOverlay.hide()
+    for 2_048 where !window.searchOverlay.isLocallyVisible() do
+        host.fireTimers()
+    @assert(window.searchOverlay.isLocallyVisible())
+
+    window.findPrevious()
+    @assert(window.searchIndex == 1 and window.searchMatch == offsets[1])
+    window.searchOverlay.hide()
+    for 2_048 where !window.searchOverlay.isLocallyVisible() do
+        host.fireTimers()
+    @assert(window.searchOverlay.isLocallyVisible())
+
+    let markdown = cast(*Markdown.View) window.currentView!
+    var bounds: Math.Rectangle
+    @assert(markdown.searchMatchRect(&bounds))
+    window.searchBox.setText(null)
+    @assert(!markdown.searchMatchRect(&bounds))
+    @assert(!window.searchOverlay.isLocallyVisible())
 }
 
 #test
@@ -855,6 +947,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.fullScreenButton.parent == window.commandBar)
     @assert(window.fullScreenButton.flags.has(.Toggle) and window.fullScreenButton.checkIndicator == .Frame)
     @assert(window.searchBox.isLocallyVisible() and !window.searchBox.isEnabled())
+    @assert(window.searchPrevious.icon.isValid() and window.searchNext.icon.isValid())
     @assert(!window.searchPrevious.isEnabled() and !window.searchNext.isEnabled())
     @assert(window.infoBar.position.height == ViewerInfoHeight)
     @assert(window.infoBar.dockStyle == .Top)
@@ -1279,11 +1372,28 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     var dark = host.render(window)
     Pixel.Testing.assertImageGolden(&dark, "sfilescope.viewer.dark")
 
+    window.searchBox.setText("verification marker")
+    completeViewerSearch(&host, window)
+    discard host.render(window)
+    host.fireTimers()
+    window.searchOverlay.phase = 0.125
+    var searchDark = host.render(window)
+    Pixel.Testing.assertImageGolden(&searchDark, "sfilescope.search.dark")
+    window.searchBox.setText("")
+
     window.applyTheme(1)
     host.notify(.ThemeChanged)
     host.settleAnimations(window, 4)
     var light = host.render(window)
     Pixel.Testing.assertImageGolden(&light, "sfilescope.viewer.light")
+
+    window.searchBox.setText("verification marker")
+    completeViewerSearch(&host, window)
+    discard host.render(window)
+    host.fireTimers()
+    window.searchOverlay.phase = 0.125
+    var searchLight = host.render(window)
+    Pixel.Testing.assertImageGolden(&searchLight, "sfilescope.search.light")
 }
 
 // The folder filter walks only the neighbours of the current file's kind: registered viewers

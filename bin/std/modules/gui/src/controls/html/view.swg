@@ -20,9 +20,9 @@ private const HtmlMaxDocumentSize = 48 * 1024 * 1024'u64
 // corresponding DOM, cascade and inline layout multiplies a few megabytes into hundreds of
 // megabytes. The window keeps the real HTML engine and author CSS, but only for nearby source.
 private const HtmlVirtualSourceThreshold = 2 * 1024 * 1024'u64
-private const HtmlVirtualProbeSize       = 256 * 1024'u64
-private const HtmlVirtualWindowSize      = 192 * 1024'u64
-private const HtmlVirtualLookBehind      = HtmlVirtualWindowSize / 2
+private const HtmlVirtualProbeSize = 256 * 1024'u64
+private const HtmlVirtualWindowSize = 192 * 1024'u64
+private const HtmlVirtualLookBehind = HtmlVirtualWindowSize / 2
 
 // Source bytes inspected before the first parse to decide how the file spells its characters.
 private const HtmlCharsetProbeSize = 4 * 1024'u64
@@ -412,7 +412,7 @@ internal impl HtmlView
         // quarter of a million pixels, which is not a shape the surface geometry is built for.
         let laidOutHeight = Math.max(.layout.documentHeight, viewport.y)
         let height        = .embedded ? viewport.y : (.virtualSource and .virtualHeight > 0 ? .virtualHeight : laidOutHeight)
-        let position = .scroll.scrollPosition()
+        let position      = .scroll.scrollPosition()
         .canvas.setPosition({0, 0, viewport.x, viewport.y})
         .scroll.setScrollSize(viewport.x, height)
         .scroll.setScrollPos(position)
@@ -437,15 +437,14 @@ internal impl HtmlView
             return false
         }
 
-        let headClose = Utf8.indexOf(probe.toString(), "</head>", 0, .Latin1NoCase)
-        let bodyStart = Utf8.indexOf(probe.toString(), "<body", 0, .Latin1NoCase)
-        let preStart  = Utf8.indexOf(probe.toString(), "<pre", bodyStart == Swag.U64.Max ? 0 : bodyStart, .Latin1NoCase)
-        let codeStart = Utf8.indexOf(probe.toString(), "<code", preStart == Swag.U64.Max ? 0 : preStart, .Latin1NoCase)
-        let bodyEnd  = bodyStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'rune, bodyStart)
-        let preEnd   = preStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'rune, preStart)
-        let codeEnd  = codeStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'rune, codeStart)
-        let sourceListing = bodyEnd != Swag.U64.Max and preEnd != Swag.U64.Max and codeEnd != Swag.U64.Max and
-                            Utf8.indexOf(probe.toString(), "<a href=#", codeEnd + 1, .Latin1NoCase) != Swag.U64.Max
+        let headClose     = Utf8.indexOf(probe.toString(), "</head>", 0, .Latin1NoCase)
+        let bodyStart     = Utf8.indexOf(probe.toString(), "<body", 0, .Latin1NoCase)
+        let preStart      = Utf8.indexOf(probe.toString(), "<pre", bodyStart == Swag.U64.Max ? 0 : bodyStart, .Latin1NoCase)
+        let codeStart     = Utf8.indexOf(probe.toString(), "<code", preStart == Swag.U64.Max ? 0 : preStart, .Latin1NoCase)
+        let bodyEnd       = bodyStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'rune, bodyStart)
+        let preEnd        = preStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'rune, preStart)
+        let codeEnd       = codeStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'rune, codeStart)
+        let sourceListing = bodyEnd != Swag.U64.Max and preEnd != Swag.U64.Max and codeEnd != Swag.U64.Max and Utf8.indexOf(probe.toString(), "<a href=#", codeEnd + 1, .Latin1NoCase) != Swag.U64.Max
 
         .virtualPrefix = headClose == Swag.U64.Max ? "<html><head></head>" : String.from(probe.toString()[0 until headClose + @countof("</head>")])
         if bodyEnd != Swag.U64.Max do
@@ -455,10 +454,10 @@ internal impl HtmlView
 
         if sourceListing
         {
-            .virtualPrefix += probe.toString()[preStart to preEnd]
-            .virtualPrefix += probe.toString()[codeStart to codeEnd]
-            .virtualSuffix        = "</code></pre></body></html>"
-            .virtualContentStart  = contentStart + codeEnd + 1
+            .virtualPrefix       += probe.toString()[preStart to preEnd]
+            .virtualPrefix       += probe.toString()[codeStart to codeEnd]
+            .virtualSuffix       = "</code></pre></body></html>"
+            .virtualContentStart = contentStart + codeEnd + 1
             .virtualPreformatted = true
         }
         else
@@ -466,6 +465,7 @@ internal impl HtmlView
             .virtualSuffix       = "</body></html>"
             .virtualContentStart = bodyEnd == Swag.U64.Max ? contentStart : contentStart + bodyEnd + 1
         }
+
         .virtualSource = true
         .stream.close()
         return true
@@ -509,6 +509,7 @@ internal impl HtmlView
                     begin = line + 1
             }
         }
+
         var end = Math.min(begin + HtmlVirtualWindowSize, chunk.length)
         if end < chunk.length
         {
@@ -516,6 +517,7 @@ internal impl HtmlView
             if boundary != Swag.U64.Max do
                 end = boundary + 1
         }
+
         if end <= begin do
             return false
 
@@ -525,8 +527,8 @@ internal impl HtmlView
         .layout.root = HtmlNoNode
         .images.clear()
         .images.basePath = Path.directoryName(.fileName.toString()) orelse ""
-        .searchNode       = HtmlNoNode
-        .hovered          = HtmlNoNode
+        .searchNode      = HtmlNoNode
+        .hovered         = HtmlNoNode
         .clearSelection()
 
         var source = String.from(.virtualPrefix.toString())
@@ -552,7 +554,7 @@ internal impl HtmlView
         let globalRatio = cast(f32) (requested - .virtualContentStart) / cast(f32) contentBytes
         let localY      = Math.clamp(localRatio, 0, 1) * .layout.documentHeight
         let targetY     = requestedY >= 0 ? Math.clamp(requestedY, 0, .virtualHeight) : Math.clamp(globalRatio, 0, 1) * .virtualHeight
-        .virtualOrigin  = targetY - localY
+        .virtualOrigin = targetY - localY
         .placeDocument()
         .scroll.setScrollPos(.scroll.scrollPosition().x, targetY)
         .resolvePending()
@@ -830,7 +832,7 @@ internal impl HtmlView
         }
 
         let position = .scroll.scrollPosition()
-        let origin = .virtualSource ? .virtualOrigin : 0
+        let origin   = .virtualSource ? .virtualOrigin : 0
         .scroll.setScrollPos(position.x, Math.max(origin + top - clearance, 0))
         .canvas.invalidate()
         return true
@@ -904,6 +906,67 @@ internal impl HtmlView
             if .scrollToNode(index)
             {
                 .searchNode  = index
+                .searchStart = match
+                .searchEnd   = match + @countof(text)
+                .canvas.invalidate()
+                return true
+            }
+        }
+
+        return false
+    }
+
+    mtd searchMatchCount(text: string)->u64
+    {
+        if !@countof(text) do
+            return 0
+
+        var result: u64
+        for &node in .document.nodes where node.kind == .Text and !node.text.isEmpty()
+        {
+            var from: u64
+            while true
+            {
+                let match = Utf8.indexOf(node.text.toString(), text, from, .Latin1NoCase)
+                if match == Swag.U64.Max do
+                    break
+                result += 1
+                from   = match + @countof(text)
+            }
+        }
+
+        return result
+    }
+
+    mtd findTextOccurrence(text: string, occurrence: u64)->bool
+    {
+        if !@countof(text) do
+            return false
+
+        .clearSearchHighlight()
+        var remaining = occurrence
+        for index in .document.nodes.count
+        {
+            let node = .document.constNode(cast(u32) index)
+            if node.kind != .Text or node.text.isEmpty() do
+                continue
+
+            var from: u64
+            while true
+            {
+                let match = Utf8.indexOf(node.text.toString(), text, from, .Latin1NoCase)
+                if match == Swag.U64.Max do
+                    break
+                if remaining
+                {
+                    remaining -= 1
+                    from      = match + @countof(text)
+                    continue
+                }
+
+                if !.scrollToNode(cast(u32) index) do
+                    return false
+                .searchNode  = cast(u32) index
                 .searchStart = match
                 .searchEnd   = match + @countof(text)
                 .canvas.invalidate()
@@ -1135,7 +1198,7 @@ internal impl HtmlView
         {
             .stopLoading()
             .virtualPendingSeek = false
-            .pendingSearch = text
+            .pendingSearch      = text
             return .loadVirtualWindow(offset)
         }
 
@@ -1147,6 +1210,7 @@ internal impl HtmlView
                 .pendingSearch.clear()
                 return true
             }
+
             let node = .nodeAtSourceOffset(Math.min(offset, .bytesRead))
             .searchNode  = node == 0 ? HtmlNoNode : node - 1
             .searchStart = 0
@@ -1160,6 +1224,26 @@ internal impl HtmlView
         .hasReveal    = true
         .scheduleMore()
         return true
+    }
+
+    // Reports the current search highlight in surface coordinates.
+    //
+    // Returns false until a streamed match is laid out. The caller owns the visual treatment and
+    // may poll this method while [[Gui.HtmlView.isLoading]] remains true.
+    public mtd searchMatchRect(result: *Math.Rectangle)->bool
+    {
+        var local: Math.Rectangle
+        var paint = .painter()
+        if !paint.searchMatchRect(&local) do
+            return false
+        result[] = .canvas.localToSurface(local)
+        return !result.isEmpty()
+    }
+
+    // Removes the programmatic search highlight without changing the document selection.
+    public mtd clearSearch()
+    {
+        .clearSearchHighlight()
     }
 
     // Replaces the document defaults and restyles what is already loaded.
@@ -1247,6 +1331,7 @@ internal impl HtmlView
                 else do
                     target.virtualPendingSeek = false
             }
+
             target.canvas.invalidate()
         }
 
@@ -1322,6 +1407,7 @@ internal impl HtmlView
             discard .loadVirtualWindow(.virtualContentStart)
             return
         }
+
         .streamStep()
     }
 
@@ -1424,6 +1510,7 @@ internal impl IWnd for HtmlView
             discard .loadVirtualWindow(offset, y)
             return
         }
+
         .streamStep()
     }
 }

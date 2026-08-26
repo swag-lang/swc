@@ -61,6 +61,17 @@ func basicTextRevealMatch(wnd: *Wnd, match: ViewerSearchMatch, text: string)->bo
     return (cast(*BasicTextView) wnd).revealOffset(match.offset, text)
 }
 
+func basicTextSearchBounds(wnd: *Wnd, match: ViewerSearchMatch, result: *Math.Rectangle)->bool
+{
+    discard match
+    return richEditSearchBounds((cast(*BasicTextView) wnd).editor, result)
+}
+
+func basicTextClearSearch(wnd: *Wnd)
+{
+    clearRichEditSearch((cast(*BasicTextView) wnd).editor)
+}
+
 func basicTextIsLoading(wnd: *Wnd)->bool => (cast(*BasicTextView) wnd).loadTimer != null
 
 impl BasicTextView
@@ -142,6 +153,7 @@ impl BasicTextView
                 .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
             return
         }
+
         .virtualHeight   = Math.max(.virtualHeight, loadedHeight * cast(f32) .fileSize / cast(f32) consumed, loadedHeight)
         .residentOffsetY = .fileSize ? .virtualHeight * cast(f32) .residentStart / cast(f32) .fileSize : 0
         .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
@@ -274,6 +286,7 @@ impl BasicTextView
                 else do
                     discard .editor.findText(text)
             }
+
             .scheduleMore()
             return true
         }

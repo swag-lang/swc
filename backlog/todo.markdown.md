@@ -143,7 +143,7 @@ same behavior over Markdown as over code.
 
 The engine's strings live in `Gui.Strings` with French translations, but an alert title is baked
 into its block's text at parse time, so a document already on screen keeps the previous language
-until it is reloaded — the menu-bar failure of F-023, one widget over.
+until it is reloaded — the same class of failure the menu bar once had, one widget over.
 
 - Intent: a language switch restyles a rendered document's alert titles
 - Complete when: switching the language re-renders parsed alert blocks in place, in `createText`

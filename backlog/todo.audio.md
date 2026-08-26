@@ -236,4 +236,3 @@ implementation. Do not vendor a decoder whose terms cannot be satisfied by a sta
 shipped with a compiler. Normative tables are a separate question from code: Layer III's were
 recovered from two public-domain implementations and checked against each other, with the
 provenance in `bin/THIRDPARTY.md`; a table is a fact of the format, a decoder is expression.
-

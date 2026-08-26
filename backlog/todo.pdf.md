@@ -5,9 +5,9 @@ This file is the roadmap for the PDF family inside `std/gui` — the `Pdf` engin
 competes with: PDFium, MuPDF, Poppler and pdf.js on the reading side, PDFBox and iText on the
 document side, and QuestPDF, ReportLab and wkhtmltopdf on the writing side.
 
-It is not the repository's discovery backlog. Defects and leads belong in
-[findings.pdf.md](findings.pdf.md), which holds evidence; compiler and language intent belongs in [todo.compiler.md](todo.compiler.md)
-and [todo.language.md](todo.language.md). This file holds intent about
+It is not the repository's discovery backlog. PDF-specific defects and leads belong in a
+`findings.pdf.md` once a real cluster exists; compiler and language intent belongs in
+[todo.compiler.md](todo.compiler.md) and [todo.language.md](todo.language.md). This file holds intent about
 `bin/std/modules/gui/src/controls/pdf`. [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
@@ -20,7 +20,8 @@ document takes end to end: classic indirect objects, compressed object streams, 
 inherited attributes, page rotation, the Flate, LZW, ASCII hexadecimal, ASCII85 and run-length
 filters with the TIFF and PNG predictors at every supported depth, the complete text state, the
 vector path and stroke geometry, simple and composite fonts with `/Widths`, `/W`, `/Differences`
-and `/ToUnicode`, embedded TrueType, OpenType, Type 1, and bare CFF programs addressed the way the file keys them,
+and `/ToUnicode`, embedded TrueType, OpenType, Type 1, and bare CFF programs addressed the way the
+file keys them,
 and every sample representation a raster can use from one to sixteen bits per component across
 the device, calibrated, ICC-based, indexed, Lab, separation and DeviceN spaces, with decode
 arrays, stencil masks, soft masks and color key masks.

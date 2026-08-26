@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" style="--swag-code-default: #222222">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contribute-tests</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+<nav class="site-nav" aria-label="Main navigation">
+<a class="site-brand" href="index.html">SWAG</a>
+<div class="site-links">
+<a href="index.html">Home</a>
+<a href="language.html">Documentation</a>
+<a href="swag.runtime.html">Runtime</a>
+<a href="std.html">Std</a>
+<a href="https://www.youtube.com/channel/UC9dkBu1nNfJDxUML7r7QH1Q">YouTube</a>
+<a href="https://github.com/swag-lang/swc">GitHub</a>
+</div>
+</nav>
+</header>
+<main class="container single-page">
+<section class="right"><article class="right-page" id="content">
+<h1 id="Test_and_improve_the_compiler">Test and improve the compiler</h1>
+<p>Compiler regressions belong at the narrowest layer that can prove them. Swag's source tests are normal <span class="code-inline">.swg</span> files driven by <span class="code-inline">swc test</span>; the repository tools select the appropriate stage, configuration, JIT path, or native path.</p>
+<h2 id="Choose_the_test_boundary">Choose the test boundary</h2>
+<table class="table-markdown">
+<thead>
+<tr><th>Location</th><th>Use it for</th><th>Runner</th></tr>
+</thead>
+<tbody>
+<tr><td><span class="code-inline">bin/unittests/lexer</span></td><td>Tokens, trivia, escapes, and literal scanning</td><td><span class="code-inline">swc tools\unittests.swgs dm lexer</span></td></tr>
+<tr><td><span class="code-inline">bin/unittests/parser</span></td><td>Grammar and source structure</td><td><span class="code-inline">swc tools\unittests.swgs dm parser</span></td></tr>
+<tr><td><span class="code-inline">bin/unittests/sema</span></td><td>Types, overloads, generics, attributes, and semantic rules</td><td><span class="code-inline">swc tools\unittests.swgs dm sema</span></td></tr>
+<tr><td><span class="code-inline">bin/unittests/errors/&lt;stage&gt;</span></td><td>Expected diagnostics at a compiler stage</td><td>Matching stage runner</td></tr>
+<tr><td><span class="code-inline">bin/unittests/jit</span></td><td>Compile-time and in-memory execution</td><td><span class="code-inline">swc tools\unittests.swgs dm jit</span></td></tr>
+<tr><td><span class="code-inline">bin/unittests/safety</span></td><td>Runtime safety guards</td><td><span class="code-inline">swc tools\unittests.swgs dm safety</span></td></tr>
+<tr><td><span class="code-inline">bin/unittests/sanity</span></td><td>Static and lifecycle sanity analysis</td><td><span class="code-inline">swc tools\unittests.swgs dm sanity</span></td></tr>
+<tr><td><span class="code-inline">bin/unittests/native</span></td><td>Encoding, linking, PDBs, and native execution</td><td><span class="code-inline">swc tools\unittests.swgs dm native</span></td></tr>
+<tr><td><span class="code-inline">src/Unittest</span></td><td>C++ internals without a source-language boundary</td><td><span class="code-inline">swc tools\unittests.swgs dm cpp</span></td></tr>
+</tbody>
+</table>
+<p>Do not add a source test for a command-line, linker, backend, runtime, or internal-only behavior when its real boundary has a dedicated harness.</p>
+<h2 id="Write_a_successful_source_test">Write a successful source test</h2>
+<p>Keep the file focused and deterministic. <span class="code-inline">#assert</span> proves compile-time facts; <span class="code-inline">@assert</span> proves behavior while a <span class="code-inline">#test</span> function executes:</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">const</span> <span class="SCst">Expected</span> = <span class="SNum">42</span>
+    <span class="SKwd">let</span> value = <span class="SNum">6</span> * <span class="SNum">7</span>
+
+    <span class="SCmp">#assert</span>(<span class="SCst">Expected</span> == <span class="SNum">42</span>)
+    <span class="SItr">@assert</span>(value == <span class="SCst">Expected</span>)
+}</span></div>
+<p>During iteration, <span class="code-inline">--test-file &lt;substring&gt;</span> keeps the whole module available but executes only the <span class="code-inline">#test</span> functions declared in matching source paths. Repeat the option to select several test files. Do not use <span class="code-inline">--file-filter</span> for a module test: it removes non-matching implementation files from the compiler input.</p>
+<p>The default <span class="code-inline">test</span> command runs <span class="code-inline">#test</span> functions through both the JIT and native backend. A layer runner narrows those paths when the layer itself is the subject.</p>
+<h2 id="Match_an_expected_diagnostic">Match an expected diagnostic</h2>
+<p>Put rejected programs under the matching <span class="code-inline">bin/unittests/errors</span> stage. Match the stable diagnostic identifier at the source location that proves the error:</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
+
+<span class="SNum">0b__0</span>     <span class="SCmt">// swc-expected-error {{lex_err_consecutive_num_sep}}</span></span></div>
+<p>Use <span class="code-inline">// swc-expected-error@+ {{diagnostic_id}}</span> when the diagnostic belongs to the next line. Run with <span class="code-inline">--verbose-verify</span> while diagnosing a match that the harness normally consumes.</p>
+<h2 id="Run_the_test">Run the test</h2>
+<p>Build the <span class="code-inline">DevMode|x64</span> compiler first, then run the narrow layer:</p>
+<div class="code-block"><span class="SCde">swc tools\unittests.swgs dm sema</span></div>
+<p>Before submitting a compiler change, follow the validation sequence in the repository's <span class="code-inline">AGENTS.md</span>. The common aggregate commands are:</p>
+<div class="code-block"><span class="SCde">swc tools\tests.swgs dm
+swc tools\tests.swgs dm --all-cfg</span></div>
+<p><span class="code-inline">tests.swgs</span> runs the default suite once. <span class="code-inline">tests.swgs --all-cfg</span> repeats it for <span class="code-inline">release</span>, <span class="code-inline">debug</span>, and <span class="code-inline">fast-debug</span> language configurations.</p>
+<h2 id="Keep_failures_reviewable">Keep failures reviewable</h2>
+<ul>
+<li>Add one regression concept per small file or clearly named group.</li>
+<li>Keep every individual test below 40 seconds, excluding compiler build time.</li>
+<li>Avoid external services, user-specific paths, timing assumptions, and random input without a recorded seed.</li>
+<li>Keep passing tests silent; use temporary <span class="code-inline">@print</span> calls only while debugging.</li>
+<li>Review any <span class="code-inline">*.actual.txt</span> snapshot before accepting it with <span class="code-inline">swc tools\goldens.swgs</span>.</li>
+<li>Retain a regression test after the compiler fix lands.</li>
+</ul>
+<p>The executable <a href="language.html">language reference</a> is also a regression suite, but it should teach supported behavior. Put edge cases and rejected forms in <span class="code-inline">bin/unittests</span> unless they materially improve the explanation.</p>
+</article>
+<footer class="site-footer">
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.215</div>
+</footer>
+</section>
+</main>
+</body>
+</html>

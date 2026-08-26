@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" style="--swag-code-default: #222222">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Std</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+<nav class="site-nav" aria-label="Main navigation">
+<a class="site-brand" href="index.html">SWAG</a>
+<div class="site-links">
+<a href="index.html">Home</a>
+<a href="language.html">Documentation</a>
+<a href="swag.runtime.html">Runtime</a>
+<a href="std.html">Std</a>
+<a href="https://www.youtube.com/channel/UC9dkBu1nNfJDxUML7r7QH1Q">YouTube</a>
+<a href="https://github.com/swag-lang/swc">GitHub</a>
+</div>
+</nav>
+</header>
+<main class="container single-page">
+<section class="right"><article class="right-page" id="content">
+<h1 id="Standard_library">Standard library</h1>
+<p>The standard workspace lives under <span class="code-inline">bin/std</span> beside the compiler. Its modules are built from the same revision as <span class="code-inline">swc</span>, and their generated API pages link back to the maintained declarations and comments in <a href="https://github.com/swag-lang/swc/tree/master/bin/std/modules">`bin/std/modules`</a>.</p>
+<p>Import a standard module from <span class="code-inline">module.swg</span> or a script setup section:</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"core"</span>, location: <span class="SStr">"swag@std"</span>)</span></div>
+<p><span class="code-inline">swag@std</span> is the standard library beside the compiler that runs the build. <span class="code-inline">SWAG_PATH</span> answers instead for a compiler installed without one, and points to that library's <span class="code-inline">bin</span> directory.</p>
+<h2 id="Application_libraries">Application libraries</h2>
+<table class="table-markdown">
+<thead>
+<tr><th>Module</th><th>Namespace</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="std.core.html">std.core</a></td><td><span class="code-inline">Core</span></td><td>Collections, strings, files, paths, serialization, math, time, concurrency, diagnostics, input, and host services</td></tr>
+<tr><td><a href="std.pixel.html">std.pixel</a></td><td><span class="code-inline">Pixel</span></td><td>Images, codecs, transforms, vector drawing, text layout, brushes, paths, and OpenGL rendering</td></tr>
+<tr><td><a href="std.gui.html">std.gui</a></td><td><span class="code-inline">Gui</span>, <span class="code-inline">Pdf</span></td><td>Native desktop applications, surfaces, controls, layouts, events, themes, dialogs, document engines, and actions</td></tr>
+<tr><td><a href="std.audio.html">std.audio</a></td><td><span class="code-inline">Audio</span></td><td>WAV loading, decoding, streaming, voices, buses, codecs, and process-wide playback</td></tr>
+<tr><td><a href="std.video.html">std.video</a></td><td><span class="code-inline">Video</span></td><td>Streamed video reading and writing, frame by frame, with YUV4MPEG2 and Motion JPEG AVI codecs</td></tr>
+<tr><td><a href="std.truetype.html">std.truetype</a></td><td><span class="code-inline">TrueType</span></td><td>TrueType parsing, metrics, outlines, rasterization, kerning, and distance fields</td></tr>
+</tbody>
+</table>
+<p>These modules expose Swag-owned abstractions and task-oriented guides in addition to symbol reference entries. Follow their ownership and lifetime rules: containers and images own storage, while slices, string views, glyph slots, and several drawing inputs borrow it.</p>
+<h2 id="Native_bindings">Native bindings</h2>
+<table class="table-markdown">
+<thead>
+<tr><th>Module</th><th>Namespace</th><th>Upstream surface</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="std.ogl.html">std.ogl</a></td><td><span class="code-inline">Ogl</span></td><td>OpenGL declarations and Windows context integration</td></tr>
+<tr><td><a href="std.win32.html">std.win32</a></td><td><span class="code-inline">Win32</span></td><td>Windows SDK declarations used by the standard workspace</td></tr>
+<tr><td><a href="std.gdi32.html">std.gdi32</a></td><td><span class="code-inline">Gdi32</span></td><td>Windows GDI declarations</td></tr>
+<tr><td><a href="std.gdiplus.html">std.gdiplus</a></td><td><span class="code-inline">Gdiplus</span></td><td>Windows GDI+ flat API declarations</td></tr>
+<tr><td><a href="std.xinput.html">std.xinput</a></td><td><span class="code-inline">XInput</span></td><td>Microsoft XInput declarations</td></tr>
+<tr><td><a href="std.xaudio2.html">std.xaudio2</a></td><td><span class="code-inline">XAudio2</span></td><td>Microsoft XAudio2 declarations and COM-style interfaces</td></tr>
+</tbody>
+</table>
+<p>Binding pages are searchable declaration indices, not replacements for the upstream Microsoft or Khronos specifications. They document Swag-specific helpers and deviations, while names, flags, structures, and native functions retain their upstream contracts.</p>
+<h2 id="Platform_and_build_model">Platform and build model</h2>
+<p>The current standard workspace targets Windows x86-64. High-level modules pull their dependencies transitively: for example, <span class="code-inline">gui</span> imports <span class="code-inline">pixel</span>, and <span class="code-inline">pixel</span> imports <span class="code-inline">core</span>, <span class="code-inline">ogl</span>, and <span class="code-inline">truetype</span>. Import the module your code uses directly; do not depend on a transitive import remaining part of another module's implementation.</p>
+<p>Standard modules build as shared libraries unless their setup selects an export binding. Workspace output and exported APIs are grouped by backend kind, build configuration, and architecture under <span class="code-inline">bin/std/.output</span>.</p>
+</article>
+<footer class="site-footer">
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.215</div>
+</footer>
+</section>
+</main>
+</body>
+</html>

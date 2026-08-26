@@ -2754,13 +2754,14 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if ((isCrossAstInline || isAutoSelected) && isOrdinaryInline)
         SWC_RESULT(sema.waitSemaCompleted(&fn, sema.node(callRef).codeRef()));
 
+    const AstNodeRef mappedUfcsArg = !resolvedArgs.empty() && resolvedArgs[0].isUfcsReceiver ? ufcsArg : AstNodeRef::invalid();
     const InlineArgumentMapContext context{
         .callRef      = callRef,
         .fn           = &fn,
         .sourceAst    = declAst,
         .args         = args,
         .sourceArgs   = sourceArgs,
-        .ufcsArg      = ufcsArg,
+        .ufcsArg      = mappedUfcsArg,
         .resolvedArgs = resolvedArgs.span(),
     };
 

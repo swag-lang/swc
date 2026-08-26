@@ -2885,6 +2885,7 @@ namespace
                 .bindsReferenceToValue    = i < numParams && bindsReferenceToValue(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef),
                 .movesValueToParam        = i < numParams && movesValueToParam(sema, selectedFn.parameters()[i]->typeRef(), entry.argRef),
                 .passUfcsAddressAsPointer = i < numParams && passUfcsAddressAsPointer(sema, selectedFn, i, finalArgRef, appliedUfcsArg),
+                .isUfcsReceiver           = i == 0 && appliedUfcsArg.isValid(),
             };
 
             if (resolvedArg.bindsReferenceToValue)

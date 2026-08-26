@@ -57,6 +57,7 @@ struct ResolvedCallArgument
     bool                    bindsReferenceToValue    = false;
     bool                    movesValueToParam        = false;
     bool                    passUfcsAddressAsPointer = false;
+    bool                    isUfcsReceiver           = false;
     ConstantRef             typeInfoCstRef           = ConstantRef::invalid();
     ConstantRef             defaultCstRef            = ConstantRef::invalid();
 };

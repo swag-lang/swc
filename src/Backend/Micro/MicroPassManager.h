@@ -30,6 +30,7 @@ class MicroInstructionCombinePass;
 class MicroStrengthReductionPass;
 class MicroValueNumberingPass;
 class MicroLoopInvariantCodeMotionPass;
+class MicroSinkToUsePass;
 class MicroDeadCodeEliminationPass;
 class MicroBranchSimplifyPass;
 class MicroLoopUnrollPass;
@@ -99,6 +100,7 @@ private:
     std::unique_ptr<MicroStrengthReductionPass>       strengthReductionPass_;
     std::unique_ptr<MicroValueNumberingPass>          valueNumberingPass_;
     std::unique_ptr<MicroLoopInvariantCodeMotionPass> licmPass_;
+    std::unique_ptr<MicroSinkToUsePass>               sinkToUsePass_;
     std::unique_ptr<MicroDeadCodeEliminationPass>     deadCodeEliminationPass_;
     std::unique_ptr<MicroBranchSimplifyPass>          branchSimplifyPass_;
     std::unique_ptr<MicroLoopUnrollPass>              loopUnrollPass_;

@@ -33,6 +33,108 @@ namespace InstructionCombine
             return true;
         }
 
+        // dst *= {2,3,5,9}  ->  lea dst, [src + src*{1,2,4,8}]
+        //
+        // A three-cycle multiply becomes a one-cycle address computation, and
+        // when dst was just copied from a register that still holds the same
+        // value, the address form reads that source directly and the copy dies
+        // with its last use. This is the shape every sample access of a
+        // variable-stride filter produces: copy the stride, multiply by the tap
+        // distance, index by the product.
+        bool tryMultiplyToAddress(Context& ctx, MicroInstrRef ref, MicroReg dst, MicroOpBits opBits, MicroOp op, uint64_t imm)
+        {
+            if (op != MicroOp::MultiplySigned && op != MicroOp::MultiplyUnsigned)
+                return false;
+            // The address form computes a 64-bit result; a narrower multiply
+            // keeps its truncating semantics only through its own width.
+            if (opBits != MicroOpBits::B64)
+                return false;
+
+            // Only the scales the addressing mode encodes, and their negations.
+            // Powers of two above one are strength-reduced to shifts before
+            // this rule sees them.
+            const auto signedImm = static_cast<int64_t>(imm);
+            const bool negated   = signedImm < 0;
+            const auto magnitude = static_cast<uint64_t>(negated ? -signedImm : signedImm);
+            if (magnitude != 2 && magnitude != 3 && magnitude != 5 && magnitude != 9)
+                return false;
+
+            // The multiply writes flags the address computation does not (the
+            // negation below writes its own, which the same check covers).
+            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref))
+                return false;
+
+            // When dst was just copied from a source register, the address form
+            // can read that source directly. The positive rewrite needs the
+            // source value still live here; the negated one rewrites the copy
+            // itself, so it needs the copy consumed by this multiply alone.
+            MicroInstrRef copyRef;
+            MicroReg      copySource;
+            bool          copySingleUse = false;
+            if (ctx.ssa)
+            {
+                const auto copyReaching = ctx.ssa->reachingDef(dst, ref);
+                if (copyReaching.valid() && !copyReaching.isPhi && copyReaching.inst &&
+                    copyReaching.inst->op == MicroInstrOpcode::LoadRegReg)
+                {
+                    const MicroInstrOperand* copyOps = copyReaching.inst->ops(*ctx.operands);
+                    if (copyOps && copyOps[0].reg == dst && copyOps[1].reg.isVirtualInt() && copyOps[2].opBits == MicroOpBits::B64)
+                    {
+                        const auto srcAtCopy    = ctx.ssa->reachingDef(copyOps[1].reg, copyReaching.instRef);
+                        const auto srcAtRewrite = ctx.ssa->reachingDef(copyOps[1].reg, ref);
+                        if (srcAtCopy.valid() && srcAtRewrite.valid() && srcAtCopy.valueId == srcAtRewrite.valueId)
+                        {
+                            copyRef    = copyReaching.instRef;
+                            copySource = copyOps[1].reg;
+
+                            const auto* copyValue = ctx.ssa->valueInfo(copyReaching.valueId);
+                            copySingleUse         = copyValue && copyValue->uses.size() == 1;
+                        }
+                    }
+                }
+            }
+
+            MicroInstrOperand leaOps[8] = {};
+            leaOps[0].reg               = dst;
+            leaOps[3].opBits            = MicroOpBits::B64;
+            leaOps[4].opBits            = MicroOpBits::B64;
+            leaOps[5].valueU64          = magnitude - 1;
+            leaOps[6].valueU64          = 0;
+
+            if (!negated)
+            {
+                if (!ctx.claimAll({ref}))
+                    return false;
+
+                const MicroReg source = copyRef.isValid() ? copySource : dst;
+                leaOps[1].reg         = source;
+                leaOps[2].reg         = source;
+                ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrAmcRegMem, std::span{leaOps, 8}, true);
+                return true;
+            }
+
+            // dst = src; dst *= -K  ->  lea dst, [src + src*(K-1)]; neg dst.
+            // Both slots exist already: the copy becomes the address
+            // computation and the multiply becomes the negation. The copy must
+            // feed this multiply alone, or its other readers would see the
+            // product instead of the copied value.
+            if (!copyRef.isValid() || !copySingleUse)
+                return false;
+            if (!ctx.claimAll({copyRef, ref}))
+                return false;
+
+            leaOps[1].reg = copySource;
+            leaOps[2].reg = copySource;
+            ctx.emitRewrite(copyRef, MicroInstrOpcode::LoadAddrAmcRegMem, std::span{leaOps, 8}, true);
+
+            MicroInstrOperand negOps[3] = {};
+            negOps[0].reg               = dst;
+            negOps[1].opBits            = MicroOpBits::B64;
+            negOps[2].microOp           = MicroOp::Negate;
+            ctx.emitRewrite(ref, MicroInstrOpcode::OpUnaryReg, std::span{negOps, 3});
+            return true;
+        }
+
         bool tryReassociateWithPrevious(Context& ctx, MicroInstrRef ref, MicroReg dst, MicroOpBits opBits, MicroOp op, uint64_t imm)
         {
             const auto reaching = ctx.ssa->reachingDef(dst, ref);
@@ -133,6 +235,9 @@ namespace InstructionCombine
                 return true;
             }
         }
+
+        if (tryMultiplyToAddress(ctx, ref, dst, opBits, op, imm))
+            return true;
 
         if (!ctx.ssa)
             return false;

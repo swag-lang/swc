@@ -16,6 +16,7 @@
 #include "Backend/Micro/Passes/Pass.LoopUnroll.h"
 #include "Backend/Micro/Passes/Pass.MemToReg.h"
 #include "Backend/Micro/Passes/Pass.PostRADeadCodeElim.h"
+#include "Backend/Micro/Passes/Pass.SinkToUse.h"
 #include "Backend/Micro/Passes/Pass.PostRALoopHoist.h"
 #include "Backend/Micro/Passes/Pass.PostRALoopRotate.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
@@ -435,6 +436,7 @@ MicroPassManager::MicroPassManager()
     strengthReductionPass_   = std::make_unique<MicroStrengthReductionPass>();
     valueNumberingPass_      = std::make_unique<MicroValueNumberingPass>();
     licmPass_                = std::make_unique<MicroLoopInvariantCodeMotionPass>();
+    sinkToUsePass_           = std::make_unique<MicroSinkToUsePass>();
     deadCodeEliminationPass_ = std::make_unique<MicroDeadCodeEliminationPass>();
     branchSimplifyPass_      = std::make_unique<MicroBranchSimplifyPass>();
     loopUnrollPass_          = std::make_unique<MicroLoopUnrollPass>();
@@ -530,6 +532,15 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
     // Phase 3 - Register allocation loop.
     // Legalize can introduce new virtual registers; RegAlloc can introduce spills that
     // need another Legalize pass. They iterate together until stable.
+    //
+    // Scheduling for register pressure runs once here, on the converged
+    // pre-RA IR: a pure single-use definition moves down to its one consumer,
+    // so a block emitted as materialize-everything-then-compute stops keeping
+    // its whole value set live at once. It reorders without reducing anything
+    // the optimization loop's fixed point measures, so it cannot live inside
+    // that loop; the pass gates itself to the first allocation sweep.
+    if (optimize)
+        addRaLoopPass(*sinkToUsePass_);
     addRaLoopPass(*legalizePass_);
     addRaLoopPass(*regAllocPass_);
 

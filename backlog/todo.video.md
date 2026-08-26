@@ -281,6 +281,16 @@ is the layout it does not read yet.
     [F-193](findings.optimization.md#f-193--a-simd-routine-keeps-its-strides-and-counts-in-the-frame)
     and the residency notes under
     [F-195](findings.optimization.md#f-195--a-loop-header-drops-every-mapping-and-the-register-to-fix-it-is-already-spoken-for).
+    Second instalment (2026-08-26 evening), measured on a C twin of the scalar loop filter
+    compiled by clang-cl 20 at `/O2`, same checksum on both sides: the early-return decision
+    path alone ran **2.5x** behind clang, and it decomposes into the per-call prologue of the
+    uninlined filter (forcing `#[Swag.Inline]` took the gap from 2.4x to 1.75x — clang inlines
+    it as a single-call-site function, which sema does not yet consider) and the displacement
+    products (copy + 64-bit `imul` by ±2..4, spilled per reuse, where clang emits one `lea`).
+    Multiply-by-{2,3,5,9} and their negations now rewrite to address computations, and a
+    pre-allocation sink moves pure single-use definitions down to their consumer; together they
+    take the same-breath probe ratio from 2.53x to 2.25x. The single-call-site inlining rule is
+    the next largest lever this measurement names.
   - **What the emitted code spends on the frame is worth removing anyway.**
     `filterLumaEdge` emits 776 instructions with 171 frame accesses, `interpolateLuma` spills
     its accumulators inside the innermost body, and both run at roughly a third of the

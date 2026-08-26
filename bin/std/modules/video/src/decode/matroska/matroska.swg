@@ -1327,6 +1327,10 @@ private struct FileIndex
     path:               String
     soundTracks:         Array'SoundFile
     soundThread:         Threading.Thread
+    windowThread:        Threading.Thread
+    windowWake:          Sync.Event
+    windowTarget:        u64     // Timestamp the window being built must cover.
+    windowBuilding:      u32     // Whether a window build is in flight.
     seekSounds:          Array'*PublishedSound
     soundLock:           Sync.Mutex
     cancel:              u32
@@ -1370,6 +1374,13 @@ private impl FileIndex
     mtd opDrop()
     {
         Atomic.exchange(&.cancel, 1)
+        if .windowThread.isValid()
+        {
+            .windowThread.safeForceEnd()
+            .windowWake.signal()
+            .windowThread.wait()
+        }
+
         if .soundThread.isValid() do
             .soundThread.wait()
         for sound in .seekSounds do
@@ -1788,7 +1799,36 @@ private impl Decoder
         // A window that cannot be built is not retried on the next picture: the walk that would
         // fix it is already running, and asking again every frame would stall every one of them.
         .soundWindowAttempt = target + SoundWindowRetryNanoseconds
-        discard catch buildSoundWindow(fileIndex!, cast(u64) target) as extendError
+        .requestSoundWindow(fileIndex!, cast(u64) target)
+    }
+
+    // Asks the worker for a window covering `target`, and returns without waiting for it.
+    //
+    // One build at a time: a second request while one is in flight is dropped, and the picture
+    // that wanted it asks again once its retry delay has passed.
+    mtd requestSoundWindow(index: *FileIndex, target: u64)
+    {
+        if Atomic.get(&index.windowBuilding) do
+            return
+
+        Atomic.exchange(&index.windowTarget, target)
+        Atomic.exchange(&index.windowBuilding, 1)
+        if !index.windowThread.isValid()
+        {
+            index.windowWake.init()
+            catch index.windowThread.init(&runMatroskaSoundWindow, index, priority: .Normal) as startError
+            if startError == null do
+                discard catch index.windowThread.start()
+            if !index.windowThread.isValid()
+            {
+                // No worker means no window, and a silent film is worse than a late one.
+                Atomic.exchange(&index.windowBuilding, 0)
+                discard catch buildSoundWindow(index, target) as windowError
+                return
+            }
+        }
+
+        index.windowWake.signal()
     }
 
     mtd resumeSoundIndex()
@@ -1808,6 +1848,26 @@ private impl Decoder
             Memory.delete(.fileIndex!)
             .fileIndex = null
         }
+    }
+}
+
+// Builds the bounded sound window a playing picture asked for.
+//
+// The walk reads every cluster between the last cue and the position asked for, which is one to
+// two seconds on a large film read across a network share. Done on the thread that decodes, that
+// is the run-ahead queue emptied and a picture skipped; the player already knows how to show a
+// picture whose sound has not arrived yet, so the walk waits here instead.
+private func runMatroskaSoundWindow(thread: Threading.Thread)
+{
+    let index = cast(*FileIndex) thread.userParam!
+    while !thread.requestEnd
+    {
+        index.windowWake.wait()
+        if thread.requestEnd do
+            break
+
+        discard catch buildSoundWindow(index, Atomic.get(&index.windowTarget)) as windowError
+        Atomic.exchange(&index.windowBuilding, 0)
     }
 }
 

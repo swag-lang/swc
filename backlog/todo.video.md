@@ -222,17 +222,45 @@ is the layout it does not read yet.
 - Complete when: the decoder reads the `indx` hierarchy and follows `AVIX` continuations, and the
   encoder emits them instead of failing once the stream approaches the limit.
 
-### T-563 — H.265 costs twice what FFmpeg does per picture, and reads 4:2:0 alone
+### T-563 — H.265 costs three times what FFmpeg does per picture, and reads 4:2:0 alone
 
 - Intent: the decoder is byte-exact against five JCT-VC conformance bitstreams and against x265
   output in both containers, so what it decodes it decodes correctly. What it is judged on next is
   what one picture costs and what chroma formats it refuses.
-- Measured cost of one picture (2026-08-25, release, one lane so the figure is serial processor
-  time, on a 3840x2076 23.976-fps Main10 Matroska film of 10.3 Mbit/s): **142 ms**, against
-  **66 ms** for FFmpeg single-threaded on the same machine and the same file, and 10.3 ms of wall
-  time for FFmpeg frame-threaded. The margin is therefore about 2.1x, the same shape T-504 records
-  for H.264.
-- Where that time goes, measured by disabling one stage at a time rather than by timing each
+- **Measured cost of one picture, and the reference measured the same way (2026-08-26, release,
+  one lane so the figure is serial processor time, on the 8.5 GB 3840x2076 23.976-fps Main10
+  film, sixty pictures from twenty minutes in): 92 ms against FFmpeg's 28.6 ms of processor
+  time single-threaded on the same passage of the same file. The gap is 3.2x, not the 2.1x this
+  entry recorded** — that comparison put our 142 ms against a 66 ms figure measured another way.
+  Both figures here decode to planes and convert nothing: ours through the module's `#test`
+  harness, FFmpeg through PyAV with `thread_type` set to none.
+- Where that time goes, timed into one counter per stage on that film (the sum falls short of
+  the whole because what is left is the entropy parse and the walk itself): motion compensation
+  33 — luma interpolation 16, chroma 7, combining the two lists 10 — deblocking 15, the inverse
+  transform 8.5, the reduction to eight bits 3.2, adding the residual 3, intra 2.4, and **sample
+  adaptive offset nothing at all: this film never enables it**. The parse and the per-block
+  bookkeeping are therefore about 27 ms, which is on its own what FFmpeg spends on the whole
+  picture. Interpolation and combining are timed per prediction block, so a few milliseconds of
+  those three figures is the clock being read rather than work being done.
+- What that says about where the gap is, and it is not one thing:
+  - **The sample work is at the ceiling of 128-bit vectors.** The interpolation filters already
+    pair their taps through `pmaddwd`, and 16 ms for 15.7 million bi-predicted luma samples is
+    about what that instruction count costs. FFmpeg runs the same filters 256 bits wide. This is
+    T-506, and it is worth roughly half of motion compensation and a third of the transform.
+  - **The parse is not bin-bound.** One picture of the clip in T-504's harness decodes 1,055,000
+    context bins and 288,000 bypass bins; at 27 to 44 ms that is 30 to 50 ns a bin against the
+    ten or so a tuned decoder needs, and the bin itself is a short serial chain that instruction
+    count barely moves (T-504 measured exactly that). What is left is everything around it: the
+    context derivations, the scan bookkeeping and the coefficient store. Deriving the
+    significance context once a sub-block instead of once a coefficient took 2 ms off 44; there
+    is more of that shape in `residualCoding`.
+  - **Deblocking is dominated by what it decides, not by what it filters.** Filtering the four
+    lines of a horizontal luma edge in lanes rather than one at a time took the horizontal half
+    from about 7.5 ms to 6.5. The remaining 15 ms across both directions is half a million luma
+    segments and a quarter of a million chroma ones, each deriving its own thresholds from the
+    quantization parameters and tables before it touches a sample. A chroma segment is two lines
+    of four samples and its derivation is longer than its filter.
+- Where that time went before this pass, measured by disabling one stage at a time rather than by timing each
   (before the pass below; the sum of the parts exceeds the whole because disabling one stage
   changes what the next one reads): motion compensation 47, the loop filter 37, the inverse
   transform 34, adding the residual 14, the reduction to eight bits 10, intra prediction 5, sample

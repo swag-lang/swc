@@ -8,6 +8,32 @@
 
 using Core
 
+// Reads the four lines of a horizontal edge at one position across it.
+//
+// Crossing a horizontal edge moves by a row, so the four lines of a segment are four
+// consecutive samples of the same row: one load holds all four, and the whole segment filters
+// in lanes. The load reads eight, which the padding of every plane keeps inside the row.
+#[Swag.Inline]
+private func lineQuad(line: const [*] u16, offset: s64)->Simd.S16x8
+{
+    return cast #bit(Simd.S16x8) Simd.load(&line[offset])
+}
+
+// Writes back the four lines the quad above holds.
+#[Swag.Inline]
+private func storeQuad(line: [*] u16, offset: s64, value: Simd.S16x8)
+{
+    (cast([*] u64) &line[offset])[0] = (cast #bit(Simd.U64x2) value)[0]
+}
+
+// Holds `value` within `limit` of what the sample was, which is what the strong filter is
+// allowed to move it by, clause 8.7.2.5.7.
+#[Swag.Inline]
+private func holdNear(original, value, limit: Simd.S16x8)->Simd.S16x8
+{
+    return Math.max(Math.min(value, original + limit), original - limit)
+}
+
 // The deblocking parameters of one slice, which the loop filter needs long after the slice that
 // carried them was parsed.
 struct SliceDeblock
@@ -36,6 +62,7 @@ private struct DeblockContext
     bandCount: u32
     laneCount: u32
 }
+
 
 impl Decoder
 {
@@ -323,6 +350,12 @@ impl Decoder
         let filterP = dp < ((beta + (beta >> 1)) >> 3)
         let filterQ = dq < ((beta + (beta >> 1)) >> 3)
 
+        if !vertical
+        {
+            .filterLumaQuad(origin, crossStep, strong, filterP, filterQ, tc, maximum)
+            return
+        }
+
         var line = origin
         for index in 4'u32
         {
@@ -374,6 +407,64 @@ impl Decoder
             }
 
             line += lineStep
+        }
+    }
+
+    // Filters the four lines of one horizontal luma edge segment at once, clause 8.7.2.5.7.
+    //
+    // Every decision the clause makes is made for the segment, not for the line: which filter
+    // to use, whether each side may move, and by how much. Only the weak filter's own bound
+    // varies per line, and a comparison answers that for four lines as readily as for one.
+    private mtd filterLumaQuad(line: [*] u16, crossStep: s64, strong, filterP, filterQ: bool, tc, maximum: s32)
+    {
+        let p0 = lineQuad(line, -crossStep)
+        let p1 = lineQuad(line, -2 * crossStep)
+        let p2 = lineQuad(line, -3 * crossStep)
+        let q0 = lineQuad(line, 0)
+        let q1 = lineQuad(line, crossStep)
+        let q2 = lineQuad(line, 2 * crossStep)
+
+        if strong
+        {
+            let p3    = lineQuad(line, -4 * crossStep)
+            let q3    = lineQuad(line, 3 * crossStep)
+            let limit = Simd.splat(cast(s16) (2 * tc))
+            let fours = Simd.splat(4's16)
+            let twos  = Simd.splat(2's16)
+
+            storeQuad(line, -crossStep, holdNear(p0, (p2 + twos * p1 + twos * p0 + twos * q0 + q1 + fours) >> 3, limit))
+            storeQuad(line, -2 * crossStep, holdNear(p1, (p2 + p1 + p0 + q0 + twos) >> 2, limit))
+            storeQuad(line, -3 * crossStep, holdNear(p2, (twos * p3 + Simd.splat(3's16) * p2 + p1 + p0 + q0 + fours) >> 3, limit))
+            storeQuad(line, 0, holdNear(q0, (p1 + twos * p0 + twos * q0 + twos * q1 + q2 + fours) >> 3, limit))
+            storeQuad(line, crossStep, holdNear(q1, (p0 + q0 + q1 + q2 + twos) >> 2, limit))
+            storeQuad(line, 2 * crossStep, holdNear(q2, (p0 + q0 + q1 + Simd.splat(3's16) * q2 + twos * q3 + fours) >> 3, limit))
+            return
+        }
+
+        let zeros  = Simd.splat(0's16)
+        let maxima = Simd.splat(cast(s16) maximum)
+        let bound  = Simd.splat(cast(s16) tc)
+        var delta  = (Simd.splat(9's16) * (q0 - p0) - Simd.splat(3's16) * (q1 - p1) + Simd.splat(8's16)) >> 4
+
+        // A line the filter would move too far is left alone, and that is the one decision the
+        // clause makes per line rather than per segment.
+        let active = Math.abs(delta) < Simd.splat(cast(s16) (tc * 10))
+        delta = Math.max(Math.min(delta, bound), zeros - bound)
+
+        storeQuad(line, -crossStep, Simd.select(active, Math.max(Math.min(p0 + delta, maxima), zeros), p0))
+        storeQuad(line, 0, Simd.select(active, Math.max(Math.min(q0 - delta, maxima), zeros), q0))
+
+        let half = Simd.splat(cast(s16) (tc >> 1))
+        if filterP
+        {
+            let move = Math.max(Math.min((((p2 + p0 + Simd.splat(1's16)) >> 1) - p1 + delta) >> 1, half), zeros - half)
+            storeQuad(line, -2 * crossStep, Simd.select(active, Math.max(Math.min(p1 + move, maxima), zeros), p1))
+        }
+
+        if filterQ
+        {
+            let move = Math.max(Math.min((((q2 + q0 + Simd.splat(1's16)) >> 1) - q1 - delta) >> 1, half), zeros - half)
+            storeQuad(line, crossStep, Simd.select(active, Math.max(Math.min(q1 + move, maxima), zeros), q1))
         }
     }
 

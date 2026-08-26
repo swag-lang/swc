@@ -2,12 +2,12 @@ const N   = 800'u64
 const NN  = N * N
 const INF = 0x0FFFFFFFFFFFFFFF'u64
 
-var g_HeapD: [*] u64 = undefined
-var g_HeapN: [*] u64 = undefined
-var g_HeapSize       = 0'u64
+var g_HeapD:    [*] u64 = undefined
+var g_HeapN:    [*] u64 = undefined
+var g_HeapSize: u64     = undefined
 
-var g_PopD = 0'u64
-var g_PopN = 0'u64
+var g_PopD: u64 = undefined
+var g_PopN: u64 = undefined
 
 func push(d, node: u64)
 {
@@ -27,14 +27,14 @@ func push(d, node: u64)
         let tn = g_HeapN[p]
         g_HeapN[p] = g_HeapN[i]
         g_HeapN[i] = tn
-        i = p
+        i          = p
     }
 }
 
 func pop()
 {
-    g_PopD = g_HeapD[0]
-    g_PopN = g_HeapN[0]
+    g_PopD     = g_HeapD[0]
+    g_PopN     = g_HeapN[0]
     g_HeapSize -= 1
     g_HeapD[0] = g_HeapD[g_HeapSize]
     g_HeapN[0] = g_HeapN[g_HeapSize]
@@ -57,7 +57,7 @@ func pop()
         let tn = g_HeapN[m]
         g_HeapN[m] = g_HeapN[i]
         g_HeapN[i] = tn
-        i = m
+        i          = m
     }
 }
 
@@ -82,8 +82,8 @@ func pop()
     dist[0] = 0
     push(0, 0)
 
-    var pops         = 0'u64
-    const Target     = NN - 1
+    var pops = 0'u64
+    const Target = NN - 1
 
     while g_HeapSize > 0
     {
@@ -109,6 +109,7 @@ func pop()
                 push(nd, v)
             }
         }
+
         if x < N - 1
         {
             let v  = u + 1
@@ -119,6 +120,7 @@ func pop()
                 push(nd, v)
             }
         }
+
         if y > 0
         {
             let v  = u - N
@@ -129,6 +131,7 @@ func pop()
                 push(nd, v)
             }
         }
+
         if y < N - 1
         {
             let v  = u + N

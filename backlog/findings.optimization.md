@@ -384,6 +384,10 @@ Entries are sorted by identifier, ascending; position carries no priority.
   belongs in allocation (keep the value resident so no hoist is needed), not in a smarter hoist.
   The remaining traffic is
   [F-136](#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) again.
+- Next step: use `Hevc.Decoder.filterLumaEdge` and `Hevc.Decoder.interpolateLuma` as the large
+  acceptance workloads for F-136's interval allocator work. Re-run the recorded frame-access and
+  per-segment measurements after that allocator can split live ranges; do not extend the post-RA
+  hoist unless one of these dumps first shows an invariant value with a reusable destination.
 
 ### F-194 — Loop-invariant code motion stops at a lane broadcast
 
@@ -501,7 +505,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   and preloads must stop above a per-class free floor, or they take exactly the claim-free
   registers and push the body's short-lived values onto ABI-touched ones where every concrete
   touch spills them.
-- Next step, from the residency-era cause histogram of the hot decoder functions
+- Next step: from the residency-era cause histogram of the hot decoder functions
   (`interpolateLuma` with residency: keep 31, back-edge 7, evict 65 of 117 use-reloads): the
   boundary family is now mostly paid for, and what is left is eviction churn under genuine
   pressure in fat bodies plus the join-disagree row. Swapping eviction priority to

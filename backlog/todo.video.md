@@ -242,6 +242,23 @@ is the layout it does not read yet.
   bookkeeping are therefore about 27 ms, which is on its own what FFmpeg spends on the whole
   picture. Interpolation and combining are timed per prediction block, so a few milliseconds of
   those three figures is the clock being read rather than work being done.
+- What the parse gave up once it was timed rather than guessed at (2026-08-26): its prologue
+  cost **8.8 ms of a picture for 4,446 transform units, two microseconds each**, and almost all
+  of it was one loop. A block states the position of its last significant coefficient, and
+  everything read afterwards is indexed by scan order, so the parse walked the scan backwards
+  from the end of the block until the position matched — up to a thousand steps on a 32x32
+  block. A scan is a permutation; its inverse answers outright. **8.8 ms became 0.8**, and one
+  picture of the film fell from 98.7 ms to 83.6.
+- What the emitted code says about the interpolation loops, which is where the next big number
+  is (2026-08-26, `#[Swag.PrintMicro]` on `interpolateLuma`): the filter reads its tap vectors
+  from a table indexed by the fraction **inside** the loop, which costs an address computation
+  per pair per group of eight samples, and the accumulators **spill to the frame and are
+  reloaded inside the innermost body**. Reading the taps once per block took the table
+  addressing out (20 pointer loads to 5, 105 multiplies to 85) and is kept for that, but **it
+  did not move the clock**: the loop is not bound by those instructions. The spills are, and
+  they are F-193's shape — twelve of them survive in one function. A luma filter call covers
+  about 800 samples in 1.73 microseconds, which is 8.6 cycles a sample where the instruction
+  count predicts about three.
 - What that says about where the gap is, and it is not one thing:
   - **The sample work is at the ceiling of 128-bit vectors.** The interpolation filters already
     pair their taps through `pmaddwd`, and 16 ms for 15.7 million bi-predicted luma samples is

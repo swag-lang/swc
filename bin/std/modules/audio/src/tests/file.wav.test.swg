@@ -135,7 +135,7 @@ using Swag, Core
 
 #test
 {
-    const Files: [7] string = ["clip.wav", "clip.flac", "clip.mp3", "clip.aac", "clip.ac3", "clip.eac3", "clip.ec3"]
+    const Files: [8] string = ["clip.wav", "clip.flac", "clip.mp3", "clip.aac", "clip.ac3", "clip.eac3", "clip.ec3", "clip.dts"]
 
     let extensions = SoundFile.decodableExtensions()
     @assert(extensions.count == @countof(Files))

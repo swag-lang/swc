@@ -62,6 +62,9 @@ func videoAudioEncodingText(encoding: Audio.SoundFileEncoding)->string
     case .AacLc:   return "AAC-LC"
     case .Ac3:     return "AC-3"
     case .Eac3:    return "E-AC-3"
+    case .Dts:     return "DTS"
+    case .Flac:    return "FLAC"
+    case .Mp3:     return "MP3"
     default:       return "Audio"
     }
 }

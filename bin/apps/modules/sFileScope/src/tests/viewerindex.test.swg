@@ -100,7 +100,7 @@ func viewerRegistryFixturePath(name: string)->String
     let midiChoices = index.choices("score.mid")
     @assert(midiChoices[0].name == "MIDI" and midiChoices[1].name == "Binary" and midiChoices[2].name == "Hexadecimal")
 
-    const SoundFiles: [7] string = ["sound.wav", "sound.flac", "sound.mp3", "sound.aac", "sound.ac3", "sound.eac3", "sound.ec3"]
+    const SoundFiles: [8] string = ["sound.wav", "sound.flac", "sound.mp3", "sound.aac", "sound.ac3", "sound.eac3", "sound.ec3", "sound.dts"]
     for file in SoundFiles do
         @assert(index.choices(file)[0].key == "sound")
 }

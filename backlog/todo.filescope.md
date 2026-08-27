@@ -311,7 +311,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 ### T-420 — WebM and VP9/AV1 Matroska video cannot be played
 
 - Intent: Matroska now plays H.264, H.265, or MPEG-4 Part 2 with selectable AAC-LC, AC-3, E-AC-3,
-  FLAC, or MPEG Layer III tracks through a compact EBML block index. WebM, and Matroska streams
+  DTS Core, FLAC, or MPEG Layer III tracks through a compact EBML block index. WebM, and Matroska streams
   carrying VP9, AV1, Opus, or Vorbis, remain unread.
   The container already retains timestamps, synchronization points, lacing, and payload offsets;
   what remains is picture and sound codec support rather than another container design.
@@ -329,7 +329,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 - Complete when: sFileScope offers a sound-only view for every decodable track when no picture
   track can be decoded, states that the picture is unavailable, and keeps ordinary video playback
   unchanged when both sides are supported.
-- Related: T-568 in [todo.video.md](todo.video.md), T-562 in [todo.audio.md](todo.audio.md)
+- Related: T-568 in [todo.video.md](todo.video.md)
 
 ### T-415 — EPUB stops at the ZIP structure
 

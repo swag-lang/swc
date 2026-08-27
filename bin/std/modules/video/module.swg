@@ -46,7 +46,7 @@ Four codecs ship in the box:
   packet offsets while payloads remain in the file. Exact composition timestamps are retained for
   variable-rate playback and coded display reordering.
 - Matroska (`.mkv`) reads H.264, H.265, and MPEG-4 Part 2 pictures and exposes every AAC-LC, AC-3,
-  independent E-AC-3, FLAC, and MPEG Layer III audio track with up to eight channels. A picture
+  independent E-AC-3, DTS Core, FLAC, and MPEG Layer III audio track with up to eight channels. A picture
   track remuxed from a legacy file is read as well: such a track names its codec through a Video
   for Windows header, states its setup headers inside the stream rather than in the container, and
   may store a bidirectional plane behind the plane it refers forward to. Display order is then

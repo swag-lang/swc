@@ -18,8 +18,8 @@ The [[Audio.SoundFile]] must outlive every [[Audio.Voice]] created from it.
 Streaming voices also keep the source path and open the file on demand.
 
 Container modules can create indexed packet streams with
-[[Audio.SoundFile.openPacketStream]]. AAC-LC supports one to six channels; AC-3 and independent
-E-AC-3 support one to six channels. All three decode to interleaved 16-bit PCM in the module's
+[[Audio.SoundFile.openPacketStream]]. AAC-LC, AC-3, independent E-AC-3, and DTS Core support one
+to six channels. All four decode to interleaved 16-bit PCM in the module's
 native Swag codecs. `leadingTrimFrames` removes codec priming from the public timeline, so frame
 zero and a seek to frame zero begin at the first audible sample.
 

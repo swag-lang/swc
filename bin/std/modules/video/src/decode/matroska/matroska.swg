@@ -1,5 +1,5 @@
 //! Format: Matroska/EBML container decoder component.
-//! Supported: H.264, H.265 and MPEG-4 Part 2 picture tracks, the last also through a Video for Windows header, and AAC-LC, AC-3, independent E-AC-3, FLAC, or Layer III audio tracks, with cues, timestamps, codec delay, and common block lacing for audio.
+//! Supported: H.264, H.265 and MPEG-4 Part 2 picture tracks, the last also through a Video for Windows header, and AAC-LC, AC-3, independent E-AC-3, DTS Core, FLAC, or Layer III audio tracks, with cues, timestamps, codec delay, and common block lacing for audio.
 //! Not supported: Picture codecs other than those three, laced or invisible picture blocks, dependent E-AC-3 substreams, encrypted tracks, and writing Matroska.
 //! Role: This file owns tracks, clusters, cues, timestamps, progressive indexing, and media dispatch.
 //
@@ -15,6 +15,7 @@ private const HevcCodecId = "V_MPEGH/ISO/HEVC"
 private const AacCodecId = "A_AAC"
 private const Ac3CodecId = "A_AC3"
 private const Eac3CodecId = "A_EAC3"
+private const DtsCodecId = "A_DTS"
 private const FlacCodecId = "A_FLAC"
 private const Mp3CodecId = "A_MPEG/L3"
 private const Mpeg4CodecId = "V_MPEG4/ISO/ASP"
@@ -43,6 +44,37 @@ private func dolbySpeakerMask(acmod: u32, lfeon: bool)->u32
 {
     const Masks: [8] u32 = [0x0003, 0x0004, 0x0003, 0x0007, 0x0103, 0x0107, 0x0033, 0x0037]
     return Masks[acmod] | (lfeon ? 0x0008 : 0)
+}
+
+private func dtsPacketBits(bytes: const [..] u8, offset: u64, bitPosition, count: u32, littleEndianWords: bool)->u32
+{
+    var result: u32
+    for bit in count
+    {
+        let position = cast(u64) bitPosition + bit
+        let byte     = (position >> 3) ^ (littleEndianWords ? 1 : 0)
+        result = (result << 1) | ((cast(u32) bytes[offset + byte] >> cast(u32) (7 - (position & 7))) & 1)
+    }
+
+    return result
+}
+
+internal func dtsSpeakerMask(packet: const [..] u8)->u32 fail
+{
+    if @countof(packet) < 11 do
+        fail InvalidFormatError{"Matroska DTS packet header is truncated"}
+
+    let bigEndian    = packet[0] == 0x7F and packet[1] == 0xFE and packet[2] == 0x80 and packet[3] == 0x01
+    let littleEndian = packet[0] == 0xFE and packet[1] == 0x7F and packet[2] == 0x01 and packet[3] == 0x80
+    if !bigEndian and !littleEndian do
+        fail InvalidFormatError{"Matroska DTS packet has no 16-bit core sync word"}
+
+    let mode = dtsPacketBits(packet, 0, 60, 6, littleEndian)
+    let lfe  = dtsPacketBits(packet, 0, 85, 2, littleEndian)
+    const Masks: [10] u32 = [0x0004, 0x0003, 0x0003, 0x0003, 0x0003, 0x0007, 0x0103, 0x0107, 0x0033, 0x0037]
+    if mode >= @countof(Masks) or lfe == 3 do
+        fail InvalidFormatError{"Matroska DTS packet states an invalid channel arrangement"}
+    return Masks[mode] | (lfe ? 0x0008 : 0)
 }
 
 // Container root resolved once from the EBML header.
@@ -174,6 +206,8 @@ private impl Track
             return .Ac3
         if .codecId == Eac3CodecId do
             return .Eac3
+        if .codecId == DtsCodecId do
+            return .Dts
         if .codecId == FlacCodecId do
             return .Flac
         if .codecId == Mp3CodecId do
@@ -206,7 +240,15 @@ private impl Track
         let encoding = .soundEncoding()
 
         // AAC states its channel configuration in the decoder setup, and FLAC in its stream
-        // information; only Dolby hides it in the first packet.
+        // information; Dolby and DTS hide it in the first packet.
+        if encoding == .Dts
+        {
+            let packet = .audioPackets[0]
+            if packet.sourceOffset > @countof(bytes) or packet.byteSize > @countof(bytes) - packet.sourceOffset do
+                fail InvalidFormatError{"Matroska DTS audio packet is truncated"}
+            return try dtsSpeakerMask(bytes[packet.sourceOffset until packet.sourceOffset + packet.byteSize])
+        }
+
         if encoding != .Ac3 and encoding != .Eac3 do
             return 0
         let packet = .audioPackets[0]
@@ -1462,7 +1504,8 @@ private func buildSoundIndex(index: *FileIndex) fail
     publishFullSound(index, &tracks)
 }
 
-// Reads Matroska files carrying H.264 pictures and supported AAC-LC, AC-3, or E-AC-3 tracks.
+// Reads Matroska files carrying supported picture tracks and AAC-LC, AC-3, E-AC-3, DTS Core,
+// FLAC, or MPEG Layer III sound tracks.
 //
 // Opening reads seek, track, and cue metadata plus the first audio-bearing cluster. Decoding
 // advances one demux cursor through complete clusters on demand; random access restarts that

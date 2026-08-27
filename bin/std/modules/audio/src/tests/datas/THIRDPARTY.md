@@ -8,6 +8,15 @@ both with a 512-sample attack, so it contains no third-party recording. It was e
 - SHA-256: `e002c74b334f68808367d2a0881afa9928efed09f1433a6ead214e452d117b8f`
 - License: same as this repository.
 
+`dts-5.1-48000.dts` is a half-second 1,509 kbit/s DTS Core stream generated for this repository
+with dcaenc commit `68ed0d6d370268f04c22cadc9c8fc54a479958ab`. Its six synthetic inputs are
+300, 400, 500, 60, 700, and 800 Hz sine waves at amplitude 12,000 in signed 16-bit PCM, assigned
+to FL, FR, FC, LFE, BL, and BR. It contains no third-party recording. dcaenc generated only the
+fixture and is not a build or runtime dependency.
+
+- SHA-256: `6de5bc7205bd12bb36948215f8bc61cc8230a183670e5389b6b532bb1a04754e`
+- License: same as this repository.
+
 `aac-lc-5.1-48000.aac`, `ac3-5.1-48000.ac3`, and `eac3-5.1-48000.eac3` are half-second 48 kHz
 5.1 streams generated for this repository with FFmpeg
 `N-126262-g1019f8f036-20260824`. Their six synthetic inputs are 300, 400, 500, 600, 700, and

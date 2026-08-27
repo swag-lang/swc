@@ -32,11 +32,11 @@ implementations with [[Audio.registerCodec]] during initialization. Codecs opera
 caller-owned buffers and report both consumed input bytes and produced output
 bytes.
 
-The built-in packet codecs decode AAC-LC, AC-3, the common independent E-AC-3 profile, FLAC, and
-MPEG Layer III without calling an operating-system media decoder. Layer III covers all three MPEG
+The built-in packet codecs decode AAC-LC, AC-3, the common independent E-AC-3 profile, DTS Core,
+FLAC, and MPEG Layer III without calling an operating-system media decoder. Layer III covers all three MPEG
 versions at every sampling frequency, and a `.mp3` file opens through [[Audio.SoundFile.load]],
 which drops the priming its encoder tag states so playback lines up with every other player. The
-same call opens `.aac` transport streams and `.ac3` and `.eac3` elementary streams, each indexed by
+same call opens `.aac` transport streams and `.ac3`, `.eac3`, and `.dts` elementary streams, each indexed by
 walking its frame headers. FLAC is lossless, and a sixteen-bit stream up
 to eight channels therefore reaches the mixer as the exact samples that were encoded; a deeper
 stream is scaled down to the sixteen bits every packet codec here produces. E-AC-3 streams using

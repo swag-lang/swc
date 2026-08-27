@@ -93,6 +93,66 @@ impl BorrowInvBuffer
     {
         return .length
     }
+
+    // 'me' is caller-owned, but the method body still knows exactly which payload its
+    // own receiver view designates. Growing that receiver must invalidate the view in
+    // the body just as it does at an ordinary call site.
+    mtd receiverInvalidatesOwnView()->u8
+    {
+        let view = .data!
+        .reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+        return view[0]
+    }
+
+    // Replacing the carrier detaches the old allocation from the receiver. This is the
+    // shape used by opPostCopy: allocating a fresh payload must not make a saved pointer
+    // to the old payload stale before the copy from it.
+    mtd receiverKeepsDetachedOldPayload()->u8
+    {
+        let oldData = .data!
+        .data     = null
+        .capacity = 0
+        .reserve(64)
+        return oldData[0]
+    }
+
+    // Detaching on only one path cannot erase the route on the other path.
+    mtd receiverConditionallyDetachesOldPayload(detach: bool)->u8
+    {
+        let oldData = .data!
+        if detach
+        {
+            .data     = null
+            .capacity = 0
+        }
+        .reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+        return oldData[0]
+    }
+}
+
+struct BorrowInvPair
+{
+    left:  BorrowInvBuffer
+    right: BorrowInvBuffer
+}
+
+impl BorrowInvPair
+{
+    mtd receiverInvalidatesMatchingField()->u8
+    {
+        let view = .right.data!
+        .right.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+        return view[0]
+    }
+
+    // A receiver parameter is not one undifferentiated allocation: changing one owned
+    // field cannot invalidate a view into a sibling field.
+    mtd receiverKeepsSiblingPayload()->u8
+    {
+        let view = .left.data!
+        .right.reserve(64)
+        return view[0]
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -521,6 +581,48 @@ func borrowInvExclusiveBranchesInLoop(grow: bool)->u8
         {
             total += view[0]
         }
+    }
+
+    return total
+}
+
+// A view rebuilt at the start of every iteration cannot be read after a mutating arm
+// that unconditionally continues: the next iteration replaces it first.
+func borrowInvContinueRebuildsView(grow: bool)->u8
+{
+    var buf: BorrowInvBuffer
+    buf.reserve(4)
+    var total: u8
+    for 4
+    {
+        let view = buf.view()
+        if grow
+        {
+            buf.reserve(64)
+            continue
+        }
+        total += view[0]
+    }
+
+    return total
+}
+
+// The same continue does not save a view declared outside the loop: a later iteration
+// can still read it without rebuilding it.
+func borrowInvContinueKeepsOuterView(grow: bool)->u8
+{
+    var buf: BorrowInvBuffer
+    buf.reserve(4)
+    let view = buf.view()
+    var total: u8
+    for 4
+    {
+        if grow
+        {
+            buf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+            continue
+        }
+        total += view[0]
     }
 
     return total

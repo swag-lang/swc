@@ -47,6 +47,14 @@ using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 class SymbolFunction : public SymbolMapT<SymbolKind::Function, SymbolFunctionFlagsE>
 {
 public:
+    struct ReallocatedParamField
+    {
+        uint8_t               paramIndex = 0;
+        const SymbolVariable* field      = nullptr;
+
+        bool operator==(const ReallocatedParamField&) const noexcept = default;
+    };
+
     static constexpr auto K = SymbolKind::Function;
 
     explicit SymbolFunction(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
@@ -114,7 +122,29 @@ public:
     void     addReallocatesParam(size_t paramIndex) noexcept
     {
         if (paramIndex < 64)
+        {
             reallocatesParamsMask_ |= 1ULL << paramIndex;
+            reallocatesUnknownProjectionParamsMask_ |= 1ULL << paramIndex;
+        }
+    }
+    void addReallocatesParamField(size_t paramIndex, const SymbolVariable& field)
+    {
+        if (paramIndex >= 64)
+            return;
+
+        reallocatesParamsMask_ |= 1ULL << paramIndex;
+        const ReallocatedParamField entry{static_cast<uint8_t>(paramIndex), &field};
+        if (std::ranges::find(reallocatedParamFields_, entry) == reallocatedParamFields_.end())
+            reallocatedParamFields_.push_back(entry);
+    }
+    std::span<const ReallocatedParamField> reallocatedParamFields() const noexcept { return reallocatedParamFields_.span(); }
+    bool reallocatesParamProjectionUnknown(size_t paramIndex) const noexcept
+    {
+        if (paramIndex >= 64)
+            return true;
+        const uint64_t bit = 1ULL << paramIndex;
+        return (reallocatesUnknownProjectionParamsMask_ & bit) ||
+               (hasAttributes() && (attributes().reallocatesParamsMask & bit));
     }
 
     // Bit (into*8 + stored) = parameter #stored may be stored into storage reachable
@@ -268,14 +298,16 @@ private:
     std::unordered_set<const SymbolVariable*> localVariableSet_;
     std::vector<SymbolFunction*>              callDependencies_;
     std::unordered_set<SymbolFunction*>       callDependencySet_;
-    uint32_t                                  numComputedLocals_        = 0;
-    uint32_t                                  localStackOffset_         = 0;
-    uint64_t                                  returnBorrowsParamsMask_  = 0;
-    uint64_t                                  storesParamsMask_         = 0;
-    uint64_t                                  storesIntoParamPairs_     = 0;
-    uint64_t                                  freesParamsMask_          = 0;
-    uint64_t                                  reallocatesParamsMask_    = 0;
-    uint64_t                                  returnsPayloadParamsMask_ = 0;
+    uint32_t                                  numComputedLocals_                      = 0;
+    uint32_t                                  localStackOffset_                       = 0;
+    uint64_t                                  returnBorrowsParamsMask_                = 0;
+    uint64_t                                  storesParamsMask_                       = 0;
+    uint64_t                                  storesIntoParamPairs_                   = 0;
+    uint64_t                                  freesParamsMask_                        = 0;
+    uint64_t                                  reallocatesParamsMask_                  = 0;
+    uint64_t                                  reallocatesUnknownProjectionParamsMask_ = 0;
+    uint64_t                                  returnsPayloadParamsMask_               = 0;
+    SmallVector4<ReallocatedParamField>       reallocatedParamFields_;
     TypeRef                                   returnType_               = TypeRef::invalid();
     uint8_t                                   rtAttributeBitIndex_      = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
     SpecOpKind                                specOpKind_               = SpecOpKind::None;

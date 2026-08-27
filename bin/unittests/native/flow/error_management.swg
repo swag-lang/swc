@@ -105,6 +105,15 @@ func mayFailValue(value: s32 = 42)->s32 fail
 
 func mayFailVoid() fail {}
 
+func tryIfElse(condition: bool) fail
+{
+    resetErrorTrace()
+    if condition do
+        try mayFailVoid()
+    else do
+        appendErrorTrace(1)
+}
+
 func alwaysFailValue(code: s32)->s32 fail
 {
     fail ErrValue{code: code}
@@ -953,4 +962,13 @@ func notNullSliceSuccess()->s32
 #test
 {
     @assert(repeatedCatchFailureSum() == 820)
+}
+
+#test
+{
+    try tryIfElse(false)
+    @assert(ErrorTrace == 1)
+
+    try tryIfElse(true)
+    @assert(ErrorTrace == 0)
 }

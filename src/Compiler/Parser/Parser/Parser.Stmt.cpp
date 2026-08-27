@@ -427,6 +427,7 @@ AstNodeRef Parser::parseFor()
 
 AstNodeRef Parser::parseErrorManagementStmt()
 {
+    const TokenId opTokenId = id();
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ErrorManagementStmt>(consume());
     if (is(TokenId::SymLeftCurly))
         nodePtr->nodeBodyRef = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
@@ -451,7 +452,7 @@ AstNodeRef Parser::parseErrorManagementStmt()
         nodePtr->errNameTokRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
     // 'catch e else { H }' / 'catch e else do H': the anonymous lazy handler H runs only when 'e'
     // fails (it cannot inspect the error — use 'as err' for that). Emitted on the failure path only.
-    else if (consumeIf(TokenId::KwdElse).isValid())
+    else if (opTokenId == TokenId::KwdCatch && consumeIf(TokenId::KwdElse).isValid())
         nodePtr->nodeHandlerRef = parseDoCurlyBlock();
 
     return nodeRef;

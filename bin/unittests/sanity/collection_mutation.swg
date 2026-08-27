@@ -71,7 +71,7 @@ func collMutAddDuringIter()
     var v: CollMutVec
     v.add(1)
     v.add(2)
-    for x in v
+    for x in v     // swc-expected-note {{sema_note_iteration_source_here}}
     {
         v.add(x)     // swc-expected-error {{sanity_err_collection_mutated}}
     }

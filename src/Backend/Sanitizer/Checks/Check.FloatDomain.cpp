@@ -81,8 +81,10 @@ namespace
         if (!constantAsDouble(value, arg.constant, paramType.payloadFloatBitsOr(64)))
             return;
 
-        if ((isLog && violatesLogDomain(value)) || (isArc && violatesArcDomain(value)))
-            sanitizer.report(inst, DiagnosticId::sanity_err_invalid_argument);
+        if (isLog && violatesLogDomain(value))
+            sanitizer.report(inst, DiagnosticId::sanity_err_invalid_argument, name, "a nonnegative argument");
+        else if (isArc && violatesArcDomain(value))
+            sanitizer.report(inst, DiagnosticId::sanity_err_invalid_argument, name, "an argument from -1 through 1");
     }
 }
 
@@ -99,7 +101,7 @@ void FloatDomainCheck::run(Sanitizer& sanitizer, const SanitizerState& state, co
         if (operand.kind == SanitizerValueKind::Constant &&
             constantAsDouble(value, operand.constant, static_cast<uint32_t>(ops[2].opBits)) &&
             value < 0.0)
-            sanitizer.report(inst, DiagnosticId::sanity_err_invalid_argument);
+            sanitizer.report(inst, DiagnosticId::sanity_err_invalid_argument, "@sqrt", "a nonnegative argument");
         return;
     }
 

@@ -11,7 +11,7 @@ var contextEscapeGlobal: Context
 // error machinery, the allocator - dies far from here.
 func contextEscapeLeaksLocal()
 {
-    var cxt = @getcontext()[]
+    var cxt = @getcontext()[]     // swc-expected-note {{sema_note_borrow_source_declared_here}}
     cxt.user0 = 1
     @setcontext(cxt)     // swc-expected-error {{sanity_err_context_escape}}
 }

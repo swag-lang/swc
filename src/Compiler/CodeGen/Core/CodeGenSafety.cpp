@@ -376,11 +376,12 @@ Result CodeGenSafety::emitLifecycleInvalidate(CodeGen& codeGen, const MicroReg a
         return Result::Continue;
 
     const CodeGenNodePayload localPayload = codeGen.resolveLocalStackPayload(symVar, false);
+    const ScopedDebugSource  debugSource(codeGen.builder(), codeGen.node(resolvedRef).codeRef());
     codeGen.builder().emitSanityInvalidate(localPayload.reg, sizeInBytes);
     return Result::Continue;
 }
 
-Result CodeGenSafety::emitUndefinedInitMarkers(CodeGen& codeGen, const MicroReg addrReg, const uint64_t sizeInBytes)
+Result CodeGenSafety::emitUndefinedInitMarkers(CodeGen& codeGen, const MicroReg addrReg, const uint64_t sizeInBytes, const SourceCodeRef& sourceRef)
 {
     if (sizeInBytes == 0 || !addrReg.isValid())
         return Result::Continue;
@@ -394,7 +395,10 @@ Result CodeGenSafety::emitUndefinedInitMarkers(CodeGen& codeGen, const MicroReg 
 
     // The undefined marker feeds the STATIC sanitizer: it belongs to Swag.Sanity(.Lifecycle).
     if (hasLifecycleSanity(codeGen))
+    {
+        const ScopedDebugSource debugSource(codeGen.builder(), sourceRef);
         codeGen.builder().emitSanityUndefined(addrReg, sizeInBytes);
+    }
 
     return Result::Continue;
 }

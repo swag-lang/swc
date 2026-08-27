@@ -30,6 +30,18 @@ struct SanitizerRegInfo
     }
 };
 
+struct SanitizerMovedRange
+{
+    uint64_t      size = 0;
+    SourceCodeRef origin;
+};
+
+struct SanitizerUndefinedRange
+{
+    uint64_t      size = 0;
+    SourceCodeRef origin;
+};
+
 // Abstract machine state at one program point: the tracked value of every virtual
 // register and simulated local stack slot, plus which register the CPU flags encode a
 // comparison of against zero.
@@ -39,10 +51,12 @@ struct SanitizerState
     std::unordered_map<int64_t, SanitizerValue>    stack; // key: stack slot offset
 
     // Frame ranges abandoned by a '#move'/'#relocate' (moved-from, not reset), set by a
-    // 'SanityInvalidate' marker: key = slot offset, value = size in bytes. A range is
-    // moved-from only when it is on *every* path (join = intersection); any store into
-    // the range revalidates it, and calls conservatively clear the whole set.
-    std::unordered_map<int64_t, uint64_t> movedFrom;
+    // 'SanityInvalidate' marker: key = slot offset. A range is moved-from only when it
+    // is on *every* path (join = intersection); any store into the range revalidates
+    // it, and calls conservatively clear the whole set. The source identifies the move
+    // when every incoming path agrees on it; an ambiguous join keeps the fact without
+    // claiming one origin.
+    std::unordered_map<int64_t, SanitizerMovedRange> movedFrom;
 
     // Slots holding a pointer that was handed to a FREEING callee (freesParamsMask):
     // dereferencing that pointer again is a use-after-free, freeing it again a double
@@ -53,11 +67,12 @@ struct SanitizerState
     std::unordered_map<int64_t, SourceCodeRef> freedPtrSlots;
 
     // Frame ranges declared with an explicit 'undefined' initializer and not yet
-    // written, set by a 'SanityUndefined' marker: key = slot offset, value = size in
-    // bytes. Reading such a range is a proven read of uninitialized storage. Same
+    // written, set by a 'SanityUndefined' marker: key = slot offset. Reading such a
+    // range is a proven read of uninitialized storage. Same
     // discipline as movedFrom: join = intersection, any store that could alias the
     // range initializes it, calls conservatively clear the set (out-parameters).
-    std::unordered_map<int64_t, uint64_t> undefinedInit;
+    // The source identifies the declaration when every incoming path agrees on it.
+    std::unordered_map<int64_t, SanitizerUndefinedRange> undefinedInit;
 
     MicroReg flagsSubject = MicroReg::invalid();
 };

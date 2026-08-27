@@ -793,9 +793,9 @@ namespace
                 copyOps[0].reg    = ops[0].reg;
                 copyOps[1].reg    = ops[1].reg;
                 copyOps[2].opBits = opBits;
-                context.storage->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegReg, copyOps);
                 ops[1].reg     = ops[0].reg;
                 ops[3].microOp = MicroOp::FloatAdd;
+                context.storage->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegReg, copyOps);
                 return true;
             }
         }

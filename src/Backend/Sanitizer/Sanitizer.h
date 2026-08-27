@@ -13,6 +13,7 @@ enum class DiagnosticId;
 class SanitizerCheck;
 class Symbol;
 class SymbolFunction;
+class SymbolVariable;
 class TaskContext;
 
 // The sanitizer engine: a path-sensitive "must-be-zero" abstract-interpretation
@@ -66,18 +67,34 @@ public:
     // run as having found something so the pass can abort codegen.
     void report(const MicroInstr& inst, DiagnosticId id);
     void report(const MicroInstr& inst, DiagnosticId id, const SourceCodeRef& noteSource, DiagnosticId noteId);
+    void report(const MicroInstr& inst, DiagnosticId id, std::string_view sym, std::string_view what);
 
     // Reports 'id' when 'inst' is a plain load whose stack slot falls inside one of the
     // poisoned ranges. Address computations and indexed forms are left alone: the first is a
     // legitimate way to (re)initialize through an out-parameter, the second cannot prove the
     // range it touches.
-    void reportLoadFromPoisonedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, const std::unordered_map<int64_t, uint64_t>& poisoned, DiagnosticId id);
+    void reportLoadFromUndefinedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, DiagnosticId id);
+    void reportLoadFromMovedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, DiagnosticId id);
 
 private:
+    struct ReportNote
+    {
+        SourceCodeRef         source;
+        DiagnosticId          id = {};
+        const SymbolVariable* sym = nullptr;
+    };
+
+    struct ReportArguments
+    {
+        std::string_view sym;
+        std::string_view what;
+    };
+
     // Register / slot access.
     static const SanitizerRegInfo* findReg(const SanitizerState& state, MicroReg reg);
     static void                    setReg(SanitizerState& state, MicroReg reg, const SanitizerRegInfo& info);
     static void                    setRegValue(SanitizerState& state, MicroReg reg, const SanitizerValue& value);
+    bool                           resolvePlainLoadStackSlot(int64_t& outSlot, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state) const;
 
     // Join + propagation.
     void        propagate(const SanitizerState& edge, uint32_t index, std::vector<uint32_t>& worklist);
@@ -100,15 +117,19 @@ private:
     void        queueRefined(const SanitizerState& state, uint32_t index, int64_t slot, bool slotIsZero, std::vector<uint32_t>& worklist);
     static void dropZeros(SanitizerState& state);
     static bool isModelledSingleEdge(const MicroInstrDef& def, const MicroControlFlowGraph::EdgeList& succs);
+    void        report(const MicroInstr& inst, DiagnosticId id, const ReportArguments& arguments, std::span<const ReportNote> notes);
 
     static constexpr uint32_t K_MAX_INSTRUCTIONS = 20000;
     static constexpr uint64_t K_ITERATION_CAP    = 400000;
 
     struct LocalSlotExtent
     {
-        int64_t  start = 0;
-        uint64_t size  = 0;
+        int64_t               start = 0;
+        uint64_t              size  = 0;
+        const SymbolVariable* sym   = nullptr;
     };
+
+    const LocalSlotExtent* findLocalSlot(int64_t offset) const;
 
     MicroPassContext&            context_;
     MicroReg                     stackBaseReg_;

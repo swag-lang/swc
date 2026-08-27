@@ -66,7 +66,7 @@ func uafForwardFreeAndReturn(ptr: *void, size: u64)->UafIndirectResult
 {
     let p = cast(*s32) myAlloc(4)
     p[] = 1
-    myFree(p, 4)
+    myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     let x = p[]     // swc-expected-error {{sanity_err_use_after_free}}
     discard x
 }
@@ -76,7 +76,7 @@ func uafForwardFreeAndReturn(ptr: *void, size: u64)->UafIndirectResult
 #test
 {
     let p = cast(*s32) myAlloc(4)
-    myFree(p, 4)
+    myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     p[] = 2     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
@@ -85,7 +85,7 @@ func uafForwardFreeAndReturn(ptr: *void, size: u64)->UafIndirectResult
 #test
 {
     let p = cast(*s32) myAlloc(4)
-    myFree(p, 4)
+    myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     myFree(p, 4)     // swc-expected-error {{sanity_err_double_free}}
 }
 
@@ -94,7 +94,7 @@ func uafForwardFreeAndReturn(ptr: *void, size: u64)->UafIndirectResult
 #[Swag.Sanity(.Lifecycle, true)]
 func rejectFreeBorrowed()
 {
-    var value: s32
+    var value: s32     // swc-expected-note {{sema_note_borrow_source_declared_here}}
     var req:   AllocatorRequest
     req.address = &value
     req.size    = #sizeof(s32)

@@ -27,7 +27,7 @@ struct BorrowEscapePayload
 
 func borrowEscapePayload()->BorrowEscapePayload
 {
-    var owner: BorrowEscapeOwner
+    var owner: BorrowEscapeOwner     // swc-expected-note {{sema_note_borrow_source_declared_here}}
     owner.buffer[0] = 'x'u8
     owner.length    = 1
 
@@ -184,7 +184,7 @@ func borrowEscapeInnerScope()->s32
 {
     var p: #null *s32
     {
-        var v: s32 = 42
+        var v: s32 = 42     // swc-expected-note {{sema_note_borrow_source_declared_here}}
         p = &v     // swc-expected-error {{sanity_err_borrow_scope_escape}}
     }
     return 0
@@ -261,6 +261,7 @@ func borrowEscapeMakeOwner()->BorrowEscapeOwner
 
 func borrowEscapeTemporary()->u64
 {
+    // swc-expected-note@+ {{sema_note_borrow_temporary_here}}
     let s: string = borrowEscapeMakeOwner()     // swc-expected-error {{sanity_err_borrow_temporary}}
     return @countof(s)
 }
@@ -354,6 +355,7 @@ func borrowEscapeMaterializedTemp()->u16
 // global is an escape.
 func borrowEscapeMaterializedReturn()->const [..] u16
 {
+    // swc-expected-note@+ {{sema_note_borrow_temporary_here}}
     return cast(const [..] u16) borrowEscapeMakeArray()     // swc-expected-error {{sanity_err_borrow_materialized}}
 }
 
@@ -844,6 +846,35 @@ func borrowEscapeChainedCopy()->*s32
     let p = borrowEscapePassthrough(&v)
     let q = p
     return q     // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// A diagnostic chain must preserve every proven step from the local source to the
+// final escape, rather than collapsing the explanation to either endpoint.
+#[Swag.NoInline]
+func borrowEscapeDiagnosticStage1(p: *s32)->*s32     // swc-expected-note {{sema_note_borrow_propagated_through}}
+{
+    return p
+}
+
+#[Swag.NoInline]
+func borrowEscapeDiagnosticStage2(p: *s32)->*s32     // swc-expected-note {{sema_note_borrow_propagated_through}}
+{
+    return p
+}
+
+#[Swag.NoInline]
+func borrowEscapeDiagnosticStage3(p: *s32)->*s32
+{
+    return p
+}
+
+func borrowEscapeDiagnosticChain()->*s32
+{
+    var v: s32     // swc-expected-note {{sema_note_borrow_source_declared_here}}
+    let p = borrowEscapeDiagnosticStage1(&v)
+    let q = borrowEscapeDiagnosticStage2(p)
+    let r = borrowEscapeDiagnosticStage3(q)
+    return r     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // A local bound to a non-borrowing callee stays silent when returned.

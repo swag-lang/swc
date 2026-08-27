@@ -104,6 +104,68 @@ func borrowEscapeAnyLocalOnly(param: *BorrowEscapePayload)->any
     return param[]
 }
 
+// A scalar local boxed into 'any' is referenced through storage in this frame,
+// just like a struct local.
+func borrowEscapeAnyScalarReturn()->any
+{
+    var value: s32 = 42
+    return value     // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+var borrowEscapeGlobalAny: #null any
+
+func borrowEscapeAnyScalarGlobal()
+{
+    var value: s32 = 42
+    borrowEscapeGlobalAny = value     // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// A computed scalar has no source variable to borrow. Its 'any' payload instead
+// points into hidden cast storage that also dies with this frame.
+func borrowEscapeAnyComputedReturn(value: s32)->any
+{
+    return value + 1     // swc-expected-error {{sanity_err_borrow_materialized}}
+}
+
+func borrowEscapeAnyComputedGlobal(value: s32)
+{
+    borrowEscapeGlobalAny = value + 1     // swc-expected-error {{sanity_err_borrow_materialized}}
+}
+
+// Hidden cast storage lives for the frame, so a local 'any' remains valid.
+func borrowEscapeAnyComputedLocal(value: s32)->s32
+{
+    let boxed: any = value + 1
+    return cast(s32) boxed
+}
+
+// A constant 'any' is stored in the compiler data segment, not in the frame.
+func borrowEscapeAnyConstantReturn()->any
+{
+    return 7
+}
+
+// Boxing a pointer parameter boxes the pointer value itself. The hidden slot
+// holding that value is local even though the pointee belongs to the caller.
+func borrowEscapeAnyPointerParam(param: *s32)->any
+{
+    return param     // swc-expected-error {{sanity_err_borrow_materialized}}
+}
+
+// Dereferencing the same parameter boxes caller-owned storage and stays valid.
+func borrowEscapeAnyPointerPointee(param: *s32)->any
+{
+    return param[]
+}
+
+var borrowEscapeGlobalPointer: #null *s32
+
+// A global pointer variable provides stable storage for the boxed pointer value.
+func borrowEscapeAnyGlobalPointer()->any
+{
+    return borrowEscapeGlobalPointer
+}
+
 // A by-value parameter is a copy living in the callee frame: borrowing its storage
 // dangles exactly like borrowing a local.
 func borrowEscapeByValueParamAddress(v: s32)->*s32

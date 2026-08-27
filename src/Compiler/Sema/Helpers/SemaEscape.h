@@ -82,12 +82,15 @@ struct SemaEscapeDeferredCheck
 
 // A structural change of storage that a local view was reading. Recorded where the flow
 // state proves the view is live, and judged once the whole body is resolved - only then
-// can the identifiers that come AFTER the change be matched to their symbols.
+// can later reads, including reads reached through a loop back edge, be matched to symbols.
 struct SemaBorrowInvalidation
 {
-    const SymbolVariable* viewVar   = nullptr;
-    const SymbolVariable* sourceVar = nullptr;
-    const SymbolFunction* callee    = nullptr;
+    const SymbolVariable* viewVar     = nullptr;
+    const SymbolVariable* sourceVar   = nullptr;
+    const SymbolFunction* callee      = nullptr;
+    // The node, not only its range, lets a back-edge check distinguish a break of
+    // this loop from a break owned by a nested loop or switch.
+    AstNodeRef            mutationRef = AstNodeRef::invalid();
     SourceCodeRange       mutationRange;
     // Where the call's own text ends. Arguments are evaluated BEFORE the callee runs, so
     // a view named inside them is read before the change, not after it: the search for a

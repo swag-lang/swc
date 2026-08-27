@@ -15,6 +15,14 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
     @assert(reader.audioTrackCount() == count)
 }
 
+// A DTS track's first core header supplies the exact 5.1 speaker mask that Matroska's channel
+// count alone cannot express.
+#test
+{
+    const Header: [16] u8 = [0xFE, 0x7F, 0x01, 0x80, 0x3C, 0xFC, 0xB2, 0x7D, 0x00, 0x77, 0x38, 0x05, 0x09, 0x00, 0x7B, 0xEF]
+    @assert((expect Matroska.dtsSpeakerMask(Header)) == 0x3F)
+}
+
 // Indexed duration and track timing make a file-backed stream seekable before its complete frame
 // table exists. The requested frame is indexed on demand without scanning the rest of the file.
 #test

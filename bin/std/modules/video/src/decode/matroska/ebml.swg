@@ -1,5 +1,5 @@
 //! Format: Matroska/EBML container decoder component.
-//! Supported: H.264 picture tracks and AAC-LC, AC-3, or independent E-AC-3 audio tracks, with cues, timestamps, codec delay, and common block lacing for audio.
+//! Supported: H.264 picture tracks and AAC-LC, AC-3, independent E-AC-3, DTS Core, FLAC, or Layer III audio tracks, with cues, timestamps, codec delay, and common block lacing for audio.
 //! Not supported: Picture codecs other than H.264, laced or invisible picture blocks, dependent E-AC-3 substreams, encrypted tracks, and writing Matroska.
 //! Role: This file owns bounded EBML element identifiers, vint values, and cursor traversal.
 //

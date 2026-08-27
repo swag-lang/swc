@@ -15,6 +15,7 @@ private enum SoundFileLoader
     Aac
     Ac3
     Eac3
+    Dts
 }
 
 private struct SoundFileFormatSpec
@@ -23,14 +24,15 @@ private struct SoundFileFormatSpec
     loader:    SoundFileLoader
 }
 
-private const SoundFileFormats: [7] SoundFileFormatSpec = [
+private const SoundFileFormats: [8] SoundFileFormatSpec = [
     {".wav",  .Wav},
     {".flac", .Flac},
     {".mp3",  .Mp3},
     {".aac",  .Aac},
     {".ac3",  .Ac3},
     {".eac3", .Eac3},
-    {".ec3",  .Eac3}]
+    {".ec3",  .Eac3},
+    {".dts",  .Dts}]
 
 private func findSoundFileFormat(path: string)->u64
 {
@@ -68,6 +70,7 @@ enum SoundFileEncoding
     AacLc       // MPEG-4 AAC Low Complexity access units.
     Ac3         // Dolby Digital AC-3 sync frames.
     Eac3        // Dolby Digital Plus E-AC-3 sync frames.
+    Dts         // DTS Coherent Acoustics Core frames.
     Flac        // Free Lossless Audio Codec frames.
     Mp3         // MPEG-1, MPEG-2, and MPEG-2.5 Layer III frames.
 }
@@ -314,6 +317,9 @@ impl SoundFile
 
         case .Eac3:
             return try Dolby.openElementaryStream(path, .Eac3)
+
+        case .Dts:
+            return try Dts.openElementaryStream(path)
 
         case .Wav:
             var result: retval

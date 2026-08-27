@@ -16,8 +16,8 @@ A process-wide engine with an explicit lifecycle, a bus tree with parent routing
 voices with linear and decibel gain, pitch through a frequency ratio, looping, fire-and-forget
 lifetime, and streaming through three rotating 64 KiB decoded buffers. A codec registry
 (`ICodec`, `registerCodec`) that makes decoding extensible from outside the module, with AAC-LC,
-AC-3, independent E-AC-3, FLAC and MPEG Layer III decoders in the box. FLAC and MP3 also have
-their own file readers, so a `.flac` or a `.mp3` opens through `SoundFile.load` and streams from
+AC-3, independent E-AC-3, DTS Core, FLAC and MPEG Layer III decoders in the box. DTS, FLAC and MP3 also have
+their own file readers, so a `.dts`, `.flac`, or `.mp3` opens through `SoundFile.load` and streams from
 disk; that is the answer to "no music", and what is left below is breadth beside it. A no-sound
 driver that preserves the entire lifecycle without opening a device, wired into the sandbox so a
 test run never makes noise — that last part is better integrated than in most libraries of this
@@ -29,22 +29,6 @@ effects, no capture.
 ---
 
 ## Tier A — Compressed audio formats
-
-### T-562 — No DTS decoder
-
-- Problem: a film track that is not Dolby is usually DTS, and the module decodes nothing of it.
-  Matroska and ISO-BMFF both index the packets already, so what is missing is the codec alone.
-- How much it is worth, measured (2026-08-25, 592 films of one personal library): 22 DTS tracks,
-  against 659 AC-3, 296 AAC, 53 E-AC-3 and 21 Layer III. It is the largest remaining sound gap and
-  a small one; see T-571 in [filescope.md](filescope.md) for the viewer behavior when a
-  container's picture codec is unavailable.
-- Consequence: a `.mkv` whose only audio track is DTS plays silently, and the reader reports the
-  track as unavailable rather than wrong — correct, and still a file the user cannot hear.
-- What blocks it beyond the work itself: there is no fixture. FFmpeg's DTS encoder is experimental
-  and the PyAV build on this machine does not expose it at all, so the six-tone recipe every other
-  audio fixture here uses cannot produce one. Settle that first — an encoder that can be run
-  reproducibly, or a permissively licensed conformance stream with a stated origin — because a
-  decoder with no reference decodes into an opinion.
 
 ### T-166 — No Ogg Vorbis decoder
 
@@ -86,8 +70,6 @@ containers.
   128 kbit/s a frame is 26 ms of audio and the whole decode may already be far below that.
 - What is not carried: an ISO-BMFF `mp4a` entry whose object type is 0x69 or 0x6B is Layer III,
   and `mp4.swg` rejects every object type but AAC's 0x40.
-- Related: T-562
-
 ## Tier A — Playback control
 
 ### T-059 — Volume changes are instantaneous, so they click

@@ -250,82 +250,6 @@ namespace
         std::vector<Clone> clones; // in preheader emission order
     };
 
-    // Order a loop's hoist set so a producer precedes every consumer. For a
-    // copy+compute pair both instructions define the same register: consumers
-    // must depend on the compute (the final value), while the compute itself
-    // depends on its copy through the explicit pair edge.
-    bool topoOrderHoistSet(const MicroSsaState&                          ssaState,
-                           std::span<const MicroInstrRef>                instrRefs,
-                           const std::unordered_set<uint32_t>&           hoistSet,
-                           const std::unordered_map<uint32_t, uint32_t>& pairedCopyOf,
-                           const std::unordered_map<uint32_t, uint32_t>& pairedComputeOf,
-                           std::vector<uint32_t>&                        outOrder)
-    {
-        std::unordered_map<MicroReg, uint32_t> regToNode;
-        for (const uint32_t i : hoistSet)
-        {
-            if (pairedComputeOf.contains(i))
-                continue;
-            const MicroInstrUseDef* useDef = ssaState.instrUseDef(instrRefs[i]);
-            if (useDef && useDef->defs.size() == 1)
-                regToNode[useDef->defs[0]] = i;
-        }
-
-        std::unordered_map<uint32_t, uint32_t>              indegree;
-        std::unordered_map<uint32_t, std::vector<uint32_t>> dependents;
-        for (const uint32_t i : hoistSet)
-            indegree[i] = 0;
-        for (const uint32_t i : hoistSet)
-        {
-            const MicroInstrUseDef* useDef = ssaState.instrUseDef(instrRefs[i]);
-            if (!useDef)
-                continue;
-            for (const MicroReg use : useDef->uses)
-            {
-                const auto producer = regToNode.find(use);
-                if (producer != regToNode.end() && producer->second != i)
-                {
-                    dependents[producer->second].push_back(i);
-                    ++indegree[i];
-                }
-            }
-        }
-        for (const auto& [compute, copy] : pairedCopyOf)
-        {
-            if (!hoistSet.contains(compute) || !hoistSet.contains(copy))
-                continue;
-            dependents[copy].push_back(compute);
-            ++indegree[compute];
-        }
-
-        std::vector<uint32_t> ready;
-        for (const uint32_t i : hoistSet)
-            if (indegree[i] == 0)
-                ready.push_back(i);
-        std::ranges::sort(ready);
-
-        outOrder.clear();
-        outOrder.reserve(hoistSet.size());
-        while (!ready.empty())
-        {
-            const uint32_t i = ready.front();
-            ready.erase(ready.begin());
-            outOrder.push_back(i);
-            const auto depIt = dependents.find(i);
-            if (depIt == dependents.end())
-                continue;
-            for (const uint32_t d : depIt->second)
-            {
-                if (--indegree[d] == 0)
-                {
-                    ready.push_back(d);
-                    std::ranges::sort(ready);
-                }
-            }
-        }
-        return outOrder.size() == hoistSet.size();
-    }
-
     // Performs one round: hoists invariants out of every natural loop (innermost
     // first; an instruction claimed by an inner loop is left for the next round
     // to lift out of the enclosing one). Returns true if it changed the IR.
@@ -420,7 +344,9 @@ namespace
                 if (p < n && !inBody[p])
                     ++externalPredCount;
             if (externalPredCount != 1)
+            {
                 continue;
+            }
 
             const MicroInstrRef prevRef = storage.findPreviousInstructionRef(headerRef);
             if (!prevRef.isValid())
@@ -437,7 +363,9 @@ namespace
             const bool prevIsUncondTerm =
                 prevFlags.has(MicroInstrFlagsE::TerminatorInstruction) && !prevFlags.has(MicroInstrFlagsE::ConditionalJump);
             if (prevIsUncondJump || prevIsUncondTerm)
+            {
                 continue;
+            }
 
             // Pure loads/copies never touch CPU flags, but a hoisted copy+compute
             // pair inserts a flag-writing instruction at the preheader insertion
@@ -494,244 +422,424 @@ namespace
                     defsInLoop.insert(def);
             }
 
-            std::unordered_set<uint32_t>           hoistSet;
-            std::unordered_set<MicroReg>           hoistedRegs;
-            std::unordered_map<uint32_t, uint32_t> pairedCopyOf;    // compute slot -> its copy slot
-            std::unordered_map<uint32_t, uint32_t> pairedComputeOf; // copy slot -> its compute slot
+            // Webs: the unit LLVM's MachineLICM gets for free from SSA. The
+            // lowering reuses one virtual register through two-address chains,
+            // so a register may carry several values in sequence; each full
+            // definition (an eligible value-producing opcode) starts a web and
+            // every two-address compute continues the web of the previous
+            // definition. LLVM never sees the multi-def shape because the
+            // TwoAddress copies are only inserted after its loop passes run;
+            // here the web is reconstructed and hoisted whole instead - all of
+            // a register's defs move or none do - and the preheader emits the
+            // members in listing order, which reproduces the def-use texture
+            // exactly, mid-web reads between hoisted members included.
+            struct RegWeb
+            {
+                std::vector<uint32_t> defSlots; // ascending
+                bool                  chainOk = true;
+            };
+            std::unordered_map<MicroReg, RegWeb> websByReg;
+            std::vector<MicroReg>                slotDefReg(n, MicroReg::invalid());
+            std::vector<uint8_t>                 slotIsFullDef(n, 0);
+            std::vector<uint8_t>                 slotIsCompute(n, 0);
+            for (uint32_t i = 0; i < n; ++i)
+            {
+                if (!inBody[i] || i == header)
+                    continue;
+                const MicroInstr*       inst   = storage.ptr(instrRefs[i]);
+                const MicroInstrUseDef* useDef = ssaState->instrUseDef(instrRefs[i]);
+                if (!inst || !useDef)
+                    continue;
 
-            // A copy whose destination has exactly two defs qualifies when the
-            // second def is the immediately adjacent two-address compute over the
-            // same register: both then move together, so every use still reads the
-            // same (invariant) final value. Returns the compute's slot, K_INVALID
-            // when the shape or one of its guards does not hold.
-            const auto findAdjacentPairCompute = [&](MicroInstrRef copyRef, MicroReg destReg) -> uint32_t {
-                if (!preheaderFlagsDead)
-                    return K_INVALID;
-
-                const MicroInstrRef computeRef = storage.findNextInstructionRef(copyRef);
-                if (!computeRef.isValid() || relocRefs.contains(computeRef.get()) || claimed.contains(computeRef.get()))
-                    return K_INVALID;
-                const auto computeIdxIt = refToIndex.find(computeRef.get());
-                if (computeIdxIt == refToIndex.end())
-                    return K_INVALID;
-                const uint32_t computeIdx = computeIdxIt->second;
-                if (!inBody[computeIdx] || computeIdx == header || hoistSet.contains(computeIdx))
-                    return K_INVALID;
-
-                const MicroInstr* computeInst = storage.ptr(computeRef);
-                if (!computeInst || !isEligiblePairedComputeOpcode(computeInst->op))
-                    return K_INVALID;
-
-                const MicroInstrUseDef* computeUseDef = ssaState->instrUseDef(computeRef);
-                if (!computeUseDef || computeUseDef->isCall || computeUseDef->defs.size() != 1 || computeUseDef->defs[0] != destReg)
-                    return K_INVALID;
-
-                for (const MicroReg use : computeUseDef->uses)
+                if (useDef->defs.size() != 1 || !useDef->defs[0].isVirtual() || useDef->isCall)
                 {
-                    if (use == destReg)
-                        continue;
-                    if (defsInLoop.contains(use) && !hoistedRegs.contains(use))
-                        return K_INVALID;
+                    for (const MicroReg def : useDef->defs)
+                        if (def.isVirtual())
+                            websByReg[def].chainOk = false;
+                    continue;
                 }
 
-                if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, computeRef))
-                    return K_INVALID;
+                const MicroReg destReg = useDef->defs[0];
+                RegWeb&        web     = websByReg[destReg];
+                const bool     fullDef = isEligibleOpcode(inst->op);
+                bool           compute = false;
+                if (!fullDef && isEligiblePairedComputeOpcode(inst->op))
+                {
+                    for (const MicroReg use : useDef->uses)
+                        compute = compute || use == destReg;
+                }
 
-                return computeIdx;
+                if (fullDef)
+                    slotIsFullDef[i] = 1;
+                else if (compute)
+                    slotIsCompute[i] = 1;
+                else
+                    web.chainOk = false;
+
+                // A compute with no prior definition in the body reads a
+                // loop-carried value; a full def whose source names itself is a
+                // degenerate shape not worth modeling.
+                if (compute && web.defSlots.empty())
+                    web.chainOk = false;
+                if (fullDef)
+                {
+                    for (const MicroReg use : useDef->uses)
+                        if (use == destReg)
+                            web.chainOk = false;
+                }
+
+                web.defSlots.push_back(i);
+                slotDefReg[i] = destReg;
+            }
+
+            constexpr size_t K_MAX_WEB_DEFS = 32;
+
+            const auto webEligible = [&](const MicroReg reg) {
+                const auto it = websByReg.find(reg);
+                if (it == websByReg.end() || !it->second.chainOk)
+                    return false;
+                if (it->second.defSlots.size() > K_MAX_WEB_DEFS)
+                    return false;
+                const auto dc = defCount.find(reg);
+                return dc != defCount.end() && dc->second == it->second.defSlots.size();
             };
 
-            bool progress = true;
-            while (progress)
-            {
-                progress = false;
-                for (uint32_t i = 0; i < n; ++i)
+            std::unordered_set<uint32_t> hoistSet;
+            std::unordered_set<MicroReg>           banned;
+
+            // The value a use reads at slot i is hoisted when every earlier def
+            // of its register is: emission in listing order then reproduces it
+            // in the preheader.
+            const auto acceptedPrefix = [&](const MicroReg reg, const uint32_t slot) {
+                const auto it = websByReg.find(reg);
+                if (it == websByReg.end())
+                    return false;
+                for (const uint32_t defSlot : it->second.defSlots)
                 {
-                    if (!inBody[i] || i == header || hoistSet.contains(i))
-                        continue;
+                    if (defSlot >= slot)
+                        break;
+                    if (!hoistSet.contains(defSlot))
+                        return false;
+                }
+                return true;
+            };
 
-                    const MicroInstrRef ref = instrRefs[i];
-                    if (claimed.contains(ref.get()))
-                        continue; // already moving to an inner loop's preheader
-
-                    const MicroInstr* inst = storage.ptr(ref);
-                    if (!inst || !isEligibleOpcode(inst->op) || relocRefs.contains(ref.get()))
-                        continue;
-
-                    const MicroInstrUseDef* useDef = ssaState->instrUseDef(ref);
-                    if (!useDef || useDef->isCall || useDef->defs.size() != 1)
-                        continue;
-
-                    const MicroReg destReg = useDef->defs[0];
-                    if (!destReg.isVirtual())
-                        continue;
-                    const auto dc = defCount.find(destReg);
-                    if (dc == defCount.end())
-                        continue;
-
-                    uint32_t pairComputeIndex = K_INVALID;
-                    if (dc->second == 2)
+            const auto runAcceptance = [&]() {
+                hoistSet.clear();
+                bool progress = true;
+                while (progress)
+                {
+                    progress = false;
+                    for (uint32_t i = 0; i < n; ++i)
                     {
-                        pairComputeIndex = findAdjacentPairCompute(ref, destReg);
-                        if (pairComputeIndex == K_INVALID)
-                            continue;
-                    }
-                    else if (dc->second != 1)
-                        continue;
-
-                    bool allInvariant = true;
-                    for (const MicroReg use : useDef->uses)
-                    {
-                        if (defsInLoop.contains(use) && !hoistedRegs.contains(use))
-                        {
-                            allInvariant = false;
-                            break;
-                        }
-                    }
-                    if (!allInvariant)
-                        continue;
-
-                    if (opcodeReadsMemory(inst->op))
-                    {
-                        // A call may write the loaded location; never hoist past one.
-                        if (loopHasCall)
+                        if (!inBody[i] || i == header || hoistSet.contains(i))
                             continue;
 
-                        const MicroReg base        = firstUseReg(*useDef);
-                        const bool     baseIsFrame = base.isValid() && frame.isFrame(base, stackPointer);
-                        if (baseIsFrame)
+                        const MicroInstrRef ref = instrRefs[i];
+                        if (claimed.contains(ref.get()) || relocRefs.contains(ref.get()))
+                            continue;
+
+                        const MicroReg destReg = slotDefReg[i];
+                        if (!destReg.isValid() || banned.contains(destReg) || !webEligible(destReg))
+                            continue;
+                        if (!slotIsFullDef[i] && !slotIsCompute[i])
+                            continue;
+
+                        const MicroInstr*       inst   = storage.ptr(ref);
+                        const MicroInstrUseDef* useDef = ssaState->instrUseDef(ref);
+                        if (!inst || !useDef)
+                            continue;
+
+                        if (slotIsCompute[i])
                         {
-                            // Reading a frame slot: any store in the loop may hit it.
-                            if (loopHasFrameStore || loopHasPointerStore)
-                                continue;
-                        }
-                        else
-                        {
-                            // Reading through a pointer. An opaque pointer store may
-                            // alias it. A frame store cannot, provided the load's base
-                            // is a single-def register that is definitely not a frame
-                            // address and no frame address escapes the function.
-                            if (loopHasPointerStore)
-                                continue;
-                            if (loopHasFrameStore)
+                            // The chain continuation writes flags at the preheader
+                            // insertion point and stops producing them here.
+                            if (!preheaderFlagsDead ||
+                                !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, ref) ||
+                                !acceptedPrefix(destReg, i))
                             {
-                                const auto bc            = base.isValid() ? defCount.find(base) : defCount.end();
-                                const bool baseSingleDef = bc != defCount.end() && bc->second == 1;
-                                if (!frame.framePrivate || !baseSingleDef)
-                                    continue;
+                                continue;
                             }
                         }
 
-                        // Speculation safety: the load must already run on every
-                        // iteration (dominate every back-edge tail).
-                        bool dominatesAllTails = true;
-                        for (const uint32_t t : loop->tails)
+                        // A multi-def web is only the value sequence its listing
+                        // shows when every member runs on every iteration: a
+                        // member inside one arm of a branch would make the
+                        // register's final value path-dependent, which one
+                        // preheader execution cannot reproduce. Every member
+                        // must dominate every back-edge tail.
+                        const auto webIt = websByReg.find(destReg);
+                        if (webIt != websByReg.end() && webIt->second.defSlots.size() > 1)
                         {
-                            if (!dom.dominates(i, t))
+                            bool dominatesTails = true;
+                            for (const uint32_t t : loop->tails)
                             {
-                                dominatesAllTails = false;
+                                if (!dom.dominates(i, t))
+                                {
+                                    dominatesTails = false;
+                                    break;
+                                }
+                            }
+                            if (!dominatesTails)
+                            {
+                                continue;
+                            }
+                        }
+
+                        bool allInvariant = true;
+                        for (const MicroReg use : useDef->uses)
+                        {
+                            if (use == destReg && slotIsCompute[i])
+                                continue; // the web's own previous value
+                            if (!defsInLoop.contains(use))
+                                continue;
+                            if (banned.contains(use) || !webEligible(use) || !acceptedPrefix(use, i))
+                            {
+                                allInvariant = false;
                                 break;
                             }
                         }
-                        if (!dominatesAllTails)
+                        if (!allInvariant)
                             continue;
-                    }
 
-                    hoistSet.insert(i);
-                    if (pairComputeIndex != K_INVALID)
-                    {
-                        hoistSet.insert(pairComputeIndex);
-                        pairedCopyOf[pairComputeIndex] = i;
-                        pairedComputeOf[i]             = pairComputeIndex;
+                        if (opcodeReadsMemory(inst->op))
+                        {
+                            // A call may write the loaded location; never hoist past one.
+                            if (loopHasCall)
+                                continue;
+
+                            const MicroReg base        = firstUseReg(*useDef);
+                            const bool     baseIsFrame = base.isValid() && frame.isFrame(base, stackPointer);
+                            if (baseIsFrame)
+                            {
+                                // Reading a frame slot: any store in the loop may hit it.
+                                if (loopHasFrameStore || loopHasPointerStore)
+                                    continue;
+                            }
+                            else
+                            {
+                                // Reading through a pointer. An opaque pointer store may
+                                // alias it. A frame store cannot, provided the load's base
+                                // is a single-def register that is definitely not a frame
+                                // address and no frame address escapes the function.
+                                if (loopHasPointerStore)
+                                    continue;
+                                if (loopHasFrameStore)
+                                {
+                                    const auto bc            = base.isValid() ? defCount.find(base) : defCount.end();
+                                    const bool baseSingleDef = bc != defCount.end() && bc->second == 1;
+                                    if (!frame.framePrivate || !baseSingleDef)
+                                        continue;
+                                }
+                            }
+
+                            // Speculation safety: the load must already run on every
+                            // iteration (dominate every back-edge tail).
+                            bool dominatesAllTails = true;
+                            for (const uint32_t t : loop->tails)
+                            {
+                                if (!dom.dominates(i, t))
+                                {
+                                    dominatesAllTails = false;
+                                    break;
+                                }
+                            }
+                            if (!dominatesAllTails)
+                                continue;
+                        }
+
+                        hoistSet.insert(i);
+                        progress = true;
                     }
-                    hoistedRegs.insert(destReg);
-                    progress = true;
                 }
-            }
+            };
 
-            if (hoistSet.empty())
-                continue;
-
-            // Profitability filter (do-no-harm). Hoisting a value keeps it live
-            // across the whole loop, costing a register. That only pays off for
-            // memory reads (a removed per-iteration load) or values recomputed by
-            // several in-loop uses. A standalone single-use address/copy would
-            // just add register pressure, so keep only memory reads and multiply
-            // used values, plus the hoisted operand chains that feed them.
+            // Loop exits, for the web-consistency rule below: a slot inside the
+            // body with a successor outside it.
+            SmallVector<uint32_t> exitSlots;
+            for (uint32_t i = 0; i < n; ++i)
             {
-                std::unordered_map<MicroReg, uint32_t> inLoopUse;
-                for (uint32_t i = 0; i < n; ++i)
+                if (!inBody[i])
+                    continue;
+                for (const uint32_t succ : cfg.successors(i))
                 {
-                    if (!inBody[i])
-                        continue;
-                    const MicroInstrUseDef* ud = ssaState->instrUseDef(instrRefs[i]);
-                    if (!ud)
-                        continue;
-                    for (const MicroReg use : ud->uses)
-                        ++inLoopUse[use];
-                }
-
-                std::unordered_map<MicroReg, uint32_t> hoistedDef;
-                for (const uint32_t i : hoistSet)
-                {
-                    // For a pair, consumers must pull the compute (the final value),
-                    // never the copy; the copy is reached through the pair link.
-                    if (pairedComputeOf.contains(i))
-                        continue;
-                    const MicroInstrUseDef* ud = ssaState->instrUseDef(instrRefs[i]);
-                    if (ud && ud->defs.size() == 1)
-                        hoistedDef[ud->defs[0]] = i;
-                }
-
-                std::unordered_set<uint32_t> keep;
-                std::vector<uint32_t>        worklist;
-                for (const uint32_t i : hoistSet)
-                {
-                    const MicroInstr*       inst = storage.ptr(instrRefs[i]);
-                    const MicroInstrUseDef* ud   = ssaState->instrUseDef(instrRefs[i]);
-                    if (!inst || !ud || ud->defs.size() != 1)
-                        continue;
-                    const auto uc           = inLoopUse.find(ud->defs[0]);
-                    const bool multiplyUsed = uc != inLoopUse.end() && uc->second >= 2;
-                    if (opcodeReadsMemory(inst->op) || multiplyUsed)
+                    if (succ < n && !inBody[succ])
                     {
-                        if (keep.insert(i).second)
-                            worklist.push_back(i);
+                        exitSlots.push_back(i);
+                        break;
                     }
                 }
-                while (!worklist.empty())
-                {
-                    const uint32_t i = worklist.back();
-                    worklist.pop_back();
-
-                    // A pair moves or stays as a unit: a hoisted copy without its
-                    // compute (or the reverse) would compound the two-address
-                    // update across iterations.
-                    const auto pairCopy = pairedCopyOf.find(i);
-                    if (pairCopy != pairedCopyOf.end() && keep.insert(pairCopy->second).second)
-                        worklist.push_back(pairCopy->second);
-                    const auto pairCompute = pairedComputeOf.find(i);
-                    if (pairCompute != pairedComputeOf.end() && keep.insert(pairCompute->second).second)
-                        worklist.push_back(pairCompute->second);
-
-                    const MicroInstrUseDef* ud = ssaState->instrUseDef(instrRefs[i]);
-                    if (!ud)
-                        continue;
-                    for (const MicroReg use : ud->uses)
-                    {
-                        const auto producer = hoistedDef.find(use);
-                        if (producer != hoistedDef.end() && keep.insert(producer->second).second)
-                            worklist.push_back(producer->second);
-                    }
-                }
-
-                hoistSet = std::move(keep);
             }
+
+            // Accept optimistically, filter for profit, then enforce web
+            // integrity on what remains: a register with any hoisted def needs
+            // all of them hoisted (its in-loop value otherwise restarts from
+            // the preheader copy every iteration), and a non-hoisted reader may
+            // only see the FINAL value - reads before the first def see the
+            // carried final of the previous iteration, which hoisting
+            // preserves; reads between defs see an intermediate, which it does
+            // not. A violating register is banned and the whole pipeline reruns
+            // without it, cascading until stable.
+            for (;;)
+            {
+                runAcceptance();
+
+                // Profitability filter (do-no-harm). Hoisting a value keeps it
+                // live across the whole loop, costing a register. That only
+                // pays off for memory reads (a removed per-iteration load) or
+                // values recomputed by several in-loop uses. A standalone
+                // single-use address/copy would just add register pressure, so
+                // keep only memory reads and multiply used values, plus the
+                // hoisted webs that feed them.
+                if (!hoistSet.empty())
+                {
+                    std::unordered_map<MicroReg, uint32_t> inLoopUse;
+                    for (uint32_t i = 0; i < n; ++i)
+                    {
+                        if (!inBody[i])
+                            continue;
+                        const MicroInstrUseDef* ud = ssaState->instrUseDef(instrRefs[i]);
+                        if (!ud)
+                            continue;
+                        for (const MicroReg use : ud->uses)
+                            ++inLoopUse[use];
+                    }
+
+                    std::unordered_set<uint32_t> keep;
+                    std::vector<uint32_t>        worklist;
+                    for (const uint32_t i : hoistSet)
+                    {
+                        const MicroInstr*       inst = storage.ptr(instrRefs[i]);
+                        const MicroInstrUseDef* ud   = ssaState->instrUseDef(instrRefs[i]);
+                        if (!inst || !ud || ud->defs.size() != 1)
+                            continue;
+                        const auto uc           = inLoopUse.find(ud->defs[0]);
+                        const bool multiplyUsed = uc != inLoopUse.end() && uc->second >= 2;
+                        if (opcodeReadsMemory(inst->op) || multiplyUsed)
+                        {
+                            if (keep.insert(i).second)
+                                worklist.push_back(i);
+                        }
+                    }
+                    while (!worklist.empty())
+                    {
+                        const uint32_t i = worklist.back();
+                        worklist.pop_back();
+
+                        // A web moves or stays as a unit, and a member's
+                        // operands pull the producing webs whole: keeping a
+                        // compute without the defs before it would compound the
+                        // two-address update across iterations.
+                        const MicroInstrUseDef* ud = ssaState->instrUseDef(instrRefs[i]);
+                        if (!ud)
+                            continue;
+
+                        SmallVector<MicroReg> pullRegs;
+                        if (ud->defs.size() == 1)
+                            pullRegs.push_back(ud->defs[0]);
+                        for (const MicroReg use : ud->uses)
+                            pullRegs.push_back(use);
+
+                        for (const MicroReg reg : pullRegs)
+                        {
+                            const auto webIt = websByReg.find(reg);
+                            if (webIt == websByReg.end())
+                                continue;
+                            for (const uint32_t defSlot : webIt->second.defSlots)
+                            {
+                                if (hoistSet.contains(defSlot) && keep.insert(defSlot).second)
+                                    worklist.push_back(defSlot);
+                            }
+                        }
+                    }
+
+                    hoistSet = std::move(keep);
+                }
+
+                SmallVector<MicroReg> violations;
+                std::unordered_map<MicroReg, uint32_t> keptDefsOf;
+                for (const uint32_t i : hoistSet)
+                    ++keptDefsOf[slotDefReg[i]];
+                for (const auto& [reg, count] : keptDefsOf)
+                {
+                    const auto webIt = websByReg.find(reg);
+                    if (webIt == websByReg.end() || count != webIt->second.defSlots.size())
+                    {
+                        violations.push_back(reg);
+                        continue;
+                    }
+
+                    // Only a read of the FINAL value survives hoisting: a read
+                    // between defs would see an intermediate, and a read before
+                    // the first def saw the previous iteration's value on entry
+                    // paths this transform cannot audit. Both kinds ban the web.
+                    const auto& defSlots = webIt->second.defSlots;
+                    if (defSlots.size() <= 1)
+                        continue;
+                    const uint32_t firstDef = defSlots.front();
+                    const uint32_t lastDef  = defSlots.back();
+                    bool           violated = false;
+                    for (uint32_t s = 0; s <= lastDef && !violated; ++s)
+                    {
+                        if (!inBody[s] || hoistSet.contains(s))
+                            continue;
+                        const MicroInstrUseDef* ud = ssaState->instrUseDef(instrRefs[s]);
+                        if (!ud)
+                            continue;
+                        for (const MicroReg use : ud->uses)
+                            violated = violated || use == reg;
+                    }
+
+                    // An exit taken mid-web leaves the register holding an
+                    // intermediate of the aborted iteration, which the hoisted
+                    // final cannot reproduce. Every exit must either dominate
+                    // the first def (the register then held the previous
+                    // iteration's final, which hoisting preserves) or be
+                    // dominated by the last def (the final of this iteration).
+                    for (const uint32_t e : exitSlots)
+                    {
+                        if (violated)
+                            break;
+                        violated = !dom.dominates(e, firstDef) && !dom.dominates(lastDef, e);
+                    }
+
+                    // A multi-def web is only atomic when its span is straight
+                    // line: a label or jump between its defs would let control
+                    // enter or leave mid-sequence, and the register's value
+                    // would again depend on the path. The single preheader
+                    // execution reproduces exactly the uninterrupted sequence.
+                    for (uint32_t s = firstDef; s <= lastDef && !violated; ++s)
+                    {
+                        const MicroInstr* spanInst = storage.ptr(instrRefs[s]);
+                        if (!spanInst)
+                        {
+                            violated = true;
+                            break;
+                        }
+                        const MicroInstrFlags spanFlags = MicroInstr::info(spanInst->op).flags;
+                        violated = spanInst->op == MicroInstrOpcode::Label ||
+                                   spanFlags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                                   spanFlags.has(MicroInstrFlagsE::JumpInstruction) ||
+                                   spanFlags.has(MicroInstrFlagsE::IsCallInstruction);
+                    }
+
+                    if (violated)
+                        violations.push_back(reg);
+                }
+
+                if (violations.empty())
+                    break;
+                for (const MicroReg reg : violations)
+                    banned.insert(reg);
+            }
+
             if (hoistSet.empty())
                 continue;
 
-            std::vector<uint32_t> order;
-            if (!topoOrderHoistSet(*ssaState, instrRefs, hoistSet, pairedCopyOf, pairedComputeOf, order))
-                continue; // dependency cycle (should not happen) — skip defensively.
+            // Listing order is the dependency order: every hoisted member sits
+            // in one loop body, and its operands are produced above it there.
+            std::vector<uint32_t> order(hoistSet.begin(), hoistSet.end());
+            std::ranges::sort(order);
 
             HoistPlan plan;
             plan.headerRef = headerRef;

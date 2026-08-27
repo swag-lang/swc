@@ -68,3 +68,17 @@ being compiled by it.
 - Next step: a fixture is an input, not a source file — give the test data directories a
   `-text` rule in `.gitattributes` so every checkout is byte-exact, and check whether any other
   fixture-size or hash assertion depends on the same accident.
+
+### B-010 — One H.264 test asserts a lane count the full campaign cannot guarantee
+
+- Area: tooling
+- Found while: validating backend changes with the full `video` release test run (2026-08-27).
+- Observation: `h264.test.swg:49` asserts `decoder.video.avc.laneCount == 16`. The focused
+  run (`--test-file h264.test.swg`) passes every time; the full module run fails the same
+  assertion intermittently, with an unmodified master compiler as well as with candidate
+  backends - the lane count derives from the worker pool, which the rest of the campaign is
+  loading. Two backend batches lost hours to this: each read the failure as its own miscompile.
+- Evidence: same command, same tree, master compiler: full run 1 did not pass, focused run 10
+  passed. Candidate compiler: identical pair of outcomes.
+- Next step: make the assertion machine-independent (assert against the decoder's own computed
+  bound, or pin the worker count for that test), so the full campaign is deterministic.

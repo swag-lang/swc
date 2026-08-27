@@ -493,3 +493,148 @@ the shared backlog conventions.
   splitting, whose justification stands unchanged in
   [F-190](#f-190--a-short-branching-function-spills-with-the-whole-register-file-free): at equal
   supply this allocator spills an order of magnitude more than clang on the same body.
+
+## The pipeline measured against LLVM's
+
+A comparative study of this backend against the LLVM 18-20 pass pipeline (2026-08-26) located
+the 1.7-2.2x scalar-loop gap against clang-cl `/O2` in three compounding contracts rather than
+any single pass: LLVM keeps registers as the truth inside loops and places memory traffic by a
+frequency-weighted model, its loop passes and allocator cooperate where ours fight, and its
+inliner merges helper layers before any loop analysis runs. The entries below are that study's
+recommendations in value order, each a policy change or an extension of an existing pass. Judged
+not worth porting, so later entries do not relitigate them: a full greedy allocator with region
+splitting, MemorySSA/GVN-PRE/jump threading/loop unswitching (all need phi nodes the Micro IR
+cannot express), SCEV with LoopStrengthReduce, a post-RA scheduler and software pipelining,
+cmov-to-branch back-conversion, and profile-gated passes.
+
+### B-001 — Rematerialized invariants are hoisted back out of loops
+
+- Intent: `PostRALoopHoist` re-hoists what the allocator re-materialized into a loop body -
+  `LoadRegImm`, `ClearReg`, `LoadRegPtrReloc`, `LoadAddrRegMem` whose destination register
+  has no other definition in the body and is dead at preheader live-out - the way post-RA
+  MachineLICM repairs the spiller's insertions, cancelling the measured LICM-versus-remat fight
+  from the consumer side.
+- Complete when: an invariant constant or address re-made on every iteration of a hot loop is
+  emitted once in the preheader (verified on a `PrintMicro` dump), relocations survive the
+  move, and the video workspace decodes byte-exact.
+- Related: the loop-invariant recomputation half of F-193; B-009 closed the eviction-policy route.
+
+### B-002 — Loop-carried slot promotion covers multi-access, multi-exit loops
+
+- Intent: `promoteCarriedSlots` promotes a carried frame slot accessed N times across several
+  branch arms with M exits - one seed load before the header, register-only accesses inside, one
+  write-back store per exit edge - instead of only the exactly-one-load, exactly-one-store,
+  single-exit shape, mirroring LLVM's `promoteLoopAccessesToScalars`. Branch-dense codec
+  accumulators updated in several arms are exactly what the current gate misses.
+- Complete when: an accumulator written in two arms of a hot loop keeps its register across the
+  back edge with no per-iteration store (dump-verified), a trace-based drop/store audit like
+  T-563's validates the rewrite, and HEVC serial decode does not regress.
+- Related: T-563, F-193.
+
+### B-003 — Virtual-register webs get unique names
+
+- Intent: a normalization pass gives every def-use web of a virtual register its own fresh
+  register - the SSA property LLVM's passes get from their IR, reconstructed by renaming, with no
+  phi nodes needed because a web that spans a join keeps its one name. The lowering reuses
+  virtual registers across unrelated computations, so today a loop-invariant chain shares its
+  register with code elsewhere in the function (measured on the deblock probe: the `pass % 3`
+  chain's register carries five definitions, one outside the loop), and any pass that reasons
+  per-register - the web hoisting now in LICM first among them - must refuse the whole register.
+- Complete when: after the pass, every virtual register's definitions form one connected def-use
+  web (verified on a corpus dump); the deblock probe's modulo chain hoists out of its x-loop; and
+  the pre-RA fixpoint shows no oscillation with copy elimination (pure renaming inserts no
+  instructions, so none is expected).
+- Related: B-001, B-002, B-004; unlocks the full yield of the web hoisting shipped in LICM.
+
+### B-004 — Jump-entered loops get a dedicated preheader
+
+- Intent: a small structural pass gives every natural-loop header entered by a jump a fresh
+  preheader label - non-back-edge jumps retargeted to it, fall-in preserved - so LICM, RA loop
+  residency, `VecLoopPromote`, `PostRALoopHoist` and carried-slot promotion stop declining
+  those loops outright. LLVM makes this shape (LoopSimplify) a precondition of its whole loop
+  stack; with no phi nodes in the Micro IR it is pure label rewiring here.
+- Complete when: the five loop passes accept a previously jump-entered loop (counted on a corpus
+  dump), `BranchSimplify::redirectJumpChains` provably does not thread the new preheader away,
+  and the suites stay green.
+- Related: B-002, B-003.
+
+### B-005 — Spill-area stores no path reloads are deleted
+
+- Intent: a post-RA pass runs a backward byte-liveness fixed point over
+  `[spillAreaLo, spillAreaHi)` on the instruction CFG and deletes every spill store no path
+  reloads before overwrite - the write-back protocol audited from the consumption side, since the
+  allocator manufactures stores wholesale and nothing checks whether any path reads them.
+- Complete when: the pass lands with the three known landmines closed - exact read widths (a
+  16-byte over-approximation pins the neighbouring 8-byte slot), push/pop and stack-pointer
+  arithmetic not treated as area barriers (or the epilogue keeps everything alive), and any
+  function with a stack-pointer adjustment between its first and last spill access skipped
+  (call-argument setup shifts the offset coordinate system) - and the full video release run is
+  green modulo B-010. A parked prototype with all three fixes exists (session scratchpad,
+  `dse-parked`).
+- Related: F-190; B-010 explains the validation failure that stalled the prototype.
+
+### B-006 — Integer reloads fold into their consumers' memory operands
+
+- Intent: the post-RA peephole folds an integer reload from a private frame slot into its
+  arithmetic consumer - `add rax, [rsp+X]` instead of a `mov` plus a register - the way
+  `tryFoldLoadIntoFloatBinary` already does for floats and LLVM's fold tables do wholesale,
+  covering `OpBinaryRegReg` (add, sub, and, or, xor, signed multiply) and
+  `CmpRegReg`-to-`CmpMemReg`.
+- Complete when: the integer rule ships with the float rule's guards (claiming, dst-dead-after,
+  encoder conformance probe, `spillAreaLo/Hi` alias guarantee), a spill-heavy hot function
+  shows the folds in its dump, and the suites stay green.
+- Related: B-005.
+
+### B-007 — One alias oracle serves every pre-RA memory optimization
+
+- Intent: the three existing private frame analyses - LICM's `analyzeFramePrivacy`,
+  `PostRALoopHoist`'s `FrameReachability` root model, SLP's parameter-root classification -
+  become one shared `MicroPassHelpers` analysis (sp-space / parameter-space / unknown),
+  consumed by store-to-load forwarding (a frame-slot cache entry survives an unrelated pointer
+  store), the combine passes' window aborts, and `ValueNumbering`'s memory epochs (a store to a
+  provably disjoint space stops killing all load numbering; a label whose only predecessor is its
+  fall-through stops advancing the epoch). LLVM's analog is BasicAA feeding EarlyCSE and GVN.
+- Complete when: the shared analysis replaces all three private copies, forwarding survives
+  across a disjoint-space store in a codec inner loop (dump-verified), and instruction counts on
+  the video corpus do not regress.
+- Related: B-001, B-002.
+
+### B-008 — Inlining is a cost model, not a disqualification list
+
+- Intent: the parse-time auto-inline verdict prices a call in the body as a penalty instead of a
+  disqualifier, and a non-generic same-module function with exactly one call site inlines
+  near-unconditionally (LLVM's `CallPenalty` and `LastCallToStaticBonus`) - the measured
+  ceiling of everything above, since un-inlined helpers blind LICM, residency, value numbering
+  and the alias oracle to the real loop nest, and force-inlining the deblock segment helper alone
+  moved the kernel from 1.71x to 1.39x against clang.
+- Complete when: the deblock segment helper auto-inlines without its `#[Swag.Inline]`, the
+  cross-AST and generic cases stay excluded (the mechanism deliberately disabled after the
+  aoc2019 miscompile), compile time and code size stay within the campaign's budgets, and the
+  full validation campaign passes. Sema ordering races (the parse-time verdict, the
+  CalleeReturn=CALLER gate) make this the last entry to attempt.
+- Related: B-001 through B-007 all gain from it; the inlining half of F-193.
+
+### B-009 — Eviction-policy changes have no purchase while loop residency covers the hot loops
+
+- Area: compiler/backend
+- Found while: the first recommendation of the LLVM study (2026-08-27), attempted before the
+  entries above.
+- Observation: three eviction-comparator variants in `Pass.RegisterAllocation.cpp` - next-use
+  loop depth ranked first, an LLVM-style suffix sum of 10^depth over remaining uses, and a
+  back-edge-wrapped next-use distance (the linear use cursor reads a loop-carried value whose
+  static uses are behind the scan as infinitely cold, which is exactly backwards) - produced
+  either regressions or byte-identical code on every measured function.
+- Evidence: deterministic dump counts on the deblock C-twin probe and the real
+  `Hevc.Decoder.filterLumaEdge` / `interpolateLuma`. Depth-first: 712 -> 719 instructions;
+  suffix weights: 712 -> 723, damage concentrated in the straight-line segment preamble where
+  flat next-use distance is near-Belady-optimal and depth weights over-protect multiples the
+  per-line preloads already serve once per segment. Wrapped distance alone (comparator and the
+  `K_KEEP_MAX_NEXT_USE_DISTANCE` boundary drop): byte-identical on all probes and hot
+  functions; corpus-wide, release DLL sizes moved by at most one 512-byte alignment quantum in
+  mixed directions. The sealed-loop residency of T-563 already exempts resident values from both
+  the boundary drop and back-edge eviction, which is where the predicted pathology would have
+  lived.
+- Next step: none while residency holds the hot loops; re-measure only if B-002, B-003 or B-004
+  creates loop pressure the residency machinery does not absorb. The wrapped-distance diff is
+  parked in the session scratchpad (`r1-wrap-parked.diff`).
+- Related: F-190, F-195.

@@ -1364,22 +1364,52 @@ namespace
         normalizeProjectionRoot(sema, replaced);
         if (!replaced.root || replaced.components.empty())
             return;
+        const SymbolVariable* replacedField = firstProjectionField(replaced);
+        if (!replacedField)
+            return;
 
         SmallVector<const SymbolVariable*> detachedViews;
+        struct DeferredDetachment
+        {
+            const SymbolVariable* viewVar = nullptr;
+            const SymbolVariable* owner   = nullptr;
+            const SymbolVariable* field   = nullptr;
+        };
+        SmallVector<DeferredDetachment> detachedDeferredViews;
         for (const auto& [viewVar, info] : sema.variableEscapeInfos())
         {
-            if (!viewVar || !info.viaOwnedPayload)
+            if (!viewVar)
                 continue;
 
-            SemaEscapeProjection source;
-            if (!ownedPayloadProjection(sema, info, source))
+            if (info.viaOwnedPayload)
+            {
+                SemaEscapeProjection source;
+                if (ownedPayloadProjection(sema, info, source) && projectionIsPrefixOf(replaced, source))
+                    detachedViews.push_back(viewVar);
                 continue;
-            if (projectionIsPrefixOf(replaced, source))
-                detachedViews.push_back(viewVar);
+            }
+
+            if (!info.isDeferredCallBorrow())
+                continue;
+            for (const auto& snapshot : info.deferredCalls)
+            {
+                if (!snapshot)
+                    continue;
+                for (const SemaEscapeDeferredCheck& check : snapshot->checks)
+                {
+                    if (check.borrowedVar != replaced.root)
+                        continue;
+                    if (check.borrowedPayloadField && check.borrowedPayloadField != replacedField)
+                        continue;
+                    detachedDeferredViews.push_back({viewVar, replaced.root, check.borrowedPayloadField ? check.borrowedPayloadField : replacedField});
+                }
+            }
         }
 
         for (const SymbolVariable* viewVar : detachedViews)
             sema.detachVariableOwnedPayload(*viewVar);
+        for (const DeferredDetachment& detached : detachedDeferredViews)
+            sema.detachVariableOwnedPayloadField(*detached.viewVar, *detached.owner, *detached.field);
     }
 
     // Maps a Parameter-kind borrow source to its index in the function's signature.
@@ -1412,9 +1442,11 @@ namespace
         return 1ULL << paramIndex;
     }
 
-    void addReturnBorrowOrigins(SymbolFunction& fn, const SemaEscapeInfo& info)
+    void addReturnBorrowOrigins(Sema& sema, SymbolFunction& fn, const SemaEscapeInfo& info)
     {
-        const uint64_t origins = parameterOriginsMask(fn, info);
+        SemaEscapeProjection  payloadProjection;
+        const SymbolVariable* payloadField = ownedPayloadProjection(sema, info, payloadProjection) ? firstProjectionField(payloadProjection) : nullptr;
+        const uint64_t        origins      = parameterOriginsMask(fn, info);
         for (size_t i = 0; i < 64; ++i)
         {
             if (!(origins & (1ULL << i)))
@@ -1426,7 +1458,12 @@ namespace
             // object holding a back-reference to it - is not, and only this flag can tell
             // the invalidation check which of the two it is looking at.
             if (info.viaOwnedPayload)
-                fn.addReturnsPayloadParam(i);
+            {
+                if (payloadField)
+                    fn.addReturnsPayloadParamField(i, *payloadField);
+                else
+                    fn.addReturnsPayloadParam(i);
+            }
         }
     }
 
@@ -1721,6 +1758,18 @@ namespace
                 if (!callerFn)
                     continue;
 
+                const SymbolVariable* callerField = callerArgumentProjectionField(sema, resolvedRef, *fn, thisParam, arg.argRef);
+                if (info.sourceVar)
+                {
+                    SemaEscapeDeferredCheck route;
+                    route.callee               = fn;
+                    route.paramIndex           = static_cast<uint32_t>(thisParam);
+                    route.borrowedVar          = info.sourceVar;
+                    route.borrowedPayloadField = callerField;
+                    route.routeOnly            = true;
+                    outCapture.checks.push_back(std::move(route));
+                }
+
                 const uint64_t origins = parameterOriginsMask(*callerFn, info);
                 for (size_t callerParamIndex = 0; callerParamIndex < 64; ++callerParamIndex)
                 {
@@ -1734,7 +1783,7 @@ namespace
                     edge.calleeParamIndex      = static_cast<uint32_t>(thisParam);
                     edge.viaOwnedPayload       = info.viaOwnedPayload;
                     edge.viaStoredField        = info.viaStoredField;
-                    edge.callerProjectionField = callerArgumentProjectionField(sema, resolvedRef, *fn, thisParam, arg.argRef);
+                    edge.callerProjectionField = callerField;
                     outCapture.edges.push_back(edge);
                     parameterMappings.push_back({static_cast<uint32_t>(callerParamIndex), static_cast<uint32_t>(thisParam)});
                 }
@@ -1862,7 +1911,7 @@ namespace
         {
             // A route back to a global is not an escape route: it is only ever read by
             // the invalidation check, straight off the snapshot.
-            if (checkTemplate.staticSource)
+            if (checkTemplate.staticSource || checkTemplate.routeOnly)
                 continue;
 
             SemaEscapeDeferredCheck check = checkTemplate;
@@ -3348,10 +3397,11 @@ namespace
     // Reading the captured call snapshot is what makes the most common spelling of "take
     // a view into a container" a candidate at all: an accessor result is bound as a
     // DeferredCall, never as a plain local borrow.
-    bool viewRoutesToStorage(Sema& sema, const SemaEscapeInfo& info, const SemaEscapeProjection& mutation, SmallVector4<SemaEscapeDeferredGuard>& outGuards)
+    bool viewRoutesToStorage(Sema& sema, const SemaEscapeInfo& info, const SemaEscapeProjection& mutation, SmallVector4<SemaEscapeDeferredGuard>& outGuards, const SymbolVariable*& outBorrowedField)
     {
         SWC_ASSERT(mutation.root);
         const SymbolVariable& root = *mutation.root;
+        outBorrowedField           = nullptr;
 
         // A local and a global owner are the same fault here: what moves is the payload,
         // and the view is stale from that moment whatever outlives what.
@@ -3369,7 +3419,10 @@ namespace
                 return false;
 
             SemaEscapeProjection source;
-            return ownedPayloadProjection(sema, info, source) && projectionIsPrefixOf(mutation, source);
+            if (!ownedPayloadProjection(sema, info, source) || !projectionIsPrefixOf(mutation, source))
+                return false;
+            outBorrowedField = firstProjectionField(source);
+            return true;
         }
 
         if (!info.isDeferredCallBorrow())
@@ -3384,6 +3437,9 @@ namespace
             {
                 if (check.borrowedVar != &root || !check.callee)
                     continue;
+                const SymbolVariable* mutationField = firstProjectionField(mutation);
+                if (mutationField && check.borrowedPayloadField && mutationField != check.borrowedPayloadField)
+                    continue;
 
                 // Every call the result travelled through has to hand the view on. The
                 // check already carries the guards of the calls before it; this one adds
@@ -3392,6 +3448,7 @@ namespace
                 for (const SemaEscapeDeferredGuard& guard : check.guards)
                     outGuards.push_back({guard.callee, guard.paramIndex, true});
                 outGuards.push_back({check.callee, check.paramIndex, true});
+                outBorrowedField = check.borrowedPayloadField;
                 return true;
             }
         }
@@ -3614,7 +3671,7 @@ namespace SemaEscape
         {
             SymbolFunction* currentFn = sema.currentFunction();
             if (currentFn)
-                addReturnBorrowOrigins(*currentFn, info);
+                addReturnBorrowOrigins(sema, *currentFn, info);
         }
 
         if (info.sourceVar == &symVar)
@@ -3808,7 +3865,7 @@ namespace SemaEscape
         {
             SymbolFunction* currentFn = sema.currentFunction();
             if (currentFn)
-                addReturnBorrowOrigins(*currentFn, info);
+                addReturnBorrowOrigins(sema, *currentFn, info);
         }
 
         // Storing a parameter borrow into storage reachable from ANOTHER parameter
@@ -3931,7 +3988,8 @@ namespace SemaEscape
                 continue;
 
             SmallVector4<SemaEscapeDeferredGuard> guards;
-            if (!viewRoutesToStorage(sema, info, mutationProjection, guards))
+            const SymbolVariable*                 borrowedField = nullptr;
+            if (!viewRoutesToStorage(sema, info, mutationProjection, guards, borrowedField))
                 continue;
 
             SemaEscapeProjection   sourceProjection;
@@ -3944,8 +4002,13 @@ namespace SemaEscape
             record.mutationRange           = mutationRange;
             record.evaluationEndOffset     = evaluationEndSpan;
             record.mutationName            = calledFn.name(sema.ctx());
-            record.borrowedPayloadField    = ownedPayloadProjection(sema, info, sourceProjection) ? firstProjectionField(sourceProjection) : nullptr;
+            record.borrowedPayloadField    = borrowedField ? borrowedField : (ownedPayloadProjection(sema, info, sourceProjection) ? firstProjectionField(sourceProjection) : nullptr);
             record.receiverProjectionField = firstProjectionField(mutationProjection);
+            for (const SemaEscapeDetachedPayloadField& detached : info.detachedOwnedPayloadFields)
+            {
+                if (detached.owner == mutationProjection.root && detached.field)
+                    record.detachedPayloadFields.push_back(detached.field);
+            }
             record.guards                  = guards;
             sema.addBorrowInvalidation(record);
         }
@@ -4001,6 +4064,7 @@ namespace SemaEscape
             check.judgeReallocates        = true;
             check.borrowedPayloadField    = record.borrowedPayloadField;
             check.receiverProjectionField = record.receiverProjectionField;
+            check.detachedPayloadFields   = record.detachedPayloadFields;
             check.guards                  = record.guards;
             check.diagId                  = DiagnosticId::sanity_err_borrow_invalidated;
             check.fileRef                 = sema.srcView(sema.node(declRef).srcViewRef()).fileRef();
@@ -4159,7 +4223,7 @@ namespace SemaEscape
         {
             SymbolFunction* currentFn = sema.currentFunction();
             if (currentFn)
-                addReturnBorrowOrigins(*currentFn, info);
+                addReturnBorrowOrigins(sema, *currentFn, info);
         }
 
         if (!info.isLocalBorrow())
@@ -4225,7 +4289,7 @@ namespace SemaEscape
             else
             {
                 bool copiedField = false;
-                for (const SymbolFunction::ReallocatedParamField& entry : edge.callee->reallocatedParamFields())
+                for (const SymbolFunction::ParamField& entry : edge.callee->reallocatedParamFields())
                 {
                     if (entry.paramIndex != edge.calleeParamIndex || !entry.field)
                         continue;
@@ -4241,6 +4305,35 @@ namespace SemaEscape
             return beforeMask != edge.caller->reallocatesParamsMask() ||
                    beforeFields != edge.caller->reallocatedParamFields().size() ||
                    beforeUnknown != edge.caller->reallocatesParamProjectionUnknown(edge.callerParamIndex);
+        };
+
+        auto propagateReturnedPayload = [](const SemaEscapeSummaryEdge& edge) {
+            const uint64_t beforeMask    = edge.caller->returnsPayloadParamsMask();
+            const size_t   beforeFields  = edge.caller->returnedPayloadParamFields().size();
+            const bool     beforeUnknown = edge.caller->returnsPayloadParamProjectionUnknown(edge.callerParamIndex);
+
+            if (edge.callerProjectionField)
+            {
+                edge.caller->addReturnsPayloadParamField(edge.callerParamIndex, *edge.callerProjectionField);
+            }
+            else
+            {
+                bool copiedField = false;
+                for (const SymbolFunction::ParamField& entry : edge.callee->returnedPayloadParamFields())
+                {
+                    if (entry.paramIndex != edge.calleeParamIndex || !entry.field)
+                        continue;
+                    edge.caller->addReturnsPayloadParamField(edge.callerParamIndex, *entry.field);
+                    copiedField = true;
+                }
+
+                if (!copiedField || edge.callee->returnsPayloadParamProjectionUnknown(edge.calleeParamIndex))
+                    edge.caller->addReturnsPayloadParam(edge.callerParamIndex);
+            }
+
+            return beforeMask != edge.caller->returnsPayloadParamsMask() ||
+                   beforeFields != edge.caller->returnedPayloadParamFields().size() ||
+                   beforeUnknown != edge.caller->returnsPayloadParamProjectionUnknown(edge.callerParamIndex);
         };
 
         bool changed = !edges.empty();
@@ -4264,9 +4357,8 @@ namespace SemaEscape
                         // payload returns a view into that payload too - but only when the
                         // argument WAS the payload's owner, not when the caller passed
                         // something the callee merely reached through.
-                        if ((edge.callee->returnsPayloadParamsMask() & calleeBit) && !(edge.caller->returnsPayloadParamsMask() & callerBit))
+                        if ((edge.callee->returnsPayloadParamsMask() & calleeBit) && propagateReturnedPayload(edge))
                         {
-                            edge.caller->addReturnsPayloadParam(edge.callerParamIndex);
                             changed = true;
                         }
                         break;
@@ -4396,23 +4488,71 @@ namespace SemaEscape
                 if (!((check.callee->reallocatesParamsMask() >> check.paramIndex) & 1))
                     continue;
 
+                SmallVector4<const SymbolVariable*> borrowedFields;
+                bool                                borrowedFieldsUnknown = false;
                 if (check.borrowedPayloadField)
                 {
-                    if (check.receiverProjectionField)
+                    borrowedFields.push_back(check.borrowedPayloadField);
+                }
+                else if (!check.guards.empty())
+                {
+                    const SemaEscapeDeferredGuard& accessor = check.guards.back();
+                    if (!accessor.callee || accessor.callee->returnsPayloadParamProjectionUnknown(accessor.paramIndex))
                     {
-                        // Calling a mutator on one nested owner can only affect that
-                        // first field of the outer receiver.
-                        if (check.receiverProjectionField != check.borrowedPayloadField)
-                            continue;
+                        borrowedFieldsUnknown = true;
                     }
-                    else if (!check.callee->reallocatesParamProjectionUnknown(check.paramIndex))
+                    else
                     {
-                        const bool fieldHit = std::ranges::any_of(check.callee->reallocatedParamFields(), [&check](const SymbolFunction::ReallocatedParamField& entry) {
-                            return entry.paramIndex == check.paramIndex && entry.field == check.borrowedPayloadField;
-                        });
-                        if (!fieldHit)
-                            continue;
+                        for (const SymbolFunction::ParamField& entry : accessor.callee->returnedPayloadParamFields())
+                        {
+                            if (entry.paramIndex == accessor.paramIndex && entry.field)
+                                borrowedFields.push_back(entry.field);
+                        }
+                        borrowedFieldsUnknown = borrowedFields.empty();
                     }
+                }
+                else
+                {
+                    borrowedFieldsUnknown = true;
+                }
+
+                for (auto it = borrowedFields.begin(); it != borrowedFields.end();)
+                {
+                    if (std::ranges::find(check.detachedPayloadFields, *it) != check.detachedPayloadFields.end())
+                        it = borrowedFields.erase(it);
+                    else
+                        ++it;
+                }
+                if (!borrowedFieldsUnknown && borrowedFields.empty())
+                    continue;
+
+                SmallVector4<const SymbolVariable*> affectedFields;
+                bool                                affectedFieldsUnknown = false;
+                if (check.receiverProjectionField)
+                {
+                    affectedFields.push_back(check.receiverProjectionField);
+                }
+                else if (check.callee->reallocatesParamProjectionUnknown(check.paramIndex))
+                {
+                    affectedFieldsUnknown = true;
+                }
+                else
+                {
+                    for (const SymbolFunction::ParamField& entry : check.callee->reallocatedParamFields())
+                    {
+                        if (entry.paramIndex == check.paramIndex && entry.field)
+                            affectedFields.push_back(entry.field);
+                    }
+                    affectedFieldsUnknown = affectedFields.empty();
+                }
+
+                if (!borrowedFieldsUnknown && !affectedFieldsUnknown)
+                {
+                    const bool fieldHit = std::ranges::any_of(borrowedFields, [&affectedFields](const SymbolVariable* borrowedField) {
+                        return std::ranges::find(affectedFields, borrowedField) != affectedFields.end();
+                    });
+                    if (!fieldHit)
+                        continue;
                 }
             }
             else if (check.judgeAlways)

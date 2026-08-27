@@ -79,6 +79,12 @@ impl BorrowInvBuffer
         return @mkslice(.data!, .length)
     }
 
+    #[Swag.NoInline]
+    mtd const forwardedView()->[..] u8
+    {
+        return .view()
+    }
+
     // The standard library marks its small accessors '#[Swag.Inline]': the expansion is
     // analyzed inside the caller, so the view roots at the receiver with no summary in
     // between. Both spellings must reach the same verdict.
@@ -104,6 +110,23 @@ impl BorrowInvBuffer
         return view[0]
     }
 
+    // Going through an accessor is the same borrow. The accessor summary is inferred
+    // after its body resolves, so the receiver route has to survive until final judgement.
+    mtd receiverInvalidatesAccessorView()->u8
+    {
+        let view = .view()
+        .reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+        return view[0]
+    }
+
+    // Returned-payload summaries compose through non-inlined accessor chains.
+    mtd receiverInvalidatesForwardedAccessorView()->u8
+    {
+        let view = .forwardedView()
+        .reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+        return view[0]
+    }
+
     // Replacing the carrier detaches the old allocation from the receiver. This is the
     // shape used by opPostCopy: allocating a fresh payload must not make a saved pointer
     // to the old payload stale before the copy from it.
@@ -116,10 +139,31 @@ impl BorrowInvBuffer
         return oldData[0]
     }
 
+    mtd receiverKeepsDetachedOldAccessorPayload()->u8
+    {
+        let oldData = .view()
+        .data     = null
+        .capacity = 0
+        .reserve(64)
+        return oldData[0]
+    }
+
     // Detaching on only one path cannot erase the route on the other path.
     mtd receiverConditionallyDetachesOldPayload(detach: bool)->u8
     {
         let oldData = .data!
+        if detach
+        {
+            .data     = null
+            .capacity = 0
+        }
+        .reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+        return oldData[0]
+    }
+
+    mtd receiverConditionallyDetachesOldAccessorPayload(detach: bool)->u8
+    {
+        let oldData = .view()
         if detach
         {
             .data     = null
@@ -150,6 +194,13 @@ impl BorrowInvPair
     mtd receiverKeepsSiblingPayload()->u8
     {
         let view = .left.data!
+        .right.reserve(64)
+        return view[0]
+    }
+
+    mtd receiverKeepsSiblingAccessorPayload()->u8
+    {
+        let view = .left.view()
         .right.reserve(64)
         return view[0]
     }
@@ -323,6 +374,53 @@ func borrowInvRebound()->u8
     var view = buf.view()
     buf.reserve(64)
     view = buf.view()
+    return view[0]
+}
+
+// Replacing the carrier keeps the accessor's old allocation independent from later
+// mutations of the owner, outside a method body as well.
+func borrowInvDetachedOldAccessorPayload()->u8
+{
+    var buf: BorrowInvBuffer
+    buf.reserve(4)
+    let oldData = buf.view()
+    buf.data     = null
+    buf.capacity = 0
+    buf.reserve(64)
+    return oldData[0]
+}
+
+func borrowInvConditionallyDetachedOldAccessorPayload(detach: bool)->u8
+{
+    var buf: BorrowInvBuffer
+    buf.reserve(4)
+    let oldData = buf.view()
+    if detach
+    {
+        buf.data     = null
+        buf.capacity = 0
+    }
+    buf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+    return oldData[0]
+}
+
+// Detaching one possible owner must not detach the same-named field of another.
+func borrowInvDetachedAccessorFromOneOfTwoOwners(first: bool)->u8
+{
+    var left:  BorrowInvBuffer
+    var right: BorrowInvBuffer
+    left.reserve(4)
+    right.reserve(4)
+
+    var view = left.view()
+    if !first
+    {
+        view = right.view()
+    }
+
+    left.data     = null
+    left.capacity = 0
+    right.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
     return view[0]
 }
 

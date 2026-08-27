@@ -233,10 +233,17 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
 
     frame().setLookupScope(remapScopeFromParent(parent.scopes_, scopes_, parent.frame().lookupScope()));
     frame().setUpLookupScope(remapScopeFromParent(parent.scopes_, scopes_, parent.frame().upLookupScope()));
-    variableEscapeInfos_   = parent.variableEscapeInfos_;
-    projectionEscapeInfos_ = parent.projectionEscapeInfos_;
-    variableScopeDepths_   = parent.variableScopeDepths_;
-    escapeBranchStack_     = parent.escapeBranchStack_;
+    // Escape state contains AST-local node references. A child walking the same payload
+    // continues the parent's flow, but a declaration or lazy generic body owned by a
+    // different payload starts a distinct function analysis. Copying the caller's facts
+    // there makes their node references index the wrong AST.
+    if (&payloadContext == parent.nodePayloadContext_)
+    {
+        variableEscapeInfos_   = parent.variableEscapeInfos_;
+        projectionEscapeInfos_ = parent.projectionEscapeInfos_;
+        variableScopeDepths_   = parent.variableScopeDepths_;
+        escapeBranchStack_     = parent.escapeBranchStack_;
+    }
 }
 
 Sema::~Sema() = default;
@@ -272,6 +279,16 @@ void Sema::detachVariableOwnedPayload(const SymbolVariable& symVar)
     const auto it = variableEscapeInfos_.find(&symVar);
     if (it != variableEscapeInfos_.end())
         it->second.viaOwnedPayload = false;
+}
+
+void Sema::detachVariableOwnedPayloadField(const SymbolVariable& symVar, const SymbolVariable& owner, const SymbolVariable& field)
+{
+    const auto it = variableEscapeInfos_.find(&symVar);
+    if (it == variableEscapeInfos_.end())
+        return;
+    const SemaEscapeDetachedPayloadField detached{&owner, &field};
+    if (std::ranges::find(it->second.detachedOwnedPayloadFields, detached) == it->second.detachedOwnedPayloadFields.end())
+        it->second.detachedOwnedPayloadFields.push_back(detached);
 }
 
 SemaEscapeInfo Sema::variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const

@@ -47,12 +47,12 @@ using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 class SymbolFunction : public SymbolMapT<SymbolKind::Function, SymbolFunctionFlagsE>
 {
 public:
-    struct ReallocatedParamField
+    struct ParamField
     {
         uint8_t               paramIndex = 0;
         const SymbolVariable* field      = nullptr;
 
-        bool operator==(const ReallocatedParamField&) const noexcept = default;
+        bool operator==(const ParamField&) const noexcept = default;
     };
 
     static constexpr auto K = SymbolKind::Function;
@@ -110,7 +110,29 @@ public:
     void     addReturnsPayloadParam(size_t paramIndex) noexcept
     {
         if (paramIndex < 64)
+        {
             returnsPayloadParamsMask_ |= 1ULL << paramIndex;
+            returnsPayloadUnknownProjectionParamsMask_ |= 1ULL << paramIndex;
+        }
+    }
+    void addReturnsPayloadParamField(size_t paramIndex, const SymbolVariable& field)
+    {
+        if (paramIndex >= 64)
+            return;
+
+        returnsPayloadParamsMask_ |= 1ULL << paramIndex;
+        const ParamField entry{static_cast<uint8_t>(paramIndex), &field};
+        if (std::ranges::find(returnedPayloadParamFields_, entry) == returnedPayloadParamFields_.end())
+            returnedPayloadParamFields_.push_back(entry);
+    }
+    std::span<const ParamField> returnedPayloadParamFields() const noexcept { return returnedPayloadParamFields_.span(); }
+    bool                        returnsPayloadParamProjectionUnknown(size_t paramIndex) const noexcept
+    {
+        if (paramIndex >= 64)
+            return true;
+        const uint64_t bit = 1ULL << paramIndex;
+        return (returnsPayloadUnknownProjectionParamsMask_ & bit) ||
+               (hasAttributes() && (attributes().returnsPayloadParamsMask & bit));
     }
 
     // Bit i set = the call may MOVE OR RELEASE the heap payload that parameter #i owns
@@ -133,12 +155,12 @@ public:
             return;
 
         reallocatesParamsMask_ |= 1ULL << paramIndex;
-        const ReallocatedParamField entry{static_cast<uint8_t>(paramIndex), &field};
+        const ParamField entry{static_cast<uint8_t>(paramIndex), &field};
         if (std::ranges::find(reallocatedParamFields_, entry) == reallocatedParamFields_.end())
             reallocatedParamFields_.push_back(entry);
     }
-    std::span<const ReallocatedParamField> reallocatedParamFields() const noexcept { return reallocatedParamFields_.span(); }
-    bool reallocatesParamProjectionUnknown(size_t paramIndex) const noexcept
+    std::span<const ParamField> reallocatedParamFields() const noexcept { return reallocatedParamFields_.span(); }
+    bool                        reallocatesParamProjectionUnknown(size_t paramIndex) const noexcept
     {
         if (paramIndex >= 64)
             return true;
@@ -298,25 +320,27 @@ private:
     std::unordered_set<const SymbolVariable*> localVariableSet_;
     std::vector<SymbolFunction*>              callDependencies_;
     std::unordered_set<SymbolFunction*>       callDependencySet_;
-    uint32_t                                  numComputedLocals_                      = 0;
-    uint32_t                                  localStackOffset_                       = 0;
-    uint64_t                                  returnBorrowsParamsMask_                = 0;
-    uint64_t                                  storesParamsMask_                       = 0;
-    uint64_t                                  storesIntoParamPairs_                   = 0;
-    uint64_t                                  freesParamsMask_                        = 0;
-    uint64_t                                  reallocatesParamsMask_                  = 0;
-    uint64_t                                  reallocatesUnknownProjectionParamsMask_ = 0;
-    uint64_t                                  returnsPayloadParamsMask_               = 0;
-    SmallVector4<ReallocatedParamField>       reallocatedParamFields_;
-    TypeRef                                   returnType_               = TypeRef::invalid();
-    uint8_t                                   rtAttributeBitIndex_      = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
-    SpecOpKind                                specOpKind_               = SpecOpKind::None;
-    CallConvKind                              callConvKind_             = CallConvKind::Swag;
-    AstNodeRef                                declNodeRef_              = AstNodeRef::invalid();
-    const NodePayload*                        declNodePayloadCtx_       = nullptr;
-    uint32_t                                  interfaceMethodSlot_      = K_INVALID_INTERFACE_METHOD_SLOT;
-    uint32_t                                  debugStackFrameSize_      = 0;
-    MicroReg                                  debugStackBaseReg_        = MicroReg::invalid();
+    uint32_t                                  numComputedLocals_                         = 0;
+    uint32_t                                  localStackOffset_                          = 0;
+    uint64_t                                  returnBorrowsParamsMask_                   = 0;
+    uint64_t                                  storesParamsMask_                          = 0;
+    uint64_t                                  storesIntoParamPairs_                      = 0;
+    uint64_t                                  freesParamsMask_                           = 0;
+    uint64_t                                  reallocatesParamsMask_                     = 0;
+    uint64_t                                  reallocatesUnknownProjectionParamsMask_    = 0;
+    uint64_t                                  returnsPayloadParamsMask_                  = 0;
+    uint64_t                                  returnsPayloadUnknownProjectionParamsMask_ = 0;
+    SmallVector4<ParamField>                  reallocatedParamFields_;
+    SmallVector4<ParamField>                  returnedPayloadParamFields_;
+    TypeRef                                   returnType_          = TypeRef::invalid();
+    uint8_t                                   rtAttributeBitIndex_ = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
+    SpecOpKind                                specOpKind_          = SpecOpKind::None;
+    CallConvKind                              callConvKind_        = CallConvKind::Swag;
+    AstNodeRef                                declNodeRef_         = AstNodeRef::invalid();
+    const NodePayload*                        declNodePayloadCtx_  = nullptr;
+    uint32_t                                  interfaceMethodSlot_ = K_INVALID_INTERFACE_METHOD_SLOT;
+    uint32_t                                  debugStackFrameSize_ = 0;
+    MicroReg                                  debugStackBaseReg_   = MicroReg::invalid();
 
     MicroBuilder                         microInstrBuilder_;
     MachineCode                          loweredMicroCode_;

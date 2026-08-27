@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -2676,6 +2677,31 @@ namespace
         return fn ? fn->declNodeRef() : AstNodeRef::invalid();
     }
 
+    // The smallest complete body around the node being judged. An inline expansion is
+    // materialized below the caller's function declaration, so scanning that declaration
+    // depends on how much of its substituted tree happens to exist already. Its inline root
+    // is complete by construction. A local function encountered before that root still owns
+    // its own lifetime boundary and must win, or a restore/read in its enclosing expansion
+    // could hide a fault in the nested function.
+    AstNodeRef currentAnalysisBodyRef(Sema& sema)
+    {
+        const AstNodeRef currentDeclRef = currentFunctionDeclRef(sema);
+        const auto*      inlinePayload  = SemaHelpers::effectiveInlinePayload(sema);
+        if (!inlinePayload || inlinePayload->inlineRootRef.isInvalid())
+            return currentDeclRef;
+
+        for (uint32_t up = 0;; up++)
+        {
+            const AstNodeRef parentRef = sema.visit().parentNodeRef(up);
+            if (parentRef.isInvalid())
+                break;
+            if (parentRef == currentDeclRef || parentRef == inlinePayload->inlineRootRef)
+                return parentRef;
+        }
+
+        return inlinePayload->inlineRootRef;
+    }
+
     // Does this call structurally change its receiver? Only a method can, a 'const' one
     // cannot, and the lifecycle hooks the compiler inserts on its own (copy, move, drop)
     // are not a change the program wrote. Every other non-const method is taken as one:
@@ -3622,12 +3648,6 @@ namespace SemaEscape
         if (!isStructuralMutationCallee(sema, calledFn))
             return;
 
-        // Inline and macro expansions are re-analyzed at every call site with the
-        // caller's flow state, but their nodes live in the CALLEE's body: the source
-        // ordering the judgement relies on does not hold there.
-        if (SemaHelpers::effectiveInlinePayload(sema))
-            return;
-
         const SymbolVariable* root = mutatedReceiverRoot(sema, callRef);
         if (!root)
             return;
@@ -3664,6 +3684,7 @@ namespace SemaEscape
             record.viewVar             = viewVar;
             record.sourceVar           = root;
             record.callee              = &calledFn;
+            record.bodyRef             = currentAnalysisBodyRef(sema);
             record.mutationRef         = callRef;
             record.mutationRange       = mutationRange;
             record.evaluationEndOffset = evaluationEndSpan;
@@ -3712,7 +3733,8 @@ namespace SemaEscape
         // wording over and let 'reportDeferredChecks' apply the condition.
         for (const SemaBorrowInvalidation& record : mine)
         {
-            const AstNodeRef readRef = firstReadAfter(sema, declRef, record.mutationRef, record.mutationRange, record.evaluationEndOffset, *record.viewVar);
+            const AstNodeRef bodyRef = record.bodyRef.isValid() ? record.bodyRef : declRef;
+            const AstNodeRef readRef = firstReadAfter(sema, bodyRef, record.mutationRef, record.mutationRange, record.evaluationEndOffset, *record.viewVar);
             if (readRef.isInvalid())
                 continue;
 
@@ -3905,15 +3927,7 @@ namespace SemaEscape
         if (!setContextInstallsFrameStorage(sema, argRef))
             return Result::Continue;
 
-        // A macro or an inline expansion is re-analyzed at every call site, and the body
-        // that holds the restore is the CALLEE's - not reliably reachable from the
-        // function this expansion landed in. 'Core.withAllocator' is exactly that shape,
-        // and judging it from the caller reported the correct idiom at a third of its call
-        // sites and not at the others. The rule is judged where it is written.
-        if (SemaHelpers::effectiveInlinePayload(sema))
-            return Result::Continue;
-
-        if (functionRestoresContext(sema, currentFunctionDeclRef(sema), intrinsicRef))
+        if (functionRestoresContext(sema, currentAnalysisBodyRef(sema), intrinsicRef))
             return Result::Continue;
 
         bool                  whole = false;

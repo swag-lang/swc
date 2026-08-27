@@ -568,7 +568,7 @@ func borrowInvBackEdgeRebound()->u8
     var total: u8
     for 4
     {
-        view = buf.view()
+        view  = buf.view()
         total += view[0]
         buf.reserve(64)
     }
@@ -623,4 +623,22 @@ func borrowInvSanityOff()->u8
     let view = buf.view()
     buf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
     return view[0]
+}
+
+// A generic macro has no resolved body before it is expanded. Its local owner and view
+// therefore become judgeable only inside the materialized expansion.
+#[Swag.Macro]
+func(var T) borrowInvMacroInvalidates(_: T)
+{
+    var buf: BorrowInvBuffer
+    buf.reserve(4)
+    let view = buf.view()
+    buf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+    let value = view[0]
+}
+
+#test
+{
+    if false do
+        borrowInvMacroInvalidates(0)
 }

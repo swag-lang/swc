@@ -30,21 +30,3 @@ runtime fault are tooling under `#[Swag.Sanity]`. The reference states the line
 - Next step: extend reallocation summaries with the receiver field projection they can invalidate
   and preserve conditional old-buffer routes. Re-enable parameter owners only after the direct
   positive, old-buffer copy, and sibling-field cases all give the intended verdict.
-
-### F-089 — A borrow rule judged per body is silent inside a macro or an inline expansion
-
-- Area: compiler
-- Found while: making `@setcontext` of a frame-local context an error (the finding that was F-085)
-- Observation: two checks now bail out when `SemaHelpers::effectiveInlinePayload` is set —
-  `noteBorrowInvalidation` and `checkSetContext`. Both need to read the body AROUND the node they
-  judge, and inside an expansion that body is the callee's while the analysis walks the caller's.
-  Measured, not assumed: judging `Core.withAllocator` from the caller reported its correct `defer`
-  restore at two of its five expansion sites and not at the other three, purely by how far the
-  caller's tree had been built.
-- Evidence: `bin/unittests/jit/compiler/push_allocator_local_interface.swg` is the reproduction —
-  remove the `effectiveInlinePayload` guard in `checkSetContext` and two of its expansions report
-  `sanity_err_context_escape` on a correct macro. A leaking macro is missed for the same reason.
-- Next step: give the two checks the enclosing body of the node they judge instead of the current
-  function's decl. The visit stack (`AstVisit::parentNodeRef`) has the real ancestors at judgement
-  time; the question to settle first is which ancestor to stop at, because stopping at the file
-  would let a correct restore in one function silence a fault in another.

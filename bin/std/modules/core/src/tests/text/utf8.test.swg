@@ -113,7 +113,7 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     @assert(dest[2] == 0xBD)
 }
 
-// Homogeneous two-byte runs exercise the packed U+0080..U+07FF path in both source
+// Homogeneous two- and three-byte runs exercise every packed BMP path in both source
 // representations, across every vector tail.
 #test
 {
@@ -153,6 +153,122 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
         expectedCount = scalarUtf8FromUtf16(expected, utf16Slice)
         @assert(actualCount == expectedCount)
         @assert(Memory.compare(@dataof(actual), @dataof(expected), #sizeof(actual)) == 0)
+    }
+}
+
+#test
+{
+    var runes:    [80] rune
+    var utf16:    [80] u16
+    var actual:   [320] u8
+    var expected: [320] u8
+    for index in @countof(runes)
+    {
+        let value = index % 2 ? 0x0800 + index * 997 % 0xD000 : 0xE000 + index * 613 % 0x2000
+        runes[index] = cast(rune) value
+        utf16[index] = cast(u16) value
+    }
+
+    for length in 66'u64
+    {
+        for index in @countof(actual)
+        {
+            actual[index]   = 0xA5
+            expected[index] = 0xA5
+        }
+
+        let runeSlice     = @mkslice(@dataof(runes), length)
+        var actualCount   = Utf8.fromUnicode(actual, runeSlice)
+        var expectedCount = scalarUtf8FromUnicode(expected, runeSlice)
+        @assert(actualCount == expectedCount)
+        @assert(Memory.compare(@dataof(actual), @dataof(expected), #sizeof(actual)) == 0)
+
+        for index in @countof(actual)
+        {
+            actual[index]   = 0xA5
+            expected[index] = 0xA5
+        }
+
+        let utf16Slice = @mkslice(@dataof(utf16), length)
+        actualCount   = Utf8.fromUtf16(actual, utf16Slice)
+        expectedCount = scalarUtf8FromUtf16(expected, utf16Slice)
+        @assert(actualCount == expectedCount)
+        @assert(Memory.compare(@dataof(actual), @dataof(expected), #sizeof(actual)) == 0)
+    }
+}
+
+// Four-byte rune runs and their UTF-16 surrogate-pair representation use different source
+// geometries, so both are compared to the scalar conversion independently.
+#test
+{
+    var runes:    [80] rune
+    var utf16:    [160] u16
+    var actual:   [320] u8
+    var expected: [320] u8
+    for index in @countof(runes)
+    {
+        let value = 0x10000 + index * 7919 % 0x100000
+        runes[index] = cast(rune) value
+        let surrogate = value - 0x10000
+        utf16[2 * index]     = cast(u16) (0xD800 + (surrogate >> 10))
+        utf16[2 * index + 1] = cast(u16) (0xDC00 + (surrogate & 0x3FF))
+    }
+
+    for length in 66'u64
+    {
+        for index in @countof(actual)
+        {
+            actual[index]   = 0xA5
+            expected[index] = 0xA5
+        }
+
+        let runeSlice     = @mkslice(@dataof(runes), length)
+        var actualCount   = Utf8.fromUnicode(actual, runeSlice)
+        var expectedCount = scalarUtf8FromUnicode(expected, runeSlice)
+        @assert(actualCount == expectedCount)
+        @assert(Memory.compare(@dataof(actual), @dataof(expected), #sizeof(actual)) == 0)
+
+        for index in @countof(actual)
+        {
+            actual[index]   = 0xA5
+            expected[index] = 0xA5
+        }
+
+        let utf16Slice = @mkslice(@dataof(utf16), 2 * length)
+        actualCount   = Utf8.fromUtf16(actual, utf16Slice)
+        expectedCount = scalarUtf8FromUtf16(expected, utf16Slice)
+        @assert(actualCount == expectedCount)
+        @assert(Memory.compare(@dataof(actual), @dataof(expected), #sizeof(actual)) == 0)
+    }
+}
+
+// A malformed value in any lane must leave the whole block to the scalar decoder without
+// disturbing the valid surrogate pairs around it.
+#test
+{
+    var source:   [32] u16
+    var actual:   [128] u8
+    var expected: [128] u8
+    for index in 16
+    {
+        source[2 * index]     = 0xD83D
+        source[2 * index + 1] = 0xDE42
+    }
+
+    for interruption in 24
+    {
+        source[interruption] = 0x0041
+        for index in @countof(actual)
+        {
+            actual[index]   = 0xA5
+            expected[index] = 0xA5
+        }
+
+        let actualCount   = Utf8.fromUtf16(actual, source)
+        let expectedCount = scalarUtf8FromUtf16(expected, source)
+        @assert(actualCount == expectedCount)
+        @assert(Memory.compare(@dataof(actual), @dataof(expected), #sizeof(actual)) == 0)
+        source[interruption] = interruption % 2 ? 0xDE42 : 0xD83D
     }
 }
 

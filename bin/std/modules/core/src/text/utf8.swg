@@ -478,7 +478,14 @@ func encodeRune(dest: [..] u8, src: rune)->u32
 // 'dest' must be at least 4 bytes long
 func fromUnicode(dest: [..] u8, src: const [..] rune)->u64
 {
-    const ContinuationsToLow = cast(Math.Simd.U8x16) [4'u8, 5, 6, 7, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
+    const ContinuationsToLow   = cast(Math.Simd.U8x16) [4'u8, 5, 6, 7, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
+    const ThreeByteLead        = cast(Math.Simd.U8x16) [0'u8, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 128, 128, 128, 128]
+    const ThreeByteMiddle      = cast(Math.Simd.U8x16) [128'u8, 4, 128, 128, 5, 128, 128, 6, 128, 128, 7, 128, 128, 128, 128, 128]
+    const ThreeByteLast        = cast(Math.Simd.U8x16) [128'u8, 128, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 128, 128]
+    const FourByteLead         = cast(Math.Simd.U8x16) [0'u8, 128, 128, 128, 1, 128, 128, 128, 2, 128, 128, 128, 3, 128, 128, 128]
+    const FourByteContinuation = cast(Math.Simd.U8x16) [128'u8, 4, 128, 128, 128, 5, 128, 128, 128, 6, 128, 128, 128, 7, 128, 128]
+    const FourByteMiddle       = cast(Math.Simd.U8x16) [128'u8, 128, 0, 128, 128, 128, 1, 128, 128, 128, 2, 128, 128, 128, 3, 128]
+    const FourByteLast         = cast(Math.Simd.U8x16) [128'u8, 128, 128, 4, 128, 128, 128, 5, 128, 128, 128, 6, 128, 128, 128, 7]
     var srcPtr     = cast(const [*] s32) @dataof(src)
     var destPtr    = @dataof(dest)
     var srcLength  = @countof(src)
@@ -515,6 +522,44 @@ func fromUnicode(dest: [..] u8, src: const [..] rune)->u64
                 destLength     -= 8
                 continue
             }
+
+            if destLength >= 12 and Math.Simd.allTrue(cast #bit(Math.Simd.U32x4) ((values >= Math.Simd.splat(0x800's32)) & ((values < Math.Simd.splat(0xD800's32)) | ((values >= Math.Simd.splat(0xE000's32)) & (values <= Math.Simd.splat(0xFFFF's32))))))
+            {
+                let lead         = (values >> 12) | Math.Simd.splat(0xE0's32)
+                let middle       = ((values >> 6) & Math.Simd.splat(0x3F's32)) | Math.Simd.splat(0x80's32)
+                let last         = (values & Math.Simd.splat(0x3F's32)) | Math.Simd.splat(0x80's32)
+                let leadMiddle16 = Math.Simd.packUnsigned(lead, middle)
+                let last16       = Math.Simd.packUnsigned(last, last)
+                let leadMiddle   = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) leadMiddle16, cast #bit(Math.Simd.S16x8) leadMiddle16)
+                let lastBytes    = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) last16, cast #bit(Math.Simd.S16x8) last16)
+                let bytes        = Math.Simd.shuffle(leadMiddle, ThreeByteLead) | Math.Simd.shuffle(leadMiddle, ThreeByteMiddle) | Math.Simd.shuffle(lastBytes, ThreeByteLast)
+                Math.Simd.storeLow8(destPtr, bytes)
+                Math.Simd.storeLow4(destPtr + 8, Math.Simd.shuffle(bytes, cast(Math.Simd.U8x16) [8'u8, 9, 10, 11, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]))
+                srcPtr         += 4
+                destPtr, total += 12
+                srcLength      -= 4
+                destLength     -= 12
+                continue
+            }
+
+            if destLength >= 16 and Math.Simd.allTrue(cast #bit(Math.Simd.U32x4) ((values >= Math.Simd.splat(0x10000's32)) & (values <= Math.Simd.splat(cast(s32) MaxRunes))))
+            {
+                let lead         = (values >> 18) | Math.Simd.splat(0xF0's32)
+                let continuation = ((values >> 12) & Math.Simd.splat(0x3F's32)) | Math.Simd.splat(0x80's32)
+                let middle       = ((values >> 6) & Math.Simd.splat(0x3F's32)) | Math.Simd.splat(0x80's32)
+                let last         = (values & Math.Simd.splat(0x3F's32)) | Math.Simd.splat(0x80's32)
+                let leadMiddle16 = Math.Simd.packUnsigned(lead, continuation)
+                let middleLast16 = Math.Simd.packUnsigned(middle, last)
+                let leadMiddle   = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) leadMiddle16, cast #bit(Math.Simd.S16x8) leadMiddle16)
+                let middleLast   = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) middleLast16, cast #bit(Math.Simd.S16x8) middleLast16)
+                let bytes        = Math.Simd.shuffle(leadMiddle, FourByteLead) | Math.Simd.shuffle(leadMiddle, FourByteContinuation) | Math.Simd.shuffle(middleLast, FourByteMiddle) | Math.Simd.shuffle(middleLast, FourByteLast)
+                Math.Simd.store(destPtr, bytes)
+                srcPtr         += 4
+                destPtr, total += 16
+                srcLength      -= 4
+                destLength     -= 16
+                continue
+            }
         }
 
         Debug.assert(destLength >= 4, "destination buffer is too small")
@@ -544,8 +589,21 @@ func fromUnicode(src: const [..] rune)->String
 // 'dest' must be at least 4 bytes long
 func fromUtf16(dest: [..] u8, src: const [..] u16)->u64
 {
-    const ContinuationsToLow = cast(Math.Simd.U8x16) [8'u8, 9, 10, 11, 12, 13, 14, 15, 128, 128, 128, 128, 128, 128, 128, 128]
-    const VectorSize         = #sizeof(Math.Simd.U16x8) / #sizeof(u16)
+    const ContinuationsToLow   = cast(Math.Simd.U8x16) [8'u8, 9, 10, 11, 12, 13, 14, 15, 128, 128, 128, 128, 128, 128, 128, 128]
+    const ThreeByteLeadLow     = cast(Math.Simd.U8x16) [0'u8, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 128, 128, 128, 128]
+    const ThreeByteMiddleLow   = cast(Math.Simd.U8x16) [128'u8, 8, 128, 128, 9, 128, 128, 10, 128, 128, 11, 128, 128, 128, 128, 128]
+    const ThreeByteLastLow     = cast(Math.Simd.U8x16) [128'u8, 128, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 128, 128]
+    const ThreeByteLeadHigh    = cast(Math.Simd.U8x16) [4'u8, 128, 128, 5, 128, 128, 6, 128, 128, 7, 128, 128, 128, 128, 128, 128]
+    const ThreeByteMiddleHigh  = cast(Math.Simd.U8x16) [128'u8, 12, 128, 128, 13, 128, 128, 14, 128, 128, 15, 128, 128, 128, 128, 128]
+    const ThreeByteLastHigh    = cast(Math.Simd.U8x16) [128'u8, 128, 4, 128, 128, 5, 128, 128, 6, 128, 128, 7, 128, 128, 128, 128]
+    const HighSurrogatesToLow  = cast(Math.Simd.U8x16) [0'u8, 1, 4, 5, 8, 9, 12, 13, 128, 128, 128, 128, 128, 128, 128, 128]
+    const LowSurrogatesToLow   = cast(Math.Simd.U8x16) [2'u8, 3, 6, 7, 10, 11, 14, 15, 128, 128, 128, 128, 128, 128, 128, 128]
+    const FourByteLead         = cast(Math.Simd.U8x16) [0'u8, 128, 128, 128, 1, 128, 128, 128, 2, 128, 128, 128, 3, 128, 128, 128]
+    const FourByteContinuation = cast(Math.Simd.U8x16) [128'u8, 4, 128, 128, 128, 5, 128, 128, 128, 6, 128, 128, 128, 7, 128, 128]
+    const FourByteMiddle       = cast(Math.Simd.U8x16) [128'u8, 128, 0, 128, 128, 128, 1, 128, 128, 128, 2, 128, 128, 128, 3, 128]
+    const FourByteLast         = cast(Math.Simd.U8x16) [128'u8, 128, 128, 4, 128, 128, 128, 5, 128, 128, 128, 6, 128, 128, 128, 7]
+    const LastFourBytesToLow   = cast(Math.Simd.U8x16) [8'u8, 9, 10, 11, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
+    const VectorSize           = #sizeof(Math.Simd.U16x8) / #sizeof(u16)
     var count      = 0'u64
     var srcPtr     = @dataof(src)
     var destPtr    = @dataof(dest)
@@ -579,6 +637,55 @@ func fromUtf16(dest: [..] u8, src: const [..] u16)->u64
                 srcLength      -= VectorSize
                 destLength     -= 2 * VectorSize
                 continue
+            }
+
+            if destLength >= 3 * VectorSize and Math.Simd.allTrue((values >= Math.Simd.splat(0x800'u16)) & ((values < Math.Simd.splat(0xD800'u16)) | (values >= Math.Simd.splat(0xE000'u16))))
+            {
+                let lead       = cast #bit(Math.Simd.S16x8) ((values >> 12) | Math.Simd.splat(0xE0'u16))
+                let middle     = cast #bit(Math.Simd.S16x8) (((values >> 6) & Math.Simd.splat(0x3F'u16)) | Math.Simd.splat(0x80'u16))
+                let last       = cast #bit(Math.Simd.S16x8) ((values & Math.Simd.splat(0x3F'u16)) | Math.Simd.splat(0x80'u16))
+                let leadMiddle = Math.Simd.packUnsigned(lead, middle)
+                let lastBytes  = Math.Simd.packUnsigned(last, last)
+                let lowBytes   = Math.Simd.shuffle(leadMiddle, ThreeByteLeadLow) | Math.Simd.shuffle(leadMiddle, ThreeByteMiddleLow) | Math.Simd.shuffle(lastBytes, ThreeByteLastLow)
+                let highBytes  = Math.Simd.shuffle(leadMiddle, ThreeByteLeadHigh) | Math.Simd.shuffle(leadMiddle, ThreeByteMiddleHigh) | Math.Simd.shuffle(lastBytes, ThreeByteLastHigh)
+                Math.Simd.storeLow8(destPtr, lowBytes)
+                Math.Simd.storeLow4(destPtr + 8, Math.Simd.shuffle(lowBytes, LastFourBytesToLow))
+                Math.Simd.storeLow8(destPtr + 12, highBytes)
+                Math.Simd.storeLow4(destPtr + 20, Math.Simd.shuffle(highBytes, LastFourBytesToLow))
+                srcPtr         += VectorSize
+                destPtr, count += 3 * VectorSize
+                srcLength      -= VectorSize
+                destLength     -= 3 * VectorSize
+                continue
+            }
+
+            if destLength >= 2 * VectorSize
+            {
+                let sourceBytes = cast #bit(Math.Simd.U8x16) values
+                let high16      = cast #bit(Math.Simd.U16x8) Math.Simd.shuffle(sourceBytes, HighSurrogatesToLow)
+                let low16       = cast #bit(Math.Simd.U16x8) Math.Simd.shuffle(sourceBytes, LowSurrogatesToLow)
+                let high        = Math.Simd.widenLow(high16)
+                let low         = Math.Simd.widenLow(low16)
+                if Math.Simd.allTrue((high >= Math.Simd.splat(0xD800'u32)) & (high < Math.Simd.splat(0xDC00'u32)) & (low >= Math.Simd.splat(0xDC00'u32)) & (low < Math.Simd.splat(0xE000'u32)))
+                {
+                    let runes        = Math.Simd.splat(0x10000'u32) + ((high - Math.Simd.splat(0xD800'u32)) << 10) + (low - Math.Simd.splat(0xDC00'u32))
+                    let signedRunes  = cast #bit(Math.Simd.S32x4) runes
+                    let lead         = (signedRunes >> 18) | Math.Simd.splat(0xF0's32)
+                    let continuation = ((signedRunes >> 12) & Math.Simd.splat(0x3F's32)) | Math.Simd.splat(0x80's32)
+                    let middle       = ((signedRunes >> 6) & Math.Simd.splat(0x3F's32)) | Math.Simd.splat(0x80's32)
+                    let last         = (signedRunes & Math.Simd.splat(0x3F's32)) | Math.Simd.splat(0x80's32)
+                    let leadMiddle16 = Math.Simd.packUnsigned(lead, continuation)
+                    let middleLast16 = Math.Simd.packUnsigned(middle, last)
+                    let leadMiddle   = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) leadMiddle16, cast #bit(Math.Simd.S16x8) leadMiddle16)
+                    let middleLast   = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) middleLast16, cast #bit(Math.Simd.S16x8) middleLast16)
+                    let bytes        = Math.Simd.shuffle(leadMiddle, FourByteLead) | Math.Simd.shuffle(leadMiddle, FourByteContinuation) | Math.Simd.shuffle(middleLast, FourByteMiddle) | Math.Simd.shuffle(middleLast, FourByteLast)
+                    Math.Simd.store(destPtr, bytes)
+                    srcPtr         += VectorSize
+                    destPtr, count += 2 * VectorSize
+                    srcLength      -= VectorSize
+                    destLength     -= 2 * VectorSize
+                    continue
+                }
             }
         }
 

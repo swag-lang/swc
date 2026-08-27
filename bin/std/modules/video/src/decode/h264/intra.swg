@@ -63,6 +63,13 @@ func storeIntra8Vertical(dst: [*] u8, stride: u64, top: const [*] s32)
         Simd.storeLow8(dst + row * stride, pixels)
 }
 
+#[Swag.Inline]
+private func storeIntra8Filtered(dst: [*] u8, low, high: Simd.S32x4)
+{
+    let words = Simd.packUnsigned(low, high)
+    Simd.storeLow8(dst, Simd.packUnsigned(cast #bit(Simd.S16x8) words, cast #bit(Simd.S16x8) words))
+}
+
 // Predicts one 4x4 luma block, section 8.3.1.2.
 //
 // `hasTopRight` covers the four samples above and to the right; when they are missing but the
@@ -270,7 +277,7 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
     }
 
     // Filtered references, with the same two-slot lead-in as the 4x4 arrays.
-    var tp: [18] s32 = undefined
+    var tp: [19] s32 = undefined
     var lp: [10] s32 = undefined
     let corner       = (rawLeft[0] + 2 * rawCorner + rawTop[0] + 2) >> 2
 
@@ -278,6 +285,7 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
     for column in 1'u64 until 15 do
         tp[2 + column] = (rawTop[column - 1] + 2 * rawTop[column] + rawTop[column + 1] + 2) >> 2
     tp[17] = (rawTop[14] + 3 * rawTop[15] + 2) >> 2
+    tp[18] = tp[17]
 
     lp[2] = ((hasTopLeft ? rawCorner : rawLeft[0]) + 2 * rawLeft[0] + rawLeft[1] + 2) >> 2
     for row in 1'u64 until 7 do
@@ -328,12 +336,9 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
     case IntraDownLeft:
         for row in 8'u64
         {
-            for column in 8'u64
-            {
-                let diag  = row + column
-                let value = diag == 14 ? (tp[16] + 3 * tp[17] + 2) >> 2 : (tp[2 + diag] + 2 * tp[3 + diag] + tp[4 + diag] + 2) >> 2
-                dst[row * stride + column] = cast(u8) value
-            }
+            let low  = (Simd.load(@dataof(tp) + 2 + row) + Simd.load(@dataof(tp) + 3 + row) * 2 + Simd.load(@dataof(tp) + 4 + row) + Simd.splat(2's32)) >> 2
+            let high = (Simd.load(@dataof(tp) + 6 + row) + Simd.load(@dataof(tp) + 7 + row) * 2 + Simd.load(@dataof(tp) + 8 + row) + Simd.splat(2's32)) >> 2
+            storeIntra8Filtered(dst + row * stride, low, high)
         }
 
     case IntraDownRight:
@@ -410,32 +415,35 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
     case IntraVerticalLeft:
         for row in 8'u64
         {
-            for column in 8'u64
+            let start = 2 + (row >> 1)
+            if row & 1 == 0
             {
-                let k     = column + (row >> 1)
-                let value = row & 1 == 0 ? (tp[2 + k] + tp[3 + k] + 1) >> 1 : (tp[2 + k] + 2 * tp[3 + k] + tp[4 + k] + 2) >> 2
-                dst[row * stride + column] = cast(u8) value
+                let low  = (Simd.load(@dataof(tp) + start) + Simd.load(@dataof(tp) + start + 1) + Simd.splat(1's32)) >> 1
+                let high = (Simd.load(@dataof(tp) + start + 4) + Simd.load(@dataof(tp) + start + 5) + Simd.splat(1's32)) >> 1
+                storeIntra8Filtered(dst + row * stride, low, high)
+            }
+            else
+            {
+                let low  = (Simd.load(@dataof(tp) + start) + Simd.load(@dataof(tp) + start + 1) * 2 + Simd.load(@dataof(tp) + start + 2) + Simd.splat(2's32)) >> 2
+                let high = (Simd.load(@dataof(tp) + start + 4) + Simd.load(@dataof(tp) + start + 5) * 2 + Simd.load(@dataof(tp) + start + 6) + Simd.splat(2's32)) >> 2
+                storeIntra8Filtered(dst + row * stride, low, high)
             }
         }
 
     case IntraHorizontalUp:
-        for row in 8'u64
+        var predicted: [22] u8 = undefined
+        for z in 13'u64
         {
-            for column in 8'u64
-            {
-                let z = column + 2 * row
-                var value: s32
-                if z > 13 do
-                    value = lp[9]
-                elif z == 13 do
-                    value = (lp[8] + 3 * lp[9] + 2) >> 2
-                elif z & 1 == 0 do
-                    value = (lp[2 + row + (column >> 1)] + lp[3 + row + (column >> 1)] + 1) >> 1
-                else do
-                    value = (lp[2 + row + (column >> 1)] + 2 * lp[3 + row + (column >> 1)] + lp[4 + row + (column >> 1)] + 2) >> 2
-                dst[row * stride + column] = cast(u8) value
-            }
+            let index    = z >> 1
+            let filtered = z & 1 == 0 ? (lp[2 + index] + lp[3 + index] + 1) >> 1 : (lp[2 + index] + 2 * lp[3 + index] + lp[4 + index] + 2) >> 2
+            predicted[z] = cast(u8) filtered
         }
+
+        predicted[13] = cast(u8) ((lp[8] + 3 * lp[9] + 2) >> 2)
+        for z in 14'u64 until 22 do
+            predicted[z] = cast(u8) lp[9]
+        for row in 8'u64 do
+            Simd.storeLow8(dst + row * stride, Simd.load(@dataof(predicted) + 2 * row))
     }
 }
 

@@ -1704,7 +1704,7 @@ namespace
                 bool                  reqWhole    = false;
                 const SymbolVariable* reqVar      = reqValueRef.isValid() ? storageRootVariable(sema, reqValueRef, false, reqWhole) : nullptr;
                 const SemaEscapeInfo  carried     = reqVar ? sema.variableEscapeInfoIncludingProjections(*reqVar) : SemaEscapeInfo{};
-                if (carried.viaOwnedPayload)
+                if (carried.viaOwnedPayload || carried.detachedOwnedPayload)
                 {
                     // The owner is releasing its own payload: not a free of the pointer
                     // the caller handed over, but every view INTO that payload dies here.
@@ -1781,7 +1781,7 @@ namespace
                     edge.callee                = fn;
                     edge.callerParamIndex      = static_cast<uint32_t>(callerParamIndex);
                     edge.calleeParamIndex      = static_cast<uint32_t>(thisParam);
-                    edge.viaOwnedPayload       = info.viaOwnedPayload;
+                    edge.viaOwnedPayload       = info.viaOwnedPayload || info.detachedOwnedPayload;
                     edge.viaStoredField        = info.viaStoredField;
                     edge.callerProjectionField = callerField;
                     outCapture.edges.push_back(edge);
@@ -3285,6 +3285,32 @@ namespace
     // outright when no loop can join the paths on another iteration.
     bool mutationFollowedByLoopExit(Sema& sema, AstNodeRef bodyRef, AstNodeRef callRef);
 
+    // Whether 'targetRef' sits in the subtree under 'rootRef'.
+    bool subtreeContains(Sema& sema, AstNodeRef rootRef, AstNodeRef targetRef)
+    {
+        if (rootRef.isInvalid() || targetRef.isInvalid())
+            return false;
+        SmallVector<AstNodeRef> worklist;
+        SmallVector<AstNodeRef> children;
+        worklist.push_back(rootRef);
+        uint32_t budget = 4096;
+        while (!worklist.empty() && budget != 0)
+        {
+            budget--;
+            const AstNodeRef nodeRef = worklist.back();
+            worklist.pop_back();
+            if (nodeRef == targetRef)
+                return true;
+            if (nodeRef.isInvalid())
+                continue;
+            children.clear();
+            sema.node(nodeRef).collectChildrenFromAst(children, sema.ast());
+            for (const AstNodeRef childRef : children)
+                worklist.push_back(childRef);
+        }
+        return false;
+    }
+
     AstNodeRef firstReadAfter(Sema& sema, AstNodeRef bodyRef, AstNodeRef mutationRef, const SourceCodeRange& afterRange, uint32_t afterOffset, const SymbolVariable& symVar)
     {
         struct Occurrence
@@ -3321,7 +3347,29 @@ namespace
                 {
                     uint32_t phase     = 0;
                     bool     candidate = range.offset >= afterOffset;
-                    if (range.offset < afterRange.offset)
+                    uint32_t offset    = range.offset;
+
+                    // The destination of the assignment the change is evaluated FOR
+                    // ('view = list.add(x)') is written once the call returns: it
+                    // refreshes the view right after the change, wherever its name
+                    // sits in the text.
+                    bool assignedFromMutation = false;
+                    if (parentRef.isValid())
+                    {
+                        const AstNode& parent = sema.node(parentRef);
+                        if (parent.is(AstNodeId::AssignStmt))
+                        {
+                            const AstAssignStmt& assign = parent.cast<AstAssignStmt>();
+                            if (sema.viewZero(assign.nodeLeftRef).nodeRef() == nodeRef && subtreeContains(sema, assign.nodeRightRef, mutationRef))
+                            {
+                                assignedFromMutation = true;
+                                candidate            = true;
+                                offset               = afterOffset;
+                            }
+                        }
+                    }
+
+                    if (range.offset < afterRange.offset && !assignedFromMutation)
                     {
                         for (uint32_t i = 0; i < backEdgeLoops.size32(); i++)
                         {
@@ -3337,8 +3385,8 @@ namespace
 
                     // The destination of an assignment, or the name being declared, is
                     // where the view is refreshed rather than consumed.
-                    bool isWrite = false;
-                    if (candidate && parentRef.isValid())
+                    bool isWrite = assignedFromMutation;
+                    if (candidate && !isWrite && parentRef.isValid())
                     {
                         const AstNode& parent = sema.node(parentRef);
                         if (parent.is(AstNodeId::AssignStmt))
@@ -3348,7 +3396,7 @@ namespace
                     }
 
                     if (candidate)
-                        found.push_back({nodeRef, range.offset, isWrite, phase, range});
+                        found.push_back({nodeRef, offset, isWrite, phase, range});
                 }
             }
 

@@ -82,6 +82,11 @@ struct SemaEscapeInfo
     // what the owner is for, so it must not feed the "this callee frees the pointer you
     // handed it" summary.
     bool viaOwnedPayload = false;
+    // The borrow WAS such a payload until the owner replaced its carrier ('old = .table;
+    // .table = alloc(...)'): it no longer follows the owner's new allocation, but what
+    // it addresses is still memory the owner released, never the owner's own storage.
+    // Handing it to a freeing callee is the owner reallocating, not the parameter freed.
+    bool detachedOwnedPayload = false;
     // The borrow was reached only through a FIELD this value holds: 'p.owner = me' makes
     // 'p' carry the receiver without 'p' being it. Every escape rule still applies — the
     // carrier must not outlive what it points at — but the FREES summary must not:
@@ -102,7 +107,8 @@ struct SemaEscapeInfo
             // A payload route present on either control-flow alternative remains
             // possible after the join. An unconditional carrier replacement clears it
             // before the join; a conditional replacement must not hide the other path.
-            viaOwnedPayload = viaOwnedPayload || other.viaOwnedPayload;
+            viaOwnedPayload       = viaOwnedPayload || other.viaOwnedPayload;
+            detachedOwnedPayload  = detachedOwnedPayload || other.detachedOwnedPayload;
             // One direct borrow among the merged facts is enough to make the value stand
             // for the parameter's storage.
             viaStoredField = viaStoredField && other.viaStoredField;

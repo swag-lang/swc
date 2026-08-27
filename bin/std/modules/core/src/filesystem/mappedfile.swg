@@ -189,4 +189,23 @@ impl MappedRegion
             return
         .flushNative()
     }
+
+    // Drops the pages holding `bytes` from the working set of the process.
+    //
+    // A walk over a large mapped file touches every page it reads, and each page stays charged
+    // to the process until the system trims it: an index scan of a film reads gigabytes and
+    // looks, to a task manager, as if the program had allocated them. Releasing the pages a walk
+    // is done with keeps the memory the process reports at the size of what it still uses.
+    //
+    // Nothing is lost. A released page comes back on its next access, from the file cache while
+    // the system still holds it, so this is a memory-accounting hint: it is safe on any readable
+    // range, mapped or not, does nothing for an empty one, and never fails. The pages are the
+    // whole ones containing `bytes`; a range that shares a page with data still in use keeps
+    // that page resident only until its next access.
+    func releasePages(bytes: const [..] u8)
+    {
+        if !@countof(bytes) do
+            return
+        releasePagesNative(bytes)
+    }
 }

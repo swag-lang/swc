@@ -90,3 +90,29 @@ func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
     expect mapped.resize(16 * 1024)
     @assert(expect mapped.size() == 16 * 1024)
 }
+
+// Releasing the pages behind a walk is an accounting hint: the bytes read back unchanged, and
+// an empty or unaligned range is accepted.
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_mapped_file_release.tmp")
+    defer discard catch File.delete(fileName)
+
+    var source: [96 * 1024] u8
+    for &value in source do
+        value[] = cast(u8) (@index % 239)
+    discard expect File.writeAllBytes(fileName, source)
+
+    var mapped = expect File.MappedFile.open(fileName)
+    var region = expect mapped.mapAll()
+    let bytes  = region.bytes()
+    @assert(mappedBytesEqual(bytes, source))
+
+    File.MappedRegion.releasePages(bytes[0 until 0])
+    File.MappedRegion.releasePages(bytes[1000 until 5000])
+    File.MappedRegion.releasePages(bytes)
+    @assert(mappedBytesEqual(bytes, source))
+
+    region.close()
+    mapped.close()
+}

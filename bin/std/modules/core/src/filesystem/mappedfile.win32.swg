@@ -86,4 +86,11 @@ internal impl MappedRegion
         catch FlushFileBuffers(cast(HANDLE) .fileHandle) as err
         Errors.transformWinErrors(err)
     }
+
+    // Unlocking pages that were never locked is the documented way to remove them from the
+    // working set; the call reports an error for that case, which is the outcome wanted here.
+    func releasePagesNative(bytes: const [..] u8)
+    {
+        discard VirtualUnlock(cast #unconst (LPVOID) @dataof(bytes), @countof(bytes))
+    }
 }

@@ -1457,6 +1457,10 @@ private impl VideoViewer
         result.timeline.enable(false)
         result.refreshTransport()
         result.openFileName = fileName
+
+        // The sound device comes online while the file opens, so the first picture does not
+        // wait for it; see [[warmSoundEngine]].
+        warmSoundEngine()
         result.decodeWake.init()
         try result.decodeThread.init(&runVideoViewerDecode, result, priority: .Normal)
         try result.decodeThread.start()

@@ -548,6 +548,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
 
 #[Foreign("kernel32", callconv: Swag.CallConv.C)]
 {
+    func VirtualUnlock(lpAddress: LPVOID, dwSize: SIZE_T)->BOOL
     func GetLastError()->DWORD
     func FormatMessageA(dwFlags: DWORD, lpSource: LPCVOID, dwMessageId: DWORD, dwLanguageId: DWORD, lpBuffer: LPCSTR, nSize: DWORD, Arguments: #null *va_list)->DWORD
     func IsDebuggerPresent()->BOOL

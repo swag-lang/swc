@@ -311,7 +311,16 @@ private struct Layout
     indexPictures:  bool = true
     videoChunkEnds: Array'u64
     cues:           Array'CueEntry
+    releasedThrough: u64     // File offset below which the walk has handed its pages back.
 }
+
+// How far behind the walk the mapped pages are handed back, and in what steps.
+//
+// A walk reads the whole film, and every page it touches stays charged to the process until it
+// is released. The decoder reads its payloads from the clusters just behind the index, so those
+// stay; everything further back is only the memory the process would otherwise seem to hold.
+private const ScanReleaseKeepBytes = 64 * 1024 * 1024'u64
+private const ScanReleaseStepBytes = 16 * 1024 * 1024'u64
 
 private impl Layout
 {
@@ -404,6 +413,18 @@ private impl Layout
             .selectTracks()
     }
 
+    // Hands back the pages the walk has left far enough behind; see [[ScanReleaseKeepBytes]].
+    mtd releaseScanned(bytes: const [..] u8)
+    {
+        if .releasedThrough > .scanPosition do
+            .releasedThrough = .scanPosition
+        if .scanPosition < .releasedThrough + ScanReleaseKeepBytes + ScanReleaseStepBytes do
+            return
+        let end = Math.min(.scanPosition - ScanReleaseKeepBytes, @countof(bytes))
+        File.MappedRegion.releasePages(bytes[.releasedThrough until end])
+        .releasedThrough = end
+    }
+
     // Extends the block index by complete clusters until `sampleCount` pictures are available.
     mtd indexUntil(bytes: const [..] u8, sampleCount: u64, cancelled: #null *u32 = null, paused: #null *u32 = null)->bool fail
     {
@@ -427,6 +448,7 @@ private impl Layout
             if element.id == ClusterId and !.parseCluster(&cursor, element, cancelled, paused) do
                 return false
             .scanPosition = element.end
+            .releaseScanned(bytes)
             cursor.seek(element.end)
         }
 
@@ -490,6 +512,7 @@ private impl Layout
             if element.id == ClusterId and !.parseCluster(&cursor, element, cancelled, paused) do
                 return false
             .scanPosition = element.end
+            .releaseScanned(bytes)
             cursor.seek(element.end)
         }
 
@@ -1970,8 +1993,13 @@ impl IDecoder for Decoder
             .fileIndex!.progressive!.parseMetadata(.fileIndex!.region.bytes())
             .fileIndex!.path = path
             .configureMetadata(.fileIndex!.progressive!)
+            // The opening sound window is built beside the picture rather than before it. It
+            // reads a minute of interleaved clusters, which is a second on a film read across a
+            // network share, and a player has nothing to show for that second: it can present
+            // its first picture as soon as the video is ready and let the sound join it, which
+            // is what it already does after every seek.
             if .fileIndex!.progressive!.audioTracks.count do
-                discard catch buildSoundWindow(.fileIndex!, 0) as initialSoundError
+                .requestSoundWindow(.fileIndex!, 0)
             .startSoundIndex()
             return .info
         }

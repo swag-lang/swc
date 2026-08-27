@@ -416,3 +416,29 @@ These leads cover images, text, and the CPU/OpenGL painters.
   with `fillRect`. `fillPolygon` routes a shape its convexity test rejects through
   `Polygon.cleanedPaths`, which is the first thing to look at for a strip whose four corners are
   nearly collinear.
+
+### B-014 — A supersampled SVG rasterization leaves twice its sampled target in private memory
+
+- Area: std/pixel, std/gui
+- Found while: tracing the startup of sFileScope with the process memory read at every step
+- Observation: every `Svg.Drawing.rasterize(renderer, ...)` deletes its render targets on return,
+  yet the private bytes of the process stay up by about twice the size of the sampled target it
+  used: the 704x704 widgets atlas at four times supersampling (a 2816x2816 target, 32 MB) leaves
+  68 MB behind, the 64-glyph icon sheet rasterized for one 48-pixel icon at scale two (a 3072x3072
+  target) leaves 76 MB, and each 256 to 320 pixel icon sheet 11 to 14 MB. A GUI application shows
+  about 290 MB of private memory before its first paint, and half of that is these residues. The
+  first 4K paint of a maximized window adds a further 110 MB. The display is an Intel integrated
+  GPU, whose driver serves textures from system memory and does not return a freed target's pages
+  to the process: the retention is most likely the driver's own pool, not a leak in the module.
+- Evidence: `bin/apps/modules/sFileScope` traced on 2026-08-27 with the working set and pagefile
+  usage read through `K32GetProcessMemoryInfo` after each theme, icon, and paint step. Deleting
+  the targets is visible in [parse.swg](../bin/std/modules/pixel/src/svg/parse.swg); the residue
+  grows with every distinct target size and never shrinks.
+- Next step: bound the sampled target instead of the document. Rasterize the sheet in tiles whose
+  supersampled size stays under a fixed budget (a 1024x1024 target would cover the widgets atlas
+  in nine tiles), resolving each tile into the final image. Tiles aligned to the supersampling
+  factor resolve the same pixels as the whole target, so the goldens should not move; verify that
+  on the gui image goldens before changing the default. An application that only needs one glyph
+  at a large size should also be able to rasterize that cell alone rather than the whole sheet.
+- Complete when: a GUI process shows no more than one bounded sampled target of residue after its
+  theme and icon sheets are built, with the gui goldens unchanged.

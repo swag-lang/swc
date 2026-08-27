@@ -598,6 +598,7 @@ impl IWnd for ViewerWindow
         .kindButton.setChecked(.folderSameKind)
         .setFilePanelVisible(.panelVisible)
         .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
+        .refreshEmptyArtwork()
         evt.accepted = true
     }
 
@@ -638,6 +639,7 @@ impl IWnd for ViewerWindow
             for &instance in .instances where instance.view and !instance.failureReason.isEmpty() do
                 (cast(*ViewerErrorView) instance.view!).refreshTheme()
             .refreshArtwork()
+            .refreshEmptyArtwork()
         }
 
         .wnd.IWnd.onNotifyEvent(evt)
@@ -666,13 +668,25 @@ impl ViewerWindow
     // Keeps the few decorative glyphs aligned with the active palette and document kind.
     mtd refreshArtwork()
     {
-        .emptyIconLabel.setIcon(.theme().icon(.OpenFile, 48))
-        .emptyIconLabel.setIconColor(.themeColors().label_TextFaint)
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
         .searchPrevious.setIcon(.theme().icon(.SearchPrevious, 16))
         .searchNext.setIcon(.theme().icon(.SearchNext, 16))
         if .activeChoiceIndex < .choices.count do
             .infoIconLabel.setIcon(.icon(.choices[.activeChoiceIndex].icon))
+    }
+
+    // Gives the drop hint its glyph, but only while the hint is what the window shows.
+    //
+    // The glyph is the one large icon of the window, and an icon set rasterizes its whole sheet
+    // at every size it is asked for: this one costs a third of a second and tens of megabytes
+    // at a display scale of two. A launch that already names a file never shows the hint, so
+    // it never pays for it; the hint takes its glyph the moment it is actually shown.
+    private mtd refreshEmptyArtwork()
+    {
+        if !.emptyView.isVisible() do
+            return
+        .emptyIconLabel.setIcon(.theme().icon(.OpenFile, 48))
+        .emptyIconLabel.setIconColor(.themeColors().label_TextFaint)
     }
 
     // A monitor-sized full-screen placement is transient and must never replace the saved
@@ -1200,6 +1214,11 @@ impl ViewerWindow
         .pendingFile = fileName
         .pendingEmpty.clear()
         .pendingRemember = remember
+
+        // The hint to drop a file is not what a window opening one should paint first: hidden
+        // now, the first frame shows the surface the document is about to fill, and the hint's
+        // glyph is never rasterized for a launch that names its file.
+        .emptyView.hide()
         .updateLoadingIndicator()
         if !.startupTimer do
             .startupTimer = .addTimer(retry ? ViewerRetirePollInterval : 1'ms)
@@ -1388,6 +1407,7 @@ impl ViewerWindow
 
         .emptyLabel.setText(Format.toString("<b>%</b>", message))
         .emptyView.show()
+        .refreshEmptyArtwork()
         .currentFile.clear()
         .choices.clear()
         .viewerCombo.clear()

@@ -98,8 +98,8 @@ private func registerViewerFileTypes(index: const *ViewerIndex)
 
     let window = ViewerWindow.create(surface.wnd, #move index)
 
-    surface.show()
-
+    // The file is queued before the window shows, so the first frame is the surface that
+    // file is about to fill rather than the hint to drop one.
     let smokeDirectory = viewerSmokeDirectory(Env.arguments())
     if !smokeDirectory.isEmpty()
     {
@@ -114,6 +114,8 @@ private func registerViewerFileTypes(index: const *ViewerIndex)
         if !startupFile.isEmpty() do
             window.queueFile(startupFile.toString())
     }
+
+    surface.show()
 
     let exitCode = g_App.run()
     if exitCode do

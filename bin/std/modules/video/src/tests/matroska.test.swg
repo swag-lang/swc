@@ -74,7 +74,7 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
 #test
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
-    @assert(reader.audioTrackCount() == 2)
+    waitForMatroskaAudio(&reader, 2)
     let primary   = reader.audioTrack(0)!
     let alternate = reader.audioTrack(1)!
     @assert(primary.sampleEncoding() == .AacLc and alternate.sampleEncoding() == .AacLc)
@@ -170,7 +170,7 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
 #test
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac-10min.mkv"))
-    @assert(reader.audioTrackCount() == 2)
+    waitForMatroskaAudio(&reader, 2)
     var attempts: u32
     while reader.audioTrack(0)!.durationInSeconds() < 100 and attempts < 5000
     {

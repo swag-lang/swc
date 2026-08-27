@@ -21,6 +21,16 @@ private const AvcNoLane = Swag.U32.Max
 private const AvcBytesPerLanePixel = 7'u64
 private const AvcLaneMemoryBudget = 640 * 1024 * 1024'u64
 
+// How many pixels of picture one frame thread is worth.
+//
+// A frame thread exists to keep a real-time consumer fed, and what a consumer needs is a rate
+// of pixels: a 4K stream wants every lane the budget allows, while a 1080p one decodes several
+// times faster than any clock asks for on four of them, and sixteen would only hold three times
+// the memory to race further ahead of a queue that is already full. One lane per half megapixel
+// gives four at 1080p and the full set at 4K.
+private const AvcPixelsPerLane = 480_000'u64
+private const AvcMinFrameThreads = 2'u32
+
 // One decoded H.264 frame waiting for its display turn.
 private struct PendingFrame
 {
@@ -122,7 +132,11 @@ impl AvcStream
         .cropLeft = sps.cropLeft
         .cropTop  = sps.cropTop
 
-        let laneBytes = cast(u64) sps.mbWidth * cast(u64) sps.mbHeight * 256 * AvcBytesPerLanePixel
+        let pixels = cast(u64) sps.mbWidth * cast(u64) sps.mbHeight * 256
+        let wanted = cast(u32) Math.min((pixels + AvcPixelsPerLane - 1) / AvcPixelsPerLane, cast(u64) AvcMaxFrameThreads)
+        .laneCount = Math.min(.laneCount, Math.max(wanted, AvcMinFrameThreads))
+
+        let laneBytes = pixels * AvcBytesPerLanePixel
         if laneBytes do
             .laneCount = Math.max(1'u32, Math.min(.laneCount, cast(u32) Math.max(AvcLaneMemoryBudget / laneBytes, 1'u64)))
 

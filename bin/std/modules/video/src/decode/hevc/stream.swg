@@ -18,6 +18,10 @@ private const HevcNoLane = Swag.U32.Max
 private const HevcBytesPerLanePixel = 6'u64
 private const HevcLaneMemoryBudget = 640 * 1024 * 1024'u64
 
+// How many pixels of picture one frame thread is worth; see the H.264 stream for the reasoning.
+private const HevcPixelsPerLane = 480_000'u64
+private const HevcMinFrameThreads = 2'u32
+
 // One reconstructed picture waiting for its display turn.
 private struct PendingFrame
 {
@@ -108,7 +112,10 @@ impl HevcStream
             try .configure(&.decoders[lane])
 
         .laneCount = Math.max(1'u32, Math.min(Jobs.workerCount(), HevcMaxFrameThreads))
-        let laneBytes = cast(u64) .width * cast(u64) .height * HevcBytesPerLanePixel
+        let pixels = cast(u64) .width * cast(u64) .height
+        let wanted = cast(u32) Math.min((pixels + HevcPixelsPerLane - 1) / HevcPixelsPerLane, cast(u64) HevcMaxFrameThreads)
+        .laneCount = Math.min(.laneCount, Math.max(wanted, HevcMinFrameThreads))
+        let laneBytes = pixels * HevcBytesPerLanePixel
         if laneBytes do
             .laneCount = Math.max(1'u32, Math.min(.laneCount, cast(u32) Math.max(HevcLaneMemoryBudget / laneBytes, 1'u64)))
         if .hasWavefrontConfiguration() do

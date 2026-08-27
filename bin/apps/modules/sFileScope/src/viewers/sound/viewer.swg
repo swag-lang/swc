@@ -26,12 +26,46 @@ internal struct WaveformPoint
 private var g_SoundEngineUsers: u32
 private var g_SoundViewerOwnsEngine: bool
 
+// Creation of the audio engine started ahead of the first voice, on a scheduler worker.
+private var g_SoundEngineWarmUp: Jobs.Job
+private var g_SoundEngineWarming: bool
+
+// Starts creating the audio engine without waiting for it.
+//
+// Opening the output device is the better part of a second, and a player that only asks for
+// the engine once its first picture is ready to be shown adds that second to the wait for
+// the picture. Starting it here lets the device come online while the file is being opened
+// and its first picture decoded; [[acquireSoundEngine]] then joins the work instead of doing
+// it. Call it from the GUI thread, which is the only one that acquires the engine.
+internal func warmSoundEngine()
+{
+    if g_SoundEngineWarming or g_SoundEngineUsers or isEngineCreated() do
+        return
+
+    g_SoundEngineWarming      = true
+    g_SoundEngineWarmUp.lambda = func(data: #null *void)
+    {
+        discard data
+        discard catch createEngine()
+    }
+    g_SoundEngineWarmUp.data = null
+    Jobs.schedule(&g_SoundEngineWarmUp)
+}
+
 internal func acquireSoundEngine(kind = DriverKind.Default)->bool
 {
     if g_SoundEngineUsers
     {
         g_SoundEngineUsers += 1
         return true
+    }
+
+    if g_SoundEngineWarming
+    {
+        Jobs.wait(&g_SoundEngineWarmUp)
+        g_SoundEngineWarming = false
+        if isEngineCreated() do
+            g_SoundViewerOwnsEngine = true
     }
 
     if !isEngineCreated()

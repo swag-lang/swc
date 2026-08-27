@@ -185,7 +185,7 @@ func addDc4x4Scalar(destination: [*] u8, stride: u64, dc: s32)
 //
 // `block` holds the raw decoded coefficients in raster order and receives the transformed
 // values, before their own dequantization.
-func hadamard4x4(block: [*] s16)
+func hadamard4x4Scalar(block: [*] s16)
 {
     var work: [16] s32 = undefined
     for row in 4'u64
@@ -219,6 +219,59 @@ func hadamard4x4(block: [*] s16)
         block[8 + column]  = cast(s16) clampS32(e1 - e2, -32768, 32767)
         block[12 + column] = cast(s16) clampS32(e0 - e3, -32768, 32767)
     }
+}
+
+// Applies one four-point Hadamard pass to four vectors. Each lane is an independent
+// transform, and the four outputs replace the inputs.
+#[Swag.Mixin]
+private func hadamard4Lanes()
+{
+    {
+        let e0 = r0 + r2
+        let e1 = r0 - r2
+        let e2 = r1 - r3
+        let e3 = r1 + r3
+        r0 = e0 + e3
+        r1 = e1 + e2
+        r2 = e1 - e2
+        r3 = e0 - e3
+    }
+}
+
+// Transposes the caller's four vectors of four 32-bit lanes without leaving registers.
+#[Swag.Mixin]
+private func transpose4x4Lanes()
+{
+    {
+        let a0 = Simd.interleaveLow(cast #bit(Simd.U32x4) r0, cast #bit(Simd.U32x4) r1)
+        let a1 = Simd.interleaveHigh(cast #bit(Simd.U32x4) r0, cast #bit(Simd.U32x4) r1)
+        let a2 = Simd.interleaveLow(cast #bit(Simd.U32x4) r2, cast #bit(Simd.U32x4) r3)
+        let a3 = Simd.interleaveHigh(cast #bit(Simd.U32x4) r2, cast #bit(Simd.U32x4) r3)
+        r0 = cast #bit(Simd.S32x4) Simd.interleaveLow(cast #bit(Simd.U64x2) a0, cast #bit(Simd.U64x2) a2)
+        r1 = cast #bit(Simd.S32x4) Simd.interleaveHigh(cast #bit(Simd.U64x2) a0, cast #bit(Simd.U64x2) a2)
+        r2 = cast #bit(Simd.S32x4) Simd.interleaveLow(cast #bit(Simd.U64x2) a1, cast #bit(Simd.U64x2) a3)
+        r3 = cast #bit(Simd.S32x4) Simd.interleaveHigh(cast #bit(Simd.U64x2) a1, cast #bit(Simd.U64x2) a3)
+    }
+}
+
+// Inverse 4x4 Hadamard transform in 32-bit lanes. The two separable passes remain in
+// registers, and the final signed pack performs the same clamp as [[hadamard4x4Scalar]].
+func hadamard4x4(block: [*] s16)
+{
+    let rows01 = Simd.load(block)
+    let rows23 = Simd.load(block + 8)
+    var r0     = Simd.widenLow(rows01)
+    var r1     = Simd.widenHigh(rows01)
+    var r2     = Simd.widenLow(rows23)
+    var r3     = Simd.widenHigh(rows23)
+
+    hadamard4Lanes()
+    transpose4x4Lanes()
+    hadamard4Lanes()
+    transpose4x4Lanes()
+
+    Simd.store(block, Simd.packSigned(r0, r1))
+    Simd.store(block + 8, Simd.packSigned(r2, r3))
 }
 
 // Inverse 2x2 Hadamard transform of the chroma DC coefficients, section 8.5.11.

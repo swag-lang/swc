@@ -55,7 +55,7 @@ func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
 
     for
     {
-        let fileName = Utf8.fromUtf16(@mkslice(dataof, Utf16.lengthZeroTerminated(dataof)))
+        let fileName = Utf8.fromUtf16(@mkslice(dataof, Utf16.lengthUntilZero(findfile.cFileName)))
         var info: FileInfo
         info.fullname   = Path.combine(toScan.toString(), fileName.toString())
         info.attributes = FileAttributes.fromDWORD(findfile.dwFileAttributes)

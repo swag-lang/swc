@@ -26,7 +26,7 @@ impl FontFamily
 {
     func enumSubFamily(fa: const *LOGFONTW, _tm: const *TEXTMETRICW, _fontType: DWORD, lParam: LPARAM)->BOOL
     {
-        let len = Utf16.lengthZeroTerminated(&fa.lfFaceName[0])
+        let len = Utf16.lengthUntilZero(fa.lfFaceName)
         if !len do
             return TRUE
         let x = Utf8.fromUtf16(@mkslice(&fa.lfFaceName[0], len))
@@ -53,7 +53,7 @@ impl FontFamily
     {
         if fontType & TRUETYPE_FONTTYPE
         {
-            let len = Utf16.lengthZeroTerminated(&fa.lfFaceName[0])
+            let len = Utf16.lengthUntilZero(fa.lfFaceName)
             if !len do
                 return TRUE
             let x = Utf8.fromUtf16(@mkslice(&fa.lfFaceName[0], len))

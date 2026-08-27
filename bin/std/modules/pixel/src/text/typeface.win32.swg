@@ -63,7 +63,7 @@ impl TypeFace
         var logFont: LOGFONTW
         try GetObjectW(cast() hfont, #sizeof(LOGFONTW), cast(LPVOID) &logFont)
 
-        let length = Utf16.lengthZeroTerminated(&logFont.lfFaceName[0])
+        let length = Utf16.lengthUntilZero(logFont.lfFaceName)
         if !length do
             return ""
         return Utf8.fromUtf16(@mkslice(&logFont.lfFaceName[0], length))

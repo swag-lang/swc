@@ -160,7 +160,48 @@ func toZeroTerminated(src: string)->Array'u16
     return result
 }
 
-// Compute the string length of a zero terminated utf16 buffer
+// Returns the number of UTF-16 units before the first zero, bounded by the slice.
+//
+// The result is `@countof(buf)` when the slice contains no terminator. The function never
+// reads outside `buf`; prefer it whenever the storage extent is known.
+func lengthUntilZero(buf: const [..] u16)->u64
+{
+    const VectorCount = #sizeof(Math.Simd.U16x8) / #sizeof(u16)
+    let zero   = Math.Simd.splat(0'u16)
+    let data   = @dataof(buf)
+    let count  = @countof(buf)
+    var offset = 0'u64
+
+    while offset + VectorCount <= count
+    {
+        let matches = Math.Simd.load(data + offset) == zero
+        if Math.Simd.anyTrue(matches)
+        {
+            for lane in VectorCount
+            {
+                if data[offset + lane] == 0 do
+                    return offset + lane
+            }
+        }
+
+        offset += VectorCount
+    }
+
+    while offset < count
+    {
+        if data[offset] == 0 do
+            return offset
+        offset += 1
+    }
+
+    return count
+}
+
+// Returns the number of UTF-16 units before the first zero in unbounded native storage.
+//
+// `buf` must either be `null` or point to a zero-terminated sequence. Use
+// [[Core.Utf16.lengthUntilZero]] when the storage extent is known so a missing terminator
+// remains bounded.
 func lengthZeroTerminated(buf: #null const [*] u16)->u64
 {
     if buf == null do

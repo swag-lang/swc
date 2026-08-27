@@ -47,6 +47,14 @@ func scalarUtf8FromUtf16(dest: [..] u8, src: const [..] u16)->u64
     return count
 }
 
+func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
+{
+    var count = 0'u64
+    for value in src do
+        count += Utf8.encodeRune(dest[count until @countof(dest)], value)
+    return count
+}
+
 #test
 {
     var bytes: [4] u8
@@ -103,6 +111,49 @@ func scalarUtf8FromUtf16(dest: [..] u8, src: const [..] u16)->u64
     @assert(dest[0] == 0xEF)
     @assert(dest[1] == 0xBF)
     @assert(dest[2] == 0xBD)
+}
+
+// Homogeneous two-byte runs exercise the packed U+0080..U+07FF path in both source
+// representations, across every vector tail.
+#test
+{
+    var runes:    [80] rune
+    var utf16:    [80] u16
+    var actual:   [320] u8
+    var expected: [320] u8
+    for index in @countof(runes)
+    {
+        let value = 0x80 + (index * 37 % 0x780)
+        runes[index] = cast(rune) value
+        utf16[index] = cast(u16) value
+    }
+
+    for length in 66'u64
+    {
+        for index in @countof(actual)
+        {
+            actual[index]   = 0xA5
+            expected[index] = 0xA5
+        }
+
+        let runeSlice     = @mkslice(@dataof(runes), length)
+        var actualCount   = Utf8.fromUnicode(actual, runeSlice)
+        var expectedCount = scalarUtf8FromUnicode(expected, runeSlice)
+        @assert(actualCount == expectedCount)
+        @assert(Memory.compare(@dataof(actual), @dataof(expected), #sizeof(actual)) == 0)
+
+        for index in @countof(actual)
+        {
+            actual[index]   = 0xA5
+            expected[index] = 0xA5
+        }
+
+        let utf16Slice = @mkslice(@dataof(utf16), length)
+        actualCount   = Utf8.fromUtf16(actual, utf16Slice)
+        expectedCount = scalarUtf8FromUtf16(expected, utf16Slice)
+        @assert(actualCount == expectedCount)
+        @assert(Memory.compare(@dataof(actual), @dataof(expected), #sizeof(actual)) == 0)
+    }
 }
 
 // Exercise every tail around the eight-lane pack and every possible interruption of a long

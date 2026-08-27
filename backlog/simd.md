@@ -145,7 +145,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   permutation vocabulary that composes those primitives without scalar extraction.
 - Complete when: constant patterns select immediate hardware forms, dynamic patterns retain a
   defined fallback, and 4x4/8x8 transpose helpers require no scalar lane extraction.
-- Related: T-507, T-542, T-549, T-550, T-551.
+- Related: T-507, T-549, T-550, T-551.
 
 ### T-515 — Horizontal reductions are not first-class
 
@@ -164,7 +164,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   splat.
 - Complete when: arbitrary byte counts can be processed without reading or writing outside the
   slice, sanitizer-style guard-page tests cover both ends, and AVX-512 uses native masks.
-- Related: T-510, T-531, T-542, T-544, T-545.
+- Related: T-510, T-531, T-544, T-545.
 
 ### T-517 — Gather, scatter, compress, and expand are unavailable
 
@@ -357,23 +357,6 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   vertically, and the 1080p profile shows the gain.
 - Related: T-514, T-520, T-420 in `video.md`.
 
-### T-542 — The H.264 Hadamard transforms remain scalar
-
-- Intent: vectorize `hadamard4x4` (and the 2x2 chroma one if it ever shows). `addIdct4x4`,
-  `addDc4x4` and `addIdct8x8` are packed since 2026-08-22, in 16-bit lanes: the 4x4 holds its
-  columns two per vector, regroups the butterfly halves through 64-bit interleaves and swaps
-  halves with one `pshufb`, adds two prediction rows per vector; the 8x8 runs two 8x8 16-bit
-  transposes and the eight-point butterfly as mixins over eight register vectors (a callee taking
-  their addresses would pin them to the stack); the flat add clamps its value to ±256 before
-  broadcasting. A conforming stream bounds every intermediate to 16 bits (8.5.12, 8.5.13), so the
-  lanes never wrap where the 32-bit scalar forms — kept as `addIdct4x4Scalar`, `addDc4x4Scalar`,
-  `addIdct8x8Scalar` — would not; 512-seed differential tests and the fixture corpus are
-  byte-exact. With the vertical deblocking of T-541 the generated 1080p High clip went from a
-  4,612 ms to a 4,261 ms mean (7.6%) over six alternated runs and the Main clip from 2,442 to
-  2,313 ms (5.3%), every frame checksum identical.
-- Complete when: the Hadamard transforms are packed and the conformance streams stay byte-exact.
-- Related: T-514, T-520, T-541.
-
 ### T-544 — H.264 reconstruction and directional intra prediction remain scalar
 
 - Intent: vectorize dequantization, residual addition, and the DC/horizontal/vertical/plane intra
@@ -387,7 +370,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   call window and within its margin, which makes them the cheapest re-measures in this file.
 - Complete when: conformance streams remain byte-exact and each retained kernel improves the staged
   reconstruction profile.
-- Related: T-513, T-514, T-516, T-542.
+- Related: T-513, T-514, T-516.
 
 ## Tier C — Pixel processing and image codecs
 
@@ -586,11 +569,21 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   arrays, and indexed spaces, with separate conversion benchmarks.
 - Related: T-511, T-517, T-521.
 
-### T-555 — BMP conversion and bounded UTF-16 terminator search remain scalar
+### T-555 — Three-byte Basic Multilingual Plane conversion remains scalar
 
-- Intent: add packed BMP conversion beyond the existing ASCII fast paths, accelerate endian-aware
-  UTF-16/32 decoding, and provide a length-bounded terminator search so SIMD loads remain inside
-  caller-owned storage. Fall back before surrogates or invalid sequences.
-- Complete when: malformed sequences, endian variants, bounded terminators, destination limits,
-  and tails match scalar behavior and BMP-heavy conversions improve.
+- Intent: pack homogeneous U+0800..U+FFFF UTF-16/rune runs while falling back before surrogates or
+  invalid sequences; assess four-byte rune runs separately because they are uncommon in source
+  text and need a different 4-to-16-byte layout.
+- Evidence (2026-08-27): `Utf8.fromUtf16` and `Utf8.fromUnicode` now pack homogeneous ASCII and
+  U+0080..U+07FF runs. `Text.decode` consumes little-endian UTF-16/32 directly and byte-swaps eight
+  big-endian UTF-16 units or four UTF-32 units per vector before the same conversion. The new
+  bounded `Utf16.lengthUntilZero` scans eight units per load without crossing its
+  slice, and fixed-size Win32 font/directory buffers use it. Fast-debug and Release differential
+  tests cover every vector tail, both endian variants, surrogate pairs, invalid runes, missing
+  terminators, and destination sentinels. Over native Release microkernels, 81.92 million
+  two-byte UTF-16 units improved from 1,311,832 to 46,744 us (28.06x), the same rune input from
+  306,167 to 78,542 us (3.90x), and 409.6 million bounded non-zero units plus a final terminator
+  from 309,364 to 58,554 us (5.28x).
+- Complete when: three-byte BMP runs, malformed boundaries, destination limits, and tails match
+  scalar behavior and a BMP-heavy conversion benchmark improves.
 - Related: T-511, T-514, T-516.

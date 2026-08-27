@@ -169,16 +169,54 @@ func windows1252Rune(value: u8)->rune
     return cast(rune) value
 }
 
-// Reads one unit of `bytes` at `offset`, in the byte order `encoding` names.
-private func readUnit(bytes: const [..] u8, offset: u64, encoding: Encoding)->u32
+// Reorders complete big-endian UTF-16 units into native little-endian storage.
+private func decodeUtf16BeUnits(bytes: const [..] u8)->Array'u16
 {
-    switch encoding
+    const SwapBytes = cast(Math.Simd.U8x16) [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14]
+    var result: retval
+    result.resize(@countof(bytes) / 2)
+    let source      = @dataof(bytes)
+    let destination = result.buffer!
+    var offset      = 0'u64
+
+    while offset + 8 <= result.count
     {
-    case .Utf16Le: return cast(u32) bytes[offset] | (cast(u32) bytes[offset + 1] << 8)
-    case .Utf16Be: return (cast(u32) bytes[offset] << 8) | cast(u32) bytes[offset + 1]
-    case .Utf32Le: return cast(u32) bytes[offset] | (cast(u32) bytes[offset + 1] << 8) | (cast(u32) bytes[offset + 2] << 16) | (cast(u32) bytes[offset + 3] << 24)
-    default:       return (cast(u32) bytes[offset] << 24) | (cast(u32) bytes[offset + 1] << 16) | (cast(u32) bytes[offset + 2] << 8) | cast(u32) bytes[offset + 3]
+        Math.Simd.store(destination + offset, cast #bit(Math.Simd.U16x8) Math.Simd.shuffle(Math.Simd.load(source + 2 * offset), SwapBytes))
+        offset += 8
     }
+
+    while offset < result.count
+    {
+        destination[offset] = (cast(u16) source[2 * offset] << 8) | cast(u16) source[2 * offset + 1]
+        offset              += 1
+    }
+
+    return result
+}
+
+// Reorders complete big-endian UTF-32 units into native little-endian rune storage.
+private func decodeUtf32BeRunes(bytes: const [..] u8)->Array'rune
+{
+    const SwapBytes = cast(Math.Simd.U8x16) [3'u8, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12]
+    var result: retval
+    result.resize(@countof(bytes) / 4)
+    let source      = @dataof(bytes)
+    let destination = result.buffer!
+    var offset      = 0'u64
+
+    while offset + 4 <= result.count
+    {
+        Math.Simd.store(cast([*] u8) (destination + offset), Math.Simd.shuffle(Math.Simd.load(source + 4 * offset), SwapBytes))
+        offset += 4
+    }
+
+    while offset < result.count
+    {
+        destination[offset] = cast(rune) ((cast(u32) source[4 * offset] << 24) | (cast(u32) source[4 * offset + 1] << 16) | (cast(u32) source[4 * offset + 2] << 8) | cast(u32) source[4 * offset + 3])
+        offset              += 1
+    }
+
+    return result
 }
 
 // Converts `bytes` to UTF-8, reading them as `encoding` spells characters.
@@ -210,48 +248,21 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
         result = Utf8.fromUnicode(runes.toSlice())
         return result
 
-    case .Utf16Le, .Utf16Be:
-        var runes: Array'rune
-        runes.reserve(@countof(bytes) / 2)
-        var offset = 0'u64
-        while offset + 2 <= @countof(bytes)
-        {
-            let unit = readUnit(bytes, offset, encoding)
-            offset += 2
-
-            // A surrogate pair spells one character across two units; a lone half is the file's
-            // error and becomes the replacement character rather than a wrong character.
-            if unit >= Utf16.Surr1 and unit < Utf16.Surr2 and offset + 2 <= @countof(bytes)
-            {
-                let low = readUnit(bytes, offset, encoding)
-                if low >= Utf16.Surr2 and low < Utf16.Surr3
-                {
-                    offset += 2
-                    runes.add(cast(rune) (Utf16.SurrSelf + ((unit - Utf16.Surr1) << 10) + (low - Utf16.Surr2)))
-                    continue
-                }
-            }
-
-            if unit >= Utf16.Surr1 and unit < Utf16.Surr3 do
-                runes.add(Utf16.RuneError)
-            else do
-                runes.add(cast(rune) unit)
-        }
-
-        result = Utf8.fromUnicode(runes.toSlice())
+    case .Utf16Le:
+        result = Utf8.fromUtf16(@mkslice(cast(const [*] u16) @dataof(bytes), @countof(bytes) / 2))
         return result
 
-    case .Utf32Le, .Utf32Be:
-        var runes: Array'rune
-        runes.reserve(@countof(bytes) / 4)
-        var offset = 0'u64
-        while offset + 4 <= @countof(bytes)
-        {
-            let value = readUnit(bytes, offset, encoding)
-            offset += 4
-            runes.add(Utf8.isValidRune(cast(rune) value) ? cast(rune) value : Utf16.RuneError)
-        }
+    case .Utf16Be:
+        let units = decodeUtf16BeUnits(bytes)
+        result = Utf8.fromUtf16(units.toSlice())
+        return result
 
+    case .Utf32Le:
+        result = Utf8.fromUnicode(@mkslice(cast(const [*] rune) @dataof(bytes), @countof(bytes) / 4))
+        return result
+
+    case .Utf32Be:
+        let runes = decodeUtf32BeRunes(bytes)
         result = Utf8.fromUnicode(runes.toSlice())
         return result
     }

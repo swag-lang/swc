@@ -478,17 +478,52 @@ func encodeRune(dest: [..] u8, src: rune)->u32
 // 'dest' must be at least 4 bytes long
 func fromUnicode(dest: [..] u8, src: const [..] rune)->u64
 {
-    let dataof = @dataof(dest)
-    var remain = @countof(dest)
+    const ContinuationsToLow = cast(Math.Simd.U8x16) [4'u8, 5, 6, 7, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
+    var srcPtr     = cast(const [*] s32) @dataof(src)
+    var destPtr    = @dataof(dest)
+    var srcLength  = @countof(src)
+    var destLength = @countof(dest)
+    var total      = 0'u64
 
-    var total = 0'u64
-    for ch in src
+    while srcLength
     {
-        Debug.assert(remain >= 4, "destination buffer is too small")
-        let sl  = @mkslice(dataof + total, remain)
-        let cpt = encodeRune(sl, ch)
-        total  += cpt
-        remain -= cpt
+        if srcLength >= 4
+        {
+            let values = Math.Simd.load(srcPtr)
+            if destLength >= 4 and Math.Simd.allTrue(cast #bit(Math.Simd.U32x4) ((values >= Math.Simd.splat(0's32)) & (values < Math.Simd.splat(0x80's32))))
+            {
+                let words = Math.Simd.packUnsigned(values, values)
+                let bytes = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) words, cast #bit(Math.Simd.S16x8) words)
+                Math.Simd.storeLow4(destPtr, bytes)
+                srcPtr                += 4
+                destPtr, total        += 4
+                srcLength, destLength -= 4
+                continue
+            }
+
+            if destLength >= 8 and Math.Simd.allTrue(cast #bit(Math.Simd.U32x4) ((values >= Math.Simd.splat(0x80's32)) & (values < Math.Simd.splat(0x800's32))))
+            {
+                let lead         = (values >> 6) | Math.Simd.splat(0xC0's32)
+                let continuation = (values & Math.Simd.splat(0x3F's32)) | Math.Simd.splat(0x80's32)
+                let words        = Math.Simd.packUnsigned(lead, continuation)
+                let bytes        = Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8) words, cast #bit(Math.Simd.S16x8) words)
+                let high         = Math.Simd.shuffle(bytes, ContinuationsToLow)
+                Math.Simd.storeLow8(destPtr, Math.Simd.interleaveLow(bytes, high))
+                srcPtr         += 4
+                destPtr, total += 8
+                srcLength      -= 4
+                destLength     -= 8
+                continue
+            }
+        }
+
+        Debug.assert(destLength >= 4, "destination buffer is too small")
+        let cpt = encodeRune(@mkslice(destPtr, destLength), cast(rune) srcPtr[])
+        srcPtr     += 1
+        srcLength  -= 1
+        destPtr    += cpt
+        destLength -= cpt
+        total      += cpt
     }
 
     return total
@@ -509,25 +544,40 @@ func fromUnicode(src: const [..] rune)->String
 // 'dest' must be at least 4 bytes long
 func fromUtf16(dest: [..] u8, src: const [..] u16)->u64
 {
+    const ContinuationsToLow = cast(Math.Simd.U8x16) [8'u8, 9, 10, 11, 12, 13, 14, 15, 128, 128, 128, 128, 128, 128, 128, 128]
+    const VectorSize         = #sizeof(Math.Simd.U16x8) / #sizeof(u16)
     var count      = 0'u64
     var srcPtr     = @dataof(src)
     var destPtr    = @dataof(dest)
     var srcLength  = @countof(src)
     var destLength = @countof(dest)
 
-    const VectorSize = #sizeof(Math.Simd.U16x8) / #sizeof(u16)
     while srcLength
     {
-        if srcLength >= VectorSize and destLength >= VectorSize
+        if srcLength >= VectorSize
         {
             let values = Math.Simd.load(srcPtr)
-            if Math.Simd.allTrue(values < Math.Simd.splat(0x80'u16))
+            if destLength >= VectorSize and Math.Simd.allTrue(values < Math.Simd.splat(0x80'u16))
             {
                 let signed = cast #bit(Math.Simd.S16x8) values
                 Math.Simd.storeLow8(destPtr, Math.Simd.packUnsigned(signed, signed))
                 srcPtr, destPtr       += VectorSize
                 count                 += VectorSize
                 srcLength, destLength -= VectorSize
+                continue
+            }
+
+            if destLength >= 2 * VectorSize and Math.Simd.allTrue((values >= Math.Simd.splat(0x80'u16)) & (values < Math.Simd.splat(0x800'u16)))
+            {
+                let lead         = cast #bit(Math.Simd.S16x8) ((values >> 6) | Math.Simd.splat(0xC0'u16))
+                let continuation = cast #bit(Math.Simd.S16x8) ((values & Math.Simd.splat(0x3F'u16)) | Math.Simd.splat(0x80'u16))
+                let bytes        = Math.Simd.packUnsigned(lead, continuation)
+                let high         = Math.Simd.shuffle(bytes, ContinuationsToLow)
+                Math.Simd.store(destPtr, Math.Simd.interleaveLow(bytes, high))
+                srcPtr         += VectorSize
+                destPtr, count += 2 * VectorSize
+                srcLength      -= VectorSize
+                destLength     -= 2 * VectorSize
                 continue
             }
         }

@@ -62,11 +62,36 @@ func assertIdct8x8Case(seed: u64)
     @assert(Memory.compare(@dataof(expected), @dataof(actual), @countof(actual)) == 0)
 }
 
+// The packed Hadamard transform must match the scalar 32-bit reference over the full input
+// range, including outputs that saturate at both signed 16-bit boundaries.
+func assertHadamard4x4Case(seed: u64)
+{
+    var expected: [16] s16
+    var actual:   [16] s16
+    for index in 16'u64
+    {
+        let value = cast #bit(s16) cast(u16) ((index * (seed * 104729 + 8191) + seed * 65521 + 32749) & 0xFFFF)
+        expected[index] = value
+        actual[index]   = value
+    }
+
+    H264.hadamard4x4Scalar(@dataof(expected))
+    H264.hadamard4x4(@dataof(actual))
+    @assert(Memory.compare(@dataof(expected), @dataof(actual), #sizeof(actual)) == 0)
+}
+
 #test
 {
     for seed in 512'u64
     {
         assertIdct4x4Case(seed)
         assertIdct8x8Case(seed)
+        assertHadamard4x4Case(seed)
     }
+
+    var expected: [16] s16 = [Swag.S16.Min, Swag.S16.Max, Swag.S16.Min, Swag.S16.Max, Swag.S16.Max, Swag.S16.Min, Swag.S16.Max, Swag.S16.Min, Swag.S16.Min, Swag.S16.Min, Swag.S16.Max, Swag.S16.Max, Swag.S16.Max, Swag.S16.Max, Swag.S16.Min, Swag.S16.Min]
+    var actual             = expected
+    H264.hadamard4x4Scalar(@dataof(expected))
+    H264.hadamard4x4(@dataof(actual))
+    @assert(Memory.compare(@dataof(expected), @dataof(actual), #sizeof(actual)) == 0)
 }

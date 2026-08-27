@@ -104,6 +104,54 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
     @assert(Text.decode(lone, .Utf16Le) == "�")
 }
 
+// Endian conversion processes complete vectors and scalar tails identically for UTF-16 and
+// UTF-32, including two-byte BMP characters, surrogate pairs and invalid runes.
+#test
+{
+    var utf16: [24] u16
+    var le16:  [48] u8
+    var be16:  [48] u8
+    for index in @countof(utf16)
+    {
+        let value = cast(u16) (0x80 + index * 53 % 0x780)
+        utf16[index]        = value
+        le16[2 * index]     = cast(u8) (value & 0xFF)
+        le16[2 * index + 1] = cast(u8) (value >> 8)
+        be16[2 * index]     = cast(u8) (value >> 8)
+        be16[2 * index + 1] = cast(u8) (value & 0xFF)
+    }
+
+    for count in @countof(utf16) + 1
+    {
+        let expected = Utf8.fromUtf16(@mkslice(@dataof(utf16), count))
+        @assert(Text.decode(@mkslice(@dataof(le16), 2 * count), .Utf16Le) == expected)
+        @assert(Text.decode(@mkslice(@dataof(be16), 2 * count), .Utf16Be) == expected)
+    }
+
+    let utf32: [9] rune = ['A'rune, 0x80, 0x7FF, 0x800, 0x20AC, 0xD800, 0x10000, 0x10FFFF, 0x110000]
+    var le32:  [4 * @countof(utf32)] u8
+    var be32:  [4 * @countof(utf32)] u8
+    for value, index in utf32
+    {
+        let bits = cast(u32) value
+        le32[4 * index]     = cast(u8) (bits & 0xFF)
+        le32[4 * index + 1] = cast(u8) ((bits >> 8) & 0xFF)
+        le32[4 * index + 2] = cast(u8) ((bits >> 16) & 0xFF)
+        le32[4 * index + 3] = cast(u8) (bits >> 24)
+        be32[4 * index]     = cast(u8) (bits >> 24)
+        be32[4 * index + 1] = cast(u8) ((bits >> 16) & 0xFF)
+        be32[4 * index + 2] = cast(u8) ((bits >> 8) & 0xFF)
+        be32[4 * index + 3] = cast(u8) (bits & 0xFF)
+    }
+
+    for count in @countof(utf32) + 1
+    {
+        let expected = Utf8.fromUnicode(@mkslice(@dataof(utf32), count))
+        @assert(Text.decode(@mkslice(@dataof(le32), 4 * count), .Utf32Le) == expected)
+        @assert(Text.decode(@mkslice(@dataof(be32), 4 * count), .Utf32Be) == expected)
+    }
+}
+
 // Code page 1252 is Latin-1 plus the punctuation an actual document uses, where Latin-1 leaves
 // unused controls.
 #test

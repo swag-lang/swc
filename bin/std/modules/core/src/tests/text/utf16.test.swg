@@ -127,6 +127,29 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
         @assert(zero[i] == expected[i])
     @assert(zero[6] == 0)
     @assert(Utf16.lengthZeroTerminated(@dataof(zero)) == 6)
+    @assert(Utf16.lengthUntilZero(zero.toSlice()) == 6)
+}
+
+// The bounded scan must find every lane and tail position around its eight-unit vector
+// boundary, and report the slice extent when no terminator is present.
+#test
+{
+    var values: [25] u16
+    for i in @countof(values) do
+        values[i] = cast(u16) (i + 1)
+
+    for count in @countof(values) + 1
+    {
+        let bounded = @mkslice(@dataof(values), count)
+        @assert(Utf16.lengthUntilZero(bounded) == count)
+    }
+
+    for terminator in @countof(values)
+    {
+        values[terminator] = 0
+        @assert(Utf16.lengthUntilZero(values) == terminator)
+        values[terminator] = cast(u16) (terminator + 1)
+    }
 }
 
 // Every length around the vector boundary, and every position where a non-ASCII sequence can

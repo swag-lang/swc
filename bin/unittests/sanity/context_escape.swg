@@ -27,6 +27,21 @@ func contextEscapeLeaksFromInnerScope(patch: bool)
     }
 }
 
+// A pointer parameter is opaque while the macro is declared. At the expansion site it is
+// bound to a caller local, and the compiler must use that newly visible provenance.
+#[Swag.Macro]
+func contextEscapeMacroInstalls(context: const *Context)
+{
+    @setcontext(context)     // swc-expected-error {{sanity_err_context_escape}}
+}
+
+func contextEscapeCallsLeakingMacro()
+{
+    var cxt = @getcontext()[]
+    cxt.user0 = 3
+    contextEscapeMacroInstalls(&cxt)     // swc-expected-note {{sema_note_expansion_invoked_here}}
+}
+
 // ---------------------------------------------------------------------------
 // Shapes that must stay silent.
 // ---------------------------------------------------------------------------
@@ -41,6 +56,37 @@ func contextEscapeScoped()
     var cxt = prev[]
     cxt.user0 = 1
     @setcontext(cxt)
+}
+
+// The matching expansion is safe when it restores the previous context itself.
+#[Swag.Macro]
+func contextEscapeMacroScoped(context: const *Context, prev: const *Context)
+{
+    defer @setcontext(prev)
+    @setcontext(context)
+}
+
+func contextEscapeCallsScopedMacro()
+{
+    let prev = @getcontext()
+    var cxt  = prev[]
+    cxt.user1 = 4
+    contextEscapeMacroScoped(&cxt, prev)
+}
+
+// A restore in the surrounding macro cannot repair a context leaked by a nested
+// function: that function has a distinct frame and lifetime boundary.
+#[Swag.Macro]
+func(var T) contextEscapeMacroWithNestedLeak(_: T)
+{
+    let prev = @getcontext()
+    defer @setcontext(prev)
+
+    func leak()
+    {
+        var cxt = @getcontext()[]
+        @setcontext(cxt)     // swc-expected-error {{sanity_err_context_escape}}
+    }
 }
 
 // A context the runtime owns roots nowhere in this frame.
@@ -64,4 +110,14 @@ struct ContextEscapeHolder
 func contextEscapeFromHolder(holder: *ContextEscapeHolder)
 {
     @setcontext(holder.context!)
+}
+
+#test
+{
+    if false
+    {
+        contextEscapeCallsLeakingMacro()
+        contextEscapeMacroWithNestedLeak(0)     // swc-expected-note {{sema_note_expansion_invoked_here}}
+    }
+    contextEscapeCallsScopedMacro()
 }

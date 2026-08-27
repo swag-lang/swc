@@ -85,13 +85,16 @@ struct SemaEscapeDeferredCheck
 // can later reads, including reads reached through a loop back edge, be matched to symbols.
 struct SemaBorrowInvalidation
 {
-    const SymbolVariable* viewVar     = nullptr;
-    const SymbolVariable* sourceVar   = nullptr;
-    const SymbolFunction* callee      = nullptr;
+    const SymbolVariable* viewVar   = nullptr;
+    const SymbolVariable* sourceVar = nullptr;
+    const SymbolFunction* callee    = nullptr;
+    // The complete function or inline-expansion body that owns this mutation. Capturing
+    // it here avoids consulting the caller's partially substituted tree at report time.
+    AstNodeRef bodyRef = AstNodeRef::invalid();
     // The node, not only its range, lets a back-edge check distinguish a break of
     // this loop from a break owned by a nested loop or switch.
-    AstNodeRef            mutationRef = AstNodeRef::invalid();
-    SourceCodeRange       mutationRange;
+    AstNodeRef      mutationRef = AstNodeRef::invalid();
+    SourceCodeRange mutationRange;
     // Where the call's own text ends. Arguments are evaluated BEFORE the callee runs, so
     // a view named inside them is read before the change, not after it: the search for a
     // later read starts past the whole call expression, not past its name.

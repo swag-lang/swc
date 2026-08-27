@@ -541,8 +541,10 @@ func videoMatroskaFixturePath()->String
     pcm.resize(200)
     expect File.writeAllBytes(soundPath, pcm.toSlice())
     let packets: [1] SoundPacket = [{0, 200, 100}]
-    let sound = Memory.new'SoundFile()
-    sound[] = #nodrop #move expect SoundFile.openPcmPacketStream(soundPath, .Pcm16, 100, 1, packets)
+    var sounds:  ArrayPtr'SoundFile
+    let sound = sounds.allocate()
+    sound[] = expect SoundFile.openPcmPacketStream(soundPath, .Pcm16, 100, 1, packets)
+    sounds.add(sound)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
@@ -573,12 +575,10 @@ func videoMatroskaFixturePath()->String
     pcm.resize(800)
     expect File.writeAllBytes(longerPath, pcm.toSlice())
     const LongerPackets: [1] SoundPacket = [{0, 800, 400}]
-    let longerSound = Memory.new'SoundFile()
-    longerSound[] = #nodrop #move expect SoundFile.openPcmPacketStream(longerPath, .Pcm16, 100, 1, LongerPackets)
+    let longerSound = sounds.allocate()
+    longerSound[] = expect SoundFile.openPcmPacketStream(longerPath, .Pcm16, 100, 1, LongerPackets)
+    sounds.add(longerSound)
     view.voice!.destroy()
-    view.voice = null
-    view.audio = null
-    Memory.delete(sound)
     view.audio = longerSound
     view.voice = expect Voice.create(longerSound)
     view.resumeAudio()
@@ -587,7 +587,6 @@ func videoMatroskaFixturePath()->String
     view.voice!.destroy()
     view.voice = null
     view.audio = null
-    Memory.delete(longerSound)
 }
 
 // A Matroska seek window carries a media-timeline origin. The viewer maps that absolute movie
@@ -668,7 +667,9 @@ func videoMatroskaFixturePath()->String
     createVideoViewer(&request, &result)
     @assert(result.view != null)
     let view           = cast(*VideoViewer) result.view!
-    let loadingChanges = Memory.new'u32()
+    var counters: ArrayPtr'u32
+    let loadingChanges = counters.allocate()
+    counters.add(loadingChanges)
     view.userData = loadingChanges
     waitForVideoFrame(view)
     loadingChanges[] = 0
@@ -690,7 +691,6 @@ func videoMatroskaFixturePath()->String
     @assert(loadingChanges[] == 2)
     @assert(view.planar)
     view.userData = null
-    Memory.delete(loadingChanges)
 }
 
 // The run-ahead queue stays a FIFO as pictures are taken from it.

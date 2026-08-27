@@ -153,6 +153,16 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     return fileName
 }
 
+func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
+{
+    @assert(window.folderFiles.count == @countof(names) and window.siblings.count == @countof(names) and window.folderList.lineCount() == @countof(names))
+    for name, index in names
+    {
+        @assert(window.folderFiles[index] == name[] and window.siblings[index] == name[])
+        @assert(window.folderList.lineAt(cast(u32) index)!.itemAt(0).name.raw == (Path.fileName(name[].toString()) orelse name[].toString()))
+    }
+}
+
 // A file that is not UTF-8 is read as text rather than sent to the hexadecimal view: the mark
 // names the encoding, the mark itself never reaches the document, and the reader sees characters.
 #test
@@ -288,7 +298,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.filePanel.items[0]!.minimumSize == ViewerPaneMinSize)
     @assert(window.recentList.listFlags.has(.Ellipsis) and window.folderList.listFlags.has(.Ellipsis))
     @assert(window.recentList.scrollWnd.flags.has(.DisableHorizontal) and window.folderList.scrollWnd.flags.has(.DisableHorizontal))
-    @assert(window.folderList.lineCount() == 3)
+    assertFolderFiles(window, names.toSlice())
     @assert(window.recentList.lineCount() == 1)
     for i in window.folderList.lineCount()
     {
@@ -304,12 +314,14 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     completeQueuedViewerFile(&host, window)
     @assert(window.currentFile == names[2])
     @assert(window.recent.count == 2 and window.recent[0] == names[2])
+    assertFolderFiles(window, names.toSlice())
 
     // A recent row keeps the list under the pointer stable while it opens its file.
     window.recentList.selectLine(1)
     completeQueuedViewerFile(&host, window)
     @assert(window.currentFile == names[0])
     @assert(window.recent.count == 2 and window.recent[0] == names[2] and window.recent[1] == names[0])
+    assertFolderFiles(window, names.toSlice())
 
     window.setFilePanelVisible(false)
     @assert(!window.filesButton.isChecked)

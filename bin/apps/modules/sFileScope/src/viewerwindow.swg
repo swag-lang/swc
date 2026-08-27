@@ -357,6 +357,10 @@ impl ViewerChoiceLoad
     mtd start(index: *ViewerIndex, fileName, basicTextName: string, recent: const [..] String)
     {
         Debug.assert(!.started)
+
+        // The operation is reusable. A completed result was moved to the window, so rebuild every
+        // owning field before the worker appends the next folder and history snapshot.
+        .result        = {}
         .index         = index
         .fileName      = fileName
         .basicTextName = basicTextName

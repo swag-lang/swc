@@ -65,6 +65,41 @@ using Core, Pixel, Gui
 
 #test
 {
+    var giant: String
+    giant.reserve(16 * 1024)
+    for 8 * 1024 do
+        giant += "a"
+    giant += "needle"
+    for 8 * 1024 do
+        giant += "z"
+
+    let leading = tableCellPreviewRange(giant.toString())
+    @assert(leading.start == 0 and leading.end <= TableCellPreviewBytes)
+
+    let focused = tableCellPreviewRange(giant.toString(), 8 * 1024)
+    @assert(focused.start > 0 and focused.end - focused.start <= TableCellPreviewBytes)
+    @assert(focused.start <= 8 * 1024 and focused.end >= 8 * 1024 + @countof("needle"))
+
+    var unicode = String.from("x")
+    for 400 do
+        unicode += "\U0001F642"
+    let unicodeRange = tableCellPreviewRange(unicode.toString())
+    @assert(Utf8.isValid(unicode.toSlice()[unicodeRange.start until unicodeRange.end]))
+
+    var view: TableViewer
+    view.document.columns.add("payload")
+    var row: TableRow
+    row.cells.add(#move giant)
+    view.document.rows.add(#move row)
+
+    var line: ListLine
+    view.fillLine(&line, 0)
+    let displayed = line.itemAt(0).name.raw.toString()
+    @assert(@countof(displayed) <= TableCellPreviewBytes)
+}
+
+#test
+{
     let fileName = Gui.Testing.tempFilePath("filescope-table-golden-", ".tsv")
     defer discard catch File.delete(fileName)
     expect File.writeAllBytes(fileName, "Name\tLanguage\tFiles\tStatus\nCore\tSwag\t148\tReady\nGui\tSwag\t203\tReady\nsFileScope\tSwag\t61\tActive\n")

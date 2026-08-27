@@ -7,6 +7,7 @@ private const TableColumnLimit = 256'u64
 private const TableColumnMinWidth = 96.0
 private const TableColumnMaxWidth = 320.0
 private const TableCellWidth = 8.0
+internal const TableCellPreviewBytes = 1024'u64
 
 internal struct TableRow
 {
@@ -18,6 +19,28 @@ internal struct TableDocument
     columns:   Array'String
     rows:      Array'TableRow
     delimiter: u8
+}
+
+// Bounds the text handed to the single-line rich-text renderer. A table keeps the complete cell
+// for search, but shaping a megabyte-long CSV field merely to paint its first few glyphs makes
+// every virtual-row repaint linear in the hidden tail.
+internal func tableCellPreviewRange(value: string, focus = Swag.U64.Max)->{ start, end: u64 }
+{
+    var result: retval
+    result.end = @countof(value)
+    if result.end <= TableCellPreviewBytes do
+        return result
+
+    if focus != Swag.U64.Max and focus < result.end and focus > TableCellPreviewBytes / 3 do
+        result.start = focus - TableCellPreviewBytes / 3
+
+    while result.start and (value[result.start] & 0xC0) == 0x80 do
+        result.start -= 1
+
+    result.end = Math.min(result.start + TableCellPreviewBytes, @countof(value))
+    while result.end < @countof(value) and (value[result.end] & 0xC0) == 0x80 do
+        result.end -= 1
+    return result
 }
 
 private func finishTableCell(row: *TableRow, cell: *Array'u8)
@@ -233,20 +256,30 @@ private impl TableViewer
         for column in .document.columns.count
         {
             let value = column < row.cells.count ? row.cells[column].toString() : ""
-            let item  = line.setItem(cast(u32) column, value)
+            let range = tableCellPreviewRange(value, index == .searchRow and column == .searchColumn ? .searchOffset : Swag.U64.Max)
+            let item  = line.setItem(cast(u32) column, value[range.start until range.end])
             if index == .searchRow and column == .searchColumn
             {
                 item.colorBk = .themeColors().edit_SelectedBk
                 item.colorFg = .themeColors().label_Text
                 if .searchLength and .searchOffset + .searchLength <= @countof(value)
                 {
+                    let markedStart = Math.max(.searchOffset, range.start)
+                    let markedEnd   = Math.min(.searchOffset + .searchLength, range.end)
                     var marked: String
-                    marked    += value[0 until .searchOffset]
-                    marked    += "<b>"
-                    marked    += value[.searchOffset until .searchOffset + .searchLength]
-                    marked    += "</b>"
-                    marked    += value[.searchOffset + .searchLength to]
-                    item.name = marked.toString()
+                    if markedStart < markedEnd
+                    {
+                        if range.start do
+                            marked += "\u2026"
+                        marked += value[range.start until markedStart]
+                        marked += "<b>"
+                        marked += value[markedStart until markedEnd]
+                        marked += "</b>"
+                        marked += value[markedEnd until range.end]
+                        if range.end < @countof(value) do
+                            marked += "\u2026"
+                        item.name = marked.toString()
+                    }
                 }
             }
         }
@@ -322,7 +355,8 @@ private impl TableViewer
             for row in result.document.rows.toSlice()[0 until Math.min(result.document.rows.count, 128)] where index < row.cells.count do
                 longest = Math.max(longest, row.cells[index].length)
             let width = Math.clamp(cast(f32) longest * TableCellWidth + 24, TableColumnMinWidth, TableColumnMaxWidth)
-            result.list.addColumn(column.toString(), width)
+            let range = tableCellPreviewRange(column.toString())
+            result.list.addColumn(column.toString()[range.start until range.end], width)
         }
 
         result.list.setVirtualCount(cast(u32) result.document.rows.count)

@@ -1047,13 +1047,14 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     // moves and an unconditional jump to the original target.
     struct Connector
     {
-        uint32_t beforeIndex = 0;
-        uint32_t order       = 0; // parallel-copy order within the point
-        MicroReg dst;             // invalid => store to home
-        MicroReg src;             // invalid => load from home
-        uint32_t denseIndex = 0;
-        uint32_t trampJump  = std::numeric_limits<uint32_t>::max();
-        bool     exchange   = false; // swap dst and src: the head of a copy cycle
+        uint32_t            beforeIndex = 0;
+        uint32_t            order       = 0; // parallel-copy order within the point
+        MicroReg            dst;             // invalid => store to home
+        MicroReg            src;             // invalid => load from home
+        uint32_t            denseIndex = 0;
+        uint32_t            trampJump  = std::numeric_limits<uint32_t>::max();
+        bool                exchange   = false;   // swap dst and src: the head of a copy cycle
+        const LiveInterval* from       = nullptr; // the register node a register move reads
     };
     std::vector<Connector> connectors;
 
@@ -1105,7 +1106,13 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             return; // same register, or memory-to-memory
         if (!fromReg.isValid() && !toReg.isValid())
             return;
-        connectors.push_back({beforeIndex, 0, toReg, fromReg, denseIndex});
+        Connector connector;
+        connector.beforeIndex = beforeIndex;
+        connector.dst         = toReg;
+        connector.src         = fromReg;
+        connector.denseIndex  = denseIndex;
+        connector.from        = fromReg.isValid() && toReg.isValid() ? fromNode : nullptr;
+        connectors.push_back(connector);
     };
 
     // Adjacent-node connectors: a true split (A.end == B.start) inside a
@@ -1281,6 +1288,110 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         }
     }
 
+    // Rematerialization. A value with one definition that is an immediate,
+    // a cleared register or a relocated address is never given a home: its
+    // reloads remake the definition where they stand, exactly as the existing
+    // scan and LLVM's InlineSpiller do, and every store of it goes. An
+    // integer zero is remade as a mov, not a clear: the clear writes the
+    // flags, and a connector may sit between a compare and its branch.
+    struct RematRecipe
+    {
+        MicroInstrOpcode  op = MicroInstrOpcode::Nop;
+        MicroInstrOperand immediate;
+        MicroOpBits       bits = MicroOpBits::B64;
+        MicroRelocation   relocation;
+        bool              relocated = false;
+        bool              valid     = false;
+        // The defining instruction, and whether it is dead once the value is
+        // only ever remade: its register node has no use and no move reads it.
+        uint32_t defIndex = std::numeric_limits<uint32_t>::max();
+        bool     defDead  = false;
+    };
+    std::vector<RematRecipe> remat(virtualCount);
+    {
+        std::vector<uint32_t> defCount(virtualCount, 0);
+        std::vector<uint32_t> defAt(virtualCount, std::numeric_limits<uint32_t>::max());
+        for (uint32_t idx = 0; idx < instructionCount_; ++idx)
+        {
+            for (const uint32_t denseIndex : defVirtualIndices_[idx])
+            {
+                ++defCount[denseIndex];
+                defAt[denseIndex] = idx;
+            }
+        }
+        std::unordered_map<uint32_t, const MicroRelocation*> relocationByInstruction;
+        for (const MicroRelocation& relocation : context_->builder->codeRelocations())
+        {
+            if (relocation.instructionRef.isValid())
+                relocationByInstruction[relocation.instructionRef.get()] = &relocation;
+        }
+        for (uint32_t denseIndex = 0; denseIndex < virtualCount; ++denseIndex)
+        {
+            if (defCount[denseIndex] != 1)
+                continue;
+            const MicroInstrRef      defRef = controlFlowGraph_->instructionRefs()[defAt[denseIndex]];
+            const MicroInstr*        inst   = instructions_->ptr(defRef);
+            const MicroInstrOperand* ops    = inst ? inst->ops(*operands_) : nullptr;
+            if (!ops || ops[0].reg != virtualRegs[denseIndex])
+                continue;
+            RematRecipe& recipe = remat[denseIndex];
+            switch (inst->op)
+            {
+                case MicroInstrOpcode::LoadRegImm:
+                    if (ops[2].hasWideImmediateValue())
+                        break;
+                    recipe.op        = MicroInstrOpcode::LoadRegImm;
+                    recipe.immediate = ops[2];
+                    recipe.bits      = ops[1].opBits;
+                    recipe.valid     = true;
+                    break;
+                case MicroInstrOpcode::ClearReg:
+                    recipe.bits = ops[1].opBits;
+                    if (virtualRegs[denseIndex].isAnyFloat())
+                    {
+                        recipe.op = MicroInstrOpcode::ClearReg;
+                    }
+                    else
+                    {
+                        recipe.op = MicroInstrOpcode::LoadRegImm;
+                        recipe.immediate.setImmediateValue(ApInt(0, getNumBits(recipe.bits)));
+                    }
+                    recipe.valid = true;
+                    break;
+                case MicroInstrOpcode::LoadRegPtrReloc:
+                {
+                    const auto found = relocationByInstruction.find(defRef.get());
+                    if (found == relocationByInstruction.end())
+                        break;
+                    recipe.op         = MicroInstrOpcode::LoadRegPtrReloc;
+                    recipe.immediate  = ops[2];
+                    recipe.bits       = ops[1].opBits;
+                    recipe.relocation = *found->second;
+                    recipe.relocated  = true;
+                    recipe.valid      = true;
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+        std::erase_if(connectors, [&](const Connector& connector) { return !connector.dst.isValid() && remat[connector.denseIndex].valid; });
+        std::erase_if(trampolines, [&](const Trampoline& trampoline) {
+            return std::ranges::none_of(connectors, [&](const Connector& connector) { return connector.trampJump == trampoline.jumpIndex; });
+        });
+        for (uint32_t denseIndex = 0; denseIndex < virtualCount; ++denseIndex)
+        {
+            RematRecipe& recipe = remat[denseIndex];
+            if (!recipe.valid)
+                continue;
+            recipe.defIndex             = defAt[denseIndex];
+            const LiveInterval* defNode = locate(denseIndex, recipe.defIndex * 2 + 1);
+            if (!defNode || !defNode->usePositions.empty())
+                continue;
+            recipe.defDead = std::ranges::none_of(connectors, [&](const Connector& connector) { return connector.from == defNode; });
+        }
+    }
+
     // Spill-store placement. The home of a value is written either where
     // resolution put its stores (a register node handing over to a spilled
     // one, an edge from a register to memory), or once after every
@@ -1449,15 +1560,15 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         }
     }
 
-    // Every spilled node's value needs its home.
+    // Every spilled node's value needs its home, unless it is remade.
     for (const LiveInterval& node : result.nodes)
     {
-        if (node.spilled)
+        if (node.spilled && !remat[node.denseIndex].valid)
             ensureSpillSlot(states_[node.denseIndex], virtualRegs[node.denseIndex].isAnyFloat());
     }
     for (const Connector& connector : connectors)
     {
-        if (!connector.dst.isValid() || !connector.src.isValid())
+        if ((!connector.dst.isValid() || !connector.src.isValid()) && !remat[connector.denseIndex].valid)
             ensureSpillSlot(states_[connector.denseIndex], virtualRegs[connector.denseIndex].isAnyFloat());
     }
 
@@ -1572,6 +1683,29 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                 pendingInst.ops[1].reg    = connector.src;
                 pendingInst.ops[2].opBits = valueBits(connector.denseIndex);
             }
+            else if (connector.dst.isValid() && remat[connector.denseIndex].valid)
+            {
+                const RematRecipe& recipe = remat[connector.denseIndex];
+                pendingInst.op            = recipe.op;
+                pendingInst.ops[0].reg    = connector.dst;
+                pendingInst.ops[1].opBits = recipe.bits;
+                if (recipe.op == MicroInstrOpcode::ClearReg)
+                {
+                    pendingInst.numOps = 2;
+                }
+                else
+                {
+                    pendingInst.numOps = 3;
+                    pendingInst.ops[2] = recipe.immediate;
+                }
+                if (recipe.relocated)
+                {
+                    pendingInst.relocation                = recipe.relocation;
+                    pendingInst.relocation.instructionRef = MicroInstrRef::invalid();
+                    pendingInst.relocation.codeOffset     = 0;
+                    pendingInst.hasRelocation             = true;
+                }
+            }
             else if (connector.dst.isValid())
             {
                 queueSpillLoad(pendingInst, connector.dst, states_[connector.denseIndex], depth);
@@ -1612,6 +1746,25 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             SWC_ASSERT(node && !node->spilled && node->assignedReg.isValid()); // pre-validated
             *ref.reg = node->assignedReg;
         }
+
+        // A copy both sides of which took the same register is a no-op, and
+        // the existing scan drops those too; a 32-bit integer copy stays, it
+        // zero-extends. A definition every read of which is remade is dead
+        // as well.
+        if (it->op == MicroInstrOpcode::LoadRegReg)
+        {
+            const MicroInstrOperand* copyOps = it->ops(*operands_);
+            if (copyOps && copyOps[0].reg == copyOps[1].reg && (copyOps[0].reg.isFloat() || copyOps[2].opBits == MicroOpBits::B64))
+                queueErase(instructionRef);
+        }
+        for (const uint32_t denseIndex : defVirtualIndices_[idx])
+        {
+            if (remat[denseIndex].defDead && remat[denseIndex].defIndex == idx)
+            {
+                context_->builder->invalidateRelocationForInstruction(instructionRef);
+                queueErase(instructionRef);
+            }
+        }
     }
 
     return true;
@@ -1620,6 +1773,11 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
 bool MicroRegisterAllocationPass::runIntervalAllocationIfGated()
 {
     if (!intervalGateAccepts())
+        return false;
+
+    // A function with no virtual register has nothing to allocate; the
+    // existing scan keeps it, scratch choices of its legalization included.
+    if (denseVirtualRegs_.regs().empty())
         return false;
 
     // The walk consults fixed intervals built from concrete claims; the

@@ -84,6 +84,9 @@ being compiled by it.
   `module core`, `workspace std [core]`, `tuned 644 functions`. The same command with the
   compiler that followed, and every variant with only one of the conditions, runs once; the
   comparison that disagreed under the gate was not isolated.
-- Next step: make the relaunch non-recursive — the relaunched process carries a marker (an
+- Next: make the relaunch non-recursive — the relaunched process carries a marker (an
   environment variable or a reserved argument) and refuses to relaunch again, reporting both
   paths instead — then look for what disagreed under the gate.
+- Complete when: a relaunched tool is marked as such and never relaunches again, proven by the
+  four-condition reproducer above running once.
+

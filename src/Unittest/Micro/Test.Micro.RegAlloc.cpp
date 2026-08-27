@@ -1047,7 +1047,10 @@ SWC_TEST_BEGIN(RegAlloc_TransfersDeadCopySourcesAcrossBarriers)
         SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
         SWC_RESULT(verifyCallConvConformity(builder, CallConv::get(callConvKind)));
 
-        if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+        // The copy across the barrier is transferred, never re-made: one
+        // register move at most survives (the return marshalling), and none
+        // when the allocator lands the value in the return register itself.
+        if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) > 1)
             return Result::Error;
     }
 }

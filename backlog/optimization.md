@@ -528,6 +528,8 @@ cmov-to-branch back-conversion, and profile-gated passes.
   has no other definition in the body and is dead at preheader live-out - the way post-RA
   MachineLICM repairs the spiller's insertions, cancelling the measured LICM-versus-remat fight
   from the consumer side.
+- Next: none - re-measure only if a later change makes a hot loop re-make a memory
+  operand rather than an immediate.
 - Complete when: an invariant constant or address re-made on every iteration of a hot loop is
   emitted once in the preheader (verified on a `PrintMicro` dump), relocations survive the
   move, and the video workspace decodes byte-exact.
@@ -550,6 +552,8 @@ cmov-to-branch back-conversion, and profile-gated passes.
   write-back store per exit edge - instead of only the exactly-one-load, exactly-one-store,
   single-exit shape, mirroring LLVM's `promoteLoopAccessesToScalars`. Branch-dense codec
   accumulators updated in several arms are exactly what the current gate misses.
+- Next: extend `promoteCarriedSlots` to a slot with several arms and exits, seed load before
+  the header and one write-back per exit edge, and audit the rewrite with the T-563 trace.
 - Complete when: an accumulator written in two arms of a hot loop keeps its register across the
   back edge with no per-iteration store (dump-verified), a trace-based drop/store audit like
   T-563's validates the rewrite, and HEVC serial decode does not regress.
@@ -564,6 +568,8 @@ cmov-to-branch back-conversion, and profile-gated passes.
   register with code elsewhere in the function (measured on the deblock probe: the `pass % 3`
   chain's register carries five definitions, one outside the loop), and any pass that reasons
   per-register - the web hoisting now in LICM first among them - must refuse the whole register.
+- Next: revisit once the interval allocator (B-012) is the default, since its splitting is
+  the re-coalescing the parked renaming needs; re-run the parked prototype then.
 - Complete when: after the pass, every virtual register's definitions form one connected def-use
   web (verified on a corpus dump); the deblock probe's modulo chain hoists out of its x-loop; and
   the pre-RA fixpoint shows no oscillation with copy elimination (pure renaming inserts no
@@ -589,6 +595,8 @@ cmov-to-branch back-conversion, and profile-gated passes.
   residency, `VecLoopPromote`, `PostRALoopHoist` and carried-slot promotion stop declining
   those loops outright. LLVM makes this shape (LoopSimplify) a precondition of its whole loop
   stack; with no phi nodes in the Micro IR it is pure label rewiring here.
+- Next: count the loops LICM and `VecLoopPromote` refuse for a jump-entered header on the
+  video corpus; implement the preheader only if that count is not zero.
 - Complete when: the five loop passes accept a previously jump-entered loop (counted on a corpus
   dump), `BranchSimplify::redirectJumpChains` provably does not thread the new preheader away,
   and the suites stay green.
@@ -605,6 +613,8 @@ cmov-to-branch back-conversion, and profile-gated passes.
   `[spillAreaLo, spillAreaHi)` on the instruction CFG and deletes every spill store no path
   reloads before overwrite - the write-back protocol audited from the consumption side, since the
   allocator manufactures stores wholesale and nothing checks whether any path reads them.
+- Next: retry the parked prototype as-is on the full video release run, now that the
+  lane-count assertion it tripped on is fixed.
 - Complete when: the pass lands with the three known landmines closed - exact read widths (a
   16-byte over-approximation pins the neighbouring 8-byte slot), push/pop and stack-pointer
   arithmetic not treated as area barriers (or the epilogue keeps everything alive), and any
@@ -621,6 +631,8 @@ cmov-to-branch back-conversion, and profile-gated passes.
   `tryFoldLoadIntoFloatBinary` already does for floats and LLVM's fold tables do wholesale,
   covering `OpBinaryRegReg` (add, sub, and, or, xor, signed multiply) and
   `CmpRegReg`-to-`CmpMemReg`.
+- Next: take the integer fold as a cheap sweep when the post-RA peephole is next opened;
+  not worth a lot of its own.
 - Complete when: the integer rule ships with the float rule's guards (claiming, dst-dead-after,
   encoder conformance probe, `spillAreaLo/Hi` alias guarantee), a spill-heavy hot function
   shows the folds in its dump, and the suites stay green.
@@ -644,6 +656,8 @@ cmov-to-branch back-conversion, and profile-gated passes.
   store), the combine passes' window aborts, and `ValueNumbering`'s memory epochs (a store to a
   provably disjoint space stops killing all load numbering; a label whose only predecessor is its
   fall-through stops advancing the epoch). LLVM's analog is BasicAA feeding EarlyCSE and GVN.
+- Next: lift `analyzeFramePrivacy` into `MicroPassHelpers` and make the other two users
+  consume it, then let store-to-load forwarding survive a disjoint-space store.
 - Complete when: the shared analysis replaces all three private copies, forwarding survives
   across a disjoint-space store in a codec inner loop (dump-verified), and instruction counts on
   the video corpus do not regress.
@@ -657,6 +671,8 @@ cmov-to-branch back-conversion, and profile-gated passes.
   ceiling of everything above, since un-inlined helpers blind LICM, residency, value numbering
   and the alias oracle to the real loop nest, and force-inlining the deblock segment helper alone
   moved the kernel from 1.71x to 1.39x against clang.
+- Next: last of the series - price the call as a penalty in the parse-time verdict and give a
+  single-call-site, same-module, non-generic function the LastCallToStaticBonus.
 - Complete when: the deblock segment helper auto-inlines without its `#[Swag.Inline]`, the
   cross-AST and generic cases stay excluded (the mechanism deliberately disabled after the
   aoc2019 miscompile), compile time and code size stay within the campaign's budgets, and the
@@ -684,9 +700,11 @@ cmov-to-branch back-conversion, and profile-gated passes.
   mixed directions. The sealed-loop residency of T-563 already exempts resident values from both
   the boundary drop and back-edge eviction, which is where the predicted pathology would have
   lived.
-- Next step: none while residency holds the hot loops; re-measure only if B-002, B-003 or B-004
+- Next: none while residency holds the hot loops; re-measure only if B-002, B-003 or B-004
   creates loop pressure the residency machinery does not absorb. The wrapped-distance diff is
   parked in the session scratchpad (`r1-wrap-parked.diff`).
+- Complete when: a loop-pressure change from B-002, B-003 or B-004 re-opens the question and
+  the parked wrapped-distance diff is measured against it; delete otherwise.
 - Related: F-190, F-195.
 
 ### B-012 — A splitting interval allocator behind a per-function gate
@@ -741,19 +759,25 @@ cmov-to-branch back-conversion, and profile-gated passes.
   (the 64-round loop 49 -> 22), csvagg `#main` 106 -> 78. Compiler suites under the gate:
   native 2921/2921, jit, safety, sanity, workspace green; C++ 570/573, the three being
   legacy-specific expectations (the cmpxchg conform case's scratch register, a self-copy the
-  interval rewrite leaves for the peephole, immediate rematerialization). The serial HEVC
-  decode and a quiet-machine bench A/B are still to be measured for this state.
-- Next: (1) rematerialize a spilled single-definition `LoadRegImm`/`LoadRegPtrReloc` at its
-  reloads instead of storing and reloading it, as the legacy allocator and LLVM's
-  `InlineSpiller` do (`RegAlloc_RematerializesImmediateReloads`); (2) erase the self-copies the
-  operand rewrite leaves (`RegAlloc_TransfersDeadCopySourcesAcrossBarriers`), and adapt the
-  cmpxchg conform expectation to either scratch; (3) measure the serial HEVC decode and the
-  bench tasks by alternated processor time on a quiet machine with the gate open on the whole
-  library, then decide the default; (4) the second sweep's `tryBorrowReservedRegister` refuses
-  every pool register as forbidden for a legalization scratch when the first sweep packed the
-  registers tightly (csvagg's `#main` with output-slot claims on arithmetic forms) - the
-  implicit rax/rdx operands of a multiply-high belong in the walk's fixed intervals, so the
-  second sweep never needs the scratch.
+  interval rewrite leaves for the peephole, immediate rematerialization). Dynamic, the seven
+  bench tasks pinned to the performance cores, minimum of 15 alternated runs, gate on against
+  off on the same compiler (machine at 15-40 % background load): raytrace -8 %, leven -4 %,
+  wordfreq 0 %, csvagg -7 %, dijkstra -6 %, sha256 -13 %, chacha +4 % (its `quarterRound`
+  carries four more moves under the gate). The serial HEVC decode is still to be measured for
+  this state.
+- Next: (1) measure the serial HEVC decode with the gate open on the whole library, and the
+  bench by the campaign harness, then decide the default - the C++ suite is green under the
+  gate now (spilled single-definition immediates and relocated addresses are remade at their
+  reloads as LLVM's `InlineSpiller` does, a definition every read of which is remade is
+  erased, self-copies the rewrite leaves are erased, and a function with no virtual register
+  stays with the existing scan); (2) the implicit rax/rdx operands of a multiply-high and the
+  `cl` of a variable shift belong in the walk's fixed intervals, so an operand never lands
+  there and the second sweep never needs the legalization scratch that
+  `tryBorrowReservedRegister` refuses when the first sweep packed the registers tightly
+  (today those forms keep whole-instruction claims instead); (3) chacha's `quarterRound`
+  carries one more callee-saved pair and four more moves under the gate (+4 %) - the free
+  election prefers a persistent register whenever a transient one has any claim ahead, where
+  the legacy scan keeps to the transient pool.
 - Complete when: the gated allocator compiles the HEVC hot four (idct, interpolateLuma,
   filterLumaEdge, interpolateChroma) with materially fewer emitted reloads than the cause-trace
   baseline (idct 101, interpolateLuma 119, filterLumaEdge 77, interpolateChroma 71), the video

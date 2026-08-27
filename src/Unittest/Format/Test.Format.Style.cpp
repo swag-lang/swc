@@ -78,6 +78,46 @@ SWC_TEST_BEGIN(FormatStyle_SwagIsTheCanonicalLayout)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatStyle_SwagKeepsAccessModifiersWithTheirDeclarations)
+{
+    static constexpr std::string_view SOURCE =
+        "#global public\n"
+        "\n"
+        "private\n"
+        "func hidden() {}\n"
+        "\n"
+        "struct Record\n"
+        "{\n"
+        "    public readonly\n"
+        "    count: s32\n"
+        "\n"
+        "    private\n"
+        "    {\n"
+        "        cached: bool\n"
+        "    }\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "#global public\n"
+        "\n"
+        "private func hidden() {}\n"
+        "\n"
+        "struct Record\n"
+        "{\n"
+        "    public readonly count: s32\n"
+        "\n"
+        "    private\n"
+        "    {\n"
+        "        cached: bool\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    return checkStyleRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatStyle_SwagLeavesLineEndingsAndColumnsAlone)
 {
     // Line endings belong to the checkout and the column budget to the author:

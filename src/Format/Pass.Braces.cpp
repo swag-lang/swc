@@ -785,6 +785,29 @@ namespace
         }
     }
 
+    // An unbraced access modifier governs exactly one declaration. Keeping the
+    // two on one line makes that scope visible and leaves braced access groups
+    // as the only section-shaped form.
+    void normalizeAccessModifiers(FormatModel& model)
+    {
+        if (!model.options().inlineAccessModifiers.value_or(false))
+            return;
+
+        for (uint32_t i = 0; i < model.numPieces(); ++i)
+        {
+            const FormatPiece& modifier = model.piece(i);
+            if (modifier.removed || modifier.frozen || !modifier.hasRole(FormatRoleE::AccessModifier))
+                continue;
+
+            const uint32_t next = model.nextPiece(i);
+            if (next == INVALID_PIECE || model.piece(next).isComment || model.piece(next).is(TokenId::SymLeftCurly) ||
+                !model.gapHasNewline(next) || !FormatPassUtil::canEditGap(model, next))
+                continue;
+
+            model.setGapSpaces(next, 1);
+        }
+    }
+
     // `;` before an end of line is redundant. Same-line separators stay.
     void removeRedundantSemicolons(FormatModel& model)
     {
@@ -895,6 +918,7 @@ namespace FormatPass
         splitSameLineStatements(model);
         normalizeUsingFields(model);
         normalizeAggregateMembers(model);
+        normalizeAccessModifiers(model);
         removeTrailingCommas(model);
     }
 

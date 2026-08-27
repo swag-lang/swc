@@ -26,8 +26,7 @@ struct PushButton
     {
         using button: Button     // Embedded button behavior and presentation.
 
-        readonly
-        form = PushButtonForm.Normal     // Current visual emphasis.
+        readonly form = PushButtonForm.Normal     // Current visual emphasis.
     }
 
     // Color animations of the painted parts, driven by the hover and press state.

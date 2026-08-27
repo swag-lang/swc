@@ -35,8 +35,7 @@ struct PropertiesCtrl
             properties: *Properties     // Property editor owned by this control.
         }
 
-        readonly
-        flags: PropertiesCtrlFlags     // Active optional UI features.
+        readonly flags: PropertiesCtrlFlags     // Active optional UI features.
     }
 }
 

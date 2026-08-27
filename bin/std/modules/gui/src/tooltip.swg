@@ -22,8 +22,7 @@ public struct Request
 // destroy a window whose surface has already gone.
 public struct State
 {
-    public
-    sigLinkActivated: SigArray'func||(*Wnd, string)     // Emitted when the reader activates a link inside the visible tip.
+    public sigLinkActivated: SigArray'func||(*Wnd, string)     // Emitted when the reader activates a link inside the visible tip.
 
     internal
     {

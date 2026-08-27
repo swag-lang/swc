@@ -146,8 +146,7 @@ struct Volume
     // Whether this volume refuses every change. See [[Volume.open]]: the file itself is opened
     // without write access, so the refusal is the operating system's and not a promise this
     // layer makes to itself.
-    readonly
-    readOnly: bool
+    readonly readOnly: bool
 }
 
 // Chooses a byte-granular physical length above the logical capacity. The

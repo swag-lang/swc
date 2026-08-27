@@ -1302,6 +1302,16 @@ namespace
                     break;
                 }
 
+                case AstNodeId::AccessModifier:
+                {
+                    addRole(span.minPiece, FormatRoleE::AccessModifier);
+                    const auto& access = node.cast<AstAccessModifier>();
+                    if (access.hasFlag(AstAccessModifierFlagsE::ReadOnly) &&
+                        model_->piece(span.minPiece).isNot(TokenId::KwdReadOnly))
+                        addRole(nextCodeIf(span.minPiece, TokenId::KwdReadOnly), FormatRoleE::AccessModifier);
+                    break;
+                }
+
                 case AstNodeId::CompilerScope:
                 {
                     // `#scope(Name)` rides on the statement it names, exactly like an

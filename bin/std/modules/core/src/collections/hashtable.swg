@@ -26,8 +26,7 @@ struct(K, V) HashTable
     #[Swag.NoDoc]
     const HASH_FIRST = 2'u32
 
-    internal
-    allocator: #null IAllocator
+    internal allocator: #null IAllocator
 
     // Sizes are reported, never set: the table grows itself when it needs to.
     public readonly

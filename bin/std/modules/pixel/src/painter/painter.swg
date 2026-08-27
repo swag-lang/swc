@@ -267,8 +267,7 @@ struct Painter
 {
     // Optional backend selected for [[Painter.render]]. It is borrowed and may
     // remain unset when the painter is used only to inspect recorded commands.
-    private
-    rendererItf: #null IRenderer
+    private rendererItf: #null IRenderer
     public
     {
         // The recorded frame. A renderer, a golden test or a bounds pass reads it; only the

@@ -27,8 +27,7 @@ struct Separator
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        readonly
-        form = SeparatorForm.Hairline     // Weight and color of the rule.
+        readonly form = SeparatorForm.Hairline     // Weight and color of the rule.
     }
 }
 

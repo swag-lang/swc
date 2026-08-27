@@ -18,8 +18,7 @@ struct Dialog
         }
     }
 
-    internal
-    contentView: #null *Wnd     // Standard padded body created by the predefined dialog family.
+    internal contentView: #null *Wnd     // Standard padded body created by the predefined dialog family.
 }
 
 impl IWnd for Dialog

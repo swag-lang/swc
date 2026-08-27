@@ -173,8 +173,7 @@ struct Properties
         // Scrolling viewport of the grid, established when it is created. A host configures the
         // scrollbars or scrolls the grid through it; the grid decides which window it is.
         #[Swag.Late]
-        readonly
-        scrollWnd: *ScrollWnd
+        readonly scrollWnd: *ScrollWnd
     }
 
     // View the rows are painted in, established when the grid is created.

@@ -73,8 +73,7 @@ struct Application
 
         // The surface list is maintained by the application: create and destroy surfaces through
         // its own API so the modal stack and the render loop stay consistent.
-        readonly
-        surfaces: Array'(*Surface)
+        readonly surfaces: Array'(*Surface)
 
         // Frame and input bookkeeping. Reading it tells what the application is doing this frame;
         // writing it from outside would desynchronize the loop from the window tree.
@@ -112,8 +111,7 @@ struct Application
         // with the mouse keeps the focus without a ring around it while a surface being driven from
         // the keyboard always says where the keyboard is. Widgets read it through
         // [[Gui.Wnd.hasVisibleFocus]].
-        readonly
-        focusVisible: bool
+        readonly focusVisible: bool
 
         frameCursor: Cursor            // Cursor selected for the current frame.
         fadeDisabledSurface = true     // Whether modal-disabled surfaces fade toward the disabled theme color.
@@ -149,8 +147,7 @@ struct Application
 
     public
     {
-        readonly
-        dirtyTheme: u32     // Revision incremented after each theme change.
+        readonly dirtyTheme: u32     // Revision incremented after each theme change.
     }
 }
 

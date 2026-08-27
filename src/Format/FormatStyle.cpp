@@ -98,6 +98,7 @@ namespace
         o.oneStatementPerLine        = true;
         o.oneEnumValuePerLine        = true;
         o.oneStructFieldPerLine      = true;
+        o.inlineAccessModifiers      = true;
 
         // Alignment
         o.alignConsecutiveAssignments  = FormatAlignMode::Consecutive;

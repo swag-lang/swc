@@ -11,8 +11,7 @@ struct EditView
     firstPaint      = true
 
     // Set by [EditView.setInPlaceEdit], which owns the zoom from then on.
-    readonly
-    inPlaceEdit: bool
+    readonly inPlaceEdit: bool
 }
 
 impl IWnd for EditView

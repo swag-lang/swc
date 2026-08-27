@@ -32,8 +32,7 @@ private struct FocusCandidate
 // checked.
 struct FocusOrder
 {
-    public readonly
-    stops: Array'(*Wnd)     // Traversal stops of the collected tree, in reading order.
+    public readonly stops: Array'(*Wnd)     // Traversal stops of the collected tree, in reading order.
 }
 
 impl FocusOrder

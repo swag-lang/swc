@@ -42,8 +42,7 @@ struct SplitterCtrl
 
         // The panes the splitter manages, in order. Add them through the methods so the bars and
         // the layout follow.
-        readonly
-        items: ArrayPtr'SplitterItem
+        readonly items: ArrayPtr'SplitterItem
     }
 
     // Hover and drag state of one gesture over a bar, and the pane count the layout derived.

@@ -279,8 +279,7 @@ struct Wnd
 
         // The child list is maintained by the window itself: attach through [setParent] and
         // detach through [detachChild] so parent, surface, style, and layout state stay consistent.
-        readonly
-        children: Array'(*Wnd)
+        readonly children: Array'(*Wnd)
 
         name:    RichString      // Display text with optional rich spans.
         id:      #null WndId     // Optional stable command, lookup, and persistence identifier.

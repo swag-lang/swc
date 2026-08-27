@@ -29,8 +29,7 @@ struct Thread
         requestEnd = false                     // Cooperative stop flag the thread body polls.
 
         // Identity of the running thread, established when it starts.
-        readonly
-        id: u64
+        readonly id: u64
     }
 
     // Platform handle of the thread, owned by this value.

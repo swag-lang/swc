@@ -56,6 +56,7 @@ enum class FormatRoleE : uint64_t
     DestructuringClose  = 1ULL << 39, // `}` closing a destructuring assignment pattern at statement indentation
     NamedArgumentColon  = 1ULL << 40, // `:` between a named argument / literal field and its value
     AliasDeclStart      = 1ULL << 41, // first piece of an `alias` declaration
+    AccessModifier      = 1ULL << 42, // `public` / `private` / `internal` / `readonly` governing one declaration or block
 };
 using FormatRoles = EnumFlags<FormatRoleE>;
 

@@ -552,8 +552,7 @@ namespace Swag
     // Store a 'fail' error information
     struct ErrorValue
     {
-        public
-        value: #null any     // Error value (or null)
+        public value: #null any     // Error value (or null)
 
         // What the error stack must restore when this entry is popped. The runtime writes it
         // when an error is pushed and reads it back on 'catch'.

@@ -29,8 +29,7 @@ enum DropEffect
 struct DragContent
 {
     // File name the target creates, with no folder part.
-    public readonly
-    name: String
+    public readonly name: String
 
     internal
     {
@@ -102,19 +101,16 @@ struct DragData
     public
     {
         // Absolute paths offered by the source, in the order it listed them, empty when it offers none.
-        readonly
-        files: Array'String
+        readonly files: Array'String
 
         // Files offered by content rather than by path, in the order the source listed them.
         //
         // A gesture hovering a window carries their names and not their bytes, so a target decides
         // what it will take from the names alone and reads the content from the `Drop` phase on.
-        readonly
-        contents: Array'DragContent
+        readonly contents: Array'DragContent
 
         // Plain UTF-8 text offered by the source, empty when it offers none.
-        readonly
-        text: String
+        readonly text: String
     }
 
     imageBytes:   Array'u8        // Encoded image bytes, as offered or as encoded on demand.

@@ -122,10 +122,8 @@ deliberate local override, so a 'private impl' may still expose one method with 
 
 struct Counter
 {
-    public readonly
-    count: s32
-    private
-    step:  s32 = 2
+    public readonly count: s32
+    private step: s32 = 2
 }
 
 impl Counter

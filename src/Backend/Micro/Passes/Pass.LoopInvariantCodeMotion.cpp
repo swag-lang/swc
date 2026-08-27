@@ -461,32 +461,30 @@ namespace
 
                 const MicroReg destReg = useDef->defs[0];
                 RegWeb&        web     = websByReg[destReg];
-                const bool     fullDef = isEligibleOpcode(inst->op);
-                bool           compute = false;
-                if (!fullDef && isEligiblePairedComputeOpcode(inst->op))
-                {
-                    for (const MicroReg use : useDef->uses)
-                        compute = compute || use == destReg;
-                }
 
-                if (fullDef)
-                    slotIsFullDef[i] = 1;
-                else if (compute)
-                    slotIsCompute[i] = 1;
-                else
+                // A definition that reads its own destination continues the
+                // web whatever its opcode: a two-address arithmetic op, or an
+                // address computation the multiply-to-lea rewrite produced,
+                // `%r = &[%r + %r*2]`. A definition that does not is a full
+                // def and starts a fresh value.
+                bool selfUse = false;
+                for (const MicroReg use : useDef->uses)
+                    selfUse = selfUse || use == destReg;
+
+                const bool eligible = isEligibleOpcode(inst->op) || isEligiblePairedComputeOpcode(inst->op);
+                if (!eligible)
                     web.chainOk = false;
+                else if (selfUse)
+                    slotIsCompute[i] = 1;
+                else if (isEligibleOpcode(inst->op))
+                    slotIsFullDef[i] = 1;
+                else
+                    web.chainOk = false; // a paired-compute opcode with no self-read defines from a carried value
 
                 // A compute with no prior definition in the body reads a
-                // loop-carried value; a full def whose source names itself is a
-                // degenerate shape not worth modeling.
-                if (compute && web.defSlots.empty())
+                // loop-carried value.
+                if (slotIsCompute[i] && web.defSlots.empty())
                     web.chainOk = false;
-                if (fullDef)
-                {
-                    for (const MicroReg use : useDef->uses)
-                        if (use == destReg)
-                            web.chainOk = false;
-                }
 
                 web.defSlots.push_back(i);
                 slotDefReg[i] = destReg;
@@ -552,14 +550,15 @@ namespace
 
                         if (slotIsCompute[i])
                         {
-                            // The chain continuation writes flags at the preheader
-                            // insertion point and stops producing them here.
-                            if (!preheaderFlagsDead ||
-                                !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, ref) ||
-                                !acceptedPrefix(destReg, i))
-                            {
+                            if (!acceptedPrefix(destReg, i))
                                 continue;
-                            }
+                            // A flag-writing continuation writes flags at the
+                            // preheader insertion point and stops producing
+                            // them here; an address computation writes none.
+                            if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
+                                (!preheaderFlagsDead ||
+                                 !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, ref)))
+                                continue;
                         }
 
                         // A multi-def web is only the value sequence its listing

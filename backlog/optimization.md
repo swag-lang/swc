@@ -544,6 +544,18 @@ cmov-to-branch back-conversion, and profile-gated passes.
   web (verified on a corpus dump); the deblock probe's modulo chain hoists out of its x-loop; and
   the pre-RA fixpoint shows no oscillation with copy elimination (pure renaming inserts no
   instructions, so none is expected).
+- Attempted 2026-08-27, parked: a union-find pass over `MicroSsaState` value ids (phi unions
+  gated on transitive instruction uses so dead phis stop gluing webs, read-modify-write defs
+  unioned with their reaching def) renames soundly - 58 video functions change, both probe
+  checksums hold, and the deblock chain does hoist once the pass runs inside the pre-RA loop
+  after strength reduction, which is what creates the chain. But the corpus regresses:
+  `interpolateLuma` 1583 -> 1684 instructions and 314 -> 398 frame references, video.dll +2 KB.
+  The shared names the lowering leaves behind are accidental coalescing the hull allocator
+  depends on - splitting them multiplies concurrent hulls, and the allocator pays in spills more
+  than the loop passes earn. LLVM affords SSA-grade names because greedy RA re-splits and
+  re-coalesces live ranges; this allocator does not yet. Blocked behind pre-RA re-coalescing of
+  non-interfering webs or live-range splitting in the allocator. Prototype parked in the session
+  scratchpad (`webrename-parked/`: `Pass.WebRename.{h,cpp}` plus the registration diff).
 - Related: B-001, B-002, B-004; unlocks the full yield of the web hoisting shipped in LICM.
 
 ### B-004 — Jump-entered loops get a dedicated preheader

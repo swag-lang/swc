@@ -416,11 +416,27 @@ impl ImageView
         var movie: Movie
         try movie.load(fileName)
 
-        .clear()
-        .movie           = #move movie
-        .uploadedTexture = .app().renderer.addImage(.movie.frame)
-        .isFitted        = true
-        .panOffset       = {}
+        .exchangeMovie(&movie)
+    }
+
+    // Displays a prepared movie by exchanging its owned decoding state with the view.
+    //
+    // This is the publication counterpart to loading or decoding a [[Gui.Movie]] outside the GUI
+    // thread. On return, `movie` owns the content that previously belonged to the view, or an
+    // empty movie when the view had none. An invalid movie clears the view.
+    mtd exchangeMovie(movie: *Movie)
+    {
+        if .uploadedTexture.isValid() do
+            .app().renderer.removeTexture(&.uploadedTexture)
+        @drop(&.image, 1)
+        @init(&.image, 1)
+        .planarWidth, .planarHeight = 0
+        swap(&.movie, movie)
+        if .movie.isValid() do
+            .uploadedTexture = .app().renderer.addImage(.movie.frame)
+        .isFitted  = true
+        .zoom      = 1
+        .panOffset = {}
         .sigZoomChanged.call(me)
         .invalidate()
     }

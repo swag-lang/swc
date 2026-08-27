@@ -3,6 +3,33 @@
 
 using Swag, Core, Pixel
 
+// A movie decoded away from the widget is published by ownership exchange only.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 220)
+    defer host.shutdown()
+
+    var image = Image.create(4, 2, .RGBA8)
+    image.fill(Argb.White)
+    let fileName = Testing.tempFilePath("gui-imageview-", ".gif")
+    defer discard catch File.delete(fileName)
+    let encoded = expect image.encode("prepared.gif")
+    expect File.writeAllBytes(fileName, encoded.toSlice()!)
+    var movie: Movie
+    expect movie.load(fileName)
+
+    let view = ImageView.create(&host.root, {0, 0, 300, 200})
+    view.exchangeMovie(&movie)
+    @assert(view.movie.isValid() and !movie.isValid())
+    @assert(view.movie.frameCount == 1 and view.uploadedTexture.isValid())
+
+    var replacement: Movie
+    expect replacement.load(fileName)
+    view.exchangeMovie(&replacement)
+    @assert(view.movie.isValid() and replacement.isValid())
+}
+
 // A still image starts fitted, supports explicit zoom, and releases its renderer texture cleanly.
 #test
 {

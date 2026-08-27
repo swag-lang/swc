@@ -7,6 +7,13 @@ private const ImageCommandWidth = 396.0
 private const GifCommandWidth = 624.0
 private const SvgRasterLimit = 2048.0
 
+struct ImageViewerContent
+{
+    image:   Image
+    movie:   Movie
+    details: String
+}
+
 internal func loadViewerImage(fileName: string)->Image fail
 {
     if Path.lowercaseExtension(fileName) != ".svg" do
@@ -19,6 +26,31 @@ internal func loadViewerImage(fileName: string)->Image fail
     let width   = cast(s32) Math.max(Math.round(drawing.width * scale), 1)
     let height  = cast(s32) Math.max(Math.round(drawing.height * scale), 1)
     return drawing.rasterize(width, height, 1)
+}
+
+private func loadImageViewerContent(fileName: string)->ImageViewerContent fail
+{
+    var result: retval
+    var extension = String.from(Path.extension(fileName) orelse "")
+    extension = extension.toLower()
+    if extension == ".gif"
+    {
+        try result.movie.load(fileName)
+
+        // Decode the complete animation on the worker. Once published, playback only exchanges
+        // cached frames and cannot stall the GUI on a complex GIF frame.
+        result.movie.setFrameIndex(result.movie.frameCount - 1)
+        result.movie.setFrameIndex(0)
+        let frame = &result.movie.frame
+        result.details = Format.toString(imageStrings().ui_DetailsMovie, frame.width, frame.height, frameCountText(result.movie.frameCount))
+    }
+    else
+    {
+        result.image   = try loadViewerImage(fileName)
+        result.details = Format.toString(imageStrings().ui_DetailsStill, result.image.width, result.image.height, result.image.bitsPerPixel)
+    }
+
+    return #move result
 }
 
 internal struct ImageViewer
@@ -38,7 +70,13 @@ internal struct ImageViewer
         frameLabel:     *Label
     }
 
-    navigateFile: #null ViewerNavigateFile
+    navigateFile:         #null ViewerNavigateFile
+    reportFailure:        #null ViewerReportFailure
+    reportDetails:        #null ViewerReportDetails
+    reportLoadingChanged: #null ViewerReportLoadingChanged
+    load:                 ViewerBackgroundLoad'ImageViewerContent
+    loadTimer:            #null *Timer
+    failureReason:        String
 }
 
 internal impl ImageViewer
@@ -77,6 +115,47 @@ internal impl ImageViewer
 
 private impl IWnd for ImageViewer
 {
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer != .loadTimer
+        {
+            evt.accepted = false
+            return
+        }
+
+        if !.load.isDone() do
+            return
+
+        .removeTimer(evt.timer)
+        .loadTimer = null
+        var content: ImageViewerContent
+        .failureReason = .load.finish(&content)
+        if !.failureReason.isEmpty()
+        {
+            if .reportFailure do
+                .reportFailure!(me, .failureReason.toString())
+            return
+        }
+
+        if content.movie.isValid()
+        {
+            .imageView.exchangeMovie(&content.movie)
+            if .imageView.movie.frameCount > 1 do
+                .showPlayback()
+        }
+        else do
+            .imageView.setImage(content.image)
+
+        .details = #move content.details
+        .refreshZoom()
+        .applyLayout()
+        .setInitialFocus(.imageView)
+        if .reportDetails do
+            .reportDetails!(me, .details.toString())
+        if .reportLoadingChanged do
+            .reportLoadingChanged!(me)
+    }
+
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         if evt.kind != .Pressed
@@ -126,11 +205,27 @@ private impl IWnd for ImageViewer
 
 private impl ImageViewer
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string, navigateFile: #null ViewerNavigateFile = null)->*ImageViewer fail
+    mtd retire()->bool
+    {
+        if !.load.retire() do
+            return false
+        if .loadTimer
+        {
+            .removeTimer(.loadTimer!)
+            .loadTimer = null
+        }
+
+        return true
+    }
+
+    func create(contentParent, commandParent: *Wnd, fileName: string, navigateFile: #null ViewerNavigateFile = null, reportFailure: #null ViewerReportFailure = null, reportDetails: #null ViewerReportDetails = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*ImageViewer
     {
         let result = Wnd.create'ImageViewer(contentParent, "sFileScope.image")
-        result.backgroundStyle = .View
-        result.navigateFile    = navigateFile
+        result.backgroundStyle      = .View
+        result.navigateFile         = navigateFile
+        result.reportFailure        = reportFailure
+        result.reportDetails        = reportDetails
+        result.reportLoadingChanged = reportLoadingChanged
 
         result.commands = ViewerCommandBar.create(commandParent, ImageCommandWidth)
 
@@ -270,51 +365,21 @@ private impl ImageViewer
             view.refreshFrame()
         }
 
-        var decoded: bool
-        defer if !decoded
-        {
-            result.commands.destroy()
-            result.destroy()
-        }
-
-        var extension = String.from(Path.extension(fileName) orelse "")
-        extension = extension.toLower()
-        if extension == ".gif"
-        {
-            try result.imageView.loadGif(fileName)
-            let frame = &result.imageView.movie.frame
-            result.details = Format.toString(imageStrings().ui_DetailsMovie, frame.width, frame.height, frameCountText(result.imageView.movie.frameCount))
-            if result.imageView.movie.frameCount > 1 do
-                result.showPlayback()
-        }
-        else
-        {
-            let image = try loadViewerImage(fileName)
-            result.details = Format.toString(imageStrings().ui_DetailsStill, image.width, image.height, image.bitsPerPixel)
-            result.imageView.setImage(image)
-        }
-
-        decoded = true
-        result.refreshZoom()
         result.applyLayout()
         result.setInitialFocus(result.imageView)
+        result.load.start(fileName, &loadImageViewerContent)
+        result.loadTimer = result.addTimer(ViewerBackgroundPollInterval)
         return result
     }
 }
 
-private func loadImageViewer(contentParent, commandParent: *Wnd, fileName: string, navigateFile: #null ViewerNavigateFile)->#null *ImageViewer fail => try ImageViewer.create(contentParent, commandParent, fileName, navigateFile)
-
 // Creates the integrated image view.
 func createImageViewer(request: const *ViewerRequest, result: *ViewerResult)
 {
-    let view = catch loadImageViewer(request.contentParent, request.commandParent, request.fileName, request.navigateFile) as decodeError
-    if decodeError != null
-    {
-        result.failureReason = Errors.message(decodeError)
-        return
-    }
-
-    result.view     = view
-    result.commands = view!.commands
-    result.details  = view!.details
+    let view = ImageViewer.create(request.contentParent, request.commandParent, request.fileName, request.navigateFile, request.reportFailure, request.reportDetails, request.reportLoadingChanged)
+    result.view                = view
+    result.commands            = view.commands
+    result.isLoading           = func(wnd)->bool { return (cast(*ImageViewer) wnd).loadTimer != null }
+    result.needsLoadingOverlay = func(wnd)->bool { return (cast(*ImageViewer) wnd).loadTimer != null }
+    result.retire              = func(wnd)->bool { return (cast(*ImageViewer) wnd).retire() }
 }

@@ -5,6 +5,41 @@ using Core, Pixel, Gui, TrueType
 private const FontCommandWidth = 456.0
 private const FontCommandGlyphSize = 18.0
 
+#[Swag.NoCopy]
+struct FontViewerContent
+{
+    bytes:    Array'u8
+    face:     #null *Face
+    typeFace: #null *TypeFace
+    details:  String
+}
+
+impl FontViewerContent
+{
+    mtd opDrop()
+    {
+        if .face do
+            .face!.destroy()
+    }
+}
+
+private func loadFontViewerContent(fileName: string)->FontViewerContent fail
+{
+    var result: retval
+    result.bytes = try File.readAllBytes(fileName)
+    let faceCount = try Face.countFaces(result.bytes.toSlice())
+    result.face = (try Face.load(result.bytes.toSlice()))!
+
+    let cacheKey = Format.toString("%|filescope-font|%{X08}", fileName, Hash.Crc32.compute(result.bytes.toSlice()))
+    result.typeFace = try TypeFace.create(cacheKey.toString(), result.bytes.toSlice())
+    let style = result.face!.styleName.isEmpty() ? fontStrings().ui_Regular : result.face!.styleName.toString()
+    if faceCount == 1 do
+        result.details = Format.toString(fontStrings().ui_DetailsSingle, result.face!.familyName, style, result.face!.glyphCount, result.face!.unitsPerEm)
+    else do
+        result.details = Format.toString(fontStrings().ui_DetailsCollection, result.face!.familyName, style, result.face!.glyphCount, result.face!.unitsPerEm, faceCount)
+    return #move result
+}
+
 internal struct FontViewer
 {
     using wnd: Wnd
@@ -19,8 +54,14 @@ internal struct FontViewer
         document:       *FontDocumentView
     }
 
-    details:       String
-    sampleDefault: String
+    details:              String
+    sampleDefault:        String
+    load:                 ViewerBackgroundLoad'FontViewerContent
+    loadTimer:            #null *Timer
+    reportFailure:        #null ViewerReportFailure
+    reportDetails:        #null ViewerReportDetails
+    reportLoadingChanged: #null ViewerReportLoadingChanged
+    failureReason:        String
 }
 
 private impl FontViewer
@@ -43,12 +84,47 @@ private impl FontViewer
         .sampleEdit.setPlaceholder(fontStrings().ui_SamplePlaceholder)
         .previousButton.toolTip = fontStrings().ui_PreviousPage
         .nextButton.toolTip     = fontStrings().ui_NextPage
-        .document.invalidate()
+        if !.loadTimer do
+            .document.invalidate()
     }
 }
 
 private impl IWnd for FontViewer
 {
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer != .loadTimer
+        {
+            evt.accepted = false
+            return
+        }
+
+        if !.load.isDone() do
+            return
+
+        .removeTimer(evt.timer)
+        .loadTimer = null
+        var content: FontViewerContent
+        .failureReason = .load.finish(&content)
+        if !.failureReason.isEmpty()
+        {
+            if .reportFailure do
+                .reportFailure!(me, .failureReason.toString())
+            return
+        }
+
+        .document    = FontDocumentView.create(me, content.face!, content.typeFace!, #move content.bytes, .sampleEdit)
+        content.face = null
+        .details     = #move content.details
+        .refreshPageCommands()
+        .applyLayout()
+        .setInitialFocus(.document)
+        if .reportDetails do
+            .reportDetails!(me, .details.toString())
+        if .reportLoadingChanged do
+            .reportLoadingChanged!(me)
+    }
+
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.kind == .LanguageChanged do
@@ -60,21 +136,27 @@ private impl IWnd for FontViewer
 
 internal impl FontViewer
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string)->*FontViewer fail
+    mtd retire()->bool
+    {
+        if !.load.retire() do
+            return false
+        if .loadTimer
+        {
+            .removeTimer(.loadTimer!)
+            .loadTimer = null
+        }
+
+        return true
+    }
+
+    func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure, reportDetails: #null ViewerReportDetails, reportLoadingChanged: #null ViewerReportLoadingChanged)->*FontViewer
     {
         registerFontStrings(contentParent.app())
-
-        var bytes     = try File.readAllBytes(fileName)
-        let faceCount = try Face.countFaces(bytes.toSlice())
-        let face      = (try Face.load(bytes.toSlice()))!
-        var keepFace: bool
-        defer if !keepFace do
-            face.destroy()
-
-        let cacheKey = Format.toString("%|filescope-font|%{X08}", fileName, Hash.Crc32.compute(bytes.toSlice()))
-        let typeFace = try TypeFace.create(cacheKey.toString(), bytes.toSlice())
-        let result   = Wnd.create'FontViewer(contentParent, "sFileScope.font")
-        result.backgroundStyle = .View
+        let result = Wnd.create'FontViewer(contentParent, "sFileScope.font")
+        result.backgroundStyle      = .View
+        result.reportFailure        = reportFailure
+        result.reportDetails        = reportDetails
+        result.reportLoadingChanged = reportLoadingChanged
 
         with result.commands = Wnd.create'Wnd(commandParent, {0, 0, FontCommandWidth, 36})
         {
@@ -90,7 +172,8 @@ internal impl FontViewer
             .sigTextChanged += func|view = result|(edit)
             {
                 discard edit
-                view.document.invalidate()
+                if !view.loadTimer do
+                    view.document.invalidate()
             }
         }
 
@@ -127,36 +210,21 @@ internal impl FontViewer
             .setTextAlignment(.Right, .Center)
         }
 
-        result.document = FontDocumentView.create(result, face, typeFace, #move bytes, result.sampleEdit)
-        keepFace        = true
-
-        let style = face.styleName.isEmpty() ? fontStrings().ui_Regular : face.styleName.toString()
-        if faceCount == 1 do
-            result.details = Format.toString(fontStrings().ui_DetailsSingle, face.familyName, style, face.glyphCount, face.unitsPerEm)
-        else do
-            result.details = Format.toString(fontStrings().ui_DetailsCollection, face.familyName, style, face.glyphCount, face.unitsPerEm, faceCount)
-
-        result.refreshPageCommands()
         result.applyLayout()
-        result.setInitialFocus(result.document)
+        result.load.start(fileName, &loadFontViewerContent)
+        result.loadTimer = result.addTimer(ViewerBackgroundPollInterval)
         return result
     }
 }
-
-private func loadFontViewer(contentParent, commandParent: *Wnd, fileName: string)->#null *FontViewer fail => try FontViewer.create(contentParent, commandParent, fileName)
 
 // Creates the integrated TrueType specimen and character-map view.
 func createFontViewer(request: const *ViewerRequest, result: *ViewerResult)
 {
     registerFontStrings(request.contentParent.app())
-    let view = catch loadFontViewer(request.contentParent, request.commandParent, request.fileName) as decodeError
-    if decodeError != null
-    {
-        result.failureReason = Errors.message(decodeError)
-        return
-    }
-
-    result.view     = view
-    result.commands = view!.commands
-    result.details  = view!.details
+    let view = FontViewer.create(request.contentParent, request.commandParent, request.fileName, request.reportFailure, request.reportDetails, request.reportLoadingChanged)
+    result.view                = view
+    result.commands            = view.commands
+    result.isLoading           = func(wnd)->bool { return (cast(*FontViewer) wnd).loadTimer != null }
+    result.needsLoadingOverlay = func(wnd)->bool { return (cast(*FontViewer) wnd).loadTimer != null }
+    result.retire              = func(wnd)->bool { return (cast(*FontViewer) wnd).retire() }
 }

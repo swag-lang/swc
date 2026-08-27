@@ -21,6 +21,17 @@ internal struct TableDocument
     delimiter: u8
 }
 
+private func loadTableDocument(fileName: string)->TableDocument fail
+{
+    let info = try File.info(fileName)
+    if info.size > TableFileLimit do
+        fail UnsupportedFormatError{Errors.mkString(tableStrings().err_TooLarge)}
+
+    let source    = try File.readAllText(fileName)
+    let delimiter = detectTableDelimiter(fileName, source.toString())
+    return try parseTableDocument(source.toString(), delimiter)
+}
+
 // Bounds the text handed to the single-line rich-text renderer. A table keeps the complete cell
 // for search, but shaping a megabyte-long CSV field merely to paint its first few glyphs makes
 // every virtual-row repaint linear in the hidden tail.
@@ -239,15 +250,86 @@ internal struct TableViewer
     #[Swag.Late]
     list: *ListCtrl
 
-    document:     TableDocument
-    searchRow:    u64 = Swag.U64.Max
-    searchColumn: u64
-    searchOffset: u64
-    searchLength: u64
+    document:             TableDocument
+    searchRow:            u64 = Swag.U64.Max
+    searchColumn:         u64
+    searchOffset:         u64
+    searchLength:         u64
+    load:                 ViewerBackgroundLoad'TableDocument
+    loadTimer:            #null *Timer
+    reportFailure:        #null ViewerReportFailure
+    reportDetails:        #null ViewerReportDetails
+    reportLoadingChanged: #null ViewerReportLoadingChanged
+    failureReason:        String
+}
+
+private impl IWnd for TableViewer
+{
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer != .loadTimer
+        {
+            evt.accepted = false
+            return
+        }
+
+        if !.load.isDone() do
+            return
+
+        .removeTimer(evt.timer)
+        .loadTimer     = null
+        .failureReason = .load.finish(&.document)
+        if !.failureReason.isEmpty()
+        {
+            if .reportFailure do
+                .reportFailure!(me, .failureReason.toString())
+            return
+        }
+
+        .publishDocument()
+        if .reportLoadingChanged do
+            .reportLoadingChanged!(me)
+    }
 }
 
 private impl TableViewer
 {
+    mtd publishDocument()
+    {
+        for column, index in .document.columns
+        {
+            var longest = column.length
+            for row in .document.rows.toSlice()[0 until Math.min(.document.rows.count, 128)] where index < row.cells.count do
+                longest = Math.max(longest, row.cells[index].length)
+            let width = Math.clamp(cast(f32) longest * TableCellWidth + 24, TableColumnMinWidth, TableColumnMaxWidth)
+            let range = tableCellPreviewRange(column.toString())
+            .list.addColumn(column.toString()[range.start until range.end], width)
+        }
+
+        .list.setVirtualCount(cast(u32) .document.rows.count)
+        .applyLayout()
+        .setInitialFocus(.list)
+
+        let rows    = tableCountText(.document.rows.count, tableStrings().ui_Row, tableStrings().ui_Rows)
+        let columns = tableCountText(.document.columns.count, tableStrings().ui_OneColumn, tableStrings().ui_Columns)
+        let kind    = .document.delimiter == '\t' ? "TSV" : "CSV"
+        if .reportDetails do
+            .reportDetails!(me, Format.toString(tableStrings().ui_Details, kind, rows.toString(), columns.toString()).toString())
+    }
+
+    mtd retire()->bool
+    {
+        if !.load.retire() do
+            return false
+        if .loadTimer
+        {
+            .removeTimer(.loadTimer!)
+            .loadTimer = null
+        }
+
+        return true
+    }
+
     mtd fillLine(line: *ListLine, index: u32)
     {
         if index >= .document.rows.count do
@@ -326,17 +408,13 @@ private impl TableViewer
         .list.invalidate()
     }
 
-    func create(parent: *Wnd, fileName: string)->#null *TableViewer fail
+    func create(parent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure, reportDetails: #null ViewerReportDetails, reportLoadingChanged: #null ViewerReportLoadingChanged)->*TableViewer
     {
-        let info = try File.info(fileName)
-        if info.size > TableFileLimit do
-            fail UnsupportedFormatError{Errors.mkString(tableStrings().err_TooLarge)}
-
-        let source    = try File.readAllText(fileName)
-        let delimiter = detectTableDelimiter(fileName, source.toString())
-        let result    = Wnd.create'TableViewer(parent, "sFileScope.table")
-        result.backgroundStyle = .View
-        result.document        = parseTableDocument(source.toString(), delimiter)
+        let result = Wnd.create'TableViewer(parent, "sFileScope.table")
+        result.backgroundStyle      = .View
+        result.reportFailure        = reportFailure
+        result.reportDetails        = reportDetails
+        result.reportLoadingChanged = reportLoadingChanged
 
         with result.list = ListCtrl.createMultiColumns(result)
         {
@@ -349,19 +427,10 @@ private impl TableViewer
             .onFillVirtualLine = &fillTableVirtualLine
         }
 
-        for column, index in result.document.columns
-        {
-            var longest = column.length
-            for row in result.document.rows.toSlice()[0 until Math.min(result.document.rows.count, 128)] where index < row.cells.count do
-                longest = Math.max(longest, row.cells[index].length)
-            let width = Math.clamp(cast(f32) longest * TableCellWidth + 24, TableColumnMinWidth, TableColumnMaxWidth)
-            let range = tableCellPreviewRange(column.toString())
-            result.list.addColumn(column.toString()[range.start until range.end], width)
-        }
-
-        result.list.setVirtualCount(cast(u32) result.document.rows.count)
         result.applyLayout()
         result.setInitialFocus(result.list)
+        result.load.start(fileName, &loadTableDocument)
+        result.loadTimer = result.addTimer(ViewerBackgroundPollInterval)
         return result
     }
 }
@@ -377,18 +446,8 @@ private func fillTableVirtualLine(list: *ListCtrl, line: #null *ListLine, index:
 func createTableViewer(request: const *ViewerRequest, result: *ViewerResult)
 {
     registerTableStrings(request.contentParent.app())
-    let view = catch TableViewer.create(request.contentParent, request.fileName) as createError
-    if createError != null
-    {
-        result.failureReason = Errors.message(createError)
-        return
-    }
-
-    let rows    = tableCountText(view!.document.rows.count, tableStrings().ui_Row, tableStrings().ui_Rows)
-    let columns = tableCountText(view!.document.columns.count, tableStrings().ui_OneColumn, tableStrings().ui_Columns)
-    let kind    = view!.document.delimiter == '\t' ? "TSV" : "CSV"
-    result.view           = view!
-    result.details        = Format.toString(tableStrings().ui_Details, kind, rows.toString(), columns.toString())
+    let view = TableViewer.create(request.contentParent, request.fileName, request.reportFailure, request.reportDetails, request.reportLoadingChanged)
+    result.view           = view
     result.collectMatches = func(wnd, text, options, matches) { (cast(*TableViewer) wnd).collectMatches(text, options, matches) }
     result.revealMatch    = func(wnd, match, text)->bool
     {
@@ -400,5 +459,8 @@ func createTableViewer(request: const *ViewerRequest, result: *ViewerResult)
         discard match
         return (cast(*TableViewer) wnd).searchBounds(bounds)
     }
-    result.clearSearch = func(wnd) { (cast(*TableViewer) wnd).clearSearch() }
+    result.clearSearch         = func(wnd) { (cast(*TableViewer) wnd).clearSearch() }
+    result.isLoading           = func(wnd)->bool { return (cast(*TableViewer) wnd).loadTimer != null }
+    result.needsLoadingOverlay = func(wnd)->bool { return (cast(*TableViewer) wnd).loadTimer != null }
+    result.retire              = func(wnd)->bool { return (cast(*TableViewer) wnd).retire() }
 }

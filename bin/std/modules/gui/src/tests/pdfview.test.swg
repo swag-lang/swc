@@ -54,6 +54,24 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     return result
 }
 
+// A document opened and decoded away from the widget is published without reopening it.
+#test
+{
+    let fileName = pdfViewFixture()
+    defer discard catch File.delete(fileName)
+
+    var reader = #move expect Reader.open(fileName.toString())
+    var page   = #move expect reader.loadPage(0)
+    var host: Testing.HeadlessHost
+    host.setup(640, 450)
+    defer host.shutdown()
+
+    let view = PdfView.create(&host.root)
+    view.exchangeDocument(&reader, &page)
+    @assert(view.pageCount() == 2 and view.pageIndex == 0)
+    @assert(reader.pageCount() == 0)
+}
+
 // A real multi-megabyte document keeps only its mapped source, lightweight page index and current
 // decoded page. Walking the whole document twice must replace page resources rather than cache a
 // second document's worth of streams, fonts, paths and images.

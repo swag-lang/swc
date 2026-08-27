@@ -48,8 +48,18 @@ func delayTestViewerRetirement(wnd: *Wnd)->bool
 
 func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
-    if window.startupTimer do
-        host.fireTimer(window.startupTimer)
+    completeViewerWindowClassification(host, window)
+
+    var steps = 0'u32
+    while window.activeChoiceIndex < window.instances.count and steps < 4_096
+    {
+        let instance = &window.instances[window.activeChoiceIndex]
+        if !instance.view or !instance.isLoading or !instance.isLoading!(instance.view!) do
+            break
+        Threading.Thread.sleep(1'ms)
+        host.fireTimers()
+        steps += 1
+    }
 }
 
 func completeViewerSearch(host: *Testing.HeadlessHost, window: *ViewerWindow)
@@ -266,6 +276,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
     window.openFile(names[0].toString())
+    completeQueuedViewerFile(&host, window)
 
     @assert(!window.panelVisible and !window.filePanel.isLocallyVisible())
     window.toggleFilePanel()
@@ -339,6 +350,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
     window.openFile(names[0].toString())
+    completeQueuedViewerFile(&host, window)
     window.recent.clear()
     for name in names do
         window.recent.add(name[])
@@ -405,8 +417,12 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
 
-    for one in names do
+    for one in names
+    {
         window.openFile(one[].toString())
+        completeQueuedViewerFile(&host, window)
+    }
+
     window.setFilePanelVisible(true)
     @assert(window.recent.count == 3 and window.recentList.lineCount() == 3)
 
@@ -463,8 +479,12 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
 
-    for one in names do
+    for one in names
+    {
         window.openFile(one[].toString())
+        completeQueuedViewerFile(&host, window)
+    }
+
     window.setFilePanelVisible(true)
     window.applyLayout()
 
@@ -526,6 +546,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.resize(960, 680)
 
     window.openFile(first.toString())
+    completeQueuedViewerFile(&host, window)
     @assert(window.choices.count == 3 and window.choices[0].key == BasicTextViewerKey)
     @assert(window.activeChoiceIndex == 0 and window.preferences.isEmpty())
 
@@ -540,6 +561,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     // The next file of the same kind opens where the reader left the previous one.
     window.openFile(second.toString())
+    completeQueuedViewerFile(&host, window)
     @assert(window.choices[window.activeChoiceIndex].key == "hex")
 
     // The decision crosses a session with the other panel choices.
@@ -551,6 +573,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.selectViewer(0)
     @assert(window.preferences.isEmpty())
     window.openFile(first.toString())
+    completeQueuedViewerFile(&host, window)
     @assert(window.choices[window.activeChoiceIndex].key == BasicTextViewerKey)
 }
 
@@ -580,6 +603,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
     window.openFile(Path.combine(folder.toString(), "notes.txt").toString())
+    completeQueuedViewerFile(&host, window)
     window.toggleFilePanel()
     window.applyLayout()
     host.settleAnimations(window, 4)
@@ -777,6 +801,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     var index: ViewerIndex
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(fileName)
+    completeQueuedViewerFile(&host, window)
     window.searchBox.setText(query)
     window.findNext()
 
@@ -806,6 +831,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     var index: ViewerIndex
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(fileName)
+    completeQueuedViewerFile(&host, window)
     window.searchBox.setFocus()
     window.searchBox.setText("cat")
     completeViewerSearch(&host, window)
@@ -1023,6 +1049,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
     window.openFile(viewerFixturePath().toString())
+    completeQueuedViewerFile(&host, window)
     window.applyLayout()
 
     @assert(window.searchGroup.isLocallyVisible() and window.searchBox.isVisible() and window.searchBox.isEnabled())
@@ -1042,6 +1069,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.searchBox.hasFocus())
     let midiFile = Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "viewer.mid")
     window.openFile(midiFile.toString())
+    completeQueuedViewerFile(&host, window)
 
     @assert(!window.searchGroup.isLocallyVisible() and window.searchBox.isHidden())
     @assert(window.searchPrevious.isHidden() and window.searchNext.isHidden())
@@ -1049,6 +1077,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(!window.searchBox.hasFocus())
 
     window.openFile(viewerFixturePath().toString())
+    completeQueuedViewerFile(&host, window)
     @assert(window.searchGroup.isLocallyVisible() and window.searchBox.isVisible() and window.searchBox.isEnabled())
 }
 
@@ -1100,6 +1129,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let index  = createViewerIndex()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(viewerFixturePath(), remember: false)
+    completeQueuedViewerFile(&host, window)
     window.setFilePanelVisible(true)
     let position = host.surface.position
     let flags    = host.surface.flags
@@ -1225,6 +1255,10 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     @assert(window.loadingOverlay.backgroundStyle == .Transparent)
     @assert(window.loadingOverlay.wndFlags.has(.Disabled))
     @assert(window.children.back() == window.loadingOverlay)
+    @assert(window.loadingOverlay.spinner.position.width == ViewerLoadingSpinnerSize and window.loadingOverlay.spinner.position.height == ViewerLoadingSpinnerSize)
+    let spinnerCenter = window.loadingOverlay.spinner.position.center()
+    let overlayCenter = window.loadingOverlay.clientRect().center()
+    @assert(spinnerCenter == overlayCenter)
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "sfilescope.loading")
 
@@ -1271,9 +1305,15 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     let fileName = viewerFixturePath()
     window.openFile(fileName, remember: false)
-    @assert(window.currentView == old and retireCalls == 1)
+    @assert(window.currentView == old and retireCalls == 0)
     @assert(window.pendingFile == fileName and window.startupTimer != null)
     @assert(window.loadingOverlay.isLocallyVisible() and window.loadingOverlay.position == old.position)
+
+    host.fireTimer(window.startupTimer)
+    Jobs.wait(&window.choiceLoad.job)
+    host.fireTimer(window.startupTimer)
+    @assert(window.currentView == old and retireCalls == 1)
+    @assert(window.pendingFile == fileName and window.startupTimer != null)
 
     host.fireTimer(window.startupTimer)
     @assert(retireCalls == 2 and old.isPendingDestroy)
@@ -1322,6 +1362,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.surface!.setTitle(appStrings().ui_WindowTitle)
     window.openFile(fileName)
+    completeQueuedViewerFile(&host, window)
 
     let textView = cast(*BasicTextView) window.currentView!
     textView.setInitialFocus(textView.editor)
@@ -1370,10 +1411,16 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let index  = createViewerIndex()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(firstFile)
+    host.fireTimer(window.startupTimer)
+    Jobs.wait(&window.choiceLoad.job)
+    host.fireTimer(window.startupTimer)
 
     let discardedView  = cast(*BasicTextView) window.currentView!
     let discardedTimer = discardedView.loadTimer!
     window.openFile(secondFile)
+    host.fireTimer(window.startupTimer)
+    Jobs.wait(&window.choiceLoad.job)
+    host.fireTimer(window.startupTimer)
 
     @assert(discardedView.isPendingDestroy)
     @assert(window.currentView != discardedView)
@@ -1422,6 +1469,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
     window.openFile(viewerFixturePath().toString())
+    completeQueuedViewerFile(&host, window)
     window.applyLayout()
     host.settleAnimations(window, 4)
 
@@ -1480,6 +1528,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
     window.openFile(Path.combine(folder.toString(), "pic1.png").toString())
+    completeQueuedViewerFile(&host, window)
 
     window.rebuildSiblings()
     @assert(window.siblings.count == 5)
@@ -1497,6 +1546,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     // A kind nothing registers falls back to the extension.
     window.openFile(Path.combine(folder.toString(), "notes.txt").toString())
+    completeQueuedViewerFile(&host, window)
     window.rebuildSiblings()
     @assert(window.siblings.count == 2)
 
@@ -1544,6 +1594,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
     // The text editor owns the caret keys: with the keyboard parked on a toolbar button, the
     // arrow reaches the editor instead of walking the folder, and the keyboard follows it.
     window.openFile(Path.combine(folder.toString(), "t1.txt").toString())
+    completeQueuedViewerFile(&host, window)
     let textView = cast(*BasicTextView) window.currentView!
     window.openButton.setFocus()
     @assert(!textView.editor.hasFocus())
@@ -1553,6 +1604,7 @@ func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     // The same key does navigate once an image viewer explicitly owns it.
     window.openFile(Path.combine(folder.toString(), "pic1.svg").toString())
+    completeQueuedViewerFile(&host, window)
     window.setFolderSameKind(true)
     window.openButton.setFocus()
     host.keyPress(Input.Key.Right)

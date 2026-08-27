@@ -82,6 +82,7 @@ func videoMatroskaFixturePath()->String
     let window   = ViewerWindow.create(&host.surfaceWnd, #move index)
     let fileName = videoAvcFixturePath()
     window.openFile(fileName, remember: false)
+    completeViewerWindowClassification(&host, window)
     @assert(window.currentView != null)
     let previous = cast(*VideoViewer) window.currentView!
     waitForVideoFrame(previous)
@@ -311,6 +312,7 @@ func videoMatroskaFixturePath()->String
     let index  = createViewerIndex()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(videoAudioFixturePath(), remember: false)
+    completeViewerWindowClassification(&host, window)
     let view = cast(*VideoViewer) window.currentView!
     waitForVideoFrame(view)
 
@@ -346,6 +348,7 @@ func videoMatroskaFixturePath()->String
     let index  = createViewerIndex()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(videoAudioFixturePath(), remember: false)
+    completeViewerWindowClassification(&host, window)
     let view = cast(*VideoViewer) window.currentView!
     @assert(window.loadingOverlay.isLocallyVisible())
     waitForVideoFrame(view)

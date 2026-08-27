@@ -62,6 +62,7 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
 {
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 388, 36})
     let view     = HexViewer.create(&host.root, commands, fileName)
+    completeViewerBackgroundLoad(host, &view.load, view.loadTimer)
     view.dockStyle = .Center
     view.resize(width, height)
     view.applyLayout()
@@ -79,8 +80,10 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     let request = ViewerRequest{&host.root, &host.root, "this-file-does-not-exist.bin"}
     var result: ViewerResult
     createHexViewer(&request, &result)
-    @assert(result.view == null and result.commands == null)
-    @assert(!result.failureReason.isEmpty())
+    @assert(result.view != null and result.commands != null)
+    let view = cast(*HexViewer) result.view!
+    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    @assert(!view.failureReason.isEmpty())
 }
 
 // Typed grouping moves, selects, spaces, and decodes one complete scalar at a time.

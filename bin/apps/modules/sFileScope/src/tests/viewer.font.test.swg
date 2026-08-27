@@ -38,9 +38,10 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     var result: ViewerResult
     createFontViewer(&request, &result)
     @assert(result.view != null and result.commands != null)
-    @assert(result.details.indexOf("Segoe UI") != Swag.U64.Max)
 
     let view = cast(*FontViewer) result.view!
+    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    @assert(view.details.indexOf("Segoe UI") != Swag.U64.Max)
     @assert(view.document.hasCharacter('A'))
     let firstStart = view.document.pageStart
     view.document.nextPage()
@@ -70,6 +71,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     createFontViewer(&request, &result)
     @assert(result.view != null)
     let view = cast(*FontViewer) result.view!
+    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle          = .Center
     view.commands.dockStyle = .Right
 
@@ -100,6 +102,8 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     let request = ViewerRequest{&host.root, &host.root, fileName}
     var result: ViewerResult
     createFontViewer(&request, &result)
-    @assert(result.view == null and result.commands == null)
-    @assert(!result.failureReason.isEmpty())
+    @assert(result.view != null and result.commands != null)
+    let view = cast(*FontViewer) result.view!
+    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    @assert(!view.failureReason.isEmpty())
 }

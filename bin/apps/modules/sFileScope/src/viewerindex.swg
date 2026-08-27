@@ -181,6 +181,14 @@ impl ViewerIndex
     // Returns every viewer available for `fileName` in selection order.
     mtd const choices(fileName: string)->Array'ViewerChoice
     {
+        return .choices(fileName, appStrings().ui_BasicText)
+    }
+
+    // Returns every viewer while using an already captured localized basic-text name.
+    //
+    // Background classification uses this form so it never reaches mutable GUI resources.
+    mtd const choices(fileName, basicTextName: string)->Array'ViewerChoice
+    {
         var result:  retval
         var matched: Array'bool
         matched.resize(.specs.count)
@@ -212,7 +220,7 @@ impl ViewerIndex
         // The key is converted explicitly: an untyped string constant used directly as an
         // aggregate-literal field of type String arrives empty (F-173).
         if BasicTextView.supports(fileName) do
-            result.add(ViewerChoice{.BasicText, Swag.U64.Max, String.from(BasicTextViewerKey), appStrings().ui_BasicText, .Text})
+            result.add(ViewerChoice{.BasicText, Swag.U64.Max, String.from(BasicTextViewerKey), String.from(basicTextName), .Text})
 
         for spec, index in .specs where !matched[index] and .matches(spec, baseName.toString(), extension.toString(), wildcard: true) do
             result.add(ViewerChoice{.Viewer, index, spec.key, spec.displayName, spec.icon})

@@ -338,10 +338,11 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
 
 ## Tier B — Audio and video codecs
 
-### T-541 — H.264 strong deblocking remains scalar
+### T-541 — H.264 strong chroma deblocking remains scalar vertically
 
-- Intent: pack the strong (bS = 4) luma and chroma filters, horizontal and vertical. The weak
-  paths are done: horizontal since 2026-08-20 (16 luma or 8 chroma samples per call, 2.66x and
+- Intent: find a profitable vertical strong-chroma layout and confirm the retained strong luma
+  and horizontal chroma kernels in a complete decode profile. The weak paths are done: horizontal
+  since 2026-08-20 (16 luma or 8 chroma samples per call, 2.66x and
   2.05x on release microkernels), vertical since 2026-08-22 — `filterLumaWeakVertical` and
   `filterChromaWeakVertical` transpose the sixteen (eight) lines through a tile with the
   interleave tree (32 interleaves for luma), run the horizontal kernel on the tile, and transpose
@@ -351,10 +352,16 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   the lane reads stopped spilling: on a generated 1080p High/CABAC clip of 120 frames the complete
   release decode went from a 5,061 ms to a 4,953 ms mean (2.1%) over six alternated runs, a 60-frame
   Main clip from 2,518 to 2,513 ms — the earlier transpose prototypes had been measured with every
-  wrapper a call into `core.dll`, which is what made them lose. The strong filter still runs one
-  line at a time; intra macroblock edges carry it on every I picture.
-- Complete when: decoded frames remain byte-exact, the strong paths are packed horizontally and
-  vertically, and the 1080p profile shows the gain.
+  wrapper a call into `core.dll`, which is what made them lose. Strong luma now filters sixteen
+  horizontal lanes at once and reuses the same transposed tile for vertical edges; strong chroma
+  filters eight horizontal lanes. Exhaustive scalar differential tests cover all 625 mixed
+  strength combinations, five threshold indices and sixteen sample patterns in both orientations.
+  Native Release microkernels improved 2 million calls by 3.39x for horizontal luma (369,302 to
+  109,023 us), 2.22x for horizontal chroma (88,951 to 40,089 us), and 1.66x for vertical luma
+  (372,715 to 224,832 us). The analogous chroma transpose regressed from 91,347 to 97,450 us
+  (1.07x slower) and was rejected, so strong vertical chroma retains its scalar two-line segments.
+- Complete when: decoded frames remain byte-exact, a profitable strong vertical chroma kernel is
+  retained or ruled out with an end-to-end profile, and the 1080p profile confirms the other gains.
 - Related: T-514, T-520, T-420 in `video.md`.
 
 ### T-544 — H.264 reconstruction and directional intra prediction remain scalar

@@ -364,10 +364,11 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   retained or ruled out with an end-to-end profile, and the 1080p profile confirms the other gains.
 - Related: T-514, T-520, T-420 in `video.md`.
 
-### T-544 — H.264 reconstruction and directional intra prediction remain scalar
+### T-544 — H.264 dequantization and directional intra prediction remain scalar
 
-- Intent: vectorize dequantization, residual addition, and the DC/horizontal/vertical/plane intra
-  predictors; keep shuffle-heavy directional modes only when profiling supports them. The 16x16
+- Intent: profile dequantization and keep shuffle-heavy directional modes only when packing them
+  improves staged reconstruction. Residual addition is already part of the packed inverse
+  transforms. The 16x16
   vertical, horizontal, and DC stores now run 2.12x to 3.20x faster, and the filtered 8x8 vertical
   store runs 1.43x faster; narrower dynamic-splat attempts regressed and were discarded. Replacing
   the 4x4 and 8x8 dequantization zero loops with two and eight vector stores regressed 30,000 High
@@ -375,6 +376,11 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   All three discarded results — the 1.02x zero loops, the narrower dynamic splats, and the
   flat-add four-pixel rows recorded as neutral within 0.5% in `video.md` — sit inside the
   call window and within its margin, which makes them the cheapest re-measures in this file.
+  The 16x16 plane predictor now forms four S32x4 column groups per row and improves 2 million
+  Release calls from 516,278 to 435,013 us (1.19x). Chroma DC writes its four quadrants as packed
+  rows (53,978 to 39,165 us, 1.38x), while horizontal and vertical broadcast or copy eight samples
+  per row (27,627 to 12,637 us, 2.19x; 27,228 to 12,983 us, 2.10x). The analogous eight-wide
+  chroma plane arithmetic regressed from 101,197 to 142,369 us (1.41x slower) and remains scalar.
 - Complete when: conformance streams remain byte-exact and each retained kernel improves the staged
   reconstruction profile.
 - Related: T-513, T-514, T-516.

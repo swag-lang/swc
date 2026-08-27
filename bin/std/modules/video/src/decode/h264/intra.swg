@@ -472,6 +472,10 @@ func intraPredict16x16(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop: boo
         fillIntra16x16(dst, stride, cast(u8) value)
 
     case Intra16Plane:
+        const Offsets0 = cast(Simd.S32x4) [0's32, 1, 2, 3]
+        const Offsets1 = cast(Simd.S32x4) [4's32, 5, 6, 7]
+        const Offsets2 = cast(Simd.S32x4) [8's32, 9, 10, 11]
+        const Offsets3 = cast(Simd.S32x4) [12's32, 13, 14, 15]
         var h = cast(s32) (dst - stride)[8] - cast(s32) (dst - stride)[6]
         var v = cast(s32) (dst - 1)[8 * stride] - cast(s32) (dst - 1)[6 * stride]
         for k in 2 to 8
@@ -489,13 +493,15 @@ func intraPredict16x16(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop: boo
         var a = 16 * (cast(s32) (dst - 1)[15 * stride] + cast(s32) (dst - stride)[15] + 1) - 7 * (v + h)
         for row in 16'u64
         {
-            var b = a
+            let base = Simd.splat(a)
             a += v
-            for column in 16'u64
-            {
-                dst[row * stride + column] = clampPixel(b >> 5)
-                b += h
-            }
+            let values0 = Math.max(Math.min((base + Offsets0 * h) >> 5, Simd.splat(255's32)), Simd.splat(0's32))
+            let values1 = Math.max(Math.min((base + Offsets1 * h) >> 5, Simd.splat(255's32)), Simd.splat(0's32))
+            let values2 = Math.max(Math.min((base + Offsets2 * h) >> 5, Simd.splat(255's32)), Simd.splat(0's32))
+            let values3 = Math.max(Math.min((base + Offsets3 * h) >> 5, Simd.splat(255's32)), Simd.splat(0's32))
+            let low     = Simd.packUnsigned(values0, values1)
+            let high    = Simd.packUnsigned(values2, values3)
+            Simd.store(dst + row * stride, Simd.packUnsigned(cast #bit(Simd.S16x8) low, cast #bit(Simd.S16x8) high))
         }
     }
 }
@@ -557,34 +563,21 @@ func intraPredictChroma(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop: bo
             dc3 = 128
         }
 
-        for row in 8'u64
-        {
-            for column in 8'u64
-            {
-                var value = dc3
-                if row < 4 and column < 4 do
-                    value = dc0
-                elif row < 4 do
-                    value = dc1
-                elif column < 4 do
-                    value = dc2
-                dst[row * stride + column] = cast(u8) value
-            }
-        }
+        let top    = cast #bit(Simd.U8x16) cast(Simd.U32x4) [cast(u32) dc0 * 0x01010101, cast(u32) dc1 * 0x01010101, 0, 0]
+        let bottom = cast #bit(Simd.U8x16) cast(Simd.U32x4) [cast(u32) dc2 * 0x01010101, cast(u32) dc3 * 0x01010101, 0, 0]
+        for row in 4'u64 do
+            Simd.storeLow8(dst + row * stride, top)
+        for row in 4'u64 until 8 do
+            Simd.storeLow8(dst + row * stride, bottom)
 
     case IntraChromaHorizontal:
-        for row in 8'u64
-        {
-            for column in 8'u64 do
-                dst[row * stride + column] = (dst - 1)[row * stride]
-        }
+        for row in 8'u64 do
+            Simd.storeLow8(dst + row * stride, Simd.splat((dst - 1)[row * stride]))
 
     case IntraChromaVertical:
-        for row in 8'u64
-        {
-            for column in 8'u64 do
-                dst[row * stride + column] = (dst - stride)[column]
-        }
+        let pixels = Simd.load(dst - stride)
+        for row in 8'u64 do
+            Simd.storeLow8(dst + row * stride, pixels)
 
     case IntraChromaPlane:
         var h = cast(s32) (dst - stride)[4] - cast(s32) (dst - stride)[2]

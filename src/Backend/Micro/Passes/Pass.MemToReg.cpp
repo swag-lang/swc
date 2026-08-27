@@ -121,12 +121,14 @@ namespace
         // the class check downstream is what keeps it off the integer file.
         if (bits == MicroOpBits::B128)
             return true;
-        // b32/b64 only. For integers, 64-bit copies are full width and 32-bit
-        // writes zero-extend to the full register on x86-64, so a register copy
-        // matches the zero-extending memory load (b8/b16 would leave stale upper
-        // bits). For floats, b32/b64 are the scalar single/double widths and a
-        // float register copy is full-width.
-        return bits == MicroOpBits::B32 || bits == MicroOpBits::B64;
+        // Every scalar width has a register copy of the same shape as its memory
+        // access: a 64-bit copy is full width, a 32-bit write zero-extends the
+        // register exactly as the 32-bit load does, and the 8- and 16-bit forms
+        // are partial writes on both sides - a byte load leaves the upper bits
+        // alone and so does a byte register copy, so a slot every access reads
+        // and writes at that one width promotes without any extension. For
+        // floats, b32/b64 are the scalar single/double widths.
+        return bits == MicroOpBits::B8 || bits == MicroOpBits::B16 || bits == MicroOpBits::B32 || bits == MicroOpBits::B64;
     }
 
     // The local frame base is the stack-pointer-derived register the front-end
@@ -733,12 +735,23 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         if (!consistent)
             continue;
 
-        // Determine the slot's register class from its reg-valued accesses; all
-        // must agree. Float slots may not carry a LoadMemImm (an integer
-        // immediate must not be written into a float register).
-        bool ok         = true;
-        bool classKnown = false;
-        bool isFloat    = false;
+        // Determine the slot's register class from its reg-valued accesses.
+        // The operating forms (memory-operand ALU, compare, widening load,
+        // vector) name the class outright and must agree. A plain load or
+        // store may disagree with it: the front-end copies a scalar into a
+        // local through an integer register whatever its type, so a float
+        // local read as a float is written from an integer register - and a
+        // scalar register copy across the classes is one `movq`, which is what
+        // promotion turns the disagreeing access into. When only plain
+        // accesses reach the slot, the readers name the class, so the single
+        // cross-class move lands on the write, off the consumers' path.
+        bool     ok               = true;
+        bool     operatingKnown   = false;
+        bool     operatingFloat   = false;
+        uint32_t plainReadsInt    = 0;
+        uint32_t plainReadsFloat  = 0;
+        uint32_t plainWritesInt   = 0;
+        uint32_t plainWritesFloat = 0;
         for (const SlotAccess& acc : slot.accesses)
         {
             // A narrow read of a vector slot lands in an integer register; the slot itself is
@@ -762,18 +775,36 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 ok = false;
                 break;
             }
-            if (!classKnown)
+
+            const bool plainScalar = (inst->op == MicroInstrOpcode::LoadRegMem || inst->op == MicroInstrOpcode::LoadMemReg) && bits != MicroOpBits::B128;
+            if (plainScalar)
             {
-                classKnown = true;
-                isFloat    = regFloat;
+                uint32_t& counter = acc.isWrite ? (regFloat ? plainWritesFloat : plainWritesInt) : (regFloat ? plainReadsFloat : plainReadsInt);
+                ++counter;
+                continue;
             }
-            else if (isFloat != regFloat)
+            if (!operatingKnown)
+            {
+                operatingKnown = true;
+                operatingFloat = regFloat;
+            }
+            else if (operatingFloat != regFloat)
             {
                 ok = false; // mixed int/float view of the same slot
                 break;
             }
         }
-        if (!ok || !classKnown)
+        if (!ok)
+            continue;
+
+        bool isFloat = false;
+        if (operatingKnown)
+            isFloat = operatingFloat;
+        else if (plainReadsInt || plainReadsFloat)
+            isFloat = plainReadsFloat >= plainReadsInt;
+        else if (plainWritesInt || plainWritesFloat)
+            isFloat = plainWritesFloat >= plainWritesInt;
+        else
             continue;
 
         // The integer file has no 128-bit register to promote into.

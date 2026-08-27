@@ -87,6 +87,20 @@ namespace
         return useDef.uses.empty() ? MicroReg::invalid() : useDef.uses[0];
     }
 
+    // The relocated instructions a hoist may clone: the relocation patches a
+    // global or constant address into a load, so the clone reads the same
+    // location wherever it sits. A relocated address materialization stays
+    // where it is: it is one dependency-free immediate the allocator would
+    // re-make in the loop anyway, and hoisting it only costs a spill slot
+    // (measured on sha256's round-constant table, +2 instructions, +1 slot).
+    bool isRelocatableHoist(MicroInstrOpcode op)
+    {
+        return op == MicroInstrOpcode::LoadRegMem ||
+               op == MicroInstrOpcode::LoadAddrRegMem ||
+               op == MicroInstrOpcode::LoadSignedExtRegMem ||
+               op == MicroInstrOpcode::LoadZeroExtRegMem;
+    }
+
     // A `mov`/`lea` that merely re-points an address. Returns the source whose
     // address it propagates (first use), else invalid().
     bool isAddressPropagation(MicroInstrOpcode op)
@@ -503,7 +517,7 @@ namespace
             };
 
             std::unordered_set<uint32_t> hoistSet;
-            std::unordered_set<MicroReg>           banned;
+            std::unordered_set<MicroReg> banned;
 
             // The value a use reads at slot i is hoisted when every earlier def
             // of its register is: emission in listing order then reproduces it
@@ -534,18 +548,25 @@ namespace
                             continue;
 
                         const MicroInstrRef ref = instrRefs[i];
-                        if (claimed.contains(ref.get()) || relocRefs.contains(ref.get()))
+                        if (claimed.contains(ref.get()))
+                            continue;
+
+                        const MicroInstr*       inst   = storage.ptr(ref);
+                        const MicroInstrUseDef* useDef = ssaState->instrUseDef(ref);
+                        if (!inst || !useDef)
+                            continue;
+
+                        // A relocation names the instruction it patches. The
+                        // clone of a relocated load or address materialization
+                        // takes the relocation over when it is emitted; any
+                        // other relocated instruction stays where it is.
+                        if (relocRefs.contains(ref.get()) && !isRelocatableHoist(inst->op))
                             continue;
 
                         const MicroReg destReg = slotDefReg[i];
                         if (!destReg.isValid() || banned.contains(destReg) || !webEligible(destReg))
                             continue;
                         if (!slotIsFullDef[i] && !slotIsCompute[i])
-                            continue;
-
-                        const MicroInstr*       inst   = storage.ptr(ref);
-                        const MicroInstrUseDef* useDef = ssaState->instrUseDef(ref);
-                        if (!inst || !useDef)
                             continue;
 
                         if (slotIsCompute[i])
@@ -620,10 +641,13 @@ namespace
                                 // Reading through a pointer. An opaque pointer store may
                                 // alias it. A frame store cannot, provided the load's base
                                 // is a single-def register that is definitely not a frame
-                                // address and no frame address escapes the function.
+                                // address and no frame address escapes the function - or
+                                // the address is instruction-pointer-relative, which
+                                // names a global or a constant and never the frame.
                                 if (loopHasPointerStore)
                                     continue;
-                                if (loopHasFrameStore)
+                                const bool baseIsConstantAddress = !base.isValid() || base.isInstructionPointer();
+                                if (loopHasFrameStore && !baseIsConstantAddress)
                                 {
                                     const auto bc            = base.isValid() ? defCount.find(base) : defCount.end();
                                     const bool baseSingleDef = bc != defCount.end() && bc->second == 1;
@@ -755,7 +779,7 @@ namespace
                     hoistSet = std::move(keep);
                 }
 
-                SmallVector<MicroReg> violations;
+                SmallVector<MicroReg>                  violations;
                 std::unordered_map<MicroReg, uint32_t> keptDefsOf;
                 for (const uint32_t i : hoistSet)
                     ++keptDefsOf[slotDefReg[i]];
@@ -816,7 +840,7 @@ namespace
                             break;
                         }
                         const MicroInstrFlags spanFlags = MicroInstr::info(spanInst->op).flags;
-                        violated = spanInst->op == MicroInstrOpcode::Label ||
+                        violated                        = spanInst->op == MicroInstrOpcode::Label ||
                                    spanFlags.has(MicroInstrFlagsE::TerminatorInstruction) ||
                                    spanFlags.has(MicroInstrFlagsE::JumpInstruction) ||
                                    spanFlags.has(MicroInstrFlagsE::IsCallInstruction);
@@ -865,8 +889,19 @@ namespace
             return false;
 
         for (const HoistPlan& plan : plans)
+        {
             for (const Clone& clone : plan.clones)
-                storage.insertDerivedBefore(operands, plan.headerRef, clone.op, clone.ops);
+            {
+                const MicroInstrRef hoistedRef = storage.insertDerivedBefore(operands, plan.headerRef, clone.op, clone.ops);
+                if (!relocRefs.contains(clone.original.get()))
+                    continue;
+                for (MicroRelocation& reloc : context.builder->codeRelocations())
+                {
+                    if (reloc.instructionRef.get() == clone.original.get())
+                        reloc.instructionRef = hoistedRef;
+                }
+            }
+        }
         for (const HoistPlan& plan : plans)
             for (const Clone& clone : plan.clones)
                 storage.erase(clone.original);

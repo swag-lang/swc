@@ -261,6 +261,19 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
         if (denseConcrete == MicroDenseRegIndex::K_INVALID_INDEX)
             continue;
 
+        // A claim spans the whole instruction, input slot included, even
+        // when the instruction only defines the register (an ABI argument
+        // copy, a call's clobber). Starting such a claim at the output slot
+        // would let a value read for the last time by that instruction keep
+        // its register to the end instead of being split one position short
+        // of it - the pair of connectors in front of every call argument
+        // (raytrace's pixel loop: 20 moves against 10) - but doing so
+        // miscompiles: with output-slot claims the resolution reloads the
+        // wrong value into an argument register (aoc2025_day12's
+        // analyzeFencePricing reloads r10's home into r8 at a loop head, and
+        // aoc2023_day3's solveWithLanguageFeatures likewise), and the walk
+        // invariant that breaks was not identified. Whole-instruction claims
+        // until it is.
         LiveInterval& fixed = outByPoolIndex[poolIndex];
         for (const uint32_t idx : concreteClaimPositionsByDenseIndex_[denseConcrete])
         {
@@ -278,6 +291,14 @@ namespace
 {
     constexpr uint32_t K_IV_INVALID = std::numeric_limits<uint32_t>::max();
 
+    // A loop as the CFG back-edges draw it: the instruction range from the
+    // header to the tail the back-edge leaves from.
+    struct LoopRange
+    {
+        uint32_t head = 0;
+        uint32_t tail = 0;
+    };
+
     // Split-tree node bookkeeping shared by the walk below.
     struct WalkState
     {
@@ -286,6 +307,7 @@ namespace
         std::vector<uint32_t>                                   active;
         std::vector<uint32_t>                                   inactive;
         const std::vector<uint32_t>*                            loopDepth  = nullptr;
+        const std::vector<LoopRange>*                           loops      = nullptr;
         uint32_t                                                splitCount = 0;
         uint32_t                                                spillCount = 0;
         bool                                                    failed     = false;
@@ -303,9 +325,9 @@ namespace
         if (!walk.loopDepth || walk.loopDepth->empty())
             return fallback;
 
-        const auto&    depth  = *walk.loopDepth;
-        const uint32_t hiIdx  = std::min(static_cast<uint32_t>(depth.size()) - 1, (maxPos & ~1u) / 2);
-        const uint32_t loIdx  = (minPos + 1) / 2; // first idx with idx*2 >= minPos
+        const auto&    depth = *walk.loopDepth;
+        const uint32_t hiIdx = std::min(static_cast<uint32_t>(depth.size()) - 1, (maxPos & ~1u) / 2);
+        const uint32_t loIdx = (minPos + 1) / 2; // first idx with idx*2 >= minPos
         if (loIdx > hiIdx)
             return fallback;
 
@@ -418,6 +440,38 @@ namespace
         return best;
     }
 
+    // The next access of an owner as the election must see it. Linear order
+    // hides a loop: a value a loop reads every iteration has no access after
+    // a pressure point late in the body, its next one being at the top of
+    // the next iteration, behind the back-edge. Ranked by linear distance it
+    // is the farthest candidate of all and the one evicted, and its reload
+    // lands on the back-edge of the hottest loop of the function (leven's
+    // `g_Bytes` and `bo`, interpolateLuma's parameters). LLVM prices the
+    // same use with block frequency in its spill weight; the walk can read
+    // it directly: a node live across the back-edge of a loop enclosing the
+    // point, with an access earlier in that iteration, is needed again at
+    // the back-edge.
+    uint32_t nextAccessForElection(const WalkState& walk, const MicroRegisterAllocationPass::LiveInterval& node, const uint32_t from)
+    {
+        uint32_t next = node.firstUseAfter(from);
+        if (!walk.loops)
+            return next;
+        for (const LoopRange& loop : *walk.loops)
+        {
+            const uint32_t headPos = loop.head * 2;
+            const uint32_t tailPos = loop.tail * 2;
+            if (from < headPos || from > tailPos + 1 || tailPos >= next)
+                continue;
+            if (!node.covers(headPos) || !node.covers(tailPos))
+                continue;
+            const uint32_t lastAccess = lastAccessBefore(node, from);
+            if (lastAccess == K_IV_INVALID || lastAccess < headPos)
+                continue;
+            next = tailPos;
+        }
+        return next;
+    }
+
     // Whether split_and_spill below can succeed, decided before any
     // mutation, so a caller may probe several candidate registers.
     bool canSplitAndSpillOwner(const WalkState& walk, const uint32_t ownerIndex, const uint32_t pos)
@@ -516,9 +570,25 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
 
     out.nodes = std::move(intervals);
 
+    // The loops, from the back-edges of the instruction CFG, for the
+    // election's view of a loop-carried access.
+    std::vector<LoopRange> loops;
+    if (hasControlFlow_)
+    {
+        for (uint32_t s = 0; s < instructionCount_ && s < predecessors_.size(); ++s)
+        {
+            for (const uint32_t p : predecessors_[s])
+            {
+                if (p >= s && p < instructionCount_)
+                    loops.push_back({.head = s, .tail = p});
+            }
+        }
+    }
+
     WalkState walk;
     walk.nodes     = &out.nodes;
     walk.loopDepth = &loopDepth_;
+    walk.loops     = &loops;
 
     // Per-register ownership among active/inactive is tracked through the
     // node's assignedReg; fixed intervals are consulted by pool index.
@@ -570,8 +640,17 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         }
         const uint32_t currentIndex = walk.unhandled.back();
         walk.unhandled.pop_back();
-        const uint32_t position = out.nodes[currentIndex].start();
-        const bool     isFloat  = denseVirtualRegs_.regs()[out.nodes[currentIndex].denseIndex].isAnyFloat();
+        const uint32_t position       = out.nodes[currentIndex].start();
+        const MicroReg currentVirtual = denseVirtualRegs_.regs()[out.nodes[currentIndex].denseIndex];
+        const bool     isFloat        = currentVirtual.isAnyFloat();
+
+        // The registers the lowering forbade for this value (an argument
+        // register a value must stay out of while the arguments are being
+        // marshalled, and the like) are off the table in both elections, as
+        // they are in the existing scan.
+        const auto forbiddenForCurrent = [&](const size_t poolIndex) {
+            return isPhysRegForbiddenForVirtual(currentVirtual, poolRegs[poolIndex]);
+        };
 
         // Retire and reclassify.
         const auto refresh = [&](std::vector<uint32_t>& list, const bool wantCovers) {
@@ -608,7 +687,7 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
 
         // tryAllocateFreeReg
         for (size_t i = 0; i < poolCount; ++i)
-            freeUntilPos[i] = poolRegs[i].isAnyFloat() == isFloat ? std::numeric_limits<uint32_t>::max() : 0;
+            freeUntilPos[i] = poolRegs[i].isAnyFloat() == isFloat && !forbiddenForCurrent(i) ? std::numeric_limits<uint32_t>::max() : 0;
         for (const uint32_t activeIndex : walk.active)
         {
             const size_t poolIndex = poolIndexOf(out.nodes[activeIndex].assignedReg);
@@ -690,12 +769,12 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         // between the read and the write.
         const uint32_t electionFrom = position & ~1u;
         for (size_t i = 0; i < poolCount; ++i)
-            nextUsePos[i] = poolRegs[i].isAnyFloat() == isFloat ? std::numeric_limits<uint32_t>::max() : 0;
+            nextUsePos[i] = poolRegs[i].isAnyFloat() == isFloat && !forbiddenForCurrent(i) ? std::numeric_limits<uint32_t>::max() : 0;
         for (const uint32_t activeIndex : walk.active)
         {
             const size_t poolIndex = poolIndexOf(out.nodes[activeIndex].assignedReg);
             if (poolIndex < poolCount && nextUsePos[poolIndex])
-                nextUsePos[poolIndex] = std::min(nextUsePos[poolIndex], out.nodes[activeIndex].firstUseAfter(electionFrom));
+                nextUsePos[poolIndex] = std::min(nextUsePos[poolIndex], nextAccessForElection(walk, out.nodes[activeIndex], electionFrom));
         }
         for (const uint32_t inactiveIndex : walk.inactive)
         {
@@ -703,7 +782,7 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
             if (poolIndex >= poolCount || !nextUsePos[poolIndex])
                 continue;
             if (out.nodes[inactiveIndex].nextIntersection(out.nodes[currentIndex], position) != std::numeric_limits<uint32_t>::max())
-                nextUsePos[poolIndex] = std::min(nextUsePos[poolIndex], out.nodes[inactiveIndex].firstUseAfter(electionFrom));
+                nextUsePos[poolIndex] = std::min(nextUsePos[poolIndex], nextAccessForElection(walk, out.nodes[inactiveIndex], electionFrom));
         }
         // A fixed claim is a hard block (c1_LinearScan's blockPos): the
         // register cannot serve current past it, so it caps the election the
@@ -819,7 +898,10 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
             const uint32_t fixedClash = fixed[chosen].nextIntersection(out.nodes[currentIndex], position);
             if (fixedClash != std::numeric_limits<uint32_t>::max())
             {
-                if (splitNodeAt(walk, currentIndex, fixedClash) == K_IV_INVALID && !walk.failed)
+                // A claim that only defines the register clashes at an output
+                // slot; the walk splits at input slots only, so the split
+                // lands at the latest legal even position before the clash.
+                if (splitNodeAt(walk, currentIndex, chooseSplitPos(walk, position + 1, fixedClash)) == K_IV_INVALID && !walk.failed)
                 {
                     walk.failed     = true;
                     walk.failReason = "cannot split before a fixed clash";
@@ -933,9 +1015,9 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
 
     struct Trampoline
     {
-        uint32_t      jumpIndex = 0;
-        MicroCond     inverted  = MicroCond::Unconditional;
-        MicroOpBits   opBits    = MicroOpBits::B32;
+        uint32_t      jumpIndex  = 0;
+        MicroCond     inverted   = MicroCond::Unconditional;
+        MicroOpBits   opBits     = MicroOpBits::B32;
         uint64_t      origTarget = 0;
         MicroLabelRef newLabel;
     };
@@ -976,7 +1058,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         const MicroReg fromReg = (fromNode && !fromNode->spilled) ? fromNode->assignedReg : MicroReg::invalid();
         const MicroReg toReg   = (toNode && !toNode->spilled) ? toNode->assignedReg : MicroReg::invalid();
         if (fromReg == toReg)
-            return;                          // same register, or memory-to-memory
+            return; // same register, or memory-to-memory
         if (!fromReg.isValid() && !toReg.isValid())
             return;
         connectors.push_back({beforeIndex, 0, toReg, fromReg, denseIndex});
@@ -1030,7 +1112,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             // Conditionality lives in the operand, not the opcode: an
             // unconditional jump is a JumpCond carrying Unconditional, and it
             // has no fall-through side to protect.
-            const MicroInstrOperand* predOpsEarly = predInst->ops(*operands_);
+            const MicroInstrOperand* predOpsEarly  = predInst->ops(*operands_);
             const bool               isConditional = MicroInstr::info(predInst->op).flags.has(MicroInstrFlagsE::ConditionalJump) &&
                                        predOpsEarly && predOpsEarly[0].cpuCond != MicroCond::Unconditional;
 
@@ -1131,8 +1213,8 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             uint32_t trampJump = std::numeric_limits<uint32_t>::max();
             if (!plainOk)
             {
-                MicroCond inverted = MicroCond::Unconditional;
-                const MicroInstrOperand* predOps = predInst->ops(*operands_);
+                MicroCond                inverted = MicroCond::Unconditional;
+                const MicroInstrOperand* predOps  = predInst->ops(*operands_);
                 if (!isConditional || !predOps || !invertMicroCond(predOps[0].cpuCond, inverted))
                     return false; // uninvertible edge
                 Trampoline trampoline;
@@ -1230,35 +1312,53 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         {
             uint32_t          order = 0;
             std::vector<bool> emitted(list.size(), false);
-            for (size_t round = 0; round < list.size(); ++round)
+            for (;;)
             {
-                bool progressed = false;
+                bool progressed = true;
+                while (progressed)
+                {
+                    progressed = false;
+                    for (size_t i = 0; i < list.size(); ++i)
+                    {
+                        if (emitted[i])
+                            continue;
+                        const Connector& candidate = connectors[list[i]];
+                        bool             readLater = false;
+                        for (size_t j = 0; j < list.size(); ++j)
+                        {
+                            if (i == j || emitted[j])
+                                continue;
+                            readLater = readLater ||
+                                        (candidate.dst.isValid() && connectors[list[j]].src == candidate.dst);
+                        }
+                        if (readLater)
+                            continue;
+                        connectors[list[i]].order = order++;
+                        emitted[i]                = true;
+                        progressed                = true;
+                    }
+                }
+
+                size_t cycleHead = list.size();
                 for (size_t i = 0; i < list.size(); ++i)
                 {
-                    if (emitted[i])
-                        continue;
-                    const Connector& candidate = connectors[list[i]];
-                    bool             readLater = false;
-                    for (size_t j = 0; j < list.size(); ++j)
+                    if (!emitted[i])
                     {
-                        if (i == j || emitted[j])
-                            continue;
-                        readLater = readLater ||
-                                    (candidate.dst.isValid() && connectors[list[j]].src == candidate.dst);
+                        cycleHead = i;
+                        break;
                     }
-                    if (readLater)
-                        continue;
-                    connectors[list[i]].order = order++;
-                    emitted[i]                = true;
-                    progressed                = true;
                 }
-                if (!progressed)
+                if (cycleHead == list.size())
                     break;
-            }
-            for (size_t i = 0; i < list.size(); ++i)
-            {
-                if (!emitted[i])
-                    return false; // copy cycle
+
+                // What remains is a register cycle. Breaking it in place with
+                // an exchange (`xchg`, or three `xorpd`) was tried: it let
+                // sha256's and csvagg's `#main` through the allocator, and it
+                // miscompiled aoc2025_day17's `analyzeRoute` (an `xchg rcx, r8`
+                // emitted in front of a loop's guard jump, wrong on one of the
+                // two paths). Until the placement rule for a swap at such a
+                // point is understood, a cycle still falls back.
+                return false;
             }
         }
     }

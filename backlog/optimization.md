@@ -712,34 +712,50 @@ cmov-to-branch back-conversion, and profile-gated passes.
   CFG, first sweep, initially call-free leaf functions of the hot corpus), gated so a failed
   precondition falls back to the current allocator, and grown outward one class of functions at
   a time with the reload-cause trace and byte-exact decode as the gate at each step.
-- State 2026-08-27 (worktree `swc-t563`, branch `t563-r1`): the pipeline is complete behind
-  `SWC_INTERVAL_RA` (a function-name substring, or `*`): intervals with holes, the Wimmer walk
-  with optimal split positions and register hints, rewrite and edge resolution with inline
-  trampolines for the edges no plain placement serves, the contract the later sweeps need (the
-  pool registers are borrowable around a legalize scratch, the debug local-stack base is pinned
-  as `assignGlobalRegisters` pins it), whole-node spills of an owner never accessed since it
-  took its register (c1_LinearScan's `split_for_spilling`), and spill stores placed at the
-  definitions when cheaper by loop depth than the resolution stores (c1's `storeAtDefinition`,
-  LLVM's `InlineSpiller`). `PostRALoopRotate` copies the connectors the allocator leaves around
-  a header compare, so rotated loops stay rotated under either allocator. With the gate open on
-  the whole standard library, 26090 functions are taken and 123 fall back; the probe checksums
-  are golden and the video conformance tests pass.
-- Measured 2026-08-27 on a quiet machine (the earlier "kernels 3-4x slower" was machine load):
-  the deblock probe `kernelPass` at parity (memory-bound), `levenSearch` -4 %, the serial HEVC
-  conformance decode (`zzab` harness, alternated processor time) at parity within noise.
-  Static, same compiler, load connectors of the interval allocator against the legacy reload
-  trace: idct 59 vs 130, filterLumaEdge 59 vs 77, interpolateLuma 154 vs 119, interpolateChroma
-  99 vs 71. interpolateLuma's 52 loads at its innermost loop depth are all reloads of
-  loop-invariant parameters (v6, v9, v13: one definition each, reloaded on back-edges and at
-  seams inside every inner loop) evicted by the farthest-next-use election in favour of values
-  read less often inside the loop.
-- Next: weight the election by use density under loop depth - LLVM's spill weight
-  (`calculateSpillWeightAndHint`: uses scaled by block frequency, over the interval's size) as
-  the tie-breaker `allocateBlockedReg` consults before the bare farthest next use, so a
-  parameter read on every iteration outranks a value read once - then re-measure the four
-  functions' loop-level loads and the serial decode. Before any merge: strip the instrumentation
-  (`IVWALK`/`IVAPPLY`/`IVNODE`/`IVCONN`/`IVMAP`/`IVSTAT` and the legacy `RARELOAD` trace) and
-  rebase on master, which moved 12 commits past the branch point.
+- State: merged on master behind `SWC_INTERVAL_RA` (a function-name substring, or `*`):
+  intervals with holes, the Wimmer walk with optimal split positions and register hints,
+  rewrite and edge resolution with inline trampolines, whole-node spills of an owner never
+  accessed since it took its register, spill stores at the definitions when cheaper by loop
+  depth. Branch `perf/micro-vs-llvm` (2026-08-27 evening) adds, still gated: the election
+  reads a loop-carried access as due at the back-edge (`nextAccessForElection`: a node live
+  across the back-edge of an enclosing loop, with an access earlier in the iteration, was the
+  farthest candidate in linear order and the one evicted, which is what reloaded leven's
+  `g_Bytes` and `bo` on every iteration; the DP inner loop goes 25 instructions and 2 frame
+  references to 23 and 0); the walk honours the per-virtual forbidden registers in both
+  elections (it did not - `RegAlloc_VirtualRegForbiddenPhysRegs` and the persistent-fallback
+  test were red under the gate). A parallel-copy cycle at a resolution point still makes the
+  function fall back (sha256's and csvagg's `#main` both do); breaking it in place with an
+  exchange (`xchg` for integers, three `xorpd` for floats) was tried and parked: it let both
+  through (sha256 398 -> 379 instructions, 75 -> 33 frame references, its 64-round loop 49 -> 22;
+  csvagg 106 -> 74) and miscompiled aoc2025_day17's `analyzeRoute`, where the `xchg rcx, r8` sits
+  in front of a loop's guard jump and is wrong on one of the two paths.
+- Measured 2026-08-27, static, bench probes under the gate against the legacy allocator, same
+  compiler: leven 84 -> 44 frame references, wordfreq 38 -> 15, dijkstra `#main` 16 -> 8,
+  chacha 65 -> 52, raytrace `intersect` 27 -> 19 and `trace` 57 -> 48; every checksum holds.
+  The compiler suites under the gate (fast-debug): jit, safety, sanity, workspace green; native
+  2921/2921 once the two entries below were understood; C++ 570/573, the three remaining being
+  legacy-specific expectations (the cmpxchg conform case's scratch register, a self-copy the
+  interval rewrite leaves for the peephole, and immediate rematerialization - see Next). The
+  serial HEVC decode and a quiet-machine bench A/B are still to be measured for this state.
+- Ruled out 2026-08-27: starting a define-only fixed claim (an ABI argument copy, a call's
+  clobber) at the instruction's output slot instead of its input slot. It removes the pair of
+  connectors the walk places in front of every call argument (raytrace's pixel loop, 20 moves
+  to 10) but miscompiles: the resolution reloads r10's home into r8 at a loop head of
+  aoc2025_day12's `analyzeFencePricing`, and aoc2023_day3's `solveWithLanguageFeatures`
+  likewise (gate on that function name, native suite `--file-filter`). The walk invariant it
+  breaks was not found; the claims are whole-instruction again. Both parked attempts share one
+  open question - what a connector placed in front of a conditional jump may write - and the
+  answer is probably the same for both.
+- Next: (1) settle what a connector in front of a conditional jump may write - a swap, and a
+  reload into a define-only argument register, both went wrong there - then bring the cycle
+  exchange and the output-slot claims back (the two largest static gaps left under the gate:
+  the `#main` of sha256 and csvagg falling back, and the connector pairs before every call
+  argument); (2) rematerialize a spilled single-definition `LoadRegImm`/`LoadRegPtrReloc` at its
+  reloads instead of storing and reloading it, as the legacy allocator and LLVM's
+  `InlineSpiller` do (`RegAlloc_RematerializesImmediateReloads`); (3) erase the self-copies the
+  operand rewrite leaves (`RegAlloc_TransfersDeadCopySourcesAcrossBarriers`); (4) measure the
+  serial HEVC decode and the bench tasks by alternated processor time on a quiet machine with
+  the gate open on the whole library, then decide the default.
 - Complete when: the gated allocator compiles the HEVC hot four (idct, interpolateLuma,
   filterLumaEdge, interpolateChroma) with materially fewer emitted reloads than the cause-trace
   baseline (idct 101, interpolateLuma 119, filterLumaEdge 77, interpolateChroma 71), the video

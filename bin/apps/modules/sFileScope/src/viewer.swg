@@ -2,6 +2,73 @@
 
 using Core, Gui
 
+const ViewerBackgroundPollInterval: Time.Duration = 16'ms
+
+// Owns one value-producing operation that must not run on the GUI thread.
+//
+// The worker borrows this object until `isDone` answers true. Its owner therefore exposes the
+// operation through [[ViewerRetire]] and is destroyed only after `retire` succeeds.
+struct(T) ViewerBackgroundLoad
+{
+    job:      Jobs.Job
+    fileName: String
+    value:    T
+    error:    #null any
+    load:     func(string)->T fail = undefined
+    started:  bool
+}
+
+impl ViewerBackgroundLoad
+{
+    mtd start(fileName: string, load: func(string)->T fail)
+    {
+        Debug.assert(!.started)
+        .fileName   = fileName
+        .load       = load
+        .job.lambda = func(data: #null *void)
+        {
+            let operation = cast(*ViewerBackgroundLoad'T) data!
+            operation.value = catch operation.load(operation.fileName.toString()) as loadError
+            operation.error = loadError
+        }
+        .job.data = me
+        .started  = true
+        Jobs.schedule(&.job)
+    }
+
+    mtd const isDone()->bool => .started and Jobs.isDone(&.job)
+
+    // Publishes the loaded value and returns the captured failure message.
+    mtd finish(value: *T)->String
+    {
+        Debug.assert(.isDone())
+        Jobs.wait(&.job)
+        value[] = #move .value
+        let result = Errors.message(.error)
+        .error   = null
+        .started = false
+        return result
+    }
+
+    // Reports when the borrowed worker state may be destroyed without waiting on the GUI thread.
+    mtd retire()->bool
+    {
+        if !.started do
+            return true
+        if !.isDone() do
+            return false
+        Jobs.wait(&.job)
+        .started = false
+        return true
+    }
+
+    mtd opDrop()
+    {
+        if .started do
+            Jobs.wait(&.job)
+    }
+}
+
 // Options shared by file-backed and viewer-owned searches.
 struct ViewerSearchOptions
 {
@@ -121,6 +188,11 @@ struct ViewerResult
 }
 
 // Creates an integrated view and reports its optional commands, details, and search callbacks.
+//
+// Creation runs on the GUI thread and must return promptly. A viewer never opens, probes, reads,
+// decodes, or otherwise waits for external content here: it creates its presentation, starts that
+// work in the background, and publishes the result from a timer. While background work borrows the
+// view, `isLoading`, `needsLoadingOverlay`, and `retire` describe its lifecycle to the host.
 alias ViewerCreate = func(const *ViewerRequest, *ViewerResult)
 
 // Reports whether `match` is bounded by non-word runes in `source`.

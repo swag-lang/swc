@@ -561,12 +561,29 @@ impl PdfView
         var reader = #move try Pdf.Reader.open(fileName)
         if !reader.pageCount() do
             fail Errors.InvalidFormatError{"PDF document contains no page"}
+        var page = #move try reader.loadPage(0)
+        .exchangeDocument(&reader, &page)
+    }
 
+    // Displays a prepared reader and its decoded first page by exchanging their ownership.
+    //
+    // This is the publication counterpart to opening and decoding a PDF outside the GUI thread.
+    // `reader` must contain at least one page and `page` must be page zero decoded from that reader.
+    // On return they own the content that previously belonged to the view, if any.
+    mtd exchangeDocument(reader: *Pdf.Reader, page: *Pdf.Page)
+    {
+        Debug.assert(reader.pageCount() != 0)
         .close()
-        @drop(&.reader, 1)
-        @init(&.reader, 1)
-        .reader = #move reader
-        try .showPage(0)
+        swap(&.reader, reader)
+        swap(&.page, page)
+        .hasPage   = true
+        .pageIndex = 0
+        .fonts.reset(.page.fonts.count)
+        .clearTextState()
+        .reportedPaintError = false
+        .sigPageChanged.call(me)
+        .sigZoomChanged.call(me)
+        .invalidate()
     }
 
     // Releases the displayed page, its textures, and its typefaces while keeping the widget alive.

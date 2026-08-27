@@ -1227,8 +1227,8 @@ impl IWnd for HexGridView
 
 impl HexGridView
 {
-    // Creates the grid inside a scroll frame, and opens the file it reads through.
-    func create(parent: *Wnd, fileName: string)->*HexGridView
+    // Creates an empty grid inside a scroll frame.
+    func create(parent: *Wnd)->*HexGridView
     {
         let scroll = Wnd.create'ScrollWnd(parent, "", {})
         scroll.dockStyle = .Center
@@ -1241,8 +1241,6 @@ impl HexGridView
         result.wndFlags    |= WndFlags.NoScroll | WndFlags.NoFocusRing | WndFlags.ClipChildren
         result.cursor      = Cursor.from(CursorShape.IBeam)
         result.style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
-        discard result.doc.open(fileName)
-
         scroll.sigScrollPositionChanged += func|view = result|(scrollWnd, oldPosition, newPosition)
         {
             discard scrollWnd
@@ -1252,5 +1250,22 @@ impl HexGridView
 
         result.refreshLayout()
         return result
+    }
+
+    // Creates the grid and opens the file it reads through.
+    func create(parent: *Wnd, fileName: string)->*HexGridView
+    {
+        let result = HexGridView.create(parent)
+        discard result.doc.open(fileName)
+        result.refreshLayout()
+        return result
+    }
+
+    // Publishes a document opened outside the GUI thread.
+    mtd exchangeDocument(document: *HexDocument)
+    {
+        swap(&.doc, document)
+        .refreshLayout()
+        .invalidate()
     }
 }

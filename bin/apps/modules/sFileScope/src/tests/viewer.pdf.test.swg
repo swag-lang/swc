@@ -32,9 +32,10 @@ private func createPdfFixture()->String
     var result: ViewerResult
     createPdfViewer(&request, &result)
     @assert(result.view != null and result.commands != null)
-    @assert(Utf8.contains(result.details.toString(), "2 pages"))
 
     let view = cast(*PdfViewer) result.view!
+    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    @assert(Utf8.contains(view.details.toString(), "2 pages"))
     view.resize(640, 420)
     view.applyLayout()
 
@@ -90,6 +91,7 @@ private func createPdfFixture()->String
     @assert(result.view != null and result.commands != null)
 
     let view = cast(*PdfViewer) result.view!
+    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle          = .Center
     view.commands.dockStyle = .Center
     host.root.applyLayout()
@@ -112,8 +114,10 @@ private func createPdfFixture()->String
     let request = ViewerRequest{&host.root, &host.root, fileName}
     var result: ViewerResult
     createPdfViewer(&request, &result)
-    @assert(result.view == null and result.commands == null)
-    @assert(!result.failureReason.isEmpty())
+    @assert(result.view != null and result.commands != null)
+    let view = cast(*PdfViewer) result.view!
+    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    @assert(!view.failureReason.isEmpty())
 }
 
 // The viewer owns the search: PDF text lives compressed in the file, so only the viewer can
@@ -133,6 +137,7 @@ private func createPdfFixture()->String
     @assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
 
     let view = cast(*PdfViewer) result.view!
+    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.resize(640, 420)
     view.applyLayout()
 

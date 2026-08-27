@@ -44,9 +44,10 @@ func midiTestFixture()->String
     var result: ViewerResult
     createMidiViewer(&request, &result)
     @assert(result.view != null and result.commands != null)
-    @assert(Utf8.contains(result.details.toSlice(), "7 notes"))
 
     let viewer = cast(*MidiViewer) result.view!
+    completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
+    @assert(Utf8.contains(viewer.details.toSlice(), "7 notes"))
     viewer.dockStyle          = .Center
     viewer.commands.dockStyle = .Right
     @assert(viewer.trackCombo.items.count == 2)
@@ -87,5 +88,8 @@ func midiTestFixture()->String
     let request = ViewerRequest{&host.root, &host.root, fileName}
     var result: ViewerResult
     createMidiViewer(&request, &result)
-    @assert(result.view == null and result.commands == null and !result.failureReason.isEmpty())
+    @assert(result.view != null and result.commands != null)
+    let viewer = cast(*MidiViewer) result.view!
+    completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
+    @assert(!viewer.failureReason.isEmpty())
 }

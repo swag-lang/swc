@@ -46,9 +46,8 @@ using Core, Pixel, Gui
     var result: ViewerResult
     createTableViewer(&request, &result)
     @assert(result.view != null and result.commands == null and result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
-    @assert(result.details.indexOf("3 rows") != Swag.U64.Max and result.details.indexOf("3 columns") != Swag.U64.Max)
-
     let view = cast(*TableViewer) result.view!
+    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     @assert(view.list.isVirtual and view.list.lineCount() == 3 and view.list.header.items.count == 3)
     var line: ListLine
     view.fillLine(&line, 1)
@@ -117,6 +116,7 @@ using Core, Pixel, Gui
     createTableViewer(&request, &result)
     @assert(result.view != null)
     let view = cast(*TableViewer) result.view!
+    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle = .Center
 
     host.root.applyLayout()

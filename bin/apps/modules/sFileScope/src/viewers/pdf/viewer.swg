@@ -4,11 +4,35 @@ using Core, Pixel, Gui
 
 private const PdfCommandWidth = 336.0
 
+struct PdfViewerContent
+{
+    reader:  Pdf.Reader
+    page:    Pdf.Page
+    details: String
+}
+
+private func loadPdfViewerContent(fileName: string)->PdfViewerContent fail
+{
+    var result: retval
+    result.reader = #move try Pdf.Reader.open(fileName)
+    let count = result.reader.pageCount()
+    if !count do
+        fail Errors.InvalidFormatError{"PDF document contains no page"}
+    result.page    = #move try result.reader.loadPage(0)
+    result.details = Format.toString("PDF · % %", count, count == 1 ? pdfStrings().ui_Page : pdfStrings().ui_Pages)
+    return #move result
+}
+
 internal struct PdfViewer
 {
-    using wnd:     Wnd
-    details:       String
-    reportFailure: #null ViewerReportFailure
+    using wnd:            Wnd
+    details:              String
+    reportFailure:        #null ViewerReportFailure
+    reportDetails:        #null ViewerReportDetails
+    reportLoadingChanged: #null ViewerReportLoadingChanged
+    load:                 ViewerBackgroundLoad'PdfViewerContent
+    loadTimer:            #null *Timer
+    failureReason:        String
 
     #[Swag.Late]
     {
@@ -22,6 +46,39 @@ internal struct PdfViewer
 
 private impl IWnd for PdfViewer
 {
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer != .loadTimer
+        {
+            evt.accepted = false
+            return
+        }
+
+        if !.load.isDone() do
+            return
+
+        .removeTimer(evt.timer)
+        .loadTimer = null
+        var content: PdfViewerContent
+        .failureReason = .load.finish(&content)
+        if !.failureReason.isEmpty()
+        {
+            if .reportFailure do
+                .reportFailure!(me, .failureReason.toString())
+            return
+        }
+
+        .pdfView.exchangeDocument(&content.reader, &content.page)
+        .details = #move content.details
+        .applyLayout()
+        .refreshNavigation()
+        .setInitialFocus(.pdfView)
+        if .reportDetails do
+            .reportDetails!(me, .details.toString())
+        if .reportLoadingChanged do
+            .reportLoadingChanged!(me)
+    }
+
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         if evt.kind != .Pressed
@@ -43,6 +100,19 @@ private impl IWnd for PdfViewer
 
 private impl PdfViewer
 {
+    mtd retire()->bool
+    {
+        if !.load.retire() do
+            return false
+        if .loadTimer
+        {
+            .removeTimer(.loadTimer!)
+            .loadTimer = null
+        }
+
+        return true
+    }
+
     mtd collectMatches(text: string, options: ViewerSearchOptions, result: *Array'ViewerSearchMatch)
     {
         var pdfOptions: PdfTextSearchOptions
@@ -71,20 +141,15 @@ private impl PdfViewer
         .pageLabel.setText(Format.toString("% / %", .pdfView.pageIndex + 1, .pdfView.pageCount()))
     }
 
-    func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null)->*PdfViewer fail
+    func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null, reportDetails: #null ViewerReportDetails = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*PdfViewer
     {
         let result = Wnd.create'PdfViewer(contentParent, "sFileScope.pdf")
-        result.backgroundStyle = .View
-        result.reportFailure   = reportFailure
+        result.backgroundStyle      = .View
+        result.reportFailure        = reportFailure
+        result.reportDetails        = reportDetails
+        result.reportLoadingChanged = reportLoadingChanged
 
         result.commands = ViewerCommandBar.create(commandParent, PdfCommandWidth)
-
-        var complete: bool
-        defer if !complete
-        {
-            result.commands.destroy()
-            result.destroy()
-        }
 
         with result.previousButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, 18), {0, 0, 36, 36})
         {
@@ -179,39 +244,28 @@ private impl PdfViewer
             }
         }
 
-        try result.pdfView.open(fileName)
-
-        let count = result.pdfView.pageCount()
-        result.details = Format.toString("PDF · % %", count, count == 1 ? pdfStrings().ui_Page : pdfStrings().ui_Pages)
         result.applyLayout()
-        result.refreshNavigation()
-        result.setInitialFocus(result.pdfView)
-        complete = true
+        result.load.start(fileName, &loadPdfViewerContent)
+        result.loadTimer = result.addTimer(ViewerBackgroundPollInterval)
         return result
     }
 }
-
-private func loadPdfViewer(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure)->#null *PdfViewer fail => try PdfViewer.create(contentParent, commandParent, fileName, reportFailure)
 
 // Creates the integrated PDF view.
 func createPdfViewer(request: const *ViewerRequest, result: *ViewerResult)
 {
     registerPdfStrings(request.contentParent.app())
-    let view = catch loadPdfViewer(request.contentParent, request.commandParent, request.fileName, request.reportFailure) as decodeError
-    if decodeError != null
-    {
-        result.failureReason = Errors.message(decodeError)
-        return
-    }
-
+    let view = PdfViewer.create(request.contentParent, request.commandParent, request.fileName, request.reportFailure, request.reportDetails, request.reportLoadingChanged)
     result.view     = view
-    result.commands = view!.commands
-    result.details  = view!.details
+    result.commands = view.commands
 
     // PDF text lives compressed inside the file, so the viewer indexes every page and hands the
     // host stable logical matches for counting and bidirectional navigation.
-    result.collectMatches = func(wnd, text, options, matches) { (cast(*PdfViewer) wnd).collectMatches(text, options, matches) }
-    result.revealMatch    = func(wnd, match, text)->bool { return (cast(*PdfViewer) wnd).revealMatch(match, text) }
-    result.searchBounds   = func(wnd, match, bounds)->bool { return (cast(*PdfViewer) wnd).searchBounds(match, bounds) }
-    result.clearSearch    = func(wnd) { (cast(*PdfViewer) wnd).pdfView.clearSelection() }
+    result.collectMatches      = func(wnd, text, options, matches) { (cast(*PdfViewer) wnd).collectMatches(text, options, matches) }
+    result.revealMatch         = func(wnd, match, text)->bool { return (cast(*PdfViewer) wnd).revealMatch(match, text) }
+    result.searchBounds        = func(wnd, match, bounds)->bool { return (cast(*PdfViewer) wnd).searchBounds(match, bounds) }
+    result.clearSearch         = func(wnd) { (cast(*PdfViewer) wnd).pdfView.clearSelection() }
+    result.isLoading           = func(wnd)->bool { return (cast(*PdfViewer) wnd).loadTimer != null }
+    result.needsLoadingOverlay = func(wnd)->bool { return (cast(*PdfViewer) wnd).loadTimer != null }
+    result.retire              = func(wnd)->bool { return (cast(*PdfViewer) wnd).retire() }
 }

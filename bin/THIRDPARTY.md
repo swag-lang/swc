@@ -13,6 +13,7 @@ Some redistributions are documented closer to the files they cover:
 - `apps/modules/sFileScope/src/tests/datas/THIRDPARTY.md`: media viewer test fixtures.
 - `apps/modules/sVaultDrive/THIRDPARTY.md`: WinFsp and the other sVaultDrive dependencies.
 - `std/modules/audio/src/tests/datas/THIRDPARTY.md`: audio test fixtures.
+- `std/modules/audio/src/codec/dts/THIRDPARTY.md`: FFmpeg's DTS ADPCM predictor codebook.
 - `std/modules/gui/src/theme/THIRDPARTY.md`: GUI icon sources.
 - `std/modules/gui/src/tests/datas/THIRDPARTY.md`: HTML and PDF test fixtures.
 - `std/modules/pixel/src/tests/datas/THIRDPARTY.md`: SVG Web Platform Tests fixtures.

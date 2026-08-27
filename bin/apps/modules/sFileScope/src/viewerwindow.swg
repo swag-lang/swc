@@ -15,6 +15,7 @@ const ViewerErrorTextWidth                    = 512.0
 const ViewerInfoStatsMaxWidth                 = 560.0
 const ViewerFullScreenRevealEdge              = 32.0
 const ViewerRetirePollInterval: Time.Duration = 16'ms
+const ViewerLoadingSpinnerSize                = 56.0
 const ViewerLoadingSpinnerRadius              = 20.0
 const ViewerLoadingSpinnerSweep               = 150.0
 const ViewerSearchGlowInset                   = 7.0
@@ -131,6 +132,15 @@ struct ViewerErrorView
     }
 }
 
+// Keeps the animated repaint local to the activity mark. The host covers the whole document, so
+// animating the host itself would repaint every visible viewer subtree on every frame.
+struct ViewerLoadingSpinner
+{
+    using wnd: Wnd
+
+    animationPhase: f32
+}
+
 // Application-owned wait surface shared by every progressive viewer.
 //
 // A renderer only reports whether it is waiting; it neither chooses nor paints the feedback.
@@ -140,7 +150,8 @@ struct ViewerLoadingOverlay
 {
     using wnd: Wnd
 
-    animationPhase: f32
+    #[Swag.Late]
+    spinner: *ViewerLoadingSpinner
 }
 
 // One application-owned marker for every current occurrence. Viewers report only the surface
@@ -200,7 +211,7 @@ impl ViewerSearchOverlay
     }
 }
 
-impl IWnd for ViewerLoadingOverlay
+impl IWnd for ViewerLoadingSpinner
 {
     mtd impl onPaint(evt: *PaintEvent)
     {
@@ -223,8 +234,10 @@ impl ViewerLoadingOverlay
     func create(parent: *Wnd)->*ViewerLoadingOverlay
     {
         let result = Wnd.create'ViewerLoadingOverlay(parent, "sFileScope.loading")
-        result.wndFlags        |= WndFlags.TopMost | WndFlags.Disabled
-        result.backgroundStyle = .Transparent
+        result.wndFlags                |= WndFlags.TopMost | WndFlags.Disabled
+        result.backgroundStyle         = .Transparent
+        result.spinner                 = Wnd.create'ViewerLoadingSpinner(result, {0, 0, ViewerLoadingSpinnerSize, ViewerLoadingSpinnerSize})
+        result.spinner.backgroundStyle = .Transparent
         result.hide()
         return result
     }
@@ -233,6 +246,7 @@ impl ViewerLoadingOverlay
     mtd cover(rect: Math.Rectangle)
     {
         .setPosition(rect, computeLayout: false)
+        .spinner.setPosition({(rect.width - ViewerLoadingSpinnerSize) * 0.5, (rect.height - ViewerLoadingSpinnerSize) * 0.5, ViewerLoadingSpinnerSize, ViewerLoadingSpinnerSize}, computeLayout: false)
     }
 }
 
@@ -316,6 +330,97 @@ func reportViewerFailure(view: *Wnd, reason: string)
     window.replaceFailedViewer(view, reason)
 }
 
+struct ViewerClassifiedFile
+{
+    absoluteFileName: String
+    fileSize:         String
+    choices:          Array'ViewerChoice
+    folderFiles:      Array'String
+    recent:           Array'String
+    exists:           bool
+}
+
+// Classifies one requested file without making the GUI thread open or probe it.
+struct ViewerChoiceLoad
+{
+    job:           Jobs.Job
+    index:         #null *ViewerIndex
+    fileName:      String
+    basicTextName: String
+    recent:        Array'String
+    result:        ViewerClassifiedFile
+    started:       bool
+}
+
+impl ViewerChoiceLoad
+{
+    mtd start(index: *ViewerIndex, fileName, basicTextName: string, recent: const [..] String)
+    {
+        Debug.assert(!.started)
+
+        // The operation is reusable. A completed result was moved to the window, so rebuild every
+        // owning field before the worker appends the next folder and history snapshot.
+        .result        = {}
+        .index         = index
+        .fileName      = fileName
+        .basicTextName = basicTextName
+        .recent        = recent
+        .job.lambda    = func(data: #null *void)
+        {
+            let operation = cast(*ViewerChoiceLoad) data!
+            var absolute  = catch Path.absolute(operation.fileName.toString()) as pathError
+            if pathError != null do
+                absolute = operation.fileName
+            operation.result.absoluteFileName = #move absolute
+            operation.result.exists           = File.exists(operation.result.absoluteFileName.toString())
+            if operation.result.exists
+            {
+                operation.result.choices = operation.index!.choices(operation.result.absoluteFileName.toString(), operation.basicTextName.toString())
+                let info = catch File.info(operation.result.absoluteFileName.toString()) as infoError
+                if infoError == null do
+                    operation.result.fileSize = StrConv.toDisplaySize(info.size)
+            }
+
+            for one in operation.recent where File.exists(one[].toString()) do
+                operation.result.recent.add(one[])
+
+            let folder = Path.directoryName(operation.result.absoluteFileName.toString())
+            if !folder do
+                return
+            let files = catch Directory.enumerateFiles(folder) as listError
+            if listError != null do
+                return
+            for file in files
+            {
+                if file.isDirectory() do
+                    continue
+                operation.result.folderFiles.add(file.fullname)
+            }
+
+            operation.result.folderFiles.sort(func(a, b) { return Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase) })
+        }
+        .job.data = me
+        .started  = true
+        Jobs.schedule(&.job)
+    }
+
+    mtd const isDone()->bool => .started and Jobs.isDone(&.job)
+
+    mtd finish()->ViewerClassifiedFile
+    {
+        Debug.assert(.isDone())
+        Jobs.wait(&.job)
+        .started = false
+        return #move .result
+    }
+
+    mtd opDrop()
+    {
+        if .started do
+            Jobs.wait(&.job)
+    }
+}
+
 struct ViewerWindow
 {
     using wnd: Wnd
@@ -373,6 +478,7 @@ struct ViewerWindow
     searchTimer:           #null *Timer
     searchBoundsTimer:     #null *Timer
     loadingTimer:          #null *Timer
+    choiceLoad:            ViewerChoiceLoad
     smokeTimer:            #null *Timer
     searchStream:          File.FileStream
     searchQuery:           String
@@ -390,6 +496,8 @@ struct ViewerWindow
     pendingEmpty:          String
     pendingRemember:       bool = true
     currentFile:           String
+    currentFileSize:       String
+    folderFiles:           Array'String
     siblings:              Array'String
     siblingIndex:          u64
     siblingsDirty               = true
@@ -557,11 +665,8 @@ impl IWnd for ViewerWindow
 
         .removeTimer(.startupTimer!)
         .startupTimer = null
-        if !.pendingFile.isEmpty()
-        {
-            let fileName = #move .pendingFile
-            .openFile(fileName.toString(), .pendingRemember)
-        }
+        if !.pendingFile.isEmpty() do
+            .processQueuedFile()
         elif !.pendingEmpty.isEmpty()
         {
             let message = #move .pendingEmpty
@@ -617,6 +722,7 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.folderSameKind", &me.folderSameKind)
         catch evt.serializer.serialize("ViewerWindow.searchMatchCase", &me.searchMatchCaseOption)
         catch evt.serializer.serialize("ViewerWindow.searchWholeWord", &me.searchWholeWordOption)
+        catch evt.serializer.serialize("ViewerWindow.videoSubtitles", &g_VideoSubtitleSettings)
         if evt.serializer.isReading()
         {
             .themeIndex     = Math.min(.themeIndex, 1)
@@ -627,6 +733,7 @@ impl IWnd for ViewerWindow
                 .recent.removeAtOrdered(.recent.count - 1)
             .searchMatchCase.setChecked(.searchMatchCaseOption)
             .searchWholeWord.setChecked(.searchWholeWordOption)
+            g_VideoSubtitleSettings.delay = Math.clamp(g_VideoSubtitleSettings.delay, -60, 60)
         }
     }
 
@@ -1209,7 +1316,7 @@ impl ViewerWindow
     }
 
     // Opens `fileName` after the surface has had a chance to paint its first frame.
-    mtd queueFile(fileName: string, remember = true, retry = false)
+    mtd queueFile(fileName: string, remember = true)
     {
         .pendingFile = fileName
         .pendingEmpty.clear()
@@ -1221,7 +1328,53 @@ impl ViewerWindow
         .emptyView.hide()
         .updateLoadingIndicator()
         if !.startupTimer do
-            .startupTimer = .addTimer(retry ? ViewerRetirePollInterval : 1'ms)
+            .startupTimer = .addTimer(1'ms)
+    }
+
+    // Advances one asynchronous file classification and publishes it only after the preceding
+    // viewer has retired. Every filesystem probe stays on the worker side of this boundary.
+    private mtd processQueuedFile()
+    {
+        if .choiceLoad.started
+        {
+            if !.choiceLoad.isDone()
+            {
+                .startupTimer = .addTimer(ViewerRetirePollInterval)
+                return
+            }
+
+            if .choiceLoad.fileName != .pendingFile
+            {
+                discard .choiceLoad.finish()
+                .choiceLoad.start(&.index, .pendingFile.toString(), appStrings().ui_BasicText, .recent.toSlice())
+                .startupTimer = .addTimer(ViewerRetirePollInterval)
+                return
+            }
+
+            .stopSearch()
+            .searchMatch = Swag.U64.Max
+            .searchQuery.clear()
+            if !.destroyInstances(preserveVisible: true)
+            {
+                .startupTimer = .addTimer(ViewerRetirePollInterval)
+                return
+            }
+
+            let remember   = .pendingRemember
+            let classified = .choiceLoad.finish()
+            .pendingFile.clear()
+            if !classified.exists
+            {
+                .showEmpty(appStrings().ui_OpenStopped)
+                return
+            }
+
+            .openClassifiedFile(#move classified, remember)
+            return
+        }
+
+        .choiceLoad.start(&.index, .pendingFile.toString(), appStrings().ui_BasicText, .recent.toSlice())
+        .startupTimer = .addTimer(ViewerRetirePollInterval)
     }
 
     // Starts the application smoke review. Each registered viewer owns one immutable fixture;
@@ -1409,10 +1562,12 @@ impl ViewerWindow
         .emptyView.show()
         .refreshEmptyArtwork()
         .currentFile.clear()
+        .currentFileSize.clear()
         .choices.clear()
         .viewerCombo.clear()
         .viewerCombo.hide()
         .activeChoiceIndex = Swag.U32.Max
+        .folderFiles.clear()
         .siblings.clear()
         .siblingsDirty = true
         .infoNameLabel.setText("")
@@ -2153,17 +2308,13 @@ impl ViewerWindow
     mtd updateFileInfo(details: string)
     {
         let baseName = Path.fileName(.currentFile.toString()) orelse .currentFile.toString()
-        var size: String
-        let fileInfo = catch File.info(.currentFile.toString()) as infoError
-        if infoError == null do
-            size = StrConv.toDisplaySize(fileInfo.size)
 
         .infoNameLabel.setText(baseName)
         .infoNameLabel.toolTip = .currentFile
         .infoStatsLabel.setText(details)
         .infoStatsLabel.toolTip = details
-        .infoSizeLabel.setText(size.toString())
-        .infoSizeLabel.toolTip = size.toString()
+        .infoSizeLabel.setText(.currentFileSize.toString())
+        .infoSizeLabel.toolTip = .currentFileSize.toString()
         if .activeChoiceIndex < .choices.count do
             .infoIconLabel.setIcon(.icon(.choices[.activeChoiceIndex].icon))
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
@@ -2247,26 +2398,18 @@ impl ViewerWindow
 
     mtd openFile(fileName: string, remember = true)
     {
-        .stopSearch()
-        .searchMatch = Swag.U64.Max
-        .searchQuery.clear()
-        if !File.exists(fileName)
-        {
-            .showEmpty(appStrings().ui_OpenStopped)
-            return
-        }
+        .queueFile(fileName, remember)
+    }
 
-        if !.destroyInstances(preserveVisible: true)
-        {
-            .queueFile(fileName, remember, retry: true)
-            return
-        }
-
-        var absolute = catch Path.absolute(fileName) as pathError
-        if pathError != null do
-            absolute = fileName
-        .currentFile = #move absolute
-        .choices     = .index.choices(.currentFile.toString())
+    private mtd openClassifiedFile(classified: ViewerClassifiedFile, remember: bool)
+    {
+        .currentFile     = #move classified.absoluteFileName
+        .currentFileSize = #move classified.fileSize
+        .choices         = #move classified.choices
+        .folderFiles     = #move classified.folderFiles
+        .recent          = #move classified.recent
+        .siblingsDirty   = true
+        .rebuildSiblings()
         .instances.resize(.choices.count)
         .viewerCombo.clear()
         for choice in .choices do
@@ -2293,7 +2436,6 @@ impl ViewerWindow
 
         .emptyView.hide()
 
-        .siblingsDirty = true
         if remember do
             .rememberRecent(.currentFile.toString())
         if .panelVisible do
@@ -2406,13 +2548,6 @@ impl ViewerWindow
 
         .refreshingLists = true
         defer .refreshingLists = false
-
-        // A file read yesterday may be gone today, and a list offering it would be a list of
-        // dead ends. The check costs one stat per row and only runs when the panel is opened.
-        var alive: Array'String
-        for one in .recent where File.exists(one[].toString()) do
-            alive.add(one[])
-        .recent = #move alive
 
         .fillFileList(.recentList, .recent.toSlice())
         .fillFileList(.folderList, .siblings.toSlice())
@@ -2535,23 +2670,12 @@ impl ViewerWindow
     {
         .siblings.clear()
         .siblingIndex = 0
-        let folder = Path.directoryName(.currentFile.toString())
-        if !folder do
-            return
-
-        let files = catch Directory.enumerateFiles(folder) as listError
-        if listError != null do
-            return
-        for file in files
+        for file in .folderFiles
         {
-            if file.isDirectory() do
+            if .folderSameKind and !.index.sharesViewer(.currentFile.toString(), file[].toString()) do
                 continue
-            if .folderSameKind and !.index.sharesViewer(.currentFile.toString(), file.fullname.toString()) do
-                continue
-            .siblings.add(file.fullname)
+            .siblings.add(file[])
         }
-
-        .siblings.sort(func(a, b) { return Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase) })
 
         for i in @countof(.siblings) where .siblings[i] == .currentFile
         {

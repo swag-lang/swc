@@ -1055,6 +1055,14 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         uint32_t            trampJump  = std::numeric_limits<uint32_t>::max();
         bool                exchange   = false;   // swap dst and src: the head of a copy cycle
         const LiveInterval* from       = nullptr; // the register node a register move reads
+        // Two kinds of connector meet at one point. A split connector (and a
+        // spill store placed after a definition) realizes the location the
+        // value takes at the instruction's input; an edge connector then
+        // reads that input state to reconcile it with the successor's. The
+        // parallel-copy order holds within a phase only: an edge move that
+        // reads the register a split reload writes at the same point must
+        // read the RELOADED value, not the one the register held before.
+        uint8_t phase = 0; // 0: split or definition store, 1: edge
     };
     std::vector<Connector> connectors;
 
@@ -1099,7 +1107,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     };
 
     const auto addConnector = [&](const uint32_t beforeIndex, const uint32_t denseIndex,
-                                  const LiveInterval* fromNode, const LiveInterval* toNode) {
+                                  const LiveInterval* fromNode, const LiveInterval* toNode, const uint8_t phase) {
         const MicroReg fromReg = (fromNode && !fromNode->spilled) ? fromNode->assignedReg : MicroReg::invalid();
         const MicroReg toReg   = (toNode && !toNode->spilled) ? toNode->assignedReg : MicroReg::invalid();
         if (fromReg == toReg)
@@ -1112,6 +1120,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         connector.src         = fromReg;
         connector.denseIndex  = denseIndex;
         connector.from        = fromReg.isValid() && toReg.isValid() ? fromNode : nullptr;
+        connector.phase       = phase;
         connectors.push_back(connector);
     };
 
@@ -1134,7 +1143,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                 return false;
             if (inst->op == MicroInstrOpcode::Label)
                 continue; // edge resolution owns label positions
-            addConnector(beforeIndex, denseIndex, &a, &b);
+            addConnector(beforeIndex, denseIndex, &a, &b, 0);
         }
     }
 
@@ -1281,7 +1290,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             for (const EdgeMove& move : edgeMoves)
             {
                 const size_t before = connectors.size();
-                addConnector(plainOk ? beforeIndex : p + 1, move.denseIndex, move.from, move.to);
+                addConnector(plainOk ? beforeIndex : p + 1, move.denseIndex, move.from, move.to, 1);
                 if (connectors.size() != before)
                     connectors.back().trampJump = trampJump;
             }
@@ -1379,6 +1388,34 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         std::erase_if(trampolines, [&](const Trampoline& trampoline) {
             return std::ranges::none_of(connectors, [&](const Connector& connector) { return connector.trampJump == trampoline.jumpIndex; });
         });
+        // A register node the definition's register flows into without a
+        // connector still reads the definition: a split child that kept the
+        // register, or a label the value crosses in the same register on
+        // some edge (resolution emits no move for either). The definition is
+        // dead only when nothing along that continuity uses the value and no
+        // register move reads a node on it.
+        struct LabelEdge
+        {
+            uint32_t label       = 0;
+            uint32_t predecessor = 0;
+            bool     isJump      = false;
+        };
+        std::vector<LabelEdge> labelEdges;
+        for (uint32_t s = 0; s < instructionCount_ && s < predecessors_.size(); ++s)
+        {
+            const MicroInstr* labelInst = instructions_->ptr(controlFlowGraph_->instructionRefs()[s]);
+            if (!labelInst || labelInst->op != MicroInstrOpcode::Label)
+                continue;
+            for (const uint32_t p : predecessors_[s])
+            {
+                if (p >= instructionCount_)
+                    continue;
+                const MicroInstr* predInst = instructions_->ptr(controlFlowGraph_->instructionRefs()[p]);
+                if (!predInst)
+                    continue;
+                labelEdges.push_back({s, p, MicroInstr::info(predInst->op).flags.has(MicroInstrFlagsE::JumpInstruction)});
+            }
+        }
         for (uint32_t denseIndex = 0; denseIndex < virtualCount; ++denseIndex)
         {
             RematRecipe& recipe = remat[denseIndex];
@@ -1388,7 +1425,61 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             const LiveInterval* defNode = locate(denseIndex, recipe.defIndex * 2 + 1);
             if (!defNode || !defNode->usePositions.empty())
                 continue;
-            recipe.defDead = std::ranges::none_of(connectors, [&](const Connector& connector) { return connector.from == defNode; });
+
+            const uint32_t      first     = result.valueNodesBegin[denseIndex];
+            const uint32_t      last      = result.valueNodesBegin[denseIndex + 1];
+            const LiveInterval* firstNode = result.nodes.data() + first;
+            const auto          nodeSlot  = [&](const LiveInterval* node) -> int64_t {
+                const int64_t slot = node - firstNode;
+                return slot >= 0 && slot < static_cast<int64_t>(last - first) ? slot : -1;
+            };
+            std::vector<bool> reached(last - first, false);
+            reached[nodeSlot(defNode)] = true;
+            for (bool changed = true; changed;)
+            {
+                changed = false;
+                for (uint32_t n = first; n + 1 < last; ++n)
+                {
+                    const LiveInterval& a = result.nodes[n];
+                    const LiveInterval& b = result.nodes[n + 1];
+                    if (!reached[n - first] || reached[n + 1 - first])
+                        continue;
+                    if (a.spilled || b.spilled || a.assignedReg != b.assignedReg || a.end() != b.start())
+                        continue;
+                    reached[n + 1 - first] = true;
+                    changed                = true;
+                }
+                for (const LabelEdge& edge : labelEdges)
+                {
+                    const uint32_t      predEndPos = edge.isJump ? edge.predecessor * 2 : edge.predecessor * 2 + 1;
+                    const LiveInterval* atLabel    = locate(denseIndex, edge.label * 2);
+                    const LiveInterval* atPred     = locate(denseIndex, predEndPos);
+                    if (!atLabel || !atPred || atLabel == atPred || atPred->spilled || atLabel->spilled || atPred->assignedReg != atLabel->assignedReg)
+                        continue;
+                    const int64_t from = nodeSlot(atPred);
+                    const int64_t to   = nodeSlot(atLabel);
+                    if (from < 0 || to < 0 || !reached[from] || reached[to])
+                        continue;
+                    reached[to] = true;
+                    changed     = true;
+                }
+            }
+
+            bool dead = true;
+            for (uint32_t n = first; dead && n < last; ++n)
+            {
+                if (reached[n - first] && !result.nodes[n].usePositions.empty())
+                    dead = false;
+            }
+            for (const Connector& connector : connectors)
+            {
+                if (!dead)
+                    break;
+                const int64_t slot = connector.from ? nodeSlot(connector.from) : -1;
+                if (slot >= 0 && reached[slot])
+                    dead = false;
+            }
+            recipe.defDead = dead;
         }
     }
 
@@ -1461,7 +1552,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         for (size_t i = 0; i < connectors.size(); ++i)
         {
             const bool isTramp = connectors[i].trampJump != std::numeric_limits<uint32_t>::max();
-            byPoint[(static_cast<uint64_t>(connectors[i].beforeIndex) << 1) | (isTramp ? 0u : 1u)].push_back(i);
+            byPoint[(static_cast<uint64_t>(connectors[i].beforeIndex) << 2) | (isTramp ? 0u : 2u) | connectors[i].phase].push_back(i);
         }
         for (auto& [point, list] : byPoint)
         {
@@ -1583,6 +1674,8 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         const bool bTramp = b.trampJump != std::numeric_limits<uint32_t>::max();
         if (aTramp != bTramp)
             return aTramp;
+        if (a.phase != b.phase)
+            return a.phase < b.phase;
         return a.order < b.order;
     });
 

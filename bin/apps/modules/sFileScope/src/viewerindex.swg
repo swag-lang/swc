@@ -84,6 +84,7 @@ func createViewerIndex()->ViewerIndex
     addViewer(&result, "html", "HTML", .Html, &createHtmlViewer, "viewer.html", ".htm;.html;.shtml;.xht;.xhtml")
     addViewer(&result, "code", "Code", .Code, &createCodeViewer, "sample.cpp", ".swg;.swgs;.c;.h;.cc;.cpp;.cxx;.hh;.hpp;.hxx;.inl;.ipp;.cs;.java;.js;.jsx;.mjs;.cjs;.ts;.tsx;.mts;.cts;.go;.rs;.py;.pyw;.pyi;.rb;.rake;.gemspec;.sh;.bash;.zsh;.fish;.ps1;.psm1;.psd1;.php;.phtml;.lua;.sql;.json;.jsonc;.json5;.xml;.xsd;.xsl;.xslt;.csproj;.vcxproj;.props;.targets;.css;.scss;.sass;.less;.yaml;.yml;.toml;.ini;.cfg;.conf;.properties;.kt;.kts;.swift;.dart;.r;.pl;.pm;.vb;.glsl;.vert;.frag;.geom;.comp;.hlsl;.fx;.cmake;.bat;.cmd;.htm;.html;.shtml;.xht;.xhtml;.asm;.s;.incasm;.zig;.nim;.nims;.nimble;.hs;.lhs;.scala;.sc;.groovy;.gvy;.gy;.gsh;.ex;.exs;.erl;.hrl;.clj;.cljs;.cljc;.edn;.jl;.f;.for;.f77;.f90;.f95;.f03;.f08;.pas;.pp;.lpr;.d;.di;.m;.mm;.tcl;.tk;.awk;.vim;.tex;.sty;.cls;.bib;.proto;.graphql;.gql;.gradle;.mk;.mak;.make;makefile;gnumakefile;bsdmakefile;.dockerfile;dockerfile;containerfile;cmakelists.txt;justfile;rakefile;gemfile;vagrantfile;podfile;brewfile;jenkinsfile;meson.build;.gitignore;.gitattributes;.gitmodules;.editorconfig;.clang-format;.clang-tidy;.prettierrc;.eslintrc;.npmrc;.yarnrc;.env;.nix")
     addViewer(&result, "markdown", "Markdown", .Markdown, &createMarkdownViewer, "comprehensive.md", ".markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd")
+    addViewer(&result, "subtitle", "Subtitles", .Subtitle, &createSubtitleViewer, "viewer.srt", ".srt;.vtt;.ass;.ssa;.lrc;.sub")
 
     var imageExtensions: Array'String
     let imageFormats = Image.decodableFormats()
@@ -181,6 +182,14 @@ impl ViewerIndex
     // Returns every viewer available for `fileName` in selection order.
     mtd const choices(fileName: string)->Array'ViewerChoice
     {
+        return .choices(fileName, appStrings().ui_BasicText)
+    }
+
+    // Returns every viewer while using an already captured localized basic-text name.
+    //
+    // Background classification uses this form so it never reaches mutable GUI resources.
+    mtd const choices(fileName, basicTextName: string)->Array'ViewerChoice
+    {
         var result:  retval
         var matched: Array'bool
         matched.resize(.specs.count)
@@ -212,7 +221,7 @@ impl ViewerIndex
         // The key is converted explicitly: an untyped string constant used directly as an
         // aggregate-literal field of type String arrives empty (F-173).
         if BasicTextView.supports(fileName) do
-            result.add(ViewerChoice{.BasicText, Swag.U64.Max, String.from(BasicTextViewerKey), appStrings().ui_BasicText, .Text})
+            result.add(ViewerChoice{.BasicText, Swag.U64.Max, String.from(BasicTextViewerKey), String.from(basicTextName), .Text})
 
         for spec, index in .specs where !matched[index] and .matches(spec, baseName.toString(), extension.toString(), wildcard: true) do
             result.add(ViewerChoice{.Viewer, index, spec.key, spec.displayName, spec.icon})

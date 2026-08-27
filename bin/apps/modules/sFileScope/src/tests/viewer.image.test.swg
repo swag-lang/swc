@@ -40,6 +40,7 @@ func countImageNavigation(wnd: *Wnd, delta: s32)
     @assert(result.view != null and result.commands != null)
 
     let view = cast(*ImageViewer) result.view!
+    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     var navigation: s32
     view.userData = &navigation
     @assert(view.previousButton.isEnabled() and view.nextButton.isEnabled())
@@ -71,6 +72,8 @@ func countImageNavigation(wnd: *Wnd, delta: s32)
     let request = ViewerRequest{&host.root, &host.root, fileName}
     var result: ViewerResult
     createImageViewer(&request, &result)
-    @assert(result.view == null and result.commands == null)
-    @assert(!result.failureReason.isEmpty())
+    @assert(result.view != null and result.commands != null)
+    let view = cast(*ImageViewer) result.view!
+    completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
+    @assert(!view.failureReason.isEmpty())
 }

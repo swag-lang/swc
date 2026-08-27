@@ -7,6 +7,176 @@ private const VideoSeekSeconds = 10.0
 private const VideoSeekOverlaySize = Math.Point{112, 64}
 private const VideoSeekOverlayOffsetY = 56.0
 private const VideoSeekOverlayLifetime: Time.Duration = 650'ms
+private const VideoNoSubtitle = Swag.U32.Max
+
+internal enum VideoSubtitleSource
+{
+    Off
+    Embedded
+    Sidecar
+}
+
+internal enum VideoSubtitleFont
+{
+    Sans
+    Monospace
+}
+
+internal enum VideoSubtitleSize
+{
+    Small
+    Normal
+    Large
+    VeryLarge
+}
+
+internal enum VideoSubtitleEffect
+{
+    Outline
+    Shadow
+    Background
+    None
+}
+
+internal enum VideoSubtitlePosition
+{
+    Bottom
+    Center
+    Top
+}
+
+internal enum VideoSubtitleColor
+{
+    White
+    Yellow
+}
+
+internal struct VideoSubtitleSettings
+{
+    font:     VideoSubtitleFont
+    size:     VideoSubtitleSize = .Normal
+    effect:   VideoSubtitleEffect
+    position: VideoSubtitlePosition
+    color:    VideoSubtitleColor
+    delay:    f64
+}
+
+internal var g_VideoSubtitleSettings: VideoSubtitleSettings
+
+private func videoSubtitleFontSize(size: VideoSubtitleSize)->u32
+{
+    switch size
+    {
+    case .Small:     return 20
+    case .Normal:    return 27
+    case .Large:     return 36
+    case .VeryLarge: return 46
+    }
+}
+
+// Timed text painted over the picture without taking part in input or layout.
+internal struct VideoSubtitleOverlay
+{
+    using wnd: Wnd
+
+    text:     String
+    sidecars: Array'*Subtitle.Track
+}
+
+private impl IWnd for VideoSubtitleOverlay
+{
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    {
+        discard evt
+        for track in .sidecars do
+            Subtitle.Track.destroy(track)
+        .sidecars.clear()
+    }
+
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        if .text.isEmpty() do
+            return
+
+        let painter = evt.paintContext.painter
+        let rect    = .clientRect()
+        let font    = .font().regular!
+        let lines   = Tokenize.splitLines(.text.toString())
+        if !lines.count do
+            return
+
+        let lineGap = 4'f32
+        let height  = cast(f32) lines.count * font.height + cast(f32) (lines.count - 1) * lineGap
+        let inset   = Math.max(24'f32, rect.height * 0.06)
+        var y: f32
+        switch g_VideoSubtitleSettings.position
+        {
+        case .Bottom: y = rect.height - inset - height
+        case .Center: y = (rect.height - height) * 0.5
+        case .Top:    y = inset
+        }
+
+        y = Math.max(y, 0)
+
+        let ink  = g_VideoSubtitleSettings.color == .Yellow ? Color.fromArgb(0xFFFFE66D) : Color.fromArgb(Argb.White)
+        let edge = Color.fromArgb(0xE6000000)
+        painter.setAntialiased(true)
+        for line in lines
+        {
+            let size = Painter.measureString(line, font)
+            let x    = Math.floor(rect.horzCenter() - size.width * 0.5)
+            if g_VideoSubtitleSettings.effect == .Background do
+                painter.fillRect(x - 8, y - 3, size.width + 16, font.height + 6, Color.fromArgb(0xA6000000))
+            elif g_VideoSubtitleSettings.effect == .Shadow do
+                painter.drawString(x + 2, y + 2, line, font, edge)
+            elif g_VideoSubtitleSettings.effect == .Outline
+            {
+                const Offset = 1.5'f32
+                painter.drawString(x - Offset, y - Offset, line, font, edge)
+                painter.drawString(x, y - Offset, line, font, edge)
+                painter.drawString(x + Offset, y - Offset, line, font, edge)
+                painter.drawString(x - Offset, y, line, font, edge)
+                painter.drawString(x + Offset, y, line, font, edge)
+                painter.drawString(x - Offset, y + Offset, line, font, edge)
+                painter.drawString(x, y + Offset, line, font, edge)
+                painter.drawString(x + Offset, y + Offset, line, font, edge)
+            }
+
+            painter.drawString(x, y, line, font, ink)
+            y += font.height + lineGap
+        }
+    }
+}
+
+internal impl VideoSubtitleOverlay
+{
+    func create(parent: *Wnd)->*VideoSubtitleOverlay
+    {
+        let result = Wnd.create'VideoSubtitleOverlay(parent, "sFileScope.video.subtitle")
+        result.dockStyle       = .Center
+        result.wndFlags        |= .TopMost | .Disabled
+        result.backgroundStyle = .Transparent
+        result.applySettings()
+        return result
+    }
+
+    mtd applySettings()
+    {
+        let size = videoSubtitleFontSize(g_VideoSubtitleSettings.size)
+        let font = g_VideoSubtitleSettings.font == .Monospace ? .theme().createDefaultFontFS(size, .Bold) : .theme().createDefaultFont(size, .Bold)
+        .style.setFont(font, .Regular)
+        .invalidate()
+    }
+
+    mtd setSubtitle(text: string)
+    {
+        if .text == text do
+            return
+        .text.clear()
+        .text += text
+        .invalidate()
+    }
+}
 
 // Briefly reports a relative timeline jump over the picture itself.
 //
@@ -206,6 +376,90 @@ private func videoAudioTrackCommand(index: u32)->String
     return Format.toString("sFileScope.video.audioTrack.%", index)
 }
 
+private func videoSubtitleTrackCommand(sidecar: bool, index: u32)->String
+{
+    return Format.toString(sidecar ? "sFileScope.video.subtitle.sidecar.%" : "sFileScope.video.subtitle.embedded.%", index)
+}
+
+internal func videoSubtitleText(data: #null const [*] u8, length: u64)->string
+{
+    return data and length ? cast(string) @mkslice(data!, length) : ""
+}
+
+private func videoSubtitlePresentationAt(track: const *Subtitle.Track, seconds: f64, result: *String)->f64
+{
+    result.clear()
+    var nextChange = Swag.F64.Inf
+    for index in track.cueCount()
+    {
+        let start = track.cueStartTime(index)
+        let end   = track.cueEndTime(index)
+        if start > seconds
+        {
+            nextChange = Math.min(nextChange, start)
+            break
+        }
+
+        if end <= seconds do
+            continue
+        if result.length do
+            result.append('\n'rune)
+        result[]   += videoSubtitleText(track.cueTextData(index), track.cueTextLength(index))
+        nextChange = Math.min(nextChange, end)
+    }
+
+    return nextChange
+}
+
+private func videoSubtitleExtension(fileName: string)->bool
+{
+    let extension = String.toLower(Path.extension(fileName) orelse "")
+    switch extension.toString()
+    {
+    case ".srt", ".vtt", ".ass", ".ssa", ".lrc", ".sub": return true
+    default: return false
+    }
+}
+
+private func addVideoSidecar(fileName: string, result: *Array'*Subtitle.Track) fail
+{
+    let track = try Subtitle.Track.loadOwned(fileName)
+    result.add(track!)
+}
+
+// Finds VLC-style sidecars: `movie.srt`, `movie.en.srt`, and other dotted qualifiers.
+private func loadVideoSidecars(fileName: string, result: *Array'*Subtitle.Track)
+{
+    let folder = Path.directoryName(fileName)
+    let stem   = Path.fileNameWithoutExtension(fileName)
+    if !folder or !stem do
+        return
+
+    let files = catch Directory.enumerateFiles(folder) as listError
+    if listError != null do
+        return
+
+    var candidates: Array'String
+    for file in files where !file.isDirectory() and videoSubtitleExtension(file.fullname.toString())
+    {
+        let candidate = Path.fileNameWithoutExtension(file.fullname.toString())
+        if !candidate or !Utf8.startsWith(candidate!, stem!, .Latin1NoCase) do
+            continue
+        let exactName = Latin1.compare(candidate!, stem!, ignoreCase: true) == 0
+        if !exactName and (@countof(candidate!) <= @countof(stem!) or candidate![@countof(stem!)] != '.') do
+            continue
+
+        candidates.add(String.from(file.fullname.toString()))
+    }
+
+    // Sort paths before loading: subtitle tracks own their decoded cues and are moved only once.
+    // The exact stem compares before every dotted qualifier, matching VLC's preferred sidecar
+    // while keeping the language variants deterministic.
+    candidates.sort(func(a, b) { return Utf8.compare(a.toString(), b.toString(), .Latin1NoCase) })
+    for candidate in candidates do
+        discard catch addVideoSidecar(candidate.toString(), result)
+}
+
 // One decoded picture of the run-ahead queue.
 //
 // A codec reconstructs planar 4:2:0 and the renderer converts where it draws, so a queued picture
@@ -218,23 +472,26 @@ internal struct VideoSlot
     index:  u64
 }
 
+#[Swag.NoCopy]
 internal struct VideoViewer
 {
     using wnd: Wnd
 
     #[Swag.Late]
     {
-        commands:       *ViewerCommandBar
-        playButton:     *IconButton
-        stopButton:     *IconButton
-        backwardButton: *IconButton
-        forwardButton:  *IconButton
-        timeline:       *Slider
-        timeLabel:      *Label
-        audioButton:    *IconButton
-        muteButton:     *IconButton
-        volumeSlider:   *Slider
-        imageView:      *ImageView
+        commands:        *ViewerCommandBar
+        playButton:      *IconButton
+        stopButton:      *IconButton
+        backwardButton:  *IconButton
+        forwardButton:   *IconButton
+        timeline:        *Slider
+        timeLabel:       *Label
+        audioButton:     *IconButton
+        subtitleButton:  *IconButton
+        muteButton:      *IconButton
+        volumeSlider:    *Slider
+        imageView:       *ImageView
+        subtitleOverlay: *VideoSubtitleOverlay
     }
 
     seekOverlay: #null *VideoSeekOverlay
@@ -254,6 +511,11 @@ internal struct VideoViewer
     voice:               #null *Voice
     audioTrackIndex:     u32
     audioEngineAcquired: bool
+    subtitleSource:      VideoSubtitleSource
+    subtitleTrackIndex:  u32 = VideoNoSubtitle
+    subtitleReady:       bool
+    subtitleLastSeconds: f64 = -1
+    subtitleNextChange:  f64
 
     // Decoded pictures waiting for their turn on screen.
     //
@@ -422,7 +684,8 @@ private impl VideoViewer
         .muteButton.toolTip     = videoStrings().ui_TipMute
         .volumeSlider.toolTip   = videoStrings().ui_TipVolume
 
-        .audioButton.toolTip = videoStrings().ui_TipAudio
+        .audioButton.toolTip    = videoStrings().ui_TipAudio
+        .subtitleButton.toolTip = videoStrings().ui_TipSubtitles
 
         .refreshDetails()
     }
@@ -673,6 +936,172 @@ internal impl VideoViewer
             catch .selectAudioTrack(index) as trackError
             if trackError != null and .reportFailure do
                 .reportFailure!(me, Errors.message(trackError))
+            return
+        }
+    }
+
+    mtd const subtitleTrack()->#null const *Subtitle.Track
+    {
+        switch .subtitleSource
+        {
+        case .Embedded: return .video.subtitleTrack(.subtitleTrackIndex)
+        case .Sidecar:  return .subtitleTrackIndex < .subtitleOverlay.sidecars.count ? .subtitleOverlay.sidecars[.subtitleTrackIndex] : null
+        case .Off:      return null
+        }
+    }
+
+    mtd selectSubtitle(source: VideoSubtitleSource, index: u32 = VideoNoSubtitle)
+    {
+        .subtitleSource      = source
+        .subtitleTrackIndex  = index
+        .subtitleLastSeconds = -1
+        .subtitleNextChange  = 0
+        .refreshSubtitle()
+    }
+
+    mtd refreshSubtitle()
+    {
+        let track = .subtitleTrack()
+        if !track
+        {
+            .subtitleOverlay.setSubtitle("")
+            return
+        }
+
+        let seconds = .currentSeconds() + g_VideoSubtitleSettings.delay
+        if .subtitleLastSeconds >= 0 and seconds >= .subtitleLastSeconds and seconds < .subtitleNextChange do
+            return
+        var text: String
+        .subtitleLastSeconds = seconds
+        .subtitleNextChange  = videoSubtitlePresentationAt(track!, seconds, &text)
+        .subtitleOverlay.setSubtitle(text.toString())
+    }
+
+    mtd subtitleSettingsChanged()
+    {
+        .subtitleLastSeconds = -1
+        .subtitleOverlay.applySettings()
+        .refreshSubtitle()
+        catch g_App.saveState()
+    }
+
+    mtd handleSubtitleSetting(command: string)->bool
+    {
+        switch command
+        {
+        case "sFileScope.video.subtitle.font.sans":       g_VideoSubtitleSettings.font = .Sans
+        case "sFileScope.video.subtitle.font.mono":       g_VideoSubtitleSettings.font = .Monospace
+        case "sFileScope.video.subtitle.size.small":      g_VideoSubtitleSettings.size = .Small
+        case "sFileScope.video.subtitle.size.normal":     g_VideoSubtitleSettings.size = .Normal
+        case "sFileScope.video.subtitle.size.large":      g_VideoSubtitleSettings.size = .Large
+        case "sFileScope.video.subtitle.size.veryLarge":  g_VideoSubtitleSettings.size = .VeryLarge
+        case "sFileScope.video.subtitle.effect.outline":  g_VideoSubtitleSettings.effect = .Outline
+        case "sFileScope.video.subtitle.effect.shadow":   g_VideoSubtitleSettings.effect = .Shadow
+        case "sFileScope.video.subtitle.effect.backdrop": g_VideoSubtitleSettings.effect = .Background
+        case "sFileScope.video.subtitle.effect.none":     g_VideoSubtitleSettings.effect = .None
+        case "sFileScope.video.subtitle.position.bottom": g_VideoSubtitleSettings.position = .Bottom
+        case "sFileScope.video.subtitle.position.center": g_VideoSubtitleSettings.position = .Center
+        case "sFileScope.video.subtitle.position.top":    g_VideoSubtitleSettings.position = .Top
+        case "sFileScope.video.subtitle.color.white":     g_VideoSubtitleSettings.color = .White
+        case "sFileScope.video.subtitle.color.yellow":    g_VideoSubtitleSettings.color = .Yellow
+        case "sFileScope.video.subtitle.delay.minus1":    g_VideoSubtitleSettings.delay -= 1
+        case "sFileScope.video.subtitle.delay.minus01":   g_VideoSubtitleSettings.delay -= 0.1
+        case "sFileScope.video.subtitle.delay.reset":     g_VideoSubtitleSettings.delay = 0
+        case "sFileScope.video.subtitle.delay.plus01":    g_VideoSubtitleSettings.delay += 0.1
+        case "sFileScope.video.subtitle.delay.plus1":     g_VideoSubtitleSettings.delay += 1
+        default: return false
+        }
+
+        g_VideoSubtitleSettings.delay = Math.clamp(g_VideoSubtitleSettings.delay, -60, 60)
+        .subtitleSettingsChanged()
+        return true
+    }
+
+    // Offers embedded and VLC-style sidecar tracks together with persistent render controls.
+    mtd showSubtitleMenu()
+    {
+        let strings = videoStrings()
+        let menu    = MenuCtrl.createPopup(.subtitleButton, owner: me)
+        menu.addItem(strings.ui_SubtitleOff, "sFileScope.video.subtitle.off", checked: .subtitleSource == .Off)
+
+        var embeddedCommands: Array'String
+        var sidecarCommands:  Array'String
+        let embeddedCount = .video.subtitleTrackCount()
+        if embeddedCount or .subtitleOverlay.sidecars.count do
+            menu.addSeparator()
+        for index in embeddedCount
+        {
+            let track = .video.subtitleTrack(index)!
+            embeddedCommands.add(videoSubtitleTrackCommand(false, index))
+            menu.addItem(videoSubtitleTrackText(index, track, false), embeddedCommands[index].toString(), checked: .subtitleSource == .Embedded and .subtitleTrackIndex == index)
+        }
+
+        for track, index in .subtitleOverlay.sidecars
+        {
+            sidecarCommands.add(videoSubtitleTrackCommand(true, cast(u32) index))
+            menu.addItem(videoSubtitleTrackText(cast(u32) index, track, true), sidecarCommands[index].toString(), checked: .subtitleSource == .Sidecar and .subtitleTrackIndex == index)
+        }
+
+        menu.addSeparator()
+        let fontMenu = MenuCtrl.createPopup(menu, owner: me)
+        fontMenu.addItem(strings.ui_SubtitleFontSans, "sFileScope.video.subtitle.font.sans", checked: g_VideoSubtitleSettings.font == .Sans)
+        fontMenu.addItem(strings.ui_SubtitleFontMono, "sFileScope.video.subtitle.font.mono", checked: g_VideoSubtitleSettings.font == .Monospace)
+        menu.addPopup(strings.ui_SubtitleFont, fontMenu)
+
+        let sizeMenu = MenuCtrl.createPopup(menu, owner: me)
+        sizeMenu.addItem(strings.ui_SubtitleSizeSmall, "sFileScope.video.subtitle.size.small", checked: g_VideoSubtitleSettings.size == .Small)
+        sizeMenu.addItem(strings.ui_SubtitleSizeNormal, "sFileScope.video.subtitle.size.normal", checked: g_VideoSubtitleSettings.size == .Normal)
+        sizeMenu.addItem(strings.ui_SubtitleSizeLarge, "sFileScope.video.subtitle.size.large", checked: g_VideoSubtitleSettings.size == .Large)
+        sizeMenu.addItem(strings.ui_SubtitleSizeVeryLarge, "sFileScope.video.subtitle.size.veryLarge", checked: g_VideoSubtitleSettings.size == .VeryLarge)
+        menu.addPopup(strings.ui_SubtitleSize, sizeMenu)
+
+        let effectMenu = MenuCtrl.createPopup(menu, owner: me)
+        effectMenu.addItem(strings.ui_SubtitleEffectOutline, "sFileScope.video.subtitle.effect.outline", checked: g_VideoSubtitleSettings.effect == .Outline)
+        effectMenu.addItem(strings.ui_SubtitleEffectShadow, "sFileScope.video.subtitle.effect.shadow", checked: g_VideoSubtitleSettings.effect == .Shadow)
+        effectMenu.addItem(strings.ui_SubtitleEffectBackdrop, "sFileScope.video.subtitle.effect.backdrop", checked: g_VideoSubtitleSettings.effect == .Background)
+        effectMenu.addItem(strings.ui_SubtitleEffectNone, "sFileScope.video.subtitle.effect.none", checked: g_VideoSubtitleSettings.effect == .None)
+        menu.addPopup(strings.ui_SubtitleEffect, effectMenu)
+
+        let positionMenu = MenuCtrl.createPopup(menu, owner: me)
+        positionMenu.addItem(strings.ui_SubtitlePositionBottom, "sFileScope.video.subtitle.position.bottom", checked: g_VideoSubtitleSettings.position == .Bottom)
+        positionMenu.addItem(strings.ui_SubtitlePositionCenter, "sFileScope.video.subtitle.position.center", checked: g_VideoSubtitleSettings.position == .Center)
+        positionMenu.addItem(strings.ui_SubtitlePositionTop, "sFileScope.video.subtitle.position.top", checked: g_VideoSubtitleSettings.position == .Top)
+        menu.addPopup(strings.ui_SubtitlePosition, positionMenu)
+
+        let colorMenu = MenuCtrl.createPopup(menu, owner: me)
+        colorMenu.addItem(strings.ui_SubtitleColorWhite, "sFileScope.video.subtitle.color.white", checked: g_VideoSubtitleSettings.color == .White)
+        colorMenu.addItem(strings.ui_SubtitleColorYellow, "sFileScope.video.subtitle.color.yellow", checked: g_VideoSubtitleSettings.color == .Yellow)
+        menu.addPopup(strings.ui_SubtitleColor, colorMenu)
+
+        let delayMenu = MenuCtrl.createPopup(menu, owner: me)
+        delayMenu.addItem("-1.0 s", "sFileScope.video.subtitle.delay.minus1")
+        delayMenu.addItem("-0.1 s", "sFileScope.video.subtitle.delay.minus01")
+        delayMenu.addItem(strings.ui_SubtitleDelayReset, "sFileScope.video.subtitle.delay.reset", rightName: Format.toString("%{f1} s", g_VideoSubtitleSettings.delay).toString())
+        delayMenu.addItem("+0.1 s", "sFileScope.video.subtitle.delay.plus01")
+        delayMenu.addItem("+1.0 s", "sFileScope.video.subtitle.delay.plus1")
+        menu.addPopup(strings.ui_SubtitleDelay, delayMenu)
+
+        let rect   = .subtitleButton.surfaceRect()
+        let chosen = menu.doModal({rect.horzCenter(), rect.y}, .AnchorBottomCenter, autoDestroy: true)
+        if !chosen do
+            return
+        if chosen! == "sFileScope.video.subtitle.off"
+        {
+            .selectSubtitle(.Off)
+            return
+        }
+
+        if .handleSubtitleSetting(chosen!) do
+            return
+        for index in embeddedCount where chosen! == embeddedCommands[index].toString()
+        {
+            .selectSubtitle(.Embedded, index)
+            return
+        }
+
+        for index in .subtitleOverlay.sidecars.count where chosen! == sidecarCommands[index].toString()
+        {
+            .selectSubtitle(.Sidecar, cast(u32) index)
             return
         }
     }
@@ -1167,6 +1596,8 @@ private impl IWnd for VideoViewer
     {
         if evt.kind == .LanguageChanged do
             .retranslate()
+        elif evt.kind == .ThemeChanged do
+            .subtitleOverlay.applySettings()
         else do
             evt.accepted = false
     }
@@ -1180,8 +1611,12 @@ private impl IWnd for VideoViewer
         }
 
         .updatePlayback()
-        if !.isPendingDestroy do
+        if !.isPendingDestroy
+        {
+            .finishSubtitles()
             .refreshTime()
+            .refreshSubtitle()
+        }
     }
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)
@@ -1248,6 +1683,7 @@ private impl VideoViewer
 
         .video  = #move .pendingVideo
         .planar = .video.hasPlanarFrames()
+        loadVideoSidecars(.openFileName.toString(), &.subtitleOverlay.sidecars)
         .prepareSlots()
 
         // A stream whose samples are not square is stored with fewer columns than it is shown
@@ -1305,6 +1741,21 @@ private impl VideoViewer
             if sound and sound != .audio do
                 .selectAudioTrack(.audioTrackIndex)
         }
+    }
+
+    mtd finishSubtitles()
+    {
+        if .subtitleReady or !.video.isOpen() do
+            return
+        let subtitleCount = .video.subtitleTrackCount()
+        if !subtitleCount and !.subtitleOverlay.sidecars.count do
+            return
+
+        .subtitleReady = true
+        .subtitleButton.enable(true)
+        .subtitleSource      = .subtitleOverlay.sidecars.count ? .Sidecar : .Embedded
+        .subtitleTrackIndex  = 0
+        .subtitleLastSeconds = -1
     }
 
     func create(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails = null, reportFailure: #null ViewerReportFailure = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*VideoViewer fail
@@ -1394,6 +1845,21 @@ private impl VideoViewer
             }
         }
 
+        with result.subtitleButton = IconButton.create(result.commands, {}, {0, 0, 36, 36}, flags: .CenterContent)
+        {
+            .dockStyle = .Right
+            .margin.x  = 4
+            .toolTip   = videoStrings().ui_TipSubtitles
+            .setText("CC")
+            .style.setFont(result.theme().createDefaultFont(10, .Bold), .Regular)
+            .enable(false)
+            .sigPressed += func|view = result|(button)
+            {
+                discard button
+                view.showSubtitleMenu()
+            }
+        }
+
         with result.volumeSlider = Slider.create(result.commands, {0, 0, 96, 36})
         {
             .dockStyle = .Right
@@ -1452,6 +1918,7 @@ private impl VideoViewer
         result.imageView.dockStyle = .Center
         result.style.setStyleSheetColors(VideoBackdropColors)
         result.imageView.style.setStyleSheetColors(VideoBackdropColors)
+        result.subtitleOverlay = VideoSubtitleOverlay.create(result)
 
         result.playButton.enable(false)
         result.timeline.enable(false)

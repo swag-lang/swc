@@ -1,7 +1,7 @@
 //! Format: DTS Coherent Acoustics Core normative reconstruction tables.
 //! Supported: 32-band perfect and non-perfect synthesis plus 64x and 128x LFE interpolation.
 //! Not supported: DTS extension-substream reconstruction tables.
-//! Role: This file owns the numeric tables used by the DTS Core packet decoder.
+//! Role: This file owns the synthesis-filter and LFE interpolation tables used by the DTS Core packet decoder.
 //
 #global namespace Dts
 

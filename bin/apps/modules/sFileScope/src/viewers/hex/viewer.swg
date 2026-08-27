@@ -4,6 +4,16 @@ using Core, Pixel, Gui
 
 private const HexCommandWidth = 376.0
 
+private func loadHexDocument(fileName: string)->HexDocument fail
+{
+    var result: retval
+    if !result.open(fileName) do
+        fail InvalidFormatError{Errors.mkString(result.failureReason.toString())}
+    if result.fileSize and !result.ensure(0, Math.min(result.fileSize, HexWindowSize)) do
+        fail InvalidFormatError{Errors.mkString(result.failureReason.toString())}
+    return #move result
+}
+
 // Hexadecimal view of any file, whatever its size.
 //
 // The view owns three things: the grid the bytes are read in, the panel that spells the bytes under
@@ -23,11 +33,68 @@ internal struct HexViewer
         grid:        *HexGridView
     }
 
-    details: String
+    details:              String
+    load:                 ViewerBackgroundLoad'HexDocument
+    loadTimer:            #null *Timer
+    reportFailure:        #null ViewerReportFailure
+    reportLoadingChanged: #null ViewerReportLoadingChanged
+    failureReason:        String
+}
+
+private impl IWnd for HexViewer
+{
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer != .loadTimer
+        {
+            evt.accepted = false
+            return
+        }
+
+        if !.load.isDone() do
+            return
+
+        .removeTimer(evt.timer)
+        .loadTimer = null
+        var document: HexDocument
+        .failureReason = .load.finish(&document)
+        if !.failureReason.isEmpty()
+        {
+            if .reportFailure do
+                .reportFailure!(me, .failureReason.toString())
+            return
+        }
+
+        .grid.exchangeDocument(&document)
+        if .reportFailure
+        {
+            let report = .reportFailure!
+            .grid.doc.reportFailure = func|view = me, report|(reason) { report(cast(*Wnd) view, reason) }
+        }
+
+        .applyLayout()
+        .grid.refreshLayout()
+        .setInitialFocus(.grid)
+        if .reportLoadingChanged do
+            .reportLoadingChanged!(me)
+    }
 }
 
 internal impl HexViewer
 {
+    mtd retire()->bool
+    {
+        if !.load.retire() do
+            return false
+        if .loadTimer
+        {
+            .removeTimer(.loadTimer!)
+            .loadTimer = null
+        }
+
+        return true
+    }
+
     mtd selectedGrouping()->HexGrouping
     {
         let width  = .widthCombo.selectedIndex
@@ -72,10 +139,12 @@ internal impl HexViewer
 
 internal impl HexViewer
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null)->*HexViewer
+    func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*HexViewer
     {
         let result = Wnd.create'HexViewer(contentParent, "sFileScope.hex")
-        result.backgroundStyle = .View
+        result.backgroundStyle      = .View
+        result.reportFailure        = reportFailure
+        result.reportLoadingChanged = reportLoadingChanged
 
         result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, HexCommandWidth, 36})
         result.commands.backgroundStyle = .Window
@@ -127,7 +196,7 @@ internal impl HexViewer
             }
         }
 
-        result.grid = HexGridView.create(result, fileName)
+        result.grid = HexGridView.create(result)
         if reportFailure
         {
             let report = reportFailure!
@@ -138,6 +207,8 @@ internal impl HexViewer
         result.applyLayout()
         result.grid.refreshLayout()
         result.setInitialFocus(result.grid)
+        result.load.start(fileName, &loadHexDocument)
+        result.loadTimer = result.addTimer(ViewerBackgroundPollInterval)
         return result
     }
 }
@@ -146,14 +217,7 @@ internal impl HexViewer
 func createHexViewer(request: const *ViewerRequest, result: *ViewerResult)
 {
     registerHexStrings(request.contentParent.app())
-    let view = HexViewer.create(request.contentParent, request.commandParent, request.fileName, request.reportFailure)
-    if !view.grid.doc.failureReason.isEmpty()
-    {
-        result.failureReason = #move view.grid.doc.failureReason
-        view.commands.destroy()
-        view.destroy()
-        return
-    }
+    let view = HexViewer.create(request.contentParent, request.commandParent, request.fileName, request.reportFailure, request.reportLoadingChanged)
 
     result.view         = view
     result.commands     = view.commands
@@ -164,5 +228,8 @@ func createHexViewer(request: const *ViewerRequest, result: *ViewerResult)
         discard match
         return (cast(*HexViewer) wnd).grid.matchBounds(bounds)
     }
-    result.clearSearch = func(wnd) { (cast(*HexViewer) wnd).grid.clearSearchMatch() }
+    result.clearSearch         = func(wnd) { (cast(*HexViewer) wnd).grid.clearSearchMatch() }
+    result.isLoading           = func(wnd)->bool { return (cast(*HexViewer) wnd).loadTimer != null }
+    result.needsLoadingOverlay = func(wnd)->bool { return (cast(*HexViewer) wnd).loadTimer != null }
+    result.retire              = func(wnd)->bool { return (cast(*HexViewer) wnd).retire() }
 }

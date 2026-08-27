@@ -46,14 +46,24 @@ private func dolbySpeakerMask(acmod: u32, lfeon: bool)->u32
     return Masks[acmod] | (lfeon ? 0x0008 : 0)
 }
 
-private func dtsPacketBits(bytes: const [..] u8, offset: u64, bitPosition, count: u32, littleEndianWords: bool)->u32
+private func dtsPacketBits(bytes: const [..] u8, bitPosition, count: u32, littleEndianWords, packed14: bool)->u32
 {
     var result: u32
     for bit in count
     {
         let position = cast(u64) bitPosition + bit
-        let byte     = (position >> 3) ^ (littleEndianWords ? 1 : 0)
-        result = (result << 1) | ((cast(u32) bytes[offset + byte] >> cast(u32) (7 - (position & 7))) & 1)
+        result <<= 1
+        if packed14
+        {
+            let byte = position / 14 * 2
+            let word = littleEndianWords ? cast(u32) bytes[byte] | (cast(u32) bytes[byte + 1] << 8) : (cast(u32) bytes[byte] << 8) | cast(u32) bytes[byte + 1]
+            result |= (word >> cast(u32) (13 - position % 14)) & 1
+        }
+        else
+        {
+            let byte = (position >> 3) ^ (littleEndianWords ? 1 : 0)
+            result |= (cast(u32) bytes[byte] >> cast(u32) (7 - (position & 7))) & 1
+        }
     }
 
     return result
@@ -64,13 +74,20 @@ internal func dtsSpeakerMask(packet: const [..] u8)->u32 fail
     if @countof(packet) < 11 do
         fail InvalidFormatError{"Matroska DTS packet header is truncated"}
 
-    let bigEndian    = packet[0] == 0x7F and packet[1] == 0xFE and packet[2] == 0x80 and packet[3] == 0x01
-    let littleEndian = packet[0] == 0xFE and packet[1] == 0x7F and packet[2] == 0x01 and packet[3] == 0x80
-    if !bigEndian and !littleEndian do
-        fail InvalidFormatError{"Matroska DTS packet has no 16-bit core sync word"}
+    let bigEndian16    = packet[0] == 0x7F and packet[1] == 0xFE and packet[2] == 0x80 and packet[3] == 0x01
+    let littleEndian16 = packet[0] == 0xFE and packet[1] == 0x7F and packet[2] == 0x01 and packet[3] == 0x80
+    let bigEndian14    = packet[0] == 0x1F and packet[1] == 0xFF and packet[2] == 0xE8 and packet[3] == 0x00
+    let littleEndian14 = packet[0] == 0xFF and packet[1] == 0x1F and packet[2] == 0x00 and packet[3] == 0xE8
+    if !bigEndian16 and !littleEndian16 and !bigEndian14 and !littleEndian14 do
+        fail InvalidFormatError{"Matroska DTS packet has no core sync word"}
 
-    let mode = dtsPacketBits(packet, 0, 60, 6, littleEndian)
-    let lfe  = dtsPacketBits(packet, 0, 85, 2, littleEndian)
+    let packed14 = bigEndian14 or littleEndian14
+    if packed14 and @countof(packet) < 16 do
+        fail InvalidFormatError{"Matroska DTS packet header is truncated"}
+
+    let littleEndian = littleEndian16 or littleEndian14
+    let mode         = dtsPacketBits(packet, 60, 6, littleEndian, packed14)
+    let lfe          = dtsPacketBits(packet, 85, 2, littleEndian, packed14)
     const Masks: [10] u32 = [0x0004, 0x0003, 0x0003, 0x0003, 0x0003, 0x0007, 0x0103, 0x0107, 0x0033, 0x0037]
     if mode >= @countof(Masks) or lfe == 3 do
         fail InvalidFormatError{"Matroska DTS packet states an invalid channel arrangement"}

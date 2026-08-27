@@ -50,7 +50,7 @@ Every entry carries a permanent identifier in its heading:
 ### B-001 — A short, descriptive title
 ```
 
-Next identifier: B-011
+Next identifier: B-012
 
 - `B-*` is the identifier family for every new entry. Take the number above and advance the
   counter in the same change.

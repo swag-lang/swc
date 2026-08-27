@@ -17,6 +17,13 @@ fixture and is not a build or runtime dependency.
 - SHA-256: `6de5bc7205bd12bb36948215f8bc61cc8230a183670e5389b6b532bb1a04754e`
 - License: same as this repository.
 
+`dts-5.1-48000-14be.dts` contains the same coded frames repacked into the format's 14-bit
+big-endian transport representation. The repacking changes no coded audio and introduces no
+additional source material.
+
+- SHA-256: `8e49755616815440387693f74fbd354fba0561ba97312ee7519426527a4d5757`
+- License: same as this repository.
+
 `aac-lc-5.1-48000.aac`, `ac3-5.1-48000.ac3`, and `eac3-5.1-48000.eac3` are half-second 48 kHz
 5.1 streams generated for this repository with FFmpeg
 `N-126262-g1019f8f036-20260824`. Their six synthetic inputs are 300, 400, 500, 600, 700, and

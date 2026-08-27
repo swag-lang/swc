@@ -51,6 +51,14 @@ enum class SemaEscapeKind : uint8_t
     DeferredCall, // opaque-call result bound to a local: may borrow the call's arguments
 };
 
+struct SemaEscapeDetachedPayloadField
+{
+    const SymbolVariable* owner = nullptr;
+    const SymbolVariable* field = nullptr;
+
+    bool operator==(const SemaEscapeDetachedPayloadField&) const noexcept = default;
+};
+
 struct SemaEscapeInfo
 {
     SemaEscapeKind        kind      = SemaEscapeKind::None;
@@ -64,6 +72,9 @@ struct SemaEscapeInfo
     // Opaque-call snapshots carried by this value. Shared ownership keeps them valid
     // when nested Sema instances and control-flow alternatives exchange their state.
     SmallVector4<std::shared_ptr<const SemaEscapeDeferredCallSnapshot>> deferredCalls;
+    // Owning root/field pairs replaced after an opaque accessor produced this view. The
+    // accessor's final returned-payload projection decides whether each one detached it.
+    SmallVector4<SemaEscapeDetachedPayloadField> detachedOwnedPayloadFields;
     // Lexical depth of the storage backing a Materialized borrow (0 = unknown).
     uint32_t sourceScopeDepth = 0;
     // The borrow designates a payload the source OWNS (a buffer read out of a value with
@@ -104,6 +115,13 @@ struct SemaEscapeInfo
             {
                 if (std::ranges::find(deferredCalls, call) == deferredCalls.end())
                     deferredCalls.push_back(call);
+            }
+            for (auto it = detachedOwnedPayloadFields.begin(); it != detachedOwnedPayloadFields.end();)
+            {
+                if (std::ranges::find(other.detachedOwnedPayloadFields, *it) == other.detachedOwnedPayloadFields.end())
+                    it = detachedOwnedPayloadFields.erase(it);
+                else
+                    ++it;
             }
             return;
         }
@@ -441,6 +459,7 @@ public:
     void                                                             setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
     void                                                             clearVariableEscapeInfo(const SymbolVariable& symVar);
     void                                                             detachVariableOwnedPayload(const SymbolVariable& symVar);
+    void                                                             detachVariableOwnedPayloadField(const SymbolVariable& symVar, const SymbolVariable& owner, const SymbolVariable& field);
     SemaEscapeInfo                                                   variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const;
     SemaEscapeInfo                                                   projectionEscapeInfoIncludingWildcards(const SemaEscapeProjection& projection) const;
     void                                                             setProjectionEscapeInfo(const SemaEscapeProjection& projection, const SemaEscapeInfo& info);

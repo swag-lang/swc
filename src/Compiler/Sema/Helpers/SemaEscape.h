@@ -54,6 +54,9 @@ struct SemaEscapeDeferredCheck
     // to carry the route back to the owner, which is what tells the invalidation check
     // that a call result reads what that global owns.
     bool staticSource = false;
+    // Provenance-only snapshot (not an escape diagnostic), used when an accessor result
+    // inside a method routes back to the caller-owned receiver parameter.
+    bool routeOnly = false;
     // The borrowed source is an owner (its payload lives on the heap): freeing it is
     // legitimate, so a FREES-only match must stay silent.
     bool ownerSource = false;
@@ -79,9 +82,10 @@ struct SemaEscapeDeferredCheck
     bool judgeReallocates = false;
     // First receiver field of the saved view and of the mutation site. Null means the
     // receiver itself. The callee summary supplies its own first field at final judgement.
-    const SymbolVariable* borrowedPayloadField    = nullptr;
-    const SymbolVariable* receiverProjectionField = nullptr;
-    Utf8                  valueName;
+    const SymbolVariable*               borrowedPayloadField    = nullptr;
+    const SymbolVariable*               receiverProjectionField = nullptr;
+    SmallVector4<const SymbolVariable*> detachedPayloadFields;
+    Utf8                                valueName;
 };
 
 // A structural change of storage that a local view was reading. Recorded where the flow
@@ -102,10 +106,11 @@ struct SemaBorrowInvalidation
     // Where the call's own text ends. Arguments are evaluated BEFORE the callee runs, so
     // a view named inside them is read before the change, not after it: the search for a
     // later read starts past the whole call expression, not past its name.
-    uint32_t              evaluationEndOffset = 0;
-    Utf8                  mutationName;
-    const SymbolVariable* borrowedPayloadField    = nullptr;
-    const SymbolVariable* receiverProjectionField = nullptr;
+    uint32_t                            evaluationEndOffset = 0;
+    Utf8                                mutationName;
+    const SymbolVariable*               borrowedPayloadField    = nullptr;
+    const SymbolVariable*               receiverProjectionField = nullptr;
+    SmallVector4<const SymbolVariable*> detachedPayloadFields;
     // What the view's provenance depends on. A view taken straight out of the storage
     // needs nothing; one obtained from an accessor call only aliases the receiver when
     // that accessor's return summary says so, and summaries are final only once the

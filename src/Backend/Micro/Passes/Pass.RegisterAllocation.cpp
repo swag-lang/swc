@@ -518,7 +518,10 @@ bool MicroRegisterAllocationPass::canUsePhysical(MicroReg virtKey, uint32_t inst
     // A register the first sweep reserved for a whole live range stays
     // off limits for every later sweep: the value it holds is not in this
     // sweep's mapping, so displacing it would go unnoticed and unrepaired.
-    if (!context_->isFirstAllocationSweep && containsKey(context_->globalReservedRegs, physReg))
+    // Interval-allocated output has no such hidden values: everything it
+    // holds is a concrete touch the guards above already see, and the list
+    // only names what a borrow may take.
+    if (!context_->isFirstAllocationSweep && !context_->intervalAllocated && containsKey(context_->globalReservedRegs, physReg))
         return false;
 
     // Unconditional, unlike the concrete-touch test above: a globally reserved
@@ -4517,6 +4520,18 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     analyzeLiveness();
     computeVirtualLiveSpans();
     setupPools();
+
+    // B-012: the gated interval path replaces everything below when it
+    // succeeds; any bail falls back to the existing allocator untouched.
+    if (runIntervalAllocationIfGated())
+    {
+        flushQueuedErasures();
+        insertSpillFrame();
+        context.spillAreaLo = std::min(context.spillAreaLo, spillAreaLo_);
+        context.spillAreaHi = std::max(context.spillAreaHi, spillAreaHi_);
+        return Result::Continue;
+    }
+
     assignGlobalRegisters();
     preallocateLoopCarriedSlots();
 

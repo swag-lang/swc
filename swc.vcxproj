@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <ItemGroup Label="ProjectConfigurations">
         <ProjectConfiguration Include="DevMode|x64">
@@ -251,6 +251,7 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilogSanitize.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.Interval.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.MemToReg.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoopInvariantCodeMotion.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoopUnroll.cpp"/>

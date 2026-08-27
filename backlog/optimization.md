@@ -712,6 +712,34 @@ cmov-to-branch back-conversion, and profile-gated passes.
   CFG, first sweep, initially call-free leaf functions of the hot corpus), gated so a failed
   precondition falls back to the current allocator, and grown outward one class of functions at
   a time with the reload-cause trace and byte-exact decode as the gate at each step.
+- State 2026-08-27 (worktree `swc-t563`, branch `t563-r1`): the pipeline is complete behind
+  `SWC_INTERVAL_RA` (a function-name substring, or `*`): intervals with holes, the Wimmer walk
+  with optimal split positions and register hints, rewrite and edge resolution with inline
+  trampolines for the edges no plain placement serves, the contract the later sweeps need (the
+  pool registers are borrowable around a legalize scratch, the debug local-stack base is pinned
+  as `assignGlobalRegisters` pins it), whole-node spills of an owner never accessed since it
+  took its register (c1_LinearScan's `split_for_spilling`), and spill stores placed at the
+  definitions when cheaper by loop depth than the resolution stores (c1's `storeAtDefinition`,
+  LLVM's `InlineSpiller`). `PostRALoopRotate` copies the connectors the allocator leaves around
+  a header compare, so rotated loops stay rotated under either allocator. With the gate open on
+  the whole standard library, 26090 functions are taken and 123 fall back; the probe checksums
+  are golden and the video conformance tests pass.
+- Measured 2026-08-27 on a quiet machine (the earlier "kernels 3-4x slower" was machine load):
+  the deblock probe `kernelPass` at parity (memory-bound), `levenSearch` -4 %, the serial HEVC
+  conformance decode (`zzab` harness, alternated processor time) at parity within noise.
+  Static, same compiler, load connectors of the interval allocator against the legacy reload
+  trace: idct 59 vs 130, filterLumaEdge 59 vs 77, interpolateLuma 154 vs 119, interpolateChroma
+  99 vs 71. interpolateLuma's 52 loads at its innermost loop depth are all reloads of
+  loop-invariant parameters (v6, v9, v13: one definition each, reloaded on back-edges and at
+  seams inside every inner loop) evicted by the farthest-next-use election in favour of values
+  read less often inside the loop.
+- Next: weight the election by use density under loop depth - LLVM's spill weight
+  (`calculateSpillWeightAndHint`: uses scaled by block frequency, over the interval's size) as
+  the tie-breaker `allocateBlockedReg` consults before the bare farthest next use, so a
+  parameter read on every iteration outranks a value read once - then re-measure the four
+  functions' loop-level loads and the serial decode. Before any merge: strip the instrumentation
+  (`IVWALK`/`IVAPPLY`/`IVNODE`/`IVCONN`/`IVMAP`/`IVSTAT` and the legacy `RARELOAD` trace) and
+  rebase on master, which moved 12 commits past the branch point.
 - Complete when: the gated allocator compiles the HEVC hot four (idct, interpolateLuma,
   filterLumaEdge, interpolateChroma) with materially fewer emitted reloads than the cause-trace
   baseline (idct 101, interpolateLuma 119, filterLumaEdge 77, interpolateChroma 71), the video

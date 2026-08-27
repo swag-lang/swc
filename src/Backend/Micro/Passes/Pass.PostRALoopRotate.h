@@ -17,7 +17,8 @@ SWC_BEGIN_NAMESPACE();
 // reads loop structure: csvagg's digit loops lost their accumulator's register
 // and went from 2 memory operations per iteration to 4 while its scans
 // improved. After allocation there are no registers left to lose, so the
-// transformation is purely the jump it removes.
+// transformation is purely the jump it removes. It therefore also sees the
+// allocator's own insertions around the header test, and copies them with it.
 class MicroPostRaLoopRotatePass final : public MicroPass
 {
 public:

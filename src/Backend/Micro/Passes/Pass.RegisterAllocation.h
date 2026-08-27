@@ -162,6 +162,68 @@ private:
     // register it occupied on that edge.
     using BoundarySnapshot = SmallVector<std::pair<uint32_t, MicroReg>, 8>;
 
+public:
+    // B-012: interval-splitting allocation (Wimmer & Mössenböck, VEE 2005)
+    // behind a per-function gate, implemented in
+    // Pass.RegisterAllocation.Interval.cpp. Positions number each instruction
+    // twice: index*2 is its input (read) slot, index*2+1 its output (write)
+    // slot, so a source that dies at an instruction and a destination born
+    // there do not overlap.
+    struct IntervalRange
+    {
+        uint32_t from = 0; // inclusive
+        uint32_t to   = 0; // exclusive
+    };
+    struct LiveInterval
+    {
+        uint32_t                      denseIndex = 0;
+        SmallVector<IntervalRange, 4> ranges;         // sorted, disjoint
+        SmallVector<uint32_t, 8>      usePositions;   // input slots, sorted
+        SmallVector<uint32_t, 4>      defPositions;   // output slots, sorted
+
+        // Walk state. An interval is one node of a value's split tree: the
+        // walk splits at even (instruction-input) positions only, children
+        // are re-queued as unhandled, and each node ends with either a
+        // register or the value's one spill home.
+        MicroReg assignedReg;
+        // The register an earlier node of this value held (c1_LinearScan's
+        // register hint): re-acquiring it turns the connector at the split
+        // into a no-op. hintDense hints across values instead: this value is
+        // born from a copy of that one, and taking the same register erases
+        // the copy.
+        MicroReg hintPhys;
+        uint32_t hintDense = std::numeric_limits<uint32_t>::max();
+        bool     spilled   = false;
+
+        uint32_t start() const { return ranges.empty() ? 0 : ranges.front().from; }
+        uint32_t end() const { return ranges.empty() ? 0 : ranges.back().to; }
+        bool     covers(uint32_t pos) const;
+        uint32_t nextIntersection(const LiveInterval& other, uint32_t from) const;
+        uint32_t firstUseAfter(uint32_t pos) const;
+        uint32_t firstRangeStartAfter(uint32_t pos) const;
+    };
+    struct IntervalWalkResult
+    {
+        // All split-tree nodes, per original value: [valueNodesBegin[dense],
+        // valueNodesBegin[dense+1]) into nodes, sorted by start.
+        std::vector<LiveInterval> nodes;
+        std::vector<uint32_t>     valueNodesBegin;
+        uint32_t                  splitCount = 0;
+        uint32_t                  spillCount = 0;
+        // The registers the walk allocated from, and the register the debug
+        // local-stack base was pinned to (invalid when it was not).
+        SmallVector<MicroReg> poolRegs;
+        MicroReg              debugStackBasePhys;
+    };
+
+private:
+    bool intervalGateAccepts() const;
+    void buildLiveIntervals(std::vector<LiveInterval>& out) const;
+    void buildFixedIntervals(std::vector<LiveInterval>& outByPoolIndex, SmallVector<MicroReg>& outPoolRegs) const;
+    bool walkIntervals(std::vector<LiveInterval>&& intervals, IntervalWalkResult& out) const;
+    bool applyIntervalAllocation(IntervalWalkResult& result);
+    bool runIntervalAllocationIfGated();
+
     void clearState();
     void initState(MicroPassContext& context);
     void coalesceLocalCopies() const;

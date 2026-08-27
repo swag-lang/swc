@@ -24,6 +24,12 @@
 // the same point, and the flags each jump consumes are still defined
 // immediately above it. A `continue` aimed at H keeps working too: it re-runs
 // the test and falls into H2, exactly as before.
+//
+// The allocator may leave register moves and frame traffic between the label
+// and the jump: split connectors before the compare, exit-edge connectors
+// between the compare and the jump. They are part of the test. The whole run
+// from the label to the jump is what gets copied to the back edge, so each
+// iteration still executes it once, at the same point.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -86,9 +92,31 @@ namespace
         }
     }
 
+    // A connector the allocator places around the test: a register move or
+    // frame traffic, flag-neutral, so the compare still feeds the jump.
+    bool isDuplicableConnector(const MicroInstr& inst)
+    {
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadRegReg:
+            case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadMemReg:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    // A header carrying more than this around its compare is not worth
+    // duplicating for the one jump the rotation removes.
+    constexpr uint32_t K_MAX_TEST_RUN = 8;
+
     struct Rotation
     {
-        MicroInstrRef cmpRef       = MicroInstrRef::invalid();
+        // Ordinals into the listing: [testBegin, testEnd) is the test run,
+        // the compare and its connectors, copied to the back edge.
+        uint32_t      testBegin    = 0;
+        uint32_t      testEnd      = 0;
         MicroInstrRef jccRef       = MicroInstrRef::invalid();
         MicroInstrRef bodyFirstRef = MicroInstrRef::invalid();
         MicroInstrRef backRef      = MicroInstrRef::invalid();
@@ -133,15 +161,42 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         if (!tryGetLabelId(labelId, *labelInst, labelInst->ops(operands)))
             continue;
 
-        const MicroInstrRef cmpRef  = order[ordinal + 1];
-        const MicroInstr*   cmpInst = storage.ptr(cmpRef);
-        if (!cmpInst || !isDuplicableTest(*cmpInst) || relocatedInstructions.contains(cmpRef.get()))
+        // The test run: one duplicable compare, possibly surrounded by
+        // connectors, closed by the conditional jump.
+        const uint32_t testBegin = ordinal + 1;
+        uint32_t       testEnd   = testBegin;
+        bool           haveTest  = false;
+        bool           closed    = false;
+        for (; testEnd < order.size() && testEnd - testBegin <= K_MAX_TEST_RUN; ++testEnd)
+        {
+            const MicroInstr* testInst = storage.ptr(order[testEnd]);
+            if (!testInst)
+                break;
+            if (testInst->op == MicroInstrOpcode::JumpCond)
+            {
+                closed = haveTest;
+                break;
+            }
+            if (relocatedInstructions.contains(order[testEnd].get()))
+                break;
+            if (isDuplicableTest(*testInst))
+            {
+                if (haveTest)
+                    break;
+                haveTest = true;
+            }
+            else if (!isDuplicableConnector(*testInst))
+            {
+                break;
+            }
+        }
+        if (!closed || testEnd + 1 >= order.size())
             continue;
 
-        const MicroInstrRef      jccRef  = order[ordinal + 2];
+        const MicroInstrRef      jccRef  = order[testEnd];
         const MicroInstr*        jccInst = storage.ptr(jccRef);
-        const MicroInstrOperand* jccOps  = jccInst ? jccInst->ops(operands) : nullptr;
-        if (!jccInst || jccInst->op != MicroInstrOpcode::JumpCond || !jccOps || jccInst->numOperands < 3)
+        const MicroInstrOperand* jccOps  = jccInst->ops(operands);
+        if (!jccOps || jccInst->numOperands < 3)
             continue;
         const MicroCond cond = jccOps[0].cpuCond;
         if (cond == MicroCond::Unconditional)
@@ -166,7 +221,7 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
                 continue;
             ++jumpsToLabel;
             const MicroInstrOperand* candOps = cand->ops(operands);
-            if (scan > ordinal + 2 && candOps && candOps[0].cpuCond == MicroCond::Unconditional)
+            if (scan > testEnd && candOps && candOps[0].cpuCond == MicroCond::Unconditional)
             {
                 backRef     = order[scan];
                 backOrdinal = scan;
@@ -189,7 +244,7 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         if (!invertCondition(cond, inverted))
             continue;
 
-        rotations.push_back({.cmpRef = cmpRef, .jccRef = jccRef, .bodyFirstRef = order[ordinal + 3], .backRef = backRef, .inverted = inverted});
+        rotations.push_back({.testBegin = testBegin, .testEnd = testEnd, .jccRef = jccRef, .bodyFirstRef = order[testEnd + 1], .backRef = backRef, .inverted = inverted});
     }
 
     if (rotations.empty())
@@ -197,20 +252,13 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
 
     for (const Rotation& rotation : rotations)
     {
-        const MicroInstr* cmpInst = storage.ptr(rotation.cmpRef);
         const MicroInstr* jccInst = storage.ptr(rotation.jccRef);
-        if (!cmpInst || !jccInst)
+        if (!jccInst)
             continue;
-        const MicroInstrOperand* cmpOps = cmpInst->ops(operands);
         const MicroInstrOperand* jccOps = jccInst->ops(operands);
-        if (!cmpOps || !jccOps)
+        if (!jccOps)
             continue;
-
-        SmallVector<MicroInstrOperand, 8> cmpCopy;
-        for (uint32_t i = 0; i < cmpInst->numOperands; ++i)
-            cmpCopy.push_back(cmpOps[i]);
         const MicroInstrOperand jccOpBits = jccOps[1];
-        const MicroInstrOpcode  cmpOp     = cmpInst->op;
 
         const uint64_t bodyLabelId = context.builder->createLabel().get();
 
@@ -218,7 +266,20 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         bodyLabelOps[0].valueU64 = bodyLabelId;
         storage.insertDerivedBefore(operands, rotation.bodyFirstRef, MicroInstrOpcode::Label, bodyLabelOps);
 
-        storage.insertDerivedBefore(operands, rotation.backRef, cmpOp, {cmpCopy.data(), cmpCopy.size()});
+        // The test run is copied in order; each instruction is captured
+        // before the insertion that may move the storage under it.
+        for (uint32_t ordinal = rotation.testBegin; ordinal < rotation.testEnd; ++ordinal)
+        {
+            const MicroInstr* testInst = storage.ptr(order[ordinal]);
+            SWC_ASSERT(testInst);
+            const MicroInstrOperand* testOps = testInst->ops(operands);
+            SWC_ASSERT(testOps);
+            SmallVector<MicroInstrOperand, 8> testCopy;
+            for (uint32_t i = 0; i < testInst->numOperands; ++i)
+                testCopy.push_back(testOps[i]);
+            const MicroInstrOpcode testOp = testInst->op;
+            storage.insertDerivedBefore(operands, rotation.backRef, testOp, {testCopy.data(), testCopy.size()});
+        }
 
         const MicroInstr* backInst = storage.ptr(rotation.backRef);
         if (!backInst || backInst->numOperands < 3)

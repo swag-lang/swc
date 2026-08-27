@@ -354,7 +354,10 @@ namespace
         {
             context.isFirstAllocationSweep = iteration == 0;
             if (iteration == 0)
+            {
                 context.globalReservedRegs.clear();
+                context.intervalAllocated = false;
+            }
 
             bool iterationMutated = false;
 #if SWC_HAS_VALIDATE_MICRO

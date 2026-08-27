@@ -68,3 +68,22 @@ being compiled by it.
 - Next step: a fixture is an input, not a source file — give the test data directories a
   `-text` rule in `.gitattributes` so every checkout is byte-exact, and check whether any other
   fixture-size or hash assertion depends on the same accident.
+
+### B-013 — A tool relaunched under the selected compiler can relaunch itself forever
+
+- Area: tooling
+- Found while: building the standard library under the interval allocator gate for B-012's A/B.
+- Observation: `relaunchToolIfNeeded` (`tools/src/context.swg`) re-runs the script under the
+  selected compiler with `--rebuild` whenever the running executable differs from the selected
+  one, and nothing marks the relaunched process as such. When that decision misfires in the
+  relaunched process, every generation rebuilds the tool's dependencies and spawns the next. It
+  misfired once: a fresh worktree, `SWC_INTERVAL_RA=*`, a user-supplied `--rebuild`, and a
+  checkpoint of the interval allocator compiling the tool's own `core` gate-on — 55 nested
+  `swc_devmode.exe` processes in nine minutes, stopped by hand.
+- Evidence: 2026-08-27, branch `t563-r1` at `d0621af96`; the log repeats `swag run • tools`,
+  `module core`, `workspace std [core]`, `tuned 644 functions`. The same command with the
+  compiler that followed, and every variant with only one of the conditions, runs once; the
+  comparison that disagreed under the gate was not isolated.
+- Next step: make the relaunch non-recursive — the relaunched process carries a marker (an
+  environment variable or a reserved argument) and refuses to relaunch again, reporting both
+  paths instead — then look for what disagreed under the gate.

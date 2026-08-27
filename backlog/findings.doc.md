@@ -28,28 +28,15 @@ Entries are sorted by identifier, ascending; position carries no priority.
   with timing probes around `Command::doc`'s sema call and inside
   `DocApi::generate` ([Command.Doc.cpp](../src/Main/Command/Command.Doc.cpp),
   [DocApi.cpp](../src/Doc/DocApi.cpp)). Omitting `--rebuild` changes nothing: a doc run persists
-  no sema artifact it could reuse.
-- Next step: measure which compile-time callers demand the 7 803 JIT emissions during a doc run,
-  and whether any lowering is demanded by paths documentation never needs; that number bounds
-  what any doc-mode fast path could save before the larger incrementality work.
-
-### F-130 — Export-root resolution walks the declaration tree once per symbol
-
-- Area: compiler
-- Found while: removing the per-symbol whole-AST scans this entry originally described
-- Observation: the memoized `Ast::reachableNodeRef` index removed the dominant scan (`ogl`
-  `collectDocItems` 803 ms to ~190 ms, its doc stage 1 159 ms to ~315 ms, and the same index
-  serves `collectPublicEntries` inside sema), but the collector still resolves each item's
-  export root through `findExportDeclRoot`, whose `collectModuleApiNodePath` runs a
-  root-to-target DFS over the declaration tree for every symbol. A generated binding file with
-  thousands of top-level declarations pays declarations-times-tree-size again there; it is the
-  main suspected share of `ogl`'s remaining ~190 ms collect.
-- Evidence: [ModuleApi.Decl.cpp:32](../src/Compiler/ModuleApi/ModuleApi.Decl.cpp#L32)
-  (`collectModuleApiNodePath`), reached per candidate from
-  [DocApi.Collect.cpp:864](../src/Doc/DocApi.Collect.cpp#L864); measured with the F-129 probes
-  after the reachable-index fix.
-- Next step: record each node's parent in the same single traversal that builds
-  `Ast::ReachableNodeIndex` and derive the root-to-target path by walking parents upward,
-  keeping the additional-node and function-body constraints as per-ancestor checks; re-measure
-  `ogl` collect.
-- Related: F-129
+  no sema artifact it could reuse. A later six-worker DevMode probe counted 10 877 JIT
+  preparation roots across `std`: 6 929 constant calls, 702 constant-set calls, 2 608 immediate
+  statements, 263 run expressions, 210 function results, and 165 statements. The hottest roots
+  were `isStruct` (3 092), `__message_0` (2 605 immediate statements), `isEnum` (1 239),
+  `fromArgb` (644), and `fourCc` (581). Suppressing optional constant folding for `doc` changed
+  no measurable wall time (25.66 s versus a 25.25 s baseline), so that experiment was reverted:
+  repeated preparation requests are not evidence that they emit or lower a function again.
+- Next step: attribute each newly emitted function and its lowering CPU to the first JIT root and
+  dependency closure that demanded it, excluding already-ready preparations. Start with the
+  `isStruct`/`isEnum` closures and the repeated `__message_0` path; only then decide whether a
+  doc-mode fast path exists. Persisting sema and codegen across invocations remains T-002/T-122.
+- Related: T-002, T-122

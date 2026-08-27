@@ -858,59 +858,6 @@ impl ViewerWindow
 
         result.commandBar.searchGroup = result.searchGroup
 
-        with result.searchBox = EditBox.create(result.searchGroup, "", {0, 0, ViewerSearchFieldWidth, 36}, flags: .ClearButton)
-        {
-            .setIcon(result.theme().icon(.Search, 18))
-            .setPlaceholder(appStrings().ui_Search)
-            .sigTextChanged += func|window = result|(edit)
-            {
-                discard edit
-                window.restartSearch()
-            }
-            .sigSubmitted += func|window = result|(edit)
-            {
-                discard edit
-                window.findNext()
-            }
-            .sigCancelled += func|window = result|(edit)
-            {
-                discard edit
-                window.hideSearch()
-            }
-            .enable(false)
-        }
-
-        with result.searchCountLabel = Label.create(result.searchGroup, "", {0, 0, ViewerSearchCountWidth, 36}, null, .SecondaryText)
-        {
-            .margin.x = 8
-            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
-            .setTextAlignment(.Center, .OpticalCenter)
-        }
-
-        with result.searchPrevious = IconButton.create(result.searchGroup, result.theme().icon(.SearchPrevious, 16), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize})
-        {
-            .layoutSpec.alignY = .Center
-            .toolTip           = appStrings().ui_SearchPrevious
-            .sigPressed        += func|window = result|(button)
-            {
-                discard button
-                window.findPrevious()
-            }
-            .enable(false)
-        }
-
-        with result.searchNext = IconButton.create(result.searchGroup, result.theme().icon(.SearchNext, 16), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize})
-        {
-            .layoutSpec.alignY = .Center
-            .toolTip           = appStrings().ui_SearchNext
-            .sigPressed        += func|window = result|(button)
-            {
-                discard button
-                window.findNext()
-            }
-            .enable(false)
-        }
-
         with result.searchMatchCase = IconButton.create(result.searchGroup, {}, {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize}, flags: .Toggle | .CenterContent)
         {
             .layoutSpec.alignY = .Center
@@ -937,6 +884,59 @@ impl ViewerWindow
                 window.restartSearch()
                 catch window.saveState()
             }
+        }
+
+        with result.searchBox = EditBox.create(result.searchGroup, "", {0, 0, ViewerSearchFieldWidth, 36}, flags: .ClearButton)
+        {
+            .setIcon(result.theme().icon(.Search, 18))
+            .setPlaceholder(appStrings().ui_Search)
+            .sigTextChanged += func|window = result|(edit)
+            {
+                discard edit
+                window.restartSearch()
+            }
+            .sigSubmitted += func|window = result|(edit)
+            {
+                discard edit
+                window.findNext()
+            }
+            .sigCancelled += func|window = result|(edit)
+            {
+                discard edit
+                window.hideSearch()
+            }
+            .enable(false)
+        }
+
+        with result.searchPrevious = IconButton.create(result.searchGroup, result.theme().icon(.SearchPrevious, 16), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize})
+        {
+            .layoutSpec.alignY = .Center
+            .toolTip           = appStrings().ui_SearchPrevious
+            .sigPressed        += func|window = result|(button)
+            {
+                discard button
+                window.findPrevious()
+            }
+            .enable(false)
+        }
+
+        with result.searchNext = IconButton.create(result.searchGroup, result.theme().icon(.SearchNext, 16), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize})
+        {
+            .layoutSpec.alignY = .Center
+            .toolTip           = appStrings().ui_SearchNext
+            .sigPressed        += func|window = result|(button)
+            {
+                discard button
+                window.findNext()
+            }
+            .enable(false)
+        }
+
+        with result.searchCountLabel = Label.create(result.searchGroup, "", {0, 0, ViewerSearchCountWidth, 36}, null, .SecondaryText)
+        {
+            .margin.x = 8
+            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .setTextAlignment(.Left, .OpticalCenter)
         }
 
         result.commandBar.centerSearchGroup()

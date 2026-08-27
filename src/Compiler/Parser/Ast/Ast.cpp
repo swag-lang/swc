@@ -195,6 +195,41 @@ bool Ast::isReachableNodeIndexCurrent(const ReachableNodeIndex& index) const
     return true;
 }
 
+void Ast::buildReachableNodeIndex() const
+{
+    auto index = std::make_unique<ReachableNodeIndex>();
+    for (uint32_t i = 0; i < SHARD_COUNT; i++)
+    {
+        std::shared_lock shardLock(shards_[i].mutex);
+        index->watermarks[i] = shards_[i].store.size();
+    }
+
+    // The traversal itself carries the reachability guarantee: a node parsed into this
+    // storage but detached from the tree never enters the maps. Recording the first parent
+    // also preserves the first root-to-node path selected by the former depth-first search.
+    SmallVector<AstNodeRef> children;
+    SmallVector<std::pair<AstNodeRef, AstNodeRef>> stack;
+    stack.push_back({root_, AstNodeRef::invalid()});
+    while (!stack.empty())
+    {
+        const auto [nodeRef, parentRef] = stack.back();
+        stack.pop_back();
+        if (!nodeRef.isValid())
+            continue;
+
+        const AstNode& node = this->node(nodeRef);
+        if (!index->entries.emplace(&node, ReachableNodeIndex::Entry{.nodeRef = nodeRef, .parentRef = parentRef}).second)
+            continue;
+
+        children.clear();
+        nodeIdInfos(node.id()).collectChildren(children, *this, node);
+        for (const AstNodeRef childRef : std::ranges::reverse_view(children))
+            stack.push_back({childRef, nodeRef});
+    }
+
+    reachableNodeIndex_ = std::move(index);
+}
+
 AstNodeRef Ast::reachableNodeRef(const AstNode* targetNode) const
 {
     if (!targetNode || root_.isInvalid())
@@ -204,33 +239,60 @@ AstNodeRef Ast::reachableNodeRef(const AstNode* targetNode) const
         std::shared_lock lock(reachableNodeIndexMutex_);
         if (reachableNodeIndex_ && isReachableNodeIndexCurrent(*reachableNodeIndex_))
         {
-            const auto it = reachableNodeIndex_->refs.find(targetNode);
-            return it == reachableNodeIndex_->refs.end() ? AstNodeRef::invalid() : it->second;
+            const auto it = reachableNodeIndex_->entries.find(targetNode);
+            return it == reachableNodeIndex_->entries.end() ? AstNodeRef::invalid() : it->second.nodeRef;
         }
     }
 
     std::unique_lock lock(reachableNodeIndexMutex_);
     if (!reachableNodeIndex_ || !isReachableNodeIndexCurrent(*reachableNodeIndex_))
-    {
-        auto index = std::make_unique<ReachableNodeIndex>();
-        for (uint32_t i = 0; i < SHARD_COUNT; i++)
-        {
-            std::shared_lock shardLock(shards_[i].mutex);
-            index->watermarks[i] = shards_[i].store.size();
-        }
+        buildReachableNodeIndex();
 
-        // The traversal itself carries the reachability guarantee: a node parsed into this
-        // storage but detached from the tree never enters the map, exactly as it was never
-        // found by the per-symbol traversals this index replaces.
-        visit(*this, root_, [&index](const AstNodeRef nodeRef, const AstNode& node) {
-            index->refs.emplace(&node, nodeRef);
-            return VisitResult::Continue;
-        });
-        reachableNodeIndex_ = std::move(index);
+    const auto it = reachableNodeIndex_->entries.find(targetNode);
+    return it == reachableNodeIndex_->entries.end() ? AstNodeRef::invalid() : it->second.nodeRef;
+}
+
+bool Ast::collectReachableNodePathFromIndex(const ReachableNodeIndex& index, SmallVector<AstNodeRef>& outPath, const AstNodeRef targetRef) const
+{
+    outPath.clear();
+    if (!hasNode(targetRef))
+        return false;
+
+    AstNodeRef nodeRef = targetRef;
+    while (nodeRef.isValid())
+    {
+        outPath.push_back(nodeRef);
+        const auto it = index.entries.find(&node(nodeRef));
+        if (it == index.entries.end() || it->second.nodeRef != nodeRef)
+        {
+            outPath.clear();
+            return false;
+        }
+        nodeRef = it->second.parentRef;
     }
 
-    const auto it = reachableNodeIndex_->refs.find(targetNode);
-    return it == reachableNodeIndex_->refs.end() ? AstNodeRef::invalid() : it->second;
+    std::ranges::reverse(outPath);
+    return !outPath.empty() && outPath.front() == root_;
+}
+
+bool Ast::collectReachableNodePath(SmallVector<AstNodeRef>& outPath, const AstNodeRef targetRef) const
+{
+    if (targetRef.isInvalid() || root_.isInvalid())
+    {
+        outPath.clear();
+        return false;
+    }
+
+    {
+        std::shared_lock lock(reachableNodeIndexMutex_);
+        if (reachableNodeIndex_ && isReachableNodeIndexCurrent(*reachableNodeIndex_))
+            return collectReachableNodePathFromIndex(*reachableNodeIndex_, outPath, targetRef);
+    }
+
+    std::unique_lock lock(reachableNodeIndexMutex_);
+    if (!reachableNodeIndex_ || !isReachableNodeIndexCurrent(*reachableNodeIndex_))
+        buildReachableNodeIndex();
+    return collectReachableNodePathFromIndex(*reachableNodeIndex_, outPath, targetRef);
 }
 
 void Ast::visit(const Ast& ast, AstNodeRef root, const Visitor& f)

@@ -115,6 +115,7 @@ public:
     AstNodeRef findNodeRef(const AstNode* node) const;
     AstNodeRef tryFindNodeRef(const AstNode* node) const;
     AstNodeRef reachableNodeRef(const AstNode* node) const;
+    bool       collectReachableNodePath(SmallVector<AstNodeRef>& outPath, AstNodeRef targetRef) const;
 
     enum class VisitResult
     {
@@ -153,16 +154,24 @@ private:
         mutable std::shared_mutex mutex;
     };
 
-    // Memoizes reachableNodeRef(): one traversal answers the thousands of per-symbol lookups
-    // the module api export and the documentation collector make against the same file. The
+    // One traversal answers the thousands of per-symbol lookups and root-to-declaration path
+    // queries the module api export and documentation collector make against the same file. The
     // watermarks record each shard's allocation size at build time, so an index built before
     // later nodes were parsed into this Ast is rebuilt instead of answering for a stale tree.
     struct ReachableNodeIndex
     {
-        std::unordered_map<const AstNode*, AstNodeRef> refs;
-        uint32_t                                       watermarks[SHARD_COUNT] = {};
+        struct Entry
+        {
+            AstNodeRef nodeRef   = AstNodeRef::invalid();
+            AstNodeRef parentRef = AstNodeRef::invalid();
+        };
+
+        std::unordered_map<const AstNode*, Entry> entries;
+        uint32_t                                  watermarks[SHARD_COUNT] = {};
     };
 
+    void buildReachableNodeIndex() const;
+    bool collectReachableNodePathFromIndex(const ReachableNodeIndex& index, SmallVector<AstNodeRef>& outPath, AstNodeRef targetRef) const;
     bool isReachableNodeIndexCurrent(const ReachableNodeIndex& index) const;
 
     Shard                                       shards_[SHARD_COUNT];

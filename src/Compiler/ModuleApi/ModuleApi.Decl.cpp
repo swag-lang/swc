@@ -29,31 +29,25 @@ namespace
                node.is(AstNodeId::Impl);
     }
 
-    bool collectModuleApiNodePath(SmallVector<AstNodeRef>& ioPath, const Ast& ast, const AstNodeRef currentRef, const AstNodeRef targetRef, const NodePathTraversal traversal)
+    bool collectModuleApiNodePath(SmallVector<AstNodeRef>& outPath, const Ast& ast, const AstNodeRef targetRef, const NodePathTraversal traversal)
     {
-        if (!currentRef.isValid() || ast.isAdditionalNode(currentRef))
+        if (!ast.collectReachableNodePath(outPath, targetRef))
             return false;
 
-        ioPath.push_back(currentRef);
-        if (currentRef == targetRef)
-            return true;
-
-        if (traversal == NodePathTraversal::Declarations && ast.node(currentRef).is(AstNodeId::FunctionBody))
+        for (const AstNodeRef nodeRef : outPath)
         {
-            ioPath.pop_back();
-            return false;
+            if (ast.isAdditionalNode(nodeRef))
+            {
+                outPath.clear();
+                return false;
+            }
+            if (traversal == NodePathTraversal::Declarations && nodeRef != targetRef && ast.node(nodeRef).is(AstNodeId::FunctionBody))
+            {
+                outPath.clear();
+                return false;
+            }
         }
-
-        SmallVector<AstNodeRef> childRefs;
-        ast.node(currentRef).collectChildrenFromAst(childRefs, ast);
-        for (const AstNodeRef childRef : childRefs)
-        {
-            if (collectModuleApiNodePath(ioPath, ast, childRef, targetRef, traversal))
-                return true;
-        }
-
-        ioPath.pop_back();
-        return false;
+        return true;
     }
 
     bool extractNamespacePathFromOwner(const SymbolMap* symMap, std::vector<IdentifierRef>& outNamespacePath)
@@ -163,7 +157,7 @@ namespace
             return false;
 
         SmallVector<AstNodeRef> nodePath;
-        if (!collectModuleApiNodePath(nodePath, file.ast(), rootRef, declRef, NodePathTraversal::Declarations))
+        if (!collectModuleApiNodePath(nodePath, file.ast(), declRef, NodePathTraversal::Declarations))
             return false;
 
         IdentifierRef moduleNamespaceIdRef = IdentifierRef::invalid();
@@ -255,7 +249,7 @@ namespace ModuleApi
             return declRef;
 
         SmallVector<AstNodeRef> nodePath;
-        if (!collectModuleApiNodePath(nodePath, file.ast(), rootRef, declRef, NodePathTraversal::Declarations))
+        if (!collectModuleApiNodePath(nodePath, file.ast(), declRef, NodePathTraversal::Declarations))
             return AstNodeRef::invalid();
 
         AstNodeRef exportRootRef = declRef;
@@ -279,7 +273,7 @@ namespace ModuleApi
             return AstNodeRef::invalid();
 
         SmallVector<AstNodeRef> nodePath;
-        if (!collectModuleApiNodePath(nodePath, file.ast(), rootRef, declRef, NodePathTraversal::All))
+        if (!collectModuleApiNodePath(nodePath, file.ast(), declRef, NodePathTraversal::All))
             return AstNodeRef::invalid();
 
         for (size_t i = 0; i + 1 < nodePath.size(); ++i)
@@ -299,7 +293,7 @@ namespace ModuleApi
             return false;
 
         SmallVector<AstNodeRef> nodePath;
-        if (!collectModuleApiNodePath(nodePath, file.ast(), rootRef, declRef, NodePathTraversal::Declarations))
+        if (!collectModuleApiNodePath(nodePath, file.ast(), declRef, NodePathTraversal::Declarations))
             return false;
 
         for (size_t i = nodePath.size(); i > 1; --i)
@@ -325,7 +319,7 @@ namespace ModuleApi
             return true;
 
         SmallVector<AstNodeRef> nodePath;
-        if (!collectModuleApiNodePath(nodePath, file.ast(), rootRef, declRef, NodePathTraversal::Declarations))
+        if (!collectModuleApiNodePath(nodePath, file.ast(), declRef, NodePathTraversal::Declarations))
             return false;
 
         for (size_t i = 0; i + 1 < nodePath.size(); ++i)

@@ -18,11 +18,11 @@ struct FormText
     text: String
     #[Name("Font"), FontName, After("alignVert")]
     fontName: String
-    #[Name("Font Style")]
+    #[Name("")]
     fontStyle = FontFamilyStyle.Regular
-    #[Name("Align")]
+    #[Name("")]
     alignHorz = FormTextAlign.Center
-    #[Name("Vertical Align")]
+    #[Name("")]
     alignVert = FormTextAlign.Center
     #[Name("Size"), SliderMinMax(MinFontSize, MaxFontSize)]
     fontSize: f32 = 48

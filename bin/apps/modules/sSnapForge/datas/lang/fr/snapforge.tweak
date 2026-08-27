@@ -273,12 +273,9 @@ act_CaptureMonitor     Capturer l'écran %
 act_CaptureMonitorSize Capturer l'écran % (%x%)
 
 # Rows the property grid generates from reflection.
-prop_Align                 Alignement
-prop_AlignVertical         Alignement vertical
 prop_EndSize               Taille de fin
 prop_Effects               Effets
 prop_Font                  Police
-prop_FontStyle             Style de police
 prop_Joins                 Jointures
 prop_Kind                  Type
 prop_Line                  Ligne

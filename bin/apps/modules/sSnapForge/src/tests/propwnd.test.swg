@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Swag, Core
+using Swag, Core, File
 
 // Build the right-side properties panel the way the app does (quick styles pane on
 // top, properties pane below) and return it, laid out.
@@ -9,10 +9,7 @@ func testSetupPropWnd(f: *HeadlessFixture)->*PropWnd
 {
     f.gui.surfaceWnd.view = f.main
 
-    with f.main.quickStyleBar = SplitterCtrl.create(f.main, {600, 0, 300, 650}, vertical: true)
-    {
-        .flags.add(.HideDividers)
-    }
+    f.main.quickStyleBar = SplitterCtrl.create(f.main, {600, 0, 300, 650}, vertical: true)
 
     let splitter = f.main.quickStyleBar
     f.main.quickWnd = QuickWnd.create(splitter, f.main)
@@ -21,6 +18,7 @@ func testSetupPropWnd(f: *HeadlessFixture)->*PropWnd
     discard f.main.quickStyleBar.addPane(f.main.propWnd)
     f.main.quickStyleBar.setPaneSize(0, 300)
     f.main.quickWnd.setDefault()
+    @assert(!f.main.quickStyleBar.flags.has(.HideDividers))
     return f.main.propWnd
 }
 
@@ -46,6 +44,51 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
 
     @assert(false)
     return 0
+}
+
+// Replacing the editor document from history retargets the panel after the old capture
+// is released. With no form selected, the controls edit the live tool model.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let prop = testSetupPropWnd(&f)
+
+    let oldShape = testAddShape(f.capture, 10, 10, 40, 40)
+    oldShape.borderSize = 7
+    f.capture.selection.add(0)
+    f.capture.selectionHasChanged()
+
+    let oldPath = testTempCapturePath()
+    defer discard catch File.delete(oldPath)
+    f.capture.file    = oldPath
+    f.capture.changed = true
+    expect f.capture.save()
+
+    let next = Memory.new'Capture()
+    next.width, next.widthOrg   = 120
+    next.height, next.heightOrg = 80
+    next.backImg                = Gui.Testing.indexedImage(120, 80)
+    discard testAddShape(next, 20, 20, 40, 30)
+    let nextPath = testTempCapturePath()
+    defer discard catch File.delete(nextPath)
+    next.file    = nextPath
+    next.changed = true
+    expect next.save()
+    Memory.delete(next)
+
+    f.main.recentWnd = RecentWnd.create(f.main, f.main)
+    f.main.recentWnd.addRecent(nextPath, Gui.Testing.indexedImage(32, 20), front: false)
+    f.main.recentWnd.recentView.select(0)
+
+    let current = f.main.editWnd.getCapture()!
+    @assert(current.file == nextPath)
+    @assert(current.selection.isEmpty())
+
+    let border = testFindItem(prop, #nameof(BaseForm.borderSize))!
+    border.sliderBox.setValue(12)
+    @assert(Math.isEqualEpsilon(f.main.mdlFormShape.borderSize, 12, 0.001))
 }
 
 // A selected text form generates the full grid: retargeted outline slider, joins combo
@@ -83,6 +126,12 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     @assert(testItemIndex(prop, #nameof(FormText.alignVert)) < testItemIndex(prop, #nameof(FormText.fontName)))
     @assert(testItemIndex(prop, #nameof(FormText.fontName)) < testItemIndex(prop, #nameof(FormText.fontSize)))
 
+    // Icon-only bars explain themselves through their glyphs and selected state, so they do
+    // not reserve a heading line repeating what the controls already say.
+    @assert(!@isset(testFindItem(prop, #nameof(FormText.fontStyle))!.label))
+    @assert(!@isset(testFindItem(prop, #nameof(FormText.alignHorz))!.label))
+    @assert(!@isset(testFindItem(prop, #nameof(FormText.alignVert))!.label))
+
     // Most specific first: the text form's own fields come before the shared BaseForm
     // block, even though the language declares 'using base' first
     @assert(testItemIndex(prop, #nameof(FormText.fontName)) < testItemIndex(prop, #nameof(BaseForm.borderSize)))
@@ -90,7 +139,9 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     @assert(testItemIndex(prop, #nameof(BaseForm.borderSize)) < testItemIndex(prop, "Effects"))
 
     // Group separator above the scale/rotate/opacity/shadow block
-    @assert(testFindItem(prop, "Effects") != null)
+    let effects = testFindItem(prop, "Effects")!
+    @assert(effects.label.flags.has(.SecondaryText))
+    @assert(effects.label.font().regular == prop.theme().res.fontDefault.regular)
 
     // The x/y and w/h rows close the grid. They carry no category separator of their own: each
     // one is named for what it holds, and a heading above them would only repeat it.

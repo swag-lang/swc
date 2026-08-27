@@ -1145,7 +1145,10 @@ impl View
             .repositioning       = true
             defer .repositioning = false
             .layoutDocument()
-            if !.jumpToEnd do
+
+            // A text reveal has an exact rendered destination. Keep the current position until
+            // that occurrence exists instead of exposing the byte-based loading estimate first.
+            if !.jumpToEnd and .pendingSearch.isEmpty() do
                 .scroll.setScrollPos(0, .virtualOrigin)
             .scheduleMore()
             return true

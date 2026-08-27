@@ -646,7 +646,15 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     for target in offsets
     {
+        let previousScroll = view.scroll.scrollPosition()
         @assert(view.revealFileOffset(target, Query))
+        if target != offsets[0]
+        {
+            // A search reveal waits for its rendered occurrence instead of exposing the byte-based
+            // estimate that guides progressive loading.
+            @assert(Math.abs(view.scroll.scrollPosition().y - previousScroll.y) < 1)
+        }
+
         if target == offsets[2] do
             @assert(view.pendingSearchOccurrence == 0)
         var bounds: Math.Rectangle

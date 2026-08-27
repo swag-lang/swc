@@ -31,11 +31,19 @@ func testSetupSurfaceMain(host: *Gui.Testing.HeadlessHost)->*MainWnd
         g_Main = null
     }
 
+    @assert(!main.quickStyleBar.flags.has(.HideDividers))
+
     let capture = Memory.new'Capture()
     capture.width, capture.widthOrg   = 400
     capture.height, capture.heightOrg = 240
-    capture.backImg                   = Gui.Testing.indexedImage(400, 240)
-    discard testAddShape(capture, 48, 40, 144, 80)
+
+    // The coordinate-coded testing image is useful for byte round-trips but aliases into
+    // stripes at editor zoom. A surface golden needs quiet screenshot pixels instead.
+    capture.backImg = Image.create(400, 240, .BGRA8)
+    capture.backImg.fill(Argb.White)
+    let text = testAddText(capture, 48, 40, 144, 80)
+    text.text = "Theme"
+    capture.selection.add(0)
     main.editWnd.editView.setCapture(capture)
 
     host.theme.setSwagDark()

@@ -828,6 +828,21 @@ impl PropWnd
         }
     }
 
+    // A panel category is a quiet section cue, like the labels used by the other standard
+    // applications. Keep the system face at its normal weight and let the live theme supply
+    // its secondary ink; bold property-grid headings read as a second title hierarchy here.
+    mtd styleCategoryLabels()
+    {
+        for item in .grid.items
+        {
+            let it = item!
+            if !it.flags.has(.Category) do
+                continue
+            it.label.style.setFont(.theme().res.fontDefault)
+            it.label.updateFlags(.SecondaryText)
+        }
+    }
+
     mtd selectionHasChanged()
     {
         for it in .topLayout.children do
@@ -859,6 +874,7 @@ impl PropWnd
         .propPixSel()
 
         .bindGrid()
+        .styleCategoryLabels()
         .propXY()
 
         .topLayout.computeLayout()

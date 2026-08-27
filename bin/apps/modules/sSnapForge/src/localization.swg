@@ -284,29 +284,26 @@ struct AppStrings
 
     // Wording of the rows the property grid generates from reflection. A property attribute
     // carries a compile-time literal, so the declared English below *is* the key
-    // [[resolvePropertyText]] matches: adding a row means adding a `prop_` field whose
-    // declared value repeats the attribute string exactly.
-    prop_Align:         string = "Align"              // Label of the horizontal text alignment.
-    prop_AlignVertical: string = "Vertical Align"     // Label of the vertical text alignment.
-    prop_EndSize:       string = "End Size"           // Label of the end-cap size of a line.
-    prop_Effects:       string = "Effects"            // Category of the scale, rotation, opacity and shadow rows.
-    prop_Font:          string = "Font"               // Label of the font family.
-    prop_FontStyle:     string = "Font Style"         // Label of the font style.
-    prop_Joins:         string = "Joins"              // Label of the stroke join style.
-    prop_Kind:          string = "Kind"               // Label of the image-form kind.
-    prop_Line:          string = "Line"               // Label of the straight-or-curved choice.
-    prop_Opacity:       string = "Opacity"            // Label of the opacity slider.
-    prop_Place:         string = "Place"              // Label of the image placement.
-    prop_Rotate:        string = "Rotate"             // Label of the rotation slider.
-    prop_Round:         string = "Round"              // Corner-rounding slider, and the join style using a circular arc.
-    prop_Scale:         string = "Scale"              // Label of the scale slider.
-    prop_Shadow:        string = "Shadow"             // Label of the drop-shadow choice.
-    prop_Size:          string = "Size"               // Label of the font size.
-    prop_StartSize:     string = "Start Size"         // Label of the start-cap size of a line.
-    prop_Step:          string = "Step"               // Label of the step-numbering choice.
-    prop_Strength:      string = "Strength"           // Label of the effect strength.
-    prop_Text:          string = "Text"               // Label of the edited text.
-    prop_Thickness:     string = "Thickness"          // Label of the stroke thickness.
+    // [[resolvePropertyText]] matches: adding a labeled row means adding a `prop_` field
+    // whose declared value repeats the attribute string exactly.
+    prop_EndSize:   string = "End Size"       // Label of the end-cap size of a line.
+    prop_Effects:   string = "Effects"        // Category of the scale, rotation, opacity and shadow rows.
+    prop_Font:      string = "Font"           // Label of the font family.
+    prop_Joins:     string = "Joins"          // Label of the stroke join style.
+    prop_Kind:      string = "Kind"           // Label of the image-form kind.
+    prop_Line:      string = "Line"           // Label of the straight-or-curved choice.
+    prop_Opacity:   string = "Opacity"        // Label of the opacity slider.
+    prop_Place:     string = "Place"          // Label of the image placement.
+    prop_Rotate:    string = "Rotate"         // Label of the rotation slider.
+    prop_Round:     string = "Round"          // Corner-rounding slider, and the join style using a circular arc.
+    prop_Scale:     string = "Scale"          // Label of the scale slider.
+    prop_Shadow:    string = "Shadow"         // Label of the drop-shadow choice.
+    prop_Size:      string = "Size"           // Label of the font size.
+    prop_StartSize: string = "Start Size"     // Label of the start-cap size of a line.
+    prop_Step:      string = "Step"           // Label of the step-numbering choice.
+    prop_Strength:  string = "Strength"       // Label of the effect strength.
+    prop_Text:      string = "Text"           // Label of the edited text.
+    prop_Thickness: string = "Thickness"      // Label of the stroke thickness.
 
     prop_Straight: string = "Straight"      // Line entry: a segment.
     prop_Bezier:   string = "Bezier"        // Line entry: a curve.

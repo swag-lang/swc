@@ -278,7 +278,10 @@ void Sema::detachVariableOwnedPayload(const SymbolVariable& symVar)
 {
     const auto it = variableEscapeInfos_.find(&symVar);
     if (it != variableEscapeInfos_.end())
-        it->second.viaOwnedPayload = false;
+    {
+        it->second.detachedOwnedPayload = it->second.detachedOwnedPayload || it->second.viaOwnedPayload;
+        it->second.viaOwnedPayload      = false;
+    }
 }
 
 void Sema::detachVariableOwnedPayloadField(const SymbolVariable& symVar, const SymbolVariable& owner, const SymbolVariable& field)

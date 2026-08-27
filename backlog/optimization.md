@@ -757,7 +757,20 @@ cmov-to-branch back-conversion, and profile-gated passes.
   slot into the destination, and when the window ran out before finding it the rule rewrote
   anyway - mem2reg's mixed-class promotion moved `evaluateBezier`'s last write of the register
   to thirteen instructions back and `a * start.y` became `a * a` (core's curve tests). The
-  rule now fails when the window is exhausted; two C++ tests pin both outcomes.
+  rule now fails when the window is exhausted; two C++ tests pin both outcomes. The gated
+  campaign then caught a remat one: a remade definition was erased as dead when no connector
+  read its node, but a split child that kept the definition's register gets no connector (nor
+  does a label the value crosses in the same register), and the loop-head moves read that
+  child - gui's virtual-scroll test lost `&stops` and indexed from the assert's result. The
+  liveness of a remade definition now follows register continuity (adjacent same-register
+  children, same-register label edges) before any use or move is counted. The last one was in
+  the resolution's parallel-copy order: a split reload (`r9 = [home]`, the value's location at
+  an instruction's input) and an edge move reading that register (`rdi = r9`, the taken side
+  of the conditional jump at that instruction) met at one insertion point, and the
+  reader-before-writer rule emitted the move first, so the taken edge carried whatever `r9`
+  held before the reload - markdown's `parseBlocks` appended list text through a stale
+  address whenever an item had no indent. Connectors now carry a phase (split or definition
+  store, then edge) ordered within a point.
 - Measured 2026-08-27, static, bench probes under the gate against the legacy allocator, same
   compiler, every checksum holding: leven 84 -> 44 frame references (DP inner loop 26/1 ->
   23/0 instructions/frame references), wordfreq 38 -> 15, dijkstra `#main` 16 -> 8, chacha

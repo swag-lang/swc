@@ -1,6 +1,6 @@
 //! Format: DTS Coherent Acoustics Core packet decoder component.
-//! Supported: 14- and 16-bit big- and little-endian core frames through 5.1 channels, scalar quantization, subframe transitions, both synthesis filters, and 64x or 128x LFE.
-//! Not supported: Prediction, Huffman-coded side information or samples, high-frequency VQ, joint intensity, and DTS extension substreams.
+//! Supported: 14- and 16-bit big- and little-endian core frames through 5.1 channels, including the backward-compatible core of DTS-HD access units, scalar quantization, ADPCM prediction, omission of high-frequency VQ bands, subframe transitions, both synthesis filters, and 64x or 128x LFE.
+//! Not supported: Huffman-coded side information or samples, high-frequency VQ reconstruction, joint intensity, and decoding DTS extension substreams.
 //! Role: This file owns DTS Core frame syntax, subband reconstruction, channel mapping, and packet dispatch.
 //
 #global namespace Dts
@@ -214,10 +214,11 @@ private struct Codec
 {
     using base: Audio.Codec
 
-    sampleRate: u32
-    channels:   u32
-    history:    [MaxPrimaryChannels, 512] f64
-    lfeHistory: [8] f64
+    sampleRate:        u32
+    channels:          u32
+    history:           [MaxPrimaryChannels, 512] f64
+    predictionHistory: [MaxPrimaryChannels, MaxSubbands, 4] f64
+    lfeHistory:        [8] f64
 }
 
 private impl Codec
@@ -225,6 +226,7 @@ private impl Codec
     mtd resetState()
     {
         Memory.set(&.history, 0, #sizeof(.history))
+        Memory.set(&.predictionHistory, 0, #sizeof(.predictionHistory))
         Memory.set(&.lfeHistory, 0, #sizeof(.lfeHistory))
     }
 
@@ -498,7 +500,8 @@ private impl Codec
             if subbandPosition + subbandSamples > header.frames / 32 do
                 fail InvalidFormatError{"DTS subframe sample table exceeds the frame"}
 
-            var prediction: [MaxPrimaryChannels, MaxSubbands] bool
+            var prediction:      [MaxPrimaryChannels, MaxSubbands] bool
+            var predictionIndex: [MaxPrimaryChannels, MaxSubbands] u32
             for channel in channels
             {
                 for band in subbandCount[channel] do
@@ -507,11 +510,8 @@ private impl Codec
 
             for channel in channels
             {
-                for band in subbandCount[channel] where prediction[channel, band]
-                {
-                    discard reader.read(12)
-                    fail UnsupportedFormatError{"DTS prediction is not supported"}
-                }
+                for band in subbandCount[channel] where prediction[channel, band] do
+                    predictionIndex[channel, band] = reader.read(12)
             }
 
             var allocation: [MaxPrimaryChannels, MaxSubbands] u32
@@ -572,10 +572,14 @@ private impl Codec
 
             if header.crc do
                 reader.skip(16)
-            for channel in channels where vqStart[channel] < subbandCount[channel]
+
+            // One ten-bit address names the complete vector for each high-frequency subband.
+            // ETSI TS 102 114 permits a constrained decoder to omit those highest bands; consume
+            // the addresses so the scalar bands still reconstruct instead of rejecting the frame.
+            for channel in channels
             {
-                discard channel
-                fail UnsupportedFormatError{"DTS high-frequency vector quantization is not supported"}
+                for band in Math.min(vqStart[channel], subbandCount[channel]) until subbandCount[channel] do
+                    discard reader.read(10)
             }
 
             if header.lfe
@@ -642,6 +646,30 @@ private impl Codec
                     fail InvalidFormatError{"DTS subsubframe sync word is invalid"}
             }
 
+            // The four-tap predictor is applied after every scalar sample of this subframe has
+            // been dequantized. A frame whose predictor-history switch is clear starts from zero;
+            // otherwise its first four references come from the preceding frame.
+            for channel in channels
+            {
+                for band in Math.min(vqStart[channel], subbandCount[channel]) where prediction[channel, band]
+                {
+                    let vector = predictionIndex[channel, band]
+                    for offset in subbandSamples
+                    {
+                        let position = subbandPosition + offset
+                        var predicted: f64
+                        for tap in 4
+                        {
+                            let source = cast(s32) position - 1 - cast(s32) tap
+                            let value  = source < 0 ? (header.predictorHistory ? .predictionHistory[channel, band, 4 + source] : 0.0) : subbands[channel, band, source]
+                            predicted += value * cast(f64) AdpcmCoefficients[vector, tap]
+                        }
+
+                        subbands[channel, band, position] = Math.clamp(subbands[channel, band, position] + predicted / 8_192.0, -8_388_608.0, 8_388_607.0)
+                    }
+                }
+            }
+
             subbandPosition += subbandSamples
         }
 
@@ -649,6 +677,17 @@ private impl Codec
             fail InvalidFormatError{"DTS subframes do not fill the declared frame"}
         if reader.overrun do
             fail InvalidFormatError{"DTS packet is truncated"}
+
+        Memory.set(&.predictionHistory, 0, #sizeof(.predictionHistory))
+        for channel in channels
+        {
+            for band in subbandCount[channel]
+            {
+                for sample in 4 do
+                    .predictionHistory[channel, band, sample] = subbands[channel, band, subbandPosition - 4 + sample]
+            }
+        }
+
         .synthesize(destination, &header, &subbands)
         .synthesizeLfe(destination, &header, &lfeSamples, lfePosition)
         return header
@@ -675,9 +714,14 @@ impl IPacketCodec for Codec
     {
         let info     = try frameInfo(packet)
         let required = cast(u64) info.frames * .channels * #sizeof(s16)
+        if info.frameBytes > @countof(packet) do
+            fail InvalidFormatError{"DTS packet size does not match its core-frame header"}
         if destinationSize < required do
             fail BadParameterError{"DTS destination buffer is too small"}
-        discard try .decodeFrame(cast([*] s16) destination, packet)
+
+        // A DTS-HD access unit starts with a complete backward-compatible core. This decoder
+        // consumes that core and leaves the extension substream to codecs that implement it.
+        discard try .decodeFrame(cast([*] s16) destination, packet[0 until info.frameBytes])
         return required
     }
 }

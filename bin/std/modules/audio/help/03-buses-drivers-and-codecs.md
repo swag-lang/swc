@@ -37,7 +37,12 @@ FLAC, and MPEG Layer III without calling an operating-system media decoder. Laye
 versions at every sampling frequency, and a `.mp3` file opens through [[Audio.SoundFile.load]],
 which drops the priming its encoder tag states so playback lines up with every other player. The
 same call opens `.aac` transport streams and `.ac3`, `.eac3`, and `.dts` elementary streams, each indexed by
-walking its frame headers. FLAC is lossless, and a sixteen-bit stream up
+walking its frame headers. A DTS-HD access unit is decoded through its complete backward-compatible
+Core prefix; its extension substream is ignored rather than mistaken for part of that Core frame.
+Core frames using high-frequency vector quantization retain their scalar-coded bands and omit the
+VQ-coded highest bands, as the format permits for a constrained decoder. Four-tap ADPCM prediction
+retains its history across consecutive Core frames.
+FLAC is lossless, and a sixteen-bit stream up
 to eight channels therefore reaches the mixer as the exact samples that were encoded; a deeper
 stream is scaled down to the sixteen bits every packet codec here produces. E-AC-3 streams using
 dependent substreams, Adaptive Hybrid Transform, enhanced coupling, spectral extension, or

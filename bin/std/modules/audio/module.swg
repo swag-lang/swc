@@ -6,6 +6,9 @@ without copying their media payload. A compressed file is indexed, never loaded:
 its frame headers and the audio stays on disk. The compressed decoders are
 implemented in Swag and add no platform codec dependency.
 
+DTS-HD access units play through their backward-compatible Core prefix. The decoder does not
+reconstruct the lossless extension substream.
+
 The high-level API revolves around three objects: [[Audio.SoundFile]] describes
 decoded or streamable source data, [[Audio.Voice]] controls one playback
 instance, and [[Audio.Bus]] groups voices for shared volume and routing. The

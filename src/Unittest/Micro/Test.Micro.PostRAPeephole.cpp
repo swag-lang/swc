@@ -603,6 +603,53 @@ SWC_TEST_BEGIN(PostRAPeephole_ZeroToClear_FlagsLive_NotConverted)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_SelfOperand_FoldsWhenDestinationHoldsTheSlot)
+{
+    const MicroReg     base = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg xmm3 = MicroReg::floatReg(3);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegMem(xmm3, base, 0x54, MicroOpBits::B32);
+    builder.emitOpBinaryRegMem(xmm3, base, 0x54, MicroOp::FloatMultiply, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != 0)
+        return Result::Error;
+    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The rule walks back a bounded number of instructions looking for the load
+// of the slot into the destination. When the destination's last write sits
+// beyond that window, nothing is known about what it holds: the memory
+// operand has to stay.
+SWC_TEST_BEGIN(PostRAPeephole_SelfOperand_KeepsMemoryOperandWhenWindowExhausted)
+{
+    const MicroReg     base = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg xmm3 = MicroReg::floatReg(3);
+    constexpr MicroReg xmm4 = MicroReg::floatReg(4);
+    constexpr MicroReg xmm5 = MicroReg::floatReg(5);
+    constexpr MicroReg xmm6 = MicroReg::floatReg(6);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegReg(xmm3, xmm4, MicroOpBits::B32);
+    for (uint32_t i = 0; i < 16; ++i)
+        builder.emitOpBinaryRegReg(xmm5, xmm6, MicroOp::FloatAdd, MicroOpBits::B32);
+    builder.emitOpBinaryRegMem(xmm3, base, 0x54, MicroOp::FloatMultiply, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

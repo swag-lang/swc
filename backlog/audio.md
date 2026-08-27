@@ -1,12 +1,11 @@
-# Audio Roadmap
+# Audio Backlog
 
-This file is the roadmap for `std/audio`, measured against the embeddable audio libraries it
+This backlog covers `std/audio`, measured against the embeddable audio libraries it
 competes with: miniaudio, SoLoud, OpenAL Soft, and the commercial tier of FMOD and Wwise.
 
-It is not the repository's discovery backlog. Cross-cutting leads and defects belong in the
-`findings.*` files, which hold evidence; compiler and language intent belongs in
-[todo.compiler.md](todo.compiler.md) and [todo.language.md](todo.language.md). This file holds
-intent about `bin/std/modules/audio`. [README.md](README.md) has the whole layout.
+Cross-cutting compiler and language work belongs in [compiler.md](compiler.md) and
+[language.md](language.md). This file keeps the evidence, investigations, and intended outcomes
+owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.
@@ -37,7 +36,7 @@ effects, no capture.
   Matroska and ISO-BMFF both index the packets already, so what is missing is the codec alone.
 - How much it is worth, measured (2026-08-25, 592 films of one personal library): 22 DTS tracks,
   against 659 AC-3, 296 AAC, 53 E-AC-3 and 21 Layer III. It is the largest remaining sound gap and
-  a small one; see T-571 in [todo.filescope.md](todo.filescope.md) for the viewer behavior when a
+  a small one; see T-571 in [filescope.md](filescope.md) for the viewer behavior when a
   container's picture codec is unavailable.
 - Consequence: a `.mkv` whose only audio track is DTS plays silently, and the reader reports the
   track as unavailable rather than wrong — correct, and still a file the user cannot hear.
@@ -183,7 +182,7 @@ Expose an echo/delay effect independently of reverb and the general effects grap
   `bin/examples/scripts/flappy.swgs`, `invaders.swgs` and `pacman.swgs`.
 - Re-measure before acting; then consider deferring device work off the calling thread so the
   application can draw its first frame while the engine comes up.
-- Related: no `findings.*` file has an entry for this. If measurement shows the cost is in XAudio2
+- Related: no other backlog entry covers this. If measurement shows the cost is in XAudio2
   rather than in this module, record it there instead.
 
 ### T-065 — No audio capture input
@@ -191,7 +190,7 @@ Expose an echo/delay effect independently of reverb and the general effects grap
 - Add capture-device enumeration and a recording stream as a peer of playback.
 - This is what a recorder, a voice-chat path, or a level meter would need. It is also a prerequisite
   if `sSnapForge` ever records video with sound —
-  [T-081](todo.snapforge.md#t-081--no-video-recording).
+  [T-081](snapforge.md#t-081--no-video-recording).
 - Related: T-175, T-176, T-245
 
 ### T-175 — No full-duplex audio session

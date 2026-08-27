@@ -4,14 +4,11 @@ using Core
 
 private struct BacklogEntry
 {
-    heading:     String
-    line:        u64
-    area:        bool
-    foundWhile:  bool
-    observation: bool
-    evidence:    bool
-    nextStep:    bool
-    elsewhere:   bool
+    heading:      String
+    line:         u64
+    nextAction:   bool
+    completeWhen: bool
+    current:      bool
 }
 
 private func parseDecimal(text: string, start: u64)->{value: u32, end: u64}
@@ -27,54 +24,29 @@ private func parseDecimal(text: string, start: u64)->{value: u32, end: u64}
     return {value, pos}
 }
 
-private func reportFindingFields(fileName: string, entry: *BacklogEntry, language: bool)->u32
+private func reportBacklogFields(fileName: string, entry: *BacklogEntry)->u32
 {
     var errors: u32
-    if !entry.area
+    if !entry.nextAction
     {
-        Console.println("error: ", fileName, ":", entry.line, ": ", entry.heading, " has no '- Area:' field")
+        Console.println("error: ", fileName, ":", entry.line, ": ", entry.heading, " has no '- Next:' field")
         errors += 1
     }
 
-    if !entry.foundWhile
+    if !entry.completeWhen
     {
-        Console.println("error: ", fileName, ":", entry.line, ": ", entry.heading, " has no '- Found while:' field")
-        errors += 1
-    }
-
-    if !entry.observation
-    {
-        Console.println("error: ", fileName, ":", entry.line, ": ", entry.heading, " has no '- Observation:' field")
-        errors += 1
-    }
-
-    if !entry.evidence
-    {
-        Console.println("error: ", fileName, ":", entry.line, ": ", entry.heading, " has no '- Evidence:' field")
-        errors += 1
-    }
-
-    if !entry.nextStep
-    {
-        Console.println("error: ", fileName, ":", entry.line, ": ", entry.heading, " has no '- Next step:' field")
-        errors += 1
-    }
-
-    if language and !entry.elsewhere
-    {
-        Console.println("error: ", fileName, ":", entry.line, ": ", entry.heading, " has no '- Elsewhere:' field")
+        Console.println("error: ", fileName, ":", entry.line, ": ", entry.heading, " has no '- Complete when:' field")
         errors += 1
     }
 
     return errors
 }
 
-private func auditBacklogFile(fileName: string, findings: bool, language: bool, seen: *HashSet'String, maxFinding: *u32, maxTodo: *u32)->u32 fail
+private func auditBacklogFile(fileName: string, seen: *HashSet'String, maxBacklog: *u32)->u32 fail
 {
     let content    = try File.readAllText(fileName)
-    var errors:   u32
-    var previous: u32
-    var entry:    BacklogEntry
+    var errors: u32
+    var entry:  BacklogEntry
     var haveEntry  = false
     var lineNumber = 0'u64
 
@@ -83,24 +55,19 @@ private func auditBacklogFile(fileName: string, findings: bool, language: bool, 
         lineNumber += 1
         if !Utf8.startsWith(cast(const [..] u8) line, "### ")
         {
-            if findings and haveEntry
+            if haveEntry and entry.current
             {
-                entry.area        = entry.area or Utf8.startsWith(cast(const [..] u8) line, "- Area:")
-                entry.foundWhile  = entry.foundWhile or Utf8.startsWith(cast(const [..] u8) line, "- Found while:")
-                entry.observation = entry.observation or Utf8.startsWith(cast(const [..] u8) line, "- Observation:")
-                entry.evidence    = entry.evidence or Utf8.startsWith(cast(const [..] u8) line, "- Evidence:")
-                entry.nextStep    = entry.nextStep or Utf8.startsWith(cast(const [..] u8) line, "- Next step:")
-                entry.elsewhere   = entry.elsewhere or Utf8.startsWith(cast(const [..] u8) line, "- Elsewhere:")
+                entry.nextAction   = entry.nextAction or Utf8.startsWith(cast(const [..] u8) line, "- Next:")
+                entry.completeWhen = entry.completeWhen or Utf8.startsWith(cast(const [..] u8) line, "- Complete when:")
             }
 
             continue
         }
 
-        if findings and haveEntry do
-            errors += reportFindingFields(fileName, &entry, language)
+        if haveEntry and entry.current do
+            errors += reportBacklogFields(fileName, &entry)
 
-        let expected = findings ? "### F-" : "### T-"
-        if !Utf8.startsWith(cast(const [..] u8) line, expected)
+        if @countof(line) < 7 or (line[4] != 'B' and line[4] != 'F' and line[4] != 'T') or line[5] != '-'
         {
             Console.println("error: ", fileName, ":", lineNumber, ": backlog entry heading has no permanent identifier")
             errors    += 1
@@ -117,6 +84,14 @@ private func auditBacklogFile(fileName: string, findings: bool, language: bool, 
             continue
         }
 
+        if (line[4] == 'F' and parsed.value >= 203) or (line[4] == 'T' and parsed.value >= 572)
+        {
+            Console.println("error: ", fileName, ":", lineNumber, ": new backlog entries must use the B identifier family")
+            errors    += 1
+            haveEntry = false
+            continue
+        }
+
         let key = String.from(line[4 until parsed.end])
         if seen.contains(key)
         {
@@ -126,32 +101,21 @@ private func auditBacklogFile(fileName: string, findings: bool, language: bool, 
         else do
             seen.add(key)
 
-        if findings
-        {
-            if previous != 0 and parsed.value <= previous
-            {
-                Console.println("error: ", fileName, ":", lineNumber, ": finding identifiers are not in ascending order")
-                errors += 1
-            }
+        if line[4] == 'B' do
+            maxBacklog[] = Math.max(maxBacklog[], parsed.value)
 
-            previous     = parsed.value
-            maxFinding[] = Math.max(maxFinding[], parsed.value)
-        }
-        else do
-            maxTodo[] = Math.max(maxTodo[], parsed.value)
-
-        entry     = BacklogEntry{heading: key, line: lineNumber}
+        entry     = BacklogEntry{heading: key, line: lineNumber, current: line[4] == 'B'}
         haveEntry = true
     }
 
-    if findings and haveEntry do
-        errors += reportFindingFields(fileName, &entry, language)
+    if haveEntry and entry.current do
+        errors += reportBacklogFields(fileName, &entry)
     return errors
 }
 
-private func readCounter(readme: string, kind: u8)->u32
+private func readCounter(readme: string)->u32
 {
-    let prefix = kind == 'F' ? "Next identifier: F-" : "Next identifier: T-"
+    let prefix = "Next identifier: B-"
 
     let start = Utf8.indexOf(cast(const [..] u8) readme, prefix)
     if start == Swag.U64.Max do
@@ -283,18 +247,16 @@ public func auditBacklog(context: *Context)->s32 fail
     let readme     = try File.readAllText(readmeFile.toString())
 
     var seen:       HashSet'String
-    var maxFinding: u32
-    var maxTodo:    u32
+    var maxBacklog: u32
     var errors:     u32
 
     let files = try Directory.enumerateFiles(backlogDir.toString(), ".md")
     for file in files
     {
-        let name     = Path.fileName(file.fullname.toString()) orelse ""
-        let findings = Utf8.startsWith(cast(const [..] u8) name, "findings.")
-        let todos    = Utf8.startsWith(cast(const [..] u8) name, "todo.")
-        let language = name == "findings.language.md"
-        if !findings and !todos do
+        let name = Path.fileName(file.fullname.toString()) orelse ""
+        errors += try auditBacklogLinks(file.fullname.toString())
+
+        if name == "README.md" or name == "prompts.md" do
             continue
 
         if Utf8.indexOf(cast(const [..] u8) readme.toString(), name) == Swag.U64.Max
@@ -303,21 +265,13 @@ public func auditBacklog(context: *Context)->s32 fail
             errors += 1
         }
 
-        errors += try auditBacklogFile(file.fullname.toString(), findings, language, &seen, &maxFinding, &maxTodo)
-        errors += try auditBacklogLinks(file.fullname.toString())
+        errors += try auditBacklogFile(file.fullname.toString(), &seen, &maxBacklog)
     }
 
-    let nextFinding = readCounter(readme.toString(), 'F')
-    let nextTodo    = readCounter(readme.toString(), 'T')
-    if nextFinding <= maxFinding
+    let nextBacklog = readCounter(readme.toString())
+    if nextBacklog <= maxBacklog
     {
-        Console.println("error: the next finding identifier must be greater than F-", maxFinding)
-        errors += 1
-    }
-
-    if nextTodo <= maxTodo
-    {
-        Console.println("error: the next todo identifier must be greater than T-", maxTodo)
+        Console.println("error: the next backlog identifier must be greater than B-", maxBacklog)
         errors += 1
     }
 

@@ -1,16 +1,15 @@
-# Markdown Roadmap
+# Markdown Backlog
 
-This file is the roadmap for the Markdown engine in `bin/std/modules/gui/src/controls/markdown` —
+This backlog covers the Markdown engine in `bin/std/modules/gui/src/controls/markdown` —
 the block parser, the inline renderer, and the `Markdown.View` widget on top of them. It is
 measured against the readers it competes with — Typora, the VS Code preview, and GitHub's web
 rendering — with CommonMark plus GFM as the reference for what a document means, while staying
 what the whole document family is: an offline, script-free, network-free viewer.
 
-It is not the repository's discovery backlog. Defects and leads belong in the `findings.*` files;
-where a document engine lives is decided — beside its widget, inside `gui`, as
-[todo.pdf.md](todo.pdf.md#where-this-family-lives-and-why) records for the whole family; and the
-application-level affordances an integrated viewer adds — zoom, printing, thumbnails — stay in
-[todo.filescope.md](todo.filescope.md). This file holds intent about the Markdown engine itself.
+Evidence, investigations, and intended outcomes for the Markdown engine stay together here. The
+engine lives beside its widget inside `gui`, as [pdf.md](pdf.md#where-this-family-lives-and-why)
+records for the document family; application-level affordances an integrated viewer adds — zoom,
+printing, thumbnails — stay in [filescope.md](filescope.md).
 [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it

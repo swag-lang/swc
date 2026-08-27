@@ -57,9 +57,9 @@ library beside itself over `SWAG_PATH`, so naming the right compiler is enough t
 | `build.swgs` | Build every workspace |
 | `vaultdrive.swgs` | The privileged sVaultDrive/WinFsp end-to-end sandbox, kept out of `tests.swgs` |
 
-`tests.swgs` validates the bin portability boundary, permanent backlog identifiers, counters,
-finding order, required evidence fields, and the README inventory before it selects or starts a
-test campaign.
+`tests.swgs` validates the bin portability boundary, permanent backlog identifiers, the current
+`B-*` counter, required action fields on new entries, Markdown links, and the README inventory
+before it selects or starts a test campaign.
 
 ## Workspaces
 

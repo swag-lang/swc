@@ -1,9 +1,8 @@
-# Findings — Win32
+# Win32 Backlog
 
 The Windows native modules and their checked API boundary under `bin/std/modules`.
 
-Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
-Entries are sorted by identifier, ascending; position carries no priority.
+[README.md](README.md) defines the shared backlog conventions.
 
 ### F-074 — A Windows call that fails without setting a last error is reported as success
 

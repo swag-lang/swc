@@ -38,7 +38,7 @@ measured. The failures that produces look exactly like the bug the campaign was 
 
 ```
 You are running a long optimization campaign on the swc backend. Read AGENTS.md and the skills it
-points to first, then backlog/todo.compiler.md, backlog/findings.optimization.md, and bench/README.md.
+points to first, then backlog/compiler.md, backlog/optimization.md, and bench/README.md.
 
 WORK IN A SEPARATE WORKTREE
 
@@ -158,12 +158,12 @@ Pick the task with the worst ratio that you have not already exhausted, then:
 DO NOT STOP AT THE FIRST FAILURE
 
 Most of these experiments will fail. That is the normal shape of this work, and three of the
-entries already in backlog/findings.optimization.md are failed attempts written down so the next
+entries already in backlog/optimization.md are failed attempts written down so the next
 one does not repeat them. When something does not work:
 
   - Revert it cleanly.
-  - Write down what it ruled out, with the measurement, as an F-NNN entry in
-    backlog/findings.optimization.md (take the identifier from backlog/README.md and advance it).
+  - Write down what it ruled out, with the measurement, as a B-NNN entry in
+    backlog/optimization.md (take the identifier from backlog/README.md and advance it).
   - Take the next hypothesis from the same mechanism, or move to the next task.
 
 The campaign ends when the goal above is met, or when you have run out of hypotheses on every task
@@ -185,8 +185,8 @@ RULES
     better in the generated code gets reverted.
   - Never change what a bench task computes. That silently resets the history.
   - A/B two swc.exe binaries by CPU time, alternating order, sampling before the process exits.
-  - Findings you cannot chase now go in backlog/findings.optimization.md with evidence and a next
-    step. Entries that graduate into a plan move to backlog/todo.compiler.md.
+  - Leads you cannot chase now go in backlog/optimization.md with evidence and a concrete `Next:`
+    step. If the evidence establishes implementation work, update that entry in place.
 
 REPORT
 
@@ -200,7 +200,7 @@ end of the campaign, the new ratio table next to the one above.
 
 ```
 You are running a long campaign on Swag's safety guarantees. Read AGENTS.md and the skills it
-points to first, then backlog/findings.safety.md, backlog/findings.compiler.md, and the language
+points to first, then backlog/safety.md, backlog/compiler.md, and the language
 reference page bin/reference/modules/language/src/013_004_borrowing.swg, which states what the
 language currently guarantees.
 
@@ -247,7 +247,7 @@ zero, overflow, null dereference, constant out-of-bounds, undefined read, use af
 after move) in src/Backend/Sanitizer/Checks. Tests live in bin/unittests/sanity - borrow_escape,
 borrow_invalidation, collection_mutation - and bin/unittests/safety.
 
-What is left is precision, and the live entries in `backlog/findings.safety.md` are the authority.
+What is left is precision, and the live entries in `backlog/safety.md` are the authority.
 They currently include control-flow-insensitive reads (F-041), parameter-owned views (F-088),
 macro and inline expansions judged against the wrong body (F-089), and a backend check the
 language rule has made unreachable from source (F-043). Re-read that file before choosing a round;
@@ -444,7 +444,7 @@ delta. Cumulative total at the top, so the number is one line at any moment.
 
 ```
 You are running a compile-speed campaign on swc. Read AGENTS.md and the skills it points to first,
-then backlog/todo.compiler.md T-001, T-002, T-004, T-006 and T-007.
+then backlog/compiler.md T-001, T-002, T-004, T-006 and T-007.
 
 WORK IN A SEPARATE WORKTREE
 
@@ -484,7 +484,7 @@ beating them. It is about the loop a person actually sits in.
 START BY BUILDING THE INSTRUMENT
 
 Do this before any optimization; nothing below can be judged without it, and it is T-004 in
-backlog/todo.compiler.md.
+backlog/compiler.md.
 
 Today the only compiler-side numbers recorded anywhere are hello_build_ms and hello_build_peak_mb
 in bench/history.json - one four-line program. Across eleven campaigns it reads 92, 61, 74, 68, 74,
@@ -533,7 +533,7 @@ DO NOT STOP AT THE FIRST FAILURE
 
 These are large changes and the first attempt at a binary module interface will not be the one
 that ships. Land it in pieces that each keep the tree green. When a piece does not pay, revert it,
-record the measurement in backlog/findings.tooling.md, and take the next piece - the four levers
+record the measurement in backlog/tooling.md, and take the next piece - the four levers
 above are months of work and the campaign is designed to survive individual failures.
 
 The campaign ends when the five targets are met. It does not end because one lever turned out to
@@ -559,7 +559,7 @@ and what it bought.
 
 ```
 You are running a memory campaign on swc. Read AGENTS.md and the skills it points to first, then
-backlog/todo.compiler.md T-005.
+backlog/compiler.md T-005.
 
 WORK IN A SEPARATE WORKTREE
 
@@ -663,8 +663,8 @@ workload - always both, so a trade is visible the moment it happens.
 
 ```
 You are running a repository-wide health reset on swc. Read AGENTS.md and every skill it points to
-before acting, then README.md, tools/README.md, backlog/README.md, every backlog/todo.*.md and every
-backlog/findings.*.md. Read the additional area-specific skills as soon as a discovered fix enters
+before acting, then README.md, tools/README.md, backlog/README.md, and every domain file listed in
+the backlog inventory. Read the additional area-specific skills as soon as a discovered fix enters
 their scope.
 
 This is not an audit that ends with a list of problems. You own every concrete problem this pass
@@ -702,8 +702,8 @@ Leave one reproducible baseline from which new work can start without inheriting
     changes nothing.
   - Generated documentation and website assets are current, reviewed, and reproducible; a second
     generation changes nothing.
-  - Every todo and finding is truthful, current, unique, correctly numbered, correctly linked, and
-    stored in the right file. Resolved or invalid entries are gone.
+  - Every backlog entry is truthful, current, unique, correctly numbered, correctly linked, and
+    stored in the right domain. Resolved or invalid entries are gone.
   - Inline TODO, FIXME, HACK, and XXX markers have either been resolved or moved into a properly
     evidenced backlog entry; stale comments and dead instructions are gone.
   - Temporary files, misplaced output folders, abandoned snapshots, crash residue, and editor or
@@ -711,10 +711,10 @@ Leave one reproducible baseline from which new work can start without inheriting
   - The intended fixes are committed in coherent changes, `git diff --check` is clean, and
     `git status --short` is empty at the final commit.
 
-This does not mean implementing every roadmap item. A `todo.*.md` entry is deliberate future intent
-and may remain. It does mean fixing every actual defect, inconsistency, stale statement, broken
-link, failing command, formatting drift, and hygiene problem discovered by this pass. A concrete
-failure may not be converted into a finding merely to make the campaign appear green.
+This does not mean implementing every backlog item. Deliberate future intent and unresolved leads
+may remain. It does mean fixing every actual defect, inconsistency, stale statement, broken link,
+failing command, formatting drift, and hygiene problem discovered by this pass. Rewording a
+concrete failure as an investigation is not a way to make the campaign appear green.
 
 AUDIT THE REPOSITORY BEFORE TRUSTING THE TESTS
 
@@ -727,23 +727,20 @@ Build an inventory before the first fix:
      scratch names. Exclude vendored sources and generated outputs from conclusions, not from the
      initial inventory.
   3. Rebuild the backlog from repository reality, file by file; do not merely proofread its prose
-     or assume a recently edited entry is current. For every `todo.*.md`, verify each claim against
-     the current implementation, tests, documentation, and relevant Git history. Delete shipped or
-     invalid outcomes even when their entry contains useful history; history belongs in Git. Cut a
-     partly completed entry down to one independently finishable result, split unrelated remaining
-     results under fresh identifiers, move work to the unit that owns it, refresh acceptance
-     conditions, and re-evaluate semantic priority. For every `findings.*.md`, verify that the
-     observation still reproduces or that the cited code still proves it, refresh stale paths,
-     measurements, commands, and next steps, merge duplicates, delete resolved leads, move the
-     entry to the area where it will be fixed, and graduate decided intent into a fresh todo while
-     retiring the finding identifier. Audit files with no recent commit too, and delete empty
-     category files rather than treating their existence as coverage.
-  4. Check backlog invariants mechanically: unique F/T identifiers, ascending finding identifiers,
-     `Next identifier` counters above every allocated identifier, valid Markdown anchors and file
-     links, no dangling live cross-reference, and no undocumented backlog file. A `Related:` line
-     names live entries only; a retired identifier may remain solely as explicit historical
-     provenance. Todo order expresses value and must be judged semantically, not sorted by
-     identifier.
+     or assume a recently edited entry is current. Verify every claim against the current
+     implementation, tests, documentation, and relevant Git history. Delete shipped or invalid
+     outcomes even when their entry contains useful history; history belongs in Git. Cut a partly
+     completed entry down to one independently finishable result, split unrelated remaining
+     results under fresh identifiers, move work to the domain that owns it, refresh evidence,
+     acceptance conditions, and next actions, merge duplicates, and re-evaluate semantic priority.
+     When investigation establishes implementation work, update the same entry in place and retain
+     its identifier. Audit files with no recent commit too, and delete empty category files rather
+     than treating their existence as coverage.
+  4. Check backlog invariants mechanically: unique permanent identifiers, the `Next identifier`
+     counter above every allocated `B-*` identifier, valid Markdown anchors and file links, no
+     dangling live cross-reference, and no undocumented backlog file. A `Related:` line names live
+     entries only; a retired identifier may remain solely as explicit historical provenance.
+     Position expresses expected value and must be judged semantically, not sorted by identifier.
   5. Check repository instructions, READMEs, public API documentation, the language reference,
      examples, command help, and website prose against the code that exists now. Update every stale
      command, count, name, guarantee, prerequisite, or link you find.
@@ -752,7 +749,7 @@ If an invariant can regress silently and no automated check protects it, add the
 check to the repository tooling or tests. The next health reset should not need to rediscover the
 same class of problem manually.
 
-Repeat the complete todo/finding pass after the last source, test, or documentation fix. A health
+Repeat the complete backlog pass after the last source, test, or documentation fix. A health
 reset changes the facts the backlog describes, so an audit performed only at the start is stale by
 construction. In the live campaign table, record every backlog entry removed, narrowed, split,
 moved, or refreshed, plus the code/test evidence used to keep every entry that remains.

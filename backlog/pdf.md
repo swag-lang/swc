@@ -1,14 +1,13 @@
-# Pdf Roadmap
+# PDF Backlog
 
-This file is the roadmap for the PDF family inside `std/gui` — the `Pdf` engine namespace under
+This backlog covers the PDF family inside `std/gui` — the `Pdf` engine namespace under
 `gui/src/controls/pdf` and the `PdfView` widget beside it — measured against the PDF engines it
 competes with: PDFium, MuPDF, Poppler and pdf.js on the reading side, PDFBox and iText on the
 document side, and QuestPDF, ReportLab and wkhtmltopdf on the writing side.
 
-It is not the repository's discovery backlog. PDF-specific defects and leads belong in a
-`findings.pdf.md` once a real cluster exists; compiler and language intent belongs in
-[todo.compiler.md](todo.compiler.md) and [todo.language.md](todo.language.md). This file holds intent about
-`bin/std/modules/gui/src/controls/pdf`. [README.md](README.md) has the whole layout.
+PDF-specific evidence, investigations, and intended outcomes stay together here. Compiler and
+language work belongs in [compiler.md](compiler.md) and [language.md](language.md).
+[README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.
@@ -60,7 +59,7 @@ zooming freeze. The offline rasterization (`Page.render` over a CPU renderer) re
 headless boundary: tests, thumbnails, and export.
 
 One consequence is recorded rather than hidden: the writer (`Pdf.Document.encode`) now lives above
-`pixel`, so [T-054](todo.pixel.md#t-054--no-vector-output) — PDF output from the painter — can no
+`pixel`, so [T-054](pixel.md#t-054--no-vector-output) — PDF output from the painter — can no
 longer be satisfied by calling into it from `pixel`. When that entry is taken up, either the
 writer moves below both consumers or `pixel` grows its own, and that choice belongs to T-054.
 

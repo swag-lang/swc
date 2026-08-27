@@ -1,16 +1,16 @@
-# Bin Portability Roadmap
+# Bin Portability Backlog
 
-This file is the cross-unit roadmap for reducing the amount of `bin/` code that a Linux port has
+This cross-unit backlog tracks the work that reduces the amount of `bin/` code a Linux port has
 to rewrite. It covers `bin/runtime`, standard modules, and shipped applications. OpenGL is
 deliberately excluded. Compiler work is excluded too, except where an intrinsic cannot honestly be
 made independent of the host runtime without changing its lowering.
 
 The platform implementations themselves remain owned by
-[T-028](todo.core.md#t-028--process-services-have-no-second-platform-backend),
-[T-045](todo.gui.md#t-045--no-second-platform-surface-and-presentation-backend),
-[T-066](todo.audio.md#t-066--a-second-platform),
-[T-084](todo.snapforge.md#t-084--cross-platform-capture-backend), and
-[T-100](todo.vaultdrive.md#t-100--no-linux-fuse-backend). This file owns the preparation
+[T-028](core.md#t-028--process-services-have-no-second-platform-backend),
+[T-045](gui.md#t-045--no-second-platform-surface-and-presentation-backend),
+[T-066](audio.md#t-066--a-second-platform),
+[T-084](snapforge.md#t-084--cross-platform-capture-backend), and
+[T-100](vaultdrive.md#t-100--no-linux-fuse-backend). This file owns the preparation
 across those units: move policy, orchestration, parsing, normalization, and data conversion into
 ordinary Swag now, leaving each operating-system backend as a narrow set of mechanisms.
 

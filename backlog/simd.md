@@ -1,4 +1,4 @@
-# SIMD Roadmap
+# SIMD Backlog
 
 This file is the cross-cutting roadmap for explicit `#simd`, the compiler and backend support that
 makes it useful, and the `bin/runtime` and `bin/std` kernels that should consume it. Applications,
@@ -299,7 +299,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   wider layout that amortizes that regrouping; the low-half multiply alone is not a useful feature.
 - Complete when: published vectors pass for all supported parameters and profile benchmarks isolate
   the packed kernel gain from independent-lane parallelism.
-- Related: T-252 in [todo.core.md](todo.core.md), T-512, T-513, T-515.
+- Related: T-252 in [core.md](core.md), T-512, T-513, T-515.
 
 ### T-536 — Blake2b compression remains scalar
 
@@ -355,7 +355,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   line at a time; intra macroblock edges carry it on every I picture.
 - Complete when: decoded frames remain byte-exact, the strong paths are packed horizontally and
   vertically, and the 1080p profile shows the gain.
-- Related: T-514, T-520, T-420 in `todo.video.md`.
+- Related: T-514, T-520, T-420 in `video.md`.
 
 ### T-542 — The H.264 Hadamard transforms remain scalar
 
@@ -383,7 +383,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   the 4x4 and 8x8 dequantization zero loops with two and eight vector stores regressed 30,000 High
   Profile decodes from 7,877,846 to 8,032,948 us (1.02x slower), so the scalar loops remain.
   All three discarded results — the 1.02x zero loops, the narrower dynamic splats, and the
-  flat-add four-pixel rows recorded as neutral within 0.5% in `todo.video.md` — sit inside the
+  flat-add four-pixel rows recorded as neutral within 0.5% in `video.md` — sit inside the
   call window and within its margin, which makes them the cheapest re-measures in this file.
 - Complete when: conformance streams remain byte-exact and each retained kernel improves the staged
   reconstruction profile.

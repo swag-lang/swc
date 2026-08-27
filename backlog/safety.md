@@ -1,12 +1,11 @@
-# Findings — Safety
+# Safety Backlog
 
 The borrow, lifetime, and sanity analyses: what they judge, what they miss, and what they refuse
 to judge at all. The borrow rules are the language and are always on; the analyses that prove a
 runtime fault are tooling under `#[Swag.Sanity]`. The reference states the line
 ([013_004_borrowing.swg](../bin/reference/modules/language/src/013_004_borrowing.swg)).
 
-Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
-Entries are sorted by identifier, ascending; position carries no priority.
+[README.md](README.md) defines the shared backlog conventions.
 
 ## Control-flow and lifetime analysis
 
@@ -101,7 +100,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 ### F-105 — A local stored into a global `any` escapes with no diagnostic
 
 - Area: compiler
-- Found while: auditing the language reference for `backlog/findings.language.md`, checking whether
+- Found while: auditing the language reference for `backlog/language.md`, checking whether
   `any` behaves like a view of an existing value or like a box
 - Observation: the borrow rule names `any` as a view — "a pointer, a slice, a `string`,
   an `any`, an interface, a closure capturing by address"

@@ -1,15 +1,13 @@
-# sVaultDrive Roadmap
+# sVaultDrive Backlog
 
-This file is the product roadmap for sVaultDrive: what the application must gain to stand next to a
+This file is the product backlog for sVaultDrive: what the application must gain to stand next to a
 mature disk-encryption tool. It is scoped to this module and to the `bin/std` primitives sVaultDrive
 depends on.
 
-It is not the repository's discovery backlog. Platform leads and defects belong in the `findings.*`
-files — [findings.gui.md](findings.gui.md) for the surface,
-[findings.optimization.md](findings.optimization.md) for the crypto throughput; compiler and
-language intent belongs in [todo.compiler.md](todo.compiler.md) and
-[todo.language.md](todo.language.md). Keep them separate: this file holds intent about the product,
-the `findings.*` files hold evidence about the platform. [README.md](README.md) has the whole
+Evidence, investigations, and intended outcomes owned by the application stay together here.
+Platform work belongs in [gui.md](gui.md) for the surface and
+[optimization.md](optimization.md) for crypto throughput; compiler and language work belongs in
+[compiler.md](compiler.md) and [language.md](language.md). [README.md](README.md) has the whole
 layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it

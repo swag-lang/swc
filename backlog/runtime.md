@@ -1,10 +1,10 @@
-# Runtime Allocator Roadmap
+# Runtime Allocator Backlog
 
-This file is the roadmap for `bin/runtime`, and tracks the work still required for the Swag runtime
+This backlog tracks the work still required for the Swag runtime
 allocator to demonstrate performance and memory behavior comparable to the vendored
-[mimalloc](../src/Support/Memory/mimalloc/readme.md). Defects and investigation leads belong in the
-`findings.*` files, which hold evidence; this file holds intent. [README.md](README.md) has the
-whole layout. Completed work disappears from this file because its history lives in git.
+[mimalloc](../src/Support/Memory/mimalloc/readme.md). Evidence, investigations, and intended
+outcomes stay together here. [README.md](README.md) has the whole layout. Completed work
+disappears from this file because its history lives in git.
 
 The allocator now has two paths, and which one produced a block is recoverable from its address, so
 the two never have to be told apart by a flag. The page path serves every request up to 64 KiB:

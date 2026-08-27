@@ -85,65 +85,62 @@ local workaround merely because the original request exposed it indirectly.
   impossible to express cleanly.
 - Fix a discovered issue in the current change when it is sufficiently understood, relevant to
   the task, and can be validated without making the change unsafe or incoherent.
-- Record the issue in the matching `backlog/findings.<area>.md` when it is uncertain, requires
-  broader design work, or should be handled separately. Include evidence and a concrete next
-  investigation step; do not record vague wishes.
-- Search every `backlog/findings.*` file before adding an entry. Enrich an existing item instead of
-  creating a duplicate.
+- Record the issue in the matching `backlog/<area>.md` when it is uncertain, requires broader
+  design work, or should be handled separately. Include evidence and a concrete next action; do not
+  record vague wishes.
+- Search the whole backlog before adding an entry. Enrich an existing item instead of creating a
+  duplicate.
 - Give the new entry the identifier the `Next identifier` line in
   [backlog/README.md](../../../backlog/README.md) names, then advance that line. See the rule below.
 
-The discovery backlog is not a promise that every item will be implemented, and not a substitute
-for fixing a root cause that is already safe and in scope.
+The backlog is not a promise that every observed lead will be implemented, and not a substitute for
+fixing a root cause that is already safe and in scope.
 
 ## Number Every Entry
 
-Every backlog entry — finding or todo — carries a permanent identifier in its heading:
+Every backlog entry carries a permanent identifier in its heading:
 
 ```
-### F-023 — A menu bar does not follow a live language switch
-### T-054 — No vector output
+### B-023 — A menu bar does not follow a live language switch
 ```
 
 The identifier is how an entry is named everywhere else — in conversation, in a commit message, in
-another backlog entry, in a code comment. A title gets rewritten, a position moves, and an entry
-changes file; the identifier does not.
+another backlog entry, in a code comment. A title, position, or next action can change; the
+identifier does not.
 
-- Take the next identifier of the matching kind from the `Next identifier` lines in
-  [backlog/README.md](../../../backlog/README.md), then advance that line. Each is a counter, not
-  an entry count: it keeps rising as entries are deleted. The `F` counter is shared by every
-  `findings.*` file, the `T` counter by every `todo.*` file.
+- Take the `B` identifier from the `Next identifier` line in
+  [backlog/README.md](../../../backlog/README.md), then advance that line. It is a counter, not an
+  entry count: it keeps rising as entries are deleted.
 - Never renumber and never reuse. A deleted entry takes its identifier with it, so `F-012` in an
   old commit message still means what it meant.
-- Keep each `findings.*` file sorted by identifier, ascending. A new entry always carries the
-  highest identifier of its file, so it goes at the end; a deleted one leaves a gap, and the gap
-  stays. Position is mechanical and carries no priority — it only makes an entry findable by its
-  number. In a `todo.*` file, position IS priority: entries stay ordered by decreasing value, and
-  identifiers appear out of order.
-- A finding that graduates into a plan becomes a todo entry and takes a fresh `T` identifier; its
-  `F` identifier retires with it. Name the finding it came from in the new entry.
+- Existing identifiers below `F-203` and `T-572` are permanent legacy identifiers. Their prefixes
+  no longer determine file, shape, ordering, or maturity; those families are closed and every new
+  entry uses `B-*`.
+- Position expresses expected value where entries are comparable. Put an untriaged lead at the end
+  of the closest relevant section until its priority is understood, then move it without changing
+  its identifier.
+- When investigation becomes implementation, update `Next` and `Complete when` in place. Never
+  mint a second entry merely to represent the same work at a later maturity.
 
-## Keep Findings And Roadmaps Apart
+## Keep One Backlog Per Domain
 
-The whole backlog lives in [backlog/](../../../backlog/) — nowhere else. Two kinds of file, two
-different jobs. Write to the right one, and read
-[backlog/README.md](../../../backlog/README.md) for the full layout and the entry format.
+The whole backlog lives in [backlog/](../../../backlog/) — nowhere else. Each domain has one file
+that keeps evidence, open decisions, and committed outcomes together. Read
+[backlog/README.md](../../../backlog/README.md) for the inventory and entry format.
 
-- `backlog/findings.<area>.md` holds **evidence**: something observed, with a reproduction and a
-  next investigation step. Split by the area the issue will be *fixed* in — `compiler`,
-  `optimization`, `safety`, `gui`, `tooling` — not by the task that noticed it.
-- `backlog/todo.<unit>.md` holds **intent**: what a unit should become, and in which order.
-  One file per unit: `compiler`, `language`, `doc`, `format`, `runtime`, each `bin/std` module,
-  each application. Entries are ordered by decreasing value and measured against the competition.
+- `backlog/compiler.md`, `optimization.md`, `safety.md`, `gui.md`, and their peers are split by the
+  domain where the issue will be investigated or fixed, not by the task that noticed it.
+- Evidence and intent are properties of an entry, not different storage classes. Use `Next:` to
+  state the smallest useful investigation or implementation step and `Complete when:` to state
+  when the entry can be deleted or its next action rewritten.
 
 Create a new file only when a real cluster forms; a category holding one entry costs more to
 navigate than it saves.
 
-Both hold only what is *not done*. When a task resolves, invalidates, or completes the
-investigation of an entry, delete that entry — or cut it down to the part that genuinely remains.
-Never keep done or investigated material as a record: history lives in git. A finding that
-graduates into a plan moves to the matching `backlog/todo.*` file and disappears from the
-`findings.*` one.
+The backlog holds only what is *not done*. When a task resolves, invalidates, or completes an
+entry, delete it — or cut it down to the part that genuinely remains. Never keep completed work as
+a record: history lives in Git. When evidence changes the next action, rewrite the same entry in
+place and keep its identifier.
 
 ## Establish The Applicable Rules
 
@@ -236,7 +233,7 @@ finished until they would.
 - Watch it fail without the fix before keeping it. A test that passes either way records nothing.
 - Reduce it to the language construct. A suite source is standalone: a case that still needs
   `gui` to reproduce is a `bin/std` test, not a suite test.
-- Record an `F-0xx` in [backlog/findings.compiler.md](../../../backlog/findings.compiler.md) when
+- Record a `B-0xx` in [backlog/compiler.md](../../../backlog/compiler.md) when
   the case genuinely does not reduce, saying why. That is the only accepted outcome other than a
   new test.
 

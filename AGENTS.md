@@ -74,6 +74,6 @@ uses the two-word `sName` product convention, a specific generated icon, the sta
 and the application-workspace validation flow.
 
 Everything this repository intends to do, and every lead it has recorded and not yet explained,
-lives in [backlog/](backlog/): `todo.<unit>.md` for intent, `findings.<area>.md` for evidence.
-[backlog/README.md](backlog/README.md) states which file a new entry goes in and how it is
-numbered.
+lives in one file per domain under [backlog/](backlog/). Evidence, open decisions, and committed
+outcomes stay together so an entry can mature without moving or changing identity.
+[backlog/README.md](backlog/README.md) states which file a new entry goes in and how it is numbered.

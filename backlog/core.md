@@ -1,13 +1,12 @@
-# Core Roadmap
+# Core Backlog
 
-This file is the roadmap for `std/core`, measured against the standard libraries it competes with:
+This backlog covers `std/core`, measured against the standard libraries it competes with:
 the Go standard library, the .NET base class library, Rust's `std` plus its de-facto crates, the
 Python standard library, and Zig's `std`.
 
-It is not the repository's discovery backlog. Defects and leads about other subsystems belong in
-the `findings.*` files, which hold evidence; compiler intent belongs in
-[todo.compiler.md](todo.compiler.md) and language intent in [todo.language.md](todo.language.md).
-This file holds intent about `bin/std/modules/core`. [README.md](README.md) has the whole layout.
+Compiler work belongs in [compiler.md](compiler.md) and language work in
+[language.md](language.md). This file keeps the evidence, investigations, and intended outcomes
+owned by `bin/std/modules/core` together. [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.
@@ -207,7 +206,7 @@ state and policy in common code.
   synchronization points and the configured `parallelism` contract.
 - Complete when: multi-lane published vectors still agree, the requested lane count executes in
   parallel, and a benchmark separates the lane-parallel gain from the packed permutation work.
-- Related: T-251 in [todo.simd.md](todo.simd.md)
+- Related: T-251 in [simd.md](simd.md)
 
 ### T-031 — No AES implementation
 
@@ -287,7 +286,7 @@ unsafe legacy modes excluded from the default surface.
   128 at level 6 — and tuning the lazy-match rule miniz inherited. Both change which matches are
   chosen, so each has to report compressed size beside time.
 - The other half is not in this file: the block loop spends its time in stack slots rather than
-  registers, which [F-136](findings.optimization.md) measured at 1.6x against clang for the
+  registers, which [F-136](optimization.md) measured at 1.6x against clang for the
   matching Inflate loop and is a backend problem, not a library one.
 - Complete when: level 6 on the PNG and `.scapture` fixtures is at least 1.5x faster than it is
   now with no more than 1% growth in compressed size, and every `core` compression test still
@@ -336,7 +335,7 @@ should be decided deliberately and early, because T-027 will force the question 
 non-blocking sockets arrive, and answering it under that pressure is how libraries end up with two
 concurrency models.
 
-The language-design half is [T-012](todo.language.md#t-012--the-concurrency-model-is-undecided).
+The language-design half is [T-012](language.md#t-012--the-concurrency-model-is-undecided).
 Record decisions there, not here.
 
 - Related: T-012, T-160, T-161, T-162

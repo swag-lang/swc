@@ -1,17 +1,16 @@
-# sFileScope Roadmap
+# sFileScope Backlog
 
-This file is the product roadmap for sFileScope, measured against the viewers it competes with:
+This file is the product backlog for sFileScope, measured against the viewers it competes with:
 QuickLook and Seer on Windows, macOS Quick Look as the interaction reference, File Viewer Plus and
 Universal Viewer as the "universal viewer" claim, Total Commander's Lister and its `wlx` plugin
 ecosystem, and — on the binary side — HxD, ImHex, 010 Editor, CFF Explorer, PE-bear and Detect It
 Easy. It is scoped to `bin/apps/modules/sFileScope` and to the `bin/std` facilities it depends on.
 
-It holds intent only. A defect of this application is evidence and goes to a `findings.filescope.md`
-beside this file, created the day it has an entry; a lead this application merely exposed goes to
-the file of the unit that will fix it, [findings.gui.md](findings.gui.md) and its neighbours. Compiler
-and language intent belongs in [todo.compiler.md](todo.compiler.md) and
-[todo.language.md](todo.language.md), and a capability a `bin/std` module owns keeps its entry in
-that module's file — this roadmap references those identifiers instead of restating them.
+Evidence, investigations, and intended outcomes owned by the application stay together here. A
+lead the application merely exposed goes to the domain that will fix it, such as
+[gui.md](gui.md). Compiler and language work belongs in [compiler.md](compiler.md) and
+[language.md](language.md), and a capability a `bin/std` module owns keeps its entry in that
+module's file — this backlog references those identifiers instead of restating them.
 [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
@@ -148,12 +147,12 @@ viewer" claim is currently weakest. Read the `Today` column as:
 | Other encodings | UTF-16/32, Windows-1252 | full, detected and overridable | the multi-byte pages: Shift-JIS, GBK, EUC | — |
 | Source code | registered extensions, common build/config names, and shebang scripts | full, lexer coloring | — | — |
 | Markdown | `.md` `.markdown` | full | — | — |
-| HTML | `.html` `.htm` `.xhtml` | full | advanced layout, SVG and CSS effects | [HTML roadmap](todo.html.md) |
+| HTML | `.html` `.htm` `.xhtml` | full | advanced layout, SVG and CSS effects | [HTML roadmap](html.md) |
 | JSON, XML, YAML, TOML | `.json` `.xml` `.yaml` `.toml` | code | folding and value tree | — |
 | Diff and patch | `.diff` `.patch` | text | hunk coloring and navigation | T-408 |
 | Log | `.log` | text | level coloring, timestamps, tail | T-409 |
 | Tabular text | `.csv` `.tsv` `.tab` | full up to 32 MiB, detected delimiter and quoting, fixed header | bounded streaming beyond 32 MiB | T-402 |
-| PDF | `.pdf` | page rendering, editing and writing | encryption, annotations, shadings, scanned-image codecs | T-401, [todo.pdf.md](todo.pdf.md) |
+| PDF | `.pdf` | page rendering, editing and writing | encryption, annotations, shadings, scanned-image codecs | T-401, [pdf.md](pdf.md) |
 | Office OOXML | `.docx` `.xlsx` `.pptx` | structure | readable text and sheets | T-407 |
 | OpenDocument | `.odt` `.ods` `.odp` | structure | readable text and sheets | T-407 |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope, see below | — |
@@ -213,7 +212,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 
 ### T-401 — A PDF the module cannot fully decode is shown as a failure, not as a page
 
-- Intent: the module's own coverage gaps now live in [todo.pdf.md](todo.pdf.md), which is the
+- Intent: the module's own coverage gaps now live in [pdf.md](pdf.md), which is the
   roadmap for `std/pdf`. What stays here is the viewer's half: `PdfViewer` reports whatever
   `loadPage` or `render` failed with and shows nothing, so a document with one unsupported
   construct anywhere reads as a broken file rather than as a page with a gap in it.
@@ -329,7 +328,7 @@ viewer" claim is currently weakest. Read the `Today` column as:
 - Complete when: sFileScope offers a sound-only view for every decodable track when no picture
   track can be decoded, states that the picture is unavailable, and keeps ordinary video playback
   unchanged when both sides are supported.
-- Related: T-568 in [todo.video.md](todo.video.md), T-562 in [todo.audio.md](todo.audio.md)
+- Related: T-568 in [video.md](video.md), T-562 in [audio.md](audio.md)
 
 ### T-415 — EPUB stops at the ZIP structure
 
@@ -373,3 +372,56 @@ repository.
 
 **3D model preview.** Pixel is a 2D renderer, and a wireframe nobody trusts is not worth the
 subsystem.
+
+---
+
+The entries below were open investigations when the unified backlog was introduced. Their `F-*`
+identifiers remain permanent; update their next action in place as the evidence matures. They retain
+their former order until re-triaged, so position in this imported block carries no priority claim.
+
+These application-specific leads stay here; leads sFileScope merely exposes stay with the module
+that will fix them.
+
+### F-156 — sFileScope sizes its viewer layout in physical pixels, so every viewer overflows at non-100% DPI
+
+- Area: apps/sFileScope
+- Found while: migrating the PDF engine into `std/gui` and verifying the new `PdfView` inside the
+  running sFileScope on a 150% monitor.
+- Observation: sFileScope hands each integrated viewer a content window sized straight from the
+  surface's physical pixel size, while gui lays out and paints in logical units times
+  `deviceScale`. At 150% the viewer content area measured 1161x730 logical units inside a window
+  whose client is only about 978x598 logical, so the viewer — any viewer, this predates the PDF
+  rework — is 1.5x wider and taller than the window: a fitted page centres itself in the
+  oversized widget and shows up right-shifted and cut. At 100% DPI physical equals logical and
+  nothing is visible, which is how it went unnoticed.
+- Evidence: an instrumented `PdfView.onPaint` on both monitors of a 150% setup reported
+  `position=0,0,1161x730, deviceScale=1.5, fitted zoom=0.867, content centred at x=322` — the
+  widget math is exact, the size it was given is not. The sidebar and toolbar paint at their
+  layout size times 1.5, matching the screenshots.
+- Next step: find where sFileScope computes the content and command areas from the
+  surface size and divide by `deviceScale` there; then check the same path in every host that
+  sizes children from a `Surface` rectangle, since the surface contract is physical pixels.
+  Verify with the HTML viewer at 150%, which should show the same overflow today.
+
+### F-188 — Audio-to-video synchronisation has never been observed against a real output device
+
+- Area: apps/sFileScope
+- Found while: T-504, after the video viewer started presenting against the audio clock.
+- Observation: the viewer presents each picture at the time the sound has reached, and nothing has
+  yet confirmed that the time the sound reports is the time it is playing. On this machine the
+  played-sample counter of a source voice stays at zero for a whole run even with buffers queued
+  and the voice started, so the position `Voice.playbackPositionSeconds` answers never moves and
+  the correction the player applies to its own clock never fires. Sound is audible on the user's
+  machine, so the counter is expected to advance there; here it does not, and the difference is
+  most likely that this process gets no working audio endpoint.
+- Evidence: a temporary probe in the video viewer logging `activeDriverKind`, `buffersQueued`, and
+  the raw played-sample counter once per second. Driver 2 (XAudio2), `queued=2` from the first
+  second — so the source is primed and submission works — with `samplesPlayed` flat at zero
+  twenty seconds in, from the start of the file and after a seek. Presentation is unaffected
+  because playback keeps its own clock and only lets the sound correct it, which is what the last
+  test of `viewer.video.test.swg` pins down.
+- Next step: play a video with sound on a machine whose output is audible and log
+  `playbackSampleFrame` against the wall clock for a minute. What has to be true is that it tracks
+  real time, that `followAudioClock` corrects a deliberately skewed video clock back onto it, and
+  that the correction is not so frequent that it makes the picture stutter — the 0.1 s dead band in
+  `VideoAudioDriftSeconds` is a guess until then.

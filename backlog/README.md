@@ -1,166 +1,98 @@
 # Backlog
 
-Everything this repository intends to do, and everything it has observed and not yet explained.
-Two kinds of file, two different jobs. Write to the right one.
+Everything this repository intends to do, and everything it has observed and not yet explained,
+lives here. Each domain has one file: evidence, open decisions, and committed outcomes stay
+together so an entry can mature without moving or changing identity.
 
-- **`todo.<unit>.md` holds intent**: what a unit should become, and in which order. Entries are
-  ordered by decreasing value, not by decreasing effort, and are measured against what the unit
-  competes with.
-- **`findings.<area>.md` holds evidence**: something observed, with a reproduction and a next
-  investigation step. An entry is a lead worth preserving, not a commitment to implement it.
+Only unfinished work belongs in the backlog. When an entry is resolved, invalidated, or completed,
+delete it or cut it down to the part that genuinely remains. History lives in Git.
 
-Both hold only what is *not done*. When a task resolves, invalidates, or completes the
-investigation of an entry, delete that entry — or cut it down to the part that genuinely remains.
-Never keep done or investigated material as a record: history lives in git. A finding that
-graduates into a plan moves to the matching `todo.*` file and disappears from the `findings.*` one.
+[prompts.md](prompts.md) is the one exception to the domain layout. It holds one copy-pasteable
+prompt per long-running campaign, with the target, current measurements, and stopping condition.
 
-[prompts.md](prompts.md) is a third kind of file: one copy-pasteable prompt per long-running
-campaign — generated-code performance, safety, compiler code mass, compilation speed, compiler
-memory, repository health, and compiler code cleanup. A campaign spans many sessions and many
-failed attempts, so each prompt states the target, the numbers as they stand, and the condition
-under which the work is allowed to stop.
-
-## Intent
-
-| File | Unit |
-| --- | --- |
-| [todo.compiler.md](todo.compiler.md) | `swc` itself: frontend, backend, incrementality, speed, memory, and what sits around it |
-| [todo.language.md](todo.language.md) | The Swag language and its syntax — design questions open by choice |
-| [todo.doc.md](todo.doc.md) | The `doc` command |
-| [todo.format.md](todo.format.md) | The `format` command |
-| [todo.runtime.md](todo.runtime.md) | `bin/runtime`, and the allocator in particular |
-| [todo.simd.md](todo.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized runtime/std consumers |
-| [todo.portability.md](todo.portability.md) | Cross-platform boundaries in `bin/`, the runtime host ABI, and preparation for Linux |
-| [todo.core.md](todo.core.md) | `std/core` |
-| [todo.gui.md](todo.gui.md) | `std/gui` |
-| [todo.html.md](todo.html.md) | The HTML engine behind `Gui.HtmlView`: parser, cascade, layout, paint, and the view |
-| [todo.markdown.md](todo.markdown.md) | The Markdown engine behind `Gui.Markdown.View`: block parser, inline renderer, and the view |
-| [todo.pixel.md](todo.pixel.md) | `std/pixel` |
-| [todo.audio.md](todo.audio.md) | `std/audio` |
-| [todo.video.md](todo.video.md) | `std/video` |
-| [todo.truetype.md](todo.truetype.md) | `std/truetype` |
-| [todo.pdf.md](todo.pdf.md) | The PDF engine and `PdfView` inside `std/gui` |
-| [todo.filescope.md](todo.filescope.md) | The sFileScope application |
-| [todo.snapforge.md](todo.snapforge.md) | The sSnapForge application |
-| [todo.vaultdrive.md](todo.vaultdrive.md) | The sVaultDrive application |
-
-## Evidence
+## Areas
 
 | File | Area |
 | --- | --- |
-| [findings.compiler.md](findings.compiler.md) | Frontend, semantic analysis, and code generation defects |
-| [findings.doc.md](findings.doc.md) | The `doc` command: collection, rendering, and the cost of a run |
-| [findings.format.md](findings.format.md) | The `format` command and formatter defects |
-| [findings.language.md](findings.language.md) | Language rules that surprise: overloaded spellings, defaults, and silent conversions |
-| [findings.optimization.md](findings.optimization.md) | Backend optimization passes, register allocation, and generated-code performance |
-| [findings.safety.md](findings.safety.md) | Borrow, lifetime, and sanity analysis |
-| [findings.gui.md](findings.gui.md) | `std/gui`, and the widgets and dialogs it ships |
-| [findings.html.md](findings.html.md) | The HTML engine behind `Gui.HtmlView` |
-| [findings.pixel.md](findings.pixel.md) | `std/pixel`: images, text, and rendering |
-| [findings.win32.md](findings.win32.md) | Windows native modules and their checked API boundary |
-| [findings.filescope.md](findings.filescope.md) | The sFileScope application |
-| [findings.snapforge.md](findings.snapforge.md) | The sSnapForge application |
-| [findings.tooling.md](findings.tooling.md) | The build, the sandbox, and the test harness |
+| [audio.md](audio.md) | `std/audio` |
+| [compiler.md](compiler.md) | Compiler frontend, backend, incrementality, services, and workspace build engine |
+| [core.md](core.md) | `std/core` |
+| [doc.md](doc.md) | The `doc` command |
+| [filescope.md](filescope.md) | The sFileScope application |
+| [format.md](format.md) | The `format` command |
+| [gui.md](gui.md) | `std/gui` |
+| [html.md](html.md) | The HTML engine behind `Gui.HtmlView` |
+| [language.md](language.md) | The Swag language and its syntax |
+| [markdown.md](markdown.md) | The Markdown engine behind `Gui.Markdown.View` |
+| [optimization.md](optimization.md) | Backend optimization passes, register allocation, and generated-code performance |
+| [pdf.md](pdf.md) | The PDF engine and `PdfView` inside `std/gui` |
+| [pixel.md](pixel.md) | `std/pixel` |
+| [portability.md](portability.md) | Cross-platform boundaries in `bin/`, the runtime host ABI, and preparation for Linux |
+| [runtime.md](runtime.md) | `bin/runtime`, and the allocator in particular |
+| [safety.md](safety.md) | Borrow, lifetime, and sanity analysis |
+| [simd.md](simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers |
+| [snapforge.md](snapforge.md) | The sSnapForge application |
+| [tooling.md](tooling.md) | The build, sandbox, and test harness |
+| [truetype.md](truetype.md) | `std/truetype` |
+| [vaultdrive.md](vaultdrive.md) | The sVaultDrive application |
+| [video.md](video.md) | `std/video` |
+| [win32.md](win32.md) | Windows native modules and their checked API boundary |
 
-Put an entry in the file whose area it will be *fixed* in, not the one it was noticed from. Major
-engines and applications with their own `todo.*` roadmap use the matching `findings.*` category;
-for smaller areas, create a new file only when a real cluster forms — a category holding one
+Put an entry in the domain where it will be investigated or fixed, not where it happened to be
+noticed. Create a new domain file only when a real cluster forms; a category holding one isolated
 entry costs more to navigate than it saves.
-
-An application follows the same rule as a module: it gets its own `findings.<app>.md` beside its
-`todo.<app>.md` once it has entries of its own, and a lead an application merely *exposed* stays in
-the file of the unit that will fix it. So sVaultDrive has no findings file today: everything it has
-surfaced so far will be fixed in `std/gui`, and an empty file would only be one more place to look.
 
 ## Number Every Entry
 
-Every entry — finding or todo — carries a permanent identifier in its heading:
+Every entry carries a permanent identifier in its heading:
 
-```
-### F-023 — A menu bar does not follow a live language switch
-### T-054 — No vector output
-```
-
-The identifier is how an entry is named everywhere else — in conversation, in a commit message, in
-another backlog entry, in a code comment. A title gets rewritten, a position moves, and an entry
-changes file; the identifier does not.
-
-Next identifier: F-203
-Next identifier: T-572
-
-- Take the next identifier of the matching kind from the lines above, then advance that line. Each
-  is a counter, not an entry count: it keeps rising as entries are deleted. The `F` counter is
-  shared by every `findings.*` file, the `T` counter by every `todo.*` file.
-- Never renumber and never reuse. A deleted entry takes its identifier with it, so `F-012` in an
-  old commit message still means what it meant.
-- In a `findings.*` file, keep entries sorted by identifier, ascending. A new entry always carries
-  the highest identifier of its file, so it goes at the end; a deleted one leaves a gap, and the
-  gap stays. Position is mechanical and carries no priority — it only makes an entry findable by
-  its number.
-- In a `todo.*` file, position IS priority: entries stay ordered by decreasing value, so a new
-  entry goes wherever its value puts it, and identifiers appear out of order. The number says what
-  an entry is called, never how much it matters.
-- Use `##` sections to group contiguous entries that pursue the same capability. Section order
-  preserves todo priority and global finding-identifier order; a section is navigation, not a
-  campaign umbrella, and does not change the independence of the entries beneath it.
-- A finding that graduates into a plan becomes a todo entry and takes a fresh `T` identifier; its
-  `F` identifier retires with it. Name the finding it came from in the new entry.
-
-## Write A Todo
-
-One todo names one independently finishable outcome. A contributor must be able to take its
-identifier, complete that outcome, and remove that entry without also having to complete another
-missing capability hidden under the same heading.
-
-- Keep together only the implementation steps and acceptance conditions required to make that one
-  outcome correct.
-- Give separate identifiers to capabilities that can ship, be tested, or be prioritized
-  independently, even when they touch the same subsystem.
-- State dependencies and useful coordination through a `Related:` line naming the other todo
-  identifiers. A relationship never makes several outcomes one entry.
-- Do not use one heading as a campaign umbrella over numbered work. Put shared context in the file
-  introduction or tier introduction, then keep each entry independently actionable.
-
-Use this compact shape; explanatory paragraphs and evidence may follow when they materially help
-someone execute the item.
-
-```
-### T-000 — Short outcome
-
-- Intent: the one missing result this entry delivers
-- Complete when: observable acceptance condition
-- Related: T-001, T-002 (when applicable)
+```text
+### B-001 — A short, descriptive title
 ```
 
-## Write A Finding
+Next identifier: B-001
 
-Search the `findings.*` files before adding an entry: enrich an existing item instead of creating a
-duplicate. Add an entry when the issue needs separate investigation, broader design work, or
-stronger evidence; fix it immediately instead when it is sufficiently understood, relevant to the
-current task, and safe to validate.
+- `B-*` is the identifier family for every new entry. Take the number above and advance the
+  counter in the same change.
+- Existing identifiers below `F-203` and `T-572` are permanent legacy identifiers. Their prefix
+  records how the entry entered the old split backlog; it no longer controls its location, shape,
+  or maturity. Those two families are closed to new allocations.
+- Never renumber or reuse an identifier. A deleted entry takes its identifier with it, so an old
+  conversation, commit message, link, or code comment keeps its meaning.
+- Position expresses expected value where entries are comparable. Put an untriaged lead at the end
+  of the closest relevant section until its priority is understood; move it when evidence changes
+  that judgment. Identifiers never encode priority.
+- Use `##` sections to group entries pursuing the same capability. Sections aid navigation; they do
+  not turn independent entries into one campaign.
 
-Use this compact format. Keep observations factual and make the next step actionable.
+An entry never receives a new identifier merely because its next action changes from investigation
+to implementation. Rewrite it in place and retain any evidence that still matters.
 
+## Write An Entry
+
+One entry owns one independently finishable next outcome. That outcome may be an investigation, a
+decision, or an implementation, but a contributor must be able to complete and remove the entry
+without also completing unrelated work hidden under the same heading.
+
+Every new entry uses this compact core:
+
+```text
+### B-000 — Short outcome or open question
+
+- Evidence: observation, reproduction, measurement, competitive gap, or other reason this remains
+- Next: the smallest useful investigation or implementation step
+- Complete when: observable condition for deleting the entry or rewriting its next action
+- Related: B-001, T-002, F-003 (when applicable)
 ```
-### F-000 — Short descriptive title
 
-- Area: compiler | bin/std | language | tooling | documentation
-- Found while: task, test, or file that exposed the issue
-- Observation: awkward behavior, suspected defect, or optimization opportunity
-- Evidence: reproduction, relevant paths, measurements, or diagnostics
-- Next step: smallest useful investigation
-- Related: issue, pull request, or backlog entry if applicable
-```
+Explanatory paragraphs and additional fields may follow when they materially help execution. For
+example, a language-design entry should include `Elsewhere:` with what neighboring languages do,
+while a defect may include `Found while:` and a precise reproduction.
 
-[findings.language.md](findings.language.md) adds one field to that shape, between `Evidence` and
-`Next step`, and every entry in that file carries it:
+For an investigation, `Complete when` names the evidence or decision required to stop investigating.
+If that result establishes implementation work, update `Next` and `Complete when` in the same entry.
+For committed work, `Complete when` names the externally observable acceptance condition.
 
-```
-- Elsewhere: what the neighbouring languages do about the same question
-```
-
-A language rule is judged against alternatives that exist, so the entry states them before it
-proposes anything: a wart nobody else has and a convention half the field shares lead to different
-decisions. The line records what those languages do, not what Swag should do — several entries there
-keep a rule Swag shares with exactly one other language. Do not add the field elsewhere; a defect in
-`swc` has no neighbour to compare against.
+Search the whole backlog before adding an entry. Enrich an existing entry instead of creating a
+duplicate, and express dependencies through `Related:` rather than combining outcomes that can be
+prioritized, implemented, or shipped independently.

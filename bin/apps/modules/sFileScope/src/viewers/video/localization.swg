@@ -5,21 +5,49 @@ using Core, Gui, Audio
 // Visible strings of the video viewer.
 struct VideoStrings
 {
-    ui_TipPlay:          string = "Play"                                         // Tooltip while playback is stopped or paused.
-    ui_TipPause:         string = "Pause"                                        // Tooltip while playback is running.
-    ui_TipStop:          string = "Stop"                                         // Tooltip of the stop button.
-    ui_TipBackward:      string = "Back 10 seconds (Left)"                       // Tooltip of the backward seek button.
-    ui_TipForward:       string = "Forward 10 seconds (Right)"                   // Tooltip of the forward seek button.
-    ui_TipSeek:          string = "Seek"                                         // Tooltip of the time timeline.
-    ui_TipMute:          string = "Mute or unmute (M)"                           // Tooltip of the mute switch.
-    ui_TipVolume:        string = "Volume"                                       // Tooltip of the volume slider.
-    ui_TipAudio:         string = "Audio track"                                  // Tooltip of the sound-track selector.
-    ui_AudioTrack:       string = "<b>%</b>% · <p3>% · % ch · %{f1} kHz</p>"     // One sound-track selector entry.
-    ui_AudioTrackNumber: string = "Audio %"                                      // Fallback name for an unnamed sound track.
-    ui_AudioTrackLang:   string = "<p2> (%)</p>"                                 // A sound-track language suffix.
-    ui_AudioDetails:     string = "% · % ch · %{f1} kHz"                         // Encoding, channel count, and sample rate in the host summary.
-    word_Frame:          string = "frame"                                        // One video frame.
-    word_Frames:         string = "frames"                                       // Several video frames.
+    ui_TipPlay:                string = "Play"                           // Tooltip while playback is stopped or paused.
+    ui_TipPause:               string = "Pause"                          // Tooltip while playback is running.
+    ui_TipStop:                string = "Stop"                           // Tooltip of the stop button.
+    ui_TipBackward:            string = "Back 10 seconds (Left)"         // Tooltip of the backward seek button.
+    ui_TipForward:             string = "Forward 10 seconds (Right)"     // Tooltip of the forward seek button.
+    ui_TipSeek:                string = "Seek"                           // Tooltip of the time timeline.
+    ui_TipMute:                string = "Mute or unmute (M)"             // Tooltip of the mute switch.
+    ui_TipVolume:              string = "Volume"                         // Tooltip of the volume slider.
+    ui_TipAudio:               string = "Audio track"                    // Tooltip of the sound-track selector.
+    ui_TipSubtitles:           string = "Subtitles"                      // Tooltip of the subtitle selector.
+    ui_AudioTrack:             string = "<b>%</b>% · <p3>% · % ch · %{f1} kHz</p>" // One sound-track selector entry.
+    ui_AudioTrackNumber:       string = "Audio %"                        // Fallback name for an unnamed sound track.
+    ui_AudioTrackLang:         string = "<p2> (%)</p>"                   // A sound-track language suffix.
+    ui_AudioDetails:           string = "% · % ch · %{f1} kHz"           // Encoding, channel count, and sample rate in the host summary.
+    ui_SubtitleOff:            string = "Off"                            // Disables subtitle presentation.
+    ui_SubtitleTrackNumber:    string = "Subtitle %"                     // Fallback name for an unnamed subtitle track.
+    ui_SubtitleTrackLang:      string = "% (%)"                          // A subtitle-track name followed by its language code.
+    ui_SubtitleEmbedded:       string = "% - Embedded"                   // Embedded subtitle-track entry.
+    ui_SubtitleSidecar:        string = "% - External file"              // Sidecar subtitle-track entry.
+    ui_SubtitleFont:           string = "Font"                           // Subtitle font submenu.
+    ui_SubtitleFontSans:       string = "System sans serif"              // Proportional subtitle font.
+    ui_SubtitleFontMono:       string = "Monospace"                      // Fixed-width subtitle font.
+    ui_SubtitleSize:           string = "Text size"                      // Subtitle size submenu.
+    ui_SubtitleSizeSmall:      string = "Small"
+    ui_SubtitleSizeNormal:     string = "Normal"
+    ui_SubtitleSizeLarge:      string = "Large"
+    ui_SubtitleSizeVeryLarge:  string = "Very large"
+    ui_SubtitleEffect:         string = "Readability"     // Subtitle readability-effect submenu.
+    ui_SubtitleEffectOutline:  string = "Outline"
+    ui_SubtitleEffectShadow:   string = "Shadow"
+    ui_SubtitleEffectBackdrop: string = "Background"
+    ui_SubtitleEffectNone:     string = "None"
+    ui_SubtitlePosition:       string = "Position"
+    ui_SubtitlePositionBottom: string = "Bottom"
+    ui_SubtitlePositionCenter: string = "Center"
+    ui_SubtitlePositionTop:    string = "Top"
+    ui_SubtitleColor:          string = "Text color"
+    ui_SubtitleColorWhite:     string = "White"
+    ui_SubtitleColorYellow:    string = "Yellow"
+    ui_SubtitleDelay:          string = "Synchronization"
+    ui_SubtitleDelayReset:     string = "Reset delay"
+    word_Frame:                string = "frame"      // One video frame.
+    word_Frames:               string = "frames"     // Several video frames.
 
     // Summary the host shows beside the file size: geometry, frame count, frame rate, and duration.
     ui_Details: string = "% × % px · % · %{f2} fps · % · Swag CPU"
@@ -74,6 +102,18 @@ func videoAudioEncodingText(encoding: Audio.SoundFileEncoding)->string
 func videoAudioDetailsText(sound: const *Audio.SoundFile)->String
 {
     return Format.toString(videoStrings().ui_AudioDetails, videoAudioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64) sound.sampleRateHz() / 1_000.0)
+}
+
+// Formats one embedded or sidecar subtitle-track entry.
+func videoSubtitleTrackText(index: u32, track: const *Video.Subtitle.Track, sidecar: bool)->String
+{
+    let strings     = videoStrings()
+    let displayName = videoSubtitleText(track.displayNameData(), track.displayNameLength())
+    let language    = videoSubtitleText(track.languageTagData(), track.languageTagLength())
+    var name        = @countof(displayName) ? String.from(displayName) : Format.toString(strings.ui_SubtitleTrackNumber, index + 1)
+    if @countof(language) and language != "und" do
+        name = Format.toString(strings.ui_SubtitleTrackLang, name.toString(), language)
+    return Format.toString(sidecar ? strings.ui_SubtitleSidecar : strings.ui_SubtitleEmbedded, name.toString())
 }
 
 // Registers this viewer's string table with the application.

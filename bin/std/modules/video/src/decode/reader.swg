@@ -1,5 +1,5 @@
 //! Format: Format-neutral video decoder registry and reader.
-//! Supported: Extension-based decoder selection, streamed frame decoding, metadata, seeking, and optional audio packets.
+//! Supported: Extension-based decoder selection, streamed frame decoding, metadata, seeking, and optional audio and subtitle tracks.
 //! Not supported: This file does not parse a concrete video or container format.
 //! Role: This file owns decoder registration and the public reader that delegates to concrete format subfolders.
 //
@@ -82,6 +82,16 @@ interface IAudioDecoder
     mtd audioTrack(index: u32)->#null const *SoundFile
 }
 
+// Optional decoder capability exposing timed text tracks carried by a video container.
+interface ISubtitleDecoder
+{
+    // Returns the number of playable subtitle tracks.
+    mtd const subtitleTrackCount()->u32
+
+    // Returns a subtitle track owned by the decoder, or `null` past the end.
+    mtd const subtitleTrack(index: u32)->#null const *Subtitle.Track
+}
+
 // Optional decoder capability handing pictures over without converting them to RGB.
 //
 // A codec that reconstructs planar 4:2:0 implements this so a consumer drawing through a
@@ -124,15 +134,16 @@ struct Reader
 {
     internal
     {
-        source:        Source                               // Bytes of the encoded stream.
-        info:          StreamInfo                           // What the decoder reported when opening.
-        format:        StreamFormat                         // Format claimed by the selected decoder.
-        decoder:       #null IDecoder                       // Decoder instance owned by this reader.
-        audioDecoder:  #null IAudioDecoder                  // Optional sound-track capability.
-        planarDecoder: #null IPlanarDecoder                 // Optional unconverted-picture capability.
-        timedDecoder:  #null ITimedDecoder                  // Optional exact-timestamp capability.
-        deferred:      #null IDeferredDecoder               // Optional deferred sample-index capability.
-        decoderType:   #null const *Swag.TypeInfoStruct     // Concrete decoder type, used to release it.
+        source:          Source                               // Bytes of the encoded stream.
+        info:            StreamInfo                           // What the decoder reported when opening.
+        format:          StreamFormat                         // Format claimed by the selected decoder.
+        decoder:         #null IDecoder                       // Decoder instance owned by this reader.
+        audioDecoder:    #null IAudioDecoder                  // Optional sound-track capability.
+        subtitleDecoder: #null ISubtitleDecoder               // Optional timed-text capability.
+        planarDecoder:   #null IPlanarDecoder                 // Optional unconverted-picture capability.
+        timedDecoder:    #null ITimedDecoder                  // Optional exact-timestamp capability.
+        deferred:        #null IDeferredDecoder               // Optional deferred sample-index capability.
+        decoderType:     #null const *Swag.TypeInfoStruct     // Concrete decoder type, used to release it.
     }
 }
 
@@ -232,11 +243,12 @@ impl Reader
         // The registry only ever holds types that implement the interface, so the table resolves.
         .decoder = @mkinterface(Memory.new(selected.type), selected.type, IDecoder)!
         let instance = @dataof(.decoder)
-        .audioDecoder  = @mkinterface(instance, selected.type, IAudioDecoder)
-        .planarDecoder = @mkinterface(instance, selected.type, IPlanarDecoder)
-        .timedDecoder  = @mkinterface(instance, selected.type, ITimedDecoder)
-        .deferred      = @mkinterface(instance, selected.type, IDeferredDecoder)
-        .info          = .decoder.open(&.source)
+        .audioDecoder    = @mkinterface(instance, selected.type, IAudioDecoder)
+        .subtitleDecoder = @mkinterface(instance, selected.type, ISubtitleDecoder)
+        .planarDecoder   = @mkinterface(instance, selected.type, IPlanarDecoder)
+        .timedDecoder    = @mkinterface(instance, selected.type, ITimedDecoder)
+        .deferred        = @mkinterface(instance, selected.type, IDeferredDecoder)
+        .info            = .decoder.open(&.source)
     }
 
     // Releases the decoder instance and the source when the reader leaves scope.
@@ -255,12 +267,13 @@ impl Reader
             if type.opDrop do
                 type.opDrop(instance)
             Memory.free(instance, cast(u64) type.sizeof)
-            .decoder       = null
-            .audioDecoder  = null
-            .planarDecoder = null
-            .timedDecoder  = null
-            .deferred      = null
-            .decoderType   = null
+            .decoder         = null
+            .audioDecoder    = null
+            .subtitleDecoder = null
+            .planarDecoder   = null
+            .timedDecoder    = null
+            .deferred        = null
+            .decoderType     = null
         }
 
         .source.close()
@@ -320,6 +333,18 @@ impl Reader
     mtd const audioTrack(index: u32)->#null const *SoundFile
     {
         return .audioDecoder ? .audioDecoder!.audioTrack(index) : null
+    }
+
+    // Returns the number of decoded subtitle tracks carried by the opened stream.
+    mtd const subtitleTrackCount()->u32 => .subtitleDecoder ? .subtitleDecoder!.subtitleTrackCount() : 0
+
+    // Returns subtitle track `index`, owned by this reader, or `null` past the end.
+    //
+    // The returned track remains valid until the reader is closed. Its cues use the same media
+    // timeline as [[Video.Reader.frameTimestamp]].
+    mtd const subtitleTrack(index: u32)->#null const *Subtitle.Track
+    {
+        return .subtitleDecoder ? .subtitleDecoder!.subtitleTrack(index) : null
     }
 
     // Returns the exact presentation time of frame `index` in seconds.

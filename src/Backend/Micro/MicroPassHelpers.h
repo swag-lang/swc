@@ -128,6 +128,10 @@ namespace MicroPassHelpers
 
     bool violatesEncoderConformance(const MicroPassContext& context, const MicroInstr& inst, const MicroInstrOperand* ops);
     bool instructionActuallyUsesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops);
+    // The opcode table flags every arithmetic form as a flag writer; the
+    // micro-op decides: an exchange, a lea, a `not`, a byte swap, and every
+    // float, conversion and packed operation leave the flags alone.
+    bool instructionActuallyDefinesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops);
     bool areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef afterRef);
 
     // True when the CPU flags are redefined after 'instRef' before any label,

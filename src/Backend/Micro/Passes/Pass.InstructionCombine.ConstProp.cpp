@@ -217,7 +217,7 @@ namespace InstructionCombine
 
                 // Once the flags are clobbered we can stop scanning: later
                 // instructions don't observe our cmp's flags.
-                if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags))
+                if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(inst, inst.ops(*ctx.operands)))
                     return true;
 
                 // Control flow other than a conditional jump we already

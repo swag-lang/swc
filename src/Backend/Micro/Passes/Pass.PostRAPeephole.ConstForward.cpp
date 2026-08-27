@@ -114,7 +114,7 @@ namespace PostRaPeephole
                     return false;
 
                 const MicroInstrDef& info = MicroInstr::info(inst->op);
-                if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags) ||
+                if (instructionActuallyDefinesCpuFlags(*inst, ops) ||
                     info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                     info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
                     info.flags.has(MicroInstrFlagsE::JumpInstruction))

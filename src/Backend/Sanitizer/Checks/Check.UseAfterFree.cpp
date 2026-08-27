@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Backend/Sanitizer/Checks/Check.UseAfterFree.h"
-#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Sanitizer/Sanitizer.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -26,16 +25,19 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
         if (!freesMask)
             return;
 
-        const CallConv& callConv = CallConv::get(ops[0].callConv);
-        for (size_t i = 0; i < callConv.intArgRegs.size() && i < 64; i++)
+        for (size_t i = 0; i < 64; i++)
         {
             if (!((freesMask >> i) & 1))
                 continue;
 
-            const SanitizerRegInfo* argInfo = Sanitizer::regInfo(state, callConv.intArgRegs[i]);
-            if (argInfo && argInfo->hasOriginSlot && state.freedPtrSlots.contains(argInfo->originSlot))
+            MicroReg argReg;
+            if (!sanitizer.callParameterRegister(argReg, *fn, ops[0].callConv, i))
+                continue;
+            const SanitizerRegInfo* argInfo = Sanitizer::regInfo(state, argReg);
+            const auto              freed  = argInfo && argInfo->hasOriginSlot ? state.freedPtrSlots.find(argInfo->originSlot) : state.freedPtrSlots.end();
+            if (freed != state.freedPtrSlots.end())
             {
-                sanitizer.report(inst, DiagnosticId::sanity_err_double_free);
+                sanitizer.report(inst, DiagnosticId::sanity_err_double_free, freed->second, DiagnosticId::sanity_note_pointer_released_here);
                 return;
             }
         }
@@ -51,8 +53,9 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
         return;
 
     const SanitizerRegInfo* baseInfo = Sanitizer::regInfo(state, ops[def.memBaseOperandIndex].reg);
-    if (baseInfo && baseInfo->hasOriginSlot && state.freedPtrSlots.contains(baseInfo->originSlot))
-        sanitizer.report(inst, DiagnosticId::sanity_err_use_after_free);
+    const auto              freed    = baseInfo && baseInfo->hasOriginSlot ? state.freedPtrSlots.find(baseInfo->originSlot) : state.freedPtrSlots.end();
+    if (freed != state.freedPtrSlots.end())
+        sanitizer.report(inst, DiagnosticId::sanity_err_use_after_free, freed->second, DiagnosticId::sanity_note_pointer_released_here);
 }
 
 SWC_END_NAMESPACE();

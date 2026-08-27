@@ -646,6 +646,22 @@ func borrowInvBranchThenRead(grow: bool)->u8
     return view[0]
 }
 
+// A read after the branch is safe when the only arm that changes the storage returns
+// before reaching it.
+func borrowInvReturningBranch(grow: bool)->u8
+{
+    var buf: BorrowInvBuffer
+    buf.reserve(4)
+    let view = buf.view()
+    if grow
+    {
+        buf.reserve(64)
+        return 0
+    }
+
+    return view[0]
+}
+
 // Both in the same arm, in order.
 func borrowInvSameBranch(grow: bool)->u8
 {

@@ -3207,10 +3207,9 @@ namespace
             }
         }
 
-        // An exit only makes the view safe when the targeted loop rebuilds that view.
-        // Otherwise the same stale binding can be read on a later iteration.
-        if (!innermostLoop.srcView || !sourceRangeContains(innermostLoop, declarationRange))
-            return false;
+        // A continue only makes the view safe when the targeted loop rebuilds it. A
+        // return or unreachable statement ends the path outright, inside a loop or not.
+        const bool loopRebuildsView = innermostLoop.srcView && sourceRangeContains(innermostLoop, declarationRange);
 
         worklist.clear();
         worklist.push_back(bodyRef);
@@ -3255,9 +3254,9 @@ namespace
                         continue;
 
                     const AstNode& statement = sema.node(statementRef);
-                    if (statement.is(AstNodeId::ContinueStmt) ||
-                        statement.is(AstNodeId::ReturnStmt) ||
-                        statement.is(AstNodeId::UnreachableStmt))
+                    if (statement.is(AstNodeId::ReturnStmt) || statement.is(AstNodeId::UnreachableStmt))
+                        return true;
+                    if (statement.is(AstNodeId::ContinueStmt) && loopRebuildsView)
                         return true;
                 }
             }

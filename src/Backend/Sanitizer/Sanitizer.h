@@ -12,6 +12,7 @@ enum class MicroCond : uint8_t;
 enum class DiagnosticId;
 class SanitizerCheck;
 class Symbol;
+class SymbolFunction;
 class TaskContext;
 
 // The sanitizer engine: a path-sensitive "must-be-zero" abstract-interpretation
@@ -57,9 +58,14 @@ public:
     // call instruction (resolved from the builder's relocations). Null otherwise.
     const Symbol* currentCallTarget() const { return currentCallTarget_; }
 
+    // Maps one source-level parameter to its integer ABI register for the current call
+    // shape. Returns false for stack and floating-point arguments.
+    bool callParameterRegister(MicroReg& outReg, const SymbolFunction& fn, CallConvKind callConvKind, size_t paramIndex) const;
+
     // Reports a diagnostic at an instruction's source location (deduplicated). Marks the
     // run as having found something so the pass can abort codegen.
     void report(const MicroInstr& inst, DiagnosticId id);
+    void report(const MicroInstr& inst, DiagnosticId id, const SourceCodeRef& noteSource, DiagnosticId noteId);
 
     // Reports 'id' when 'inst' is a plain load whose stack slot falls inside one of the
     // poisoned ranges. Address computations and indexed forms are left alone: the first is a

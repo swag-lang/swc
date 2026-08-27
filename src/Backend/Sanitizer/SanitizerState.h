@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Sanitizer/SanitizerValue.h"
+#include "Compiler/Lexer/SourceCodeRange.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -47,8 +48,9 @@ struct SanitizerState
     // dereferencing that pointer again is a use-after-free, freeing it again a double
     // free. Same discipline as movedFrom: join = intersection, any store that could
     // alias the slot revalidates it, calls conservatively clear the set (the freeing
-    // call itself re-marks its arguments afterwards).
-    std::unordered_set<int64_t> freedPtrSlots;
+    // call itself re-marks its arguments afterwards). The value remembers the freeing
+    // call so a proven fault can point back to its origin.
+    std::unordered_map<int64_t, SourceCodeRef> freedPtrSlots;
 
     // Frame ranges declared with an explicit 'undefined' initializer and not yet
     // written, set by a 'SanityUndefined' marker: key = slot offset, value = size in

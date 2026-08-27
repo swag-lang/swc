@@ -32,6 +32,34 @@ func myFree(ptr: *void, size: u64)
     allocItf.free(&req)
 }
 
+struct UafIndirectResult
+{
+    values: [3] u64
+}
+
+// An indirect return adds a hidden ABI argument before the source parameters. Freeing
+// the first source parameter must not make the caller-provided return storage look freed.
+#[Swag.Sanity(.Lifecycle, true)]
+func uafFreeAndReturn(ptr: *void, size: u64)->UafIndirectResult
+{
+    myFree(ptr, size)
+    return {}
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+func uafForwardFreeAndReturn(ptr: *void, size: u64)->UafIndirectResult
+{
+    return uafFreeAndReturn(ptr, size)
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let p      = myAlloc(4)
+    let result = uafForwardFreeAndReturn(p, 4)
+    @assert(result.values[0] == 0)
+}
+
 // Read after free.
 #[Swag.Sanity(.Lifecycle, true)]
 #test

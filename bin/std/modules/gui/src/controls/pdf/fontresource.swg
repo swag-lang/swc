@@ -390,13 +390,13 @@ private func readFontProgram(parser: *PdfParser, font: *FontResource, descriptor
     let file3 = parser.dict(descriptor, "FontFile3")
     if file3 != InvalidNode
     {
-        let subtype = parser.name(parser.dict(file3, "Subtype"))
+        let isOpenType = parser.name(parser.dict(file3, "Subtype")) == "OpenType"
         font.bytes = #move try parser.decodeStream(file3)
 
         // An OpenType wrapper may carry either outline flavour; the loader tells them
         // apart from the file itself, so the distinction that matters here is only
         // whether glyphs are addressed by name.
-        font.program = subtype == "OpenType" ? .TrueType : .Cff
+        font.program = isOpenType ? .TrueType : .Cff
         return
     }
 

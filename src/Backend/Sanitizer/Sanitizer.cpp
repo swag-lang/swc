@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Sanitizer/Sanitizer.h"
+#include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -284,6 +285,31 @@ bool Sanitizer::resolveStackSlot(const SanitizerState& state, MicroReg base, uin
     return true;
 }
 
+bool Sanitizer::callParameterRegister(MicroReg& outReg, const SymbolFunction& fn, CallConvKind callConvKind, size_t paramIndex) const
+{
+    const auto& params = fn.parameters();
+    if (paramIndex >= params.size() || !params[paramIndex])
+        return false;
+
+    const CallConv& callConv = CallConv::get(callConvKind);
+    size_t          abiIndex = paramIndex;
+
+    const ABITypeNormalize::NormalizedType returnType = ABITypeNormalize::normalize(ctx(), callConv, fn.returnTypeRef(), ABITypeNormalize::Usage::Return);
+    if (returnType.isIndirect)
+        ++abiIndex;
+    if (fn.isClosure())
+        ++abiIndex;
+    if (fn.hasInterfaceMethodSlot())
+        ++abiIndex;
+
+    const ABITypeNormalize::NormalizedType paramType = ABITypeNormalize::normalize(ctx(), callConv, params[paramIndex]->typeRef(), ABITypeNormalize::Usage::Argument);
+    if (paramType.isFloat || abiIndex >= callConv.intArgRegs.size() || !callConv.canPassArgInRegister(static_cast<uint32_t>(abiIndex), false, paramType.numBits))
+        return false;
+
+    outReg = callConv.intArgRegs[abiIndex];
+    return true;
+}
+
 void Sanitizer::propagate(const SanitizerState& edge, uint32_t index, std::vector<uint32_t>& worklist)
 {
     bool changed;
@@ -348,13 +374,21 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
 
     for (auto it = into.freedPtrSlots.begin(); it != into.freedPtrSlots.end();)
     {
-        if (!from.freedPtrSlots.contains(*it))
+        const auto fromIt = from.freedPtrSlots.find(it->first);
+        if (fromIt == from.freedPtrSlots.end())
         {
             it      = into.freedPtrSlots.erase(it);
             changed = true;
         }
         else
+        {
+            if (it->second.isValid() && (it->second.srcViewRef != fromIt->second.srcViewRef || it->second.tokRef != fromIt->second.tokRef))
+            {
+                it->second = {};
+                changed    = true;
+            }
             ++it;
+        }
     }
 
     for (auto it = into.undefinedInit.begin(); it != into.undefinedInit.end();)
@@ -464,7 +498,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         {
             for (auto it = state.freedPtrSlots.begin(); it != state.freedPtrSlots.end();)
             {
-                if (slot + static_cast<int64_t>(K_ASSUMED_STORE_SIZE) > *it && slot < *it + static_cast<int64_t>(sizeof(void*)))
+                if (slot + static_cast<int64_t>(K_ASSUMED_STORE_SIZE) > it->first && slot < it->first + static_cast<int64_t>(sizeof(void*)))
                     it = state.freedPtrSlots.erase(it);
                 else
                     ++it;
@@ -716,12 +750,14 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         const uint64_t       freesMask = calleeFn ? calleeFn->freesParamsMask() : 0;
         if (freesMask && ops)
         {
-            const CallConv& callConv = CallConv::get(ops[0].callConv);
-            for (size_t i = 0; i < callConv.intArgRegs.size() && i < 64; i++)
+            for (size_t i = 0; i < 64; i++)
             {
                 if (!((freesMask >> i) & 1))
                     continue;
-                const SanitizerRegInfo* argInfo = findReg(state, callConv.intArgRegs[i]);
+                MicroReg argReg;
+                if (!callParameterRegister(argReg, *calleeFn, ops[0].callConv, i))
+                    continue;
+                const SanitizerRegInfo* argInfo = findReg(state, argReg);
                 if (argInfo && argInfo->hasOriginSlot)
                     newlyFreed.push_back(argInfo->originSlot);
             }
@@ -733,7 +769,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         state.freedPtrSlots.clear();
         state.flagsSubject = MicroReg::invalid();
         for (const int64_t slot : newlyFreed)
-            state.freedPtrSlots.insert(slot);
+            state.freedPtrSlots[slot] = inst.debugSourceInfo.sourceCodeRef;
         return;
     }
 
@@ -901,6 +937,11 @@ void Sanitizer::reportLoadFromPoisonedRange(const MicroInstr& inst, const MicroI
 
 void Sanitizer::report(const MicroInstr& inst, DiagnosticId id)
 {
+    report(inst, id, {}, DiagnosticId::None);
+}
+
+void Sanitizer::report(const MicroInstr& inst, DiagnosticId id, const SourceCodeRef& noteSource, DiagnosticId noteId)
+{
     const SourceCodeRef& codeRef = inst.debugSourceInfo.sourceCodeRef;
 
     // The same source location can be reached by several paths and can lower to several
@@ -914,9 +955,20 @@ void Sanitizer::report(const MicroInstr& inst, DiagnosticId id)
     if (!tryResolveDebugSourceInfo(*context_.taskContext, resolved, inst.debugSourceInfo))
         return;
 
-    const FileRef    fileRef = resolved.sourceFile ? resolved.sourceFile->ref() : FileRef::invalid();
-    const Diagnostic diag    = Diagnostic::get(id, fileRef);
+    const FileRef fileRef = resolved.sourceFile ? resolved.sourceFile->ref() : FileRef::invalid();
+    Diagnostic    diag    = Diagnostic::get(id, fileRef);
     diag.last().addSpan(resolved.codeRange, "", DiagnosticSeverity::Error);
+    if (noteId != DiagnosticId::None && noteSource.isValid())
+    {
+        ResolvedDebugSourceInfo resolvedNote;
+        DebugSourceInfo         noteSourceInfo;
+        noteSourceInfo.sourceCodeRef = noteSource;
+        if (tryResolveDebugSourceInfo(*context_.taskContext, resolvedNote, noteSourceInfo))
+        {
+            diag.addNote(noteId);
+            diag.last().addSpan(resolvedNote.codeRange);
+        }
+    }
     diag.report(*context_.taskContext);
 }
 

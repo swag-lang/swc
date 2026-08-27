@@ -10,6 +10,34 @@ namespace InstructionCombine
 {
     namespace
     {
+        bool feedsReassociableImmediate(const Context& ctx, MicroInstrRef ref, MicroReg dst, MicroOpBits opBits, MicroOp op, uint64_t imm)
+        {
+            if (!ctx.ssa)
+                return false;
+
+            uint32_t valueId = MicroSsaState::K_INVALID_VALUE;
+            if (!ctx.ssa->defValue(dst, ref, valueId))
+                return false;
+
+            const MicroSsaState::ValueInfo* value = ctx.ssa->valueInfo(valueId);
+            if (!value || value->uses.size() != 1 || value->uses.front().kind != MicroSsaState::UseSite::Kind::Instruction)
+                return false;
+
+            const MicroInstrRef useRef  = value->uses.front().instRef;
+            const MicroInstr*   useInst = ctx.storage->ptr(useRef);
+            if (!useInst || useInst->op != MicroInstrOpcode::OpBinaryRegImm)
+                return false;
+
+            const MicroInstrOperand* useOps = useInst->ops(*ctx.operands);
+            if (!useOps || useOps[0].reg != dst || !isSameOpBitsInt(opBits, useOps[1].opBits))
+                return false;
+
+            MicroOp  combinedOp  = MicroOp::Add;
+            uint64_t combinedImm = 0;
+            return tryReassociate(op, imm, useOps[2].microOp, useOps[3].valueU64, opBits, combinedOp, combinedImm) &&
+                   MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, useRef);
+        }
+
         bool emitClearReg(Context& ctx, MicroInstrRef ref, MicroReg dst, MicroOpBits opBits)
         {
             if (!ctx.claimAll({ref}))
@@ -57,6 +85,11 @@ namespace InstructionCombine
             const bool negated   = signedImm < 0;
             const auto magnitude = static_cast<uint64_t>(negated ? -signedImm : signedImm);
             if (magnitude != 2 && magnitude != 3 && magnitude != 5 && magnitude != 9)
+                return false;
+
+            // Keep this operation intact when its only consumer can fuse it with
+            // another immediate operation later in the same forward scan.
+            if (feedsReassociableImmediate(ctx, ref, dst, opBits, op, imm))
                 return false;
 
             // The multiply writes flags the address computation does not (the
@@ -236,13 +269,13 @@ namespace InstructionCombine
             }
         }
 
-        if (tryMultiplyToAddress(ctx, ref, dst, opBits, op, imm))
+        // Fold an operation chain before strength-reducing either member. Besides
+        // preserving the more general reassociation opportunity, this keeps
+        // `x *= 3; x *= 5` as one multiply by 15 instead of two address computations.
+        if (ctx.ssa && tryReassociateWithPrevious(ctx, ref, dst, opBits, op, imm))
             return true;
 
-        if (!ctx.ssa)
-            return false;
-
-        return tryReassociateWithPrevious(ctx, ref, dst, opBits, op, imm);
+        return tryMultiplyToAddress(ctx, ref, dst, opBits, op, imm);
     }
 
     // (x & C) << s  ==  x << s   when the low (width - s) bits of C are all set.

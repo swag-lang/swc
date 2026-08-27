@@ -1714,6 +1714,35 @@ namespace
         return Result::Continue;
     }
 
+    bool inlineReceiverContainsIndex(Sema& sema, AstNodeRef exprRef)
+    {
+        if (exprRef.isInvalid())
+            return false;
+
+        SmallVector<AstNodeRef> worklist;
+        SmallVector<AstNodeRef> children;
+        worklist.push_back(exprRef);
+        while (!worklist.empty())
+        {
+            const AstNodeRef nodeRef = worklist.back();
+            worklist.pop_back();
+
+            const AstNode& node = sema.node(nodeRef);
+            if (node.is(AstNodeId::IndexExpr) || node.is(AstNodeId::IndexListExpr))
+                return true;
+
+            children.clear();
+            node.collectChildrenFromAst(children, sema.ast());
+            for (const AstNodeRef childRef : children)
+            {
+                if (childRef.isValid())
+                    worklist.push_back(childRef);
+            }
+        }
+
+        return false;
+    }
+
     Result materializeInlineReceiverBinding(Sema& sema, SmallVector<SemaClone::ParamBinding>& ioBindings, SmallVector<AstNodeRef>& outStatements)
     {
         const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
@@ -1721,7 +1750,9 @@ namespace
         {
             if (binding.idRef != meId || !binding.exprRef.isValid() || binding.sourceParam == nullptr)
                 continue;
-            if (sema.viewConstant(binding.exprRef).hasConstant() || sema.isLValue(binding.exprRef))
+            const bool isLValue      = sema.isLValue(binding.exprRef);
+            const bool indexedLValue = isLValue && inlineReceiverContainsIndex(sema, binding.exprRef);
+            if (sema.viewConstant(binding.exprRef).hasConstant() || (isLValue && !indexedLValue))
                 return Result::Continue;
 
             const TypeInfo& paramType = binding.sourceParam->type(sema.ctx());
@@ -1730,10 +1761,10 @@ namespace
 
             const TokenRef tokRef = materializedInlineBindingTokRef(sema, *binding.sourceParam, binding.exprRef);
             // The receiver is an already-resolved CALLER expression (e.g. `me.slab[i]`, where
-            // `.slab` resolved against the caller's `me`). Materializing it into the inline body
-            // prologue means a plain re-expanding clone would re-resolve its auto-members in the
-            // *callee* inline frame - where the caller's `me` is gone - and stall on the `.` marker.
-            // Preserve the resolved identifier symbols so the receiver stays bound to the caller.
+            // `.slab` resolved against the caller's `me`). An indexed lvalue also needs one stable
+            // home: repeated auto-member uses in the body must share the same narrowing root and
+            // must not evaluate the index again. Preserve the resolved identifier symbols so a
+            // clone never re-resolves caller auto-members in the callee's inline frame.
             const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
             AstNodeRef                    clonedInitRef = SemaClone::cloneAstPreservingResolvedIdentifierSymbols(sema, binding.exprRef, noBindings);
             if (clonedInitRef.isInvalid())

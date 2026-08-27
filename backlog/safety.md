@@ -48,11 +48,15 @@ runtime fault are tooling under `#[Swag.Sanity]`. The reference states the line
   [SemaEscape.cpp](../src/Compiler/Sema/Helpers/SemaEscape.cpp) tests `isLocalVariableStorage` or
   `GlobalStorage`. The equivalent local body is rejected by
   `bin/unittests/sanity/borrow_invalidation.swg:borrowInvDirectMember`.
-- Next step: write the positive AND the "grow, then re-read the payload member" negative first — the
-  latter is the ordinary body of `reserve`/`append` and is what makes this risky — then drop the
-  condition on the receiver only when the negative stays silent. The open question is whether the
-  caller's views must be considered at all: the callee cannot see them, so the judgement may belong
-  entirely at the call site, where it already works.
+- Experiment: allowing every parameter owner and treating its pointee type as the lifecycle owner
+  catches the direct stale view, but makes `core` uncompilable. It reports valid old-buffer copies in
+  `Array.opPostCopy` and `String`, and treats changes to sibling fields in `HashSet`, `TextReader`,
+  `TagBinReader`, and `Regexp` as changes to the viewed payload. The receiver-level reallocation bit
+  is therefore not precise enough for this judgement.
+- Next step: extend reallocation summaries with the receiver field projection they can invalidate
+  and preserve conditional old-buffer routes. Re-enable parameter owners only after the direct
+  positive, old-buffer copy, and sibling-field cases all give the intended verdict.
+
 ### F-089 — A borrow rule judged per body is silent inside a macro or an inline expansion
 
 - Area: compiler
@@ -70,44 +74,3 @@ runtime fault are tooling under `#[Swag.Sanity]`. The reference states the line
   function's decl. The visit stack (`AstVisit::parentNodeRef`) has the real ancestors at judgement
   time; the question to settle first is which ancestor to stop at, because stopping at the file
   would let a correct restore in one function silence a fault in another.
-
-## Views the escape rule does not recognize
-
-### F-179 — Null narrowing does not survive a receiver the caller wrote as an index
-
-- Area: safety
-- Found while: publishing the inline bodies a generated module API used to drop, so a consumer can
-  expand them instead of calling across the module boundary.
-- Observation: `if .buffer do .buffer[0] = 0` narrows inside the method that declares it, and stops
-  narrowing once that body is expanded at a call site whose receiver is an array element. `me`
-  becomes `lines[lip]`, both occurrences of `.buffer` become `lines[lip].buffer`, and the guard no
-  longer covers the access: an indexed base is not a path narrowing follows. The same source is
-  accepted or rejected depending on how the caller spelled the receiver, and the caller has no way
-  to see why.
-- Evidence: with `Core.String.clear` publishing its body,
-  `swc tools/examples.swgs dm build -m aoc2020` reports "indexing into '#null [*] u8' dereferences a
-  value that can still be null" inside the generated `core.swg`, from the three `lines[lip].clear()`
-  call sites in `8A.swg` and `8B.swg`. Calling `s.clear()` on a plain local compiles. `String.clear`
-  now binds the pointer to a local before the guard, which narrows whatever the receiver is.
-- Next step: decide whether narrowing should accept an indexed base when no assignment to the index
-  or the container separates the guard from the use, or whether the rule should stay path-based and
-  the diagnostic should say that the receiver is what stops it. The second is cheap and removes the
-  mystery; the first removes the workaround. Either way a `bin/unittests/sanity` case belongs here:
-  the same guarded access reached through a local, a field, and an array element.
-
-### F-181 — Null narrowing through a conditional expression depends on the build configuration
-
-- Area: compiler
-- Found while: writing a native optimizer test whose select arm dereferences a guarded pointer
-- Observation: `func guarded(p: #null *s32) -> s32 => p != null ? p[] : -1` compiles and runs
-  under `fast-debug`, and is rejected under `release` with "cannot dereference '#null *s32',
-  which can still be null". The narrowing the true arm of a conditional expression receives from
-  its condition is therefore not a pure function of the source: the same file is accepted by one
-  configuration and refused by the next, which a test suite run in one configuration cannot see.
-- Evidence: one-file probe (`swc test --artifact-kind executable -d <dir> --build-cfg fast-debug`
-  passes, `--build-cfg release` stops at the diagnostic), swc 0.0.177, 2026-08-22. The `if`
-  statement form narrows in both configurations; only the `cond ? a : b` form differs.
-- Next step: find what the conditional's narrowing reads that changes with the configuration —
-  the safety mask, an inlining decision, or the sanitizer's pass over the condition — and make the
-  acceptance configuration-independent, then keep the probe as a sema suite test that runs in
-  both configurations.

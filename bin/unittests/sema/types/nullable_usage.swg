@@ -61,3 +61,9 @@ func nullableUsageOptional(value: #null *NullableUsageItem)->s32
 {
     return value?.value orelse 0
 }
+
+// A conditional branch inherits the matching truth of its condition.
+func nullableUsageConditionalDeref(value: #null *s32)->s32
+{
+    return value != null ? value[] : 0
+}

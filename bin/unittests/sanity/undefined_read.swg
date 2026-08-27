@@ -43,7 +43,7 @@ func undFill(v: *UndItem)
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    var a: UndItem = undefined     // swc-expected-note {{sanity_note_undefined_origin}}
+    var a: UndItem = undefined
     @assert(a.x == 1)     // swc-expected-error {{sema_err_undefined_field_use}}
 }
 
@@ -74,7 +74,7 @@ func undFill(v: *UndItem)
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    var a: UndItem = undefined
+    var a: UndItem = undefined     // swc-expected-note {{sanity_note_undefined_origin}}
     let address    = &a
     discard address
     @assert(a.x == 1)     // swc-expected-error {{sanity_err_undefined_read}}

@@ -28,30 +28,36 @@ Sanitizer::Sanitizer(MicroPassContext& context) :
         for (const SymbolVariable* symVar : context.sanitizerFunction->localVariables())
         {
             if (symVar && symVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && symVar->codeGenLocalSize())
-                localSlots_.push_back({.start = static_cast<int64_t>(symVar->offset()), .size = symVar->codeGenLocalSize()});
+                localSlots_.push_back({.start = static_cast<int64_t>(symVar->offset()), .size = symVar->codeGenLocalSize(), .sym = symVar});
         }
 
         for (const SymbolVariable* symVar : context.sanitizerFunction->parameters())
         {
             if (symVar && symVar->debugStackSlotSize())
-                localSlots_.push_back({.start = static_cast<int64_t>(symVar->debugStackSlotOffset()), .size = symVar->debugStackSlotSize()});
+                localSlots_.push_back({.start = static_cast<int64_t>(symVar->debugStackSlotOffset()), .size = symVar->debugStackSlotSize(), .sym = symVar});
         }
 
         std::ranges::sort(localSlots_, [](const LocalSlotExtent& a, const LocalSlotExtent& b) { return a.start < b.start; });
     }
 }
 
-bool Sanitizer::findLocalSlotExtents(int64_t offset, int64_t& outStart, uint64_t& outSize) const
+const Sanitizer::LocalSlotExtent* Sanitizer::findLocalSlot(const int64_t offset) const
 {
     auto it = std::ranges::upper_bound(localSlots_, offset, {}, [](const LocalSlotExtent& e) { return e.start; });
     if (it == localSlots_.begin())
-        return false;
+        return nullptr;
     --it;
-    if (offset >= it->start + static_cast<int64_t>(it->size))
+    return offset < it->start + static_cast<int64_t>(it->size) ? &*it : nullptr;
+}
+
+bool Sanitizer::findLocalSlotExtents(int64_t offset, int64_t& outStart, uint64_t& outSize) const
+{
+    const LocalSlotExtent* slot = findLocalSlot(offset);
+    if (!slot)
         return false;
 
-    outStart = it->start;
-    outSize  = it->size;
+    outStart = slot->start;
+    outSize  = slot->size;
     return true;
 }
 
@@ -363,13 +369,22 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
     for (auto it = into.movedFrom.begin(); it != into.movedFrom.end();)
     {
         const auto f = from.movedFrom.find(it->first);
-        if (f == from.movedFrom.end() || f->second != it->second)
+        if (f == from.movedFrom.end() || f->second.size != it->second.size)
         {
             it      = into.movedFrom.erase(it);
             changed = true;
         }
         else
+        {
+            const SourceCodeRef& intoOrigin = it->second.origin;
+            const SourceCodeRef& fromOrigin = f->second.origin;
+            if (intoOrigin.isValid() && (intoOrigin.srcViewRef != fromOrigin.srcViewRef || intoOrigin.tokRef != fromOrigin.tokRef))
+            {
+                it->second.origin = {};
+                changed           = true;
+            }
             ++it;
+        }
     }
 
     for (auto it = into.freedPtrSlots.begin(); it != into.freedPtrSlots.end();)
@@ -394,13 +409,22 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
     for (auto it = into.undefinedInit.begin(); it != into.undefinedInit.end();)
     {
         const auto f = from.undefinedInit.find(it->first);
-        if (f == from.undefinedInit.end() || f->second != it->second)
+        if (f == from.undefinedInit.end() || f->second.size != it->second.size)
         {
             it      = into.undefinedInit.erase(it);
             changed = true;
         }
         else
+        {
+            const SourceCodeRef& intoOrigin = it->second.origin;
+            const SourceCodeRef& fromOrigin = f->second.origin;
+            if (intoOrigin.isValid() && (intoOrigin.srcViewRef != fromOrigin.srcViewRef || intoOrigin.tokRef != fromOrigin.tokRef))
+            {
+                it->second.origin = {};
+                changed           = true;
+            }
             ++it;
+        }
     }
 
     if (into.flagsSubject.isValid() && into.flagsSubject != from.flagsSubject)
@@ -425,7 +449,7 @@ namespace
         for (auto it = state.movedFrom.begin(); it != state.movedFrom.end();)
         {
             const int64_t rangeStart = it->first;
-            const int64_t rangeEnd   = rangeStart + static_cast<int64_t>(it->second);
+            const int64_t rangeEnd   = rangeStart + static_cast<int64_t>(it->second.size);
             if (slot + static_cast<int64_t>(K_ASSUMED_STORE_SIZE) > rangeStart && slot < rangeEnd)
                 it = state.movedFrom.erase(it);
             else
@@ -438,7 +462,7 @@ namespace
         for (auto it = state.undefinedInit.begin(); it != state.undefinedInit.end();)
         {
             const int64_t rangeStart = it->first;
-            const int64_t rangeEnd   = rangeStart + static_cast<int64_t>(it->second);
+            const int64_t rangeEnd   = rangeStart + static_cast<int64_t>(it->second.size);
             if (slot + static_cast<int64_t>(K_ASSUMED_STORE_SIZE) > rangeStart && slot < rangeEnd)
                 it = state.undefinedInit.erase(it);
             else
@@ -514,14 +538,14 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         {
             int64_t slot = 0;
             if (resolveStackSlot(state, ops[0].reg, 0, slot) && ops[1].valueU64 > 0)
-                state.movedFrom[slot] = ops[1].valueU64;
+                state.movedFrom[slot] = {.size = ops[1].valueU64, .origin = inst.debugSourceInfo.sourceCodeRef};
             return;
         }
         case MicroInstrOpcode::SanityUndefined:
         {
             int64_t slot = 0;
             if (resolveStackSlot(state, ops[0].reg, 0, slot) && ops[1].valueU64 > 0)
-                state.undefinedInit[slot] = ops[1].valueU64;
+                state.undefinedInit[slot] = {.size = ops[1].valueU64, .origin = inst.debugSourceInfo.sourceCodeRef};
             return;
         }
         case MicroInstrOpcode::LoadRegImm:
@@ -905,10 +929,10 @@ void Sanitizer::dropZeros(SanitizerState& state)
             value = {};
 }
 
-void Sanitizer::reportLoadFromPoisonedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, const std::unordered_map<int64_t, uint64_t>& poisoned, DiagnosticId id)
+bool Sanitizer::resolvePlainLoadStackSlot(int64_t& outSlot, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state) const
 {
-    if (poisoned.empty())
-        return;
+    if (!ops)
+        return false;
 
     switch (inst.op)
     {
@@ -918,29 +942,91 @@ void Sanitizer::reportLoadFromPoisonedRange(const MicroInstr& inst, const MicroI
         case MicroInstrOpcode::LoadVecRegMem:
             break;
         default:
-            return;
+            return false;
     }
 
-    int64_t slot = 0;
-    if (!resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, slot))
+    return resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, outSlot);
+}
+
+void Sanitizer::reportLoadFromUndefinedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, const DiagnosticId id)
+{
+    if (state.undefinedInit.empty())
         return;
 
-    for (const auto& [rangeStart, rangeSize] : poisoned)
+    int64_t slot = 0;
+    if (!resolvePlainLoadStackSlot(slot, inst, def, ops, state))
+        return;
+
+    for (const auto& [rangeStart, range] : state.undefinedInit)
     {
-        if (slot >= rangeStart && slot < rangeStart + static_cast<int64_t>(rangeSize))
+        if (slot < rangeStart || slot >= rangeStart + static_cast<int64_t>(range.size))
+            continue;
+
+        const LocalSlotExtent* undefinedSlot = findLocalSlot(rangeStart);
+        if (range.origin.isValid() && undefinedSlot && undefinedSlot->sym)
         {
-            report(inst, id);
-            return;
+            const ReportNote note{.source = range.origin, .id = DiagnosticId::sanity_note_undefined_origin, .sym = undefinedSlot->sym};
+            report(inst, id, {}, std::span{&note, 1});
         }
+        else
+            report(inst, id);
+        return;
+    }
+}
+
+void Sanitizer::reportLoadFromMovedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, const DiagnosticId id)
+{
+    if (state.movedFrom.empty())
+        return;
+
+    int64_t slot = 0;
+    if (!resolvePlainLoadStackSlot(slot, inst, def, ops, state))
+        return;
+
+    for (const auto& [rangeStart, range] : state.movedFrom)
+    {
+        if (slot < rangeStart || slot >= rangeStart + static_cast<int64_t>(range.size))
+            continue;
+
+        std::array<ReportNote, 2> notes;
+        size_t                    noteCount = 0;
+
+        const SanitizerRegInfo* baseInfo  = findReg(state, ops[def.memBaseOperandIndex].reg);
+        const LocalSlotExtent*  movedSlot = findLocalSlot(rangeStart);
+        const LocalSlotExtent*  viewSlot  = baseInfo && baseInfo->hasOriginSlot ? findLocalSlot(baseInfo->originSlot) : nullptr;
+        if (viewSlot && movedSlot && viewSlot->sym && movedSlot->sym && viewSlot->sym != movedSlot->sym)
+            notes[noteCount++] = {.source = viewSlot->sym->codeRef(), .id = DiagnosticId::sema_note_borrow_taken_here, .sym = viewSlot->sym};
+        if (range.origin.isValid() && movedSlot && movedSlot->sym)
+            notes[noteCount++] = {.source = range.origin, .id = DiagnosticId::sanity_note_move_origin, .sym = movedSlot->sym};
+
+        report(inst, id, {}, std::span{notes.data(), noteCount});
+        return;
     }
 }
 
 void Sanitizer::report(const MicroInstr& inst, DiagnosticId id)
 {
-    report(inst, id, {}, DiagnosticId::None);
+    report(inst, id, {}, std::span<const ReportNote>{});
 }
 
 void Sanitizer::report(const MicroInstr& inst, DiagnosticId id, const SourceCodeRef& noteSource, DiagnosticId noteId)
+{
+    if (noteId == DiagnosticId::None || !noteSource.isValid())
+    {
+        report(inst, id);
+        return;
+    }
+
+    const ReportNote note{.source = noteSource, .id = noteId};
+    report(inst, id, {}, std::span{&note, 1});
+}
+
+void Sanitizer::report(const MicroInstr& inst, const DiagnosticId id, const std::string_view sym, const std::string_view what)
+{
+    report(inst, id, {.sym = sym, .what = what}, std::span<const ReportNote>{});
+}
+
+void Sanitizer::report(const MicroInstr& inst, DiagnosticId id, const ReportArguments& arguments, const std::span<const ReportNote> notes)
 {
     const SourceCodeRef& codeRef = inst.debugSourceInfo.sourceCodeRef;
 
@@ -957,15 +1043,21 @@ void Sanitizer::report(const MicroInstr& inst, DiagnosticId id, const SourceCode
 
     const FileRef fileRef = resolved.sourceFile ? resolved.sourceFile->ref() : FileRef::invalid();
     Diagnostic    diag    = Diagnostic::get(id, fileRef);
+    if (!arguments.sym.empty())
+        diag.last().addArgument(Diagnostic::ARG_SYM, arguments.sym);
+    if (!arguments.what.empty())
+        diag.last().addArgument(Diagnostic::ARG_WHAT, arguments.what);
     diag.last().addSpan(resolved.codeRange, "", DiagnosticSeverity::Error);
-    if (noteId != DiagnosticId::None && noteSource.isValid())
+    for (const ReportNote& note : notes)
     {
         ResolvedDebugSourceInfo resolvedNote;
         DebugSourceInfo         noteSourceInfo;
-        noteSourceInfo.sourceCodeRef = noteSource;
+        noteSourceInfo.sourceCodeRef = note.source;
         if (tryResolveDebugSourceInfo(*context_.taskContext, resolvedNote, noteSourceInfo))
         {
-            diag.addNote(noteId);
+            diag.addNote(note.id);
+            if (note.sym)
+                diag.last().addArgument(Diagnostic::ARG_SYM, note.sym->name(ctx()));
             diag.last().addSpan(resolvedNote.codeRange);
         }
     }

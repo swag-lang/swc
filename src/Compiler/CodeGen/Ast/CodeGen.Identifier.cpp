@@ -655,7 +655,7 @@ namespace
             {
                 // Explicit '= undefined', or a struct whose fields all default to
                 // 'undefined': either way the storage starts as garbage.
-                SWC_RESULT(CodeGenSafety::emitUndefinedInitMarkers(codeGen, symbolPayload.reg, localSize));
+                SWC_RESULT(CodeGenSafety::emitUndefinedInitMarkers(codeGen, symbolPayload.reg, localSize, symVar.codeRef()));
             }
             return Result::Continue;
         }

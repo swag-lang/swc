@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 
 void UndefinedReadCheck::run(Sanitizer& sanitizer, const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops)
 {
-    sanitizer.reportLoadFromPoisonedRange(inst, def, ops, state, state.undefinedInit, DiagnosticId::sanity_err_undefined_read);
+    sanitizer.reportLoadFromUndefinedRange(inst, def, ops, state, DiagnosticId::sanity_err_undefined_read);
 }
 
 SWC_END_NAMESPACE();

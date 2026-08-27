@@ -5,9 +5,9 @@ SWC_BEGIN_NAMESPACE();
 
 // Reports a read from a local declared with an explicit '= undefined' initializer
 // before any store reaches it. CodeGen plants a 'SanityUndefined' marker at the
-// declaration; the engine tracks the marked frame ranges
-// ('SanitizerState::undefinedInit', must-be-undefined on every path, stores
-// initialize, calls clear), so the check only has to test loads against the ranges.
+// declaration; the engine tracks the marked frame ranges and their source
+// ('SanitizerState::undefinedInit', must-be-undefined on every path, stores initialize,
+// calls clear), so the check can report both the invalid read and its origin.
 class UndefinedReadCheck final : public SanitizerCheck
 {
 public:

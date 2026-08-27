@@ -9,32 +9,6 @@ runtime fault are tooling under `#[Swag.Sanity]`. The reference states the line
 
 ## Control-flow and lifetime analysis
 
-### F-043 — The backend stack-escape check is now unreachable from source
-
-- Area: compiler
-- Found while: making the borrow rules always on
-- Observation: `Check.StackEscape` proves that a returned pointer addresses the current frame. Every
-  shape that reaches it from source is now rejected earlier, in sema, by the borrow rule: the
-  function never reaches codegen, so the check cannot fire. `bin/unittests/sanity/return_local.swg`
-  used to hold `#[Swag.Sanity(.Lifecycle, false)]` precisely to let those functions through, and
-  that opt-out no longer exists.
-- Evidence: the two positives in that file now report `sanity_err_borrow_escape` from sema instead
-  of `sanity_err_return_local_address` from the sanitizer, and no source-level test of the backend
-  check remains.
-- Decided: the check is KEPT. It does not duplicate the language rule, it covers the rule's silence.
-  The borrow rule is a proof obligation on syntax and per-function summaries, and it says nothing
-  the moment provenance is opaque; `Check.StackEscape` asks a different question at a different
-  level — whether the value actually in the return register is a stack address — and that residue is
-  exactly what the rule declines to judge. Deleting a 41-line pass that can only fire where sema
-  gave up would trade a real guarantee for a line count.
-- Next step: give it the test its boundary needs. There is no sanitizer harness in `src/Unittest`
-  today (`grep -rl Sanitizer src/Unittest` is empty), so this starts by building one: a
-  `MicroPassContext` with a `callConvKind` and a `sanitizerFunction` whose return type is a pointer,
-  a hand-built instruction sequence ending in `Ret` with the return register holding a stack
-  address, and the assertion that `sanity_err_return_local_address` is reported. The fifteen
-  `src/Unittest/Micro/Test.Micro.*.cpp` files are the model for building a micro function by hand;
-  none of them constructs a `Sanitizer`, which is the piece to add.
-
 ### F-088 — A view into what a PARAMETER owns is never judged for invalidation
 
 - Area: compiler

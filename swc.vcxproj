@@ -159,6 +159,7 @@
         <ClCompile Include="src\Unittest\Micro\Test.Micro.PreRAPeephole.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.PrologEpilogSanitize.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.RegAlloc.cpp"/>
+        <ClCompile Include="src\Unittest\Micro\Test.Micro.Sanity.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.Ssa.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.StackAdjustNormalize.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.StrengthReduction.cpp"/>

@@ -267,6 +267,13 @@ void Sema::clearVariableEscapeInfo(const SymbolVariable& symVar)
     std::erase_if(projectionEscapeInfos_, [&symVar](const auto& it) { return it.first.root == &symVar; });
 }
 
+void Sema::detachVariableOwnedPayload(const SymbolVariable& symVar)
+{
+    const auto it = variableEscapeInfos_.find(&symVar);
+    if (it != variableEscapeInfos_.end())
+        it->second.viaOwnedPayload = false;
+}
+
 SemaEscapeInfo Sema::variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const
 {
     SemaEscapeInfo        result;

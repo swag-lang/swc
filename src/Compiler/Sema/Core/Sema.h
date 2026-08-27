@@ -88,6 +88,10 @@ struct SemaEscapeInfo
         if (kind == SemaEscapeKind::Parameter && other.kind == SemaEscapeKind::Parameter)
         {
             parameterOriginsMask |= other.parameterOriginsMask;
+            // A payload route present on either control-flow alternative remains
+            // possible after the join. An unconditional carrier replacement clears it
+            // before the join; a conditional replacement must not hide the other path.
+            viaOwnedPayload = viaOwnedPayload || other.viaOwnedPayload;
             // One direct borrow among the merged facts is enough to make the value stand
             // for the parameter's storage.
             viaStoredField = viaStoredField && other.viaStoredField;
@@ -436,6 +440,7 @@ public:
     const std::unordered_map<const SymbolVariable*, SemaEscapeInfo>& variableEscapeInfos() const { return variableEscapeInfos_; }
     void                                                             setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
     void                                                             clearVariableEscapeInfo(const SymbolVariable& symVar);
+    void                                                             detachVariableOwnedPayload(const SymbolVariable& symVar);
     SemaEscapeInfo                                                   variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const;
     SemaEscapeInfo                                                   projectionEscapeInfoIncludingWildcards(const SemaEscapeProjection& projection) const;
     void                                                             setProjectionEscapeInfo(const SemaEscapeProjection& projection, const SemaEscapeInfo& info);

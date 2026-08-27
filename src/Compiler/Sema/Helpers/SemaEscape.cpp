@@ -101,6 +101,18 @@ namespace
         return lifecycle.hasDrop || lifecycle.hasPostCopy || lifecycle.hasPostMove || !lifecycle.canCopy;
     }
 
+    bool designatedStorageHasOwningLifecycle(Sema& sema, TypeRef typeRef)
+    {
+        typeRef = unwrapAliasEnum(sema, typeRef);
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (type.isAnyPointer() || type.isReference())
+            typeRef = unwrapAliasEnum(sema, type.payloadTypeRef());
+        return hasOwningLifecycle(sema, typeRef);
+    }
+
     bool typeCanCarryBorrowRec(Sema& sema, TypeRef typeRef, std::unordered_set<TypeRef>& visiting, uint32_t& budget)
     {
         if (!budget || !typeRef.isValid())
@@ -1273,6 +1285,103 @@ namespace
         return nullptr;
     }
 
+    void normalizeProjectionRoot(Sema& sema, SemaEscapeProjection& projection)
+    {
+        if (!projection.root)
+            return;
+
+        if (const SymbolVariable* parameter = signatureParameterFor(sema, *projection.root))
+            projection.root = parameter;
+    }
+
+    const SymbolVariable* firstProjectionField(const SemaEscapeProjection& projection)
+    {
+        for (const SemaEscapeProjectionComponent& component : projection.components)
+        {
+            if (component.kind == SemaEscapeProjectionKind::Field)
+                return component.field;
+        }
+        return nullptr;
+    }
+
+    AstNodeRef syntacticMethodReceiverRef(Sema& sema, AstNodeRef callRef);
+
+    const SymbolVariable* callerArgumentProjectionField(Sema& sema, AstNodeRef callRef, const SymbolFunction& callee, size_t paramIndex, AstNodeRef argRef)
+    {
+        AstNodeRef projectedRef = AstNodeRef::invalid();
+        if (paramIndex == 0 && callee.isMethod())
+            projectedRef = syntacticMethodReceiverRef(sema, callRef);
+        if (projectedRef.isInvalid())
+            projectedRef = argumentValueRef(sema, argRef);
+
+        SemaEscapeProjection projection;
+        if (!storageProjection(sema, projectedRef, projection))
+            return nullptr;
+        normalizeProjectionRoot(sema, projection);
+        return firstProjectionField(projection);
+    }
+
+    bool projectionComponentsMatch(const SemaEscapeProjectionComponent& left, const SemaEscapeProjectionComponent& right)
+    {
+        if (left.kind == SemaEscapeProjectionKind::AnyIndex || right.kind == SemaEscapeProjectionKind::AnyIndex)
+            return left.kind != SemaEscapeProjectionKind::Field && right.kind != SemaEscapeProjectionKind::Field;
+        return left == right;
+    }
+
+    bool projectionIsPrefixOf(const SemaEscapeProjection& prefix, const SemaEscapeProjection& value)
+    {
+        if (!prefix.root || prefix.root != value.root || prefix.components.size() > value.components.size())
+            return false;
+
+        for (size_t i = 0; i < prefix.components.size(); ++i)
+        {
+            if (!projectionComponentsMatch(prefix.components[i], value.components[i]))
+                return false;
+        }
+        return true;
+    }
+
+    bool ownedPayloadProjection(Sema& sema, const SemaEscapeInfo& info, SemaEscapeProjection& outProjection)
+    {
+        if (!info.viaOwnedPayload || info.sourceRef.isInvalid() || !storageProjection(sema, info.sourceRef, outProjection))
+            return false;
+
+        normalizeProjectionRoot(sema, outProjection);
+        return outProjection.root != nullptr && !outProjection.components.empty();
+    }
+
+    // Replacing an owning field disconnects views of its OLD payload from the owner.
+    // The view remains usable until that old allocation is explicitly released; a later
+    // growth of the owner's NEW payload cannot invalidate it. This is the compiler-
+    // inferred version boundary used by collection copy hooks (`old = .buffer;
+    // .buffer = null; .realloc(...); copy(old, ...)`).
+    void detachReplacedOwnedPayloadViews(Sema& sema, const SemaEscapeProjection& rawProjection, TypeRef targetTypeRef)
+    {
+        if (!isOwnedPayloadCarrier(sema, targetTypeRef) && !hasOwningLifecycle(sema, targetTypeRef))
+            return;
+
+        SemaEscapeProjection replaced = rawProjection;
+        normalizeProjectionRoot(sema, replaced);
+        if (!replaced.root || replaced.components.empty())
+            return;
+
+        SmallVector<const SymbolVariable*> detachedViews;
+        for (const auto& [viewVar, info] : sema.variableEscapeInfos())
+        {
+            if (!viewVar || !info.viaOwnedPayload)
+                continue;
+
+            SemaEscapeProjection source;
+            if (!ownedPayloadProjection(sema, info, source))
+                continue;
+            if (projectionIsPrefixOf(replaced, source))
+                detachedViews.push_back(viewVar);
+        }
+
+        for (const SymbolVariable* viewVar : detachedViews)
+            sema.detachVariableOwnedPayload(*viewVar);
+    }
+
     // Maps a Parameter-kind borrow source to its index in the function's signature.
     bool findCallerParameterIndex(const SymbolFunction& fn, const SymbolVariable& sourceVar, size_t& outIndex)
     {
@@ -1568,11 +1677,18 @@ namespace
                     {
                         if (SymbolFunction* callerFn = sema.currentFunction())
                         {
-                            const uint64_t origins = parameterOriginsMask(*callerFn, carried);
+                            SemaEscapeProjection  carriedProjection;
+                            const SymbolVariable* reallocatedField = ownedPayloadProjection(sema, carried, carriedProjection) ? firstProjectionField(carriedProjection) : nullptr;
+                            const uint64_t        origins          = parameterOriginsMask(*callerFn, carried);
                             for (size_t i = 0; i < 64; ++i)
                             {
                                 if (origins & (1ULL << i))
-                                    callerFn->addReallocatesParam(i);
+                                {
+                                    if (reallocatedField)
+                                        callerFn->addReallocatesParamField(i, *reallocatedField);
+                                    else
+                                        callerFn->addReallocatesParam(i);
+                                }
                             }
                         }
                     }
@@ -1612,12 +1728,13 @@ namespace
                         continue;
 
                     SemaEscapeSummaryEdge edge;
-                    edge.caller           = callerFn;
-                    edge.callee           = fn;
-                    edge.callerParamIndex = static_cast<uint32_t>(callerParamIndex);
-                    edge.calleeParamIndex = static_cast<uint32_t>(thisParam);
-                    edge.viaOwnedPayload  = info.viaOwnedPayload;
-                    edge.viaStoredField   = info.viaStoredField;
+                    edge.caller                = callerFn;
+                    edge.callee                = fn;
+                    edge.callerParamIndex      = static_cast<uint32_t>(callerParamIndex);
+                    edge.calleeParamIndex      = static_cast<uint32_t>(thisParam);
+                    edge.viaOwnedPayload       = info.viaOwnedPayload;
+                    edge.viaStoredField        = info.viaStoredField;
+                    edge.callerProjectionField = callerArgumentProjectionField(sema, resolvedRef, *fn, thisParam, arg.argRef);
                     outCapture.edges.push_back(edge);
                     parameterMappings.push_back({static_cast<uint32_t>(callerParamIndex), static_cast<uint32_t>(thisParam)});
                 }
@@ -2740,22 +2857,21 @@ namespace
         return pointeeTypeRef.isValid() && pointeeTypeRef == sourceTypeRef;
     }
 
-    // Whose payload this body can judge a structural change of. A frame local, and a
-    // global: the escape rules exclude globals because a global outlives every frame and
-    // a view of one can never dangle by outliving its owner, but growing a global
-    // container moves its payload exactly like growing a local one.
-    //
-    // A PARAMETER stays out. Its storage is caller-owned, the caller may hold views of it
-    // this body cannot see, and the mutation it performs is part of what the callee was
-    // called for - judging it here would report the ordinary "grow, then re-read" body of
-    // every collection method.
+    // Whose payload this body can judge a structural change of. Locals and globals are
+    // direct. A parameter is also judgeable for views created INSIDE this body: their
+    // precise owned-field projection is known here, so caller ownership is irrelevant.
+    // Views held only by the caller are absent from the flow state and cannot be invented.
     bool isInvalidationJudgeableOwner(Sema& sema, const SymbolVariable& symVar)
     {
-        return isLocalVariableStorage(sema, symVar) || symVar.hasExtraFlag(SymbolVariableFlagsE::GlobalStorage);
+        return isLocalVariableStorage(sema, symVar) ||
+               symVar.hasExtraFlag(SymbolVariableFlagsE::GlobalStorage) ||
+               symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter);
     }
 
-    // The variable whose storage a method call may change: the root of its receiver.
-    const SymbolVariable* mutatedReceiverRoot(Sema& sema, AstNodeRef callRef)
+    // The storage a method call may change: its normalized signature root plus the
+    // syntactic receiver path. Keeping the path is what distinguishes `.left.reserve()`
+    // from `.right.reserve()` inside one receiver.
+    bool mutatedReceiverProjection(Sema& sema, AstNodeRef callRef, SemaEscapeProjection& outProjection)
     {
         SmallVector<ResolvedCallArgument> args;
         sema.appendResolvedCallArguments(callRef, args);
@@ -2773,10 +2889,17 @@ namespace
         if (projectedRef.isInvalid())
             projectedRef = receiverRef;
         if (projectedRef.isInvalid())
-            return nullptr;
+            return false;
 
-        bool whole = false;
-        return storageRootVariable(sema, projectedRef, false, whole);
+        if (!storageProjection(sema, projectedRef, outProjection))
+        {
+            bool whole         = false;
+            outProjection.root = storageRootVariable(sema, projectedRef, false, whole);
+            outProjection.components.clear();
+        }
+
+        normalizeProjectionRoot(sema, outProjection);
+        return outProjection.root != nullptr;
     }
 
     bool isLoopStatement(const AstNode& node)
@@ -2996,6 +3119,112 @@ namespace
         return false;
     }
 
+    // A mutation inside one branch cannot reach code after that branch in the same
+    // iteration when the arm unconditionally continues, returns or becomes unreachable.
+    // Inspect only direct statements after the statement containing the
+    // mutation: an exit nested in another conditional is not unconditional.
+    bool mutationArmExitsBeforeRead(Sema& sema, AstNodeRef bodyRef, const SourceCodeRange& mutationRange, const SourceCodeRange& readRange, const SymbolVariable& viewVar)
+    {
+        SmallVector<AstNodeRef> worklist;
+        worklist.push_back(bodyRef);
+
+        uint32_t                     budget = 8192;
+        SmallVector<AstNodeRef>      children;
+        SmallVector<SourceCodeRange> arms;
+        SourceCodeRange              innermostLoop;
+        const SourceCodeRange        declarationRange = viewVar.codeRange(sema.ctx());
+        while (!worklist.empty() && budget != 0)
+        {
+            budget--;
+            const AstNodeRef nodeRef = worklist.back();
+            worklist.pop_back();
+            if (nodeRef.isInvalid())
+                continue;
+
+            const AstNode& node = sema.node(nodeRef);
+            if (isLoopStatement(node))
+            {
+                const SourceCodeRange range = subtreeRange(sema, nodeRef);
+                if (sourceRangeContains(range, mutationRange) && (!innermostLoop.srcView || range.len < innermostLoop.len))
+                    innermostLoop = range;
+            }
+
+            children.clear();
+            node.collectChildrenFromAst(children, sema.ast());
+            for (const AstNodeRef childRef : children)
+            {
+                if (childRef.isValid())
+                    worklist.push_back(childRef);
+            }
+        }
+
+        // An exit only makes the view safe when the targeted loop rebuilds that view.
+        // Otherwise the same stale binding can be read on a later iteration.
+        if (!innermostLoop.srcView || !sourceRangeContains(innermostLoop, declarationRange))
+            return false;
+
+        worklist.clear();
+        worklist.push_back(bodyRef);
+        budget = 8192;
+        while (!worklist.empty() && budget != 0)
+        {
+            budget--;
+            const AstNodeRef nodeRef = worklist.back();
+            worklist.pop_back();
+            if (nodeRef.isInvalid())
+                continue;
+
+            collectBranchArms(sema, nodeRef, arms);
+            for (size_t armIndex = 0; armIndex < arms.size(); ++armIndex)
+            {
+                const SourceCodeRange& armRange = arms[armIndex];
+                if (!sourceRangeContains(armRange, mutationRange) || sourceRangeContains(armRange, readRange))
+                    continue;
+
+                AstNodeRef              armRef = AstNodeRef::invalid();
+                SmallVector<AstNodeRef> branchChildren;
+                sema.node(nodeRef).collectChildrenFromAst(branchChildren, sema.ast());
+                for (const AstNodeRef childRef : branchChildren)
+                {
+                    if (childRef.isValid() && sourceRangeContains(armRange, subtreeRange(sema, childRef)))
+                    {
+                        armRef = childRef;
+                        break;
+                    }
+                }
+                if (armRef.isInvalid())
+                    continue;
+
+                SmallVector<AstNodeRef> statements;
+                sema.node(armRef).collectChildrenFromAst(statements, sema.ast());
+                for (const AstNodeRef statementRef : statements)
+                {
+                    if (statementRef.isInvalid())
+                        continue;
+                    const SourceCodeRange statementRange = subtreeRange(sema, statementRef);
+                    if (statementRange.srcView != mutationRange.srcView || statementRange.offset <= mutationRange.offset)
+                        continue;
+
+                    const AstNode& statement = sema.node(statementRef);
+                    if (statement.is(AstNodeId::ContinueStmt) ||
+                        statement.is(AstNodeId::ReturnStmt) ||
+                        statement.is(AstNodeId::UnreachableStmt))
+                        return true;
+                }
+            }
+
+            children.clear();
+            sema.node(nodeRef).collectChildrenFromAst(children, sema.ast());
+            for (const AstNodeRef childRef : children)
+            {
+                if (childRef.isValid())
+                    worklist.push_back(childRef);
+            }
+        }
+
+        return false;
+    }
+
     // The first READ of 'symVar' written at or after 'afterOffset', or invalid when the
     // next thing that happens to it is a write - reassigning a view refreshes it, so what
     // follows reads the new one. 'afterRange' only names the file; the offset is separate
@@ -3099,6 +3328,8 @@ namespace
         {
             if (positionsExcludeEachOther(sema, bodyRef, afterRange, occurrence.range))
                 continue;
+            if (occurrence.phase == 0 && mutationArmExitsBeforeRead(sema, bodyRef, afterRange, occurrence.range, symVar))
+                continue;
             return occurrence.isWrite ? AstNodeRef::invalid() : occurrence.nodeRef;
         }
 
@@ -3117,12 +3348,29 @@ namespace
     // Reading the captured call snapshot is what makes the most common spelling of "take
     // a view into a container" a candidate at all: an accessor result is bound as a
     // DeferredCall, never as a plain local borrow.
-    bool viewRoutesToStorage(const SemaEscapeInfo& info, const SymbolVariable& root, SmallVector4<SemaEscapeDeferredGuard>& outGuards)
+    bool viewRoutesToStorage(Sema& sema, const SemaEscapeInfo& info, const SemaEscapeProjection& mutation, SmallVector4<SemaEscapeDeferredGuard>& outGuards)
     {
+        SWC_ASSERT(mutation.root);
+        const SymbolVariable& root = *mutation.root;
+
         // A local and a global owner are the same fault here: what moves is the payload,
         // and the view is stale from that moment whatever outlives what.
         if (info.kind == SemaEscapeKind::Local || info.kind == SemaEscapeKind::Static)
             return info.sourceVar == &root;
+
+        // A method receiver/parameter is caller-owned, but a view created in this body
+        // has a fully inferred path back into it. Match the mutation against that path;
+        // this catches `view = .data; .reserve(); use(view)` without treating every field
+        // of `me` as the same allocation. A carrier replacement clears viaOwnedPayload,
+        // so an old-buffer copy no longer follows the receiver's new allocation.
+        if (info.kind == SemaEscapeKind::Parameter)
+        {
+            if (info.sourceVar != &root || !info.viaOwnedPayload)
+                return false;
+
+            SemaEscapeProjection source;
+            return ownedPayloadProjection(sema, info, source) && projectionIsPrefixOf(mutation, source);
+        }
 
         if (!info.isDeferredCallBorrow())
             return false;
@@ -3462,6 +3710,11 @@ namespace SemaEscape
             wholeVariable = false;
             hasProjection = true;
         }
+
+        SemaEscapeProjection replacedProjection;
+        if (storageProjection(sema, leftRef, replacedProjection) && replacedProjection.root && !replacedProjection.components.empty())
+            detachReplacedOwnedPayloadViews(sema, replacedProjection, targetTypeRef);
+
         // A store through a destination that provably stays in this frame (a self-reference
         // through a local-derived pointer) never escapes, whatever borrow it carries.
         const bool destStaysInFrame = destinationBaseIsFrameLocalPointer(sema, leftRef);
@@ -3648,9 +3901,10 @@ namespace SemaEscape
         if (!isStructuralMutationCallee(sema, calledFn))
             return;
 
-        const SymbolVariable* root = mutatedReceiverRoot(sema, callRef);
-        if (!root)
+        SemaEscapeProjection mutationProjection;
+        if (!mutatedReceiverProjection(sema, callRef, mutationProjection))
             return;
+        const SymbolVariable* root = mutationProjection.root;
 
         const SourceCodeRange mutationRange = sema.node(callRef).codeRange(sema.ctx());
         if (!mutationRange.srcView)
@@ -3664,7 +3918,7 @@ namespace SemaEscape
         // Only a value that OWNS a heap payload can have that payload moved or freed by
         // a method call. A plain aggregate has nothing to reallocate, so a view into it
         // survives any change to its fields.
-        if (!hasOwningLifecycle(sema, root->typeRef()))
+        if (!designatedStorageHasOwningLifecycle(sema, root->typeRef()))
             return;
 
         for (const auto& [viewVar, info] : sema.variableEscapeInfos())
@@ -3677,19 +3931,22 @@ namespace SemaEscape
                 continue;
 
             SmallVector4<SemaEscapeDeferredGuard> guards;
-            if (!viewRoutesToStorage(info, *root, guards))
+            if (!viewRoutesToStorage(sema, info, mutationProjection, guards))
                 continue;
 
+            SemaEscapeProjection   sourceProjection;
             SemaBorrowInvalidation record;
-            record.viewVar             = viewVar;
-            record.sourceVar           = root;
-            record.callee              = &calledFn;
-            record.bodyRef             = currentAnalysisBodyRef(sema);
-            record.mutationRef         = callRef;
-            record.mutationRange       = mutationRange;
-            record.evaluationEndOffset = evaluationEndSpan;
-            record.mutationName        = calledFn.name(sema.ctx());
-            record.guards              = guards;
+            record.viewVar                 = viewVar;
+            record.sourceVar               = root;
+            record.callee                  = &calledFn;
+            record.bodyRef                 = currentAnalysisBodyRef(sema);
+            record.mutationRef             = callRef;
+            record.mutationRange           = mutationRange;
+            record.evaluationEndOffset     = evaluationEndSpan;
+            record.mutationName            = calledFn.name(sema.ctx());
+            record.borrowedPayloadField    = ownedPayloadProjection(sema, info, sourceProjection) ? firstProjectionField(sourceProjection) : nullptr;
+            record.receiverProjectionField = firstProjectionField(mutationProjection);
+            record.guards                  = guards;
             sema.addBorrowInvalidation(record);
         }
     }
@@ -3739,16 +3996,18 @@ namespace SemaEscape
                 continue;
 
             SemaEscapeDeferredCheck check;
-            check.callee           = record.callee;
-            check.paramIndex       = 0; // the receiver
-            check.judgeReallocates = true;
-            check.guards           = record.guards;
-            check.diagId           = DiagnosticId::sanity_err_borrow_invalidated;
-            check.fileRef          = sema.srcView(sema.node(declRef).srcViewRef()).fileRef();
-            check.siteRange        = record.mutationRange;
-            check.symName          = record.sourceVar->name(sema.ctx());
-            check.valueName        = record.mutationName;
-            check.what             = record.viewVar->name(sema.ctx());
+            check.callee                  = record.callee;
+            check.paramIndex              = 0; // the receiver
+            check.judgeReallocates        = true;
+            check.borrowedPayloadField    = record.borrowedPayloadField;
+            check.receiverProjectionField = record.receiverProjectionField;
+            check.guards                  = record.guards;
+            check.diagId                  = DiagnosticId::sanity_err_borrow_invalidated;
+            check.fileRef                 = sema.srcView(sema.node(declRef).srcViewRef()).fileRef();
+            check.siteRange               = record.mutationRange;
+            check.symName                 = record.sourceVar->name(sema.ctx());
+            check.valueName               = record.mutationName;
+            check.what                    = record.viewVar->name(sema.ctx());
 
             check.noteId      = DiagnosticId::sema_note_borrow_taken_here;
             check.noteSymName = record.viewVar->name(sema.ctx());
@@ -3954,6 +4213,36 @@ namespace SemaEscape
         // function that forwards its parameter to a storing callee stores it too.
         // Masks only grow, so the fixpoint terminates; cycles (mutual recursion) just
         // converge. Sema is fully drained here, so growing the masks is race-free.
+        auto propagateReallocation = [](const SemaEscapeSummaryEdge& edge) {
+            const uint64_t beforeMask    = edge.caller->reallocatesParamsMask();
+            const size_t   beforeFields  = edge.caller->reallocatedParamFields().size();
+            const bool     beforeUnknown = edge.caller->reallocatesParamProjectionUnknown(edge.callerParamIndex);
+
+            if (edge.callerProjectionField)
+            {
+                edge.caller->addReallocatesParamField(edge.callerParamIndex, *edge.callerProjectionField);
+            }
+            else
+            {
+                bool copiedField = false;
+                for (const SymbolFunction::ReallocatedParamField& entry : edge.callee->reallocatedParamFields())
+                {
+                    if (entry.paramIndex != edge.calleeParamIndex || !entry.field)
+                        continue;
+                    edge.caller->addReallocatesParamField(edge.callerParamIndex, *entry.field);
+                    copiedField = true;
+                }
+
+                // Imported/opaque summaries currently carry only the conservative bit.
+                if (!copiedField || edge.callee->reallocatesParamProjectionUnknown(edge.calleeParamIndex))
+                    edge.caller->addReallocatesParam(edge.callerParamIndex);
+            }
+
+            return beforeMask != edge.caller->reallocatesParamsMask() ||
+                   beforeFields != edge.caller->reallocatedParamFields().size() ||
+                   beforeUnknown != edge.caller->reallocatesParamProjectionUnknown(edge.callerParamIndex);
+        };
+
         bool changed = !edges.empty();
         while (changed)
         {
@@ -4008,11 +4297,8 @@ namespace SemaEscape
                         {
                             if (edge.viaOwnedPayload)
                             {
-                                if (!(edge.caller->reallocatesParamsMask() & callerBit))
-                                {
-                                    edge.caller->addReallocatesParam(edge.callerParamIndex);
+                                if (propagateReallocation(edge))
                                     changed = true;
-                                }
                             }
                             else if (!(edge.caller->freesParamsMask() & callerBit))
                             {
@@ -4023,9 +4309,8 @@ namespace SemaEscape
 
                         // A method that hands its receiver to one that reallocates the
                         // payload reallocates it too: 'append' through 'reserve'.
-                        if ((edge.callee->reallocatesParamsMask() & calleeBit) && !(edge.caller->reallocatesParamsMask() & callerBit))
+                        if ((edge.callee->reallocatesParamsMask() & calleeBit) && propagateReallocation(edge))
                         {
-                            edge.caller->addReallocatesParam(edge.callerParamIndex);
                             changed = true;
                         }
                         break;
@@ -4110,6 +4395,25 @@ namespace SemaEscape
                 // every view into that payload valid.
                 if (!((check.callee->reallocatesParamsMask() >> check.paramIndex) & 1))
                     continue;
+
+                if (check.borrowedPayloadField)
+                {
+                    if (check.receiverProjectionField)
+                    {
+                        // Calling a mutator on one nested owner can only affect that
+                        // first field of the outer receiver.
+                        if (check.receiverProjectionField != check.borrowedPayloadField)
+                            continue;
+                    }
+                    else if (!check.callee->reallocatesParamProjectionUnknown(check.paramIndex))
+                    {
+                        const bool fieldHit = std::ranges::any_of(check.callee->reallocatedParamFields(), [&check](const SymbolFunction::ReallocatedParamField& entry) {
+                            return entry.paramIndex == check.paramIndex && entry.field == check.borrowedPayloadField;
+                        });
+                        if (!fieldHit)
+                            continue;
+                    }
+                }
             }
             else if (check.judgeAlways)
             {

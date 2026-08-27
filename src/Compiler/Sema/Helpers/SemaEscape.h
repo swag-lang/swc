@@ -77,7 +77,11 @@ struct SemaEscapeDeferredCheck
     // Judged against the callee's REALLOCATES summary: the call can move or release the
     // payload its receiver owns, so a view into that payload read afterwards is stale.
     bool judgeReallocates = false;
-    Utf8 valueName;
+    // First receiver field of the saved view and of the mutation site. Null means the
+    // receiver itself. The callee summary supplies its own first field at final judgement.
+    const SymbolVariable* borrowedPayloadField    = nullptr;
+    const SymbolVariable* receiverProjectionField = nullptr;
+    Utf8                  valueName;
 };
 
 // A structural change of storage that a local view was reading. Recorded where the flow
@@ -98,8 +102,10 @@ struct SemaBorrowInvalidation
     // Where the call's own text ends. Arguments are evaluated BEFORE the callee runs, so
     // a view named inside them is read before the change, not after it: the search for a
     // later read starts past the whole call expression, not past its name.
-    uint32_t evaluationEndOffset = 0;
-    Utf8     mutationName;
+    uint32_t              evaluationEndOffset = 0;
+    Utf8                  mutationName;
+    const SymbolVariable* borrowedPayloadField    = nullptr;
+    const SymbolVariable* receiverProjectionField = nullptr;
     // What the view's provenance depends on. A view taken straight out of the storage
     // needs nothing; one obtained from an accessor call only aliases the receiver when
     // that accessor's return summary says so, and summaries are final only once the
@@ -140,6 +146,9 @@ struct SemaEscapeSummaryEdge
     // distinct allocation. The borrow still propagates, and so does the STORES summary,
     // but the FREES summary must not: releasing the carrier releases the carrier.
     bool viaStoredField = false;
+    // First field used to reach the callee argument from the caller parameter. A callee
+    // reallocation then affects this field, whatever nested payload it moves internally.
+    const SymbolVariable* callerProjectionField = nullptr;
 };
 
 // The captured argument borrows of one opaque call. Checks are templates whose site,

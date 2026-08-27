@@ -1,6 +1,6 @@
 //! Format: DTS Coherent Acoustics Core packet decoder component.
-//! Supported: 16-bit big- and little-endian core frames through 5.1 channels, scalar quantization, subframe transitions, both synthesis filters, and 64x or 128x LFE.
-//! Not supported: 14-bit transport packing, prediction, Huffman-coded side information or samples, high-frequency VQ, joint intensity, and DTS extension substreams.
+//! Supported: 14- and 16-bit big- and little-endian core frames through 5.1 channels, scalar quantization, subframe transitions, both synthesis filters, and 64x or 128x LFE.
+//! Not supported: Prediction, Huffman-coded side information or samples, high-frequency VQ, joint intensity, and DTS extension substreams.
 //! Role: This file owns DTS Core frame syntax, subband reconstruction, channel mapping, and packet dispatch.
 //
 #global namespace Dts
@@ -37,6 +37,7 @@ private struct BitReader
     bitSize:           u64
     bitPosition:       u64
     littleEndianWords: bool
+    packed14:          bool
     overrun:           bool
 }
 
@@ -46,11 +47,16 @@ private impl BitReader
     {
         if @countof(packet) < 4 do
             fail InvalidFormatError{"DTS packet header is truncated"}
-        let bigEndian    = packet[0] == 0x7F and packet[1] == 0xFE and packet[2] == 0x80 and packet[3] == 0x01
-        let littleEndian = packet[0] == 0xFE and packet[1] == 0x7F and packet[2] == 0x01 and packet[3] == 0x80
-        if !bigEndian and !littleEndian do
-            fail InvalidFormatError{"DTS packet has no 16-bit core sync word"}
-        return {@dataof(packet), @countof(packet) * 8, 0, littleEndian}
+        let bigEndian16    = packet[0] == 0x7F and packet[1] == 0xFE and packet[2] == 0x80 and packet[3] == 0x01
+        let littleEndian16 = packet[0] == 0xFE and packet[1] == 0x7F and packet[2] == 0x01 and packet[3] == 0x80
+        let bigEndian14    = packet[0] == 0x1F and packet[1] == 0xFF and packet[2] == 0xE8 and packet[3] == 0x00
+        let littleEndian14 = packet[0] == 0xFF and packet[1] == 0x1F and packet[2] == 0x00 and packet[3] == 0xE8
+        if !bigEndian16 and !littleEndian16 and !bigEndian14 and !littleEndian14 do
+            fail InvalidFormatError{"DTS packet has no core sync word"}
+
+        let packed14 = bigEndian14 or littleEndian14
+        let bitSize  = packed14 ? (@countof(packet) / 2) * 14 : @countof(packet) * 8
+        return {@dataof(packet), bitSize, 0, littleEndian16 or littleEndian14, packed14}
     }
 
     mtd read(count: u32)->u32
@@ -63,11 +69,21 @@ private impl BitReader
                 .overrun = true
             else
             {
-                var byteIndex = .bitPosition >> 3
-                if .littleEndianWords do
-                    byteIndex ^= 1
-                let bitIndex = 7 - (.bitPosition & 7)
-                result |= (cast(u32) .data[byteIndex] >> cast(u32) bitIndex) & 1
+                if .packed14
+                {
+                    let wordIndex = .bitPosition / 14
+                    let byteIndex = wordIndex * 2
+                    let word      = .littleEndianWords ? cast(u32) .data[byteIndex] | (cast(u32) .data[byteIndex + 1] << 8) : (cast(u32) .data[byteIndex] << 8) | cast(u32) .data[byteIndex + 1]
+                    result |= (word >> cast(u32) (13 - .bitPosition % 14)) & 1
+                }
+                else
+                {
+                    var byteIndex = .bitPosition >> 3
+                    if .littleEndianWords do
+                        byteIndex ^= 1
+                    let bitIndex = 7 - (.bitPosition & 7)
+                    result |= (cast(u32) .data[byteIndex] >> cast(u32) bitIndex) & 1
+                }
             }
 
             .bitPosition += 1
@@ -142,8 +158,9 @@ private func parseFrameHeader(reader: *BitReader)->FrameHeader fail
     let blocks = reader.read(7) + 1
     if blocks < 8 or blocks > MaxSubbandSamples or blocks & 7 do
         fail InvalidFormatError{"DTS packet has an invalid sample-block count"}
-    result.frames     = blocks * 32
-    result.frameBytes = reader.read(14) + 1
+    result.frames = blocks * 32
+    let unpackedFrameBytes = reader.read(14) + 1
+    result.frameBytes = reader.packed14 ? unpackedFrameBytes * 8 / 14 * 2 : unpackedFrameBytes
     result.mode       = reader.read(6)
     if result.mode >= @countof(ModeChannels) do
         fail UnsupportedFormatError{"DTS packet uses an unsupported channel arrangement"}

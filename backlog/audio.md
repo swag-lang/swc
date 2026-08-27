@@ -30,6 +30,16 @@ effects, no capture.
 
 ## Tier A — Compressed audio formats
 
+### B-001 — DTS Core advanced coding tools remain unsupported
+
+- Evidence: the decoder accepts scalar-coded 14- and 16-bit Core streams, but explicitly rejects
+  ADPCM prediction, Huffman-coded side information or audio, high-frequency VQ, joint intensity,
+  and extension substreams. The reproducible `dcaenc` fixture exercises none of those tools.
+- Next: obtain a permissively redistributable stream that exercises the common Core tool set, or
+  a reproducible encoder for one, then implement and validate each tool against that corpus.
+- Complete when: representative Core streams using those tools decode with validated channel order
+  and bounded reference error, while unsupported extension substreams remain explicit.
+
 ### T-166 — No Ogg Vorbis decoder
 
 Add Ogg framing and Vorbis decoding behind `ICodec`, including streaming and seek-table behavior.

@@ -1,6 +1,6 @@
 //! Format: DTS Coherent Acoustics Core elementary streams.
-//! Supported: Native `.dts` files containing consecutive 16-bit big- or little-endian core frames.
-//! Not supported: 14-bit transport packing, DTS extension substreams, transport wrappers, and writing.
+//! Supported: Native `.dts` files containing consecutive 14- or 16-bit big- or little-endian core frames.
+//! Not supported: DTS extension substreams, transport wrappers, and writing.
 //! Role: This file walks native DTS Core frames and builds the packet index used for streamed decoding.
 //
 #global namespace Dts
@@ -23,7 +23,7 @@ internal func openElementaryStream(path: string)->SoundFile fail
     var channels = 0'u32
     var speakers = 0'u32
 
-    while at + 13 <= size
+    while at + 16 <= size
     {
         let want = Math.min(ScanWindow, size - at)
         window.resize(want)

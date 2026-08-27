@@ -16,11 +16,9 @@ private func dtsTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     return real * real + imaginary * imaginary
 }
 
-// A native DTS Core stream is indexed from its frame headers, decoded through the packet-codec
-// registry, and exposed in WAVE FL,FR,FC,LFE,BL,BR speaker order.
-#test
+private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
 {
-    let path  = audioGetTestDataPath("dts-5.1-48000.dts")
+    let path  = audioGetTestDataPath(fileName)
     var sound = expect SoundFile.load(path.toString())
 
     @assert(sound.sampleEncoding() == .Dts)
@@ -28,7 +26,7 @@ private func dtsTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     @assert(sound.speakerChannelMask() == 0x3F)
     @assert(sound.packetCount() == 47 and sound.sampleFrameCount() == 47 * 512)
     let first = expect sound.packet(0)
-    @assert(first.sourceOffset == 0 and first.byteSize == 2012 and first.sampleFrameCount == 512)
+    @assert(first.sourceOffset == 0 and first.byteSize == packetBytes and first.sampleFrameCount == 512)
 
     discard expect createNoSoundEngine()
     defer destroyEngine()
@@ -48,7 +46,22 @@ private func dtsTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     }
 }
 
-// Packet framing accepts both standard 16-bit byte orders and rejects a truncated header.
+// A native DTS Core stream is indexed from its frame headers, decoded through the packet-codec
+// registry, and exposed in WAVE FL,FR,FC,LFE,BL,BR speaker order.
+#test
+{
+    dtsAssertNativeStream("dts-5.1-48000.dts", 2012)
+}
+
+// The same coded frames survive 14-bit big-endian transport packing without changing their
+// public track shape or channel content.
+#test
+{
+    dtsAssertNativeStream("dts-5.1-48000-14be.dts", 2300)
+}
+
+// Packet framing accepts both byte orders of the 14- and 16-bit representations and rejects a
+// truncated header.
 #test
 {
     let bytes = expect File.readAllBytes(audioGetTestDataPath("dts-5.1-48000.dts").toString())
@@ -68,6 +81,23 @@ private func dtsTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 
     let swapped = expect Dts.frameInfo(bigEndian.toSlice())
     @assert(swapped.frameBytes == info.frameBytes and swapped.speakerMask == info.speakerMask)
+
+    let packedBytes = expect File.readAllBytes(audioGetTestDataPath("dts-5.1-48000-14be.dts").toString())
+    let packedInfo  = expect Dts.frameInfo(packedBytes.toSlice())
+    @assert(packedInfo.frameBytes == 2300 and packedInfo.frames == info.frames)
+    var littleEndian14: Array'u8
+    littleEndian14.add(packedBytes.toSlice()[0 until packedInfo.frameBytes])
+    index = 0
+    while index < littleEndian14.count
+    {
+        let first = littleEndian14[index]
+        littleEndian14[index]     = littleEndian14[index + 1]
+        littleEndian14[index + 1] = first
+        index                     += 2
+    }
+
+    let swapped14 = expect Dts.frameInfo(littleEndian14.toSlice())
+    @assert(swapped14.frameBytes == packedInfo.frameBytes and swapped14.speakerMask == packedInfo.speakerMask)
 
     var malformed = catch Dts.frameInfo(bytes.toSlice()[0 until 8]) as err
     discard malformed

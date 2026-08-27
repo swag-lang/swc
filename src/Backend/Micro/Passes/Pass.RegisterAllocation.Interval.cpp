@@ -254,32 +254,68 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
     for (const MicroReg reg : freeFloatPersistent_)
         admit(reg);
 
+    // A claim starts at the output slot only where the definition is a
+    // plain write: a copy or a load into the register, or a call's clobber.
+    // An arithmetic form that names the register implicitly (a multiply
+    // through rax:rdx, a shift by cl, a compare-exchange) reads it or
+    // forbids its other operands from it, and the encoder's legalization
+    // of the physical form pays a save and restore around it when an
+    // operand landed there - so those keep the whole instruction.
+    const auto isPlainDefinition = [&](const uint32_t idx) {
+        const MicroInstr* inst = instructions_->ptr(controlFlowGraph_->instructionRefs()[idx]);
+        if (!inst)
+            return false;
+        if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+            return true;
+        switch (inst->op)
+        {
+            case MicroInstrOpcode::LoadRegReg:
+            case MicroInstrOpcode::LoadRegImm:
+            case MicroInstrOpcode::LoadRegPtrImm:
+            case MicroInstrOpcode::LoadRegPtrReloc:
+            case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadAmcRegMem:
+            case MicroInstrOpcode::LoadSignedExtRegMem:
+            case MicroInstrOpcode::LoadZeroExtRegMem:
+            case MicroInstrOpcode::LoadSignedExtRegReg:
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+            case MicroInstrOpcode::LoadAddrRegMem:
+            case MicroInstrOpcode::LoadAddrAmcRegMem:
+            case MicroInstrOpcode::ClearReg:
+                return true;
+            default:
+                return false;
+        }
+    };
+
     outByPoolIndex.assign(outPoolRegs.size(), LiveInterval{});
+    const uint32_t concreteWordCount = denseConcreteRegs_.wordCount();
     for (size_t poolIndex = 0; poolIndex < outPoolRegs.size(); ++poolIndex)
     {
         const uint32_t denseConcrete = denseConcreteRegs_.find(outPoolRegs[poolIndex]);
         if (denseConcrete == MicroDenseRegIndex::K_INVALID_INDEX)
             continue;
 
-        // A claim spans the whole instruction, input slot included, even
-        // when the instruction only defines the register (an ABI argument
-        // copy, a call's clobber). Starting such a claim at the output slot
-        // would let a value read for the last time by that instruction keep
-        // its register to the end instead of being split one position short
-        // of it - the pair of connectors in front of every call argument
-        // (raytrace's pixel loop: 20 moves against 10) - but doing so
-        // miscompiles: with output-slot claims the resolution reloads the
-        // wrong value into an argument register (aoc2025_day12's
-        // analyzeFencePricing reloads r10's home into r8 at a loop head, and
-        // aoc2023_day3's solveWithLanguageFeatures likewise), and the walk
-        // invariant that breaks was not identified. Whole-instruction claims
-        // until it is.
+        // A claim that only defines the register - an ABI argument copy, a
+        // call's clobber - starts at the output slot, like a value's own
+        // definition: the input slot stays free, so a value read for the
+        // last time by that very instruction keeps its register to the end
+        // instead of being split one position short of it, which put a pair
+        // of connectors in front of every call argument (raytrace's pixel
+        // loop: 20 moves against 10). Every other claim (read, or carried
+        // through) spans the whole instruction: a register live across an
+        // instruction must own its output slot too, or a definition there
+        // would clobber it.
         LiveInterval& fixed = outByPoolIndex[poolIndex];
         for (const uint32_t idx : concreteClaimPositionsByDenseIndex_[denseConcrete])
         {
-            const uint32_t from = idx * 2;
-            const uint32_t to   = idx * 2 + 2;
-            if (!fixed.ranges.empty() && fixed.ranges.back().to == from)
+            const bool     usedHere    = std::ranges::find(useConcreteIndices_[idx], denseConcrete) != useConcreteIndices_[idx].end();
+            const bool     definedHere = std::ranges::find(defConcreteIndices_[idx], denseConcrete) != defConcreteIndices_[idx].end();
+            const bool     liveInHere  = DenseBits::contains(DenseBits::row(liveInConcreteBits_, idx, concreteWordCount), denseConcrete);
+            const bool     definedOnly = definedHere && !usedHere && !liveInHere && isPlainDefinition(idx);
+            const uint32_t from        = definedOnly ? idx * 2 + 1 : idx * 2;
+            const uint32_t to          = idx * 2 + 2;
+            if (!fixed.ranges.empty() && fixed.ranges.back().to >= from)
                 fixed.ranges.back().to = to;
             else
                 fixed.ranges.push_back({from, to});
@@ -538,6 +574,13 @@ namespace
         }
         ++walk.spillCount;
 
+        // The reload child is queued as unhandled, and the walk only ever
+        // moves forward: a child starting before the request would be
+        // walked against active and inactive lists that no longer hold the
+        // nodes it overlaps (the owner's own earlier register node among
+        // them, already retired), and could be handed their register. So
+        // the reload lands no earlier than the request, whatever the loop
+        // depth further back would have preferred.
         const uint32_t firstAccess = nodes[spilledIndex].firstUseAfter(nodes[spilledIndex].start());
         bool           ok          = true;
         if (firstAccess != K_IV_INVALID)
@@ -546,7 +589,7 @@ namespace
                 ok = false; // an access immediately at the takeover point: the register was not takeable
             else
             {
-                const uint32_t reloadPos = chooseSplitPos(walk, nodes[spilledIndex].start() + 1, firstAccess);
+                const uint32_t reloadPos = chooseSplitPos(walk, std::max(nodes[spilledIndex].start() + 1, splitPos), firstAccess);
                 ok                       = splitNodeAt(walk, spilledIndex, reloadPos) != K_IV_INVALID;
             }
         }
@@ -1010,6 +1053,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
         MicroReg src;             // invalid => load from home
         uint32_t denseIndex = 0;
         uint32_t trampJump  = std::numeric_limits<uint32_t>::max();
+        bool     exchange   = false; // swap dst and src: the head of a copy cycle
     };
     std::vector<Connector> connectors;
 
@@ -1351,14 +1395,35 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                 if (cycleHead == list.size())
                     break;
 
-                // What remains is a register cycle. Breaking it in place with
-                // an exchange (`xchg`, or three `xorpd`) was tried: it let
-                // sha256's and csvagg's `#main` through the allocator, and it
-                // miscompiled aoc2025_day17's `analyzeRoute` (an `xchg rcx, r8`
-                // emitted in front of a loop's guard jump, wrong on one of the
-                // two paths). Until the placement rule for a swap at such a
-                // point is understood, a cycle still falls back.
-                return false;
+                // What remains is a register cycle: a home load reads no
+                // register and a home store writes none, so neither sits on
+                // one. It is broken at its head by an exchange (the standard
+                // parallel-move sequentialization): the head's destination
+                // receives its source, and the source register then holds the
+                // destination's former value, so every pending reader of
+                // either register is redirected; a reader that becomes its
+                // own source is done. The exchange writes nothing the plain
+                // moves would not have, so the edge's placement stays legal.
+                Connector& head = connectors[list[cycleHead]];
+                if (!head.dst.isValid() || !head.src.isValid())
+                    return false;
+                const MicroReg headDst = head.dst;
+                const MicroReg headSrc = head.src;
+                head.exchange          = true;
+                head.order             = order++;
+                emitted[cycleHead]     = true;
+                for (size_t j = 0; j < list.size(); ++j)
+                {
+                    if (emitted[j])
+                        continue;
+                    Connector& other = connectors[list[j]];
+                    if (other.src == headDst)
+                        other.src = headSrc;
+                    else if (other.src == headSrc)
+                        other.src = headDst;
+                    if (other.src.isValid() && other.src == other.dst)
+                        emitted[j] = true;
+                }
             }
         }
     }
@@ -1464,6 +1529,40 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                 openTrampoline = connector.trampJump;
 
             const int64_t depth = depthAt[idx] == std::numeric_limits<int64_t>::min() ? 0 : depthAt[idx];
+            if (connector.exchange)
+            {
+                // An integer pair swaps in one exchange; a float pair in the
+                // three bitwise xors, full width whatever the value's own.
+                // Neither writes the flags, and the post-RA scans know it.
+                if (connector.dst.isFloat())
+                {
+                    for (uint32_t step = 0; step < 3; ++step)
+                    {
+                        PendingInsert xorInst;
+                        xorInst.op             = MicroInstrOpcode::OpBinaryRegReg;
+                        xorInst.numOps         = 4;
+                        xorInst.ops[0].reg     = step == 1 ? connector.src : connector.dst;
+                        xorInst.ops[1].reg     = step == 1 ? connector.dst : connector.src;
+                        xorInst.ops[2].opBits  = MicroOpBits::B64;
+                        xorInst.ops[3].microOp = MicroOp::FloatXor;
+                        insertPending(instructionRef, xorInst);
+                    }
+                }
+                else
+                {
+                    PendingInsert exchangeInst;
+                    exchangeInst.op             = MicroInstrOpcode::OpBinaryRegReg;
+                    exchangeInst.numOps         = 4;
+                    exchangeInst.ops[0].reg     = connector.dst;
+                    exchangeInst.ops[1].reg     = connector.src;
+                    exchangeInst.ops[2].opBits  = MicroOpBits::B64;
+                    exchangeInst.ops[3].microOp = MicroOp::Exchange;
+                    insertPending(instructionRef, exchangeInst);
+                }
+                continue;
+            }
+            if (connector.dst.isValid() && connector.src.isValid() && connector.dst == connector.src)
+                continue; // a cycle break left it a no-op
             PendingInsert pendingInst;
             if (connector.dst.isValid() && connector.src.isValid())
             {

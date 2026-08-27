@@ -716,46 +716,44 @@ cmov-to-branch back-conversion, and profile-gated passes.
   intervals with holes, the Wimmer walk with optimal split positions and register hints,
   rewrite and edge resolution with inline trampolines, whole-node spills of an owner never
   accessed since it took its register, spill stores at the definitions when cheaper by loop
-  depth. Branch `perf/micro-vs-llvm` (2026-08-27 evening) adds, still gated: the election
-  reads a loop-carried access as due at the back-edge (`nextAccessForElection`: a node live
-  across the back-edge of an enclosing loop, with an access earlier in the iteration, was the
-  farthest candidate in linear order and the one evicted, which is what reloaded leven's
-  `g_Bytes` and `bo` on every iteration; the DP inner loop goes 25 instructions and 2 frame
-  references to 23 and 0); the walk honours the per-virtual forbidden registers in both
-  elections (it did not - `RegAlloc_VirtualRegForbiddenPhysRegs` and the persistent-fallback
-  test were red under the gate). A parallel-copy cycle at a resolution point still makes the
-  function fall back (sha256's and csvagg's `#main` both do); breaking it in place with an
-  exchange (`xchg` for integers, three `xorpd` for floats) was tried and parked: it let both
-  through (sha256 398 -> 379 instructions, 75 -> 33 frame references, its 64-round loop 49 -> 22;
-  csvagg 106 -> 74) and miscompiled aoc2025_day17's `analyzeRoute`, where the `xchg rcx, r8` sits
-  in front of a loop's guard jump and is wrong on one of the two paths.
+  depth. The 2026-08-27 evening rounds added, still gated: the election reads a loop-carried
+  access as due at the back-edge (`nextAccessForElection` - a node live across the back-edge of
+  an enclosing loop, with an access earlier in the iteration, ranked as the farthest candidate
+  in linear order and was evicted, which reloaded leven's `g_Bytes` and `bo` on every
+  iteration); the walk honours the per-virtual forbidden registers in both elections; a
+  parallel-copy cycle at a resolution point is broken with an exchange (`xchg`, or three
+  `xorpd`) instead of bailing; a fixed claim that only defines the register through a plain
+  write (an ABI argument copy, a load, a call's clobber) starts at the output slot, so a value
+  read for the last time by that instruction keeps its register to the end - raytrace's pixel
+  loop lost the pair of moves in front of every call argument (125 -> 113 instructions). Two
+  latent bugs came out on the way and are fixed: the reload child of an evicted owner could be
+  split to a position before the request (the loop-depth-optimal position looked back), so the
+  walk handed it a register whose earlier owner it had already retired - two values in r8 at
+  the same point, the wrong one reloaded at a loop head; and every post-RA scan that stops at
+  a flag definition took the opcode table's word for `OpBinaryRegReg`, so an `xchg` (or any
+  float operation) between a `cmp` and its `jcc` read as a flag redefinition and the compare
+  was erased as dead (`MicroPassHelpers::instructionActuallyDefinesCpuFlags` now asks the
+  micro-op; the default path is byte-identical on the bench probes).
 - Measured 2026-08-27, static, bench probes under the gate against the legacy allocator, same
-  compiler: leven 84 -> 44 frame references, wordfreq 38 -> 15, dijkstra `#main` 16 -> 8,
-  chacha 65 -> 52, raytrace `intersect` 27 -> 19 and `trace` 57 -> 48; every checksum holds.
-  The compiler suites under the gate (fast-debug): jit, safety, sanity, workspace green; native
-  2921/2921 once the two entries below were understood; C++ 570/573, the three remaining being
+  compiler, every checksum holding: leven 84 -> 44 frame references (DP inner loop 26/1 ->
+  23/0 instructions/frame references), wordfreq 38 -> 15, dijkstra `#main` 16 -> 8, chacha
+  65 -> 52, raytrace `intersect` 27 -> 19 and `trace` 57 -> 48, sha256 `#main` 75 -> 33
+  (the 64-round loop 49 -> 22), csvagg `#main` 106 -> 78. Compiler suites under the gate:
+  native 2921/2921, jit, safety, sanity, workspace green; C++ 570/573, the three being
   legacy-specific expectations (the cmpxchg conform case's scratch register, a self-copy the
-  interval rewrite leaves for the peephole, and immediate rematerialization - see Next). The
-  serial HEVC decode and a quiet-machine bench A/B are still to be measured for this state.
-- Ruled out 2026-08-27: starting a define-only fixed claim (an ABI argument copy, a call's
-  clobber) at the instruction's output slot instead of its input slot. It removes the pair of
-  connectors the walk places in front of every call argument (raytrace's pixel loop, 20 moves
-  to 10) but miscompiles: the resolution reloads r10's home into r8 at a loop head of
-  aoc2025_day12's `analyzeFencePricing`, and aoc2023_day3's `solveWithLanguageFeatures`
-  likewise (gate on that function name, native suite `--file-filter`). The walk invariant it
-  breaks was not found; the claims are whole-instruction again. Both parked attempts share one
-  open question - what a connector placed in front of a conditional jump may write - and the
-  answer is probably the same for both.
-- Next: (1) settle what a connector in front of a conditional jump may write - a swap, and a
-  reload into a define-only argument register, both went wrong there - then bring the cycle
-  exchange and the output-slot claims back (the two largest static gaps left under the gate:
-  the `#main` of sha256 and csvagg falling back, and the connector pairs before every call
-  argument); (2) rematerialize a spilled single-definition `LoadRegImm`/`LoadRegPtrReloc` at its
+  interval rewrite leaves for the peephole, immediate rematerialization). The serial HEVC
+  decode and a quiet-machine bench A/B are still to be measured for this state.
+- Next: (1) rematerialize a spilled single-definition `LoadRegImm`/`LoadRegPtrReloc` at its
   reloads instead of storing and reloading it, as the legacy allocator and LLVM's
-  `InlineSpiller` do (`RegAlloc_RematerializesImmediateReloads`); (3) erase the self-copies the
-  operand rewrite leaves (`RegAlloc_TransfersDeadCopySourcesAcrossBarriers`); (4) measure the
-  serial HEVC decode and the bench tasks by alternated processor time on a quiet machine with
-  the gate open on the whole library, then decide the default.
+  `InlineSpiller` do (`RegAlloc_RematerializesImmediateReloads`); (2) erase the self-copies the
+  operand rewrite leaves (`RegAlloc_TransfersDeadCopySourcesAcrossBarriers`), and adapt the
+  cmpxchg conform expectation to either scratch; (3) measure the serial HEVC decode and the
+  bench tasks by alternated processor time on a quiet machine with the gate open on the whole
+  library, then decide the default; (4) the second sweep's `tryBorrowReservedRegister` refuses
+  every pool register as forbidden for a legalization scratch when the first sweep packed the
+  registers tightly (csvagg's `#main` with output-slot claims on arithmetic forms) - the
+  implicit rax/rdx operands of a multiply-high belong in the walk's fixed intervals, so the
+  second sweep never needs the scratch.
 - Complete when: the gated allocator compiles the HEVC hot four (idct, interpolateLuma,
   filterLumaEdge, interpolateChroma) with materially fewer emitted reloads than the cause-trace
   baseline (idct 101, interpolateLuma 119, filterLumaEdge 77, interpolateChroma 71), the video

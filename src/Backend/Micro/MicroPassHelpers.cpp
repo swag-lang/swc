@@ -38,6 +38,68 @@ bool MicroPassHelpers::instructionActuallyUsesCpuFlags(const MicroInstr& inst, c
 
 namespace
 {
+    // Whether the x64 form of a micro-op writes EFLAGS. Shifts and rotates
+    // count as writers (they are, for any non-zero count).
+    bool microOpWritesCpuFlags(const MicroOp op)
+    {
+        if (isVecMicroOp(op))
+            return false;
+        switch (op)
+        {
+            case MicroOp::Exchange:
+            case MicroOp::Move:
+            case MicroOp::MoveSignExtend:
+            case MicroOp::LoadEffectiveAddress:
+            case MicroOp::BitwiseNot:
+            case MicroOp::ByteSwap:
+            case MicroOp::ConvertFloatToFloat:
+            case MicroOp::ConvertFloatToInt:
+            case MicroOp::ConvertIntToFloat:
+            case MicroOp::ConvertUIntToFloat64:
+            case MicroOp::FloatAdd:
+            case MicroOp::FloatAnd:
+            case MicroOp::FloatDivide:
+            case MicroOp::FloatMax:
+            case MicroOp::FloatMin:
+            case MicroOp::FloatMultiply:
+            case MicroOp::FloatRound:
+            case MicroOp::FloatSqrt:
+            case MicroOp::FloatSubtract:
+            case MicroOp::FloatXor:
+            case MicroOp::MultiplyAdd:
+                return false;
+            default:
+                return true;
+        }
+    }
+}
+
+bool MicroPassHelpers::instructionActuallyDefinesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops)
+{
+    const MicroInstrDef& info = MicroInstr::info(inst.op);
+    if (!info.flags.has(MicroInstrFlagsE::DefinesCpuFlags))
+        return false;
+    if (!ops)
+        return true;
+
+    switch (inst.op)
+    {
+        case MicroInstrOpcode::OpUnaryReg:
+        case MicroInstrOpcode::OpUnaryMem:
+        case MicroInstrOpcode::OpBinaryRegImm:
+        case MicroInstrOpcode::OpBinaryMemImm:
+            return microOpWritesCpuFlags(ops[2].microOp);
+        case MicroInstrOpcode::OpBinaryRegReg:
+        case MicroInstrOpcode::OpBinaryRegMem:
+        case MicroInstrOpcode::OpBinaryMemReg:
+            return microOpWritesCpuFlags(ops[3].microOp);
+        default:
+            return true;
+    }
+}
+
+namespace
+{
     uint32_t computeNextVirtualRegIndex(const MicroPassContext& context, bool isFloat, uint32_t nextIndex)
     {
         SWC_ASSERT(context.instructions);
@@ -93,7 +155,7 @@ bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const M
             return false;
 
         const MicroInstrDef& info = MicroInstr::info(scanInst->op);
-        if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags) ||
+        if (instructionActuallyDefinesCpuFlags(*scanInst, scanOps) ||
             info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
             info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
             info.flags.has(MicroInstrFlagsE::JumpInstruction))
@@ -124,7 +186,7 @@ bool MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(const MicroStorage& st
             scanInfo.flags.has(MicroInstrFlagsE::IsCallInstruction))
             return false;
 
-        if (scanInfo.flags.has(MicroInstrFlagsE::DefinesCpuFlags))
+        if (instructionActuallyDefinesCpuFlags(*scanInst, scanOps))
             return true;
     }
 

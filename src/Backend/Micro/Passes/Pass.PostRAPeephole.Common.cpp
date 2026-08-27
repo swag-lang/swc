@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 #include "Support/Report/Assert.h"
@@ -105,6 +106,11 @@ namespace PostRaPeephole
     bool isTriviallyErasableNoEffect(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         return inst.op == MicroInstrOpcode::Nop || isSelfCopyNoEffect(inst, ops);
+    }
+
+    bool instructionActuallyDefinesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        return MicroPassHelpers::instructionActuallyDefinesCpuFlags(inst, ops);
     }
 
     bool instructionActuallyUsesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops)

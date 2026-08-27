@@ -616,6 +616,7 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.folderSameKind", &me.folderSameKind)
         catch evt.serializer.serialize("ViewerWindow.searchMatchCase", &me.searchMatchCaseOption)
         catch evt.serializer.serialize("ViewerWindow.searchWholeWord", &me.searchWholeWordOption)
+        catch evt.serializer.serialize("ViewerWindow.videoSubtitles", &g_VideoSubtitleSettings)
         if evt.serializer.isReading()
         {
             .themeIndex     = Math.min(.themeIndex, 1)
@@ -626,6 +627,7 @@ impl IWnd for ViewerWindow
                 .recent.removeAtOrdered(.recent.count - 1)
             .searchMatchCase.setChecked(.searchMatchCaseOption)
             .searchWholeWord.setChecked(.searchWholeWordOption)
+            g_VideoSubtitleSettings.delay = Math.clamp(g_VideoSubtitleSettings.delay, -60, 60)
         }
     }
 

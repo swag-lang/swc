@@ -118,6 +118,15 @@ chunk offset where it was.
 
 ## Generated for this repository
 
+`ffmpeg-h264-subtitle.mkv` stream-copies `ffmpeg-h264-baseline.mp4` and muxes the repository's
+`subtitle-sample.srt` as a default French SubRip track through FFmpeg 7.1. It exercises Matroska
+subtitle discovery, metadata, packet timestamps, durations, and cue decoding without introducing
+new third-party content.
+
+- FFmpeg arguments: `-map 0:v:0 -map 1:0 -c:v copy -c:s srt -metadata:s:s:0 language=fra -metadata:s:s:0 title=French -disposition:s:0 default`
+- SHA-256: `c0f84c38da71f22199cc783aa3195ab05f701dc05f89646b723b7b5a9d67763a`
+- License: same as this repository and `ffmpeg-h264-baseline.mp4`.
+
 `ffmpeg-h264-two-aac.mkv` stream-copies `ffmpeg-h264-baseline.mp4` and the AAC-LC track of
 `glint-aac-mjpeg.mp4` through FFmpeg 9.0.1. The sound stream is mapped twice, with the first copy
 marked as the default track, so one small file exercises Matroska AVC blocks, AAC packet indexing,

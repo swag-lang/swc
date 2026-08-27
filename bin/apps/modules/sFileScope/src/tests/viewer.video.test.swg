@@ -70,6 +70,70 @@ func videoMatroskaFixturePath()->String
     return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/ffmpeg-h264-two-aac.mkv")
 }
 
+// A same-stem sidecar is discovered, selected, and presented on the movie clock. Rendering
+// preferences and manual synchronization are available from the same track menu.
+#test
+{
+    let fileName = expect videoPreviewFile(Format.toString("filescope-video-subtitle-%.mp4", Guid64.random()).toString())
+    let folder   = Path.directoryName(fileName)!
+    let stem     = Path.fileNameWithoutExtension(fileName)!
+    let sidecar  = Path.combine(folder, Format.toString("%.fr.srt", stem).toString())
+    defer
+    {
+        discard catch File.delete(sidecar)
+        discard catch File.delete(fileName)
+    }
+
+    expect File.writeAllBytes(sidecar, "1\n00:00:00,000 --> 00:00:00,400\nOpening caption\n\n2\n00:00:00,500 --> 00:00:00,900\nSecond caption\n")
+
+    let savedSettings = g_VideoSubtitleSettings
+    defer g_VideoSubtitleSettings = savedSettings
+    g_VideoSubtitleSettings = {}
+
+    let standalone = expect Subtitle.Track.loadOwned(sidecar.toString())
+    @assert(standalone != null)
+    let standaloneText = videoSubtitleText(standalone!.cueTextData(0), standalone!.cueTextLength(0))
+    @assert(standaloneText == "Opening caption")
+    Subtitle.Track.destroy(standalone!)
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 420)
+    defer host.shutdown()
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
+    let request  = ViewerRequest{&host.root, commands, fileName}
+    var result: ViewerResult
+    createVideoViewer(&request, &result)
+    @assert(result.view != null)
+    let view = cast(*VideoViewer) result.view!
+    waitForVideoFrame(view)
+    view.playing = false
+    view.elapsed = 0
+
+    view.finishSubtitles()
+    view.refreshSubtitle()
+    @assert(view.subtitleOverlay.sidecars.count == 1 and view.subtitleSource == .Sidecar)
+    @assert(view.subtitleButton.isEnabled())
+    let opening = videoSubtitleText(view.subtitleOverlay.sidecars[0].cueTextData(0), view.subtitleOverlay.sidecars[0].cueTextLength(0))
+    @assert(opening == "Opening caption")
+    @assert(view.subtitleOverlay.text == "Opening caption")
+    view.seekSeconds(0.6)
+    waitForVideoFrame(view)
+    view.refreshSubtitle()
+    @assert(view.subtitleOverlay.text == "Second caption")
+
+    g_VideoSubtitleSettings.delay = -0.5
+    view.subtitleSettingsChanged()
+    @assert(view.subtitleOverlay.text == "Opening caption")
+
+    host.openPopupSubMenuWhenShown(videoStrings().ui_SubtitleSize)
+    host.thenClickPopupMenuItem("sFileScope.video.subtitle.size.large")
+    view.showSubtitleMenu()
+    @assert(g_VideoSubtitleSettings.size == .Large)
+    host.clickPopupMenuItemWhenShown("sFileScope.video.subtitle.off")
+    view.showSubtitleMenu()
+    @assert(view.subtitleSource == .Off and view.subtitleOverlay.text.isEmpty())
+}
+
 // Switching files retires the old decoder immediately, before deferred GUI deletion keeps its
 // frame buffers alive while the replacement allocates its H.264 contexts.
 #test
@@ -448,7 +512,8 @@ func videoMatroskaFixturePath()->String
     @assert(view.audioButton.position.width == 36)
     @assert(view.timeline.position.right() <= view.timeLabel.position.x)
     @assert(view.timeLabel.position.right() <= view.muteButton.position.x)
-    @assert(view.volumeSlider.position.right() <= view.audioButton.position.x)
+    @assert(view.volumeSlider.position.right() <= view.subtitleButton.position.x)
+    @assert(view.subtitleButton.position.right() <= view.audioButton.position.x)
     @assert(view.audioButton.position.right() == view.commands.clientRect().right())
     Testing.assertContentFits(view.commands)
     var image = host.render(&host.root)
@@ -471,7 +536,8 @@ func videoMatroskaFixturePath()->String
     pcm.resize(200)
     expect File.writeAllBytes(soundPath, pcm.toSlice())
     let packets: [1] SoundPacket = [{0, 200, 100}]
-    var sound = expect SoundFile.openPcmPacketStream(soundPath, .Pcm16, 100, 1, packets)
+    let sound = Memory.new'SoundFile()
+    sound[] = #nodrop #move expect SoundFile.openPcmPacketStream(soundPath, .Pcm16, 100, 1, packets)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
@@ -484,8 +550,8 @@ func videoMatroskaFixturePath()->String
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
 
-    view.audio   = &sound
-    view.voice   = expect Voice.create(&sound)
+    view.audio   = sound
+    view.voice   = expect Voice.create(sound)
     view.playing = true
     view.clock.restart()
     view.seekFrame(8)
@@ -502,13 +568,21 @@ func videoMatroskaFixturePath()->String
     pcm.resize(800)
     expect File.writeAllBytes(longerPath, pcm.toSlice())
     const LongerPackets: [1] SoundPacket = [{0, 800, 400}]
-    var longerSound = expect SoundFile.openPcmPacketStream(longerPath, .Pcm16, 100, 1, LongerPackets)
+    let longerSound = Memory.new'SoundFile()
+    longerSound[] = #nodrop #move expect SoundFile.openPcmPacketStream(longerPath, .Pcm16, 100, 1, LongerPackets)
     view.voice!.destroy()
-    view.audio = &longerSound
-    view.voice = expect Voice.create(&longerSound)
+    view.voice = null
+    view.audio = null
+    Memory.delete(sound)
+    view.audio = longerSound
+    view.voice = expect Voice.create(longerSound)
     view.resumeAudio()
     @assert(!view.audioRangePending and !view.resumeAudioAfterSeek and view.voice!.isPlaying())
     @assert(view.voice!.playbackSampleFrame() >= 200)
+    view.voice!.destroy()
+    view.voice = null
+    view.audio = null
+    Memory.delete(longerSound)
 }
 
 // A Matroska seek window carries a media-timeline origin. The viewer maps that absolute movie
@@ -588,11 +662,11 @@ func videoMatroskaFixturePath()->String
     var result: ViewerResult
     createVideoViewer(&request, &result)
     @assert(result.view != null)
-    let view = cast(*VideoViewer) result.view!
-    var loadingChanges: u32
-    view.userData = &loadingChanges
+    let view           = cast(*VideoViewer) result.view!
+    let loadingChanges = Memory.new'u32()
+    view.userData = loadingChanges
     waitForVideoFrame(view)
-    loadingChanges = 0
+    loadingChanges[] = 0
 
     @assert(view.planar)
     @assert(view.video.width() == 64 and view.video.height() == 48)
@@ -603,14 +677,15 @@ func videoMatroskaFixturePath()->String
     // can therefore cover a stale frame while this exact seek reconstructs its target.
     view.repositionTo(12)
     @assert(result.isLoading!(view))
-    @assert(loadingChanges == 1)
+    @assert(loadingChanges[] == 1)
     view.decodeWake.signal()
     waitForVideoFrame(view)
     @assert(view.frameIndex == 12 and !view.hasFailure)
     @assert(!result.isLoading!(view))
-    @assert(loadingChanges == 2)
+    @assert(loadingChanges[] == 2)
     @assert(view.planar)
     view.userData = null
+    Memory.delete(loadingChanges)
 }
 
 // The run-ahead queue stays a FIFO as pictures are taken from it.

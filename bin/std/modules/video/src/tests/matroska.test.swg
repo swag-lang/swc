@@ -15,6 +15,18 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
     @assert(reader.audioTrackCount() == count)
 }
 
+func waitForMatroskaSubtitles(reader: *Reader, count: u32)
+{
+    var attempts: u32
+    while reader.subtitleTrackCount() != count and attempts < 1000
+    {
+        Threading.Thread.sleep(1'ms)
+        attempts += 1
+    }
+
+    @assert(reader.subtitleTrackCount() == count)
+}
+
 // A DTS track's first core header supplies the exact 5.1 speaker mask that Matroska's channel
 // count alone cannot express.
 #test
@@ -87,6 +99,20 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
     let primaryBytes   = expect primary.readPayload(0, primary.payloadSize())
     let alternateBytes = expect alternate.readPayload(0, alternate.payloadSize())
     @assert(Slice.equals(primaryBytes.toSlice(), alternateBytes.toSlice()))
+}
+
+// Text subtitle blocks retain their language, display name, cue duration, and overlapping
+// presentation semantics when exposed through the format-independent reader capability.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-subtitle.mkv"))
+    waitForMatroskaSubtitles(&reader, 1)
+    let track = reader.subtitleTrack(0)!
+    @assert(track.name == "French" and track.language == "fra" and track.format == .MatroskaText)
+    @assert(track.cues.count == 3)
+    @assert(track.presentationAt(0.75).text == "First caption.")
+    @assert(track.presentationAt(1.75).text == "First caption.\nOverlapping caption.")
+    @assert(track.presentationAt(62.5).text == "Last line.")
 }
 
 // Matroska maps every native multichannel packet codec to std/audio without copying payloads.

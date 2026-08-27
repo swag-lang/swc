@@ -1,6 +1,7 @@
 /*
 Video reads and writes timed sequences of [[Pixel.Image]] frames. File-backed ISO-BMFF and
-Matroska readers also expose streamed sound tracks through [[Audio.SoundFile]].
+Matroska readers also expose streamed sound tracks through [[Audio.SoundFile]] and timed text
+through [[Video.Subtitle.Track]]. Standalone subtitle documents use the same track and cue model.
 
 Reading and writing are streamed: [[Video.Reader]] opens a stream by reading its
 metadata and decodes one frame at a time, and [[Video.Writer]] encodes one frame
@@ -58,8 +59,15 @@ Four codecs ship in the box:
   through complete cluster windows as playback reaches them; random access restarts it at the
   preceding video cue and reconstructs the coded prediction through the requested picture. No
   full-file scan competes with playback. Sound tracks become available when that progressive
-  cursor reaches the end of the file, and work may be interrupted through
+  cursor reaches their playback window; `S_TEXT/UTF8`, `S_TEXT/ASS`, and `S_TEXT/SSA` subtitle
+  tracks are exposed on that same media timeline. The complete indexes continue in the
+  background, and work may be interrupted through
   [[Video.Reader.requestCancel]]. Media payloads stay in the file.
+
+[[Video.Subtitle.Track.loadOwned]] decodes SubRip (`.srt`), WebVTT (`.vtt`), ASS/SSA (`.ass` and
+`.ssa`), LRC (`.lrc`), and MicroDVD (`.sub`) documents. UTF-8, UTF-16, UTF-32, and Windows-1252
+text are detected. The decoder keeps cue timing and readable text while leaving font, color,
+position, outline, and synchronization choices to the player.
 
 Decoding and encoding are separate implementations of a format, under `src/decode`
 and `src/encode`, laid out as the Pixel image codecs are. A format that has

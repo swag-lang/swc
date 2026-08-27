@@ -1,6 +1,6 @@
 //! Format: Matroska/EBML container decoder component.
-//! Supported: H.264, H.265 and MPEG-4 Part 2 picture tracks, the last also through a Video for Windows header, and AAC-LC, AC-3, independent E-AC-3, DTS Core, FLAC, or Layer III audio tracks, with cues, timestamps, codec delay, and common block lacing for audio.
-//! Not supported: Picture codecs other than those three, laced or invisible picture blocks, dependent E-AC-3 substreams, encrypted tracks, and writing Matroska.
+//! Supported: H.264, H.265 and MPEG-4 Part 2 picture tracks, AAC-LC, AC-3, independent E-AC-3, DTS Core, FLAC, or Layer III audio, and UTF-8 or ASS/SSA subtitle tracks, with cues and timestamps.
+//! Not supported: Other picture codecs, bitmap subtitles, laced or invisible picture blocks, dependent E-AC-3 substreams, encrypted tracks, and writing Matroska.
 //! Role: This file owns tracks, clusters, cues, timestamps, progressive indexing, and media dispatch.
 //
 #global namespace Matroska
@@ -9,6 +9,7 @@ using Core, Core.Errors, Pixel, Audio
 
 private const VideoTrackType = 1'u64
 private const AudioTrackType = 2'u64
+private const SubtitleTrackType = 17'u64
 
 private const AvcCodecId = "V_MPEG4/ISO/AVC"
 private const HevcCodecId = "V_MPEGH/ISO/HEVC"
@@ -20,6 +21,17 @@ private const FlacCodecId = "A_FLAC"
 private const Mp3CodecId = "A_MPEG/L3"
 private const Mpeg4CodecId = "V_MPEG4/ISO/ASP"
 private const VfwCodecId = "V_MS/VFW/FOURCC"
+private const Utf8SubtitleCodecId = "S_TEXT/UTF8"
+private const AssSubtitleCodecId = "S_TEXT/ASS"
+private const SsaSubtitleCodecId = "S_TEXT/SSA"
+
+private struct SubtitleSample
+{
+    offset:       u64
+    size:         u64
+    startSeconds: f64
+    endSeconds:   f64
+}
 
 // The one compression a stored frame can carry that this reader undoes, clause 12.3 of the
 // Matroska specification: the bytes every frame began with, taken off and stated once.
@@ -143,6 +155,7 @@ private struct Track
     headerStrip:     Array'u8     // Bytes a writer took off the front of every frame.
     videoSamples:    Array'SampleEntry
     audioPackets:    Array'SoundPacket
+    subtitleSamples: Array'SubtitleSample
     audioFrameCount: u64
     audioStart:      s64
     hasAudioStart:   bool
@@ -181,6 +194,16 @@ private impl Track
     }
 
     mtd const isHevcVideo()->bool => .codecId == HevcCodecId
+
+    mtd const isPlayableSubtitle()->bool
+    {
+        return .isEnabled and !.hasEncodings and .kind == SubtitleTrackType and (.codecId == Utf8SubtitleCodecId or .codecId == AssSubtitleCodecId or .codecId == SsaSubtitleCodecId)
+    }
+
+    mtd const subtitleFormat()->Subtitle.Format
+    {
+        return .codecId == AssSubtitleCodecId or .codecId == SsaSubtitleCodecId ? .SubStationAlpha : .MatroskaText
+    }
 
     // Whether a Video for Windows header names a codec this decoder reads.
     mtd const isVfwMpeg4()->bool
@@ -298,19 +321,22 @@ private impl Track
 // Matroska metadata retained while the mapped stream is indexed.
 private struct Layout
 {
-    timestampScale: u64  = DefaultTimestampScale
-    durationTicks:  f64
-    tracks:         Array'Track
-    clusters:       Array'Element
-    audioTracks:    Array'u64
-    selectedVideo:  u64  = NoTrack
-    laceSizes:      Array'u64
-    segment:        Element
-    scanPosition:   u64
-    indexComplete:  bool
-    indexPictures:  bool = true
-    videoChunkEnds: Array'u64
-    cues:           Array'CueEntry
+    timestampScale:       u64  = DefaultTimestampScale
+    durationTicks:        f64
+    tracks:               Array'Track
+    clusters:             Array'Element
+    audioTracks:          Array'u64
+    subtitleTracks:       Array'u64
+    selectedVideo:        u64  = NoTrack
+    laceSizes:            Array'u64
+    segment:              Element
+    scanPosition:         u64
+    indexComplete:        bool
+    indexPictures:        bool = true
+    lastClusterTimestamp: s64
+    hasClusterTimestamp:  bool
+    videoChunkEnds:       Array'u64
+    cues:                 Array'CueEntry
 }
 
 private impl Layout
@@ -467,15 +493,24 @@ private impl Layout
         return true
     }
 
-    // Extends an audio-only window until every playable track reaches the requested timestamp.
+    mtd const hasMediaThrough(timestampNanoseconds: s64)->bool
+    {
+        if !.hasAudioThrough(timestampNanoseconds) do
+            return false
+        if !.subtitleTracks.count do
+            return true
+        return .hasClusterTimestamp and .lastClusterTimestamp >= timestampNanoseconds
+    }
+
+    // Extends a sound and timed-text window until every playable track reaches the timestamp.
     mtd indexAudioThrough(bytes: const [..] u8, timestampNanoseconds: s64, cancelled: #null *u32 = null, paused: #null *u32 = null)->bool fail
     {
-        if .indexComplete or .hasAudioThrough(timestampNanoseconds) do
+        if .indexComplete or .hasMediaThrough(timestampNanoseconds) do
             return true
 
         var cursor = Cursor.open(bytes)
         cursor.seek(.scanPosition)
-        while !cursor.atEnd(.segment.end) and !.hasAudioThrough(timestampNanoseconds)
+        while !cursor.atEnd(.segment.end) and !.hasMediaThrough(timestampNanoseconds)
         {
             while paused and Atomic.get(paused!)
             {
@@ -544,14 +579,17 @@ private impl Layout
         {
             track.videoSamples.clear()
             track.audioPackets.clear()
+            track.subtitleSamples.clear()
             track.audioFrameCount = 0
             track.audioStart      = 0
             track.hasAudioStart   = false
         }
 
         .videoChunkEnds.clear()
-        .scanPosition  = clusterOffset
-        .indexComplete = false
+        .scanPosition         = clusterOffset
+        .indexComplete        = false
+        .lastClusterTimestamp = 0
+        .hasClusterTimestamp  = false
     }
 
     // Finds the last cue not later than `timestampNanoseconds`.
@@ -866,20 +904,20 @@ private impl Layout
             let element = cursor.readElement(entry.end)
             switch element.id
             {
-            case TrackNumberId:      track.number = cursor.readUnsigned(element)
-            case TrackTypeId:        track.kind = cursor.readUnsigned(element)
-            case FlagEnabledId:      track.isEnabled = cursor.readUnsigned(element) != 0
-            case FlagDefaultId:      track.isDefault = cursor.readUnsigned(element) != 0
-            case DefaultDurationId:  track.defaultDuration = cursor.readUnsigned(element)
-            case NameId:             track.name = cursor.readString(element)
-            case LanguageId:         track.language = cursor.readString(element)
-            case CodecIdId:          track.codecId = cursor.readString(element)
-            case CodecPrivateId:     track.codecPrivate = cursor.readBytes(element)
-            case CodecDelayId:       track.codecDelay = cursor.readUnsigned(element)
-            case SeekPreRollId:      track.seekPreRoll = cursor.readUnsigned(element)
-            case ContentEncodingsId: .parseContentEncodings(cursor, element, track)
-            case VideoId:            .parseVideo(cursor, element, track)
-            case AudioId:            .parseAudio(cursor, element, track)
+            case TrackNumberId:              track.number = cursor.readUnsigned(element)
+            case TrackTypeId:                track.kind = cursor.readUnsigned(element)
+            case FlagEnabledId:              track.isEnabled = cursor.readUnsigned(element) != 0
+            case FlagDefaultId:              track.isDefault = cursor.readUnsigned(element) != 0
+            case DefaultDurationId:          track.defaultDuration = cursor.readUnsigned(element)
+            case NameId:                     track.name = cursor.readString(element)
+            case LanguageId, LanguageIetfId: track.language = cursor.readString(element)
+            case CodecIdId:                  track.codecId = cursor.readString(element)
+            case CodecPrivateId:             track.codecPrivate = cursor.readBytes(element)
+            case CodecDelayId:               track.codecDelay = cursor.readUnsigned(element)
+            case SeekPreRollId:              track.seekPreRoll = cursor.readUnsigned(element)
+            case ContentEncodingsId:         .parseContentEncodings(cursor, element, track)
+            case VideoId:                    .parseVideo(cursor, element, track)
+            case AudioId:                    .parseAudio(cursor, element, track)
             }
 
             cursor.seek(element.end)
@@ -1024,7 +1062,7 @@ private impl Layout
         }
     }
 
-    // Chooses one default H.264 picture track and every playable sound track.
+    // Chooses one default picture track and every playable sound and subtitle track.
     mtd selectTracks() fail
     {
         var firstVideoCodec: String
@@ -1050,6 +1088,8 @@ private impl Layout
         {
             for track, index in .tracks where track.isPlayableAudio() and track.isDefault == wantDefault do
                 .audioTracks.add(index)
+            for track, index in .tracks where track.isPlayableSubtitle() and track.isDefault == wantDefault do
+                .subtitleTracks.add(index)
         }
     }
 
@@ -1087,7 +1127,7 @@ private impl Layout
                     if cancelled and Atomic.get(cancelled!) do
                         return false
                     if queued.id == SimpleBlockId do
-                        .indexBlock(cursor, queued, clusterTimestamp, true)
+                        .indexBlock(cursor, queued, clusterTimestamp, true, 0)
                     else do
                         .parseBlockGroup(cursor, queued, clusterTimestamp)
                 }
@@ -1099,7 +1139,7 @@ private impl Layout
                 if !hasTimestamp do
                     pending.add(element)
                 elif element.id == SimpleBlockId do
-                    .indexBlock(cursor, element, clusterTimestamp, true)
+                    .indexBlock(cursor, element, clusterTimestamp, true, 0)
                 else do
                     .parseBlockGroup(cursor, element, clusterTimestamp)
             }
@@ -1114,7 +1154,7 @@ private impl Layout
             if cancelled and Atomic.get(cancelled!) do
                 return false
             if queued.id == SimpleBlockId do
-                .indexBlock(cursor, queued, clusterTimestamp, true)
+                .indexBlock(cursor, queued, clusterTimestamp, true, 0)
             else do
                 .parseBlockGroup(cursor, queued, clusterTimestamp)
         }
@@ -1122,12 +1162,15 @@ private impl Layout
         let videoSampleCount = .tracks[.selectedVideo].videoSamples.count
         if videoSampleCount > firstVideoSample do
             .videoChunkEnds.add(videoSampleCount)
+        .lastClusterTimestamp = .timestampNanoseconds(clusterTimestamp, 0)
+        .hasClusterTimestamp  = true
         return true
     }
 
     mtd parseBlockGroup(cursor: *Cursor, group: Element, clusterTimestamp: u64) fail
     {
         var block: Element
+        var blockDuration = 0'u64
         var hasBlock, hasReference: bool
         cursor.seek(group.data)
         while cursor.position < group.end
@@ -1141,13 +1184,16 @@ private impl Layout
 
             case ReferenceBlockId:
                 hasReference = true
+
+            case BlockDurationId:
+                blockDuration = cursor.readUnsigned(element)
             }
 
             cursor.seek(element.end)
         }
 
         if hasBlock do
-            .indexBlock(cursor, block, clusterTimestamp, !hasReference)
+            .indexBlock(cursor, block, clusterTimestamp, !hasReference, blockDuration)
     }
 
     // Converts a cluster-relative timestamp to signed nanoseconds with overflow checks.
@@ -1250,8 +1296,8 @@ private impl Layout
         return cursor.position
     }
 
-    // Indexes one block belonging to the selected picture or sound tracks.
-    mtd indexBlock(cursor: *Cursor, block: Element, clusterTimestamp: u64, keyFromContainer: bool) fail
+    // Indexes one block belonging to the selected picture, sound, or subtitle tracks.
+    mtd indexBlock(cursor: *Cursor, block: Element, clusterTimestamp: u64, keyFromContainer: bool, blockDurationTicks: u64) fail
     {
         cursor.seek(block.data)
         let trackNumber = cursor.readVintValue(block.end).value
@@ -1262,7 +1308,7 @@ private impl Layout
         let flags    = cursor.readByte(block.end)
 
         var trackIndex = NoTrack
-        var isVideo: bool
+        var isVideo, isSubtitle: bool
         if .tracks[.selectedVideo].number == trackNumber
         {
             trackIndex = .selectedVideo
@@ -1274,6 +1320,16 @@ private impl Layout
             {
                 trackIndex = index
                 break
+            }
+
+            if trackIndex == NoTrack
+            {
+                for index in .subtitleTracks where .tracks[index].number == trackNumber
+                {
+                    trackIndex = index
+                    isSubtitle = true
+                    break
+                }
             }
         }
 
@@ -1299,6 +1355,23 @@ private impl Layout
             {
                 let end = Math.min(payload + .laceSizes[0], @countof(cursor.bytes))
                 track.setup.add(Video.inlineSetupHeaders(cursor.bytes[payload until end]))
+            }
+
+            return
+        }
+
+        if isSubtitle
+        {
+            let timestamp = .timestampNanoseconds(clusterTimestamp, relative)
+            let declared  = blockDurationTicks ? cast(f64) blockDurationTicks * cast(f64) .timestampScale : cast(f64) track.defaultDuration
+            let duration  = declared > 0 ? declared / 1_000_000_000.0 : 5.0
+            let part      = duration / cast(f64) .laceSizes.count
+            var offset    = payload
+            for size, index in .laceSizes
+            {
+                let start = cast(f64) timestamp / 1_000_000_000.0 + cast(f64) index * part
+                track.subtitleSamples.add({offset, size, start, start + part})
+                offset += size
             }
 
             return
@@ -1384,7 +1457,8 @@ private const SoundSeekPreRollSeconds = 1.0
 #[Swag.NoCopy]
 private struct PublishedSound
 {
-    tracks: Array'SoundFile
+    tracks:    Array'SoundFile
+    subtitles: Array'Subtitle.Track
 }
 
 #[Swag.NoCopy]
@@ -1394,6 +1468,7 @@ private struct FileIndex
     region:           File.MappedRegion
     path:             String
     soundTracks:      Array'SoundFile
+    subtitleTracks:   Array'Subtitle.Track
     soundThread:      Threading.Thread
     windowThread:     Threading.Thread
     windowWake:       Sync.Event
@@ -1409,19 +1484,21 @@ private struct FileIndex
     seekSoundEnd:     s64     // Where the published window stops carrying sound.
 }
 
-private func publishFullSound(index: *FileIndex, tracks: *Array'SoundFile)
+private func publishFullSound(index: *FileIndex, tracks: *Array'SoundFile, subtitles: *Array'Subtitle.Track)
 {
     Sync.scopedLock(&index.soundLock)
-    index.soundTracks = #move tracks[]
+    index.soundTracks    = #move tracks[]
+    index.subtitleTracks = #move subtitles[]
     Atomic.exchange(&index.soundStage, 1)
     if !Atomic.get(&index.soundPause) do
         Atomic.exchange(&index.currentSeekSound, 0)
 }
 
-private func publishSeekSound(index: *FileIndex, tracks: *Array'SoundFile)
+private func publishSeekSound(index: *FileIndex, tracks: *Array'SoundFile, subtitles: *Array'Subtitle.Track, coverEndHint: s64)
 {
-    // The window ends where its shortest track does: sound stops there whatever the others hold.
-    var coverEnd = Swag.S64.Max
+    // The window ends where its shortest sound track does, or at the text scan horizon when it
+    // carries subtitles alone.
+    var coverEnd = coverEndHint
     for sound in tracks
     {
         let end = cast(s64) Math.round((sound.timelineStartSeconds() + sound.durationInSeconds()) * 1_000_000_000.0)
@@ -1429,7 +1506,8 @@ private func publishSeekSound(index: *FileIndex, tracks: *Array'SoundFile)
     }
 
     let published = Memory.new'PublishedSound()
-    published.tracks = #move tracks[]
+    published.tracks    = #move tracks[]
+    published.subtitles = #move subtitles[]
 
     Sync.scopedLock(&index.soundLock)
     index.seekSounds.add(published)
@@ -1474,6 +1552,29 @@ private func buildSoundTracks(path: string, bytes: const [..] u8, layout: *Layou
     }
 }
 
+private func buildSubtitleTracks(bytes: const [..] u8, layout: *Layout, result: *Array'Subtitle.Track) fail
+{
+    result.reserve(layout.subtitleTracks.count)
+    for trackIndex in layout.subtitleTracks
+    {
+        let source = &layout.tracks[trackIndex]
+        var track  = Subtitle.Track.create(source.name.toString(), source.language.toString(), source.subtitleFormat())
+        for sample in source.subtitleSamples
+        {
+            if sample.offset > @countof(bytes) or sample.size > @countof(bytes) - sample.offset do
+                fail InvalidFormatError{"Matroska subtitle packet is truncated"}
+            var payload: String
+            if source.headerStrip.count do
+                payload += cast(string) source.headerStrip.toSlice()
+            payload += cast(string) bytes[sample.offset until sample.offset + sample.size]
+            track.addEncodedCue(sample.startSeconds, sample.endSeconds, payload.toString())
+        }
+
+        track.sortCues()
+        result.add(#move track)
+    }
+}
+
 // Publishes a bounded packet window around one media-timeline position.
 private func buildSoundWindow(index: *FileIndex, timestampNanoseconds: u64) fail
 {
@@ -1504,7 +1605,9 @@ private func buildSoundWindow(index: *FileIndex, timestampNanoseconds: u64) fail
             fail InvalidFormatError{"Matroska audio window does not cover its requested timestamp"}
     }
 
-    publishSeekSound(index, &tracks)
+    var subtitles: Array'Subtitle.Track
+    try buildSubtitleTracks(bytes, &layout, &subtitles)
+    publishSeekSound(index, &tracks, &subtitles, requestedEnd)
 }
 
 // Builds complete packet tables while the opening and seek windows remain playable.
@@ -1518,7 +1621,9 @@ private func buildSoundIndex(index: *FileIndex) fail
         fail BadParameterError{"video reader operation was cancelled"}
     var tracks: Array'SoundFile
     try buildSoundTracks(index.path.toString(), bytes, &layout, &tracks)
-    publishFullSound(index, &tracks)
+    var subtitles: Array'Subtitle.Track
+    try buildSubtitleTracks(bytes, &layout, &subtitles)
+    publishFullSound(index, &tracks, &subtitles)
 }
 
 // Reads Matroska files carrying supported picture tracks and AAC-LC, AC-3, E-AC-3, DTS Core,
@@ -1543,7 +1648,8 @@ struct Decoder
         streamOpen:                  bool
         memoryComplete:              bool
         resumeSoundIndexAfterDecode: bool
-        soundWindowAttempt:          s64      // Earliest picture time the next window extension may be built at.
+        soundWindowAttempt:          s64     // Earliest picture time the next window extension may be built at.
+        memorySubtitleTracks:        Array'Subtitle.Track
         sawVideoSync:                bool     // A sample the container marks as a clean decode point was seen.
         syncScanAt:                  u64      // How far the search for one has read.
     }
@@ -1667,7 +1773,7 @@ private impl Decoder
         let fileIndex = .fileIndex
         if !fileIndex or Atomic.get(&fileIndex!.soundStatus) != SoundIndexIdle do
             return
-        if !fileIndex!.progressive!.audioTracks.count
+        if !fileIndex!.progressive!.audioTracks.count and !fileIndex!.progressive!.subtitleTracks.count
         {
             Atomic.exchange(&fileIndex!.soundStatus, SoundIndexReady)
             return
@@ -1691,7 +1797,7 @@ private impl Decoder
 
         // A container whose sound this module cannot read has no window to build; asking for one
         // walked the whole file looking for packets that were never going to appear.
-        if target >= 0 and layout.audioTracks.count do
+        if target >= 0 and (layout.audioTracks.count or layout.subtitleTracks.count) do
             discard catch buildSoundWindow(fileIndex, cast(u64) target) as soundWindowError
         let cue = target >= 0 ? layout.cueAtOrBefore(cast(u64) target) : null
         if cue do
@@ -1855,7 +1961,7 @@ private impl Decoder
     mtd extendSoundWindow(index: u64)
     {
         let fileIndex = .fileIndex
-        if !fileIndex or !fileIndex!.progressive!.audioTracks.count do
+        if !fileIndex or (!fileIndex!.progressive!.audioTracks.count and !fileIndex!.progressive!.subtitleTracks.count) do
             return
         if !Atomic.get(&fileIndex!.currentSeekSound) do
             return
@@ -1970,7 +2076,7 @@ impl IDecoder for Decoder
             .fileIndex!.progressive!.parseMetadata(.fileIndex!.region.bytes())
             .fileIndex!.path = path
             .configureMetadata(.fileIndex!.progressive!)
-            if .fileIndex!.progressive!.audioTracks.count do
+            if .fileIndex!.progressive!.audioTracks.count or .fileIndex!.progressive!.subtitleTracks.count do
                 discard catch buildSoundWindow(.fileIndex!, 0) as initialSoundError
             .startSoundIndex()
             return .info
@@ -1980,6 +2086,7 @@ impl IDecoder for Decoder
             fail InvalidFormatError{"Matroska memory source has no bytes"}
         var layout: Layout
         discard try layout.parse(source.memory!)
+        try buildSubtitleTracks(source.memory!, &layout, &.memorySubtitleTracks)
         .openMemory(&layout)
         return .info
     }
@@ -2133,6 +2240,37 @@ impl IAudioDecoder for Decoder
         if !Atomic.get(&fileIndex!.soundStage) do
             return null
         return index < fileIndex!.soundTracks.count ? &fileIndex!.soundTracks[index] : null
+    }
+}
+
+impl ISubtitleDecoder for Decoder
+{
+    mtd const impl subtitleTrackCount()->u32
+    {
+        let fileIndex = .fileIndex
+        if !fileIndex do
+            return cast(u32) .memorySubtitleTracks.count
+        let seekSound = Atomic.get(&fileIndex!.currentSeekSound)
+        if seekSound do
+            return cast(u32) (cast(*PublishedSound) seekSound).subtitles.count
+        return Atomic.get(&fileIndex!.soundStage) ? cast(u32) fileIndex!.subtitleTracks.count : 0
+    }
+
+    mtd const impl subtitleTrack(index: u32)->#null const *Subtitle.Track
+    {
+        let fileIndex = .fileIndex
+        if !fileIndex do
+            return index < .memorySubtitleTracks.count ? &.memorySubtitleTracks[index] : null
+        let seekSound = Atomic.get(&fileIndex!.currentSeekSound)
+        if seekSound
+        {
+            let tracks = &(cast(*PublishedSound) seekSound).subtitles
+            return index < tracks.count ? &tracks[index] : null
+        }
+
+        if !Atomic.get(&fileIndex!.soundStage) do
+            return null
+        return index < fileIndex!.subtitleTracks.count ? &fileIndex!.subtitleTracks[index] : null
     }
 }
 

@@ -19,7 +19,7 @@ func viewerRegistryFixturePath(name: string)->String
     expect File.writeAllBytes(binaryFile, [0x89'u8, 0x50'u8, 0x4E'u8, 0x47'u8, 0'u8, 0xFF'u8])
 
     let index = createViewerIndex()
-    @assert(index.specs.count == 12)
+    @assert(index.specs.count == 13)
     for spec in index.specs do
         @assert(spec.create != null and !spec.extensions.isEmpty() and !spec.smokeFixture.isEmpty())
 
@@ -99,6 +99,10 @@ func viewerRegistryFixturePath(name: string)->String
 
     let midiChoices = index.choices("score.mid")
     @assert(midiChoices[0].name == "MIDI" and midiChoices[1].name == "Binary" and midiChoices[2].name == "Hexadecimal")
+
+    let subtitleChoices = index.choices("dialogue.srt")
+    @assert(subtitleChoices[0].name == "Subtitles" and subtitleChoices[0].icon == .Subtitle)
+    @assert(subtitleChoices.count == 3 and subtitleChoices[1].name == "Binary" and subtitleChoices[2].name == "Hexadecimal")
 
     const SoundFiles: [8] string = ["sound.wav", "sound.flac", "sound.mp3", "sound.aac", "sound.ac3", "sound.eac3", "sound.ec3", "sound.dts"]
     for file in SoundFiles do

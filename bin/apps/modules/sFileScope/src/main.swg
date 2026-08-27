@@ -76,6 +76,7 @@ private func registerViewerFileTypes(index: const *ViewerIndex)
     registerMidiStrings(&g_App)
     registerPdfStrings(&g_App)
     registerSoundStrings(&g_App)
+    registerSubtitleStrings(&g_App)
     registerTableStrings(&g_App)
     registerVideoStrings(&g_App)
 

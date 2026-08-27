@@ -248,9 +248,9 @@ after move) in src/Backend/Sanitizer/Checks. Tests live in bin/unittests/sanity 
 borrow_invalidation, collection_mutation - and bin/unittests/safety.
 
 What is left is precision, and the live entries in `backlog/safety.md` are the authority.
-They currently include control-flow-insensitive reads (F-041), parameter-owned views (F-088),
-macro and inline expansions judged against the wrong body (F-089), and a backend check the
-language rule has made unreachable from source (F-043). Re-read that file before choosing a round;
+They currently include parameter-owned views (F-088), macro and inline expansions judged against
+the wrong body (F-089), and a backend check the language rule has made unreachable from source
+(F-043). Re-read that file before choosing a round;
 do not preserve this summary after an entry moves or is retired.
 
 THE LOOP

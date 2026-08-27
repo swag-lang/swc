@@ -9,28 +9,6 @@ runtime fault are tooling under `#[Swag.Sanity]`. The reference states the line
 
 ## Control-flow and lifetime analysis
 
-### F-041 — A read reached only by a loop's back edge is missed
-
-- Area: compiler
-- Found while: making the borrow-invalidation check fire (a view read after the storage it views
-  was moved), which is the first check to need "does a read come AFTER this call"
-- Observation: `firstReadAfter` still decides by source offset. The half of this that produced
-  false positives is fixed — an occurrence standing in a sibling arm of the change is now skipped,
-  and a branch inside a loop is deliberately not treated as exclusive — but the opposite direction
-  remains: a read written BEFORE the mutation in the text and executed after it on the next
-  iteration is not seen at all. `mutationFollowedByLoopExit` only covers the reverse case, the
-  find-then-remove-then-exit shape it exists to spare.
-- Evidence: a loop body reading `view[0]` and then calling `buf.reserve(...)` compiles silently,
-  while the same two statements swapped are rejected. The suite covers the branch half
-  (`borrowInvExclusiveBranches`, `borrowInvExclusiveCases`, `borrowInvExclusiveBranchesInLoop` in
-  `bin/unittests/sanity/borrow_invalidation.swg`); this shape has no test because it would not
-  fail today.
-- Next step: write the loop shape as a positive test and watch it stay silent, then decide where
-  the fact belongs. Judging it in `firstReadAfter` means treating every occurrence inside the same
-  enclosing loop as reachable from the mutation, whatever the offsets — cheap, and it needs the
-  same enclosing-loop walk `positionsExcludeEachOther` already does. The risk is the view declared
-  INSIDE the loop, which is rebound on every turn and must stay silent.
-
 ### F-043 — The backend stack-escape check is now unreachable from source
 
 - Area: compiler
@@ -75,8 +53,6 @@ runtime fault are tooling under `#[Swag.Sanity]`. The reference states the line
   condition on the receiver only when the negative stays silent. The open question is whether the
   caller's views must be considered at all: the callee cannot see them, so the judgement may belong
   entirely at the call site, where it already works.
-- Related: [F-041](#f-041--a-read-reached-only-by-a-loops-back-edge-is-missed)
-
 ### F-089 — A borrow rule judged per body is silent inside a macro or an inline expansion
 
 - Area: compiler
@@ -96,55 +72,6 @@ runtime fault are tooling under `#[Swag.Sanity]`. The reference states the line
   would let a correct restore in one function silence a fault in another.
 
 ## Views the escape rule does not recognize
-
-### F-105 — A local stored into a global `any` escapes with no diagnostic
-
-- Area: compiler
-- Found while: auditing the language reference for `backlog/language.md`, checking whether
-  `any` behaves like a view of an existing value or like a box
-- Observation: the borrow rule names `any` as a view — "a pointer, a slice, a `string`,
-  an `any`, an interface, a closure capturing by address"
-  ([013_004_borrowing.swg:5-8](../bin/reference/modules/language/src/013_004_borrowing.swg#L5-L8)) —
-  and the escape half of that rule does not apply it. Assigning a function-local to a global `any`
-  compiles silently and leaves the global addressing a dead frame. The identical escape written with
-  a pointer is rejected, so it is not the *rule* that is missing, only its reach through the `any`
-  conversion: the storage the conversion takes the address of never becomes a borrow source.
-- Evidence: an isolated probe, `swc test -d <dir>` on one standalone file, `fast-debug`:
-
-  ```swag
-  var g_stash: #null any
-
-  func stashLocal()
-  {
-      var local = 42
-      g_stash = local          // accepted
-  }
-
-  #test { stashLocal(); @print(cast(s32) g_stash!, "\n") }
-  ```
-
-  It prints `-2143397400` under the JIT and `2092228504` from the forged binary — a stack read, and
-  a different one each way, which is what makes it worth stopping on rather than a stable wrong
-  answer. `return local` from a function returning `any` is accepted the same way.
-
-  The control is the same local behind a pointer, which the rule catches exactly as documented:
-
-  ```swag
-  var g_ptr: #null *s32
-  func stashLocalPointer() { var local = 42; g_ptr = &local }
-  ```
-
-  > error: borrowed data from local variable 'local' may escape through an assignment
-
-- Next step: find where the value-to-`any` conversion is lowered (`Cast::castToAny`, and the codegen
-  that fills the `any` data pointer) and check what it takes the address of — a local's storage, or
-  a materialized temporary. The borrow source has to be attributed at that point, because after the
-  conversion the assignment only sees an `any`. Do the temporary case at the same time: a literal
-  stored into a global `any` (`g_stash = 7`) also compiles, and whatever storage the compiler
-  invents for the `7` cannot outlive the statement either. Then write both as positives in
-  `bin/unittests/sanity`, next to the pointer cases that already pass.
-- Related: the reference now states on both the `any` page and the intrinsics page that an `any` is
-  a non-owning view, so what is missing here is the rule that enforces it.
 
 ### F-179 — Null narrowing does not survive a receiver the caller wrote as an index
 

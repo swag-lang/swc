@@ -931,10 +931,61 @@ namespace
         return {};
     }
 
+    SemaEscapeInfo anyBoxEscapeInfo(Sema& sema, AstNodeRef castRef, const AstCastExpr& cast, TypeRef resultTypeRef)
+    {
+        // A constant box is lowered into the compiler data segment. Every runtime box
+        // instead points either at the lvalue being boxed or at hidden cast storage in
+        // the current frame; the outer 'any' must not outlive that storage even when
+        // the boxed value is itself a pointer to longer-lived data.
+        if (sema.viewConstant(castRef).hasConstant())
+            return {};
+
+        const AstNodeRef      sourceRef     = cast.nodeExprRef;
+        bool                  wholeVariable = false;
+        const SymbolVariable* sourceVar     = storageRootVariable(sema, sourceRef, false, wholeVariable);
+
+        // Pointer and reference parameters are carried as values. Boxing the parameter
+        // therefore points at the cast's local copy, not at the caller-owned pointee that
+        // the ordinary borrow provenance describes.
+        bool valueBackedParameter = false;
+        if (sourceVar && wholeVariable && sourceVar->hasExtraFlag(SymbolVariableFlagsE::Parameter))
+        {
+            const TypeRef sourceTypeRef = unwrapAliasEnum(sema, castOperandTypeRef(sema, castRef, sourceRef));
+            if (sourceTypeRef.isValid())
+            {
+                const TypeInfo& sourceType = sema.typeMgr().get(sourceTypeRef);
+                valueBackedParameter       = sourceType.isAnyPointer() || sourceType.isReference();
+            }
+        }
+
+        SemaEscapeInfo info;
+        if (!valueBackedParameter)
+        {
+            info = storageBorrowInfo(sema, sourceRef, resultTypeRef, true);
+            if (info.hasBorrow())
+                return info;
+        }
+
+        const AstNodeRef resolvedSourceRef = sema.viewZero(sourceRef).nodeRef();
+        info.kind                          = SemaEscapeKind::Materialized;
+        info.sourceRef                     = resolvedSourceRef.isValid() ? resolvedSourceRef : sourceRef;
+        info.typeRef                       = resultTypeRef;
+        info.sourceScopeDepth              = sema.currentScopeDepth();
+        return info;
+    }
+
     SemaEscapeInfo castEscapeInfo(Sema& sema, AstNodeRef castRef, const AstCastExpr& cast, uint32_t& budget)
     {
         const TypeRef  resultTypeRef    = expressionTypeRef(sema, castRef);
         const bool     operandSelfSubst = castOperandSelfSubstituted(sema, castRef, cast.nodeExprRef);
+
+        const TypeRef sourceTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, castRef, cast.nodeExprRef));
+        if (resultTypeRef.isValid() &&
+            sourceTypeRef.isValid() &&
+            sema.typeMgr().get(unwrapAliasEnum(sema, resultTypeRef)).isAny() &&
+            !sema.typeMgr().get(unwrapAliasEnum(sema, sourceTypeRef)).isAny())
+            return anyBoxEscapeInfo(sema, castRef, cast, resultTypeRef);
+
         SemaEscapeInfo info             = operandSelfSubst
                                               ? expressionEscapeInfoAt(sema, cast.nodeExprRef, budget)
                                               : expressionEscapeInfoRec(sema, cast.nodeExprRef, budget);
@@ -952,8 +1003,7 @@ namespace
             return info;
 
         // Casting composite storage to a carrier aliases that storage: array decay to a
-        // slice, boxing a value into 'any', building an interface from a struct, ...
-        const TypeRef sourceTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, castRef, cast.nodeExprRef));
+        // slice, building an interface from a struct, ...
         if (sourceTypeRef.isValid() &&
             isDirectBorrowCarrier(sema, resultTypeRef) &&
             !isDirectBorrowCarrier(sema, sourceTypeRef) &&
@@ -2773,6 +2823,58 @@ namespace
         return result;
     }
 
+    bool sourceRangeContains(const SourceCodeRange& outer, const SourceCodeRange& inner)
+    {
+        return outer.srcView == inner.srcView &&
+               inner.offset >= outer.offset &&
+               inner.offset + inner.len <= outer.offset + outer.len;
+    }
+
+    struct BackEdgeLoop
+    {
+        AstNodeRef      nodeRef;
+        SourceCodeRange range;
+    };
+
+    void collectBackEdgeLoops(Sema& sema, AstNodeRef bodyRef, const SourceCodeRange& mutationRange, const SymbolVariable& viewVar, SmallVector<BackEdgeLoop>& outLoops)
+    {
+        outLoops.clear();
+        const SourceCodeRange declarationRange = viewVar.codeRange(sema.ctx());
+
+        SmallVector<AstNodeRef> worklist;
+        SmallVector<AstNodeRef> children;
+        worklist.push_back(bodyRef);
+
+        uint32_t budget = 8192;
+        while (!worklist.empty() && budget != 0)
+        {
+            budget--;
+            const AstNodeRef nodeRef = worklist.back();
+            worklist.pop_back();
+            if (nodeRef.isInvalid())
+                continue;
+
+            const AstNode& node = sema.node(nodeRef);
+            if (isLoopStatement(node))
+            {
+                const SourceCodeRange range = subtreeRange(sema, nodeRef);
+                if (sourceRangeContains(range, mutationRange) && !sourceRangeContains(range, declarationRange))
+                    outLoops.push_back({nodeRef, range});
+            }
+
+            children.clear();
+            node.collectChildrenFromAst(children, sema.ast());
+            for (const AstNodeRef childRef : children)
+            {
+                if (childRef.isValid())
+                    worklist.push_back(childRef);
+            }
+        }
+
+        // The innermost loop takes its back edge first.
+        std::ranges::sort(outLoops, [](const BackEdgeLoop& a, const BackEdgeLoop& b) { return a.range.len < b.range.len; });
+    }
+
     // Collects the alternatives of a branch statement: the two blocks of an 'if', the
     // cases of a 'switch'. The condition is NOT one of them - a position inside it runs
     // before every arm.
@@ -2873,19 +2975,26 @@ namespace
     // follows reads the new one. 'afterRange' only names the file; the offset is separate
     // because the mutation's own arguments run before it and must not count.
     //
-    // Source order stands in for execution order, with one exception it cannot fake: an
-    // occurrence standing in a sibling arm of the change is skipped outright, because no
-    // path reaches it from there. Everything else - a view read on a path that also
-    // refreshes it - stays on the simpler rule, erring toward silence.
-    AstNodeRef firstReadAfter(Sema& sema, AstNodeRef bodyRef, const SourceCodeRange& afterRange, uint32_t afterOffset, const SymbolVariable& symVar)
+    // Source order stands in for execution order within each phase: first the rest of the
+    // current iteration, then each enclosing loop's back edge from inner to outer. A view
+    // declared inside a loop is rebuilt on each pass, and a loop exited after the mutation
+    // takes no back edge. An occurrence standing in a sibling arm of the change is skipped
+    // outright when no loop can join the paths on another iteration.
+    bool mutationFollowedByLoopExit(Sema& sema, AstNodeRef bodyRef, AstNodeRef callRef);
+
+    AstNodeRef firstReadAfter(Sema& sema, AstNodeRef bodyRef, AstNodeRef mutationRef, const SourceCodeRange& afterRange, uint32_t afterOffset, const SymbolVariable& symVar)
     {
         struct Occurrence
         {
             AstNodeRef      nodeRef;
             uint32_t        offset  = 0;
             bool            isWrite = false;
+            uint32_t        phase   = 0;
             SourceCodeRange range;
         };
+
+        SmallVector<BackEdgeLoop> backEdgeLoops;
+        collectBackEdgeLoops(sema, bodyRef, afterRange, symVar, backEdgeLoops);
 
         SmallVector<Occurrence>                        found;
         SmallVector<std::pair<AstNodeRef, AstNodeRef>> worklist;
@@ -2905,12 +3014,28 @@ namespace
             if (node.is(AstNodeId::Identifier) && identifierVariable(sema, nodeRef) == &symVar)
             {
                 const SourceCodeRange range = node.codeRange(sema.ctx());
-                if (range.srcView == afterRange.srcView && range.offset >= afterOffset)
+                if (range.srcView == afterRange.srcView)
                 {
+                    uint32_t phase     = 0;
+                    bool     candidate = range.offset >= afterOffset;
+                    if (range.offset < afterRange.offset)
+                    {
+                        for (uint32_t i = 0; i < backEdgeLoops.size32(); i++)
+                        {
+                            const BackEdgeLoop& loop = backEdgeLoops[i];
+                            if (sourceRangeContains(loop.range, range) && !mutationFollowedByLoopExit(sema, loop.nodeRef, mutationRef))
+                            {
+                                phase     = i + 1;
+                                candidate = true;
+                                break;
+                            }
+                        }
+                    }
+
                     // The destination of an assignment, or the name being declared, is
                     // where the view is refreshed rather than consumed.
                     bool isWrite = false;
-                    if (parentRef.isValid())
+                    if (candidate && parentRef.isValid())
                     {
                         const AstNode& parent = sema.node(parentRef);
                         if (parent.is(AstNodeId::AssignStmt))
@@ -2919,7 +3044,8 @@ namespace
                             isWrite = true;
                     }
 
-                    found.push_back({nodeRef, range.offset, isWrite, range});
+                    if (candidate)
+                        found.push_back({nodeRef, range.offset, isWrite, phase, range});
                 }
             }
 
@@ -2935,7 +3061,11 @@ namespace
         if (found.empty())
             return AstNodeRef::invalid();
 
-        std::ranges::sort(found, [](const Occurrence& a, const Occurrence& b) { return a.offset < b.offset; });
+        std::ranges::sort(found, [](const Occurrence& a, const Occurrence& b) {
+            if (a.phase != b.phase)
+                return a.phase < b.phase;
+            return a.offset < b.offset;
+        });
 
         // An occurrence no path reaches from the change decides nothing - neither that the
         // view is read stale, nor that it was refreshed first.
@@ -3083,21 +3213,30 @@ namespace
         if (!callRange.srcView)
             return false;
 
-        SmallVector<AstNodeRef> worklist;
-        worklist.push_back(bodyRef);
+        struct Pending
+        {
+            AstNodeRef nodeRef;
+            bool       insideNestedBreakable = false;
+        };
+
+        SmallVector<Pending> worklist;
+        worklist.push_back({bodyRef, false});
 
         uint32_t                budget = 8192;
         SmallVector<AstNodeRef> children;
         while (!worklist.empty() && budget != 0)
         {
             budget--;
-            const AstNodeRef nodeRef = worklist.back();
+            const Pending pending = worklist.back();
             worklist.pop_back();
+            const AstNodeRef nodeRef = pending.nodeRef;
             if (nodeRef.isInvalid())
                 continue;
 
-            const AstNode& node = sema.node(nodeRef);
-            if (node.is(AstNodeId::ReturnStmt) || node.is(AstNodeId::BreakStmt) || node.is(AstNodeId::UnreachableStmt))
+            const AstNode& node          = sema.node(nodeRef);
+            const bool     exitsFunction = node.is(AstNodeId::ReturnStmt) || node.is(AstNodeId::UnreachableStmt);
+            const bool     exitsThisLoop = node.is(AstNodeId::BreakStmt) && !pending.insideNestedBreakable;
+            if (exitsFunction || exitsThisLoop)
             {
                 const SourceCodeRange range = node.codeRange(sema.ctx());
                 if (range.srcView == callRange.srcView && range.offset > callRange.offset)
@@ -3106,10 +3245,12 @@ namespace
 
             children.clear();
             node.collectChildrenFromAst(children, sema.ast());
+            const bool insideNestedBreakable = pending.insideNestedBreakable ||
+                                               (nodeRef != bodyRef && (isLoopStatement(node) || node.is(AstNodeId::SwitchStmt)));
             for (const AstNodeRef childRef : children)
             {
                 if (childRef.isValid())
-                    worklist.push_back(childRef);
+                    worklist.push_back({childRef, insideNestedBreakable});
             }
         }
         return false;
@@ -3523,6 +3664,7 @@ namespace SemaEscape
             record.viewVar             = viewVar;
             record.sourceVar           = root;
             record.callee              = &calledFn;
+            record.mutationRef         = callRef;
             record.mutationRange       = mutationRange;
             record.evaluationEndOffset = evaluationEndSpan;
             record.mutationName        = calledFn.name(sema.ctx());
@@ -3570,7 +3712,7 @@ namespace SemaEscape
         // wording over and let 'reportDeferredChecks' apply the condition.
         for (const SemaBorrowInvalidation& record : mine)
         {
-            const AstNodeRef readRef = firstReadAfter(sema, declRef, record.mutationRange, record.evaluationEndOffset, *record.viewVar);
+            const AstNodeRef readRef = firstReadAfter(sema, declRef, record.mutationRef, record.mutationRange, record.evaluationEndOffset, *record.viewVar);
             if (readRef.isInvalid())
                 continue;
 

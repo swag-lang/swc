@@ -526,6 +526,93 @@ func borrowInvExclusiveBranchesInLoop(grow: bool)->u8
     return total
 }
 
+// Source order wraps at the loop back edge: this read follows the mutation on
+// every iteration after the first one.
+func borrowInvReadAcrossBackEdge()->u8
+{
+    var buf: BorrowInvBuffer
+    buf.reserve(4)
+    let view = buf.view()
+    var total: u8
+    for 4
+    {
+        total += view[0]
+        buf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+    }
+
+    return total
+}
+
+// A view declared inside the loop is rebuilt before every read.
+func borrowInvBackEdgeLocalView()->u8
+{
+    var buf: BorrowInvBuffer
+    buf.reserve(4)
+    var total: u8
+    for 4
+    {
+        let view = buf.view()
+        total += view[0]
+        buf.reserve(64)
+    }
+
+    return total
+}
+
+// Rebinding an outer view before the first read of each iteration is safe too.
+func borrowInvBackEdgeRebound()->u8
+{
+    var buf: BorrowInvBuffer
+    buf.reserve(4)
+    var view = buf.view()
+    var total: u8
+    for 4
+    {
+        view = buf.view()
+        total += view[0]
+        buf.reserve(64)
+    }
+
+    return total
+}
+
+// No back edge is taken after the mutation.
+func borrowInvBackEdgeExit()->u8
+{
+    var buf: BorrowInvBuffer
+    buf.reserve(4)
+    let view = buf.view()
+    var total: u8
+    for 4
+    {
+        total += view[0]
+        buf.reserve(64)
+        break
+    }
+
+    return total
+}
+
+// Breaking an inner loop does not stop the outer loop from reading the stale view.
+func borrowInvNestedBackEdge()->u8
+{
+    var buf: BorrowInvBuffer
+    buf.reserve(4)
+    let view = buf.view()
+    var total: u8
+    for 4
+    {
+        total += view[0]
+        for 2
+        {
+            buf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+            break
+        }
+    }
+
+    return total
+}
+
 // Invalidation is a language rule like the escape rules: an attribute that turns the
 // sanity analyses off does not make the program legal.
 #[Swag.Sanity(.Lifecycle, false)]

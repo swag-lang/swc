@@ -32,6 +32,8 @@ using Core, Core.Errors, Pixel
 
 // The entropy producer keeps more than one successor parsed, so CABAC does not wait for the
 // preceding picture's reconstruction, RGB conversion, and publication before starting again.
+// The lane width follows the worker pool, which the surrounding campaign may have sized
+// already, so the expectation is computed the way the decoder computes it rather than pinned.
 #test
 {
     if Jobs.isSynchronous() do
@@ -46,8 +48,10 @@ using Core, Core.Errors, Pixel
     for 20 do
         expect idecoder.decodeFrame(&source, &frame)
     decoder.video.avc.stopFrameThreads()
-    @assert(decoder.video.avc.laneCount == 16)
-    @assert(decoder.video.avc.threadedHighWater == 16)
+
+    let expectedLanes = Math.max(1'u32, Math.min(Jobs.workerCount(), 16))
+    @assert(decoder.video.avc.laneCount == expectedLanes)
+    @assert(decoder.video.avc.threadedHighWater == expectedLanes)
 }
 
 // High profile: CABAC, B frames with pyramid references, direct modes, weighted prediction,

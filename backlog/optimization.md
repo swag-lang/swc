@@ -568,10 +568,10 @@ cmov-to-branch back-conversion, and profile-gated passes.
   16-byte over-approximation pins the neighbouring 8-byte slot), push/pop and stack-pointer
   arithmetic not treated as area barriers (or the epilogue keeps everything alive), and any
   function with a stack-pointer adjustment between its first and last spill access skipped
-  (call-argument setup shifts the offset coordinate system) - and the full video release run is
-  green modulo B-010. A parked prototype with all three fixes exists (session scratchpad,
+  (call-argument setup shifts the offset coordinate system) - and the full video release run stays
+  green. A parked prototype with all three fixes exists (session scratchpad,
   `dse-parked`).
-- Related: F-190; B-010 explains the validation failure that stalled the prototype.
+- Related: F-190. The machine-dependent lane-count assertion that failed the prototype's validation run (h264.test.swg, fixed 2026-08-27) is gone, so the parked prototype can be retried as-is.
 
 ### B-006 — Integer reloads fold into their consumers' memory operands
 

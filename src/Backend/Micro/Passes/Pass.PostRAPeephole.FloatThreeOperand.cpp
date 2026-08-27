@@ -189,11 +189,13 @@ namespace PostRaPeephole
         const uint64_t offset = ops[4].valueU64;
 
         // Walk back to whatever last wrote the destination. Only a load of this
-        // very address means the register already holds the memory operand.
+        // very address means the register already holds the memory operand;
+        // running out of budget before finding that write proves nothing.
         constexpr uint32_t kMaxScan = 12;
 
-        MicroInstrRef cursor = ctx.previousRef(opRef);
-        for (uint32_t step = 0; step < kMaxScan; ++step)
+        bool          loadFound = false;
+        MicroInstrRef cursor    = ctx.previousRef(opRef);
+        for (uint32_t step = 0; step < kMaxScan && !loadFound; ++step)
         {
             const MicroInstr* candidate = ctx.instruction(cursor);
             if (!candidate)
@@ -214,7 +216,8 @@ namespace PostRaPeephole
                 {
                     if (loadOps[1].reg != base || loadOps[3].valueU64 != offset || loadOps[2].opBits != opBits)
                         return false;
-                    break;
+                    loadFound = true;
+                    continue;
                 }
             }
 
@@ -228,7 +231,7 @@ namespace PostRaPeephole
             cursor = ctx.previousRef(cursor);
         }
 
-        if (!ctx.claimAll({opRef}))
+        if (!loadFound || !ctx.claimAll({opRef}))
             return false;
 
         MicroInstrOperand newOps[4] = {};

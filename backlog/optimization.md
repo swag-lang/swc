@@ -751,15 +751,21 @@ cmov-to-branch back-conversion, and profile-gated passes.
   a flag definition took the opcode table's word for `OpBinaryRegReg`, so an `xchg` (or any
   float operation) between a `cmp` and its `jcc` read as a flag redefinition and the compare
   was erased as dead (`MicroPassHelpers::instructionActuallyDefinesCpuFlags` now asks the
-  micro-op; the default path is byte-identical on the bench probes).
+  micro-op; the default path is byte-identical on the bench probes). A third one was on the
+  default path and independent of the allocator: the post-RA rule that names the destination
+  register as the memory operand of `x * x` walks back twelve instructions for the load of that
+  slot into the destination, and when the window ran out before finding it the rule rewrote
+  anyway - mem2reg's mixed-class promotion moved `evaluateBezier`'s last write of the register
+  to thirteen instructions back and `a * start.y` became `a * a` (core's curve tests). The
+  rule now fails when the window is exhausted; two C++ tests pin both outcomes.
 - Measured 2026-08-27, static, bench probes under the gate against the legacy allocator, same
   compiler, every checksum holding: leven 84 -> 44 frame references (DP inner loop 26/1 ->
   23/0 instructions/frame references), wordfreq 38 -> 15, dijkstra `#main` 16 -> 8, chacha
   65 -> 52, raytrace `intersect` 27 -> 19 and `trace` 57 -> 48, sha256 `#main` 75 -> 33
   (the 64-round loop 49 -> 22), csvagg `#main` 106 -> 78. Compiler suites under the gate:
-  native 2921/2921, jit, safety, sanity, workspace green; C++ 570/573, the three being
-  legacy-specific expectations (the cmpxchg conform case's scratch register, a self-copy the
-  interval rewrite leaves for the peephole, immediate rematerialization). Dynamic, the seven
+  native 2921/2921, jit, safety, sanity, workspace green; C++ 575/575 once three
+  legacy-specific expectations were rewritten (the cmpxchg conform cases match the scratch
+  register with a wildcard, the barrier copy test accepts zero copies). Dynamic, the seven
   bench tasks pinned to the performance cores, minimum of 15 alternated runs, gate on against
   off on the same compiler (machine at 15-40 % background load): raytrace -8 %, leven -4 %,
   wordfreq 0 %, csvagg -7 %, dijkstra -6 %, sha256 -13 %, chacha +4 % (its `quarterRound`

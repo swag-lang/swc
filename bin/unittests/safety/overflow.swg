@@ -94,7 +94,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Addition overflow â€” signed
+// Addition overflow — signed
 // =============================================
 
 #test
@@ -154,7 +154,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Addition overflow â€” unsigned
+// Addition overflow — unsigned
 // =============================================
 
 #test
@@ -202,7 +202,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Subtraction overflow â€” signed
+// Subtraction overflow — signed
 // =============================================
 
 #test
@@ -262,7 +262,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Subtraction overflow â€” unsigned
+// Subtraction overflow — unsigned
 // =============================================
 
 #test
@@ -310,7 +310,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Multiplication overflow â€” signed
+// Multiplication overflow — signed
 // =============================================
 
 #test
@@ -358,7 +358,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Multiplication overflow â€” unsigned
+// Multiplication overflow — unsigned
 // =============================================
 
 #test
@@ -406,7 +406,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Division overflow â€” signed (MIN / -1)
+// Division overflow — signed (MIN / -1)
 // =============================================
 
 #test
@@ -454,7 +454,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Modulo overflow â€” signed (MIN % -1)
+// Modulo overflow — signed (MIN % -1)
 // =============================================
 
 #test
@@ -502,7 +502,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Unary negation overflow â€” signed (-MIN)
+// Unary negation overflow — signed (-MIN)
 // =============================================
 
 #test
@@ -550,7 +550,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Shift left truncation â€” signed
+// Shift left truncation — signed
 // =============================================
 
 #test
@@ -602,7 +602,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Shift left truncation â€” unsigned
+// Shift left truncation — unsigned
 // =============================================
 
 #test
@@ -680,7 +680,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Shift left â€” negative count
+// Shift left — negative count
 // =============================================
 
 #test
@@ -728,7 +728,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Shift right â€” negative count
+// Shift right — negative count
 // =============================================
 
 #test
@@ -1002,7 +1002,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Narrowing int-to-int casts â€” signed to signed
+// Narrowing int-to-int casts — signed to signed
 // =============================================
 
 #test
@@ -1050,7 +1050,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Narrowing int-to-int casts â€” unsigned to unsigned
+// Narrowing int-to-int casts — unsigned to unsigned
 // =============================================
 
 #test
@@ -1087,7 +1087,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Int casts â€” signed to unsigned (negative value)
+// Int casts — signed to unsigned (negative value)
 // =============================================
 
 #test
@@ -1135,7 +1135,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Int casts â€” unsigned to signed (value too large)
+// Int casts — unsigned to signed (value too large)
 // =============================================
 
 #test
@@ -1183,7 +1183,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Float-to-int cast overflow â€” f64 to signed
+// Float-to-int cast overflow — f64 to signed
 // =============================================
 
 #test
@@ -1242,7 +1242,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Float-to-int cast overflow â€” f64 to unsigned
+// Float-to-int cast overflow — f64 to unsigned
 // =============================================
 
 #test
@@ -1301,7 +1301,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// Float-to-int cast overflow â€” f32
+// Float-to-int cast overflow — f32
 // =============================================
 
 #test
@@ -1371,7 +1371,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// #wrap modifier â€” suppresses overflow
+// #wrap modifier — suppresses overflow
 // =============================================
 
 #test
@@ -1487,7 +1487,7 @@ func opaqueS64(v: s64)->s64
 }
 
 // =============================================
-// #prom modifier â€” promote to larger type
+// #prom modifier — promote to larger type
 // =============================================
 
 #test

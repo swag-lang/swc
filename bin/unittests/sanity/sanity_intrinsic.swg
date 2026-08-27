@@ -1,7 +1,7 @@
 #global private
 
 // '#sanity(...)' mirrors '#safety(...)': it evaluates, at compile time, whether the
-// given static check is active here â€” the build-config default combined with the
+// given static check is active here — the build-config default combined with the
 // 'Swag.Sanity' overrides in scope.
 
 #[Swag.Sanity(.Lifecycle, false)]

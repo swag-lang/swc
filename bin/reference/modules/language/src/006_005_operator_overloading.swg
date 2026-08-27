@@ -16,9 +16,9 @@ removes that specialization from overload resolution; a '#error' reached in the 
 a compile-time error and is reported where it occurs.
 
 A container hands out element addresses with 'opIndexPtr', the place-forming twin of the
-value-returning 'opIndex'. The compiler selects 'opIndexPtr' in place contexts â€” a member
+value-returning 'opIndex'. The compiler selects 'opIndexPtr' in place contexts — a member
 access or method call on 'v[i]', the address '&v[i]', a nested index, or an assignment when
-no dedicated write operator matches â€” and 'opIndex' for plain value reads. Declare a 'const'
+no dedicated write operator matches — and 'opIndex' for plain value reads. Declare a 'const'
 overload returning 'const *T' so read-only receivers get a read-only element address.
 'opIndexPtr' is never evaluated at compile time.
 

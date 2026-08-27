@@ -493,6 +493,20 @@ the shared backlog conventions.
   splitting, whose justification stands unchanged in
   [F-190](#f-190--a-short-branching-function-spills-with-the-whole-register-file-free): at equal
   supply this allocator spills an order of magnitude more than clang on the same body.
+- Re-measured 2026-08-27 with the cause trace rebuilt on build 224 (the patch is parked in the
+  session scratchpad, `ratrace-parked.diff` — reapply it locally, never land it). Whole video
+  workspace, release, static counts: 19928 spill reloads. Concrete-touch is now the largest row
+  (5840, 29% — a new code the old taxonomy folded elsewhere; `Decoder.configureMetadata`, a cold
+  call-dense builder, owns 1747 of them alone), then boundary-48 (3576, 17%), join-disagree
+  (3567, 17% — diamond-heavy comparison chains: the generated `opEquals` bodies, `@typecmp`,
+  `Allocator.reallocate`), evict (2736, 14%), residency-prune (2382, 11%). Join-backedge is down
+  to 149 — residency holds — and join-nosnap is zero: every conditional-jump edge does record a
+  snapshot, so there is no missing-snapshot lot to take. The static join-disagree row lives in
+  cold code; the HOT decoder functions are all eviction-bound: `Decoder.idct` 101 reloads, every
+  one an eviction; `interpolateLuma` 72 of 119; `filterLumaEdge` 34 of 77; `interpolateChroma`
+  40 of 71. An edge-resolution pass (copies where edges disagree, the phase this allocator
+  deliberately lacks) would clean the cold 17% and barely touch the decoder. The decoder's row
+  is the fat-body pressure the entry's conclusion already names — see B-012.
 
 ## The pipeline measured against LLVM's
 
@@ -517,6 +531,16 @@ cmov-to-branch back-conversion, and profile-gated passes.
 - Complete when: an invariant constant or address re-made on every iteration of a hot loop is
   emitted once in the preheader (verified on a `PrintMicro` dump), relocations survive the
   move, and the video workspace decodes byte-exact.
+- Measured 2026-08-27, closed without implementing: on the probe corpus at release, 44 remat
+  instructions sit inside loop bodies, and only 4 satisfy the single-def-in-loop condition
+  `HoistRegionPostRA` requires - all marginal invariant leas; the other 38 write registers the
+  body reuses for other values (the deblock line loop re-makes its clamp constants into rdx,
+  r10 and rsi in different arms). Dedicating one of the free registers instead (rax and rbp are
+  untouched across that body) was checked against the answer sheet first: clang re-makes the
+  same constants at the same sites (`mov r13d, 1023`, `mov edi, 6`, `mov edx, -6` inside the
+  loop) rather than pinning a register - in-loop constant rematerialization is the behavior
+  LLVM itself chooses on this kernel, because an immediate materialization is dependency-free
+  and near-zero cost on an out-of-order core. There is no gap here to close.
 - Related: the loop-invariant recomputation half of F-193; B-009 closed the eviction-policy route.
 
 ### B-002 — Loop-carried slot promotion covers multi-access, multi-exit loops
@@ -568,6 +592,11 @@ cmov-to-branch back-conversion, and profile-gated passes.
 - Complete when: the five loop passes accept a previously jump-entered loop (counted on a corpus
   dump), `BranchSimplify::redirectJumpChains` provably does not thread the new preheader away,
   and the suites stay green.
+- Measured 2026-08-27 at the post-RA stage: all 33 natural loops of the release probe corpus
+  plus `filterLumaEdge` and `interpolateLuma` enter their header by clean fall-through - the
+  rotate pass has already normalized every hot entry by then. The post-RA half has no substrate;
+  only the pre-RA half (LICM, `VecLoopPromote`) remains unmeasured. Deprioritized until a pre-RA
+  count shows refused loops.
 - Related: B-002, B-003.
 
 ### B-005 — Spill-area stores no path reloads are deleted
@@ -595,6 +624,15 @@ cmov-to-branch back-conversion, and profile-gated passes.
 - Complete when: the integer rule ships with the float rule's guards (claiming, dst-dead-after,
   encoder conformance probe, `spillAreaLo/Hi` alias guarantee), a spill-heavy hot function
   shows the folds in its dump, and the suites stay green.
+- Measured 2026-08-27: the single-reader-then-dead shape the fold needs occurs 3 times in
+  `filterLumaEdge`, 11 in `interpolateLuma`, 3 in the deblock probe kernel - about 6% of their
+  frame reloads. Real but small; the fold removes the instruction, not the load micro-op. Worth
+  taking as a cheap sweep someday, not as a lot of its own. The same simulation ran a full
+  forward availability dataflow (register still holds the slot - LLVM's
+  `InlineSpiller::eliminateRedundantSpills` shape) over the corpus: 1-2 deletable accesses per
+  hot function out of 167-288 - between a boundary store and its reload the register really is
+  reused, so post-RA cleanup cannot remove the traffic. The demapping decision itself is the
+  target (F-195).
 - Related: B-005.
 
 ### B-007 — One alias oracle serves every pre-RA memory optimization
@@ -650,3 +688,34 @@ cmov-to-branch back-conversion, and profile-gated passes.
   creates loop pressure the residency machinery does not absorb. The wrapped-distance diff is
   parked in the session scratchpad (`r1-wrap-parked.diff`).
 - Related: F-190, F-195.
+
+### B-012 — A splitting interval allocator behind a per-function gate
+
+- Intent: port the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the
+  algorithm HotSpot's client compiler and LLVM's old linear scan implement) as a second
+  allocator the pass selects per function, with the current allocator as the always-available
+  fallback. Live intervals with holes and use positions replace the convex hulls; concrete
+  claims become fixed intervals; allocation failure splits the current or the competing interval
+  at the position the paper names instead of evicting whole values; and a resolution phase
+  inserts register moves at block boundaries where locations differ — the phase whose absence
+  today forces every disagreement through memory. This is the route every cheaper repair now
+  points at from measurement: post-RA cleanup finds 1-2 removable accesses per hot function
+  (B-006), eviction-policy tuning is inert (B-009), the proven-free reservation fires 17 times
+  in 12211 (F-195), and the hot decoder functions lose their registers to genuine fat-body
+  pressure the one-value-one-register model cannot price (idct: 101 of 101 reloads are
+  evictions). At equal register supply this allocator spills an order of magnitude more than
+  clang on the same body (F-190); splitting is how clang does it.
+- The v4 lesson bounds the design: the 2026-07-31 whole-hull attempt died of four successive
+  miscompiles because it patched agreement invariants into the existing machinery, and each
+  repair uncovered the next. The port therefore does not touch the existing scan: it is a
+  separate assignment path selected only for functions that satisfy its preconditions (precise
+  CFG, first sweep, initially call-free leaf functions of the hot corpus), gated so a failed
+  precondition falls back to the current allocator, and grown outward one class of functions at
+  a time with the reload-cause trace and byte-exact decode as the gate at each step.
+- Complete when: the gated allocator compiles the HEVC hot four (idct, interpolateLuma,
+  filterLumaEdge, interpolateChroma) with materially fewer emitted reloads than the cause-trace
+  baseline (idct 101, interpolateLuma 119, filterLumaEdge 77, interpolateChroma 71), the video
+  workspace decodes byte-exact under it, the full suites stay green with the gate open on its
+  supported class, and the serial HEVC conformance decode improves measurably.
+- Related: F-190, F-195, B-003 (unblocks web renaming), B-002; supersedes the abandoned v4
+  whole-hull design (`global-regalloc-wip/global-regalloc-v4.patch`).

@@ -31,8 +31,8 @@ It is good practice to check for null pointers before dereferencing them to avoi
 /**
 # Non-Null by Default
 
-Nullable-capable types â€” single-value and block pointers, slices, `string`, `cstring`,
-`any`, and `typeinfo` â€” are non-null by default: a bare `*u8` or `string` cannot be
+Nullable-capable types — single-value and block pointers, slices, `string`, `cstring`,
+`any`, and `typeinfo` — are non-null by default: a bare `*u8` or `string` cannot be
 initialized with `null` and has no implicit default. A struct field of such a type must
 therefore be supplied by an aggregate initializer unless it declares an explicit non-null
 default. Use `#null` to opt into nullability when null is part of the intended contract.
@@ -96,7 +96,7 @@ narrowing proof, it is dropped as soon as the path is reassigned.
 chain when the tested value is null; `!` claims the value is there and panics under
 `Swag.SafetyWhat.Expect` when it is not. Being postfix, `!` binds tighter than every
 prefix form and chains freely: `p!.count`, `buffer![i]`, `handler!()`. Because it cannot
-produce an absent result, what follows keeps its plain type â€” `node!.count` is an `s64`,
+produce an absent result, what follows keeps its plain type — `node!.count` is an `s64`,
 never a `#null` one, and needs no fallback.
 
 `try`, `catch` and `expect` swallow everything to their right, so a `!` written after one
@@ -309,7 +309,7 @@ impl SlotBoxDoc
 # Deferred Initialization with `Swag.Late`
 
 The `Swag.Late` attribute declares a **non-null** field or **global variable** whose storage
-starts unset (zero/null) and receives its value during setup â€” an initialization function,
+starts unset (zero/null) and receives its value during setup — an initialization function,
 a constructor, the first stage of `main`. It replaces the `#null ... = null` +
 `!`-at-every-use pattern for values that are guaranteed to be set before first use but
 cannot be initialized at their declaration.

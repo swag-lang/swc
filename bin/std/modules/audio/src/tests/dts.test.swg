@@ -167,6 +167,18 @@ private func dtsTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     return real * real + imaginary * imaginary
 }
 
+private func dtsToneRms(samples: const [*] s16, firstFrame, frameCount, channels, channel: u64)->f64
+{
+    var power: f64
+    for frame in frameCount
+    {
+        let value = cast(f64) samples[(firstFrame + frame) * channels + channel]
+        power += value * value
+    }
+
+    return Math.sqrt(power / cast(f64) frameCount)
+}
+
 private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
 {
     let path  = audioGetTestDataPath(fileName)
@@ -194,6 +206,18 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
         let wanted = dtsTonePower(samples, 2048, 2048, 6, channel, Frequencies[channel])
         let other  = dtsTonePower(samples, 2048, 2048, 6, channel, Frequencies[(channel + 1) % 6])
         @assert(wanted > 8.0 * other)
+    }
+
+    // The frequency check above also passes a synthesis written on the 24-bit scale, where every
+    // tone clips into a square wave. The level check pins the 16-bit output: the primary tones
+    // decode near 8,500 RMS and the LFE tone near 6,090 RMS, as a reference decoder produces.
+    for channel in 6
+    {
+        let rms = dtsToneRms(samples, 2048, 2048, 6, channel)
+        if channel == 3 do
+            @assert(rms > 5_800.0 and rms < 6_400.0)
+        else do
+            @assert(rms > 8_100.0 and rms < 8_900.0)
     }
 }
 

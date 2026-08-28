@@ -13,6 +13,10 @@ private const MaxSubbands = 32
 private const MaxSubbandSamples = 128
 private const SamplesPerSubband = 8
 
+// Dequantized subband samples and the synthesis output use the 24-bit PCM scale of ETSI TS
+// 102 114. The packet codec publishes 16-bit samples, so every output sample drops eight bits.
+private const OutputScale = 1.0 / 256.0
+
 private const ModeChannels: [10] u32 = [1, 2, 2, 2, 2, 3, 3, 4, 4, 5]
 private const SampleRates: [16] u32 = [0, 8_000, 16_000, 32_000, 0, 0, 11_025, 22_050, 44_100, 0, 0, 12_000, 24_000, 48_000, 0, 0]
 private const QuantLevels: [8] u32 = [0, 3, 5, 7, 9, 13, 17, 25]
@@ -350,8 +354,8 @@ private impl Codec
                         tap    += 64
                     }
 
-                    destination[(sample * 32 + index) * header.channels + outputChannel]      = cast(s16) Math.clamp(Math.round(first), -32_768.0, 32_767.0)
-                    destination[(sample * 32 + 16 + index) * header.channels + outputChannel] = cast(s16) Math.clamp(Math.round(second), -32_768.0, 32_767.0)
+                    destination[(sample * 32 + index) * header.channels + outputChannel]      = cast(s16) Math.clamp(Math.round(first * OutputScale), -32_768.0, 32_767.0)
+                    destination[(sample * 32 + 16 + index) * header.channels + outputChannel] = cast(s16) Math.clamp(Math.round(second * OutputScale), -32_768.0, 32_767.0)
                 }
 
                 var index = 512'u64
@@ -410,8 +414,8 @@ private impl Codec
                 }
 
                 let frame = sample * factor
-                destination[(frame + half) * header.channels + outputChannel]              = cast(s16) Math.clamp(Math.round(first), -32_768.0, 32_767.0)
-                destination[(frame + factor / 2 + half) * header.channels + outputChannel] = cast(s16) Math.clamp(Math.round(second), -32_768.0, 32_767.0)
+                destination[(frame + half) * header.channels + outputChannel]              = cast(s16) Math.clamp(Math.round(first * OutputScale), -32_768.0, 32_767.0)
+                destination[(frame + factor / 2 + half) * header.channels + outputChannel] = cast(s16) Math.clamp(Math.round(second * OutputScale), -32_768.0, 32_767.0)
             }
         }
 

@@ -43,19 +43,6 @@ effects, no capture.
 - Complete when: representative Core streams using those tools decode with validated channel order
   and bounded reference error, while unsupported extension substreams remain explicit.
 
-### B-014 — DTS synthesis saturates ordinary programme levels
-
-- Evidence: 24,358 of the first 27,648 decoded samples of `dts-5.1-48000.dts` reach either
-  16-bit limit even though its synthetic source tones have amplitude 12,000. The same measurement
-  over 26 packets from each of two real-world mono DTS-HD Core tracks finds 9,500 of 13,312 and
-  10,084 of 13,312 samples clipped. This predates ADPCM prediction support: the repository fixture
-  uses no prediction.
-- Next: compare the dequantized subbands and synthesis stages with an independent DTS decoder to
-  locate the missing normalization or scale.
-- Complete when: the fixture stays near its 12,000-sample source level, avoids sustained clipping,
-  and matches independent PCM within a documented lossy-codec tolerance.
-- Related: B-011
-
 ### T-166 — No Ogg Vorbis decoder
 
 Add Ogg framing and Vorbis decoding behind `ICodec`, including streaming and seek-table behavior.

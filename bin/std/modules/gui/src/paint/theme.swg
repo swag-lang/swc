@@ -4,6 +4,7 @@ using Core, Pixel
 
 private const DefaultImageName = "../theme/widgets.svg"
 
+// The bundled SFNT files retain only the tables consumed by the TrueType module.
 private const DefaultFontRegularName    = "../theme/segoeui.ttf"
 private const DefaultFontBoldName       = "../theme/segoeuib.ttf"
 private const DefaultFontBoldItalicName = "../theme/segoeuiz.ttf"
@@ -113,8 +114,10 @@ private func defaultThemeImages()->*DefaultThemeImages
     Sync.scopedLock(&cache.lock)
     if !cache.decoded
     {
-        cache.widgets = expect Svg.Drawing.parse(cast(string) DefaultImage)
-        expect cache.icons.setup(cast(string) DefaultIcons)
+        // The include payloads own their bytes for the process lifetime. Borrow them as strings
+        // so the parsers and the resource bundle share one static copy.
+        cache.widgets = expect Svg.Drawing.parse(@mkstring(@dataof(DefaultImage), @countof(DefaultImage)))
+        expect cache.icons.setup(@mkstring(@dataof(DefaultIcons), @countof(DefaultIcons)))
         cache.decoded = true
     }
 

@@ -284,7 +284,7 @@ namespace ModuleApi
         const bool diagnosticsOnly = (exportApiDir.empty() || suppressExport) && compiler.cmdLine().command != CommandKind::Doc;
         SWC_RESULT(collectPublicEntries(ctx, collectedEntries, diagnosticsOnly));
 
-        if (exportApiDir.empty())
+        if (exportApiDir.empty() || compiler.cmdLine().sourceDrivenTest)
             return Result::Continue;
 
         SWC_RESULT(ensureModuleApiDirectory(ctx, exportApiDir));

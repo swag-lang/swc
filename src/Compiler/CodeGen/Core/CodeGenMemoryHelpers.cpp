@@ -815,6 +815,28 @@ void CodeGenMemoryHelpers::emitMemRepeatCopy(CodeGen& codeGen, MicroReg dstReg, 
 
     MicroBuilder&  builder     = codeGen.builder();
     const uint32_t memLimit    = getUnrollMemLimit(codeGen.buildCfgBackend());
+    if (elementSizeInBytes > memLimit)
+    {
+        if (elementCount == 1)
+        {
+            emitMemCopy(codeGen, dstReg, srcAddressReg, elementSizeInBytes);
+            return;
+        }
+
+        const MicroReg      dstCursorReg = codeGen.nextVirtualIntRegister();
+        const MicroReg      countReg     = codeGen.nextVirtualIntRegister();
+        const MicroLabelRef loopLabel    = builder.createLabel();
+        builder.emitLoadRegReg(dstCursorReg, dstReg, MicroOpBits::B64);
+        builder.emitLoadRegImm(countReg, ApInt(elementCount, 64), MicroOpBits::B64);
+        builder.placeLabel(loopLabel);
+        emitMemCopy(codeGen, dstCursorReg, srcAddressReg, elementSizeInBytes);
+        builder.emitOpBinaryRegImm(dstCursorReg, ApInt(elementSizeInBytes, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
+        return;
+    }
+
     const MicroReg dstRegTmp   = codeGen.nextVirtualIntRegister();
     const MicroReg srcRegTmp   = codeGen.nextVirtualIntRegister();
     const MicroReg tmpIntReg   = codeGen.nextVirtualIntRegister();

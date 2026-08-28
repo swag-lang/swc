@@ -418,6 +418,77 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsOnlyReferencedConstants)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_LargeSparseStructDefaultsStayComposable)
+{
+    static constexpr std::string_view SOURCE = R"(struct SparseLeaf
+{
+    zeros:  [4096] u64
+    marker: u64 = 0x123456789ABCDEF0
+}
+
+struct SparsePayload
+{
+    leaves: [8] SparseLeaf
+}
+
+struct FirstOwner
+{
+    payload: SparsePayload
+    marker:  u64 = 11
+}
+
+struct SecondOwner
+{
+    prefix:  [1024] u64
+    payload: SparsePayload
+    marker:  u64 = 17
+}
+
+#main
+{
+    var first: FirstOwner
+    var second: SecondOwner
+    @assert(first.payload.leaves[0].marker == 0x123456789ABCDEF0)
+    @assert(first.payload.leaves[7].marker == 0x123456789ABCDEF0)
+    @assert(first.marker == 11)
+    @assert(second.payload.leaves[0].marker == 0x123456789ABCDEF0)
+    @assert(second.payload.leaves[7].marker == 0x123456789ABCDEF0)
+    @assert(second.marker == 17)
+}
+)";
+    const fs::path sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "LargeSparseStructDefaultsStayComposable");
+
+    CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine("large_sparse_struct_defaults_stay_composable", Runtime::BuildCfgBackendKind::Executable);
+    cmdLine.name        = "large_sparse_struct_defaults";
+    cmdLine.directories.clear();
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return failNativeArtifactTest("NativeArtifact_LargeSparseStructDefaultsStayComposable", "errors after sema");
+
+    NativeBackendBuilder nativeBuilder(compiler, false);
+    if (nativeBuilder.prepare() != Result::Continue)
+        return failNativeArtifactTest("NativeArtifact_LargeSparseStructDefaultsStayComposable", "native builder cannot prepare the artifact");
+    if (Stats::getNumErrors() != errorsBefore)
+        return failNativeArtifactTest("NativeArtifact_LargeSparseStructDefaultsStayComposable", "errors after nativeBuilder.prepare");
+
+    const NativeArtifactBuilder artifactBuilder(nativeBuilder);
+    SWC_RESULT(artifactBuilder.build());
+
+    constexpr uint64_t MAX_RDATA_SIZE = 128 * 1024;
+    if (nativeBuilder.mergedRData.bytes.size() > MAX_RDATA_SIZE)
+    {
+        const std::string message = std::format("large sparse struct defaults use {} bytes of rdata", nativeBuilder.mergedRData.bytes.size());
+        return failNativeArtifactTest("NativeArtifact_LargeSparseStructDefaultsStayComposable", message.c_str());
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataAllowsInteriorConstantAddresses)
 {
     const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_allows_interior_constant_addresses", Runtime::BuildCfgBackendKind::SharedLibrary);

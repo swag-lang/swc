@@ -1054,6 +1054,7 @@ namespace
         bool        implicitStructZeroInit = false;
         bool        implicitStructNoInit   = false;
         bool        implicitStructPartInit = false;
+        bool        implicitStructFullInit = false;
         if (context.nodeInitRef.isInvalid() && !isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isStruct())
         {
             if (!directSelfStructField && !requiresExplicitInit)
@@ -1064,13 +1065,18 @@ namespace
                 implicitStructZeroInit = symStruct.hasImplicitAllZeroDefault();
                 implicitStructNoInit   = symStruct.hasImplicitAllUndefinedDefault();
                 implicitStructPartInit = symStruct.hasImplicitUndefinedDefault() && !implicitStructNoInit;
-                if (!implicitStructNoInit)
+                implicitStructFullInit = !implicitStructNoInit && !implicitStructPartInit;
+                const bool hasGlobalStorage = std::ranges::any_of(symbols, [](Symbol* symbol) {
+                    const SymbolVariable* variable = getVariableSymbol(symbol);
+                    return variable && isGlobalStorageVariable(*variable);
+                });
+                if (!implicitStructNoInit && hasGlobalStorage)
                     implicitStructStoreRef = symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef);
-                if (isConst || (!implicitStructNoInit && !implicitStructPartInit))
-                    implicitStructCstRef = symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef);
+                if (isConst || isLet)
+                    implicitStructCstRef = symStruct.resolveImplicitDefaultValueRef(sema, explicitTypeRef);
             }
         }
-        const bool hasImplicitStructConstInit = implicitStructZeroInit || implicitStructCstRef.isValid();
+        const bool hasImplicitStructConstInit = implicitStructZeroInit || implicitStructFullInit || implicitStructCstRef.isValid();
         const bool hasImplicitStructVarInit   = hasImplicitStructConstInit || implicitStructPartInit;
 
         // Constant

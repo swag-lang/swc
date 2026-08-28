@@ -3,6 +3,8 @@
 
 using Core, Core.Math
 
+private const RasterSampleTileSide = 1024's32
+
 // Controls resources that SVG parsing may resolve outside the document text.
 //
 // Data-image URIs are accepted up to `maxImageBytes`. A non-empty
@@ -2698,80 +2700,109 @@ impl Drawing
     // `width` by `height` pixels.
     //
     // The result is identical whichever backend produces it, up to the raster-edge
-    // tolerance the two backends already carry elsewhere. Both the supersampled pass
-    // and its downsample happen inside the renderer, so no supersampled buffer ever
-    // crosses back to the caller: only the finished image does.
+    // tolerance the two backends already carry elsewhere. Supersampled work is split
+    // into aligned tiles, so the renderer never retains a target larger than 1024 by
+    // 1024 samples; only the finished image crosses back to the caller.
     //
     // The renderer must be ready to draw — its context selected and [[Pixel.IRenderer.init]]
     // called — because this records a complete painter submission and executes it.
     mtd const rasterize(renderer: IRenderer, width, height: s32, supersample: u8 = 2)->Image
     {
         Debug.assert(width > 0 and height > 0)
+        return .rasterizeWithSampleTileSide(renderer, width, height, supersample, RasterSampleTileSide)
+    }
 
-        let ss = cast(s32) Math.max(supersample, 1'u8)
-        let bw = width * ss
-        let bh = height * ss
+    // Rasterizes with an explicit sampled-tile bound for module tests.
+    internal mtd const rasterizeWithSampleTileSide(renderer: IRenderer, width, height: s32, supersample: u8, sampleTileSide: s32)->Image
+    {
+        Debug.assert(width > 0 and height > 0)
+        Debug.assert(sampleTileSide > 0)
+
+        let ss            = cast(s32) Math.max(supersample, 1'u8)
+        let tileWidth     = Math.min(width, Math.max(sampleTileSide / ss, 1))
+        let tileHeight    = Math.min(height, Math.max(sampleTileSide / ss, 1))
+        let sampledWidth  = tileWidth * ss
+        let sampledHeight = tileHeight * ss
+        let directAlpha   = .texts.count or .images.count or .patterns.count or .filters.count
+        var result        = Image.create(width, height, .BGRA8)
 
         // Targets are created at the exact size instead of acquired from the pool, which
         // rounds up to a power of two: the resolve reads the sampled target as a whole,
-        // and padding would land inside the box filter.
-        var sampled = renderer.createRenderTarget(bw, bh)
+        // and padding would land inside the box filter. Every tile reuses these same two
+        // target sizes, including a partial tile at the right or bottom edge.
+        var sampled = renderer.createRenderTarget(sampledWidth, sampledHeight)
         var resolved: RenderTarget
         if ss > 1 do
-            resolved = renderer.createRenderTarget(width, height)
+            resolved = renderer.createRenderTarget(tileWidth, tileHeight)
 
-        // Antialiased and translucent shapes go through the overlap-safe pass, which
-        // sacrifices the destination alpha channel; render into a target with the
-        // alpha-preserving replay so the result carries a correct alpha mask.
-        var painter = Painter.create(renderer)
-        painter.begin()
-        let directAlpha = .texts.count or .images.count or .patterns.count or .filters.count
-        painter.bindRenderTarget(&sampled, paintAlpha: !directAlpha)
-        painter.setColorMaskFull()
-        painter.clear(Color.fromArgb(Argb.Zero))
-        if !directAlpha do
-            painter.setColorMaskColor()
-        .paintImpl(&painter, 0, 0, cast(f32) bw / .width, !directAlpha)
-        painter.unbindRenderTarget()
-
-        // Box-filter the samples down with the renderer's own resolve program, the one
-        // the layer pipeline already uses. Unbinding above has resolved the alpha plane,
-        // so the sampled target is a plain texture by the time it is read here.
-        if ss > 1
+        var tileY = 0
+        while tileY < height
         {
-            let dstRect = Math.Rectangle{0, 0, cast(f32) width, cast(f32) height}
-            let srcRect = Math.Rectangle{0, 0, cast(f32) bw, cast(f32) bh}
-            painter.bindRenderTarget(&resolved)
-            painter.setResolveShader(ss)
-            painter.setColorMaskFull()
-            painter.setBlendingMode(.Copy)
-            painter.clear(Color.fromArgb(Argb.Zero))
-            painter.drawTexture(dstRect, srcRect, sampled.colorBuffer)
-            painter.setDefaultShader()
-            painter.unbindRenderTarget()
+            let copyHeight = Math.min(tileHeight, height - tileY)
+            var tileX      = 0
+            while tileX < width
+            {
+                let copyWidth = Math.min(tileWidth, width - tileX)
+
+                // Antialiased and translucent shapes go through the overlap-safe pass, which
+                // sacrifices the destination alpha channel; render into a target with the
+                // alpha-preserving replay so the result carries a correct alpha mask.
+                var painter = Painter.create(renderer)
+                painter.begin()
+                painter.bindRenderTarget(&sampled, paintAlpha: !directAlpha)
+                painter.setColorMaskFull()
+                painter.clear(Color.fromArgb(Argb.Zero))
+                if !directAlpha do
+                    painter.setColorMaskColor()
+                .paintImpl(&painter, cast(f32) (-tileX * ss), cast(f32) (-tileY * ss), cast(f32) (width * ss) / .width, !directAlpha)
+                painter.unbindRenderTarget()
+
+                // Box-filter the samples down with the renderer's own resolve program, the one
+                // the layer pipeline already uses. Unbinding above has resolved the alpha plane,
+                // so the sampled target is a plain texture by the time it is read here.
+                if ss > 1
+                {
+                    let dstRect = Math.Rectangle{0, 0, cast(f32) tileWidth, cast(f32) tileHeight}
+                    let srcRect = Math.Rectangle{0, 0, cast(f32) sampledWidth, cast(f32) sampledHeight}
+                    painter.bindRenderTarget(&resolved)
+                    painter.setResolveShader(ss)
+                    painter.setColorMaskFull()
+                    painter.setBlendingMode(.Copy)
+                    painter.clear(Color.fromArgb(Argb.Zero))
+                    painter.drawTexture(dstRect, srcRect, sampled.colorBuffer)
+                    painter.setDefaultShader()
+                    painter.unbindRenderTarget()
+                }
+
+                painter.end()
+                renderer.draw(&painter)
+
+                // Render-target readbacks and images share the bottom-up row convention. Copy
+                // each tile into the matching bottom-up rows of the complete result.
+                let tile = ss == 1 ? renderer.readRenderTarget(&sampled, 0, 0, copyWidth, copyHeight) : renderer.readRenderTarget(&resolved, 0, 0, copyWidth, copyHeight)
+                for row in copyHeight
+                {
+                    let source      = tile.pixels.buffer! + cast(u64) row * cast(u64) tile.rowStride
+                    let resultRow   = result.height - tileY - copyHeight + row
+                    let destination = result.pixels.buffer! + cast(u64) resultRow * cast(u64) result.rowStride + cast(u64) tileX * result.bytesPerPixel
+                    Memory.copy(destination, source, cast(u64) copyWidth * result.bytesPerPixel)
+                }
+
+                tileX += tileWidth
+            }
+
+            tileY += tileHeight
         }
 
-        painter.end()
-        renderer.draw(&painter)
-
-        // Render-target readbacks follow the bottom-up row convention, which is also
-        // the storage convention of [[Pixel.Image]] buffers, so the readback is kept
-        // as is: flipping here would make the drawing render upside down as a texture.
-        if ss == 1
-        {
-            var only = renderer.readRenderTarget(&sampled, 0, 0, bw, bh)
-            renderer.deleteRenderTarget(&sampled)
-            return only
-        }
-
-        var result = renderer.readRenderTarget(&resolved, 0, 0, width, height)
-        renderer.deleteRenderTarget(&resolved)
+        if ss > 1 do
+            renderer.deleteRenderTarget(&resolved)
         renderer.deleteRenderTarget(&sampled)
 
         // The resolve leaves a fully transparent pixel black; make it white instead, so a
         // consumer that tints the result, or a sampler that interpolates across the edge
         // of a shape, never blends a dark fringe in.
-        result.setTransparentColor(Color.fromArgb(Argb.White))
+        if ss > 1 do
+            result.setTransparentColor(Color.fromArgb(Argb.White))
         return result
     }
 }

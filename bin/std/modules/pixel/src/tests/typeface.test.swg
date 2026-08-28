@@ -3,6 +3,7 @@
 using Swag, Core
 
 private func createNullableTypeFace(name: string, bytes: const [..] u8)->#null *TypeFace fail => try TypeFace.create(name, bytes)
+private func renderNullableGlyph(face: *TypeFace)->#null const *Bitmap fail => try face.renderGlyph('A', 16, false)
 
 // A rejected face must not try to destroy the uninitialized native face during failure cleanup.
 #test
@@ -11,4 +12,18 @@ private func createNullableTypeFace(name: string, bytes: const [..] u8)->#null *
     let face = catch createNullableTypeFace("pixel-test-truncated-font", truncated) as loadError
     @assert(loadError != null)
     @assert(face == null)
+}
+
+// A typeface remains usable after its caller releases the source bytes: TrueType.Face owns the
+// only retained copy, so the Pixel cache does not need to keep the complete font a second time.
+#test
+{
+    var bytes = expect File.readAllBytes(getTestDataPath("segoeui.ttf"))
+    let face  = expect createNullableTypeFace("pixel-test-owned-font-bytes", bytes.toSlice())!
+    bytes.fill(0)
+    bytes.free()
+
+    @assert(@countof(face.familyName()) != 0)
+    let bitmap = expect renderNullableGlyph(face)!
+    @assert(bitmap.width != 0)
 }

@@ -421,7 +421,7 @@ SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_LargeSparseStructDefaultsStayComposable)
 {
-    static constexpr std::string_view SOURCE = R"(struct SparseLeaf
+    static constexpr std::string_view SOURCE     = R"(struct SparseLeaf
 {
     zeros:  [4096] u64
     marker: u64 = 0x123456789ABCDEF0
@@ -457,7 +457,7 @@ struct SecondOwner
     @assert(second.marker == 17)
 }
 )";
-    const fs::path sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "LargeSparseStructDefaultsStayComposable");
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "LargeSparseStructDefaultsStayComposable");
 
     CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine("large_sparse_struct_defaults_stay_composable", Runtime::BuildCfgBackendKind::Executable);
     cmdLine.name        = "large_sparse_struct_defaults";

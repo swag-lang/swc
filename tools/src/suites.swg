@@ -284,7 +284,7 @@ private func verifyWorkspaceArtifactLayout(workspace: string, buildCfg: string, 
 
     let intermediateDirectory = Path.combine(workspace, ".tmp", "consumer_exe", "executable", buildCfg, targetArch)
     var foundGeneratedSource: bool
-    let generatedSources = try Directory.enumerateFiles(intermediateDirectory.toString(), ".swgsrc")
+    let generatedSources      = try Directory.enumerateFiles(intermediateDirectory.toString(), ".swgsrc")
     for generatedSource in generatedSources
     {
         let name = Path.fileName(generatedSource.fullname.toString()) orelse ""

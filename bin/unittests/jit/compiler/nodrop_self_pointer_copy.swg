@@ -249,35 +249,27 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     @drop(&table.entries[0].value)
 }
 
-#static if true
+#test
 {
-    // Still broken: this warmup on `HashLikeTable'(string, InlineBufferText)` can corrupt the
-    // later `HashLikeTable'(s32, InlineBufferText).free()` specialization in the same module.
-    // Kept commented until that compiler bug is fixed.
-    #test
-    {
-        let entries = cast([*] HashLikeEntry'(string, InlineBufferText)) (testAlloc(#sizeof(HashLikeEntry'(string, InlineBufferText))))!
-        @memset(entries, 0, #sizeof(HashLikeEntry'(string, InlineBufferText)))
+    let entries = cast([*] HashLikeEntry'(string, InlineBufferText)) (testAlloc(#sizeof(HashLikeEntry'(string, InlineBufferText))))!
+    @memset(entries, 0, #sizeof(HashLikeEntry'(string, InlineBufferText)))
 
-        var table: HashLikeTable'(string, InlineBufferText)
-        table.entries  = entries
-        table.capacity = 1
+    var table: HashLikeTable'(string, InlineBufferText)
+    table.entries  = entries
+    table.capacity = 1
 
-        table.add("alpha", makeInlineBufferText("one"))
-        let expectedDropAddr   = cast([*] void) &table.entries[0].value
-        let expectedDropBuffer = cast([*] u8) &table.entries[0].value.padding[0]
-        @assert(table.valueAddr(0) == expectedDropAddr)
+    table.add("alpha", makeInlineBufferText("one"))
+    let expectedDropAddr   = cast([*] void) &table.entries[0].value
+    let expectedDropBuffer = cast([*] u8) &table.entries[0].value.padding[0]
+    @assert(table.valueAddr(0) == expectedDropAddr)
 
-        @assert(table.entries[0].hash == 2)
-        @assert(table.entries[0].key == "alpha")
-        @assert(table.entries[0].value.asString() == "one")
-        @assert(table.entries[0].value.buffer == expectedDropBuffer)
-        LastInlineBufferTextDropAddr   = null
-        LastInlineBufferTextDropBuffer = null
-        testFree(entries)
-    }
-
-// A second variant was reduced away while isolating the order-dependent breakage above.
+    @assert(table.entries[0].hash == 2)
+    @assert(table.entries[0].key == "alpha")
+    @assert(table.entries[0].value.asString() == "one")
+    @assert(table.entries[0].value.buffer == expectedDropBuffer)
+    LastInlineBufferTextDropAddr   = null
+    LastInlineBufferTextDropBuffer = null
+    testFree(entries)
 }
 
 #test
@@ -301,84 +293,23 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     @assert(LastInlineBufferTextDropBuffer == expectedDropBuffer)
 }
 
-#static if false
+#test
 {
-    #test
-    {
-        let entries = cast([*] HashLikeEntry'(s32, InlineBufferText)) (testAlloc(#sizeof(HashLikeEntry'(s32, InlineBufferText))))!
-        @memset(entries, 0, #sizeof(HashLikeEntry'(s32, InlineBufferText)))
+    let entries = cast([*] HashLikeEntry'(string, InlineBufferText)) (testAlloc(#sizeof(HashLikeEntry'(string, InlineBufferText))))!
+    @memset(entries, 0, #sizeof(HashLikeEntry'(string, InlineBufferText)))
 
-        var table: HashLikeTable'(s32, InlineBufferText)
-        table.entries  = entries
-        table.capacity = 1
+    var table: HashLikeTable'(string, InlineBufferText)
+    table.entries  = entries
+    table.capacity = 1
 
-        table.add(7, "one")
-        let expectedDropAddr   = cast([*] void) &table.entries[0].value
-        let expectedDropBuffer = cast([*] u8) &table.entries[0].value.padding[0]
+    table.add("alpha", "one")
+    let expectedDropBuffer = cast([*] u8) &table.entries[0].value.padding[0]
 
-        LastInlineBufferTextDropAddr       = null
-        LastInlineBufferTextDropBuffer     = null
-        ExpectedInlineBufferTextDropAddr   = expectedDropAddr
-        ExpectedInlineBufferTextDropBuffer = expectedDropBuffer
-        table.freeViaPointer()
-        @assert(LastInlineBufferTextDropAddr == expectedDropAddr)
-        @assert(LastInlineBufferTextDropBuffer == expectedDropBuffer)
-    }
-
-    #test
-    {
-        let entries = cast([*] HashLikeEntry'(s32, InlineBufferText)) (testAlloc(#sizeof(HashLikeEntry'(s32, InlineBufferText))))!
-        @memset(entries, 0, #sizeof(HashLikeEntry'(s32, InlineBufferText)))
-
-        var table: HashLikeTable'(s32, InlineBufferText)
-        table.entries  = entries
-        table.capacity = 1
-
-        table.add(7, "one")
-        let expectedDropAddr   = cast([*] void) &table.entries[0].value
-        let expectedDropBuffer = cast([*] u8) &table.entries[0].value.padding[0]
-
-        LastInlineBufferTextDropAddr       = null
-        LastInlineBufferTextDropBuffer     = null
-        ExpectedInlineBufferTextDropAddr   = expectedDropAddr
-        ExpectedInlineBufferTextDropBuffer = expectedDropBuffer
-        table.freeViaHelper()
-        @assert(LastInlineBufferTextDropAddr == expectedDropAddr)
-        @assert(LastInlineBufferTextDropBuffer == expectedDropBuffer)
-    }
-}
-
-#static if true
-{
-    // Still order-dependent in the full JIT suite: passes when isolated, but a larger compiler module
-    // can make this `string` specialization compare against the wrong drop slot.
-    #test
-    {
-        let entries = cast([*] HashLikeEntry'(string, InlineBufferText)) (testAlloc(#sizeof(HashLikeEntry'(string, InlineBufferText))))!
-        @memset(entries, 0, #sizeof(HashLikeEntry'(string, InlineBufferText)))
-
-        var table: HashLikeTable'(string, InlineBufferText)
-        table.entries  = entries
-        table.capacity = 1
-
-        table.add("alpha", "one")
-        let expectedDropBuffer = cast([*] u8) &table.entries[0].value.padding[0]
-
-        LastInlineBufferTextDropAddr       = null
-        LastInlineBufferTextDropBuffer     = null
-        ExpectedInlineBufferTextDropAddr   = table.valueAddr(0)
-        ExpectedInlineBufferTextDropBuffer = expectedDropBuffer
-        table.free()
-        @assert(LastInlineBufferTextDropAddr == ExpectedInlineBufferTextDropAddr)
-        @assert(LastInlineBufferTextDropBuffer == expectedDropBuffer)
-    }
-}
-
-#static if false
-{
-    #test
-    {
-        var value: InlineBufferText = "one"
-        SWAG_HAS_UNUSED = value
-    }
+    LastInlineBufferTextDropAddr       = null
+    LastInlineBufferTextDropBuffer     = null
+    ExpectedInlineBufferTextDropAddr   = table.valueAddr(0)
+    ExpectedInlineBufferTextDropBuffer = expectedDropBuffer
+    table.free()
+    @assert(LastInlineBufferTextDropAddr == ExpectedInlineBufferTextDropAddr)
+    @assert(LastInlineBufferTextDropBuffer == expectedDropBuffer)
 }

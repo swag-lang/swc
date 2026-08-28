@@ -371,7 +371,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <h3 id="file_src_decode_matroska_ebml_swg"><code>src/decode/matroska/ebml.swg</code></h3>
 <p>Format: Matroska/EBML container decoder component. Supported: Bounded metadata and media elements used by the Matroska picture, audio, and text-subtitle reader. Not supported: Picture codecs other than H.264, laced or invisible picture blocks, dependent E-AC-3 substreams, encrypted tracks, and writing Matroska. Role: This file owns bounded EBML element identifiers, vint values, and cursor traversal.</p>
 <h3 id="file_src_decode_matroska_matroska_swg"><code>src/decode/matroska/matroska.swg</code></h3>
-<p>Format: Matroska/EBML container decoder component. Supported: H.264, H.265 and MPEG-4 Part 2 picture tracks, AAC-LC, AC-3, independent E-AC-3, DTS Core, FLAC, or Layer III audio, and UTF-8 or ASS/SSA subtitle tracks, with cues and timestamps. Not supported: Other picture codecs, bitmap subtitles, laced or invisible picture blocks, dependent E-AC-3 substreams, encrypted tracks, and writing Matroska. Role: This file owns tracks, clusters, cues, timestamps, progressive indexing, and media dispatch.</p>
+<p>Format: Matroska/EBML container decoder component. Supported: H.264, H.265 and MPEG-4 Part 2 picture tracks, AAC-LC, AC-3, independent E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio, and UTF-8 or ASS/SSA subtitle tracks, with cues, timestamps, codec delay, and discard padding. Not supported: Other picture codecs, bitmap subtitles, laced or invisible picture blocks, dependent E-AC-3 substreams, encrypted tracks, and writing Matroska. Role: This file owns tracks, clusters, cues, timestamps, progressive indexing, and media dispatch.</p>
 <h3 id="file_src_decode_mp4_mp4_swg"><code>src/decode/mp4/mp4.swg</code></h3>
 <p>Format: ISO Base Media File Format (MP4/M4V/MOV) decoder component. Supported: Classic sample-table files containing Motion JPEG, H.264, or H.265 video and AAC-LC audio, including composition offsets and sync-sample seeking. Not supported: Fragmented or encrypted media, unsupported sample-entry versions, picture codecs other than Motion JPEG/H.264/H.265, and audio codecs other than AAC-LC. Role: This file owns box parsing, sample tables, track selection, timestamps, and top-level decoding.</p>
 <h3 id="file_src_decode_mpeg4_block_swg"><code>src/decode/mpeg4/block.swg</code></h3>
@@ -2310,7 +2310,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.254</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.271</div>
 </footer>
 </section>
 </main>

@@ -609,7 +609,7 @@ func freeOne(itf: IAllocator, address: #null *void)
         let itf = makeAllocator(&alloc)
 
         var addresses: [FullPageRetireCount] #null *void
-        var payload: FullPageRetirePayload = undefined
+        var payload:   FullPageRetirePayload = undefined
         payload.allocator = itf
         payload.out       = &addresses
 

@@ -70,8 +70,7 @@ using Core
 func day4B()
 {
     day4B0()
-
-// day4B1() disabled: compiler bug with HashTable payload on anonymous structs
+    day4B1()
 }
 
 /////////////////////////////////////////////////////////////////
@@ -150,38 +149,19 @@ func day4B0()
 
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
-/*
-Disabled in the examples workspace: compiler bug with HashTable payload on anonymous structs.
-
-The body below also predates a language change and would not compile as written even once
-that bug is fixed: 'assume' was removed, in both its prefix and its block form, so the
-reads here should use 'expect' like 'day4B0' does.
-
 func day4B1()
 {
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "4.txt")
-    let lines    = assume File.readAllLines(dataPath)
-
-    assume
-    {
-        using Parser
-        let byr_r = RegExp.create("19[2-9][0-9]|200[0-2]")
-        let iyr_r = RegExp.create("201[0-9]|2020")
-        let eyr_r = RegExp.create("202[0-9]|2030")
-        let hgt_r = RegExp.create("((1[5678][0-9])|(19[0-3]))cm|(59|6[0-9]|7[0-6])in")
-        let hcl_r = RegExp.create("#([a-f0-9]){6}")
-        let ecl_r = RegExp.create("amb|blu|brn|gry|grn|hzl|oth")
-        let pid_r = RegExp.create("[0-9]{9}")
-    }
+    let lines    = expect File.readAllLines(dataPath)
 
     var map: HashTable'(string, { r: Parser.RegExp, b: u32 })
-    map.add("byr", {byr_r, 1})
-    map.add("iyr", {iyr_r, 2})
-    map.add("eyr", {eyr_r, 4})
-    map.add("hgt", {hgt_r, 8})
-    map.add("hcl", {hcl_r, 16})
-    map.add("ecl", {ecl_r, 32})
-    map.add("pid", {pid_r, 64})
+    map.add("byr", {expect Parser.RegExp.create("19[2-9][0-9]|200[0-2]"), 1})
+    map.add("iyr", {expect Parser.RegExp.create("201[0-9]|2020"), 2})
+    map.add("eyr", {expect Parser.RegExp.create("202[0-9]|2030"), 4})
+    map.add("hgt", {expect Parser.RegExp.create("((1[5678][0-9])|(19[0-3]))cm|(59|6[0-9]|7[0-6])in"), 8})
+    map.add("hcl", {expect Parser.RegExp.create("#([a-f0-9]){6}"), 16})
+    map.add("ecl", {expect Parser.RegExp.create("amb|blu|brn|gry|grn|hzl|oth"), 32})
+    map.add("pid", {expect Parser.RegExp.create("[0-9]{9}"), 64})
 
     var total, pass: u32
     for l in lines
@@ -197,11 +177,10 @@ func day4B1()
         if @index == lines.count - 1 or lines[@index + 1].length == 0
         {
             total += cast(s32) (pass == 0b1111111)
-            pass = 0
+            pass  = 0
         }
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 224)
 }
-*/

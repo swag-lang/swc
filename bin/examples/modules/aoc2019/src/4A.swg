@@ -20,18 +20,15 @@ using Core
 
 func day4A()
 {
-    // day4A0() disabled: compiler bug in Format.toString("%", x) codegen
+    day4A0()
     day4A1()
 }
 
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
-/*
-Disabled in the examples workspace: compiler bug in Format.toString("%", x) codegen.
-
 func day4A0()
 {
-    //Time.Stopwatch.scopeMeasure()
+    // Time.Stopwatch.scopeMeasure()
 
     var total = 0
     for x in 246515 to 739105
@@ -57,10 +54,9 @@ func day4A0()
             total += 1
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 1048)
 }
-*/
 
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////

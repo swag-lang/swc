@@ -1083,7 +1083,7 @@ namespace
             if (line == "debug-info=0" || line == "debug-info=1")
             {
                 outManifest.debugInfo = line.back() == '1';
-                hasDebugInfo           = true;
+                hasDebugInfo          = true;
                 if (end == content.size())
                     break;
                 start = end + 1;
@@ -1337,7 +1337,7 @@ namespace
     {
         std::error_code ec;
         fs::path        failedPath = directory;
-        const bool      exists = fs::exists(directory, ec);
+        const bool      exists     = fs::exists(directory, ec);
         if (ec)
         {
             Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_clean_remove_failed);
@@ -2831,7 +2831,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         // A documentation leaf renders directly from its in-memory symbols. Only modules with
         // active dependents need an API file for a later module to import.
         const bool                           importableArtifact = moduleBuild.setup.buildCfg.backendKind != Runtime::BuildCfgBackendKind::Executable;
-        const bool                           writeModuleApi      = importableArtifact && (cmdLine().command != CommandKind::Doc || !dependents[moduleIndex].empty());
+        const bool                           writeModuleApi     = importableArtifact && (cmdLine().command != CommandKind::Doc || !dependents[moduleIndex].empty());
         std::unique_ptr<WorkspaceModuleLink> modulePending;
         bool                                 compiled = false;
         if (runWorkspaceModule(moduleBuild, *preparedDependencies, buildIndex + 1, buildCount, writeModuleApi, compiled, modulePending) != Result::Continue)

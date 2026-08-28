@@ -2332,11 +2332,11 @@ namespace
             case TokenId::IntrinsicVecShuffle:
             case TokenId::IntrinsicVecShuffle2:
             {
-                const bool     twoSource   = tokId == TokenId::IntrinsicVecShuffle2;
-                const size_t   patternArg  = twoSource ? 2 : 1;
-                const uint32_t indexMask   = (twoSource ? laneCount * 2 : laneCount) - 1;
-                const MicroReg firstReg    = loadArg(0);
-                const MicroReg secondReg   = twoSource ? loadArg(1) : firstReg;
+                const bool     twoSource  = tokId == TokenId::IntrinsicVecShuffle2;
+                const size_t   patternArg = twoSource ? 2 : 1;
+                const uint32_t indexMask  = (twoSource ? laneCount * 2 : laneCount) - 1;
+                const MicroReg firstReg   = loadArg(0);
+                const MicroReg secondReg  = twoSource ? loadArg(1) : firstReg;
 
                 std::array<uint8_t, 16> laneIndices{};
                 const bool              constantPattern = tryConstantLaneIndices(codeGen, children[patternArg], laneBits / 8, laneCount, indexMask, laneIndices);

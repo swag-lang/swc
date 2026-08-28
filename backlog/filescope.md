@@ -310,15 +310,15 @@ viewer" claim is currently weakest. Read the `Today` column as:
 ### T-420 — WebM and VP9/AV1 Matroska video cannot be played
 
 - Intent: Matroska now plays H.264, H.265, or MPEG-4 Part 2 with selectable AAC-LC, AC-3, E-AC-3,
-  DTS Core, FLAC, or MPEG Layer III tracks through a compact EBML block index. WebM, and Matroska streams
-  carrying VP9, AV1, Opus, or Vorbis, remain unread.
+  DTS Core, FLAC, MPEG Layer III, Vorbis, or Opus tracks through a compact EBML block index. WebM,
+  and Matroska streams carrying VP9 or AV1, remain unread.
   The container already retains timestamps, synchronization points, lacing, and payload offsets;
   what remains is picture and sound codec support rather than another container design.
 - Complete when: the `Video` viewer shows the picture with transport, a seekable timeline and the
   frame position for VP9 or AV1 in WebM and Matroska, and the registry moves those extensions off
   the binary line for playback while T-412 keeps the structure reader available as a second
   viewer. Opus and Vorbis use `std/audio` and stay synchronized with the picture.
-- Related: T-412, T-166, T-168
+- Related: T-412
 
 ### T-571 — An unsupported picture codec hides sound tracks the application can play
 

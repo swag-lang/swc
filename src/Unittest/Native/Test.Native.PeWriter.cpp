@@ -143,7 +143,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_NonDebugImageRemovesStalePdb)
     textSection.align = 16;
     textSection.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Execute | LinkSectionFlagsE::Read;
 
-    const fs::path dir = fs::temp_directory_path() / "swc_linker_no_debug_test" / std::to_string(Os::currentProcessId());
+    const fs::path  dir = fs::temp_directory_path() / "swc_linker_no_debug_test" / std::to_string(Os::currentProcessId());
     std::error_code ec;
     fs::create_directories(dir, ec);
     if (ec)

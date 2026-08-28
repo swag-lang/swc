@@ -338,7 +338,7 @@ public:
     static bool headlessTestRun;
 
 private:
-    Arena& threadArena();
+    Arena&                  threadArena();
     ModuleApiPerThreadData& threadModuleApiData();
 
     friend class CompilerMessageTypeInfoJob;

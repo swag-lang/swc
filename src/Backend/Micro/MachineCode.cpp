@@ -43,7 +43,7 @@ bool MachineCode::tryResolveDebugSourceRangeAtOffset(const TaskContext& ctx, Res
 
 Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debugStackBaseVirtualReg, uint16_t sanitizerSafetyMask, const SymbolFunction* sanitizerFunction)
 {
-    const Runtime::BuildCfgBackend& backendBuildCfg   = ctx.compiler().buildCfg().backend;
+    const Runtime::BuildCfgBackend& backendBuildCfg = ctx.compiler().buildCfg().backend;
     // Windows uses the PE exception directory for ordinary stack walking too. Omitting it from a
     // release DLL makes RtlCaptureStackBackTrace stop at that module boundary, so panic reports lose
     // the application caller even when the artifact carries Swag symbols.

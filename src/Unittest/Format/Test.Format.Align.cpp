@@ -208,9 +208,9 @@ SWC_TEST_BEGIN(FormatAlign_ControlDeclarationsBreakDeclarationGroups)
         "}\n";
 
     FormatOptions options;
-    options.normalizeHorizontalWhitespace    = true;
-    options.alignConsecutiveDeclarations     = FormatAlignMode::Consecutive;
-    options.alignDeclarationInitializers     = true;
+    options.normalizeHorizontalWhitespace = true;
+    options.alignConsecutiveDeclarations  = FormatAlignMode::Consecutive;
+    options.alignDeclarationInitializers  = true;
     return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()

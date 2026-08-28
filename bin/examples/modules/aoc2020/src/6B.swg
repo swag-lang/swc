@@ -38,8 +38,7 @@ using Core
 func day6B()
 {
     day6B0()
-
-// day6B1() disabled: it no longer compiles as written, see the note below
+    day6B1()
 }
 
 /////////////////////////////////////////////////////////////////
@@ -75,23 +74,14 @@ func day6B0()
 
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
-/*
-Disabled in the examples workspace. Two things must be fixed before re-enabling it:
-
-- The two "u32 = ~0" initializations are rejected, and this is the language rule, not a
-  bug: a decimal literal is 's32', so '~0' is '-1' and cannot convert to 'u32'. Suffix
-  the literal to fix it. (A hexadecimal literal such as '0xFFFFFFFF' is already 'u32'.)
-- 'assume' was removed from the language, so the read here should use 'expect' like
-  'day6B0' does.
-
 func day6B1()
 {
     let dataPath = Path.combine(Path.directoryName(#file), "6.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total:    u64
     var lineVal:  u32
-    var interVal: u32 = ~0
+    var interVal: u32 = ~0'u32
 
     for l in lines
     {
@@ -105,12 +95,11 @@ func day6B1()
 
         if @index == lines.count - 1 or lines[@index + 1].length == 0
         {
-            total += Math.countOnes(interVal)
-            interVal = ~0
+            total    += Math.countOnes(interVal)
+            interVal = ~0'u32
         }
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 3103)
 }
-*/

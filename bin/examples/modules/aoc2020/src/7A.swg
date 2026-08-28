@@ -34,22 +34,16 @@ using Core
 
 func day7A()
 {
-    // day7A0() disabled: compiler bug on array literal indexing
+    day7A0()
     day7A1()
 }
 
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
-/*
-Disabled in the examples workspace: compiler bug on array literal indexing.
-
-The body below also predates a language change and would not compile as written even once
-that bug is fixed: 'assume' was removed, and this call wants 'expect' like 'day7A1' does.
-
 func day7A0()
 {
     let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var id: HashTable'(string, Array'(string))
 
@@ -69,7 +63,7 @@ func day7A0()
         for v in split1
         {
             let splitVal = Tokenize.split(v, ' 'u8, 1)
-            for can in splitVal[1 to ]
+            for can in splitVal[1 to]
             {
                 let it = id.tryFind(split[0])
                 if it do
@@ -105,10 +99,9 @@ func day7A0()
     for v in id do
         total += cast(s32) contains(&id, v)
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 296)
 }
-*/
 
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////

@@ -362,7 +362,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     const Files:     [2] string = ["ffmpeg-h264-opus.mkv", "ffmpeg-h264-vorbis.mkv"]
     const Pcm:       [2] string = ["opus-stereo-48000.pcm", "vorbis-stereo-44100.pcm"]
     const Encodings: [2] Audio.SoundFileEncoding = [.Opus, .Vorbis]
-    const Rates:     [2] u32 = [48_000, 44_100]
+    const Rates:     [2] u32    = [48_000, 44_100]
     for fileIndex in @countof(Files)
     {
         var reader = expect Reader.open(videoFixturePath(Files[fileIndex]))
@@ -385,6 +385,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
         let compared = Math.min(decoded.count, wanted.count / #sizeof(s16))
         @assert(decoded.count == sound.sampleFrameCount() * 2)
         @assert(compared >= 44_000 * 2 and decoded.count <= wanted.count / #sizeof(s16) + 2 * 1_024)
+
         // The references are libopus's and libvorbis's; this module's decoders sit within one
         // least significant bit of them, as the audio module's own tests establish.
         for index in compared do

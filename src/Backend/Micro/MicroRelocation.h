@@ -7,7 +7,7 @@ class Symbol;
 
 struct MicroRelocation
 {
-    static constexpr uint64_t K_SELF_ADDRESS = std::numeric_limits<uint64_t>::max();
+    static constexpr uint64_t K_SELF_ADDRESS   = std::numeric_limits<uint64_t>::max();
     static constexpr uint32_t K_INVALID_SOURCE = std::numeric_limits<uint32_t>::max();
 
     enum class Kind : uint8_t

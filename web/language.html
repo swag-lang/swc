@@ -794,9 +794,11 @@ indent-style = spaces</span></div>
 <div class="code-block"><span class="SCde"><span class="SItr">@atomadd</span>  <span class="SItr">@atomand</span>  <span class="SItr">@atomcmpxchg</span>  <span class="SItr">@atomor</span>  <span class="SItr">@atomxchg</span>  <span class="SItr">@atomxor</span>
 <span class="SItr">@memcmp</span>  <span class="SItr">@memcpy</span>  <span class="SItr">@memmove</span>  <span class="SItr">@memset</span></span></div>
 <p>Packed vector intrinsics:</p>
-<div class="code-block"><span class="SCde"><span class="SItr">@vecall</span>  <span class="SItr">@vecany</span>  <span class="SItr">@vecavgr</span>  <span class="SItr">@vecgather</span>  <span class="SItr">@vecinterleavehi</span>  <span class="SItr">@vecinterleavelo</span>
-<span class="SItr">@vecmadd</span>  <span class="SItr">@vecmask</span>  <span class="SItr">@vecpackss</span>  <span class="SItr">@vecpackus</span>  <span class="SItr">@vecperm</span>  <span class="SItr">@vecsatadd</span>
-<span class="SItr">@vecsatsub</span>  <span class="SItr">@vecselect</span>  <span class="SItr">@vecsplat</span>  <span class="SItr">@vecsum</span>  <span class="SItr">@vectruncs32</span>  <span class="SItr">@vecwidenhi</span>
+<div class="code-block"><span class="SCde"><span class="SItr">@vecalign</span>  <span class="SItr">@vecall</span>  <span class="SItr">@vecany</span>  <span class="SItr">@vecavgr</span>  <span class="SItr">@vecgather</span>  <span class="SItr">@vecinterleavehi</span>
+<span class="SItr">@vecinterleavelo</span>  <span class="SItr">@vecmadd</span>  <span class="SItr">@vecmaddubs</span>  <span class="SItr">@vecmask</span>  <span class="SItr">@vecmulhi</span>  <span class="SItr">@vecpackss</span>
+<span class="SItr">@vecpackus</span>  <span class="SItr">@vecperm</span>  <span class="SItr">@vecreduceadd</span>  <span class="SItr">@vecreduceand</span>  <span class="SItr">@vecreducemax</span>
+<span class="SItr">@vecreducemin</span>  <span class="SItr">@vecreduceor</span>  <span class="SItr">@vecreducexor</span>  <span class="SItr">@vecsad</span>  <span class="SItr">@vecsatadd</span>  <span class="SItr">@vecsatsub</span>
+<span class="SItr">@vecselect</span>  <span class="SItr">@vecshuffle</span>  <span class="SItr">@vecshuffle2</span>  <span class="SItr">@vecsplat</span>  <span class="SItr">@vectruncs32</span>  <span class="SItr">@vecwidenhi</span>
 <span class="SItr">@vecwidenlo</span></span></div>
 <div class="blockquote blockquote-note">
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
@@ -3466,7 +3468,7 @@ indent-style = spaces</span></div>
     <span class="SItr">@assert</span>(v[i] == <span class="SNum">99</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Packed_Intrinsics">Packed Intrinsics</h3>
-<p>The <span class="code-inline">@vec</span> intrinsic family carries the operations the operators cannot express: <span class="code-inline">@vecsplat</span> broadcasts a scalar into every lane, <span class="code-inline">@vecsatadd</span> and <span class="code-inline">@vecsatsub</span> clamp instead of wrapping, <span class="code-inline">@vecpackus</span> and <span class="code-inline">@vecpackss</span> narrow two vectors with saturation, <span class="code-inline">@vecinterleavelo</span> and <span class="code-inline">@vecinterleavehi</span> alternate lanes from the corresponding input halves, <span class="code-inline">@vecwidenlo</span> and <span class="code-inline">@vecwidenhi</span> extend half the lanes to double width, <span class="code-inline">@vecavgr</span> is the rounding average, <span class="code-inline">@vecmadd</span> multiplies 16-bit pairs into 32-bit sums, <span class="code-inline">@vecsum</span> adds the four lanes of an <span class="code-inline">s32</span> vector with wrapping arithmetic, <span class="code-inline">@vectruncs32</span> converts four <span class="code-inline">f32</span> lanes to <span class="code-inline">s32</span> by truncating toward zero, <span class="code-inline">@vecgather</span> loads four <span class="code-inline">s32</span> values through four <span class="code-inline">u32</span> indices, and <span class="code-inline">@vecperm</span> permutes bytes through a dynamic table. NaN and values outside the <span class="code-inline">s32</span> range become <span class="code-inline">s32.Min</span>. <span class="code-inline">@min</span>, <span class="code-inline">@max</span>, <span class="code-inline">@abs</span>, <span class="code-inline">@sqrt</span>, <span class="code-inline">@muladd</span>, <span class="code-inline">@floor</span>, <span class="code-inline">@ceil</span> and <span class="code-inline">@trunc</span> also accept vectors and compute per lane. Integer <span class="code-inline">@abs</span> wraps the minimum lane value back to itself, like unary minus. A gather uses <span class="code-inline">vpgatherdd</span> when AVX2 is selected and a portable four-load lowering otherwise; every index must designate a readable table element and be at most <span class="code-inline">s32.Max</span>.</p>
+<p>The <span class="code-inline">@vec</span> intrinsic family carries the operations the operators cannot express: <span class="code-inline">@vecsplat</span> broadcasts a scalar into every lane, <span class="code-inline">@vecsatadd</span> and <span class="code-inline">@vecsatsub</span> clamp instead of wrapping, <span class="code-inline">@vecpackus</span> and <span class="code-inline">@vecpackss</span> narrow two vectors with saturation, <span class="code-inline">@vecinterleavelo</span> and <span class="code-inline">@vecinterleavehi</span> alternate lanes from the corresponding input halves, <span class="code-inline">@vecwidenlo</span> and <span class="code-inline">@vecwidenhi</span> extend half the lanes to double width, <span class="code-inline">@vecavgr</span> is the rounding average, <span class="code-inline">@vecmadd</span> multiplies 16-bit pairs into 32-bit sums and <span class="code-inline">@vecmaddubs</span> does the same for unsigned and signed bytes with a saturating sum, <span class="code-inline">@vecsad</span> sums the absolute byte differences of each half, <span class="code-inline">@vectruncs32</span> converts four <span class="code-inline">f32</span> lanes to <span class="code-inline">s32</span> by truncating toward zero, <span class="code-inline">@vecgather</span> loads four <span class="code-inline">s32</span> values through four <span class="code-inline">u32</span> indices, and <span class="code-inline">@vecperm</span> permutes bytes through a dynamic table. NaN and values outside the <span class="code-inline">s32</span> range become <span class="code-inline">s32.Min</span>. <span class="code-inline">@min</span>, <span class="code-inline">@max</span>, <span class="code-inline">@abs</span>, <span class="code-inline">@sqrt</span>, <span class="code-inline">@muladd</span>, <span class="code-inline">@floor</span>, <span class="code-inline">@ceil</span> and <span class="code-inline">@trunc</span> also accept vectors and compute per lane. Integer <span class="code-inline">@abs</span> wraps the minimum lane value back to itself, like unary minus, while a float lane clears its sign bit, so a NaN stays that NaN and a negative zero becomes a positive one. A gather uses <span class="code-inline">vpgatherdd</span> when AVX2 is selected and a portable four-load lowering otherwise; every index must designate a readable table element and be at most <span class="code-inline">s32.Max</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> a = <span class="SItr">@vecsplat</span>(<span class="SNum">200</span>'<span class="STpe">u8</span>)
@@ -3491,7 +3493,7 @@ indent-style = spaces</span></div>
     <span class="SItr">@assert</span>(avg[<span class="SNum">0</span>] == <span class="SNum">150</span>)
 
     <span class="SKwd">let</span> quads = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>) [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>]
-    <span class="SItr">@assert</span>(<span class="SItr">@vecsum</span>(quads) == <span class="SNum">10</span>)
+    <span class="SItr">@assert</span>(<span class="SItr">@vecreduceadd</span>(quads) == <span class="SNum">10</span>)
 
     <span class="SKwd">let</span> samples = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">f32</span>) [<span class="SNum">1.9</span>, -<span class="SNum">1.9</span>, <span class="SNum">32767.9</span>, -<span class="SNum">32768.9</span>]
     <span class="SKwd">let</span> ints    = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) <span class="SItr">@vectruncs32</span>(samples)
@@ -3500,6 +3502,113 @@ indent-style = spaces</span></div>
     <span class="SKwd">var</span> lookup: [<span class="SNum">5</span>] <span class="STpe">s32</span> = [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>, <span class="SNum">50</span>]
     <span class="SKwd">let</span> found           = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>) <span class="SItr">@vecgather</span>(<span class="SItr">@dataof</span>(lookup), <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>) [<span class="SNum">4</span>, <span class="SNum">0</span>, <span class="SNum">3</span>, <span class="SNum">1</span>])
     <span class="SItr">@assert</span>(found[<span class="SNum">0</span>] == <span class="SNum">50</span> <span class="SLgc">and</span> found[<span class="SNum">1</span>] == <span class="SNum">10</span> <span class="SLgc">and</span> found[<span class="SNum">2</span>] == <span class="SNum">40</span> <span class="SLgc">and</span> found[<span class="SNum">3</span>] == <span class="SNum">20</span>)
+}</span></div>
+<h3 id="_004_009_simd_swg_The_Other_Half_Of_A_Product">The Other Half Of A Product</h3>
+<p><span class="code-inline">*</span> answers the low half of a lane product, the bits that fit the lane. <span class="code-inline">@vecmulhi</span> answers the ones above it, read as the lane type is signed or not. Together they are the whole product: interleaving them puts each double-width product back in the lane it belongs to, which is what <span class="code-inline">Core.Math.Simd.mulWidenLow</span> and <span class="code-inline">mulWidenHigh</span> do.</p>
+<p>A 16-bit lane has the instruction directly. The other widths compose it: bytes widen to words where the product is exact, 32-bit lanes take the two widening products the hardware offers and gather their high halves, and 64-bit lanes add up the four partial products of their halves.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> x = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">s16</span>) [-<span class="SNum">32768</span>, <span class="SNum">32767</span>, <span class="SNum">1000</span>, -<span class="SNum">1000</span>, <span class="SNum">3</span>, -<span class="SNum">3</span>, <span class="SNum">0</span>, <span class="SNum">12345</span>]
+    <span class="SKwd">let</span> y = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">s16</span>) [<span class="SNum">32767</span>, <span class="SNum">32767</span>, -<span class="SNum">2000</span>, <span class="SNum">2000</span>, <span class="SNum">5</span>, <span class="SNum">5</span>, <span class="SNum">12345</span>, -<span class="SNum">1</span>]
+
+    <span class="SKwd">let</span> low  = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">s16</span>) (x * y)
+    <span class="SKwd">let</span> high = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">s16</span>) <span class="SItr">@vecmulhi</span>(x, y)
+
+    <span class="SCmt">// 1000 * -2000 is -2000000, which is 0xFFE17B80 over two lanes.</span>
+    <span class="SItr">@assert</span>(<span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">u16</span>) low[<span class="SNum">2</span>] == <span class="SNum">0x7B80</span> <span class="SLgc">and</span> <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">u16</span>) high[<span class="SNum">2</span>] == <span class="SNum">0xFFE1</span>)
+
+    <span class="SCmt">// Read as unsigned, the same bits give a different half above the lane.</span>
+    <span class="SKwd">let</span> unsignedHigh = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">u16</span>) <span class="SItr">@vecmulhi</span>(<span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">u16</span>) x, <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">u16</span>) y)
+    <span class="SItr">@assert</span>(unsignedHigh[<span class="SNum">2</span>] == <span class="SNum">0x03C9</span>)
+}</span></div>
+<h3 id="_004_009_simd_swg_Lane_Permutation">Lane Permutation</h3>
+<p><span class="code-inline">@vecshuffle</span> rearranges the lanes of a vector: result lane <span class="code-inline">i</span> takes the lane its pattern lane names, the index reduced modulo the lane count so no pattern is out of range. <span class="code-inline">@vecshuffle2</span> does the same over two vectors, an index below the lane count reading the first and one above it reading the second at the index minus that count. <span class="code-inline">@vecalign</span> takes sixteen bytes of the concatenation of two vectors starting at a byte offset, and answers zero past the thirty-two.</p>
+<p>A pattern the compiler can see selects an immediate form where the target has one: a permutation of 32-bit lanes is one <span class="code-inline">pshufd</span>, a two-source pattern whose low half comes from one vector and whose high half comes from the other is one <span class="code-inline">shufps</span>, and a constant byte offset is one <span class="code-inline">palignr</span>. Everything else becomes a permute against a constant byte table. A pattern that only exists at run time keeps the same meaning through the dynamic byte permute, which is what <span class="code-inline">@vecperm</span> exposes on its own.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> quads = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>) [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>]
+
+    <span class="SKwd">var</span> r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SItr">@vecshuffle</span>(quads, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>) [<span class="SNum">3</span>, <span class="SNum">2</span>, <span class="SNum">1</span>, <span class="SNum">0</span>])
+    <span class="SItr">@assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">40</span> <span class="SLgc">and</span> r[<span class="SNum">1</span>] == <span class="SNum">30</span> <span class="SLgc">and</span> r[<span class="SNum">2</span>] == <span class="SNum">20</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">10</span>)
+
+    <span class="SCmt">// An index past the last lane wraps around instead of reading nothing.</span>
+    r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SItr">@vecshuffle</span>(quads, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>) [<span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>])
+    <span class="SItr">@assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">10</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">40</span>)
+
+    <span class="SKwd">let</span> other = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>) [<span class="SNum">50</span>, <span class="SNum">60</span>, <span class="SNum">70</span>, <span class="SNum">80</span>]
+    r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SItr">@vecshuffle2</span>(quads, other, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>) [<span class="SNum">0</span>, <span class="SNum">2</span>, <span class="SNum">5</span>, <span class="SNum">7</span>])
+    <span class="SItr">@assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">10</span> <span class="SLgc">and</span> r[<span class="SNum">1</span>] == <span class="SNum">30</span> <span class="SLgc">and</span> r[<span class="SNum">2</span>] == <span class="SNum">60</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">80</span>)
+
+    <span class="SKwd">let</span> bytes = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>) [<span class="SNum">0</span>, <span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>, <span class="SNum">9</span>, <span class="SNum">10</span>, <span class="SNum">11</span>, <span class="SNum">12</span>, <span class="SNum">13</span>, <span class="SNum">14</span>, <span class="SNum">15</span>]
+    <span class="SKwd">let</span> next  = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>) [<span class="SNum">16</span>, <span class="SNum">17</span>, <span class="SNum">18</span>, <span class="SNum">19</span>, <span class="SNum">20</span>, <span class="SNum">21</span>, <span class="SNum">22</span>, <span class="SNum">23</span>, <span class="SNum">24</span>, <span class="SNum">25</span>, <span class="SNum">26</span>, <span class="SNum">27</span>, <span class="SNum">28</span>, <span class="SNum">29</span>, <span class="SNum">30</span>, <span class="SNum">31</span>]
+    <span class="SKwd">let</span> slid  = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>) <span class="SItr">@vecalign</span>(bytes, next, <span class="SNum">4</span>)
+    <span class="SItr">@assert</span>(slid[<span class="SNum">0</span>] == <span class="SNum">4</span> <span class="SLgc">and</span> slid[<span class="SNum">11</span>] == <span class="SNum">15</span> <span class="SLgc">and</span> slid[<span class="SNum">12</span>] == <span class="SNum">16</span> <span class="SLgc">and</span> slid[<span class="SNum">15</span>] == <span class="SNum">19</span>)
+
+    <span class="SCmt">// Past the concatenation there is nothing to read.</span>
+    <span class="SKwd">let</span> empty = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>) <span class="SItr">@vecalign</span>(bytes, next, <span class="SNum">32</span>)
+    <span class="SItr">@assert</span>(empty[<span class="SNum">0</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> empty[<span class="SNum">15</span>] == <span class="SNum">0</span>)
+}</span></div>
+<h3 id="_004_009_simd_swg_Horizontal_Reductions">Horizontal Reductions</h3>
+<p>The <span class="code-inline">@vecreduce</span> family combines every lane of a vector into one scalar of the lane type: <span class="code-inline">@vecreduceadd</span> sums, <span class="code-inline">@vecreducemin</span> and <span class="code-inline">@vecreducemax</span> select, and <span class="code-inline">@vecreduceand</span>, <span class="code-inline">@vecreduceor</span> and <span class="code-inline">@vecreducexor</span> fold the bits of integer lanes.</p>
+<p>Adjacent lanes combine first and their results after, so the order is a balanced tree over the lane index; that order is what a float sum observes. Integer sums wrap like every other lane arithmetic. The float minimum and maximum follow the element-wise <span class="code-inline">@min</span> and <span class="code-inline">@max</span>, which answer their second operand when either side is a NaN, so a NaN does not propagate out of a reduction.</p>
+<p>Nothing here goes through memory: each step slides the upper half of the vector down and applies one element-wise operation.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> quads = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>) [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>]
+    <span class="SItr">@assert</span>(<span class="SItr">@vecreduceadd</span>(quads) == <span class="SNum">10</span>)
+    <span class="SItr">@assert</span>(<span class="SItr">@vecreducemin</span>(quads) == <span class="SNum">1</span>)
+    <span class="SItr">@assert</span>(<span class="SItr">@vecreducemax</span>(quads) == <span class="SNum">4</span>)
+
+    <span class="SKwd">let</span> bits = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>) [<span class="SNum">0b1110</span>, <span class="SNum">0b1010</span>, <span class="SNum">0b1111</span>, <span class="SNum">0b0110</span>]
+    <span class="SItr">@assert</span>(<span class="SItr">@vecreduceand</span>(bits) == <span class="SNum">0b0010</span>)
+    <span class="SItr">@assert</span>(<span class="SItr">@vecreduceor</span>(bits) == <span class="SNum">0b1111</span>)
+    <span class="SItr">@assert</span>(<span class="SItr">@vecreducexor</span>(bits) == <span class="SNum">0b1101</span>)
+
+    <span class="SCmt">// An integer sum wraps, like every other lane arithmetic.</span>
+    <span class="SKwd">let</span> edge = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>) [<span class="SNum">2_147_483_647</span>, <span class="SNum">1</span>, <span class="SNum">0</span>, <span class="SNum">0</span>]
+    <span class="SItr">@assert</span>(<span class="SItr">@vecreduceadd</span>(edge) == -<span class="SNum">2_147_483_648</span>)
+
+    <span class="SKwd">let</span> floats = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">f32</span>) [<span class="SNum">1.5</span>, -<span class="SNum">2.5</span>, <span class="SNum">8.0</span>, <span class="SNum">0.25</span>]
+    <span class="SItr">@assert</span>(<span class="SItr">@vecreduceadd</span>(floats) == <span class="SNum">7.25</span>)
+    <span class="SItr">@assert</span>(<span class="SItr">@vecreducemin</span>(floats) == -<span class="SNum">2.5</span>)
+    <span class="SItr">@assert</span>(<span class="SItr">@vecreducemax</span>(floats) == <span class="SNum">8.0</span>)
+
+    <span class="SCmt">// The absolute byte differences of each half land in one 64-bit lane each.</span>
+    <span class="SKwd">let</span> left  = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>) [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>, <span class="SNum">50</span>, <span class="SNum">60</span>, <span class="SNum">70</span>, <span class="SNum">80</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>]
+    <span class="SKwd">let</span> right = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>) [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>, <span class="SNum">255</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>]
+    <span class="SKwd">let</span> diffs = <span class="SKwd">cast</span>([<span class="SNum">2</span>] <span class="STpe">u64</span>) <span class="SItr">@vecsad</span>(left, right)
+    <span class="SItr">@assert</span>(diffs[<span class="SNum">0</span>] == <span class="SNum">9</span> + <span class="SNum">18</span> + <span class="SNum">27</span> + <span class="SNum">36</span> + <span class="SNum">45</span> + <span class="SNum">54</span> + <span class="SNum">63</span> + <span class="SNum">72</span> <span class="SLgc">and</span> diffs[<span class="SNum">1</span>] == <span class="SNum">255</span>)
+}</span></div>
+<h3 id="_004_009_simd_swg_Packed_Bit_Operations">Packed Bit Operations</h3>
+<p>The bit intrinsics accept vectors of unsigned lanes and answer, for every lane, what the scalar form answers for one value of that width. <span class="code-inline">@rol</span> and <span class="code-inline">@ror</span> rotate by a count taken modulo the lane width, so a count of zero or of one whole width is the identity. <span class="code-inline">@bitcountnz</span> counts the bits set, <span class="code-inline">@bitcounttz</span> and <span class="code-inline">@bitcountlz</span> count the zeros below the lowest and above the highest set bit, and an all-zero lane answers the lane width. <span class="code-inline">@byteswap</span> reverses the bytes inside every lane.</p>
+<p>None of these has a single packed instruction on the baseline target: a constant rotation is a shift pair, a variable one reduces its count first, the counts go through a nibble table, and the byte reversal is one dynamic permute.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> quads = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>) [<span class="SNum">0</span>, <span class="SNum">1</span>, <span class="SNum">0x1234_5678</span>, <span class="SNum">0xFFFF_FFFF</span>]
+
+    <span class="SKwd">let</span> rotated = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SItr">@rol</span>(quads, <span class="SNum">8</span>)
+    <span class="SItr">@assert</span>(rotated[<span class="SNum">1</span>] == <span class="SNum">0x100</span> <span class="SLgc">and</span> rotated[<span class="SNum">2</span>] == <span class="SNum">0x3456_7812</span>)
+    <span class="SKwd">let</span> restored = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SItr">@ror</span>(<span class="SItr">@rol</span>(quads, <span class="SNum">8</span>), <span class="SNum">8</span>)
+    <span class="SItr">@assert</span>(restored[<span class="SNum">2</span>] == <span class="SNum">0x1234_5678</span>)
+
+    <span class="SCmt">// The count reduces modulo the lane width, so a whole turn changes nothing.</span>
+    <span class="SKwd">let</span> turned = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SItr">@rol</span>(quads, <span class="SNum">32</span>)
+    <span class="SItr">@assert</span>(turned[<span class="SNum">2</span>] == <span class="SNum">0x1234_5678</span>)
+
+    <span class="SKwd">let</span> ones = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SItr">@bitcountnz</span>(quads)
+    <span class="SItr">@assert</span>(ones[<span class="SNum">0</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> ones[<span class="SNum">1</span>] == <span class="SNum">1</span> <span class="SLgc">and</span> ones[<span class="SNum">3</span>] == <span class="SNum">32</span>)
+
+    <span class="SCmt">// An empty lane answers the lane width for both counts.</span>
+    <span class="SKwd">let</span> below = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SItr">@bitcounttz</span>(quads)
+    <span class="SKwd">let</span> above = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SItr">@bitcountlz</span>(quads)
+    <span class="SItr">@assert</span>(below[<span class="SNum">0</span>] == <span class="SNum">32</span> <span class="SLgc">and</span> below[<span class="SNum">1</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> below[<span class="SNum">2</span>] == <span class="SNum">3</span>)
+    <span class="SItr">@assert</span>(above[<span class="SNum">0</span>] == <span class="SNum">32</span> <span class="SLgc">and</span> above[<span class="SNum">1</span>] == <span class="SNum">31</span> <span class="SLgc">and</span> above[<span class="SNum">3</span>] == <span class="SNum">0</span>)
+
+    <span class="SKwd">let</span> swapped = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>) <span class="SItr">@byteswap</span>(quads)
+    <span class="SItr">@assert</span>(swapped[<span class="SNum">1</span>] == <span class="SNum">0x0100_0000</span> <span class="SLgc">and</span> swapped[<span class="SNum">2</span>] == <span class="SNum">0x7856_3412</span>)
+
+    <span class="SKwd">let</span> magnitude = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">f32</span>) <span class="SItr">@abs</span>(<span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">f32</span>) [-<span class="SNum">1.5</span>, <span class="SNum">2.5</span>, -<span class="SNum">0.0</span>, -<span class="SNum">8.25</span>])
+    <span class="SItr">@assert</span>(magnitude[<span class="SNum">0</span>] == <span class="SNum">1.5</span> <span class="SLgc">and</span> magnitude[<span class="SNum">3</span>] == <span class="SNum">8.25</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Boundaries">Boundaries</h3>
 <p>A vector crosses module boundaries in the Swag calling convention only: a <span class="code-inline">#[Swag.Foreign]</span> declaration with a C calling convention does not accept a simd parameter or return type. Inside Swag code a vector behaves like any value: struct fields, arrays of vectors, and compile-time execution all work.</p>
@@ -9255,7 +9364,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.254</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.271</div>
 </footer>
 </section>
 </main>
@@ -9780,6 +9889,10 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Comparisons And Masks|_004_009_simd_swg_Comparisons_And_Masks|",
 "h|Lane Access|_004_009_simd_swg_Lane_Access|",
 "h|Packed Intrinsics|_004_009_simd_swg_Packed_Intrinsics|",
+"h|The Other Half Of A Product|_004_009_simd_swg_The_Other_Half_Of_A_Product|",
+"h|Lane Permutation|_004_009_simd_swg_Lane_Permutation|",
+"h|Horizontal Reductions|_004_009_simd_swg_Horizontal_Reductions|",
+"h|Packed Bit Operations|_004_009_simd_swg_Packed_Bit_Operations|",
 "h|Boundaries|_004_009_simd_swg_Boundaries|",
 "h|Control Flow|_005_000_control_flow_swg|",
 "h|If|_005_001_if_swg|",

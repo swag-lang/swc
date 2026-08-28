@@ -46,7 +46,7 @@ func reportIconContainer(image: *BinaryImage, report: *BinaryReport, previews: *
         let bits   = image.u16At(at + 6)
         let size   = cast(u64) image.u32At(at + 8)
         let offset = cast(u64) image.u32At(at + 12)
-        let label  = Format.toString("%×% · % bit", width, height, bits)
+        let label  = Format.toString("%×% · %b", width, height, bits)
 
         report.beginGroup(Format.toString("Image %", index + 1).toString(), label.toString(), "", offset: offset, length: size)
         report.sizeField(at + 8, 4, "StoredSize", size)

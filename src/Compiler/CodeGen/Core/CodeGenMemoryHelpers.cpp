@@ -813,8 +813,8 @@ void CodeGenMemoryHelpers::emitMemRepeatCopy(CodeGen& codeGen, MicroReg dstReg, 
     const uint64_t totalBytes = static_cast<uint64_t>(elementSizeInBytes) * elementCount;
     SWC_ASSERT(totalBytes <= std::numeric_limits<uint32_t>::max());
 
-    MicroBuilder&  builder     = codeGen.builder();
-    const uint32_t memLimit    = getUnrollMemLimit(codeGen.buildCfgBackend());
+    MicroBuilder&  builder  = codeGen.builder();
+    const uint32_t memLimit = getUnrollMemLimit(codeGen.buildCfgBackend());
     if (elementSizeInBytes > memLimit)
     {
         if (elementCount == 1)

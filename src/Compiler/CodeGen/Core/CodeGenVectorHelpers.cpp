@@ -787,8 +787,8 @@ MicroReg CodeGenVectorHelpers::emitSumAbsoluteDifferences(CodeGen& codeGen, Micr
     MicroReg right = rightReg;
     if (laneType.isIntSigned())
     {
-        const MicroReg biasReg = repeatedConstant(codeGen, 1, 0x80);
-        const MicroReg leftBiasedReg = codeGen.nextVirtualFloatRegister();
+        const MicroReg biasReg        = repeatedConstant(codeGen, 1, 0x80);
+        const MicroReg leftBiasedReg  = codeGen.nextVirtualFloatRegister();
         const MicroReg rightBiasedReg = codeGen.nextVirtualFloatRegister();
         builder.emitOpBinaryRegRegReg(leftBiasedReg, leftReg, biasReg, MicroOp::VecXor, MicroOpBits::B128);
         builder.emitOpBinaryRegRegReg(rightBiasedReg, rightReg, biasReg, MicroOp::VecXor, MicroOpBits::B128);
@@ -847,7 +847,8 @@ namespace
         if (laneBytes == 1)
             return maskedReg;
 
-        const uint32_t shift    = laneBytes == 2 ? 1 : laneBytes == 4 ? 2 : 3;
+        const uint32_t shift    = laneBytes == 2 ? 1 : laneBytes == 4 ? 2
+                                                                      : 3;
         const MicroReg scaleReg = CodeGenVectorHelpers::emitLaneShiftImm(codeGen, maskedReg, laneType, shift, true);
 
         std::array<uint8_t, 16> spread{};
@@ -874,11 +875,11 @@ namespace
         const MicroReg fromSecondReg = CodeGenVectorHelpers::emitCompare(codeGen, TokenId::SymGreater, tableReg, lowLimit, byteLaneType);
         const MicroReg outOfRangeReg = CodeGenVectorHelpers::emitCompare(codeGen, TokenId::SymGreater, tableReg, highLimit, byteLaneType);
 
-        const MicroReg firstTableReg   = emitVecBinary(codeGen, tableReg, emitVecBinary(codeGen, fromSecondReg, signBitReg, MicroOp::VecAnd), MicroOp::VecOr);
-        const MicroReg loweredReg      = emitVecBinary(codeGen, tableReg, repeatedConstant(codeGen, 1, 16), MicroOp::VecSub8);
-        const MicroReg fromFirstReg    = emitVecBinary(codeGen, fromSecondReg, signBitReg, MicroOp::VecAndNot);
+        const MicroReg firstTableReg    = emitVecBinary(codeGen, tableReg, emitVecBinary(codeGen, fromSecondReg, signBitReg, MicroOp::VecAnd), MicroOp::VecOr);
+        const MicroReg loweredReg       = emitVecBinary(codeGen, tableReg, repeatedConstant(codeGen, 1, 16), MicroOp::VecSub8);
+        const MicroReg fromFirstReg     = emitVecBinary(codeGen, fromSecondReg, signBitReg, MicroOp::VecAndNot);
         const MicroReg outOfRangeBitReg = emitVecBinary(codeGen, outOfRangeReg, signBitReg, MicroOp::VecAnd);
-        const MicroReg secondTableReg  = emitVecBinary(codeGen, emitVecBinary(codeGen, loweredReg, fromFirstReg, MicroOp::VecOr), outOfRangeBitReg, MicroOp::VecOr);
+        const MicroReg secondTableReg   = emitVecBinary(codeGen, emitVecBinary(codeGen, loweredReg, fromFirstReg, MicroOp::VecOr), outOfRangeBitReg, MicroOp::VecOr);
 
         const MicroReg firstPartReg  = emitVecBinary(codeGen, firstReg, firstTableReg, MicroOp::VecPermB);
         const MicroReg secondPartReg = emitVecBinary(codeGen, secondReg, secondTableReg, MicroOp::VecPermB);
@@ -942,8 +943,8 @@ MicroReg CodeGenVectorHelpers::emitConstantShuffle2(CodeGen& codeGen, MicroReg f
     // half from the other is exactly what 'shufps' does.
     if (laneBytes == 4 && laneIndices[0] < 4 && laneIndices[1] < 4 && laneIndices[2] >= 4 && laneIndices[3] >= 4)
     {
-        const uint8_t control = static_cast<uint8_t>(laneIndices[0] | (laneIndices[1] << 2) | ((laneIndices[2] - 4) << 4) | ((laneIndices[3] - 4) << 6));
-        const MicroReg dstReg = codeGen.nextVirtualFloatRegister();
+        const uint8_t  control = static_cast<uint8_t>(laneIndices[0] | (laneIndices[1] << 2) | ((laneIndices[2] - 4) << 4) | ((laneIndices[3] - 4) << 6));
+        const MicroReg dstReg  = codeGen.nextVirtualFloatRegister();
         codeGen.builder().emitOpTernaryRegRegRegImm(dstReg, firstReg, secondReg, control, MicroOp::VecShufF32, MicroOpBits::B128);
         return dstReg;
     }
@@ -1080,12 +1081,12 @@ namespace
         const MicroReg highLowReg  = emitVecBinary(codeGen, leftHighReg, rightReg, MicroOp::VecMulU32Wide);
         const MicroReg highHighReg = emitVecBinary(codeGen, leftHighReg, rightHighReg, MicroOp::VecMulU32Wide);
 
-        const MicroReg lowMaskReg     = repeatedConstant(codeGen, 8, 0xFFFFFFFF);
-        const MicroReg lowLowHighReg  = emitVecBinaryImm(codeGen, lowLowReg, 32, MicroOp::VecShiftRight64);
-        const MicroReg lowHighLowReg  = emitVecBinary(codeGen, lowHighReg, lowMaskReg, MicroOp::VecAnd);
-        const MicroReg highLowLowReg  = emitVecBinary(codeGen, highLowReg, lowMaskReg, MicroOp::VecAnd);
-        const MicroReg middlePartReg  = emitVecBinary(codeGen, lowLowHighReg, lowHighLowReg, MicroOp::VecAdd64);
-        const MicroReg middleReg      = emitVecBinary(codeGen, middlePartReg, highLowLowReg, MicroOp::VecAdd64);
+        const MicroReg lowMaskReg    = repeatedConstant(codeGen, 8, 0xFFFFFFFF);
+        const MicroReg lowLowHighReg = emitVecBinaryImm(codeGen, lowLowReg, 32, MicroOp::VecShiftRight64);
+        const MicroReg lowHighLowReg = emitVecBinary(codeGen, lowHighReg, lowMaskReg, MicroOp::VecAnd);
+        const MicroReg highLowLowReg = emitVecBinary(codeGen, highLowReg, lowMaskReg, MicroOp::VecAnd);
+        const MicroReg middlePartReg = emitVecBinary(codeGen, lowLowHighReg, lowHighLowReg, MicroOp::VecAdd64);
+        const MicroReg middleReg     = emitVecBinary(codeGen, middlePartReg, highLowLowReg, MicroOp::VecAdd64);
 
         const MicroReg lowHighHighReg = emitVecBinaryImm(codeGen, lowHighReg, 32, MicroOp::VecShiftRight64);
         const MicroReg highLowHighReg = emitVecBinaryImm(codeGen, highLowReg, 32, MicroOp::VecShiftRight64);

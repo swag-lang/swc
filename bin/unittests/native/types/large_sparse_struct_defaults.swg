@@ -24,7 +24,7 @@ struct NativeSparseDefaultSecondOwner
 
 #test
 {
-    var first: NativeSparseDefaultFirstOwner
+    var first:  NativeSparseDefaultFirstOwner
     var second: NativeSparseDefaultSecondOwner
 
     @assert(first.payload.leaves[0].marker == 0x123456789ABCDEF0)

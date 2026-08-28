@@ -1062,10 +1062,10 @@ namespace
                 SWC_RESULT(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
                 const auto& symStruct = explicitType->payloadSymStruct();
                 symStruct.computeImplicitDefaultFlags(sema);
-                implicitStructZeroInit = symStruct.hasImplicitAllZeroDefault();
-                implicitStructNoInit   = symStruct.hasImplicitAllUndefinedDefault();
-                implicitStructPartInit = symStruct.hasImplicitUndefinedDefault() && !implicitStructNoInit;
-                implicitStructFullInit = !implicitStructNoInit && !implicitStructPartInit;
+                implicitStructZeroInit      = symStruct.hasImplicitAllZeroDefault();
+                implicitStructNoInit        = symStruct.hasImplicitAllUndefinedDefault();
+                implicitStructPartInit      = symStruct.hasImplicitUndefinedDefault() && !implicitStructNoInit;
+                implicitStructFullInit      = !implicitStructNoInit && !implicitStructPartInit;
                 const bool hasGlobalStorage = std::ranges::any_of(symbols, [](Symbol* symbol) {
                     const SymbolVariable* variable = getVariableSymbol(symbol);
                     return variable && isGlobalStorageVariable(*variable);

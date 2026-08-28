@@ -2,12 +2,12 @@
 #include "Support/Core/Result.h"
 #include "Support/Core/Utf8.h"
 
-#include "Backend/Native/NativeBackendBuilder.h"
-
 SWC_BEGIN_NAMESPACE();
 
 class NativeRDataCollector;
 class NativeStartupBuildJob;
+class NativeBackendBuilder;
+class TaskContext;
 
 struct NativeArtifactPaths
 {

@@ -7,6 +7,9 @@
 #include "Backend/Debug/DebugRecordCollector.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/NativeNames.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
@@ -15,6 +18,7 @@
 #include "Main/Stats.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Math/Sha256.h"
+#include "Support/Os/Os.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestSource.h"
 

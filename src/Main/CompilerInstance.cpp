@@ -4,6 +4,7 @@
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/RuntimeContext.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Lexer/SourceView.h"
@@ -36,6 +37,22 @@
 #include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
+
+struct CompilerInstance::PerThreadData
+{
+    struct GeneratedSourceThreadData
+    {
+        fs::path path;
+        Utf8     content;
+        uint32_t nextLineOffset = 0;
+        bool     dirty          = false;
+    };
+
+    Arena                     arena;
+    Runtime::Context          runtimeContext{};
+    ModuleApiPerThreadData    moduleApi;
+    GeneratedSourceThreadData generatedSource;
+};
 
 bool CompilerInstance::dbgDevStop      = false;
 bool CompilerInstance::headlessTestRun = false;
@@ -372,6 +389,26 @@ CompilerInstance::~CompilerInstance()
     // run during compiler teardown. Unregister prepared function tables before executable pages are
     // released or stale Windows unwind entries can survive into the next compiler instance.
     resetPreparedJitFunctions();
+}
+
+size_t CompilerInstance::numPerThreadData() const noexcept
+{
+    return perThreadData_.size();
+}
+
+const ModuleApiPerThreadData& CompilerInstance::moduleApiPerThreadData(const size_t index) const
+{
+    return perThreadData_[index].moduleApi;
+}
+
+Arena& CompilerInstance::threadArena()
+{
+    return perThreadData_[JobManager::threadIndex()].arena;
+}
+
+ModuleApiPerThreadData& CompilerInstance::threadModuleApiData()
+{
+    return perThreadData_[JobManager::threadIndex()].moduleApi;
 }
 
 void CompilerInstance::setDeferredBuilder(std::unique_ptr<NativeBackendBuilder> builder)

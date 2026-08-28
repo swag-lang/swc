@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Native/NativeObjJob.h"
+#include "Backend/Native/NativeBackendBuilder.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();

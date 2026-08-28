@@ -1,69 +1,22 @@
 #pragma once
 #include "Backend/Linker/LinkJob.h"
+#include "Backend/Micro/MachineCode.h"
+#include "Backend/Native/NativeSection.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Symbol/Symbol.Variable.h"
-#include "Compiler/Sema/Symbol/Symbols.h"
-#include "Main/Command/CommandLine.h"
-#include "Main/CompilerInstance.h"
+#include "Main/TaskContext.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/Utf8.h"
-#include "Support/Math/Hash.h"
-#include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
 struct MicroRelocation;
+class CompilerInstance;
 class Linker;
 class ScopedTimedLog;
-
-inline constexpr auto K_R_DATA_BASE_SYMBOL = "__swc_rdata_base";
-inline constexpr auto K_DATA_BASE_SYMBOL   = "__swc_data_base";
-inline constexpr auto K_BSS_BASE_SYMBOL    = "__swc_bss_base";
-
-inline Utf8 nativeArtifactScopeName(const CompilerInstance& compiler)
-{
-    const Runtime::String& artifactName = compiler.buildCfg().name;
-    if (artifactName.ptr && artifactName.length)
-        return Utf8{artifactName};
-    if (!compiler.cmdLine().name.empty())
-        return compiler.cmdLine().name;
-    if (!compiler.cmdLine().modulePath.empty())
-        return Utf8(compiler.cmdLine().modulePath.filename().string());
-    if (!compiler.cmdLine().moduleFilePath.empty())
-        return Utf8(compiler.cmdLine().moduleFilePath.parent_path().filename().string());
-    return "module";
-}
-
-inline Utf8 nativeScopedSectionBaseSymbol(const CompilerInstance& compiler, std::string_view baseName)
-{
-    return std::format("{}_{:08x}", baseName, Math::hash(nativeArtifactScopeName(compiler).view()));
-}
-
-inline Utf8 unresolvedFunctionSymbolName(const TaskContext& ctx, const SymbolFunction& function)
-{
-    Utf8 key = function.getFullScopedName(ctx);
-    key += "|";
-    key += std::to_string(function.tokRef().get());
-    return std::format("__swc_ext_fn_{:08x}", Math::hash(key.view()));
-}
-
-enum class NativeObjectFormat : uint8_t
-{
-    WindowsCoff,
-};
-
-inline std::optional<NativeObjectFormat> getNativeObjFormat(const Runtime::TargetOs targetOs)
-{
-    switch (targetOs)
-    {
-        case Runtime::TargetOs::Windows:
-            return NativeObjectFormat::WindowsCoff;
-        default:
-            return std::nullopt;
-    }
-}
+class SymbolFunction;
+class SymbolVariable;
 
 struct NativeFunctionInfo
 {
@@ -94,32 +47,6 @@ struct NativeRuntimeDependency
     Utf8              hookSymbolName;
     std::vector<Utf8> transitiveImports;
     SymbolFunction*   hookSymbol = nullptr;
-};
-
-struct NativeSectionRelocation
-{
-    uint32_t offset = 0;
-    Utf8     symbolName;
-    uint64_t addend = 0;
-    uint16_t type   = IMAGE_REL_AMD64_ADDR64;
-};
-
-struct NativeSectionData
-{
-    Utf8                                 name;
-    ByteArray                            bytes;
-    std::vector<NativeSectionRelocation> relocations;
-    uint32_t                             characteristics = 0;
-    bool                                 bss             = false;
-    uint32_t                             bssSize         = 0;
-};
-
-struct NativeCodeRelocationTarget
-{
-    ByteArray*                            bytes                  = nullptr;
-    std::vector<NativeSectionRelocation>* relocations            = nullptr;
-    uint32_t                              functionOffset         = 0;
-    bool                                  allowUnresolvedSymbols = false;
 };
 
 struct NativeRDataAllocationMapEntry

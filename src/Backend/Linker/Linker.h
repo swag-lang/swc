@@ -2,10 +2,12 @@
 #include "Support/Core/Result.h"
 
 #include "Backend/Linker/LinkJob.h"
-#include "Backend/Native/NativeBackendBuilder.h"
+#include "Support/Os/Os.h"
 #include "Support/Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE();
+
+class NativeBackendBuilder;
 
 // Base class for the integrated linker. A target-specific subclass lowers the backend output into a
 // LinkJob; the shared executeLink()/finishLink() turn that job into the final on-disk artifact.

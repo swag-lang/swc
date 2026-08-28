@@ -1,9 +1,11 @@
 #pragma once
-#include "Backend/Native/NativeBackendBuilder.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();
+
+class NativeBackendBuilder;
+struct NativeObjDescription;
 
 class NativeObjFileWriter
 {

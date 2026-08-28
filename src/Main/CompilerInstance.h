@@ -45,8 +45,15 @@ struct CommandLine;
 struct WorkspaceModuleLink;
 struct DependencyPlanBuilder;
 
+namespace Runtime
+{
+    struct Context;
+}
+
 class CompilerInstance
 {
+    struct PerThreadData;
+
 public:
     struct ModuleSetupImport
     {
@@ -283,8 +290,8 @@ public:
     bool                                    tryResolveSourceLocation(const TaskContext& ctx, ResolvedSourceLocation& outResolvedLocation, const SourceCodeRef& codeRef) const;
     bool                                    tryResolveSourceLocation(const TaskContext& ctx, ResolvedSourceLocation& outResolvedLocation, const Runtime::SourceCodeLocation& location) const;
     const SourceView*                       findSourceViewByFileName(std::string_view fileName) const;
-    size_t                                  numPerThreadData() const noexcept { return perThreadData_.size(); }
-    const ModuleApiPerThreadData&           moduleApiPerThreadData(size_t index) const { return perThreadData_[index].moduleApi; }
+    size_t                                  numPerThreadData() const noexcept;
+    const ModuleApiPerThreadData&           moduleApiPerThreadData(size_t index) const;
     ModuleApiFileEntries&                   prepareModuleApiPublicEntries() { return moduleApiPublicEntries_.emplace(); }
     const ModuleApiFileEntries*             moduleApiPublicEntries() const { return moduleApiPublicEntries_ ? &*moduleApiPublicEntries_ : nullptr; }
     const std::vector<fs::path>&            importedDependencyLinkDirs() const { return importedDependencyLinkDirs_; }
@@ -305,17 +312,15 @@ public:
     template<typename T, typename... ARGS>
     T* allocate(ARGS&&... args)
     {
-        PerThreadData& td  = perThreadData_[JobManager::threadIndex()];
-        void*          mem = td.arena.allocate(sizeof(T), alignof(T));
+        void* mem = threadArena().allocate(sizeof(T), alignof(T));
         return new (mem) T(std::forward<ARGS>(args)...);
     }
 
     template<typename T>
     T* allocateArray(size_t count)
     {
-        PerThreadData& td  = perThreadData_[JobManager::threadIndex()];
-        void*          mem = td.arena.allocate(sizeof(T) * count, alignof(T));
-        T*             ptr = static_cast<T*>(mem);
+        void* mem = threadArena().allocate(sizeof(T) * count, alignof(T));
+        T*    ptr = static_cast<T*>(mem);
         if constexpr (!std::is_trivially_default_constructible_v<T>)
         {
             for (size_t i = 0; i < count; ++i)
@@ -333,6 +338,9 @@ public:
     static bool headlessTestRun;
 
 private:
+    Arena& threadArena();
+    ModuleApiPerThreadData& threadModuleApiData();
+
     friend class CompilerMessageTypeInfoJob;
     friend struct DependencyPlanBuilder;
     friend struct ModuleSetupInputApplier;
@@ -516,22 +524,6 @@ private:
     std::atomic<uint64_t>                          globalFunctionBindingsVersion_{1};
     std::atomic<uint64_t>                          patchedGlobalFunctionBindingsVersion_{0};
     std::atomic<uint64_t>                          nativeGlobalFunctionInitTargetsVersion_{1};
-
-    struct PerThreadData
-    {
-        struct GeneratedSourceThreadData
-        {
-            fs::path path;
-            Utf8     content;
-            uint32_t nextLineOffset = 0;
-            bool     dirty          = false;
-        };
-
-        Arena                     arena;
-        Runtime::Context          runtimeContext{};
-        ModuleApiPerThreadData    moduleApi;
-        GeneratedSourceThreadData generatedSource;
-    };
 
     std::vector<PerThreadData>                                                                                   perThreadData_;
     std::atomic<uint32_t>                                                                                        atomicId_ = 0;

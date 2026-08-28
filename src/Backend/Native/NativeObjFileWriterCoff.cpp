@@ -2,9 +2,13 @@
 #include "Backend/Native/NativeObjFileWriterCoff.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Debug/DebugRecordCollector.h"
+#include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/NativeNames.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/FileSystem.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -375,7 +379,7 @@ Result NativeObjFileWriterCoff::buildCoffFile(ByteArray& outBytes, std::vector<C
     {
         IMAGE_SECTION_HEADER headerSection{};
         std::memset(headerSection.Name, 0, sizeof(headerSection.Name));
-        std::memcpy(headerSection.Name, section.data.name.data(), std::min<size_t>(section.data.name.size(), IMAGE_SIZEOF_SHORT_NAME));
+        std::memcpy(headerSection.Name, section.data.name.data(), std::min(section.data.name.size(), K_COFF_SHORT_NAME_SIZE));
         headerSection.SizeOfRawData        = section.sizeOfRawData;
         headerSection.PointerToRawData     = section.pointerToRawData;
         headerSection.PointerToRelocations = section.pointerToRelocations;
@@ -425,7 +429,7 @@ Result NativeObjFileWriterCoff::buildCoffFile(ByteArray& outBytes, std::vector<C
     for (const auto& symbol : symbols)
     {
         IMAGE_SYMBOL record{};
-        if (symbol.name.size() <= IMAGE_SIZEOF_SHORT_NAME)
+        if (symbol.name.size() <= K_COFF_SHORT_NAME_SIZE)
         {
             std::memcpy(record.N.ShortName, symbol.name.data(), symbol.name.size());
         }

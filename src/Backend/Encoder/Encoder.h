@@ -1,10 +1,10 @@
 #pragma once
 #include "Backend/ABI/CallConv.h"
+#include "Backend/Encoder/EncoderDebugInfo.h"
 #include "Backend/Encoder/EncoderTypes.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroTypes.h"
 #include "Backend/Runtime.h"
-#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/PagedStore.h"
 #include "Support/Math/ApInt.h"
@@ -46,37 +46,6 @@ struct MicroConformanceIssue
     MicroReg                  helperReg;
     MicroReg                  scratchReg;
 };
-
-struct DebugSourceInfo
-{
-    SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
-    bool          debugNoStep   = false;
-
-    bool isValid() const { return sourceCodeRef.isValid(); }
-    bool isStepVisible() const { return isValid() && !debugNoStep; }
-
-    bool sameAs(const DebugSourceInfo& other) const
-    {
-        return debugNoStep == other.debugNoStep &&
-               sourceCodeRef.srcViewRef == other.sourceCodeRef.srcViewRef &&
-               sourceCodeRef.tokRef == other.sourceCodeRef.tokRef;
-    }
-};
-
-struct EncoderDebugSourceRange
-{
-    uint32_t        codeStartOffset = 0;
-    uint32_t        codeEndOffset   = 0;
-    DebugSourceInfo debugSourceInfo;
-};
-
-struct ResolvedDebugSourceInfo
-{
-    SourceCodeRange   codeRange;
-    const SourceFile* sourceFile = nullptr;
-};
-
-bool tryResolveDebugSourceInfo(const TaskContext& ctx, ResolvedDebugSourceInfo& outResolvedInfo, const DebugSourceInfo& debugSourceInfo);
 
 class Encoder
 {

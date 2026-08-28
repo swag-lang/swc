@@ -1,11 +1,18 @@
 #pragma once
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Native/NativeObjFileWriter.h"
+#include "Backend/Native/NativeSection.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
+
+struct MachineCode;
+struct MicroRelocation;
+struct NativeFunctionInfo;
+struct NativeObjDescription;
+struct NativeStartupInfo;
 
 class NativeObjFileWriterCoff final : public NativeObjFileWriter
 {
@@ -42,7 +49,7 @@ private:
     {
         uint32_t add(const Utf8& name)
         {
-            if (name.size() <= IMAGE_SIZEOF_SHORT_NAME)
+            if (name.size() <= K_COFF_SHORT_NAME_SIZE)
                 return 0;
             const auto it = offsets.find(name);
             if (it != offsets.end())

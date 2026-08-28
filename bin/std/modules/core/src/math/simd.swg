@@ -104,6 +104,38 @@ namespace Simd
         // Multiplies 16-bit lanes pairwise and adds each pair of adjacent products into a 32-bit lane.
         func mulAddPairs(x, y: S16x8)->S32x4 => @vecmadd(x, y)
 
+        // The half of a lane product that `*` drops: the bits above the lane width.
+        //
+        // With the low half from `*`, the two are the whole product, and
+        // [[Core.Math.Simd.mulWidenLow]] puts them back together.
+        func mulHigh(x, y: U8x16)->U8x16 => @vecmulhi(x, y)
+        func mulHigh(x, y: S8x16)->S8x16 => @vecmulhi(x, y)
+        func mulHigh(x, y: U16x8)->U16x8 => @vecmulhi(x, y)
+        func mulHigh(x, y: S16x8)->S16x8 => @vecmulhi(x, y)
+        func mulHigh(x, y: U32x4)->U32x4 => @vecmulhi(x, y)
+        func mulHigh(x, y: S32x4)->S32x4 => @vecmulhi(x, y)
+        func mulHigh(x, y: U64x2)->U64x2 => @vecmulhi(x, y)
+        func mulHigh(x, y: S64x2)->S64x2 => @vecmulhi(x, y)
+
+        // The exact products of the low half of the lanes, in lanes twice as wide.
+        //
+        // Nothing is lost: the low and high halves of each product interleave back
+        // into the double-width lane they belong to.
+        func mulWidenLow(x, y: U8x16)->U16x8 => cast #bit (U16x8) @vecinterleavelo(x * y, @vecmulhi(x, y))
+        func mulWidenLow(x, y: S8x16)->S16x8 => cast #bit (S16x8) @vecinterleavelo(cast #bit (U8x16) (x * y), cast #bit (U8x16) @vecmulhi(x, y))
+        func mulWidenLow(x, y: U16x8)->U32x4 => cast #bit (U32x4) @vecinterleavelo(x * y, @vecmulhi(x, y))
+        func mulWidenLow(x, y: S16x8)->S32x4 => cast #bit (S32x4) @vecinterleavelo(cast #bit (U16x8) (x * y), cast #bit (U16x8) @vecmulhi(x, y))
+        func mulWidenLow(x, y: U32x4)->U64x2 => cast #bit (U64x2) @vecinterleavelo(x * y, @vecmulhi(x, y))
+        func mulWidenLow(x, y: S32x4)->S64x2 => cast #bit (S64x2) @vecinterleavelo(cast #bit (U32x4) (x * y), cast #bit (U32x4) @vecmulhi(x, y))
+
+        // The same for the high half of the lanes.
+        func mulWidenHigh(x, y: U8x16)->U16x8 => cast #bit (U16x8) @vecinterleavehi(x * y, @vecmulhi(x, y))
+        func mulWidenHigh(x, y: S8x16)->S16x8 => cast #bit (S16x8) @vecinterleavehi(cast #bit (U8x16) (x * y), cast #bit (U8x16) @vecmulhi(x, y))
+        func mulWidenHigh(x, y: U16x8)->U32x4 => cast #bit (U32x4) @vecinterleavehi(x * y, @vecmulhi(x, y))
+        func mulWidenHigh(x, y: S16x8)->S32x4 => cast #bit (S32x4) @vecinterleavehi(cast #bit (U16x8) (x * y), cast #bit (U16x8) @vecmulhi(x, y))
+        func mulWidenHigh(x, y: U32x4)->U64x2 => cast #bit (U64x2) @vecinterleavehi(x * y, @vecmulhi(x, y))
+        func mulWidenHigh(x, y: S32x4)->S64x2 => cast #bit (S64x2) @vecinterleavehi(cast #bit (U32x4) (x * y), cast #bit (U32x4) @vecmulhi(x, y))
+
         // Adds every lane into one scalar, with wrapping arithmetic for integers.
         //
         // Adjacent lanes combine first and their results after, so the order is a

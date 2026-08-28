@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroTypes.h"
 #include "Compiler/Lexer/Token.h"
@@ -107,6 +107,11 @@ namespace CodeGenVectorHelpers
     // The same over two vectors, an index past the lane count reading the second.
     MicroReg emitConstantShuffle2(CodeGen& codeGen, MicroReg firstReg, MicroReg secondReg, const TypeInfo& laneType, std::span<const uint8_t> laneIndices);
     MicroReg emitDynamicShuffle2(CodeGen& codeGen, MicroReg firstReg, MicroReg secondReg, MicroReg patternReg, const TypeInfo& laneType, const TypeInfo& byteLaneType);
+
+    // The half of a lane product that the low product drops: lane 'i' answers
+    // the bits above the lane width of the full product of both lane 'i'
+    // values, read as the lane type is signed or not.
+    MicroReg emitMultiplyHigh(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, const TypeInfo& laneType);
 
     // Sixteen bytes of the concatenation of two vectors, starting at a byte
     // offset; the bytes past the concatenation are zero.

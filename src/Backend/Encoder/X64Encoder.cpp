@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Main/Command/CommandLine.h"
@@ -682,6 +682,9 @@ namespace
             case MicroOp::VecSub64: return {VEX_MAP_0F, 0x66, 0xFB};
             case MicroOp::VecMul16: return {VEX_MAP_0F, 0x66, 0xD5};
             case MicroOp::VecMul32: return {VEX_MAP_0F38, 0x66, 0x40};
+            case MicroOp::VecMulHiS16: return {VEX_MAP_0F, 0x66, 0xE5};
+            case MicroOp::VecMulHiU16: return {VEX_MAP_0F, 0x66, 0xE4};
+            case MicroOp::VecMulS32Wide: return {VEX_MAP_0F38, 0x66, 0x28};
             case MicroOp::VecMulU32Wide: return {VEX_MAP_0F, 0x66, 0xF4};
             case MicroOp::VecSatAddS8: return {VEX_MAP_0F, 0x66, 0xEC};
             case MicroOp::VecSatAddS16: return {VEX_MAP_0F, 0x66, 0xED};

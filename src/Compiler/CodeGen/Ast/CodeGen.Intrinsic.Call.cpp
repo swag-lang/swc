@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
@@ -2408,6 +2408,16 @@ namespace
                 const MicroReg      rightReg      = loadArg(1);
                 CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
                 resultPayload.reg                 = CodeGenVectorHelpers::emitSumAbsoluteDifferences(codeGen, leftReg, rightReg, laneType);
+                outHandled                        = true;
+                return Result::Continue;
+            }
+
+            case TokenId::IntrinsicVecMulHi:
+            {
+                const MicroReg      leftReg       = loadArg(0);
+                const MicroReg      rightReg      = loadArg(1);
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+                resultPayload.reg                 = CodeGenVectorHelpers::emitMultiplyHigh(codeGen, leftReg, rightReg, laneType);
                 outHandled                        = true;
                 return Result::Continue;
             }

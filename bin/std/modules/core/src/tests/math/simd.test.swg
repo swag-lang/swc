@@ -366,3 +366,35 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
             @assert(wide[r][c] == cast(u16) (c * 8 + r))
     }
 }
+
+// The high half of a lane product, and the widening products it composes into.
+#test
+{
+    let x = cast(Simd.S16x8) [-32768's16, 32767, 1000, -1000, 3, -3, 0, 12345]
+    let y = cast(Simd.S16x8) [32767's16, 32767, -2000, 2000, 5, 5, 12345, -1]
+
+    let low  = x * y
+    let high = Simd.mulHigh(x, y)
+    for i in 8
+    {
+        // The full product read as bits, since half of it does not fit a lane.
+        let exact = cast #bit (u32) (cast(s32) x[i] * cast(s32) y[i])
+        @assert(cast #bit (u16) low[i] == cast(u16) (exact & 0xFFFF))
+        @assert(cast #bit (u16) high[i] == cast(u16) (exact >> 16))
+    }
+
+    let wideLow  = Simd.mulWidenLow(x, y)
+    let wideHigh = Simd.mulWidenHigh(x, y)
+    for i in 4
+    {
+        @assert(wideLow[i] == cast(s32) x[i] * cast(s32) y[i])
+        @assert(wideHigh[i] == cast(s32) x[i + 4] * cast(s32) y[i + 4])
+    }
+
+    // The unsigned form reads the same bits differently.
+    let ux = cast #bit (Simd.U16x8) x
+    let uy = cast #bit (Simd.U16x8) y
+    let uh = Simd.mulHigh(ux, uy)
+    for i in 8 do
+        @assert(uh[i] == cast(u16) ((cast(u32) ux[i] * cast(u32) uy[i]) >> 16))
+}

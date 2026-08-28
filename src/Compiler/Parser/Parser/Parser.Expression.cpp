@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Compiler/Parser/Parser/Parser.h"
 #include "Support/Report/Assert.h"
 
@@ -903,6 +903,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicVecMadd:
         case TokenId::IntrinsicVecMaddUBS:
         case TokenId::IntrinsicVecSad:
+        case TokenId::IntrinsicVecMulHi:
         case TokenId::IntrinsicVecGather:
         case TokenId::IntrinsicVecPerm:
         case TokenId::IntrinsicVecShuffle:

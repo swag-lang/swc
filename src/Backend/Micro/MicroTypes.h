@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -149,6 +149,9 @@ enum class MicroOp : uint8_t
     VecSub64,
     VecMul16,
     VecMul32,
+    VecMulHiS16,
+    VecMulHiU16,
+    VecMulS32Wide,
     VecMulU32Wide,
     VecSatAddS8,
     VecSatAddS16,

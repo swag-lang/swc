@@ -96,19 +96,6 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   them.
 - Related: T-547, T-549, T-552.
 
-### T-513 — Packed widening multiplication is incomplete
-
-- Intent: add signed and unsigned widening products and explicit high halves for 8-, 16-, 32-, and
-  64-bit lanes. Low wrapping products already exist for every integer lane width, including
-  decomposed baseline lowerings for 8 and 64 bits.
-- Measured application: the JPEG color LUT holds 16-bit fixed-point coefficients scaled past the
-  `s16` range — 45941 and 58982 in `pixel/src/image/decode/jpg/scan.swg` — so a byte-exact
-  packed YCbCr conversion has no 16-bit high or widening product to reach for and has to widen to
-  `s32` and multiply there.
-- Complete when: low and high halves are unambiguous, all shapes have differential tests against
-  scalar arithmetic, and AVX2/AVX-512 forms are selected where profitable.
-- Related: T-251, T-250, T-536, T-549.
-
 ### T-556 — Packed integer division and modulo have no portable lowering
 
 - Intent: define integer lane division/remainder semantics and implement constant-divisor strength
@@ -237,7 +224,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   element/count/operator combination has supported packed semantics.
 - Complete when: specialization is compile-time selected, unsupported shapes remain scalar, and
   generated-code tests prove no hidden conversion or temporary array.
-- Related: T-506, T-511, T-513.
+- Related: T-506, T-511.
 
 ## Tier B — Cryptography and checksums
 
@@ -256,7 +243,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   wider layout that amortizes that regrouping; the low-half multiply alone is not a useful feature.
 - Complete when: published vectors pass for all supported parameters and profile benchmarks isolate
   the packed kernel gain from independent-lane parallelism.
-- Related: T-252 in [core.md](core.md), T-513.
+- Related: T-252 in [core.md](core.md).
 
 ### T-536 — Blake2b compression remains scalar
 
@@ -267,7 +254,6 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
 - Evidence: pairing two G functions while packing and extracting scalar state at every half-round
   measured 273,397 to 1,419,077 microseconds over 64 MiB (5.19x slower) and was rejected. A viable
   kernel needs persistent vector state with cheap lane permutation, or independent messages per lane.
-- Related: T-513.
 
 ### T-250 — Poly1305 remains scalar
 
@@ -275,7 +261,6 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   the current scalar carry chain.
 - Complete when: differential vectors cover every block-tail length, carry/reduction boundaries are
   exact, and authenticated-encryption throughput improves end to end.
-- Related: T-513.
 
 ### T-538 — SHA-1, SHA-256, and MD5 have no multi-buffer kernels
 
@@ -346,7 +331,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   slower; those paths remain scalar.
 - Complete when: conformance streams remain byte-exact and each retained kernel improves the staged
   reconstruction profile.
-- Related: T-513, T-516.
+- Related: T-516.
 
 ## Tier C — Pixel processing and image codecs
 
@@ -458,7 +443,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   and lossless subtract-green/cross-color/predictor transforms.
 - Complete when: lossy and lossless fixture pixels remain identical where specified, predictor and
   boundary modes are exhaustive, and stage benchmarks show the retained gains.
-- Related: T-513, T-516, T-520.
+- Related: T-516, T-520.
 
 ### T-551 — Packed and indexed pixel formats lack gather/shuffle kernels
 

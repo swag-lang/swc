@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGenVectorHelpers.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
@@ -1012,6 +1012,120 @@ MicroReg CodeGenVectorHelpers::emitDynamicAlign(CodeGen& codeGen, MicroReg lowRe
 
     const MicroReg tableReg = emitVecBinary(codeGen, countVecReg, byteTableConstant(codeGen, offsets), MicroOp::VecSatAddU8);
     return emitTwoSourceByteSelect(codeGen, lowReg, highReg, tableReg, byteLaneType);
+}
+
+namespace
+{
+    // The high byte of an 8-bit lane product. Both halves widen to 16-bit
+    // lanes, where the product is exact, and the byte above the low one comes
+    // back down; the shifted lanes never exceed 255, so the pack that rejoins
+    // them cannot saturate.
+    MicroReg emitMultiplyHigh8(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, bool isSigned)
+    {
+        MicroBuilder& builder = codeGen.builder();
+        const MicroOp widenOp = isSigned ? MicroOp::VecWidenLoS8 : MicroOp::VecWidenLoU8;
+
+        const MicroReg leftHighBytesReg  = emitVecBinaryImm(codeGen, leftReg, 8, MicroOp::VecShiftRightBytes);
+        const MicroReg rightHighBytesReg = emitVecBinaryImm(codeGen, rightReg, 8, MicroOp::VecShiftRightBytes);
+
+        const MicroReg leftLowWideReg   = codeGen.nextVirtualFloatRegister();
+        const MicroReg leftHighWideReg  = codeGen.nextVirtualFloatRegister();
+        const MicroReg rightLowWideReg  = codeGen.nextVirtualFloatRegister();
+        const MicroReg rightHighWideReg = codeGen.nextVirtualFloatRegister();
+        builder.emitVecUnaryRegReg(leftLowWideReg, leftReg, widenOp, MicroOpBits::B128);
+        builder.emitVecUnaryRegReg(leftHighWideReg, leftHighBytesReg, widenOp, MicroOpBits::B128);
+        builder.emitVecUnaryRegReg(rightLowWideReg, rightReg, widenOp, MicroOpBits::B128);
+        builder.emitVecUnaryRegReg(rightHighWideReg, rightHighBytesReg, widenOp, MicroOpBits::B128);
+
+        const MicroReg lowProductReg  = emitVecBinary(codeGen, leftLowWideReg, rightLowWideReg, MicroOp::VecMul16);
+        const MicroReg highProductReg = emitVecBinary(codeGen, leftHighWideReg, rightHighWideReg, MicroOp::VecMul16);
+        const MicroReg lowShiftedReg  = emitVecBinaryImm(codeGen, lowProductReg, 8, MicroOp::VecShiftRight16);
+        const MicroReg highShiftedReg = emitVecBinaryImm(codeGen, highProductReg, 8, MicroOp::VecShiftRight16);
+        return emitVecBinary(codeGen, lowShiftedReg, highShiftedReg, MicroOp::VecPackUS16);
+    }
+
+    // The high half of a 32-bit lane product. The widening products answer the
+    // full 64 bits of the even lanes only, so the odd lanes take a second
+    // product on the shifted operands, and the four high halves - all sitting
+    // in odd 32-bit lanes - gather and return to the order they came from.
+    MicroReg emitMultiplyHigh32(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, bool isSigned)
+    {
+        MicroBuilder&  builder     = codeGen.builder();
+        const MicroOp  wideOp      = isSigned ? MicroOp::VecMulS32Wide : MicroOp::VecMulU32Wide;
+        const MicroReg evenReg     = emitVecBinary(codeGen, leftReg, rightReg, wideOp);
+        const MicroReg leftOddReg  = emitVecBinaryImm(codeGen, leftReg, 32, MicroOp::VecShiftRight64);
+        const MicroReg rightOddReg = emitVecBinaryImm(codeGen, rightReg, 32, MicroOp::VecShiftRight64);
+        const MicroReg oddReg      = emitVecBinary(codeGen, leftOddReg, rightOddReg, wideOp);
+
+        const MicroReg gatheredReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpTernaryRegRegRegImm(gatheredReg, evenReg, oddReg, 0xDD, MicroOp::VecShufF32, MicroOpBits::B128);
+
+        const MicroReg resultReg = codeGen.nextVirtualFloatRegister();
+        builder.emitVecShuffleRegRegImm(resultReg, gatheredReg, 0xD8, MicroOpBits::B128);
+        return resultReg;
+    }
+
+    // The high 64 bits of a 64-bit lane product, assembled from the four
+    // 32x32 partial products. The middle column is summed on its own because
+    // its carry out of bit 63 belongs to the result.
+    MicroReg emitMultiplyHigh64(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, bool isSigned)
+    {
+        const MicroReg leftHighReg  = emitVecBinaryImm(codeGen, leftReg, 32, MicroOp::VecShiftRight64);
+        const MicroReg rightHighReg = emitVecBinaryImm(codeGen, rightReg, 32, MicroOp::VecShiftRight64);
+
+        // The widening product reads the low 32 bits of every lane, so the two
+        // halves of each operand need no masking of their own.
+        const MicroReg lowLowReg   = emitVecBinary(codeGen, leftReg, rightReg, MicroOp::VecMulU32Wide);
+        const MicroReg lowHighReg  = emitVecBinary(codeGen, leftReg, rightHighReg, MicroOp::VecMulU32Wide);
+        const MicroReg highLowReg  = emitVecBinary(codeGen, leftHighReg, rightReg, MicroOp::VecMulU32Wide);
+        const MicroReg highHighReg = emitVecBinary(codeGen, leftHighReg, rightHighReg, MicroOp::VecMulU32Wide);
+
+        const MicroReg lowMaskReg     = repeatedConstant(codeGen, 8, 0xFFFFFFFF);
+        const MicroReg lowLowHighReg  = emitVecBinaryImm(codeGen, lowLowReg, 32, MicroOp::VecShiftRight64);
+        const MicroReg lowHighLowReg  = emitVecBinary(codeGen, lowHighReg, lowMaskReg, MicroOp::VecAnd);
+        const MicroReg highLowLowReg  = emitVecBinary(codeGen, highLowReg, lowMaskReg, MicroOp::VecAnd);
+        const MicroReg middlePartReg  = emitVecBinary(codeGen, lowLowHighReg, lowHighLowReg, MicroOp::VecAdd64);
+        const MicroReg middleReg      = emitVecBinary(codeGen, middlePartReg, highLowLowReg, MicroOp::VecAdd64);
+
+        const MicroReg lowHighHighReg = emitVecBinaryImm(codeGen, lowHighReg, 32, MicroOp::VecShiftRight64);
+        const MicroReg highLowHighReg = emitVecBinaryImm(codeGen, highLowReg, 32, MicroOp::VecShiftRight64);
+        const MicroReg middleCarryReg = emitVecBinaryImm(codeGen, middleReg, 32, MicroOp::VecShiftRight64);
+
+        MicroReg resultReg = emitVecBinary(codeGen, highHighReg, lowHighHighReg, MicroOp::VecAdd64);
+        resultReg          = emitVecBinary(codeGen, resultReg, highLowHighReg, MicroOp::VecAdd64);
+        resultReg          = emitVecBinary(codeGen, resultReg, middleCarryReg, MicroOp::VecAdd64);
+        if (!isSigned)
+            return resultReg;
+
+        // Read as unsigned, a negative operand carries an extra 2^64 that
+        // multiplies the other operand into the high half, so each negative
+        // operand subtracts the other one back out.
+        const MicroReg zeroReg      = emitVecBinary(codeGen, leftReg, leftReg, MicroOp::VecXor);
+        const MicroReg leftSignReg  = emitVecBinary(codeGen, zeroReg, leftReg, MicroOp::VecCmpGtS64);
+        const MicroReg rightSignReg = emitVecBinary(codeGen, zeroReg, rightReg, MicroOp::VecCmpGtS64);
+        resultReg                   = emitVecBinary(codeGen, resultReg, emitVecBinary(codeGen, leftSignReg, rightReg, MicroOp::VecAnd), MicroOp::VecSub64);
+        resultReg                   = emitVecBinary(codeGen, resultReg, emitVecBinary(codeGen, rightSignReg, leftReg, MicroOp::VecAnd), MicroOp::VecSub64);
+        return resultReg;
+    }
+}
+
+MicroReg CodeGenVectorHelpers::emitMultiplyHigh(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, const TypeInfo& laneType)
+{
+    const uint32_t laneBits = laneBitsOf(laneType);
+    const bool     isSigned = laneType.isIntSigned();
+    SWC_ASSERT(!laneType.isFloat());
+
+    switch (laneBits)
+    {
+        case 8:
+            return emitMultiplyHigh8(codeGen, leftReg, rightReg, isSigned);
+        case 16:
+            return emitVecBinary(codeGen, leftReg, rightReg, isSigned ? MicroOp::VecMulHiS16 : MicroOp::VecMulHiU16);
+        case 32:
+            return emitMultiplyHigh32(codeGen, leftReg, rightReg, isSigned);
+        default:
+            return emitMultiplyHigh64(codeGen, leftReg, rightReg, isSigned);
+    }
 }
 
 SWC_END_NAMESPACE();

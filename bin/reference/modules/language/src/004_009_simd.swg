@@ -202,6 +202,36 @@ readable table element and be at most 's32.Max'.
 }
 
 /**
+# The Other Half Of A Product
+
+'*' answers the low half of a lane product, the bits that fit the lane.
+'@vecmulhi' answers the ones above it, read as the lane type is signed or not.
+Together they are the whole product: interleaving them puts each double-width
+product back in the lane it belongs to, which is what
+'Core.Math.Simd.mulWidenLow' and 'mulWidenHigh' do.
+
+A 16-bit lane has the instruction directly. The other widths compose it: bytes
+widen to words where the product is exact, 32-bit lanes take the two widening
+products the hardware offers and gather their high halves, and 64-bit lanes add
+up the four partial products of their halves.
+*/
+#test
+{
+    let x = cast(#simd [8] s16) [-32768, 32767, 1000, -1000, 3, -3, 0, 12345]
+    let y = cast(#simd [8] s16) [32767, 32767, -2000, 2000, 5, 5, 12345, -1]
+
+    let low  = cast([8] s16) (x * y)
+    let high = cast([8] s16) @vecmulhi(x, y)
+
+    // 1000 * -2000 is -2000000, which is 0xFFE17B80 over two lanes.
+    @assert(cast #bit (u16) low[2] == 0x7B80 and cast #bit (u16) high[2] == 0xFFE1)
+
+    // Read as unsigned, the same bits give a different half above the lane.
+    let unsignedHigh = cast([8] u16) @vecmulhi(cast #bit (#simd [8] u16) x, cast #bit (#simd [8] u16) y)
+    @assert(unsignedHigh[2] == 0x03C9)
+}
+
+/**
 # Lane Permutation
 
 '@vecshuffle' rearranges the lanes of a vector: result lane 'i' takes the lane

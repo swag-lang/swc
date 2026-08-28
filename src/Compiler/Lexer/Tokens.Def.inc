@@ -1,4 +1,4 @@
-// TRIVIA
+﻿// TRIVIA
 
 SWC_TOKEN_DEF(Invalid, "", TokenIdKindE::Zero)
 
@@ -375,6 +375,7 @@ SWC_TOKEN_DEF(IntrinsicVecAvgR, "@vecavgr", TokenIdKindE::Intrinsic | TokenIdKin
 SWC_TOKEN_DEF(IntrinsicVecMadd, "@vecmadd", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecMaddUBS, "@vecmaddubs", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecSad, "@vecsad", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecMulHi, "@vecmulhi", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecReduceAdd, "@vecreduceadd", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecReduceMin, "@vecreducemin", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecReduceMax, "@vecreducemax", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)

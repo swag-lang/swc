@@ -1517,6 +1517,20 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
     func @vecmadd(value1, value2: #simd [8] s16)->#simd [4] s32
     func @vecmaddubs(value1: #simd [16] u8, value2: #simd [16] s8)->#simd [8] s16
 
+    // The half of a lane product that '*' drops: lane 'i' answers the bits
+    // above the lane width of the full product of both lane 'i' values, read
+    // as the lane type is signed or not. The two together are the whole
+    // product, low lanes in '@vecinterleavelo' and high lanes in
+    // '@vecinterleavehi'.
+    func @vecmulhi(value1, value2: #simd [16] u8)->#simd [16] u8
+    func @vecmulhi(value1, value2: #simd [16] s8)->#simd [16] s8
+    func @vecmulhi(value1, value2: #simd [8] u16)->#simd [8] u16
+    func @vecmulhi(value1, value2: #simd [8] s16)->#simd [8] s16
+    func @vecmulhi(value1, value2: #simd [4] u32)->#simd [4] u32
+    func @vecmulhi(value1, value2: #simd [4] s32)->#simd [4] s32
+    func @vecmulhi(value1, value2: #simd [2] u64)->#simd [2] u64
+    func @vecmulhi(value1, value2: #simd [2] s64)->#simd [2] s64
+
     // Sum of absolute byte differences: each half of the operands reduces
     // into the low word of the matching 64-bit lane.
     func @vecsad(value1, value2: #simd [16] u8)->#simd [2] u64

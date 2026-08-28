@@ -51,3 +51,39 @@ func semaTest004()
         return 0
     }
 }
+
+func semaTest006()
+{
+    // Two typed branches settle the type on their own: the return type of the enclosing
+    // function binds its 'return' expressions, not every conditional in its body.
+    func keepsTypedBranchesWhenFunctionReturnBindsContext(flag: bool, values: const [*] s32, index: u32, other: s32)->u32
+    {
+        var fromIndex = flag ? values[index] : other
+        var fromBoth  = flag ? values[index] : values[index + 1]
+        let sum       = fromIndex + other
+        var narrower  = flag ? 10's16 : other
+        #assert(#typeof(fromIndex) == s32)
+        #assert(#typeof(fromBoth) == s32)
+        #assert(#typeof(narrower) == s32)
+        #assert(#typeof(sum) == s32)
+
+        // A binding that targets the conditional still settles unsized constants.
+        var fromConstants: u8 = flag ? 1 : 2
+        #assert(#typeof(flag ? 1 : 2) != u8)
+        return cast(u32) fromIndex + fromConstants
+    }
+}
+
+func semaTest007()
+{
+    // A '#run' block infers its type from the binding that targets it, not from the function
+    // it sits in; without a binding, its constant is concretized on its own.
+    func runBlocksInferFromTheirOwnBinding()->u32
+    {
+        var typed: u8 = #run { return 3 }
+        var bare      = #run { return 3 }
+        #assert(#typeof(typed) == u8)
+        #assert(#typeof(bare) == s32)
+        return cast(u32) typed + cast(u32) bare
+    }
+}

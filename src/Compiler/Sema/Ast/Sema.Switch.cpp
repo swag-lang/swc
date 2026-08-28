@@ -605,11 +605,12 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
         payload->exprTypeRef = exprView.typeRef();
         SWC_RESULT(attachSwitchExprRuntimeDependencies(sema, *payload, exprView.typeRef(), sema.node(sema.curNodeRef()).codeRef()));
 
+        // Every case of a switch on an enum names the members bare, in its label and its body.
         const TypeRef enumTypeRef = switchEnumTypeRef(sema, exprView.typeRef());
         if (enumTypeRef.isValid())
         {
             SemaFrame frame = sema.frame();
-            frame.pushBindingType(enumTypeRef);
+            frame.pushScopeBindingType(enumTypeRef);
             sema.pushFramePopOnPostNode(frame);
         }
     }

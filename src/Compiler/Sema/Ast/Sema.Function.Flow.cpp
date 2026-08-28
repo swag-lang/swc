@@ -340,21 +340,12 @@ namespace
         ensureErrorManagementPayload(sema, errorScopeRef).containsFallible = true;
     }
 
+    // A `fail` in expression position produces the value its binding expects; in statement
+    // position nothing consumes it.
     TypeRef preferredFailResultType(Sema& sema)
     {
-        const auto frames = sema.frames();
-        for (size_t frameIndex = frames.size(); frameIndex > 0; --frameIndex)
-        {
-            const std::span<const TypeRef> bindingTypes = frames[frameIndex - 1].bindingTypes();
-            for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
-            {
-                const TypeRef bindingTypeRef = bindingTypes[bindingIndex - 1];
-                if (bindingTypeRef.isValid())
-                    return bindingTypeRef;
-            }
-        }
-
-        return sema.typeMgr().typeVoid();
+        const std::span<const TypeRef> bindingTypes = sema.frame().bindingTypes();
+        return bindingTypes.empty() ? sema.typeMgr().typeVoid() : bindingTypes.back();
     }
 
     TypeRef notNullUnwrappedTypeRef(Sema& sema, AstNodeRef managedChildRef)

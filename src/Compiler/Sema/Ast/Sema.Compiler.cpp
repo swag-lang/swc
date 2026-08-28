@@ -643,7 +643,7 @@ Result AstCompilerSwitch::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
         if (enumTypeRef.isValid())
         {
             SemaFrame frame = sema.frame();
-            frame.pushBindingType(enumTypeRef);
+            frame.pushScopeBindingType(enumTypeRef);
             sema.pushFramePopOnPostNode(frame);
         }
 

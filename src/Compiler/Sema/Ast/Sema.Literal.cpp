@@ -267,6 +267,9 @@ namespace
         return Result::Continue;
     }
 
+    // `var pair = {rank, str}` declares an anonymous struct whose fields take the names of the
+    // identifiers; the same literal handed to a typed slot, a parameter, or a generic argument
+    // lists values in field order. Only an untyped declaration initializer reads the first way.
     bool isUntypedVarInitializer(const Sema& sema, AstNodeRef nodeRef)
     {
         const AstNodeRef parentRef = sema.visit().parentNodeRef();
@@ -281,15 +284,6 @@ namespace
             return !multiVar->hasFlag(AstVarDeclFlagsE::Parameter) && multiVar->nodeTypeRef.isInvalid() && multiVar->nodeInitRef == nodeRef;
 
         return false;
-    }
-
-    bool shouldAutoNameStructLiteralFields(const Sema& sema, AstNodeRef nodeRef)
-    {
-        if (sema.frame().bindingTypes().empty())
-            return true;
-
-        // Untyped local initializers can inherit unrelated binding types from their surrounding context.
-        return isUntypedVarInitializer(sema, nodeRef);
     }
 }
 
@@ -684,7 +678,7 @@ Result AstStructLiteral::semaPostNode(Sema& sema) const
 {
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
-    const bool autoName = shouldAutoNameStructLiteralFields(sema, sema.curNodeRef());
+    const bool autoName = isUntypedVarInitializer(sema, sema.curNodeRef());
     SWC_RESULT(SemaHelpers::finalizeAggregateStruct(sema, children, autoName));
     const SemaNodeView literalView = sema.curViewNodeTypeConstant();
     return SemaHelpers::attachLiteralRuntimeStorageIfNeeded(sema, *this, literalView);

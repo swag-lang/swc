@@ -249,3 +249,20 @@ var g_CondSt: CondSt
     @assert(retF(true, 7) == 7.0)
     @assert(retF(false, 7) == 200.0)
 }
+
+// A conditional between two typed values keeps their type whatever the enclosing function
+// returns. Typed after the return type instead, this signed sum became an unsigned one whose
+// overflow check rejected the negative operand.
+#test
+{
+    func pick(flag: bool, values: const [*] s32, index: u32, other: s32, delta: s32)->u32
+    {
+        var chosen = flag ? values[index] : other
+        chosen = @max(0's32, chosen + delta)
+        return cast(u32) chosen
+    }
+
+    var values: [4] s32 = [1008, 1024, 1056, 1072]
+    @assert(pick(true, &values[0], 0, 7, -144) == 864)
+    @assert(pick(false, &values[0], 0, 7, -144) == 0)
+}

@@ -212,9 +212,15 @@ public:
     std::span<const SemaIterationBorrow> iterationBorrows() const { return iterationBorrows_.span(); }
     void                                 pushIterationBorrow(const SemaIterationBorrow& borrow) { iterationBorrows_.push_back(borrow); }
 
+    // Binding types are the types the context expects of the expression being analyzed. The
+    // first `scopeBindingCount_` of them belong to an enclosing statement, such as a switch on
+    // an enum whose members its cases name bare; the rest target one expression and stop at
+    // the next statement.
     std::span<const TypeRef>         bindingTypes() const { return bindingTypes_.span(); }
     void                             pushBindingType(TypeRef type);
+    void                             pushScopeBindingType(TypeRef type);
     void                             popBindingType();
+    void                             clearBindingTypes();
     std::span<SymbolVariable* const> bindingVars() const { return bindingVars_.span(); }
     void                             pushBindingVar(SymbolVariable* sym);
     void                             popBindingVar();
@@ -269,6 +275,7 @@ private:
     AstNodeRef                          runtimeStorageNodeRef_    = AstNodeRef::invalid();
     SymbolVariable*                     runtimeStorageSym_        = nullptr;
     SmallVector2<TypeRef>               bindingTypes_;
+    uint32_t                            scopeBindingCount_ = 0;
     SmallVector2<SymbolVariable*>       bindingVars_;
     SmallVector2<SemaIterationBorrow>   iterationBorrows_;
     SmallVector4<const Symbol*>         hiddenLookupSymbols_;

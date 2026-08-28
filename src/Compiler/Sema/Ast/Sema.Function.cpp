@@ -606,15 +606,25 @@ namespace
         if (exprRef.isInvalid())
             return Result::Continue;
 
-        const SemaNodeView exprView = sema.viewNodeTypeConstant(exprRef);
-        const auto         frames   = sema.frames();
+        // The block's own frames carry no binding for its result; the innermost frame of the
+        // function around it holds the binding of the expression the block sits in, if any.
+        const SemaNodeView    exprView  = sema.viewNodeTypeConstant(exprRef);
+        const SymbolFunction* runFn     = sema.currentFunction();
+        const SymbolFunction* enclosing = sema.frame().enclosingFunction();
+        const auto            frames    = sema.frames();
         for (size_t frameIndex = frames.size(); frameIndex > 0; --frameIndex)
         {
-            const std::span<const TypeRef> bindingTypes = frames[frameIndex - 1].bindingTypes();
+            const SemaFrame& frame = frames[frameIndex - 1];
+            if (frame.currentFunction() == runFn)
+                continue;
+            if (frame.currentFunction() != enclosing)
+                break;
+
+            const std::span<const TypeRef> bindingTypes = frame.bindingTypes();
             for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
             {
                 const TypeRef bindingTypeRef = bindingTypes[bindingIndex - 1];
-                if (!bindingTypeRef.isValid())
+                if (!bindingTypeRef.isValid() || bindingTypeRef == sema.typeMgr().typeVoid())
                     continue;
 
                 CastRequest castRequest(CastKind::Implicit);
@@ -628,6 +638,10 @@ namespace
                 outTypeRef = bindingTypeRef;
                 return Result::Continue;
             }
+
+            // That frame already holds everything in scope; the ones below it keep bindings
+            // its statements have since cleared.
+            break;
         }
 
         return Result::Continue;
@@ -1078,6 +1092,11 @@ namespace
     {
         SWC_RESULT(buildFunctionExprParameters(sema, node, sym));
 
+        // The binding is visible here, before the body; the body's statements start without it.
+        const SymbolFunction* bindingFunction = resolveLambdaBindingFunction(sema);
+        if (bindingFunction && bindingFunction->isClosure())
+            sym.addExtraFlag(SymbolFunctionFlagsE::BoundToClosure);
+
         if (sym.returnTypeRef().isValid())
             return Result::Continue;
 
@@ -1089,7 +1108,7 @@ namespace
             return Result::Continue;
         }
 
-        if (const SymbolFunction* bindingFunction = resolveLambdaBindingFunction(sema))
+        if (bindingFunction)
         {
             sym.setReturnTypeRef(bindingFunction->returnTypeRef());
             return Result::Continue;
@@ -1564,6 +1583,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         frame.setUpLookupScope(nullptr);
         frame.setIgnoreRuntimeAccess(false);
         frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
+        // The return type binds a short body; a block body clears it at its first statement.
         frame.pushBindingType(sym.returnTypeRef());
         sema.pushFramePopOnPostNode(frame);
 
@@ -1589,8 +1609,7 @@ Result AstFunctionExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
     if (SymbolVariable* receiver = resolveBodyBindingReceiver(sema, sym))
         frame.pushBindingVar(receiver);
-    if (sym.returnTypeRef().isValid())
-        frame.pushBindingType(sym.returnTypeRef());
+    frame.pushBindingType(sym.returnTypeRef());
     sema.pushFramePopOnPostNode(frame);
 
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
@@ -1614,8 +1633,7 @@ Result AstClosureExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
     if (SymbolVariable* receiver = resolveBodyBindingReceiver(sema, sym))
         frame.pushBindingVar(receiver);
-    if (sym.returnTypeRef().isValid())
-        frame.pushBindingType(sym.returnTypeRef());
+    frame.pushBindingType(sym.returnTypeRef());
     sema.pushFramePopOnPostNode(frame);
 
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);

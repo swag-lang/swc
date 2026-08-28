@@ -45,3 +45,10 @@ impl WhereRestrictedOperator
     let right  = WhereRestrictedOperator{2}
     let result = left - right     // swc-expected-error {{sema_err_binary_operand_type}}
 }
+
+#test
+{
+    var flag  = true
+    var count = 1's32
+    let mixed = flag ? count : "text"     // swc-expected-error {{sema_err_binary_operand_type}}
+}

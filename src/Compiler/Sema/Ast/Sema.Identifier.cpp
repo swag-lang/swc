@@ -108,17 +108,20 @@ namespace
 
         if (decl->is(AstNodeId::ClosureExpr))
             return true;
-        if (decl->isNot(AstNodeId::FunctionExpr))
-            return false;
-
-        const SymbolFunction* bindingFunction = resolveLambdaBindingFunction(sema);
-        return bindingFunction && bindingFunction->isClosure();
+        return decl->is(AstNodeId::FunctionExpr) && function.hasExtraFlag(SymbolFunctionFlagsE::BoundToClosure);
     }
 
     bool requiresExplicitClosureCapture(Sema& sema, const Symbol& symbol)
     {
         const SymbolFunction* currentFn = sema.currentFunction();
-        if (!currentFn || !requiresExplicitCaptureList(sema, *currentFn))
+        if (!currentFn)
+            return false;
+
+        // A function literal without a capture list reaches no capture of the closure around
+        // it: nothing carries that closure's context into the plain function.
+        const bool explicitList = requiresExplicitCaptureList(sema, *currentFn);
+        const bool plainLambda  = currentFn->decl() && currentFn->decl()->is(AstNodeId::FunctionExpr);
+        if (!explicitList && !plainLambda)
             return false;
 
         const AstIdentifier& node = sema.curNode().cast<AstIdentifier>();
@@ -131,6 +134,8 @@ namespace
         const auto& symVar = symbol.cast<SymbolVariable>();
         if (symVar.ownerSymMap() == currentFn)
             return false;
+        if (!explicitList)
+            return symVar.isClosureCapture();
         if (symVar.hasGlobalStorage())
             return false;
 

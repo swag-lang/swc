@@ -159,6 +159,17 @@ bool SemaHelpers::binaryOpNeedsOverflowSafety(TokenId canonicalOp, AstModifierFl
     }
 }
 
+// A binding type targets the expression it was pushed for, and the frame copies that carry
+// it down would otherwise reach every statement of a nested block: the u8 of
+// `var x: u8 = #run { ... }` is the type of what the block returns, not of its statements.
+// Each statement starts clean; `return` pushes the return type it binds. The block's own frame
+// is cleared in place: a frame pushed per statement would take the narrowing facts the
+// statement establishes away with it.
+void SemaHelpers::scopeBindingsForStatement(Sema& sema)
+{
+    sema.frame().clearBindingTypes();
+}
+
 bool SemaHelpers::canUseContextualBinding(Sema& sema, AstNodeRef nodeRef)
 {
     if (nodeRef.isInvalid())

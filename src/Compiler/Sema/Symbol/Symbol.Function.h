@@ -41,6 +41,7 @@ enum class SymbolFunctionFlagsE : uint16_t
     LazyGenericBodyRunning = 1 << 12,
     WhereConstraintFailed  = 1 << 13,
     InlineLocalFunction    = 1 << 14,
+    BoundToClosure         = 1 << 15,     // A function literal typed by a closure binding.
 };
 using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 

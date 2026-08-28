@@ -276,9 +276,21 @@ Result AstParenExpr::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstFunctionBody::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
+{
+    SemaHelpers::scopeBindingsForStatement(sema);
+    return Result::Continue;
+}
+
 Result AstFunctionBody::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
     SemaCheck::unreachableCode(sema, sema.curNodeRef(), childRef);
+    return Result::Continue;
+}
+
+Result AstSwitchCaseBody::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
+{
+    SemaHelpers::scopeBindingsForStatement(sema);
     return Result::Continue;
 }
 
@@ -335,6 +347,7 @@ Result AstEmbeddedBlock::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
         sema.pushFramePopOnPostNode(frame, sema.curNodeRef());
     }
 
+    SemaHelpers::scopeBindingsForStatement(sema);
     return Result::Continue;
 }
 

@@ -331,6 +331,7 @@ struct AstReturnStmt : AstNodeT<AstNodeId::ReturnStmt>
 struct AstFunctionBody : AstCompoundT<AstNodeId::FunctionBody>
 {
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    static Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
     static Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef);
     static Result codeGenPreNode(CodeGen& codeGen);
     static Result codeGenPostNode(CodeGen& codeGen);
@@ -1781,6 +1782,7 @@ struct AstSwitchStmt : AstCompoundT<AstNodeId::SwitchStmt>
 struct AstSwitchCaseBody : AstCompoundT<AstNodeId::SwitchCaseBody>
 {
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    static Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
     static Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef);
 };
 

@@ -24,6 +24,14 @@ namespace
         return view.cstRef().isValid() && view.type() && view.type()->isScalarUnsized();
     }
 
+    // Two branches of one concrete type have settled the result on their own. An unsized
+    // constant, a 'null', or an untyped aggregate literal still needs the context.
+    bool isSettledBranchType(const SemaNodeView& view)
+    {
+        const TypeInfo* type = view.type();
+        return type && !type->isScalarUnsized() && !type->isNull() && !type->isAggregate();
+    }
+
     Result resolveUnsizedConstantAgainstTypedBranch(Sema& sema, TypeRef& outTypeRef, const SemaNodeView& nodeTrueView, const SemaNodeView& nodeFalseView)
     {
         const bool trueUnsizedConstant  = isUnsizedScalarConstant(nodeTrueView);
@@ -132,31 +140,33 @@ namespace
         if (outTypeRef.isValid())
             return Result::Continue;
 
-        const std::span<const SemaFrame> frames = sema.frames();
-        for (size_t frameIndex = frames.size(); frameIndex > 0; --frameIndex)
+        // Two branches that agree on a concrete type keep it: adopting the binding instead
+        // would silently convert a typed value, and put its overflow check on the wrong
+        // operation.
+        if (nodeTrueView.typeRef() == nodeFalseView.typeRef() && isSettledBranchType(nodeTrueView))
         {
-            const std::span<const TypeRef> bindingTypes = frames[frameIndex - 1].bindingTypes();
-            for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
-            {
-                const TypeRef bindingTypeRef = bindingTypes[bindingIndex - 1];
-                if (!bindingTypeRef.isValid())
-                    continue;
+            outTypeRef = nodeTrueView.typeRef();
+            return Result::Continue;
+        }
 
-                const Result trueCastResult = tryImplicitBranchCast(sema, nodeTrueView, bindingTypeRef);
-                if (trueCastResult == Result::Pause)
-                    return Result::Pause;
-                if (trueCastResult != Result::Continue)
-                    continue;
+        const std::span<const TypeRef> bindingTypes = sema.frame().bindingTypes();
+        for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
+        {
+            const TypeRef bindingTypeRef = bindingTypes[bindingIndex - 1];
+            const Result  trueCastResult = tryImplicitBranchCast(sema, nodeTrueView, bindingTypeRef);
+            if (trueCastResult == Result::Pause)
+                return Result::Pause;
+            if (trueCastResult != Result::Continue)
+                continue;
 
-                const Result falseCastResult = tryImplicitBranchCast(sema, nodeFalseView, bindingTypeRef);
-                if (falseCastResult == Result::Pause)
-                    return Result::Pause;
-                if (falseCastResult != Result::Continue)
-                    continue;
+            const Result falseCastResult = tryImplicitBranchCast(sema, nodeFalseView, bindingTypeRef);
+            if (falseCastResult == Result::Pause)
+                return Result::Pause;
+            if (falseCastResult != Result::Continue)
+                continue;
 
-                outTypeRef = bindingTypeRef;
-                return Result::Continue;
-            }
+            outTypeRef = bindingTypeRef;
+            return Result::Continue;
         }
 
         if (nodeTrueView.typeRef() == nodeFalseView.typeRef())
@@ -280,14 +290,7 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     SWC_RESULT(resolveConditionalResultType(sema, typeRef, nodeTrueView, nodeFalseView));
 
     if (!typeRef.isValid())
-    {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_binary_operand_type, codeRef());
-        diag.addArgument(Diagnostic::ARG_TYPE, nodeTrueView.typeRef());
-        diag.addNote(DiagnosticId::sema_note_other_definition);
-        diag.last().addSpan(nodeFalseView.node()->codeRangeWithChildren(sema.ctx(), sema.ast()));
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
+        return SemaError::raiseBinaryOperandType(sema, sema.curNodeRef(), nodeFalseRef, nodeTrueView.typeRef(), nodeFalseView.typeRef());
 
     sema.setType(sema.curNodeRef(), typeRef);
 

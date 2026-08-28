@@ -33,9 +33,29 @@ void SemaFrame::pushBindingType(TypeRef type)
         bindingTypes_.push_back(type);
 }
 
+void SemaFrame::pushScopeBindingType(TypeRef type)
+{
+    if (!type.isValid())
+        return;
+
+    bindingTypes_.push_back(type);
+    std::rotate(bindingTypes_.begin() + scopeBindingCount_, bindingTypes_.end() - 1, bindingTypes_.end());
+    ++scopeBindingCount_;
+}
+
 void SemaFrame::popBindingType()
 {
-    if (!bindingTypes_.empty())
+    if (bindingTypes_.empty())
+        return;
+
+    bindingTypes_.pop_back();
+    if (scopeBindingCount_ > bindingTypes_.size())
+        scopeBindingCount_ = static_cast<uint32_t>(bindingTypes_.size());
+}
+
+void SemaFrame::clearBindingTypes()
+{
+    while (bindingTypes_.size() > scopeBindingCount_)
         bindingTypes_.pop_back();
 }
 

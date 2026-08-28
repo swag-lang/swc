@@ -90,6 +90,7 @@ namespace SemaHelpers
     void                    clearLateFieldReadGuard(Sema& sema, AstNodeRef nodeRef);
     bool                    binaryOpNeedsOverflowSafety(TokenId canonicalOp, AstModifierFlags modifierFlags);
     bool                    canUseContextualBinding(Sema& sema, AstNodeRef nodeRef);
+    void                    scopeBindingsForStatement(Sema& sema);
     // Whether a bare identifier carrying this symbol resolves at codegen inside the
     // function currently being analyzed. An instance field only exists relative to a
     // base expression, and a parameter of another function (a macro receiver bound at

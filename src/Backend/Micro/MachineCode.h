@@ -1,14 +1,16 @@
 #pragma once
-#include "Support/Core/Result.h"
-
-#include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Encoder/EncoderDebugInfo.h"
+#include "Backend/Micro/MicroReg.h"
+#include "Backend/Micro/MicroRelocation.h"
 #include "Support/Core/ByteArray.h"
+#include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 class SourceFile;
 class SymbolFunction;
+class MicroBuilder;
 
 struct MachineCode
 {

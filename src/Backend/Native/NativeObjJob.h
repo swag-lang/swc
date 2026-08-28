@@ -1,7 +1,9 @@
 #pragma once
-#include "Backend/Native/NativeBackendBuilder.h"
+#include "Support/Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE();
+
+class NativeBackendBuilder;
 
 class NativeObjJob final : public Job
 {

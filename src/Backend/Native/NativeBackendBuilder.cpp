@@ -2,23 +2,56 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Linker/Linker.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
+#include "Backend/Native/NativeNames.h"
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/NativeObjJob.h"
 #include "Backend/Native/SymbolSort.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Parser/Ast/Ast.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
+#include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Math/Hash.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/ScopedTimedLog.h"
 
 SWC_BEGIN_NAMESPACE();
+
+Utf8 nativeArtifactScopeName(const CompilerInstance& compiler)
+{
+    const Runtime::String& artifactName = compiler.buildCfg().name;
+    if (artifactName.ptr && artifactName.length)
+        return Utf8{artifactName};
+    if (!compiler.cmdLine().name.empty())
+        return compiler.cmdLine().name;
+    if (!compiler.cmdLine().modulePath.empty())
+        return Utf8(compiler.cmdLine().modulePath.filename().string());
+    if (!compiler.cmdLine().moduleFilePath.empty())
+        return Utf8(compiler.cmdLine().moduleFilePath.parent_path().filename().string());
+    return "module";
+}
+
+Utf8 nativeScopedSectionBaseSymbol(const CompilerInstance& compiler, const std::string_view baseName)
+{
+    return std::format("{}_{:08x}", baseName, Math::hash(nativeArtifactScopeName(compiler).view()));
+}
+
+Utf8 unresolvedFunctionSymbolName(const TaskContext& ctx, const SymbolFunction& function)
+{
+    Utf8 key = function.getFullScopedName(ctx);
+    key += "|";
+    key += std::to_string(function.tokRef().get());
+    return std::format("__swc_ext_fn_{:08x}", Math::hash(key.view()));
+}
 
 namespace
 {

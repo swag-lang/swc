@@ -1,6 +1,6 @@
 #pragma once
 #include "Backend/ABI/CallConv.h"
-#include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroRelocation.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"

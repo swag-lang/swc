@@ -1,10 +1,15 @@
 #pragma once
-#include "Backend/Native/NativeBackendBuilder.h"
+#include "Support/Core/DataSegment.h"
 #include "Support/Core/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 
 #if SWC_HAS_VALIDATE_NATIVE
+
+class NativeBackendBuilder;
+class SymbolFunction;
+struct MachineCode;
+struct MicroRelocation;
 
 class NativeValidate final
 {

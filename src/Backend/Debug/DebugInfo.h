@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroReg.h"
-#include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/NativeSection.h"
+#include "Backend/Runtime.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
@@ -11,6 +12,7 @@ SWC_BEGIN_NAMESPACE();
 class SymbolFunction;
 class SourceFile;
 class TaskContext;
+struct MachineCode;
 
 struct DebugInfoDefinedSymbol
 {
@@ -18,7 +20,7 @@ struct DebugInfoDefinedSymbol
     Utf8     sectionName;
     uint32_t value        = 0;
     uint16_t type         = 0;
-    uint8_t  storageClass = IMAGE_SYM_CLASS_STATIC;
+    uint8_t  storageClass = K_COFF_SYM_CLASS_STATIC;
 };
 
 struct DebugInfoTypedRecord

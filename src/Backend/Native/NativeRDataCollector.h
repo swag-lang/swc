@@ -1,10 +1,12 @@
 #pragma once
 #include "Support/Core/Result.h"
 #include "Support/Core/Utf8.h"
-
-#include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Micro/MicroRelocation.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 
 SWC_BEGIN_NAMESPACE();
+
+class NativeBackendBuilder;
 
 // Collects the constant-shard allocations that are reachable from emitted native code
 // and remaps their internal relocations into the merged .rdata section.

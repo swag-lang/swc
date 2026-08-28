@@ -725,7 +725,7 @@ void CompilerInstance::registerCompilerMessageFunction(SymbolFunction* symbol, c
 
 void CompilerInstance::onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol)
 {
-    ModuleApi::onSymbolSemaCompleted(perThreadData_[JobManager::threadIndex()].moduleApi, ctx, symbol);
+    ModuleApi::onSymbolSemaCompleted(threadModuleApiData(), ctx, symbol);
 
     const uint64_t activeMask = compilerMessageActiveMask_.load(std::memory_order_acquire);
     if (!activeMask)

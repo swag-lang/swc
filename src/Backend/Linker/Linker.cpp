@@ -4,6 +4,8 @@
 #include "Backend/Linker/PELinker.h"
 #include "Backend/Linker/PEWriter.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/NativeObjectFormat.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/FileSystem.h"
 #include "Support/Report/Assert.h"
 

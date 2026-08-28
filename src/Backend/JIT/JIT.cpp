@@ -8,6 +8,7 @@
 #include "Backend/JIT/JITPatchJob.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/RuntimeContext.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Lexer/SourceView.h"

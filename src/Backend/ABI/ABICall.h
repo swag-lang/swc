@@ -1,12 +1,14 @@
 #pragma once
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
-#include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroReg.h"
 #include "Support/Core/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
+class MicroBuilder;
+class Symbol;
 
 namespace ABICall
 {

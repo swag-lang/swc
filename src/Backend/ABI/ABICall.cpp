@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/ABI/ABICall.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/CompilerInstance.h"

@@ -1,8 +1,8 @@
 #pragma once
-#include "Backend/Encoder/Encoder.h"
+#include "Backend/Encoder/EncoderDebugInfo.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
-#include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Micro/MicroRelocation.h"
 #include "Backend/Micro/MicroPrinter.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Runtime.h"
@@ -17,54 +17,15 @@
 SWC_BEGIN_NAMESPACE();
 
 class Symbol;
+class Encoder;
+class MicroPassManager;
+struct MicroPassContext;
 
 enum class MicroBuilderFlagsE : uint8_t
 {
     Zero = 0,
 };
 using MicroBuilderFlags = EnumFlags<MicroBuilderFlagsE>;
-
-struct MicroRelocation
-{
-    static constexpr uint64_t K_SELF_ADDRESS = std::numeric_limits<uint64_t>::max();
-
-    enum class Kind : uint8_t
-    {
-        ForeignFunctionAddress,
-        ConstantAddress,
-        LocalFunctionAddress,
-        CompilerAddress,
-        GlobalZeroAddress,
-        GlobalInitAddress,
-    };
-
-    // How the patch is written into the code stream. Absolute64 stores the
-    // target address itself, in a trailing eight-byte immediate. Relative32
-    // stores the signed distance from the end of the instruction to the target,
-    // in a trailing four-byte displacement - which is what x64 RIP-relative
-    // addressing reads, and what lets a constant be reached without first
-    // materializing its address in a register.
-    enum class Form : uint8_t
-    {
-        Absolute64,
-        Relative32,
-    };
-
-    Kind     kind       = Kind::ConstantAddress;
-    Form     form       = Form::Absolute64;
-    uint32_t codeOffset = 0;
-    // End of the instruction the displacement belongs to, which is where a
-    // Relative32 distance is measured from. Unused by Absolute64.
-    uint32_t      relativeEndOffset = 0;
-    MicroInstrRef instructionRef    = MicroInstrRef::invalid();
-    uint64_t      targetAddress     = 0;
-    Symbol*       targetSymbol      = nullptr;
-    ConstantRef   constantRef       = ConstantRef::invalid();
-    uint32_t      constantShard     = INVALID_REF;
-    uint32_t      constantOffset    = INVALID_REF;
-
-    bool hasConstantSource() const noexcept { return constantShard != INVALID_REF && constantOffset != INVALID_REF; }
-};
 
 class MicroBuilder
 {

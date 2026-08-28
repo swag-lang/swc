@@ -2817,6 +2817,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
 
         std::vector<fs::path> requiredArtifacts;
         fs::path              testArtifactPath;
+        fs::path              unexpectedPdbPath;
         const bool            needsRequiredArtifact  = moduleCmdLine.command == CommandKind::Build || isRunLikeCommand(moduleCmdLine.command);
         const bool            needsTestArtifactProbe = moduleCmdLine.command == CommandKind::Test && probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable;
         if ((needsRequiredArtifact || needsTestArtifactProbe) &&
@@ -2826,6 +2827,10 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             const NativeArtifactBuilder artifactProbeBuilder(nativeProbeBuilder);
             NativeArtifactPaths         artifactPaths;
             artifactProbeBuilder.queryPaths(artifactPaths);
+            if (!probeCompiler.buildCfg().backend.debugInfo &&
+                (probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable ||
+                 probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary))
+                unexpectedPdbPath = artifactPaths.pdbPath;
             if (needsRequiredArtifact)
             {
                 requiredArtifacts.push_back(artifactPaths.artifactPath);
@@ -2847,7 +2852,10 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
 
         WorkspaceArtifactManifest manifest;
         const fs::path            manifestPath = workspaceArtifactManifestPath(moduleCmdLine.outDir, moduleCmdLine);
-        if (readWorkspaceArtifactManifest(manifest, manifestPath) &&
+        std::error_code           unexpectedPdbError;
+        const bool                hasUnexpectedPdb = !unexpectedPdbPath.empty() && fs::exists(unexpectedPdbPath, unexpectedPdbError);
+        if (!hasUnexpectedPdb && !unexpectedPdbError &&
+            readWorkspaceArtifactManifest(manifest, manifestPath) &&
             workspaceArtifactsAreUpToDate(manifest, moduleCmdLine.outDir, manifestPath, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts, probeCompiler.buildCfg().backend.debugInfo))
         {
             const bool     runReusedTestArtifact = !testArtifactPath.empty() && workspaceManifestContainsArtifact(manifest, moduleCmdLine.outDir, testArtifactPath);

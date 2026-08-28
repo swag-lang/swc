@@ -1414,7 +1414,7 @@ internal impl HtmlView
     // Creates a view and renders the complete in-memory HTML source.
     public func createText(contentParent: *Wnd, source: string, documentStyle: HtmlStyle = {})->*HtmlView
     {
-        let result = .createBase(contentParent, documentStyle)
+        let result = HtmlView.createBase(contentParent, documentStyle)
         result.parser.feed(source)
         result.parser.finish()
         result.sourceDone = true
@@ -1426,7 +1426,7 @@ internal impl HtmlView
     // Creates a complete HTML fragment that contributes its natural height to a parent document.
     func createEmbedded(contentParent: *Wnd, source: string, basePath: string, documentStyle: HtmlStyle = {})->*HtmlView
     {
-        let result = .createBase(contentParent, documentStyle)
+        let result = HtmlView.createBase(contentParent, documentStyle)
         result.embedded        = true
         result.images.basePath = basePath
         result.parser.feed(source)
@@ -1445,7 +1445,7 @@ internal impl HtmlView
     // [[Gui.HtmlView.failureReason]] and [[Gui.HtmlView.sigLoadFailed]].
     public func createFile(contentParent: *Wnd, fileName: string, documentStyle: HtmlStyle = {})->*HtmlView
     {
-        let result = .createBase(contentParent, documentStyle)
+        let result = HtmlView.createBase(contentParent, documentStyle)
         result.loadFile(fileName)
         return result
     }

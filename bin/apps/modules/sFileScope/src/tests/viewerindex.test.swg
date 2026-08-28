@@ -104,7 +104,7 @@ func viewerRegistryFixturePath(name: string)->String
     @assert(subtitleChoices[0].name == "Subtitles" and subtitleChoices[0].icon == .Subtitle)
     @assert(subtitleChoices.count == 3 and subtitleChoices[1].name == "Binary" and subtitleChoices[2].name == "Hexadecimal")
 
-    const SoundFiles: [8] string = ["sound.wav", "sound.flac", "sound.mp3", "sound.aac", "sound.ac3", "sound.eac3", "sound.ec3", "sound.dts"]
+    const SoundFiles: [11] string = ["sound.wav", "sound.flac", "sound.mp3", "sound.aac", "sound.ac3", "sound.eac3", "sound.ec3", "sound.dts", "sound.ogg", "sound.oga", "sound.opus"]
     for file in SoundFiles do
         @assert(index.choices(file)[0].key == "sound")
 }

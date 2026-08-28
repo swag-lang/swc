@@ -16,8 +16,9 @@ A process-wide engine with an explicit lifecycle, a bus tree with parent routing
 voices with linear and decibel gain, pitch through a frequency ratio, looping, fire-and-forget
 lifetime, and streaming through three rotating 64 KiB decoded buffers. A codec registry
 (`ICodec`, `registerCodec`) that makes decoding extensible from outside the module, with AAC-LC,
-AC-3, independent E-AC-3, DTS Core, FLAC and MPEG Layer III decoders in the box. DTS, FLAC and MP3 also have
-their own file readers, so a `.dts`, `.flac`, or `.mp3` opens through `SoundFile.load` and streams from
+AC-3, independent E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, Opus, and WAVE ADPCM decoders in
+the box. DTS, FLAC, MP3, and Ogg also have their own file readers, so a `.dts`, `.flac`, `.mp3`,
+`.ogg`, or `.opus` opens through `SoundFile.load` and streams from
 disk; that is the answer to "no music", and what is left below is breadth beside it. A no-sound
 driver that preserves the entire lifecycle without opening a device, wired into the sandbox so a
 test run never makes noise — that last part is better integrated than in most libraries of this
@@ -42,33 +43,6 @@ effects, no capture.
   a reproducible encoder for one, then implement and validate each tool against that corpus.
 - Complete when: representative Core streams using those tools decode with validated channel order
   and bounded reference error, while unsupported extension substreams remain explicit.
-
-### T-166 — No Ogg Vorbis decoder
-
-Add Ogg framing and Vorbis decoding behind `ICodec`, including streaming and seek-table behavior.
-Vorbis transmits its codebooks in the stream, so unlike Layer III it needs no normative code table
-to be recovered from anywhere, which makes it the cheapest remaining format to be certain about.
-
-- What the packet index has to do differently, worked out and not yet built: a Vorbis packet may
-  span Ogg pages, so it is not one contiguous byte range and `SoundPacket` cannot name it. Index
-  whole pages instead, merging consecutive pages until the granule position advances, and let the
-  codec assemble packets across the boundary in its own state. The granule delta of the merged run
-  is exactly the sample-frame count the entry owes, which is what `Voice.decodePacketData`
-  demands; no mode simulation is needed to compute it.
-- How much it is worth, measured (2026-08-25, 592 films of one personal library): 2 Vorbis tracks.
-  It is the right next audio format for correctness reasons, not for reach.
-
-### T-168 — No Opus decoder
-
-Add Ogg Opus decoding only as its own optional codec; do not make it part of Vorbis or FLAC
-completion.
-
-- Related: T-166
-
-### T-169 — WAV ADPCM is declared but rejected
-
-Implement the declared `WAVE_FORMAT_ADPCM` path independently of adding compressed music
-containers.
 
 ### T-564 — MP3 costs more per frame than it needs to, and ISO-BMFF does not carry it
 

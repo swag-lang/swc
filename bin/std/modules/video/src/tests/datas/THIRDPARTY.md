@@ -283,3 +283,16 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+`ffmpeg-h264-opus.mkv` and `ffmpeg-h264-vorbis.mkv` stream-copy the H.264 access units of
+`ffmpeg-h264-baseline.mp4` and, respectively, the Opus track of std/audio's
+`opus-stereo-48000.opus` and the Vorbis track of `vorbis-stereo-44100.ogg` into Matroska through
+PyAV 17.1. The muxer states the Opus pre-skip as the track's codec delay and trims the final
+block with a discard padding; the Vorbis headers travel Xiph-laced in the codec private data.
+`opus-stereo-48000.pcm` and `vorbis-stereo-44100.pcm` are copies of the reference decodes
+documented beside those sources, so the container tests compare against the same samples.
+
+- `ffmpeg-h264-opus.mkv` SHA-256: `25ebe972d6bdf54aedb315c408775b78bade1f20f181c9aab552f4549202960e`
+- `ffmpeg-h264-vorbis.mkv` SHA-256: `c2c591838668e4aab3376c2f2890887c68b90fd33606105a143893cd5d8224e5`
+- License: same as this repository.

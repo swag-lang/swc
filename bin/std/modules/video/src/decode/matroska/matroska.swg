@@ -1,5 +1,5 @@
 //! Format: Matroska/EBML container decoder component.
-//! Supported: H.264, H.265 and MPEG-4 Part 2 picture tracks, AAC-LC, AC-3, independent E-AC-3, DTS Core, FLAC, or Layer III audio, and UTF-8 or ASS/SSA subtitle tracks, with cues and timestamps.
+//! Supported: H.264, H.265 and MPEG-4 Part 2 picture tracks, AAC-LC, AC-3, independent E-AC-3, DTS Core, FLAC, Layer III, Vorbis, or Opus audio, and UTF-8 or ASS/SSA subtitle tracks, with cues, timestamps, codec delay, and discard padding.
 //! Not supported: Other picture codecs, bitmap subtitles, laced or invisible picture blocks, dependent E-AC-3 substreams, encrypted tracks, and writing Matroska.
 //! Role: This file owns tracks, clusters, cues, timestamps, progressive indexing, and media dispatch.
 //
@@ -19,6 +19,11 @@ private const Eac3CodecId = "A_EAC3"
 private const DtsCodecId = "A_DTS"
 private const FlacCodecId = "A_FLAC"
 private const Mp3CodecId = "A_MPEG/L3"
+private const VorbisCodecId = "A_VORBIS"
+private const OpusCodecId = "A_OPUS"
+
+// An Opus decoder produces 48 kHz whatever rate the track states it was encoded from.
+private const OpusOutputRate = 48_000.0
 private const Mpeg4CodecId = "V_MPEG4/ISO/ASP"
 private const VfwCodecId = "V_MS/VFW/FOURCC"
 private const Utf8SubtitleCodecId = "S_TEXT/UTF8"
@@ -156,6 +161,8 @@ private struct Track
     videoSamples:    Array'SampleEntry
     audioPackets:    Array'SoundPacket
     subtitleSamples: Array'SubtitleSample
+    durationProbe:   Audio.PacketDurationProbe     // Measures audio packets once the first arrives.
+    hasProbe:        bool
     audioFrameCount: u64
     audioStart:      s64
     hasAudioStart:   bool
@@ -252,8 +259,15 @@ private impl Track
             return .Flac
         if .codecId == Mp3CodecId do
             return .Mp3
+        if .codecId == VorbisCodecId do
+            return .Vorbis
+        if .codecId == OpusCodecId do
+            return .Opus
         return .Unknown
     }
+
+    // The rate the decoded samples come out at, which for Opus is not the one the track states.
+    mtd const decodedSampleRate()->f64 => .soundEncoding() == .Opus ? OpusOutputRate : .sampleRate
 
     mtd const isPlayableAudio()->bool
     {
@@ -262,17 +276,26 @@ private impl Track
             return false
         if .sampleRate <= 0 or .sampleRate > cast(f64) Swag.U32.Max or !.channels or .channels > 8 do
             return false
-        return (encoding != .AacLc and encoding != .Flac) or .codecPrivate.count != 0
+        return !Audio.packetEncodingNeedsConfig(encoding) or .codecPrivate.count != 0
     }
 
     mtd const leadingTrimFrames()->u64 fail
     {
         if !.codecDelay do
             return 0
-        let frames = cast(f64) .codecDelay * .sampleRate / 1_000_000_000.0
+        let frames = cast(f64) .codecDelay * .decodedSampleRate() / 1_000_000_000.0
         if frames > cast(f64) Swag.U32.Max do
             fail UnsupportedFormatError{"Matroska audio codec delay exceeds the supported range"}
         return cast(u64) Math.round(frames)
+    }
+
+    // Converts the discard padding a block declares to the sample frames it removes from the
+    // end of that block's packets; a padding that runs the other way is not something to remove.
+    mtd const discardPaddingFrames(nanoseconds: s64)->u64
+    {
+        if nanoseconds <= 0 do
+            return 0
+        return cast(u64) Math.round(cast(f64) nanoseconds * .decodedSampleRate() / 1_000_000_000.0)
     }
 
     mtd const speakerMask(bytes: const [..] u8)->u32 fail
@@ -1193,7 +1216,8 @@ private impl Layout
     mtd parseBlockGroup(cursor: *Cursor, group: Element, clusterTimestamp: u64) fail
     {
         var block: Element
-        var blockDuration = 0'u64
+        var blockDuration  = 0'u64
+        var discardPadding = 0's64
         var hasBlock, hasReference: bool
         cursor.seek(group.data)
         while cursor.position < group.end
@@ -1210,13 +1234,16 @@ private impl Layout
 
             case BlockDurationId:
                 blockDuration = cursor.readUnsigned(element)
+
+            case DiscardPaddingId:
+                discardPadding = cursor.readSigned(element)
             }
 
             cursor.seek(element.end)
         }
 
         if hasBlock do
-            .indexBlock(cursor, block, clusterTimestamp, !hasReference, blockDuration)
+            .indexBlock(cursor, block, clusterTimestamp, !hasReference, blockDuration, discardPadding)
     }
 
     // Converts a cluster-relative timestamp to signed nanoseconds with overflow checks.
@@ -1320,7 +1347,7 @@ private impl Layout
     }
 
     // Indexes one block belonging to the selected picture, sound, or subtitle tracks.
-    mtd indexBlock(cursor: *Cursor, block: Element, clusterTimestamp: u64, keyFromContainer: bool, blockDurationTicks: u64) fail
+    mtd indexBlock(cursor: *Cursor, block: Element, clusterTimestamp: u64, keyFromContainer: bool, blockDurationTicks: u64, discardPadding: s64 = 0) fail
     {
         cursor.seek(block.data)
         let trackNumber = cursor.readVintValue(block.end).value
@@ -1407,12 +1434,25 @@ private impl Layout
             track.hasAudioStart = true
         }
 
+        if !track.hasProbe
+        {
+            try track.durationProbe.initialize(track.soundEncoding(), track.codecPrivate.toSlice())
+            track.hasProbe = true
+        }
+
         var offset = payload
-        for size in .laceSizes
+        for size, laceIndex in .laceSizes
         {
             if size > Swag.U32.Max do
                 fail InvalidFormatError{"Matroska audio packet exceeds the supported size"}
-            let frameCount = .audioPacketFrames(cursor.bytes, offset, size, track.soundEncoding())
+            var frameCount = .audioPacketFrames(cursor.bytes, offset, size, track)
+            if laceIndex + 1 == .laceSizes.count
+            {
+                // The padding trims the end of the block, which is the end of its last packet.
+                let discarded = track.discardPaddingFrames(discardPadding)
+                frameCount = discarded < frameCount ? frameCount - cast(u32) discarded : 0
+            }
+
             track.audioPackets.add({offset, cast(u32) size, frameCount})
             if track.audioFrameCount > Swag.U64.Max - frameCount do
                 fail OverflowError{"Matroska audio packet table is too large"}
@@ -1421,11 +1461,11 @@ private impl Layout
         }
     }
 
-    mtd const audioPacketFrames(bytes: const [..] u8, offset, size: u64, encoding: SoundFileEncoding)->u32 fail
+    mtd audioPacketFrames(bytes: const [..] u8, offset, size: u64, track: *Track)->u32 fail
     {
         if offset > @countof(bytes) or size > @countof(bytes) - offset do
             fail InvalidFormatError{"Matroska audio packet is truncated"}
-        return try Audio.packetFrameCount(encoding, bytes[offset until offset + size])
+        return try track.durationProbe.frames(bytes[offset until offset + size])
     }
 }
 
@@ -1570,7 +1610,7 @@ private func buildSoundTracks(path: string, bytes: const [..] u8, layout: *Layou
         let timelineStart = Math.max(cast(f64) track.audioStart / 1_000_000_000.0, 0)
         let leadingTrim   = timelineStart == 0 ? try track.leadingTrimFrames() : 0
         let options       = PacketStreamOptions{leadingTrimFrames: leadingTrim, speakerMask: try track.speakerMask(bytes), timelineStartSeconds: timelineStart, displayName: track.name.toString(), language: track.language.toString()}
-        let sound         = SoundFile.openPacketStream(path, track.soundEncoding(), cast(u32) Math.round(track.sampleRate), track.channels, track.audioFrameCount, track.audioPackets.toSlice(), track.codecPrivate.toSlice(), options)
+        let sound         = SoundFile.openPacketStream(path, track.soundEncoding(), cast(u32) Math.round(track.decodedSampleRate()), track.channels, track.audioFrameCount, track.audioPackets.toSlice(), track.codecPrivate.toSlice(), options)
         result.add(#move sound)
     }
 }

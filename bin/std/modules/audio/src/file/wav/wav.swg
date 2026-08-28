@@ -1,6 +1,6 @@
 //! Format: RIFF/WAVE sound-file decoder.
-//! Supported: PCM8/16/24/32 and IEEE Float32 in classic or WAVE_FORMAT_EXTENSIBLE `fmt ` chunks, including speaker masks and streamed `data` chunks.
-//! Not supported: Compressed WAV codecs, IEEE Float64, RF64/WAVE64, big-endian RIFX, and multiple data segments.
+//! Supported: PCM8/16/24/32 and IEEE Float32 in classic or WAVE_FORMAT_EXTENSIBLE `fmt ` chunks, including speaker masks and streamed `data` chunks, and Microsoft or IMA ADPCM blocks indexed as a streamed packet sound.
+//! Not supported: Other compressed WAVE codecs, IEEE Float64, RF64/WAVE64, big-endian RIFX, and multiple data segments.
 //! Role: This file owns RIFF chunk traversal, WAVE format validation, metadata, and SoundFile construction.
 //
 #global namespace Wav
@@ -71,6 +71,7 @@ const WAVE_FORMAT_UNKNOWN    = 0x0000     /* Microsoft Corporation */
 const WAVE_FORMAT_PCM        = 0x0001     /* Microsoft Corporation */
 const WAVE_FORMAT_ADPCM      = 0x0002     /* Microsoft Corporation */
 const WAVE_FORMAT_IEEE_FLOAT = 0x0003     /* Microsoft Corporation */
+const WAVE_FORMAT_IMA_ADPCM  = 0x0011     /* Intel Corporation */
 const WAVE_FORMAT_EXTENSIBLE = 0xFFFE     /* Microsoft */
 
 // Packed UUID representation used by the WAVE extensible header.
@@ -88,188 +89,157 @@ struct SubformatUuid
 const SubformatPcm       = SubformatUuid{0x00000001, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
 const SubformatAdpcm     = SubformatUuid{0x00000002, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
 const SubformatIeeeFloat = SubformatUuid{0x00000003, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
+const SubformatImaAdpcm  = SubformatUuid{0x00000011, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
 
 func copySubformat(destination: *void, source: SubformatUuid)
 {
     Memory.copy(destination, &source, #sizeof(source))
 }
 
-#[Swag.Pack(1)]
-struct WAVEFORMAT
+// Offsets of the fields inside a `fmt ` chunk, and the sizes at which each family of fields is present.
+private const FormatBaseSize = 14'u64           // WAVEFORMAT: tag, channels, rate, average bytes, block alignment.
+private const FormatBitsSize = 16'u64           // PCMWAVEFORMAT adds the bits per sample.
+private const FormatExtraSize = 18'u64          // WAVEFORMATEX adds the size of what follows.
+private const FormatExtensibleSize = 40'u64     // WAVEFORMATEXTENSIBLE adds valid bits, the speaker mask, and the subformat.
+
+// A `fmt ` chunk larger than this is not one; the extensible form is forty bytes and a Microsoft
+// ADPCM coefficient table adds a few dozen more.
+private const MaxFormatChunk = 4096'u64
+
+// What the `fmt ` chunk declares, kept apart from the sound so a compressed format can build its
+// packet index from it before any [[Audio.SoundFile]] exists.
+private struct Format
 {
-    wFormatTag:      u16     // Format type
-    nChannels:       u16     // Number of nChannels (i.e. mono, stereo, etc.)
-    nSamplesPerSec:  u32     // Sample rate
-    nAvgBytesPerSec: u32     // For buffer estimation
-    nBlockAlign:     u16     // Block size of data
+    channels:       u32
+    sampleRate:     u32
+    blockAlign:     u32
+    bitsPerSample:  u32
+    validBits:      u16
+    speakerMask:    u32
+    encoding:       SoundFileEncoding
+    hasBitsField:   bool     // The chunk states the bits per sample rather than implying them.
+    hasExtensible:  bool     // The chunk carries the valid bits, the speaker mask, and a subformat.
+    extra:          Array'u8     // Format-specific bytes after the subformat, or after `cbSize` in a classic chunk.
 }
 
-#[Swag.Pack(1)]
-struct PCMWAVEFORMAT
+private func readU16(bytes: const [..] u8, offset: u64)->u32 => cast(u32) bytes[offset] | (cast(u32) bytes[offset + 1] << 8)
+private func readU32(bytes: const [..] u8, offset: u64)->u32 => readU16(bytes, offset) | (readU16(bytes, offset + 2) << 16)
+
+private func encodingOf(tag, bitsPerSample: u32)->SoundFileEncoding fail
 {
-    using wf:       WAVEFORMAT
-    wBitsPerSample: u16
-}
-
-#[Swag.Pack(1)]
-struct WAVEFORMATEX
-{
-    using pcmwf: PCMWAVEFORMAT
-    cbSize:      u16     // The count in bytes of the size of extra information (after cbSize)
-}
-
-#[Swag.Pack(1)]
-struct WAVEFORMATEXTENSIBLE
-{
-    using fmtex: WAVEFORMATEX
-
-    samples: union
-    {
-        wValidBitsPerSample: u16     // Valid bits in each sample container
-        wSamplesPerBlock:    u16     // Samples per block of audio data valid
-        wReserved:           u16     // If wBitsPerSample=0 (but rarely used). Zero if neither case above applies.
-    }
-
-    speakerMask: u32               // WAVE speaker-position bit mask.
-    subFormat:   SubformatUuid     // Encoding UUID.
-}
-
-func setEncodingFormat(file: *SoundFile, formatTag: u16) fail
-{
-    switch formatTag
+    switch tag
     {
     case WAVE_FORMAT_PCM:
-        if file.bitsPerSample == 8 do
-            file.encoding = .Pcm8
-        elif file.bitsPerSample == 16 do
-            file.encoding = .Pcm16
-        elif file.bitsPerSample == 24 do
-            file.encoding = .Pcm24
-        elif file.bitsPerSample == 32 do
-            file.encoding = .Pcm32
-        else do
-            fail UnsupportedFormatError{"unsupported pcm bitPerSample"}
+        switch bitsPerSample
+        {
+        case 8:  return .Pcm8
+        case 16: return .Pcm16
+        case 24: return .Pcm24
+        case 32: return .Pcm32
+        default: fail UnsupportedFormatError{"unsupported pcm bitPerSample"}
+        }
 
     case WAVE_FORMAT_IEEE_FLOAT:
-        if file.bitsPerSample == 32 do
-            file.encoding = .Float32
-        else do
+        if bitsPerSample != 32 do
             fail UnsupportedFormatError{"unsupported float bitPerSample"}
+        return .Float32
 
-    case WAVE_FORMAT_EXTENSIBLE:
-        break
+    case WAVE_FORMAT_ADPCM:
+        if bitsPerSample != 4 do
+            fail UnsupportedFormatError{"WAV Microsoft ADPCM is only supported at four bits a sample"}
+        return .AdpcmMs
+
+    case WAVE_FORMAT_IMA_ADPCM:
+        if bitsPerSample != 4 do
+            fail UnsupportedFormatError{"WAV IMA ADPCM is only supported at four bits a sample"}
+        return .AdpcmIma
 
     default:
         fail UnsupportedFormatError{"unsupported wav format"}
     }
 }
 
-func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) fail
+// Returns the classic format tag an extensible subformat stands for.
+private func subformatTag(subformat: const [..] u8)->u32 fail
 {
-    if chunkSize < #sizeof(WAVEFORMAT) do
+    if Memory.bytesEqual(cast(const *SubformatUuid) @dataof(subformat), SubformatPcm) do
+        return WAVE_FORMAT_PCM
+    if Memory.bytesEqual(cast(const *SubformatUuid) @dataof(subformat), SubformatIeeeFloat) do
+        return WAVE_FORMAT_IEEE_FLOAT
+    if Memory.bytesEqual(cast(const *SubformatUuid) @dataof(subformat), SubformatAdpcm) do
+        return WAVE_FORMAT_ADPCM
+    if Memory.bytesEqual(cast(const *SubformatUuid) @dataof(subformat), SubformatImaAdpcm) do
+        return WAVE_FORMAT_IMA_ADPCM
+    fail UnsupportedFormatError{"unsupported wav format"}
+}
+
+// Reads what a `fmt ` chunk declares.
+private func parseFormat(bytes: const [..] u8)->Format fail
+{
+    let size = @countof(bytes)
+    if size < FormatBaseSize do
         fail InvalidFormatError{"invalid wav"}
 
-    let chunkStart = stream.position()
-
-    var wf: WAVEFORMAT
-    if !stream.readValue(&wf) do
-        fail InvalidFormatError{"invalid wav"}
-
-    if wf.nChannels == 0 do
+    var result: retval
+    let tag         = readU16(bytes, 0)
+    result.channels   = readU16(bytes, 2)
+    result.sampleRate = readU32(bytes, 4)
+    let averageBytes = readU32(bytes, 8)
+    result.blockAlign = readU16(bytes, 12)
+    if !result.channels do
         fail InvalidFormatError{"WAV channel count must be greater than zero"}
-    if wf.nSamplesPerSec == 0 do
+    if !result.sampleRate do
         fail InvalidFormatError{"WAV sample rate must be greater than zero"}
 
-    file.sampleRate    = wf.nSamplesPerSec
-    file.channelCount  = wf.nChannels
-    file.bitsPerSample = (wf.nAvgBytesPerSec * 8 / wf.nChannels) / wf.nSamplesPerSec
-    file.setEncodingFormat(wf.wFormatTag)
-
-    file.availableFields = .Format
-    file.availableFields |= .SampleRate
-    file.availableFields |= .ChannelCount
-
-    ////////
-    if chunkSize >= #sizeof(PCMWAVEFORMAT)
+    // The oldest chunks state no sample width; the byte rate implies it.
+    result.bitsPerSample = (averageBytes * 8 / result.channels) / result.sampleRate
+    if size >= FormatBitsSize
     {
-        var pcmwf: PCMWAVEFORMAT
-        pcmwf.wf             = wf
-        file.availableFields |= .BitsPerSample
+        result.bitsPerSample = readU16(bytes, 14)
+        result.hasBitsField  = true
+    }
 
-        if !stream.readValue(&pcmwf.wBitsPerSample) do
-            fail InvalidFormatError{"invalid wav"}
-        file.bitsPerSample = pcmwf.wBitsPerSample
-        file.setEncodingFormat(wf.wFormatTag)
+    var extraStart = FormatExtraSize
+    var extraEnd   = FormatExtraSize
+    if size >= FormatExtraSize do
+        extraEnd = Math.min(size, FormatExtraSize + readU16(bytes, 16))
 
-        ////////
-        if chunkSize >= #sizeof(WAVEFORMATEX)
+    var classicTag = tag
+    if size >= FormatExtensibleSize
+    {
+        result.validBits     = cast(u16) readU16(bytes, 18)
+        result.speakerMask   = readU32(bytes, 20)
+        result.hasExtensible = true
+        if tag == WAVE_FORMAT_EXTENSIBLE
         {
-            var wfx: WAVEFORMATEX
-            wfx.pcmwf = pcmwf
-
-            if !stream.readValue(&wfx.cbSize) do
-                fail InvalidFormatError{"invalid wav"}
-
-            ////////
-            if chunkSize >= #sizeof(WAVEFORMATEXTENSIBLE)
-            {
-                var wfex: WAVEFORMATEXTENSIBLE
-                wfex.fmtex           = wfx
-                file.availableFields |= .SpeakerMask
-                file.availableFields |= .ValidBitsPerSample
-
-                if !stream.readValue(&wfex.samples) do
-                    fail InvalidFormatError{"invalid wav"}
-                if !stream.readValue(&wfex.speakerMask) do
-                    fail InvalidFormatError{"invalid wav"}
-                if !stream.readValue(&wfex.subFormat) do
-                    fail InvalidFormatError{"invalid wav"}
-
-                file.validBitsPerSample = wfex.samples.wValidBitsPerSample
-                file.waveSpeakerMask    = wfex.speakerMask
-
-                if wf.wFormatTag == WAVE_FORMAT_EXTENSIBLE
-                {
-                    switch
-                    {
-                    case Memory.bytesEqual(&wfex.subFormat, SubformatPcm):       file.setEncodingFormat(WAVE_FORMAT_PCM)
-                    case Memory.bytesEqual(&wfex.subFormat, SubformatIeeeFloat): file.setEncodingFormat(WAVE_FORMAT_IEEE_FLOAT)
-                    default: fail UnsupportedFormatError{"unsupported wav format"}
-                    }
-                }
-            }
+            classicTag = try subformatTag(bytes[24 until 40])
+            extraStart = FormatExtensibleSize
         }
     }
-
-    if wf.wFormatTag == WAVE_FORMAT_EXTENSIBLE and chunkSize < #sizeof(WAVEFORMATEXTENSIBLE) do
+    elif tag == WAVE_FORMAT_EXTENSIBLE do
         fail InvalidFormatError{"invalid wav"}
 
-    let readSize = stream.position() - chunkStart
-    if readSize < chunkSize do
-        stream.skip(chunkSize - readSize)
+    result.encoding = try encodingOf(classicTag, result.bitsPerSample)
+    if extraEnd > extraStart do
+        result.extra.add(bytes[extraStart until extraEnd])
+    return result
 }
 
-func readChunkData(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) fail
+// Where the audio and its declared length were found while walking the chunks.
+private struct Layout
 {
-    file.availableFields |= .Data
-    file.dataOffset      = stream.position()
-    file.dataSize        = chunkSize
-
-    file.availableFields |= .FrameCount
-    file.frameCount      = file.dataSize / (file.channelCount * (file.bitsPerSample / 8))
-    if file.availableFields & .SampleRate
-    {
-        file.durationSeconds = cast(f32) (file.frameCount / cast(f64) file.sampleRate)
-        file.availableFields |= .Duration
-    }
+    format:     Format
+    dataOffset: u64
+    dataSize:   u64
+    factFrames: u64      // Sample frames the `fact` chunk states, or zero without one.
+    hasData:    bool
 }
 
-// Decodes WAV headers and optional payload bytes from an open stream.
+// Walks the RIFF chunks up to and including the `data` chunk.
 //
-// The stream must be positioned at the beginning of a RIFF or RIFX WAVE file.
-// Parsed properties are written to `file`; see [[Audio.SoundFile.load]] for the
-// path-based entry point.
-internal func load(file: *SoundFile, stream: *File.FileStream, preloadData = true) fail
+// The stream is left positioned on the first payload byte, so a caller that keeps the audio in
+// memory reads it from there.
+private func readLayout(stream: *File.FileStream)->Layout fail
 {
     enum Stage
     {
@@ -278,19 +248,16 @@ internal func load(file: *SoundFile, stream: *File.FileStream, preloadData = tru
         FindData
     }
 
+    var result: retval
     var stage:  Stage = FindRiff
     var header: ChunkHeader
+    let size = stream.size()
 
     for
     {
         let seek = stream.position()
-        if seek >= stream.size()
-        {
-            if file.availableFields.has(.Data) do
-                return
+        if seek >= size do
             fail InvalidFormatError{"invalid wav"}
-        }
-
         if seek & 1 do
             stream.skip(1)
 
@@ -312,43 +279,38 @@ internal func load(file: *SoundFile, stream: *File.FileStream, preloadData = tru
         case .SND_WAV_FOURCC_fmt:
             if stage == .FindFmt
             {
-                file.readChunkFmt(stream, header.chunkSize)
-                stage = .FindData
+                if header.chunkSize > MaxFormatChunk do
+                    fail InvalidFormatError{"invalid wav"}
+                var bytes: Array'u8
+                bytes.resize(header.chunkSize)
+                if stream.read(bytes.toSlice()) != header.chunkSize do
+                    fail InvalidFormatError{"invalid wav"}
+                result.format = try parseFormat(bytes.toSlice())
+                stage         = .FindData
             }
+
+        case .SND_WAV_FOURCC_fact:
+            if header.chunkSize >= 4
+            {
+                var count: u32
+                if !stream.readValue(&count) do
+                    fail InvalidFormatError{"invalid wav"}
+                result.factFrames = count
+                stream.skip(header.chunkSize - 4)
+            }
+            else do
+                stream.skip(header.chunkSize)
 
         case .SND_WAV_FOURCC_data:
             if stage == .FindData
             {
-                readChunkData(file, stream, header.chunkSize)
-                if preloadData
-                {
-                    file.data.resize(header.chunkSize)
-                    if stream.read(file.data.buffer, header.chunkSize) != header.chunkSize do
-                        fail InvalidFormatError{"WAV audio data is truncated"}
-                }
-
-                return
+                result.hasData    = true
+                result.dataOffset = stream.position()
+                result.dataSize   = header.chunkSize
+                return result
             }
 
-        case .SND_WAV_FOURCC_fact:
-            stream.skip(header.chunkSize)
-
-        case .SND_WAV_FOURCC_cue:
-            stream.skip(header.chunkSize)
-
-        case .SND_WAV_FOURCC_LIST:
-            stream.skip(header.chunkSize)
-
-        case .SND_WAV_FOURCC_labl:
-            stream.skip(header.chunkSize)
-
-        case .SND_WAV_FOURCC_note:
-            stream.skip(header.chunkSize)
-
-        case .SND_WAV_FOURCC_ltxt:
-            stream.skip(header.chunkSize)
-
-        case .SND_WAV_FOURCC_bext:
+        case .SND_WAV_FOURCC_cue, .SND_WAV_FOURCC_LIST, .SND_WAV_FOURCC_labl, .SND_WAV_FOURCC_note, .SND_WAV_FOURCC_ltxt, .SND_WAV_FOURCC_bext:
             stream.skip(header.chunkSize)
 
         default:
@@ -358,4 +320,88 @@ internal func load(file: *SoundFile, stream: *File.FileStream, preloadData = tru
                 fail InvalidFormatError{"invalid wav"}
         }
     }
+}
+
+// Indexes the blocks of an ADPCM `data` chunk as a streamed packet sound.
+//
+// Every block decodes to what its bytes hold, the final one included, so the duration counts
+// every sample the blocks reconstruct, as FFmpeg reports it; a `fact` chunk stating fewer
+// frames is accepted, one stating more is not.
+private func openAdpcm(path: string, layout: const *Layout)->SoundFile fail
+{
+    let format = &layout.format
+    if !format.blockAlign do
+        fail InvalidFormatError{"WAV ADPCM block alignment is zero"}
+    if format.channels > 2 do
+        fail UnsupportedFormatError{"WAV ADPCM is only supported with one or two channels"}
+
+    var packets: Array'SoundPacket
+    var total   = 0'u64
+    var at      = 0'u64
+    while at < layout.dataSize
+    {
+        let bytes  = Math.min(cast(u64) format.blockAlign, layout.dataSize - at)
+        let frames = Adpcm.blockFrameCount(format.encoding, format.channels, bytes)
+        if !frames do
+            break
+        packets.add({layout.dataOffset + at, cast(u32) bytes, cast(u32) frames})
+        total += frames
+        at    += bytes
+    }
+
+    if !packets.count do
+        fail InvalidFormatError{"WAV ADPCM data holds no complete block"}
+    if layout.factFrames > total do
+        fail InvalidFormatError{"WAV fact chunk declares more sample frames than the blocks decode to"}
+
+    return try SoundFile.openPacketStream(path, format.encoding, format.sampleRate, format.channels, total, packets.toSlice(), format.extra.toSlice(), {speakerMask: format.speakerMask})
+}
+
+// Opens a RIFF/WAVE file.
+//
+// PCM and floating-point audio describe the sound in place, kept in memory when `preloadData` is
+// set and streamed from `path` otherwise. ADPCM audio is always streamed: its blocks are indexed
+// as packets and decoded on demand, so `preloadData` does not apply to it.
+internal func openFile(path: string, preloadData: bool)->SoundFile fail
+{
+    var stream = File.openRead(path)
+    let layout = try readLayout(&stream)
+    let format = &layout.format
+    if format.encoding == .AdpcmMs or format.encoding == .AdpcmIma
+    {
+        stream.close()
+        return try openAdpcm(path, &layout)
+    }
+
+    let bytesPerSample = format.bitsPerSample / 8
+    if !bytesPerSample do
+        fail InvalidFormatError{"invalid wav"}
+
+    var result: retval
+    result.path               = path
+    result.encoding           = format.encoding
+    result.sampleRate         = format.sampleRate
+    result.channelCount       = format.channels
+    result.bitsPerSample      = format.bitsPerSample
+    result.validBitsPerSample = format.validBits
+    result.waveSpeakerMask    = format.speakerMask
+    result.availableFields    = .Format | .SampleRate | .ChannelCount
+    if format.hasBitsField do
+        result.availableFields |= .BitsPerSample
+    if format.hasExtensible do
+        result.availableFields |= .SpeakerMask | .ValidBitsPerSample
+
+    result.availableFields |= .Data | .FrameCount | .Duration
+    result.dataOffset      = layout.dataOffset
+    result.dataSize        = layout.dataSize
+    result.frameCount      = layout.dataSize / (format.channels * bytesPerSample)
+    result.durationSeconds = cast(f32) (result.frameCount / cast(f64) format.sampleRate)
+    if preloadData
+    {
+        result.data.resize(layout.dataSize)
+        if stream.read(result.data.buffer, layout.dataSize) != layout.dataSize do
+            fail InvalidFormatError{"WAV audio data is truncated"}
+    }
+
+    return result
 }

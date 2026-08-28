@@ -1,9 +1,9 @@
 # Loading, streaming, and voices
 
-[[Audio.SoundFile.load]] always reads and validates the WAV header. With the
-default `preloadData = true`, it also keeps the audio payload in memory. Pass
+[[Audio.SoundFile.load]] always reads and validates the file header. With the
+default `preloadData = true`, it also keeps the payload of a PCM WAV file in memory. Pass
 `preloadData = false` for long sounds that should be read from disk while they
-play.
+play; a compressed file, ADPCM WAV included, is always indexed and read while it plays.
 
 ```swag
 let music = try Audio.SoundFile.load("assets/music.wav", preloadData = false)
@@ -19,8 +19,8 @@ Streaming voices also keep the source path and open the file on demand.
 
 Container modules can create indexed packet streams with
 [[Audio.SoundFile.openPacketStream]]. AAC-LC, AC-3, independent E-AC-3, and DTS Core support one
-to six channels. All four decode to interleaved 16-bit PCM in the module's
-native Swag codecs. `leadingTrimFrames` removes codec priming from the public timeline, so frame
+to six channels; Vorbis supports up to eight and Opus one or two. All of them decode to interleaved
+16-bit PCM in the module's native Swag codecs. `leadingTrimFrames` removes codec priming from the public timeline, so frame
 zero and a seek to frame zero begin at the first audible sample.
 
 [[Audio.SoundFile.readPayload]] reads an owned, bounded range without changing a

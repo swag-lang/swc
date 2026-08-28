@@ -61,7 +61,19 @@ public func isPacketEncoding(encoding: SoundFileEncoding)->bool
 {
     switch encoding
     {
-    case .AacLc, .Ac3, .Eac3, .Dts, .Flac, .Mp3: return true
+    case .AacLc, .Ac3, .Eac3, .Dts, .Flac, .Mp3, .AdpcmMs, .AdpcmIma, .Vorbis, .Opus: return true
+    default: return false
+    }
+}
+
+// Reports whether packets of `encoding` decode only with the configuration their container
+// carries beside the stream: the AAC audio-specific config, the FLAC stream information, the
+// Vorbis headers, the Opus identification header.
+public func packetEncodingNeedsConfig(encoding: SoundFileEncoding)->bool
+{
+    switch encoding
+    {
+    case .AacLc, .Flac, .Vorbis, .Opus: return true
     default: return false
     }
 }
@@ -70,7 +82,8 @@ public func isPacketEncoding(encoding: SoundFileEncoding)->bool
 //
 // A container builds its packet index before any decoding happens, so this reads the count out
 // of the packet header rather than decoding the packet. `packet` needs to hold the header only,
-// not the whole access unit.
+// not the whole access unit. Vorbis and Opus packets do not carry their duration in a way this
+// can read alone; a container measures them through [[Audio.PacketDurationProbe]].
 public func packetFrameCount(encoding: SoundFileEncoding, packet: const [..] u8)->u32 fail
 {
     switch encoding
@@ -81,7 +94,61 @@ public func packetFrameCount(encoding: SoundFileEncoding, packet: const [..] u8)
     case .Dts:   return try Dts.packetFrameCount(packet)
     case .Flac:  return try Flac.packetFrameCount(packet)
     case .Mp3:   return try Mp3.packetFrameCount(packet)
+    case .AdpcmMs, .AdpcmIma: fail UnsupportedFormatError{"ADPCM block durations follow from the WAVE format, not from the block"}
+    case .Vorbis, .Opus:      fail UnsupportedFormatError{"Vorbis and Opus durations need the stream configuration, not the packet alone"}
     default:     fail UnsupportedFormatError{"unsupported packetized sound encoding"}
+    }
+}
+
+// Measures the duration of the packets a container indexes, in stream order.
+//
+// A Vorbis packet's duration depends on the block size of the packet before it and on the modes
+// the stream's setup header declares, and an Opus packet's on its table of contents; every other
+// packet codec states its duration in the packet itself, which [[Audio.packetFrameCount]] reads.
+// One probe serves one stream: create it from the decoder configuration the container carries,
+// then feed it every packet of the stream in order.
+public struct PacketDurationProbe
+{
+    encoding: SoundFileEncoding
+    vorbis:   #null *void     // The Vorbis stream state, which the module keeps to itself.
+}
+
+public impl PacketDurationProbe
+{
+    mtd opDrop()
+    {
+        if .vorbis != null do
+            Memory.delete(cast(*Vorbis.DurationProbe) .vorbis)
+    }
+
+    // Prepares the probe for one stream of `encoding`, whose decoder configuration is `config`.
+    mtd initialize(encoding: SoundFileEncoding, config: const [..] u8) fail
+    {
+        .encoding = encoding
+        if encoding != .Vorbis do
+            return
+        let probe = Memory.new'Vorbis.DurationProbe()
+        try probe.initialize(config)
+        .vorbis = probe
+    }
+
+    // Returns the number of sample frames `packet` decodes to, and remembers what the next
+    // packet needs to know about it.
+    mtd frames(packet: const [..] u8)->u32 fail
+    {
+        switch .encoding
+        {
+        case .Vorbis:
+            let probe = cast(*Vorbis.DurationProbe) .vorbis!
+            return try probe.frames(packet)
+        case .Opus:
+            let count = Opus.packetFrames(packet)
+            if !count do
+                fail InvalidFormatError{"Opus packet has an invalid table of contents"}
+            return cast(u32) count
+        default:
+            return try packetFrameCount(.encoding, packet)
+        }
     }
 }
 

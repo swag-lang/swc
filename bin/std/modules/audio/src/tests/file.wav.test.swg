@@ -135,7 +135,7 @@ using Swag, Core
 
 #test
 {
-    const Files: [8] string = ["clip.wav", "clip.flac", "clip.mp3", "clip.aac", "clip.ac3", "clip.eac3", "clip.ec3", "clip.dts"]
+    const Files: [11] string = ["clip.wav", "clip.flac", "clip.mp3", "clip.aac", "clip.ac3", "clip.eac3", "clip.ec3", "clip.dts", "clip.ogg", "clip.oga", "clip.opus"]
 
     let extensions = SoundFile.decodableExtensions()
     @assert(extensions.count == @countof(Files))
@@ -146,7 +146,7 @@ using Swag, Core
     }
 
     @assert(SoundFile.canLoad("CLIP.MP3"))
-    @assert(!SoundFile.canLoad("clip.ogg") and !SoundFile.canLoad("clip"))
+    @assert(!SoundFile.canLoad("clip.mid") and !SoundFile.canLoad("clip"))
 }
 
 #test
@@ -157,8 +157,8 @@ using Swag, Core
 
 #test
 {
-    discard catch SoundFile.load(audioGetTestDataPath("unsupported_adpcm.wav")) as err10
-    @assert(err10 is Errors.UnsupportedFormatError)
+    discard catch SoundFile.load(audioGetTestDataPath("malformed_adpcm.wav")) as err10
+    @assert(err10 is Errors.InvalidFormatError)
 
     discard catch SoundFile.load(audioGetTestDataPath("not_wave.wav")) as err11
     @assert(err11 is Errors.InvalidFormatError)

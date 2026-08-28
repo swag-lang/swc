@@ -61,10 +61,12 @@ guessing an encoding.
   AVI accepts Motion JPEG, MPEG-4 Part 2, or uncompressed picture tracks and integer PCM sound.
   MP4, M4V, and MOV accept Motion JPEG, H.264, or H.265 picture tracks and AAC-LC mono/stereo
   sound. MKV accepts H.264, H.265, or MPEG-4 Part 2 pictures and every AAC-LC, AC-3, independent
-  E-AC-3, DTS Core, FLAC, or MPEG Layer III track, with a selector when several are present. The
+  E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, or Opus track, with a selector when several are
+  present. The
   output-device sample cursor is the master clock: slow picture decoding drops to a clean video
   sync frame without moving or stretching sound.
-- `Sound` uses the Audio module to stream WAV, FLAC, MP3, AAC, AC-3, E-AC-3, and DTS files. Its transport provides the same
+- `Sound` uses the Audio module to stream WAV (PCM, float, and ADPCM), FLAC, MP3, AAC, AC-3, E-AC-3, DTS,
+  Ogg Vorbis, and Opus files. Its transport provides the same
   basic time, seek, mute, volume, and keyboard controls as video. Playback does not retain the
   complete payload, and a low-priority worker builds the waveform from bounded blocks.
 - `Font` renders TrueType fonts and the first face of a TrueType collection as a live specimen.

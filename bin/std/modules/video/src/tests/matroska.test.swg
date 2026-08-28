@@ -351,3 +351,43 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     @assert(reader.displayHeight() == reader.height())
     reader.close()
 }
+
+// Vorbis and Opus packets do not state their duration: Matroska measures them, Vorbis from the
+// block size each mode selects against the previous packet's, Opus from its table of contents,
+// and trims the discard padding of the final block. The tracks then decode to the samples the
+// same streams give in their native Ogg files, Opus at its 48 kHz output rate with the codec
+// delay removed.
+#test
+{
+    const Files:     [2] string = ["ffmpeg-h264-opus.mkv", "ffmpeg-h264-vorbis.mkv"]
+    const Pcm:       [2] string = ["opus-stereo-48000.pcm", "vorbis-stereo-44100.pcm"]
+    const Encodings: [2] Audio.SoundFileEncoding = [.Opus, .Vorbis]
+    const Rates:     [2] u32 = [48_000, 44_100]
+    for fileIndex in @countof(Files)
+    {
+        var reader = expect Reader.open(videoFixturePath(Files[fileIndex]))
+        waitForMatroskaAudio(&reader, 1)
+        @assert(reader.audioTrackCount() == 1)
+        let sound = reader.audioTrack(0)!
+        @assert(sound.sampleEncoding() == Encodings[fileIndex])
+        @assert(sound.sampleRateHz() == Rates[fileIndex] and sound.numChannels() == 2)
+        @assert(!sound.isDataPreloaded() and sound.packetCount() > 40)
+
+        var decoded: Array's16
+        expect sound.decodePcm16(func|decoded = &decoded|(samples: const [..] s16)->bool
+        {
+            decoded.add(samples)
+            return true
+        })
+
+        let wanted   = expect File.readAllBytes(videoFixturePath(Pcm[fileIndex]))
+        let wantedAt = cast(const [*] s16) wanted.buffer!
+        let compared = Math.min(decoded.count, wanted.count / #sizeof(s16))
+        @assert(decoded.count == sound.sampleFrameCount() * 2)
+        @assert(compared >= 44_000 * 2 and decoded.count <= wanted.count / #sizeof(s16) + 2 * 1_024)
+        // The references are libopus's and libvorbis's; this module's decoders sit within one
+        // least significant bit of them, as the audio module's own tests establish.
+        for index in compared do
+            @assert(Math.abs(cast(s32) decoded[index] - cast(s32) wantedAt[index]) <= 1)
+    }
+}

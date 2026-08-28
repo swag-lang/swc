@@ -94,6 +94,10 @@ func videoAudioEncodingText(encoding: Audio.SoundFileEncoding)->string
     case .Dts:     return "DTS"
     case .Flac:    return "FLAC"
     case .Mp3:     return "MP3"
+    case .Vorbis:  return "Vorbis"
+    case .Opus:    return "Opus"
+    case .AdpcmMs: return "ADPCM"
+    case .AdpcmIma: return "IMA ADPCM"
     default:       return "Audio"
     }
 }

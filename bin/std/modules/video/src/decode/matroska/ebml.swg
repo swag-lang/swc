@@ -62,6 +62,7 @@ const BlockGroupId           = 0xA0'u32
 const BlockId                = 0xA1'u32
 const ReferenceBlockId       = 0xFB'u32
 const BlockDurationId        = 0x9B'u32
+const DiscardPaddingId       = 0x75A2'u32
 
 // One bounded EBML element in a mapped stream.
 struct Element
@@ -185,6 +186,20 @@ impl Cursor
         for size do
             result = (result << 8) | .readByte(element.end)
         return result
+    }
+
+    // Reads a signed EBML element value, two's complement over the element's own width.
+    mtd readSigned(element: Element)->s64 fail
+    {
+        let size = element.end - element.data
+        if !size or size > 8 do
+            fail InvalidFormatError{"Matroska integer needs between one and eight bytes"}
+        .seek(element.data)
+        var result = 0'u64
+        for size do
+            result = (result << 8) | .readByte(element.end)
+        let shift = cast(u32) (64 - 8 * size)
+        return (cast #bit (s64) (result << shift)) >> shift
     }
 
     // Reads a four- or eight-byte big-endian IEEE floating-point value.

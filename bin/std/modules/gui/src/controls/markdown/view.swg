@@ -781,7 +781,7 @@ impl View
     // Creates a view and renders the complete Markdown source.
     func createText(contentParent: *Wnd, source: string, documentStyle: Style = {})->*View
     {
-        let result = .create(contentParent, documentStyle)
+        let result = View.create(contentParent, documentStyle)
         result.sourceDone = true
         let parsed = parseBlocks(source)
         for &block in parsed do
@@ -804,7 +804,7 @@ impl View
     // [[Gui.Markdown.View.failureReason]] and [[Gui.Markdown.View.sigLoadFailed]].
     func createFile(contentParent: *Wnd, fileName: string, documentStyle: Style = {})->*View
     {
-        let result = .create(contentParent, documentStyle)
+        let result = View.create(contentParent, documentStyle)
         result.fileName = fileName
         result.stream   = catch File.openRead(fileName) as openError
         if openError != null

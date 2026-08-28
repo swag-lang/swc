@@ -16,6 +16,24 @@ impl Voice
         return bytesPerSample * .file!.channelCount
     }
 
+    // Returns the capacity of one decoded buffer: the streaming size, or the largest packet of the
+    // source when one decodes to more than that, since a packet is never split across buffers.
+    mtd decodedBufferCapacity()->u64
+    {
+        if .decodedCapacity do
+            return .decodedCapacity
+        let file    = .file!
+        var largest = 0'u64
+        if file.usesPacketCodec()
+        {
+            for packet in file.packets do
+                largest = Math.max(largest, cast(u64) packet.sampleFrameCount)
+        }
+
+        .decodedCapacity = Math.max(DecodedBufferSize, largest * .decodedBytesPerFrame())
+        return .decodedCapacity
+    }
+
     // Keeps one submitted buffer near 100 ms. With the backend maintaining two queued buffers,
     // this is enough scheduling margin without letting decoded audio run far ahead of transport
     // commands or the picture clock.
@@ -29,7 +47,7 @@ impl Voice
             target = Math.max(target, cast(u64) firstPacket.sampleFrameCount * .decodedBytesPerFrame())
         }
 
-        return Math.min(target, DecodedBufferSize)
+        return Math.min(target, .decodedBufferCapacity())
     }
 
     mtd readBuffer()->{ buffer: #null [*] void, size: u64 } fail
@@ -45,8 +63,8 @@ impl Voice
                 .rewindData()
             }
 
-            if !.decodedBuffers[.decodedBufferIdx].buffer do
-                .decodedBuffers[.decodedBufferIdx].resize(DecodedBufferSize)
+            if .decodedBuffers[.decodedBufferIdx].count < .decodedBufferCapacity() do
+                .decodedBuffers[.decodedBufferIdx].resize(.decodedBufferCapacity())
             let destBuffer = .decodedBuffers[.decodedBufferIdx].buffer!
             let destSize   = .decodePacketData(destBuffer, .decodedFillSize())
             .decodedBufferIdx = (.decodedBufferIdx + 1) % NumDecodedBuffers
@@ -172,17 +190,21 @@ impl Voice
             {
                 if .packetScratch.count != decodedSize do
                     .packetScratch.resize(decodedSize)
+                // A codec restarted by a seek may lack the history the first packets of the run need
+                // and produce fewer frames than the index states. Those frames are the leading ones,
+                // and the seek discards that region anyway, so the shortfall counts as discarded.
                 let produced = .packetCodec!.decodePacket(.packetScratch.buffer!, decodedSize, .packetBuffer.toSlice())
-                if produced != decodedSize do
+                if produced > decodedSize do
                     fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
+                let missing       = decodedSize - produced
                 let discardFrames = Math.min(.seekDiscardFrames, packet.sampleFrameCount)
                 let discardBytes  = cast(u64) discardFrames * file.channelCount * 2
-                if discardBytes > produced do
-                    fail InvalidFormatError{"sound seek exceeds its compressed packet"}
-                let kept = produced - discardBytes
+                if discardBytes < missing do
+                    fail InvalidFormatError{"compressed sound packet decoded fewer frames than its index states"}
+                let kept = produced - (discardBytes - missing)
                 if kept
                 {
-                    Memory.copy(cast([*] u8) destination + written, .packetScratch.buffer! + discardBytes, kept)
+                    Memory.copy(cast([*] u8) destination + written, .packetScratch.buffer! + (discardBytes - missing), kept)
                     written += kept
                 }
 
@@ -190,7 +212,7 @@ impl Voice
             }
             else
             {
-                let produced = .packetCodec!.decodePacket(cast([*] u8) destination + written, destinationSize - written, .packetBuffer.toSlice())
+                let produced = .packetCodec!.decodePacket(cast([*] u8) destination + written, decodedSize, .packetBuffer.toSlice())
                 if produced != decodedSize do
                     fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
                 written += produced

@@ -40,7 +40,7 @@ public struct Voice
 {
     const StreamBufferSize  = 16 * 1024'u64     // Number of encoded bytes read per streaming step.
     const NumDecodedBuffers = 3                 // Number of decoded buffers rotated during streaming.
-    const DecodedBufferSize = 65536'u64         // Capacity in bytes of each decoded streaming buffer.
+    const DecodedBufferSize = 65536'u64         // Least capacity in bytes of each decoded streaming buffer.
 
     // Playback state, owned by the voice and by the driver that drains it. A caller drives a
     // voice through its methods; touching this state from outside the module races the driver.
@@ -67,6 +67,7 @@ public struct Voice
         decodedBufferIdx:  u32                              // Buffer the mixing thread reads next.
         streamPacketIdx:   u64                              // Next compressed packet in playback order.
         seekDiscardFrames: u32                              // Leading decoded frames omitted after a seek.
+        decodedCapacity:   u64                              // Bytes each decoded buffer holds, enough for the largest packet.
 
         playbackBaseFrame: u64     // Source frame corresponding to the native origin.
         nativeFrameOrigin: u64     // Backend sample counter captured at the last seek.
@@ -85,6 +86,7 @@ private impl Voice
         .decodedBufferIdx  = 0
         .streamPacketIdx   = 0
         .seekDiscardFrames = 0
+        .decodedCapacity   = 0
         .playbackBaseFrame = 0
         .nativeFrameOrigin = 0
         .requestedEncoding = .Unknown

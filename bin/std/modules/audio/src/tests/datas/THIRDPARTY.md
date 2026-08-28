@@ -87,3 +87,45 @@ square difference rather than an equality.
 - `mp3-mono-8000.mp3` SHA-256: `54793986597864888120dfa127f9c7251052a754b75fae7d0405a8e8b076c145`
 - `mp3-transient-44100.mp3` SHA-256: `3346c3b37db162740577ecec40b350e4df34c351789e79fb407b7cd3d8571e12`
 - License: same as this repository.
+
+`adpcm-ms-stereo-22050.wav`, `adpcm-ms-mono-8000.wav`, `adpcm-ima-stereo-44100.wav`, and
+`adpcm-ima-mono-11025.wav` are one-second ADPCM WAVE files generated for this repository with the
+FFmpeg libraries bundled by PyAV 17.1.0 (libavformat 62.12). The stereo inputs are synthetic 440 Hz
+left and 660 Hz right sine waves, the mono inputs a 300 Hz sine wave, all at amplitude 0.18 with a
+512-sample attack, so they contain no third-party recording. The `.pcm` file beside each one is the
+interleaved 16-bit PCM FFmpeg decodes from it, block padding included. FFmpeg generated only the
+fixtures and is not a build or runtime dependency.
+- `adpcm-ms-stereo-22050.wav` SHA-256: `73a0ff666e44bcb5f219e951ed2fec59c5e2ceb612e96415131456dfedf5625a`
+- `adpcm-ms-mono-8000.wav` SHA-256: `841dad9e3f14bd578e4107bbcf4136bbc366dde53c1e2c567402879ae3fe4bcb`
+- `adpcm-ima-stereo-44100.wav` SHA-256: `00d370166e7d30bab7e405335724348eee24f2c36a2c6dd5d7f4e7f9d119ceb8`
+- `adpcm-ima-mono-11025.wav` SHA-256: `b1d255f10ec34b383493891d6843c6e9bf3d5eacbc38f206574914363deb2bbe`
+- License: same as this repository.
+
+`vorbis-stereo-44100.ogg` and `vorbis-transient-44100.ogg` are one-second Ogg Vorbis files generated
+for this repository with the FFmpeg libraries bundled by PyAV 17.1.0 (libavformat 62.12, native
+`vorbis` encoder). The first input is a synthetic 440 Hz left and 660 Hz right sine pair at amplitude
+0.18 with a 512-sample attack; the second is seeded noise with eight clicks a second, which makes the
+encoder use every window shape. They contain no third-party recording. The `.pcm` file beside each
+one is the interleaved 16-bit PCM libvorbis 1.3.7 decodes from it, the reference implementation of
+the format; FFmpeg's own decoder disagrees with it on the coupled channel of these streams. FFmpeg
+and libvorbis generated only the fixtures and are not build or runtime dependencies.
+- `vorbis-stereo-44100.ogg` SHA-256: `a2c28fe27f60c5e899d269f6ff9641cb05f8d7b4e92c8f0201abd29463f9a63f`
+- `vorbis-transient-44100.ogg` SHA-256: `8605a8cdd727f53faf993add7c7f45c1d2acb499506f9186b5123ed75b422c5f`
+- License: same as this repository.
+
+
+`opus-stereo-48000.opus`, `opus-mono-silk.opus`, `opus-stereo-hybrid.opus`, and
+`opus-transient-48000.opus` are one-second Ogg Opus files generated for this repository with the
+FFmpeg libraries bundled by PyAV 17.1.0 (libavformat 62.12, `libopus` encoder). The first is the
+synthetic 440 Hz left and 660 Hz right sine pair at 96 kb/s, which the encoder codes as CELT; the
+second is a 300 Hz mono tone at 12 kb/s in the voice application, which it codes as SILK; the third
+is the sine pair at 32 kb/s in the voice application, which it codes as hybrid frames that switch
+to CELT and back; the fourth is the seeded noise with eight clicks a second in 10 ms frames at
+128 kb/s. They contain no third-party recording. The `.pcm` file beside each one is the interleaved
+16-bit PCM libopus 1.5.x decodes from it through FFmpeg, the reference implementation of the
+format. FFmpeg and libopus generated only the fixtures and are not build or runtime dependencies.
+- `opus-stereo-48000.opus` SHA-256: `e8b0d77b92526228bea7d76ddfd67b46e8f67ad13c21598210d9d550f82ebf69`
+- `opus-mono-silk.opus` SHA-256: `1da049c423881c70df30ef93c5388429f951663d74640ec690f7b05fdbebd723`
+- `opus-stereo-hybrid.opus` SHA-256: `46a38b2e33b943ad20f313d2cdc331c6026da67f49da537d90495c9a1c183cf1`
+- `opus-transient-48000.opus` SHA-256: `330464417a632d26350ab67648ebf86a7672c8b1ed6a3a5c0e470936d7806e9e`
+- License: same as this repository.

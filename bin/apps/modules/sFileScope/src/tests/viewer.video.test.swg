@@ -481,6 +481,7 @@ func videoMatroskaFixturePath()->String
     @assert(view.details.indexOf("AAC-LC") != Swag.U64.Max and view.details.indexOf("2 ch") != Swag.U64.Max)
     @assert(videoAudioEncodingText(.Ac3) == "AC-3" and videoAudioEncodingText(.Eac3) == "E-AC-3")
     @assert(videoAudioEncodingText(.Dts) == "DTS" and videoAudioEncodingText(.Flac) == "FLAC" and videoAudioEncodingText(.Mp3) == "MP3")
+    @assert(videoAudioEncodingText(.Vorbis) == "Vorbis" and videoAudioEncodingText(.Opus) == "Opus" and videoAudioEncodingText(.AdpcmIma) == "IMA ADPCM")
     view.setVolume(0.4)
     view.setMuted(true)
     view.seekFrame(5)

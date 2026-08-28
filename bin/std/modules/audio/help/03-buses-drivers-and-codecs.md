@@ -33,11 +33,17 @@ caller-owned buffers and report both consumed input bytes and produced output
 bytes.
 
 The built-in packet codecs decode AAC-LC, AC-3, the common independent E-AC-3 profile, DTS Core,
-FLAC, and MPEG Layer III without calling an operating-system media decoder. Layer III covers all three MPEG
+FLAC, MPEG Layer III, Vorbis, Opus, and the Microsoft and IMA ADPCM variants of WAVE without calling
+an operating-system media decoder. Layer III covers all three MPEG
 versions at every sampling frequency, and a `.mp3` file opens through [[Audio.SoundFile.load]],
 which drops the priming its encoder tag states so playback lines up with every other player. The
 same call opens `.aac` transport streams and `.ac3`, `.eac3`, and `.dts` elementary streams, each indexed by
-walking its frame headers. A DTS-HD access unit is decoded through its complete backward-compatible
+walking its frame headers, and `.ogg`, `.oga`, and `.opus` files, indexed by runs of Ogg pages so a
+voice restarts a decode on the page before any seek target. A Vorbis stream keeps its encoded
+sampling rate and up to eight channels in the WAVE order; an Opus stream plays at 48 kHz whatever
+its band, drops the pre-skip its header states, and applies the header's output gain. An ADPCM
+WAVE file is indexed by its blocks and decodes to sixteen-bit PCM with the reference nibble
+expansion, so it seeks and plays like any other packetized sound. A DTS-HD access unit is decoded through its complete backward-compatible
 Core prefix; its extension substream is ignored rather than mistaken for part of that Core frame.
 Core frames using high-frequency vector quantization retain their scalar-coded bands and omit the
 VQ-coded highest bands, as the format permits for a constrained decoder. Four-tap ADPCM prediction

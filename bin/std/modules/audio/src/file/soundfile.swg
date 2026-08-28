@@ -16,6 +16,7 @@ private enum SoundFileLoader
     Ac3
     Eac3
     Dts
+    Ogg
 }
 
 private struct SoundFileFormatSpec
@@ -24,7 +25,7 @@ private struct SoundFileFormatSpec
     loader:    SoundFileLoader
 }
 
-private const SoundFileFormats: [8] SoundFileFormatSpec = [
+private const SoundFileFormats: [11] SoundFileFormatSpec = [
     {".wav",  .Wav},
     {".flac", .Flac},
     {".mp3",  .Mp3},
@@ -32,7 +33,10 @@ private const SoundFileFormats: [8] SoundFileFormatSpec = [
     {".ac3",  .Ac3},
     {".eac3", .Eac3},
     {".ec3",  .Eac3},
-    {".dts",  .Dts}]
+    {".dts",  .Dts},
+    {".ogg",  .Ogg},
+    {".oga",  .Ogg},
+    {".opus", .Ogg}]
 
 private func findSoundFileFormat(path: string)->u64
 {
@@ -73,6 +77,10 @@ enum SoundFileEncoding
     Dts         // DTS Coherent Acoustics Core frames.
     Flac        // Free Lossless Audio Codec frames.
     Mp3         // MPEG-1, MPEG-2, and MPEG-2.5 Layer III frames.
+    AdpcmMs     // Microsoft ADPCM blocks of a WAVE file.
+    AdpcmIma    // IMA ADPCM blocks of a WAVE file.
+    Vorbis      // Vorbis I packets, raw or inside Ogg pages.
+    Opus        // Opus packets, raw or inside Ogg pages.
 }
 
 // Configures an indexed compressed sound stream.
@@ -293,8 +301,8 @@ impl SoundFile
     //
     // `preloadData` keeps the complete payload in memory; otherwise voices stream it from `path`.
     // A compressed file is always streamed — keeping it in memory would keep the wrong bytes — so
-    // `preloadData` applies to WAV alone. Unsupported extensions, encodings, and malformed files
-    // fail.
+    // `preloadData` applies to PCM WAV alone; an ADPCM WAV is indexed and streamed like any other
+    // compressed source. Unsupported extensions, encodings, and malformed files fail.
     func load(path: string, preloadData = true)->SoundFile fail
     {
         let format = findSoundFileFormat(path)
@@ -321,12 +329,11 @@ impl SoundFile
         case .Dts:
             return try Dts.openElementaryStream(path)
 
+        case .Ogg:
+            return try Ogg.openFile(path)
+
         case .Wav:
-            var result: retval
-            var stream = File.openRead(path)
-            Wav.load(&result, &stream, preloadData)
-            result.path = path
-            return result
+            return try Wav.openFile(path, preloadData)
         }
     }
 
@@ -346,7 +353,7 @@ impl SoundFile
             fail BadParameterError{"packetized sound needs one to eight channels and a non-zero sample rate"}
         if !@countof(packets) do
             fail BadParameterError{"packetized sound needs packets"}
-        if (encoding == .AacLc or encoding == .Flac) and !@countof(decoderConfig) do
+        if packetEncodingNeedsConfig(encoding) and !@countof(decoderConfig) do
             fail BadParameterError{"packetized sound needs decoder configuration"}
 
         var stream     = File.openRead(path)
@@ -389,8 +396,10 @@ impl SoundFile
         var payloadBytes  = 0'u64
         for packet in packets
         {
-            if !packet.byteSize or !packet.sampleFrameCount do
-                fail BadParameterError{"sound packets need non-zero byte and sample-frame counts"}
+            // A packet may complete no frame at all: the first Vorbis packet of a stream only
+            // primes the overlap of the next one.
+            if !packet.byteSize do
+                fail BadParameterError{"sound packets need non-zero byte counts"}
             if packet.sourceOffset > sourceSize or cast(u64) packet.byteSize > sourceSize - packet.sourceOffset do
                 fail InvalidFormatError{"sound packet runs past the end of its source file"}
             if decodedFrames > Swag.U64.Max - packet.sampleFrameCount or payloadBytes > Swag.U64.Max - packet.byteSize do

@@ -41,8 +41,8 @@ internal struct Bot
 
 internal var result = 0
 internal var bots: Array'Bot
-internal var r0: Parser.RegExp
-internal var r1: Parser.RegExp
+internal var r0:   Parser.RegExp
+internal var r1:   Parser.RegExp
 
 internal impl Bot
 {

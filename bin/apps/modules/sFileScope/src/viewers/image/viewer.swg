@@ -2,10 +2,10 @@
 
 using Core, Pixel, Gui
 
-private const ImageGlyphSize = 18.0
+private const ImageGlyphSize    = 18.0
 private const ImageCommandWidth = 396.0
-private const GifCommandWidth = 624.0
-private const SvgRasterLimit = 2048.0
+private const GifCommandWidth   = 624.0
+private const SvgRasterLimit    = 2048.0
 
 struct ImageViewerContent
 {

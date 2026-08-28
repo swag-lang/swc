@@ -257,8 +257,8 @@ impl Offset
             {
                 if node.jointype == .Round
                 {
-                    var x = 1.0'f64
-                    var y = 0.0'f64
+                    var x     = 1.0'f64
+                    var y     = 0.0'f64
                     for var j = 1; j <= steps; j += 1
                     {
                         let r1 = cround(.srcPoly[0].x + x * delta)

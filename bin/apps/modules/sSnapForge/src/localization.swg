@@ -360,7 +360,7 @@ struct AppStrings
 }
 
 private const FrenchStringsName = "lang/fr/snapforge.tweak"
-private const FrenchStrings = #include("../datas/lang/fr/snapforge.tweak")
+private const FrenchStrings     = #include("../datas/lang/fr/snapforge.tweak")
 
 private var g_AppStrings: AppStrings
 

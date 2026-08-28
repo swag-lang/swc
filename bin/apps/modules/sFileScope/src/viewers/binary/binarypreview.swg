@@ -81,10 +81,10 @@ private func previewGuid(text: string)->Guid128
     return result
 }
 
-private func captureContainerKind()->Guid128 => previewGuid("7355af24-cf65-447b-918c-18ac74e6dc66")
-private func capturePreviewRole()->Guid128 => previewGuid("f53e06c1-05a7-4537-9c6a-d85609209874")
+private func captureContainerKind()->Guid128  => previewGuid("7355af24-cf65-447b-918c-18ac74e6dc66")
+private func capturePreviewRole()->Guid128    => previewGuid("f53e06c1-05a7-4537-9c6a-d85609209874")
 private func captureBackgroundRole()->Guid128 => previewGuid("04267f4e-d659-4d32-9296-cc68be5bdb9d")
-private func captureOriginalRole()->Guid128 => previewGuid("11d1a796-38d8-46ca-a4e6-5e2271ebd321")
+private func captureOriginalRole()->Guid128   => previewGuid("11d1a796-38d8-46ca-a4e6-5e2271ebd321")
 
 private func addTagBinImage(bytes: const [..] u8, label: string, previews: *Array'BinaryPreview)
 {

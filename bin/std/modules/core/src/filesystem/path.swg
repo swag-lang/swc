@@ -6,7 +6,7 @@ using Swag
 // Compile-time lexical policy for the selected target. Filesystem access remains a host concern;
 // every operation below is a string algorithm governed by these values.
 private const TargetHasWindowsPathSyntax = WINDOWS
-private const TargetPathCaseSensitive = !WINDOWS
+private const TargetPathCaseSensitive    = !WINDOWS
 
 const DirectorySeparator    = '/'u8                       // Preferred directory separator.
 const AltDirectorySeparator = WINDOWS ? '\\'u8 : 0'u8     // Accepted alternate separator, or zero when none exists.

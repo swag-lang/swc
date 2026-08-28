@@ -196,7 +196,7 @@ internal impl Properties
             line.hookOnEvent = func|prop = me, itemB|(hwnd, evt) { return prop.onItemEvent(itemB, hwnd, evt); }
 
             let checkHeight = me.kind == .Condensed ? PropCondensedControlHeight : me.gridLineHeight
-            with let ed = CheckButton.create(line, "", {0, 0, checkHeight, checkHeight})
+            with let ed     = CheckButton.create(line, "", {0, 0, checkHeight, checkHeight})
             {
                 if me.isGridLike() do
                     .margin.x = me.leftMargin

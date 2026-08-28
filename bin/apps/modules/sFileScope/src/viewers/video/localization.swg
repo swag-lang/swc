@@ -54,7 +54,7 @@ struct VideoStrings
 }
 
 private const FrenchStringsName = "lang/fr/filescope.video.tweak"
-private const FrenchStrings = #include("../../../datas/lang/fr/filescope.video.tweak")
+private const FrenchStrings     = #include("../../../datas/lang/fr/filescope.video.tweak")
 
 private var g_VideoStrings: VideoStrings
 

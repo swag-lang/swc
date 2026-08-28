@@ -114,11 +114,11 @@ struct AllocatorArena
     end:  u64
 }
 
-private var g_AllocatorArenaMutex: MutexRW
-private var g_AllocatorArenas: [AllocatorMaxArenas] AllocatorArena
-private var g_AllocatorArenaCount: u32
+private var g_AllocatorArenaMutex:  MutexRW
+private var g_AllocatorArenas:      [AllocatorMaxArenas] AllocatorArena
+private var g_AllocatorArenaCount:  u32
 private var g_AllocatorFreeSegment: #null *AllocatorSegment
-private var g_AllocatorKeySeed: u64
+private var g_AllocatorKeySeed:     u64
 
 // Committed bytes and the OS calls behind them, published for the allocator's statistics.
 var g_AllocatorCommittedBytes:  u64

@@ -453,13 +453,13 @@ impl ThemeColors
 {
     // How far a filled action travels under the pointer, and under the press. Enough to
     // be seen, never enough to read as a second color.
-    private const StrongHotShift = 0.12'f32
+    private const StrongHotShift     = 0.12'f32
     private const StrongPressedShift = 0.26'f32
 
     // The three strengths of a veil, as alphas over the palette's veil ink.
-    private const VeilSoftAlpha = 0x14'u8
-    private const VeilMediumAlpha = 0x24'u8
-    private const VeilStrongAlpha = 0x34'u8
+    private const VeilSoftAlpha        = 0x14'u8
+    private const VeilMediumAlpha      = 0x24'u8
+    private const VeilStrongAlpha      = 0x34'u8
     private const SearchMatchBandAlpha = 0x3C'u8
     private const SearchMatchGlowAlpha = 0x70'u8
 
@@ -469,14 +469,14 @@ impl ThemeColors
     // The close button is the one control whose meaning does not belong to any theme, so it
     // keeps its own red everywhere. A palette that recolored it would be asking the reader
     // to learn where "close" is on each of its themes.
-    private const CloseRed = 0xFFD61425
+    private const CloseRed    = 0xFFD61425
     private const CloseHotRed = 0xFFE62435
-    private const OnCloseRed = 0xFFFFFFFF
+    private const OnCloseRed  = 0xFFFFFFFF
 
     // How far a surface is dimmed while a modal box holds it. A dark surface takes a
     // heavier hand than a light one: the same multiplier that clearly recedes a white page
     // barely registers on near-black.
-    private const DimDark = 0xFFBBBBBB
+    private const DimDark  = 0xFFBBBBBB
     private const DimLight = 0xFFEEEEEE
 
     // How far the caption band falls toward the ground at the buttons, as a multiple of how far
@@ -499,9 +499,9 @@ impl ThemeColors
     // second tone is the same blue lifted into a block: it still separates a link from an action,
     // and an anonymous theme has no second identity to say anything more with. One value for both
     // modes, for the reason every block has one — a block is what the reader recognizes.
-    private const SystemBlue: Color = 0xFF1473E6
-    private const OnSystemBlue: Color = 0xFFFFFFFF
-    private const SystemBlueSoft: Color = 0xFF7FBAF2
+    private const SystemBlue:       Color = 0xFF1473E6
+    private const OnSystemBlue:     Color = 0xFFFFFFFF
+    private const SystemBlueSoft:   Color = 0xFF7FBAF2
     private const OnSystemBlueSoft: Color = 0xFF102132
 
     // Moves a fill by `amount` in whichever direction is visible on it.

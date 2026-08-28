@@ -111,7 +111,7 @@ func sortDescending(values: [..] u32)
     let count = @countof(values)
     for var i = 0'u64; i < count; i += 1
     {
-        var best = i
+        var best  = i
         for var j = i + 1; j < count; j += 1
         {
             if values[j] > values[best] do

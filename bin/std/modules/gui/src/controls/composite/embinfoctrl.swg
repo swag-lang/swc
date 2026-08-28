@@ -81,9 +81,9 @@ private const TextLeft = IconLeft + IconSize + 12.0
 // The dismiss cross sits inside the label, docked to its right edge, so the text stops before
 // the band the button occupies; a message longer than that room is cut with an ellipsis rather
 // than run under the glyph.
-private const CloseSize = 32.0
+private const CloseSize   = 32.0
 private const CloseMargin = 5.0
-private const TextRight = CloseSize + 2 * CloseMargin
+private const TextRight   = CloseSize + 2 * CloseMargin
 
 private impl InfoBar
 {
@@ -134,7 +134,7 @@ impl InfoBar
         Debug.assert(height > 0, "information bar height must be positive")
         Debug.assert(autoDismissDelay.seconds > 0, "auto-dismiss delay must be positive")
 
-        let theme = parent.theme()
+        let theme    = parent.theme()
         with let bar = Wnd.create'InfoBar(parent, {0, 0, 0, height})
         {
             .wndFlags.add(.NoScroll)

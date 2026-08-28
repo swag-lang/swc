@@ -3,33 +3,33 @@
 using Core, Pixel, Gui, TrueType
 
 // Air around the document, and the width the pixel-size label reserves beside a specimen line.
-private const FontContentInset = 32.0
+private const FontContentInset     = 32.0
 private const FontSampleLabelWidth = 48.0
 
 // Air between the two bands of the page, between a caption and what it names, and between two
 // specimen lines.
 private const FontSectionGap = 40.0
 private const FontCaptionGap = 18.0
-private const FontSampleGap = 12.0
+private const FontSampleGap  = 12.0
 
 // One character cell: its width, the air between two of them, and the air it keeps inside its own
 // edges. Its height is measured rather than fixed, because it is whatever the glyph and the code
 // label need.
-private const FontCellWidth = 88.0
-private const FontCellGap = 8.0
+private const FontCellWidth   = 88.0
+private const FontCellGap     = 8.0
 private const FontCellPadding = 8.0
 
 // Sizes the document sets its own chrome at, and the sizes the specimen is shown at.
-private const FontNameSize = 32'u32
-private const FontGlyphSize = 40'u32
+private const FontNameSize    = 32'u32
+private const FontGlyphSize   = 40'u32
 private const FontCaptionSize = 12'u32
-private const FontCodeSize = 11'u32
+private const FontCodeSize    = 11'u32
 private const FontSampleCount = 4
 private const FontSampleSizes: [FontSampleCount] u32 = [22, 32, 46, 64]
 
 private const FontCharacterPageSize = 192'u64
-private const FontFirstCharacter = 0x20'u32
-private const FontCharacterLimit = 0x110000'u32
+private const FontFirstCharacter    = 0x20'u32
+private const FontCharacterLimit    = 0x110000'u32
 
 // Collects one page of mapped Unicode scalars without materializing the whole character map.
 internal func fontCharacterPage(face: *Face, start: u32, pageSize = FontCharacterPageSize)->{characters: Array'rune, end: u32, hasNext: bool}

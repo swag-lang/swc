@@ -99,7 +99,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: #null *Surface } fa
 // In place edition of capture image
 func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->#null *Capture fail
 {
-    let grabRect = getGrabRect()
+    let grabRect     = getGrabRect()
     with let capture = Memory.new'Capture()
     {
         .width          = cast(s32) grabRect.width

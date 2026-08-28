@@ -2,19 +2,19 @@
 
 using Swag, Core
 
-private const RenderParityWidth = 192
-private const RenderParityHeight = 128
-private const RenderTextWidth = 360
-private const RenderTextHeight = 168
-private const RenderLayerWidth = 160
-private const RenderLayerHeight = 104
-private const RenderSvgWidth = 96
-private const RenderSvgHeight = 64
+private const RenderParityWidth    = 192
+private const RenderParityHeight   = 128
+private const RenderTextWidth      = 360
+private const RenderTextHeight     = 168
+private const RenderLayerWidth     = 160
+private const RenderLayerHeight    = 104
+private const RenderSvgWidth       = 96
+private const RenderSvgHeight      = 64
 private const RenderSvgSupersample = 4'u8
-private const RenderBlendWidth = 180
-private const RenderBlendHeight = 48
-const RenderPlanarWidth  = 64
-const RenderPlanarHeight = 48
+private const RenderBlendWidth     = 180
+private const RenderBlendHeight    = 48
+const RenderPlanarWidth            = 64
+const RenderPlanarHeight           = 48
 
 private const ArtisticBlendModes: [15] BlendingMode = [.Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion, .Hue, .Saturation, .Color, .Luminosity]
 

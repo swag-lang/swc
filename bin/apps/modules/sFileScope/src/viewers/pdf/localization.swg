@@ -16,7 +16,7 @@ struct PdfStrings
 }
 
 private const FrenchStringsName = "lang/fr/filescope.pdf.tweak"
-private const FrenchStrings = #include("../../../datas/lang/fr/filescope.pdf.tweak")
+private const FrenchStrings     = #include("../../../datas/lang/fr/filescope.pdf.tweak")
 
 private var g_PdfStrings: PdfStrings
 

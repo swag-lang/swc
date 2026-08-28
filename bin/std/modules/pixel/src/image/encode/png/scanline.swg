@@ -174,7 +174,7 @@ impl Encoder
             if .swapRB and .bytesPerPixel == 3
             {
                 let scanline = .scanline!
-                for var i = 0; i < scanlineWidth - 1; i += 3
+                for var i    = 0; i < scanlineWidth - 1; i += 3
                 {
                     scanline[i]     = sl[i + 2]
                     scanline[i + 1] = sl[i + 1]

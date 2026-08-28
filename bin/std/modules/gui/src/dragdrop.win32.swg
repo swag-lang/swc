@@ -35,7 +35,7 @@ private var g_PngDragFormat: UINT
 // The two registered formats a file with no path travels through: the group descriptor names
 // them, and one `FileContents` medium per index carries the bytes.
 private var g_FileDescriptorFormat: UINT
-private var g_FileContentsFormat: UINT
+private var g_FileContentsFormat:   UINT
 
 private func startOle()
 {
@@ -53,7 +53,7 @@ private func startOle()
 // simply drags with no picture, which is what happened before it existed.
 private var g_DropTargetHelper: #null *IDropTargetHelper
 private var g_DragSourceHelper: #null *IDragSourceHelper
-private var g_DragHelperTried: bool
+private var g_DragHelperTried:  bool
 
 private func loadDragHelper()
 {
@@ -702,16 +702,16 @@ internal struct DragSession
     dropSrc: DragDropSource     // What answers the keyboard and the mouse buttons.
 }
 
-private var g_DataObjectVtbl: IDataObjectVtbl = undefined
+private var g_DataObjectVtbl: IDataObjectVtbl    = undefined
 private var g_FormatEnumVtbl: IEnumFORMATETCVtbl = undefined
-private var g_DropSourceVtbl: IDropSourceVtbl = undefined
+private var g_DropSourceVtbl: IDropSourceVtbl    = undefined
 
 // Selects the outgoing direction of a format enumeration.
 private const DATADIR_GET = 1'u32
 
-private func dataObjectOf(itf: *IDataObject)->*DragDataObject => cast(*DragDataObject) itf
+private func dataObjectOf(itf: *IDataObject)->*DragDataObject    => cast(*DragDataObject) itf
 private func formatEnumOf(itf: *IEnumFORMATETC)->*DragFormatEnum => cast(*DragFormatEnum) itf
-private func dropSourceOf(itf: *IDropSource)->*DragDropSource => cast(*DragDropSource) itf
+private func dropSourceOf(itf: *IDropSource)->*DragDropSource    => cast(*DragDropSource) itf
 
 private func srcQueryInterface(itf: *IDataObject, riid: const *GUID, ppv: *LPVOID)->HRESULT
 {

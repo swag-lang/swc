@@ -77,7 +77,7 @@ const StaticExhaustive = StaticBuildMode.Debug
 
 #static switch #complete StaticExhaustive
 {
-case .Debug:   const StaticExhaustiveSelection = 1
+case .Debug:   const StaticExhaustiveSelection   = 1
 case .Release: const StaticExhaustiveSelection = 2
 }
 

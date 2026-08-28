@@ -5,13 +5,13 @@ struct DepVisibility
 {
     public
     {
-        writable: s32
+        writable:          s32
         readonly observed: s32
     }
 
-    moduleState: s32
+    moduleState:             s32
     readonly moduleObserved: s32
-    private secret: s32
+    private secret:          s32
 }
 
 // The file default publishes the type's supported operations without repeating 'public'.

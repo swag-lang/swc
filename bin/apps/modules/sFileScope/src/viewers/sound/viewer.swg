@@ -2,7 +2,7 @@
 
 using Core, Pixel, Gui, Audio, Threading
 
-private const SoundGlyphSize = 18.0
+private const SoundGlyphSize   = 18.0
 private const SoundSeekSeconds = 10.0
 
 // Slices the payload is reduced to. It is read back one column of pixels at a time, so it only
@@ -10,10 +10,10 @@ private const SoundSeekSeconds = 10.0
 private const WaveformPointCount = 4096'u64
 
 // Air around the plot, and the band the time scale is read in.
-private const WaveformInsetX = 24.0
-private const WaveformInsetY = 32.0
+private const WaveformInsetX      = 24.0
+private const WaveformInsetY      = 32.0
 private const WaveformScaleHeight = 26.0
-private const WaveformTickHeight = 5.0
+private const WaveformTickHeight  = 5.0
 
 // Loudness of a slice, in the two readings a level meter carries: the transient that clips and the
 // body the ear hears. Drawing both is what separates a waveform from a silhouette.
@@ -23,11 +23,11 @@ internal struct WaveformPoint
     body: f32     // Mean absolute level of the slice.
 }
 
-private var g_SoundEngineUsers: u32
+private var g_SoundEngineUsers:      u32
 private var g_SoundViewerOwnsEngine: bool
 
 // Creation of the audio engine started ahead of the first voice, on a scheduler worker.
-private var g_SoundEngineWarmUp: Jobs.Job
+private var g_SoundEngineWarmUp:  Jobs.Job
 private var g_SoundEngineWarming: bool
 
 // Starts creating the audio engine without waiting for it.

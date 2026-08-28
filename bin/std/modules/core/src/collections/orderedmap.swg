@@ -8,7 +8,7 @@ struct(K, V) OrderedMapEntry
     public
     {
         readonly key: K     // The key that determines the entry's position.
-        value: V            // The value associated with the key.
+        value:        V     // The value associated with the key.
     }
 }
 

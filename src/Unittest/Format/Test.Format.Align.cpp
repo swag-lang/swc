@@ -531,6 +531,64 @@ SWC_TEST_BEGIN(FormatAlign_ConstantGridTypes)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatAlign_QualifiedConstantGridTypes)
+{
+    static constexpr std::string_view SOURCE =
+        "private const A: s32 = 1\n"
+        "private const BBB = 22\n"
+        "private const C: bool = true\n";
+
+    static constexpr std::string_view EXPECTED =
+        "private const A: s32  = 1\n"
+        "private const BBB     = 22\n"
+        "private const C: bool = true\n";
+
+    FormatOptions options;
+    options.alignConsecutiveConstants = FormatAlignMode::Consecutive;
+    options.alignConstantTypes        = true;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_QualifiedDeclarationPrefixes)
+{
+    static constexpr std::string_view SOURCE =
+        "private var x: s32 = 0\n"
+        "private var yyy = 1\n"
+        "private var z: bool = true\n"
+        "\n"
+        "struct S\n"
+        "{\n"
+        "    public a: s32\n"
+        "    public longer: u64\n"
+        "}\n"
+        "\n"
+        "private func square(x: s32) => x * x\n"
+        "private func longerName(x: s32) => x + 1\n";
+
+    static constexpr std::string_view EXPECTED =
+        "private var x: s32  = 0\n"
+        "private var yyy     = 1\n"
+        "private var z: bool = true\n"
+        "\n"
+        "struct S\n"
+        "{\n"
+        "    public a:      s32\n"
+        "    public longer: u64\n"
+        "}\n"
+        "\n"
+        "private func square(x: s32)     => x * x\n"
+        "private func longerName(x: s32) => x + 1\n";
+
+    FormatOptions options;
+    options.alignConsecutiveDeclarations = FormatAlignMode::Consecutive;
+    options.alignDeclarationInitializers = true;
+    options.alignStructFields            = FormatAlignMode::Consecutive;
+    options.alignFatArrows               = FormatAlignMode::Consecutive;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatAlign_CaseBodiesConsecutive)
 {
     static constexpr std::string_view SOURCE =

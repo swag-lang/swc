@@ -51,7 +51,7 @@ struct TabItem
 {
     public
     {
-        using item: Item              // Embedded label, icon, identifier, and user data.
+        using item:    Item           // Embedded label, icon, identifier, and user data.
         readonly view: #null *Wnd     // Page view owned by the tab control, if any.
     }
 

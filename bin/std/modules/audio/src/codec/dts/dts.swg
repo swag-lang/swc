@@ -7,25 +7,25 @@
 
 using Core, Core.Errors, Core.Math
 
-private const MaxChannels = 6
+private const MaxChannels        = 6
 private const MaxPrimaryChannels = 5
-private const MaxSubbands = 32
-private const MaxSubbandSamples = 128
-private const SamplesPerSubband = 8
+private const MaxSubbands        = 32
+private const MaxSubbandSamples  = 128
+private const SamplesPerSubband  = 8
 
 // Dequantized subband samples and the synthesis output use the 24-bit PCM scale of ETSI TS
 // 102 114. The packet codec publishes 16-bit samples, so every output sample drops eight bits.
 private const OutputScale = 1.0 / 256.0
 
-private const ModeChannels: [10] u32 = [1, 2, 2, 2, 2, 3, 3, 4, 4, 5]
-private const SampleRates: [16] u32 = [0, 8_000, 16_000, 32_000, 0, 0, 11_025, 22_050, 44_100, 0, 0, 12_000, 24_000, 48_000, 0, 0]
-private const QuantLevels: [8] u32 = [0, 3, 5, 7, 9, 13, 17, 25]
-private const BlockCodeBits: [8] u32 = [0, 7, 10, 12, 13, 15, 17, 19]
-private const QuantSelectBits: [10] u32 = [1, 2, 2, 2, 2, 3, 3, 3, 3, 3]
-private const QuantGroupSize: [10] u32 = [1, 3, 3, 3, 3, 7, 7, 7, 7, 7]
-private const StepSizeLossy: [27] f64 = [0, 6_710_886, 4_194_304, 3_355_443, 2_474_639, 2_097_152, 1_761_608, 1_426_063, 796_918, 461_373, 251_658, 146_801, 79_692, 46_137, 27_263, 16_777, 10_486, 5_872, 3_355, 1_887, 1_258, 713, 336, 168, 84, 42, 21]
-private const StepSizeLossless: [27] f64 = [0, 4_194_304, 2_097_152, 1_384_120, 1_048_576, 696_254, 524_288, 348_127, 262_144, 131_072, 65_431, 33_026, 16_450, 8_208, 4_100, 2_049, 1_024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
-private const ScaleFactors: [128] f64 = [
+private const ModeChannels:     [10] u32  = [1, 2, 2, 2, 2, 3, 3, 4, 4, 5]
+private const SampleRates:      [16] u32  = [0, 8_000, 16_000, 32_000, 0, 0, 11_025, 22_050, 44_100, 0, 0, 12_000, 24_000, 48_000, 0, 0]
+private const QuantLevels:      [8] u32   = [0, 3, 5, 7, 9, 13, 17, 25]
+private const BlockCodeBits:    [8] u32   = [0, 7, 10, 12, 13, 15, 17, 19]
+private const QuantSelectBits:  [10] u32  = [1, 2, 2, 2, 2, 3, 3, 3, 3, 3]
+private const QuantGroupSize:   [10] u32  = [1, 3, 3, 3, 3, 7, 7, 7, 7, 7]
+private const StepSizeLossy:    [27] f64  = [0, 6_710_886, 4_194_304, 3_355_443, 2_474_639, 2_097_152, 1_761_608, 1_426_063, 796_918, 461_373, 251_658, 146_801, 79_692, 46_137, 27_263, 16_777, 10_486, 5_872, 3_355, 1_887, 1_258, 713, 336, 168, 84, 42, 21]
+private const StepSizeLossless: [27] f64  = [0, 4_194_304, 2_097_152, 1_384_120, 1_048_576, 696_254, 524_288, 348_127, 262_144, 131_072, 65_431, 33_026, 16_450, 8_208, 4_100, 2_049, 1_024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
+private const ScaleFactors:     [128] f64 = [
     1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 5, 6, 7, 7, 8,
     10, 11, 12, 14, 16, 18, 20, 23, 26, 30, 34, 38, 44, 50, 56, 64,
     72, 82, 93, 106, 120, 136, 155, 176, 200, 226, 257, 292, 331, 376, 427, 484,

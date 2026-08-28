@@ -4,28 +4,28 @@ using Core, Pixel
 
 private const DefaultImageName = "../theme/widgets.svg"
 
-private const DefaultFontRegularName = "../theme/segoeui.ttf"
-private const DefaultFontBoldName = "../theme/segoeuib.ttf"
+private const DefaultFontRegularName    = "../theme/segoeui.ttf"
+private const DefaultFontBoldName       = "../theme/segoeuib.ttf"
 private const DefaultFontBoldItalicName = "../theme/segoeuiz.ttf"
-private const DefaultFontItalicName = "../theme/segoeuii.ttf"
+private const DefaultFontItalicName     = "../theme/segoeuii.ttf"
 
-private const DefaultFontFsRegularName = "../theme/consola.ttf"
-private const DefaultFontFsBoldName = "../theme/consolab.ttf"
+private const DefaultFontFsRegularName    = "../theme/consola.ttf"
+private const DefaultFontFsBoldName       = "../theme/consolab.ttf"
 private const DefaultFontFsBoldItalicName = "../theme/consolaz.ttf"
-private const DefaultFontFsItalicName = "../theme/consolai.ttf"
+private const DefaultFontFsItalicName     = "../theme/consolai.ttf"
 
 private const DefaultIconsName = "../theme/icons.svg"
 
-private const DefaultImage = #include(DefaultImageName)
-private const DefaultFontRegular = #include(DefaultFontRegularName)
-private const DefaultFontBold = #include(DefaultFontBoldName)
-private const DefaultFontBoldItalic = #include(DefaultFontBoldItalicName)
-private const DefaultFontItalic = #include(DefaultFontItalicName)
-private const DefaultFontFsRegular = #include(DefaultFontFsRegularName)
-private const DefaultFontFsBold = #include(DefaultFontFsBoldName)
+private const DefaultImage            = #include(DefaultImageName)
+private const DefaultFontRegular      = #include(DefaultFontRegularName)
+private const DefaultFontBold         = #include(DefaultFontBoldName)
+private const DefaultFontBoldItalic   = #include(DefaultFontBoldItalicName)
+private const DefaultFontItalic       = #include(DefaultFontItalicName)
+private const DefaultFontFsRegular    = #include(DefaultFontFsRegularName)
+private const DefaultFontFsBold       = #include(DefaultFontFsBoldName)
 private const DefaultFontFsBoldItalic = #include(DefaultFontFsBoldItalicName)
-private const DefaultFontFsItalic = #include(DefaultFontFsItalicName)
-private const DefaultIcons = #include(DefaultIconsName)
+private const DefaultFontFsItalic     = #include(DefaultFontFsItalicName)
+private const DefaultIcons            = #include(DefaultIconsName)
 
 // Parsed default theme art, shared by every Theme instance. Parsing the embedded sources is
 // pure CPU work whose result never changes, so it is done once per process (same policy as
@@ -45,16 +45,16 @@ private struct DefaultThemeImages
 
 // Bundle names of the theme resources. The `Default*Name` constants above are include
 // paths relative to this file; these are the logical names a disk folder overrides.
-private const ResImageName = "theme/widgets.svg"
-private const ResIconsName = "theme/icons.svg"
-private const ResFontRegularName = "theme/segoeui.ttf"
-private const ResFontBoldName = "theme/segoeuib.ttf"
-private const ResFontBoldItalicName = "theme/segoeuiz.ttf"
-private const ResFontItalicName = "theme/segoeuii.ttf"
-private const ResFontFsRegularName = "theme/consola.ttf"
-private const ResFontFsBoldName = "theme/consolab.ttf"
+private const ResImageName            = "theme/widgets.svg"
+private const ResIconsName            = "theme/icons.svg"
+private const ResFontRegularName      = "theme/segoeui.ttf"
+private const ResFontBoldName         = "theme/segoeuib.ttf"
+private const ResFontBoldItalicName   = "theme/segoeuiz.ttf"
+private const ResFontItalicName       = "theme/segoeuii.ttf"
+private const ResFontFsRegularName    = "theme/consola.ttf"
+private const ResFontFsBoldName       = "theme/consolab.ttf"
 private const ResFontFsBoldItalicName = "theme/consolaz.ttf"
-private const ResFontFsItalicName = "theme/consolai.ttf"
+private const ResFontFsItalicName     = "theme/consolai.ttf"
 
 private var g_DefaultThemeImages: DefaultThemeImages
 

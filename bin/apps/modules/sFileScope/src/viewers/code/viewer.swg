@@ -2,10 +2,10 @@
 
 using Core, Pixel, Gui
 
-private const CodeStreamChunkSize = 16 * 1024'u64
-private const CodeStreamLookAhead = 2.0
+private const CodeStreamChunkSize    = 16 * 1024'u64
+private const CodeStreamLookAhead    = 2.0
 private const CodeResidentWindowSize = 256 * 1024'u64
-private const CodeRevealContextSize = 4 * 1024'u64
+private const CodeRevealContextSize  = 4 * 1024'u64
 
 internal struct CodeViewer
 {

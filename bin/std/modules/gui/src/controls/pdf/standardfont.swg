@@ -29,8 +29,8 @@ enum StandardFont
 // The four Courier faces share one fixed advance, and each oblique face has the metrics of
 // its upright companion, so twelve faces need six tables.
 private const StandardWidthFirst = 32'u32
-private const StandardWidthLast = 126'u32
-private const CourierWidth = 600'u16
+private const StandardWidthLast  = 126'u32
+private const CourierWidth       = 600'u16
 
 private const HelveticaWidths: [95] u16 = [
     278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278,

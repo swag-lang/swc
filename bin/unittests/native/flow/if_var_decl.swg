@@ -3,7 +3,7 @@
 #test
 {
     var result = 0
-    if var x = 1
+    if var x   = 1
     {
         var y = x
         result = y
@@ -18,7 +18,7 @@
 
 #test
 {
-    var result = 0
+    var result    = 0
     if var x: s32 = 1 where x
     {
         var y = x
@@ -30,7 +30,7 @@
 #test
 {
     var result = 0
-    if var x = 0
+    if var x   = 0
     {
         result = -1
     }
@@ -44,7 +44,7 @@
 #test
 {
     var result = 0
-    if var x = 0 where x == 0
+    if var x   = 0 where x == 0
     {
         result = x + 3
     }
@@ -58,7 +58,7 @@
 #test
 {
     var result = 0
-    if var x = 1 where false
+    if var x   = 1 where false
     {
         result = -1
     }
@@ -73,8 +73,8 @@ func ifDeclMaybePtr(p: *s32)->#null *s32 => p
 
 #test
 {
-    var result = 0
-    var base   = 42
+    var result           = 0
+    var base             = 42
     if var x: #null *s32 = ifDeclMaybePtr(&base) where x != null
     {
         result = 1
@@ -88,7 +88,7 @@ func ifDeclMaybePtr(p: *s32)->#null *s32 => p
 
 #test
 {
-    var result = 0
+    var result             = 0
     if var x: #null string = null where x == null
     {
         result = 1
@@ -102,7 +102,7 @@ func ifDeclMaybePtr(p: *s32)->#null *s32 => p
 
 #test
 {
-    var result = 0
+    var result               = 0
     if var x: #null [..] s32 = null where x == null
     {
         result = 1

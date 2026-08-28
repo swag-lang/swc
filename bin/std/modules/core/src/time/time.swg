@@ -46,11 +46,11 @@ internal const DaysToMonth366 = [0'u16, 31, 60, 91, 121, 152, 182, 213, 244, 274
 
 internal const MaxMilliseconds = Swag.U64.Max / TicksPerMillisecond
 
-internal const DaysTo1601: u64 = (DaysPer400Years * 4)                                                                  // Number of days from 1/1/0001 to 12/31/1600
-internal const DaysTo1899: u64 = ((DaysPer400Years * 4) + (DaysPer100Years * 3)) - 367                                  // Number of days from 1/1/0001 to 12/30/1899
-internal const DaysTo1970: u64 = (DaysPer400Years * 4) + (DaysPer100Years * 3) + (DaysPer4Years * 17) + DaysPerYear     // Number of days from 1/1/0001 to 12/31/1969
-internal const DaysTo10000: u64 = (DaysPer400Years * 25) - 366                                                          // Number of days from 1/1/0001 to 12/31/9999
-internal const MaxTicks: u64 = (DaysTo10000 * TicksPerDay) - 1
+internal const DaysTo1601:  u64 = (DaysPer400Years * 4)                                                                  // Number of days from 1/1/0001 to 12/31/1600
+internal const DaysTo1899:  u64 = ((DaysPer400Years * 4) + (DaysPer100Years * 3)) - 367                                  // Number of days from 1/1/0001 to 12/30/1899
+internal const DaysTo1970:  u64 = (DaysPer400Years * 4) + (DaysPer100Years * 3) + (DaysPer4Years * 17) + DaysPerYear     // Number of days from 1/1/0001 to 12/31/1969
+internal const DaysTo10000: u64 = (DaysPer400Years * 25) - 366                                                           // Number of days from 1/1/0001 to 12/31/9999
+internal const MaxTicks:    u64 = (DaysTo10000 * TicksPerDay) - 1
 
 internal const MaxMillisecondsToYear10000: u64 = DaysTo10000 * MillisecondsPerDay
 

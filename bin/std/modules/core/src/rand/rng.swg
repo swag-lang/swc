@@ -193,7 +193,7 @@ impl Generator
         if count < 2 do
             return
 
-        let data = @dataof(slice)
+        let data      = @dataof(slice)
         for var index = count - 1; index > 0; index -= 1
         {
             let other = .nextU64(0, index + 1)

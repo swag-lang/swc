@@ -1,6 +1,6 @@
-public const CTX_DIRECT_INIT_FLAG = 0x0040'u64
+public const CTX_DIRECT_INIT_FLAG    = 0x0040'u64
 public const CTX_DIRECT_PREMAIN_FLAG = 0x0080'u64
-public const CTX_DIRECT_DROP_FLAG = 0x0100'u64
+public const CTX_DIRECT_DROP_FLAG    = 0x0100'u64
 
 #init
 {

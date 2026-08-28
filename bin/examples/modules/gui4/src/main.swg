@@ -493,7 +493,7 @@ impl IPropertyEditor for RatingEditor
 
         for i in RatingMax
         {
-            let idx = cast(s32) i
+            let idx      = cast(s32) i
             with let btn = IconButton.create(line, {}, {0, 0, RatingPipSize, item.line.position.height})
             {
                 .dockStyle = .Left

@@ -282,7 +282,7 @@ private func sampleDocument()->Document
 // region's size, and a mark outside it contributes nothing.
 #test
 {
-    var page = Page.create(200, 100)
+    var page          = Page.create(200, 100)
     var left: LinePathList
     with let leftPath = left.newPath()
     {

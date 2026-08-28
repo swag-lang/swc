@@ -1137,7 +1137,7 @@ func intrinsicAutoDropIfVarReturnInfo()->IntrinsicInfo
     defer result.drops = DropCount
 
     {
-        var outer = CompactDropTracked{1}
+        var outer   = CompactDropTracked{1}
         if var flag = 1 where flag == 1
         {
             var branch = AutoCompactBranch{CompactDropTracked{2}, AutoCompactPair{CompactDropTracked{3}, CompactDropTracked{4}}}
@@ -1161,7 +1161,7 @@ func intrinsicAutoDropIfVarElseInfo()->IntrinsicInfo
     var second: s32 = 0
     var third:  s32 = 0
     {
-        var outer = CompactDropTracked{9}
+        var outer   = CompactDropTracked{9}
         if var flag = 1 where false
         {
             first = -1

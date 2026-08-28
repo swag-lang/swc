@@ -3,15 +3,15 @@
 
 using Core, Pixel
 
-private const StreamChunkSize = 8 * 1024'u64
-private const StreamCarryLimit = 16 * 1024'u64
-private const RevealContextSize = 64 * 1024'u64
+private const StreamChunkSize    = 8 * 1024'u64
+private const StreamCarryLimit   = 16 * 1024'u64
+private const RevealContextSize  = 64 * 1024'u64
 private const ReverseContextSize = StreamChunkSize
-private const RevealChunkSize = RevealContextSize + StreamChunkSize
+private const RevealChunkSize    = RevealContextSize + StreamChunkSize
 private const ResidentSourceSize = 256 * 1024'u64
-private const StreamLookAhead = 2.0
-private const StreamFrameBudget = 3_000'u64
-private const StreamBlockBudget = 8'u32
+private const StreamLookAhead    = 2.0
+private const StreamFrameBudget  = 3_000'u64
+private const StreamBlockBudget  = 8'u32
 
 // Controls the reading measure and typography of a [[Gui.Markdown.View]].
 //

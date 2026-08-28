@@ -4,7 +4,7 @@ using Swag
 #[AttrUsage(AttributeUsage.Function)]
 attr MessageMarker()
 
-func MessageBatchEarly()->s32 => 3
+func MessageBatchEarly()->s32       => 3
 public func MessageBatchLate()->s32 => 11
 func MessagePlaceholderOnly(value: s32)->s32
 

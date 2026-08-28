@@ -153,7 +153,7 @@ struct AppStrings
 }
 
 private const FrenchStringsName = "lang/fr/vaultdrive.tweak"
-private const FrenchStrings = #include("../datas/lang/fr/vaultdrive.tweak")
+private const FrenchStrings     = #include("../datas/lang/fr/vaultdrive.tweak")
 
 private var g_AppStrings: AppStrings
 

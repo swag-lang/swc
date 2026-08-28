@@ -234,7 +234,7 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
     let typeof     = #typeof(T)
     let maxItp     = @countof(allArgs)
     var seenOption = false
-    for var itp = 0; itp < maxItp; itp += 1
+    for var itp    = 0; itp < maxItp; itp += 1
     {
         var oneArg = allArgs[itp].value
         if !isOption(oneArg, options)

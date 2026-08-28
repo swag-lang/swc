@@ -2,13 +2,13 @@
 
 using Core, Pixel, Gui
 
-private const MidiHeaderHeight = 76.0
-private const MidiAxisHeight = 28.0
+private const MidiHeaderHeight  = 76.0
+private const MidiAxisHeight    = 28.0
 private const MidiKeyboardWidth = 72.0
-private const MidiContentInset = 24.0
-private const MidiQuarterWidth = 64.0
-private const MidiMinZoom = 0.01'f32
-private const MidiMaxZoom = 16.0'f32
+private const MidiContentInset  = 24.0
+private const MidiQuarterWidth  = 64.0
+private const MidiMinZoom       = 0.01'f32
+private const MidiMaxZoom       = 16.0'f32
 
 internal struct MidiRollView
 {

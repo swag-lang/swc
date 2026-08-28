@@ -28,7 +28,7 @@ private const IconsSvg = #include("../datas/icons.svg")
 
 // The application icon document and the frames rasterized from it, shared by every window and by
 // the headless test fixtures; parsed and rasterized once per process.
-private var g_ViewerIcons: IconAtlas
+private var g_ViewerIcons:       IconAtlas
 private var g_ViewerIconsParsed: bool
 
 // Returns the parsed application icon document, parsing it on first use.

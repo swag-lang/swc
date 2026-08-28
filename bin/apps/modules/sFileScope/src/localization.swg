@@ -48,7 +48,7 @@ struct AppStrings
 }
 
 private const FrenchStringsName = "lang/fr/filescope.tweak"
-private const FrenchStrings = #include("../datas/lang/fr/filescope.tweak")
+private const FrenchStrings     = #include("../datas/lang/fr/filescope.tweak")
 
 private var g_AppStrings: AppStrings
 

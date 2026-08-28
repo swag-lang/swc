@@ -12,9 +12,9 @@ const FILL_RLE_ENDOFLINE   = 0
 const FILL_RLE_ENDOFBITMAP = 1
 const FILL_RLE_DELTA       = 2
 
-public const BI_RGB = 0           // Uncompressed RGB bitmap data.
-public const BI_RLE8 = 1          // Run-length encoded 8-bit indexed data.
-public const BI_RLE4 = 2          // Run-length encoded 4-bit indexed data.
+public const BI_RGB       = 0     // Uncompressed RGB bitmap data.
+public const BI_RLE8      = 1     // Run-length encoded 8-bit indexed data.
+public const BI_RLE4      = 2     // Run-length encoded 4-bit indexed data.
 public const BI_BITFIELDS = 3     // Direct-color data described by channel masks.
 
 const BMP_SIGNATURE = 0x4D42'u16

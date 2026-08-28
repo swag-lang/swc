@@ -10,11 +10,11 @@ public const Argon2MinSaltSize = 8
 // Smallest tag Argon2 produces, in bytes.
 public const Argon2MinTagSize = 4
 
-private const Argon2Words = Argon2BlockSize / #sizeof(u64)
-private const Argon2SyncPoints = 4
+private const Argon2Words        = Argon2BlockSize / #sizeof(u64)
+private const Argon2SyncPoints   = 4
 private const Argon2AddressCount = Argon2Words
-private const Argon2Version = 0x13
-private const Argon2TypeId = 2
+private const Argon2Version      = 0x13
+private const Argon2TypeId       = 2
 
 // Cost parameters for one Argon2id derivation.
 //

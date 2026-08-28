@@ -1,9 +1,9 @@
 using Core, Pixel, Gui
 
-private const TextStreamChunkSize = 16 * 1024'u64
-private const TextStreamLookAhead = 2.0
+private const TextStreamChunkSize    = 16 * 1024'u64
+private const TextStreamLookAhead    = 2.0
 private const TextResidentWindowSize = 256 * 1024'u64
-private const TextRevealContextSize = 4 * 1024'u64
+private const TextRevealContextSize  = 4 * 1024'u64
 
 // Head of the file the encoding is decided from. A few kilobytes name every encoding a text file
 // uses; reading more answers no better and delays the first screen.

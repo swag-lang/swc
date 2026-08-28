@@ -114,7 +114,7 @@ func day5A()
 
                 for afterIndex in beforeIndex + 1 to update.count - 1
                 {
-                    let afterPage = expect StrConv.toS32(update[afterIndex])
+                    let afterPage    = expect StrConv.toS32(update[afterIndex])
                     if let nextPages = order.tryFind(afterPage) where nextPages.value.contains(beforePage)
                     {
                         isOrdered = false

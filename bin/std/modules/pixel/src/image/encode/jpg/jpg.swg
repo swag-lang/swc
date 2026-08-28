@@ -269,7 +269,7 @@ impl Encoder
                 }
             }
 
-            let lastcolor = line[.imageX - 1]
+            let lastcolor  = line[.imageX - 1]
             for var column = .imageX; column < xDiv8; column += 1 do
                 line[column] = lastcolor
         }
@@ -277,8 +277,8 @@ impl Encoder
         .imageX = cast(u16) xDiv8
 
         // Height completion: the padded rows repeat the last coded row.
-        let dimline  = cast(u64) .imageX * #sizeof(ColorRGB)
-        let lastLine = pdst + (cast(u32) .imageY - 1) * cast(u32) .imageX
+        let dimline    = cast(u64) .imageX * #sizeof(ColorRGB)
+        let lastLine   = pdst + (cast(u32) .imageY - 1) * cast(u32) .imageX
         for var nrLine = cast(u32) .imageY; nrLine < yDiv8; nrLine += 1 do
             Memory.copy(pdst + nrLine * cast(u32) .imageX, lastLine, dimline)
 
@@ -290,7 +290,7 @@ impl Encoder
         var dcy:  s16 = 0
         var dccb: s16 = 0
         var dccr: s16 = 0
-        for var ypos = 0'u16; ypos < .imageY; ypos += 8
+        for var ypos  = 0'u16; ypos < .imageY; ypos += 8
         {
             for var xpos = 0'u16; xpos < .imageX; xpos += 8
             {

@@ -411,7 +411,7 @@ In all `for` variants, `@index` provides the current iteration index.
         cpt += @index
     @assert(cpt == 0 + 1 + 2 + 3 + 4)
 
-    var cpt1 = 0'u64
+    var cpt1  = 0'u64
     for var i = 10; i < 15; i += 1 do
         cpt1 += @index
     @assert(cpt1 == 0 + 1 + 2 + 3 + 4)

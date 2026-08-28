@@ -256,7 +256,7 @@ struct BinaryStrings
 }
 
 private const FrenchStringsName = "lang/fr/filescope.binary.tweak"
-private const FrenchStrings = #include("../../../datas/lang/fr/filescope.binary.tweak")
+private const FrenchStrings     = #include("../../../datas/lang/fr/filescope.binary.tweak")
 
 private var g_BinaryStrings: BinaryStrings
 

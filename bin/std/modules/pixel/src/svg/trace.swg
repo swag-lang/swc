@@ -402,7 +402,7 @@ private func simplifyPath(path: *LinePath, tolerance: f32)
 
         var far     = first
         var farDist = 0.0'f32
-        for var i = first + 1; i < last; i += 1
+        for var i   = first + 1; i < last; i += 1
         {
             let ap = points[i] - a
             let t  = Math.saturate(ap.dot(ab) / abLen2)

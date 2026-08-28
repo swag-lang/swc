@@ -3,11 +3,11 @@ using Core
 private const GrayChannel0_32 = [0'u8, 4, 8, 12, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
 private const GrayChannel1_32 = [1'u8, 5, 9, 13, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
 private const GrayChannel2_32 = [2'u8, 6, 10, 14, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
-private const GrayOutput32 = [0'u8, 0, 0, 128, 1, 1, 1, 128, 2, 2, 2, 128, 3, 3, 3, 128]
+private const GrayOutput32    = [0'u8, 0, 0, 128, 1, 1, 1, 128, 2, 2, 2, 128, 3, 3, 3, 128]
 private const GrayChannel0_24 = [0'u8, 3, 6, 9, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
 private const GrayChannel1_24 = [1'u8, 4, 7, 10, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
 private const GrayChannel2_24 = [2'u8, 5, 8, 11, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
-private const GrayOutput24 = [0'u8, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 128, 128, 128, 128]
+private const GrayOutput24    = [0'u8, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 128, 128, 128, 128]
 
 public impl Image
 {

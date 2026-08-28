@@ -933,7 +933,7 @@ impl PdfView
         return false
     }
 
-    internal const CtxCopy = "Pdf.CtxCopy"
+    internal const CtxCopy      = "Pdf.CtxCopy"
     internal const CtxSelectAll = "Pdf.CtxSelectAll"
 
     // Selects the word around one offset of the page text, the double-click gesture.

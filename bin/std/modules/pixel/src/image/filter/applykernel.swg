@@ -80,7 +80,7 @@ impl Image
             {
                 for var dy = -kernelSize; dy <= kernelSize; dy += 1
                 {
-                    let ny = Math.clamp(y + dy, 0, h - 1)
+                    let ny     = Math.clamp(y + dy, 0, h - 1)
                     for var dx = -kernelSize; dx <= kernelSize; dx += 1
                     {
                         let nx  = Math.clamp(x + dx, 0, w - 1)

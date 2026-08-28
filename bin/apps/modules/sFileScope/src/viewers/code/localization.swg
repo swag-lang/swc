@@ -13,7 +13,7 @@ struct CodeStrings
 }
 
 private const FrenchStringsName = "lang/fr/filescope.code.tweak"
-private const FrenchStrings = #include("../../../datas/lang/fr/filescope.code.tweak")
+private const FrenchStrings     = #include("../../../datas/lang/fr/filescope.code.tweak")
 
 private var g_CodeStrings: CodeStrings
 

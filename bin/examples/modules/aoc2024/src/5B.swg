@@ -51,7 +51,7 @@ func day5B()
 
                 for afterIndex in beforeIndex + 1 to update.count - 1
                 {
-                    let afterPage = update[afterIndex]
+                    let afterPage    = update[afterIndex]
                     if let nextPages = order.tryFind(afterPage) where nextPages.value.contains(beforePage)
                     {
                         isOrdered = false

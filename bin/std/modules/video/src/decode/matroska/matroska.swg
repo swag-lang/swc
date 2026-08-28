@@ -7,23 +7,23 @@
 
 using Core, Core.Errors, Pixel, Audio
 
-private const VideoTrackType = 1'u64
-private const AudioTrackType = 2'u64
+private const VideoTrackType    = 1'u64
+private const AudioTrackType    = 2'u64
 private const SubtitleTrackType = 17'u64
 
-private const AvcCodecId = "V_MPEG4/ISO/AVC"
-private const HevcCodecId = "V_MPEGH/ISO/HEVC"
-private const AacCodecId = "A_AAC"
-private const Ac3CodecId = "A_AC3"
-private const Eac3CodecId = "A_EAC3"
-private const DtsCodecId = "A_DTS"
-private const FlacCodecId = "A_FLAC"
-private const Mp3CodecId = "A_MPEG/L3"
-private const Mpeg4CodecId = "V_MPEG4/ISO/ASP"
-private const VfwCodecId = "V_MS/VFW/FOURCC"
+private const AvcCodecId          = "V_MPEG4/ISO/AVC"
+private const HevcCodecId         = "V_MPEGH/ISO/HEVC"
+private const AacCodecId          = "A_AAC"
+private const Ac3CodecId          = "A_AC3"
+private const Eac3CodecId         = "A_EAC3"
+private const DtsCodecId          = "A_DTS"
+private const FlacCodecId         = "A_FLAC"
+private const Mp3CodecId          = "A_MPEG/L3"
+private const Mpeg4CodecId        = "V_MPEG4/ISO/ASP"
+private const VfwCodecId          = "V_MS/VFW/FOURCC"
 private const Utf8SubtitleCodecId = "S_TEXT/UTF8"
-private const AssSubtitleCodecId = "S_TEXT/ASS"
-private const SsaSubtitleCodecId = "S_TEXT/SSA"
+private const AssSubtitleCodecId  = "S_TEXT/ASS"
+private const SsaSubtitleCodecId  = "S_TEXT/SSA"
 
 private struct SubtitleSample
 {
@@ -36,9 +36,9 @@ private struct SubtitleSample
 // The one compression a stored frame can carry that this reader undoes, clause 12.3 of the
 // Matroska specification: the bytes every frame began with, taken off and stated once.
 private const HeaderStrippingAlgorithm = 3'u64
-private const DefaultTimestampScale = 1_000_000'u64
-private const NoTrack = Swag.U64.Max
-private const NoOffset = Swag.U64.Max
+private const DefaultTimestampScale    = 1_000_000'u64
+private const NoTrack                  = Swag.U64.Max
+private const NoOffset                 = Swag.U64.Max
 
 private func packetBits(bytes: const [..] u8, offset: u64, bitPosition, count: u32)->u32
 {
@@ -1454,10 +1454,10 @@ private func frameRateFromDuration(durationNanoseconds: u64)->FrameRate fail
     return FrameRate.create(1, cast(u32) Math.min(Math.max(durationNanoseconds / 1_000_000_000, 1), cast(u64) Swag.U32.Max))
 }
 
-private const SoundIndexIdle = 0'u32
+private const SoundIndexIdle    = 0'u32
 private const SoundIndexRunning = 1'u32
-private const SoundIndexReady = 2'u32
-private const SoundIndexFailed = 3'u32
+private const SoundIndexReady   = 2'u32
+private const SoundIndexFailed  = 3'u32
 
 // How much sound one bounded window carries, and how close the picture may come to its end.
 //
@@ -1465,17 +1465,17 @@ private const SoundIndexFailed = 3'u32
 // film held on a network share takes minutes. Until they arrive the sound is whatever window the
 // last seek published, so a window that ends while the picture is still playing is silence. These
 // two decide how long a window lasts and how early the next one is built.
-private const SoundSeekRunAheadNanoseconds = 60_000_000_000's64
+private const SoundSeekRunAheadNanoseconds  = 60_000_000_000's64
 private const SoundWindowRefreshNanoseconds = 20_000_000_000's64
-private const SoundWindowRetryNanoseconds = 5_000_000_000's64
+private const SoundWindowRetryNanoseconds   = 5_000_000_000's64
 
 // How far ahead of the indexed window a picture can be asked for and still be reached by
 // walking the index rather than by restarting the reader at a cue. Two thousand pictures is
 // about eighty seconds of film, which covers every skip playback makes to catch up and
 // leaves a real seek to what a reader asks for by hand.
-private const ForwardWalkSamples = 2000'u64
+private const ForwardWalkSamples          = 2000'u64
 private const SoundSeekPreRollNanoseconds = 1_000_000_000'u64
-private const SoundSeekPreRollSeconds = 1.0
+private const SoundSeekPreRollSeconds     = 1.0
 
 #[Swag.NoCopy]
 private struct PublishedSound

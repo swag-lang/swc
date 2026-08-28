@@ -40,7 +40,7 @@ struct HexStrings
 }
 
 private const FrenchStringsName = "lang/fr/filescope.hex.tweak"
-private const FrenchStrings = #include("../../../datas/lang/fr/filescope.hex.tweak")
+private const FrenchStrings     = #include("../../../datas/lang/fr/filescope.hex.tweak")
 
 private var g_HexStrings: HexStrings
 

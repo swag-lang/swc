@@ -443,7 +443,7 @@ impl FloatExt
                 v      = v1
             }
 
-            let nd = cast(s64) (@countof(buf) - n - 1)
+            let nd    = cast(s64) (@countof(buf) - n - 1)
             for var i = 0; i < nd; i += 1 do
                 d.d[i] = buf[n + 1 + i]
 

@@ -23,8 +23,8 @@ test whose reference data lives with its source. See [[Env.grantCorpus]].
 > produces the same wrong-but-green result the sandbox exists to prevent.
 */
 private var g_SandboxRoot: String
-private var g_CorpusRoot: String
-private var g_Sandboxed: bool
+private var g_CorpusRoot:  String
+private var g_Sandboxed:   bool
 private var g_DefaultRoot: bool
 private var g_DeniedCount: u64
 

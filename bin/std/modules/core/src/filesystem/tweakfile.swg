@@ -212,7 +212,7 @@ impl TweakFile
             for
             {
                 var restart = false
-                for var j = 0; j < refs.count; j += 1
+                for var j   = 0; j < refs.count; j += 1
                 {
                     if j == toDo do
                         continue

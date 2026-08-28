@@ -271,7 +271,7 @@ impl SurfaceWnd
     // middle instead, no two points of the band are the same color and the reader is looking at
     // a ramp rather than at a lit edge.
     private const CaptionPlateauStart = 0.40'f32
-    private const CaptionPlateauEnd = 0.68'f32
+    private const CaptionPlateauEnd   = 0.68'f32
 
     // The brush the caption band is filled with.
     //

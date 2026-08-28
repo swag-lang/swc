@@ -182,9 +182,9 @@ using Swag
     }
 }
 
-private var g_HashCrcToType: HashTable'(u32, typeinfo)
+private var g_HashCrcToType:  HashTable'(u32, typeinfo)
 private var g_HashNameToType: HashTable'(string, typeinfo)
-private var g_HashLock: Sync.RWLock
+private var g_HashLock:       Sync.RWLock
 
 private func typeValueCrc(val: Swag.TypeValue)->u32
 {

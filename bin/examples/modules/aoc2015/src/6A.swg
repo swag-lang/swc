@@ -18,7 +18,7 @@ After following the instructions, how many lights are lit?
 
 using Core
 
-internal const DAY6_GRID_SIZE = 1000'u64
+internal const DAY6_GRID_SIZE   = 1000'u64
 internal const DAY6_GRID_SIZE32 = 1000'u32
 
 internal enum Day6Action

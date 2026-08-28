@@ -463,8 +463,8 @@ impl Deflate
         }
 
         symFreq[0].key += symFreq[1].key
-        var root = 0
-        var leaf = 2
+        var root     = 0
+        var leaf     = 2
         for var next = 1; next < n - 1; next += 1
         {
             if leaf >= n or symFreq[root].key < symFreq[leaf].key
@@ -602,7 +602,7 @@ impl Deflate
         }
 
         nextCode[1] = 0
-        var j = 0
+        var j     = 0
         for var i = 2; i <= codeSizeLimit; i += 1
         {
             j           = (j + numCodes[i - 1]) << 1
@@ -848,8 +848,8 @@ impl Deflate
 
     mtd compressLzCodes()->bool
     {
-        let d     = .state!
-        var flags = 1'u32
+        let d           = .state!
+        var flags       = 1'u32
         for var lzCodes = cast([*] u8) &d.lzCodeBuf[0]; lzCodes < d.lzCodeBufAddr; flags >>= 1
         {
             if flags == 1

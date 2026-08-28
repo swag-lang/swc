@@ -264,7 +264,7 @@ impl Painter
         .sharedRoundTmp.add({angle1, endPos})
 
         var point: Math.Vector2 = undefined
-        for var i = 0; i < .sharedRoundTmp.count - 1; i += 1
+        for var i               = 0; i < .sharedRoundTmp.count - 1; i += 1
         {
             let angle = (.sharedRoundTmp[i].factor + .sharedRoundTmp[i + 1].factor) * 0.5
             point.x = center.x + (Math.cos(angle) * radius)

@@ -7,7 +7,7 @@ using Core, Core.Math, Pixel
 // one line; and the horizontal gap, as a share of the run height, past which two runs on one
 // line are two words rather than one split by kerning.
 private const TextLineOverlap = 0.5'f32
-private const TextWordGap = 0.18'f32
+private const TextWordGap     = 0.18'f32
 
 // One code of a run: the byte range it decoded to inside the run's text, and the horizontal
 // span it covers in the item's local units.

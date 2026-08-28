@@ -152,9 +152,9 @@ internal func decodeRunLength(data: const [..] u8)->Array'u8 fail
 
 // Codes the LZW variable-width code stream reserves for itself.
 private const LzwClearCode = 256'u32
-private const LzwEndCode = 257'u32
+private const LzwEndCode   = 257'u32
 private const LzwFirstCode = 258'u32
-private const LzwMaxCode = 4096'u32
+private const LzwMaxCode   = 4096'u32
 
 // Dictionary entries chain to their prefix instead of storing whole sequences, so the
 // table stays a fixed 4096 entries whatever the stream expands to.

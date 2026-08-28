@@ -68,7 +68,7 @@ impl TelemetrySeries
         where Count >= 2
     {
         var total: T = 0
-        for var i = 0; i < .filled; i += 1 do
+        for var i    = 0; i < .filled; i += 1 do
             total += .samples[i]
         return total / cast(T) .filled
     }

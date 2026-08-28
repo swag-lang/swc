@@ -4,11 +4,11 @@ using Core
 
 // Header signatures a Mach-O file can begin with. The `CIGAM` spellings are the same words read by
 // a machine of the other byte order, which is how a file says its own order without a flag.
-private const MachMagic32 = 0xFEEDFACE'u32
-private const MachMagic64 = 0xFEEDFACF'u32
-private const MachCigam32 = 0xCEFAEDFE'u32
-private const MachCigam64 = 0xCFFAEDFE'u32
-private const MachFatMagic = 0xCAFEBABE'u32
+private const MachMagic32    = 0xFEEDFACE'u32
+private const MachMagic64    = 0xFEEDFACF'u32
+private const MachCigam32    = 0xCEFAEDFE'u32
+private const MachCigam64    = 0xCFFAEDFE'u32
+private const MachFatMagic   = 0xCAFEBABE'u32
 private const MachFatMagic64 = 0xCAFEBABF'u32
 
 // Returns the processor a Mach-O CPU type names.

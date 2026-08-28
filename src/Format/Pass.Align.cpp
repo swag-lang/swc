@@ -87,12 +87,12 @@ namespace
                     return findRoleOnLine(lineStart, FormatRoleE::AssignOp, false);
 
                 case AlignCategory::Declarations:
-                    if (!first.hasRole(FormatRoleE::VarDeclStart))
+                    if (findRoleOnLine(lineStart, FormatRoleE::VarDeclStart, false) == INVALID_PIECE)
                         return INVALID_PIECE;
                     return findRoleOnLine(lineStart, FormatRoleE::DeclColon, true);
 
                 case AlignCategory::Constants:
-                    if (!first.hasRole(FormatRoleE::ConstDeclStart))
+                    if (findRoleOnLine(lineStart, FormatRoleE::ConstDeclStart, false) == INVALID_PIECE)
                         return INVALID_PIECE;
                     return findRoleOnLine(lineStart, FormatRoleE::InitAssign, false);
 
@@ -102,7 +102,7 @@ namespace
                     return findRoleOnLine(lineStart, FormatRoleE::InitAssign, false);
 
                 case AlignCategory::StructFields:
-                    if (!first.hasRole(FormatRoleE::FieldDeclStart))
+                    if (findRoleOnLine(lineStart, FormatRoleE::FieldDeclStart, false) == INVALID_PIECE)
                         return INVALID_PIECE;
                     return findRoleOnLine(lineStart, FormatRoleE::DeclColon, true);
 
@@ -112,7 +112,7 @@ namespace
                     return findRoleOnLine(lineStart, FormatRoleE::EnumAssign, false);
 
                 case AlignCategory::FatArrows:
-                    if (!first.hasRole(FormatRoleE::FuncDeclStart))
+                    if (findRoleOnLine(lineStart, FormatRoleE::FuncDeclStart, false) == INVALID_PIECE)
                         return INVALID_PIECE;
                     return findRoleOnLine(lineStart, FormatRoleE::FatArrow, false);
 
@@ -292,7 +292,7 @@ namespace
         // column), so it no longer fragments the surrounding group.
         bool declLineHasColumn(const FormatRoleE startRole, const uint32_t lineStart) const
         {
-            if (!model_->piece(lineStart).hasRole(startRole))
+            if (findRoleOnLine(lineStart, startRole, false) == INVALID_PIECE)
                 return false;
             return typeAnchorOf(lineStart) != INVALID_PIECE || initAnchorOf(lineStart) != INVALID_PIECE;
         }

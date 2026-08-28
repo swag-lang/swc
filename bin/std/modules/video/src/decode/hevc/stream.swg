@@ -12,14 +12,14 @@ using Core, Core.Errors, Pixel
 //
 // The format allows sixteen pictures in the buffer, and a picture waiting for display holds one;
 // past that the stream is not reordering, it is malformed.
-private const MaxReorderDepth = 17'u64
-private const HevcMaxFrameThreads = 8'u32
-private const HevcNoLane = Swag.U32.Max
+private const MaxReorderDepth       = 17'u64
+private const HevcMaxFrameThreads   = 8'u32
+private const HevcNoLane            = Swag.U32.Max
 private const HevcBytesPerLanePixel = 6'u64
-private const HevcLaneMemoryBudget = 640 * 1024 * 1024'u64
+private const HevcLaneMemoryBudget  = 640 * 1024 * 1024'u64
 
 // How many pixels of picture one frame thread is worth; see the H.264 stream for the reasoning.
-private const HevcPixelsPerLane = 480_000'u64
+private const HevcPixelsPerLane   = 480_000'u64
 private const HevcMinFrameThreads = 2'u32
 
 // One reconstructed picture waiting for its display turn.

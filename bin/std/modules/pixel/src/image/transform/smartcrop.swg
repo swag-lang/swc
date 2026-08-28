@@ -35,9 +35,9 @@ impl Image
         iiE:   Array'f32
     }
 
-    internal const SALIENCY_RADIUS = 4
-    internal const THIRDS_SIGMA = 0.075
-    internal const EDGE_DIST_SCALE = 0.15
+    internal const SALIENCY_RADIUS  = 4
+    internal const THIRDS_SIGMA     = 0.075
+    internal const EDGE_DIST_SCALE  = 0.15
     internal const ENHANCED_WEIGHTS = SaliencyWeights{contrast: 1.0, saturation: 0.55, edge: 1.2}
 
     #[Swag.Inline]
@@ -230,8 +230,8 @@ impl Image
         }
         else
         {
-            let step = cast(s32) Math.floor(cast(f32) N / M)
-            var w    = 0's32
+            let step  = cast(s32) Math.floor(cast(f32) N / M)
+            var w     = 0's32
             for var i = 0; i < N; i += step
             {
                 if w >= M do
@@ -294,7 +294,7 @@ impl Image
         var contrast: Array'f32
         contrast.resize(N)
         let sampleStep = 2
-        for var y = 0; y < h; y += sampleStep
+        for var y      = 0; y < h; y += sampleStep
         {
             for var x = 0; x < w; x += sampleStep
             {

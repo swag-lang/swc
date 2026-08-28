@@ -39,7 +39,7 @@ struct ImageSpace
 private const GrayExpand0 = cast(Math.Simd.U8x16) [0'u8, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5]
 private const GrayExpand1 = cast(Math.Simd.U8x16) [5'u8, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10]
 private const GrayExpand2 = cast(Math.Simd.U8x16) [10'u8, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15]
-private const CmykGather = cast(Math.Simd.U8x16) [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80]
+private const CmykGather  = cast(Math.Simd.U8x16) [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80]
 private const CmykSpreadK = cast(Math.Simd.U8x16) [3'u8, 3, 3, 7, 7, 7, 11, 11, 11, 15, 15, 15, 0x80, 0x80, 0x80, 0x80]
 
 private func expandGray8(destination: [*] u8, source: const [*] u8, count: u64)

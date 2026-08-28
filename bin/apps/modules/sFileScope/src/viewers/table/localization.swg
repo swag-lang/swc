@@ -17,7 +17,7 @@ struct TableStrings
 }
 
 private const FrenchStringsName = "lang/fr/filescope.table.tweak"
-private const FrenchStrings = #include("../../../datas/lang/fr/filescope.table.tweak")
+private const FrenchStrings     = #include("../../../datas/lang/fr/filescope.table.tweak")
 
 private var g_TableStrings: TableStrings
 

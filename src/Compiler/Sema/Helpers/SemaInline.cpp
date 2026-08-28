@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -2525,11 +2525,26 @@ namespace
                 }
                 else
                 {
-                    const AstNodeRef defaultArgRef = cloneSourceArgumentToCallerAst(sema, SemaHelpers::defaultArgumentExprRef(*param), context.sourceAst);
-                    const AstNodeRef defaultRef    = bindingArgumentRef(sema, *param, defaultArgRef);
-                    if (defaultRef.isInvalid())
-                        return Result::Continue;
-                    assignInlineBindingExpr(sema, bound[i], *param, defaultRef);
+                    // The value the signature already resolved, in the scope that wrote it.
+                    // A default is required to be constant, so this is what the ordinary call
+                    // path binds too. Cloning the written expression instead would re-resolve
+                    // its names where the call is: a published cross-module declaration names
+                    // things that exist only in its own module, and a '#code' block parameter
+                    // is the one default with no constant of its own.
+                    const ConstantRef defaultCstRef = param->defaultValueRef();
+                    if (defaultCstRef.isValid())
+                    {
+                        bound[i].typeRef = param->typeRef();
+                        bound[i].cstRef  = defaultCstRef;
+                    }
+                    else
+                    {
+                        const AstNodeRef defaultArgRef = cloneSourceArgumentToCallerAst(sema, SemaHelpers::defaultArgumentExprRef(*param), context.sourceAst);
+                        const AstNodeRef defaultRef    = bindingArgumentRef(sema, *param, defaultArgRef);
+                        if (defaultRef.isInvalid())
+                            return Result::Continue;
+                        assignInlineBindingExpr(sema, bound[i], *param, defaultRef);
+                    }
                 }
             }
 
@@ -2794,6 +2809,11 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
                                 !fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline) &&
                                 sema.buildCfgBackend().inlineMode == Runtime::BuildCfgBackendInlineMode::Auto;
 
+    // A written '#[Inline]' is a contract, not a hint. The structural guards below exist because
+    // the materialization of some shapes is not faithful yet; a heuristic candidate can simply be
+    // dropped when one applies, but dropping a marked one silently turns a promise into a call.
+    const bool isMarkedInline = isOrdinaryInline && fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline);
+
     // A cross-Ast (cross-file) inline materializes the callee's body into the caller's Ast.
     // Regular inline relies on the body's identifiers already carrying their resolved symbols
     // so cloning can preserve them (PreResolvedSymbol) instead of re-resolving by name in the
@@ -2805,7 +2825,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // instances through corrupts vector arithmetic assembled from generic operators.
     if (isCrossAstInline && isOrdinaryInline && (fn.isGenericInstance() || fn.isGenericRoot()))
         return Result::Continue;
-    if (isCrossAstInline && isOrdinaryInline && bodyHasNestedCallExpr(*declAst, decl->nodeBodyRef))
+    if (isCrossAstInline && isOrdinaryInline && !isMarkedInline && bodyHasNestedCallExpr(*declAst, decl->nodeBodyRef))
         return Result::Continue;
 
     // Wait for the callee to be sema-completed before materializing its body. A cross-Ast inline

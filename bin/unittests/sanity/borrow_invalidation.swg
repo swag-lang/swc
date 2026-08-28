@@ -858,3 +858,76 @@ func(var T) borrowInvMacroInvalidates(_: T)
     if false do
         borrowInvMacroInvalidates(0)
 }
+
+// A payload of POINTERS. Growing it moves the pointers, never the objects they address,
+// so a pointer read OUT of the payload outlives the growth while a pointer INTO it does
+// not. The two are one rule seen from both sides.
+struct BorrowInvNode
+{
+    value: u8
+}
+
+struct BorrowInvTable
+{
+    slots:    #null [*] *BorrowInvNode
+    length:   u64
+    capacity: u64
+}
+
+impl BorrowInvTable
+{
+    mtd opDrop()
+    {
+        .release()
+    }
+
+    mtd release()
+    {
+        if !.slots do
+            return
+
+        var req: AllocatorRequest
+        req.address = .slots
+        req.size    = .capacity * #sizeof(*BorrowInvNode)
+
+        let alloc = @getcontext().allocator!
+        alloc.free(&req)
+
+        .slots    = null
+        .capacity = 0
+        .length   = 0
+    }
+
+    mtd reserve(newCapacity: u64)
+    {
+        if newCapacity <= .capacity do
+            return
+
+        var req: AllocatorRequest
+        req.address = .slots
+        req.size    = newCapacity * #sizeof(*BorrowInvNode)
+        req.oldSize = .capacity * #sizeof(*BorrowInvNode)
+
+        let alloc = @getcontext().allocator!
+        alloc.realloc(&req)
+
+        .slots    = cast() req.address
+        .capacity = newCapacity
+    }
+
+    // The element read is a copy of the stored pointer, and it addresses its own object.
+    mtd storedPointerSurvivesGrowth()->u8
+    {
+        let node = .slots![0]
+        .reserve(64)
+        return node.value
+    }
+
+    // The slot itself lives inside the payload, and the growth moves it.
+    mtd slotPointerDoesNotSurviveGrowth()->u8
+    {
+        let slot = .slots! + 0     // swc-expected-note {{sema_note_borrow_taken_here}}
+        .reserve(64)               // swc-expected-error {{sanity_err_borrow_invalidated}}
+        return slot[].value        // swc-expected-note {{sema_note_borrow_read_here}}
+    }
+}

@@ -14,21 +14,23 @@ runtime fault are tooling under `#[Swag.Sanity]`. The reference states the line
 - Area: compiler/sema, `SemaEscape`
 - Found while: making a written `#[Inline]` honored across files (2026-08-28), which lets the
   analysis see into `Core.Array.opIndexPtr` for the first time.
-- Evidence: `pixel/src/poly/clipper.swg` no longer compiles. `getLastOutPt` and `addOutPt` read
+- Evidence: `pixel/src/poly/clipper.swg` stops compiling. `getLastOutPt` and `addOutPt` read
   `.polyOuts[i]` out of an `Array'#null *OutRec`, dereference the pointer they find there, and
   return an `OutPt` node that `Memory.new` allocated. The analysis records that return as a view
   of `me.polyOuts`, so a later `.addOutPt` or `.intersectEdges` that grows the array reports
   eleven `sanity_err_borrow_invalidated`. Growing an array of pointers moves the pointers, never
-  the nodes they address, so none of the eleven is real. `Array.opIndexPtr` genuinely returns
-  `buffer + index`, a view of the payload; what is missing is that loading a pointer VALUE
-  through that address ends the borrow, the same rule `indexEscapeInfo` and the member-access
-  path already apply through `isDirectBorrowCarrier`.
-- Next: instrument `expressionEscapeInfoAt` on the `clipper.swg` reproducer to find which node
-  keeps `viaOwnedPayload` alive across the load — reading the paths did not settle it, since both
-  the `IndexExpr` element rule and the deref shape look like they should already detach.
-- Complete when: `pixel` builds with a written `#[Inline]` honored across files, the `safety` and
-  `sanity` suites still reject every case they reject today, and a test covers both directions:
-  a pointer stored in a container survives the container's reallocation, and a pointer INTO the
-  container does not.
-- Related: the inline half is done - `simd/backlog-sweep`, "Honor a written '#[Inline]' across
-  files".
+  the nodes they address, so none of the eleven is real.
+- Already ruled out: the `IndexExpr` route is NOT the lever. Forcing `indexReadsElementByValue`
+  to answer true - on the resolved node and on the written one - leaves all eleven in place, so
+  the borrow reaches the return without passing the index at all. The summary trace says
+  `addReturnBorrowOrigins` receives `viaOwnedPayload=1 payloadField=polyOuts` with the source node
+  being the MEMBER ACCESS `.polyOuts`, which is where `ownedPayloadStorageRootAt` sets the flag.
+  What is missing is the step that clears it when a pointer VALUE is loaded through that view.
+- Next: trace `expressionEscapeInfoAt` over `let outRec = nnOutRec(.polyOuts[i])` and find which
+  node carries `viaOwnedPayload` past the load - the argument path of the call is the first
+  suspect, since the index rule provably never runs.
+- Complete when: `pixel` builds with a written `#[Inline]` honored across files, `bin/unittests/
+  sanity` still rejects everything it rejects today, and `borrow_invalidation.swg` keeps both
+  directions green.
+- Related: the guard on a written `#[Inline]` is restored until this is settled - see
+  `simd/backlog-sweep`, "Restore the cross-file inline guard until the borrow analysis is right".

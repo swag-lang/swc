@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -1081,37 +1081,40 @@ namespace
         return TypeRef::invalid();
     }
 
+    // Does this index read a whole ELEMENT out by value? The copy aliases neither the
+    // container storage nor whatever the indexed expression borrowed to reach it: a
+    // pointer stored in a buffer keeps addressing its own object however much the buffer
+    // moves. A REFERENCE-typed result is an alias, and a carrier result of a different
+    // type is a sub-slice over the elements; both keep the borrow.
+    bool indexReadsElementByValue(Sema& sema, AstNodeRef indexRef, AstNodeRef indexedRef)
+    {
+        const TypeRef resultTypeRef = expressionTypeRef(sema, indexRef);
+        if (!isDirectBorrowCarrier(sema, resultTypeRef))
+            return false;
+
+        const TypeRef unwrappedResult = unwrapAliasEnum(sema, resultTypeRef);
+        if (unwrappedResult.isValid() && sema.typeMgr().get(unwrappedResult).isReference())
+            return false;
+
+        // A struct container reached through 'opIndex', or a raw pointer opened with
+        // 'expr[]', has no element type of its own here: a non-reference carrier result is
+        // the element loaded out by value.
+        const TypeRef elemTypeRef = indexedElementTypeRef(sema, indexedRef);
+        if (!elemTypeRef.isValid())
+            return true;
+
+        // A builtin array or slice: the element VALUE read ('result == element') copies.
+        return unwrapAliasEnum(sema, elemTypeRef) == unwrappedResult;
+    }
+
     SemaEscapeInfo indexEscapeInfo(Sema& sema, AstNodeRef indexRef, AstNodeRef indexedRef, uint32_t& budget)
     {
         const TypeRef resultTypeRef = expressionTypeRef(sema, indexRef);
 
-        // Reading a single ELEMENT by value copies it: the copy aliases neither the
-        // container storage nor whatever the indexed expression borrowed to reach it. Run
-        // this BEFORE propagating the indexed expression's borrow. A REFERENCE-typed result
-        // is kept as an alias and preserves the borrow.
-        if (isDirectBorrowCarrier(sema, resultTypeRef))
-        {
-            const TypeRef unwrappedResult = unwrapAliasEnum(sema, resultTypeRef);
-            const bool    resultIsRef     = unwrappedResult.isValid() && sema.typeMgr().get(unwrappedResult).isReference();
-            if (!resultIsRef)
-            {
-                const TypeRef elemTypeRef = indexedElementTypeRef(sema, indexedRef);
-                if (elemTypeRef.isValid())
-                {
-                    // A builtin array or slice: the element VALUE read ('result == element')
-                    // copies; a differently typed carrier result is a sub-slice that aliases
-                    // the elements and keeps the borrow.
-                    if (unwrapAliasEnum(sema, elemTypeRef) == unwrappedResult)
-                        return {};
-                }
-                else
-                {
-                    // A struct container reached through 'opIndex': a non-reference carrier
-                    // result is the element loaded out by value.
-                    return {};
-                }
-            }
-        }
+        // Run this BEFORE propagating the indexed expression's borrow: the list form
+        // reaches here without passing the projection.
+        if (indexReadsElementByValue(sema, indexRef, indexedRef))
+            return {};
 
         SemaEscapeInfo info = expressionEscapeInfoRec(sema, indexedRef, budget);
         if (info.hasBorrow())
@@ -2256,14 +2259,25 @@ namespace
 
             case AstNodeId::IndexExpr:
             {
+                const AstNodeRef indexedRef = node.cast<AstIndexExpr>().nodeExprRef;
+
                 SemaEscapeProjection projection;
                 if (storageProjection(sema, resolvedRef, projection))
                 {
                     SemaEscapeInfo projectedInfo = sema.projectionEscapeInfoIncludingWildcards(projection);
-                    if (projectedInfo.hasBorrow())
+
+                    // What a slot HOLDS is a borrow of its own target, and reading it out
+                    // by value keeps that borrow alive: 'values[0] = &local' makes
+                    // 'values[0]' a view of the local. What the slot IS - a view into the
+                    // payload the container owns - does not survive the read, since the
+                    // copied value addresses its own object.
+                    const bool viewOfContainerStorage = projectedInfo.viaOwnedPayload &&
+                                                        indexReadsElementByValue(sema, resolvedRef, indexedRef);
+                    if (projectedInfo.hasBorrow() && !viewOfContainerStorage)
                         return projectedInfo;
                 }
-                return indexEscapeInfo(sema, resolvedRef, node.cast<AstIndexExpr>().nodeExprRef, budget);
+
+                return indexEscapeInfo(sema, resolvedRef, indexedRef, budget);
             }
 
             case AstNodeId::IndexListExpr:

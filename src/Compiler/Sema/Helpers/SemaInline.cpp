@@ -2809,11 +2809,6 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
                                 !fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline) &&
                                 sema.buildCfgBackend().inlineMode == Runtime::BuildCfgBackendInlineMode::Auto;
 
-    // A written '#[Inline]' is a contract, not a hint. The structural guards below exist because
-    // the materialization of some shapes is not faithful yet; a heuristic candidate can simply be
-    // dropped when one applies, but dropping a marked one silently turns a promise into a call.
-    const bool isMarkedInline = isOrdinaryInline && fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline);
-
     // A cross-Ast (cross-file) inline materializes the callee's body into the caller's Ast.
     // Regular inline relies on the body's identifiers already carrying their resolved symbols
     // so cloning can preserve them (PreResolvedSymbol) instead of re-resolving by name in the
@@ -2825,7 +2820,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // instances through corrupts vector arithmetic assembled from generic operators.
     if (isCrossAstInline && isOrdinaryInline && (fn.isGenericInstance() || fn.isGenericRoot()))
         return Result::Continue;
-    if (isCrossAstInline && isOrdinaryInline && !isMarkedInline && bodyHasNestedCallExpr(*declAst, decl->nodeBodyRef))
+    if (isCrossAstInline && isOrdinaryInline && bodyHasNestedCallExpr(*declAst, decl->nodeBodyRef))
         return Result::Continue;
 
     // Wait for the callee to be sema-completed before materializing its body. A cross-Ast inline

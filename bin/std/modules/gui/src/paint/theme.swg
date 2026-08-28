@@ -4,16 +4,15 @@ using Core, Pixel
 
 private const DefaultImageName = "../theme/widgets.svg"
 
-// The bundled SFNT files retain only the tables consumed by the TrueType module.
-private const DefaultFontRegularName    = "../theme/segoeui.ttf"
-private const DefaultFontBoldName       = "../theme/segoeuib.ttf"
-private const DefaultFontBoldItalicName = "../theme/segoeuiz.ttf"
-private const DefaultFontItalicName     = "../theme/segoeuii.ttf"
+private const DefaultFontRegularName    = "../theme/inter-regular.ttf"
+private const DefaultFontBoldName       = "../theme/inter-bold.ttf"
+private const DefaultFontBoldItalicName = "../theme/inter-bolditalic.ttf"
+private const DefaultFontItalicName     = "../theme/inter-italic.ttf"
 
-private const DefaultFontFsRegularName    = "../theme/consola.ttf"
-private const DefaultFontFsBoldName       = "../theme/consolab.ttf"
-private const DefaultFontFsBoldItalicName = "../theme/consolaz.ttf"
-private const DefaultFontFsItalicName     = "../theme/consolai.ttf"
+private const DefaultFontFsRegularName    = "../theme/robotomono-regular.ttf"
+private const DefaultFontFsBoldName       = "../theme/robotomono-bold.ttf"
+private const DefaultFontFsBoldItalicName = "../theme/robotomono-bolditalic.ttf"
+private const DefaultFontFsItalicName     = "../theme/robotomono-italic.ttf"
 
 private const DefaultIconsName = "../theme/icons.svg"
 
@@ -48,14 +47,14 @@ private struct DefaultThemeImages
 // paths relative to this file; these are the logical names a disk folder overrides.
 private const ResImageName            = "theme/widgets.svg"
 private const ResIconsName            = "theme/icons.svg"
-private const ResFontRegularName      = "theme/segoeui.ttf"
-private const ResFontBoldName         = "theme/segoeuib.ttf"
-private const ResFontBoldItalicName   = "theme/segoeuiz.ttf"
-private const ResFontItalicName       = "theme/segoeuii.ttf"
-private const ResFontFsRegularName    = "theme/consola.ttf"
-private const ResFontFsBoldName       = "theme/consolab.ttf"
-private const ResFontFsBoldItalicName = "theme/consolaz.ttf"
-private const ResFontFsItalicName     = "theme/consolai.ttf"
+private const ResFontRegularName      = "theme/inter-regular.ttf"
+private const ResFontBoldName         = "theme/inter-bold.ttf"
+private const ResFontBoldItalicName   = "theme/inter-bolditalic.ttf"
+private const ResFontItalicName       = "theme/inter-italic.ttf"
+private const ResFontFsRegularName    = "theme/robotomono-regular.ttf"
+private const ResFontFsBoldName       = "theme/robotomono-bold.ttf"
+private const ResFontFsBoldItalicName = "theme/robotomono-bolditalic.ttf"
+private const ResFontFsItalicName     = "theme/robotomono-italic.ttf"
 
 private var g_DefaultThemeImages: DefaultThemeImages
 

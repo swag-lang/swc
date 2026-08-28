@@ -446,7 +446,10 @@ impl HtmlPainter
             if y > .visible.bottom() or y + item.ascent + item.descent < .visible.y do
                 continue
 
-            if style.background.a
+            // A block's background was already painted with its box. Painting it again for every
+            // text run can cover the preceding line's descenders when the runs are close together.
+            // Inline descendants have no box of their own, so their fragments still paint here.
+            if style.background.a and item.style != target.style
             {
                 let padTop    = item.ascent * 0.28
                 let padBottom = item.descent * 0.4

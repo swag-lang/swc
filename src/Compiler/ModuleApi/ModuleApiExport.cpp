@@ -125,7 +125,7 @@ namespace
     bool isGeneratedModuleApiFile(const fs::path& path)
     {
         const fs::path extension = path.extension();
-        return extension == ".swg" || extension == ".deps";
+        return extension == ".swg" || extension == ".swgsrc" || extension == ".deps" || path.filename() == ".swc-deps";
     }
 
     Result reportModuleApiDirectoryClearError(TaskContext& ctx, const fs::path& path, const Utf8& because)
@@ -277,14 +277,19 @@ namespace ModuleApi
         // publics, and exporting them would leak symbols only the test artifacts carry into
         // the api every later build consumes; those consumers then reference functions the
         // plain dependency artifacts do not export.
-        const bool suppressExport = compiler.cmdLine().sourceDrivenTest;
+        const bool suppressExport = compiler.cmdLine().sourceDrivenTest || compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable;
 
         // Sema is done here, so walking the ASTs is safe now. Without an export
         // directory, only diagnostics such as public global variables are needed.
         const bool diagnosticsOnly = (exportApiDir.empty() || suppressExport) && compiler.cmdLine().command != CommandKind::Doc;
         SWC_RESULT(collectPublicEntries(ctx, collectedEntries, diagnosticsOnly));
 
-        if (exportApiDir.empty() || suppressExport)
+        if (exportApiDir.empty())
+            return Result::Continue;
+
+        SWC_RESULT(ensureModuleApiDirectory(ctx, exportApiDir));
+        SWC_RESULT(clearGeneratedModuleApiFiles(ctx, exportApiDir));
+        if (suppressExport)
             return Result::Continue;
 
         const Utf8        moduleNamespace  = buildModuleNamespaceName(compiler);
@@ -333,9 +338,6 @@ namespace ModuleApi
         for (auto& fileRoots : perFileRoots)
             for (ModuleApiGeneratedRoot& root : fileRoots)
                 appendGeneratedRootUnique(generatedRoots, std::move(root));
-
-        SWC_RESULT(ensureModuleApiDirectory(ctx, exportApiDir));
-        SWC_RESULT(clearGeneratedModuleApiFiles(ctx, exportApiDir));
 
         // Sequential pass: resolve destination paths and detect duplicate names (needs the
         // shared name map). The expensive content build + disk write is dispatched afterwards.

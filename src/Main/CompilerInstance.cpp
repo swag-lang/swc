@@ -223,6 +223,16 @@ namespace
 
     fs::path generatedSourceOutputDirectory(const CompilerInstance& compiler)
     {
+        if (compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable && !compiler.buildCfg().backend.debugInfo)
+        {
+            const Utf8 workDir = buildCfgString(compiler.buildCfg().workDir);
+            if (!workDir.empty())
+                return FileSystem::absolutePathNoThrow(fs::path(workDir.c_str()));
+            if (!compiler.cmdLine().workDir.empty())
+                return FileSystem::absolutePathNoThrow(compiler.cmdLine().workDir);
+            return FileSystem::absolutePathNoThrow(Os::getTemporaryPath());
+        }
+
         const Utf8 outDir = buildCfgString(compiler.buildCfg().outDir);
         if (!outDir.empty())
             return FileSystem::absolutePathNoThrow(fs::path(outDir.c_str()));
@@ -245,7 +255,7 @@ namespace
     {
         const fs::path directory = generatedSourceOutputDirectory(compiler);
         const Utf8     baseName  = generatedSourceDumpBaseName(compiler);
-        return (directory / std::format("{}-generated-source-{}.swgsrc", baseName.c_str(), threadIndex)).lexically_normal();
+        return (directory / std::format("{}.gen.{}.swgsrc", baseName.c_str(), threadIndex)).lexically_normal();
     }
 
     void initRuntimeContextTlsId()

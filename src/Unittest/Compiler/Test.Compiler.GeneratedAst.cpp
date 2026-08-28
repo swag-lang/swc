@@ -381,7 +381,7 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
             return Result::Error;
         if (!fs::exists(file->path()))
             return Result::Error;
-        if (!file->path().filename().string().contains("generated-source-"))
+        if (!file->path().filename().string().contains("compiler_generated_ast_thread_files.gen."))
             return Result::Error;
         if (file->path().extension() != ".swgsrc")
             return Result::Error;
@@ -399,7 +399,7 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
         appendUniquePath(generatedPaths, file->path());
     }
 
-    // Generated snippets can land in one or more generated-source dumps depending
+    // Generated snippets can land in one or more generated source dumps depending
     // on which compiler thread materializes each section.
     if (generatedPaths.empty() || generatedPaths.size() > generatedFiles.size())
         return Result::Error;
@@ -502,7 +502,7 @@ const GeneratedB = 2
     CompilerInstance compiler(ctx.global(), cmdLine);
     TaskContext      generatedCtx(compiler);
 
-    const fs::path generatedPath = (workDir.root() / "generated-source-0.swgsrc").lexically_normal();
+    const fs::path generatedPath = (workDir.root() / "generated.gen.0.swgsrc").lexically_normal();
     SourceFile&    firstFile     = compiler.addLoadedFile(generatedPath, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt, FIRST_CONTENT);
     SourceFile&    secondFile    = compiler.addLoadedFile(generatedPath, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt, SECOND_CONTENT);
 

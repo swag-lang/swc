@@ -255,6 +255,70 @@ private func verifyCompactExportedApi(workspace: string, buildCfg: string, targe
     return 0
 }
 
+// Checks the names and ownership boundaries of files published in a workspace output directory.
+private func verifyWorkspaceArtifactLayout(workspace: string, buildCfg: string, targetArch: string)->s32 fail
+{
+    let executableDirectory = Path.combine(workspace, ".output", "consumer_exe", "executable", buildCfg, targetArch)
+    if File.exists(Path.combine(executableDirectory.toString(), "consumer_exe.swg"))
+    {
+        Console.println("Workspace executable published a module API file.")
+        return 1
+    }
+
+    if File.exists(Path.combine(executableDirectory.toString(), ".swc-deps")) or File.exists(Path.combine(executableDirectory.toString(), "consumer_exe.deps"))
+    {
+        Console.println("Workspace executable published dependency metadata.")
+        return 1
+    }
+
+    let outputSources = try Directory.enumerateFiles(executableDirectory.toString(), ".swgsrc")
+    for outputSource in outputSources
+    {
+        let name = Path.fileName(outputSource.fullname.toString()) orelse ""
+        if Utf8.contains(name, ".gen.") or Utf8.contains(name, "-generated-source-")
+        {
+            Console.println("Non-debug workspace executable published generated source in '.output': ", name)
+            return 1
+        }
+    }
+
+    let intermediateDirectory = Path.combine(workspace, ".tmp", "consumer_exe", "executable", buildCfg, targetArch)
+    var foundGeneratedSource: bool
+    let generatedSources = try Directory.enumerateFiles(intermediateDirectory.toString(), ".swgsrc")
+    for generatedSource in generatedSources
+    {
+        let name = Path.fileName(generatedSource.fullname.toString()) orelse ""
+        if Utf8.contains(name, ".gen.") do
+            foundGeneratedSource = true
+        if Utf8.contains(name, "-generated-source-")
+        {
+            Console.println("Workspace intermediate directory retained the old generated-source file name: ", name)
+            return 1
+        }
+    }
+
+    if !foundGeneratedSource
+    {
+        Console.println("Non-debug workspace executable did not write '<module>.gen.<number>.swgsrc' in '.tmp'.")
+        return 1
+    }
+
+    let staticDirectory = Path.combine(workspace, ".output", "api_static_provider", "static-library", buildCfg, targetArch)
+    if !File.exists(Path.combine(staticDirectory.toString(), ".swc-deps"))
+    {
+        Console.println("Workspace library did not publish '.swc-deps'.")
+        return 1
+    }
+
+    if File.exists(Path.combine(staticDirectory.toString(), "api_static_provider.deps"))
+    {
+        Console.println("Workspace library retained '<module>.deps'.")
+        return 1
+    }
+
+    return 0
+}
+
 // Runs the multi-module workspace suite.
 private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: string)->s32 fail
 {
@@ -294,6 +358,10 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     let compactApiCode = try verifyCompactExportedApi(workspace.toString(), buildCfg, options.targetArch.toString())
     if compactApiCode != 0 do
         return compactApiCode
+
+    let artifactLayoutCode = try verifyWorkspaceArtifactLayout(workspace.toString(), buildCfg, options.targetArch.toString())
+    if artifactLayoutCode != 0 do
+        return artifactLayoutCode
 
     let stdOutput = context.workspaceOutput("std")
     if !Directory.exists(Path.combine(stdOutput.toString(), "core"))

@@ -767,11 +767,9 @@ namespace
         return result.lexically_normal();
     }
 
-    fs::path dependencyImportMetadataPath(const fs::path& apiDir, std::string_view moduleName)
+    fs::path dependencyImportMetadataPath(const fs::path& apiDir)
     {
-        fs::path result = apiDir / fs::path(std::string(moduleName));
-        result.replace_extension(".deps");
-        return result.lexically_normal();
+        return (apiDir / ".swc-deps").lexically_normal();
     }
 
     bool shouldSkipWorkspaceEntry(const fs::directory_entry& entry)
@@ -2121,7 +2119,7 @@ Result DependencyPlanBuilder::resolveNode(size_t& outIndex, CompilerInstance::De
     node.paths           = std::move(paths);
     plan.nodes.push_back(std::move(node));
 
-    fs::path depsFile = dependencyImportMetadataPath(plan.nodes[outIndex].paths.apiDir, importRequest.moduleName.view());
+    fs::path depsFile = dependencyImportMetadataPath(plan.nodes[outIndex].paths.apiDir);
     Utf8     because;
     if (FileSystem::resolveExistingFile(depsFile, because) != Result::Continue)
         return Result::Continue;
@@ -2736,7 +2734,8 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
 
         // A documentation leaf renders directly from its in-memory symbols. Only modules with
         // active dependents need an API file for a later module to import.
-        const bool                           writeModuleApi = cmdLine().command != CommandKind::Doc || !dependents[moduleIndex].empty();
+        const bool                           importableArtifact = moduleBuild.setup.buildCfg.backendKind != Runtime::BuildCfgBackendKind::Executable;
+        const bool                           writeModuleApi      = importableArtifact && (cmdLine().command != CommandKind::Doc || !dependents[moduleIndex].empty());
         std::unique_ptr<WorkspaceModuleLink> modulePending;
         bool                                 compiled = false;
         if (runWorkspaceModule(moduleBuild, *preparedDependencies, buildIndex + 1, buildCount, writeModuleApi, compiled, modulePending) != Result::Continue)
@@ -2788,7 +2787,9 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     moduleCmdLine.files.clear();
     moduleCmdLine.outDir  = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, false);
     moduleCmdLine.workDir = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, true);
-    if (writeModuleApi)
+    // Executables do not publish an API. Keeping their output directory here lets the module API
+    // pass remove files left by an older compiler before suppressing the export.
+    if (writeModuleApi || moduleBuild.setup.buildCfg.backendKind == Runtime::BuildCfgBackendKind::Executable)
         moduleCmdLine.exportApiDir = moduleCmdLine.outDir;
     else
         moduleCmdLine.exportApiDir.clear();

@@ -11,7 +11,7 @@ SWC_BEGIN_NAMESPACE();
 
 std::array<uint8_t, 32> DebugInfo::sourceFileChecksum(const TaskContext& ctx, const SourceFile& file)
 {
-    // For generated sources the on-disk .swgsrc is the concatenation of every section produced on a thread,
+    // For generated sources the on-disk .gen.<thread>.swgsrc is the concatenation of every section produced on a thread,
     // while file.sourceView() is just one section. Hash the full in-memory dump (final by link time, so no
     // race with the on-disk flush) so the checksum matches what a debugger re-hashes from disk.
     std::string_view content;

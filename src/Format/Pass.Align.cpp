@@ -73,6 +73,13 @@ namespace
             return INVALID_PIECE;
         }
 
+        bool lineIsStandaloneDeclaration(const FormatRoleE startRole, const uint32_t lineStart) const
+        {
+            if (findRoleOnLine(lineStart, startRole, false) == INVALID_PIECE)
+                return false;
+            return startRole != FormatRoleE::VarDeclStart || !model_->piece(lineStart).hasRole(FormatRoleE::ControlKeyword);
+        }
+
         // The piece whose start column gets aligned for this line, or
         // INVALID_PIECE when the line does not belong to the category.
         uint32_t anchorOf(const AlignCategory category, const uint32_t lineStart) const
@@ -87,7 +94,7 @@ namespace
                     return findRoleOnLine(lineStart, FormatRoleE::AssignOp, false);
 
                 case AlignCategory::Declarations:
-                    if (findRoleOnLine(lineStart, FormatRoleE::VarDeclStart, false) == INVALID_PIECE)
+                    if (!lineIsStandaloneDeclaration(FormatRoleE::VarDeclStart, lineStart))
                         return INVALID_PIECE;
                     return findRoleOnLine(lineStart, FormatRoleE::DeclColon, true);
 
@@ -292,7 +299,7 @@ namespace
         // column), so it no longer fragments the surrounding group.
         bool declLineHasColumn(const FormatRoleE startRole, const uint32_t lineStart) const
         {
-            if (findRoleOnLine(lineStart, startRole, false) == INVALID_PIECE)
+            if (!lineIsStandaloneDeclaration(startRole, lineStart))
                 return false;
             return typeAnchorOf(lineStart) != INVALID_PIECE || initAnchorOf(lineStart) != INVALID_PIECE;
         }

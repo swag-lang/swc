@@ -187,6 +187,34 @@ SWC_TEST_BEGIN(FormatAlign_ConsecutiveDeclarations)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatAlign_ControlDeclarationsBreakDeclarationGroups)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    let afterPage    = 1\n"
+        "    if let nextPages = find(afterPage) where nextPages.contains(afterPage)\n"
+        "    {\n"
+        "    }\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    let afterPage = 1\n"
+        "    if let nextPages = find(afterPage) where nextPages.contains(afterPage)\n"
+        "    {\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.normalizeHorizontalWhitespace    = true;
+    options.alignConsecutiveDeclarations     = FormatAlignMode::Consecutive;
+    options.alignDeclarationInitializers     = true;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatAlign_ConsecutiveConstants)
 {
     static constexpr std::string_view SOURCE =

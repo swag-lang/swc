@@ -12,6 +12,8 @@ using ExportApi, StaticApi, RuntimeCtxDll, RuntimeCtxBase, RuntimeCtxDirect
 #assert(#alignof(CtxAbiFloatPair) == 4)
 #assert(depInlineConstexpr(20) == 42)
 #assert(depInlineIncrement(41) == 42)
+const WORKSPACE_DOC_PROBE = #run ctxSharedPassStringAt("workspace", 0)
+#assert(WORKSPACE_DOC_PROBE == 'w')
 
 struct DepSelfBufferWrapper
 {

@@ -692,6 +692,18 @@ Record the starting commit, `git status --short --branch`, toolchain versions, a
 external prerequisites before changing anything. A starting failure is useful attribution, but it
 is not an exemption: this campaign fixes baseline failures too.
 
+CLEAR ALL SWAG BUILD STATE FIRST
+
+Immediately after recording that starting state, and before inventorying, formatting, generating,
+building, or testing anything, remove every Swag compilation artifact from every workspace. Use
+the checkout-local compiler's `clean --workspace` command for each workspace so all `.dep`, `.tmp`,
+and `.output` trees are removed, then run `bin\swc.exe clean --cache` to clear every dependency copy
+created by scripts, including the legacy script cache. Preview and verify the exact targets first,
+following the repository's destructive-action rules; do not substitute a broad `git clean` or an
+unscoped recursive deletion. Confirm that the targeted workspace artifacts and script caches are
+absent before continuing. This initial reset is mandatory even when the tree appears clean, and is
+separate from the final repository-hygiene pass.
+
 GOAL
 
 Leave one reproducible baseline from which new work can start without inheriting noise or doubt:

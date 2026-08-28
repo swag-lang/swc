@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" style="--swag-code-default: #222222">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swag</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+<nav class="site-nav" aria-label="Main navigation">
+<a class="site-brand" href="index.html">SWAG</a>
+<div class="site-links">
+<a href="index.html">Home</a>
+<a href="language.html">Documentation</a>
+<a href="swag.runtime.html">Runtime</a>
+<a href="std.html">Std</a>
+<a href="https://www.youtube.com/channel/UC9dkBu1nNfJDxUML7r7QH1Q">YouTube</a>
+<a href="https://github.com/swag-lang/swc">GitHub</a>
+</div>
+</nav>
+</header>
+<main class="container single-page">
+<section class="right"><article class="right-page" id="content">
+<div class="hero">
+    <div class="hero-lockup">
+        <img src="imgs/swag_mark.svg" alt="" width="86" height="86">
+        <h1 class="hero-word">SWAG</h1>
+    </div>
+    <p class="hero-line">A systems language that runs at compile time.</p>
+    <div class="hero-actions">
+        <div class="round-button"><a href="getting-started.html">Get Started</a></div>
+        <div class="round-button"><a href="https://github.com/swag-lang/swc">View the Source</a></div>
+    </div>
+</div>
+
+<p>Swag compiles Windows x86-64 programs with its own native backend and executes the same language through a JIT during compilation, testing, and script runs. Runtime code and compile-time code share the same types, functions, reflection, error model, and metaprogramming tools.</p>
+<h2 id="What_the_compiler_does">What the compiler does</h2>
+<div class="feature-grid">
+    <section class="feature-item">
+        <h3>Native output</h3>
+        <p>Build executables, shared libraries, and static libraries with a direct x86-64 backend. Release builds can emit Windows debug information alongside the artifact.</p>
+    </section>
+    <section class="feature-item">
+        <h3>Compile-time execution</h3>
+        <p>Evaluate ordinary functions with <code>#run</code>, inspect types, and generate declarations with <code>#ast</code>. Compile-time work uses the language rather than a separate template system.</p>
+    </section>
+    <section class="feature-item">
+        <h3>Executable documentation</h3>
+        <p>The language reference is a tested Swag module. Its examples are parsed, type-checked, and run by the compiler that publishes the site.</p>
+    </section>
+</div>
+
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">buildMask</span>(bitCount: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span>
+{
+    <span class="SLgc">return</span> (<span class="SNum">1</span>'<span class="STpe">u32</span> &lt;&lt; bitCount) - <span class="SNum">1</span>
+}
+
+<span class="SKwd">const</span> <span class="SCst">LowByteMask</span> = <span class="SFct">#run</span> <span class="SFct">buildMask</span>(<span class="SNum">8</span>)
+<span class="SCmp">#assert</span>(<span class="SCst">LowByteMask</span> == <span class="SNum">0xFF</span>)</span></div>
+<div class="blockquote blockquote-warning">
+<div class="blockquote-title-block"><span class="blockquote-title">Warning</span></div>
+<p>Swag is a pre-1.0 project under active development. The current toolchain targets Windows on x86-64, and source compatibility can change between revisions.</p>
+</div>
+<h2 id="Choose_your_path">Choose your path</h2>
+<div class="doc-grid">
+    <a class="doc-card" href="getting-started.html">
+        <span class="doc-card-label">Start</span>
+        <strong>Install the toolchain and run a first program</strong>
+        <span>Build <code>swc</code>, configure its environment, then create a script or workspace.</span>
+    </a>
+    <a class="doc-card" href="language.html">
+        <span class="doc-card-label">Learn</span>
+        <strong>Read the executable language reference</strong>
+        <span>Follow the language tour, then use the full chapters as a syntax and behavior reference.</span>
+    </a>
+    <a class="doc-card" href="std.html">
+        <span class="doc-card-label">Build</span>
+        <strong>Explore the standard modules</strong>
+        <span>Find collections, files, graphics, audio, GUI support, and native Windows bindings.</span>
+    </a>
+    <a class="doc-card" href="swag-as-script.html">
+        <span class="doc-card-label">Automate</span>
+        <strong>Run Swag as a script</strong>
+        <span>Use a <code>.swgs</code> file, load companion sources, and import compiled dependencies.</span>
+    </a>
+    <a class="doc-card" href="how-to-build-swag.html">
+        <span class="doc-card-label">Contribute</span>
+        <strong>Build the compiler from source</strong>
+        <span>Use the pinned Visual Studio toolchain and the repository validation commands.</span>
+    </a>
+    <a class="doc-card" href="contribute-tests.html">
+        <span class="doc-card-label">Verify</span>
+        <strong>Add a compiler regression test</strong>
+        <span>Place the test at the lexer, parser, semantic, JIT, safety, sanity, or native boundary.</span>
+    </a>
+</div>
+
+<h2 id="See_a_complete_program">See a complete program</h2>
+<p>The <a href="flappy.html">Flappy Bird walkthrough</a> explains a single-file application that imports the GUI, Pixel, Core, and Audio standard modules. More runnable programs live in the repository's <a href="https://github.com/swag-lang/swc/tree/master/bin/examples">examples tree</a>.</p>
+<div class="blockquote blockquote-note">
+<div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
+<p>This website is generated by <span class="code-inline">swc doc</span> from Markdown, Swag source, and API comments. The checked-in HTML is publication output; the maintained sources live under <span class="code-inline">bin/reference</span>, <span class="code-inline">bin/runtime</span>, <span class="code-inline">bin/std</span>, and <span class="code-inline">bin/examples</span>.</p>
+</div>
+</article>
+<footer class="site-footer">
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.254</div>
+</footer>
+</section>
+</main>
+</body>
+</html>

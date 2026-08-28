@@ -2368,13 +2368,14 @@ Result CompilerInstance::collectWorkspaceModuleDependencyDirs(TaskContext& ctx, 
     return Result::Continue;
 }
 
-// Builds the same workspace selection this test run covers, so every module that a tested module
-// imports has published its interface and its link artifacts before the tests are compiled. The
-// nested run is an ordinary build: its command is not `test`, so it cannot come back here.
+// Builds the same workspace selection this consuming command covers, so every imported module has
+// published its interface and link artifacts before tests or documentation are compiled. The
+// nested run is an ordinary build, so it cannot come back here.
 ExitCode CompilerInstance::runWorkspacePublishPass(const DependencyPlan& dependencies) const
 {
-    // `publish` is deliberately inherited: this is a build of the workspace under test, and a link
-    // that does not publish *removes* the runtime files a previous link put beside the artifact.
+    // `publish` is deliberately inherited: this is a build of the workspace the consuming command
+    // requested, and a link that does not publish removes runtime files a previous link placed
+    // beside the artifact.
     CommandLine buildCmdLine      = cmdLine();
     buildCmdLine.command          = CommandKind::Build;
     buildCmdLine.commandExplicit  = true;
@@ -2386,9 +2387,9 @@ ExitCode CompilerInstance::runWorkspacePublishPass(const DependencyPlan& depende
     buildCmdLine.outDirExplicit  = false;
     buildCmdLine.workDirExplicit = false;
     // This pass can be the first code in the process to load and initialize a shared module, and
-    // those lifecycle hooks are process-wide: they must close over the arguments of the test run
-    // that asked for the build, not over a plain build's. Without this the isolation a test run
-    // imposes on itself is decided, once, by a build that is not under test.
+    // those lifecycle hooks are process-wide: they must close over the arguments of the command
+    // that asked for the build, not over a plain build's. In particular, test isolation must not be
+    // decided once by a build that is not under test.
     buildCmdLine.runArgs = effectiveGeneratedArtifactRunArgs(cmdLine());
     CommandLineParser::refreshBuildCfg(buildCmdLine);
 
@@ -2638,13 +2639,11 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
     }
     SWC_ASSERT(preparedDependencies);
 
-    // A test compile never publishes its module's interface: it also sees test-gated declarations,
-    // and the api directory it would write into is the one every later build reads. A dependent
-    // tested in the same run still has to find that interface, so the workspace is built first and
-    // the tests then run against what the build published — the order `tools/std.swgs` already
-    // uses to test a standard-library module. The build is artifact-cached, so a repeated test run
-    // pays for it once, and a workspace whose active modules do not import one another skips it.
-    if (cmdLine().command == CommandKind::Test)
+    // Test and documentation compiles consume native dependency artifacts without publishing their
+    // own. Build the selected workspace first so both commands read complete artifacts from
+    // '.output'. The build is artifact-cached, and a workspace whose active modules do not import
+    // one another skips it.
+    if (cmdLine().command == CommandKind::Test || cmdLine().command == CommandKind::Doc)
     {
         bool hasActiveWorkspaceDependency = false;
         for (size_t i = 0; i < modules.size() && !hasActiveWorkspaceDependency; ++i)

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" style="--swag-code-default: #222222">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Getting-started</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+<nav class="site-nav" aria-label="Main navigation">
+<a class="site-brand" href="index.html">SWAG</a>
+<div class="site-links">
+<a href="index.html">Home</a>
+<a href="language.html">Documentation</a>
+<a href="swag.runtime.html">Runtime</a>
+<a href="std.html">Std</a>
+<a href="https://www.youtube.com/channel/UC9dkBu1nNfJDxUML7r7QH1Q">YouTube</a>
+<a href="https://github.com/swag-lang/swc">GitHub</a>
+</div>
+</nav>
+</header>
+<main class="container single-page">
+<section class="right"><article class="right-page" id="content">
+<h1 id="Getting_started">Getting started</h1>
+<p>The current Swag toolchain runs on Windows and targets x86-64. The compiler is named <span class="code-inline">swc</span>; <span class="code-inline">Swag</span> is the language name.</p>
+<div class="blockquote blockquote-note">
+<div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
+<p>The current <span class="code-inline">swc</span> repository does not publish binary releases. Build the compiler from source, then keep the repository's <span class="code-inline">bin</span> directory with its runtime and standard workspace.</p>
+</div>
+<h2 id="Install_the_compiler">Install the compiler</h2>
+<ol>
+<li>Clone <a href="https://github.com/swag-lang/swc">swag-lang/swc</a>.</li>
+<li>Follow <a href="how-to-build-swag.html">Build Swag from source</a>. The project pins the Visual Studio <span class="code-inline">v145</span> C++ toolset and Windows SDK <span class="code-inline">10.0.26100.0</span>.</li>
+<li>From the repository root, run <span class="code-inline">bin\swc.exe tools\setup.swgs</span>.</li>
+<li>Open a new terminal and verify the installation with <span class="code-inline">swc help</span>.</li>
+</ol>
+<p>The registration script adds the repository's <span class="code-inline">bin</span> directory to the user <span class="code-inline">PATH</span>, sets <span class="code-inline">SWAG_PATH</span> to that directory, and hands the <span class="code-inline">.swgs</span> extension to the compiler. <span class="code-inline">PATH</span> locates <span class="code-inline">swc.exe</span>, and the extension makes a script run from a double-click. <span class="code-inline">swc.exe</span> finds <span class="code-inline">bin/runtime</span> and <span class="code-inline">bin/std</span> beside itself, so <span class="code-inline">SWAG_PATH</span> matters only for a compiler installed away from its library.</p>
+<p>The compiler invokes the Microsoft x64 linker and Windows SDK tools when it produces native artifacts, so keep the Visual Studio C++ workload installed after building <span class="code-inline">swc</span>.</p>
+<h2 id="Run_a_first_script">Run a first script</h2>
+<p>Create a standalone script and run it directly:</p>
+<div class="code-block"><span class="SCde">swc new script hello
+swc hello.swgs</span></div>
+<p><span class="code-inline">swc new script</span> adds the <span class="code-inline">.swgs</span> extension when it is omitted and never overwrites an existing path. The generated source is:</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#main</span>
+{
+    <span class="SItr">@print</span>(<span class="SStr">"Hello, world!\n"</span>)
+}</span></div>
+<p>A script is compiled and executed through the JIT. It does not leave an executable beside the source. See <a href="swag-as-script.html">Scripting with Swag</a> for imports, additional files, arguments, and the script cache.</p>
+<h2 id="Create_a_workspace_module">Create a workspace module</h2>
+<p>Use a workspace when the program has modules, produces a native artifact, or will be consumed by another module:</p>
+<div class="code-block"><span class="SCde">swc new module hello
+swc run --workspace hello --workspace-module hello</span></div>
+<p>The first command creates this maintained source tree:</p>
+<div class="code-block"><span class="SCde">hello/
+`-- modules/
+    `-- hello/
+        |-- module.swg
+        `-- src/
+            `-- main.swg</span></div>
+<p><span class="code-inline">module.swg</span> executes at compile time and configures the module. The starter selects an executable backend; <span class="code-inline">src/main.swg</span> contains the same <span class="code-inline">#main</span> hook as the script example.</p>
+<p>Compilation owns three generated directories at the workspace root:</p>
+<table class="table-markdown">
+<thead>
+<tr><th>Directory</th><th>Contents</th></tr>
+</thead>
+<tbody>
+<tr><td><span class="code-inline">.output/</span></td><td>Native artifacts and exported module APIs, grouped by configuration</td></tr>
+<tr><td><span class="code-inline">.tmp/</span></td><td>Intermediate compiler and native-tool files</td></tr>
+<tr><td><span class="code-inline">.dep/</span></td><td>Materialized APIs and native artifacts for dependencies outside the workspace</td></tr>
+</tbody>
+</table>
+<p>Add another module without replacing the workspace:</p>
+<div class="code-block"><span class="SCde">swc new module tools --workspace hello</span></div>
+<h2 id="Build_and_select_a_configuration">Build and select a configuration</h2>
+<div class="code-block"><span class="SCde">swc build -w hello -m hello
+swc build -w hello -m hello -bc devmode
+swc build -w hello -m hello -bc release
+swc build -w hello -m hello --debug</span></div>
+<p><span class="code-inline">devmode</span> is the default configuration. It keeps safety and sanity checks while using optimized code; <span class="code-inline">release</span> favors runtime performance. Neither emits debug information by default. Add <span class="code-inline">--debug</span> when a debugger needs symbols and source line mappings. Use <span class="code-inline">swc help build</span> for the authoritative option list and <span class="code-inline">--show-config</span> to inspect the resolved toolchain and output paths.</p>
+<h2 id="Import_a_standard_module">Import a standard module</h2>
+<p>Module dependencies are declared at the top level of <span class="code-inline">module.swg</span>. This imports the standard <span class="code-inline">core</span> module:</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"core"</span>, location: <span class="SStr">"swag@std"</span>)</span></div>
+<p>Source files can then use qualified names such as <span class="code-inline">Core.String</span>, or bring selected names into scope with <span class="code-inline">using Core</span>.</p>
+<h2 id="Continue_learning">Continue learning</h2>
+<ul>
+<li>Start with the <a href="language.html#_001_002_language_tour_swg">language tour</a>.</li>
+<li>Use the <a href="language.html#_001_004_swc_command_line_swg_The__swc__Command_Line">`swc` command-line reference</a>.</li>
+<li>Read about <a href="language.html#_002_001_workspaces_modules_and_dependencies_swg_Workspaces_and_Modules">workspaces and modules</a>.</li>
+<li>Browse the <a href="std.html">standard library</a> and <a href="swag.runtime.html">runtime API</a>.</li>
+<li>Run the programs under <a href="https://github.com/swag-lang/swc/tree/master/bin/examples">`bin/examples`</a>.</li>
+</ul>
+</article>
+<footer class="site-footer">
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.254</div>
+</footer>
+</section>
+</main>
+</body>
+</html>

@@ -171,6 +171,32 @@ private func moduleReportCount(output, module: string)->u32
     return result
 }
 
+// Checks that a workspace materializes only the dependency closure imported from another
+// workspace and reads every local module directly from its own output.
+private func verifyWorkspaceDependencyLayout(context: *Context, workspace: string)->s32
+{
+    let dependencyDirectory = Path.combine(workspace, ".dep")
+    for dependency in ["core", "win32", "xinput"] where !Directory.exists(Path.combine(dependencyDirectory.toString(), dependency))
+    {
+        Console.println("Workspace did not materialize external dependency in '.dep': ", dependency)
+        return 1
+    }
+
+    for module in ["api_export_provider", "api_static_provider", "runtime_context_base_static", "runtime_context_bridge_dll", "runtime_context_direct_static"] where Directory.exists(Path.combine(dependencyDirectory.toString(), module))
+    {
+        Console.println("Workspace materialized local module in '.dep': ", module)
+        return 1
+    }
+
+    if Directory.exists(Path.combine(context.workspacePath("std").toString(), ".dep"))
+    {
+        Console.println("Standard workspace materialized local modules in '.dep'.")
+        return 1
+    }
+
+    return 0
+}
+
 // Checks the compact spelling contract of the generated public API fixture.
 private func verifyCompactExportedApi(workspace: string, buildCfg: string, targetArch: string)->s32 fail
 {
@@ -261,24 +287,9 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         return 1
     }
 
-    let dependencyDirectory = Path.combine(workspace.toString(), ".dep")
-    for dependency in ["core", "win32", "xinput"] where !Directory.exists(Path.combine(dependencyDirectory.toString(), dependency))
-    {
-        Console.println("Workspace did not materialize external dependency in '.dep': ", dependency)
-        return 1
-    }
-
-    for module in ["api_export_provider", "api_static_provider", "runtime_context_base_static", "runtime_context_bridge_dll", "runtime_context_direct_static"] where Directory.exists(Path.combine(dependencyDirectory.toString(), module))
-    {
-        Console.println("Workspace materialized local module in '.dep': ", module)
-        return 1
-    }
-
-    if Directory.exists(Path.combine(context.workspacePath("std").toString(), ".dep"))
-    {
-        Console.println("Standard workspace materialized local modules in '.dep'.")
-        return 1
-    }
+    let dependencyLayoutCode = verifyWorkspaceDependencyLayout(context, workspace.toString())
+    if dependencyLayoutCode != 0 do
+        return dependencyLayoutCode
 
     let compactApiCode = try verifyCompactExportedApi(workspace.toString(), buildCfg, options.targetArch.toString())
     if compactApiCode != 0 do
@@ -304,6 +315,31 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         Console.println("Reusable workspace dependency added noise to the build report: ", dependency)
         return 1
     }
+
+    // Documentation consumes local native artifacts for compile-time execution, but does not
+    // produce those artifacts itself. Starting it from a clean workspace proves that its publish
+    // pass fills '.output' without using '.dep' as a snapshot of local modules.
+    let cleanBeforeDocCode = try context.runCompiler(cleanedWorkspace)
+    if cleanBeforeDocCode != 0 do
+        return cleanBeforeDocCode
+
+    var documented = workspaceModuleCommand("doc", workspace.toString(), "consumer_exe", buildCfg)
+    documented.add(["--doc-output-dir", Path.combine(workspace.toString(), ".output", "docs").toString(), "--rebuild"])
+    options.appendExtra(&documented)
+
+    let docCode = try context.runCompiler(documented)
+    if docCode != 0 do
+        return docCode
+
+    if !File.exists(Path.combine(workspace.toString(), ".output", "docs", "workspace.consumer.html"))
+    {
+        Console.println("Workspace documentation did not produce 'workspace.consumer.html'.")
+        return 1
+    }
+
+    let documentedDependencyLayoutCode = verifyWorkspaceDependencyLayout(context, workspace.toString())
+    if documentedDependencyLayoutCode != 0 do
+        return documentedDependencyLayoutCode
 
     // A forced standard-library rebuild loads the new DLLs while the test command is still
     // compiling. Their one-time initialization must already see the sandbox arguments that the

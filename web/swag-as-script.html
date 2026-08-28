@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" style="--swag-code-default: #222222">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swag-as-script</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+<nav class="site-nav" aria-label="Main navigation">
+<a class="site-brand" href="index.html">SWAG</a>
+<div class="site-links">
+<a href="index.html">Home</a>
+<a href="language.html">Documentation</a>
+<a href="swag.runtime.html">Runtime</a>
+<a href="std.html">Std</a>
+<a href="https://www.youtube.com/channel/UC9dkBu1nNfJDxUML7r7QH1Q">YouTube</a>
+<a href="https://github.com/swag-lang/swc">GitHub</a>
+</div>
+</nav>
+</header>
+<main class="container single-page">
+<section class="right"><article class="right-page" id="content">
+<h1 id="Scripting_with_Swag">Scripting with Swag</h1>
+<p>A <span class="code-inline">.swgs</span> file is a standalone Swag program. <span class="code-inline">swc</span> compiles the file and runs its lifecycle hooks through the JIT, which makes scripts useful for build tools, asset processing, experiments, and small applications without producing a native executable.</p>
+<h2 id="Create_and_run_a_script">Create and run a script</h2>
+<div class="code-block"><span class="SCde">swc new script hello
+swc hello.swgs</span></div>
+<p>The generated file contains a <span class="code-inline">#main</span> hook:</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#main</span>
+{
+    <span class="SItr">@print</span>(<span class="SStr">"Hello, world!\n"</span>)
+}</span></div>
+<p>The <span class="code-inline">.swgs</span> extension selects script mode, so there is no separate <span class="code-inline">script</span> command. The path splits the command line in two: what comes before it configures the compilation, and everything after it is the script's own command line, reaching it through <span class="code-inline">@args</span> and the Core environment helpers.</p>
+<div class="code-block"><span class="SCde">swc -bc release hello.swgs --colors 16 report.txt</span></div>
+<p><span class="code-inline">-bc release</span> is read by the compiler and <span class="code-inline">--colors 16 report.txt</span> by the script, whatever the words look like. A script therefore owns its own grammar, including options that spell like the compiler's own.</p>
+<p>The script is recognized wherever it sits, so <span class="code-inline">swc</span> may still be given ordinary <span class="code-inline">run</span> options as long as they precede the path. <span class="code-inline">--run-arg</span> remains the way a <i>module</i> receives arguments; a script has no use for it.</p>
+<p><span class="code-inline">setup</span> claims the <span class="code-inline">.swgs</span> extension for the current user, so a script also runs from a double-click, arguments and exit code included.</p>
+<h2 id="Import_compiled_dependencies">Import compiled dependencies</h2>
+<p>Put module setup directives at the top level of the script. This imports the standard <span class="code-inline">core</span> module:</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"core"</span>, location: <span class="SStr">"swag@std"</span>)
+
+<span class="SKwd">using</span> <span class="SCst">Core</span></span></div>
+<p><span class="code-inline">swag@std</span> is the standard library beside the compiler that runs the script, and <span class="code-inline">SWAG_PATH</span> answers only for a compiler installed without one. A compiler and its library are one thing, so a second checkout on the same machine keeps its own rather than the one the environment happens to name. A module that library has but has not been built for this configuration is built there and then, rather than reported missing, so a script runs from a checkout that has never been registered or built. The compiler builds imported dependencies as native modules and reuses compatible output on later runs.</p>
+<p>Script dependencies are cached by content under the system temporary directory in <span class="code-inline">swag/dep</span>, so compatible scripts can share the same dependency output. Run <span class="code-inline">swc clean --cache</span> to remove these copies (and the legacy <span class="code-inline">swag/scripts</span> cache). Use <span class="code-inline">--show-config</span> to inspect resolved paths and tools.</p>
+<h2 id="Split_a_script_across_files">Split a script across files</h2>
+<p>Use top-level <span class="code-inline">#load</span> directives for companion source files:</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#load</span>(<span class="SStr">"symbols.swg"</span>)
+<span class="SCmp">#load</span>(<span class="SStr">"render/helpers.swg"</span>)</span></div>
+<p><span class="code-inline">#load</span> adds source to the current script module. It does not create a compiled module dependency; use <span class="code-inline">#import</span> for that boundary.</p>
+<p><span class="code-inline">#load</span> nests, and every path is relative to the file that writes it, so a script spread over many sources names them once:</p>
+<div class="code-block"><span class="SCde"><span class="SCmt">// main.swgs</span>
+<span class="SCmp">#load</span>(<span class="SStr">"src/all.swg"</span>)
+
+<span class="SCmt">// src/all.swg loads its siblings by their own names</span>
+<span class="SCmp">#load</span>(<span class="SStr">"options.swg"</span>)
+<span class="SCmp">#load</span>(<span class="SStr">"commands/build.swg"</span>)</span></div>
+<p>A loaded file states module setup directives of its own — <span class="code-inline">#import</span> as well as <span class="code-inline">#load</span> — and a file already loaded is never loaded twice, so two files that load each other are fine.</p>
+<h2 id="Configure_the_script">Configure the script</h2>
+<p>A top-level <span class="code-inline">#run</span> block can update the script's build configuration before the rest of the file is compiled:</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#run</span>
+{
+    <span class="SKwd">let</span> cfg = <span class="SItr">@compiler</span>.<span class="SFct">getBuildCfg</span>()!
+    cfg.safetyGuards = <span class="SCst">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">All</span>
+}</span></div>
+<p>Prefer command-line build configurations for ordinary runs and reserve setup code for properties the script owns.</p>
+<h2 id="Break_into_a_debugger">Break into a debugger</h2>
+<p><span class="code-inline">@breakpoint()</span> emits a native breakpoint instruction in JIT or native code. Use it only while a native debugger is attached; Swag does not include the old interactive bytecode debugger.</p>
+<h2 id="Explore_complete_scripts">Explore complete scripts</h2>
+<p>The repository includes games, visualizations, utilities, and demonstrations under <a href="https://github.com/swag-lang/swc/tree/master/bin/examples/scripts">`bin/examples/scripts`</a>. The <a href="flappy.html">Flappy Bird walkthrough</a> explains imports, compile-time module configuration, GUI events, graphics, audio, and asset loading in one file.</p>
+</article>
+<footer class="site-footer">
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.254</div>
+</footer>
+</section>
+</main>
+</body>
+</html>

@@ -68,7 +68,7 @@ namespace
 SWC_TEST_BEGIN(Compiler_DocCommandParsesOptions)
 {
     CommandLine parserCmdLine;
-    char        arg0[] = "swc_devmode";
+    char        arg0[] = "swc.dm";
     char        arg1[] = "doc";
     char        arg2[] = "--css";
     char        arg3[] = "site.css";

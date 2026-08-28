@@ -89,7 +89,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Compiler_TestCommandEnablesSourceDrivenModeWhenParsed)
 {
     CommandLine parserCmdLine;
-    char        arg0[] = "swc_devmode";
+    char        arg0[] = "swc.dm";
     char        arg1[] = "test";
     char*       argv[] = {arg0, arg1};
 
@@ -136,7 +136,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Compiler_UnittestCommandKeepsSourceDrivenModeDisabledWhenParsed)
 {
     CommandLine parserCmdLine;
-    char        arg0[] = "swc_devmode";
+    char        arg0[] = "swc.dm";
     char        arg1[] = "unittest";
     char        arg2[] = "--verbose-unittest";
     char*       argv[] = {arg0, arg1, arg2};
@@ -157,7 +157,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Compiler_RunCommandParsesRunArgs)
 {
     CommandLine parserCmdLine;
-    char        arg0[] = "swc_devmode";
+    char        arg0[] = "swc.dm";
     char        arg1[] = "run";
     char        arg2[] = "--run-arg";
     char        arg3[] = "swag.test";
@@ -182,7 +182,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Compiler_TestCommandForcesSwagTestRunArg)
 {
     CommandLine parserCmdLine;
-    char        arg0[] = "swc_devmode";
+    char        arg0[] = "swc.dm";
     char        arg1[] = "test";
     char        arg2[] = "--run-arg";
     char        arg3[] = "custom";

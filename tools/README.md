@@ -8,7 +8,7 @@ Every tool takes the same shape:
 swc tools\<tool>.swgs [dm] [<command>] [<name>] [options...]
 ```
 
-- `dm` runs the tool under and drives `bin/swc_devmode.exe`; without it the tool uses `bin/swc.exe`.
+- `dm` runs the tool under and drives `bin/swc.dm.exe`; without it the tool uses `bin/swc.exe`.
 - `<command>` is `build`, `run`, `test`, or `smoke`, when the tool has more than one.
 - `<name>` is the module, suite, or script to act on; without it the tool acts on everything.
 - Positionals come first and options after, so an option value is never read as a name.

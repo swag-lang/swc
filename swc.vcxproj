@@ -65,7 +65,7 @@
         <LinkIncremental>true</LinkIncremental>
         <OutDir>$(SwcOutputDir)</OutDir>
         <IntDir>.tmp/x64/devmode/</IntDir>
-        <TargetName>swc_devmode</TargetName>
+        <TargetName>swc.dm</TargetName>
         <IncludePath>src/;src/support/memory/mimalloc/include</IncludePath>
     </PropertyGroup>
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

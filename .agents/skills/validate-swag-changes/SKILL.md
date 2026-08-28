@@ -1,6 +1,6 @@
 ---
 name: validate-swag-changes
-description: Select, run, and report the smallest sufficient builds and tests for a Swag repository change. Use whenever planning validation, compiling swc or swc_devmode, choosing debug/fast-debug/release configurations, selecting compiler suites or bin module/application tests, focusing #test execution by source file, choosing concrete consumers, reviewing text or image goldens, or deciding whether a broad repository campaign is justified.
+description: Select, run, and report the smallest sufficient builds and tests for a Swag repository change. Use whenever planning validation, compiling swc or swc.dm, choosing debug/fast-debug/release configurations, selecting compiler suites or bin module/application tests, focusing #test execution by source file, choosing concrete consumers, reviewing text or image goldens, or deciding whether a broad repository campaign is justified.
 ---
 
 # Validate Swag Changes
@@ -15,7 +15,7 @@ command. Builds and tests may run concurrently only when a fresh CPU and memory 
 additional work.
 
 Also follow its compiler CPU bound: every validation command driven by `swc.exe` or
-`swc_devmode.exe` uses at most six workers through `--num-cores 6`. For a repository tool script,
+`swc.dm.exe` uses at most six workers through `--num-cores 6`. For a repository tool script,
 cap both the compiler executing the script and the compiler processes the tool starts, as described
 there. Choosing a focused test reduces scope; it does not replace the worker limit.
 
@@ -23,7 +23,7 @@ there. Choosing a focused test reduces scope; it does not replace the worker lim
 
 Inspect the final diff and decide, in order:
 
-1. Which compiler executable must drive validation: `swc_devmode.exe`, `swc.exe`, or both.
+1. Which compiler executable must drive validation: `swc.dm.exe`, `swc.exe`, or both.
 2. Which compiled-program configuration can execute the changed path: `debug`, `fast-debug`,
    `release`, or a justified union.
 3. Which smallest behavioral boundary observes the change: one C++ test family, compiler source

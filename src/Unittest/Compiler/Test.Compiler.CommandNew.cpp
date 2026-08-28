@@ -46,7 +46,7 @@ namespace
 SWC_TEST_BEGIN(Compiler_NewScriptCommandParsesDefaultPath)
 {
     CommandLine parserCmdLine;
-    char        arg0[] = "swc_devmode";
+    char        arg0[] = "swc.dm";
     char        arg1[] = "new";
     char        arg2[] = "script";
     char*       argv[] = {arg0, arg1, arg2};
@@ -67,7 +67,7 @@ SWC_TEST_BEGIN(Compiler_CommandLineHelpStopsBeforeCompilation)
 {
     CommandLine parserCmdLine;
     parserCmdLine.silent = true;
-    char  arg0[]         = "swc_devmode";
+    char  arg0[]         = "swc.dm";
     char* argv[]         = {arg0};
 
     CommandLineParser parser(const_cast<Global&>(ctx.global()), parserCmdLine);
@@ -81,7 +81,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Compiler_NewModuleCommandParsesWorkspace)
 {
     CommandLine parserCmdLine;
-    char        arg0[] = "swc_devmode";
+    char        arg0[] = "swc.dm";
     char        arg1[] = "new";
     char        arg2[] = "module";
     char        arg3[] = "hello";

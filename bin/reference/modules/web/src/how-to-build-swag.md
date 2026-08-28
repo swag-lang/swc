@@ -31,7 +31,7 @@ configuration, then build the `swc` project.
 | Configuration | Output | Purpose |
 |---|---|---|
 | `Release` | `bin/swc.exe` | Compiler used by applications and normal repository tools |
-| `DevMode` | `bin/swc_devmode.exe` | Compiler with internal validation and C++ unit tests enabled |
+| `DevMode` | `bin/swc.dm.exe` | Compiler with internal validation and C++ unit tests enabled |
 
 All intermediate C++ files stay under the repository's `.tmp/x64` tree.
 

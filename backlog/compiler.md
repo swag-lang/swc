@@ -387,7 +387,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
 - Area: compiler
 - Found while: the 2026-08-12 sanification pass, looping the apps workspace in debug. This is the
   strongest reproduction so far of the intermittent sVaultDrive JIT failures the pass set out to track.
-- Observation: in `swc_devmode test -w bin/apps -bc debug --rebuild`, six sVaultDrive `#test` functions
+- Observation: in `swc.dm test -w bin/apps -bc debug --rebuild`, six sVaultDrive `#test` functions
   in `mainwindow.test.swg` (109, 133, 163, 363, 384, 494) die on the same hardware exception:
   execution lands at `rip=0x0000000080019060` (memory state FREE, "jit offset: unresolved"), which
   is a jump through a function-pointer slot holding a value no live code owns. The failure hits
@@ -412,12 +412,12 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
 
 - Area: compiler
 - Found while: building the shared `bin/apps` workspace after integrating sFileScope's viewers.
-- Observation: at 0.1.166, two consecutive runs of a freshly built `swc_devmode.exe` asserted
+- Observation: at 0.1.166, two consecutive runs of a freshly built `swc.dm.exe` asserted
   while semantically checking the unchanged `tools/src/backlog.swg`; the Release compiler checked
   the same tool. At 0.1.167 the reduced witness and the original commands no longer reproduce,
   without a change known to target payload ownership, so this is now an unresolved
   scheduling-dependent lead rather than a deterministic defect.
-- Evidence: two consecutive `bin/swc_devmode.exe tools/apps.swgs dm build sFileScope` runs assert
+- Evidence: two consecutive `bin/swc.dm.exe tools/apps.swgs dm build sFileScope` runs assert
   in `NodePayload::setSemaPayload` at `NodePayload.cpp:806` because
   `shard->semaPayloads` already contains the node. Both name the `start` reference inside
   `line[start until @countof(line)]` at `tools/src/backlog.swg:172`, under the `#code` body passed
@@ -431,7 +431,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
   At 0.1.167, the macro-free witness — a standalone `#test` passing
   `bytes[first until @countof(bytes)]` straight into a `const [..] u8` parameter — compiles and
   runs, every `tools/*.swgs` invocation checks `backlog.swg` without asserting, and two
-  consecutive `bin/swc_devmode.exe tools/apps.swgs dm build sFileScope` runs are green. Nothing
+  consecutive `bin/swc.dm.exe tools/apps.swgs dm build sFileScope` runs are green. Nothing
   in that release targeted payload ownership, so the double visit is more likely scheduling
   dependent rather than resolved.
 - Next step: re-evaluate on the next occurrence. Persist the failing module when one happens and

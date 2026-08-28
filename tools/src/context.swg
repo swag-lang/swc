@@ -39,7 +39,7 @@ public impl Context
         result.binDir     = Path.combine(root.toString(), "bin")
         result.targetArch = options.targetArch
 
-        let name = options.devMode ? "swc_devmode.exe" : "swc.exe"
+        let name = options.devMode ? "swc.dm.exe" : "swc.exe"
         result.compiler = Path.combine(result.binDir.toString(), name)
         if !File.exists(result.compiler) do
             fail Errors.FileNotFoundError{"the compiler under test has not been built", fileName: result.compiler.toString()}

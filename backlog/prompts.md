@@ -780,7 +780,7 @@ Run these in order, stopping at the first failure as the tooling requires. After
 smallest focused reproducer first, then restart every affected aggregate campaign. Once the tree
 appears clean, run this entire ladder again from the beginning on the final sources:
 
-  1. Build `swc_devmode.exe` with the DevMode solution configuration.
+  1. Build `swc.dm.exe` with the DevMode solution configuration.
   2. `bin\swc.exe tools\build.swgs dm --all-cfg` - build every workspace in release, debug, and
      fast-debug, including modules that have no tests.
   3. `bin\swc.exe tools\tests.swgs dm` - the full DevMode default campaign.

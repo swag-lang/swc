@@ -20,7 +20,7 @@ test, or build with test. Admit each new command from the machine's current CPU 
 headroom, not from a global build or test slot. A different worktree does not provide different
 resources.
 
-Before invoking MSBuild or another command that rebuilds `swc` or `swc_devmode`, and before every
+Before invoking MSBuild or another command that rebuilds `swc` or `swc.dm`, and before every
 project test command, run:
 
 ```powershell
@@ -56,13 +56,13 @@ worker pool at six with `--num-cores 6`. This is separate from `/MP6`, which lim
 compiler only while building `swc` itself.
 
 - Apply the cap to both checkout-local executables: `bin\swc.exe` and
-  `bin\swc_devmode.exe`.
+  `bin\swc.dm.exe`.
 - For a direct compiler command, pass one cap, for example
-  `bin\swc_devmode.exe sema ... --num-cores 6`.
+  `bin\swc.dm.exe sema ... --num-cores 6`.
 - A repository tool script starts by being compiled by `swc`, then commonly launches another
   compiler. Bound both levels: put one option before the script path and forward another through
   the tool, for example
-  `bin\swc_devmode.exe --num-cores 6 tools\unittests.swgs dm cpp --num-cores 6`.
+  `bin\swc.dm.exe --num-cores 6 tools\unittests.swgs dm cpp --num-cores 6`.
 - Preserve an explicit lower limit. `--randomize` and `--seed` already force one compiler worker.
   Exceed six only when the user explicitly requests it or a concurrency reproducer genuinely
   requires it, and state that exception before launching the command.

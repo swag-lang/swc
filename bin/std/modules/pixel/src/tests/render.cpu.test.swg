@@ -30,6 +30,26 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     assertPixel(image, 10, 8, Argb.Zero)
 }
 
+// A nearly collinear viewport-wide polygon must not corrupt the geometry recorded after it.
+#test
+{
+    let strip = [Vector2{0, 100}, Vector2{1400, 100}, Vector2{1398, 102}, Vector2{2, 102}]
+
+    var painter: Painter
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.Zero))
+    painter.fillPolygon(strip, Brush.createSolid(Color.fromArgb(Argb.Red)))
+    painter.fillRect({100, 800, 120, 24}, Color.fromArgb(Argb.DodgerBlue))
+    painter.end()
+
+    let image = renderCpu(1400, 1000, &painter)
+    assertPixel(image, 700, 101, Argb.Red)
+    assertPixel(image, 700, 150, Argb.Zero)
+    assertPixel(image, 120, 810, Argb.DodgerBlue)
+    assertPixel(image, 120, 110, Argb.Zero)
+}
+
 // Constant vertex colors produce a uniform blend across both triangles of a filled rectangle.
 #test
 {
@@ -181,6 +201,50 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     assertPixel(image, 6, 1, Color.fromArgb(255'u8, 255'u8, 255'u8, 255'u8))
     assertPixel(image, 1, 6, Color.fromArgb(255'u8, 255'u8, 0'u8, 0'u8))
     assertPixel(image, 6, 6, Color.fromArgb(255'u8, 0'u8, 255'u8, 0'u8))
+}
+
+// A one-to-one BGRA sub-rectangle copy preserves every source byte and its destination offset.
+#test
+{
+    var source = Image.create(6, 4, .BGRA8)
+    for y in source.height
+    {
+        for x in source.width
+        {
+            let pixel = source.pixels.buffer! + cast(u64) ((source.height - y - 1) * source.rowStride + x * 4)
+            pixel[0] = cast(u8) (20 + x * 17)
+            pixel[1] = cast(u8) (30 + y * 31)
+            pixel[2] = cast(u8) (40 + x * 7 + y * 5)
+            pixel[3] = cast(u8) (80 + x * 11 + y * 13)
+        }
+    }
+
+    var renderer: RenderCpu
+    renderer.begin(8, 6)
+    let render: IRenderer = &renderer
+    var texture           = render.addImage(source)
+    defer render.removeTexture(&texture)
+    defer render.end()
+
+    var painter: Painter
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.Zero))
+    painter.setInterpolationMode(.Pixel)
+    painter.setBlendingMode(.Copy)
+    painter.drawTexture({2, 2, 4, 3}, {1, 0, 4, 3}, texture)
+    painter.end()
+    render.draw(&painter)
+
+    let image = renderer.surfaceImage()
+    for y in 3's32
+    {
+        for x in 4's32 do
+            @assert(image.pixelColor(x + 2, y + 2) == source.pixelColor(x + 1, y))
+    }
+
+    assertPixel(image, 1, 2, Argb.Zero)
+    assertPixel(image, 6, 4, Argb.Zero)
 }
 
 // Scissor and stencil clipping both reject pixels outside their active region.

@@ -165,6 +165,12 @@ private struct RasterBatch
     blurWeightCount: u64
 }
 
+private struct FontLinearSample
+{
+    x0, y0, x1, y1: s32
+    tx, ty:         f32
+}
+
 private impl RenderCpu
 {
     mtd findTexture(handle: TextureHandle)->#null *CpuTexture
@@ -331,6 +337,37 @@ private impl RenderCpu
                                  (cast(f32) c0.r + (cast(f32) c1.r - c0.r) * u) / 255.0,
                                  (cast(f32) c0.g + (cast(f32) c1.g - c0.g) * u) / 255.0,
                                  (cast(f32) c0.b + (cast(f32) c1.b - c0.b) * u) / 255.0)
+    }
+
+    // Bilinear texture filtering keeps the two byte-quantizing lerps of the former float path,
+    // but evaluates their weights as 16.16 integers instead of converting twelve intermediate
+    // colors through normalized floats for every sampled pixel.
+    func lerpByte(c0, c1: u8, weight: u32)->u8
+    {
+        const One = 65536'u32
+        return cast(u8) ((cast(u32) c0 * (One - weight) + cast(u32) c1 * weight) >> 16)
+    }
+
+    func bilinearColor(c00, c10, c01, c11: Color, tx, ty: f32)->Color
+    {
+        const One = 65536.0'f32
+        let wx = cast(u32) (Math.saturate(tx) * One)
+        let wy = cast(u32) (Math.saturate(ty) * One)
+
+        var top, bottom, result: Color = undefined
+        top.a    = lerpByte(c00.a, c10.a, wx)
+        top.r    = lerpByte(c00.r, c10.r, wx)
+        top.g    = lerpByte(c00.g, c10.g, wx)
+        top.b    = lerpByte(c00.b, c10.b, wx)
+        bottom.a = lerpByte(c01.a, c11.a, wx)
+        bottom.r = lerpByte(c01.r, c11.r, wx)
+        bottom.g = lerpByte(c01.g, c11.g, wx)
+        bottom.b = lerpByte(c01.b, c11.b, wx)
+        result.a = lerpByte(top.a, bottom.a, wy)
+        result.r = lerpByte(top.r, bottom.r, wy)
+        result.g = lerpByte(top.g, bottom.g, wy)
+        result.b = lerpByte(top.b, bottom.b, wy)
+        return result
     }
 
     func modFloor(value, divisor: s32)->s32
@@ -694,14 +731,14 @@ private impl RenderCpu
             let f10 = fetchBgra8(image, coord(x0 + 1, image.width, repeat), coord(y0, image.height, repeat))
             let f01 = fetchBgra8(image, coord(x0, image.width, repeat), coord(y0 + 1, image.height, repeat))
             let f11 = fetchBgra8(image, coord(x0 + 1, image.width, repeat), coord(y0 + 1, image.height, repeat))
-            return lerpColor(lerpColor(f00, f10, tx), lerpColor(f01, f11, tx), ty)
+            return bilinearColor(f00, f10, f01, f11, tx, ty)
         }
 
         let c00 = readPixel(image, coord(x0, image.width, repeat), coord(y0, image.height, repeat))
         let c10 = readPixel(image, coord(x0 + 1, image.width, repeat), coord(y0, image.height, repeat))
         let c01 = readPixel(image, coord(x0, image.width, repeat), coord(y0 + 1, image.height, repeat))
         let c11 = readPixel(image, coord(x0 + 1, image.width, repeat), coord(y0 + 1, image.height, repeat))
-        return lerpColor(lerpColor(c00, c10, tx), lerpColor(c01, c11, tx), ty)
+        return bilinearColor(c00, c10, c01, c11, tx, ty)
     }
 
     func sampleSubRect(image: *Image, paintPos: Vector2, params: const *Command, contentScale: f32)->Color
@@ -757,14 +794,14 @@ private impl RenderCpu
             let f10 = fetchBgra8(image, x1, y0)
             let f01 = fetchBgra8(image, x0, y1)
             let f11 = fetchBgra8(image, x1, y1)
-            return lerpColor(lerpColor(f00, f10, fx), lerpColor(f01, f11, fx), fy)
+            return bilinearColor(f00, f10, f01, f11, fx, fy)
         }
 
         let c00 = readPixel(image, x0, y0)
         let c10 = readPixel(image, x1, y0)
         let c01 = readPixel(image, x0, y1)
         let c11 = readPixel(image, x1, y1)
-        return lerpColor(lerpColor(c00, c10, fx), lerpColor(c01, c11, fx), fy)
+        return bilinearColor(c00, c10, c01, c11, fx, fy)
     }
 
     mtd sampleBlur(batch: *RasterBatch, image: *Image, u, v: f32)->Color
@@ -1089,6 +1126,81 @@ private impl RenderCpu
         return Math.saturate((sd - edge) * screenPxRange / aa + 0.5)
     }
 
+    // Evaluates the four quarter-pixel MSDF taps from their shared texel neighborhood. At normal
+    // text scales the four bilinear footprints cover at most nine texels instead of fetching
+    // sixteen; unusual minification falls back to the independent sampler without changing it.
+    func msdfCoverage4(atlas: const *GlyphAtlas, uv, offset: Vector2, screenPxRange: f32)->f32
+    {
+        let points: [4] Vector2 = [uv + Vector2{-offset.x, -offset.y},
+                                   uv + Vector2{offset.x, -offset.y},
+                                   uv + Vector2{-offset.x, offset.y},
+                                   uv + Vector2{offset.x, offset.y}]
+        if atlas.bytesPerPixel != 4
+        {
+            var fallback = 0'f32
+            for point in points do
+                fallback += msdfCoverage(atlas, point, screenPxRange, 0.5, 1.0)
+            return fallback
+        }
+
+        let width  = cast(s32) (atlas.width / atlas.bytesPerPixel)
+        let height = cast(s32) atlas.height
+        var samples: [4] FontLinearSample
+        var minX   = Swag.S32.Max
+        var minY   = Swag.S32.Max
+        var maxX   = Swag.S32.Min
+        var maxY   = Swag.S32.Min
+        for point, index in points
+        {
+            let px     = Math.saturate(point.x) * width - 0.5
+            let py     = Math.saturate(point.y) * height - 0.5
+            let sample = &samples[index]
+            sample.x0 = cast(s32) Math.floor(px)
+            sample.y0 = cast(s32) Math.floor(py)
+            sample.x1 = Math.min(sample.x0 + 1, width - 1)
+            sample.y1 = Math.min(sample.y0 + 1, height - 1)
+            sample.tx = px - Math.floor(px)
+            sample.ty = py - Math.floor(py)
+            minX      = Math.min(minX, sample.x0)
+            minY      = Math.min(minY, sample.y0)
+            maxX      = Math.max(maxX, sample.x1)
+            maxY      = Math.max(maxY, sample.y1)
+        }
+
+        let cacheWidth  = maxX - minX + 1
+        let cacheHeight = maxY - minY + 1
+        if cacheWidth > 3 or cacheHeight > 3
+        {
+            var fallback = 0'f32
+            for point in points do
+                fallback += msdfCoverage(atlas, point, screenPxRange, 0.5, 1.0)
+            return fallback
+        }
+
+        var cache: [9] Vector4
+        for y in cacheHeight
+        {
+            for x in cacheWidth do
+                cache[cast(u64) (y * cacheWidth + x)] = readFontAtlas(atlas, minX + x, minY + y)
+        }
+
+        var result = 0'f32
+        for sample in samples
+        {
+            let row0  = (sample.y0 - minY) * cacheWidth
+            let row1  = (sample.y1 - minY) * cacheWidth
+            let f00   = cache[cast(u64) (row0 + sample.x0 - minX)]
+            let f10   = cache[cast(u64) (row0 + sample.x1 - minX)]
+            let f01   = cache[cast(u64) (row1 + sample.x0 - minX)]
+            let f11   = cache[cast(u64) (row1 + sample.x1 - minX)]
+            let value = Vector4.lerp(Vector4.lerp(f00, f10, sample.tx), Vector4.lerp(f01, f11, sample.tx), sample.ty)
+            let sd    = median(value.x, value.y, value.z)
+            result += Math.saturate((sd - 0.5) * screenPxRange + 0.5)
+        }
+
+        return result
+    }
+
     mtd shadeMsdf(faceColor: Color, uv, uvDx, uvDy: Vector2, safeAtlas: const *GlyphAtlas)->Color
     {
         let width         = cast(f32) (safeAtlas.width / safeAtlas.bytesPerPixel)
@@ -1102,11 +1214,7 @@ private impl RenderCpu
         if .fontEffect.enabled < 0.5
         {
             let off   = Vector2{fwX * 0.25, fwY * 0.25}
-            var alpha = msdfCoverage(safeAtlas, uv + Vector2{-off.x, -off.y}, screenPxRange, 0.5, 1.0)
-            alpha += msdfCoverage(safeAtlas, uv + Vector2{off.x, -off.y}, screenPxRange, 0.5, 1.0)
-            alpha += msdfCoverage(safeAtlas, uv + Vector2{-off.x, off.y}, screenPxRange, 0.5, 1.0)
-            alpha += msdfCoverage(safeAtlas, uv + Vector2{off.x, off.y}, screenPxRange, 0.5, 1.0)
-            alpha = Math.pow(alpha * 0.25, FontGamma)
+            let alpha = Math.pow(msdfCoverage4(safeAtlas, uv, off, screenPxRange) * 0.25, FontGamma)
             return faceColor.withAlphaF32(cast(f32) faceColor.a / 255.0 * alpha)
         }
 
@@ -1572,6 +1680,80 @@ private impl RenderCpu
             ensureFontGammaLut()
     }
 
+    // Copies the window-presentation rectangle row by row when its texture mapping is exactly the
+    // identity. This is a complete rectangle with no shader, blend, mask, clip, or transform work
+    // left to perform, so walking two triangles and resampling each texel would only recover the
+    // bytes already present in the source.
+    mtd tryCopyTextureRect(batch: *RasterBatch)->bool
+    {
+        if batch.count != 6 or .program != CpuProgram_Default and .program != CpuProgram_Simple do
+            return false
+        if .contentScale != 1 or !batch.transform.isTranslationOnly() do
+            return false
+        if .blendingMode != .Copy or !.colorMask.r or !.colorMask.g or !.colorMask.b or !.colorMask.a do
+            return false
+        if .stencilOn or .stencilWrite or .scissorOn or .overlapMode or .alphaResolve do
+            return false
+
+        let source = batch.paintImage
+        let target = batch.image
+        if !source or !target or source == target or source.pixelFormat != .BGRA8 or target.pixelFormat != .BGRA8 do
+            return false
+
+        let params = &.paintCommand.texture0
+        if params.type != .Texture or params.uvMode != .FillSubRect or params.interpolationMode != .Pixel do
+            return false
+
+        let vertices    = batch.painter!.vertexBuffer.buffer! + batch.start
+        let topLeft     = Vector2{params.boundRect.x, params.boundRect.y}
+        let topRight    = Vector2{params.boundRect.z, params.boundRect.y}
+        let bottomRight = Vector2{params.boundRect.z, params.boundRect.w}
+        let bottomLeft  = Vector2{params.boundRect.x, params.boundRect.w}
+        if vertices[0].pos != topLeft or vertices[1].pos != topRight or vertices[2].pos != bottomRight or vertices[3].pos != topLeft or vertices[4].pos != bottomRight or vertices[5].pos != bottomLeft
+        {
+            return false
+        }
+
+        let white = Color.fromArgb(Argb.White).argb
+        for vertex in @mkslice(vertices, 6)
+        {
+            if vertex.color != white or vertex.cov != 1 do
+                return false
+        }
+
+        let deviceTopLeft     = batch.transform.transformPoint(topLeft)
+        let deviceBottomRight = batch.transform.transformPoint(bottomRight)
+        let dstX              = cast(s32) deviceTopLeft.x
+        let dstY              = cast(s32) deviceTopLeft.y
+        let dstRight          = cast(s32) deviceBottomRight.x
+        let dstBottom         = cast(s32) deviceBottomRight.y
+        if cast(f32) dstX != deviceTopLeft.x or cast(f32) dstY != deviceTopLeft.y or cast(f32) dstRight != deviceBottomRight.x or cast(f32) dstBottom != deviceBottomRight.y do
+            return false
+
+        let srcX      = cast(s32) Math.floor(params.textureRect.x * source.width)
+        let srcY      = cast(s32) Math.floor(params.textureRect.y * source.height)
+        let srcRight  = cast(s32) Math.floor(params.textureRect.z * source.width) + 1
+        let srcBottom = cast(s32) Math.floor(params.textureRect.w * source.height) + 1
+        let width     = dstRight - dstX
+        let height    = dstBottom - dstY
+        if width <= 0 or height <= 0 or srcRight - srcX != width or srcBottom - srcY != height do
+            return false
+        if dstX < 0 or dstY < 0 or dstRight > target.width or dstBottom > target.height do
+            return false
+        if srcX < 0 or srcY < 0 or srcRight > source.width or srcBottom > source.height do
+            return false
+
+        let rowBytes = cast(u64) width * 4
+        for row in height
+        {
+            let sourceRow = source.pixels.buffer! + cast(u64) (source.height - srcY - row - 1) * cast(u64) source.rowStride + cast(u64) srcX * 4
+            let targetRow = target.pixels.buffer! + cast(u64) (target.height - dstY - row - 1) * cast(u64) target.rowStride + cast(u64) dstX * 4
+            Memory.copy(targetRow, sourceRow, rowBytes)
+        }
+
+        return true
+    }
+
     mtd drawTriangles(painter: *Painter, start, count: u32)
     {
         let image = .currentImage()
@@ -1584,6 +1766,8 @@ private impl RenderCpu
 
         var batch: RasterBatch = undefined
         .setupBatch(&batch, image, painter, start, count)
+        if .tryCopyTextureRect(&batch) do
+            return
 
         // The blur kernel depends only on the active shader radius. Building it once here
         // removes pow/exp from every tap of every pixel while preserving the exact tap order.

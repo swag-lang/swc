@@ -112,3 +112,24 @@ private const ManyStopSvg = "<svg width='20' height='8'>" ++
     @assert(offsetImage.pixelColor(8, 10).a == 0)
     @assert(offsetImage.pixelColor(18, 10).a > 0)
 }
+
+// Sample-aligned tiles preserve every resolved byte when geometry crosses both tile axes.
+#test
+{
+    const Source = "<svg viewBox='0 0 300 260'>" ++
+                   "<rect x='20' y='18' width='270' height='232' rx='31' fill='#2878d0'/>" ++
+                   "<circle cx='256' cy='210' r='46' fill='#f4b43c' fill-opacity='0.63'/>" ++
+                   "<path d='M4 257 L296 3' stroke='white' stroke-width='3'/></svg>"
+
+    let drawing             = expect Svg.Drawing.parse(Source)
+    var cpu:      RenderCpu
+    let renderer: IRenderer = &cpu
+    cpu.begin(300, 260)
+    defer renderer.end()
+
+    let tiled   = drawing.rasterize(renderer, 300, 260, 4)
+    let untiled = drawing.rasterizeWithSampleTileSide(renderer, 300, 260, 4, 2048)
+    @assert(tiled.pixels.count == untiled.pixels.count)
+    for value, index in tiled.pixels do
+        @assert(value == untiled.pixels[index])
+}

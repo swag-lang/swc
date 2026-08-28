@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -2525,11 +2525,26 @@ namespace
                 }
                 else
                 {
-                    const AstNodeRef defaultArgRef = cloneSourceArgumentToCallerAst(sema, SemaHelpers::defaultArgumentExprRef(*param), context.sourceAst);
-                    const AstNodeRef defaultRef    = bindingArgumentRef(sema, *param, defaultArgRef);
-                    if (defaultRef.isInvalid())
-                        return Result::Continue;
-                    assignInlineBindingExpr(sema, bound[i], *param, defaultRef);
+                    // The value the signature already resolved, in the scope that wrote it.
+                    // A default is required to be constant, so this is what the ordinary call
+                    // path binds too. Cloning the written expression instead would re-resolve
+                    // its names where the call is: a published cross-module declaration names
+                    // things that exist only in its own module, and a '#code' block parameter
+                    // is the one default with no constant of its own.
+                    const ConstantRef defaultCstRef = param->defaultValueRef();
+                    if (defaultCstRef.isValid())
+                    {
+                        bound[i].typeRef = param->typeRef();
+                        bound[i].cstRef  = defaultCstRef;
+                    }
+                    else
+                    {
+                        const AstNodeRef defaultArgRef = cloneSourceArgumentToCallerAst(sema, SemaHelpers::defaultArgumentExprRef(*param), context.sourceAst);
+                        const AstNodeRef defaultRef    = bindingArgumentRef(sema, *param, defaultArgRef);
+                        if (defaultRef.isInvalid())
+                            return Result::Continue;
+                        assignInlineBindingExpr(sema, bound[i], *param, defaultRef);
+                    }
                 }
             }
 

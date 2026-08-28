@@ -12,6 +12,7 @@ using Swag, Core
 
     let sheet = """
                 /ThemePalette
+                band                0xFF102030
                 signature.mark      0xFF00A0FF
                 signature.ground    0xFF00A0FF
                 signature.onGround  0xFF000000
@@ -28,6 +29,7 @@ using Swag, Core
     @assert(theme.colors.slider_Mark == 0xFF00A0FF)
     @assert(theme.colors.progressBar_Mark == 0xFF00A0FF)
     @assert(theme.colors.btnPush_StrongText == 0xFF000000)
+    @assert(theme.colors.band_Bk == 0xFF102030)
 
     // Everything the signature does not decide is left exactly where the palette had it.
     @assert(theme.colors.bk == 0xFF0B0B0D)
@@ -135,13 +137,13 @@ using Swag, Core
 #test
 {
     var theme: Theme
-    theme.setSwagLight()
+    theme.setLight()
 
     expect theme.applySheet("/ThemeColors\nlabel_Text 0xFF804020")
 
     @assert(theme.colors.label_Text == 0xFF804020)
-    @assert(theme.colors.text == 0xFF1B1B1D)
-    @assert(theme.palette.text == 0xFF1B1B1D)
+    @assert(theme.colors.text == 0xFF1F1F1F)
+    @assert(theme.palette.text == 0xFF1F1F1F)
 }
 
 // A malformed sheet is reported with the line it failed on rather than silently ignored: a

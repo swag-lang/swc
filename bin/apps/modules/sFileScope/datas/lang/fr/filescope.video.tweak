@@ -17,9 +17,9 @@ ui_AudioDetails  % · % can. · %{f1} kHz
 
 ui_SubtitleOff             Désactivés
 ui_SubtitleTrackNumber     Sous-titres %
-ui_SubtitleTrackLang       % (%)
-ui_SubtitleEmbedded        % - Intégrés
-ui_SubtitleSidecar         % - Fichier externe
+ui_SubtitleTrackLang       <p2> (%)</p>
+ui_SubtitleEmbedded        <b>%</b>% · <p3>Intégrés</p>
+ui_SubtitleSidecar         <b>%</b>% · <p3>Fichier externe</p>
 ui_SubtitleFont            Police
 ui_SubtitleFontSans        Sans empattement système
 ui_SubtitleFontMono        Chasse fixe

@@ -83,6 +83,16 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     @assert(window.language == ReferenceLanguage)
     @assert(window.appearanceButton.parent == &host.surfaceWnd)
     @assert(window.appearanceButton.focusPolicy == .None)
+
+    window.themeIndex = cast(u32) AppearanceTheme.Dark
+    window.applyTheme()
+    @assert(window.appearanceButton.appearanceTheme == .Dark and host.theme.colors.bk == ThemeColors.darkPalette().ground)
+    window.themeIndex = cast(u32) AppearanceTheme.Light
+    window.applyTheme()
+    @assert(window.appearanceButton.appearanceTheme == .Light and host.theme.colors.bk == ThemeColors.lightPalette().ground)
+    window.themeIndex = cast(u32) AppearanceTheme.SwagDark
+    window.applyTheme()
+    @assert(window.appearanceButton.appearanceTheme == .SwagDark and host.theme.colors.bk == ThemeColors.swagDarkPalette().ground)
 }
 
 // Privacy is the default and keeps every vault path out of persistent state.
@@ -887,10 +897,10 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 // which brings each one up and measures it in every language; what an image adds over that is the
 // look of the surface, and the four pages share it.
 //
-// It is one image, of the palette sVaultDrive ships on. Photographing the other three costs a full
+// It is one image, of the palette sVaultDrive ships on. Photographing the other two costs a full
 // repaint of the whole surface each, which is minutes on the default configuration, and the
 // palettes themselves are already pinned by the toolkit's own tests. To review them by hand, put
-// `setSwagLight`, `setDark` and `setLight` on their own hosts here and read the images: one host
+// `setDark` and `setLight` on their own hosts here and read the images: one host
 // per palette, never one host repainted, because a render target keeps what the last paint left
 // and a translucent fill then composites over the palette before it.
 #test

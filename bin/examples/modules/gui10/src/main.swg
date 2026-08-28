@@ -20,7 +20,6 @@ const BarHeight        = 34.0
 const BarGap           = 10.0
 const PageBottomMargin = 46.0
 const FilterWidth      = 260.0
-const IssuesWidth      = 180.0
 const RingsWidth       = 130.0
 
 var app:        Application
@@ -30,7 +29,6 @@ var g_Title:    #null *Label
 var g_SubTitle: #null *Label
 var g_Footer:   #null *Label
 var g_Filter:   #null *EditBox
-var g_Issues:   #null *CheckButton
 var g_Rings:    #null *CheckButton
 var g_Sheet:    #null *SheetWnd
 var g_Widgets:  #null *WidgetWall
@@ -42,7 +40,7 @@ var g_Variant:   ThemeVariant
 var g_Page:      s32
 var g_TestFrame: s32
 
-// The four palettes the toolkit ships, in the order the sheets show them.
+// The three palettes the toolkit ships, followed by the sheet-written example.
 //
 // A variant is a whole theme, not only its colors: `Theme.setDark` and friends also
 // answer for the geometry, which is why the inspector applies them through the theme
@@ -52,11 +50,10 @@ enum ThemeVariant
     Dark
     Light
     SwagDark
-    SwagLight
     Sheet
 }
 
-const ThemeVariantCount = 5
+const ThemeVariantCount = 4
 
 // A theme written as a tweak sheet rather than in code, which is how anyone shipping an
 // application writes one. Reading it beside the palettes above is the point of having it
@@ -68,11 +65,10 @@ func variantName(variant: ThemeVariant)->string
 {
     switch #complete variant
     {
-    case .Dark:      return "Dark"
-    case .Light:     return "Light"
-    case .SwagDark:  return "Swag Dark"
-    case .SwagLight: return "Swag Light"
-    case .Sheet:     return "Sheet"
+    case .Dark:     return "Dark"
+    case .Light:    return "Light"
+    case .SwagDark: return "Swag Dark"
+    case .Sheet:    return "Sheet"
     }
 
     unreachable
@@ -92,9 +88,6 @@ func applyVariant(theme: *Theme, variant: ThemeVariant)
     case .SwagDark:
         theme.setSwagDark()
 
-    case .SwagLight:
-        theme.setSwagLight()
-
     case .Sheet:
 
         // A sheet is a delta, so the theme is put back on a known palette before the sheet
@@ -106,7 +99,7 @@ func applyVariant(theme: *Theme, variant: ThemeVariant)
 
 // Returns the colors of `variant` without touching the theme on screen.
 //
-// The sheets that compare palettes need all four at once, and a palette is a plain
+// The sheets that compare palettes need all variants at once, and a palette is a plain
 // value, so each one is simply built on the spot.
 func variantColors(variant: ThemeVariant)->ThemeColors
 {
@@ -121,9 +114,6 @@ func variantColors(variant: ThemeVariant)->ThemeColors
 
     case .SwagDark:
         result.setSwagDark()
-
-    case .SwagLight:
-        result.setSwagLight()
 
     case .Sheet:
         var theme: Theme
@@ -149,14 +139,14 @@ func pageTitle(page: s32)->string
 }
 
 // The command-line name of each palette and each page, in the order of the two enumerations.
-const VariantArgs: [ThemeVariantCount] string = ["--dark", "--light", "--swagdark", "--swaglight", "--sheet"]
+const VariantArgs: [ThemeVariantCount] string = ["--dark", "--light", "--swagdark", "--sheet"]
 const PageArgs:    [MaxPages] string          = ["--colors", "--palettes", "--metrics", "--widgets"]
 
 // Reads the palette and the page the command line asks the inspector to open on.
 //
-// Judging a palette means looking at one page of one palette, and there are twenty such pairs.
-// Reached by hand that is twenty windows to drive by pointer; named on the command line it is
-// twenty launches a script can take a picture of, which is how a change to `apply` is compared
+// Judging a theme means looking at one page of one variant, and there are sixteen such pairs.
+// Reached by hand that is sixteen windows to drive by pointer; named on the command line it is
+// sixteen launches a script can take a picture of, which is how a change to `apply` is compared
 // against the palettes it did not mean to touch.
 func readStartupSelection()
 {
@@ -174,7 +164,7 @@ func pageSubtitle(page: s32)->string
     switch page
     {
     case 0: return "Every ThemeColors value of the active palette, over the grounds it is drawn on. Alpha shows against the checkerboard."
-    case 1: return "The same value across every palette, the sheet-written one included. A flagged row is one the dark and light Swag palettes resolve identically, which only a few colors may."
+    case 1: return "The same value across every shipped palette, with the sheet-written example beside them."
     case 2: return "Every ThemeMetrics value of the active theme, in logical pixels."
     case 3: return "Live widgets in every state the palette answers for. Hover and press them to read the hot and pressed colors."
     }
@@ -298,8 +288,7 @@ func layoutRootView()
     }
 
     g_Filter!.setPosition({RootMargin + contentWidth - FilterWidth, barY, FilterWidth, BarHeight})
-    g_Issues!.setPosition({RootMargin + contentWidth - FilterWidth - IssuesWidth - 12, barY, IssuesWidth, BarHeight})
-    g_Rings!.setPosition({RootMargin + contentWidth - FilterWidth - IssuesWidth - RingsWidth - 24, barY, RingsWidth, BarHeight})
+    g_Rings!.setPosition({RootMargin + contentWidth - FilterWidth - RingsWidth - 12, barY, RingsWidth, BarHeight})
 
     let pageY      = barY + BarHeight + BarGap
     let pageHeight = Math.max(rect.height - pageY - PageBottomMargin, 120.0)
@@ -324,7 +313,6 @@ func onRootEvent(view: *Wnd, evt: IEvent)->bool
         g_SubTitle = null
         g_Footer   = null
         g_Filter   = null
-        g_Issues   = null
         g_Rings    = null
         g_Sheet    = null
         g_Widgets  = null
@@ -413,10 +401,6 @@ func createRootView()
     filter.setPlaceholder("filter by name")
     filter.setIcon(app.theme.icon(.Search, 16))
     filter.sigTextChanged += func(ed) { g_Sheet!.view.setFilter(ed.text()) }
-
-    let issues = CheckButton.create(view, "flagged rows only", {})
-    g_Issues          = issues
-    issues.sigChanged += func(box) { g_Sheet!.view.setIssuesOnly(box.state == .Checked) }
 
     // Only one control of a surface can hold the keyboard, so the focus mark is the one state
     // the wall cannot show by standing still. The diagnostic draws every ring at once, which is

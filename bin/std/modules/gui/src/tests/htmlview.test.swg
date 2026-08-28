@@ -1250,7 +1250,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     host.setup(1660, 1324)
     defer host.shutdown()
 
-    host.theme.setSwagLight()
+    host.theme.setLight()
     host.app.notifyThemeChanged()
     host.notify(.ThemeChanged)
 

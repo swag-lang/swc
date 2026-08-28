@@ -35,6 +35,24 @@ func testSetupGlobalMain(main: *MainWnd)
     main.libWnd.filledRevision = g_Library.revision
 }
 
+// The persisted editor option reaches every palette offered by the shared appearance action.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    f.main.editorOptions.theme = .Dark
+    f.main.setTheme()
+    @assert(f.main.appearanceButton.appearanceTheme == .Dark and f.gui.theme.colors.bk == ThemeColors.darkPalette().ground)
+    f.main.editorOptions.theme = .Light
+    f.main.setTheme()
+    @assert(f.main.appearanceButton.appearanceTheme == .Light and f.gui.theme.colors.bk == ThemeColors.lightPalette().ground)
+    f.main.editorOptions.theme = .SwagDark
+    f.main.setTheme()
+    @assert(f.main.appearanceButton.appearanceTheme == .SwagDark and f.gui.theme.colors.bk == ThemeColors.swagDarkPalette().ground)
+}
+
 // A rail-only option change must not reapply unrelated application-wide settings. Repeating the
 // change used to broadcast both theme and language notifications, repaint every surface, and make
 // the options dialog progressively stall.
@@ -45,11 +63,11 @@ func testSetupGlobalMain(main: *MainWnd)
     defer f.shutdown()
 
     testSetupGlobalMain(f.main)
-    f.gui.theme.setSwagLight()
+    f.gui.theme.setLight()
     expect f.gui.app.setLanguage("fr")
     defer expect f.gui.app.setLanguage("en")
 
-    f.main.editorOptions.theme             = .Dark
+    f.main.editorOptions.theme             = .SwagDark
     f.main.editorOptions.language          = .English
     f.main.editorOptions.showToolBarLabels = true
     let lightBackground = f.main.themeColors().wnd_Bk
@@ -166,8 +184,9 @@ func testSetupGlobalMain(main: *MainWnd)
     @assert(!evt.name.isEmpty())
 }
 
-// The fixed dark matte was once the persisted default. It now migrates to the
-// theme-derived transparent value without changing a color the user actually chose.
+// The fixed dark matte was once the persisted default. It now migrates to the theme-derived
+// transparent value without changing a color the user actually chose, and an invalid stored
+// appearance value returns to the standard Swag palette before it reaches the complete switch.
 #test
 {
     var f: HeadlessFixture
@@ -181,4 +200,8 @@ func testSetupGlobalMain(main: *MainWnd)
     f.main.editorOptions.editBackColor = 0xFF123456'u32
     f.main.migrateStoredOptions()
     @assert(f.main.editorOptions.editBackColor == 0xFF123456'u32)
+
+    f.main.editorOptions.theme = cast(AppearanceTheme) 99
+    f.main.migrateStoredOptions()
+    @assert(f.main.editorOptions.theme == .SwagDark)
 }

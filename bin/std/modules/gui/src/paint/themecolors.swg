@@ -81,6 +81,7 @@ struct ThemeColors
         wnd_Shadow: Color
 
         view_Bk: Color     // Ground content is read on.
+        band_Bk: Color     // Plain information or navigation band beside application chrome.
 
         dlg_Bk:              Color     // Ground of a dialog.
         dlg_BtnBarBk:        Color     // Ground of the button bar of a dialog.
@@ -483,16 +484,8 @@ impl ThemeColors
     // as it rises reads as lit from one side, where two independent amounts read as two effects.
     private const CaptionFadeRatio = 2.0'f32
 
-    // The glow of the two Swag palettes, which is the shipped title bar of every standard
-    // application.
-    //
-    // They are one decision written twice rather than two, and the second number is not free: a
-    // wash toward Voltage on ink is spent on luminance, and on paper — where Voltage and the band
-    // part by less than a tenth of a step of it — the same weight has to be bought in chroma
-    // instead. Kept at the dark number, the light band was a cream nobody could name, which is
-    // the flat bar this token exists to prevent.
+    // The glow of the Swag palette, which is the shipped title bar of every standard application.
     private const SwagCaptionGlowDark = 0.14'f32
-    private const SwagCaptionGlowLight = 0.42'f32
 
     // How much contrast a mark owes the ground it lands on.
     //
@@ -549,9 +542,9 @@ impl ThemeColors
     }
 
     // How many times a mark is allowed to be moved before the grounds are declared irreconcilable.
-    // Each pass answers the ground the mark is nearest, which can hand it to another one; four is
-    // one pass per ground, and no palette of four grounds needs more.
-    private const MarkPasses = 4
+    // Each pass answers the ground the mark is nearest, which can hand it to another one; five is
+    // one pass per ground, and no palette of five grounds needs more.
+    private const MarkPasses = 5
 
     // Returns the ground of `p` that `mark` has the hardest time on.
     //
@@ -561,7 +554,7 @@ impl ThemeColors
     private func hardestGround(p: ThemePalette, mark: Color)->Color
     {
         var result = p.ground
-        for candidate in [p.view, p.panel, p.raised] where mark.contrastRatio(candidate) < mark.contrastRatio(result) do
+        for candidate in [p.view, p.panel, p.band, p.raised] where mark.contrastRatio(candidate) < mark.contrastRatio(result) do
             result = candidate
         return result
     }
@@ -663,6 +656,7 @@ impl ThemeColors
         .wnd_Shadow              = p.shadow
 
         .view_Bk = p.view
+        .band_Bk = p.band
 
         .dlg_Bk              = p.panel
         .dlg_BtnBarBk        = p.view
@@ -1070,12 +1064,6 @@ impl ThemeColors
         .apply(swagDarkPalette())
     }
 
-    // Applies the light Swag application palette: Ink over Paper with neutral structure.
-    mtd setSwagLight()
-    {
-        .apply(swagLightPalette())
-    }
-
     // The neutral dark palette.
     func darkPalette()->ThemePalette
     {
@@ -1084,6 +1072,7 @@ impl ThemeColors
         result.ground  = 0xFF202020
         result.view    = 0xFF282828
         result.panel   = 0xFF353535
+        result.band    = 0xFF303030
         result.raised  = 0xFF353535
         result.hot     = 0xFF3F3F3F
         result.pressed = 0xFF4A4A4A
@@ -1149,6 +1138,7 @@ impl ThemeColors
         result.ground  = 0xFFF6F6F6
         result.view    = 0xFFFFFFFF
         result.panel   = 0xFFEDEDED
+        result.band    = 0xFFFAFAFA
         result.raised  = 0xFFFFFFFF
         result.hot     = 0xFFEFEFEF
         result.pressed = 0xFFE2E2E2
@@ -1210,6 +1200,7 @@ impl ThemeColors
         result.ground = 0xFF0B0B0D
         result.view   = 0xFF15151A
         result.panel  = 0xFF202026
+        result.band   = 0xFF2A2A32
         result.raised = 0xFF2A2A32
 
         // Hover has to be seen from across the surface without shouting. A step of nine
@@ -1276,97 +1267,6 @@ impl ThemeColors
         // taken up toward the weight of a control border it read as a bright frame drawn
         // around a near-black surface.
         result.windowBorder = 0xFF4A4A57
-
-        return result
-    }
-
-    // The light Swag palette: Voltage and Arc over Paper.
-    //
-    // It is the dark palette read the other way up, not a second identity, and it says so by
-    // declaring the same two tones with the same two numbers. What the mode changes is only what
-    // a tone may point with: a block survives the trip and a hairline does not, so the theme
-    // deepens each mark until it separates from the page and fills with the brand color
-    // untouched. Written that way, a light Swag surface carries the same yellow block, the same
-    // blue rows and the same family of hues as a dark one.
-    //
-    // The previous light theme pointed in ink instead of deepening, and that one decision is
-    // what made it read as a black-and-white theme with a yellow button rather than as the same
-    // theme on paper.
-    //
-    // Its greys carry the violet cast of the dark palette's, so the two are one family. Warm
-    // paper under cool ink was the other half of the inelegance: no surface here is neutral,
-    // and every one of them was leaning the wrong way.
-    func swagLightPalette()->ThemePalette
-    {
-        var result: retval
-
-        // Paper is what a document is made of, not what the whole screen is made of. Given
-        // white for the application ground, the view, the panels and the controls alike, the
-        // theme had no ladder left: a dialog could only be told from the page behind it by a
-        // hairline, and a field only by its border. The ground steps back instead, and each
-        // layer nearer the reader is nearer paper.
-        result.ground  = 0xFFF2F2F7
-        result.panel   = 0xFFFAFAFD
-        result.view    = 0xFFFFFFFF
-        result.raised  = 0xFFFFFFFF
-        result.hot     = 0xFFECECF4
-        result.pressed = 0xFFE0E0EB
-
-        // The same wash as the dark palette, on paper: a list, a menu and a tab bar take the
-        // alternate tone at the weight the neutral hover carried, and the theme stops being grey
-        // everywhere the reader actually looks.
-        result.selectHot     = 0xFFE2EEFA
-        result.selectPressed = 0xFFCBE2F6
-
-        result.line        = 0xFFE3E3EC
-        result.controlLine = 0xFFD0D0DC     // one step above the divider, as in the dark palette
-
-        result.text      = 0xFF1B1B1D
-        result.softText  = 0xFF55555C
-        result.faintText = 0xFF83838D
-
-        // Same rule as the dark palette: disabled is one real step past the faintest ink, at
-        // the weight the neutral light palette greys its unavailable controls with.
-        result.disabled = 0xFFA6A6B0
-
-        // Character for character what the dark palette writes. Both blocks come through
-        // untouched — Voltage under ink is the most recognizable thing the chart owns, and the
-        // Arc block reads on paper for the same reason it reads on ink: it is a hue, not a
-        // level. Only the two marks are deepened, by the theme rather than by hand.
-        result.signature = ThemeTone.from(Voltage, Ink)
-        result.alternate = ThemeTone.from(Arc, Ink)
-
-        result.railed = true
-
-        result.critical.mark     = 0xFFC42B2B
-        result.critical.ground   = 0xFFF5DEDE
-        result.critical.onGround = 0xFF9C4A4A
-        result.caution.mark      = 0xFF7C6636
-        result.caution.ground    = 0xFFF4EACB
-        result.caution.onGround  = 0xFF7C6636
-        result.info.mark         = 0xFF2E4270
-        result.info.ground       = 0xFFDEE7F6
-        result.info.onGround     = 0xFF2E4270
-
-        result.rich1 = 0xFFB42020
-        result.rich2 = 0xFF1E7A32
-        result.rich3 = 0xFF1F5AA8
-
-        result.veil   = 0xFF000000
-        result.shadow = 0x3C000000
-
-        // The glow is worth most here. A white band on paper parts from the ground it sits on by
-        // three levels, so the bar barely exists — and a wash of Voltage under it is the stretch
-        // of brand the chart says a light surface carries the identity with, in the one place a
-        // window has room for it. It costs three times the mix the dark band asks for, because
-        // white and Voltage part by chroma alone.
-        result.caption         = 0xFFFFFFFF
-        result.captionInactive = 0xFFF2F2F7
-        result.captionGlow     = SwagCaptionGlowLight
-
-        // A white window on a white desktop has nothing but this line to stand on, so the
-        // light outline carries more weight than the dark one rather than less.
-        result.windowBorder = 0xFFD5D5E0
 
         return result
     }

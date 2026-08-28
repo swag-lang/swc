@@ -32,16 +32,18 @@ delta over the active theme, and `$name` copies another key of the same folder:
 
 ```
 /ThemePalette
-ground           0xFF161310
-text             0xFFEDE4D4
-accent           0xFFD79921
+ground             0xFF161310
+text               0xFFEDE4D4
+signature.mark     0xFFD79921
+signature.ground   0xFFD79921
+signature.onGround 0xFF161310
 /ThemeColors
-btnPush_Bk       0xFF202026
+btnPush_Bk         0xFF202026
 /ThemeMetrics
-btnPush_Height   32
+btnPush_Height     32
 /ThemeImageRects
-btnPush_Normal   {{1 29 27 27} 0}
-btnPush_Hot      $btnPush_Normal
+btnPush_Normal     {{1 29 27 27} 0}
+btnPush_Hot        $btnPush_Normal
 ```
 
 A whole theme is the first folder and nothing else: naming any palette token

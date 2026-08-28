@@ -352,6 +352,8 @@ impl MainWnd
     // forever. User-picked colors are left untouched.
     mtd migrateStoredOptions()
     {
+        if cast(u32) .editorOptions.theme > cast(u32) AppearanceTheme.Dark do
+            .editorOptions.theme = .SwagDark
         if .editorOptions.editBackColor == 0xFF2E2E2E'u32 do
             .editorOptions.editBackColor = 0
     }
@@ -940,7 +942,7 @@ impl MainWnd
 
     mtd setTheme()
     {
-        .appearanceButton.setAppearanceTheme(.editorOptions.theme == .Dark ? .Dark : .Light)
+        .appearanceButton.setAppearanceTheme(.editorOptions.theme)
 
         // Pixel-selection forms borrow a theme color, so their retained renderings
         // follow the switch.
@@ -1045,7 +1047,7 @@ impl MainWnd
         res.appearanceButton                 = AppearanceButton.create(srf, "sSnapForge.appearance")
         res.appearanceButton.sigThemeChanged += func|main = res|(button)
         {
-            main.editorOptions.theme = button.appearanceTheme == .Light ? .Light : .Dark
+            main.editorOptions.theme = button.appearanceTheme
             let capture = main.editWnd.getCapture()
             if capture do
                 capture.invalidateAllFormCaches()

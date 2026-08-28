@@ -18,7 +18,7 @@ struct ThemeMetrics
         // Transparent margin the drop shadow is cast into. It has to hold the spread plus the offset,
         // or the shadow is cut off by the edge of the window instead of fading out into it.
         surfaceWnd_ShadowSize:    f32 = 18
-        surfaceWnd_CornerRadius:  f32 = 18     // Corner of a surface. The Swag palettes soften it to 12; see setSwagGeometry.
+        surfaceWnd_CornerRadius:  f32 = 18     // Corner of a surface. The Swag palette softens it to 12; see setSwagGeometry.
         surfaceWnd_ShadowSpread:  f32 = 14     // How far the drop shadow reaches out from the body.
         surfaceWnd_ShadowOffsetX: f32 = 0      // Sideways displacement of the drop shadow.
         surfaceWnd_ShadowOffsetY: f32 = 4      // Downward displacement of the drop shadow, which is what lifts the window.

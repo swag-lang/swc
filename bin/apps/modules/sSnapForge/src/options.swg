@@ -23,12 +23,6 @@ struct CaptureOptions
     delay = 0
 }
 
-enum EditorTheme
-{
-    Dark
-    Light
-}
-
 // Languages the interface can present. `English` is the reference wording and the
 // default; `System` follows the Windows language when a translation ships for it.
 //
@@ -57,7 +51,7 @@ struct EditorOptions
     hideOnClose = true
 
     #[Hidden]
-    theme: EditorTheme = Dark
+    theme: AppearanceTheme = .SwagDark
 
     #[Hidden]
     language: EditorLanguage = .English

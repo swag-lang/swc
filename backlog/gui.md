@@ -588,7 +588,7 @@ as [snapforge.md](snapforge.md).
   (`check_bk` is a 22-unit square at 5,5 of a 32-unit tile), so the *ink* of the box starts about
   3.75 logical pixels inside the rectangle the widget was given. A box placed at the left edge of a
   form column therefore reads as indented against every field above it.
-- Evidence: measured on the rendered surface, `bin/apps/modules/sVaultDrive` in `swagLightPalette`: the
+- Evidence: measured on the rendered surface, `bin/apps/modules/sVaultDrive` in the former light Swag palette: the
   edit borders of the middle card start at x=572 and the check box ink starts at x=575. The same
   inset exists vertically on other atlas glyphs: in `vaultdrive.surface.png` the folder icon of the
   container-file field is drawn in a 17-unit cell whose middle lands on the middle of the box, and
@@ -700,17 +700,17 @@ as [snapforge.md](snapforge.md).
 ### F-144 — The gui10 palettes page paints one frame in the neutral theme
 
 - Area: examples/gui10
-- Found while: the second iteration of the visual chart, comparing the four palettes side by side
+- Found while: the second iteration of the visual chart, comparing the four theme variants side by side
 - Observation: launched straight onto the **Palettes** page, the inspector paints at least one
   frame with the *neutral* palette applied to its own chrome — the selected variant and page
   buttons come out filled in the system blue `#1473E6` instead of the active palette's block —
   while the caption band, the grounds and the sheet columns are all correct for the palette the
   footer names. A later repaint, triggered by any pointer event, restores the right colors. No
   other page shows it.
-- Evidence: `swc tools/examples.swgs run gui10 --run-arg=--swaglight --run-arg=--palettes`, then
+- Evidence: `swc tools/examples.swgs run gui10 --run-arg=--light --run-arg=--palettes`, then
   screenshot immediately: the selected button samples `#1473E6` while `wnd_CaptionBkLead` samples
-  the Swag Light wash. The same launch on `--widgets` samples the Voltage block. The page is the
-  only code path that builds five whole palettes at once —
+  the neutral Light band. The same launch on `--widgets` samples the system-blue block. The page is the
+  only code path that builds four whole theme variants at once —
   [sheetwnd.swg](../bin/examples/modules/gui10/src/sheetwnd.swg) `buildPalettes`, which calls
   `variantColors`, which constructs a local `Gui.Theme` and calls `setLight` on it for the
   sheet-written variant.

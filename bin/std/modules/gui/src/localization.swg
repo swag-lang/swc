@@ -27,8 +27,9 @@ struct Strings
         appearance_Theme:          string = "Theme"                                      // Theme submenu label.
         appearance_Language:       string = "Language"                                   // Language submenu label.
         appearance_SystemLanguage: string = "System language"                            // Language choice following the user account.
-        appearance_Dark:           string = "Dark"                                       // Dark application theme.
-        appearance_Light:          string = "Light"                                      // Light application theme.
+        appearance_SwagDark:       string = "Swag dark"                                  // Dark Swag application theme.
+        appearance_Dark:           string = "Dark"                                       // Neutral dark application theme.
+        appearance_Light:          string = "Light"                                      // Neutral light application theme.
         appearance_About:          string = "About..."                                   // Action opening application information.
 
         about_Build:     string = "Build of %{f}"                                                                     // Application build date in the standard about dialog.

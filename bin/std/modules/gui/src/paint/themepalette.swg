@@ -5,7 +5,7 @@ using Pixel
 // The colors of the Swag identity.
 //
 // They are constants rather than palette tokens because they are not a decision a theme makes:
-// a theme that changes them is a theme of its own, and the shipped Swag palettes, the product
+// a theme that changes them is a theme of its own, and the shipped Swag palette, the product
 // marks and the generated documentation all have to be cut from the same three numbers or the
 // family stops being one.
 //
@@ -23,10 +23,9 @@ const Ink:     Color = 0xFF0B0B0D     // The ink every block of the two carries,
 // together is what makes a tone impossible to half-answer, and what lets a palette hand the same
 // color to all three when it can.
 //
-// The three parting company is not an edge case, it is the identity: Voltage fills beautifully
-// under ink and vanishes as a hairline on paper, so the light Swag theme points with a deepened
-// Voltage and still fills with the brand one. [[Gui.ThemeColors.apply]] performs that deepening
-// itself — see [[Gui.ThemeTone.mark]].
+// The three parting company is not an edge case: a bright block can vanish as a hairline on a
+// bright ground, so [[Gui.ThemeColors.apply]] deepens its mark while leaving the block untouched.
+// See [[Gui.ThemeTone.mark]].
 struct ThemeTone
 {
     public
@@ -79,7 +78,8 @@ struct ThemePalette
         // downstream has to know.
         ground:  Color     // The application background, and the ground a window sits on.
         view:    Color     // A document, a list, a canvas: the ground content is read on.
-        panel:   Color     // A raised band: a dialog, a header, a menu, a tool bar.
+        panel:   Color     // A dialog, a menu, a tool bar, or another structural panel.
+        band:    Color     // A plain information or navigation band beside those grounds.
         raised:  Color     // The fill of a control that has one: a button, a field, a combo.
         hot:     Color     // The fill of a control under the pointer.
         pressed: Color     // The fill of a control under the press.
@@ -109,9 +109,8 @@ struct ThemePalette
         // The tones, which are the whole color vocabulary of the theme. There are five, there
         // is no sixth, and each one says something no other one says.
         //
-        // The two above the line are what the theme is recognized by, and their blocks are the
-        // same color whichever way up the theme is read — that invariance is the identity, and
-        // it is why the light Swag theme is not a black-and-white theme with a yellow button.
+        // The two above the line are what the theme is recognized by. Their three roles keep the
+        // identity coherent when a mark and its block need different contrast.
         // The three below the line are what happened, and they adapt freely: a notice has to be
         // read before it has to be recognized.
         signature: ThemeTone     // The one tone that says act, active, focused. Spent scarcely.

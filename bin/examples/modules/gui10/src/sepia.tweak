@@ -15,6 +15,7 @@
 ground              0xFFF3EDE1
 view                0xFFFBF7EF
 panel               0xFFEAE2D2
+band                0xFFF6F0E6
 raised              0xFFFBF7EF
 hot                 0xFFE6DCC8
 pressed             0xFFDBCFB6
@@ -46,7 +47,7 @@ alternate.mark      0xFF4F6B7A
 alternate.ground    0xFFAFC6D2
 alternate.onGround  0xFF20303A
 
-# A rule marks the active item, in the signature, the way the Swag palettes do.
+# A rule marks the active item, in the signature, the way the Swag palette does.
 railed              true
 
 critical.mark       0xFFA32B1C

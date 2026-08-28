@@ -557,7 +557,7 @@ impl MainWindow
         result.appearanceButton                 = AppearanceButton.create(surface, "sVaultDrive.appearance")
         result.appearanceButton.sigThemeChanged += func|window = result|(button)
         {
-            window.themeIndex = button.appearanceTheme == .Light ? 1 : 0
+            window.themeIndex = cast(u32) button.appearanceTheme
             catch g_App.saveState()
         }
         result.appearanceButton.sigLanguageChanged += func|window = result|(button)
@@ -1027,8 +1027,8 @@ impl MainWindow
     // Applies the persisted standard application palette.
     mtd applyTheme()
     {
-        .themeIndex = Math.min(.themeIndex, 1)
-        .appearanceButton.setAppearanceTheme(.themeIndex ? .Light : .Dark)
+        .themeIndex = Math.min(.themeIndex, cast(u32) AppearanceTheme.Dark)
+        .appearanceButton.setAppearanceTheme(cast(AppearanceTheme) .themeIndex)
     }
 
     // Reports the outcome of the latest step on the single status line.

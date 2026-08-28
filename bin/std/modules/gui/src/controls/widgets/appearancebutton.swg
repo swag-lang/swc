@@ -2,11 +2,12 @@
 
 using Core, Pixel
 
-// Selects one of the two palettes shipped by standard Swag applications.
+// Selects one of the three palettes shipped by standard Swag applications.
 enum AppearanceTheme
 {
-    Dark      // Uses the dark Swag palette.
-    Light     // Uses the light Swag palette.
+    SwagDark = 0     // Uses the dark Swag palette.
+    Dark     = 2     // Uses the neutral dark palette.
+    Light    = 1     // Uses the neutral light palette.
 }
 
 // Hosts the standard theme, language, and application-information menu in a title bar.
@@ -27,12 +28,13 @@ struct AppearanceButton
 
         readonly
         {
-            appearanceTheme = AppearanceTheme.Dark     // Theme currently selected by the control.
-            language: String                           // Registered language tag, or empty to follow the system.
+            appearanceTheme = AppearanceTheme.SwagDark     // Theme currently selected by the control.
+            language: String                               // Registered language tag, or empty to follow the system.
         }
     }
 }
 
+private const AppearanceThemeSwagDarkId = "Gui.Appearance.Theme.SwagDark"
 private const AppearanceThemeDarkId = "Gui.Appearance.Theme.Dark"
 private const AppearanceThemeLightId = "Gui.Appearance.Theme.Light"
 private const AppearanceLanguageSysId = "Gui.Appearance.Language.System"
@@ -82,10 +84,13 @@ impl AppearanceButton
     mtd setAppearanceTheme(theme: AppearanceTheme, notify = false)
     {
         .appearanceTheme = theme
-        if theme == .Dark do
-            .app().theme.setSwagDark()
-        else do
-            .app().theme.setSwagLight()
+        switch #complete theme
+        {
+        case .SwagDark: .app().theme.setSwagDark()
+        case .Dark:     .app().theme.setDark()
+        case .Light:    .app().theme.setLight()
+        }
+
         .app().notifyThemeChanged()
         if notify do
             .sigThemeChanged.call(me)
@@ -116,6 +121,7 @@ impl AppearanceButton
         root.updateFlags(.HideShortcuts)
 
         let themes = MenuCtrl.createPopup(root, owner: me)
+        themes.addItem(strings().appearance_SwagDark, AppearanceThemeSwagDarkId, checked: .appearanceTheme == .SwagDark)
         themes.addItem(strings().appearance_Dark, AppearanceThemeDarkId, checked: .appearanceTheme == .Dark)
         themes.addItem(strings().appearance_Light, AppearanceThemeLightId, checked: .appearanceTheme == .Light)
         root.addPopup(strings().appearance_Theme, themes)
@@ -137,7 +143,9 @@ impl AppearanceButton
 
     internal mtd applyAppearanceSelection(selected: #null WndId)
     {
-        if selected == AppearanceThemeDarkId do
+        if selected == AppearanceThemeSwagDarkId do
+            .setAppearanceTheme(.SwagDark, notify: true)
+        elif selected == AppearanceThemeDarkId do
             .setAppearanceTheme(.Dark, notify: true)
         elif selected == AppearanceThemeLightId do
             .setAppearanceTheme(.Light, notify: true)

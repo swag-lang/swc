@@ -725,7 +725,7 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.videoSubtitles", &g_VideoSubtitleSettings)
         if evt.serializer.isReading()
         {
-            .themeIndex     = Math.min(.themeIndex, 1)
+            .themeIndex     = Math.min(.themeIndex, cast(u32) AppearanceTheme.Dark)
             .recentPaneSize = Math.max(.recentPaneSize, ViewerPaneMinSize)
             if .filePanel.items.count do
                 .filePanel.items[0]!.size = .recentPaneSize
@@ -763,8 +763,8 @@ impl ViewerWindow
 
     mtd applyTheme(index: u32)
     {
-        .themeIndex = Math.min(index, 1)
-        .appearanceButton.setAppearanceTheme(.themeIndex ? .Light : .Dark)
+        .themeIndex = Math.min(index, cast(u32) AppearanceTheme.Dark)
+        .appearanceButton.setAppearanceTheme(cast(AppearanceTheme) .themeIndex)
     }
 
     mtd applyLanguage()
@@ -916,7 +916,7 @@ impl ViewerWindow
         result.appearanceButton                 = AppearanceButton.create(result.surface!, "sFileScope.appearance")
         result.appearanceButton.sigThemeChanged += func|window = result|(button)
         {
-            window.themeIndex = button.appearanceTheme == .Light ? 1 : 0
+            window.themeIndex = cast(u32) button.appearanceTheme
             catch window.saveState()
         }
         result.appearanceButton.sigLanguageChanged += func|window = result|(button)
@@ -1082,7 +1082,7 @@ impl ViewerWindow
         with result.infoBar = Wnd.create'ViewerInfoBar(result, {0, 0, 0, ViewerInfoHeight})
         {
             .dockStyle       = .Top
-            .backgroundStyle = .View
+            .backgroundStyle = .Band
             .padding         = {14, 4, 14, 4}
         }
 
@@ -1138,7 +1138,7 @@ impl ViewerWindow
             .dockStyle       = .Left
             .minSize.x       = ViewerPanelWidth
             .maxSize.x       = ViewerPanelWidth
-            .backgroundStyle = .Window
+            .backgroundStyle = .Application
             .hide()
         }
 
@@ -1146,14 +1146,14 @@ impl ViewerWindow
 
         with result.recentPane = Wnd.create'Wnd(result.filePanel)
         {
-            .backgroundStyle = .Window
+            .backgroundStyle = .Application
             .padding         = {0, 8, 0, 8}
         }
 
         with let recentHeader = Wnd.create'Wnd(result.recentPane, {0, 0, 0, ViewerPanelLabel})
         {
             .dockStyle       = .Top
-            .backgroundStyle = .Window
+            .backgroundStyle = .Application
             .margin          = {10, 0, 10, 0}
         }
 
@@ -1196,7 +1196,7 @@ impl ViewerWindow
 
         with result.folderPane = Wnd.create'Wnd(result.filePanel)
         {
-            .backgroundStyle = .Window
+            .backgroundStyle = .Application
             .padding         = {0, 8, 0, 8}
         }
 
@@ -1205,7 +1205,7 @@ impl ViewerWindow
         with let folderHeader = Wnd.create'Wnd(result.folderPane, {0, 0, 0, ViewerPanelLabel})
         {
             .dockStyle       = .Top
-            .backgroundStyle = .Window
+            .backgroundStyle = .Application
             .margin          = {10, 0, 10, 0}
         }
 

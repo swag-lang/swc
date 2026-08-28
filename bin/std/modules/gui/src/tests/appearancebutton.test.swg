@@ -72,7 +72,7 @@ using Swag, Core, Pixel
     var themeChanges, languageChanges, aboutRequests: u32
     button.sigThemeChanged += func|count = &themeChanges|(appearance)
     {
-        @assert(appearance.appearanceTheme == .Light)
+        discard appearance
         count[] += 1
     }
     button.sigLanguageChanged += func|count = &languageChanges|(appearance)
@@ -86,9 +86,15 @@ using Swag, Core, Pixel
         count[] += 1
     }
 
+    @assert(button.appearanceTheme == .SwagDark)
+    button.setAppearanceTheme(.Dark, notify: true)
+    @assert(button.appearanceTheme == .Dark and host.theme.colors.bk == ThemeColors.darkPalette().ground)
     button.setAppearanceTheme(.Light, notify: true)
+    @assert(button.appearanceTheme == .Light and host.theme.colors.bk == ThemeColors.lightPalette().ground)
+    button.applyAppearanceSelection("Gui.Appearance.Theme.SwagDark")
+    @assert(button.appearanceTheme == .SwagDark and host.theme.colors.bk == ThemeColors.swagDarkPalette().ground)
     expect button.setAppearanceLanguage("fr", notify: true)
-    @assert(themeChanges == 1 and languageChanges == 1)
+    @assert(themeChanges == 3 and languageChanges == 1)
     @assert(host.app.language() == "fr")
 
     button.applyAppearanceSelection("Gui.Appearance.About")

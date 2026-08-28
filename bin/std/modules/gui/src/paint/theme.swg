@@ -303,13 +303,6 @@ impl Theme
         .setSwagGeometry()
     }
 
-    // Applies the light Swag palette and its shared control geometry.
-    mtd setSwagLight()
-    {
-        .setPalette(ThemeColors.swagLightPalette())
-        .setSwagGeometry()
-    }
-
     // Restores the geometry the theme atlas was authored with.
     //
     // Every palette has to answer for the shape of a control as well as for its color, or
@@ -328,7 +321,7 @@ impl Theme
     // Gives interactive cells and standalone panels the same slight corner as an edit box.
     //
     // The default atlas draws a push button as a pill, which is the one control that cannot sit
-    // next to a field without looking borrowed from another kit. The Swag palettes instead use
+    // next to a field without looking borrowed from another kit. The Swag palette instead uses
     // one four-pixel corner for fields, actions, tool cells, selection states and raised panels.
     // Structural chrome remains square, so the corner softens a bounded thing without rounding
     // the bars and rails that join the surface together.

@@ -26,7 +26,7 @@ read as unfinished. Three measures cover the family:
 
 - **The outline of a window.** It sits on a desktop beside applications that all soften that
   corner, and carried literally the cut turns it into a slab dropped on the screen.
-  `ThemeMetrics.surfaceWnd_CornerRadius` is 12 in the Swag palettes — it was 8, which read as a
+  `ThemeMetrics.surfaceWnd_CornerRadius` is 12 in the Swag palette — it was 8, which read as a
   bevel on a square window rather than as a decision. **A radius too small to be seen is worse
   than none**: it costs the same pixels and reports nothing.
 - **The four-pixel interface corner.** Buttons, fields, icon cells, hover and selection grounds,

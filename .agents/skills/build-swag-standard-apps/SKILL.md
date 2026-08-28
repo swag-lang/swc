@@ -98,8 +98,8 @@ glyph, another app's icon, or a letter tile.
 
 ## Build The Standard Surface
 
-- Default to `ThemeColors.setSwagDark()`. Offer `setSwagLight()` only when the app exposes a real
-  theme choice. Never invent an app-local accent.
+- Default to `ThemeColors.setSwagDark()`. When the app exposes a theme choice, offer the shipped
+  Swag dark, neutral dark, and neutral light palettes. Never invent an app-local accent.
 - Use Voltage only for focus, the primary action, and the active state, plus exactly one
   four-pixel accent rail across the top edge of the application surface. One rail per window, not
   one per group: three parallel accent bars accent nothing and read as scaffolding. Never place
@@ -143,7 +143,7 @@ glyph, another app's icon, or a letter tile.
   line on its capitals instead — which is what a control drawing a frame around one line does, so
   that the same field reads the same whichever family it is set in. Never hand-tune a padding to
   compensate for either.
-- Design both palettes together, verify narrow and minimum-size layouts, and inspect a real native
+- Design all three palettes together, verify narrow and minimum-size layouts, and inspect a real native
   surface rather than trusting constants alone.
 
 ## Put Appearance And About In The Caption
@@ -155,7 +155,7 @@ placement in application layout code.
 
 - Register the application string tables and every supported `Gui.Language` before creating the
   button, so its language submenu is complete on the first opening.
-- Offer both shipped Swag palettes and every registered language, plus the system-language choice,
+- Offer all three shipped palettes and every registered language, plus the system-language choice,
   through this menu. Do not keep a second theme picker, language combo, property-grid row, or
   options-menu entry in the application body.
 - Connect `sigAboutRequested` and open one `Gui.AboutDlg.createApplication` box after the theme and
@@ -170,7 +170,7 @@ placement in application layout code.
   signal only for persistence and for application-owned derived state such as cached artwork; do
   not apply the palette or language a second time.
 - A language switch must retranslate text assigned at construction and re-run any layout whose
-  measurements depend on that wording. Test the caption action, both palettes, the system choice,
+  measurements depend on that wording. Test the caption action, all three palettes, the system choice,
   every language the application ships, and the About item through its normal modal Close action.
 
 ## Keep The Chrome Small And The Air Large

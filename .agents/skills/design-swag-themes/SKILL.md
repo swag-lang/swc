@@ -18,7 +18,7 @@ painted part, and **every one of them is derived** by `ThemeColors.apply(palette
 writes a semantic color directly. `apply` is the specification: read it to know what a part of
 the interface is allowed to be.
 
-Four palettes ship: `darkPalette`, `lightPalette`, `swagDarkPalette`, `swagLightPalette`. Each
+Three palettes ship: `darkPalette`, `lightPalette`, and `swagDarkPalette`. Each
 is a token list and nothing else.
 
 ### A color is a tone, and a tone is three questions
@@ -30,10 +30,8 @@ for them together is what makes a tone impossible to half-answer.
 Five tones, and there is no sixth. `signature` and `alternate` are what the family is recognized
 by; `critical`, `caution` and `info` are what happened. The split matters:
 
-- **The identity tones keep their block in every mode.** Voltage fills at `#F7F900` and Arc at
-  `#38BDF8` whichever way up the theme is read, and both carry Ink. That invariance *is* the
-  identity — the two Swag palettes declare the two tones with the same two constants, character
-  for character, and differ only in grounds and inks.
+- **The identity tones keep their block and ink together.** The Swag palette fills Voltage at
+  `#F7F900` and Arc at `#38BDF8`, and both carry Ink.
 - **The status tones adapt freely.** A notice has to be read before it has to be recognized, so
   a dark band with light ink becomes a pale band with dark ink and nothing is lost.
 
@@ -44,10 +42,9 @@ nearest** — not the extreme ground of the theme. A mid-tone accent clears a ne
 application ground easily and vanishes on the raised grey of the panel drawn over it, which is
 what the shipped neutral blue did for as long as it was written by hand.
 
-That one derivation is what lets a palette write `ThemeTone.from(Voltage, Ink)` in both modes and
-get a legible hairline in each: unchanged on ink, walked down to a dark Voltage on paper. The
-hue survives, which is the point — pointing in ink instead is what made the light theme read as
-black and white with a yellow button in it.
+That one derivation lets a palette write `ThemeTone.from(Voltage, Ink)` and get a legible hairline
+on every ground: unchanged on ink, walked down to a dark Voltage on paper. The hue survives, which
+is the point.
 
 A palette may still write a mark that has nothing to do with its block, and `apply` will keep it:
 that is how a status tone names an ink unrelated to its band. `apply` only ever moves a mark that
@@ -56,7 +53,7 @@ does not read.
 ### Why this shape, and what it rules out
 
 The previous model wrote all three hundred colors by hand for the neutral palettes, and let the
-Swag palettes override a subset of them. That is a delta, and a delta is a promise nobody can
+Swag palette override a subset of them. That is a delta, and a delta is a promise nobody can
 keep: the dark Swag palette answered for `btnPushFlat_HotBk` and the light one did not, so a
 black-and-white interface kept the pale blue hover of the neutral light theme it was derived
 from. Twenty-two values were asymmetric that way. Deriving every color from tokens makes that
@@ -85,7 +82,9 @@ hover should travel on an arbitrary ground. `btnPush_HotBk` is not, because it i
 
 The bar: could two reasonable themes disagree about it, in a way no other token predicts? If
 not, derive it. The notice grounds are tokens because recognizing a warning is a hue, not a step
-of lightness. The veil strengths are not: they are one ink at three alphas.
+of lightness. `band` is a token because a plain information strip must remain distinct from
+`ground`, `view`, and `panel` even when `raised` deliberately shares one of them. The veil
+strengths are not: they are one ink at three alphas.
 
 When a token is a decision rather than a color, make it one. `railed` is a `bool`, because a
 rail drawn in anything but the signature marks the active item in a language the rest of the
@@ -96,12 +95,9 @@ brand is a decision no other token predicts, and the two ends of the band are de
 *points* is a dark Voltage on paper. Set it to zero and the two ends collapse onto the band,
 which is how a theme that follows the desktop keeps a flat bar.
 
-`captionGlow` is also the clearest case of a number that must not be shared between two modes
-that share the decision. It is a mix, and a mix buys different amounts of weight in each
-direction: toward a color darker than the band it is spent on luminance, which the eye reads at
-once; toward one as light as the band it is spent on chroma, which costs about three times as
-much. 0.14 on ink and 0.42 on paper are the same decision priced twice, and the light band kept
-at the dark number was a cream nobody could name.
+`captionGlow` is a mix, so its visual weight depends on the band and the direction it travels.
+The Swag dark palette spends 0.14 toward Voltage; the neutral palettes keep it at zero. Judge a
+new value on its own ground rather than copying another palette's number.
 
 ### Keep the signature scarce, and spend the second tone instead
 
@@ -110,7 +106,7 @@ tool. It is not a ground for text and it is not a wash. A palette whose signatur
 color cannot tint a hovered row with it — a row washed in Voltage is unreadable — and that is
 precisely the work `alternate` exists to take.
 
-So `selectHot` and `selectPressed` carry the **alternate** tone, in both Swag modes: a list, a
+So `selectHot` and `selectPressed` carry the **alternate** tone in the Swag palette: a list, a
 menu, a tab bar and a selected row are where a reader spends most of their time, and washing them
 at the weight the neutral hover used to carry is how a theme gains a hue without gaining a
 weight. They stay separate tokens rather than derivations because how far a wash may travel is a
@@ -139,12 +135,6 @@ this wrong makes a blue glyph disappear into a blue square.
 - The hot and pressed states shift the two separately: `accentHot`/`accentPressed` for the mark,
   `groundHot`/`groundPressed` for the block.
 
-Because the two Swag palettes deliberately agree on both identity blocks, the shared-color test
-in `theme.colors.test.swg` finds the parts they answer for rather than listing them — it applies
-the palette twice with the two blocks and their inks moved, and sets aside whatever followed.
-Keep that shape if you add a part: a hand-written exception list is what lets a real mode leak
-slip in beside it.
-
 ### Every state must differ from the one before it
 
 Rest, hover, press, disabled, checked. If two of them resolve to the same value the control
@@ -170,7 +160,7 @@ drawn *over* a control rather than *by* it.
   to stay concentric.
 - **Keep clear of the border, and check that you did.** A mark inset by less than the border it
   sits inside merges with it and reads as a thicker edge rather than as a second thing. The Swag
-  palettes are where this shows first, because they point and border in the same Ink.
+  palette is where this shows first, because it points and borders in the same Ink.
 - **A mark that points in the accent has to be told what it lands on.** The accent is invisible on
   a control filled with that same accent — a dialog's default action, a switched-on toggle, a
   picked tool. Publish the fill ([[Gui.Wnd.focusRingGround]]) and let the theme pick between
@@ -196,7 +186,7 @@ Anything else goes through `ThemeColors`.
 
 ### A palette answers for geometry too
 
-`Theme.setSwagDark`/`setSwagLight` narrow the surface corner and point push buttons, rectangular
+`Theme.setSwagDark` narrows the surface corner and points push buttons, rectangular
 tool cells, their full checked states, and standalone panels at the same four-pixel tile. Hover
 and selection grounds reuse `selectionBox_Bk`, which carries that radius through lists, headers
 and property rows. `Theme.setDark`/`setLight` put palette-specific geometry back. Applying a
@@ -242,23 +232,19 @@ them.
 it is the tool for this work. `swc tools/examples.swgs run gui10`.
 
 It opens on the palette and the page the command line names, so comparing a change against the
-palettes it did not mean to touch is a script rather than twenty windows driven by pointer:
+palettes it did not mean to touch is a script rather than sixteen windows driven by pointer:
 
 ```
-swc tools/examples.swgs run gui10 --run-arg=--swaglight --run-arg=--widgets
+swc tools/examples.swgs run gui10 --run-arg=--light --run-arg=--widgets
 ```
 
-`--dark`, `--light`, `--swagdark`, `--swaglight`, `--sheet` choose the palette; `--colors`,
+`--dark`, `--light`, `--swagdark`, `--sheet` choose the theme variant; `--colors`,
 `--palettes`, `--metrics`, `--widgets` choose the page.
 
 - **Colors** — every `ThemeColors` value of the active palette, by reflection, over the grounds
   it is drawn on, with a checkerboard behind anything translucent.
-- **Palettes** — the same value across all five palettes side by side, with a **flagged rows
-  only** switch that keeps just the rows the dark and light Swag palettes resolve identically,
-  *once the parts the two identity tones answer for are set aside* — those are meant to agree,
-  and the page finds them the same way the test does rather than listing them. Five may remain:
-  the four of the close button, and `imageRect_Fg`. A sixth is a part that did not follow the
-  reader into the other mode. Run it after any change to `apply`.
+- **Palettes** — the same value across the three shipped palettes and the sheet-written example,
+  side by side. Run it after any change to `apply`.
 - **Metrics** — every `ThemeMetrics` value.
 - **Widgets** — every widget in every state a palette answers for. Hover and press are left to
   the pointer, which is why this page is scrolled through by hand. Its **focus rings** switch turns
@@ -288,9 +274,7 @@ After changing `apply`, a palette, or a widget's color choice:
 
 1. `swc tools/std.swgs dm test gui --test-file theme.colors.test.swg --test-file theme.sheet.test.swg --test-file themestyle.test.swg`
    — the palette tests pin the shipped Swag values, assert every
-   mark reads on every ground of its own palette, assert the dark and light palettes do not agree
-   on more than a handful of colors once the identity tones are set aside, and cover the sheet
-   layers.
+   mark reads on every ground of its own palette and cover the sheet layers.
 2. The command-stream goldens under `bin/std/modules/gui/src/tests/goldens/` change
    whenever a widget's colors do. A failing test leaves its `.actual` file beside the golden it
    diverged from; `swc tools/goldens.swgs` accepts them in bulk. Review the diff — a golden that
@@ -299,7 +283,8 @@ After changing `apply`, a palette, or a widget's color choice:
    `swc tools/apps.swgs dm test sSnapForge` is the one that shows a whole surface. Look at the
    `.actual` image before accepting it; that picture is the change.
 4. `swc tools/examples.swgs dm smoke gui10` walks every page of every palette.
-5. Look at the four palettes in gui10 before saying the change is done.
+5. Look at the three shipped palettes and the sheet-written example in gui10 before saying the
+   change is done.
 
 Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) to add only the widget golden files
 and application consumers whose rendering path changed.

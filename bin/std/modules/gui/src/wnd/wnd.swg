@@ -37,6 +37,8 @@ enum BackgroundStyle
     DialogBar       // Uses the dialog command-bar background.
     View            // Uses the document or content-view background.
     Panel           // Uses the raised window ground with the theme's standalone-panel geometry.
+    Application     // Uses the application ground behind its content and chrome.
+    Band            // Uses a plain information or navigation band.
 }
 
 // Selects how a window takes part in keyboard focus.
@@ -934,11 +936,13 @@ impl Wnd
         let theme = .theme()
         switch .backgroundStyle
         {
-        case .Window:    painter.fillRect(.position, theme.colors.wnd_Bk)
-        case .Panel:     theme.drawSubRect(painter, .position, &theme.rects.panel_Bk, theme.colors.wnd_Bk)
-        case .Dialog:    painter.fillRect(.position, theme.colors.dlg_Bk)
-        case .View:      painter.fillRect(.position, theme.colors.view_Bk)
-        case .DialogBar: theme.drawSubRect(bc.painter, .position, &theme.rects.dlg_BtnBar, theme.colors.dlg_BtnBarBk)
+        case .Application: painter.fillRect(.position, theme.colors.bk)
+        case .Window:      painter.fillRect(.position, theme.colors.wnd_Bk)
+        case .Panel:       theme.drawSubRect(painter, .position, &theme.rects.panel_Bk, theme.colors.wnd_Bk)
+        case .Dialog:      painter.fillRect(.position, theme.colors.dlg_Bk)
+        case .View:        painter.fillRect(.position, theme.colors.view_Bk)
+        case .Band:        painter.fillRect(.position, theme.colors.band_Bk)
+        case .DialogBar:   theme.drawSubRect(bc.painter, .position, &theme.rects.dlg_BtnBar, theme.colors.dlg_BtnBarBk)
         }
 
         painter.translateTransform(.position.x, .position.y)

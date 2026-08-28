@@ -10,6 +10,32 @@ func pixelAt(image: const *Image, x, y: s32)->u32
     return image.pixelColor(x, y).argb
 }
 
+// The four plain application grounds are available as window background styles, so a composed
+// surface can separate content and chrome without hardcoding palette colors.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(80, 20)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    let application = Wnd.create'Wnd(&host.root, {0, 0, 20, 20})
+    let view        = Wnd.create'Wnd(&host.root, {20, 0, 20, 20})
+    let window      = Wnd.create'Wnd(&host.root, {40, 0, 20, 20})
+    let band        = Wnd.create'Wnd(&host.root, {60, 0, 20, 20})
+    application.backgroundStyle = .Application
+    view.backgroundStyle        = .View
+    window.backgroundStyle      = .Window
+    band.backgroundStyle        = .Band
+
+    let image = host.render()
+    @assert(pixelAt(&image, 10, 10) == host.theme.colors.bk.argb)
+    @assert(pixelAt(&image, 30, 10) == host.theme.colors.view_Bk.argb)
+    @assert(pixelAt(&image, 50, 10) == host.theme.colors.wnd_Bk.argb)
+    @assert(pixelAt(&image, 70, 10) == host.theme.colors.band_Bk.argb)
+}
+
 // A device scale of 2 renders the same logical tree into a doubled physical target:
 // logical geometry lands on scaled device pixels while the window tree stays logical.
 #test

@@ -21,9 +21,9 @@ struct VideoStrings
     ui_AudioDetails:           string = "% · % ch · %{f1} kHz"                         // Encoding, channel count, and sample rate in the host summary.
     ui_SubtitleOff:            string = "Off"                                          // Disables subtitle presentation.
     ui_SubtitleTrackNumber:    string = "Subtitle %"                                   // Fallback name for an unnamed subtitle track.
-    ui_SubtitleTrackLang:      string = "% (%)"                                        // A subtitle-track name followed by its language code.
-    ui_SubtitleEmbedded:       string = "% - Embedded"                                 // Embedded subtitle-track entry.
-    ui_SubtitleSidecar:        string = "% - External file"                            // Sidecar subtitle-track entry.
+    ui_SubtitleTrackLang:      string = "<p2> (%)</p>"                                 // A subtitle-track language suffix.
+    ui_SubtitleEmbedded:       string = "<b>%</b>% · <p3>Embedded</p>"                 // Embedded subtitle-track entry.
+    ui_SubtitleSidecar:        string = "<b>%</b>% · <p3>External file</p>"            // Sidecar subtitle-track entry.
     ui_SubtitleFont:           string = "Font"                                         // Subtitle font submenu.
     ui_SubtitleFontSans:       string = "System sans serif"                            // Proportional subtitle font.
     ui_SubtitleFontMono:       string = "Monospace"                                    // Fixed-width subtitle font.
@@ -111,9 +111,10 @@ func videoSubtitleTrackText(index: u32, track: const *Video.Subtitle.Track, side
     let displayName = videoSubtitleText(track.displayNameData(), track.displayNameLength())
     let language    = videoSubtitleText(track.languageTagData(), track.languageTagLength())
     var name        = @countof(displayName) ? String.from(displayName) : Format.toString(strings.ui_SubtitleTrackNumber, index + 1)
+    var languageSuffix: String
     if @countof(language) and language != "und" do
-        name = Format.toString(strings.ui_SubtitleTrackLang, name.toString(), language)
-    return Format.toString(sidecar ? strings.ui_SubtitleSidecar : strings.ui_SubtitleEmbedded, name.toString())
+        languageSuffix = Format.toString(strings.ui_SubtitleTrackLang, language)
+    return Format.toString(sidecar ? strings.ui_SubtitleSidecar : strings.ui_SubtitleEmbedded, name.toString(), languageSuffix.toString())
 }
 
 // Registers this viewer's string table with the application.

@@ -37,7 +37,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     var dark = host.render(&host.root)
     discard dark
 
-    host.theme.setSwagLight()
+    host.theme.setLight()
     host.app.notifyThemeChanged()
     host.notify(.ThemeChanged)
     combo.invalidate()

@@ -479,19 +479,20 @@ internal struct VideoViewer
 
     #[Swag.Late]
     {
-        commands:        *ViewerCommandBar
-        playButton:      *IconButton
-        stopButton:      *IconButton
-        backwardButton:  *IconButton
-        forwardButton:   *IconButton
-        timeline:        *Slider
-        timeLabel:       *Label
-        audioButton:     *IconButton
-        subtitleButton:  *IconButton
-        muteButton:      *IconButton
-        volumeSlider:    *Slider
-        imageView:       *ImageView
-        subtitleOverlay: *VideoSubtitleOverlay
+        commands:         *ViewerCommandBar
+        playButton:       *IconButton
+        stopButton:       *IconButton
+        backwardButton:   *IconButton
+        forwardButton:    *IconButton
+        timeline:         *Slider
+        currentTimeLabel: *Label
+        totalTimeLabel:   *Label
+        audioButton:      *IconButton
+        subtitleButton:   *IconButton
+        muteButton:       *IconButton
+        volumeSlider:     *Slider
+        imageView:        *ImageView
+        subtitleOverlay:  *VideoSubtitleOverlay
     }
 
     seekOverlay: #null *VideoSeekOverlay
@@ -816,7 +817,8 @@ internal impl VideoViewer
             }
         }
 
-        .timeLabel.setText(mediaTimeRangeText(seconds, duration))
+        .currentTimeLabel.setText(mediaTimeText(seconds))
+        .totalTimeLabel.setText(mediaDurationText(duration))
     }
 
     mtd seekSeconds(seconds: f64)
@@ -1833,6 +1835,13 @@ private impl VideoViewer
             }
         }
 
+        with result.currentTimeLabel = Label.create(result.commands, "", {0, 0, 56, 36}, null, .SecondaryText)
+        {
+            .dockStyle = .Left
+            .margin    = {8, 0, 4, 0}
+            .setTextAlignment(.Right, .Center)
+        }
+
         with result.audioButton = IconButton.create(result.commands, result.theme().icon(.AudioTracks, VideoGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Right
@@ -1887,17 +1896,17 @@ private impl VideoViewer
             }
         }
 
-        with result.timeLabel = Label.create(result.commands, "", {0, 0, 112, 36}, null, .SecondaryText)
+        with result.totalTimeLabel = Label.create(result.commands, "", {0, 0, 56, 36}, null, .SecondaryText)
         {
             .dockStyle = .Right
-            .margin.x  = 8
-            .setTextAlignment(.Right, .Center)
+            .margin    = {4, 0, 8, 0}
+            .setTextAlignment(.Left, .Center)
         }
 
         with result.timeline = Slider.create(result.commands, {0, 0, 0, 36})
         {
             .dockStyle = .Center
-            .margin    = {12, 1, 12, 1}
+            .margin    = {4, 1, 4, 1}
             .toolTip   = videoStrings().ui_TipSeek
 
             // A drag may cross hundreds of frames. Decode its final position once instead of

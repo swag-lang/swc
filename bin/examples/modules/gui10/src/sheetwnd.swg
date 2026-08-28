@@ -11,7 +11,7 @@ using Core, Gui, Pixel
 enum SheetKind
 {
     Colors       // Every color of the active palette, over the grounds it is drawn on.
-    Palettes     // Every color of the four shipped palettes, side by side.
+    Palettes     // Every color of the shipped palettes and sheet-written example, side by side.
     Metrics      // Every measurement of the active theme.
 }
 
@@ -22,7 +22,6 @@ const NameWidth    = 300.0
 const SwatchWidth  = 128.0
 const SwatchGap    = 10.0
 const HexWidth     = 108.0
-const FlagWidth    = 96.0
 const SwatchInset  = 3.0
 
 // One line of a sheet: either the head of a family, or one value of it.
@@ -33,19 +32,13 @@ struct SheetRow
     name: String     // Reflected field name, or the family name on a group row.
     text: String     // The value as text: the hexadecimal color, or the measurement.
 
-    colors: [5] Color     // One color per palette; only the first is filled outside the palette sheet.
-
-    // Whether the dark and the light variant of the Swag palette resolve this color to the
-    // same value. A handful legitimately do — the close button, the notice chips, the
-    // rich-text slots, anything that means one thing on any ground — and every other one is
-    // a part that did not follow the reader into the other mode.
-    shared: bool
+    colors: [4] Color     // One color per variant; only the first is filled outside the palette sheet.
 }
 
 // The content of the sheet, painted directly rather than built out of widgets.
 //
 // Three hundred and thirty colors is three hundred and thirty windows, each with a style,
-// a layout entry and an event path, to show what four rectangles and a string say.
+// a layout entry and an event path, to show what a few rectangles and a string say.
 struct SheetView
 {
     using wnd: Wnd
@@ -53,15 +46,14 @@ struct SheetView
     #[Swag.Late]
     host: *SheetWnd
 
-    kind:       SheetKind
-    filter:     String
-    issuesOnly: bool     // Whether the palette sheet keeps only the rows it flags.
-    rows:       Array'SheetRow
+    kind:   SheetKind
+    filter: String
+    rows:   Array'SheetRow
 
     // Ground each palette column is drawn over, so a swatch is judged against the surface
     // its own theme would put it on. Cached with the rows: building a palette is cheap,
     // building one per swatch per frame is not.
-    grounds: [5] Color
+    grounds: [4] Color
 
     fontName: #null *Font     // Face the names are listed in.
     fontMono: #null *Font     // Face the values are listed in, so digits line up.
@@ -95,13 +87,6 @@ impl SheetView
     mtd setFilter(filter: string)
     {
         .filter = String.toLower(filter)
-        .host.setScrollPos(0, 0)
-        .rebuild()
-    }
-
-    mtd setIssuesOnly(issuesOnly: bool)
-    {
-        .issuesOnly = issuesOnly
         .host.setScrollPos(0, 0)
         .rebuild()
     }
@@ -171,27 +156,12 @@ impl SheetView
 
     private mtd buildPalettes()
     {
-        var palettes: [5] ThemeColors
+        var palettes: [4] ThemeColors
         for i in ThemeVariantCount
         {
             palettes[i] = variantColors(cast(ThemeVariant) cast(s32) i)
             .grounds[i] = palettes[i].bk
         }
-
-        // The parts the two identity tones answer for are meant to agree across the modes: a
-        // block is what the reader recognizes, so Voltage and Arc fill the same shapes under the
-        // same ink whichever way up the theme is read. They are found rather than listed — apply
-        // one palette twice with the two blocks and their inks moved, and whatever followed is a
-        // brand part — because a hand-written exception list is exactly what would let a real
-        // mode leak hide inside it.
-        var brandA, brandB: ThemeColors
-        var probe = ThemeColors.swagDarkPalette()
-        brandA.apply(probe)
-        probe.signature.ground   = 0xFF010203
-        probe.signature.onGround = 0xFF040506
-        probe.alternate.ground   = 0xFF070809
-        probe.alternate.onGround = 0xFF0A0B0C
-        brandB.apply(probe)
 
         let type = cast(const *Swag.TypeInfoStruct) #typeof(ThemeColors)
         for field in type.fields
@@ -204,15 +174,6 @@ impl SheetView
             row.name = name
             for i in ThemeVariantCount do
                 row.colors[i] = (cast([*] u8) &palettes[i] + field.offset)[as Color]
-
-            let brand     = (cast([*] u8) &brandA + field.offset)[as Color] != (cast([*] u8) &brandB + field.offset)[as Color]
-            let swagDark  = row.colors[cast(s32) ThemeVariant.SwagDark]
-            let swagLight = row.colors[cast(s32) ThemeVariant.SwagLight]
-            row.shared = !brand and swagDark.a != 0 and swagLight.a != 0 and swagDark == swagLight
-            row.text   = row.shared ? "both modes" : ""
-
-            if .issuesOnly and !row.shared do
-                continue
 
             .openFamily(familyOf(name))
             .rows.add(row)
@@ -344,13 +305,6 @@ impl IWnd for SheetView
                     let swatch = Math.Rectangle{x, rect.y + SwatchInset, SwatchWidth, height - 2 * SwatchInset}
                     .drawSwatch(painter, swatch, row.colors[i], .grounds[i])
                     x += SwatchWidth + SwatchGap
-                }
-
-                if row.shared
-                {
-                    let flag = Math.Rectangle{x, rect.y, FlagWidth, height}
-                    painter.fillRect({flag.x, flag.y + SwatchInset, FlagWidth, height - 2 * SwatchInset}, colors.embInfo_CriticalBk)
-                    drawCell(painter, {flag.x + 6, flag.y, FlagWidth - 12, height}, row.text.toString(), .fontMono!, colors.embInfo_CriticalText)
                 }
 
             case .Metrics:

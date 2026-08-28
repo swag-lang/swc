@@ -744,7 +744,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     }
 }
 
-// The global palette choice crosses the same state boundary as the surface placement.
+// All three application palettes cross the same state boundary as the surface placement.
 #test
 {
     var host: Testing.HeadlessHost
@@ -753,9 +753,16 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     let index  = createViewerIndex()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    window.applyTheme(1)
+    @assert(window.appearanceButton.appearanceTheme == .SwagDark)
+
+    window.applyTheme(cast(u32) AppearanceTheme.Dark)
     host.notify(.ThemeChanged)
-    @assert(window.themeIndex == 1)
+    @assert(window.themeIndex == cast(u32) AppearanceTheme.Dark)
+    @assert(host.app.theme.colors.view_Bk == ThemeColors.darkPalette().view)
+
+    window.applyTheme(cast(u32) AppearanceTheme.Light)
+    host.notify(.ThemeChanged)
+    @assert(window.themeIndex == cast(u32) AppearanceTheme.Light)
     @assert(host.app.theme.colors.view_Bk == 0xFFFFFFFF)
     @assert(window.themeColors().view_Bk == 0xFFFFFFFF)
 
@@ -764,7 +771,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     loadViewerState(window, state.toSlice())
     window.applyTheme(window.themeIndex)
     host.notify(.ThemeChanged)
-    @assert(window.themeIndex == 1 and host.app.theme.colors.view_Bk == 0xFFFFFFFF)
+    @assert(window.themeIndex == cast(u32) AppearanceTheme.Light and host.app.theme.colors.view_Bk == 0xFFFFFFFF)
     @assert(window.themeColors().view_Bk == 0xFFFFFFFF)
 }
 
@@ -1014,7 +1021,15 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(!window.searchPrevious.isEnabled() and !window.searchNext.isEnabled())
     @assert(window.infoBar.position.height == ViewerInfoHeight)
     @assert(window.infoBar.dockStyle == .Top)
-    @assert(window.infoBar.backgroundStyle == window.backgroundStyle)
+    @assert(window.backgroundStyle == .View and window.infoBar.backgroundStyle == .Band)
+    @assert(window.filePanel.backgroundStyle == .Application)
+    @assert(window.recentPane.backgroundStyle == .Application and window.folderPane.backgroundStyle == .Application)
+    @assert(window.viewerBar.backgroundStyle == .Window)
+    @assert(window.themeColors().view_Bk != window.themeColors().band_Bk)
+    @assert(window.themeColors().view_Bk != window.themeColors().bk)
+    @assert(window.themeColors().view_Bk != window.themeColors().wnd_Bk)
+    @assert(window.themeColors().band_Bk != window.themeColors().bk and window.themeColors().band_Bk != window.themeColors().wnd_Bk)
+    @assert(window.themeColors().bk != window.themeColors().wnd_Bk)
     @assert(window.infoBar.isLocallyVisible())
     @assert(window.viewerBar.dockStyle == .Bottom and !window.viewerBar.isLocallyVisible())
     @assert(window.infoNameLabel.name.raw.isEmpty())

@@ -161,6 +161,7 @@ enum class MicroOp : uint8_t
     VecAvgU8,
     VecAvgU16,
     VecMaddS16,
+    VecMaddUBS16,
     VecSadU8,
     VecAndNot,
 

@@ -152,8 +152,9 @@ into every lane, '@vecsatadd' and '@vecsatsub' clamp instead of wrapping,
 input halves,
 '@vecwidenlo' and '@vecwidenhi' extend half the lanes to double width,
 '@vecavgr' is the rounding average, '@vecmadd' multiplies 16-bit pairs into
-32-bit sums, '@vecsum' adds the four lanes of an 's32' vector with wrapping
-arithmetic, '@vectruncs32' converts four 'f32' lanes to 's32' by truncating
+32-bit sums and '@vecmaddubs' does the same for unsigned and signed bytes with
+a saturating sum, '@vecsad' sums the absolute byte differences of each half,
+'@vectruncs32' converts four 'f32' lanes to 's32' by truncating
 toward zero, '@vecgather' loads four 's32' values through four 'u32' indices,
 and '@vecperm' permutes bytes through a dynamic table. NaN and
 values outside the 's32' range become 's32.Min'. '@min',
@@ -189,7 +190,7 @@ readable table element and be at most 's32.Max'.
     @assert(avg[0] == 150)
 
     let quads = cast(#simd [4] s32) [1, 2, 3, 4]
-    @assert(@vecsum(quads) == 10)
+    @assert(@vecreduceadd(quads) == 10)
 
     let samples = cast(#simd [4] f32) [1.9, -1.9, 32767.9, -32768.9]
     let ints    = cast([4] s32) @vectruncs32(samples)
@@ -198,6 +199,52 @@ readable table element and be at most 's32.Max'.
     var lookup: [5] s32 = [10, 20, 30, 40, 50]
     let found           = cast([4] s32) @vecgather(@dataof(lookup), cast(#simd [4] u32) [4, 0, 3, 1])
     @assert(found[0] == 50 and found[1] == 10 and found[2] == 40 and found[3] == 20)
+}
+
+/**
+# Horizontal Reductions
+
+The '@vecreduce' family combines every lane of a vector into one scalar of the
+lane type: '@vecreduceadd' sums, '@vecreducemin' and '@vecreducemax' select,
+and '@vecreduceand', '@vecreduceor' and '@vecreducexor' fold the bits of
+integer lanes.
+
+Adjacent lanes combine first and their results after, so the order is a
+balanced tree over the lane index; that order is what a float sum observes.
+Integer sums wrap like every other lane arithmetic. The float minimum and
+maximum follow the element-wise '@min' and '@max', which answer their second
+operand when either side is a NaN, so a NaN does not propagate out of a
+reduction.
+
+Nothing here goes through memory: each step slides the upper half of the
+vector down and applies one element-wise operation.
+*/
+#test
+{
+    let quads = cast(#simd [4] s32) [1, 2, 3, 4]
+    @assert(@vecreduceadd(quads) == 10)
+    @assert(@vecreducemin(quads) == 1)
+    @assert(@vecreducemax(quads) == 4)
+
+    let bits = cast(#simd [4] u32) [0b1110, 0b1010, 0b1111, 0b0110]
+    @assert(@vecreduceand(bits) == 0b0010)
+    @assert(@vecreduceor(bits) == 0b1111)
+    @assert(@vecreducexor(bits) == 0b1101)
+
+    // An integer sum wraps, like every other lane arithmetic.
+    let edge = cast(#simd [4] s32) [2_147_483_647, 1, 0, 0]
+    @assert(@vecreduceadd(edge) == -2_147_483_648)
+
+    let floats = cast(#simd [4] f32) [1.5, -2.5, 8.0, 0.25]
+    @assert(@vecreduceadd(floats) == 7.25)
+    @assert(@vecreducemin(floats) == -2.5)
+    @assert(@vecreducemax(floats) == 8.0)
+
+    // The absolute byte differences of each half land in one 64-bit lane each.
+    let left  = cast(#simd [16] u8) [10, 20, 30, 40, 50, 60, 70, 80, 0, 0, 0, 0, 0, 0, 0, 0]
+    let right = cast(#simd [16] u8) [1, 2, 3, 4, 5, 6, 7, 8, 255, 0, 0, 0, 0, 0, 0, 0]
+    let diffs = cast([2] u64) @vecsad(left, right)
+    @assert(diffs[0] == 9 + 18 + 27 + 36 + 45 + 54 + 63 + 72 and diffs[1] == 255)
 }
 
 /**

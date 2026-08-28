@@ -155,8 +155,8 @@ func splatU8(value: u8)->#simd [16] u8 => @vecsplat(value)
     let mr = cast([4] s32) @vecmadd(m1, m2)
     @assert(mr[0] == 30 and mr[1] == 70 and mr[2] == 10 and mr[3] == 60000)
 
-    @assert(@vecsum(cast(#simd [4] s32) [1, 2, 3, 4]) == 10)
-    @assert(@vecsum(cast(#simd [4] s32) [2_147_483_647, 1, 0, 0]) == -2_147_483_648)
+    @assert(@vecreduceadd(cast(#simd [4] s32) [1, 2, 3, 4]) == 10)
+    @assert(@vecreduceadd(cast(#simd [4] s32) [2_147_483_647, 1, 0, 0]) == -2_147_483_648)
 }
 
 #test

@@ -104,8 +104,95 @@ namespace Simd
         // Multiplies 16-bit lanes pairwise and adds each pair of adjacent products into a 32-bit lane.
         func mulAddPairs(x, y: S16x8)->S32x4 => @vecmadd(x, y)
 
-        // Adds the four lanes with wrapping arithmetic.
-        func sum(value: S32x4)->s32 => @vecsum(value)
+        // Adds every lane into one scalar, with wrapping arithmetic for integers.
+        //
+        // Adjacent lanes combine first and their results after, so the order is a
+        // balanced tree over the lane index. That order is what a float sum observes.
+        func sum(value: U8x16)->u8  => @vecreduceadd(value)
+        func sum(value: S8x16)->s8  => @vecreduceadd(value)
+        func sum(value: U16x8)->u16 => @vecreduceadd(value)
+        func sum(value: S16x8)->s16 => @vecreduceadd(value)
+        func sum(value: U32x4)->u32 => @vecreduceadd(value)
+        func sum(value: S32x4)->s32 => @vecreduceadd(value)
+        func sum(value: U64x2)->u64 => @vecreduceadd(value)
+        func sum(value: S64x2)->s64 => @vecreduceadd(value)
+        func sum(value: F32x4)->f32 => @vecreduceadd(value)
+        func sum(value: F64x2)->f64 => @vecreduceadd(value)
+
+        // Returns the smallest lane.
+        //
+        // Float lanes follow the element-wise [[Math.min]], which answers its second
+        // operand when either side is a NaN, so a NaN does not propagate.
+        func minimum(value: U8x16)->u8  => @vecreducemin(value)
+        func minimum(value: S8x16)->s8  => @vecreducemin(value)
+        func minimum(value: U16x8)->u16 => @vecreducemin(value)
+        func minimum(value: S16x8)->s16 => @vecreducemin(value)
+        func minimum(value: U32x4)->u32 => @vecreducemin(value)
+        func minimum(value: S32x4)->s32 => @vecreducemin(value)
+        func minimum(value: U64x2)->u64 => @vecreducemin(value)
+        func minimum(value: S64x2)->s64 => @vecreducemin(value)
+        func minimum(value: F32x4)->f32 => @vecreducemin(value)
+        func minimum(value: F64x2)->f64 => @vecreducemin(value)
+
+        // Returns the largest lane, with the NaN behavior of [[Core.Math.Simd.minimum]].
+        func maximum(value: U8x16)->u8  => @vecreducemax(value)
+        func maximum(value: S8x16)->s8  => @vecreducemax(value)
+        func maximum(value: U16x8)->u16 => @vecreducemax(value)
+        func maximum(value: S16x8)->s16 => @vecreducemax(value)
+        func maximum(value: U32x4)->u32 => @vecreducemax(value)
+        func maximum(value: S32x4)->s32 => @vecreducemax(value)
+        func maximum(value: U64x2)->u64 => @vecreducemax(value)
+        func maximum(value: S64x2)->s64 => @vecreducemax(value)
+        func maximum(value: F32x4)->f32 => @vecreducemax(value)
+        func maximum(value: F64x2)->f64 => @vecreducemax(value)
+
+        // Combines every lane with a bitwise and.
+        func bitwiseAnd(value: U8x16)->u8  => @vecreduceand(value)
+        func bitwiseAnd(value: U16x8)->u16 => @vecreduceand(value)
+        func bitwiseAnd(value: U32x4)->u32 => @vecreduceand(value)
+        func bitwiseAnd(value: U64x2)->u64 => @vecreduceand(value)
+
+        // Combines every lane with a bitwise or.
+        func bitwiseOr(value: U8x16)->u8  => @vecreduceor(value)
+        func bitwiseOr(value: U16x8)->u16 => @vecreduceor(value)
+        func bitwiseOr(value: U32x4)->u32 => @vecreduceor(value)
+        func bitwiseOr(value: U64x2)->u64 => @vecreduceor(value)
+
+        // Combines every lane with a bitwise exclusive or.
+        func bitwiseXor(value: U8x16)->u8  => @vecreducexor(value)
+        func bitwiseXor(value: U16x8)->u16 => @vecreducexor(value)
+        func bitwiseXor(value: U32x4)->u32 => @vecreducexor(value)
+        func bitwiseXor(value: U64x2)->u64 => @vecreducexor(value)
+
+        // Counts the mask lanes that are all-ones.
+        func countTrue(value: U8x16)->u32 => @bitcountnz(@vecmask(value))
+        func countTrue(value: U16x8)->u32 => @bitcountnz(@vecmask(value))
+        func countTrue(value: U32x4)->u32 => @bitcountnz(@vecmask(value))
+        func countTrue(value: U64x2)->u32 => @bitcountnz(@vecmask(value))
+
+        // Sums the absolute differences of the bytes of each half into the low word
+        // of the matching 64-bit lane.
+        //
+        // Signed bytes reach the same instruction by biasing both sides, which leaves
+        // the differences unchanged.
+        func absoluteDifferences(x, y: U8x16)->U64x2 => @vecsad(x, y)
+        func absoluteDifferences(x, y: S8x16)->U64x2 => @vecsad(x, y)
+
+        // Sums the absolute differences of all sixteen bytes.
+        func sumAbsoluteDifferences(x, y: U8x16)->u32 => cast(u32) @vecreduceadd(@vecsad(x, y))
+        func sumAbsoluteDifferences(x, y: S8x16)->u32 => cast(u32) @vecreduceadd(@vecsad(x, y))
+
+        // Multiplies unsigned and signed bytes pairwise and adds each pair of adjacent
+        // products into a 16-bit lane, saturating the sum.
+        func mulAddPairs(x: U8x16, y: S8x16)->S16x8 => @vecmaddubs(x, y)
+
+        // Sums every lane into a wider accumulator, which no lane width can overflow.
+        func sumWide(value: U8x16)->u32 => cast(u32) @vecreduceadd(@vecsad(value, @vecsplat(0'u8)))
+        func sumWide(value: S8x16)->s32 => sumWide(@vecwidenlo(value) + @vecwidenhi(value))
+        func sumWide(value: S16x8)->s32 => @vecreduceadd(@vecmadd(value, @vecsplat(1's16)))
+        func sumWide(value: U16x8)->u32 => @vecreduceadd(@vecwidenlo(value) + @vecwidenhi(value))
+        func sumWide(value: U32x4)->u64 => @vecreduceadd(@vecwidenlo(value) + @vecwidenhi(value))
+        func sumWide(value: S32x4)->s64 => @vecreduceadd(@vecwidenlo(value) + @vecwidenhi(value))
 
         // Converts float lanes to signed 32-bit integers by truncating toward zero.
         //

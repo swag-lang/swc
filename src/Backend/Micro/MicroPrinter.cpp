@@ -252,6 +252,8 @@ namespace
                 return "vec.avgu16";
             case MicroOp::VecMaddS16:
                 return "vec.madds16";
+            case MicroOp::VecMaddUBS16:
+                return "vec.maddubs16";
             case MicroOp::VecSadU8:
                 return "vec.sadu8";
             case MicroOp::VecAndNot:

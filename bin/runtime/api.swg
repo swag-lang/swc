@@ -1512,11 +1512,75 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
     func @vecavgr(value1, value2: #simd [8] u16)->#simd [8] u16
 
     // Pairwise multiply-add: lanes multiply pairwise and adjacent products
-    // add into double-width lanes.
+    // add into double-width lanes. The unsigned/signed byte form saturates
+    // its 16-bit sums.
     func @vecmadd(value1, value2: #simd [8] s16)->#simd [4] s32
+    func @vecmaddubs(value1: #simd [16] u8, value2: #simd [16] s8)->#simd [8] s16
 
-    // Horizontal sum: adds the four lanes with wrapping arithmetic.
-    func @vecsum(value: #simd [4] s32)->s32
+    // Sum of absolute byte differences: each half of the operands reduces
+    // into the low word of the matching 64-bit lane.
+    func @vecsad(value1, value2: #simd [16] u8)->#simd [2] u64
+    func @vecsad(value1, value2: #simd [16] s8)->#simd [2] u64
+
+    // Horizontal reductions: every lane combines into one scalar of the lane
+    // type. Adjacent lanes combine first and their results after, so the
+    // order is a balanced tree over the lane index. Integer sums wrap, and
+    // the float minimum and maximum follow the element-wise '@min' and
+    // '@max', which answer their second operand when either side is a NaN.
+    func @vecreduceadd(value: #simd [16] u8)->u8
+    func @vecreduceadd(value: #simd [16] s8)->s8
+    func @vecreduceadd(value: #simd [8] u16)->u16
+    func @vecreduceadd(value: #simd [8] s16)->s16
+    func @vecreduceadd(value: #simd [4] u32)->u32
+    func @vecreduceadd(value: #simd [4] s32)->s32
+    func @vecreduceadd(value: #simd [2] u64)->u64
+    func @vecreduceadd(value: #simd [2] s64)->s64
+    func @vecreduceadd(value: #simd [4] f32)->f32
+    func @vecreduceadd(value: #simd [2] f64)->f64
+    func @vecreducemin(value: #simd [16] u8)->u8
+    func @vecreducemin(value: #simd [16] s8)->s8
+    func @vecreducemin(value: #simd [8] u16)->u16
+    func @vecreducemin(value: #simd [8] s16)->s16
+    func @vecreducemin(value: #simd [4] u32)->u32
+    func @vecreducemin(value: #simd [4] s32)->s32
+    func @vecreducemin(value: #simd [2] u64)->u64
+    func @vecreducemin(value: #simd [2] s64)->s64
+    func @vecreducemin(value: #simd [4] f32)->f32
+    func @vecreducemin(value: #simd [2] f64)->f64
+    func @vecreducemax(value: #simd [16] u8)->u8
+    func @vecreducemax(value: #simd [16] s8)->s8
+    func @vecreducemax(value: #simd [8] u16)->u16
+    func @vecreducemax(value: #simd [8] s16)->s16
+    func @vecreducemax(value: #simd [4] u32)->u32
+    func @vecreducemax(value: #simd [4] s32)->s32
+    func @vecreducemax(value: #simd [2] u64)->u64
+    func @vecreducemax(value: #simd [2] s64)->s64
+    func @vecreducemax(value: #simd [4] f32)->f32
+    func @vecreducemax(value: #simd [2] f64)->f64
+    func @vecreduceand(value: #simd [16] u8)->u8
+    func @vecreduceand(value: #simd [16] s8)->s8
+    func @vecreduceand(value: #simd [8] u16)->u16
+    func @vecreduceand(value: #simd [8] s16)->s16
+    func @vecreduceand(value: #simd [4] u32)->u32
+    func @vecreduceand(value: #simd [4] s32)->s32
+    func @vecreduceand(value: #simd [2] u64)->u64
+    func @vecreduceand(value: #simd [2] s64)->s64
+    func @vecreduceor(value: #simd [16] u8)->u8
+    func @vecreduceor(value: #simd [16] s8)->s8
+    func @vecreduceor(value: #simd [8] u16)->u16
+    func @vecreduceor(value: #simd [8] s16)->s16
+    func @vecreduceor(value: #simd [4] u32)->u32
+    func @vecreduceor(value: #simd [4] s32)->s32
+    func @vecreduceor(value: #simd [2] u64)->u64
+    func @vecreduceor(value: #simd [2] s64)->s64
+    func @vecreducexor(value: #simd [16] u8)->u8
+    func @vecreducexor(value: #simd [16] s8)->s8
+    func @vecreducexor(value: #simd [8] u16)->u16
+    func @vecreducexor(value: #simd [8] s16)->s16
+    func @vecreducexor(value: #simd [4] u32)->u32
+    func @vecreducexor(value: #simd [4] s32)->s32
+    func @vecreducexor(value: #simd [2] u64)->u64
+    func @vecreducexor(value: #simd [2] s64)->s64
 
     // Converts float lanes to signed 32-bit integers by truncating toward
     // zero. NaN and values outside the destination range become 's32.Min'.

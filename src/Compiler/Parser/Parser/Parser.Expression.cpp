@@ -872,7 +872,12 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicVecMask:
         case TokenId::IntrinsicVecAny:
         case TokenId::IntrinsicVecAll:
-        case TokenId::IntrinsicVecSum:
+        case TokenId::IntrinsicVecReduceAdd:
+        case TokenId::IntrinsicVecReduceMin:
+        case TokenId::IntrinsicVecReduceMax:
+        case TokenId::IntrinsicVecReduceAnd:
+        case TokenId::IntrinsicVecReduceOr:
+        case TokenId::IntrinsicVecReduceXor:
         case TokenId::IntrinsicVecTruncS32:
             return parseIntrinsicCallExpr(1);
 
@@ -896,6 +901,8 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicVecInterleaveHi:
         case TokenId::IntrinsicVecAvgR:
         case TokenId::IntrinsicVecMadd:
+        case TokenId::IntrinsicVecMaddUBS:
+        case TokenId::IntrinsicVecSad:
         case TokenId::IntrinsicVecGather:
         case TokenId::IntrinsicVecPerm:
             return parseIntrinsicCallExpr(2);

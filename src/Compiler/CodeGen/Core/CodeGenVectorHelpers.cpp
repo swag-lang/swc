@@ -671,4 +671,134 @@ MicroReg CodeGenVectorHelpers::emitFloatAbs(CodeGen& codeGen, MicroReg valueReg,
     return emitVecBinary(codeGen, valueReg, repeatedConstant(codeGen, laneBits / 8, magnitude), MicroOp::VecAnd);
 }
 
+MicroReg CodeGenVectorHelpers::emitMinMax(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, const TypeInfo& laneType, bool wantMin)
+{
+    MicroBuilder&  builder  = codeGen.builder();
+    const uint32_t laneBits = laneBitsOf(laneType);
+    const bool     isSigned = laneType.isIntSigned();
+
+    if (!laneType.isFloat() && laneBits == 64)
+    {
+        // There is no packed 64-bit integer minimum or maximum before AVX-512:
+        // the signed compare mask and a byte blend build it. The blend keeps
+        // its destination where the mask is clear, so the losing side is copied
+        // in first.
+        const TokenId  cmpTokId = wantMin ? TokenId::SymLess : TokenId::SymGreater;
+        const MicroReg maskReg  = emitCompare(codeGen, cmpTokId, leftReg, rightReg, laneType);
+        const MicroReg dstReg   = codeGen.nextVirtualFloatRegister();
+        builder.emitLoadRegReg(dstReg, rightReg, MicroOpBits::B128);
+        builder.emitOpTernaryRegRegReg(dstReg, leftReg, maskReg, MicroOp::VecBlendVB, MicroOpBits::B128);
+        return dstReg;
+    }
+
+    MicroOp op;
+    if (laneType.isFloat())
+        op = wantMin ? (laneBits == 32 ? MicroOp::VecMinF32 : MicroOp::VecMinF64) : (laneBits == 32 ? MicroOp::VecMaxF32 : MicroOp::VecMaxF64);
+    else if (laneBits == 8)
+        op = wantMin ? (isSigned ? MicroOp::VecMinS8 : MicroOp::VecMinU8) : (isSigned ? MicroOp::VecMaxS8 : MicroOp::VecMaxU8);
+    else if (laneBits == 16)
+        op = wantMin ? (isSigned ? MicroOp::VecMinS16 : MicroOp::VecMinU16) : (isSigned ? MicroOp::VecMaxS16 : MicroOp::VecMaxU16);
+    else
+        op = wantMin ? (isSigned ? MicroOp::VecMinS32 : MicroOp::VecMinU32) : (isSigned ? MicroOp::VecMaxS32 : MicroOp::VecMaxU32);
+
+    const MicroReg dstReg = codeGen.nextVirtualFloatRegister();
+    builder.emitOpBinaryRegRegReg(dstReg, leftReg, rightReg, op, MicroOpBits::B128);
+    return dstReg;
+}
+
+MicroReg CodeGenVectorHelpers::emitLaneReduction(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType, LaneReduceKind kind)
+{
+    MicroBuilder&  builder   = codeGen.builder();
+    const uint32_t laneBytes = laneBitsOf(laneType) / 8;
+
+    // Fold the vector in half at every step: the byte shift brings the upper
+    // half down over the lower one, and a single element-wise operation
+    // combines them, so the whole reduction stays in the register file and the
+    // combining order is a balanced tree over the lane index.
+    MicroReg accReg = valueReg;
+    for (uint32_t distance = 8; distance >= laneBytes; distance /= 2)
+    {
+        const MicroReg upperReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpBinaryRegRegImm(upperReg, accReg, ApInt(distance, 8), MicroOp::VecShiftRightBytes, MicroOpBits::B128);
+
+        if (kind == LaneReduceKind::Min || kind == LaneReduceKind::Max)
+        {
+            accReg = emitMinMax(codeGen, accReg, upperReg, laneType, kind == LaneReduceKind::Min);
+            continue;
+        }
+
+        TokenId opTokId = TokenId::SymPlus;
+        if (kind == LaneReduceKind::And)
+            opTokId = TokenId::SymAmpersand;
+        else if (kind == LaneReduceKind::Or)
+            opTokId = TokenId::SymPipe;
+        else if (kind == LaneReduceKind::Xor)
+            opTokId = TokenId::SymCircumflex;
+
+        const MicroReg stepReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpBinaryRegRegReg(stepReg, accReg, upperReg, binaryMicroOpForLane(opTokId, laneType), MicroOpBits::B128);
+        accReg = stepReg;
+    }
+
+    return accReg;
+}
+
+MicroReg CodeGenVectorHelpers::emitExtractLaneZero(CodeGen& codeGen, MicroReg vectorReg, const TypeInfo& laneType)
+{
+    // A scalar float already lives in the low lane of a vector register, so
+    // the reduction result is the value.
+    if (laneType.isFloat())
+        return vectorReg;
+
+    MicroBuilder&  builder  = codeGen.builder();
+    const uint32_t laneBits = laneBitsOf(laneType);
+    const bool     isSigned = laneType.isIntSigned();
+
+    // A narrow lane widens inside the register file first: the move out of the
+    // float file reads 32 bits, and the lanes above the first would otherwise
+    // ride along.
+    MicroReg srcReg = vectorReg;
+    if (laneBits == 8)
+    {
+        const MicroReg wideReg = codeGen.nextVirtualFloatRegister();
+        builder.emitVecUnaryRegReg(wideReg, srcReg, isSigned ? MicroOp::VecWidenLoS8 : MicroOp::VecWidenLoU8, MicroOpBits::B128);
+        srcReg = wideReg;
+    }
+
+    if (laneBits <= 16)
+    {
+        const MicroReg wideReg = codeGen.nextVirtualFloatRegister();
+        builder.emitVecUnaryRegReg(wideReg, srcReg, isSigned ? MicroOp::VecWidenLoS16 : MicroOp::VecWidenLoU16, MicroOpBits::B128);
+        srcReg = wideReg;
+    }
+
+    const MicroReg dstReg = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegReg(dstReg, srcReg, laneBits == 64 ? MicroOpBits::B64 : MicroOpBits::B32);
+    return dstReg;
+}
+
+MicroReg CodeGenVectorHelpers::emitSumAbsoluteDifferences(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, const TypeInfo& laneType)
+{
+    MicroBuilder& builder = codeGen.builder();
+
+    // Signed bytes reach the unsigned instruction by biasing both sides: the
+    // difference of two values shifted by the same amount is unchanged.
+    MicroReg left  = leftReg;
+    MicroReg right = rightReg;
+    if (laneType.isIntSigned())
+    {
+        const MicroReg biasReg = repeatedConstant(codeGen, 1, 0x80);
+        const MicroReg leftBiasedReg = codeGen.nextVirtualFloatRegister();
+        const MicroReg rightBiasedReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpBinaryRegRegReg(leftBiasedReg, leftReg, biasReg, MicroOp::VecXor, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(rightBiasedReg, rightReg, biasReg, MicroOp::VecXor, MicroOpBits::B128);
+        left  = leftBiasedReg;
+        right = rightBiasedReg;
+    }
+
+    const MicroReg dstReg = codeGen.nextVirtualFloatRegister();
+    builder.emitOpBinaryRegRegReg(dstReg, left, right, MicroOp::VecSadU8, MicroOpBits::B128);
+    return dstReg;
+}
+
 SWC_END_NAMESPACE();

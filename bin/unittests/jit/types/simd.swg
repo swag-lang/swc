@@ -9,13 +9,13 @@ const JitS64Min = -9_223_372_036_854_775_807's64 - 1
 #[Swag.NoInline]
 func horizontalSum(v: #simd [4] s32)->s32
 {
-    return @vecsum(v)
+    return @vecreduceadd(v)
 }
 
 #[Swag.NoInline]
 func sumEight(a, b, c, d, e, f, g, h: #simd [4] s32)->s32
 {
-    return @vecsum(a + b + c + d + e + f + g + h)
+    return @vecreduceadd(a + b + c + d + e + f + g + h)
 }
 
 #[Swag.NoInline]

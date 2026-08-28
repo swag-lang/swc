@@ -132,9 +132,10 @@ Packed vector intrinsics:
 
 ```swag
 @vecall  @vecany  @vecavgr  @vecgather  @vecinterleavehi  @vecinterleavelo
-@vecmadd  @vecmask  @vecpackss  @vecpackus  @vecperm  @vecsatadd
-@vecsatsub  @vecselect  @vecsplat  @vecsum  @vectruncs32  @vecwidenhi
-@vecwidenlo
+@vecmadd  @vecmaddubs  @vecmask  @vecpackss  @vecpackus  @vecperm
+@vecreduceadd  @vecreduceand  @vecreducemax  @vecreducemin  @vecreduceor
+@vecreducexor  @vecsad  @vecsatadd  @vecsatsub  @vecselect  @vecsplat
+@vectruncs32  @vecwidenhi  @vecwidenlo
 ```
 
 > NOTE:

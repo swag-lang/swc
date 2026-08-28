@@ -254,3 +254,52 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
     @assert(Math.saturate(wide)[0] == 0)
     @assert(Math.lerp(Simd.splat(1'f64), Simd.splat(3'f64), Simd.splat(0.5'f64))[1] == 2)
 }
+
+// The horizontal reductions and their widening forms.
+#test
+{
+    let quads = cast(Simd.S32x4) [1's32, -2, 3, 4]
+    @assert(Simd.sum(quads) == 6)
+    @assert(Simd.minimum(quads) == -2)
+    @assert(Simd.maximum(quads) == 4)
+
+    let bits = cast(Simd.U32x4) [0b1110'u32, 0b1010, 0b1111, 0b0110]
+    @assert(Simd.bitwiseAnd(bits) == 0b0010)
+    @assert(Simd.bitwiseOr(bits) == 0b1111)
+    @assert(Simd.bitwiseXor(bits) == 0b1101)
+
+    let floats = cast(Simd.F32x4) [1.5'f32, -2.5, 8, 0.25]
+    @assert(Simd.sum(floats) == 7.25)
+    @assert(Simd.minimum(floats) == -2.5)
+    @assert(Simd.maximum(floats) == 8)
+
+    let mask = quads > Simd.splat(0's32)
+    @assert(Simd.countTrue(mask) == 3)
+
+    // The widening sums cannot overflow their accumulator, whatever the lanes hold.
+    @assert(Simd.sumWide(Simd.splat(255'u8)) == 16 * 255)
+    @assert(Simd.sumWide(Simd.splat(65535'u16)) == 8 * 65535)
+    @assert(Simd.sumWide(Simd.splat(-128's8)) == 16 * -128)
+    @assert(Simd.sumWide(Simd.splat(-32768's16)) == 8 * -32768)
+    @assert(Simd.sumWide(Simd.splat(0xFFFF_FFFF'u32)) == 4'u64 * 0xFFFF_FFFF)
+    @assert(Simd.sumWide(Simd.splat(2_147_483_647's32)) == 4's64 * 2_147_483_647)
+
+    // The narrow sums wrap in their own lane width.
+    @assert(Simd.sum(Simd.splat(255'u8)) == cast(u8) ((16 * 255) % 256))
+}
+
+// The sum of absolute differences and the byte dot product.
+#test
+{
+    let left  = cast(Simd.U8x16) [10'u8, 20, 30, 40, 50, 60, 70, 80, 0, 0, 0, 0, 0, 0, 0, 0]
+    let right = cast(Simd.U8x16) [1'u8, 2, 3, 4, 5, 6, 7, 8, 255, 0, 0, 0, 0, 0, 0, 0]
+
+    let halves = Simd.absoluteDifferences(left, right)
+    @assert(halves[0] == 324 and halves[1] == 255)
+    @assert(Simd.sumAbsoluteDifferences(left, right) == 324 + 255)
+
+    let unsignedBytes = cast(Simd.U8x16) [1'u8, 2, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    let signedBytes   = cast(Simd.S8x16) [10's8, -20, 30, -40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    let products      = Simd.mulAddPairs(unsignedBytes, signedBytes)
+    @assert(products[0] == -30 and products[1] == -70)
+}

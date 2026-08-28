@@ -16,6 +16,17 @@ struct CodeGenNodePayload;
 // file.
 namespace CodeGenVectorHelpers
 {
+    // What one reduction combines its lanes with.
+    enum class LaneReduceKind
+    {
+        Add,
+        Min,
+        Max,
+        And,
+        Or,
+        Xor,
+    };
+
     // Loads a vector operand into a float register: an address-backed payload
     // loads its 16 bytes, a value payload is used in place.
     MicroReg loadVectorOperand(CodeGen& codeGen, const CodeGenNodePayload& payload);
@@ -71,6 +82,20 @@ namespace CodeGenVectorHelpers
 
     // Clears the sign bit of every float lane.
     MicroReg emitFloatAbs(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType);
+
+    // The element-wise minimum or maximum of two vectors, including the 64-bit
+    // integer lanes the baseline has no instruction for.
+    MicroReg emitMinMax(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, const TypeInfo& laneType, bool wantMin);
+
+    // Combines every lane into one, leaving the answer in lane zero.
+    MicroReg emitLaneReduction(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType, LaneReduceKind kind);
+
+    // Reads lane zero into a scalar register of the lane type.
+    MicroReg emitExtractLaneZero(CodeGen& codeGen, MicroReg vectorReg, const TypeInfo& laneType);
+
+    // Sums the absolute byte differences of each half into the low word of the
+    // matching 64-bit lane; signed bytes bias into the unsigned instruction.
+    MicroReg emitSumAbsoluteDifferences(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, const TypeInfo& laneType);
 
     // Emits an element-wise compare and returns the mask register (all-ones
     // lanes where the compare holds).

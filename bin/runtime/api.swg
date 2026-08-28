@@ -593,6 +593,10 @@ namespace Swag
             hasError:         u32                                              // <> 0 if an error is raised
             #[Swag.NoDoc]
             runtimeTlsIdPlusOne: u64     // Process TLS slot shared by dynamically loaded Swag modules.
+            #[Swag.NoDoc]
+            panicStack: [64] *void = undefined     // Native call stack captured before entering a panic hook.
+            #[Swag.NoDoc]
+            panicStackCount: u32         // Number of valid addresses in panicStack.
         }
     }
 

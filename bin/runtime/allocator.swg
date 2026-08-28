@@ -596,12 +596,20 @@ impl Allocator
             scan = next
         }
 
-        let page = .acquirePageForClass(heap, classIndex)
-        if !page do
-            return 0
+        // A thread can retire with every block on one of its pages still live. Such a page remains
+        // useful to this heap for later remote frees, but adopting it does not satisfy the current
+        // allocation. Keep looking until an abandoned or fresh page can actually provide a block.
+        while true
+        {
+            let page = .acquirePageForClass(heap, classIndex)
+            if !page do
+                return 0
 
-        cls.page = page
-        return page.acquireBlock()
+            cls.page = page
+            let block = page.acquireBlock()
+            if block != 0 do
+                return block
+        }
     }
 
     #[Swag.Inline]

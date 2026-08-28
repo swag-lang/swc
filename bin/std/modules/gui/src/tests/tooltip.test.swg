@@ -93,6 +93,26 @@ func showTip(owner: *Wnd, text: string)->*Label
     @assert(lbl.maxLines == 0)
 }
 
+// The history label that exposed the clipping bug keeps one physical pixel beyond its measured
+// run at fractional DPI, so the accented final glyph cannot land on the half-open clip edge.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 200, 1.5)
+    defer host.shutdown()
+
+    let btn = PushButton.create(&host.root, "Files", {20, 20, 100, 30})
+    let lbl = showTip(btn, "Fichiers à côté de celui-ci")
+    let tip = host.app.toolTip.current!
+    assertPassiveAndFits(tip, lbl)
+
+    @assert(lbl.maxLines == 0)
+
+    host.settleAnimations(&host.surfaceWnd)
+    let rendered = host.render(&host.surfaceWnd)
+    Pixel.Testing.assertImageGolden(&rendered, "tooltip.history-fractional")
+}
+
 // A tip taller than the height cap stops there and marks its last line, rather than scrolling.
 #test
 {

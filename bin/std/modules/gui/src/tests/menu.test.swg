@@ -303,6 +303,64 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     host.pump()
 }
 
+// An anchored menu that is taller than the room above its button keeps its shadow and content
+// inside the top edge instead of leaving the menu body glued beyond the window.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 160)
+    defer host.shutdown()
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    for index in 8 do
+        popup.addItem(Format.toString("Caption %", index).toString(), Menu_Open)
+
+    var checked: bool
+    host.app.sigFrame += func|host = &host, popup, checked = &checked|(app)
+    {
+        discard app
+        if checked[] do
+            return
+        @assert(popup.position.x >= 0 and popup.position.y >= 0)
+        @assert(popup.position.right() <= host.root.position.width)
+        @assert(host.dismissPopupMenu())
+        checked[] = true
+    }
+
+    discard popup.doModal({310, 18}, .AnchorBottomCenter, autoDestroy: true)
+    @assert(checked)
+    host.pump()
+}
+
+// A submenu at the right edge chooses the available left side as a complete rectangle.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    defer host.shutdown()
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    let sub   = MenuCtrl.createPopup(&host.root)
+    sub.addItem("Open", Menu_Open)
+    popup.addPopup("More choices", sub)
+
+    var checked: bool
+    host.app.sigFrame += func|host = &host, popup, sub, checked = &checked|(app)
+    {
+        discard app
+        if checked[] do
+            return
+        @assert(host.openPopupSubMenu("More choices"))
+        @assert(sub.position.right() <= popup.position.x + 2 * popup.themeMetrics().menuPopup_ShadowSize)
+        @assert(host.clickPopupMenuItem(Menu_Open))
+        checked[] = true
+    }
+
+    @assert(popup.doModal({315, 50}, autoDestroy: true) == Menu_Open)
+    @assert(checked)
+    host.pump()
+}
+
 // Hidden popup rows keep their previous layout values, but they must not
 // intercept the row now visible under the mouse.
 #test
@@ -406,7 +464,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
 
     @assert(sub.popupBarItemSurfaceRect.y == expectedItemY)
     @assert(sub.popupBarItemSurfaceRect.height == metrics.menuBar_Height)
-    @assert(sub.position.y == expectedItemY - metrics.menuPopup_ShadowSize)
+    @assert(sub.position.y == Math.max(expectedItemY - metrics.menuPopup_ShadowSize, 0))
 
     host.mouseUp({0, 0})
 }
@@ -430,6 +488,6 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     @assert(bar.subVisible == sub)
     @assert(sub.popupBarItemIdx == 0)
     @assert(sub.popupBarItemSurfaceRect.height == bar.position.height)
-    @assert(sub.position.y == -metrics.menuPopup_ShadowSize)
+    @assert(sub.position.y == 0)
     @assert(sub.items[0]!.pos > metrics.menuPopup_ShadowSize + bar.position.height)
 }

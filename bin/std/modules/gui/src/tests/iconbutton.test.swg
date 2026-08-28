@@ -237,6 +237,37 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     @assert(iconButtonColorCount(&squared, neutralBorder) > 0)
 }
 
+// A framed checked tool keeps an accent glyph when the palette changes to light.
+//
+// Filled selections use the inverse ink of their accent fill. A framed selection has only a
+// neutral wash, so carrying that inverse ink over made its glyph white on the light palette.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(80, 80)
+    defer host.shutdown()
+
+    let btn = IconButton.create(&host.root, host.theme.icon(.Filter, 24), {20, 20, 40, 40}, flags: .Toggle)
+    btn.setCheckIndicator(.Frame)
+    btn.setChecked(true)
+
+    for light in [false, true]
+    {
+        if light do
+            host.theme.setLight()
+        else do
+            host.theme.setSwagDark()
+        host.notify(.ThemeChanged)
+        host.finishAnimations()
+
+        var image = host.render()
+        let mark  = host.theme.colors.btnIcon_CheckedMark
+        @assert(iconButtonColorCount(&image, mark) > 0)
+        if light do
+            @assert(mark != Argb.White)
+    }
+}
+
 // The two indicator-less placements differ by what they leave the state colors saying: `None`
 // reads as pressed, `Ink` keeps the checked ink so the glyph itself carries the state.
 #test

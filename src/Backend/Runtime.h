@@ -381,6 +381,8 @@ namespace Runtime
         uint32_t traceIndex;
         uint32_t hasError;
         uint64_t runtimeTlsIdPlusOne;
+        void*    panicStack[64];
+        uint32_t panicStackCount;
     };
 
     // Where an attribute accepts being written. Keep in sync with the Swag mirror

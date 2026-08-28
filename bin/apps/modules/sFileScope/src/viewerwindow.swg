@@ -16,8 +16,10 @@ const ViewerInfoStatsMaxWidth                 = 560.0
 const ViewerFullScreenRevealEdge              = 32.0
 const ViewerRetirePollInterval: Time.Duration = 16'ms
 const ViewerLoadingSpinnerSize                = 56.0
-const ViewerLoadingSpinnerRadius              = 20.0
-const ViewerLoadingSpinnerSweep               = 150.0
+const ViewerLoadingSpinnerMinRadius           = 15.0
+const ViewerLoadingSpinnerMaxRadius           = 21.0
+const ViewerLoadingSpinnerMinSweep            = 58.0
+const ViewerLoadingSpinnerMaxSweep            = 232.0
 const ViewerSearchGlowInset                   = 7.0
 const ViewerSearchTextMargin                  = 3.0
 const ViewerSearchOverlayInset                = ViewerSearchGlowInset + ViewerSearchTextMargin
@@ -26,6 +28,17 @@ const ViewerSearchBoundsPoll:   Time.Duration = 16'ms
 const ViewerSmokeStepLimit                    = 300'u32
 const ViewerSmokeExposureSteps                = 25'u32
 const ViewerSmokeMinimumSteps                 = 2'u32
+
+internal func viewerLoadingSpinnerGeometry(phase: f32)->{radius, start, sweep: f32}
+{
+    let pulse = 0.5'f32 - 0.5'f32 * Math.cos(phase * Math.ConstF32.TwoPi)
+
+    var result: retval
+    result.radius = Math.lerp(ViewerLoadingSpinnerMinRadius, ViewerLoadingSpinnerMaxRadius, pulse)
+    result.sweep  = Math.lerp(ViewerLoadingSpinnerMinSweep, ViewerLoadingSpinnerMaxSweep, pulse)
+    result.start  = phase * 540 - 90 - result.sweep * 0.5
+    return result
+}
 
 const ViewerFullScreenRemovedFlags = SurfaceFlags.LargeCaption | SurfaceFlags.SmallCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.MaximizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
 const ViewerFullScreenAddedFlags   = SurfaceFlags.NoShadow | SurfaceFlags.TopMost
@@ -217,14 +230,14 @@ impl IWnd for ViewerLoadingSpinner
     {
         let painter = evt.paintContext.painter
         let center  = .clientRect().center()
-        let start   = .animationPhase * 360 - 90
-        let end     = start + ViewerLoadingSpinnerSweep
+        let shape   = viewerLoadingSpinnerGeometry(.animationPhase)
+        let end     = shape.start + shape.sweep
 
         painter.setAntialiased(true)
-        painter.drawArc(center.x, center.y, ViewerLoadingSpinnerRadius, Math.Angle.fromDegrees(start), Math.Angle.fromDegrees(end), Ink, 9)
-        painter.drawArc(center.x, center.y, ViewerLoadingSpinnerRadius, Math.Angle.fromDegrees(start), Math.Angle.fromDegrees(end), Voltage, 5)
+        painter.drawArc(center.x, center.y, shape.radius, Math.Angle.fromDegrees(shape.start), Math.Angle.fromDegrees(end), Ink, 9)
+        painter.drawArc(center.x, center.y, shape.radius, Math.Angle.fromDegrees(shape.start), Math.Angle.fromDegrees(end), Voltage, 5)
 
-        .animationPhase = Math.fract(.animationPhase + .timing().deltaSeconds * 0.8)
+        .animationPhase = Math.fract(.animationPhase + .timing().deltaSeconds * 0.7)
         .invalidate()
     }
 }
@@ -1138,7 +1151,7 @@ impl ViewerWindow
             .dockStyle       = .Left
             .minSize.x       = ViewerPanelWidth
             .maxSize.x       = ViewerPanelWidth
-            .backgroundStyle = .Application
+            .backgroundStyle = .Window
             .hide()
         }
 
@@ -1146,14 +1159,14 @@ impl ViewerWindow
 
         with result.recentPane = Wnd.create'Wnd(result.filePanel)
         {
-            .backgroundStyle = .Application
+            .backgroundStyle = .Window
             .padding         = {0, 8, 0, 8}
         }
 
         with let recentHeader = Wnd.create'Wnd(result.recentPane, {0, 0, 0, ViewerPanelLabel})
         {
             .dockStyle       = .Top
-            .backgroundStyle = .Application
+            .backgroundStyle = .Window
             .margin          = {10, 0, 10, 0}
         }
 
@@ -1196,7 +1209,7 @@ impl ViewerWindow
 
         with result.folderPane = Wnd.create'Wnd(result.filePanel)
         {
-            .backgroundStyle = .Application
+            .backgroundStyle = .Window
             .padding         = {0, 8, 0, 8}
         }
 
@@ -1205,7 +1218,7 @@ impl ViewerWindow
         with let folderHeader = Wnd.create'Wnd(result.folderPane, {0, 0, 0, ViewerPanelLabel})
         {
             .dockStyle       = .Top
-            .backgroundStyle = .Application
+            .backgroundStyle = .Window
             .margin          = {10, 0, 10, 0}
         }
 

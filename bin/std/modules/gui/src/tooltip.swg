@@ -276,10 +276,15 @@ private func fitToText(label: *Label, pos, room: Math.Point, inset: Math.Vector4
 
     // Both axes round up. `Wnd.resize` rounds the size it is committed, and a dropped fraction is
     // a line the box no longer holds — which is exactly how the previous tip earned a scroll bar.
+    // Text advances end on the last device-pixel boundary while clipping rectangles are half-open.
+    // Keep one physical pixel after the run so the final antialiased edge never becomes the clip
+    // edge, which is especially visible on short accented labels at fractional display scales.
+    let rasterGuard = 1.0 / Math.max(label.deviceScale(), 1.0)
+
     var result: retval
     result.x      = pos.x
     result.y      = pos.y
-    result.width  = Math.ceil(Math.min(need.x, roomX) + inset.x + inset.z)
+    result.width  = Math.ceil(Math.min(need.x + rasterGuard, roomX) + inset.x + inset.z)
     result.height = Math.ceil(Math.min(need.y, roomY) + inset.y + inset.w)
     return result
 }

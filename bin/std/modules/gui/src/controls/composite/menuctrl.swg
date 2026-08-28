@@ -698,10 +698,8 @@ impl MenuCtrl
         let topView = .topView()
         var pt      = topView.surfaceToLocal({pos.x, pos.y})
         let subPos  = sub.position
-        if pt.x + subPos.width > topView.position.width do
-            pt.x = topView.position.width - subPos.width
-        if pt.y + subPos.height > topView.position.height do
-            pt.y = topView.position.height - subPos.height
+        pt.x = Math.clamp(pt.x, 0.0, Math.max(topView.position.width - subPos.width, 0.0))
+        pt.y = Math.clamp(pt.y, 0.0, Math.max(topView.position.height - subPos.height, 0.0))
 
         pt = topView.localToSurface(pt)
         .showSubVisible(pt)
@@ -712,12 +710,8 @@ impl MenuCtrl
         .selectedIdx = .hotIdx
         let hotItem = .items[.hotIdx]!
 
-        var pos         = .surfaceRect()
+        let surfaceRect = .surfaceRect()
         let sdw         = .themeMetrics().menuPopup_ShadowSize
-        let surfaceRect = pos
-        pos.x = pos.right() - sdw
-        pos.y += hotItem.pos
-        pos.y -= .padding.y
         let sub = hotItem.popup
         .subVisible           = sub
         sub.ignoreNextRelease = false
@@ -727,13 +721,18 @@ impl MenuCtrl
         sub.updateState()
         sub.computeLayoutPopup()
         let topView = .topView()
-        var pt      = topView.surfaceToLocal({pos.x, pos.y})
-        pt -= sdw
-        let subPos = sub.position
-        if pt.x + subPos.width > topView.position.width do
-            pt.x = surfaceRect.x - subPos.width
-        if pt.y + subPos.height > topView.position.height do
-            pt.y = surfaceRect.y - subPos.height
+        let parentTopLeft = topView.surfaceToLocal({surfaceRect.x, surfaceRect.y})
+        let subPos        = sub.position
+        let openRight     = parentTopLeft.x + surfaceRect.width - 2 * sdw
+        let openLeft      = parentTopLeft.x - subPos.width + 2 * sdw
+        var pt            = Math.Point{openRight, parentTopLeft.y + hotItem.pos - .padding.y - sdw}
+
+        // Prefer the conventional right side only when it fits. Near the window edge the complete
+        // submenu opens to the left, and an oversized menu is clamped as a last resort.
+        if openRight + subPos.width > topView.position.width and openLeft >= 0 do
+            pt.x = openLeft
+        pt.x = Math.clamp(pt.x, 0.0, Math.max(topView.position.width - subPos.width, 0.0))
+        pt.y = Math.clamp(pt.y, 0.0, Math.max(topView.position.height - subPos.height, 0.0))
 
         pt = topView.localToSurface(pt)
         .showSubVisible(pt)
@@ -1184,13 +1183,6 @@ public impl MenuCtrl
 
         let anchored = pos == .AnchorTopCenter or pos == .AnchorBottomCenter
         .fitPosInParent(simX: !anchored, simY: true)
-
-        if anchored and .position.x < 0
-        {
-            var fitted = .position
-            fitted.x = 0
-            .setPosition(fitted)
-        }
 
         // Fitting a centred popup near the right edge moves the body, not its attachment point.
         // Recompute the notch from the original anchor so it remains directly under the button.

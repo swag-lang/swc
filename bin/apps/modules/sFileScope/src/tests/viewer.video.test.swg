@@ -155,29 +155,43 @@ func videoMatroskaFixturePath()->String
     window.openFile(fileName, remember: false)
     completeViewerWindowClassification(&host, window)
     @assert(window.currentView != null)
-    let previous = cast(*VideoViewer) window.currentView!
+    var previous = cast(*VideoViewer) window.currentView!
     waitForVideoFrame(previous)
-    @assert(previous.video.isOpen())
+    @assert(previous.video.isOpen() and previous.playing)
 
-    window.openFile(fileName, remember: false)
-    @assert(window.currentView == previous)
-    var attempts: u32
-    while (window.outgoingView != previous or window.instances.isEmpty()) and attempts < 5_000
+    // Leave each decoder running before replacing it. The queue used to grow from two `u32`
+    // entries to four on the decoder thread through storage owned by the GUI allocator; several
+    // ordinary zaps made that allocator mismatch surface as Memory.realloc(16, 8).
+    for 8
     {
-        Threading.Thread.sleep(1'ms)
-        if window.startupTimer do
-            host.fireTimer(window.startupTimer)
-        attempts += 1
-    }
+        for 12
+        {
+            Threading.Thread.sleep(1'ms)
+            previous.updatePlayback()
+        }
 
-    @assert(window.outgoingView == previous and window.currentView == previous)
-    @assert(!previous.isPendingDestroy)
-    let incoming = cast(*VideoViewer) window.instances[window.activeChoiceIndex].view!
-    @assert(incoming != previous)
-    waitForVideoFrame(incoming)
-    window.commitViewerTransition(incoming)
-    @assert(previous.isPendingDestroy)
-    @assert(window.currentView == incoming and window.outgoingView == null)
+        window.openFile(fileName, remember: false)
+        @assert(window.currentView == previous)
+        var attempts: u32
+        while (window.outgoingView != previous or window.instances.isEmpty()) and attempts < 5_000
+        {
+            Threading.Thread.sleep(1'ms)
+            if window.startupTimer do
+                host.fireTimer(window.startupTimer)
+            attempts += 1
+        }
+
+        @assert(window.outgoingView == previous and window.currentView == previous)
+        @assert(!previous.isPendingDestroy)
+        let incoming = cast(*VideoViewer) window.instances[window.activeChoiceIndex].view!
+        @assert(incoming != previous)
+        waitForVideoFrame(incoming)
+        @assert(incoming.playing)
+        window.commitViewerTransition(incoming)
+        @assert(previous.isPendingDestroy)
+        @assert(window.currentView == incoming and window.outgoingView == null)
+        previous = incoming
+    }
 }
 
 #test
@@ -225,7 +239,10 @@ func videoMatroskaFixturePath()->String
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
     @assert(view.video.frameCount() == 4)
-    @assert(view.frameIndex == 0 and !view.playing)
+    @assert(view.frameIndex == 0 and view.playing)
+    @assert(view.playButton.icon.index == cast(s32) ThemeIcons.Pause)
+    view.togglePlayback()
+    @assert(!view.playing)
 
     // A Motion JPEG stream has no planes to hand over, so the queue holds packed pictures.
     @assert(!view.planar)
@@ -283,6 +300,8 @@ func videoMatroskaFixturePath()->String
     @assert(result.view != null)
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
+    view.togglePlayback()
+    @assert(!view.playing)
     view.dockStyle          = .Center
     view.commands.dockStyle = .Center
     view.seekFrame(2)
@@ -350,6 +369,7 @@ func videoMatroskaFixturePath()->String
     @assert(view.backwardButton.icon.isValid() and view.forwardButton.icon.isValid())
     @assert(view.muteButton.icon.isValid() and view.muteButton.flags.has(.Toggle))
     @assert(view.audio != null and view.voice != null and view.video.audioTrackCount() == 1)
+    @assert(view.playing and view.voice!.isPlaying())
     view.setVolume(0.35)
     @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.35, 0.001))
     view.setMuted(true)
@@ -358,8 +378,6 @@ func videoMatroskaFixturePath()->String
     view.setMuted(false)
     @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.35, 0.001))
 
-    view.togglePlayback()
-    @assert(view.playing and view.voice!.isPlaying())
     view.timeline.setValue(cast(f32) view.frameSeconds(5))
     @assert(view.awaitingFrame and view.resumeAudioAfterSeek)
     waitForVideoFrame(view)
@@ -396,7 +414,6 @@ func videoMatroskaFixturePath()->String
     window.updateLoadingIndicator()
     @assert(!window.loadingOverlay.isLocallyVisible())
 
-    view.togglePlayback()
     let voice = view.voice!
 
     window.setFullScreen(true)
@@ -426,6 +443,10 @@ func videoMatroskaFixturePath()->String
     waitForVideoFrame(view)
     window.updateLoadingIndicator()
     @assert(!window.loadingOverlay.isLocallyVisible())
+
+    // Start the shortcut scenario from a deliberate pause; opening itself already started play.
+    view.togglePlayback()
+    @assert(!view.playing and !view.voice!.isPlaying())
 
     window.viewerCombo.setFocus()
     var press = KeyEvent{kind: .Pressed, key: .Space}
@@ -488,7 +509,6 @@ func videoMatroskaFixturePath()->String
     view.setMuted(true)
     view.seekFrame(5)
     waitForVideoFrame(view)
-    view.togglePlayback()
     @assert(view.playing and view.voice!.isPlaying())
     let previousVoice = view.voice!
 
@@ -643,7 +663,6 @@ func videoMatroskaFixturePath()->String
     @assert(view.voice != null)
 
     let stalled = view.voice!.playbackSampleFrame()
-    view.togglePlayback()
     @assert(view.playing)
 
     var attempts = 0
@@ -731,6 +750,9 @@ func videoMatroskaFixturePath()->String
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
     @assert(view.frameIndex == 0)
+
+    view.togglePlayback()
+    @assert(!view.playing)
 
     // A paused viewer decodes only the picture it is parked on, so let the producer run and wait
     // until it has filled every slot, which is also when it stops touching the queue.

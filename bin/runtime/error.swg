@@ -259,19 +259,35 @@ func __printPanicReport(message: #null string, loc: SourceCodeLocation)
         @print("\n")
     }
 
-    // Print the calling stack trace
-    @print("runtime trace\n")
-    var arr: [64] *void = undefined
-    let nb              = __captureStack(1, arr)
-    __logStackTrace(@mkslice(&arr[0], nb))
-    @print("\n")
+    // The panic entry captures before calling a user hook. Capturing from the hook itself stops at
+    // the panic frame on Windows and loses the application caller, which made devmode reports no
+    // more useful than release reports. A direct internal call still has a local fallback.
+    var fallback: [64] *void = undefined
+    var trace = @mkslice(&cxt.panicStack[0], cxt.panicStackCount)
+    if !cxt.panicStackCount
+    {
+        let count = __captureStack(1, fallback)
+        trace = @mkslice(&fallback[0], count)
+    }
+
+    if __hasStackTraceSymbols(trace)
+    {
+        @print("runtime trace\n")
+        __logStackTrace(trace)
+        @print("\n")
+    }
+    cxt.panicStackCount = 0
 }
 
 // Stop the execution and panic
 #[Swag.Safety(.All, false)]
 func @panic(message: #null string, loc: SourceCodeLocation)
 {
+    // Capture while the application caller is still immediately above this frame. A panic hook is
+    // free to resume execution (the native test runner does). Store it in the process context so a
+    // hook compiled into another Swag module sees the same capture.
     let cxt = @getcontext()
+    cxt.panicStackCount = __captureStack(0, cxt.panicStack)
 
     // User function
     if cxt.panic

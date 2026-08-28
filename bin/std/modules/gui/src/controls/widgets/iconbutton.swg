@@ -296,6 +296,19 @@ impl IWnd for IconButton
             colorChecked = .checkIndicator == .Frame ? colors.btnIcon_CheckedFrameBorder : colors.btnIcon_CheckedMark
         }
 
+        // A framed selection has a neutral ground in every palette, so its glyph remains the
+        // accent mark. The generic checked ink is the inverse ink used by a filled selection in
+        // neutral themes; reusing it here made checked tools white on the light theme.
+        if .isChecked and .checkIndicator == .Frame and !bc.isDisabled
+        {
+            if .isPressed do
+                colorIcon = colors.btnIcon_CheckedPressedMark
+            elif .isHot do
+                colorIcon = colors.btnIcon_CheckedHotMark
+            else do
+                colorIcon = colors.btnIcon_CheckedMark
+        }
+
         if bc.isDisabled do
             paintFlags.add(.Disabled)
         if .isChecked do

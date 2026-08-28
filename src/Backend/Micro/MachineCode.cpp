@@ -2,6 +2,7 @@
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -42,7 +43,10 @@ bool MachineCode::tryResolveDebugSourceRangeAtOffset(const TaskContext& ctx, Res
 Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debugStackBaseVirtualReg, uint16_t sanitizerSafetyMask, const SymbolFunction* sanitizerFunction)
 {
     const Runtime::BuildCfgBackend& backendBuildCfg   = ctx.compiler().buildCfg().backend;
-    const bool                      computeUnwindInfo = backendBuildCfg.enableExceptions || backendBuildCfg.debugInfo;
+    // Windows uses the PE exception directory for ordinary stack walking too. Omitting it from a
+    // release DLL makes RtlCaptureStackBackTrace stop at that module boundary, so panic reports lose
+    // the application caller even when the artifact carries Swag symbols.
+    const bool computeUnwindInfo = ctx.compiler().cmdLine().targetOs == Runtime::TargetOs::Windows || backendBuildCfg.enableExceptions || backendBuildCfg.debugInfo;
 
     MicroPassContext passContext;
     passContext.callConvKind             = CallConvKind::Swag;

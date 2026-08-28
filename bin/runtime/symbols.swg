@@ -83,13 +83,26 @@ func __symbolize(addr: *void)->__SwagSym
     return result
 }
 
-func __logStackTrace(wh: [..] *void, startAfter: #null *Swag.SourceCodeLocation = null, printNoLine = true)
+// Reports whether at least one captured address belongs to a Swag symbol table.
+//
+// Native release artifacts may deliberately carry no such table. In that case an empty heading
+// says only that symbolization was unavailable, so the panic report leaves the whole section out.
+func __hasStackTraceSymbols(wh: const [..] *void)->bool
+{
+    for address in wh where __symbolize(address).found do
+        return true
+    return false
+}
+
+func __logStackTrace(wh: const [..] *void, startAfter: #null *Swag.SourceCodeLocation = null, printNoLine = true)
 {
     var hasStarted = false
 
     for i in @countof(wh)
     {
         let info = __symbolize(wh[i])
+        if !info.found do
+            continue
         if !info.hasLine and !printNoLine do
             continue
 
@@ -126,8 +139,7 @@ func __logStackTrace(wh: [..] *void, startAfter: #null *Swag.SourceCodeLocation 
         }
 
         hasStarted = true
-        if info.found do
-            @print(info.name)
+        @print(info.name)
         if info.hasLine
         {
             @print(" --> ")

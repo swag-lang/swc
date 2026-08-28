@@ -490,6 +490,14 @@ func freeOne(itf: IAllocator, address: #null *void)
         done:      *s32
     }
 
+    const FullPageRetireCount = 15
+
+    struct FullPageRetirePayload
+    {
+        allocator: IAllocator
+        out:       *[FullPageRetireCount] #null *void
+    }
+
     // Allocates a block, then gives this thread's heap back while the block is still live, so the
     // page it came from is left abandoned rather than released.
     func allocAndRetireThread(param: *void)->Th.DWORD
@@ -503,6 +511,18 @@ func freeOne(itf: IAllocator, address: #null *void)
 
         releaseAllocatorThreadCache()
         @atomadd(p.done, 1)
+        return 0
+    }
+
+    // Fills two medium pages before retiring their owner. The first page shares its first unit
+    // with the segment header and holds seven 64 KiB blocks; the second holds eight.
+    func fillPagesAndRetireThread(param: *void)->Th.DWORD
+    {
+        let p = cast(*FullPageRetirePayload) param
+        for i in FullPageRetireCount do
+            p.out[][i] = allocOne(p.allocator, AllocatorMaxClassSize)
+
+        releaseAllocatorThreadCache()
         return 0
     }
 
@@ -578,6 +598,39 @@ func freeOne(itf: IAllocator, address: #null *void)
 
         freeOne(itf, blockAddr)
         freeOne(itf, adopted)
+        alloc.releaseAll()
+    }
+
+    // A completely full abandoned page is retained for its live blocks but cannot satisfy the
+    // allocation that found it. Adoption continues until a page with room is available.
+    #test
+    {
+        var alloc: Allocator
+        let itf = makeAllocator(&alloc)
+
+        var addresses: [FullPageRetireCount] #null *void
+        var payload: FullPageRetirePayload = undefined
+        payload.allocator = itf
+        payload.out       = &addresses
+
+        var tid: Th.DWORD
+        let h = Th.CreateThread(null, 0, &fillPagesAndRetireThread, &payload, 0, &tid)
+        @assert(h != null)
+        discard Th.WaitForSingleObject(h, Th.INFINITE)
+        Th.CloseHandle(h)
+
+        for address in addresses do
+            @assert(address != null)
+        @assert(alloc.stats().countAlloc == FullPageRetireCount)
+        @assert(alloc.firstAbandoned != null)
+
+        let extra = allocOne(itf, AllocatorMaxClassSize)
+        @assert(extra != null)
+        @assert(alloc.stats().countAlloc == FullPageRetireCount + 1)
+
+        for address in addresses do
+            freeOne(itf, address)
+        freeOne(itf, extra)
         alloc.releaseAll()
     }
 

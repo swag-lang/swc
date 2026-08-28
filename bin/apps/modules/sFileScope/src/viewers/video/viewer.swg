@@ -544,8 +544,10 @@ internal struct VideoViewer
     // then never taken at all. Playback still looks sequential when that happens, because the
     // front keeps advancing by one — what is lost is the run-ahead itself, which silently shrinks
     // to two pictures however many slots are reported full.
-    ready:       Array'u32
-    freeSlots:   Array'u32
+    // Both sides of this queue mutate it. Fixed storage keeps a decoder thread from reallocating
+    // an array owned by the GUI allocator when the queue grows from two entries to four.
+    ready:       StaticArray'(u32, VideoPrefetchMax)
+    freeSlots:   StaticArray'(u32, VideoPrefetchMax)
     nextDecode:  u64     // Frame the producer takes next.
     produceFrom: u64     // Frame the producer was last aimed at.
     inFlight:    u32     // Whether a picture is being decoded right now.
@@ -568,6 +570,7 @@ internal struct VideoViewer
     elapsed:              f64
     frameIndex:           u64
     playing:              bool
+    autoPlayPending:      bool = true
     muted:                bool
     volume = 1'f32
     details:              String
@@ -1319,6 +1322,13 @@ internal impl VideoViewer
         {
             .reportFailure!(me, Errors.message(metadataError))
             return false
+        }
+
+        if .autoPlayPending
+        {
+            .autoPlayPending      = false
+            .playing              = true
+            .resumeAudioAfterSeek = .voice != null
         }
 
         if .anchorPending

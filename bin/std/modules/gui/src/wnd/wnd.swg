@@ -1392,6 +1392,11 @@ impl Wnd
                 pos.y = parent.position.height - pos.height - marginH
         }
 
+        // Oversized and anchored popups can start outside the near edges without ever crossing a
+        // far edge. Keep those edges visible too; shadow/padding then supplies the visual air.
+        pos.x = Math.max(pos.x, marginW)
+        pos.y = Math.max(pos.y, marginH)
+
         if pos != .position do
             .setPosition(pos)
     }

@@ -75,6 +75,10 @@ using Swag, Core
             @assert(colors.error.contrastRatio(ground) >= 3.5)
             @assert(colors.searchMatch_Border.contrastRatio(ground) >= 3.5)
         }
+
+        // An anchored modeless panel is raised over the structural panel ground. Its outline is
+        // the only persistent edge once the shadow falls over dark content.
+        @assert(colors.frameWnd_PopupBorder.contrastRatio(palette.panel) >= 2.5)
     }
 }
 

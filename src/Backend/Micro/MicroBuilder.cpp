@@ -74,11 +74,10 @@ MicroInstr& MicroBuilder::addInstruction(MicroInstrOpcode op, uint8_t numOperand
     return addInstructionWithRef(op, numOperands).second;
 }
 
+// Every instruction records the source it came from, whatever the build emits: the static
+// sanity analysis anchors its diagnostics on it, and the debug tables read it only when asked.
 void MicroBuilder::storeInstructionDebugInfo(MicroInstrRef instructionRef)
 {
-    if (!hasFlag(MicroBuilderFlagsE::DebugInfo))
-        return;
-
     MicroInstr* inst = instructions_.ptr(instructionRef);
     SWC_ASSERT(inst != nullptr);
     inst->debugSourceInfo = currentDebugSourceInfo_;
@@ -86,17 +85,11 @@ void MicroBuilder::storeInstructionDebugInfo(MicroInstrRef instructionRef)
 
 void MicroBuilder::setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef)
 {
-    if (!hasFlag(MicroBuilderFlagsE::DebugInfo))
-        return;
-
     currentDebugSourceInfo_.sourceCodeRef = sourceCodeRef;
 }
 
 void MicroBuilder::setCurrentDebugNoStep(const bool value)
 {
-    if (!hasFlag(MicroBuilderFlagsE::DebugInfo))
-        return;
-
     currentDebugSourceInfo_.debugNoStep = value;
 }
 

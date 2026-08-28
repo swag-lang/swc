@@ -541,8 +541,6 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
             backendBuildCfg.optimize = attributes.backendOptimize.value();
 
         builder_->setBackendBuildCfg(backendBuildCfg);
-        if (compilerBuildCfg.backend.debugInfo)
-            builderFlags.add(MicroBuilderFlagsE::DebugInfo);
         builder_->setFlags(builderFlags);
         builder_->setCurrentDebugSourceCodeRef(SourceCodeRef::invalid());
         builder_->setCurrentDebugNoStep(false);

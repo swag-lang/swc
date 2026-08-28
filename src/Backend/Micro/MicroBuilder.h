@@ -20,8 +20,7 @@ class Symbol;
 
 enum class MicroBuilderFlagsE : uint8_t
 {
-    Zero      = 0,
-    DebugInfo = 1 << 0,
+    Zero = 0,
 };
 using MicroBuilderFlags = EnumFlags<MicroBuilderFlagsE>;
 

@@ -97,6 +97,22 @@ namespace CodeGenVectorHelpers
     // matching 64-bit lane; signed bytes bias into the unsigned instruction.
     MicroReg emitSumAbsoluteDifferences(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, const TypeInfo& laneType);
 
+    // Permutes lanes through a pattern known here: a 32-bit lane permutation
+    // selects the immediate form, anything else a constant byte table.
+    MicroReg emitConstantShuffle(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType, std::span<const uint8_t> laneIndices);
+
+    // Permutes lanes through a pattern that only exists at run time.
+    MicroReg emitDynamicShuffle(CodeGen& codeGen, MicroReg valueReg, MicroReg patternReg, const TypeInfo& laneType);
+
+    // The same over two vectors, an index past the lane count reading the second.
+    MicroReg emitConstantShuffle2(CodeGen& codeGen, MicroReg firstReg, MicroReg secondReg, const TypeInfo& laneType, std::span<const uint8_t> laneIndices);
+    MicroReg emitDynamicShuffle2(CodeGen& codeGen, MicroReg firstReg, MicroReg secondReg, MicroReg patternReg, const TypeInfo& laneType, const TypeInfo& byteLaneType);
+
+    // Sixteen bytes of the concatenation of two vectors, starting at a byte
+    // offset; the bytes past the concatenation are zero.
+    MicroReg emitConstantAlign(CodeGen& codeGen, MicroReg lowReg, MicroReg highReg, uint32_t count);
+    MicroReg emitDynamicAlign(CodeGen& codeGen, MicroReg lowReg, MicroReg highReg, MicroReg countReg, const TypeInfo& byteLaneType);
+
     // Emits an element-wise compare and returns the mask register (all-ones
     // lanes where the compare holds).
     MicroReg emitCompare(CodeGen& codeGen, TokenId tokId, MicroReg leftReg, MicroReg rightReg, const TypeInfo& laneType);

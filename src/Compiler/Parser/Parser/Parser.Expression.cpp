@@ -905,12 +905,15 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicVecSad:
         case TokenId::IntrinsicVecGather:
         case TokenId::IntrinsicVecPerm:
+        case TokenId::IntrinsicVecShuffle:
             return parseIntrinsicCallExpr(2);
 
         case TokenId::IntrinsicMemCmp:
         case TokenId::IntrinsicTypeCmp:
         case TokenId::IntrinsicAtomicCmpXchg:
         case TokenId::IntrinsicMulAdd:
+        case TokenId::IntrinsicVecShuffle2:
+        case TokenId::IntrinsicVecAlign:
         case TokenId::IntrinsicVecSelect:
             return parseIntrinsicCallExpr(3);
 

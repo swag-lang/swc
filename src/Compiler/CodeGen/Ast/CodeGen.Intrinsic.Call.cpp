@@ -2053,6 +2053,33 @@ Result AstIntrinsicCall::codeGenPostNode(CodeGen& codeGen) const
 
 namespace
 {
+    // Reads a permutation pattern that is already a constant. Every lane index
+    // is reduced into range, so no pattern is out of bounds.
+    bool tryConstantLaneIndices(CodeGen& codeGen, AstNodeRef patternRef, uint32_t laneBytes, uint32_t laneCount, uint32_t indexMask, std::array<uint8_t, 16>& outIndices)
+    {
+        const SemaNodeView patternView = codeGen.viewTypeConstant(patternRef);
+        if (!patternView.hasConstant())
+            return false;
+
+        const ConstantValue& patternCst = codeGen.cstMgr().get(patternView.cstRef());
+        if (!patternCst.isArray())
+            return false;
+
+        const std::span<const std::byte> bytes = patternCst.getArray();
+        if (bytes.size() != 16)
+            return false;
+
+        for (uint32_t lane = 0; lane < laneCount; ++lane)
+        {
+            uint64_t value = 0;
+            for (uint32_t byteIndex = 0; byteIndex < laneBytes; ++byteIndex)
+                value |= static_cast<uint64_t>(std::to_integer<uint8_t>(bytes[lane * laneBytes + byteIndex])) << (8 * byteIndex);
+            outIndices[lane] = static_cast<uint8_t>(value & indexMask);
+        }
+
+        return true;
+    }
+
     // '@vecsplat' fills every lane with one scalar. The result type carries the lane, and
     // the argument already has that exact type, so nothing converts here.
     Result codeGenVectorSplat(CodeGen& codeGen, AstNodeRef srcNodeRef, bool& outHandled)
@@ -2295,6 +2322,69 @@ namespace
                     default:
                         resultPayload.reg = CodeGenVectorHelpers::emitByteSwap(codeGen, valueReg, laneType);
                         break;
+                }
+
+                outHandled = true;
+                return Result::Continue;
+            }
+
+            case TokenId::IntrinsicVecShuffle:
+            case TokenId::IntrinsicVecShuffle2:
+            {
+                const bool     twoSource   = tokId == TokenId::IntrinsicVecShuffle2;
+                const size_t   patternArg  = twoSource ? 2 : 1;
+                const uint32_t indexMask   = (twoSource ? laneCount * 2 : laneCount) - 1;
+                const MicroReg firstReg    = loadArg(0);
+                const MicroReg secondReg   = twoSource ? loadArg(1) : firstReg;
+
+                std::array<uint8_t, 16> laneIndices{};
+                const bool              constantPattern = tryConstantLaneIndices(codeGen, children[patternArg], laneBits / 8, laneCount, indexMask, laneIndices);
+
+                MicroReg patternReg = MicroReg::invalid();
+                if (!constantPattern)
+                    patternReg = loadArg(patternArg);
+
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+                if (constantPattern)
+                {
+                    const std::span<const uint8_t> indices{laneIndices.data(), laneCount};
+                    resultPayload.reg = twoSource ? CodeGenVectorHelpers::emitConstantShuffle2(codeGen, firstReg, secondReg, laneType, indices)
+                                                  : CodeGenVectorHelpers::emitConstantShuffle(codeGen, firstReg, laneType, indices);
+                }
+                else if (twoSource)
+                {
+                    const TypeInfo& byteLaneType = codeGen.typeMgr().get(codeGen.typeMgr().typeU8());
+                    resultPayload.reg            = CodeGenVectorHelpers::emitDynamicShuffle2(codeGen, firstReg, secondReg, patternReg, laneType, byteLaneType);
+                }
+                else
+                {
+                    resultPayload.reg = CodeGenVectorHelpers::emitDynamicShuffle(codeGen, firstReg, patternReg, laneType);
+                }
+
+                outHandled = true;
+                return Result::Continue;
+            }
+
+            case TokenId::IntrinsicVecAlign:
+            {
+                SWC_ASSERT(children.size() == 3);
+
+                const MicroReg     lowReg    = loadArg(0);
+                const MicroReg     highReg   = loadArg(1);
+                const SemaNodeView countView = codeGen.viewTypeConstant(children[2]);
+
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+                if (countView.hasConstant())
+                {
+                    const ConstantValue& countCst = codeGen.cstMgr().get(countView.cstRef());
+                    resultPayload.reg             = CodeGenVectorHelpers::emitConstantAlign(codeGen, lowReg, highReg, static_cast<uint32_t>(countCst.getIntLike().as64()));
+                }
+                else
+                {
+                    MicroReg countReg;
+                    materializeIntrinsicNumericOperand(countReg, codeGen, codeGen.payload(children[2]), countView.typeRef(), codeGen.typeMgr().typeU8());
+                    const TypeInfo& byteLaneType = codeGen.typeMgr().get(codeGen.typeMgr().typeU8());
+                    resultPayload.reg            = CodeGenVectorHelpers::emitDynamicAlign(codeGen, lowReg, highReg, countReg, byteLaneType);
                 }
 
                 outHandled = true;

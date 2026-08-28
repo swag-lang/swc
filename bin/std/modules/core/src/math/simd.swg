@@ -262,6 +262,56 @@ namespace Simd
         // table byte, or zero when the table byte's high bit is set.
         func shuffle(value, table: U8x16)->U8x16 => @vecperm(value, table)
 
+        // Permutes lanes: result lane `i` takes the lane its `pattern` lane names.
+        //
+        // The index is reduced modulo the lane count, so no pattern is out of range.
+        // A pattern known at compile time selects an immediate form where the target
+        // has one; one built at run time goes through the dynamic byte permute.
+        // [[Core.Math.Simd.shuffle]] is the byte-level form of the same idea.
+        func permute(value, pattern: U8x16)->U8x16        => @vecshuffle(value, pattern)
+        func permute(value: S8x16, pattern: U8x16)->S8x16 => @vecshuffle(value, pattern)
+        func permute(value, pattern: U16x8)->U16x8        => @vecshuffle(value, pattern)
+        func permute(value: S16x8, pattern: U16x8)->S16x8 => @vecshuffle(value, pattern)
+        func permute(value, pattern: U32x4)->U32x4        => @vecshuffle(value, pattern)
+        func permute(value: S32x4, pattern: U32x4)->S32x4 => @vecshuffle(value, pattern)
+        func permute(value, pattern: U64x2)->U64x2        => @vecshuffle(value, pattern)
+        func permute(value: S64x2, pattern: U64x2)->S64x2 => @vecshuffle(value, pattern)
+        func permute(value: F32x4, pattern: U32x4)->F32x4 => @vecshuffle(value, pattern)
+        func permute(value: F64x2, pattern: U64x2)->F64x2 => @vecshuffle(value, pattern)
+
+        // Permutes lanes out of two vectors: an index below the lane count reads `x`,
+        // and one above it reads `y` at the index minus the lane count.
+        func permute2(x, y, pattern: U8x16)->U8x16        => @vecshuffle2(x, y, pattern)
+        func permute2(x, y: S8x16, pattern: U8x16)->S8x16 => @vecshuffle2(x, y, pattern)
+        func permute2(x, y, pattern: U16x8)->U16x8        => @vecshuffle2(x, y, pattern)
+        func permute2(x, y: S16x8, pattern: U16x8)->S16x8 => @vecshuffle2(x, y, pattern)
+        func permute2(x, y, pattern: U32x4)->U32x4        => @vecshuffle2(x, y, pattern)
+        func permute2(x, y: S32x4, pattern: U32x4)->S32x4 => @vecshuffle2(x, y, pattern)
+        func permute2(x, y, pattern: U64x2)->U64x2        => @vecshuffle2(x, y, pattern)
+        func permute2(x, y: S64x2, pattern: U64x2)->S64x2 => @vecshuffle2(x, y, pattern)
+        func permute2(x, y: F32x4, pattern: U32x4)->F32x4 => @vecshuffle2(x, y, pattern)
+        func permute2(x, y: F64x2, pattern: U64x2)->F64x2 => @vecshuffle2(x, y, pattern)
+
+        // Takes sixteen bytes of the concatenation of `low` and `high`, starting at
+        // byte `count` of it.
+        //
+        // A byte past the thirty-two is zero, so a count of 32 or more answers zero.
+        func align(low, high: U8x16, count: u8)->U8x16 => @vecalign(low, high, count)
+        func align(low, high: U16x8, count: u8)->U16x8 => @vecalign(low, high, count)
+        func align(low, high: U32x4, count: u8)->U32x4 => @vecalign(low, high, count)
+        func align(low, high: U64x2, count: u8)->U64x2 => @vecalign(low, high, count)
+        func align(low, high: F32x4, count: u8)->F32x4 => @vecalign(low, high, count)
+
+        // Collects the even lanes of `x` then those of `y`, undoing one interleave.
+        func deinterleaveEven(x, y: U8x16)->U8x16 => @vecshuffle2(x, y, cast(U8x16) [0'u8, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30])
+        func deinterleaveEven(x, y: U16x8)->U16x8 => @vecshuffle2(x, y, cast(U16x8) [0'u16, 2, 4, 6, 8, 10, 12, 14])
+        func deinterleaveEven(x, y: U32x4)->U32x4 => @vecshuffle2(x, y, cast(U32x4) [0'u32, 2, 4, 6])
+
+        // Collects the odd lanes of `x` then those of `y`.
+        func deinterleaveOdd(x, y: U8x16)->U8x16 => @vecshuffle2(x, y, cast(U8x16) [1'u8, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31])
+        func deinterleaveOdd(x, y: U16x8)->U16x8 => @vecshuffle2(x, y, cast(U16x8) [1'u16, 3, 5, 7, 9, 11, 13, 15])
+        func deinterleaveOdd(x, y: U32x4)->U32x4 => @vecshuffle2(x, y, cast(U32x4) [1'u32, 3, 5, 7])
+
         // Blends two vectors through a mask: lanes of `ifTrue` where the mask lane is
         // all-ones, lanes of `ifFalse` where it is all-zeros.
         //
@@ -296,6 +346,74 @@ namespace Simd
         func allTrue(value: U16x8)->bool => @vecall(value)
         func allTrue(value: U32x4)->bool => @vecall(value)
         func allTrue(value: U64x2)->bool => @vecall(value)
+    }
+
+    // Transposes four rows of four 32-bit lanes in place, through the interleave
+    // tree and nothing else: no lane is read or written on its own.
+    //
+    // The rows are taken in place because an array crosses a call boundary through
+    // memory: a form returning a new array would copy the block twice around the
+    // eight instructions that do the work.
+    #[Inline]
+    func transpose4x4(rows: *[4] U32x4)
+    {
+        // Adjacent rows first, which pairs the lanes.
+        let low0  = @vecinterleavelo(rows[][0], rows[][1])
+        let low1  = @vecinterleavelo(rows[][2], rows[][3])
+        let high0 = @vecinterleavehi(rows[][0], rows[][1])
+        let high1 = @vecinterleavehi(rows[][2], rows[][3])
+
+        // Then the same in 64-bit halves, which finishes the transposition.
+        let pair0 = cast #bit (U64x2) low0
+        let pair1 = cast #bit (U64x2) low1
+        let pair2 = cast #bit (U64x2) high0
+        let pair3 = cast #bit (U64x2) high1
+
+        rows[][0] = cast #bit (U32x4) @vecinterleavelo(pair0, pair1)
+        rows[][1] = cast #bit (U32x4) @vecinterleavehi(pair0, pair1)
+        rows[][2] = cast #bit (U32x4) @vecinterleavelo(pair2, pair3)
+        rows[][3] = cast #bit (U32x4) @vecinterleavehi(pair2, pair3)
+    }
+
+    // Transposes eight rows of eight 16-bit lanes in place, through three
+    // interleave rounds and nothing else.
+    //
+    // The rounds are written out rather than looped: an indexed local array would
+    // put every intermediate back in memory, which is what the interleave tree
+    // exists to avoid. [[Core.Math.Simd.transpose4x4]] takes its rows in place for
+    // the same reason.
+    #[Inline]
+    func transpose8x8(rows: *[8] U16x8)
+    {
+        // Adjacent rows first, which pairs the lanes.
+        let word0 = @vecinterleavelo(rows[][0], rows[][1])
+        let word1 = @vecinterleavelo(rows[][2], rows[][3])
+        let word2 = @vecinterleavelo(rows[][4], rows[][5])
+        let word3 = @vecinterleavelo(rows[][6], rows[][7])
+        let word4 = @vecinterleavehi(rows[][0], rows[][1])
+        let word5 = @vecinterleavehi(rows[][2], rows[][3])
+        let word6 = @vecinterleavehi(rows[][4], rows[][5])
+        let word7 = @vecinterleavehi(rows[][6], rows[][7])
+
+        // Then in 32-bit groups, which brings the lanes together four by four.
+        let quad0 = @vecinterleavelo(cast #bit (U32x4) word0, cast #bit (U32x4) word1)
+        let quad1 = @vecinterleavehi(cast #bit (U32x4) word0, cast #bit (U32x4) word1)
+        let quad2 = @vecinterleavelo(cast #bit (U32x4) word2, cast #bit (U32x4) word3)
+        let quad3 = @vecinterleavehi(cast #bit (U32x4) word2, cast #bit (U32x4) word3)
+        let quad4 = @vecinterleavelo(cast #bit (U32x4) word4, cast #bit (U32x4) word5)
+        let quad5 = @vecinterleavehi(cast #bit (U32x4) word4, cast #bit (U32x4) word5)
+        let quad6 = @vecinterleavelo(cast #bit (U32x4) word6, cast #bit (U32x4) word7)
+        let quad7 = @vecinterleavehi(cast #bit (U32x4) word6, cast #bit (U32x4) word7)
+
+        // And a last round in 64-bit halves.
+        rows[][0] = cast #bit (U16x8) @vecinterleavelo(cast #bit (U64x2) quad0, cast #bit (U64x2) quad2)
+        rows[][1] = cast #bit (U16x8) @vecinterleavehi(cast #bit (U64x2) quad0, cast #bit (U64x2) quad2)
+        rows[][2] = cast #bit (U16x8) @vecinterleavelo(cast #bit (U64x2) quad1, cast #bit (U64x2) quad3)
+        rows[][3] = cast #bit (U16x8) @vecinterleavehi(cast #bit (U64x2) quad1, cast #bit (U64x2) quad3)
+        rows[][4] = cast #bit (U16x8) @vecinterleavelo(cast #bit (U64x2) quad4, cast #bit (U64x2) quad6)
+        rows[][5] = cast #bit (U16x8) @vecinterleavehi(cast #bit (U64x2) quad4, cast #bit (U64x2) quad6)
+        rows[][6] = cast #bit (U16x8) @vecinterleavelo(cast #bit (U64x2) quad5, cast #bit (U64x2) quad7)
+        rows[][7] = cast #bit (U16x8) @vecinterleavehi(cast #bit (U64x2) quad5, cast #bit (U64x2) quad7)
     }
 }
 

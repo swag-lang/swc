@@ -801,4 +801,217 @@ MicroReg CodeGenVectorHelpers::emitSumAbsoluteDifferences(CodeGen& codeGen, Micr
     return dstReg;
 }
 
+namespace
+{
+    // The byte a lane index turns into: lane 'index' of a vector starts at
+    // 'index * laneBytes', and the bytes of a lane follow in order.
+    void fillLaneByteTable(std::array<uint8_t, 16>& outTable, std::span<const uint8_t> laneIndices, uint32_t laneBytes)
+    {
+        for (uint32_t lane = 0; lane < laneIndices.size(); ++lane)
+        {
+            for (uint32_t byteIndex = 0; byteIndex < laneBytes; ++byteIndex)
+                outTable[lane * laneBytes + byteIndex] = static_cast<uint8_t>(laneIndices[lane] * laneBytes + byteIndex);
+        }
+    }
+
+    // True when a byte table is exactly a permutation of 32-bit lanes, which
+    // one immediate 'pshufd' performs.
+    bool tryFourLaneControl(std::span<const uint8_t> table, uint8_t& outControl)
+    {
+        uint8_t control = 0;
+        for (uint32_t lane = 0; lane < 4; ++lane)
+        {
+            const uint32_t first = table[lane * 4];
+            if (first % 4 != 0 || first >= 16)
+                return false;
+            for (uint32_t byteIndex = 1; byteIndex < 4; ++byteIndex)
+            {
+                if (table[lane * 4 + byteIndex] != first + byteIndex)
+                    return false;
+            }
+
+            control = static_cast<uint8_t>(control | ((first / 4) << (lane * 2)));
+        }
+
+        outControl = control;
+        return true;
+    }
+
+    // Expands a runtime vector of lane indices into the byte table the dynamic
+    // permute reads: mask the index into range, scale it to bytes, spread each
+    // lane's low byte over the lane, and number the bytes inside it.
+    MicroReg emitLaneIndexByteTable(CodeGen& codeGen, MicroReg patternReg, const TypeInfo& laneType, uint32_t laneCountMask)
+    {
+        const uint32_t laneBytes = laneBitsOf(laneType) / 8;
+        const MicroReg maskedReg = emitVecBinary(codeGen, patternReg, repeatedConstant(codeGen, laneBytes, laneCountMask), MicroOp::VecAnd);
+        if (laneBytes == 1)
+            return maskedReg;
+
+        const uint32_t shift    = laneBytes == 2 ? 1 : laneBytes == 4 ? 2 : 3;
+        const MicroReg scaleReg = CodeGenVectorHelpers::emitLaneShiftImm(codeGen, maskedReg, laneType, shift, true);
+
+        std::array<uint8_t, 16> spread{};
+        std::array<uint8_t, 16> offsets{};
+        for (uint32_t byteIndex = 0; byteIndex < 16; ++byteIndex)
+        {
+            spread[byteIndex]  = static_cast<uint8_t>((byteIndex / laneBytes) * laneBytes);
+            offsets[byteIndex] = static_cast<uint8_t>(byteIndex % laneBytes);
+        }
+
+        const MicroReg spreadReg = emitVecBinary(codeGen, scaleReg, byteTableConstant(codeGen, spread), MicroOp::VecPermB);
+        return emitVecBinary(codeGen, spreadReg, byteTableConstant(codeGen, offsets), MicroOp::VecAdd8);
+    }
+
+    // Selects bytes out of two vectors through one runtime byte table: an index
+    // below sixteen reads the first vector, one below thirty-two the second,
+    // and anything above answers zero.
+    MicroReg emitTwoSourceByteSelect(CodeGen& codeGen, MicroReg firstReg, MicroReg secondReg, MicroReg tableReg, const TypeInfo& byteLaneType)
+    {
+        const MicroReg signBitReg = repeatedConstant(codeGen, 1, 0x80);
+        const MicroReg lowLimit   = repeatedConstant(codeGen, 1, 15);
+        const MicroReg highLimit  = repeatedConstant(codeGen, 1, 31);
+
+        const MicroReg fromSecondReg = CodeGenVectorHelpers::emitCompare(codeGen, TokenId::SymGreater, tableReg, lowLimit, byteLaneType);
+        const MicroReg outOfRangeReg = CodeGenVectorHelpers::emitCompare(codeGen, TokenId::SymGreater, tableReg, highLimit, byteLaneType);
+
+        const MicroReg firstTableReg   = emitVecBinary(codeGen, tableReg, emitVecBinary(codeGen, fromSecondReg, signBitReg, MicroOp::VecAnd), MicroOp::VecOr);
+        const MicroReg loweredReg      = emitVecBinary(codeGen, tableReg, repeatedConstant(codeGen, 1, 16), MicroOp::VecSub8);
+        const MicroReg fromFirstReg    = emitVecBinary(codeGen, fromSecondReg, signBitReg, MicroOp::VecAndNot);
+        const MicroReg outOfRangeBitReg = emitVecBinary(codeGen, outOfRangeReg, signBitReg, MicroOp::VecAnd);
+        const MicroReg secondTableReg  = emitVecBinary(codeGen, emitVecBinary(codeGen, loweredReg, fromFirstReg, MicroOp::VecOr), outOfRangeBitReg, MicroOp::VecOr);
+
+        const MicroReg firstPartReg  = emitVecBinary(codeGen, firstReg, firstTableReg, MicroOp::VecPermB);
+        const MicroReg secondPartReg = emitVecBinary(codeGen, secondReg, secondTableReg, MicroOp::VecPermB);
+        return emitVecBinary(codeGen, firstPartReg, secondPartReg, MicroOp::VecOr);
+    }
+}
+
+MicroReg CodeGenVectorHelpers::emitConstantShuffle(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType, std::span<const uint8_t> laneIndices)
+{
+    const uint32_t          laneBytes = laneBitsOf(laneType) / 8;
+    std::array<uint8_t, 16> table{};
+    fillLaneByteTable(table, laneIndices, laneBytes);
+
+    // A permutation of 32-bit lanes is one immediate instruction; anything
+    // else is one dynamic permute against a constant table.
+    uint8_t control = 0;
+    if (tryFourLaneControl(table, control))
+    {
+        const MicroReg dstReg = codeGen.nextVirtualFloatRegister();
+        codeGen.builder().emitVecShuffleRegRegImm(dstReg, valueReg, control, MicroOpBits::B128);
+        return dstReg;
+    }
+
+    return emitVecBinary(codeGen, valueReg, byteTableConstant(codeGen, table), MicroOp::VecPermB);
+}
+
+MicroReg CodeGenVectorHelpers::emitDynamicShuffle(CodeGen& codeGen, MicroReg valueReg, MicroReg patternReg, const TypeInfo& laneType)
+{
+    const uint32_t laneCount = 16 / (laneBitsOf(laneType) / 8);
+    const MicroReg tableReg  = emitLaneIndexByteTable(codeGen, patternReg, laneType, laneCount - 1);
+    return emitVecBinary(codeGen, valueReg, tableReg, MicroOp::VecPermB);
+}
+
+MicroReg CodeGenVectorHelpers::emitConstantShuffle2(CodeGen& codeGen, MicroReg firstReg, MicroReg secondReg, const TypeInfo& laneType, std::span<const uint8_t> laneIndices)
+{
+    const uint32_t laneBytes = laneBitsOf(laneType) / 8;
+    const uint32_t laneCount = 16 / laneBytes;
+
+    // A pattern that never crosses into the other vector is a one-source
+    // permutation, and the second source never has to be read.
+    bool usesFirst  = false;
+    bool usesSecond = false;
+    for (uint32_t lane = 0; lane < laneCount; ++lane)
+    {
+        if (laneIndices[lane] < laneCount)
+            usesFirst = true;
+        else
+            usesSecond = true;
+    }
+
+    if (!usesSecond)
+        return emitConstantShuffle(codeGen, firstReg, laneType, laneIndices);
+
+    std::array<uint8_t, 16> lowered{};
+    for (uint32_t lane = 0; lane < laneCount; ++lane)
+        lowered[lane] = static_cast<uint8_t>(laneIndices[lane] - laneCount);
+    if (!usesFirst)
+        return emitConstantShuffle(codeGen, secondReg, laneType, {lowered.data(), laneCount});
+
+    // Four 32-bit lanes taking their low half from one vector and their high
+    // half from the other is exactly what 'shufps' does.
+    if (laneBytes == 4 && laneIndices[0] < 4 && laneIndices[1] < 4 && laneIndices[2] >= 4 && laneIndices[3] >= 4)
+    {
+        const uint8_t control = static_cast<uint8_t>(laneIndices[0] | (laneIndices[1] << 2) | ((laneIndices[2] - 4) << 4) | ((laneIndices[3] - 4) << 6));
+        const MicroReg dstReg = codeGen.nextVirtualFloatRegister();
+        codeGen.builder().emitOpTernaryRegRegRegImm(dstReg, firstReg, secondReg, control, MicroOp::VecShufF32, MicroOpBits::B128);
+        return dstReg;
+    }
+
+    // Otherwise both sources are permuted against a constant table whose
+    // out-of-range bytes select nothing, and the halves merge.
+    std::array<uint8_t, 16> firstTable{};
+    std::array<uint8_t, 16> secondTable{};
+    for (uint32_t lane = 0; lane < laneCount; ++lane)
+    {
+        const bool fromFirst = laneIndices[lane] < laneCount;
+        for (uint32_t byteIndex = 0; byteIndex < laneBytes; ++byteIndex)
+        {
+            const uint32_t position = lane * laneBytes + byteIndex;
+            firstTable[position]    = fromFirst ? static_cast<uint8_t>(laneIndices[lane] * laneBytes + byteIndex) : 0x80;
+            secondTable[position]   = fromFirst ? 0x80 : static_cast<uint8_t>(lowered[lane] * laneBytes + byteIndex);
+        }
+    }
+
+    const MicroReg firstPartReg  = emitVecBinary(codeGen, firstReg, byteTableConstant(codeGen, firstTable), MicroOp::VecPermB);
+    const MicroReg secondPartReg = emitVecBinary(codeGen, secondReg, byteTableConstant(codeGen, secondTable), MicroOp::VecPermB);
+    return emitVecBinary(codeGen, firstPartReg, secondPartReg, MicroOp::VecOr);
+}
+
+MicroReg CodeGenVectorHelpers::emitDynamicShuffle2(CodeGen& codeGen, MicroReg firstReg, MicroReg secondReg, MicroReg patternReg, const TypeInfo& laneType, const TypeInfo& byteLaneType)
+{
+    const uint32_t laneCount = 16 / (laneBitsOf(laneType) / 8);
+    const MicroReg tableReg  = emitLaneIndexByteTable(codeGen, patternReg, laneType, laneCount * 2 - 1);
+    return emitTwoSourceByteSelect(codeGen, firstReg, secondReg, tableReg, byteLaneType);
+}
+
+MicroReg CodeGenVectorHelpers::emitConstantAlign(CodeGen& codeGen, MicroReg lowReg, MicroReg highReg, uint32_t count)
+{
+    MicroBuilder& builder = codeGen.builder();
+    if (!count)
+    {
+        const MicroReg copyReg = codeGen.nextVirtualFloatRegister();
+        builder.emitLoadRegReg(copyReg, lowReg, MicroOpBits::B128);
+        return copyReg;
+    }
+
+    if (count >= 32)
+    {
+        const MicroReg zeroReg = codeGen.nextVirtualFloatRegister();
+        builder.emitOpBinaryRegRegReg(zeroReg, lowReg, lowReg, MicroOp::VecXor, MicroOpBits::B128);
+        return zeroReg;
+    }
+
+    // 'palignr' concatenates its first source above its second and slides the
+    // window down, which is the whole operation.
+    const MicroReg dstReg = codeGen.nextVirtualFloatRegister();
+    builder.emitOpTernaryRegRegRegImm(dstReg, highReg, lowReg, static_cast<uint8_t>(count), MicroOp::VecAlignR, MicroOpBits::B128);
+    return dstReg;
+}
+
+MicroReg CodeGenVectorHelpers::emitDynamicAlign(CodeGen& codeGen, MicroReg lowReg, MicroReg highReg, MicroReg countReg, const TypeInfo& byteLaneType)
+{
+    // The window starts at 'count' and numbers sixteen bytes from there. The
+    // saturating add keeps a large count out of range instead of wrapping it
+    // back into the window.
+    const MicroReg countVecReg = splatScalarLane(codeGen, countReg, byteLaneType);
+
+    std::array<uint8_t, 16> offsets{};
+    for (uint32_t byteIndex = 0; byteIndex < 16; ++byteIndex)
+        offsets[byteIndex] = static_cast<uint8_t>(byteIndex);
+
+    const MicroReg tableReg = emitVecBinary(codeGen, countVecReg, byteTableConstant(codeGen, offsets), MicroOp::VecSatAddU8);
+    return emitTwoSourceByteSelect(codeGen, lowReg, highReg, tableReg, byteLaneType);
+}
+
 SWC_END_NAMESPACE();

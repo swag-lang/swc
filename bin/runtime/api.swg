@@ -1595,6 +1595,48 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
     // byte's high bit is set.
     func @vecperm(value: #simd [16] u8, table: #simd [16] u8)->#simd [16] u8
 
+    // Lane permutation. Result lane 'i' takes the lane the matching pattern
+    // lane names, the index reduced modulo the lane count so no pattern is out
+    // of range. A pattern known at compile time selects an immediate form where
+    // the target has one, and one built at run time goes through the dynamic
+    // byte permute.
+    func @vecshuffle(value: #simd [16] u8, pattern: #simd [16] u8)->#simd [16] u8
+    func @vecshuffle(value: #simd [16] s8, pattern: #simd [16] u8)->#simd [16] s8
+    func @vecshuffle(value: #simd [8] u16, pattern: #simd [8] u16)->#simd [8] u16
+    func @vecshuffle(value: #simd [8] s16, pattern: #simd [8] u16)->#simd [8] s16
+    func @vecshuffle(value: #simd [4] u32, pattern: #simd [4] u32)->#simd [4] u32
+    func @vecshuffle(value: #simd [4] s32, pattern: #simd [4] u32)->#simd [4] s32
+    func @vecshuffle(value: #simd [2] u64, pattern: #simd [2] u64)->#simd [2] u64
+    func @vecshuffle(value: #simd [2] s64, pattern: #simd [2] u64)->#simd [2] s64
+    func @vecshuffle(value: #simd [4] f32, pattern: #simd [4] u32)->#simd [4] f32
+    func @vecshuffle(value: #simd [2] f64, pattern: #simd [2] u64)->#simd [2] f64
+
+    // The same over two vectors: an index below the lane count reads 'value1',
+    // and one above it reads 'value2' at the index minus the lane count.
+    func @vecshuffle2(value1, value2: #simd [16] u8, pattern: #simd [16] u8)->#simd [16] u8
+    func @vecshuffle2(value1, value2: #simd [16] s8, pattern: #simd [16] u8)->#simd [16] s8
+    func @vecshuffle2(value1, value2: #simd [8] u16, pattern: #simd [8] u16)->#simd [8] u16
+    func @vecshuffle2(value1, value2: #simd [8] s16, pattern: #simd [8] u16)->#simd [8] s16
+    func @vecshuffle2(value1, value2: #simd [4] u32, pattern: #simd [4] u32)->#simd [4] u32
+    func @vecshuffle2(value1, value2: #simd [4] s32, pattern: #simd [4] u32)->#simd [4] s32
+    func @vecshuffle2(value1, value2: #simd [2] u64, pattern: #simd [2] u64)->#simd [2] u64
+    func @vecshuffle2(value1, value2: #simd [2] s64, pattern: #simd [2] u64)->#simd [2] s64
+    func @vecshuffle2(value1, value2: #simd [4] f32, pattern: #simd [4] u32)->#simd [4] f32
+    func @vecshuffle2(value1, value2: #simd [2] f64, pattern: #simd [2] u64)->#simd [2] f64
+
+    // Sixteen bytes of the concatenation of 'low' and 'high', starting at byte
+    // 'count' of it. A byte past the thirty-two is zero.
+    func @vecalign(low, high: #simd [16] u8, count: u8)->#simd [16] u8
+    func @vecalign(low, high: #simd [16] s8, count: u8)->#simd [16] s8
+    func @vecalign(low, high: #simd [8] u16, count: u8)->#simd [8] u16
+    func @vecalign(low, high: #simd [8] s16, count: u8)->#simd [8] s16
+    func @vecalign(low, high: #simd [4] u32, count: u8)->#simd [4] u32
+    func @vecalign(low, high: #simd [4] s32, count: u8)->#simd [4] s32
+    func @vecalign(low, high: #simd [2] u64, count: u8)->#simd [2] u64
+    func @vecalign(low, high: #simd [2] s64, count: u8)->#simd [2] s64
+    func @vecalign(low, high: #simd [4] f32, count: u8)->#simd [4] f32
+    func @vecalign(low, high: #simd [2] f64, count: u8)->#simd [2] f64
+
     // Per-lane select: lanes of 'ifTrue' where the mask lane is all-ones,
     // lanes of 'ifFalse' where it is all-zeros.
     func @vecselect(mask, ifTrue, ifFalse: #simd [16] u8)->#simd [16] u8

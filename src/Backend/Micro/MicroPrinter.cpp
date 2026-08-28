@@ -404,6 +404,10 @@ namespace
                 return "vec.cmpf32";
             case MicroOp::VecCmpF64:
                 return "vec.cmpf64";
+            case MicroOp::VecShufF32:
+                return "vec.shuff32";
+            case MicroOp::VecAlignR:
+                return "vec.alignr";
             case MicroOp::VecShiftLeftV16:
                 return "vec.shlv16";
             case MicroOp::VecShiftLeftV32:

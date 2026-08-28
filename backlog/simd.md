@@ -119,16 +119,6 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   transformations that would lose to scalar code.
 - Related: T-535, T-545, T-547.
 
-### T-514 — Shuffle, zip, transpose, and two-source permutation are incomplete
-
-- Intent: add immediate lane permutation, zip/unzip, byte align/extract, and two-source table
-  permutation rather than forcing every transpose through spills or byte masks. Low/high
-  interleave now covers 8-, 16-, 32-, and 64-bit integer lanes; the remaining gap is a higher-level
-  permutation vocabulary that composes those primitives without scalar extraction.
-- Complete when: constant patterns select immediate hardware forms, dynamic patterns retain a
-  defined fallback, and 4x4/8x8 transpose helpers require no scalar lane extraction.
-- Related: T-507, T-549, T-550, T-551.
-
 ### T-516 — Vector tails require scalar cleanup
 
 - Intent: add masked load/store and partial load/store operations with an explicit valid-lane mask,
@@ -203,7 +193,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   and every transposed store compile to. Narrow lanes and dynamic indices still take the spill.
 - Complete when: encoder tests and `PrintMicro` show each idiom on a representative standard-module
   kernel and end-to-end benchmarks show no regression on the fallback target.
-- Related: T-514, T-520.
+- Related: T-520.
 
 ### T-523 — Unrolling does not expose constant-index SIMD packs
 
@@ -277,7 +267,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
 - Evidence: pairing two G functions while packing and extracting scalar state at every half-round
   measured 273,397 to 1,419,077 microseconds over 64 MiB (5.19x slower) and was rejected. A viable
   kernel needs persistent vector state with cheap lane permutation, or independent messages per lane.
-- Related: T-513, T-514.
+- Related: T-513.
 
 ### T-250 — Poly1305 remains scalar
 
@@ -293,7 +283,6 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   instead of attempting to vectorize one recurrence-dependent stream.
 - Complete when: one- through lane-width batches preserve streaming/finalization semantics, fall
   back for a single stream, and improve aggregate hashing throughput.
-- Related: T-514.
 
 ### T-539 — CRC32 cannot use polynomial folding
 
@@ -329,7 +318,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   (1.07x slower) and was rejected, so strong vertical chroma retains its scalar two-line segments.
 - Complete when: decoded frames remain byte-exact, a profitable strong vertical chroma kernel is
   retained or ruled out with an end-to-end profile, and the 1080p profile confirms the other gains.
-- Related: T-514, T-520, T-420 in `video.md`.
+- Related: T-520, T-420 in `video.md`.
 
 ### T-544 — H.264 dequantization and irregular directional intra prediction remain scalar
 
@@ -357,7 +346,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   slower; those paths remain scalar.
 - Complete when: conformance streams remain byte-exact and each retained kernel improves the staged
   reconstruction profile.
-- Related: T-513, T-514, T-516.
+- Related: T-513, T-516.
 
 ## Tier C — Pixel processing and image codecs
 
@@ -368,7 +357,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   the other original candidates now have measured chunk or row kernels.
 - Complete when: supported pixel formats, alpha preservation, odd widths, stride, overlap, and tails
   match existing behavior and each retained kernel beats callback dispatch.
-- Related: T-511, T-514, T-516, T-520.
+- Related: T-511, T-516, T-520.
 
 ### T-546 — Convolution, resize, smart-crop, and Haar kernels remain scalar
 
@@ -433,7 +422,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   conversion kernel shows as a few percent end to end.
 - Complete when: the PNG fixture corpus is byte/pixel identical, malformed inputs remain rejected,
   every filter and bit depth covers odd tails, and encode/decode throughput improves.
-- Related: T-514, T-516, T-517, T-520.
+- Related: T-516, T-517, T-520.
 
 ### T-549 — The JPEG forward transform and quantization remain scalar
 
@@ -461,7 +450,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   a whole-block DC shortcut is worth 16% on a smooth fixture where a per-line one had regressed.
 - Complete when: fixtures preserve accepted pixel tolerances, coefficient extremes are covered, and
   encode throughput improves in an interleaved A/B on a quiet machine.
-- Related: T-511, T-514, T-520.
+- Related: T-511, T-520.
 
 ### T-550 — WebP reconstruction and transforms remain mostly scalar
 
@@ -469,7 +458,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   and lossless subtract-green/cross-color/predictor transforms.
 - Complete when: lossy and lossless fixture pixels remain identical where specified, predictor and
   boundary modes are exhaustive, and stage benchmarks show the retained gains.
-- Related: T-513, T-514, T-516, T-520.
+- Related: T-513, T-516, T-520.
 
 ### T-551 — Packed and indexed pixel formats lack gather/shuffle kernels
 
@@ -527,7 +516,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   claim on a re-measure in this file.
 - Complete when: every format variant, palette size, transparency case, row padding, and tail matches
   scalar decoding/encoding and the dispatcher avoids gather where it loses.
-- Related: T-514, T-517.
+- Related: T-517.
 
 ### T-552 — The CPU renderer has no packed span pipeline
 

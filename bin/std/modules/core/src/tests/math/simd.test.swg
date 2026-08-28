@@ -303,3 +303,66 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
     let products      = Simd.mulAddPairs(unsignedBytes, signedBytes)
     @assert(products[0] == -30 and products[1] == -70)
 }
+
+// Lane permutation, byte alignment, deinterleaving and the transposes.
+#test
+{
+    let quads = cast(Simd.U32x4) [10'u32, 20, 30, 40]
+    let other = cast(Simd.U32x4) [50'u32, 60, 70, 80]
+
+    let reversed = Simd.permute(quads, cast(Simd.U32x4) [3'u32, 2, 1, 0])
+    @assert(reversed[0] == 40 and reversed[3] == 10)
+
+    let mixed = Simd.permute2(quads, other, cast(Simd.U32x4) [0'u32, 4, 1, 5])
+    @assert(mixed[0] == 10 and mixed[1] == 50 and mixed[2] == 20 and mixed[3] == 60)
+
+    let low  = cast(Simd.U8x16) [0'u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    let high = cast(Simd.U8x16) [16'u8, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+    let slid = Simd.align(low, high, 4)
+    for i in 16 do
+        @assert(slid[i] == cast(u8) (i + 4))
+
+    let evens = Simd.deinterleaveEven(low, high)
+    let odds  = Simd.deinterleaveOdd(low, high)
+    for i in 16
+    {
+        @assert(evens[i] == cast(u8) (i * 2))
+        @assert(odds[i] == cast(u8) (i * 2 + 1))
+    }
+}
+
+// A transpose reads no lane one at a time: the interleave tree does all of it.
+#test
+{
+    var rows: [4] Simd.U32x4
+    for r in 4
+    {
+        var lanes: [4] u32
+        for c in 4 do
+            lanes[c] = cast(u32) (r * 4 + c)
+        rows[r] = cast(Simd.U32x4) lanes
+    }
+
+    Simd.transpose4x4(&rows)
+    for r in 4
+    {
+        for c in 4 do
+            @assert(rows[r][c] == cast(u32) (c * 4 + r))
+    }
+
+    var wide: [8] Simd.U16x8
+    for r in 8
+    {
+        var lanes: [8] u16
+        for c in 8 do
+            lanes[c] = cast(u16) (r * 8 + c)
+        wide[r] = cast(Simd.U16x8) lanes
+    }
+
+    Simd.transpose8x8(&wide)
+    for r in 8
+    {
+        for c in 8 do
+            @assert(wide[r][c] == cast(u16) (c * 8 + r))
+    }
+}

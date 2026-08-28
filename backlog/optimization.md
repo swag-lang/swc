@@ -680,6 +680,26 @@ cmov-to-branch back-conversion, and profile-gated passes.
   CalleeReturn=CALLER gate) make this the last entry to attempt.
 - Related: B-001 through B-007 all gain from it; the inlining half of F-193.
 
+### B-018 — An inlined by-value aggregate argument is copied even when the body only reads it
+
+- Area: compiler/sema
+- Found while: giving `Core.Math.Simd` its 4x4 and 8x8 transposes (2026-08-28).
+- Evidence: `func transpose4x4(rows: [4] U32x4)->[4] U32x4` inlined into a caller that already
+  holds the block still emitted four 128-bit loads and four stores copying the argument into a
+  fresh frame slot, then read every row back out of that copy, around the eight interleaves that
+  are the whole operation: 40 instructions and a 0x1C8 frame for eight instructions of work. The
+  same body taking `rows: *[4] U32x4` in place compiles to 28 instructions and a 0x80 frame, which
+  is what the API now does. `materializeInlineBindings` binds a by-value aggregate argument to a
+  concrete local because the callee may write to its parameter; when the inlined body never
+  assigns that parameter, the local is pure traffic and the caller's storage could be named
+  directly.
+- Next: in `SemaInline`, detect that a by-value aggregate parameter is never assigned in the
+  cloned body and bind it to the argument expression instead of a materialized copy.
+- Complete when: a read-only by-value aggregate parameter costs no copy after inlining, a written
+  one still copies, and the value-returning shape of a block transform is as cheap as the in-place
+  one on the video corpus.
+- Related: B-008.
+
 ### B-009 — Eviction-policy changes have no purchase while loop residency covers the hot loops
 
 - Area: compiler/backend

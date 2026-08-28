@@ -202,6 +202,49 @@ readable table element and be at most 's32.Max'.
 }
 
 /**
+# Lane Permutation
+
+'@vecshuffle' rearranges the lanes of a vector: result lane 'i' takes the lane
+its pattern lane names, the index reduced modulo the lane count so no pattern
+is out of range. '@vecshuffle2' does the same over two vectors, an index below
+the lane count reading the first and one above it reading the second at the
+index minus that count. '@vecalign' takes sixteen bytes of the concatenation of
+two vectors starting at a byte offset, and answers zero past the thirty-two.
+
+A pattern the compiler can see selects an immediate form where the target has
+one: a permutation of 32-bit lanes is one 'pshufd', a two-source pattern whose
+low half comes from one vector and whose high half comes from the other is one
+'shufps', and a constant byte offset is one 'palignr'. Everything else becomes
+a permute against a constant byte table. A pattern that only exists at run time
+keeps the same meaning through the dynamic byte permute, which is what
+'@vecperm' exposes on its own.
+*/
+#test
+{
+    let quads = cast(#simd [4] u32) [10, 20, 30, 40]
+
+    var r = cast([4] u32) @vecshuffle(quads, cast(#simd [4] u32) [3, 2, 1, 0])
+    @assert(r[0] == 40 and r[1] == 30 and r[2] == 20 and r[3] == 10)
+
+    // An index past the last lane wraps around instead of reading nothing.
+    r = cast([4] u32) @vecshuffle(quads, cast(#simd [4] u32) [4, 5, 6, 7])
+    @assert(r[0] == 10 and r[3] == 40)
+
+    let other = cast(#simd [4] u32) [50, 60, 70, 80]
+    r = cast([4] u32) @vecshuffle2(quads, other, cast(#simd [4] u32) [0, 2, 5, 7])
+    @assert(r[0] == 10 and r[1] == 30 and r[2] == 60 and r[3] == 80)
+
+    let bytes = cast(#simd [16] u8) [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    let next  = cast(#simd [16] u8) [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+    let slid  = cast([16] u8) @vecalign(bytes, next, 4)
+    @assert(slid[0] == 4 and slid[11] == 15 and slid[12] == 16 and slid[15] == 19)
+
+    // Past the concatenation there is nothing to read.
+    let empty = cast([16] u8) @vecalign(bytes, next, 32)
+    @assert(empty[0] == 0 and empty[15] == 0)
+}
+
+/**
 # Horizontal Reductions
 
 The '@vecreduce' family combines every lane of a vector into one scalar of the

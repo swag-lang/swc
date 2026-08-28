@@ -24,3 +24,14 @@ SOFTWARE.
 
 This license applies to the icon geometry embedded in icons.svg, taken from
 Fluent UI System Icons (https://github.com/microsoft/fluentui-system-icons).
+
+# GUI font licences
+
+The bundled Inter 4.1 static fonts are distributed unchanged from
+https://github.com/rsms/inter/releases/tag/v4.1 under the SIL Open Font
+License 1.1 in `INTER-OFL.txt`.
+
+The bundled Roboto Mono static fonts are distributed unchanged from commit
+895ec691990d041dd727c7b5afa3ce56525d98e6 of
+https://github.com/googlefonts/RobotoMono under the SIL Open Font License 1.1
+in `ROBOTO-MONO-OFL.txt`.

@@ -1,5 +1,5 @@
 # tex#0 352x352 BGRA8
-# font#0 segoeui.ttf size=13 mode=Bitmap
+# font#0 inter-regular.ttf size=13 mode=Bitmap
 
 ResetTexture0
 Transform 1 0 0 1 0 0

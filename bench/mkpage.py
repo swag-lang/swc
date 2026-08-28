@@ -37,8 +37,8 @@ TASK_IDS = [t[0] for t in TASKS]
 RUNTIMES = [
     ("swag-release",       "swag release",      "natif",     "swag"),
     ("swc-jit-release",    "swag release",      "JIT",       "swag"),
-    ("swag-fast-debug",    "swag fast-debug",   "natif",     "swag"),
-    ("swc-jit-fast-debug", "swag fast-debug",   "JIT",       "swag"),
+    ("swag-fast-debug",    "swag devmode",      "natif",     "swag"),
+    ("swc-jit-fast-debug", "swag devmode",      "JIT",       "swag"),
     ("cpp-clang-cl",       "C++ clang-cl",      "natif",     "native"),
     ("cpp-msvc",           "C++ MSVC",          "natif",     "native"),
     ("rust",               "Rust",              "natif",     "native"),
@@ -57,8 +57,8 @@ DRIFT_LIMIT = history.DRIFT_LIMIT_PCT
 HIST_SERIES = [
     ("swag-release",       "release natif",    "h-a"),
     ("swc-jit-release",    "release JIT",      "h-b"),
-    ("swag-fast-debug",    "fast-debug natif", "h-c"),
-    ("swc-jit-fast-debug", "fast-debug JIT",   "h-d"),
+    ("swag-fast-debug",    "devmode natif",    "h-c"),
+    ("swc-jit-fast-debug", "devmode JIT",      "h-d"),
 ]
 
 

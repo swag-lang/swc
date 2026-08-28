@@ -940,7 +940,7 @@ namespace Swag
         {
             optimize:           bool
             vectorize:          bool     // Auto-vectorize; true in 'release'
-            debugInfo        = false     // Output debug information if 'true'
+            debugInfo        = false     // Emit CodeView and PDB debug information; '--debug' enables it for command-line builds
             enableExceptions = true      // Generate unwind info for JIT code and register SEH function tables
             fpMathFma:          bool     // true in 'release'
             fpMathNoNaN:        bool     // true in 'release'
@@ -1083,14 +1083,14 @@ namespace Swag
 
             backend: BuildCfgBackend     // Backend options
 
-            repoPath:          #null string                            // Repository access path to the module
-            resAppIcoFileName: #null string                            // For an executable, the associated icon file name. Relative paths start at the module folder.
-            resAppName:        #null string                            // For an executable, the associated application name
-            resAppDescription: #null string                            // For an executable, the associated application description
-            resAppCompany:     #null string                            // For an executable, the associated company name
-            resAppCopyright:   #null string                            // For an executable, the associated copyright notice
-            genDoc:            BuildCfgGenDoc                          // Parameters for document generation
-            registeredConfigs: string = "debug|fast-debug|release"     // Registered build configuration names used by --build-cfg and #cfg
+            repoPath:          #null string                   // Repository access path to the module
+            resAppIcoFileName: #null string                   // For an executable, the associated icon file name. Relative paths start at the module folder.
+            resAppName:        #null string                   // For an executable, the associated application name
+            resAppDescription: #null string                   // For an executable, the associated application description
+            resAppCompany:     #null string                   // For an executable, the associated company name
+            resAppCopyright:   #null string                   // For an executable, the associated copyright notice
+            genDoc:            BuildCfgGenDoc                 // Parameters for document generation
+            registeredConfigs: string = "devmode|release"     // Registered build configuration names used by --build-cfg and #cfg
         }
     }
 

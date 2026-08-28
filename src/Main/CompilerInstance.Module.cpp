@@ -85,6 +85,8 @@ namespace
         buildCfg.backendKind = effectiveBackendKind(cmdLine, buildCfg.backendKind);
         if (cmdLine.backendOptimize.has_value())
             buildCfg.backend.optimize = cmdLine.backendOptimize.value();
+        if (cmdLine.debugInfo)
+            buildCfg.backend.debugInfo = true;
 
         if (cmdLine.artifactNameExplicit)
             buildCfg.name = cmdLine.defaultBuildCfg.name;
@@ -874,6 +876,7 @@ namespace
         std::vector<fs::path> inputs;
         std::vector<fs::path> dependencyDirs;
         std::vector<fs::path> artifacts;
+        bool                  debugInfo = false;
     };
 
     // Each build mode keeps its own manifest, so alternating `test` and `run` does
@@ -1047,6 +1050,8 @@ namespace
         };
 
         auto   currentSection = Section::None;
+        bool   validVersion   = false;
+        bool   hasDebugInfo   = false;
         size_t start          = 0;
         while (start <= content.size())
         {
@@ -1066,8 +1071,19 @@ namespace
                 continue;
             }
 
-            if (line == "version=2")
+            if (line == "version=3")
             {
+                validVersion = true;
+                if (end == content.size())
+                    break;
+                start = end + 1;
+                continue;
+            }
+
+            if (line == "debug-info=0" || line == "debug-info=1")
+            {
+                outManifest.debugInfo = line.back() == '1';
+                hasDebugInfo           = true;
                 if (end == content.size())
                     break;
                 start = end + 1;
@@ -1110,12 +1126,12 @@ namespace
         normalizeWorkspacePaths(outManifest.inputs);
         normalizeWorkspacePaths(outManifest.dependencyDirs);
         normalizeWorkspaceRelativePaths(outManifest.artifacts);
-        return true;
+        return validVersion && hasDebugInfo;
     }
 
     Result writeWorkspaceArtifactManifest(TaskContext& ctx, const WorkspaceArtifactManifest& manifest, const fs::path& manifestPath)
     {
-        Utf8 content = "version=2\n[inputs]\n";
+        Utf8 content = std::format("version=3\ndebug-info={}\n[inputs]\n", manifest.debugInfo ? 1 : 0);
         for (const fs::path& path : manifest.inputs)
         {
             content += Utf8(path);
@@ -1168,8 +1184,10 @@ namespace
         return false;
     }
 
-    bool workspaceArtifactsAreUpToDate(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& manifestPath, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts)
+    bool workspaceArtifactsAreUpToDate(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& manifestPath, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts, const bool debugInfo)
     {
+        if (manifest.debugInfo != debugInfo)
+            return false;
         if (!workspacePathListContainsAll(manifest.inputs, currentInputs))
             return false;
         if (!sameWorkspacePathList(manifest.dependencyDirs, currentDependencyDirs))
@@ -2811,10 +2829,10 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             if (needsRequiredArtifact)
             {
                 requiredArtifacts.push_back(artifactPaths.artifactPath);
-                // Note: we deliberately do not require artifactPaths.pdbPath here. Debug info is embedded
-                // directly into the PE image by the linker (see PELinker / DebugInfo::buildObject); no
-                // standalone .pdb file is ever produced, even for debug build configs. Requiring one would
-                // make every native module appear permanently stale and force a full rebuild every time.
+                if (probeCompiler.buildCfg().backend.debugInfo &&
+                    (probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable ||
+                     probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary))
+                    requiredArtifacts.push_back(artifactPaths.pdbPath);
                 probeCompiler.setLastArtifactLabel(artifactPaths.artifactPath.filename().empty() ? Utf8(artifactPaths.artifactPath) : Utf8(artifactPaths.artifactPath.filename()));
             }
             else
@@ -2830,7 +2848,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         WorkspaceArtifactManifest manifest;
         const fs::path            manifestPath = workspaceArtifactManifestPath(moduleCmdLine.outDir, moduleCmdLine);
         if (readWorkspaceArtifactManifest(manifest, manifestPath) &&
-            workspaceArtifactsAreUpToDate(manifest, moduleCmdLine.outDir, manifestPath, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts))
+            workspaceArtifactsAreUpToDate(manifest, moduleCmdLine.outDir, manifestPath, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts, probeCompiler.buildCfg().backend.debugInfo))
         {
             const bool     runReusedTestArtifact = !testArtifactPath.empty() && workspaceManifestContainsArtifact(manifest, moduleCmdLine.outDir, testArtifactPath);
             ScopedTimedLog moduleStage(probeCtx, ScopedTimedLog::Stage::Module);
@@ -2921,6 +2939,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             if (shouldWriteWorkspaceArtifactManifest(*moduleCompiler) && (!commandFailed || moduleCompiler->nativeArtifactBuilt()))
             {
                 WorkspaceArtifactManifest manifest;
+                manifest.debugInfo = moduleCompiler->buildCfg().backend.debugInfo;
                 collectWorkspaceModuleInputs(manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles_);
                 if (moduleCompiler->collectWorkspaceModuleDependencyDirs(moduleCtx, manifest.dependencyDirs, dependencies, moduleBuild.setup.imports) != Result::Continue)
                     return Result::Error;
@@ -2944,6 +2963,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         link->writeManifest = shouldWriteWorkspaceArtifactManifest(*moduleCompiler);
         if (link->writeManifest)
         {
+            link->manifest.debugInfo = moduleCompiler->buildCfg().backend.debugInfo;
             collectWorkspaceModuleInputs(link->manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles_);
             if (moduleCompiler->collectWorkspaceModuleDependencyDirs(moduleCtx, link->manifest.dependencyDirs, dependencies, moduleBuild.setup.imports) != Result::Continue)
                 return Result::Error;

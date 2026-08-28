@@ -54,6 +54,11 @@ namespace
         // Debug-info sidecar (PDB), written next to the image when debug info is enabled.
         if (!pdbBytes.empty() && !writeJobArtifact(job, job.pdbPath, pdbBytes))
             return false;
+        if (pdbBytes.empty() && !job.pdbPath.empty())
+        {
+            std::error_code ec;
+            fs::remove(job.pdbPath, ec);
+        }
 
         // A shared library also produces an import library next to it so dependents can link by name.
         if (job.output == LinkJob::Output::SharedLibrary)

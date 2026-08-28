@@ -61,10 +61,10 @@ than reported missing, so a script runs from a checkout that has never been
 registered or built. The compiler builds imported dependencies as native modules
 and reuses compatible output on later runs.
 
-Script dependency state is cached under the system temporary directory in
-`swag/scripts`. Its directory key is derived from the build configuration,
-target architecture, and resolved imports, so compatible scripts can reuse the
-same dependency output. Use `--show-config` to inspect resolved paths and tools.
+Script dependencies are cached by content under the system temporary directory
+in `swag/dep`, so compatible scripts can share the same dependency output. Run
+`swc clean --cache` to remove these copies (and the legacy `swag/scripts` cache).
+Use `--show-config` to inspect resolved paths and tools.
 
 ## Split a script across files
 

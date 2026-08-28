@@ -152,7 +152,7 @@ struct CommandLine
     Utf8 targetCpu = "unknown-cpu";
 #endif
 
-    Utf8                buildCfg = "fast-debug";
+    Utf8                buildCfg = "devmode";
     Utf8                name;
     Utf8                newProjectName;
     Utf8                moduleNamespace;
@@ -192,6 +192,7 @@ struct CommandLine
     bool semaOnly                = false;
     bool output                  = true;
     bool outputDoc               = true;
+    bool debugInfo               = false;
     bool devStopDiagnostics      = true;
 
     bool devFull = false;
@@ -304,7 +305,7 @@ constexpr std::string_view commandName(const CommandKind command)
 //
 // A test build is not the same program as a normal build of the same module: it
 // compiles `#test` bodies in, answers `#command` with `Test` so the source can
-// select different constants, and forces debug info and exceptions on. Without a
+// select different constants, and forces exceptions on. Without a
 // distinct name the two overwrite each other's executable, PDB, and object files,
 // and `run` happily launches whichever was built last. A focused test gets a third
 // name because its executable deliberately omits the unselected test entry points.

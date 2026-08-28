@@ -29,11 +29,11 @@ swc test -w <repository-root>/bin/reference -m language
 ```
 
 Run the command without '-m language' to test every module in the reference
-workspace. The 'test' command uses the 'fast-debug' build configuration by
+workspace. The 'test' command uses the 'devmode' build configuration by
 default; select another registered configuration with '--build-cfg' (or '-bc'):
 
 ```text
-swc test -w <repository-root>/bin/reference -m language -bc debug
+swc test -w <repository-root>/bin/reference -m language -bc release
 ```
 
 # How to Read the Examples

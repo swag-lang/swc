@@ -54,7 +54,7 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 **Evidence.** `bench/history.json` currently uses protocol 2 and contains three records, all dated 2026-08-07. They cover only `hello_build_ms` (99.5432–112.6252 ms) and `hello_build_peak_mb` (105.28125–107.4375 MiB). They do not establish full-core, warm no-op, or touched-file baselines.
 
-**Intent.** Extend the reproducible benchmark campaign with a full core rebuild, a warm no-op rebuild, and a single-file incremental edit. Measure Release and the supported fast-debug configuration where their behavior differs.
+**Intent.** Extend the reproducible benchmark campaign with a full core rebuild, a warm no-op rebuild, and a single-file incremental edit. Measure Release and DevMode where their behavior differs.
 
 **Complete when.**
 
@@ -71,7 +71,7 @@ As of 2026-08-22, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 **Complete when.**
 
-- A full core fast-debug build peaks below 250 MiB and a hello-world build below 40 MiB on the campaign host.
+- A full core DevMode build peaks below 250 MiB and a hello-world build below 40 MiB on the campaign host.
 - Every campaign workload stays within twice the best comparable compiled-language implementation measured by the same harness, or records a reviewed exception.
 - Thresholds, host normalization, and variance policy are stored with the campaign.
 - External profiling attributes the remaining peak well enough that a regression report names the responsible subsystem.

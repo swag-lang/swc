@@ -45,7 +45,7 @@ swc hello.swgs</span></div>
 
 <span class="SKwd">using</span> <span class="SCst">Core</span></span></div>
 <p><span class="code-inline">swag@std</span> is the standard library beside the compiler that runs the script, and <span class="code-inline">SWAG_PATH</span> answers only for a compiler installed without one. A compiler and its library are one thing, so a second checkout on the same machine keeps its own rather than the one the environment happens to name. A module that library has but has not been built for this configuration is built there and then, rather than reported missing, so a script runs from a checkout that has never been registered or built. The compiler builds imported dependencies as native modules and reuses compatible output on later runs.</p>
-<p>Script dependency state is cached under the system temporary directory in <span class="code-inline">swag/scripts</span>. Its directory key is derived from the build configuration, target architecture, and resolved imports, so compatible scripts can reuse the same dependency output. Use <span class="code-inline">--show-config</span> to inspect resolved paths and tools.</p>
+<p>Script dependencies are cached by content under the system temporary directory in <span class="code-inline">swag/dep</span>, so compatible scripts can share the same dependency output. Run <span class="code-inline">swc clean --cache</span> to remove these copies (and the legacy <span class="code-inline">swag/scripts</span> cache). Use <span class="code-inline">--show-config</span> to inspect resolved paths and tools.</p>
 <h2 id="Split_a_script_across_files">Split a script across files</h2>
 <p>Use top-level <span class="code-inline">#load</span> directives for companion source files:</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#load</span>(<span class="SStr">"symbols.swg"</span>)
@@ -73,7 +73,7 @@ swc hello.swgs</span></div>
 <p>The repository includes games, visualizations, utilities, and demonstrations under <a href="https://github.com/swag-lang/swc/tree/master/bin/examples/scripts">`bin/examples/scripts`</a>. The <a href="flappy.html">Flappy Bird walkthrough</a> explains imports, compile-time module configuration, GUI events, graphics, audio, and asset loading in one file.</p>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.250</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.251</div>
 </footer>
 </section>
 </main>

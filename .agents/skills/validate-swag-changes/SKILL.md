@@ -1,6 +1,6 @@
 ---
 name: validate-swag-changes
-description: Select, run, and report the smallest sufficient builds and tests for a Swag repository change. Use whenever planning validation, compiling swc or swc.dm, choosing debug/fast-debug/release configurations, selecting compiler suites or bin module/application tests, focusing #test execution by source file, choosing concrete consumers, reviewing text or image goldens, or deciding whether a broad repository campaign is justified.
+description: Select, run, and report the smallest sufficient builds and tests for a Swag repository change. Use whenever planning validation, compiling swc or swc.dm, choosing devmode/release configurations, deciding whether dedicated debug-information tests need --debug, selecting compiler suites or bin module/application tests, focusing #test execution by source file, choosing concrete consumers, reviewing text or image goldens, or deciding whether a broad repository campaign is justified.
 ---
 
 # Validate Swag Changes
@@ -24,8 +24,9 @@ there. Choosing a focused test reduces scope; it does not replace the worker lim
 Inspect the final diff and decide, in order:
 
 1. Which compiler executable must drive validation: `swc.dm.exe`, `swc.exe`, or both.
-2. Which compiled-program configuration can execute the changed path: `debug`, `fast-debug`,
-   `release`, or a justified union.
+2. Which compiled-program configuration can execute the changed path: `devmode`, `release`,
+   or a justified union; and independently, whether a dedicated debug-information test needs
+   `--debug`.
 3. Which smallest behavioral boundary observes the change: one C++ test family, compiler source
    file, module test file, application consumer, smoke, generated diff, or golden.
 
@@ -54,23 +55,26 @@ The registered presets are the contract:
 
 | Configuration | Relevant properties | Select it for |
 | --- | --- | --- |
-| `debug` | no backend optimization; safety and sanity guards; full allocator diagnostics; no inlining | unoptimized lowering, debug allocator behavior, or debug-only execution |
-| `fast-debug` | backend optimization; safety and sanity guards; debug information; marked-only inlining | the default path and optimized code that must retain guards |
+| `devmode` | backend optimization; safety and sanity guards; lighter allocator diagnostics; marked-only inlining | the default path and optimized code that must retain guards |
 | `release` | backend optimization; no runtime safety guards; sanity guards; automatic inlining, SSE2 vectorization, aggressive FP policy | Release-only optimization, inlining, vectorization, FP, or guard-free behavior |
+
+Neither preset emits CodeView or PDB information by default. `--debug` is an orthogonal output
+request, not a third configuration: use it only for the dedicated compiler unit tests that inspect
+debug symbols, types, source checksums, line mappings, breakpoint addresses, or PDB consumption.
+Do not add it to examples, standard modules, applications, the reference, workspace tests, or a
+whole language suite merely to keep debug-information generation exercised.
 
 Apply these reductions:
 
-- Start with `fast-debug` when the code path exists in every preset.
-- For an optimization or micro-pass change, omit `debug`: its backend pipeline is not optimized.
-  Use `fast-debug` when it executes the pass. If the pass is self-gated by automatic inlining,
+- Start with `devmode` when the code path exists in every preset.
+- For an optimization or micro-pass change, use `devmode` when it executes the pass. If the pass is self-gated by automatic inlining,
   vectorization, aggressive FP, or another Release-only decision, use `release` instead; add both
   configurations only when both execute distinct relevant paths.
-- For runtime safety guards, use `debug` and/or `fast-debug` according to the reproducer and omit
-  `release`, where those guards are disabled.
+- For runtime safety guards, use `devmode` and omit `release`, where those guards are disabled.
 - For static sanity analysis, one representative configuration is enough unless the rule reads a
   configuration value or interacts with optimized lowering.
-- For allocator capture/tracking/fill behavior, use `debug`. For the lighter guarded allocator
-  path used during normal iteration, use `fast-debug`.
+- For allocator behavior exposed through an explicit build setting or tag, enable that setting in
+  the focused allocator test; use `devmode` for the normal guarded allocator path.
 - Add a second configuration only for an actual semantic branch, preset difference, or known
   configuration-sensitive regression. `--all-cfg` is not a confidence shortcut.
 
@@ -104,6 +108,12 @@ Apply these reductions:
 | module graph, import, cache, workspace, publication, or cross-module artifact lifetime | `workspace` suite or its exact workspace module reproducer |
 | linker, PE/PDB, or debug information | focused C++/native tests plus one real linked consumer when the contract crosses the linker |
 | driver command or process launch | the exact command boundary; add a suite only if the defect reduces to it |
+
+The `DebugInfo_*` C++ tests own compiler-to-CodeView records, symbols, types, checksums, and line
+mappings; the `Pdb_*` tests own the final PDB and DbgHelp consumer boundary. Their isolated Swag
+command lines enable debug information explicitly. Keep that opt-in inside these fixtures: do not
+forward `--debug` to `tools/unittests.swgs`, because that would compile unrelated suites with debug
+information too.
 
 Run the regression file first. Extend to its suite only when neighboring cases share the changed
 mechanism. Extend to a linked application, reference, or workspace only when the contract crosses

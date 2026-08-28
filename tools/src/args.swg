@@ -19,7 +19,7 @@ public struct Options
     command:      String           // The command, when the tool accepts more than one.
     module:       String           // The module, suite, or script that was named.
     buildCfg:     String           // The configuration to build and run in.
-    allConfigs:   bool             // Whether to repeat an aggregate tool in all three.
+    allConfigs:   bool             // Whether to repeat an aggregate tool in both configurations.
     wantHelp:     bool             // Whether the tool was asked to print its usage.
     targetArch:   String           // The architecture every output path is keyed on.
     runAsync:     bool             // Whether an application run returns after starting the process.
@@ -109,7 +109,7 @@ private struct Grammar
     #[CommandLine.ArgParams("bc")]
     buildCfg: String     // The configuration to build and run in.
 
-    allCfg: bool     // Repeat an aggregate tool in all three configurations.
+    allCfg: bool     // Repeat an aggregate tool in both configurations.
 
     #[CommandLine.ArgParams("m")]
     workspaceModule: String     // The module, when named through an option rather than the positional.
@@ -128,7 +128,7 @@ private struct Grammar
 public func parseOptions(acceptedCommands: const [..] string, tokens: const [..] string)->Options fail
 {
     var result: retval
-    result.buildCfg   = String.from("fast-debug")
+    result.buildCfg   = String.from("devmode")
     result.targetArch = String.from("x86_64")
 
     // `/?` asks for help in the one spelling Core's parser has no dash for.

@@ -1307,18 +1307,26 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(DebugInfo_CompilerTestFunctionsPreserveStackDebugMetadata)
 {
-    static constexpr std::string_view SOURCE     = R"(#test
+    static constexpr std::string_view SOURCE     = R"(#[Swag.NoInline]
+func incrementForDebugInfo(value: *s32)
+{
+    value[] += 1
+}
+
+#test
 {
     var acc: s32 = 0
-    acc += 1
+    incrementForDebugInfo(&acc)
+    @assert(acc == 1)
 }
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("DebugInfo", "CompilerTestFunctionsPreserveStackDebugMetadata");
 
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
-    cmdLine.buildCfg    = "debug";
+    cmdLine.buildCfg    = "devmode";
     cmdLine.backendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
+    cmdLine.debugInfo   = true;
     cmdLine.name        = "compiler_test_debug";
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
@@ -1393,8 +1401,9 @@ func debugInfoRuntimeStorageRead(value: DebugInfoRuntimeStoragePair)->s32
 
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
-    cmdLine.buildCfg    = "debug";
+    cmdLine.buildCfg    = "devmode";
     cmdLine.backendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
+    cmdLine.debugInfo   = true;
     cmdLine.name        = "compiler_runtime_storage_debug";
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
@@ -1506,8 +1515,9 @@ var GValue: s32 = 7
 
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
-    cmdLine.buildCfg    = "debug";
+    cmdLine.buildCfg    = "devmode";
     cmdLine.backendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
+    cmdLine.debugInfo   = true;
     cmdLine.name        = "compiler_private_global_debug";
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);

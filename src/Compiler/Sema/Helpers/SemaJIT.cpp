@@ -1216,7 +1216,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     // Eligibility and prerequisites.
     if (sema.isRunExprContext() && !forceEvaluation)
         return Result::Continue;
-    // With backend optimization off (e.g. 'debug'), pure-call folding is normally
+    // With backend optimization explicitly disabled, pure-call folding is normally
     // deferred for compile speed. But an explicit #[ConstExpr] function is required to be evaluable at
     // compile time, so it must still fold when its arguments are constant (e.g. a `case` value) - folding
     // only proceeds below once the arguments are confirmed constant.
@@ -1303,7 +1303,7 @@ Result SemaJIT::tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNode
         return Result::Continue;
     if (sema.isRunExprContext())
         return Result::Continue;
-    // With backend optimization off (e.g. 'debug'), pure-call folding is normally
+    // With backend optimization explicitly disabled, pure-call folding is normally
     // deferred for compile speed. But an explicit #[ConstExpr] function is required to be evaluable at
     // compile time, so it must still fold when its arguments are constant (e.g. a `case` value) - folding
     // only proceeds below once the arguments are confirmed constant.

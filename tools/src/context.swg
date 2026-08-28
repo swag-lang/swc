@@ -12,13 +12,13 @@ public struct Context
     childEnv:   Env.ProcessEnvironment     // Environment every started compiler inherits.
 }
 
-// The three build configurations a campaign repeats, in the order it repeats them.
+// The build configurations a campaign repeats, in the order it repeats them.
 public func allConfigurations()->const [..] string
 {
     return g_AllConfigurations
 }
 
-private var g_AllConfigurations: [3] string = ["release", "debug", "fast-debug"]
+private var g_AllConfigurations: [2] string = ["release", "devmode"]
 
 public impl Context
 {

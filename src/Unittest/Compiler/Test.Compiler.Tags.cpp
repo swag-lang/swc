@@ -103,6 +103,47 @@ SWC_TEST_BEGIN(Compiler_TestCommandEnablesSourceDrivenModeWhenParsed)
         return Result::Error;
     if (!parserCmdLine.defaultBuildCfg.backend.enableExceptions)
         return Result::Error;
+    if (parserCmdLine.defaultBuildCfg.backend.debugInfo)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_DebugOptionEnablesDebugInformation)
+{
+    CommandLine parserCmdLine;
+    char        arg0[] = "swc.dm";
+    char        arg1[] = "test";
+    char        arg2[] = "--build-cfg";
+    char        arg3[] = "release";
+    char        arg4[] = "--debug";
+    char*       argv[] = {arg0, arg1, arg2, arg3, arg4};
+
+    CommandLineParser parser(const_cast<Global&>(ctx.global()), parserCmdLine);
+    if (parser.parse(std::size(argv), argv) != Result::Continue)
+        return Result::Error;
+
+    if (!parserCmdLine.debugInfo)
+        return Result::Error;
+    if (!parserCmdLine.defaultBuildCfg.backend.debugInfo)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_ReleaseBuildDoesNotEnableDebugInformation)
+{
+    CommandLine parserCmdLine;
+    char        arg0[] = "swc.dm";
+    char        arg1[] = "test";
+    char        arg2[] = "--build-cfg";
+    char        arg3[] = "release";
+    char*       argv[] = {arg0, arg1, arg2, arg3};
+
+    CommandLineParser parser(const_cast<Global&>(ctx.global()), parserCmdLine);
+    if (parser.parse(std::size(argv), argv) != Result::Continue)
+        return Result::Error;
+
+    if (parserCmdLine.defaultBuildCfg.backend.debugInfo)
+        return Result::Error;
 }
 SWC_TEST_END()
 

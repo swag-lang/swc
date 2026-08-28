@@ -267,8 +267,8 @@ func readTemplateInline()->Tracked
 }
 
 // An inlined return moves the local out: 'opPostMove' runs into the result slot and
-// the local's drop is elided. When the expansion is a real call (debug configs skip
-// inlining) the consumer copy disappears, so only the ownership invariants are pinned:
+// the local's drop is elided. When the expansion is a real call (for example when
+// backend optimization is disabled) the consumer copy disappears, so only the ownership invariants are pinned:
 // one move out, at most one consumer copy, one drop.
 #test
 {
@@ -284,7 +284,7 @@ func readTemplateInline()->Tracked
 
 // An inlined return of a live lvalue deep-copies it: the source stays untouched, no
 // move runs, and only the declared variable is dropped. The number of copies depends
-// on whether the expansion is a real call (debug configs skip inlining).
+// on whether the expansion is a real call (for example when backend optimization is disabled).
 #test
 {
     resetHooks(0)

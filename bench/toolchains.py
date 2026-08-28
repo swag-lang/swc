@@ -170,9 +170,11 @@ def make_recipes(t, env, swc):
                     "clean": [os.path.join(proj, "bin"), os.path.join(proj, "obj", "Release")]}
         return make
 
+    # The fast-debug benchmark IDs are stable data keys shared with recorded campaigns. They now
+    # select the equivalent devmode preset so the historical series remains continuous.
     return {
         "swag-release":    swag("release"),
-        "swag-fast-debug": swag("fast-debug"),
+        "swag-fast-debug": swag("devmode"),
         "cpp-clang-cl":    cpp(t["clang_cl"]),
         "cpp-msvc":        cpp(cl),
         "rust":            rust,
@@ -202,7 +204,7 @@ def make_runtimes(t, swc):
 
     return {
         "swc-jit-release":    jit("release"),
-        "swc-jit-fast-debug": jit("fast-debug"),
+        "swc-jit-fast-debug": jit("devmode"),
         "node20":             lambda task: [t["node"], os.path.join(SRC, "js", task + ".js")],
         "luajit2.1":          lambda task: [t["luajit"], os.path.join(SRC, "lua", task + ".lua")],
         "lua5.4":             lambda task: [t["lua"], os.path.join(SRC, "lua", task + ".lua")],
@@ -259,7 +261,7 @@ def make_hello_runs(t, swc):
     return {
         "swc-jit-release":    [swc, "sema", "--build-cfg", "release", "-f",
                                os.path.join(hello, "run.swg")],
-        "swc-jit-fast-debug": [swc, "sema", "--build-cfg", "fast-debug", "-f",
+        "swc-jit-fast-debug": [swc, "sema", "--build-cfg", "devmode", "-f",
                                os.path.join(hello, "run.swg")],
         "node20":             [t["node"], os.path.join(hello, "hello.js")],
         "luajit2.1":          [t["luajit"], os.path.join(hello, "hello.lua")],

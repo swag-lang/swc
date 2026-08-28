@@ -83,9 +83,12 @@ or extend.
 
 | Value | Intended use |
 |---|---|
-| 'debug' | Full safety/sanity, allocation diagnostics, no optimization |
-| 'fast-debug' | Default: full safety/sanity with optimized code and lighter allocation tracking |
+| 'devmode' | Default: full safety/sanity with optimized code and lighter allocation tracking |
 | 'release' | Optimized code, static sanity on, runtime safety and tracking off |
+
+Neither configuration emits debug information by default. Add '--debug' to a
+'test', 'build', 'run', or 'smoke' command when a debugger needs symbols, types,
+and source line mappings. The option does not change optimization or guard policy.
 
 The target architecture currently exposed by '--arch' is 'x86_64'. Select the
 artifact with '--artifact-kind' ('-ak'): 'executable', 'shared-library',

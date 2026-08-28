@@ -228,21 +228,7 @@ namespace
 
     bool applyBuildCfgPreset(Runtime::BuildCfg& buildCfg, const std::string_view cfgName)
     {
-        if (cfgName == "debug")
-        {
-            buildCfg.safetyGuards              = Runtime::SafetyWhat::All;
-            buildCfg.sanityGuards              = Runtime::SafetyWhat::All;
-            buildCfg.allocatorCaptureStack     = true;
-            buildCfg.allocatorLeaks            = true;
-            buildCfg.allocatorTrackAllocations = true;
-            buildCfg.allocatorElectricMode     = false;
-            buildCfg.allocatorFillMemory       = true;
-            buildCfg.errorStackTrace           = true;
-            buildCfg.backend.optimize          = false;
-            buildCfg.backend.debugInfo         = true;
-            buildCfg.backend.inlineMode        = Runtime::BuildCfgBackendInlineMode::Never;
-        }
-        else if (cfgName == "fast-debug")
+        if (cfgName == "devmode")
         {
             buildCfg.safetyGuards              = Runtime::SafetyWhat::All;
             buildCfg.sanityGuards              = Runtime::SafetyWhat::All;
@@ -253,7 +239,7 @@ namespace
             buildCfg.allocatorFillMemory       = false;
             buildCfg.errorStackTrace           = true;
             buildCfg.backend.optimize          = true;
-            buildCfg.backend.debugInfo         = true;
+            buildCfg.backend.debugInfo         = false;
             buildCfg.backend.inlineMode        = Runtime::BuildCfgBackendInlineMode::MarkedOnly;
         }
         else if (cfgName == "release")
@@ -270,7 +256,7 @@ namespace
             buildCfg.errorStackTrace            = false;
             buildCfg.backend.optimize           = true;
             buildCfg.backend.vectorize          = true;
-            buildCfg.backend.debugInfo          = true;
+            buildCfg.backend.debugInfo          = false;
             buildCfg.backend.fpMathFma          = true;
             buildCfg.backend.fpMathNoNaN        = true;
             buildCfg.backend.fpMathNoInf        = true;
@@ -298,12 +284,13 @@ namespace
 
         if (cmdLine.backendOptimize.has_value())
             buildCfg.backend.optimize = cmdLine.backendOptimize.value();
+        if (cmdLine.debugInfo)
+            buildCfg.backend.debugInfo = true;
 
         buildCfg.backendKind = cmdLine.backendKind;
 
         if (cmdLine.sourceDrivenTest)
         {
-            buildCfg.backend.debugInfo        = true;
             buildCfg.backend.enableExceptions = true;
         }
 

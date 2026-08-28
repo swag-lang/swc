@@ -71,7 +71,7 @@ useful while iterating:
 | `swc tools\unittests.swgs dm native` | Native code generation and execution tests |
 | `swc tools\reference.swgs dm test` | Executable language reference |
 | `swc tools\tests.swgs dm` | Full default DevMode test suite |
-| `swc tools\tests.swgs dm --all-cfg` | Default suite in `release`, `debug`, and `fast-debug` |
+| `swc tools\tests.swgs dm --all-cfg` | Default suite in `release` and `devmode` |
 
 The repository's [agent guide](https://github.com/swag-lang/swc/blob/master/AGENTS.md)
 defines the required validation sequence for each change type.

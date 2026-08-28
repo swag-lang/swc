@@ -336,7 +336,7 @@ SWC_TEST_BEGIN(NativeArtifact_ModuleNamespaceDefaultsFromModulePath)
 {
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Build;
-    cmdLine.buildCfg    = "debug";
+    cmdLine.buildCfg    = "devmode";
     cmdLine.backendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
     cmdLine.modulePath  = fs::path("bin/std/modules/win32");
     CommandLineParser::refreshBuildCfg(cmdLine);
@@ -358,7 +358,7 @@ SWC_TEST_BEGIN(NativeArtifact_ModuleNamespaceOverrideWins)
 {
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Build;
-    cmdLine.buildCfg        = "debug";
+    cmdLine.buildCfg        = "devmode";
     cmdLine.backendKind     = Runtime::BuildCfgBackendKind::SharedLibrary;
     cmdLine.modulePath      = fs::path("bin/std/modules/win32");
     cmdLine.moduleNamespace = "WindowsSdk";
@@ -373,7 +373,7 @@ SWC_TEST_BEGIN(NativeArtifact_ExplicitArtifactKindOverridesBuildCfgMutation)
 {
     CommandLine cmdLine;
     cmdLine.command              = CommandKind::Build;
-    cmdLine.buildCfg             = "debug";
+    cmdLine.buildCfg             = "devmode";
     cmdLine.backendKind          = Runtime::BuildCfgBackendKind::SharedLibrary;
     cmdLine.artifactKindExplicit = true;
     CommandLineParser::refreshBuildCfg(cmdLine);
@@ -722,7 +722,7 @@ var GValue: s32 = 0
 
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
-    cmdLine.buildCfg    = "debug";
+    cmdLine.buildCfg    = "devmode";
     cmdLine.backendKind = Runtime::BuildCfgBackendKind::Executable;
     cmdLine.name        = "compiler_run_expr_test";
     cmdLine.files.insert(sourcePath);
@@ -842,7 +842,7 @@ var GAddOne: UnaryFn = &addOne
 
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
-    cmdLine.buildCfg    = "debug";
+    cmdLine.buildCfg    = "devmode";
     cmdLine.backendKind = Runtime::BuildCfgBackendKind::Executable;
     cmdLine.name        = "compiler_instance_native_registration";
     cmdLine.files.insert(sourcePath);
@@ -987,7 +987,7 @@ impl Buffer
 
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
-    cmdLine.buildCfg    = "debug";
+    cmdLine.buildCfg    = "devmode";
     cmdLine.backendKind = Runtime::BuildCfgBackendKind::Executable;
     cmdLine.name        = "silent_spec_op_probe";
     cmdLine.files.insert(sourcePath);
@@ -1023,7 +1023,7 @@ SWC_TEST_BEGIN(NativeArtifact_TestFileFilterSelectsAUnionOfSourcePaths)
 
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
-    cmdLine.buildCfg    = "debug";
+    cmdLine.buildCfg    = "devmode";
     cmdLine.backendKind = Runtime::BuildCfgBackendKind::Executable;
     cmdLine.name        = "test_file_filter";
     cmdLine.files.insert(firstPath);

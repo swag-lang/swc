@@ -525,8 +525,8 @@ namespace Runtime
     };
 
     inline constexpr String DEFAULT_REGISTERED_BUILD_CFGS = {
-        .ptr    = "debug|fast-debug|release",
-        .length = 24,
+        .ptr    = "devmode|release",
+        .length = 15,
     };
 
     // Each field lists warning identifiers separated with '|', and accepts 'all' to name

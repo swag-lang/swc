@@ -65,22 +65,22 @@ enum SoundFileFields
 // Describes the in-memory encoding of sound samples.
 enum SoundFileEncoding
 {
-    Unknown     // The loader or codec has not identified the encoding.
-    Pcm8        // Unsigned, uncompressed 8-bit PCM.
-    Pcm16       // Signed, uncompressed 16-bit PCM.
-    Pcm24       // Signed, uncompressed 24-bit PCM.
-    Pcm32       // Signed, uncompressed 32-bit PCM.
-    Float32     // Uncompressed 32-bit IEEE floating-point samples.
-    AacLc       // MPEG-4 AAC Low Complexity access units.
-    Ac3         // Dolby Digital AC-3 sync frames.
-    Eac3        // Dolby Digital Plus E-AC-3 sync frames.
-    Dts         // DTS Coherent Acoustics Core frames.
-    Flac        // Free Lossless Audio Codec frames.
-    Mp3         // MPEG-1, MPEG-2, and MPEG-2.5 Layer III frames.
-    AdpcmMs     // Microsoft ADPCM blocks of a WAVE file.
-    AdpcmIma    // IMA ADPCM blocks of a WAVE file.
-    Vorbis      // Vorbis I packets, raw or inside Ogg pages.
-    Opus        // Opus packets, raw or inside Ogg pages.
+    Unknown      // The loader or codec has not identified the encoding.
+    Pcm8         // Unsigned, uncompressed 8-bit PCM.
+    Pcm16        // Signed, uncompressed 16-bit PCM.
+    Pcm24        // Signed, uncompressed 24-bit PCM.
+    Pcm32        // Signed, uncompressed 32-bit PCM.
+    Float32      // Uncompressed 32-bit IEEE floating-point samples.
+    AacLc        // MPEG-4 AAC Low Complexity access units.
+    Ac3          // Dolby Digital AC-3 sync frames.
+    Eac3         // Dolby Digital Plus E-AC-3 sync frames.
+    Dts          // DTS Coherent Acoustics Core frames.
+    Flac         // Free Lossless Audio Codec frames.
+    Mp3          // MPEG-1, MPEG-2, and MPEG-2.5 Layer III frames.
+    AdpcmMs      // Microsoft ADPCM blocks of a WAVE file.
+    AdpcmIma     // IMA ADPCM blocks of a WAVE file.
+    Vorbis       // Vorbis I packets, raw or inside Ogg pages.
+    Opus         // Opus packets, raw or inside Ogg pages.
 }
 
 // Configures an indexed compressed sound stream.
@@ -311,29 +311,14 @@ impl SoundFile
 
         switch #complete SoundFileFormats[format].loader
         {
-        case .Flac:
-            return try Flac.openFile(path)
-
-        case .Mp3:
-            return try Mp3.openFile(path)
-
-        case .Aac:
-            return try Aac.openFile(path)
-
-        case .Ac3:
-            return try Dolby.openElementaryStream(path, .Ac3)
-
-        case .Eac3:
-            return try Dolby.openElementaryStream(path, .Eac3)
-
-        case .Dts:
-            return try Dts.openElementaryStream(path)
-
-        case .Ogg:
-            return try Ogg.openFile(path)
-
-        case .Wav:
-            return try Wav.openFile(path, preloadData)
+        case .Flac: return try Flac.openFile(path)
+        case .Mp3:  return try Mp3.openFile(path)
+        case .Aac:  return try Aac.openFile(path)
+        case .Ac3:  return try Dolby.openElementaryStream(path, .Ac3)
+        case .Eac3: return try Dolby.openElementaryStream(path, .Eac3)
+        case .Dts:  return try Dts.openElementaryStream(path)
+        case .Ogg:  return try Ogg.openFile(path)
+        case .Wav:  return try Wav.openFile(path, preloadData)
         }
     }
 

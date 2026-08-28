@@ -88,15 +88,15 @@ public func packetFrameCount(encoding: SoundFileEncoding, packet: const [..] u8)
 {
     switch encoding
     {
-    case .AacLc: return 1024
-    case .Ac3:   return try Dolby.ac3PacketFrameCount(packet)
-    case .Eac3:  return try Dolby.eac3PacketFrameCount(packet)
-    case .Dts:   return try Dts.packetFrameCount(packet)
-    case .Flac:  return try Flac.packetFrameCount(packet)
-    case .Mp3:   return try Mp3.packetFrameCount(packet)
+    case .AacLc:              return 1024
+    case .Ac3:                return try Dolby.ac3PacketFrameCount(packet)
+    case .Eac3:               return try Dolby.eac3PacketFrameCount(packet)
+    case .Dts:                return try Dts.packetFrameCount(packet)
+    case .Flac:               return try Flac.packetFrameCount(packet)
+    case .Mp3:                return try Mp3.packetFrameCount(packet)
     case .AdpcmMs, .AdpcmIma: fail UnsupportedFormatError{"ADPCM block durations follow from the WAVE format, not from the block"}
     case .Vorbis, .Opus:      fail UnsupportedFormatError{"Vorbis and Opus durations need the stream configuration, not the packet alone"}
-    default:     fail UnsupportedFormatError{"unsupported packetized sound encoding"}
+    default:                  fail UnsupportedFormatError{"unsupported packetized sound encoding"}
     }
 }
 
@@ -141,11 +141,13 @@ public impl PacketDurationProbe
         case .Vorbis:
             let probe = cast(*Vorbis.DurationProbe) .vorbis!
             return try probe.frames(packet)
+
         case .Opus:
             let count = Opus.packetFrames(packet)
             if !count do
                 fail InvalidFormatError{"Opus packet has an invalid table of contents"}
             return cast(u32) count
+
         default:
             return try packetFrameCount(.encoding, packet)
         }

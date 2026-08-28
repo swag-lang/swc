@@ -7,9 +7,9 @@
 
 using Core, Core.Errors, Core.Math
 
-internal const MaxChannels = 8'u32
-private const MinBlockSize = 64'u32
-private const MaxBlockSize = 8192'u32
+internal const MaxChannels    = 8'u32
+private const MinBlockSize    = 64'u32
+private const MaxBlockSize    = 8192'u32
 private const MaxCodewordBits = 32'u32
 
 // Speaker masks for the channel counts the format defines, in WAVE order.
@@ -308,7 +308,7 @@ private impl Codebook
         let valueBits = reader.read(4) + 1
         let sequence  = reader.readFlag()
         let quantized = .lookupType == 1 ? .lookup1Values() : .entries * .dimensions
-        var quant:    Array'f32
+        var quant: Array'f32
         quant.resize(quantized)
         for index in quantized do
             quant[index] = cast(f32) reader.read(valueBits)
@@ -318,8 +318,8 @@ private impl Codebook
         .values.resize(cast(u64) .entries * .dimensions)
         for entry in .entries
         {
-            var last     = 0.0'f32
-            var divisor  = 1'u64
+            var last    = 0.0'f32
+            var divisor = 1'u64
             for dimension in .dimensions
             {
                 var index: u64
@@ -342,7 +342,7 @@ private impl Codebook
 // One floor of the setup header, of type 0 or 1.
 private struct Floor
 {
-    kind:            u32
+    kind: u32
 
     // Type 0: a linear predictive envelope over a bark-scaled map.
     order:           u32
@@ -669,8 +669,8 @@ private struct Codec
     floorPosts:   [MaxChannels] Array's32      // Floor 1 post values of every channel.
     floorUsed:    [MaxChannels] Array'bool     // Whether each post takes part in the rendering.
     floorCurve:   [MaxChannels] Array'f32      // Floor 0 coefficients, with the amplitude last.
-    floorPresent: [MaxChannels] bool         // The channel's floor was coded in the current block.
-    nonzero:      [MaxChannels] bool         // The channel carries residue, coded or through coupling.
+    floorPresent: [MaxChannels] bool           // The channel's floor was coded in the current block.
+    nonzero:      [MaxChannels] bool           // The channel carries residue, coded or through coupling.
     classes:      Array'u32                    // Residue partition classes of the current pass.
     entries:      Array's32                    // Codeword entries of one vector-sliced partition.
     output:       Array's16                    // Interleaved samples of the run being decoded.
@@ -1105,7 +1105,7 @@ private impl Codec
     mtd decodeResidue(residue: *Residue, reader: *BitReader, list: const [..] u32, half: u32) fail
     {
         var active: [MaxChannels] u32
-        var used    = 0'u32
+        var used = 0'u32
         for channel in list
         {
             if .nonzero[channel]
@@ -1131,10 +1131,10 @@ private impl Codec
         let limitEnd   = Math.min(cast(u64) residue.end, actualSize)
         if limitEnd <= limitBegin do
             return
-        let partitions   = (limitEnd - limitBegin) / residue.partitionSize
-        let classbook    = &.codebooks[residue.classbook]
-        let wordSize     = cast(u64) classbook.dimensions
-        let words        = (partitions + wordSize - 1) / wordSize
+        let partitions      = (limitEnd - limitBegin) / residue.partitionSize
+        let classbook       = &.codebooks[residue.classbook]
+        let wordSize        = cast(u64) classbook.dimensions
+        let words           = (partitions + wordSize - 1) / wordSize
         var partitionValues = 1'u64
         for wordSize
         {
@@ -1178,7 +1178,7 @@ private impl Codec
                         let book = residue.books[cls, pass]
                         if (residue.cascade[cls] & (1'u32 << pass)) and book >= 0
                         {
-                            let offset = limitBegin + partition * residue.partitionSize
+                            let offset   = limitBegin + partition * residue.partitionSize
                             let codebook = &.codebooks[cast(u32) book]
                             var complete: bool
                             if residue.kind == 0 do
@@ -1281,10 +1281,10 @@ private impl Codec
         let modeIndex = reader.read(.modeBits)
         if modeIndex >= .modes.count do
             fail InvalidFormatError{"Vorbis packet names a mode that does not exist"}
-        let mode      = .modes[modeIndex]
-        let which     = mode.longBlock ? 1'u32 : 0
-        let n         = .blockSizes[which]
-        let half      = n / 2
+        let mode         = .modes[modeIndex]
+        let which        = mode.longBlock ? 1'u32 : 0
+        let n            = .blockSizes[which]
+        let half         = n / 2
         var previousLong = true
         var nextLong     = true
         if mode.longBlock
@@ -1420,13 +1420,13 @@ private impl Codec
 
             if outputFrames
             {
-                let saved      = .saved[channel].buffer!
-                let slot       = ChannelSlots[.channels, channel]
-                let previous   = cast(u64) .previousSize
-                let shift      = cast(s64) n / 4 - cast(s64) previous / 4
+                let saved    = .saved[channel].buffer!
+                let slot     = ChannelSlots[.channels, channel]
+                let previous = cast(u64) .previousSize
+                let shift    = cast(s64) n / 4 - cast(s64) previous / 4
                 for frame in outputFrames
                 {
-                    var value = 0.0'f32
+                    var value         = 0.0'f32
                     let previousIndex = previous / 2 + frame
                     if previousIndex < previous do
                         value += saved[previousIndex - previous / 2]

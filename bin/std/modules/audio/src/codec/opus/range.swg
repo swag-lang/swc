@@ -7,13 +7,13 @@
 
 using Core
 
-private const SymBits = 8'u32
-private const SymMax = 255'u32
-private const CodeTop = 1'u32 << 31
+private const SymBits    = 8'u32
+private const SymMax     = 255'u32
+private const CodeTop    = 1'u32 << 31
 private const CodeBottom = CodeTop >> SymBits
-private const CodeExtra = 7'u32
+private const CodeExtra  = 7'u32
 private const WindowBits = 32'u32
-private const UintBits = 8'u32
+private const UintBits   = 8'u32
 
 // Bit counts the allocation logic works in are scaled by this many fractional bits.
 internal const BitRes = 3'u32
@@ -27,11 +27,11 @@ internal struct RangeDecoder
 {
     data:      #null const [*] u8
     storage:   u32
-    offset:    u32      // Next byte read from the front.
-    endOffset: u32      // Bytes consumed from the back.
+    offset:    u32     // Next byte read from the front.
+    endOffset: u32     // Bytes consumed from the back.
     endWindow: u32
     endBits:   s32
-    bitsTotal: s32      // Bits consumed so far, in the coder's own accounting.
+    bitsTotal: s32     // Bits consumed so far, in the coder's own accounting.
     range:     u32
     value:     u32
     extent:    u32
@@ -206,7 +206,7 @@ internal impl RangeDecoder
         {
             r = (r * r) >> 15
             let b = r >> 16
-            l  = (l << 1) | b
+            l = (l << 1) | b
             r >>= b
         }
 

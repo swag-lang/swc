@@ -124,6 +124,7 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     defer discard catch File.delete(path.toString())
 
     var bytes = expect File.readAllBytes(audioGetTestDataPath("opus-mono-silk.opus").toString())
+
     // The mapping family lives at byte 18 of OpusHead, which the first page carries after its
     // 28-byte header; the page checksum must follow the change for the reader to reach it.
     @assert(bytes[28 + 18] == 0)

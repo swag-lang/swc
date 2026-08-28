@@ -11,22 +11,22 @@ using Core, Core.Errors, Core.Math
 internal const OutputRate = 48_000'u32
 
 // The most a packet may play, RFC 6716 clause 3.2.
-private const MaxPacketFrames = 5_760'u64
-private const MaxFrameBytes = 1275'u32
+private const MaxPacketFrames    = 5_760'u64
+private const MaxFrameBytes      = 1275'u32
 private const MaxFramesPerPacket = 48'u32
 
-private const ModeSilk = 1'u32
-private const ModeHybrid = 2'u32
-private const ModeCelt = 3'u32
-private const BandwidthNarrow = 1'u32
-private const BandwidthMedium = 2'u32
-private const BandwidthWide = 3'u32
-private const BandwidthSuperWide = 4'u32
-private const BandwidthFull = 5'u32
-private const Frame20Ms = 960'u32
-private const Frame10Ms = 480'u32
-private const Frame5Ms = 240'u32
-private const Frame2Ms5 = 120'u32
+private const ModeSilk             = 1'u32
+private const ModeHybrid           = 2'u32
+private const ModeCelt             = 3'u32
+private const BandwidthNarrow      = 1'u32
+private const BandwidthMedium      = 2'u32
+private const BandwidthWide        = 3'u32
+private const BandwidthSuperWide   = 4'u32
+private const BandwidthFull        = 5'u32
+private const Frame20Ms            = 960'u32
+private const Frame10Ms            = 480'u32
+private const Frame5Ms             = 240'u32
+private const Frame2Ms5            = 120'u32
 private const SilenceFrame: [2] u8 = [0xFF, 0xFF]
 
 // Returns the number of 48 kHz sample frames a packet plays, or zero for an invalid packet.
@@ -279,7 +279,7 @@ private impl Decoder
             {
                 celtToSilk      = dec.decodeBit(1)
                 redundancyBytes = mode == ModeHybrid ? cast(s32) dec.decodeUint(256) + 2 : len - ((dec.tell() + 7) >> 3)
-                len -= redundancyBytes
+                len             -= redundancyBytes
                 if len * 8 < dec.tell()
                 {
                     len             = 0
@@ -296,10 +296,10 @@ private impl Decoder
         var endBand = CeltBandCount
         switch info.bandwidth
         {
-        case BandwidthNarrow:                     endBand = 13
-        case BandwidthMedium, BandwidthWide:      endBand = 17
-        case BandwidthSuperWide:                  endBand = 19
-        default:                                  endBand = 21
+        case BandwidthNarrow:                endBand = 13
+        case BandwidthMedium, BandwidthWide: endBand = 17
+        case BandwidthSuperWide:             endBand = 19
+        default:                             endBand = 21
         }
 
         .celt.streamChannels = info.streamChannels
@@ -373,7 +373,7 @@ private impl Decoder
     {
         if !@countof(packet) do
             fail InvalidFormatError{"Opus packet is empty"}
-        let info = frameInfo(packet[0])
+        let info  = frameInfo(packet[0])
         var sizes: [MaxFramesPerPacket] u32
         var count = 1'u32
         var pos   = 1'u64
@@ -400,8 +400,8 @@ private impl Decoder
             if len < 1 do
                 fail InvalidFormatError{"Opus packet is truncated"}
             let flags = cast(u32) packet[pos]
-            pos += 1
-            len -= 1
+            pos   += 1
+            len   -= 1
             count = flags & 63
             if !count or cast(u64) info.frameSize * count > MaxPacketFrames do
                 fail InvalidFormatError{"Opus packet states an invalid frame count"}
@@ -430,7 +430,7 @@ private impl Decoder
                 {
                     let before = len
                     sizes[i] = try parseFrameSize(packet, &pos, &len)
-                    last -= (before - len) + cast(s64) sizes[i]
+                    last     -= (before - len) + cast(s64) sizes[i]
                 }
 
                 if last < 0 do

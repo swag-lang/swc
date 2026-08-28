@@ -17,7 +17,7 @@ private const MsHeaderBytes = 7'u64
 private const ImaHeaderBytes = 4'u64
 
 // IMA nibbles are grouped four bytes a channel, eight samples a group.
-private const ImaGroupBytes = 4'u64
+private const ImaGroupBytes   = 4'u64
 private const ImaGroupSamples = 8'u64
 
 // The step scaling every Microsoft ADPCM nibble applies, indexed by the nibble itself.
@@ -87,9 +87,9 @@ private impl MsChannel
         let signed    = nibble & 8 ? cast(s32) nibble - 16 : cast(s32) nibble
         var predicted = (.sample1 * .coefficient1 + .sample2 * .coefficient2) / 256
         predicted += signed * .delta
-        .sample2 = .sample1
-        .sample1 = Math.clamp(predicted, -32_768, 32_767)
-        .delta   = (MsAdaptation[nibble] * .delta) >> 8
+        .sample2  = .sample1
+        .sample1  = Math.clamp(predicted, -32_768, 32_767)
+        .delta    = (MsAdaptation[nibble] * .delta) >> 8
         if .delta < 16 do
             .delta = 16
         elif .delta > Swag.S32.Max / 768 do
@@ -195,8 +195,8 @@ private impl Codec
             let byte = cast(u32) packet[offset]
             destination[written]     = states[0].expand(byte >> 4)
             destination[written + 1] = states[width - 1].expand(byte & 15)
-            written += 2
-            offset  += 1
+            written                  += 2
+            offset                   += 1
         }
     }
 

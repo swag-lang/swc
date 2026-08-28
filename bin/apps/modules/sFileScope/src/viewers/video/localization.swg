@@ -83,22 +83,22 @@ func videoAudioEncodingText(encoding: Audio.SoundFileEncoding)->string
 {
     switch encoding
     {
-    case .Pcm8:    return "PCM 8-bit"
-    case .Pcm16:   return "PCM 16-bit"
-    case .Pcm24:   return "PCM 24-bit"
-    case .Pcm32:   return "PCM 32-bit"
-    case .Float32: return "PCM float32"
-    case .AacLc:   return "AAC-LC"
-    case .Ac3:     return "AC-3"
-    case .Eac3:    return "E-AC-3"
-    case .Dts:     return "DTS"
-    case .Flac:    return "FLAC"
-    case .Mp3:     return "MP3"
-    case .Vorbis:  return "Vorbis"
-    case .Opus:    return "Opus"
-    case .AdpcmMs: return "ADPCM"
+    case .Pcm8:     return "PCM 8-bit"
+    case .Pcm16:    return "PCM 16-bit"
+    case .Pcm24:    return "PCM 24-bit"
+    case .Pcm32:    return "PCM 32-bit"
+    case .Float32:  return "PCM float32"
+    case .AacLc:    return "AAC-LC"
+    case .Ac3:      return "AC-3"
+    case .Eac3:     return "E-AC-3"
+    case .Dts:      return "DTS"
+    case .Flac:     return "FLAC"
+    case .Mp3:      return "MP3"
+    case .Vorbis:   return "Vorbis"
+    case .Opus:     return "Opus"
+    case .AdpcmMs:  return "ADPCM"
     case .AdpcmIma: return "IMA ADPCM"
-    default:       return "Audio"
+    default:        return "Audio"
     }
 }
 

@@ -9,16 +9,16 @@
 using Core, Core.Errors
 
 const PageHeaderSize = 27'u64
-const MaxSegments = 255'u64
-const MaxPageSize = PageHeaderSize + MaxSegments + MaxSegments * 255
+const MaxSegments    = 255'u64
+const MaxPageSize    = PageHeaderSize + MaxSegments + MaxSegments * 255
 
 // The granule position of a page on which no packet ends.
 const NoGranule = Swag.U64.Max
 
 // Flags of the page header type byte.
 const ContinuedPacket = 0x01'u8
-const FirstPage = 0x02'u8
-const LastPage = 0x04'u8
+const FirstPage       = 0x02'u8
+const LastPage        = 0x04'u8
 
 // How much of the file the page walk holds at once.
 private const ScanWindow = 256 * 1024'u64
@@ -29,10 +29,10 @@ private const ChecksumPolynomial = 0x04C11DB7'u32
 // What one page header states.
 struct PageHeader
 {
-    headerBytes: u64          // Header size including the segment table.
-    bodyBytes:   u64          // Sum of the segment sizes.
+    headerBytes: u64     // Header size including the segment table.
+    bodyBytes:   u64     // Sum of the segment sizes.
     flags:       u8
-    granule:     u64          // [[NoGranule]] when no packet ends on the page.
+    granule:     u64     // [[NoGranule]] when no packet ends on the page.
     serial:      u32
     sequence:    u32
     segments:    u32
@@ -198,7 +198,7 @@ private struct Walker
 {
     source:  Source
     table:   [256] u32
-    offset:  u64            // Where the page being examined starts.
+    offset:  u64     // Where the page being examined starts.
     packets: Array'SoundPacket
 }
 
@@ -256,7 +256,7 @@ private func findStream(walker: *Walker)->StreamInfo fail
 private func skipHeaders(walker: *Walker, info: const *StreamInfo)->u64 fail
 {
     var completed = 0'u32
-    var header:   PageHeader
+    var header: PageHeader
     while try walker.next(&header)
     {
         if header.serial == info.serial
@@ -290,13 +290,13 @@ private struct Run
 private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
 {
     var run:       Run
-    var total      = 0'u64
-    var previous   = 0'u64      // Granule position at the end of the previous run.
-    var sequence   = Swag.U32.Max
-    var firstRun   = true
+    var total    = 0'u64
+    var previous = 0'u64     // Granule position at the end of the previous run.
+    var sequence = Swag.U32.Max
+    var firstRun = true
     var header:    PageHeader
     var lookahead: PageHeader
-    var hasPage    = try walker.next(&header)
+    var hasPage  = try walker.next(&header)
     while hasPage
     {
         let pageOffset = walker.offset
@@ -307,7 +307,7 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
             if run.start != Swag.U64.Max do
                 run.bytes += pageBytes
             walker.offset += pageBytes
-            hasPage = try walker.next(&header)
+            hasPage       = try walker.next(&header)
             continue
         }
 

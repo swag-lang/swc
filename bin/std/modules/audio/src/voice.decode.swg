@@ -190,6 +190,7 @@ impl Voice
             {
                 if .packetScratch.count != decodedSize do
                     .packetScratch.resize(decodedSize)
+
                 // A codec restarted by a seek may lack the history the first packets of the run need
                 // and produce fewer frames than the index states. Those frames are the leading ones,
                 // and the seek discards that region anyway, so the shortfall counts as discarded.

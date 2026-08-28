@@ -97,9 +97,9 @@ func copySubformat(destination: *void, source: SubformatUuid)
 }
 
 // Offsets of the fields inside a `fmt ` chunk, and the sizes at which each family of fields is present.
-private const FormatBaseSize = 14'u64           // WAVEFORMAT: tag, channels, rate, average bytes, block alignment.
-private const FormatBitsSize = 16'u64           // PCMWAVEFORMAT adds the bits per sample.
-private const FormatExtraSize = 18'u64          // WAVEFORMATEX adds the size of what follows.
+private const FormatBaseSize       = 14'u64     // WAVEFORMAT: tag, channels, rate, average bytes, block alignment.
+private const FormatBitsSize       = 16'u64     // PCMWAVEFORMAT adds the bits per sample.
+private const FormatExtraSize      = 18'u64     // WAVEFORMATEX adds the size of what follows.
 private const FormatExtensibleSize = 40'u64     // WAVEFORMATEXTENSIBLE adds valid bits, the speaker mask, and the subformat.
 
 // A `fmt ` chunk larger than this is not one; the extensible form is forty bytes and a Microsoft
@@ -110,16 +110,16 @@ private const MaxFormatChunk = 4096'u64
 // packet index from it before any [[Audio.SoundFile]] exists.
 private struct Format
 {
-    channels:       u32
-    sampleRate:     u32
-    blockAlign:     u32
-    bitsPerSample:  u32
-    validBits:      u16
-    speakerMask:    u32
-    encoding:       SoundFileEncoding
-    hasBitsField:   bool     // The chunk states the bits per sample rather than implying them.
-    hasExtensible:  bool     // The chunk carries the valid bits, the speaker mask, and a subformat.
-    extra:          Array'u8     // Format-specific bytes after the subformat, or after `cbSize` in a classic chunk.
+    channels:      u32
+    sampleRate:    u32
+    blockAlign:    u32
+    bitsPerSample: u32
+    validBits:     u16
+    speakerMask:   u32
+    encoding:      SoundFileEncoding
+    hasBitsField:  bool         // The chunk states the bits per sample rather than implying them.
+    hasExtensible: bool         // The chunk carries the valid bits, the speaker mask, and a subformat.
+    extra:         Array'u8     // Format-specific bytes after the subformat, or after `cbSize` in a classic chunk.
 }
 
 private func readU16(bytes: const [..] u8, offset: u64)->u32 => cast(u32) bytes[offset] | (cast(u32) bytes[offset + 1] << 8)
@@ -181,7 +181,7 @@ private func parseFormat(bytes: const [..] u8)->Format fail
         fail InvalidFormatError{"invalid wav"}
 
     var result: retval
-    let tag         = readU16(bytes, 0)
+    let tag = readU16(bytes, 0)
     result.channels   = readU16(bytes, 2)
     result.sampleRate = readU32(bytes, 4)
     let averageBytes = readU32(bytes, 8)
@@ -231,7 +231,7 @@ private struct Layout
     format:     Format
     dataOffset: u64
     dataSize:   u64
-    factFrames: u64      // Sample frames the `fact` chunk states, or zero without one.
+    factFrames: u64     // Sample frames the `fact` chunk states, or zero without one.
     hasData:    bool
 }
 
@@ -251,7 +251,7 @@ private func readLayout(stream: *File.FileStream)->Layout fail
     var result: retval
     var stage:  Stage = FindRiff
     var header: ChunkHeader
-    let size = stream.size()
+    let size          = stream.size()
 
     for
     {
@@ -336,8 +336,8 @@ private func openAdpcm(path: string, layout: const *Layout)->SoundFile fail
         fail UnsupportedFormatError{"WAV ADPCM is only supported with one or two channels"}
 
     var packets: Array'SoundPacket
-    var total   = 0'u64
-    var at      = 0'u64
+    var total = 0'u64
+    var at    = 0'u64
     while at < layout.dataSize
     {
         let bytes  = Math.min(cast(u64) format.blockAlign, layout.dataSize - at)

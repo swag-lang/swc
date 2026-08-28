@@ -319,6 +319,58 @@ private func verifyWorkspaceArtifactLayout(workspace: string, buildCfg: string, 
     return 0
 }
 
+// Checks that source-driven test compilations publish only reusable executable artifacts.
+private func verifyWorkspaceTestArtifactLayout(workspace: string, buildCfg: string, targetArch: string, focused: bool)->s32 fail
+{
+    let outputDirectory = Path.combine(workspace, ".output")
+    let outputFiles     = try Directory.enumerateFiles(outputDirectory.toString(), recurse: true)
+    for outputFile in outputFiles
+    {
+        let name = Path.fileName(outputFile.fullname.toString()) orelse ""
+        if Utf8.contains(name, ".test.dll") or Utf8.contains(name, ".test.lib")
+        {
+            Console.println("Workspace test published a library artifact: ", outputFile.fullname.toString())
+            return 1
+        }
+
+        if name == ".swc-artifacts.test"
+        {
+            let fullname = outputFile.fullname.toString()
+            if !Utf8.contains(fullname, "/test/") and !Utf8.contains(fullname, "\\test\\")
+            {
+                Console.println("Non-executable workspace test published an artifact manifest: ", outputFile.fullname.toString())
+                return 1
+            }
+        }
+
+        if focused and Utf8.contains(name, ".focused")
+        {
+            Console.println("Focused workspace test published an artifact in '.output': ", outputFile.fullname.toString())
+            return 1
+        }
+    }
+
+    let testDirectory = Path.combine(workspace, ".output", "consumer_exe", "test", buildCfg, targetArch)
+    if !File.exists(Path.combine(testDirectory.toString(), "consumer_exe.test.exe")) or
+       !File.exists(Path.combine(testDirectory.toString(), ".swc-artifacts.test"))
+    {
+        Console.println("Reusable workspace test executable or its manifest is missing.")
+        return 1
+    }
+
+    if focused
+    {
+        let focusedExecutable = Path.combine(workspace, ".tmp", "consumer_exe", "test", buildCfg, targetArch, "consumer_exe.test.focused.exe")
+        if !File.exists(focusedExecutable)
+        {
+            Console.println("Focused workspace test executable is missing from '.tmp'.")
+            return 1
+        }
+    }
+
+    return 0
+}
+
 // Runs the multi-module workspace suite.
 private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: string)->s32 fail
 {
@@ -450,6 +502,10 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     if testCode != 0 do
         return testCode
 
+    let testArtifactLayoutCode = try verifyWorkspaceTestArtifactLayout(workspace.toString(), buildCfg, options.targetArch.toString(), false)
+    if testArtifactLayoutCode != 0 do
+        return testArtifactLayoutCode
+
     // An unchanged native-only test must reuse its compiled artifact but still execute it.
     let reusedOutput = try context.captureCompiler(tested)
     Console.print(reusedOutput.toString())
@@ -514,6 +570,18 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         Console.println("Workspace test recompiled its unchanged test artifact after a normal run.")
         return 1
     }
+
+    var focused = workspaceModuleCommand("test", workspace.toString(), "consumer_exe", buildCfg)
+    focused.add(["--no-test-jit", "--test-file", "portable_memory.test.swg"])
+    options.appendExtra(&focused)
+
+    let focusedCode = try context.runCompiler(focused)
+    if focusedCode != 0 do
+        return focusedCode
+
+    let focusedArtifactLayoutCode = try verifyWorkspaceTestArtifactLayout(workspace.toString(), buildCfg, options.targetArch.toString(), true)
+    if focusedArtifactLayoutCode != 0 do
+        return focusedArtifactLayoutCode
 
     // The script's marker is data the suite reads, not a line for the person watching, so its
     // output is captured and only a run that failed to reach the entry point has anything to show.

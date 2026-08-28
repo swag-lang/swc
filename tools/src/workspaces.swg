@@ -68,12 +68,13 @@ private func holdsTestSource(directory: string)->bool
 
 private func testStdModule(context: *Context, options: *Options, name: string, moduleDir: string)->s32 fail
 {
-    let paths = context.artifactPaths(Format.toString("std/%", name).toString(), "executable", options.buildCfg.toString())
+    let paths  = context.artifactPaths(Format.toString("std/%", name).toString(), "test", options.buildCfg.toString())
+    let outDir = options.test.count() == 0 ? paths.outDir : paths.workDir
 
     var arguments: Arguments
     arguments.add(["test", "--artifact-kind", "executable"])
     arguments.add(["--module-file", Path.combine(moduleDir, "module.swg").toString(), "-d", "src"])
-    arguments.add(["--out-dir", paths.outDir.toString(), "--work-dir", paths.workDir.toString()])
+    arguments.add(["--out-dir", outDir.toString(), "--work-dir", paths.workDir.toString()])
     arguments.add(["--build-cfg", options.buildCfg.toString()])
     arguments.add(["--import-api-dir", context.workspaceOutput("std").toString()])
 

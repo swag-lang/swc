@@ -650,10 +650,10 @@ namespace
             {
                 const Runtime::BuildCfgBackendKind backendKind = effectiveBackendKind(compiler.cmdLine(), compiler.buildCfg().backendKind);
                 compiler.buildCfg().backendKind                = backendKind;
-                if (Runtime::backendKindProducesNativeArtifact(backendKind))
+                if (backendKind == Runtime::BuildCfgBackendKind::Executable)
                 {
                     TaskContext          ctx(compiler);
-                    NativeBackendBuilder builder(compiler, backendKind == Runtime::BuildCfgBackendKind::Executable);
+                    NativeBackendBuilder builder(compiler, true);
                     const Result         buildResult = CommandRun::afterPauses(ctx, [&] {
                         return builder.run();
                     });

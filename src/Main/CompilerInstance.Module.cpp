@@ -165,9 +165,11 @@ namespace
 
     fs::path workspaceModuleOutputDirectory(const fs::path& workspacePath, const Utf8& moduleName, const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind backendKind, const bool workDirectory)
     {
-        fs::path result = workDirectory ? WorkspaceLayout::workspaceWorkDirectory(workspacePath) : WorkspaceLayout::workspaceOutputDirectory(workspacePath);
+        const bool transientTest = cmdLine.command == CommandKind::Test &&
+                                   (backendKind != Runtime::BuildCfgBackendKind::Executable || !cmdLine.testFileFilter.empty());
+        fs::path result = workDirectory || transientTest ? WorkspaceLayout::workspaceWorkDirectory(workspacePath) : WorkspaceLayout::workspaceOutputDirectory(workspacePath);
         result /= fs::path(moduleName.c_str());
-        if (cmdLine.command == CommandKind::Test && backendKind == Runtime::BuildCfgBackendKind::Executable)
+        if (cmdLine.command == CommandKind::Test)
             result /= "test";
         else
             result /= fs::path(backendKindName(backendKind).c_str());
@@ -1269,13 +1271,16 @@ namespace
         return buildTime >= compilerTime;
     }
 
-    bool shouldTryReuseWorkspaceArtifacts(const CommandLine& cmdLine)
+    bool shouldTryReuseWorkspaceArtifacts(const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind backendKind)
     {
         if (cmdLine.rebuild || cmdLine.dryRun || cmdLine.showConfig)
             return false;
 
         if (cmdLine.command == CommandKind::Test)
         {
+            if (backendKind != Runtime::BuildCfgBackendKind::Executable)
+                return false;
+
             // A focused executable contains only the selected #test entry points. It must neither
             // reuse an unfiltered test artifact nor stand in for one on the next invocation.
             if (!cmdLine.testFileFilter.empty())
@@ -1312,7 +1317,62 @@ namespace
 
         // A cached test has no AST against which source-driven expectations can be checked.
         // Keep compiling those inputs so every Verify directive is evaluated on every run.
-        return cmdLine.testNative && cmdLine.output && !hasWorkspaceVerifyDirectives(compiler);
+        return compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable &&
+               cmdLine.testNative && cmdLine.output && !hasWorkspaceVerifyDirectives(compiler);
+    }
+
+    bool isLegacyWorkspaceTestArtifact(const fs::path& path, const bool focusedOnly)
+    {
+        const std::string name = path.filename().string();
+        if (!focusedOnly && name == ".swc-artifacts.test")
+            return true;
+
+        const fs::path extension = path.extension();
+        if (extension != ".dll" && extension != ".exe" && extension != ".lib" && extension != ".pdb")
+            return false;
+        return focusedOnly ? name.contains(".test.focused.") : name.contains(".test.");
+    }
+
+    Result removeLegacyWorkspaceTestArtifacts(TaskContext& ctx, const fs::path& directory, const bool focusedOnly)
+    {
+        std::error_code ec;
+        fs::path        failedPath = directory;
+        const bool      exists = fs::exists(directory, ec);
+        if (ec)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_clean_remove_failed);
+            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, directory, FileSystem::normalizeSystemMessage(ec));
+            diag.report(ctx);
+            return Result::Error;
+        }
+        if (!exists)
+            return Result::Continue;
+
+        for (fs::directory_iterator it(directory, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+                break;
+
+            ec.clear();
+            const bool isRegularFile = it->is_regular_file(ec);
+            if (ec)
+                break;
+            if (!isRegularFile || !isLegacyWorkspaceTestArtifact(it->path(), focusedOnly))
+                continue;
+
+            failedPath = it->path();
+            fs::remove(it->path(), ec);
+            if (ec)
+                break;
+        }
+
+        if (!ec)
+            return Result::Continue;
+
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_clean_remove_failed);
+        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, failedPath, FileSystem::normalizeSystemMessage(ec));
+        diag.report(ctx);
+        return Result::Error;
     }
 
     Utf8 formatWorkspaceReuseStat(const TaskContext& ctx, const CompilerInstance& compiler)
@@ -2616,6 +2676,42 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
     workspaceBuildLogState_.ignoredModules    = ignoredModuleCount;
     workspaceStage.setStat(formatWorkspaceStageStat(ctx, workspaceBuildLogState_));
 
+    // Older compilers emitted test DLLs and libraries into normal publication directories, and
+    // focused executables into the reusable test directory. Remove those exact legacy products
+    // before the publish pass reads a manifest or copies a dependency beside an executable.
+    if (cmdLine().command == CommandKind::Test)
+    {
+        CommandLine buildCmdLine      = cmdLine();
+        buildCmdLine.command          = CommandKind::Build;
+        buildCmdLine.sourceDrivenTest = false;
+        buildCmdLine.testFileFilter.clear();
+        for (const WorkspaceModuleBuild& moduleBuild : modules)
+        {
+            if (!isWorkspaceModuleActive(moduleBuild))
+                continue;
+
+            const Runtime::BuildCfgBackendKind backendKind = moduleBuild.setup.buildCfg.backendKind;
+            if (backendKind == Runtime::BuildCfgBackendKind::Executable)
+            {
+                const fs::path publishedDirectory = workspaceModuleOutputDirectory(workspacePath, moduleBuild.name, buildCmdLine, backendKind, false);
+                if (removeLegacyWorkspaceTestArtifacts(ctx, publishedDirectory, false) != Result::Continue)
+                    return ExitCode::CompileError;
+
+                CommandLine testCmdLine = cmdLine();
+                testCmdLine.testFileFilter.clear();
+                const fs::path testDirectory = workspaceModuleOutputDirectory(workspacePath, moduleBuild.name, testCmdLine, backendKind, false);
+                if (removeLegacyWorkspaceTestArtifacts(ctx, testDirectory, true) != Result::Continue)
+                    return ExitCode::CompileError;
+            }
+            else
+            {
+                const fs::path publishedDirectory = workspaceModuleOutputDirectory(workspacePath, moduleBuild.name, buildCmdLine, backendKind, false);
+                if (removeLegacyWorkspaceTestArtifacts(ctx, publishedDirectory, false) != Result::Continue)
+                    return ExitCode::CompileError;
+            }
+        }
+    }
+
     DependencyPlan ownedDependencies;
     if (!preparedDependencies)
     {
@@ -2805,7 +2901,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         .total   = moduleCount,
     };
 
-    if (shouldTryReuseWorkspaceArtifacts(moduleCmdLine))
+    if (shouldTryReuseWorkspaceArtifacts(moduleCmdLine, moduleBuild.setup.buildCfg.backendKind))
     {
         std::vector<fs::path> currentInputs;
         collectWorkspaceModuleInputs(currentInputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, {});

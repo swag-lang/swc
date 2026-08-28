@@ -491,7 +491,9 @@ func videoMatroskaFixturePath()->String
     @assert(view.muted and Math.isEqualEpsilon(expect view.voice!.volume(), 0, 0.001))
     let switchedSample = view.voice!.playbackSampleFrame()
     let seekSample     = cast(u64) Math.round(view.video.frameTimestamp(5) * 44_100.0)
-    @assert(switchedSample >= seekSample and switchedSample - seekSample < 4_410)
+    let currentSample  = videoSoundSample(view.audio!, view.currentSeconds())
+    let sampleDrift    = switchedSample > currentSample ? switchedSample - currentSample : currentSample - switchedSample
+    @assert(switchedSample >= seekSample and sampleDrift < 4_410)
 
     view.setMuted(false)
     @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.4, 0.001))

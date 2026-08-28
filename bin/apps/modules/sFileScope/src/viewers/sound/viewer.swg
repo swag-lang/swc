@@ -42,7 +42,7 @@ internal func warmSoundEngine()
     if g_SoundEngineWarming or g_SoundEngineUsers or isEngineCreated() do
         return
 
-    g_SoundEngineWarming      = true
+    g_SoundEngineWarming       = true
     g_SoundEngineWarmUp.lambda = func(data: #null *void)
     {
         discard data

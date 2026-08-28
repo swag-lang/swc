@@ -136,11 +136,11 @@ private func dtsPredictionPacket()->Array'u8
     bits.add(0, 3)
     bits.add(1, 1)     // Prediction in subband 0.
     bits.add(0, 1)
-    bits.add(0, 12)    // Predictor vector zero.
-    bits.add(8, 5)     // Five directly coded bits per sample in subband 0.
+    bits.add(0, 12)     // Predictor vector zero.
+    bits.add(8, 5)      // Five directly coded bits per sample in subband 0.
     bits.add(0, 5)
-    bits.add(64, 7)    // Scalar scale factor.
-    bits.add(1, 5)     // One impulse followed by seven zero residuals.
+    bits.add(64, 7)     // Scalar scale factor.
+    bits.add(1, 5)      // One impulse followed by seven zero residuals.
     for index in 1'u32 until 8
     {
         discard index

@@ -443,7 +443,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1654</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1656</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -1147,6 +1147,7 @@
 <li><a href="#Core_File_MappedRegion_flush">MappedRegion.flush</a></li>
 <li><a href="#Core_File_MappedRegion_isOpen">MappedRegion.isOpen</a></li>
 <li><a href="#Core_File_MappedRegion_opDrop">MappedRegion.opDrop</a></li>
+<li><a href="#Core_File_MappedRegion_releasePages">MappedRegion.releasePages</a></li>
 <li><a href="#Core_File_MappedRegion_writableBytes">MappedRegion.writableBytes</a></li>
 <li><a href="#Core_Math_abs">Math.abs</a></li>
 <li><a href="#Core_Math_acos">Math.acos</a></li>
@@ -1885,6 +1886,7 @@
 <li><a href="#Core_Utf16_encodeRune">Utf16.encodeRune</a></li>
 <li><a href="#Core_Utf16_fromUnicode">Utf16.fromUnicode</a></li>
 <li><a href="#Core_Utf16_fromUtf8">Utf16.fromUtf8</a></li>
+<li><a href="#Core_Utf16_lengthUntilZero">Utf16.lengthUntilZero</a></li>
 <li><a href="#Core_Utf16_lengthZeroTerminated">Utf16.lengthZeroTerminated</a></li>
 <li><a href="#Core_Utf16_toZeroTerminated">Utf16.toZeroTerminated</a></li>
 <li><a href="#Core_Utf8_beautifyName">Utf8.beautifyName</a></li>
@@ -4455,6 +4457,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_MappedRegion_opDrop">MappedRegion.opDrop</a></td><td><p>Releases this region's view and native handles.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_File_MappedRegion_releasePages">MappedRegion.releasePages</a></td><td><p>Drops the pages holding <span class="code-inline">bytes</span> from the working set of the process.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_File_MappedRegion_writableBytes">MappedRegion.writableBytes</a></td><td><p>Returns a writable view of shared or copy-on-write bytes.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Math_abs">Math.abs</a></td><td><p>Performs the abs operation.</p>
@@ -5921,7 +5925,9 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Utf16_fromUtf8">Utf16.fromUtf8</a></td><td><p>Convert an utf8 buffer to a utf16 buffer, and returns the</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Utf16_lengthZeroTerminated">Utf16.lengthZeroTerminated</a></td><td><p>Compute the string length of a zero terminated utf16 buffer</p>
+<tr><td class="code-type"><a href="#Core_Utf16_lengthUntilZero">Utf16.lengthUntilZero</a></td><td><p>Returns the number of UTF-16 units before the first zero, bounded by the slice.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Utf16_lengthZeroTerminated">Utf16.lengthZeroTerminated</a></td><td><p>Returns the number of UTF-16 units before the first zero in unbounded native storage.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Utf16_toZeroTerminated">Utf16.toZeroTerminated</a></td><td><p>Convert string to an utf16 array, zero terminated</p>
 </td></tr>
@@ -8728,7 +8734,9 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Utf16_fromUtf8">Utf16.fromUtf8</a></td><td><p>Convert an utf8 buffer to a utf16 buffer, and returns the</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Utf16_lengthZeroTerminated">Utf16.lengthZeroTerminated</a></td><td><p>Compute the string length of a zero terminated utf16 buffer</p>
+<tr><td class="code-type"><a href="#Core_Utf16_lengthUntilZero">Utf16.lengthUntilZero</a></td><td><p>Returns the number of UTF-16 units before the first zero, bounded by the slice.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Utf16_lengthZeroTerminated">Utf16.lengthZeroTerminated</a></td><td><p>Returns the number of UTF-16 units before the first zero in unbounded native storage.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Utf16_toZeroTerminated">Utf16.toZeroTerminated</a></td><td><p>Convert string to an utf16 array, zero terminated</p>
 </td></tr>
@@ -9925,7 +9933,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_ReversedHashSet" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.ReversedHashSet</span> <a class="api-item-permalink" href="#Core_ReversedHashSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L50">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_ReversedHashSet" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.ReversedHashSet</span> <a class="api-item-permalink" href="#Core_ReversedHashSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L49">src</a></div>
 <p>Iterates a borrowed hash set by descending storage slot.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
 <span class="SKwd">struct</span>(<span class="SCst"><a href="#Core_Input_Key_K">K</a></span>) <span class="SCst"><a href="#Core_ReversedHashSet">ReversedHashSet</a></span></span></div>
@@ -9938,7 +9946,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_ReversedHashTable" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.ReversedHashTable</span> <a class="api-item-permalink" href="#Core_ReversedHashTable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L52">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_ReversedHashTable" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Core.ReversedHashTable</span> <a class="api-item-permalink" href="#Core_ReversedHashTable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L51">src</a></div>
 <p>Iterates a borrowed hash table by descending storage slot.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
 <span class="SKwd">struct</span>(<span class="SCst"><a href="#Core_Input_Key_K">K</a></span>, <span class="SCst"><a href="#Core_Input_Key_V">V</a></span>) <span class="SCst"><a href="#Core_ReversedHashTable">ReversedHashTable</a></span></span></div>
@@ -11050,6 +11058,8 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <tr><td class="code-type"><a href="#Core_File_MappedRegion_isOpen">isOpen</a></td><td><p>Returns whether this value represents a valid mapped range.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_MappedRegion_opDrop">opDrop</a></td><td><p>Releases this region's view and native handles.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_File_MappedRegion_releasePages">releasePages</a></td><td><p>Drops the pages holding <span class="code-inline">bytes</span> from the working set of the process.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_MappedRegion_writableBytes">writableBytes</a></td><td><p>Returns a writable view of shared or copy-on-write bytes.</p>
 </td></tr>
@@ -15887,7 +15897,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Core_Utf8_ComparisonType" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Utf8.ComparisonType</span> <a class="api-item-permalink" href="#Core_Utf8_ComparisonType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1007">src</a></div>
+<div class="api-item api-item-enum"><span id="Core_Utf8_ComparisonType" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Utf8.ComparisonType</span> <a class="api-item-permalink" href="#Core_Utf8_ComparisonType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1164">src</a></div>
 <p>Selects comparison type.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Utf8_ComparisonType">ComparisonType</a></span></span></div>
 </section>
@@ -17199,86 +17209,86 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">encode</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_BitArray_andWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.andWith</span> <a class="api-item-permalink" href="#Core_BitArray_andWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L296">src</a></div>
+<div class="api-item api-item-func"><span id="Core_BitArray_andWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.andWith</span> <a class="api-item-permalink" href="#Core_BitArray_andWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L294">src</a></div>
 <p>Performs a bitwise AND operation between this array and another. The current array is modified to store the result. Asserts that arrays are of the same size.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">andWith</span>(other: <span class="SCst"><a href="#Core_BitArray">BitArray</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_BitArray_get" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.get</span> <a class="api-item-permalink" href="#Core_BitArray_get" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L248">src</a></div>
+<div class="api-item api-item-func"><span id="Core_BitArray_get" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.get</span> <a class="api-item-permalink" href="#Core_BitArray_get" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L246">src</a></div>
 <p>Returns the boolean value of the bit at a specific position.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">get</span>(index: <span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_BitArray_invert" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.invert</span> <a class="api-item-permalink" href="#Core_BitArray_invert" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L259">src</a></div>
+<div class="api-item api-item-func"><span id="Core_BitArray_invert" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.invert</span> <a class="api-item-permalink" href="#Core_BitArray_invert" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L257">src</a></div>
 <p>Inverts the value of the bit at a specific position. Changes a <span class="code-inline">true</span> bit to <span class="code-inline">false</span> and a <span class="code-inline">false</span> bit to <span class="code-inline">true</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">invert</span>(index: <span class="STpe">u64</span>)</span></div>
 <p>Inverts all bit values in the array. Bits set to <span class="code-inline">true</span> are changed to <span class="code-inline">false</span>, and vice versa.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">invert</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_BitArray_opCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.opCount</span> <a class="api-item-permalink" href="#Core_BitArray_opCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L83">src</a></div>
+<div class="api-item api-item-func"><span id="Core_BitArray_opCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.opCount</span> <a class="api-item-permalink" href="#Core_BitArray_opCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L81">src</a></div>
 <p>Returns the number of bits in the array.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_BitArray_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.opDrop</span> <a class="api-item-permalink" href="#Core_BitArray_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L89">src</a></div>
+<div class="api-item api-item-func"><span id="Core_BitArray_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.opDrop</span> <a class="api-item-permalink" href="#Core_BitArray_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L87">src</a></div>
 <p>Ensures the allocated memory is freed when the array goes out of scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_BitArray_opEquals" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.opEquals</span> <a class="api-item-permalink" href="#Core_BitArray_opEquals" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L137">src</a></div>
+<div class="api-item api-item-func"><span id="Core_BitArray_opEquals" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.opEquals</span> <a class="api-item-permalink" href="#Core_BitArray_opEquals" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L135">src</a></div>
 <p>Compares this bit array with another one for equality. Returns <span class="code-inline">true</span> if both arrays have the same bit count and all bits are identical.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opEquals</span>(other: <span class="SCst"><a href="#Core_BitArray">BitArray</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_BitArray_opIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.opIndex</span> <a class="api-item-permalink" href="#Core_BitArray_opIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L112">src</a></div>
+<div class="api-item api-item-func"><span id="Core_BitArray_opIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.opIndex</span> <a class="api-item-permalink" href="#Core_BitArray_opIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L110">src</a></div>
 <p>Returns the boolean value of the bit at a specific position.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opIndex</span>(index: <span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_BitArray_opIndexSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.opIndexSet</span> <a class="api-item-permalink" href="#Core_BitArray_opIndexSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L118">src</a></div>
+<div class="api-item api-item-func"><span id="Core_BitArray_opIndexSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.opIndexSet</span> <a class="api-item-permalink" href="#Core_BitArray_opIndexSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L116">src</a></div>
 <p>Sets the value of the bit at a specific position.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opIndexSet</span>(index: <span class="STpe">u64</span>, value: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_BitArray_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.opPostCopy</span> <a class="api-item-permalink" href="#Core_BitArray_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L96">src</a></div>
+<div class="api-item api-item-func"><span id="Core_BitArray_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.opPostCopy</span> <a class="api-item-permalink" href="#Core_BitArray_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L94">src</a></div>
 <p>Handles the deep copy of the array when it is copied. A new buffer is allocated and the content is copied over.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opPostCopy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_BitArray_opSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.opSet</span> <a class="api-item-permalink" href="#Core_BitArray_opSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L124">src</a></div>
+<div class="api-item api-item-func"><span id="Core_BitArray_opSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.opSet</span> <a class="api-item-permalink" href="#Core_BitArray_opSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L122">src</a></div>
 <p>Replaces the content of the bit array with values from a slice of booleans.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opSet</span>(what: <span class="SKwd">const</span> [..] <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_BitArray_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.opVisit</span> <a class="api-item-permalink" href="#Core_BitArray_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L180">src</a></div>
+<div class="api-item api-item-func"><span id="Core_BitArray_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.opVisit</span> <a class="api-item-permalink" href="#Core_BitArray_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L178">src</a></div>
 <p>Provides a way to iterate over each bit in the array. This is a macro that accepts a code block to execute for each bit. Block parameters: <span class="code-inline">item</span> is the boolean value, <span class="code-inline">index</span> the bit index.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Macro]</span>
 <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(item: <span class="STpe">bool</span>, index: <span class="STpe">u64</span>))
     <span class="SLgc">where</span> !ptr</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_BitArray_orWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.orWith</span> <a class="api-item-permalink" href="#Core_BitArray_orWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L323">src</a></div>
+<div class="api-item api-item-func"><span id="Core_BitArray_orWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.orWith</span> <a class="api-item-permalink" href="#Core_BitArray_orWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L321">src</a></div>
 <p>Performs a bitwise OR operation between this array and another. The current array is modified to store the result. Asserts that arrays are of the same size.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">orWith</span>(other: <span class="SCst"><a href="#Core_BitArray">BitArray</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_BitArray_resize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.resize</span> <a class="api-item-permalink" href="#Core_BitArray_resize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L208">src</a></div>
+<div class="api-item api-item-func"><span id="Core_BitArray_resize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.resize</span> <a class="api-item-permalink" href="#Core_BitArray_resize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L206">src</a></div>
 <p>Changes the number of bits and initializes every bit to <span class="code-inline">initialValue</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resize</span>(bitCount: <span class="STpe">u64</span>, initialValue = <span class="SKwd">false</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_BitArray_set" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.set</span> <a class="api-item-permalink" href="#Core_BitArray_set" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L234">src</a></div>
+<div class="api-item api-item-func"><span id="Core_BitArray_set" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.set</span> <a class="api-item-permalink" href="#Core_BitArray_set" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L232">src</a></div>
 <p>Sets the bit at a specific position to the specified value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">set</span>(index: <span class="STpe">u64</span>, value: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_BitArray_setAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.setAll</span> <a class="api-item-permalink" href="#Core_BitArray_setAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L225">src</a></div>
+<div class="api-item api-item-func"><span id="Core_BitArray_setAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.setAll</span> <a class="api-item-permalink" href="#Core_BitArray_setAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L223">src</a></div>
 <p>Sets all bits in the array to the specified boolean value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setAll</span>(value: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_BitArray_xorWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.xorWith</span> <a class="api-item-permalink" href="#Core_BitArray_xorWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L350">src</a></div>
+<div class="api-item api-item-func"><span id="Core_BitArray_xorWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitArray.xorWith</span> <a class="api-item-permalink" href="#Core_BitArray_xorWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/bitarray.swg#L348">src</a></div>
 <p>Performs a bitwise XOR operation between this array and another. The current array is modified to store the result. Asserts that arrays are of the same size.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">xorWith</span>(other: <span class="SCst"><a href="#Core_BitArray">BitArray</a></span>)</span></div>
 </section>
@@ -19384,32 +19394,32 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">currentCulture</span>()-&gt;*<span class="SCst"><a href="#Core_Globalization_CultureInfo">CultureInfo</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Guid128_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid128.clear</span> <a class="api-item-permalink" href="#Core_Guid128_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid128.swg#L73">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Guid128_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid128.clear</span> <a class="api-item-permalink" href="#Core_Guid128_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid128.swg#L72">src</a></div>
 <p>Resets the identifier to its null value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Guid128_isNull" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid128.isNull</span> <a class="api-item-permalink" href="#Core_Guid128_isNull" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid128.swg#L79">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Guid128_isNull" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid128.isNull</span> <a class="api-item-permalink" href="#Core_Guid128_isNull" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid128.swg#L78">src</a></div>
 <p>Returns whether all bits are zero.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isNull</span>()-&gt;<span class="STpe">bool</span> =&gt; .words[<span class="SNum">0</span>] == <span class="SNum">0</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Guid128_opEquals" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid128.opEquals</span> <a class="api-item-permalink" href="#Core_Guid128_opEquals" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid128.swg#L55">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Guid128_opEquals" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid128.opEquals</span> <a class="api-item-permalink" href="#Core_Guid128_opEquals" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid128.swg#L54">src</a></div>
 <p>Returns whether both identifiers have the same bits.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opEquals</span>(other: <span class="SCst"><a href="#Core_Guid128">Guid128</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Guid128_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid128.parse</span> <a class="api-item-permalink" href="#Core_Guid128_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid128.swg#L142">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Guid128_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid128.parse</span> <a class="api-item-permalink" href="#Core_Guid128_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid128.swg#L141">src</a></div>
 <p>Parses the canonical <span class="code-inline">xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</span> form.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parse</span>(str: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_Guid128">Guid128</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Guid128_random" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid128.random</span> <a class="api-item-permalink" href="#Core_Guid128_random" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid128.swg#L61">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Guid128_random" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid128.random</span> <a class="api-item-permalink" href="#Core_Guid128_random" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid128.swg#L60">src</a></div>
 <p>Creates a random RFC 4122 version-4 UUID.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">random</span>()-&gt;<span class="SCst"><a href="#Core_Guid128">Guid128</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Guid128_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid128.toString</span> <a class="api-item-permalink" href="#Core_Guid128_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid128.swg#L83">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Guid128_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid128.toString</span> <a class="api-item-permalink" href="#Core_Guid128_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid128.swg#L82">src</a></div>
 <p>Convert guid to a string of the form xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.BoundCheck, false)]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toString</span>(result: [..] <span class="STpe">u8</span>)</span></div>
@@ -19417,7 +19427,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toString</span>()-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Guid128_tryParse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid128.tryParse</span> <a class="api-item-permalink" href="#Core_Guid128_tryParse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid128.swg#L151">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Guid128_tryParse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Guid128.tryParse</span> <a class="api-item-permalink" href="#Core_Guid128_tryParse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/guid128.swg#L150">src</a></div>
 <p>Tries to parse the canonical <span class="code-inline">xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</span> form.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tryParse</span>(str: <span class="STpe">string</span>, result: *<span class="SCst"><a href="#Core_Guid128">Guid128</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -19515,170 +19525,170 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span> <span class="SFct">murmur3</span>(key: <span class="SKwd">const</span> [*] <span class="STpe">u8</span>, len: <span class="STpe">u64</span>, seed: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.add</span> <a class="api-item-permalink" href="#Core_HashSet_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L347">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.add</span> <a class="api-item-permalink" href="#Core_HashSet_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L346">src</a></div>
 <p>Adds a new key to the set. The key is copied; pass it with <span class="code-inline">#move</span> to move it instead. If the key already exists, does nothing. Returns a pointer to the entry.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">add</span>(key: <span class="SItr">#fwd</span> <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;*<span class="SCst"><a href="#Core_HashSetEntry">HashSetEntry</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.clear</span> <a class="api-item-permalink" href="#Core_HashSet_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L506">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.clear</span> <a class="api-item-permalink" href="#Core_HashSet_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L505">src</a></div>
 <p>Removes all elements from the set without deallocating the me.table memory. All slots are marked as <span class="code-inline">FREE</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.contains</span> <a class="api-item-permalink" href="#Core_HashSet_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L484">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.contains</span> <a class="api-item-permalink" href="#Core_HashSet_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L483">src</a></div>
 <p>Returns <span class="code-inline">true</span> if the set contains the given key.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">contains</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.free</span> <a class="api-item-permalink" href="#Core_HashSet_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L219">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.free</span> <a class="api-item-permalink" href="#Core_HashSet_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L218">src</a></div>
 <p>Frees the hash set's memory and resets its state. If keys have destructors, they are called.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">free</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_opCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.opCount</span> <a class="api-item-permalink" href="#Core_HashSet_opCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L112">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_opCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.opCount</span> <a class="api-item-permalink" href="#Core_HashSet_opCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L111">src</a></div>
 <p>Returns the number of elements in the set.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">opCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.opDrop</span> <a class="api-item-permalink" href="#Core_HashSet_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L118">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.opDrop</span> <a class="api-item-permalink" href="#Core_HashSet_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L117">src</a></div>
 <p>Ensures the allocated memory is freed when the set goes out of scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.opPostCopy</span> <a class="api-item-permalink" href="#Core_HashSet_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L133">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.opPostCopy</span> <a class="api-item-permalink" href="#Core_HashSet_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L132">src</a></div>
 <p>Handles the deep copy of the set when it is copied. A new me.table is allocated and all entries are copied over.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opPostCopy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_opSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.opSet</span> <a class="api-item-permalink" href="#Core_HashSet_opSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L124">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_opSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.opSet</span> <a class="api-item-permalink" href="#Core_HashSet_opSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L123">src</a></div>
 <p>Replaces the content of the set with elements from a slice.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opSet</span>(slice: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.opVisit</span> <a class="api-item-permalink" href="#Core_HashSet_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L168">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.opVisit</span> <a class="api-item-permalink" href="#Core_HashSet_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L167">src</a></div>
 <p>Provides a way to iterate over each key in the set. This is a macro that accepts a code block to execute for each key. Block parameter: <span class="code-inline">key</span> is the key (or a pointer to it).</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Macro]</span>
 <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SKwd">const</span> <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(key))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_remove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.remove</span> <a class="api-item-permalink" href="#Core_HashSet_remove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L459">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_remove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.remove</span> <a class="api-item-permalink" href="#Core_HashSet_remove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L458">src</a></div>
 <p>Removes a key from the set. If the key exists, its slot is marked as <span class="code-inline">DELETED</span>. Does nothing if the key is not found.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">remove</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.reserve</span> <a class="api-item-permalink" href="#Core_HashSet_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L255">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.reserve</span> <a class="api-item-permalink" href="#Core_HashSet_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L254">src</a></div>
 <p>Resizes the hash me.table to a new me.capacity, rehashing all existing elements.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reserve</span>(newCapacity: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_reversed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.reversed</span> <a class="api-item-permalink" href="#Core_HashSet_reversed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L199">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_reversed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.reversed</span> <a class="api-item-permalink" href="#Core_HashSet_reversed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L198">src</a></div>
 <p>Returns an immutable zero-allocation view that scans occupied slots in reverse order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">reversed</span>()-&gt;<span class="SFct">ReversedHashSet</span>'<span class="SCst"><a href="#Core_Input_Key_K">K</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashSet_toggle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.toggle</span> <a class="api-item-permalink" href="#Core_HashSet_toggle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L410">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashSet_toggle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashSet.toggle</span> <a class="api-item-permalink" href="#Core_HashSet_toggle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L409">src</a></div>
 <p>Toggles the presence of a key in the set. The key is copied when inserted; pass it with <span class="code-inline">#move</span> to move it instead. Returns <span class="code-inline">true</span> if the key is present after the operation, or <span class="code-inline">false</span> if it was removed.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">toggle</span>(key: <span class="SItr">#fwd</span> <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.add</span> <a class="api-item-permalink" href="#Core_HashTable_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L383">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.add</span> <a class="api-item-permalink" href="#Core_HashTable_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L382">src</a></div>
 <p>Adds a new key-value pair to the me.table. The key is always copied. The value is copied; pass it with <span class="code-inline">#move</span> to move it instead. If the key already exists, the value is updated if <span class="code-inline">updateValue</span> is true.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">add</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>, value: <span class="SItr">#fwd</span> <span class="SCst"><a href="#Core_Input_Key_V">V</a></span>, updateValue = <span class="SKwd">true</span>)-&gt;*<span class="SCst"><a href="#Core_HashTableEntry">HashTableEntry</a></span>
     <span class="SLgc">where</span> <span class="SCst"><a href="#namespace_Core_Reflection">Reflection</a></span>.<span class="SFct">canCopy</span>(<span class="SItr">#typeof</span>(<span class="SCst"><a href="#Core_Input_Key_K">K</a></span>))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.clear</span> <a class="api-item-permalink" href="#Core_HashTable_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L619">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.clear</span> <a class="api-item-permalink" href="#Core_HashTable_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L618">src</a></div>
 <p>Removes all elements from the me.table without deallocating the me.table memory. All slots are marked as <span class="code-inline">FREE</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.contains</span> <a class="api-item-permalink" href="#Core_HashTable_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L483">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.contains</span> <a class="api-item-permalink" href="#Core_HashTable_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L482">src</a></div>
 <p>Returns <span class="code-inline">true</span> if the me.table contains the given key.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">contains</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_find" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.find</span> <a class="api-item-permalink" href="#Core_HashTable_find" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L556">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_find" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.find</span> <a class="api-item-permalink" href="#Core_HashTable_find" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L555">src</a></div>
 <p>Finds the entry for a given key. Asserts and will likely crash if the key is not found. Use [[tryFind]] for safe searching.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">find</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;*<span class="SCst"><a href="#Core_HashTableEntry">HashTableEntry</a></span></span></div>
 <p>Finds the entry for a given key. Asserts and will likely crash if the key is not found. Use [[tryFind]] for safe searching.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">find</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Core_HashTableEntry">HashTableEntry</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_findOrAdd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.findOrAdd</span> <a class="api-item-permalink" href="#Core_HashTable_findOrAdd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L586">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_findOrAdd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.findOrAdd</span> <a class="api-item-permalink" href="#Core_HashTable_findOrAdd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L585">src</a></div>
 <p>Finds the entry for a key, or adds a new entry with a default-initialized value if not found. Returns a pointer to the existing or new entry. The key is hashed and probed once, whether it is found or inserted, instead of paying a full lookup and then a full insert on every miss.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">findOrAdd</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;*<span class="SCst"><a href="#Core_HashTableEntry">HashTableEntry</a></span>
     <span class="SLgc">where</span> <span class="SCst"><a href="#namespace_Core_Reflection">Reflection</a></span>.<span class="SFct">canCopy</span>(<span class="SItr">#typeof</span>(<span class="SCst"><a href="#Core_Input_Key_K">K</a></span>))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.free</span> <a class="api-item-permalink" href="#Core_HashTable_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L253">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_free" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.free</span> <a class="api-item-permalink" href="#Core_HashTable_free" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L252">src</a></div>
 <p>Frees the hash me.table's memory and resets its state. If keys or values have destructors, they are called.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">free</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_getOrDefault" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.getOrDefault</span> <a class="api-item-permalink" href="#Core_HashTable_getOrDefault" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L574">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_getOrDefault" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.getOrDefault</span> <a class="api-item-permalink" href="#Core_HashTable_getOrDefault" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L573">src</a></div>
 <p>Gets the value associated with a key. If the key does not exist, returns the provided default value <span class="code-inline">val</span> instead.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">getOrDefault</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>, defaultValue: <span class="SCst"><a href="#Core_Input_Key_V">V</a></span>)-&gt;<span class="SCst"><a href="#Core_Input_Key_V">V</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_opCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opCount</span> <a class="api-item-permalink" href="#Core_HashTable_opCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L118">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_opCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opCount</span> <a class="api-item-permalink" href="#Core_HashTable_opCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L117">src</a></div>
 <p>Returns the number of key-value pairs in the me.table.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">opCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opDrop</span> <a class="api-item-permalink" href="#Core_HashTable_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L124">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opDrop</span> <a class="api-item-permalink" href="#Core_HashTable_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L123">src</a></div>
 <p>Ensures the allocated memory is freed when the me.table goes out of scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_opIndexPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opIndexPtr</span> <a class="api-item-permalink" href="#Core_HashTable_opIndexPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L173">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_opIndexPtr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opIndexPtr</span> <a class="api-item-permalink" href="#Core_HashTable_opIndexPtr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L172">src</a></div>
 <p>Provides read-only access to the value associated with a key. Asserts if the key is not found.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opIndexPtr</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#Core_Input_Key_V">V</a></span></span></div>
 <p>Provides mutable access to the value associated with a key. Asserts if the key is not found. See [[opIndexSet]] for insertion or update.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opIndexPtr</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;*<span class="SCst"><a href="#Core_Input_Key_V">V</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_opIndexSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opIndexSet</span> <a class="api-item-permalink" href="#Core_HashTable_opIndexSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L188">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_opIndexSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opIndexSet</span> <a class="api-item-permalink" href="#Core_HashTable_opIndexSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L187">src</a></div>
 <p>Assigns a value to a key, updating it if it exists or adding it if it doesn't.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opIndexSet</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>, val: <span class="SCst"><a href="#Core_Input_Key_V">V</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opPostCopy</span> <a class="api-item-permalink" href="#Core_HashTable_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L139">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opPostCopy</span> <a class="api-item-permalink" href="#Core_HashTable_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L138">src</a></div>
 <p>Handles the deep copy of the me.table when it is copied. A new me.table is allocated and all entries are copied over.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opPostCopy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_opSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opSet</span> <a class="api-item-permalink" href="#Core_HashTable_opSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L130">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_opSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opSet</span> <a class="api-item-permalink" href="#Core_HashTable_opSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L129">src</a></div>
 <p>Replaces the content of the me.table with key-value pairs from a slice.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opSet</span>(slice: <span class="SKwd">const</span> [..] { k: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>, v: <span class="SCst"><a href="#Core_Input_Key_V">V</a></span> })</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opVisit</span> <a class="api-item-permalink" href="#Core_HashTable_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L197">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.opVisit</span> <a class="api-item-permalink" href="#Core_HashTable_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L196">src</a></div>
 <p>Provides a way to iterate over each key-value pair in the me.table. This is a macro that accepts a code block to execute for each pair. Block parameters: <span class="code-inline">key</span> and <span class="code-inline">value</span> (values, or pointers when visiting by pointer).</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Macro]</span>
 <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SKwd">const</span> <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(key, value))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_remove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.remove</span> <a class="api-item-permalink" href="#Core_HashTable_remove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L458">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_remove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.remove</span> <a class="api-item-permalink" href="#Core_HashTable_remove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L457">src</a></div>
 <p>Removes a key-value pair from the me.table by key. If the key exists, its slot is marked as <span class="code-inline">DELETED</span>. Does nothing if the key is not found.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">remove</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.reserve</span> <a class="api-item-permalink" href="#Core_HashTable_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L288">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.reserve</span> <a class="api-item-permalink" href="#Core_HashTable_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L287">src</a></div>
 <p>Resizes the hash me.table to a new me.capacity, rehashing all existing elements.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reserve</span>(newCapacity: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_reversed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.reversed</span> <a class="api-item-permalink" href="#Core_HashTable_reversed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L233">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_reversed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.reversed</span> <a class="api-item-permalink" href="#Core_HashTable_reversed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L232">src</a></div>
 <p>Returns an immutable zero-allocation view that scans occupied slots in reverse order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">reversed</span>()-&gt;<span class="SFct">ReversedHashTable</span>'(<span class="SCst"><a href="#Core_Input_Key_K">K</a></span>, <span class="SCst"><a href="#Core_Input_Key_V">V</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_HashTable_tryFind" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.tryFind</span> <a class="api-item-permalink" href="#Core_HashTable_tryFind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L505">src</a></div>
+<div class="api-item api-item-func"><span id="Core_HashTable_tryFind" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HashTable.tryFind</span> <a class="api-item-permalink" href="#Core_HashTable_tryFind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L504">src</a></div>
 <p>Tries to find the entry for a given key. Returns a pointer to the <span class="code-inline">HashTableEntry</span> if found, otherwise returns <span class="code-inline">null</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">tryFind</span>(key: <span class="SCst"><a href="#Core_Input_Key_K">K</a></span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#Core_HashTableEntry">HashTableEntry</a></span></span></div>
 <p>Tries to find the entry for a given key. Returns a pointer to the <span class="code-inline">HashTableEntry</span> if found, otherwise returns <span class="code-inline">null</span>.</p>
@@ -20615,6 +20625,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="api-item api-item-func"><span id="Core_File_MappedRegion_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MappedRegion.opDrop</span> <a class="api-item-permalink" href="#Core_File_MappedRegion_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/mappedfile.swg#L156">src</a></div>
 <p>Releases this region's view and native handles.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_File_MappedRegion_releasePages" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MappedRegion.releasePages</span> <a class="api-item-permalink" href="#Core_File_MappedRegion_releasePages" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/mappedfile.swg#L206">src</a></div>
+<p>Drops the pages holding <span class="code-inline">bytes</span> from the working set of the process.</p>
+<p>A walk over a large mapped file touches every page it reads, and each page stays charged to the process until the system trims it: an index scan of a film reads gigabytes and looks, to a task manager, as if the program had allocated them. Releasing the pages a walk is done with keeps the memory the process reports at the size of what it still uses.</p>
+<p>Nothing is lost. A released page comes back on its next access, from the file cache while the system still holds it, so this is a memory-accounting hint: it is safe on any readable range, mapped or not, does nothing for an empty one, and never fails. The pages are the whole ones containing <span class="code-inline">bytes</span>; a range that shares a page with data still in use keeps that page resident only until its next access.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">releasePages</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_File_MappedRegion_writableBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MappedRegion.writableBytes</span> <a class="api-item-permalink" href="#Core_File_MappedRegion_writableBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/mappedfile.swg#L174">src</a></div>
@@ -22860,12 +22877,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SKwd">const</span> <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(bucket))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ReversedHashSet_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ReversedHashSet.opVisit</span> <a class="api-item-permalink" href="#Core_ReversedHashSet_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L58">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ReversedHashSet_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ReversedHashSet.opVisit</span> <a class="api-item-permalink" href="#Core_ReversedHashSet_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashset.swg#L57">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Macro]</span>
 <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SKwd">const</span> <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(key))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ReversedHashTable_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ReversedHashTable.opVisit</span> <a class="api-item-permalink" href="#Core_ReversedHashTable_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L60">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ReversedHashTable_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ReversedHashTable.opVisit</span> <a class="api-item-permalink" href="#Core_ReversedHashTable_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/hashtable.swg#L59">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Macro]</span>
 <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SKwd">const</span> <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(key, value))</span></div>
 </section>
@@ -24404,7 +24421,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">bomLength</span>(encoding: <span class="SCst"><a href="#Core_Text_Encoding">Encoding</a></span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Text_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Text.decode</span> <a class="api-item-permalink" href="#Core_Text_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/encoding.swg#L194">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Text_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Text.decode</span> <a class="api-item-permalink" href="#Core_Text_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/encoding.swg#L232">src</a></div>
 <p>Converts <span class="code-inline">bytes</span> to UTF-8, reading them as <span class="code-inline">encoding</span> spells characters.</p>
 <p><span class="code-inline">bytes</span> must start and end on a character boundary; <a href="#Core_File_FileStream_readTextChunk">Core.FileStream.readTextChunk</a> is what guarantees that while streaming. A byte-order mark at the head is content here and is not removed: the caller knows whether it is reading offset zero.</p>
 <p>Nothing fails. A malformed sequence becomes the replacement character, because a viewer that refuses a whole file over one bad byte in the middle is less useful than one that shows the bad byte where it is.</p>
@@ -24423,7 +24440,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">hasBom</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, encoding: <span class="SCst"><a href="#Core_Text_Encoding">Encoding</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Text_looksLikeText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Text.looksLikeText</span> <a class="api-item-permalink" href="#Core_Text_looksLikeText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/encoding.swg#L268">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Text_looksLikeText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Text.looksLikeText</span> <a class="api-item-permalink" href="#Core_Text_looksLikeText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/encoding.swg#L279">src</a></div>
 <p>Reports whether <span class="code-inline">probe</span>, read as <span class="code-inline">encoding</span>, is text a reader should be shown.</p>
 <p>Every byte means something under code page 1252 and half of them mean something under UTF-16, so a decoder alone never says no — an executable decodes into thousands of characters. What separates text from a binary that happens to decode is the control characters: a document uses tab, newline and carriage return and nothing else below <span class="code-inline">0x20</span>, and it never contains a null character at all.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">looksLikeText</span>(probe: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, encoding: <span class="SCst"><a href="#Core_Text_Encoding">Encoding</a></span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -24462,57 +24479,57 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readToEnd</span>()-&gt;<span class="SCst"><a href="#Core_String">String</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_init" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.init</span> <a class="api-item-permalink" href="#Core_Threading_Thread_init" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L82">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_init" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.init</span> <a class="api-item-permalink" href="#Core_Threading_Thread_init" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L81">src</a></div>
 <p>Creates a suspended thread with a cloned runtime context.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">init</span>(lambda: <span class="SKwd">func</span>||(<span class="SCst"><a href="#Core_Threading_Thread">Thread</a></span>), userParam: <span class="SItr">#null</span> *<span class="STpe">void</span> = <span class="SKwd">null</span>, priority = <span class="SCst"><a href="#Core_Threading_ThreadPriority">ThreadPriority</a></span>.<span class="SCst">Normal</span>, tempAllocSize: <span class="STpe">s32</span> = -<span class="SNum">1</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_isDone" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.isDone</span> <a class="api-item-permalink" href="#Core_Threading_Thread_isDone" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L127">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_isDone" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.isDone</span> <a class="api-item-permalink" href="#Core_Threading_Thread_isDone" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L126">src</a></div>
 <p>Returns whether this thread has finished without blocking.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isDone</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.isValid</span> <a class="api-item-permalink" href="#Core_Threading_Thread_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L50">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.isValid</span> <a class="api-item-permalink" href="#Core_Threading_Thread_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L49">src</a></div>
 <p>Returns true if the thread is valid</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.opDrop</span> <a class="api-item-permalink" href="#Core_Threading_Thread_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L44">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.opDrop</span> <a class="api-item-permalink" href="#Core_Threading_Thread_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L43">src</a></div>
 <p>Releases resources owned by this value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_safeForceEnd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.safeForceEnd</span> <a class="api-item-permalink" href="#Core_Threading_Thread_safeForceEnd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L57">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_safeForceEnd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.safeForceEnd</span> <a class="api-item-permalink" href="#Core_Threading_Thread_safeForceEnd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L56">src</a></div>
 <p>Force the thread to safely exist User code needs to check for <span class="code-inline">requestEnd</span></p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">safeForceEnd</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_setPriority" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.setPriority</span> <a class="api-item-permalink" href="#Core_Threading_Thread_setPriority" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L108">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_setPriority" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.setPriority</span> <a class="api-item-permalink" href="#Core_Threading_Thread_setPriority" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L107">src</a></div>
 <p>Changes this thread's scheduling priority.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPriority</span>(priority: <span class="SCst"><a href="#Core_Threading_ThreadPriority">ThreadPriority</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_sleep" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.sleep</span> <a class="api-item-permalink" href="#Core_Threading_Thread_sleep" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L63">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_sleep" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.sleep</span> <a class="api-item-permalink" href="#Core_Threading_Thread_sleep" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L62">src</a></div>
 <p>Suspends the current thread for at least <span class="code-inline">duration</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sleep</span>(duration: <span class="SCst"><a href="#namespace_Core_Time">Time</a></span>.<span class="SCst"><a href="#Core_Time_Duration">Duration</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_start" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.start</span> <a class="api-item-permalink" href="#Core_Threading_Thread_start" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L101">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_start" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.start</span> <a class="api-item-permalink" href="#Core_Threading_Thread_start" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L100">src</a></div>
 <p>Starts this suspended thread.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">start</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.wait</span> <a class="api-item-permalink" href="#Core_Threading_Thread_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L118">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.wait</span> <a class="api-item-permalink" href="#Core_Threading_Thread_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L117">src</a></div>
 <p>Waits for this thread to finish and releases its handle.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">wait</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_yield" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.yield</span> <a class="api-item-permalink" href="#Core_Threading_Thread_yield" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L76">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_yield" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.yield</span> <a class="api-item-permalink" href="#Core_Threading_Thread_yield" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L75">src</a></div>
 <p>Yields the remainder of the current thread's time slice.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">yield</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Threading.wait</span> <a class="api-item-permalink" href="#Core_Threading_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L151">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Threading.wait</span> <a class="api-item-permalink" href="#Core_Threading_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L150">src</a></div>
 <p>Waits for every thread and releases all their native handles.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wait</span>(threads: *<span class="SCst"><a href="#Core_Threading_Thread">Thread</a></span>...)</span></div>
 </section>
@@ -24916,8 +24933,15 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">fromUtf8</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u16</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf16_lengthZeroTerminated" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf16.lengthZeroTerminated</span> <a class="api-item-permalink" href="#Core_Utf16_lengthZeroTerminated" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf16.swg#L165">src</a></div>
-<p>Compute the string length of a zero terminated utf16 buffer</p>
+<div class="api-item api-item-func"><span id="Core_Utf16_lengthUntilZero" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf16.lengthUntilZero</span> <a class="api-item-permalink" href="#Core_Utf16_lengthUntilZero" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf16.swg#L168">src</a></div>
+<p>Returns the number of UTF-16 units before the first zero, bounded by the slice.</p>
+<p>The result is <span class="code-inline">@countof(buf)</span> when the slice contains no terminator. The function never reads outside <span class="code-inline">buf</span>; prefer it whenever the storage extent is known.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">lengthUntilZero</span>(buf: <span class="SKwd">const</span> [..] <span class="STpe">u16</span>)-&gt;<span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Utf16_lengthZeroTerminated" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf16.lengthZeroTerminated</span> <a class="api-item-permalink" href="#Core_Utf16_lengthZeroTerminated" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf16.swg#L206">src</a></div>
+<p>Returns the number of UTF-16 units before the first zero in unbounded native storage.</p>
+<p><span class="code-inline">buf</span> must either be <span class="code-inline">null</span> or point to a zero-terminated sequence. Use <a href="#Core_Utf16_lengthUntilZero">Core.Utf16.lengthUntilZero</a> when the storage extent is known so a missing terminator remains bounded.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">lengthZeroTerminated</span>(buf: <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">u16</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
@@ -24926,22 +24950,22 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toZeroTerminated</span>(src: <span class="STpe">string</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u16</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_beautifyName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.beautifyName</span> <a class="api-item-permalink" href="#Core_Utf8_beautifyName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1177">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_beautifyName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.beautifyName</span> <a class="api-item-permalink" href="#Core_Utf8_beautifyName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1334">src</a></div>
 <p>Defines beautify name.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">beautifyName</span>(name: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_byteIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.byteIndex</span> <a class="api-item-permalink" href="#Core_Utf8_byteIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L620">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_byteIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.byteIndex</span> <a class="api-item-permalink" href="#Core_Utf8_byteIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L777">src</a></div>
 <p>Returns the byte index of the given rune index</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">byteIndex</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, charIndex: <span class="STpe">u64</span>)-&gt;{ index: <span class="STpe">u64</span>, success: <span class="STpe">bool</span> }</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_compare" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.compare</span> <a class="api-item-permalink" href="#Core_Utf8_compare" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1016">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_compare" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.compare</span> <a class="api-item-permalink" href="#Core_Utf8_compare" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1173">src</a></div>
 <p>Compare two utf8 buffers with the given algorithm</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">compare</span>(src, dst: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, comparisonType = <span class="SCst"><a href="#Core_Utf8_ComparisonType">ComparisonType</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.contains</span> <a class="api-item-permalink" href="#Core_Utf8_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L825">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.contains</span> <a class="api-item-permalink" href="#Core_Utf8_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L982">src</a></div>
 <p>Returns true if <span class="code-inline">src</span> contains the string <span class="code-inline">what</span></p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">contains</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 <p>Returns true if <span class="code-inline">src</span> contains the string <span class="code-inline">what</span></p>
@@ -24952,13 +24976,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">contains</span>(src, what: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_countBytesAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.countBytesAt</span> <a class="api-item-permalink" href="#Core_Utf8_countBytesAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L577">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_countBytesAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.countBytesAt</span> <a class="api-item-permalink" href="#Core_Utf8_countBytesAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L734">src</a></div>
 <p>Returns the number of bytes to encode the first rune of the utf8 buffer</p>
 <p>If it's an invalid encoding, returns 1.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">countBytesAt</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_countRunes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.countRunes</span> <a class="api-item-permalink" href="#Core_Utf8_countRunes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L662">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_countRunes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.countRunes</span> <a class="api-item-permalink" href="#Core_Utf8_countRunes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L819">src</a></div>
 <p>Returns the number of runes in an utf8 buffer</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">countRunes</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
@@ -24980,12 +25004,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">encodeRune</span>(dest: [..] <span class="STpe">u8</span>, src: <span class="STpe">rune</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_endsWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.endsWith</span> <a class="api-item-permalink" href="#Core_Utf8_endsWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L968">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_endsWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.endsWith</span> <a class="api-item-permalink" href="#Core_Utf8_endsWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1125">src</a></div>
 <p>Return true if the string ends with <span class="code-inline">str</span></p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">endsWith</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, str: <span class="STpe">string</span>, comparisonType = <span class="SCst"><a href="#Core_Utf8_ComparisonType">ComparisonType</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_firstRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.firstRune</span> <a class="api-item-permalink" href="#Core_Utf8_firstRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L981">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_firstRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.firstRune</span> <a class="api-item-permalink" href="#Core_Utf8_firstRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1138">src</a></div>
 <p>Returns the first rune of the slice</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">firstRune</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">rune</span></span></div>
 </section>
@@ -24998,7 +25022,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">fromUnicode</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">rune</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_fromUtf16" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.fromUtf16</span> <a class="api-item-permalink" href="#Core_Utf8_fromUtf16" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L511">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_fromUtf16" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.fromUtf16</span> <a class="api-item-permalink" href="#Core_Utf8_fromUtf16" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L591">src</a></div>
 <p>Convert an utf16 array to an utf8 buffer</p>
 <p>Returns the number of bytes written in the destination buffer. <span class="code-inline">dest</span> must be at least 4 bytes long</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">fromUtf16</span>(dest: [..] <span class="STpe">u8</span>, src: <span class="SKwd">const</span> [..] <span class="STpe">u16</span>)-&gt;<span class="STpe">u64</span></span></div>
@@ -25006,55 +25030,55 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">fromUtf16</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u16</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_indexOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.indexOf</span> <a class="api-item-permalink" href="#Core_Utf8_indexOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L690">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_indexOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.indexOf</span> <a class="api-item-permalink" href="#Core_Utf8_indexOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L847">src</a></div>
 <p>Find the first occurence of rune <span class="code-inline">what</span>, and returns the byte index of it. Returns <span class="code-inline">Swag.U64.Max</span> if not found</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">indexOf</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="STpe">rune</span>, startByteIndex = <span class="SNum">0</span>'<span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
 <p>Find the given string, and returns the byte index of it</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">indexOf</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="STpe">string</span>, startByteIndex = <span class="SNum">0</span>'<span class="STpe">u64</span>, comparisonType = <span class="SCst"><a href="#Core_Utf8_ComparisonType">ComparisonType</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_indexOfAny" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.indexOfAny</span> <a class="api-item-permalink" href="#Core_Utf8_indexOfAny" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L740">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_indexOfAny" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.indexOfAny</span> <a class="api-item-permalink" href="#Core_Utf8_indexOfAny" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L897">src</a></div>
 <p>Find one of the runes in <span class="code-inline">what</span>, and returns the byte index of it. Returns <span class="code-inline">Swag.U64.Max</span> if not found</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">indexOfAny</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, startByteIndex = <span class="SNum">0</span>'<span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
 <p>Find one of the runes in <span class="code-inline">what</span>, and returns the byte index of it</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">indexOfAny</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="SKwd">const</span> [..] <span class="STpe">rune</span>, startByteIndex = <span class="SNum">0</span>'<span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.isValid</span> <a class="api-item-permalink" href="#Core_Utf8_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1106">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.isValid</span> <a class="api-item-permalink" href="#Core_Utf8_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1263">src</a></div>
 <p>Returns true if the utf8 sequence is valid</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isValid</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_isValidRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.isValidRune</span> <a class="api-item-permalink" href="#Core_Utf8_isValidRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L563">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_isValidRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.isValidRune</span> <a class="api-item-permalink" href="#Core_Utf8_isValidRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L720">src</a></div>
 <p>Returns true if the given unicode rune can be encoded in utf8</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isValidRune</span>(c: <span class="STpe">rune</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_lastIndexOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.lastIndexOf</span> <a class="api-item-permalink" href="#Core_Utf8_lastIndexOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L850">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_lastIndexOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.lastIndexOf</span> <a class="api-item-permalink" href="#Core_Utf8_lastIndexOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1007">src</a></div>
 <p>Find the last rune occurence of <span class="code-inline">what</span>, and returns the byte index of it. Returns <span class="code-inline">Swag.U64.Max</span> if not found</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">lastIndexOf</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="STpe">rune</span>)-&gt;<span class="STpe">u64</span></span></div>
 <p>Returns the last index (in bytes) of a string. Returns <span class="code-inline">Swag.U64.Max</span> if not found</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">lastIndexOf</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="STpe">string</span>, comparisonType = <span class="SCst"><a href="#Core_Utf8_ComparisonType">ComparisonType</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_lastIndexOfAny" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.lastIndexOfAny</span> <a class="api-item-permalink" href="#Core_Utf8_lastIndexOfAny" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L857">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_lastIndexOfAny" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.lastIndexOfAny</span> <a class="api-item-permalink" href="#Core_Utf8_lastIndexOfAny" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1014">src</a></div>
 <p>Returns the last index (in bytes) of a any of the runes in <span class="code-inline">what</span>. Returns <span class="code-inline">Swag.U64.Max</span> if not found</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">lastIndexOfAny</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="SKwd">const</span> [..] <span class="STpe">rune</span>)-&gt;<span class="STpe">u64</span></span></div>
 <p>Returns the last index (in bytes) of a any of the bytes in <span class="code-inline">what</span>. Returns <span class="code-inline">Swag.U64.Max</span> if not found</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">lastIndexOfAny</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, what: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_lastRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.lastRune</span> <a class="api-item-permalink" href="#Core_Utf8_lastRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L994">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_lastRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.lastRune</span> <a class="api-item-permalink" href="#Core_Utf8_lastRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1151">src</a></div>
 <p>Returns the last rune of the slice</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">lastRune</span>(src: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">rune</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_startsWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.startsWith</span> <a class="api-item-permalink" href="#Core_Utf8_startsWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L955">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_startsWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.startsWith</span> <a class="api-item-permalink" href="#Core_Utf8_startsWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1112">src</a></div>
 <p>Return true if the string starts with <span class="code-inline">str</span></p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">startsWith</span>(src: <span class="SItr">#null</span> <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, str: <span class="STpe">string</span>, comparisonType = <span class="SCst"><a href="#Core_Utf8_ComparisonType">ComparisonType</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Utf8_visitRunes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.visitRunes</span> <a class="api-item-permalink" href="#Core_Utf8_visitRunes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1078">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Utf8_visitRunes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Utf8.visitRunes</span> <a class="api-item-permalink" href="#Core_Utf8_visitRunes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/utf8.swg#L1235">src</a></div>
 <p>Macro to visit the unicode characters of the utf8 sequence. Block parameters:</p>
 <ul>
 <li><span class="code-inline">c</span>:       the character</li>
@@ -26099,7 +26123,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.220</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.247</div>
 </footer>
 </section>
 </main>
@@ -28015,6 +28039,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.File.MappedRegion.flush|Core_File_MappedRegion_flush|Flushes shared writable pages and the duplicated file handle.",
 "f|Core.File.MappedRegion.isOpen|Core_File_MappedRegion_isOpen|Returns whether this value represents a valid mapped range.",
 "f|Core.File.MappedRegion.opDrop|Core_File_MappedRegion_opDrop|Releases this region's view and native handles.",
+"f|Core.File.MappedRegion.releasePages|Core_File_MappedRegion_releasePages|Drops the pages holding bytes from the working set of the process.",
 "f|Core.File.MappedRegion.writableBytes|Core_File_MappedRegion_writableBytes|Returns a writable view of shared or copy-on-write bytes.",
 "f|Core.File.move|Core_File_move|Moves oldName to newName, replacing the destination when it exists.",
 "f|Core.File.moveNative|Core_File_moveNative|",
@@ -29101,7 +29126,8 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Utf16.encodeRune|Core_Utf16_encodeRune|Convert unicode character 'src' to an utf16 sequence, and returns",
 "f|Core.Utf16.fromUnicode|Core_Utf16_fromUnicode|Convert a character array (32 bits unicode) to an utf16 buffer",
 "f|Core.Utf16.fromUtf8|Core_Utf16_fromUtf8|Convert an utf8 buffer to a utf16 buffer, and returns the",
-"f|Core.Utf16.lengthZeroTerminated|Core_Utf16_lengthZeroTerminated|Compute the string length of a zero terminated utf16 buffer",
+"f|Core.Utf16.lengthUntilZero|Core_Utf16_lengthUntilZero|Returns the number of UTF-16 units before the first zero, bounded by the slice.",
+"f|Core.Utf16.lengthZeroTerminated|Core_Utf16_lengthZeroTerminated|Returns the number of UTF-16 units before the first zero in unbounded native storage.",
 "f|Core.Utf16.toZeroTerminated|Core_Utf16_toZeroTerminated|Convert string to an utf16 array, zero terminated",
 "f|Core.Utf8.beautifyName|Core_Utf8_beautifyName|Defines beautify name.",
 "f|Core.Utf8.byteIndex|Core_Utf8_byteIndex|Returns the byte index of the given rune index",

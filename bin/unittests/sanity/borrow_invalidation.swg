@@ -106,8 +106,8 @@ impl BorrowInvBuffer
     mtd receiverInvalidatesOwnView()->u8
     {
         let view = .data!     // swc-expected-note {{sema_note_borrow_taken_here}}
-        .reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
-        return view[0]     // swc-expected-note {{sema_note_borrow_read_here}}
+        .reserve(64)          // swc-expected-error {{sanity_err_borrow_invalidated}}
+        return view[0]        // swc-expected-note {{sema_note_borrow_read_here}}
     }
 
     // Going through an accessor is the same borrow. The accessor summary is inferred

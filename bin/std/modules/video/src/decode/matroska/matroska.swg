@@ -2099,6 +2099,7 @@ impl IDecoder for Decoder
             .fileIndex!.progressive!.parseMetadata(.fileIndex!.region.bytes())
             .fileIndex!.path = path
             .configureMetadata(.fileIndex!.progressive!)
+
             // The opening sound window is built beside the picture rather than before it. It
             // reads a minute of interleaved clusters, which is a second on a film read across a
             // network share, and a player has nothing to show for that second: it can present

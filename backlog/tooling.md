@@ -52,23 +52,6 @@ being compiled by it.
   for exactly the header a defect needs. `std/video` already writes Matroska nowhere, so this is
   test tooling rather than a module feature.
 
-### F-201 — A test fixture the repository stores as text fails on any fresh checkout
-
-- Area: bin/std
-- Found while: running the standard-library suites in a second worktree for T-563.
-- Observation: `gui`'s `htmlview.test.swg` asserts `view.fileSize == 8_153_570` for the
-  fixture `html.rustdoc-large.html`, which is the size the file has with line feeds. The
-  repository checks it out with `eol=crlf` like every other text file, so a fresh worktree gets
-  8,224,706 bytes and the test fails. It passes in the main worktree only because that copy was
-  checked out on 31 July, before the attribute covered it.
-- Evidence: 2026-08-26. `git check-attr -a` on the fixture answers `text: auto` and `eol: crlf`;
-  `git ls-files --eol` answers `i/lf w/crlf`. The file measures 8,224,706 bytes in a worktree
-  created this month and 8,153,570 in the one created in July. Normalising the working copy to
-  line feeds makes the whole suite pass (611 tests).
-- Next step: a fixture is an input, not a source file — give the test data directories a
-  `-text` rule in `.gitattributes` so every checkout is byte-exact, and check whether any other
-  fixture-size or hash assertion depends on the same accident.
-
 ### B-013 — A tool relaunched under the selected compiler can relaunch itself forever
 
 - Area: tooling

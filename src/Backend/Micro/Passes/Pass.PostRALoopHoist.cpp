@@ -635,7 +635,7 @@ namespace
             {
                 const MicroReg accessBase = ops[accessInfo.memBaseOperandIndex].reg;
                 const bool     tracked    = isFrameBaseRegister(accessBase, conv) ||
-                                        (reach.localBaseReg.isValid() && accessBase == reach.localBaseReg);
+                                     (reach.localBaseReg.isValid() && accessBase == reach.localBaseReg);
                 if (tracked)
                 {
                     const auto accessOffset = static_cast<int64_t>(ops[accessInfo.memOffsetOperandIndex].valueU64);

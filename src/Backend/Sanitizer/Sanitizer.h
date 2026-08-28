@@ -80,7 +80,7 @@ private:
     struct ReportNote
     {
         SourceCodeRef         source;
-        DiagnosticId          id = {};
+        DiagnosticId          id  = {};
         const SymbolVariable* sym = nullptr;
     };
 

@@ -67,7 +67,7 @@ func uafForwardFreeAndReturn(ptr: *void, size: u64)->UafIndirectResult
     let p = cast(*s32) myAlloc(4)
     p[] = 1
     myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    let x = p[]     // swc-expected-error {{sanity_err_use_after_free}}
+    let x = p[]      // swc-expected-error {{sanity_err_use_after_free}}
     discard x
 }
 
@@ -77,7 +77,7 @@ func uafForwardFreeAndReturn(ptr: *void, size: u64)->UafIndirectResult
 {
     let p = cast(*s32) myAlloc(4)
     myFree(p, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    p[] = 2     // swc-expected-error {{sanity_err_use_after_free}}
+    p[] = 2          // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 // Double free.

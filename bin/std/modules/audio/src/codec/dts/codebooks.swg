@@ -9,6 +9,8 @@
 // @NOTICE: THIRDPARTY.md#ffmpeg-dts-adpcm-codebook
 #global namespace Dts
 
+// This externally sourced table is hand-aligned for review.
+// swc-format off
 const AdpcmCoefficients: [4096, 4] s16 = [
     [  9928,  -2618,  -1093,  -1263],
     [ 11077,  -2876,  -1747,   -308],
@@ -4107,3 +4109,4 @@ const AdpcmCoefficients: [4096, 4] s16 = [
     [  9639,  -7949,   9625,  -3944],
     [  8538,  -6997,   5309,    453]
 ]
+// swc-format on

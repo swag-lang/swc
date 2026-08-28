@@ -185,7 +185,7 @@ func borrowEscapeInnerScope()->s32
     var p: #null *s32
     {
         var v: s32 = 42     // swc-expected-note {{sema_note_borrow_source_declared_here}}
-        p = &v     // swc-expected-error {{sanity_err_borrow_scope_escape}}
+        p = &v              // swc-expected-error {{sanity_err_borrow_scope_escape}}
     }
     return 0
 }

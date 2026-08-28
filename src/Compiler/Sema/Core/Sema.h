@@ -107,8 +107,8 @@ struct SemaEscapeInfo
             // A payload route present on either control-flow alternative remains
             // possible after the join. An unconditional carrier replacement clears it
             // before the join; a conditional replacement must not hide the other path.
-            viaOwnedPayload       = viaOwnedPayload || other.viaOwnedPayload;
-            detachedOwnedPayload  = detachedOwnedPayload || other.detachedOwnedPayload;
+            viaOwnedPayload      = viaOwnedPayload || other.viaOwnedPayload;
+            detachedOwnedPayload = detachedOwnedPayload || other.detachedOwnedPayload;
             // One direct borrow among the merged facts is enough to make the value stand
             // for the parameter's storage.
             viaStoredField = viaStoredField && other.viaStoredField;

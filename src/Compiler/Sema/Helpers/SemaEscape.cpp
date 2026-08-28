@@ -989,8 +989,8 @@ namespace
 
     SemaEscapeInfo castEscapeInfo(Sema& sema, AstNodeRef castRef, const AstCastExpr& cast, uint32_t& budget)
     {
-        const TypeRef  resultTypeRef    = expressionTypeRef(sema, castRef);
-        const bool     operandSelfSubst = castOperandSelfSubstituted(sema, castRef, cast.nodeExprRef);
+        const TypeRef resultTypeRef    = expressionTypeRef(sema, castRef);
+        const bool    operandSelfSubst = castOperandSelfSubstituted(sema, castRef, cast.nodeExprRef);
 
         const TypeRef sourceTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, castRef, cast.nodeExprRef));
         if (resultTypeRef.isValid() &&
@@ -999,9 +999,9 @@ namespace
             !sema.typeMgr().get(unwrapAliasEnum(sema, sourceTypeRef)).isAny())
             return anyBoxEscapeInfo(sema, castRef, cast, resultTypeRef);
 
-        SemaEscapeInfo info             = operandSelfSubst
-                                              ? expressionEscapeInfoAt(sema, cast.nodeExprRef, budget)
-                                              : expressionEscapeInfoRec(sema, cast.nodeExprRef, budget);
+        SemaEscapeInfo info = operandSelfSubst
+                                  ? expressionEscapeInfoAt(sema, cast.nodeExprRef, budget)
+                                  : expressionEscapeInfoRec(sema, cast.nodeExprRef, budget);
         if (info.hasBorrow())
         {
             info.typeRef = resultTypeRef;
@@ -4056,7 +4056,7 @@ namespace SemaEscape
                 if (detached.owner == mutationProjection.root && detached.field)
                     record.detachedPayloadFields.push_back(detached.field);
             }
-            record.guards                  = guards;
+            record.guards = guards;
             sema.addBorrowInvalidation(record);
         }
     }

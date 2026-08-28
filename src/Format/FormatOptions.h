@@ -253,7 +253,7 @@ struct FormatOptions
     std::optional<bool> oneStatementPerLine;        // Split independent statements separated by `;`
     std::optional<bool> oneEnumValuePerLine;        // Put every value of a multi-value enum on its own line
     std::optional<bool> oneStructFieldPerLine;      // Put every field declaration of a multi-field struct on its own line
-    std::optional<bool> inlineAccessModifiers;       // Join an unbraced access modifier to the declaration it governs
+    std::optional<bool> inlineAccessModifiers;      // Join an unbraced access modifier to the declaration it governs
 
     // -----------------------------------------------------------------------
     // Alignment

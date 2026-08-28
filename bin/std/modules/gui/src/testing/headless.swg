@@ -526,7 +526,12 @@ impl HeadlessHost
     // Fires one active timer immediately and drains resulting queues.
     mtd fireTimer(timer: #null *Timer)
     {
-        if !timer or timer.isPendingRemoval do
+        // A preceding callback may have destroyed this timer's target and flushed the timer
+        // before a test reaches it in a snapshot. Establish ownership without dereferencing the
+        // possibly stale pointer, just as Application.removeTimer does.
+        if !timer or !.app.ownsTimer(timer) do
+            return
+        if timer.isPendingRemoval do
             return
 
         .app.duringTimerEvents = true

@@ -183,8 +183,8 @@ namespace
             bool       meaningfulGap = false;
             for (uint32_t k = i + 1; k < useIdx && !blocked; ++k)
             {
-                const MicroInstr*       between        = storage.ptr(instrRefs[k]);
-                const MicroInstrUseDef* betweenUseDef  = ssaState->instrUseDef(instrRefs[k]);
+                const MicroInstr*       between       = storage.ptr(instrRefs[k]);
+                const MicroInstrUseDef* betweenUseDef = ssaState->instrUseDef(instrRefs[k]);
                 if (!between || !betweenUseDef)
                 {
                     blocked = true;

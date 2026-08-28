@@ -1378,7 +1378,7 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
                 if (!canUsePhysical(virtKey, region.header, reg, MicroRegSpan{}, false))
                     continue;
 
-                taken               = reg;
+                taken                 = reg;
                 (*pool)[regIndex - 1] = pool->back();
                 pool->pop_back();
             }
@@ -1437,10 +1437,10 @@ void MicroRegisterAllocationPass::conformLoopResidency(const uint32_t instructio
         // refilling registers for values the body reloads lazily anyway.
         for (size_t pairIndex = residency.expected.size(); pairIndex > 0; --pairIndex)
         {
-            const size_t   index      = pairIndex - 1;
+            const size_t index                = pairIndex - 1;
             const auto& [pairDense, pairPhys] = residency.expected[index];
-            auto&          pairState  = states_[pairDense];
-            const bool     intact     = pairState.mapped && pairState.phys == pairPhys;
+            auto&      pairState              = states_[pairDense];
+            const bool intact                 = pairState.mapped && pairState.phys == pairPhys;
             if (residency.consumed[index] || intact)
                 continue;
 

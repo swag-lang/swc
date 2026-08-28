@@ -1418,7 +1418,7 @@ impl Application
     }
 
     // Reports whether this application still owns `timer`, without reading through it.
-    private mtd const ownsTimer(timer: const *Timer)->bool
+    internal mtd const ownsTimer(timer: const *Timer)->bool
     {
         for t in .timers where t == timer do
             return true

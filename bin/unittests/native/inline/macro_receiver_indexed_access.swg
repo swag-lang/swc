@@ -66,7 +66,9 @@ struct Depot
 
 impl Depot
 {
-    // Receiver with a trailing index: `.racks[i]` is itself the visited value.
+    // Receiver with a trailing index: `.racks[i]` is itself the visited value. Keep the method
+    // inline in every build configuration so the macro expands below an ordinary inline payload.
+    #[Swag.Inline]
     mtd const sumRack(i: u64)->u64
     {
         var sum: u64

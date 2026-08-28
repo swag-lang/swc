@@ -34,7 +34,7 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
             if (!sanitizer.callParameterRegister(argReg, *fn, ops[0].callConv, i))
                 continue;
             const SanitizerRegInfo* argInfo = Sanitizer::regInfo(state, argReg);
-            const auto              freed  = argInfo && argInfo->hasOriginSlot ? state.freedPtrSlots.find(argInfo->originSlot) : state.freedPtrSlots.end();
+            const auto              freed   = argInfo && argInfo->hasOriginSlot ? state.freedPtrSlots.find(argInfo->originSlot) : state.freedPtrSlots.end();
             if (freed != state.freedPtrSlots.end())
             {
                 sanitizer.report(inst, DiagnosticId::sanity_err_double_free, freed->second, DiagnosticId::sanity_note_pointer_released_here);

@@ -207,7 +207,7 @@ void Ast::buildReachableNodeIndex() const
     // The traversal itself carries the reachability guarantee: a node parsed into this
     // storage but detached from the tree never enters the maps. Recording the first parent
     // also preserves the first root-to-node path selected by the former depth-first search.
-    SmallVector<AstNodeRef> children;
+    SmallVector<AstNodeRef>                        children;
     SmallVector<std::pair<AstNodeRef, AstNodeRef>> stack;
     stack.push_back({root_, AstNodeRef::invalid()});
     while (!stack.empty())

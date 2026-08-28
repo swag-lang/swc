@@ -62,7 +62,7 @@ func lifecycleSafetyEnabled()->bool
 {
     var a = UamItem{x: 1}
     var b: UamItem
-    b = #relocate a     // swc-expected-note {{sanity_note_move_origin}}
+    b = #relocate a       // swc-expected-note {{sanity_note_move_origin}}
     @assert(a.x == 1)     // swc-expected-error {{sanity_err_use_after_move}}
 }
 
@@ -72,7 +72,7 @@ func lifecycleSafetyEnabled()->bool
 {
     var a = UamItem{x: 1, y: 2}
     var b: UamItem
-    b = #relocate a     // swc-expected-note {{sanity_note_move_origin}}
+    b = #relocate a       // swc-expected-note {{sanity_note_move_origin}}
     @assert(a.y == 2)     // swc-expected-error {{sanity_err_use_after_move}}
 }
 
@@ -82,7 +82,7 @@ func lifecycleSafetyEnabled()->bool
 #test
 {
     var a = UamItem{x: 4}
-    var b = #move a     // swc-expected-note {{sanity_note_move_origin}}
+    var b = #move a       // swc-expected-note {{sanity_note_move_origin}}
     @assert(a.x == 4)     // swc-expected-error {{sanity_err_use_after_move}}
 }
 
@@ -92,7 +92,7 @@ func lifecycleSafetyEnabled()->bool
 #test
 {
     var a = UamItem{x: 4}
-    let p = &a.x     // swc-expected-note {{sema_note_borrow_taken_here}}
+    let p = &a.x        // swc-expected-note {{sema_note_borrow_taken_here}}
     var b = #move a     // swc-expected-note {{sanity_note_move_origin}}
     discard b
     @assert(p[] == 4)     // swc-expected-error {{sanity_err_use_after_move}}

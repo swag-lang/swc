@@ -417,7 +417,7 @@ These leads cover images, text, and the CPU/OpenGL painters.
   `Polygon.cleanedPaths`, which is the first thing to look at for a strip whose four corners are
   nearly collinear.
 
-### B-014 — A supersampled SVG rasterization leaves twice its sampled target in private memory
+### B-015 — A supersampled SVG rasterization leaves twice its sampled target in private memory
 
 - Area: std/pixel, std/gui
 - Found while: tracing the startup of sFileScope with the process memory read at every step
@@ -434,7 +434,7 @@ These leads cover images, text, and the CPU/OpenGL painters.
   usage read through `K32GetProcessMemoryInfo` after each theme, icon, and paint step. Deleting
   the targets is visible in [parse.swg](../bin/std/modules/pixel/src/svg/parse.swg); the residue
   grows with every distinct target size and never shrinks.
-- Next step: bound the sampled target instead of the document. Rasterize the sheet in tiles whose
+- Next: bound the sampled target instead of the document. Rasterize the sheet in tiles whose
   supersampled size stays under a fixed budget (a 1024x1024 target would cover the widgets atlas
   in nine tiles), resolving each tile into the final image. Tiles aligned to the supersampling
   factor resolve the same pixels as the whole target, so the goldens should not move; verify that

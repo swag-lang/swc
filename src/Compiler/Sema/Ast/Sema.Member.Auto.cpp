@@ -341,7 +341,7 @@ namespace
         // payload, which has no `me` binding; an injected #code argument written in the method body
         // (e.g. `index < .count`) must still resolve its auto-member against the enclosing method's
         // receiver, which lives in a parent payload. Use the nearest payload that binds `me`.
-        for (const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
+        for (const SemaInlinePayload* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
              inlinePayload;
              inlinePayload = inlinePayload->parentInlinePayload)
         {
@@ -360,7 +360,7 @@ namespace
     const SemaInlinePayload* nearestInlineReceiverPayload(Sema& sema)
     {
         const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
-        for (const SemaInlinePayload* payload = sema.frame().currentInlinePayload(); payload; payload = payload->parentInlinePayload)
+        for (const SemaInlinePayload* payload = SemaHelpers::effectiveInlinePayload(sema); payload; payload = payload->parentInlinePayload)
         {
             for (const SemaClone::ParamBinding& binding : payload->argMappings)
                 if (binding.idRef == meId && binding.exprRef.isValid())

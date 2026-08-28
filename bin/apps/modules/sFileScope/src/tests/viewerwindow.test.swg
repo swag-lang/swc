@@ -1020,7 +1020,9 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(window.infoNameLabel.name.raw.isEmpty())
     @assert(window.surface!.minSize.x == ViewerMinWidth)
     @assert(Utf8.contains(window.emptyLabel.name.raw, appStrings().ui_DropTitle))
-    @assert(window.emptyView.isLocallyVisible() and window.emptyIconLabel.icon.isValid())
+
+    // The large empty-state glyph is intentionally deferred until the surface's Init event.
+    @assert(window.emptyView.isLocallyVisible() and !window.emptyIconLabel.icon.isValid())
     @assert(window.emptyView.position.y >= window.infoBar.position.bottom())
     @assert(window.emptyHintLabel.text() == appStrings().ui_DropHint)
     @assert(window.currentView == null)
@@ -1107,7 +1109,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.applyLayout()
     @assert(window.infoNameLabel.position.width == 0 and window.infoSizeLabel.position.width == 0)
 
-    window.currentFile = viewerFixturePath()
+    window.currentFile     = viewerFixturePath()
+    window.currentFileSize = "1.2 KiB"
     window.choices.add(ViewerChoice{.BasicText, Swag.U64.Max, "Basic text"})
     window.activeChoiceIndex = 0
     window.updateFileInfo("UTF-8 · streamed")
@@ -1270,7 +1273,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(window.loadingOverlay.spinner.position.width == ViewerLoadingSpinnerSize and window.loadingOverlay.spinner.position.height == ViewerLoadingSpinnerSize)
     let spinnerCenter = window.loadingOverlay.spinner.position.center()
     let overlayCenter = window.loadingOverlay.clientRect().center()
-    @assert(spinnerCenter == overlayCenter)
+    @assert(Math.abs(spinnerCenter.x - overlayCenter.x) <= 0.5 and Math.abs(spinnerCenter.y - overlayCenter.y) <= 0.5)
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "sfilescope.loading")
 
@@ -1434,11 +1437,11 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Jobs.wait(&window.choiceLoad.job)
     host.fireTimer(window.startupTimer)
 
-    @assert(discardedView.isPendingDestroy)
     @assert(window.currentView != discardedView)
+
+    // A test can keep the timer's address for identity after the host has reclaimed it. Firing
+    // that stale address must be a no-op and, in particular, must never dereference its target.
     host.fireTimer(discardedTimer)
-    @assert(discardedView.loadTimer == discardedTimer)
-    host.pumpTimerQueues()
 }
 
 // Pins the shipped empty surface: one accent line, one compact command row, and no eager

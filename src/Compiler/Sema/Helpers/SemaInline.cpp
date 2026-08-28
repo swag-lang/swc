@@ -1714,6 +1714,20 @@ namespace
         return Result::Continue;
     }
 
+    // A materialized argument initializer is caller code even though the declaration that owns it
+    // is inserted into the callee's inline root. Preserve the caller's nearest inline payload so
+    // auto-members inside a nested macro receiver do not resolve against the macro's own `me`.
+    void setInlineInitializerCallerContext(Sema& sema, AstNodeRef initRef)
+    {
+        const SemaInlinePayload* callerPayload = SemaHelpers::effectiveInlinePayload(sema);
+        if (!callerPayload || initRef.isInvalid())
+            return;
+
+        auto* overridePayload                = sema.compiler().allocate<SemaInlineContextOverride>();
+        overridePayload->targetInlinePayload = callerPayload;
+        sema.setInlineContextOverride(initRef, overridePayload);
+    }
+
     bool inlineReceiverContainsIndex(Sema& sema, AstNodeRef exprRef)
     {
         if (exprRef.isInvalid())
@@ -1769,6 +1783,7 @@ namespace
             AstNodeRef                    clonedInitRef = SemaClone::cloneAstPreservingResolvedIdentifierSymbols(sema, binding.exprRef, noBindings);
             if (clonedInitRef.isInvalid())
                 return Result::Error;
+            setInlineInitializerCallerContext(sema, clonedInitRef);
 
             // A castless by-address receiver types as its pointee, so its home holds the
             // receiver's ADDRESS.
@@ -1977,6 +1992,7 @@ namespace
         AstNodeRef clonedInitRef = SemaClone::cloneDetachedExpr(sema, ioBinding.exprRef);
         if (clonedInitRef.isInvalid())
             return Result::Error;
+        setInlineInitializerCallerContext(sema, clonedInitRef);
 
         // Every cast below wraps the detached clone, never the caller's expression.
         if (mat.homesAddress)
@@ -2126,6 +2142,11 @@ namespace
     void setInlinePayloadRecursive(Sema& sema, AstNodeRef nodeRef, SemaInlinePayload* inlinePayload)
     {
         if (nodeRef.isInvalid())
+            return;
+
+        // An override roots a caller-owned argument subtree inside this inline body. Assigning the
+        // callee payload to its descendants would outrank that ancestor override during the visit.
+        if (sema.inlineContextOverride<SemaInlineContextOverride>(nodeRef))
             return;
 
         sema.setInlinePayload(nodeRef, inlinePayload);

@@ -110,3 +110,29 @@ func reverse(x: u64)->u64
     v = ((v >> 4) & m2) | ((v & m2) << 4)
     return @byteswap(v)
 }
+
+// Reverse all bits of every byte lane.
+//
+// Two nibble tables answer the whole byte: one places the reversed low nibble high, the other
+// places the reversed high nibble low.
+#[Inline]
+func reverse(x: Simd.U8x16)->Simd.U8x16
+{
+    const LowNibble  = cast(Simd.U8x16) [0x00, 0x80, 0x40, 0xC0, 0x20, 0xA0, 0x60, 0xE0, 0x10, 0x90, 0x50, 0xD0, 0x30, 0xB0, 0x70, 0xF0]
+    const HighNibble = cast(Simd.U8x16) [0x00, 0x08, 0x04, 0x0C, 0x02, 0x0A, 0x06, 0x0E, 0x01, 0x09, 0x05, 0x0D, 0x03, 0x0B, 0x07, 0x0F]
+    const Mask       = @vecsplat(0x0F'u8)
+
+    // The word shift is what the byte lanes have; masking to the low nibble drops the four
+    // bits it dragged in from the neighbouring byte.
+    let low  = x & Mask
+    let high = cast #bit (Simd.U8x16) (cast #bit (Simd.U16x8) x >> 4) & Mask
+    return Simd.shuffle(LowNibble, low) | Simd.shuffle(HighNibble, high)
+}
+
+// Reverse all bits of every lane, wider lanes reversing their bytes as well.
+#[Inline]
+{
+    func reverse(x: Simd.U16x8)->Simd.U16x8 => @byteswap(cast #bit (Simd.U16x8) reverse(cast #bit (Simd.U8x16) x))
+    func reverse(x: Simd.U32x4)->Simd.U32x4 => @byteswap(cast #bit (Simd.U32x4) reverse(cast #bit (Simd.U8x16) x))
+    func reverse(x: Simd.U64x2)->Simd.U64x2 => @byteswap(cast #bit (Simd.U64x2) reverse(cast #bit (Simd.U8x16) x))
+}

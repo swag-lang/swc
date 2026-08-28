@@ -1072,7 +1072,12 @@ namespace
                 });
                 if (!implicitStructNoInit && hasGlobalStorage)
                     implicitStructStoreRef = symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef);
-                if (isConst || isLet)
+                // A constant always carries its bytes, so a field left 'undefined'
+                // materializes as zero there. A 'let' keeps the sparse default and
+                // takes the run-time initialization path instead.
+                if (isConst)
+                    implicitStructCstRef = symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef);
+                else if (isLet)
                     implicitStructCstRef = symStruct.resolveImplicitDefaultValueRef(sema, explicitTypeRef);
             }
         }

@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
@@ -2053,6 +2053,33 @@ Result AstIntrinsicCall::codeGenPostNode(CodeGen& codeGen) const
 
 namespace
 {
+    // Reads a permutation pattern that is already a constant. Every lane index
+    // is reduced into range, so no pattern is out of bounds.
+    bool tryConstantLaneIndices(CodeGen& codeGen, AstNodeRef patternRef, uint32_t laneBytes, uint32_t laneCount, uint32_t indexMask, std::array<uint8_t, 16>& outIndices)
+    {
+        const SemaNodeView patternView = codeGen.viewTypeConstant(patternRef);
+        if (!patternView.hasConstant())
+            return false;
+
+        const ConstantValue& patternCst = codeGen.cstMgr().get(patternView.cstRef());
+        if (!patternCst.isArray())
+            return false;
+
+        const std::span<const std::byte> bytes = patternCst.getArray();
+        if (bytes.size() != 16)
+            return false;
+
+        for (uint32_t lane = 0; lane < laneCount; ++lane)
+        {
+            uint64_t value = 0;
+            for (uint32_t byteIndex = 0; byteIndex < laneBytes; ++byteIndex)
+                value |= static_cast<uint64_t>(std::to_integer<uint8_t>(bytes[lane * laneBytes + byteIndex])) << (8 * byteIndex);
+            outIndices[lane] = static_cast<uint8_t>(value & indexMask);
+        }
+
+        return true;
+    }
+
     // '@vecsplat' fills every lane with one scalar. The result type carries the lane, and
     // the argument already has that exact type, so nothing converts here.
     Result codeGenVectorSplat(CodeGen& codeGen, AstNodeRef srcNodeRef, bool& outHandled)
@@ -2153,24 +2180,39 @@ namespace
         // The reductions produce a scalar, everything else a vector.
         switch (tokId)
         {
-            case TokenId::IntrinsicVecSum:
+            case TokenId::IntrinsicVecReduceAdd:
+            case TokenId::IntrinsicVecReduceMin:
+            case TokenId::IntrinsicVecReduceMax:
+            case TokenId::IntrinsicVecReduceAnd:
+            case TokenId::IntrinsicVecReduceOr:
+            case TokenId::IntrinsicVecReduceXor:
             {
-                SWC_ASSERT(laneBits == 32 && laneCount == 4 && signedLanes);
+                CodeGenVectorHelpers::LaneReduceKind kind = CodeGenVectorHelpers::LaneReduceKind::Add;
+                switch (tokId)
+                {
+                    case TokenId::IntrinsicVecReduceMin:
+                        kind = CodeGenVectorHelpers::LaneReduceKind::Min;
+                        break;
+                    case TokenId::IntrinsicVecReduceMax:
+                        kind = CodeGenVectorHelpers::LaneReduceKind::Max;
+                        break;
+                    case TokenId::IntrinsicVecReduceAnd:
+                        kind = CodeGenVectorHelpers::LaneReduceKind::And;
+                        break;
+                    case TokenId::IntrinsicVecReduceOr:
+                        kind = CodeGenVectorHelpers::LaneReduceKind::Or;
+                        break;
+                    case TokenId::IntrinsicVecReduceXor:
+                        kind = CodeGenVectorHelpers::LaneReduceKind::Xor;
+                        break;
+                    default:
+                        break;
+                }
 
-                const MicroReg srcReg      = loadArg(0);
-                const MicroReg swappedReg  = codeGen.nextVirtualFloatRegister();
-                const MicroReg pairSumReg  = codeGen.nextVirtualFloatRegister();
-                const MicroReg adjacentReg = codeGen.nextVirtualFloatRegister();
-                const MicroReg totalReg    = codeGen.nextVirtualFloatRegister();
-                builder.emitVecShuffleRegRegImm(swappedReg, srcReg, 0x4E, MicroOpBits::B128);
-                builder.emitOpBinaryRegRegReg(pairSumReg, srcReg, swappedReg, MicroOp::VecAdd32, MicroOpBits::B128);
-                builder.emitVecShuffleRegRegImm(adjacentReg, pairSumReg, 0xB1, MicroOpBits::B128);
-                builder.emitOpBinaryRegRegReg(totalReg, pairSumReg, adjacentReg, MicroOp::VecAdd32, MicroOpBits::B128);
-
+                const MicroReg      reducedReg    = CodeGenVectorHelpers::emitLaneReduction(codeGen, loadArg(0), laneType, kind);
                 CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-                resultPayload.reg                 = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegReg(resultPayload.reg, totalReg, MicroOpBits::B32);
-                outHandled = true;
+                resultPayload.reg                 = CodeGenVectorHelpers::emitExtractLaneZero(codeGen, reducedReg, laneType);
+                outHandled                        = true;
                 return Result::Continue;
             }
 
@@ -2226,6 +2268,176 @@ namespace
                 break;
         }
 
+        // The bit vocabulary has no packed instruction of its own: rotates,
+        // counts and byte reversal each lower to a sequence over their lanes.
+        switch (tokId)
+        {
+            case TokenId::IntrinsicRol:
+            case TokenId::IntrinsicRor:
+            {
+                SWC_ASSERT(children.size() == 2);
+
+                const bool          rotateLeft    = tokId == TokenId::IntrinsicRol;
+                const MicroReg      valueReg      = loadArg(0);
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+
+                const SemaNodeView countView = codeGen.viewTypeConstant(children[1]);
+                if (countView.hasConstant())
+                {
+                    const ConstantValue& countCst = codeGen.cstMgr().get(countView.cstRef());
+                    const uint32_t       count    = static_cast<uint32_t>(countCst.getIntLike().as64());
+                    resultPayload.reg             = CodeGenVectorHelpers::emitRotateImm(codeGen, valueReg, laneType, count, rotateLeft);
+                }
+                else
+                {
+                    MicroReg countReg;
+                    materializeIntrinsicNumericOperand(countReg, codeGen, codeGen.payload(children[1]), countView.typeRef(), codeGen.typeMgr().typeU32());
+                    resultPayload.reg = CodeGenVectorHelpers::emitRotateVar(codeGen, valueReg, laneType, countReg, rotateLeft);
+                }
+
+                outHandled = true;
+                return Result::Continue;
+            }
+
+            case TokenId::IntrinsicBitCountNz:
+            case TokenId::IntrinsicBitCountTz:
+            case TokenId::IntrinsicBitCountLz:
+            case TokenId::IntrinsicByteSwap:
+            {
+                SWC_ASSERT(children.size() == 1);
+
+                const MicroReg      valueReg      = loadArg(0);
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+                switch (tokId)
+                {
+                    case TokenId::IntrinsicBitCountNz:
+                        resultPayload.reg = CodeGenVectorHelpers::emitPopCount(codeGen, valueReg, laneType);
+                        break;
+                    case TokenId::IntrinsicBitCountTz:
+                        resultPayload.reg = CodeGenVectorHelpers::emitCountTrailingZeros(codeGen, valueReg, laneType);
+                        break;
+                    case TokenId::IntrinsicBitCountLz:
+                        resultPayload.reg = CodeGenVectorHelpers::emitCountLeadingZeros(codeGen, valueReg, laneType);
+                        break;
+                    default:
+                        resultPayload.reg = CodeGenVectorHelpers::emitByteSwap(codeGen, valueReg, laneType);
+                        break;
+                }
+
+                outHandled = true;
+                return Result::Continue;
+            }
+
+            case TokenId::IntrinsicVecShuffle:
+            case TokenId::IntrinsicVecShuffle2:
+            {
+                const bool     twoSource   = tokId == TokenId::IntrinsicVecShuffle2;
+                const size_t   patternArg  = twoSource ? 2 : 1;
+                const uint32_t indexMask   = (twoSource ? laneCount * 2 : laneCount) - 1;
+                const MicroReg firstReg    = loadArg(0);
+                const MicroReg secondReg   = twoSource ? loadArg(1) : firstReg;
+
+                std::array<uint8_t, 16> laneIndices{};
+                const bool              constantPattern = tryConstantLaneIndices(codeGen, children[patternArg], laneBits / 8, laneCount, indexMask, laneIndices);
+
+                MicroReg patternReg = MicroReg::invalid();
+                if (!constantPattern)
+                    patternReg = loadArg(patternArg);
+
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+                if (constantPattern)
+                {
+                    const std::span<const uint8_t> indices{laneIndices.data(), laneCount};
+                    resultPayload.reg = twoSource ? CodeGenVectorHelpers::emitConstantShuffle2(codeGen, firstReg, secondReg, laneType, indices)
+                                                  : CodeGenVectorHelpers::emitConstantShuffle(codeGen, firstReg, laneType, indices);
+                }
+                else if (twoSource)
+                {
+                    const TypeInfo& byteLaneType = codeGen.typeMgr().get(codeGen.typeMgr().typeU8());
+                    resultPayload.reg            = CodeGenVectorHelpers::emitDynamicShuffle2(codeGen, firstReg, secondReg, patternReg, laneType, byteLaneType);
+                }
+                else
+                {
+                    resultPayload.reg = CodeGenVectorHelpers::emitDynamicShuffle(codeGen, firstReg, patternReg, laneType);
+                }
+
+                outHandled = true;
+                return Result::Continue;
+            }
+
+            case TokenId::IntrinsicVecAlign:
+            {
+                SWC_ASSERT(children.size() == 3);
+
+                const MicroReg     lowReg    = loadArg(0);
+                const MicroReg     highReg   = loadArg(1);
+                const SemaNodeView countView = codeGen.viewTypeConstant(children[2]);
+
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+                if (countView.hasConstant())
+                {
+                    const ConstantValue& countCst = codeGen.cstMgr().get(countView.cstRef());
+                    resultPayload.reg             = CodeGenVectorHelpers::emitConstantAlign(codeGen, lowReg, highReg, static_cast<uint32_t>(countCst.getIntLike().as64()));
+                }
+                else
+                {
+                    MicroReg countReg;
+                    materializeIntrinsicNumericOperand(countReg, codeGen, codeGen.payload(children[2]), countView.typeRef(), codeGen.typeMgr().typeU8());
+                    const TypeInfo& byteLaneType = codeGen.typeMgr().get(codeGen.typeMgr().typeU8());
+                    resultPayload.reg            = CodeGenVectorHelpers::emitDynamicAlign(codeGen, lowReg, highReg, countReg, byteLaneType);
+                }
+
+                outHandled = true;
+                return Result::Continue;
+            }
+
+            case TokenId::IntrinsicMin:
+            case TokenId::IntrinsicMax:
+            {
+                const MicroReg      leftReg       = loadArg(0);
+                const MicroReg      rightReg      = loadArg(1);
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+                resultPayload.reg                 = CodeGenVectorHelpers::emitMinMax(codeGen, leftReg, rightReg, laneType, tokId == TokenId::IntrinsicMin);
+                outHandled                        = true;
+                return Result::Continue;
+            }
+
+            case TokenId::IntrinsicVecSad:
+            {
+                const MicroReg      leftReg       = loadArg(0);
+                const MicroReg      rightReg      = loadArg(1);
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+                resultPayload.reg                 = CodeGenVectorHelpers::emitSumAbsoluteDifferences(codeGen, leftReg, rightReg, laneType);
+                outHandled                        = true;
+                return Result::Continue;
+            }
+
+            case TokenId::IntrinsicVecMulHi:
+            {
+                const MicroReg      leftReg       = loadArg(0);
+                const MicroReg      rightReg      = loadArg(1);
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+                resultPayload.reg                 = CodeGenVectorHelpers::emitMultiplyHigh(codeGen, leftReg, rightReg, laneType);
+                outHandled                        = true;
+                return Result::Continue;
+            }
+
+            case TokenId::IntrinsicAbs:
+            {
+                if (!floatLanes)
+                    break;
+
+                const MicroReg      valueReg      = loadArg(0);
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+                resultPayload.reg                 = CodeGenVectorHelpers::emitFloatAbs(codeGen, valueReg, laneType);
+                outHandled                        = true;
+                return Result::Continue;
+            }
+
+            default:
+                break;
+        }
+
         MicroOp op        = MicroOp::VecAnd;
         bool    isUnary   = false;
         bool    isWidenHi = false;
@@ -2235,26 +2447,6 @@ namespace
         bool    isMulAdd  = false;
         switch (tokId)
         {
-            case TokenId::IntrinsicMin:
-                if (floatLanes)
-                    op = laneBits == 32 ? MicroOp::VecMinF32 : MicroOp::VecMinF64;
-                else if (laneBits == 8)
-                    op = signedLanes ? MicroOp::VecMinS8 : MicroOp::VecMinU8;
-                else if (laneBits == 16)
-                    op = signedLanes ? MicroOp::VecMinS16 : MicroOp::VecMinU16;
-                else
-                    op = signedLanes ? MicroOp::VecMinS32 : MicroOp::VecMinU32;
-                break;
-            case TokenId::IntrinsicMax:
-                if (floatLanes)
-                    op = laneBits == 32 ? MicroOp::VecMaxF32 : MicroOp::VecMaxF64;
-                else if (laneBits == 8)
-                    op = signedLanes ? MicroOp::VecMaxS8 : MicroOp::VecMaxU8;
-                else if (laneBits == 16)
-                    op = signedLanes ? MicroOp::VecMaxS16 : MicroOp::VecMaxU16;
-                else
-                    op = signedLanes ? MicroOp::VecMaxS32 : MicroOp::VecMaxU32;
-                break;
             case TokenId::IntrinsicAbs:
                 op      = laneBits == 8 ? MicroOp::VecAbsS8 : laneBits == 16 ? MicroOp::VecAbsS16
                                                                              : MicroOp::VecAbsS32;
@@ -2330,6 +2522,9 @@ namespace
             case TokenId::IntrinsicVecMadd:
                 op = MicroOp::VecMaddS16;
                 break;
+            case TokenId::IntrinsicVecMaddUBS:
+                op = MicroOp::VecMaddUBS16;
+                break;
             case TokenId::IntrinsicVecPerm:
                 op = MicroOp::VecPermB;
                 break;
@@ -2356,21 +2551,6 @@ namespace
             const MicroReg falseReg = loadArg(2);
             builder.emitLoadRegReg(resultPayload.reg, falseReg, MicroOpBits::B128);
             builder.emitOpTernaryRegRegReg(resultPayload.reg, trueReg, maskReg, MicroOp::VecBlendVB, MicroOpBits::B128);
-            outHandled = true;
-            return Result::Continue;
-        }
-
-        if (!floatLanes && laneBits == 64 && (tokId == TokenId::IntrinsicMin || tokId == TokenId::IntrinsicMax))
-        {
-            // There is no packed 64-bit integer min/max before AVX-512. Build
-            // it from the existing compare mask and a register-only select.
-            const MicroReg leftReg  = loadArg(0);
-            const MicroReg rightReg = loadArg(1);
-            const TokenId  cmpTok   = tokId == TokenId::IntrinsicMin ? TokenId::SymLess : TokenId::SymGreater;
-            const MicroReg maskReg  = CodeGenVectorHelpers::emitCompare(codeGen, cmpTok, leftReg, rightReg, laneType);
-
-            builder.emitLoadRegReg(resultPayload.reg, rightReg, MicroOpBits::B128);
-            builder.emitOpTernaryRegRegReg(resultPayload.reg, leftReg, maskReg, MicroOp::VecBlendVB, MicroOpBits::B128);
             outHandled = true;
             return Result::Continue;
         }

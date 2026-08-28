@@ -94,29 +94,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
 - Complete when: every legal 128-bit conversion has specified overflow/NaN behavior, constant and
   runtime coverage, idiomatic hardware lowering, and wider equivalents where the target supports
   them.
-- Related: T-547, T-549, T-552, T-555.
-
-### T-512 — Packed rotates are missing
-
-- Intent: provide lane rotates through native instructions where available and bounded shift/or
-  lowerings elsewhere. Byte shifts and signed 64-bit right shift already use portable register-only
-  sequences.
-- Complete when: constant and variable counts have scalar-equivalent masking semantics, use native
-  instructions when available, and otherwise lower to bounded shift/or sequences.
-- Related: T-251, T-536, T-538.
-
-### T-513 — Packed widening multiplication is incomplete
-
-- Intent: add signed and unsigned widening products and explicit high halves for 8-, 16-, 32-, and
-  64-bit lanes. Low wrapping products already exist for every integer lane width, including
-  decomposed baseline lowerings for 8 and 64 bits.
-- Measured application: the JPEG color LUT holds 16-bit fixed-point coefficients scaled past the
-  `s16` range — 45941 and 58982 in `pixel/src/image/decode/jpg/scan.swg` — so a byte-exact
-  packed YCbCr conversion has no 16-bit high or widening product to reach for and has to widen to
-  `s32` and multiply there.
-- Complete when: low and high halves are unambiguous, all shapes have differential tests against
-  scalar arithmetic, and AVX2/AVX-512 forms are selected where profitable.
-- Related: T-251, T-250, T-536, T-549.
+- Related: T-547, T-549, T-552.
 
 ### T-556 — Packed integer division and modulo have no portable lowering
 
@@ -127,33 +105,6 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   constant folding, and runtime execution have one documented contract and the cost model declines
   transformations that would lose to scalar code.
 - Related: T-535, T-545, T-547.
-
-### T-557 — Floating packed abs, sign, and clamp operations are incomplete
-
-- Intent: complete floating abs/copysign, clamp, and related elementary lane operations through
-  native forms or compare/select/bitwise lowerings. Integer min/max now cover every lane width and
-  signed abs covers every signed lane width, including 64 bits.
-- Complete when: `f32` and `f64` lanes have explicit NaN and signed-zero behavior, with
-  constant/runtime parity and no spill-based implementation.
-- Related: T-507, T-534, T-546, T-552.
-
-### T-514 — Shuffle, zip, transpose, and two-source permutation are incomplete
-
-- Intent: add immediate lane permutation, zip/unzip, byte align/extract, and two-source table
-  permutation rather than forcing every transpose through spills or byte masks. Low/high
-  interleave now covers 8-, 16-, 32-, and 64-bit integer lanes; the remaining gap is a higher-level
-  permutation vocabulary that composes those primitives without scalar extraction.
-- Complete when: constant patterns select immediate hardware forms, dynamic patterns retain a
-  defined fallback, and 4x4/8x8 transpose helpers require no scalar lane extraction.
-- Related: T-507, T-549, T-550, T-551.
-
-### T-515 — Horizontal reductions are not first-class
-
-- Intent: add sum, min, max, bitwise-and/or/xor, and count reductions with widening variants so
-  callers do not open-code shuffle ladders.
-- Complete when: integer and floating reductions document order, overflow, NaN, and signed-zero
-  behavior and lower without memory round-trips.
-- Related: T-520, T-531, T-534, T-536, T-546.
 
 ### T-516 — Vector tails require scalar cleanup
 
@@ -191,14 +142,6 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   remains the default portable operation.
 - Related: T-509, T-545, T-552.
 
-### T-518 — Packed bit counting and bit scans are unavailable
-
-- Intent: add popcount, leading/trailing-zero count, byte swap, and bit reverse over integer lanes,
-  using native target features or correct SIMD/SWAR lowerings.
-- Complete when: zero-lane behavior matches scalar intrinsics, constant folding agrees with runtime,
-  and UTF/hash consumers no longer reduce masks one scalar lane at a time.
-- Related: T-531, T-538, T-539.
-
 ### T-519 — Polynomial and cryptographic instructions have no typed surface
 
 - Intent: expose carry-less multiplication and, separately gated, AES round/key instructions as
@@ -207,13 +150,14 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   and lane ordering, and portable fallbacks or explicit availability checks are part of the API.
 - Related: T-539.
 
-### T-520 — Dot products and sums of absolute differences are missing
+### T-520 — Dot products have no VNNI form
 
-- Intent: add unsigned and signed SAD plus common byte/word dot-product forms with declared widening
-  and accumulation widths.
-- Complete when: the backend selects `psadbw`, `pmadd*`, VNNI forms when available, and scalar
-  differential tests cover saturation and overflow boundaries.
-- Related: T-507, T-536, T-546, T-549, T-550.
+- Intent: select the VNNI dot-product instructions where the host has them. Unsigned and signed
+  byte SAD (`psadbw`), the 16-bit pairwise product (`pmaddwd`) and the unsigned/signed byte
+  product (`pmaddubsw`) are the baseline forms and are already selected.
+- Complete when: a VNNI accumulation is chosen on a host that reports the feature, the baseline
+  sequence still runs everywhere else, and both answer the same on the differential tests.
+- Related: T-509, T-507, T-536, T-546, T-549, T-550.
 
 ### T-521 — Core has no vector math implementation
 
@@ -236,7 +180,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   and every transposed store compile to. Narrow lanes and dynamic indices still take the spill.
 - Complete when: encoder tests and `PrintMicro` show each idiom on a representative standard-module
   kernel and end-to-end benchmarks show no regression on the fallback target.
-- Related: T-514, T-515, T-520.
+- Related: T-520.
 
 ### T-523 — Unrolling does not expose constant-index SIMD packs
 
@@ -252,7 +196,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   checks, and generate masked or peeled tails using the explicit SIMD operation set.
 - Complete when: sum/min/max/bitwise reductions and an unknown-length byte loop vectorize under the
   configured feature ceiling with scalar-equivalent results and profitable cost decisions.
-- Related: T-515, T-516, T-531.
+- Related: T-516, T-531.
 
 ## Tier B — Runtime and Core bulk primitives
 
@@ -262,7 +206,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   path measured 20.76 to 20.42 GiB/s and was rejected.
 - Complete when: malformed boundaries and arbitrary tails match the scalar implementation and an
   ASCII-heavy benchmark improves rather than only replacing the load width.
-- Related: T-515, T-516, T-518, T-524.
+- Related: T-516, T-524.
 
 ### T-534 — Vector4 and Pixel.Color do not use their native packed shape
 
@@ -272,7 +216,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   array-arithmetic benchmark because the backend already vectorizes their contiguous form better.
 - Complete when: public math/color tests cover NaN, signed zero, normalization thresholds, rounding,
   and aliasing, and renderer/filter consumers measure a gain rather than only fewer source lines.
-- Related: T-511, T-515, T-521, T-552.
+- Related: T-511, T-521, T-552.
 
 ### T-535 — NumericArray cannot specialize legal packed geometries
 
@@ -280,7 +224,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   element/count/operator combination has supported packed semantics.
 - Complete when: specialization is compile-time selected, unsupported shapes remain scalar, and
   generated-code tests prove no hidden conversion or temporary array.
-- Related: T-506, T-511, T-513, T-515.
+- Related: T-506, T-511.
 
 ## Tier B — Cryptography and checksums
 
@@ -299,7 +243,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   wider layout that amortizes that regrouping; the low-half multiply alone is not a useful feature.
 - Complete when: published vectors pass for all supported parameters and profile benchmarks isolate
   the packed kernel gain from independent-lane parallelism.
-- Related: T-252 in [core.md](core.md), T-512, T-513, T-515.
+- Related: T-252 in [core.md](core.md).
 
 ### T-536 — Blake2b compression remains scalar
 
@@ -310,7 +254,6 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
 - Evidence: pairing two G functions while packing and extracting scalar state at every half-round
   measured 273,397 to 1,419,077 microseconds over 64 MiB (5.19x slower) and was rejected. A viable
   kernel needs persistent vector state with cheap lane permutation, or independent messages per lane.
-- Related: T-512, T-513, T-514.
 
 ### T-250 — Poly1305 remains scalar
 
@@ -318,7 +261,6 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   the current scalar carry chain.
 - Complete when: differential vectors cover every block-tail length, carry/reduction boundaries are
   exact, and authenticated-encryption throughput improves end to end.
-- Related: T-513, T-515.
 
 ### T-538 — SHA-1, SHA-256, and MD5 have no multi-buffer kernels
 
@@ -326,7 +268,6 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   instead of attempting to vectorize one recurrence-dependent stream.
 - Complete when: one- through lane-width batches preserve streaming/finalization semantics, fall
   back for a single stream, and improve aggregate hashing throughput.
-- Related: T-512, T-514, T-518.
 
 ### T-539 — CRC32 cannot use polynomial folding
 
@@ -334,7 +275,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   table implementation as the portable fallback.
 - Complete when: incremental CRC values match for every alignment and tail and large-buffer
   throughput improves on supported machines without illegal-instruction risk.
-- Related: T-509, T-518, T-519.
+- Related: T-509, T-519.
 
 ## Tier B — Audio and video codecs
 
@@ -362,7 +303,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   (1.07x slower) and was rejected, so strong vertical chroma retains its scalar two-line segments.
 - Complete when: decoded frames remain byte-exact, a profitable strong vertical chroma kernel is
   retained or ruled out with an end-to-end profile, and the 1080p profile confirms the other gains.
-- Related: T-514, T-520, T-420 in `video.md`.
+- Related: T-520, T-420 in `video.md`.
 
 ### T-544 — H.264 dequantization and irregular directional intra prediction remain scalar
 
@@ -390,7 +331,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   slower; those paths remain scalar.
 - Complete when: conformance streams remain byte-exact and each retained kernel improves the staged
   reconstruction profile.
-- Related: T-513, T-514, T-516.
+- Related: T-516.
 
 ## Tier C — Pixel processing and image codecs
 
@@ -401,7 +342,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   the other original candidates now have measured chunk or row kernels.
 - Complete when: supported pixel formats, alpha preservation, odd widths, stride, overlap, and tails
   match existing behavior and each retained kernel beats callback dispatch.
-- Related: T-511, T-514, T-516, T-520.
+- Related: T-511, T-516, T-520.
 
 ### T-546 — Convolution, resize, smart-crop, and Haar kernels remain scalar
 
@@ -410,7 +351,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   scalar.
 - Complete when: golden images remain within the declared numeric tolerance and representative
   large-image workloads show per-stage gains.
-- Related: T-515, T-517, T-520.
+- Related: T-517, T-520.
 
 ### T-547 — LUT and transcendental image filters have no packed path
 
@@ -466,7 +407,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   conversion kernel shows as a few percent end to end.
 - Complete when: the PNG fixture corpus is byte/pixel identical, malformed inputs remain rejected,
   every filter and bit depth covers odd tails, and encode/decode throughput improves.
-- Related: T-514, T-516, T-517, T-520.
+- Related: T-516, T-517, T-520.
 
 ### T-549 — The JPEG forward transform and quantization remain scalar
 
@@ -494,7 +435,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   a whole-block DC shortcut is worth 16% on a smooth fixture where a per-line one had regressed.
 - Complete when: fixtures preserve accepted pixel tolerances, coefficient extremes are covered, and
   encode throughput improves in an interleaved A/B on a quiet machine.
-- Related: T-511, T-514, T-520.
+- Related: T-511, T-520.
 
 ### T-550 — WebP reconstruction and transforms remain mostly scalar
 
@@ -502,7 +443,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   and lossless subtract-green/cross-color/predictor transforms.
 - Complete when: lossy and lossless fixture pixels remain identical where specified, predictor and
   boundary modes are exhaustive, and stage benchmarks show the retained gains.
-- Related: T-513, T-514, T-516, T-520.
+- Related: T-516, T-520.
 
 ### T-551 — Packed and indexed pixel formats lack gather/shuffle kernels
 
@@ -560,7 +501,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
   claim on a re-measure in this file.
 - Complete when: every format variant, palette size, transparency case, row padding, and tail matches
   scalar decoding/encoding and the dispatcher avoids gather where it loses.
-- Related: T-514, T-517.
+- Related: T-517.
 
 ### T-552 — The CPU renderer has no packed span pipeline
 

@@ -9,13 +9,13 @@ const JitS64Min = -9_223_372_036_854_775_807's64 - 1
 #[Swag.NoInline]
 func horizontalSum(v: #simd [4] s32)->s32
 {
-    return @vecsum(v)
+    return @vecreduceadd(v)
 }
 
 #[Swag.NoInline]
 func sumEight(a, b, c, d, e, f, g, h: #simd [4] s32)->s32
 {
-    return @vecsum(a + b + c + d + e + f + g + h)
+    return @vecreduceadd(a + b + c + d + e + f + g + h)
 }
 
 #[Swag.NoInline]
@@ -74,3 +74,35 @@ const FoldedWideMultiply = #run wideMultiply()
     let h = cast([4] f32) (f / @vecsplat(2.0'f32))
     @assert(h[0] == 1.0 and h[3] == 8.0)
 }
+
+#[Swag.NoInline]
+func bitVocabulary()->u64
+{
+    let bytes = cast(#simd [16] u8) [0, 1, 2, 3, 0x0F, 0x10, 0x55, 0x7F, 0x80, 0xAA, 0xC3, 0xE0, 0xF0, 0xFE, 0xFF, 0x18]
+    let quads = cast(#simd [4] u32) [0, 1, 0x1234_5678, 0xFFFF_FFFF]
+    let pairs = cast(#simd [2] u64) [0, 0x0102_0304_0506_0708]
+
+    var total = cast(u64) @rol(bytes, 3)[8]
+    total += cast(u64) @ror(bytes, 3)[1]
+    total += cast(u64) @bitcountnz(quads)[3]
+    total += cast(u64) @bitcounttz(quads)[0]
+    total += cast(u64) @bitcountlz(quads)[1]
+    total += @byteswap(pairs)[1] >> 56
+    return total
+}
+
+// The packed bit vocabulary answers the same at compile time as it does at run
+// time, because compile-time execution runs the very same lowering.
+const FoldedBitVocabulary = #run bitVocabulary()
+#assert(FoldedBitVocabulary == 4 + 0x20 + 32 + 32 + 31 + 8)
+
+#[Swag.NoInline]
+func floatMagnitude()->f32
+{
+    let values = cast(#simd [4] f32) [-1.5, 2.5, -0.0, -8.25]
+    let result = @abs(values)
+    return result[0] + result[1] + result[2] + result[3]
+}
+
+const FoldedFloatMagnitude = #run floatMagnitude()
+#assert(FoldedFloatMagnitude == 12.25)

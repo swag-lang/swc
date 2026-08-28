@@ -1,4 +1,4 @@
-// TRIVIA
+﻿// TRIVIA
 
 SWC_TOKEN_DEF(Invalid, "", TokenIdKindE::Zero)
 
@@ -373,10 +373,21 @@ SWC_TOKEN_DEF(IntrinsicVecWidenLo, "@vecwidenlo", TokenIdKindE::Intrinsic | Toke
 SWC_TOKEN_DEF(IntrinsicVecWidenHi, "@vecwidenhi", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecAvgR, "@vecavgr", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecMadd, "@vecmadd", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
-SWC_TOKEN_DEF(IntrinsicVecSum, "@vecsum", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecMaddUBS, "@vecmaddubs", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecSad, "@vecsad", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecMulHi, "@vecmulhi", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecReduceAdd, "@vecreduceadd", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecReduceMin, "@vecreducemin", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecReduceMax, "@vecreducemax", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecReduceAnd, "@vecreduceand", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecReduceOr, "@vecreduceor", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecReduceXor, "@vecreducexor", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecTruncS32, "@vectruncs32", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecGather, "@vecgather", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecPerm, "@vecperm", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecShuffle, "@vecshuffle", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecShuffle2, "@vecshuffle2", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecAlign, "@vecalign", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecSelect, "@vecselect", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecMask, "@vecmask", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecAny, "@vecany", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)

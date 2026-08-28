@@ -171,3 +171,230 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
     @assert(lo[0] == -5 and lo[1] == 0)
     @assert(hi[0] == 0 and hi[1] == 10)
 }
+
+// The packed bit vocabulary repeats the scalar one, lane by lane.
+#test
+{
+    let bytes = cast(Simd.U8x16) [0'u8, 1, 2, 3, 0x0F, 0x10, 0x55, 0x7F, 0x80, 0xAA, 0xC3, 0xE0, 0xF0, 0xFE, 0xFF, 0x18]
+    let quads = cast(Simd.U32x4) [0'u32, 1, 0x1234_5678, 0xFFFF_FFFF]
+
+    let rotated  = Math.rol(bytes, 3)
+    let restored = Math.ror(rotated, 3)
+    for i in 16
+    {
+        @assert(rotated[i] == Math.rol(bytes[i], 3))
+        @assert(restored[i] == bytes[i])
+    }
+
+    let ones  = Math.countOnes(quads)
+    let lead  = Math.leadingZeros(quads)
+    let trail = Math.trailingZeros(quads)
+    for i in 4
+    {
+        @assert(ones[i] == Math.countOnes(quads[i]))
+        @assert(lead[i] == Math.leadingZeros(quads[i]))
+        @assert(trail[i] == Math.trailingZeros(quads[i]))
+    }
+
+    let swapped = Math.byteswap(quads)
+    for i in 4 do
+        @assert(swapped[i] == Math.byteswap(quads[i]))
+
+    let reversedBytes = Math.reverse(bytes)
+    for i in 16 do
+        @assert(reversedBytes[i] == Math.reverse(bytes[i]))
+
+    let reversedQuads = Math.reverse(quads)
+    for i in 4 do
+        @assert(reversedQuads[i] == Math.reverse(quads[i]))
+
+    let words         = cast(Simd.U16x8) [0'u16, 1, 0x00FF, 0x0100, 0x1234, 0x8000, 0xAAAA, 0xFFFF]
+    let reversedWords = Math.reverse(words)
+    for i in 8 do
+        @assert(reversedWords[i] == Math.reverse(words[i]))
+
+    let pairs         = cast(Simd.U64x2) [0'u64, 0x0102_0304_0506_0708]
+    let reversedPairs = Math.reverse(pairs)
+    for i in 2 do
+        @assert(reversedPairs[i] == Math.reverse(pairs[i]))
+}
+
+// The elementary float lane operations: magnitude, sign transfer, sign, clamp
+// and interpolation.
+#test
+{
+    let values = cast(Simd.F32x4) [-1.5'f32, 2.5, -0.0, 8.25]
+
+    let magnitude = Math.abs(values)
+    @assert(magnitude[0] == 1.5 and magnitude[1] == 2.5 and magnitude[3] == 8.25)
+    @assert(1.0 / magnitude[2] > 0)
+
+    let negative = Math.copysign(values, Simd.splat(-1'f32))
+    @assert(negative[0] == -1.5 and negative[1] == -2.5 and negative[3] == -8.25)
+    @assert(1.0 / negative[2] < 0)
+    for i in 4 do
+        @assert(negative[i] == Math.copysign(values[i], -1'f32))
+
+    let signs = Math.sign(values)
+    @assert(signs[0] == -1 and signs[1] == 1 and signs[2] == 0 and signs[3] == 1)
+
+    let bounded = Math.saturate(values)
+    @assert(bounded[0] == 0 and bounded[1] == 1 and bounded[3] == 1)
+
+    let clamped = Math.clamp(values, Simd.splat(-1'f32), Simd.splat(2'f32))
+    @assert(clamped[0] == -1 and clamped[1] == 2 and clamped[3] == 2)
+
+    let mixed = Math.lerp(Simd.splat(0'f32), Simd.splat(10'f32), Simd.splat(0.25'f32))
+    @assert(mixed[0] == 2.5 and mixed[3] == 2.5)
+
+    let wide = cast(Simd.F64x2) [-3.25'f64, -0.0]
+    @assert(Math.abs(wide)[0] == 3.25 and 1.0 / Math.abs(wide)[1] > 0)
+    @assert(Math.copysign(wide, Simd.splat(1'f64))[0] == 3.25)
+    @assert(Math.sign(wide)[0] == -1 and Math.sign(wide)[1] == 0)
+    @assert(Math.saturate(wide)[0] == 0)
+    @assert(Math.lerp(Simd.splat(1'f64), Simd.splat(3'f64), Simd.splat(0.5'f64))[1] == 2)
+}
+
+// The horizontal reductions and their widening forms.
+#test
+{
+    let quads = cast(Simd.S32x4) [1's32, -2, 3, 4]
+    @assert(Simd.sum(quads) == 6)
+    @assert(Simd.minimum(quads) == -2)
+    @assert(Simd.maximum(quads) == 4)
+
+    let bits = cast(Simd.U32x4) [0b1110'u32, 0b1010, 0b1111, 0b0110]
+    @assert(Simd.bitwiseAnd(bits) == 0b0010)
+    @assert(Simd.bitwiseOr(bits) == 0b1111)
+    @assert(Simd.bitwiseXor(bits) == 0b1101)
+
+    let floats = cast(Simd.F32x4) [1.5'f32, -2.5, 8, 0.25]
+    @assert(Simd.sum(floats) == 7.25)
+    @assert(Simd.minimum(floats) == -2.5)
+    @assert(Simd.maximum(floats) == 8)
+
+    let mask = quads > Simd.splat(0's32)
+    @assert(Simd.countTrue(mask) == 3)
+
+    // The widening sums cannot overflow their accumulator, whatever the lanes hold.
+    @assert(Simd.sumWide(Simd.splat(255'u8)) == 16 * 255)
+    @assert(Simd.sumWide(Simd.splat(65535'u16)) == 8 * 65535)
+    @assert(Simd.sumWide(Simd.splat(-128's8)) == 16 * -128)
+    @assert(Simd.sumWide(Simd.splat(-32768's16)) == 8 * -32768)
+    @assert(Simd.sumWide(Simd.splat(0xFFFF_FFFF'u32)) == 4'u64 * 0xFFFF_FFFF)
+    @assert(Simd.sumWide(Simd.splat(2_147_483_647's32)) == 4's64 * 2_147_483_647)
+
+    // The narrow sums wrap in their own lane width.
+    @assert(Simd.sum(Simd.splat(255'u8)) == cast(u8) ((16 * 255) % 256))
+}
+
+// The sum of absolute differences and the byte dot product.
+#test
+{
+    let left  = cast(Simd.U8x16) [10'u8, 20, 30, 40, 50, 60, 70, 80, 0, 0, 0, 0, 0, 0, 0, 0]
+    let right = cast(Simd.U8x16) [1'u8, 2, 3, 4, 5, 6, 7, 8, 255, 0, 0, 0, 0, 0, 0, 0]
+
+    let halves = Simd.absoluteDifferences(left, right)
+    @assert(halves[0] == 324 and halves[1] == 255)
+    @assert(Simd.sumAbsoluteDifferences(left, right) == 324 + 255)
+
+    let unsignedBytes = cast(Simd.U8x16) [1'u8, 2, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    let signedBytes   = cast(Simd.S8x16) [10's8, -20, 30, -40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    let products      = Simd.mulAddPairs(unsignedBytes, signedBytes)
+    @assert(products[0] == -30 and products[1] == -70)
+}
+
+// Lane permutation, byte alignment, deinterleaving and the transposes.
+#test
+{
+    let quads = cast(Simd.U32x4) [10'u32, 20, 30, 40]
+    let other = cast(Simd.U32x4) [50'u32, 60, 70, 80]
+
+    let reversed = Simd.permute(quads, cast(Simd.U32x4) [3'u32, 2, 1, 0])
+    @assert(reversed[0] == 40 and reversed[3] == 10)
+
+    let mixed = Simd.permute2(quads, other, cast(Simd.U32x4) [0'u32, 4, 1, 5])
+    @assert(mixed[0] == 10 and mixed[1] == 50 and mixed[2] == 20 and mixed[3] == 60)
+
+    let low  = cast(Simd.U8x16) [0'u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    let high = cast(Simd.U8x16) [16'u8, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+    let slid = Simd.align(low, high, 4)
+    for i in 16 do
+        @assert(slid[i] == cast(u8) (i + 4))
+
+    let evens = Simd.deinterleaveEven(low, high)
+    let odds  = Simd.deinterleaveOdd(low, high)
+    for i in 16
+    {
+        @assert(evens[i] == cast(u8) (i * 2))
+        @assert(odds[i] == cast(u8) (i * 2 + 1))
+    }
+}
+
+// A transpose reads no lane one at a time: the interleave tree does all of it.
+#test
+{
+    var rows: [4] Simd.U32x4
+    for r in 4
+    {
+        var lanes: [4] u32
+        for c in 4 do
+            lanes[c] = cast(u32) (r * 4 + c)
+        rows[r] = cast(Simd.U32x4) lanes
+    }
+
+    Simd.transpose4x4(&rows)
+    for r in 4
+    {
+        for c in 4 do
+            @assert(rows[r][c] == cast(u32) (c * 4 + r))
+    }
+
+    var wide: [8] Simd.U16x8
+    for r in 8
+    {
+        var lanes: [8] u16
+        for c in 8 do
+            lanes[c] = cast(u16) (r * 8 + c)
+        wide[r] = cast(Simd.U16x8) lanes
+    }
+
+    Simd.transpose8x8(&wide)
+    for r in 8
+    {
+        for c in 8 do
+            @assert(wide[r][c] == cast(u16) (c * 8 + r))
+    }
+}
+
+// The high half of a lane product, and the widening products it composes into.
+#test
+{
+    let x = cast(Simd.S16x8) [-32768's16, 32767, 1000, -1000, 3, -3, 0, 12345]
+    let y = cast(Simd.S16x8) [32767's16, 32767, -2000, 2000, 5, 5, 12345, -1]
+
+    let low  = x * y
+    let high = Simd.mulHigh(x, y)
+    for i in 8
+    {
+        // The full product read as bits, since half of it does not fit a lane.
+        let exact = cast #bit (u32) (cast(s32) x[i] * cast(s32) y[i])
+        @assert(cast #bit (u16) low[i] == cast(u16) (exact & 0xFFFF))
+        @assert(cast #bit (u16) high[i] == cast(u16) (exact >> 16))
+    }
+
+    let wideLow  = Simd.mulWidenLow(x, y)
+    let wideHigh = Simd.mulWidenHigh(x, y)
+    for i in 4
+    {
+        @assert(wideLow[i] == cast(s32) x[i] * cast(s32) y[i])
+        @assert(wideHigh[i] == cast(s32) x[i + 4] * cast(s32) y[i + 4])
+    }
+
+    // The unsigned form reads the same bits differently.
+    let ux = cast #bit (Simd.U16x8) x
+    let uy = cast #bit (Simd.U16x8) y
+    let uh = Simd.mulHigh(ux, uy)
+    for i in 8 do
+        @assert(uh[i] == cast(u16) ((cast(u32) ux[i] * cast(u32) uy[i]) >> 16))
+}

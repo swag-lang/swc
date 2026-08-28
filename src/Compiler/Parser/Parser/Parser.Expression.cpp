@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Compiler/Parser/Parser/Parser.h"
 #include "Support/Report/Assert.h"
 
@@ -872,7 +872,12 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicVecMask:
         case TokenId::IntrinsicVecAny:
         case TokenId::IntrinsicVecAll:
-        case TokenId::IntrinsicVecSum:
+        case TokenId::IntrinsicVecReduceAdd:
+        case TokenId::IntrinsicVecReduceMin:
+        case TokenId::IntrinsicVecReduceMax:
+        case TokenId::IntrinsicVecReduceAnd:
+        case TokenId::IntrinsicVecReduceOr:
+        case TokenId::IntrinsicVecReduceXor:
         case TokenId::IntrinsicVecTruncS32:
             return parseIntrinsicCallExpr(1);
 
@@ -896,14 +901,20 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicVecInterleaveHi:
         case TokenId::IntrinsicVecAvgR:
         case TokenId::IntrinsicVecMadd:
+        case TokenId::IntrinsicVecMaddUBS:
+        case TokenId::IntrinsicVecSad:
+        case TokenId::IntrinsicVecMulHi:
         case TokenId::IntrinsicVecGather:
         case TokenId::IntrinsicVecPerm:
+        case TokenId::IntrinsicVecShuffle:
             return parseIntrinsicCallExpr(2);
 
         case TokenId::IntrinsicMemCmp:
         case TokenId::IntrinsicTypeCmp:
         case TokenId::IntrinsicAtomicCmpXchg:
         case TokenId::IntrinsicMulAdd:
+        case TokenId::IntrinsicVecShuffle2:
+        case TokenId::IntrinsicVecAlign:
         case TokenId::IntrinsicVecSelect:
             return parseIntrinsicCallExpr(3);
 

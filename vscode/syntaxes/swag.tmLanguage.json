@@ -164,7 +164,7 @@
       "patterns": [
         {
           "name": "entity.name.tag",
-          "match": "(@)(rol|ror|muladd|byteswap|bitcountnz|bitcounttz|bitcountlz|min|max|sqrt|sin|cos|tan|sinh|cosh|tanh|asin|acos|atan|atan2|log|log2|log10|floor|ceil|trunc|round|abs|exp|exp2|pow|memcpy|memmove|memset|memcmp|atomadd|atomand|atomor|atomxor|atomxchg|atomcmpxchg|vecsplat|vecsatadd|vecsatsub|vecpackus|vecpackss|vecinterleavelo|vecinterleavehi|vecwidenlo|vecwidenhi|vecavgr|vecmadd|vecsum|vectruncs32|vecgather|vecperm|vecselect|vecmask|vecany|vecall)\\b"
+          "match": "(@)(rol|ror|muladd|byteswap|bitcountnz|bitcounttz|bitcountlz|min|max|sqrt|sin|cos|tan|sinh|cosh|tanh|asin|acos|atan|atan2|log|log2|log10|floor|ceil|trunc|round|abs|exp|exp2|pow|memcpy|memmove|memset|memcmp|atomadd|atomand|atomor|atomxor|atomxchg|atomcmpxchg|vecsplat|vecsatadd|vecsatsub|vecpackus|vecpackss|vecinterleavelo|vecinterleavehi|vecwidenlo|vecwidenhi|vecavgr|vecmaddubs|vecmadd|vecmulhi|vecreduceadd|vecreducemin|vecreducemax|vecreduceand|vecreduceor|vecreducexor|vecsad|vecshuffle2|vecshuffle|vecalign|vectruncs32|vecgather|vecperm|vecselect|vecmask|vecany|vecall)\\b"
         }
       ]
     },

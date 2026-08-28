@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Main/Command/CommandLine.h"
@@ -682,6 +682,9 @@ namespace
             case MicroOp::VecSub64: return {VEX_MAP_0F, 0x66, 0xFB};
             case MicroOp::VecMul16: return {VEX_MAP_0F, 0x66, 0xD5};
             case MicroOp::VecMul32: return {VEX_MAP_0F38, 0x66, 0x40};
+            case MicroOp::VecMulHiS16: return {VEX_MAP_0F, 0x66, 0xE5};
+            case MicroOp::VecMulHiU16: return {VEX_MAP_0F, 0x66, 0xE4};
+            case MicroOp::VecMulS32Wide: return {VEX_MAP_0F38, 0x66, 0x28};
             case MicroOp::VecMulU32Wide: return {VEX_MAP_0F, 0x66, 0xF4};
             case MicroOp::VecSatAddS8: return {VEX_MAP_0F, 0x66, 0xEC};
             case MicroOp::VecSatAddS16: return {VEX_MAP_0F, 0x66, 0xED};
@@ -694,6 +697,8 @@ namespace
             case MicroOp::VecAvgU8: return {VEX_MAP_0F, 0x66, 0xE0};
             case MicroOp::VecAvgU16: return {VEX_MAP_0F, 0x66, 0xE3};
             case MicroOp::VecMaddS16: return {VEX_MAP_0F, 0x66, 0xF5};
+            case MicroOp::VecMaddUBS16: return {VEX_MAP_0F38, 0x66, 0x04};
+            case MicroOp::VecSadU8: return {VEX_MAP_0F, 0x66, 0xF6};
             case MicroOp::VecAnd: return {VEX_MAP_0F, 0x66, 0xDB};
             case MicroOp::VecAndNot: return {VEX_MAP_0F, 0x66, 0xDF};
             case MicroOp::VecOr: return {VEX_MAP_0F, 0x66, 0xEB};
@@ -763,6 +768,8 @@ namespace
             case MicroOp::VecRoundF64: return {VEX_MAP_0F3A, 0x66, 0x09};
             case MicroOp::VecCmpF32: return {VEX_MAP_0F, 0x00, 0xC2};
             case MicroOp::VecCmpF64: return {VEX_MAP_0F, 0x66, 0xC2};
+            case MicroOp::VecShufF32: return {VEX_MAP_0F, 0x00, 0xC6};
+            case MicroOp::VecAlignR: return {VEX_MAP_0F3A, 0x66, 0x0F};
             case MicroOp::VecShiftLeftV16: return {VEX_MAP_0F, 0x66, 0xF1};
             case MicroOp::VecShiftLeftV32: return {VEX_MAP_0F, 0x66, 0xF2};
             case MicroOp::VecShiftLeftV64: return {VEX_MAP_0F, 0x66, 0xF3};
@@ -3684,9 +3691,10 @@ void X64Encoder::encodeVecUnaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
 
 void X64Encoder::encodeOpTernaryRegRegRegImm(MicroReg regDst, MicroReg regSrc1, MicroReg regSrc2, MicroOp op, MicroOpBits opBits, uint64_t value)
 {
-    // vcmpps/vcmppd xmm1, xmm2, xmm3, imm8: the predicate rides in the
-    // immediate, the lanes come out all-ones/all-zeros.
-    SWC_ASSERT(op == MicroOp::VecCmpF32 || op == MicroOp::VecCmpF64);
+    // Two sources and a trailing immediate: vcmpps/vcmppd carry a predicate
+    // and answer all-ones/all-zeros lanes, vshufps a four-lane control, and
+    // vpalignr a byte offset into the concatenation of both sources.
+    SWC_ASSERT(op == MicroOp::VecCmpF32 || op == MicroOp::VecCmpF64 || op == MicroOp::VecShufF32 || op == MicroOp::VecAlignR);
     SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc1.isFloat() && regSrc2.isFloat());
     SWC_ASSERT(value <= 0xFF);
 

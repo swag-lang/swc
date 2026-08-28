@@ -228,6 +228,12 @@ namespace
                 return "vec.mul16";
             case MicroOp::VecMul32:
                 return "vec.mul32";
+            case MicroOp::VecMulHiS16:
+                return "vec.mulhis16";
+            case MicroOp::VecMulHiU16:
+                return "vec.mulhiu16";
+            case MicroOp::VecMulS32Wide:
+                return "vec.muls32wide";
             case MicroOp::VecMulU32Wide:
                 return "vec.mulwideu32";
             case MicroOp::VecSatAddS8:
@@ -252,6 +258,10 @@ namespace
                 return "vec.avgu16";
             case MicroOp::VecMaddS16:
                 return "vec.madds16";
+            case MicroOp::VecMaddUBS16:
+                return "vec.maddubs16";
+            case MicroOp::VecSadU8:
+                return "vec.sadu8";
             case MicroOp::VecAndNot:
                 return "vec.andnot";
             case MicroOp::VecMinS8:
@@ -400,6 +410,10 @@ namespace
                 return "vec.cmpf32";
             case MicroOp::VecCmpF64:
                 return "vec.cmpf64";
+            case MicroOp::VecShufF32:
+                return "vec.shuff32";
+            case MicroOp::VecAlignR:
+                return "vec.alignr";
             case MicroOp::VecShiftLeftV16:
                 return "vec.shlv16";
             case MicroOp::VecShiftLeftV32:
@@ -894,6 +908,17 @@ namespace
                 const auto lhs = memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder);
                 const auto rhs = hexU64(ops[4].valueU64);
                 return naturalBinaryExpression(lhs, ops[2].microOp, rhs);
+            }
+
+            case MicroInstrOpcode::OpBinaryRegRegReg:
+            {
+                // Three addresses, so the destination is not one of the sources:
+                // an infix operator names both of them instead of folding the
+                // destination into the left side.
+                const auto infixOp = binaryInfixOperator(ops[4].microOp);
+                if (!infixOp.empty())
+                    return std::format("{} = {} {} {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), infixOp, regName(ops[2].reg, regPrintMode, encoder));
+                return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(microOpName(ops[4].microOp)), regName(ops[1].reg, regPrintMode, encoder), regName(ops[2].reg, regPrintMode, encoder));
             }
 
             case MicroInstrOpcode::OpTernaryRegRegReg:
@@ -1933,6 +1958,18 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendMemImmBits(out, ctx, ops, 0, 1, 3, 4, regPrintMode, encoder, false);
                 break;
 
+            case MicroInstrOpcode::OpBinaryRegRegReg:
+                appendColored(out, ctx, SyntaxColor::Code, microOpName(ops[4].microOp));
+                appendSep(out);
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendRegister(out, ctx, ops[1].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendRegister(out, ctx, ops[2].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendTypeBits(out, ctx, ops[3].opBits);
+                break;
+
             case MicroInstrOpcode::OpTernaryRegRegReg:
                 appendColored(out, ctx, SyntaxColor::Code, microOpName(ops[4].microOp));
                 appendSep(out);
@@ -1943,6 +1980,44 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendRegister(out, ctx, ops[2].reg, regPrintMode, encoder);
                 appendSep(out);
                 appendTypeBits(out, ctx, ops[3].opBits);
+                break;
+
+            case MicroInstrOpcode::OpTernaryRegRegRegImm:
+                appendColored(out, ctx, SyntaxColor::Code, microOpName(ops[4].microOp));
+                appendSep(out);
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendRegister(out, ctx, ops[1].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendRegister(out, ctx, ops[2].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendImmediate(out, ctx, hexU64(ops[5].valueU64), false);
+                appendSep(out);
+                appendTypeBits(out, ctx, ops[3].opBits);
+                break;
+
+            case MicroInstrOpcode::VecUnaryRegReg:
+                appendColored(out, ctx, SyntaxColor::Code, microOpName(ops[3].microOp));
+                appendSep(out);
+                appendRegRegBits(out, ctx, ops, 0, 1, 2, regPrintMode, encoder);
+                break;
+
+            case MicroInstrOpcode::VecShuffleRegRegImm:
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendRegister(out, ctx, ops[1].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendImmediate(out, ctx, hexU64(ops[3].valueU64), false);
+                appendSep(out);
+                appendTypeBits(out, ctx, ops[2].opBits);
+                break;
+
+            case MicroInstrOpcode::LoadVecRegMem:
+                appendRegMemBits(out, ctx, ops, 0, 1, 2, 3, regPrintMode, encoder);
+                break;
+
+            case MicroInstrOpcode::StoreVecMemReg:
+                appendMemRegBits(out, ctx, ops, 0, 1, 2, 3, regPrintMode, encoder);
                 break;
 
             default:

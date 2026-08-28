@@ -152,14 +152,17 @@ into every lane, '@vecsatadd' and '@vecsatsub' clamp instead of wrapping,
 input halves,
 '@vecwidenlo' and '@vecwidenhi' extend half the lanes to double width,
 '@vecavgr' is the rounding average, '@vecmadd' multiplies 16-bit pairs into
-32-bit sums, '@vecsum' adds the four lanes of an 's32' vector with wrapping
-arithmetic, '@vectruncs32' converts four 'f32' lanes to 's32' by truncating
+32-bit sums and '@vecmaddubs' does the same for unsigned and signed bytes with
+a saturating sum, '@vecsad' sums the absolute byte differences of each half,
+'@vectruncs32' converts four 'f32' lanes to 's32' by truncating
 toward zero, '@vecgather' loads four 's32' values through four 'u32' indices,
 and '@vecperm' permutes bytes through a dynamic table. NaN and
 values outside the 's32' range become 's32.Min'. '@min',
 '@max', '@abs', '@sqrt', '@muladd', '@floor', '@ceil' and '@trunc' also accept
 vectors and compute per lane. Integer '@abs' wraps the minimum lane value back
-to itself, like unary minus. A gather uses 'vpgatherdd' when AVX2 is selected
+to itself, like unary minus, while a float lane clears its sign bit, so a NaN
+stays that NaN and a negative zero becomes a positive one.
+A gather uses 'vpgatherdd' when AVX2 is selected
 and a portable four-load lowering otherwise; every index must designate a
 readable table element and be at most 's32.Max'.
 */
@@ -187,7 +190,7 @@ readable table element and be at most 's32.Max'.
     @assert(avg[0] == 150)
 
     let quads = cast(#simd [4] s32) [1, 2, 3, 4]
-    @assert(@vecsum(quads) == 10)
+    @assert(@vecreduceadd(quads) == 10)
 
     let samples = cast(#simd [4] f32) [1.9, -1.9, 32767.9, -32768.9]
     let ints    = cast([4] s32) @vectruncs32(samples)
@@ -196,6 +199,169 @@ readable table element and be at most 's32.Max'.
     var lookup: [5] s32 = [10, 20, 30, 40, 50]
     let found           = cast([4] s32) @vecgather(@dataof(lookup), cast(#simd [4] u32) [4, 0, 3, 1])
     @assert(found[0] == 50 and found[1] == 10 and found[2] == 40 and found[3] == 20)
+}
+
+/**
+# The Other Half Of A Product
+
+'*' answers the low half of a lane product, the bits that fit the lane.
+'@vecmulhi' answers the ones above it, read as the lane type is signed or not.
+Together they are the whole product: interleaving them puts each double-width
+product back in the lane it belongs to, which is what
+'Core.Math.Simd.mulWidenLow' and 'mulWidenHigh' do.
+
+A 16-bit lane has the instruction directly. The other widths compose it: bytes
+widen to words where the product is exact, 32-bit lanes take the two widening
+products the hardware offers and gather their high halves, and 64-bit lanes add
+up the four partial products of their halves.
+*/
+#test
+{
+    let x = cast(#simd [8] s16) [-32768, 32767, 1000, -1000, 3, -3, 0, 12345]
+    let y = cast(#simd [8] s16) [32767, 32767, -2000, 2000, 5, 5, 12345, -1]
+
+    let low  = cast([8] s16) (x * y)
+    let high = cast([8] s16) @vecmulhi(x, y)
+
+    // 1000 * -2000 is -2000000, which is 0xFFE17B80 over two lanes.
+    @assert(cast #bit (u16) low[2] == 0x7B80 and cast #bit (u16) high[2] == 0xFFE1)
+
+    // Read as unsigned, the same bits give a different half above the lane.
+    let unsignedHigh = cast([8] u16) @vecmulhi(cast #bit (#simd [8] u16) x, cast #bit (#simd [8] u16) y)
+    @assert(unsignedHigh[2] == 0x03C9)
+}
+
+/**
+# Lane Permutation
+
+'@vecshuffle' rearranges the lanes of a vector: result lane 'i' takes the lane
+its pattern lane names, the index reduced modulo the lane count so no pattern
+is out of range. '@vecshuffle2' does the same over two vectors, an index below
+the lane count reading the first and one above it reading the second at the
+index minus that count. '@vecalign' takes sixteen bytes of the concatenation of
+two vectors starting at a byte offset, and answers zero past the thirty-two.
+
+A pattern the compiler can see selects an immediate form where the target has
+one: a permutation of 32-bit lanes is one 'pshufd', a two-source pattern whose
+low half comes from one vector and whose high half comes from the other is one
+'shufps', and a constant byte offset is one 'palignr'. Everything else becomes
+a permute against a constant byte table. A pattern that only exists at run time
+keeps the same meaning through the dynamic byte permute, which is what
+'@vecperm' exposes on its own.
+*/
+#test
+{
+    let quads = cast(#simd [4] u32) [10, 20, 30, 40]
+
+    var r = cast([4] u32) @vecshuffle(quads, cast(#simd [4] u32) [3, 2, 1, 0])
+    @assert(r[0] == 40 and r[1] == 30 and r[2] == 20 and r[3] == 10)
+
+    // An index past the last lane wraps around instead of reading nothing.
+    r = cast([4] u32) @vecshuffle(quads, cast(#simd [4] u32) [4, 5, 6, 7])
+    @assert(r[0] == 10 and r[3] == 40)
+
+    let other = cast(#simd [4] u32) [50, 60, 70, 80]
+    r = cast([4] u32) @vecshuffle2(quads, other, cast(#simd [4] u32) [0, 2, 5, 7])
+    @assert(r[0] == 10 and r[1] == 30 and r[2] == 60 and r[3] == 80)
+
+    let bytes = cast(#simd [16] u8) [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    let next  = cast(#simd [16] u8) [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+    let slid  = cast([16] u8) @vecalign(bytes, next, 4)
+    @assert(slid[0] == 4 and slid[11] == 15 and slid[12] == 16 and slid[15] == 19)
+
+    // Past the concatenation there is nothing to read.
+    let empty = cast([16] u8) @vecalign(bytes, next, 32)
+    @assert(empty[0] == 0 and empty[15] == 0)
+}
+
+/**
+# Horizontal Reductions
+
+The '@vecreduce' family combines every lane of a vector into one scalar of the
+lane type: '@vecreduceadd' sums, '@vecreducemin' and '@vecreducemax' select,
+and '@vecreduceand', '@vecreduceor' and '@vecreducexor' fold the bits of
+integer lanes.
+
+Adjacent lanes combine first and their results after, so the order is a
+balanced tree over the lane index; that order is what a float sum observes.
+Integer sums wrap like every other lane arithmetic. The float minimum and
+maximum follow the element-wise '@min' and '@max', which answer their second
+operand when either side is a NaN, so a NaN does not propagate out of a
+reduction.
+
+Nothing here goes through memory: each step slides the upper half of the
+vector down and applies one element-wise operation.
+*/
+#test
+{
+    let quads = cast(#simd [4] s32) [1, 2, 3, 4]
+    @assert(@vecreduceadd(quads) == 10)
+    @assert(@vecreducemin(quads) == 1)
+    @assert(@vecreducemax(quads) == 4)
+
+    let bits = cast(#simd [4] u32) [0b1110, 0b1010, 0b1111, 0b0110]
+    @assert(@vecreduceand(bits) == 0b0010)
+    @assert(@vecreduceor(bits) == 0b1111)
+    @assert(@vecreducexor(bits) == 0b1101)
+
+    // An integer sum wraps, like every other lane arithmetic.
+    let edge = cast(#simd [4] s32) [2_147_483_647, 1, 0, 0]
+    @assert(@vecreduceadd(edge) == -2_147_483_648)
+
+    let floats = cast(#simd [4] f32) [1.5, -2.5, 8.0, 0.25]
+    @assert(@vecreduceadd(floats) == 7.25)
+    @assert(@vecreducemin(floats) == -2.5)
+    @assert(@vecreducemax(floats) == 8.0)
+
+    // The absolute byte differences of each half land in one 64-bit lane each.
+    let left  = cast(#simd [16] u8) [10, 20, 30, 40, 50, 60, 70, 80, 0, 0, 0, 0, 0, 0, 0, 0]
+    let right = cast(#simd [16] u8) [1, 2, 3, 4, 5, 6, 7, 8, 255, 0, 0, 0, 0, 0, 0, 0]
+    let diffs = cast([2] u64) @vecsad(left, right)
+    @assert(diffs[0] == 9 + 18 + 27 + 36 + 45 + 54 + 63 + 72 and diffs[1] == 255)
+}
+
+/**
+# Packed Bit Operations
+
+The bit intrinsics accept vectors of unsigned lanes and answer, for every lane,
+what the scalar form answers for one value of that width. '@rol' and '@ror'
+rotate by a count taken modulo the lane width, so a count of zero or of one
+whole width is the identity. '@bitcountnz' counts the bits set, '@bitcounttz'
+and '@bitcountlz' count the zeros below the lowest and above the highest set
+bit, and an all-zero lane answers the lane width. '@byteswap' reverses the
+bytes inside every lane.
+
+None of these has a single packed instruction on the baseline target: a
+constant rotation is a shift pair, a variable one reduces its count first, the
+counts go through a nibble table, and the byte reversal is one dynamic permute.
+*/
+#test
+{
+    let quads = cast(#simd [4] u32) [0, 1, 0x1234_5678, 0xFFFF_FFFF]
+
+    let rotated = cast([4] u32) @rol(quads, 8)
+    @assert(rotated[1] == 0x100 and rotated[2] == 0x3456_7812)
+    let restored = cast([4] u32) @ror(@rol(quads, 8), 8)
+    @assert(restored[2] == 0x1234_5678)
+
+    // The count reduces modulo the lane width, so a whole turn changes nothing.
+    let turned = cast([4] u32) @rol(quads, 32)
+    @assert(turned[2] == 0x1234_5678)
+
+    let ones = cast([4] u32) @bitcountnz(quads)
+    @assert(ones[0] == 0 and ones[1] == 1 and ones[3] == 32)
+
+    // An empty lane answers the lane width for both counts.
+    let below = cast([4] u32) @bitcounttz(quads)
+    let above = cast([4] u32) @bitcountlz(quads)
+    @assert(below[0] == 32 and below[1] == 0 and below[2] == 3)
+    @assert(above[0] == 32 and above[1] == 31 and above[3] == 0)
+
+    let swapped = cast([4] u32) @byteswap(quads)
+    @assert(swapped[1] == 0x0100_0000 and swapped[2] == 0x7856_3412)
+
+    let magnitude = cast([4] f32) @abs(cast(#simd [4] f32) [-1.5, 2.5, -0.0, -8.25])
+    @assert(magnitude[0] == 1.5 and magnitude[3] == 8.25)
 }
 
 /**

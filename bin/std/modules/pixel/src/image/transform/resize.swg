@@ -207,7 +207,7 @@ namespace ResizeTools
             // Compute weights
             var nonZeroFound = false
             var totalWeight  = 0'f64
-            for var src      = left; src <= right; src += 1
+            for var src = left; src <= right; src += 1
             {
                 var resf = getFilter(cscale * (src - center), rmode)
                 if resf > 0 do

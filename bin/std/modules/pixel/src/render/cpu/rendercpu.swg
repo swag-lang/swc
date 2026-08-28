@@ -254,7 +254,7 @@ private impl RenderCpu
 
         var lowest  = Vector2.Max
         var highest = Vector2.NegMax
-        for var i   = start; i < start + count; i += 1
+        for var i = start; i < start + count; i += 1
         {
             let p = transform.transformPoint(painter.vertexBuffer[i].pos)
             lowest.x  = Math.min(lowest.x, p.x)
@@ -284,7 +284,7 @@ private impl RenderCpu
     func clearScratchRows(plane: [*] u8, width: s32, bounds: PixelBounds)
     {
         let runWidth = cast(u64) (bounds.maxX - bounds.minX + 1)
-        for var y    = bounds.minY; y <= bounds.maxY; y += 1 do
+        for var y = bounds.minY; y <= bounds.maxY; y += 1 do
             Memory.clear(plane + cast(u64) y * cast(u64) width + cast(u64) bounds.minX, runWidth)
     }
 
@@ -1264,14 +1264,14 @@ private impl RenderCpu
         if .stencilWrite
         {
             let stencilValue: u8 = .stencilMode == .Set ? 1 : 0
-            for var y            = minY; y <= maxY; y += 1
+            for var y = minY; y <= maxY; y += 1
             {
                 let sy         = cast(f32) y + 0.5
                 let rowDy0     = sy - p1.y
                 let rowDy1     = sy - p2.y
                 let rowDy2     = sy - p0.y
                 let rowStencil = batch.stencil + cast(u64) y * cast(u64) batch.width
-                for var x      = minX; x <= maxX; x += 1
+                for var x = minX; x <= maxX; x += 1
                 {
                     let sx = cast(f32) x + 0.5
                     let e0 = dx0 * rowDy0 - dy0 * (sx - p1.x)
@@ -1441,7 +1441,7 @@ private impl RenderCpu
             let rowDy2     = sy - p0.y
             let rowPixels  = batch.pixels + cast(u64) (batch.height - y - 1) * cast(u64) batch.rowStride
             let rowStencil = batch.stencil + cast(u64) y * cast(u64) batch.width
-            for var x      = minX; x <= maxX; x += 1
+            for var x = minX; x <= maxX; x += 1
             {
                 let sx = cast(f32) x + 0.5
                 let e0 = dx0 * rowDy0 - dy0 * (sx - p1.x)
@@ -1651,7 +1651,7 @@ private impl RenderCpu
         let pixels = image.pixels.buffer!
         let stride = cast(u64) image.bytesPerPixel
         let zero   = Math.Simd.splat(0'u8)
-        for var y  = minY; y < maxY; y += 1
+        for var y = minY; y < maxY; y += 1
         {
             let row    = pixels + cast(u64) ((image.height - y - 1) * image.rowStride + minX * image.bytesPerPixel)
             var offset = 3'u64
@@ -1690,7 +1690,7 @@ private impl RenderCpu
         let stencil    = .currentStencil()
         let stencilBuf = stencil.buffer!
         let runWidth   = cast(u64) (maxX - minX)
-        for var y      = minY; y < maxY; y += 1 do
+        for var y = minY; y < maxY; y += 1 do
             Memory.clear(stencilBuf + cast(u64) y * cast(u64) image.width + cast(u64) minX, runWidth)
 
         // The masked general write reduces to raw byte stores for the BGRA8 targets every frame
@@ -1707,7 +1707,7 @@ private impl RenderCpu
             if writeAll and !color.a and !color.r and !color.g and !color.b
             {
                 let byteCount = runWidth * 4
-                for var y     = minY; y < maxY; y += 1
+                for var y = minY; y < maxY; y += 1
                 {
                     let row = pixels + cast(u64) ((image.height - y - 1) * image.rowStride + minX * 4)
                     Memory.clear(row, byteCount)

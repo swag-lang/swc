@@ -50,7 +50,7 @@ func day9A()
     let line     = expect File.readAllText(dataPath)
 
     var garbage, group, score = 0
-    for var i                 = 0; i < @countof(line); i += 1
+    for var i = 0; i < @countof(line); i += 1
     {
         if line[i] == '!' and garbage do
             i += 1

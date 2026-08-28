@@ -5,7 +5,7 @@
     func ifDeclSimple()->s32
     {
         var result = 0
-        if var x   = 1
+        if var x = 1
         {
             result = x
         }
@@ -24,7 +24,7 @@
 {
     func ifDeclWithTypeWhere()->s32
     {
-        var result    = 0
+        var result = 0
         if var x: s32 = 1 where x
         {
             result = x + 1
@@ -96,7 +96,7 @@
 
     func ifDeclNullablePointer()->s32
     {
-        var base             = 42
+        var base = 42
         if var x: #null *s32 = ifDeclMaybePtr(&base) where x != null
         {
             return 1

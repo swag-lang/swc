@@ -175,7 +175,7 @@ namespace Compaction
         outStart[] = 0
         outLen[]   = 0
         let blocks = dm.blocks!
-        for var i  = cast(s64) dm.blockCount - 1; i >= 0; i -= 1
+        for var i = cast(s64) dm.blockCount - 1; i >= 0; i -= 1
         {
             if blocks[cast(u32) i] == fileId
             {

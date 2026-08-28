@@ -12,7 +12,7 @@ func(T) clampPositive(value: T)->T
 func(T, N: s32) sum(values: [N] T)->T
 {
     var total: T = 0
-    for var i    = 0; i < N; i += 1 do
+    for var i = 0; i < N; i += 1 do
         total += values[i]
     return total
 }
@@ -21,7 +21,7 @@ func(T, N: s32) sum(values: [N] T)->T
 func(T, N: s32) countPositive(values: [N] T)->s32
 {
     var count: s32 = 0
-    for var i      = 0; i < N; i += 1
+    for var i = 0; i < N; i += 1
     {
         if values[i] > 0 do
             count += 1
@@ -79,7 +79,7 @@ func doubleF64(x: f64)->f64 => x * 2.0
 func mapS32x3(values: [3] s32, transform: func(s32)->s32)->[3] s32
 {
     var result: [3] s32 = undefined
-    for var i           = 0; i < 3; i += 1 do
+    for var i = 0; i < 3; i += 1 do
         result[i] = transform(values[i])
     return result
 }
@@ -87,7 +87,7 @@ func mapS32x3(values: [3] s32, transform: func(s32)->s32)->[3] s32
 // Concrete-typed reduce
 func reduceS32x4(values: [4] s32, initial: s32, combine: func(s32, s32)->s32)->s32
 {
-    var acc   = initial
+    var acc = initial
     for var i = 0; i < 4; i += 1 do
         acc = combine(acc, values[i])
     return acc
@@ -133,7 +133,7 @@ func(T, N: s32) allEqual(values: [N] T, target: T)->bool
 func(T, N: s32) reverse(values: [N] T)->[N] T
 {
     var result: [N] T = undefined
-    for var i         = 0; i < N; i += 1 do
+    for var i = 0; i < N; i += 1 do
         result[i] = values[N - 1 - i]
     return result
 }
@@ -148,7 +148,7 @@ func(T, N: s32) contains(values: [N] T, target: T)->bool
 func(T, N: s32) countOf(values: [N] T, target: T)->s32
 {
     var count: s32 = 0
-    for var i      = 0; i < N; i += 1
+    for var i = 0; i < N; i += 1
     {
         if values[i] == target do
             count += 1

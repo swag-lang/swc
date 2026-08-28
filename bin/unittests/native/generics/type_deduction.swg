@@ -39,7 +39,7 @@ func(T) firstOf3(arr: [3] T)->T => arr[0]
 func(T, N: s32) makeBuffer(value: T)->[N] T
 {
     var result: [N] T = undefined
-    for var i         = 0; i < N; i += 1 do
+    for var i = 0; i < N; i += 1 do
         result[i] = value
     return result
 }

@@ -57,7 +57,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 
     let image    = renderer.readRenderTarget(&target, 0, 0, 72, 12)
     let expected = image.pixelColor(60, 0)
-    for var y    = 0; y < 12; y += 1
+    for var y = 0; y < 12; y += 1
     {
         for var x = 60; x < 72; x += 1 do
             assertPixel(image, x, y, expected)

@@ -99,8 +99,8 @@ impl Tracked
 {
     resetHooks()
     {
-        var src   = Tracked{3}
-        var dst   = Tracked{7}
+        var src = Tracked{3}
+        var dst = Tracked{7}
         for var i = 0; i < 1; i += 1 do
             dst = #nodrop #move src
     }

@@ -75,7 +75,7 @@ func sinkIf(cond: bool, v: #move Tracked)
 #test
 {
     g_copies, g_moves, g_drops = 0
-    var d     = Tracked{4}
+    var d = Tracked{4}
     for var i = 0; i < 4; i += 1
     {
         sinkIf((i & 1) == 0, d)

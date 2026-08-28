@@ -1633,6 +1633,7 @@ struct DependencyPlanBuilder
 
     CompilerInstance*                                                          compiler = nullptr;
     TaskContext*                                                               ctx      = nullptr;
+    fs::path                                                                   workspaceOutputRoot;
     fs::path                                                                   workspaceDependencyRoot;
     std::unordered_set<Utf8>                                                   mirroredDependencyDirs;
     std::unordered_map<Utf8, fs::path>                                         scriptDependencyEntries;
@@ -1667,7 +1668,10 @@ DependencyPlanBuilder::DependencyPlanBuilder(CompilerInstance& compilerInstance,
     compiler = &compilerInstance;
     ctx      = &taskContext;
     if (!instance().cmdLine().workspacePath.empty())
+    {
+        workspaceOutputRoot     = FileSystem::normalizePath(WorkspaceLayout::workspaceOutputDirectory(instance().cmdLine().workspacePath));
         workspaceDependencyRoot = FileSystem::normalizePath(WorkspaceLayout::workspaceDependencyDirectory(instance().cmdLine().workspacePath));
+    }
 }
 
 ModuleSetupInputApplier::ModuleSetupInputApplier(CompilerInstance& compilerInstance, TaskContext& taskContext)
@@ -1815,7 +1819,7 @@ Result DependencyPlanBuilder::mirrorWorkspaceDependencyDir(fs::path& ioDir, cons
 {
     const fs::path normalizedSourceDir  = FileSystem::normalizePath(ioDir);
     const fs::path normalizedSourceRoot = FileSystem::normalizePath(sourceDependencyRoot);
-    if (FileSystem::pathEquals(normalizedSourceRoot, workspaceDependencyRoot))
+    if (FileSystem::pathEquals(normalizedSourceRoot, workspaceOutputRoot) || FileSystem::pathEquals(normalizedSourceRoot, workspaceDependencyRoot))
     {
         ioDir = normalizedSourceDir;
         return Result::Continue;

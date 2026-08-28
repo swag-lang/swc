@@ -234,14 +234,21 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
 {
     let workspace = Path.combine(context.binDir.toString(), "unittests", "workspace")
 
-    // A user workspace owns only its imports. Start without prebuilt standard modules so this
-    // suite proves that the compiler resolves and builds them, while leaving unrelated modules
-    // absent instead of preparing the whole standard workspace.
-    var cleaned: Arguments
-    cleaned.add(["clean", "--workspace", context.workspacePath("std").toString()])
-    let cleanCode = try context.runCompiler(cleaned)
-    if cleanCode != 0 do
-        return cleanCode
+    // A user workspace owns only its external imports. Start without generated artifacts so the
+    // suite can distinguish newly materialized external dependencies from workspace-local output.
+    var cleanedWorkspace: Arguments
+    cleanedWorkspace.add(["clean", "--workspace", workspace.toString()])
+    let cleanWorkspaceCode = try context.runCompiler(cleanedWorkspace)
+    if cleanWorkspaceCode != 0 do
+        return cleanWorkspaceCode
+
+    // Start without prebuilt standard modules so this suite proves that the compiler resolves and
+    // builds them, while leaving unrelated modules absent instead of preparing the whole workspace.
+    var cleanedStd: Arguments
+    cleanedStd.add(["clean", "--workspace", context.workspacePath("std").toString()])
+    let cleanStdCode = try context.runCompiler(cleanedStd)
+    if cleanStdCode != 0 do
+        return cleanStdCode
 
     var built = workspaceModuleCommand("build", workspace.toString(), "consumer_exe", buildCfg)
     options.appendExtra(&built)
@@ -251,6 +258,25 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     for dependency in ["core", "win32", "xinput"] where moduleReportCount(buildOutput.toString(), dependency) != 1
     {
         Console.println("Workspace dependency plan did not compile standard module exactly once: ", dependency)
+        return 1
+    }
+
+    let dependencyDirectory = Path.combine(workspace.toString(), ".dep")
+    for dependency in ["core", "win32", "xinput"] where !Directory.exists(Path.combine(dependencyDirectory.toString(), dependency))
+    {
+        Console.println("Workspace did not materialize external dependency in '.dep': ", dependency)
+        return 1
+    }
+
+    for module in ["api_export_provider", "api_static_provider", "runtime_context_base_static", "runtime_context_bridge_dll", "runtime_context_direct_static"] where Directory.exists(Path.combine(dependencyDirectory.toString(), module))
+    {
+        Console.println("Workspace materialized local module in '.dep': ", module)
+        return 1
+    }
+
+    if Directory.exists(Path.combine(context.workspacePath("std").toString(), ".dep"))
+    {
+        Console.println("Standard workspace materialized local modules in '.dep'.")
         return 1
     }
 

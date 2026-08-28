@@ -80,7 +80,7 @@ Compilation owns three generated directories at the workspace root:
 |---|---|
 | `.output/` | Native artifacts and exported module APIs, grouped by configuration |
 | `.tmp/` | Intermediate compiler and native-tool files |
-| `.dep/` | Materialized dependency APIs and native dependency artifacts |
+| `.dep/` | Materialized APIs and native artifacts for dependencies outside the workspace |
 
 Add another module without replacing the workspace:
 

@@ -9,8 +9,10 @@ Prove the behavior that moved with the cheapest boundary that can observe it. Do
 campaign mechanically from changed paths and do not run every configuration by habit. Scheduled
 full campaigns provide periodic breadth; change validation provides precise evidence.
 
-Follow the build/test serialization rules in
-[modify-swag-codebase](../modify-swag-codebase/SKILL.md) before taking either agent slot.
+Follow the machine-load admission rules in
+[modify-swag-codebase](../modify-swag-codebase/SKILL.md) before starting each build or test
+command. Builds and tests may run concurrently only when a fresh CPU and memory check admits the
+additional work.
 
 Also follow its compiler CPU bound: every validation command driven by `swc.exe` or
 `swc_devmode.exe` uses at most six workers through `--num-cores 6`. For a repository tool script,

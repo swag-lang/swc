@@ -982,7 +982,7 @@ indent-style = spaces</span></div>
 </tbody>
 </table>
 <p><span class="code-inline">internal</span> is the default, for a top-level declaration and for an aggregate member alike. Use <span class="code-inline">public</span> deliberately for the supported module API and <span class="code-inline">private</span> for file-local implementation details.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">VisibilityFileLocal</span> = <span class="SNum">10</span>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">VisibilityFileLocal</span>            = <span class="SNum">10</span>
 <span class="SKwd">internal</span> <span class="SKwd">const</span> <span class="SCst">VisibilityModuleLocal</span> = <span class="SNum">20</span>
 
 <span class="SFct">#test</span>
@@ -1040,7 +1040,7 @@ indent-style = spaces</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Counter</span>
 {
     <span class="SKwd">public</span> <span class="SKwd">readonly</span> count: <span class="STpe">s32</span>
-    <span class="SKwd">private</span> step: <span class="STpe">s32</span> = <span class="SNum">2</span>
+    <span class="SKwd">private</span> step:          <span class="STpe">s32</span> = <span class="SNum">2</span>
 }
 
 <span class="SKwd">impl</span> <span class="SCst">Counter</span>
@@ -8573,7 +8573,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 
 <span class="SCmp">#static</span> <span class="SLgc">switch</span> <span class="SItr">#complete</span> <span class="SCst">StaticExhaustive</span>
 {
-<span class="SLgc">case</span> .<span class="SCst">Debug</span>:   <span class="SKwd">const</span> <span class="SCst">StaticExhaustiveSelection</span> = <span class="SNum">1</span>
+<span class="SLgc">case</span> .<span class="SCst">Debug</span>:   <span class="SKwd">const</span> <span class="SCst">StaticExhaustiveSelection</span>   = <span class="SNum">1</span>
 <span class="SLgc">case</span> .<span class="SCst">Release</span>: <span class="SKwd">const</span> <span class="SCst">StaticExhaustiveSelection</span> = <span class="SNum">2</span>
 }
 
@@ -9255,7 +9255,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.247</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.249</div>
 </footer>
 </section>
 </main>

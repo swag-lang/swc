@@ -41,6 +41,7 @@ func testSetupGlobalMain(main: *MainWnd)
     var f: HeadlessFixture
     f.setup()
     defer f.shutdown()
+    f.main.appearanceButton = AppearanceButton.create(&f.gui.surface, "sSnapForge.appearance")
 
     f.main.editorOptions.theme = .Dark
     f.main.setTheme()

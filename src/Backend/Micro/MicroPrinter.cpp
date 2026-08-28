@@ -904,6 +904,17 @@ namespace
                 return naturalBinaryExpression(lhs, ops[2].microOp, rhs);
             }
 
+            case MicroInstrOpcode::OpBinaryRegRegReg:
+            {
+                // Three addresses, so the destination is not one of the sources:
+                // an infix operator names both of them instead of folding the
+                // destination into the left side.
+                const auto infixOp = binaryInfixOperator(ops[4].microOp);
+                if (!infixOp.empty())
+                    return std::format("{} = {} {} {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), infixOp, regName(ops[2].reg, regPrintMode, encoder));
+                return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(microOpName(ops[4].microOp)), regName(ops[1].reg, regPrintMode, encoder), regName(ops[2].reg, regPrintMode, encoder));
+            }
+
             case MicroInstrOpcode::OpTernaryRegRegReg:
             {
                 const auto infixOp = binaryInfixOperator(ops[4].microOp);
@@ -1941,6 +1952,18 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendMemImmBits(out, ctx, ops, 0, 1, 3, 4, regPrintMode, encoder, false);
                 break;
 
+            case MicroInstrOpcode::OpBinaryRegRegReg:
+                appendColored(out, ctx, SyntaxColor::Code, microOpName(ops[4].microOp));
+                appendSep(out);
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendRegister(out, ctx, ops[1].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendRegister(out, ctx, ops[2].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendTypeBits(out, ctx, ops[3].opBits);
+                break;
+
             case MicroInstrOpcode::OpTernaryRegRegReg:
                 appendColored(out, ctx, SyntaxColor::Code, microOpName(ops[4].microOp));
                 appendSep(out);
@@ -1951,6 +1974,44 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendRegister(out, ctx, ops[2].reg, regPrintMode, encoder);
                 appendSep(out);
                 appendTypeBits(out, ctx, ops[3].opBits);
+                break;
+
+            case MicroInstrOpcode::OpTernaryRegRegRegImm:
+                appendColored(out, ctx, SyntaxColor::Code, microOpName(ops[4].microOp));
+                appendSep(out);
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendRegister(out, ctx, ops[1].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendRegister(out, ctx, ops[2].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendImmediate(out, ctx, hexU64(ops[5].valueU64), false);
+                appendSep(out);
+                appendTypeBits(out, ctx, ops[3].opBits);
+                break;
+
+            case MicroInstrOpcode::VecUnaryRegReg:
+                appendColored(out, ctx, SyntaxColor::Code, microOpName(ops[3].microOp));
+                appendSep(out);
+                appendRegRegBits(out, ctx, ops, 0, 1, 2, regPrintMode, encoder);
+                break;
+
+            case MicroInstrOpcode::VecShuffleRegRegImm:
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendRegister(out, ctx, ops[1].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendImmediate(out, ctx, hexU64(ops[3].valueU64), false);
+                appendSep(out);
+                appendTypeBits(out, ctx, ops[2].opBits);
+                break;
+
+            case MicroInstrOpcode::LoadVecRegMem:
+                appendRegMemBits(out, ctx, ops, 0, 1, 2, 3, regPrintMode, encoder);
+                break;
+
+            case MicroInstrOpcode::StoreVecMemReg:
+                appendMemRegBits(out, ctx, ops, 0, 1, 2, 3, regPrintMode, encoder);
                 break;
 
             default:

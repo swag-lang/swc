@@ -817,68 +817,147 @@ namespace
         return Result::Continue;
     }
 
+    Result emitStructFieldDefaultValue(CodeGen& codeGen, const SymbolVariable& field, MicroReg dstAddressReg)
+    {
+        const TypeRef   fieldTypeRef = field.typeRef();
+        const TypeInfo& fieldType    = codeGen.typeMgr().get(fieldTypeRef);
+        const uint32_t  fieldSize    = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, fieldType);
+        if (!fieldSize)
+            return Result::Continue;
+
+        if (field.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+        {
+            // The field's '= undefined' default skips its initialization: under
+            // lifecycle safety, poison the skipped range on every construction
+            // path (locals and heap alike). No static marker here: this helper
+            // also fills literal TEMPORARIES, whose whole-struct copy into the
+            // destination legitimately reads the skipped range.
+            if (CodeGenSafety::hasLifecycleRuntimeSafety(codeGen))
+            {
+                const MicroReg fieldAddressReg = addressWithOffset(codeGen, dstAddressReg, field.offset());
+                SWC_RESULT(CodeGenSafety::emitLifecyclePoison(codeGen, fieldAddressReg, fieldSize));
+            }
+            return Result::Continue;
+        }
+
+        const MicroReg fieldAddressReg = addressWithOffset(codeGen, dstAddressReg, field.offset());
+
+        // A 'Swag.Late' field is typed non-null, so the generic implicit-default
+        // path would skip it ("needs explicit initialization"). Its storage
+        // must instead start as null so '@isset' reads false: zero it.
+        if (field.hasExtraFlag(SymbolVariableFlagsE::LateInit))
+        {
+            CodeGenMemoryHelpers::emitMemZero(codeGen, fieldAddressReg, fieldSize);
+            return Result::Continue;
+        }
+
+        const ConstantRef defaultValueRef = field.defaultValueRef();
+        if (defaultValueRef.isValid())
+            SWC_RESULT(emitDefaultConstantToAddress(codeGen, fieldTypeRef, defaultValueRef, fieldAddressReg));
+        else
+            SWC_RESULT(emitImplicitDefaultValue(codeGen, fieldTypeRef, fieldAddressReg));
+
+        return Result::Continue;
+    }
+
     Result emitStructPartialDefaultValue(CodeGen& codeGen, const TypeInfo& typeInfo, MicroReg dstAddressReg)
     {
         for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
         {
-            if (!field)
-                continue;
-
-            const TypeRef   fieldTypeRef = field->typeRef();
-            const TypeInfo& fieldType    = codeGen.typeMgr().get(fieldTypeRef);
-            const uint32_t  fieldSize    = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, fieldType);
-            if (!fieldSize)
-                continue;
-
-            if (field->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
-            {
-                // The field's '= undefined' default skips its initialization: under
-                // lifecycle safety, poison the skipped range on every construction
-                // path (locals and heap alike). No static marker here: this helper
-                // also fills literal TEMPORARIES, whose whole-struct copy into the
-                // destination legitimately reads the skipped range.
-                if (CodeGenSafety::hasLifecycleRuntimeSafety(codeGen))
-                {
-                    const MicroReg fieldAddressReg = addressWithOffset(codeGen, dstAddressReg, field->offset());
-                    SWC_RESULT(CodeGenSafety::emitLifecyclePoison(codeGen, fieldAddressReg, fieldSize));
-                }
-                continue;
-            }
-
-            const MicroReg fieldAddressReg = addressWithOffset(codeGen, dstAddressReg, field->offset());
-
-            // A 'Swag.Late' field is typed non-null, so the generic implicit-default
-            // path would skip it ("needs explicit initialization"). Its storage
-            // must instead start as null so '@isset' reads false: zero it.
-            if (field->hasExtraFlag(SymbolVariableFlagsE::LateInit))
-            {
-                CodeGenMemoryHelpers::emitMemZero(codeGen, fieldAddressReg, fieldSize);
-                continue;
-            }
-
-            const ConstantRef defaultValueRef = field->defaultValueRef();
-            if (defaultValueRef.isValid())
-                SWC_RESULT(emitDefaultConstantToAddress(codeGen, fieldTypeRef, defaultValueRef, fieldAddressReg));
-            else
-                SWC_RESULT(emitImplicitDefaultValue(codeGen, fieldTypeRef, fieldAddressReg));
+            if (field)
+                SWC_RESULT(emitStructFieldDefaultValue(codeGen, *field, dstAddressReg));
         }
 
         return Result::Continue;
     }
 
-    bool tryGetStructDefaultPayload(CodeGen& codeGen, TypeRef typeRef, ConstantRef& outSafeDefaultValueRef, std::span<const std::byte>& outPayloadBytes)
+    bool shouldComposeLargeSparseStructDefault(CodeGen& codeGen, const TypeInfo& typeInfo, std::span<const std::byte> payloadBytes)
     {
-        outSafeDefaultValueRef = ConstantRef::invalid();
-        outPayloadBytes        = {};
+        constexpr uint64_t MIN_COMPOSED_SIZE     = 64 * 1024;
+        constexpr uint64_t MAX_NON_ZERO_FRACTION = 8;
+        if (payloadBytes.size() < MIN_COMPOSED_SIZE)
+            return false;
+
+        const uint64_t maxNonZeroBytes = payloadBytes.size() / MAX_NON_ZERO_FRACTION;
+        uint64_t       nonZeroBytes    = 0;
+        for (const std::byte value : payloadBytes)
+        {
+            if (value != std::byte{} && ++nonZeroBytes > maxNonZeroBytes)
+                return false;
+        }
+
+        uint64_t initializedEnd = 0;
+        for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
+        {
+            if (!field)
+                continue;
+
+            const uint64_t fieldOffset = field->offset();
+            const uint64_t fieldSize   = codeGen.typeMgr().get(field->typeRef()).sizeOf(codeGen.ctx());
+            if (fieldOffset < initializedEnd)
+                return false;
+            initializedEnd = fieldOffset + fieldSize;
+        }
+
+        return initializedEnd <= payloadBytes.size();
+    }
+
+    Result emitStructComposedDefaultValue(CodeGen& codeGen, const TypeInfo& typeInfo, MicroReg dstAddressReg)
+    {
+        uint32_t initializedEnd = 0;
+        for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
+        {
+            if (!field)
+                continue;
+
+            const TypeInfo& fieldType   = codeGen.typeMgr().get(field->typeRef());
+            const uint32_t  fieldSize   = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, fieldType);
+            const uint32_t  fieldOffset = field->offset();
+            SWC_ASSERT(fieldOffset >= initializedEnd);
+            if (fieldOffset > initializedEnd)
+            {
+                const MicroReg paddingAddressReg = addressWithOffset(codeGen, dstAddressReg, initializedEnd);
+                CodeGenMemoryHelpers::emitMemZero(codeGen, paddingAddressReg, fieldOffset - initializedEnd);
+            }
+
+            SWC_RESULT(emitStructFieldDefaultValue(codeGen, *field, dstAddressReg));
+            initializedEnd = fieldOffset + fieldSize;
+        }
+
+        const uint32_t structSize = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
+        SWC_ASSERT(initializedEnd <= structSize);
+        if (initializedEnd < structSize)
+        {
+            const MicroReg paddingAddressReg = addressWithOffset(codeGen, dstAddressReg, initializedEnd);
+            CodeGenMemoryHelpers::emitMemZero(codeGen, paddingAddressReg, structSize - initializedEnd);
+        }
+
+        return Result::Continue;
+    }
+
+    Result lowerStructDefaultPayload(CodeGen& codeGen, TypeRef typeRef, SmallVector<std::byte>& outStorage, std::span<const std::byte>& outPayloadBytes)
+    {
+        outStorage.clear();
+        outPayloadBytes = {};
 
         const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
         if (rawTypeRef.isValid())
             typeRef = rawTypeRef;
 
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-        if (!typeInfo.isStruct())
-            return false;
+        SWC_ASSERT(typeInfo.isStruct());
+        const uint32_t size = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
+        outStorage.resize(size);
+        SWC_RESULT(SymbolStruct::lowerTypeImplicitDefaultBytes(codeGen.sema(), std::span{outStorage.data(), outStorage.size()}, typeRef));
 
+        outPayloadBytes = std::span{outStorage.data(), outStorage.size()};
+        return Result::Continue;
+    }
+
+    bool materializeStructDefaultPayload(CodeGen& codeGen, TypeRef typeRef, ConstantRef& outSafeDefaultValueRef, std::span<const std::byte>& outPayloadBytes)
+    {
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        SWC_ASSERT(typeInfo.isStruct());
         const ConstantRef defaultValueRef = typeInfo.payloadSymStruct().resolveImplicitDefaultValueRef(codeGen.sema(), typeRef);
         if (defaultValueRef.isInvalid())
             return false;
@@ -923,13 +1002,18 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
     if (symStruct.hasImplicitUndefinedDefault() || symStruct.requiresExplicitInitialization())
         return emitStructPartialDefaultValue(codeGen, typeInfo, dstAddressReg);
 
-    ConstantRef                safeDefaultValueRef = ConstantRef::invalid();
+    SmallVector<std::byte>     payloadStorage;
     std::span<const std::byte> payloadBytes;
-    if (!tryGetStructDefaultPayload(codeGen, typeRef, safeDefaultValueRef, payloadBytes))
-        return Result::Continue;
+    SWC_RESULT(lowerStructDefaultPayload(codeGen, typeRef, payloadStorage, payloadBytes));
 
     SWC_ASSERT(payloadBytes.size() <= std::numeric_limits<uint32_t>::max());
     if (emitZeroOrSparsePayloadBytes(codeGen, dstAddressReg, payloadBytes, canEmitDefaultPayloadBytesInline(codeGen, typeRef)))
+        return Result::Continue;
+    if (shouldComposeLargeSparseStructDefault(codeGen, typeInfo, payloadBytes))
+        return emitStructComposedDefaultValue(codeGen, typeInfo, dstAddressReg);
+
+    ConstantRef safeDefaultValueRef = ConstantRef::invalid();
+    if (!materializeStructDefaultPayload(codeGen, typeRef, safeDefaultValueRef, payloadBytes))
         return Result::Continue;
 
     const MicroReg payloadReg = codeGen.nextVirtualIntRegister();
@@ -981,7 +1065,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
 
     ConstantRef                safeDefaultValueRef = ConstantRef::invalid();
     std::span<const std::byte> payloadBytes;
-    if (!tryGetStructDefaultPayload(codeGen, typeRef, safeDefaultValueRef, payloadBytes))
+    if (!materializeStructDefaultPayload(codeGen, typeRef, safeDefaultValueRef, payloadBytes))
         return Result::Continue;
 
     const MicroReg payloadReg = codeGen.nextVirtualIntRegister();

@@ -60,7 +60,7 @@ struct ThemeMetrics
         //
         // It is an indicator, not a control, so it sits at the smallest cell of the chart: the ink is
         // five sixths of this box wide and half that tall.
-        chevron_Size: f32 = 14
+        chevron_Size: f32 = 12
 
         btnCheck_Size:    f32 = 24     // Theme measurement used for btn check size.
         btnCheck_Padding: f32 = 4      // Theme measurement used for btn check padding.
@@ -94,6 +94,7 @@ struct ThemeMetrics
         menuPopup_IconTextMargin:  f32 = 10     // Air between the glyph or check mark of an entry and its wording.
         menuPopup_SeparatorHeight: f32 = 8      // Theme measurement used for menu popup separator height.
         menuPopup_BarItemOverlap:  f32 = 12     // Theme measurement used for menu popup bar item overlap.
+        menuPopup_WindowMargin:    f32 = 8      // Air between a popup menu and the edge of its window.
 
         menuBar_Height:       f32 = 30     // Theme measurement used for menu bar height.
         menuBar_SpaceBetween: f32 = 24     // Theme measurement used for menu bar space between.

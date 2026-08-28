@@ -8,6 +8,14 @@ public enum PopupPosition
     AnchorBottomCenter     // Centers the popup above the anchor.
 }
 
+// Selects the side on which a popup menu opens its child menus.
+public enum SubmenuDirection
+{
+    Automatic     // Opens right when it fits, otherwise left.
+    Left          // Opens child menus on the left and points their markers left.
+    Right         // Opens child menus on the right and points their markers right.
+}
+
 // Configures menu presentation.
 #[Swag.EnumFlags]
 public enum MenuFlags
@@ -45,6 +53,8 @@ public struct PopupMenuItem
         checked:   bool                                // Checked associated with this value.
         hidden:    bool                                // Hidden associated with this value.
     }
+
+    submenuOpensLeft: bool     // Resolved opening side used by layout and painting.
 }
 
 // Displays either a persistent menu bar or a modal popup menu.
@@ -59,8 +69,9 @@ public struct MenuCtrl
 
         readonly
         {
-            flags: MenuFlags = None           // Active presentation options.
-            items: ArrayPtr'PopupMenuItem     // Commands, submenus, and separators in display order.
+            flags:            MenuFlags        = None                           // Active presentation options.
+            submenuDirection: SubmenuDirection = SubmenuDirection.Automatic     // Preferred side for child menus.
+            items:            ArrayPtr'PopupMenuItem                            // Commands, submenus, and separators in display order.
         }
     }
 
@@ -260,12 +271,24 @@ public impl IWnd for MenuCtrl
             labelPos.moveLeft(metrics.menuPopup_IconTextMargin + it.size)
             labelPos.width -= it.size
 
-            // An entry that opens a submenu reserves the band its marker stands in, so the
-            // wording is elided before the chevron instead of running under it. The marker used
-            // to be hung off the right edge of the body, which put its ink in the popup's own
-            // padding and, at the size it was drawn, past it.
-            if @isset(it.popup) do
-                labelPos.width -= metrics.chevron_Size + metrics.menuPopup_IconTextMargin
+            // A left-opening submenu puts its marker before the optional check or item icon. A
+            // right-opening one keeps the marker after the wording. Both reserve a complete band,
+            // so neither marker overlaps content or enters the popup's outer padding.
+            var submenuMarkerX: f32
+            if @isset(it.popup)
+            {
+                if it.submenuOpensLeft
+                {
+                    submenuMarkerX = iconPos.x
+                    iconPos.x      += metrics.chevron_Size + metrics.menuPopup_IconTextMargin
+                    labelPos.moveLeft(metrics.chevron_Size + metrics.menuPopup_IconTextMargin)
+                }
+                else
+                {
+                    labelPos.width -= metrics.chevron_Size + metrics.menuPopup_IconTextMargin
+                    submenuMarkerX = labelPos.right() + metrics.menuPopup_IconTextMargin
+                }
+            }
 
             // Text
             var format: RichStringFormat
@@ -314,11 +337,12 @@ public impl IWnd for MenuCtrl
                 painter.drawRichString(labelPos, &it.rightName, format)
             }
 
-            // Right icon
+            // Submenu marker
             if @isset(it.popup)
             {
-                let icon = theme.icon(ThemeIcons.ChevronRight, metrics.chevron_Size)
-                icon.paint(painter, labelPos.right() + metrics.menuPopup_IconTextMargin, opticalTop(.font(), textCenterY, icon.sizeY), colorText)
+                let glyph = it.submenuOpensLeft ? ThemeIcons.ChevronLeft : ThemeIcons.ChevronRight
+                let icon  = theme.icon(glyph, metrics.chevron_Size)
+                icon.paint(painter, submenuMarkerX, opticalTop(.font(), textCenterY, icon.sizeY), colorText)
             }
         }
     }
@@ -446,6 +470,40 @@ public impl IWnd for MenuCtrl
 
 impl MenuCtrl
 {
+    private mtd shouldOpenSubmenuLeft(surfaceRect: Math.Rectangle, submenuWidth: f32)->bool
+    {
+        if .submenuDirection == .Left do
+            return true
+        if .submenuDirection == .Right do
+            return false
+
+        let topView       = .topView()
+        let metrics       = .themeMetrics()
+        let parentTopLeft = topView.surfaceToLocal({surfaceRect.x, surfaceRect.y})
+        let openRight     = parentTopLeft.x + surfaceRect.width - 2 * metrics.menuPopup_ShadowSize
+        let openLeft      = parentTopLeft.x - submenuWidth + 2 * metrics.menuPopup_ShadowSize
+        let margin        = metrics.menuPopup_WindowMargin
+        if openRight + submenuWidth <= topView.position.width - margin do
+            return false
+        if openLeft >= margin do
+            return true
+        return parentTopLeft.x > topView.position.width - parentTopLeft.x - surfaceRect.width
+    }
+
+    private mtd resolveSubmenuDirections()
+    {
+        let surfaceRect = .surfaceRect()
+        for i in .items where @isset(i!.popup) and !i!.hidden
+        {
+            let item = i!
+            item.popup.updateState()
+            item.popup.computeLayoutPopup()
+            item.submenuOpensLeft = .shouldOpenSubmenuLeft(surfaceRect, item.popup.position.width)
+        }
+
+        .invalidate()
+    }
+
     private mtd hasPopupBarAnchor()->bool
     {
         return .popupBarItemIdx != Swag.U32.Max and .ownerMenu and .ownerMenu.bar
@@ -666,6 +724,7 @@ impl MenuCtrl
         {
             let pt = .parent!.surfaceToLocal(ptSurface)
             .setPosition({pt.x, pt.y, .position.width, .position.height})
+            .resolveSubmenuDirections()
             .bringToFront()
             .show()
             .captureMouse()
@@ -712,7 +771,7 @@ impl MenuCtrl
 
         let surfaceRect = .surfaceRect()
         let sdw         = .themeMetrics().menuPopup_ShadowSize
-        let sub = hotItem.popup
+        let sub         = hotItem.popup
         .subVisible           = sub
         sub.ignoreNextRelease = false
         sub.clearPopupBarAnchor()
@@ -720,19 +779,19 @@ impl MenuCtrl
         // Be sure popup menu is in the client area of the top view
         sub.updateState()
         sub.computeLayoutPopup()
-        let topView = .topView()
+        let topView       = .topView()
         let parentTopLeft = topView.surfaceToLocal({surfaceRect.x, surfaceRect.y})
         let subPos        = sub.position
         let openRight     = parentTopLeft.x + surfaceRect.width - 2 * sdw
         let openLeft      = parentTopLeft.x - subPos.width + 2 * sdw
-        var pt            = Math.Point{openRight, parentTopLeft.y + hotItem.pos - .padding.y - sdw}
+        hotItem.submenuOpensLeft = .shouldOpenSubmenuLeft(surfaceRect, subPos.width)
+        var pt = Math.Point{hotItem.submenuOpensLeft ? openLeft : openRight, parentTopLeft.y + hotItem.pos - .padding.y - sdw}
 
-        // Prefer the conventional right side only when it fits. Near the window edge the complete
-        // submenu opens to the left, and an oversized menu is clamped as a last resort.
-        if openRight + subPos.width > topView.position.width and openLeft >= 0 do
-            pt.x = openLeft
-        pt.x = Math.clamp(pt.x, 0.0, Math.max(topView.position.width - subPos.width, 0.0))
-        pt.y = Math.clamp(pt.y, 0.0, Math.max(topView.position.height - subPos.height, 0.0))
+        // Keep the complete submenu inside the window when possible, with the same outer air as
+        // its root. An oversized menu is clamped on the requested side as a last resort.
+        let margin = .themeMetrics().menuPopup_WindowMargin
+        pt.x = Math.clamp(pt.x, margin, Math.max(topView.position.width - subPos.width - margin, margin))
+        pt.y = Math.clamp(pt.y, margin, Math.max(topView.position.height - subPos.height - margin, margin))
 
         pt = topView.localToSurface(pt)
         .showSubVisible(pt)
@@ -929,6 +988,18 @@ public impl MenuCtrl
         .invalidate()
     }
 
+    // Selects the side used by child menus and their chevron markers.
+    //
+    // [[Gui.SubmenuDirection.Automatic]] keeps the conventional right side while it fits and
+    // switches both the child menu and its marker to the left near the window edge.
+    mtd setSubmenuDirection(direction: SubmenuDirection)
+    {
+        if .submenuDirection == direction do
+            return
+        .submenuDirection = direction
+        .invalidate()
+    }
+
     // Reports whether the current modal popup loop has ended.
     mtd const isModalEnded()->bool => .endModal
 
@@ -959,6 +1030,7 @@ public impl MenuCtrl
             .focusPolicy = .Click
             .owner       = owner orelse parent
             .setAllPaddings(.themeMetrics().menuPopup_Padding)
+            .style.addStyleSheetColors("frameWnd_Border $menuPopup_Border")
             .wndFlags |= .Hidden
         }
 
@@ -1182,12 +1254,15 @@ public impl MenuCtrl
         }
 
         let anchored = pos == .AnchorTopCenter or pos == .AnchorBottomCenter
-        .fitPosInParent(simX: !anchored, simY: true)
+        let margin   = .themeMetrics().menuPopup_WindowMargin
+        .fitPosInParent(margin, margin, simX: !anchored, simY: true)
 
         // Fitting a centred popup near the right edge moves the body, not its attachment point.
         // Recompute the notch from the original anchor so it remains directly under the button.
         if anchored do
             .anchorPosition = Math.clamp(pt.x - .position.x, 0.0, .position.width)
+
+        .resolveSubmenuDirections()
 
         .bringToFront()
         .show()

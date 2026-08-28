@@ -930,7 +930,7 @@ impl ThemeColors
         .tabView_RoundBk                  = p.panel
 
         .menuPopup_Bk         = p.panel
-        .menuPopup_Border     = p.line
+        .menuPopup_Border     = Color.lerpRgb(p.faintText, p.line, 0.15)
         .menuPopup_Shadow     = p.shadow
         .menuPopup_Separator  = p.line
         .menuBar_Bk           = p.ground

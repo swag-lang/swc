@@ -76,8 +76,11 @@ using Swag, Core
             @assert(colors.searchMatch_Border.contrastRatio(ground) >= 3.5)
         }
 
-        // An anchored modeless panel is raised over the structural panel ground. Its outline is
-        // the only persistent edge once the shadow falls over dark content.
+        // A popup is raised over the structural panel ground. Its outline is the only persistent
+        // edge once the shadow falls over dark content, so both popup families use stronger ink
+        // than an internal divider.
+        @assert(colors.menuPopup_Border == Color.lerpRgb(palette.faintText, palette.line, 0.15))
+        @assert(colors.menuPopup_Border.contrastRatio(palette.panel) >= 2.5)
         @assert(colors.frameWnd_PopupBorder.contrastRatio(palette.panel) >= 2.5)
     }
 }

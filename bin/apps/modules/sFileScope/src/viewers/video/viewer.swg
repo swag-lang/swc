@@ -1027,6 +1027,7 @@ internal impl VideoViewer
     {
         let strings = videoStrings()
         let menu    = MenuCtrl.createPopup(.subtitleButton, owner: me)
+        menu.setSubmenuDirection(.Left)
         menu.addItem(strings.ui_SubtitleOff, "sFileScope.video.subtitle.off", checked: .subtitleSource == .Off)
 
         var embeddedCommands: Array'String

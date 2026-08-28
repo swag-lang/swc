@@ -198,6 +198,8 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     let metrics     = popup.themeMetrics()
     let shadowWidth = 2 * metrics.menuPopup_ShadowSize
     let chromeWidth = 2 * item.size + 2 * metrics.menuPopup_IconTextMargin + metrics.chevron_Size + popup.padding.x + popup.padding.z + shadowWidth
+    @assert(metrics.chevron_Size == 12)
+    @assert(metrics.menuPopup_WindowMargin == 8)
     @assert(popup.position.width - chromeWidth >= item.name.boundRect.width)
 }
 
@@ -211,6 +213,8 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     let sub   = MenuCtrl.createPopup(&host.root)
     sub.addItem("Open", Menu_Open)
     popup.addPopup("More", sub)
+    popup.setSubmenuDirection(.Right)
+    @assert(popup.submenuDirection == .Right)
 
     var didOpen:     bool
     var didClick:    bool
@@ -221,11 +225,12 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
         discard id
         hidTogether[] = popup.isHidden() and sub.isHidden()
     }
-    host.app.sigFrame += func|host = &host, opened = &didOpen, clicked = &didClick|(app)
+    host.app.sigFrame += func|host = &host, popup, sub, opened = &didOpen, clicked = &didClick|(app)
     {
         if !opened[]
         {
             @assert(host.openPopupSubMenu("More"))
+            @assert(sub.position.x >= popup.position.right() - 2 * popup.themeMetrics().menuPopup_ShadowSize)
             opened[] = true
         }
         elif !clicked[]
@@ -264,7 +269,9 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
         if checked[] do
             return
 
-        @assert(popup.position.right() <= host.root.position.width)
+        let margin = popup.themeMetrics().menuPopup_WindowMargin
+        @assert(popup.position.x >= margin)
+        @assert(popup.position.right() <= host.root.position.width - margin)
         @assert(Math.abs(popup.position.x + popup.anchorPosition - anchor.x) < 0.5)
         @assert(host.clickPopupMenuItem(Menu_Open))
         checked[] = true
@@ -321,8 +328,9 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
         discard app
         if checked[] do
             return
-        @assert(popup.position.x >= 0 and popup.position.y >= 0)
-        @assert(popup.position.right() <= host.root.position.width)
+        let margin = popup.themeMetrics().menuPopup_WindowMargin
+        @assert(popup.position.x >= margin and popup.position.y >= margin)
+        @assert(popup.position.right() <= host.root.position.width - margin)
         @assert(host.dismissPopupMenu())
         checked[] = true
     }
@@ -351,12 +359,79 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
         if checked[] do
             return
         @assert(host.openPopupSubMenu("More choices"))
+        @assert(sub.position.x >= popup.themeMetrics().menuPopup_WindowMargin)
         @assert(sub.position.right() <= popup.position.x + 2 * popup.themeMetrics().menuPopup_ShadowSize)
         @assert(host.clickPopupMenuItem(Menu_Open))
         checked[] = true
     }
 
-    @assert(popup.doModal({315, 50}, autoDestroy: true) == Menu_Open)
+    @assert(popup.doModal({315, 50}, .AnchorTopCenter, autoDestroy: true) == Menu_Open)
+    @assert(checked)
+    host.pump()
+}
+
+// A caller can keep child menus and their markers on the left even when the right side also fits.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(520, 220)
+    defer host.shutdown()
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    let sub   = MenuCtrl.createPopup(&host.root)
+    sub.addItem("Open", Menu_Open)
+    popup.addPopup("More choices", sub)
+    popup.setSubmenuDirection(.Left)
+    @assert(popup.submenuDirection == .Left)
+
+    var checked: bool
+    host.app.sigFrame += func|host = &host, popup, sub, checked = &checked|(app)
+    {
+        discard app
+        if checked[] do
+            return
+        @assert(host.openPopupSubMenu("More choices"))
+        @assert(sub.position.right() <= popup.position.x + 2 * popup.themeMetrics().menuPopup_ShadowSize)
+        @assert(host.clickPopupMenuItem(Menu_Open))
+        checked[] = true
+    }
+
+    @assert(popup.doModal({280, 50}, autoDestroy: true) == Menu_Open)
+    @assert(checked)
+    host.pump()
+}
+
+// A left-opening submenu marker occupies its own leading band before an optional item icon.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 220)
+    defer host.shutdown()
+
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    let sub   = MenuCtrl.createPopup(&host.root)
+    sub.addItem("Sans serif", Menu_Open, checked: true)
+    sub.addItem("Monospace", Menu_Quit)
+    popup.addItem("Current choice", Menu_New, checked: true)
+    popup.addPopup("Typography", sub, icon: host.theme.icon(.Appearance, 16))
+    popup.setSubmenuDirection(.Left)
+
+    var checked: bool
+    host.app.sigFrame += func|host = &host, checked = &checked|(app)
+    {
+        discard app
+        if checked[] do
+            return
+        var image = host.render()
+        Pixel.Testing.assertImageGolden(&image, "menu.popup.left")
+        @assert(host.dismissPopupMenu())
+        checked[] = true
+    }
+
+    discard popup.doModal({348, 204}, .AnchorBottomCenter, autoDestroy: true)
     @assert(checked)
     host.pump()
 }

@@ -119,6 +119,7 @@ impl AppearanceButton
     {
         let root = MenuCtrl.createPopup(me, owner: me)
         root.updateFlags(.HideShortcuts)
+        root.setSubmenuDirection(.Left)
 
         let themes = MenuCtrl.createPopup(root, owner: me)
         themes.addItem(strings().appearance_SwagDark, AppearanceThemeSwagDarkId, checked: .appearanceTheme == .SwagDark)

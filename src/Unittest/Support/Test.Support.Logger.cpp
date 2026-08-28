@@ -93,7 +93,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Logger_ProgressCanBeDisabledFromCommandLine)
 {
     CommandLine cmdLine;
-    char        arg0[] = "swc_devmode";
+    char        arg0[] = "swc.dm";
     char        arg1[] = "syntax";
     char        arg2[] = "--no-log-progress";
     char*       argv[] = {arg0, arg1, arg2};

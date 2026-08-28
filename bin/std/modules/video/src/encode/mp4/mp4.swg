@@ -19,7 +19,7 @@ const Iso2BrandId        = fourCc('i'u32, 's'u32, 'o'u32, '2'u32)
 const Mp41BrandId        = fourCc('m'u32, 'p'u32, '4'u32, '1'u32)
 
 private const MaxFrameSide = 65_535's32
-private const UndLanguage = 0x55C4'u16
+private const UndLanguage  = 0x55C4'u16
 
 // One sample recorded while its payload is streamed into `mdat`.
 private struct EncodedFrame

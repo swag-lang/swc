@@ -22,7 +22,7 @@ struct Document
 {
     public
     {
-        metadata: Metadata             // Descriptive document fields.
+        metadata:       Metadata       // Descriptive document fields.
         readonly pages: Array'Page     // Pages in display order.
     }
 }

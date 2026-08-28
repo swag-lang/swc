@@ -8,14 +8,15 @@ Every tool takes the same shape:
 swc tools\<tool>.swgs [dm] [<command>] [<name>] [options...]
 ```
 
-- `dm` runs the tool under and drives `bin/swc_devmode.exe`; without it the tool uses `bin/swc.exe`.
+- `dm` runs the tool under and drives `bin/swc.dm.exe`; without it the tool uses `bin/swc.exe`.
 - `<command>` is `build`, `run`, `test`, or `smoke`, when the tool has more than one.
 - `<name>` is the module, suite, or script to act on; without it the tool acts on everything.
 - Positionals come first and options after, so an option value is never read as a name.
 - `-h` prints the tool's own usage.
 
-Common options: `-bc <config>` selects `release`, `debug`, or `fast-debug` (default
-`fast-debug`), `--all-cfg` repeats an aggregate tool in all three, `--run-arg <value>` passes
+Common options: `-bc <config>` selects `release` or `devmode` (default `devmode`),
+`--all-cfg` repeats an aggregate tool in both, `--debug` emits native debug information,
+`--run-arg <value>` passes
 an argument to what gets launched, and repeated `--test-file <substring>` values select a union
 of `#test` source files without removing the implementation sources they exercise. Anything else
 is forwarded to the compiler.

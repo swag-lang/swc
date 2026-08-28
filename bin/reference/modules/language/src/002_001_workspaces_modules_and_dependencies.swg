@@ -76,13 +76,15 @@ question the others cannot:
 
 | Directory | Holds |
 |---|---|
-| '<workspace>/.output/<module>' | what building that module produced; the original |
-| '<workspace>/.dep/<module>' | the copy the workspace compiles and links against |
+| '<workspace>/.output/<module>' | what building that module produced and what modules in the same workspace consume |
+| '<workspace>/.dep/<module>' | the copy the workspace consumes for a dependency imported from outside itself |
 | beside the executable | the copy that lets the program run with nothing else present |
 
-The '.dep' copy exists because compile-time execution loads a dependency's shared
-library and holds it open, and a held file cannot be replaced: reading the
-original would stop the very build that has to rewrite it.
+Modules in the same workspace compile and link directly against their producer's
+'.output' artifacts. The '.dep' copy exists only for external dependencies because
+compile-time execution loads a dependency's shared library and holds it open, and
+a held file cannot be replaced: reading an external workspace's original would
+stop a build that has to rewrite it.
 
 An executable asks for the third copy itself:
 

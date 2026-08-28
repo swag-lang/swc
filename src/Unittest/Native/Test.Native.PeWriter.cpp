@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/Linker/Linker.h"
 #include "Backend/Linker/PeWriter.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
@@ -126,6 +127,56 @@ SWC_FILESYSTEM_TEST_BEGIN(PeWriter_MinimalExecutableCallsExitProcess)
         std::println(stderr, "[pe-writer] generated process exited with code {}, expected 42", exitCode);
         return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Linker_NonDebugImageRemovesStalePdb)
+{
+    SWC_UNUSED(ctx);
+
+    ByteArray text;
+    emit(text, {0xC3});
+
+    LinkSection textSection;
+    textSection.name  = ".text";
+    textSection.bytes = std::move(text);
+    textSection.align = 16;
+    textSection.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Execute | LinkSectionFlagsE::Read;
+
+    const fs::path dir = fs::temp_directory_path() / "swc_linker_no_debug_test" / std::to_string(Os::currentProcessId());
+    std::error_code ec;
+    fs::create_directories(dir, ec);
+    if (ec)
+        return Result::Error;
+
+    LinkJob job;
+    job.outputPath = dir / "no_debug.exe";
+    job.output     = LinkJob::Output::Executable;
+    job.targetOs   = Runtime::TargetOs::Windows;
+    job.image.sections.push_back(std::move(textSection));
+    job.image.symbols.push_back({.name = "entry", .sectionIndex = 0, .value = 0});
+    job.image.entrySymbol  = "entry";
+    job.image.kind         = LinkImageKind::Executable;
+    job.image.imageBase    = 0x140000000ull;
+    job.image.stackReserve = 0x100000;
+
+    fs::path stalePdbPath = job.outputPath;
+    stalePdbPath.replace_extension(".pdb");
+    {
+        std::ofstream stalePdb(stalePdbPath, std::ios::binary | std::ios::trunc);
+        if (!stalePdb.is_open())
+            return Result::Error;
+        stalePdb << "stale";
+    }
+
+    Linker::executeLink(job);
+    const bool passed = job.ok && fs::exists(job.outputPath, ec) && !ec && !fs::exists(stalePdbPath, ec) && !ec;
+
+    fs::remove(job.outputPath, ec);
+    fs::remove(stalePdbPath, ec);
+    fs::remove(dir, ec);
+    if (!passed)
+        return Result::Error;
 }
 SWC_TEST_END()
 

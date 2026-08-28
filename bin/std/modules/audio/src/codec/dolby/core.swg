@@ -7,10 +7,10 @@
 
 using Core, Core.Errors, Core.Math
 
-private const MaxChannels = 6
+private const MaxChannels              = 6
 private const MaxFullBandwidthChannels = 5
-private const SamplesPerBlock = 256
-private const BlocksPerAc3Frame = 6
+private const SamplesPerBlock          = 256
+private const BlocksPerAc3Frame        = 6
 
 // Maps AC-3 bit-stream channel order to ascending WAVE speaker-mask order.
 private func dolbySourceChannel(destination, acmod, nfchans: u32, lfeon: bool)->u32
@@ -102,8 +102,8 @@ private struct Imdct
     delay: [SamplesPerBlock] f64
 }
 
-private var g_LongCos: [128] f64
-private var g_LongSin: [128] f64
+private var g_LongCos:  [128] f64
+private var g_LongSin:  [128] f64
 private var g_ShortCos: [64] f64
 private var g_ShortSin: [64] f64
 

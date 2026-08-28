@@ -617,15 +617,9 @@ var GProbeLargeOutbound: func(func(Triple)->u64)->u64 = &probeLargeOutbound
     }
 }
 
-SWC_TEST_BEGIN(FFI_CallSwagStructByValueInteropDebug)
+SWC_TEST_BEGIN(FFI_CallSwagStructByValueInteropDevMode)
 {
-    SWC_RESULT(runSwagStructByValueInterop(ctx, "debug"));
-}
-SWC_TEST_END()
-
-SWC_TEST_BEGIN(FFI_CallSwagStructByValueInteropFastDebug)
-{
-    SWC_RESULT(runSwagStructByValueInterop(ctx, "fast-debug"));
+    SWC_RESULT(runSwagStructByValueInterop(ctx, "devmode"));
 }
 SWC_TEST_END()
 

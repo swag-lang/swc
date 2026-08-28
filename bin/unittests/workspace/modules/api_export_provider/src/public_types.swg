@@ -58,7 +58,7 @@ impl DepShortCallOwner
 struct DepPublicWithPrivateField
 {
     public publicValue: s32
-    hiddenValue: s32
+    hiddenValue:        s32
 }
 
 // A member that says nothing is internal, exactly like a top-level declaration that says
@@ -66,13 +66,13 @@ struct DepPublicWithPrivateField
 struct DepDefaultAccessField
 {
     public shownValue: s32
-    defaultValue: s32
+    defaultValue:      s32
 }
 
 struct DepPublicWithPrivateInlineUnion
 {
     public publicValue: s32
-    using bounds: union
+    using bounds:       union
     {
         signed:   { min: s32, max: s32 } = {0, 0}
         floating: { min: f32, max: f32 } = {0, 0}

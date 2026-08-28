@@ -2,11 +2,11 @@
 
 using Core, Pixel, Gui
 
-private const BinaryGlyphSize = 18.0
-private const BinaryCommandWidth = 36.0
-private const BinaryOffsetWidth = 116.0
+private const BinaryGlyphSize      = 18.0
+private const BinaryCommandWidth   = 36.0
+private const BinaryOffsetWidth    = 116.0
 private const BinaryDetailMinWidth = 200.0
-private const BinaryFillRows = 128'u64
+private const BinaryFillRows       = 128'u64
 
 // Commands shared by the context menu, keyboard, and command bar.
 internal struct ActionBinary {}

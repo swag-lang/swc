@@ -5,9 +5,9 @@ using Core.Errors
 // Thread-local storage for identifier generation.
 #[Swag.Tls]
 {
-    private var g_Rng: Random.MersenneTwister64     // Mersenne Twister 64-bit random number generator
-    private var g_RngInit: bool                     // Flag indicating whether the RNG has been initialized
-    private var g_Counter: u32                      // Thread-local counter for timestamp-based GUIDs
+    private var g_Rng:     Random.MersenneTwister64     // Mersenne Twister 64-bit random number generator
+    private var g_RngInit: bool                         // Flag indicating whether the RNG has been initialized
+    private var g_Counter: u32                          // Thread-local counter for timestamp-based GUIDs
 }
 
 // Initialize the random number generator with high-entropy seed.

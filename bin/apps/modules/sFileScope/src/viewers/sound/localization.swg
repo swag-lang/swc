@@ -26,7 +26,7 @@ struct SoundStrings
 }
 
 private const FrenchStringsName = "lang/fr/filescope.sound.tweak"
-private const FrenchStrings = #include("../../../datas/lang/fr/filescope.sound.tweak")
+private const FrenchStrings     = #include("../../../datas/lang/fr/filescope.sound.tweak")
 
 private var g_SoundStrings: SoundStrings
 

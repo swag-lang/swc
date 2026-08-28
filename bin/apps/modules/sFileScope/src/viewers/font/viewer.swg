@@ -2,7 +2,7 @@
 
 using Core, Pixel, Gui, TrueType
 
-private const FontCommandWidth = 456.0
+private const FontCommandWidth     = 456.0
 private const FontCommandGlyphSize = 18.0
 
 #[Swag.NoCopy]

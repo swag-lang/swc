@@ -7,12 +7,12 @@ using Core, Gui
 #foreignlib("user32")
 #foreignlib("kernel32")
 
-private const PbtApmSuspend = 0x0004'u64
-private const WtsSessionLock = 0x0007'u64
-private const NotifyForThisSession = 0'u32
+private const PbtApmSuspend         = 0x0004'u64
+private const WtsSessionLock        = 0x0007'u64
+private const NotifyForThisSession  = 0'u32
 private const AutoUnmountSubclassId = 0x7353_4372'u64
-private const WmPowerBroadcast = 0x0218'u32
-private const WmWtsSessionChange = 0x02B1'u32
+private const WmPowerBroadcast      = 0x0218'u32
+private const WmWtsSessionChange    = 0x02B1'u32
 
 private alias NativeWindow = #null const *void
 

@@ -129,7 +129,7 @@ struct Strings
 }
 
 private const FrenchStringsName = "lang/fr/gui.tweak"
-private const FrenchStrings = #include(FrenchStringsName)
+private const FrenchStrings     = #include(FrenchStringsName)
 
 private var g_Strings: Strings
 

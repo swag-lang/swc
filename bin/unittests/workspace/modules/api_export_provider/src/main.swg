@@ -1,4 +1,4 @@
-const PRIVATE_VALUE = 99
+const PRIVATE_VALUE    = 99
 public const DEP_VALUE = 7
 
 public func depFutureExport()->s32

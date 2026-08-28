@@ -1,6 +1,6 @@
 ---
 name: modify-swag-codebase
-description: Modify, refactor, fix, test, and validate the Swag compiler repository. Use whenever changing C++ compiler sources, Swag language features, unit tests, examples, build scripts, or other code in this repository; it enforces root-cause fixes, project C++ rules, test placement, and agent-to-agent build and test serialization.
+description: Modify, refactor, fix, test, and validate the Swag compiler repository. Use whenever changing C++ compiler sources, Swag language features, unit tests, examples, build scripts, or other code in this repository; it enforces root-cause fixes, project C++ rules, test placement, and load-aware build and test admission.
 ---
 
 # Modify The Swag Codebase
@@ -12,32 +12,42 @@ documentation line — in the compiler sources, in `bin/`, and in every other fi
 is English; never leave French (or any other language) in the tree, whatever the
 language of the conversation.
 
-## Serialize Agent Builds And Tests Across Worktrees
+## Admit Agent Builds And Tests By Machine Load
 
-All AI agents and worktrees share one machine. Compiler builds and test runs launched by AI agents,
-including Codex and Claude, are exclusive with one another, not per-worktree resources. Coordinate
-with the other agents and inspect agent-owned running processes before taking either slot; a
-different worktree does not make parallel agent work safe.
+All AI agents and worktrees share one machine. Compiler builds and project tests launched by AI
+agents, including Codex and Claude, may overlap in any combination: build with build, test with
+test, or build with test. Admit each new command from the machine's current CPU and memory
+headroom, not from a global build or test slot. A different worktree does not provide different
+resources.
 
-An IDE build or test, or a command launched manually by the user, does not occupy the agent slot.
-Rider, Visual Studio, and user-owned shell processes may overlap an agent command. Classify a
-process by its parent/session or by known agent activity instead of treating every `cl`, `MSBuild`,
-`swc`, or test process on the machine as agent-owned. Never terminate or interfere with an IDE or
-user process.
+Before invoking MSBuild or another command that rebuilds `swc` or `swc.dm`, and before every
+project test command, run:
 
-- Only one AI agent may compile a new `swc` or `swc_devmode` at a time. Before invoking MSBuild or
-  any other command that rebuilds either compiler, wait for any compiler build launched by another
-  agent to finish. Never overlap DevMode and Release builds owned by different agents.
-- Only one AI agent may run project tests at a time, whether the tests use `swc.exe` or
-  `swc_devmode.exe`. Before starting a test command, wait for the test run of another agent to
-  finish. This includes focused tests as well as heavy aggregate campaigns, so a small agent run
-  never piles onto another agent's expensive one.
-- When a test run exposes a problem, stop the remaining tests and release the test slot immediately;
-  investigate or report the first problem before starting more validation. Stop only the processes
-  started by the current agent—never terminate another agent's, IDE's, or user's build or tests to
-  take the slot.
-- Waiting for an occupied slot is the required behavior. Do not bypass it by changing configuration,
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .agents/skills/modify-swag-codebase/scripts/check-machine-load.ps1
+```
+
+The check samples CPU instead of trusting an instantaneous reading. It reports `ready` only when
+average CPU use is at most 65%, available physical memory is at least both 8 GiB and 25% of
+installed memory, and commit headroom is at least both 8 GiB and 20% of the commit limit. These are
+admission thresholds, not targets for a running machine.
+
+- A `ready` result admits one command. Start it promptly; if the start is delayed materially,
+  check again.
+- Check every additional command independently. After starting work, allow at least one complete
+  sampling window for its load to become visible before using a new check to admit more work. Do
+  not launch a batch of parallel commands from one result.
+- A `wait` result means do not start more build or test work. Wait in short intervals, keep the
+  user informed during a long wait, and rerun the check until it reports `ready`.
+- Existing agent, IDE, user-shell, and system processes all count toward measured pressure. Process
+  ownership matters only for control: never terminate, suspend, reprioritize, or otherwise
+  interfere with another agent's, an IDE's, or the user's processes to create headroom.
+- When a command is known to need unusually high memory, raise the check's memory thresholds for
+  that command. Never lower the defaults or evade a `wait` result by changing configuration,
   executable, shell, output directory, or worktree.
+- When parallel validation exposes a problem, stop only commands launched by the current agent
+  whose remaining results would be invalid or misleading, then investigate or report the first
+  problem before starting more validation.
 
 ## Bound Agent Compiler CPU Usage
 
@@ -46,13 +56,13 @@ worker pool at six with `--num-cores 6`. This is separate from `/MP6`, which lim
 compiler only while building `swc` itself.
 
 - Apply the cap to both checkout-local executables: `bin\swc.exe` and
-  `bin\swc_devmode.exe`.
+  `bin\swc.dm.exe`.
 - For a direct compiler command, pass one cap, for example
-  `bin\swc_devmode.exe sema ... --num-cores 6`.
+  `bin\swc.dm.exe sema ... --num-cores 6`.
 - A repository tool script starts by being compiled by `swc`, then commonly launches another
   compiler. Bound both levels: put one option before the script path and forward another through
   the tool, for example
-  `bin\swc_devmode.exe --num-cores 6 tools\unittests.swgs dm cpp --num-cores 6`.
+  `bin\swc.dm.exe --num-cores 6 tools\unittests.swgs dm cpp --num-cores 6`.
 - Preserve an explicit lower limit. `--randomize` and `--seed` already force one compiler worker.
   Exceed six only when the user explicitly requests it or a concurrency reproducer genuinely
   requires it, and state that exception before launching the command.

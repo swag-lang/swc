@@ -558,13 +558,13 @@ impl Capture
         return result
     }
 
-    private func containerKind()->Guid128 => sccId("7355af24-cf65-447b-918c-18ac74e6dc66")
-    private func tagBinType()->Guid128 => sccId("cbb8ce58-7baa-4381-aa22-3b95365a8ba2")
-    private func pngType()->Guid128 => sccId("7de5d04e-37f9-4143-81ac-e7bc6f694b38")
-    private func modelRole()->Guid128 => sccId("e4848e3e-60f5-405f-adad-f109e897a351")
-    private func previewRole()->Guid128 => sccId("f53e06c1-05a7-4537-9c6a-d85609209874")
+    private func containerKind()->Guid128  => sccId("7355af24-cf65-447b-918c-18ac74e6dc66")
+    private func tagBinType()->Guid128     => sccId("cbb8ce58-7baa-4381-aa22-3b95365a8ba2")
+    private func pngType()->Guid128        => sccId("7de5d04e-37f9-4143-81ac-e7bc6f694b38")
+    private func modelRole()->Guid128      => sccId("e4848e3e-60f5-405f-adad-f109e897a351")
+    private func previewRole()->Guid128    => sccId("f53e06c1-05a7-4537-9c6a-d85609209874")
     private func backgroundRole()->Guid128 => sccId("04267f4e-d659-4d32-9296-cc68be5bdb9d")
-    private func originalRole()->Guid128 => sccId("11d1a796-38d8-46ca-a4e6-5e2271ebd321")
+    private func originalRole()->Guid128   => sccId("11d1a796-38d8-46ca-a4e6-5e2271ebd321")
 
     // Reports whether a path is a capture rather than another document using the SCC extension.
     func isFile(file: string)->bool

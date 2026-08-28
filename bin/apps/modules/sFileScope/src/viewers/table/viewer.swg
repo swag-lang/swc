@@ -2,11 +2,11 @@
 
 using Core, Core.Errors, Pixel, Gui
 
-private const TableFileLimit = 32 * 1024 * 1024'u64
-private const TableColumnLimit = 256'u64
-private const TableColumnMinWidth = 96.0
-private const TableColumnMaxWidth = 320.0
-private const TableCellWidth = 8.0
+private const TableFileLimit         = 32 * 1024 * 1024'u64
+private const TableColumnLimit       = 256'u64
+private const TableColumnMinWidth    = 96.0
+private const TableColumnMaxWidth    = 320.0
+private const TableCellWidth         = 8.0
 internal const TableCellPreviewBytes = 1024'u64
 
 internal struct TableRow

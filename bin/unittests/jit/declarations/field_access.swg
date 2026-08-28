@@ -4,11 +4,11 @@
 // write restriction that rides on top of any of them.
 struct Account
 {
-    public id: s32 = 1
-    public readonly balance: s32 = 100
-    ledger: s32 = 7
-    private secret: s32 = 42
-    opened: bool = true
+    public id:               s32  = 1
+    public readonly balance: s32  = 100
+    ledger:                  s32  = 7
+    private secret:          s32  = 42
+    opened:                  bool = true
 }
 
 impl Account

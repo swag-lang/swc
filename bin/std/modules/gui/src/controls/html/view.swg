@@ -20,9 +20,9 @@ private const HtmlMaxDocumentSize = 48 * 1024 * 1024'u64
 // corresponding DOM, cascade and inline layout multiplies a few megabytes into hundreds of
 // megabytes. The window keeps the real HTML engine and author CSS, but only for nearby source.
 private const HtmlVirtualSourceThreshold = 2 * 1024 * 1024'u64
-private const HtmlVirtualProbeSize = 256 * 1024'u64
-private const HtmlVirtualWindowSize = 192 * 1024'u64
-private const HtmlVirtualLookBehind = HtmlVirtualWindowSize / 2
+private const HtmlVirtualProbeSize       = 256 * 1024'u64
+private const HtmlVirtualWindowSize      = 192 * 1024'u64
+private const HtmlVirtualLookBehind      = HtmlVirtualWindowSize / 2
 
 // Source bytes inspected before the first parse to decide how the file spells its characters.
 private const HtmlCharsetProbeSize = 4 * 1024'u64

@@ -44,7 +44,7 @@
 </thead>
 <tbody>
 <tr><td><span class="code-inline">Release</span></td><td><span class="code-inline">bin/swc.exe</span></td><td>Compiler used by applications and normal repository tools</td></tr>
-<tr><td><span class="code-inline">DevMode</span></td><td><span class="code-inline">bin/swc_devmode.exe</span></td><td>Compiler with internal validation and C++ unit tests enabled</td></tr>
+<tr><td><span class="code-inline">DevMode</span></td><td><span class="code-inline">bin/swc.dm.exe</span></td><td>Compiler with internal validation and C++ unit tests enabled</td></tr>
 </tbody>
 </table>
 <p>All intermediate C++ files stay under the repository's <span class="code-inline">.tmp/x64</span> tree.</p>
@@ -71,7 +71,7 @@ swc run -w hello -m hello</span></div>
 <tr><td><span class="code-inline">swc tools\unittests.swgs dm native</span></td><td>Native code generation and execution tests</td></tr>
 <tr><td><span class="code-inline">swc tools\reference.swgs dm test</span></td><td>Executable language reference</td></tr>
 <tr><td><span class="code-inline">swc tools\tests.swgs dm</span></td><td>Full default DevMode test suite</td></tr>
-<tr><td><span class="code-inline">swc tools\tests.swgs dm --all-cfg</span></td><td>Default suite in <span class="code-inline">release</span>, <span class="code-inline">debug</span>, and <span class="code-inline">fast-debug</span></td></tr>
+<tr><td><span class="code-inline">swc tools\tests.swgs dm --all-cfg</span></td><td>Default suite in <span class="code-inline">release</span> and <span class="code-inline">devmode</span></td></tr>
 </tbody>
 </table>
 <p>The repository's <a href="https://github.com/swag-lang/swc/blob/master/AGENTS.md">agent guide</a> defines the required validation sequence for each change type.</p>
@@ -81,7 +81,7 @@ swc run -w hello -m hello</span></div>
 <p>The command rebuilds the brand assets, standard-library API pages, runtime API, language reference, and editorial pages. It deletes existing root HTML files in <span class="code-inline">web</span> first, so edit their sources under <span class="code-inline">bin/reference</span>, <span class="code-inline">bin/runtime</span>, <span class="code-inline">bin/std</span>, or <span class="code-inline">bin/examples</span> rather than editing generated HTML.</p>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.247</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.254</div>
 </footer>
 </section>
 </main>

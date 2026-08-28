@@ -194,8 +194,8 @@
 <div class="code-block"><span class="SCde">swc test --workspace &lt;repository-root&gt;/bin/reference --workspace-module language</span></div>
 <p>The shorter forms are equivalent:</p>
 <div class="code-block"><span class="SCde">swc test -w &lt;repository-root&gt;/bin/reference -m language</span></div>
-<p>Run the command without '-m language' to test every module in the reference workspace. The <span class="code-inline">test</span> command uses the <span class="code-inline">fast-debug</span> build configuration by default; select another registered configuration with <span class="code-inline">--build-cfg</span> (or <span class="code-inline">-bc</span>):</p>
-<div class="code-block"><span class="SCde">swc test -w &lt;repository-root&gt;/bin/reference -m language -bc debug</span></div>
+<p>Run the command without '-m language' to test every module in the reference workspace. The <span class="code-inline">test</span> command uses the <span class="code-inline">devmode</span> build configuration by default; select another registered configuration with <span class="code-inline">--build-cfg</span> (or <span class="code-inline">-bc</span>):</p>
+<div class="code-block"><span class="SCde">swc test -w &lt;repository-root&gt;/bin/reference -m language -bc release</span></div>
 <h3 id="_001_001_using_this_reference_swg_How_to_Read_the_Examples">How to Read the Examples</h3>
 <ul>
 <li>A <span class="code-inline">#test</span> block runs only for the <span class="code-inline">test</span> command.</li>
@@ -447,11 +447,11 @@ swc new module app --workspace my-project</span></div>
 <tr><th>Value</th><th>Intended use</th></tr>
 </thead>
 <tbody>
-<tr><td><span class="code-inline">debug</span></td><td>Full safety/sanity, allocation diagnostics, no optimization</td></tr>
-<tr><td><span class="code-inline">fast-debug</span></td><td>Default: full safety/sanity with optimized code and lighter allocation tracking</td></tr>
+<tr><td><span class="code-inline">devmode</span></td><td>Default: full safety/sanity with optimized code and lighter allocation tracking</td></tr>
 <tr><td><span class="code-inline">release</span></td><td>Optimized code, static sanity on, runtime safety and tracking off</td></tr>
 </tbody>
 </table>
+<p>Neither configuration emits debug information by default. Add <span class="code-inline">--debug</span> to a <span class="code-inline">test</span>, <span class="code-inline">build</span>, <span class="code-inline">run</span>, or <span class="code-inline">smoke</span> command when a debugger needs symbols, types, and source line mappings. The option does not change optimization or guard policy.</p>
 <p>The target architecture currently exposed by <span class="code-inline">--arch</span> is <span class="code-inline">x86_64</span>. Select the artifact with <span class="code-inline">--artifact-kind</span> (<span class="code-inline">-ak</span>): <span class="code-inline">executable</span>, <span class="code-inline">shared-library</span>, <span class="code-inline">static-library</span>, or <span class="code-inline">export</span>.</p>
 <h3 id="_001_004_swc_command_line_swg_Common_Workflows">Common Workflows</h3>
 <div class="code-block"><span class="SCde">swc new script hello
@@ -579,12 +579,12 @@ indent-style = spaces</span></div>
 <tr><th>Directory</th><th>Holds</th></tr>
 </thead>
 <tbody>
-<tr><td><span class="code-inline">&lt;workspace&gt;/.output/&lt;module&gt;</span></td><td>what building that module produced; the original</td></tr>
-<tr><td><span class="code-inline">&lt;workspace&gt;/.dep/&lt;module&gt;</span></td><td>the copy the workspace compiles and links against</td></tr>
+<tr><td><span class="code-inline">&lt;workspace&gt;/.output/&lt;module&gt;</span></td><td>what building that module produced and what modules in the same workspace consume</td></tr>
+<tr><td><span class="code-inline">&lt;workspace&gt;/.dep/&lt;module&gt;</span></td><td>the copy the workspace consumes for a dependency imported from outside itself</td></tr>
 <tr><td>beside the executable</td><td>the copy that lets the program run with nothing else present</td></tr>
 </tbody>
 </table>
-<p>The <span class="code-inline">.dep</span> copy exists because compile-time execution loads a dependency's shared library and holds it open, and a held file cannot be replaced: reading the original would stop the very build that has to rewrite it.</p>
+<p>Modules in the same workspace compile and link directly against their producer's <span class="code-inline">.output</span> artifacts. The <span class="code-inline">.dep</span> copy exists only for external dependencies because compile-time execution loads a dependency's shared library and holds it open, and a held file cannot be replaced: reading an external workspace's original would stop a build that has to rewrite it.</p>
 <p>An executable asks for the third copy itself:</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#run</span>
 {
@@ -982,7 +982,7 @@ indent-style = spaces</span></div>
 </tbody>
 </table>
 <p><span class="code-inline">internal</span> is the default, for a top-level declaration and for an aggregate member alike. Use <span class="code-inline">public</span> deliberately for the supported module API and <span class="code-inline">private</span> for file-local implementation details.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">VisibilityFileLocal</span> = <span class="SNum">10</span>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">VisibilityFileLocal</span>            = <span class="SNum">10</span>
 <span class="SKwd">internal</span> <span class="SKwd">const</span> <span class="SCst">VisibilityModuleLocal</span> = <span class="SNum">20</span>
 
 <span class="SFct">#test</span>
@@ -1040,7 +1040,7 @@ indent-style = spaces</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Counter</span>
 {
     <span class="SKwd">public</span> <span class="SKwd">readonly</span> count: <span class="STpe">s32</span>
-    <span class="SKwd">private</span> step: <span class="STpe">s32</span> = <span class="SNum">2</span>
+    <span class="SKwd">private</span> step:          <span class="STpe">s32</span> = <span class="SNum">2</span>
 }
 
 <span class="SKwd">impl</span> <span class="SCst">Counter</span>
@@ -5588,7 +5588,7 @@ indent-style = spaces</span></div>
 <p>When the source of a <span class="code-inline">#move</span> is a plain local that is provably never used again — no read or write after the move, no taken address, no capture, and a move that always executes when its scope exits — the compiler elides both the reset of the source and its scope-exit drop: <span class="code-inline">opDrop</span> is then NOT called on the reset value. A program can therefore not rely on counting the drops of fully consumed locals. Any use after the move (or any use the compiler cannot prove harmless) keeps the documented reset-then-drop behavior.</p>
 <p>Returning a named local moves it out the same way: the value is transferred to the caller, <span class="code-inline">opPostMove</span> restores its invariants in the caller's storage, and the local's own drop is elided — the resource is released exactly once, by the caller. Only a local still observed after the return — by a <span class="code-inline">defer</span> body or a closure — cannot move: the return then deep-copies through <span class="code-inline">opPostCopy</span> and the local drops normally.</p>
 <h3 id="_006_009_custom_copy_and_move_swg_Lifecycle_Safety">Lifecycle Safety</h3>
-<p>Reading a value abandoned by <span class="code-inline">#relocate</span> — or by <span class="code-inline">#move</span> when the type has no <span class="code-inline">opDrop</span>, which leaves the source unreset — reads stale bits. Under the <span class="code-inline">Swag.SafetyWhat.Lifecycle</span> safety guard (part of <span class="code-inline">All</span>, so enabled by default in debug configurations), the compiler reports proven reads of moved-from locals at compile time, and poisons abandoned or dropped storage with <span class="code-inline">0xDD</span> bytes at runtime so hidden violations fail deterministically instead of silently reading stale data. A <span class="code-inline">#move</span> of a type with <span class="code-inline">opDrop</span> is not concerned: the source is reset to its defaults, which is defined behavior.</p>
+<p>Reading a value abandoned by <span class="code-inline">#relocate</span> — or by <span class="code-inline">#move</span> when the type has no <span class="code-inline">opDrop</span>, which leaves the source unreset — reads stale bits. Under the <span class="code-inline">Swag.SafetyWhat.Lifecycle</span> safety guard (part of <span class="code-inline">All</span>, so enabled by default in <span class="code-inline">devmode</span>), the compiler reports proven reads of moved-from locals at compile time, and poisons abandoned or dropped storage with <span class="code-inline">0xDD</span> bytes at runtime so hidden violations fail deterministically instead of silently reading stale data. A <span class="code-inline">#move</span> of a type with <span class="code-inline">opDrop</span> is not concerned: the source is reset to its defaults, which is defined behavior.</p>
 <h3 id="_006_009_custom_copy_and_move_swg_Move_Semantics_in_Functions">Move Semantics in Functions</h3>
 <p>Move semantics can be expressed in function parameters by prefixing the parameter type with <span class="code-inline">#move</span>. At the call site, prefix the argument with <span class="code-inline">#move</span> to hand the value over instead of copying it.</p>
 <p>A <span class="code-inline">#move</span> parameter also accepts a plain (copyable) value: the compiler then materializes a temporary copy at the call site and moves from that temporary. A single <span class="code-inline">#move</span> function therefore serves both call styles — including through lambdas, function pointers and interface methods — at the price of one extra copy on the copy path. This works for structs, for plain scalar values (integers, floats, bool, rune, enums), and for untyped literals alike.</p>
@@ -7850,7 +7850,7 @@ indent-style = spaces</span></div>
 <p>You can also configure safety checks globally from the build configuration with <span class="code-inline">buildCfg.safetyGuards</span>.</p>
 <div class="blockquote blockquote-note">
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
-<p>Swag offers three predefined build configurations: <span class="code-inline">debug</span>, <span class="code-inline">fast-debug</span>, and <span class="code-inline">release</span>. Safety checks are enabled by default in <span class="code-inline">debug</span> and <span class="code-inline">fast-debug</span>, and disabled in <span class="code-inline">release</span> for performance.</p>
+<p>Swag offers two predefined build configurations: <span class="code-inline">devmode</span> and <span class="code-inline">release</span>. Safety checks are enabled by default in <span class="code-inline">devmode</span> and disabled in <span class="code-inline">release</span> for performance.</p>
 </div>
 <div class="blockquote blockquote-note">
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
@@ -8573,7 +8573,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 
 <span class="SCmp">#static</span> <span class="SLgc">switch</span> <span class="SItr">#complete</span> <span class="SCst">StaticExhaustive</span>
 {
-<span class="SLgc">case</span> .<span class="SCst">Debug</span>:   <span class="SKwd">const</span> <span class="SCst">StaticExhaustiveSelection</span> = <span class="SNum">1</span>
+<span class="SLgc">case</span> .<span class="SCst">Debug</span>:   <span class="SKwd">const</span> <span class="SCst">StaticExhaustiveSelection</span>   = <span class="SNum">1</span>
 <span class="SLgc">case</span> .<span class="SCst">Release</span>: <span class="SKwd">const</span> <span class="SCst">StaticExhaustiveSelection</span> = <span class="SNum">2</span>
 }
 
@@ -8585,7 +8585,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <li><span class="code-inline">Swag.CompilerCommand.Format</span> for 'swc format';</li>
 <li><span class="code-inline">Swag.CompilerCommand.Build</span> for <span class="code-inline">build</span>, <span class="code-inline">run</span>, <span class="code-inline">syntax</span>, <span class="code-inline">sema</span>, and the compiler-internal <span class="code-inline">unittest</span> path.</li>
 </ul>
-<p><span class="code-inline">#cfg</span> is the selected build-configuration name, such as <span class="code-inline">"fast-debug"</span> or <span class="code-inline">"release"</span>. Use these values for genuine source differences, not as a replacement for safety and optimization attributes.</p>
+<p><span class="code-inline">#cfg</span> is the selected build-configuration name, such as <span class="code-inline">"devmode"</span> or <span class="code-inline">"release"</span>. Use these values for genuine source differences, not as a replacement for safety and optimization attributes.</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#static</span> <span class="SLgc">if</span> <span class="SCmp">#command</span> == <span class="SCst">Swag</span>.<span class="SCst">CompilerCommand</span>.<span class="SCst">Test</span>
 {
     <span class="SCmt">// Test-only declarations.</span>
@@ -9255,7 +9255,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.247</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.254</div>
 </footer>
 </section>
 </main>

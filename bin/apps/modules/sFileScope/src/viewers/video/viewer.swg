@@ -2,12 +2,12 @@
 
 using Core, Pixel, Gui, Video, Audio
 
-private const VideoGlyphSize = 18.0
-private const VideoSeekSeconds = 10.0
-private const VideoSeekOverlaySize = Math.Point{112, 64}
-private const VideoSeekOverlayOffsetY = 56.0
+private const VideoGlyphSize                          = 18.0
+private const VideoSeekSeconds                        = 10.0
+private const VideoSeekOverlaySize                    = Math.Point{112, 64}
+private const VideoSeekOverlayOffsetY                 = 56.0
 private const VideoSeekOverlayLifetime: Time.Duration = 650'ms
-private const VideoNoSubtitle = Swag.U32.Max
+private const VideoNoSubtitle                         = Swag.U32.Max
 
 internal enum VideoSubtitleSource
 {
@@ -327,7 +327,7 @@ private const VideoResyncSeconds = 2.0
 // would jitter the presentation by the size of one output buffer. Playback therefore runs its own
 // clock and only re-anchors it when the two have actually separated.
 private const VideoAudioDriftSeconds = 0.1
-private const VideoBackdropColors = "view_Bk 0xFF000000"
+private const VideoBackdropColors    = "view_Bk 0xFF000000"
 
 // How far past the clock a resync jump may land.
 //
@@ -350,8 +350,8 @@ private const VideoRebufferPictures = 4'u64
 // so it is sized in bytes: a 4K stream gets the few pictures that cover it, and a small stream
 // gets a deeper one for the same memory.
 private const VideoPrefetchBytes = 128 * 1024 * 1024'u64
-private const VideoPrefetchMax = 12'u64
-private const VideoPrefetchMin = 2'u64
+private const VideoPrefetchMax   = 12'u64
+private const VideoPrefetchMin   = 2'u64
 
 // Names the absence of a queue slot.
 private const VideoNoSlot = Swag.U32.Max

@@ -85,6 +85,8 @@ namespace
         buildCfg.backendKind = effectiveBackendKind(cmdLine, buildCfg.backendKind);
         if (cmdLine.backendOptimize.has_value())
             buildCfg.backend.optimize = cmdLine.backendOptimize.value();
+        if (cmdLine.debugInfo)
+            buildCfg.backend.debugInfo = true;
 
         if (cmdLine.artifactNameExplicit)
             buildCfg.name = cmdLine.defaultBuildCfg.name;
@@ -163,9 +165,11 @@ namespace
 
     fs::path workspaceModuleOutputDirectory(const fs::path& workspacePath, const Utf8& moduleName, const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind backendKind, const bool workDirectory)
     {
-        fs::path result = workDirectory ? WorkspaceLayout::workspaceWorkDirectory(workspacePath) : WorkspaceLayout::workspaceOutputDirectory(workspacePath);
+        const bool transientTest = cmdLine.command == CommandKind::Test &&
+                                   (backendKind != Runtime::BuildCfgBackendKind::Executable || !cmdLine.testFileFilter.empty());
+        fs::path result = workDirectory || transientTest ? WorkspaceLayout::workspaceWorkDirectory(workspacePath) : WorkspaceLayout::workspaceOutputDirectory(workspacePath);
         result /= fs::path(moduleName.c_str());
-        if (cmdLine.command == CommandKind::Test && backendKind == Runtime::BuildCfgBackendKind::Executable)
+        if (cmdLine.command == CommandKind::Test)
             result /= "test";
         else
             result /= fs::path(backendKindName(backendKind).c_str());
@@ -765,11 +769,9 @@ namespace
         return result.lexically_normal();
     }
 
-    fs::path dependencyImportMetadataPath(const fs::path& apiDir, std::string_view moduleName)
+    fs::path dependencyImportMetadataPath(const fs::path& apiDir)
     {
-        fs::path result = apiDir / fs::path(std::string(moduleName));
-        result.replace_extension(".deps");
-        return result.lexically_normal();
+        return (apiDir / ".swc-deps").lexically_normal();
     }
 
     bool shouldSkipWorkspaceEntry(const fs::directory_entry& entry)
@@ -874,6 +876,7 @@ namespace
         std::vector<fs::path> inputs;
         std::vector<fs::path> dependencyDirs;
         std::vector<fs::path> artifacts;
+        bool                  debugInfo = false;
     };
 
     // Each build mode keeps its own manifest, so alternating `test` and `run` does
@@ -1047,6 +1050,8 @@ namespace
         };
 
         auto   currentSection = Section::None;
+        bool   validVersion   = false;
+        bool   hasDebugInfo   = false;
         size_t start          = 0;
         while (start <= content.size())
         {
@@ -1066,8 +1071,19 @@ namespace
                 continue;
             }
 
-            if (line == "version=2")
+            if (line == "version=3")
             {
+                validVersion = true;
+                if (end == content.size())
+                    break;
+                start = end + 1;
+                continue;
+            }
+
+            if (line == "debug-info=0" || line == "debug-info=1")
+            {
+                outManifest.debugInfo = line.back() == '1';
+                hasDebugInfo           = true;
                 if (end == content.size())
                     break;
                 start = end + 1;
@@ -1110,12 +1126,12 @@ namespace
         normalizeWorkspacePaths(outManifest.inputs);
         normalizeWorkspacePaths(outManifest.dependencyDirs);
         normalizeWorkspaceRelativePaths(outManifest.artifacts);
-        return true;
+        return validVersion && hasDebugInfo;
     }
 
     Result writeWorkspaceArtifactManifest(TaskContext& ctx, const WorkspaceArtifactManifest& manifest, const fs::path& manifestPath)
     {
-        Utf8 content = "version=2\n[inputs]\n";
+        Utf8 content = std::format("version=3\ndebug-info={}\n[inputs]\n", manifest.debugInfo ? 1 : 0);
         for (const fs::path& path : manifest.inputs)
         {
             content += Utf8(path);
@@ -1168,8 +1184,10 @@ namespace
         return false;
     }
 
-    bool workspaceArtifactsAreUpToDate(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& manifestPath, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts)
+    bool workspaceArtifactsAreUpToDate(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& manifestPath, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts, const bool debugInfo)
     {
+        if (manifest.debugInfo != debugInfo)
+            return false;
         if (!workspacePathListContainsAll(manifest.inputs, currentInputs))
             return false;
         if (!sameWorkspacePathList(manifest.dependencyDirs, currentDependencyDirs))
@@ -1253,13 +1271,16 @@ namespace
         return buildTime >= compilerTime;
     }
 
-    bool shouldTryReuseWorkspaceArtifacts(const CommandLine& cmdLine)
+    bool shouldTryReuseWorkspaceArtifacts(const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind backendKind)
     {
         if (cmdLine.rebuild || cmdLine.dryRun || cmdLine.showConfig)
             return false;
 
         if (cmdLine.command == CommandKind::Test)
         {
+            if (backendKind != Runtime::BuildCfgBackendKind::Executable)
+                return false;
+
             // A focused executable contains only the selected #test entry points. It must neither
             // reuse an unfiltered test artifact nor stand in for one on the next invocation.
             if (!cmdLine.testFileFilter.empty())
@@ -1296,7 +1317,62 @@ namespace
 
         // A cached test has no AST against which source-driven expectations can be checked.
         // Keep compiling those inputs so every Verify directive is evaluated on every run.
-        return cmdLine.testNative && cmdLine.output && !hasWorkspaceVerifyDirectives(compiler);
+        return compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable &&
+               cmdLine.testNative && cmdLine.output && !hasWorkspaceVerifyDirectives(compiler);
+    }
+
+    bool isLegacyWorkspaceTestArtifact(const fs::path& path, const bool focusedOnly)
+    {
+        const std::string name = path.filename().string();
+        if (!focusedOnly && name == ".swc-artifacts.test")
+            return true;
+
+        const fs::path extension = path.extension();
+        if (extension != ".dll" && extension != ".exe" && extension != ".lib" && extension != ".pdb")
+            return false;
+        return focusedOnly ? name.contains(".test.focused.") : name.contains(".test.");
+    }
+
+    Result removeLegacyWorkspaceTestArtifacts(TaskContext& ctx, const fs::path& directory, const bool focusedOnly)
+    {
+        std::error_code ec;
+        fs::path        failedPath = directory;
+        const bool      exists = fs::exists(directory, ec);
+        if (ec)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_clean_remove_failed);
+            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, directory, FileSystem::normalizeSystemMessage(ec));
+            diag.report(ctx);
+            return Result::Error;
+        }
+        if (!exists)
+            return Result::Continue;
+
+        for (fs::directory_iterator it(directory, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+                break;
+
+            ec.clear();
+            const bool isRegularFile = it->is_regular_file(ec);
+            if (ec)
+                break;
+            if (!isRegularFile || !isLegacyWorkspaceTestArtifact(it->path(), focusedOnly))
+                continue;
+
+            failedPath = it->path();
+            fs::remove(it->path(), ec);
+            if (ec)
+                break;
+        }
+
+        if (!ec)
+            return Result::Continue;
+
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_clean_remove_failed);
+        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, failedPath, FileSystem::normalizeSystemMessage(ec));
+        diag.report(ctx);
+        return Result::Error;
     }
 
     Utf8 formatWorkspaceReuseStat(const TaskContext& ctx, const CompilerInstance& compiler)
@@ -1615,6 +1691,7 @@ struct DependencyPlanBuilder
 
     CompilerInstance*                                                          compiler = nullptr;
     TaskContext*                                                               ctx      = nullptr;
+    fs::path                                                                   workspaceOutputRoot;
     fs::path                                                                   workspaceDependencyRoot;
     std::unordered_set<Utf8>                                                   mirroredDependencyDirs;
     std::unordered_map<Utf8, fs::path>                                         scriptDependencyEntries;
@@ -1649,7 +1726,10 @@ DependencyPlanBuilder::DependencyPlanBuilder(CompilerInstance& compilerInstance,
     compiler = &compilerInstance;
     ctx      = &taskContext;
     if (!instance().cmdLine().workspacePath.empty())
+    {
+        workspaceOutputRoot     = FileSystem::normalizePath(WorkspaceLayout::workspaceOutputDirectory(instance().cmdLine().workspacePath));
         workspaceDependencyRoot = FileSystem::normalizePath(WorkspaceLayout::workspaceDependencyDirectory(instance().cmdLine().workspacePath));
+    }
 }
 
 ModuleSetupInputApplier::ModuleSetupInputApplier(CompilerInstance& compilerInstance, TaskContext& taskContext)
@@ -1797,7 +1877,7 @@ Result DependencyPlanBuilder::mirrorWorkspaceDependencyDir(fs::path& ioDir, cons
 {
     const fs::path normalizedSourceDir  = FileSystem::normalizePath(ioDir);
     const fs::path normalizedSourceRoot = FileSystem::normalizePath(sourceDependencyRoot);
-    if (FileSystem::pathEquals(normalizedSourceRoot, workspaceDependencyRoot))
+    if (FileSystem::pathEquals(normalizedSourceRoot, workspaceOutputRoot) || FileSystem::pathEquals(normalizedSourceRoot, workspaceDependencyRoot))
     {
         ioDir = normalizedSourceDir;
         return Result::Continue;
@@ -2099,7 +2179,7 @@ Result DependencyPlanBuilder::resolveNode(size_t& outIndex, CompilerInstance::De
     node.paths           = std::move(paths);
     plan.nodes.push_back(std::move(node));
 
-    fs::path depsFile = dependencyImportMetadataPath(plan.nodes[outIndex].paths.apiDir, importRequest.moduleName.view());
+    fs::path depsFile = dependencyImportMetadataPath(plan.nodes[outIndex].paths.apiDir);
     Utf8     because;
     if (FileSystem::resolveExistingFile(depsFile, because) != Result::Continue)
         return Result::Continue;
@@ -2346,13 +2426,14 @@ Result CompilerInstance::collectWorkspaceModuleDependencyDirs(TaskContext& ctx, 
     return Result::Continue;
 }
 
-// Builds the same workspace selection this test run covers, so every module that a tested module
-// imports has published its interface and its link artifacts before the tests are compiled. The
-// nested run is an ordinary build: its command is not `test`, so it cannot come back here.
+// Builds the same workspace selection this consuming command covers, so every imported module has
+// published its interface and link artifacts before tests or documentation are compiled. The
+// nested run is an ordinary build, so it cannot come back here.
 ExitCode CompilerInstance::runWorkspacePublishPass(const DependencyPlan& dependencies) const
 {
-    // `publish` is deliberately inherited: this is a build of the workspace under test, and a link
-    // that does not publish *removes* the runtime files a previous link put beside the artifact.
+    // `publish` is deliberately inherited: this is a build of the workspace the consuming command
+    // requested, and a link that does not publish removes runtime files a previous link placed
+    // beside the artifact.
     CommandLine buildCmdLine      = cmdLine();
     buildCmdLine.command          = CommandKind::Build;
     buildCmdLine.commandExplicit  = true;
@@ -2364,9 +2445,9 @@ ExitCode CompilerInstance::runWorkspacePublishPass(const DependencyPlan& depende
     buildCmdLine.outDirExplicit  = false;
     buildCmdLine.workDirExplicit = false;
     // This pass can be the first code in the process to load and initialize a shared module, and
-    // those lifecycle hooks are process-wide: they must close over the arguments of the test run
-    // that asked for the build, not over a plain build's. Without this the isolation a test run
-    // imposes on itself is decided, once, by a build that is not under test.
+    // those lifecycle hooks are process-wide: they must close over the arguments of the command
+    // that asked for the build, not over a plain build's. In particular, test isolation must not be
+    // decided once by a build that is not under test.
     buildCmdLine.runArgs = effectiveGeneratedArtifactRunArgs(cmdLine());
     CommandLineParser::refreshBuildCfg(buildCmdLine);
 
@@ -2595,6 +2676,42 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
     workspaceBuildLogState_.ignoredModules    = ignoredModuleCount;
     workspaceStage.setStat(formatWorkspaceStageStat(ctx, workspaceBuildLogState_));
 
+    // Older compilers emitted test DLLs and libraries into normal publication directories, and
+    // focused executables into the reusable test directory. Remove those exact legacy products
+    // before the publish pass reads a manifest or copies a dependency beside an executable.
+    if (cmdLine().command == CommandKind::Test)
+    {
+        CommandLine buildCmdLine      = cmdLine();
+        buildCmdLine.command          = CommandKind::Build;
+        buildCmdLine.sourceDrivenTest = false;
+        buildCmdLine.testFileFilter.clear();
+        for (const WorkspaceModuleBuild& moduleBuild : modules)
+        {
+            if (!isWorkspaceModuleActive(moduleBuild))
+                continue;
+
+            const Runtime::BuildCfgBackendKind backendKind = moduleBuild.setup.buildCfg.backendKind;
+            if (backendKind == Runtime::BuildCfgBackendKind::Executable)
+            {
+                const fs::path publishedDirectory = workspaceModuleOutputDirectory(workspacePath, moduleBuild.name, buildCmdLine, backendKind, false);
+                if (removeLegacyWorkspaceTestArtifacts(ctx, publishedDirectory, false) != Result::Continue)
+                    return ExitCode::CompileError;
+
+                CommandLine testCmdLine = cmdLine();
+                testCmdLine.testFileFilter.clear();
+                const fs::path testDirectory = workspaceModuleOutputDirectory(workspacePath, moduleBuild.name, testCmdLine, backendKind, false);
+                if (removeLegacyWorkspaceTestArtifacts(ctx, testDirectory, true) != Result::Continue)
+                    return ExitCode::CompileError;
+            }
+            else
+            {
+                const fs::path publishedDirectory = workspaceModuleOutputDirectory(workspacePath, moduleBuild.name, buildCmdLine, backendKind, false);
+                if (removeLegacyWorkspaceTestArtifacts(ctx, publishedDirectory, false) != Result::Continue)
+                    return ExitCode::CompileError;
+            }
+        }
+    }
+
     DependencyPlan ownedDependencies;
     if (!preparedDependencies)
     {
@@ -2616,13 +2733,11 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
     }
     SWC_ASSERT(preparedDependencies);
 
-    // A test compile never publishes its module's interface: it also sees test-gated declarations,
-    // and the api directory it would write into is the one every later build reads. A dependent
-    // tested in the same run still has to find that interface, so the workspace is built first and
-    // the tests then run against what the build published — the order `tools/std.swgs` already
-    // uses to test a standard-library module. The build is artifact-cached, so a repeated test run
-    // pays for it once, and a workspace whose active modules do not import one another skips it.
-    if (cmdLine().command == CommandKind::Test)
+    // Test and documentation compiles consume native dependency artifacts without publishing their
+    // own. Build the selected workspace first so both commands read complete artifacts from
+    // '.output'. The build is artifact-cached, and a workspace whose active modules do not import
+    // one another skips it.
+    if (cmdLine().command == CommandKind::Test || cmdLine().command == CommandKind::Doc)
     {
         bool hasActiveWorkspaceDependency = false;
         for (size_t i = 0; i < modules.size() && !hasActiveWorkspaceDependency; ++i)
@@ -2715,7 +2830,8 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
 
         // A documentation leaf renders directly from its in-memory symbols. Only modules with
         // active dependents need an API file for a later module to import.
-        const bool                           writeModuleApi = cmdLine().command != CommandKind::Doc || !dependents[moduleIndex].empty();
+        const bool                           importableArtifact = moduleBuild.setup.buildCfg.backendKind != Runtime::BuildCfgBackendKind::Executable;
+        const bool                           writeModuleApi      = importableArtifact && (cmdLine().command != CommandKind::Doc || !dependents[moduleIndex].empty());
         std::unique_ptr<WorkspaceModuleLink> modulePending;
         bool                                 compiled = false;
         if (runWorkspaceModule(moduleBuild, *preparedDependencies, buildIndex + 1, buildCount, writeModuleApi, compiled, modulePending) != Result::Continue)
@@ -2767,7 +2883,9 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     moduleCmdLine.files.clear();
     moduleCmdLine.outDir  = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, false);
     moduleCmdLine.workDir = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, true);
-    if (writeModuleApi)
+    // Executables do not publish an API. Keeping their output directory here lets the module API
+    // pass remove files left by an older compiler before suppressing the export.
+    if (writeModuleApi || moduleBuild.setup.buildCfg.backendKind == Runtime::BuildCfgBackendKind::Executable)
         moduleCmdLine.exportApiDir = moduleCmdLine.outDir;
     else
         moduleCmdLine.exportApiDir.clear();
@@ -2783,7 +2901,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         .total   = moduleCount,
     };
 
-    if (shouldTryReuseWorkspaceArtifacts(moduleCmdLine))
+    if (shouldTryReuseWorkspaceArtifacts(moduleCmdLine, moduleBuild.setup.buildCfg.backendKind))
     {
         std::vector<fs::path> currentInputs;
         collectWorkspaceModuleInputs(currentInputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, {});
@@ -2799,6 +2917,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
 
         std::vector<fs::path> requiredArtifacts;
         fs::path              testArtifactPath;
+        fs::path              unexpectedPdbPath;
         const bool            needsRequiredArtifact  = moduleCmdLine.command == CommandKind::Build || isRunLikeCommand(moduleCmdLine.command);
         const bool            needsTestArtifactProbe = moduleCmdLine.command == CommandKind::Test && probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable;
         if ((needsRequiredArtifact || needsTestArtifactProbe) &&
@@ -2808,13 +2927,17 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             const NativeArtifactBuilder artifactProbeBuilder(nativeProbeBuilder);
             NativeArtifactPaths         artifactPaths;
             artifactProbeBuilder.queryPaths(artifactPaths);
+            if (!probeCompiler.buildCfg().backend.debugInfo &&
+                (probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable ||
+                 probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary))
+                unexpectedPdbPath = artifactPaths.pdbPath;
             if (needsRequiredArtifact)
             {
                 requiredArtifacts.push_back(artifactPaths.artifactPath);
-                // Note: we deliberately do not require artifactPaths.pdbPath here. Debug info is embedded
-                // directly into the PE image by the linker (see PELinker / DebugInfo::buildObject); no
-                // standalone .pdb file is ever produced, even for debug build configs. Requiring one would
-                // make every native module appear permanently stale and force a full rebuild every time.
+                if (probeCompiler.buildCfg().backend.debugInfo &&
+                    (probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable ||
+                     probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary))
+                    requiredArtifacts.push_back(artifactPaths.pdbPath);
                 probeCompiler.setLastArtifactLabel(artifactPaths.artifactPath.filename().empty() ? Utf8(artifactPaths.artifactPath) : Utf8(artifactPaths.artifactPath.filename()));
             }
             else
@@ -2829,8 +2952,11 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
 
         WorkspaceArtifactManifest manifest;
         const fs::path            manifestPath = workspaceArtifactManifestPath(moduleCmdLine.outDir, moduleCmdLine);
-        if (readWorkspaceArtifactManifest(manifest, manifestPath) &&
-            workspaceArtifactsAreUpToDate(manifest, moduleCmdLine.outDir, manifestPath, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts))
+        std::error_code           unexpectedPdbError;
+        const bool                hasUnexpectedPdb = !unexpectedPdbPath.empty() && fs::exists(unexpectedPdbPath, unexpectedPdbError);
+        if (!hasUnexpectedPdb && !unexpectedPdbError &&
+            readWorkspaceArtifactManifest(manifest, manifestPath) &&
+            workspaceArtifactsAreUpToDate(manifest, moduleCmdLine.outDir, manifestPath, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts, probeCompiler.buildCfg().backend.debugInfo))
         {
             const bool     runReusedTestArtifact = !testArtifactPath.empty() && workspaceManifestContainsArtifact(manifest, moduleCmdLine.outDir, testArtifactPath);
             ScopedTimedLog moduleStage(probeCtx, ScopedTimedLog::Stage::Module);
@@ -2921,6 +3047,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             if (shouldWriteWorkspaceArtifactManifest(*moduleCompiler) && (!commandFailed || moduleCompiler->nativeArtifactBuilt()))
             {
                 WorkspaceArtifactManifest manifest;
+                manifest.debugInfo = moduleCompiler->buildCfg().backend.debugInfo;
                 collectWorkspaceModuleInputs(manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles_);
                 if (moduleCompiler->collectWorkspaceModuleDependencyDirs(moduleCtx, manifest.dependencyDirs, dependencies, moduleBuild.setup.imports) != Result::Continue)
                     return Result::Error;
@@ -2944,6 +3071,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         link->writeManifest = shouldWriteWorkspaceArtifactManifest(*moduleCompiler);
         if (link->writeManifest)
         {
+            link->manifest.debugInfo = moduleCompiler->buildCfg().backend.debugInfo;
             collectWorkspaceModuleInputs(link->manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles_);
             if (moduleCompiler->collectWorkspaceModuleDependencyDirs(moduleCtx, link->manifest.dependencyDirs, dependencies, moduleBuild.setup.imports) != Result::Continue)
                 return Result::Error;

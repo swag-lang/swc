@@ -394,7 +394,7 @@ private func codeMatches(line: *RichEditLine, at: u64, text: string)->bool
 }
 
 private func codeIdentifierStart(value: rune)->bool => Unicode.isLetter(value) or value == '_' or value == '$' or value == '@' or value == '\\'
-private func codeIdentifier(value: rune)->bool => Unicode.isLetterOrDigit(value) or value == '_' or value == '$' or value == '@' or value == '\\'
+private func codeIdentifier(value: rune)->bool      => Unicode.isLetterOrDigit(value) or value == '_' or value == '$' or value == '@' or value == '\\'
 
 internal impl IRichEditLexer for GenericCodeLexer
 {

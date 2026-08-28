@@ -747,7 +747,7 @@ impl LibraryWnd
 
     mtd showFolderMenu(btn: *Button)
     {
-        var pos = btn.surfaceRect()
+        var pos       = btn.surfaceRect()
         with let menu = MenuCtrl.createPopup(me, owner: me)
         {
             .addItem(appStrings().act_OpenLibraryFolder, "sSnapForge.library.root")
@@ -805,7 +805,7 @@ impl LibraryWnd
         .menuValues.clear()
         .menuValues.reserve(2 * (applications.count + tags.count) + 2)
 
-        var pos = btn.surfaceRect()
+        var pos       = btn.surfaceRect()
         with let menu = MenuCtrl.createPopup(me, owner: me)
         {
             .addItem(ActionLibFilter.Reset)
@@ -1212,7 +1212,7 @@ impl LibraryWnd
             .setArrowPosition(.RightDownward)
             .sigPressed += func|res|(btn)
             {
-                var pos = btn.surfaceRect()
+                var pos       = btn.surfaceRect()
                 with var menu = MenuCtrl.createPopup(res)
                 {
                     menu.updateFlags(.HideShortcuts)
@@ -1239,7 +1239,7 @@ impl LibraryWnd
             .setArrowPosition(.RightDownward)
             .sigPressed += func|res|(btn)
             {
-                var pos = btn.surfaceRect()
+                var pos       = btn.surfaceRect()
                 with var menu = MenuCtrl.createPopup(res)
                 {
                     menu.updateFlags(.HideShortcuts)

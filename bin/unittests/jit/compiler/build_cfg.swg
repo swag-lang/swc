@@ -4,14 +4,14 @@
 {
     const Cfg = #run @compiler.getBuildCfg()![]
     #assert(Cfg.backend.optimize == true or Cfg.backend.optimize == false)
-    #assert(Cfg.backend.debugInfo == true)
+    #assert(Cfg.backend.debugInfo == false)
     #assert(Cfg.backend.enableExceptions == true)
     #assert(#typeof(Cfg.allocatorCaptureStack) == bool)
     #assert(#typeof(Cfg.allocatorLeaks) == bool)
     #assert(#typeof(Cfg.allocatorTrackAllocations) == bool)
     #assert(#typeof(Cfg.allocatorElectricMode) == bool)
     #assert(#typeof(Cfg.allocatorFillMemory) == bool)
-    #assert(Cfg.registeredConfigs == "debug|fast-debug|release")
+    #assert(Cfg.registeredConfigs == "devmode|release")
     #assert(Cfg.name == null)
     #assert(Cfg.outDir == "" or Cfg.outDir != "")
     #assert(Cfg.workDir == "" or Cfg.workDir != "")

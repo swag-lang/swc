@@ -12,7 +12,7 @@ struct HtmlStrings
 }
 
 private const FrenchStringsName = "lang/fr/filescope.html.tweak"
-private const FrenchStrings = #include("../../../datas/lang/fr/filescope.html.tweak")
+private const FrenchStrings     = #include("../../../datas/lang/fr/filescope.html.tweak")
 
 private var g_HtmlStrings: HtmlStrings
 

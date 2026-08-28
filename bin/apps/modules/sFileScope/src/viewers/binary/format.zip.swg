@@ -3,8 +3,8 @@
 using Core
 
 // Signatures the three records a reader needs are found by.
-private const ZipEndSignature = 0x06054B50'u32
-private const ZipEntrySignature = 0x02014B50'u32
+private const ZipEndSignature          = 0x06054B50'u32
+private const ZipEntrySignature        = 0x02014B50'u32
 private const ZipZip64LocatorSignature = 0x07064B50'u32
 
 // How far back the trailing record is looked for. It sits at the very end unless the archive

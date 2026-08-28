@@ -2,9 +2,9 @@
 
 using Core
 
-private const ReverseBgr24 = cast(Math.Simd.U8x16) [13'u8, 14, 15, 10, 11, 12, 7, 8, 9, 4, 5, 6, 128, 128, 128, 128]
+private const ReverseBgr24  = cast(Math.Simd.U8x16) [13'u8, 14, 15, 10, 11, 12, 7, 8, 9, 4, 5, 6, 128, 128, 128, 128]
 private const ReverseBgra32 = cast(Math.Simd.U8x16) [12'u8, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3]
-private const RepeatBgr24 = cast(Math.Simd.U8x16) [0'u8, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 128, 128, 128, 128]
+private const RepeatBgr24   = cast(Math.Simd.U8x16) [0'u8, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 128, 128, 128, 128]
 private const SwapRedBlue24 = cast(Math.Simd.U8x16) [2'u8, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 128, 128, 128, 128]
 private const SwapRedBlue32 = cast(Math.Simd.U8x16) [2'u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15]
 

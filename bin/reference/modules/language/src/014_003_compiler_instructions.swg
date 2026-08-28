@@ -77,7 +77,7 @@ const StaticExhaustive = StaticBuildMode.Debug
 
 #static switch #complete StaticExhaustive
 {
-case .Debug:   const StaticExhaustiveSelection = 1
+case .Debug:   const StaticExhaustiveSelection   = 1
 case .Release: const StaticExhaustiveSelection = 2
 }
 
@@ -93,7 +93,7 @@ case .Release: const StaticExhaustiveSelection = 2
 - 'Swag.CompilerCommand.Build' for 'build', 'run', 'syntax', 'sema', and the
   compiler-internal 'unittest' path.
 
-'#cfg' is the selected build-configuration name, such as '"fast-debug"' or
+'#cfg' is the selected build-configuration name, such as '"devmode"' or
 '"release"'. Use these values for genuine source differences, not as a
 replacement for safety and optimization attributes.
 

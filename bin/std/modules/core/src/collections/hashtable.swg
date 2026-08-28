@@ -10,7 +10,7 @@ struct(K, V) HashTableEntry
     public
     {
         readonly key: K     // The key.
-        value: V            // The value associated with the key.
+        value:        V     // The value associated with the key.
     }
 }
 

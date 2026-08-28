@@ -73,6 +73,13 @@ namespace
             return INVALID_PIECE;
         }
 
+        bool lineIsStandaloneDeclaration(const FormatRoleE startRole, const uint32_t lineStart) const
+        {
+            if (findRoleOnLine(lineStart, startRole, false) == INVALID_PIECE)
+                return false;
+            return startRole != FormatRoleE::VarDeclStart || !model_->piece(lineStart).hasRole(FormatRoleE::ControlKeyword);
+        }
+
         // The piece whose start column gets aligned for this line, or
         // INVALID_PIECE when the line does not belong to the category.
         uint32_t anchorOf(const AlignCategory category, const uint32_t lineStart) const
@@ -87,12 +94,12 @@ namespace
                     return findRoleOnLine(lineStart, FormatRoleE::AssignOp, false);
 
                 case AlignCategory::Declarations:
-                    if (!first.hasRole(FormatRoleE::VarDeclStart))
+                    if (!lineIsStandaloneDeclaration(FormatRoleE::VarDeclStart, lineStart))
                         return INVALID_PIECE;
                     return findRoleOnLine(lineStart, FormatRoleE::DeclColon, true);
 
                 case AlignCategory::Constants:
-                    if (!first.hasRole(FormatRoleE::ConstDeclStart))
+                    if (findRoleOnLine(lineStart, FormatRoleE::ConstDeclStart, false) == INVALID_PIECE)
                         return INVALID_PIECE;
                     return findRoleOnLine(lineStart, FormatRoleE::InitAssign, false);
 
@@ -102,7 +109,7 @@ namespace
                     return findRoleOnLine(lineStart, FormatRoleE::InitAssign, false);
 
                 case AlignCategory::StructFields:
-                    if (!first.hasRole(FormatRoleE::FieldDeclStart))
+                    if (findRoleOnLine(lineStart, FormatRoleE::FieldDeclStart, false) == INVALID_PIECE)
                         return INVALID_PIECE;
                     return findRoleOnLine(lineStart, FormatRoleE::DeclColon, true);
 
@@ -112,7 +119,7 @@ namespace
                     return findRoleOnLine(lineStart, FormatRoleE::EnumAssign, false);
 
                 case AlignCategory::FatArrows:
-                    if (!first.hasRole(FormatRoleE::FuncDeclStart))
+                    if (findRoleOnLine(lineStart, FormatRoleE::FuncDeclStart, false) == INVALID_PIECE)
                         return INVALID_PIECE;
                     return findRoleOnLine(lineStart, FormatRoleE::FatArrow, false);
 
@@ -292,7 +299,7 @@ namespace
         // column), so it no longer fragments the surrounding group.
         bool declLineHasColumn(const FormatRoleE startRole, const uint32_t lineStart) const
         {
-            if (!model_->piece(lineStart).hasRole(startRole))
+            if (!lineIsStandaloneDeclaration(startRole, lineStart))
                 return false;
             return typeAnchorOf(lineStart) != INVALID_PIECE || initAnchorOf(lineStart) != INVALID_PIECE;
         }

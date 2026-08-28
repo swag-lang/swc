@@ -31,7 +31,7 @@ configuration, then build the `swc` project.
 | Configuration | Output | Purpose |
 |---|---|---|
 | `Release` | `bin/swc.exe` | Compiler used by applications and normal repository tools |
-| `DevMode` | `bin/swc_devmode.exe` | Compiler with internal validation and C++ unit tests enabled |
+| `DevMode` | `bin/swc.dm.exe` | Compiler with internal validation and C++ unit tests enabled |
 
 All intermediate C++ files stay under the repository's `.tmp/x64` tree.
 
@@ -71,7 +71,7 @@ useful while iterating:
 | `swc tools\unittests.swgs dm native` | Native code generation and execution tests |
 | `swc tools\reference.swgs dm test` | Executable language reference |
 | `swc tools\tests.swgs dm` | Full default DevMode test suite |
-| `swc tools\tests.swgs dm --all-cfg` | Default suite in `release`, `debug`, and `fast-debug` |
+| `swc tools\tests.swgs dm --all-cfg` | Default suite in `release` and `devmode` |
 
 The repository's [agent guide](https://github.com/swag-lang/swc/blob/master/AGENTS.md)
 defines the required validation sequence for each change type.

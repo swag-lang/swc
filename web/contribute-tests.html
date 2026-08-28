@@ -70,7 +70,7 @@
 <p>Before submitting a compiler change, follow the validation sequence in the repository's <span class="code-inline">AGENTS.md</span>. The common aggregate commands are:</p>
 <div class="code-block"><span class="SCde">swc tools\tests.swgs dm
 swc tools\tests.swgs dm --all-cfg</span></div>
-<p><span class="code-inline">tests.swgs</span> runs the default suite once. <span class="code-inline">tests.swgs --all-cfg</span> repeats it for <span class="code-inline">release</span>, <span class="code-inline">debug</span>, and <span class="code-inline">fast-debug</span> language configurations.</p>
+<p><span class="code-inline">tests.swgs</span> runs the default suite once. <span class="code-inline">tests.swgs --all-cfg</span> repeats it for the <span class="code-inline">release</span> and <span class="code-inline">devmode</span> language configurations.</p>
 <h2 id="Keep_failures_reviewable">Keep failures reviewable</h2>
 <ul>
 <li>Add one regression concept per small file or clearly named group.</li>
@@ -83,7 +83,7 @@ swc tools\tests.swgs dm --all-cfg</span></div>
 <p>The executable <a href="language.html">language reference</a> is also a regression suite, but it should teach supported behavior. Put edge cases and rejected forms in <span class="code-inline">bin/unittests</span> unless they materially improve the explanation.</p>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.247</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.254</div>
 </footer>
 </section>
 </main>

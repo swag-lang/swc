@@ -39,7 +39,7 @@ private struct SeedRange
     start, end: u64
 }
 
-private var seeds: Array'u64
+private var seeds:   Array'u64
 private var convert: [7] Array'Range
 
 func day5B()

@@ -155,7 +155,7 @@ impl IWnd for MainWnd
 {
     mtd popupBar()
     {
-        let sf = (catch .app().createSurface(500, 400, 300, 300, .ToolWindow | .TopMost))!
+        let sf        = (catch .app().createSurface(500, 400, 300, 300, .ToolWindow | .TopMost))!
         with let menu = Wnd.create'MenuCtrl(sf.wnd.view)
         {
             .addItem(ActionGlobal.ShowEditor)
@@ -706,8 +706,8 @@ impl MainWnd
     mtd createTopMenu()
     {
         @assert(me.parent != null)
-        let parentWnd = me.parent
-        let metrics   = .themeMetrics()
+        let parentWnd    = me.parent
+        let metrics      = .themeMetrics()
         with let topMenu = MenuCtrl.createBar(parentWnd, owner: me)
         {
             .sendToBack()

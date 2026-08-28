@@ -9,7 +9,7 @@ using Core, Core.Errors, Pixel
 
 // FFmpeg uses the same automatic ceiling for frame-threaded video decoders.
 private const AvcMaxFrameThreads = 16'u32
-private const AvcNoLane = Swag.U32.Max
+private const AvcNoLane          = Swag.U32.Max
 
 // What one picture in flight costs, and how much the stream may spend on them together.
 //
@@ -19,7 +19,7 @@ private const AvcNoLane = Swag.U32.Max
 // decoding anything. Past a handful of threads the stream already decodes several times faster
 // than any clock asks for, so the budget buys back the memory rather than the speed.
 private const AvcBytesPerLanePixel = 7'u64
-private const AvcLaneMemoryBudget = 640 * 1024 * 1024'u64
+private const AvcLaneMemoryBudget  = 640 * 1024 * 1024'u64
 
 // How many pixels of picture one frame thread is worth.
 //
@@ -28,7 +28,7 @@ private const AvcLaneMemoryBudget = 640 * 1024 * 1024'u64
 // times faster than any clock asks for on four of them, and sixteen would only hold three times
 // the memory to race further ahead of a queue that is already full. One lane per half megapixel
 // gives four at 1080p and the full set at 4K.
-private const AvcPixelsPerLane = 480_000'u64
+private const AvcPixelsPerLane   = 480_000'u64
 private const AvcMinFrameThreads = 2'u32
 
 // One decoded H.264 frame waiting for its display turn.

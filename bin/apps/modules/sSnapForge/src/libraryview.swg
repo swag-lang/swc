@@ -15,10 +15,10 @@ func ratingLabel(rating: u8)->String
 }
 
 internal var g_UpdatingLib: bool
-internal var g_DirtyList: bool = true
-internal const ItemMargin = 8.0
+internal var g_DirtyList:   bool = true
+internal const ItemMargin      = 8.0
 internal const RatingGlyphSize = 12.0
-internal const RatingGlyphGap = 2.0
+internal const RatingGlyphGap  = 2.0
 
 // How often the visible set is rebuilt while the previews are still streaming in. Each
 // loaded capture marks the list dirty, so without a cadence the rebuild runs on every
@@ -155,7 +155,7 @@ impl IWnd for LibraryView
 
             let focused        = .items[.focusItem]
             let focusedCapture = focused.capture
-            with let menu = MenuCtrl.createPopup(me)
+            with let menu      = MenuCtrl.createPopup(me)
             {
                 if me.libWnd.trashMode
                 {

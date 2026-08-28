@@ -344,10 +344,10 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
 
 // Bits of the `/Flags` entry of a font descriptor this module reads.
 private const FlagFixedPitch = 1'u32 << 0
-private const FlagSerif = 1'u32 << 1
-private const FlagSymbolic = 1'u32 << 2
-private const FlagItalic = 1'u32 << 6
-private const FlagForceBold = 1'u32 << 18
+private const FlagSerif      = 1'u32 << 1
+private const FlagSymbolic   = 1'u32 << 2
+private const FlagItalic     = 1'u32 << 6
+private const FlagForceBold  = 1'u32 << 18
 
 // Reads the traits that decide which substitute face stands in for a font.
 //

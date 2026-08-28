@@ -19,7 +19,7 @@ struct FontStrings
 }
 
 private const FrenchStringsName = "lang/fr/filescope.font.tweak"
-private const FrenchStrings = #include("../../../datas/lang/fr/filescope.font.tweak")
+private const FrenchStrings     = #include("../../../datas/lang/fr/filescope.font.tweak")
 
 private var g_FontStrings: FontStrings
 

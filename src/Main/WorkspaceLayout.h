@@ -9,14 +9,16 @@ SWC_BEGIN_NAMESPACE();
 //
 // A dependency exists in more than one place, and each copy answers a question the others cannot:
 //
-//   `<ws>/.output/<module>/...`   what building that module produced. This is the original, and
-//                                 the only one anything is ever built from.
-//   `<ws>/.dep/<module>/...`      the copy the workspace consumes. A compile-time execution loads
-//                                 a dependency's shared library and holds it open for the rest of
-//                                 the process, and Windows will not let a held file be replaced;
-//                                 reading the original would therefore stop the very build that
-//                                 has to rewrite it. It is also what the compiler puts on the
-//                                 PATH of an artifact it launches itself.
+//   `<ws>/.output/<module>/...`   what building that module produced, and what other modules in
+//                                 the same workspace consume. This is the original, and the only
+//                                 one anything is ever built from.
+//   `<ws>/.dep/<module>/...`      the copy the workspace consumes for a dependency imported from
+//                                 outside itself. A compile-time execution loads a dependency's
+//                                 shared library and holds it open for the rest of the process, and
+//                                 Windows will not let a held file be replaced; reading an external
+//                                 workspace's original would therefore stop a build that has to
+//                                 rewrite it. It is also what the compiler puts on the PATH of an
+//                                 artifact it launches itself.
 //   beside the executable         the copy that lets the program run with nothing else present.
 //                                 A module asks for it with `publishDependencies`, because
 //                                 whether a program has to stand on its own is a fact about the
@@ -25,7 +27,8 @@ SWC_BEGIN_NAMESPACE();
 //                                 to keep one in. Named after the bytes it holds, so scripts that
 //                                 import the same build share one.
 //
-// So: `.output` is written, `.dep` is read, and a published copy is what ships.
+// So: `.output` is written and consumed inside a workspace, `.dep` holds external dependencies,
+// and a published copy is what ships.
 namespace WorkspaceLayout
 {
     // Artifacts a workspace build publishes, and the intermediate files it does not.

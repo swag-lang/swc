@@ -1198,8 +1198,8 @@ impl Application
     }
 
     private func stateContainerKind()->Guid128 => stateId("89c98d18-11dc-42a0-910c-4bb64b3e2776")
-    private func stateChunkType()->Guid128 => stateId("cbb8ce58-7baa-4381-aa22-3b95365a8ba2")
-    private func stateChunkRole()->Guid128 => stateId("a37d3af6-2ba5-4bc4-b796-48878fd09fe4")
+    private func stateChunkType()->Guid128     => stateId("cbb8ce58-7baa-4381-aa22-3b95365a8ba2")
+    private func stateChunkRole()->Guid128     => stateId("a37d3af6-2ba5-4bc4-b796-48878fd09fe4")
 
     // Saves serializable surface placement to the configured state file.
     mtd saveState() fail

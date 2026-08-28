@@ -388,7 +388,7 @@ Result CodeGenSafety::emitUndefinedInitMarkers(CodeGen& codeGen, const MicroReg 
 
     // The 0xDD fill is the RUNTIME mitigation (Swag.Safety(.Lifecycle)): an accidental
     // read of '= undefined' storage then sees a deterministic poison instead of whatever
-    // the frame happened to hold, so debug configurations fail loudly where release
+    // the frame happened to hold, so devmode fails loudly where release
     // would misbehave at random.
     if (hasLifecycleRuntimeSafety(codeGen))
         SWC_RESULT(emitLifecyclePoison(codeGen, addrReg, sizeInBytes));

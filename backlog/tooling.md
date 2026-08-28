@@ -62,7 +62,7 @@ being compiled by it.
   relaunched process, every generation rebuilds the tool's dependencies and spawns the next. It
   misfired once: a fresh worktree, `SWC_INTERVAL_RA=*`, a user-supplied `--rebuild`, and a
   checkpoint of the interval allocator compiling the tool's own `core` gate-on — 55 nested
-  `swc_devmode.exe` processes in nine minutes, stopped by hand.
+  `swc.dm.exe` processes in nine minutes, stopped by hand.
 - Evidence: 2026-08-27, branch `t563-r1` at `d0621af96`; the log repeats `swag run • tools`,
   `module core`, `workspace std [core]`, `tuned 644 functions`. The same command with the
   compiler that followed, and every variant with only one of the conditions, runs once; the

@@ -6,10 +6,10 @@
 #global namespace Dolby
 
 // Normative AC-3 tables from ATSC A/52:2018, sections 5 and 7.
-private const BitRates: [19] u32 = [32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 448, 512, 576, 640]
-private const SampleRates: [3] u32 = [48_000, 44_100, 32_000]
-private const FullBandwidthChannels: [8] u32 = [2, 1, 2, 3, 3, 4, 4, 5]
-private const ExponentGroupSize: [4] u32 = [0, 1, 2, 4]
+private const BitRates:              [19] u32 = [32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 448, 512, 576, 640]
+private const SampleRates:           [3] u32  = [48_000, 44_100, 32_000]
+private const FullBandwidthChannels: [8] u32  = [2, 1, 2, 3, 3, 4, 4, 5]
+private const ExponentGroupSize:     [4] u32  = [0, 1, 2, 4]
 
 private const SLOW_DECAY: [4] s32 = [0x0F, 0x11, 0x13, 0x15]
 

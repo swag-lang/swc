@@ -8,8 +8,8 @@
 using Core, Core.Errors, Core.Math
 
 private const FrameSamples = 1024
-private const MaxBands = 8 * 52
-private const MaxChannels = 6
+private const MaxBands     = 8 * 52
+private const MaxChannels  = 6
 
 private struct BitReader
 {
@@ -226,11 +226,11 @@ private impl ImdctPlan
 }
 
 private var g_SpectralTrees: [11] HuffTree
-private var g_ScaleTree: HuffTree
-private var g_ImdctLong: ImdctPlan
-private var g_ImdctShort: ImdctPlan
-private var g_LongWindows: [2, 1024] f64
-private var g_ShortWindows: [2, 128] f64
+private var g_ScaleTree:     HuffTree
+private var g_ImdctLong:     ImdctPlan
+private var g_ImdctShort:    ImdctPlan
+private var g_LongWindows:   [2, 1024] f64
+private var g_ShortWindows:  [2, 128] f64
 
 private func initializeTables()
 {

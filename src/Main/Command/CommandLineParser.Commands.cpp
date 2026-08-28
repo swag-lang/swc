@@ -118,6 +118,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Target, "sema doc test build run smoke", "--optimize", "-o",
         &cmdLine_->backendOptimize,
         "Enable backend optimization for JIT folding and native code generation");
+    add(HelpOptionGroup::Target, "test build run smoke", "--debug", nullptr,
+        &cmdLine_->debugInfo,
+        "Emit debug information for native artifacts");
     add(HelpOptionGroup::Target, "doc", "--doc-output-dir", nullptr,
         &cmdLine_->docOutputDir,
         "Write generated documentation to this directory");

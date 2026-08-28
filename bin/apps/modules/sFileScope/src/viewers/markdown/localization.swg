@@ -19,7 +19,7 @@ struct MarkdownStrings
 }
 
 private const FrenchStringsName = "lang/fr/filescope.markdown.tweak"
-private const FrenchStrings = #include("../../../datas/lang/fr/filescope.markdown.tweak")
+private const FrenchStrings     = #include("../../../datas/lang/fr/filescope.markdown.tweak")
 
 private var g_MarkdownStrings: MarkdownStrings
 

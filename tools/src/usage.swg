@@ -14,8 +14,8 @@ Runs the complete repository test set.
   swc tools/tests.swgs [dm] [options...]
 
   dm                 use the DevMode compiler
-  -bc <config>       release, debug, or fast-debug (default fast-debug)
-  --all-cfg          repeat the complete set in all three configurations
+  -bc <config>       release or devmode (default devmode)
+  --all-cfg          repeat the complete set in both configurations
 
 Five rungs, cheapest and most specific first: the frontend suites, the code
 generation suites, the standard library, the applications and the reference,
@@ -32,7 +32,7 @@ Runs the compiler test suites.
 
   dm                 use the DevMode compiler, and run the C++ suite
   <suite>            cpp lexer parser sema jit safety sanity native workspace
-  -bc <config>       release, debug, or fast-debug (default fast-debug)
+  -bc <config>       release or devmode (default devmode)
 
 Without a suite every suite runs, in the order above. Any other option is
 forwarded to the compiler, for instance --seed, --num-cores, or --randomize.
@@ -59,7 +59,7 @@ Builds or tests the standard library.
 
   dm                 use the DevMode compiler
   <module>           one of bin/std/modules, for instance core or pixel
-  -bc <config>       release, debug, or fast-debug (default fast-debug)
+  -bc <config>       release or devmode (default devmode)
   --test-file <text> run only #test functions from matching source paths; repeatable
   --run-arg <value>  pass a run argument to the tested module
 
@@ -74,7 +74,7 @@ Builds, runs, tests, or smokes the examples workspace.
 
   dm                 use the DevMode compiler
   <module>           one of bin/examples/modules, for instance gui2 or pixel4
-  -bc <config>       release, debug, or fast-debug (default fast-debug)
+  -bc <config>       release or devmode (default devmode)
   --test-file <text> run only #test functions from matching source paths; repeatable
   --frames <count>   bound a run or a smoke to that many frames
   --run-timeout <s>  fail a run or a smoke that outlives that many seconds
@@ -94,7 +94,7 @@ Builds, runs, tests, or smokes one or every module in the applications workspace
 
   dm                 use the DevMode compiler
   <application>      a module under bin/apps/modules, for instance sVaultDrive or sSnapForge
-  -bc <config>       release, debug, or fast-debug (default fast-debug)
+  -bc <config>       release or devmode (default devmode)
   --test-file <text> run only #test functions from matching source paths; repeatable
   --frames <count>   bound a smoke to that many frames
   --run-arg <value>  an argument for the launched application
@@ -118,7 +118,7 @@ Builds or tests the executable language reference.
   dm                 use the DevMode compiler
   build              compile every page without running its samples
   test               compile and run them (default)
-  -bc <config>       release, debug, or fast-debug (default fast-debug)
+  -bc <config>       release or devmode (default devmode)
   --test-file <text> run only #test functions from matching source paths; repeatable
 """)
 
@@ -130,7 +130,7 @@ Runs one standalone example script, or smokes every one of them.
 
   dm                          use the DevMode compiler
   <script>                    a name from bin/examples/scripts, with or without .swgs
-  -bc <config>                release, debug, or fast-debug (default fast-debug)
+  -bc <config>                release or devmode (default devmode)
   --run-arg swag.smoke=<n>    bound the run to that many frames
 
   swc tools/scripts.swgs snake            launch one script
@@ -147,8 +147,8 @@ Builds every repository workspace.
   swc tools/build.swgs [dm] [options...]
 
   dm                 use the DevMode compiler
-  -bc <config>       release, debug, or fast-debug (default fast-debug)
-  --all-cfg          repeat the whole build in all three configurations
+  -bc <config>       release or devmode (default devmode)
+  --all-cfg          repeat the whole build in both configurations
 
 Covers the standard library, the examples, the applications, the language
 reference, and the multi-module workspace suite.

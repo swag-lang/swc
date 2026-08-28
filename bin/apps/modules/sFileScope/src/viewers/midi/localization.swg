@@ -24,7 +24,7 @@ struct MidiStrings
 }
 
 private const FrenchStringsName = "lang/fr/filescope.midi.tweak"
-private const FrenchStrings = #include("../../../datas/lang/fr/filescope.midi.tweak")
+private const FrenchStrings     = #include("../../../datas/lang/fr/filescope.midi.tweak")
 
 private var g_MidiStrings: MidiStrings
 

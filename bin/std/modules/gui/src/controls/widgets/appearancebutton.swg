@@ -35,10 +35,10 @@ struct AppearanceButton
 }
 
 private const AppearanceThemeSwagDarkId = "Gui.Appearance.Theme.SwagDark"
-private const AppearanceThemeDarkId = "Gui.Appearance.Theme.Dark"
-private const AppearanceThemeLightId = "Gui.Appearance.Theme.Light"
-private const AppearanceLanguageSysId = "Gui.Appearance.Language.System"
-private const AppearanceAboutId = "Gui.Appearance.About"
+private const AppearanceThemeDarkId     = "Gui.Appearance.Theme.Dark"
+private const AppearanceThemeLightId    = "Gui.Appearance.Theme.Light"
+private const AppearanceLanguageSysId   = "Gui.Appearance.Language.System"
+private const AppearanceAboutId         = "Gui.Appearance.About"
 
 impl IWnd for AppearanceButton
 {
@@ -63,7 +63,7 @@ impl AppearanceButton
     #[Swag.Discardable]
     func create(surface: *Surface, id: #null WndId = null)->*AppearanceButton
     {
-        let parent = cast(*SurfaceWnd) surface.wnd
+        let parent      = cast(*SurfaceWnd) surface.wnd
         with let result = Wnd.create'AppearanceButton(parent, null, {}, id)
         {
             .button.setIcon(surface.app.theme.icon(.Appearance, surface.app.theme.metrics.wnd_CaptionButtonGlyph))

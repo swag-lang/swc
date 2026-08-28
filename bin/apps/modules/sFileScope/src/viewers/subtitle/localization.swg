@@ -11,7 +11,7 @@ struct SubtitleStrings
 }
 
 private const FrenchStringsName = "lang/fr/filescope.subtitle.tweak"
-private const FrenchStrings = #include("../../../datas/lang/fr/filescope.subtitle.tweak")
+private const FrenchStrings     = #include("../../../datas/lang/fr/filescope.subtitle.tweak")
 
 private var g_SubtitleStrings: SubtitleStrings
 

@@ -955,7 +955,7 @@ public impl MenuCtrl
     {
         Debug.assert(parent != null)
         let popupParent = parent == parent.topWindow() ? parent : parent.topView()
-        with let res = Wnd.create'MenuCtrl(popupParent, null, {}, id)
+        with let res    = Wnd.create'MenuCtrl(popupParent, null, {}, id)
         {
             .focusPolicy = .Click
             .owner       = owner orelse parent

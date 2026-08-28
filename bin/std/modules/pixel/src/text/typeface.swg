@@ -12,8 +12,7 @@ public struct TypeFace
     {
         fullname:            String                     // Cache key or source filename, owned so a dynamic key cannot dangle.
         allocationAllocator: IAllocator = undefined     // Allocator that owns this cached value.
-        buffer:              Array'u8                   // Owned font bytes kept alive for the native face.
-        face:                *Face      = undefined     // Borrowed TrueType face backed by `buffer`.
+        face:                *Face      = undefined     // Owned TrueType face and its copied font bytes.
         faceLoaded:          bool                       // Whether `face` can be destroyed during cleanup.
         forceBoldDiv:        u32        = 11            // Em-size divisor used for synthetic bold strength.
         forceItalic:         bool                       // Whether every rasterized glyph is synthetically slanted.
@@ -99,9 +98,8 @@ public impl TypeFace
         tf.allocationAllocator = allocator
         defer #fail Memory.delete(tf, allocator)
         tf.fullname = fullname
-        tf.buffer   = bytes
 
-        let face = try Face.loadSubset(tf.buffer.toSlice(), fullname, allocator)
+        let face = try Face.loadSubset(bytes, fullname, allocator)
         tf.face       = face!
         tf.faceLoaded = true
 
@@ -128,17 +126,18 @@ public impl TypeFace
         //
         // The installed fonts belong to the machine, not to the program, so this looks past
         // any sandbox: a sandboxed run has no fonts of its own and would find nothing.
+        var buffer: Array'u8
         if !File.exists(fullname)
         {
             let p = Path.combine(Env.realSpecialDirectory(.Font), fullname)
-            tf.buffer = File.readAllBytes(p)
+            buffer = File.readAllBytes(p)
         }
         else
         {
-            tf.buffer = File.readAllBytes(fullname)
+            buffer = File.readAllBytes(fullname)
         }
 
-        let face = try Face.load(tf.buffer.toSlice(), allocator)
+        let face = try Face.load(buffer.toSlice(), allocator)
         tf.face       = face!
         tf.faceLoaded = true
 

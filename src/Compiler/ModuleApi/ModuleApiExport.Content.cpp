@@ -17,7 +17,6 @@ namespace
 {
     static constexpr std::string_view NON_CONSUMER_ATTRIBUTES[] = {"Opaque", "NoDoc", "NoDuplicate", "PrintAst", "PrintMicro"};
 
-    using ModuleApiExport::buildModuleArtifactName;
     using ModuleApiExport::buildSanitizedModuleApiSnippet;
     using ModuleApiExport::findEnclosingImplRef;
     using ModuleApiExport::ModuleApiGeneratedRoot;
@@ -489,12 +488,9 @@ namespace
         return Result::Continue;
     }
 
-    fs::path buildGeneratedModuleApiImportPath(const CompilerInstance& compiler, const fs::path& exportApiDir)
+    fs::path buildGeneratedModuleApiImportPath(const fs::path& exportApiDir)
     {
-        const Utf8 moduleName = buildModuleArtifactName(compiler);
-        fs::path   result     = exportApiDir / fs::path(moduleName.c_str());
-        result.replace_extension(".deps");
-        return result.lexically_normal();
+        return (exportApiDir / ".swc-deps").lexically_normal();
     }
 
     Utf8 moduleApiImportLocationForExport(const CompilerInstance& compiler, const CompilerInstance::ModuleSetupImport& importRequest)
@@ -903,7 +899,7 @@ namespace ModuleApiExport
             appendGeneratedModuleImportLine(content, ctx.compiler(), importRequest, eol);
 
         SWC_RESULT(formatGeneratedModuleApiContent(ctx, content));
-        return writeModuleApiFile(ctx, buildGeneratedModuleApiImportPath(ctx.compiler(), exportApiDir), content.view());
+        return writeModuleApiFile(ctx, buildGeneratedModuleApiImportPath(exportApiDir), content.view());
     }
 
     Result buildGeneratedModuleApiSingleFileContent(TaskContext& ctx, std::span<const ModuleApiGeneratedRoot> roots, std::string_view moduleNamespace, std::string_view eol, Utf8& outContent)

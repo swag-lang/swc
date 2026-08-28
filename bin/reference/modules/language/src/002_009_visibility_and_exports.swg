@@ -16,7 +16,7 @@ alike. Use 'public' deliberately for the supported module API and 'private' for
 file-local implementation details.
 */
 
-const VisibilityFileLocal = 10
+const VisibilityFileLocal            = 10
 internal const VisibilityModuleLocal = 20
 
 #test
@@ -123,7 +123,7 @@ deliberate local override, so a 'private impl' may still expose one method with 
 struct Counter
 {
     public readonly count: s32
-    private step: s32 = 2
+    private step:          s32 = 2
 }
 
 impl Counter

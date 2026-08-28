@@ -80,7 +80,7 @@ swc tools\tests.swgs dm --all-cfg
 ```
 
 `tests.swgs` runs the default suite once. `tests.swgs --all-cfg` repeats it for
-`release`, `debug`, and `fast-debug` language configurations.
+the `release` and `devmode` language configurations.
 
 ## Keep failures reviewable
 

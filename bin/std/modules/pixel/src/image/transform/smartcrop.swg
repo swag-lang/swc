@@ -35,9 +35,9 @@ impl Image
         iiE:   Array'f32
     }
 
-    internal const SALIENCY_RADIUS = 4
-    internal const THIRDS_SIGMA = 0.075
-    internal const EDGE_DIST_SCALE = 0.15
+    internal const SALIENCY_RADIUS  = 4
+    internal const THIRDS_SIGMA     = 0.075
+    internal const EDGE_DIST_SCALE  = 0.15
     internal const ENHANCED_WEIGHTS = SaliencyWeights{contrast: 1.0, saturation: 0.55, edge: 1.2}
 
     #[Swag.Inline]

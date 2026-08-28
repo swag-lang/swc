@@ -1482,7 +1482,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Pixel.Testing.assertImageGolden(&image, "sfilescope.surface")
 }
 
-// Pins the open-document composition in both application palettes: global navigation and file
+// Pins the open-document composition in Swag dark and neutral light: global navigation and file
 // identity stay above the document, while the active viewer owns the dedicated band below it.
 #test
 {
@@ -1522,7 +1522,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Pixel.Testing.assertImageGolden(&searchDark, "sfilescope.search.dark")
     window.searchBox.setText("")
 
-    window.applyTheme(1)
+    window.applyTheme(cast(u32) AppearanceTheme.Light)
     host.notify(.ThemeChanged)
     host.settleAnimations(window, 4)
     var light = host.render(window)

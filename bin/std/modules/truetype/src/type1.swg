@@ -5,7 +5,7 @@ private const EexecC1 = 52845'u32
 private const EexecC2 = 22719'u32
 
 // Key the private section is encrypted with, and the one every charstring uses.
-private const EexecPrivateKey = 55665'u16
+private const EexecPrivateKey    = 55665'u16
 private const EexecCharstringKey = 4330'u16
 
 // Bytes of random padding the private section prefixes its plaintext with.

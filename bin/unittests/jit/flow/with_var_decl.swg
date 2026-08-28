@@ -83,7 +83,7 @@ func jitWithRetvalUndefined()->{ a, b: s32 }
 
 func jitWithLetPointer()->s32
 {
-    var point = jitWithVarMakePoint(10, 20)
+    var point    = jitWithVarMakePoint(10, 20)
     with let ptr = &point
     {
         .x += 3

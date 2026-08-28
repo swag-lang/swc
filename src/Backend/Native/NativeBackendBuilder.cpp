@@ -917,6 +917,22 @@ Result NativeBackendBuilder::publishExecutableDependencies()
         return Result::Continue;
 
     std::error_code ec;
+    const auto      removePublishedFile = [this, &ec](const fs::path& path) -> Result {
+        ec.clear();
+        const bool exists = fs::exists(path, ec);
+        if (ec)
+            return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(path), Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
+        if (!exists)
+            return Result::Continue;
+
+        ec.clear();
+        fs::remove(path, ec);
+        if (ec)
+            return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(path), Diagnostic::ARG_BECAUSE, FileSystem::appendFileUsers(FileSystem::normalizeSystemMessage(ec), path));
+        return Result::Continue;
+    };
+
+    const bool publishDebugInfo = compiler_->buildCfg().backend.debugInfo;
     for (const fs::path& sourceDir : compiler_->importedDependencyLinkDirs())
     {
         if (sourceDir.empty())
@@ -934,27 +950,28 @@ Result NativeBackendBuilder::publishExecutableDependencies()
             ec.clear();
             if (!it->is_regular_file(ec) || ec)
                 continue;
-            if (!isPublishDependencyExtension(lowerPathExtension(it->path())))
+            const Utf8 extension = lowerPathExtension(it->path());
+            if (!isPublishDependencyExtension(extension))
                 continue;
 
             const fs::path dstPath = (artifactDir / it->path().filename()).lexically_normal();
             if (FileSystem::pathEquals(FileSystem::normalizePath(it->path()), FileSystem::normalizePath(dstPath)))
                 continue;
 
-            if (!publishDependencies)
+            // A dependency PDB may no longer exist in the source directory after switching off
+            // debug information. Derive it from the DLL so an older published copy is still removed.
+            if (extension == ".dll" && (!publishDependencies || !publishDebugInfo))
+            {
+                fs::path stalePdbPath = dstPath;
+                stalePdbPath.replace_extension(".pdb");
+                SWC_RESULT(removePublishedFile(stalePdbPath));
+            }
+
+            if (!publishDependencies || (extension == ".pdb" && !publishDebugInfo))
             {
                 // Windows loads DLLs from the executable folder before PATH. If dependencies
                 // were published by a previous build, remove them when publish is now disabled.
-                ec.clear();
-                if (!fs::exists(dstPath, ec))
-                    continue;
-                if (ec)
-                    return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(dstPath), Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
-
-                ec.clear();
-                fs::remove(dstPath, ec);
-                if (ec)
-                    return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(dstPath), Diagnostic::ARG_BECAUSE, FileSystem::appendFileUsers(FileSystem::normalizeSystemMessage(ec), dstPath));
+                SWC_RESULT(removePublishedFile(dstPath));
 
                 continue;
             }

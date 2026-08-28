@@ -171,6 +171,32 @@ private func moduleReportCount(output, module: string)->u32
     return result
 }
 
+// Checks that a workspace materializes only the dependency closure imported from another
+// workspace and reads every local module directly from its own output.
+private func verifyWorkspaceDependencyLayout(context: *Context, workspace: string)->s32
+{
+    let dependencyDirectory = Path.combine(workspace, ".dep")
+    for dependency in ["core", "win32", "xinput"] where !Directory.exists(Path.combine(dependencyDirectory.toString(), dependency))
+    {
+        Console.println("Workspace did not materialize external dependency in '.dep': ", dependency)
+        return 1
+    }
+
+    for module in ["api_export_provider", "api_static_provider", "runtime_context_base_static", "runtime_context_bridge_dll", "runtime_context_direct_static"] where Directory.exists(Path.combine(dependencyDirectory.toString(), module))
+    {
+        Console.println("Workspace materialized local module in '.dep': ", module)
+        return 1
+    }
+
+    if Directory.exists(Path.combine(context.workspacePath("std").toString(), ".dep"))
+    {
+        Console.println("Standard workspace materialized local modules in '.dep'.")
+        return 1
+    }
+
+    return 0
+}
+
 // Checks the compact spelling contract of the generated public API fixture.
 private func verifyCompactExportedApi(workspace: string, buildCfg: string, targetArch: string)->s32 fail
 {
@@ -229,19 +255,142 @@ private func verifyCompactExportedApi(workspace: string, buildCfg: string, targe
     return 0
 }
 
+// Checks the names and ownership boundaries of files published in a workspace output directory.
+private func verifyWorkspaceArtifactLayout(workspace: string, buildCfg: string, targetArch: string)->s32 fail
+{
+    let executableDirectory = Path.combine(workspace, ".output", "consumer_exe", "executable", buildCfg, targetArch)
+    if File.exists(Path.combine(executableDirectory.toString(), "consumer_exe.swg"))
+    {
+        Console.println("Workspace executable published a module API file.")
+        return 1
+    }
+
+    if File.exists(Path.combine(executableDirectory.toString(), ".swc-deps")) or File.exists(Path.combine(executableDirectory.toString(), "consumer_exe.deps"))
+    {
+        Console.println("Workspace executable published dependency metadata.")
+        return 1
+    }
+
+    let outputSources = try Directory.enumerateFiles(executableDirectory.toString(), ".swgsrc")
+    for outputSource in outputSources
+    {
+        let name = Path.fileName(outputSource.fullname.toString()) orelse ""
+        if Utf8.contains(name, ".gen.") or Utf8.contains(name, "-generated-source-")
+        {
+            Console.println("Non-debug workspace executable published generated source in '.output': ", name)
+            return 1
+        }
+    }
+
+    let intermediateDirectory = Path.combine(workspace, ".tmp", "consumer_exe", "executable", buildCfg, targetArch)
+    var foundGeneratedSource: bool
+    let generatedSources = try Directory.enumerateFiles(intermediateDirectory.toString(), ".swgsrc")
+    for generatedSource in generatedSources
+    {
+        let name = Path.fileName(generatedSource.fullname.toString()) orelse ""
+        if Utf8.contains(name, ".gen.") do
+            foundGeneratedSource = true
+        if Utf8.contains(name, "-generated-source-")
+        {
+            Console.println("Workspace intermediate directory retained the old generated-source file name: ", name)
+            return 1
+        }
+    }
+
+    if !foundGeneratedSource
+    {
+        Console.println("Non-debug workspace executable did not write '<module>.gen.<number>.swgsrc' in '.tmp'.")
+        return 1
+    }
+
+    let staticDirectory = Path.combine(workspace, ".output", "api_static_provider", "static-library", buildCfg, targetArch)
+    if !File.exists(Path.combine(staticDirectory.toString(), ".swc-deps"))
+    {
+        Console.println("Workspace library did not publish '.swc-deps'.")
+        return 1
+    }
+
+    if File.exists(Path.combine(staticDirectory.toString(), "api_static_provider.deps"))
+    {
+        Console.println("Workspace library retained '<module>.deps'.")
+        return 1
+    }
+
+    return 0
+}
+
+// Checks that source-driven test compilations publish only reusable executable artifacts.
+private func verifyWorkspaceTestArtifactLayout(workspace: string, buildCfg: string, targetArch: string, focused: bool)->s32 fail
+{
+    let outputDirectory = Path.combine(workspace, ".output")
+    let outputFiles     = try Directory.enumerateFiles(outputDirectory.toString(), recurse: true)
+    for outputFile in outputFiles
+    {
+        let name = Path.fileName(outputFile.fullname.toString()) orelse ""
+        if Utf8.contains(name, ".test.dll") or Utf8.contains(name, ".test.lib")
+        {
+            Console.println("Workspace test published a library artifact: ", outputFile.fullname.toString())
+            return 1
+        }
+
+        if name == ".swc-artifacts.test"
+        {
+            let fullname = outputFile.fullname.toString()
+            if !Utf8.contains(fullname, "/test/") and !Utf8.contains(fullname, "\\test\\")
+            {
+                Console.println("Non-executable workspace test published an artifact manifest: ", outputFile.fullname.toString())
+                return 1
+            }
+        }
+
+        if focused and Utf8.contains(name, ".focused")
+        {
+            Console.println("Focused workspace test published an artifact in '.output': ", outputFile.fullname.toString())
+            return 1
+        }
+    }
+
+    let testDirectory = Path.combine(workspace, ".output", "consumer_exe", "test", buildCfg, targetArch)
+    if !File.exists(Path.combine(testDirectory.toString(), "consumer_exe.test.exe")) or
+       !File.exists(Path.combine(testDirectory.toString(), ".swc-artifacts.test"))
+    {
+        Console.println("Reusable workspace test executable or its manifest is missing.")
+        return 1
+    }
+
+    if focused
+    {
+        let focusedExecutable = Path.combine(workspace, ".tmp", "consumer_exe", "test", buildCfg, targetArch, "consumer_exe.test.focused.exe")
+        if !File.exists(focusedExecutable)
+        {
+            Console.println("Focused workspace test executable is missing from '.tmp'.")
+            return 1
+        }
+    }
+
+    return 0
+}
+
 // Runs the multi-module workspace suite.
 private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: string)->s32 fail
 {
     let workspace = Path.combine(context.binDir.toString(), "unittests", "workspace")
 
-    // A user workspace owns only its imports. Start without prebuilt standard modules so this
-    // suite proves that the compiler resolves and builds them, while leaving unrelated modules
-    // absent instead of preparing the whole standard workspace.
-    var cleaned: Arguments
-    cleaned.add(["clean", "--workspace", context.workspacePath("std").toString()])
-    let cleanCode = try context.runCompiler(cleaned)
-    if cleanCode != 0 do
-        return cleanCode
+    // A user workspace owns only its external imports. Start without generated artifacts so the
+    // suite can distinguish newly materialized external dependencies from workspace-local output.
+    var cleanedWorkspace: Arguments
+    cleanedWorkspace.add(["clean", "--workspace", workspace.toString()])
+    let cleanWorkspaceCode = try context.runCompiler(cleanedWorkspace)
+    if cleanWorkspaceCode != 0 do
+        return cleanWorkspaceCode
+
+    // Start without prebuilt standard modules so this suite proves that the compiler resolves and
+    // builds them, while leaving unrelated modules absent instead of preparing the whole workspace.
+    var cleanedStd: Arguments
+    cleanedStd.add(["clean", "--workspace", context.workspacePath("std").toString()])
+    let cleanStdCode = try context.runCompiler(cleanedStd)
+    if cleanStdCode != 0 do
+        return cleanStdCode
 
     var built = workspaceModuleCommand("build", workspace.toString(), "consumer_exe", buildCfg)
     options.appendExtra(&built)
@@ -254,9 +403,17 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         return 1
     }
 
+    let dependencyLayoutCode = verifyWorkspaceDependencyLayout(context, workspace.toString())
+    if dependencyLayoutCode != 0 do
+        return dependencyLayoutCode
+
     let compactApiCode = try verifyCompactExportedApi(workspace.toString(), buildCfg, options.targetArch.toString())
     if compactApiCode != 0 do
         return compactApiCode
+
+    let artifactLayoutCode = try verifyWorkspaceArtifactLayout(workspace.toString(), buildCfg, options.targetArch.toString())
+    if artifactLayoutCode != 0 do
+        return artifactLayoutCode
 
     let stdOutput = context.workspaceOutput("std")
     if !Directory.exists(Path.combine(stdOutput.toString(), "core"))
@@ -278,6 +435,31 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         Console.println("Reusable workspace dependency added noise to the build report: ", dependency)
         return 1
     }
+
+    // Documentation consumes local native artifacts for compile-time execution, but does not
+    // produce those artifacts itself. Starting it from a clean workspace proves that its publish
+    // pass fills '.output' without using '.dep' as a snapshot of local modules.
+    let cleanBeforeDocCode = try context.runCompiler(cleanedWorkspace)
+    if cleanBeforeDocCode != 0 do
+        return cleanBeforeDocCode
+
+    var documented = workspaceModuleCommand("doc", workspace.toString(), "consumer_exe", buildCfg)
+    documented.add(["--doc-output-dir", Path.combine(workspace.toString(), ".output", "docs").toString(), "--rebuild"])
+    options.appendExtra(&documented)
+
+    let docCode = try context.runCompiler(documented)
+    if docCode != 0 do
+        return docCode
+
+    if !File.exists(Path.combine(workspace.toString(), ".output", "docs", "workspace.consumer.html"))
+    {
+        Console.println("Workspace documentation did not produce 'workspace.consumer.html'.")
+        return 1
+    }
+
+    let documentedDependencyLayoutCode = verifyWorkspaceDependencyLayout(context, workspace.toString())
+    if documentedDependencyLayoutCode != 0 do
+        return documentedDependencyLayoutCode
 
     // A forced standard-library rebuild loads the new DLLs while the test command is still
     // compiling. Their one-time initialization must already see the sandbox arguments that the
@@ -319,6 +501,10 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     let testCode = try context.runCompiler(tested)
     if testCode != 0 do
         return testCode
+
+    let testArtifactLayoutCode = try verifyWorkspaceTestArtifactLayout(workspace.toString(), buildCfg, options.targetArch.toString(), false)
+    if testArtifactLayoutCode != 0 do
+        return testArtifactLayoutCode
 
     // An unchanged native-only test must reuse its compiled artifact but still execute it.
     let reusedOutput = try context.captureCompiler(tested)
@@ -384,6 +570,18 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         Console.println("Workspace test recompiled its unchanged test artifact after a normal run.")
         return 1
     }
+
+    var focused = workspaceModuleCommand("test", workspace.toString(), "consumer_exe", buildCfg)
+    focused.add(["--no-test-jit", "--test-file", "portable_memory.test.swg"])
+    options.appendExtra(&focused)
+
+    let focusedCode = try context.runCompiler(focused)
+    if focusedCode != 0 do
+        return focusedCode
+
+    let focusedArtifactLayoutCode = try verifyWorkspaceTestArtifactLayout(workspace.toString(), buildCfg, options.targetArch.toString(), true)
+    if focusedArtifactLayoutCode != 0 do
+        return focusedArtifactLayoutCode
 
     // The script's marker is data the suite reads, not a line for the person watching, so its
     // output is captured and only a run that failed to reach the entry point has anything to show.

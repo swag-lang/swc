@@ -63,7 +63,7 @@ private struct Card
     value:  s32
 }
 
-private var map: HashTable'(u8, u8)
+private var map:   HashTable'(u8, u8)
 private var cards: Array'Card
 
 private func sort()

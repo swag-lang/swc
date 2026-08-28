@@ -305,7 +305,7 @@ RULES
   - A language rule must reach the same verdict in every build configuration, so never branch it on
     something the configuration also drives. Testing '#[Inline]' is the trap: it reads like a
     property of the callee and behaves like a property of the build, and it made a view visible in
-    fast-debug and invisible in release. Ask what actually happened - an expanded call no longer
+    devmode and invisible in release. Ask what actually happened - an expanded call no longer
     resolves to a CallExpr - instead of asking what was requested. '--all-cfg' is what catches
     this, and it catches nothing if you only ever run the default configuration.
   - Compile time is a constraint: a whole-program analysis that doubles sema is not acceptable.
@@ -594,7 +594,7 @@ Where it stands:
 
 Targets:
 
-  - core rebuild under 250 MB fast-debug.
+  - core rebuild under 250 MB devmode.
   - Hello world under 50 MB.
   - Bench task builds at or below clang-cl's 69 MB.
   - Compile time unchanged, measured, not assumed.
@@ -692,6 +692,18 @@ Record the starting commit, `git status --short --branch`, toolchain versions, a
 external prerequisites before changing anything. A starting failure is useful attribution, but it
 is not an exemption: this campaign fixes baseline failures too.
 
+CLEAR ALL SWAG BUILD STATE FIRST
+
+Immediately after recording that starting state, and before inventorying, formatting, generating,
+building, or testing anything, remove every Swag compilation artifact from every workspace. Use
+the checkout-local compiler's `clean --workspace` command for each workspace so all `.dep`, `.tmp`,
+and `.output` trees are removed, then run `bin\swc.exe clean --cache` to clear every dependency copy
+created by scripts, including the legacy script cache. Preview and verify the exact targets first,
+following the repository's destructive-action rules; do not substitute a broad `git clean` or an
+unscoped recursive deletion. Confirm that the targeted workspace artifacts and script caches are
+absent before continuing. This initial reset is mandatory even when the tree appears clean, and is
+separate from the final repository-hygiene pass.
+
 GOAL
 
 Leave one reproducible baseline from which new work can start without inheriting noise or doubt:
@@ -780,11 +792,11 @@ Run these in order, stopping at the first failure as the tooling requires. After
 smallest focused reproducer first, then restart every affected aggregate campaign. Once the tree
 appears clean, run this entire ladder again from the beginning on the final sources:
 
-  1. Build `swc_devmode.exe` with the DevMode solution configuration.
-  2. `bin\swc.exe tools\build.swgs dm --all-cfg` - build every workspace in release, debug, and
-     fast-debug, including modules that have no tests.
+  1. Build `swc.dm.exe` with the DevMode solution configuration.
+  2. `bin\swc.exe tools\build.swgs dm --all-cfg` - build every workspace in release and devmode,
+     including modules that have no tests.
   3. `bin\swc.exe tools\tests.swgs dm` - the full DevMode default campaign.
-  4. `bin\swc.exe tools\tests.swgs dm --all-cfg` - the same five-rung campaign in all three target
+  4. `bin\swc.exe tools\tests.swgs dm --all-cfg` - the same five-rung campaign in both target
      configurations.
   5. Run `bin\swc.exe tools\vaultdrive.swgs dm` with the required WinFsp installation and privileges;
      this integration is intentionally outside tests.swgs and is part of a genuinely full pass.

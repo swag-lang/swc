@@ -42,6 +42,7 @@ namespace
         addInfoEntry(entries, "Module namespace", Utf8(buildCfg.moduleNamespace));
         addInfoEntry(entries, "Work directory", Utf8(buildCfg.workDir));
         addBoolEntry(entries, "Backend optimization", buildCfg.backend.optimize);
+        addBoolEntry(entries, "Debug information", buildCfg.backend.debugInfo);
         addInfoEntry(entries, "Inline mode", inlineModeName(buildCfg.backend.inlineMode));
         addBoolEntry(entries, "Vectorization", buildCfg.backend.vectorize);
         Logger::printFieldGroup(ctx, "Command Line", entries, nextInfoGroupStyle(hasPrintedGroup));

@@ -3,7 +3,7 @@
 using Core, Pixel, Gui
 
 private const MidiCommandWidth = 432.0
-private const MidiGlyphSize = 18.0
+private const MidiGlyphSize    = 18.0
 
 internal struct MidiViewer
 {

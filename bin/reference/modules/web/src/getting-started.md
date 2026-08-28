@@ -80,7 +80,7 @@ Compilation owns three generated directories at the workspace root:
 |---|---|
 | `.output/` | Native artifacts and exported module APIs, grouped by configuration |
 | `.tmp/` | Intermediate compiler and native-tool files |
-| `.dep/` | Materialized dependency APIs and native dependency artifacts |
+| `.dep/` | Materialized APIs and native artifacts for dependencies outside the workspace |
 
 Add another module without replacing the workspace:
 
@@ -92,13 +92,15 @@ swc new module tools --workspace hello
 
 ```text
 swc build -w hello -m hello
-swc build -w hello -m hello -bc debug
+swc build -w hello -m hello -bc devmode
 swc build -w hello -m hello -bc release
+swc build -w hello -m hello --debug
 ```
 
-`fast-debug` is the default configuration. It keeps safety and sanity checks
-while using optimized code. `debug` favors diagnostics, and `release` favors
-runtime performance. Use `swc help build` for the authoritative option list and
+`devmode` is the default configuration. It keeps safety and sanity checks while
+using optimized code; `release` favors runtime performance. Neither emits debug
+information by default. Add `--debug` when a debugger needs symbols and source
+line mappings. Use `swc help build` for the authoritative option list and
 `--show-config` to inspect the resolved toolchain and output paths.
 
 ## Import a standard module

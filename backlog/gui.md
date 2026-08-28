@@ -737,7 +737,8 @@ as [snapforge.md](snapforge.md).
   (`ensureAtlasScale`) and `surface.swg` (`setDpiScaleRaw`). Nothing re-fetches a stored icon on
   `NotifyKind.ThemeChanged`, and no notification is sent for the scale change at all.
 - Next step: reproduce by moving a surface holding icon-bearing controls from a 100% to a 150%
-  monitor and painting, under `-bc debug` so the freed list is caught rather than read back; then
+  monitor and painting in `devmode`, with `allocatorFillMemory` enabled by the reproducer's module
+  setup so the freed list is caught rather than read back; then
   either keep retired lists alive until the frame ends, or make `Icon` name its set and size and
   resolve the list at paint time.
 

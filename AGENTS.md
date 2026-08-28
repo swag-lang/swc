@@ -10,9 +10,9 @@ orchestration, documentation, and formatting. The consumer workspaces live in [b
 runtime, standard modules, examples, applications, and language-reference tests.
 
 Use [tools/README.md](tools/README.md) for the authoritative tool syntax and focused commands.
-Build/test guidance and agent-to-agent serialization rules are in the two skills named below;
+Build/test guidance and shared-machine load admission rules are in the two skills named below;
 prefer a focused command for the changed behavior over the full campaign in `tools/tests.swgs`.
-Use the checkout-local `bin\\swc.exe` or `bin\\swc_devmode.exe` when multiple worktrees may be
+Use the checkout-local `bin\\swc.exe` or `bin\\swc.dm.exe` when multiple worktrees may be
 present. Treat [web/](web/) as generated output: edit its source under `bin/reference` or the
 relevant module, then regenerate it through `tools/web.swgs`.
 
@@ -22,9 +22,9 @@ Compiler-source changes under `src/` must increment `SWC_BUILD_NUM` in
 Before changing code, tests, examples, or build files, read and follow
 [modify-swag-codebase](.agents/skills/modify-swag-codebase/SKILL.md).
 
-Before compiling `swc` or `swc_devmode`, or running any project test, read and follow the
-agent-to-agent build and test serialization rules in that skill, including when working from a
-different worktree. IDE and manually launched user commands do not occupy the agent slot.
+Before compiling `swc` or `swc.dm`, or running any project test, read and follow the
+CPU and memory admission rules in that skill, including when working from a different worktree.
+Builds and tests may overlap only while the shared machine has enough measured headroom.
 
 Before selecting or running builds, tests, configurations, consumers, smokes, or golden checks,
 also read and follow

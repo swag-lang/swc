@@ -19,7 +19,7 @@ private func digitValue(value: u8)->u8
     return 255
 }
 
-private const EncodeGather = cast(Math.Simd.U8x16) [2'u8, 1, 0, 0x80, 5, 4, 3, 0x80, 8, 7, 6, 0x80, 11, 10, 9, 0x80]
+private const EncodeGather  = cast(Math.Simd.U8x16) [2'u8, 1, 0, 0x80, 5, 4, 3, 0x80, 8, 7, 6, 0x80, 11, 10, 9, 0x80]
 private const DecodeScatter = cast(Math.Simd.U8x16) [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80]
 
 #[Swag.Inline]

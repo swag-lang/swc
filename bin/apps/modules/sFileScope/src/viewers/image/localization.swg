@@ -26,7 +26,7 @@ struct ImageStrings
 }
 
 private const FrenchStringsName = "lang/fr/filescope.image.tweak"
-private const FrenchStrings = #include("../../../datas/lang/fr/filescope.image.tweak")
+private const FrenchStrings     = #include("../../../datas/lang/fr/filescope.image.tweak")
 
 private var g_ImageStrings: ImageStrings
 

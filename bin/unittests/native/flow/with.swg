@@ -217,7 +217,7 @@ func nativeWithLocalInit()->s32
 
 func nativeWithLetPointer()->s32
 {
-    var point = nativeWithMakePoint(10, 20)
+    var point    = nativeWithMakePoint(10, 20)
     with let ptr = &point
     {
         .x += 3

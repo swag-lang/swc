@@ -210,9 +210,7 @@ impl HtmlPainter
         let inBottom = bottom - style.borderBottom.width
 
         // A side is a trapezoid when its neighbours differ in colour, and a rectangle otherwise.
-        // The rectangle is what almost every document draws, and it is the only shape a large box
-        // may be given: a wide, thin polygon corrupts what the painter draws after it — see F-148.
-        let mitred = rect.width < .band().width and rect.height < .band().height and .hasDistinctSides(style)
+        let mitred = .hasDistinctSides(style)
         if style.borderTop.width > 0 and style.borderTop.style != .None
         {
             let color = HtmlPainter.withAlpha(style.borderTop.color, alpha)

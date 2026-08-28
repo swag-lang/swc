@@ -117,7 +117,7 @@ impl TypeFace
         tf.allocationAllocator = allocator
         tf.fullname            = fullname
         tf.face                = face
-        tf.buffer              = buffer
+        tf.faceLoaded          = true
 
         g_HashTypeFace.add(str, tf)
         return tf

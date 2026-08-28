@@ -16,7 +16,7 @@ private const MaxLpcOrder = 32'u32
 // FLAC carries at most eight channels, and the escape codes that mean "raw bits" are the
 // largest value each Rice parameter field can hold.
 private const MaxChannels = 8'u32
-private const RiceEscape = 15'u32
+private const RiceEscape  = 15'u32
 private const Rice2Escape = 31'u32
 
 // Sample rates the frame header names by index rather than by value.

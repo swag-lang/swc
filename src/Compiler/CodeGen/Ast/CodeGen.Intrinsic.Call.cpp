@@ -2226,6 +2226,82 @@ namespace
                 break;
         }
 
+        // The bit vocabulary has no packed instruction of its own: rotates,
+        // counts and byte reversal each lower to a sequence over their lanes.
+        switch (tokId)
+        {
+            case TokenId::IntrinsicRol:
+            case TokenId::IntrinsicRor:
+            {
+                SWC_ASSERT(children.size() == 2);
+
+                const bool          rotateLeft    = tokId == TokenId::IntrinsicRol;
+                const MicroReg      valueReg      = loadArg(0);
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+
+                const SemaNodeView countView = codeGen.viewTypeConstant(children[1]);
+                if (countView.hasConstant())
+                {
+                    const ConstantValue& countCst = codeGen.cstMgr().get(countView.cstRef());
+                    const uint32_t       count    = static_cast<uint32_t>(countCst.getIntLike().as64());
+                    resultPayload.reg             = CodeGenVectorHelpers::emitRotateImm(codeGen, valueReg, laneType, count, rotateLeft);
+                }
+                else
+                {
+                    MicroReg countReg;
+                    materializeIntrinsicNumericOperand(countReg, codeGen, codeGen.payload(children[1]), countView.typeRef(), codeGen.typeMgr().typeU32());
+                    resultPayload.reg = CodeGenVectorHelpers::emitRotateVar(codeGen, valueReg, laneType, countReg, rotateLeft);
+                }
+
+                outHandled = true;
+                return Result::Continue;
+            }
+
+            case TokenId::IntrinsicBitCountNz:
+            case TokenId::IntrinsicBitCountTz:
+            case TokenId::IntrinsicBitCountLz:
+            case TokenId::IntrinsicByteSwap:
+            {
+                SWC_ASSERT(children.size() == 1);
+
+                const MicroReg      valueReg      = loadArg(0);
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+                switch (tokId)
+                {
+                    case TokenId::IntrinsicBitCountNz:
+                        resultPayload.reg = CodeGenVectorHelpers::emitPopCount(codeGen, valueReg, laneType);
+                        break;
+                    case TokenId::IntrinsicBitCountTz:
+                        resultPayload.reg = CodeGenVectorHelpers::emitCountTrailingZeros(codeGen, valueReg, laneType);
+                        break;
+                    case TokenId::IntrinsicBitCountLz:
+                        resultPayload.reg = CodeGenVectorHelpers::emitCountLeadingZeros(codeGen, valueReg, laneType);
+                        break;
+                    default:
+                        resultPayload.reg = CodeGenVectorHelpers::emitByteSwap(codeGen, valueReg, laneType);
+                        break;
+                }
+
+                outHandled = true;
+                return Result::Continue;
+            }
+
+            case TokenId::IntrinsicAbs:
+            {
+                if (!floatLanes)
+                    break;
+
+                const MicroReg      valueReg      = loadArg(0);
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+                resultPayload.reg                 = CodeGenVectorHelpers::emitFloatAbs(codeGen, valueReg, laneType);
+                outHandled                        = true;
+                return Result::Continue;
+            }
+
+            default:
+                break;
+        }
+
         MicroOp op        = MicroOp::VecAnd;
         bool    isUnary   = false;
         bool    isWidenHi = false;

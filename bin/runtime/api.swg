@@ -1338,13 +1338,13 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
     func @bitcountnz(value: u32)->u32
     func @bitcountnz(value: u64)->u64
 
-    // Returns the index+1 of the first set bit, starting from right (lsb). 0 if all zero.
+    // Number of zero bits below the lowest set bit. The operand width if all zero.
     func @bitcounttz(value: u8)->u8
     func @bitcounttz(value: u16)->u16
     func @bitcounttz(value: u32)->u32
     func @bitcounttz(value: u64)->u64
 
-    // Returns the index+1 of the first set bit, starting from the left (msb). 0 if all zero.
+    // Number of zero bits above the highest set bit. The operand width if all zero.
     func @bitcountlz(value: u8)->u8
     func @bitcountlz(value: u16)->u16
     func @bitcountlz(value: u32)->u32
@@ -1397,13 +1397,47 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
     func @max(value1, value2: #simd [4] f32)->#simd [4] f32
     func @max(value1, value2: #simd [2] f64)->#simd [2] f64
 
-    // Element-wise absolute value and square root.
+    // Element-wise absolute value and square root. A float lane clears its sign
+    // bit, so a NaN stays that NaN and a negative zero becomes a positive one.
     func @abs(value: #simd [16] s8)->#simd [16] s8
     func @abs(value: #simd [8] s16)->#simd [8] s16
     func @abs(value: #simd [4] s32)->#simd [4] s32
     func @abs(value: #simd [2] s64)->#simd [2] s64
+    func @abs(value: #simd [4] f32)->#simd [4] f32
+    func @abs(value: #simd [2] f64)->#simd [2] f64
     func @sqrt(value: #simd [4] f32)->#simd [4] f32
     func @sqrt(value: #simd [2] f64)->#simd [2] f64
+
+    // Element-wise bit rotation. Every lane rotates by 'num' taken modulo the
+    // lane width, exactly like the scalar forms.
+    func @rol(value: #simd [16] u8, num: u8)->#simd [16] u8
+    func @rol(value: #simd [8] u16, num: u8)->#simd [8] u16
+    func @rol(value: #simd [4] u32, num: u8)->#simd [4] u32
+    func @rol(value: #simd [2] u64, num: u8)->#simd [2] u64
+    func @ror(value: #simd [16] u8, num: u8)->#simd [16] u8
+    func @ror(value: #simd [8] u16, num: u8)->#simd [8] u16
+    func @ror(value: #simd [4] u32, num: u8)->#simd [4] u32
+    func @ror(value: #simd [2] u64, num: u8)->#simd [2] u64
+
+    // Element-wise bit counts, each lane answering what the scalar form answers
+    // for one value of that width.
+    func @bitcountnz(value: #simd [16] u8)->#simd [16] u8
+    func @bitcountnz(value: #simd [8] u16)->#simd [8] u16
+    func @bitcountnz(value: #simd [4] u32)->#simd [4] u32
+    func @bitcountnz(value: #simd [2] u64)->#simd [2] u64
+    func @bitcounttz(value: #simd [16] u8)->#simd [16] u8
+    func @bitcounttz(value: #simd [8] u16)->#simd [8] u16
+    func @bitcounttz(value: #simd [4] u32)->#simd [4] u32
+    func @bitcounttz(value: #simd [2] u64)->#simd [2] u64
+    func @bitcountlz(value: #simd [16] u8)->#simd [16] u8
+    func @bitcountlz(value: #simd [8] u16)->#simd [8] u16
+    func @bitcountlz(value: #simd [4] u32)->#simd [4] u32
+    func @bitcountlz(value: #simd [2] u64)->#simd [2] u64
+
+    // Element-wise byte reversal inside every lane.
+    func @byteswap(value: #simd [8] u16)->#simd [8] u16
+    func @byteswap(value: #simd [4] u32)->#simd [4] u32
+    func @byteswap(value: #simd [2] u64)->#simd [2] u64
 
     // Element-wise '(val1 * val2) + val3'.
     func @muladd(val1, val2, val3: #simd [4] f32)->#simd [4] f32

@@ -36,6 +36,12 @@ alias ConstF64 = Const'f64
     func sign(x: f32) => cast(f32) (x > 0) - cast(f32) (x < 0)
     func sign(x: f64) => cast(f64) (x > 0) - cast(f64) (x < 0)
 
+    // Returns the magnitude of 'x' carrying the sign of 'y'.
+    //
+    // Only the sign bit moves, so a NaN keeps its payload and a zero takes the sign it is given.
+    func copysign(x, y: f32)->f32 => cast #bit (f32) ((cast #bit (u32) x & 0x7FFF_FFFF) | (cast #bit (u32) y & 0x8000_0000))
+    func copysign(x, y: f64)->f64 => cast #bit (f64) ((cast #bit (u64) x & 0x7FFF_FFFF_FFFF_FFFF) | (cast #bit (u64) y & 0x8000_0000_0000_0000))
+
     // Clamps 'x' between 0 and 1
     func saturate(x: f32) => clamp(x, 0'f32, 1'f32)
     func saturate(x: f64) => clamp(x, 0'f64, 1'f64)

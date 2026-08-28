@@ -171,3 +171,86 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
     @assert(lo[0] == -5 and lo[1] == 0)
     @assert(hi[0] == 0 and hi[1] == 10)
 }
+
+// The packed bit vocabulary repeats the scalar one, lane by lane.
+#test
+{
+    let bytes = cast(Simd.U8x16) [0'u8, 1, 2, 3, 0x0F, 0x10, 0x55, 0x7F, 0x80, 0xAA, 0xC3, 0xE0, 0xF0, 0xFE, 0xFF, 0x18]
+    let quads = cast(Simd.U32x4) [0'u32, 1, 0x1234_5678, 0xFFFF_FFFF]
+
+    let rotated  = Math.rol(bytes, 3)
+    let restored = Math.ror(rotated, 3)
+    for i in 16
+    {
+        @assert(rotated[i] == Math.rol(bytes[i], 3))
+        @assert(restored[i] == bytes[i])
+    }
+
+    let ones  = Math.countOnes(quads)
+    let lead  = Math.leadingZeros(quads)
+    let trail = Math.trailingZeros(quads)
+    for i in 4
+    {
+        @assert(ones[i] == Math.countOnes(quads[i]))
+        @assert(lead[i] == Math.leadingZeros(quads[i]))
+        @assert(trail[i] == Math.trailingZeros(quads[i]))
+    }
+
+    let swapped = Math.byteswap(quads)
+    for i in 4 do
+        @assert(swapped[i] == Math.byteswap(quads[i]))
+
+    let reversedBytes = Math.reverse(bytes)
+    for i in 16 do
+        @assert(reversedBytes[i] == Math.reverse(bytes[i]))
+
+    let reversedQuads = Math.reverse(quads)
+    for i in 4 do
+        @assert(reversedQuads[i] == Math.reverse(quads[i]))
+
+    let words         = cast(Simd.U16x8) [0'u16, 1, 0x00FF, 0x0100, 0x1234, 0x8000, 0xAAAA, 0xFFFF]
+    let reversedWords = Math.reverse(words)
+    for i in 8 do
+        @assert(reversedWords[i] == Math.reverse(words[i]))
+
+    let pairs         = cast(Simd.U64x2) [0'u64, 0x0102_0304_0506_0708]
+    let reversedPairs = Math.reverse(pairs)
+    for i in 2 do
+        @assert(reversedPairs[i] == Math.reverse(pairs[i]))
+}
+
+// The elementary float lane operations: magnitude, sign transfer, sign, clamp
+// and interpolation.
+#test
+{
+    let values = cast(Simd.F32x4) [-1.5'f32, 2.5, -0.0, 8.25]
+
+    let magnitude = Math.abs(values)
+    @assert(magnitude[0] == 1.5 and magnitude[1] == 2.5 and magnitude[3] == 8.25)
+    @assert(1.0 / magnitude[2] > 0)
+
+    let negative = Math.copysign(values, Simd.splat(-1'f32))
+    @assert(negative[0] == -1.5 and negative[1] == -2.5 and negative[3] == -8.25)
+    @assert(1.0 / negative[2] < 0)
+    for i in 4 do
+        @assert(negative[i] == Math.copysign(values[i], -1'f32))
+
+    let signs = Math.sign(values)
+    @assert(signs[0] == -1 and signs[1] == 1 and signs[2] == 0 and signs[3] == 1)
+
+    let bounded = Math.saturate(values)
+    @assert(bounded[0] == 0 and bounded[1] == 1 and bounded[3] == 1)
+
+    let clamped = Math.clamp(values, Simd.splat(-1'f32), Simd.splat(2'f32))
+    @assert(clamped[0] == -1 and clamped[1] == 2 and clamped[3] == 2)
+
+    let mixed = Math.lerp(Simd.splat(0'f32), Simd.splat(10'f32), Simd.splat(0.25'f32))
+    @assert(mixed[0] == 2.5 and mixed[3] == 2.5)
+
+    let wide = cast(Simd.F64x2) [-3.25'f64, -0.0]
+    @assert(Math.abs(wide)[0] == 3.25 and 1.0 / Math.abs(wide)[1] > 0)
+    @assert(Math.copysign(wide, Simd.splat(1'f64))[0] == 3.25)
+    @assert(Math.sign(wide)[0] == -1 and Math.sign(wide)[1] == 0)
+    @assert(Math.saturate(wide)[0] == 0)
+    @assert(Math.lerp(Simd.splat(1'f64), Simd.splat(3'f64), Simd.splat(0.5'f64))[1] == 2)
+}

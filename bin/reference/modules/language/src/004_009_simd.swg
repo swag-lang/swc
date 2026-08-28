@@ -159,7 +159,9 @@ and '@vecperm' permutes bytes through a dynamic table. NaN and
 values outside the 's32' range become 's32.Min'. '@min',
 '@max', '@abs', '@sqrt', '@muladd', '@floor', '@ceil' and '@trunc' also accept
 vectors and compute per lane. Integer '@abs' wraps the minimum lane value back
-to itself, like unary minus. A gather uses 'vpgatherdd' when AVX2 is selected
+to itself, like unary minus, while a float lane clears its sign bit, so a NaN
+stays that NaN and a negative zero becomes a positive one.
+A gather uses 'vpgatherdd' when AVX2 is selected
 and a portable four-load lowering otherwise; every index must designate a
 readable table element and be at most 's32.Max'.
 */
@@ -196,6 +198,50 @@ readable table element and be at most 's32.Max'.
     var lookup: [5] s32 = [10, 20, 30, 40, 50]
     let found           = cast([4] s32) @vecgather(@dataof(lookup), cast(#simd [4] u32) [4, 0, 3, 1])
     @assert(found[0] == 50 and found[1] == 10 and found[2] == 40 and found[3] == 20)
+}
+
+/**
+# Packed Bit Operations
+
+The bit intrinsics accept vectors of unsigned lanes and answer, for every lane,
+what the scalar form answers for one value of that width. '@rol' and '@ror'
+rotate by a count taken modulo the lane width, so a count of zero or of one
+whole width is the identity. '@bitcountnz' counts the bits set, '@bitcounttz'
+and '@bitcountlz' count the zeros below the lowest and above the highest set
+bit, and an all-zero lane answers the lane width. '@byteswap' reverses the
+bytes inside every lane.
+
+None of these has a single packed instruction on the baseline target: a
+constant rotation is a shift pair, a variable one reduces its count first, the
+counts go through a nibble table, and the byte reversal is one dynamic permute.
+*/
+#test
+{
+    let quads = cast(#simd [4] u32) [0, 1, 0x1234_5678, 0xFFFF_FFFF]
+
+    let rotated = cast([4] u32) @rol(quads, 8)
+    @assert(rotated[1] == 0x100 and rotated[2] == 0x3456_7812)
+    let restored = cast([4] u32) @ror(@rol(quads, 8), 8)
+    @assert(restored[2] == 0x1234_5678)
+
+    // The count reduces modulo the lane width, so a whole turn changes nothing.
+    let turned = cast([4] u32) @rol(quads, 32)
+    @assert(turned[2] == 0x1234_5678)
+
+    let ones = cast([4] u32) @bitcountnz(quads)
+    @assert(ones[0] == 0 and ones[1] == 1 and ones[3] == 32)
+
+    // An empty lane answers the lane width for both counts.
+    let below = cast([4] u32) @bitcounttz(quads)
+    let above = cast([4] u32) @bitcountlz(quads)
+    @assert(below[0] == 32 and below[1] == 0 and below[2] == 3)
+    @assert(above[0] == 32 and above[1] == 31 and above[3] == 0)
+
+    let swapped = cast([4] u32) @byteswap(quads)
+    @assert(swapped[1] == 0x0100_0000 and swapped[2] == 0x7856_3412)
+
+    let magnitude = cast([4] f32) @abs(cast(#simd [4] f32) [-1.5, 2.5, -0.0, -8.25])
+    @assert(magnitude[0] == 1.5 and magnitude[3] == 8.25)
 }
 
 /**

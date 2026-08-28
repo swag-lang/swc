@@ -694,6 +694,7 @@ namespace
             case MicroOp::VecAvgU8: return {VEX_MAP_0F, 0x66, 0xE0};
             case MicroOp::VecAvgU16: return {VEX_MAP_0F, 0x66, 0xE3};
             case MicroOp::VecMaddS16: return {VEX_MAP_0F, 0x66, 0xF5};
+            case MicroOp::VecSadU8: return {VEX_MAP_0F, 0x66, 0xF6};
             case MicroOp::VecAnd: return {VEX_MAP_0F, 0x66, 0xDB};
             case MicroOp::VecAndNot: return {VEX_MAP_0F, 0x66, 0xDF};
             case MicroOp::VecOr: return {VEX_MAP_0F, 0x66, 0xEB};

@@ -46,6 +46,32 @@ namespace CodeGenVectorHelpers
     // instruction are synthesized without leaving the register file.
     MicroReg emitVariableShift(CodeGen& codeGen, TokenId tokId, MicroReg valueReg, MicroReg countVecReg, const TypeInfo& laneType);
 
+    // Shifts every lane by a count known here. Byte lanes borrow the word shift
+    // and mask the bits that crossed their boundary, which is what the hardware
+    // leaves out.
+    MicroReg emitLaneShiftImm(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType, uint32_t count, bool shiftLeft);
+
+    // Rotates every lane, by a count known here or carried in an integer
+    // register. Both reduce the count modulo the lane width, like the scalar
+    // '@rol' and '@ror'.
+    MicroReg emitRotateImm(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType, uint32_t count, bool rotateLeft);
+    MicroReg emitRotateVar(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType, MicroReg countReg, bool rotateLeft);
+
+    // Per-lane population count, through the nibble table every popcount
+    // lowering uses, then a reduction to the lane width.
+    MicroReg emitPopCount(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType);
+
+    // Per-lane zero counts below the lowest and above the highest set bit. An
+    // all-zero lane answers the lane width, like the scalar intrinsics.
+    MicroReg emitCountTrailingZeros(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType);
+    MicroReg emitCountLeadingZeros(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType);
+
+    // Reverses the bytes of every lane, as one dynamic byte permute.
+    MicroReg emitByteSwap(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType);
+
+    // Clears the sign bit of every float lane.
+    MicroReg emitFloatAbs(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType);
+
     // Emits an element-wise compare and returns the mask register (all-ones
     // lanes where the compare holds).
     MicroReg emitCompare(CodeGen& codeGen, TokenId tokId, MicroReg leftReg, MicroReg rightReg, const TypeInfo& laneType);

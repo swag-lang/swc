@@ -18,7 +18,9 @@ using Swag
 // reshapes 16 bytes — an array of the exact shape into a vector and back — while
 // `cast #bit` reinterprets one vector shape as another. The element-wise forms of
 // [[Math.min]], [[Math.max]], [[Math.abs]], [[Math.sqrt]], [[Math.mulAdd]], [[Math.floor]],
-// [[Math.ceil]] and [[Math.trunc]] accept the vector types directly.
+// [[Math.ceil]] and [[Math.trunc]] accept the vector types directly, and so do the bit
+// operations [[Math.rol]], [[Math.ror]], [[Math.countOnes]], [[Math.leadingZeros]],
+// [[Math.trailingZeros]], [[Math.byteswap]] and [[Math.reverse]].
 namespace Simd
 {
     alias U8x16 = #simd [16] u8     // Sixteen unsigned 8-bit lanes.
@@ -221,6 +223,12 @@ namespace Simd
     func abs(x: Simd.S32x4)->Simd.S32x4 => @abs(x)
     func abs(x: Simd.S64x2)->Simd.S64x2 => @abs(x)
 
+    // Returns the absolute value, per lane, by clearing the sign bit.
+    //
+    // A NaN keeps its payload and a negative zero becomes a positive one.
+    func abs(x: Simd.F32x4)->Simd.F32x4 => @abs(x)
+    func abs(x: Simd.F64x2)->Simd.F64x2 => @abs(x)
+
     // Returns the square root, per lane.
     func sqrt(x: Simd.F32x4)->Simd.F32x4 => @sqrt(x)
     func sqrt(x: Simd.F64x2)->Simd.F64x2 => @sqrt(x)
@@ -240,4 +248,91 @@ namespace Simd
     // Removes the fractional part, per lane.
     func trunc(x: Simd.F32x4)->Simd.F32x4 => @trunc(x)
     func trunc(x: Simd.F64x2)->Simd.F64x2 => @trunc(x)
+
+    // Rotates the bits of every lane left by `y`, taken modulo the lane width.
+    func rol(x: Simd.U8x16, y: u8)->Simd.U8x16 => @rol(x, y)
+    func rol(x: Simd.U16x8, y: u8)->Simd.U16x8 => @rol(x, y)
+    func rol(x: Simd.U32x4, y: u8)->Simd.U32x4 => @rol(x, y)
+    func rol(x: Simd.U64x2, y: u8)->Simd.U64x2 => @rol(x, y)
+
+    // Rotates the bits of every lane right by `y`, taken modulo the lane width.
+    func ror(x: Simd.U8x16, y: u8)->Simd.U8x16 => @ror(x, y)
+    func ror(x: Simd.U16x8, y: u8)->Simd.U16x8 => @ror(x, y)
+    func ror(x: Simd.U32x4, y: u8)->Simd.U32x4 => @ror(x, y)
+    func ror(x: Simd.U64x2, y: u8)->Simd.U64x2 => @ror(x, y)
+
+    // Returns the number of bits set to one, per lane.
+    func countOnes(x: Simd.U8x16)->Simd.U8x16 => @bitcountnz(x)
+    func countOnes(x: Simd.U16x8)->Simd.U16x8 => @bitcountnz(x)
+    func countOnes(x: Simd.U32x4)->Simd.U32x4 => @bitcountnz(x)
+    func countOnes(x: Simd.U64x2)->Simd.U64x2 => @bitcountnz(x)
+
+    // Returns the number of zero bits above the highest set bit, per lane.
+    //
+    // An all-zero lane answers the lane width.
+    func leadingZeros(x: Simd.U8x16)->Simd.U8x16 => @bitcountlz(x)
+    func leadingZeros(x: Simd.U16x8)->Simd.U16x8 => @bitcountlz(x)
+    func leadingZeros(x: Simd.U32x4)->Simd.U32x4 => @bitcountlz(x)
+    func leadingZeros(x: Simd.U64x2)->Simd.U64x2 => @bitcountlz(x)
+
+    // Returns the number of zero bits below the lowest set bit, per lane.
+    //
+    // An all-zero lane answers the lane width.
+    func trailingZeros(x: Simd.U8x16)->Simd.U8x16 => @bitcounttz(x)
+    func trailingZeros(x: Simd.U16x8)->Simd.U16x8 => @bitcounttz(x)
+    func trailingZeros(x: Simd.U32x4)->Simd.U32x4 => @bitcounttz(x)
+    func trailingZeros(x: Simd.U64x2)->Simd.U64x2 => @bitcounttz(x)
+
+    // Reverses the bytes inside every lane.
+    func byteswap(x: Simd.U16x8)->Simd.U16x8 => @byteswap(x)
+    func byteswap(x: Simd.U32x4)->Simd.U32x4 => @byteswap(x)
+    func byteswap(x: Simd.U64x2)->Simd.U64x2 => @byteswap(x)
+
+    // Returns the magnitude of `x` carrying the sign of `y`, per lane.
+    //
+    // Only the sign bit moves, so a NaN keeps its payload and a zero takes the
+    // sign it is given.
+    func copysign(x, y: Simd.F32x4)->Simd.F32x4
+    {
+        const Magnitude = @vecsplat(0x7FFF_FFFF'u32)
+        const Sign      = @vecsplat(0x8000_0000'u32)
+        return cast #bit (Simd.F32x4) ((cast #bit (Simd.U32x4) x & Magnitude) | (cast #bit (Simd.U32x4) y & Sign))
+    }
+
+    func copysign(x, y: Simd.F64x2)->Simd.F64x2
+    {
+        const Magnitude = @vecsplat(0x7FFF_FFFF_FFFF_FFFF'u64)
+        const Sign      = @vecsplat(0x8000_0000_0000_0000'u64)
+        return cast #bit (Simd.F64x2) ((cast #bit (Simd.U64x2) x & Magnitude) | (cast #bit (Simd.U64x2) y & Sign))
+    }
+
+    // Returns the sign of every lane.
+    //
+    // A lane below zero answers -1 and a lane above it 1; zero and a NaN both
+    // answer 0.
+    func sign(x: Simd.F32x4)->Simd.F32x4
+    {
+        let zero     = @vecsplat(0'f32)
+        let one      = @vecsplat(1'f32)
+        let positive = Simd.select(x > zero, one, zero)
+        let negative = Simd.select(x < zero, one, zero)
+        return positive - negative
+    }
+
+    func sign(x: Simd.F64x2)->Simd.F64x2
+    {
+        let zero     = @vecsplat(0'f64)
+        let one      = @vecsplat(1'f64)
+        let positive = Simd.select(x > zero, one, zero)
+        let negative = Simd.select(x < zero, one, zero)
+        return positive - negative
+    }
+
+    // Clamps every lane between zero and one.
+    func saturate(x: Simd.F32x4)->Simd.F32x4 => clamp(x, @vecsplat(0'f32), @vecsplat(1'f32))
+    func saturate(x: Simd.F64x2)->Simd.F64x2 => clamp(x, @vecsplat(0'f64), @vecsplat(1'f64))
+
+    // Interpolates linearly between `x` and `y`, per lane.
+    func lerp(x, y, factor: Simd.F32x4)->Simd.F32x4 => x + factor * (y - x)
+    func lerp(x, y, factor: Simd.F64x2)->Simd.F64x2 => x + factor * (y - x)
 }

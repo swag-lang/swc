@@ -118,11 +118,11 @@ struct ThemeMetrics
         popupList_IconTextMargin:   f32 = 6     // Theme measurement used for popup list icon text margin.
         popupList_SeparatorPadding: f32 = 4     // Theme measurement used for popup list separator padding.
 
-        btnIcon_Padding:       f32 = 4     // Theme measurement used for btn icon padding.
+        btnIcon_Padding:       f32 = 8     // Symmetric outer air around an icon-button content group.
         btnIcon_ArrowSize:     f32 = 8     // Size of the disclosure marker beside an icon-button action.
         btnIcon_MarginArrow:   f32 = 4     // Theme measurement used for btn icon margin arrow.
         btnIcon_SpacingIcon:   f32 = 4     // Theme measurement used for btn icon spacing icon.
-        btnIcon_SpacingArrowH: f32 = 6     // Air between an icon-button action and its disclosure marker.
+        btnIcon_SpacingArrowH: f32 = 8     // Air between an icon-button action and its disclosure marker.
         btnIcon_SpacingArrowV: f32 = 4     // Theme measurement used for btn icon spacing arrow v.
         btnIcon_SpacingTextH:  f32 = 8     // Theme measurement used for btn icon spacing text h.
         btnIcon_SpacingTextV:  f32 = 0     // Theme measurement used for btn icon spacing text v.

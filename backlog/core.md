@@ -303,16 +303,16 @@ unsafe legacy modes excluded from the default surface.
   rewrite of 2026-08-29 set out to reach.
 - Where it stands: measured against the Rust `regex` crate on the same ten-megabyte corpus,
   counting every match of the same pattern in memory, best of ten interleaved rounds. A plain
-  literal 1.2x slower, an alternation of literals 2.5x *faster*, `\d{4}-\d{2}-\d{2}` 1.1x,
-  `[a-z]+[0-9]+@[a-z.-]+` 1.2x, `(?i)sherlock` 1.7x *faster*, a date with capture groups 2.3x
-  slower, `[a-z]+ing` 2.4x, and `\w+` 3.2x. Half the set is at or ahead of the crate; what is
-  behind is what matches often.
+  literal 1.2x slower, an alternation of literals 2.5x *faster*, `\d{4}-\d{2}-\d{2}` at parity,
+  `[a-z]+[0-9]+@[a-z.-]+` 1.2x slower, `(?i)sherlock` 1.4x *faster*, a date with capture groups
+  2.1x slower, `[a-z]+ing` 1.9x, and `\w+` 2.4x. Nothing is more than 2.4x, and what is behind
+  is what matches often.
 - What is left, in decreasing value:
-  - **A search costs about ninety nanoseconds before it reads anything**, against roughly thirty
-    for the crate. That is the whole remaining gap on `\w+`, which matches every five bytes:
-    two automata entered through a start state and a table pointer, and a façade layer around
-    them. Each layer removed has measured a real gain, and the way to remove the rest is a
-    search loop that runs many matches over one subject rather than one call per match.
+  - **A search still costs more to start than to run**, against roughly thirty nanoseconds for
+    the crate. Looking for every occurrence now runs the two automata from one loop rather than
+    through the façade once per match, which is what took `\w+` from 3.2x to 2.4x; the same
+    treatment has not been given to the path that looks for an inner literal, which is what
+    `[a-z]+ing` uses.
   - **Captures replay the search.** The backtracking engine reads the groups back over the
     span the automata found, iteratively and without recursion since this pass, but it still
     walks the pattern a second time. A pattern whose groups are unambiguous — most patterns

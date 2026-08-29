@@ -145,7 +145,7 @@ struct ThemeMetrics
         header_Separator: f32          = 5                  // Theme measurement used for header separator.
 
         panel_GutterSize:  f32 = 4     // Gap separating a structural panel from adjacent application chrome.
-        splitView_BarSize: f32 = 5     // Width of the draggable divider separating two split panes.
+        splitView_BarSize: f32 = 4     // Width of the draggable divider, equal to the structural panel gutter.
 
         progressBar_Height:     f32 = 18      // Theme measurement used for progress bar height.
         progressBar_ClipOffset: f32 = 2       // Theme measurement used for progress bar clip offset.
@@ -194,3 +194,18 @@ struct ThemeMetrics
         toolTip_Offset:    f32          = 12               // Gap a tool tip keeps from the pointer that summoned it.
     }
 }
+
+// Returns the side of a primary action glyph shown in an application or viewer bar.
+func themeActionIconSize(metrics: const *ThemeMetrics)->f32 => metrics.wnd_CaptionIconSize
+
+// Returns the side of a supporting glyph shown in a menu, list, field, or compact header.
+func themeRowIconSize(metrics: const *ThemeMetrics)->f32 => metrics.menuPopup_IconSize
+
+// Returns the side of an ordinary icon-button cell in an application or viewer bar.
+func themeActionButtonSize(metrics: const *ThemeMetrics)->f32 => themeActionIconSize(metrics) + 2 * metrics.btnIcon_Padding
+
+// Returns the side of a compact icon-button cell in a panel or list header.
+func themeCompactButtonSize(metrics: const *ThemeMetrics)->f32 => metrics.editBox_Height
+
+// Returns the width of an action cell that also carries a drop-down arrow.
+func themeDropDownButtonWidth(metrics: const *ThemeMetrics)->f32 => themeActionButtonSize(metrics) + 2 * metrics.btnIcon_SpacingArrowH

@@ -52,8 +52,8 @@ func testAssertLibraryMenuGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd
 
         let menu = host.capturedPopupMenu()
         @assert(menu != null)
-        @assert(button.icon.sizeX == LibCommandGlyphSize and button.icon.sizeY == LibCommandGlyphSize)
-        @assert(menu!.themeMetrics().menuPopup_IconSize == LibRowGlyphSize)
+        @assert(button.icon.sizeX == themeActionIconSize(main.themeMetrics()) and button.icon.sizeY == themeActionIconSize(main.themeMetrics()))
+        @assert(menu!.themeMetrics().menuPopup_IconSize == themeRowIconSize(main.themeMetrics()))
         var image = host.render(main)
         Pixel.Testing.assertImageGolden(&image, golden)
         @assert(host.dismissPopupMenu())

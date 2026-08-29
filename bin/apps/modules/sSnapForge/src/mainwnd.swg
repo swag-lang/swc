@@ -11,15 +11,11 @@ const AppIcon                = #include("../datas/appicon.png")
 // Interface metrics, taken from the application chart: a glyph never fills more than half
 // of the cell it sits in, and the space left around it is what separates one control from
 // the next. Nothing here is a container for a label stacked under an icon.
-const RailCellSize     = 36.0      // One tool cell of the left rail.
-const RailGlyphSize    = 20.0      // Every toolbar and command-row glyph.
-const RailCellPadding  = 8.0       // Air a rail cell keeps on each side of what it holds.
-const RailLabelWidth   = 128.0     // Content width of a rail cell when the labels option puts a word beside the glyph.
-const CommandRowHeight = 36.0      // The single command row under the accent rail.
-const ReadoutWidth     = 88.0      // One machine readout of the command row.
-const VerbsWidth       = 272.0     // The command group: two named application actions.
-const ReadoutsWidth    = 240.0     // The readout group: both cells, their gap, and outer air.
-const RightPanelWidth  = 288.0     // Content width of the tool panel on the right.
+const RailLabelWidth  = 128.0     // Content width of a rail cell when the labels option puts a word beside the glyph.
+const ReadoutWidth    = 88.0      // One machine readout of the command row.
+const VerbsWidth      = 272.0     // The command group: two named application actions.
+const ReadoutsWidth   = 240.0     // The readout group: both cells, their gap, and outer air.
+const RightPanelWidth = 288.0     // Content width of the tool panel on the right.
 
 // Enums
 enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, Selection, Step, Image, PixSel, Callout }
@@ -813,9 +809,10 @@ impl MainWnd
         // A custom painter is handed the whole content rectangle, not the icon extent, so
         // the glyph places itself where a sprite of the set would have landed: centered
         // when the cell shows no label, against the leading edge when it does.
-        var box = Math.Rectangle{pos.x, pos.vertCenter() - RailGlyphSize * 0.5, RailGlyphSize, RailGlyphSize}
+        let glyphSize = themeActionIconSize(btn.themeMetrics())
+        var box       = Math.Rectangle{pos.x, pos.vertCenter() - glyphSize * 0.5, glyphSize, glyphSize}
         if btn.flags.has(.IconOnly) or btn.name.isEmpty() do
-            box.x = pos.horzCenter() - RailGlyphSize * 0.5
+            box.x = pos.horzCenter() - glyphSize * 0.5
 
         // The sprites of the set stand on roughly three fifths of their box; the bubble
         // matches that weight so the rail reads as one column of glyphs.
@@ -840,7 +837,11 @@ impl MainWnd
     // tool; the rail sits where the pointer already is.
     mtd createToolRail()
     {
-        with me.toolRail = StackLayoutCtrl.create(me, .Top, {0, 0, RailCellSize, 0})
+        let metrics     = .themeMetrics()
+        let cellSize    = themeActionButtonSize(metrics)
+        let glyphSize   = themeActionIconSize(metrics)
+        let cellPadding = (cellSize - glyphSize) * 0.5
+        with me.toolRail = StackLayoutCtrl.create(me, .Top, {0, 0, cellSize, 0})
         {
             .dockStyle       = .Left
             .spacing         = 0
@@ -856,17 +857,17 @@ impl MainWnd
 
         for id in toolButtons
         {
-            with let b = IconButton.create(me .toolRail!, {}, position: {0, 0, RailCellSize, RailCellSize})
+            with let b = IconButton.create(me .toolRail!, {}, position: {0, 0, cellSize, cellSize})
             {
                 .id = id
 
                 // Air on both sides of the glyph, so the column is separated from the window
                 // edge and from the canvas by space rather than by a line.
-                .setAllPaddings({RailCellPadding, 0, RailCellPadding, 0})
+                .setAllPaddings({cellPadding, 0, cellPadding, 0})
                 if id == ActionToolMode.Callout
                 {
                     .iconPainter = func(btn, bc, pos, flags) { drawCalloutGlyph(btn, bc, pos, flags) }
-                    .setIconSize(RailGlyphSize, RailGlyphSize)
+                    .setIconSize(glyphSize, glyphSize)
                 }
 
                 // A vertical tool rail keeps the leading rule: it reads beside the glyph rather
@@ -892,32 +893,34 @@ impl MainWnd
     // knows about the open capture on the other, and nothing in between.
     mtd createCommandRow()
     {
-        with let verbs = StackLayoutCtrl.create(me .topBar!, .Left, {0, 0, VerbsWidth, CommandRowHeight})
+        let metrics    = .themeMetrics()
+        let cellSize   = themeActionButtonSize(metrics)
+        with let verbs = StackLayoutCtrl.create(me .topBar!, .Left, {0, 0, VerbsWidth, cellSize})
         {
             .dockStyle = .Left
-            .spacing   = 4
-            .padding   = {8, 4, 8, 4}
+            .spacing   = metrics.iconBar_ButtonsPadding
+            .padding   = {2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding, 2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding}
         }
 
         // Capture is the primary Voltage action. Library has the same push-button shape and
         // footprint, but only takes an informational blue fill while its page is active.
-        .captureBtn = PushButton.create(verbs, "", {0, 0, 104, RailCellSize - 8}, ActionCapture.DoIt, .Strong)
+        .captureBtn = PushButton.create(verbs, "", {0, 0, 104, cellSize - 2 * metrics.iconBar_ButtonsPadding}, ActionCapture.DoIt, .Strong)
 
-        with .libraryBtn = PushButton.create(verbs, appStrings().act_Library, {0, 0, 104, RailCellSize - 8}, ActionGlobal.ShowLibrary)
+        with .libraryBtn = PushButton.create(verbs, appStrings().act_Library, {0, 0, 104, cellSize - 2 * metrics.iconBar_ButtonsPadding}, ActionGlobal.ShowLibrary)
         {
-            .setIcon(me .icon(.Library, RailGlyphSize))
+            .setIcon(me .icon(.Library))
         }
 
-        with .commandReadouts = StackLayoutCtrl.create(me .topBar!, .Right, {0, 0, ReadoutsWidth, CommandRowHeight})
+        with .commandReadouts = StackLayoutCtrl.create(me .topBar!, .Right, {0, 0, ReadoutsWidth, cellSize})
         {
             .dockStyle = .Right
-            .spacing   = 4
-            .padding   = {8, 4, 8, 4}
+            .spacing   = metrics.iconBar_ButtonsPadding
+            .padding   = {2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding, 2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding}
         }
 
         // Zoom keeps its menu, so it stays a button; size is a pure readout and is not
         // one. Both carry the fixed-width family, so neither jumps as its value changes.
-        with .zoomBtn = IconButton.create(.commandReadouts, {}, {0, 0, ReadoutWidth, RailCellSize - 8})
+        with .zoomBtn = IconButton.create(.commandReadouts, {}, {0, 0, ReadoutWidth, cellSize - 2 * metrics.iconBar_ButtonsPadding})
         {
             .updateFlags(.CenterContent)
             .setArrowPosition(.RightDownward)
@@ -933,7 +936,7 @@ impl MainWnd
             }
         }
 
-        with .sizeBtn = IconButton.create(.commandReadouts, {}, {0, 0, ReadoutWidth + 24, RailCellSize - 8})
+        with .sizeBtn = IconButton.create(.commandReadouts, {}, {0, 0, ReadoutWidth + 24, cellSize - 2 * metrics.iconBar_ButtonsPadding})
         {
             .updateFlags(.CenterContent | .Flat)
             .style.setFont(me.theme().res.fontDefaultFs)
@@ -980,8 +983,10 @@ impl MainWnd
         let metrics    = .themeMetrics()
         let showLabels = .editorOptions.showToolBarLabels
 
-        let lane  = metrics.activeRail_Size + metrics.activeRail_Margin
-        let width = showLabels ? RailLabelWidth + lane : RailCellSize + metrics.activeRail_Size
+        let cellSize    = themeActionButtonSize(metrics)
+        let cellPadding = (cellSize - themeActionIconSize(metrics)) * 0.5
+        let lane        = metrics.activeRail_Size + metrics.activeRail_Margin
+        let width       = showLabels ? RailLabelWidth + lane : cellSize + metrics.activeRail_Size
 
         for c in .toolRail.children
         {
@@ -991,16 +996,16 @@ impl MainWnd
             if showLabels
             {
                 btn.updateFlags(remove: .IconOnly)
-                btn.setAllPaddings({RailCellPadding, 0, RailCellPadding, 0})
+                btn.setAllPaddings({cellPadding, 0, cellPadding, 0})
             }
             else
             {
                 btn.updateFlags(.IconOnly)
-                btn.setAllPaddings({0, 0, RailCellPadding, 0})
+                btn.setAllPaddings({0, 0, cellPadding, 0})
             }
 
             btn.position.width  = width
-            btn.position.height = RailCellSize
+            btn.position.height = cellSize
         }
 
         .toolRail.position.width = width
@@ -1014,9 +1019,10 @@ impl MainWnd
     }
 
     // Creates an icon descriptor for an application glyph at `size` logical pixels.
-    mtd icon(idx: CaptureIcons, size = 24'f32)->Icon
+    mtd icon(idx: CaptureIcons, size = 0.0)->Icon
     {
-        return .icons.icon(cast(s32) idx, size, .theme().res.atlasScale)
+        let resolvedSize = size ? size : themeActionIconSize(.themeMetrics())
+        return .icons.icon(cast(s32) idx, resolvedSize, .theme().res.atlasScale)
     }
 
     func create(parent: *Wnd)->*MainWnd
@@ -1075,7 +1081,7 @@ impl MainWnd
 
         // One command row, the same height in both modes, instead of the former stack of
         // a command bar and a centered tool ribbon.
-        with res.topBar = Wnd.create'Wnd(res, {0, 0, 0, CommandRowHeight})
+        with res.topBar = Wnd.create'Wnd(res, {0, 0, 0, themeActionButtonSize(res.themeMetrics())})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
@@ -1089,9 +1095,10 @@ impl MainWnd
         // Main edit area
         with res.editWnd = EditWnd.create(res, res)
         {
-            .dockStyle            = .Center
-            .backgroundStyle      = .View
-            .margin.y             = panelGutter
+            .dockStyle       = .Center
+            .backgroundStyle = .Panel
+            .margin.y        = panelGutter
+            .style.addStyleSheetColors("wnd_Bk $view_Bk")
             .sigScrollSizeChanged += func|res|(scroll, old, new) { res.updateZoomDisplay(); }
         }
 

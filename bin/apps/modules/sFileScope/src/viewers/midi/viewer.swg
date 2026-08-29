@@ -155,7 +155,7 @@ internal impl MidiViewer
             }
         }
 
-        with result.zoomOutButton = IconButton.create(result.commands, result.theme().icon(.ZoomOut, ViewerGlyphSize), {0, 0, 36, 36})
+        with result.zoomOutButton = IconButton.create(result.commands, result.theme().icon(.ZoomOut, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -168,7 +168,7 @@ internal impl MidiViewer
             }
         }
 
-        with result.zoomInButton = IconButton.create(result.commands, result.theme().icon(.ZoomIn, ViewerGlyphSize), {0, 0, 36, 36})
+        with result.zoomInButton = IconButton.create(result.commands, result.theme().icon(.ZoomIn, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle  = .Left
             .toolTip    = midiStrings().ui_ZoomIn
@@ -180,7 +180,7 @@ internal impl MidiViewer
             }
         }
 
-        with result.fitButton = IconButton.create(result.commands, result.theme().icon(.FitView, ViewerGlyphSize), {0, 0, 36, 36})
+        with result.fitButton = IconButton.create(result.commands, result.theme().icon(.FitView, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle  = .Left
             .margin.x   = 8

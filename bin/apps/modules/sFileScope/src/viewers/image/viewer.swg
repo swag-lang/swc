@@ -108,7 +108,7 @@ internal impl ImageViewer
             return
         .timeline.setValueWithoutGesture(cast(f32) movie.frameIndex)
         .frameLabel.setText(Format.toString("% / %", movie.frameIndex + 1, movie.frameCount))
-        .playButton.setIcon(.theme().icon(movie.isPaused ? .Play : .Pause, ViewerGlyphSize))
+        .playButton.setIcon(.theme().icon(movie.isPaused ? .Play : .Pause, themeActionIconSize(.themeMetrics())))
     }
 
     mtd showPlayback()
@@ -158,13 +158,13 @@ internal impl ImageViewer
     {
         let texts = imageStrings()
         let menu  = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(texts.ui_RotateCounterClockwise, "sFileScope.image.rotateLeft", .theme().icon(.Undo, ViewerRowGlyphSize), rightName: "Shift+R")
-        menu.addItem(texts.ui_RotateClockwise, "sFileScope.image.rotateRight", .theme().icon(.Redo, ViewerRowGlyphSize), rightName: "R")
+        menu.addItem(texts.ui_RotateCounterClockwise, "sFileScope.image.rotateLeft", .theme().icon(.Undo, themeRowIconSize(.themeMetrics())), rightName: "Shift+R")
+        menu.addItem(texts.ui_RotateClockwise, "sFileScope.image.rotateRight", .theme().icon(.Redo, themeRowIconSize(.themeMetrics())), rightName: "R")
         menu.addSeparator()
         menu.addItem(texts.ui_MirrorHorizontal, "sFileScope.image.mirrorHorizontal", rightName: "H")
         menu.addItem(texts.ui_MirrorVertical, "sFileScope.image.mirrorVertical", rightName: "V")
         menu.addSeparator()
-        menu.addItem(texts.ui_ResetTransform, "sFileScope.image.reset", .theme().icon(.Update, ViewerRowGlyphSize), rightName: "Ctrl+R")
+        menu.addItem(texts.ui_ResetTransform, "sFileScope.image.reset", .theme().icon(.Update, themeRowIconSize(.themeMetrics())), rightName: "Ctrl+R")
         return menu
     }
 
@@ -314,7 +314,7 @@ private impl ImageViewer
         result.actions = host.createActionGroup(ImageActionWidth)
         result.info    = host.createInfoGroup(ImageInfoWidth)
 
-        with result.previousButton = IconButton.create(result.actions, result.theme().icon(.ChevronLeft, ViewerGlyphSize), {0, 0, 36, 36})
+        with result.previousButton = IconButton.create(result.actions, result.theme().icon(.ChevronLeft, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle = .Left
             .toolTip   = imageStrings().ui_TipPrevious
@@ -326,7 +326,7 @@ private impl ImageViewer
             }
         }
 
-        with result.nextButton = IconButton.create(result.actions, result.theme().icon(.ChevronRight, ViewerGlyphSize), {0, 0, 36, 36})
+        with result.nextButton = IconButton.create(result.actions, result.theme().icon(.ChevronRight, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle = .Left
             .toolTip   = imageStrings().ui_TipNext
@@ -338,7 +338,7 @@ private impl ImageViewer
             }
         }
 
-        with let zoomOut = IconButton.create(result.actions, result.theme().icon(.ZoomOut, ViewerGlyphSize), {0, 0, 36, 36})
+        with let zoomOut = IconButton.create(result.actions, result.theme().icon(.ZoomOut, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle  = .Left
             .margin.x   = 16
@@ -350,7 +350,7 @@ private impl ImageViewer
             }
         }
 
-        with let zoomIn = IconButton.create(result.actions, result.theme().icon(.ZoomIn, ViewerGlyphSize), {0, 0, 36, 36})
+        with let zoomIn = IconButton.create(result.actions, result.theme().icon(.ZoomIn, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle  = .Left
             .toolTip    = imageStrings().ui_TipZoomIn
@@ -361,7 +361,7 @@ private impl ImageViewer
             }
         }
 
-        with let fit = IconButton.create(result.actions, result.theme().icon(.FitView, ViewerGlyphSize), {0, 0, 36, 36})
+        with let fit = IconButton.create(result.actions, result.theme().icon(.FitView, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle  = .Left
             .margin.x   = 16
@@ -373,7 +373,7 @@ private impl ImageViewer
             }
         }
 
-        with let actual = IconButton.create(result.actions, result.theme().icon(.ActualSize, ViewerGlyphSize), {0, 0, 36, 36})
+        with let actual = IconButton.create(result.actions, result.theme().icon(.ActualSize, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle  = .Left
             .toolTip    = imageStrings().ui_TipActual
@@ -384,7 +384,7 @@ private impl ImageViewer
             }
         }
 
-        with result.transformButton = IconButton.create(result.actions, result.theme().icon(.Redo, ViewerGlyphSize), {0, 0, 52, 36}, flags: .CenterContent)
+        with result.transformButton = IconButton.create(result.actions, result.theme().icon(.Redo, themeActionIconSize(result.themeMetrics())), {0, 0, themeDropDownButtonWidth(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .CenterContent)
         {
             .dockStyle = .Left
             .margin.x  = 16
@@ -397,7 +397,7 @@ private impl ImageViewer
             }
         }
 
-        with result.playButton = IconButton.create(result.actions, result.theme().icon(.Pause, ViewerGlyphSize), {0, 0, 36, 36})
+        with result.playButton = IconButton.create(result.actions, result.theme().icon(.Pause, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle = .Left
             .margin.x  = 10

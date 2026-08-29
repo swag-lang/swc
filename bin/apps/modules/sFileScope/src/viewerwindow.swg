@@ -3,18 +3,12 @@ using Core, Pixel, Gui
 const ViewerActionBarHeight                   = 42.0
 const ViewerBarHeight                         = 48.0
 const ViewerInfoHeight                        = 40.0
-const ViewerGlyphSize                         = 20.0
-const ViewerRowGlyphSize                      = 16.0
 const ViewerMinWidth                          = 880
 const ViewerSearchChunkSize                   = 256 * 1024'u64
 const ViewerSearchFieldWidth                  = 180.0
 const ViewerSearchNoOptionsFieldWidth         = 256.0
 const ViewerSearchCountWidth                  = 52.0
-const ViewerSearchButtonSize                  = 36.0
-const ViewerSearchOptionsWidth                = 52.0
-const ViewerSearchNavigationWidth             = 132.0
 const ViewerSearchGroupSpacing                = 16.0
-const ViewerSearchBarWidth                    = ViewerSearchOptionsWidth + ViewerSearchFieldWidth + ViewerSearchNavigationWidth + 2 * ViewerSearchGroupSpacing
 const ViewerInfoGroupSpacing                  = 16.0
 const ViewerInfoSideButtonSpacing             = 8.0
 const ViewerSearchCarryMargin                 = 4'u64
@@ -51,7 +45,6 @@ const ViewerFullScreenAddedFlags   = SurfaceFlags.NoShadow | SurfaceFlags.TopMos
 
 // The panel that lists what is beside the current file, and what was read before it.
 const ViewerPanelWidth   = 276.0
-const ViewerPanelLabel   = 32.0
 const ViewerRecentHeight = 188.0
 const ViewerPaneMinSize  = 88.0
 
@@ -193,29 +186,6 @@ impl ViewerInfoLayout
         let rightBound = viewerLeft - (hasViewer ? ViewerInfoGroupSpacing : 0)
         let halfWidth  = .generalLabel.name.isEmpty() ? 0 : Math.max(Math.min(center - leftBound, rightBound - center), 0)
         .generalLabel.setPosition({center - halfWidth, client.y, 2 * halfWidth, client.height}, computeLayout: false)
-    }
-}
-
-// Clips only the four document corners after viewers paint. Insetting every viewer exposed the
-// panel as a continuous inner frame; masking the corners preserves the full content rectangle.
-struct ViewerDocumentPanel
-{
-    using wnd: Wnd
-}
-
-impl IWnd for ViewerDocumentPanel
-{
-    mtd impl onAfterPaint(evt: *PaintEvent)
-    {
-        let rect   = .clientRect()
-        let radius = .themeRects().panel_Bk.radius
-        if !radius do
-            return
-
-        var corners: LinePathList
-        corners.newPath().setRectRaw(rect.x, rect.y, rect.width, rect.height)
-        corners.newPath().setRoundRectRaw(rect.x, rect.y, rect.width, rect.height, radius, radius)
-        evt.paintContext.painter.fillPath(&corners, .themeColors().toolBar_Bk, .EvenOdd)
     }
 }
 
@@ -899,21 +869,23 @@ impl IWnd for ViewerWindow
 impl ViewerWindow
 {
     // Creates an icon descriptor for an application glyph at `size` logical pixels.
-    mtd icon(idx: ViewerIcons, size = ViewerRowGlyphSize)->Icon
+    mtd icon(idx: ViewerIcons, size = 0.0)->Icon
     {
-        return .icons.icon(cast(s32) idx, size, .theme().res.atlasScale)
+        let resolvedSize = size ? size : themeRowIconSize(.themeMetrics())
+        return .icons.icon(cast(s32) idx, resolvedSize, .theme().res.atlasScale)
     }
 
     // Resolves one descriptor-owned glyph without leaking plugin metadata into the window.
-    private mtd choiceIcon(index: u32, size = ViewerRowGlyphSize)->Icon
+    private mtd choiceIcon(index: u32, size = 0.0)->Icon
     {
         if index >= .choices.count do
             return {}
         let choice = &.choices[index]
         if choice.pluginIndex >= .index.plugins.count do
             return {}
-        let plugin = &.index.plugins[choice.pluginIndex]
-        return plugin.icon(me, size, plugin.iconData)
+        let plugin       = &.index.plugins[choice.pluginIndex]
+        let resolvedSize = size ? size : themeRowIconSize(.themeMetrics())
+        return plugin.icon(me, resolvedSize, plugin.iconData)
     }
 
     mtd applyTheme(index: u32)
@@ -931,9 +903,9 @@ impl ViewerWindow
     mtd refreshArtwork()
     {
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
-        .searchOptionsButton.setIcon(.theme().icon(.Options, ViewerGlyphSize))
-        .searchPrevious.setIcon(.theme().icon(.SearchPrevious, ViewerGlyphSize))
-        .searchNext.setIcon(.theme().icon(.SearchNext, ViewerGlyphSize))
+        .searchOptionsButton.setIcon(.theme().icon(.Options, themeActionIconSize(.themeMetrics())))
+        .searchPrevious.setIcon(.theme().icon(.SearchPrevious, themeActionIconSize(.themeMetrics())))
+        .searchNext.setIcon(.theme().icon(.SearchNext, themeActionIconSize(.themeMetrics())))
         if .activeChoiceIndex < .choices.count do
             .infoIconLabel.setIcon(.choiceIcon(.activeChoiceIndex))
     }
@@ -1032,7 +1004,7 @@ impl ViewerWindow
         }
 
         .fullScreenButton.setChecked(.fullScreen)
-        .fullScreenButton.setIcon(.theme().icon(.fullScreen ? .ExitFullScreen : .FullScreen, ViewerGlyphSize))
+        .fullScreenButton.setIcon(.theme().icon(.fullScreen ? .ExitFullScreen : .FullScreen, themeActionIconSize(.themeMetrics())))
         .fullScreenButton.toolTip = .fullScreen ? appStrings().ui_ExitFullScreen : appStrings().ui_FullScreen
     }
 
@@ -1108,8 +1080,12 @@ impl ViewerWindow
         result.accentRail = Separator.create(result, .Top, .Accent)
 
         result.commandBar = ViewerActionBar.create(result)
+        let actionSize            = themeActionButtonSize(result.themeMetrics())
+        let dropDownWidth         = themeDropDownButtonWidth(result.themeMetrics())
+        let searchNavigationWidth = 2 * actionSize + ViewerSearchCountWidth + 8
+        let searchBarWidth        = dropDownWidth + ViewerSearchFieldWidth + searchNavigationWidth + 2 * ViewerSearchGroupSpacing
 
-        with result.openButton = IconButton.create(result.commandBar, result.theme().icon(.OpenFile, ViewerGlyphSize), {0, 0, 36, 36})
+        with result.openButton = IconButton.create(result.commandBar, result.theme().icon(.OpenFile, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle  = .Left
             .margin.z   = 8
@@ -1121,7 +1097,7 @@ impl ViewerWindow
             }
         }
 
-        with result.openDefaultButton = IconButton.create(result.commandBar, result.theme().icon(.Export, ViewerGlyphSize), {0, 0, 36, 36})
+        with result.openDefaultButton = IconButton.create(result.commandBar, result.theme().icon(.Export, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle = .Left
             .margin.z  = 8
@@ -1134,7 +1110,7 @@ impl ViewerWindow
             }
         }
 
-        with result.fullScreenButton = IconButton.create(result.commandBar, result.theme().icon(.FullScreen, ViewerGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
+        with result.fullScreenButton = IconButton.create(result.commandBar, result.theme().icon(.FullScreen, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .Toggle)
         {
             .dockStyle = .Right
             .toolTip   = appStrings().ui_FullScreen
@@ -1145,7 +1121,7 @@ impl ViewerWindow
             }
         }
 
-        with result.searchGroup = StackLayoutCtrl.create(result.commandBar, .Center, {0, 0, ViewerSearchBarWidth, 36})
+        with result.searchGroup = StackLayoutCtrl.create(result.commandBar, .Center, {0, 0, searchBarWidth, actionSize})
         {
             .backgroundStyle = .Transparent
             .spacing         = ViewerSearchGroupSpacing
@@ -1154,7 +1130,7 @@ impl ViewerWindow
 
         result.commandBar.centerGroup = result.searchGroup
 
-        with result.searchOptionsButton = IconButton.create(result.searchGroup, result.theme().icon(.Options, ViewerGlyphSize), {0, 0, ViewerSearchOptionsWidth, 36}, flags: .CenterContent)
+        with result.searchOptionsButton = IconButton.create(result.searchGroup, result.theme().icon(.Options, themeActionIconSize(result.themeMetrics())), {0, 0, dropDownWidth, actionSize}, flags: .CenterContent)
         {
             .layoutSpec.alignY = .Center
             .toolTip           = appStrings().ui_SearchOptions
@@ -1168,7 +1144,7 @@ impl ViewerWindow
 
         with result.searchBox = EditBox.create(result.searchGroup, "", {0, 0, ViewerSearchFieldWidth, 36}, flags: .ClearButton)
         {
-            .setIcon(result.theme().icon(.Search, ViewerGlyphSize))
+            .setIcon(result.theme().icon(.Search, themeActionIconSize(result.themeMetrics())))
             .setPlaceholder(appStrings().ui_Search)
             .setValidator(func|window = result|(edit)->EditBoxCheckResult { return window.validateSearchEdit(edit) })
             .sigTextChanged += func|window = result|(edit)
@@ -1189,13 +1165,13 @@ impl ViewerWindow
             .enable(false)
         }
 
-        with result.searchNavigation = StackLayoutCtrl.create(result.searchGroup, .Center, {0, 0, ViewerSearchNavigationWidth, 36})
+        with result.searchNavigation = StackLayoutCtrl.create(result.searchGroup, .Center, {0, 0, searchNavigationWidth, actionSize})
         {
             .backgroundStyle = .Transparent
             .spacing         = 0
         }
 
-        with result.searchPrevious = IconButton.create(result.searchNavigation, result.theme().icon(.SearchPrevious, ViewerGlyphSize), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize})
+        with result.searchPrevious = IconButton.create(result.searchNavigation, result.theme().icon(.SearchPrevious, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .layoutSpec.alignY = .Center
             .toolTip           = appStrings().ui_SearchPrevious
@@ -1207,7 +1183,7 @@ impl ViewerWindow
             .enable(false)
         }
 
-        with result.searchNext = IconButton.create(result.searchNavigation, result.theme().icon(.SearchNext, ViewerGlyphSize), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize})
+        with result.searchNext = IconButton.create(result.searchNavigation, result.theme().icon(.SearchNext, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .layoutSpec.alignY = .Center
             .toolTip           = appStrings().ui_SearchNext
@@ -1267,7 +1243,7 @@ impl ViewerWindow
             .backgroundStyle = .Transparent
         }
 
-        with result.filesButton = IconButton.create(result.infoContentGroup, result.theme().icon(.History, ViewerGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
+        with result.filesButton = IconButton.create(result.infoContentGroup, result.theme().icon(.History, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .Toggle)
         {
             .toolTip = appStrings().ui_Files
             .setCheckIndicator(.Frame)
@@ -1288,7 +1264,7 @@ impl ViewerWindow
 
         with result.infoIconLabel = Label.create(result.infoFileGroup, "", {0, 0, 24, 36})
         {
-            .margin.z = 4
+            .margin.z = result.themeMetrics().btnIcon_SpacingIcon
             .setIconAlignment(.Center, .Center)
         }
 
@@ -1342,23 +1318,23 @@ impl ViewerWindow
             .dockStyle       = .Center
             .minSize.x       = ViewerPanelWidth
             .maxSize.x       = ViewerPanelWidth
-            .backgroundStyle = .Panel
+            .backgroundStyle = .Transparent
         }
 
         with result.recentPane = Wnd.create'Wnd(result.filePanel)
         {
-            .backgroundStyle = .Transparent
+            .backgroundStyle = .Panel
             .padding         = {0, 8, 0, 8}
         }
 
-        with let recentHeader = Wnd.create'Wnd(result.recentPane, {0, 0, 0, ViewerPanelLabel})
+        with let recentHeader = Wnd.create'Wnd(result.recentPane, {0, 0, 0, themeCompactButtonSize(result.themeMetrics())})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
             .margin          = {10, 0, 10, 0}
         }
 
-        with result.recentClearButton = IconButton.create(recentHeader, result.theme().icon(.RemoveAll, ViewerRowGlyphSize), {0, 0, ViewerPanelLabel, ViewerPanelLabel})
+        with result.recentClearButton = IconButton.create(recentHeader, result.theme().icon(.RemoveAll, themeRowIconSize(result.themeMetrics())), {0, 0, themeCompactButtonSize(result.themeMetrics()), themeCompactButtonSize(result.themeMetrics())})
         {
             .dockStyle  = .Right
             .toolTip    = appStrings().ui_ClearHistory
@@ -1369,7 +1345,7 @@ impl ViewerWindow
             }
         }
 
-        with result.recentLabel = Label.create(recentHeader, appStrings().ui_Recent, {0, 0, 0, ViewerPanelLabel}, null, .SecondaryText)
+        with result.recentLabel = Label.create(recentHeader, appStrings().ui_Recent, {0, 0, 0, themeCompactButtonSize(result.themeMetrics())}, null, .SecondaryText)
         {
             .dockStyle = .Center
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
@@ -1379,7 +1355,7 @@ impl ViewerWindow
         with result.recentList = ListCtrl.createSimple(result.recentPane)
         {
             .dockStyle = .Center
-            .setIconSize(ViewerRowGlyphSize)
+            .setIconSize(themeRowIconSize(result.themeMetrics()))
             .setSelectionMode(.Single)
             .updateFlags(.HotTrack | .Ellipsis)
             .scrollWnd.padding.x = 0
@@ -1397,20 +1373,20 @@ impl ViewerWindow
 
         with result.folderPane = Wnd.create'Wnd(result.filePanel)
         {
-            .backgroundStyle = .Transparent
+            .backgroundStyle = .Panel
             .padding         = {0, 8, 0, 8}
         }
 
         // The header carries the filter beside the folder name: the toggle changes what this
         // list holds, and the next/previous arrows walk the same list.
-        with let folderHeader = Wnd.create'Wnd(result.folderPane, {0, 0, 0, ViewerPanelLabel})
+        with let folderHeader = Wnd.create'Wnd(result.folderPane, {0, 0, 0, themeCompactButtonSize(result.themeMetrics())})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
             .margin          = {10, 0, 10, 0}
         }
 
-        with result.kindButton = IconButton.create(folderHeader, result.theme().icon(.Filter, ViewerRowGlyphSize), {0, 0, ViewerPanelLabel, ViewerPanelLabel}, flags: .Toggle)
+        with result.kindButton = IconButton.create(folderHeader, result.theme().icon(.Filter, themeRowIconSize(result.themeMetrics())), {0, 0, themeCompactButtonSize(result.themeMetrics()), themeCompactButtonSize(result.themeMetrics())}, flags: .Toggle)
         {
             .dockStyle = .Right
             .toolTip   = appStrings().ui_SameKind
@@ -1421,7 +1397,7 @@ impl ViewerWindow
             }
         }
 
-        with result.folderHistoryButton = IconButton.create(folderHeader, result.theme().icon(.History, ViewerRowGlyphSize), {0, 0, 52, ViewerPanelLabel}, flags: .CenterContent)
+        with result.folderHistoryButton = IconButton.create(folderHeader, result.theme().icon(.History, themeRowIconSize(result.themeMetrics())), {0, 0, themeDropDownButtonWidth(result.themeMetrics()), themeCompactButtonSize(result.themeMetrics())}, flags: .CenterContent)
         {
             .dockStyle = .Right
             .margin.z  = 8
@@ -1435,7 +1411,7 @@ impl ViewerWindow
             }
         }
 
-        with result.folderLabel = Label.create(folderHeader, appStrings().ui_Folder, {0, 0, 0, ViewerPanelLabel}, null, .SecondaryText | .Ellipsis)
+        with result.folderLabel = Label.create(folderHeader, appStrings().ui_Folder, {0, 0, 0, themeCompactButtonSize(result.themeMetrics())}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Center
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
@@ -1445,7 +1421,7 @@ impl ViewerWindow
         with result.folderList = ListCtrl.createSimple(result.folderPane)
         {
             .dockStyle = .Center
-            .setIconSize(ViewerRowGlyphSize)
+            .setIconSize(themeRowIconSize(result.themeMetrics()))
             .setSelectionMode(.Single)
             .updateFlags(.HotTrack | .Ellipsis)
             .scrollWnd.padding.x = 0
@@ -1478,11 +1454,12 @@ impl ViewerWindow
             .padding         = {panelGutter, 0, panelGutter, 0}
         }
 
-        with result.documentPanel = Wnd.create'ViewerDocumentPanel(result.documentHost)
+        with result.documentPanel = Wnd.create'Wnd(result.documentHost)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Panel
             .userData        = result
+            .style.addStyleSheetColors("wnd_Bk $view_Bk")
         }
 
         with result.emptyView = StackLayoutCtrl.create(result.documentPanel, .VerticalCenter)
@@ -2158,7 +2135,7 @@ impl ViewerWindow
             infoParent: .infoContentGroup,
             commandParent: .viewerBar,
             sourceFileName: .currentFile.toString(),
-            pluginIcon: plugin.icon(me, ViewerGlyphSize, plugin.iconData),
+            pluginIcon: plugin.icon(me, themeActionIconSize(.themeMetrics()), plugin.iconData),
             hostServices: {
                 reportFailure: &reportViewerFailure,
                 reportDetails: &reportViewerDetails,
@@ -2907,7 +2884,7 @@ impl ViewerWindow
         for choice in .choices
         {
             let plugin = &.index.plugins[choice.pluginIndex]
-            .viewerCombo.addItem(plugin.displayName(), icon: plugin.icon(me, ViewerRowGlyphSize, plugin.iconData))
+            .viewerCombo.addItem(plugin.displayName(), icon: plugin.icon(me, themeRowIconSize(.themeMetrics()), plugin.iconData))
         }
 
         .viewerCombo.show()
@@ -3055,7 +3032,7 @@ impl ViewerWindow
             if .index.namePlugin(name, &pluginIndex)
             {
                 let plugin = &.index.plugins[pluginIndex]
-                icon = plugin.icon(me, ViewerRowGlyphSize, plugin.iconData)
+                icon = plugin.icon(me, themeRowIconSize(.themeMetrics()), plugin.iconData)
             }
 
             discard list.createLine(Path.fileName(name) orelse name, icon)
@@ -3161,16 +3138,16 @@ impl ViewerWindow
     {
         let texts = appStrings()
         let menu  = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(texts.ui_MenuLocate, "sFileScope.file.locate", .theme().icon(.OpenFile, ViewerRowGlyphSize))
-        menu.addItem(texts.ui_MenuOpenDefault, "sFileScope.file.openDefault", .theme().icon(.Export, ViewerRowGlyphSize))
-        menu.addItem(texts.ui_MenuOpenWith, "sFileScope.file.openWith", .theme().icon(.Export, ViewerRowGlyphSize))
+        menu.addItem(texts.ui_MenuLocate, "sFileScope.file.locate", .theme().icon(.OpenFile, themeRowIconSize(.themeMetrics())))
+        menu.addItem(texts.ui_MenuOpenDefault, "sFileScope.file.openDefault", .theme().icon(.Export, themeRowIconSize(.themeMetrics())))
+        menu.addItem(texts.ui_MenuOpenWith, "sFileScope.file.openWith", .theme().icon(.Export, themeRowIconSize(.themeMetrics())))
         menu.addSeparator()
-        menu.addItem(texts.ui_MenuCopyPath, "sFileScope.file.copyPath", .theme().icon(.Copy, ViewerRowGlyphSize))
-        menu.addItem(texts.ui_MenuCopyName, "sFileScope.file.copyName", .theme().icon(.Copy, ViewerRowGlyphSize))
+        menu.addItem(texts.ui_MenuCopyPath, "sFileScope.file.copyPath", .theme().icon(.Copy, themeRowIconSize(.themeMetrics())))
+        menu.addItem(texts.ui_MenuCopyName, "sFileScope.file.copyName", .theme().icon(.Copy, themeRowIconSize(.themeMetrics())))
         if history
         {
             menu.addSeparator()
-            menu.addItem(texts.ui_MenuForget, "sFileScope.file.forget", .theme().icon(.Remove, ViewerRowGlyphSize))
+            menu.addItem(texts.ui_MenuForget, "sFileScope.file.forget", .theme().icon(.Remove, themeRowIconSize(.themeMetrics())))
         }
 
         let chosen = menu.doModal(position, .TopLeft, autoDestroy: true)

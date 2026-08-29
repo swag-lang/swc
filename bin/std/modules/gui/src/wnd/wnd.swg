@@ -941,11 +941,11 @@ impl Wnd
         {
         case .Application:      painter.fillRect(.position, theme.colors.bk)
         case .Window:           painter.fillRect(.position, theme.colors.wnd_Bk)
-        case .Panel:            theme.drawSubRect(painter, .position, &theme.rects.panel_Bk, theme.colors.wnd_Bk)
+        case .Panel:            theme.drawSubRect(painter, .position, &theme.rects.panel_Bk, .themeColors().wnd_Bk)
         case .Dialog:           painter.fillRect(.position, theme.colors.dlg_Bk)
         case .View:             painter.fillRect(.position, theme.colors.view_Bk)
         case .InformationBar:   painter.fillRect(.position, theme.colors.informationBar_Bk)
-        case .InformationPanel: theme.drawSubRect(painter, .position, &theme.rects.panel_Bk, theme.colors.informationBar_Bk)
+        case .InformationPanel: theme.drawSubRect(painter, .position, &theme.rects.panel_Bk, .themeColors().informationBar_Bk)
         case .CommandBar:       painter.fillRect(.position, theme.colors.commandBar_Bk)
         case .ToolBar:          painter.fillRect(.position, theme.colors.toolBar_Bk)
         case .DialogActionBar:  theme.drawSubRect(bc.painter, .position, &theme.rects.dlg_BtnBar, theme.colors.dlg_BtnBarBk)

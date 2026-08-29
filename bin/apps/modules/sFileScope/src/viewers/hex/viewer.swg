@@ -443,7 +443,7 @@ internal impl HexViewer
 
         result.commands = host.createCommandGroup(HexCommandWidth)
 
-        let sidePanel = host.createSidePanel(HexAnalysisPanelWidth, result.theme().icon(.Information, ViewerGlyphSize), hexStrings().ui_AnalysisTip)
+        let sidePanel = host.createSidePanel(HexAnalysisPanelWidth, result.theme().icon(.Information, themeActionIconSize(result.themeMetrics())), hexStrings().ui_AnalysisTip)
         result.analysisButton = sidePanel.toggle
         result.analysisButton.enable(false)
         result.analysisButton.sigCheckedChanged += func|view = result|(button)
@@ -462,7 +462,7 @@ internal impl HexViewer
             .setTextAlignment(.Right, .OpticalCenter)
         }
 
-        with result.moreButton = IconButton.create(result.commands, result.theme().icon(.More, ViewerGlyphSize), {0, 0, 36, 36})
+        with result.moreButton = IconButton.create(result.commands, result.theme().icon(.More, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle  = .Left
             .margin.x   = 8

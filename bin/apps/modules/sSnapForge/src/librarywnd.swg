@@ -3,11 +3,8 @@ using Threading, Time
 // The date column. It is wider than the editor's tool column on purpose: the tool column carries
 // one word per row and this one carries a sentence — "All Items" is two words in English and
 // three in French, and a column sized to the English clipped the French in the very first row.
-const SideBarWidth        = 280.0
-const LibBarHeight        = 36.0
-const LibCommandGlyphSize = 20.0
-const LibRowGlyphSize     = 16.0
-const LibButtonGap        = 12.0
+const SideBarWidth = 280.0
+const LibButtonGap = 12.0
 
 // The count column of the date list, and what the rows spend before their name: the expander lane
 // the tree reserves on every row, plus the padding of the list. The name column takes what those
@@ -372,7 +369,7 @@ impl LibraryWnd
         if values.isEmpty() do
             return
 
-        let root = .listCtrl.createLine(name, .theme().icon(.Filter, LibRowGlyphSize))
+        let root = .listCtrl.createLine(name, .theme().icon(.Filter, themeRowIconSize(.themeMetrics())))
         root.userData0 = cast() Swag.U64.Max
         root.userData3 = cast() cast(u64) kind
         let rootCount = root.setItem(1, Format.toString("% ", values.count))
@@ -458,7 +455,7 @@ impl LibraryWnd
         defer .updatingSidebar = false
         .listCtrl.clear()
 
-        let line = .listCtrl.createLine(appStrings().ui_AllCaptures, .main.icon(.Archive, LibRowGlyphSize))
+        let line = .listCtrl.createLine(appStrings().ui_AllCaptures, .main.icon(.Archive, themeRowIconSize(.themeMetrics())))
         var item = line.setItem(1, Format.toString("% ", g_Library.files.count))
         item.horzAlign = .Right
 
@@ -471,7 +468,7 @@ impl LibraryWnd
         var lastLineMonth:   #null *ListLine
         var lastLineDay:     #null *ListLine
 
-        let icon1 = .main.icon(.Calendar, LibRowGlyphSize)
+        let icon1 = .main.icon(.Calendar, themeRowIconSize(.themeMetrics()))
         var cptYear, cptMonth, cptDay = 0
 
         #[Swag.Mixin]
@@ -1070,7 +1067,7 @@ impl LibraryWnd
             // draws the icon it is handed at the size it is handed, and the theme default is the
             // 24 of a command bar — which next to a path reads as a button that lost its button.
             let isTrash = trashFolder == fp
-            let icon    = isTrash ? .theme().icon(.Remove, LibRowGlyphSize) : .theme().icon(.OpenFile, LibRowGlyphSize)
+            let icon    = isTrash ? .theme().icon(.Remove, themeRowIconSize(.themeMetrics())) : .theme().icon(.OpenFile, themeRowIconSize(.themeMetrics()))
             .breadcrumb.addItem(nm, icon, tag: fp)
         }
     }
@@ -1123,11 +1120,14 @@ impl LibraryWnd
 
     func create(parent: *MainWnd)->*LibraryWnd
     {
+        let metrics  = parent.themeMetrics()
         with let res = Wnd.create'LibraryWnd(parent, "sSnapForge.librarywnd")
         {
             .main            = parent
             .dockStyle       = .Center
-            .backgroundStyle = .View
+            .backgroundStyle = .Panel
+            .margin          = {metrics.panel_GutterSize, metrics.panel_GutterSize, metrics.panel_GutterSize, metrics.panel_GutterSize}
+            .style.addStyleSheetColors("wnd_Bk $view_Bk")
             .registerActions()
         }
 
@@ -1182,7 +1182,7 @@ impl LibraryWnd
 
         // Folder path bar: shows the real library folder and lets the user walk it
         // (its sub-folders, incl. the recycle bin, are reachable from the chevrons).
-        with res.breadcrumb = BreadcrumbCtrl.create(res, {0, 0, 0, LibBarHeight})
+        with res.breadcrumb = BreadcrumbCtrl.create(res, {0, 0, 0, themeActionButtonSize(metrics)})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
@@ -1192,17 +1192,17 @@ impl LibraryWnd
         }
 
         // Top bar
-        with res.commandBar = StackLayoutCtrl.create(res, .Left, {0, 0, 0, LibBarHeight})
+        with res.commandBar = StackLayoutCtrl.create(res, .Left, {0, 0, 0, themeActionButtonSize(metrics)})
         {
             .dockStyle       = .Top
             .spacing         = LibButtonGap
-            .padding         = {8, 4, 8, 4}
+            .padding         = {2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding, 2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding}
             .backgroundStyle = .Window
         }
 
         // View: thumbnail size and optional information painted over thumbnails share
         // one menu, because both control presentation rather than library contents.
-        with res.viewBtn = IconButton.create(res.commandBar, res.theme().icon(.ActualSize, LibCommandGlyphSize), {0, 0, 0, LibBarHeight})
+        with res.viewBtn = IconButton.create(res.commandBar, res.theme().icon(.ActualSize, themeActionIconSize(metrics)), {0, 0, 0, themeActionButtonSize(metrics)})
         {
             .preferredSize.x = 0
             .setText(appStrings().ui_BarView)
@@ -1228,7 +1228,7 @@ impl LibraryWnd
         }
 
         // Sort
-        with res.sortBtn = IconButton.create(res.commandBar, res.theme().icon(.Sort, LibCommandGlyphSize), {0, 0, 0, LibBarHeight})
+        with res.sortBtn = IconButton.create(res.commandBar, res.theme().icon(.Sort, themeActionIconSize(metrics)), {0, 0, 0, themeActionButtonSize(metrics)})
         {
             .preferredSize.x = 0
             .setText(appStrings().ui_BarSort)
@@ -1257,7 +1257,7 @@ impl LibraryWnd
         }
 
         // Filter
-        with res.filterBtn = IconButton.create(res.commandBar, res.theme().icon(.Filter, LibCommandGlyphSize), {0, 0, 0, LibBarHeight})
+        with res.filterBtn = IconButton.create(res.commandBar, res.theme().icon(.Filter, themeActionIconSize(metrics)), {0, 0, 0, themeActionButtonSize(metrics)})
         {
             .preferredSize.x = 0
             .setText(appStrings().ui_BarFilter)
@@ -1272,7 +1272,7 @@ impl LibraryWnd
 
         // Library roots and ordinary image folders are explicit choices, named like every
         // neighbouring command instead of leaving one unexplained glyph in the sentence.
-        with res.folderBtn = IconButton.create(res.commandBar, res.theme().icon(.OpenFile, LibCommandGlyphSize), {0, 0, 0, LibBarHeight})
+        with res.folderBtn = IconButton.create(res.commandBar, res.theme().icon(.OpenFile, themeActionIconSize(metrics)), {0, 0, 0, themeActionButtonSize(metrics)})
         {
             .preferredSize.x = 0
             .setText(appStrings().ui_BarFolders)
@@ -1285,14 +1285,14 @@ impl LibraryWnd
 
         // Loading state stays with the commands it updates, before the flexible gap, so it
         // appears without moving the search field away from the right edge.
-        view.imgSpin = Spinner.create(res.commandBar, {0, 0, LibCommandGlyphSize, LibCommandGlyphSize})
+        view.imgSpin = Spinner.create(res.commandBar, {0, 0, themeActionIconSize(metrics), themeActionIconSize(metrics)})
         view.imgSpin.hide()
 
         let spacer = Wnd.create'Wnd(res.commandBar)
         spacer.layoutSpec.policyX = .Expand
 
         // Live search
-        with res.searchEdit = EditBox.create(res.commandBar, "", {0, 0, 220, LibBarHeight}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
+        with res.searchEdit = EditBox.create(res.commandBar, "", {0, 0, 220, themeActionButtonSize(metrics)}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
         {
             .setForm(.Rectangle)
             .setPlaceholder(appStrings().ui_Search)

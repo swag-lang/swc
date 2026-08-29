@@ -173,7 +173,7 @@ internal impl FontViewer
             }
         }
 
-        with result.previousButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, ViewerGlyphSize), {0, 0, 36, 36})
+        with result.previousButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -186,7 +186,7 @@ internal impl FontViewer
             }
         }
 
-        with result.nextButton = IconButton.create(result.commands, result.theme().icon(.ChevronRight, ViewerGlyphSize), {0, 0, 36, 36})
+        with result.nextButton = IconButton.create(result.commands, result.theme().icon(.ChevronRight, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle  = .Left
             .toolTip    = fontStrings().ui_NextPage

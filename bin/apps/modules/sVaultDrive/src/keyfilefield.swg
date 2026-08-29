@@ -169,7 +169,7 @@ impl KeyFileField
         result.files = ComboBox.create(result)
         setMachineFont(result.files)
 
-        with result.add = IconButton.create(result, result.theme().icon(.OpenFile, 16), flags: .IconOnly)
+        with result.add = IconButton.create(result, result.theme().icon(.OpenFile, themeRowIconSize(result.themeMetrics())), flags: .IconOnly)
         {
             .sigPressed += func|field = result|(button)
             {
@@ -178,7 +178,7 @@ impl KeyFileField
             }
         }
 
-        with result.generate = IconButton.create(result, result.theme().icon(.SaveAs, 16), flags: .IconOnly)
+        with result.generate = IconButton.create(result, result.theme().icon(.SaveAs, themeRowIconSize(result.themeMetrics())), flags: .IconOnly)
         {
             .sigPressed += func|field = result|(button)
             {
@@ -190,7 +190,7 @@ impl KeyFileField
         if !canGenerate do
             result.generate.hide()
 
-        with result.remove = IconButton.create(result, result.theme().icon(.Remove, 16), flags: .IconOnly)
+        with result.remove = IconButton.create(result, result.theme().icon(.Remove, themeRowIconSize(result.themeMetrics())), flags: .IconOnly)
         {
             .sigPressed += func|field = result|(button)
             {

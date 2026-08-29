@@ -3,7 +3,6 @@
 using Core, Pixel, Gui
 
 const HexAnalysisPanelWidth     = 368.0
-const HexAnalysisHeaderHeight   = 28.0
 const HexAnalysisLabelHeight    = 24.0
 const HexAnalysisMetricsHeight  = 42.0
 const HexAnalysisHistogramSize  = 184.0
@@ -298,13 +297,15 @@ impl HexAnalysisView
         result.backgroundStyle = .Transparent
         result.padding         = {12, 8, 12, 8}
 
-        with let header = Wnd.create'Wnd(result, {0, 0, 0, HexAnalysisHeaderHeight})
+        let compactSize = themeCompactButtonSize(result.themeMetrics())
+        let rowIconSize = themeRowIconSize(result.themeMetrics())
+        with let header = Wnd.create'Wnd(result, {0, 0, 0, compactSize})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
         }
 
-        with result.closeButton = IconButton.create(header, result.theme().icon(.WndClose, 16), {0, 0, 24, 24})
+        with result.closeButton = IconButton.create(header, result.theme().icon(.WndClose, rowIconSize), {0, 0, compactSize, compactSize})
         {
             .dockStyle  = .Right
             .toolTip    = hexStrings().ui_AnalysisClose
@@ -315,7 +316,7 @@ impl HexAnalysisView
             }
         }
 
-        with result.cancelButton = IconButton.create(header, result.theme().icon(.Stop, 16), {0, 0, 24, 24})
+        with result.cancelButton = IconButton.create(header, result.theme().icon(.Stop, rowIconSize), {0, 0, compactSize, compactSize})
         {
             .dockStyle = .Right
             .toolTip   = hexStrings().ui_AnalysisCancel
@@ -327,7 +328,7 @@ impl HexAnalysisView
             }
         }
 
-        with result.analyzeButton = IconButton.create(header, result.theme().icon(.Play, 16), {0, 0, 24, 24})
+        with result.analyzeButton = IconButton.create(header, result.theme().icon(.Play, rowIconSize), {0, 0, compactSize, compactSize})
         {
             .dockStyle  = .Right
             .toolTip    = hexStrings().ui_AnalysisRun
@@ -338,7 +339,7 @@ impl HexAnalysisView
             }
         }
 
-        with result.titleLabel = Label.create(header, hexStrings().ui_Analysis, {0, 0, 0, HexAnalysisHeaderHeight})
+        with result.titleLabel = Label.create(header, hexStrings().ui_Analysis, {0, 0, 0, compactSize})
         {
             .dockStyle = .Center
             .style.setFont(result.theme().createDefaultFont(13, .Bold), .Regular)

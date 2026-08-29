@@ -237,7 +237,8 @@ impl FileScope.Host for ViewerPluginHost
 
         let panelParent = .sidePanelParent
         let panelHost   = .session.sidePanelHost!
-        with .session.sidePanelButton = IconButton.create(.infoParent, icon, {0, 0, 36, 36}, flags: .Toggle)
+        let actionSize  = themeActionButtonSize(.infoParent.themeMetrics())
+        with .session.sidePanelButton = IconButton.create(.infoParent, icon, {0, 0, actionSize, actionSize}, flags: .Toggle)
         {
             .toolTip = toolTip
             .setCheckIndicator(.Frame)

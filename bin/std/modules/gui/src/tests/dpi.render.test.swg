@@ -15,7 +15,7 @@ func pixelAt(image: const *Image, x, y: s32)->u32
 #test
 {
     var host: Testing.HeadlessHost
-    host.setup(140, 20)
+    host.setup(180, 20)
     defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
@@ -27,6 +27,8 @@ func pixelAt(image: const *Image, x, y: s32)->u32
     let commandBar  = Wnd.create'Wnd(&host.root, {80, 0, 20, 20})
     let toolBar     = Wnd.create'Wnd(&host.root, {100, 0, 20, 20})
     let panel       = Wnd.create'Wnd(&host.root, {120, 0, 20, 20})
+    let panelHost   = Wnd.create'Wnd(&host.root, {140, 0, 20, 20})
+    let viewPanel   = Wnd.create'Wnd(&host.root, {160, 0, 20, 20})
     application.backgroundStyle = .Application
     view.backgroundStyle        = .View
     window.backgroundStyle      = .Window
@@ -34,6 +36,12 @@ func pixelAt(image: const *Image, x, y: s32)->u32
     commandBar.backgroundStyle  = .CommandBar
     toolBar.backgroundStyle     = .ToolBar
     panel.backgroundStyle       = .Panel
+    panelHost.backgroundStyle   = .ToolBar
+    viewPanel.backgroundStyle   = .Panel
+    viewPanel.style.addStyleSheetColors("wnd_Bk $view_Bk")
+
+    let integratedPanel = Wnd.create'Wnd(panelHost, {0, 0, 20, 20})
+    integratedPanel.backgroundStyle = .Panel
 
     let image = host.render()
     @assert(pixelAt(&image, 10, 10) == host.theme.colors.bk.argb)
@@ -43,6 +51,10 @@ func pixelAt(image: const *Image, x, y: s32)->u32
     @assert(pixelAt(&image, 90, 10) == host.theme.colors.commandBar_Bk.argb)
     @assert(pixelAt(&image, 110, 10) == host.theme.colors.toolBar_Bk.argb)
     @assert(pixelAt(&image, 130, 10) == host.theme.colors.wnd_Bk.argb)
+    let roundedCorner = pixelAt(&image, 140, 0)
+    @assert(roundedCorner != host.theme.colors.toolBar_Bk.argb and roundedCorner != host.theme.colors.wnd_Bk.argb)
+    @assert(pixelAt(&image, 150, 10) == host.theme.colors.wnd_Bk.argb)
+    @assert(pixelAt(&image, 170, 10) == host.theme.colors.view_Bk.argb)
 }
 
 // A device scale of 2 renders the same logical tree into a doubled physical target:

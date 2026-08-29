@@ -7,7 +7,7 @@ func testSetupGlobalMain(main: *MainWnd)
 {
     main.editWnd.dockStyle = .Center
 
-    main.topBar = Wnd.create'Wnd(main, {0, 0, 900, CommandRowHeight})
+    main.topBar = Wnd.create'Wnd(main, {0, 0, 900, themeActionButtonSize(main.themeMetrics())})
     main.createCommandRow()
 
     with main.recentBar = Wnd.create'Wnd(main, {0, 0, 0, 128})
@@ -83,7 +83,7 @@ func testSetupGlobalMain(main: *MainWnd)
     {
         f.main.editorOptions.showToolBarLabels = i % 2 == 0
         discard f.main.applyOptionChange(#nameof(EditorOptions.showToolBarLabels))
-        let expected = f.main.editorOptions.showToolBarLabels ? RailLabelWidth + metrics.activeRail_Size + metrics.activeRail_Margin : RailCellSize + metrics.activeRail_Size
+        let expected = f.main.editorOptions.showToolBarLabels ? RailLabelWidth + metrics.activeRail_Size + metrics.activeRail_Margin : themeActionButtonSize(metrics) + metrics.activeRail_Size
         @assert(f.main.toolRail.position.width == expected)
         @assert(f.main.app().animator.activeCount() == 0)
     }
@@ -112,8 +112,8 @@ func testSetupGlobalMain(main: *MainWnd)
     let metrics   = f.main.themeMetrics()
     @assert(firstTool.flags.has(.IconOnly))
     @assert(firstTool.padding.x == 0)
-    @assert(firstTool.padding.z == RailCellPadding)
-    @assert(firstTool.position.width == RailCellSize + metrics.activeRail_Size)
+    @assert(firstTool.padding.z == (themeActionButtonSize(metrics) - themeActionIconSize(metrics)) * 0.5)
+    @assert(firstTool.position.width == themeActionButtonSize(metrics) + metrics.activeRail_Size)
 
     // The wait indicator of a library scan stands in the command bar, not over the captures. It
     // used to be a child of the scroll window at 8,8 — which is exactly where the view's own

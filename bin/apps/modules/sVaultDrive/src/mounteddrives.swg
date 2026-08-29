@@ -67,15 +67,12 @@ impl MountedDrives
     const SizeColumnShare      = 0.14'f32
     const AvailableColumnShare = 0.18'f32
 
-    // Side of the padlock a read-only drive carries, at the row size of the chart.
-    const LockIconSize = 16'f32
-
     func create(parent: *Wnd)->MountedDrives
     {
         let card = VaultCard.create(parent, appStrings().ui_MountedCardTitle, appStrings().ui_MountedCardHelp)
 
         let unmount = PushButton.create(card.actions, appStrings().ui_Unmount, {0, 0, 0, 36})
-        unmount.setIcon(card.panel.theme().icon(ThemeIcons.Stop, 20))
+        unmount.setIcon(card.panel.theme().icon(ThemeIcons.Stop, themeActionIconSize(card.panel.themeMetrics())))
         card.actions.computeLayout()
 
         // The card carries no fields, so its form collapses to nothing and the table takes the
@@ -111,7 +108,7 @@ impl MountedDrives
         // Only a read-only drive carries a padlock, and the lane it stands in is reserved on every
         // row whatever the state: sized to its content, the column would put the letters of two
         // drives at two different places and the reader would read the difference as a typo.
-        list.setIconSize(LockIconSize)
+        list.setIconSize(themeRowIconSize(list.themeMetrics()))
         list.header.itemAt(cast(u32) MountedColumn.Drive).reservesIconSpace = true
 
         // An empty table is a card with a heading and nothing under it, which reads as a table
@@ -151,7 +148,7 @@ impl MountedDrives
             // and the file is exactly as writable as it ever was.
             var driveIcon: Icon
             if one.readOnly do
-                driveIcon = .list.theme().icon(ThemeIcons.Lock, LockIconSize)
+                driveIcon = .list.theme().icon(ThemeIcons.Lock, themeRowIconSize(.list.themeMetrics()))
             line.setItem(cast(u32) MountedColumn.Drive, one.mountLabel.toString(), driveIcon)
             line.setItem(cast(u32) MountedColumn.Size, capacityText(one.totalBytes).toString())
             line.setItem(cast(u32) MountedColumn.Available, capacityText(one.availableBytes).toString())

@@ -381,7 +381,10 @@ impl BasicTextView
     func create(host: FileScope.Host)->*BasicTextView
     {
         let result = Wnd.create'BasicTextView(host.contentParent(), "sFileScope.basicText")
-        result.backgroundStyle = .View
+
+        // The document host owns the rounded view ground. Keeping the viewer transparent lets
+        // those antialiased corners remain visible instead of repainting them with a square view.
+        result.backgroundStyle = .Transparent
         result.fileName        = host.fileName()
         result.reportDetails   = host.services().reportDetails
 
@@ -391,7 +394,7 @@ impl BasicTextView
 
         result.commands = host.createCommandGroup(200)
 
-        with result.wrapButton = IconButton.create(result.commands, result.theme().icon(.Wrap, ViewerGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
+        with result.wrapButton = IconButton.create(result.commands, result.theme().icon(.Wrap, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .Toggle)
         {
             .dockStyle = .Left
             .toolTip   = appStrings().ui_WrapOn

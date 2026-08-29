@@ -603,7 +603,7 @@ internal impl SoundViewer
 
     mtd updatePlaybackUi()
     {
-        .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, ViewerGlyphSize))
+        .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, themeActionIconSize(.themeMetrics())))
         .playButton.toolTip = .playing ? soundStrings().ui_TipPause : soundStrings().ui_TipPlay
         .stopButton.enable(.voice != null)
         .timeline.setValueWithoutGesture(.elapsed)
@@ -646,7 +646,7 @@ internal impl SoundViewer
     {
         .muted = muted
         .muteButton.setChecked(muted)
-        .muteButton.setIcon(.theme().icon(muted ? .VolumeMute : .Volume, ViewerGlyphSize))
+        .muteButton.setIcon(.theme().icon(muted ? .VolumeMute : .Volume, themeActionIconSize(.themeMetrics())))
         if .voice do
             catch .voice!.setVolume(muted ? 0 : .volume)
     }
@@ -768,7 +768,7 @@ internal impl SoundViewer
         result.reportLoadingChanged = services.reportLoadingChanged
 
         result.commands = host.createCommandGroup(0)
-        with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, ViewerGlyphSize), {0, 0, 36, 36})
+        with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle = .Left
             .toolTip   = soundStrings().ui_TipPlay
@@ -780,7 +780,7 @@ internal impl SoundViewer
             }
         }
 
-        with result.stopButton = IconButton.create(result.commands, result.theme().icon(.Stop, ViewerGlyphSize), {0, 0, 36, 36})
+        with result.stopButton = IconButton.create(result.commands, result.theme().icon(.Stop, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -793,7 +793,7 @@ internal impl SoundViewer
             }
         }
 
-        with result.backwardButton = IconButton.create(result.commands, result.theme().icon(.SeekBackward, ViewerGlyphSize), {0, 0, 36, 36})
+        with result.backwardButton = IconButton.create(result.commands, result.theme().icon(.SeekBackward, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -805,7 +805,7 @@ internal impl SoundViewer
             }
         }
 
-        with result.forwardButton = IconButton.create(result.commands, result.theme().icon(.SeekForward, ViewerGlyphSize), {0, 0, 36, 36})
+        with result.forwardButton = IconButton.create(result.commands, result.theme().icon(.SeekForward, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -830,7 +830,7 @@ internal impl SoundViewer
             }
         }
 
-        with result.muteButton = IconButton.create(result.commands, result.theme().icon(.Volume, ViewerGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
+        with result.muteButton = IconButton.create(result.commands, result.theme().icon(.Volume, themeActionIconSize(result.themeMetrics())), {0, 0, themeActionButtonSize(result.themeMetrics()), themeActionButtonSize(result.themeMetrics())}, flags: .Toggle)
         {
             .dockStyle = .Right
             .margin.x  = 8

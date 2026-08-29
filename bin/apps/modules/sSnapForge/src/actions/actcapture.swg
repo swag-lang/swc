@@ -69,7 +69,7 @@ impl IActionUI for ActionCapture
         case .DoIt:
             evt.updatedFields |= .Name | .Icon
             evt.name          = appStrings().ui_MenuCapture
-            evt.icon          = main.icon(.Capture, RailGlyphSize)
+            evt.icon          = main.icon(.Capture)
 
         case .Area:
             evt.updatedFields |= .Name | .Icon

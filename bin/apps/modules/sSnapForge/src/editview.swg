@@ -57,23 +57,23 @@ impl IWnd for EditView
 
         var rect = .clientRect()
         rect.offset(.scrollPos)
-        painter.fillRect(rect, matte)
+        let radius = .themeRects().panel_Bk.radius
+        painter.setAntialiased(true)
+        painter.fillRoundRect(rect, radius, radius, matte)
         if !.capture do
             return
 
-        // Capture content
+        // Dim the matte as one rounded surface, then paint the opaque capture back over its
+        // center. This is equivalent to four rectangular surrounds without letting those
+        // rectangles square off the panel corners.
         let captureRect = .getCaptureRect()
-        var clip        = rect
+        var col         = matte
+        col.a = .main.editorOptions.clipToSelection ? 255 : 200
+        painter.fillRoundRect(rect, radius, radius, col)
+
+        var clip = rect
         clip.inflate(100, 100)
         .capture.paint(painter, clip, captureRect)
-
-        // Around capture
-        var col = matte
-        col.a = .main.editorOptions.clipToSelection ? 255 : 200
-        painter.fillRect({rect.x, rect.y, captureRect.x, rect.height}, col)
-        painter.fillRect({captureRect.x, rect.y, captureRect.width, captureRect.y}, col)
-        painter.fillRect({captureRect.right(), rect.y, rect.right() - captureRect.right(), rect.height}, col)
-        painter.fillRect({captureRect.x, captureRect.bottom(), captureRect.width, rect.bottom() - captureRect.bottom()}, col)
 
         // Capture gizmo
         painter.pushTransform()

@@ -809,9 +809,10 @@ private impl RegExp
                     if at >= limit do
                         break
 
+                    // One byte, not one scalar value: a pattern that matches the empty string
+                    // matches it at every offset, including inside the encoding of a scalar
+                    // value, and an unanchored search would find it there.
                     at += 1
-                    while at < limit and (subject[at] & 0xC0) == 0x80 do
-                        at += 1
                     continue
                 }
 

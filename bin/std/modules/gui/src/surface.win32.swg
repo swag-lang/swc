@@ -20,6 +20,10 @@ private const DWM_BB_ENABLE = 0x00000001'u32
 // Selects the region field of DWM_BLURBEHIND.
 private const DWM_BB_BLURREGION = 0x00000002'u32
 
+// DWM animates a cached bitmap when a native window changes placement. A surface paints its
+// complete chrome and alpha itself, so that cache cannot follow its simultaneous layout change.
+private const DWMWA_TRANSITIONS_FORCEDISABLED = 3'u32
+
 private #[Swag.Foreign("dwmapi", callconv: Swag.CallConv.C)]
 {
     // Performs the dwm set window attribute operation.
@@ -486,6 +490,13 @@ impl Surface
 
     private mtd applyNativeDwmStyle()
     {
+        // DWM placement transitions stretch the previous-size framebuffer while the surface is
+        // already laying out and painting its new geometry. The result is a visible clipped or
+        // displaced frame during maximize and restore; an immediate placement keeps every frame
+        // internally consistent.
+        var transitionsForcedDisabled = TRUE
+        discard DwmSetWindowAttribute(.hWnd, DWMWA_TRANSITIONS_FORCEDISABLED, cast(LPCVOID) &transitionsForcedDisabled, #sizeof(transitionsForcedDisabled))
+
         // The corner belongs to the theme, which stamps it into the alpha channel the compositor
         // reads. Letting the platform round the window rectangle on top of that cut the corner
         // twice: the transparent margin the drop shadow is cast into is part of that rectangle,

@@ -303,10 +303,10 @@ unsafe legacy modes excluded from the default surface.
   rewrite of 2026-08-29 set out to reach.
 - Where it stands: measured against the Rust `regex` crate on the same ten-megabyte corpus,
   counting every match of the same pattern in memory, best of ten interleaved rounds. A plain
-  literal 1.2x slower, an alternation of literals 2x *faster*, `\d{4}-\d{2}-\d{2}` 1.1x slower,
-  `[a-z]+[0-9]+@[a-z.-]+` 1.2x slower, `(?i)sherlock` 1.7x *faster*, a date with capture groups
-  1.2x slower, `[a-z]+ing` 2.1x, and `\w+` 1.9x. Nothing is more than 2.1x, and what is behind
-  is what matches often.
+  literal 1.1x slower, an alternation of literals 2x *faster*, `\d{4}-\d{2}-\d{2}` 1.4x slower,
+  `[a-z]+[0-9]+@[a-z.-]+` at parity, `(?i)sherlock` 1.4x *faster*, a date with capture groups
+  1.5x slower, `[a-z]+ing` 2x, and `\w+` 1.6x. Nothing is more than 2x, and what is behind is
+  what matches often.
 - What is left, in decreasing value:
   - **A search still costs more to start than to run**, against roughly thirty nanoseconds for
     the crate. Looking for every occurrence runs the engines from one loop rather than through

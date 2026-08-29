@@ -1056,7 +1056,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(window.infoSizeLabel.textVerticalAlignment == .OpticalCenter)
     @assert(window.infoStatsLabel.textVerticalAlignment == .OpticalCenter)
     @assert(window.recentClearButton.parent == window.recentLabel.parent)
-    @assert(window.infoStatsLabel.parent == window.infoBar)
+    @assert(window.infoStatsLabel.parent == window.infoContentGroup and window.infoContentGroup.parent == window.infoBar)
     Testing.assertContentFits(window)
 
     // Viewer tools have their own full-width band and cannot collide with the global selector.
@@ -1138,7 +1138,9 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(@countof(window.infoNameLabel.text()) > 0 and @countof(window.infoSizeLabel.text()) > 0)
     @assert(window.infoNameLabel.position.width > 0 and window.infoSizeLabel.position.width > 0)
     @assert(window.infoNameLabel.position.width >= Math.ceil(window.infoNameLabel.itf.measureContent({}).x))
-    @assert(window.infoStatsLabel.position.width > 0 and window.infoStatsLabel.position.width < ViewerInfoStatsMaxWidth)
+    @assert(window.infoStatsLabel.position.width > 0)
+    @assert(window.infoStatsLabel.position.width >= Math.ceil(window.infoStatsLabel.itf.measureContent({}).x))
+    @assert(window.infoContentGroup.position.x + window.infoStatsLabel.position.right() == window.infoBar.paddedClientRect().right())
     @assert(window.infoIconLabel.position.right() <= window.infoNameLabel.position.x)
     @assert(window.infoNameLabel.position.right() <= window.infoSizeLabel.position.x)
 
@@ -1151,6 +1153,31 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         window.updateFileInfo("UTF-8 · streamed")
         @assert(window.infoNameLabel.position.width >= Math.ceil(window.infoNameLabel.itf.measureContent({}).x))
     }
+
+    // The right-hand details take their complete measured width whenever the file identity and
+    // details fit together. Only a real shortage shrinks that right-aligned line.
+    let wideDetails = "3840 × 2160 · 120000 frames · 59.94 fps · 01:02:03 · AAC-LC · 48000 Hz · 6 channels · 24 bit · Swag CPU decoder"
+    window.resize(1600, 680)
+    window.currentFile = "clip.mp4"
+    window.updateFileInfo(wideDetails)
+    let wideClient      = window.infoBar.paddedClientRect()
+    let wideFileWidth   = Math.ceil(window.infoFileGroup.itf.measureContent({wideClient.width, wideClient.height}).x)
+    let wideDetailWidth = Math.ceil(window.infoStatsLabel.itf.measureContent({}).x)
+    @assert(wideFileWidth + wideDetailWidth <= wideClient.width)
+    @assert(window.infoStatsLabel.position.width >= wideDetailWidth)
+    @assert(window.infoContentGroup.position.x + window.infoStatsLabel.position.right() == wideClient.right())
+    @assert(window.infoFileGroup.position.right() <= window.infoStatsLabel.position.x)
+
+    window.resize(ViewerMinWidth, 680)
+    window.currentFile = "a-very-long-file-name-that-needs-the-left-side-of-the-information-bar.mp4"
+    window.updateFileInfo(wideDetails)
+    let narrowClient      = window.infoBar.paddedClientRect()
+    let narrowFileWidth   = Math.ceil(window.infoFileGroup.itf.measureContent({narrowClient.width, narrowClient.height}).x)
+    let narrowDetailWidth = Math.ceil(window.infoStatsLabel.itf.measureContent({}).x)
+    @assert(narrowFileWidth + narrowDetailWidth > narrowClient.width)
+    @assert(window.infoStatsLabel.position.width < narrowDetailWidth)
+    @assert(window.infoContentGroup.position.x + window.infoStatsLabel.position.right() == narrowClient.right())
+    @assert(window.infoFileGroup.position.right() <= window.infoStatsLabel.position.x)
 }
 
 // F11 preserves the exact window state around a content-only presentation. Moving at either

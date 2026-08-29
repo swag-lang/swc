@@ -12,7 +12,6 @@ const ViewerSearchCountWidth                  = 52.0
 const ViewerSearchButtonSize                  = 28.0
 const ViewerSearchCarryMargin                 = 4'u64
 const ViewerErrorTextWidth                    = 512.0
-const ViewerInfoStatsMaxWidth                 = 560.0
 const ViewerFullScreenRevealEdge              = 32.0
 const ViewerRetirePollInterval: Time.Duration = 16'ms
 const ViewerLoadingSpinnerSize                = 56.0
@@ -456,6 +455,7 @@ struct ViewerWindow
         appearanceButton:  *AppearanceButton
         accentRail:        *Separator
         infoBar:           *ViewerInfoBar
+        infoContentGroup:  *StackLayoutCtrl
         infoFileGroup:     *StackLayoutCtrl
         infoIconLabel:     *Label
         infoNameLabel:     *Label
@@ -1099,19 +1099,19 @@ impl ViewerWindow
             .padding         = {14, 4, 14, 4}
         }
 
-        with result.infoStatsLabel = Label.create(result.infoBar, "", {0, 0, 0, 32}, null, .SecondaryText | .Ellipsis)
-        {
-            .dockStyle = .Right
-            .maxSize.x = ViewerInfoStatsMaxWidth
-            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
-            .setTextAlignment(.Right, .OpticalCenter)
-        }
-
-        with result.infoFileGroup = StackLayoutCtrl.create(result.infoBar, .Left, {0, 0, 0, 32})
+        with result.infoContentGroup = StackLayoutCtrl.create(result.infoBar, .Left, {0, 0, 0, 32})
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
             .spacing         = 0
+        }
+
+        with result.infoFileGroup = StackLayoutCtrl.create(result.infoContentGroup, .Left, {0, 0, 0, 32})
+        {
+            .backgroundStyle    = .Transparent
+            .layoutSpec.policyX = .Expand
+            .layoutSpec.weightX = 1
+            .spacing            = 0
         }
 
         with result.infoIconLabel = Label.create(result.infoFileGroup, "", {0, 0, 24, 32})
@@ -1133,6 +1133,14 @@ impl ViewerWindow
             .margin.x = 8
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
+        }
+
+        with result.infoStatsLabel = Label.create(result.infoContentGroup, "", {0, 0, 0, 32}, null, .SecondaryText | .Ellipsis)
+        {
+            .layoutSpec.policyX = .Expand
+            .layoutSpec.weightX = 0
+            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .setTextAlignment(.Right, .OpticalCenter)
         }
 
         with result.viewerBar = Wnd.create'Wnd(result, {0, 0, 0, ViewerBarHeight})
@@ -2335,13 +2343,15 @@ impl ViewerWindow
         .infoBar.show(!.fullScreen or .fullScreenTopVisible)
     }
 
-    // Measures the identity row again after asynchronous metadata changes. The file name is
-    // rounded outward because the stack places children on whole logical units; rounding its
-    // fractional glyph extent down is enough to paint an ellipsis on an otherwise complete name.
+    // Measures the identity row again after asynchronous metadata changes. Text widths are
+    // rounded outward because the stack places children on whole logical units; rounding a
+    // fractional glyph extent down is enough to paint an ellipsis on an otherwise complete line.
     private mtd layoutFileInfo()
     {
-        .infoNameLabel.preferredSize.x = Math.ceil(.infoNameLabel.itf.measureContent({}).x)
-        .infoBar.applyLayout()
+        .infoNameLabel.preferredSize.x  = Math.ceil(.infoNameLabel.itf.measureContent({}).x)
+        .infoStatsLabel.preferredSize.x = Math.ceil(.infoStatsLabel.itf.measureContent({}).x)
+        .infoContentGroup.computeLayout()
+        .infoFileGroup.computeLayout()
     }
 
     mtd selectViewer(index: u32)

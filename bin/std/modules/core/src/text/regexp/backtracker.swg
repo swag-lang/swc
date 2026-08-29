@@ -89,6 +89,15 @@ impl Backtracker
     // greedy repetition consumes.
     mtd step(program: const *Program, hay: const [..] u8, startPc: u32, startPos: u64)->bool
     {
+        // The program and the capture slots are read once per instruction, so they are read
+        // through pointers: an indexed container access is a call, and this loop turns once per
+        // instruction of the pattern for every byte of the span.
+        let insts     = program.insts.buffer!
+        let byteSets  = program.byteSets.buffer
+        let slots     = .slots.buffer
+        let slotCount = .slots.count
+        let data      = @dataof(hay)
+
         var pc  = startPc
         var pos = startPos
 
@@ -99,73 +108,80 @@ impl Backtracker
             .budget -= 1
 
             var failed = false
-            switch program.insts[pc].kind
+            switch insts[pc].kind
             {
-            case .ByteRange, .ByteSet:
-                if pos >= .limit do
-                    failed = true
-                elif !program.acceptsByte(pc, hay[pos]) do
+            case .ByteRange:
+                if pos >= .limit or data[pos] < insts[pc].lo or data[pos] > insts[pc].hi do
                     failed = true
                 else
                 {
-                    pc  = program.insts[pc].next
+                    pc  = insts[pc].next
+                    pos += 1
+                }
+
+            case .ByteSet:
+                if pos >= .limit or !byteSets![insts[pc].slot].contains(data[pos]) do
+                    failed = true
+                else
+                {
+                    pc  = insts[pc].next
                     pos += 1
                 }
 
             case .Save:
-                let slot = program.insts[pc].slot
-                if slot < .slots.count
+                let slot = insts[pc].slot
+                if slot < slotCount
                 {
                     if .trailTop >= .trail.count do
-                        .growTrail()
+                        me.growTrail()
 
                     let entry = .trail.buffer! + .trailTop
                     entry.slot   = slot
-                    entry.value  = .slots[slot]
+                    entry.value  = slots![slot]
                     .trailTop    += 1
-                    .slots[slot] = pos
+                    slots![slot] = pos
                 }
 
-                pc = program.insts[pc].next
+                pc = insts[pc].next
 
             case .Assert:
-                if !assertionHolds(program.insts[pc].assertion, hay, pos) do
+                if !assertionHolds(insts[pc].assertion, hay, pos) do
                     failed = true
                 else do
-                    pc = program.insts[pc].next
+                    pc = insts[pc].next
 
             case .Split:
                 if .choicesTop >= .choices.count do
-                    .growChoices()
+                    me.growChoices()
 
                 let choice = .choices.buffer! + .choicesTop
-                choice.pc   = program.insts[pc].alt
+                choice.pc   = insts[pc].alt
                 choice.pos  = pos
                 choice.mark = .trailTop
                 .choicesTop += 1
-                pc          = program.insts[pc].next
+                pc          = insts[pc].next
 
             case .Backref:
-                let opening = 2 * cast(u64) program.insts[pc].slot
+                let opening = 2 * cast(u64) insts[pc].slot
                 let closing = opening + 1
-                if closing >= .slots.count do
+                if closing >= slotCount do
                     failed = true
-                elif .slots[opening] == NoSlot or .slots[closing] == NoSlot
+                elif slots![opening] == NoSlot or slots![closing] == NoSlot
                 {
                     // A group that did not take part in the match stands for the empty string,
                     // so a reference to a group behind a `{0}` or an unused branch still matches.
-                    pc = program.insts[pc].next
+                    pc = insts[pc].next
                 }
                 else
                 {
-                    let referenced = @mkslice(@dataof(hay) + .slots[opening], .slots[closing] - .slots[opening])
+                    let referenced = @mkslice(data + slots![opening], slots![closing] - slots![opening])
                     let eaten      = .matchReference(hay, referenced, pos)
                     if eaten == NoSlot do
                         failed = true
                     else
                     {
                         pos += eaten
-                        pc  = program.insts[pc].next
+                        pc  = insts[pc].next
                     }
                 }
 
@@ -191,6 +207,7 @@ impl Backtracker
         return false
     }
 
+    // Both stacks grow by doubling, and only when a pattern actually needs the room.
     mtd growTrail()
     {
         .trail.resize(.trail.count == 0 ? 64 : .trail.count * 2)

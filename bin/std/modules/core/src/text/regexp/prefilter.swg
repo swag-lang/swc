@@ -532,10 +532,13 @@ impl Prefilter
             if candidate + length > count do
                 return count
 
+            // The sets are read through a pointer: this runs once per offset of the shape for
+            // every hit, and an indexed container access is a call.
+            let shape   = .sequence.buffer!
             var matched = true
             for var i = 0'u64; i < length; i += 1
             {
-                if .sequence[i].contains(data[candidate + i]) do
+                if shape[i].contains(data[candidate + i]) do
                     continue
                 matched = false
                 break

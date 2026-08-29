@@ -335,9 +335,7 @@ impl Theme
         // of the 18 the neutral palettes use.
         .metrics.surfaceWnd_CornerRadius = 12
 
-        .rects.panel_Bk              = .rects.edit_SquareBk
-        .rects.btnIcon_SquareBk      = .rects.btnIcon_RoundSquareBk
-        .rects.btnIcon_CheckedSquare = .rects.btnIcon_CheckedRoundSquare
+        .rects.panel_Bk = .rects.edit_SquareBk
 
         .rects.btnPush_Normal         = .rects.edit_SquareBk
         .rects.btnPush_Hot            = .rects.edit_SquareBk

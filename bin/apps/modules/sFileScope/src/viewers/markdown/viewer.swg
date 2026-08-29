@@ -112,7 +112,7 @@ func createMarkdownViewer(request: const *ViewerRequest, result: *ViewerResult)
     registerMarkdownStrings(request.contentParent.app())
 
     let commandGroup = Wnd.create'Wnd(request.commandParent, {0, 0, 264, 36})
-    commandGroup.backgroundStyle = .Window
+    commandGroup.backgroundStyle = .Transparent
     let widthCombo = ComboBox.create(commandGroup, {0, 0, 104, 36})
     widthCombo.dockStyle = .Right
     widthCombo.toolTip   = markdownStrings().ui_TipWidth

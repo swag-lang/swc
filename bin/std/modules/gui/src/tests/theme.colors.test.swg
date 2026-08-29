@@ -23,7 +23,7 @@ using Swag, Core
     @assert(colors.wnd_Bk == 0xFF202026)
     @assert(colors.informationBar_Bk == 0xFF1A1A20)
     @assert(colors.commandBar_Bk == 0xFF25252D)
-    @assert(colors.toolBar_Bk == 0xFF1D1D24)
+    @assert(colors.toolBar_Bk == 0xFF2A2A32)
     @assert(colors.dlg_InformationIcon == 0xFFB6D2F2)
     @assert(colors.wnd_CaptionBk == 0xFF2A2A32)
     @assert(colors.wnd_CaptionBkLead == 0xFF46462B)
@@ -174,16 +174,15 @@ using Swag, Core
     }
 }
 
-// A Swag palette carries its own geometry: the window takes the large corner, while actions,
-// rectangular tool cells and standalone panels share the slight interface corner. Leaving a Swag
-// palette has to give that geometry back, or a surface switching to a neutral theme keeps the
-// previous palette's shapes under its new accent.
+// Every palette slightly rounds compact tool cells, while a Swag palette additionally gives
+// actions and standalone panels its interface corner. Leaving a Swag palette has to give the
+// remaining geometry back without turning those interactive cells into hard squares.
 #test
 {
     var theme: Theme
     @assert(theme.metrics.surfaceWnd_CornerRadius == 18)
     @assert(theme.rects.panel_Bk.radius == 0)
-    @assert(theme.rects.btnIcon_SquareBk.radius == 0)
+    @assert(theme.rects.btnIcon_SquareBk.radius == 4)
 
     theme.setSwagDark()
     @assert(theme.colors.activeRail == 0xFFF7F900)
@@ -199,7 +198,9 @@ using Swag, Core
     @assert(theme.metrics.surfaceWnd_CornerRadius == 18)
     @assert(theme.rects.btnPush_Normal.rect != theme.rects.edit_SquareBk.rect)
     @assert(theme.rects.panel_Bk.radius == 0)
-    @assert(theme.rects.btnIcon_SquareBk.radius == 0)
+    @assert(theme.rects.btnIcon_SquareBk.rect == theme.rects.btnIcon_RoundSquareBk.rect)
+    @assert(theme.rects.btnIcon_CheckedSquare.rect == theme.rects.btnIcon_CheckedRoundSquare.rect)
+    @assert(theme.rects.btnIcon_SquareBk.radius == 4)
 
     theme.setSwagDark()
     theme.setLight()

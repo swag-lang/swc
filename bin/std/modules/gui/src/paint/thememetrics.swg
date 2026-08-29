@@ -25,7 +25,7 @@ struct ThemeMetrics
 
         wnd_BorderSize:            f32 = 1        // Theme measurement used for wnd border size.
         wnd_BigCaptionCY:          f32 = 42       // Theme measurement used for wnd big caption cy.
-        wnd_SmallCaptionCY:        f32 = 32       // Theme measurement used for wnd small caption cy.
+        wnd_SmallCaptionCY:        f32 = 36       // Compact caption height; leaves balanced air around its title and controls.
         wnd_CaptionMarginTitle:    f32 = 14       // Theme measurement used for wnd caption margin title.
         wnd_CaptionIconSize:       f32 = 20       // Side of the mark a drawn caption shows beside its title.
         wnd_CaptionButtonMargin:   f32 = 5        // Theme measurement used for wnd caption button margin.

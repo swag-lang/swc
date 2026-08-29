@@ -54,7 +54,7 @@ impl ViewerCommandBar
     func create(parent: *Wnd, width: f32)->*ViewerCommandBar
     {
         let result = Wnd.create'ViewerCommandBar(parent, {0, 0, width, 36})
-        result.backgroundStyle = .Window
+        result.backgroundStyle = .Transparent
         return result
     }
 }

@@ -272,17 +272,21 @@ public impl IWnd for MenuCtrl
             labelPos.moveLeft(.popupHasGlyphs ? metrics.menuPopup_IconTextMargin + it.size : metrics.menuPopup_IconMargin)
             labelPos.width -= it.size
 
-            // A left-opening submenu puts its marker before the optional check or item icon. When
-            // no visible entry has a glyph, that empty column collapses and the wording follows
-            // the marker directly. A right-opening one keeps the marker after the wording.
+            // A left-opening submenu uses the shared glyph column when the row has no glyph of
+            // its own. Reserving another column after the marker left a conspicuous hole before
+            // the wording. A row that genuinely has both a marker and a glyph still keeps both.
             var submenuMarkerX: f32
             if @isset(it.popup)
             {
                 if it.submenuOpensLeft
                 {
                     submenuMarkerX = iconPos.x
-                    iconPos.x      += metrics.chevron_Size + metrics.menuPopup_IconTextMargin
-                    labelPos.moveLeft(metrics.chevron_Size + metrics.menuPopup_IconTextMargin)
+                    let rowHasGlyph = it.checked or it.rg == .ExclusiveGroup or it.icon.isValid()
+                    if !.popupHasGlyphs or rowHasGlyph
+                    {
+                        iconPos.x += metrics.chevron_Size + metrics.menuPopup_IconTextMargin
+                        labelPos.moveLeft(metrics.chevron_Size + metrics.menuPopup_IconTextMargin)
+                    }
                 }
                 else
                 {

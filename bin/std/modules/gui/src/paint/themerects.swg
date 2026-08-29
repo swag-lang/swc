@@ -51,7 +51,7 @@ struct ThemeImageRects
         btnPush_Disabled:       ThemeImageRect = {{1, 1, 27, 27}, 13, 12.5}      // Theme atlas region used for btn push disabled.
         btnPush_DisabledBorder: ThemeImageRect = {{29, 1, 27, 27}, 13, 12.5}     // Theme atlas region used for btn push disabled border.
 
-        btnIcon_SquareBk:      ThemeImageRect = {{1, 29, 27, 27}, 9, 0}        // Theme atlas region used for btn icon square bk.
+        btnIcon_SquareBk:      ThemeImageRect = {{1, 57, 27, 27}, 7, 4}        // Theme atlas region used for btn icon compact rectangular bk.
         btnIcon_RoundBk:       ThemeImageRect = {{1, 1, 27, 27}, 13, 12.5}     // Theme atlas region used for btn icon round bk.
         btnIcon_RoundSquareBk: ThemeImageRect = {{1, 57, 27, 27}, 7, 4}        // Theme atlas region used for btn icon round square bk.
 
@@ -59,7 +59,7 @@ struct ThemeImageRects
         btnIcon_CheckedTop:         ThemeImageRect = {{29, 281, 27, 27}, 7, 0}      // Theme atlas region used for btn icon checked top.
         btnIcon_CheckedLeft:        ThemeImageRect = {{57, 281, 27, 27}, 7, 0}      // Theme atlas region used for btn icon checked left.
         btnIcon_CheckedRight:       ThemeImageRect = {{85, 281, 27, 27}, 7, 0}      // Theme atlas region used for btn icon checked right.
-        btnIcon_CheckedSquare:      ThemeImageRect = {{1, 29, 27, 27}, 9, 0}        // Theme atlas region used for btn icon checked square.
+        btnIcon_CheckedSquare:      ThemeImageRect = {{1, 57, 27, 27}, 7, 4}        // Theme atlas region used for btn icon checked compact rectangle.
         btnIcon_CheckedRound:       ThemeImageRect = {{1, 1, 27, 27}, 13, 12.5}     // Theme atlas region used for btn icon checked round.
         btnIcon_CheckedRoundSquare: ThemeImageRect = {{1, 57, 27, 27}, 7, 4}        // Theme atlas region used for btn icon checked round square.
 

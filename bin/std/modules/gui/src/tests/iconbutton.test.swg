@@ -196,8 +196,8 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 
 // The checked frame is drawn on the shape the active palette gives the button.
 //
-// A rectangular tool is slightly rounded in a Swag palette and square in a neutral one. The frame
-// and focus ring have to move with that choice, or either mark crosses the fill at the corners.
+// A rectangular tool is slightly rounded in every palette. The frame and focus ring have to
+// follow that corner, or either mark crosses the fill at the corners.
 #test
 {
     var host: Testing.HeadlessHost
@@ -220,21 +220,29 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     @assert(btn.focusRingRadius == host.theme.rects.btnIcon_RoundSquareBk.radius)
     @assert(rounded.pixelColor(20, 20) != border)
 
-    // The Swag palette gives a rectangular tool the same slight corner.
+    // The palette gives a rectangular tool the same slight corner.
     btn.setForm(.Rectangle)
     host.finishAnimations()
     var softened = host.render()
     @assert(btn.focusRingRadius == host.theme.rects.btnIcon_SquareBk.radius)
     @assert(softened.pixelColor(20, 20) != border)
 
-    // The neutral palette restores the hard square and the marks follow it.
-    host.theme.setDark()
-    host.notify(.ThemeChanged)
-    host.finishAnimations()
-    var squared       = host.render()
-    let neutralBorder = host.theme.colors.btnIcon_CheckedFrameBorder
-    @assert(btn.focusRingRadius == 0)
-    @assert(iconButtonColorCount(&squared, neutralBorder) > 0)
+    // Both neutral palettes keep the slight corner and the marks follow it.
+    for light in [false, true]
+    {
+        if light do
+            host.theme.setLight()
+        else do
+            host.theme.setDark()
+        host.notify(.ThemeChanged)
+        host.finishAnimations()
+
+        var neutral       = host.render()
+        let neutralBorder = host.theme.colors.btnIcon_CheckedFrameBorder
+        @assert(btn.focusRingRadius == host.theme.rects.btnIcon_RoundSquareBk.radius)
+        @assert(neutral.pixelColor(20, 20) != neutralBorder)
+        @assert(iconButtonColorCount(&neutral, neutralBorder) > 0)
+    }
 }
 
 // A framed checked tool keeps an accent glyph when the palette changes to light.

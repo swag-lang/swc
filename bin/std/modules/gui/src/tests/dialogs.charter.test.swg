@@ -17,6 +17,10 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
     let metrics = dlg.themeMetrics()
     let bar     = dlg.buttonBar
 
+    // A compact caption still gives its title and controls enough vertical air to read as chrome.
+    @assert(metrics.wnd_SmallCaptionCY == 36)
+    @assert(metrics.wnd_SmallCaptionCY - metrics.wnd_CaptionIconSize >= 2 * metrics.wnd_CaptionButtonMargin)
+
     // The bar is one row of actions and the air above and below it, and never a hand-set band.
     @assert(Math.abs(bar.position.height - (metrics.btnPush_Height + 2 * metrics.dialog_BtnPadding)) < 0.5)
 

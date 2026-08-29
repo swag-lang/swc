@@ -1078,7 +1078,7 @@ impl ThemeColors
         result.panel          = 0xFF353535
         result.informationBar = 0xFF242424
         result.commandBar     = 0xFF303030
-        result.toolBar        = 0xFF2C2C2C
+        result.toolBar        = 0xFF272727
         result.raised         = 0xFF353535
         result.hot            = 0xFF3F3F3F
         result.pressed        = 0xFF4A4A4A
@@ -1146,7 +1146,7 @@ impl ThemeColors
         result.panel          = 0xFFEDEDED
         result.informationBar = 0xFFE5E5E5
         result.commandBar     = 0xFFF2F2F2
-        result.toolBar        = 0xFFE9E9E9
+        result.toolBar        = 0xFFF9F9F9
         result.raised         = 0xFFFFFFFF
         result.hot            = 0xFFEFEFEF
         result.pressed        = 0xFFE2E2E2
@@ -1210,7 +1210,7 @@ impl ThemeColors
         result.panel          = 0xFF202026
         result.informationBar = 0xFF1A1A20
         result.commandBar     = 0xFF25252D
-        result.toolBar        = 0xFF1D1D24
+        result.toolBar        = 0xFF2A2A32
         result.raised         = 0xFF2A2A32
 
         // Hover has to be seen from across the surface without shouting. A step of nine

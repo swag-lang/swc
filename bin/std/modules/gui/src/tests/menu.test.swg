@@ -401,7 +401,8 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     host.pump()
 }
 
-// A left-opening submenu marker occupies its own leading band before an optional item icon.
+// A left-opening submenu marker replaces the unused glyph on its row, even when another row
+// makes the popup keep a shared glyph column.
 #test
 {
     var host: Testing.HeadlessHost
@@ -416,7 +417,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     sub.addItem("Sans serif", Menu_Open, checked: true)
     sub.addItem("Monospace", Menu_Quit)
     popup.addItem("Current choice", Menu_New, checked: true)
-    popup.addPopup("Typography", sub, icon: host.theme.icon(.Appearance, 16))
+    popup.addPopup("Typography", sub)
     popup.setSubmenuDirection(.Left)
 
     var checked: bool

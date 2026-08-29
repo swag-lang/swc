@@ -147,7 +147,7 @@ internal impl HexViewer
         result.reportLoadingChanged = reportLoadingChanged
 
         result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, HexCommandWidth, 36})
-        result.commands.backgroundStyle = .Window
+        result.commands.backgroundStyle = .Transparent
 
         with result.widthCombo = ComboBox.create(result.commands, {0, 0, 80, 36})
         {

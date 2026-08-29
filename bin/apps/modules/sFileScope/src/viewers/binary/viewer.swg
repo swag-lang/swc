@@ -535,7 +535,7 @@ internal impl BinaryViewer
         result.reportLoadingChanged = reportLoadingChanged
 
         result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, BinaryCommandWidth, 36})
-        result.commands.backgroundStyle = .Window
+        result.commands.backgroundStyle = .Transparent
 
         with result.copyButton = IconButton.create(result.commands, result.theme().icon(.Copy, BinaryGlyphSize), {0, 0, 36, 36})
         {

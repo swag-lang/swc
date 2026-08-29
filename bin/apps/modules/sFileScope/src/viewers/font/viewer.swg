@@ -158,10 +158,8 @@ internal impl FontViewer
         result.reportDetails        = reportDetails
         result.reportLoadingChanged = reportLoadingChanged
 
-        with result.commands = Wnd.create'Wnd(commandParent, {0, 0, FontCommandWidth, 36})
-        {
-            .backgroundStyle = .Window
-        }
+        result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, FontCommandWidth, 36})
+        result.commands.backgroundStyle = .Transparent
 
         result.sampleDefault = fontStrings().ui_DefaultSample
         with result.sampleEdit = EditBox.create(result.commands, result.sampleDefault.toString(), {0, 0, 260, 36}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)

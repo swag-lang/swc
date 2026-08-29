@@ -1521,7 +1521,7 @@ func buildPattern(rng: *Rng, depth: u32)->String
     for var i = 0'u64; i < pieces; i += 1
     {
         var piece: String
-        switch rng.below(depth == 0 ? 8 : 10)
+        switch rng.below(depth == 0 ? 10 : 12)
         {
         case 0:
             piece.append(cast(u8) (cast(u64) 'a' + rng.below(3)))
@@ -1548,13 +1548,19 @@ func buildPattern(rng: *Rng, depth: u32)->String
             piece.append("\\s")
 
         case 8:
+            piece.append("\\b")
+
+        case 9:
+            piece.append("\\B")
+
+        case 10:
             piece.append("(")
             piece.append(buildPattern(rng, depth - 1))
             piece.append("|")
             piece.append(buildPattern(rng, depth - 1))
             piece.append(")")
 
-        case 9:
+        case 11:
             piece.append("(?:")
             piece.append(buildPattern(rng, depth - 1))
             piece.append(")")
@@ -1577,7 +1583,9 @@ func buildPattern(rng: *Rng, depth: u32)->String
 
 func buildSubject(rng: *Rng)->String
 {
-    const Alphabet = "aabbc12 x"
+    // The subject is not all ASCII: a word boundary reads scalar values, and the automata
+    // have to hand a subject holding one of these to the engine that decodes them.
+    const Alphabet = "aabbc12 x\u00E9\u00E9\u4E2D"
 
     var result: retval
     let length = rng.below(18)

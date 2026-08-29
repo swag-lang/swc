@@ -338,7 +338,7 @@ impl Dfa
                 if !.matchAll do
                     .stack.clear()
 
-            case .ByteRange:
+            case .ByteRange, .ByteSet:
                 .closure.add(pc)
 
             default:
@@ -353,9 +353,8 @@ impl Dfa
         {
             for pc in .closure
             {
-                let inst = program.insts[pc]
-                if byte >= inst.lo and byte <= inst.hi do
-                    .stepped.add(inst.next)
+                if program.acceptsByte(pc, byte) do
+                    .stepped.add(program.insts[pc].next)
             }
         }
 
@@ -380,12 +379,19 @@ impl Dfa
     {
         // Every search begins here, so the answer is a table read and the state is built only
         // the first time each look-behind context is seen.
+        //
+        // A word boundary reads the scalar value before the offset, not the byte, so a search
+        // that begins just after a byte outside ASCII has to be refused the same way one that
+        // reads such a byte is: what stands there may be a letter, and only the simulation
+        // knows.
         var flags = FlagIsStart
         if at == 0 do
             flags |= FlagFromStart
         else
         {
             let previous = hay[at - 1]
+            if .quitHigh and previous >= 0x80 do
+                return QuitState
             if isWordByte(previous) do
                 flags |= FlagFromWord
             if previous == '\n' do
@@ -421,6 +427,8 @@ impl Dfa
         else
         {
             let following = hay[at]
+            if .quitHigh and following >= 0x80 do
+                return QuitState
             if isWordByte(following) do
                 flags |= FlagFromWord
             if following == '\n' do

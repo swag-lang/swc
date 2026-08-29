@@ -7,14 +7,36 @@
 // matched earlier — so no automaton can decide it, and this engine explores the branches one
 // after another instead of all at once. It is used for nothing else, and a step budget keeps
 // a pathological pattern from running away with the process.
+// One capture slot as it was before a branch changed it.
+//
+// A branch that fails has to leave the slots the way it found them. Writing them down as they
+// change, rather than restoring them on the way out of a call, is what lets the search follow a
+// pattern without branches — most of them — without recursing at all.
+struct TrailEntry
+{
+    slot:  u32     // The slot that was written.
+    value: u64     // What it held before.
+}
+
+// One branch of the pattern that has not been tried yet.
+struct ChoicePoint
+{
+    pc:   u32     // Where that branch starts.
+    pos:  u64     // The offset it starts at.
+    mark: u64     // How much of the trail to undo before taking it.
+}
+
 struct Backtracker
 {
-    slots:        Array'u64     // Capture slots of the branch being explored.
-    matchSlots:   Array'u64     // Capture slots of the match, once one is found.
-    budget:       u64           // Steps left before the search gives up.
-    limit:        u64           // Offset the search may not read past.
-    ignoreCase:   bool          // Whether a backreference compares without case.
-    wholeSubject: bool          // Whether only a match ending at 'limit' counts.
+    trail:        Array'TrailEntry      // Slots to put back when a branch fails.
+    trailTop:     u64                   // How much of it is in use.
+    choices:      Array'ChoicePoint     // Branches left to try.
+    choicesTop:   u64                   // How many of them there are.
+    slots:        Array'u64             // Capture slots of the branch being explored, and of the match once one is found.
+    budget:       u64                   // Steps left before the search gives up.
+    limit:        u64                   // Offset the search may not read past.
+    ignoreCase:   bool                  // Whether a backreference compares without case.
+    wholeSubject: bool                  // Whether only a match ending at 'limit' counts.
 }
 
 // How many instruction steps one search may take. A backreference pattern can be exponential
@@ -31,7 +53,6 @@ impl Backtracker
     mtd run(program: const *Program, hay: const [..] u8, start, limit: u64, anchored, wholeSubject: bool, budget = BacktrackBudget)->bool
     {
         .slots.resize(program.slotCount)
-        .matchSlots.resize(program.slotCount)
         .budget       = budget
         .limit        = limit
         .ignoreCase   = program.ignoreCase
@@ -41,12 +62,10 @@ impl Backtracker
         for
         {
             .slots.fill(NoSlot)
-            if .step(program, hay, program.start, pos)
-            {
-                for var s = 0'u64; s < program.slotCount; s += 1 do
-                    .matchSlots[s] = .slots[s]
+            .trailTop   = 0
+            .choicesTop = 0
+            if .step(program, hay, program.start, pos) do
                 return true
-            }
 
             if anchored or pos >= limit do
                 return false
@@ -61,67 +80,136 @@ impl Backtracker
         return false
     }
 
-    // Explores one branch, and every branch it leads to, in the order the pattern prefers.
-    mtd step(program: const *Program, hay: const [..] u8, pc: u32, pos: u64)->bool
+    // Explores the branches of the pattern, in the order it prefers them.
+    //
+    // Nothing recurses and nothing is pushed through a container. A branch writes the side that
+    // is not taken into its stack, with the offset and the point of the trail it has to come
+    // back to; a step that fails takes the last one back. That matters because a repetition is
+    // a branch per byte: both the call and the container access would be paid once per byte a
+    // greedy repetition consumes.
+    mtd step(program: const *Program, hay: const [..] u8, startPc: u32, startPos: u64)->bool
     {
-        if .budget == 0 do
-            return false
-        .budget -= 1
+        var pc  = startPc
+        var pos = startPos
 
-        let inst = program.insts[pc]
-        switch inst.kind
+        for
         {
-        case .ByteRange:
-            if pos >= .limit do
+            if .budget == 0 do
                 return false
-            let byte = hay[pos]
-            if byte < inst.lo or byte > inst.hi do
-                return false
-            return .step(program, hay, inst.next, pos + 1)
+            .budget -= 1
 
-        case .Split:
-            if .step(program, hay, inst.next, pos) do
-                return true
-            return .step(program, hay, inst.alt, pos)
+            var failed = false
+            switch program.insts[pc].kind
+            {
+            case .ByteRange, .ByteSet:
+                if pos >= .limit do
+                    failed = true
+                elif !program.acceptsByte(pc, hay[pos]) do
+                    failed = true
+                else
+                {
+                    pc  = program.insts[pc].next
+                    pos += 1
+                }
 
-        case .Save:
-            if inst.slot >= program.slotCount do
-                return .step(program, hay, inst.next, pos)
+            case .Save:
+                let slot = program.insts[pc].slot
+                if slot < .slots.count
+                {
+                    if .trailTop >= .trail.count do
+                        .growTrail()
 
-            let saved = .slots[inst.slot]
-            .slots[inst.slot] = pos
-            if .step(program, hay, inst.next, pos) do
-                return true
-            .slots[inst.slot] = saved
-            return false
+                    let entry = .trail.buffer! + .trailTop
+                    entry.slot   = slot
+                    entry.value  = .slots[slot]
+                    .trailTop    += 1
+                    .slots[slot] = pos
+                }
 
-        case .Assert:
-            if !assertionHolds(inst.assertion, hay, pos) do
-                return false
-            return .step(program, hay, inst.next, pos)
+                pc = program.insts[pc].next
 
-        case .Backref:
-            let opening = 2 * cast(u64) inst.slot
-            let closing = opening + 1
-            if closing >= .slots.count do
-                return false
+            case .Assert:
+                if !assertionHolds(program.insts[pc].assertion, hay, pos) do
+                    failed = true
+                else do
+                    pc = program.insts[pc].next
 
-            // A group that did not take part in the match stands for the empty string, so a
-            // reference to a group behind a `{0}` or an unused branch still matches.
-            if .slots[opening] == NoSlot or .slots[closing] == NoSlot do
-                return .step(program, hay, inst.next, pos)
+            case .Split:
+                if .choicesTop >= .choices.count do
+                    .growChoices()
 
-            let referenced = @mkslice(@dataof(hay) + .slots[opening], .slots[closing] - .slots[opening])
-            let eaten      = .matchReference(hay, referenced, pos)
-            if eaten == NoSlot do
-                return false
-            return .step(program, hay, inst.next, pos + eaten)
+                let choice = .choices.buffer! + .choicesTop
+                choice.pc   = program.insts[pc].alt
+                choice.pos  = pos
+                choice.mark = .trailTop
+                .choicesTop += 1
+                pc          = program.insts[pc].next
 
-        case .Match:
-            return !.wholeSubject or pos == .limit
+            case .Backref:
+                let opening = 2 * cast(u64) program.insts[pc].slot
+                let closing = opening + 1
+                if closing >= .slots.count do
+                    failed = true
+                elif .slots[opening] == NoSlot or .slots[closing] == NoSlot
+                {
+                    // A group that did not take part in the match stands for the empty string,
+                    // so a reference to a group behind a `{0}` or an unused branch still matches.
+                    pc = program.insts[pc].next
+                }
+                else
+                {
+                    let referenced = @mkslice(@dataof(hay) + .slots[opening], .slots[closing] - .slots[opening])
+                    let eaten      = .matchReference(hay, referenced, pos)
+                    if eaten == NoSlot do
+                        failed = true
+                    else
+                    {
+                        pos += eaten
+                        pc  = program.insts[pc].next
+                    }
+                }
+
+            case .Match:
+                if !.wholeSubject or pos == .limit do
+                    return true
+                failed = true
+            }
+
+            if failed
+            {
+                if .choicesTop == 0 do
+                    return false
+
+                .choicesTop -= 1
+                let choice = .choices.buffer! + .choicesTop
+                .unwind(choice.mark)
+                pc  = choice.pc
+                pos = choice.pos
+            }
         }
 
         return false
+    }
+
+    mtd growTrail()
+    {
+        .trail.resize(.trail.count == 0 ? 64 : .trail.count * 2)
+    }
+
+    mtd growChoices()
+    {
+        .choices.resize(.choices.count == 0 ? 64 : .choices.count * 2)
+    }
+
+    // Puts the capture slots back the way they were before a branch was tried.
+    mtd unwind(mark: u64)
+    {
+        while .trailTop > mark
+        {
+            .trailTop -= 1
+            let entry = .trail.buffer! + .trailTop
+            .slots[entry.slot] = entry.value
+        }
     }
 
     // Returns how many bytes of the subject at 'pos' repeat 'referenced', or 'NoSlot' when

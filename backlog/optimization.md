@@ -521,6 +521,24 @@ splitting, MemorySSA/GVN-PRE/jump threading/loop unswitching (all need phi nodes
 cannot express), SCEV with LoopStrengthReduce, a post-RA scheduler and software pipelining,
 cmov-to-branch back-conversion, and profile-gated passes.
 
+### B-158 — A switch is a chain of comparisons, and a string switch a chain of calls
+
+- Evidence: `CodeGen.Switch.cpp` emits one test per case, in source order, for every switch. A
+  dense integer switch gets no jump table and no binary search, and a switch over strings gets
+  `useStringCompare` — a call to the string comparison function per case. `Pdf.parseContent`
+  dispatches PDF content operators through a forty-nine case switch whose labels are one to three
+  byte strings, so a token three bytes long can cost sixty calls to identify.
+- Note: replacing that one dispatch with a packed-integer switch produced no change the machine
+  could show, so the chain is not what dominates *that* loop. The emission is still what it is,
+  and the case that would show it is a hot switch with many more cases than the branch predictor
+  can carry, or one whose matching case sits late in source order.
+- Next: measure a wide integer switch against a hand-written jump table in one process before
+  building anything; a dense range is the only shape worth a table, and the threshold has to come
+  from that measurement rather than from a rule of thumb.
+- Complete when: a dense integer switch lowers to a table or a binary search above a measured
+  threshold, a string switch compares length before it calls, and the emitted code for a sparse
+  switch is unchanged.
+
 ### B-001 — Rematerialized invariants are hoisted back out of loops
 
 - Intent: `PostRALoopHoist` re-hoists what the allocator re-materialized into a loop body -

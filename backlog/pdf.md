@@ -41,6 +41,10 @@ Three things stand out.
   is a transform change: images upload once per page, typefaces resolve once per page, path
   tessellations cache inside the decoded page, and no offline rasterization, readback, or
   texture re-upload sits between the page and the screen.
+- **A document decodes each resource once.** An image and a font are decoded once per open
+  document rather than once per page that names them, which is what a slide deck repeating its
+  template on every page and a thesis embedding one family across a hundred pages both cost
+  before.
 
 The gaps are of three kinds: documents that will not open at all, pages that open and then render
 as something other than what they mean, and a writer that can only express what it can itself
@@ -375,25 +379,67 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 
 ## Tier D — Cost
 
+### B-156 — The engine is between five and eight times slower than MuPDF
+
+- Evidence: measured against MuPDF 1.28.2 over the whole corpus, alternating the two so both see
+  the same machine, in release configuration and taking the best of three: opening the sixteen
+  files costs 148 ms against 18 ms, decoding all 360 pages 1 633 ms against 282 ms, and
+  rasterizing them at 72 dpi 7 158 ms against 1 244 ms. The three large constant factors that
+  used to dominate are gone — a second rasterization of every page for an alpha channel an opaque
+  ground then overwrote, an image decoded once per page that showed it, a font decoded once per
+  page that named it — and what is left is spread thin rather than concentrated in one place.
+  Decoding splits, by disabling each stage in turn, into 284 ms of stream decompression and page
+  setup, 455 ms of tokenizing operands into `Node` values, and about 1 170 ms of operator
+  execution, of which `appendText` is 276 ms. Rasterizing splits into roughly equal thirds
+  between text, images and paths once the fixed per-page cost of 1,4 s across the corpus is
+  taken out.
+- Note: the machine this was measured on runs several agents, and the same binary varies between
+  1,63 s and 3,96 s on the decoding phase across runs. Nothing below a structural change shows
+  above that; a 10% claim needs a deterministic counter or a quiet machine, not a stopwatch.
+- Next: attack the two costs that are structural rather than constant — a `Node` is one hundred
+  and sixty bytes with a hash table, an array and a string in it whatever it holds, and every
+  numeric operand of every content stream allocates one; and `q` pushes a whole `GraphicsState`,
+  which owns a string, two colour spaces and a dash array, on every save.
+- Complete when: the corpus decodes and rasterizes within twice MuPDF, measured the same way.
+- Related: T-428, B-157
+
+### B-157 — A content stream operand costs a full parser node
+
+- Evidence: `parseContent` runs the document parser over the content stream, so every operand —
+  and a dense page has tens of thousands of numbers — becomes a `Node`, which carries a
+  `HashTable`, two `Array` values and a `String` whatever kind it is. The array is never reset
+  between operators either, so a page's node table grows to the whole stream and is then thrown
+  away. Tokenizing measures at 455 ms of the corpus's 1 633 ms.
+- Next: keep the numbers out of the node table entirely — an operand stack of `f32` beside the
+  node ids the few non-numeric operands need — and clear the content parser's nodes with the
+  operand stack, which is safe because every operator consumes its operands before the next one
+  starts and `GraphicsState` owns the strings it keeps.
+- Complete when: a numeric operand allocates nothing, the content node table is bounded by one
+  operator, and the corpus decode time moves measurably.
+- Related: B-156
+
 ### T-456 — Typefaces built for a document are never released
 
-- Intent: the viewer now resolves each font resource once per displayed page and an offline
-  render once per call, but the key is still a CRC32 over the complete font program — one hash
-  per font per page shown, where one per document would do — and the typefaces registered in the
-  process-wide `TypeFace` table are never released, so the table grows for the process lifetime
-  as documents are opened and closed.
-- Complete when: a font program is hashed at most once per open document, and the typefaces a
-  document created are released with it.
+- Intent: the program is now hashed once, when the font is read, and the key travels on the
+  `FontResource`. What remains is the other half: the typefaces registered in the process-wide
+  `TypeFace` table are never released, so the table grows for the process lifetime as documents
+  are opened and closed. `Pixel.TypeFace` publishes `create` and `load` and no way to give one
+  back, so this needs an unregister on that side before it can be honoured here.
+- Complete when: `Pixel` can release a typeface it created, and the typefaces a document created
+  are released with it.
 - Related: T-458
 
 ### T-458 — An embedded font program is copied once per page that uses it
 
-- Intent: `decodeFontResource` copies the decompressed font program into every page's
-  `FontResource`. A hundred-page thesis with a four-hundred-kilobyte embedded family carries forty
-  megabytes of duplicated font bytes when loaded as a `Document`, and the same duplication is paid
-  again for every form XObject that names its own resources.
-- Complete when: a decoded font program is shared between the pages that reference the same font
-  object, and a `Document` load of the corpus costs one copy per distinct program.
+- Intent: the *work* of decoding a font is now paid once per document, but each page still takes
+  its own copy of the bytes, so a hundred-page thesis with a four-hundred-kilobyte embedded family
+  still carries forty megabytes of duplicated font data. Sharing the bytes instead of copying them
+  runs into the contract `Reader.loadPage` states — a page owns what it retains and stays valid
+  after its reader is released — so it needs a shared buffer, which `Core` does not have, or a
+  decision to narrow that contract.
+- Complete when: `Core` publishes a shared byte buffer or the page ownership contract is settled,
+  a decoded font program is shared between the pages that reference the same font object, and a
+  `Document` load of the corpus costs one copy per distinct program.
 
 ### T-459 — A render cannot be cancelled or bounded in time
 

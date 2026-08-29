@@ -41,9 +41,14 @@ const StateIndexMask = 0x3FFF_FFFF'u32     // What is left: the index of the sta
 // most patterns never need more than the first size.
 const InitialIndexSize = 64'u64
 
-// How many transitions one automaton may cache: four megabytes of table for the widest
-// patterns, and far less for an ordinary one.
-const MaxCachedTransitions = 1_000_000'u64
+// How much of a subject's worth of states one automaton may remember.
+//
+// The cache is what makes the automaton fast, and it is also the only part of a compiled
+// pattern that grows with the subject rather than with the pattern. These two bounds keep a
+// compiled pattern under about two megabytes whatever it is asked to read; past them the
+// simulation, which needs no cache at all, finishes the search.
+const MaxCachedTransitions = 250_000'u64
+const MaxCachedStates      = 30_000'u64
 
 // Hashes the content of a state.
 //
@@ -130,9 +135,11 @@ impl Dfa
         }
 
         .maxStates = MaxCachedTransitions / .stride
-        .reverse   = program.reverse
-        .matchAll  = program.reverse
-        .quitHigh  = program.hasWordAssert
+        if .maxStates > MaxCachedStates do
+            .maxStates = MaxCachedStates
+        .reverse  = program.reverse
+        .matchAll = program.reverse
+        .quitHigh = program.hasWordAssert
 
         .seen.resize(program.insts.count)
         .seen.fill(0)

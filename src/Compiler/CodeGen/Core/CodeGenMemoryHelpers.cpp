@@ -431,44 +431,129 @@ namespace
             emitMemZeroUnrolled(builder, dstReg, tailSize, false, zeroReg, zero128Reg);
     }
 
-    void emitMemCompareUnrolled(MicroBuilder& builder, MicroReg resultReg, MicroReg leftReg, MicroReg rightReg, uint32_t sizeInBytes, MicroReg leftByteReg, MicroReg rightByteReg, MicroLabelRef doneLabel)
+    // One block of a memory comparison. A block only ever answers "these bytes are all equal" or
+    // "something in here differs": the value the comparison returns is decided in one place, by
+    // the byte scan below, so a wide block never has to say which of its bytes differed.
+    void emitMemCompareBlock(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, uint64_t offset, uint32_t chunkSize, MicroLabelRef mismatchLabel)
     {
-        for (uint32_t offset = 0; offset < sizeInBytes; ++offset)
+        MicroBuilder& builder = codeGen.builder();
+
+        if (chunkSize == 16)
         {
-            const MicroLabelRef nextByteLabel = builder.createLabel();
-            builder.emitLoadSignedExtendRegMem(leftByteReg, leftReg, offset, MicroOpBits::B64, MicroOpBits::B8);
-            builder.emitLoadSignedExtendRegMem(rightByteReg, rightReg, offset, MicroOpBits::B64, MicroOpBits::B8);
-            builder.emitCmpRegReg(leftByteReg, rightByteReg, MicroOpBits::B64);
-            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, nextByteLabel);
-            builder.emitLoadRegReg(resultReg, leftByteReg, MicroOpBits::B64);
-            builder.emitOpBinaryRegReg(resultReg, rightByteReg, MicroOp::Subtract, MicroOpBits::B64);
-            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
-            builder.placeLabel(nextByteLabel);
+            const MicroReg leftVecReg  = codeGen.nextVirtualFloatRegister();
+            const MicroReg rightVecReg = codeGen.nextVirtualFloatRegister();
+            const MicroReg equalVecReg = codeGen.nextVirtualFloatRegister();
+            const MicroReg maskReg     = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(leftVecReg, leftReg, offset, MicroOpBits::B128);
+            builder.emitLoadRegMem(rightVecReg, rightReg, offset, MicroOpBits::B128);
+            builder.emitOpBinaryRegRegReg(equalVecReg, leftVecReg, rightVecReg, MicroOp::VecCmpEq8, MicroOpBits::B128);
+            builder.emitVecUnaryRegReg(maskReg, equalVecReg, MicroOp::VecMoveMaskB, MicroOpBits::B128);
+            builder.emitCmpRegImm(maskReg, ApInt(0xFFFF, 32), MicroOpBits::B32);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, mismatchLabel);
+            return;
         }
+
+        const MicroOpBits opBits     = microOpBitsFromChunkSize(chunkSize);
+        const MicroReg    leftChunk  = codeGen.nextVirtualIntRegister();
+        const MicroReg    rightChunk = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(leftChunk, leftReg, offset, opBits);
+        builder.emitLoadRegMem(rightChunk, rightReg, offset, opBits);
+        builder.emitCmpRegReg(leftChunk, rightChunk, opBits);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, mismatchLabel);
     }
 
-    void emitMemCompareLoop(MicroBuilder& builder, MicroReg resultReg, MicroReg leftReg, MicroReg rightReg, uint32_t sizeInBytes, MicroReg leftByteReg, MicroReg rightByteReg, MicroReg countReg, MicroLabelRef doneLabel)
+    void emitMemCompareUnrolled(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, uint32_t sizeInBytes, bool allow128, MicroLabelRef mismatchLabel)
     {
-        SWC_ASSERT(sizeInBytes);
-        const MicroLabelRef loopLabel     = builder.createLabel();
-        const MicroLabelRef nextByteLabel = builder.createLabel();
+        uint32_t offset = 0;
+        uint32_t remain = sizeInBytes;
 
-        builder.emitLoadRegImm(countReg, ApInt(sizeInBytes, 64), MicroOpBits::B64);
+        if (allow128)
+        {
+            while (remain >= 16)
+            {
+                emitMemCompareBlock(codeGen, leftReg, rightReg, offset, 16, mismatchLabel);
+                offset += 16;
+                remain -= 16;
+            }
+        }
+
+        while (remain >= 8)
+        {
+            emitMemCompareBlock(codeGen, leftReg, rightReg, offset, 8, mismatchLabel);
+            offset += 8;
+            remain -= 8;
+        }
+
+        if (remain >= 4)
+        {
+            emitMemCompareBlock(codeGen, leftReg, rightReg, offset, 4, mismatchLabel);
+            offset += 4;
+            remain -= 4;
+        }
+
+        if (remain >= 2)
+        {
+            emitMemCompareBlock(codeGen, leftReg, rightReg, offset, 2, mismatchLabel);
+            offset += 2;
+            remain -= 2;
+        }
+
+        if (remain)
+            emitMemCompareBlock(codeGen, leftReg, rightReg, offset, 1, mismatchLabel);
+    }
+
+    void emitMemCompareLoop(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, uint32_t sizeInBytes, uint32_t chunkSize, MicroReg countReg, MicroLabelRef mismatchLabel)
+    {
+        const uint32_t chunkCount = sizeInBytes / chunkSize;
+        const uint32_t tailSize   = sizeInBytes % chunkSize;
+        SWC_ASSERT(chunkCount > 0);
+
+        MicroBuilder&       builder   = codeGen.builder();
+        const MicroLabelRef loopLabel = builder.createLabel();
+
+        builder.emitLoadRegImm(countReg, ApInt(chunkCount, 64), MicroOpBits::B64);
         builder.placeLabel(loopLabel);
-        builder.emitLoadSignedExtendRegMem(leftByteReg, leftReg, 0, MicroOpBits::B64, MicroOpBits::B8);
-        builder.emitLoadSignedExtendRegMem(rightByteReg, rightReg, 0, MicroOpBits::B64, MicroOpBits::B8);
-        builder.emitCmpRegReg(leftByteReg, rightByteReg, MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, nextByteLabel);
-        builder.emitLoadRegReg(resultReg, leftByteReg, MicroOpBits::B64);
-        builder.emitOpBinaryRegReg(resultReg, rightByteReg, MicroOp::Subtract, MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
-        builder.placeLabel(nextByteLabel);
-
-        builder.emitOpBinaryRegImm(leftReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(rightReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        emitMemCompareBlock(codeGen, leftReg, rightReg, 0, chunkSize, mismatchLabel);
+        builder.emitOpBinaryRegImm(leftReg, ApInt(chunkSize, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(rightReg, ApInt(chunkSize, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
         builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
+
+        if (tailSize)
+            emitMemCompareUnrolled(codeGen, leftReg, rightReg, tailSize, false, mismatchLabel);
+    }
+
+    // Where the answer comes from once a block reported a difference. It walks from the start of
+    // the two ranges to the first byte that differs, which is guaranteed to exist, and reads both
+    // bytes unsigned: '@memcmp' orders byte sequences lexicographically, so a byte of 0xFF is
+    // above a byte of 0x01 rather than below it. Reaching it costs a walk over the equal prefix,
+    // which only a comparison that already answered "different" ever pays.
+    void emitMemCompareFirstDifference(CodeGen& codeGen, MicroReg outResultReg, MicroReg leftAddressReg, MicroReg rightAddressReg)
+    {
+        MicroBuilder&  builder   = codeGen.builder();
+        const MicroReg leftCur   = codeGen.nextVirtualIntRegister();
+        const MicroReg rightCur  = codeGen.nextVirtualIntRegister();
+        const MicroReg leftByte  = codeGen.nextVirtualIntRegister();
+        const MicroReg rightByte = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(leftCur, leftAddressReg, MicroOpBits::B64);
+        builder.emitLoadRegReg(rightCur, rightAddressReg, MicroOpBits::B64);
+
+        const MicroLabelRef scanLabel  = builder.createLabel();
+        const MicroLabelRef foundLabel = builder.createLabel();
+
+        builder.placeLabel(scanLabel);
+        builder.emitLoadZeroExtendRegMem(leftByte, leftCur, 0, MicroOpBits::B64, MicroOpBits::B8);
+        builder.emitLoadZeroExtendRegMem(rightByte, rightCur, 0, MicroOpBits::B64, MicroOpBits::B8);
+        builder.emitCmpRegReg(leftByte, rightByte, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, foundLabel);
+        builder.emitOpBinaryRegImm(leftCur, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(rightCur, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, scanLabel);
+
+        builder.placeLabel(foundLabel);
+        builder.emitLoadRegReg(outResultReg, leftByte, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(outResultReg, rightByte, MicroOp::Subtract, MicroOpBits::B64);
     }
 }
 
@@ -855,44 +940,12 @@ void CodeGenMemoryHelpers::emitMemRepeatCopy(CodeGen& codeGen, MicroReg dstReg, 
     emitMemRepeatCopyLoop(builder, dstRegTmp, srcRegTmp, elementSizeInBytes, elementCount, tmpIntReg, tmpFloatReg, countReg);
 }
 
+// Writing one byte value over a range is filling with a one-byte element, so both go through
+// the same emitter: 'emitMemFill' is the one that knows when the fill is worth widening to a
+// vector register.
 void CodeGenMemoryHelpers::emitMemSet(CodeGen& codeGen, MicroReg dstReg, MicroReg fillValueReg, uint32_t sizeInBytes)
 {
-    if (!sizeInBytes)
-        return;
-
-    MicroBuilder&                   builder     = codeGen.builder();
-    const Runtime::BuildCfgBackend& buildCfg    = builder.backendBuildCfg();
-    const bool                      optimize    = buildCfg.optimize;
-    const uint32_t                  unrollLimit = getUnrollMemLimit(buildCfg);
-
-    const MicroReg dstRegTmp  = codeGen.nextVirtualIntRegister();
-    const MicroReg fillReg    = codeGen.nextVirtualIntRegister();
-    const MicroReg fillRegTmp = codeGen.nextVirtualIntRegister();
-
-    builder.emitLoadRegReg(dstRegTmp, dstReg, MicroOpBits::B64);
-    emitBuildRepeatedFillReg64(builder, fillReg, fillRegTmp, fillValueReg, 1);
-
-    if (!optimize)
-    {
-        if (sizeInBytes <= unrollLimit)
-        {
-            emitMemSetUnrolled(builder, dstRegTmp, sizeInBytes, fillReg);
-            return;
-        }
-
-        const MicroReg countReg = codeGen.nextVirtualIntRegister();
-        emitMemSetLoop(builder, dstRegTmp, sizeInBytes, 8, fillReg, countReg);
-        return;
-    }
-
-    if (sizeInBytes <= unrollLimit)
-    {
-        emitMemSetUnrolled(builder, dstRegTmp, sizeInBytes, fillReg);
-        return;
-    }
-
-    const MicroReg countReg = codeGen.nextVirtualIntRegister();
-    emitMemSetLoop(builder, dstRegTmp, sizeInBytes, 8, fillReg, countReg);
+    emitMemFill(codeGen, dstReg, fillValueReg, 1, sizeInBytes);
 }
 
 void CodeGenMemoryHelpers::emitCStringCountReg(CodeGen& codeGen, MicroReg countReg, MicroReg cstrReg)
@@ -1063,6 +1116,7 @@ void CodeGenMemoryHelpers::emitMemCompare(CodeGen& codeGen, MicroReg outResultRe
     MicroBuilder&                   builder     = codeGen.builder();
     const Runtime::BuildCfgBackend& buildCfg    = builder.backendBuildCfg();
     const uint32_t                  unrollLimit = getUnrollMemLimit(buildCfg);
+    const bool                      allow128    = buildCfg.optimize && sizeInBytes >= 16;
 
     if (!sizeInBytes)
     {
@@ -1070,26 +1124,33 @@ void CodeGenMemoryHelpers::emitMemCompare(CodeGen& codeGen, MicroReg outResultRe
         return;
     }
 
-    const MicroReg leftReg      = codeGen.nextVirtualIntRegister();
-    const MicroReg rightReg     = codeGen.nextVirtualIntRegister();
-    const MicroReg leftByteReg  = codeGen.nextVirtualIntRegister();
-    const MicroReg rightByteReg = codeGen.nextVirtualIntRegister();
+    // The scan that decides the answer restarts from the operands, so the blocks below get their
+    // own cursors to advance.
+    const MicroReg leftReg  = codeGen.nextVirtualIntRegister();
+    const MicroReg rightReg = codeGen.nextVirtualIntRegister();
     builder.emitLoadRegReg(leftReg, leftAddressReg, MicroOpBits::B64);
     builder.emitLoadRegReg(rightReg, rightAddressReg, MicroOpBits::B64);
 
-    const MicroLabelRef doneLabel = builder.createLabel();
+    const MicroLabelRef mismatchLabel = builder.createLabel();
+    const MicroLabelRef doneLabel     = builder.createLabel();
 
     if (sizeInBytes <= unrollLimit)
     {
-        emitMemCompareUnrolled(builder, outResultReg, leftReg, rightReg, sizeInBytes, leftByteReg, rightByteReg, doneLabel);
+        emitMemCompareUnrolled(codeGen, leftReg, rightReg, sizeInBytes, allow128, mismatchLabel);
     }
     else
     {
-        const MicroReg countReg = codeGen.nextVirtualIntRegister();
-        emitMemCompareLoop(builder, outResultReg, leftReg, rightReg, sizeInBytes, leftByteReg, rightByteReg, countReg, doneLabel);
+        const MicroReg countReg  = codeGen.nextVirtualIntRegister();
+        const uint32_t chunkSize = allow128 ? 16 : 8;
+        emitMemCompareLoop(codeGen, leftReg, rightReg, sizeInBytes, chunkSize, countReg, mismatchLabel);
     }
 
     builder.emitClearReg(outResultReg, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
+    builder.placeLabel(mismatchLabel);
+    emitMemCompareFirstDifference(codeGen, outResultReg, leftAddressReg, rightAddressReg);
+
     builder.placeLabel(doneLabel);
 }
 

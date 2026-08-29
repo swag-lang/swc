@@ -651,11 +651,39 @@ namespace
         appendCompareBytes(out, base, size);
     }
 
+    // Sixteen bytes at a time: the packed compare answers every byte at once and the move-mask
+    // turns the sixteen lane results into one integer, so a run costs one branch per sixteen
+    // bytes instead of one per eight.
+    void emitCompareBytesVectorChunk(CodeGen& codeGen, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, uint64_t offset, MicroLabelRef notEqualLabel)
+    {
+        MicroBuilder&  builder     = codeGen.builder();
+        const MicroReg leftVecReg  = codeGen.nextVirtualFloatRegister();
+        const MicroReg rightVecReg = codeGen.nextVirtualFloatRegister();
+        const MicroReg equalVecReg = codeGen.nextVirtualFloatRegister();
+        const MicroReg maskReg     = codeGen.nextVirtualIntRegister();
+
+        builder.emitLoadRegMem(leftVecReg, leftPayload.reg, offset, MicroOpBits::B128);
+        builder.emitLoadRegMem(rightVecReg, rightPayload.reg, offset, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(equalVecReg, leftVecReg, rightVecReg, MicroOp::VecCmpEq8, MicroOpBits::B128);
+        builder.emitVecUnaryRegReg(maskReg, equalVecReg, MicroOp::VecMoveMaskB, MicroOpBits::B128);
+        builder.emitCmpRegImm(maskReg, ApInt(0xFFFF, 32), MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, notEqualLabel);
+    }
+
     void emitCompareBytesPart(CodeGen& codeGen, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, const ComparePart& part, MicroLabelRef notEqualLabel)
     {
         MicroBuilder& builder = codeGen.builder();
 
         uint64_t offset = part.offset;
+        if (codeGen.buildCfgBackend().optimize)
+        {
+            while (part.offset + part.size - offset >= 16)
+            {
+                emitCompareBytesVectorChunk(codeGen, leftPayload, rightPayload, offset, notEqualLabel);
+                offset += 16;
+            }
+        }
+
         while (offset < part.offset + part.size)
         {
             const uint64_t remain = part.offset + part.size - offset;

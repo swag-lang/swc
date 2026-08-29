@@ -181,7 +181,7 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 **signature** for identification and entropy only, **text** or **code** for those fallbacks, and
 **none** for the hexadecimal fallback alone. The owning backlog is linked from each unfinished row.
 
-### Text and documents
+#### Text and documents
 
 | Family | Extensions | Today | Missing | Entry |
 | --- | --- | --- | --- | --- |
@@ -205,7 +205,7 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 | Notebook | `.ipynb` | code | rendered cells | — |
 | reStructuredText, AsciiDoc | `.rst` `.adoc` | text | — | — |
 
-### Images
+#### Images
 
 | Family | Extensions | Today | Missing | Entry |
 | --- | --- | --- | --- | --- |
@@ -219,7 +219,7 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 | GPU textures | `.dds` `.ktx2` | none | Pixel containers | T-205, T-206 |
 | Camera RAW | `.cr2` `.nef` `.arw` `.dng` | signature | embedded preview extraction | [T-414](filescope.image.md) |
 
-### Audio and video
+#### Audio and video
 
 | Family | Extensions | Today | Missing | Entry |
 | --- | --- | --- | --- | --- |
@@ -231,7 +231,7 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 | Video playback | `.avi` `.mp4` `.m4v` `.mov` `.mkv` | Motion JPEG, uncompressed AVI, H.264, H.265, MPEG-4 Part 2 | professional transport/inspection; VP9 and AV1 | [B-117](filescope.video.md), [T-420](filescope.video.md) |
 | MIDI | `.mid` `.midi` | piano roll and structure | playback, event lanes, scalable timeline | [B-142](filescope.midi.md) |
 
-### Binaries, containers, and developer artifacts
+#### Binaries, containers, and developer artifacts
 
 | Family | Extensions | Today | Missing | Entry |
 | --- | --- | --- | --- | --- |

@@ -251,7 +251,7 @@ public impl RegExp
         var result: retval
 
         let subject = str orelse ""
-        var at      = 0'u64
+        var at      = .findAllFast(subject, &result)
 
         while at <= @countof(subject)
         {
@@ -698,6 +698,63 @@ private impl RegExp
         .matchEnd   = matchEnd
         .matched    = true
         return true
+    }
+
+    // Collects the occurrences the two automata can find on their own, and returns where the
+    // ordinary search has to take over.
+    //
+    // Looking for every occurrence of a pattern is the one place where what a search costs
+    // before it reads anything is paid over and over: a subject with two million occurrences
+    // pays it two million times. This asks the two automata directly, so that a match costs
+    // the two searches and nothing around them. Anything unusual — capture groups to fill, a
+    // backreference, a scan that answers by itself, an automaton that gives up — is left to
+    // the general path, which starts where this one stopped.
+    mtd findAllFast(subject: string, out: *Array'Span)->u64
+    {
+        if !.compiled or .program.hasBackref or .program.captureCount != 0 do
+            return 0
+        if .useInner or .prefilter.complete or .anchorOnCandidates or .program.anchoredStart do
+            return 0
+
+        .matched = false
+        .subject = subject
+
+        let hay   = @mkslice(@dataof(subject), @countof(subject))
+        let limit = @countof(subject)
+        var at    = 0'u64
+
+        while at <= limit
+        {
+            let forward = .forwardDfa.searchForward(&.program, &.prefilter, hay, at, limit, false)
+            if forward.quit do
+                return at
+            if !forward.found do
+                return limit + 1
+
+            let backward = .reverseDfa.searchReverse(&.reverse, hay, at, forward.end)
+            if backward.quit or !backward.found do
+                return at
+
+            out.add({backward.start, forward.end})
+
+            .matchStart = backward.start
+            .matchEnd   = forward.end
+            .matched    = true
+
+            if forward.end > backward.start
+            {
+                at = forward.end
+                continue
+            }
+
+            // An empty occurrence must not be found again at the same place, and the next
+            // offset is the next scalar value rather than the next byte.
+            at = forward.end + 1
+            while at < limit and (subject[at] & 0xC0) == 0x80 do
+                at += 1
+        }
+
+        return at
     }
 
     // Finds the occurrence at or after 'at', and says where the search for the next one

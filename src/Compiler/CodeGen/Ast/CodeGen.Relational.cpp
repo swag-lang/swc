@@ -675,7 +675,7 @@ namespace
         MicroBuilder& builder = codeGen.builder();
 
         uint64_t offset = part.offset;
-        if (codeGen.buildCfgBackend().optimize)
+        if (codeGen.buildCfgBackend().optimizes())
         {
             while (part.offset + part.size - offset >= 16)
             {

@@ -217,12 +217,12 @@ public:
     };
 
 private:
-    bool intervalGateAccepts() const;
+    bool intervalAllocationAccepts() const;
     void buildLiveIntervals(std::vector<LiveInterval>& out) const;
     void buildFixedIntervals(std::vector<LiveInterval>& outByPoolIndex, SmallVector<MicroReg>& outPoolRegs) const;
     bool walkIntervals(std::vector<LiveInterval>&& intervals, IntervalWalkResult& out) const;
     bool applyIntervalAllocation(IntervalWalkResult& result);
-    bool runIntervalAllocationIfGated();
+    bool runIntervalAllocation();
 
     void clearState();
     void initState(MicroPassContext& context);

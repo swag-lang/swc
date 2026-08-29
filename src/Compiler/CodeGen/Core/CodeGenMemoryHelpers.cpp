@@ -797,7 +797,7 @@ void CodeGenMemoryHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroR
 
     MicroBuilder&                   builder     = codeGen.builder();
     const Runtime::BuildCfgBackend& buildCfg    = builder.backendBuildCfg();
-    const bool                      optimize    = buildCfg.optimize;
+    const bool                      optimize    = buildCfg.optimizes();
     const bool                      allow128    = optimize && sizeInBytes >= 16;
     const uint32_t                  unrollLimit = getUnrollMemLimit(buildCfg);
 
@@ -845,7 +845,7 @@ void CodeGenMemoryHelpers::emitMemFill(CodeGen& codeGen, MicroReg dstReg, MicroR
 
     MicroBuilder&                   builder     = codeGen.builder();
     const Runtime::BuildCfgBackend& buildCfg    = builder.backendBuildCfg();
-    const bool                      optimize    = buildCfg.optimize;
+    const bool                      optimize    = buildCfg.optimizes();
     const uint32_t                  unrollLimit = getUnrollMemLimit(buildCfg);
     const uint32_t                  totalBytes  = static_cast<uint32_t>(totalBytes64);
     const bool                      allow128    = optimize && totalBytes >= 32;
@@ -979,7 +979,7 @@ void CodeGenMemoryHelpers::emitMemZero(CodeGen& codeGen, MicroReg dstReg, uint32
 
     MicroBuilder&                   builder     = codeGen.builder();
     const Runtime::BuildCfgBackend& buildCfg    = builder.backendBuildCfg();
-    const bool                      optimize    = buildCfg.optimize;
+    const bool                      optimize    = buildCfg.optimizes();
     const bool                      allow128    = optimize && sizeInBytes >= 16;
     const bool                      needs64Zero = !allow128 || (sizeInBytes % 16) != 0;
     const uint32_t                  unrollLimit = getUnrollMemLimit(buildCfg);
@@ -1024,7 +1024,7 @@ void CodeGenMemoryHelpers::emitMemMove(CodeGen& codeGen, MicroReg dstReg, MicroR
 
     MicroBuilder&                   builder     = codeGen.builder();
     const Runtime::BuildCfgBackend& buildCfg    = builder.backendBuildCfg();
-    const bool                      optimize    = buildCfg.optimize;
+    const bool                      optimize    = buildCfg.optimizes();
     const bool                      allow128    = optimize && sizeInBytes >= 16;
     const uint32_t                  unrollLimit = getUnrollMemLimit(buildCfg);
 
@@ -1116,7 +1116,7 @@ void CodeGenMemoryHelpers::emitMemCompare(CodeGen& codeGen, MicroReg outResultRe
     MicroBuilder&                   builder     = codeGen.builder();
     const Runtime::BuildCfgBackend& buildCfg    = builder.backendBuildCfg();
     const uint32_t                  unrollLimit = getUnrollMemLimit(buildCfg);
-    const bool                      allow128    = buildCfg.optimize && sizeInBytes >= 16;
+    const bool                      allow128    = buildCfg.optimizes() && sizeInBytes >= 16;
 
     if (!sizeInBytes)
     {

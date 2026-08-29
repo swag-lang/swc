@@ -65,22 +65,37 @@ namespace
         return Result::Continue;
     }
 
+    // Both allocators owe the same contract - no virtual register left, and every
+    // physical one belonging to the call convention - so every case is run through
+    // each of them. The build configuration is what selects one (B-012).
     Result runCase(TaskContext& ctx, const BuildCaseFn& buildFn)
     {
-        for (const auto callConvKind : testedCallConvs())
+        // O0 keeps the scan that assigns one register per value; from O1 the
+        // interval walk splits them.
+        for (const auto level : {Runtime::BuildCfgBackendOptimLevel::O0, Runtime::BuildCfgBackendOptimLevel::O2})
         {
-            MicroBuilder builder(ctx);
-            buildFn(builder, callConvKind);
+            for (const auto callConvKind : testedCallConvs())
+            {
+                MicroBuilder builder(ctx);
+                builder.setBackendBuildCfg({.optimLevel = level});
+                buildFn(builder, callConvKind);
 
-            MicroRegisterAllocationPass regAllocPass;
-            MicroPassManager            passes;
-            passes.addStartPass(regAllocPass);
+                MicroRegisterAllocationPass regAllocPass;
+                MicroPassManager            passes;
+                passes.addStartPass(regAllocPass);
 
-            MicroPassContext passCtx;
-            passCtx.callConvKind = callConvKind;
-            SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
-            SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
-            SWC_RESULT(verifyCallConvConformity(builder, CallConv::get(passCtx.callConvKind)));
+                MicroPassContext passCtx;
+                passCtx.callConvKind = callConvKind;
+                SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+                SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+                SWC_RESULT(verifyCallConvConformity(builder, CallConv::get(passCtx.callConvKind)));
+
+                // Without this the optimized half of the loop would prove nothing the
+                // other half does not: a bail is invisible from the emitted code.
+                const bool wantsInterval = level != Runtime::BuildCfgBackendOptimLevel::O0;
+                if (passCtx.intervalAllocated != wantsInterval)
+                    return Result::Error;
+            }
         }
 
         return Result::Continue;

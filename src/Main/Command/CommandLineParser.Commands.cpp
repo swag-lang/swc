@@ -115,9 +115,16 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Target, "sema doc test build run smoke", "--work-dir", "-wd",
         &cmdLine_->workDir,
         "Set the work directory exposed through @compiler.getBuildCfg()");
-    add(HelpOptionGroup::Target, "sema doc test build run smoke", "--optimize", "-o",
-        &cmdLine_->backendOptimize,
-        "Enable backend optimization for JIT folding and native code generation");
+    addEnum(HelpOptionGroup::Target, "sema doc test build run smoke", "--optim-level", "-O",
+            &cmdLine_->optimLevel,
+            {
+                {"0", Runtime::BuildCfgBackendOptimLevel::O0},
+                {"1", Runtime::BuildCfgBackendOptimLevel::O1},
+                {"2", Runtime::BuildCfgBackendOptimLevel::O2},
+            },
+            "Set the backend optimization level used by JIT folding and native code generation: 0 none, 1 what costs no compilation time, 2 everything",
+            true,
+            {&StructConfigAssignHook::setBoolTrue, &cmdLine_->optimLevelExplicit});
     add(HelpOptionGroup::Target, "test build run smoke", "--debug", nullptr,
         &cmdLine_->debugInfo,
         "Emit debug information for native artifacts");

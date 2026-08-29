@@ -910,7 +910,7 @@ Result MicroBuilder::runPasses(Encoder* encoder, MicroPassContext& context)
     // Reuse a thread-local pass manager to avoid per-function allocation/destruction
     // of 15 pass objects and their internal data structures.
     thread_local MicroPassManager tlPassManager;
-    tlPassManager.configureDefaultPipeline(backendBuildCfg_.optimize);
+    tlPassManager.configureDefaultPipeline(backendBuildCfg_.optimizes());
     return runPasses(tlPassManager, encoder, context);
 }
 

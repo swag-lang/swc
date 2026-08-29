@@ -238,7 +238,7 @@ namespace
             buildCfg.allocatorElectricMode     = false;
             buildCfg.allocatorFillMemory       = false;
             buildCfg.errorStackTrace           = true;
-            buildCfg.backend.optimize          = true;
+            buildCfg.backend.optimLevel        = Runtime::BuildCfgBackendOptimLevel::O1;
             buildCfg.backend.debugInfo         = false;
             buildCfg.backend.inlineMode        = Runtime::BuildCfgBackendInlineMode::MarkedOnly;
         }
@@ -254,7 +254,7 @@ namespace
             buildCfg.allocatorElectricMode      = false;
             buildCfg.allocatorFillMemory        = false;
             buildCfg.errorStackTrace            = false;
-            buildCfg.backend.optimize           = true;
+            buildCfg.backend.optimLevel         = Runtime::BuildCfgBackendOptimLevel::O2;
             buildCfg.backend.vectorize          = true;
             buildCfg.backend.debugInfo          = false;
             buildCfg.backend.fpMathFma          = true;
@@ -282,8 +282,8 @@ namespace
         SWC_ASSERT(hasRegisteredBuildCfg(buildCfg, cmdLine.buildCfg.view()));
         SWC_INTERNAL_CHECK(applyBuildCfgPreset(buildCfg, cmdLine.buildCfg.view()));
 
-        if (cmdLine.backendOptimize.has_value())
-            buildCfg.backend.optimize = cmdLine.backendOptimize.value();
+        if (cmdLine.optimLevelExplicit)
+            buildCfg.backend.optimLevel = cmdLine.optimLevel;
         if (cmdLine.debugInfo)
             buildCfg.backend.debugInfo = true;
 
@@ -342,6 +342,8 @@ namespace
         {
             if (t->target == &cmdLine.backendKind)
                 cmdLine.artifactKindExplicit = true;
+            else if (t->target == &cmdLine.optimLevel)
+                cmdLine.optimLevelExplicit = true;
         }
     }
 }

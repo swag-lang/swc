@@ -37,6 +37,21 @@ inline Utf8 backendKindName(const Runtime::BuildCfgBackendKind backendKind)
     SWC_UNREACHABLE();
 }
 
+inline Utf8 optimLevelName(const Runtime::BuildCfgBackendOptimLevel level)
+{
+    switch (level)
+    {
+        case Runtime::BuildCfgBackendOptimLevel::O0:
+            return "O0";
+        case Runtime::BuildCfgBackendOptimLevel::O1:
+            return "O1";
+        case Runtime::BuildCfgBackendOptimLevel::O2:
+            return "O2";
+    }
+
+    SWC_UNREACHABLE();
+}
+
 inline Utf8 inlineModeName(const Runtime::BuildCfgBackendInlineMode mode)
 {
     switch (mode)

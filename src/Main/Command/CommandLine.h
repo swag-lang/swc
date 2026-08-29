@@ -160,7 +160,8 @@ struct CommandLine
     Utf8                moduleNamespaceStorage;
     Utf8                outDirStorage;
     Utf8                workDirStorage;
-    std::optional<bool> backendOptimize;
+
+    Runtime::BuildCfgBackendOptimLevel optimLevel = Runtime::BuildCfgBackendOptimLevel::O1;
 
     bool logColor                = true;
     bool logAscii                = false;
@@ -179,6 +180,7 @@ struct CommandLine
     bool scriptMode              = false;
     bool sourceDrivenTest        = false;
     bool buildCfgExplicit        = false;
+    bool optimLevelExplicit      = false;
     bool artifactKindExplicit    = false;
     bool artifactNameExplicit    = false;
     bool moduleNamespaceExplicit = false;

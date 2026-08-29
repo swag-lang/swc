@@ -41,7 +41,7 @@ namespace
         addInfoEntry(entries, "Name", Utf8(buildCfg.name));
         addInfoEntry(entries, "Module namespace", Utf8(buildCfg.moduleNamespace));
         addInfoEntry(entries, "Work directory", Utf8(buildCfg.workDir));
-        addBoolEntry(entries, "Backend optimization", buildCfg.backend.optimize);
+        addInfoEntry(entries, "Optimization level", optimLevelName(buildCfg.backend.optimLevel));
         addBoolEntry(entries, "Debug information", buildCfg.backend.debugInfo);
         addInfoEntry(entries, "Inline mode", inlineModeName(buildCfg.backend.inlineMode));
         addBoolEntry(entries, "Vectorization", buildCfg.backend.vectorize);

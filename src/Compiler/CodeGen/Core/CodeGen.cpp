@@ -537,8 +537,16 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         const AttributeList&     attributes       = symbolFunc.attributes();
         const Runtime::BuildCfg& compilerBuildCfg = buildCfg();
         Runtime::BuildCfgBackend backendBuildCfg  = compilerBuildCfg.backend;
+        // '#[Swag.Optimize(false)]' turns the optimizer off for this one function.
+        // 'true' turns it on where the build configuration had it off, and never lowers
+        // the level a configuration already asked for.
         if (attributes.backendOptimize.has_value())
-            backendBuildCfg.optimize = attributes.backendOptimize.value();
+        {
+            if (!attributes.backendOptimize.value())
+                backendBuildCfg.optimLevel = Runtime::BuildCfgBackendOptimLevel::O0;
+            else if (!backendBuildCfg.optimizes())
+                backendBuildCfg.optimLevel = Runtime::BuildCfgBackendOptimLevel::O1;
+        }
 
         builder_->setBackendBuildCfg(backendBuildCfg);
         builder_->setFlags(builderFlags);

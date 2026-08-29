@@ -238,7 +238,7 @@ public:
     const SymbolFunction*           currentFunction() const { return frame().currentFunction(); }
     bool                            isCurrentFunction() const { return currentFunction() != nullptr; }
     bool                            isGlobalScope() const { return !isCurrentFunction(); }
-    bool                            isOptimizeEnabled() const { return buildCfgBackend().optimize; }
+    bool                            isOptimizeEnabled() const { return buildCfgBackend().optimizes(); }
     bool                            isConstExprRequired() const { return frame().hasContextFlag(SemaFrameContextFlagsE::RequireConstExpr); }
     bool                            isRunExprContext() const { return frame().hasContextFlag(SemaFrameContextFlagsE::RunExpr); }
     bool                            isCompilerEvalContext() const { return frame().hasContextFlag(SemaFrameContextFlagsE::CompilerEval); }

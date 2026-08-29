@@ -30,6 +30,7 @@
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Backend/Micro/Passes/Pass.ValueNumbering.h"
 #include "Backend/Micro/Passes/Pass.VecLoopPromote.h"
+#include "Backend/RuntimeName.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
@@ -47,9 +48,7 @@ namespace
 
     std::string backendOptimizeLevelName(const Runtime::BuildCfgBackend& backendCfg)
     {
-        if (!backendCfg.optimize)
-            return "off";
-        return "on";
+        return std::string{optimLevelName(backendCfg.optimLevel)};
     }
 
     std::string passStageName(const MicroPass& pass, bool before)
@@ -76,7 +75,7 @@ namespace
     {
         const Runtime::BuildCfgBackend& backendCfg = builder.backendBuildCfg();
         std::string                     optimize   = backendOptimizeLevelName(backendCfg);
-        if (!backendCfg.optimize)
+        if (!backendCfg.optimizes())
             return optimize;
 
         const size_t countAfter  = context.instructions->count();
@@ -159,7 +158,7 @@ namespace
 
     uint32_t optimizationIterationLimit(const Runtime::BuildCfgBackend& backendCfg)
     {
-        if (!backendCfg.optimize)
+        if (!backendCfg.optimizes())
             return K_OPT_ITERATION_OFF;
         return K_OPT_ITERATION_ON;
     }

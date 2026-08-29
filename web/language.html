@@ -451,6 +451,7 @@ swc new module app --workspace my-project</span></div>
 <tr><td><span class="code-inline">release</span></td><td>Optimized code, static sanity on, runtime safety and tracking off</td></tr>
 </tbody>
 </table>
+<p>Each configuration also asks for a backend optimization level, which <span class="code-inline">--optim-level</span> (<span class="code-inline">-O</span>) overrides: <span class="code-inline">0</span> runs no backend optimization, <span class="code-inline">1</span> runs everything that costs no compilation time, and <span class="code-inline">2</span> also runs what does. <span class="code-inline">devmode</span> asks for <span class="code-inline">1</span> and <span class="code-inline">release</span> for <span class="code-inline">2</span>.</p>
 <p>Neither configuration emits debug information by default. Add <span class="code-inline">--debug</span> to a <span class="code-inline">test</span>, <span class="code-inline">build</span>, <span class="code-inline">run</span>, or <span class="code-inline">smoke</span> command when a debugger needs symbols, types, and source line mappings. The option does not change optimization or guard policy.</p>
 <p>The target architecture currently exposed by <span class="code-inline">--arch</span> is <span class="code-inline">x86_64</span>. Select the artifact with <span class="code-inline">--artifact-kind</span> (<span class="code-inline">-ak</span>): <span class="code-inline">executable</span>, <span class="code-inline">shared-library</span>, <span class="code-inline">static-library</span>, or <span class="code-inline">export</span>.</p>
 <h3 id="_001_004_swc_command_line_swg_Common_Workflows">Common Workflows</h3>
@@ -1849,6 +1850,17 @@ indent-style = spaces</span></div>
     <span class="SItr">@assert</span>(a.reading == b.reading)     <span class="SCmt">// the member decides these readings are equal</span>
     <span class="SItr">@assert</span>(a == b)                     <span class="SCmt">// so the two measures are equal too</span>
     <span class="SItr">@assert</span>(a != c)                     <span class="SCmt">// 'label' still compares as the number it is</span>
+}</span></div>
+<h3 id="_003_006_operators_swg_Array_Comparison">Array Comparison</h3>
+<p>An array compares element by element, and each element compares the way its own type does, so an array and its elements never disagree. An array of <span class="code-inline">string</span> compares the text its elements view, and an array whose element owns an <span class="code-inline">opEquals</span> has that method called once per element. Elements with nothing of their own to say — numbers, pointers, enums — are still compared as one contiguous run of bytes. A struct member that is an array follows the same rule.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> readings: [<span class="SNum">2</span>] <span class="SCst">Tolerance</span> = [{value: <span class="SNum">10</span>}, {value: <span class="SNum">20</span>}]
+    <span class="SKwd">var</span> nearby: [<span class="SNum">2</span>] <span class="SCst">Tolerance</span>   = [{value: <span class="SNum">11</span>}, {value: <span class="SNum">21</span>}]
+    <span class="SKwd">var</span> distant: [<span class="SNum">2</span>] <span class="SCst">Tolerance</span>  = [{value: <span class="SNum">11</span>}, {value: <span class="SNum">30</span>}]
+
+    <span class="SItr">@assert</span>(readings == nearby)     <span class="SCmt">// every element decides it is the same reading</span>
+    <span class="SItr">@assert</span>(readings != distant)
 }</span></div>
 <h3 id="_003_006_operators_swg_Logical_Operators">Logical Operators</h3>
 <p>Logical operators evaluate expressions and return a boolean result. Swag uses <span class="code-inline">and</span> and <span class="code-inline">or</span> instead of <span class="code-inline">&amp;&amp;</span> and <span class="code-inline">||</span> from C/C++.</p>
@@ -9364,7 +9376,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 </ul>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.271</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.278</div>
 </footer>
 </section>
 </main>
@@ -9766,6 +9778,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Unary Operators|_003_006_operators_swg_Unary_Operators|",
 "h|Comparison Operators|_003_006_operators_swg_Comparison_Operators|",
 "h|Struct Comparison|_003_006_operators_swg_Struct_Comparison|",
+"h|Array Comparison|_003_006_operators_swg_Array_Comparison|",
 "h|Logical Operators|_003_006_operators_swg_Logical_Operators|",
 "h|Ternary Operator|_003_006_operators_swg_Ternary_Operator|",
 "h|Spaceship Operator|_003_006_operators_swg_Spaceship_Operator|",

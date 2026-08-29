@@ -443,7 +443,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1676</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1677</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -795,6 +795,7 @@
 <li><a href="#Core_Env_joinArguments">Env.joinArguments</a></li>
 <li><a href="#Core_Env_monitorForPoint">Env.monitorForPoint</a></li>
 <li><a href="#Core_Env_monitorForRectangle">Env.monitorForRectangle</a></li>
+<li><a href="#Core_Env_openFile">Env.openFile</a></li>
 <li><a href="#Core_Env_openFileWith">Env.openFileWith</a></li>
 <li><a href="#Core_Env_openUrl">Env.openUrl</a></li>
 <li><a href="#Core_Env_processEnvironmentStoredName">Env.processEnvironmentStoredName</a></li>
@@ -3785,6 +3786,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Env_monitorForPoint">Env.monitorForPoint</a></td><td><p>Returns the monitor containing <span class="code-inline">point</span>, or the nearest monitor otherwise.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_monitorForRectangle">Env.monitorForRectangle</a></td><td><p>Returns the monitor with the largest intersection with <span class="code-inline">rectangle</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_openFile">Env.openFile</a></td><td><p>Opens <span class="code-inline">path</span> with its system-default application.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_openFileWith">Env.openFileWith</a></td><td><p>Asks the platform to let the user pick which application opens <span class="code-inline">path</span>.</p>
 </td></tr>
@@ -7008,6 +7011,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Env_monitorForPoint">Env.monitorForPoint</a></td><td><p>Returns the monitor containing <span class="code-inline">point</span>, or the nearest monitor otherwise.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_monitorForRectangle">Env.monitorForRectangle</a></td><td><p>Returns the monitor with the largest intersection with <span class="code-inline">rectangle</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_openFile">Env.openFile</a></td><td><p>Opens <span class="code-inline">path</span> with its system-default application.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_openFileWith">Env.openFileWith</a></td><td><p>Asks the platform to let the user pick which application opens <span class="code-inline">path</span>.</p>
 </td></tr>
@@ -18694,14 +18699,14 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">arguments</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">string</span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_associateFileExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.associateFileExtension</span> <a class="api-item-permalink" href="#Core_Env_associateFileExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L252">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_associateFileExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.associateFileExtension</span> <a class="api-item-permalink" href="#Core_Env_associateFileExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L268">src</a></div>
 <p>Associate an extension to an executable</p>
 <p>Refused under a sandbox, which reports it as not associated: claiming a file extension changes what the shell does on the whole machine.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">associateFileExtension</span>(extension, appName, appPath: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_claimFileExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.claimFileExtension</span> <a class="api-item-permalink" href="#Core_Env_claimFileExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L331">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_claimFileExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.claimFileExtension</span> <a class="api-item-permalink" href="#Core_Env_claimFileExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L347">src</a></div>
 <p>Makes <span class="code-inline">appPath</span> the program the shell runs for <span class="code-inline">extension</span>, for the current user.</p>
 <p>This is the strong form of <a href="#Core_Env_associateFileExtension">Env.associateFileExtension</a>: that one offers the application in the <i>Open with</i> list and leaves the default alone, which is what an application wants for a format it merely reads. This one takes the extension over, so opening one of those files — from a double-click, from <span class="code-inline">cmd</span>, from anywhere the shell resolves a document — runs <span class="code-inline">appPath</span>. Reserve it for an extension the application defines.</p>
 <p><span class="code-inline">progId</span> is the class name the extension points at, conventionally <span class="code-inline">Vendor.Kind</span>. It is what distinguishes this claim from another program's, so keep it stable: registering the same <span class="code-inline">progId</span> again updates the claim instead of adding a second one. <span class="code-inline">description</span> is the file type as the shell shows it in a folder listing.</p>
@@ -18734,7 +18739,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">deniedSystemMutations</span>()-&gt;<span class="STpe">u64</span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_enableDpiAwareness" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.enableDpiAwareness</span> <a class="api-item-permalink" href="#Core_Env_enableDpiAwareness" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L413">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_enableDpiAwareness" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.enableDpiAwareness</span> <a class="api-item-permalink" href="#Core_Env_enableDpiAwareness" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L429">src</a></div>
 <p>Declares this process per-monitor DPI aware, so windows receive physical pixels.</p>
 <p>Every window-creation path calls this before its first native window exists; an application only needs it directly when it creates native windows on its own. Once enabled, monitor and cursor coordinates are physical desktop pixels and the system no longer stretches window content on scaled displays. Idempotent, and a failure (for example when the awareness was already set by other means) is ignored.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">enableDpiAwareness</span>()</span></div>
@@ -18758,7 +18763,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exit</span>(exitCode: <span class="STpe">s32</span>) =&gt; <span class="SCst"><a href="std.win32.html#Win32_ExitProcess">ExitProcess</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_getDpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.getDpiScale</span> <a class="api-item-permalink" href="#Core_Env_getDpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L394">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_getDpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.getDpiScale</span> <a class="api-item-permalink" href="#Core_Env_getDpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L410">src</a></div>
 <p>Returns the current logical-to-physical desktop scale factor.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getDpiScale</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
@@ -18775,7 +18780,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getSpecialDirectory</span>(what: <span class="SCst"><a href="#Core_Env_SpecialDirectory">SpecialDirectory</a></span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_getSystemMetric" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.getSystemMetric</span> <a class="api-item-permalink" href="#Core_Env_getSystemMetric" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L175">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_getSystemMetric" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.getSystemMetric</span> <a class="api-item-permalink" href="#Core_Env_getSystemMetric" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L191">src</a></div>
 <p>Returns one virtual-desktop metric in physical pixels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getSystemMetric</span>(what: <span class="SCst"><a href="#Core_Env_SystemMetric">SystemMetric</a></span>)-&gt;<span class="STpe">s32</span></span></div>
 </section>
@@ -18837,6 +18842,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">monitorForRectangle</span>(rectangle: <span class="SCst"><a href="#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="#Core_Math_Rectangle">Rectangle</a></span>)-&gt;<span class="SCst"><a href="#namespace_Core_Env">Env</a></span>.<span class="SCst"><a href="#Core_Env_Monitor">Monitor</a></span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_openFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openFile</span> <a class="api-item-permalink" href="#Core_Env_openFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L174">src</a></div>
+<p>Opens <span class="code-inline">path</span> with its system-default application.</p>
+<p>The request is handed to the Windows shell and returns before the application finishes. The result reports whether the shell accepted the request; it does not report what the application subsequently did with the file.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<span class="SKwd">func</span> <span class="SFct">openFile</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Env_openFileWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openFileWith</span> <a class="api-item-permalink" href="#Core_Env_openFileWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L152">src</a></div>
 <p>Asks the platform to let the user pick which application opens <span class="code-inline">path</span>.</p>
 <p>The chooser is the shell's own, so it offers the same applications, the same default-handler checkbox and the same store lookup the file explorer offers. It runs in its own process: the call returns as soon as the request is handed over, long before the user has chosen anything, and reports only whether the chooser could be started.</p>
@@ -18844,7 +18856,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span> <span class="SFct">openFileWith</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_openUrl" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openUrl</span> <a class="api-item-permalink" href="#Core_Env_openUrl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L169">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_openUrl" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.openUrl</span> <a class="api-item-permalink" href="#Core_Env_openUrl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L185">src</a></div>
 <p>Opens <span class="code-inline">url</span> with the system's default handler.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openUrl</span>(url: <span class="STpe">string</span>)</span></div>
 </section>
@@ -18854,7 +18866,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">processEnvironmentStoredName</span>(name: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span> =&gt; <span class="SCst"><a href="#Core_String">String</a></span>.toUpper</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_processWindowMessages" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.processWindowMessages</span> <a class="api-item-permalink" href="#Core_Env_processWindowMessages" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L523">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_processWindowMessages" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.processWindowMessages</span> <a class="api-item-permalink" href="#Core_Env_processWindowMessages" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L539">src</a></div>
 <p>Processes all pending window messages. Returns false when the application should exit.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">processWindowMessages</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -18871,7 +18883,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">realSpecialDirectory</span>(what: <span class="SCst"><a href="#Core_Env_SpecialDirectory">SpecialDirectory</a></span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_registerApplication" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.registerApplication</span> <a class="api-item-permalink" href="#Core_Env_registerApplication" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L212">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_registerApplication" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.registerApplication</span> <a class="api-item-permalink" href="#Core_Env_registerApplication" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L228">src</a></div>
 <p>Register an application in the system</p>
 <p>Refused under a sandbox: this writes to the user's registry, which a test or a smoke run has no business touching.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">registerApplication</span>(appName, appFriendly: <span class="STpe">string</span>)</span></div>
@@ -18916,7 +18928,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">startProcess</span>(info: <span class="SCst"><a href="#Core_Env_StartInfo">StartInfo</a></span>)-&gt;<span class="SCst"><a href="#Core_Env_Process">Process</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_userLocaleName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.userLocaleName</span> <a class="api-item-permalink" href="#Core_Env_userLocaleName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L191">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_userLocaleName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.userLocaleName</span> <a class="api-item-permalink" href="#Core_Env_userLocaleName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L207">src</a></div>
 <p>Returns the user's preferred locale name, such as <span class="code-inline">"fr-FR"</span>, or an empty string when the system cannot provide one. The part before <span class="code-inline">-</span> is the language tag an application can hand to its localization layer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">userLocaleName</span>()-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
@@ -26287,7 +26299,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_acquireWin32DeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.acquireWin32DeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_acquireWin32DeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L544">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_acquireWin32DeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.acquireWin32DeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_acquireWin32DeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L560">src</a></div>
 <p>Acquires the Windows device context used by an explicit Windows rendering adapter.</p>
 <p>Every successful call must be paired with <a href="#Core_Env_Window_releaseWin32DeviceContext">Core.Env.Window.releaseWin32DeviceContext</a> on the same window.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">acquireWin32DeviceContext</span>()-&gt;<span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span></span></div>
@@ -26299,7 +26311,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_dpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.dpiScale</span> <a class="api-item-permalink" href="#Core_Env_Window_dpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L567">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_dpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.dpiScale</span> <a class="api-item-permalink" href="#Core_Env_Window_dpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L583">src</a></div>
 <p>Returns the physical device pixels per logical unit on the window's monitor.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">dpiScale</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
@@ -26325,7 +26337,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opPostMove</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_releaseWin32DeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.releaseWin32DeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_releaseWin32DeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L550">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_releaseWin32DeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.releaseWin32DeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_releaseWin32DeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L566">src</a></div>
 <p>Releases a device context returned by <a href="#Core_Env_Window_acquireWin32DeviceContext">Core.Env.Window.acquireWin32DeviceContext</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releaseWin32DeviceContext</span>(deviceContext: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>)</span></div>
 </section>
@@ -26483,7 +26495,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.271</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.278</div>
 </footer>
 </section>
 </main>
@@ -29241,6 +29253,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Env.joinArguments|Core_Env_joinArguments|Returns arguments joined into the one command line the system parses back into them.",
 "f|Core.Env.monitorForPoint|Core_Env_monitorForPoint|Returns the monitor containing point, or the nearest monitor otherwise.",
 "f|Core.Env.monitorForRectangle|Core_Env_monitorForRectangle|Returns the monitor with the largest intersection with rectangle.",
+"f|Core.Env.openFile|Core_Env_openFile|Opens path with its system-default application.",
 "f|Core.Env.openFileWith|Core_Env_openFileWith|Asks the platform to let the user pick which application opens path.",
 "f|Core.Env.openUrl|Core_Env_openUrl|Opens url with the system's default handler.",
 "f|Core.Env.Process.close|Core_Env_Process_close|Releases every platform handle this value owns, without waiting for the process.",

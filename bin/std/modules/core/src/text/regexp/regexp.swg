@@ -57,7 +57,6 @@ public struct RegExp
         program:            Regex.Program         // The compiled pattern.
         reverse:            Regex.Program         // The same pattern, to find where a match starts.
         prefilter:          Regex.Prefilter       // The vectorized scan that finds candidate offsets.
-        emptyScan:          Regex.Prefilter       // No scan at all, for the searches that must not use one.
         anchorOnCandidates: bool                  // Whether the scan is selective enough to try the pattern at each hit.
         innerScan:          Regex.Prefilter       // The scan for a literal every match must contain.
         innerPrefix:        Regex.Program         // Reverse program of the pattern before that literal.
@@ -615,17 +614,17 @@ private impl RegExp
                 return .recordSpan(hay, candidate, candidate + .prefilter.spanLength, limit)
             }
 
-            let forward = .forwardDfa.searchForward(&.program, &.emptyScan, hay, candidate, limit, true)
-            if forward.quit
+            let end = .forwardDfa.searchAnchoredEnd(&.program, hay, candidate, limit)
+            if end == Regex.QuitOffset
             {
                 .automataAnswered = false
                 return false
             }
 
-            if forward.found
+            if end != Regex.NoOffset
             {
                 .automataAnswered = true
-                return .recordSpan(hay, candidate, forward.end, limit)
+                return .recordSpan(hay, candidate, end, limit)
             }
 
             at = candidate + 1
@@ -896,18 +895,18 @@ private impl RegExp
 
             if backward.found
             {
-                let forward = .forwardDfa.searchForward(&.program, &.emptyScan, hay, backward.start, limit, true)
-                if forward.quit
+                let end = .forwardDfa.searchAnchoredEnd(&.program, hay, backward.start, limit)
+                if end == Regex.QuitOffset
                 {
                     result.quit = true
                     return result
                 }
 
-                if forward.found
+                if end != Regex.NoOffset
                 {
                     result.found      = true
                     result.span.start = backward.start
-                    result.span.end   = forward.end
+                    result.span.end   = end
                     return result
                 }
             }

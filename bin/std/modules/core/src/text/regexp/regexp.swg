@@ -713,7 +713,7 @@ private impl RegExp
     {
         if !.compiled or .program.hasBackref or .program.captureCount != 0 do
             return 0
-        if .useInner or .prefilter.complete or .anchorOnCandidates or .program.anchoredStart do
+        if .prefilter.complete or .anchorOnCandidates or .program.anchoredStart do
             return 0
 
         .matched = false
@@ -721,40 +721,176 @@ private impl RegExp
 
         let hay   = @mkslice(@dataof(subject), @countof(subject))
         let limit = @countof(subject)
-        var at    = 0'u64
+
+        // Occurrences are collected in batches: appending one at a time would put a container
+        // call between every two matches, which on a subject with two million of them is a
+        // tenth of the whole search.
+        const BatchSize = 64'u64
+
+        // How many offsets in a row may be tried and refused before the loop goes back to
+        // reading forwards once and backwards once per match.
+        const AnchoredMissBudget = 16'u32
+
+        var batch: [BatchSize] Span
+        var held = 0'u64
+        var at   = 0'u64
+        var quit = false
+
+        var tryAnchored = !.useInner and !.prefilter.isEnabled()
+        var misses      = 0'u32
 
         while at <= limit
         {
-            let forward = .forwardDfa.searchForward(&.program, &.prefilter, hay, at, limit, false)
-            if forward.quit do
-                return at
-            if !forward.found do
-                return limit + 1
+            var start = 0'u64
+            var end   = 0'u64
 
-            let backward = .reverseDfa.searchReverse(&.reverse, hay, at, forward.end)
-            if backward.quit or !backward.found do
-                return at
+            // The two ways to find one occurrence. The automata are asked here rather than
+            // through a call, because this is the loop the cost per match is measured in.
+            if .useInner
+            {
+                let step = .innerSpanAt(hay, at, limit)
+                if step.quit
+                {
+                    quit = true
+                    break
+                }
 
-            out.add({backward.start, forward.end})
+                if !step.found do
+                    break
+                start = step.span.start
+                end   = step.span.end
+            }
+            elif tryAnchored
+            {
+                // With no scan to skip ahead with, trying the pattern at the offset itself is
+                // the cheapest thing there is: a match found this way needs nothing read
+                // backwards, since it starts where the attempt began. A pattern that matches
+                // every few bytes — which is exactly the kind that has no usable scan — then
+                // costs one search per match instead of two.
+                let forward = .forwardDfa.searchForward(&.program, &.emptyScan, hay, at, limit, true)
+                if forward.quit
+                {
+                    quit = true
+                    break
+                }
 
-            .matchStart = backward.start
-            .matchEnd   = forward.end
+                if !forward.found
+                {
+                    // Nothing here. Past a few offsets in a row, this is the wrong way to look
+                    // and reading forwards once over the rest of the subject is cheaper.
+                    misses += 1
+                    if misses > AnchoredMissBudget do
+                        tryAnchored = false
+
+                    if at >= limit do
+                        break
+
+                    at += 1
+                    while at < limit and (subject[at] & 0xC0) == 0x80 do
+                        at += 1
+                    continue
+                }
+
+                misses = 0
+                start  = at
+                end    = forward.end
+            }
+            else
+            {
+                let forward = .forwardDfa.searchForward(&.program, &.prefilter, hay, at, limit, false)
+                if forward.quit
+                {
+                    quit = true
+                    break
+                }
+
+                if !forward.found do
+                    break
+
+                let backward = .reverseDfa.searchReverse(&.reverse, hay, at, forward.end)
+                if backward.quit or !backward.found
+                {
+                    quit = true
+                    break
+                }
+
+                start = backward.start
+                end   = forward.end
+            }
+
+            batch[held].start = start
+            batch[held].end   = end
+            held              += 1
+            if held == BatchSize
+            {
+                out.add(@mkslice(cast(const [*] Span) &batch[0], held))
+                held = 0
+            }
+
+            .matchStart = start
+            .matchEnd   = end
             .matched    = true
 
-            if forward.end > backward.start
+            if end > start
             {
-                at = forward.end
+                at = end
                 continue
             }
 
             // An empty occurrence must not be found again at the same place, and the next
             // offset is the next scalar value rather than the next byte.
-            at = forward.end + 1
+            at = end + 1
             while at < limit and (subject[at] & 0xC0) == 0x80 do
                 at += 1
         }
 
-        return at
+        if held != 0 do
+            out.add(@mkslice(cast(const [*] Span) &batch[0], held))
+        return quit ? at : limit + 1
+    }
+
+    // One occurrence, found by looking for the literal every match contains and working
+    // outwards from each hit.
+    mtd innerSpanAt(hay: const [..] u8, at, limit: u64)->{ found: bool, quit: bool, span: Span }
+    {
+        var result: retval
+        var scanAt = at
+
+        while scanAt <= limit
+        {
+            let candidate = .innerScan.find(hay, scanAt)
+            if candidate >= limit do
+                return result
+
+            let backward = .innerDfa.searchReverse(&.innerPrefix, hay, at, candidate)
+            if backward.quit
+            {
+                result.quit = true
+                return result
+            }
+
+            if backward.found
+            {
+                let forward = .forwardDfa.searchForward(&.program, &.emptyScan, hay, backward.start, limit, true)
+                if forward.quit
+                {
+                    result.quit = true
+                    return result
+                }
+
+                if forward.found
+                {
+                    result.found      = true
+                    result.span.start = backward.start
+                    result.span.end   = forward.end
+                    return result
+                }
+            }
+
+            scanAt = candidate + 1
+        }
+
+        return result
     }
 
     // Finds the occurrence at or after 'at', and says where the search for the next one

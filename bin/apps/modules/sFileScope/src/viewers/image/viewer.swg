@@ -2,7 +2,6 @@
 
 using Core, Pixel, Gui
 
-private const ImageGlyphSize   = 18.0
 private const ImageActionWidth = 326.0
 private const GifActionWidth   = 570.0
 private const ImageInfoWidth   = 156.0
@@ -109,7 +108,7 @@ internal impl ImageViewer
             return
         .timeline.setValueWithoutGesture(cast(f32) movie.frameIndex)
         .frameLabel.setText(Format.toString("% / %", movie.frameIndex + 1, movie.frameCount))
-        .playButton.setIcon(.theme().icon(movie.isPaused ? .Play : .Pause, ImageGlyphSize))
+        .playButton.setIcon(.theme().icon(movie.isPaused ? .Play : .Pause, ViewerGlyphSize))
     }
 
     mtd showPlayback()
@@ -159,13 +158,13 @@ internal impl ImageViewer
     {
         let texts = imageStrings()
         let menu  = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(texts.ui_RotateCounterClockwise, "sFileScope.image.rotateLeft", .theme().icon(.Undo, ImageGlyphSize), rightName: "Shift+R")
-        menu.addItem(texts.ui_RotateClockwise, "sFileScope.image.rotateRight", .theme().icon(.Redo, ImageGlyphSize), rightName: "R")
+        menu.addItem(texts.ui_RotateCounterClockwise, "sFileScope.image.rotateLeft", .theme().icon(.Undo, ViewerRowGlyphSize), rightName: "Shift+R")
+        menu.addItem(texts.ui_RotateClockwise, "sFileScope.image.rotateRight", .theme().icon(.Redo, ViewerRowGlyphSize), rightName: "R")
         menu.addSeparator()
         menu.addItem(texts.ui_MirrorHorizontal, "sFileScope.image.mirrorHorizontal", rightName: "H")
         menu.addItem(texts.ui_MirrorVertical, "sFileScope.image.mirrorVertical", rightName: "V")
         menu.addSeparator()
-        menu.addItem(texts.ui_ResetTransform, "sFileScope.image.reset", .theme().icon(.Update, ImageGlyphSize), rightName: "Ctrl+R")
+        menu.addItem(texts.ui_ResetTransform, "sFileScope.image.reset", .theme().icon(.Update, ViewerRowGlyphSize), rightName: "Ctrl+R")
         return menu
     }
 
@@ -315,7 +314,7 @@ private impl ImageViewer
         result.actions = host.createActionGroup(ImageActionWidth)
         result.info    = host.createInfoGroup(ImageInfoWidth)
 
-        with result.previousButton = IconButton.create(result.actions, result.theme().icon(.ChevronLeft, ImageGlyphSize), {0, 0, 36, 36})
+        with result.previousButton = IconButton.create(result.actions, result.theme().icon(.ChevronLeft, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
             .toolTip   = imageStrings().ui_TipPrevious
@@ -327,7 +326,7 @@ private impl ImageViewer
             }
         }
 
-        with result.nextButton = IconButton.create(result.actions, result.theme().icon(.ChevronRight, ImageGlyphSize), {0, 0, 36, 36})
+        with result.nextButton = IconButton.create(result.actions, result.theme().icon(.ChevronRight, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
             .toolTip   = imageStrings().ui_TipNext
@@ -339,7 +338,7 @@ private impl ImageViewer
             }
         }
 
-        with let zoomOut = IconButton.create(result.actions, result.theme().icon(.ZoomOut, ImageGlyphSize), {0, 0, 36, 36})
+        with let zoomOut = IconButton.create(result.actions, result.theme().icon(.ZoomOut, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 16
@@ -351,7 +350,7 @@ private impl ImageViewer
             }
         }
 
-        with let zoomIn = IconButton.create(result.actions, result.theme().icon(.ZoomIn, ImageGlyphSize), {0, 0, 36, 36})
+        with let zoomIn = IconButton.create(result.actions, result.theme().icon(.ZoomIn, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .toolTip    = imageStrings().ui_TipZoomIn
@@ -362,7 +361,7 @@ private impl ImageViewer
             }
         }
 
-        with let fit = IconButton.create(result.actions, result.theme().icon(.FitView, ImageGlyphSize), {0, 0, 36, 36})
+        with let fit = IconButton.create(result.actions, result.theme().icon(.FitView, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 16
@@ -374,7 +373,7 @@ private impl ImageViewer
             }
         }
 
-        with let actual = IconButton.create(result.actions, result.theme().icon(.ActualSize, ImageGlyphSize), {0, 0, 36, 36})
+        with let actual = IconButton.create(result.actions, result.theme().icon(.ActualSize, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .toolTip    = imageStrings().ui_TipActual
@@ -385,7 +384,7 @@ private impl ImageViewer
             }
         }
 
-        with result.transformButton = IconButton.create(result.actions, result.theme().icon(.Redo, ImageGlyphSize), {0, 0, 52, 36}, flags: .CenterContent)
+        with result.transformButton = IconButton.create(result.actions, result.theme().icon(.Redo, ViewerGlyphSize), {0, 0, 52, 36}, flags: .CenterContent)
         {
             .dockStyle = .Left
             .margin.x  = 16
@@ -398,7 +397,7 @@ private impl ImageViewer
             }
         }
 
-        with result.playButton = IconButton.create(result.actions, result.theme().icon(.Pause, ImageGlyphSize), {0, 0, 36, 36})
+        with result.playButton = IconButton.create(result.actions, result.theme().icon(.Pause, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
             .margin.x  = 10

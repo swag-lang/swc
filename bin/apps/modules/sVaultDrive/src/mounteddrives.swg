@@ -75,7 +75,7 @@ impl MountedDrives
         let card = VaultCard.create(parent, appStrings().ui_MountedCardTitle, appStrings().ui_MountedCardHelp)
 
         let unmount = PushButton.create(card.actions, appStrings().ui_Unmount, {0, 0, 0, 36})
-        unmount.setIcon(card.panel.theme().icon(ThemeIcons.Stop, 18))
+        unmount.setIcon(card.panel.theme().icon(ThemeIcons.Stop, 20))
         card.actions.computeLayout()
 
         // The card carries no fields, so its form collapses to nothing and the table takes the

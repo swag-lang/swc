@@ -2,7 +2,6 @@
 
 using Core, Pixel, Gui, Video, Audio
 
-private const VideoGlyphSize                          = 18.0
 private const VideoSeekSeconds                        = 10.0
 private const VideoSeekOverlaySize                    = Math.Point{112, 64}
 private const VideoSeekOverlayOffsetY                 = 56.0
@@ -784,7 +783,7 @@ internal impl VideoViewer
 
     mtd refreshTransport()
     {
-        .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, VideoGlyphSize))
+        .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, ViewerGlyphSize))
         .playButton.toolTip = .playing ? videoStrings().ui_TipPause : videoStrings().ui_TipPlay
         .playButton.enable(.hasFrame)
         .stopButton.enable(.hasFrame and (.frameIndex != 0 or .playing))
@@ -848,7 +847,7 @@ internal impl VideoViewer
     {
         .muted = muted
         .muteButton.setChecked(muted)
-        .muteButton.setIcon(.theme().icon(muted ? .VolumeMute : .Volume, VideoGlyphSize))
+        .muteButton.setIcon(.theme().icon(muted ? .VolumeMute : .Volume, ViewerGlyphSize))
         if .voice do
             catch .voice!.setVolume(muted ? 0 : .volume)
     }
@@ -1799,7 +1798,7 @@ private impl VideoViewer
 
         result.commands = host.createCommandGroup(0)
 
-        with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, VideoGlyphSize), {0, 0, 36, 36})
+        with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .toolTip    = videoStrings().ui_TipPlay
@@ -1810,7 +1809,7 @@ private impl VideoViewer
             }
         }
 
-        with result.stopButton = IconButton.create(result.commands, result.theme().icon(.Stop, VideoGlyphSize), {0, 0, 36, 36})
+        with result.stopButton = IconButton.create(result.commands, result.theme().icon(.Stop, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -1823,7 +1822,7 @@ private impl VideoViewer
             }
         }
 
-        with result.backwardButton = IconButton.create(result.commands, result.theme().icon(.SeekBackward, VideoGlyphSize), {0, 0, 36, 36})
+        with result.backwardButton = IconButton.create(result.commands, result.theme().icon(.SeekBackward, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -1835,7 +1834,7 @@ private impl VideoViewer
             }
         }
 
-        with result.forwardButton = IconButton.create(result.commands, result.theme().icon(.SeekForward, VideoGlyphSize), {0, 0, 36, 36})
+        with result.forwardButton = IconButton.create(result.commands, result.theme().icon(.SeekForward, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -1854,7 +1853,7 @@ private impl VideoViewer
             .setTextAlignment(.Right, .Center)
         }
 
-        with result.audioButton = IconButton.create(result.commands, result.theme().icon(.AudioTracks, VideoGlyphSize), {0, 0, 36, 36})
+        with result.audioButton = IconButton.create(result.commands, result.theme().icon(.AudioTracks, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Right
             .toolTip   = videoStrings().ui_TipAudio
@@ -1895,7 +1894,7 @@ private impl VideoViewer
             }
         }
 
-        with result.muteButton = IconButton.create(result.commands, result.theme().icon(.Volume, VideoGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
+        with result.muteButton = IconButton.create(result.commands, result.theme().icon(.Volume, ViewerGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
         {
             .dockStyle = .Right
             .margin.x  = 8

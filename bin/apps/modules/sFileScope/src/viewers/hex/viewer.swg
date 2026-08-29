@@ -386,7 +386,7 @@ internal impl HexViewer
 
         result.commands = host.createCommandGroup(HexCommandWidth)
 
-        with result.analysisButton = IconButton.create(result.commands, result.theme().icon(.Information), {0, 0, 36, 36}, flags: .Toggle)
+        with result.analysisButton = IconButton.create(result.commands, result.theme().icon(.Information, ViewerGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
         {
             .dockStyle = .Left
             .margin.x  = 8

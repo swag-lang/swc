@@ -6,14 +6,15 @@ const ViewerGlyphSize                         = 20.0
 const ViewerRowGlyphSize                      = 16.0
 const ViewerMinWidth                          = 880
 const ViewerSearchChunkSize                   = 256 * 1024'u64
-const ViewerSearchBarWidth                    = 372.0
+const ViewerSearchBarWidth                    = 388.0
 const ViewerSearchFieldWidth                  = 180.0
-const ViewerSearchNoOptionsFieldWidth         = 236.0
+const ViewerSearchNoOptionsFieldWidth         = 256.0
 const ViewerSearchCountWidth                  = 52.0
-const ViewerSearchButtonSize                  = 28.0
+const ViewerSearchButtonSize                  = 36.0
 const ViewerSearchOptionsWidth                = 44.0
-const ViewerSearchNavigationWidth             = 116.0
+const ViewerSearchNavigationWidth             = 132.0
 const ViewerSearchGroupSpacing                = 16.0
+const ViewerInfoGroupSpacing                  = 16.0
 const ViewerSearchCarryMargin                 = 4'u64
 const ViewerErrorTextWidth                    = 512.0
 const ViewerFullScreenRevealEdge              = 32.0
@@ -112,6 +113,63 @@ impl ViewerActionBar
         let group  = .centerGroup!
         group.setPosition({client.horzCenter() - group.position.width * 0.5, client.vertCenter() - group.position.height * 0.5, group.position.width, group.position.height}, computeLayout: false)
         group.applyLayout()
+    }
+}
+
+// Keeps file identity on the left, viewer-specific readouts on the right, and general file
+// details geometrically centered in the band rather than centered in whatever room happens to
+// remain between two unequal groups.
+struct ViewerInfoLayout
+{
+    using wnd: Wnd
+
+    #[Swag.Late]
+    {
+        fileGroup:    *StackLayoutCtrl
+        generalLabel: *Label
+    }
+}
+
+impl IWnd for ViewerInfoLayout
+{
+    mtd impl onResizeEvent(evt: *ResizeEvent)
+    {
+        discard evt
+        if @isset(.fileGroup) and @isset(.generalLabel) do
+            .computeLayout()
+    }
+}
+
+impl ViewerInfoLayout
+{
+    mtd computeLayout()
+    {
+        let client = .paddedClientRect()
+        let center = client.horzCenter()
+
+        let maxFileWidth = Math.max(center - client.x - ViewerInfoGroupSpacing, 0)
+        let fileWidth    = Math.min(Math.ceil(.fileGroup.itf.measureContent({maxFileWidth, client.height}).x), maxFileWidth)
+        .fileGroup.setPosition({client.x, client.y, fileWidth, client.height}, computeLayout: false)
+        .fileGroup.computeLayout()
+
+        var viewerLeft = client.right()
+        var hasViewer: bool
+        for child in .children
+        {
+            if child == cast(*Wnd) .fileGroup or child == cast(*Wnd) .generalLabel or !child.isLocallyVisible() do
+                continue
+
+            let width = Math.min(child.position.width, Math.max(viewerLeft - client.x, 0))
+            viewerLeft -= width
+            child.setPosition({viewerLeft, client.y, width, client.height}, computeLayout: false)
+            child.applyLayout()
+            hasViewer = true
+        }
+
+        let leftBound  = .fileGroup.position.right() + ViewerInfoGroupSpacing
+        let rightBound = viewerLeft - (hasViewer ? ViewerInfoGroupSpacing : 0)
+        let halfWidth  = .generalLabel.name.isEmpty() ? 0 : Math.max(Math.min(center - leftBound, rightBound - center), 0)
+        .generalLabel.setPosition({center - halfWidth, client.y, 2 * halfWidth, client.height}, computeLayout: false)
     }
 }
 
@@ -438,7 +496,7 @@ struct ViewerWindow
         appearanceButton:    *AppearanceButton
         accentRail:          *Separator
         infoBar:             *ViewerInfoBar
-        infoContentGroup:    *StackLayoutCtrl
+        infoContentGroup:    *ViewerInfoLayout
         infoFileGroup:       *StackLayoutCtrl
         infoIconLabel:       *Label
         infoNameLabel:       *Label
@@ -1026,7 +1084,7 @@ impl ViewerWindow
 
         result.commandBar.centerGroup = result.searchGroup
 
-        with result.searchOptionsButton = IconButton.create(result.searchGroup, result.theme().icon(.Options, ViewerGlyphSize), {0, 0, ViewerSearchOptionsWidth, ViewerSearchButtonSize}, flags: .CenterContent)
+        with result.searchOptionsButton = IconButton.create(result.searchGroup, result.theme().icon(.Options, ViewerGlyphSize), {0, 0, ViewerSearchOptionsWidth, 36}, flags: .CenterContent)
         {
             .layoutSpec.alignY = .Center
             .toolTip           = appStrings().ui_SearchOptions
@@ -1124,19 +1182,16 @@ impl ViewerWindow
             .padding         = {14, 4, 14, 4}
         }
 
-        with result.infoContentGroup = StackLayoutCtrl.create(result.infoBar, .Left, {0, 0, 0, 32})
+        with result.infoContentGroup = Wnd.create'ViewerInfoLayout(result.infoBar, {0, 0, 0, 32})
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
-            .spacing         = 0
         }
 
         with result.infoFileGroup = StackLayoutCtrl.create(result.infoContentGroup, .Left, {0, 0, 0, 32})
         {
-            .backgroundStyle    = .Transparent
-            .layoutSpec.policyX = .Expand
-            .layoutSpec.weightX = 1
-            .spacing            = 0
+            .backgroundStyle = .Transparent
+            .spacing         = 0
         }
 
         with result.infoIconLabel = Label.create(result.infoFileGroup, "", {0, 0, 24, 32})
@@ -1162,11 +1217,12 @@ impl ViewerWindow
 
         with result.infoStatsLabel = Label.create(result.infoContentGroup, "", {0, 0, 0, 32}, null, .SecondaryText | .Ellipsis)
         {
-            .layoutSpec.policyX = .Expand
-            .layoutSpec.weightX = 0
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
-            .setTextAlignment(.Right, .OpticalCenter)
+            .setTextAlignment(.Center, .OpticalCenter)
         }
+
+        result.infoContentGroup.fileGroup    = result.infoFileGroup
+        result.infoContentGroup.generalLabel = result.infoStatsLabel
 
         with result.viewerBar = Wnd.create'Wnd(result, {0, 0, 0, ViewerBarHeight})
         {
@@ -1203,7 +1259,7 @@ impl ViewerWindow
             .margin          = {10, 0, 10, 0}
         }
 
-        with result.recentClearButton = IconButton.create(recentHeader, result.theme().icon(.RemoveAll, 16), {0, 0, 24, 24})
+        with result.recentClearButton = IconButton.create(recentHeader, result.theme().icon(.RemoveAll, ViewerRowGlyphSize), {0, 0, 24, 24})
         {
             .dockStyle  = .Right
             .toolTip    = appStrings().ui_ClearHistory
@@ -1255,7 +1311,7 @@ impl ViewerWindow
             .margin          = {10, 0, 10, 0}
         }
 
-        with result.kindButton = IconButton.create(folderHeader, result.theme().icon(.Filter, 16), {0, 0, 24, 24}, flags: .Toggle)
+        with result.kindButton = IconButton.create(folderHeader, result.theme().icon(.Filter, ViewerRowGlyphSize), {0, 0, 24, 24}, flags: .Toggle)
         {
             .dockStyle = .Right
             .toolTip   = appStrings().ui_SameKind
@@ -1266,10 +1322,10 @@ impl ViewerWindow
             }
         }
 
-        with result.folderHistoryButton = IconButton.create(folderHeader, result.theme().icon(.History, 16), {0, 0, 50, 24}, flags: .CenterContent)
+        with result.folderHistoryButton = IconButton.create(folderHeader, result.theme().icon(.History, ViewerRowGlyphSize), {0, 0, 50, 24}, flags: .CenterContent)
         {
             .dockStyle = .Right
-            .margin.x  = 4
+            .margin.z  = 8
             .toolTip   = appStrings().ui_FolderHistory
             .setArrowPosition(.RightDownward)
             .enable(false)
@@ -2907,8 +2963,7 @@ impl ViewerWindow
             return
         }
 
-        let rect   = .folderHistoryButton.surfaceRect()
-        let folder = menu.doModal({rect.x, rect.bottom()}, .TopLeft, autoDestroy: true) orelse ""
+        let folder = menu.doModal(.folderHistoryButton, autoDestroy: true) orelse ""
         if !@countof(folder) do
             return
         for one in .folderHistory where one.folder == folder

@@ -128,6 +128,9 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 
     @assert(window.currentActions != null and window.currentActions!.parent == window.commandBar)
     @assert(window.currentInfo != null and window.currentInfo!.parent == window.infoContentGroup)
+    @assert(window.infoContentGroup.position.x + window.currentInfo!.position.right() == window.infoBar.paddedClientRect().right())
+    @assert(window.currentInfo!.themeColors().label_TextLight == window.themeColors().label_TextFaint)
+    @assert(Math.abs(window.infoContentGroup.position.x + window.infoStatsLabel.position.horzCenter() - window.infoBar.paddedClientRect().horzCenter()) < 0.01)
     @assert(window.currentCommands == null and !window.viewerBar.isLocallyVisible())
     @assert(!window.searchGroup.isLocallyVisible())
     @assert(Math.abs(window.currentActions!.position.horzCenter() - window.commandBar.paddedClientRect().horzCenter()) < 0.01)

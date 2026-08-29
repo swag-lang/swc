@@ -2,7 +2,6 @@
 
 using Core, Pixel, Gui, Audio, Threading
 
-private const SoundGlyphSize   = 18.0
 private const SoundSeekSeconds = 10.0
 
 // Slices the payload is reduced to. It is read back one column of pixels at a time, so it only
@@ -604,7 +603,7 @@ internal impl SoundViewer
 
     mtd updatePlaybackUi()
     {
-        .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, SoundGlyphSize))
+        .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, ViewerGlyphSize))
         .playButton.toolTip = .playing ? soundStrings().ui_TipPause : soundStrings().ui_TipPlay
         .stopButton.enable(.voice != null)
         .timeline.setValueWithoutGesture(.elapsed)
@@ -647,7 +646,7 @@ internal impl SoundViewer
     {
         .muted = muted
         .muteButton.setChecked(muted)
-        .muteButton.setIcon(.theme().icon(muted ? .VolumeMute : .Volume, SoundGlyphSize))
+        .muteButton.setIcon(.theme().icon(muted ? .VolumeMute : .Volume, ViewerGlyphSize))
         if .voice do
             catch .voice!.setVolume(muted ? 0 : .volume)
     }
@@ -769,7 +768,7 @@ internal impl SoundViewer
         result.reportLoadingChanged = services.reportLoadingChanged
 
         result.commands = host.createCommandGroup(0)
-        with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, SoundGlyphSize), {0, 0, 36, 36})
+        with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
             .toolTip   = soundStrings().ui_TipPlay
@@ -781,7 +780,7 @@ internal impl SoundViewer
             }
         }
 
-        with result.stopButton = IconButton.create(result.commands, result.theme().icon(.Stop, SoundGlyphSize), {0, 0, 36, 36})
+        with result.stopButton = IconButton.create(result.commands, result.theme().icon(.Stop, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -794,7 +793,7 @@ internal impl SoundViewer
             }
         }
 
-        with result.backwardButton = IconButton.create(result.commands, result.theme().icon(.SeekBackward, SoundGlyphSize), {0, 0, 36, 36})
+        with result.backwardButton = IconButton.create(result.commands, result.theme().icon(.SeekBackward, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -806,7 +805,7 @@ internal impl SoundViewer
             }
         }
 
-        with result.forwardButton = IconButton.create(result.commands, result.theme().icon(.SeekForward, SoundGlyphSize), {0, 0, 36, 36})
+        with result.forwardButton = IconButton.create(result.commands, result.theme().icon(.SeekForward, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -831,7 +830,7 @@ internal impl SoundViewer
             }
         }
 
-        with result.muteButton = IconButton.create(result.commands, result.theme().icon(.Volume, SoundGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
+        with result.muteButton = IconButton.create(result.commands, result.theme().icon(.Volume, ViewerGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
         {
             .dockStyle = .Right
             .margin.x  = 8

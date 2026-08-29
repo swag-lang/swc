@@ -179,7 +179,7 @@ public impl IWnd for MenuCtrl
             if it.icon.isValid()
             {
                 var icon = it.icon
-                icon.sizeX, icon.sizeY = it.size - 4
+                icon.sizeX, icon.sizeY = metrics.menuPopup_IconSize
                 icon.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), icon.sizeY), colorText)
             }
 
@@ -270,8 +270,8 @@ public impl IWnd for MenuCtrl
 
             var iconPos = labelPos
             iconPos.x += metrics.menuPopup_IconMargin
-            labelPos.moveLeft(.popupHasGlyphs ? metrics.menuPopup_IconTextMargin + it.size : metrics.menuPopup_IconMargin)
-            labelPos.width -= it.size
+            labelPos.moveLeft(.popupHasGlyphs ? metrics.menuPopup_IconTextMargin + metrics.menuPopup_IconSize : metrics.menuPopup_IconMargin)
+            labelPos.width -= metrics.menuPopup_IconSize
 
             // A left-opening submenu uses the shared glyph column when the row has no glyph of
             // its own. Reserving another column after the marker left a conspicuous hole before
@@ -313,8 +313,8 @@ public impl IWnd for MenuCtrl
             if it.checked or it.rg == .ExclusiveGroup
             {
                 var checkPos = iconPos
-                checkPos.y = opticalTop(.font(), textCenterY, it.size)
-                checkPos.width, checkPos.height = it.size
+                checkPos.y = opticalTop(.font(), textCenterY, metrics.menuPopup_IconSize)
+                checkPos.width, checkPos.height = metrics.menuPopup_IconSize
 
                 if it.rg == .ExclusiveGroup
                 {
@@ -328,7 +328,7 @@ public impl IWnd for MenuCtrl
             elif it.icon.isValid()
             {
                 var icon = it.icon
-                icon.sizeX, icon.sizeY = it.size - 4
+                icon.sizeX, icon.sizeY = metrics.menuPopup_IconSize
                 icon.paint(painter, iconPos.x, opticalTop(.font(), textCenterY, icon.sizeY), colorText)
             }
 
@@ -617,6 +617,19 @@ impl MenuCtrl
         anchorBorder.setBottom(bodyRect.y + metrics.wnd_BorderSize)
         theme.drawSubRect(painter, anchorBorder, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
 
+        // The body's rounded corner does not reach its vertical edge until one radius below the
+        // top. When the anchor shares that outer edge, continue its hairline through the overlap;
+        // otherwise the two independently rounded tiles leave a visible break at the junction.
+        if Math.abs(anchorRect.x - bodyRect.x) < metrics.wnd_BorderSize
+        {
+            painter.fillRect({bodyRect.x, bodyRect.y, metrics.wnd_BorderSize, metrics.menuPopup_BarItemOverlap}, colors.menuPopup_Border)
+        }
+
+        if Math.abs(anchorRect.right() - bodyRect.right()) < metrics.wnd_BorderSize
+        {
+            painter.fillRect({bodyRect.right() - metrics.wnd_BorderSize, bodyRect.y, metrics.wnd_BorderSize, metrics.menuPopup_BarItemOverlap}, colors.menuPopup_Border)
+        }
+
         if .popupAnchorButton
         {
             .popupAnchorButton!.paintMenuAnchorContent(painter, anchorRect, colors.menuBar_SelectedText)
@@ -639,7 +652,7 @@ impl MenuCtrl
         if i.icon.isValid()
         {
             var icon = i.icon
-            icon.sizeX, icon.sizeY = i.size - 4
+            icon.sizeX, icon.sizeY = metrics.menuPopup_IconSize
             icon.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), icon.sizeY), colorText)
         }
 
@@ -954,7 +967,9 @@ impl MenuCtrl
             if it.checked or it.rg == .ExclusiveGroup or it.icon.isValid() do
                 .popupHasGlyphs = true
 
-            it.size = rsf.font.regular!.height
+            // `menuPopup_ItemHeight` is the complete row pitch. The inter-entry air is
+            // accounted for separately so the text box keeps only the remaining height.
+            it.size = Math.max(rsf.font.regular!.height, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines)
 
             it.name.compute()
             Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.name, rsf, deviceScale)
@@ -981,8 +996,8 @@ impl MenuCtrl
         if !.paintByFrame do
             .position.width += 2 * metrics.menuPopup_ShadowSize
 
-        let leadingWidth = .popupHasGlyphs ? rsf.font.regular!.height + metrics.menuPopup_IconTextMargin : metrics.menuPopup_IconMargin
-        .position.width += rsf.font.regular!.height + leadingWidth
+        let leadingWidth = .popupHasGlyphs ? metrics.menuPopup_IconSize + metrics.menuPopup_IconTextMargin : metrics.menuPopup_IconMargin
+        .position.width += metrics.menuPopup_IconSize + leadingWidth
 
         if .hasPopupBarAnchor() and !.paintByFrame
         {
@@ -1314,6 +1329,7 @@ public impl MenuCtrl
 
         let anchored = button != null or pos == .AnchorTopCenter or pos == .AnchorBottomCenter
         let margin   = .themeMetrics().menuPopup_WindowMargin
+
         // An attached button can sit inside the first toolbar row, closer to the surface edge
         // than the popup shadow is deep. Let that invisible shadow start outside the surface;
         // clamping it to the normal window margin would move the body down and reopen a gap under

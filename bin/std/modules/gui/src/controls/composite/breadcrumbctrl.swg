@@ -25,6 +25,8 @@ struct BreadcrumbCtrl
     {
         using wnd: Wnd     // Embedded wnd state.
 
+        iconSize: f32 = 16     // Square size used for every level icon; zero uses each descriptor's own size.
+
         readonly
         {
             items: Array'BreadcrumbItem     // Ordered path levels.
@@ -132,7 +134,7 @@ impl BreadcrumbCtrl
 
             var w = .padX
             if it.icon.isValid() do
-                w += it.icon.sizeX + .iconGap
+                w += (.iconSize != 0 ? .iconSize : it.icon.sizeX) + .iconGap
             w += Painter.measureString(it.name.toString(), font).width + .padX
 
             it.bodyRect = {x, client.y, w, client.height}
@@ -278,8 +280,11 @@ impl IWnd for BreadcrumbCtrl
             var cx = it.bodyRect.x + .padX
             if it.icon.isValid()
             {
-                it.icon.paint(painter, cx, font.opticalTop(it.bodyRect.vertCenter(), it.icon.sizeY), iconColor)
-                cx += it.icon.sizeX + .iconGap
+                var icon = it.icon
+                if .iconSize != 0 do
+                    icon.sizeX, icon.sizeY = .iconSize
+                icon.paint(painter, cx, font.opticalTop(it.bodyRect.vertCenter(), icon.sizeY), iconColor)
+                cx += icon.sizeX + .iconGap
             }
 
             painter.drawString(cx, it.bodyRect.vertCenter() - font.height * 0.5, it.name.toString(), font, textColor)

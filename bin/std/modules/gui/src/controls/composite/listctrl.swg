@@ -96,7 +96,7 @@ struct ListCtrl
             horizontalExtent: f32                                // Explicit content width, or zero to derive it from the view or header.
             fixedLineHeight:  f32                                // Fixed row height, or zero to derive it from the font.
             indentWidth:      f32 = 22                           // Width added for each hierarchy level.
-            iconSize:         f32                                // Square icon size, or zero to use each icon descriptor.
+            iconSize:         f32 = 16                           // Square row-icon size; zero opts into each descriptor's own size.
             iconMarginFirstCol    = true                         // Whether the first column reserves icon space.
             listFlags             = ListFlags.None               // Active presentation and pointer options.
             selectionMode         = ListSelectionMode.Single     // Active row-selection policy.
@@ -1435,7 +1435,7 @@ impl ListCtrl
     // Returns the effective row height for the current font and configuration.
     mtd lineHeight()->f32
     {
-        return .fixedLineHeight != 0 ? .fixedLineHeight : .font().regular!.height + 8
+        return .fixedLineHeight != 0 ? .fixedLineHeight : Math.max(24.0, .font().regular!.height + 8)
     }
 
     // Returns the visible row at `index`.

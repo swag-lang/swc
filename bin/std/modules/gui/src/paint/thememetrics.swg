@@ -90,6 +90,8 @@ struct ThemeMetrics
         menuPopup_Padding:         f32 = 12     // Theme measurement used for menu popup padding.
         menuPopup_SpaceLines:      f32 = 6      // Theme measurement used for menu popup space lines.
         menuPopup_ShadowSize:      f32 = 10     // Theme measurement used for menu popup shadow size.
+        menuPopup_ItemHeight:      f32 = 24     // Complete pitch of an ordinary menu entry, including the inter-entry air.
+        menuPopup_IconSize:        f32 = 16     // Side of a menu-entry glyph or check mark.
         menuPopup_IconMargin:      f32 = 6      // Air between the active rule and the glyph of an entry.
         menuPopup_IconTextMargin:  f32 = 10     // Air between the glyph or check mark of an entry and its wording.
         menuPopup_SeparatorHeight: f32 = 8      // Theme measurement used for menu popup separator height.

@@ -309,6 +309,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(window.recentList.listFlags.has(.Ellipsis) and window.folderList.listFlags.has(.Ellipsis))
     @assert(window.recentList.scrollWnd.flags.has(.DisableHorizontal) and window.folderList.scrollWnd.flags.has(.DisableHorizontal))
     @assert(window.folderHistoryButton.parent == window.folderLabel.parent and window.folderHistoryButton.isEnabled())
+    @assert(window.kindButton.position.x - window.folderHistoryButton.position.right() == 8)
     @assert(window.folderHistory.count == 1 and window.folderHistory[0].folder == folder)
     assertFolderFiles(window, names.toSlice())
     @assert(window.recentList.lineCount() == 1)
@@ -1163,7 +1164,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(window.searchGroup.isLocallyVisible() and window.searchBox.isVisible() and window.searchBox.isEnabled())
     @assert(window.searchPrevious.isVisible() and window.searchNext.isVisible())
     @assert(window.searchOptionsButton.isVisible() and window.searchOptionsButton.icon.sizeX == ViewerGlyphSize)
+    @assert(window.searchOptionsButton.position.height == window.openButton.position.height)
     @assert(window.searchPrevious.icon.sizeX == ViewerGlyphSize and window.searchNext.icon.sizeX == ViewerGlyphSize)
+    @assert(window.searchPrevious.position.height == window.openButton.position.height)
+    @assert(window.searchNext.position.height == window.openButton.position.height)
     @assert(window.searchGroup.children.count == 3)
     @assert(window.searchGroup.children[0] == window.searchOptionsButton)
     @assert(window.searchGroup.children[1] == window.searchBox)
@@ -1216,7 +1220,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(window.infoNameLabel.position.width >= Math.ceil(window.infoNameLabel.itf.measureContent({}).x))
     @assert(window.infoStatsLabel.position.width > 0)
     @assert(window.infoStatsLabel.position.width >= Math.ceil(window.infoStatsLabel.itf.measureContent({}).x))
-    @assert(window.infoContentGroup.position.x + window.infoStatsLabel.position.right() == window.infoBar.paddedClientRect().right())
+    @assert(Math.abs(window.infoContentGroup.position.x + window.infoStatsLabel.position.horzCenter() - window.infoBar.paddedClientRect().horzCenter()) < 0.01)
     @assert(window.infoIconLabel.position.right() <= window.infoNameLabel.position.x)
     @assert(window.infoNameLabel.position.right() <= window.infoSizeLabel.position.x)
 
@@ -1230,8 +1234,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         @assert(window.infoNameLabel.position.width >= Math.ceil(window.infoNameLabel.itf.measureContent({}).x))
     }
 
-    // The right-hand details take their complete measured width whenever the file identity and
-    // details fit together. Only a real shortage shrinks that right-aligned line.
+    // General details stay centered on the complete information band whenever they fit. Only a
+    // real shortage shrinks that centered line.
     let wideDetails = "3840 × 2160 · 120000 frames · 59.94 fps · 01:02:03 · AAC-LC · 48000 Hz · 6 channels · 24 bit · Swag CPU decoder"
     window.resize(1600, 680)
     window.currentFile = "clip.mp4"
@@ -1241,7 +1245,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let wideDetailWidth = Math.ceil(window.infoStatsLabel.itf.measureContent({}).x)
     @assert(wideFileWidth + wideDetailWidth <= wideClient.width)
     @assert(window.infoStatsLabel.position.width >= wideDetailWidth)
-    @assert(window.infoContentGroup.position.x + window.infoStatsLabel.position.right() == wideClient.right())
+    @assert(Math.abs(window.infoContentGroup.position.x + window.infoStatsLabel.position.horzCenter() - wideClient.horzCenter()) < 0.01)
     @assert(window.infoFileGroup.position.right() <= window.infoStatsLabel.position.x)
 
     window.resize(ViewerMinWidth, 680)
@@ -1252,7 +1256,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let narrowDetailWidth = Math.ceil(window.infoStatsLabel.itf.measureContent({}).x)
     @assert(narrowFileWidth + narrowDetailWidth > narrowClient.width)
     @assert(window.infoStatsLabel.position.width < narrowDetailWidth)
-    @assert(window.infoContentGroup.position.x + window.infoStatsLabel.position.right() == narrowClient.right())
+    @assert(Math.abs(window.infoContentGroup.position.x + window.infoStatsLabel.position.horzCenter() - narrowClient.horzCenter()) < 0.01)
     @assert(window.infoFileGroup.position.right() <= window.infoStatsLabel.position.x)
 }
 

@@ -19,7 +19,8 @@ struct PopupListCtrl
     {
         using frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
 
-        itemHeight:      f32 = 30      // Height of selectable rows in logical units.
+        itemHeight:      f32 = 24      // Height of selectable rows in logical units.
+        iconSize:        f32 = 16      // Square size used for every item icon; zero uses each descriptor's own size.
         separatorHeight: f32 = 15      // Height of separator rows in logical units.
         minimumWidth:    f32 = 100     // Minimum popup width in logical units.
         maximumHeight:   f32 = 300     // Maximum popup height in logical units.
@@ -213,7 +214,10 @@ internal impl IWnd for PopupListView
             if it.icon.isValid()
             {
                 let iconColor = it.icon.color.a ? it.icon.color : colorText
-                it.icon.paint(painter, labelPos.x, labelPos.vertCenter() - it.icon.sizeY * 0.5, iconColor)
+                var icon      = it.icon
+                if .list.iconSize != 0 do
+                    icon.sizeX, icon.sizeY = .list.iconSize
+                icon.paint(painter, labelPos.x, labelPos.vertCenter() - icon.sizeY * 0.5, iconColor)
             }
 
             if .list.maxIconSize do
@@ -418,8 +422,12 @@ impl PopupListCtrl
             .userData1 = userData1
         }
 
-        if item.icon.isValid() do
-            .maxIconSize = Math.max(.maxIconSize, cast(s32) item.icon.sizeX)
+        if item.icon.isValid()
+        {
+            let iconWidth = .iconSize != 0 ? .iconSize : item.icon.sizeX
+            .maxIconSize = Math.max(.maxIconSize, cast(s32) iconWidth)
+        }
+
         .items.add(item)
         return item
     }

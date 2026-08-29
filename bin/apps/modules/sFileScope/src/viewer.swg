@@ -196,6 +196,8 @@ impl FileScope.Host for ViewerPluginHost
     {
         Debug.assert(.session.info == null)
         .session.info = .createGroup(.infoParent, width)
+        .session.info!.style.addStyleSheetColors("label_TextLight $label_TextFaint")
+        .session.info!.computeStyle()
         return .session.info!
     }
 

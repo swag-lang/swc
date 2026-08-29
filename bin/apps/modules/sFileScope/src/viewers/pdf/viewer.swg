@@ -152,7 +152,7 @@ private impl PdfViewer
 
         result.commands = commands
 
-        with result.previousButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, 18), {0, 0, 36, 36})
+        with result.previousButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .toolTip    = pdfStrings().ui_Previous
@@ -163,7 +163,7 @@ private impl PdfViewer
             }
         }
 
-        with result.nextButton = IconButton.create(result.commands, result.theme().icon(.ChevronRight, 18), {0, 0, 36, 36})
+        with result.nextButton = IconButton.create(result.commands, result.theme().icon(.ChevronRight, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .toolTip    = pdfStrings().ui_Next
@@ -181,7 +181,7 @@ private impl PdfViewer
             .setTextAlignment(.Center, .Center)
         }
 
-        with let zoomOut = IconButton.create(result.commands, result.theme().icon(.ZoomOut, 18), {0, 0, 36, 36})
+        with let zoomOut = IconButton.create(result.commands, result.theme().icon(.ZoomOut, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -193,7 +193,7 @@ private impl PdfViewer
             }
         }
 
-        with let zoomIn = IconButton.create(result.commands, result.theme().icon(.ZoomIn, 18), {0, 0, 36, 36})
+        with let zoomIn = IconButton.create(result.commands, result.theme().icon(.ZoomIn, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .toolTip    = pdfStrings().ui_ZoomIn
@@ -204,7 +204,7 @@ private impl PdfViewer
             }
         }
 
-        with let fit = IconButton.create(result.commands, result.theme().icon(.FitView, 18), {0, 0, 36, 36})
+        with let fit = IconButton.create(result.commands, result.theme().icon(.FitView, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -216,7 +216,7 @@ private impl PdfViewer
             }
         }
 
-        with let actual = IconButton.create(result.commands, result.theme().icon(.ActualSize, 18), {0, 0, 36, 36})
+        with let actual = IconButton.create(result.commands, result.theme().icon(.ActualSize, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8

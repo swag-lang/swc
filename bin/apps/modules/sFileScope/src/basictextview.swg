@@ -391,7 +391,7 @@ impl BasicTextView
 
         result.commands = host.createCommandGroup(200)
 
-        with result.wrapButton = IconButton.create(result.commands, result.theme().icon(.Wrap), {0, 0, 36, 36}, flags: .Toggle)
+        with result.wrapButton = IconButton.create(result.commands, result.theme().icon(.Wrap, ViewerGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
         {
             .dockStyle = .Left
             .toolTip   = appStrings().ui_WrapOn

@@ -206,6 +206,8 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     ListCtrlHeadlessSelCount = 0
 
     let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
+    @assert(list.iconSize == 16)
+    @assert(list.lineHeight() >= 24)
     list.sigSelectionChanged += &listCtrlHeadlessSel
     list.createLine("a")
     list.createLine("b")

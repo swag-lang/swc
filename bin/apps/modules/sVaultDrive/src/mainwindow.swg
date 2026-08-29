@@ -1,5 +1,8 @@
 using Core, Gui, Pixel
 
+private const VaultActionGlyphSize = 20.0
+private const VaultRowGlyphSize    = 16.0
+
 internal enum AppState
 {
     Ready
@@ -1063,7 +1066,7 @@ impl MainWindow
             textColor  = colors.error
         }
 
-        var glyph = .theme().icon(ThemeIcons.About, 20)
+        var glyph = .theme().icon(ThemeIcons.About, VaultActionGlyphSize)
         glyph.color = glyphColor
         .statusIcon.setIcon(glyph)
         .status.setTextColor(textColor)
@@ -1144,10 +1147,10 @@ impl MainWindow
         let form = card.form
         .createCard = card
 
-        .createPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: "C:\\path\\private", icon: .theme().icon(ThemeIcons.OpenFile, 17))
+        .createPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: "C:\\path\\private", icon: .theme().icon(ThemeIcons.OpenFile, VaultRowGlyphSize))
         .createPath.updateFlags(.AcceptFileDrop)
         setMachineFont(.createPath)
-        .browseCreate            = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, 16))
+        .browseCreate            = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, VaultRowGlyphSize))
         .browseCreate.sigPressed += func|window = me|(btn)
         {
             discard btn
@@ -1180,7 +1183,7 @@ impl MainWindow
         // with the language, so the layout pass reads it from the button rather than from a
         // number tuned on one wording.
         .createButton = PushButton.create(card.actions, appStrings().ui_CreateVault, {0, 0, 0, 36}, form: .Strong)
-        .createButton.setIcon(.theme().icon(ThemeIcons.SaveAs, 18))
+        .createButton.setIcon(.theme().icon(ThemeIcons.SaveAs, VaultActionGlyphSize))
         .createButton.sigPressed += func|window = me|(btn)
         {
             discard btn
@@ -1201,10 +1204,10 @@ impl MainWindow
         let form = card.form
         .mountCard = card
 
-        .mountPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: appStrings().ui_ExistingContainer, icon: .theme().icon(ThemeIcons.OpenFile, 17))
+        .mountPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: appStrings().ui_ExistingContainer, icon: .theme().icon(ThemeIcons.OpenFile, VaultRowGlyphSize))
         .mountPath.updateFlags(.AcceptFileDrop)
         setMachineFont(.mountPath)
-        .browseMount            = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, 16))
+        .browseMount            = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, VaultRowGlyphSize))
         .browseMount.sigPressed += func|window = me|(btn)
         {
             discard btn
@@ -1232,7 +1235,7 @@ impl MainWindow
         // card for. Each box asks only for the value it changes; the current password and key files
         // are stated once in this form and consumed from here.
         .mountButton = PushButton.create(card.actions, appStrings().ui_MountDrive, {0, 0, 0, 36}, form: .Strong)
-        .mountButton.setIcon(.theme().icon(ThemeIcons.Play, 18))
+        .mountButton.setIcon(.theme().icon(ThemeIcons.Play, VaultActionGlyphSize))
         .mountButton.sigPressed += func|window = me|(btn)
         {
             discard btn
@@ -1377,7 +1380,7 @@ impl MainWindow
         // rather than walking to the far end of the surface.
         .createButton.enable(creating or (ready and .canCreate()))
         .createButton.setText(creating ? appStrings().ui_StopCreating : appStrings().ui_CreateVault)
-        .createButton.setIcon(.theme().icon(creating ? ThemeIcons.Stop : ThemeIcons.SaveAs, 18))
+        .createButton.setIcon(.theme().icon(creating ? ThemeIcons.Stop : ThemeIcons.SaveAs, VaultActionGlyphSize))
 
         .resizeButton.enable(resizing or (ready and .canModifyVault()))
         .resizeButton.setText(resizing ? appStrings().ui_StopResizing : appStrings().ui_Resize)

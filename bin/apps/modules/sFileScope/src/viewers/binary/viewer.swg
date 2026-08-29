@@ -2,7 +2,6 @@
 
 using Core, Pixel, Gui
 
-private const BinaryGlyphSize      = 18.0
 private const BinaryActionWidth    = 48.0
 private const BinaryOffsetWidth    = 116.0
 private const BinaryDetailMinWidth = 200.0

@@ -2,8 +2,7 @@
 
 using Core, Pixel, Gui, TrueType
 
-private const FontCommandWidth     = 456.0
-private const FontCommandGlyphSize = 18.0
+private const FontCommandWidth = 456.0
 
 #[Swag.NoCopy]
 struct FontViewerContent
@@ -174,7 +173,7 @@ internal impl FontViewer
             }
         }
 
-        with result.previousButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, FontCommandGlyphSize), {0, 0, 36, 36})
+        with result.previousButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -187,7 +186,7 @@ internal impl FontViewer
             }
         }
 
-        with result.nextButton = IconButton.create(result.commands, result.theme().icon(.ChevronRight, FontCommandGlyphSize), {0, 0, 36, 36})
+        with result.nextButton = IconButton.create(result.commands, result.theme().icon(.ChevronRight, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .toolTip    = fontStrings().ui_NextPage

@@ -119,8 +119,8 @@ struct ThemeImageRects
         menuPopup_Bk:                ThemeImageRect = {{1, 197, 27, 27}, 12, 10}        // Theme atlas region used for menu popup bk.
         menuPopup_Border:            ThemeImageRect = {{29, 197, 27, 27}, 12, 10.5}     // Theme atlas region used for menu popup border.
         menuPopup_HotBk:             ThemeImageRect = {{57, 197, 27, 27}, 12, 4}        // Theme atlas region used for menu popup hot bk.
-        menuPopup_BarAnchorBk:       ThemeImageRect = {{281, 1, 27, 39}, 12, 10}        // Theme atlas region used for menu popup bar anchor bk.
-        menuPopup_BarAnchorBorder:   ThemeImageRect = {{309, 1, 27, 39}, 12, 10.5}      // Theme atlas region used for menu popup bar anchor border.
+        menuPopup_BarAnchorBk:       ThemeImageRect = {{281, 1, 27, 39}, 5, 4}          // Theme atlas region used for menu popup bar anchor bk.
+        menuPopup_BarAnchorBorder:   ThemeImageRect = {{309, 1, 27, 39}, 5, 4.5}        // Theme atlas region used for menu popup bar anchor border.
         menuBar_PopupSelectedBk:     ThemeImageRect = {{1, 197, 27, 27}, 12, 10}        // Theme atlas region used for menu bar popup selected bk.
         menuBar_PopupSelectedBorder: ThemeImageRect = {{29, 197, 27, 27}, 12, 10.5}     // Theme atlas region used for menu bar popup selected border.
         menuBar_Bk:                  ThemeImageRect = {{1, 29, 27, 27}, 12, 0}          // Theme atlas region used for menu bar bk.

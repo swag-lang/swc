@@ -39,6 +39,10 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     sub.addItem("Quit", Menu_Quit, disabled: true)
 
     @assert(sub.items.count == 3)
+    sub.computeLayoutPopup()
+    @assert(sub.themeMetrics().menuPopup_IconSize == 16)
+    @assert(sub.themeMetrics().menuPopup_ItemHeight == 24)
+    @assert(sub.items[0]!.size + sub.themeMetrics().menuPopup_SpaceLines >= sub.themeMetrics().menuPopup_ItemHeight)
     @assert(!sub.items[0]!.separator)
     @assert(sub.items[1]!.separator)
     @assert(sub.items[2]!.disabled)
@@ -197,7 +201,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
 
     let metrics     = popup.themeMetrics()
     let shadowWidth = 2 * metrics.menuPopup_ShadowSize
-    let chromeWidth = item.size + metrics.menuPopup_IconMargin + metrics.menuPopup_IconTextMargin + metrics.chevron_Size + popup.padding.x + popup.padding.z + shadowWidth
+    let chromeWidth = metrics.menuPopup_IconSize + metrics.menuPopup_IconMargin + metrics.menuPopup_IconTextMargin + metrics.chevron_Size + popup.padding.x + popup.padding.z + shadowWidth
     @assert(metrics.chevron_Size == 12)
     @assert(metrics.menuPopup_WindowMargin == 8)
     @assert(popup.position.width - chromeWidth + 0.01 >= item.name.boundRect.width)
@@ -321,6 +325,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
 
     let button = IconButton.create(&host.root, host.theme.icon(.Options, 20), {24, 6, 48, 36}, flags: .CenterContent)
     button.setArrowPosition(.RightDownward)
+    @assert(button.themeRects().menuPopup_BarAnchorBk.radius == button.themeRects().btnIcon_RoundSquareBk.radius)
 
     let popup = MenuCtrl.createPopup(&host.root)
     popup.addItem("Match case", Menu_Open, checked: true)
@@ -506,7 +511,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     iconPopup.computeLayoutPopup()
 
     let metrics = popup.themeMetrics()
-    @assert(Math.abs(iconPopup.position.width - popup.position.width - (item.size + metrics.menuPopup_IconTextMargin - metrics.menuPopup_IconMargin)) < 0.01)
+    @assert(Math.abs(iconPopup.position.width - popup.position.width - (metrics.menuPopup_IconSize + metrics.menuPopup_IconTextMargin - metrics.menuPopup_IconMargin)) < 0.01)
 
     var checked: bool
     host.app.sigFrame += func|host = &host, checked = &checked|(app)

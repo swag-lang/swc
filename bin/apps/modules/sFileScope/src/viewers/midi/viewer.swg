@@ -3,7 +3,6 @@
 using Core, Pixel, Gui
 
 private const MidiCommandWidth = 432.0
-private const MidiGlyphSize    = 18.0
 
 internal struct MidiViewer
 {
@@ -156,7 +155,7 @@ internal impl MidiViewer
             }
         }
 
-        with result.zoomOutButton = IconButton.create(result.commands, result.theme().icon(.ZoomOut, MidiGlyphSize), {0, 0, 36, 36})
+        with result.zoomOutButton = IconButton.create(result.commands, result.theme().icon(.ZoomOut, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -169,7 +168,7 @@ internal impl MidiViewer
             }
         }
 
-        with result.zoomInButton = IconButton.create(result.commands, result.theme().icon(.ZoomIn, MidiGlyphSize), {0, 0, 36, 36})
+        with result.zoomInButton = IconButton.create(result.commands, result.theme().icon(.ZoomIn, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .toolTip    = midiStrings().ui_ZoomIn
@@ -181,7 +180,7 @@ internal impl MidiViewer
             }
         }
 
-        with result.fitButton = IconButton.create(result.commands, result.theme().icon(.FitView, MidiGlyphSize), {0, 0, 36, 36})
+        with result.fitButton = IconButton.create(result.commands, result.theme().icon(.FitView, ViewerGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8

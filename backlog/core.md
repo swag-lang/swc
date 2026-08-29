@@ -295,6 +295,57 @@ unsafe legacy modes excluded from the default surface.
 
 ---
 
+## Tier B — Regular expression throughput
+
+### B-154 — The last gaps between the regular-expression engine and the Rust crate
+
+- Intent: keep `Parser.RegExp` at the speed of the fastest engine available, which is what the
+  rewrite of 2026-08-29 set out to reach and mostly did.
+- Where it stands: measured against the Rust `regex` crate on the same ten-megabyte corpus,
+  counting every match of the same pattern in memory, best of eight interleaved rounds: a plain
+  literal 1.6x slower, a literal alternation 2.4x *faster*, `\d{4}-\d{2}-\d{2}` 1.4x slower,
+  `[a-z]+ing` 1.8x, `\w+` 3.1x, `(?i)sherlock` 2.8x, `[a-z]+[0-9]+@[a-z.-]+` 1.2x, and the same
+  date pattern with capture groups 2.4x. The engine is a byte program run by a lazy automaton
+  forwards and backwards, fed by vectorized scans, with the simulation and the backtracker behind
+  them for captures and backreferences.
+- What is left, in decreasing value:
+  - **Captures still replay a search.** A pattern whose groups are unambiguous — one transition
+    per byte per state, which is most patterns that parse a line — can have its groups read by a
+    single pass over the span with no branch set at all. The crate calls that engine `onepass`
+    and it is why its capture benchmark costs the same as its no-capture one. Ours costs twice.
+  - **A set of literals is scanned one at a time.** `(?i)sherlock` becomes a class per position
+    rather than a literal, so the scan looks for the rarest single position instead of comparing
+    several whole candidates at once. A Teddy-style scan — one shuffle per literal fragment,
+    several literals per vector — is what closes that 2.8x, and it would also serve an
+    alternation of literals whose first bytes are common.
+  - **Vectors are 128 bits.** Every scan reads sixteen bytes per instruction where the crate
+    reads thirty-two; that alone is most of the 1.6x on a plain literal. This is a language
+    matter, not a library one: see the `#simd` entries in [simd.md](simd.md).
+  - **An unanchored search costs about two hundred nanoseconds of setup**, which is what `\w+`
+    pays two million times over the corpus. The two automata are each entered through a start
+    state, a table pointer and a look-behind context; a `findAll` that kept them between matches
+    would not pay any of it twice.
+- Complete when: no benchmark in that set is more than 1.5x the crate, and captures cost what a
+  search without them costs.
+- Related: B-155
+
+### B-155 — Unicode properties are limited to the general categories
+
+- Intent: `\p{...}` should name the scripts and the common derived properties, not only the
+  handful of general categories the Unicode tables in `core` happen to carry.
+- Where it stands: `\p{L}`, `\p{Ll}`, `\p{Lu}`, `\p{Lt}`, `\p{N}`, `\p{Nd}`, `\p{S}`,
+  `\p{Sm}` and `\p{Z}` work, negated by `\P`. `\p{Greek}`, `\p{Han}`, `\p{Alphabetic}` and
+  the rest fail to compile. The engine itself needs nothing new: a property is a set of scalar
+  intervals, and the compiler already turns any such set into a UTF-8 automaton.
+- What is left: the interval tables. `Unicode` ships general-category tables ported from Go;
+  scripts would be another table of the same shape, generated the same way, and the property
+  lookup in `RuneClass.unicodeProperty` is one more `switch` arm per table.
+- Complete when: the script names of UAX #24 resolve, a test matches text in two scripts, and the
+  tables are generated rather than hand-written.
+- Related: B-154
+
+---
+
 ## Tier C — Archives, calendars, and time zones
 
 ### T-032 — No gzip container support

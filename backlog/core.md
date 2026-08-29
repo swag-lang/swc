@@ -303,9 +303,9 @@ unsafe legacy modes excluded from the default surface.
   rewrite of 2026-08-29 set out to reach.
 - Where it stands: measured against the Rust `regex` crate on the same ten-megabyte corpus,
   counting every match of the same pattern in memory, best of ten interleaved rounds. A plain
-  literal 1.2x slower, an alternation of literals 2.5x *faster*, `\d{4}-\d{2}-\d{2}` at parity,
-  `[a-z]+[0-9]+@[a-z.-]+` 1.2x slower, `(?i)sherlock` 1.4x *faster*, a date with capture groups
-  2.1x slower, `[a-z]+ing` 1.9x, and `\w+` 2.4x. Nothing is more than 2.4x, and what is behind
+  literal 1.4x slower, an alternation of literals 2x *faster*, `\d{4}-\d{2}-\d{2}` 1.3x slower,
+  `[a-z]+[0-9]+@[a-z.-]+` at parity, `(?i)sherlock` 1.7x *faster*, a date with capture groups
+  1.7x slower, `[a-z]+ing` 2.3x, and `\w+` 2.3x. Nothing is more than 2.3x, and what is behind
   is what matches often.
 - What is left, in decreasing value:
   - **A search still costs more to start than to run**, against roughly thirty nanoseconds for
@@ -313,9 +313,10 @@ unsafe legacy modes excluded from the default surface.
     through the façade once per match, which is what took `\w+` from 3.2x to 2.4x; the same
     treatment has not been given to the path that looks for an inner literal, which is what
     `[a-z]+ing` uses.
-  - **Captures replay the search.** The backtracking engine reads the groups back over the
-    span the automata found, iteratively and without recursion since this pass, but it still
-    walks the pattern a second time. A pattern whose groups are unambiguous — most patterns
+  - **Captures replay the search.** The backtracking engine reads the groups back over the span
+    the automata found — iteratively, without recursion, and reading the program through
+    pointers, which took it from three hundred and sixty nanoseconds to ninety on a ten-byte
+    date — but it still walks the pattern a second time. A pattern whose groups are unambiguous — most patterns
     that parse a line — can have them read by a single pass with no branch set at all, which is
     the crate's `onepass` engine and why its capture benchmark costs what its plain one costs.
   - **Vectors are 128 bits.** Every scan reads sixteen bytes per instruction where the crate

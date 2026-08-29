@@ -1521,7 +1521,7 @@ func buildPattern(rng: *Rng, depth: u32)->String
     for var i = 0'u64; i < pieces; i += 1
     {
         var piece: String
-        switch rng.below(depth == 0 ? 10 : 12)
+        switch rng.below(depth == 0 ? 10 : 13)
         {
         case 0:
             piece.append(cast(u8) (cast(u64) 'a' + rng.below(3)))
@@ -1557,6 +1557,11 @@ func buildPattern(rng: *Rng, depth: u32)->String
             piece.append("(")
             piece.append(buildPattern(rng, depth - 1))
             piece.append("|")
+            piece.append(buildPattern(rng, depth - 1))
+            piece.append(")")
+
+        case 12:
+            piece.append("(")
             piece.append(buildPattern(rng, depth - 1))
             piece.append(")")
 
@@ -1645,6 +1650,21 @@ func buildSubject(rng: *Rng)->String
 
             @assert(found.span.start == vm.matchSlots[0])
             @assert(found.span.end == vm.matchSlots[1])
+
+            // Every capture engine has to report what the simulation reports, group by group.
+            for var group = 1'u32; group <= expression.captureCount(); group += 1
+            {
+                let span     = expression.captureSpan(group)
+                let opening  = vm.matchSlots[2 * group]
+                let closing  = vm.matchSlots[2 * group + 1]
+                let expected = opening != Parser.Regex.NoSlot and closing != Parser.Regex.NoSlot
+
+                @assert(span.found == expected)
+                if !expected do
+                    continue
+                @assert(span.span.start == opening)
+                @assert(span.span.end == closing)
+            }
         }
     }
 

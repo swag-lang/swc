@@ -1445,7 +1445,12 @@ private impl RenderCpu
             if .blendingMode == .Alpha and (maskColor or maskAlpha) and constColor.a == 0 do
                 return
 
-            let alphaMaskStore = .blendingMode == .Alpha and maskAlpha and constColor.a == 255
+            // Writing only the alpha channel is the same store under both blend modes that
+            // reach it: 'Copy' replaces the byte, and 'Alpha' with an opaque source replaces
+            // it too. Restoring an opaque ground after antialiased content is a whole-target
+            // rectangle, so leaving that to the general shading loop costs a paint evaluation
+            // and a Color round trip per pixel to write one byte.
+            let alphaMaskStore = maskAlpha and (.blendingMode == .Copy or (.blendingMode == .Alpha and constColor.a == 255))
             if fastAlpha or fastCopy or alphaMaskStore
             {
                 let copyAll = fastCopy and maskFull
@@ -1516,7 +1521,7 @@ private impl RenderCpu
                             }
                             elif alphaMaskStore
                             {
-                                lanePixel[3] = 255
+                                lanePixel[3] = constColor.a
                             }
                             else
                             {
@@ -1529,6 +1534,98 @@ private impl RenderCpu
                         }
 
                         x += laneCount
+                    }
+                }
+
+                return
+            }
+        }
+
+        // A texture read one texel per device pixel, blended over an opaque destination, is
+        // the whole of what drawing a page image, a photograph, or a presented surface costs.
+        // Reaching it through the loop below spends a call into the sampler, a switch on the
+        // paint kind, a switch on the pixel format, a multiply by opaque white and a Color
+        // round trip on every pixel, to move three bytes. The address arithmetic is the same
+        // expression the sampler evaluates, so the bytes stored are the same bytes.
+        let paint = &.paintCommand.texture0
+        let white = Color.fromArgb(Argb.White).argb
+        if fastAlpha and !batch.solidPaint and !stencilTest and batch.paintImage != null and
+           v0.color == white and v1.color == white and v2.color == white and
+           paint.type == .Texture and paint.uvMode == .FillSubRect and paint.interpolationMode == .Pixel and .contentScale == 1 and
+           (.program == CpuProgram_Simple or (.program == CpuProgram_Default and v0.cov == v1.cov and v1.cov == v2.cov and v0.cov > 0.51))
+        {
+            let source = batch.paintImage!
+            if source.pixelFormat != .Yuv420
+            {
+                // Everything the sampler recomputes per pixel from the paint command is
+                // constant over the triangle.
+                let texMinX = cast(s32) Math.floor(paint.textureRect.x * source.width)
+                let texMinY = cast(s32) Math.floor(paint.textureRect.y * source.height)
+                let texMaxX = cast(s32) Math.floor(paint.textureRect.z * source.width)
+                let texMaxY = cast(s32) Math.floor(paint.textureRect.w * source.height)
+                let spanX   = cast(f32) (texMaxX - texMinX + 1)
+                let spanY   = cast(f32) (texMaxY - texMinY + 1)
+                let dstW    = Math.max(paint.boundRect.z - paint.boundRect.x, 0.000001)
+                let dstH    = Math.max(paint.boundRect.w - paint.boundRect.y, 0.000001)
+                let originX = paint.boundRect.x
+                let originY = paint.boundRect.y
+
+                let hasAlpha    = source.pixelFormat == .RGBA8 or source.pixelFormat == .BGRA8
+                let swapRedBlue = source.pixelFormat == .RGBA8 or source.pixelFormat == .RGB8
+                let texelBytes  = cast(u64) (hasAlpha ? 4 : 3)
+                let texelRow    = texelBytes * cast(u64) source.width
+                let texels      = source.pixels.buffer!
+                let lastTexelX  = source.width - 1
+                let lastTexelY  = source.height - 1
+
+                for var y = minY; y <= maxY; y += 1
+                {
+                    let sy        = cast(f32) y + 0.5
+                    let rowDy0    = sy - p1.y
+                    let rowDy1    = sy - p2.y
+                    let rowDy2    = sy - p0.y
+                    let rowPixels = batch.pixels + cast(u64) (batch.height - y - 1) * cast(u64) batch.rowStride
+                    for var x = minX; x <= maxX; x += 1
+                    {
+                        let sx = cast(f32) x + 0.5
+                        let e0 = dx0 * rowDy0 - dy0 * (sx - p1.x)
+                        let e1 = dx1 * rowDy1 - dy1 * (sx - p2.x)
+                        let e2 = dx2 * rowDy2 - dy2 * (sx - p0.x)
+                        if !insideEdge(e0, edge0TopLeft) or !insideEdge(e1, edge1TopLeft) or !insideEdge(e2, edge2TopLeft) do
+                            continue
+
+                        let w0 = e0 * invArea
+                        let w1 = e1 * invArea
+                        let w2 = e2 * invArea
+                        let tx = Math.saturate((v0.pos.x * w0 + v1.pos.x * w1 + v2.pos.x * w2 - originX) / dstW)
+                        let ty = Math.saturate((v0.pos.y * w0 + v1.pos.y * w1 + v2.pos.y * w2 - originY) / dstH)
+                        let px = cast(f32) texMinX + tx * spanX - 0.5
+                        let py = cast(f32) texMinY + ty * spanY - 0.5
+
+                        let texelX = Math.clamp(Math.clamp(cast(s32) Math.floor(px + 0.5), texMinX, texMaxX), 0, lastTexelX)
+                        let texelY = Math.clamp(Math.clamp(cast(s32) Math.floor(py + 0.5), texMinY, texMaxY), 0, lastTexelY)
+                        let texel  = texels + cast(u64) texelX * texelBytes + cast(u64) (lastTexelY - texelY) * texelRow
+
+                        let pixel = rowPixels + cast(u64) x * 4
+                        if hasAlpha
+                        {
+                            var src: Color = undefined
+                            src.b = texel[swapRedBlue ? 2 : 0]
+                            src.g = texel[1]
+                            src.r = texel[swapRedBlue ? 0 : 2]
+                            src.a = texel[3]
+
+                            // A transparent texel is coverage, not ink; the general loop skips it
+                            // before it can round the destination down by one.
+                            if src.a == 0 do
+                                continue
+                            blendAlphaBgra8(pixel, src)
+                            continue
+                        }
+
+                        pixel[0] = texel[swapRedBlue ? 2 : 0]
+                        pixel[1] = texel[1]
+                        pixel[2] = texel[swapRedBlue ? 0 : 2]
                     }
                 }
 

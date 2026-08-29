@@ -913,7 +913,21 @@ private func decodeFonts(parser: *PdfParser, page: *Page, resourcesId: u32) fail
 
         if found do
             continue
+
+        let cached = parser.fontCache.tryFind(fontId)
+        if cached
+        {
+            // The resource name is the key this page filed the font under, and two pages may
+            // file the same object under different names; everything else about the font is a
+            // property of the object.
+            var shared: FontResource = cached.value
+            shared.name = name.toString()
+            page.fonts.add(#move shared)
+            continue
+        }
+
         var font = #move try decodeFontResource(parser, fontId, name.toString())
+        parser.fontCache[fontId] = font
         page.fonts.add(#move font)
     }
 }

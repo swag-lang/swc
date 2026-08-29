@@ -716,9 +716,19 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
 {
     if parser.boolean(parser.dict(nodeId, "ImageMask"))
     {
+        // A stencil is painted in the fill color in force, so two pages that share the object
+        // do not share the result; it is also the cheapest kind to read back.
         let stencil = #move try readMaskPlane(parser, nodeId, resourcesId, true)
         var result  = #move planeToImage(&stencil, &fillColor)
         return #move result
+    }
+
+    let cacheKey = imageCacheKey(nodeId, resourcesId)
+    let cached   = parser.imageCache.tryFind(cacheKey)
+    if cached
+    {
+        var result: retval = cached.value
+        return result
     }
 
     let codec = #move parser.imageCodec(nodeId)
@@ -780,5 +790,11 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
     }
 
     var result = #move planeToImage(&plane, null)
+    if parser.imageCacheBytes + result.byteCount <= ImageCacheBudget
+    {
+        parser.imageCacheBytes  += result.byteCount
+        parser.imageCache[cacheKey] = result
+    }
+
     return #move result
 }

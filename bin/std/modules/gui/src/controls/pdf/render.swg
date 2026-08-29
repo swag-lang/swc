@@ -162,8 +162,7 @@ internal impl RenderFontCache
             .embeddedResolved[index] = true
             if !resource.bytes.isEmpty()
             {
-                let key    = Format.toString("pdf-font-%{X08}", Hash.Crc32.compute(resource.bytes.toSlice()))
-                let result = catch createTypeface(key.toString(), resource.bytes.toSlice()) as loadError
+                let result = catch createTypeface(resource.programKey.toString(), resource.bytes.toSlice()) as loadError
                 if loadError == null do
                     .embedded[index] = result
             }
@@ -548,7 +547,10 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
     var painter = Painter.create(renderer)
     painter.setContentScale(options.scale)
     painter.begin()
-    painter.bindRenderTarget(&target, true)
+    // A resolved alpha channel costs a second rasterization of the whole page in the
+    // renderer's scalar path, and an opaque ground then overwrites every byte it produced.
+    // Ask for it only when the caller wants the page's own coverage back.
+    painter.bindRenderTarget(&target, options.background.a != 255)
     painter.setColorMaskFull()
     painter.clear(options.background)
     painter.setColorMaskColor()

@@ -28,6 +28,13 @@ public struct FontResource
     bytes:    Array'u8
     program:  FontProgramKind
 
+    // Key this program takes in the process-wide typeface table.
+    //
+    // It is a hash over the whole program, so it is computed when the program is read and
+    // carried from there: recomputing it per page shown would read the font again on every
+    // paint, which a viewer feels as a pause on each zoom step.
+    programKey: String
+
     // Code to text, from a `/ToUnicode` CMap, and code to character from the font's simple
     // encoding. The CMap wins when both describe a code.
     unicode:  HashTable'(u32, String)
@@ -384,6 +391,7 @@ private func readFontProgram(parser: *PdfParser, font: *FontResource, descriptor
     {
         font.bytes   = #move try parser.decodeStream(file2)
         font.program = .TrueType
+        keyFontProgram(font)
         return
     }
 
@@ -397,6 +405,7 @@ private func readFontProgram(parser: *PdfParser, font: *FontResource, descriptor
         // apart from the file itself, so the distinction that matters here is only
         // whether glyphs are addressed by name.
         font.program = isOpenType ? .TrueType : .Cff
+        keyFontProgram(font)
         return
     }
 
@@ -405,7 +414,16 @@ private func readFontProgram(parser: *PdfParser, font: *FontResource, descriptor
     {
         font.bytes   = #move try parser.decodeStream(file1)
         font.program = .Type1
+        keyFontProgram(font)
     }
+}
+
+// Names the program in the process-wide typeface table.
+private func keyFontProgram(font: *FontResource)
+{
+    if font.bytes.isEmpty() do
+        return
+    font.programKey = Format.toString("pdf-font-%{X08}", Hash.Crc32.compute(font.bytes.toSlice()))
 }
 
 private func readSimpleWidths(parser: const *PdfParser, font: *FontResource, metricsId: u32)

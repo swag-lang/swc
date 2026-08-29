@@ -25,6 +25,12 @@ the shared backlog conventions.
   after that, if the pre-check is not enough.
 - Complete when: a string switch over a hundred cases costs a handful of comparisons per lookup,
   the `sema`, `native` and `jit` suites stay green, and the page above parses measurably faster.
+- Also: `Pdf.parseContent` dispatches PDF content operators through forty-nine cases whose labels
+  are one to three byte strings, so a three-byte token can cost sixty calls to identify. Replacing
+  that one dispatch with a packed-integer switch produced no change any measurement could separate
+  from the noise, which bounds what the shape costs when the cases are short and the hot operators
+  sit early: this is worth fixing where the case list is long, not everywhere it appears. The same
+  file emits one test per case for an integer switch too, with no table and no binary search.
 
 ## Loop vectorization
 

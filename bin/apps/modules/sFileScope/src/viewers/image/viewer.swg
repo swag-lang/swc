@@ -61,8 +61,8 @@ internal struct ImageViewer
 
     #[Swag.Late]
     {
-        actions:         *ViewerCommandBar
-        info:            *ViewerCommandBar
+        actions:         *Wnd
+        info:            *Wnd
         previousButton:  *IconButton
         nextButton:      *IconButton
         imageView:       *ImageView
@@ -300,18 +300,20 @@ private impl ImageViewer
         return true
     }
 
-    func create(contentParent, actionParent, infoParent: *Wnd, fileName: string, navigateFile: #null ViewerNavigateFile = null, reportFailure: #null ViewerReportFailure = null, reportDetails: #null ViewerReportDetails = null, reportChromeChanged: #null ViewerReportChromeChanged = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*ImageViewer
+    func create(host: FileScope.Host)->*ImageViewer
     {
-        let result = Wnd.create'ImageViewer(contentParent, "sFileScope.image")
+        let services     = host.services()
+        let navigateFile = services.navigateFile
+        let result       = Wnd.create'ImageViewer(host.contentParent(), "sFileScope.image")
         result.backgroundStyle      = .View
         result.navigateFile         = navigateFile
-        result.reportFailure        = reportFailure
-        result.reportDetails        = reportDetails
-        result.reportChromeChanged  = reportChromeChanged
-        result.reportLoadingChanged = reportLoadingChanged
+        result.reportFailure        = services.reportFailure
+        result.reportDetails        = services.reportDetails
+        result.reportChromeChanged  = services.reportChromeChanged
+        result.reportLoadingChanged = services.reportLoadingChanged
 
-        result.actions = ViewerCommandBar.create(actionParent, ImageActionWidth)
-        result.info    = ViewerCommandBar.create(infoParent, ImageInfoWidth)
+        result.actions = host.createActionGroup(ImageActionWidth)
+        result.info    = host.createInfoGroup(ImageInfoWidth)
 
         with result.previousButton = IconButton.create(result.actions, result.theme().icon(.ChevronLeft, ImageGlyphSize), {0, 0, 36, 36})
         {
@@ -449,20 +451,19 @@ private impl ImageViewer
 
         result.applyLayout()
         result.setInitialFocus(result.imageView)
-        result.load.start(fileName, &loadImageViewerContent)
+        result.load.start(host.fileName(), &loadImageViewerContent)
         result.loadTimer = result.addTimer(ViewerBackgroundPollInterval)
         return result
     }
 }
 
 // Creates the integrated image view.
-func createImageViewer(request: const *ViewerRequest, result: *ViewerResult)
+func createImageViewer(host: FileScope.Host)
 {
-    let view = ImageViewer.create(request.contentParent, request.actionParent, request.infoParent, request.fileName, request.navigateFile, request.reportFailure, request.reportDetails, request.reportChromeChanged, request.reportLoadingChanged)
-    result.view                = view
-    result.actions             = view.actions
-    result.info                = view.info
-    result.isLoading           = func(wnd)->bool { return (cast(*ImageViewer) wnd).loadTimer != null }
-    result.needsLoadingOverlay = func(wnd)->bool { return (cast(*ImageViewer) wnd).loadTimer != null }
-    result.retire              = func(wnd)->bool { return (cast(*ImageViewer) wnd).retire() }
+    let view = ImageViewer.create(host)
+    host.attachView(view)
+    host.setLifecycle({
+        isLoading: func(wnd)->bool { return (cast(*ImageViewer) wnd).loadTimer != null },
+        needsLoadingOverlay: func(wnd)->bool { return (cast(*ImageViewer) wnd).loadTimer != null },
+        retire: func(wnd)->bool { return (cast(*ImageViewer) wnd).retire() }})
 }

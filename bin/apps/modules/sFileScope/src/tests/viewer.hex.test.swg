@@ -61,8 +61,9 @@ func writePreviewFile()->String
 func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*HexViewer
 {
     registerHexStrings(&host.app)
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 640, 36})
-    let view     = HexViewer.create(&host.root, commands, fileName)
+    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 640, 36})
+    var viewerSession = openTestViewer(&createHexViewer, &host.root, fileName, commandParent: commands, infoParent: commands)
+    let view          = cast(*HexViewer) viewerSession.view!
     completeViewerBackgroundLoad(host, &view.load, view.loadTimer)
     view.dockStyle = .Center
     view.resize(width, height)
@@ -105,9 +106,7 @@ func completeHexViewerOpen(host: *Testing.HeadlessHost, window: *ViewerWindow)
     host.setup(640, 420)
     defer host.shutdown()
 
-    let request = ViewerRequest{contentParent: &host.root, commandParent: &host.root, infoParent: &host.root, fileName: "this-file-does-not-exist.bin"}
-    var result: ViewerResult
-    createHexViewer(&request, &result)
+    var result = openTestViewer(&createHexViewer, &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, infoParent: &host.root)
     @assert(result.view != null and result.commands != null)
     let view = cast(*HexViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -239,7 +238,7 @@ func completeHexViewerOpen(host: *Testing.HeadlessHost, window: *ViewerWindow)
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
-    let index  = createViewerIndex()
+    let index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(fileName)
     completeHexViewerOpen(&host, window)
@@ -258,7 +257,7 @@ func completeHexViewerOpen(host: *Testing.HeadlessHost, window: *ViewerWindow)
     @assert(window.searchMatches[0].length == 4 and view.grid.searchHits and view.grid.searchHits!.count == 2)
     @assert(view.grid.matchStart == first and view.grid.matchLength == 4)
     @assert(window.searchBox.name.raw == hexStrings().ui_SearchPlaceholder)
-    @assert(!window.searchMatchCase.isLocallyVisible() and !window.searchWholeWord.isLocallyVisible())
+    @assert(!window.searchOptionsButton.isLocallyVisible())
 
     view.widthCombo.setSelectedIndex(2)
     view.formatCombo.setSelectedIndex(1)
@@ -279,7 +278,9 @@ func completeHexViewerOpen(host: *Testing.HeadlessHost, window: *ViewerWindow)
     Pixel.Testing.assertImageGolden(&image, "viewer.hex.search-inspector")
 
     window.searchBox.setText("4G")
-    @assert(window.searchComplete and window.searchMatches.isEmpty() and window.searchCountLabel.text() == "!")
+    @assert(window.searchComplete)
+    @assert(window.searchMatches.isEmpty())
+    @assert(window.searchCountLabel.text() == "!")
     @assert(window.searchCountLabel.toolTip == hexStrings().ui_SearchPatternError and !window.searchBox.isValid())
 
     view.grid.moveCaret(first, false)

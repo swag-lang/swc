@@ -479,7 +479,7 @@ internal struct VideoViewer
 
     #[Swag.Late]
     {
-        commands:         *ViewerCommandBar
+        commands:         *Wnd
         playButton:       *IconButton
         stopButton:       *IconButton
         backwardButton:   *IconButton
@@ -1771,10 +1771,11 @@ private impl VideoViewer
         .subtitleLastSeconds = -1
     }
 
-    func create(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails = null, reportFailure: #null ViewerReportFailure = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*VideoViewer fail
+    func create(host: FileScope.Host)->*VideoViewer fail
     {
-        registerVideoStrings(contentParent.app())
-        let result = Wnd.create'VideoViewer(contentParent, "sFileScope.video")
+        registerVideoStrings(host.application())
+        let services = host.services()
+        let result   = Wnd.create'VideoViewer(host.contentParent(), "sFileScope.video")
         defer #fail
         {
             if result.voice
@@ -1792,11 +1793,11 @@ private impl VideoViewer
         }
 
         result.backgroundStyle      = .View
-        result.reportDetails        = reportDetails
-        result.reportFailure        = reportFailure
-        result.reportLoadingChanged = reportLoadingChanged
+        result.reportDetails        = services.reportDetails
+        result.reportFailure        = services.reportFailure
+        result.reportLoadingChanged = services.reportLoadingChanged
 
-        result.commands = ViewerCommandBar.create(commandParent, 0)
+        result.commands = host.createCommandGroup(0)
 
         with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, VideoGlyphSize), {0, 0, 36, 36})
         {
@@ -1943,7 +1944,7 @@ private impl VideoViewer
         result.playButton.enable(false)
         result.timeline.enable(false)
         result.refreshTransport()
-        result.openFileName = fileName
+        result.openFileName = host.fileName()
 
         // The sound device comes online while the file opens, so the first picture does not
         // wait for it; see [[warmSoundEngine]].
@@ -1996,30 +1997,30 @@ private func runVideoViewerDecode(thread: Threading.Thread)
         view.pendingVideo.close()
 }
 
-private func loadVideoViewer(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails, reportFailure: #null ViewerReportFailure, reportLoadingChanged: #null ViewerReportLoadingChanged)->#null *VideoViewer fail => try VideoViewer.create(contentParent, commandParent, fileName, reportDetails, reportFailure, reportLoadingChanged)
-
 // Creates the integrated video playback view.
-func createVideoViewer(request: const *ViewerRequest, result: *ViewerResult)
+private func loadVideoViewer(host: FileScope.Host)->#null *VideoViewer fail => try VideoViewer.create(host)
+
+func createVideoViewer(host: FileScope.Host)
 {
-    let view = catch loadVideoViewer(request.contentParent, request.commandParent, request.fileName, request.reportDetails, request.reportFailure, request.reportLoadingChanged) as decodeError
+    let view = catch loadVideoViewer(host) as decodeError
     if decodeError != null
     {
-        result.failureReason = Errors.message(decodeError)
+        host.reject(Errors.message(decodeError))
         return
     }
 
-    result.view      = view
-    result.commands  = view!.commands
-    result.details   = view!.details
-    result.retire    = func(wnd)->bool { return (cast(*VideoViewer) wnd).retire() }
-    result.isLoading = func(wnd)->bool
+    host.attachView(view!)
+    host.setDetails(view!.details.toString())
+    host.setLifecycle({
+        retire: func(wnd)->bool { return (cast(*VideoViewer) wnd).retire() },
+        isLoading: func(wnd)->bool
     {
         let videoView = cast(*VideoViewer) wnd
         return !videoView.openFinished or videoView.awaitingFrame
-    }
-    result.needsLoadingOverlay = func(wnd)->bool
+    },
+        needsLoadingOverlay: func(wnd)->bool
     {
-        let view = cast(*VideoViewer) wnd
-        return !view.hasFrame or view.awaitingFrame
-    }
+        let videoView = cast(*VideoViewer) wnd
+        return !videoView.hasFrame or videoView.awaitingFrame
+    }})
 }

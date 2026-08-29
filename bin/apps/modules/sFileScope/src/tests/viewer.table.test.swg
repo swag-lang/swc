@@ -42,9 +42,7 @@ using Core, Pixel, Gui
     host.setup(760, 480)
     defer host.shutdown()
 
-    let request = ViewerRequest{&host.root, &host.root, fileName}
-    var result: ViewerResult
-    createTableViewer(&request, &result)
+    var result = openTestViewer(&createTableViewer, &host.root, fileName, commandParent: &host.root)
     @assert(result.view != null and result.commands == null and result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
     let view = cast(*TableViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -111,9 +109,7 @@ using Core, Pixel, Gui
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let request = ViewerRequest{&host.root, &host.root, fileName}
-    var result: ViewerResult
-    createTableViewer(&request, &result)
+    var result = openTestViewer(&createTableViewer, &host.root, fileName, commandParent: &host.root)
     @assert(result.view != null)
     let view = cast(*TableViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)

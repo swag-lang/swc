@@ -69,96 +69,26 @@ impl ViewerBackgroundLoad
     }
 }
 
-// Options shared by file-backed and viewer-owned searches.
-struct ViewerSearchOptions
-{
-    matchCase:         bool     // Whether letter case has to match.
-    wholeWord:         bool     // Whether word characters may touch either side of a match.
-    regularExpression: bool     // Whether the query is a regular expression rather than literal text.
-    expression:        #null *Parser.RegExp     // Compiled expression borrowed for one synchronous collection.
-}
-
-// One searchable location. `major` and `minor` identify viewer-owned containers such as a PDF
-// page or table cell; `offset` is a byte offset inside that container, or inside the source file
-// when both container indexes are zero.
-struct ViewerSearchMatch
-{
-    major:  u64
-    minor:  u64
-    offset: u64
-    length: u64
-}
-
-// Reveals one exact match without loading the preceding file content.
-alias ViewerRevealMatch = func(*Wnd, ViewerSearchMatch, string)->bool
-
-// Returns the current rendered bounds of one revealed match in surface coordinates. Progressive
-// viewers may answer false until the requested window has been materialized; the host polls while
-// the occurrence remains current and owns all highlight presentation.
-alias ViewerSearchBounds = func(*Wnd, ViewerSearchMatch, *Math.Rectangle)->bool
-
-// Removes presentation left by the last revealed match.
-alias ViewerClearSearch = func(*Wnd)
-
-// Collects every logical-text match owned by a viewer. A null callback asks the host to scan the
-// file bytes and use `revealMatch` to materialize the selected occurrence.
-alias ViewerCollectMatches = func(*Wnd, string, ViewerSearchOptions, *Array'ViewerSearchMatch)
-
-// Viewer-specific wording and option visibility for the shared search field.
-struct ViewerSearchPresentation
-{
-    placeholder:    String
-    toolTip:        String
-    useTextOptions: bool = true     // Whether case and whole-word options apply to the query.
-}
-
-// Describes the active viewer's search syntax in the application's language.
-alias ViewerDescribeSearch = func(*Wnd, *ViewerSearchPresentation)
-
-// Prepared streamed-file search. `span` is the greatest number of source bytes one match covers,
-// and `error` explains an invalid query beside the shared search field.
-struct ViewerSearchPlan
-{
-    span:  u64
-    error: String
-}
-
-// Parses a viewer-specific query before the host opens and scans the file.
-alias ViewerPrepareSearch = func(*Wnd, string, *ViewerSearchPlan)->EditBoxCheckResult
-
-// Collects candidates inside one host-owned streamed source window. The host removes overlap
-// duplicates and decides which candidates are stable before publishing them.
-alias ViewerCollectFileMatches = func(*Wnd, string, u64, *Array'ViewerSearchMatch)
-
-// Lets a viewer borrow the host-owned result index while the current query remains active.
-alias ViewerUseSearchMatches = func(*Wnd, #null *Array'ViewerSearchMatch)
-
-// Reports whether a view is still doing work whose result has not reached the screen.
-alias ViewerIsLoading = func(*Wnd)->bool
-
-// Reports whether unfinished work has left the viewer with no useful content to present.
-alias ViewerNeedsLoadingOverlay = func(*Wnd)->bool
-
-// Requests release of a viewer's external resources without blocking the GUI thread.
-//
-// Returns true once the view can be destroyed. A false result is polled by the host while the
-// viewer finishes cancellable background work.
-alias ViewerRetire = func(*Wnd)->bool
-
-// Notifies the application that [[ViewerIsLoading]] may now answer differently.
-alias ViewerReportLoadingChanged = func(*Wnd)
-
-// Hands a decoder error discovered after creation back to the application that owns its presentation.
-alias ViewerReportFailure = func(*Wnd, string)
-
-// Hands format statistics that changed after creation back to the application status band.
-alias ViewerReportDetails = func(*Wnd, string)
-
-// Re-measures viewer-owned action and information content after its visible shape changes.
-alias ViewerReportChromeChanged = func(*Wnd)
-
-// Requests a neighboring file from the host when a viewer assigns meaning to that direction.
-alias ViewerNavigateFile = func(*Wnd, s32)
+alias ViewerSearchOptions        = FileScope.SearchOptions
+alias ViewerSearchMatch          = FileScope.SearchMatch
+alias ViewerRevealMatch          = FileScope.RevealSearchMatch
+alias ViewerSearchBounds         = FileScope.SearchMatchBounds
+alias ViewerClearSearch          = FileScope.ClearSearch
+alias ViewerCollectMatches       = FileScope.CollectSearchMatches
+alias ViewerSearchPresentation   = FileScope.SearchPresentation
+alias ViewerDescribeSearch       = FileScope.DescribeSearch
+alias ViewerSearchPlan           = FileScope.SearchPlan
+alias ViewerPrepareSearch        = FileScope.PrepareSearch
+alias ViewerCollectFileMatches   = FileScope.CollectFileMatches
+alias ViewerUseSearchMatches     = FileScope.UseSearchMatches
+alias ViewerIsLoading            = FileScope.IsLoading
+alias ViewerNeedsLoadingOverlay  = FileScope.NeedsLoadingOverlay
+alias ViewerRetire               = FileScope.Retire
+alias ViewerReportLoadingChanged = FileScope.ReportLoadingChanged
+alias ViewerReportFailure        = FileScope.ReportFailure
+alias ViewerReportDetails        = FileScope.ReportDetails
+alias ViewerReportChromeChanged  = FileScope.ReportChromeChanged
+alias ViewerNavigateFile         = FileScope.NavigateFile
 
 private func mediaWholeTimeText(total: u64)->String
 {
@@ -188,58 +118,136 @@ func mediaTimeRangeText(current, duration: f64)->String
     return Format.toString("% / %", mediaTimeText(current), mediaDurationText(duration))
 }
 
-// What the application asks one integrated viewer to display.
-struct ViewerRequest
+// One plugin instance and every contribution the host owns with it.
+struct ViewerSession
 {
-    contentParent:        *Wnd = undefined                     // Parent the document view must be created under.
-    commandParent:        *Wnd = undefined                     // Parent for an optional full-width viewer command group.
-    fileName:             string                               // File the view has to show.
-    icon:                 Icon                                 // Viewer-specific glyph for actions that represent this view.
-    actionParent:         *Wnd = undefined                     // Parent for compact actions shown in the host action bar.
-    infoParent:           *Wnd = undefined                     // Parent for compact values shown in the host information bar.
-    reportFailure:        #null ViewerReportFailure            // Reports a decoder error discovered after creation.
-    reportDetails:        #null ViewerReportDetails            // Reports format statistics that changed after creation.
-    reportChromeChanged:  #null ViewerReportChromeChanged      // Re-measures viewer-owned action and information content.
-    reportLoadingChanged: #null ViewerReportLoadingChanged     // Re-evaluates application-owned wait feedback.
-    navigateFile:         #null ViewerNavigateFile             // Opens a neighboring file when this viewer owns that gesture.
+    view:                #null *Wnd
+    actions:             #null *Wnd
+    info:                #null *Wnd
+    commands:            #null *Wnd
+    revealMatch:         #null ViewerRevealMatch
+    searchBounds:        #null ViewerSearchBounds
+    clearSearch:         #null ViewerClearSearch
+    collectMatches:      #null ViewerCollectMatches
+    describeSearch:      #null ViewerDescribeSearch
+    prepareSearch:       #null ViewerPrepareSearch
+    collectFileMatches:  #null ViewerCollectFileMatches
+    useSearchMatches:    #null ViewerUseSearchMatches
+    isLoading:           #null ViewerIsLoading
+    needsLoadingOverlay: #null ViewerNeedsLoadingOverlay
+    retire:              #null ViewerRetire
+    details:             String
+    failureReason:       String
 }
 
-// What one integrated viewer gives back.
-//
-// A successful viewer returns `view`. When decoding stops, it leaves `view` null and returns the
-// decoder's explanation through `failureReason`; the application then owns the complete error
-// surface. `actions` occupies the action bar's centre or a docked edge beside shared controls,
-// `info` extends the file-information row, and `commands` owns the optional full-width band below
-// the content. A viewer leaves unused regions null. One that cannot reveal an offset leaves
-// `revealMatch` null, and a view that does no progressive work leaves `isLoading` null.
-struct ViewerResult
+impl ViewerSession
 {
-    view:                #null *Wnd                          // Document view the viewer owns, or null when decoding stopped.
-    actions:             #null *Wnd                          // Compact group in the host action bar, or null.
-    info:                #null *Wnd                          // Compact trailing group in the host information bar, or null.
-    commands:            #null *Wnd                          // Full-width lower command group, or null.
-    details:             String                              // Short format-specific summary shown by the application.
-    failureReason:       String                              // Decoder explanation when `view` is null, or empty on success.
-    revealMatch:         #null ViewerRevealMatch             // Reveals a byte offset, or null when not searchable.
-    searchBounds:        #null ViewerSearchBounds            // Reports rendered match geometry, or null when unavailable.
-    clearSearch:         #null ViewerClearSearch             // Removes the viewer-owned selection or marker.
-    collectMatches:      #null ViewerCollectMatches          // Viewer-owned text indexing, or null to scan the file.
-    describeSearch:      #null ViewerDescribeSearch          // Viewer-specific query wording, or null for ordinary text.
-    prepareSearch:       #null ViewerPrepareSearch           // Viewer-specific streamed-file query parser, or null.
-    collectFileMatches:  #null ViewerCollectFileMatches      // Viewer-specific streamed matcher, or null for literal text.
-    useSearchMatches:    #null ViewerUseSearchMatches        // Borrows the host result index for viewer-owned overview marks.
-    isLoading:           #null ViewerIsLoading               // Reports unfinished visible work, or null for an immediate view.
-    needsLoadingOverlay: #null ViewerNeedsLoadingOverlay     // Reports that loading currently has no useful presentation.
-    retire:              #null ViewerRetire                  // Cooperatively releases resources before deferred window deletion.
+    // Requests resource release and reports whether GUI destruction may proceed.
+    mtd retireView()->bool
+    {
+        if !.view or !.retire do
+            return true
+        if !.retire!(.view!) do
+            return false
+        .retire = null
+        return true
+    }
 }
 
-// Creates an integrated view and reports its optional commands, details, and search callbacks.
-//
-// Creation runs on the GUI thread and must return promptly. A viewer never opens, probes, reads,
-// decodes, or otherwise waits for external content here: it creates its presentation, starts that
-// work in the background, and publishes the result from a timer. While background work borrows the
-// view, `isLoading`, `needsLoadingOverlay`, and `retire` describe its lifecycle to the host.
-alias ViewerCreate = func(const *ViewerRequest, *ViewerResult)
+// Implements the shared plugin API for one sFileScope viewer instance.
+struct ViewerPluginHost
+{
+    session:        *ViewerSession = undefined
+    documentParent: *Wnd           = undefined
+    actionParent:   *Wnd           = undefined
+    infoParent:     *Wnd           = undefined
+    commandParent:  *Wnd           = undefined
+    sourceFileName: string
+    pluginIcon:     Icon
+    hostServices:   FileScope.HostServices
+}
+
+private impl ViewerPluginHost
+{
+    mtd createGroup(parent: *Wnd, width: f32)->*Wnd
+    {
+        let result = Wnd.create'Wnd(parent, {0, 0, width, 36})
+        result.backgroundStyle = .Transparent
+        return result
+    }
+}
+
+impl FileScope.Host for ViewerPluginHost
+{
+    mtd impl application()->*Application        => .documentParent.app()
+    mtd impl contentParent()->*Wnd              => .documentParent
+    mtd impl fileName()->string                 => .sourceFileName
+    mtd impl icon()->Icon                       => .pluginIcon
+    mtd impl services()->FileScope.HostServices => .hostServices
+
+    mtd impl createActionGroup(width: f32)->*Wnd
+    {
+        Debug.assert(.session.actions == null)
+        .session.actions = .createGroup(.actionParent, width)
+        return .session.actions!
+    }
+
+    mtd impl createInfoGroup(width: f32)->*Wnd
+    {
+        Debug.assert(.session.info == null)
+        .session.info = .createGroup(.infoParent, width)
+        return .session.info!
+    }
+
+    mtd impl createCommandGroup(width: f32)->*Wnd
+    {
+        Debug.assert(.session.commands == null)
+        .session.commands = .createGroup(.commandParent, width)
+        return .session.commands!
+    }
+
+    mtd impl attachView(view: *Wnd)
+    {
+        Debug.assert(.session.view == null)
+        .session.view = view
+    }
+
+    mtd impl setDetails(details: string)
+    {
+        .session.details = details
+    }
+
+    mtd impl reject(reason: string)
+    {
+        Debug.assert(.session.view == null)
+        .session.actions?.destroy()
+        .session.info?.destroy()
+        .session.commands?.destroy()
+        .session.actions       = null
+        .session.info          = null
+        .session.commands      = null
+        .session.failureReason = reason
+    }
+
+    mtd impl setSearch(api: FileScope.SearchApi)
+    {
+        .session.revealMatch        = api.revealMatch
+        .session.searchBounds       = api.matchBounds
+        .session.clearSearch        = api.clear
+        .session.collectMatches     = api.collectMatches
+        .session.describeSearch     = api.describe
+        .session.prepareSearch      = api.prepare
+        .session.collectFileMatches = api.collectFileMatches
+        .session.useSearchMatches   = api.useMatches
+    }
+
+    mtd impl setLifecycle(api: FileScope.LifecycleApi)
+    {
+        .session.isLoading           = api.isLoading
+        .session.needsLoadingOverlay = api.needsLoadingOverlay
+        .session.retire              = api.retire
+    }
+}
 
 // Reports whether `match` is bounded by non-word runes in `source`.
 func viewerMatchIsWholeWord(source: string, match: u64, length: u64)->bool
@@ -291,6 +299,7 @@ func collectViewerTextMatches(source, query: string, options: ViewerSearchOption
             if !options.wholeWord or viewerMatchIsWholeWord(source, found, @countof(value)) do
                 result.add({major, minor, baseOffset + found, @countof(value)})
         }
+
         return
     }
 

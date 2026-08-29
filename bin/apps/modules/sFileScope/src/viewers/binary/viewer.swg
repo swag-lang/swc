@@ -42,41 +42,41 @@ internal struct BinaryViewer
 
     #[Swag.Late]
     {
-        actions:    *ViewerCommandBar
+        actions:    *Wnd
         menuButton: *IconButton
         list:       *ListCtrl
     }
 
-    previewBand:          #null *StackLayoutCtrl
-    doc:                  BinaryDocument
-    pendingDoc:           BinaryDocument
-    rowLines:             Array'(#null *ListLine)     // Line created for each report row, in row order.
-    fillParents:          Array'(#null *ListLine)
-    fillIndex:            u64
-    details:              String
-    failureReason:        String
-    loadFileName:         String
-    loadStrings:          BinaryStrings
-    loadThread:           Threading.Thread
-    loadTimer:            #null *Timer
-    loadState:            u32
-    loadPublished:        bool
-    reportFailure:        #null ViewerReportFailure
-    reportDetails:        #null ViewerReportDetails
-    reportLoadingChanged: #null ViewerReportLoadingChanged
-    retireRequested:      bool
-    retired:              bool
+    previewBand:             #null *StackLayoutCtrl
+    doc:                     BinaryDocument
+    pendingDoc:              BinaryDocument
+    rowLines:                Array'(#null *ListLine)     // Line created for each report row, in row order.
+    fillParents:             Array'(#null *ListLine)
+    fillIndex:               u64
+    details:                 String
+    failureReason:           String
+    loadFileName:            String
+    loadStrings:             BinaryStrings
+    loadThread:              Threading.Thread
+    loadTimer:               #null *Timer
+    loadState:               u32
+    loadPublished:           bool
+    reportFailure:           #null ViewerReportFailure
+    reportDetails:           #null ViewerReportDetails
+    reportLoadingChanged:    #null ViewerReportLoadingChanged
+    retireRequested:         bool
+    retired:                 bool
     reloadLanguageRequested: bool
     restoreExpanded:         Array'bool
-    restoreSelected       = Swag.U64.Max
-    history:                Array'u64
-    historyIndex          = Swag.U64.Max
+    restoreSelected    = Swag.U64.Max
+    history:                 Array'u64
+    historyIndex       = Swag.U64.Max
     historyNavigating:       bool
-    searchRow             = Swag.U64.Max
+    searchRow          = Swag.U64.Max
     searchColumn:            u64
     searchOffset:            u64
     searchLength:            u64
-    searchVisibleIndex    = Swag.U32.Max
+    searchVisibleIndex = Swag.U32.Max
 }
 
 // Reads a hexadecimal file offset, with an optional sign relative to `current`.
@@ -234,12 +234,14 @@ internal impl BinaryViewer
             if open and row.level and .rowLines[index] do
                 .rowLines[index]!.expanded = true
         }
+
         for row, index in .doc.report.rows
         {
             let open = index < .restoreExpanded.count ? .restoreExpanded[index] : row.open
             if open and !row.level and .rowLines[index] do
                 .list.expand(.rowLines[index]!)
         }
+
         .restoreExpanded.clear()
     }
 
@@ -361,6 +363,7 @@ internal impl BinaryViewer
                 let offset = hexText(row.offset, 8)
                 collectViewerTextMatches(offset.toString(), text, options, rowIndex, cast(u64) BinaryColumn.Offset, 0, result)
             }
+
             collectViewerTextMatches(row.detail.toString(), text, options, rowIndex, cast(u64) BinaryColumn.Detail, 0, result)
         }
     }
@@ -412,6 +415,7 @@ internal impl BinaryViewer
             if line.canExpand() or .list.listFlags.has(.ReserveExpandMargin) do
                 textX += .themeMetrics().list_ExpandSize
         }
+
         textX += .list.header.itemPadding
 
         let text        = source.toString()
@@ -497,7 +501,7 @@ internal impl BinaryViewer
 
     mtd goToTypedOffset(text: string)->bool
     {
-        var current = 0'u64
+        var current  = 0'u64
         let selected = .selectedReportIndex()
         if selected < .doc.report.rows.count and .doc.report.rows[selected].offset != Swag.U64.Max do
             current = .doc.report.rows[selected].offset
@@ -514,7 +518,7 @@ internal impl BinaryViewer
         if !surface or !.doc.image.fileSize do
             return
 
-        var current = 0'u64
+        var current  = 0'u64
         let selected = .selectedReportIndex()
         if selected < .doc.report.rows.count and .doc.report.rows[selected].offset != Swag.U64.Max do
             current = .doc.report.rows[selected].offset
@@ -763,12 +767,13 @@ internal impl IWnd for BinaryViewer
             if .reloadLanguageRequested
             {
                 .reloadLanguageRequested = false
-                .pendingDoc               = {}
+                .pendingDoc              = {}
                 catch .startLoad() as reloadError
                 if reloadError != null do
                     .publishLoadFailure(Errors.message(reloadError))
                 return
             }
+
             if state == 2
             {
                 .finishLoadTimer()
@@ -783,12 +788,13 @@ internal impl IWnd for BinaryViewer
                 .previewBand!.destroy()
                 .previewBand = null
             }
+
             .list.clear()
             .searchRow          = Swag.U64.Max
             .searchVisibleIndex = Swag.U32.Max
             .doc                = #move .pendingDoc
-            .details       = .doc.report.summary
-            .loadPublished = true
+            .details            = .doc.report.summary
+            .loadPublished      = true
             .beginFillList()
             if .reportDetails do
                 .reportDetails!(me, .details.toString())
@@ -883,8 +889,8 @@ internal impl BinaryViewer
 
     private mtd startLoad(notify = true) fail
     {
-        .loadStrings  = binStrings()[]
-        .loadState    = 0
+        .loadStrings   = binStrings()[]
+        .loadState     = 0
         .loadPublished = false
         try .loadThread.init(&runBinaryViewerLoad, me, priority: .BelowNormal)
         try .loadThread.start()
@@ -947,23 +953,24 @@ internal impl BinaryViewer
         .retired = true
     }
 
-    func create(contentParent, actionParent: *Wnd, fileName: string, icon: Icon = {}, reportDetails: #null ViewerReportDetails = null, reportFailure: #null ViewerReportFailure = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->#null *BinaryViewer fail
+    func create(host: FileScope.Host)->#null *BinaryViewer fail
     {
-        registerBinaryStrings(contentParent.app())
-        let s = binStrings()
+        registerBinaryStrings(host.application())
+        let s        = binStrings()
+        let services = host.services()
 
-        let result = Wnd.create'BinaryViewer(contentParent, "sFileScope.binary")
+        let result = Wnd.create'BinaryViewer(host.contentParent(), "sFileScope.binary")
         result.backgroundStyle = .View
         result.registerAction'ActionBinary()
-        result.reportDetails        = reportDetails
-        result.reportFailure        = reportFailure
-        result.reportLoadingChanged = reportLoadingChanged
+        result.reportDetails        = services.reportDetails
+        result.reportFailure        = services.reportFailure
+        result.reportLoadingChanged = services.reportLoadingChanged
 
-        result.actions           = ViewerCommandBar.create(actionParent, BinaryActionWidth)
+        result.actions           = host.createActionGroup(BinaryActionWidth)
         result.actions.dockStyle = .Left
         result.actions.margin.x  = 8
 
-        with result.menuButton = IconButton.create(result.actions, icon, {0, 0, BinaryActionWidth, 36}, flags: .CenterContent)
+        with result.menuButton = IconButton.create(result.actions, host.icon(), {0, 0, BinaryActionWidth, 36}, flags: .CenterContent)
         {
             .dockStyle = .Left
             .toolTip   = s.ui_TipMenu
@@ -1002,10 +1009,9 @@ internal impl BinaryViewer
         result.applyLayout()
         result.layoutColumns()
         result.setInitialFocus(result.list)
-        result.loadFileName = fileName
+        result.loadFileName = host.fileName()
         defer #fail
         {
-            result.actions.destroy()
             result.destroy()
         }
 
@@ -1027,30 +1033,31 @@ private func runBinaryViewerLoad(thread: Threading.Thread)
 }
 
 // Creates the integrated binary format view.
-func createBinaryViewer(request: const *ViewerRequest, result: *ViewerResult)
+func createBinaryViewer(host: FileScope.Host)
 {
-    let view = catch BinaryViewer.create(request.contentParent, request.actionParent, request.fileName, request.icon, request.reportDetails, request.reportFailure, request.reportLoadingChanged) as createError
+    let view = catch BinaryViewer.create(host) as createError
     if createError != null
     {
-        result.failureReason = Errors.message(createError)
+        host.reject(Errors.message(createError))
         return
     }
 
-    result.view         = view!
-    result.actions      = view!.actions
-    result.details      = view!.details
-    result.collectMatches = func(wnd, text, options, matches) { (cast(*BinaryViewer) wnd).collectMatches(text, options, matches) }
-    result.revealMatch  = func(wnd, match, text)->bool
+    host.attachView(view!)
+    host.setDetails(view!.details.toString())
+    host.setSearch({
+        collectMatches: func(wnd, text, options, matches) { (cast(*BinaryViewer) wnd).collectMatches(text, options, matches) },
+        revealMatch: func(wnd, match, text)->bool
     {
         discard text
         return (cast(*BinaryViewer) wnd).revealMatch(match)
-    }
-    result.searchBounds = func(wnd, match, bounds)->bool
+    },
+        matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
         return (cast(*BinaryViewer) wnd).searchBounds(bounds)
-    }
-    result.clearSearch = func(wnd) { (cast(*BinaryViewer) wnd).clearSearch() }
-    result.isLoading   = func(wnd)->bool { return (cast(*BinaryViewer) wnd).loadTimer != null }
-    result.retire      = func(wnd)->bool { return (cast(*BinaryViewer) wnd).retire() }
+    },
+        clear: func(wnd) { (cast(*BinaryViewer) wnd).clearSearch() }})
+    host.setLifecycle({
+        isLoading: func(wnd)->bool { return (cast(*BinaryViewer) wnd).loadTimer != null },
+        retire: func(wnd)->bool { return (cast(*BinaryViewer) wnd).retire() }})
 }

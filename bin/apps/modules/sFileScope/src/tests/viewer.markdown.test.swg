@@ -21,9 +21,7 @@ private func markdownWhiteyFixturePath()->String
     defer host.shutdown()
 
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_sfilescope_markdown_%.md", Guid64.random()).toString())
-    let request  = ViewerRequest{&host.root, &host.root, fileName.toString()}
-    var result: ViewerResult
-    createMarkdownViewer(&request, &result)
+    var result   = openTestViewer(&createMarkdownViewer, &host.root, fileName.toString(), commandParent: &host.root)
     @assert(result.view == null and result.commands == null)
     @assert(!result.failureReason.isEmpty())
 }
@@ -45,10 +43,8 @@ private func markdownWhiteyFixturePath()->String
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let request = ViewerRequest{&host.root, &host.root, fileName.toString()}
-    var result: ViewerResult
-    createMarkdownViewer(&request, &result)
-    let wnd = result.view
+    var result = openTestViewer(&createMarkdownViewer, &host.root, fileName.toString(), commandParent: &host.root)
+    let wnd    = result.view
     @assert(wnd != null)
     @assert(result.commands != null)
     @assert(result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)

@@ -443,24 +443,27 @@ private func fillTableVirtualLine(list: *ListCtrl, line: #null *ListLine, index:
 }
 
 // Creates the integrated CSV/TSV table view.
-func createTableViewer(request: const *ViewerRequest, result: *ViewerResult)
+func createTableViewer(host: FileScope.Host)
 {
-    registerTableStrings(request.contentParent.app())
-    let view = TableViewer.create(request.contentParent, request.fileName, request.reportFailure, request.reportDetails, request.reportLoadingChanged)
-    result.view           = view
-    result.collectMatches = func(wnd, text, options, matches) { (cast(*TableViewer) wnd).collectMatches(text, options, matches) }
-    result.revealMatch    = func(wnd, match, text)->bool
+    registerTableStrings(host.application())
+    let services = host.services()
+    let view     = TableViewer.create(host.contentParent(), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
+    host.attachView(view)
+    host.setSearch({
+        collectMatches: func(wnd, text, options, matches) { (cast(*TableViewer) wnd).collectMatches(text, options, matches) },
+        revealMatch: func(wnd, match, text)->bool
     {
         discard text
         return (cast(*TableViewer) wnd).revealMatch(match)
-    }
-    result.searchBounds = func(wnd, match, bounds)->bool
+    },
+        matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
         return (cast(*TableViewer) wnd).searchBounds(bounds)
-    }
-    result.clearSearch         = func(wnd) { (cast(*TableViewer) wnd).clearSearch() }
-    result.isLoading           = func(wnd)->bool { return (cast(*TableViewer) wnd).loadTimer != null }
-    result.needsLoadingOverlay = func(wnd)->bool { return (cast(*TableViewer) wnd).loadTimer != null }
-    result.retire              = func(wnd)->bool { return (cast(*TableViewer) wnd).retire() }
+    },
+        clear: func(wnd) { (cast(*TableViewer) wnd).clearSearch() }})
+    host.setLifecycle({
+        isLoading: func(wnd)->bool { return (cast(*TableViewer) wnd).loadTimer != null },
+        needsLoadingOverlay: func(wnd)->bool { return (cast(*TableViewer) wnd).loadTimer != null },
+        retire: func(wnd)->bool { return (cast(*TableViewer) wnd).retire() }})
 }

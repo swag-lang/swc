@@ -34,9 +34,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     defer host.shutdown()
 
     let fixture = fontFixturePath()
-    let request = ViewerRequest{&host.root, &host.root, fixture}
-    var result: ViewerResult
-    createFontViewer(&request, &result)
+    var result  = openTestViewer(&createFontViewer, &host.root, fixture, commandParent: &host.root)
     @assert(result.view != null and result.commands != null)
 
     let view = cast(*FontViewer) result.view!
@@ -66,9 +64,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     commandBar.padding         = {16, 8, 16, 8}
 
     let fixture = fontFixturePath()
-    let request = ViewerRequest{&host.root, commandBar, fixture}
-    var result: ViewerResult
-    createFontViewer(&request, &result)
+    var result  = openTestViewer(&createFontViewer, &host.root, fixture, commandParent: commandBar)
     @assert(result.view != null)
     let view = cast(*FontViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -99,9 +95,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     host.setup(640, 360)
     defer host.shutdown()
 
-    let request = ViewerRequest{&host.root, &host.root, fileName}
-    var result: ViewerResult
-    createFontViewer(&request, &result)
+    var result = openTestViewer(&createFontViewer, &host.root, fileName, commandParent: &host.root)
     @assert(result.view != null and result.commands != null)
     let view = cast(*FontViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)

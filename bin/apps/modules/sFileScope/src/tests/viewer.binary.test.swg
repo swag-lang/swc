@@ -276,8 +276,9 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     var host: Testing.HeadlessHost
     host.setup(860, 520)
     defer host.shutdown()
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 36, 36})
-    let view     = (expect BinaryViewer.create(&host.root, commands, fileName.toString()))!
+    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 36, 36})
+    var viewerSession = openTestViewer(&createBinaryViewer, &host.root, fileName.toString(), actionParent: commands)
+    let view          = cast(*BinaryViewer) viewerSession.view!
     finishBinaryViewer(&host, view)
     view.resize(860, 520)
     view.applyLayout()
@@ -761,9 +762,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     var host: Testing.HeadlessHost
     host.setup(640, 420)
     defer host.shutdown()
-    let request = ViewerRequest{contentParent: &host.root, commandParent: &host.root, fileName: "this-file-does-not-exist.bin", actionParent: &host.root}
-    var result: ViewerResult
-    createBinaryViewer(&request, &result)
+    var result = openTestViewer(&createBinaryViewer, &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, actionParent: &host.root)
     @assert(result.view != null and result.actions != null and result.commands == null and result.collectMatches != null and result.isLoading != null)
     let view = cast(*BinaryViewer) result.view!
     finishBinaryViewer(&host, view)
@@ -772,8 +771,9 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
 func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*BinaryViewer
 {
-    let actions = Wnd.create'Wnd(&host.root, {0, 0, 124, 36})
-    let view    = (expect BinaryViewer.create(&host.root, actions, fileName))!
+    let actions       = Wnd.create'Wnd(&host.root, {0, 0, 124, 36})
+    var viewerSession = openTestViewer(&createBinaryViewer, &host.root, fileName, actionParent: actions)
+    let view          = cast(*BinaryViewer) viewerSession.view!
     finishBinaryViewer(host, view)
     view.dockStyle = .Center
     view.resize(width, height)
@@ -905,7 +905,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index  = createViewerIndex()
+    let index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
     window.openFile(fileName.toString())

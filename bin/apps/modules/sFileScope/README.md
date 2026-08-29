@@ -126,19 +126,31 @@ processes.
 
 ## Adding a viewer
 
-Add implementation files under `src/viewers/<format>/`, expose one internal
-`func create<Format>Viewer(const *ViewerRequest, *ViewerResult)`, and add that function with its
-key, name, glyph, immutable fixture, and selectors to `createViewerIndex`. The fixture lives in
-`src/tests/datas`, is unique to that registry entry, and is a valid file the viewer can open. The
-key is lowercase, never translated, and never reused: it is the spelling a reader's remembered
-choice is stored under. The glyph is a new 24-unit cell appended to `datas/icons.svg` with a
-matching `ViewerIcons` case in grid order. Create the document under `request.contentParent`,
-compact actions under `request.actionParent`, trailing values under `request.infoParent`,
-and only wider controls under `request.commandParent`; publish those roots through the matching
-`ViewerResult` fields. On decode failure, leave `result.view` null and return the exact reason
-through `result.failureReason`; the application presents every failure on the same error surface.
-A viewer may also provide format details, byte-offset reveal, format-aware search,
-progressive-loading state, and late failure reporting through the shared result contract.
+Every viewer, including Basic text, is a plugin described by `FileScope.Plugin`. The shared
+`filescopeviewer` module owns this versioned source-level contract; the application owns only a
+generic registry and a `FileScope.Host` implementation. No plugin receives `ViewerWindow`, its
+bars, its session structure, or application-private callbacks.
+
+Add implementation files under `src/viewers/<format>/` and expose one internal
+`func create<Format>Viewer(host: FileScope.Host)`. Register its descriptor in
+`createViewerPluginRegistry` with a stable lowercase key, display-name resolver, icon provider,
+immutable smoke fixture, selectors, and optional content probe. A plugin calls `attachView` for its
+document and can create at most one action, information, and lower command group through the host.
+It declares optional search and progressive-lifecycle behavior through `setSearch` and
+`setLifecycle`; retained asynchronous notifications come only from `host.services()`.
+
+The fixture lives in `src/tests/datas`, is unique to that descriptor, and is a valid file the
+plugin can open. The key is never translated or reused because remembered viewer choices persist
+it. A built-in glyph remains a 24-unit cell in `datas/icons.svg` with a matching `ViewerIcons` case
+in grid order. Reject malformed content with the exact decoder reason before attaching a view; the
+application presents every plugin failure on the same error surface and owns cleanup of all
+contributed windows.
+
+The registry accepts descriptors it did not compile into its built-in catalog, and its selection
+pipeline contains no viewer-kind branches. Runtime discovery of external binaries is intentionally
+future work: it needs a native entry point, trust and discovery policy, and ABI adapter that checks
+`FileScope.ViewerApiVersion`. The current shared module establishes the clean plugin boundary
+without claiming that arbitrary DLL loading is already safe or supported.
 
 Keep tests at `src/tests/viewer.<format>.test.swg`, fixtures in `src/tests/datas`, and image goldens
 in `src/tests/goldens`. Run a focused test with:
@@ -150,8 +162,7 @@ swc tools/apps.swgs dm test sFileScope --test-file viewer.<format>.test.swg
 `swc tools/apps.swgs dm build sFileScope` builds one executable containing all viewers and lets
 the workspace publisher place its standard-module runtime dependencies beside it.
 
-`swc tools/apps.swgs dm smoke sFileScope` opens every registered fixture in order, selects its
-owning viewer explicitly, then reviews the streamed Basic text surface with its own fixture. It
-keeps progressive content visible long enough to exercise late failures, waits while a viewer has
-no presentable content, and returns a nonzero exit code when a fixture is missing or a viewer
-cannot open it.
+`swc tools/apps.swgs dm smoke sFileScope` opens every plugin's registered fixture in order and
+selects that plugin explicitly. It keeps progressive content visible long enough to exercise late
+failures, waits while a viewer has no presentable content, and returns a nonzero exit code when a
+fixture is missing or a plugin cannot open it.

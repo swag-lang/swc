@@ -133,9 +133,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     defer host.shutdown()
 
     var failed: bool
-    let request = ViewerRequest{contentParent: &host.root, commandParent: &host.root, fileName: fileName, reportFailure: &markSoundOpenFailure}
-    var result: ViewerResult
-    createSoundViewer(&request, &result)
+    var result = openTestViewer(&createSoundViewer, &host.root, fileName, commandParent: &host.root, services: {reportFailure: &markSoundOpenFailure})
     @assert(result.view != null and result.commands != null)
     @assert(result.isLoading != null and result.needsLoadingOverlay != null)
     let view = cast(*SoundViewer) result.view!
@@ -159,9 +157,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     host.setup(640, 360)
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
-    let request  = ViewerRequest{&host.root, commands, fileName}
-    var result: ViewerResult
-    createSoundViewer(&request, &result)
+    var result   = openTestViewer(&createSoundViewer, &host.root, fileName, commandParent: commands)
     @assert(result.view != null)
     @assert(result.commands != null and result.isLoading != null and result.needsLoadingOverlay != null)
     let view = cast(*SoundViewer) result.view!
@@ -182,9 +178,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     // waveform of every file but the first went missing when a failure inside the engine was
     // swallowed on its way out of the module.
     let replacementCommands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
-    let replacementRequest  = ViewerRequest{&host.root, replacementCommands, fileName}
-    var replacementResult: ViewerResult
-    createSoundViewer(&replacementRequest, &replacementResult)
+    var replacementResult   = openTestViewer(&createSoundViewer, &host.root, fileName, commandParent: replacementCommands)
     @assert(replacementResult.view != null)
     let replacement = cast(*SoundViewer) replacementResult.view!
     waitForSoundOpen(&host, replacement)
@@ -234,9 +228,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     commandBar.dockStyle       = .Bottom
     commandBar.backgroundStyle = .Window
     commandBar.padding         = {16, 8, 16, 8}
-    let request = ViewerRequest{&host.root, commandBar, fileName}
-    var result: ViewerResult
-    createSoundViewer(&request, &result)
+    var result = openTestViewer(&createSoundViewer, &host.root, fileName, commandParent: commandBar)
     @assert(result.view != null)
     let view = cast(*SoundViewer) result.view!
     waitForSoundOpen(&host, view)
@@ -326,9 +318,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     host.setup(640, 320)
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
-    let request  = ViewerRequest{&host.root, commands, pacmanWav.toString()}
-    var result: ViewerResult
-    createSoundViewer(&request, &result)
+    var result   = openTestViewer(&createSoundViewer, &host.root, pacmanWav.toString(), commandParent: commands)
     @assert(result.view != null)
     let view = cast(*SoundViewer) result.view!
     waitForSoundOpen(&host, view)

@@ -11,24 +11,24 @@ using Core, Gui
 // are proper names, not sentences.
 struct BinaryStrings
 {
-    ui_ColField:     string = "Field"                            // Header of the structure column.
-    ui_ColValue:     string = "Value"                            // Header of the decoded value column.
-    ui_ColOffset:    string = "Offset"                           // Header of the file offset column.
-    ui_ColDetail:    string = "Meaning"                          // Header of the explanation column.
-    ui_TipMenu:      string = "Copy and layout"                  // Tooltip of the command menu button.
-    ui_TipExpand:    string = "Expand everything (Ctrl+E)"       // Tooltip while the tree is collapsed.
-    ui_TipCollapse:  string = "Collapse everything (Ctrl+E)"     // Tooltip while the tree is expanded.
-    ui_MenuCopyAll:  string = "Copy the whole report"            // Menu entry copying every row.
-    ui_MenuCopyLine: string = "Copy this line"                   // Menu entry copying the selected row.
-    ui_MenuExpand:   string = "Expand everything"                // Menu entry opening every group.
-    ui_MenuCollapse: string = "Collapse everything"              // Menu entry closing every group.
-    ui_MenuGoTo:     string = "Go to file offset"                // Menu entry opening the file-offset dialog.
-    ui_GoToMessage:  string = "Hexadecimal file offset, or a signed offset from the selected row." // Question of the jump dialog.
-    ui_MenuBack:     string = "Previous location"                // Menu entry walking backward through selected report rows.
-    ui_MenuForward:  string = "Next location"                    // Menu entry walking forward through selected report rows.
-    ui_NotSet:       string = "not set"                          // Value of an absent timestamp.
-    ui_NotDate:      string = "not a date"                       // Value of a timestamp outside the supported calendar.
-    ui_Preview:      string = "Preview"                          // Label of an SCC preview image.
+    ui_ColField:     string = "Field"                                                                  // Header of the structure column.
+    ui_ColValue:     string = "Value"                                                                  // Header of the decoded value column.
+    ui_ColOffset:    string = "Offset"                                                                 // Header of the file offset column.
+    ui_ColDetail:    string = "Meaning"                                                                // Header of the explanation column.
+    ui_TipMenu:      string = "Copy and layout"                                                        // Tooltip of the command menu button.
+    ui_TipExpand:    string = "Expand everything (Ctrl+E)"                                             // Tooltip while the tree is collapsed.
+    ui_TipCollapse:  string = "Collapse everything (Ctrl+E)"                                           // Tooltip while the tree is expanded.
+    ui_MenuCopyAll:  string = "Copy the whole report"                                                  // Menu entry copying every row.
+    ui_MenuCopyLine: string = "Copy this line"                                                         // Menu entry copying the selected row.
+    ui_MenuExpand:   string = "Expand everything"                                                      // Menu entry opening every group.
+    ui_MenuCollapse: string = "Collapse everything"                                                    // Menu entry closing every group.
+    ui_MenuGoTo:     string = "Go to file offset"                                                      // Menu entry opening the file-offset dialog.
+    ui_GoToMessage:  string = "Hexadecimal file offset, or a signed offset from the selected row."     // Question of the jump dialog.
+    ui_MenuBack:     string = "Previous location"                                                      // Menu entry walking backward through selected report rows.
+    ui_MenuForward:  string = "Next location"                                                          // Menu entry walking forward through selected report rows.
+    ui_NotSet:       string = "not set"                                                                // Value of an absent timestamp.
+    ui_NotDate:      string = "not a date"                                                             // Value of a timestamp outside the supported calendar.
+    ui_Preview:      string = "Preview"                                                                // Label of an SCC preview image.
 
     word_Section:    string = "section"        // One section.
     word_Sections:   string = "sections"       // Several sections.

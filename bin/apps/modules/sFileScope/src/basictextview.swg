@@ -31,7 +31,7 @@ struct BasicTextView
 
     #[Swag.Late]
     {
-        commands:      *ViewerCommandBar
+        commands:      *Wnd
         editor:        *RichEditCtrl
         wrapButton:    *IconButton
         encodingCombo: *ComboBox
@@ -378,18 +378,18 @@ impl IWnd for BasicTextView
 
 impl BasicTextView
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails = null)->*BasicTextView
+    func create(host: FileScope.Host)->*BasicTextView
     {
-        let result = Wnd.create'BasicTextView(contentParent, "sFileScope.basicText")
+        let result = Wnd.create'BasicTextView(host.contentParent(), "sFileScope.basicText")
         result.backgroundStyle = .View
-        result.fileName        = fileName
-        result.reportDetails   = reportDetails
+        result.fileName        = host.fileName()
+        result.reportDetails   = host.services().reportDetails
 
-        let probed = probe(fileName)
+        let probed = probe(host.fileName())
         result.encoding     = probed.encoding
         result.contentStart = probed.contentStart
 
-        result.commands = ViewerCommandBar.create(commandParent, 200)
+        result.commands = host.createCommandGroup(200)
 
         with result.wrapButton = IconButton.create(result.commands, result.theme().icon(.Wrap), {0, 0, 36, 36}, flags: .Toggle)
         {
@@ -488,7 +488,7 @@ impl BasicTextView
             return false
         }
 
-        result.stream = catch File.openRead(fileName) as openError
+        result.stream = catch File.openRead(host.fileName()) as openError
         if openError != null do
             result.showReadError()
         else
@@ -519,4 +519,16 @@ impl BasicTextView
         result.setInitialFocus(result.editor)
         return result
     }
+}
+
+func createBasicTextViewer(host: FileScope.Host)
+{
+    let view = BasicTextView.create(host)
+    host.attachView(view)
+    host.setDetails(Format.toString(appStrings().ui_TextDetails, view.encodingName()).toString())
+    host.setSearch({
+        revealMatch: &basicTextRevealMatch,
+        matchBounds: &basicTextSearchBounds,
+        clear: &basicTextClearSearch})
+    host.setLifecycle({isLoading: &basicTextIsLoading})
 }

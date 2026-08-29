@@ -18,9 +18,7 @@ func subtitleViewerFixturePath()->String
     defer host.shutdown()
 
     let fileName = subtitleViewerFixturePath()
-    let request  = ViewerRequest{&host.root, &host.root, fileName.toString()}
-    var result: ViewerResult
-    createSubtitleViewer(&request, &result)
+    var result   = openTestViewer(&createSubtitleViewer, &host.root, fileName.toString(), commandParent: &host.root)
     @assert(result.view != null and result.commands == null)
     @assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
     @assert(result.details.indexOf("SubRip") != Swag.U64.Max and result.details.indexOf("2 cues") != Swag.U64.Max)
@@ -53,9 +51,7 @@ func subtitleViewerFixturePath()->String
     host.notify(.ThemeChanged)
 
     let fileName = subtitleViewerFixturePath()
-    let request  = ViewerRequest{&host.root, &host.root, fileName.toString()}
-    var result: ViewerResult
-    createSubtitleViewer(&request, &result)
+    var result   = openTestViewer(&createSubtitleViewer, &host.root, fileName.toString(), commandParent: &host.root)
     @assert(result.view != null)
     result.view!.dockStyle = .Center
     host.root.applyLayout()

@@ -107,13 +107,19 @@ internal func applyMarkdownViewerStyle(view: *Markdown.View, themeIndex, widthIn
 }
 
 // Creates the integrated Markdown view.
-func createMarkdownViewer(request: const *ViewerRequest, result: *ViewerResult)
+func createMarkdownViewer(host: FileScope.Host)
 {
-    registerMarkdownStrings(request.contentParent.app())
+    registerMarkdownStrings(host.application())
+    let view = Markdown.View.createFile(host.contentParent(), host.fileName(), Markdown.Style.theme())
+    if !view.failureReason.isEmpty()
+    {
+        host.reject(view.failureReason.toString())
+        view.destroy()
+        return
+    }
 
-    let commandGroup = Wnd.create'Wnd(request.commandParent, {0, 0, 264, 36})
-    commandGroup.backgroundStyle = .Transparent
-    let widthCombo = ComboBox.create(commandGroup, {0, 0, 104, 36})
+    let commandGroup = host.createCommandGroup(264)
+    let widthCombo   = ComboBox.create(commandGroup, {0, 0, 104, 36})
     widthCombo.dockStyle = .Right
     widthCombo.toolTip   = markdownStrings().ui_TipWidth
     widthCombo.addItem(markdownStrings().ui_Narrow)
@@ -134,33 +140,25 @@ func createMarkdownViewer(request: const *ViewerRequest, result: *ViewerResult)
     themeCombo.addItem("Whitey")
     themeCombo.setSelectedIndex(0, notify: false)
 
-    let view = Markdown.View.createFile(request.contentParent, request.fileName, Markdown.Style.theme())
-    if !view.failureReason.isEmpty()
+    let services = host.services()
+    if services.reportFailure
     {
-        result.failureReason = view.failureReason.toString()
-        commandGroup.destroy()
-        view.destroy()
-        return
-    }
-
-    if request.reportFailure
-    {
-        let reportFailure = request.reportFailure!
+        let reportFailure = services.reportFailure!
         view.sigLoadFailed += func|reportFailure|(markdown, reason) { reportFailure(cast(*Wnd) markdown, reason) }
     }
 
     applyMarkdownViewerStyle(view, 0, 1)
-    result.view         = view
-    result.commands     = commandGroup
-    result.details      = markdownStrings().ui_Details
-    result.revealMatch  = func(wnd, match, text)->bool { return (cast(*Markdown.View) wnd).revealFileOffset(match.offset, text) }
-    result.searchBounds = func(wnd, match, bounds)->bool
+    host.attachView(view)
+    host.setDetails(markdownStrings().ui_Details)
+    host.setSearch({
+        revealMatch: func(wnd, match, text)->bool { return (cast(*Markdown.View) wnd).revealFileOffset(match.offset, text) },
+        matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
         return (cast(*Markdown.View) wnd).searchMatchRect(bounds)
-    }
-    result.clearSearch    = func(wnd) { (cast(*Markdown.View) wnd).clearSearchHighlight() }
-    result.isLoading      = func(wnd)->bool { return (cast(*Markdown.View) wnd).isLoading() }
+    },
+        clear: func(wnd) { (cast(*Markdown.View) wnd).clearSearchHighlight() }})
+    host.setLifecycle({isLoading: func(wnd)->bool { return (cast(*Markdown.View) wnd).isLoading() }})
     themeCombo.sigChanged += func|view, widthCombo|(combo, index)
     {
         discard combo

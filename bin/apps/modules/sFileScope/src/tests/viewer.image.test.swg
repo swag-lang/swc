@@ -54,9 +54,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     infoBar.backgroundStyle = .InformationBar
     infoBar.padding         = {16, 4, 16, 4}
 
-    let request = ViewerRequest{contentParent: &host.root, commandParent: &host.root, fileName: fileName, actionParent: actionBar, infoParent: infoBar, navigateFile: &countImageNavigation}
-    var result: ViewerResult
-    createImageViewer(&request, &result)
+    var result = openTestViewer(&createImageViewer, &host.root, fileName, commandParent: &host.root, actionParent: actionBar, infoParent: infoBar, services: {navigateFile: &countImageNavigation})
     @assert(result.view != null and result.actions != null and result.info != null and result.commands == null)
 
     let view = cast(*ImageViewer) result.view!
@@ -106,9 +104,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     host.setup(640, 420)
     defer host.shutdown()
 
-    let request = ViewerRequest{contentParent: &host.root, commandParent: &host.root, fileName: fileName, actionParent: &host.root, infoParent: &host.root}
-    var result: ViewerResult
-    createImageViewer(&request, &result)
+    var result = openTestViewer(&createImageViewer, &host.root, fileName, commandParent: &host.root, actionParent: &host.root, infoParent: &host.root)
     @assert(result.view != null and result.actions != null and result.info != null and result.commands == null)
     let view = cast(*ImageViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -123,7 +119,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index  = createViewerIndex()
+    let index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
     let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg")

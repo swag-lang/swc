@@ -31,16 +31,16 @@ func assertClassificationFolder(result: const *ViewerClassifiedFile, names: cons
         names.add(fileName)
     }
 
-    var index = createViewerIndex()
+    var index = createViewerPluginRegistry()
     var load:   ViewerChoiceLoad
     var recent: Array'String
 
-    load.start(&index, names[0].toString(), "Basic text", recent.toSlice())
+    load.start(&index, names[0].toString(), recent.toSlice())
     Jobs.wait(&load.job)
     var first = load.finish()
     assertClassificationFolder(&first, names.toSlice())
 
-    load.start(&index, names[2].toString(), "Basic text", recent.toSlice())
+    load.start(&index, names[2].toString(), recent.toSlice())
     Jobs.wait(&load.job)
     var second = load.finish()
     assertClassificationFolder(&second, names.toSlice())

@@ -320,25 +320,26 @@ internal impl IWnd for CodeViewer
 }
 
 // Creates the integrated syntax-colored source view.
-func createCodeViewer(request: const *ViewerRequest, result: *ViewerResult)
+func createCodeViewer(host: FileScope.Host)
 {
-    registerCodeStrings(request.contentParent.app())
-    let view = CodeViewer.create(request.contentParent, request.fileName, request.reportFailure)
+    registerCodeStrings(host.application())
+    let view = CodeViewer.create(host.contentParent(), host.fileName(), host.services().reportFailure)
     if !view.failureReason.isEmpty()
     {
-        result.failureReason = #move view.failureReason
+        host.reject(view.failureReason.toString())
         view.destroy()
         return
     }
 
-    result.view         = view
-    result.details      = Format.toString(codeStrings().ui_Details, view.languageName)
-    result.revealMatch  = func(wnd, match, text)->bool { return (cast(*CodeViewer) wnd).revealOffset(match.offset, text) }
-    result.searchBounds = func(wnd, match, bounds)->bool
+    host.attachView(view)
+    host.setDetails(Format.toString(codeStrings().ui_Details, view.languageName).toString())
+    host.setSearch({
+        revealMatch: func(wnd, match, text)->bool { return (cast(*CodeViewer) wnd).revealOffset(match.offset, text) },
+        matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
         return richEditSearchBounds((cast(*CodeViewer) wnd).editor, bounds)
-    }
-    result.clearSearch = func(wnd) { clearRichEditSearch((cast(*CodeViewer) wnd).editor) }
-    result.isLoading   = func(wnd)->bool { return (cast(*CodeViewer) wnd).loadTimer != null }
+    },
+        clear: func(wnd) { clearRichEditSearch((cast(*CodeViewer) wnd).editor) }})
+    host.setLifecycle({isLoading: func(wnd)->bool { return (cast(*CodeViewer) wnd).loadTimer != null }})
 }

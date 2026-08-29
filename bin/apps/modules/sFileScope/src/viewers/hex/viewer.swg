@@ -34,7 +34,7 @@ internal struct HexViewer
         grid:        *HexGridView
     }
 
-    info:                 #null *ViewerCommandBar
+    info:                 #null *Wnd
     inspectorLabel:       #null *Label
     searchPattern:        HexSearchPattern
     details:              String
@@ -301,26 +301,23 @@ internal impl HexViewer
 
 internal impl HexViewer
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null, reportDetails: #null ViewerReportDetails = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null, infoParent: #null *Wnd = null)->*HexViewer
+    func create(host: FileScope.Host)->*HexViewer
     {
-        let result = Wnd.create'HexViewer(contentParent, "sFileScope.hex")
+        let services = host.services()
+        let result   = Wnd.create'HexViewer(host.contentParent(), "sFileScope.hex")
         result.backgroundStyle      = .View
-        result.reportFailure        = reportFailure
-        result.reportDetails        = reportDetails
-        result.reportLoadingChanged = reportLoadingChanged
+        result.reportFailure        = services.reportFailure
+        result.reportDetails        = services.reportDetails
+        result.reportLoadingChanged = services.reportLoadingChanged
 
-        result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, HexCommandWidth, 36})
-        result.commands.backgroundStyle = .Transparent
+        result.commands = host.createCommandGroup(HexCommandWidth)
 
-        if infoParent
+        result.info = host.createInfoGroup(HexInfoWidth)
+        with result.inspectorLabel = Label.create(result.info!, "", {0, 0, HexInfoWidth, 32}, null, .SecondaryText | .Ellipsis)
         {
-            result.info = ViewerCommandBar.create(infoParent!, HexInfoWidth)
-            with result.inspectorLabel = Label.create(result.info!, "", {0, 0, HexInfoWidth, 32}, null, .SecondaryText | .Ellipsis)
-            {
-                .dockStyle = .Center
-                .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
-                .setTextAlignment(.Right, .OpticalCenter)
-            }
+            .dockStyle = .Center
+            .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+            .setTextAlignment(.Right, .OpticalCenter)
         }
 
         with result.widthCombo = ComboBox.create(result.commands, {0, 0, HexComboWidth, 36})
@@ -376,9 +373,9 @@ internal impl HexViewer
             discard grid
             view.refreshInspector()
         }
-        if reportFailure
+        if services.reportFailure
         {
-            let report = reportFailure!
+            let report = services.reportFailure!
             result.grid.doc.reportFailure = func|result, report|(reason) { report(cast(*Wnd) result, reason) }
         }
 
@@ -387,38 +384,38 @@ internal impl HexViewer
         result.grid.refreshLayout()
         result.refreshInspector()
         result.setInitialFocus(result.grid)
-        result.load.start(fileName, &loadHexDocument)
+        result.load.start(host.fileName(), &loadHexDocument)
         result.loadTimer = result.addTimer(ViewerBackgroundPollInterval)
         return result
     }
 }
 
 // Creates the integrated hexadecimal view.
-func createHexViewer(request: const *ViewerRequest, result: *ViewerResult)
+func createHexViewer(host: FileScope.Host)
 {
-    registerHexStrings(request.contentParent.app())
-    let view = HexViewer.create(request.contentParent, request.commandParent, request.fileName, request.reportFailure, request.reportDetails, request.reportLoadingChanged, request.infoParent)
+    registerHexStrings(host.application())
+    let view = HexViewer.create(host)
 
-    result.view        = view
-    result.info        = view.info
-    result.commands    = view.commands
-    result.details     = view.details
-    result.revealMatch = func(wnd, match, text)->bool
+    host.attachView(view)
+    host.setDetails(view.details.toString())
+    host.setSearch({
+        revealMatch: func(wnd, match, text)->bool
     {
         discard text
         return (cast(*HexViewer) wnd).revealOffset(match.offset, match.length)
-    }
-    result.searchBounds = func(wnd, match, bounds)->bool
+    },
+        matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
         return (cast(*HexViewer) wnd).grid.matchBounds(bounds)
-    }
-    result.clearSearch         = func(wnd) { (cast(*HexViewer) wnd).grid.clearSearchMatch() }
-    result.describeSearch      = func(wnd, presentation) { (cast(*HexViewer) wnd).describeSearch(presentation) }
-    result.prepareSearch       = func(wnd, query, plan)->EditBoxCheckResult { return (cast(*HexViewer) wnd).prepareSearch(query, plan) }
-    result.collectFileMatches  = func(wnd, source, baseOffset, matches) { (cast(*HexViewer) wnd).collectSearchMatches(source, baseOffset, matches) }
-    result.useSearchMatches    = func(wnd, matches) { (cast(*HexViewer) wnd).grid.setSearchMatches(matches) }
-    result.isLoading           = func(wnd)->bool { return (cast(*HexViewer) wnd).loadTimer != null }
-    result.needsLoadingOverlay = func(wnd)->bool { return (cast(*HexViewer) wnd).loadTimer != null }
-    result.retire              = func(wnd)->bool { return (cast(*HexViewer) wnd).retire() }
+    },
+        clear: func(wnd) { (cast(*HexViewer) wnd).grid.clearSearchMatch() },
+        describe: func(wnd, presentation) { (cast(*HexViewer) wnd).describeSearch(presentation) },
+        prepare: func(wnd, query, plan)->EditBoxCheckResult { return (cast(*HexViewer) wnd).prepareSearch(query, plan) },
+        collectFileMatches: func(wnd, source, baseOffset, matches) { (cast(*HexViewer) wnd).collectSearchMatches(source, baseOffset, matches) },
+        useMatches: func(wnd, matches) { (cast(*HexViewer) wnd).grid.setSearchMatches(matches) }})
+    host.setLifecycle({
+        isLoading: func(wnd)->bool { return (cast(*HexViewer) wnd).loadTimer != null },
+        needsLoadingOverlay: func(wnd)->bool { return (cast(*HexViewer) wnd).loadTimer != null },
+        retire: func(wnd)->bool { return (cast(*HexViewer) wnd).retire() }})
 }

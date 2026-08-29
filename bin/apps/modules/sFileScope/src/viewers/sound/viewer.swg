@@ -384,7 +384,7 @@ internal struct SoundViewer
 
     #[Swag.Late]
     {
-        commands:       *ViewerCommandBar
+        commands:       *Wnd
         playButton:     *IconButton
         stopButton:     *IconButton
         backwardButton: *IconButton
@@ -758,15 +758,17 @@ internal impl IWnd for SoundViewer
 
 internal impl SoundViewer
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails = null, reportFailure: #null ViewerReportFailure = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*SoundViewer fail
+    func create(host: FileScope.Host)->*SoundViewer fail
     {
-        let result = Wnd.create'SoundViewer(contentParent, "sFileScope.sound")
+        registerSoundStrings(host.application())
+        let services = host.services()
+        let result   = Wnd.create'SoundViewer(host.contentParent(), "sFileScope.sound")
         result.backgroundStyle      = .View
-        result.reportDetails        = reportDetails
-        result.reportFailure        = reportFailure
-        result.reportLoadingChanged = reportLoadingChanged
+        result.reportDetails        = services.reportDetails
+        result.reportFailure        = services.reportFailure
+        result.reportLoadingChanged = services.reportLoadingChanged
 
-        result.commands = ViewerCommandBar.create(commandParent, 0)
+        result.commands = host.createCommandGroup(0)
         with result.playButton = IconButton.create(result.commands, result.theme().icon(.Play, SoundGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
@@ -872,10 +874,9 @@ internal impl SoundViewer
         result.updatePlaybackUi()
         result.applyLayout()
         result.setInitialFocus(result.playButton)
-        result.openFileName = fileName
+        result.openFileName = host.fileName()
         defer #fail
         {
-            result.commands.destroy()
             result.destroy()
         }
 
@@ -906,23 +907,22 @@ private func runSoundViewerOpen(thread: Thread)
     Atomic.exchange(&view.openState, 1)
 }
 
-private func loadSoundViewer(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails, reportFailure: #null ViewerReportFailure, reportLoadingChanged: #null ViewerReportLoadingChanged)->#null *SoundViewer fail => try SoundViewer.create(contentParent, commandParent, fileName, reportDetails, reportFailure, reportLoadingChanged)
-
 // Creates the integrated sound playback and waveform view.
-func createSoundViewer(request: const *ViewerRequest, result: *ViewerResult)
+private func loadSoundViewer(host: FileScope.Host)->#null *SoundViewer fail => try SoundViewer.create(host)
+
+func createSoundViewer(host: FileScope.Host)
 {
-    registerSoundStrings(request.contentParent.app())
-    let view = catch loadSoundViewer(request.contentParent, request.commandParent, request.fileName, request.reportDetails, request.reportFailure, request.reportLoadingChanged) as decodeError
+    let view = catch loadSoundViewer(host) as decodeError
     if decodeError != null
     {
-        result.failureReason = Errors.message(decodeError)
+        host.reject(Errors.message(decodeError))
         return
     }
 
-    result.view                = view
-    result.commands            = view!.commands
-    result.details             = view!.details
-    result.retire              = func(wnd)->bool { return (cast(*SoundViewer) wnd).retire() }
-    result.isLoading           = func(wnd)->bool { return (cast(*SoundViewer) wnd).isLoading() }
-    result.needsLoadingOverlay = func(wnd)->bool { return !(cast(*SoundViewer) wnd).openFinished }
+    host.attachView(view!)
+    host.setDetails(view!.details.toString())
+    host.setLifecycle({
+        retire: func(wnd)->bool { return (cast(*SoundViewer) wnd).retire() },
+        isLoading: func(wnd)->bool { return (cast(*SoundViewer) wnd).isLoading() },
+        needsLoadingOverlay: func(wnd)->bool { return !(cast(*SoundViewer) wnd).openFinished }})
 }

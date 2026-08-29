@@ -11,7 +11,7 @@ internal struct MidiViewer
 
     #[Swag.Late]
     {
-        commands:      *ViewerCommandBar
+        commands:      *Wnd
         trackCombo:    *ComboBox
         zoomOutButton: *IconButton
         zoomInButton:  *IconButton
@@ -135,7 +135,7 @@ private impl IWnd for MidiViewer
 
 internal impl MidiViewer
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure, reportDetails: #null ViewerReportDetails, reportLoadingChanged: #null ViewerReportLoadingChanged)->*MidiViewer
+    func create(contentParent, commands: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure, reportDetails: #null ViewerReportDetails, reportLoadingChanged: #null ViewerReportLoadingChanged)->*MidiViewer
     {
         registerMidiStrings(contentParent.app())
         let result = Wnd.create'MidiViewer(contentParent, "sFileScope.midi")
@@ -144,7 +144,7 @@ internal impl MidiViewer
         result.reportDetails        = reportDetails
         result.reportLoadingChanged = reportLoadingChanged
 
-        result.commands = ViewerCommandBar.create(commandParent, MidiCommandWidth)
+        result.commands = commands
         with result.trackCombo = ComboBox.create(result.commands, {0, 0, 224, 36})
         {
             .dockStyle  = .Left
@@ -208,13 +208,14 @@ internal impl MidiViewer
     }
 }
 
-func createMidiViewer(request: const *ViewerRequest, result: *ViewerResult)
+func createMidiViewer(host: FileScope.Host)
 {
-    registerMidiStrings(request.contentParent.app())
-    let view = MidiViewer.create(request.contentParent, request.commandParent, request.fileName, request.reportFailure, request.reportDetails, request.reportLoadingChanged)
-    result.view                = view
-    result.commands            = view.commands
-    result.isLoading           = func(wnd)->bool { return (cast(*MidiViewer) wnd).loadTimer != null }
-    result.needsLoadingOverlay = func(wnd)->bool { return (cast(*MidiViewer) wnd).loadTimer != null }
-    result.retire              = func(wnd)->bool { return (cast(*MidiViewer) wnd).retire() }
+    registerMidiStrings(host.application())
+    let services = host.services()
+    let view     = MidiViewer.create(host.contentParent(), host.createCommandGroup(MidiCommandWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
+    host.attachView(view)
+    host.setLifecycle({
+        isLoading: func(wnd)->bool { return (cast(*MidiViewer) wnd).loadTimer != null },
+        needsLoadingOverlay: func(wnd)->bool { return (cast(*MidiViewer) wnd).loadTimer != null },
+        retire: func(wnd)->bool { return (cast(*MidiViewer) wnd).retire() }})
 }

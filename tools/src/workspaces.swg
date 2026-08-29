@@ -225,7 +225,15 @@ private func packageApplication(context: *Context, options: *Options, name: stri
     let executable = Path.combine(appDir.toString(), Format.toString("%.exe", name).toString())
     if !File.exists(executable)
     {
-        Console.println("Application executable is missing: ", executable.toString())
+        // The applications workspace may hold a shared contract module used by one or more
+        // executables. It has no application payload to package, and a successful workspace build
+        // has already published its library artifact for importers.
+        let libraryDir = Path.combine(applicationWorkspace(context).toString(), ".output", name, "shared-library", options.buildCfg.toString(), context.targetArch.toString())
+        let library    = Path.combine(libraryDir.toString(), Format.toString("%.dll", name).toString())
+        if File.exists(library) do
+            return 0
+
+        Console.println("Application artifact is missing: ", executable.toString())
         return 1
     }
 

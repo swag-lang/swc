@@ -149,7 +149,7 @@ internal impl FontViewer
         return true
     }
 
-    func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure, reportDetails: #null ViewerReportDetails, reportLoadingChanged: #null ViewerReportLoadingChanged)->*FontViewer
+    func create(contentParent, commands: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure, reportDetails: #null ViewerReportDetails, reportLoadingChanged: #null ViewerReportLoadingChanged)->*FontViewer
     {
         registerFontStrings(contentParent.app())
         let result = Wnd.create'FontViewer(contentParent, "sFileScope.font")
@@ -158,8 +158,7 @@ internal impl FontViewer
         result.reportDetails        = reportDetails
         result.reportLoadingChanged = reportLoadingChanged
 
-        result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, FontCommandWidth, 36})
-        result.commands.backgroundStyle = .Transparent
+        result.commands = commands
 
         result.sampleDefault = fontStrings().ui_DefaultSample
         with result.sampleEdit = EditBox.create(result.commands, result.sampleDefault.toString(), {0, 0, 260, 36}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
@@ -216,13 +215,14 @@ internal impl FontViewer
 }
 
 // Creates the integrated TrueType specimen and character-map view.
-func createFontViewer(request: const *ViewerRequest, result: *ViewerResult)
+func createFontViewer(host: FileScope.Host)
 {
-    registerFontStrings(request.contentParent.app())
-    let view = FontViewer.create(request.contentParent, request.commandParent, request.fileName, request.reportFailure, request.reportDetails, request.reportLoadingChanged)
-    result.view                = view
-    result.commands            = view.commands
-    result.isLoading           = func(wnd)->bool { return (cast(*FontViewer) wnd).loadTimer != null }
-    result.needsLoadingOverlay = func(wnd)->bool { return (cast(*FontViewer) wnd).loadTimer != null }
-    result.retire              = func(wnd)->bool { return (cast(*FontViewer) wnd).retire() }
+    registerFontStrings(host.application())
+    let services = host.services()
+    let view     = FontViewer.create(host.contentParent(), host.createCommandGroup(FontCommandWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
+    host.attachView(view)
+    host.setLifecycle({
+        isLoading: func(wnd)->bool { return (cast(*FontViewer) wnd).loadTimer != null },
+        needsLoadingOverlay: func(wnd)->bool { return (cast(*FontViewer) wnd).loadTimer != null },
+        retire: func(wnd)->bool { return (cast(*FontViewer) wnd).retire() }})
 }

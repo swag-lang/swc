@@ -40,9 +40,7 @@ func midiTestFixture()->String
     commandBar.padding         = {16, 8, 16, 8}
 
     let fileName = midiTestFixture()
-    let request  = ViewerRequest{&host.root, commandBar, fileName.toString()}
-    var result: ViewerResult
-    createMidiViewer(&request, &result)
+    var result   = openTestViewer(&createMidiViewer, &host.root, fileName.toString(), commandParent: commandBar)
     @assert(result.view != null and result.commands != null)
 
     let viewer = cast(*MidiViewer) result.view!
@@ -85,9 +83,7 @@ func midiTestFixture()->String
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    let request = ViewerRequest{&host.root, &host.root, fileName}
-    var result: ViewerResult
-    createMidiViewer(&request, &result)
+    var result = openTestViewer(&createMidiViewer, &host.root, fileName, commandParent: &host.root)
     @assert(result.view != null and result.commands != null)
     let viewer = cast(*MidiViewer) result.view!
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)

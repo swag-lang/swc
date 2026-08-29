@@ -28,9 +28,7 @@ private func createPdfFixture()->String
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let request = ViewerRequest{&host.root, &host.root, fileName.toString()}
-    var result: ViewerResult
-    createPdfViewer(&request, &result)
+    var result = openTestViewer(&createPdfViewer, &host.root, fileName.toString(), commandParent: &host.root)
     @assert(result.view != null and result.commands != null)
 
     let view = cast(*PdfViewer) result.view!
@@ -85,9 +83,7 @@ private func createPdfFixture()->String
     commandBar.backgroundStyle = .Window
     commandBar.padding         = {16, 8, 16, 8}
 
-    let request = ViewerRequest{&host.root, commandBar, fileName.toString()}
-    var result: ViewerResult
-    createPdfViewer(&request, &result)
+    var result = openTestViewer(&createPdfViewer, &host.root, fileName.toString(), commandParent: commandBar)
     @assert(result.view != null and result.commands != null)
 
     let view = cast(*PdfViewer) result.view!
@@ -111,9 +107,7 @@ private func createPdfFixture()->String
     var host: HeadlessHost
     host.setup(640, 420)
     defer host.shutdown()
-    let request = ViewerRequest{&host.root, &host.root, fileName}
-    var result: ViewerResult
-    createPdfViewer(&request, &result)
+    var result = openTestViewer(&createPdfViewer, &host.root, fileName, commandParent: &host.root)
     @assert(result.view != null and result.commands != null)
     let view = cast(*PdfViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -131,9 +125,7 @@ private func createPdfFixture()->String
     host.setup(640, 450)
     defer host.shutdown()
 
-    let request = ViewerRequest{&host.root, &host.root, fileName.toString()}
-    var result: ViewerResult
-    createPdfViewer(&request, &result)
+    var result = openTestViewer(&createPdfViewer, &host.root, fileName.toString(), commandParent: &host.root)
     @assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
 
     let view = cast(*PdfViewer) result.view!

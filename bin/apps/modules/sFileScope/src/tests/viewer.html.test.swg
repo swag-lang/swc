@@ -12,9 +12,7 @@ using Core, Gui
     host.setup(640, 360)
     defer host.shutdown()
 
-    let request = ViewerRequest{&host.root, &host.root, fileName.toString()}
-    var result: ViewerResult
-    createHtmlViewer(&request, &result)
+    var result = openTestViewer(&createHtmlViewer, &host.root, fileName.toString(), commandParent: &host.root)
     @assert(result.view != null)
     @assert(result.commands == null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null)
     @assert(result.isLoading!(result.view!))
@@ -39,9 +37,7 @@ using Core, Gui
     defer host.shutdown()
 
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_sfilescope_html_%.html", Guid64.random()).toString())
-    let request  = ViewerRequest{&host.root, &host.root, fileName.toString()}
-    var result: ViewerResult
-    createHtmlViewer(&request, &result)
+    var result   = openTestViewer(&createHtmlViewer, &host.root, fileName.toString(), commandParent: &host.root)
     @assert(result.view == null and result.commands == null)
     @assert(!result.failureReason.isEmpty())
 }

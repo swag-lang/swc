@@ -34,14 +34,14 @@ func viewerSmokeDirectory(arguments: const [..] string)->String
     return {}
 }
 
-private func registerViewerFileTypes(index: const *ViewerIndex)
+private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
 {
     with Env
     {
         .registerApplication("sFileScope", "sFileScope")
-        for spec in index.specs
+        for plugin in registry.plugins where plugin.matchNames
         {
-            for extension in spec.extensions where extension[] != "*" and extension[].toString()[0] == '.' do
+            for extension in plugin.selectors where extension[] != "*" and extension[].toString()[0] == '.' do
                 .associateFileExtension(extension[].toString(), "sFileScope", Env.executablePath())
         }
     }
@@ -49,7 +49,7 @@ private func registerViewerFileTypes(index: const *ViewerIndex)
 
 #main
 {
-    let index = createViewerIndex()
+    let index = createViewerPluginRegistry()
 
     // Installers opt into registry work once. Normal viewing never pays for dozens of file-type
     // registrations, which keeps both cold and warm launches on the shortest path.

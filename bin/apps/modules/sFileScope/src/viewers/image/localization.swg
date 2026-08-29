@@ -8,22 +8,22 @@ using Core, Gui
 // read the same way everywhere — so only the words around them are translated.
 struct ImageStrings
 {
-    ui_TipPrevious:            string = "Previous image"                         // Tooltip of the previous-file button.
-    ui_TipNext:                string = "Next image"                             // Tooltip of the next-file button.
-    ui_TipZoomOut:             string = "Zoom out"                               // Tooltip of the zoom-out button.
-    ui_TipZoomIn:              string = "Zoom in"                                // Tooltip of the zoom-in button.
-    ui_TipFit:                 string = "Fit image"                              // Tooltip of the fit-to-window button.
-    ui_TipActual:              string = "Actual size"                            // Tooltip of the actual-size button.
-    ui_TipTransform:           string = "Image orientation"                      // Tooltip of the orientation menu button.
-    ui_TipPlay:                string = "Play or pause"                          // Tooltip of the animation transport button.
-    ui_RotateClockwise:        string = "Rotate clockwise"           // Clockwise menu action.
-    ui_RotateCounterClockwise: string = "Rotate counter-clockwise"   // Counter-clockwise menu action.
-    ui_MirrorHorizontal:       string = "Mirror horizontally"        // Horizontal reflection menu action.
-    ui_MirrorVertical:         string = "Mirror vertically"          // Vertical reflection menu action.
-    ui_ResetTransform:         string = "Reset orientation"          // Restores source orientation.
-    word_Mirrored:             string = "mirrored"                               // Status of reflected image content.
-    word_Frame:                string = "frame"                                  // One animation frame.
-    word_Frames:               string = "frames"                                 // Several animation frames.
+    ui_TipPrevious:            string = "Previous image"               // Tooltip of the previous-file button.
+    ui_TipNext:                string = "Next image"                   // Tooltip of the next-file button.
+    ui_TipZoomOut:             string = "Zoom out"                     // Tooltip of the zoom-out button.
+    ui_TipZoomIn:              string = "Zoom in"                      // Tooltip of the zoom-in button.
+    ui_TipFit:                 string = "Fit image"                    // Tooltip of the fit-to-window button.
+    ui_TipActual:              string = "Actual size"                  // Tooltip of the actual-size button.
+    ui_TipTransform:           string = "Image orientation"            // Tooltip of the orientation menu button.
+    ui_TipPlay:                string = "Play or pause"                // Tooltip of the animation transport button.
+    ui_RotateClockwise:        string = "Rotate clockwise"             // Clockwise menu action.
+    ui_RotateCounterClockwise: string = "Rotate counter-clockwise"     // Counter-clockwise menu action.
+    ui_MirrorHorizontal:       string = "Mirror horizontally"          // Horizontal reflection menu action.
+    ui_MirrorVertical:         string = "Mirror vertically"            // Vertical reflection menu action.
+    ui_ResetTransform:         string = "Reset orientation"            // Restores source orientation.
+    word_Mirrored:             string = "mirrored"                     // Status of reflected image content.
+    word_Frame:                string = "frame"                        // One animation frame.
+    word_Frames:               string = "frames"                       // Several animation frames.
 
     // Summaries the host shows beside the file size. `%` takes the pixel size, then the frame
     // count with its noun, or the number of bits one pixel is stored on.

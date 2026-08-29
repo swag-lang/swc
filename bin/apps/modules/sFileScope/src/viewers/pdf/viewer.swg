@@ -36,7 +36,7 @@ internal struct PdfViewer
 
     #[Swag.Late]
     {
-        commands:       *ViewerCommandBar
+        commands:       *Wnd
         pdfView:        *PdfView
         previousButton: *IconButton
         nextButton:     *IconButton
@@ -116,8 +116,8 @@ private impl PdfViewer
     mtd collectMatches(text: string, options: ViewerSearchOptions, result: *Array'ViewerSearchMatch)
     {
         var pdfOptions: PdfTextSearchOptions
-        pdfOptions.comparison = options.matchCase ? .Latin1 : .Latin1NoCase
-        pdfOptions.wholeWord  = options.wholeWord
+        pdfOptions.comparison        = options.matchCase ? .Latin1 : .Latin1NoCase
+        pdfOptions.wholeWord         = options.wholeWord
         pdfOptions.regularExpression = options.regularExpression
         let matches = .pdfView.findTextMatches(text, pdfOptions)
         for match in matches do
@@ -142,7 +142,7 @@ private impl PdfViewer
         .pageLabel.setText(Format.toString("% / %", .pdfView.pageIndex + 1, .pdfView.pageCount()))
     }
 
-    func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null, reportDetails: #null ViewerReportDetails = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*PdfViewer
+    func create(contentParent, commands: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null, reportDetails: #null ViewerReportDetails = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*PdfViewer
     {
         let result = Wnd.create'PdfViewer(contentParent, "sFileScope.pdf")
         result.backgroundStyle      = .View
@@ -150,7 +150,7 @@ private impl PdfViewer
         result.reportDetails        = reportDetails
         result.reportLoadingChanged = reportLoadingChanged
 
-        result.commands = ViewerCommandBar.create(commandParent, PdfCommandWidth)
+        result.commands = commands
 
         with result.previousButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, 18), {0, 0, 36, 36})
         {
@@ -253,20 +253,22 @@ private impl PdfViewer
 }
 
 // Creates the integrated PDF view.
-func createPdfViewer(request: const *ViewerRequest, result: *ViewerResult)
+func createPdfViewer(host: FileScope.Host)
 {
-    registerPdfStrings(request.contentParent.app())
-    let view = PdfViewer.create(request.contentParent, request.commandParent, request.fileName, request.reportFailure, request.reportDetails, request.reportLoadingChanged)
-    result.view     = view
-    result.commands = view.commands
+    registerPdfStrings(host.application())
+    let services = host.services()
+    let view     = PdfViewer.create(host.contentParent(), host.createCommandGroup(PdfCommandWidth), host.fileName(), services.reportFailure, services.reportDetails, services.reportLoadingChanged)
+    host.attachView(view)
 
     // PDF text lives compressed inside the file, so the viewer indexes every page and hands the
     // host stable logical matches for counting and bidirectional navigation.
-    result.collectMatches      = func(wnd, text, options, matches) { (cast(*PdfViewer) wnd).collectMatches(text, options, matches) }
-    result.revealMatch         = func(wnd, match, text)->bool { return (cast(*PdfViewer) wnd).revealMatch(match, text) }
-    result.searchBounds        = func(wnd, match, bounds)->bool { return (cast(*PdfViewer) wnd).searchBounds(match, bounds) }
-    result.clearSearch         = func(wnd) { (cast(*PdfViewer) wnd).pdfView.clearSelection() }
-    result.isLoading           = func(wnd)->bool { return (cast(*PdfViewer) wnd).loadTimer != null }
-    result.needsLoadingOverlay = func(wnd)->bool { return (cast(*PdfViewer) wnd).loadTimer != null }
-    result.retire              = func(wnd)->bool { return (cast(*PdfViewer) wnd).retire() }
+    host.setSearch({
+        collectMatches: func(wnd, text, options, matches) { (cast(*PdfViewer) wnd).collectMatches(text, options, matches) },
+        revealMatch: func(wnd, match, text)->bool { return (cast(*PdfViewer) wnd).revealMatch(match, text) },
+        matchBounds: func(wnd, match, bounds)->bool { return (cast(*PdfViewer) wnd).searchBounds(match, bounds) },
+        clear: func(wnd) { (cast(*PdfViewer) wnd).pdfView.clearSelection() }})
+    host.setLifecycle({
+        isLoading: func(wnd)->bool { return (cast(*PdfViewer) wnd).loadTimer != null },
+        needsLoadingOverlay: func(wnd)->bool { return (cast(*PdfViewer) wnd).loadTimer != null },
+        retire: func(wnd)->bool { return (cast(*PdfViewer) wnd).retire() }})
 }

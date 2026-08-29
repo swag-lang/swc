@@ -49,9 +49,7 @@ struct CodeLanguageSample
     host.setup(640, 420)
     defer host.shutdown()
 
-    let request = ViewerRequest{&host.root, &host.root, fileName}
-    var result: ViewerResult
-    createCodeViewer(&request, &result)
+    var result = openTestViewer(&createCodeViewer, &host.root, fileName, commandParent: &host.root)
     @assert(result.view == null and result.commands == null)
     @assert(Utf8.contains(result.failureReason.toSlice(), "zero byte"))
 }

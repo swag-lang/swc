@@ -100,9 +100,7 @@ func videoMatroskaFixturePath()->String
     host.setup(720, 420)
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
-    let request  = ViewerRequest{&host.root, commands, fileName}
-    var result: ViewerResult
-    createVideoViewer(&request, &result)
+    var result   = openTestViewer(&createVideoViewer, &host.root, fileName, commandParent: commands)
     @assert(result.view != null)
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
@@ -149,7 +147,7 @@ func videoMatroskaFixturePath()->String
     host.setup(640, 360)
     defer host.shutdown()
 
-    let index    = createViewerIndex()
+    let index    = createViewerPluginRegistry()
     let window   = ViewerWindow.create(&host.surfaceWnd, #move index)
     let fileName = videoAvcFixturePath()
     window.openFile(fileName, remember: false)
@@ -204,9 +202,7 @@ func videoMatroskaFixturePath()->String
     defer host.shutdown()
 
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
-    let request  = ViewerRequest{&host.root, commands, fileName}
-    var result: ViewerResult
-    createVideoViewer(&request, &result)
+    var result   = openTestViewer(&createVideoViewer, &host.root, fileName, commandParent: commands)
     @assert(result.view != null)
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
@@ -232,9 +228,7 @@ func videoMatroskaFixturePath()->String
     host.setReducedMotion(true)
 
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
-    let request  = ViewerRequest{&host.root, commands, fileName}
-    var result: ViewerResult
-    createVideoViewer(&request, &result)
+    var result   = openTestViewer(&createVideoViewer, &host.root, fileName, commandParent: commands)
     @assert(result.view != null)
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
@@ -294,9 +288,7 @@ func videoMatroskaFixturePath()->String
     commandBar.dockStyle       = .Bottom
     commandBar.backgroundStyle = .Window
     commandBar.padding         = {16, 8, 16, 8}
-    let request = ViewerRequest{&host.root, commandBar, fileName}
-    var result: ViewerResult
-    createVideoViewer(&request, &result)
+    var result = openTestViewer(&createVideoViewer, &host.root, fileName, commandParent: commandBar)
     @assert(result.view != null)
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
@@ -340,9 +332,7 @@ func videoMatroskaFixturePath()->String
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    let request = ViewerRequest{&host.root, &host.root, fileName}
-    var result: ViewerResult
-    createVideoViewer(&request, &result)
+    var result = openTestViewer(&createVideoViewer, &host.root, fileName, commandParent: &host.root)
     @assert(result.view != null and result.commands != null)
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
@@ -360,9 +350,7 @@ func videoMatroskaFixturePath()->String
 
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
     let fileName = videoAudioFixturePath()
-    let request  = ViewerRequest{&host.root, commands, fileName}
-    var result: ViewerResult
-    createVideoViewer(&request, &result)
+    var result   = openTestViewer(&createVideoViewer, &host.root, fileName, commandParent: commands)
     @assert(result.view != null)
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
@@ -399,7 +387,7 @@ func videoMatroskaFixturePath()->String
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
-    let index  = createViewerIndex()
+    let index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(videoAudioFixturePath(), remember: false)
     completeViewerWindowClassification(&host, window)
@@ -434,7 +422,7 @@ func videoMatroskaFixturePath()->String
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
-    let index  = createViewerIndex()
+    let index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(videoAudioFixturePath(), remember: false)
     completeViewerWindowClassification(&host, window)
@@ -483,10 +471,8 @@ func videoMatroskaFixturePath()->String
     commands.dockStyle       = .Bottom
     commands.backgroundStyle = .Window
     commands.padding         = {16, 8, 16, 8}
-    let path    = videoMatroskaFixturePath()
-    let request = ViewerRequest{&host.root, commands, path}
-    var result: ViewerResult
-    createVideoViewer(&request, &result)
+    let path   = videoMatroskaFixturePath()
+    var result = openTestViewer(&createVideoViewer, &host.root, path, commandParent: commands)
     @assert(result.view != null)
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
@@ -584,9 +570,7 @@ func videoMatroskaFixturePath()->String
     host.setup(640, 360)
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
-    let request  = ViewerRequest{&host.root, commands, fileName}
-    var result: ViewerResult
-    createVideoViewer(&request, &result)
+    var result   = openTestViewer(&createVideoViewer, &host.root, fileName, commandParent: commands)
     @assert(result.view != null)
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
@@ -654,9 +638,7 @@ func videoMatroskaFixturePath()->String
 
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
     let fileName = videoAudioFixturePath()
-    let request  = ViewerRequest{&host.root, commands, fileName}
-    var result: ViewerResult
-    createVideoViewer(&request, &result)
+    var result   = openTestViewer(&createVideoViewer, &host.root, fileName, commandParent: commands)
     @assert(result.view != null)
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
@@ -691,13 +673,7 @@ func videoMatroskaFixturePath()->String
 
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
     let fileName = videoAvcFixturePath()
-    let request  = ViewerRequest{
-        contentParent: &host.root,
-        commandParent: commands,
-        fileName: fileName,
-        reportLoadingChanged: &countVideoLoadingChange}
-    var result: ViewerResult
-    createVideoViewer(&request, &result)
+    var result   = openTestViewer(&createVideoViewer, &host.root, fileName, commandParent: commands, services: {reportLoadingChanged: &countVideoLoadingChange})
     @assert(result.view != null)
     let view           = cast(*VideoViewer) result.view!
     var counters: ArrayPtr'u32
@@ -743,9 +719,7 @@ func videoMatroskaFixturePath()->String
     defer host.shutdown()
 
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
-    let request  = ViewerRequest{&host.root, commands, fileName}
-    var result: ViewerResult
-    createVideoViewer(&request, &result)
+    var result   = openTestViewer(&createVideoViewer, &host.root, fileName, commandParent: commands)
     @assert(result.view != null)
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)
@@ -798,9 +772,7 @@ func videoMatroskaFixturePath()->String
     defer host.shutdown()
 
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
-    let request  = ViewerRequest{&host.root, commands, fileName}
-    var result: ViewerResult
-    createVideoViewer(&request, &result)
+    var result   = openTestViewer(&createVideoViewer, &host.root, fileName, commandParent: commands)
     @assert(result.view != null and result.isLoading != null and result.needsLoadingOverlay != null)
     let view = cast(*VideoViewer) result.view!
     waitForVideoFrame(view)

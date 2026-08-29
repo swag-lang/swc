@@ -2,6 +2,7 @@
 #import("audio", location: "swag@std")
 #import("truetype", location: "swag@std")
 #import("video", location: "swag@std")
+#import("filescopeviewer")
 
 #run
 {

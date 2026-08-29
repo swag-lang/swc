@@ -8,6 +8,7 @@ const ViewerMinWidth                          = 880
 const ViewerSearchChunkSize                   = 256 * 1024'u64
 const ViewerSearchBarWidth                    = 372.0
 const ViewerSearchFieldWidth                  = 180.0
+const ViewerSearchNoOptionsFieldWidth         = 236.0
 const ViewerSearchCountWidth                  = 52.0
 const ViewerSearchButtonSize                  = 28.0
 const ViewerSearchOptionsWidth                = 44.0
@@ -75,27 +76,6 @@ struct ViewerFolderHistory
     file:   String
 }
 
-struct ViewerInstance
-{
-    view:                #null *Wnd
-    actions:             #null *Wnd
-    info:                #null *Wnd
-    commands:            #null *Wnd
-    revealMatch:         #null ViewerRevealMatch
-    searchBounds:        #null ViewerSearchBounds
-    clearSearch:         #null ViewerClearSearch
-    collectMatches:      #null ViewerCollectMatches
-    describeSearch:      #null ViewerDescribeSearch
-    prepareSearch:       #null ViewerPrepareSearch
-    collectFileMatches:  #null ViewerCollectFileMatches
-    useSearchMatches:    #null ViewerUseSearchMatches
-    isLoading:           #null ViewerIsLoading
-    needsLoadingOverlay: #null ViewerNeedsLoadingOverlay
-    retire:              #null ViewerRetire
-    details:             String
-    failureReason:       String
-}
-
 // Keeps the search group centered on the complete action bar, independently of the file actions
 // and viewer selector docked at its edges.
 struct ViewerActionBar
@@ -132,20 +112,6 @@ impl ViewerActionBar
         let group  = .centerGroup!
         group.setPosition({client.horzCenter() - group.position.width * 0.5, client.vertCenter() - group.position.height * 0.5, group.position.width, group.position.height}, computeLayout: false)
         group.applyLayout()
-    }
-}
-
-impl ViewerInstance
-{
-    // Requests resource release and reports whether GUI destruction may proceed.
-    mtd retireView()->bool
-    {
-        if !.view or !.retire do
-            return true
-        if !.retire!(.view!) do
-            return false
-        .retire = null
-        return true
     }
 }
 
@@ -364,7 +330,7 @@ struct ViewerClassifiedFile
 {
     absoluteFileName: String
     fileSize:         String
-    choices:          Array'ViewerChoice
+    choices:          Array'ViewerPluginChoice
     folderFiles:      Array'String
     recent:           Array'String
     exists:           bool
@@ -373,29 +339,27 @@ struct ViewerClassifiedFile
 // Classifies one requested file without making the GUI thread open or probe it.
 struct ViewerChoiceLoad
 {
-    job:           Jobs.Job
-    index:         #null *ViewerIndex
-    fileName:      String
-    basicTextName: String
-    recent:        Array'String
-    result:        ViewerClassifiedFile
-    started:       bool
+    job:      Jobs.Job
+    index:    #null *ViewerPluginRegistry
+    fileName: String
+    recent:   Array'String
+    result:   ViewerClassifiedFile
+    started:  bool
 }
 
 impl ViewerChoiceLoad
 {
-    mtd start(index: *ViewerIndex, fileName, basicTextName: string, recent: const [..] String)
+    mtd start(index: *ViewerPluginRegistry, fileName: string, recent: const [..] String)
     {
         Debug.assert(!.started)
 
         // The operation is reusable. A completed result was moved to the window, so rebuild every
         // owning field before the worker appends the next folder and history snapshot.
-        .result        = {}
-        .index         = index
-        .fileName      = fileName
-        .basicTextName = basicTextName
-        .recent        = recent
-        .job.lambda    = func(data: #null *void)
+        .result     = {}
+        .index      = index
+        .fileName   = fileName
+        .recent     = recent
+        .job.lambda = func(data: #null *void)
         {
             let operation = cast(*ViewerChoiceLoad) data!
             var absolute  = catch Path.absolute(operation.fileName.toString()) as pathError
@@ -405,7 +369,7 @@ impl ViewerChoiceLoad
             operation.result.exists           = File.exists(operation.result.absoluteFileName.toString())
             if operation.result.exists
             {
-                operation.result.choices = operation.index!.choices(operation.result.absoluteFileName.toString(), operation.basicTextName.toString())
+                operation.result.choices = operation.index!.choices(operation.result.absoluteFileName.toString())
                 let info = catch File.info(operation.result.absoluteFileName.toString()) as infoError
                 if infoError == null do
                     operation.result.fileSize = StrConv.toDisplaySize(info.size)
@@ -498,7 +462,7 @@ struct ViewerWindow
         folderList:          *ListCtrl
     }
 
-    index:                 ViewerIndex
+    index:                 ViewerPluginRegistry
     icons:                 IconSet
     currentView:           #null *Wnd
     currentActions:        #null *Wnd
@@ -508,8 +472,8 @@ struct ViewerWindow
     outgoingActions:       #null *Wnd
     outgoingInfo:          #null *Wnd
     outgoingCommands:      #null *Wnd
-    choices:               Array'ViewerChoice
-    instances:             Array'ViewerInstance
+    choices:               Array'ViewerPluginChoice
+    instances:             Array'ViewerSession
     activeChoiceIndex           = Swag.U32.Max
     startupTimer:          #null *Timer
     searchTimer:           #null *Timer
@@ -818,6 +782,18 @@ impl ViewerWindow
         return .icons.icon(cast(s32) idx, size, .theme().res.atlasScale)
     }
 
+    // Resolves one descriptor-owned glyph without leaking plugin metadata into the window.
+    private mtd choiceIcon(index: u32, size = ViewerRowGlyphSize)->Icon
+    {
+        if index >= .choices.count do
+            return {}
+        let choice = &.choices[index]
+        if choice.pluginIndex >= .index.plugins.count do
+            return {}
+        let plugin = &.index.plugins[choice.pluginIndex]
+        return plugin.icon(me, size, plugin.iconData)
+    }
+
     mtd applyTheme(index: u32)
     {
         .themeIndex = Math.min(index, cast(u32) AppearanceTheme.Dark)
@@ -837,7 +813,7 @@ impl ViewerWindow
         .searchPrevious.setIcon(.theme().icon(.SearchPrevious, ViewerGlyphSize))
         .searchNext.setIcon(.theme().icon(.SearchNext, ViewerGlyphSize))
         if .activeChoiceIndex < .choices.count do
-            .infoIconLabel.setIcon(.icon(.choices[.activeChoiceIndex].icon))
+            .infoIconLabel.setIcon(.choiceIcon(.activeChoiceIndex))
     }
 
     // Gives the drop hint its glyph, but only while the hint is what the window shows.
@@ -961,7 +937,7 @@ impl ViewerWindow
         }
     }
 
-    func create(parent: *Wnd, index: ViewerIndex)->*ViewerWindow
+    func create(parent: *Wnd, index: ViewerPluginRegistry)->*ViewerWindow
     {
         let result = Wnd.create'ViewerWindow(parent, "sFileScope.main")
         result.surface!.setView(result)
@@ -1430,7 +1406,7 @@ impl ViewerWindow
             if .choiceLoad.fileName != .pendingFile
             {
                 discard .choiceLoad.finish()
-                .choiceLoad.start(&.index, .pendingFile.toString(), appStrings().ui_BasicText, .recent.toSlice())
+                .choiceLoad.start(&.index, .pendingFile.toString(), .recent.toSlice())
                 .startupTimer = .addTimer(ViewerRetirePollInterval)
                 return
             }
@@ -1457,7 +1433,7 @@ impl ViewerWindow
             return
         }
 
-        .choiceLoad.start(&.index, .pendingFile.toString(), appStrings().ui_BasicText, .recent.toSlice())
+        .choiceLoad.start(&.index, .pendingFile.toString(), .recent.toSlice())
         .startupTimer = .addTimer(ViewerRetirePollInterval)
     }
 
@@ -1510,20 +1486,15 @@ impl ViewerWindow
 
     private mtd reviewSmokeStep()
     {
-        if .smokeSpecIndex > .index.specs.count
+        if .smokeSpecIndex >= .index.plugins.count
         {
-            .finishSmokeReview(0, Format.toString("sFileScope smoke reviewed % viewers", .index.specs.count + 1).toString())
+            .finishSmokeReview(0, Format.toString("sFileScope smoke reviewed % viewer plugins", .index.plugins.count).toString())
             return
         }
 
-        let basicText = .smokeSpecIndex == .index.specs.count
-        var key       = String.from(BasicTextViewerKey)
-        var fixture   = String.from(BasicTextSmokeFixture)
-        if !basicText
-        {
-            key     = .index.specs[.smokeSpecIndex].key
-            fixture = .index.specs[.smokeSpecIndex].smokeFixture
-        }
+        let plugin  = &.index.plugins[.smokeSpecIndex]
+        let key     = plugin.key
+        let fixture = plugin.smokeFixture
 
         let fileName = Path.combine(.smokeDirectory.toString(), fixture.toString())
         if !File.exists(fileName)
@@ -1555,7 +1526,7 @@ impl ViewerWindow
         if !.smokeSelected
         {
             var selected = Swag.U32.Max
-            for choice, index in .choices where choice.key == key and (basicText ? choice.kind == .BasicText : choice.kind == .Viewer)
+            for choice, index in .choices where choice.key == key
             {
                 selected = cast(u32) index
                 break
@@ -1952,66 +1923,58 @@ impl ViewerWindow
             return true
         }
 
-        var next: ViewerResult
-        if choice.kind == .BasicText
-        {
-            let basic = BasicTextView.create(me, .viewerBar, .currentFile.toString(), &reportViewerDetails)
-            next.view         = basic
-            next.commands     = basic.commands
-            next.revealMatch  = &basicTextRevealMatch
-            next.searchBounds = &basicTextSearchBounds
-            next.clearSearch  = &basicTextClearSearch
-            next.isLoading    = &basicTextIsLoading
-            next.details      = Format.toString(appStrings().ui_TextDetails, basic.encodingName())
-        }
-        else
-        {
-            let spec    = &.index.specs[choice.specIndex]
-            let request = ViewerRequest{
-                contentParent: me,
-                commandParent: .viewerBar,
-                icon: .icon(choice.icon, ViewerGlyphSize),
-                actionParent: .commandBar,
-                infoParent: .infoContentGroup,
-                fileName: .currentFile.toString(),
+        if choice.pluginIndex >= .index.plugins.count do
+            return false
+
+        var next: ViewerSession
+        let plugin     = &.index.plugins[choice.pluginIndex]
+        var pluginHost = ViewerPluginHost{
+            session: &next,
+            documentParent: me,
+            actionParent: .commandBar,
+            infoParent: .infoContentGroup,
+            commandParent: .viewerBar,
+            sourceFileName: .currentFile.toString(),
+            pluginIcon: plugin.icon(me, ViewerGlyphSize, plugin.iconData),
+            hostServices: {
                 reportFailure: &reportViewerFailure,
                 reportDetails: &reportViewerDetails,
                 reportChromeChanged: &reportViewerChromeChanged,
                 reportLoadingChanged: &reportViewerLoadingChanged,
-                navigateFile: &navigateViewerFile}
-            catch spec.createView(&request, &next) as viewerError
-            if viewerError != null
-            {
-                next.failureReason = Errors.message(viewerError)
-                if next.failureReason.isEmpty() do
-                    next.failureReason = appStrings().ui_OpenStopped
-            }
+                navigateFile: &navigateViewerFile}}
+        let host: FileScope.Host = &pluginHost
+        catch plugin.createView(host, &next) as viewerError
+        if viewerError != null
+        {
+            next.failureReason = Errors.message(viewerError)
+            if next.failureReason.isEmpty() do
+                next.failureReason = appStrings().ui_OpenStopped
+        }
 
-            if !next.failureReason.isEmpty()
-            {
-                if next.view and next.retire do
-                    discard next.retire!(next.view!)
-                next.actions?.destroy()
-                next.info?.destroy()
-                next.commands?.destroy()
-                next.view?.destroy()
-                next.actions             = null
-                next.info                = null
-                next.commands            = null
-                next.view                = ViewerErrorView.create(me, next.failureReason.toString())
-                next.revealMatch         = null
-                next.searchBounds        = null
-                next.clearSearch         = null
-                next.collectMatches      = null
-                next.describeSearch      = null
-                next.prepareSearch       = null
-                next.collectFileMatches  = null
-                next.useSearchMatches    = null
-                next.isLoading           = null
-                next.needsLoadingOverlay = null
-                next.retire              = null
-                next.details.clear()
-            }
+        if !next.failureReason.isEmpty()
+        {
+            if next.view and next.retire do
+                discard next.retire!(next.view!)
+            next.actions?.destroy()
+            next.info?.destroy()
+            next.commands?.destroy()
+            next.view?.destroy()
+            next.actions             = null
+            next.info                = null
+            next.commands            = null
+            next.view                = ViewerErrorView.create(me, next.failureReason.toString())
+            next.revealMatch         = null
+            next.searchBounds        = null
+            next.clearSearch         = null
+            next.collectMatches      = null
+            next.describeSearch      = null
+            next.prepareSearch       = null
+            next.collectFileMatches  = null
+            next.useSearchMatches    = null
+            next.isLoading           = null
+            next.needsLoadingOverlay = null
+            next.retire              = null
+            next.details.clear()
         }
 
         if !next.view do
@@ -2072,23 +2035,7 @@ impl ViewerWindow
         }
         elif !stage do
             .viewerBar.hide()
-        instance.view                = next.view
-        instance.actions             = next.actions
-        instance.info                = next.info
-        instance.commands            = next.commands
-        instance.revealMatch         = next.revealMatch
-        instance.searchBounds        = next.searchBounds
-        instance.clearSearch         = next.clearSearch
-        instance.collectMatches      = next.collectMatches
-        instance.describeSearch      = next.describeSearch
-        instance.prepareSearch       = next.prepareSearch
-        instance.collectFileMatches  = next.collectFileMatches
-        instance.useSearchMatches    = next.useSearchMatches
-        instance.isLoading           = next.isLoading
-        instance.needsLoadingOverlay = next.needsLoadingOverlay
-        instance.retire              = next.retire
-        instance.details             = #move next.details
-        instance.failureReason       = #move next.failureReason
+        instance[] = #move next
         .viewerCombo.setSelectedIndex(index, notify: false)
         .updateFileInfo(instance.details.toString())
         .updateSearchAvailability()
@@ -2176,7 +2123,11 @@ impl ViewerWindow
         .searchBox.setPlaceholder(presentation.placeholder.toString())
         .searchBox.toolTip = .searchToolTip
         .searchOptionsButton.show(presentation.useTextOptions)
-        .searchBox.resize(presentation.useTextOptions ? ViewerSearchFieldWidth : ViewerSearchFieldWidth + ViewerSearchOptionsWidth + ViewerSearchGroupSpacing, 36)
+
+        // With no options button, let the enlarged field meet navigation directly. Keeping the
+        // usual inter-group gap as well would leave an empty button-sized visual group.
+        .searchGroup.spacing = presentation.useTextOptions ? ViewerSearchGroupSpacing : 0
+        .searchBox.resize(presentation.useTextOptions ? ViewerSearchFieldWidth : ViewerSearchNoOptionsFieldWidth, 36)
         .searchBox.setValidator(.searchBox.validator)
         .searchGroup.computeLayout()
         .commandBar.centerContent()
@@ -2197,14 +2148,15 @@ impl ViewerWindow
 
         if !.searchBox.isEnabled() or .searchQuery.isEmpty() or .currentFile.isEmpty() or .activeChoiceIndex >= .instances.count do
             return
-        if !.searchBox.isValid()
+
+        let instance = &.instances[.activeChoiceIndex]
+        if !.searchBox.isValid() and !(instance.prepareSearch and instance.view)
         {
             .searchComplete = true
             .refreshSearchReadout()
             return
         }
 
-        let instance = &.instances[.activeChoiceIndex]
         if instance.collectMatches and instance.view
         {
             var options = .searchOptions()
@@ -2615,7 +2567,7 @@ impl ViewerWindow
         .infoSizeLabel.setText(.currentFileSize.toString())
         .infoSizeLabel.toolTip = .currentFileSize.toString()
         if .activeChoiceIndex < .choices.count do
-            .infoIconLabel.setIcon(.icon(.choices[.activeChoiceIndex].icon))
+            .infoIconLabel.setIcon(.choiceIcon(.activeChoiceIndex))
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
         .layoutFileInfo()
         .infoBar.show(!.fullScreen or .fullScreenTopVisible)
@@ -2713,8 +2665,12 @@ impl ViewerWindow
         .rebuildSiblings()
         .instances.resize(.choices.count)
         .viewerCombo.clear()
-        for choice in .choices do
-            .viewerCombo.addItem(choice.name.toString(), icon: .icon(choice.icon))
+        for choice in .choices
+        {
+            let plugin = &.index.plugins[choice.pluginIndex]
+            .viewerCombo.addItem(plugin.displayName(), icon: plugin.icon(me, ViewerRowGlyphSize, plugin.iconData))
+        }
+
         .viewerCombo.show()
         .openDefaultButton.enable(true)
 
@@ -2722,7 +2678,7 @@ impl ViewerWindow
         if !.activateChoice(selected)
         {
             selected = Swag.U32.Max
-            for choice, index in .choices where choice.kind == .BasicText
+            for choice, index in .choices where choice.key == BasicTextViewerKey
             {
                 discard choice
                 selected = cast(u32) index
@@ -2854,9 +2810,15 @@ impl ViewerWindow
         list.clear()
         for one, index in files
         {
-            let name               = one[].toString()
-            var glyph: ViewerIcons = undefined
-            let icon               = .index.nameIcon(name, &glyph) ? .icon(glyph) : Icon{}
+            let name        = one[].toString()
+            var pluginIndex = Swag.U64.Max
+            var icon: Icon
+            if .index.namePlugin(name, &pluginIndex)
+            {
+                let plugin = &.index.plugins[pluginIndex]
+                icon = plugin.icon(me, ViewerRowGlyphSize, plugin.iconData)
+            }
+
             discard list.createLine(Path.fileName(name) orelse name, icon)
             if .currentFile == name do
                 list.selectLine(cast(u32) index)

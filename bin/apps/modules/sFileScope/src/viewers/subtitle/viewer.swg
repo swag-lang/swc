@@ -117,30 +117,31 @@ private impl SubtitleViewer
 private func loadSubtitleViewer(parent: *Wnd, fileName: string)->#null *SubtitleViewer fail => try SubtitleViewer.create(parent, fileName)
 
 // Creates the integrated timed-subtitle document view.
-func createSubtitleViewer(request: const *ViewerRequest, result: *ViewerResult)
+func createSubtitleViewer(host: FileScope.Host)
 {
-    let view = catch loadSubtitleViewer(request.contentParent, request.fileName) as createError
+    let view = catch loadSubtitleViewer(host.contentParent(), host.fileName()) as createError
     if createError != null
     {
-        result.failureReason = Errors.message(createError)
+        host.reject(Errors.message(createError))
         return
     }
 
     let track    = view!.track!
     let cueCount = track.cueCount()
     let duration = track.durationInSeconds()
-    result.view           = view!
-    result.details        = Format.toString(subtitleStrings().ui_Details, subtitleFormatText(track.sourceFormat()), subtitleCueCountText(cueCount).toString(), mediaDurationText(duration))
-    result.collectMatches = func(wnd, text, options, matches) { (cast(*SubtitleViewer) wnd).collectMatches(text, options, matches) }
-    result.revealMatch    = func(wnd, match, text)->bool
+    host.attachView(view!)
+    host.setDetails(Format.toString(subtitleStrings().ui_Details, subtitleFormatText(track.sourceFormat()), subtitleCueCountText(cueCount).toString(), mediaDurationText(duration)).toString())
+    host.setSearch({
+        collectMatches: func(wnd, text, options, matches) { (cast(*SubtitleViewer) wnd).collectMatches(text, options, matches) },
+        revealMatch: func(wnd, match, text)->bool
     {
         discard text
         return (cast(*SubtitleViewer) wnd).revealMatch(match)
-    }
-    result.searchBounds = func(wnd, match, bounds)->bool
+    },
+        matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
         return richEditSearchBounds((cast(*SubtitleViewer) wnd).editor, bounds)
-    }
-    result.clearSearch = func(wnd) { clearRichEditSearch((cast(*SubtitleViewer) wnd).editor) }
+    },
+        clear: func(wnd) { clearRichEditSearch((cast(*SubtitleViewer) wnd).editor) }})
 }

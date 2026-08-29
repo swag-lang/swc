@@ -3,6 +3,24 @@
 
 using Core, Gui
 
+// Creates one plugin through the same host API used by the application window.
+func openTestViewer(create: FileScope.PluginCreate, contentParent: *Wnd, fileName: string, commandParent: #null *Wnd = null, actionParent: #null *Wnd = null, infoParent: #null *Wnd = null, icon: Icon = {}, services: FileScope.HostServices = {})->ViewerSession
+{
+    var result: retval
+    var pluginHost = ViewerPluginHost{
+        session: &result,
+        documentParent: contentParent,
+        actionParent: actionParent orelse contentParent,
+        infoParent: infoParent orelse contentParent,
+        commandParent: commandParent orelse contentParent,
+        sourceFileName: fileName,
+        pluginIcon: icon,
+        hostServices: services}
+    let host: FileScope.Host = &pluginHost
+    create(host)
+    return result
+}
+
 // Completes a viewer worker deterministically, then lets the headless GUI publish its result.
 func(T) completeViewerBackgroundLoad(host: *Testing.HeadlessHost, load: *ViewerBackgroundLoad'T, timer: #null *Timer)
 {

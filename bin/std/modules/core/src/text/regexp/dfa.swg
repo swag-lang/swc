@@ -603,7 +603,10 @@ impl Dfa
         var alive       = true
         var pos         = end
 
-        while pos > 0 and pos > start
+        // A match starting at one offset is only seen by the step that reads the byte before
+        // it, so the walk has to take that step for the lowest offset it may report — the
+        // search start itself — and only then stop.
+        while pos > 0 and pos >= start
         {
             let byte = data[pos - 1]
             if quitHigh and byte >= 0x80

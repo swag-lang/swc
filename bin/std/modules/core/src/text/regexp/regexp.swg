@@ -23,6 +23,12 @@ public struct Span
 // }
 // ```
 //
+// A search takes time proportional to the length of the subject, whatever the pattern: the
+// engines behind it explore every branch of the pattern at once rather than one after another,
+// so no pattern and no subject can make one search cost exponentially more than another. The
+// one exception is a backreference, which no automaton can decide: a pattern that uses one is
+// searched by trying the branches in turn, with a bound on how far that goes.
+//
 // Every operation reports what it found in the *last* subject it was given: [[Core.Parser.RegExp.getCapture]]
 // and [[Core.Parser.RegExp.captures]] return slices of that subject, and they stay valid only
 // as long as it does. A failed match clears them.

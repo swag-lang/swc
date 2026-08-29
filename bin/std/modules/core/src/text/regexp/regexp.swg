@@ -54,26 +54,27 @@ public struct RegExp
 {
     private
     {
-        program:          Regex.Program         // The compiled pattern.
-        reverse:          Regex.Program         // The same pattern, to find where a match starts.
-        prefilter:        Regex.Prefilter       // The vectorized scan that finds candidate offsets.
-        innerScan:        Regex.Prefilter       // The scan for a literal every match must contain.
-        innerPrefix:      Regex.Program         // Reverse program of the pattern before that literal.
-        innerDfa:         Regex.Dfa             // The automaton that runs it.
-        useInner:         bool                  // Whether looking for the inner literal beats looking for a start byte.
-        forwardDfa:       Regex.Dfa             // The automaton that finds where a match ends.
-        reverseDfa:       Regex.Dfa             // The automaton that finds where it starts.
-        vm:               Regex.PikeVm          // The engine that reports capture groups.
-        backtracker:      Regex.Backtracker     // The engine that runs backreferences.
-        slots:            Array'u64             // Capture slots of the last match, when the pattern has groups.
-        slotsFilled:      bool                  // Whether the capture slots hold anything to clear.
-        matchStart:       u64                   // Span of the last match. A pattern without capture
-        matchEnd:         u64                   // groups needs nothing else, and pays for nothing else.
-        captureNames:     Array'String          // Name of each capture group, empty when it has none.
-        subject:          string = ""           // Subject of the last match; the captures point into it.
-        matched:          bool                  // Whether the last match succeeded.
-        automataAnswered: bool                  // Whether the automata settled the last search on their own.
-        compiled:         bool                  // Whether a pattern was compiled.
+        program:            Regex.Program         // The compiled pattern.
+        reverse:            Regex.Program         // The same pattern, to find where a match starts.
+        prefilter:          Regex.Prefilter       // The vectorized scan that finds candidate offsets.
+        emptyScan:          Regex.Prefilter       // No scan at all, for the searches that must not use one.
+        anchorOnCandidates: bool                  // Whether the scan is selective enough to try the pattern at each hit.
+        innerScan:          Regex.Prefilter       // The scan for a literal every match must contain.
+        innerPrefix:        Regex.Program         // Reverse program of the pattern before that literal.
+        innerDfa:           Regex.Dfa             // The automaton that runs it.
+        useInner:           bool                  // Whether looking for the inner literal beats looking for a start byte.
+        forwardDfa:         Regex.Dfa             // The automaton that finds where a match ends.
+        reverseDfa:         Regex.Dfa             // The automaton that finds where it starts.
+        vm:                 Regex.PikeVm          // The engine that reports capture groups.
+        backtracker:        Regex.Backtracker     // The engine that runs backreferences.
+        slots:              Array'u64             // Capture slots of the last match, when the pattern has groups.
+        matchStart:         u64                   // Span of the last match. A pattern without capture
+        matchEnd:           u64                   // groups needs nothing else, and pays for nothing else.
+        captureNames:       Array'String          // Name of each capture group, empty when it has none.
+        subject:            string = ""           // Subject of the last match; the captures point into it.
+        matched:            bool                  // Whether the last match succeeded.
+        automataAnswered:   bool                  // Whether the automata settled the last search on their own.
+        compiled:           bool                  // Whether a pattern was compiled.
     }
 }
 
@@ -105,9 +106,17 @@ public impl RegExp
         .captureNames = ast.captureNames
         .compiled     = true
 
+        .slots.resize(.program.slotCount)
         .forwardDfa.configure(&.program)
         .reverseDfa.configure(&.reverse)
         .prepareInnerLiteral(&ast)
+
+        // A hit that costs one anchored attempt is only worth it while hits are rare; past
+        // that, reading forwards once and backwards once over the whole subject is cheaper.
+        const SelectiveScanRate = 50'u32
+        .anchorOnCandidates = .prefilter.isEnabled() and
+                              !.program.anchoredStart and
+                              .prefilter.candidatesPerThousand() <= SelectiveScanRate
     }
 
     // Releases everything the expression holds and leaves it uncompiled.
@@ -440,11 +449,6 @@ private impl RegExp
     {
         .matched = false
         .subject = subject
-        if .slotsFilled
-        {
-            .slots.clear()
-            .slotsFilled = false
-        }
 
         if !.compiled do
             return false
@@ -458,8 +462,7 @@ private impl RegExp
         {
             if !.backtracker.run(&.program, hay, start, limit, anchored, wholeSubject) do
                 return false
-            .slots.add(.backtracker.matchSlots.toSlice())
-            .keepSlotSpan()
+            .keepSlots(.backtracker.slots.buffer)
             return true
         }
 
@@ -474,18 +477,25 @@ private impl RegExp
         if !.vm.run(&.program, hay, start, limit, anchored, wholeSubject) do
             return false
 
-        .slots.add(.vm.matchSlots.toSlice())
-        .keepSlotSpan()
+        .keepSlots(.vm.matchSlots.buffer)
         return true
     }
 
-    // Takes the span of the whole match out of the capture slots the two capture engines fill.
-    mtd keepSlotSpan()
+    // Keeps what a capture engine reported, and takes the span of the whole match out of it.
+    mtd keepSlots(source: #null const [*] u64)
     {
-        .slotsFilled = true
-        .matchStart  = .slots[0]
-        .matchEnd    = .slots[1]
-        .matched     = true
+        let count = .program.slotCount
+        if count < 2 or source == null do
+            return
+
+        let destination = .slots.buffer!
+        let filled      = source!
+        for var s = 0'u64; s < count; s += 1 do
+            destination[s] = filled[s]
+
+        .matchStart = destination[0]
+        .matchEnd   = destination[1]
+        .matched    = true
     }
 
     // Finds the span of the match with the vectorized scan and the two automata.
@@ -514,6 +524,13 @@ private impl RegExp
 
         if .useInner and !anchored do
             return .searchWithInnerLiteral(hay, start, limit)
+
+        // A scan that names the offsets a match can begin at answers the question the reverse
+        // automaton is there for, so the search is anchored at each of them and read forwards
+        // only. It is worth it while the scan stops rarely enough that one anchored attempt per
+        // hit costs less than the walk backwards it replaces.
+        if !anchored and .anchorOnCandidates do
+            return .searchFromCandidates(hay, start, limit)
 
         // A pattern that can only match at the start of the subject is searched there and
         // nowhere else, whatever the caller asked for.
@@ -547,6 +564,51 @@ private impl RegExp
         }
 
         return .recordSpan(hay, matchStart, forward.end, limit)
+    }
+
+    // Tries the pattern at each offset the scan names, reading forwards only.
+    //
+    // The offsets come in order, so the first one that matches is the leftmost match, and its
+    // start is where the attempt began — nothing has to be read backwards to find it.
+    mtd searchFromCandidates(hay: const [..] u8, start, limit: u64)->bool
+    {
+        var at = start
+
+        while at <= limit
+        {
+            let candidate = .prefilter.find(hay, at)
+            if candidate >= limit
+            {
+                .automataAnswered = true
+                return false
+            }
+
+            // A scan that decides its own matches has already answered; only the capture
+            // groups are left to read.
+            if .prefilter.complete
+            {
+                .automataAnswered = true
+                return .recordSpan(hay, candidate, candidate + .prefilter.spanLength, limit)
+            }
+
+            let forward = .forwardDfa.searchForward(&.program, &.emptyScan, hay, candidate, limit, true)
+            if forward.quit
+            {
+                .automataAnswered = false
+                return false
+            }
+
+            if forward.found
+            {
+                .automataAnswered = true
+                return .recordSpan(hay, candidate, forward.end, limit)
+            }
+
+            at = candidate + 1
+        }
+
+        .automataAnswered = true
+        return false
     }
 
     // Looks for the literal every match must contain, and works outwards from each hit.
@@ -617,8 +679,7 @@ private impl RegExp
                 let budget = ShortSpanBudgetBase + ShortSpanBudgetRate * span
                 if .backtracker.run(&.program, hay, matchStart, limit, true, false, budget)
                 {
-                    .slots.add(.backtracker.matchSlots.toSlice())
-                    .keepSlotSpan()
+                    .keepSlots(.backtracker.slots.buffer)
                     return true
                 }
             }
@@ -629,8 +690,7 @@ private impl RegExp
                 return false
             }
 
-            .slots.add(.vm.matchSlots.toSlice())
-            .keepSlotSpan()
+            .keepSlots(.vm.matchSlots.buffer)
             return true
         }
 

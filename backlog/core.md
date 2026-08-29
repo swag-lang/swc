@@ -302,32 +302,29 @@ unsafe legacy modes excluded from the default surface.
 - Intent: keep `Parser.RegExp` at the speed of the fastest engine available, which is what the
   rewrite of 2026-08-29 set out to reach.
 - Where it stands: measured against the Rust `regex` crate on the same ten-megabyte corpus,
-  counting every match of the same pattern in memory, best of eight interleaved rounds. A plain
-  literal 1.5x slower, an alternation of literals 2x *faster*, `\d{4}-\d{2}-\d{2}` 1.2x slower,
-  `[a-z]+[0-9]+@[a-z.-]+` at parity, `(?i)sherlock` 2x *faster*, `[a-z]+ing` 2.3x slower, `\w+`
-  3.2x, and a date pattern with capture groups 2.7x. Four of the eight are at or ahead of the
-  crate; the three that are not are the ones that match often.
+  counting every match of the same pattern in memory, best of ten interleaved rounds. A plain
+  literal 1.2x slower, an alternation of literals 2.5x *faster*, `\d{4}-\d{2}-\d{2}` 1.1x,
+  `[a-z]+[0-9]+@[a-z.-]+` 1.2x, `(?i)sherlock` 1.7x *faster*, a date with capture groups 2.3x
+  slower, `[a-z]+ing` 2.4x, and `\w+` 3.2x. Half the set is at or ahead of the crate; what is
+  behind is what matches often.
 - What is left, in decreasing value:
-  - **A search costs about ninety nanoseconds before it reads anything.** That is what `\w+`
-    pays two million times over the corpus, and it is most of the remaining gap on every
-    match-dense pattern. It is not one thing: the two automata are entered through a start
-    state, table pointers and a look-behind context, and the façade adds a call layer per
-    search. The crate does the same work in about thirty. Each layer removed measured a real
-    gain here, and there are a few left — the façade could hold one search loop instead of
-    calling one, and the two automata could keep their entry state between matches of the same
-    subject.
-  - **Captures still replay the search.** A pattern whose groups are unambiguous — one
-    transition per byte per state, which is most patterns that parse a line — can have its
-    groups read by a single pass over the span with no branch set at all. The crate calls that
-    engine `onepass`, and it is why its capture benchmark costs what its plain one costs.
+  - **A search costs about ninety nanoseconds before it reads anything**, against roughly thirty
+    for the crate. That is the whole remaining gap on `\w+`, which matches every five bytes:
+    two automata entered through a start state and a table pointer, and a façade layer around
+    them. Each layer removed has measured a real gain, and the way to remove the rest is a
+    search loop that runs many matches over one subject rather than one call per match.
+  - **Captures replay the search.** The backtracking engine reads the groups back over the
+    span the automata found, iteratively and without recursion since this pass, but it still
+    walks the pattern a second time. A pattern whose groups are unambiguous — most patterns
+    that parse a line — can have them read by a single pass with no branch set at all, which is
+    the crate's `onepass` engine and why its capture benchmark costs what its plain one costs.
   - **Vectors are 128 bits.** Every scan reads sixteen bytes per instruction where the crate
     reads thirty-two. That is a language matter, not a library one: see the `#simd` entries in
     [simd.md](simd.md).
 - What is not worth trying again: the automaton step itself. One step is a byte read, a class
-  read and a transition read, each depending on the one before it, and the loop was measured at
-  four nanoseconds a byte both inside the engine and in a six-instruction function written for
-  the experiment. That is the latency of three dependent loads on this machine; the generated
-  code for it is already tight, and no rearrangement of that loop will pay.
+  read and a transition read, each depending on the one before it, and the loop measured four
+  nanoseconds a byte both inside the engine and in a six-instruction function written for the
+  experiment. That is the latency of three dependent loads on this machine.
 - Complete when: no benchmark in that set is more than 1.5x the crate, and captures cost what a
   search without them costs.
 - Related: B-155

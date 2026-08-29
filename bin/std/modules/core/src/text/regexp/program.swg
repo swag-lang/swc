@@ -7,6 +7,7 @@ using Errors
 enum InstKind
 {
     ByteRange     // Consumes one byte in '[lo, hi]', then continues at 'next'.
+    ByteSet       // Consumes one byte belonging to the set 'slot', then continues at 'next'.
     Split         // Continues at 'next', or at 'alt' when that fails; 'next' has priority.
     Save          // Records the current offset in slot 'slot', then continues at 'next'.
     Assert        // Continues at 'next' only where the assertion holds.
@@ -31,22 +32,48 @@ struct Inst
     slot:      u32            // Save: the capture slot. Backref: the capture group.
 }
 
+// The bytes one 'ByteSet' instruction accepts, as a bit per byte.
+//
+// A class such as `\w` is four intervals, and writing it as four byte ranges makes every engine
+// that walks branches try them one after another for every byte of the subject. One bit test
+// answers the same question.
+struct ByteBitmap
+{
+    words: [4] u64     // One bit per byte value, lowest value in the lowest bit.
+}
+
+impl ByteBitmap
+{
+    #[Swag.Inline]
+    mtd add(value: u8)
+    {
+        .words[value >> 6] |= 1'u64 << (value & 63)
+    }
+
+    #[Swag.Inline]
+    mtd const contains(value: u8)->bool
+    {
+        return (.words[value >> 6] & (1'u64 << (value & 63))) != 0
+    }
+}
+
 // A compiled pattern, in the form every engine reads.
 struct Program
 {
-    insts:           Array'Inst     // The instructions; an index into this is a program counter.
-    start:           u32            // Entry point of a match anchored at the search offset.
-    startUnanchored: u32            // Entry point that first skips any number of bytes.
-    matchPc:         u32            // The single 'Match' instruction.
-    captureCount:    u32            // Number of capturing groups, not counting the whole match.
-    slotCount:       u32            // Number of capture slots, two per group.
-    minLength:       u32            // Shortest match, in bytes.
-    anchoredStart:   bool           // Whether every match must start at the beginning of the subject.
-    hasBackref:      bool           // Whether a backreference appears, which only the backtracker can run.
-    hasAssert:       bool           // Whether any zero-width assertion appears.
-    hasWordAssert:   bool           // Whether a word boundary appears, which reads the scalar values around a position.
-    ignoreCase:      bool           // Whether the pattern matches without case, which a backreference also obeys.
-    reverse:         bool           // Whether the program matches the subject read backwards.
+    insts:           Array'Inst           // The instructions; an index into this is a program counter.
+    byteSets:        Array'ByteBitmap     // The sets the 'ByteSet' instructions name.
+    start:           u32                  // Entry point of a match anchored at the search offset.
+    startUnanchored: u32                  // Entry point that first skips any number of bytes.
+    matchPc:         u32                  // The single 'Match' instruction.
+    captureCount:    u32                  // Number of capturing groups, not counting the whole match.
+    slotCount:       u32                  // Number of capture slots, two per group.
+    minLength:       u32                  // Shortest match, in bytes.
+    anchoredStart:   bool                 // Whether every match must start at the beginning of the subject.
+    hasBackref:      bool                 // Whether a backreference appears, which only the backtracker can run.
+    hasAssert:       bool                 // Whether any zero-width assertion appears.
+    hasWordAssert:   bool                 // Whether a word boundary appears, which reads the scalar values around a position.
+    ignoreCase:      bool                 // Whether the pattern matches without case, which a backreference also obeys.
+    reverse:         bool                 // Whether the program matches the subject read backwards.
 
     byteClass:      [256] u8     // Equivalence class of every byte, for the lazy automaton.
     classFirstByte: [256] u8     // One byte of each class, which stands for all of them.
@@ -208,6 +235,10 @@ impl Program
     }
 
     // Emits one class as the alternation of the byte sequences that encode it.
+    //
+    // The one-byte sequences — the ASCII part of the class — are not part of that alternation:
+    // they become one set instruction, so that reading a byte against them costs one bit test
+    // whatever the class looks like.
     mtd emitClass(value: const *RuneClass, next: u32)->u32
     {
         var sequences: Array'ByteSequence
@@ -220,14 +251,50 @@ impl Program
             return .addInst({kind: .ByteRange, lo: 1, hi: 0, next: next})
         }
 
-        var entry = .emitSequence(sequences.back(), next)
-        for var i = sequences.count - 1; i > 0; i -= 1
+        var single: ByteBitmap
+        var singles = 0'u32
+        var longer: Array'ByteSequence
+
+        for &seq in sequences
         {
-            let branch = .emitSequence(sequences[i - 1], next)
-            entry = .addInst({kind: .Split, next: branch, alt: entry})
+            if seq.count != 1
+            {
+                longer.add(seq)
+                continue
+            }
+
+            singles += 1
+            for var b = cast(u32) seq.lo[0]; b <= cast(u32) seq.hi[0]; b += 1 do
+                single.add(cast(u8) b)
         }
 
-        return entry
+        var entry = NoNode
+        if !longer.isEmpty()
+        {
+            entry = .emitSequence(longer.back(), next)
+            for var i = longer.count - 1; i > 0; i -= 1
+            {
+                let branch = .emitSequence(longer[i - 1], next)
+                entry = .addInst({kind: .Split, next: branch, alt: entry})
+            }
+        }
+
+        if singles == 0 do
+            return entry
+
+        // One interval is a byte range, which every engine reads without a table.
+        var ascii = NoNode
+        if singles == 1 and sequences.count == 1 do
+            ascii = .emitSequence(sequences[0], next)
+        else
+        {
+            .byteSets.add(single)
+            ascii = .addInst({kind: .ByteSet, slot: cast(u32) .byteSets.count - 1, next: next})
+        }
+
+        if entry == NoNode do
+            return ascii
+        return .addInst({kind: .Split, next: ascii, alt: entry})
     }
 
     mtd emitSequence(sequence: ByteSequence, next: u32)->u32
@@ -397,8 +464,11 @@ impl Program
             {
                 if .insts[pc].next != continuation do
                     return false
-                for var b = cast(u32) .insts[pc].lo; b <= cast(u32) .insts[pc].hi; b += 1 do
-                    set.add(cast(u8) b)
+                for var b = 0'u32; b < 256; b += 1
+                {
+                    if me.acceptsByte(pc, cast(u8) b) do
+                        set.add(cast(u8) b)
+                }
             }
 
             sets.add(set)
@@ -431,7 +501,7 @@ impl Program
             case .Save:
                 stack.add(.insts[pc].next)
 
-            case .ByteRange:
+            case .ByteRange, .ByteSet:
                 out.add(pc)
 
             case .Match:
@@ -476,8 +546,10 @@ impl Program
             var count = 0'u32
             for pc in reachable
             {
-                for var b = cast(u32) .insts[pc].lo; b <= cast(u32) .insts[pc].hi; b += 1
+                for var b = 0'u32; b < 256; b += 1
                 {
+                    if !.acceptsByte(pc, cast(u8) b) do
+                        continue
                     if set.contains(cast(u8) b) do
                         continue
                     set.add(cast(u8) b)
@@ -520,7 +592,7 @@ impl Program
             case .Save, .Assert:
                 stack.add(.insts[pc].next)
 
-            case .ByteRange:
+            case .ByteRange, .ByteSet:
                 out.add(pc)
 
             default:
@@ -544,10 +616,26 @@ impl Program
 
         for &inst in .insts
         {
-            if inst.kind != InstKind.ByteRange do
+            if inst.kind == InstKind.ByteRange
+            {
+                boundary[inst.lo]               = true
+                boundary[cast(u32) inst.hi + 1] = true
                 continue
-            boundary[inst.lo]               = true
-            boundary[cast(u32) inst.hi + 1] = true
+            }
+
+            if inst.kind != InstKind.ByteSet do
+                continue
+
+            // Every byte where the set starts or stops accepting is a boundary, the same way
+            // the ends of an interval are.
+            for var b = 1'u32; b < 256; b += 1
+            {
+                if .byteSets[inst.slot].contains(cast(u8) b) != .byteSets[inst.slot].contains(cast(u8) (b - 1)) do
+                    boundary[b] = true
+            }
+
+            if .byteSets[inst.slot].contains(0) do
+                boundary[0] = true
         }
 
         if .hasWordAssert
@@ -579,6 +667,18 @@ impl Program
         }
 
         .byteClassCount = cast(u32) current + 1
+    }
+}
+
+// Whether the byte-reading instruction at one program counter accepts one byte.
+impl Program
+{
+    #[Swag.Inline]
+    mtd const acceptsByte(pc: u32, value: u8)->bool
+    {
+        if .insts[pc].kind == InstKind.ByteSet do
+            return .byteSets[.insts[pc].slot].contains(value)
+        return value >= .insts[pc].lo and value <= .insts[pc].hi
     }
 }
 

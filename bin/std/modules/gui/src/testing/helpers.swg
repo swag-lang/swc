@@ -120,10 +120,6 @@ func countNonZeroBytes(img: Image)->u64
 func commandState(id: WndId)->CommandStateEvent
 {
     var evt: CommandStateEvent
-    @init(&evt.name, 1)
-    @init(&evt.longName, 1)
-    @init(&evt.shortcut, 1)
-    @init(&evt.toolTip, 1)
     evt.id = id
     return evt
 }

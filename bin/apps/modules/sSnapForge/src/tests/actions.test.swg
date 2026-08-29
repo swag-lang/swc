@@ -280,7 +280,9 @@ using Swag, Core
     @assert(!evt.disabled)
 
     // Image commands stay present when disabled. Only descriptors that explicitly opt into
-    // contextual hiding may set Hidden; an omitted aggregate field must never inherit garbage.
+    // contextual hiding may set Hidden.
+    Memory.delete(f.editView.capture)
+    f.editView.capture = null
     for id in [ActionImage.ResizeImage, ActionImage.ExpandImage, ActionImage.ExpandCapture, ActionImage.TrimCapture, ActionImage.FlipImage, ActionImage.MirrorImage, ActionImage.RotateImageRight, ActionImage.RotateImageLeft]
     {
         evt = Gui.Testing.commandState(id)

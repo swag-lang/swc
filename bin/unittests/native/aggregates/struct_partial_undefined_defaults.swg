@@ -33,6 +33,45 @@ struct AllUndefinedDefaults
     y: s32 = undefined
 }
 
+enum PartialSliceNeed
+{
+    Nothing
+    Value
+}
+
+struct PartialSliceDescriptor
+{
+    id:     string
+    label:  string
+    need:   PartialSliceNeed = .Nothing
+    hidden: bool
+}
+
+struct PartialSliceLabels
+{
+    one:   string = "One"
+    two:   string = "Two"
+    three: string = "Three"
+    four:  string = "Four"
+    five:  string = "Five"
+    six:   string = "Six"
+    seven: string = "Seven"
+    eight: string = "Eight"
+}
+
+func countHiddenDescriptors(values: const [..] PartialSliceDescriptor)->u64
+{
+    var result: u64
+    for &value in values where value.hidden do
+        result += 1
+    return result
+}
+
+var g_PartialSliceLabels: PartialSliceLabels
+
+#[Swag.NoInline]
+func runtimeDescriptorLabels()->const *PartialSliceLabels => &g_PartialSliceLabels
+
 const PARTIAL_UNDEFINED_CONST: PartialUndefinedDefaults
 const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
 
@@ -88,4 +127,20 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
     @assert(value.label[0] == 'r'u8)
     @assert(value.value == 17)
     @assert(value.enabled == false)
+}
+
+// Contextually typed aggregate literals use the same default initialization as named locals,
+// including when a temporary array is passed directly as a slice.
+#test
+{
+    let descriptors: const [..] PartialSliceDescriptor = [
+        {"one",   runtimeDescriptorLabels().one,   .Value},
+        {"two",   runtimeDescriptorLabels().two,   .Value},
+        {"three", runtimeDescriptorLabels().three, .Value},
+        {"four",  runtimeDescriptorLabels().four,  .Value},
+        {"five",  runtimeDescriptorLabels().five,  .Value},
+        {"six",   runtimeDescriptorLabels().six,   .Value},
+        {"seven", runtimeDescriptorLabels().seven, .Value},
+        {"eight", runtimeDescriptorLabels().eight, .Value}]
+    @assert(countHiddenDescriptors(descriptors) == 0)
 }

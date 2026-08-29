@@ -24,7 +24,7 @@ struct CmdDesc
     id:           WndId
     name:         string
     need:         CmdNeed = .Nothing
-    hideDisabled: bool = false     // hidden follows disabled (contextual commands)
+    hideDisabled: bool     // hidden follows disabled (contextual commands)
 }
 
 // The update() body for the purely-mechanical commands of an action: set the name

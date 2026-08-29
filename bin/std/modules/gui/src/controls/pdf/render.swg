@@ -162,8 +162,7 @@ internal impl RenderFontCache
             .embeddedResolved[index] = true
             if !resource.bytes.isEmpty()
             {
-                let key    = Format.toString("pdf-font-%{X08}", Hash.Crc32.compute(resource.bytes.toSlice()))
-                let result = catch createTypeface(key.toString(), resource.bytes.toSlice()) as loadError
+                let result = catch createTypeface(resource.programKey.toString(), resource.bytes.toSlice()) as loadError
                 if loadError == null do
                     .embedded[index] = result
             }

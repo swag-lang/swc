@@ -53,6 +53,14 @@ struct PdfParser
     // force, so the same object under different resources is not the same image.
     imageCache:      HashTable'(u64, Image)
     imageCacheBytes: u64
+
+    // Fonts already decoded from this document, keyed by the font object.
+    //
+    // Every page that names a font decodes it again otherwise, which decompresses the same
+    // embedded program, rebuilds the same encoding and width tables, and leaves each page
+    // holding its own copy of the bytes: a hundred-page thesis with a four-hundred-kilobyte
+    // family carries forty megabytes of duplicated font data.
+    fontCache: HashTable'(u32, FontResource)
 }
 
 // How much decoded image data one document keeps.

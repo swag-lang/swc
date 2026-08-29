@@ -568,8 +568,8 @@ cmov-to-branch back-conversion, and profile-gated passes.
   register with code elsewhere in the function (measured on the deblock probe: the `pass % 3`
   chain's register carries five definitions, one outside the loop), and any pass that reasons
   per-register - the web hoisting now in LICM first among them - must refuse the whole register.
-- Next: revisit once the interval allocator (B-012) is the default, since its splitting is
-  the re-coalescing the parked renaming needs; re-run the parked prototype then.
+- Next: re-run the parked prototype. The interval allocator (B-012) is now the default, so
+  its splitting supplies the re-coalescing the renaming needs.
 - Complete when: after the pass, every virtual register's definitions form one connected def-use
   web (verified on a corpus dump); the deblock probe's modulo chain hoists out of its x-loop; and
   the pre-RA fixpoint shows no oscillation with copy elimination (pure renaming inserts no
@@ -727,100 +727,22 @@ cmov-to-branch back-conversion, and profile-gated passes.
   the parked wrapped-distance diff is measured against it; delete otherwise.
 - Related: F-190, F-195.
 
-### B-012 — A splitting interval allocator behind a per-function gate
+### B-012 — The split allocator claims a whole instruction for an implicit operand
 
-- Intent: port the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the
-  algorithm HotSpot's client compiler and LLVM's old linear scan implement) as a second
-  allocator the pass selects per function, with the current allocator as the always-available
-  fallback. Live intervals with holes and use positions replace the convex hulls; concrete
-  claims become fixed intervals; allocation failure splits the current or the competing interval
-  at the position the paper names instead of evicting whole values; and a resolution phase
-  inserts register moves at block boundaries where locations differ — the phase whose absence
-  today forces every disagreement through memory. This is the route every cheaper repair now
-  points at from measurement: post-RA cleanup finds 1-2 removable accesses per hot function
-  (B-006), eviction-policy tuning is inert (B-009), the proven-free reservation fires 17 times
-  in 12211 (F-195), and the hot decoder functions lose their registers to genuine fat-body
-  pressure the one-value-one-register model cannot price (idct: 101 of 101 reloads are
-  evictions). At equal register supply this allocator spills an order of magnitude more than
-  clang on the same body (F-190); splitting is how clang does it.
-- The v4 lesson bounds the design: the 2026-07-31 whole-hull attempt died of four successive
-  miscompiles because it patched agreement invariants into the existing machinery, and each
-  repair uncovered the next. The port therefore does not touch the existing scan: it is a
-  separate assignment path selected only for functions that satisfy its preconditions (precise
-  CFG, first sweep, initially call-free leaf functions of the hot corpus), gated so a failed
-  precondition falls back to the current allocator, and grown outward one class of functions at
-  a time with the reload-cause trace and byte-exact decode as the gate at each step.
-- State: merged on master behind `SWC_INTERVAL_RA` (a function-name substring, or `*`):
-  intervals with holes, the Wimmer walk with optimal split positions and register hints,
-  rewrite and edge resolution with inline trampolines, whole-node spills of an owner never
-  accessed since it took its register, spill stores at the definitions when cheaper by loop
-  depth. The 2026-08-27 evening rounds added, still gated: the election reads a loop-carried
-  access as due at the back-edge (`nextAccessForElection` - a node live across the back-edge of
-  an enclosing loop, with an access earlier in the iteration, ranked as the farthest candidate
-  in linear order and was evicted, which reloaded leven's `g_Bytes` and `bo` on every
-  iteration); the walk honours the per-virtual forbidden registers in both elections; a
-  parallel-copy cycle at a resolution point is broken with an exchange (`xchg`, or three
-  `xorpd`) instead of bailing; a fixed claim that only defines the register through a plain
-  write (an ABI argument copy, a load, a call's clobber) starts at the output slot, so a value
-  read for the last time by that instruction keeps its register to the end - raytrace's pixel
-  loop lost the pair of moves in front of every call argument (125 -> 113 instructions). Two
-  latent bugs came out on the way and are fixed: the reload child of an evicted owner could be
-  split to a position before the request (the loop-depth-optimal position looked back), so the
-  walk handed it a register whose earlier owner it had already retired - two values in r8 at
-  the same point, the wrong one reloaded at a loop head; and every post-RA scan that stops at
-  a flag definition took the opcode table's word for `OpBinaryRegReg`, so an `xchg` (or any
-  float operation) between a `cmp` and its `jcc` read as a flag redefinition and the compare
-  was erased as dead (`MicroPassHelpers::instructionActuallyDefinesCpuFlags` now asks the
-  micro-op; the default path is byte-identical on the bench probes). A third one was on the
-  default path and independent of the allocator: the post-RA rule that names the destination
-  register as the memory operand of `x * x` walks back twelve instructions for the load of that
-  slot into the destination, and when the window ran out before finding it the rule rewrote
-  anyway - mem2reg's mixed-class promotion moved `evaluateBezier`'s last write of the register
-  to thirteen instructions back and `a * start.y` became `a * a` (core's curve tests). The
-  rule now fails when the window is exhausted; two C++ tests pin both outcomes. The gated
-  campaign then caught a remat one: a remade definition was erased as dead when no connector
-  read its node, but a split child that kept the definition's register gets no connector (nor
-  does a label the value crosses in the same register), and the loop-head moves read that
-  child - gui's virtual-scroll test lost `&stops` and indexed from the assert's result. The
-  liveness of a remade definition now follows register continuity (adjacent same-register
-  children, same-register label edges) before any use or move is counted. The last one was in
-  the resolution's parallel-copy order: a split reload (`r9 = [home]`, the value's location at
-  an instruction's input) and an edge move reading that register (`rdi = r9`, the taken side
-  of the conditional jump at that instruction) met at one insertion point, and the
-  reader-before-writer rule emitted the move first, so the taken edge carried whatever `r9`
-  held before the reload - markdown's `parseBlocks` appended list text through a stale
-  address whenever an item had no indent. Connectors now carry a phase (split or definition
-  store, then edge) ordered within a point.
-- Measured 2026-08-27, static, bench probes under the gate against the legacy allocator, same
-  compiler, every checksum holding: leven 84 -> 44 frame references (DP inner loop 26/1 ->
-  23/0 instructions/frame references), wordfreq 38 -> 15, dijkstra `#main` 16 -> 8, chacha
-  65 -> 52, raytrace `intersect` 27 -> 19 and `trace` 57 -> 48, sha256 `#main` 75 -> 33
-  (the 64-round loop 49 -> 22), csvagg `#main` 106 -> 78. Compiler suites under the gate:
-  native 2921/2921, jit, safety, sanity, workspace green; C++ 575/575 once three
-  legacy-specific expectations were rewritten (the cmpxchg conform cases match the scratch
-  register with a wildcard, the barrier copy test accepts zero copies). Dynamic, the seven
-  bench tasks pinned to the performance cores, minimum of 15 alternated runs, gate on against
-  off on the same compiler (machine at 15-40 % background load): raytrace -8 %, leven -4 %,
-  wordfreq 0 %, csvagg -7 %, dijkstra -6 %, sha256 -13 %, chacha +4 % (its `quarterRound`
-  carries four more moves under the gate). The serial HEVC decode is still to be measured for
-  this state.
-- Next: (1) measure the serial HEVC decode with the gate open on the whole library, and the
-  bench by the campaign harness, then decide the default - the C++ suite is green under the
-  gate now (spilled single-definition immediates and relocated addresses are remade at their
-  reloads as LLVM's `InlineSpiller` does, a definition every read of which is remade is
-  erased, self-copies the rewrite leaves are erased, and a function with no virtual register
-  stays with the existing scan); (2) the implicit rax/rdx operands of a multiply-high and the
-  `cl` of a variable shift belong in the walk's fixed intervals, so an operand never lands
-  there and the second sweep never needs the legalization scratch that
-  `tryBorrowReservedRegister` refuses when the first sweep packed the registers tightly
-  (today those forms keep whole-instruction claims instead); (3) chacha's `quarterRound`
-  carries one more callee-saved pair and four more moves under the gate (+4 %) - the free
-  election prefers a persistent register whenever a transient one has any claim ahead, where
-  the legacy scan keeps to the transient pool.
-- Complete when: the gated allocator compiles the HEVC hot four (idct, interpolateLuma,
-  filterLumaEdge, interpolateChroma) with materially fewer emitted reloads than the cause-trace
-  baseline (idct 101, interpolateLuma 119, filterLumaEdge 77, interpolateChroma 71), the video
-  workspace decodes byte-exact under it, the full suites stay green with the gate open on its
-  supported class, and the serial HEVC conformance decode improves measurably.
-- Related: F-190, F-195, B-003 (unblocks web renaming), B-002; supersedes the abandoned v4
-  whole-hull design (`global-regalloc-wip/global-regalloc-v4.patch`).
+- Area: compiler/backend
+- State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
+  of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
+  the earlier scan, which also remains the fallback whenever a precondition fails or the
+  walk bails, and the C++ conformity cases run both.
+- Evidence: the walk describes every concrete claim by the position it occupies, except
+  for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
+  the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole
+  instruction, so no operand of theirs can share it, and the second legalization sweep can
+  then need the scratch register `tryBorrowReservedRegister` only lends when the first sweep
+  left one free.
+- Next: give those forms their real fixed intervals - the implicit register from its input
+  slot, the operands free elsewhere - then check on a whole-library build whether the borrow
+  still fires at all.
+- Complete when: the three forms carry position-precise fixed intervals, the borrow path no
+  longer fires on a whole-library build, and the suites stay green.
+- Related: F-190, F-195, B-003.

@@ -93,7 +93,7 @@ func semaTest001()
     @assert(!#isconstexpr(WrapperNs.conditionalImpureAdd(true, 20, 22)))
     @assert(!#isconstexpr(WrapperNs.conditionalImpureAdd(false, 20, 22)))
 
-    if Cfg.backend.optimize
+    if Cfg.backend.optimLevel != .O0
     {
         @assert(#isconstexpr(pureAdd(20, 22)))
         @assert(#isconstexpr(inlineTypedVariadicCount(20, 20, 2)))

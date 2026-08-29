@@ -17,7 +17,7 @@ namespace
     {
         // The pass shares the vectorizer's build-configuration gate.
         Runtime::BuildCfgBackend backendCfg{};
-        backendCfg.optimize  = true;
+        backendCfg.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
         backendCfg.vectorize = true;
         builder.setBackendBuildCfg(backendCfg);
 

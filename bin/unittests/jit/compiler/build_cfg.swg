@@ -3,7 +3,7 @@
 #test
 {
     const Cfg = #run @compiler.getBuildCfg()![]
-    #assert(Cfg.backend.optimize == true or Cfg.backend.optimize == false)
+    #assert(#typeof(Cfg.backend.optimLevel) == Swag.BuildCfgBackendOptimLevel)
     #assert(Cfg.backend.debugInfo == false)
     #assert(Cfg.backend.enableExceptions == true)
     #assert(#typeof(Cfg.allocatorCaptureStack) == bool)

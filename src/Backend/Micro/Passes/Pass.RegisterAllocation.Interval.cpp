@@ -5,7 +5,6 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Support/Core/DenseBits.h"
-#include "Support/Os/Os.h"
 
 // B-012: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005,
 // the allocator of HotSpot's client compiler), as a second allocation path the
@@ -16,37 +15,24 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
+bool MicroRegisterAllocationPass::intervalAllocationAccepts() const
 {
-    // Development gate: SWC_INTERVAL_RA is unset for everyone else, "*" for
-    // every eligible function, or a substring of the function names to take.
-    const Utf8* intervalGateFilter()
-    {
-        static const std::optional<Utf8> filter = Os::readEnvironmentVariable("SWC_INTERVAL_RA");
-        return filter ? &*filter : nullptr;
-    }
-}
-
-bool MicroRegisterAllocationPass::intervalGateAccepts() const
-{
-    const Utf8* filter = intervalGateFilter();
-    if (!filter || !context_ || !context_->isFirstAllocationSweep)
+    if (!context_ || !context_->builder || !context_->isFirstAllocationSweep)
         return false;
+
+    // Which allocator a function gets is the optimization level's decision, and
+    // the level alone: `-O0` keeps the scan below, every level above it splits.
+    const Runtime::BuildCfgBackend& backendCfg = context_->builder->backendBuildCfg();
+    if (!backendCfg.splitsLiveRanges())
+        return false;
+
 
     // The same CFG precision the write-back protocol needs: every edge into
     // every block known. keepAcrossBoundaries_ is not computed yet at this
     // point, so the condition is tested directly.
-    const bool preciseCfg = controlFlowGraph_ != nullptr &&
-                            !controlFlowGraph_->hasUnsupportedControlFlowForCfgLiveness() &&
-                            controlFlowGraph_->supportsDeadCodeLiveness();
-    if (!preciseCfg)
-        return false;
-
-    const std::string_view filterView{*filter};
-    if (filterView == "*")
-        return true;
-    const std::string_view symbolName{context_->builder->printSymbolName()};
-    return symbolName.find(filterView) != std::string_view::npos;
+    return controlFlowGraph_ != nullptr &&
+           !controlFlowGraph_->hasUnsupportedControlFlowForCfgLiveness() &&
+           controlFlowGraph_->supportsDeadCodeLiveness();
 }
 
 void MicroRegisterAllocationPass::buildLiveIntervals(std::vector<LiveInterval>& out) const
@@ -240,8 +226,20 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
     // liveness between touches.
     outPoolRegs.clear();
     const MicroReg excludedBase = conv_->preferredLocalStackBaseReg();
-    const auto     admit        = [&](const MicroReg reg) {
-        if (reg == conv_->framePointer || reg == excludedBase)
+
+    // One callee-saved integer register is kept out of the walk entirely. What
+    // needs it is the legalization that runs on this pass's own output: it
+    // stages a value in a fresh virtual and forbids that virtual every physical
+    // register still live across the instruction, so a function this allocator
+    // packed tightly leaves it nothing to take and the sweep that follows has
+    // no register it is allowed to name. The existing scan never packs that
+    // hard, which is why it never needed the reserve. Callee-saved, because the
+    // lowering names those least: an argument lane or a call clobber would put
+    // the reserve back under the same pressure it exists to relieve.
+    const MicroReg legalizeReserve = !freeIntPersistent_.empty() ? freeIntPersistent_.back() : MicroReg::invalid();
+
+    const auto admit = [&](const MicroReg reg) {
+        if (reg == conv_->framePointer || reg == excludedBase || reg == legalizeReserve)
             return;
         outPoolRegs.push_back(reg);
     };
@@ -1180,6 +1178,14 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             // edge (jumps land past it), before the jump otherwise.
             const uint32_t beforeIndex = fallThroughPred ? s : p;
 
+            // Where the edge leaves the predecessor. The edge leaves at the
+            // jump's INPUT slot: a value dead on the jump's other side closes
+            // its range at p*2+1 exclusive, so the output slot may sit in a
+            // hole even though the value crosses this edge. A fall-through
+            // predecessor is an ordinary instruction that may define the
+            // value, so its end state is the output slot.
+            const uint32_t predEndPos = isJump ? p * 2 : p * 2 + 1;
+
             // Collect this edge's moves first; placement is decided for the
             // edge as a whole.
             struct EdgeMove
@@ -1200,15 +1206,8 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                     if (denseIndex >= virtualCount)
                         break;
 
-                    // The edge leaves at the jump's INPUT slot: a value dead
-                    // on the jump's other side closes its range at p*2+1
-                    // exclusive, so the output slot may sit in a hole even
-                    // though the value crosses this edge. A fall-through
-                    // predecessor is an ordinary instruction that may define
-                    // the value, so its end state is the output slot.
-                    const uint32_t      predEndPos = isJump ? p * 2 : p * 2 + 1;
-                    const LiveInterval* atLabel    = locate(denseIndex, s * 2);
-                    const LiveInterval* atPred     = locate(denseIndex, predEndPos);
+                    const LiveInterval* atLabel = locate(denseIndex, s * 2);
+                    const LiveInterval* atPred  = locate(denseIndex, predEndPos);
                     if (!atLabel || !atPred || atLabel == atPred)
                         continue;
                     const MicroReg fromReg = atPred->spilled ? MicroReg::invalid() : atPred->assignedReg;
@@ -1252,12 +1251,25 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                         // OTHER value holding that register there, or this
                         // value expecting it from a different source, kills
                         // the plain placement.
+                        //
+                        // Holding it *at the branch* counts as much as holding
+                        // it after: a value the fall-through side keeps in
+                        // memory is put there by a store that reads the
+                        // register it still occupies here, and that store is
+                        // emitted after this branch. Writing the register
+                        // first would store the wrong value - which is what
+                        // sent an MP4 sample table through the wrong bounds.
                         for (uint32_t other = 0; plainOk && other < virtualCount; ++other)
                         {
                             if (other == move.denseIndex)
                                 continue;
                             const LiveInterval* node = locate(other, p * 2 + 2);
-                            if (node && !node->spilled && node->assignedReg == toReg)
+                            if (!node)
+                                continue; // dead on the fall-through side: the register is free
+                            if (!node->spilled && node->assignedReg == toReg)
+                                plainOk = false;
+                            const LiveInterval* atBranch = locate(other, predEndPos);
+                            if (atBranch && !atBranch->spilled && atBranch->assignedReg == toReg)
                                 plainOk = false;
                         }
                         const LiveInterval* ownFall = locate(move.denseIndex, p * 2 + 2);
@@ -1865,9 +1877,9 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     return true;
 }
 
-bool MicroRegisterAllocationPass::runIntervalAllocationIfGated()
+bool MicroRegisterAllocationPass::runIntervalAllocation()
 {
-    if (!intervalGateAccepts())
+    if (!intervalAllocationAccepts())
         return false;
 
     // A function with no virtual register has nothing to allocate; the

@@ -67,7 +67,7 @@ namespace
         buildCfg.allocatorElectricMode      = explicitBuildCfg.allocatorElectricMode;
         buildCfg.allocatorFillMemory        = explicitBuildCfg.allocatorFillMemory;
         buildCfg.errorStackTrace            = explicitBuildCfg.errorStackTrace;
-        buildCfg.backend.optimize           = explicitBuildCfg.backend.optimize;
+        buildCfg.backend.optimLevel         = explicitBuildCfg.backend.optimLevel;
         buildCfg.backend.vectorize          = explicitBuildCfg.backend.vectorize;
         buildCfg.backend.inlineMode         = explicitBuildCfg.backend.inlineMode;
         buildCfg.backend.debugInfo          = explicitBuildCfg.backend.debugInfo;
@@ -83,8 +83,8 @@ namespace
             reapplyBuildCfgPresetOverrides(buildCfg, cmdLine.defaultBuildCfg);
 
         buildCfg.backendKind = effectiveBackendKind(cmdLine, buildCfg.backendKind);
-        if (cmdLine.backendOptimize.has_value())
-            buildCfg.backend.optimize = cmdLine.backendOptimize.value();
+        if (cmdLine.optimLevelExplicit)
+            buildCfg.backend.optimLevel = cmdLine.optimLevel;
         if (cmdLine.debugInfo)
             buildCfg.backend.debugInfo = true;
 

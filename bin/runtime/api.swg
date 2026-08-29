@@ -937,19 +937,27 @@ namespace Swag
         Auto       = 2     // MarkedOnly plus compiler-chosen small/cheap callees.
     }
 
+    // How much of the backend optimizer a build asks for.
+    enum BuildCfgBackendOptimLevel: u8
+    {
+        O0 = 0     // No backend optimization.
+        O1 = 1     // Everything that does not cost compilation time; the 'devmode' preset.
+        O2 = 2     // Also what does; the 'release' preset.
+    }
+
     // Backend options
     struct BuildCfgBackend
     {
         public
         {
-            optimize:           bool
-            vectorize:          bool     // Auto-vectorize; true in 'release'
-            debugInfo        = false     // Emit CodeView and PDB debug information; '--debug' enables it for command-line builds
-            enableExceptions = true      // Generate unwind info for JIT code and register SEH function tables
-            fpMathFma:          bool     // true in 'release'
-            fpMathNoNaN:        bool     // true in 'release'
-            fpMathNoInf:        bool     // true in 'release'
-            fpMathNoSignedZero: bool     // true in 'release'
+            optimLevel       = BuildCfgBackendOptimLevel.O0     // Backend optimization level (set per build config)
+            vectorize:          bool                            // Auto-vectorize; true in 'release'
+            debugInfo        = false                            // Emit CodeView and PDB debug information; '--debug' enables it for command-line builds
+            enableExceptions = true                             // Generate unwind info for JIT code and register SEH function tables
+            fpMathFma:          bool                            // true in 'release'
+            fpMathNoNaN:        bool                            // true in 'release'
+            fpMathNoInf:        bool                            // true in 'release'
+            fpMathNoSignedZero: bool                            // true in 'release'
             fpMathUnsafe:       bool
             fpMathApproxFunc:   bool
             unrollMemLimit:     u32                                     // Maximum number of bytes to unroll memset/cpy in optimize mode

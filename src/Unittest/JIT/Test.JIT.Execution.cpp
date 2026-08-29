@@ -80,7 +80,7 @@ namespace
             .hi = 0x99AABBCCDDEEFF00ull,
         };
         Runtime::BuildCfgBackend buildCfg{};
-        buildCfg.optimize = true;
+        buildCfg.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
         builder.setBackendBuildCfg(buildCfg);
 
         constexpr MicroReg r8   = MicroReg::intReg(8);
@@ -112,7 +112,7 @@ namespace
     void buildReturnOneAfterPointerSpillRoundTrip(MicroBuilder& builder, const CallConv& callConv)
     {
         Runtime::BuildCfgBackend buildCfg{};
-        buildCfg.optimize = true;
+        buildCfg.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
         builder.setBackendBuildCfg(buildCfg);
 
         constexpr MicroReg rcx = MicroReg::intReg(2);
@@ -253,7 +253,7 @@ namespace
     void buildConstantDivisionChecksum(MicroBuilder& builder, const CallConv& callConv, bool optimize)
     {
         Runtime::BuildCfgBackend buildCfg{};
-        buildCfg.optimize = optimize;
+        buildCfg.optimLevel = optimize ? Runtime::BuildCfgBackendOptimLevel::O2 : Runtime::BuildCfgBackendOptimLevel::O0;
         builder.setBackendBuildCfg(buildCfg);
 
         constexpr MicroReg checksumReg = MicroReg::virtualIntReg(1);
@@ -299,7 +299,7 @@ namespace
     void buildReturnOneAfterB32LoadAndZeroExtend(MicroBuilder& builder, const CallConv& callConv)
     {
         Runtime::BuildCfgBackend buildCfg{};
-        buildCfg.optimize = true;
+        buildCfg.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
         builder.setBackendBuildCfg(buildCfg);
 
         constexpr MicroReg rdx = MicroReg::intReg(3);
@@ -478,8 +478,8 @@ namespace
     void buildReturnZeroAfterSlpVectorizedLanes(MicroBuilder& builder, const CallConv& callConv)
     {
         Runtime::BuildCfgBackend buildCfg{};
-        buildCfg.optimize  = true;
-        buildCfg.vectorize = true;
+        buildCfg.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
+        buildCfg.vectorize  = true;
         builder.setBackendBuildCfg(buildCfg);
 
         constexpr MicroReg rdx      = MicroReg::intReg(3);

@@ -541,7 +541,7 @@ Result MicroVecLoopPromotePass::run(MicroPassContext& context)
     // overwhelmingly common scalar or loop-free function pays one or two flag
     // reads per sweep.
     const Runtime::BuildCfgBackend& backendCfg = context.builder->backendBuildCfg();
-    if (!backendCfg.optimize || !backendCfg.vectorize)
+    if (!backendCfg.optimizes() || !backendCfg.vectorize)
         return Result::Continue;
 
     if (!context.builder->controlFlowGraph().hasLoop())

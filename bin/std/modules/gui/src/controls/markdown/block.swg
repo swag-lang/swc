@@ -111,7 +111,7 @@ private func isHtmlBlockStart(line: string)->bool
     parser.feed(trimmed)
     parser.finish()
 
-    for child in document.constNode(0).children
+    for child in document.children(0)
     {
         let node = document.constNode(child)
         if node.kind != .Element or node.tag == .Unknown do

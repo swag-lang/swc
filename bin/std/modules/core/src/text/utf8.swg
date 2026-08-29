@@ -94,22 +94,88 @@ private
         {LoCB, 0x8F}]
 }
 
+// Searches for one byte, which is what every scanner over text asks for.
+//
+// It is separate from the general form because the general one splats four vectors and tests a
+// slice per byte of the tail: on the short runs a parser reads — a word, an attribute value — that
+// preparation costs more than the search itself.
+private func indexOfByte(src: const [*] u8, length: u64, what: u8)->u64
+{
+    const VectorSize = #sizeof(Math.Simd.U8x16)
+
+    var offset = 0'u64
+    if length >= VectorSize
+    {
+        let needle = Math.Simd.splat(what)
+        while length - offset >= VectorSize
+        {
+            let mask = Math.Simd.bitmask(Math.Simd.load(src + offset) == needle)
+            if mask do
+                return offset + Math.trailingZeros(mask)
+            offset += VectorSize
+        }
+    }
+
+    while offset < length
+    {
+        if src[offset] == what do
+            return offset
+        offset += 1
+    }
+
+    return Swag.U64.Max
+}
+
+// Searches for either of two bytes, which is what a scanner that has to notice one thing while
+// looking for another asks for.
+private func indexOfEitherByte(src: const [*] u8, length: u64, first, second: u8)->u64
+{
+    const VectorSize = #sizeof(Math.Simd.U8x16)
+
+    var offset = 0'u64
+    if length >= VectorSize
+    {
+        let needle0 = Math.Simd.splat(first)
+        let needle1 = Math.Simd.splat(second)
+        while length - offset >= VectorSize
+        {
+            let values = Math.Simd.load(src + offset)
+            let mask   = Math.Simd.bitmask(values == needle0) | Math.Simd.bitmask(values == needle1)
+            if mask do
+                return offset + Math.trailingZeros(mask)
+            offset += VectorSize
+        }
+    }
+
+    while offset < length
+    {
+        if src[offset] == first or src[offset] == second do
+            return offset
+        offset += 1
+    }
+
+    return Swag.U64.Max
+}
+
 private func indexOfAnyAscii(src: const [*] u8, length: u64, what: const [..] u8)->u64
 {
     const VectorSize = #sizeof(Math.Simd.U8x16)
-    let count   = @countof(what)
+    let count = @countof(what)
+    if count == 1 do
+        return indexOfByte(src, length, what[0])
+    if count == 2 do
+        return indexOfEitherByte(src, length, what[0], what[1])
+
     let needle0 = Math.Simd.splat(what[0])
-    let needle1 = count > 1 ? Math.Simd.splat(what[1]) : needle0
-    let needle2 = count > 2 ? Math.Simd.splat(what[2]) : needle0
-    let needle3 = count > 3 ? Math.Simd.splat(what[3]) : needle0
+    let needle1 = Math.Simd.splat(what[1])
+    let needle2 = count > 2 ? Math.Simd.splat(what[2]) : needle1
+    let needle3 = count > 3 ? Math.Simd.splat(what[3]) : needle1
 
     var offset = 0'u64
     while length - offset >= VectorSize
     {
         let values = Math.Simd.load(src + offset)
-        var mask   = Math.Simd.bitmask(values == needle0)
-        if count > 1 do
-            mask |= Math.Simd.bitmask(values == needle1)
+        var mask   = Math.Simd.bitmask(values == needle0) | Math.Simd.bitmask(values == needle1)
         if count > 2 do
             mask |= Math.Simd.bitmask(values == needle2)
         if count > 3 do
@@ -845,6 +911,21 @@ func countRunes(buffer: const [..] u8)->u64
 // Returns 'Swag.U64.Max' if not found
 func indexOf(src: const [..] u8, what: rune, startByteIndex = 0'u64)->u64
 {
+    // The ASCII case is what a scanner asks for, and it is one comparison per byte rather than a
+    // needle array built for the general one.
+    if what <= 0x7F
+    {
+        let length = @countof(src)
+        if startByteIndex >= length
+        {
+            Debug.safetyBoundCheck(startByteIndex == length, "index out of range")
+            return Swag.U64.Max
+        }
+
+        let result = indexOfByte(@dataof(src) + startByteIndex, length - startByteIndex, cast(u8) what)
+        return result == Swag.U64.Max ? result : startByteIndex + result
+    }
+
     return indexOfAny(src, [what], startByteIndex)
 }
 

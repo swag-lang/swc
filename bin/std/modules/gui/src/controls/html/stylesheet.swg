@@ -190,8 +190,8 @@ impl HtmlMatchContext
         var indices: HashTable'(String, u32)
         for parentIndex in document.nodes.count
         {
-            let children = document.constNode(cast(u32) parentIndex).children
-            if children.isEmpty() do
+            let children = document.children(cast(u32) parentIndex)
+            if children.first == HtmlNoNode do
                 continue
 
             totals.clear()
@@ -425,7 +425,7 @@ impl HtmlStyleSheet
             return false
         if pseudo.has(.Disabled) and !document.hasAttribute(element, "disabled") do
             return false
-        if pseudo.has(.Empty) and document.constNode(element).children.count do
+        if pseudo.has(.Empty) and document.constNode(element).firstChild != HtmlNoNode do
             return false
 
         let structural = HtmlPseudoClass.FirstChild | .LastChild | .OnlyChild | .FirstOfType | .LastOfType | .Nth | .NthOfType

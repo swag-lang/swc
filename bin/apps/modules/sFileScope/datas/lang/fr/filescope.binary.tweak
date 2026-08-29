@@ -12,6 +12,13 @@ ui_MenuCopyAll    Copier tout le rapport
 ui_MenuCopyLine   Copier cette ligne
 ui_MenuExpand     Tout déplier
 ui_MenuCollapse   Tout replier
+ui_MenuGoTo       Aller au décalage du fichier
+ui_GoToMessage    Décalage hexadécimal dans le fichier, ou décalage signé depuis la ligne sélectionnée.
+ui_MenuBack       Emplacement précédent
+ui_MenuForward    Emplacement suivant
+ui_NotSet         non défini
+ui_NotDate        date invalide
+ui_Preview        Aperçu
 
 word_Section      section
 word_Sections     sections

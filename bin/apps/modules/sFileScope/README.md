@@ -77,15 +77,17 @@ guessing an encoding.
 - `Binary` displays a format's structure tree with field name, decoded value, file offset, and
   meaning. It recognizes Windows images, COFF and `ar` libraries, ELF, Mach-O, WebAssembly, ZIP,
   RIFF, Standard MIDI Files, sfnt fonts, Windows icons, and Swag Chunk Containers. Unknown files
-  still receive signature, size, and entropy analysis.
+  still receive signature, size, and entropy analysis. Shared search indexes every decoded report
+  column and reveals folded matches. Its compact menu copies rows or the report, expands or folds
+  the tree, jumps to a file offset, and walks visited rows backward or forward.
 - `Hexadecimal` is available for every file. It pages through 64 KiB at a time, uses 64-bit
   offsets, and supports independent scalar width, representation, and byte order.
 
 Text-oriented viewers handle normal keyboard and scrollbar navigation while content is streaming.
 Home, End, distant scrollbar jumps, and search open a bounded resident window near the requested
-offset. Ctrl+F scans in asynchronous 256 KiB chunks, while viewers such as PDF can replace that
-scan with format-aware search. Search is case-insensitive by default; `Aa` requires the same case
-and `ab` restricts matches to whole words. The result counter reports the current and total
+offset. Ctrl+F scans in asynchronous 256 KiB chunks, while viewers such as PDF and Binary replace
+that scan with format-aware search. Search is case-insensitive by default; `Aa` requires the same
+case and `ab` restricts matches to whole words. The result counter reports the current and total
 occurrences, F3 and Shift+F3 move forward and backward with wrapping, and every viewer supplies
 only match geometry to the same animated, theme-derived current-result marker. The information
 band shows a spinner while the active viewer is still producing visible content, and switching

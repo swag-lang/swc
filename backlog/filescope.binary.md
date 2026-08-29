@@ -7,23 +7,25 @@ report into a professional inspection workflow.
 
 ## Report exploration
 
-### B-087 — Structured reports cannot be filtered or searched by field semantics
+### B-087 — Structured reports cannot be filtered by field semantics
 
-- Evidence: host text search can reveal matching row text, but the viewer has no persistent filter,
-  field/value/meaning scope, numeric predicate, result list, or way to keep ancestors of matching
-  rows visible.
+- Evidence: shared search now indexes Field, Value, Offset, and Meaning cells, counts occurrences,
+  highlights the exact cell, and opens its ancestor path. The viewer still has no persistent
+  filter, explicit column scope, numeric predicate, warning/row-kind predicate, or result list.
 - Next: index report columns and hierarchy into a bounded query model with text, exact, numeric,
   offset-range, warning, and row-kind predicates.
 - Complete when: filters preserve the ancestor path, result counts and scopes are explicit,
   previous/next works independently from host document search, and clearing restores expansion and
   selection.
 
-### B-088 — Report navigation has no address box, landmarks, or history
+### B-088 — Report navigation has no address spaces or landmarks
 
-- Evidence: rows show offsets and may reveal a host match, but a reader cannot jump to file offset,
-  RVA, virtual address, archive member, section, symbol, or previously visited row.
-- Next: define format-provided address spaces and named landmarks, then add a query/address box and
-  back/forward stack.
+- Evidence: the compact report menu now accepts absolute or selected-row-relative hexadecimal file
+  offsets and walks visited rows backward or forward. It cannot name an RVA or virtual address,
+  enumerate archive members, sections, or symbols as landmarks, resolve ambiguous mappings, or
+  restore a separate expansion and scroll snapshot for each history entry.
+- Next: define format-provided address spaces and named landmarks, then extend the file-offset jump
+  and row history with those mappings and view-state snapshots.
 - Complete when: address parsing names its space, ambiguous mappings list choices, standard groups
   are jump targets, and history restores row, expansion, and scroll state.
 - Related: B-021

@@ -103,7 +103,7 @@ impl ViewerActionBar
     {
         let result = Wnd.create'ViewerActionBar(parent, {0, 0, 0, ViewerBarHeight})
         result.dockStyle       = .Top
-        result.backgroundStyle = .Window
+        result.backgroundStyle = .CommandBar
         result.padding         = {12, 6, 12, 6}
         return result
     }
@@ -1095,7 +1095,7 @@ impl ViewerWindow
         with result.infoBar = Wnd.create'ViewerInfoBar(result, {0, 0, 0, ViewerInfoHeight})
         {
             .dockStyle       = .Top
-            .backgroundStyle = .Band
+            .backgroundStyle = .InformationBar
             .padding         = {14, 4, 14, 4}
         }
 
@@ -1138,7 +1138,7 @@ impl ViewerWindow
         with result.viewerBar = Wnd.create'Wnd(result, {0, 0, 0, ViewerBarHeight})
         {
             .dockStyle       = .Bottom
-            .backgroundStyle = .Window
+            .backgroundStyle = .ToolBar
             .padding         = {12, 6, 12, 6}
             .hide()
         }

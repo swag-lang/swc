@@ -89,6 +89,7 @@ public struct MenuCtrl
     popupBarItemIdx:         u32 = Swag.U32.Max     // Owning menu-bar item for an anchored popup.
     popupBarItemSurfaceRect: Math.Rectangle         // Owning menu-bar item bounds in surface coordinates.
     ignoreNextRelease:       bool                   // Whether to ignore the release that opened the popup.
+    popupHasGlyphs:          bool                   // Whether visible popup entries need the shared glyph column.
 }
 
 public impl IWnd for MenuCtrl
@@ -268,12 +269,12 @@ public impl IWnd for MenuCtrl
 
             var iconPos = labelPos
             iconPos.x += metrics.menuPopup_IconMargin
-            labelPos.moveLeft(metrics.menuPopup_IconTextMargin + it.size)
+            labelPos.moveLeft(.popupHasGlyphs ? metrics.menuPopup_IconTextMargin + it.size : metrics.menuPopup_IconMargin)
             labelPos.width -= it.size
 
-            // A left-opening submenu puts its marker before the optional check or item icon. A
-            // right-opening one keeps the marker after the wording. Both reserve a complete band,
-            // so neither marker overlaps content or enters the popup's outer padding.
+            // A left-opening submenu puts its marker before the optional check or item icon. When
+            // no visible entry has a glyph, that empty column collapses and the wording follows
+            // the marker directly. A right-opening one keeps the marker after the wording.
             var submenuMarkerX: f32
             if @isset(it.popup)
             {
@@ -907,6 +908,7 @@ impl MenuCtrl
         rsf.font = .font()
 
         var lastIsSeparator = true
+        .popupHasGlyphs = false
         for i, idx in .items
         {
             let it = i!
@@ -930,6 +932,9 @@ impl MenuCtrl
                 .position.height += it.size
                 continue
             }
+
+            if it.checked or it.rg == .ExclusiveGroup or it.icon.isValid() do
+                .popupHasGlyphs = true
 
             it.size = rsf.font.regular!.height
 
@@ -958,7 +963,8 @@ impl MenuCtrl
         if !.paintByFrame do
             .position.width += 2 * metrics.menuPopup_ShadowSize
 
-        .position.width += (2 * rsf.font.regular!.height) + (1 * metrics.menuPopup_IconTextMargin)
+        let leadingWidth = .popupHasGlyphs ? rsf.font.regular!.height + metrics.menuPopup_IconTextMargin : metrics.menuPopup_IconMargin
+        .position.width += rsf.font.regular!.height + leadingWidth
 
         if .hasPopupBarAnchor() and !.paintByFrame
         {

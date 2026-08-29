@@ -21,7 +21,9 @@ using Swag, Core
     @assert(colors.btnIcon_CheckedIcon == 0xFFF7F900)
     @assert(colors.view_Bk == 0xFF15151A)
     @assert(colors.wnd_Bk == 0xFF202026)
-    @assert(colors.band_Bk == 0xFF2A2A32)
+    @assert(colors.informationBar_Bk == 0xFF1A1A20)
+    @assert(colors.commandBar_Bk == 0xFF25252D)
+    @assert(colors.toolBar_Bk == 0xFF1D1D24)
     @assert(colors.dlg_InformationIcon == 0xFFB6D2F2)
     @assert(colors.wnd_CaptionBk == 0xFF2A2A32)
     @assert(colors.wnd_CaptionBkLead == 0xFF46462B)
@@ -69,7 +71,7 @@ using Swag, Core
         var colors: ThemeColors
         colors.apply(palette)
 
-        for ground in [palette.ground, palette.view, palette.panel, palette.band, palette.raised]
+        for ground in [palette.ground, palette.view, palette.panel, palette.informationBar, palette.commandBar, palette.toolBar, palette.raised]
         {
             @assert(colors.hilight.contrastRatio(ground) >= 3.5)
             @assert(colors.error.contrastRatio(ground) >= 3.5)
@@ -85,16 +87,19 @@ using Swag, Core
     }
 }
 
-// Adjacent application regions have four distinct grounds in every shipped palette. Controls may
-// still share one of those values, but a view, an application rail, a structural panel and a plain
-// information band never merge into one another.
+// Adjacent application regions have six distinct grounds in every shipped palette. Controls may
+// still share one of those values, but a view, an application rail, a structural panel, an
+// information bar, a command bar and a tool bar never merge into one another.
 #test
 {
     for palette in [ThemeColors.darkPalette(), ThemeColors.lightPalette(), ThemeColors.swagDarkPalette()]
     {
-        @assert(palette.ground != palette.view and palette.ground != palette.panel and palette.ground != palette.band)
-        @assert(palette.view != palette.panel and palette.view != palette.band)
-        @assert(palette.panel != palette.band)
+        let grounds = [palette.ground, palette.view, palette.panel, palette.informationBar, palette.commandBar, palette.toolBar]
+        for value, idx in grounds
+        {
+            for other, otherIdx in grounds where otherIdx > idx do
+                @assert(value != other)
+        }
     }
 }
 
@@ -126,9 +131,17 @@ using Swag, Core
     // the raised body of a dialog.
     var dark: ThemeColors
     dark.setDark()
-    @assert(dark.wnd_CaptionBk == 0xFF2C2C2C)
+    @assert(dark.wnd_CaptionBk == 0xFF242424)
+    @assert(dark.wnd_CaptionBkNotActived == 0xFF2C2C2C)
     @assert(dark.wnd_CaptionBk != dark.view_Bk)
     @assert(dark.wnd_CaptionBk != dark.dlg_Bk)
+
+    var light: ThemeColors
+    light.setLight()
+    @assert(light.wnd_CaptionBk == 0xFFFAFAFA)
+    @assert(light.wnd_CaptionBkNotActived == 0xFFF4F4F4)
+    @assert(light.wnd_CaptionBk != light.view_Bk)
+    @assert(light.wnd_CaptionBk != light.dlg_Bk)
 }
 
 // A caption shows the product mark, and which cut of it depends on the band underneath. The

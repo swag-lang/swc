@@ -18,7 +18,17 @@ prompt per long-running campaign, with the target, current measurements, and sto
 | [compiler.md](compiler.md) | Compiler frontend, backend, incrementality, services, and workspace build engine |
 | [core.md](core.md) | `std/core` |
 | [doc.md](doc.md) | The `doc` command |
-| [filescope.md](filescope.md) | The sFileScope application |
+| [filescope.md](filescope.md) | The sFileScope application shell, document lifecycle, window hosting, and system integration |
+| [filescope.audio.md](filescope.audio.md) | The sFileScope sound viewer |
+| [filescope.binary.md](filescope.binary.md) | The sFileScope structured-binary and container viewer |
+| [filescope.document.md](filescope.document.md) | The sFileScope Markdown, HTML, PDF, office-document, and ebook viewers |
+| [filescope.font.md](filescope.font.md) | The sFileScope font viewer |
+| [filescope.hexa.md](filescope.hexa.md) | The sFileScope hexadecimal viewer |
+| [filescope.image.md](filescope.image.md) | The sFileScope image viewer |
+| [filescope.midi.md](filescope.midi.md) | The sFileScope MIDI viewer |
+| [filescope.text.md](filescope.text.md) | The sFileScope basic-text, code, subtitle, table, diff, and log viewers |
+| [filescope.video.md](filescope.video.md) | The sFileScope video viewer |
+| [filescope.viewers.md](filescope.viewers.md) | Contracts and capabilities shared by several sFileScope viewers |
 | [format.md](format.md) | The `format` command |
 | [gui.md](gui.md) | `std/gui` |
 | [html.md](html.md) | The HTML engine behind `Gui.HtmlView` |
@@ -50,7 +60,7 @@ Every entry carries a permanent identifier in its heading:
 ### B-001 — A short, descriptive title
 ```
 
-Next identifier: B-020
+Next identifier: B-154
 
 - `B-*` is the identifier family for every new entry. Take the number above and advance the
   counter in the same change.

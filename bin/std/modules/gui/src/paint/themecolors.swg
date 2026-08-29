@@ -80,8 +80,10 @@ struct ThemeColors
         // margin up to this value against the window.
         wnd_Shadow: Color
 
-        view_Bk: Color     // Ground content is read on.
-        band_Bk: Color     // Plain information or navigation band beside application chrome.
+        view_Bk:           Color     // Ground content is read on.
+        informationBar_Bk: Color     // Ground of a band reporting identity, context, or status.
+        commandBar_Bk:     Color     // Ground of application-wide commands.
+        toolBar_Bk:        Color     // Ground of tools specific to the current content.
 
         dlg_Bk:              Color     // Ground of a dialog.
         dlg_BtnBarBk:        Color     // Ground of the button bar of a dialog.
@@ -542,9 +544,9 @@ impl ThemeColors
     }
 
     // How many times a mark is allowed to be moved before the grounds are declared irreconcilable.
-    // Each pass answers the ground the mark is nearest, which can hand it to another one; five is
-    // one pass per ground, and no palette of five grounds needs more.
-    private const MarkPasses = 5
+    // Each pass answers the ground the mark is nearest, which can hand it to another one; seven is
+    // one pass per ground, and no palette of seven grounds needs more.
+    private const MarkPasses = 7
 
     // Returns the ground of `p` that `mark` has the hardest time on.
     //
@@ -554,7 +556,7 @@ impl ThemeColors
     private func hardestGround(p: ThemePalette, mark: Color)->Color
     {
         var result = p.ground
-        for candidate in [p.view, p.panel, p.band, p.raised] where mark.contrastRatio(candidate) < mark.contrastRatio(result) do
+        for candidate in [p.view, p.panel, p.informationBar, p.commandBar, p.toolBar, p.raised] where mark.contrastRatio(candidate) < mark.contrastRatio(result) do
             result = candidate
         return result
     }
@@ -655,8 +657,10 @@ impl ThemeColors
         .wnd_BtnClosePressedIcon = OnCloseRed
         .wnd_Shadow              = p.shadow
 
-        .view_Bk = p.view
-        .band_Bk = p.band
+        .view_Bk           = p.view
+        .informationBar_Bk = p.informationBar
+        .commandBar_Bk     = p.commandBar
+        .toolBar_Bk        = p.toolBar
 
         .dlg_Bk              = p.panel
         .dlg_BtnBarBk        = p.view
@@ -1069,13 +1073,15 @@ impl ThemeColors
     {
         var result: retval
 
-        result.ground  = 0xFF202020
-        result.view    = 0xFF282828
-        result.panel   = 0xFF353535
-        result.band    = 0xFF303030
-        result.raised  = 0xFF353535
-        result.hot     = 0xFF3F3F3F
-        result.pressed = 0xFF4A4A4A
+        result.ground         = 0xFF202020
+        result.view           = 0xFF282828
+        result.panel          = 0xFF353535
+        result.informationBar = 0xFF242424
+        result.commandBar     = 0xFF303030
+        result.toolBar        = 0xFF2C2C2C
+        result.raised         = 0xFF353535
+        result.hot            = 0xFF3F3F3F
+        result.pressed        = 0xFF4A4A4A
 
         // A neutral palette is allowed to wash a row with its accent, because a system blue
         // stays a ground once it is dark enough to write on.
@@ -1118,10 +1124,10 @@ impl ThemeColors
         result.veil   = 0xFFFFFFFF
         result.shadow = 0x5A000000
 
-        // A flat caption still has to read as chrome. It sits between the application ground
-        // and the raised dialog panel instead of merging exactly into either one.
-        result.caption         = 0xFF2C2C2C
-        result.captionInactive = 0xFF262626
+        // A flat caption still has to read as chrome. The active band steps clearly away from
+        // the window body; the inactive one sits between them so focus remains visible too.
+        result.caption         = 0xFF242424
+        result.captionInactive = 0xFF2C2C2C
         result.windowBorder    = 0xFF505050
 
         // A neutral theme follows the desktop it sits on, and the desktop draws a flat bar.
@@ -1135,13 +1141,15 @@ impl ThemeColors
     {
         var result: retval
 
-        result.ground  = 0xFFF6F6F6
-        result.view    = 0xFFFFFFFF
-        result.panel   = 0xFFEDEDED
-        result.band    = 0xFFFAFAFA
-        result.raised  = 0xFFFFFFFF
-        result.hot     = 0xFFEFEFEF
-        result.pressed = 0xFFE2E2E2
+        result.ground         = 0xFFF6F6F6
+        result.view           = 0xFFFFFFFF
+        result.panel          = 0xFFEDEDED
+        result.informationBar = 0xFFE5E5E5
+        result.commandBar     = 0xFFF2F2F2
+        result.toolBar        = 0xFFE9E9E9
+        result.raised         = 0xFFFFFFFF
+        result.hot            = 0xFFEFEFEF
+        result.pressed        = 0xFFE2E2E2
 
         result.selectHot     = 0xFFE8F2FF
         result.selectPressed = 0xFFD4E7FF
@@ -1176,8 +1184,8 @@ impl ThemeColors
         result.veil   = 0xFF000000
         result.shadow = 0x3C000000
 
-        result.caption         = 0xFFF6F6F6
-        result.captionInactive = 0xFFEDEDED
+        result.caption         = 0xFFFAFAFA
+        result.captionInactive = 0xFFF4F4F4
         result.windowBorder    = 0xFFCCCCCC
 
         // A neutral theme follows the desktop it sits on, and the desktop draws a flat bar.
@@ -1197,11 +1205,13 @@ impl ThemeColors
     {
         var result: retval
 
-        result.ground = 0xFF0B0B0D
-        result.view   = 0xFF15151A
-        result.panel  = 0xFF202026
-        result.band   = 0xFF2A2A32
-        result.raised = 0xFF2A2A32
+        result.ground         = 0xFF0B0B0D
+        result.view           = 0xFF15151A
+        result.panel          = 0xFF202026
+        result.informationBar = 0xFF1A1A20
+        result.commandBar     = 0xFF25252D
+        result.toolBar        = 0xFF1D1D24
+        result.raised         = 0xFF2A2A32
 
         // Hover has to be seen from across the surface without shouting. A step of nine
         // levels over the raised ground it usually sits on read as nothing at all.

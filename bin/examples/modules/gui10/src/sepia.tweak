@@ -15,7 +15,9 @@
 ground              0xFFF3EDE1
 view                0xFFFBF7EF
 panel               0xFFEAE2D2
-band                0xFFF6F0E6
+informationBar      0xFFE2D8C5
+commandBar          0xFFF6F0E6
+toolBar             0xFFE6DDCB
 raised              0xFFFBF7EF
 hot                 0xFFE6DCC8
 pressed             0xFFDBCFB6

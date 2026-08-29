@@ -8,8 +8,10 @@ what the whole document family is: an offline, script-free, network-free viewer.
 
 Evidence, investigations, and intended outcomes for the Markdown engine stay together here. The
 engine lives beside its widget inside `gui`, as [pdf.md](pdf.md#where-this-family-lives-and-why)
-records for the document family; application-level affordances an integrated viewer adds — zoom,
-printing, thumbnails — stay in [filescope.md](filescope.md).
+records for the document family; application-level zoom stays in
+[filescope.text.md](filescope.text.md), shared printing in
+[filescope.viewers.md](filescope.viewers.md), and shell thumbnail integration in
+[filescope.md](filescope.md).
 [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it

@@ -76,13 +76,15 @@ struct ThemePalette
         // Grounds, from the one furthest behind the reader's attention to the one nearest it.
         // A theme that gives two of them the same value simply flattens that step; nothing
         // downstream has to know.
-        ground:  Color     // The application background, and the ground a window sits on.
-        view:    Color     // A document, a list, a canvas: the ground content is read on.
-        panel:   Color     // A dialog, a menu, a tool bar, or another structural panel.
-        band:    Color     // A plain information or navigation band beside those grounds.
-        raised:  Color     // The fill of a control that has one: a button, a field, a combo.
-        hot:     Color     // The fill of a control under the pointer.
-        pressed: Color     // The fill of a control under the press.
+        ground:         Color     // The application background, and the ground a window sits on.
+        view:           Color     // A document, a list, a canvas: the ground content is read on.
+        panel:          Color     // A dialog, a menu, a side panel, or another structural panel.
+        informationBar: Color     // A band reporting identity, context, or status beside the content.
+        commandBar:     Color     // The application-wide commands framing the top of the content.
+        toolBar:        Color     // Contextual tools framing another edge of the content.
+        raised:         Color     // The fill of a control that has one: a button, a field, a combo.
+        hot:            Color     // The fill of a control under the pointer.
+        pressed:        Color     // The fill of a control under the press.
 
         // The ground of a row, an entry or a tab the pointer is over, and of one that is
         // selected. These are where a theme spends most of its color, because a list, a menu

@@ -441,4 +441,4 @@ is the layout it does not read yet.
   anything this module reads.
 - It is recorded because the sweep found it, not because it is worth writing: one film against a
   codec of that size is a poor trade, and remuxing that one file is the cheaper answer.
-- Related: T-571 in [filescope.md](filescope.md)
+- Related: T-571 in [filescope.video.md](filescope.video.md)

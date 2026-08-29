@@ -107,7 +107,7 @@ impl Dialog
             .spacing         = metrics.dialog_BtnPadding
             .mode            = .HorizontalEnd
             .dockStyle       = .Bottom
-            .backgroundStyle = .DialogBar
+            .backgroundStyle = .DialogActionBar
             .padding         = {metrics.dialog_Padding, metrics.dialog_BtnPadding, metrics.dialog_Padding, metrics.dialog_BtnPadding}
         }
 

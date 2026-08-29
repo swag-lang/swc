@@ -33,8 +33,10 @@ remain square; the outer surface uses its larger
 [[Gui.Wnd.backgroundStyle]] to [[Gui.BackgroundStyle.Panel]] when it is a raised
 panel rather than joined application chrome, so its ground follows that geometry
 in every palette. [[Gui.BackgroundStyle.Application]], [[Gui.BackgroundStyle.View]],
-[[Gui.BackgroundStyle.Window]], and [[Gui.BackgroundStyle.Band]] expose four
-plain palette grounds for applications that compose several adjacent bands.
+and [[Gui.BackgroundStyle.Window]] expose the main plain grounds. Use
+[[Gui.BackgroundStyle.CommandBar]], [[Gui.BackgroundStyle.InformationBar]], and
+[[Gui.BackgroundStyle.ToolBar]] for application-wide commands, contextual information,
+and tools specific to the current content; each role remains distinct in every shipped palette.
 
 ```swag
 var palette = Gui.ThemeColors.swagDarkPalette()

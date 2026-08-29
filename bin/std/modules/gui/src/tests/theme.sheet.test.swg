@@ -12,7 +12,7 @@ using Swag, Core
 
     let sheet = """
                 /ThemePalette
-                band                0xFF102030
+                informationBar      0xFF102030
                 signature.mark      0xFF00A0FF
                 signature.ground    0xFF00A0FF
                 signature.onGround  0xFF000000
@@ -29,7 +29,7 @@ using Swag, Core
     @assert(theme.colors.slider_Mark == 0xFF00A0FF)
     @assert(theme.colors.progressBar_Mark == 0xFF00A0FF)
     @assert(theme.colors.btnPush_StrongText == 0xFF000000)
-    @assert(theme.colors.band_Bk == 0xFF102030)
+    @assert(theme.colors.informationBar_Bk == 0xFF102030)
 
     // Everything the signature does not decide is left exactly where the palette had it.
     @assert(theme.colors.bk == 0xFF0B0B0D)

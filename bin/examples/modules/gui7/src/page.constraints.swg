@@ -20,7 +20,7 @@ func createConstraintsPage(parent: *Wnd)
     host.padding = 8
 
     let topStack = StackLayoutCtrl.create(host, .Left, {0, 0, 0, 56})
-    topStack.backgroundStyle = .DialogBar
+    topStack.backgroundStyle = .CommandBar
     topStack.dockStyle       = .Top
     topStack.margin          = {0, 0, 0, 10}
     topStack.padding         = {12, 12, 12, 12}

@@ -197,10 +197,10 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
 
     let metrics     = popup.themeMetrics()
     let shadowWidth = 2 * metrics.menuPopup_ShadowSize
-    let chromeWidth = 2 * item.size + 2 * metrics.menuPopup_IconTextMargin + metrics.chevron_Size + popup.padding.x + popup.padding.z + shadowWidth
+    let chromeWidth = item.size + metrics.menuPopup_IconMargin + metrics.menuPopup_IconTextMargin + metrics.chevron_Size + popup.padding.x + popup.padding.z + shadowWidth
     @assert(metrics.chevron_Size == 12)
     @assert(metrics.menuPopup_WindowMargin == 8)
-    @assert(popup.position.width - chromeWidth >= item.name.boundRect.width)
+    @assert(popup.position.width - chromeWidth + 0.01 >= item.name.boundRect.width)
 }
 
 // Headless popup menus can drive nested submenus through hover/timer behavior.
@@ -427,6 +427,55 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
             return
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, "menu.popup.left")
+        @assert(host.dismissPopupMenu())
+        checked[] = true
+    }
+
+    discard popup.doModal({348, 204}, .AnchorBottomCenter, autoDestroy: true)
+    @assert(checked)
+    host.pump()
+}
+
+// A left-opening submenu without any visible item glyph collapses the unused glyph column, so
+// its wording follows the leading chevron at the normal icon-to-text distance.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 220)
+    defer host.shutdown()
+
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    let sub = MenuCtrl.createPopup(&host.root)
+    sub.addItem("Sans serif", Menu_Open)
+    sub.addItem("Monospace", Menu_Quit)
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    let item  = popup.addPopup("Typography", sub)
+    popup.addItem("Plain item", Menu_New)
+    popup.setSubmenuDirection(.Left)
+    popup.computeLayoutPopup()
+
+    let iconSub = MenuCtrl.createPopup(&host.root)
+    iconSub.addItem("Sans serif", Menu_Open)
+    let iconPopup = MenuCtrl.createPopup(&host.root)
+    iconPopup.addPopup("Typography", iconSub, icon: host.theme.icon(.Appearance, 16))
+    iconPopup.addItem("Plain item", Menu_New)
+    iconPopup.setSubmenuDirection(.Left)
+    iconPopup.computeLayoutPopup()
+
+    let metrics = popup.themeMetrics()
+    @assert(Math.abs(iconPopup.position.width - popup.position.width - (item.size + metrics.menuPopup_IconTextMargin - metrics.menuPopup_IconMargin)) < 0.01)
+
+    var checked: bool
+    host.app.sigFrame += func|host = &host, checked = &checked|(app)
+    {
+        discard app
+        if checked[] do
+            return
+        var image = host.render()
+        Pixel.Testing.assertImageGolden(&image, "menu.popup.left.no-icons")
         @assert(host.dismissPopupMenu())
         checked[] = true
     }

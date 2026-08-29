@@ -18,7 +18,7 @@ re-measuring.
 | [4. Compilation speed](#4-compilation-speed) | The fastest thing that does this work |
 | [5. Compiler memory](#5-compiler-memory) | A fraction of the resident set, at the same speed |
 | [6. Repository health reset](#6-repository-health-reset) | Restore a clean, current, all-green baseline |
-| [7. Compiler code cleanup](#7-compiler-code-cleanup) | Eliminate every actionable Rider clang-tidy diagnostic |
+| [7. Compiler code health](#7-compiler-code-health) | Apply risk-free mechanical cleanup to swc itself |
 
 Campaigns 3, 4 and 5 constrain each other on purpose: shrinking the sources must not cost speed,
 speed must not cost memory, and memory must not cost speed. Run them one at a time, and let each
@@ -874,131 +874,151 @@ when every end condition above is true.
 
 ---
 
-## 7. Compiler code cleanup
+## 7. Compiler code health
 
 ```
-You are running an exhaustive C++ code-cleanup campaign on the swc compiler. Read AGENTS.md and
-the skills it points to first, especially modify-swag-codebase and its
-references/cpp-coding-rules.md. This is an implementation campaign, not an audit: every actionable
-problem the configured Rider clang-tidy pass reports in project-owned compiler code must be fixed,
-validated, and removed from the next report.
+You are running a mechanical code-health campaign on the swc compiler itself. Read AGENTS.md and
+the skills it points to first, especially modify-swag-codebase,
+modify-swag-codebase/references/cpp-coding-rules.md, and validate-swag-changes. This is an
+implementation campaign, not an audit, but its safety boundary is absolute: make only changes whose
+semantic equivalence can be established directly from the source. If a proposed improvement needs
+design judgment, changes a contract, or carries any plausible regression risk, leave it unchanged
+and report it as outside this campaign.
 
 WORK IN A SEPARATE WORKTREE
 
 Do not run this campaign in the main checkout. Record the starting commit and status, then create
 an isolated branch and worktree from that exact commit:
 
-  git worktree add -b codex/compiler-cleanup ../swc-compiler-cleanup HEAD
+  git worktree add -b codex/compiler-code-health ../swc-compiler-code-health HEAD
 
-Never copy uncommitted changes from the main checkout into it. The worktree keeps the large
-inspection cache, generated reports, compiler binaries, and mechanical cleanup edits isolated from
-unrelated work. Keep reports and downloaded command-line tools under the ignored .tmp directory.
+Never copy uncommitted changes from the main checkout into it. Keep temporary reports under the
+ignored .tmp directory and keep generated output out of the final diff.
 
-RUN THE SAME PASS AS RIDER
+SCOPE
 
-Do not guess a convenient clang-tidy preset. Reproduce the effective configuration used by Rider's
-Inspect Code action:
+Restrict edits to project-owned compiler and support code under src/ and the project files needed
+to describe it. Exclude vendored code, generated output, language behavior, public module APIs,
+diagnostic wording, command-line behavior, serialized formats, ABI, runtime contracts, cache
+formats, and build-system semantics.
 
-  1. Identify the installed Rider version and its bundled clang-tidy version.
-  2. Read the solution, personal, and Rider global DotSettings layers. Record the configured
-     CppClangTidy Checks value, inspection severity overrides, excluded paths, and any explicit
-     clang-tidy configuration file.
-  3. Use the matching JetBrains.ReSharper.GlobalTools version and run InspectCode on swc.sln with
-     --no-build, --severity=HINT, the effective settings, absolute paths, and a SARIF output under
-     .tmp. Use a bounded job count so the machine remains responsive.
-  4. Confirm from the process list or debug log that InspectCode actually launches clang-tidy and
-     loads the C++ project. A zero-result report produced without clang-tidy workers is not a clean
-     baseline.
-  5. Restrict conclusions to project-owned compiler sources under src/. Exclude vendored mimalloc
-     code and generated output. Do not edit third-party sources to make the report green.
+The campaign covers these mechanical improvements:
 
-If InspectCode is unavailable, reconstruct its clang-tidy command from Rider logs and settings,
-including checks disabled by inspection severity. Running a bare clang-tidy -checks=* is not
-equivalent when Rider has appended disabled checks or supplied a different compilation database.
+  - Include health: remove unused and duplicate includes; replace accidental transitive includes
+    with direct includes at the real use site; move implementation-only dependencies from headers
+    to source files; use forward declarations where a complete type is not required; split stable
+    enums, keys, lightweight value types, and persistent data contracts from heavy service headers;
+    break unnecessary include cycles; and keep every public header self-sufficient.
+  - Dependency fanout: identify broadly consumed headers that aggregate unrelated facilities and
+    separate them into cohesive leaf contracts. Use dependency counts or the existing build
+    dependency graph as structural evidence, not elapsed-time or memory benchmarks. Do not add a
+    pointer, allocation, virtual dispatch, PIMPL, type erasure, or runtime indirection merely to
+    reduce include fanout.
+  - Code reduction: remove exact duplication, redundant wrappers, repeated declarations,
+    unreachable duplication after an unconditional exit, and equivalent boilerplate when an
+    existing repository abstraction already expresses precisely the same operation.
+  - Simplification: simplify control flow, expressions, local initialization, and helper structure
+    only when evaluation order, conversions, overflow behavior, lifetime, ownership, allocation,
+    synchronization, and generated code remain unchanged.
+  - Naming: perform complete, mechanical renames of private or internal identifiers when the new
+    name is materially clearer. Do not rename exported symbols, externally visible strings, files
+    consumed by tools, reflection targets, configuration keys, or compatibility surfaces.
+  - Comments: remove stale, duplicated, or narrating comments; correct comments that no longer
+    match the code; and add concise English comments for non-obvious invariants, ownership,
+    lifetimes, concurrency assumptions, binary layout, or intentionally unusual low-level code.
+    Never use comments to excuse unclear code that can be made clear mechanically.
+  - Local consistency: align nearby code with established repository idioms, reuse an existing
+    equivalent helper, remove obsolete suppressions whose cause no longer exists, and keep project
+    file entries and filters accurate after header splits or renames.
 
-BASELINE
+HARD SAFETY BOUNDARY
 
-Parse the SARIF before editing. Produce a table grouped by rule with the count, affected files,
-severity, and whether fixes are offered. Separate CppClangTidy diagnostics from native ReSharper
-C++ inspections: the clang-tidy set is the required gate; native inspections are fixed when they
-identify a real defect or a clear violation of the repository's C++ rules, but they must not
-silently expand the campaign into cosmetic churn.
+Preserve observable behavior exactly. In particular, do not change algorithms, public or internal
+contracts, object layout, data-member order, virtual dispatch, ownership, allocation count or
+arena, locking, atomics, exception behavior, error propagation, evaluation order, integer or
+floating-point semantics, generated machine code intentionally selected by the implementation, or
+hot-path work. Do not fix a behavioral defect as part of this campaign: reduce and report it for a
+separate change with its own regression test.
 
-Inspect representative instances of every rule before applying any fix-it. Automatic fixes are a
-starting point, not authority: several enabled checks can propose overlapping edits, and a fix
-that shortens code can still violate the repository's performance, ownership, or readability
-rules.
+Do not introduce a new abstraction merely because it shortens one call site. A reduction is valid
+only when the result is at least as direct, readable, and cheap as the original. Do not apply
+unreviewed bulk fix-its, blanket formatting, speculative modernizations, global search-and-replace
+without symbol verification, warning suppressions, or cosmetic churn. When equivalence is not
+obvious in the diff, the edit is out of scope.
+
+DISCOVERY
+
+Build a short source-based inventory before editing. Look for high-fanout headers, include cycles,
+headers depending on service implementations for a small type, repeated code sequences, trivial
+wrappers, stale comments, unclear private names, redundant branches, and project-file drift. Static
+analysis and compiler warnings may supply leads, but no tool diagnostic is authority and no
+tool-specific report is the campaign's completion gate.
+
+Prioritize changes with broad maintenance value and a small, mechanically provable diff. Group the
+inventory into coherent batches such as one header family, one internal rename, or one exact
+duplication pattern. Skip findings that would mix unrelated subsystems or require a compatibility
+decision.
 
 THE LOOP
 
-Work one coherent rule family at a time:
+For each batch:
 
-  1. Read all occurrences and the surrounding implementation. Classify each diagnostic as a real
-     defect, a safe maintainability improvement, or a demonstrated false positive.
-  2. Fix the root cause. Preserve semantics, hot-path cost, allocation behavior, object layout,
-     const correctness, and ownership. Share duplicated behavior at the owning abstraction; do not
-     add file-local helpers before searching for an existing equivalent.
-  3. Never silence a real issue with NOLINT, a ReSharper directive, a cast, an unused read, an
-     empty branch, or a broader exclusion. A suppression is allowed only for a demonstrated tool
-     false positive or a deliberate low-level construct, must target one rule at the narrowest
-     location, and must explain the invariant that makes the code safe.
-  4. Format only the touched C++ files with the repository clang-format configuration and inspect
-     the diff. Reject unrelated formatting and line-ending churn.
-  5. Rerun InspectCode on the affected files or project and prove that the targeted diagnostics
-     disappeared without creating new ones. Keep a live before/after count by rule.
-  6. When a diagnostic exposes a behavioral compiler defect, add the regression test at the real
-     boundary before considering it fixed. A downstream discovery needs the required suite test in
-     bin/unittests unless it genuinely cannot be reduced.
+  1. Read every affected declaration, definition, include path, and caller before editing. State
+     the equivalence argument and the exact dependency or duplication being removed.
+  2. Make the smallest complete edit. Add direct includes to real users before removing a
+     transitive include. Keep lightweight types by value; do not hide real layout dependencies.
+  3. Search the whole repository for every renamed symbol, moved type, removed include, helper, and
+     project entry. Update all exact references in the same batch.
+  4. Inspect the diff immediately. Reject unrelated formatting, line-ending churn, reordered code,
+     or an edit whose safety now depends on an assumption not visible in the source.
+  5. Compile or run the narrowest validation boundary that can detect a mistake in the batch. If a
+     failure reveals that the edit was not purely mechanical, revert that edit instead of widening
+     the campaign into a behavioral fix.
 
-Prefer small reviewable rounds. Do not apply every available fix-it across src/ in one command:
-bulk edits hide semantic changes, create conflicting rewrites, and make it impossible to attribute
-a regression. Do not stop after fixing only warnings; HINT, SUGGESTION, WARNING, and ERROR severities
-all belong to the configured pass and must be triaged.
+Prefer small reviewable batches. A mechanically safe campaign may be broad in aggregate, but every
+individual transformation must remain locally obvious.
 
 VERSION AND VALIDATION
 
-Any change under src/ requires one SWC_BUILD_NUM increment in src/Main/Version.h for the campaign,
-not one increment per file. Before every compiler build or project test, follow the cross-agent
-serialization rules in modify-swag-codebase; a separate worktree does not grant a separate build or
-test slot.
+Any campaign that changes src/ increments SWC_BUILD_NUM once in src/Main/Version.h, not once per
+file. Before every compiler build or project test, follow the machine-load admission and compiler
+worker limits in modify-swag-codebase. A separate worktree does not provide separate machine
+resources.
 
-After each risky rule family, run the narrowest focused C++ or Swag regression test. Once the final
-inspection report is clean, run the complete C++ validation sequence required by the skill:
+Select validation from the final diff using validate-swag-changes:
 
-  1. Build DevMode.
-  2. swc tools/tests.swgs dm
-  3. swc tools/tests.swgs dm --all-cfg
-  4. Build Release, including swc.exe.
-  5. swc tools/tests.swgs
-  6. swc tools/tests.swgs --all-cfg
+  - Parse the Visual Studio project files after changing their entries or filters.
+  - Build DevMode after the final source batch.
+  - Also build Release when the campaign crosses compiler architecture, shared headers, conditional
+    compilation, or source sets; otherwise do not add Release by habit.
+  - Run the focused C++ or compiler suite boundaries that exercise code moved or mechanically
+    refactored. Include-only and comment-only batches do not justify unrelated behavioral suites.
+  - Do not run performance measurements for a purely mechanical cleanup. The campaign is invalid
+    if an edit needs benchmarking to establish that it is safe.
 
-Stop at the first test failure, release the shared test slot, fix the cause, rerun the focused
-reproducer, and then restart the affected aggregate validation. If cleanup touches sema, codegen,
-or a micro pass in a way that could affect performance, compare compile time and peak memory on the
-same representative workspace before and after; code cleanup may not cost a compiler cycle or byte.
-Treat every failure found by this ladder as part of the campaign, even when it predates or is
-unrelated to a clang-tidy edit: reduce it, fix its root cause, and rerun the affected validation.
+After the last edit, run git diff --check, inspect git status including ignored test outputs, verify
+that every new header is present in the project and filters, and remove temporary material. Detect
+and restore files whose only change is line endings.
 
 THE CAMPAIGN MAY END ONLY WHEN
 
-  - A fresh full InspectCode report using the recorded Rider clang-tidy profile contains zero
-    actionable diagnostics in project-owned src/ code.
-  - Every remaining suppression or excluded diagnostic is individually justified as a false
-    positive or intentional low-level construct; there are no blanket suppressions added by the
-    campaign.
-  - The DevMode and Release validation ladders, including every build configuration, are green
-    after the last source edit.
-  - SWC_BUILD_NUM is incremented exactly once, git diff --check is clean, and the final diff has no
-    generated files, temporary reports, vendored edits, line-ending-only changes, or misplaced test
-    output.
+  - Every retained edit is demonstrably behavior-preserving and belongs to one of the mechanical
+    categories above.
+  - Headers are self-sufficient, direct users own their includes, and each new leaf header has one
+    cohesive purpose.
+  - No incomplete rename, stale reference, obsolete project entry, new suppression, generated file,
+    vendored edit, line-ending-only change, or misplaced output remains.
+  - The validation selected from the final diff is green after the last source edit.
+  - SWC_BUILD_NUM is incremented exactly once when required and the worktree contains only the
+    intended code-health changes.
 
-The campaign does not end because the report is smaller, because only hints remain, because an
-automatic fix is unavailable, because a diagnostic predates the campaign, or because one check is
-noisy. Demonstrate false positives precisely; fix everything else.
+Do not claim completion for findings deliberately left outside the safety boundary. They are not
+failures of this campaign; list them separately without implementing them.
 
 REPORT
 
-Report the worktree path and branch, Rider/InspectCode/clang-tidy versions, effective checks and
-exclusions, baseline and final counts by rule, files changed, suppressions retained or added with
-their justification, SWC_BUILD_NUM change, and every validation command with its result.
+Report the worktree path and branch, starting commit, coherent cleanup batches, important include
+or dependency reductions, comments added or removed, internal renames, code reductions, skipped
+non-mechanical findings, SWC_BUILD_NUM change, files changed, and every validation command with its
+result. Report structural dependency counts when useful, but no timing or memory measurements.
 ```

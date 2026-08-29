@@ -228,7 +228,7 @@ private func appendHtmlInlineNode(output: *String, document: const *HtmlDocument
     let current = document.constNode(node)
     if current.kind == .Text
     {
-        output[] += renderInline(current.text.toString(), references, true)
+        output[] += renderInline(document.text(current.text), references, true)
         return
     }
 
@@ -307,9 +307,10 @@ private func appendHtmlInlineNode(output: *String, document: const *HtmlDocument
 private func parseHtmlInline(text: string, start: u64, references: #null const [..] Reference)->HtmlInlineInfo
 {
     var result: retval
+    // A fragment: inline markup belongs to the Markdown paragraph around it, not to a document.
     var document = HtmlDocument.create()
     var parser: HtmlParser
-    parser.start(&document)
+    parser.start(&document, .Fragment)
 
     var end = start
     while end < @countof(text)

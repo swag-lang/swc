@@ -266,7 +266,7 @@ impl HtmlLayout
         let child = .document.constNode(node)
         if child.kind == .Text
         {
-            .appendText(pending, node, .styleIndexOf(node), child.text.toString())
+            .appendText(pending, node, .styleIndexOf(node), .document.textOf(node))
             return
         }
 

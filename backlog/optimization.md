@@ -6,6 +6,26 @@ Frontend and lowering defects are [compiler.md](compiler.md).
 Entries are grouped by the optimization capability they advance. [README.md](README.md) defines
 the shared backlog conventions.
 
+## Statement lowering
+
+### B-156 — A `switch` on a string calls a comparison function once per case
+
+- Area: compiler/codegen
+- Evidence: `emitStringCompareEqualsJump` in
+  [CodeGen.Switch.cpp](../src/Compiler/CodeGen/Ast/CodeGen.Switch.cpp) prepares an ABI call to the
+  runtime string comparison for every case, in source order, with no cheaper test in front of it,
+  so a switch over a hundred names is a chain of up to a hundred calls. Measured on
+  `HtmlDocument.tagFromName`, 104 cases: about 120 ns per resolved element name, 17.5 ms for the
+  146 945 elements of the 8.15 MB page in `backlog/html.md` — a tenth of what parsing it costs.
+  The CSS property switch in `style.swg`, the color-name switch, and every other large string
+  switch in `bin/` pay the same shape; the HTML entity table stopped being one because of it.
+- Next: emit the length comparison inline before each call — both operands are `string`, and a
+  case literal's length is a compile-time constant — jumping to the next test when they differ,
+  then measure `tagFromName` again. Bucketing the cases by length in the emitted graph is the step
+  after that, if the pre-check is not enough.
+- Complete when: a string switch over a hundred cases costs a handful of comparisons per lookup,
+  the `sema`, `native` and `jit` suites stay green, and the page above parses measurably faster.
+
 ## Loop vectorization
 
 ### F-034 — Unrolling the key-stream loop no longer loses its constant offsets, and still does not pay

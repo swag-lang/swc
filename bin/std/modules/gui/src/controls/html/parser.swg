@@ -8,6 +8,34 @@ using Core
 // their deepest kept ancestor and the document stays readable.
 const HtmlMaxElementDepth = 256'u64
 
+// One element the parser has opened and not yet closed.
+//
+// The tag travels with the index because the stack is walked several times per source tag — for
+// implied closes, for the foster anchor, for a stray end tag — and reading it back from the node
+// array costs a cache miss into a structure that is two orders of magnitude larger than the
+// stack itself.
+//
+// It travels with [[Gui.HtmlView]], which carries the parser as a field.
+#[Swag.NoDoc]
+public struct HtmlOpenElement
+{
+    element: u32
+    tag:     HtmlTag
+}
+
+// What a source is parsed as.
+//
+// A document carries the `html`, `head` and `body` elements even when it writes none of them, and
+// a page's `body { ... }` rules only mean anything because of that. A fragment is content parsed
+// for a place that already exists — the raw HTML block of a Markdown document, for one — where
+// those elements would add a page's margins inside somebody else's box.
+#[Swag.NoDoc]
+public enum HtmlParserMode
+{
+    Document
+    Fragment
+}
+
 // Feeds source bytes into an [[HtmlDocument]], one chunk at a time.
 //
 // The parser is resumable: `feed` consumes every complete token it can see and keeps the
@@ -19,38 +47,187 @@ public struct HtmlParser
     #[Swag.Late]
     document: *HtmlDocument
 
-    stack:       Array'u32
+    stack:       Array'HtmlOpenElement
     carry:       String
     baseOffset:  u64
     rawTag:      HtmlTag
+    mode:        HtmlParserMode
     inRawText:   bool
     dropNewline: bool
     done:        bool
     depthCapped: bool
+
+    // The elements the parsing model implies, whether the source wrote them or not.
+    htmlElement = HtmlNoNode
+    headElement = HtmlNoNode
+    bodyElement = HtmlNoNode
 }
 
 impl HtmlParser
 {
     // Binds a parser to the document it fills, which must outlive it.
-    mtd start(document: *HtmlDocument)
+    mtd start(document: *HtmlDocument, mode = HtmlParserMode.Document)
     {
         .document = document
         .stack.clear()
-        .stack.add(0)
+        .stack.add({0, HtmlTag.Unknown})
         .carry.clear()
+        .mode        = mode
         .baseOffset  = 0
         .inRawText   = false
         .dropNewline = false
         .done        = false
         .depthCapped = false
+        .htmlElement = HtmlNoNode
+        .headElement = HtmlNoNode
+        .bodyElement = HtmlNoNode
     }
 
-    mtd current()->u32 => .stack.back()
+    // Reports whether the insertion point is still outside the two sections of a document, which
+    // is where content decides which of them it belongs to.
+    mtd const atDocumentLevel()->bool
+    {
+        let tag = .stack.back().tag
+        return .stack.count == 1 or tag == .Html
+    }
+
+    // Opens the element a document implies, and returns it.
+    mtd openImplied(tag: HtmlTag, offset: u64)->u32
+    {
+        let element = .document.addElement(.current(), "", tag, offset)
+        .stack.add({element, tag})
+        return element
+    }
+
+    // Makes sure the `html` element exists and is the insertion point's ancestor.
+    mtd ensureHtml(offset: u64)
+    {
+        if .htmlElement != HtmlNoNode
+        {
+            if !.isOpen(.Html) do
+                .stack.add({.htmlElement, HtmlTag.Html})
+            return
+        }
+
+        while .stack.count > 1 do
+            .stack.removeBack()
+        .htmlElement = .openImplied(.Html, offset)
+    }
+
+    // Makes sure the `head` element exists and is open.
+    mtd ensureHead(offset: u64)
+    {
+        .ensureHtml(offset)
+        if .headElement != HtmlNoNode
+        {
+            if !.isOpen(.Head) do
+                .stack.add({.headElement, HtmlTag.Head})
+            return
+        }
+
+        .headElement = .openImplied(.Head, offset)
+    }
+
+    // Makes sure the `body` element exists and is open, closing the head it follows.
+    //
+    // Content written after `</body>` returns to the same body, which is what a browser does with
+    // it rather than starting a second one.
+    mtd ensureBody(offset: u64)
+    {
+        .ensureHtml(offset)
+        if .isOpen(.Head) do
+            .popTo(.Head)
+        if .bodyElement != HtmlNoNode
+        {
+            if !.isOpen(.Body) do
+                .stack.add({.bodyElement, HtmlTag.Body})
+            return
+        }
+
+        .bodyElement = .openImplied(.Body, offset)
+    }
+
+    // Reports whether an element belongs to the head of a document rather than to its body.
+    func belongsToHead(tag: HtmlTag)->bool
+    {
+        switch tag
+        {
+        case .Base, .Link, .Meta, .Title, .Style, .Script, .NoScript, .Template: return true
+        }
+
+        return false
+    }
+
+    // Takes a written `html`, `head` or `body` start tag as the one the document already has, and
+    // reports whether it was consumed here.
+    //
+    // A source that writes them is the same document as one that does not: the second `<body>` a
+    // malformed page opens carries its attributes into the first, rather than starting a section
+    // that nothing styles.
+    mtd adoptWrittenSection(tag: HtmlTag, attributes: string, offset: u64)->bool
+    {
+        switch tag
+        {
+        case .Html:
+            .ensureHtml(offset)
+            .readSectionAttributes(.htmlElement, attributes)
+            return true
+
+        case .Head:
+            .ensureHead(offset)
+            .readSectionAttributes(.headElement, attributes)
+            return true
+
+        case .Body:
+            .ensureBody(offset)
+            .readSectionAttributes(.bodyElement, attributes)
+            return true
+        }
+
+        return false
+    }
+
+    // Reads a section's attributes while they can still extend that element's run of the pool.
+    //
+    // A page that opens `<body>` a second time around its content keeps the first spelling: the
+    // standard merges the attributes it does not already carry, and the half that matters — the
+    // first `<body class=...>` wins — is what this keeps.
+    mtd readSectionAttributes(element: u32, attributes: string)
+    {
+        let range = .document.constNode(element).attributes
+        if range.start + range.count != cast(u32) .document.attributePool.count do
+            return
+        .readAttributes(element, attributes)
+    }
+
+    // Opens the section a start tag belongs to, before the element itself is inserted.
+    mtd openImpliedSection(tag: HtmlTag, offset: u64)
+    {
+        if .mode == .Fragment do
+            return
+
+        let inHead = .stack.back().tag == .Head
+        if !.atDocumentLevel() and !inHead do
+            return
+
+        // Head content stays in the head until something that belongs to the body has started
+        // one; after that the head is closed and a stray `<style>` renders where it was written.
+        if HtmlParser.belongsToHead(tag) and .bodyElement == HtmlNoNode
+        {
+            if !inHead do
+                .ensureHead(offset)
+            return
+        }
+
+        .ensureBody(offset)
+    }
+
+    mtd current()->u32 => .stack.back().element
 
     // Reports whether an element with that tag is open, so a stray end tag closes nothing.
     mtd const isOpen(tag: HtmlTag)->bool
     {
-        for element in .stack where .document.constNode(element).tag == tag do
+        for open in .stack where open.tag == tag do
             return true
         return false
     }
@@ -59,7 +236,7 @@ impl HtmlParser
     {
         while .stack.count > 1
         {
-            let closed = .document.constNode(.stack.back()).tag
+            let closed = .stack.back().tag
             .stack.removeBack()
             if closed == tag do
                 return
@@ -113,7 +290,7 @@ impl HtmlParser
             var found = 0'u64
             while depth > 1
             {
-                let open = .document.constNode(.stack[depth - 1]).tag
+                let open = .stack[depth - 1].tag
                 if HtmlParser.impliedCloses(open, tag)
                 {
                     found = depth - 1
@@ -170,8 +347,19 @@ impl HtmlParser
         let content = text[eat to]
         if !@countof(content) do
             return
-        if .stack.count == 1 and !@countof(Latin1.trim(content)) do
+
+        // Whitespace between the sections of a document is not content; anything else there is
+        // what starts the body.
+        if .mode == .Document and (.atDocumentLevel() or .stack.back().tag == .Head)
+        {
+            if !@countof(Latin1.trim(content)) do
+                return
+            .ensureBody(offset + eat)
+        }
+        elif .stack.count == 1 and !@countof(Latin1.trim(content))
+        {
             return
+        }
 
         // Only genuine content is fostered out of the table structure. The whitespace between
         // rows stays where the source put it — unless a fostered run already sits in front of
@@ -179,13 +367,14 @@ impl HtmlParser
         var anchor = .fosterAnchor()
         if anchor != HtmlNoNode and !@countof(Latin1.trim(content)) and !.document.precededByText(anchor) do
             anchor = HtmlNoNode
+        let decoded = .document.internDecoded(content)
         if anchor != HtmlNoNode
         {
-            .document.insertTextBefore(anchor, htmlDecodeText(content).toString(), offset + eat)
+            .document.insertTextBefore(anchor, decoded, offset + eat)
             return
         }
 
-        .document.appendText(.current(), htmlDecodeText(content).toString(), offset + eat)
+        .document.appendText(.current(), decoded, offset + eat)
     }
 
     // Emits raw element content verbatim, because a script or a stylesheet carries no markup.
@@ -198,7 +387,17 @@ impl HtmlParser
         let content = text[eat to]
         if !@countof(content) do
             return
-        .document.appendText(.current(), content, offset + eat)
+
+        .document.appendText(.current(), .document.intern(content), offset + eat)
+    }
+
+    // Reports whether a name carries an upper-case letter, which is what decides whether folding
+    // it to lower case has to build anything at all.
+    func hasUpper(text: string)->bool
+    {
+        for index in @countof(text) where Latin1.isUpper(text[index]) do
+            return true
+        return false
     }
 
     // Reads the attributes of a start tag, whose text spans from just after the element name to
@@ -222,12 +421,13 @@ impl HtmlParser
                 continue
             }
 
-            let name = String.from(tag[nameStart until index]).toLower()
+            let name = .document.internLower(tag[nameStart until index])
+            var empty: HtmlRange
             while index < @countof(tag) and Latin1.isSpace(tag[index]) do
                 index += 1
             if index >= @countof(tag) or tag[index] != '='
             {
-                .document.addAttribute(element, name.toString(), "")
+                .document.addAttribute(element, name, empty)
                 continue
             }
 
@@ -236,7 +436,7 @@ impl HtmlParser
                 index += 1
             if index >= @countof(tag)
             {
-                .document.addAttribute(element, name.toString(), "")
+                .document.addAttribute(element, name, empty)
                 return
             }
 
@@ -258,7 +458,7 @@ impl HtmlParser
                 index = valueEnd
             }
 
-            .document.addAttribute(element, name.toString(), htmlDecodeText(tag[valueStart until valueEnd]).toString())
+            .document.addAttribute(element, name, .document.internDecoded(tag[valueStart until valueEnd], true))
         }
     }
 
@@ -278,7 +478,7 @@ impl HtmlParser
     // structure between cells, `HtmlNoNode` when content belongs where it is.
     mtd const fosterAnchor()->u32
     {
-        let parent           = .document.constNode(.stack.back()).tag
+        let parent           = .stack.back().tag
         let inTableStructure = parent == .Table or parent == .TBody or parent == .THead or parent == .TFoot or parent == .Tr
         if !inTableStructure do
             return HtmlNoNode
@@ -286,18 +486,27 @@ impl HtmlParser
         var depth = .stack.count
         while depth > 1
         {
-            let element = .stack[depth - 1]
-            if .document.constNode(element).tag == .Table do
-                return element
+            let open = .stack[depth - 1]
+            if open.tag == .Table do
+                return open.element
             depth -= 1
         }
 
         return HtmlNoNode
     }
 
-    mtd openElement(name: string, tag: string, offset: u64)
+    // Opens an element from its folded name and the source text of its attributes, which is what
+    // is left of the start tag once the name is read.
+    mtd openElement(name: string, attributes: string, offset: u64)
     {
         let interned = HtmlDocument.tagFromName(name)
+
+        // A document writes `html`, `head` and `body` or leaves them implied; either way the tree
+        // carries them, which is what makes a page's own `body { ... }` rules mean something.
+        if .mode == .Document and .adoptWrittenSection(interned, attributes, offset) do
+            return
+
+        .openImpliedSection(interned, offset)
         .closeImplied(interned)
 
         // Content the table structure does not accept renders in front of the table, not
@@ -305,14 +514,13 @@ impl HtmlParser
         var element: u32
         let anchor = HtmlParser.tableAccepts(interned) ? HtmlNoNode : .fosterAnchor()
         if anchor != HtmlNoNode do
-            element = .document.insertElementBefore(anchor, name, offset)
+            element = .document.insertElementBefore(anchor, name, interned, offset)
         else do
-            element = .document.addElement(.current(), name, offset)
+            element = .document.addElement(.current(), name, interned, offset)
 
-        let nameEnd = Math.min(@countof(name), @countof(tag))
-        .readAttributes(element, tag[nameEnd to])
+        .readAttributes(element, attributes)
 
-        let selfClosing = @countof(tag) and tag[@countof(tag) - 1] == '/'
+        let selfClosing = @countof(attributes) and attributes[@countof(attributes) - 1] == '/'
         if HtmlDocument.isVoidTag(interned) or selfClosing do
             return
 
@@ -325,7 +533,7 @@ impl HtmlParser
             return
         }
 
-        .stack.add(element)
+        .stack.add({element, interned})
 
         // The newline immediately following the start tag of these two elements is not content,
         // which is what lets an author put the tag on a line of its own.
@@ -351,14 +559,28 @@ impl HtmlParser
         return false
     }
 
-    mtd closeElement(name: string, offset: u64)
+    // Closes an element from the raw name the source wrote, which the tree keeps folded to lower
+    // case. Folding is what would cost an allocation, so it happens only for the rare end tag
+    // that is not already written in lower case.
+    mtd closeElement(rawName: string, offset: u64)
     {
-        let interned = HtmlDocument.tagFromName(name)
+        var folded: String
+        var name = rawName
+        if HtmlParser.hasUpper(rawName)
+        {
+            folded = String.toLower(rawName)
+            name   = folded.toString()
+        }
+
+        // A well-formed document closes what it last opened, and that element already knows its
+        // tag: one comparison then answers what resolving the name costs a comparison per known
+        // tag to answer.
+        var interned = .stack.count > 1 and name == .document.name(.stack.back().element) ? .stack.back().tag : HtmlDocument.tagFromName(name)
         if HtmlDocument.isVoidTag(interned) do
             return
         if interned == .Unknown
         {
-            for index in .stack.count where .document.constNode(.stack[index]).name == name
+            for index in .stack.count where .document.name(.stack[index].element) == name
             {
                 .stack.resize(index)
                 return
@@ -374,17 +596,17 @@ impl HtmlParser
         // along with its target reopen as fresh elements, which is the visible result of the
         // adoption agency the standard specifies. A cell, a caption, and a template bound the
         // formatting scope and reopen nothing.
-        var reopen: Array'u32
+        var reopen: Array'HtmlOpenElement
         if interned != .Td and interned != .Th and interned != .Caption and interned != .Template
         {
             var depth = .stack.count
-            while depth > 1 and .document.constNode(.stack[depth - 1]).tag != interned
+            while depth > 1 and .stack[depth - 1].tag != interned
             {
                 reopen.add(.stack[depth - 1])
                 depth -= 1
             }
 
-            for element in reopen where !HtmlParser.isFormattingTag(.document.constNode(element).tag)
+            for open in reopen where !HtmlParser.isFormattingTag(open.tag)
             {
                 reopen.clear()
                 break
@@ -400,12 +622,16 @@ impl HtmlParser
             let source = reopen.back()
             reopen.removeBack()
 
-            var cloneName:       String              = .document.constNode(source).name
-            var cloneAttributes: Array'HtmlAttribute = .document.constNode(source).attributes
-            let clone = .document.addElement(.current(), cloneName.toString(), offset)
+            // Only a known formatting element ever reopens, so the clone's name comes from its
+            // tag; its attributes are copied out first, because adding an element may reallocate
+            // the pool they live in, and they point at text the original already interned.
+            var cloneAttributes: Array'HtmlAttribute
+            cloneAttributes.add(.document.attributes(source.element))
+            let clone = .document.addElement(.current(), "", source.tag, offset)
             for attribute in cloneAttributes do
-                .document.addAttribute(clone, attribute.name.toString(), attribute.value.toString())
-            .stack.add(clone)
+                .document.addAttribute(clone, attribute.name, attribute.value)
+
+            .stack.add({clone, source.tag})
         }
     }
 
@@ -486,7 +712,7 @@ impl HtmlParser
             var nameEnd = 1'u64
             while nameEnd < @countof(tag) and !Latin1.isSpace(tag[nameEnd]) do
                 nameEnd += 1
-            .closeElement(String.from(tag[1 until nameEnd]).toLower().toString(), .baseOffset + index)
+            .closeElement(tag[1 until nameEnd], .baseOffset + index)
             return close + 1
         }
 
@@ -496,15 +722,22 @@ impl HtmlParser
         if !nameEnd do
             return close + 1
 
-        let name = String.from(tag[0 until nameEnd]).toLower()
-        .openElement(name.toString(), tag, .baseOffset + index)
+        var folded: String
+        var name = tag[0 until nameEnd]
+        if HtmlParser.hasUpper(name)
+        {
+            folded = String.toLower(name)
+            name   = folded.toString()
+        }
+
+        .openElement(name, tag[nameEnd to], .baseOffset + index)
         return close + 1
     }
 
     // Consumes the body of a raw-text element, which ends only at its own end tag.
     mtd readRawText(source: string, index: u64)->u64
     {
-        let closing = Format.toString("</%", .document.constNode(.current()).name.toString())
+        let closing = Format.toString("</%", HtmlDocument.tagName(.rawTag))
         let end     = Utf8.indexOf(source, closing.toString(), index, .Latin1NoCase)
         if end == Swag.U64.Max do
             return Swag.U64.Max

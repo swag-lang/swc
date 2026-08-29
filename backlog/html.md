@@ -16,14 +16,17 @@ ships; history lives in git, not here.
 
 ## Where the engine already stands
 
-About 11 800 lines across thirteen files, and the shape is a real engine, not a tag-to-widget
+About 15 000 lines across fifteen files, and the shape is a real engine, not a tag-to-widget
 translator. The parser is resumable and streams: a document fed in 48 KB chunks produces exactly
 the tree the whole file would, partial renderings appear at growing intervals, a 48 MB cap ends
 the load with a visible notice, and every node keeps its source byte offset — which is what lets
-sFileScope reveal a raw-file search hit on the exact line that draws it. The tree builder
-carries the recoveries browsers standardized: misnested formatting reopens across the
-misnesting, content a table cannot hold is fostered in front of it, and an interrupted
-paragraph closes through its open inline children. The cascade is the real
+sFileScope reveal a raw-file search hit on the exact line that draws it. It carries the elements a
+document leaves implied — `html`, `head` and `body`, opened where the content says they belong —
+and resolves the standard's complete list of 2 231 named character references, the legacy
+spellings without a semicolon included. The tree builder carries the recoveries browsers
+standardized: misnested formatting reopens across the misnesting, content a table cannot hold is
+fostered in front of it, and an interrupted paragraph closes through its open inline children.
+The cascade is the real
 one: specificity, `!important`, source order, media queries including `prefers-color-scheme`
 answered from the host theme, custom properties with proper scope and `var()` fallbacks,
 `calc()`/`min()`/`max()`/`clamp()`, `color-mix()`, `::before`/`::after` generated boxes, and
@@ -36,6 +39,15 @@ declared-columns grid, tables sized from cell content, sticky positioning, and i
 scrolled `overflow` regions with themed scrollbars. Painting prunes by subtree bounds, orders positioned siblings by stacking level, and
 answers hover on links without restyling — a documented stance: a state pseudo-class that would
 need a per-frame restyle matches never, and the viewer lights the link while painting instead.
+
+It is also measured against those engines rather than described. Parsing the 8.15 MB rustdoc page
+of `src/tests/datas` into its 429 782 nodes, on the same machine and pinned to the performance
+cores: this engine 193 ms (42 MB/s), html5ever with its reference DOM 278 ms (28 MB/s), the same
+tokenizer with no tree at all 134 ms (58 MB/s), the `tl` crate — a zero-copy, deliberately
+non-conforming DOM — 64 ms (120 MB/s), and lol-html's tokenizer 51 ms (150 MB/s). The tree costs
+67 MB and 147 k allocator blocks, one per element for its children. A node is 88 bytes and every
+string it owns — its text, an unknown tag's name, every attribute name and value, every class —
+is a run of one pool per document, which is what took the parse from 412 ms and 214 MB.
 
 Two boundaries are deliberate and permanent: nothing the document carries is ever executed, and
 the engine never opens a network connection. A document is displayed from its own bytes and its
@@ -243,16 +255,6 @@ mean, and CSS surface that is read and silently dropped.
   restores the property's default, `unset` picks between them by inheritance, and `revert` is
   at least `unset` with the divergence recorded.
 
-### T-486 — The named-entity table is a fraction of the standard's
-
-- Intent: `htmlNamedEntity` resolves some 250 of the 2 231 named references, chosen well, and
-  the standard's legacy no-semicolon forms (`&amp`, `&copy`, `&nbsp` bare) are not recognized
-  at all — text from the attribute-era web shows literal `&copy` where a mark belongs. The
-  `HtmlEntity.second` field for two-code-point references exists and no entry sets it.
-- Complete when: the full named table is generated from the specification's list into a compact
-  lookup, the no-semicolon legacy subset resolves outside attributes as specified, and the
-  two-code-point references use the field built for them.
-
 ---
 
 ## Tier C — What a reader cannot do
@@ -293,6 +295,21 @@ mean, and CSS surface that is read and silently dropped.
 - Complete when: a malformed corpus covers truncated tags at chunk edges, pathological
   attribute lengths and pathological stylesheets with the expected outcome for each.
 
+### B-157 — The parser's last per-element allocation is its children array
+
+- Intent: after the node storage work the tree costs 67 MB and 147 k allocator blocks for an
+  8.15 MB page, and every one of those blocks is one element's `children: Array'u32`. That is also
+  40 of the 88 bytes a node occupies. The `tl` crate parses the same page into the same 429 784
+  nodes in a third of the time with neither: children are a first/last/next triple of indices, and
+  every string is borrowed from the source instead of copied into a pool.
+- Next: count the children of the 8.15 MB page by parent to see what a compaction pass would cost,
+  then replace the array with sibling links behind `children(node)` and measure both.
+- Complete when: a node's children cost no allocation of their own — sibling links written while
+  parsing, or one pooled child array compacted in document order once the tree settles — the whole
+  engine reads them through the same accessor, and the 8.15 MB page is measured again against the
+  four reference engines named above.
+- Related: B-156
+
 ---
 
 ## Out of scope
@@ -323,27 +340,6 @@ The entries below were open investigations when the unified backlog was introduc
 identifiers remain permanent; update their next action in place as the evidence matures. They retain
 their former order until re-triaged, so position in this imported block carries no priority claim.
 
-### F-157 — A body-less fragment leaves every `body {}` author rule inert
-
-- Area: std/gui (HTML)
-- Found while: recording the `htmlview.floats` golden, whose page styling silently fell back to
-  the theme's dark ground because the source was a fragment
-- Observation: the parser never synthesizes the implied `<html>`, `<head>` and `<body>` elements,
-  so a fragment fed to `HtmlView.createText` that opens directly with `<style>` or content has no
-  body element at all. Every `body { ... }` author rule then matches nothing and is dropped
-  whole — margins, background, color, font-size — while rules on classes and elements that do
-  exist apply normally, which makes the failure look like a cascade defect rather than a missing
-  element. Several existing inline-source tests carry a placebo `body { margin: 0 }` that has
-  never applied; they pass because a missing body also has no default 8px margin to remove.
-- Evidence: the `htmlview.floats` golden test in
-  [htmlview.test.swg](../bin/std/modules/gui/src/tests/htmlview.test.swg) had to wrap its source
-  in explicit `<html><body>` for its page background and text color to take; the same source
-  without the wrapper renders on the theme ground with theme text.
-- Next step: synthesize the implied elements the way browsers do — open `html` and `body` when
-  content arrives outside them, route head content into a synthesized `head` — so a fragment and
-  a full document build the same tree; the `closeImplied` `.Head -> .Body` case already expects
-  those elements to exist.
-
 ### F-161 — The HTML box build allocates one heap String per word of the document
 
 - Area: std/gui (HTML)
@@ -355,12 +351,14 @@ their former order until re-triaged, so position in this imported block carries 
   box tree at doubling intervals, repeating the allocations. `HtmlInlineItem.text` cannot be a
   borrowed slice today because `HtmlDocument.appendText` grows an existing text node's `String`
   when a chunk boundary splits a run, which can reallocate the buffer between two rebuilds.
-- Evidence: code reading of `layout.swg` (`appendText`, `transform`) and `document.swg`
-  (`appendText`); a 1 MB page holds on the order of 150k words, so a full load allocates
-  roughly twice that many transient Strings.
-- Next step: give the build a per-rebuild text arena (one growing buffer, items keep offsets),
-  or intern untransformed fragments against the node's text with a copy taken only when the
-  parser later extends that node; measure the load of `std.pixel.html` before and after.
+- Evidence: code reading of `layout.swg` (`appendText`, `transform`); a 1 MB page holds on the
+  order of 150k words, so a full load allocates roughly twice that many transient Strings. The
+  document side of the original observation is gone: a node's text is now a run of the document's
+  pool, and the parser builds no String per text node at all.
+- Next step: give the build a per-rebuild text arena (one growing buffer, items keep offsets), or
+  point an untransformed item straight at the document's pool — its runs only ever grow, so a
+  rebuild that does not clear the document can borrow them — and measure the load of
+  `std.pixel.html` before and after.
 
 ### F-162 — A streaming rebuild re-parses every stylesheet from scratch
 

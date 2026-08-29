@@ -24,6 +24,9 @@ struct HtmlPainter
     hoverLink = HtmlNoNode
     hotLink: Color
 
+    // The box whose background the canvas already carries, which it therefore does not paint.
+    canvasBox = HtmlNoNode
+
     searchNode = HtmlNoNode
     searchStart: u64
     searchEnd:   u64
@@ -170,7 +173,7 @@ impl HtmlPainter
     }
 
     // Fills the background and strokes the borders of one box.
-    private mtd paintDecorations(rect: Math.Rectangle, style: const *HtmlComputedStyle, alpha: f32)
+    private mtd paintDecorations(rect: Math.Rectangle, style: const *HtmlComputedStyle, alpha: f32, skipBackground = false)
     {
         if style.clipPath != HtmlNoNode
         {
@@ -179,7 +182,7 @@ impl HtmlPainter
         }
 
         let radius = Math.max(Math.max(style.radiusTopLeft, style.radiusTopRight), Math.max(style.radiusBottomRight, style.radiusBottomLeft))
-        if style.background.a and !style.masked
+        if style.background.a and !style.masked and !skipBackground
         {
             let ground = HtmlPainter.withAlpha(style.background, alpha)
             let area   = Math.Rectangle.intersect(rect, .band())
@@ -789,7 +792,7 @@ impl HtmlPainter
         if !bounds.intersects(.visible) do
             return
 
-        .paintDecorations(rect, style, combined)
+        .paintDecorations(rect, style, combined, box == .canvasBox)
 
         if .layout.constBox(box).kind == .Replaced
         {
@@ -850,12 +853,62 @@ impl HtmlPainter
     //
     // Boxes are placed in document coordinates and the whole tree is drawn through one offset, so
     // scrolling costs a translation rather than a relayout.
+    // Returns the box whose background the canvas takes, and that color.
+    //
+    // CSS hands the canvas the root element's background, or the body's when the root sets none,
+    // and the element that gave it does not paint it again. Without that rule a page asking for a
+    // white ground paints white over its own box and leaves the host's theme showing beside it.
+    mtd const canvasBackground()->{ color: Color, box: u32 }
+    {
+        var result: retval
+        result.box = HtmlNoNode
+
+        let document = .layout.document
+        for child in document.constNode(0).children where document.constNode(child).tag == .Html
+        {
+            let fromRoot = .backgroundOf(child)
+            if fromRoot.box != HtmlNoNode do
+                return fromRoot
+
+            for inner in document.constNode(child).children where document.constNode(inner).tag == .Body do
+                return .backgroundOf(inner)
+            return result
+        }
+
+        return result
+    }
+
+    private mtd const backgroundOf(node: u32)->{ color: Color, box: u32 }
+    {
+        var result: retval
+        result.box = HtmlNoNode
+
+        let box = .layout.nodeBox.tryFind(node)
+        if !box do
+            return result
+
+        let style = .layout.constStyle(.layout.constBox(box!.value).style)
+        if !style.background.a or style.masked do
+            return result
+
+        result.color = style.background
+        result.box   = box!.value
+        return result
+    }
+
     mtd paint(visible: Math.Rectangle, scrollY: f32)
     {
         .visible = visible
         .scrollY = scrollY
-        if .layout.root != HtmlNoNode do
-            .paintBox(.layout.root, {0, -scrollY}, 1)
+        if .layout.root == HtmlNoNode do
+            return
+
+        let canvas = .canvasBackground()
+        .canvasBox = canvas.box
+        if canvas.box != HtmlNoNode do
+            .painter.fillRect(visible, canvas.color)
+
+        .paintBox(.layout.root, {0, -scrollY}, 1)
     }
 }
 

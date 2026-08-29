@@ -316,8 +316,8 @@ namespace
         SWC_ASSERT(params.size() >= 2);
         SWC_ASSERT(params[0] != nullptr);
         SWC_ASSERT(params[1] != nullptr);
-        CodeGenCallHelpers::appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, leftPayload, params[0]->typeRef());
-        CodeGenCallHelpers::appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, rightPayload, params[1]->typeRef());
+        CodeGenCallHelpers::appendPreparedValueArg(preparedArgs, codeGen, callConv, leftPayload, params[0]->typeRef());
+        CodeGenCallHelpers::appendPreparedValueArg(preparedArgs, codeGen, callConv, rightPayload, params[1]->typeRef());
 
         CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
 
@@ -532,51 +532,82 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    // One run of bytes a value actually occupies, as an offset from the start of the value.
-    struct ComparedRange
+    // One step of an aggregate comparison, at an offset from the start of the value. Most of a
+    // value is bytes both operands must hold identically, but a member whose type answers '=='
+    // its own way — a 'string', a slice, or a struct owning an 'opEquals' — is asked that
+    // question instead, so an array gives the same answer its elements give.
+    struct ComparePart
     {
-        uint64_t offset = 0;
-        uint64_t size   = 0;
+        enum class Kind : uint8_t
+        {
+            Bytes,   // 'size' bytes that must be identical
+            Content, // a view of 'size'-wide elements, compared through '__sliceCmp'
+            SpecOp,  // a struct, compared through the 'opEquals' it owns
+        };
+
+        Kind            kind     = Kind::Bytes;
+        uint64_t        offset   = 0;
+        uint64_t        size     = 0;
+        SymbolFunction* equalsFn = nullptr;
     };
 
-    void appendComparedRange(SmallVector<ComparedRange>& out, uint64_t offset, uint64_t size)
+    void appendCompareBytes(SmallVector<ComparePart>& out, uint64_t offset, uint64_t size)
     {
         if (!size)
             return;
 
         // Members follow each other in offset order, so a run that starts where the previous one
         // ended extends it instead of adding a second compare for the same contiguous bytes.
-        if (!out.empty() && out.back().offset + out.back().size == offset)
+        if (!out.empty() && out.back().kind == ComparePart::Kind::Bytes && out.back().offset + out.back().size == offset)
         {
             out.back().size += size;
             return;
         }
 
-        out.push_back({.offset = offset, .size = size});
+        out.push_back({.kind = ComparePart::Kind::Bytes, .offset = offset, .size = size});
     }
 
-    // Fill 'out' with the byte runs a value of this type occupies. The padding a layout inserts
+    // Fill 'out' with the steps comparing a value of this type. The padding a layout inserts
     // between and after members is not one of them: two values whose every member is equal must
     // compare equal, and the bytes between the members are not members. A union is the exception
     // — its members share one storage, so all of it is compared.
-    void appendComparedRanges(TaskContext& ctx, SmallVector<ComparedRange>& out, TypeRef typeRef, uint64_t base)
+    void appendCompareParts(CodeGen& codeGen, SmallVector<ComparePart>& out, TypeRef typeRef, uint64_t base)
     {
-        const TypeInfo& type = ctx.typeMgr().get(typeRef);
+        TaskContext&    ctx  = codeGen.ctx();
+        const TypeInfo& type = ctx.typeMgr().get(ctx.typeMgr().unwrapAliasEnum(ctx, typeRef));
         const uint64_t  size = type.sizeOf(ctx);
+
+        if (type.isString())
+        {
+            out.push_back({.kind = ComparePart::Kind::Content, .offset = base, .size = 1});
+            return;
+        }
+
+        if (type.isSlice())
+        {
+            out.push_back({.kind = ComparePart::Kind::Content, .offset = base, .size = ctx.typeMgr().get(type.payloadTypeRef()).sizeOf(ctx)});
+            return;
+        }
 
         if (type.isStruct())
         {
             const SymbolStruct& ownerStruct = type.payloadSymStruct();
+            if (SymbolFunction* equalsFn = ownerStruct.selfEqualsFunction(ctx))
+            {
+                out.push_back({.kind = ComparePart::Kind::SpecOp, .offset = base, .size = size, .equalsFn = equalsFn});
+                return;
+            }
+
             if (ownerStruct.isUnion() || ownerStruct.fields().empty())
             {
-                appendComparedRange(out, base, size);
+                appendCompareBytes(out, base, size);
                 return;
             }
 
             for (const SymbolVariable* field : ownerStruct.fields())
             {
                 if (field)
-                    appendComparedRanges(ctx, out, field->typeRef(), base + field->offset());
+                    appendCompareParts(codeGen, out, field->typeRef(), base + field->offset());
             }
 
             return;
@@ -589,37 +620,44 @@ namespace
             if (!elemSize)
                 return;
 
-            SmallVector<ComparedRange> elemRanges;
-            appendComparedRanges(ctx, elemRanges, elemTypeRef, 0);
+            SmallVector<ComparePart> elemParts;
+            appendCompareParts(codeGen, elemParts, elemTypeRef, 0);
 
             // An element that occupies all of its own storage leaves the whole array contiguous,
             // which is one compare instead of one per element.
-            if (elemRanges.size() == 1 && elemRanges[0].offset == 0 && elemRanges[0].size == elemSize)
+            if (elemParts.size() == 1 && elemParts[0].kind == ComparePart::Kind::Bytes && elemParts[0].offset == 0 && elemParts[0].size == elemSize)
             {
-                appendComparedRange(out, base, size);
+                appendCompareBytes(out, base, size);
                 return;
             }
 
             for (uint64_t elem = 0; elem < size / elemSize; ++elem)
             {
-                for (const ComparedRange& range : elemRanges)
-                    appendComparedRange(out, base + elem * elemSize + range.offset, range.size);
+                for (const ComparePart& part : elemParts)
+                {
+                    ComparePart elemPart = part;
+                    elemPart.offset      = base + elem * elemSize + part.offset;
+                    if (elemPart.kind == ComparePart::Kind::Bytes)
+                        appendCompareBytes(out, elemPart.offset, elemPart.size);
+                    else
+                        out.push_back(elemPart);
+                }
             }
 
             return;
         }
 
-        appendComparedRange(out, base, size);
+        appendCompareBytes(out, base, size);
     }
 
-    void emitComparedRange(CodeGen& codeGen, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, const ComparedRange& range, MicroLabelRef notEqualLabel)
+    void emitCompareBytesPart(CodeGen& codeGen, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, const ComparePart& part, MicroLabelRef notEqualLabel)
     {
         MicroBuilder& builder = codeGen.builder();
 
-        uint64_t offset = range.offset;
-        while (offset < range.offset + range.size)
+        uint64_t offset = part.offset;
+        while (offset < part.offset + part.size)
         {
-            const uint64_t remain = range.offset + range.size - offset;
+            const uint64_t remain = part.offset + part.size - offset;
 
             MicroOpBits chunkBits;
             uint64_t    chunkSize;
@@ -655,11 +693,111 @@ namespace
         }
     }
 
-    // Compare two address-backed aggregate operands (structs/arrays) for equality over the bytes
-    // their members occupy, chunk by chunk. The scalar compare path only looks at a single
-    // register-sized load, which silently ignores every field past the first machine word for
-    // aggregates larger than a register.
-    Result emitAggregateEqualsBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, TypeRef compareTypeRef)
+    // A helper answering 'true when equal' leaves the aggregate on its equal path.
+    void emitJumpWhenPartAnsweredNotEqual(CodeGen& codeGen, MicroReg resultReg, MicroLabelRef notEqualLabel)
+    {
+        MicroBuilder& builder = codeGen.builder();
+        builder.emitCmpRegImm(resultReg, ApInt(0, 64), MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, notEqualLabel);
+    }
+
+    // A 'string' and a slice share one layout, so both ask '__sliceCmp' the same question; a
+    // string is a view of single bytes.
+    Result emitCompareContentPart(CodeGen& codeGen, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, const ComparePart& part, MicroLabelRef notEqualLabel)
+    {
+        const SymbolFunction* sliceCmpSymbol = preparedRuntimeCompareFunction(codeGen, IdentifierManager::PredefinedName::RuntimeSliceCmp);
+        SWC_ASSERT(sliceCmpSymbol != nullptr);
+        if (!sliceCmpSymbol)
+            return Result::Error;
+
+        MicroBuilder&  builder       = codeGen.builder();
+        const MicroReg leftDataReg   = codeGen.nextVirtualIntRegister();
+        const MicroReg rightDataReg  = codeGen.nextVirtualIntRegister();
+        const MicroReg leftCountReg  = codeGen.nextVirtualIntRegister();
+        const MicroReg rightCountReg = codeGen.nextVirtualIntRegister();
+        const MicroReg sizeReg       = codeGen.nextVirtualIntRegister();
+        const MicroReg resultReg     = codeGen.nextVirtualIntRegister();
+
+        const auto dataOffset  = static_cast<uint32_t>(part.offset + offsetof(Runtime::Slice<std::byte>, ptr));
+        const auto countOffset = static_cast<uint32_t>(part.offset + offsetof(Runtime::Slice<std::byte>, count));
+        builder.emitLoadRegMem(leftDataReg, leftPayload.reg, dataOffset, MicroOpBits::B64);
+        builder.emitLoadRegMem(leftCountReg, leftPayload.reg, countOffset, MicroOpBits::B64);
+        builder.emitLoadRegMem(rightDataReg, rightPayload.reg, dataOffset, MicroOpBits::B64);
+        builder.emitLoadRegMem(rightCountReg, rightPayload.reg, countOffset, MicroOpBits::B64);
+        builder.emitLoadRegImm(sizeReg, ApInt(part.size, 64), MicroOpBits::B64);
+
+        const MicroReg argRegs[] = {leftDataReg, rightDataReg, leftCountReg, rightCountReg, sizeReg};
+        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *sliceCmpSymbol, argRegs, resultReg));
+
+        emitJumpWhenPartAnsweredNotEqual(codeGen, resultReg, notEqualLabel);
+        return Result::Continue;
+    }
+
+    Result emitCompareSpecOpPart(CodeGen& codeGen, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, const ComparePart& part, MicroLabelRef notEqualLabel)
+    {
+        SymbolFunction&    equalsFn     = *part.equalsFn;
+        const CallConvKind callConvKind = equalsFn.callConvKind();
+        const CallConv&    callConv     = CallConv::get(callConvKind);
+        const auto&        params       = equalsFn.parameters();
+        SWC_ASSERT(params.size() >= 2);
+
+        MicroBuilder&  builder      = codeGen.builder();
+        const MicroReg leftAddrReg  = codeGen.nextVirtualIntRegister();
+        const MicroReg rightAddrReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadAddressRegMem(leftAddrReg, leftPayload.reg, part.offset, MicroOpBits::B64);
+        builder.emitLoadAddressRegMem(rightAddrReg, rightPayload.reg, part.offset, MicroOpBits::B64);
+
+        CodeGenNodePayload otherPayload;
+        otherPayload.reg = rightAddrReg;
+        otherPayload.setIsAddress();
+
+        SmallVector<ABICall::PreparedArg> preparedArgs;
+        preparedArgs.reserve(2);
+        CodeGenCallHelpers::appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[0]->typeRef(), leftAddrReg);
+        CodeGenCallHelpers::appendPreparedValueArg(preparedArgs, codeGen, callConv, otherPayload, params[1]->typeRef());
+        CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
+
+        const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
+        if (equalsFn.isForeign())
+            ABICall::callExtern(builder, callConvKind, &equalsFn, preparedCall);
+        else
+            ABICall::callLocal(builder, callConvKind, &equalsFn, preparedCall);
+        codeGen.function().addCallDependency(&equalsFn);
+
+        const MicroReg                         resultReg     = codeGen.nextVirtualIntRegister();
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, equalsFn.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        SWC_ASSERT(!normalizedRet.isVoid && !normalizedRet.isIndirect);
+        ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
+
+        emitJumpWhenPartAnsweredNotEqual(codeGen, resultReg, notEqualLabel);
+        return Result::Continue;
+    }
+
+    Result emitComparePart(CodeGen& codeGen, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, const ComparePart& part, MicroLabelRef notEqualLabel)
+    {
+        switch (part.kind)
+        {
+            case ComparePart::Kind::Content:
+                return emitCompareContentPart(codeGen, leftPayload, rightPayload, part, notEqualLabel);
+            case ComparePart::Kind::SpecOp:
+                return emitCompareSpecOpPart(codeGen, leftPayload, rightPayload, part, notEqualLabel);
+            default:
+                emitCompareBytesPart(codeGen, leftPayload, rightPayload, part, notEqualLabel);
+                return Result::Continue;
+        }
+    }
+
+    // A part that is not a plain byte run needs the aggregate path whatever the value's size,
+    // because the scalar compare below can only answer with the storage.
+    bool hasOwnAnswerPart(std::span<const ComparePart> parts)
+    {
+        return std::ranges::any_of(parts, [](const ComparePart& part) { return part.kind != ComparePart::Kind::Bytes; });
+    }
+
+    // Compare two address-backed aggregate operands (structs/arrays) for equality, step by step.
+    // The scalar compare path only looks at a single register-sized load, which silently ignores
+    // every field past the first machine word for aggregates larger than a register.
+    Result emitAggregateEqualsBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, std::span<const ComparePart> parts)
     {
         MicroBuilder&       builder       = codeGen.builder();
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
@@ -669,10 +807,8 @@ namespace
         const MicroLabelRef notEqualLabel = builder.createLabel();
         const MicroLabelRef doneLabel     = builder.createLabel();
 
-        SmallVector<ComparedRange> ranges;
-        appendComparedRanges(codeGen.ctx(), ranges, compareTypeRef, 0);
-        for (const ComparedRange& range : ranges)
-            emitComparedRange(codeGen, leftPayload, rightPayload, range, notEqualLabel);
+        for (const ComparePart& part : parts)
+            SWC_RESULT(emitComparePart(codeGen, leftPayload, rightPayload, part, notEqualLabel));
 
         builder.emitLoadRegImm(resultPayload.reg, ApInt(isEqual ? 1 : 0, 32), MicroOpBits::B32);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
@@ -728,13 +864,26 @@ namespace
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) && leftIsRuntimeTypeInfoPointer && rightIsRuntimeTypeInfoPointer)
             return emitTypeInfoCompareBool(codeGen, tokId, leftPayload, leftOperandTypeRef, rightPayload, rightOperandTypeRef, codeGen.typeMgr().typeTypeInfo());
 
-        // Aggregates (structs/arrays) wider than a machine register must be compared over
-        // their full content. The scalar path below only compares a single register-sized
-        // load, which would ignore every field beyond the first machine word.
+        // An aggregate (struct/array) wider than a machine register must be compared over its full
+        // content, and one holding a member with an answer of its own must be compared part by
+        // part whatever its size. The scalar path below only compares a single register-sized
+        // load, which would ignore every field beyond the first machine word and every answer but
+        // the storage.
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
-            (compareType.isStruct() || compareType.isArray() || compareType.isAggregate()) &&
-            compareType.sizeOf(codeGen.ctx()) > sizeof(uint64_t))
-            return emitAggregateEqualsBool(codeGen, tokId, leftOperandPayload, rightOperandPayload, compareTypeRef);
+            (compareType.isStruct() || compareType.isArray() || compareType.isAggregate()))
+        {
+            SmallVector<ComparePart> parts;
+            appendCompareParts(codeGen, parts, compareTypeRef, 0);
+            const bool isWiderThanRegister = compareType.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
+            if (isWiderThanRegister || hasOwnAnswerPart(parts.span()))
+            {
+                // Every part reads its operand through an address. A value wider than a register
+                // is always memory-backed; a narrower one reaches here only because a member has
+                // an answer of its own, and such a member is only ever reached through a place.
+                SWC_ASSERT(isWiderThanRegister || (leftOperandPayload.isAddress() && rightOperandPayload.isAddress()));
+                return emitAggregateEqualsBool(codeGen, tokId, leftOperandPayload, rightOperandPayload, parts.span());
+            }
+        }
 
         MicroOpBits opBits = CodeGenTypeHelpers::compareBits(compareType, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);

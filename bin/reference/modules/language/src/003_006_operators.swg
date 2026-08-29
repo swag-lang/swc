@@ -200,6 +200,26 @@ struct Measure
 }
 
 /**
+# Array Comparison
+
+An array compares element by element, and each element compares the way its own type does, so an
+array and its elements never disagree. An array of 'string' compares the text its elements view,
+and an array whose element owns an 'opEquals' has that method called once per element. Elements
+with nothing of their own to say — numbers, pointers, enums — are still compared as one
+contiguous run of bytes. A struct member that is an array follows the same rule.
+*/
+
+#test
+{
+    var readings: [2] Tolerance = [{value: 10}, {value: 20}]
+    var nearby: [2] Tolerance   = [{value: 11}, {value: 21}]
+    var distant: [2] Tolerance  = [{value: 11}, {value: 30}]
+
+    @assert(readings == nearby)     // every element decides it is the same reading
+    @assert(readings != distant)
+}
+
+/**
 # Logical Operators
 
 Logical operators evaluate expressions and return a boolean result. Swag uses

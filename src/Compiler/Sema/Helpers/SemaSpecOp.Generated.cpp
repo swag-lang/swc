@@ -587,7 +587,7 @@ namespace
         return Result::Continue;
     }
 
-    Result typeComparesAsBytes(Sema& sema, bool& outResult, TypeRef typeRef, std::unordered_set<TypeRef>& visiting);
+    Result typeComparesAsBytesRec(Sema& sema, bool& outResult, TypeRef typeRef, std::unordered_set<TypeRef>& visiting);
 
     // A struct answers '==' member by member. Comparing its storage instead is only the same
     // question when every member itself compares as bytes, which is what this decides. It never
@@ -616,7 +616,7 @@ namespace
                 continue;
 
             bool fieldComparesAsBytes = true;
-            SWC_RESULT(typeComparesAsBytes(sema, fieldComparesAsBytes, field->typeRef(), visiting));
+            SWC_RESULT(typeComparesAsBytesRec(sema, fieldComparesAsBytes, field->typeRef(), visiting));
             if (!fieldComparesAsBytes)
             {
                 outResult = false;
@@ -629,10 +629,12 @@ namespace
     }
 
     // A 'string' or a slice compares the content it views rather than the view itself, and a
-    // struct carrying an 'opEquals' compares whatever that method decides. An array is left
-    // out on purpose: its own '==' is a byte comparison whatever it holds, so a member-wise
-    // struct comparison and a byte comparison give it the same answer.
-    Result typeComparesAsBytes(Sema& sema, bool& outResult, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
+    // struct carrying an 'opEquals' compares whatever that method decides. An array is left out
+    // on purpose: code generation compares an array element by element inside the byte walk, so
+    // a member-wise struct comparison and a byte comparison give it the same answer, and forcing
+    // a generated 'opEquals' on every holder of an array would inline a comparison of the whole
+    // array into it.
+    Result typeComparesAsBytesRec(Sema& sema, bool& outResult, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
     {
         outResult = true;
         typeRef   = unwrapAlias(sema.ctx(), typeRef);
@@ -656,12 +658,62 @@ namespace
             for (const TypeRef memberTypeRef : type.payloadAggregate().types)
             {
                 bool memberComparesAsBytes = true;
-                SWC_RESULT(typeComparesAsBytes(sema, memberComparesAsBytes, memberTypeRef, visiting));
+                SWC_RESULT(typeComparesAsBytesRec(sema, memberComparesAsBytes, memberTypeRef, visiting));
                 if (!memberComparesAsBytes)
                 {
                     result = false;
                     break;
                 }
+            }
+        }
+
+        visiting.erase(typeRef);
+        outResult = result;
+        return Result::Continue;
+    }
+
+    // Code generation compares an aggregate part by part, and a 'string' or a slice among those
+    // parts is answered by '__sliceCmp'. This walks a type the way that lowering does, so Sema
+    // makes the helper a dependency exactly when lowering will call it: a struct answering with
+    // its own 'opEquals' hides whatever it holds behind that call.
+    Result typeCompareNeedsContentHelperRec(Sema& sema, bool& outResult, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
+    {
+        outResult = false;
+        typeRef   = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        if (typeRef.isInvalid())
+            return Result::Continue;
+        if (!visiting.insert(typeRef).second)
+            return Result::Continue;
+
+        const TypeInfo& type   = sema.typeMgr().get(typeRef);
+        bool            result = false;
+        if (type.isString() || type.isSlice())
+            result = true;
+        else if (type.isArray())
+            SWC_RESULT(typeCompareNeedsContentHelperRec(sema, result, type.payloadArrayElemTypeRef(), visiting));
+        else if (type.isStruct())
+        {
+            const auto& nestedStruct = type.payloadSymStruct();
+            SWC_RESULT(sema.waitSemaCompleted(&nestedStruct, sema.curNode().codeRef()));
+            if (!nestedStruct.selfEqualsFunction(sema.ctx()))
+            {
+                for (const SymbolVariable* field : nestedStruct.fields())
+                {
+                    if (!field)
+                        continue;
+                    SWC_RESULT(typeCompareNeedsContentHelperRec(sema, result, field->typeRef(), visiting));
+                    if (result)
+                        break;
+                }
+            }
+        }
+        else if (type.isAggregateStruct() || type.isAggregateArray())
+        {
+            for (const TypeRef memberTypeRef : type.payloadAggregate().types)
+            {
+                SWC_RESULT(typeCompareNeedsContentHelperRec(sema, result, memberTypeRef, visiting));
+                if (result)
+                    break;
             }
         }
 
@@ -1143,6 +1195,12 @@ bool SemaSpecOp::isGeneratedLifecycleWrapperName(const std::string_view name)
     return name == generatedLifecycleWrapperName(SpecOpKind::OpDrop) ||
            name == generatedLifecycleWrapperName(SpecOpKind::OpPostCopy) ||
            name == generatedLifecycleWrapperName(SpecOpKind::OpPostMove);
+}
+
+Result SemaSpecOp::typeCompareNeedsContentHelper(Sema& sema, bool& outResult, TypeRef typeRef)
+{
+    std::unordered_set<TypeRef> visiting;
+    return typeCompareNeedsContentHelperRec(sema, outResult, typeRef, visiting);
 }
 
 bool SemaSpecOp::typeHasLifecycle(TaskContext& ctx, TypeRef typeRef, SpecOpKind kind)

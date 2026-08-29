@@ -243,8 +243,8 @@ namespace
         SWC_ASSERT(params.size() >= 2);
         SWC_ASSERT(params[0] != nullptr);
         SWC_ASSERT(params[1] != nullptr);
-        CodeGenCallHelpers::appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, switchState.switchValuePayload, params[0]->typeRef());
-        CodeGenCallHelpers::appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, casePayload, params[1]->typeRef());
+        CodeGenCallHelpers::appendPreparedValueArg(preparedArgs, codeGen, callConv, switchState.switchValuePayload, params[0]->typeRef());
+        CodeGenCallHelpers::appendPreparedValueArg(preparedArgs, codeGen, callConv, casePayload, params[1]->typeRef());
 
         CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
 

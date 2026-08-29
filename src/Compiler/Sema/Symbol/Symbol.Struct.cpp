@@ -1283,6 +1283,21 @@ SmallVector<SymbolFunction*> SymbolStruct::getSpecOp(IdentifierRef identifierRef
     return result;
 }
 
+// The 'opEquals' this struct answers '==' with. Only an overload taking a value of the struct's
+// own type answers for the struct itself; one declared against another type sits beside it.
+SymbolFunction* SymbolStruct::selfEqualsFunction(TaskContext& ctx) const
+{
+    const IdentifierRef idRef = ctx.idMgr().predefined(IdentifierManager::PredefinedName::OpEquals);
+    for (SymbolFunction* symFunc : getSpecOp(idRef))
+    {
+        const auto& params = symFunc->parameters();
+        if (params.size() >= 2 && SemaSpecOp::isOwnerStructType(ctx, *this, params[1]->typeRef()))
+            return symFunc;
+    }
+
+    return nullptr;
+}
+
 Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
 {
     const std::unique_lock lk(mutexSpecOps_);

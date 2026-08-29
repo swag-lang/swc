@@ -258,6 +258,24 @@ namespace
         return sema.typeMgr().get(leftTypeRef).isSlice() && sema.typeMgr().get(rightTypeRef).isSlice();
     }
 
+    // An aggregate is compared part by part, and a 'string' or a slice among those parts asks
+    // '__sliceCmp' the same question a bare slice does. The helper has to be a dependency of this
+    // function before lowering can call it.
+    Result attachAggregateContentCompareHelper(Sema& sema, const SemaNodeView& nodeLeftView, const SourceCodeRef& codeRef)
+    {
+        const TypeRef   compareTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeLeftView.typeRef());
+        const TypeInfo& compareType    = sema.typeMgr().get(compareTypeRef);
+        if (!compareType.isStruct() && !compareType.isArray() && !compareType.isAggregate())
+            return Result::Continue;
+
+        bool needsContentHelper = false;
+        SWC_RESULT(SemaSpecOp::typeCompareNeedsContentHelper(sema, needsContentHelper, compareTypeRef));
+        if (!needsContentHelper)
+            return Result::Continue;
+
+        return SemaHelpers::attachRuntimeSliceCmpFunctionToNode(sema, sema.curNodeRef(), codeRef);
+    }
+
     bool sameSliceContent(const ConstantValue& leftCst, const ConstantValue& rightCst)
     {
         if (leftCst.getSliceCount() != rightCst.getSliceCount())
@@ -974,6 +992,8 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
             SWC_RESULT(SemaHelpers::attachRuntimeStringCmpFunctionToNode(sema, sema.curNodeRef(), codeRef()));
         else if (isSliceCompareOperands(sema, nodeLeftView, nodeRightView))
             SWC_RESULT(SemaHelpers::attachRuntimeSliceCmpFunctionToNode(sema, sema.curNodeRef(), codeRef()));
+        else
+            SWC_RESULT(attachAggregateContentCompareHelper(sema, nodeLeftView, codeRef()));
     }
 
     return Result::Continue;

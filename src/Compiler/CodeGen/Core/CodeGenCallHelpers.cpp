@@ -338,7 +338,7 @@ void CodeGenCallHelpers::appendDirectPreparedArg(SmallVector<ABICall::PreparedAr
     outArgs.push_back(arg);
 }
 
-void CodeGenCallHelpers::appendPreparedStringCompareArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& operandPayload, TypeRef argTypeRef)
+void CodeGenCallHelpers::appendPreparedValueArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& operandPayload, TypeRef argTypeRef)
 {
     const TypeInfo&                        argType       = codeGen.typeMgr().get(argTypeRef);
     const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);

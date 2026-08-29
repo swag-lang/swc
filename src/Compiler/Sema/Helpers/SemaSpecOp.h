@@ -137,6 +137,7 @@ namespace SemaSpecOp
     void             addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const SymbolStruct& ownerStruct, SpecOpKind kind);
     bool             typeHasLifecycle(TaskContext& ctx, TypeRef typeRef, SpecOpKind kind);
     bool             isOwnerStructType(TaskContext& ctx, const SymbolStruct& owner, TypeRef typeRef);
+    Result           typeCompareNeedsContentHelper(Sema& sema, bool& outResult, TypeRef typeRef);
     Result           ensureGeneratedOperators(Sema& sema, SymbolStruct& ownerStruct);
     Result           ensureGeneratedEquality(Sema& sema, SymbolStruct& ownerStruct);
     Result           ensureGeneratedLifecycleFunctions(Sema& sema, SymbolStruct& ownerStruct);

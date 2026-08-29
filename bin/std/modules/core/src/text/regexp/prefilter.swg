@@ -6,11 +6,12 @@ using Math
 // How a prefilter looks for the places a match could begin.
 enum PrefilterKind
 {
-    None        // No prefilter: every offset is a candidate.
-    Bytes       // One of up to three bytes sits at a known offset of every match.
-    Set         // One of a larger set of bytes sits at a known offset of every match.
-    PairSet     // Two such sets, at two known offsets, both of which must hold.
-    Literal     // A whole byte string starts every match.
+    None         // No prefilter: every offset is a candidate.
+    Bytes        // One of up to three bytes sits at a known offset of every match.
+    Set          // One of a larger set of bytes sits at a known offset of every match.
+    PairSet      // Two such sets, at two known offsets, both of which must hold.
+    Literal      // A whole byte string starts every match.
+    Sequence     // Every match is one byte set per offset, and nothing else.
 }
 
 // Roughly how often each byte appears in a thousand bytes of ordinary text.
@@ -22,7 +23,7 @@ enum PrefilterKind
 const ByteFrequency: [256] u8 = [
     1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 20, 1, 1, 10, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    180, 4, 6, 4, 4, 4, 4, 6, 6, 6, 4, 4, 12, 6, 12, 4,
+    180, 4, 2, 4, 4, 4, 4, 2, 1, 1, 4, 4, 12, 2, 12, 4,
     8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 4, 4, 4, 4, 4, 4,
     4, 5, 2, 2, 2, 8, 2, 2, 3, 4, 2, 2, 2, 2, 4, 5,
     2, 2, 4, 4, 6, 2, 2, 2, 2, 2, 2, 4, 4, 4, 4, 4,
@@ -45,16 +46,21 @@ const ByteFrequency: [256] u8 = [
 // that stops ten times less often but reads five times slower is the worse of the two. These
 // are the measured orders of magnitude, not precise figures — what they have to get right is
 // which of two scans is cheaper.
-const ScanCostBytes      = 60'u32       // A scan for up to three bytes: one comparison per vector.
+const ScanCostBytes      = 40'u32       // A scan for up to three bytes: one comparison per vector.
 const ScanCostLiteral    = 60'u32       // A scan for a literal: two comparisons per vector.
 const ScanCostSet        = 250'u32      // A scan for a byte set: two shuffles and a select per vector.
 const ScanCostPair       = 320'u32      // The same, at two offsets at once.
 const CandidateCost      = 25'u32       // What one candidate costs: a start state and a few steps.
+const ScanCostTwoOffsets = 90'u32       // A scan comparing two offsets of the same match at once.
+const SequenceVerifyCost = 20'u32       // What checking one candidate against a fixed shape costs.
 const InnerCandidateCost = 80'u32       // What one inner-literal candidate costs: two short walks.
 const AutomatonCost      = 3000'u32     // What reading a thousand bytes costs with no scan at all.
 
 // How many offsets of a match are examined when looking for the rarest bytes in it.
 const PrefilterDepth = 12'u32
+
+// The longest fixed shape a scan will decide on its own.
+const PrefilterSequenceDepth = 40'u32
 
 // A set of bytes, in the shape a byte shuffle can test sixteen at a time.
 //
@@ -68,6 +74,7 @@ struct ByteSet
 
 impl ByteSet
 {
+    #[Swag.Inline]
     mtd add(value: u8)
     {
         let bit = cast(u8) (1 << ((value >> 4) & 7))
@@ -77,6 +84,9 @@ impl ByteSet
             .highHalf[value & 0x0F] |= bit
     }
 
+    // Whether one byte belongs to the set. This is on the hot path of a scan that decides its
+    // own matches, so it is inlined rather than called eight times per candidate.
+    #[Swag.Inline]
     mtd const contains(value: u8)->bool
     {
         let bit   = cast(u8) (1 << ((value >> 4) & 7))
@@ -94,15 +104,21 @@ impl ByteSet
 // subject is how much of it never reaches the automaton at all.
 struct Prefilter
 {
-    kind:      PrefilterKind     // How the scan works.
-    bytes:     [3] u8            // The bytes to look for, for the small-set form.
-    byteCount: u32               // How many of them there are.
-    sets:      [2] ByteSet       // The byte sets to look for, for the two set forms.
-    offsets:   [2] u32           // Where in a match those bytes sit.
-    literal:   Array'u8          // Literal form: the byte string every match starts with.
-    rareLow:   u32               // Literal form: offset of its rarest byte.
-    rareHigh:  u32               // Literal form: offset of its second rarest byte.
-    complete:  bool              // Whether a hit is a whole match, and not only its start.
+    kind:       PrefilterKind     // How the scan works.
+    bytes:      [3] u8            // The bytes to look for, for the small-set form.
+    byteCount:  u32               // How many of them there are.
+    sets:       [2] ByteSet       // The byte sets to look for, for the two set forms.
+    offsets:    [2] u32           // Where in a match those bytes sit.
+    sequence:   Array'ByteSet     // Sequence form: what each offset of a match accepts.
+    scanAt:     u32               // Sequence form: the offset whose set is rarest.
+    scanAt2:    u32               // Sequence form: the second offset scanned, when two pay off.
+    bytes2:     [3] u8            // The bytes accepted at that second offset.
+    byteCount2: u32               // How many of them there are, zero when only one offset is scanned.
+    spanLength: u64               // Length of the match a hit stands for, when the scan decides one.
+    literal:    Array'u8          // Literal form: the byte string every match starts with.
+    rareLow:    u32               // Literal form: offset of its rarest byte.
+    rareHigh:   u32               // Literal form: offset of its second rarest byte.
+    complete:   bool              // Whether a hit is a whole match, and not only its start.
 }
 
 impl Prefilter
@@ -116,12 +132,81 @@ impl Prefilter
     {
         var result: retval
 
+        // A pattern that is nothing but one byte set per offset is decided by the scan itself,
+        // which is worth more than any other scan: a candidate costs a handful of byte tests
+        // instead of a walk through the automaton.
+        var sequence: Array'ByteSet
+        if program.fixedSetSequence(&sequence, PrefilterSequenceDepth)
+        {
+            var rarest    = 0'u32
+            var bestScore = 0xFFFF'u32
+            var singles   = true
+
+            for var i = 0'u64; i < sequence.count; i += 1
+            {
+                let score = setScore(&sequence[i])
+                if score < bestScore
+                {
+                    bestScore = score
+                    rarest    = cast(u32) i
+                }
+
+                if setCount(&sequence[i]) != 1 do
+                    singles = false
+            }
+
+            // A sequence of single bytes is a literal, and comparing a literal outright beats
+            // testing it set by set — except for a lone byte, which is a plain byte scan.
+            if !singles
+            {
+                result.kind       = .Sequence
+                result.sequence   = sequence
+                result.scanAt     = rarest
+                result.complete   = true
+                result.spanLength = sequence.count
+
+                // The rarest offset is what the vector loop looks for, and a comparison beats
+                // a shuffle when the set is small enough to compare against directly.
+                if setCount(&sequence[rarest]) <= 3
+                {
+                    for var b = 0'u32; b < 256; b += 1
+                    {
+                        if !sequence[rarest].contains(cast(u8) b) do
+                            continue
+                        result.bytes[result.byteCount] = cast(u8) b
+                        result.byteCount               += 1
+                    }
+
+                    result.addSecondScan(&sequence, rarest, bestScore)
+                }
+
+                return result
+            }
+
+            if sequence.count == 1
+            {
+                result.kind       = .Bytes
+                result.byteCount  = 1
+                result.complete   = true
+                result.spanLength = 1
+
+                for var b = 0'u32; b < 256; b += 1
+                {
+                    if sequence[0].contains(cast(u8) b) do
+                        result.bytes[0] = cast(u8) b
+                }
+
+                return result
+            }
+        }
+
         let literal = program.startingLiteral()
         if literal.bytes.count >= 2
         {
-            result.kind     = .Literal
-            result.literal  = literal.bytes
-            result.complete = literal.complete
+            result.kind       = .Literal
+            result.literal    = literal.bytes
+            result.complete   = literal.complete
+            result.spanLength = literal.bytes.count
             result.pickRareBytes()
             return result
         }
@@ -217,14 +302,65 @@ impl Prefilter
     {
         switch .kind
         {
-        case .None:    return AutomatonCost
-        case .Bytes:   return ScanCostBytes + .candidatesPerThousand() * candidateCost
-        case .Literal: return ScanCostLiteral + .candidatesPerThousand() * candidateCost
-        case .Set:     return ScanCostSet + .candidatesPerThousand() * candidateCost
-        case .PairSet: return ScanCostPair + .candidatesPerThousand() * candidateCost
+        case .None:     return AutomatonCost
+        case .Bytes:    return ScanCostBytes + .candidatesPerThousand() * candidateCost
+        case .Literal:  return ScanCostLiteral + .candidatesPerThousand() * candidateCost
+        case .Set:      return ScanCostSet + .candidatesPerThousand() * candidateCost
+        case .PairSet:  return ScanCostPair + .candidatesPerThousand() * candidateCost
+        case .Sequence: return ScanCostSet + .candidatesPerThousand() * candidateCost
         }
 
         return AutomatonCost
+    }
+
+    // Adds a second offset to the scan when testing two of them stops far more often than
+    // testing one.
+    //
+    // A case-insensitive literal is the reason this exists: every offset of `(?i)sherlock`
+    // accepts two bytes, and no single one of them is rare — but two of them together are, and
+    // comparing two vectors is barely more work than comparing one.
+    mtd addSecondScan(sequence: const *Array'ByteSet, rarest: u32, rarestScore: u32)
+    {
+        var second      = 0'u32
+        var secondScore = 0xFFFF'u32
+
+        for var i = 0'u64; i < sequence.count; i += 1
+        {
+            if cast(u32) i == rarest do
+                continue
+            if setCount(&sequence[i]) > 3 do
+                continue
+
+            let score = setScore(&sequence[i])
+            if score < secondScore
+            {
+                secondScore = score
+                second      = cast(u32) i
+            }
+        }
+
+        if secondScore == 0xFFFF do
+            return
+
+        // Two offsets stop on the product of their rates, which is worth the second vector
+        // only when the offsets it saves the verification of cost more than reading it.
+        var paired = (rarestScore * secondScore) / 1000
+        if paired < 1 do
+            paired = 1
+
+        let oneOffset  = ScanCostBytes + rarestScore * SequenceVerifyCost
+        let twoOffsets = ScanCostTwoOffsets + paired * SequenceVerifyCost
+        if twoOffsets >= oneOffset do
+            return
+
+        .scanAt2 = second
+        for var b = 0'u32; b < 256; b += 1
+        {
+            if !sequence[second].contains(cast(u8) b) do
+                continue
+            .bytes2[.byteCount2] = cast(u8) b
+            .byteCount2          += 1
+        }
     }
 
     // Builds the scan for one literal string, which is how an inner literal is looked for.
@@ -263,6 +399,9 @@ impl Prefilter
         case .PairSet:
             let paired = (setScore(&.sets[0]) * setScore(&.sets[1])) / 1000
             return paired < 1 ? 1 : paired
+
+        case .Sequence:
+            return setScore(&.sequence[.scanAt])
 
         case .Literal:
             let rarest = cast(u32) ByteFrequency[.literal[.rareLow]]
@@ -336,6 +475,9 @@ impl Prefilter
             let hit = .findSet(hay, from, 0)
             return hit >= count ? count : hit - .offsets[0]
 
+        case .Sequence:
+            return .findSequence(hay, at)
+
         case .PairSet:
             return .findPair(hay, at)
 
@@ -344,6 +486,126 @@ impl Prefilter
         }
 
         return at
+    }
+
+    // Scans for a fixed shape: one byte set per offset.
+    //
+    // The rarest offset is looked for sixteen bytes at a time, and a hit is then checked offset
+    // by offset. Because the shape is the whole pattern, a check that passes is a match.
+    mtd const findSequence(hay: const [..] u8, at: u64)->u64
+    {
+        let count  = @countof(hay)
+        let data   = @dataof(hay)
+        let length = .sequence.count
+        if length == 0 or count < length do
+            return count
+
+        var pos = at
+        while pos + length <= count
+        {
+            var candidate = count
+            if .byteCount2 != 0
+            {
+                candidate = .findTwoOffsets(hay, pos)
+                if candidate >= count do
+                    return count
+            }
+            else
+            {
+                var hit = count
+                if .byteCount == 1 do
+                    hit = findByte(hay, pos + .scanAt, .bytes[0])
+                elif .byteCount == 2 do
+                    hit = findByte2(hay, pos + .scanAt, .bytes[0], .bytes[1])
+                elif .byteCount == 3 do
+                    hit = findByte3(hay, pos + .scanAt, .bytes[0], .bytes[1], .bytes[2])
+                else do
+                    hit = .findSet(hay, pos + .scanAt, .scanAt)
+
+                if hit >= count do
+                    return count
+                if hit < .scanAt do
+                    return count
+                candidate = hit - .scanAt
+            }
+
+            if candidate + length > count do
+                return count
+
+            var matched = true
+            for var i = 0'u64; i < length; i += 1
+            {
+                if .sequence[i].contains(data[candidate + i]) do
+                    continue
+                matched = false
+                break
+            }
+
+            if matched do
+                return candidate
+            pos = candidate + 1
+        }
+
+        return count
+    }
+
+    // Finds the next offset whose two scanned positions both hold one of their bytes.
+    //
+    // The two sets are small enough to compare against directly, which is what keeps this
+    // nearly as fast as looking for one byte while stopping a hundred times less often.
+    mtd const findTwoOffsets(hay: const [..] u8, at: u64)->u64
+    {
+        let count = @countof(hay)
+        let data  = @dataof(hay)
+        let first = .scanAt
+        let last  = .scanAt2
+        let far   = first > last ? first : last
+
+        let firstA  = Simd.splat(.bytes[0])
+        let firstB  = Simd.splat(.byteCount > 1 ? .bytes[1] : .bytes[0])
+        let secondA = Simd.splat(.bytes2[0])
+        let secondB = Simd.splat(.byteCount2 > 1 ? .bytes2[1] : .bytes2[0])
+
+        var pos = at
+        while pos + far + 64 <= count
+        {
+            let mask = combinedMask(twoOffsetMask(data + pos, first, last, firstA, firstB, secondA, secondB),
+                                    twoOffsetMask(data + pos + 16, first, last, firstA, firstB, secondA, secondB),
+                                    twoOffsetMask(data + pos + 32, first, last, firstA, firstB, secondA, secondB),
+                                    twoOffsetMask(data + pos + 48, first, last, firstA, firstB, secondA, secondB))
+            if mask != 0 do
+                return pos + Math.trailingZeros(mask)
+            pos += 64
+        }
+
+        while pos + far + 16 <= count
+        {
+            let mask = Simd.bitmask(twoOffsetMask(data + pos, first, last, firstA, firstB, secondA, secondB))
+            if mask != 0 do
+                return pos + Math.trailingZeros(mask)
+            pos += 16
+        }
+
+        while pos + far < count
+        {
+            if .matchesScanByte(data[pos + first], &.bytes[0], .byteCount) and .matchesScanByte(data[pos + last], &.bytes2[0], .byteCount2) do
+                return pos
+            pos += 1
+        }
+
+        return count
+    }
+
+    #[Swag.Inline]
+    mtd const matchesScanByte(value: u8, wanted: const [*] u8, count: u32)->bool
+    {
+        for var i = 0'u32; i < count; i += 1
+        {
+            if value == wanted[i] do
+                return true
+        }
+
+        return false
     }
 
     // Scans for a byte set, sixteen bytes at a time.
@@ -357,8 +619,9 @@ impl Prefilter
         let data  = @dataof(hay)
         var pos   = at
 
-        let lowTable  = Simd.load(cast(const [*] u8) &.sets[which].lowHalf[0])
-        let highTable = Simd.load(cast(const [*] u8) &.sets[which].highHalf[0])
+        let wanted    = .kind == PrefilterKind.Sequence ? &.sequence[which] : &.sets[which]
+        let lowTable  = Simd.load(cast(const [*] u8) &wanted.lowHalf[0])
+        let highTable = Simd.load(cast(const [*] u8) &wanted.highHalf[0])
 
         while pos + 16 <= count
         {
@@ -370,7 +633,7 @@ impl Prefilter
 
         while pos < count
         {
-            if .sets[which].contains(data[pos]) do
+            if wanted.contains(data[pos]) do
                 return pos
             pos += 1
         }
@@ -489,6 +752,19 @@ impl Prefilter
 // The offset that means "no position was chosen".
 const NoPosition = 0xFFFF_FFFF'u32
 
+// How many bytes one set holds.
+func setCount(set: const *ByteSet)->u32
+{
+    var total = 0'u32
+    for var b = 0'u32; b < 256; b += 1
+    {
+        if set.contains(cast(u8) b) do
+            total += 1
+    }
+
+    return total
+}
+
 // How often the bytes of a set appear in a thousand bytes of ordinary text.
 func setScore(set: const *ByteSet)->u32
 {
@@ -511,6 +787,15 @@ func setMask(chunk, lowTable, highTable: Simd.U8x16)->u32
     let selected = Simd.select(outside, Simd.shuffle(highTable, nibble), Simd.shuffle(lowTable, nibble))
     let wanted   = Simd.shuffle(cast(Simd.U8x16) [1'u8, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128], (chunk >> 4) & Simd.splat(0x07'u8))
     return ~Simd.bitmask((selected & wanted) == Simd.splat(0'u8)) & 0xFFFF
+}
+
+// Marks the offsets of a vector where both scanned positions hold one of their bytes.
+#[Swag.Inline]
+func twoOffsetMask(data: const [*] u8, first, last: u32, firstA, firstB, secondA, secondB: Simd.U8x16)->Simd.U8x16
+{
+    let head = Simd.load(data + first)
+    let tail = Simd.load(data + last)
+    return ((head == firstA) | (head == firstB)) & ((tail == secondA) | (tail == secondB))
 }
 
 // Gathers the results of four vector comparisons into one integer, one bit per byte.

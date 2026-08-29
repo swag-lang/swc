@@ -300,31 +300,34 @@ unsafe legacy modes excluded from the default surface.
 ### B-154 — The last gaps between the regular-expression engine and the Rust crate
 
 - Intent: keep `Parser.RegExp` at the speed of the fastest engine available, which is what the
-  rewrite of 2026-08-29 set out to reach and mostly did.
+  rewrite of 2026-08-29 set out to reach.
 - Where it stands: measured against the Rust `regex` crate on the same ten-megabyte corpus,
-  counting every match of the same pattern in memory, best of eight interleaved rounds: a plain
-  literal 1.6x slower, a literal alternation 2.4x *faster*, `\d{4}-\d{2}-\d{2}` 1.4x slower,
-  `[a-z]+ing` 1.8x, `\w+` 3.1x, `(?i)sherlock` 2.8x, `[a-z]+[0-9]+@[a-z.-]+` 1.2x, and the same
-  date pattern with capture groups 2.4x. The engine is a byte program run by a lazy automaton
-  forwards and backwards, fed by vectorized scans, with the simulation and the backtracker behind
-  them for captures and backreferences.
+  counting every match of the same pattern in memory, best of eight interleaved rounds. A plain
+  literal 1.5x slower, an alternation of literals 2x *faster*, `\d{4}-\d{2}-\d{2}` 1.2x slower,
+  `[a-z]+[0-9]+@[a-z.-]+` at parity, `(?i)sherlock` 2x *faster*, `[a-z]+ing` 2.3x slower, `\w+`
+  3.2x, and a date pattern with capture groups 2.7x. Four of the eight are at or ahead of the
+  crate; the three that are not are the ones that match often.
 - What is left, in decreasing value:
-  - **Captures still replay a search.** A pattern whose groups are unambiguous — one transition
-    per byte per state, which is most patterns that parse a line — can have its groups read by a
-    single pass over the span with no branch set at all. The crate calls that engine `onepass`
-    and it is why its capture benchmark costs the same as its no-capture one. Ours costs twice.
-  - **A set of literals is scanned one at a time.** `(?i)sherlock` becomes a class per position
-    rather than a literal, so the scan looks for the rarest single position instead of comparing
-    several whole candidates at once. A Teddy-style scan — one shuffle per literal fragment,
-    several literals per vector — is what closes that 2.8x, and it would also serve an
-    alternation of literals whose first bytes are common.
+  - **A search costs about ninety nanoseconds before it reads anything.** That is what `\w+`
+    pays two million times over the corpus, and it is most of the remaining gap on every
+    match-dense pattern. It is not one thing: the two automata are entered through a start
+    state, table pointers and a look-behind context, and the façade adds a call layer per
+    search. The crate does the same work in about thirty. Each layer removed measured a real
+    gain here, and there are a few left — the façade could hold one search loop instead of
+    calling one, and the two automata could keep their entry state between matches of the same
+    subject.
+  - **Captures still replay the search.** A pattern whose groups are unambiguous — one
+    transition per byte per state, which is most patterns that parse a line — can have its
+    groups read by a single pass over the span with no branch set at all. The crate calls that
+    engine `onepass`, and it is why its capture benchmark costs what its plain one costs.
   - **Vectors are 128 bits.** Every scan reads sixteen bytes per instruction where the crate
-    reads thirty-two; that alone is most of the 1.6x on a plain literal. This is a language
-    matter, not a library one: see the `#simd` entries in [simd.md](simd.md).
-  - **An unanchored search costs about two hundred nanoseconds of setup**, which is what `\w+`
-    pays two million times over the corpus. The two automata are each entered through a start
-    state, a table pointer and a look-behind context; a `findAll` that kept them between matches
-    would not pay any of it twice.
+    reads thirty-two. That is a language matter, not a library one: see the `#simd` entries in
+    [simd.md](simd.md).
+- What is not worth trying again: the automaton step itself. One step is a byte read, a class
+  read and a transition read, each depending on the one before it, and the loop was measured at
+  four nanoseconds a byte both inside the engine and in a six-instruction function written for
+  the experiment. That is the latency of three dependent loads on this machine; the generated
+  code for it is already tight, and no rearrangement of that loop will pay.
 - Complete when: no benchmark in that set is more than 1.5x the crate, and captures cost what a
   search without them costs.
 - Related: B-155

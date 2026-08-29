@@ -65,7 +65,10 @@ public struct RegExp
         reverseDfa:       Regex.Dfa             // The automaton that finds where it starts.
         vm:               Regex.PikeVm          // The engine that reports capture groups.
         backtracker:      Regex.Backtracker     // The engine that runs backreferences.
-        slots:            Array'u64             // Capture slots of the last match.
+        slots:            Array'u64             // Capture slots of the last match, when the pattern has groups.
+        slotsFilled:      bool                  // Whether the capture slots hold anything to clear.
+        matchStart:       u64                   // Span of the last match. A pattern without capture
+        matchEnd:         u64                   // groups needs nothing else, and pays for nothing else.
         captureNames:     Array'String          // Name of each capture group, empty when it has none.
         subject:          string = ""           // Subject of the last match; the captures point into it.
         matched:          bool                  // Whether the last match succeeded.
@@ -286,9 +289,20 @@ public impl RegExp
     mtd captureSpan(rank: u32)->{ found: bool, span: Span }
     {
         var result: retval
+        if !.matched do
+            return result
+
+        // The whole match is always known, whether or not the pattern has capture groups.
+        if rank == 0
+        {
+            result.found      = true
+            result.span.start = .matchStart
+            result.span.end   = .matchEnd
+            return result
+        }
 
         let opening = 2 * cast(u64) rank
-        if !.matched or opening + 1 >= .slots.count do
+        if opening + 1 >= .slots.count do
             return result
 
         let start = .slots[opening]
@@ -426,7 +440,11 @@ private impl RegExp
     {
         .matched = false
         .subject = subject
-        .slots.clear()
+        if .slotsFilled
+        {
+            .slots.clear()
+            .slotsFilled = false
+        }
 
         if !.compiled do
             return false
@@ -441,7 +459,7 @@ private impl RegExp
             if !.backtracker.run(&.program, hay, start, limit, anchored, wholeSubject) do
                 return false
             .slots.add(.backtracker.matchSlots.toSlice())
-            .matched = true
+            .keepSlotSpan()
             return true
         }
 
@@ -457,8 +475,17 @@ private impl RegExp
             return false
 
         .slots.add(.vm.matchSlots.toSlice())
-        .matched = true
+        .keepSlotSpan()
         return true
+    }
+
+    // Takes the span of the whole match out of the capture slots the two capture engines fill.
+    mtd keepSlotSpan()
+    {
+        .slotsFilled = true
+        .matchStart  = .slots[0]
+        .matchEnd    = .slots[1]
+        .matched     = true
     }
 
     // Finds the span of the match with the vectorized scan and the two automata.
@@ -479,9 +506,9 @@ private impl RegExp
             if at >= limit do
                 return false
 
-            .slots.add(at)
-            .slots.add(at + .prefilter.literal.count)
-            .matched = true
+            .matchStart = at
+            .matchEnd   = at + .prefilter.spanLength
+            .matched    = true
             return true
         }
 
@@ -591,7 +618,7 @@ private impl RegExp
                 if .backtracker.run(&.program, hay, matchStart, limit, true, false, budget)
                 {
                     .slots.add(.backtracker.matchSlots.toSlice())
-                    .matched = true
+                    .keepSlotSpan()
                     return true
                 }
             }
@@ -603,13 +630,13 @@ private impl RegExp
             }
 
             .slots.add(.vm.matchSlots.toSlice())
-            .matched = true
+            .keepSlotSpan()
             return true
         }
 
-        .slots.add(matchStart)
-        .slots.add(matchEnd)
-        .matched = true
+        .matchStart = matchStart
+        .matchEnd   = matchEnd
+        .matched    = true
         return true
     }
 
@@ -641,11 +668,13 @@ private impl RegExp
         return result
     }
 
-    // The span of the whole match, which capture slot zero and one hold.
-    mtd matchedSpan()->Span
+    // The span of the whole match.
+    mtd const matchedSpan()->Span
     {
-        let span = .captureSpan(0)
-        return span.span
+        var result: retval
+        result.start = .matchStart
+        result.end   = .matchEnd
+        return result
     }
 
     mtd matchedText()->string

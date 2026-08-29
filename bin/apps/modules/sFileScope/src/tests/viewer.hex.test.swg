@@ -177,16 +177,23 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     @assert(Utf8.contains(narrow.toSlice(), "00000002  CC"))
 }
 
-// An offset is read in hexadecimal, and a signed one moves relative to the caret.
+// Go To keeps bare values hexadecimal, and accepts explicit decimal, percentage, named, and
+// caret-relative positions.
 #test
 {
     @assert(parseHexOffset("1F", 0, 1000) == 0x1F)
     @assert(parseHexOffset("  0x1f  ", 0, 1000) == 0x1F)
     @assert(parseHexOffset("00 1F", 0, 1000) == 0x1F)
+    @assert(parseHexOffset("0d31", 0, 1000) == 31)
+    @assert(parseHexOffset("50%", 0, 1000) == 499)
+    @assert(parseHexOffset("caret", 0x20, 1000) == 0x20)
+    @assert(parseHexOffset("FileSize", 0, 1000) == 999)
     @assert(parseHexOffset("+10", 0x20, 1000) == 0x30)
     @assert(parseHexOffset("-10", 0x20, 1000) == 0x10)
     @assert(parseHexOffset("-1000", 0x20, 1000) == 0)
     @assert(parseHexOffset("FFFFFF", 0, 1000) == 999)
+    @assert(parseHexOffset("101%", 0, 1000) == Swag.U64.Max)
+    @assert(parseHexOffset("0dG", 0, 1000) == Swag.U64.Max)
     @assert(parseHexOffset("zz", 0, 1000) == Swag.U64.Max)
     @assert(parseHexOffset("", 0, 1000) == Swag.U64.Max)
     @assert(parseHexOffset("10", 0, 0) == Swag.U64.Max)
@@ -354,7 +361,10 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 
     view.grid.moveCaret(first, false)
     @assert(view.inspectorLabel != null and Utf8.contains(view.inspectorLabel!.text(), "@0003FFFE"))
+    @assert(Utf8.contains(view.inspectorLabel!.text(), "%"))
     @assert(Utf8.contains(view.inspectorLabel!.toolTip.toSlice(), "u32 4022250974"))
+    @assert(Utf8.contains(view.inspectorLabel!.toolTip.toSlice(), "b8 0b11011110"))
+    @assert(Utf8.contains(view.inspectorLabel!.toolTip.toSlice(), "o8 0o336 · bool true"))
 }
 
 // The analysis panel turns an unfamiliar file into exact byte evidence, and every inferred string
@@ -385,6 +395,16 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     let first = &view.analysisView.result.strings[0]
     view.analysisView.stringsList.selectLine(0)
     @assert(view.grid.selectionStart() == first.offset and view.grid.selectionLength() == first.length)
+
+    // Re-running analysis derives its range from the live grid selection. It does not replay the
+    // stale whole-file range that originally populated the panel.
+    let selectedStart  = view.grid.selectionStart()
+    let selectedLength = view.grid.selectionLength()
+    view.analysisView.analyzeButton.sigPressed.call(cast(*Button) view.analysisView.analyzeButton)
+    completeHexViewerAnalysis(&host, view)
+    @assert(view.analysisView.selection and view.analysisView.result.range.offset == selectedStart)
+    @assert(view.analysisView.result.range.length == selectedLength)
+    @assert(!view.analysisView.stringsList.header.flags.has(.Separators))
 
     host.root.applyLayout()
     host.moveMouse({-1, -1})
@@ -573,7 +593,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     defer host.shutdown()
 
     let view = createTestViewer(&host, fileName.toString(), 900, 560)
-    @assert(view.byteOrder.isChecked())
+    @assert(view.byteOrderCombo.selectedIndex == 0)
     @assert(!view.grid.bigEndian)
 
     // The combo changes the values drawn by the grid, not only the distance between bytes.
@@ -584,8 +604,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     @assert(formatHexScalar(.Unsigned32, view.grid.scalarAt(0)) == "305419896")
     @assert(Utf8.contains(view.grid.rowHexStrong.toSlice(), "305419896"))
 
-    view.byteOrder.setState(.Unchecked)
-    view.grid.setBigEndian(!view.byteOrder.isChecked())
+    view.byteOrderCombo.setSelectedIndex(1)
     @assert(view.grid.bigEndian)
     view.grid.buildRow(0)
     @assert(Utf8.contains(view.grid.rowHexStrong.toSlice(), "2018915346"))
@@ -651,7 +670,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     let grid = view.grid
 
     host.clickPopupMenuItemWhenShown(ActionHex.SelectAll)
-    grid.showContextMenu({120, 120})
+    view.moreButton.sigPressed.call(cast(*Button) view.moreButton)
     host.pump()
     @assert(grid.selectionStart() == 0 and grid.selectionLength() == 4096)
 
@@ -670,10 +689,21 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     @assert(grid.goToTypedOffset("0x800"))
     @assert(grid.caret == 0x800)
     @assert(grid.topRow > 0 and grid.topRow < 0x800 / grid.bytesPerRow)
+    @assert(grid.goToTypedOffset("50%"))
+    @assert(grid.caret == (grid.doc.fileSize - 1) / 2)
+    @assert(grid.goToTypedOffset("0d1024"))
+    @assert(grid.caret == 1024)
     @assert(grid.goToTypedOffset("-100"))
-    @assert(grid.caret == 0x700)
+    @assert(grid.caret == 0x300)
     @assert(!grid.goToTypedOffset("nowhere"))
-    @assert(grid.caret == 0x700)
+    @assert(grid.caret == 0x300)
+
+    let defaultFontSize = grid.fontSize
+    host.mouseWheel(grid.surfaceRect().center(), 120, .Control)
+    @assert(grid.fontSize == defaultFontSize + 1)
+    host.focus(grid)
+    host.keyPress(.D0, .Control)
+    @assert(grid.fontSize == defaultFontSize)
 }
 
 // A search hit is revealed at the offset the host found, and stays marked once the caret moves on.
@@ -809,17 +839,18 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
 
     let view = createTestViewer(&host, fileName, 900, 560)
     @assert(hexStrings().ui_TextColumn == "text" and hexStrings().ui_Empty == "This file is empty.")
-    @assert(view.widthCombo.selectedItem()!.name.raw == "8-bit" and view.byteOrder.text() == "Little endian")
+    @assert(view.widthCombo.selectedItem()!.name.raw == "8-bit" and view.byteOrderCombo.selectedItem()!.name.raw == "Little endian")
     discard host.render(view)
 
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     @assert(hexStrings().ui_TextColumn == "texte")
     @assert(hexStrings().ui_Empty == "Ce fichier est vide.")
-    @assert(view.widthCombo.selectedItem()!.name.raw == "8 bits" and view.byteOrder.text() == "Little endian")
+    @assert(view.widthCombo.selectedItem()!.name.raw == "8 bits" and view.byteOrderCombo.selectedItem()!.name.raw == "Little endian")
     @assert(view.widthCombo.toolTip == "Largeur des valeurs")
     @assert(view.details == "hexa et texte · en flux")
     @assert(view.analysisButton.toolTip == "Analyser la sélection, ou le fichier entier lorsqu’un seul octet est sélectionné")
+    @assert(view.analysisView.analyzeButton.toolTip == "Analyser la sélection actuelle, ou le fichier entier lorsqu’un seul octet est sélectionné")
     @assert(view.analysisView.titleLabel.text() == "Analyse" and view.analysisView.stringsList.header.itemAt(1).name.raw == "Encodage")
     discard host.render(view)
     Testing.assertContentFits(view.commands)
@@ -860,8 +891,9 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     defer host.shutdown()
 
     let view = createTestViewer(&host, fileName.toString(), 900, 560)
-    @assert(view.commands.position.width <= 512)
-    @assert(view.byteOrder.parent == view.commands and view.byteOrder.isChecked())
+    @assert(view.commands.position.width <= 560)
+    @assert(view.byteOrderCombo.parent == view.commands and view.byteOrderCombo.selectedIndex == 0)
+    @assert(view.moreButton.parent == view.commands)
     @assert(view.details == "hex and text · streamed")
     Testing.assertContentFits(view)
 

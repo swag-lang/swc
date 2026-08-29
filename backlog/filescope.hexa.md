@@ -9,8 +9,9 @@ stays in [filescope.md](filescope.md); cross-viewer contracts stay in
 
 The current foundation already has a 256 KiB resident window aligned to 64 KiB, 64-bit offsets,
 proportional whole-file scrolling, mouse and keyboard selection, a named 1 MiB clipboard bound,
-absolute and caret-relative hexadecimal jumps, fitted or fixed row widths, and 8/16/32/64-bit
-signed, unsigned, hexadecimal, and floating-point readings in either byte order. Streamed search
+absolute, named, percentage, decimal, and caret-relative jumps, fitted or fixed row widths, and
+8/16/32/64-bit signed, unsigned, hexadecimal, binary, octal, and floating-point readings in either
+byte order. Streamed search
 accepts hexadecimal byte/nibble wildcards, exact UTF-8, and the active scalar, marks all visible
 occurrences, and the information band inspects common scalar readings at the exact caret. The entries below
 are what separate that capable grid from a professional binary-analysis viewer.
@@ -20,12 +21,12 @@ are what separate that capable grid from a professional binary-analysis viewer.
 ### B-020 — The live data inspector lacks domain readings and copy
 
 - Evidence: the information band now follows `HexGridView.sigCaretChanged` and simultaneously
-  spells the exact caret bytes as signed, unsigned, hexadecimal, `f32`/`f64`, and printable
-  readings at 8/16/32/64-bit widths in the active byte order. It does not yet expose binary,
-  octal, `f16`, boolean, GUID, timestamp, IP, color, BCD, or varint readings, and values cannot be
-  copied independently.
-- Next: extend the existing compact inspector with the missing domain readings and one copy action
-  per value without changing grid grouping.
+  spells the exact caret bytes as signed, unsigned, hexadecimal, binary, octal, `f32`/`f64`, and
+  printable readings at 8/16/32/64-bit widths in the active byte order, plus boolean at byte width.
+  It does not yet expose `f16`, GUID, timestamp, IP, color, BCD, or varint readings, and values
+  cannot be copied independently.
+- Next: add `f16` and the remaining domain readings, then one copy action per value without changing
+  grid grouping.
 - Complete when: the inspector simultaneously reports selection start/end/length and the caret as
   signed and unsigned 8/16/32/64-bit integers, hexadecimal, binary, octal, `f16`/`f32`/`f64`,
   boolean, character, GUID, common timestamps, IP addresses, colors, BCD, and varints where enough
@@ -57,9 +58,9 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### B-023 — Hexadecimal navigation has no landmarks or history
 
-- Evidence: navigation is limited to scrolling, Home/End, host search, and an absolute or
-  caret-relative hexadecimal Go To dialog. There are no named ranges, return stack, or list of
-  visited offsets.
+- Evidence: navigation is limited to scrolling, Home/End, host search, and a Go To dialog accepting
+  hexadecimal, decimal, percentage, `caret`, `filesize`, and caret-relative positions. There are no
+  named ranges, return stack, or list of visited offsets.
 - Next: add an in-memory navigation history around every search reveal, Go To, structure jump, and
   bookmark activation, followed by named range bookmarks.
 - Complete when: back/forward returns through visited offsets, bookmarks carry an offset or range,
@@ -114,13 +115,14 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ## Tier B — Navigation, presentation, and interchange
 
-### B-028 — Navigation has no address expressions or file percentage
+### B-028 — Navigation address expressions remain partial
 
 - Evidence: the information band now reports the caret in hexadecimal and decimal, selection
-  bounds and length, and the active value. It does not report whole-file percentage, and Go To
-  accepts hexadecimal digits and a signed caret-relative delta only.
-- Next: add whole-file percentage to the existing inspector and replace the offset parser with a
-  side-effect-free address-expression evaluator.
+  bounds and length, the active value, and whole-file percentage. Go To accepts bare and `0x`
+  hexadecimal, `0d` decimal, percentages, named `caret` and `filesize`, and signed caret-relative
+  deltas with explicit invalid and out-of-range handling.
+- Next: extend the side-effect-free parser with arithmetic, alignment, a configurable base address,
+  and a named bookmark origin.
 - Complete when: caret, selection start/end/length, active value, and file percentage are visible in
   hexadecimal and decimal; Go To accepts named `caret` and `filesize`, arithmetic, alignment,
   percentage, decimal/hex input, configurable base address, and a named bookmark origin; invalid
@@ -129,8 +131,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 ### B-029 — Row layout and reading presentation are only partly configurable
 
 - Evidence: row width is auto or one of 8/16/32/64, byte grouping is fixed at eight in raw-byte
-  mode, grouping and scalar interpretation are coupled, endian is represented by a checkbox named
-  only `Little endian`, and the fixed-width font has no zoom command.
+  mode, and grouping and scalar interpretation are coupled. Endian is now an explicit Little/Big
+  choice, and Ctrl+wheel or Ctrl+plus/minus zooms the fixed-width font with Ctrl+0 reset.
 - Next: separate row width, visual grouping, scalar interpretation, byte order, and font scale into
   persistent presentation choices.
 - Complete when: an arbitrary safe bytes-per-row value, 1/2/4/8/16-byte visual groups, sector or
@@ -195,14 +197,14 @@ are what separate that capable grid from a professional binary-analysis viewer.
   or the complete collection.
 - Related: B-020, B-030
 
-### B-042 — Important hexadecimal commands are discoverable only by context menu
+### B-042 — Important hexadecimal commands need first-class actions and shortcuts
 
 - Evidence: the visible command group exposes width, representation, and endian; Go To, row width,
-  copy-as-text, copy-as-dump, and select-all live primarily in the context menu. Pattern search is
-  discoverable through the shared search field, and only byte copy, select-all, and Go To have
-  keyboard shortcuts.
-- Next: rank the frequent commands, give each one action identity and shortcut metadata, and expose
-  only the dominant compact actions in the viewer band.
+  copy-as-text, copy-as-dump, and select-all are now reachable through a visible compact commands
+  button as well as the context menu. Pattern search is discoverable through the shared search
+  field, and only byte copy, select-all, and Go To have keyboard shortcuts.
+- Next: rank the frequent commands, give each one action identity and shortcut metadata, then expose
+  the dominant Go To and copy actions directly in the viewer band.
 - Complete when: Go To, bookmark, compare, copy forms, row layout, endian, inspector,
   and analysis panels are reachable without a right click; shortcuts are documented, conflict-free,
   and remappable through the application convention; and the document remains the majority of the
@@ -278,9 +280,11 @@ are what separate that capable grid from a professional binary-analysis viewer.
 - Evidence: current tests cover ordinary and synthetic multi-gigabyte streaming geometry, 16-digit
   offsets, scalar modes, navigation, the named 1 MiB copy bound, search reveal, late short reads,
   byte/nibble/scalar patterns across search-chunk boundaries, invalid search input, visible search
-  marks, the compact inspector, focus-safe mouse capture, non-integer DPI, live English/French
-  wording, layout, and one dark-theme golden. Slow-I/O behavior, external file-version changes,
-  and accessibility have no deterministic seam yet.
+  marks, the compact inspector including binary/octal/boolean readings and file percentage,
+  analysis reruns on live selection, rich Go To forms, visible command-menu routing, explicit byte
+  order, font zoom/reset, focus-safe mouse capture, non-integer DPI, live English/French wording,
+  layout, and dark-theme goldens. Slow-I/O behavior, external file-version changes, and
+  accessibility have no deterministic seam yet.
 - Next: add the injectable range-reader seam with B-026/B-027, then test delayed completion and
   version changes without timing or filesystem races, and add accessibility coverage with B-035.
 - Complete when: those remaining guarantees have deterministic focused tests, generated fixtures

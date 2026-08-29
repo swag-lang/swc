@@ -16,6 +16,8 @@ const HexDefaultGroupSize = 8'u64
 const HexWheelRows                     = 3'u64
 const HexMinBytesPerRow                = 8'u64
 const HexMaxBytesPerRow                = 64'u64
+const HexMinFontSize                   = 8'u32
+const HexMaxFontSize                   = 24'u32
 const HexDragScrollRate: Time.Duration = 50'ms
 
 // Largest pixel span the vertical scrollbar is given.
@@ -206,38 +208,59 @@ func formatHexDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offs
     return result
 }
 
-// Reads an offset typed by a reader, and returns `Swag.U64.Max` when the text names none.
-//
-// Offsets are hexadecimal because everything else in this view is. A leading sign moves relative
-// to `caret` instead, which is how a reader follows a structure field by field.
+// Reads an absolute, percentage, named, or caret-relative offset, and returns `Swag.U64.Max` when
+// the text names none. Unprefixed numbers remain hexadecimal; `0d` opts into decimal explicitly.
 func parseHexOffset(text: string, caret, fileSize: u64)->u64
 {
-    var index = 0'u64
-    let count = @countof(text)
-    while index < count and (text[index] == ' 'u8 or text[index] == '\t'u8) do
-        index += 1
+    let trimmed = Latin1.trim(text)
+    let count   = @countof(trimmed)
+    if !count or !fileSize do
+        return Swag.U64.Max
 
+    var index    = 0'u64
     var relative = 0's32
-    if index < count and (text[index] == '+'u8 or text[index] == '-'u8)
+    if trimmed[index] == '+'u8 or trimmed[index] == '-'u8
     {
-        relative = text[index] == '+'u8 ? 1 : -1
+        relative = trimmed[index] == '+'u8 ? 1 : -1
         index    += 1
     }
 
-    if index + 1 < count and text[index] == '0'u8 and (text[index + 1] == 'x'u8 or text[index + 1] == 'X'u8) do
+    if index >= count do
+        return Swag.U64.Max
+
+    let valueText = cast(string) trimmed[index to]
+    if !relative and Utf8.compare(valueText, "caret", .Latin1NoCase) == 0 do
+        return caret
+    if !relative and Utf8.compare(valueText, "filesize", .Latin1NoCase) == 0 do
+        return fileSize - 1
+
+    let percentage = !relative and trimmed[count - 1] == '%'u8
+    let end        = percentage ? count - 1 : count
+    if index >= end do
+        return Swag.U64.Max
+
+    var radix = percentage ? 10'u64 : 16'u64
+    if index + 1 < end and trimmed[index] == '0'u8 and (trimmed[index + 1] == 'x'u8 or trimmed[index + 1] == 'X'u8)
+    {
         index += 2
+    }
+    elif index + 1 < end and trimmed[index] == '0'u8 and (trimmed[index + 1] == 'd'u8 or trimmed[index + 1] == 'D'u8)
+    {
+        radix = 10
+        index += 2
+    }
 
     var value  = 0'u64
     var digits = 0'u64
-    while index < count
+    while index < end
     {
-        let c      = text[index]
+        let c      = trimmed[index]
         var nibble = 16'u8
         if c >= '0'u8 and c <= '9'u8 do
             nibble = c - '0'u8
-        elif c >= 'a'u8 and c <= 'f'u8 do
+        elif radix == 16 and c >= 'a'u8 and c <= 'f'u8 do
             nibble = c - 'a'u8 + 10
-        elif c >= 'A'u8 and c <= 'F'u8 do
+        elif radix == 16 and c >= 'A'u8 and c <= 'F'u8 do
             nibble = c - 'A'u8 + 10
         elif c == ' 'u8 or c == '_'u8
         {
@@ -245,19 +268,27 @@ func parseHexOffset(text: string, caret, fileSize: u64)->u64
             continue
         }
 
-        if nibble == 16 do
+        if nibble >= radix do
             return Swag.U64.Max
 
         // A value wider than the address space is a typing accident, not an offset.
-        if value > (Swag.U64.Max - nibble) / 16 do
+        if value > (Swag.U64.Max - nibble) / radix do
             return Swag.U64.Max
-        value  = value * 16 + nibble
+        value  = value * radix + nibble
         digits += 1
         index  += 1
     }
 
-    if !digits or !fileSize do
+    if !digits do
         return Swag.U64.Max
+
+    if percentage
+    {
+        if value > 100 do
+            return Swag.U64.Max
+        let last = fileSize - 1
+        return last / 100 * value + last % 100 * value / 100
+    }
 
     var target = value
     if relative > 0 do
@@ -311,6 +342,7 @@ struct HexGridView
 
     charWidth: f32
     rowHeight: f32
+    fontSize:  u32
 
     // Row text is rebuilt in place every frame. Bytes that carry a value and bytes that do not are
     // drawn in two passes over the same columns, so one row costs a handful of draws instead of
@@ -388,6 +420,27 @@ impl HexGridView
     mtd contentWidthFor(bytesPerRow: u64)->f32 => HexViewInset + .gutterWidth() + .hexColumnWidth(bytesPerRow) + HexColumnGap + cast(f32) bytesPerRow * .charWidth + HexViewInset
 
     mtd contentWidth()->f32 => .contentWidthFor(.bytesPerRow)
+
+    mtd setFontSize(size: u32)
+    {
+        let next = Math.clamp(size, HexMinFontSize, HexMaxFontSize)
+        if .fontSize == next do
+            return
+        .fontSize = next
+        .style.setFont(.theme().createDefaultFontFS(next), .Regular)
+        .refreshLayout()
+    }
+
+    mtd adjustFontSize(delta: s32)
+    {
+        let next = Math.clamp(cast(s32) .fontSize + delta, cast(s32) HexMinFontSize, cast(s32) HexMaxFontSize)
+        .setFontSize(cast(u32) next)
+    }
+
+    mtd resetFontSize()
+    {
+        .setFontSize(.themeMetrics().defaultFixedFontSize)
+    }
 
     // Reads one scalar from the resident document window in the selected byte order.
     mtd scalarAt(offset: u64)->u64
@@ -1141,6 +1194,12 @@ impl IWnd for HexGridView
 
         switch evt.kind
         {
+        case .Wheel where evt.modifiers.has(.Control):
+            if evt.delta.y > 0 do
+                .adjustFontSize(1)
+            elif evt.delta.y < 0 do
+                .adjustFontSize(-1)
+
         case .Wheel where evt.modifiers.has(.Shift):
             evt.accepted = false
 
@@ -1235,6 +1294,21 @@ impl IWnd for HexGridView
 
         case .G where control:
             .sendCommandEvent(ActionHex.GoTo)
+
+        case .Add, .OemPlus:
+            if control do
+                .adjustFontSize(1)
+            else do
+                evt.accepted = false
+
+        case .Subtract, .OemMinus:
+            if control do
+                .adjustFontSize(-1)
+            else do
+                evt.accepted = false
+
+        case .D0 where control:
+            .resetFontSize()
 
         default:
             evt.accepted = false
@@ -1358,7 +1432,8 @@ impl HexGridView
         result.focusPolicy = .Tab
         result.wndFlags    |= WndFlags.NoScroll | WndFlags.NoFocusRing | WndFlags.ClipChildren
         result.cursor      = Cursor.from(CursorShape.IBeam)
-        result.style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
+        result.fontSize    = result.themeMetrics().defaultFixedFontSize
+        result.style.setFont(result.theme().createDefaultFontFS(result.fontSize), .Regular)
         scroll.sigScrollPositionChanged += func|view = result|(scrollWnd, oldPosition, newPosition)
         {
             discard scrollWnd

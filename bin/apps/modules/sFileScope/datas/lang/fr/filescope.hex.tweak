@@ -1,6 +1,6 @@
 # French strings of the sFileScope hexadecimal viewer. A key omitted here keeps its English value.
 # The reading names a binary format uses for itself are written the same way in French, so
-# `ui_FormatHex` and `ui_Endian` are deliberately absent.
+# `ui_FormatHex`, `ui_EndianLittle`, and `ui_EndianBig` are deliberately absent.
 
 ui_TipWidth      Largeur des valeurs
 ui_Width8        8 bits
@@ -11,12 +11,13 @@ ui_TipFormat     Représentation des valeurs
 ui_FormatUns     Non signé
 ui_FormatSigned  Signé
 ui_FormatFloat   Flottant
-ui_TipEndian     Lire les valeurs multi-octets en ordre petit-boutiste
+ui_TipEndian     Ordre des octets des valeurs multi-octets
+ui_TipCommands   Copie, navigation et disposition des lignes
 ui_Details       hexa et texte · en flux
 ui_TextColumn    texte
 ui_Empty         Ce fichier est vide.
 ui_GoTo          Aller au décalage
-ui_GoToMessage   Décalage hexadécimal, ou décalage signé depuis le curseur.
+ui_GoToMessage   Décalage hexadécimal ou décimal préfixé par 0d, pourcentage, caret, filesize, ou décalage signé depuis le curseur.
 ui_SelectAll     Tout sélectionner
 ui_RowWidth      Octets par ligne
 ui_RowAuto       Ajuster à la fenêtre
@@ -28,7 +29,7 @@ ui_InspectorEmpty     Aucun octet sous le curseur
 
 ui_Analysis             Analyse
 ui_AnalysisTip          Analyser la sélection, ou le fichier entier lorsqu’un seul octet est sélectionné
-ui_AnalysisRefresh      Analyser de nouveau la plage actuelle
+ui_AnalysisRun          Analyser la sélection actuelle, ou le fichier entier lorsqu’un seul octet est sélectionné
 ui_AnalysisCancel       Arrêter l’analyse
 ui_AnalysisClose        Fermer l’analyse
 ui_AnalysisFile         Fichier entier · %

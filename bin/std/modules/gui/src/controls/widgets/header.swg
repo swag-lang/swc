@@ -32,8 +32,9 @@ struct HeaderItem
 #[Swag.EnumFlags]
 enum HeaderFlags
 {
-    None = 0      // Disables column click actions while preserving resizing.
-    Clickable     // Enables click actions for individually clickable columns.
+    None = 0       // Disables column click actions and separator-based resizing.
+    Clickable      // Enables click actions for individually clickable columns.
+    Separators     // Draws column separators and lets resizable columns be dragged.
 }
 
 // Indicates the direction displayed by a column sort marker.
@@ -60,10 +61,10 @@ struct Header
         // so the layout and the owning list stay in step.
         readonly
         {
-            flags         = HeaderFlags.Clickable        // Active interaction options.
-            items: ArrayPtr'HeaderItem                   // Columns in display order.
-            sortColumn    = Swag.U32.Max                 // Logical column carrying the sort marker.
-            sortDirection = HeaderSortDirection.None     // Direction of the sort marker.
+            flags         = HeaderFlags.Clickable | .Separators     // Active interaction and separator options.
+            items: ArrayPtr'HeaderItem                              // Columns in display order.
+            sortColumn    = Swag.U32.Max                            // Logical column carrying the sort marker.
+            sortDirection = HeaderSortDirection.None                // Direction of the sort marker.
         }
     }
 
@@ -183,9 +184,12 @@ impl IWnd for Header
             .paintItem(evt.paintContext, item, cast(u32) idx, x)
             x += item.width
 
-            var rect = clientRect
-            rect.x = x + (metrics.header_Separator * 0.5)
-            painter.drawLine(rect.x, rect.y, rect.x, rect.bottom(), colors.headerItem_Separator, 1)
+            if .flags.has(.Separators)
+            {
+                var rect = clientRect
+                rect.x = x + (metrics.header_Separator * 0.5)
+                painter.drawLine(rect.x, rect.y, rect.x, rect.bottom(), colors.headerItem_Separator, 1)
+            }
 
             x += metrics.header_Separator
         }
@@ -304,7 +308,7 @@ private impl Header
             if pos.x >= x and pos.x < x + item.width do
                 return {cast(u32) idx, false}
             x += item.width
-            if pos.x >= x and pos.x <= x + metrics.header_Separator and item.isResizable do
+            if .flags.has(.Separators) and pos.x >= x and pos.x <= x + metrics.header_Separator and item.isResizable do
                 return {cast(u32) idx, true}
             x += metrics.header_Separator
         }
@@ -480,11 +484,23 @@ impl Header
         .setItemWidth(index, item.width)
     }
 
-    // Adds and removes interaction options and clears transient hover state when clicks are disabled.
+    // Adds and removes interaction or separator options and clears transient state they disable.
     mtd updateFlags(add: HeaderFlags = .None, remove = HeaderFlags.None)
     {
         .flags.add(add)
         .flags.remove(remove)
+        if !.flags.has(.Separators)
+        {
+            if .moving
+            {
+                .moving = false
+                .releaseMouse()
+            }
+
+            .hotSeparator = false
+            .cursor.clear()
+        }
+
         if !.flags.has(.Clickable) and !.hotSeparator do
             .hotIdx = Swag.U32.Max
         .invalidate()

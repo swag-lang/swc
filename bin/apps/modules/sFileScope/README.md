@@ -87,14 +87,18 @@ guessing an encoding.
   jumps to a file offset, and walks visited rows backward or forward.
 - `Hexadecimal` is available for every file. It keeps one 256 KiB resident window whose reads are
   aligned to 64 KiB boundaries, uses 64-bit offsets, and supports independent scalar width,
-  representation, and byte order. Its information-band inspector reports the exact caret offset,
-  selection length, active value, and the same bytes as signed, unsigned, hexadecimal, floating
-  point, and printable readings. Search accepts byte and nibble wildcards (`4D 5A ??`, `?A`,
+  representation, explicit Little/Big byte order, and fixed-width font zoom. Its information-band
+  inspector reports the exact caret offset and file percentage, selection length, active value,
+  and the same bytes as signed, unsigned, hexadecimal, binary, octal, boolean, floating-point, and
+  printable readings. Go To accepts hexadecimal, `0d` decimal, percentage, `caret`, `filesize`, and
+  signed caret-relative positions. A visible commands button exposes copy, navigation, and row
+  layout without requiring a right click. Search accepts byte and nibble wildcards (`4D 5A ??`, `?A`,
   `A?`), exact UTF-8 through `text:`, and the active scalar and byte order through `value:`. Every
   visible result is marked while the shared animated marker identifies the current occurrence.
   A cancellable, streaming analysis of the selection or whole file adds a 256-value byte map,
   exact counts, entropy, zero and printable ratios, and bounded inferred ASCII and UTF-16 strings;
-  selecting an inferred string returns to its source bytes.
+  selecting an inferred string returns to its source bytes, and Analyze reruns on that live
+  selection instead of replaying the range that originally opened the panel.
 
 Text-oriented viewers handle normal keyboard and scrollbar navigation while content is streaming.
 Home, End, distant scrollbar jumps, and search open a bounded resident window near the requested

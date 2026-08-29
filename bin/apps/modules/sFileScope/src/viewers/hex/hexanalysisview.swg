@@ -98,7 +98,7 @@ impl HexHistogramView
     {
         let result = Wnd.create'HexHistogramView(parent, {0, 0, 0, HexAnalysisHistogramSize})
         result.dockStyle       = .Top
-        result.backgroundStyle = .Window
+        result.backgroundStyle = .Transparent
         return result
     }
 
@@ -133,7 +133,7 @@ struct HexAnalysisView
     #[Swag.Late]
     {
         titleLabel:    *Label
-        refreshButton: *IconButton
+        analyzeButton: *IconButton
         cancelButton:  *IconButton
         closeButton:   *IconButton
         scopeLabel:    *Label
@@ -148,7 +148,7 @@ struct HexAnalysisView
     offsetDigits: u64 = 8
     selection:    bool
 
-    sigRefresh:  SigArray'func||(*HexAnalysisView)
+    sigAnalyze:  SigArray'func||(*HexAnalysisView)
     sigCancel:   SigArray'func||(*HexAnalysisView)
     sigClose:    SigArray'func||(*HexAnalysisView)
     sigNavigate: SigArray'func||(*HexAnalysisView, u64, u64)
@@ -252,7 +252,7 @@ impl HexAnalysisView
         .byteLabel.setText(hexStrings().ui_AnalysisByteHint)
         .stringsLabel.setText(hexStrings().ui_AnalysisStrings)
         .stringsList.setVirtualCount(0)
-        .refreshButton.hide()
+        .analyzeButton.hide()
         .cancelButton.show()
     }
 
@@ -270,14 +270,14 @@ impl HexAnalysisView
         .updateByteDetail(Swag.U32.Max)
         .stringsList.setVirtualCount(cast(u32) .result.strings.count)
         .cancelButton.hide()
-        .refreshButton.show()
+        .analyzeButton.show()
         .invalidate()
     }
 
     mtd retranslate()
     {
         .titleLabel.setText(hexStrings().ui_Analysis)
-        .refreshButton.toolTip             = hexStrings().ui_AnalysisRefresh
+        .analyzeButton.toolTip             = hexStrings().ui_AnalysisRun
         .cancelButton.toolTip              = hexStrings().ui_AnalysisCancel
         .closeButton.toolTip               = hexStrings().ui_AnalysisClose
         .stringsList.header.itemAt(0).name = hexStrings().ui_AnalysisOffset
@@ -295,16 +295,16 @@ impl HexAnalysisView
     {
         let result = Wnd.create'HexAnalysisView(parent, {0, 0, HexAnalysisPanelWidth, 0})
         result.dockStyle       = .Right
-        result.backgroundStyle = .Window
+        result.backgroundStyle = .Panel
         result.padding         = {12, 8, 12, 8}
 
         with let header = Wnd.create'Wnd(result, {0, 0, 0, HexAnalysisHeaderHeight})
         {
             .dockStyle       = .Top
-            .backgroundStyle = .Window
+            .backgroundStyle = .Transparent
         }
 
-        with result.closeButton = IconButton.create(header, result.theme().icon(.ChevronRight, 16), {0, 0, 24, 24})
+        with result.closeButton = IconButton.create(header, result.theme().icon(.WndClose, 16), {0, 0, 24, 24})
         {
             .dockStyle  = .Right
             .toolTip    = hexStrings().ui_AnalysisClose
@@ -327,14 +327,14 @@ impl HexAnalysisView
             }
         }
 
-        with result.refreshButton = IconButton.create(header, result.theme().icon(.Update, 16), {0, 0, 24, 24})
+        with result.analyzeButton = IconButton.create(header, result.theme().icon(.Play, 16), {0, 0, 24, 24})
         {
             .dockStyle  = .Right
-            .toolTip    = hexStrings().ui_AnalysisRefresh
+            .toolTip    = hexStrings().ui_AnalysisRun
             .sigPressed += func|view = result|(button)
             {
                 discard button
-                view.sigRefresh.call(view)
+                view.sigAnalyze.call(view)
             }
         }
 
@@ -381,12 +381,16 @@ impl HexAnalysisView
 
         with result.stringsList = ListCtrl.createMultiColumns(result)
         {
-            .dockStyle = .Center
+            .dockStyle                = .Center
+            .backgroundStyle          = .Transparent
+            .listView.backgroundStyle = .Transparent
             .style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
             .setSelectionMode(.Single)
             .setFirstColumnIconMargin(false)
-            .updateFlags(.HotTrack | .AlternateLines | .Ellipsis)
+            .updateFlags(.HotTrack | .Ellipsis)
             .scrollWnd.updateFlags(.DisableHorizontal)
+            .header.form = .Transparent
+            .header.updateFlags(remove: .Clickable | .Separators)
             .addColumn(hexStrings().ui_AnalysisOffset, 82)
             .addColumn(hexStrings().ui_AnalysisEncoding, 78)
             .addColumn(hexStrings().ui_AnalysisText, 150)

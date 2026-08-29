@@ -2,9 +2,43 @@
 
 using Core, Pixel, Gui
 
-private const HexCommandWidth = 512.0
+private const HexCommandWidth = 560.0
 private const HexComboWidth   = 150.0
+private const HexEndianWidth  = 150.0
 private const HexInfoWidth    = 420.0
+
+// Writes an unsigned scalar in the binary spelling used by the inspector.
+private func formatHexBinaryScalar(value, bits: u64)->String
+{
+    var text: Array'u8
+    text.reserve(bits + 2)
+    text.add('0'u8)
+    text.add('b'u8)
+    for index in bits
+    {
+        let shift = bits - 1 - index
+        text.add(value & (1'u64 << shift) ? '1'u8 : '0'u8)
+    }
+
+    return String.from(@mkstring(text.buffer!, text.count))
+}
+
+// Writes an unsigned scalar in the octal spelling used by the inspector.
+private func formatHexOctalScalar(value, bits: u64)->String
+{
+    let digits = (bits + 2) / 3
+    var text: Array'u8
+    text.reserve(digits + 2)
+    text.add('0'u8)
+    text.add('o'u8)
+    for index in digits
+    {
+        let shift = (digits - 1 - index) * 3
+        text.add('0'u8 + cast(u8) ((value >> shift) & 7))
+    }
+
+    return String.from(@mkstring(text.buffer!, text.count))
+}
 
 private func loadHexDocument(fileName: string)->HexDocument fail
 {
@@ -29,9 +63,10 @@ internal struct HexViewer
     {
         commands:       *Wnd
         analysisButton: *IconButton
+        moreButton:     *IconButton
         widthCombo:     *ComboBox
         formatCombo:    *ComboBox
-        byteOrder:      *CheckButton
+        byteOrderCombo: *ComboBox
         analysisView:   *HexAnalysisView
         grid:           *HexGridView
     }
@@ -67,6 +102,7 @@ private impl IWnd for HexViewer
             .analysisTimer = null
             var result = .analysis.finish()
             .analysisView.publish(&result)
+            .analysisButton.enable(.grid.doc.fileSize != 0)
             return
         }
 
@@ -172,8 +208,12 @@ internal impl HexViewer
 
     mtd closeAnalysis()
     {
-        if .analysis.started do
+        if .analysis.started
+        {
             .analysis.cancel()
+            .analysisButton.enable(false)
+        }
+
         .analysisView.hide()
         .analysisButton.setChecked(false)
         .applyLayout()
@@ -196,6 +236,11 @@ internal impl HexViewer
     mtd applyValueMode()
     {
         .grid.setGrouping(.selectedGrouping())
+    }
+
+    mtd applyByteOrder()
+    {
+        .grid.setBigEndian(.byteOrderCombo.selectedIndex == 1)
     }
 
     mtd rebuildFormats()
@@ -225,8 +270,13 @@ internal impl HexViewer
         .formatCombo.toolTip = hexStrings().ui_TipFormat
         .rebuildFormats()
 
-        .byteOrder.setText(hexStrings().ui_Endian)
-        .byteOrder.toolTip      = hexStrings().ui_TipEndian
+        let byteOrder = .byteOrderCombo.selectedIndex
+        .byteOrderCombo.clear()
+        .byteOrderCombo.addItem(hexStrings().ui_EndianLittle)
+        .byteOrderCombo.addItem(hexStrings().ui_EndianBig)
+        .byteOrderCombo.setSelectedIndex(byteOrder, notify: false)
+        .byteOrderCombo.toolTip = hexStrings().ui_TipEndian
+        .moreButton.toolTip     = hexStrings().ui_TipCommands
         .analysisButton.toolTip = hexStrings().ui_AnalysisTip
         .analysisView.retranslate()
         .details = hexStrings().ui_Details
@@ -300,32 +350,33 @@ internal impl HexViewer
             return
         }
 
-        let offset = .offsetText(.grid.caret)
-        let size   = .grid.valueSize()
-        let active = size <= bytes.count ? formatHexScalar(.grid.grouping, .inspectorScalar(bytes.toSlice(), size)) : String.from("--")
-        label.setText(Format.toString("@% · % B · % %", offset, .grid.selectionLength(), .activeValueTag(), active))
+        let offset  = .offsetText(.grid.caret)
+        let size    = .grid.valueSize()
+        let active  = size <= bytes.count ? formatHexScalar(.grid.grouping, .inspectorScalar(bytes.toSlice(), size)) : String.from("--")
+        let percent = .grid.doc.fileSize > 1 ? cast(f64) .grid.caret * 100 / cast(f64) (.grid.doc.fileSize - 1) : 0
+        label.setText(Format.toString("@% · %{f1}%% · % B · % %", offset, percent, .grid.selectionLength(), .activeValueTag(), active))
 
-        var details = Format.toString("@% (%)\n[%..%] % B\n%", offset, .grid.caret, .offsetText(.grid.selectionStart()), .offsetText(.grid.selectionEnd()), .grid.selectionLength(), .grid.bigEndian ? "BE" : "LE")
+        var details = Format.toString("@% (%) · %{f1}%%\n[%..%] % B\n%", offset, .grid.caret, percent, .offsetText(.grid.selectionStart()), .offsetText(.grid.selectionEnd()), .grid.selectionLength(), .grid.bigEndian ? "BE" : "LE")
         let raw8    = .inspectorScalar(bytes.toSlice(), 1)
-        details += Format.toString("\nu8 % · s8 % · x8 0x%{X02}", raw8, hexSignedScalar(raw8, 1), raw8)
+        details += Format.toString("\nu8 % · s8 % · x8 0x%{X02} · b8 % · o8 % · bool %", raw8, hexSignedScalar(raw8, 1), raw8, formatHexBinaryScalar(raw8, 8), formatHexOctalScalar(raw8, 8), raw8 ? "true" : "false")
         if isHexPrintable(cast(u8) raw8) do
             details += Format.toString(" · ASCII '%'", cast(u8) raw8)
         if bytes.count >= 2
         {
             let raw = .inspectorScalar(bytes.toSlice(), 2)
-            details += Format.toString("\nu16 % · s16 % · x16 0x%{X04}", raw, hexSignedScalar(raw, 2), raw)
+            details += Format.toString("\nu16 % · s16 % · x16 0x%{X04} · b16 % · o16 %", raw, hexSignedScalar(raw, 2), raw, formatHexBinaryScalar(raw, 16), formatHexOctalScalar(raw, 16))
         }
 
         if bytes.count >= 4
         {
             let raw = .inspectorScalar(bytes.toSlice(), 4)
-            details += Format.toString("\nu32 % · s32 % · x32 0x%{X08} · f32 %{g9}", raw, hexSignedScalar(raw, 4), raw, cast #bit (f32) (cast(u32) raw))
+            details += Format.toString("\nu32 % · s32 % · x32 0x%{X08} · b32 % · o32 % · f32 %{g9}", raw, hexSignedScalar(raw, 4), raw, formatHexBinaryScalar(raw, 32), formatHexOctalScalar(raw, 32), cast #bit (f32) (cast(u32) raw))
         }
 
         if bytes.count >= 8
         {
             let raw = .inspectorScalar(bytes.toSlice(), 8)
-            details += Format.toString("\nu64 % · s64 % · x64 0x%{X016} · f64 %{g15}", raw, hexSignedScalar(raw, 8), raw, cast #bit (f64) raw)
+            details += Format.toString("\nu64 % · s64 % · x64 0x%{X016} · b64 % · o64 % · f64 %{g15}", raw, hexSignedScalar(raw, 8), raw, formatHexBinaryScalar(raw, 64), formatHexOctalScalar(raw, 64), cast #bit (f64) raw)
         }
 
         label.toolTip = #move details
@@ -410,6 +461,17 @@ internal impl HexViewer
             .setTextAlignment(.Right, .OpticalCenter)
         }
 
+        with result.moreButton = IconButton.create(result.commands, result.theme().icon(.More, ViewerGlyphSize), {0, 0, 36, 36})
+        {
+            .dockStyle  = .Left
+            .margin.x   = 8
+            .toolTip    = hexStrings().ui_TipCommands
+            .sigPressed += func|view = result|(button)
+            {
+                view.grid.showContextMenu(button.localToSurface(Math.Point{0, button.position.height}))
+            }
+        }
+
         with result.widthCombo = ComboBox.create(result.commands, {0, 0, HexComboWidth, 36})
         {
             .dockStyle = .Left
@@ -445,24 +507,28 @@ internal impl HexViewer
             }
         }
 
-        with result.byteOrder = CheckButton.create(result.commands, hexStrings().ui_Endian, {0, 0, 132, 36})
+        with result.byteOrderCombo = ComboBox.create(result.commands, {0, 0, HexEndianWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
             .toolTip   = hexStrings().ui_TipEndian
-            .setState(.Checked)
-            .sigChanged += func|view = result|(button)
+            .addItem(hexStrings().ui_EndianLittle)
+            .addItem(hexStrings().ui_EndianBig)
+            .setSelectedIndex(0, notify: false)
+            .sigChanged += func|view = result|(combo, index)
             {
-                view.grid.setBigEndian(!button.isChecked())
+                discard combo
+                discard index
+                view.applyByteOrder()
             }
         }
 
         result.analysisView = HexAnalysisView.create(result)
         result.analysisView.hide()
-        Separator.create(result.analysisView, .Left)
-        result.analysisView.sigRefresh += func|view = result|(panel)
+        result.analysisView.sigAnalyze += func|view = result|(panel)
         {
-            view.startAnalysisRange(panel.result.range, panel.selection)
+            discard panel
+            view.startAnalysis()
         }
         result.analysisView.sigCancel += func|view = result|(panel)
         {

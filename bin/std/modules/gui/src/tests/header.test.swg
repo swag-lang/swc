@@ -15,6 +15,7 @@ using Swag, Core
     header.addColumn("Name", 120)
     header.addColumn("Size", 80)
     @assert(header.items.count == 2)
+    @assert(header.flags.has(.Clickable) and header.flags.has(.Separators))
 
     @assert(header.itemAt(0).name.raw == "Name")
     @assert(header.itemAt(1).name.raw == "Size")
@@ -31,6 +32,33 @@ using Swag, Core
     @assert(header.sortColumn == 1 and header.sortDirection == .Descending)
     header.clearSortIndicator()
     @assert(header.sortColumn == Swag.U32.Max and header.sortDirection == .None)
+}
+
+// A compact read-only table can keep the header baseline without drawing or activating vertical
+// separators that imply configurable columns.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 70)
+    defer host.shutdown()
+    host.root.backgroundStyle = .Window
+
+    let header = Header.create(&host.root, {10, 10, 200, 24})
+    header.form = .Transparent
+    header.addColumn("Offset", 80)
+    header.addColumn("Value", 100)
+
+    var evt = MouseEvent{kind: .Move}
+    evt.surfacePos = header.localToSurface(Math.Point{92, 10})
+    header.sendEvent(&evt)
+    @assert(header.hotSeparator)
+
+    header.updateFlags(remove: .Separators)
+    @assert(!header.flags.has(.Separators))
+    @assert(!header.hotSeparator)
+    header.sendEvent(&evt)
+    @assert(!header.hotSeparator)
+    discard host.render()
 }
 
 // A header nested below a presented window keeps its local content clip when the subtree is

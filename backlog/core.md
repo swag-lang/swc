@@ -328,6 +328,12 @@ unsafe legacy modes excluded from the default surface.
   - **Vectors are 128 bits.** Every scan reads sixteen bytes per instruction where the crate
     reads thirty-two. That is a language matter, not a library one: see the `#simd` entries in
     [simd.md](simd.md).
+- Compiling a pattern costs about eight microseconds for a small one, down from twenty-seven:
+  a byte set now counts what it is worth as bytes are added to it rather than by walking all
+  two hundred and fifty-six values per question, and the automata build their tables on the
+  first search rather than when the pattern is compiled — a pattern used only for a
+  whole-subject match never builds them at all. What is left is mostly the number of separate
+  allocations a compiled pattern makes.
 - What is not worth trying again: the automaton step itself. One step is a byte read, a class
   read and a transition read, each depending on the one before it, and the loop measured four
   nanoseconds a byte both inside the engine and in a six-instruction function written for the

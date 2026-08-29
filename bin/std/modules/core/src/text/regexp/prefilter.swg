@@ -70,18 +70,31 @@ struct ByteSet
 {
     lowHalf:  [16] u8     // For each low nibble, the high nibbles of the ASCII bytes in the set.
     highHalf: [16] u8     // The same, for the bytes outside ASCII.
+    members:  u32         // How many bytes are in it.
+    weight:   u32         // How often those bytes appear in a thousand bytes of ordinary text.
 }
 
 impl ByteSet
 {
+    // Adds one byte, and keeps what the set is worth up to date.
+    //
+    // How many bytes a set holds and how often they appear are asked once per offset while a
+    // pattern is compiled; counting them as they arrive costs nothing, and counting them
+    // afterwards means walking all two hundred and fifty-six values per question.
     #[Swag.Inline]
     mtd add(value: u8)
     {
+        if .contains(value) do
+            return
+
         let bit = cast(u8) (1 << ((value >> 4) & 7))
         if value < 0x80 do
             .lowHalf[value & 0x0F] |= bit
         else do
             .highHalf[value & 0x0F] |= bit
+
+        .members += 1
+        .weight  += cast(u32) ByteFrequency[value]
     }
 
     // Whether one byte belongs to the set. This is on the hot path of a scan that decides its
@@ -756,30 +769,12 @@ impl Prefilter
 const NoPosition = 0xFFFF_FFFF'u32
 
 // How many bytes one set holds.
-func setCount(set: const *ByteSet)->u32
-{
-    var total = 0'u32
-    for var b = 0'u32; b < 256; b += 1
-    {
-        if set.contains(cast(u8) b) do
-            total += 1
-    }
-
-    return total
-}
+#[Swag.Inline]
+func setCount(set: const *ByteSet)->u32 => set.members
 
 // How often the bytes of a set appear in a thousand bytes of ordinary text.
-func setScore(set: const *ByteSet)->u32
-{
-    var total = 0'u32
-    for var b = 0'u32; b < 256; b += 1
-    {
-        if set.contains(cast(u8) b) do
-            total += cast(u32) ByteFrequency[b]
-    }
-
-    return total
-}
+#[Swag.Inline]
+func setScore(set: const *ByteSet)->u32 => set.weight
 
 // Marks the bytes of a vector that belong to a set, one bit per byte.
 #[Swag.Inline]

@@ -10,28 +10,22 @@ stays in [filescope.md](filescope.md); cross-viewer contracts stay in
 The current foundation already has a 256 KiB resident window aligned to 64 KiB, 64-bit offsets,
 proportional whole-file scrolling, mouse and keyboard selection, a named 1 MiB clipboard bound,
 absolute and caret-relative hexadecimal jumps, fitted or fixed row widths, and 8/16/32/64-bit
-signed, unsigned, hexadecimal, and floating-point readings in either byte order. The entries below
+signed, unsigned, hexadecimal, and floating-point readings in either byte order. Streamed search
+accepts hexadecimal byte/nibble wildcards, exact UTF-8, and the active scalar, marks all visible
+occurrences, and the information band inspects common scalar readings at the exact caret. The entries below
 are what separate that capable grid from a professional binary-analysis viewer.
 
 ## Tier A — Core forensic reading
 
-### T-395 — The hexadecimal view cannot search for a byte pattern
+### B-020 — The live data inspector lacks domain readings and copy
 
-- Evidence: host search treats the query as literal file bytes. It cannot express `4D 5A`, a
-  wildcard byte or nibble, or a scalar encoded in the selected byte order.
-- Next: give the hexadecimal viewer its own query parser and streamed matcher, beginning with
-  hexadecimal byte pairs, `??`/`?A`/`A?` wildcards, and the active scalar type and endian.
-- Complete when: byte patterns and active scalars search across chunk boundaries through the host
-  search surface, invalid patterns explain the error, and reveal uses the match's byte length.
-- Related: B-024, B-025
-
-### B-020 — The caret has no live data inspector
-
-- Evidence: width, representation, and endian replace the main hexadecimal lane with one reading
-  at a time. `HexGridView.sigCaretChanged` is emitted, but no panel subscribes to it or spells the
-  caret bytes in the other useful forms.
-- Next: connect `sigCaretChanged` to a compact inspector that reads from the exact caret offset
-  without changing grid grouping.
+- Evidence: the information band now follows `HexGridView.sigCaretChanged` and simultaneously
+  spells the exact caret bytes as signed, unsigned, hexadecimal, `f32`/`f64`, and printable
+  readings at 8/16/32/64-bit widths in the active byte order. It does not yet expose binary,
+  octal, `f16`, boolean, GUID, timestamp, IP, color, BCD, or varint readings, and values cannot be
+  copied independently.
+- Next: extend the existing compact inspector with the missing domain readings and one copy action
+  per value without changing grid grouping.
 - Complete when: the inspector simultaneously reports selection start/end/length and the caret as
   signed and unsigned 8/16/32/64-bit integers, hexadecimal, binary, octal, `f16`/`f32`/`f64`,
   boolean, character, GUID, common timestamps, IP addresses, colors, BCD, and varints where enough
@@ -82,7 +76,6 @@ are what separate that capable grid from a professional binary-analysis viewer.
 - Complete when: ASCII, Windows-1252, OEM, UTF-8, UTF-16/32 LE/BE, and EBCDIC can be selected;
   invalid sequences and control characters are visible; selection, copy, and search use the same
   encoding; and multi-byte characters highlight all contributing bytes.
-- Related: T-395
 
 ### B-025 — Whole-file search cannot yield early, cancel visibly, or bound its matches
 
@@ -95,7 +88,6 @@ are what separate that capable grid from a professional binary-analysis viewer.
 - Complete when: the first match is navigable while scanning continues, progress names processed
   bytes, cancellation is immediate, result storage stays bounded on a repetitive multi-gigabyte
   file, and forward/backward/all plus file/selection/range scopes behave consistently.
-- Related: T-395
 
 ### B-026 — Scrolling can perform synchronous file I/O during paint
 
@@ -122,13 +114,13 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ## Tier B — Navigation, presentation, and interchange
 
-### B-028 — Address and selection state is not visible or expressive enough
+### B-028 — Navigation has no address expressions or file percentage
 
-- Evidence: the grid paints an offset gutter but no status line reports caret, selection bounds,
-  length, percentage, or active value. Go To accepts hexadecimal digits and a signed caret-relative
-  delta only.
-- Next: publish caret and selection state through the viewer command/status surface and replace the
-  offset parser with a side-effect-free address-expression evaluator.
+- Evidence: the information band now reports the caret in hexadecimal and decimal, selection
+  bounds and length, and the active value. It does not report whole-file percentage, and Go To
+  accepts hexadecimal digits and a signed caret-relative delta only.
+- Next: add whole-file percentage to the existing inspector and replace the offset parser with a
+  side-effect-free address-expression evaluator.
 - Complete when: caret, selection start/end/length, active value, and file percentage are visible in
   hexadecimal and decimal; Go To accepts named `caret` and `filesize`, arithmetic, alignment,
   percentage, decimal/hex input, configurable base address, and a named bookmark origin; invalid
@@ -159,7 +151,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 ### B-033 — A proportional scrollbar gives no whole-file overview
 
 - Evidence: the fixed-span scrollbar keeps every row reachable but shows no distribution of search
-  matches, selections, bookmarks, differences, structures, or high-entropy regions.
+  matches, selections, bookmarks, differences, structures, or high-entropy regions. Search now
+  marks every occurrence that lies in the visible grid, but there is no whole-file minimap.
 - Next: define a downsampled, asynchronously produced overview model whose bins reference byte
   ranges rather than pixels.
 - Complete when: a compact minimap marks current viewport, selection, search results, bookmarks,
@@ -205,11 +198,12 @@ are what separate that capable grid from a professional binary-analysis viewer.
 ### B-042 — Important hexadecimal commands are discoverable only by context menu
 
 - Evidence: the visible command group exposes width, representation, and endian; Go To, row width,
-  copy-as-text, copy-as-dump, and select-all live primarily in the context menu, and only byte copy,
-  select-all, and Go To have keyboard shortcuts.
+  copy-as-text, copy-as-dump, and select-all live primarily in the context menu. Pattern search is
+  discoverable through the shared search field, and only byte copy, select-all, and Go To have
+  keyboard shortcuts.
 - Next: rank the frequent commands, give each one action identity and shortcut metadata, and expose
   only the dominant compact actions in the viewer band.
-- Complete when: Go To, search mode, bookmark, compare, copy forms, row layout, endian, inspector,
+- Complete when: Go To, bookmark, compare, copy forms, row layout, endian, inspector,
   and analysis panels are reachable without a right click; shortcuts are documented, conflict-free,
   and remappable through the application convention; and the document remains the majority of the
   minimum-size surface.
@@ -281,9 +275,10 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 - Evidence: current tests cover ordinary and synthetic multi-gigabyte streaming geometry, 16-digit
   offsets, scalar modes, navigation, the named 1 MiB copy bound, search reveal, late short reads,
-  focus-safe mouse capture, non-integer DPI, live English/French wording, layout, and one dark-theme
-  golden. Slow-I/O behavior, external file-version changes, and accessibility have no deterministic
-  seam yet.
+  byte/nibble/scalar patterns across search-chunk boundaries, invalid search input, visible search
+  marks, the compact inspector, focus-safe mouse capture, non-integer DPI, live English/French
+  wording, layout, and one dark-theme golden. Slow-I/O behavior, external file-version changes,
+  and accessibility have no deterministic seam yet.
 - Next: add the injectable range-reader seam with B-026/B-027, then test delayed completion and
   version changes without timing or filesystem races, and add accessibility coverage with B-035.
 - Complete when: those remaining guarantees have deterministic focused tests, generated fixtures

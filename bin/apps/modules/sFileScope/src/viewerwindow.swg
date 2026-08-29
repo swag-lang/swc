@@ -82,6 +82,10 @@ struct ViewerInstance
     searchBounds:        #null ViewerSearchBounds
     clearSearch:         #null ViewerClearSearch
     collectMatches:      #null ViewerCollectMatches
+    describeSearch:      #null ViewerDescribeSearch
+    prepareSearch:       #null ViewerPrepareSearch
+    collectFileMatches:  #null ViewerCollectFileMatches
+    useSearchMatches:    #null ViewerUseSearchMatches
     isLoading:           #null ViewerIsLoading
     needsLoadingOverlay: #null ViewerNeedsLoadingOverlay
     retire:              #null ViewerRetire
@@ -512,9 +516,12 @@ struct ViewerWindow
     smokeTimer:            #null *Timer
     searchStream:          File.FileStream
     searchQuery:           String
+    searchToolTip:         String
+    searchError:           String
     searchCarry:           String
     searchCarryBase:       u64
     searchProcessed:       u64
+    searchSpan:            u64
     searchMatches:         Array'ViewerSearchMatch
     searchIndex:           u64  = Swag.U64.Max
     searchMatch:           u64  = Swag.U64.Max
@@ -1070,6 +1077,7 @@ impl ViewerWindow
         {
             .setIcon(result.theme().icon(.Search, 18))
             .setPlaceholder(appStrings().ui_Search)
+            .setValidator(func|window = result|(edit)->EditBoxCheckResult { return window.validateSearchEdit(edit) })
             .sigTextChanged += func|window = result|(edit)
             {
                 discard edit
@@ -1797,6 +1805,10 @@ impl ViewerWindow
             instance.searchBounds        = null
             instance.clearSearch         = null
             instance.collectMatches      = null
+            instance.describeSearch      = null
+            instance.prepareSearch       = null
+            instance.collectFileMatches  = null
+            instance.useSearchMatches    = null
             instance.isLoading           = null
             instance.needsLoadingOverlay = null
             instance.retire              = null
@@ -1854,6 +1866,10 @@ impl ViewerWindow
         instance.searchBounds        = null
         instance.clearSearch         = null
         instance.collectMatches      = null
+        instance.describeSearch      = null
+        instance.prepareSearch       = null
+        instance.collectFileMatches  = null
+        instance.useSearchMatches    = null
         instance.isLoading           = null
         instance.needsLoadingOverlay = null
         instance.retire              = null
@@ -1992,6 +2008,10 @@ impl ViewerWindow
                 next.searchBounds        = null
                 next.clearSearch         = null
                 next.collectMatches      = null
+                next.describeSearch      = null
+                next.prepareSearch       = null
+                next.collectFileMatches  = null
+                next.useSearchMatches    = null
                 next.isLoading           = null
                 next.needsLoadingOverlay = null
                 next.retire              = null
@@ -2065,6 +2085,10 @@ impl ViewerWindow
         instance.searchBounds        = next.searchBounds
         instance.clearSearch         = next.clearSearch
         instance.collectMatches      = next.collectMatches
+        instance.describeSearch      = next.describeSearch
+        instance.prepareSearch       = next.prepareSearch
+        instance.collectFileMatches  = next.collectFileMatches
+        instance.useSearchMatches    = next.useSearchMatches
         instance.isLoading           = next.isLoading
         instance.needsLoadingOverlay = next.needsLoadingOverlay
         instance.retire              = next.retire
@@ -2094,6 +2118,40 @@ impl ViewerWindow
 
     private mtd searchOptions()->ViewerSearchOptions => {.searchMatchCaseOption, .searchWholeWordOption}
 
+    private mtd validateSearchEdit(edit: *EditBox)->EditBoxCheckResult
+    {
+        if !@countof(edit.text()) or .activeChoiceIndex >= .instances.count do
+            return .Valid
+        let instance = &.instances[.activeChoiceIndex]
+        if !instance.view or !instance.prepareSearch do
+            return .Valid
+
+        var plan: ViewerSearchPlan
+        return instance.prepareSearch!(instance.view!, edit.text(), &plan)
+    }
+
+    private mtd refreshSearchPresentation()
+    {
+        var presentation: ViewerSearchPresentation
+        presentation.placeholder = appStrings().ui_Search
+        if .activeChoiceIndex < .instances.count
+        {
+            let instance = &.instances[.activeChoiceIndex]
+            if instance.view and instance.describeSearch do
+                instance.describeSearch!(instance.view!, &presentation)
+        }
+
+        .searchToolTip = #move presentation.toolTip
+        .searchBox.setPlaceholder(presentation.placeholder.toString())
+        .searchBox.toolTip = .searchToolTip
+        .searchMatchCase.show(presentation.useTextOptions)
+        .searchWholeWord.show(presentation.useTextOptions)
+        .searchBox.resize(presentation.useTextOptions ? ViewerSearchFieldWidth : ViewerSearchFieldWidth + ViewerSearchButtonSize * 2, 36)
+        .searchBox.setValidator(.searchBox.validator)
+        .searchGroup.computeLayout()
+        .commandBar.centerContent()
+    }
+
     mtd restartSearch(selectLast = false)
     {
         .stopSearch()
@@ -2103,6 +2161,8 @@ impl ViewerWindow
         .searchComplete   = false
         .searchSelectLast = selectLast
         .searchQuery      = .searchBox.text()
+        .searchSpan       = Math.max(.searchQuery.length, 1)
+        .searchError.clear()
         .refreshSearchReadout()
 
         if !.searchBox.isEnabled() or .searchQuery.isEmpty() or .currentFile.isEmpty() or .activeChoiceIndex >= .instances.count do
@@ -2115,6 +2175,25 @@ impl ViewerWindow
             .finishSearch()
             return
         }
+
+        if instance.prepareSearch and instance.view
+        {
+            var plan: ViewerSearchPlan
+            let state = instance.prepareSearch!(instance.view!, .searchQuery.toString(), &plan)
+            if state != .Valid
+            {
+                .searchComplete = true
+                if state == .InvalidVisible do
+                    .searchError = #move plan.error
+                .refreshSearchReadout()
+                return
+            }
+
+            .searchSpan = Math.max(plan.span, 1)
+        }
+
+        if instance.useSearchMatches and instance.view do
+            instance.useSearchMatches!(instance.view!, &.searchMatches)
 
         .beginSearch()
     }
@@ -2146,6 +2225,11 @@ impl ViewerWindow
             .searchCountLabel.setText("")
             .searchCountLabel.toolTip = ""
         }
+        elif !.searchError.isEmpty()
+        {
+            .searchCountLabel.setText("!")
+            .searchCountLabel.toolTip = .searchError
+        }
         elif !.searchComplete
         {
             .searchCountLabel.setText("â€¦")
@@ -2165,6 +2249,7 @@ impl ViewerWindow
         let canNavigate = .searchComplete and !.searchMatches.isEmpty()
         .searchPrevious.enable(canNavigate)
         .searchNext.enable(canNavigate)
+        .searchBox.toolTip = .searchError.isEmpty() ? .searchToolTip.toString() : .searchError.toString()
     }
 
     private mtd revealCurrentSearchMatch()
@@ -2233,7 +2318,7 @@ impl ViewerWindow
 
     private mtd finishSearch()
     {
-        .stopSearch()
+        .stopSearch(clearPresentation: false)
         .searchComplete = true
         if !.searchMatches.isEmpty()
         {
@@ -2356,6 +2441,7 @@ impl ViewerWindow
         let focused        = .focusedWindow()
         let searchHadFocus = focused and (focused! == .searchGroup or .searchGroup.isOwnerOf(focused!))
 
+        .refreshSearchPresentation()
         .searchBox.enable(available)
         .searchMatchCase.enable(available)
         .searchWholeWord.enable(available)
@@ -2369,7 +2455,7 @@ impl ViewerWindow
             .viewerFocusTarget()?.setFocus()
     }
 
-    mtd stopSearch()
+    mtd stopSearch(clearPresentation = true)
     {
         if .searchTimer
         {
@@ -2379,9 +2465,11 @@ impl ViewerWindow
 
         .searchStream.close()
         .searchCarry.clear()
-        if .activeChoiceIndex < .instances.count
+        if clearPresentation and .activeChoiceIndex < .instances.count
         {
             let instance = &.instances[.activeChoiceIndex]
+            if instance.view and instance.useSearchMatches do
+                instance.useSearchMatches!(instance.view!, null)
             if instance.view and instance.clearSearch do
                 instance.clearSearch!(instance.view!)
         }
@@ -2427,11 +2515,15 @@ impl ViewerWindow
         bytes.resize(count)
         .searchCarry += @mkstring(bytes.buffer!, bytes.count)
         let eof       = count == 0
-        let deferSize = .searchQuery.length + ViewerSearchCarryMargin
+        let deferSize = .searchSpan + ViewerSearchCarryMargin
         let stableEnd = eof ? .searchCarry.length : (.searchCarry.length > deferSize ? .searchCarry.length - deferSize : 0)
 
         var candidates: Array'ViewerSearchMatch
-        collectViewerTextMatches(.searchCarry.toString(), .searchQuery.toString(), .searchOptions(), 0, 0, .searchCarryBase, &candidates)
+        let instance = &.instances[.activeChoiceIndex]
+        if instance.collectFileMatches and instance.view do
+            instance.collectFileMatches!(instance.view!, .searchCarry.toString(), .searchCarryBase, &candidates)
+        else do
+            collectViewerTextMatches(.searchCarry.toString(), .searchQuery.toString(), .searchOptions(), 0, 0, .searchCarryBase, &candidates)
         for match in candidates where match.offset >= .searchProcessed and (eof or match.offset < .searchCarryBase + stableEnd) do
             .searchMatches.add(match)
 
@@ -2611,7 +2703,7 @@ impl ViewerWindow
         .searchNext.toolTip          = texts.ui_SearchNext
         .searchMatchCase.toolTip     = texts.ui_SearchMatchCase
         .searchWholeWord.toolTip     = texts.ui_SearchWholeWord
-        .searchBox.setPlaceholder(texts.ui_Search)
+        .refreshSearchPresentation()
         .refreshSearchReadout()
         .recentLabel.setText(texts.ui_Recent)
         for &instance in .instances where instance.view and !instance.failureReason.isEmpty() do

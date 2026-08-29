@@ -71,6 +71,33 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     return view
 }
 
+func completeHexViewerSearch(host: *Testing.HeadlessHost, window: *ViewerWindow)
+{
+    var steps = 0'u32
+    while window.searchTimer and steps < 128
+    {
+        host.fireTimer(window.searchTimer)
+        steps += 1
+    }
+
+    @assert(window.searchTimer == null)
+}
+
+func completeHexViewerOpen(host: *Testing.HeadlessHost, window: *ViewerWindow)
+{
+    completeViewerWindowClassification(host, window)
+    var steps = 0'u32
+    while window.activeChoiceIndex < window.instances.count and steps < 4_096
+    {
+        let instance = &window.instances[window.activeChoiceIndex]
+        if !instance.view or !instance.isLoading or !instance.isLoading!(instance.view!) do
+            break
+        Threading.Thread.sleep(1'ms)
+        host.fireTimers()
+        steps += 1
+    }
+}
+
 // A file-open error crosses the viewer boundary instead of appearing as an empty byte grid.
 #test
 {
@@ -78,7 +105,7 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     host.setup(640, 420)
     defer host.shutdown()
 
-    let request = ViewerRequest{&host.root, &host.root, "this-file-does-not-exist.bin"}
+    let request = ViewerRequest{contentParent: &host.root, commandParent: &host.root, infoParent: &host.root, fileName: "this-file-does-not-exist.bin"}
     var result: ViewerResult
     createHexViewer(&request, &result)
     @assert(result.view != null and result.commands != null)
@@ -152,6 +179,112 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     @assert(parseHexOffset("zz", 0, 1000) == Swag.U64.Max)
     @assert(parseHexOffset("", 0, 1000) == Swag.U64.Max)
     @assert(parseHexOffset("10", 0, 0) == Swag.U64.Max)
+}
+
+// Binary queries preserve their exact byte span: pairs can carry nibble wildcards, text is UTF-8,
+// and an active scalar follows both the selected representation and byte order.
+#test
+{
+    let wildcard = parseHexSearch("hex: 4D 5? ?? A?", .Bytes, false)
+    @assert(wildcard.state == .Valid and wildcard.pattern.length() == 4)
+    @assert(wildcard.pattern.values[0] == 0x4D and wildcard.pattern.masks[0] == 0xFF)
+    @assert(wildcard.pattern.values[1] == 0x50 and wildcard.pattern.masks[1] == 0xF0)
+    @assert(wildcard.pattern.values[2] == 0 and wildcard.pattern.masks[2] == 0)
+    @assert(wildcard.pattern.values[3] == 0xA0 and wildcard.pattern.masks[3] == 0xF0)
+
+    let text = parseHexSearch("text: café", .Bytes, false)
+    @assert(text.state == .Valid and text.pattern.length() == @countof("café"))
+    @assert(text.pattern.values[text.pattern.length() - 2] == 0xC3 and text.pattern.values[text.pattern.length() - 1] == 0xA9)
+
+    let little = parseHexSearch("value: 305419896", .Unsigned32, false)
+    let big    = parseHexSearch("value: 305419896", .Unsigned32, true)
+    @assert(little.state == .Valid and little.pattern.values[0] == 0x78 and little.pattern.values[3] == 0x12)
+    @assert(big.state == .Valid and big.pattern.values[0] == 0x12 and big.pattern.values[3] == 0x78)
+
+    let signed = parseHexSearch("value: -2", .Signed16, false)
+    @assert(signed.state == .Valid and signed.pattern.values[0] == 0xFE and signed.pattern.values[1] == 0xFF)
+    let real = parseHexSearch("value: 1", .Float32, false)
+    @assert(real.state == .Valid and real.pattern.values[0] == 0 and real.pattern.values[2] == 0x80 and real.pattern.values[3] == 0x3F)
+
+    @assert(parseHexSearch("4", .Bytes, false).state == .Incomplete)
+    @assert(parseHexSearch("4G", .Bytes, false).error == .Pattern)
+    @assert(parseHexSearch("value: 70000", .Unsigned16, false).error == .Value)
+}
+
+// The host keeps a viewer-specific pattern intact across scanner chunks, publishes every exact
+// byte range, and gives invalid input an explanation without opening a file scan.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("sfilescope-hex-search-", ".bin")
+    defer discard catch File.delete(fileName)
+
+    var payload: Array'u8
+    payload.resize(ViewerSearchChunkSize + 256)
+    let first  = ViewerSearchChunkSize - 2
+    let second = ViewerSearchChunkSize + 80
+    for offset in [first, second]
+    {
+        payload[offset + 0] = 0xDE
+        payload[offset + 1] = 0xAD
+        payload[offset + 2] = 0xBE
+        payload[offset + 3] = 0xEF
+    }
+
+    expect File.writeAllBytes(fileName, payload.toSlice())
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
+    let index  = createViewerIndex()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.openFile(fileName)
+    completeHexViewerOpen(&host, window)
+
+    var hexIndex = Swag.U32.Max
+    for choice, index in window.choices where choice.key == "hex" do
+        hexIndex = cast(u32) index
+    @assert(hexIndex != Swag.U32.Max)
+    window.selectViewer(hexIndex)
+    completeHexViewerOpen(&host, window)
+    let view = cast(*HexViewer) window.currentView!
+
+    window.searchBox.setText("DE AD ?E EF")
+    completeHexViewerSearch(&host, window)
+    @assert(window.searchMatches.count == 2 and window.searchMatches[0].offset == first and window.searchMatches[1].offset == second)
+    @assert(window.searchMatches[0].length == 4 and view.grid.searchHits and view.grid.searchHits!.count == 2)
+    @assert(view.grid.matchStart == first and view.grid.matchLength == 4)
+    @assert(window.searchBox.name.raw == hexStrings().ui_SearchPlaceholder)
+    @assert(!window.searchMatchCase.isLocallyVisible() and !window.searchWholeWord.isLocallyVisible())
+
+    view.widthCombo.setSelectedIndex(2)
+    view.formatCombo.setSelectedIndex(1)
+    @assert(view.grid.grouping == .Unsigned32)
+    window.searchBox.setText("value: 4022250974")
+    completeHexViewerSearch(&host, window)
+    @assert(window.searchMatches.count == 2 and window.searchMatches[0].offset == first)
+
+    // The temporary path has a random suffix; keep the visual contract focused on the viewer.
+    window.infoNameLabel.setText("sfilescope-hex-search.bin")
+    window.infoNameLabel.toolTip = "sfilescope-hex-search.bin"
+    window.layoutFileInfo()
+    window.resize(960, 680)
+    window.applyLayout()
+    host.moveMouse({-1, -1})
+    host.settleAnimations(window, 4)
+    var image = host.render(window)
+    Pixel.Testing.assertImageGolden(&image, "viewer.hex.search-inspector")
+
+    window.searchBox.setText("4G")
+    @assert(window.searchComplete and window.searchMatches.isEmpty() and window.searchCountLabel.text() == "!")
+    @assert(window.searchCountLabel.toolTip == hexStrings().ui_SearchPatternError and !window.searchBox.isValid())
+
+    view.grid.moveCaret(first, false)
+    @assert(view.inspectorLabel != null and Utf8.contains(view.inspectorLabel!.text(), "@0003FFFE"))
+    @assert(Utf8.contains(view.inspectorLabel!.toolTip.toSlice(), "u32 4022250974"))
 }
 
 // The document never holds more than one window, wherever the reader is standing.
@@ -643,6 +776,11 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     view.grid.setBytesPerRow(16, false)
     view.grid.moveCaret(0x80, false)
     view.grid.moveCaret(0x89, true)
+    var searchHits: Array'ViewerSearchMatch
+    searchHits.add({offset: 0x15, length: 4})
+    searchHits.add({offset: 0x78, length: 6})
+    view.grid.setSearchMatches(&searchHits)
+    discard view.grid.revealRange(0x78, 6)
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
 

@@ -102,6 +102,35 @@ alias ViewerClearSearch = func(*Wnd)
 // file bytes and use `revealMatch` to materialize the selected occurrence.
 alias ViewerCollectMatches = func(*Wnd, string, ViewerSearchOptions, *Array'ViewerSearchMatch)
 
+// Viewer-specific wording and option visibility for the shared search field.
+struct ViewerSearchPresentation
+{
+    placeholder:    String
+    toolTip:        String
+    useTextOptions: bool = true     // Whether case and whole-word options apply to the query.
+}
+
+// Describes the active viewer's search syntax in the application's language.
+alias ViewerDescribeSearch = func(*Wnd, *ViewerSearchPresentation)
+
+// Prepared streamed-file search. `span` is the greatest number of source bytes one match covers,
+// and `error` explains an invalid query beside the shared search field.
+struct ViewerSearchPlan
+{
+    span:  u64
+    error: String
+}
+
+// Parses a viewer-specific query before the host opens and scans the file.
+alias ViewerPrepareSearch = func(*Wnd, string, *ViewerSearchPlan)->EditBoxCheckResult
+
+// Collects candidates inside one host-owned streamed source window. The host removes overlap
+// duplicates and decides which candidates are stable before publishing them.
+alias ViewerCollectFileMatches = func(*Wnd, string, u64, *Array'ViewerSearchMatch)
+
+// Lets a viewer borrow the host-owned result index while the current query remains active.
+alias ViewerUseSearchMatches = func(*Wnd, #null *Array'ViewerSearchMatch)
+
 // Reports whether a view is still doing work whose result has not reached the screen.
 alias ViewerIsLoading = func(*Wnd)->bool
 
@@ -193,6 +222,10 @@ struct ViewerResult
     searchBounds:        #null ViewerSearchBounds            // Reports rendered match geometry, or null when unavailable.
     clearSearch:         #null ViewerClearSearch             // Removes the viewer-owned selection or marker.
     collectMatches:      #null ViewerCollectMatches          // Viewer-owned text indexing, or null to scan the file.
+    describeSearch:      #null ViewerDescribeSearch          // Viewer-specific query wording, or null for ordinary text.
+    prepareSearch:       #null ViewerPrepareSearch           // Viewer-specific streamed-file query parser, or null.
+    collectFileMatches:  #null ViewerCollectFileMatches      // Viewer-specific streamed matcher, or null for literal text.
+    useSearchMatches:    #null ViewerUseSearchMatches        // Borrows the host result index for viewer-owned overview marks.
     isLoading:           #null ViewerIsLoading               // Reports unfinished visible work, or null for an immediate view.
     needsLoadingOverlay: #null ViewerNeedsLoadingOverlay     // Reports that loading currently has no useful presentation.
     retire:              #null ViewerRetire                  // Cooperatively releases resources before deferred window deletion.

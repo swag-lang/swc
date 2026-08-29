@@ -292,6 +292,10 @@ struct HexGridView
     matchStart:  u64
     matchLength: u64
 
+    // Accepted results in file order. Painting binary-searches this list for each visible row, so
+    // marking a large result set never makes a scroll proportional to matches outside the screen.
+    searchHits: #null *Array'ViewerSearchMatch
+
     bytesPerRow  = 16'u64
     offsetDigits = 8'u64
     autoFitRow   = true
@@ -682,8 +686,8 @@ impl HexGridView
             return false
         .matchStart  = offset
         .matchLength = Math.min(length, .doc.fileSize - offset)
-        .anchor      = offset
-        .caret       = .matchLength ? offset + .matchLength - 1 : offset
+        .caret       = offset
+        .anchor      = .matchLength ? offset + .matchLength - 1 : offset
         .ensureCaretVisible(true)
         .sigCaretChanged.call(me)
         .invalidate()
@@ -694,8 +698,41 @@ impl HexGridView
     {
         .matchStart  = 0
         .matchLength = 0
+        .searchHits  = null
         .anchor      = .caret
         .invalidate()
+    }
+
+    mtd setSearchMatches(matches: #null *Array'ViewerSearchMatch)
+    {
+        .searchHits = matches
+        .invalidate()
+    }
+
+    // Returns the first match whose end reaches `offset`. Search results arrive in file order.
+    mtd firstSearchHitAt(offset: u64)->u64
+    {
+        if !.searchHits do
+            return 0
+        let hits  = .searchHits!
+        var first = 0'u64
+        var count = hits.count
+        while count
+        {
+            let step  = count / 2
+            let index = first + step
+            let match = &hits[index]
+            let last  = match.offset + Math.min(match.length - 1, Swag.U64.Max - match.offset)
+            if last < offset
+            {
+                first = index + 1
+                count -= step + 1
+            }
+            else do
+                count = step
+        }
+
+        return first
     }
 
     mtd setBytesPerRow(count: u64, auto: bool)
@@ -1229,14 +1266,15 @@ impl IWnd for HexGridView
         // Ink of a byte that carries a value, and of one that does not. Zero bytes keep their
         // place and lose their weight, which is what makes padding, alignment and unwritten
         // regions readable as shapes instead of as a wall of digits.
-        let strongInk = colors.label_Text
-        let faintInk  = Color.lerp(colors.view_Bk, colors.label_Text, 0.34)
-        let headerInk = colors.label_TextFaint
-        let focused   = .hasFocus()
-        let selectBk  = focused ? colors.richEdit_SelBk : colors.richEdit_SelBkNoFocus
-        let matchBk   = Color.lerp(colors.view_Bk, colors.hilight, 0.28)
-        let caretBk   = colors.hilight
-        let caretInk  = colors.hilightLightContrast
+        let strongInk   = colors.label_Text
+        let faintInk    = Color.lerp(colors.view_Bk, colors.label_Text, 0.34)
+        let headerInk   = colors.label_TextFaint
+        let focused     = .hasFocus()
+        let selectBk    = focused ? colors.richEdit_SelBk : colors.richEdit_SelBkNoFocus
+        let searchHitBk = Color.lerp(colors.view_Bk, colors.searchMatch_Border, 0.12)
+        let matchBk     = colors.searchMatch_Bk
+        let caretBk     = colors.hilight
+        let caretInk    = colors.hilightLightContrast
 
         let visible = .visibleRows()
         let first   = Math.min(.topRow * .bytesPerRow, .lastOffset())
@@ -1262,6 +1300,16 @@ impl IWnd for HexGridView
                 break
             let rowLast = Math.min(rowOffset + .bytesPerRow - 1, .lastOffset())
             let y       = .rowTop(.topRow + row)
+
+            let hits     = .searchHits
+            var hitIndex = .firstSearchHitAt(rowOffset)
+            while hits and hitIndex < hits!.count and hits![hitIndex].offset <= rowLast
+            {
+                let hit     = &hits![hitIndex]
+                let hitLast = hit.offset + Math.min(hit.length - 1, Swag.U64.Max - hit.offset)
+                .fillRange(painter, Math.max(hit.offset, rowOffset), Math.min(hitLast, rowLast), originX, y, searchHitBk)
+                hitIndex += 1
+            }
 
             if .matchLength and .matchStart <= rowLast and matchLast >= rowOffset do
                 .fillRange(painter, Math.max(.matchStart, rowOffset), Math.min(matchLast, rowLast), originX, y, matchBk)

@@ -4,6 +4,7 @@ using Core, Pixel, Gui
 
 private const HexCommandWidth = 480.0
 private const HexComboWidth   = 150.0
+private const HexInfoWidth    = 420.0
 
 private func loadHexDocument(fileName: string)->HexDocument fail
 {
@@ -33,6 +34,9 @@ internal struct HexViewer
         grid:        *HexGridView
     }
 
+    info:                 #null *ViewerCommandBar
+    inspectorLabel:       #null *Label
+    searchPattern:        HexSearchPattern
     details:              String
     load:                 ViewerBackgroundLoad'HexDocument
     loadTimer:            #null *Timer
@@ -75,6 +79,7 @@ private impl IWnd for HexViewer
 
         .applyLayout()
         .grid.refreshLayout()
+        .refreshInspector()
         .setInitialFocus(.grid)
         if .reportLoadingChanged do
             .reportLoadingChanged!(me)
@@ -156,6 +161,132 @@ internal impl HexViewer
             .reportDetails!(me, .details.toString())
         .commands.applyLayout()
         .grid.invalidate()
+        .refreshInspector()
+    }
+
+    private mtd offsetText(offset: u64)->String
+    {
+        var bytes: Array'u8
+        appendHexDigits(&bytes, offset, .grid.offsetDigits)
+        return String.from(@mkstring(bytes.buffer!, bytes.count))
+    }
+
+    private mtd inspectorScalar(bytes: const [..] u8, size: u64)->u64
+    {
+        var result: retval
+        for index in size
+        {
+            let position = .grid.bigEndian ? index : size - 1 - index
+            result = (result << 8) | bytes[position]
+        }
+
+        return result
+    }
+
+    private mtd activeValueTag()->string
+    {
+        switch .grid.grouping
+        {
+        case .Bytes:      return "x8"
+        case .Hex16:      return "x16"
+        case .Hex32:      return "x32"
+        case .Hex64:      return "x64"
+        case .Unsigned8:  return "u8"
+        case .Unsigned16: return "u16"
+        case .Unsigned32: return "u32"
+        case .Unsigned64: return "u64"
+        case .Signed8:    return "s8"
+        case .Signed16:   return "s16"
+        case .Signed32:   return "s32"
+        case .Signed64:   return "s64"
+        case .Float32:    return "f32"
+        case .Float64:    return "f64"
+        }
+    }
+
+    // Keeps the most useful exact-caret readings in the information band. The compact line is
+    // glanceable; its tooltip spells the same bytes at every common scalar width.
+    mtd refreshInspector()
+    {
+        if !.inspectorLabel do
+            return
+        let label = .inspectorLabel!
+        if !.grid.doc.fileSize
+        {
+            label.setText(hexStrings().ui_InspectorEmpty)
+            label.toolTip = hexStrings().ui_InspectorEmpty
+            return
+        }
+
+        let available = Math.min(8'u64, .grid.doc.fileSize - .grid.caret)
+        let bytes     = .grid.doc.read(.grid.caret, available)
+        if bytes.isEmpty()
+        {
+            label.setText(hexStrings().ui_InspectorEmpty)
+            label.toolTip = hexStrings().ui_InspectorEmpty
+            return
+        }
+
+        let offset = .offsetText(.grid.caret)
+        let size   = .grid.valueSize()
+        let active = size <= bytes.count ? formatHexScalar(.grid.grouping, .inspectorScalar(bytes.toSlice(), size)) : String.from("--")
+        label.setText(Format.toString("@% · % B · % %", offset, .grid.selectionLength(), .activeValueTag(), active))
+
+        var details = Format.toString("@% (%)\n[%..%] % B\n%", offset, .grid.caret, .offsetText(.grid.selectionStart()), .offsetText(.grid.selectionEnd()), .grid.selectionLength(), .grid.bigEndian ? "BE" : "LE")
+        let raw8    = .inspectorScalar(bytes.toSlice(), 1)
+        details += Format.toString("\nu8 % · s8 % · x8 0x%{X02}", raw8, hexSignedScalar(raw8, 1), raw8)
+        if isHexPrintable(cast(u8) raw8) do
+            details += Format.toString(" · ASCII '%'", cast(u8) raw8)
+        if bytes.count >= 2
+        {
+            let raw = .inspectorScalar(bytes.toSlice(), 2)
+            details += Format.toString("\nu16 % · s16 % · x16 0x%{X04}", raw, hexSignedScalar(raw, 2), raw)
+        }
+
+        if bytes.count >= 4
+        {
+            let raw = .inspectorScalar(bytes.toSlice(), 4)
+            details += Format.toString("\nu32 % · s32 % · x32 0x%{X08} · f32 %{g9}", raw, hexSignedScalar(raw, 4), raw, cast #bit (f32) (cast(u32) raw))
+        }
+
+        if bytes.count >= 8
+        {
+            let raw = .inspectorScalar(bytes.toSlice(), 8)
+            details += Format.toString("\nu64 % · s64 % · x64 0x%{X016} · f64 %{g15}", raw, hexSignedScalar(raw, 8), raw, cast #bit (f64) raw)
+        }
+
+        label.toolTip = #move details
+    }
+
+    mtd describeSearch(result: *ViewerSearchPresentation)
+    {
+        result.placeholder    = hexStrings().ui_SearchPlaceholder
+        result.toolTip        = hexStrings().ui_SearchHelp
+        result.useTextOptions = false
+    }
+
+    mtd prepareSearch(query: string, result: *ViewerSearchPlan)->EditBoxCheckResult
+    {
+        var parsed = parseHexSearch(query, .grid.grouping, .grid.bigEndian)
+        switch parsed.state
+        {
+        case .Incomplete:
+            return .Incomplete
+
+        case .Invalid:
+            result.error = parsed.error == .Value ? hexStrings().ui_SearchValueError : hexStrings().ui_SearchPatternError
+            return .InvalidVisible
+
+        case .Valid:
+            .searchPattern = #move parsed.pattern
+            result.span    = .searchPattern.length()
+            return .Valid
+        }
+    }
+
+    mtd collectSearchMatches(source: string, baseOffset: u64, result: *Array'ViewerSearchMatch)
+    {
+        .searchPattern.collectMatches(source, baseOffset, result)
     }
 
     // Reveals the byte range the host's search matched.
@@ -170,7 +301,7 @@ internal impl HexViewer
 
 internal impl HexViewer
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null, reportDetails: #null ViewerReportDetails = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*HexViewer
+    func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null, reportDetails: #null ViewerReportDetails = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null, infoParent: #null *Wnd = null)->*HexViewer
     {
         let result = Wnd.create'HexViewer(contentParent, "sFileScope.hex")
         result.backgroundStyle      = .View
@@ -180,6 +311,17 @@ internal impl HexViewer
 
         result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, HexCommandWidth, 36})
         result.commands.backgroundStyle = .Transparent
+
+        if infoParent
+        {
+            result.info = ViewerCommandBar.create(infoParent!, HexInfoWidth)
+            with result.inspectorLabel = Label.create(result.info!, "", {0, 0, HexInfoWidth, 32}, null, .SecondaryText | .Ellipsis)
+            {
+                .dockStyle = .Center
+                .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
+                .setTextAlignment(.Right, .OpticalCenter)
+            }
+        }
 
         with result.widthCombo = ComboBox.create(result.commands, {0, 0, HexComboWidth, 36})
         {
@@ -228,7 +370,12 @@ internal impl HexViewer
             }
         }
 
-        result.grid = HexGridView.create(result)
+        result.grid                 = HexGridView.create(result)
+        result.grid.sigCaretChanged += func|view = result|(grid)
+        {
+            discard grid
+            view.refreshInspector()
+        }
         if reportFailure
         {
             let report = reportFailure!
@@ -238,6 +385,7 @@ internal impl HexViewer
         result.details = hexStrings().ui_Details
         result.applyLayout()
         result.grid.refreshLayout()
+        result.refreshInspector()
         result.setInitialFocus(result.grid)
         result.load.start(fileName, &loadHexDocument)
         result.loadTimer = result.addTimer(ViewerBackgroundPollInterval)
@@ -249,9 +397,10 @@ internal impl HexViewer
 func createHexViewer(request: const *ViewerRequest, result: *ViewerResult)
 {
     registerHexStrings(request.contentParent.app())
-    let view = HexViewer.create(request.contentParent, request.commandParent, request.fileName, request.reportFailure, request.reportDetails, request.reportLoadingChanged)
+    let view = HexViewer.create(request.contentParent, request.commandParent, request.fileName, request.reportFailure, request.reportDetails, request.reportLoadingChanged, request.infoParent)
 
     result.view        = view
+    result.info        = view.info
     result.commands    = view.commands
     result.details     = view.details
     result.revealMatch = func(wnd, match, text)->bool
@@ -265,6 +414,10 @@ func createHexViewer(request: const *ViewerRequest, result: *ViewerResult)
         return (cast(*HexViewer) wnd).grid.matchBounds(bounds)
     }
     result.clearSearch         = func(wnd) { (cast(*HexViewer) wnd).grid.clearSearchMatch() }
+    result.describeSearch      = func(wnd, presentation) { (cast(*HexViewer) wnd).describeSearch(presentation) }
+    result.prepareSearch       = func(wnd, query, plan)->EditBoxCheckResult { return (cast(*HexViewer) wnd).prepareSearch(query, plan) }
+    result.collectFileMatches  = func(wnd, source, baseOffset, matches) { (cast(*HexViewer) wnd).collectSearchMatches(source, baseOffset, matches) }
+    result.useSearchMatches    = func(wnd, matches) { (cast(*HexViewer) wnd).grid.setSearchMatches(matches) }
     result.isLoading           = func(wnd)->bool { return (cast(*HexViewer) wnd).loadTimer != null }
     result.needsLoadingOverlay = func(wnd)->bool { return (cast(*HexViewer) wnd).loadTimer != null }
     result.retire              = func(wnd)->bool { return (cast(*HexViewer) wnd).retire() }

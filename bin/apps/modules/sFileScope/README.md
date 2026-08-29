@@ -87,7 +87,11 @@ guessing an encoding.
   jumps to a file offset, and walks visited rows backward or forward.
 - `Hexadecimal` is available for every file. It keeps one 256 KiB resident window whose reads are
   aligned to 64 KiB boundaries, uses 64-bit offsets, and supports independent scalar width,
-  representation, and byte order.
+  representation, and byte order. Its information-band inspector reports the exact caret offset,
+  selection length, active value, and the same bytes as signed, unsigned, hexadecimal, floating
+  point, and printable readings. Search accepts byte and nibble wildcards (`4D 5A ??`, `?A`,
+  `A?`), exact UTF-8 through `text:`, and the active scalar and byte order through `value:`. Every
+  visible result is marked while the shared animated marker identifies the current occurrence.
 
 Text-oriented viewers handle normal keyboard and scrollbar navigation while content is streaming.
 Home, End, distant scrollbar jumps, and search open a bounded resident window near the requested
@@ -96,7 +100,9 @@ that scan with format-aware search. Search is case-insensitive by default; `Aa` 
 case and the bracketed word glyph restricts matches to whole words. The result counter reports the
 current and total occurrences, F3 and Shift+F3 move forward and backward with wrapping, and every
 viewer supplies
-only match geometry to the same animated, theme-derived current-result marker. The information
+only match geometry to the same animated, theme-derived current-result marker. Binary-pattern
+search hides the text-only case and whole-word switches and explains its syntax in the field.
+The information
 band shows a spinner while the active viewer is still producing visible content, and switching
 viewers retires hidden progressive work.
 

@@ -9,26 +9,31 @@ using Core, Gui
 // the same way simply omits them and keeps the reference wording.
 struct HexStrings
 {
-    ui_TipWidth:     string = "Value width"                                                // Tooltip of the scalar width selector.
-    ui_Width8:       string = "8-bit"                                                      // One byte at a time.
-    ui_Width16:      string = "16-bit"                                                     // Two bytes at a time.
-    ui_Width32:      string = "32-bit"                                                     // Four bytes at a time.
-    ui_Width64:      string = "64-bit"                                                     // Eight bytes at a time.
-    ui_TipFormat:    string = "Value representation"                                       // Tooltip of the reading selector.
-    ui_FormatHex:    string = "Hex"                                                        // Hexadecimal reading of a scalar.
-    ui_FormatUns:    string = "Unsigned"                                                   // Unsigned decimal reading of a scalar.
-    ui_FormatSigned: string = "Signed"                                                     // Signed decimal reading of a scalar.
-    ui_FormatFloat:  string = "Float"                                                      // Floating-point reading of a 32- or 64-bit scalar.
-    ui_Endian:       string = "Little endian"                                              // Label of the byte-order switch.
-    ui_TipEndian:    string = "Read multi-byte values in little-endian order"              // Tooltip of the byte-order switch.
-    ui_Details:      string = "hex and text · streamed"                                    // Summary the host shows beside the file size.
-    ui_TextColumn:   string = "text"                                                       // Header of the decoded-text column.
-    ui_Empty:        string = "This file is empty."                                        // Message painted when the file has no bytes.
-    ui_GoTo:         string = "Go to offset"                                               // Dialog title and menu entry of the jump command.
-    ui_GoToMessage:  string = "Hexadecimal offset, or a signed offset from the caret."     // Question of the jump dialog.
-    ui_SelectAll:    string = "Select all"                                                 // Menu entry selecting the whole file.
-    ui_RowWidth:     string = "Bytes per row"                                              // Menu grouping the row-width choices.
-    ui_RowAuto:      string = "Fit the window"                                             // Row width following the window width.
+    ui_TipWidth:           string = "Value width"                                                                                        // Tooltip of the scalar width selector.
+    ui_Width8:             string = "8-bit"                                                                                              // One byte at a time.
+    ui_Width16:            string = "16-bit"                                                                                             // Two bytes at a time.
+    ui_Width32:            string = "32-bit"                                                                                             // Four bytes at a time.
+    ui_Width64:            string = "64-bit"                                                                                             // Eight bytes at a time.
+    ui_TipFormat:          string = "Value representation"                                                                               // Tooltip of the reading selector.
+    ui_FormatHex:          string = "Hex"                                                                                                // Hexadecimal reading of a scalar.
+    ui_FormatUns:          string = "Unsigned"                                                                                           // Unsigned decimal reading of a scalar.
+    ui_FormatSigned:       string = "Signed"                                                                                             // Signed decimal reading of a scalar.
+    ui_FormatFloat:        string = "Float"                                                                                              // Floating-point reading of a 32- or 64-bit scalar.
+    ui_Endian:             string = "Little endian"                                                                                      // Label of the byte-order switch.
+    ui_TipEndian:          string = "Read multi-byte values in little-endian order"                                                      // Tooltip of the byte-order switch.
+    ui_Details:            string = "hex and text · streamed"                                                                            // Summary the host shows beside the file size.
+    ui_TextColumn:         string = "text"                                                                                               // Header of the decoded-text column.
+    ui_Empty:              string = "This file is empty."                                                                                // Message painted when the file has no bytes.
+    ui_GoTo:               string = "Go to offset"                                                                                       // Dialog title and menu entry of the jump command.
+    ui_GoToMessage:        string = "Hexadecimal offset, or a signed offset from the caret."                                             // Question of the jump dialog.
+    ui_SelectAll:          string = "Select all"                                                                                         // Menu entry selecting the whole file.
+    ui_RowWidth:           string = "Bytes per row"                                                                                      // Menu grouping the row-width choices.
+    ui_RowAuto:            string = "Fit the window"                                                                                     // Row width following the window width.
+    ui_SearchPlaceholder:  string = "Hex, text:, or value:"                                                                              // Placeholder naming the three binary query forms.
+    ui_SearchHelp:         string = "Use hex bytes and ? wildcards; prefix exact UTF-8 with text: or the active scalar with value:."     // Tooltip explaining binary query syntax.
+    ui_SearchPatternError: string = "Use hexadecimal byte pairs with ??, ?A, or A? wildcards."                                           // Invalid hexadecimal pattern.
+    ui_SearchValueError:   string = "Enter a value that fits the active width and representation."                                       // Invalid active scalar.
+    ui_InspectorEmpty:     string = "No bytes at the caret"                                                                              // Inline inspector before a byte is available.
 
     ui_CopyBytes: string = "Copy bytes"     // Copy the selection as hexadecimal byte pairs.
     ui_CopyText:  string = "Copy text"      // Copy the selection as printable text.

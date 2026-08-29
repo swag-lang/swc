@@ -20,6 +20,11 @@ ui_GoToMessage   Décalage hexadécimal, ou décalage signé depuis le curseur.
 ui_SelectAll     Tout sélectionner
 ui_RowWidth      Octets par ligne
 ui_RowAuto       Ajuster à la fenêtre
+ui_SearchPlaceholder  Hexa, text: ou value:
+ui_SearchHelp         Utilisez des octets hexadécimaux et des jokers ? ; préfixez l’UTF-8 exact par text: ou la valeur active par value:.
+ui_SearchPatternError Utilisez des paires hexadécimales avec les jokers ??, ?A ou A?.
+ui_SearchValueError   Saisissez une valeur adaptée à la largeur et à la représentation actives.
+ui_InspectorEmpty     Aucun octet sous le curseur
 
 ui_CopyBytes     Copier les octets
 ui_CopyText      Copier le texte

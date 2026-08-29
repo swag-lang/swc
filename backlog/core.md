@@ -315,6 +315,10 @@ unsafe legacy modes excluded from the default surface.
     batches. That took `\w+` from 3.2x to 2x and `[a-z]+ing` from 2.4x to 1.9x. What is left
     is the prologue of an automaton call and the tuple it returns, both of which only the
     backend can remove.
+  - **An anchored search is answered by the backtracking engine**, which walks one path
+    instead of advancing every branch together: a whole-line match with capture groups went
+    from 2.2 microseconds to 0.32. The simulation still answers the pattern that exhausts the
+    budget it is given, and it is the one that cannot explode.
   - **Captures replay the search.** The backtracking engine reads the groups back over the span
     the automata found — iteratively, without recursion, and reading the program through
     pointers, which took it from three hundred and sixty nanoseconds to ninety on a ten-byte

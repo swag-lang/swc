@@ -36,6 +36,7 @@ struct Backtracker
     budget:       u64                   // Steps left before the search gives up.
     limit:        u64                   // Offset the search may not read past.
     ignoreCase:   bool                  // Whether a backreference compares without case.
+    exhausted:    bool                  // Whether the budget ran out, so a refusal is not an answer.
     wholeSubject: bool                  // Whether only a match ending at 'limit' counts.
 }
 
@@ -54,6 +55,7 @@ impl Backtracker
     {
         .slots.resize(program.slotCount)
         .budget       = budget
+        .exhausted    = false
         .limit        = limit
         .ignoreCase   = program.ignoreCase
         .wholeSubject = wholeSubject
@@ -103,8 +105,12 @@ impl Backtracker
 
         for
         {
-            if .budget == 0 do
+            if .budget == 0
+            {
+                .exhausted = true
                 return false
+            }
+
             .budget -= 1
 
             var failed = false

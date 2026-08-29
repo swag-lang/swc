@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Main/CompilerMessageTypeInfoJob.h"
+#include "Main/CompilerInstance.h"
 #include "Compiler/Sema/Core/Sema.h"
 
 SWC_BEGIN_NAMESPACE();

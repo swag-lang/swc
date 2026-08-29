@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/Runtime.h"
+#include "Backend/RuntimeBuildConfig.h"
 #include "Format/FormatOptions.h"
 #include "Main/FileSystem.h"
 #include "Support/Core/Utf8.h"

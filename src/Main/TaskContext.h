@@ -39,6 +39,15 @@ public:
     const TypeGen&           typeGen() const;
     IdentifierManager&       idMgr();
     const IdentifierManager& idMgr() const;
+    void*                    allocate(size_t size, size_t alignment);
+    void                     notifyAlive();
+
+    template<typename T, typename... ARGS>
+    T* allocate(ARGS&&... args)
+    {
+        void* mem = allocate(sizeof(T), alignof(T));
+        return new (mem) T(std::forward<ARGS>(args)...);
+    }
 
     bool                         silentDiagnostic() const { return silentDiagnostic_; }
     void                         setSilentDiagnostic(bool silent) { silentDiagnostic_ = silent; }

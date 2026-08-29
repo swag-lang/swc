@@ -1,7 +1,7 @@
 #pragma once
 #include "Backend/Runtime.h"
 #include "Compiler/ModuleApi/ModuleApi.h"
-#include "Compiler/Sema/Helpers/SemaEscape.h"
+#include "Compiler/Sema/Helpers/SemaEscapeTypes.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerTagRegistry.h"
@@ -342,6 +342,7 @@ private:
     ModuleApiPerThreadData& threadModuleApiData();
 
     friend class CompilerMessageTypeInfoJob;
+    friend class TaskContext;
     friend struct DependencyPlanBuilder;
     friend struct ModuleSetupInputApplier;
 

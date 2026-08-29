@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/Runtime.h"
+#include "Backend/RuntimeTypeInfo.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Support/Core/RefTypes.h"

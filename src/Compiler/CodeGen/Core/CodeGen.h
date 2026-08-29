@@ -1,7 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroReg.h"
-#include "Backend/Runtime.h"
+#include "Backend/RuntimeBuildConfig.h"
 #include "Compiler/CodeGen/Core/CodeGenNodePayload.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
@@ -341,7 +341,7 @@ public:
         T*     payload = static_cast<T*>(slot);
         if (!payload)
         {
-            payload  = compiler().allocate<T>();
+            payload  = ctx().allocate<T>();
             *payload = {};
             if constexpr (std::is_base_of_v<CodeGenNodePayload, T>)
                 mergeLoweringNodePayloadMetadata(*payload, queryNodeRef);

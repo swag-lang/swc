@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"

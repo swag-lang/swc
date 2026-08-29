@@ -1,6 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroReg.h"
-#include "Backend/Runtime.h"
+#include "Backend/RuntimeBase.h"
 #include "Support/Core/ByteArray.h"
 
 SWC_BEGIN_NAMESPACE();

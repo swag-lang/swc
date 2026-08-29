@@ -1,6 +1,6 @@
 #pragma once
 #include "Backend/ABI/CallConv.h"
-#include "Backend/Encoder/Encoder.h"
+#include "Backend/Encoder/EncoderDebugInfo.h"
 #include "Backend/Micro/MicroTypes.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"

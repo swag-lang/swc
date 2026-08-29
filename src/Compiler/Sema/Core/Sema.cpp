@@ -23,6 +23,11 @@
 
 SWC_BEGIN_NAMESPACE();
 
+const Runtime::BuildCfg& Sema::buildCfg() const
+{
+    return compiler().buildCfg();
+}
+
 namespace
 {
     bool waitHasErrorOnLine(Sema& sema, const SourceCodeRef& waitCodeRef)

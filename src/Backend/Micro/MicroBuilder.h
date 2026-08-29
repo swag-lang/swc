@@ -5,7 +5,7 @@
 #include "Backend/Micro/MicroPrinter.h"
 #include "Backend/Micro/MicroRelocation.h"
 #include "Backend/Micro/MicroStorage.h"
-#include "Backend/Runtime.h"
+#include "Backend/RuntimeBackendConfig.h"
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/DataSegment.h"
 #include "Support/Core/Flags.h"

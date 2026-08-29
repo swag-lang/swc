@@ -10,8 +10,17 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
+
+void SemaHelpers::addCurrentScopeSymbol(Sema& sema, Symbol* sym)
+{
+    SemaScope* scope = currentLocalSymbolScope(sema);
+    SWC_ASSERT(scope);
+    scope->addSymbol(sym);
+    sema.compiler().notifyAlive();
+}
 
 namespace
 {

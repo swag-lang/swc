@@ -1,6 +1,7 @@
 #pragma once
-#include "Compiler/Sema/Generic/GenericInstanceStorage.h"
-#include "Compiler/Sema/Helpers/SemaClone.h"
+#include "Compiler/Sema/Generic/GenericInstanceKey.h"
+#include "Compiler/Sema/Helpers/SemaCloneTypes.h"
+#include "Support/Core/PagedStore.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/SmallVector.h"

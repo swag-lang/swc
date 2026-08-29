@@ -90,6 +90,16 @@ const IdentifierManager& TaskContext::idMgr() const
     return compiler().idMgr();
 }
 
+void* TaskContext::allocate(size_t size, size_t alignment)
+{
+    return compiler().threadArena().allocate(size, alignment);
+}
+
+void TaskContext::notifyAlive()
+{
+    compiler().notifyAlive();
+}
+
 const TaskContext* TaskContext::setCurrent(const TaskContext* ctx) noexcept
 {
     const TaskContext* previous = current_;

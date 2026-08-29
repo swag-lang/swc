@@ -1,7 +1,7 @@
 #pragma once
-#include "Compiler/Sema/Generic/GenericInstanceStorage.h"
-#include "Compiler/Sema/Helpers/SemaClone.h"
-#include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Generic/GenericInstanceKey.h"
+#include "Compiler/Sema/Helpers/SemaCloneTypes.h"
+#include "Compiler/Sema/Helpers/SemaSpecOpKind.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
@@ -9,6 +9,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class GenericInstanceStorage;
 class SymbolVariable;
 class SymbolImpl;
 class SymbolFunction;

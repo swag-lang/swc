@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Backend/Runtime.h"
+#include "Backend/RuntimeDocConfig.h"
 #include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();

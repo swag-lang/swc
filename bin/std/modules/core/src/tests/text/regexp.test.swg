@@ -5,18 +5,18 @@ using Swag
 
 #test
 {
-    var literal: Parser.RegExp
-    discard catch literal.preprocess("1")
+    var literal = expect Parser.RegExp.create("1")
 
-    @assert(literal.preprocessed.contains('1'))
+    @assert(literal.match("1"))
+    @assert(!literal.match("2"))
 }
 
 #test
 {
-    var digitClass: Parser.RegExp
-    discard catch digitClass.preprocess("\\d")
+    var digitClass = expect Parser.RegExp.create("\\d")
 
-    @assert(digitClass.preprocessed.contains(Parser.RuneAsciiDigit))
+    @assert(digitClass.match("7"))
+    @assert(!digitClass.match("x"))
 }
 
 #test
@@ -1123,4 +1123,523 @@ using Swag
 
     @assert(err13 != null)
     @assert(err13 is Errors.SyntaxError)
+}
+
+#test
+{
+    // A negated class rejects every value it lists, whatever the list is made of.
+    var noLetters   = expect Parser.RegExp.create(#raw "[^abc]+")
+    var noMixed     = expect Parser.RegExp.create(#raw "[^a-c9]+")
+    var noClass     = expect Parser.RegExp.create(#raw "[^\d\s]+")
+    var noSingle    = expect Parser.RegExp.create(#raw "[^x]")
+    var noCaseAware = expect Parser.RegExp.create(#raw "[^a]+", true)
+
+    @assert(noLetters.match("xyz"))
+    @assert(!noLetters.match("abc"))
+    @assert(!noLetters.match("xbz"))
+    @assert(noMixed.match("xyz8"))
+    @assert(!noMixed.match("9"))
+    @assert(!noMixed.match("b"))
+    @assert(noClass.match("ab!"))
+    @assert(!noClass.match("a1"))
+    @assert(!noClass.match("a b"))
+    @assert(noSingle.match("y"))
+    @assert(!noSingle.match("x"))
+    @assert(noCaseAware.match("bc"))
+    @assert(!noCaseAware.match("A"))
+    @assert(!noCaseAware.match("a"))
+}
+
+#test
+{
+    var group      = expect Parser.RegExp.create(#raw "(?:ab)+")
+    var mixed      = expect Parser.RegExp.create(#raw "(?:ab)(c)")
+    var nestedOnly = expect Parser.RegExp.create(#raw "(?:(a)b)+")
+
+    @assert(group.match("ababab"))
+    @assert(!group.match("aba"))
+    @assert(group.captureCount() == 0)
+    @assert(mixed.match("abc"))
+    @assert(mixed.getCapture(1) == "c")
+    @assert(mixed.captureCount() == 1)
+    @assert(nestedOnly.match("abab"))
+    @assert(nestedOnly.getCapture(1) == "a")
+}
+
+#test
+{
+    var angle  = expect Parser.RegExp.create(#raw "(?<year>\d{4})-(?<month>\d{2})")
+    var quoted = expect Parser.RegExp.create(#raw "(?'word'\l+)")
+    var python = expect Parser.RegExp.create(#raw "(?P<num>\d+)")
+
+    @assert(angle.match("2024-07"))
+    @assert(angle.getCapture("year") == "2024")
+    @assert(angle.getCapture("month") == "07")
+    @assert(angle.getCapture("day") == "")
+    @assert(angle.getCapture(1) == "2024")
+    @assert(quoted.match("hello"))
+    @assert(quoted.getCapture("word") == "hello")
+    @assert(python.match("42"))
+    @assert(python.getCapture("num") == "42")
+}
+
+#test
+{
+    var lazyStar  = expect Parser.RegExp.create(#raw "<(.*?)>")
+    var lazyPlus  = expect Parser.RegExp.create(#raw "a+?b")
+    var lazyOpt   = expect Parser.RegExp.create(#raw "ab??")
+    var lazyCount = expect Parser.RegExp.create(#raw "a{1,3}?b")
+
+    let tag = lazyStar.grep("<one><two>")
+    @assert(tag != null)
+    @assert(cast(#null string) tag == "<one>")
+    @assert(lazyStar.getCapture(1) == "one")
+
+    @assert(lazyPlus.match("aab"))
+
+    let shortest = lazyOpt.grep("ab")
+    @assert(shortest != null)
+    @assert(cast(#null string) shortest == "a")
+
+    @assert(lazyCount.match("aab"))
+    @assert(!lazyCount.match("aaaab"))
+}
+
+#test
+{
+    var scoped   = expect Parser.RegExp.create(#raw "(?i)abc")
+    var partial  = expect Parser.RegExp.create(#raw "ab(?i:cd)ef")
+    var disabled = expect Parser.RegExp.create(#raw "(?i)ab(?-i)cd")
+    var lines    = expect Parser.RegExp.create(#raw "(?m)^b$")
+    var noDotAll = expect Parser.RegExp.create(#raw "(?-s)a.b")
+
+    @assert(scoped.match("AbC"))
+    @assert(partial.match("abCDef"))
+    @assert(!partial.match("ABcdef"))
+    @assert(disabled.match("ABcd"))
+    @assert(!disabled.match("ABCD"))
+
+    let line = lines.grep("a\nb\nc")
+    @assert(line != null)
+    @assert(cast(#null string) line == "b")
+
+    @assert(noDotAll.match("axb"))
+    @assert(!noDotAll.match("a\nb"))
+}
+
+#test
+{
+    var whole       = expect Parser.RegExp.create(#raw "\Aabc\z")
+    var notBoundary = expect Parser.RegExp.create(#raw "a\Bb")
+    var insideWord  = expect Parser.RegExp.create(#raw "\Bcat\B")
+
+    @assert(whole.match("abc"))
+    @assert(whole.grep("xabc") == null)
+    @assert(notBoundary.match("ab"))
+
+    let inside = insideWord.grep("scatter")
+    @assert(inside != null)
+    @assert(cast(#null string) inside == "cat")
+    @assert(insideWord.grep("a cat") == null)
+}
+
+#test
+{
+    var hexByte = expect Parser.RegExp.create(#raw "\x41\x42")
+    var hexRune = expect Parser.RegExp.create(#raw "\x{00E9}")
+    var hexWide = expect Parser.RegExp.create(#raw "\x{1F600}+")
+    var escape  = expect Parser.RegExp.create(#raw "\e")
+    var nul     = expect Parser.RegExp.create(#raw "a\0b")
+    var inClass = expect Parser.RegExp.create(#raw "[\x41-\x43]+")
+
+    @assert(hexByte.match("AB"))
+    @assert(hexRune.match("\u00E9"))
+    @assert(hexWide.match("\U0001F600\U0001F600"))
+    @assert(escape.match("\u001B"))
+    @assert(!nul.match("ab"))
+    @assert(inClass.match("ABC"))
+    @assert(!inClass.match("D"))
+}
+
+#test
+{
+    var punct = expect Parser.RegExp.create(#raw "[[:punct:]]+")
+    var cntrl = expect Parser.RegExp.create(#raw "[[:cntrl:]]+")
+    var graph = expect Parser.RegExp.create(#raw "[[:graph:]]+")
+    var print = expect Parser.RegExp.create(#raw "[[:print:]]+")
+
+    @assert(punct.match("!?;"))
+    @assert(!punct.match("a"))
+    @assert(cntrl.match("\u0001\u0002"))
+    @assert(!cntrl.match(" "))
+    @assert(graph.match("ab!"))
+    @assert(!graph.match("a b"))
+    @assert(print.match("a b"))
+    @assert(!print.match("a\tb"))
+}
+
+#test
+{
+    var decimals   = expect Parser.RegExp.create(#raw "\p{Nd}+")
+    var notLetters = expect Parser.RegExp.create(#raw "\P{L}+")
+    var letters    = expect Parser.RegExp.create(#raw "\p{Letter}+")
+    var titles     = expect Parser.RegExp.create(#raw "\p{Lt}")
+
+    @assert(decimals.match("123"))
+    @assert(!decimals.match("12a"))
+    @assert(notLetters.match("12!?"))
+    @assert(!notLetters.match("12a"))
+    @assert(letters.match("Caf\u00E9"))
+    @assert(titles.match("\u01C5"))
+}
+
+#test
+{
+    // The automaton works over UTF-8 bytes, so a class of scalar values above ASCII must
+    // still match whole characters and nothing in between.
+    var accented  = expect Parser.RegExp.create(#raw "[\x{00E0}-\x{00FF}]+")
+    var anyRune   = expect Parser.RegExp.create(#raw "^.{3}$")
+    var mixed     = expect Parser.RegExp.create(#raw "\w+\x{00E9}\w+")
+    var wideClass = expect Parser.RegExp.create(#raw "[a\x{4E2D}\x{1F600}]+")
+
+    @assert(accented.match("\u00E9\u00FF"))
+    @assert(!accented.match("a"))
+    @assert(anyRune.match("a\u00E9\u4E2D"))
+    @assert(!anyRune.match("ab"))
+    @assert(mixed.match("ab\u00E9cd"))
+    @assert(wideClass.match("a\u4E2D\U0001F600a"))
+    @assert(!wideClass.match("b"))
+
+    let all = expect Parser.RegExp.grepAll(#raw "\x{00E9}+", "a\u00E9b\u00E9\u00E9c")
+    @assert(all.count == 2)
+    @assert(all[0] == "\u00E9")
+    @assert(all[1] == "\u00E9\u00E9")
+}
+
+#test
+{
+    var digits = expect Parser.RegExp.create(#raw "\d+")
+
+    let first = digits.find("ab 12 cd 345")
+    @assert(first.found)
+    @assert(first.span.start == 3)
+    @assert(first.span.end == 5)
+
+    let second = digits.find("ab 12 cd 345", 5)
+    @assert(second.found)
+    @assert(second.span.start == 9)
+    @assert(second.span.end == 12)
+
+    @assert(!digits.find("abc").found)
+    @assert(!digits.find(null).found)
+
+    let spans = digits.findAll("ab 12 cd 345")
+    @assert(spans.count == 2)
+    @assert(spans[0].start == 3)
+    @assert(spans[1].end == 12)
+}
+
+#test
+{
+    var parts = expect Parser.RegExp.create(#raw "(\w+)@(\w+)")
+
+    @assert(parts.match("user@host"))
+
+    let whole = parts.captureSpan(0)
+    @assert(whole.found)
+    @assert(whole.span.start == 0)
+    @assert(whole.span.end == 9)
+
+    let user = parts.captureSpan(1)
+    @assert(user.found)
+    @assert(user.span.start == 0)
+    @assert(user.span.end == 4)
+
+    let host = parts.captureSpan(2)
+    @assert(host.found)
+    @assert(host.span.start == 5)
+
+    @assert(!parts.captureSpan(3).found)
+}
+
+#test
+{
+    var swap  = expect Parser.RegExp.create(#raw "(\w+)-(\w+)")
+    var named = expect Parser.RegExp.create(#raw "(?<key>\w+)=(?<value>\w+)")
+    var vowel = expect Parser.RegExp.create(#raw "[aeiou]")
+
+    @assert(swap.replaceAll("ab-cd and ef-gh", "$2:$1") == "cd:ab and gh:ef")
+    @assert(named.replaceAll("x=1", "${value}/${key}") == "1/x")
+    @assert(vowel.replaceAll("banana", "*") == "b*n*n*")
+    @assert(vowel.replaceAll("xyz", "*") == "xyz")
+    @assert(swap.replaceAll("ab-cd", "$$0 is $0") == "$0 is ab-cd")
+    @assert(vowel.replaceAll(null, "*") == "")
+}
+
+#test
+{
+    var comma = expect Parser.RegExp.create(#raw ",\s*")
+    var wide  = expect Parser.RegExp.create(#raw "\d+")
+
+    let fields = comma.split("a, b,c ,d")
+    @assert(fields.count == 4)
+    @assert(fields[0] == "a")
+    @assert(fields[1] == "b")
+    @assert(fields[2] == "c ")
+    @assert(fields[3] == "d")
+
+    let around = wide.split("12ab34")
+    @assert(around.count == 3)
+    @assert(around[0] == "")
+    @assert(around[1] == "ab")
+    @assert(around[2] == "")
+
+    let none = comma.split("abc")
+    @assert(none.count == 1)
+    @assert(none[0] == "abc")
+}
+
+#test
+{
+    // A pattern a backtracking engine cannot answer: the simulation visits every position of
+    // the program once per offset, so this returns at once instead of trying every split of
+    // the subject.
+    var nested     = expect Parser.RegExp.create(#raw "(a*)*b")
+    var alternated = expect Parser.RegExp.create(#raw "(a|aa)+c")
+
+    @assert(!nested.match("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+    @assert(nested.match("aaab"))
+    @assert(!alternated.match("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+    @assert(alternated.match("aaac"))
+}
+
+#test
+{
+    var many = expect Parser.RegExp.create(#raw "a{1000}")
+    var wide = expect Parser.RegExp.create(#raw "(?:ab){0,500}c")
+
+    var subject: String
+    for 1000 do
+        subject.append('a'u8)
+
+    @assert(many.match(subject.toString()))
+    @assert(!many.match("aaa"))
+    @assert(wide.match("ababc"))
+
+    discard catch Parser.RegExp.create(#raw "a{1001}") as tooMany
+    @assert(tooMany != null)
+    @assert(tooMany is Errors.SyntaxError)
+}
+
+#test
+{
+    // Constructs that are not supported must be rejected, not silently matched as something
+    // else.
+    discard catch Parser.RegExp.create(#raw "(?=abc)") as lookAhead
+    @assert(lookAhead is Errors.SyntaxError)
+
+    discard catch Parser.RegExp.create(#raw "(?<=abc)") as lookBehind
+    @assert(lookBehind is Errors.SyntaxError)
+
+    discard catch Parser.RegExp.create(#raw "a*+") as possessive
+    @assert(possessive is Errors.SyntaxError)
+
+    discard catch Parser.RegExp.create(#raw "(?<name") as unterminatedName
+    @assert(unterminatedName is Errors.SyntaxError)
+
+    discard catch Parser.RegExp.create(#raw "(?<>a)") as emptyName
+    @assert(emptyName is Errors.SyntaxError)
+
+    discard catch Parser.RegExp.create(#raw "\x{}") as emptyHex
+    @assert(emptyHex is Errors.SyntaxError)
+
+    discard catch Parser.RegExp.create(#raw "\x{110000}") as tooWide
+    @assert(tooWide is Errors.SyntaxError)
+
+    discard catch Parser.RegExp.create(#raw "(?y)a") as badFlag
+    @assert(badFlag is Errors.SyntaxError)
+
+    discard catch Parser.RegExp.create(#raw "^*") as repeatedAssert
+    @assert(repeatedAssert is Errors.SyntaxError)
+
+    discard catch Parser.RegExp.create(#raw "[a-\d]") as classBound
+    @assert(classBound is Errors.SyntaxError)
+}
+
+#test
+{
+    // The search engines have to agree: what a scan finds must be what the simulation reports,
+    // including when a subject holds many candidate starts.
+    var literal  = expect Parser.RegExp.create("needle")
+    var inner    = expect Parser.RegExp.create(#raw "\w+@\w+")
+    var byteSet  = expect Parser.RegExp.create(#raw "[xyz]\d")
+    var anchored = expect Parser.RegExp.create(#raw "^\w+")
+
+    var subject: String
+    for 200
+    {
+        subject.append("filler needle text x1 a@b ")
+    }
+
+    @assert(literal.findAll(subject.toString()).count == 200)
+    @assert(inner.findAll(subject.toString()).count == 200)
+    @assert(byteSet.findAll(subject.toString()).count == 200)
+    @assert(anchored.findAll(subject.toString()).count == 1)
+
+    let first = literal.find(subject.toString())
+    @assert(first.found)
+    @assert(first.span.start == 7)
+}
+
+// A deterministic pseudo-random source, so a failure names one seed and reproduces exactly.
+struct Rng
+{
+    state: u64 = 0x2545_F491_4F6C_DD1D
+}
+
+impl Rng
+{
+    #[Swag.Safety(.Overflow, false)]
+    mtd next()->u64
+    {
+        .state ^= .state << 13
+        .state ^= .state >> 7
+        .state ^= .state << 17
+        return .state
+    }
+
+    mtd below(bound: u64)->u64 => .next() % bound
+}
+
+// Builds one pattern out of the constructs the engines have to agree on. Backreferences are
+// left out: only one engine can run them, so there is nothing to compare.
+func buildPattern(rng: *Rng, depth: u32)->String
+{
+    var result: retval
+
+    let pieces = rng.below(3) + 1
+    for var i = 0'u64; i < pieces; i += 1
+    {
+        var piece: String
+        switch rng.below(depth == 0 ? 8 : 10)
+        {
+        case 0:
+            piece.append(cast(u8) (cast(u64) 'a' + rng.below(3)))
+
+        case 1:
+            piece.append("[ab]")
+
+        case 2:
+            piece.append("[^a]")
+
+        case 3:
+            piece.append("\\d")
+
+        case 4:
+            piece.append("\\w")
+
+        case 5:
+            piece.append(".")
+
+        case 6:
+            piece.append("[a-c1-2]")
+
+        case 7:
+            piece.append("\\s")
+
+        case 8:
+            piece.append("(")
+            piece.append(buildPattern(rng, depth - 1))
+            piece.append("|")
+            piece.append(buildPattern(rng, depth - 1))
+            piece.append(")")
+
+        case 9:
+            piece.append("(?:")
+            piece.append(buildPattern(rng, depth - 1))
+            piece.append(")")
+        }
+
+        switch rng.below(8)
+        {
+        case 0: piece.append("*")
+        case 1: piece.append("+")
+        case 2: piece.append("?")
+        case 3: piece.append("{1,2}")
+        case 4: piece.append("*?")
+        }
+
+        result.append(piece.toString())
+    }
+
+    return result
+}
+
+func buildSubject(rng: *Rng)->String
+{
+    const Alphabet = "aabbc12 x"
+
+    var result: retval
+    let length = rng.below(18)
+    for var i = 0'u64; i < length; i += 1 do
+        result.append(Alphabet[rng.below(@countof(Alphabet))])
+    return result
+}
+
+#test
+{
+    // Every search but the simulation is an optimization: the vectorized scans, the two
+    // automata and the backtracking replay all have to report exactly what the simulation
+    // reports. This compares them on a few thousand generated patterns, because that is the
+    // only way to reach the corners each of them takes.
+    var rng: Rng
+
+    // The subject outlives the expression on purpose: an expression keeps a borrow of the
+    // subject it last searched, since that is where its capture groups point.
+    var subject: String
+    var compared = 0'u32
+
+    for 400
+    {
+        var body = buildPattern(&rng, 2)
+
+        var pattern: String
+        if rng.below(4) == 0 do
+            pattern.append("^")
+        pattern.append(body.toString())
+        if rng.below(4) == 0 do
+            pattern.append("$")
+
+        let text = pattern.toString()
+
+        var expression = catch Parser.RegExp.create(text) as compileError
+        if compileError != null do
+            continue
+
+        // The reference: the same pattern run by the simulation alone.
+        var flags: Parser.Regex.Flags
+        var ast     = expect Parser.Regex.Ast.parse(text, flags)
+        let program = expect Parser.Regex.Program.compile(&ast, false)
+        var vm:    Parser.Regex.PikeVm
+
+        for 12
+        {
+            subject = buildSubject(&rng)
+            let hay = @mkslice(@dataof(subject.toString()), subject.length)
+
+            let reference = vm.run(&program, hay, 0, subject.length, false, false)
+            let found     = expression.find(subject.toString())
+
+            compared += 1
+            @assert(found.found == reference)
+            if !reference do
+                continue
+
+            @assert(found.span.start == vm.matchSlots[0])
+            @assert(found.span.end == vm.matchSlots[1])
+        }
+    }
+
+    // A generated suite that stops generating proves nothing, so it says how much it compared.
+    @assert(compared > 3000)
 }

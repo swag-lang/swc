@@ -1,7 +1,7 @@
 #pragma once
 #include "Backend/Linker/LinkDebugInfo.h"
 #include "Backend/Linker/LinkImage.h"
-#include "Backend/Runtime.h"
+#include "Backend/RuntimeBase.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();

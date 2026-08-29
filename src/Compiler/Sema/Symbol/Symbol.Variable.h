@@ -1,5 +1,6 @@
 #pragma once
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include "Support/Core/DataSegment.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
 

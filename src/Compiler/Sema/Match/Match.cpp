@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Match/Match.h"
+#include "Main/CompilerInstance.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"

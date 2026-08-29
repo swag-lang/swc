@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Main/CompilerInstance.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/Native/NativeBackendBuilder.h"

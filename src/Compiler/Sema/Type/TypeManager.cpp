@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/CompilerInstance.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbols.h"

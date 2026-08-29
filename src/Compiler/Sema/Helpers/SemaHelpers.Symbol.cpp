@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Main/CompilerInstance.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/AstNodes.h"

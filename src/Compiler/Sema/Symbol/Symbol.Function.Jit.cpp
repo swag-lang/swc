@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/ABI/ABICall.h"
+#include "Main/CompilerInstance.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"

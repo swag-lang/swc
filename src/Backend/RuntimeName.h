@@ -1,5 +1,6 @@
 #pragma once
-#include "Backend/Runtime.h"
+#include "Backend/RuntimeBackendConfig.h"
+#include "Backend/RuntimeBase.h"
 #include "Support/Core/Utf8.h"
 #include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"

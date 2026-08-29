@@ -1,13 +1,13 @@
 // ReSharper disable CppMemberFunctionMayBeStatic
 #pragma once
-#include "Backend/Runtime.h"
+#include "Backend/RuntimeBuildConfig.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/SemaFrame.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Core/SemaScope.h"
-#include "Compiler/Sema/Helpers/SemaEscape.h"
+#include "Compiler/Sema/Helpers/SemaEscapeTypes.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
@@ -229,7 +229,7 @@ public:
     const TaskContext&              ctx() const { return *(ctx_); }
     CompilerInstance&               compiler() { return ctx().compiler(); }
     const CompilerInstance&         compiler() const { return ctx().compiler(); }
-    const Runtime::BuildCfg&        buildCfg() const { return compiler().buildCfg(); }
+    const Runtime::BuildCfg&        buildCfg() const;
     const Runtime::BuildCfgBackend& buildCfgBackend() const { return buildCfg().backend; }
     Runtime::BuildCfgBackendKind    buildCfgBackendKind() const { return buildCfg().backendKind; }
     bool                            isNativeBuild() const { return Runtime::backendKindProducesNativeArtifact(buildCfgBackendKind()); }
@@ -409,7 +409,7 @@ public:
         if (!inherited)
             return nullptr;
 
-        auto* payload                = compiler().allocate<T>();
+        auto* payload                = ctx().allocate<T>();
         *payload                     = *static_cast<T*>(inherited);
         (*localLoweringPayloads_)[n] = payload;
         return payload;

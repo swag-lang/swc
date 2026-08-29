@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Main/CompilerInstance.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Parser/Ast/AstNodes.h"

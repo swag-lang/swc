@@ -1679,7 +1679,37 @@
     <ClInclude Include="src\Support\Report\Msg\Notes.Sema.inc">
       <Filter>src\Support\Report\Msg</Filter>
     </ClInclude>
-    <ClInclude Include="src\\Backend\\Runtime.h">
+    <ClInclude Include="src\Backend\Runtime.h">
+      <Filter>src\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\RuntimeAllocator.h">
+      <Filter>src\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\RuntimeAttribute.h">
+      <Filter>src\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\RuntimeBackendConfig.h">
+      <Filter>src\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\RuntimeBase.h">
+      <Filter>src\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\RuntimeBuildConfig.h">
+      <Filter>src\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\RuntimeCompiler.h">
+      <Filter>src\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\RuntimeDocConfig.h">
+      <Filter>src\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\RuntimeName.h">
+      <Filter>src\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\RuntimeSafety.h">
+      <Filter>src\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\RuntimeTypeInfo.h">
       <Filter>src\Backend</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Native\NativeArtifactBuilder.h">
@@ -1790,10 +1820,10 @@
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaError.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceEntry.h">
+    <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceKey.h">
       <Filter>src\Compiler\Sema\Generic</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceKey.h">
+    <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceStorage.h">
       <Filter>src\Compiler\Sema\Generic</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Generic\SemaGeneric.h">
@@ -1811,13 +1841,22 @@
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaSymbolLookup.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOpKind.h">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOp.h">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Helpers\SemaCloneTypes.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaClone.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaInline.h">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Helpers\SemaEscapeTypes.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaEscape.h">

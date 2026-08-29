@@ -1,7 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Native/NativeSection.h"
-#include "Backend/Runtime.h"
+#include "Backend/RuntimeBase.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"

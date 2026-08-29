@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/Runtime.h"
+#include "Backend/RuntimeSafety.h"
 #include "Compiler/Lexer/Token.h"
 #include "Compiler/Sema/Helpers/SemaSafety.h"
 #include "Support/Core/RefTypes.h"

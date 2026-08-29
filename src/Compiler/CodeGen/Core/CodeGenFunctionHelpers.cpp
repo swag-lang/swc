@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Main/CompilerInstance.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"

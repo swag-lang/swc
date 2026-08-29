@@ -1,7 +1,7 @@
 #pragma once
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Core/SemaScope.h"
-#include "Compiler/Sema/Helpers/SemaClone.h"
+#include "Compiler/Sema/Helpers/SemaCloneTypes.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Main/CompilerInstance.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"

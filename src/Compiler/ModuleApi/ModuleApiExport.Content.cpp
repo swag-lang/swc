@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Main/CompilerInstance.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/ModuleApi/ModuleApiExport.Internal.h"

@@ -4,7 +4,7 @@
 #include "Backend/Encoder/EncoderTypes.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroTypes.h"
-#include "Backend/Runtime.h"
+#include "Backend/RuntimeBackendConfig.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/PagedStore.h"
 #include "Support/Math/ApInt.h"

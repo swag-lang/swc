@@ -1,5 +1,6 @@
 #pragma once
 #include "Compiler/Sema/Ast/Sema.Index.h"
+#include "Compiler/Sema/Helpers/SemaSpecOpKind.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/SmallVector.h"
@@ -98,32 +99,6 @@ enum class SpecOperator : int32_t
     BitXorAssign,
     ShlAssign,
     ShrAssign,
-};
-
-enum class SpecOpKind : uint8_t
-{
-    None,
-    Invalid,
-    OpBinary,
-    OpBinaryRight,
-    OpUnary,
-    OpAssign,
-    OpIndexAssign,
-    OpCast,
-    OpEquals,
-    OpCompare,
-    OpPostCopy,
-    OpPostMove,
-    OpDrop,
-    OpCount,
-    OpData,
-    OpSet,
-    OpSetLiteral,
-    OpSlice,
-    OpIndex,
-    OpIndexSet,
-    OpIndexPtr,
-    OpVisit,
 };
 
 namespace SemaSpecOp

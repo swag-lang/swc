@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/Runtime.h"
+#include "Backend/RuntimeBase.h"
 
 // WARNING!
 // WARNING! This file must be in sync with "bin/runtime/api.swg"

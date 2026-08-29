@@ -196,13 +196,7 @@ namespace SemaHelpers
         return sema.curScope().isLocal() ? sema.curScopePtr() : nullptr;
     }
 
-    inline void addCurrentScopeSymbol(Sema& sema, Symbol* sym)
-    {
-        SemaScope* scope = currentLocalSymbolScope(sema);
-        SWC_ASSERT(scope);
-        scope->addSymbol(sym);
-        sema.compiler().notifyAlive();
-    }
+    void addCurrentScopeSymbol(Sema& sema, Symbol* sym);
 
     template<typename T>
     T& registerSymbol(Sema& sema, const AstNode& node, TokenRef tokNameRef, IdentifierRef forcedIdentRef = IdentifierRef::invalid())
@@ -221,7 +215,7 @@ namespace SemaHelpers
         if (localScope)
         {
             localScope->addSymbol(sym);
-            sema.compiler().notifyAlive();
+            ctx.notifyAlive();
         }
         else
             symbolMap->addSymbol(ctx, sym, true);

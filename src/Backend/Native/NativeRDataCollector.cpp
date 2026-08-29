@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Main/CompilerInstance.h"
 #include "Backend/Native/NativeRDataCollector.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeNames.h"

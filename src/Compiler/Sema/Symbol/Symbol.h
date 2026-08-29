@@ -1,10 +1,9 @@
 #pragma once
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Core/AttributeList.h"
-#include "Compiler/Sema/Helpers/SemaClone.h"
+#include "Compiler/Sema/Helpers/SemaCloneTypes.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/Sema/Type/TypeManager.h"
-#include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
@@ -238,7 +237,7 @@ public:
     template<typename T>
     static T* make(TaskContext& ctx, const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, SymbolFlags flags)
     {
-        return ctx.compiler().allocate<T>(decl, tokRef, idRef, flags);
+        return ctx.allocate<T>(decl, tokRef, idRef, flags);
     }
 
 protected:

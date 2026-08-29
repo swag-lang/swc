@@ -18,7 +18,7 @@ const RailLabelWidth   = 128.0     // Content width of a rail cell when the labe
 const CommandRowHeight = 36.0      // The single command row under the accent rail.
 const ReadoutWidth     = 88.0      // One machine readout of the command row.
 const VerbsWidth       = 272.0     // The command group: two named application actions.
-const ReadoutsWidth    = 224.0     // The readout group: the capture size and the zoom.
+const ReadoutsWidth    = 240.0     // The readout group: both cells, their gap, and outer air.
 const RightBarWidth    = 288.0     // The tool column on the right.
 
 // Enums
@@ -107,6 +107,7 @@ struct MainWnd
         recentWnd:                   *RecentWnd
         quickStyleBar:               *SplitterCtrl
         toolTitle:                   *Label
+        topMenu:                     *MenuCtrl
         libraryBtn, captureBtn:      *PushButton
         zoomBtn:                     *IconButton
         appearanceButton:            *AppearanceButton
@@ -706,12 +707,13 @@ impl MainWnd
     mtd createTopMenu()
     {
         @assert(me.parent != null)
-        let parentWnd    = me.parent
-        let metrics      = .themeMetrics()
-        with let topMenu = MenuCtrl.createBar(parentWnd, owner: me)
+        let parentWnd = me.parent
+        let metrics   = .themeMetrics()
+        with .topMenu = MenuCtrl.createBar(parentWnd, owner: me)
         {
             .sendToBack()
             .position.height = Math.max(.position.height, parentWnd.padding.y)
+            .preferredSize.y = .position.height
             .dockStyle       = .Top
             .margin.y        = -parentWnd.padding.y
             .backgroundStyle = .Transparent

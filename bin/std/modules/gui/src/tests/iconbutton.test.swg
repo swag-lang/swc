@@ -378,21 +378,31 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     @assert(btn.itf.measureContent({320, 200}).x == hidden.x)
 }
 
-// A compact icon menu centers the icon and its smaller disclosure marker as one horizontal
-// group. The marker keeps the standard inter-glyph spacing instead of crowding the action.
+// A compact toolbar menu centers icon, wording, and disclosure as one horizontal group. Its
+// outer air and both inner gaps share one rhythm instead of tightening toward either edge.
 #test
 {
     var host: Testing.HeadlessHost
-    host.setup(100, 68)
+    host.setup(160, 68)
     defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let btn = IconButton.create(&host.root, host.theme.icon(.Redo, 18), {24, 16, 52, 36}, flags: .CenterContent)
+    let metrics = &host.theme.metrics
+    @assert(metrics.btnIcon_Padding == metrics.btnIcon_SpacingTextH)
+    @assert(metrics.btnIcon_SpacingArrowH == metrics.btnIcon_SpacingTextH)
+
+    let btn = IconButton.create(&host.root, host.theme.icon(.Redo, 18), {20, 16, 120, 36}, flags: .CenterContent)
     btn.setArrowPosition(.RightDownward)
-    let measured = btn.itf.measureContent({100, 68})
-    @assert(measured.x == 2 * host.theme.metrics.btnIcon_Padding + 18 + host.theme.metrics.btnIcon_SpacingArrowH + host.theme.metrics.btnIcon_ArrowSize)
-    @assert(measured.y == 2 * host.theme.metrics.btnIcon_Padding + 18)
+    let iconOnly = btn.itf.measureContent({160, 68})
+    @assert(iconOnly.x == 2 * metrics.btnIcon_Padding + 18 + metrics.btnIcon_SpacingArrowH + metrics.btnIcon_ArrowSize)
+    @assert(iconOnly.y == 2 * metrics.btnIcon_Padding + 18)
+
+    btn.setText("View")
+    btn.setTextPosition(.Right)
+    let withText = btn.itf.measureContent({160, 68})
+    @assert(withText.x > iconOnly.x + metrics.btnIcon_SpacingTextH)
+    @assert(withText.y == iconOnly.y)
 
     host.settleAnimations(&host.root, 4)
     var image = host.render(&host.root)

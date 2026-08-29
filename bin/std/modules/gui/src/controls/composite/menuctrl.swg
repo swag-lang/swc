@@ -786,13 +786,20 @@ impl MenuCtrl
         // Be sure popup menu is in the client area of the top view
         sub.updateState()
         sub.computeLayoutPopup()
-        let topView = .topView()
-        var pt      = topView.surfaceToLocal({pos.x, pos.y})
-        let subPos  = sub.position
-        pt.x = Math.clamp(pt.x, 0.0, Math.max(topView.position.width - subPos.width, 0.0))
-        pt.y = Math.clamp(pt.y, 0.0, Math.max(topView.position.height - subPos.height, 0.0))
 
-        pt = topView.localToSurface(pt)
+        // A caption menu is a sibling of the application view. Clamping it in topView space
+        // shifts its anchor down by the whole caption/client inset, so the opening tab grows a
+        // false stem as tall as the command row below it. The popup's actual parent owns both
+        // the caption and the client area, and is therefore the coordinate space that can keep
+        // the popup inside the surface without moving it away from its bar item.
+        let popupParent = sub.parent!
+        let bounds      = popupParent.clientRect()
+        var pt          = popupParent.surfaceToLocal({pos.x, pos.y})
+        let subPos      = sub.position
+        pt.x = Math.clamp(pt.x, bounds.x, Math.max(bounds.right() - subPos.width, bounds.x))
+        pt.y = Math.clamp(pt.y, bounds.y, Math.max(bounds.bottom() - subPos.height, bounds.y))
+
+        pt = popupParent.localToSurface(pt)
         .showSubVisible(pt)
     }
 

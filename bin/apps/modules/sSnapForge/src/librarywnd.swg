@@ -1202,7 +1202,7 @@ impl LibraryWnd
 
         // View: thumbnail size and optional information painted over thumbnails share
         // one menu, because both control presentation rather than library contents.
-        with res.viewBtn = IconButton.create(res.commandBar, res.main.icon(.ViewMedium, LibCommandGlyphSize), {0, 0, 0, LibBarHeight})
+        with res.viewBtn = IconButton.create(res.commandBar, res.theme().icon(.ActualSize, LibCommandGlyphSize), {0, 0, 0, LibBarHeight})
         {
             .preferredSize.x = 0
             .setText(appStrings().ui_BarView)

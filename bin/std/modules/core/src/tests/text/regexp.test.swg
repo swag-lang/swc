@@ -1644,6 +1644,7 @@ func buildSubject(rng: *Rng)->String
             let found     = expression.find(subject.toString())
 
             compared += 1
+
             @assert(found.found == reference)
             if !reference do
                 continue
@@ -1665,6 +1666,39 @@ func buildSubject(rng: *Rng)->String
                 @assert(span.span.start == opening)
                 @assert(span.span.end == closing)
             }
+
+            // Every occurrence, found the way a caller asks for them, against the same
+            // occurrences found one at a time by the simulation alone. The iteration has
+            // strategies of its own -- it tries the pattern in place where no scan can skip
+            // ahead -- and they have to report exactly what one search at a time reports.
+            let every = expression.findAll(subject.toString())
+            var at    = 0'u64
+            var seen  = 0'u64
+
+            while at <= subject.length
+            {
+                if !vm.run(&program, hay, at, subject.length, false, false) do
+                    break
+
+                @assert(every[seen].start == vm.matchSlots[0])
+                @assert(every[seen].end == vm.matchSlots[1])
+                seen += 1
+
+                if vm.matchSlots[1] > vm.matchSlots[0]
+                {
+                    at = vm.matchSlots[1]
+                    continue
+                }
+
+                at = vm.matchSlots[1] + 1
+                while at < subject.length and (subject.toString()[at] & 0xC0) == 0x80 do
+                    at += 1
+            }
+
+            @assert(seen == every.count)
+
+            let reference2 = vm.run(&program, hay, 0, subject.length, false, false)
+            @assert(reference2 == reference)
         }
     }
 

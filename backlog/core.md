@@ -303,16 +303,22 @@ unsafe legacy modes excluded from the default surface.
   rewrite of 2026-08-29 set out to reach.
 - Where it stands: measured against the Rust `regex` crate on the same ten-megabyte corpus,
   counting every match of the same pattern in memory, best of ten interleaved rounds. A plain
-  literal 1.4x slower, an alternation of literals 2x *faster*, `\d{4}-\d{2}-\d{2}` 1.3x slower,
-  `[a-z]+[0-9]+@[a-z.-]+` at parity, `(?i)sherlock` 1.7x *faster*, a date with capture groups
-  1.7x slower, `[a-z]+ing` 2.3x, and `\w+` 2.3x. Nothing is more than 2.3x, and what is behind
+  literal 1.2x slower, an alternation of literals 2x *faster*, `\d{4}-\d{2}-\d{2}` 1.1x slower,
+  `[a-z]+[0-9]+@[a-z.-]+` 1.2x slower, `(?i)sherlock` 1.7x *faster*, a date with capture groups
+  1.2x slower, `[a-z]+ing` 2.1x, and `\w+` 1.9x. Nothing is more than 2.1x, and what is behind
   is what matches often.
 - What is left, in decreasing value:
   - **A search still costs more to start than to run**, against roughly thirty nanoseconds for
-    the crate. Looking for every occurrence now runs the two automata from one loop rather than
-    through the façade once per match, which is what took `\w+` from 3.2x to 2.4x; the same
-    treatment has not been given to the path that looks for an inner literal, which is what
-    `[a-z]+ing` uses.
+    the crate. Looking for every occurrence runs the engines from one loop rather than through
+    the façade once per match, tries the pattern at the offset itself where no scan can skip
+    ahead — a match found that way needs nothing read backwards — and collects its results in
+    batches. That took `\w+` from 3.2x to 2x and `[a-z]+ing` from 2.4x to 1.9x. What is left
+    is the prologue of an automaton call and the tuple it returns, both of which only the
+    backend can remove.
+  - **An anchored search is answered by the backtracking engine**, which walks one path
+    instead of advancing every branch together: a whole-line match with capture groups went
+    from 2.2 microseconds to 0.32. The simulation still answers the pattern that exhausts the
+    budget it is given, and it is the one that cannot explode.
   - **Captures replay the search.** The backtracking engine reads the groups back over the span
     the automata found — iteratively, without recursion, and reading the program through
     pointers, which took it from three hundred and sixty nanoseconds to ninety on a ten-byte

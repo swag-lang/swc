@@ -84,34 +84,122 @@ private func transformPoint(state: const *GraphicsState, page: const *Page, x, y
     return {point.x, page.height - point.y}
 }
 
-private func operandNumber(parser: const *PdfParser, operands: Array'u32, index: u64)->f32
+// One operand waiting for the operator that consumes it.
+//
+// Numbers are almost every operand a content stream carries, and a number is its value. Giving
+// each one a parser node instead costs a hash table, two arrays and a string it never uses, and
+// leaves the content parser's node table holding the whole stream at once.
+private struct ContentOperand
+{
+    number: f32
+    node:   u32 = InvalidNode
+}
+
+// Reads one number straight out of a content stream, without building a node for it.
+private func parseContentNumber(content: *PdfParser)->f32
+{
+    let bytes = content.bytes
+    var pos   = content.pos
+    var sign  = 1.0'f32
+    if pos < @countof(bytes) and (bytes[pos] == '+' or bytes[pos] == '-')
+    {
+        if bytes[pos] == '-' do
+            sign = -1
+        pos += 1
+    }
+
+    var value = 0.0'f32
+    while pos < @countof(bytes) and isDigit(bytes[pos])
+    {
+        value = value * 10 + cast(f32) (bytes[pos] - '0')
+        pos   += 1
+    }
+
+    if pos < @countof(bytes) and bytes[pos] == '.'
+    {
+        pos += 1
+        var scale = 0.1'f32
+        while pos < @countof(bytes) and isDigit(bytes[pos])
+        {
+            value += scale * cast(f32) (bytes[pos] - '0')
+            scale *= 0.1
+            pos   += 1
+        }
+    }
+
+    content.pos = pos
+    return sign * value
+}
+
+private func operandNumber(parser: *PdfParser, operands: Array'ContentOperand, index: u64)->f32
 {
     if index >= @countof(operands) do
         return 0
-    let value = parser.number(operands[index])
+    let operand = operands[index]
+    if operand.node == InvalidNode do
+        return operand.number
+    let value = parser.number(operand.node)
     return value < 0 ? -cast(f32) (-value) : cast(f32) value
 }
 
-private func nodeNumber(parser: const *PdfParser, nodeId: u32)->f32
+// Returns the node of one operand, for the few operators that need more than a number.
+private func operandNode(operands: Array'ContentOperand, index: u64)->u32
+{
+    if index >= @countof(operands) do
+        return InvalidNode
+    return operands[index].node
+}
+
+// Returns one operand as a whole number, or reports that it is not one.
+private func operandInteger(parser: *PdfParser, operands: Array'ContentOperand, index: u64)->{ value: s64, found: bool }
+{
+    var result: retval
+    if index >= @countof(operands) do
+        return result
+
+    let operand = operands[index]
+    if operand.node == InvalidNode
+    {
+        if operand.number != Math.trunc(operand.number) or !Math.isFinite(operand.number) do
+            return result
+        result.value = cast(s64) operand.number
+        result.found = true
+        return result
+    }
+
+    let id = parser.resolve(operand.node)
+    if id == InvalidNode or parser.nodes[id].kind != .Integer do
+        return result
+    result.value = parser.nodes[id].integer
+    result.found = true
+    return result
+}
+
+private func nodeNumber(parser: *PdfParser, nodeId: u32)->f32
 {
     let value = parser.number(nodeId)
     return value < 0 ? -cast(f32) (-value) : cast(f32) value
 }
 
 // Collects the trailing numeric operands of a color operator.
-private func colorComponents(parser: const *PdfParser, operands: Array'u32, target: [..] f32)->u32
+private func colorComponents(parser: *PdfParser, operands: Array'ContentOperand, target: [..] f32)->u32
 {
     var count = 0'u64
     while count < @countof(operands) and count < @countof(target)
     {
-        let id = parser.resolve(operands[@countof(operands) - count - 1])
-        if id == InvalidNode or (parser.nodes[id].kind != .Integer and parser.nodes[id].kind != .Real) do
-            break
+        let operand = operands[@countof(operands) - count - 1]
+        if operand.node != InvalidNode
+        {
+            let id = parser.resolve(operand.node)
+            if id == InvalidNode or (parser.nodes[id].kind != .Integer and parser.nodes[id].kind != .Real) do
+                break
+        }
+
         count += 1
     }
 
     for i in count do
-        target[i] = cast(f32) parser.number(operands[@countof(operands) - count + i])
+        target[i] = operandNumber(parser, operands, @countof(operands) - count + i)
     return cast(u32) count
 }
 
@@ -172,7 +260,7 @@ private func appendPathItem(page: *Page, path: *LinePathList, state: const *Grap
     @init(path, 1)
 }
 
-private func fontIndex(parser: const *PdfParser, page: const *Page, resourcesId: u32, name: string)->u32
+private func fontIndex(parser: *PdfParser, page: const *Page, resourcesId: u32, name: string)->u32
 {
     let fonts = parser.dict(resourcesId, "Font")
     let raw   = parser.dictRaw(fonts, name)
@@ -205,7 +293,7 @@ private func moveTextLine(state: *GraphicsState, x, y: f32)
     state.textMatrix = moved
 }
 
-private func appendText(parser: const *PdfParser, page: *Page, resourcesId: u32, state: *GraphicsState, bytes: string)
+private func appendText(parser: *PdfParser, page: *Page, resourcesId: u32, state: *GraphicsState, bytes: string)
 {
     let index = fontIndex(parser, page, resourcesId, state.fontName.toString())
     let font  = index < page.fonts.count ? &page.fonts[index] : null
@@ -416,7 +504,7 @@ private func findInlineImageEnd(bytes: const [..] u8, start: u64)->u64
 }
 
 // Reads the parts of an ExtGState that change how later operators paint.
-private func applyExtGState(parser: const *PdfParser, page: const *Page, resourcesId: u32, state: *GraphicsState, name: string)
+private func applyExtGState(parser: *PdfParser, page: const *Page, resourcesId: u32, state: *GraphicsState, name: string)
 {
     let states = parser.dict(resourcesId, "ExtGState")
     let entry  = parser.dict(states, name)
@@ -444,7 +532,7 @@ private func applyExtGState(parser: const *PdfParser, page: const *Page, resourc
 private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, bytes: const [..] u8, initialState: #null const *GraphicsState = null, depth = 0'u32) fail
 {
     var content = PdfParser{bytes: bytes}
-    var operands: Array'u32
+    var operands: Array'ContentOperand
     var state   = initialState ? initialState![] : GraphicsState{}
     var stack:    Array'GraphicsState
     var path:     LinePathList
@@ -461,9 +549,15 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
         if content.pos >= @countof(bytes) do
             break
         let c = bytes[content.pos]
-        if c == '/' or c == '(' or c == '[' or c == '<' or isDigit(c) or c == '+' or c == '-' or c == '.'
+        if isDigit(c) or c == '+' or c == '-' or c == '.'
         {
-            operands.add(try content.parseValue())
+            operands.add({number: parseContentNumber(&content), node: InvalidNode})
+            continue
+        }
+
+        if c == '/' or c == '(' or c == '[' or c == '<'
+        {
+            operands.add({number: 0, node: try content.parseValue()})
             continue
         }
 
@@ -518,10 +612,10 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
         case "J":
             if operands.count
             {
-                let valueId = content.resolve(operands.back())
-                if valueId == InvalidNode or content.nodes[valueId].kind != .Integer do
+                let cap = operandInteger(&content, operands, operands.count - 1)
+                if !cap.found do
                     fail InvalidFormatError{"PDF line cap needs an integer from 0 to 2"}
-                switch content.nodes[valueId].integer
+                switch cap.value
                 {
                 case 0:  state.strokeStyle.cap = .Butt
                 case 1:  state.strokeStyle.cap = .Round
@@ -533,10 +627,10 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
         case "j":
             if operands.count
             {
-                let valueId = content.resolve(operands.back())
-                if valueId == InvalidNode or content.nodes[valueId].kind != .Integer do
+                let join = operandInteger(&content, operands, operands.count - 1)
+                if !join.found do
                     fail InvalidFormatError{"PDF line join needs an integer from 0 to 2"}
-                switch content.nodes[valueId].integer
+                switch join.value
                 {
                 case 0:  state.strokeStyle.join = .Miter
                 case 1:  state.strokeStyle.join = .Round
@@ -557,7 +651,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
         case "d":
             if operands.count >= 2
             {
-                let arrayId = content.resolve(operands[operands.count - 2])
+                let arrayId = content.resolve(operandNode(operands, operands.count - 2))
                 let phase   = operandNumber(&content, operands, operands.count - 1)
                 if arrayId == InvalidNode or content.nodes[arrayId].kind != .Array do
                     fail InvalidFormatError{"PDF dash pattern needs an array"}
@@ -591,14 +685,14 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
 
         case "gs":
             if operands.count do
-                applyExtGState(parser, page, resourcesId, &state, content.name(operands.back()))
+                applyExtGState(parser, page, resourcesId, &state, content.name(operands.back().node))
 
         case "g":
             if operands.count
             {
                 state.fillSpace.palette.free()
                 state.fillSpace = deviceSpace(.Gray, 1)
-                state.fillColor = grayColor(content.number(operands.back()))
+                state.fillColor = grayColor(operandNumber(&content, operands, operands.count - 1))
             }
 
         case "G":
@@ -606,7 +700,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             {
                 state.strokeSpace.palette.free()
                 state.strokeSpace = deviceSpace(.Gray, 1)
-                state.strokeColor = grayColor(content.number(operands.back()))
+                state.strokeColor = grayColor(operandNumber(&content, operands, operands.count - 1))
             }
 
         case "rg":
@@ -614,7 +708,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             {
                 state.fillSpace.palette.free()
                 state.fillSpace = deviceSpace(.Rgb, 3)
-                state.fillColor = rgbColor(content.number(operands[operands.count - 3]), content.number(operands[operands.count - 2]), content.number(operands[operands.count - 1]))
+                state.fillColor = rgbColor(operandNumber(&content, operands, operands.count - 3), operandNumber(&content, operands, operands.count - 2), operandNumber(&content, operands, operands.count - 1))
             }
 
         case "RG":
@@ -622,7 +716,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             {
                 state.strokeSpace.palette.free()
                 state.strokeSpace = deviceSpace(.Rgb, 3)
-                state.strokeColor = rgbColor(content.number(operands[operands.count - 3]), content.number(operands[operands.count - 2]), content.number(operands[operands.count - 1]))
+                state.strokeColor = rgbColor(operandNumber(&content, operands, operands.count - 3), operandNumber(&content, operands, operands.count - 2), operandNumber(&content, operands, operands.count - 1))
             }
 
         case "k":
@@ -630,7 +724,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             {
                 state.fillSpace.palette.free()
                 state.fillSpace = deviceSpace(.Cmyk, 4)
-                state.fillColor = cmykColor(content.number(operands[operands.count - 4]), content.number(operands[operands.count - 3]), content.number(operands[operands.count - 2]), content.number(operands[operands.count - 1]))
+                state.fillColor = cmykColor(operandNumber(&content, operands, operands.count - 4), operandNumber(&content, operands, operands.count - 3), operandNumber(&content, operands, operands.count - 2), operandNumber(&content, operands, operands.count - 1))
             }
 
         case "K":
@@ -638,7 +732,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             {
                 state.strokeSpace.palette.free()
                 state.strokeSpace = deviceSpace(.Cmyk, 4)
-                state.strokeColor = cmykColor(content.number(operands[operands.count - 4]), content.number(operands[operands.count - 3]), content.number(operands[operands.count - 2]), content.number(operands[operands.count - 1]))
+                state.strokeColor = cmykColor(operandNumber(&content, operands, operands.count - 4), operandNumber(&content, operands, operands.count - 3), operandNumber(&content, operands, operands.count - 2), operandNumber(&content, operands, operands.count - 1))
             }
 
         case "cs", "CS":
@@ -647,7 +741,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 // The operand is a name parsed by the content scanner, so it is resolved
                 // against the page resources rather than through a document node.
                 var picked = deviceSpace(.Gray, 1)
-                let space  = catch resolveNamedColorSpace(parser, content.name(operands.back()), resourcesId, 0) as spaceError
+                let space  = catch resolveNamedColorSpace(parser, content.name(operands.back().node), resourcesId, 0) as spaceError
                 if spaceError == null do
                     picked = space
                 else do
@@ -791,7 +885,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
         case "Tf":
             if operands.count >= 2
             {
-                state.fontName = content.name(operands[operands.count - 2])
+                state.fontName = content.name(operandNode(operands, operands.count - 2))
                 state.fontSize = operandNumber(&content, operands, operands.count - 1)
             }
 
@@ -817,7 +911,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
 
         case "Tr":
             if operands.count do
-                state.renderMode = content.integer(operands.back())
+                state.renderMode = operandInteger(&content, operands, operands.count - 1).value
 
         case "Tm":
             if operands.count >= 6
@@ -844,13 +938,13 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
 
         case "Tj":
             if operands.count do
-                appendText(parser, page, resourcesId, &state, content.stringValue(operands.back()))
+                appendText(parser, page, resourcesId, &state, content.stringValue(operands.back().node))
 
         case "'":
             if operands.count
             {
                 moveTextLine(&state, 0, -state.leading)
-                appendText(parser, page, resourcesId, &state, content.stringValue(operands.back()))
+                appendText(parser, page, resourcesId, &state, content.stringValue(operands.back().node))
             }
 
         case "\"":
@@ -859,13 +953,13 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 state.wordSpacing = operandNumber(&content, operands, operands.count - 3)
                 state.charSpacing = operandNumber(&content, operands, operands.count - 2)
                 moveTextLine(&state, 0, -state.leading)
-                appendText(parser, page, resourcesId, &state, content.stringValue(operands.back()))
+                appendText(parser, page, resourcesId, &state, content.stringValue(operands.back().node))
             }
 
         case "TJ":
             if operands.count
             {
-                let arrayId = content.resolve(operands.back())
+                let arrayId = content.resolve(operands.back().node)
                 if arrayId != InvalidNode and content.nodes[arrayId].kind == .Array
                 {
                     for value in content.nodes[arrayId].values
@@ -881,7 +975,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
 
         case "Do":
             if operands.count do
-                try appendXObject(parser, page, resourcesId, &state, content.name(operands.back()), depth)
+                try appendXObject(parser, page, resourcesId, &state, content.name(operands.back().node), depth)
 
         case "BI":
             try appendInlineImage(parser, &content, page, resourcesId, &state)
@@ -891,6 +985,11 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
         }
 
         operands.clear()
+
+        // Nothing outlives the operator that consumed it: a name or a string is copied into the
+        // state or the item that keeps it, so the nodes behind this operator's operands can go
+        // back. Left to grow, the table would hold the whole content stream at once.
+        content.nodes.clear()
     }
 }
 
@@ -933,7 +1032,7 @@ private func decodeFonts(parser: *PdfParser, page: *Page, resourcesId: u32) fail
 }
 
 // Returns a page box array as a normalized rectangle in PDF coordinates.
-private func boxRectangle(parser: const *PdfParser, boxId: u32)->Math.Rectangle
+private func boxRectangle(parser: *PdfParser, boxId: u32)->Math.Rectangle
 {
     let values = parser.nodes[boxId].values
     let x0     = nodeNumber(parser, values[0])
@@ -1044,7 +1143,7 @@ private func collectPages(parser: *PdfParser, pages: *Array'PageSource, nodeId, 
         try collectPages(parser, pages, child, nextResources, nextMediaBox, nextCropBox, nextRotate, depth + 1)
 }
 
-private func metadataString(parser: const *PdfParser, dictId: u32, key: string)->String
+private func metadataString(parser: *PdfParser, dictId: u32, key: string)->String
 {
     let raw = parser.stringValue(parser.dict(dictId, key))
     if @countof(raw) >= 2 and raw[0] == 0xFE and raw[1] == 0xFF
@@ -1057,20 +1156,57 @@ private func metadataString(parser: const *PdfParser, dictId: u32, key: string)-
     return #move result
 }
 
+// Returns the catalog a trailer named, once the whole chain has been read.
+private func resolvedCatalog(parser: *PdfParser, rootRaw: u32)->u32
+{
+    let catalog = parser.resolve(rootRaw)
+    if catalog == InvalidNode or parser.name(parser.dict(catalog, "Type")) != "Catalog" do
+        return InvalidNode
+    return catalog
+}
+
+// Returns the information dictionary a trailer named.
+private func resolvedInfo(parser: *PdfParser, infoRaw: u32)->u32
+{
+    let info = parser.resolve(infoRaw)
+    if info == InvalidNode or parser.nodes[info].kind != .Dictionary do
+        return InvalidNode
+    return info
+}
+
 internal func indexDocument(parser: *PdfParser, metadata: *Metadata, pages: *Array'PageSource) fail
 {
-    try parser.scanObjects()
+    try parser.locateHeader()
 
-    // The trailer names the catalog and the metadata; scanning for them is the fallback for a
+    // The file's own cross-reference chain says where every object is, so opening costs the
+    // chain and the page tree rather than the whole file. A chain that is missing or damaged
+    // falls back to the scan, which is the only thing that can read such a file at all.
+    if !parser.readXrefChain() do
+        try parser.scanObjects()
+
+    // The trailer names the catalog and the metadata; searching for them is the fallback for a
     // file whose trailer is missing or damaged, and it is also where a security handler with
     // no readable trailer is noticed.
-    var catalog = parser.trailerRoot
-    var info    = parser.trailerInfo
+    var catalog = resolvedCatalog(parser, parser.trailerRoot)
+    var info    = resolvedInfo(parser, parser.trailerInfo)
     if catalog == InvalidNode or info == InvalidNode
     {
+        // The search needs every object, which is exactly what the scan produces.
+        parser.ensureScanned()
+        if catalog == InvalidNode do
+            catalog = resolvedCatalog(parser, parser.trailerRoot)
+        if info == InvalidNode do
+            info = resolvedInfo(parser, parser.trailerInfo)
+
+        var scanned: Array'u32
         for objectNumber, nodeId in parser.objects
         {
             discard objectNumber
+            scanned.add(nodeId)
+        }
+
+        for nodeId in scanned
+        {
             let id = parser.resolve(nodeId)
             if id == InvalidNode or parser.nodes[id].kind != .Dictionary do
                 continue

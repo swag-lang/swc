@@ -45,6 +45,10 @@ Three things stand out.
   document rather than once per page that names them, which is what a slide deck repeating its
   template on every page and a thesis embedding one family across a hundred pages both cost
   before.
+- **Opening costs the trailer chain, not the file.** `startxref` is followed through `/Prev`
+  across classic tables and cross-reference streams, an object is parsed the first time
+  something reaches it, and an incremental update resolves to the revision its trailer names.
+  Over the corpus that is 7.8 ms against MuPDF's 16 ms for the same sixteen files.
 
 The gaps are of three kinds: documents that will not open at all, pages that open and then render
 as something other than what they mean, and a writer that can only express what it can itself
@@ -84,26 +88,8 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   needs a real password reports that distinctly from a malformed file so a caller can ask for it.
 - Note: this is a decryption capability, not an authoring one. Never weaken, strip, or bypass a
   permission flag the file declares, and keep encryption *writing* out of scope.
-- Related: T-428
-
-### T-428 — The cross-reference table is never read
-
-- Intent: `scanObjects` finds objects by scanning the entire file for an `N G obj` pattern and
-  keeps the last definition it meets. That is a good *repair* path and a poor *primary* one. Four
-  consequences follow: a generation number is parsed and then discarded, so `5 0 obj` and `5 1 obj`
-  collide; an incremental update is resolved by file order rather than by what the newest trailer
-  says, so a file whose update reinstates an earlier object resolves to the wrong one; a stream
-  whose `/Length` is a forward indirect reference costs a fresh scan to end of file, which is
-  quadratic on a file that writes them consistently; and `Reader.open` parses every object in the
-  document and expands every object stream before the first page is asked for, so opening is
-  linear in the file rather than in the page requested. The corpus does not show this — its largest
-  fixture is 2.6 MB.
-- Complete when: `startxref` is followed through the `/Prev` chain across both classic tables and
-  cross-reference streams, an object is located by number *and* generation through that index,
-  free entries are honoured, the full scan remains as the fallback for a file whose index is
-  damaged, an object is parsed on first use rather than at open, and opening a large document
-  costs the trailer chain rather than the file.
-- Related: T-427, T-461
+- Note: the object index is now read from the file's own trailer chain, so a decrypted string or
+  stream is decrypted per object as it is parsed rather than in a pass over everything.
 
 ---
 
@@ -379,44 +365,39 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
 
 ## Tier D — Cost
 
-### B-158 — The engine is between five and eight times slower than MuPDF
+### B-158 — Decoding a page costs five times what MuPDF charges for it
 
 - Evidence: measured against MuPDF 1.28.2 over the whole corpus, alternating the two so both see
-  the same machine, in release configuration and taking the best of three: opening the sixteen
-  files costs 148 ms against 18 ms, decoding all 360 pages 1 633 ms against 282 ms, and
-  rasterizing them at 72 dpi 7 158 ms against 1 244 ms. The three large constant factors that
-  used to dominate are gone — a second rasterization of every page for an alpha channel an opaque
-  ground then overwrote, an image decoded once per page that showed it, a font decoded once per
-  page that named it — and what is left is spread thin rather than concentrated in one place.
-  Decoding splits, by disabling each stage in turn, into 284 ms of stream decompression and page
-  setup, 455 ms of tokenizing operands into `Node` values, and about 1 170 ms of operator
-  execution, of which `appendText` is 276 ms. Rasterizing splits into roughly equal thirds
-  between text, images and paths once the fixed per-page cost of 1,4 s across the corpus is
-  taken out.
-- Note: the machine this was measured on runs several agents, and the same binary varies between
-  1,63 s and 3,96 s on the decoding phase across runs. Nothing below a structural change shows
-  above that; a 10% claim needs a deterministic counter or a quiet machine, not a stopwatch.
-- Next: attack the two costs that are structural rather than constant — a `Node` is one hundred
-  and sixty bytes with a hash table, an array and a string in it whatever it holds, and every
-  numeric operand of every content stream allocates one; and `q` pushes a whole `GraphicsState`,
-  which owns a string, two colour spaces and a dash array, on every save.
-- Complete when: the corpus decodes and rasterizes within twice MuPDF, measured the same way.
-- Related: T-428, B-159
+  the same machine, in release configuration and taking the best of three. Opening the sixteen
+  files costs 7.8 ms against 16.0 ms — this side is now the faster one. The first page of each
+  document, which is the whole of what a reader waits for, costs 123 ms against 51.5 ms. Walking
+  all 360 pages costs 1 262 ms against 259 ms.
+- Note: this is measured on `Reader.open` and `Reader.loadPage`, which is what the viewer runs:
+  [[Gui.PdfView]] paints the decoded page through the application's renderer, so the offline
+  `Page.render` path is not on it. A stopwatch is only usable here when the machine is quiet;
+  the same binary varies threefold across runs under load, and every conclusion below came from
+  a counter or from two builds alternated in one sitting.
+- Next: decoding a page splits, from accumulators inside `decodePage` in one run, into 1.4% of
+  stream decompression, 1.9% of fonts, and the rest inside the content parser: images are 71% of
+  it for 150 draws, text 12% for 163 000 runs, paths 0.3%. So the next thing to understand is why
+  one image costs what a thousand text runs cost, and how much of that is the copy an image item
+  takes rather than the decode itself.
+- Complete when: the corpus decodes within twice MuPDF, measured the same way.
+- Related: B-162
 
-### B-159 — A content stream operand costs a full parser node
+### B-162 — An image is copied once per page item that shows it
 
-- Evidence: `parseContent` runs the document parser over the content stream, so every operand —
-  and a dense page has tens of thousands of numbers — becomes a `Node`, which carries a
-  `HashTable`, two `Array` values and a `String` whatever kind it is. The array is never reset
-  between operators either, so a page's node table grows to the whole stream and is then thrown
-  away. Tokenizing measures at 455 ms of the corpus's 1 633 ms.
-- Next: keep the numbers out of the node table entirely — an operand stack of `f32` beside the
-  node ids the few non-numeric operands need — and clear the content parser's nodes with the
-  operand stack, which is safe because every operator consumes its operands before the next one
-  starts and `GraphicsState` owns the strings it keeps.
-- Complete when: a numeric operand allocates nothing, the content node table is bounded by one
-  operator, and the corpus decode time moves measurably.
-- Related: B-158
+- Evidence: a decoded image is kept per document, so the second page showing a slide template
+  does not decode it again — but it does copy it. `Item.image` is an owned `Image`, because
+  `Reader.loadPage` states that a page owns what it retains and stays valid after its reader is
+  released. A 2316x1154 template is eight megabytes per page that shows it, and the corpus pays
+  that on a hundred of its cache hits.
+- Next: measure the split between the copies and the decodes by counting cache hits and misses
+  before designing anything; the fix needs either a shared buffer in `Core`, which does not
+  exist, or a narrower ownership contract for `Page`, which is a decision rather than a change.
+- Complete when: showing the same image on a hundred pages costs one copy of it, or the entry is
+  rewritten around the ownership decision that says it may not.
+- Related: T-458, B-158
 
 ### T-456 — Typefaces built for a document are never released
 
@@ -471,10 +452,13 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   Nothing exercises a truncated stream, a cyclic page tree, a lying `/Length`, an object that
   claims a billion entries, or a hundred-megabyte scan — and the parser has no overall memory or
   node budget to catch one, only the local depth limits it already carries.
+- Note: two of these now have a test each — a blunted `startxref` falls through to the repair
+  scan, and an incremental update resolves to the revision its trailer names — but they build
+  their fixture at run time rather than carrying one, and neither is a hostile input.
 - Complete when: a malformed corpus covers truncation, cycles, contradictory lengths and
-  declared-size attacks with the expected error for each, a large fixture makes the open cost of
-  T-428 measurable, and the parser refuses to allocate past a stated budget.
-- Related: T-428
+  declared-size attacks with the expected error for each, a large fixture shows that opening
+  costs the trailer chain rather than the file, and the parser refuses to allocate past a stated
+  budget.
 
 ---
 

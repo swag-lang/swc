@@ -37,6 +37,10 @@ const TagStart       = 0x4000_0000'u32     // Nothing of the pattern is matched 
 const TagMask        = 0xC000_0000'u32     // Both of them.
 const StateIndexMask = 0x3FFF_FFFF'u32     // What is left: the index of the state itself.
 
+// How large the index of interned states starts. It doubles as states are discovered, and
+// most patterns never need more than the first size.
+const InitialIndexSize = 64'u64
+
 // How many transitions one automaton may cache: four megabytes of table for the widest
 // patterns, and far less for an ordinary one.
 const MaxCachedTransitions = 1_000_000'u64
@@ -94,6 +98,18 @@ struct Dfa
 
 impl Dfa
 {
+    // Prepares the automaton the first time it is asked to search.
+    //
+    // A pattern is often compiled and then used in a way that never reaches an automaton — a
+    // whole-subject match, for one — so the tables it needs are not built until a search
+    // actually needs them.
+    #[Swag.Inline]
+    mtd ensure(program: const *Program)
+    {
+        if .stride == 0 do
+            .configure(program)
+    }
+
     // Prepares the automaton for one program, dropping whatever it cached for another.
     //
     // The reverse automaton searches for where a match starts, which is why it keeps every
@@ -133,7 +149,7 @@ impl Dfa
         .stateData.clear()
         .trans.clear()
         .hashSlots.clear()
-        .hashSlots.resize(1024)
+        .hashSlots.resize(InitialIndexSize)
         .hashSlots.fill(0)
         .hashMask  = .hashSlots.count - 1
         .exhausted = false
@@ -459,6 +475,7 @@ impl Dfa
     mtd searchForward(program: const *Program, prefilter: const *Prefilter, hay: const [..] u8, start, limit: u64, anchored: bool)->{ found: bool, quit: bool, end: u64 }
     {
         var result: retval
+        .ensure(program)
 
         // An anchored search has one place to look and no scan to skip ahead with, which is a
         // shorter loop and a cheaper call; a caller that only wants the end asks for it
@@ -598,6 +615,7 @@ impl Dfa
     // automaton refuses the subject.
     mtd searchAnchoredEnd(program: const *Program, hay: const [..] u8, start, limit: u64)->u64
     {
+        .ensure(program)
         if .exhausted do
             return QuitOffset
 
@@ -657,6 +675,7 @@ impl Dfa
     mtd searchReverse(program: const *Program, hay: const [..] u8, start, end: u64)->{ found: bool, quit: bool, start: u64 }
     {
         var result: retval
+        .ensure(program)
 
         if .exhausted
         {

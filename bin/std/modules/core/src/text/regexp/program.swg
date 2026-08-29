@@ -460,15 +460,12 @@ impl Program
             // depend on what another accepted.
             let continuation = .insts[reachable[0]].next
             var set: ByteSet
+            var added        = 0'u32
             for pc in reachable
             {
                 if .insts[pc].next != continuation do
                     return false
-                for var b = 0'u32; b < 256; b += 1
-                {
-                    if me.acceptsByte(pc, cast(u8) b) do
-                        set.add(cast(u8) b)
-                }
+                me.addAcceptedBytes(pc, &set, &added)
             }
 
             sets.add(set)
@@ -544,18 +541,8 @@ impl Program
 
             var set: ByteSet
             var count = 0'u32
-            for pc in reachable
-            {
-                for var b = 0'u32; b < 256; b += 1
-                {
-                    if !.acceptsByte(pc, cast(u8) b) do
-                        continue
-                    if set.contains(cast(u8) b) do
-                        continue
-                    set.add(cast(u8) b)
-                    count += 1
-                }
-            }
+            for pc in reachable do
+                me.addAcceptedBytes(pc, &set, &count)
 
             sets.add(set)
             scores.add(setScore(&set))
@@ -679,6 +666,33 @@ impl Program
         if .insts[pc].kind == InstKind.ByteSet do
             return .byteSets[.insts[pc].slot].contains(value)
         return value >= .insts[pc].lo and value <= .insts[pc].hi
+    }
+
+    // Adds every byte one instruction accepts to a set, and counts the ones that were not
+    // there already.
+    //
+    // An interval is walked over its own bounds rather than over all two hundred and
+    // fifty-six byte values: compiling a pattern asks this once per offset per instruction,
+    // and a literal of eight characters was paying two thousand answers for eight bytes.
+    mtd const addAcceptedBytes(pc: u32, set: *ByteSet, added: *u32)
+    {
+        let before = set.members
+
+        if .insts[pc].kind == InstKind.ByteSet
+        {
+            for var b = 0'u32; b < 256; b += 1
+            {
+                if .byteSets[.insts[pc].slot].contains(cast(u8) b) do
+                    set.add(cast(u8) b)
+            }
+        }
+        else
+        {
+            for var b = cast(u32) .insts[pc].lo; b <= cast(u32) .insts[pc].hi; b += 1 do
+                set.add(cast(u8) b)
+        }
+
+        added[] += set.members - before
     }
 }
 

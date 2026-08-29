@@ -106,8 +106,6 @@ public impl RegExp
         .compiled     = true
 
         .slots.resize(.program.slotCount)
-        .forwardDfa.configure(&.program)
-        .reverseDfa.configure(&.reverse)
         .prepareInnerLiteral(&ast)
 
         // A hit that costs one anchored attempt is only worth it while hits are rare; past
@@ -433,8 +431,7 @@ private impl RegExp
 
         .innerScan   = scan
         .innerPrefix = Regex.Program.compile(ast, true, inner.prefixRoot)
-        .innerDfa.configure(&.innerPrefix)
-        .useInner = true
+        .useInner    = true
     }
 
     // Runs the engines over one subject and keeps what they found.

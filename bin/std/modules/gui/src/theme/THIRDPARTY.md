@@ -23,7 +23,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 This license applies to the icon geometry embedded in icons.svg, taken from
-Fluent UI System Icons (https://github.com/microsoft/fluentui-system-icons).
+Fluent UI System Icons (https://github.com/microsoft/fluentui-system-icons) and
+VS Code Codicons (https://github.com/microsoft/vscode-codicons).
 
 # GUI font licences
 

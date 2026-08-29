@@ -377,3 +377,24 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     btn.setText("A much longer caption nobody sees")
     @assert(btn.itf.measureContent({320, 200}).x == hidden.x)
 }
+
+// A compact icon menu centers the icon and its smaller disclosure marker as one horizontal
+// group. The marker keeps the standard inter-glyph spacing instead of crowding the action.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(100, 68)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    let btn = IconButton.create(&host.root, host.theme.icon(.Redo, 18), {24, 16, 52, 36}, flags: .CenterContent)
+    btn.setArrowPosition(.RightDownward)
+    let measured = btn.itf.measureContent({100, 68})
+    @assert(measured.x == 2 * host.theme.metrics.btnIcon_Padding + 18 + host.theme.metrics.btnIcon_SpacingArrowH + host.theme.metrics.btnIcon_ArrowSize)
+    @assert(measured.y == 2 * host.theme.metrics.btnIcon_Padding + 18)
+
+    host.settleAnimations(&host.root, 4)
+    var image = host.render(&host.root)
+    Pixel.Testing.assertImageGolden(&image, "iconbutton.menu-arrow")
+}

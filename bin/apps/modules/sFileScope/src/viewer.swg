@@ -163,6 +163,7 @@ struct ViewerRequest
     contentParent:        *Wnd = undefined                     // Parent the document view must be created under.
     commandParent:        *Wnd = undefined                     // Parent for an optional full-width viewer command group.
     fileName:             string                               // File the view has to show.
+    icon:                 Icon                                 // Viewer-specific glyph for actions that represent this view.
     actionParent:         *Wnd = undefined                     // Parent for compact actions shown in the host action bar.
     infoParent:           *Wnd = undefined                     // Parent for compact values shown in the host information bar.
     reportFailure:        #null ViewerReportFailure            // Reports a decoder error discovered after creation.
@@ -176,14 +177,14 @@ struct ViewerRequest
 //
 // A successful viewer returns `view`. When decoding stops, it leaves `view` null and returns the
 // decoder's explanation through `failureReason`; the application then owns the complete error
-// surface. `actions` occupies the action bar's centre whenever search is unavailable, `info`
-// extends the file-information row, and `commands` owns the optional full-width band below the
-// content. A viewer leaves unused regions null. One that cannot reveal an offset leaves
+// surface. `actions` occupies the action bar's centre or a docked edge beside shared controls,
+// `info` extends the file-information row, and `commands` owns the optional full-width band below
+// the content. A viewer leaves unused regions null. One that cannot reveal an offset leaves
 // `revealMatch` null, and a view that does no progressive work leaves `isLoading` null.
 struct ViewerResult
 {
     view:                #null *Wnd                          // Document view the viewer owns, or null when decoding stopped.
-    actions:             #null *Wnd                          // Compact centre group in the host action bar, or null.
+    actions:             #null *Wnd                          // Compact group in the host action bar, or null.
     info:                #null *Wnd                          // Compact trailing group in the host information bar, or null.
     commands:            #null *Wnd                          // Full-width lower command group, or null.
     details:             String                              // Short format-specific summary shown by the application.

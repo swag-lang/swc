@@ -80,6 +80,7 @@ enum ThemeIcons
     AudioTracks        // Choose one of several sound tracks.
     SearchPrevious     // Previous occurrence in a search result.
     SearchNext         // Next occurrence in a search result.
+    MatchWholeWord     // Restrict a search to complete words.
 }
 
 impl Theme

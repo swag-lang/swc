@@ -22,6 +22,22 @@ func finishBinaryViewer(host: *Testing.HeadlessHost, view: *BinaryViewer)
     @assert(view.loadTimer == null)
 }
 
+func completeBinaryViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindow)
+{
+    completeViewerWindowClassification(host, window)
+
+    var steps = 0'u32
+    while window.activeChoiceIndex < window.instances.count and steps < 10_000
+    {
+        let instance = &window.instances[window.activeChoiceIndex]
+        if !instance.view or !instance.isLoading or !instance.isLoading!(instance.view!) do
+            break
+        Threading.Thread.sleep(1'ms)
+        host.fireTimers()
+        steps += 1
+    }
+}
+
 // Total size of the synthesized image. Two sections of one file-alignment unit each, behind a
 // header block of the same size.
 const FixtureSize = 0x800'u64
@@ -745,10 +761,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     var host: Testing.HeadlessHost
     host.setup(640, 420)
     defer host.shutdown()
-    let request = ViewerRequest{&host.root, &host.root, "this-file-does-not-exist.bin"}
+    let request = ViewerRequest{contentParent: &host.root, commandParent: &host.root, fileName: "this-file-does-not-exist.bin", actionParent: &host.root}
     var result: ViewerResult
     createBinaryViewer(&request, &result)
-    @assert(result.view != null and result.commands != null and result.collectMatches != null and result.isLoading != null)
+    @assert(result.view != null and result.actions != null and result.commands == null and result.collectMatches != null and result.isLoading != null)
     let view = cast(*BinaryViewer) result.view!
     finishBinaryViewer(&host, view)
     @assert(!view.failureReason.isEmpty())
@@ -756,8 +772,8 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
 func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*BinaryViewer
 {
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 124, 36})
-    let view     = (expect BinaryViewer.create(&host.root, commands, fileName))!
+    let actions = Wnd.create'Wnd(&host.root, {0, 0, 124, 36})
+    let view    = (expect BinaryViewer.create(&host.root, actions, fileName))!
     finishBinaryViewer(host, view)
     view.dockStyle = .Center
     view.resize(width, height)
@@ -784,7 +800,8 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
 
     let view = createTestViewer(&host, fileName.toString(), 1100, 600)
     @assert(view.rowLines.count == view.doc.report.rows.count)
-    @assert(view.commands.position.width <= 140)
+    @assert(view.actions.position.width <= 140)
+    @assert(view.menuButton.arrowPosition == .RightDownward)
     @assert(Utf8.contains(view.details.toSlice(), "PE32+"))
 
     // The groups the report opened are visible; the ones it did not are folded away.
@@ -844,7 +861,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
     @assert(!Utf8.contains(one.toSlice(), "swagExport"))
 }
 
-// Search indexes the decoded report, highlights the exact cell, and reaches folded structures.
+// Search indexes the decoded report, outlines the exact text, and reaches folded structures.
 #test
 {
     let bytes    = buildPeFixture()
@@ -863,10 +880,50 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
     @assert(view.revealMatch(matches[0]))
     @assert(view.list.selectedLine() != null)
     @assert(binaryCellText(view.list.selectedLine()!, .Field) == "e_lfanew")
-    @assert(view.list.selectedLine()!.itemAt(cast(u32) BinaryColumn.Detail).colorBk == view.themeColors().edit_SelectedBk)
+    let item = view.list.selectedLine()!.itemAt(cast(u32) BinaryColumn.Detail)
+    @assert(item.name.raw == "file offset of the PE signature")
+    @assert(!item.colorBk.a)
+
+    var bounds: Math.Rectangle
+    @assert(view.searchBounds(&bounds))
+    let rowWidth = view.list.listView.clientRect().width
+    @assert(bounds.width > 0 and bounds.width < rowWidth * 0.5)
 
     view.clearSearch()
     @assert(view.list.selectedLine() == null)
+}
+
+// A searchable binary keeps its format action beside the centered search group, and does not
+// reserve a second command band below the document.
+#test
+{
+    let bytes    = buildPeFixture()
+    let fileName = writeFixture("pe_window", bytes.toSlice())
+    defer discard catch File.delete(fileName.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+
+    let index  = createViewerIndex()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+    window.openFile(fileName.toString())
+    completeBinaryViewerWindow(&host, window)
+
+    @assert(window.currentActions != null and window.currentActions!.parent == window.commandBar)
+    @assert(window.currentActions!.dockStyle == .Left and window.currentActions!.isLocallyVisible())
+    @assert(window.searchGroup.isLocallyVisible())
+    @assert(window.currentCommands == null and !window.viewerBar.isLocallyVisible())
+
+    let view = cast(*BinaryViewer) window.currentView!
+    @assert(view.menuButton.icon.isValid() and view.menuButton.icon.index == cast(s32) ViewerIcons.Binary)
+    @assert(view.menuButton.arrowPosition == .RightDownward)
+
+    host.settleAnimations(window.commandBar, 4)
+    var image = host.render(window.commandBar)
+    image.crop(window.commandBar.surfaceRect())
+    Pixel.Testing.assertImageGolden(&image, "viewer.binary.action-bar")
 }
 
 // The report, its headings, and its controls all follow a live language change.

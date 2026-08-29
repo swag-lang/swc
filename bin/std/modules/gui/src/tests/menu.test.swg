@@ -259,8 +259,8 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     defer host.shutdown()
 
     let popup = MenuCtrl.createPopup(&host.root)
-    popup.addItem("Actual Size", Menu_Open)
-    popup.addItem("Fit To View", Menu_Quit)
+    popup.addItem("Actual size", Menu_Open)
+    popup.addItem("Fit to view", Menu_Quit)
 
     let anchor = Math.Point{310, 40}
     var checked: bool
@@ -416,7 +416,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     let sub   = MenuCtrl.createPopup(&host.root)
     sub.addItem("Sans serif", Menu_Open, checked: true)
     sub.addItem("Monospace", Menu_Quit)
-    popup.addItem("Current choice", Menu_New, checked: true)
+    popup.addItem("Current choice", Menu_New, checked: true, rightName: "Ctrl+Enter")
     popup.addPopup("Typography", sub)
     popup.setSubmenuDirection(.Left)
 

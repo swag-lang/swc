@@ -824,6 +824,7 @@ impl ViewerWindow
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
         .searchPrevious.setIcon(.theme().icon(.SearchPrevious, 16))
         .searchNext.setIcon(.theme().icon(.SearchNext, 16))
+        .searchWholeWord.setIcon(.theme().icon(.MatchWholeWord, 16))
         if .activeChoiceIndex < .choices.count do
             .infoIconLabel.setIcon(.icon(.choices[.activeChoiceIndex].icon))
     }
@@ -1052,11 +1053,10 @@ impl ViewerWindow
             }
         }
 
-        with result.searchWholeWord = IconButton.create(result.searchGroup, {}, {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize}, flags: .Toggle | .CenterContent)
+        with result.searchWholeWord = IconButton.create(result.searchGroup, result.theme().icon(.MatchWholeWord, 16), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize}, flags: .Toggle | .CenterContent)
         {
             .layoutSpec.alignY = .Center
             .toolTip           = appStrings().ui_SearchWholeWord
-            .setText("ab")
             .setCheckIndicator(.Frame)
             .sigCheckedChanged += func|window = result|(button)
             {
@@ -1959,6 +1959,7 @@ impl ViewerWindow
             let request = ViewerRequest{
                 contentParent: me,
                 commandParent: .viewerBar,
+                icon: .icon(choice.icon, ViewerGlyphSize),
                 actionParent: .commandBar,
                 infoParent: .infoContentGroup,
                 fileName: .currentFile.toString(),
@@ -2359,8 +2360,9 @@ impl ViewerWindow
         .searchMatchCase.enable(available)
         .searchWholeWord.enable(available)
         .searchGroup.show(available)
-        .currentActions?.show(!available)
-        .commandBar.centerGroup = available ? .searchGroup : .currentActions
+        let actionsBesideSearch = .currentActions and .currentActions!.dockStyle != .None
+        .currentActions?.show(!available or actionsBesideSearch)
+        .commandBar.centerGroup = available ? .searchGroup : (actionsBesideSearch ? null : .currentActions)
         .commandBar.centerContent()
         .restartSearch()
         if !available and searchHadFocus do

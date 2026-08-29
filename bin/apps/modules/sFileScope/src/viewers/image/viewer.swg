@@ -155,19 +155,25 @@ internal impl ImageViewer
         .imageView.resetTransform()
     }
 
-    mtd showTransformMenu(position: Math.Point)
+    mtd createTransformMenu()->*MenuCtrl
     {
         let texts = imageStrings()
         let menu  = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(texts.ui_RotateCounterClockwise, "sFileScope.image.rotateLeft", .theme().icon(.Undo, ImageGlyphSize))
-        menu.addItem(texts.ui_RotateClockwise, "sFileScope.image.rotateRight", .theme().icon(.Redo, ImageGlyphSize))
+        menu.addItem(texts.ui_RotateCounterClockwise, "sFileScope.image.rotateLeft", .theme().icon(.Undo, ImageGlyphSize), rightName: "Shift+R")
+        menu.addItem(texts.ui_RotateClockwise, "sFileScope.image.rotateRight", .theme().icon(.Redo, ImageGlyphSize), rightName: "R")
         menu.addSeparator()
-        menu.addItem(texts.ui_MirrorHorizontal, "sFileScope.image.mirrorHorizontal")
-        menu.addItem(texts.ui_MirrorVertical, "sFileScope.image.mirrorVertical")
+        menu.addItem(texts.ui_MirrorHorizontal, "sFileScope.image.mirrorHorizontal", rightName: "H")
+        menu.addItem(texts.ui_MirrorVertical, "sFileScope.image.mirrorVertical", rightName: "V")
         menu.addSeparator()
-        menu.addItem(texts.ui_ResetTransform, "sFileScope.image.reset", .theme().icon(.Update, ImageGlyphSize))
+        menu.addItem(texts.ui_ResetTransform, "sFileScope.image.reset", .theme().icon(.Update, ImageGlyphSize), rightName: "Ctrl+R")
+        return menu
+    }
 
-        switch menu.doModal(position, .TopLeft, autoDestroy: true) orelse ""
+    mtd showTransformMenu()
+    {
+        let rect = .transformButton.surfaceRect()
+        let menu = .createTransformMenu()
+        switch menu.doModal({rect.horzCenter(), rect.bottom()}, .AnchorTopCenter, autoDestroy: true) orelse ""
         {
         case "sFileScope.image.rotateLeft":       .rotateCounterClockwise()
         case "sFileScope.image.rotateRight":      .rotateClockwise()
@@ -389,8 +395,8 @@ private impl ImageViewer
             .setArrowPosition(.RightDownward)
             .sigPressed += func|view = result|(button)
             {
-                let rect = button.surfaceRect()
-                view.showTransformMenu({rect.x, rect.bottom()})
+                discard button
+                view.showTransformMenu()
             }
         }
 

@@ -9,11 +9,11 @@ ui_TipActual   Taille réelle
 ui_TipTransform Orientation de l'image
 ui_TipPlay     Lire ou mettre en pause
 
-ui_RotateClockwise        Pivoter à droite (R)
-ui_RotateCounterClockwise Pivoter à gauche (Maj+R)
-ui_MirrorHorizontal       Miroir horizontal (H)
-ui_MirrorVertical         Miroir vertical (V)
-ui_ResetTransform         Réinitialiser l'orientation (Ctrl+R)
+ui_RotateClockwise        Pivoter à droite
+ui_RotateCounterClockwise Pivoter à gauche
+ui_MirrorHorizontal       Miroir horizontal
+ui_MirrorVertical         Miroir vertical
+ui_ResetTransform         Réinitialiser l'orientation
 word_Mirrored             miroir
 
 word_Frame     image

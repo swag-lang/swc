@@ -3,9 +3,9 @@
 sFileScope is the universal read-only viewer shipped with Swag. One executable owns navigation,
 drag and drop, the shared search and information bands, the basic text surface, and every
 format-specific viewer. Global navigation and file information stay above the document. A viewer
-can place compact actions in the centered slot of the shared action bar, values at the trailing
-edge of the information band, and wider controls in a dedicated lower tool band that appears only
-when it is needed.
+can place compact actions in the shared action bar, either centered or beside shared search, values
+at the trailing edge of the information band, and wider controls in a dedicated lower tool band
+that appears only when it is needed.
 
 ## Integrated viewer registry
 
@@ -82,8 +82,9 @@ guessing an encoding.
   meaning. It recognizes Windows images, COFF and `ar` libraries, ELF, Mach-O, WebAssembly, ZIP,
   RIFF, Standard MIDI Files, sfnt fonts, Windows icons, and Swag Chunk Containers. Unknown files
   still receive signature, size, and entropy analysis. Shared search indexes every decoded report
-  column and reveals folded matches. Its compact menu copies rows or the report, expands or folds
-  the tree, jumps to a file offset, and walks visited rows backward or forward.
+  column and reveals folded matches by outlining only the matching text. Its viewer-glyph menu sits
+  in the shared action bar beside search; it copies rows or the report, expands or folds the tree,
+  jumps to a file offset, and walks visited rows backward or forward.
 - `Hexadecimal` is available for every file. It keeps one 256 KiB resident window whose reads are
   aligned to 64 KiB boundaries, uses 64-bit offsets, and supports independent scalar width,
   representation, and byte order.
@@ -92,8 +93,9 @@ Text-oriented viewers handle normal keyboard and scrollbar navigation while cont
 Home, End, distant scrollbar jumps, and search open a bounded resident window near the requested
 offset. Ctrl+F scans in asynchronous 256 KiB chunks, while viewers such as PDF and Binary replace
 that scan with format-aware search. Search is case-insensitive by default; `Aa` requires the same
-case and `ab` restricts matches to whole words. The result counter reports the current and total
-occurrences, F3 and Shift+F3 move forward and backward with wrapping, and every viewer supplies
+case and the bracketed word glyph restricts matches to whole words. The result counter reports the
+current and total occurrences, F3 and Shift+F3 move forward and backward with wrapping, and every
+viewer supplies
 only match geometry to the same animated, theme-derived current-result marker. The information
 band shows a spinner while the active viewer is still producing visible content, and switching
 viewers retires hidden progressive work.
@@ -125,7 +127,7 @@ key, name, glyph, immutable fixture, and selectors to `createViewerIndex`. The f
 key is lowercase, never translated, and never reused: it is the spelling a reader's remembered
 choice is stored under. The glyph is a new 24-unit cell appended to `datas/icons.svg` with a
 matching `ViewerIcons` case in grid order. Create the document under `request.contentParent`,
-compact centered actions under `request.actionParent`, trailing values under `request.infoParent`,
+compact actions under `request.actionParent`, trailing values under `request.infoParent`,
 and only wider controls under `request.commandParent`; publish those roots through the matching
 `ViewerResult` fields. On decode failure, leave `result.view` null and return the exact reason
 through `result.failureReason`; the application presents every failure on the same error surface.

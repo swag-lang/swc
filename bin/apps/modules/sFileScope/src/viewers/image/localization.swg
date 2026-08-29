@@ -16,11 +16,11 @@ struct ImageStrings
     ui_TipActual:              string = "Actual size"                            // Tooltip of the actual-size button.
     ui_TipTransform:           string = "Image orientation"                      // Tooltip of the orientation menu button.
     ui_TipPlay:                string = "Play or pause"                          // Tooltip of the animation transport button.
-    ui_RotateClockwise:        string = "Rotate clockwise (R)"                   // Clockwise menu action.
-    ui_RotateCounterClockwise: string = "Rotate counter-clockwise (Shift+R)"     // Counter-clockwise menu action.
-    ui_MirrorHorizontal:       string = "Mirror horizontally (H)"                // Horizontal reflection menu action.
-    ui_MirrorVertical:         string = "Mirror vertically (V)"                  // Vertical reflection menu action.
-    ui_ResetTransform:         string = "Reset orientation (Ctrl+R)"             // Restores source orientation.
+    ui_RotateClockwise:        string = "Rotate clockwise"           // Clockwise menu action.
+    ui_RotateCounterClockwise: string = "Rotate counter-clockwise"   // Counter-clockwise menu action.
+    ui_MirrorHorizontal:       string = "Mirror horizontally"        // Horizontal reflection menu action.
+    ui_MirrorVertical:         string = "Mirror vertically"          // Vertical reflection menu action.
+    ui_ResetTransform:         string = "Reset orientation"          // Restores source orientation.
     word_Mirrored:             string = "mirrored"                               // Status of reflected image content.
     word_Frame:                string = "frame"                                  // One animation frame.
     word_Frames:               string = "frames"                                 // Several animation frames.

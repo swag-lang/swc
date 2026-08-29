@@ -94,15 +94,15 @@ struct Strings
         edit_Cut:       string = "Cut"            // Move the selection to the clipboard.
         edit_Copy:      string = "Copy"           // Copy the selection to the clipboard.
         edit_Paste:     string = "Paste"          // Insert the clipboard at the caret.
-        edit_SelectAll: string = "Select All"     // Extend the selection to the whole content.
+        edit_SelectAll: string = "Select all"     // Extend the selection to the whole content.
 
         prop_Copy:             string = "Copy"                              // Copy the value of a property.
         prop_Paste:            string = "Paste"                             // Paste into a property.
         prop_ResetDefault:     string = "Reset to default"                  // Restore the default value of a property.
-        prop_MoveUp:           string = "Move Up"                           // Move a list element up.
-        prop_MoveDown:         string = "Move Down"                         // Move a list element down.
+        prop_MoveUp:           string = "Move up"                           // Move a list element up.
+        prop_MoveDown:         string = "Move down"                         // Move a list element down.
         prop_Remove:           string = "Remove"                            // Remove a list element.
-        prop_RemoveAll:        string = "Remove All"                        // Remove every list element.
+        prop_RemoveAll:        string = "Remove all"                        // Remove every list element.
         prop_ConfirmRemove:    string = "This will remove the element"      // Confirmation before removing one element.
         prop_ConfirmRemoveAll: string = "This will remove all elements"     // Confirmation before clearing a list.
         prop_Search:           string = "Search"                            // Placeholder of the property search box.

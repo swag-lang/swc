@@ -3,7 +3,7 @@
 using Core, Pixel, Gui
 
 private const BinaryGlyphSize      = 18.0
-private const BinaryCommandWidth   = 36.0
+private const BinaryActionWidth    = 48.0
 private const BinaryOffsetWidth    = 116.0
 private const BinaryDetailMinWidth = 200.0
 private const BinaryFillRows       = 128'u64
@@ -42,7 +42,7 @@ internal struct BinaryViewer
 
     #[Swag.Late]
     {
-        commands:   *Wnd
+        actions:    *ViewerCommandBar
         menuButton: *IconButton
         list:       *ListCtrl
     }
@@ -377,20 +377,6 @@ internal impl BinaryViewer
         if match.offset + match.length > source.length do
             return false
 
-        var marked: String
-        if match.offset do
-            marked += source[0 until match.offset]
-        marked += "<b>"
-        marked += source[match.offset until match.offset + match.length]
-        marked += "</b>"
-        if match.offset + match.length < source.length do
-            marked += source[match.offset + match.length until source.length]
-
-        let line = .rowLines[match.major]!
-        let item = line.itemAt(cast(u32) match.minor)
-        item.name    = marked.toString()
-        item.colorBk = .themeColors().edit_SelectedBk
-        item.colorFg = .themeColors().label_Text
         .searchRow    = match.major
         .searchColumn = match.minor
         .searchOffset = match.offset
@@ -401,9 +387,46 @@ internal impl BinaryViewer
 
     mtd searchBounds(result: *Math.Rectangle)->bool
     {
-        if .searchVisibleIndex == Swag.U32.Max do
+        if .searchVisibleIndex == Swag.U32.Max or .searchRow >= .rowLines.count or !.rowLines[.searchRow] do
             return false
-        return listRowSearchBounds(.list, .searchVisibleIndex, result)
+
+        let source = .cellText(.searchRow, .searchColumn)
+        if .searchOffset + .searchLength > source.length do
+            return false
+
+        let view       = .list.listView
+        let line       = .rowLines[.searchRow]!
+        let column     = cast(u32) .searchColumn
+        let lineHeight = .list.lineHeight()
+        let rowY       = cast(f32) .searchVisibleIndex * lineHeight - view.scrollPos.y
+        let font       = .list.font().regular!
+
+        var columnX = .list.header.itemPositionForColumn(column)
+        columnX += .list.header.surfaceRect().x - view.surfaceRect().x
+        columnX -= view.scrollPos.x
+
+        var textX = columnX + .list.leftTextMargin + line.leftTextMargin
+        if column == cast(u32) BinaryColumn.Field
+        {
+            textX += line.level * .list.indentWidth
+            if line.canExpand() or .list.listFlags.has(.ReserveExpandMargin) do
+                textX += .themeMetrics().list_ExpandSize
+        }
+        textX += .list.header.itemPadding
+
+        let text        = source.toString()
+        let prefixWidth = Painter.measureString(text[0 until .searchOffset], font).width
+        let matchWidth  = Painter.measureString(text[.searchOffset until .searchOffset + .searchLength], font).width
+        let textHeight  = font.height
+        var local       = Math.Rectangle{textX + prefixWidth, rowY + (lineHeight - textHeight) * 0.5, Math.max(matchWidth, 2), textHeight}
+        let cell        = Math.Rectangle{columnX, rowY, .list.header.itemWidthForColumn(column), lineHeight}
+        local.intersect(cell)
+        local.intersect(view.clientRect())
+        if local.isEmpty() do
+            return false
+
+        result[] = view.localToSurface(local)
+        return true
     }
 
     mtd clearSearch()
@@ -416,18 +439,6 @@ internal impl BinaryViewer
 
     private mtd clearSearchHighlight()
     {
-        if .searchRow >= .rowLines.count or !.rowLines[.searchRow]
-        {
-            .searchRow = Swag.U64.Max
-            return
-        }
-
-        let line = .rowLines[.searchRow]!
-        let item = line.itemAt(cast(u32) .searchColumn)
-        let text = .cellText(.searchRow, .searchColumn)
-        item.name    = text.toString()
-        item.colorBk = {}
-        .styleLine(.searchRow, line)
         .searchRow    = Swag.U64.Max
         .searchColumn = 0
         .searchOffset = 0
@@ -520,7 +531,7 @@ internal impl BinaryViewer
         discard .goToTypedOffset(typed.toString())
     }
 
-    mtd showContextMenu(surfacePos: Math.Point)
+    mtd createCommandMenu()->*MenuCtrl
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
         menu.addItem(ActionBinary.CopyAll)
@@ -532,13 +543,20 @@ internal impl BinaryViewer
         menu.addItem(ActionBinary.GoTo)
         menu.addItem(ActionBinary.Back)
         menu.addItem(ActionBinary.Forward)
+        return menu
+    }
+
+    mtd showContextMenu(surfacePos: Math.Point)
+    {
+        let menu = .createCommandMenu()
         discard menu.doModal(surfacePos, .TopLeft, autoDestroy: true)
     }
 
     mtd showCommandMenu()
     {
         let rect = .menuButton.surfaceRect()
-        .showContextMenu({rect.x, rect.y + rect.height})
+        let menu = .createCommandMenu()
+        discard menu.doModal({rect.horzCenter(), rect.bottom()}, .AnchorTopCenter, autoDestroy: true)
     }
 
     // Divides the visible width into the four lanes a row is read across.
@@ -722,12 +740,6 @@ internal impl IWnd for BinaryViewer
         {
             for line, index in .rowLines where line do
                 .styleLine(index, line!)
-            if .searchRow < .rowLines.count and .rowLines[.searchRow]
-            {
-                let item = .rowLines[.searchRow]!.itemAt(cast(u32) .searchColumn)
-                item.colorBk = .themeColors().edit_SelectedBk
-                item.colorFg = .themeColors().label_Text
-            }
             .list.invalidate()
         }
         else do
@@ -936,7 +948,7 @@ internal impl BinaryViewer
         .retired = true
     }
 
-    func create(contentParent, commandParent: *Wnd, fileName: string, reportDetails: #null ViewerReportDetails = null, reportFailure: #null ViewerReportFailure = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->#null *BinaryViewer fail
+    func create(contentParent, actionParent: *Wnd, fileName: string, icon: Icon = {}, reportDetails: #null ViewerReportDetails = null, reportFailure: #null ViewerReportFailure = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->#null *BinaryViewer fail
     {
         registerBinaryStrings(contentParent.app())
         let s = binStrings()
@@ -948,13 +960,15 @@ internal impl BinaryViewer
         result.reportFailure        = reportFailure
         result.reportLoadingChanged = reportLoadingChanged
 
-        result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, BinaryCommandWidth, 36})
-        result.commands.backgroundStyle = .Transparent
+        result.actions           = ViewerCommandBar.create(actionParent, BinaryActionWidth)
+        result.actions.dockStyle = .Left
+        result.actions.margin.x  = 8
 
-        with result.menuButton = IconButton.create(result.commands, result.theme().icon(.More, BinaryGlyphSize), {0, 0, 36, 36})
+        with result.menuButton = IconButton.create(result.actions, icon, {0, 0, BinaryActionWidth, 36}, flags: .CenterContent)
         {
             .dockStyle = .Left
             .toolTip   = s.ui_TipMenu
+            .setArrowPosition(.RightDownward)
             .enable(false)
             .sigPressed += func|view = result|(button)
             {
@@ -992,7 +1006,7 @@ internal impl BinaryViewer
         result.loadFileName = fileName
         defer #fail
         {
-            result.commands.destroy()
+            result.actions.destroy()
             result.destroy()
         }
 
@@ -1016,7 +1030,7 @@ private func runBinaryViewerLoad(thread: Threading.Thread)
 // Creates the integrated binary format view.
 func createBinaryViewer(request: const *ViewerRequest, result: *ViewerResult)
 {
-    let view = catch BinaryViewer.create(request.contentParent, request.commandParent, request.fileName, request.reportDetails, request.reportFailure, request.reportLoadingChanged) as createError
+    let view = catch BinaryViewer.create(request.contentParent, request.actionParent, request.fileName, request.icon, request.reportDetails, request.reportFailure, request.reportLoadingChanged) as createError
     if createError != null
     {
         result.failureReason = Errors.message(createError)
@@ -1024,7 +1038,7 @@ func createBinaryViewer(request: const *ViewerRequest, result: *ViewerResult)
     }
 
     result.view         = view!
-    result.commands     = view!.commands
+    result.actions      = view!.actions
     result.details      = view!.details
     result.collectMatches = func(wnd, text, options, matches) { (cast(*BinaryViewer) wnd).collectMatches(text, options, matches) }
     result.revealMatch  = func(wnd, match, text)->bool

@@ -153,19 +153,20 @@ impl IWnd for IconButton
 
         // The arrow stands on one side of the whole group, with its own margin and spacing. It is
         // a chevron of the theme icon set, so its box is square whichever way it points.
-        let arrowSize = metrics.chevron_Size
+        let arrowSize   = metrics.btnIcon_ArrowSize
+        let arrowMargin = .flags.has(.CenterContent) ? 0 : metrics.btnIcon_MarginArrow
         switch #complete .arrowPosition
         {
         case .None:
             break
 
         case .Left, .Right, .RightUpward, .RightDownward:
-            width  += arrowSize + metrics.btnIcon_MarginArrow + metrics.btnIcon_SpacingArrowH
+            width  += arrowSize + arrowMargin + metrics.btnIcon_SpacingArrowH
             height = Math.max(height, arrowSize)
 
         case .Top, .Bottom:
             width  = Math.max(width, arrowSize)
-            height += arrowSize + metrics.btnIcon_MarginArrow + metrics.btnIcon_SpacingArrowV
+            height += arrowSize + arrowMargin + metrics.btnIcon_SpacingArrowV
         }
 
         // The checked-state rail runs in a lane of its own, so it never eats into the group.
@@ -447,37 +448,45 @@ impl IWnd for IconButton
         if .iconHeight do
             icon.sizeY = .iconHeight
 
-        // Center everything
+        // Center the exact group that will be painted. A label-less button is an icon and an
+        // optional disclosure marker on one line; counting the absent label's font height used to
+        // treat that icon as if it were stacked above text, so neither part was centered in the
+        // button and the two marks appeared to run into each other.
         var marginArrow = metrics.btnIcon_MarginArrow
         if .flags.has(.CenterContent)
         {
-            var nw, nh = 0'f32
+            var nw = hasIcon ? icon.sizeX : 0
+            var nh = hasIcon ? icon.sizeY : 0
             marginArrow = 0
 
-            switch #complete .arrowPosition
+            let showsLabel = !.name.isEmpty() and !.flags.has(.IconOnly)
+            if showsLabel
             {
-            case .Left, .Right, .RightUpward, .RightDownward: nw += metrics.chevron_Size + metrics.btnIcon_SpacingArrowH
-            case .Top, .Bottom: nh += metrics.chevron_Size + metrics.btnIcon_SpacingArrowV
-            case .None:         break
-            }
-
-            let fontR = nnFont(.font().regular)
-            let sm    = Painter.measureString(.name.raw.toString(), fontR)
-            nw += sm.width
-            nh += fontR.height
-
-            if hasIcon
-            {
+                let fontR = nnFont(.font().regular)
+                let sm    = Painter.measureString(.name.raw.toString(), fontR)
                 switch #complete .textPosition
                 {
                 case .Left, .Right:
-                    nw += metrics.btnIcon_SpacingTextH
-                    nw += icon.sizeX
+                    nw += sm.width + (hasIcon ? metrics.btnIcon_SpacingTextH : 0)
+                    nh = Math.max(nh, fontR.height)
 
                 case .Top, .Bottom:
-                    nh += metrics.btnIcon_SpacingTextV
-                    nh += icon.sizeY
+                    nw = Math.max(nw, sm.width)
+                    nh += fontR.height + (hasIcon ? metrics.btnIcon_SpacingTextV : 0)
                 }
+            }
+
+            switch #complete .arrowPosition
+            {
+            case .Left, .Right, .RightUpward, .RightDownward:
+                nw += metrics.btnIcon_ArrowSize + metrics.btnIcon_SpacingArrowH
+                nh = Math.max(nh, metrics.btnIcon_ArrowSize)
+
+            case .Top, .Bottom:
+                nw = Math.max(nw, metrics.btnIcon_ArrowSize)
+                nh += metrics.btnIcon_ArrowSize + metrics.btnIcon_SpacingArrowV
+
+            case .None:         break
             }
 
             pos.x      = pos.horzCenter() - nw * 0.5
@@ -492,7 +501,7 @@ impl IWnd for IconButton
         // size answers for every direction.
         if .arrowPosition != .None
         {
-            let side  = metrics.chevron_Size
+            let side  = metrics.btnIcon_ArrowSize
             let arrow = theme.icon(arrowGlyph(.arrowPosition), side)
 
             var arrowX, arrowY: f32

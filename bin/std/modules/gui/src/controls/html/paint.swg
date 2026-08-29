@@ -864,13 +864,13 @@ impl HtmlPainter
         result.box = HtmlNoNode
 
         let document = .layout.document
-        for child in document.constNode(0).children where document.constNode(child).tag == .Html
+        for child in document.children(0) where document.constNode(child).tag == .Html
         {
             let fromRoot = .backgroundOf(child)
             if fromRoot.box != HtmlNoNode do
                 return fromRoot
 
-            for inner in document.constNode(child).children where document.constNode(inner).tag == .Body do
+            for inner in document.children(child) where document.constNode(inner).tag == .Body do
                 return .backgroundOf(inner)
             return result
         }

@@ -23,6 +23,30 @@ public struct HtmlOpenElement
     tag:     HtmlTag
 }
 
+// One attribute read from a start tag, as runs of the buffer being parsed.
+//
+// A tag is read in one pass, but the element it opens only exists once the `>` that ends it is in
+// the buffer: what the pass finds waits here rather than in the document.
+#[Swag.NoDoc]
+public struct HtmlPendingAttribute
+{
+    name:     HtmlRange
+    value:    HtmlRange
+    hasValue: bool
+    hasUpper: bool
+}
+
+// Where a start tag ends, and what its name is.
+#[Swag.NoDoc]
+public struct HtmlTagScan
+{
+    nameStart:   u32
+    nameEnd:     u32
+    selfClosing: bool
+    hasUpper:    bool
+    end       = Swag.U64.Max
+}
+
 // What a source is parsed as.
 //
 // A document carries the `html`, `head` and `body` elements even when it writes none of them, and
@@ -48,7 +72,11 @@ public struct HtmlParser
     document: *HtmlDocument
 
     stack:       Array'HtmlOpenElement
-    carry:       String
+    pending:     Array'HtmlPendingAttribute
+
+    // Where the tokenizer stands inside the source the document keeps. Text is addressed there
+    // rather than copied out of it, so a run of a page's content costs two numbers.
+    parseIndex:  u64
     baseOffset:  u64
     rawTag:      HtmlTag
     mode:        HtmlParserMode
@@ -71,7 +99,7 @@ impl HtmlParser
         .document = document
         .stack.clear()
         .stack.add({0, HtmlTag.Unknown})
-        .carry.clear()
+        .parseIndex  = 0
         .mode        = mode
         .baseOffset  = 0
         .inRawText   = false
@@ -94,7 +122,8 @@ impl HtmlParser
     // Opens the element a document implies, and returns it.
     mtd openImplied(tag: HtmlTag, offset: u64)->u32
     {
-        let element = .document.addElement(.current(), "", tag, offset)
+        var implied: HtmlRange
+        let element = .document.addElement(.current(), implied, tag, offset)
         .stack.add({element, tag})
         return element
     }
@@ -164,23 +193,23 @@ impl HtmlParser
     // A source that writes them is the same document as one that does not: the second `<body>` a
     // malformed page opens carries its attributes into the first, rather than starting a section
     // that nothing styles.
-    mtd adoptWrittenSection(tag: HtmlTag, attributes: string, offset: u64)->bool
+    mtd adoptWrittenSection(tag: HtmlTag, source: string, offset: u64)->bool
     {
         switch tag
         {
         case .Html:
             .ensureHtml(offset)
-            .readSectionAttributes(.htmlElement, attributes)
+            .readSectionAttributes(.htmlElement, source)
             return true
 
         case .Head:
             .ensureHead(offset)
-            .readSectionAttributes(.headElement, attributes)
+            .readSectionAttributes(.headElement, source)
             return true
 
         case .Body:
             .ensureBody(offset)
-            .readSectionAttributes(.bodyElement, attributes)
+            .readSectionAttributes(.bodyElement, source)
             return true
         }
 
@@ -192,12 +221,12 @@ impl HtmlParser
     // A page that opens `<body>` a second time around its content keeps the first spelling: the
     // standard merges the attributes it does not already carry, and the half that matters — the
     // first `<body class=...>` wins — is what this keeps.
-    mtd readSectionAttributes(element: u32, attributes: string)
+    mtd readSectionAttributes(element: u32, source: string)
     {
         let range = .document.constNode(element).attributes
         if range.start + range.count != cast(u32) .document.attributePool.count do
             return
-        .readAttributes(element, attributes)
+        .flushAttributes(element, source)
     }
 
     // Opens the section a start tag belongs to, before the element itself is inserted.
@@ -367,7 +396,7 @@ impl HtmlParser
         var anchor = .fosterAnchor()
         if anchor != HtmlNoNode and !@countof(Latin1.trim(content)) and !.document.precededByText(anchor) do
             anchor = HtmlNoNode
-        let decoded = .document.internDecoded(content)
+        let decoded = .internText(content, offset + eat)
         if anchor != HtmlNoNode
         {
             .document.insertTextBefore(anchor, decoded, offset + eat)
@@ -388,77 +417,137 @@ impl HtmlParser
         if !@countof(content) do
             return
 
-        .document.appendText(.current(), .document.intern(content), offset + eat)
+        .document.appendText(.current(), HtmlDocument.sourceRange(.sourceStart(content), @countof(content)), offset + eat)
     }
 
-    // Reports whether a name carries an upper-case letter, which is what decides whether folding
-    // it to lower case has to build anything at all.
-    func hasUpper(text: string)->bool
+    // Reads a tag from just after its `<` (and its `/` for an end tag) to the `>` that ends it.
+    //
+    // One pass answers everything the tree builder needs: where the name is, whether the source
+    // wrote it in mixed case, whether the tag closes itself, and every attribute — kept as runs of
+    // the buffer, because the element they belong to does not exist yet. A quoted value is skipped
+    // whole by the vectorized search for its closing quote rather than a byte at a time.
+    //
+    // `end` stays `Swag.U64.Max` when the buffer cuts the tag, and the caller waits for more.
+    mtd scanTag(source: string, start: u64)->HtmlTagScan
     {
-        for index in @countof(text) where Latin1.isUpper(text[index]) do
-            return true
-        return false
-    }
+        var result: retval
+        .pending.clear()
 
-    // Reads the attributes of a start tag, whose text spans from just after the element name to
-    // just before the closing `>`.
-    mtd readAttributes(element: u32, tag: string)
-    {
-        var index = 0'u64
-        while index < @countof(tag)
+        let count = @countof(source)
+        var index = start
+
+        result.nameStart = cast(u32) index
+        while index < count
         {
-            while index < @countof(tag) and Latin1.isSpace(tag[index]) do
-                index += 1
-            if index >= @countof(tag) do
-                return
+            let character = source[index]
+            if Latin1.isSpace(character) or character == '/' or character == '>' do
+                break
+            if Latin1.isUpper(character) do
+                result.hasUpper = true
+            index += 1
+        }
 
-            let nameStart = index
-            while index < @countof(tag) and !Latin1.isSpace(tag[index]) and tag[index] != '=' and tag[index] != '/' do
+        result.nameEnd = cast(u32) index
+
+        while index < count
+        {
+            let character = source[index]
+            if character == '>'
+            {
+                result.end = index
+                return result
+            }
+
+            if character == '/'
+            {
+                // A `/` closes the tag only where the standard says it does: right before the `>`.
                 index += 1
-            if index == nameStart
+                if index < count and source[index] == '>'
+                {
+                    result.selfClosing = true
+                    result.end         = index
+                }
+
+                continue
+            }
+
+            if Latin1.isSpace(character)
             {
                 index += 1
                 continue
             }
 
-            let name = .document.internLower(tag[nameStart until index])
-            var empty: HtmlRange
-            while index < @countof(tag) and Latin1.isSpace(tag[index]) do
-                index += 1
-            if index >= @countof(tag) or tag[index] != '='
+            var attribute: HtmlPendingAttribute
+            let nameStart = index
+            while index < count
             {
-                .document.addAttribute(element, name, empty)
+                let letter = source[index]
+                if Latin1.isSpace(letter) or letter == '=' or letter == '/' or letter == '>' do
+                    break
+                if Latin1.isUpper(letter) do
+                    attribute.hasUpper = true
+                index += 1
+            }
+
+            attribute.name = {cast(u32) nameStart, cast(u32) (index - nameStart)}
+
+            while index < count and Latin1.isSpace(source[index]) do
+                index += 1
+            if index >= count do
+                return result
+            if source[index] != '='
+            {
+                .pending.add(attribute)
                 continue
             }
 
             index += 1
-            while index < @countof(tag) and Latin1.isSpace(tag[index]) do
+            while index < count and Latin1.isSpace(source[index]) do
                 index += 1
-            if index >= @countof(tag)
-            {
-                .document.addAttribute(element, name, empty)
-                return
-            }
+            if index >= count do
+                return result
 
-            var valueStart = index
-            var valueEnd   = index
-            let quote      = tag[index]
+            let quote = source[index]
             if quote == '"' or quote == '\''
             {
-                valueStart = index + 1
-                valueEnd   = valueStart
-                while valueEnd < @countof(tag) and tag[valueEnd] != quote do
-                    valueEnd += 1
-                index = Math.min(valueEnd + 1, @countof(tag))
+                let valueStart = index + 1
+                let closing    = Utf8.indexOf(source, cast(rune) quote, valueStart)
+                if closing == Swag.U64.Max do
+                    return result
+
+                attribute.value = {cast(u32) valueStart, cast(u32) (closing - valueStart)}
+                index           = closing + 1
             }
             else
             {
-                while valueEnd < @countof(tag) and !Latin1.isSpace(tag[valueEnd]) do
-                    valueEnd += 1
-                index = valueEnd
+                let valueStart = index
+                while index < count and !Latin1.isSpace(source[index]) and source[index] != '>' do
+                    index += 1
+                attribute.value = {cast(u32) valueStart, cast(u32) (index - valueStart)}
             }
 
-            .document.addAttribute(element, name, .document.internDecoded(tag[valueStart until valueEnd], true))
+            attribute.hasValue = true
+            .pending.add(attribute)
+        }
+
+        return result
+    }
+
+    // Hands an element the attributes the tag scan found.
+    mtd flushAttributes(element: u32, source: string)
+    {
+        for attribute in .pending
+        {
+            let raw  = source[attribute.name.start until attribute.name.start + attribute.name.count]
+            let name = attribute.hasUpper ? .document.internLower(raw) : HtmlDocument.sourceRange(.sourceStart(raw), attribute.name.count)
+            var value: HtmlRange
+            if attribute.hasValue
+            {
+                let text = source[attribute.value.start until attribute.value.start + attribute.value.count]
+                value = .internText(text, 0, true)
+            }
+
+            .document.addAttribute(element, name, value)
         }
     }
 
@@ -495,15 +584,14 @@ impl HtmlParser
         return HtmlNoNode
     }
 
-    // Opens an element from its folded name and the source text of its attributes, which is what
-    // is left of the start tag once the name is read.
-    mtd openElement(name: string, attributes: string, offset: u64)
+    // Opens an element from its folded name and what the tag scan found.
+    mtd openElement(name: string, fromSource: bool, source: string, scan: HtmlTagScan, offset: u64)
     {
         let interned = HtmlDocument.tagFromName(name)
 
         // A document writes `html`, `head` and `body` or leaves them implied; either way the tree
         // carries them, which is what makes a page's own `body { ... }` rules mean something.
-        if .mode == .Document and .adoptWrittenSection(interned, attributes, offset) do
+        if .mode == .Document and .adoptWrittenSection(interned, source, offset) do
             return
 
         .openImpliedSection(interned, offset)
@@ -511,17 +599,22 @@ impl HtmlParser
 
         // Content the table structure does not accept renders in front of the table, not
         // inside the grid.
+        // Only a tag this engine does not know has to remember how it was spelled, and it can do
+        // that by addressing the source unless the name had to be folded.
+        var spelling: HtmlRange
+        if interned == .Unknown do
+            spelling = fromSource ? HtmlDocument.sourceRange(.sourceStart(name), @countof(name)) : .document.intern(name)
+
         var element: u32
         let anchor = HtmlParser.tableAccepts(interned) ? HtmlNoNode : .fosterAnchor()
         if anchor != HtmlNoNode do
-            element = .document.insertElementBefore(anchor, name, interned, offset)
+            element = .document.insertElementBefore(anchor, spelling, interned, offset)
         else do
-            element = .document.addElement(.current(), name, interned, offset)
+            element = .document.addElement(.current(), spelling, interned, offset)
 
-        .readAttributes(element, attributes)
+        .flushAttributes(element, source)
 
-        let selfClosing = @countof(attributes) and attributes[@countof(attributes) - 1] == '/'
-        if HtmlDocument.isVoidTag(interned) or selfClosing do
+        if HtmlDocument.isVoidTag(interned) or scan.selfClosing do
             return
 
         // Past the depth bound the element stays in the tree as a leaf and its content lands in
@@ -562,11 +655,11 @@ impl HtmlParser
     // Closes an element from the raw name the source wrote, which the tree keeps folded to lower
     // case. Folding is what would cost an allocation, so it happens only for the rare end tag
     // that is not already written in lower case.
-    mtd closeElement(rawName: string, offset: u64)
+    mtd closeElement(rawName: string, rawHasUpper: bool, offset: u64)
     {
         var folded: String
         var name = rawName
-        if HtmlParser.hasUpper(rawName)
+        if rawHasUpper
         {
             folded = String.toLower(rawName)
             name   = folded.toString()
@@ -627,52 +720,13 @@ impl HtmlParser
             // the pool they live in, and they point at text the original already interned.
             var cloneAttributes: Array'HtmlAttribute
             cloneAttributes.add(.document.attributes(source.element))
-            let clone = .document.addElement(.current(), "", source.tag, offset)
+            var cloneName: HtmlRange
+            let clone = .document.addElement(.current(), cloneName, source.tag, offset)
             for attribute in cloneAttributes do
                 .document.addAttribute(clone, attribute.name, attribute.value)
 
             .stack.add({clone, source.tag})
         }
-    }
-
-    // Finds the `>` that ends a tag, skipping the ones inside quoted attribute values, which is
-    // where a title or a data attribute legitimately carries the character. A quote only opens a
-    // value after `=`, so a stray one in a malformed tag cannot swallow the document.
-    func findTagEnd(source: string, start: u64)->u64
-    {
-        var scan   = start
-        var quote  = 0'u8
-        var equals = false
-        while scan < @countof(source)
-        {
-            let character = source[scan]
-            if quote
-            {
-                if character == quote do
-                    quote = 0
-            }
-            elif (character == '"' or character == '\'') and equals
-            {
-                quote  = character
-                equals = false
-            }
-            elif character == '>'
-            {
-                return scan
-            }
-            elif character == '='
-            {
-                equals = true
-            }
-            elif !Latin1.isSpace(character)
-            {
-                equals = false
-            }
-
-            scan += 1
-        }
-
-        return Swag.U64.Max
     }
 
     // Consumes `<`-introduced markup at `index`, returning the position just after it.
@@ -699,39 +753,34 @@ impl HtmlParser
             return end == Swag.U64.Max ? Swag.U64.Max : end + 1
         }
 
-        let close = HtmlParser.findTagEnd(source, index + 1)
-        if close == Swag.U64.Max do
+        var nameStart = index + 1
+        let closing   = nameStart < @countof(source) and source[nameStart] == '/'
+        if closing do
+            nameStart += 1
+
+        let scan = .scanTag(source, nameStart)
+        if scan.end == Swag.U64.Max do
             return Swag.U64.Max
+        if scan.nameEnd == scan.nameStart do
+            return scan.end + 1
 
-        let tag = source[index + 1 until close]
-        if !@countof(tag) do
-            return close + 1
-
-        if tag[0] == '/'
+        let raw = source[scan.nameStart until scan.nameEnd]
+        if closing
         {
-            var nameEnd = 1'u64
-            while nameEnd < @countof(tag) and !Latin1.isSpace(tag[nameEnd]) do
-                nameEnd += 1
-            .closeElement(tag[1 until nameEnd], .baseOffset + index)
-            return close + 1
+            .closeElement(raw, scan.hasUpper, index)
+            return scan.end + 1
         }
 
-        var nameEnd = 0'u64
-        while nameEnd < @countof(tag) and !Latin1.isSpace(tag[nameEnd]) and tag[nameEnd] != '/' do
-            nameEnd += 1
-        if !nameEnd do
-            return close + 1
-
         var folded: String
-        var name = tag[0 until nameEnd]
-        if HtmlParser.hasUpper(name)
+        var name = raw
+        if scan.hasUpper
         {
-            folded = String.toLower(name)
+            folded = String.toLower(raw)
             name   = folded.toString()
         }
 
-        .openElement(name, tag[nameEnd to], .baseOffset + index)
-        return close + 1
+        .openElement(name, !scan.hasUpper, source, scan, index)
+        return scan.end + 1
     }
 
     // Consumes the body of a raw-text element, which ends only at its own end tag.
@@ -746,7 +795,7 @@ impl HtmlParser
         if close == Swag.U64.Max do
             return Swag.U64.Max
 
-        .emitRawText(source[index until end], .baseOffset + index)
+        .emitRawText(source[index until end], index)
         .inRawText = false
         .stack.removeBack()
         return close + 1
@@ -774,28 +823,48 @@ impl HtmlParser
         return @countof(text)
     }
 
+    // Returns where a slice of the source starts inside it.
+    //
+    // Every run the parser hands the document is a stretch of the very bytes the document keeps,
+    // so its offset is the difference between the two pointers.
+    mtd const sourceStart(text: string)->u64 => cast(u64) (@dataof(text) - @dataof(.document.source()))
+
+    // Returns the run `text` occupies, decoding it only when it carries a character reference.
+    //
+    // This is where a page's text stops being copied: the scan that looked for the `<` ending the
+    // run also looked for the `&` that would make it need rewriting, so an entity-free run — which
+    // is nearly all of them — becomes two numbers and no bytes at all.
+    mtd internText(text: string, offset: u64, inAttribute = false)->HtmlRange
+    {
+        discard offset
+        if Utf8.indexOf(text, '&'rune) == Swag.U64.Max do
+            return HtmlDocument.sourceRange(.sourceStart(text), @countof(text))
+        return .document.internDecoded(text, inAttribute)
+    }
+
+    // Reports whether the parser is holding source it could not finish reading.
+    mtd const hasPendingSource()->bool => .parseIndex < @countof(.document.source())
+
     // Parses everything `chunk` completes, keeping the rest for the next call.
     mtd feed(chunk: string)
     {
-        .carry += chunk
-        .parseCarry(false)
+        discard .document.appendSource(chunk)
+        .parseSource(false)
     }
 
     // Parses what remains and closes every element the source left open.
     mtd finish()
     {
-        .parseCarry(true)
-        .carry.clear()
+        .parseSource(true)
         while .stack.count > 1 do
             .stack.removeBack()
         .done = true
     }
 
-    private mtd parseCarry(final: bool)
+    private mtd parseSource(final: bool)
     {
-        let source = .carry.toString()
-        var index  = 0'u64
-        var kept   = 0'u64
+        let source = .document.source()
+        var index  = .parseIndex
 
         while index < @countof(source)
         {
@@ -807,15 +876,15 @@ impl HtmlParser
                     if !final do
                         break
 
-                    .emitRawText(source[index to], .baseOffset + index)
+                    .emitRawText(source[index to], index)
                     .inRawText = false
                     .stack.removeBack()
                     index = @countof(source)
                     break
                 }
 
-                index = next
-                kept  = index
+                index       = next
+                .parseIndex = index
                 continue
             }
 
@@ -830,8 +899,8 @@ impl HtmlParser
                     break
                 }
 
-                index = next
-                kept  = index
+                index       = next
+                .parseIndex = index
                 continue
             }
 
@@ -844,24 +913,18 @@ impl HtmlParser
             {
                 let safe = HtmlParser.safeTextEnd(text)
                 text = text[0 until safe]
-                .emitText(text, .baseOffset + index)
-                index += safe
-                kept  = index
+                .emitText(text, index)
+                index      += safe
+                .parseIndex = index
                 break
             }
 
-            .emitText(text, .baseOffset + index)
-            index = end
-            kept  = index
+            .emitText(text, index)
+            index       = end
+            .parseIndex = index
         }
 
         if final do
-            kept = @countof(source)
-        if !kept do
-            return
-
-        .baseOffset += kept
-        var remaining = String.from(source[kept to])
-        .carry = #move remaining
+            .parseIndex = @countof(source)
     }
 }

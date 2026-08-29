@@ -217,7 +217,7 @@ private struct HtmlInlineInfo
 
 private func appendHtmlInlineChildren(output: *String, document: const *HtmlDocument, node: u32, references: #null const [..] Reference)
 {
-    for child in document.constNode(node).children do
+    for child in document.children(node) do
         appendHtmlInlineNode(output, document, child, references)
 }
 
@@ -318,10 +318,10 @@ private func parseHtmlInline(text: string, start: u64, references: #null const [
         let decoded = Utf8.decodeRune(text[end to])
         parser.feed(text[end until end + decoded.eat])
         end += decoded.eat
-        if !parser.carry.isEmpty() or parser.stack.count != 1 or document.constNode(0).children.count != 1 do
+        if parser.hasPendingSource() or parser.stack.count != 1 or document.childCount(0) != 1 do
             continue
 
-        let node = document.constNode(0).children[0]
+        let node = document.constNode(0).firstChild
         let root = document.constNode(node)
         if root.kind != .Element or root.tag == .Unknown or HtmlParser.startsBlock(root.tag) do
             return result

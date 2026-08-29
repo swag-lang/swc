@@ -144,6 +144,11 @@ public struct HtmlAttribute
 }
 
 // A contiguous run of entries inside one of the document's pools.
+//
+// A run of text addresses the source the document keeps, unless its top bit says it addresses the
+// pool of text the source does not spell — a folded name, a run with a character reference in it.
+// That is what lets the overwhelming majority of a page's text, attribute values and names cost
+// nothing but the two numbers naming them.
 #[Swag.NoDoc]
 public struct HtmlRange
 {
@@ -151,27 +156,68 @@ public struct HtmlRange
     count: u32
 }
 
+// Marks a run as addressing the built text rather than the source.
+#[Swag.NoDoc]
+public const HtmlBuiltText = 0x8000_0000'u32
+
 // One node of the parsed tree.
 //
-// Children are stored as indices into the owning document so the array can grow without
+// Every link is an index into the owning document, so the node array can grow without
 // invalidating anything a caller holds.
 //
 // A node is deliberately narrow, because a large page holds hundreds of thousands of them and
 // the cost of parsing one is dominated by the memory it touches. What only some nodes need lives
 // beside the tree: attributes and classes are runs inside the document's pools, an element's name
 // comes from its tag, and `text` carries the content of a text node or the raw name of an element
-// whose tag this engine does not know.
+// whose tag this engine does not know. Children are a chain rather than an array per node, which
+// is what makes an element cost no allocation at all; walk them with [[HtmlDocument.children]].
 #[Swag.NoDoc]
 public struct HtmlNode
 {
     kind:         HtmlNodeKind
     tag:          HtmlTag
     text:         HtmlRange
-    children:     Array'u32
-    parent = HtmlNoNode
+    parent      = HtmlNoNode
+    firstChild  = HtmlNoNode
+    lastChild   = HtmlNoNode
+    nextSibling = HtmlNoNode
+    prevSibling = HtmlNoNode
     sourceOffset: u64
     attributes:   HtmlRange
     classes:      HtmlRange
+}
+
+// The children of one node, in order.
+//
+// A cursor rather than a container: the chain lives in the nodes themselves, and nothing may add
+// a node while one of these is being walked.
+#[Swag.NoDoc]
+public struct HtmlChildren
+{
+    document: const *HtmlDocument = undefined
+    first    = HtmlNoNode
+}
+
+impl HtmlChildren
+{
+    #[Macro]
+    func(ptr: bool) opVisit(const me, stmt: #code(item, index: u64))
+        where !ptr
+    {
+        var node  = .first
+        var visit = 0'u64
+        while node != HtmlNoNode
+        {
+            // The cursor advances before the body runs, so a `continue` in the body reaches the
+            // next child instead of the same one, and a body that unlinks the node it was handed
+            // still walks the rest of the chain.
+            let current  = node
+            let visitIdx = visit
+            node  = .document.constNode(node).nextSibling
+            visit += 1
+            #inject(stmt, item = current, index = visitIdx)
+        }
+    }
 }
 
 // A parsed HTML tree.
@@ -188,7 +234,8 @@ public struct HtmlDocument
     nodes:         Array'HtmlNode
     attributePool: Array'HtmlAttribute
     classPool:     Array'HtmlRange
-    textPool:      String
+    sourceText:    String
+    builtText:     String
 }
 
 impl HtmlDocument
@@ -473,49 +520,76 @@ impl HtmlDocument
         .nodes.clear()
         .attributePool.clear()
         .classPool.clear()
-        .textPool.clear()
+        .sourceText.clear()
+        .builtText.clear()
         var root: HtmlNode
         root.kind = .Document
         .nodes.add(#move root)
     }
 
-    // Copies a run of source text into the pool and returns where it landed.
+    // Appends fed source to the document and returns where it landed.
     //
-    // A run is addressed by offset, so every slice the document hands out is invalidated by the
-    // next call: read one back with [[HtmlDocument.text]] where it is used, and never keep it
-    // across a parser feed.
+    // The source stays for the life of the document: it is what every run of text addresses, and
+    // it is never rewritten, so the offsets stay valid however the parser is fed.
+    mtd appendSource(chunk: string)->u64
+    {
+        let result = .sourceText.length
+        .sourceText += chunk
+        return result
+    }
+
+    // Returns the whole source read so far.
+    mtd const source()->string => .sourceText.toString()
+
+    // Returns the run a stretch of source occupies, which is the common case: text the document
+    // spells the way it is stored.
+    func sourceRange(start, count: u64)->HtmlRange => {cast(u32) start, cast(u32) count}
+
+    // Copies text the source does not spell — a folded name, a decoded run — and returns where it
+    // landed. A run built this way is addressed by offset, so a slice read back from it is
+    // invalidated by the next call.
     mtd intern(text: string)->HtmlRange
     {
         var result: retval
-        result.start = cast(u32) .textPool.length
+        result.start = cast(u32) .builtText.length | HtmlBuiltText
         result.count = cast(u32) @countof(text)
-        .textPool    += text
+        .builtText += text
         return result
     }
 
-    // Copies a run and folds it to lower case in place, which is what tag and attribute names
-    // are stored as.
+    // Copies a run and folds it to lower case in place, which is what a tag or attribute name the
+    // source wrote in mixed case is stored as.
     mtd internLower(text: string)->HtmlRange
     {
         let result = .intern(text)
-        let buffer = .textPool.buffer!
+        let start  = result.start ^ HtmlBuiltText
+        let buffer = .builtText.buffer!
         for index in result.count do
-            buffer[result.start + index] = Latin1.toLower(buffer[result.start + index])
+            buffer[start + index] = Latin1.toLower(buffer[start + index])
         return result
     }
 
-    // Copies a run of source text into the pool, resolving the character references it carries.
+    // Copies a run of source text, resolving the character references it carries.
     mtd internDecoded(text: string, inAttribute = false)->HtmlRange
     {
         var result: retval
-        result.start = cast(u32) .textPool.length
-        htmlDecodeInto(&.textPool, text, inAttribute)
-        result.count = cast(u32) .textPool.length - result.start
+        result.start = cast(u32) .builtText.length | HtmlBuiltText
+        htmlDecodeInto(&.builtText, text, inAttribute)
+        result.count = cast(u32) .builtText.length - (result.start ^ HtmlBuiltText)
         return result
     }
 
     // Returns the text a run holds.
-    mtd const text(range: HtmlRange)->string => .textPool.toString()[range.start until range.start + range.count]
+    mtd const text(range: HtmlRange)->string
+    {
+        if range.start & HtmlBuiltText
+        {
+            let start = range.start ^ HtmlBuiltText
+            return .builtText.toString()[start until start + range.count]
+        }
+
+        return .sourceText.toString()[range.start until range.start + range.count]
+    }
 
     // Returns the text a node holds: the content of a text node, or nothing for an element.
     mtd const textOf(index: u32)->string => .text(.nodes[index].text)
@@ -538,9 +612,58 @@ impl HtmlDocument
         if nodes > .nodes.capacity do
             .nodes.reserve(nodes)
 
-        let text = Math.min(bytes / 2, MaxReservedText)
-        if text > .textPool.capacity do
-            .textPool.reserve(text)
+        let source = Math.min(bytes, MaxReservedText)
+        if source > .sourceText.capacity do
+            .sourceText.reserve(source)
+    }
+
+    // Returns the children of a node, in order.
+    mtd const children(node: u32)->HtmlChildren => {me, .nodes[node].firstChild}
+
+    // Returns how many children a node has. A caller that only asks whether there are any tests
+    // `firstChild` instead, which costs nothing.
+    mtd const childCount(node: u32)->u64
+    {
+        var result = 0'u64
+        for child in .children(node) do
+            result += 1
+        return result
+    }
+
+    // Returns the nth child of a node, or `HtmlNoNode`.
+    mtd const childAt(node: u32, wanted: u64)->u32
+    {
+        for child, index in .children(node) where index == wanted do
+            return child
+        return HtmlNoNode
+    }
+
+    // Appends a node to a parent's chain of children.
+    private mtd linkChild(parent, child: u32)
+    {
+        let last = .nodes[parent].lastChild
+        .nodes[child].parent      = parent
+        .nodes[child].prevSibling = last
+        if last != HtmlNoNode do
+            .nodes[last].nextSibling = child
+        else do
+            .nodes[parent].firstChild = child
+        .nodes[parent].lastChild = child
+    }
+
+    // Inserts a node in front of one of its parent's children.
+    private mtd linkBefore(sibling, child: u32)
+    {
+        let parent   = .nodes[sibling].parent
+        let previous = .nodes[sibling].prevSibling
+        .nodes[child].parent      = parent
+        .nodes[child].prevSibling = previous
+        .nodes[child].nextSibling = sibling
+        .nodes[sibling].prevSibling = child
+        if previous != HtmlNoNode do
+            .nodes[previous].nextSibling = child
+        else do
+            .nodes[parent].firstChild = child
     }
 
     mtd node(index: u32)->*HtmlNode => &.nodes[index]
@@ -552,13 +675,8 @@ impl HtmlDocument
     // The caller hands over the folded name and the tag it already resolved from it: the parser
     // needs that tag before the node exists, and resolving a name is a string comparison per
     // known tag.
-    mtd addElement(parent: u32, name: string, tag: HtmlTag, sourceOffset: u64)->u32
+    mtd addElement(parent: u32, name: HtmlRange, tag: HtmlTag, sourceOffset: u64)->u32
     {
-        // Only a tag this engine does not know has to remember how it was spelled.
-        var interned: HtmlRange
-        if tag == .Unknown do
-            interned = .intern(name)
-
         var node: HtmlNode
         node.kind         = .Element
         node.tag          = tag
@@ -566,11 +684,11 @@ impl HtmlDocument
         node.sourceOffset = sourceOffset
         node.attributes   = {cast(u32) .attributePool.count, 0}
         node.classes      = {cast(u32) .classPool.count, 0}
-        node.text         = interned
+        node.text         = name
 
         let index = cast(u32) .nodes.count
         .nodes.add(#move node)
-        .nodes[parent].children.add(index)
+        .linkChild(parent, index)
         return index
     }
 
@@ -580,15 +698,11 @@ impl HtmlDocument
     // of character data are one text node, which is what the parsing model says they are.
     mtd appendText(parent: u32, text: HtmlRange, sourceOffset: u64)
     {
-        let children = &.nodes[parent].children
-        if children.count
+        let last = .nodes[parent].lastChild
+        if last != HtmlNoNode and .nodes[last].kind == .Text
         {
-            let last = children.back()
-            if .nodes[last].kind == .Text
-            {
-                .joinText(last, text)
-                return
-            }
+            .joinText(last, text)
+            return
         }
 
         .addText(parent, text, sourceOffset)
@@ -601,7 +715,7 @@ impl HtmlDocument
     mtd joinText(node: u32, text: HtmlRange)
     {
         let existing = .nodes[node].text
-        if existing.start + existing.count == text.start
+        if existing.start + existing.count == text.start and ((existing.start ^ text.start) & HtmlBuiltText) == 0
         {
             .nodes[node].text.count += text.count
             return
@@ -624,41 +738,22 @@ impl HtmlDocument
 
         let index = cast(u32) .nodes.count
         .nodes.add(#move node)
-        .nodes[parent].children.add(index)
-    }
-
-    // Returns the position of `child` in `parent`'s children array.
-    mtd const childPosition(parent, child: u32)->u64
-    {
-        var position = 0'u64
-        while position < .nodes[parent].children.count and .nodes[parent].children[position] != child do
-            position += 1
-        return position
+        .linkChild(parent, index)
     }
 
     // Reports whether the node just before `sibling` under its parent is a text node.
     mtd const precededByText(sibling: u32)->bool
     {
-        let parent = .nodes[sibling].parent
-        if parent == HtmlNoNode do
-            return false
-
-        let position = .childPosition(parent, sibling)
-        if !position do
-            return false
-        return .nodes[.nodes[parent].children[position - 1]].kind == .Text
+        let previous = .nodes[sibling].prevSibling
+        return previous != HtmlNoNode and .nodes[previous].kind == .Text
     }
 
     // Inserts an element under `sibling`'s parent, placed just before it, and returns its index.
     //
     // This is the foster-parenting insertion the table recovery relies on. Node indices stop
     // following document order here, which nothing reads: the children arrays carry the order.
-    mtd insertElementBefore(sibling: u32, name: string, tag: HtmlTag, sourceOffset: u64)->u32
+    mtd insertElementBefore(sibling: u32, name: HtmlRange, tag: HtmlTag, sourceOffset: u64)->u32
     {
-        var interned: HtmlRange
-        if tag == .Unknown do
-            interned = .intern(name)
-
         let parent = .nodes[sibling].parent
         var node: HtmlNode
         node.kind         = .Element
@@ -667,11 +762,11 @@ impl HtmlDocument
         node.sourceOffset = sourceOffset
         node.attributes   = {cast(u32) .attributePool.count, 0}
         node.classes      = {cast(u32) .classPool.count, 0}
-        node.text         = interned
+        node.text         = name
 
         let index = cast(u32) .nodes.count
         .nodes.add(#move node)
-        .nodes[parent].children.insertAt(.childPosition(parent, sibling), index)
+        .linkBefore(sibling, index)
         return index
     }
 
@@ -679,27 +774,22 @@ impl HtmlDocument
     // does, so a fostered run fed in several pieces stays one node.
     mtd insertTextBefore(sibling: u32, text: HtmlRange, sourceOffset: u64)
     {
-        let parent   = .nodes[sibling].parent
-        let position = .childPosition(parent, sibling)
-        if position
+        let previous = .nodes[sibling].prevSibling
+        if previous != HtmlNoNode and .nodes[previous].kind == .Text
         {
-            let previous = .nodes[parent].children[position - 1]
-            if .nodes[previous].kind == .Text
-            {
-                .joinText(previous, text)
-                return
-            }
+            .joinText(previous, text)
+            return
         }
 
         var node: HtmlNode
         node.kind         = .Text
         node.text         = text
-        node.parent       = parent
+        node.parent       = .nodes[sibling].parent
         node.sourceOffset = sourceOffset
 
         let index = cast(u32) .nodes.count
         .nodes.add(#move node)
-        .nodes[parent].children.insertAt(position, index)
+        .linkBefore(sibling, index)
     }
 
     // Records one attribute on an element, keeping the classes in their indexed form.
@@ -802,7 +892,7 @@ impl HtmlDocument
         let parent = .nodes[child].parent
         if parent == HtmlNoNode do
             return {1, 1}
-        for value in .nodes[parent].children where .nodes[value].kind == .Element
+        for value in .children(parent) where .nodes[value].kind == .Element
         {
             result.count += 1
             if value == child do
@@ -835,7 +925,7 @@ impl HtmlDocument
             return
         if node.tag == .Style do
             return
-        for child in node.children do
+        for child in .children(index) do
             .appendTextContent(output, child)
     }
 }

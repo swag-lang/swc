@@ -529,7 +529,7 @@ impl HtmlStyleResolver
         .resolvePseudo(element, .Before, style)
         .resolvePseudo(element, .After, style)
 
-        for child in .document.constNode(element).children where .document.constNode(child).kind == .Element do
+        for child in .document.children(element) where .document.constNode(child).kind == .Element do
             .resolveElement(child, style)
 
         for pushed
@@ -570,7 +570,7 @@ impl HtmlStyleResolver
         let root = HtmlComputedStyle.fromDefaults(defaults)
         .nodeStyles[0] = 0
         .styles.add(root)
-        for child in document.constNode(0).children where document.constNode(child).kind == .Element do
+        for child in document.children(0) where document.constNode(child).kind == .Element do
             .resolveElement(child, root)
     }
 

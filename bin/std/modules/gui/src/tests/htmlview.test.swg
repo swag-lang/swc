@@ -178,7 +178,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     let style = findTag(&document, .Style)
     @assert(style != HtmlNoNode)
-    @assert(Utf8.contains(document.textOf(document.constNode(style).children[0]), "color: red"))
+    @assert(Utf8.contains(document.textOf(document.childAt(style, 0)), "color: red"))
 
     // A script body is text, so its `<` never opened an element.
     @assert(findTag(&document, .B) == HtmlNoNode)
@@ -1671,12 +1671,11 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     @assert(document.constNode(bold).parent == host)
 
     // Order under the host: the fostered text, the fostered bold run, then the table.
-    let children = &document.constNode(host).children
-    @assert(children.count == 3)
-    @assert(document.constNode(children[0]).kind == .Text)
-    @assert(document.textOf(children[0]) == "stray ")
-    @assert(children[1] == bold)
-    @assert(children[2] == table)
+    @assert(document.childCount(host) == 3)
+    @assert(document.constNode(document.childAt(host, 0)).kind == .Text)
+    @assert(document.textOf(document.childAt(host, 0)) == "stray ")
+    @assert(document.childAt(host, 1) == bold)
+    @assert(document.childAt(host, 2) == table)
 
     let cell = findTag(&document, .Td)
     @assert(document.textContent(cell).toString() == "cell")
@@ -1716,9 +1715,9 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     let host  = findTag(&streamed, .Div)
     let table = findTag(&streamed, .Table)
-    @assert(streamed.constNode(host).children.count == 2)
-    @assert(streamed.textOf(streamed.constNode(host).children[0]) == "stray")
-    @assert(streamed.constNode(host).children[1] == table)
+    @assert(streamed.childCount(host) == 2)
+    @assert(streamed.textOf(streamed.childAt(host, 0)) == "stray")
+    @assert(streamed.childAt(host, 1) == table)
     @assert(streamed.textContent(table).toString() == "cell")
 
     let second = findNthTag(&streamed, .I, 2)

@@ -240,7 +240,7 @@ impl HtmlLayout
         .root             = .newBox(HtmlNoNode, .addStyle(rootStyle), .Block)
 
         var pending: Array'HtmlInlineItem
-        for child in document.constNode(0).children do
+        for child in document.children(0) do
             .buildChild(.root, child, &pending)
         .flushInline(.root, &pending, true)
 
@@ -380,8 +380,7 @@ impl HtmlLayout
 
     private mtd buildInlineChildren(parentBox: u32, node: u32, pending: *Array'HtmlInlineItem)
     {
-        let children = .document.constNode(node).children
-        for child in children do
+        for child in .document.children(node) do
             .buildChild(parentBox, child, pending)
     }
 
@@ -459,8 +458,7 @@ impl HtmlLayout
         var pending: Array'HtmlInlineItem
         .emitPseudo(box, node, .Before, &pending)
 
-        let children = .document.constNode(node).children
-        for child in children do
+        for child in .document.children(node) do
             .buildChild(box, child, &pending)
 
         .emitPseudo(box, node, .After, &pending)

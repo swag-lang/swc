@@ -15,6 +15,10 @@ const QuitState = 0xFFFF_FFFE'u32
 // The offset that means "no match was seen".
 const NoOffset = 0xFFFF_FFFF_FFFF_FFFF'u64
 
+// The offset that means "the automaton refused this subject", which is not the same answer as
+// "no match": the caller has to ask another engine.
+const QuitOffset = 0xFFFF_FFFF_FFFF_FFFE'u64
+
 // A state remembers what the byte on the side it came from was, because that is what the
 // zero-width assertions read.
 const FlagIsMatch     = 0x01'u32     // A match ended just before the byte that led here.
@@ -456,6 +460,21 @@ impl Dfa
     {
         var result: retval
 
+        // An anchored search has one place to look and no scan to skip ahead with, which is a
+        // shorter loop and a cheaper call; a caller that only wants the end asks for it
+        // directly.
+        if anchored
+        {
+            let end = .searchAnchoredEnd(program, hay, start, limit)
+            if end == QuitOffset
+            {
+                result.quit = true
+                return result
+            }
+
+            return forwardResult(end)
+        }
+
         if .exhausted
         {
             result.quit = true
@@ -570,6 +589,63 @@ impl Dfa
         result.at    = candidate
         result.state = state
         return result
+    }
+
+    // Finds where the match anchored at one offset ends.
+    //
+    // This is the shape a search takes when there is nothing to skip: no scan, no way back to
+    // a start state, and one answer — where the match ends, or that there is none, or that the
+    // automaton refuses the subject.
+    mtd searchAnchoredEnd(program: const *Program, hay: const [..] u8, start, limit: u64)->u64
+    {
+        if .exhausted do
+            return QuitOffset
+
+        var stateId = .startState(program, hay, start, true)
+        if stateId == QuitState do
+            return QuitOffset
+
+        let classes     = cast(const [*] u8) &program.byteClass[0]
+        let data        = @dataof(hay)
+        let quitHigh    = .quitHigh
+        var transitions = .trans.buffer!
+        var lastMatch   = NoOffset
+        var pos         = start
+
+        while pos < limit
+        {
+            let byte = data[pos]
+            if quitHigh and byte >= 0x80 do
+                return QuitOffset
+
+            let slot = cast(u64) (stateId & StateIndexMask) + cast(u64) classes[byte]
+            var next = transitions[slot]
+            if next == UnknownState
+            {
+                next = .computeTransition(program, stateId, cast(u64) classes[byte])
+                if next == QuitState do
+                    return QuitOffset
+
+                transitions       = .trans.buffer!
+                transitions[slot] = next
+            }
+
+            pos += 1
+
+            if (next & TagMatch) != 0 do
+                lastMatch = pos - 1
+            if next == DeadState do
+                return lastMatch
+
+            stateId = next
+        }
+
+        let last = .transition(program, stateId, .stride - 1)
+        if last == QuitState do
+            return QuitOffset
+        if (last & TagMatch) != 0 do
+            lastMatch = limit
+        return lastMatch
     }
 
     // Finds where the match that ends at 'end' starts, reading the subject backwards.

@@ -791,14 +791,14 @@ private impl RegExp
                 // backwards, since it starts where the attempt began. A pattern that matches
                 // every few bytes — which is exactly the kind that has no usable scan — then
                 // costs one search per match instead of two.
-                let forward = .forwardDfa.searchForward(&.program, &.emptyScan, hay, at, limit, true)
-                if forward.quit
+                let endOffset = .forwardDfa.searchAnchoredEnd(&.program, hay, at, limit)
+                if endOffset == Regex.QuitOffset
                 {
                     quit = true
                     break
                 }
 
-                if !forward.found
+                if endOffset == Regex.NoOffset
                 {
                     // Nothing here. Past a few offsets in a row, this is the wrong way to look
                     // and reading forwards once over the rest of the subject is cheaper.
@@ -818,7 +818,7 @@ private impl RegExp
 
                 misses = 0
                 start  = at
-                end    = forward.end
+                end    = endOffset
             }
             else
             {

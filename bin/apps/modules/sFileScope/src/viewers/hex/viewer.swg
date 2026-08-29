@@ -2,7 +2,8 @@
 
 using Core, Pixel, Gui
 
-private const HexCommandWidth = 376.0
+private const HexCommandWidth = 480.0
+private const HexComboWidth   = 150.0
 
 private func loadHexDocument(fileName: string)->HexDocument fail
 {
@@ -16,8 +17,7 @@ private func loadHexDocument(fileName: string)->HexDocument fail
 
 // Hexadecimal view of any file, whatever its size.
 //
-// The view owns three things: the grid the bytes are read in, the panel that spells the bytes under
-// the caret in every reading a binary format uses, and the compact command group the host hosts in
+// The view owns the grid the bytes are read in and the compact command group the host places in
 // its action bar. Everything below streams — no part of this view ever holds more than one window
 // of the file.
 internal struct HexViewer
@@ -37,6 +37,7 @@ internal struct HexViewer
     load:                 ViewerBackgroundLoad'HexDocument
     loadTimer:            #null *Timer
     reportFailure:        #null ViewerReportFailure
+    reportDetails:        #null ViewerReportDetails
     reportLoadingChanged: #null ViewerReportLoadingChanged
     failureReason:        String
 }
@@ -77,6 +78,14 @@ private impl IWnd for HexViewer
         .setInitialFocus(.grid)
         if .reportLoadingChanged do
             .reportLoadingChanged!(me)
+    }
+
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged do
+            .retranslate()
+        else do
+            evt.accepted = false
     }
 }
 
@@ -127,10 +136,32 @@ internal impl HexViewer
         .applyValueMode()
     }
 
-    // Reveals the byte range the host's search matched.
-    mtd revealOffset(offset: u64, text: string)->bool
+    mtd retranslate()
     {
-        if !.grid.revealRange(offset, @countof(text)) do
+        let width = .widthCombo.selectedIndex
+        .widthCombo.clear()
+        .widthCombo.addItem(hexStrings().ui_Width8)
+        .widthCombo.addItem(hexStrings().ui_Width16)
+        .widthCombo.addItem(hexStrings().ui_Width32)
+        .widthCombo.addItem(hexStrings().ui_Width64)
+        .widthCombo.setSelectedIndex(width, notify: false)
+        .widthCombo.toolTip  = hexStrings().ui_TipWidth
+        .formatCombo.toolTip = hexStrings().ui_TipFormat
+        .rebuildFormats()
+
+        .byteOrder.setText(hexStrings().ui_Endian)
+        .byteOrder.toolTip = hexStrings().ui_TipEndian
+        .details           = hexStrings().ui_Details
+        if .reportDetails do
+            .reportDetails!(me, .details.toString())
+        .commands.applyLayout()
+        .grid.invalidate()
+    }
+
+    // Reveals the byte range the host's search matched.
+    mtd revealOffset(offset, length: u64)->bool
+    {
+        if !.grid.revealRange(offset, length) do
             return false
         .grid.setFocus()
         return true
@@ -139,17 +170,18 @@ internal impl HexViewer
 
 internal impl HexViewer
 {
-    func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*HexViewer
+    func create(contentParent, commandParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null, reportDetails: #null ViewerReportDetails = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*HexViewer
     {
         let result = Wnd.create'HexViewer(contentParent, "sFileScope.hex")
         result.backgroundStyle      = .View
         result.reportFailure        = reportFailure
+        result.reportDetails        = reportDetails
         result.reportLoadingChanged = reportLoadingChanged
 
         result.commands                 = Wnd.create'Wnd(commandParent, {0, 0, HexCommandWidth, 36})
         result.commands.backgroundStyle = .Transparent
 
-        with result.widthCombo = ComboBox.create(result.commands, {0, 0, 80, 36})
+        with result.widthCombo = ComboBox.create(result.commands, {0, 0, HexComboWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -167,7 +199,7 @@ internal impl HexViewer
             }
         }
 
-        with result.formatCombo = ComboBox.create(result.commands, {0, 0, 116, 36})
+        with result.formatCombo = ComboBox.create(result.commands, {0, 0, HexComboWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -217,12 +249,16 @@ internal impl HexViewer
 func createHexViewer(request: const *ViewerRequest, result: *ViewerResult)
 {
     registerHexStrings(request.contentParent.app())
-    let view = HexViewer.create(request.contentParent, request.commandParent, request.fileName, request.reportFailure, request.reportLoadingChanged)
+    let view = HexViewer.create(request.contentParent, request.commandParent, request.fileName, request.reportFailure, request.reportDetails, request.reportLoadingChanged)
 
-    result.view         = view
-    result.commands     = view.commands
-    result.details      = view.details
-    result.revealMatch  = func(wnd, match, text)->bool { return (cast(*HexViewer) wnd).revealOffset(match.offset, text) }
+    result.view        = view
+    result.commands    = view.commands
+    result.details     = view.details
+    result.revealMatch = func(wnd, match, text)->bool
+    {
+        discard text
+        return (cast(*HexViewer) wnd).revealOffset(match.offset, match.length)
+    }
     result.searchBounds = func(wnd, match, bounds)->bool
     {
         discard match

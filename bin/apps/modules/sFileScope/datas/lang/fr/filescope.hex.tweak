@@ -13,6 +13,8 @@ ui_FormatSigned  Signé
 ui_FormatFloat   Flottant
 ui_TipEndian     Lire les valeurs multi-octets en ordre petit-boutiste
 ui_Details       hexa et texte · en flux
+ui_TextColumn    texte
+ui_Empty         Ce fichier est vide.
 ui_GoTo          Aller au décalage
 ui_GoToMessage   Décalage hexadécimal, ou décalage signé depuis le curseur.
 ui_SelectAll     Tout sélectionner

@@ -80,8 +80,9 @@ guessing an encoding.
   still receive signature, size, and entropy analysis. Shared search indexes every decoded report
   column and reveals folded matches. Its compact menu copies rows or the report, expands or folds
   the tree, jumps to a file offset, and walks visited rows backward or forward.
-- `Hexadecimal` is available for every file. It pages through 64 KiB at a time, uses 64-bit
-  offsets, and supports independent scalar width, representation, and byte order.
+- `Hexadecimal` is available for every file. It keeps one 256 KiB resident window whose reads are
+  aligned to 64 KiB boundaries, uses 64-bit offsets, and supports independent scalar width,
+  representation, and byte order.
 
 Text-oriented viewers handle normal keyboard and scrollbar navigation while content is streaming.
 Home, End, distant scrollbar jumps, and search open a bounded resident window near the requested

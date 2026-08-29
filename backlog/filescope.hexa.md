@@ -18,9 +18,7 @@ are what separate that capable grid from a professional binary-analysis viewer.
 ### T-395 — The hexadecimal view cannot search for a byte pattern
 
 - Evidence: host search treats the query as literal file bytes. It cannot express `4D 5A`, a
-  wildcard byte or nibble, or a scalar encoded in the selected byte order. `HexViewer.revealOffset`
-  also derives highlight length from the query text instead of `ViewerSearchMatch.length`, which
-  cannot represent a wildcard or typed match correctly.
+  wildcard byte or nibble, or a scalar encoded in the selected byte order.
 - Next: give the hexadecimal viewer its own query parser and streamed matcher, beginning with
   hexadecimal byte pairs, `??`/`?A`/`A?` wildcards, and the active scalar type and endian.
 - Complete when: byte patterns and active scalars search across chunk boundaries through the host
@@ -30,10 +28,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 ### B-020 — The caret has no live data inspector
 
 - Evidence: width, representation, and endian replace the main hexadecimal lane with one reading
-  at a time. A comment in `viewer.swg` says the view owns a panel that spells the caret bytes in
-  every useful form, and `HexGridView.sigCaretChanged` is emitted, but no panel subscribes to it.
-  Scalar mode also aligns the caret to file-global type boundaries, so a `u32` beginning at offset
-  one cannot be inspected.
+  at a time. `HexGridView.sigCaretChanged` is emitted, but no panel subscribes to it or spells the
+  caret bytes in the other useful forms.
 - Next: connect `sigCaretChanged` to a compact inspector that reads from the exact caret offset
   without changing grid grouping.
 - Complete when: the inspector simultaneously reports selection start/end/length and the caret as
@@ -194,16 +190,16 @@ are what separate that capable grid from a professional binary-analysis viewer.
   themes retain caret and selection distinction; and virtualization does not materialize the file.
 - Related: T-037, B-047
 
-### B-041 — Selection is limited to one contiguous scalar-aligned range
+### B-041 — Selection is limited to one contiguous range
 
-- Evidence: the grid stores one anchor and one caret, expands them to the active scalar boundary,
-  and has no rectangular or multiple-range model. Pointer capture does not define timed
-  autoscroll while dragging beyond the viewport.
-- Next: decouple raw byte selection from scalar inspection, then add drag autoscroll before deciding
-  whether multiple and rectangular ranges share one model.
-- Complete when: arbitrary unaligned byte ranges can be selected without changing interpretation,
-  dragging outside the viewport scrolls predictably, rectangular selection can address repeated
-  row columns, multiple ranges copy/export in a documented order, and focus loss safely ends capture.
+- Evidence: byte selection is now independent from scalar presentation, and a captured drag
+  autoscrolls on a timer and ends safely on release or focus loss. The grid still stores only one
+  anchor and one caret, with no rectangular or multiple-range model.
+- Next: define a bounded range collection and decide how rectangular row slices and independently
+  added ranges share copy, export, caret, and search-reveal behavior.
+- Complete when: rectangular selection can address repeated row columns, multiple ranges
+  copy/export in a documented order, and every command states whether it acts on the primary range
+  or the complete collection.
 - Related: B-020, B-030
 
 ### B-042 — Important hexadecimal commands are discoverable only by context menu
@@ -281,30 +277,18 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ## Quality debt
 
-### B-036 — Hexadecimal wording and documentation disagree with the implementation
-
-- Evidence: the painted headers `text` and `This file is empty.` bypass localization; the viewer
-  comment promises an inspector panel that does not exist; README wording says the viewer pages
-  through 64 KiB while `HexWindowSize` is 256 KiB aligned to 64 KiB.
-- Next: move painted wording into `HexStrings`, describe resident window and alignment separately,
-  and either remove the inspector claim or complete B-020 first.
-- Complete when: every visible hexadecimal string follows live language changes, documentation and
-  comments state the measured implementation, French coverage is complete, and validation detects
-  missing translation keys.
-- Related: B-020
-
 ### B-037 — Existing hexadecimal guarantees lack boundary and interaction tests
 
-- Evidence: current tests cover ordinary streaming, scalar modes, navigation, copy forms, search
-  reveal, layout, and one dark-theme golden, but not a sparse file beyond 4 GiB, 16-digit offsets,
-  the 1 MiB command label, drag autoscroll, mid-read failure, external truncation, slow I/O,
-  live-language empty-file wording, non-integer DPI, or accessibility.
-- Next: add a sparse or synthetic large-file fixture and focused tests for the existing copy bound,
-  offset width, empty file, mouse capture, and late read failure before feature work changes those
-  contracts.
-- Complete when: every listed current guarantee has a deterministic focused test, DPI and language
-  are visually reviewed through headless hosts, generated fixtures remain bounded on disk, and
-  future feature entries add their own acceptance coverage instead of accumulating here.
+- Evidence: current tests cover ordinary and synthetic multi-gigabyte streaming geometry, 16-digit
+  offsets, scalar modes, navigation, the named 1 MiB copy bound, search reveal, late short reads,
+  focus-safe mouse capture, non-integer DPI, live English/French wording, layout, and one dark-theme
+  golden. Slow-I/O behavior, external file-version changes, and accessibility have no deterministic
+  seam yet.
+- Next: add the injectable range-reader seam with B-026/B-027, then test delayed completion and
+  version changes without timing or filesystem races, and add accessibility coverage with B-035.
+- Complete when: those remaining guarantees have deterministic focused tests, generated fixtures
+  remain bounded on disk, and future feature entries add their own acceptance coverage instead of
+  accumulating here.
 - Related: B-049
 
 ## Deliberate boundary

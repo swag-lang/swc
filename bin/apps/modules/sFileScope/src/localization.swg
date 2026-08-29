@@ -10,6 +10,7 @@ struct AppStrings
 {
     ui_WindowTitle:         string = "sFileScope — Universal viewer"                                                          // Title of the application window.
     ui_Open:                string = "Open"                                                                                   // Tooltip of the open-file button.
+    ui_OpenDefault:         string = "Open with default application"                                                          // Tooltip of the system-default application button.
     ui_Viewer:              string = "Viewer"                                                                                 // Tooltip of the viewer selector.
     ui_BasicText:           string = "Basic text"                                                                             // Name of the host's own text viewer in that selector.
     ui_WrapOn:              string = "Line wrapping on (Ctrl+W)"                                                              // Tooltip while long lines are folded.
@@ -23,8 +24,10 @@ struct AppStrings
     ui_ClearHistory:        string = "Clear history"                                                                          // Tooltip of the clear-history button.
     ui_ConfirmClearHistory: string = "The whole file history will be cleared."                                                // Consequence stated before confirming that the recent list is emptied.
     ui_Folder:              string = "Folder"                                                                                 // Panel section listing the current folder, before one is open.
+    ui_FolderHistory:       string = "Recent folders"                                                                         // Tooltip of the folder-history menu button.
     ui_NotText:             string = "This file does not contain readable text. Select Hexadecimal to inspect its bytes."     // No encoding reads it as text.
     ui_MenuLocate:          string = "Show this file in its folder"                                                           // Panel menu entry selecting the file in the system file explorer.
+    ui_MenuOpenDefault:     string = "Open with default application"                                                          // File menu entry launching the registered system handler.
     ui_MenuOpenWith:        string = "Open with another application…"                                                         // Panel menu entry offering the system application chooser.
     ui_MenuCopyPath:        string = "Copy full path"                                                                         // Panel menu entry copying the complete file name.
     ui_MenuCopyName:        string = "Copy file name"                                                                         // Panel menu entry copying the final path component.

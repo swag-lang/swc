@@ -12,15 +12,18 @@ struct ImageView
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigZoomChanged:  SigArray'func||(*ImageView)     // Emitted after the effective zoom changes.
-        sigFrameChanged: SigArray'func||(*ImageView)     // Emitted after an animation frame changes.
+        sigZoomChanged:      SigArray'func||(*ImageView)     // Emitted after the effective zoom changes.
+        sigFrameChanged:     SigArray'func||(*ImageView)     // Emitted after an animation frame changes.
+        sigTransformChanged: SigArray'func||(*ImageView)     // Emitted after the temporary view transform changes.
 
         readonly
         {
-            zoom:      f32  = 1        // Requested scale outside fitted mode.
-            isFitted:  bool = true     // Whether the image is scaled to the available viewport.
-            panOffset: Math.Point      // Image-centre offset from the viewport centre, in logical units.
-            movie:     Movie           // GIF playback state, or an empty movie for a still image.
+            zoom:                 f32  = 1        // Requested scale outside fitted mode.
+            isFitted:             bool = true     // Whether the image is scaled to the available viewport.
+            panOffset:            Math.Point      // Image-centre offset from the viewport centre, in logical units.
+            movie:                Movie           // GIF playback state, or an empty movie for a still image.
+            rotationQuarterTurns: u32             // Clockwise quarter turns applied to the displayed content.
+            isMirrored:           bool            // Whether the displayed content is reflected before rotation.
         }
     }
 
@@ -61,7 +64,7 @@ private impl ImageView
     // That is its own pixel size unless a caller stated another one, which is what a picture
     // whose samples are not square needs: the texture keeps every sample it was given and the
     // rectangle it is drawn into carries the shape.
-    mtd const contentSize()->{ width, height: s32 }
+    mtd const sourceSize()->{ width, height: s32 }
     {
         if .displayWidth > 0 and .displayHeight > 0 do
             return {.displayWidth, .displayHeight}
@@ -69,6 +72,15 @@ private impl ImageView
         if source.isValid() do
             return {source.width, source.height}
         return {.planarWidth, .planarHeight}
+    }
+
+    // Returns the axis-aligned size after the temporary view transform.
+    mtd const contentSize()->{ width, height: s32 }
+    {
+        let source = .sourceSize()
+        if .rotationQuarterTurns & 1 do
+            return {source.height, source.width}
+        return source
     }
 
     mtd const contentRect()->Math.Rectangle
@@ -85,6 +97,29 @@ private impl ImageView
         result.height = size.height * scale
         result.x      = client.horzCenter() - result.width * 0.5 + .panOffset.x
         result.y      = client.vertCenter() - result.height * 0.5 + .panOffset.y
+        return result
+    }
+
+    // Returns the untransformed draw rectangle centred inside the transformed content bounds.
+    mtd const sourceRect()->Math.Rectangle
+    {
+        let content = .contentRect()
+        let source  = .sourceSize()
+        let scale   = .effectiveZoom()
+        let width   = source.width * scale
+        let height  = source.height * scale
+        return {content.horzCenter() - width * 0.5, content.vertCenter() - height * 0.5, width, height}
+    }
+
+    // Composes the source-space reflection and rotation beneath the window's paint transform.
+    mtd const transformedPaint(base: Math.Transform2, center: Math.Point)->Math.Transform2
+    {
+        var result = Math.Transform2.Identity
+        if .isMirrored do
+            result.multiply(Math.Transform2.createScale(-1, 1, center.x, center.y))
+        if .rotationQuarterTurns do
+            result.multiply(Math.Transform2.createRotation(Math.toRadians(cast(f32) .rotationQuarterTurns * 90), center.x, center.y))
+        result.multiply(base)
         return result
     }
 
@@ -113,6 +148,16 @@ private impl ImageView
             .panOffset.y += point.y - (next.y + next.height * ratioY)
         }
 
+        .sigZoomChanged.call(me)
+        .invalidate()
+    }
+
+    mtd applyTransform(quarterTurns: u32, mirrored: bool)
+    {
+        .rotationQuarterTurns = quarterTurns & 3
+        .isMirrored           = mirrored
+        .panOffset            = {}
+        .sigTransformChanged.call(me)
         .sigZoomChanged.call(me)
         .invalidate()
     }
@@ -150,6 +195,7 @@ impl IWnd for ImageView
 
         let source      = .currentImage()
         let destination = .contentRect()
+        let sourceRect  = .sourceRect()
         let tint        = .themeColors().imageRect_Fg
         let transparent = source.isValid() and source.pixelFormat.hasAlpha()
 
@@ -161,7 +207,16 @@ impl IWnd for ImageView
 
         if transparent do
             painter.fillRect(destination, Brush.createHatch(.CheckBoardLarge, .themeColors().colorPicker_BackAlpha))
-        painter.drawTexture(destination, .uploadedTexture, tint)
+
+        if .rotationQuarterTurns or .isMirrored
+        {
+            let base = painter.transform()
+            painter.setTransform(.transformedPaint(base, {sourceRect.horzCenter(), sourceRect.vertCenter()}))
+            painter.drawTexture(sourceRect, .uploadedTexture, tint)
+            painter.setTransform(base)
+        }
+        else do
+            painter.drawTexture(sourceRect, .uploadedTexture, tint)
 
         if .movie.isValid() and .movie.frameCount > 1 and !.movie.isPaused do
             .invalidate()
@@ -243,11 +298,13 @@ impl ImageView
         .movie.clear()
         @drop(&.image, 1)
         @init(&.image, 1)
-        .planarWidth  = 0
-        .planarHeight = 0
-        .zoom         = 1
-        .isFitted     = true
-        .panOffset    = {}
+        .planarWidth          = 0
+        .planarHeight         = 0
+        .zoom                 = 1
+        .isFitted             = true
+        .panOffset            = {}
+        .rotationQuarterTurns = 0
+        .isMirrored           = false
         .invalidate()
     }
 
@@ -397,13 +454,17 @@ impl ImageView
         let fitted = .isFitted
         let scaled = .zoom / scaleRatio
         let offset = .panOffset
+        let turns  = .rotationQuarterTurns
+        let mirror = .isMirrored
 
         .clear()
-        .image           = image
-        .uploadedTexture = .app().renderer.addImage(.image)
-        .isFitted        = fitted
-        .zoom            = Math.clamp(scaled, MinZoom, MaxZoom)
-        .panOffset       = offset
+        .image                = image
+        .uploadedTexture      = .app().renderer.addImage(.image)
+        .isFitted             = fitted
+        .zoom                 = Math.clamp(scaled, MinZoom, MaxZoom)
+        .panOffset            = offset
+        .rotationQuarterTurns = turns
+        .isMirrored           = mirror
         .sigZoomChanged.call(me)
         .invalidate()
     }
@@ -491,21 +552,44 @@ impl ImageView
         .applyZoom(1)
     }
 
-    // Rotates a still image clockwise and keeps the current viewing mode.
-    //
-    // Animated sources are left unchanged; their frame sequence remains owned by [[Gui.Movie]].
+    // Rotates the displayed content clockwise without changing its source pixels.
     mtd rotateClockwise()
     {
-        if .movie.isValid() or !.image.isValid() do
+        if !.hasContent() do
             return
+        .applyTransform(.rotationQuarterTurns + 1, .isMirrored)
+    }
 
-        .image.rotate(.Clockwise90)
-        if .uploadedTexture.isValid() do
-            .app().renderer.removeTexture(&.uploadedTexture)
-        .uploadedTexture = .app().renderer.addImage(.image)
-        .panOffset       = {}
-        .sigZoomChanged.call(me)
-        .invalidate()
+    // Rotates the displayed content counter-clockwise without changing its source pixels.
+    mtd rotateCounterClockwise()
+    {
+        if !.hasContent() do
+            return
+        .applyTransform(.rotationQuarterTurns + 3, .isMirrored)
+    }
+
+    // Reflects the displayed content across the viewport's vertical axis.
+    mtd mirrorHorizontally()
+    {
+        if !.hasContent() do
+            return
+        .applyTransform((4 - .rotationQuarterTurns) & 3, !.isMirrored)
+    }
+
+    // Reflects the displayed content across the viewport's horizontal axis.
+    mtd mirrorVertically()
+    {
+        if !.hasContent() do
+            return
+        .applyTransform((6 - .rotationQuarterTurns) & 3, !.isMirrored)
+    }
+
+    // Removes every temporary rotation and reflection without changing zoom.
+    mtd resetTransform()
+    {
+        if !.rotationQuarterTurns and !.isMirrored do
+            return
+        .applyTransform(0, false)
     }
 
     // Pauses or resumes GIF playback.

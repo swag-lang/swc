@@ -1,9 +1,9 @@
 # sFileScope Image Viewer Backlog
 
 The current viewer already navigates sibling images, pans, zooms, fits, shows actual pixels,
-rotates clockwise, and presents animated GIF frames on a timeline. This backlog owns professional
-inspection around the codecs; missing pixel formats and render primitives remain in
-[pixel.md](pixel.md).
+rotates in either direction, mirrors either axis, resets its temporary transform, and presents
+animated GIF frames on a timeline. This backlog owns professional inspection around the codecs;
+missing pixel formats and render primitives remain in [pixel.md](pixel.md).
 
 ## Inspection and presentation
 
@@ -39,15 +39,16 @@ inspection around the codecs; missing pixel formats and render primitives remain
   has a declared tone-map/output path, and screenshots never silently redefine source values.
 - Related: T-052, T-198, T-199, T-200
 
-### B-099 — Orientation controls are incomplete and cannot reset predictably
+### B-099 — Source orientation is not distinguished from the temporary view transform
 
-- Evidence: the bar rotates clockwise only. There is no counter-clockwise rotation, horizontal or
-  vertical mirror, EXIF-orientation distinction, Reset Transform, or numeric transform status.
-- Next: separate source orientation from temporary view transform and expose the complete lossless
-  dihedral set.
-- Complete when: rotate both ways, mirror both axes, and reset are keyboard accessible; dimensions,
-  pan, selection, pixel coordinates, animation, and copied images agree; and source bytes remain
-  unchanged.
+- Evidence: the viewer has a complete non-destructive dihedral view transform, but decoded images
+  do not expose EXIF orientation and future selection, pixel-probe, and export features have no
+  shared source-to-display coordinate contract.
+- Next: expose normalized source orientation through T-405, then define one coordinate mapping for
+  image dimensions, pan, selection, probes, animation frames, and the products in B-104.
+- Complete when: source orientation and temporary orientation are stated separately; every image
+  coordinate consumer agrees with the displayed transform; raw export keeps source bytes; and
+  rendered export declares the applied orientation.
 - Related: T-405
 
 ### B-100 — Zoom lacks navigator, numeric entry, interpolation choice, and comparison scale

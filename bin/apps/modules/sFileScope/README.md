@@ -2,8 +2,10 @@
 
 sFileScope is the universal read-only viewer shipped with Swag. One executable owns navigation,
 drag and drop, the shared search and information bands, the basic text surface, and every
-format-specific viewer. Global navigation and file information stay above the document; the
-active viewer gets a dedicated tool band below it, visible only when that viewer has commands.
+format-specific viewer. Global navigation and file information stay above the document. A viewer
+can place compact actions in the centered slot of the shared action bar, values at the trailing
+edge of the information band, and wider controls in a dedicated lower tool band that appears only
+when it is needed.
 
 ## Integrated viewer registry
 
@@ -53,7 +55,9 @@ guessing an encoding.
   breaks, keeps the first row as a fixed header, and participates in shared search. Source files
   are capped at 32 MiB; larger tables retain the bounded streamed basic-text alternative.
 - `Image` uses Pixel decoders for BMP, GIF, ICO, JPEG, PNG, TGA, TIFF, and WebP, plus Pixel's SVG
-  parser. It provides zoom, pan, fit, actual size, rotation, transparency, and GIF playback.
+  parser. Its centered action group provides zoom, pan, fit, actual size, rotation in either
+  direction, horizontal and vertical reflection, reset, and GIF playback. The information band
+  reports zoom and temporary orientation, so still images need no lower tool band.
 - `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, ISO-BMFF, and Matroska streams. Its
   transport provides play/pause, stop, ten-second seeks, a time-based timeline, elapsed/total time,
   mute, volume, and matching keyboard controls. It indexes packets without decoding the file up
@@ -94,19 +98,23 @@ only match geometry to the same animated, theme-derived current-result marker. T
 band shows a spinner while the active viewer is still producing visible content, and switching
 viewers retires hidden progressive work.
 
-The application stores its palette, language, window state, recent files, and remembered viewer
-choices in the user's application-data folder. It toggles full screen with F11, navigates the
-current folder with Left/Right, reloads with F5, opens with Ctrl+O, and accepts one file dropped
-anywhere on the surface. The recent and current-folder lists show the glyph of each file's default
-viewer. Audio and video claim bare Left/Right for ten-second seeks while active, and use Space for
-play/pause and M for mute. An
+The application stores its palette, language, window state, recent files, bounded recent-folder
+history, and remembered viewer choices in the user's application-data folder. It toggles full
+screen with F11, navigates the current folder with Left/Right, reloads with F5, opens with Ctrl+O,
+and accepts one file dropped anywhere on the surface. The recent and current-folder lists show the
+glyph of each file's default viewer; the current-folder heading opens the recent-folder menu and
+returns to the last file viewed in the selected folder. Audio and video claim bare Left/Right for
+ten-second seeks while active, and use Space for play/pause and M for mute. An
 installer may run `sFileScope.exe --register-file-types`; normal launches never write the registry.
 
-A right click names what a file offers. On the information band above the document it answers for
-the open file, and on a panel row for the file that row names: show it in the system file explorer,
-hand it to the system chooser of applications, or copy its full path or file name. A row of the
-history offers two more, because the history is the one list the reader owns: drop that file from
-it, or clear it entirely. Nothing here writes to the file, and the chooser runs in its own process.
+A common action-bar button opens the current file with the operating system's registered default
+application. A right click names the same action and the rest of what a file offers. On the
+information band above the document it answers for the open file, and on a panel row for the file
+that row names: show it in the system file explorer, open it with the default application, hand it
+to the system chooser of applications, or copy its full path or file name. A row of the history
+offers two more, because the history is the one list the reader owns: drop that file from it, or
+clear it entirely. Nothing here writes to the file, and external applications run in their own
+processes.
 
 ## Adding a viewer
 
@@ -116,12 +124,13 @@ key, name, glyph, immutable fixture, and selectors to `createViewerIndex`. The f
 `src/tests/datas`, is unique to that registry entry, and is a valid file the viewer can open. The
 key is lowercase, never translated, and never reused: it is the spelling a reader's remembered
 choice is stored under. The glyph is a new 24-unit cell appended to `datas/icons.svg` with a
-matching `ViewerIcons` case in grid order. Create the document under `request.contentParent` and
-optional compact commands under `request.commandParent`. On decode failure, leave `result.view`
-null and return the exact reason through `result.failureReason`; the application presents every
-failure on the same error surface. A viewer may also provide format details, byte-offset reveal,
-format-aware search, progressive-loading state, and late failure reporting through the shared
-result contract.
+matching `ViewerIcons` case in grid order. Create the document under `request.contentParent`,
+compact centered actions under `request.actionParent`, trailing values under `request.infoParent`,
+and only wider controls under `request.commandParent`; publish those roots through the matching
+`ViewerResult` fields. On decode failure, leave `result.view` null and return the exact reason
+through `result.failureReason`; the application presents every failure on the same error surface.
+A viewer may also provide format details, byte-offset reveal, format-aware search,
+progressive-loading state, and late failure reporting through the shared result contract.
 
 Keep tests at `src/tests/viewer.<format>.test.swg`, fixtures in `src/tests/datas`, and image goldens
 in `src/tests/goldens`. Run a focused test with:

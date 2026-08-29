@@ -50,7 +50,8 @@ const ViewerPaneMinSize  = 88.0
 
 // Files the recent list keeps. Long enough to cross a working session, short enough that the list
 // stays something a reader scans rather than searches.
-const ViewerRecentCount = 12'u64
+const ViewerRecentCount        = 12'u64
+const ViewerFolderHistoryCount = 8'u64
 
 // One remembered answer to "which viewer opens a file of this kind".
 //
@@ -64,9 +65,18 @@ struct ViewerPreference
     viewer: String     // Stable key of the viewer the reader chose for it instead.
 }
 
+// One recently viewed folder and the last file that made it current.
+struct ViewerFolderHistory
+{
+    folder: String
+    file:   String
+}
+
 struct ViewerInstance
 {
     view:                #null *Wnd
+    actions:             #null *Wnd
+    info:                #null *Wnd
     commands:            #null *Wnd
     revealMatch:         #null ViewerRevealMatch
     searchBounds:        #null ViewerSearchBounds
@@ -84,7 +94,7 @@ struct ViewerInstance
 struct ViewerActionBar
 {
     using wnd:   Wnd
-    searchGroup: #null *Wnd
+    centerGroup: #null *Wnd
 }
 
 impl IWnd for ViewerActionBar
@@ -92,7 +102,7 @@ impl IWnd for ViewerActionBar
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
-        .centerSearchGroup()
+        .centerContent()
     }
 }
 
@@ -107,13 +117,14 @@ impl ViewerActionBar
         return result
     }
 
-    mtd centerSearchGroup()
+    mtd centerContent()
     {
-        if !.searchGroup do
+        if !.centerGroup do
             return
         let client = .paddedClientRect()
-        .searchGroup!.setPosition({client.horzCenter() - ViewerSearchBarWidth * 0.5, client.vertCenter() - 18, ViewerSearchBarWidth, 36}, computeLayout: false)
-        .searchGroup!.applyLayout()
+        let group  = .centerGroup!
+        group.setPosition({client.horzCenter() - group.position.width * 0.5, client.vertCenter() - group.position.height * 0.5, group.position.width, group.position.height}, computeLayout: false)
+        group.applyLayout()
     }
 }
 
@@ -439,50 +450,56 @@ struct ViewerWindow
 
     #[Swag.Late]
     {
-        commandBar:        *ViewerActionBar
-        kindButton:        *IconButton
-        openButton:        *IconButton
-        filesButton:       *IconButton
-        fullScreenButton:  *IconButton
-        searchGroup:       *StackLayoutCtrl
-        searchBox:         *EditBox
-        searchCountLabel:  *Label
-        searchPrevious:    *IconButton
-        searchNext:        *IconButton
-        searchMatchCase:   *IconButton
-        searchWholeWord:   *IconButton
-        viewerCombo:       *ComboBox
-        appearanceButton:  *AppearanceButton
-        accentRail:        *Separator
-        infoBar:           *ViewerInfoBar
-        infoContentGroup:  *StackLayoutCtrl
-        infoFileGroup:     *StackLayoutCtrl
-        infoIconLabel:     *Label
-        infoNameLabel:     *Label
-        infoStatsLabel:    *Label
-        infoSizeLabel:     *Label
-        loadingOverlay:    *ViewerLoadingOverlay
-        searchOverlay:     *ViewerSearchOverlay
-        viewerBar:         *Wnd
-        emptyView:         *StackLayoutCtrl
-        emptyIconLabel:    *Label
-        emptyLabel:        *Label
-        emptyHintLabel:    *Label
-        filePanel:         *SplitterCtrl
-        recentPane:        *Wnd
-        recentLabel:       *Label
-        recentClearButton: *IconButton
-        recentList:        *ListCtrl
-        folderPane:        *Wnd
-        folderLabel:       *Label
-        folderList:        *ListCtrl
+        commandBar:          *ViewerActionBar
+        kindButton:          *IconButton
+        openButton:          *IconButton
+        openDefaultButton:   *IconButton
+        filesButton:         *IconButton
+        fullScreenButton:    *IconButton
+        searchGroup:         *StackLayoutCtrl
+        searchBox:           *EditBox
+        searchCountLabel:    *Label
+        searchPrevious:      *IconButton
+        searchNext:          *IconButton
+        searchMatchCase:     *IconButton
+        searchWholeWord:     *IconButton
+        viewerCombo:         *ComboBox
+        appearanceButton:    *AppearanceButton
+        accentRail:          *Separator
+        infoBar:             *ViewerInfoBar
+        infoContentGroup:    *StackLayoutCtrl
+        infoFileGroup:       *StackLayoutCtrl
+        infoIconLabel:       *Label
+        infoNameLabel:       *Label
+        infoStatsLabel:      *Label
+        infoSizeLabel:       *Label
+        loadingOverlay:      *ViewerLoadingOverlay
+        searchOverlay:       *ViewerSearchOverlay
+        viewerBar:           *Wnd
+        emptyView:           *StackLayoutCtrl
+        emptyIconLabel:      *Label
+        emptyLabel:          *Label
+        emptyHintLabel:      *Label
+        filePanel:           *SplitterCtrl
+        recentPane:          *Wnd
+        recentLabel:         *Label
+        recentClearButton:   *IconButton
+        recentList:          *ListCtrl
+        folderPane:          *Wnd
+        folderHistoryButton: *IconButton
+        folderLabel:         *Label
+        folderList:          *ListCtrl
     }
 
     index:                 ViewerIndex
     icons:                 IconSet
     currentView:           #null *Wnd
+    currentActions:        #null *Wnd
+    currentInfo:           #null *Wnd
     currentCommands:       #null *Wnd
     outgoingView:          #null *Wnd
+    outgoingActions:       #null *Wnd
+    outgoingInfo:          #null *Wnd
     outgoingCommands:      #null *Wnd
     choices:               Array'ViewerChoice
     instances:             Array'ViewerInstance
@@ -525,6 +542,7 @@ struct ViewerWindow
     forwardingViewerKey:       bool
     playPauseKeyDown:          bool
     recent:                    Array'String
+    folderHistory:             Array'ViewerFolderHistory
     preferences:               Array'ViewerPreference
     panelVisible:              bool
     recentPaneSize = ViewerRecentHeight
@@ -556,6 +574,17 @@ func reportViewerDetails(view: *Wnd, details: string)
             window.updateFileInfo(details)
         return
     }
+}
+
+// Re-measures viewer-owned chrome after a compact value or action group changes shape.
+func reportViewerChromeChanged(view: *Wnd)
+{
+    let window = cast(*ViewerWindow) view.parent!
+    if window.currentView != view do
+        return
+    window.commandBar.centerContent()
+    window.layoutFileInfo()
+    window.applyLayout()
 }
 
 // Opens a neighboring file for the viewer that chose to own directional navigation.
@@ -729,6 +758,7 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.themeIndex", &me.themeIndex)
         catch evt.serializer.serialize("ViewerWindow.language", &me.language)
         catch evt.serializer.serialize("ViewerWindow.recent", &me.recent)
+        catch evt.serializer.serialize("ViewerWindow.folderHistory", &me.folderHistory)
         catch evt.serializer.serialize("ViewerWindow.preferences", &me.preferences)
         catch evt.serializer.serialize("ViewerWindow.panelVisible", &me.panelVisible)
         catch evt.serializer.serialize("ViewerWindow.recentPaneSize", &me.recentPaneSize)
@@ -744,6 +774,9 @@ impl IWnd for ViewerWindow
                 .filePanel.items[0]!.size = .recentPaneSize
             while .recent.count > ViewerRecentCount do
                 .recent.removeAtOrdered(.recent.count - 1)
+            while .folderHistory.count > ViewerFolderHistoryCount do
+                .folderHistory.removeAtOrdered(.folderHistory.count - 1)
+            .folderHistoryButton.enable(!.folderHistory.isEmpty())
             .searchMatchCase.setChecked(.searchMatchCaseOption)
             .searchWholeWord.setChecked(.searchWholeWordOption)
             g_VideoSubtitleSettings.delay = Math.clamp(g_VideoSubtitleSettings.delay, -60, 60)
@@ -959,6 +992,19 @@ impl ViewerWindow
             }
         }
 
+        with result.openDefaultButton = IconButton.create(result.commandBar, result.theme().icon(.Export, ViewerGlyphSize), {0, 0, 36, 36})
+        {
+            .dockStyle = .Left
+            .margin.z  = 8
+            .toolTip   = appStrings().ui_OpenDefault
+            .enable(false)
+            .sigPressed += func|window = result|(button)
+            {
+                discard button
+                window.openCurrentFileDefault()
+            }
+        }
+
         with result.filesButton = IconButton.create(result.commandBar, result.theme().icon(.History, ViewerGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
         {
             .dockStyle = .Left
@@ -990,7 +1036,7 @@ impl ViewerWindow
             .hide()
         }
 
-        result.commandBar.searchGroup = result.searchGroup
+        result.commandBar.centerGroup = result.searchGroup
 
         with result.searchMatchCase = IconButton.create(result.searchGroup, {}, {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize}, flags: .Toggle | .CenterContent)
         {
@@ -1073,7 +1119,7 @@ impl ViewerWindow
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        result.commandBar.centerSearchGroup()
+        result.commandBar.centerContent()
 
         // Wide enough for the longest viewer name a shipped viewer registers beside its glyph.
         // Viewer commands now have their own row, so this global bar stays compact at every width.
@@ -1238,6 +1284,20 @@ impl ViewerWindow
             .sigCheckedChanged += func|window = result|(button)
             {
                 window.setFolderSameKind(button.isChecked)
+            }
+        }
+
+        with result.folderHistoryButton = IconButton.create(folderHeader, result.theme().icon(.History, 16), {0, 0, 50, 24}, flags: .CenterContent)
+        {
+            .dockStyle = .Right
+            .margin.x  = 4
+            .toolTip   = appStrings().ui_FolderHistory
+            .setArrowPosition(.RightDownward)
+            .enable(false)
+            .sigPressed += func|window = result|(button)
+            {
+                discard button
+                window.showFolderHistory()
             }
         }
 
@@ -1587,6 +1647,7 @@ impl ViewerWindow
         .choices.clear()
         .viewerCombo.clear()
         .viewerCombo.hide()
+        .openDefaultButton.enable(false)
         .activeChoiceIndex = Swag.U32.Max
         .folderFiles.clear()
         .siblings.clear()
@@ -1624,12 +1685,18 @@ impl ViewerWindow
             if keepCurrent and instance.view == .currentView
             {
                 .outgoingView     = instance.view
+                .outgoingActions  = instance.actions
+                .outgoingInfo     = instance.info
                 .outgoingCommands = instance.commands
                 instance.view     = null
+                instance.actions  = null
+                instance.info     = null
                 instance.commands = null
             }
             else
             {
+                instance.actions?.destroy()
+                instance.info?.destroy()
                 instance.commands?.destroy()
                 instance.view?.destroy()
             }
@@ -1638,6 +1705,8 @@ impl ViewerWindow
         .instances.clear()
         if !keepCurrent
         {
+            .currentActions  = null
+            .currentInfo     = null
             .currentCommands = null
             .currentView     = null
             .viewerBar.hide()
@@ -1652,13 +1721,23 @@ impl ViewerWindow
         if !.outgoingView do
             return
         let oldView     = .outgoingView!
+        let oldActions  = .outgoingActions
+        let oldInfo     = .outgoingInfo
         let oldCommands = .outgoingCommands
         .outgoingView     = null
+        .outgoingActions  = null
+        .outgoingInfo     = null
         .outgoingCommands = null
         if .currentView == oldView do
             .currentView = null
         if oldCommands and .currentCommands == oldCommands do
             .currentCommands = null
+        if oldActions and .currentActions == oldActions do
+            .currentActions = null
+        if oldInfo and .currentInfo == oldInfo do
+            .currentInfo = null
+        oldActions?.destroy()
+        oldInfo?.destroy()
         oldCommands?.destroy()
         oldView.destroy()
     }
@@ -1676,11 +1755,14 @@ impl ViewerWindow
 
         .discardOutgoingViewer()
         .currentView            = instance.view
+        .currentActions         = instance.actions
+        .currentInfo            = instance.info
         .currentCommands        = instance.commands
         .currentView!.dockStyle = .Center
         if .currentCommands do
             .currentCommands!.dockStyle = .Center
         .currentView!.show()
+        .currentInfo?.show()
         .currentCommands?.show()
         .viewerBar.show(.currentCommands != null and (!.fullScreen or .fullScreenBottomVisible))
         .updateFileInfo(instance.details.toString())
@@ -1700,12 +1782,16 @@ impl ViewerWindow
         {
             if !instance.retireView() do
                 return
+            instance.actions?.destroy()
+            instance.info?.destroy()
             instance.commands?.destroy()
             instance.view?.destroy()
 
             let errorView = ViewerErrorView.create(me, message.toString())
             errorView.dockStyle          = .Center
             instance.view                = errorView
+            instance.actions             = null
+            instance.info                = null
             instance.commands            = null
             instance.revealMatch         = null
             instance.searchBounds        = null
@@ -1732,6 +1818,8 @@ impl ViewerWindow
 
             .stopLoadingIndicator()
             .currentView     = errorView
+            .currentActions  = null
+            .currentInfo     = null
             .currentCommands = null
             .viewerBar.hide()
             .updateFileInfo("")
@@ -1754,9 +1842,13 @@ impl ViewerWindow
 
         if !instance.retireView() do
             return false
+        instance.actions?.destroy()
+        instance.info?.destroy()
         instance.commands?.destroy()
         instance.view!.destroy()
         instance.view                = null
+        instance.actions             = null
+        instance.info                = null
         instance.commands            = null
         instance.revealMatch         = null
         instance.searchBounds        = null
@@ -1767,6 +1859,8 @@ impl ViewerWindow
         instance.retire              = null
         instance.details.clear()
         .currentView     = null
+        .currentActions  = null
+        .currentInfo     = null
         .currentCommands = null
         .viewerBar.hide()
         return true
@@ -1825,11 +1919,16 @@ impl ViewerWindow
         {
             if !.retireActiveLoadingChoice(index) do
                 return false
+            .currentActions?.hide()
+            .currentInfo?.hide()
             .currentCommands?.hide()
             .currentView?.hide()
             .currentView     = instance.view
+            .currentActions  = instance.actions
+            .currentInfo     = instance.info
             .currentCommands = instance.commands
             .currentView!.show()
+            .currentInfo?.show()
             .currentCommands?.show()
             .viewerBar.show(.currentCommands != null and (!.fullScreen or .fullScreenBottomVisible))
             .activeChoiceIndex = index
@@ -1860,9 +1959,12 @@ impl ViewerWindow
             let request = ViewerRequest{
                 contentParent: me,
                 commandParent: .viewerBar,
+                actionParent: .commandBar,
+                infoParent: .infoContentGroup,
                 fileName: .currentFile.toString(),
                 reportFailure: &reportViewerFailure,
                 reportDetails: &reportViewerDetails,
+                reportChromeChanged: &reportViewerChromeChanged,
                 reportLoadingChanged: &reportViewerLoadingChanged,
                 navigateFile: &navigateViewerFile}
             catch spec.createView(&request, &next) as viewerError
@@ -1877,8 +1979,12 @@ impl ViewerWindow
             {
                 if next.view and next.retire do
                     discard next.retire!(next.view!)
+                next.actions?.destroy()
+                next.info?.destroy()
                 next.commands?.destroy()
                 next.view?.destroy()
+                next.actions             = null
+                next.info                = null
                 next.commands            = null
                 next.view                = ViewerErrorView.create(me, next.failureReason.toString())
                 next.revealMatch         = null
@@ -1899,6 +2005,8 @@ impl ViewerWindow
         {
             if next.retire do
                 discard next.retire!(next.view!)
+            next.actions?.destroy()
+            next.info?.destroy()
             next.commands?.destroy()
             next.view!.destroy()
             return false
@@ -1909,6 +2017,8 @@ impl ViewerWindow
         {
             next.view!.dockStyle = .None
             next.view!.setPosition(.outgoingView!.position, computeLayout: false)
+            next.actions?.hide()
+            next.info?.hide()
             if next.commands
             {
                 next.commands!.dockStyle = .None
@@ -1917,14 +2027,21 @@ impl ViewerWindow
             }
 
             .outgoingView!.bringToFront()
+            .outgoingActions?.bringToFront()
+            .outgoingInfo?.bringToFront()
             .outgoingCommands?.bringToFront()
         }
         else
         {
+            .currentActions?.hide()
+            .currentInfo?.hide()
             .currentCommands?.hide()
             .currentView?.hide()
             .currentView     = next.view
+            .currentActions  = next.actions
+            .currentInfo     = next.info
             .currentCommands = next.commands
+            .currentInfo?.show()
         }
 
         .activeChoiceIndex = index
@@ -1940,6 +2057,8 @@ impl ViewerWindow
         elif !stage do
             .viewerBar.hide()
         instance.view                = next.view
+        instance.actions             = next.actions
+        instance.info                = next.info
         instance.commands            = next.commands
         instance.revealMatch         = next.revealMatch
         instance.searchBounds        = next.searchBounds
@@ -2240,8 +2359,9 @@ impl ViewerWindow
         .searchMatchCase.enable(available)
         .searchWholeWord.enable(available)
         .searchGroup.show(available)
-        if available do
-            .commandBar.centerSearchGroup()
+        .currentActions?.show(!available)
+        .commandBar.centerGroup = available ? .searchGroup : .currentActions
+        .commandBar.centerContent()
         .restartSearch()
         if !available and searchHadFocus do
             .viewerFocusTarget()?.setFocus()
@@ -2438,6 +2558,7 @@ impl ViewerWindow
         for choice in .choices do
             .viewerCombo.addItem(choice.name.toString(), icon: .icon(choice.icon))
         .viewerCombo.show()
+        .openDefaultButton.enable(true)
 
         var selected = .preferredChoiceIndex()
         if !.activateChoice(selected)
@@ -2459,8 +2580,12 @@ impl ViewerWindow
 
         .emptyView.hide()
 
-        if remember do
+        if remember
+        {
             .rememberRecent(.currentFile.toString())
+            .rememberFolder(.currentFile.toString())
+        }
+
         if .panelVisible do
             .refreshFileLists()
 
@@ -2472,16 +2597,18 @@ impl ViewerWindow
     {
         let texts = appStrings()
         .surface?.setTitle(texts.ui_WindowTitle)
-        .openButton.toolTip        = texts.ui_Open
-        .filesButton.toolTip       = texts.ui_Files
-        .fullScreenButton.toolTip  = .fullScreen ? texts.ui_ExitFullScreen : texts.ui_FullScreen
-        .kindButton.toolTip        = texts.ui_SameKind
-        .recentClearButton.toolTip = texts.ui_ClearHistory
-        .viewerCombo.toolTip       = texts.ui_Viewer
-        .searchPrevious.toolTip    = texts.ui_SearchPrevious
-        .searchNext.toolTip        = texts.ui_SearchNext
-        .searchMatchCase.toolTip   = texts.ui_SearchMatchCase
-        .searchWholeWord.toolTip   = texts.ui_SearchWholeWord
+        .openButton.toolTip          = texts.ui_Open
+        .openDefaultButton.toolTip   = texts.ui_OpenDefault
+        .filesButton.toolTip         = texts.ui_Files
+        .fullScreenButton.toolTip    = .fullScreen ? texts.ui_ExitFullScreen : texts.ui_FullScreen
+        .kindButton.toolTip          = texts.ui_SameKind
+        .folderHistoryButton.toolTip = texts.ui_FolderHistory
+        .recentClearButton.toolTip   = texts.ui_ClearHistory
+        .viewerCombo.toolTip         = texts.ui_Viewer
+        .searchPrevious.toolTip      = texts.ui_SearchPrevious
+        .searchNext.toolTip          = texts.ui_SearchNext
+        .searchMatchCase.toolTip     = texts.ui_SearchMatchCase
+        .searchWholeWord.toolTip     = texts.ui_SearchWholeWord
         .searchBox.setPlaceholder(texts.ui_Search)
         .refreshSearchReadout()
         .recentLabel.setText(texts.ui_Recent)
@@ -2542,6 +2669,25 @@ impl ViewerWindow
         .recent.insertAt(0, String.from(fileName))
         while .recent.count > ViewerRecentCount do
             .recent.removeAtOrdered(.recent.count - 1)
+    }
+
+    // Puts the file's folder at the head of the bounded folder history.
+    mtd rememberFolder(fileName: string)
+    {
+        let folder = Path.directoryName(fileName)
+        if !folder do
+            return
+
+        for one, index in .folderHistory where Utf8.compare(one.folder.toSlice(), folder, .Latin1NoCase) == 0
+        {
+            .folderHistory.removeAtOrdered(index)
+            break
+        }
+
+        .folderHistory.insertAt(0, {String.from(folder), String.from(fileName)})
+        while .folderHistory.count > ViewerFolderHistoryCount do
+            .folderHistory.removeAtOrdered(.folderHistory.count - 1)
+        .folderHistoryButton.enable(true)
     }
 
     // Fills one list with file names, selecting the row that names the current file.
@@ -2615,12 +2761,51 @@ impl ViewerWindow
         .showFileActions(.currentFile.toString(), position, history: false)
     }
 
+    // Opens the current file with the handler registered by the operating system.
+    mtd openCurrentFileDefault()
+    {
+        if !.currentFile.isEmpty() do
+            discard Env.openFile(.currentFile.toString())
+    }
+
+    // Opens the bounded folder history and returns to the last file viewed in the chosen folder.
+    mtd showFolderHistory()
+    {
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        for one in .folderHistory where Directory.exists(one.folder.toString()) and File.exists(one.file.toString())
+        {
+            var name = Path.fileName(one.folder.toString()) orelse one.folder.toString()
+            if !@countof(name) do
+                name = one.folder.toString()
+            var icon = .app().directoryIcon(one.folder.toString(), true)
+            icon.color = .themeColors().label_Text
+            discard menu.addItem(name, one.folder.toString(), icon)
+        }
+
+        if menu.items.isEmpty()
+        {
+            menu.destroy()
+            return
+        }
+
+        let rect   = .folderHistoryButton.surfaceRect()
+        let folder = menu.doModal({rect.x, rect.bottom()}, .TopLeft, autoDestroy: true) orelse ""
+        if !@countof(folder) do
+            return
+        for one in .folderHistory where one.folder == folder
+        {
+            .queueFile(one.file.toString())
+            return
+        }
+    }
+
     // Shows what one file offers, wherever the reader pointed at it.
     private mtd showFileActions(fileName: string, position: Math.Point, history: bool)
     {
         let texts = appStrings()
         let menu  = MenuCtrl.createPopup(me, owner: me)
         menu.addItem(texts.ui_MenuLocate, "sFileScope.file.locate", .theme().icon(.OpenFile, ViewerRowGlyphSize))
+        menu.addItem(texts.ui_MenuOpenDefault, "sFileScope.file.openDefault", .theme().icon(.Export, ViewerRowGlyphSize))
         menu.addItem(texts.ui_MenuOpenWith, "sFileScope.file.openWith", .theme().icon(.Export, ViewerRowGlyphSize))
         menu.addSeparator()
         menu.addItem(texts.ui_MenuCopyPath, "sFileScope.file.copyPath", .theme().icon(.Copy, ViewerRowGlyphSize))
@@ -2637,11 +2822,12 @@ impl ViewerWindow
 
         switch chosen!
         {
-        case "sFileScope.file.locate":   Env.showInFileExplorer(fileName)
-        case "sFileScope.file.openWith": Env.openFileWith(fileName)
-        case "sFileScope.file.copyPath": Clipboard.addString(fileName)
-        case "sFileScope.file.copyName": Clipboard.addString(Path.fileName(fileName) orelse fileName)
-        case "sFileScope.file.forget":   .forgetRecent(fileName)
+        case "sFileScope.file.locate":      Env.showInFileExplorer(fileName)
+        case "sFileScope.file.openDefault": Env.openFile(fileName)
+        case "sFileScope.file.openWith":    Env.openFileWith(fileName)
+        case "sFileScope.file.copyPath":    Clipboard.addString(fileName)
+        case "sFileScope.file.copyName":    Clipboard.addString(Path.fileName(fileName) orelse fileName)
+        case "sFileScope.file.forget":      .forgetRecent(fileName)
         }
     }
 

@@ -123,6 +123,9 @@ alias ViewerReportFailure = func(*Wnd, string)
 // Hands format statistics that changed after creation back to the application status band.
 alias ViewerReportDetails = func(*Wnd, string)
 
+// Re-measures viewer-owned action and information content after its visible shape changes.
+alias ViewerReportChromeChanged = func(*Wnd)
+
 // Requests a neighboring file from the host when a viewer assigns meaning to that direction.
 alias ViewerNavigateFile = func(*Wnd, s32)
 
@@ -158,10 +161,13 @@ func mediaTimeRangeText(current, duration: f64)->String
 struct ViewerRequest
 {
     contentParent:        *Wnd = undefined                     // Parent the document view must be created under.
-    commandParent:        *Wnd = undefined                     // Parent the optional command group must be created under.
+    commandParent:        *Wnd = undefined                     // Parent for an optional full-width viewer command group.
     fileName:             string                               // File the view has to show.
+    actionParent:         *Wnd = undefined                     // Parent for compact actions shown in the host action bar.
+    infoParent:           *Wnd = undefined                     // Parent for compact values shown in the host information bar.
     reportFailure:        #null ViewerReportFailure            // Reports a decoder error discovered after creation.
     reportDetails:        #null ViewerReportDetails            // Reports format statistics that changed after creation.
+    reportChromeChanged:  #null ViewerReportChromeChanged      // Re-measures viewer-owned action and information content.
     reportLoadingChanged: #null ViewerReportLoadingChanged     // Re-evaluates application-owned wait feedback.
     navigateFile:         #null ViewerNavigateFile             // Opens a neighboring file when this viewer owns that gesture.
 }
@@ -170,12 +176,16 @@ struct ViewerRequest
 //
 // A successful viewer returns `view`. When decoding stops, it leaves `view` null and returns the
 // decoder's explanation through `failureReason`; the application then owns the complete error
-// surface. A viewer that needs no action bar leaves `commands` null, and one that cannot reveal an
-// offset leaves `revealMatch` null. A view that does no progressive work leaves `isLoading` null.
+// surface. `actions` occupies the action bar's centre whenever search is unavailable, `info`
+// extends the file-information row, and `commands` owns the optional full-width band below the
+// content. A viewer leaves unused regions null. One that cannot reveal an offset leaves
+// `revealMatch` null, and a view that does no progressive work leaves `isLoading` null.
 struct ViewerResult
 {
     view:                #null *Wnd                          // Document view the viewer owns, or null when decoding stopped.
-    commands:            #null *Wnd                          // One group of compact controls, or null.
+    actions:             #null *Wnd                          // Compact centre group in the host action bar, or null.
+    info:                #null *Wnd                          // Compact trailing group in the host information bar, or null.
+    commands:            #null *Wnd                          // Full-width lower command group, or null.
     details:             String                              // Short format-specific summary shown by the application.
     failureReason:       String                              // Decoder explanation when `view` is null, or empty on success.
     revealMatch:         #null ViewerRevealMatch             // Reveals a byte offset, or null when not searchable.

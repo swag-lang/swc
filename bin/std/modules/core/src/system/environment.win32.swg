@@ -164,6 +164,22 @@ public func openFileWith(path: string)->bool
     return err == null
 }
 
+// Opens `path` with its system-default application.
+//
+// The request is handed to the Windows shell and returns before the application finishes. The
+// result reports whether the shell accepted the request; it does not report what the application
+// subsequently did with the file.
+#[Swag.Discardable]
+public func openFile(path: string)->bool
+{
+    var normalized = String.from(path)
+    normalized.replace("/", "\\")
+
+    let file = Utf16.toZeroTerminated(normalized.toString())
+    discard catch ShellExecuteW(null, null, @dataof(file), null, null, SW_SHOW) as err
+    return err == null
+}
+
 // Opens `url` with the system's default handler.
 public func openUrl(url: string)
 {

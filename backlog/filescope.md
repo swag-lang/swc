@@ -30,15 +30,6 @@ ordered by expected product value, not implementation effort.
   has to be usable without the application window. That constraint is worth checking before committing.
 - Related: T-396, T-418
 
-### T-393 — The file being viewed cannot be opened with its default application
-
-- Intent: after looking at a file, the next action is always outside the viewer. Showing it in the
-  file explorer, handing it to the system application chooser, and copying either its full path or
-  its file name now answer from the context menu of the status bar and of both panel lists. What is
-  still missing is opening it with its *default* application.
-- Complete when: open-with-default joins that menu, and the actions a reader uses most are
-  reachable from the action bar rather than only from a right click.
-
 ### T-396 — Explorer shows no thumbnail for a viewable file
 
 - Intent: the image, SVG, and Markdown views can produce a representative bitmap; Explorer asks for

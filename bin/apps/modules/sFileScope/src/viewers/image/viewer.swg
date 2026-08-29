@@ -2,10 +2,11 @@
 
 using Core, Pixel, Gui
 
-private const ImageGlyphSize    = 18.0
-private const ImageCommandWidth = 396.0
-private const GifCommandWidth   = 624.0
-private const SvgRasterLimit    = 2048.0
+private const ImageGlyphSize   = 18.0
+private const ImageActionWidth = 326.0
+private const GifActionWidth   = 570.0
+private const ImageInfoWidth   = 156.0
+private const SvgRasterLimit   = 2048.0
 
 struct ImageViewerContent
 {
@@ -60,19 +61,22 @@ internal struct ImageViewer
 
     #[Swag.Late]
     {
-        commands:       *ViewerCommandBar
-        previousButton: *IconButton
-        nextButton:     *IconButton
-        imageView:      *ImageView
-        zoomLabel:      *Label
-        playButton:     *IconButton
-        timeline:       *Slider
-        frameLabel:     *Label
+        actions:         *ViewerCommandBar
+        info:            *ViewerCommandBar
+        previousButton:  *IconButton
+        nextButton:      *IconButton
+        imageView:       *ImageView
+        zoomLabel:       *Label
+        transformButton: *IconButton
+        playButton:      *IconButton
+        timeline:        *Slider
+        frameLabel:      *Label
     }
 
     navigateFile:         #null ViewerNavigateFile
     reportFailure:        #null ViewerReportFailure
     reportDetails:        #null ViewerReportDetails
+    reportChromeChanged:  #null ViewerReportChromeChanged
     reportLoadingChanged: #null ViewerReportLoadingChanged
     load:                 ViewerBackgroundLoad'ImageViewerContent
     loadTimer:            #null *Timer
@@ -83,7 +87,19 @@ internal impl ImageViewer
 {
     mtd refreshZoom()
     {
-        .zoomLabel.setText(Format.toString("% %", cast(s32) Math.round(.imageView.effectiveZoom() * 100), "%"))
+        let zoom = cast(s32) Math.round(.imageView.effectiveZoom() * 100)
+        if .imageView.rotationQuarterTurns or .imageView.isMirrored
+        {
+            let angle = .imageView.rotationQuarterTurns * 90
+            if .imageView.isMirrored do
+                .zoomLabel.setText(Format.toString("% % · %° · %", zoom, "%", angle, imageStrings().word_Mirrored))
+            else do
+                .zoomLabel.setText(Format.toString("% % · %°", zoom, "%", angle))
+        }
+        else do
+            .zoomLabel.setText(Format.toString("% %", zoom, "%"))
+        if .reportChromeChanged do
+            .reportChromeChanged!(me)
     }
 
     mtd refreshFrame()
@@ -98,18 +114,67 @@ internal impl ImageViewer
 
     mtd showPlayback()
     {
-        .commands.resize(GifCommandWidth, 36)
+        .actions.resize(GifActionWidth, 36)
         .playButton.show()
         .timeline.show()
         .frameLabel.show()
         .timeline.setBounds(0, cast(f32) .imageView.movie.frameCount - 1, 1)
         .refreshFrame()
+        if .reportChromeChanged do
+            .reportChromeChanged!(me)
     }
 
     mtd navigate(delta: s32)
     {
         if .navigateFile do
             .navigateFile!(me, delta)
+    }
+
+    mtd rotateClockwise()
+    {
+        .imageView.rotateClockwise()
+    }
+
+    mtd rotateCounterClockwise()
+    {
+        .imageView.rotateCounterClockwise()
+    }
+
+    mtd mirrorHorizontally()
+    {
+        .imageView.mirrorHorizontally()
+    }
+
+    mtd mirrorVertically()
+    {
+        .imageView.mirrorVertically()
+    }
+
+    mtd resetTransform()
+    {
+        .imageView.resetTransform()
+    }
+
+    mtd showTransformMenu(position: Math.Point)
+    {
+        let texts = imageStrings()
+        let menu  = MenuCtrl.createPopup(me, owner: me)
+        menu.addItem(texts.ui_RotateCounterClockwise, "sFileScope.image.rotateLeft", .theme().icon(.Undo, ImageGlyphSize))
+        menu.addItem(texts.ui_RotateClockwise, "sFileScope.image.rotateRight", .theme().icon(.Redo, ImageGlyphSize))
+        menu.addSeparator()
+        menu.addItem(texts.ui_MirrorHorizontal, "sFileScope.image.mirrorHorizontal")
+        menu.addItem(texts.ui_MirrorVertical, "sFileScope.image.mirrorVertical")
+        menu.addSeparator()
+        menu.addItem(texts.ui_ResetTransform, "sFileScope.image.reset", .theme().icon(.Update, ImageGlyphSize))
+
+        switch menu.doModal(position, .TopLeft, autoDestroy: true) orelse ""
+        {
+        case "sFileScope.image.rotateLeft":       .rotateCounterClockwise()
+        case "sFileScope.image.rotateRight":      .rotateClockwise()
+        case "sFileScope.image.mirrorHorizontal": .mirrorHorizontally()
+        case "sFileScope.image.mirrorVertical":   .mirrorVertically()
+        case "sFileScope.image.reset":            .resetTransform()
+        }
     }
 }
 
@@ -190,8 +255,20 @@ private impl IWnd for ImageViewer
         case .F:
             .imageView.zoomToFit()
 
-        case .R:
-            .imageView.rotateClockwise()
+        case .R where evt.modifiers == .None:
+            .rotateClockwise()
+
+        case .R where evt.modifiers == .Shift:
+            .rotateCounterClockwise()
+
+        case .R where evt.modifiers == .Control:
+            .resetTransform()
+
+        case .H where evt.modifiers == .None:
+            .mirrorHorizontally()
+
+        case .V where evt.modifiers == .None:
+            .mirrorVertically()
 
         case .Space where .imageView.movie.frameCount > 1:
             .imageView.setPaused(!.imageView.movie.isPaused)
@@ -218,18 +295,20 @@ private impl ImageViewer
         return true
     }
 
-    func create(contentParent, commandParent: *Wnd, fileName: string, navigateFile: #null ViewerNavigateFile = null, reportFailure: #null ViewerReportFailure = null, reportDetails: #null ViewerReportDetails = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*ImageViewer
+    func create(contentParent, actionParent, infoParent: *Wnd, fileName: string, navigateFile: #null ViewerNavigateFile = null, reportFailure: #null ViewerReportFailure = null, reportDetails: #null ViewerReportDetails = null, reportChromeChanged: #null ViewerReportChromeChanged = null, reportLoadingChanged: #null ViewerReportLoadingChanged = null)->*ImageViewer
     {
         let result = Wnd.create'ImageViewer(contentParent, "sFileScope.image")
         result.backgroundStyle      = .View
         result.navigateFile         = navigateFile
         result.reportFailure        = reportFailure
         result.reportDetails        = reportDetails
+        result.reportChromeChanged  = reportChromeChanged
         result.reportLoadingChanged = reportLoadingChanged
 
-        result.commands = ViewerCommandBar.create(commandParent, ImageCommandWidth)
+        result.actions = ViewerCommandBar.create(actionParent, ImageActionWidth)
+        result.info    = ViewerCommandBar.create(infoParent, ImageInfoWidth)
 
-        with result.previousButton = IconButton.create(result.commands, result.theme().icon(.ChevronLeft, ImageGlyphSize), {0, 0, 36, 36})
+        with result.previousButton = IconButton.create(result.actions, result.theme().icon(.ChevronLeft, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
             .toolTip   = imageStrings().ui_TipPrevious
@@ -241,7 +320,7 @@ private impl ImageViewer
             }
         }
 
-        with result.nextButton = IconButton.create(result.commands, result.theme().icon(.ChevronRight, ImageGlyphSize), {0, 0, 36, 36})
+        with result.nextButton = IconButton.create(result.actions, result.theme().icon(.ChevronRight, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
             .margin.z  = 8
@@ -254,7 +333,7 @@ private impl ImageViewer
             }
         }
 
-        with let zoomOut = IconButton.create(result.commands, result.theme().icon(.ZoomOut, ImageGlyphSize), {0, 0, 36, 36})
+        with let zoomOut = IconButton.create(result.actions, result.theme().icon(.ZoomOut, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -266,7 +345,7 @@ private impl ImageViewer
             }
         }
 
-        with let zoomIn = IconButton.create(result.commands, result.theme().icon(.ZoomIn, ImageGlyphSize), {0, 0, 36, 36})
+        with let zoomIn = IconButton.create(result.actions, result.theme().icon(.ZoomIn, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.z   = 8
@@ -278,7 +357,7 @@ private impl ImageViewer
             }
         }
 
-        with let fit = IconButton.create(result.commands, result.theme().icon(.FitView, ImageGlyphSize), {0, 0, 36, 36})
+        with let fit = IconButton.create(result.actions, result.theme().icon(.FitView, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -290,7 +369,7 @@ private impl ImageViewer
             }
         }
 
-        with let actual = IconButton.create(result.commands, result.theme().icon(.ActualSize, ImageGlyphSize), {0, 0, 36, 36})
+        with let actual = IconButton.create(result.actions, result.theme().icon(.ActualSize, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
             .margin.x   = 8
@@ -302,19 +381,20 @@ private impl ImageViewer
             }
         }
 
-        with let rotate = IconButton.create(result.commands, result.theme().icon(.Redo, ImageGlyphSize), {0, 0, 36, 36})
+        with result.transformButton = IconButton.create(result.actions, result.theme().icon(.Redo, ImageGlyphSize), {0, 0, 52, 36}, flags: .CenterContent)
         {
-            .dockStyle  = .Left
-            .margin.x   = 8
-            .toolTip    = imageStrings().ui_TipRotate
+            .dockStyle = .Left
+            .margin.x  = 8
+            .toolTip   = imageStrings().ui_TipTransform
+            .setArrowPosition(.RightDownward)
             .sigPressed += func|view = result|(button)
             {
-                discard button
-                view.imageView.rotateClockwise()
+                let rect = button.surfaceRect()
+                view.showTransformMenu({rect.x, rect.bottom()})
             }
         }
 
-        with result.playButton = IconButton.create(result.commands, result.theme().icon(.Pause, ImageGlyphSize), {0, 0, 36, 36})
+        with result.playButton = IconButton.create(result.actions, result.theme().icon(.Pause, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
             .margin.x  = 10
@@ -328,7 +408,7 @@ private impl ImageViewer
             }
         }
 
-        with result.timeline = Slider.create(result.commands, {0, 0, 128, 36})
+        with result.timeline = Slider.create(result.actions, {0, 0, 128, 36})
         {
             .dockStyle = .Left
             .margin    = {6, 1, 6, 1}
@@ -339,16 +419,16 @@ private impl ImageViewer
             }
         }
 
-        with result.frameLabel = Label.create(result.commands, "", {0, 0, 58, 36}, null, .SecondaryText)
+        with result.frameLabel = Label.create(result.actions, "", {0, 0, 58, 36}, null, .SecondaryText)
         {
             .dockStyle = .Left
             .setTextAlignment(.Center, .Center)
             .hide()
         }
 
-        with result.zoomLabel = Label.create(result.commands, "100%", {0, 0, 70, 36}, null, .SecondaryText)
+        with result.zoomLabel = Label.create(result.info, "100%", {0, 0, ImageInfoWidth, 32}, null, .SecondaryText | .Ellipsis)
         {
-            .dockStyle = .Right
+            .dockStyle = .Center
             .setTextAlignment(.Right, .Center)
         }
 
@@ -376,9 +456,10 @@ private impl ImageViewer
 // Creates the integrated image view.
 func createImageViewer(request: const *ViewerRequest, result: *ViewerResult)
 {
-    let view = ImageViewer.create(request.contentParent, request.commandParent, request.fileName, request.navigateFile, request.reportFailure, request.reportDetails, request.reportLoadingChanged)
+    let view = ImageViewer.create(request.contentParent, request.actionParent, request.infoParent, request.fileName, request.navigateFile, request.reportFailure, request.reportDetails, request.reportChromeChanged, request.reportLoadingChanged)
     result.view                = view
-    result.commands            = view.commands
+    result.actions             = view.actions
+    result.info                = view.info
     result.isLoading           = func(wnd)->bool { return (cast(*ImageViewer) wnd).loadTimer != null }
     result.needsLoadingOverlay = func(wnd)->bool { return (cast(*ImageViewer) wnd).loadTimer != null }
     result.retire              = func(wnd)->bool { return (cast(*ImageViewer) wnd).retire() }

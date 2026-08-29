@@ -2,6 +2,7 @@
 
 ui_WindowTitle  sFileScope — Visionneuse universelle
 ui_Open         Ouvrir
+ui_OpenDefault  Ouvrir avec l'application par défaut
 ui_Viewer       Visionneuse
 ui_BasicText    Texte brut
 ui_WrapOn       Retour à la ligne actif (Ctrl+W)
@@ -15,8 +16,10 @@ ui_Recent       Récents
 ui_ClearHistory Effacer l'historique
 ui_ConfirmClearHistory Tout l'historique des fichiers sera effacé.
 ui_Folder       Dossier
+ui_FolderHistory Dossiers récents
 ui_NotText      Ce fichier ne contient pas de texte lisible. Choisissez Hexadécimal pour en inspecter les octets.
 ui_MenuLocate       Afficher ce fichier dans son dossier
+ui_MenuOpenDefault  Ouvrir avec l'application par défaut
 ui_MenuOpenWith     Ouvrir avec une autre application…
 ui_MenuCopyPath     Copier le chemin complet
 ui_MenuCopyName     Copier le nom du fichier

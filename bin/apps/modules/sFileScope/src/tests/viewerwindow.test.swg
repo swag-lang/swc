@@ -298,6 +298,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(window.filePanel.items[0]!.minimumSize == ViewerPaneMinSize)
     @assert(window.recentList.listFlags.has(.Ellipsis) and window.folderList.listFlags.has(.Ellipsis))
     @assert(window.recentList.scrollWnd.flags.has(.DisableHorizontal) and window.folderList.scrollWnd.flags.has(.DisableHorizontal))
+    @assert(window.folderHistoryButton.parent == window.folderLabel.parent and window.folderHistoryButton.isEnabled())
+    @assert(window.folderHistory.count == 1 and window.folderHistory[0].folder == folder)
     assertFolderFiles(window, names.toSlice())
     @assert(window.recentList.lineCount() == 1)
     for i in window.folderList.lineCount()
@@ -334,7 +336,52 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.setFilePanelVisible(false)
     loadViewerState(window, state.toSlice())
     @assert(window.recent.count == 2 and window.panelVisible)
+    @assert(window.folderHistory.count == 1 and window.folderHistory[0].folder == folder)
     @assert(window.recentPaneSize == 120 and window.filePanel.items[0]!.size == 120)
+}
+
+// The folder header keeps a bounded history and returns directly to the last file viewed in the
+// chosen folder.
+#test
+{
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let root          = Path.combine(tempDirectory.toString(), Format.toString("sfilescope_folder_history_%", Guid64.random()).toString())
+    expect Directory.create(root.toString())
+    defer discard catch Directory.delete(root.toString(), recurse: true)
+
+    var files: Array'String
+    for i in ViewerFolderHistoryCount + 2
+    {
+        let folder = Path.combine(root.toString(), Format.toString("folder%", i).toString())
+        expect Directory.create(folder.toString())
+        let fileName = Path.combine(folder.toString(), "document.txt")
+        discard expect File.writeAllBytes(fileName.toString(), cast(const [..] u8) "a readable line\n")
+        files.add(fileName)
+    }
+
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    defer host.shutdown()
+    let index  = createViewerIndex()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(960, 680)
+
+    for one in files
+    {
+        window.openFile(one[].toString())
+        completeQueuedViewerFile(&host, window)
+    }
+
+    @assert(window.folderHistory.count == ViewerFolderHistoryCount)
+    @assert(window.folderHistory[0].file == files.back())
+    let selectedFolder = String.from(window.folderHistory.back().folder.toString())
+    let selectedFile   = String.from(window.folderHistory.back().file.toString())
+    host.clickPopupMenuItemWhenShown(selectedFolder.toString())
+    window.showFolderHistory()
+    host.pump()
+    completeQueuedViewerFile(&host, window)
+    @assert(host.autoHandled and window.currentFile == selectedFile)
+    @assert(window.folderHistory[0].folder == selectedFolder)
 }
 
 // Rebuilding the lists after a recent-file choice keeps the viewport under the pointer, and the
@@ -1015,6 +1062,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(window.searchGroup.parent == window.commandBar)
     @assert(window.searchBox.parent == window.searchGroup)
     @assert(window.fullScreenButton.parent == window.commandBar)
+    @assert(window.openDefaultButton.parent == window.commandBar and !window.openDefaultButton.isEnabled())
     @assert(window.fullScreenButton.flags.has(.Toggle) and window.fullScreenButton.checkIndicator == .Frame)
     @assert(!window.searchGroup.isLocallyVisible() and window.searchBox.isHidden())
     @assert(window.searchPrevious.icon.isValid() and window.searchNext.icon.isValid())
@@ -1047,6 +1095,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(window.emptyHintLabel.text() == appStrings().ui_DropHint)
     @assert(window.currentView == null)
     @assert(window.currentCommands == null)
+    @assert(window.currentActions == null and window.currentInfo == null)
     @assert(window.filesButton.flags.has(.Toggle) and window.filesButton.checkIndicator == .Frame)
     @assert(!window.filesButton.isChecked and !window.loadingOverlay.isLocallyVisible())
     @assert(!window.viewerCombo.isLocallyVisible())
@@ -1541,6 +1590,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.settleAnimations(window, 4)
 
     @assert(window.viewerCombo.isLocallyVisible())
+    @assert(window.openDefaultButton.isEnabled())
     @assert(window.infoBar.isLocallyVisible() and !window.emptyView.isLocallyVisible())
     @assert(window.infoIconLabel.icon.isValid())
     @assert(window.infoIconLabel.position.right() <= window.infoNameLabel.position.x)

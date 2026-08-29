@@ -56,6 +56,18 @@ using Swag, Core, Pixel
     @assert(view.isFitted)
     @assert(view.panOffset == Math.Point{})
 
+    view.rotateClockwise()
+    @assert(view.rotationQuarterTurns == 1 and !view.isMirrored)
+    @assert(Math.isEqualEpsilon(view.effectiveZoom(), 2, 0.001))
+    view.mirrorHorizontally()
+    @assert(view.rotationQuarterTurns == 3 and view.isMirrored)
+    view.mirrorVertically()
+    @assert(view.rotationQuarterTurns == 3 and !view.isMirrored)
+    view.rotateCounterClockwise()
+    @assert(view.rotationQuarterTurns == 2)
+    view.resetTransform()
+    @assert(view.rotationQuarterTurns == 0 and !view.isMirrored)
+
     let textureHandle = view.uploadedTexture.handle
     image.fill(Argb.Red)
     view.updateImage(&image)
@@ -64,7 +76,7 @@ using Swag, Core, Pixel
     @assert(view.isFitted)
 
     view.clear()
-    @assert(!view.uploadedTexture.isValid())
+    @assert(!view.uploadedTexture.isValid() and view.rotationQuarterTurns == 0 and !view.isMirrored)
 }
 
 // Exchanging a picture keeps the texture and the view, and hands the previous pixels back.
@@ -99,6 +111,37 @@ using Swag, Core, Pixel
     view.exchangeImage(&wider)
     @assert(wider.pixels.buffer == widerPixels)
     @assert(view.image.width == 120)
+}
+
+// Rotation and reflection are paint-time view operations: the source keeps its dimensions and
+// bytes while the asymmetric pattern proves that the composed transform reaches the renderer.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 160)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    let pixels: [24] u8 = [
+        255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255,
+        255, 255, 0, 255, 255, 0, 255, 255, 0, 255, 255, 255]
+    let source   = Image.create(3, 2, .RGBA8, pixels)
+    let original = ImageView.create(&host.root, {0, 0, 130, 160})
+    original.setImage(source)
+    original.setDisplaySize(90, 60)
+    original.actualSize()
+    let view = ImageView.create(&host.root, {130, 0, 130, 160})
+    view.setImage(source)
+    view.setDisplaySize(90, 60)
+    view.actualSize()
+    view.rotateClockwise()
+    view.mirrorHorizontally()
+
+    @assert(view.image.width == 3 and view.image.height == 2)
+    @assert(view.rotationQuarterTurns == 3 and view.isMirrored)
+    var rendered = host.render(&host.root)
+    Pixel.Testing.assertImageGolden(&rendered, "imageview.transform")
 }
 
 // A video frame reaches the view as planes: the texture is kept across frames, the geometry comes

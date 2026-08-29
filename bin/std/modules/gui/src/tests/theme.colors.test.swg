@@ -32,6 +32,9 @@ using Swag, Core
     @assert(colors.btnPush_Bk == 0xFF2A2A32)
     @assert(colors.edit_Border == 0xFF575763)
     @assert(colors.frameWnd_Border == 0xFF3D3D48)
+    @assert(colors.popupItem_Marker == 0xFFF7F900)
+    @assert(colors.popupItem_SubmenuMarker == 0xFF91919D)
+    @assert(colors.splitView_Bar == colors.toolBar_Bk)
 
     // The second tone is a block on ink exactly as the signature is, so nothing about it is
     // deepened here, and it fills the alternate action untouched.
@@ -84,6 +87,14 @@ using Swag, Core
         @assert(colors.menuPopup_Border == Color.lerpRgb(palette.faintText, palette.line, 0.15))
         @assert(colors.menuPopup_Border.contrastRatio(palette.panel) >= 2.5)
         @assert(colors.frameWnd_PopupBorder.contrastRatio(palette.panel) >= 2.5)
+
+        // Selection markers spend the signature because they report the chosen value. A submenu
+        // chevron only reports continuation, so it stays below the wording in the ink hierarchy.
+        @assert(colors.popupItem_Marker == colors.hilight)
+        @assert(colors.popupItem_Marker.contrastRatio(palette.panel) >= 3.5)
+        @assert(colors.popupItem_SubmenuMarker == palette.faintText)
+        @assert(colors.popupItem_SubmenuMarker != colors.popupItem_Marker)
+        @assert(colors.splitView_Bar == colors.toolBar_Bk)
     }
 }
 
@@ -174,14 +185,16 @@ using Swag, Core
     }
 }
 
-// Every palette slightly rounds compact tool cells, while a Swag palette additionally gives
-// actions and standalone panels its interface corner. Leaving a Swag palette has to give the
-// remaining geometry back without turning those interactive cells into hard squares.
+// Every palette rounds standalone panels and compact tool cells, while the Swag palette
+// additionally gives actions its interface corner. Leaving it has to give the remaining
+// geometry back without turning either family into hard squares.
 #test
 {
     var theme: Theme
     @assert(theme.metrics.surfaceWnd_CornerRadius == 18)
-    @assert(theme.rects.panel_Bk.radius == 0)
+    @assert(theme.metrics.panel_GutterSize == 4)
+    @assert(theme.metrics.splitView_BarSize == 5)
+    @assert(theme.rects.panel_Bk.radius == 6)
     @assert(theme.rects.btnIcon_SquareBk.radius == 4)
 
     theme.setSwagDark()
@@ -197,7 +210,7 @@ using Swag, Core
     @assert(theme.colors.activeRail.a == 0)
     @assert(theme.metrics.surfaceWnd_CornerRadius == 18)
     @assert(theme.rects.btnPush_Normal.rect != theme.rects.edit_SquareBk.rect)
-    @assert(theme.rects.panel_Bk.radius == 0)
+    @assert(theme.rects.panel_Bk.radius == 6)
     @assert(theme.rects.btnIcon_SquareBk.rect == theme.rects.btnIcon_RoundSquareBk.rect)
     @assert(theme.rects.btnIcon_CheckedSquare.rect == theme.rects.btnIcon_CheckedRoundSquare.rect)
     @assert(theme.rects.btnIcon_SquareBk.radius == 4)

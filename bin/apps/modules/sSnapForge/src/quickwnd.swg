@@ -340,7 +340,7 @@ impl QuickWnd
     {
         with let quick = Wnd.create'QuickWnd(parent, {0, 0, 0, 300})
         {
-            .backgroundStyle = .Window
+            .backgroundStyle = .Transparent
             .updateFlags(.AlwaysShowVertical | .CompactBars | .TransparentBars)
 
             // The presets start on the margin the rest of the panel uses, so the column of

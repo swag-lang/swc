@@ -2,7 +2,6 @@
 
 using Core, Pixel, Gui
 
-private const BinaryActionWidth    = 48.0
 private const BinaryOffsetWidth    = 116.0
 private const BinaryDetailMinWidth = 200.0
 private const BinaryFillRows       = 128'u64
@@ -41,9 +40,7 @@ internal struct BinaryViewer
 
     #[Swag.Late]
     {
-        actions:    *Wnd
-        menuButton: *IconButton
-        list:       *ListCtrl
+        list: *ListCtrl
     }
 
     previewBand:             #null *StackLayoutCtrl
@@ -555,12 +552,6 @@ internal impl BinaryViewer
         discard menu.doModal(surfacePos, .TopLeft, autoDestroy: true)
     }
 
-    mtd showCommandMenu()
-    {
-        let menu = .createCommandMenu()
-        discard menu.doModal(.menuButton, autoDestroy: true)
-    }
-
     // Divides the visible width into the four lanes a row is read across.
     //
     // The meaning lane takes what the other three leave, because it is the only one whose content
@@ -805,7 +796,6 @@ internal impl IWnd for BinaryViewer
         .applyLayout()
         .layoutPreviews()
         .layoutColumns()
-        .menuButton.enable(true)
         .finishLoadTimer()
     }
 
@@ -857,7 +847,6 @@ internal impl BinaryViewer
         .list.header.itemAt(cast(u32) BinaryColumn.Offset).name = s.ui_ColOffset
         .list.header.itemAt(cast(u32) BinaryColumn.Detail).name = s.ui_ColDetail
         .list.header.invalidate()
-        .menuButton.toolTip = s.ui_TipMenu
     }
 
     private mtd captureViewState()
@@ -965,23 +954,6 @@ internal impl BinaryViewer
         result.reportFailure        = services.reportFailure
         result.reportLoadingChanged = services.reportLoadingChanged
 
-        result.actions           = host.createActionGroup(BinaryActionWidth)
-        result.actions.dockStyle = .Left
-        result.actions.margin.x  = 8
-
-        with result.menuButton = IconButton.create(result.actions, host.icon(), {0, 0, BinaryActionWidth, 36}, flags: .CenterContent)
-        {
-            .dockStyle = .Left
-            .toolTip   = s.ui_TipMenu
-            .setArrowPosition(.RightDownward)
-            .enable(false)
-            .sigPressed += func|view = result|(button)
-            {
-                discard button
-                view.showCommandMenu()
-            }
-        }
-
         // The whole report is read in the fixed-width font: every second lane is a number, and a
         // column of hexadecimal that does not line up is a column that has to be read twice.
         with result.list = ListCtrl.createMultiColumns(result)
@@ -989,6 +961,7 @@ internal impl BinaryViewer
             .dockStyle = .Center
             .style.setFont(result.theme().createDefaultFontFS(result.themeMetrics().defaultFixedFontSize), .Regular)
             .setSelectionMode(.Single)
+            .setFirstColumnIconMargin(false)
             .updateFlags(.HotTrack | .AlternateLines)
             .addColumn(s.ui_ColField, 320)
             .addColumn(s.ui_ColValue, 200)

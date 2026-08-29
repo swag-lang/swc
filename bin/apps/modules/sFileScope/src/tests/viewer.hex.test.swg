@@ -375,16 +375,33 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     defer discard catch File.delete(fileName.toString())
 
     var host: Testing.HeadlessHost
-    host.setup(1_100, 620)
+    host.setup(1_100, 700)
     defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let view = createTestViewer(&host, fileName.toString(), 1_100, 620)
+    // Use the shipped window rather than a viewer-only approximation: the integration contract
+    // includes the information panel above, the viewer bar below, and the host-owned toggle at
+    // the right edge of that information panel.
+    let index  = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.openFile(fileName.toString())
+    completeHexViewerOpen(&host, window)
+
+    var hexIndex = Swag.U32.Max
+    for choice, index in window.choices where choice.key == "hex" do
+        hexIndex = cast(u32) index
+    @assert(hexIndex != Swag.U32.Max)
+    window.selectViewer(hexIndex)
+    completeHexViewerOpen(&host, window)
+    let view = cast(*HexViewer) window.currentView!
+    @assert(window.currentInfo != null)
+    @assert(view.analysisButton.position.x - window.currentInfo!.position.right() == ViewerInfoSideButtonSpacing)
+
     view.analysisButton.setChecked(true)
-    view.startAnalysis()
+    view.analysisButton.sigCheckedChanged.call(view.analysisButton)
     completeHexViewerAnalysis(&host, view)
 
     @assert(view.analysisView.isLocallyVisible() and view.analysisView.result.scanned == view.grid.doc.fileSize)
@@ -406,10 +423,14 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     @assert(view.analysisView.result.range.length == selectedLength)
     @assert(!view.analysisView.stringsList.header.flags.has(.Separators))
 
-    host.root.applyLayout()
+    window.infoNameLabel.setText("sfilescope-hex-analysis.bin")
+    window.infoNameLabel.toolTip = "sfilescope-hex-analysis.bin"
+    window.layoutFileInfo()
+    window.resize(1_100, 700)
+    window.applyLayout()
     host.moveMouse({-1, -1})
-    host.settleAnimations(&host.root, 4)
-    var image = host.render(view)
+    host.settleAnimations(window, 4)
+    var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "viewer.hex.analysis")
 
     view.closeAnalysis()
@@ -418,7 +439,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     let selectionStart  = view.grid.selectionStart()
     let selectionLength = view.grid.selectionLength()
     view.analysisButton.setChecked(true)
-    view.startAnalysis()
+    view.analysisButton.sigCheckedChanged.call(view.analysisButton)
     completeHexViewerAnalysis(&host, view)
     @assert(view.analysisView.selection and view.analysisView.result.range.offset == selectionStart)
     @assert(view.analysisView.result.range.length == selectionLength and view.analysisView.result.scanned == selectionLength)

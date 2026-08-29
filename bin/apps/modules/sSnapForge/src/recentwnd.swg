@@ -362,7 +362,7 @@ impl RecentWnd
         with let recent = Wnd.create'RecentWnd(parent, {0, 0, 0, PreviewHeight + RecentPadding * 2})
         {
             .updateFlags(.CompactBars | .AlwaysShowHorizontal)
-            .backgroundStyle = .Window
+            .backgroundStyle = .Panel
             .main            = main
             .style.addStyleSheetColors("scrollBar_Bk $view_Bk")
 
@@ -370,7 +370,7 @@ impl RecentWnd
             .recentView.padding   = RecentPadding
             .recentView.main      = main
             .recentView.recentWnd = recent
-            .view.backgroundStyle = .View
+            .view.backgroundStyle = .Transparent
         }
 
         return recent

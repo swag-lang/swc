@@ -257,6 +257,9 @@ public impl IWnd for MenuCtrl
                 colorRightText = colors.popupItem_HotRightText
             }
 
+            let markerColor  = it.disabled ? colors.popupItem_DisabledMarker : (isHot ? colors.popupItem_HotMarker : colors.popupItem_Marker)
+            let submenuColor = it.disabled ? colors.popupItem_DisabledSubmenuMarker : (isHot ? colors.popupItem_HotSubmenuMarker : colors.popupItem_SubmenuMarker)
+
             var backPos = labelPos
             backPos.y      -= metrics.menuPopup_SpaceLines * 0.5
             backPos.height += metrics.menuPopup_SpaceLines
@@ -292,7 +295,13 @@ public impl IWnd for MenuCtrl
                 else
                 {
                     labelPos.width -= metrics.chevron_Size + metrics.menuPopup_IconTextMargin
-                    submenuMarkerX = labelPos.right() + metrics.menuPopup_IconTextMargin
+
+                    // The chevron belongs to the trailing edge, not to the text column. The
+                    // popup padding already supplies its outer air; keeping an extra icon-width
+                    // reserve after it made the marker float conspicuously toward the wording.
+                    // Let the chevron enter half the leading icon margin so its optical edge sits
+                    // a little nearer the popup outline without crowding it.
+                    submenuMarkerX = clientRect.right() - metrics.chevron_Size + metrics.menuPopup_IconMargin * 0.5
                 }
             }
 
@@ -320,10 +329,10 @@ public impl IWnd for MenuCtrl
                 {
                     theme.drawSubRect(painter, checkPos, &rects.btnRadio_CheckedBorder, colorText)
                     if it.checked do
-                        theme.drawSubRect(painter, checkPos, &rects.btnRadio_CheckedMark, colorText)
+                        theme.drawSubRect(painter, checkPos, &rects.btnRadio_CheckedMark, markerColor)
                 }
                 else do
-                    theme.drawSubRect(painter, checkPos, &rects.btnCheck_CheckedMark, colorText)
+                    theme.drawSubRect(painter, checkPos, &rects.btnCheck_CheckedMark, markerColor)
             }
             elif it.icon.isValid()
             {
@@ -348,7 +357,7 @@ public impl IWnd for MenuCtrl
             {
                 let glyph = it.submenuOpensLeft ? ThemeIcons.ChevronLeft : ThemeIcons.ChevronRight
                 let icon  = theme.icon(glyph, metrics.chevron_Size)
-                icon.paint(painter, submenuMarkerX, opticalTop(.font(), textCenterY, icon.sizeY), colorText)
+                icon.paint(painter, submenuMarkerX, opticalTop(.font(), textCenterY, icon.sizeY), submenuColor)
             }
         }
     }

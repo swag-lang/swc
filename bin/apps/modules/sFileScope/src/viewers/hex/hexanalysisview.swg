@@ -293,9 +293,9 @@ impl HexAnalysisView
 
     func create(parent: *Wnd)->*HexAnalysisView
     {
-        let result = Wnd.create'HexAnalysisView(parent, {0, 0, HexAnalysisPanelWidth, 0})
-        result.dockStyle       = .Right
-        result.backgroundStyle = .Panel
+        let result = Wnd.create'HexAnalysisView(parent)
+        result.dockStyle       = .Center
+        result.backgroundStyle = .Transparent
         result.padding         = {12, 8, 12, 8}
 
         with let header = Wnd.create'Wnd(result, {0, 0, 0, HexAnalysisHeaderHeight})

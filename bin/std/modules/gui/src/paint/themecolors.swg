@@ -347,12 +347,18 @@ struct ThemeColors
         menuBar_SelectedBk:   Color     // Ground of the open menu title.
         menuBar_SelectedText: Color     // The open menu title.
 
-        popupItem_Text:         Color     // An entry of a menu.
-        popupItem_RightText:    Color     // The shortcut written after an entry.
-        popupItem_DisabledText: Color     // An entry the reader cannot choose.
-        popupItem_HotText:      Color     // An entry under the pointer.
-        popupItem_HotRightText: Color     // The shortcut of an entry under the pointer.
-        popupItem_HotBk:        Color     // Ground of an entry under the pointer.
+        popupItem_Text:                  Color     // An entry of a menu.
+        popupItem_RightText:             Color     // The shortcut written after an entry.
+        popupItem_DisabledText:          Color     // An entry the reader cannot choose.
+        popupItem_HotText:               Color     // An entry under the pointer.
+        popupItem_HotRightText:          Color     // The shortcut of an entry under the pointer.
+        popupItem_HotBk:                 Color     // Ground of an entry under the pointer.
+        popupItem_Marker:                Color     // Check or radio selection shown beside an entry.
+        popupItem_HotMarker:             Color     // Check or radio selection under the pointer.
+        popupItem_DisabledMarker:        Color     // Check or radio selection of an unavailable entry.
+        popupItem_SubmenuMarker:         Color     // Chevron leading to a child menu.
+        popupItem_HotSubmenuMarker:      Color     // Chevron leading to a child menu under the pointer.
+        popupItem_DisabledSubmenuMarker: Color     // Chevron leading to an unavailable child menu.
 
         scrollBar_Bk:         Color     // Track of a scroll bar.
         scrollBar_HotBk:      Color     // Track of a scroll bar under the pointer.
@@ -942,12 +948,18 @@ impl ThemeColors
         .menuBar_SelectedBk   = p.selectHot
         .menuBar_SelectedText = p.text
 
-        .popupItem_Text         = p.text
-        .popupItem_RightText    = p.softText
-        .popupItem_DisabledText = p.disabled
-        .popupItem_HotText      = p.text
-        .popupItem_HotRightText = p.softText
-        .popupItem_HotBk        = p.selectHot
+        .popupItem_Text                  = p.text
+        .popupItem_RightText             = p.softText
+        .popupItem_DisabledText          = p.disabled
+        .popupItem_HotText               = p.text
+        .popupItem_HotRightText          = p.softText
+        .popupItem_HotBk                 = p.selectHot
+        .popupItem_Marker                = signature.mark
+        .popupItem_HotMarker             = signature.mark
+        .popupItem_DisabledMarker        = p.disabled
+        .popupItem_SubmenuMarker         = p.faintText
+        .popupItem_HotSubmenuMarker      = p.softText
+        .popupItem_DisabledSubmenuMarker = p.disabled
 
         // A scroll bar is furniture: its track is whatever it sits on until the pointer arrives,
         // and the thumb climbs from faint to full as the reader engages with it. The track is
@@ -1009,7 +1021,7 @@ impl ThemeColors
         .header_Bk               = p.panel
 
         .splitView_TitleBk = p.panel
-        .splitView_Bar     = p.line
+        .splitView_Bar     = p.toolBar
         .splitView_BarHot  = signature.mark
 
         .progressBar_Border         = p.controlLine

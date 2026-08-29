@@ -899,7 +899,11 @@ private impl ListView
                         // same air on both sides whatever size the theme gives the chevron.
                         let expand  = theme.icon(line.expanded ? .ChevronDown : .ChevronRight, metrics.chevron_Size)
                         let expandX = labelPos.x + Math.max(metrics.list_ExpandSize - expand.sizeX, 0.0) * 0.5
-                        expand.paint(painter, expandX, opticalTop(.font(), labelPos.vertCenter(), expand.sizeY), colorExpand)
+
+                        // A triangular disclosure mark carries more visual weight toward its
+                        // flat edge than its point. One logical pixel below the typographic
+                        // center keeps the shape level with the wording beside it.
+                        expand.paint(painter, expandX, opticalTop(.font(), labelPos.vertCenter(), expand.sizeY) + 1, colorExpand)
                     }
 
                     labelPos.moveLeft(metrics.list_ExpandSize)

@@ -94,9 +94,9 @@ impl MainWnd
         var height: f32
         switch .bottomSize
         {
-        case .Small:  height = 80
-        case .Medium: height = 128
-        case .Big:    height = 224
+        case .Small:  height = 88
+        case .Medium: height = 136
+        case .Big:    height = 232
         }
 
         if animated do

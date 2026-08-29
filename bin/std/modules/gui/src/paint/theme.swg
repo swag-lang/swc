@@ -320,11 +320,12 @@ impl Theme
         @init(&.rects, 1)
     }
 
-    // Gives interactive cells and standalone panels the same slight corner as an edit box.
+    // Gives interactive cells the same slight corner as an edit box.
     //
     // The default atlas draws a push button as a pill, which is the one control that cannot sit
     // next to a field without looking borrowed from another kit. The Swag palette instead uses
-    // one four-pixel corner for fields, actions, tool cells, selection states and raised panels.
+    // one four-pixel corner for fields, actions, tool cells and selection states. Standalone
+    // panels keep the more legible shared panel corner declared by [[Gui.ThemeImageRects]].
     // Structural chrome remains square, so the corner softens a bounded thing without rounding
     // the bars and rails that join the surface together.
     private mtd setSwagGeometry()
@@ -334,8 +335,6 @@ impl Theme
         // bevel on that square, so it is 12 — deliberate against the desktop, and still well short
         // of the 18 the neutral palettes use.
         .metrics.surfaceWnd_CornerRadius = 12
-
-        .rects.panel_Bk = .rects.edit_SquareBk
 
         .rects.btnPush_Normal         = .rects.edit_SquareBk
         .rects.btnPush_Hot            = .rects.edit_SquareBk

@@ -1,20 +1,22 @@
 using Core, Pixel, Gui
 
+const ViewerActionBarHeight                   = 42.0
 const ViewerBarHeight                         = 48.0
 const ViewerInfoHeight                        = 40.0
 const ViewerGlyphSize                         = 20.0
 const ViewerRowGlyphSize                      = 16.0
 const ViewerMinWidth                          = 880
 const ViewerSearchChunkSize                   = 256 * 1024'u64
-const ViewerSearchBarWidth                    = 388.0
 const ViewerSearchFieldWidth                  = 180.0
 const ViewerSearchNoOptionsFieldWidth         = 256.0
 const ViewerSearchCountWidth                  = 52.0
 const ViewerSearchButtonSize                  = 36.0
-const ViewerSearchOptionsWidth                = 44.0
+const ViewerSearchOptionsWidth                = 52.0
 const ViewerSearchNavigationWidth             = 132.0
 const ViewerSearchGroupSpacing                = 16.0
+const ViewerSearchBarWidth                    = ViewerSearchOptionsWidth + ViewerSearchFieldWidth + ViewerSearchNavigationWidth + 2 * ViewerSearchGroupSpacing
 const ViewerInfoGroupSpacing                  = 16.0
+const ViewerInfoSideButtonSpacing             = 8.0
 const ViewerSearchCarryMargin                 = 4'u64
 const ViewerErrorTextWidth                    = 512.0
 const ViewerFullScreenRevealEdge              = 32.0
@@ -48,8 +50,8 @@ const ViewerFullScreenRemovedFlags = SurfaceFlags.LargeCaption | SurfaceFlags.Sm
 const ViewerFullScreenAddedFlags   = SurfaceFlags.NoShadow | SurfaceFlags.TopMost
 
 // The panel that lists what is beside the current file, and what was read before it.
-const ViewerPanelWidth   = 268.0
-const ViewerPanelLabel   = 26.0
+const ViewerPanelWidth   = 276.0
+const ViewerPanelLabel   = 32.0
 const ViewerRecentHeight = 188.0
 const ViewerPaneMinSize  = 88.0
 
@@ -98,10 +100,10 @@ impl ViewerActionBar
 {
     func create(parent: *Wnd)->*ViewerActionBar
     {
-        let result = Wnd.create'ViewerActionBar(parent, {0, 0, 0, ViewerBarHeight})
+        let result = Wnd.create'ViewerActionBar(parent, {0, 0, 0, ViewerActionBarHeight})
         result.dockStyle       = .Top
-        result.backgroundStyle = .CommandBar
-        result.padding         = {12, 6, 12, 6}
+        result.backgroundStyle = .ToolBar
+        result.padding         = {12, 6, 12, 0}
         return result
     }
 
@@ -125,9 +127,12 @@ struct ViewerInfoLayout
 
     #[Swag.Late]
     {
+        filesButton:  *IconButton
         fileGroup:    *StackLayoutCtrl
         generalLabel: *Label
     }
+
+    sideButton: #null *IconButton
 }
 
 impl IWnd for ViewerInfoLayout
@@ -147,16 +152,34 @@ impl ViewerInfoLayout
         let client = .paddedClientRect()
         let center = client.horzCenter()
 
-        let maxFileWidth = Math.max(center - client.x - ViewerInfoGroupSpacing, 0)
+        let filesWidth = .filesButton.isLocallyVisible() ? .filesButton.position.width : 0
+        if filesWidth
+        {
+            .filesButton.setPosition({client.x, client.y, filesWidth, client.height}, computeLayout: false)
+            .filesButton.applyLayout()
+        }
+
+        let fileLeft     = client.x + filesWidth + ViewerInfoGroupSpacing
+        let maxFileWidth = Math.max(center - fileLeft - ViewerInfoGroupSpacing, 0)
         let fileWidth    = Math.min(Math.ceil(.fileGroup.itf.measureContent({maxFileWidth, client.height}).x), maxFileWidth)
-        .fileGroup.setPosition({client.x, client.y, fileWidth, client.height}, computeLayout: false)
+        .fileGroup.setPosition({fileLeft, client.y, fileWidth, client.height}, computeLayout: false)
         .fileGroup.computeLayout()
 
         var viewerLeft = client.right()
         var hasViewer: bool
+        if .sideButton and .sideButton!.isLocallyVisible()
+        {
+            let button = .sideButton!
+            viewerLeft -= button.position.width
+            button.setPosition({viewerLeft, client.y, button.position.width, client.height}, computeLayout: false)
+            button.applyLayout()
+            viewerLeft -= ViewerInfoSideButtonSpacing
+            hasViewer  = true
+        }
+
         for child in .children
         {
-            if child == cast(*Wnd) .fileGroup or child == cast(*Wnd) .generalLabel or !child.isLocallyVisible() do
+            if child == cast(*Wnd) .filesButton or child == cast(*Wnd) .fileGroup or child == cast(*Wnd) .generalLabel or (.sideButton and child == cast(*Wnd) .sideButton!) or !child.isLocallyVisible() do
                 continue
 
             let width = Math.min(child.position.width, Math.max(viewerLeft - client.x, 0))
@@ -170,6 +193,29 @@ impl ViewerInfoLayout
         let rightBound = viewerLeft - (hasViewer ? ViewerInfoGroupSpacing : 0)
         let halfWidth  = .generalLabel.name.isEmpty() ? 0 : Math.max(Math.min(center - leftBound, rightBound - center), 0)
         .generalLabel.setPosition({center - halfWidth, client.y, 2 * halfWidth, client.height}, computeLayout: false)
+    }
+}
+
+// Clips only the four document corners after viewers paint. Insetting every viewer exposed the
+// panel as a continuous inner frame; masking the corners preserves the full content rectangle.
+struct ViewerDocumentPanel
+{
+    using wnd: Wnd
+}
+
+impl IWnd for ViewerDocumentPanel
+{
+    mtd impl onAfterPaint(evt: *PaintEvent)
+    {
+        let rect   = .clientRect()
+        let radius = .themeRects().panel_Bk.radius
+        if !radius do
+            return
+
+        var corners: LinePathList
+        corners.newPath().setRectRaw(rect.x, rect.y, rect.width, rect.height)
+        corners.newPath().setRoundRectRaw(rect.x, rect.y, rect.width, rect.height, radius, radius)
+        evt.paintContext.painter.fillPath(&corners, .themeColors().toolBar_Bk, .EvenOdd)
     }
 }
 
@@ -374,13 +420,23 @@ impl IWnd for ViewerInfoBar
             return
         }
 
-        (cast(*ViewerWindow) .parent!).showCurrentFileActions(evt.surfacePos)
+        (cast(*ViewerWindow) .parent!.parent!).showCurrentFileActions(evt.surfacePos)
     }
+}
+
+func viewerWindowFor(view: *Wnd)->*ViewerWindow
+{
+    Debug.assert(view.parent != null)
+    if view.parent!.userData do
+        return cast(*ViewerWindow) view.parent!.userData!
+
+    // Focused host-service tests attach their synthetic view directly to the application window.
+    return cast(*ViewerWindow) view.parent!
 }
 
 func reportViewerFailure(view: *Wnd, reason: string)
 {
-    let window = cast(*ViewerWindow) view.parent!
+    let window = viewerWindowFor(view)
     window.replaceFailedViewer(view, reason)
 }
 
@@ -495,6 +551,7 @@ struct ViewerWindow
         viewerCombo:         *ComboBox
         appearanceButton:    *AppearanceButton
         accentRail:          *Separator
+        infoBarHost:         *Wnd
         infoBar:             *ViewerInfoBar
         infoContentGroup:    *ViewerInfoLayout
         infoFileGroup:       *StackLayoutCtrl
@@ -502,6 +559,8 @@ struct ViewerWindow
         infoNameLabel:       *Label
         infoStatsLabel:      *Label
         infoSizeLabel:       *Label
+        documentHost:        *Wnd
+        documentPanel:       *Wnd
         loadingOverlay:      *ViewerLoadingOverlay
         searchOverlay:       *ViewerSearchOverlay
         viewerBar:           *Wnd
@@ -509,6 +568,7 @@ struct ViewerWindow
         emptyIconLabel:      *Label
         emptyLabel:          *Label
         emptyHintLabel:      *Label
+        filePanelHost:       *Wnd
         filePanel:           *SplitterCtrl
         recentPane:          *Wnd
         recentLabel:         *Label
@@ -520,50 +580,54 @@ struct ViewerWindow
         folderList:          *ListCtrl
     }
 
-    index:                 ViewerPluginRegistry
-    icons:                 IconSet
-    currentView:           #null *Wnd
-    currentActions:        #null *Wnd
-    currentInfo:           #null *Wnd
-    currentCommands:       #null *Wnd
-    outgoingView:          #null *Wnd
-    outgoingActions:       #null *Wnd
-    outgoingInfo:          #null *Wnd
-    outgoingCommands:      #null *Wnd
-    choices:               Array'ViewerPluginChoice
-    instances:             Array'ViewerSession
-    activeChoiceIndex           = Swag.U32.Max
-    startupTimer:          #null *Timer
-    searchTimer:           #null *Timer
-    searchBoundsTimer:     #null *Timer
-    loadingTimer:          #null *Timer
-    choiceLoad:            ViewerChoiceLoad
-    smokeTimer:            #null *Timer
-    searchStream:          File.FileStream
-    searchQuery:           String
-    searchToolTip:         String
-    searchError:           String
-    searchCarry:           String
-    searchCarryBase:       u64
-    searchProcessed:       u64
-    searchSpan:            u64
-    searchMatches:         Array'ViewerSearchMatch
-    searchIndex:           u64  = Swag.U64.Max
-    searchMatch:           u64  = Swag.U64.Max
-    searchComplete:        bool
-    searchSelectLast:      bool
-    searchMatchCaseOption: bool
-    searchWholeWordOption: bool
-    searchRegexOption:     bool
-    pendingFile:           String
-    pendingEmpty:          String
-    pendingRemember:       bool = true
-    currentFile:           String
-    currentFileSize:       String
-    folderFiles:           Array'String
-    siblings:              Array'String
-    siblingIndex:          u64
-    siblingsDirty               = true
+    index:                   ViewerPluginRegistry
+    icons:                   IconSet
+    currentView:             #null *Wnd
+    currentActions:          #null *Wnd
+    currentInfo:             #null *Wnd
+    currentCommands:         #null *Wnd
+    currentSidePanelHost:    #null *Wnd
+    currentSidePanelButton:  #null *IconButton
+    outgoingView:            #null *Wnd
+    outgoingActions:         #null *Wnd
+    outgoingInfo:            #null *Wnd
+    outgoingCommands:        #null *Wnd
+    outgoingSidePanelHost:   #null *Wnd
+    outgoingSidePanelButton: #null *IconButton
+    choices:                 Array'ViewerPluginChoice
+    instances:               Array'ViewerSession
+    activeChoiceIndex             = Swag.U32.Max
+    startupTimer:            #null *Timer
+    searchTimer:             #null *Timer
+    searchBoundsTimer:       #null *Timer
+    loadingTimer:            #null *Timer
+    choiceLoad:              ViewerChoiceLoad
+    smokeTimer:              #null *Timer
+    searchStream:            File.FileStream
+    searchQuery:             String
+    searchToolTip:           String
+    searchError:             String
+    searchCarry:             String
+    searchCarryBase:         u64
+    searchProcessed:         u64
+    searchSpan:              u64
+    searchMatches:           Array'ViewerSearchMatch
+    searchIndex:             u64  = Swag.U64.Max
+    searchMatch:             u64  = Swag.U64.Max
+    searchComplete:          bool
+    searchSelectLast:        bool
+    searchMatchCaseOption:   bool
+    searchWholeWordOption:   bool
+    searchRegexOption:       bool
+    pendingFile:             String
+    pendingEmpty:            String
+    pendingRemember:         bool = true
+    currentFile:             String
+    currentFileSize:         String
+    folderFiles:             Array'String
+    siblings:                Array'String
+    siblingIndex:            u64
+    siblingsDirty                 = true
 
     // Whether next/previous and the folder list keep only the neighbours the current file's
     // viewer would open, so a reader flips through the pictures of a folder without landing on
@@ -599,7 +663,7 @@ struct ViewerWindow
 
 func reportViewerDetails(view: *Wnd, details: string)
 {
-    let window = cast(*ViewerWindow) view.parent!
+    let window = viewerWindowFor(view)
     for &instance, index in window.instances where instance.view == view
     {
         instance.details = details
@@ -612,7 +676,7 @@ func reportViewerDetails(view: *Wnd, details: string)
 // Re-measures viewer-owned chrome after a compact value or action group changes shape.
 func reportViewerChromeChanged(view: *Wnd)
 {
-    let window = cast(*ViewerWindow) view.parent!
+    let window = viewerWindowFor(view)
     if window.currentView != view do
         return
     window.commandBar.centerContent()
@@ -623,13 +687,13 @@ func reportViewerChromeChanged(view: *Wnd)
 // Opens a neighboring file for the viewer that chose to own directional navigation.
 func navigateViewerFile(view: *Wnd, delta: s32)
 {
-    (cast(*ViewerWindow) view.parent!).navigate(delta)
+    viewerWindowFor(view).navigate(delta)
 }
 
 // Lets a viewer wake the generic wait presentation when work starts again after being idle.
 func reportViewerLoadingChanged(view: *Wnd)
 {
-    let window = cast(*ViewerWindow) view.parent!
+    let window = viewerWindowFor(view)
     window.commitViewerTransition(view)
     window.updateLoadingIndicator()
 }
@@ -897,6 +961,17 @@ impl ViewerWindow
         try g_App.saveState()
     }
 
+    // Keeps a four-pixel structural edge when the selected viewer has no command bar. Full screen
+    // remains immersive and reveals the complete command bar only when the viewer owns one.
+    private mtd updateViewerBar()
+    {
+        .viewerBar.position.height = .currentCommands ? ViewerBarHeight : .themeMetrics().panel_GutterSize
+        if .fullScreen do
+            .viewerBar.show(.fullScreenBottomVisible and .currentCommands != null)
+        else do
+            .viewerBar.show()
+    }
+
     // Enters or leaves a borderless monitor-sized presentation without losing the reader's
     // previous window placement or maximized state.
     mtd setFullScreen(enabled: bool)
@@ -917,15 +992,19 @@ impl ViewerWindow
             srfn.updateFlags(add: ViewerFullScreenAddedFlags, remove: ViewerFullScreenRemovedFlags)
             srfn.setPosition(Env.monitorForRectangle(.fullScreenRestorePosition).physicalBounds)
             .accentRail.hide()
-            .commandBar.dockStyle = .None
-            .infoBar.dockStyle    = .None
-            .viewerBar.dockStyle  = .None
+            .commandBar.dockStyle  = .None
+            .infoBarHost.dockStyle = .None
+            .viewerBar.dockStyle   = .None
             .commandBar.hide()
-            .infoBar.hide()
+            .infoBarHost.hide()
             .viewerBar.hide()
-            .filePanel.hide()
-            .fullScreenTopVisible    = false
-            .fullScreenBottomVisible = false
+            .filePanelHost.hide()
+            .filesButton.hide()
+            .currentSidePanelHost?.hide()
+            .currentSidePanelButton?.hide()
+            .infoContentGroup.sideButton = null
+            .fullScreenTopVisible        = false
+            .fullScreenBottomVisible     = false
             .applyLayout()
         }
         else
@@ -936,15 +1015,19 @@ impl ViewerWindow
             if .fullScreenWasMaximized do
                 srfn.showMaximized()
             .accentRail.show()
-            .commandBar.dockStyle = .Top
-            .infoBar.dockStyle    = .Top
-            .viewerBar.dockStyle  = .Bottom
+            .commandBar.dockStyle  = .Top
+            .infoBarHost.dockStyle = .Top
+            .viewerBar.dockStyle   = .Bottom
             .commandBar.show()
-            .infoBar.show()
-            .viewerBar.show(.currentCommands != null)
-            .filePanel.show(.panelVisible)
-            .fullScreenTopVisible    = false
-            .fullScreenBottomVisible = false
+            .infoBarHost.show()
+            .updateViewerBar()
+            .filePanelHost.show(.panelVisible)
+            .filesButton.show()
+            .currentSidePanelButton?.show()
+            .currentSidePanelHost?.show(.currentSidePanelButton?.isChecked orelse false)
+            .infoContentGroup.sideButton = .currentSidePanelButton
+            .fullScreenTopVisible        = false
+            .fullScreenBottomVisible     = false
             .applyLayout()
         }
 
@@ -959,7 +1042,7 @@ impl ViewerWindow
         if !.fullScreen do
             return
         let height = .clientRect().height
-        let top    = position.y <= ViewerFullScreenRevealEdge or (.fullScreenTopVisible and position.y <= ViewerBarHeight + ViewerInfoHeight)
+        let top    = position.y <= ViewerFullScreenRevealEdge or (.fullScreenTopVisible and position.y <= ViewerActionBarHeight + .infoBarHost.position.height)
         let bottom = position.y >= height - ViewerFullScreenRevealEdge or (.fullScreenBottomVisible and position.y >= height - ViewerBarHeight)
         if top == .fullScreenTopVisible and bottom == .fullScreenBottomVisible do
             return
@@ -975,19 +1058,19 @@ impl ViewerWindow
             return
         let rect = .clientRect()
         .commandBar.show(.fullScreenTopVisible)
-        .infoBar.show(.fullScreenTopVisible)
-        .viewerBar.show(.fullScreenBottomVisible and .currentCommands != null)
+        .infoBarHost.show(.fullScreenTopVisible)
+        .updateViewerBar()
         if .fullScreenTopVisible
         {
-            .commandBar.setPosition({rect.x, rect.y, rect.width, ViewerBarHeight}, computeLayout: false)
-            .infoBar.setPosition({rect.x, rect.y + ViewerBarHeight, rect.width, ViewerInfoHeight}, computeLayout: false)
+            .commandBar.setPosition({rect.x, rect.y, rect.width, ViewerActionBarHeight}, computeLayout: false)
+            .infoBarHost.setPosition({rect.x, rect.y + ViewerActionBarHeight, rect.width, .infoBarHost.position.height}, computeLayout: false)
             .commandBar.applyLayout()
-            .infoBar.applyLayout()
+            .infoBarHost.applyLayout()
             .commandBar.bringToFront()
-            .infoBar.bringToFront()
+            .infoBarHost.bringToFront()
         }
 
-        if .fullScreenBottomVisible
+        if .fullScreenBottomVisible and .currentCommands
         {
             .viewerBar.setPosition({rect.x, rect.bottom() - ViewerBarHeight, rect.width, ViewerBarHeight}, computeLayout: false)
             .viewerBar.applyLayout()
@@ -1000,7 +1083,7 @@ impl ViewerWindow
         let result = Wnd.create'ViewerWindow(parent, "sFileScope.main")
         result.surface!.setView(result)
         result.surface!.minSize = {ViewerMinWidth, 420}
-        result.backgroundStyle  = .View
+        result.backgroundStyle  = .Application
         result.index            = #move index
         result.language         = Gui.ReferenceLanguage
         result.icons.setup(result.app().renderer, viewerIcons())
@@ -1048,19 +1131,6 @@ impl ViewerWindow
             {
                 discard button
                 window.openCurrentFileDefault()
-            }
-        }
-
-        with result.filesButton = IconButton.create(result.commandBar, result.theme().icon(.History, ViewerGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
-        {
-            .dockStyle = .Left
-            .margin.z  = 8
-            .toolTip   = appStrings().ui_Files
-            .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|window = result|(button)
-            {
-                window.setFilePanelVisible(button.isChecked)
-                catch window.saveState()
             }
         }
 
@@ -1173,34 +1243,56 @@ impl ViewerWindow
             }
         }
 
-        // File identity and content statistics are read before the document. Viewer tools belong
-        // to the dedicated band below it, where a transport can spend the width it needs.
-        with result.infoBar = Wnd.create'ViewerInfoBar(result, {0, 0, 0, ViewerInfoHeight})
+        // File identity and content statistics are read before the document. The information
+        // surface follows the same panel composition as both side panes: a rounded semantic
+        // ground inside one shared chrome seam. Viewer tools belong to the dedicated band below.
+        let panelGutter = result.themeMetrics().panel_GutterSize
+        with result.infoBarHost = Wnd.create'Wnd(result, {0, 0, 0, ViewerInfoHeight + panelGutter * 2})
         {
             .dockStyle       = .Top
-            .backgroundStyle = .InformationBar
-            .padding         = {14, 4, 14, 4}
+            .backgroundStyle = .ToolBar
+            .padding         = {panelGutter, panelGutter, panelGutter, panelGutter}
         }
 
-        with result.infoContentGroup = Wnd.create'ViewerInfoLayout(result.infoBar, {0, 0, 0, 32})
+        with result.infoBar = Wnd.create'ViewerInfoBar(result.infoBarHost)
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .InformationPanel
+            .padding         = {8, 2, 8, 2}
+        }
+
+        with result.infoContentGroup = Wnd.create'ViewerInfoLayout(result.infoBar, {0, 0, 0, 36})
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
         }
 
-        with result.infoFileGroup = StackLayoutCtrl.create(result.infoContentGroup, .Left, {0, 0, 0, 32})
+        with result.filesButton = IconButton.create(result.infoContentGroup, result.theme().icon(.History, ViewerGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
+        {
+            .toolTip = appStrings().ui_Files
+            .setCheckIndicator(.Frame)
+            .sigCheckedChanged += func|window = result|(button)
+            {
+                window.setFilePanelVisible(button.isChecked)
+                catch window.saveState()
+            }
+        }
+
+        result.infoContentGroup.filesButton = result.filesButton
+
+        with result.infoFileGroup = StackLayoutCtrl.create(result.infoContentGroup, .Left, {0, 0, 0, 36})
         {
             .backgroundStyle = .Transparent
             .spacing         = 0
         }
 
-        with result.infoIconLabel = Label.create(result.infoFileGroup, "", {0, 0, 24, 32})
+        with result.infoIconLabel = Label.create(result.infoFileGroup, "", {0, 0, 24, 36})
         {
             .margin.z = 4
             .setIconAlignment(.Center, .Center)
         }
 
-        with result.infoNameLabel = Label.create(result.infoFileGroup, "", {0, 0, 0, 32}, null, .Ellipsis)
+        with result.infoNameLabel = Label.create(result.infoFileGroup, "", {0, 0, 0, 36}, null, .Ellipsis)
         {
             .layoutSpec.policyX = .Expand
             .layoutSpec.weightX = 0
@@ -1208,14 +1300,14 @@ impl ViewerWindow
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        with result.infoSizeLabel = Label.create(result.infoFileGroup, "", {0, 0, 0, 32}, null, .SecondaryText)
+        with result.infoSizeLabel = Label.create(result.infoFileGroup, "", {0, 0, 0, 36}, null, .SecondaryText)
         {
             .margin.x = 8
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        with result.infoStatsLabel = Label.create(result.infoContentGroup, "", {0, 0, 0, 32}, null, .SecondaryText | .Ellipsis)
+        with result.infoStatsLabel = Label.create(result.infoContentGroup, "", {0, 0, 0, 36}, null, .SecondaryText | .Ellipsis)
         {
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
             .setTextAlignment(.Center, .OpticalCenter)
@@ -1229,37 +1321,44 @@ impl ViewerWindow
             .dockStyle       = .Bottom
             .backgroundStyle = .ToolBar
             .padding         = {12, 6, 12, 6}
-            .hide()
         }
 
-        // What is beside the current file, and what was read before it. The panel is docked before
-        // the document so the two lists take their width off the left edge, and it stays hidden
-        // until a reader asks for it: the document keeps the whole surface by default.
-        with result.filePanel = SplitterCtrl.create(result, {0, 0, ViewerPanelWidth, 0}, vertical: true)
+        // The toolbar-colored lane is the static seam shared with the application chrome. The
+        // rounded structural panel sits inside it, so the lists read as one integrated surface
+        // instead of a square block divided from the document by an unrelated rule.
+        with result.filePanelHost = Wnd.create'Wnd(result, {0, 0, ViewerPanelWidth + panelGutter, 0})
         {
             .dockStyle       = .Left
-            .minSize.x       = ViewerPanelWidth
-            .maxSize.x       = ViewerPanelWidth
-            .backgroundStyle = .Window
+            .backgroundStyle = .ToolBar
+
+            // The information lane supplies the upper seam and the viewer bar supplies the
+            // lower chrome. Only the exposed outer edges need their own integration gutter.
+            .padding = {panelGutter, 0, 0, 0}
             .hide()
         }
 
-        Separator.create(result.filePanel, .Right)
+        with result.filePanel = SplitterCtrl.create(result.filePanelHost, {0, 0, ViewerPanelWidth, 0}, vertical: true)
+        {
+            .dockStyle       = .Center
+            .minSize.x       = ViewerPanelWidth
+            .maxSize.x       = ViewerPanelWidth
+            .backgroundStyle = .Panel
+        }
 
         with result.recentPane = Wnd.create'Wnd(result.filePanel)
         {
-            .backgroundStyle = .Window
+            .backgroundStyle = .Transparent
             .padding         = {0, 8, 0, 8}
         }
 
         with let recentHeader = Wnd.create'Wnd(result.recentPane, {0, 0, 0, ViewerPanelLabel})
         {
             .dockStyle       = .Top
-            .backgroundStyle = .Window
+            .backgroundStyle = .Transparent
             .margin          = {10, 0, 10, 0}
         }
 
-        with result.recentClearButton = IconButton.create(recentHeader, result.theme().icon(.RemoveAll, ViewerRowGlyphSize), {0, 0, 24, 24})
+        with result.recentClearButton = IconButton.create(recentHeader, result.theme().icon(.RemoveAll, ViewerRowGlyphSize), {0, 0, ViewerPanelLabel, ViewerPanelLabel})
         {
             .dockStyle  = .Right
             .toolTip    = appStrings().ui_ClearHistory
@@ -1298,7 +1397,7 @@ impl ViewerWindow
 
         with result.folderPane = Wnd.create'Wnd(result.filePanel)
         {
-            .backgroundStyle = .Window
+            .backgroundStyle = .Transparent
             .padding         = {0, 8, 0, 8}
         }
 
@@ -1307,11 +1406,11 @@ impl ViewerWindow
         with let folderHeader = Wnd.create'Wnd(result.folderPane, {0, 0, 0, ViewerPanelLabel})
         {
             .dockStyle       = .Top
-            .backgroundStyle = .Window
+            .backgroundStyle = .Transparent
             .margin          = {10, 0, 10, 0}
         }
 
-        with result.kindButton = IconButton.create(folderHeader, result.theme().icon(.Filter, ViewerRowGlyphSize), {0, 0, 24, 24}, flags: .Toggle)
+        with result.kindButton = IconButton.create(folderHeader, result.theme().icon(.Filter, ViewerRowGlyphSize), {0, 0, ViewerPanelLabel, ViewerPanelLabel}, flags: .Toggle)
         {
             .dockStyle = .Right
             .toolTip   = appStrings().ui_SameKind
@@ -1322,7 +1421,7 @@ impl ViewerWindow
             }
         }
 
-        with result.folderHistoryButton = IconButton.create(folderHeader, result.theme().icon(.History, ViewerRowGlyphSize), {0, 0, 50, 24}, flags: .CenterContent)
+        with result.folderHistoryButton = IconButton.create(folderHeader, result.theme().icon(.History, ViewerRowGlyphSize), {0, 0, 52, ViewerPanelLabel}, flags: .CenterContent)
         {
             .dockStyle = .Right
             .margin.z  = 8
@@ -1336,7 +1435,7 @@ impl ViewerWindow
             }
         }
 
-        with result.folderLabel = Label.create(folderHeader, appStrings().ui_Folder, {0, 0, 0, ViewerPanelLabel}, null, .SecondaryText)
+        with result.folderLabel = Label.create(folderHeader, appStrings().ui_Folder, {0, 0, 0, ViewerPanelLabel}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Center
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
@@ -1370,11 +1469,28 @@ impl ViewerWindow
 
         result.filePanel.addPane(result.folderPane).minimumSize = ViewerPaneMinSize
 
-        with result.emptyView = StackLayoutCtrl.create(result, .VerticalCenter)
+        // The document is the middle panel of the same composition. It owns the seams on both
+        // sides, so showing either optional side panel never doubles the four-pixel rhythm.
+        with result.documentHost = Wnd.create'Wnd(result)
         {
-            .dockStyle = .Center
-            .padding   = {48, 48, 48, 48}
-            .spacing   = 12
+            .dockStyle       = .Center
+            .backgroundStyle = .ToolBar
+            .padding         = {panelGutter, 0, panelGutter, 0}
+        }
+
+        with result.documentPanel = Wnd.create'ViewerDocumentPanel(result.documentHost)
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .Panel
+            .userData        = result
+        }
+
+        with result.emptyView = StackLayoutCtrl.create(result.documentPanel, .VerticalCenter)
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .Transparent
+            .padding         = {48, 48, 48, 48}
+            .spacing         = 12
         }
 
         with result.emptyIconLabel = Label.create(result.emptyView, "", {0, 0, 48, 48})
@@ -1395,8 +1511,8 @@ impl ViewerWindow
             .setTextAlignment(.Center, .Center)
         }
 
-        result.loadingOverlay = ViewerLoadingOverlay.create(result)
-        result.searchOverlay  = ViewerSearchOverlay.create(result)
+        result.loadingOverlay = ViewerLoadingOverlay.create(result.documentPanel)
+        result.searchOverlay  = ViewerSearchOverlay.create(result.documentPanel)
 
         result.hookOnChildEvent = func|window = result|(wnd, evt)
         {
@@ -1413,6 +1529,7 @@ impl ViewerWindow
 
         result.applyLanguage()
         result.refreshArtwork()
+        result.updateViewerBar()
         result.applyLayout()
         return result
     }
@@ -1690,8 +1807,8 @@ impl ViewerWindow
         .infoSizeLabel.toolTip = ""
         .layoutFileInfo()
         .infoIconLabel.setIcon({})
-        .infoBar.show(!.fullScreen or .fullScreenTopVisible)
-        .viewerBar.hide()
+        .infoBarHost.show(!.fullScreen or .fullScreenTopVisible)
+        .updateViewerBar()
         .surface!.setTitle(appStrings().ui_WindowTitle)
         .updateSearchAvailability()
         .applyLayout()
@@ -1714,20 +1831,27 @@ impl ViewerWindow
         {
             if keepCurrent and instance.view == .currentView
             {
-                .outgoingView     = instance.view
-                .outgoingActions  = instance.actions
-                .outgoingInfo     = instance.info
-                .outgoingCommands = instance.commands
-                instance.view     = null
-                instance.actions  = null
-                instance.info     = null
-                instance.commands = null
+                .outgoingView            = instance.view
+                .outgoingActions         = instance.actions
+                .outgoingInfo            = instance.info
+                .outgoingCommands        = instance.commands
+                .outgoingSidePanelHost   = instance.sidePanelHost
+                .outgoingSidePanelButton = instance.sidePanelButton
+                instance.view            = null
+                instance.actions         = null
+                instance.info            = null
+                instance.commands        = null
+                instance.sidePanelHost   = null
+                instance.sidePanel       = null
+                instance.sidePanelButton = null
             }
             else
             {
                 instance.actions?.destroy()
                 instance.info?.destroy()
                 instance.commands?.destroy()
+                instance.sidePanelButton?.destroy()
+                instance.sidePanelHost?.destroy()
                 instance.view?.destroy()
             }
         }
@@ -1739,10 +1863,30 @@ impl ViewerWindow
             .currentInfo     = null
             .currentCommands = null
             .currentView     = null
-            .viewerBar.hide()
+            .setCurrentSidePanel(null, null)
+            .updateViewerBar()
         }
 
         return true
+    }
+
+    // Moves the host-owned panel action with the viewer it belongs to. The action remains on the
+    // information edge while its panel occupies the matching right-side lane.
+    private mtd setCurrentSidePanel(panel: #null *Wnd, button: #null *IconButton)
+    {
+        .currentSidePanelHost?.hide()
+        .currentSidePanelButton?.hide()
+        .currentSidePanelHost        = panel
+        .currentSidePanelButton      = button
+        .infoContentGroup.sideButton = button
+
+        if button and !.fullScreen
+        {
+            button.show()
+            panel?.show(button.isChecked)
+        }
+
+        .layoutFileInfo()
     }
 
     // Releases the retired presentation once its replacement is ready to cover it.
@@ -1750,14 +1894,18 @@ impl ViewerWindow
     {
         if !.outgoingView do
             return
-        let oldView     = .outgoingView!
-        let oldActions  = .outgoingActions
-        let oldInfo     = .outgoingInfo
-        let oldCommands = .outgoingCommands
-        .outgoingView     = null
-        .outgoingActions  = null
-        .outgoingInfo     = null
-        .outgoingCommands = null
+        let oldView            = .outgoingView!
+        let oldActions         = .outgoingActions
+        let oldInfo            = .outgoingInfo
+        let oldCommands        = .outgoingCommands
+        let oldSidePanelHost   = .outgoingSidePanelHost
+        let oldSidePanelButton = .outgoingSidePanelButton
+        .outgoingView            = null
+        .outgoingActions         = null
+        .outgoingInfo            = null
+        .outgoingCommands        = null
+        .outgoingSidePanelHost   = null
+        .outgoingSidePanelButton = null
         if .currentView == oldView do
             .currentView = null
         if oldCommands and .currentCommands == oldCommands do
@@ -1766,9 +1914,13 @@ impl ViewerWindow
             .currentActions = null
         if oldInfo and .currentInfo == oldInfo do
             .currentInfo = null
+        if oldSidePanelHost and .currentSidePanelHost == oldSidePanelHost do
+            .setCurrentSidePanel(null, null)
         oldActions?.destroy()
         oldInfo?.destroy()
         oldCommands?.destroy()
+        oldSidePanelButton?.destroy()
+        oldSidePanelHost?.destroy()
         oldView.destroy()
     }
 
@@ -1784,17 +1936,18 @@ impl ViewerWindow
             return
 
         .discardOutgoingViewer()
-        .currentView            = instance.view
-        .currentActions         = instance.actions
-        .currentInfo            = instance.info
-        .currentCommands        = instance.commands
+        .currentView     = instance.view
+        .currentActions  = instance.actions
+        .currentInfo     = instance.info
+        .currentCommands = instance.commands
+        .setCurrentSidePanel(instance.sidePanelHost, instance.sidePanelButton)
         .currentView!.dockStyle = .Center
         if .currentCommands do
             .currentCommands!.dockStyle = .Center
         .currentView!.show()
         .currentInfo?.show()
         .currentCommands?.show()
-        .viewerBar.show(.currentCommands != null and (!.fullScreen or .fullScreenBottomVisible))
+        .updateViewerBar()
         .updateFileInfo(instance.details.toString())
         .updateSearchAvailability()
         .applyLayout()
@@ -1815,14 +1968,19 @@ impl ViewerWindow
             instance.actions?.destroy()
             instance.info?.destroy()
             instance.commands?.destroy()
+            instance.sidePanelButton?.destroy()
+            instance.sidePanelHost?.destroy()
             instance.view?.destroy()
 
-            let errorView = ViewerErrorView.create(me, message.toString())
+            let errorView = ViewerErrorView.create(.documentPanel, message.toString())
             errorView.dockStyle          = .Center
             instance.view                = errorView
             instance.actions             = null
             instance.info                = null
             instance.commands            = null
+            instance.sidePanelHost       = null
+            instance.sidePanel           = null
+            instance.sidePanelButton     = null
             instance.revealMatch         = null
             instance.searchBounds        = null
             instance.clearSearch         = null
@@ -1855,7 +2013,8 @@ impl ViewerWindow
             .currentActions  = null
             .currentInfo     = null
             .currentCommands = null
-            .viewerBar.hide()
+            .setCurrentSidePanel(null, null)
+            .updateViewerBar()
             .updateFileInfo("")
             .updateSearchAvailability()
             .applyLayout()
@@ -1879,11 +2038,16 @@ impl ViewerWindow
         instance.actions?.destroy()
         instance.info?.destroy()
         instance.commands?.destroy()
+        instance.sidePanelButton?.destroy()
+        instance.sidePanelHost?.destroy()
         instance.view!.destroy()
         instance.view                = null
         instance.actions             = null
         instance.info                = null
         instance.commands            = null
+        instance.sidePanelHost       = null
+        instance.sidePanel           = null
+        instance.sidePanelButton     = null
         instance.revealMatch         = null
         instance.searchBounds        = null
         instance.clearSearch         = null
@@ -1900,7 +2064,8 @@ impl ViewerWindow
         .currentActions  = null
         .currentInfo     = null
         .currentCommands = null
-        .viewerBar.hide()
+        .setCurrentSidePanel(null, null)
+        .updateViewerBar()
         return true
     }
 
@@ -1965,10 +2130,11 @@ impl ViewerWindow
             .currentActions  = instance.actions
             .currentInfo     = instance.info
             .currentCommands = instance.commands
+            .setCurrentSidePanel(instance.sidePanelHost, instance.sidePanelButton)
             .currentView!.show()
             .currentInfo?.show()
             .currentCommands?.show()
-            .viewerBar.show(.currentCommands != null and (!.fullScreen or .fullScreenBottomVisible))
+            .updateViewerBar()
             .activeChoiceIndex = index
             .viewerCombo.setSelectedIndex(index, notify: false)
             .updateFileInfo(instance.details.toString())
@@ -1986,7 +2152,8 @@ impl ViewerWindow
         let plugin     = &.index.plugins[choice.pluginIndex]
         var pluginHost = ViewerPluginHost{
             session: &next,
-            documentParent: me,
+            documentParent: .documentPanel,
+            sidePanelParent: me,
             actionParent: .commandBar,
             infoParent: .infoContentGroup,
             commandParent: .viewerBar,
@@ -2014,11 +2181,16 @@ impl ViewerWindow
             next.actions?.destroy()
             next.info?.destroy()
             next.commands?.destroy()
+            next.sidePanelButton?.destroy()
+            next.sidePanelHost?.destroy()
             next.view?.destroy()
             next.actions             = null
             next.info                = null
             next.commands            = null
-            next.view                = ViewerErrorView.create(me, next.failureReason.toString())
+            next.sidePanelHost       = null
+            next.sidePanel           = null
+            next.sidePanelButton     = null
+            next.view                = ViewerErrorView.create(.documentPanel, next.failureReason.toString())
             next.revealMatch         = null
             next.searchBounds        = null
             next.clearSearch         = null
@@ -2033,8 +2205,15 @@ impl ViewerWindow
             next.details.clear()
         }
 
-        if !next.view do
+        if !next.view
+        {
+            next.actions?.destroy()
+            next.info?.destroy()
+            next.commands?.destroy()
+            next.sidePanelButton?.destroy()
+            next.sidePanelHost?.destroy()
             return false
+        }
 
         if !.retireActiveLoadingChoice(index)
         {
@@ -2043,6 +2222,8 @@ impl ViewerWindow
             next.actions?.destroy()
             next.info?.destroy()
             next.commands?.destroy()
+            next.sidePanelButton?.destroy()
+            next.sidePanelHost?.destroy()
             next.view!.destroy()
             return false
         }
@@ -2065,6 +2246,8 @@ impl ViewerWindow
             .outgoingActions?.bringToFront()
             .outgoingInfo?.bringToFront()
             .outgoingCommands?.bringToFront()
+            .outgoingSidePanelHost?.bringToFront()
+            .outgoingSidePanelButton?.bringToFront()
         }
         else
         {
@@ -2076,6 +2259,7 @@ impl ViewerWindow
             .currentActions  = next.actions
             .currentInfo     = next.info
             .currentCommands = next.commands
+            .setCurrentSidePanel(next.sidePanelHost, next.sidePanelButton)
             .currentInfo?.show()
         }
 
@@ -2086,11 +2270,10 @@ impl ViewerWindow
         {
             if !stage do
                 next.commands!.dockStyle = .Center
-            if !stage do
-                .viewerBar.show(!.fullScreen or .fullScreenBottomVisible)
         }
-        elif !stage do
-            .viewerBar.hide()
+
+        if !stage do
+            .updateViewerBar()
         instance[] = #move next
         .viewerCombo.setSelectedIndex(index, notify: false)
         .updateFileInfo(instance.details.toString())
@@ -2626,7 +2809,7 @@ impl ViewerWindow
             .infoIconLabel.setIcon(.choiceIcon(.activeChoiceIndex))
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
         .layoutFileInfo()
-        .infoBar.show(!.fullScreen or .fullScreenTopVisible)
+        .infoBarHost.show(!.fullScreen or .fullScreenTopVisible)
     }
 
     // Measures the identity row again after asynchronous metadata changes. Text widths are
@@ -2809,7 +2992,7 @@ impl ViewerWindow
         if visible and !.fullScreen
         {
             .refreshFileLists()
-            .filePanel.show()
+            .filePanelHost.show()
 
             // A splitter's first pane takes the whole client height it is added into, which is
             // nothing at all before the window has been laid out once, and a preserved pane then
@@ -2820,7 +3003,7 @@ impl ViewerWindow
                 .filePanel.setPaneSize(0, .recentPaneSize)
         }
         else do
-            .filePanel.hide()
+            .filePanelHost.hide()
 
         .applyLayout()
         .invalidate()

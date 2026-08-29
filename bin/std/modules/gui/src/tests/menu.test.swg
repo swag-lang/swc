@@ -21,6 +21,77 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
         MenuSelectedCount += 1
 }
 
+enum MenuMarkerPalette
+{
+    Dark
+    Light
+    SwagDark
+}
+
+// Renders every non-icon marker together so palette changes cannot make one of them disappear
+// or restore excessive visual weight to submenu chevrons.
+func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 240)
+    defer host.shutdown()
+
+    switch palette
+    {
+    case .Dark:     host.theme.setDark()
+    case .Light:    host.theme.setLight()
+    case .SwagDark: host.theme.setSwagDark()
+    }
+
+    host.notify(.ThemeChanged)
+
+    let sub = MenuCtrl.createPopup(&host.root)
+    sub.addItem("Child command", Menu_Open)
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    popup.addItem("Checked option", Menu_New, checked: true)
+    let selectedRadio = popup.addItem("Selected choice", Menu_Open, checked: true)
+    selectedRadio.rg = .ExclusiveGroup
+    let clearRadio = popup.addItem("Available choice", Menu_Quit)
+    clearRadio.rg = .ExclusiveGroup
+    popup.addPopup("More choices", sub)
+    popup.addItem("Unavailable option", "Menu.Disabled", disabled: true, checked: true)
+
+    var captured: bool
+    host.app.sigFrame += func|host = &host, golden, captured = &captured|(app)
+    {
+        discard app
+        if captured[] do
+            return
+        var image = host.render()
+        Pixel.Testing.assertImageGolden(&image, golden)
+        @assert(host.dismissPopupMenu())
+        captured[] = true
+    }
+
+    discard popup.doModal({24, 20}, .TopLeft, autoDestroy: true)
+    @assert(captured)
+    host.pump()
+}
+
+// Menu marker color and submenu restraint are explicit visual contracts in the dark palette.
+#test
+{
+    assertMenuMarkerGolden(.Dark, "menu.popup.markers.dark")
+}
+
+// Menu marker color and submenu restraint are explicit visual contracts in the light palette.
+#test
+{
+    assertMenuMarkerGolden(.Light, "menu.popup.markers.light")
+}
+
+// Menu marker color and submenu restraint are explicit visual contracts in the Swag palette.
+#test
+{
+    assertMenuMarkerGolden(.SwagDark, "menu.popup.markers.swag-dark")
+}
+
 // A menu bar holds items; a popup menu holds items, separators and disabled entries.
 #test
 {

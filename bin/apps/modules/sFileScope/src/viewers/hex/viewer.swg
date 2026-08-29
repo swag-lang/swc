@@ -2,7 +2,7 @@
 
 using Core, Pixel, Gui
 
-private const HexCommandWidth = 560.0
+private const HexCommandWidth = 516.0
 private const HexComboWidth   = 150.0
 private const HexEndianWidth  = 150.0
 private const HexInfoWidth    = 420.0
@@ -208,6 +208,13 @@ internal impl HexViewer
 
     mtd closeAnalysis()
     {
+        if .analysisButton.isChecked
+        {
+            .analysisButton.setChecked(false)
+            .analysisButton.sigCheckedChanged.call(.analysisButton)
+            return
+        }
+
         if .analysis.started
         {
             .analysis.cancel()
@@ -215,7 +222,6 @@ internal impl HexViewer
         }
 
         .analysisView.hide()
-        .analysisButton.setChecked(false)
         .applyLayout()
         .grid.setFocus()
     }
@@ -437,20 +443,15 @@ internal impl HexViewer
 
         result.commands = host.createCommandGroup(HexCommandWidth)
 
-        with result.analysisButton = IconButton.create(result.commands, result.theme().icon(.Information, ViewerGlyphSize), {0, 0, 36, 36}, flags: .Toggle)
+        let sidePanel = host.createSidePanel(HexAnalysisPanelWidth, result.theme().icon(.Information, ViewerGlyphSize), hexStrings().ui_AnalysisTip)
+        result.analysisButton = sidePanel.toggle
+        result.analysisButton.enable(false)
+        result.analysisButton.sigCheckedChanged += func|view = result|(button)
         {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .toolTip   = hexStrings().ui_AnalysisTip
-            .setCheckIndicator(.Frame)
-            .enable(false)
-            .sigCheckedChanged += func|view = result|(button)
-            {
-                if button.isChecked do
-                    view.startAnalysis()
-                else do
-                    view.closeAnalysis()
-            }
+            if button.isChecked do
+                view.startAnalysis()
+            else do
+                view.closeAnalysis()
         }
 
         result.info = host.createInfoGroup(HexInfoWidth)
@@ -523,8 +524,7 @@ internal impl HexViewer
             }
         }
 
-        result.analysisView = HexAnalysisView.create(result)
-        result.analysisView.hide()
+        result.analysisView            = HexAnalysisView.create(sidePanel.content)
         result.analysisView.sigAnalyze += func|view = result|(panel)
         {
             discard panel

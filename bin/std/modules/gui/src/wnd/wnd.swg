@@ -31,16 +31,17 @@ enum AnchorStyle
 // Selects a semantic theme background for a window.
 enum BackgroundStyle
 {
-    Transparent         // Leaves the background transparent.
-    Window              // Uses the standard top-level window background.
-    Dialog              // Uses the dialog content background.
-    DialogActionBar     // Uses the action area at the bottom of a dialog.
-    View                // Uses the document or content-view background.
-    Panel               // Uses the raised window ground with the theme's standalone-panel geometry.
-    Application         // Uses the application ground behind its content and chrome.
-    InformationBar      // Uses a band reporting identity, context, or status.
-    CommandBar          // Uses the application-wide command-bar ground.
-    ToolBar             // Uses the contextual tool-bar ground.
+    Transparent          // Leaves the background transparent.
+    Window               // Uses the standard top-level window background.
+    Dialog               // Uses the dialog content background.
+    DialogActionBar      // Uses the action area at the bottom of a dialog.
+    View                 // Uses the document or content-view background.
+    Panel                // Uses the raised window ground with the theme's standalone-panel geometry.
+    Application          // Uses the application ground behind its content and chrome.
+    InformationBar       // Uses a band reporting identity, context, or status.
+    InformationPanel     // Uses the information ground with standalone-panel geometry.
+    CommandBar           // Uses the application-wide command-bar ground.
+    ToolBar              // Uses the contextual tool-bar ground.
 }
 
 // Selects how a window takes part in keyboard focus.
@@ -938,15 +939,16 @@ impl Wnd
         let theme = .theme()
         switch .backgroundStyle
         {
-        case .Application:     painter.fillRect(.position, theme.colors.bk)
-        case .Window:          painter.fillRect(.position, theme.colors.wnd_Bk)
-        case .Panel:           theme.drawSubRect(painter, .position, &theme.rects.panel_Bk, theme.colors.wnd_Bk)
-        case .Dialog:          painter.fillRect(.position, theme.colors.dlg_Bk)
-        case .View:            painter.fillRect(.position, theme.colors.view_Bk)
-        case .InformationBar:  painter.fillRect(.position, theme.colors.informationBar_Bk)
-        case .CommandBar:      painter.fillRect(.position, theme.colors.commandBar_Bk)
-        case .ToolBar:         painter.fillRect(.position, theme.colors.toolBar_Bk)
-        case .DialogActionBar: theme.drawSubRect(bc.painter, .position, &theme.rects.dlg_BtnBar, theme.colors.dlg_BtnBarBk)
+        case .Application:      painter.fillRect(.position, theme.colors.bk)
+        case .Window:           painter.fillRect(.position, theme.colors.wnd_Bk)
+        case .Panel:            theme.drawSubRect(painter, .position, &theme.rects.panel_Bk, theme.colors.wnd_Bk)
+        case .Dialog:           painter.fillRect(.position, theme.colors.dlg_Bk)
+        case .View:             painter.fillRect(.position, theme.colors.view_Bk)
+        case .InformationBar:   painter.fillRect(.position, theme.colors.informationBar_Bk)
+        case .InformationPanel: theme.drawSubRect(painter, .position, &theme.rects.panel_Bk, theme.colors.informationBar_Bk)
+        case .CommandBar:       painter.fillRect(.position, theme.colors.commandBar_Bk)
+        case .ToolBar:          painter.fillRect(.position, theme.colors.toolBar_Bk)
+        case .DialogActionBar:  theme.drawSubRect(bc.painter, .position, &theme.rects.dlg_BtnBar, theme.colors.dlg_BtnBarBk)
         }
 
         painter.translateTransform(.position.x, .position.y)

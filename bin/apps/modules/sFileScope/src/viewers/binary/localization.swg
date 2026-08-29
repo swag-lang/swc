@@ -15,7 +15,6 @@ struct BinaryStrings
     ui_ColValue:     string = "Value"                                                                  // Header of the decoded value column.
     ui_ColOffset:    string = "Offset"                                                                 // Header of the file offset column.
     ui_ColDetail:    string = "Meaning"                                                                // Header of the explanation column.
-    ui_TipMenu:      string = "Copy and layout"                                                        // Tooltip of the command menu button.
     ui_TipExpand:    string = "Expand everything (Ctrl+E)"                                             // Tooltip while the tree is collapsed.
     ui_TipCollapse:  string = "Collapse everything (Ctrl+E)"                                           // Tooltip while the tree is expanded.
     ui_MenuCopyAll:  string = "Copy the whole report"                                                  // Menu entry copying every row.

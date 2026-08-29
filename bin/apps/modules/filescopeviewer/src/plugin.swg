@@ -6,7 +6,7 @@ using Core, Gui
 //
 // A future runtime loader must reject a descriptor whose version it does not support before it
 // invokes any callback. Increasing this value denotes an incompatible contract change.
-const ViewerApiVersion = 1'u32
+const ViewerApiVersion = 2'u32
 
 // Options shared by file-backed and plugin-owned text searches.
 struct SearchOptions
@@ -150,6 +150,23 @@ struct HostServices
     }
 }
 
+// One viewer-owned contribution hosted in the application side-panel lane.
+//
+// The host owns both windows and keeps them valid until the attached viewer is retired. The
+// plugin may connect to [[Gui.IconButton.sigCheckedChanged]] to start or stop work when the
+// reader opens or closes the panel, but it must not destroy either window.
+struct SidePanel
+{
+    public
+    {
+        #[Swag.Late]
+        content: *Wnd     // Parent in which the plugin builds the panel contents.
+
+        #[Swag.Late]
+        toggle: *IconButton     // Toggle placed by the host at the edge controlled by the panel.
+    }
+}
+
 // Gives one plugin controlled access to the sFileScope surface hosting it.
 //
 // The interface is borrowed only during the synchronous creation callback. A plugin may retain
@@ -181,6 +198,12 @@ interface Host
 
     // Creates and registers the plugin's full-width lower command group.
     mtd createCommandGroup(width: f32)->*Wnd
+
+    // Creates the plugin's optional right-side panel and its host-positioned toggle.
+    //
+    // `width` is the content width in logical pixels; the host adds the themed integration
+    // gutter. `icon` is displayed at the application toolbar size and `toolTip` is copied.
+    mtd createSidePanel(width: f32, icon: Icon, toolTip: string)->SidePanel
 
     // Attaches the document view produced by the plugin.
     mtd attachView(view: *Wnd)

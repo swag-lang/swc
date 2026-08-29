@@ -763,7 +763,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     host.setup(640, 420)
     defer host.shutdown()
     var result = openTestViewer(&createBinaryViewer, &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, actionParent: &host.root)
-    @assert(result.view != null and result.actions != null and result.commands == null and result.collectMatches != null and result.isLoading != null)
+    @assert(result.view != null and result.actions == null and result.commands == null and result.collectMatches != null and result.isLoading != null)
     let view = cast(*BinaryViewer) result.view!
     finishBinaryViewer(&host, view)
     @assert(!view.failureReason.isEmpty())
@@ -771,8 +771,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
 func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*BinaryViewer
 {
-    let actions       = Wnd.create'Wnd(&host.root, {0, 0, 124, 36})
-    var viewerSession = openTestViewer(&createBinaryViewer, &host.root, fileName, actionParent: actions)
+    var viewerSession = openTestViewer(&createBinaryViewer, &host.root, fileName)
     let view          = cast(*BinaryViewer) viewerSession.view!
     finishBinaryViewer(host, view)
     view.dockStyle = .Center
@@ -800,8 +799,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
 
     let view = createTestViewer(&host, fileName.toString(), 1100, 600)
     @assert(view.rowLines.count == view.doc.report.rows.count)
-    @assert(view.actions.position.width <= 140)
-    @assert(view.menuButton.arrowPosition == .RightDownward)
+    @assert(!view.list.iconMarginFirstCol)
     @assert(Utf8.contains(view.details.toSlice(), "PE32+"))
 
     // The groups the report opened are visible; the ones it did not are folded away.
@@ -893,8 +891,8 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
     @assert(view.list.selectedLine() == null)
 }
 
-// A searchable binary keeps its format action beside the centered search group, and does not
-// reserve a second command band below the document.
+// A searchable binary leaves shared chrome to the host and does not reserve either an action
+// group or a second command band around the document.
 #test
 {
     let bytes    = buildPeFixture()
@@ -911,14 +909,10 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
     window.openFile(fileName.toString())
     completeBinaryViewerWindow(&host, window)
 
-    @assert(window.currentActions != null and window.currentActions!.parent == window.commandBar)
-    @assert(window.currentActions!.dockStyle == .Left and window.currentActions!.isLocallyVisible())
+    @assert(window.currentActions == null)
     @assert(window.searchGroup.isLocallyVisible())
-    @assert(window.currentCommands == null and !window.viewerBar.isLocallyVisible())
-
-    let view = cast(*BinaryViewer) window.currentView!
-    @assert(view.menuButton.icon.isValid() and view.menuButton.icon.index == cast(s32) ViewerIcons.Binary)
-    @assert(view.menuButton.arrowPosition == .RightDownward)
+    @assert(window.currentCommands == null and window.viewerBar.isLocallyVisible())
+    @assert(window.viewerBar.position.height == window.themeMetrics().panel_GutterSize)
 
     host.settleAnimations(window.commandBar, 4)
     var image = host.render(window.commandBar)
@@ -952,7 +946,6 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
     @assert(findRow(&view.doc.report, "Fichier") != null)
     @assert(findRow(&view.doc.report, "En-tête DOS") != null)
     @assert(view.list.header.itemAt(cast(u32) BinaryColumn.Detail).name.raw == "Signification")
-    @assert(view.menuButton.toolTip == "Copie et disposition")
     @assert(view.list.selectedLine() != null)
     @assert(binaryCellText(view.list.selectedLine()!, .Field) == ".text")
 }

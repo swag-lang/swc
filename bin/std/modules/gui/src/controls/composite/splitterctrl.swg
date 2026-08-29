@@ -181,8 +181,6 @@ impl IWnd for SplitterCtrl
             return
 
         let painter = evt.paintContext.painter
-        let theme   = .theme()
-        let rects   = .themeRects()
         let colors  = .themeColors()
 
         var visibleIndex = 0
@@ -201,16 +199,11 @@ impl IWnd for SplitterCtrl
             {
                 let colorBar = isHot ? colors.splitView_BarHot : colors.splitView_Bar
                 it.aniBar.apply(me, colorBar)
-                if .isVertical()
-                {
-                    let rectBar = isHot ? &rects.splitView_HorzBarHotBk : &rects.splitView_HorzBarBk
-                    theme.drawSubRect(painter, rect, rectBar, it.aniBar.cur())
-                }
-                else
-                {
-                    let rectBar = isHot ? &rects.splitView_VertBarHotBk : &rects.splitView_VertBarBk
-                    theme.drawSubRect(painter, rect, rectBar, it.aniBar.cur())
-                }
+
+                // A structural seam occupies its complete layout band. The historical atlas
+                // tiles painted only a thin rule inside this rectangle, so a four-pixel splitter
+                // still looked narrower than a four-pixel panel gutter.
+                painter.fillRect(rect, it.aniBar.cur())
             }
         }
 

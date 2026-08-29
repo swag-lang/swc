@@ -144,7 +144,8 @@ struct ThemeMetrics
         header_Padding:   Math.Vector4 = {10, 5, 10, 5}     // Theme measurement used for header padding.
         header_Separator: f32          = 5                  // Theme measurement used for header separator.
 
-        splitView_BarSize: f32 = 8     // Theme measurement used for split view bar size.
+        panel_GutterSize:  f32 = 4     // Gap separating a structural panel from adjacent application chrome.
+        splitView_BarSize: f32 = 5     // Width of the draggable divider separating two split panes.
 
         progressBar_Height:     f32 = 18      // Theme measurement used for progress bar height.
         progressBar_ClipOffset: f32 = 2       // Theme measurement used for progress bar clip offset.

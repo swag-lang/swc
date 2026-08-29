@@ -125,6 +125,9 @@ struct ViewerSession
     actions:             #null *Wnd
     info:                #null *Wnd
     commands:            #null *Wnd
+    sidePanelHost:       #null *Wnd
+    sidePanel:           #null *Wnd
+    sidePanelButton:     #null *IconButton
     revealMatch:         #null ViewerRevealMatch
     searchBounds:        #null ViewerSearchBounds
     clearSearch:         #null ViewerClearSearch
@@ -157,14 +160,15 @@ impl ViewerSession
 // Implements the shared plugin API for one sFileScope viewer instance.
 struct ViewerPluginHost
 {
-    session:        *ViewerSession = undefined
-    documentParent: *Wnd           = undefined
-    actionParent:   *Wnd           = undefined
-    infoParent:     *Wnd           = undefined
-    commandParent:  *Wnd           = undefined
-    sourceFileName: string
-    pluginIcon:     Icon
-    hostServices:   FileScope.HostServices
+    session:         *ViewerSession = undefined
+    documentParent:  *Wnd           = undefined
+    sidePanelParent: *Wnd           = undefined
+    actionParent:    *Wnd           = undefined
+    infoParent:      *Wnd           = undefined
+    commandParent:   *Wnd           = undefined
+    sourceFileName:  string
+    pluginIcon:      Icon
+    hostServices:    FileScope.HostServices
 }
 
 private impl ViewerPluginHost
@@ -208,6 +212,47 @@ impl FileScope.Host for ViewerPluginHost
         return .session.commands!
     }
 
+    mtd impl createSidePanel(width: f32, icon: Icon, toolTip: string)->FileScope.SidePanel
+    {
+        Debug.assert(.session.sidePanelHost == null)
+        Debug.assert(width > 0)
+
+        let gutter = .sidePanelParent.themeMetrics().panel_GutterSize
+        with .session.sidePanelHost = Wnd.create'Wnd(.sidePanelParent, {0, 0, width + gutter, 0})
+        {
+            .dockStyle       = .Right
+            .backgroundStyle = .ToolBar
+
+            // The information lane already owns the seam above. The viewer bar owns the chrome
+            // below, so the side panel meets it directly instead of accumulating a second edge.
+            .padding = {0, 0, gutter, 0}
+            .hide()
+        }
+
+        with .session.sidePanel = Wnd.create'Wnd(.session.sidePanelHost!)
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .Panel
+        }
+
+        let panelParent = .sidePanelParent
+        let panelHost   = .session.sidePanelHost!
+        with .session.sidePanelButton = IconButton.create(.infoParent, icon, {0, 0, 36, 36}, flags: .Toggle)
+        {
+            .toolTip = toolTip
+            .setCheckIndicator(.Frame)
+            .hide()
+            .sigCheckedChanged += func|parent = panelParent, panel = panelHost|(button)
+            {
+                panel.show(button.isChecked)
+                parent.applyLayout()
+                parent.invalidate()
+            }
+        }
+
+        return {.session.sidePanel!, .session.sidePanelButton!}
+    }
+
     mtd impl attachView(view: *Wnd)
     {
         Debug.assert(.session.view == null)
@@ -225,10 +270,15 @@ impl FileScope.Host for ViewerPluginHost
         .session.actions?.destroy()
         .session.info?.destroy()
         .session.commands?.destroy()
-        .session.actions       = null
-        .session.info          = null
-        .session.commands      = null
-        .session.failureReason = reason
+        .session.sidePanelButton?.destroy()
+        .session.sidePanelHost?.destroy()
+        .session.actions         = null
+        .session.info            = null
+        .session.commands        = null
+        .session.sidePanelHost   = null
+        .session.sidePanel       = null
+        .session.sidePanelButton = null
+        .session.failureReason   = reason
     }
 
     mtd impl setSearch(api: FileScope.SearchApi)

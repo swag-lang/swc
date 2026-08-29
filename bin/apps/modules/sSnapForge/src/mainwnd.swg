@@ -19,7 +19,7 @@ const CommandRowHeight = 36.0      // The single command row under the accent ra
 const ReadoutWidth     = 88.0      // One machine readout of the command row.
 const VerbsWidth       = 272.0     // The command group: two named application actions.
 const ReadoutsWidth    = 240.0     // The readout group: both cells, their gap, and outer air.
-const RightBarWidth    = 288.0     // The tool column on the right.
+const RightPanelWidth  = 288.0     // Content width of the tool panel on the right.
 
 // Enums
 enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, Selection, Step, Image, PixSel, Callout }
@@ -1084,20 +1084,25 @@ impl MainWnd
 
         res.createCommandRow()
         res.createToolRail()
+        let panelGutter = res.themeMetrics().panel_GutterSize
 
         // Main edit area
         with res.editWnd = EditWnd.create(res, res)
         {
             .dockStyle            = .Center
+            .backgroundStyle      = .View
+            .margin.y             = panelGutter
             .sigScrollSizeChanged += func|res|(scroll, old, new) { res.updateZoomDisplay(); }
         }
 
         // Recent bar. The three preview-size buttons that used to stand permanently at its
         // left are gone: a control shown at all times to set a preference costs permanent
         // room and buys one occasional click. The size lives in the View menu.
-        with res.recentBar = Wnd.create'Wnd(res, {0, 0, 0, 128})
+        with res.recentBar = Wnd.create'Wnd(res, {0, 0, 0, 136})
         {
-            .dockStyle = .Bottom
+            .dockStyle       = .Bottom
+            .backgroundStyle = .ToolBar
+            .padding         = {0, panelGutter, panelGutter, 0}
         }
 
         with res.recentWnd = RecentWnd.create(res.recentBar, res)
@@ -1107,15 +1112,22 @@ impl MainWnd
 
         // Right bar: one column, one heading naming the tool it edits. The two pane titles
         // it replaces said what the reader could already see; this one does not.
-        with res.rightBar = Wnd.create'Wnd(res, {0, 0, RightBarWidth, 0})
+        with res.rightBar = Wnd.create'Wnd(res, {0, 0, RightPanelWidth + 2 * panelGutter, 0})
         {
             .dockStyle       = .Right
-            .backgroundStyle = .Window
+            .backgroundStyle = .ToolBar
+            .padding         = {panelGutter, panelGutter, panelGutter, 0}
+        }
+
+        with let rightPanel = Wnd.create'Wnd(res.rightBar, {0, 0, RightPanelWidth, 0})
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .Panel
         }
 
         // The heading starts on the same margin as the cells and the rows under it: a title
         // centred over a left-aligned column is a second alignment on one narrow panel.
-        with res.toolTitle = Label.create(res.rightBar, "", {0, 0, 0, 26})
+        with res.toolTitle = Label.create(rightPanel, "", {0, 0, 0, 26})
         {
             .dockStyle = .Top
             .setTextAlignment(.Left, .Center)
@@ -1123,10 +1135,10 @@ impl MainWnd
             .setTextColor(res.themeColors().label_TextLight)
         }
 
-        with res.quickStyleBar = SplitterCtrl.create(res.rightBar, {0, 0, RightBarWidth, 600}, vertical: true)
+        with res.quickStyleBar = SplitterCtrl.create(rightPanel, {0, 0, RightPanelWidth, 600}, vertical: true)
         {
             .dockStyle       = .Center
-            .backgroundStyle = .Window
+            .backgroundStyle = .Transparent
         }
 
         res.quickWnd = QuickWnd.create(res.quickStyleBar, res)

@@ -889,7 +889,7 @@ impl PropWnd
     {
         with let prop = Wnd.create'PropWnd(parent, {0, 0, 0, 300})
         {
-            .backgroundStyle = .Window
+            .backgroundStyle = .Transparent
 
             .topLayout              = StackLayoutCtrl.create(prop)
             .topLayout.mode         = .Top

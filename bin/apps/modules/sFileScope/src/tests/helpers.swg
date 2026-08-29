@@ -10,6 +10,7 @@ func openTestViewer(create: FileScope.PluginCreate, contentParent: *Wnd, fileNam
     var pluginHost = ViewerPluginHost{
         session: &result,
         documentParent: contentParent,
+        sidePanelParent: contentParent,
         actionParent: actionParent orelse contentParent,
         infoParent: infoParent orelse contentParent,
         commandParent: commandParent orelse contentParent,

@@ -5,7 +5,6 @@ ui_ColField       Champ
 ui_ColValue       Valeur
 ui_ColOffset      Décalage
 ui_ColDetail      Signification
-ui_TipMenu        Copie et disposition
 ui_TipExpand      Tout déplier (Ctrl+E)
 ui_TipCollapse    Tout replier (Ctrl+E)
 ui_MenuCopyAll    Copier tout le rapport

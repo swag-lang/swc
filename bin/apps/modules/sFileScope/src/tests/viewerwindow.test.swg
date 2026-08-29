@@ -74,6 +74,54 @@ func completeViewerSearch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     @assert(window.searchTimer == null)
 }
 
+func createSidePanelFixture(host: FileScope.Host)
+{
+    let panel = host.createSidePanel(220, host.icon(), "Details")
+    let label = Label.create(panel.content, "Viewer details")
+    label.dockStyle = .Center
+
+    let view = Wnd.create'Wnd(host.contentParent())
+    view.dockStyle       = .Center
+    view.backgroundStyle = .View
+    host.attachView(view)
+}
+
+// The optional viewer lane is host composition, not a private rectangle each decoder invents.
+// Its outer seam has the splitter width, its content has panel geometry, and closing it returns
+// every pixel to the document.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(720, 460)
+    defer host.shutdown()
+
+    let infoParent = Wnd.create'Wnd(&host.root, {0, 0, 720, 40})
+    var session    = openTestViewer(&createSidePanelFixture, &host.root, "fixture.panel", infoParent: infoParent)
+    host.root.applyLayout()
+
+    @assert(session.view != null and session.sidePanelHost != null and session.sidePanel != null and session.sidePanelButton != null)
+    @assert(session.sidePanelHost!.parent == &host.root and session.sidePanel!.parent == session.sidePanelHost)
+    @assert(session.sidePanelButton!.parent == infoParent)
+    @assert(session.sidePanelHost!.backgroundStyle == .ToolBar and session.sidePanel!.backgroundStyle == .Panel)
+    @assert(session.sidePanelHost!.padding.x == 0 and session.sidePanelHost!.padding.z == host.root.themeMetrics().panel_GutterSize)
+    @assert(session.sidePanelHost!.padding.y == 0 and session.sidePanelHost!.padding.w == 0)
+    @assert(session.sidePanelHost!.position.width == 220 + host.root.themeMetrics().panel_GutterSize)
+    @assert(!session.sidePanelHost!.isLocallyVisible() and !session.sidePanelButton!.isLocallyVisible())
+
+    session.sidePanelButton!.show()
+    let closedWidth = session.view!.position.width
+    session.sidePanelButton!.setChecked(true)
+    session.sidePanelButton!.sigCheckedChanged.call(session.sidePanelButton!)
+    host.root.applyLayout()
+    @assert(session.sidePanelHost!.isLocallyVisible())
+    @assert(session.view!.position.width == closedWidth - session.sidePanelHost!.position.width)
+
+    session.sidePanelButton!.setChecked(false)
+    session.sidePanelButton!.sigCheckedChanged.call(session.sidePanelButton!)
+    host.root.applyLayout()
+    @assert(!session.sidePanelHost!.isLocallyVisible() and session.view!.position.width == closedWidth)
+}
+
 #test
 {
     const Source = "Cat catalog cat catapult\ncat"
@@ -298,9 +346,9 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.openFile(names[0].toString())
     completeQueuedViewerFile(&host, window)
 
-    @assert(!window.panelVisible and !window.filePanel.isLocallyVisible())
+    @assert(!window.panelVisible and !window.filePanelHost.isLocallyVisible())
     window.toggleFilePanel()
-    @assert(window.panelVisible and window.filePanel.isLocallyVisible())
+    @assert(window.panelVisible and window.filePanelHost.isLocallyVisible())
     @assert(window.filesButton.isChecked)
     @assert(window.filePanel.position.width == ViewerPanelWidth)
     @assert(window.filePanel.minSize.x == ViewerPanelWidth and window.filePanel.maxSize.x == ViewerPanelWidth)
@@ -457,7 +505,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     @assert(window.currentFile.isEmpty())
     window.setFilePanelVisible(true)
-    @assert(window.panelVisible and window.filePanel.isLocallyVisible())
+    @assert(window.panelVisible and window.filePanelHost.isLocallyVisible())
     @assert(window.folderList.lineCount() == 0 and window.recentList.lineCount() == 0)
     @assert(!window.filePanel.isPaneVisible(0) and !window.recentPane.isLocallyVisible())
     @assert(window.folderLabel.text() == appStrings().ui_Folder)
@@ -1081,7 +1129,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.resize(960, 680)
     window.applyLayout()
 
-    @assert(window.commandBar.position.height == ViewerBarHeight)
+    @assert(window.commandBar.position.height == ViewerActionBarHeight)
     @assert(window.viewerCombo.parent == window.commandBar)
     @assert(window.appearanceButton.parent == &host.surfaceWnd)
     @assert(window.searchGroup.parent == window.commandBar)
@@ -1094,11 +1142,22 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(window.searchPrevious.icon.isValid() and window.searchNext.icon.isValid())
     @assert(!window.searchPrevious.isEnabled() and !window.searchNext.isEnabled())
     @assert(window.infoBar.position.height == ViewerInfoHeight)
-    @assert(window.infoBar.dockStyle == .Top)
-    @assert(window.backgroundStyle == .View and window.infoBar.backgroundStyle == .InformationBar)
-    @assert(window.commandBar.backgroundStyle == .CommandBar)
-    @assert(window.filePanel.backgroundStyle == .Window)
-    @assert(window.recentPane.backgroundStyle == .Window and window.folderPane.backgroundStyle == .Window)
+    let panelGutter = window.themeMetrics().panel_GutterSize
+    @assert(window.infoBarHost.position.height == ViewerInfoHeight + 2 * panelGutter)
+    @assert(window.infoBarHost.dockStyle == .Top and window.infoBar.dockStyle == .Center)
+    @assert(window.backgroundStyle == .Application and window.infoBarHost.backgroundStyle == .ToolBar)
+    @assert(window.infoBar.backgroundStyle == .InformationPanel and window.infoBar.parent == window.infoBarHost)
+    @assert(window.infoBarHost.padding.x == panelGutter and window.infoBarHost.padding.y == panelGutter and window.infoBarHost.padding.z == panelGutter and window.infoBarHost.padding.w == panelGutter)
+    @assert(window.commandBar.backgroundStyle == .ToolBar)
+    @assert(window.filePanelHost.backgroundStyle == .ToolBar and window.filePanel.backgroundStyle == .Panel)
+    @assert(window.filePanelHost.padding.x == panelGutter and window.filePanelHost.padding.z == 0)
+    @assert(window.filePanelHost.padding.y == 0 and window.filePanelHost.padding.w == 0)
+    @assert(window.documentHost.backgroundStyle == .ToolBar and window.documentPanel.backgroundStyle == .Panel)
+    @assert(window.documentHost.padding.x == panelGutter and window.documentHost.padding.z == panelGutter)
+    @assert(window.documentPanel.padding == {})
+    @assert(window.documentPanel.parent == window.documentHost and window.emptyView.parent == window.documentPanel)
+    @assert(window.recentPane.backgroundStyle == .Transparent and window.folderPane.backgroundStyle == .Transparent)
+    @assert(window.filesButton.parent == window.infoContentGroup)
     @assert(window.viewerBar.backgroundStyle == .ToolBar)
     @assert(window.themeColors().view_Bk != window.themeColors().informationBar_Bk)
     @assert(window.themeColors().view_Bk != window.themeColors().bk)
@@ -1109,15 +1168,17 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(window.themeColors().informationBar_Bk.relativeLuminance() < window.themeColors().wnd_Bk.relativeLuminance())
     @assert(window.themeColors().informationBar_Bk.relativeLuminance() < window.themeColors().commandBar_Bk.relativeLuminance())
     @assert(window.themeColors().bk != window.themeColors().wnd_Bk)
-    @assert(window.infoBar.isLocallyVisible())
-    @assert(window.viewerBar.dockStyle == .Bottom and !window.viewerBar.isLocallyVisible())
+    @assert(window.infoBarHost.isLocallyVisible())
+    @assert(window.viewerBar.dockStyle == .Bottom and window.viewerBar.isLocallyVisible())
+    @assert(window.viewerBar.position.height == panelGutter)
     @assert(window.infoNameLabel.name.raw.isEmpty())
     @assert(window.surface!.minSize.x == ViewerMinWidth)
     @assert(Utf8.contains(window.emptyLabel.name.raw, appStrings().ui_DropTitle))
 
     // The large empty-state glyph is intentionally deferred until the surface's Init event.
     @assert(window.emptyView.isLocallyVisible() and !window.emptyIconLabel.icon.isValid())
-    @assert(window.emptyView.position.y >= window.infoBar.position.bottom())
+    @assert(window.documentHost.position.y >= window.infoBarHost.position.bottom())
+    @assert(window.infoBar.surfaceRect().y - window.openButton.surfaceRect().bottom() == panelGutter)
     @assert(window.emptyHintLabel.text() == appStrings().ui_DropHint)
     @assert(window.currentView == null)
     @assert(window.currentCommands == null)
@@ -1138,11 +1199,12 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.resize(ViewerMinWidth, 680)
     window.viewerCombo.show()
     let widestCommands = Wnd.create'Wnd(window.viewerBar, {0, 0, 0, 36})
-    widestCommands.dockStyle = .Center
+    widestCommands.dockStyle         = .Center
+    window.viewerBar.position.height = ViewerBarHeight
     window.viewerBar.show()
     window.applyLayout()
     @assert(window.viewerCombo.parent == window.commandBar and widestCommands.parent == window.viewerBar)
-    @assert(window.viewerCombo.position.bottom() <= window.infoBar.position.y)
+    @assert(window.viewerCombo.position.bottom() <= window.infoBarHost.position.y)
     @assert(widestCommands.position.y >= window.viewerBar.clientRect().y)
 }
 
@@ -1281,22 +1343,22 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(window.fullScreen and window.fullScreenButton.isChecked)
     @assert(host.surface.flags.has(.NoShadow) and host.surface.flags.has(.TopMost))
     @assert(!host.surface.flags.has(.LargeCaption) and !host.surface.flags.has(.Border))
-    @assert(!window.commandBar.isLocallyVisible() and !window.infoBar.isLocallyVisible())
-    @assert(!window.viewerBar.isLocallyVisible() and !window.filePanel.isLocallyVisible())
+    @assert(!window.commandBar.isLocallyVisible() and !window.infoBarHost.isLocallyVisible())
+    @assert(!window.viewerBar.isLocallyVisible() and !window.filePanelHost.isLocallyVisible())
 
     window.updateFullScreenChrome({10, 1})
-    @assert(window.commandBar.isLocallyVisible() and window.infoBar.isLocallyVisible())
+    @assert(window.commandBar.isLocallyVisible() and window.infoBarHost.isLocallyVisible())
     @assert(!window.viewerBar.isLocallyVisible())
     window.updateFullScreenChrome({10, window.clientRect().height / 2})
-    @assert(!window.commandBar.isLocallyVisible() and !window.infoBar.isLocallyVisible())
+    @assert(!window.commandBar.isLocallyVisible() and !window.infoBarHost.isLocallyVisible())
     window.updateFullScreenChrome({10, window.clientRect().height - 1})
     @assert(window.viewerBar.isLocallyVisible())
 
     window.setFullScreen(false)
     @assert(!window.fullScreen and !window.fullScreenButton.isChecked)
     @assert(host.surface.flags == flags and host.surface.position == position)
-    @assert(window.commandBar.isLocallyVisible() and window.infoBar.isLocallyVisible())
-    @assert(window.viewerBar.isLocallyVisible() and window.filePanel.isLocallyVisible())
+    @assert(window.commandBar.isLocallyVisible() and window.infoBarHost.isLocallyVisible())
+    @assert(window.viewerBar.isLocallyVisible() and window.filePanelHost.isLocallyVisible())
 }
 
 // The framework owns one centered, themed presentation for every viewer decoder reason.
@@ -1376,7 +1438,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.viewerCombo.addItem("Second")
     window.instances.resize(2)
 
-    let loading = Wnd.create'Wnd(window)
+    let loading = Wnd.create'Wnd(window.documentPanel)
     var retired: bool
     loading.userData              = &retired
     window.instances[0].view      = loading
@@ -1396,7 +1458,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(window.loadingOverlay.position == loading.position)
     @assert(window.loadingOverlay.backgroundStyle == .Transparent)
     @assert(window.loadingOverlay.wndFlags.has(.Disabled))
-    @assert(window.children.back() == window.loadingOverlay)
+    @assert(window.documentPanel.children.back() == window.loadingOverlay)
     @assert(window.loadingOverlay.spinner.position.width == ViewerLoadingSpinnerSize and window.loadingOverlay.spinner.position.height == ViewerLoadingSpinnerSize)
     let spinnerSmall = viewerLoadingSpinnerGeometry(0)
     let spinnerLarge = viewerLoadingSpinnerGeometry(0.5)
@@ -1489,8 +1551,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(window.currentFile.isEmpty())
     @assert(window.infoNameLabel.name.raw.isEmpty())
     @assert(window.infoNameLabel.position.width == 0 and window.infoStatsLabel.position.width == 0)
-    @assert(window.infoBar.isLocallyVisible() and !window.infoIconLabel.icon.isValid())
-    @assert(window.emptyView.isLocallyVisible() and window.emptyView.position.y >= window.infoBar.position.bottom())
+    @assert(window.infoBarHost.isLocallyVisible() and !window.infoIconLabel.icon.isValid())
+    @assert(window.emptyView.isLocallyVisible() and window.documentHost.position.y >= window.infoBarHost.position.bottom())
 }
 
 #test
@@ -1622,10 +1684,11 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     @assert(window.viewerCombo.isLocallyVisible())
     @assert(window.openDefaultButton.isEnabled())
-    @assert(window.infoBar.isLocallyVisible() and !window.emptyView.isLocallyVisible())
+    @assert(window.infoBarHost.isLocallyVisible() and !window.emptyView.isLocallyVisible())
     @assert(window.infoIconLabel.icon.isValid())
     @assert(window.infoIconLabel.position.right() <= window.infoNameLabel.position.x)
     @assert(window.infoNameLabel.position.right() <= window.infoSizeLabel.position.x)
+    @assert(window.currentView!.parent == window.documentPanel)
     @assert(window.currentCommands!.parent == window.viewerBar and window.viewerBar.isLocallyVisible())
     @assert(window.currentCommands!.backgroundStyle == .Transparent)
     @assert(window.searchBox.isLocallyVisible() and window.searchBox.isEnabled())

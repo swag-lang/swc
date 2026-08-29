@@ -104,9 +104,11 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     @assert(popup != null)
     @assert(popup == item.popup)
     @assert(popup!.themeMetrics().menuPopup_IconSize == 16)
-    var image     = host.render(&host.surfaceWnd)
-    let cropWidth = cast(s32) (720 * bar.deviceScale())
-    image.crop(0, 0, cropWidth, image.height)
+
+    // Keep the complete shipped surface. Cropping at an arbitrary content coordinate used to
+    // bisect the right tool panel, which made the fixture itself look broken and hid regressions
+    // in the menu bar's relationship with the whole application frame.
+    var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, golden)
 
     @assert(host.dismissPopupMenu())
@@ -146,6 +148,17 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     host.notify(.ThemeChanged)
     main.applyLayout()
     host.finishAnimations()
+
+    let gutter     = main.themeMetrics().panel_GutterSize
+    let editRect   = main.editWnd.surfaceRect()
+    let recentRect = main.recentWnd.surfaceRect()
+    @assert(main.rightBar.children.count == 1)
+    let rightRect = main.rightBar.children[0].surfaceRect()
+    @assert(editRect.y - main.topBar.surfaceRect().bottom() == gutter)
+    @assert(rightRect.y == editRect.y and rightRect.bottom() == editRect.bottom())
+    @assert(recentRect.y - editRect.bottom() == gutter)
+    @assert(recentRect.x == editRect.x and recentRect.right() == rightRect.right())
+    @assert(recentRect.bottom() == main.surfaceRect().bottom())
 
     var image = host.render(main)
     Pixel.Testing.assertImageGolden(&image, "snapforge.surface")

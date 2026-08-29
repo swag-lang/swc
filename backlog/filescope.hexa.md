@@ -221,13 +221,15 @@ are what separate that capable grid from a professional binary-analysis viewer.
   selection with progress and cancellation, never make the range resident, and copy a result with
   its algorithm and range.
 
-### B-032 — The viewer has no byte-distribution or string analysis
+### B-032 — Byte-distribution analysis lacks block-level findings
 
-- Evidence: unknown-file analysis reports one entropy value elsewhere, but the hexadecimal viewer
-  cannot inspect a selection's byte histogram, zero/printable ratio, entropy by block, repeated
-  patterns, or extracted ASCII/Unicode strings.
-- Next: introduce a cancellable range-analysis job and first publish byte counts plus a strings
-  table whose rows retain source offsets.
+- Evidence: the analysis action now streams either the current selection or the whole file through
+  a cancellable 256 KiB job. Its panel publishes a 256-value byte map with exact hover counts,
+  entropy, zero and printable ratios, and a bounded table of inferred ASCII and UTF-16 LE/BE
+  strings whose rows navigate back to their exact byte ranges. It does not yet show entropy by
+  block or repeated-pattern evidence.
+- Next: retain bounded per-block summaries during the same pass, then publish entropy landmarks and
+  repeated-block hints that navigate to both occurrences without retaining file-sized state.
 - Complete when: histogram, entropy, zero/printable ratios, chunked entropy, repeated-block hints,
   and ASCII/UTF string extraction operate on file or selection, results navigate back to bytes, and
   every analysis remains bounded and labels inference as inference.

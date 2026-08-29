@@ -2,7 +2,7 @@
 
 using Core, Pixel, Gui
 
-private const HexCommandWidth = 480.0
+private const HexCommandWidth = 512.0
 private const HexComboWidth   = 150.0
 private const HexInfoWidth    = 420.0
 
@@ -27,16 +27,21 @@ internal struct HexViewer
 
     #[Swag.Late]
     {
-        commands:    *Wnd
-        widthCombo:  *ComboBox
-        formatCombo: *ComboBox
-        byteOrder:   *CheckButton
-        grid:        *HexGridView
+        commands:       *Wnd
+        analysisButton: *IconButton
+        widthCombo:     *ComboBox
+        formatCombo:    *ComboBox
+        byteOrder:      *CheckButton
+        analysisView:   *HexAnalysisView
+        grid:           *HexGridView
     }
 
     info:                 #null *Wnd
     inspectorLabel:       #null *Label
     searchPattern:        HexSearchPattern
+    analysis:             HexAnalysisOperation
+    analysisTimer:        #null *Timer
+    fileName:             String
     details:              String
     load:                 ViewerBackgroundLoad'HexDocument
     loadTimer:            #null *Timer
@@ -50,6 +55,21 @@ private impl IWnd for HexViewer
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
+        if evt.timer == .analysisTimer
+        {
+            if !.analysis.isDone()
+            {
+                .analysisView.setProgress(.analysis.progress())
+                return
+            }
+
+            .removeTimer(evt.timer)
+            .analysisTimer = null
+            var result = .analysis.finish()
+            .analysisView.publish(&result)
+            return
+        }
+
         if evt.timer != .loadTimer
         {
             evt.accepted = false
@@ -80,6 +100,7 @@ private impl IWnd for HexViewer
         .applyLayout()
         .grid.refreshLayout()
         .refreshInspector()
+        .analysisButton.enable(.grid.doc.fileSize != 0)
         .setInitialFocus(.grid)
         if .reportLoadingChanged do
             .reportLoadingChanged!(me)
@@ -100,13 +121,63 @@ internal impl HexViewer
     {
         if !.load.retire() do
             return false
+        if !.analysis.retire() do
+            return false
         if .loadTimer
         {
             .removeTimer(.loadTimer!)
             .loadTimer = null
         }
 
+        if .analysisTimer
+        {
+            .removeTimer(.analysisTimer!)
+            .analysisTimer = null
+        }
+
         return true
+    }
+
+    private mtd analysisRange()->{range: HexAnalysisRange, selection: bool}
+    {
+        var result: retval
+        result.selection = .grid.selectionLength() > 1
+        result.range     = result.selection ? HexAnalysisRange{.grid.selectionStart(), .grid.selectionLength()} : HexAnalysisRange{0, .grid.doc.fileSize}
+        return result
+    }
+
+    mtd startAnalysis()
+    {
+        if .analysis.started
+        {
+            .analysisView.show()
+            .applyLayout()
+            return
+        }
+
+        if !.grid.doc.fileSize do
+            return
+        let target = .analysisRange()
+        .startAnalysisRange(target.range, target.selection)
+    }
+
+    private mtd startAnalysisRange(range: HexAnalysisRange, selection: bool)
+    {
+        .analysisView.show()
+        .analysisView.begin(range, selection, .grid.offsetDigits)
+        .applyLayout()
+        .analysis.start(.fileName.toString(), range)
+        .analysisTimer = .addTimer(ViewerBackgroundPollInterval)
+    }
+
+    mtd closeAnalysis()
+    {
+        if .analysis.started do
+            .analysis.cancel()
+        .analysisView.hide()
+        .analysisButton.setChecked(false)
+        .applyLayout()
+        .grid.setFocus()
     }
 
     mtd selectedGrouping()->HexGrouping
@@ -155,8 +226,10 @@ internal impl HexViewer
         .rebuildFormats()
 
         .byteOrder.setText(hexStrings().ui_Endian)
-        .byteOrder.toolTip = hexStrings().ui_TipEndian
-        .details           = hexStrings().ui_Details
+        .byteOrder.toolTip      = hexStrings().ui_TipEndian
+        .analysisButton.toolTip = hexStrings().ui_AnalysisTip
+        .analysisView.retranslate()
+        .details = hexStrings().ui_Details
         if .reportDetails do
             .reportDetails!(me, .details.toString())
         .commands.applyLayout()
@@ -309,8 +382,25 @@ internal impl HexViewer
         result.reportFailure        = services.reportFailure
         result.reportDetails        = services.reportDetails
         result.reportLoadingChanged = services.reportLoadingChanged
+        result.fileName             = host.fileName()
 
         result.commands = host.createCommandGroup(HexCommandWidth)
+
+        with result.analysisButton = IconButton.create(result.commands, result.theme().icon(.Information), {0, 0, 36, 36}, flags: .Toggle)
+        {
+            .dockStyle = .Left
+            .margin.x  = 8
+            .toolTip   = hexStrings().ui_AnalysisTip
+            .setCheckIndicator(.Frame)
+            .enable(false)
+            .sigCheckedChanged += func|view = result|(button)
+            {
+                if button.isChecked do
+                    view.startAnalysis()
+                else do
+                    view.closeAnalysis()
+            }
+        }
 
         result.info = host.createInfoGroup(HexInfoWidth)
         with result.inspectorLabel = Label.create(result.info!, "", {0, 0, HexInfoWidth, 32}, null, .SecondaryText | .Ellipsis)
@@ -365,6 +455,31 @@ internal impl HexViewer
             {
                 view.grid.setBigEndian(!button.isChecked())
             }
+        }
+
+        result.analysisView = HexAnalysisView.create(result)
+        result.analysisView.hide()
+        Separator.create(result.analysisView, .Left)
+        result.analysisView.sigRefresh += func|view = result|(panel)
+        {
+            view.startAnalysisRange(panel.result.range, panel.selection)
+        }
+        result.analysisView.sigCancel += func|view = result|(panel)
+        {
+            discard panel
+            view.analysis.cancel()
+        }
+        result.analysisView.sigClose += func|view = result|(panel)
+        {
+            discard panel
+            view.closeAnalysis()
+        }
+        result.analysisView.sigNavigate += func|view = result|(panel, offset, length)
+        {
+            discard panel
+            discard view.grid.revealRange(offset, length)
+            view.refreshInspector()
+            view.grid.setFocus()
         }
 
         result.grid                 = HexGridView.create(result)

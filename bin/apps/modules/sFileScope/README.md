@@ -92,6 +92,9 @@ guessing an encoding.
   point, and printable readings. Search accepts byte and nibble wildcards (`4D 5A ??`, `?A`,
   `A?`), exact UTF-8 through `text:`, and the active scalar and byte order through `value:`. Every
   visible result is marked while the shared animated marker identifies the current occurrence.
+  A cancellable, streaming analysis of the selection or whole file adds a 256-value byte map,
+  exact counts, entropy, zero and printable ratios, and bounded inferred ASCII and UTF-16 strings;
+  selecting an inferred string returns to its source bytes.
 
 Text-oriented viewers handle normal keyboard and scrollbar navigation while content is streaming.
 Home, End, distant scrollbar jumps, and search open a bounded resident window near the requested

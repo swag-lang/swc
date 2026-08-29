@@ -37,8 +37,7 @@ func writeStreamedFile(size: u64)->String
 // text. Each of those is drawn differently, and the golden is what says they still are.
 func writePreviewFile()->String
 {
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let fileName      = Path.combine(tempDirectory.toString(), "viewer.hex.preview.bin")
+    let fileName = Gui.Testing.tempFilePath("viewer-hex-preview-", ".bin")
 
     var payload: Array'u8
     let header = "sFileScope hex preview"
@@ -97,6 +96,19 @@ func completeHexViewerOpen(host: *Testing.HeadlessHost, window: *ViewerWindow)
         host.fireTimers()
         steps += 1
     }
+}
+
+func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
+{
+    var steps = 0'u32
+    while view.analysisTimer and steps < 4_096
+    {
+        Threading.Thread.sleep(1'ms)
+        host.fireTimer(view.analysisTimer)
+        steps += 1
+    }
+
+    @assert(view.analysisTimer == null)
 }
 
 // A file-open error crosses the viewer boundary instead of appearing as an empty byte grid.
@@ -210,6 +222,63 @@ func completeHexViewerOpen(host: *Testing.HeadlessHost, window: *ViewerWindow)
     @assert(parseHexSearch("value: 70000", .Unsigned16, false).error == .Value)
 }
 
+// Range analysis streams fixed byte counts and keeps inferred strings tied to their source bytes.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("sfilescope-hex-analysis-", ".bin")
+    defer discard catch File.delete(fileName)
+
+    var payload: Array'u8
+    payload.resize(256)
+    let ascii = "HELLO-WORLD"
+    for value, index in ascii do
+        payload[16 + index] = value
+    let little = "WideLE"
+    for value, index in little
+    {
+        payload[64 + index * 2]     = value
+        payload[64 + index * 2 + 1] = 0
+    }
+
+    let big = "WideBE"
+    for value, index in big
+    {
+        payload[96 + index * 2]     = 0
+        payload[96 + index * 2 + 1] = value
+    }
+
+    payload[200] = 0xFF
+    expect File.writeAllBytes(fileName, payload.toSlice())
+
+    var operation: HexAnalysisOperation
+    operation.start(fileName, {0, payload.count})
+    Jobs.wait(&operation.job)
+    let result = operation.finish()
+    @assert(result.failureReason.isEmpty() and !result.cancelled and result.scanned == payload.count)
+    @assert(result.histogram[0xFF] == 1 and result.histogram[cast(u8) 'H'] == 1)
+    @assert(result.zeroCount > 200 and result.printableCount == @countof(ascii) + @countof(little) + @countof(big))
+    @assert(result.entropy > 0 and result.entropy < 8)
+
+    var foundAscii:  bool
+    var foundLittle: bool
+    var foundBig:    bool
+    for one in result.strings
+    {
+        if one.kind == .Ascii and one.offset == 16 and one.length == @countof(ascii) do
+            foundAscii = one.text.toString() == ascii
+        if one.kind == .Utf16Little and one.offset == 64 and one.length == @countof(little) * 2 do
+            foundLittle = one.text.toString() == little
+        if one.kind == .Utf16Big and one.offset == 96 and one.length == @countof(big) * 2 do
+            foundBig = one.text.toString() == big
+    }
+
+    @assert(foundAscii and foundLittle and foundBig)
+
+    var cancelled = 1'u32
+    let stopped   = analyzeHexRange(fileName, {0, payload.count}, &cancelled)
+    @assert(stopped.cancelled and !stopped.scanned)
+}
+
 // The host keeps a viewer-specific pattern intact across scanner chunks, publishes every exact
 // byte range, and gives invalid input an explanation without opening a file scan.
 #test
@@ -286,6 +355,53 @@ func completeHexViewerOpen(host: *Testing.HeadlessHost, window: *ViewerWindow)
     view.grid.moveCaret(first, false)
     @assert(view.inspectorLabel != null and Utf8.contains(view.inspectorLabel!.text(), "@0003FFFE"))
     @assert(Utf8.contains(view.inspectorLabel!.toolTip.toSlice(), "u32 4022250974"))
+}
+
+// The analysis panel turns an unfamiliar file into exact byte evidence, and every inferred string
+// remains a navigation target rather than detached report text.
+#test
+{
+    let fileName = writePreviewFile()
+    defer discard catch File.delete(fileName.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(1_100, 620)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
+
+    let view = createTestViewer(&host, fileName.toString(), 1_100, 620)
+    view.analysisButton.setChecked(true)
+    view.startAnalysis()
+    completeHexViewerAnalysis(&host, view)
+
+    @assert(view.analysisView.isLocallyVisible() and view.analysisView.result.scanned == view.grid.doc.fileSize)
+    @assert(view.analysisView.result.entropy > 0 and view.analysisView.histogram.total == view.grid.doc.fileSize)
+    @assert(view.analysisView.stringsList.virtualCount == view.analysisView.result.strings.count)
+    @assert(view.analysisView.result.strings.count >= 2)
+
+    let first = &view.analysisView.result.strings[0]
+    view.analysisView.stringsList.selectLine(0)
+    @assert(view.grid.selectionStart() == first.offset and view.grid.selectionLength() == first.length)
+
+    host.root.applyLayout()
+    host.moveMouse({-1, -1})
+    host.settleAnimations(&host.root, 4)
+    var image = host.render(view)
+    Pixel.Testing.assertImageGolden(&image, "viewer.hex.analysis")
+
+    view.closeAnalysis()
+    view.grid.moveCaret(0x80, false)
+    view.grid.moveCaret(0x89, true)
+    let selectionStart  = view.grid.selectionStart()
+    let selectionLength = view.grid.selectionLength()
+    view.analysisButton.setChecked(true)
+    view.startAnalysis()
+    completeHexViewerAnalysis(&host, view)
+    @assert(view.analysisView.selection and view.analysisView.result.range.offset == selectionStart)
+    @assert(view.analysisView.result.range.length == selectionLength and view.analysisView.result.scanned == selectionLength)
 }
 
 // The document never holds more than one window, wherever the reader is standing.
@@ -703,6 +819,8 @@ func completeHexViewerOpen(host: *Testing.HeadlessHost, window: *ViewerWindow)
     @assert(view.widthCombo.selectedItem()!.name.raw == "8 bits" and view.byteOrder.text() == "Little endian")
     @assert(view.widthCombo.toolTip == "Largeur des valeurs")
     @assert(view.details == "hexa et texte · en flux")
+    @assert(view.analysisButton.toolTip == "Analyser la sélection, ou le fichier entier lorsqu’un seul octet est sélectionné")
+    @assert(view.analysisView.titleLabel.text() == "Analyse" and view.analysisView.stringsList.header.itemAt(1).name.raw == "Encodage")
     discard host.render(view)
     Testing.assertContentFits(view.commands)
 }
@@ -742,7 +860,7 @@ func completeHexViewerOpen(host: *Testing.HeadlessHost, window: *ViewerWindow)
     defer host.shutdown()
 
     let view = createTestViewer(&host, fileName.toString(), 900, 560)
-    @assert(view.commands.position.width <= 480)
+    @assert(view.commands.position.width <= 512)
     @assert(view.byteOrder.parent == view.commands and view.byteOrder.isChecked())
     @assert(view.details == "hex and text · streamed")
     Testing.assertContentFits(view)

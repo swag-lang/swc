@@ -767,6 +767,71 @@ private impl IconButton
 
 impl IconButton
 {
+    // Paints the compact identity of this button inside the tab an attached menu owns while it
+    // is open. Menu buttons use one horizontal reading order here: glyph, wording, disclosure.
+    // The popup supplies the selected background and border, while this helper preserves the
+    // exact glyph sizes, font and spacing of the closed button.
+    internal mtd paintMenuAnchorContent(painter: *Painter, rect: Math.Rectangle, color: Color)
+    {
+        let metrics = .themeMetrics()
+        let theme   = .theme()
+        var icon    = .icon
+        if .iconWidth do
+            icon.sizeX = .iconWidth
+        if .iconHeight do
+            icon.sizeY = .iconHeight
+
+        let hasIcon   = icon.isValid()
+        let showsText = !.name.isEmpty() and !.flags.has(.IconOnly)
+        var textWidth = 0'f32
+        if showsText do
+            textWidth = Painter.measureString(.name.raw.toString(), nnFont(.font().regular)).width
+
+        var width = hasIcon ? icon.sizeX : 0
+        if showsText
+        {
+            if hasIcon do
+                width += metrics.btnIcon_SpacingTextH
+            width += textWidth
+        }
+        if .arrowPosition != .None
+        {
+            if width do
+                width += metrics.btnIcon_SpacingArrowH
+            width += metrics.btnIcon_ArrowSize
+        }
+
+        var x = rect.horzCenter() - width * 0.5
+        if hasIcon
+        {
+            icon.paint(painter, x, .lineTop(rect.vertCenter(), icon.sizeY), color)
+            x += icon.sizeX
+            if showsText do
+                x += metrics.btnIcon_SpacingTextH
+        }
+
+        if showsText
+        {
+            var format: RichStringFormat
+            theme.setTextColors(&format, color)
+            format.font          = .font()
+            format.horzAlignment = .Left
+            format.vertAlignment = .Center
+            format.flags         = .Clip
+            painter.drawRichString({x, rect.y, textWidth, rect.height}, &.name, format)
+            x += textWidth
+        }
+
+        if .arrowPosition != .None
+        {
+            if hasIcon or showsText do
+                x += metrics.btnIcon_SpacingArrowH
+            let side  = metrics.btnIcon_ArrowSize
+            let arrow = theme.icon(arrowGlyph(.arrowPosition), side)
+            arrow.paint(painter, x, .lineTop(rect.vertCenter(), side), color)
+        }
+    }
+
     // Replaces the displayed icon.
     mtd setIcon(icon: Icon) => .button.setIcon(icon)
 

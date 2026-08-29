@@ -72,8 +72,10 @@ impl ViewerBackgroundLoad
 // Options shared by file-backed and viewer-owned searches.
 struct ViewerSearchOptions
 {
-    matchCase: bool     // Whether letter case has to match.
-    wholeWord: bool     // Whether word characters may touch either side of a match.
+    matchCase:         bool     // Whether letter case has to match.
+    wholeWord:         bool     // Whether word characters may touch either side of a match.
+    regularExpression: bool     // Whether the query is a regular expression rather than literal text.
+    expression:        #null *Parser.RegExp     // Compiled expression borrowed for one synchronous collection.
 }
 
 // One searchable location. `major` and `minor` identify viewer-owned containers such as a PDF
@@ -266,6 +268,32 @@ func collectViewerTextMatches(source, query: string, options: ViewerSearchOption
     if !@countof(query) do
         return
 
+    if options.regularExpression
+    {
+        var localExpression: Parser.RegExp
+        var expression = options.expression
+        if !expression
+        {
+            catch localExpression.compile(query, ignoreCase: !options.matchCase) as expressionError
+            if expressionError != null do
+                return
+            expression = &localExpression
+        }
+
+        let sourceData = @dataof(source)
+        for value in expression!.grepAll(source)
+        {
+            // Zero-width expressions are meaningful to a parser, but there is no document span
+            // for a viewer to outline or select.
+            if !@countof(value) do
+                continue
+            let found = cast(u64) cast(s64) (@dataof(value) - sourceData)
+            if !options.wholeWord or viewerMatchIsWholeWord(source, found, @countof(value)) do
+                result.add({major, minor, baseOffset + found, @countof(value)})
+        }
+        return
+    }
+
     let comparison = options.matchCase ? Utf8.ComparisonType.Latin1 : Utf8.ComparisonType.Latin1NoCase
     var from       = 0'u64
     while from < @countof(source)
@@ -278,6 +306,15 @@ func collectViewerTextMatches(source, query: string, options: ViewerSearchOption
             result.add({major, minor, baseOffset + found, @countof(query)})
         from = found + Math.max(@countof(query), 1)
     }
+}
+
+// Reports whether a non-empty regular-expression query can be compiled.
+func viewerSearchPatternIsValid(query: string, options: ViewerSearchOptions)->bool
+{
+    if !options.regularExpression or !@countof(query) do
+        return true
+    discard catch Parser.RegExp.create(query, ignoreCase: !options.matchCase) as expressionError
+    return expressionError == null
 }
 
 // Selects an exact UTF-8 byte range in a rich editor whose text came from `source`.

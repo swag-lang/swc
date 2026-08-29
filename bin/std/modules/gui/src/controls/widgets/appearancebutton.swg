@@ -111,8 +111,7 @@ impl AppearanceButton
     private mtd showAppearanceMenu()
     {
         let root = .createAppearanceMenu()
-        let rect = .surfaceRect()
-        .applyAppearanceSelection(root.doModal({rect.horzCenter(), rect.bottom()}, .AnchorTopCenter, autoDestroy: true))
+        .applyAppearanceSelection(root.doModal(me, autoDestroy: true))
     }
 
     private mtd createAppearanceMenu()->*MenuCtrl

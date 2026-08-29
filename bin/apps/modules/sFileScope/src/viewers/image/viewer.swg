@@ -171,9 +171,8 @@ internal impl ImageViewer
 
     mtd showTransformMenu()
     {
-        let rect = .transformButton.surfaceRect()
         let menu = .createTransformMenu()
-        switch menu.doModal({rect.horzCenter(), rect.bottom()}, .AnchorTopCenter, autoDestroy: true) orelse ""
+        switch menu.doModal(.transformButton, autoDestroy: true) orelse ""
         {
         case "sFileScope.image.rotateLeft":       .rotateCounterClockwise()
         case "sFileScope.image.rotateRight":      .rotateClockwise()
@@ -329,7 +328,6 @@ private impl ImageViewer
         with result.nextButton = IconButton.create(result.actions, result.theme().icon(.ChevronRight, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
-            .margin.z  = 8
             .toolTip   = imageStrings().ui_TipNext
             .enable(navigateFile != null)
             .sigPressed += func|view = result|(button)
@@ -342,7 +340,7 @@ private impl ImageViewer
         with let zoomOut = IconButton.create(result.actions, result.theme().icon(.ZoomOut, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
-            .margin.x   = 8
+            .margin.x   = 16
             .toolTip    = imageStrings().ui_TipZoomOut
             .sigPressed += func|view = result|(button)
             {
@@ -354,7 +352,6 @@ private impl ImageViewer
         with let zoomIn = IconButton.create(result.actions, result.theme().icon(.ZoomIn, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
-            .margin.z   = 8
             .toolTip    = imageStrings().ui_TipZoomIn
             .sigPressed += func|view = result|(button)
             {
@@ -366,7 +363,7 @@ private impl ImageViewer
         with let fit = IconButton.create(result.actions, result.theme().icon(.FitView, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
-            .margin.x   = 8
+            .margin.x   = 16
             .toolTip    = imageStrings().ui_TipFit
             .sigPressed += func|view = result|(button)
             {
@@ -378,7 +375,6 @@ private impl ImageViewer
         with let actual = IconButton.create(result.actions, result.theme().icon(.ActualSize, ImageGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
-            .margin.x   = 8
             .toolTip    = imageStrings().ui_TipActual
             .sigPressed += func|view = result|(button)
             {
@@ -390,7 +386,7 @@ private impl ImageViewer
         with result.transformButton = IconButton.create(result.actions, result.theme().icon(.Redo, ImageGlyphSize), {0, 0, 52, 36}, flags: .CenterContent)
         {
             .dockStyle = .Left
-            .margin.x  = 8
+            .margin.x  = 16
             .toolTip   = imageStrings().ui_TipTransform
             .setArrowPosition(.RightDownward)
             .sigPressed += func|view = result|(button)

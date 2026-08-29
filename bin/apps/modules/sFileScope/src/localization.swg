@@ -35,8 +35,11 @@ struct AppStrings
     ui_Search:              string = "Find in document"                                                                       // Placeholder of the search field.
     ui_SearchPrevious:      string = "Previous match (Shift+F3)"                                                              // Tooltip of the previous-match button.
     ui_SearchNext:          string = "Next match (F3)"                                                                        // Tooltip of the next-match button.
-    ui_SearchMatchCase:     string = "Match case"                                                                             // Tooltip of the case-sensitive search toggle.
-    ui_SearchWholeWord:     string = "Match whole words"                                                                      // Tooltip of the whole-word search toggle.
+    ui_SearchOptions:       string = "Search options"                                                                         // Tooltip of the search-options menu button.
+    ui_SearchMatchCase:     string = "Match case"                                                                             // Search-options menu entry for case-sensitive matching.
+    ui_SearchWholeWord:     string = "Match whole words"                                                                      // Search-options menu entry for complete-word matching.
+    ui_SearchRegularExpression: string = "Use regular expression"                                                            // Search-options menu entry enabling regexp syntax.
+    ui_SearchInvalidRegularExpression: string = "Invalid regular expression"                                                 // Status tooltip for regexp syntax that cannot be compiled.
     ui_NoMatch:             string = "No match"                                                                               // Status line when a search reached the end with nothing.
     ui_Searching:           string = "Searching…"                                                                             // Status line while a search scans the file.
     ui_DropTitle:           string = "Drop a file to view it"                                                                 // Invitation shown while no file is open.

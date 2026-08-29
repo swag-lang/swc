@@ -1812,7 +1812,7 @@ private impl VideoViewer
         with result.stopButton = IconButton.create(result.commands, result.theme().icon(.Stop, VideoGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle = .Left
-            .margin.x  = 4
+            .margin.x  = 8
             .toolTip   = videoStrings().ui_TipStop
             .enable(false)
             .sigPressed += func|view = result|(button)
@@ -1825,7 +1825,7 @@ private impl VideoViewer
         with result.backwardButton = IconButton.create(result.commands, result.theme().icon(.SeekBackward, VideoGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
-            .margin.x   = 4
+            .margin.x   = 8
             .toolTip    = videoStrings().ui_TipBackward
             .sigPressed += func|view = result|(button)
             {
@@ -1837,7 +1837,7 @@ private impl VideoViewer
         with result.forwardButton = IconButton.create(result.commands, result.theme().icon(.SeekForward, VideoGlyphSize), {0, 0, 36, 36})
         {
             .dockStyle  = .Left
-            .margin.x   = 4
+            .margin.x   = 8
             .toolTip    = videoStrings().ui_TipForward
             .sigPressed += func|view = result|(button)
             {
@@ -1849,7 +1849,7 @@ private impl VideoViewer
         with result.currentTimeLabel = Label.create(result.commands, "", {0, 0, 56, 36}, null, .SecondaryText)
         {
             .dockStyle = .Left
-            .margin    = {8, 0, 4, 0}
+            .margin    = {8, 0, 8, 0}
             .setTextAlignment(.Right, .Center)
         }
 
@@ -1868,7 +1868,7 @@ private impl VideoViewer
         with result.subtitleButton = IconButton.create(result.commands, {}, {0, 0, 36, 36}, flags: .CenterContent)
         {
             .dockStyle = .Right
-            .margin.x  = 4
+            .margin.x  = 8
             .toolTip   = videoStrings().ui_TipSubtitles
             .setText("CC")
             .style.setFont(result.theme().createDefaultFont(10, .Bold), .Regular)
@@ -1910,14 +1910,14 @@ private impl VideoViewer
         with result.totalTimeLabel = Label.create(result.commands, "", {0, 0, 56, 36}, null, .SecondaryText)
         {
             .dockStyle = .Right
-            .margin    = {4, 0, 8, 0}
+            .margin    = {8, 0, 8, 0}
             .setTextAlignment(.Left, .Center)
         }
 
         with result.timeline = Slider.create(result.commands, {0, 0, 0, 36})
         {
             .dockStyle = .Center
-            .margin    = {4, 1, 4, 1}
+            .margin    = {8, 1, 8, 1}
             .toolTip   = videoStrings().ui_TipSeek
 
             // A drag may cross hundreds of frames. Decode its final position once instead of

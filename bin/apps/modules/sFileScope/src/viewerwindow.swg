@@ -6,10 +6,13 @@ const ViewerGlyphSize                         = 20.0
 const ViewerRowGlyphSize                      = 16.0
 const ViewerMinWidth                          = 880
 const ViewerSearchChunkSize                   = 256 * 1024'u64
-const ViewerSearchBarWidth                    = 364.0
+const ViewerSearchBarWidth                    = 372.0
 const ViewerSearchFieldWidth                  = 180.0
 const ViewerSearchCountWidth                  = 52.0
 const ViewerSearchButtonSize                  = 28.0
+const ViewerSearchOptionsWidth                = 44.0
+const ViewerSearchNavigationWidth             = 116.0
+const ViewerSearchGroupSpacing                = 16.0
 const ViewerSearchCarryMargin                 = 4'u64
 const ViewerErrorTextWidth                    = 512.0
 const ViewerFullScreenRevealEdge              = 32.0
@@ -461,12 +464,12 @@ struct ViewerWindow
         filesButton:         *IconButton
         fullScreenButton:    *IconButton
         searchGroup:         *StackLayoutCtrl
+        searchNavigation:    *StackLayoutCtrl
         searchBox:           *EditBox
         searchCountLabel:    *Label
         searchPrevious:      *IconButton
         searchNext:          *IconButton
-        searchMatchCase:     *IconButton
-        searchWholeWord:     *IconButton
+        searchOptionsButton: *IconButton
         viewerCombo:         *ComboBox
         appearanceButton:    *AppearanceButton
         accentRail:          *Separator
@@ -529,6 +532,7 @@ struct ViewerWindow
     searchSelectLast:      bool
     searchMatchCaseOption: bool
     searchWholeWordOption: bool
+    searchRegexOption:     bool
     pendingFile:           String
     pendingEmpty:          String
     pendingRemember:       bool = true
@@ -772,6 +776,7 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.folderSameKind", &me.folderSameKind)
         catch evt.serializer.serialize("ViewerWindow.searchMatchCase", &me.searchMatchCaseOption)
         catch evt.serializer.serialize("ViewerWindow.searchWholeWord", &me.searchWholeWordOption)
+        catch evt.serializer.serialize("ViewerWindow.searchRegularExpression", &me.searchRegexOption)
         catch evt.serializer.serialize("ViewerWindow.videoSubtitles", &g_VideoSubtitleSettings)
         if evt.serializer.isReading()
         {
@@ -784,8 +789,7 @@ impl IWnd for ViewerWindow
             while .folderHistory.count > ViewerFolderHistoryCount do
                 .folderHistory.removeAtOrdered(.folderHistory.count - 1)
             .folderHistoryButton.enable(!.folderHistory.isEmpty())
-            .searchMatchCase.setChecked(.searchMatchCaseOption)
-            .searchWholeWord.setChecked(.searchWholeWordOption)
+            .searchBox.setValidator(.searchBox.validator)
             g_VideoSubtitleSettings.delay = Math.clamp(g_VideoSubtitleSettings.delay, -60, 60)
         }
     }
@@ -829,9 +833,9 @@ impl ViewerWindow
     mtd refreshArtwork()
     {
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
-        .searchPrevious.setIcon(.theme().icon(.SearchPrevious, 16))
-        .searchNext.setIcon(.theme().icon(.SearchNext, 16))
-        .searchWholeWord.setIcon(.theme().icon(.MatchWholeWord, 16))
+        .searchOptionsButton.setIcon(.theme().icon(.Options, ViewerGlyphSize))
+        .searchPrevious.setIcon(.theme().icon(.SearchPrevious, ViewerGlyphSize))
+        .searchNext.setIcon(.theme().icon(.SearchNext, ViewerGlyphSize))
         if .activeChoiceIndex < .choices.count do
             .infoIconLabel.setIcon(.icon(.choices[.activeChoiceIndex].icon))
     }
@@ -1040,42 +1044,27 @@ impl ViewerWindow
         with result.searchGroup = StackLayoutCtrl.create(result.commandBar, .Center, {0, 0, ViewerSearchBarWidth, 36})
         {
             .backgroundStyle = .Transparent
-            .spacing         = 0
+            .spacing         = ViewerSearchGroupSpacing
             .hide()
         }
 
         result.commandBar.centerGroup = result.searchGroup
 
-        with result.searchMatchCase = IconButton.create(result.searchGroup, {}, {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize}, flags: .Toggle | .CenterContent)
+        with result.searchOptionsButton = IconButton.create(result.searchGroup, result.theme().icon(.Options, ViewerGlyphSize), {0, 0, ViewerSearchOptionsWidth, ViewerSearchButtonSize}, flags: .CenterContent)
         {
             .layoutSpec.alignY = .Center
-            .toolTip           = appStrings().ui_SearchMatchCase
-            .setText("Aa")
-            .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|window = result|(button)
+            .toolTip           = appStrings().ui_SearchOptions
+            .setArrowPosition(.RightDownward)
+            .sigPressed += func|window = result|(button)
             {
-                window.searchMatchCaseOption = button.isChecked
-                window.restartSearch()
-                catch window.saveState()
-            }
-        }
-
-        with result.searchWholeWord = IconButton.create(result.searchGroup, result.theme().icon(.MatchWholeWord, 16), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize}, flags: .Toggle | .CenterContent)
-        {
-            .layoutSpec.alignY = .Center
-            .toolTip           = appStrings().ui_SearchWholeWord
-            .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|window = result|(button)
-            {
-                window.searchWholeWordOption = button.isChecked
-                window.restartSearch()
-                catch window.saveState()
+                discard button
+                window.showSearchOptionsMenu()
             }
         }
 
         with result.searchBox = EditBox.create(result.searchGroup, "", {0, 0, ViewerSearchFieldWidth, 36}, flags: .ClearButton)
         {
-            .setIcon(result.theme().icon(.Search, 18))
+            .setIcon(result.theme().icon(.Search, ViewerGlyphSize))
             .setPlaceholder(appStrings().ui_Search)
             .setValidator(func|window = result|(edit)->EditBoxCheckResult { return window.validateSearchEdit(edit) })
             .sigTextChanged += func|window = result|(edit)
@@ -1096,7 +1085,13 @@ impl ViewerWindow
             .enable(false)
         }
 
-        with result.searchPrevious = IconButton.create(result.searchGroup, result.theme().icon(.SearchPrevious, 16), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize})
+        with result.searchNavigation = StackLayoutCtrl.create(result.searchGroup, .Center, {0, 0, ViewerSearchNavigationWidth, 36})
+        {
+            .backgroundStyle = .Transparent
+            .spacing         = 0
+        }
+
+        with result.searchPrevious = IconButton.create(result.searchNavigation, result.theme().icon(.SearchPrevious, ViewerGlyphSize), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize})
         {
             .layoutSpec.alignY = .Center
             .toolTip           = appStrings().ui_SearchPrevious
@@ -1108,7 +1103,7 @@ impl ViewerWindow
             .enable(false)
         }
 
-        with result.searchNext = IconButton.create(result.searchGroup, result.theme().icon(.SearchNext, 16), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize})
+        with result.searchNext = IconButton.create(result.searchNavigation, result.theme().icon(.SearchNext, ViewerGlyphSize), {0, 0, ViewerSearchButtonSize, ViewerSearchButtonSize})
         {
             .layoutSpec.alignY = .Center
             .toolTip           = appStrings().ui_SearchNext
@@ -1120,7 +1115,7 @@ impl ViewerWindow
             .enable(false)
         }
 
-        with result.searchCountLabel = Label.create(result.searchGroup, "", {0, 0, ViewerSearchCountWidth, 36}, null, .SecondaryText)
+        with result.searchCountLabel = Label.create(result.searchNavigation, "", {0, 0, ViewerSearchCountWidth, 36}, null, .SecondaryText)
         {
             .margin.x = 8
             .style.setFont(result.theme().createDefaultFontFS(12), .Regular)
@@ -2116,18 +2111,54 @@ impl ViewerWindow
         .navigateSearch(-1)
     }
 
-    private mtd searchOptions()->ViewerSearchOptions => {.searchMatchCaseOption, .searchWholeWordOption}
+    private mtd searchOptions()->ViewerSearchOptions =>
+    {
+        matchCase: .searchMatchCaseOption,
+        wholeWord: .searchWholeWordOption,
+        regularExpression: .searchRegexOption}
+
+    private mtd showSearchOptionsMenu()
+    {
+        const MatchCaseId = "sFileScope.search.matchCase"
+        const WholeWordId = "sFileScope.search.wholeWord"
+        const RegExpId    = "sFileScope.search.regularExpression"
+
+        let texts = appStrings()
+        let menu  = MenuCtrl.createPopup(me, owner: me)
+        menu.addItem(texts.ui_SearchMatchCase, MatchCaseId, checked: .searchMatchCaseOption)
+        menu.addItem(texts.ui_SearchWholeWord, WholeWordId, checked: .searchWholeWordOption)
+        menu.addItem(texts.ui_SearchRegularExpression, RegExpId, checked: .searchRegexOption)
+
+        switch menu.doModal(.searchOptionsButton, autoDestroy: true) orelse ""
+        {
+        case MatchCaseId: .searchMatchCaseOption = !.searchMatchCaseOption
+        case WholeWordId: .searchWholeWordOption = !.searchWholeWordOption
+        case RegExpId:    .searchRegexOption = !.searchRegexOption
+        default:          return
+        }
+
+        // A query that was literal may be incomplete regexp syntax, and vice versa. Re-run the
+        // field validator before deciding whether there is work to schedule.
+        .searchBox.setValidator(.searchBox.validator)
+        .restartSearch()
+        catch .saveState()
+    }
 
     private mtd validateSearchEdit(edit: *EditBox)->EditBoxCheckResult
     {
-        if !@countof(edit.text()) or .activeChoiceIndex >= .instances.count do
+        if !@countof(edit.text()) do
             return .Valid
-        let instance = &.instances[.activeChoiceIndex]
-        if !instance.view or !instance.prepareSearch do
-            return .Valid
+        if .activeChoiceIndex < .instances.count
+        {
+            let instance = &.instances[.activeChoiceIndex]
+            if instance.view and instance.prepareSearch
+            {
+                var plan: ViewerSearchPlan
+                return instance.prepareSearch!(instance.view!, edit.text(), &plan)
+            }
+        }
 
-        var plan: ViewerSearchPlan
-        return instance.prepareSearch!(instance.view!, edit.text(), &plan)
+        return viewerSearchPatternIsValid(edit.text(), .searchOptions()) ? .Valid : .InvalidVisible
     }
 
     private mtd refreshSearchPresentation()
@@ -2144,9 +2175,8 @@ impl ViewerWindow
         .searchToolTip = #move presentation.toolTip
         .searchBox.setPlaceholder(presentation.placeholder.toString())
         .searchBox.toolTip = .searchToolTip
-        .searchMatchCase.show(presentation.useTextOptions)
-        .searchWholeWord.show(presentation.useTextOptions)
-        .searchBox.resize(presentation.useTextOptions ? ViewerSearchFieldWidth : ViewerSearchFieldWidth + ViewerSearchButtonSize * 2, 36)
+        .searchOptionsButton.show(presentation.useTextOptions)
+        .searchBox.resize(presentation.useTextOptions ? ViewerSearchFieldWidth : ViewerSearchFieldWidth + ViewerSearchOptionsWidth + ViewerSearchGroupSpacing, 36)
         .searchBox.setValidator(.searchBox.validator)
         .searchGroup.computeLayout()
         .commandBar.centerContent()
@@ -2167,11 +2197,31 @@ impl ViewerWindow
 
         if !.searchBox.isEnabled() or .searchQuery.isEmpty() or .currentFile.isEmpty() or .activeChoiceIndex >= .instances.count do
             return
+        if !.searchBox.isValid()
+        {
+            .searchComplete = true
+            .refreshSearchReadout()
+            return
+        }
 
         let instance = &.instances[.activeChoiceIndex]
         if instance.collectMatches and instance.view
         {
-            instance.collectMatches!(instance.view!, .searchQuery.toString(), .searchOptions(), &.searchMatches)
+            var options = .searchOptions()
+            var expression: Parser.RegExp
+            if options.regularExpression
+            {
+                catch expression.compile(.searchQuery.toString(), ignoreCase: !options.matchCase) as expressionError
+                if expressionError != null
+                {
+                    .finishSearch()
+                    return
+                }
+
+                options.expression = &expression
+            }
+
+            instance.collectMatches!(instance.view!, .searchQuery.toString(), options, &.searchMatches)
             .finishSearch()
             return
         }
@@ -2229,6 +2279,11 @@ impl ViewerWindow
         {
             .searchCountLabel.setText("!")
             .searchCountLabel.toolTip = .searchError
+        }
+        elif !.searchBox.isValid()
+        {
+            .searchCountLabel.setText("0/0")
+            .searchCountLabel.toolTip = appStrings().ui_SearchInvalidRegularExpression
         }
         elif !.searchComplete
         {
@@ -2443,8 +2498,7 @@ impl ViewerWindow
 
         .refreshSearchPresentation()
         .searchBox.enable(available)
-        .searchMatchCase.enable(available)
-        .searchWholeWord.enable(available)
+        .searchOptionsButton.enable(available)
         .searchGroup.show(available)
         let actionsBesideSearch = .currentActions and .currentActions!.dockStyle != .None
         .currentActions?.show(!available or actionsBesideSearch)
@@ -2514,12 +2568,22 @@ impl ViewerWindow
 
         bytes.resize(count)
         .searchCarry += @mkstring(bytes.buffer!, bytes.count)
-        let eof       = count == 0
+        let eof      = count == 0
+        let instance = &.instances[.activeChoiceIndex]
+
+        // A regular expression may span an arbitrary number of chunks, and ^/$ refer to the
+        // document rather than to an implementation buffer. Keep reading incrementally so the
+        // interface remains responsive, then evaluate once against the complete source.
+        if .searchRegexOption and !instance.collectFileMatches and !eof
+        {
+            .searchTimer = .addTimer(1'ms)
+            return
+        }
+
         let deferSize = .searchSpan + ViewerSearchCarryMargin
         let stableEnd = eof ? .searchCarry.length : (.searchCarry.length > deferSize ? .searchCarry.length - deferSize : 0)
 
         var candidates: Array'ViewerSearchMatch
-        let instance = &.instances[.activeChoiceIndex]
         if instance.collectFileMatches and instance.view do
             instance.collectFileMatches!(instance.view!, .searchCarry.toString(), .searchCarryBase, &candidates)
         else do
@@ -2701,8 +2765,7 @@ impl ViewerWindow
         .viewerCombo.toolTip         = texts.ui_Viewer
         .searchPrevious.toolTip      = texts.ui_SearchPrevious
         .searchNext.toolTip          = texts.ui_SearchNext
-        .searchMatchCase.toolTip     = texts.ui_SearchMatchCase
-        .searchWholeWord.toolTip     = texts.ui_SearchWholeWord
+        .searchOptionsButton.toolTip = texts.ui_SearchOptions
         .refreshSearchPresentation()
         .refreshSearchReadout()
         .recentLabel.setText(texts.ui_Recent)

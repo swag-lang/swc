@@ -25,10 +25,13 @@ ui_MenuCopyPath     Copier le chemin complet
 ui_MenuCopyName     Copier le nom du fichier
 ui_MenuForget       Retirer ce fichier de l'historique
 ui_Search       Rechercher dans le document
-ui_SearchPrevious Occurrence prÃ©cÃ©dente (Maj+F3)
+ui_SearchPrevious Occurrence précédente (Maj+F3)
 ui_SearchNext   Occurrence suivante (F3)
+ui_SearchOptions Options de recherche
 ui_SearchMatchCase Respecter la casse
 ui_SearchWholeWord Rechercher les mots entiers
+ui_SearchRegularExpression Utiliser une expression régulière
+ui_SearchInvalidRegularExpression Expression régulière incorrecte
 ui_NoMatch      Aucun résultat
 ui_Searching    Recherche…
 ui_DropTitle    Déposez un fichier pour l'afficher

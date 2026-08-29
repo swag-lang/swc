@@ -88,6 +88,7 @@ public struct MenuCtrl
     paintByFrame:            bool                   // Whether the frame paints an anchored popup.
     popupBarItemIdx:         u32 = Swag.U32.Max     // Owning menu-bar item for an anchored popup.
     popupBarItemSurfaceRect: Math.Rectangle         // Owning menu-bar item bounds in surface coordinates.
+    popupAnchorButton:       #null *IconButton      // Icon button repainted as the tab of an attached popup.
     ignoreNextRelease:       bool                   // Whether to ignore the release that opened the popup.
     popupHasGlyphs:          bool                   // Whether visible popup entries need the shared glyph column.
 }
@@ -511,19 +512,26 @@ impl MenuCtrl
 
     private mtd hasPopupBarAnchor()->bool
     {
-        return .popupBarItemIdx != Swag.U32.Max and .ownerMenu and .ownerMenu.bar
+        return (.popupBarItemIdx != Swag.U32.Max and .ownerMenu and .ownerMenu.bar) or .popupAnchorButton != null
     }
 
     private mtd clearPopupBarAnchor()
     {
         .popupBarItemIdx = Swag.U32.Max
         .popupBarItemSurfaceRect.clear()
+        .popupAnchorButton = null
     }
 
     private mtd setPopupBarAnchor(itemIdx: u32, itemSurfaceRect: Math.Rectangle)
     {
         .popupBarItemIdx         = itemIdx
         .popupBarItemSurfaceRect = itemSurfaceRect
+    }
+
+    private mtd setPopupButtonAnchor(button: *IconButton)
+    {
+        .popupAnchorButton       = button
+        .popupBarItemSurfaceRect = button.surfaceRect()
     }
 
     private mtd getPopupBarAnchorHeight()->f32
@@ -608,6 +616,12 @@ impl MenuCtrl
         var anchorBorder = anchorBk
         anchorBorder.setBottom(bodyRect.y + metrics.wnd_BorderSize)
         theme.drawSubRect(painter, anchorBorder, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
+
+        if .popupAnchorButton
+        {
+            .popupAnchorButton!.paintMenuAnchorContent(painter, anchorRect, colors.menuBar_SelectedText)
+            return
+        }
 
         let i        = (.ownerMenu!.items[.popupBarItemIdx])!
         var labelPos = anchorRect
@@ -1209,27 +1223,51 @@ public impl MenuCtrl
         .dirtyLayout = true
     }
 
+    // Runs a popup menu joined to a [[Gui.IconButton]] and returns its selected command, or null
+    // when dismissed.
+    //
+    // The button is repainted as the popup's opening tab instead of pointing at a detached box
+    // with a notch. When `autoDestroy` is true, the menu destroys itself after the modal loop.
+    mtd doModal(button: *IconButton, autoDestroy: bool = false)->#null WndId
+    {
+        return .doModalImpl({}, .TopLeft, autoDestroy, button)
+    }
+
     // Runs a popup menu modally and returns its selected command, or null when dismissed.
     // When `autoDestroy` is true, the menu destroys itself after the modal loop ends.
     mtd doModal(surfacePos: Math.Point, pos = PopupPosition.TopLeft, autoDestroy: bool = false)->#null WndId
     {
+        return .doModalImpl(surfacePos, pos, autoDestroy, null)
+    }
+
+    private mtd doModalImpl(surfacePos: Math.Point, pos: PopupPosition, autoDestroy: bool, button: #null *IconButton)->#null WndId
+    {
         Debug.assert(!.bar)
 
         .clearPopupBarAnchor()
+        if button do
+            .setPopupButtonAnchor(button!)
         .updateState()
 
-        switch pos
+        if button
         {
-        case .AnchorTopCenter:
-            .paintByFrame = true
-            .padding.y    += 4
-
-        case .AnchorBottomCenter:
-            .paintByFrame = true
-            .padding.w    += 4
-
-        default:
             .paintByFrame = false
+        }
+        else
+        {
+            switch pos
+            {
+            case .AnchorTopCenter:
+                .paintByFrame = true
+                .padding.y    += 4
+
+            case .AnchorBottomCenter:
+                .paintByFrame = true
+                .padding.w    += 4
+
+            default:
+                .paintByFrame = false
+            }
         }
 
         .computeLayoutPopup()
@@ -1237,39 +1275,55 @@ public impl MenuCtrl
         // Be sure popup menu is in the client area of the top view
         var pt = .parent!.surfaceToLocal(surfacePos)
 
-        switch pos
+        if button
         {
-        case .TopLeft:
-            pt -= .themeMetrics().menuPopup_ShadowSize
+            let anchor = .popupBarItemSurfaceRect
+            let sdw    = .themeMetrics().menuPopup_ShadowSize
+            pt = .parent!.surfaceToLocal({anchor.x - sdw, anchor.y - sdw})
             .setPosition({pt.x, pt.y, .position.width, .position.height})
-
-        case .AnchorTopCenter:
-            pt.y += .themeMetrics().menuPopup_ShadowSize
-            .setPosition({pt.x - .position.width * 0.5, pt.y, .position.width, .position.height})
-            .anchor         = .Top
-            .anchorPosition = .position.width * 0.5
-            .setFrameFlags(.Borders | .SmallShadow)
-            .setFrameForm(.themeColors().activeRail.a ? .Square : .Round)
-            .padding.y  += 14
-            .paddingSel = 0
-
-        case .AnchorBottomCenter:
-            pt.y -= .themeMetrics().menuPopup_ShadowSize
-            .setPosition({pt.x - .position.width * 0.5, pt.y - .position.height, .position.width, .position.height})
-            .anchor         = .Bottom
-            .anchorPosition = .position.width * 0.5
-            .setFrameFlags(.Borders | .SmallShadow)
-            .setFrameForm(.themeColors().activeRail.a ? .Square : .Round)
-            .paddingSel = 0
         }
 
-        let anchored = pos == .AnchorTopCenter or pos == .AnchorBottomCenter
+        else
+        {
+            switch pos
+            {
+            case .TopLeft:
+                pt -= .themeMetrics().menuPopup_ShadowSize
+                .setPosition({pt.x, pt.y, .position.width, .position.height})
+
+            case .AnchorTopCenter:
+                pt.y += .themeMetrics().menuPopup_ShadowSize
+                .setPosition({pt.x - .position.width * 0.5, pt.y, .position.width, .position.height})
+                .anchor         = .Top
+                .anchorPosition = .position.width * 0.5
+                .setFrameFlags(.Borders | .SmallShadow)
+                .setFrameForm(.themeColors().activeRail.a ? .Square : .Round)
+                .padding.y  += 14
+                .paddingSel = 0
+
+            case .AnchorBottomCenter:
+                pt.y -= .themeMetrics().menuPopup_ShadowSize
+                .setPosition({pt.x - .position.width * 0.5, pt.y - .position.height, .position.width, .position.height})
+                .anchor         = .Bottom
+                .anchorPosition = .position.width * 0.5
+                .setFrameFlags(.Borders | .SmallShadow)
+                .setFrameForm(.themeColors().activeRail.a ? .Square : .Round)
+                .paddingSel = 0
+            }
+        }
+
+        let anchored = button != null or pos == .AnchorTopCenter or pos == .AnchorBottomCenter
         let margin   = .themeMetrics().menuPopup_WindowMargin
-        .fitPosInParent(margin, margin, simX: !anchored, simY: true)
+        // An attached button can sit inside the first toolbar row, closer to the surface edge
+        // than the popup shadow is deep. Let that invisible shadow start outside the surface;
+        // clamping it to the normal window margin would move the body down and reopen a gap under
+        // the button. The anchor and body themselves remain inside the surface.
+        let verticalMargin = button ? -.themeMetrics().menuPopup_ShadowSize : margin
+        .fitPosInParent(margin, verticalMargin, simX: !anchored, simY: true)
 
         // Fitting a centred popup near the right edge moves the body, not its attachment point.
         // Recompute the notch from the original anchor so it remains directly under the button.
-        if anchored do
+        if anchored and !button do
             .anchorPosition = Math.clamp(pt.x - .position.x, 0.0, .position.width)
 
         .resolveSubmenuDirections()

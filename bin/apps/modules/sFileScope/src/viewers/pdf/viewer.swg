@@ -118,6 +118,7 @@ private impl PdfViewer
         var pdfOptions: PdfTextSearchOptions
         pdfOptions.comparison = options.matchCase ? .Latin1 : .Latin1NoCase
         pdfOptions.wholeWord  = options.wholeWord
+        pdfOptions.regularExpression = options.regularExpression
         let matches = .pdfView.findTextMatches(text, pdfOptions)
         for match in matches do
             result.add({match.pageIndex, 0, match.byteOffset, match.byteLength})

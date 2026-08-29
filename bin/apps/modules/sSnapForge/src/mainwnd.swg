@@ -923,12 +923,11 @@ impl MainWnd
             .style.setFont(me.theme().res.fontDefaultFs)
             .sigPressed += func|main = me|(btn)
             {
-                var pos  = btn.surfaceRect()
                 var menu = MenuCtrl.createPopup(main)
                 menu.updateFlags(.HideShortcuts)
                 menu.addItem(ActionZoom.Zoom1)
                 menu.addItem(ActionZoom.ZoomFit)
-                discard menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true)
+                discard menu.doModal(cast(*IconButton) btn, autoDestroy: true)
             }
         }
 

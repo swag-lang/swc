@@ -88,6 +88,12 @@ func completeViewerSearch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     matches.clear()
     collectViewerTextMatches(Source, "cat", {matchCase: true, wholeWord: true}, 0, 0, 0, &matches)
     @assert(matches.count == 2 and matches[0].offset == 12 and matches[1].offset == 25)
+
+    matches.clear()
+    collectViewerTextMatches(Source, #raw "c.t(a)?", {regularExpression: true}, 0, 0, 0, &matches)
+    @assert(matches.count == 5 and matches[0].length == 3 and matches[1].length == 4)
+    @assert(viewerSearchPatternIsValid(#raw "c.t(a)?", {regularExpression: true}))
+    @assert(!viewerSearchPatternIsValid("(", {regularExpression: true}))
 }
 
 #test
@@ -926,16 +932,28 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(window.searchIndex == 0 and window.searchMatch == 0)
 
     window.searchWholeWordOption = true
-    window.searchWholeWord.setChecked(true)
     window.restartSearch()
     completeViewerSearch(&host, window)
     @assert(window.searchMatches.count == 3 and window.searchCountLabel.text() == "1/3")
 
     window.searchMatchCaseOption = true
-    window.searchMatchCase.setChecked(true)
     window.restartSearch()
     completeViewerSearch(&host, window)
     @assert(window.searchMatches.count == 2 and window.searchMatch == 12 and window.searchCountLabel.text() == "1/2")
+
+    window.searchRegexOption = true
+    window.searchMatchCaseOption = false
+    window.searchBox.setValidator(window.searchBox.validator)
+    window.searchBox.setText(#raw "c.t(a)?")
+    completeViewerSearch(&host, window)
+    @assert(window.searchBox.isValid() and window.searchMatches.count == 3)
+
+    window.searchBox.setText("(")
+    @assert(!window.searchBox.isValid() and window.searchTimer == null)
+    @assert(window.searchCountLabel.text() == "0/0" and window.searchCountLabel.toolTip == appStrings().ui_SearchInvalidRegularExpression)
+
+    window.searchRegexOption = false
+    window.searchBox.setValidator(window.searchBox.validator)
 
     window.searchBox.setText("absent")
     completeViewerSearch(&host, window)
@@ -1061,6 +1079,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(window.appearanceButton.parent == &host.surfaceWnd)
     @assert(window.searchGroup.parent == window.commandBar)
     @assert(window.searchBox.parent == window.searchGroup)
+    @assert(window.searchNavigation.parent == window.searchGroup)
     @assert(window.fullScreenButton.parent == window.commandBar)
     @assert(window.openDefaultButton.parent == window.commandBar and !window.openDefaultButton.isEnabled())
     @assert(window.fullScreenButton.flags.has(.Toggle) and window.fullScreenButton.checkIndicator == .Frame)
@@ -1137,14 +1156,16 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     @assert(window.searchGroup.isLocallyVisible() and window.searchBox.isVisible() and window.searchBox.isEnabled())
     @assert(window.searchPrevious.isVisible() and window.searchNext.isVisible())
-    @assert(window.searchMatchCase.isVisible() and window.searchWholeWord.isVisible())
-    @assert(window.searchGroup.children.count == 6)
-    @assert(window.searchGroup.children[0] == window.searchMatchCase)
-    @assert(window.searchGroup.children[1] == window.searchWholeWord)
-    @assert(window.searchGroup.children[2] == window.searchBox)
-    @assert(window.searchGroup.children[3] == window.searchPrevious)
-    @assert(window.searchGroup.children[4] == window.searchNext)
-    @assert(window.searchGroup.children[5] == window.searchCountLabel)
+    @assert(window.searchOptionsButton.isVisible() and window.searchOptionsButton.icon.sizeX == ViewerGlyphSize)
+    @assert(window.searchPrevious.icon.sizeX == ViewerGlyphSize and window.searchNext.icon.sizeX == ViewerGlyphSize)
+    @assert(window.searchGroup.children.count == 3)
+    @assert(window.searchGroup.children[0] == window.searchOptionsButton)
+    @assert(window.searchGroup.children[1] == window.searchBox)
+    @assert(window.searchGroup.children[2] == window.searchNavigation)
+    @assert(window.searchNavigation.children.count == 3)
+    @assert(window.searchNavigation.children[0] == window.searchPrevious)
+    @assert(window.searchNavigation.children[1] == window.searchNext)
+    @assert(window.searchNavigation.children[2] == window.searchCountLabel)
     @assert(window.searchCountLabel.textHorizontalAlignment == .Left)
     @assert(Math.abs(window.searchGroup.position.horzCenter() - window.commandBar.paddedClientRect().horzCenter()) < 0.01)
 
@@ -1156,7 +1177,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     @assert(!window.searchGroup.isLocallyVisible() and window.searchBox.isHidden())
     @assert(window.searchPrevious.isHidden() and window.searchNext.isHidden())
-    @assert(window.searchMatchCase.isHidden() and window.searchWholeWord.isHidden())
+    @assert(window.searchOptionsButton.isHidden())
     @assert(!window.searchBox.hasFocus())
 
     window.openFile(viewerFixturePath().toString())
@@ -1676,13 +1697,14 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.setFolderSameKind(true)
     window.searchMatchCaseOption = true
     window.searchWholeWordOption = true
+    window.searchRegexOption = true
     let state = saveViewerState(window)
     window.setFolderSameKind(false)
     window.searchMatchCaseOption = false
     window.searchWholeWordOption = false
+    window.searchRegexOption = false
     loadViewerState(window, cast(const [..] u8) state.toString())
-    @assert(window.folderSameKind and window.searchMatchCaseOption and window.searchWholeWordOption)
-    @assert(window.searchMatchCase.isChecked and window.searchWholeWord.isChecked)
+    @assert(window.folderSameKind and window.searchMatchCaseOption and window.searchWholeWordOption and window.searchRegexOption)
 }
 
 // Bare arrows never navigate files globally. The image viewer is the one document type that

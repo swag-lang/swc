@@ -554,9 +554,8 @@ internal impl BinaryViewer
 
     mtd showCommandMenu()
     {
-        let rect = .menuButton.surfaceRect()
         let menu = .createCommandMenu()
-        discard menu.doModal({rect.horzCenter(), rect.bottom()}, .AnchorTopCenter, autoDestroy: true)
+        discard menu.doModal(.menuButton, autoDestroy: true)
     }
 
     // Divides the visible width into the four lanes a row is read across.

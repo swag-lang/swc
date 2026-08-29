@@ -120,7 +120,7 @@ struct ThemeMetrics
         btnIcon_ArrowSize:     f32 = 8     // Size of the disclosure marker beside an icon-button action.
         btnIcon_MarginArrow:   f32 = 4     // Theme measurement used for btn icon margin arrow.
         btnIcon_SpacingIcon:   f32 = 4     // Theme measurement used for btn icon spacing icon.
-        btnIcon_SpacingArrowH: f32 = 8     // Theme measurement used for btn icon spacing arrow h.
+        btnIcon_SpacingArrowH: f32 = 6     // Air between an icon-button action and its disclosure marker.
         btnIcon_SpacingArrowV: f32 = 4     // Theme measurement used for btn icon spacing arrow v.
         btnIcon_SpacingTextH:  f32 = 8     // Theme measurement used for btn icon spacing text h.
         btnIcon_SpacingTextV:  f32 = 0     // Theme measurement used for btn icon spacing text v.

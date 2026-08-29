@@ -745,9 +745,8 @@ impl LibraryWnd
         .main.saveAppState()
     }
 
-    mtd showFolderMenu(btn: *Button)
+    mtd showFolderMenu(btn: *IconButton)
     {
-        var pos       = btn.surfaceRect()
         with let menu = MenuCtrl.createPopup(me, owner: me)
         {
             .addItem(appStrings().act_OpenLibraryFolder, "sSnapForge.library.root")
@@ -760,7 +759,7 @@ impl LibraryWnd
             .addItem(ActionLibTrash.Empty)
         }
 
-        let result = menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true)
+        let result = menu.doModal(btn, autoDestroy: true)
         if !result do
             return
         switch result!
@@ -797,7 +796,7 @@ impl LibraryWnd
         }
     }
 
-    mtd showFilterMenu(btn: *Button)
+    mtd showFilterMenu(btn: *IconButton)
     {
         let applications = .uniqueFilterValues(true)
         let tags         = .uniqueFilterValues(false)
@@ -805,7 +804,6 @@ impl LibraryWnd
         .menuValues.clear()
         .menuValues.reserve(2 * (applications.count + tags.count) + 2)
 
-        var pos       = btn.surfaceRect()
         with let menu = MenuCtrl.createPopup(me, owner: me)
         {
             .addItem(ActionLibFilter.Reset)
@@ -848,7 +846,7 @@ impl LibraryWnd
             .addItem(ActionLibFilter.UnLinkedImage)
         }
 
-        .applyDynamicFilter(menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true))
+        .applyDynamicFilter(menu.doModal(btn, autoDestroy: true))
     }
 
     mtd selectedCaptureFiles()->Array'String
@@ -1212,7 +1210,6 @@ impl LibraryWnd
             .setArrowPosition(.RightDownward)
             .sigPressed += func|res|(btn)
             {
-                var pos       = btn.surfaceRect()
                 with var menu = MenuCtrl.createPopup(res)
                 {
                     menu.updateFlags(.HideShortcuts)
@@ -1225,7 +1222,7 @@ impl LibraryWnd
                     .addItem(ActionLibView.LinkMarkers)
                 }
 
-                discard menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true)
+                discard menu.doModal(cast(*IconButton) btn, autoDestroy: true)
             }
         }
 
@@ -1239,7 +1236,6 @@ impl LibraryWnd
             .setArrowPosition(.RightDownward)
             .sigPressed += func|res|(btn)
             {
-                var pos       = btn.surfaceRect()
                 with var menu = MenuCtrl.createPopup(res)
                 {
                     menu.updateFlags(.HideShortcuts)
@@ -1255,7 +1251,7 @@ impl LibraryWnd
                     .addItem(ActionLibSort.Invert)
                 }
 
-                discard menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true)
+                discard menu.doModal(cast(*IconButton) btn, autoDestroy: true)
             }
         }
 
@@ -1269,7 +1265,7 @@ impl LibraryWnd
             .setArrowPosition(.RightDownward)
             .sigPressed += func|res|(btn)
             {
-                res.showFilterMenu(btn)
+                res.showFilterMenu(cast(*IconButton) btn)
             }
         }
 
@@ -1283,7 +1279,7 @@ impl LibraryWnd
             .setTextPosition(.Right)
             .setArrowPosition(.RightDownward)
             .toolTip    = appStrings().tip_LibraryFolders
-            .sigPressed += func|res|(btn) { res.showFolderMenu(btn) }
+            .sigPressed += func|res|(btn) { res.showFolderMenu(cast(*IconButton) btn) }
         }
 
         // Loading state stays with the commands it updates, before the flexible gap, so it

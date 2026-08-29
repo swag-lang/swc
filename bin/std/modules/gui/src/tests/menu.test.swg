@@ -310,6 +310,45 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     host.pump()
 }
 
+// An icon-button menu carries the button itself into the popup outline, with no detached notch.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 240)
+    defer host.shutdown()
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+
+    let button = IconButton.create(&host.root, host.theme.icon(.Options, 20), {24, 6, 48, 36}, flags: .CenterContent)
+    button.setArrowPosition(.RightDownward)
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    popup.addItem("Match case", Menu_Open, checked: true)
+    popup.addItem("Match whole words", Menu_New)
+    popup.addItem("Use regular expression", Menu_Quit)
+
+    var checked: bool
+    host.app.sigFrame += func|host = &host, popup, button, checked = &checked|(app)
+    {
+        discard app
+        if checked[] do
+            return
+        let anchor = button.surfaceRect()
+        @assert(popup.popupAnchorButton == button)
+        @assert(popup.popupBarItemSurfaceRect == anchor)
+        @assert(popup.getPopupBodyRect().y == popup.getPopupBarAnchorHeight() + popup.themeMetrics().menuPopup_ShadowSize)
+        @assert(popup.position.y + popup.getPopupBodyRect().y == anchor.bottom())
+        var image = host.render()
+        Pixel.Testing.assertImageGolden(&image, "menu.popup.icon-anchor")
+        @assert(host.dismissPopupMenu())
+        checked[] = true
+    }
+
+    discard popup.doModal(button, autoDestroy: true)
+    @assert(checked)
+    host.pump()
+}
+
 // An anchored menu that is taller than the room above its button keeps its shadow and content
 // inside the top edge instead of leaving the menu body glued beyond the window.
 #test
@@ -590,6 +629,9 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     @assert(sub.popupBarItemSurfaceRect.y == expectedItemY)
     @assert(sub.popupBarItemSurfaceRect.height == metrics.menuBar_Height)
     @assert(sub.position.y == Math.max(expectedItemY - metrics.menuPopup_ShadowSize, 0))
+
+    var image = host.render()
+    Pixel.Testing.assertImageGolden(&image, "menu.popup.text-anchor.tall")
 
     host.mouseUp({0, 0})
 }

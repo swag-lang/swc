@@ -8,7 +8,8 @@ struct PdfTextSearchOptions
     public
     {
         comparison = Utf8.ComparisonType.Latin1NoCase     // Text comparison, case-insensitive by default.
-        wholeWord: bool                                   // Whether word characters may touch either side of a match.
+        wholeWord:         bool                           // Whether word characters may touch either side of a match.
+        regularExpression: bool                           // Whether the query uses regular-expression syntax.
     }
 }
 
@@ -717,6 +718,7 @@ impl PdfView
     //
     // Pages are decoded as needed. The returned value owns stable page and UTF-8 text coordinates;
     // pass one of its entries to [[Gui.PdfView.revealTextMatch]] while this document remains open.
+    // An invalid regular expression returns an empty array.
     mtd findTextMatches(text: string, options: PdfTextSearchOptions = {})->Array'PdfTextMatch
     {
         var result: retval
@@ -745,6 +747,24 @@ impl PdfView
 
         func appendPage(result: *Array'PdfTextMatch, source, text: string, pageIndex: u64, options: PdfTextSearchOptions)
         {
+            if options.regularExpression
+            {
+                let ignoreCase = options.comparison == .Latin1NoCase
+                var expression = catch Parser.RegExp.create(text, ignoreCase) as expressionError
+                if expressionError != null do
+                    return
+                let sourceData = @dataof(source)
+                for value in expression.grepAll(source)
+                {
+                    if !@countof(value) do
+                        continue
+                    let found = cast(u64) cast(s64) (@dataof(value) - sourceData)
+                    if !options.wholeWord or isWholeWord(source, found, @countof(value)) do
+                        result.add({pageIndex, found, @countof(value)})
+                }
+                return
+            }
+
             var from = 0'u64
             while from < @countof(source)
             {

@@ -8,6 +8,10 @@ using Core
 // their deepest kept ancestor and the document stays readable.
 const HtmlMaxElementDepth = 256'u64
 
+// What ends a run of text: the markup that follows it, or the reference that makes it need
+// decoding. Both are looked for in the same pass.
+const HtmlTextStops: [2] u8 = ['<'u8, '&'u8]
+
 // One element the parser has opened and not yet closed.
 //
 // The tag travels with the index because the stack is walked several times per source tag — for
@@ -30,10 +34,11 @@ public struct HtmlOpenElement
 #[Swag.NoDoc]
 public struct HtmlPendingAttribute
 {
-    name:     HtmlRange
-    value:    HtmlRange
-    hasValue: bool
-    hasUpper: bool
+    name:         HtmlRange
+    value:        HtmlRange
+    hasValue:     bool
+    hasUpper:     bool
+    hasReference: bool
 }
 
 // Where a start tag ends, and what its name is.
@@ -367,7 +372,7 @@ impl HtmlParser
     //
     // Text arriving in several pieces joins the node the previous piece produced, so a document
     // read in chunks yields exactly the tree the whole source yields.
-    mtd emitText(text: string, offset: u64)
+    mtd emitText(text: string, hasReference: bool, offset: u64)
     {
         if !@countof(text) do
             return
@@ -396,7 +401,7 @@ impl HtmlParser
         var anchor = .fosterAnchor()
         if anchor != HtmlNoNode and !@countof(Latin1.trim(content)) and !.document.precededByText(anchor) do
             anchor = HtmlNoNode
-        let decoded = .internText(content, offset + eat)
+        let decoded = .internText(content, hasReference)
         if anchor != HtmlNoNode
         {
             .document.insertTextBefore(anchor, decoded, offset + eat)
@@ -511,9 +516,22 @@ impl HtmlParser
             if quote == '"' or quote == '\''
             {
                 let valueStart = index + 1
-                let closing    = Utf8.indexOf(source, cast(rune) quote, valueStart)
-                if closing == Swag.U64.Max do
-                    return result
+                var stops: [2] u8 = [quote, '&'u8]
+                var closing       = valueStart
+                while true
+                {
+                    let next = Utf8.indexOfAny(source, @mkslice(&stops[0], 2), closing)
+                    if next == Swag.U64.Max do
+                        return result
+                    if source[next] == quote
+                    {
+                        closing = next
+                        break
+                    }
+
+                    attribute.hasReference = true
+                    closing                = next + 1
+                }
 
                 attribute.value = {cast(u32) valueStart, cast(u32) (closing - valueStart)}
                 index           = closing + 1
@@ -521,8 +539,13 @@ impl HtmlParser
             else
             {
                 let valueStart = index
-                while index < count and !Latin1.isSpace(source[index]) and source[index] != '>' do
+                while index < count and !Latin1.isSpace(source[index]) and source[index] != '>'
+                {
+                    if source[index] == '&' do
+                        attribute.hasReference = true
                     index += 1
+                }
+
                 attribute.value = {cast(u32) valueStart, cast(u32) (index - valueStart)}
             }
 
@@ -544,7 +567,7 @@ impl HtmlParser
             if attribute.hasValue
             {
                 let text = source[attribute.value.start until attribute.value.start + attribute.value.count]
-                value = .internText(text, 0, true)
+                value = .internText(text, attribute.hasReference, true)
             }
 
             .document.addAttribute(element, name, value)
@@ -834,10 +857,9 @@ impl HtmlParser
     // This is where a page's text stops being copied: the scan that looked for the `<` ending the
     // run also looked for the `&` that would make it need rewriting, so an entity-free run — which
     // is nearly all of them — becomes two numbers and no bytes at all.
-    mtd internText(text: string, offset: u64, inAttribute = false)->HtmlRange
+    mtd internText(text: string, hasReference: bool, inAttribute = false)->HtmlRange
     {
-        discard offset
-        if Utf8.indexOf(text, '&'rune) == Swag.U64.Max do
+        if !hasReference do
             return HtmlDocument.sourceRange(.sourceStart(text), @countof(text))
         return .document.internDecoded(text, inAttribute)
     }
@@ -904,22 +926,41 @@ impl HtmlParser
                 continue
             }
 
-            var end = Utf8.indexOf(source, '<'rune, index)
-            if end == Swag.U64.Max do
-                end = @countof(source)
+            // The run ends at the next `<`, and the same pass reports the `&` that would make it
+            // need decoding: a run of a page's text is then read once, not twice.
+            var end          = index
+            var hasReference = false
+            while true
+            {
+                let next = Utf8.indexOfAny(source, @mkslice(&HtmlTextStops[0], 2), end)
+                if next == Swag.U64.Max
+                {
+                    end = @countof(source)
+                    break
+                }
+
+                if source[next] == '<'
+                {
+                    end = next
+                    break
+                }
+
+                hasReference = true
+                end          = next + 1
+            }
 
             var text = source[index until end]
             if !final and end == @countof(source)
             {
                 let safe = HtmlParser.safeTextEnd(text)
                 text = text[0 until safe]
-                .emitText(text, index)
+                .emitText(text, hasReference, index)
                 index      += safe
                 .parseIndex = index
                 break
             }
 
-            .emitText(text, index)
+            .emitText(text, hasReference, index)
             index       = end
             .parseIndex = index
         }

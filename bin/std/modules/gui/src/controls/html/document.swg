@@ -241,114 +241,162 @@ public struct HtmlDocument
 impl HtmlDocument
 {
     // Resolves an element name to its interned tag.
+    //
+    // The names are grouped by length first, because a `switch` over strings is lowered to one
+    // comparison call per case: a name then answers against the handful of tags that could
+    // possibly match it rather than against all of them. See B-156.
     func tagFromName(name: string)->HtmlTag
     {
-        switch name
+        switch @countof(name)
         {
-        case "a":          return .A
-        case "abbr":       return .Abbr
-        case "address":    return .Address
-        case "area":       return .Area
-        case "article":    return .Article
-        case "aside":      return .Aside
-        case "b":          return .B
-        case "base":       return .Base
-        case "blockquote": return .Blockquote
-        case "body":       return .Body
-        case "br":         return .Br
-        case "button":     return .Button
-        case "canvas":     return .Canvas
-        case "caption":    return .Caption
-        case "cite":       return .Cite
-        case "code":       return .Code
-        case "col":        return .Col
-        case "colgroup":   return .ColGroup
-        case "dd":         return .Dd
-        case "del":        return .Del
-        case "details":    return .Details
-        case "dfn":        return .Dfn
-        case "div":        return .Div
-        case "dl":         return .Dl
-        case "dt":         return .Dt
-        case "em":         return .Em
-        case "embed":      return .Embed
-        case "fieldset":   return .FieldSet
-        case "figcaption": return .FigCaption
-        case "figure":     return .Figure
-        case "footer":     return .Footer
-        case "form":       return .Form
-        case "h1":         return .H1
-        case "h2":         return .H2
-        case "h3":         return .H3
-        case "h4":         return .H4
-        case "h5":         return .H5
-        case "h6":         return .H6
-        case "head":       return .Head
-        case "header":     return .Header
-        case "hgroup":     return .HGroup
-        case "hr":         return .Hr
-        case "html":       return .Html
-        case "i":          return .I
-        case "iframe":     return .IFrame
-        case "img":        return .Img
-        case "input":      return .Input
-        case "ins":        return .Ins
-        case "kbd":        return .Kbd
-        case "label":      return .Label
-        case "legend":     return .Legend
-        case "li":         return .Li
-        case "link":       return .Link
-        case "main":       return .Main
-        case "mark":       return .Mark
-        case "menu":       return .Menu
-        case "meta":       return .Meta
-        case "nav":        return .Nav
-        case "noscript":   return .NoScript
-        case "object":     return .Object
-        case "ol":         return .Ol
-        case "optgroup":   return .OptGroup
-        case "option":     return .Option
-        case "output":     return .Output
-        case "p":          return .P
-        case "param":      return .Param
-        case "picture":    return .Picture
-        case "pre":        return .Pre
-        case "progress":   return .Progress
-        case "q":          return .Q
-        case "rp":         return .Rp
-        case "rt":         return .Rt
-        case "ruby":       return .Ruby
-        case "s":          return .S
-        case "samp":       return .Samp
-        case "script":     return .Script
-        case "section":    return .Section
-        case "select":     return .Select
-        case "small":      return .Small
-        case "source":     return .Source
-        case "span":       return .Span
-        case "strong":     return .Strong
-        case "style":      return .Style
-        case "sub":        return .Sub
-        case "summary":    return .Summary
-        case "sup":        return .Sup
-        case "svg":        return .Svg
-        case "table":      return .Table
-        case "tbody":      return .TBody
-        case "td":         return .Td
-        case "template":   return .Template
-        case "textarea":   return .TextArea
-        case "tfoot":      return .TFoot
-        case "th":         return .Th
-        case "thead":      return .THead
-        case "time":       return .Time
-        case "title":      return .Title
-        case "tr":         return .Tr
-        case "track":      return .Track
-        case "u":          return .U
-        case "ul":         return .Ul
-        case "var":        return .Var
-        case "video":      return .Video
-        case "wbr":        return .Wbr
+        case 1:
+            switch name
+            {
+            case "a": return .A
+            case "b": return .B
+            case "i": return .I
+            case "p": return .P
+            case "q": return .Q
+            case "s": return .S
+            case "u": return .U
+            }
+
+        case 2:
+            switch name
+            {
+            case "br": return .Br
+            case "dd": return .Dd
+            case "dl": return .Dl
+            case "dt": return .Dt
+            case "em": return .Em
+            case "h1": return .H1
+            case "h2": return .H2
+            case "h3": return .H3
+            case "h4": return .H4
+            case "h5": return .H5
+            case "h6": return .H6
+            case "hr": return .Hr
+            case "li": return .Li
+            case "ol": return .Ol
+            case "rp": return .Rp
+            case "rt": return .Rt
+            case "td": return .Td
+            case "th": return .Th
+            case "tr": return .Tr
+            case "ul": return .Ul
+            }
+
+        case 3:
+            switch name
+            {
+            case "col": return .Col
+            case "del": return .Del
+            case "dfn": return .Dfn
+            case "div": return .Div
+            case "img": return .Img
+            case "ins": return .Ins
+            case "kbd": return .Kbd
+            case "nav": return .Nav
+            case "pre": return .Pre
+            case "sub": return .Sub
+            case "sup": return .Sup
+            case "svg": return .Svg
+            case "var": return .Var
+            case "wbr": return .Wbr
+            }
+
+        case 4:
+            switch name
+            {
+            case "abbr": return .Abbr
+            case "area": return .Area
+            case "base": return .Base
+            case "body": return .Body
+            case "cite": return .Cite
+            case "code": return .Code
+            case "form": return .Form
+            case "head": return .Head
+            case "html": return .Html
+            case "link": return .Link
+            case "main": return .Main
+            case "mark": return .Mark
+            case "menu": return .Menu
+            case "meta": return .Meta
+            case "ruby": return .Ruby
+            case "samp": return .Samp
+            case "span": return .Span
+            case "time": return .Time
+            }
+
+        case 5:
+            switch name
+            {
+            case "aside": return .Aside
+            case "embed": return .Embed
+            case "input": return .Input
+            case "label": return .Label
+            case "param": return .Param
+            case "small": return .Small
+            case "style": return .Style
+            case "table": return .Table
+            case "tbody": return .TBody
+            case "tfoot": return .TFoot
+            case "thead": return .THead
+            case "title": return .Title
+            case "track": return .Track
+            case "video": return .Video
+            }
+
+        case 6:
+            switch name
+            {
+            case "button": return .Button
+            case "canvas": return .Canvas
+            case "figure": return .Figure
+            case "footer": return .Footer
+            case "header": return .Header
+            case "hgroup": return .HGroup
+            case "iframe": return .IFrame
+            case "legend": return .Legend
+            case "object": return .Object
+            case "option": return .Option
+            case "output": return .Output
+            case "script": return .Script
+            case "select": return .Select
+            case "source": return .Source
+            case "strong": return .Strong
+            }
+
+        case 7:
+            switch name
+            {
+            case "address": return .Address
+            case "article": return .Article
+            case "caption": return .Caption
+            case "details": return .Details
+            case "picture": return .Picture
+            case "section": return .Section
+            case "summary": return .Summary
+            }
+
+        case 8:
+            switch name
+            {
+            case "colgroup": return .ColGroup
+            case "fieldset": return .FieldSet
+            case "noscript": return .NoScript
+            case "optgroup": return .OptGroup
+            case "progress": return .Progress
+            case "template": return .Template
+            case "textarea": return .TextArea
+            }
+
+        case 10:
+            switch name
+            {
+            case "blockquote": return .Blockquote
+            case "figcaption": return .FigCaption
+            }
         }
 
         return .Unknown
@@ -801,7 +849,8 @@ impl HtmlDocument
         let node = &.nodes[element]
         Debug.assert(node.attributes.start + node.attributes.count == cast(u32) .attributePool.count, "an element's attributes must stay contiguous")
 
-        if .text(name) == "class"
+        // The length rejects every other attribute before a byte of it is read.
+        if name.count == @countof("class") and .text(name) == "class"
         {
             Debug.assert(node.classes.start + node.classes.count == cast(u32) .classPool.count, "an element's classes must stay contiguous")
 

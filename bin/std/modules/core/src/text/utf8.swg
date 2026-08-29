@@ -126,12 +126,45 @@ private func indexOfByte(src: const [*] u8, length: u64, what: u8)->u64
     return Swag.U64.Max
 }
 
+// Searches for either of two bytes, which is what a scanner that has to notice one thing while
+// looking for another asks for.
+private func indexOfEitherByte(src: const [*] u8, length: u64, first, second: u8)->u64
+{
+    const VectorSize = #sizeof(Math.Simd.U8x16)
+
+    var offset = 0'u64
+    if length >= VectorSize
+    {
+        let needle0 = Math.Simd.splat(first)
+        let needle1 = Math.Simd.splat(second)
+        while length - offset >= VectorSize
+        {
+            let values = Math.Simd.load(src + offset)
+            let mask   = Math.Simd.bitmask(values == needle0) | Math.Simd.bitmask(values == needle1)
+            if mask do
+                return offset + Math.trailingZeros(mask)
+            offset += VectorSize
+        }
+    }
+
+    while offset < length
+    {
+        if src[offset] == first or src[offset] == second do
+            return offset
+        offset += 1
+    }
+
+    return Swag.U64.Max
+}
+
 private func indexOfAnyAscii(src: const [*] u8, length: u64, what: const [..] u8)->u64
 {
     const VectorSize = #sizeof(Math.Simd.U8x16)
     let count = @countof(what)
     if count == 1 do
         return indexOfByte(src, length, what[0])
+    if count == 2 do
+        return indexOfEitherByte(src, length, what[0], what[1])
 
     let needle0 = Math.Simd.splat(what[0])
     let needle1 = Math.Simd.splat(what[1])

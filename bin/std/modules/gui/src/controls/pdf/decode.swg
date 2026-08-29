@@ -84,7 +84,7 @@ private func transformPoint(state: const *GraphicsState, page: const *Page, x, y
     return {point.x, page.height - point.y}
 }
 
-private func operandNumber(parser: const *PdfParser, operands: Array'u32, index: u64)->f32
+private func operandNumber(parser: *PdfParser, operands: Array'u32, index: u64)->f32
 {
     if index >= @countof(operands) do
         return 0
@@ -92,14 +92,14 @@ private func operandNumber(parser: const *PdfParser, operands: Array'u32, index:
     return value < 0 ? -cast(f32) (-value) : cast(f32) value
 }
 
-private func nodeNumber(parser: const *PdfParser, nodeId: u32)->f32
+private func nodeNumber(parser: *PdfParser, nodeId: u32)->f32
 {
     let value = parser.number(nodeId)
     return value < 0 ? -cast(f32) (-value) : cast(f32) value
 }
 
 // Collects the trailing numeric operands of a color operator.
-private func colorComponents(parser: const *PdfParser, operands: Array'u32, target: [..] f32)->u32
+private func colorComponents(parser: *PdfParser, operands: Array'u32, target: [..] f32)->u32
 {
     var count = 0'u64
     while count < @countof(operands) and count < @countof(target)
@@ -172,7 +172,7 @@ private func appendPathItem(page: *Page, path: *LinePathList, state: const *Grap
     @init(path, 1)
 }
 
-private func fontIndex(parser: const *PdfParser, page: const *Page, resourcesId: u32, name: string)->u32
+private func fontIndex(parser: *PdfParser, page: const *Page, resourcesId: u32, name: string)->u32
 {
     let fonts = parser.dict(resourcesId, "Font")
     let raw   = parser.dictRaw(fonts, name)
@@ -205,7 +205,7 @@ private func moveTextLine(state: *GraphicsState, x, y: f32)
     state.textMatrix = moved
 }
 
-private func appendText(parser: const *PdfParser, page: *Page, resourcesId: u32, state: *GraphicsState, bytes: string)
+private func appendText(parser: *PdfParser, page: *Page, resourcesId: u32, state: *GraphicsState, bytes: string)
 {
     let index = fontIndex(parser, page, resourcesId, state.fontName.toString())
     let font  = index < page.fonts.count ? &page.fonts[index] : null
@@ -416,7 +416,7 @@ private func findInlineImageEnd(bytes: const [..] u8, start: u64)->u64
 }
 
 // Reads the parts of an ExtGState that change how later operators paint.
-private func applyExtGState(parser: const *PdfParser, page: const *Page, resourcesId: u32, state: *GraphicsState, name: string)
+private func applyExtGState(parser: *PdfParser, page: const *Page, resourcesId: u32, state: *GraphicsState, name: string)
 {
     let states = parser.dict(resourcesId, "ExtGState")
     let entry  = parser.dict(states, name)
@@ -933,7 +933,7 @@ private func decodeFonts(parser: *PdfParser, page: *Page, resourcesId: u32) fail
 }
 
 // Returns a page box array as a normalized rectangle in PDF coordinates.
-private func boxRectangle(parser: const *PdfParser, boxId: u32)->Math.Rectangle
+private func boxRectangle(parser: *PdfParser, boxId: u32)->Math.Rectangle
 {
     let values = parser.nodes[boxId].values
     let x0     = nodeNumber(parser, values[0])
@@ -1044,7 +1044,7 @@ private func collectPages(parser: *PdfParser, pages: *Array'PageSource, nodeId, 
         try collectPages(parser, pages, child, nextResources, nextMediaBox, nextCropBox, nextRotate, depth + 1)
 }
 
-private func metadataString(parser: const *PdfParser, dictId: u32, key: string)->String
+private func metadataString(parser: *PdfParser, dictId: u32, key: string)->String
 {
     let raw = parser.stringValue(parser.dict(dictId, key))
     if @countof(raw) >= 2 and raw[0] == 0xFE and raw[1] == 0xFF
@@ -1057,20 +1057,57 @@ private func metadataString(parser: const *PdfParser, dictId: u32, key: string)-
     return #move result
 }
 
+// Returns the catalog a trailer named, once the whole chain has been read.
+private func resolvedCatalog(parser: *PdfParser, rootRaw: u32)->u32
+{
+    let catalog = parser.resolve(rootRaw)
+    if catalog == InvalidNode or parser.name(parser.dict(catalog, "Type")) != "Catalog" do
+        return InvalidNode
+    return catalog
+}
+
+// Returns the information dictionary a trailer named.
+private func resolvedInfo(parser: *PdfParser, infoRaw: u32)->u32
+{
+    let info = parser.resolve(infoRaw)
+    if info == InvalidNode or parser.nodes[info].kind != .Dictionary do
+        return InvalidNode
+    return info
+}
+
 internal func indexDocument(parser: *PdfParser, metadata: *Metadata, pages: *Array'PageSource) fail
 {
-    try parser.scanObjects()
+    try parser.locateHeader()
 
-    // The trailer names the catalog and the metadata; scanning for them is the fallback for a
+    // The file's own cross-reference chain says where every object is, so opening costs the
+    // chain and the page tree rather than the whole file. A chain that is missing or damaged
+    // falls back to the scan, which is the only thing that can read such a file at all.
+    if !parser.readXrefChain() do
+        try parser.scanObjects()
+
+    // The trailer names the catalog and the metadata; searching for them is the fallback for a
     // file whose trailer is missing or damaged, and it is also where a security handler with
     // no readable trailer is noticed.
-    var catalog = parser.trailerRoot
-    var info    = parser.trailerInfo
+    var catalog = resolvedCatalog(parser, parser.trailerRoot)
+    var info    = resolvedInfo(parser, parser.trailerInfo)
     if catalog == InvalidNode or info == InvalidNode
     {
+        // The search needs every object, which is exactly what the scan produces.
+        parser.ensureScanned()
+        if catalog == InvalidNode do
+            catalog = resolvedCatalog(parser, parser.trailerRoot)
+        if info == InvalidNode do
+            info = resolvedInfo(parser, parser.trailerInfo)
+
+        var scanned: Array'u32
         for objectNumber, nodeId in parser.objects
         {
             discard objectNumber
+            scanned.add(nodeId)
+        }
+
+        for nodeId in scanned
+        {
             let id = parser.resolve(nodeId)
             if id == InvalidNode or parser.nodes[id].kind != .Dictionary do
                 continue

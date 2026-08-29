@@ -318,3 +318,116 @@ private func sampleDocument()->Document
     @assert(zoomed.width == 200 and zoomed.height == 200)
     @assert(zoomed.pixelColor(100, 100).g == 255)
 }
+
+// Writes `bytes` to a temporary file and returns its path.
+private func writeTemporaryPdf(tag: string, bytes: const [..] u8)->String fail
+{
+    let directory = Env.getSpecialDirectory(.Temp)
+    var result: retval = Path.combine(directory.toString(), Format.toString("gui_pdf_%_%.pdf", tag, Guid64.random()).toString())
+    discard try File.writeAllBytes(result.toString(), bytes)
+    return result
+}
+
+// Builds a one-page document whose text says `word`, followed by an incremental update that
+// rewrites the content stream to say `updated`.
+//
+// The two revisions are written the way a writer appends one: the update carries its own
+// cross-reference section for the object it changed and points back at the section it
+// supersedes. Offsets and lengths are computed rather than spelled out, so the file stays
+// valid when the text in it changes.
+private func buildIncrementalPdf(word, updated: string)->Array'u8
+{
+    var result: retval
+    var offsets: [6] u64
+
+    func append(bytes: *Array'u8, text: string)
+    {
+        bytes.add(cast(const [..] u8) text)
+    }
+
+    func appendObject(bytes: *Array'u8, offsets: [..] u64, number: u64, body: string)
+    {
+        offsets[number] = bytes.count
+        append(bytes, Format.toString("% 0 obj\n", number).toString())
+        append(bytes, body)
+        append(bytes, "\nendobj\n")
+    }
+
+    func contentObject(text: string)->String
+    {
+        let stream = Format.toString("BT /F1 12 Tf 20 40 Td (%) Tj ET\n", text)
+        var result: retval = Format.toString("<< /Length % >>\nstream\n", @countof(stream.toString())).toString()
+        result += stream.toString()
+        result += "endstream"
+        return result
+    }
+
+    append(&result, "%PDF-1.4\n")
+    appendObject(&result, offsets, 1, "<< /Type /Catalog /Pages 2 0 R >>")
+    appendObject(&result, offsets, 2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>")
+    appendObject(&result, offsets, 3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>")
+    appendObject(&result, offsets, 4, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+    appendObject(&result, offsets, 5, contentObject(word).toString())
+
+    let firstXref = result.count
+    append(&result, "xref\n0 6\n0000000000 65535 f \n")
+    for number in 1 to 5 do
+        append(&result, Format.toString("%{010} 00000 n \n", offsets[number]).toString())
+    append(&result, Format.toString("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n%\n%%EOF\n", firstXref).toString())
+
+    // The update: object five again, then a section naming only it.
+    appendObject(&result, offsets, 5, contentObject(updated).toString())
+    let secondXref = result.count
+    append(&result, "xref\n5 1\n")
+    append(&result, Format.toString("%{010} 00000 n \n", offsets[5]).toString())
+    append(&result, Format.toString("trailer\n<< /Size 6 /Root 1 0 R /Prev % >>\nstartxref\n%\n%%EOF\n", firstXref, secondXref).toString())
+    return result
+}
+
+// A file whose cross-reference chain cannot be followed still opens.
+//
+// The index is the primary path and the scan is the repair path, so blunting the one has to
+// fall through to the other rather than cost the document.
+#test
+{
+    var bytes = expect File.readAllBytes(pdfFixturePath("llvm-polly-passes-only.pdf").toString())
+
+    // Blunt the pointer the file ends with, leaving every object where it was.
+    var found = false
+    for index in bytes.count - 9
+    {
+        if bytes[index] == 's' and bytes[index + 1] == 't' and bytes[index + 2] == 'a' and bytes[index + 3] == 'r' and bytes[index + 4] == 't' and bytes[index + 5] == 'x'
+        {
+            for k in 9 do
+                bytes[index + k] = ' '
+            found = true
+        }
+    }
+
+    @assert(found)
+
+    let path = expect writeTemporaryPdf("noxref", bytes.toSlice())
+    defer discard catch File.delete(path.toString())
+
+    var reader = expect Reader.open(path.toString())
+    @assert(reader.pageCount() == 1)
+    var page = expect reader.loadPage(0)
+    @assert(page.items.count != 0)
+}
+
+// An incremental update wins over the revision it replaces.
+//
+// Resolving by file order keeps the last definition it meets, which is right here only by
+// accident. What decides is the trailer chain, and this is the file where the two answers can
+// differ at all.
+#test
+{
+    let bytes = buildIncrementalPdf("first", "second")
+    let path = expect writeTemporaryPdf("update", bytes.toSlice())
+    defer discard catch File.delete(path.toString())
+
+    var reader = expect Reader.open(path.toString())
+    @assert(reader.pageCount() == 1)
+    var page = expect reader.loadPage(0)
+    @assert(pageText(&page) == "second")
+}

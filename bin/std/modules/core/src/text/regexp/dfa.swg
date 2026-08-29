@@ -378,6 +378,8 @@ impl Dfa
     // The state a forward search starts in, at one offset of the subject.
     mtd startState(program: const *Program, hay: const [..] u8, at: u64, anchored: bool)->u32
     {
+        // Every search begins here, so the answer is a table read and the state is built only
+        // the first time each look-behind context is seen.
         var flags = FlagIsStart
         if at == 0 do
             flags |= FlagFromStart
@@ -390,11 +392,17 @@ impl Dfa
                 flags |= FlagFromNewline
         }
 
-        let index  = .startCacheIndex(flags, anchored)
+        let index  = cast(u64) ((flags >> 1) & 0x0F) | (anchored ? 16'u64 : 0'u64)
         let cached = .startCache[index]
         if cached != UnknownState do
             return cached
 
+        return .createStartState(program, flags, index, anchored)
+    }
+
+    // Builds one start state, the first time its look-behind context is met.
+    mtd createStartState(program: const *Program, flags: u32, index: u64, anchored: bool)->u32
+    {
         .roots.clear()
         .roots.add(anchored ? program.start : program.startUnanchored)
 
@@ -419,25 +427,12 @@ impl Dfa
                 flags |= FlagFromNewline
         }
 
-        let index  = .startCacheIndex(flags, true)
+        let index  = cast(u64) ((flags >> 1) & 0x0F) | 16'u64
         let cached = .startCache[index]
         if cached != UnknownState do
             return cached
 
-        .roots.clear()
-        .roots.add(program.start)
-
-        let stateId = .intern(.roots.toSlice(), flags)
-        if stateId != QuitState do
-            .startCache[index] = stateId
-        return stateId
-    }
-
-    // Where a start state lives in the small cache: its look-behind context, and whether it is
-    // the anchored entry.
-    mtd const startCacheIndex(flags: u32, anchored: bool)->u64
-    {
-        return cast(u64) ((flags >> 1) & 0x0F) | (anchored ? 16'u64 : 0'u64)
+        return .createStartState(program, flags, index, true)
     }
 
     //
@@ -466,12 +461,9 @@ impl Dfa
             return result
         }
 
-        // The three tables the loop reads are taken as raw pointers: this is the loop that
-        // sees every byte of the subject, and a bounds-checked container access per table
-        // costs more than the transition itself. Any step that can grow a table refreshes them.
         // The loop below sees every byte of the subject, so everything it needs is read once
-        // into a local: the tables as raw pointers, and the two settings it tests. Any step
-        // that can grow a table refreshes the pointers.
+        // into a local: the tables as raw pointers, and the two settings it tests. Everything
+        // that happens rarely is a call, to keep this function — and its stack frame — small.
         let usePrefilter = !anchored and prefilter.isEnabled()
         let classes      = cast(const [*] u8) &program.byteClass[0]
         let data         = @dataof(hay)
@@ -489,12 +481,11 @@ impl Dfa
                 return result
             }
 
-            let symbol = cast(u64) classes[byte]
-            let slot   = cast(u64) (stateId & StateIndexMask) + symbol
-            var next   = transitions[slot]
+            let slot = cast(u64) (stateId & StateIndexMask) + cast(u64) classes[byte]
+            var next = transitions[slot]
             if next == UnknownState
             {
-                next = .computeTransition(program, stateId, symbol)
+                next = .computeTransition(program, stateId, cast(u64) classes[byte])
                 if next == QuitState
                 {
                     result.quit = true
@@ -516,18 +507,18 @@ impl Dfa
                 // the next offset a match could begin at.
                 if usePrefilter and lastMatch == NoOffset and (next & TagStart) != 0
                 {
-                    let candidate = prefilter.find(hay, pos)
-                    if candidate >= limit do
-                        return forwardResult(lastMatch)
-
-                    pos     = candidate
-                    stateId = .startState(program, hay, pos, false)
-                    if stateId == QuitState
+                    let jump = .resync(program, prefilter, hay, pos, limit)
+                    if jump.quit
                     {
                         result.quit = true
                         return result
                     }
 
+                    if !jump.found do
+                        return forwardResult(lastMatch)
+
+                    pos         = jump.at
+                    stateId     = jump.state
                     transitions = .trans.buffer!
                     continue
                 }
@@ -549,6 +540,28 @@ impl Dfa
         if (last & TagMatch) != 0 do
             lastMatch = limit
         return forwardResult(lastMatch)
+    }
+
+    // Skips to the next offset a match could begin at, and re-enters the automaton there.
+    mtd resync(program: const *Program, prefilter: const *Prefilter, hay: const [..] u8, pos, limit: u64)->{ found: bool, quit: bool, at: u64, state: u32 }
+    {
+        var result: retval
+
+        let candidate = prefilter.find(hay, pos)
+        if candidate >= limit do
+            return result
+
+        let state = .startState(program, hay, candidate, false)
+        if state == QuitState
+        {
+            result.quit = true
+            return result
+        }
+
+        result.found = true
+        result.at    = candidate
+        result.state = state
+        return result
     }
 
     // Finds where the match that ends at 'end' starts, reading the subject backwards.

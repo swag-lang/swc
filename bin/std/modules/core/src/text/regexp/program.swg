@@ -355,6 +355,98 @@ impl Program
         return result
     }
 
+    // Whether every match is a fixed sequence of byte sets, and what those sets are.
+    //
+    // `(?i)sherlock` is one: eight offsets, each accepting one letter in either case, and
+    // nothing else. So is `\d{4}-\d{2}-\d{2}`. A pattern shaped like that needs no automaton
+    // at all — checking the bytes against the sets decides a match — which is what turns a scan
+    // that stops fifty thousand times into a scan that answers fifty thousand times.
+    //
+    // The shape is recognized on the compiled program: at every offset the byte reads must all
+    // continue at the same place, so that what one offset accepts never constrains another.
+    // `ab|cd` fails that test, which is why it is not enough to collect the sets.
+    mtd const fixedSetSequence(sets: *Array'ByteSet, maxLength: u32)->bool
+    {
+        var roots: Array'u32
+        roots.add(.start)
+
+        var seen: Array'bool
+        seen.resize(.insts.count)
+
+        for var depth = 0'u32; depth <= maxLength; depth += 1
+        {
+            var reachable: Array'u32
+            var reachesMatch = false
+            seen.fill(false)
+
+            if !.closeOverKeepingMatch(roots.toSlice(), &reachable, &seen, &reachesMatch) do
+                return false
+
+            // The end of the chain: nothing left to read, and a match is what is left.
+            if reachesMatch do
+                return reachable.isEmpty() and depth > 0
+
+            if reachable.isEmpty() or depth == maxLength do
+                return false
+
+            // Every byte read here has to continue at the same place, or one offset would
+            // depend on what another accepted.
+            let continuation = .insts[reachable[0]].next
+            var set: ByteSet
+            for pc in reachable
+            {
+                if .insts[pc].next != continuation do
+                    return false
+                for var b = cast(u32) .insts[pc].lo; b <= cast(u32) .insts[pc].hi; b += 1 do
+                    set.add(cast(u8) b)
+            }
+
+            sets.add(set)
+            roots.clear()
+            roots.add(continuation)
+        }
+
+        return false
+    }
+
+    // The same walk as 'closeOver', but a match is reported rather than refused.
+    mtd const closeOverKeepingMatch(roots: const [..] u32, out: *Array'u32, seen: *Array'bool, reachesMatch: *bool)->bool
+    {
+        var stack: Array'u32
+        stack.add(roots)
+
+        while !stack.isEmpty()
+        {
+            let pc = stack.popBack()
+            if seen[pc] do
+                continue
+            seen[pc] = true
+
+            switch .insts[pc].kind
+            {
+            case .Split:
+                stack.add(.insts[pc].next)
+                stack.add(.insts[pc].alt)
+
+            case .Save:
+                stack.add(.insts[pc].next)
+
+            case .ByteRange:
+                out.add(pc)
+
+            case .Match:
+                reachesMatch[] = true
+
+            default:
+
+                // An assertion or a backreference: the shape is not a plain chain of bytes.
+                return false
+            }
+        }
+
+        return true
+    }
+
     // What every match must hold at each of its first offsets.
     //
     // Depth zero is the set of bytes a match can begin with, depth one what must follow it, and

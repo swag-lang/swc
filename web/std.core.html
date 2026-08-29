@@ -95,7 +95,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Types</span><span class="toc-count">191</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">192</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Core_CommandLine_FieldResult">CommandLine.FieldResult</a></li>
@@ -221,6 +221,7 @@
 <li><a href="#Core_Hash_Md5_Digest">Md5.Digest</a></li>
 <li><a href="#Core_Noise_FastNoise">Noise.FastNoise</a></li>
 <li><a href="#Core_Parser_RegExp">Parser.RegExp</a></li>
+<li><a href="#Core_Parser_Span">Parser.Span</a></li>
 <li><a href="#Core_Random_ComplementaryMultiplyWithCarry4096">Random.ComplementaryMultiplyWithCarry4096</a></li>
 <li><a href="#Core_Random_Generator">Random.Generator</a></li>
 <li><a href="#Core_Random_MersenneTwister64">Random.MersenneTwister64</a></li>
@@ -443,7 +444,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1677</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1683</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -1514,10 +1515,14 @@
 <li><a href="#Core_Reflection_typeFromCrc">Reflection.typeFromCrc</a></li>
 <li><a href="#Core_Reflection_typeFromName">Reflection.typeFromName</a></li>
 <li><a href="#Core_Reflection_writeFieldValue">Reflection.writeFieldValue</a></li>
+<li><a href="#Core_Parser_RegExp_captureCount">RegExp.captureCount</a></li>
 <li><a href="#Core_Parser_RegExp_captures">RegExp.captures</a></li>
+<li><a href="#Core_Parser_RegExp_captureSpan">RegExp.captureSpan</a></li>
 <li><a href="#Core_Parser_RegExp_clear">RegExp.clear</a></li>
 <li><a href="#Core_Parser_RegExp_compile">RegExp.compile</a></li>
 <li><a href="#Core_Parser_RegExp_create">RegExp.create</a></li>
+<li><a href="#Core_Parser_RegExp_find">RegExp.find</a></li>
+<li><a href="#Core_Parser_RegExp_findAll">RegExp.findAll</a></li>
 <li><a href="#Core_Parser_RegExp_getCapture">RegExp.getCapture</a></li>
 <li><a href="#Core_Parser_RegExp_grep">RegExp.grep</a></li>
 <li><a href="#Core_Parser_RegExp_grepAll">RegExp.grepAll</a></li>
@@ -1525,6 +1530,8 @@
 <li><a href="#Core_Parser_RegExp_opDrop">RegExp.opDrop</a></li>
 <li><a href="#Core_Parser_RegExp_opIndex">RegExp.opIndex</a></li>
 <li><a href="#Core_Parser_RegExp_partialMatch">RegExp.partialMatch</a></li>
+<li><a href="#Core_Parser_RegExp_replaceAll">RegExp.replaceAll</a></li>
+<li><a href="#Core_Parser_RegExp_split">RegExp.split</a></li>
 <li><a href="#Core_ReversedConcatBuffer_opVisit">ReversedConcatBuffer.opVisit</a></li>
 <li><a href="#Core_ReversedHashSet_opVisit">ReversedHashSet.opVisit</a></li>
 <li><a href="#Core_ReversedHashTable_opVisit">ReversedHashTable.opVisit</a></li>
@@ -2662,7 +2669,9 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Noise_FastNoise">Noise.FastNoise</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>FastNoise structure for generating different types of noise based on user-defined parameters.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp">Parser.RegExp</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Simple regular expression matcher.</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp">Parser.RegExp</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A compiled regular expression.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Parser_Span">Parser.Span</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One occurrence of a pattern in a subject, as byte offsets into that subject.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Random_ComplementaryMultiplyWithCarry4096">Random.ComplementaryMultiplyWithCarry4096</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>George Marsaglia's CMWC (Complementary Multiply With Carry) 4096 random number generator.</p>
 </td></tr>
@@ -5207,27 +5216,39 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Reflection_writeFieldValue">Reflection.writeFieldValue</a></td><td><p>Assigns a value to a reflected field while preserving its lifecycle semantics.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_captures">RegExp.captures</a></td><td><p>Returns all the captured strings, in order</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_captureCount">RegExp.captureCount</a></td><td><p>Number of capturing groups in the pattern, not counting the whole match.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_clear">RegExp.clear</a></td><td><p>Clear content</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_captures">RegExp.captures</a></td><td><p>Returns what every capture group that took part in the last match matched, in order.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_compile">RegExp.compile</a></td><td><p>Compile the expression</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_captureSpan">RegExp.captureSpan</a></td><td><p>Returns where capture group <span class="code-inline">rank</span> matched in the last successful match.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_create">RegExp.create</a></td><td><p>Creates and return an expression</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_clear">RegExp.clear</a></td><td><p>Releases everything the expression holds and leaves it uncompiled.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_getCapture">RegExp.getCapture</a></td><td><p>Returns the parsed string associated with a given captured group</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_compile">RegExp.compile</a></td><td><p>Compiles a pattern into this expression, replacing whatever it held.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_grep">RegExp.grep</a></td><td><p>Find the first occurence in the string</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_create">RegExp.create</a></td><td><p>Compiles a pattern and returns the expression.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_grepAll">RegExp.grepAll</a></td><td><p>Find all the occurences in the string</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_find">RegExp.find</a></td><td><p>Returns where the first occurrence of the pattern is in the subject, from <span class="code-inline">start</span>.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_match">RegExp.match</a></td><td><p>Compile and match the expression.</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_findAll">RegExp.findAll</a></td><td><p>Returns where every occurrence of the pattern is in the subject, in order.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_getCapture">RegExp.getCapture</a></td><td><p>Returns what capture group <span class="code-inline">rank</span> matched in the last successful match, or an empty</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_grep">RegExp.grep</a></td><td><p>Returns the first occurrence of the pattern in the subject, or <span class="code-inline">null</span> when there is none.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_grepAll">RegExp.grepAll</a></td><td><p>Returns every occurrence of the pattern in the subject, in order.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_match">RegExp.match</a></td><td><p>Returns whether the whole subject matches the pattern.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Parser_RegExp_opDrop">RegExp.opDrop</a></td><td><p>Releases resources owned by this value.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_opIndex">RegExp.opIndex</a></td><td><p>You can get a capture group value by using the derefence syntax.</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_opIndex">RegExp.opIndex</a></td><td><p>Returns what capture group <span class="code-inline">idx</span> matched, the same as <a href="#Core_Parser_RegExp_getCapture">Core.Parser.RegExp.getCapture</a>.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_partialMatch">RegExp.partialMatch</a></td><td><p>Try to match the start of the string, and returns the matched value or null.</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_partialMatch">RegExp.partialMatch</a></td><td><p>Returns the longest prefix of the subject that matches the pattern, or <span class="code-inline">null</span> when the</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_replaceAll">RegExp.replaceAll</a></td><td><p>Returns the subject with every occurrence of the pattern replaced.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_split">RegExp.split</a></td><td><p>Returns the parts of the subject that the pattern separates.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ReversedConcatBuffer_opVisit">ReversedConcatBuffer.opVisit</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Core_ReversedHashSet_opVisit">ReversedHashSet.opVisit</a></td><td></td></tr>
@@ -7924,7 +7945,9 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp">Parser.RegExp</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Simple regular expression matcher.</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp">Parser.RegExp</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>A compiled regular expression.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Parser_Span">Parser.Span</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One occurrence of a pattern in a subject, as byte offsets into that subject.</p>
 </td></tr>
 </tbody>
 </table>
@@ -12834,48 +12857,39 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Parser_RegExp" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Parser.RegExp</span> <a class="api-item-permalink" href="#Core_Parser_RegExp" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp.swg#L125">src</a></div>
-<p>Simple regular expression matcher.</p>
+<div class="api-item api-item-struct"><span id="Core_Parser_RegExp" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Parser.RegExp</span> <a class="api-item-permalink" href="#Core_Parser_RegExp" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L54">src</a></div>
+<p>A compiled regular expression.</p>
+<p>A pattern is compiled once and then matched against as many subjects as needed. Compiling is the only step that can fail; every match operation answers rather than fails.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">var</span> expr = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_Parser">Parser</a></span>.<span class="SCst"><a href="#Core_Parser_RegExp">RegExp</a></span>.<span class="SFct">create</span>(<span class="SItr">#raw</span> <span class="SStr">"(\d+)-(\w+)"</span>)
+<span class="SLgc">if</span> expr.<span class="SFct">match</span>(<span class="SStr">"42-answer"</span>)
+{
+    <span class="SItr">@assert</span>(expr.<span class="SFct">getCapture</span>(<span class="SNum">1</span>) == <span class="SStr">"42"</span>)
+    <span class="SItr">@assert</span>(expr.<span class="SFct">getCapture</span>(<span class="SNum">2</span>) == <span class="SStr">"answer"</span>)
+}</span></div>
+<p>Every operation reports what it found in the <i>last</i> subject it was given: <a href="#Core_Parser_RegExp_getCapture">Core.Parser.RegExp.getCapture</a> and <a href="#Core_Parser_RegExp_captures">Core.Parser.RegExp.captures</a> return slices of that subject, and they stay valid only as long as it does. A failed match clears them.</p>
+<p>The supported syntax is:</p>
 <table class="table-markdown">
 <tbody>
-<tr><td>*</td><td>zero or more</td><td></td></tr>
-<tr><td>?</td><td>zero or one</td><td></td></tr>
-<tr><td>+</td><td>one or more</td><td></td></tr>
-<tr><td>.</td><td>any rune</td><td></td></tr>
-<tr><td>^&lt;expr&gt;</td><td>start of buffer</td><td></td></tr>
-<tr><td>&lt;expr&gt;$</td><td>end of buffer</td><td></td></tr>
-<tr><td>a\</td><td>b</td><td>a or b</td></tr>
-<tr><td>[abc]</td><td>match any in list</td><td></td></tr>
-<tr><td>[a-zA-Z]</td><td>match any in range</td><td></td></tr>
-<tr><td><span class="code-inline">[[:digit:]]</span></td><td><span class="code-inline">[0-9]</span></td><td></td></tr>
-<tr><td><span class="code-inline">[[:xdigit:]]</span></td><td><span class="code-inline">[a-fA-F0-9]</span></td><td></td></tr>
-<tr><td><span class="code-inline">[[:alpha:]]</span></td><td><span class="code-inline">[a-zA-Z]</span></td><td></td></tr>
-<tr><td><span class="code-inline">[[:alnum:]]</span></td><td><span class="code-inline">[a-zA-Z0-9]</span></td><td></td></tr>
-<tr><td><span class="code-inline">[[:lower:]]</span></td><td><span class="code-inline">[a-z]</span></td><td></td></tr>
-<tr><td><span class="code-inline">[[:upper:]]</span></td><td><span class="code-inline">[A-Z]</span></td><td></td></tr>
-<tr><td><span class="code-inline">[[:blank:]]</span></td><td>whitespace or tab</td><td></td></tr>
-<tr><td><span class="code-inline">[[:space:]]</span></td><td>and whitespace character</td><td></td></tr>
-<tr><td><span class="code-inline">[[:word:]]</span></td><td><span class="code-inline">[a-zA-Z0-9_]</span></td><td></td></tr>
-<tr><td><span class="code-inline">[[:ascii:]]</span></td><td>any ASCII character</td><td></td></tr>
-<tr><td>[^&lt;interval&gt;]</td><td>Inverse of &lt;interval&gt;</td><td></td></tr>
-<tr><td><span class="code-inline">\d</span></td><td><span class="code-inline">[[:digit:]]</span></td><td></td></tr>
-<tr><td>D</td><td>[^[:digit:]]</td><td></td></tr>
-<tr><td><span class="code-inline">\l</span></td><td><span class="code-inline">[[:lower:]]</span></td><td></td></tr>
-<tr><td>L</td><td>[^[:lower:]]</td><td></td></tr>
-<tr><td><span class="code-inline">\u</span></td><td><span class="code-inline">[[:upper:]]</span></td><td></td></tr>
-<tr><td>U</td><td>[^[:upper:]]</td><td></td></tr>
-<tr><td><span class="code-inline">\s</span></td><td><span class="code-inline">[[:space:]]</span></td><td></td></tr>
-<tr><td>S</td><td>[^[:space:]]</td><td></td></tr>
-<tr><td><span class="code-inline">\w</span></td><td><span class="code-inline">[[:word:]]</span></td><td></td></tr>
-<tr><td>W</td><td>[^[:word:]]</td><td></td></tr>
-<tr><td>b</td><td>start or end of word</td><td></td></tr>
-<tr><td>pL</td><td>unicode letter</td><td></td></tr>
-<tr><td>pN</td><td>unicode number</td><td></td></tr>
-<tr><td>pS</td><td>unicode symbol</td><td></td></tr>
-<tr><td>p{Ll}</td><td>unicode lower letter</td><td></td></tr>
-<tr><td>p{Lu}</td><td>unicode upper letter</td><td></td></tr>
-<tr><td>p{Sm}</td><td>unicode symbol math</td><td></td></tr>
-<tr><td>1 to 9</td><td>backreference to a capture block</td><td></td></tr>
+<tr><td><span class="code-inline">.</span></td><td>any scalar value, line feed included</td><td></td></tr>
+<tr><td><span class="code-inline">*</span> <span class="code-inline">+</span> <span class="code-inline">?</span></td><td>zero or more, one or more, zero or one</td><td></td></tr>
+<tr><td><span class="code-inline">{n}</span> <span class="code-inline">{n,}</span> <span class="code-inline">{n,m}</span></td><td>exactly, at least, or between that many repetitions</td><td></td></tr>
+<tr><td><span class="code-inline">*?</span> <span class="code-inline">+?</span> <span class="code-inline">??</span> <span class="code-inline">{n,m}?</span></td><td>the same, preferring the shortest match</td><td></td></tr>
+<tr><td>`a\</td><td>b`</td><td>either side</td></tr>
+<tr><td><span class="code-inline">(...)</span></td><td>capturing group</td><td></td></tr>
+<tr><td><span class="code-inline">(?:...)</span></td><td>group that does not capture</td><td></td></tr>
+<tr><td><span class="code-inline">(?&lt;name&gt;...)</span></td><td>capturing group with a name, also spelled <span class="code-inline">(?'name'...)</span> and <span class="code-inline">(?P&lt;name&gt;...)</span></td><td></td></tr>
+<tr><td><span class="code-inline">(?i)</span> <span class="code-inline">(?m)</span> <span class="code-inline">(?s)</span></td><td>case-insensitive, multi-line, dot-matches-line-feed, for the rest of the group</td><td></td></tr>
+<tr><td><span class="code-inline">(?i:...)</span></td><td>the same, for one group only</td><td></td></tr>
+<tr><td><span class="code-inline">[abc]</span> <span class="code-inline">[a-z]</span></td><td>any of those scalar values</td><td></td></tr>
+<tr><td><span class="code-inline">[^abc]</span></td><td>any scalar value but those</td><td></td></tr>
+<tr><td><span class="code-inline">[[:alpha:]]</span></td><td>a POSIX class: <span class="code-inline">alnum</span>, <span class="code-inline">alpha</span>, <span class="code-inline">ascii</span>, <span class="code-inline">blank</span>, <span class="code-inline">cntrl</span>, <span class="code-inline">digit</span>, <span class="code-inline">graph</span>, <span class="code-inline">lower</span>, <span class="code-inline">print</span>, <span class="code-inline">punct</span>, <span class="code-inline">space</span>, <span class="code-inline">upper</span>, <span class="code-inline">word</span>, <span class="code-inline">xdigit</span></td><td></td></tr>
+<tr><td><span class="code-inline">\d</span> <span class="code-inline">\w</span> <span class="code-inline">\s</span> <span class="code-inline">\l</span> <span class="code-inline">\u</span></td><td>digit, word, space, lower-case and upper-case classes; the upper-case spelling of each is its complement</td><td></td></tr>
+<tr><td><span class="code-inline">\pL</span> <span class="code-inline">\p{Lu}</span></td><td>a Unicode property: <span class="code-inline">L</span>, <span class="code-inline">Ll</span>, <span class="code-inline">Lu</span>, <span class="code-inline">Lt</span>, <span class="code-inline">N</span>, <span class="code-inline">Nd</span>, <span class="code-inline">S</span>, <span class="code-inline">Sm</span>, <span class="code-inline">Z</span>; <span class="code-inline">\P</span> is its complement</td><td></td></tr>
+<tr><td><span class="code-inline">^</span> <span class="code-inline">$</span></td><td>start and end of the subject, or of a line under <span class="code-inline">(?m)</span></td><td></td></tr>
+<tr><td><span class="code-inline">\A</span> <span class="code-inline">\z</span></td><td>start and end of the subject, whatever the flags</td><td></td></tr>
+<tr><td><span class="code-inline">\b</span> <span class="code-inline">\B</span></td><td>at a word boundary, and anywhere but at one</td><td></td></tr>
+<tr><td><span class="code-inline">\n</span> <span class="code-inline">\t</span> <span class="code-inline">\x41</span> <span class="code-inline">\x{1F600}</span></td><td>one scalar value by escape, by hexadecimal byte, or by hexadecimal code point</td><td></td></tr>
+<tr><td><span class="code-inline">\1</span> to <span class="code-inline">\9</span></td><td>what that capture group matched</td><td></td></tr>
 </tbody>
 </table>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
@@ -12885,30 +12899,47 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_captures">captures</a></td><td><p>Returns all the captured strings, in order</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_captureCount">captureCount</a></td><td><p>Number of capturing groups in the pattern, not counting the whole match.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_clear">clear</a></td><td><p>Clear content</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_captures">captures</a></td><td><p>Returns what every capture group that took part in the last match matched, in order.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_compile">compile</a></td><td><p>Compile the expression</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_captureSpan">captureSpan</a></td><td><p>Returns where capture group <span class="code-inline">rank</span> matched in the last successful match.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_create">create</a></td><td><p>Creates and return an expression</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_clear">clear</a></td><td><p>Releases everything the expression holds and leaves it uncompiled.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_getCapture">getCapture</a></td><td><p>Returns the parsed string associated with a given captured group</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_compile">compile</a></td><td><p>Compiles a pattern into this expression, replacing whatever it held.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_grep">grep</a></td><td><p>Find the first occurence in the string</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_create">create</a></td><td><p>Compiles a pattern and returns the expression.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_grepAll">grepAll</a></td><td><p>Find all the occurences in the string</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_find">find</a></td><td><p>Returns where the first occurrence of the pattern is in the subject, from <span class="code-inline">start</span>.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_match">match</a></td><td><p>Compile and match the expression.</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_findAll">findAll</a></td><td><p>Returns where every occurrence of the pattern is in the subject, in order.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_getCapture">getCapture</a></td><td><p>Returns what capture group <span class="code-inline">rank</span> matched in the last successful match, or an empty</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_grep">grep</a></td><td><p>Returns the first occurrence of the pattern in the subject, or <span class="code-inline">null</span> when there is none.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_grepAll">grepAll</a></td><td><p>Returns every occurrence of the pattern in the subject, in order.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_match">match</a></td><td><p>Returns whether the whole subject matches the pattern.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Parser_RegExp_opDrop">opDrop</a></td><td><p>Releases resources owned by this value.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_opIndex">opIndex</a></td><td><p>You can get a capture group value by using the derefence syntax.</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_opIndex">opIndex</a></td><td><p>Returns what capture group <span class="code-inline">idx</span> matched, the same as <a href="#Core_Parser_RegExp_getCapture">Core.Parser.RegExp.getCapture</a>.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Parser_RegExp_partialMatch">partialMatch</a></td><td><p>Try to match the start of the string, and returns the matched value or null.</p>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_partialMatch">partialMatch</a></td><td><p>Returns the longest prefix of the subject that matches the pattern, or <span class="code-inline">null</span> when the</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_replaceAll">replaceAll</a></td><td><p>Returns the subject with every occurrence of the pattern replaced.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Parser_RegExp_split">split</a></td><td><p>Returns the parts of the subject that the pattern separates.</p>
 </td></tr>
 </tbody>
 </table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Core_Parser_Span" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Parser.Span</span> <a class="api-item-permalink" href="#Core_Parser_Span" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L7">src</a></div>
+<p>One occurrence of a pattern in a subject, as byte offsets into that subject.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Parser_Span">Span</a></span></span></div>
+</section>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Random_ComplementaryMultiplyWithCarry4096" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Random.ComplementaryMultiplyWithCarry4096</span> <a class="api-item-permalink" href="#Core_Random_ComplementaryMultiplyWithCarry4096" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/cmwc.swg#L7">src</a></div>
 <p>George Marsaglia's CMWC (Complementary Multiply With Carry) 4096 random number generator.</p>
@@ -22986,65 +23017,108 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span> <span class="SFct">writeFieldValue</span>(destination: <span class="SItr">#null</span> *<span class="STpe">void</span>, field: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="swag.runtime.html#Swag_TypeValue">TypeValue</a></span>, source: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Parser_RegExp_captures" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.captures</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_captures" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp.swg#L257">src</a></div>
-<p>Returns all the captured strings, in order</p>
+<div class="api-item api-item-func"><span id="Core_Parser_RegExp_captureCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.captureCount</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_captureCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L130">src</a></div>
+<p>Number of capturing groups in the pattern, not counting the whole match.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">captureCount</span>() =&gt; .program</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Parser_RegExp_captures" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.captures</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_captures" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L308">src</a></div>
+<p>Returns what every capture group that took part in the last match matched, in order.</p>
+<p>A group that did not take part is left out, so the result is not indexed by group rank.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">captures</span>()-&gt;<span class="SFct">Array</span>'(<span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Parser_RegExp_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.clear</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp.swg#L198">src</a></div>
-<p>Clear content</p>
+<div class="api-item api-item-func"><span id="Core_Parser_RegExp_captureSpan" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.captureSpan</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_captureSpan" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L287">src</a></div>
+<p>Returns where capture group <span class="code-inline">rank</span> matched in the last successful match.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">captureSpan</span>(rank: <span class="STpe">u32</span>)-&gt;{ found: <span class="STpe">bool</span>, span: <span class="SCst"><a href="#Core_Parser_Span">Span</a></span> }</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Parser_RegExp_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.clear</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L112">src</a></div>
+<p>Releases everything the expression holds and leaves it uncompiled.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Parser_RegExp_compile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.compile</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_compile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp.swg#L235">src</a></div>
-<p>Compile the expression</p>
+<div class="api-item api-item-func"><span id="Core_Parser_RegExp_compile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.compile</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_compile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L92">src</a></div>
+<p>Compiles a pattern into this expression, replacing whatever it held.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">compile</span>(expr: <span class="STpe">string</span>, ignoreCase = <span class="SKwd">false</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Parser_RegExp_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.create</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp.swg#L227">src</a></div>
-<p>Creates and return an expression</p>
+<div class="api-item api-item-func"><span id="Core_Parser_RegExp_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.create</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L84">src</a></div>
+<p>Compiles a pattern and returns the expression.</p>
+<p>With <span class="code-inline">ignoreCase</span>, every literal and every class in the pattern matches both cases; <span class="code-inline">(?i)</span> and <span class="code-inline">(?-i)</span> change that for part of a pattern.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(expr: <span class="STpe">string</span>, ignoreCase = <span class="SKwd">false</span>)-&gt;<span class="SCst"><a href="#Core_Parser_RegExp">RegExp</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Parser_RegExp_getCapture" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.getCapture</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_getCapture" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp.swg#L245">src</a></div>
-<p>Returns the parsed string associated with a given captured group</p>
+<div class="api-item api-item-func"><span id="Core_Parser_RegExp_find" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.find</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_find" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L220">src</a></div>
+<p>Returns where the first occurrence of the pattern is in the subject, from <span class="code-inline">start</span>.</p>
+<p>The offsets are byte offsets into <span class="code-inline">str</span>. The capture groups of that occurrence are readable afterwards, like after any other successful match.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">find</span>(str: <span class="SItr">#null</span> <span class="STpe">string</span>, start: <span class="STpe">u64</span> = <span class="SNum">0</span>)-&gt;{ found: <span class="STpe">bool</span>, span: <span class="SCst"><a href="#Core_Parser_Span">Span</a></span> }</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Parser_RegExp_findAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.findAll</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_findAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L238">src</a></div>
+<p>Returns where every occurrence of the pattern is in the subject, in order.</p>
+<p>The rule for empty occurrences is the one <a href="#Core_Parser_RegExp_grepAll">Core.Parser.RegExp.grepAll</a> describes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">findAll</span>(str: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#Core_Parser_Span">Span</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Parser_RegExp_getCapture" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.getCapture</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_getCapture" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L265">src</a></div>
+<p>Returns what capture group <span class="code-inline">rank</span> matched in the last successful match, or an empty string when the group did not take part in it.</p>
+<p>Group zero is the whole match. The returned string points into the subject of that match.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getCapture</span>(rank: <span class="STpe">u32</span>)-&gt;<span class="STpe">string</span></span></div>
+<p>Returns what the capture group of that name matched, or an empty string when there is no such group or it did not take part in the match.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getCapture</span>(name: <span class="STpe">string</span>)-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Parser_RegExp_grep" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.grep</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_grep" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp.swg#L330">src</a></div>
-<p>Find the first occurence in the string</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">grep</span>(expr: <span class="STpe">string</span>, str: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="SItr">#null</span> <span class="STpe">string</span> <span class="SKwd">fail</span></span></div>
-<p>Find the first occurence in the string</p>
+<div class="api-item api-item-func"><span id="Core_Parser_RegExp_grep" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.grep</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_grep" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L171">src</a></div>
+<p>Returns the first occurrence of the pattern in the subject, or <span class="code-inline">null</span> when there is none.</p>
+<p>The returned string points into <span class="code-inline">str</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">grep</span>(str: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="SItr">#null</span> <span class="STpe">string</span></span></div>
+<p>Compiles the pattern, then returns its first occurrence in the subject.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">grep</span>(expr: <span class="STpe">string</span>, str: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="SItr">#null</span> <span class="STpe">string</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Parser_RegExp_grepAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.grepAll</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_grepAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp.swg#L282">src</a></div>
-<p>Find all the occurences in the string</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">grepAll</span>(expr: <span class="STpe">string</span>, str: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="SFct">Array</span>'(<span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
-<p>Find all the occurences in the string</p>
+<div class="api-item api-item-func"><span id="Core_Parser_RegExp_grepAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.grepAll</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_grepAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L195">src</a></div>
+<p>Returns every occurrence of the pattern in the subject, in order.</p>
+<p>Occurrences never overlap: each search starts where the previous occurrence ended. An empty occurrence is reported, and the next search then starts one scalar value further, so a pattern that matches the empty string yields one occurrence per position rather than looping. The returned strings point into <span class="code-inline">str</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">grepAll</span>(str: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="SFct">Array</span>'(<span class="STpe">string</span>)</span></div>
+<p>Compiles the pattern, then returns every occurrence of it in the subject.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">grepAll</span>(expr: <span class="STpe">string</span>, str: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="SFct">Array</span>'(<span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Parser_RegExp_match" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.match</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_match" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp.swg#L266">src</a></div>
-<p>Compile and match the expression.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">match</span>(expr: <span class="STpe">string</span>, str: <span class="STpe">string</span>, ignoreCase = <span class="SKwd">false</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
-<p>Returns true if <span class="code-inline">str</span> matches the regexp. Should have been compiled before.</p>
+<div class="api-item api-item-func"><span id="Core_Parser_RegExp_match" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.match</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_match" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L141">src</a></div>
+<p>Returns whether the whole subject matches the pattern.</p>
+<p>The subject must match from its first byte to its last one: <span class="code-inline">abc</span> matches the pattern <span class="code-inline">abc</span> but <span class="code-inline">abcd</span> does not. Use <a href="#Core_Parser_RegExp_grep">Core.Parser.RegExp.grep</a> to look for an occurrence inside a subject.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">match</span>(str: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
+<p>Compiles the pattern, then returns whether the whole subject matches it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">match</span>(expr: <span class="STpe">string</span>, str: <span class="STpe">string</span>, ignoreCase = <span class="SKwd">false</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Parser_RegExp_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.opDrop</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp.swg#L162">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Parser_RegExp_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.opDrop</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L124">src</a></div>
 <p>Releases resources owned by this value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Parser_RegExp_opIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.opIndex</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_opIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp.swg#L169">src</a></div>
-<p>You can get a capture group value by using the derefence syntax. Returns <span class="code-inline">null</span> if the capture group does not exist</p>
+<div class="api-item api-item-func"><span id="Core_Parser_RegExp_opIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.opIndex</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_opIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L322">src</a></div>
+<p>Returns what capture group <span class="code-inline">idx</span> matched, the same as <a href="#Core_Parser_RegExp_getCapture">Core.Parser.RegExp.getCapture</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opIndex</span>(idx: <span class="STpe">u64</span>)-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Parser_RegExp_partialMatch" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.partialMatch</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_partialMatch" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp.swg#L345">src</a></div>
-<p>Try to match the start of the string, and returns the matched value or null.</p>
+<div class="api-item api-item-func"><span id="Core_Parser_RegExp_partialMatch" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.partialMatch</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_partialMatch" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L157">src</a></div>
+<p>Returns the longest prefix of the subject that matches the pattern, or <span class="code-inline">null</span> when the subject does not begin with an occurrence.</p>
+<p>The returned string points into <span class="code-inline">str</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">partialMatch</span>(str: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="SItr">#null</span> <span class="STpe">string</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Parser_RegExp_replaceAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.replaceAll</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_replaceAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L336">src</a></div>
+<p>Returns the subject with every occurrence of the pattern replaced.</p>
+<p>In <span class="code-inline">replacement</span>, <span class="code-inline">$0</span> to <span class="code-inline">$9</span> stand for what that capture group matched, <span class="code-inline">${name}</span> for what the group of that name matched, and <span class="code-inline">$$</span> for one dollar sign. A group that did not take part in the occurrence contributes nothing.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">replaceAll</span>(str: <span class="SItr">#null</span> <span class="STpe">string</span>, replacement: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Parser_RegExp_split" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RegExp.split</span> <a class="api-item-permalink" href="#Core_Parser_RegExp_split" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/regexp/regexp.swg#L366">src</a></div>
+<p>Returns the parts of the subject that the pattern separates.</p>
+<p>An occurrence of the pattern is the separator, so a subject with two occurrences yields three parts, empty ones included. The returned strings point into <span class="code-inline">str</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">split</span>(str: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="SFct">Array</span>'(<span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_ReversedConcatBuffer_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ReversedConcatBuffer.opVisit</span> <a class="api-item-permalink" href="#Core_ReversedConcatBuffer_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L62">src</a></div>
@@ -27275,7 +27349,6 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "s|Core.Guid64|Core_Guid64|Stores a compact 64-bit identifier.",
 "v|Core.Guid64.value|Core_Guid64_value|Raw 64-bit representation.",
 "s|Core.NativeLibrary|Core_NativeLibrary|Owns one dynamically loaded native library.",
-"s|Core.Parser.RegExp|Core_Parser_RegExp|Simple regular expression matcher.",
 "s|Core.StrConv.ConvertFormat|Core_StrConv_ConvertFormat|Represents convert format.",
 "v|Core.StrConv.ConvertFormat.formatFloat|Core_StrConv_ConvertFormat_formatFloat|Format float associated with this value.",
 "v|Core.StrConv.ConvertFormat.formatInt|Core_StrConv_ConvertFormat_formatInt|Format int associated with this value.",
@@ -27297,6 +27370,8 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "v|Core.String.length|Core_String_length|Number of valid bytes in 'buffer'.",
 "v|Core.String.padding|Core_String_padding|Inline storage of a small string.",
 "s|Core.StringRunes|Core_StringRunes|Iterates Unicode scalar values decoded lazily from borrowed UTF-8 bytes.",
+"s|Core.Parser.RegExp|Core_Parser_RegExp|A compiled regular expression.",
+"s|Core.Parser.Span|Core_Parser_Span|One occurrence of a pattern in a subject, as byte offsets into that subject.",
 "s|Core.Jobs.Job|Core_Jobs_Job|Describes one callback that can be submitted to the global job scheduler.",
 "v|Core.Jobs.Job.data|Core_Jobs_Job_data|Opaque caller-owned context passed to lambda.",
 "v|Core.Jobs.Job.lambda|Core_Jobs_Job_lambda|Callback invoked once, or null for a no-op job.",
@@ -29361,17 +29436,6 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Latin1.toLower|Core_Latin1_toLower|Converts this value to lower.",
 "f|Core.Latin1.toUpper|Core_Latin1_toUpper|Converts this value to upper.",
 "f|Core.Latin1.trim|Core_Latin1_trim|Trim the string.",
-"f|Core.Parser.RegExp.captures|Core_Parser_RegExp_captures|Returns all the captured strings, in order",
-"f|Core.Parser.RegExp.clear|Core_Parser_RegExp_clear|Clear content",
-"f|Core.Parser.RegExp.compile|Core_Parser_RegExp_compile|Compile the expression",
-"f|Core.Parser.RegExp.create|Core_Parser_RegExp_create|Creates and return an expression",
-"f|Core.Parser.RegExp.getCapture|Core_Parser_RegExp_getCapture|Returns the parsed string associated with a given captured group",
-"f|Core.Parser.RegExp.grep|Core_Parser_RegExp_grep|Find the first occurence in the string",
-"f|Core.Parser.RegExp.grepAll|Core_Parser_RegExp_grepAll|Find all the occurences in the string",
-"f|Core.Parser.RegExp.match|Core_Parser_RegExp_match|Compile and match the expression.",
-"f|Core.Parser.RegExp.opDrop|Core_Parser_RegExp_opDrop|Releases resources owned by this value.",
-"f|Core.Parser.RegExp.opIndex|Core_Parser_RegExp_opIndex|You can get a capture group value by using the derefence syntax.",
-"f|Core.Parser.RegExp.partialMatch|Core_Parser_RegExp_partialMatch|Try to match the start of the string, and returns the matched value or null.",
 "f|Core.StrConv.Atod.parse|Core_StrConv_Atod_parse|Defines parse.",
 "f|Core.StrConv.convert|Core_StrConv_convert|Templated version. Convert a value of type 'T'",
 "f|Core.StrConv.convertAny|Core_StrConv_convertAny|Convert a value to an utf8 string, and append the result in a ConcatBuffer",
@@ -29544,6 +29608,23 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Utf8.lastRune|Core_Utf8_lastRune|Returns the last rune of the slice",
 "f|Core.Utf8.startsWith|Core_Utf8_startsWith|Return true if the string starts with 'str'",
 "f|Core.Utf8.visitRunes|Core_Utf8_visitRunes|Macro to visit the unicode characters of the utf8 sequence.",
+"f|Core.Parser.RegExp.captureCount|Core_Parser_RegExp_captureCount|Number of capturing groups in the pattern, not counting the whole match.",
+"f|Core.Parser.RegExp.captures|Core_Parser_RegExp_captures|Returns what every capture group that took part in the last match matched, in order.",
+"f|Core.Parser.RegExp.captureSpan|Core_Parser_RegExp_captureSpan|Returns where capture group rank matched in the last successful match.",
+"f|Core.Parser.RegExp.clear|Core_Parser_RegExp_clear|Releases everything the expression holds and leaves it uncompiled.",
+"f|Core.Parser.RegExp.compile|Core_Parser_RegExp_compile|Compiles a pattern into this expression, replacing whatever it held.",
+"f|Core.Parser.RegExp.create|Core_Parser_RegExp_create|Compiles a pattern and returns the expression.",
+"f|Core.Parser.RegExp.find|Core_Parser_RegExp_find|Returns where the first occurrence of the pattern is in the subject, from start.",
+"f|Core.Parser.RegExp.findAll|Core_Parser_RegExp_findAll|Returns where every occurrence of the pattern is in the subject, in order.",
+"f|Core.Parser.RegExp.getCapture|Core_Parser_RegExp_getCapture|Returns what capture group rank matched in the last successful match, or an empty",
+"f|Core.Parser.RegExp.grep|Core_Parser_RegExp_grep|Returns the first occurrence of the pattern in the subject, or null when there is none.",
+"f|Core.Parser.RegExp.grepAll|Core_Parser_RegExp_grepAll|Returns every occurrence of the pattern in the subject, in order.",
+"f|Core.Parser.RegExp.match|Core_Parser_RegExp_match|Returns whether the whole subject matches the pattern.",
+"f|Core.Parser.RegExp.opDrop|Core_Parser_RegExp_opDrop|Releases resources owned by this value.",
+"f|Core.Parser.RegExp.opIndex|Core_Parser_RegExp_opIndex|Returns what capture group idx matched, the same as Core.Parser.RegExp.getCapture.",
+"f|Core.Parser.RegExp.partialMatch|Core_Parser_RegExp_partialMatch|Returns the longest prefix of the subject that matches the pattern, or null when the",
+"f|Core.Parser.RegExp.replaceAll|Core_Parser_RegExp_replaceAll|Returns the subject with every occurrence of the pattern replaced.",
+"f|Core.Parser.RegExp.split|Core_Parser_RegExp_split|Returns the parts of the subject that the pattern separates.",
 "f|Core.Atomic.add|Core_Atomic_add|Performs the add operation.",
 "f|Core.Atomic.compareExchange|Core_Atomic_compareExchange|Performs the compare exchange operation.",
 "f|Core.Atomic.exchange|Core_Atomic_exchange|Performs the exchange operation.",

@@ -49,7 +49,7 @@ public struct HtmlTagScan
     nameEnd:     u32
     selfClosing: bool
     hasUpper:    bool
-    end       = Swag.U64.Max
+    end = Swag.U64.Max
 }
 
 // What a source is parsed as.
@@ -76,8 +76,8 @@ public struct HtmlParser
     #[Swag.Late]
     document: *HtmlDocument
 
-    stack:       Array'HtmlOpenElement
-    pending:     Array'HtmlPendingAttribute
+    stack:   Array'HtmlOpenElement
+    pending: Array'HtmlPendingAttribute
 
     // Where the tokenizer stands inside the source the document keeps. Text is addressed there
     // rather than copied out of it, so a run of a page's content costs two numbers.
@@ -515,7 +515,7 @@ impl HtmlParser
             let quote = source[index]
             if quote == '"' or quote == '\''
             {
-                let valueStart = index + 1
+                let valueStart    = index + 1
                 var stops: [2] u8 = [quote, '&'u8]
                 var closing       = valueStart
                 while true
@@ -955,7 +955,7 @@ impl HtmlParser
                 let safe = HtmlParser.safeTextEnd(text)
                 text = text[0 until safe]
                 .emitText(text, hasReference, index)
-                index      += safe
+                index       += safe
                 .parseIndex = index
                 break
             }

@@ -278,6 +278,16 @@ using Swag, Core
     evt = Gui.Testing.commandState(ActionImage.RestoreOrg)
     @assert(Gui.Testing.actionUpdate'ActionImage(f.main, ActionImage.RestoreOrg, &evt))
     @assert(!evt.disabled)
+
+    // Image commands stay present when disabled. Only descriptors that explicitly opt into
+    // contextual hiding may set Hidden; an omitted aggregate field must never inherit garbage.
+    for id in [ActionImage.ResizeImage, ActionImage.ExpandImage, ActionImage.ExpandCapture, ActionImage.TrimCapture, ActionImage.FlipImage, ActionImage.MirrorImage, ActionImage.RotateImageRight, ActionImage.RotateImageLeft]
+    {
+        evt = Gui.Testing.commandState(id)
+        @assert(Gui.Testing.actionUpdate'ActionImage(f.main, id, &evt))
+        @assert(!evt.updatedFields.has(.Hidden))
+        @assert(!evt.hidden)
+    }
 }
 
 // Nudge, align and arrange command actions integrate with undo and command-state disabling.

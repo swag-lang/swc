@@ -22,6 +22,8 @@ struct HexStrings
     ui_Endian:       string = "Little endian"                                              // Label of the byte-order switch.
     ui_TipEndian:    string = "Read multi-byte values in little-endian order"              // Tooltip of the byte-order switch.
     ui_Details:      string = "hex and text · streamed"                                    // Summary the host shows beside the file size.
+    ui_TextColumn:   string = "text"                                                       // Header of the decoded-text column.
+    ui_Empty:        string = "This file is empty."                                        // Message painted when the file has no bytes.
     ui_GoTo:         string = "Go to offset"                                               // Dialog title and menu entry of the jump command.
     ui_GoToMessage:  string = "Hexadecimal offset, or a signed offset from the caret."     // Question of the jump dialog.
     ui_SelectAll:    string = "Select all"                                                 // Menu entry selecting the whole file.

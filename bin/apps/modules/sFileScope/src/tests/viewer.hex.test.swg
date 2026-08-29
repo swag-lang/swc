@@ -60,7 +60,8 @@ func writePreviewFile()->String
 
 func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*HexViewer
 {
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 388, 36})
+    registerHexStrings(&host.app)
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 640, 36})
     let view     = HexViewer.create(&host.root, commands, fileName)
     completeViewerBackgroundLoad(host, &view.load, view.loadTimer)
     view.dockStyle = .Center
@@ -86,7 +87,7 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     @assert(!view.failureReason.isEmpty())
 }
 
-// Typed grouping moves, selects, spaces, and decodes one complete scalar at a time.
+// Typed grouping changes scalar presentation without taking byte-exact movement and selection away.
 #test
 {
     let fileName = writeStreamedFile(4096)
@@ -100,16 +101,18 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     let grid = view.grid
     grid.setGrouping(.Unsigned32)
     @assert(grid.valueSize() == 4 and grid.displayGroupSize() == 4)
-    @assert(grid.selectionStart() == 0 and grid.selectionLength() == 4)
+    @assert(grid.selectionStart() == 0 and grid.selectionLength() == 1)
 
     host.focus(grid)
     host.keyPress(.Right)
-    @assert(grid.caret == 4 and grid.selectionStart() == 4 and grid.selectionLength() == 4)
+    @assert(grid.caret == 1 and grid.selectionStart() == 1 and grid.selectionLength() == 1)
+    host.keyPress(.Right, .Shift)
+    @assert(grid.caret == 2 and grid.selectionStart() == 1 and grid.selectionLength() == 2)
 
     grid.setGrouping(.Float64)
-    @assert(grid.valueSize() == 8 and grid.selectionStart() == 0 and grid.selectionLength() == 8)
+    @assert(grid.valueSize() == 8 and grid.selectionStart() == 1 and grid.selectionLength() == 2)
     grid.setGrouping(.Bytes)
-    @assert(grid.selectionLength() == 1 and !grid.hasSelection())
+    @assert(grid.selectionLength() == 2 and grid.hasSelection())
 
     // Width and spelling are independent controls. Float appears only where the selected width
     // has a corresponding representation.
@@ -368,6 +371,14 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     @assert(Utf8.contains(dump.toSlice(), "00000041  41 42 43 44"))
     @assert(Utf8.contains(dump.toSlice(), "ABCD"))
 
+    // Scalar presentation never widens an exact byte selection or its clipboard payload.
+    grid.setGrouping(.Unsigned32)
+    grid.moveCaret(1, false)
+    grid.moveCaret(4, true)
+    @assert(grid.selectionStart() == 1 and grid.selectionLength() == 4)
+    grid.copySelection(.Bytes)
+    @assert(Clipboard.getString() == "01 02 03 04")
+
     // A selection wider than the clipboard bound is copied up to it, and never materializes more.
     grid.selectAll()
     grid.copySelection(.Text)
@@ -426,15 +437,164 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     defer host.shutdown()
 
     let view = createTestViewer(&host, fileName.toString(), 900, 560)
-    @assert(view.revealOffset(11, "hex"))
-    @assert(view.grid.matchStart == 11 and view.grid.matchLength == 3)
-    @assert(view.grid.selectionStart() == 11 and view.grid.selectionLength() == 3)
+    @assert(view.revealOffset(11, 5))
+    @assert(view.grid.matchStart == 11 and view.grid.matchLength == 5)
+    @assert(view.grid.selectionStart() == 11 and view.grid.selectionLength() == 5)
     discard host.render(view)
     @assert(view.grid.doc.byteAt(11) == 'h'u8)
 
     view.grid.moveCaret(0, false)
-    @assert(view.grid.matchStart == 11 and view.grid.matchLength == 3)
-    @assert(!view.revealOffset(view.grid.doc.fileSize, "hex"))
+    @assert(view.grid.matchStart == 11 and view.grid.matchLength == 5)
+    @assert(!view.revealOffset(view.grid.doc.fileSize, 5))
+}
+
+// Multi-gigabyte geometry is synthetic: the test needs the address domain, not a multi-gigabyte
+// fixture. Every operation below stays outside painting, so no byte beyond the real fixture is read.
+#test
+{
+    let fileName = writeSampleFile()
+    defer discard catch File.delete(fileName.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    defer host.shutdown()
+
+    let view = createTestViewer(&host, fileName.toString(), 900, 560)
+    let grid = view.grid
+    grid.doc.fileSize = 0x1_0000_1234
+    grid.refreshLayout()
+
+    @assert(grid.offsetDigits == 16)
+    @assert(grid.doc.fileSize > Swag.U32.Max)
+    @assert(grid.rowCount() == (grid.doc.fileSize + grid.bytesPerRow - 1) / grid.bytesPerRow)
+    @assert(grid.scroll.scrollSize.y <= HexScrollSpan)
+    host.focus(grid)
+    host.keyPress(.End, .Control)
+    @assert(grid.caret == 0x1_0000_1233 and grid.topRow == grid.maxTopRow())
+
+    let dump = formatHexDump([0xAB'u8], 0x1_0000_0000, 16, grid.offsetDigits)
+    @assert(Utf8.contains(dump.toSlice(), "0000000100000000"))
+}
+
+// A stream that returns fewer bytes than the size snapshot stops the document with one stable
+// explanation instead of exposing stale or zero-filled bytes as file content.
+#test
+{
+    let fileName = writeSampleFile()
+    defer discard catch File.delete(fileName.toString())
+
+    var doc: HexDocument
+    defer doc.close()
+    @assert(doc.open(fileName.toString()))
+    doc.fileSize += 4096
+    @assert(!doc.ensure(0, doc.fileSize))
+    @assert(doc.readFailed and doc.window.isEmpty())
+    @assert(doc.failureReason == "file ends before its reported size")
+    @assert(!doc.ensure(0, 1) and doc.read(0, 1).isEmpty())
+}
+
+// A drag beyond the viewport autoscrolls on a timer, and losing focus ends it with no capture or
+// timer left to receive a later gesture that belongs to another control.
+#test
+{
+    let fileName = writeStreamedFile(4096)
+    defer discard catch File.delete(fileName.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    defer host.shutdown()
+
+    let view = createTestViewer(&host, fileName.toString(), 900, 560)
+    let grid = view.grid
+    grid.setBytesPerRow(16, false)
+    let point = grid.localToSurface(Math.Point{grid.hexCellX(2) + 1, grid.rowTop(0) + 2})
+    host.mouseDown(point)
+    @assert(grid.selecting and grid.mouseCapture() == grid)
+
+    let outside = grid.localToSurface(Math.Point{grid.textCellX(4), grid.clientRect().bottom() + 20})
+    host.moveMouse(outside)
+    @assert(grid.selectionTimer != null and grid.topRow > 0)
+    let firstTop = grid.topRow
+    host.fireTimer(grid.selectionTimer)
+    @assert(grid.topRow > firstTop and grid.selectionLength() > 1)
+
+    let other = Wnd.create'Wnd(&host.root, "hex.capture.other", {0, 0, 40, 20})
+    other.focusPolicy = .Tab
+    other.setFocus()
+    @assert(!grid.selecting and grid.selectionTimer == null and grid.mouseCapture() == null)
+}
+
+// Snapped fixed-width metrics keep the hit geometry and fitted rows coherent at fractional DPI.
+#test
+{
+    let fileName = writeStreamedFile(4096)
+    defer discard catch File.delete(fileName.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600, dpiScale: 1.5)
+    defer host.shutdown()
+
+    let view = createTestViewer(&host, fileName.toString(), 900, 560)
+    let grid = view.grid
+    grid.setBytesPerRow(16, false)
+    let row    = 2'u64
+    let column = 13'u64
+    @assert(grid.deviceScale() == 1.5)
+    @assert(grid.offsetAt({grid.textCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
+    @assert(grid.contentWidth() <= grid.clientRect().width)
+    discard host.render(view)
+}
+
+// Every painted and interactive hexadecimal string follows the live application language.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("filescope-hex-empty-", ".bin")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, cast(const [..] u8) "")
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    defer host.shutdown()
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
+
+    let view = createTestViewer(&host, fileName, 900, 560)
+    @assert(hexStrings().ui_TextColumn == "text" and hexStrings().ui_Empty == "This file is empty.")
+    @assert(view.widthCombo.selectedItem()!.name.raw == "8-bit" and view.byteOrder.text() == "Little endian")
+    discard host.render(view)
+
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    @assert(hexStrings().ui_TextColumn == "texte")
+    @assert(hexStrings().ui_Empty == "Ce fichier est vide.")
+    @assert(view.widthCombo.selectedItem()!.name.raw == "8 bits" and view.byteOrder.text() == "Little endian")
+    @assert(view.widthCombo.toolTip == "Largeur des valeurs")
+    @assert(view.details == "hexa et texte · en flux")
+    discard host.render(view)
+    Testing.assertContentFits(view.commands)
+}
+
+// The clipboard contract names and enforces its exact bound before a large selection is copied.
+#test
+{
+    if !Clipboard.isFake() do
+        return
+
+    let fileName = writeStreamedFile(HexCopyLimit + 37)
+    defer discard catch File.delete(fileName.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    defer host.shutdown()
+
+    let view = createTestViewer(&host, fileName.toString(), 900, 560)
+    let grid = view.grid
+    grid.selectAll()
+
+    let state = grid.sendComputeCommandStateEvent(ActionHex.CopyText)
+    @assert(state.name == Format.toString(hexStrings().ui_CopyTextMax, StrConv.toDisplaySize(HexCopyLimit)))
+    grid.copySelection(.Text)
+    @assert(Clipboard.getString().length == HexCopyLimit)
+    @assert(grid.doc.window.count <= HexWindowSize)
 }
 
 // The typed command group stays bounded and keeps byte order beside the representation controls.
@@ -448,7 +608,7 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     defer host.shutdown()
 
     let view = createTestViewer(&host, fileName.toString(), 900, 560)
-    @assert(view.commands.position.width <= 400)
+    @assert(view.commands.position.width <= 480)
     @assert(view.byteOrder.parent == view.commands and view.byteOrder.isChecked())
     @assert(view.details == "hex and text · streamed")
     Testing.assertContentFits(view)

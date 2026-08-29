@@ -78,8 +78,9 @@ guessing an encoding.
   meaning. It recognizes Windows images, COFF and `ar` libraries, ELF, Mach-O, WebAssembly, ZIP,
   RIFF, Standard MIDI Files, sfnt fonts, Windows icons, and Swag Chunk Containers. Unknown files
   still receive signature, size, and entropy analysis.
-- `Hexadecimal` is available for every file. It pages through 64 KiB at a time, uses 64-bit
-  offsets, and supports independent scalar width, representation, and byte order.
+- `Hexadecimal` is available for every file. It keeps one 256 KiB resident window whose reads are
+  aligned to 64 KiB boundaries, uses 64-bit offsets, and supports independent scalar width,
+  representation, and byte order.
 
 Text-oriented viewers handle normal keyboard and scrollbar navigation while content is streaming.
 Home, End, distant scrollbar jumps, and search open a bounded resident window near the requested

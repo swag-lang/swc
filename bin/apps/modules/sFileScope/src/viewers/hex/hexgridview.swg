@@ -13,9 +13,10 @@ const HexDefaultGroupSize = 8'u64
 // Rows a wheel notch moves, and the range a row is allowed to hold. Automatic fitting aligns the
 // chosen count to the active scalar, so a row can use the last available columns without ending in
 // the middle of a value.
-const HexWheelRows      = 3'u64
-const HexMinBytesPerRow = 8'u64
-const HexMaxBytesPerRow = 64'u64
+const HexWheelRows                     = 3'u64
+const HexMinBytesPerRow                = 8'u64
+const HexMaxBytesPerRow                = 64'u64
+const HexDragScrollRate: Time.Duration = 50'ms
 
 // Largest pixel span the vertical scrollbar is given.
 //
@@ -301,6 +302,9 @@ struct HexGridView
     layouting: bool     // Guards the resize a scrollbar appearing re-enters.
     syncing:   bool     // Guards the position signal our own scrollbar update raises.
 
+    selectionPoint: Math.Point       // Last local pointer position of an active drag.
+    selectionTimer: #null *Timer     // Repeats autoscroll while the pointer stays outside the viewport.
+
     charWidth: f32
     rowHeight: f32
 
@@ -354,8 +358,6 @@ impl HexGridView
 
     mtd groupStart(offset: u64)->u64 => offset / .valueSize() * .valueSize()
 
-    mtd groupEnd(offset: u64)->u64 => Math.min(.groupStart(offset) + .valueSize() - 1, .lastOffset())
-
     mtd hexCellX(column: u64)->f32
     {
         if .grouping == .Bytes do
@@ -401,13 +403,13 @@ impl HexGridView
     // because a row above the viewport is a legitimate question with an unsigned answer of 2^64.
     mtd rowTop(row: u64)->f32 => .headerHeight() + cast(f32) (cast(s64) row - cast(s64) .topRow) * .rowHeight
 
-    mtd selectionStart()->u64 => Math.min(.groupStart(.caret), .groupStart(.anchor))
+    mtd selectionStart()->u64 => Math.min(.caret, .anchor)
 
-    mtd selectionEnd()->u64 => .groupEnd(Math.max(.caret, .anchor))
+    mtd selectionEnd()->u64 => Math.max(.caret, .anchor)
 
     mtd selectionLength()->u64 => .doc.fileSize ? .selectionEnd() - .selectionStart() + 1 : 0
 
-    mtd hasSelection()->bool => .caret != .anchor or .valueSize() > 1
+    mtd hasSelection()->bool => .caret != .anchor
 
     // Reports the printable lane occupied by the current raw-byte match. The grid also marks the
     // hexadecimal lane for forensic reading; the shared application halo chooses the text lane so
@@ -600,7 +602,7 @@ impl HexGridView
     {
         if !.doc.fileSize do
             return
-        let clamped = .groupStart(Math.min(target, .lastOffset()))
+        let clamped = Math.min(target, .lastOffset())
         .caret = clamped
         if !extend do
             .anchor = clamped
@@ -706,16 +708,59 @@ impl HexGridView
         .sigCaretChanged.call(me)
     }
 
-    // Changes the scalar represented by one visual group and aligns the selection to it.
+    // Changes the scalar represented by one visual group without moving the byte-exact caret.
     mtd setGrouping(grouping: HexGrouping)
     {
         if .grouping == grouping do
             return
         .grouping = grouping
-        .caret    = .groupStart(.caret)
-        .anchor   = .groupStart(.anchor)
         .refreshLayout()
         .sigCaretChanged.call(me)
+    }
+
+    mtd stopSelection()
+    {
+        .selecting = false
+        if .selectionTimer
+        {
+            .removeTimer(.selectionTimer!)
+            .selectionTimer = null
+        }
+
+        if .mouseCapture() == me do
+            .releaseMouse()
+    }
+
+    // Extends a drag at `local`, scrolling one row immediately and then on a timer while the
+    // pointer remains above or below the byte rows.
+    mtd updateDragSelection(local: Math.Point)
+    {
+        .selectionPoint = local
+        let client = .clientRect()
+        let above  = local.y < .headerHeight()
+        let below  = local.y >= client.bottom()
+
+        if above do
+            .scrollByRows(-1)
+        elif below do
+            .scrollByRows(1)
+
+        var targetPoint = local
+        if above do
+            targetPoint.y = .headerHeight() + 1
+        elif below do
+            targetPoint.y = client.bottom() - 1
+        let offset = .offsetAt(targetPoint)
+        if offset != Swag.U64.Max do
+            .moveCaret(offset, true)
+
+        if (above or below) and !.selectionTimer do
+            .selectionTimer = .addTimer(HexDragScrollRate)
+        elif !above and !below and .selectionTimer
+        {
+            .removeTimer(.selectionTimer!)
+            .selectionTimer = null
+        }
     }
 
     mtd setBigEndian(value: bool)
@@ -1008,6 +1053,17 @@ impl IActionUI for ActionHex
 
 impl IWnd for HexGridView
 {
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer != .selectionTimer or !.selecting
+        {
+            evt.accepted = false
+            return
+        }
+
+        .updateDragSelection(.selectionPoint)
+    }
+
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
@@ -1018,11 +1074,27 @@ impl IWnd for HexGridView
     {
         if evt.kind == .ThemeChanged do
             .refreshLayout()
+        elif evt.kind == .LanguageChanged do
+            .invalidate()
+        else do
+            evt.accepted = false
+    }
+
+    mtd impl onFocusEvent(evt: *FocusEvent)
+    {
+        if evt.kind != .Lost or !.selecting
+        {
+            evt.accepted = false
+            return
+        }
+
+        .stopSelection()
     }
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         discard evt
+        .stopSelection()
         .doc.close()
     }
 
@@ -1062,13 +1134,10 @@ impl IWnd for HexGridView
             .captureMouse()
 
         case .Move where .selecting:
-            let offset = .offsetAt(local)
-            if offset != Swag.U64.Max do
-                .moveCaret(offset, true)
+            .updateDragSelection(local)
 
         case .Released where .selecting and evt.button == .Left:
-            .selecting = false
-            .releaseMouse()
+            .stopSelection()
 
         default:
             evt.accepted = false
@@ -1085,7 +1154,7 @@ impl IWnd for HexGridView
 
         let extend  = evt.modifiers.has(.Shift)
         let control = evt.modifiers.has(.Control)
-        let unit    = cast(s64) .valueSize()
+        let unit    = 1's64
         let stride  = cast(s64) .bytesPerRow
         let page    = cast(s64) (.visibleRows() * .bytesPerRow)
 
@@ -1119,7 +1188,7 @@ impl IWnd for HexGridView
             if control do
                 .moveCaret(.lastOffset(), extend)
             else do
-                .moveCaret(.caret - .caret % .bytesPerRow + .bytesPerRow - .valueSize(), extend)
+                .moveCaret(Math.min(.caret - .caret % .bytesPerRow + .bytesPerRow - 1, .lastOffset()), extend)
 
         case .C where control:
             .sendCommandEvent(ActionHex.CopyBytes)
@@ -1153,7 +1222,7 @@ impl IWnd for HexGridView
 
         if !.doc.fileSize
         {
-            painter.drawString(originX + HexViewInset, client.y + HexViewInset, "This file is empty.", font, colors.label_TextLight)
+            painter.drawString(originX + HexViewInset, client.y + HexViewInset, hexStrings().ui_Empty, font, colors.label_TextLight)
             return
         }
 
@@ -1179,7 +1248,7 @@ impl IWnd for HexGridView
         let headerY = client.y + 4
         if .headerText.count do
             painter.drawString(originX + HexViewInset + .gutterWidth(), headerY, @mkstring(.headerText.buffer!, .headerText.count), font, headerInk)
-        painter.drawString(originX + .textColumnLeft(), headerY, "text", font, headerInk)
+        painter.drawString(originX + .textColumnLeft(), headerY, hexStrings().ui_TextColumn, font, headerInk)
         painter.drawLine(client.x, client.y + .headerHeight() - 2, client.right(), client.y + .headerHeight() - 2, colors.border, 1)
 
         let selectFirst = .selectionStart()
@@ -1210,16 +1279,17 @@ impl IWnd for HexGridView
             // one glance says both which byte and which character it stands on.
             if .caret >= rowOffset and .caret <= rowLast
             {
-                let column   = .caret % .bytesPerRow
-                let complete = .caret + .valueSize() <= .doc.fileSize
-                let text     = .grouping == .Bytes ? Format.toString("%{X02}", .doc.byteAt(.caret)) : complete ? formatHexScalar(.grouping, .scalarAt(.caret)) : String.from("--")
+                let valueOffset = .groupStart(.caret)
+                let column      = valueOffset % .bytesPerRow
+                let complete    = valueOffset + .valueSize() <= .doc.fileSize
+                let text        = .grouping == .Bytes ? Format.toString("%{X02}", .doc.byteAt(.caret)) : complete ? formatHexScalar(.grouping, .scalarAt(valueOffset)) : String.from("--")
                 .caretText.clear()
                 for index in @countof(text) do
                     .caretText.add(text[index])
 
                 painter.fillRect(originX + .hexCellX(column) - 1, y, cast(f32) .valueCellChars() * .charWidth + 2, .rowHeight, caretBk)
                 painter.drawString(originX + .hexCellX(column), y, @mkstring(.caretText.buffer!, .caretText.count), font, caretInk)
-                painter.drawRect(originX + .textCellX(column), y, cast(f32) (.groupEnd(.caret) - .caret + 1) * .charWidth, .rowHeight, caretBk, 1)
+                painter.drawRect(originX + .textCellX(.caret % .bytesPerRow), y, .charWidth, .rowHeight, caretBk, 1)
             }
         }
     }

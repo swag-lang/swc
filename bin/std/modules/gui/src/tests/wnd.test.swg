@@ -3,6 +3,22 @@
 
 using Swag, Core
 
+// An unhandled command state is empty in every field. Presenters use UpdatedFields as the sole
+// authority for applying state, so stray bits here can randomly hide or rename menu entries.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(80, 40)
+    defer host.shutdown()
+
+    let state = host.root.sendComputeCommandStateEvent("Wnd.Unhandled")
+    @assert(!state.accepted)
+    @assert(state.updatedFields == .None)
+    @assert(state.renderingHint == .None)
+    @assert(!state.disabled and !state.checked and !state.hidden)
+    @assert(state.name.isEmpty() and state.longName.isEmpty() and state.shortcut.isEmpty() and state.toolTip.isEmpty())
+}
+
 // Parenting, child enumeration and lookup by id.
 #test
 {

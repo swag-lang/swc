@@ -51,8 +51,19 @@ func pixelAt(image: const *Image, x, y: s32)->u32
     @assert(pixelAt(&image, 90, 10) == host.theme.colors.commandBar_Bk.argb)
     @assert(pixelAt(&image, 110, 10) == host.theme.colors.toolBar_Bk.argb)
     @assert(pixelAt(&image, 130, 10) == host.theme.colors.wnd_Bk.argb)
-    let roundedCorner = pixelAt(&image, 140, 0)
-    @assert(roundedCorner != host.theme.colors.toolBar_Bk.argb and roundedCorner != host.theme.colors.wnd_Bk.argb)
+    @assert(pixelAt(&image, 140, 0) == host.theme.colors.toolBar_Bk.argb)
+    var antialiasedCorner: bool
+    for y in 0 until 7
+    {
+        for x in 140 until 147
+        {
+            let pixel = pixelAt(&image, x, y)
+            if pixel != host.theme.colors.toolBar_Bk.argb and pixel != host.theme.colors.wnd_Bk.argb do
+                antialiasedCorner = true
+        }
+    }
+
+    @assert(antialiasedCorner)
     @assert(pixelAt(&image, 150, 10) == host.theme.colors.wnd_Bk.argb)
     @assert(pixelAt(&image, 170, 10) == host.theme.colors.view_Bk.argb)
 }

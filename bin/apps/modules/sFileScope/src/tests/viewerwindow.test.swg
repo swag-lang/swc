@@ -32,6 +32,34 @@ func viewerFixturePath()->String
     return Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.txt")
 }
 
+// A golden can look plausibly rounded at fit-to-window scale while a square child has actually
+// repainted its corner. Pin the document panel's own antialiased transition as well as its image.
+func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
+{
+    let rect    = panel.surfaceRect()
+    let radius  = cast(s32) panel.themeRects().panel_Bk.radius
+    let outside = panel.parent!.themeColors().toolBar_Bk.argb
+    let inside  = panel.themeColors().view_Bk.argb
+    let left    = cast(s32) rect.x
+    let top     = cast(s32) rect.y
+
+    @assert(image.pixelColor(left, top).argb == outside)
+    @assert(image.pixelColor(left + radius, top + radius).argb == inside)
+
+    var antialiasedCorner: bool
+    for y in 0 until radius
+    {
+        for x in 0 until radius
+        {
+            let pixel = image.pixelColor(left + x, top + y).argb
+            if pixel != outside and pixel != inside do
+                antialiasedCorner = true
+        }
+    }
+
+    @assert(antialiasedCorner)
+}
+
 func markTestViewerRetired(wnd: *Wnd)->bool
 {
     let retired = cast(*bool) wnd.userData!
@@ -1693,6 +1721,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     @assert(window.currentCommands!.backgroundStyle == .Transparent)
     @assert(window.searchBox.isLocallyVisible() and window.searchBox.isEnabled())
     var dark = host.render(window)
+    assertViewerPanelCorner(&dark, window.documentPanel)
     Pixel.Testing.assertImageGolden(&dark, "sfilescope.viewer.dark")
 
     window.searchBox.setText("verification marker")
@@ -1708,6 +1737,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.notify(.ThemeChanged)
     host.settleAnimations(window, 4)
     var light = host.render(window)
+    assertViewerPanelCorner(&light, window.documentPanel)
     Pixel.Testing.assertImageGolden(&light, "sfilescope.viewer.light")
 
     window.searchBox.setText("verification marker")

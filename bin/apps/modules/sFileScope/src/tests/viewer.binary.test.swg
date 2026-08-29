@@ -748,7 +748,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let request = ViewerRequest{&host.root, &host.root, "this-file-does-not-exist.bin"}
     var result: ViewerResult
     createBinaryViewer(&request, &result)
-    @assert(result.view != null and result.commands != null and result.isLoading != null)
+    @assert(result.view != null and result.commands != null and result.collectMatches != null and result.isLoading != null)
     let view = cast(*BinaryViewer) result.view!
     finishBinaryViewer(&host, view)
     @assert(!view.failureReason.isEmpty())
@@ -764,6 +764,11 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     view.applyLayout()
     view.layoutColumns()
     return view
+}
+
+func binaryCellText(line: *ListLine, column: BinaryColumn)->String
+{
+    return RichString.plainText(line.itemAt(cast(u32) column).name.raw.toString())
 }
 
 // The tree the view builds is the report, and the search the host runs lands in it.
@@ -804,10 +809,11 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     @assert(view.revealOffset(FixtureTextAt + 0x40, "probe"))
     let selected = view.list.selectedLine()
     @assert(selected != null)
-    @assert(selected.itemAt(cast(u32) BinaryColumn.Field).name == ".text")
+    @assert(binaryCellText(selected, .Field) == ".text")
 
     @assert(!view.revealOffset(FixtureSize + 64, "probe"))
-    discard host.render(view)
+    var image = host.render(view)
+    Pixel.Testing.assertImageGolden(&image, "viewer.binary.document")
     Testing.assertContentFits(view)
 }
 
@@ -836,4 +842,82 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     let one = Clipboard.getString()
     @assert(Utf8.contains(one.toSlice(), ".text"))
     @assert(!Utf8.contains(one.toSlice(), "swagExport"))
+}
+
+// Search indexes the decoded report, highlights the exact cell, and reaches folded structures.
+#test
+{
+    let bytes    = buildPeFixture()
+    let fileName = writeFixture("pe_search", bytes.toSlice())
+    defer discard catch File.delete(fileName.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(1100, 640)
+    defer host.shutdown()
+
+    let view = createTestViewer(&host, fileName.toString(), 1100, 600)
+    var matches: Array'ViewerSearchMatch
+    view.collectMatches("file offset of the PE signature", {}, &matches)
+    @assert(matches.count == 1)
+    @assert(matches[0].minor == cast(u64) BinaryColumn.Detail)
+    @assert(view.revealMatch(matches[0]))
+    @assert(view.list.selectedLine() != null)
+    @assert(binaryCellText(view.list.selectedLine()!, .Field) == "e_lfanew")
+    @assert(view.list.selectedLine()!.itemAt(cast(u32) BinaryColumn.Detail).colorBk == view.themeColors().edit_SelectedBk)
+
+    view.clearSearch()
+    @assert(view.list.selectedLine() == null)
+}
+
+// The report, its headings, and its controls all follow a live language change.
+#test
+{
+    let bytes    = buildPeFixture()
+    let fileName = writeFixture("pe_language", bytes.toSlice())
+    defer discard catch File.delete(fileName.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(1100, 640)
+    defer
+    {
+        expect host.app.setLanguage(ReferenceLanguage)
+        host.shutdown()
+    }
+
+    let view = createTestViewer(&host, fileName.toString(), 1100, 600)
+    @assert(findRow(&view.doc.report, "File") != null)
+    @assert(view.revealOffset(FixtureTextAt, ""))
+
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    finishBinaryViewer(&host, view)
+
+    @assert(findRow(&view.doc.report, "Fichier") != null)
+    @assert(findRow(&view.doc.report, "En-tête DOS") != null)
+    @assert(view.list.header.itemAt(cast(u32) BinaryColumn.Detail).name.raw == "Signification")
+    @assert(view.menuButton.toolTip == "Copie et disposition")
+    @assert(view.list.selectedLine() != null)
+    @assert(binaryCellText(view.list.selectedLine()!, .Field) == ".text")
+}
+
+// File-offset jumps and row history make a large report navigable without flattening its tree.
+#test
+{
+    let bytes    = buildPeFixture()
+    let fileName = writeFixture("pe_navigation", bytes.toSlice())
+    defer discard catch File.delete(fileName.toString())
+
+    var host: Testing.HeadlessHost
+    host.setup(1100, 640)
+    defer host.shutdown()
+
+    let view = createTestViewer(&host, fileName.toString(), 1100, 600)
+    @assert(view.goToTypedOffset("400"))
+    @assert(binaryCellText(view.list.selectedLine()!, .Field) == ".text")
+    @assert(view.goToTypedOffset("7F0"))
+    @assert(binaryCellText(view.list.selectedLine()!, .Field) == ".rdata")
+    @assert(view.navigateHistory(-1))
+    @assert(binaryCellText(view.list.selectedLine()!, .Field) == ".text")
+    @assert(view.navigateHistory(1))
+    @assert(binaryCellText(view.list.selectedLine()!, .Field) == ".rdata")
 }

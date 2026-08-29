@@ -283,12 +283,12 @@ func flagsText(value: u64, names: const [..] BinaryFlagName)->String
 func epochText(seconds: u64)->String
 {
     if !seconds do
-        return String.from("not set")
+        return String.from(binStrings().ui_NotSet)
 
     // A stamp beyond the calendar the runtime spells is a reproducible-build cookie or a corrupt
     // field. Either way it is a number, and saying so beats printing a year in the far future.
     if seconds > 253_370_764_800 do
-        return String.from("not a date")
+        return String.from(binStrings().ui_NotDate)
 
     let epoch = Time.Timestamp.fromDateTime({1970, 1, 1})
     let stamp = Time.Timestamp.fromTicks(epoch.ticks + seconds * Time.TicksPerSecond)

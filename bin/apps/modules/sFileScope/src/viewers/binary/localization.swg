@@ -22,6 +22,13 @@ struct BinaryStrings
     ui_MenuCopyLine: string = "Copy this line"                   // Menu entry copying the selected row.
     ui_MenuExpand:   string = "Expand everything"                // Menu entry opening every group.
     ui_MenuCollapse: string = "Collapse everything"              // Menu entry closing every group.
+    ui_MenuGoTo:     string = "Go to file offset"                // Menu entry opening the file-offset dialog.
+    ui_GoToMessage:  string = "Hexadecimal file offset, or a signed offset from the selected row." // Question of the jump dialog.
+    ui_MenuBack:     string = "Previous location"                // Menu entry walking backward through selected report rows.
+    ui_MenuForward:  string = "Next location"                    // Menu entry walking forward through selected report rows.
+    ui_NotSet:       string = "not set"                          // Value of an absent timestamp.
+    ui_NotDate:      string = "not a date"                       // Value of a timestamp outside the supported calendar.
+    ui_Preview:      string = "Preview"                          // Label of an SCC preview image.
 
     word_Section:    string = "section"        // One section.
     word_Sections:   string = "sections"       // Several sections.
@@ -260,8 +267,20 @@ private const FrenchStrings     = #include("../../../datas/lang/fr/filescope.bin
 
 private var g_BinaryStrings: BinaryStrings
 
+// A decoder keeps the language snapshot it started with even when the GUI changes language while
+// it is running. Only a borrowed pointer lives in TLS; the owning viewer waits for the worker
+// before replacing that snapshot.
+#[Swag.Tls]
+private var g_BinaryStringsOverride: #null const *BinaryStrings
+
 // Returns the visible strings of the binary viewer in the active language.
-func binStrings()->const *BinaryStrings => &g_BinaryStrings
+func binStrings()->const *BinaryStrings => g_BinaryStringsOverride ? g_BinaryStringsOverride! : &g_BinaryStrings
+
+// Selects a stable string-table snapshot for the current background decoder.
+func setBinaryStringsOverride(strings: #null const *BinaryStrings)
+{
+    g_BinaryStringsOverride = strings
+}
 
 // Registers this viewer's string table with the application.
 //

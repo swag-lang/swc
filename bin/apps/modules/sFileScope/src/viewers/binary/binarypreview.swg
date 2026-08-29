@@ -123,7 +123,7 @@ func loadSccImagePreviews(fileName: string, previews: *Array'BinaryPreview)
                 continue
             var preview: BinaryPreview
             preview.image = #move image
-            preview.label = "Preview"
+            preview.label = binStrings().ui_Preview
             previews.add(#move preview)
         }
         elif chunk.roleId == captureBackgroundRole() do

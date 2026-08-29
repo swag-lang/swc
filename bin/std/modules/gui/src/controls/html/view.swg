@@ -307,7 +307,7 @@ internal impl HtmlView
             {
                 var css: String
                 for child in current.children where .document.constNode(child).kind == .Text do
-                    css += .document.constNode(child).text
+                    css += .document.textOf(child)
                 .sheet.parse(css.toString())
                 return
             }
@@ -737,7 +737,7 @@ internal impl HtmlView
         if node.kind != .Text or offset < node.sourceOffset do
             return false
         let start = offset - node.sourceOffset
-        if start + @countof(text) > node.text.length do
+        if start + @countof(text) > node.text.count do
             return false
 
         .searchNode  = nodeIndex
@@ -753,7 +753,7 @@ internal impl HtmlView
     {
         if !@countof(id) do
             return HtmlNoNode
-        for index in .document.nodes.count where .document.constNode(cast(u32) index).id == id do
+        for index in .document.nodes.count where .document.id(cast(u32) index) == id do
             return cast(u32) index
         return HtmlNoNode
     }
@@ -898,9 +898,9 @@ internal impl HtmlView
         {
             let index = cast(u32) ((start + offset) % count)
             let node  = .document.constNode(index)
-            if node.kind != .Text or node.text.isEmpty() do
+            if node.kind != .Text or !node.text.count do
                 continue
-            let match = Utf8.indexOf(node.text.toString(), text, 0, .Latin1NoCase)
+            let match = Utf8.indexOf(.document.textOf(index), text, 0, .Latin1NoCase)
             if match == Swag.U64.Max do
                 continue
             if .scrollToNode(index)
@@ -922,12 +922,13 @@ internal impl HtmlView
             return 0
 
         var result: u64
-        for &node in .document.nodes where node.kind == .Text and !node.text.isEmpty()
+        for index in .document.nodes.count where .document.constNode(cast(u32) index).kind == .Text
         {
+            let content = .document.textOf(cast(u32) index)
             var from: u64
             while true
             {
-                let match = Utf8.indexOf(node.text.toString(), text, from, .Latin1NoCase)
+                let match = Utf8.indexOf(content, text, from, .Latin1NoCase)
                 if match == Swag.U64.Max do
                     break
                 result += 1
@@ -948,13 +949,13 @@ internal impl HtmlView
         for index in .document.nodes.count
         {
             let node = .document.constNode(cast(u32) index)
-            if node.kind != .Text or node.text.isEmpty() do
+            if node.kind != .Text or !node.text.count do
                 continue
 
             var from: u64
             while true
             {
-                let match = Utf8.indexOf(node.text.toString(), text, from, .Latin1NoCase)
+                let match = Utf8.indexOf(.document.textOf(cast(u32) index), text, from, .Latin1NoCase)
                 if match == Swag.U64.Max do
                     break
                 if remaining
@@ -1027,7 +1028,7 @@ internal impl HtmlView
         for index in .document.nodes.count
         {
             let node = .document.constNode(cast(u32) index)
-            if node.kind != .Text or node.text.isEmpty() do
+            if node.kind != .Text or !node.text.count do
                 continue
             if first == HtmlNoNode do
                 first = cast(u32) index
@@ -1039,7 +1040,7 @@ internal impl HtmlView
         .selAnchorNode   = first
         .selAnchorOffset = 0
         .selCaretNode    = last
-        .selCaretOffset  = .document.constNode(last).text.length
+        .selCaretOffset  = .document.constNode(last).text.count
         .canvas.invalidate()
     }
 
@@ -1089,7 +1090,7 @@ internal impl HtmlView
     {
         if node == HtmlNoNode or cast(u64) node >= .document.nodes.count do
             return
-        let source = .document.constNode(node).text.toString()
+        let source = .document.textOf(node)
         if !@countof(source) do
             return
 
@@ -1398,8 +1399,11 @@ internal impl HtmlView
         }
 
         let size = catch .stream.size() as sizeError
-        if sizeError == null do
+        if sizeError == null
+        {
             .fileSize = size
+            .document.reserveForSource(size)
+        }
 
         .encoding = .detectDocumentEncoding()
         if .prepareVirtualSource()
@@ -1415,6 +1419,7 @@ internal impl HtmlView
     public func createText(contentParent: *Wnd, source: string, documentStyle: HtmlStyle = {})->*HtmlView
     {
         let result = HtmlView.createBase(contentParent, documentStyle)
+        result.document.reserveForSource(@countof(source))
         result.parser.feed(source)
         result.parser.finish()
         result.sourceDone = true
@@ -1429,6 +1434,11 @@ internal impl HtmlView
         let result = HtmlView.createBase(contentParent, documentStyle)
         result.embedded        = true
         result.images.basePath = basePath
+
+        // Embedded content is a fragment: it is placed inside a document that already has a body,
+        // and a second one would put a page's margins inside somebody else's box.
+        result.parser.start(&result.document, .Fragment)
+        result.document.reserveForSource(@countof(source))
         result.parser.feed(source)
         result.parser.finish()
         result.sourceDone = true

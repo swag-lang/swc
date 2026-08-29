@@ -155,7 +155,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let division = findTag(&document, .Div)
     @assert(document.hasClass(division, "x") and document.hasClass(division, "y"))
     @assert(!document.hasClass(division, "z"))
-    @assert(document.constNode(division).id == "z")
+    @assert(document.id(division) == "z")
     @assert(document.attribute(division, "class") == "x y")
 }
 
@@ -178,7 +178,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     let style = findTag(&document, .Style)
     @assert(style != HtmlNoNode)
-    @assert(Utf8.contains(document.constNode(document.constNode(style).children[0]).text.toString(), "color: red"))
+    @assert(Utf8.contains(document.textOf(document.constNode(style).children[0]), "color: red"))
 
     // A script body is text, so its `<` never opened an element.
     @assert(findTag(&document, .B) == HtmlNoNode)
@@ -697,7 +697,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     @assert(!view.isLoading())
     @assert(view.pendingSearch.isEmpty())
     @assert(view.searchNode != HtmlNoNode)
-    @assert(Utf8.contains(view.document.constNode(view.searchNode).text.toString(), query))
+    @assert(Utf8.contains(view.document.textOf(view.searchNode), query))
     @assert(view.searchEnd - view.searchStart == @countof(query))
 
     // The match is what the viewport shows, not an estimate of where it might be.
@@ -1594,6 +1594,72 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     @assert(document.textContent(para).toString() == "one two three four")
 }
 
+// A source that writes no `<html>`, `<head>` or `<body>` is the same document as one that does.
+// This is what makes a page's own `body { ... }` rules apply to a fragment.
+#test
+{
+    let document = parseDocument("<style>body { margin: 0 }</style>text<p>content</p>")
+    let html     = findTag(&document, .Html)
+    let head     = findTag(&document, .Head)
+    let body     = findTag(&document, .Body)
+    @assert(html != HtmlNoNode and head != HtmlNoNode and body != HtmlNoNode)
+    @assert(document.constNode(html).parent == 0)
+    @assert(document.constNode(head).parent == html)
+    @assert(document.constNode(body).parent == html)
+
+    // A `<style>` belongs to the head, and the text that follows it starts the body.
+    @assert(document.constNode(findTag(&document, .Style)).parent == head)
+    @assert(document.constNode(findTag(&document, .P)).parent == body)
+    @assert(document.textContent(body).toString() == "textcontent")
+
+    // A written section is the section the document already has, whatever a malformed page repeats.
+    let written = parseDocument("<html lang='en'><body class='page'><p>one</p></body><p>two</p><body class='again'>")
+    @assert(written.constNode(findTag(&written, .Html)).attributes.count == 1)
+    let onlyBody = findTag(&written, .Body)
+    @assert(written.attribute(onlyBody, "class") == "page")
+    for index in written.nodes.count where index != cast(u64) onlyBody do
+        @assert(written.constNode(cast(u32) index).tag != .Body)
+    @assert(written.textContent(onlyBody).toString() == "onetwo")
+}
+
+// Character references resolve against the standard's complete list, including the two-code-point
+// ones and the legacy spellings a document writes without their semicolon.
+#test
+{
+    let document = parseDocument("<p>&boxplus; &NotEqualTilde; &copy; &copy 2026 &notit; &unknownref;</p>")
+    let text     = document.textContent(findTag(&document, .P))
+    @assert(text == "\u229E \u2242\u0338 \u00A9 \u00A9 2026 \u00ACit; &unknownref;")
+
+    // Inside an attribute value a legacy spelling stays literal when a name or an `=` follows it,
+    // which is what keeps a query string intact.
+    let query = parseDocument("<a href=\"?a=1&copy=2&amp;b=3\" title=\"&copy 2026\">x</a>")
+    let link  = findTag(&query, .A)
+    @assert(query.attribute(link, "href") == "?a=1&copy=2&b=3")
+    @assert(query.attribute(link, "title") == "\u00A9 2026")
+}
+
+// The background a document asks for covers the canvas, not just the box that carries it: a page
+// that sets a white ground is white everywhere, including under and beside its content.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(160, 120)
+    defer host.shutdown()
+
+    let view = HtmlView.createText(&host.root, "<style>body { background: #ff0000 } p { background: #0000ff; margin: 0 }</style><p>x</p>")
+    view.resize(160, 120)
+    view.applyLayout()
+    view.rebuild()
+
+    var image = host.render(view)
+    @assert(image.pixelColor(150, 110).argb == 0xFFFF0000)
+    @assert(image.pixelColor(4, 4).argb == 0xFFFF0000)
+
+    // The body's own box no longer repaints what the canvas already carries, and the paragraph
+    // still paints over it.
+    @assert(image.pixelColor(20, 12).argb == 0xFF0000FF)
+}
+
 // Content written inside the table structure but outside any cell renders before the table,
 // where browsers foster-parent it, and the grid keeps only its rows.
 #test
@@ -1608,7 +1674,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let children = &document.constNode(host).children
     @assert(children.count == 3)
     @assert(document.constNode(children[0]).kind == .Text)
-    @assert(document.constNode(children[0]).text.toString() == "stray ")
+    @assert(document.textOf(children[0]) == "stray ")
     @assert(children[1] == bold)
     @assert(children[2] == table)
 
@@ -1651,7 +1717,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let host  = findTag(&streamed, .Div)
     let table = findTag(&streamed, .Table)
     @assert(streamed.constNode(host).children.count == 2)
-    @assert(streamed.constNode(streamed.constNode(host).children[0]).text.toString() == "stray")
+    @assert(streamed.textOf(streamed.constNode(host).children[0]) == "stray")
     @assert(streamed.constNode(host).children[1] == table)
     @assert(streamed.textContent(table).toString() == "cell")
 

@@ -203,12 +203,12 @@ impl HtmlMatchContext
                 if node.kind != .Element do
                     continue
 
-                count                             += 1
-                .numElements                      += 1
-                .elementIndex[child]              = count
-                .previousElement[child]           = previous == HtmlNoNode ? 0 : previous + 1
-                previous                          = child
-                totals.findOrAdd(node.name).value += 1
+                count                   += 1
+                .numElements            += 1
+                .elementIndex[child]    = count
+                .previousElement[child] = previous == HtmlNoNode ? 0 : previous + 1
+                previous                = child
+                totals.findOrAdd(document.name(child)).value += 1
             }
 
             indices.clear()
@@ -219,10 +219,11 @@ impl HtmlMatchContext
                     continue
 
                 .elementCount[child] = count
-                let index = indices.findOrAdd(node.name)
+                let name  = document.name(child)
+                let index = indices.findOrAdd(name)
                 index.value       += 1
                 .typeIndex[child] = index.value
-                .typeCount[child] = totals.tryFind(node.name)!.value
+                .typeCount[child] = totals.tryFind(name)!.value
             }
         }
     }
@@ -311,22 +312,22 @@ impl HtmlStyleSheet
     mtd const candidates(document: const *HtmlDocument, element: u32, output: *Array'u32)
     {
         output.clear()
-        let node = document.constNode(element)
-        if !node.id.isEmpty()
+        let id = document.id(element)
+        if @countof(id)
         {
-            let found = .idIndex.tryFind(node.id)
+            let found = .idIndex.tryFind(id)
             if found do
                 output.add(found!.value.toSlice())
         }
 
-        for value in node.classes
+        for value in document.classes(element)
         {
-            let found = .classIndex.tryFind(value[])
+            let found = .classIndex.tryFind(document.text(value[]))
             if found do
                 output.add(found!.value.toSlice())
         }
 
-        let byTag = .tagIndex.tryFind(node.name)
+        let byTag = .tagIndex.tryFind(document.name(element))
         if byTag do
             output.add(byTag!.value.toSlice())
         output.add(.universal.toSlice())
@@ -340,9 +341,9 @@ impl HtmlStyleSheet
         let node     = document.constNode(element)
         if node.kind != .Element do
             return false
-        if !part.tag.isEmpty() and part.tag != node.name do
+        if !part.tag.isEmpty() and part.tag != document.name(element) do
             return false
-        if !part.id.isEmpty() and part.id != node.id do
+        if !part.id.isEmpty() and part.id != document.id(element) do
             return false
 
         for value in part.classes where !document.hasClass(element, value.toString()) do
@@ -418,7 +419,7 @@ impl HtmlStyleSheet
         if pseudo.has(.Root) and document.constNode(element).parent != 0 do
             return false
 
-        if pseudo.has(.Target) and (context.target.isEmpty() or document.constNode(element).id != context.target.toString()) do
+        if pseudo.has(.Target) and (context.target.isEmpty() or document.id(element) != context.target.toString()) do
             return false
         if pseudo.has(.Checked) and !document.hasAttribute(element, "checked") do
             return false

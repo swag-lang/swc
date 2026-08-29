@@ -104,9 +104,10 @@ private func isHtmlBlockStart(line: string)->bool
     if !@countof(trimmed) or trimmed[0] != '<' do
         return false
 
+    // A fragment: this asks the HTML parser what the line starts, not what document it makes.
     var document = HtmlDocument.create()
     var parser: HtmlParser
-    parser.start(&document)
+    parser.start(&document, .Fragment)
     parser.feed(trimmed)
     parser.finish()
 

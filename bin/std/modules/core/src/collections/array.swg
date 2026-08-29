@@ -327,8 +327,9 @@ impl Array
         .reserve(newCapacity)
     }
 
-    // Sets the array's capacity to at least 'newCapacity'.
-    // This does not change the number of elements in the array.
+    // Sets the array's capacity to at least 'newCapacity', keeping the elements already stored.
+    // Asking for a capacity of zero is the one exception: it releases the buffer and empties the
+    // array, which is what 'free' does.
     mtd reserve(newCapacity: u64)
     {
         if !newCapacity

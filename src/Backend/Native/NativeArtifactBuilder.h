@@ -18,6 +18,10 @@ struct NativeArtifactPaths
     fs::path              outDir;
     fs::path              artifactPath;
     fs::path              pdbPath;
+
+    // The static archive a shared library publishes beside its DLL, from the same objects. Empty
+    // unless the build was asked for one through CommandLine::staticLibraryOutDir.
+    fs::path              staticLibraryPath;
     std::vector<fs::path> objectPaths;
 };
 
@@ -45,6 +49,18 @@ private:
     Result        prepareDataSectionsWithoutStartup(NativeRDataCollector& rdataCollector) const;
     static Result finishDataSections(NativeRDataCollector& rdataCollector);
     Result        partitionObjects() const;
+
+public:
+    // Re-splits the very same machine code one function per object, which is the granularity the
+    // archive is dead-stripped at: the linker pulls whole members, so a member holding ten
+    // functions puts ten functions in an executable that asked for one. Object 0 keeps the data
+    // sections, so anything reading a global still pulls them in as a block.
+    //
+    // Valid only once the artifact this module publishes has been lowered, because it overwrites
+    // the text offsets that lowering computed.
+    Result partitionArchiveObjects() const;
+
+private:
     Result        buildRuntimeHook(TaskContext& ctx) const;
     Result        buildStartup(TaskContext& ctx) const;
 

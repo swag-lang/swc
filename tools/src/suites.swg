@@ -521,6 +521,17 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         return 1
     }
 
+    // An executable that names no link kind takes its dependencies' code in and ships alone. Its
+    // own tests check both halves of that: a call across what was a module boundary, and the
+    // absence of any shared library beside the artifact.
+    var standalone = workspaceModuleCommand("test", workspace.toString(), "standalone_exe", buildCfg)
+    standalone.add(["--no-test-jit"])
+    options.appendExtra(&standalone)
+
+    let standaloneCode = try context.runCompiler(standalone)
+    if standaloneCode != 0 do
+        return standaloneCode
+
     var verified = workspaceModuleCommand("test", workspace.toString(), "verify_expectations", buildCfg)
     verified.add(["--no-test-jit"])
     options.appendExtra(&verified)

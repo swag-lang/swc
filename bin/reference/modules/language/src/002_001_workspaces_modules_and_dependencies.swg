@@ -78,15 +78,52 @@ question the others cannot:
 |---|---|
 | '<workspace>/.output/<module>' | what building that module produced and what modules in the same workspace consume |
 | '<workspace>/.dep/<module>' | the copy the workspace consumes for a dependency imported from outside itself |
-| beside the executable | the copy that lets the program run with nothing else present |
+| beside the executable | the shared libraries a program still imports at run time |
 
 Modules in the same workspace compile and link directly against their producer's
 '.output' artifacts. The '.dep' copy exists only for external dependencies because
 compile-time execution loads a dependency's shared library and holds it open, and
 a held file cannot be replaced: reading an external workspace's original would
 stop a build that has to rewrite it.
+*/
 
-An executable asks for the third copy itself:
+/**
+# How a Dependency Is Taken In
+
+A module that builds a library publishes its code twice, from one compilation:
+
+| Directory | Holds |
+|---|---|
+| '<module>/shared-library/<config>/<arch>' | the shared library, and the API every consumer compiles against |
+| '<module>/static-library/<config>/<arch>' | an archive of the same code, one function per member |
+
+Both are needed, and they answer different questions. The compiler loads the
+shared library to run that module's code at compile time — a '#run' calling into
+'core' calls into 'core.dll'. The archive is what a program links.
+
+The consumer chooses, and its own kind chooses for it:
+
+- An **executable** links its dependencies' code in. It ships as one file, and it
+  carries only the functions it actually reaches, because the linker pulls archive
+  members on demand.
+- A **shared library** keeps importing its dependencies, so everything that loads
+  it shares one copy of a module's code and of the runtime state that comes with
+  it — one allocator, one context.
+
+An import states a kind explicitly with 'link:':
+
+```swag
+#import("plugin_host", link: "shared-library")
+```
+
+Asking for one shared library asks for all of them. An executable that linked one
+module in while loading another built against that same module's library would run
+two copies of it, with two allocators and two runtime contexts, and memory could
+not cross between them. So the answer covers the whole import closure or none of
+it: one 'link: "shared-library"' makes every dependency of that executable shared.
+
+An executable that still imports at run time asks for its libraries to be placed
+beside it:
 
 ```swag
 #run
@@ -97,10 +134,11 @@ An executable asks for the third copy itself:
 }
 ```
 
-The link then places every shared library the program needs beside it, so it runs
-from its own directory without the compiler. Whether a program has to stand on its
-own is a fact about the program, so it is stated in 'module.swg' and not on the
-command line: no later command can take it away.
+The link then places every shared library the program still needs beside it, and
+takes back out any that an earlier build left there and the program no longer
+imports. Whether a program has to stand on its own is a fact about the program, so
+it is stated in 'module.swg' and not on the command line: no later command can take
+it away.
 */
 
 /**

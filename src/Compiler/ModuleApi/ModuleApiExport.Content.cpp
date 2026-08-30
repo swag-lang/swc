@@ -912,6 +912,21 @@ namespace ModuleApiExport
         outContent += "#global public";
         outContent += eol;
 
+        // The native libraries this module's own code calls into travel with its interface.
+        //
+        // While a consumer only imports the module, they are the shared library's business, and it
+        // resolved them when it was linked. The moment a consumer links this module's code in
+        // instead, they become undefined symbols of that link, and nothing the consumer wrote names
+        // the library defining them: 'gui' calling 'DwmSetWindowAttribute' is what an executable
+        // ends up having to resolve against 'dwmapi'.
+        for (const Utf8& foreignLib : ctx.compiler().foreignLibs())
+        {
+            outContent += "#foreignlib(\"";
+            outContent += foreignLib;
+            outContent += "\")";
+            outContent += eol;
+        }
+
         // Split the roots into per-source-file contiguous groups (cheap, sequential).
         struct RootGroup
         {

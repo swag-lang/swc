@@ -295,6 +295,7 @@ public:
     ModuleApiFileEntries&                   prepareModuleApiPublicEntries() { return moduleApiPublicEntries_.emplace(); }
     const ModuleApiFileEntries*             moduleApiPublicEntries() const { return moduleApiPublicEntries_ ? &*moduleApiPublicEntries_ : nullptr; }
     const std::vector<fs::path>&            importedDependencyLinkDirs() const { return importedDependencyLinkDirs_; }
+    const std::vector<fs::path>&            importedDependencySharedDirs() const { return importedDependencySharedDirs_; }
     const std::vector<ModuleSetupImport>&   moduleSetupImports() const { return moduleSetupImports_; }
     const std::vector<NativeRuntimeImport>& nativeRuntimeImports() const { return nativeRuntimeImports_; }
     std::string_view                        runtimeImportLinkName(std::string_view moduleName) const;
@@ -367,6 +368,11 @@ private:
         Runtime::BuildCfgBackendKind apiBackendKind = Runtime::BuildCfgBackendKind::None;
         fs::path                     linkDir;
         fs::path                     sharedDir;
+
+        // Where this module publishes the archive of its own code, when it publishes one. The
+        // executable-wide choice below is what turns it into linkDir; a module that contributes no
+        // code of its own ('export') leaves both empty and takes part in either choice.
+        fs::path                     staticDir;
         fs::path                     sourceRoot;
     };
 
@@ -495,6 +501,13 @@ private:
     std::set<fs::path>                             compilerInputFiles_;
     std::vector<fs::path>                          importedDependencyLinkDirs_;
     std::unordered_set<fs::path>                   importedDependencyLinkDirSet_;
+
+    // Where each imported module's shared library lives. It is what the compiler loads to run that
+    // module at compile time, and it stays known even when the executable links the module's code
+    // in instead: publication reads it to take a DLL an earlier build left beside the executable
+    // back out.
+    std::vector<fs::path>                          importedDependencySharedDirs_;
+    std::unordered_set<fs::path>                   importedDependencySharedDirSet_;
     std::vector<std::unique_ptr<Utf8>>             ownedBuildCfgStrings_;
     const ModuleSetupSnapshot*                     precomputedModuleSetup_    = nullptr;
     const DependencyPlan*                          precomputedDependencyPlan_ = nullptr;

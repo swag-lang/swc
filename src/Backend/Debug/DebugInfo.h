@@ -69,6 +69,12 @@ struct DebugInfoObjectRequest
     TaskContext*                             ctx      = nullptr;
     Runtime::TargetOs                        targetOs = Runtime::TargetOs::Windows;
     fs::path                                 objectPath;
+
+    // Position of this object among the ones the module emits. It names the object exactly, where
+    // the hash of its path only names it probably: an archive splitting a module one function per
+    // member holds thousands of objects, and two colliding hashes would define the same unwind
+    // symbol twice.
+    uint32_t                                 objectIndex = 0;
     std::span<const DebugInfoFunctionRecord> functions;
     std::span<const DebugInfoDataRecord>     globals;
     std::span<const DebugInfoConstantRecord> constants;

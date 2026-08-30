@@ -5,6 +5,7 @@
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/CoffReader.h"
 #include "Backend/Micro/MachineCode.h"
+#include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeNames.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -565,8 +566,32 @@ namespace
             if (!dir.empty())
                 outDirs.push_back(dir);
 
+        // Every archive an imported module published is a candidate, named or not.
+        //
+        // The names collected above come from this artifact's own code, and they stop one module
+        // short: when a dependency arrives as an archive rather than a DLL, its own dependencies
+        // stop being its business and become undefined symbols of this link. Nothing here mentions
+        // them, so nothing would look for the archive that defines them. Loading an archive costs
+        // reading it — members are still pulled only for a symbol something asked for.
         for (const fs::path& dir : builder.compiler().importedDependencyLinkDirs())
+        {
             outDirs.push_back(dir);
+
+            std::error_code ec;
+            for (fs::directory_iterator it(dir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+            {
+                if (ec)
+                    break;
+
+                ec.clear();
+                if (!it->is_regular_file(ec) || ec)
+                    continue;
+                if (it->path().extension() != ".lib")
+                    continue;
+
+                outLibNames.insert(Utf8(it->path().filename()));
+            }
+        }
 
         for (const SourceFile* file : builder.compiler().files())
         {
@@ -1195,18 +1220,17 @@ bool PELinker::shouldCollectDebugInfo() const
     return shouldCollectLinkDebugInfo(*builder_);
 }
 
-Result PELinker::prepareStaticLibraryLink(LinkJob& outJob) const
+Result PELinker::collectArchiveMembers(std::vector<LinkArchiveMember>& outMembers) const
 {
     SWC_ASSERT(builder_ != nullptr);
 
-    outJob.output = LinkJob::Output::StaticLibrary;
-    outJob.archiveMembers.resize(builder_->objectDescriptions.size());
+    outMembers.resize(builder_->objectDescriptions.size());
     if (!canPrepareLinkInParallel() || builder_->objectDescriptions.size() <= 1)
     {
         for (uint32_t i = 0; i < builder_->objectDescriptions.size(); ++i)
         {
             const NativeObjDescription& description = builder_->objectDescriptions[i];
-            outJob.archiveMembers[i]                = {.name = Utf8(description.objPath.filename()), .bytes = description.objBytes};
+            outMembers[i]                           = {.name = Utf8(description.objPath.filename()), .bytes = description.objBytes};
         }
         return Result::Continue;
     }
@@ -1218,7 +1242,7 @@ Result PELinker::prepareStaticLibraryLink(LinkJob& outJob) const
     jobs.reserve(builder_->objectDescriptions.size());
     for (uint32_t i = 0; i < builder_->objectDescriptions.size(); ++i)
     {
-        auto                    job = std::make_unique<StaticArchiveMemberJob>(builder_->ctx(), builder_->objectDescriptions[i], outJob.archiveMembers[i]);
+        auto                    job = std::make_unique<StaticArchiveMemberJob>(builder_->ctx(), builder_->objectDescriptions[i], outMembers[i]);
         StaticArchiveMemberJob& ref = *job;
         jobs.push_back(std::move(job));
         jobMgr.enqueue(ref, JobPriority::Normal, clientId);
@@ -1227,6 +1251,34 @@ Result PELinker::prepareStaticLibraryLink(LinkJob& outJob) const
     jobMgr.waitAll(clientId);
     for (const std::unique_ptr<StaticArchiveMemberJob>& job : jobs)
         SWC_RESULT(job->result());
+    return Result::Continue;
+}
+
+Result PELinker::prepareStaticLibraryLink(LinkJob& outJob) const
+{
+    outJob.output = LinkJob::Output::StaticLibrary;
+    return collectArchiveMembers(outJob.archiveMembers);
+}
+
+// Prepares the archive a shared library publishes beside its DLL. It re-splits the same machine
+// code one function per object, so the executable that links it pulls only the functions it
+// reaches; the image the DLL was lowered from is already copied into outJob, which is what makes it
+// safe to overwrite the text offsets that lowering computed.
+Result PELinker::prepareStaticLibrarySideArchive(LinkJob& outJob) const
+{
+    SWC_ASSERT(builder_ != nullptr);
+
+    const NativeArtifactBuilder artifactBuilder(*builder_);
+    NativeArtifactPaths         paths;
+    artifactBuilder.queryPaths(paths);
+    if (paths.staticLibraryPath.empty())
+        return Result::Continue;
+
+    SWC_RESULT(artifactBuilder.partitionArchiveObjects());
+    SWC_RESULT(builder_->buildObjectBytes());
+    SWC_RESULT(collectArchiveMembers(outJob.staticLibraryMembers));
+
+    outJob.staticLibraryPath = paths.staticLibraryPath;
     return Result::Continue;
 }
 
@@ -1242,7 +1294,8 @@ Result PELinker::prepareLink(LinkJob& outJob)
         case Runtime::BuildCfgBackendKind::Executable:
             return prepareImageLink(outJob, LinkJob::Output::Executable);
         case Runtime::BuildCfgBackendKind::SharedLibrary:
-            return prepareImageLink(outJob, LinkJob::Output::SharedLibrary);
+            SWC_RESULT(prepareImageLink(outJob, LinkJob::Output::SharedLibrary));
+            return prepareStaticLibrarySideArchive(outJob);
         case Runtime::BuildCfgBackendKind::StaticLibrary:
             return prepareStaticLibraryLink(outJob);
         case Runtime::BuildCfgBackendKind::Export:

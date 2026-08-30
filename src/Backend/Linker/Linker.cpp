@@ -95,6 +95,18 @@ namespace
                 return false;
         }
 
+        // The static face of the same library: one archive of the objects this module compiled, so
+        // an executable can link the code in rather than import it. It sits in a directory of its
+        // own, next to the import library the DLL just produced under the same name.
+        if (!job.staticLibraryPath.empty())
+        {
+            ByteArray archiveBytes;
+            if (!writer.buildStaticArchive(archiveBytes, job.error, job.staticLibraryMembers))
+                return false;
+            if (!writeJobArtifact(job, job.staticLibraryPath, archiveBytes))
+                return false;
+        }
+
         return true;
     }
 

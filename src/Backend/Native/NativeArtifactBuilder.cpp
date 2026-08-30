@@ -441,6 +441,8 @@ Result NativeArtifactBuilder::prepareOutputFolders() const
     queryPaths(paths, static_cast<uint32_t>(builder_->objectDescriptions.size()));
     SWC_RESULT(createBuildDir(paths.buildDir));
     SWC_RESULT(createOutDir(paths.outDir));
+    if (!paths.staticLibraryPath.empty())
+        SWC_RESULT(createOutDir(paths.staticLibraryPath.parent_path()));
     return Result::Continue;
 }
 
@@ -529,6 +531,12 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
         outPaths.outDir = outPaths.workDir;
     outPaths.artifactPath = outPaths.outDir / std::format("{}{}", outPaths.name, outPaths.artifactExtension);
     outPaths.pdbPath      = outPaths.outDir / std::format("{}.pdb", outPaths.name);
+
+    // A shared library also publishes the archive built from the same objects, so that an
+    // executable can link this module's code in instead of importing it from the DLL.
+    const fs::path& staticLibraryOutDir = builder_->ctx().cmdLine().staticLibraryOutDir;
+    if (!staticLibraryOutDir.empty() && builder_->compiler().buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary)
+        outPaths.staticLibraryPath = staticLibraryOutDir / std::format("{}.lib", outPaths.name);
 
     if (!numObjects)
         return;
@@ -794,6 +802,37 @@ Result NativeArtifactBuilder::partitionObjects() const
         info.jobIndex                = objIndex;
         builder_->objectDescriptions[objIndex].functions.push_back(&info);
     }
+    return Result::Continue;
+}
+
+Result NativeArtifactBuilder::partitionArchiveObjects() const
+{
+    builder_->objectDescriptions.clear();
+
+    // One object per function, plus object 0 which owns the data sections and nothing else. The
+    // startup thunk belongs to executables, and an executable publishes no archive.
+    const size_t   functionCount = builder_->functionInfos.size();
+    const uint32_t numObjects    = static_cast<uint32_t>(functionCount + 1);
+    builder_->objectDescriptions.resize(numObjects);
+
+    NativeArtifactPaths paths;
+    queryPaths(paths, numObjects);
+
+    for (uint32_t i = 0; i < numObjects; ++i)
+    {
+        builder_->objectDescriptions[i].index       = i;
+        builder_->objectDescriptions[i].includeData = i == 0;
+        builder_->objectDescriptions[i].objPath     = paths.objectPaths[i];
+    }
+
+    for (size_t i = 0; i < functionCount; ++i)
+    {
+        NativeFunctionInfo& info     = builder_->functionInfos[i];
+        const uint32_t      objIndex = static_cast<uint32_t>(i + 1);
+        info.jobIndex                = objIndex;
+        builder_->objectDescriptions[objIndex].functions.push_back(&info);
+    }
+
     return Result::Continue;
 }
 

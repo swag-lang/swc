@@ -46,6 +46,23 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     Swag.assert(host.surface.cornerRadius() == 0)
 }
 
+// A native placement can keep the same backing render-target allocation. Resizing still dirties
+// the complete new client area, so maximize and borderless full screen never wait for WM_PAINT or
+// a later mouse click before publishing their first correctly sized frame.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    defer host.shutdown()
+
+    host.surface.isDirty = false
+    host.surface.setPosition({10, 20, 320, 180})
+
+    Swag.assert(host.surface.position == Math.Rectangle{10, 20, 320, 180})
+    Swag.assert(host.surface.isDirty)
+    Swag.assert(host.surface.dirtyRect == Math.Rectangle{0, 0, 320, 180})
+}
+
 #test
 {
     var host: Testing.HeadlessHost

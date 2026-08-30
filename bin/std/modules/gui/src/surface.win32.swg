@@ -673,7 +673,11 @@ impl Surface
         // a DPI-boundary WM_DPICHANGED does not rescale it (see the handler).
         .inAppPlacement = true
         defer .inAppPlacement = false
-        catch SetWindowPos(.hWnd, null, cast(s32) clampPos.x, cast(s32) clampPos.y, cast(s32) clampPos.width, cast(s32) clampPos.height, SWP_NOCOPYBITS | SWP_DEFERERASE | SWP_NOREDRAW | SWP_NOSENDCHANGING)
+
+        // Discard the previous client pixels, but let Windows invalidate the new
+        // client area. Suppressing redraw here left the compositor presenting an
+        // empty or stale framebuffer until another input message happened to paint.
+        catch SetWindowPos(.hWnd, null, cast(s32) clampPos.x, cast(s32) clampPos.y, cast(s32) clampPos.width, cast(s32) clampPos.height, SWP_NOCOPYBITS | SWP_NOSENDCHANGING)
     }
 
     // Enables or disables placement above all non-topmost windows.

@@ -483,4 +483,42 @@ impl Decoder
             c += 64 * 6 - 8
         }
     }
+
+    #[Swag.Inline]
+    mtd componentSample(mcu: const [*] u8, component, blockBase, pixelX, pixelY, maxSamplingH, maxSamplingV: s32)->u8
+    {
+        let componentX = pixelX * .compSampH[component] / maxSamplingH
+        let componentY = pixelY * .compSampV[component] / maxSamplingV
+        let block      = blockBase + (componentY >> 3) * .compSampH[component] + (componentX >> 3)
+        return mcu[block * 64 + (componentY & 7) * 8 + (componentX & 7)]
+    }
+
+    // Converts any legal three-component sampling layout not covered by the SIMD specializations.
+    // The entropy stream keeps every block in MCU component order; these ratios map one output
+    // sample back to the exact component block and sample that covers it.
+    mtd convertGeneric()
+    {
+        let row          = .maxMcuSizeY - .mcuLinesLeft
+        let maxSamplingH = .maxMcuSizeX / 8
+        let maxSamplingV = .maxMcuSizeY / 8
+        let cbBase       = .compSampH[0] * .compSampV[0]
+        let crBase       = cbBase + .compSampH[1] * .compSampV[1]
+        var destination  = .scanLine0.buffer!
+        var mcu          = cast(const [*] u8) .safeSampleBuf()
+        for .maxMcusPerRow
+        {
+            for x in .maxMcuSizeX
+            {
+                let y  = cast(s32) .componentSample(mcu, 0, 0, x, row, maxSamplingH, maxSamplingV)
+                let cb = cast(s32) .componentSample(mcu, 1, cbBase, x, row, maxSamplingH, maxSamplingV) * 2 - 256
+                let cr = cast(s32) .componentSample(mcu, 2, crBase, x, row, maxSamplingH, maxSamplingV) * 2 - 256
+                destination[0] = clamp(y + ((FixCbToB * cb + (1 << 15)) >> 16))
+                destination[1] = clamp(y + ((FixCrToG * cr + FixCbToG * cb + (1 << 15)) >> 16))
+                destination[2] = clamp(y + ((FixCrToR * cr + (1 << 15)) >> 16))
+                destination    += 3
+            }
+
+            mcu += .maxBlocksPerMcu * 64
+        }
+    }
 }

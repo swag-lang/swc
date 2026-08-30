@@ -14,7 +14,7 @@ struct Texture
     public readonly
     {
         handle:      TextureHandle = InvalidTextureHandle     // Renderer-specific resource handle.
-        pixelFormat: PixelFormat   = undefined                // Pixel encoding of the texture storage.
+        pixelFormat: PixelFormat   = undefined                // Pixel encoding; alpha formats use straight samples.
         width:       s32           = 0                        // Width, in texels.
         height:      s32           = 0                        // Height, in texels.
     }

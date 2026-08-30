@@ -164,36 +164,13 @@ impl Decoder
         if pixelCount < PackedGrayscaleThreshold
         {
             var src = .safeDstPixels()
-            var dst = cast([*] u8) result.pixels.buffer!
-            for pixelCount
-            {
-                dst[0] = src[0]
-                dst[1] = src[0]
-                dst[2] = src[0]
-                src    += 1
-                dst    += 3
-            }
+            Memory.copy(result.pixels.buffer, src, pixelCount)
 
             return
         }
 
-        var src       = .safeDstPixels()
-        var dst       = cast([*] u8) result.pixels.buffer!
-        var remaining = pixelCount
-
-        // The fourth byte is overwritten by the next pixel. Leave the final pixel scalar
-        // so no wide store reaches beyond the exact-size RGB buffer.
-        while remaining > 1
-        {
-            (cast([*] u32) dst)[0] = cast(u32) src[0] * 0x010101
-            src                    += 1
-            dst                    += 3
-            remaining              -= 1
-        }
-
-        dst[0] = src[0]
-        dst[1] = src[0]
-        dst[2] = src[0]
+        var src = .safeDstPixels()
+        Memory.copy(result.pixels.buffer, src, pixelCount)
     }
 
     mtd convertGrayscaleTransparencyRgba(result: *Image, key: u8)
@@ -207,26 +184,24 @@ impl Decoder
             {
                 let gray = src[0]
                 dst[0] = gray
-                dst[1] = gray
-                dst[2] = gray
-                dst[3] = gray == key ? 0 : 255
+                dst[1] = gray == key ? 0 : 255
                 src    += 1
-                dst    += 4
+                dst    += 2
             }
 
             return
         }
 
-        var packed: [256] u32
+        var packed: [256] u16
         for i in 256
         {
             let gray  = cast(u32) i
             let alpha = i == key ? 0'u32 : 255'u32
-            packed[i] = gray * 0x010101 | (alpha << 24)
+            packed[i] = cast(u16) (gray | (alpha << 8))
         }
 
         var src = .safeDstPixels()
-        var dst = cast([*] u32) result.pixels.buffer!
+        var dst = cast([*] u16) result.pixels.buffer!
         for pixelCount
         {
             dst[0] = packed[src[0]]
@@ -245,24 +220,16 @@ impl Decoder
             for pixelCount
             {
                 dst[0] = src[0]
-                dst[1] = src[0]
-                dst[2] = src[0]
-                dst[3] = src[1]
+                dst[1] = src[1]
                 src    += 2
-                dst    += 4
+                dst    += 2
             }
 
             return
         }
 
         var src = .safeDstPixels()
-        var dst = cast([*] u32) result.pixels.buffer!
-        for pixelCount
-        {
-            dst[0] = cast(u32) src[0] * 0x010101 | (cast(u32) src[1] << 24)
-            src    += 2
-            dst    += 1
-        }
+        Memory.copy(result.pixels.buffer, src, pixelCount * 2)
     }
 
     mtd convertRgbTransparencyRgba(result: *Image, key0, key1, key2: u8)
@@ -312,13 +279,10 @@ impl Decoder
 
             for result.width * result.height
             {
-                let gray  = read16(src)
-                let gray8 = reduce16(gray)
-                dst[0] = gray8
-                dst[1] = gray8
-                dst[2] = gray8
+                let gray = read16(src)
+                dst[as u16] = gray
                 if .seenTRSN do
-                    dst[3] = gray == transparent ? 0'u8 : 255'u8
+                    (dst + 2)[as u16] = gray == transparent ? 0'u16 : 65535'u16
                 src += 2
                 dst += result.bytesPerPixel
             }
@@ -333,40 +297,39 @@ impl Decoder
                 transparentB = read16(key + 4)
             }
 
-            if !.seenTRSN
+            for result.width * result.height
             {
-                reduce16Samples(src, dst, cast(u64) result.width * result.height * 3)
-            }
-            else
-            {
-                for result.width * result.height
-                {
-                    let r = read16(src)
-                    let g = read16(src + 2)
-                    let b = read16(src + 4)
-                    dst[0] = reduce16(r)
-                    dst[1] = reduce16(g)
-                    dst[2] = reduce16(b)
-                    dst[3] = r == transparentR and g == transparentG and b == transparentB ? 0'u8 : 255'u8
-                    src    += 6
-                    dst    += result.bytesPerPixel
-                }
+                let r = read16(src)
+                let g = read16(src + 2)
+                let b = read16(src + 4)
+                dst[as u16]       = r
+                (dst + 2)[as u16] = g
+                (dst + 4)[as u16] = b
+                if .seenTRSN do
+                    (dst + 6)[as u16] = r == transparentR and g == transparentG and b == transparentB ? 0'u16 : 65535'u16
+                src += 6
+                dst += result.bytesPerPixel
             }
 
         case 4:
             for result.width * result.height
             {
-                let gray8 = reduce16(read16(src))
-                dst[0] = gray8
-                dst[1] = gray8
-                dst[2] = gray8
-                dst[3] = reduce16(read16(src + 2))
-                src    += 4
-                dst    += 4
+                dst[as u16]       = read16(src)
+                (dst + 2)[as u16] = read16(src + 2)
+                src               += 4
+                dst               += 4
             }
 
         case 6:
-            reduce16Samples(src, dst, cast(u64) result.width * result.height * 4)
+            for result.width * result.height
+            {
+                dst[as u16]       = read16(src)
+                (dst + 2)[as u16] = read16(src + 2)
+                (dst + 4)[as u16] = read16(src + 4)
+                (dst + 6)[as u16] = read16(src + 6)
+                src               += 8
+                dst               += 8
+            }
         }
     }
 

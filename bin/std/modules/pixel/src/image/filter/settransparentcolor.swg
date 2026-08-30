@@ -14,8 +14,28 @@ public impl Image
     // A format without an alpha channel has no fully transparent pixel and is left as is.
     mtd setTransparentColor(color: Color)
     {
-        if .pixelFormat != .BGRA8 and .pixelFormat != .RGBA8 do
+        if !.pixelFormat.hasAlpha() or !.pixelFormat.isPacked() do
             return
+
+        if .alphaMode == .Premultiplied do
+            .convertAlphaTo(.Straight)
+
+        if .pixelFormat != .BGRA8 and .pixelFormat != .RGBA8
+        {
+            var context = colorPixelValue(color)
+            .transformLogicalPixels(&context)
+            {
+                let replacement = userData![as PixelValue]
+                if value.a == 0
+                {
+                    value.r = replacement.r
+                    value.g = replacement.g
+                    value.b = replacement.b
+                }
+            }
+
+            return
+        }
 
         var replacement = .pixelFormat == .BGRA8 ? cast(u32) color.b | (cast(u32) color.g << 8) | (cast(u32) color.r << 16) : cast(u32) color.r | (cast(u32) color.g << 8) | (cast(u32) color.b << 16)
         .visitVectorBytes(&replacement) #code(block, data)

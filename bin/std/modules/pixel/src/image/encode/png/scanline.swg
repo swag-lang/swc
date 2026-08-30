@@ -1,6 +1,6 @@
 //! Format: Portable Network Graphics (PNG) encoder component.
-//! Supported: 8-bit grayscale and RGB/BGR images with optional alpha, PNG filters, Deflate compression, and optional Adam7 interlacing.
-//! Not supported: APNG animation, palette generation, and non-8-bit output.
+//! Supported: 8- or 16-bit grayscale and RGB images with optional alpha, PNG filters, Deflate compression, and optional Adam7 interlacing.
+//! Not supported: APNG animation and palette generation.
 //! Role: This file owns PNG scanline packing and Adam7 pass traversal.
 //
 // @LICENCE: BSD-2-Clause
@@ -36,13 +36,13 @@ impl Encoder
 
     mtd numChannels()->s32
     {
-        switch .ihdr.colorType
-        {
-        case .Color:      return 3
-        case .AlphaColor: return 4
-        }
-
-        return 0
+        if .ihdr.colorType == .AlphaColor do
+            return 4
+        if .ihdr.colorType == .Color do
+            return 3
+        if .ihdr.colorType == .Alpha do
+            return 2
+        return 1
     }
 
     mtd calculateSubImages() fail
@@ -147,7 +147,15 @@ impl Encoder
             let ioffset = (Adam7StartX[pass] + k * Adam7DeltaX[pass]) * .pixelSize
             let src     = row + ioffset
             let dst     = .scanline! + k * .pixelSize
-            if .swapRB
+            if .encodeFlags.toBigEndian
+            {
+                for sample in .pixelSize / 2
+                {
+                    dst[sample * 2]     = src[sample * 2 + 1]
+                    dst[sample * 2 + 1] = src[sample * 2]
+                }
+            }
+            elif .swapRB
             {
                 dst[0] = src[2]
                 dst[1] = src[1]
@@ -171,7 +179,16 @@ impl Encoder
         let scanlineWidth = .subimage[pass].scanlineWidth
         if sl != .scanline
         {
-            if .swapRB and .bytesPerPixel == 3
+            if .encodeFlags.toBigEndian
+            {
+                let scanline = .scanline!
+                for var i = 0; i < scanlineWidth - 1; i += 2
+                {
+                    scanline[i]     = sl[i + 1]
+                    scanline[i + 1] = sl[i]
+                }
+            }
+            elif .swapRB and .bytesPerPixel == 3
             {
                 let scanline = .scanline!
                 for var i = 0; i < scanlineWidth - 1; i += 3

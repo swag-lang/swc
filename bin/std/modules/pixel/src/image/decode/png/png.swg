@@ -214,7 +214,6 @@ impl Decoder
                 fail InvalidFormatError{"invalid color type"}
             }
 
-            me.outChannels = 3
             if me.header.colorType & .Paletted do
                 me.inChannels = 1
             elif me.header.colorType & .Color do
@@ -224,8 +223,7 @@ impl Decoder
 
             if me.header.colorType & .Alpha
             {
-                me.inChannels  += 1
-                me.outChannels += 1
+                me.inChannels += 1
             }
 
             let inputBytesPerPixel = cast(u64) me.inChannels * (.bitDepth == 16 ? 2 : 1)
@@ -384,13 +382,22 @@ impl Decoder
         if .header.colorType & .Paletted and !.seenPLTE do
             fail InvalidFormatError{"missing PLTE chunk"}
 
-        // Initialize image depending on number of wanted channels. init() resets
+        // Initialize image at the source precision whenever Pixel has a matching storage format. init() resets
         // the whole Image payload, so keep metadata parsed from pre-IDAT chunks.
-        var metadata = #move result.metadata
-        if .outChannels == 4 do
-            result.init(cast(s32) .header.width, cast(s32) .header.height, PixelFormat.RGBA8)
-        else do
-            result.init(cast(s32) .header.width, cast(s32) .header.height, PixelFormat.RGB8)
+        var metadata  = #move result.metadata
+        let colorType = cast(u8) .header.colorType
+        var outputFormat: PixelFormat
+        switch colorType
+        {
+        case 0: outputFormat = .header.bitDepth == 16 ? (.seenTRSN ? .GrayAlpha16 : .Gray16) : (.seenTRSN ? .GrayAlpha8 : .Gray8)
+        case 2: outputFormat = .header.bitDepth == 16 ? (.seenTRSN ? .RGBA16 : .RGB16) : (.seenTRSN ? .RGBA8 : .RGB8)
+        case 3: outputFormat = .seenTRSN ? .RGBA8 : .RGB8
+        case 4: outputFormat = .header.bitDepth == 16 ? .GrayAlpha16 : .GrayAlpha8
+        case 6: outputFormat = .header.bitDepth == 16 ? .RGBA16 : .RGBA8
+        }
+
+        .outChannels = outputFormat.channels()
+        result.init(cast(s32) .header.width, cast(s32) .header.height, outputFormat)
         result.metadata = #move metadata
 
         // We are done if user does not want pixels

@@ -43,7 +43,7 @@ impl Image
         let ch = Math.min(h, .height - cy)
         Debug.assert(cw > 0 and ch > 0)
 
-        var result: retval = create(cw, ch, .pixelFormat)
+        var result: retval = create(cw, ch, .pixelFormat, alphaMode: me.alphaMode)
         .doCrop(&result, cx, cy, cw, ch)
         return result
     }

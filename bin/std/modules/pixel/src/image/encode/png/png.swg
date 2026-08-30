@@ -1,6 +1,6 @@
 //! Format: Portable Network Graphics (PNG) encoder component.
-//! Supported: 8-bit grayscale and RGB/BGR images with optional alpha, PNG filters, Deflate compression, and optional Adam7 interlacing.
-//! Not supported: APNG animation, palette generation, and non-8-bit output.
+//! Supported: 8-bit grayscale and 8- or 16-bit RGB/BGR images with optional alpha, PNG filters, Deflate compression, and optional Adam7 interlacing.
+//! Not supported: APNG animation and palette generation.
 //! Role: This file owns PNG chunk emission, validation, and top-level encoding.
 //
 // @LICENCE: BSD-2-Clause
@@ -270,8 +270,8 @@ internal impl IImageEncoder for Encoder
             .userOptions = options.buffer![as EncodeOptions]
         }
 
-        // unsupported pixel format
-        if image.pixelFormat.channels() < 3 or image.pixelFormat.bitDepth() != 8 do
+        let supported = image.pixelFormat == .Gray8 or image.pixelFormat == .GrayAlpha8 or image.pixelFormat == .Gray16 or image.pixelFormat == .GrayAlpha16 or image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8 or image.pixelFormat == .RGB8 or image.pixelFormat == .RGBA8 or image.pixelFormat == .RGB16 or image.pixelFormat == .RGBA16
+        if !supported do
             fail UnsupportedFormatError{"unsupported pixel format"}
         if image.width == 0 or image.height == 0 do
             fail UnsupportedFormatError{"unsupported size"}
@@ -283,10 +283,10 @@ internal impl IImageEncoder for Encoder
         .stored.ihdr          = true
         .ihdr.width           = image.width
         .ihdr.height          = image.height
-        .ihdr.bitDepth        = 8
-        .ihdr.colorType       = .Color
+        .ihdr.bitDepth        = image.pixelFormat.bitDepth()
+        .ihdr.colorType       = image.pixelFormat.isGrayscale() ? cast(ColorType) 0 : .Color
         .ihdr.interlaceMethod = .userOptions.interlace ? 1 : 0
-        if image.bitsPerPixel == 32 do
+        if image.pixelFormat.hasAlpha() do
             .ihdr.colorType |= .Alpha
 
         .writeChunksBeforeIDat()
@@ -309,6 +309,7 @@ internal impl IImageEncoder for Encoder
         .filteredScanline = .filteredScanlineBuf + 16
 
         .pixelSize                = image.bytesPerPixel
+        .encodeFlags.toBigEndian  = image.pixelFormat.bitDepth() == 16
         .encodeFlags.filterChoice = .Disabled
         if .userOptions.filtering and .userOptions.compressionLevel != .NoCompression do
             .encodeFlags.filterChoice = .All

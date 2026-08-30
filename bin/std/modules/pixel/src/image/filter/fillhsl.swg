@@ -22,15 +22,70 @@ public impl Image
     // Replaces the image with a color-selection gradient.
     //
     // `color` supplies channels held constant by the selected gradient. The operation
-    // supports 8-bit RGB/BGR images with or without alpha; unsupported formats are
-    // left unchanged. Existing alpha is replaced with full opacity.
+    // supports every packed image format. Existing alpha is replaced with full opacity.
     mtd fillHsl(fillType: FillHslType, color: Color = Color.fromArgb(Argb.White))
     {
-        // unsupported pixel format
-        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
+        if !.pixelFormat.isPacked() do
             return
 
         let hsl    = color.toHsl()
+        let legacy = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8) and .alphaMode == .Straight
+        if !legacy
+        {
+            var context = {fillType: fillType, color: color, hsl: hsl}
+            .transformLogicalPixels(&context)
+            {
+                let params = userData![as #decltype(context)]
+                let fx     = x / cast(f32) image.width
+                let fy     = y / cast(f32) image.height
+                var result: PixelValue
+                switch #complete params.fillType
+                {
+                case .HueVert:
+                    result = hslPixelValue(fy, 1, 0.5)
+
+                case .HueHorz:
+                    result = hslPixelValue(fx, 1, 0.5)
+
+                case .SaturationVert:
+                    result = hslPixelValue(params.hsl.h, fy, 0.5)
+
+                case .SaturationHorz:
+                    result = hslPixelValue(params.hsl.h, fx, 0.5)
+
+                case .LightnessVert:
+                    result = hslPixelValue(params.hsl.h, 1, fy)
+
+                case .LightnessHorz:
+                    result = hslPixelValue(params.hsl.h, params.hsl.s, fx)
+
+                case .HueSaturation:
+                    result = hslPixelValue(fx, fy, 0.5)
+
+                case .HueLightness:
+                    result = hslPixelValue(fx, 1, fy)
+
+                case .SaturationLightness:
+                    var lightness = 0.5 + (1 - fx) * 0.5
+                    lightness = Math.lerp(0, lightness, fy)
+                    result    = hslPixelValue(params.hsl.h, fx, lightness)
+
+                case .GreenBlue:
+                    result = {params.color.r / 255.0, fx, 1 - fy, 1}
+
+                case .RedBlue:
+                    result = {fx, params.color.g / 255.0, 1 - fy, 1}
+
+                case .RedGreen:
+                    result = {fx, 1 - fy, params.color.b / 255.0, 1}
+                }
+
+                value = result
+            }
+
+            return
+        }
+
         var swapRB = .pixelFormat == .RGB8 or .pixelFormat == .RGBA8
 
         switch #complete fillType

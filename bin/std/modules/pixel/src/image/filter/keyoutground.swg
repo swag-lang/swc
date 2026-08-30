@@ -18,7 +18,7 @@ public impl Image
     // A format without an alpha channel has nowhere to put the result and is left as is.
     mtd keyOutGround(ground, foreground: Color)
     {
-        if .pixelFormat != .BGRA8 and .pixelFormat != .RGBA8 do
+        if !.pixelFormat.hasAlpha() or !.pixelFormat.isPacked() do
             return
 
         // The axis the two colors span, and the inverse of its squared length, so the
@@ -29,6 +29,35 @@ public impl Image
         let len2 = dr * dr + dg * dg + db * db
         if len2 <= 0 do
             return
+
+        let legacy = (.pixelFormat == .BGRA8 or .pixelFormat == .RGBA8) and .alphaMode == .Straight
+        if !legacy
+        {
+            let groundValue     = colorPixelValue(ground)
+            let foregroundValue = colorPixelValue(foreground)
+            var context         = {
+                ground: groundValue,
+                foreground: foregroundValue,
+                dr: foregroundValue.r - groundValue.r,
+                dg: foregroundValue.g - groundValue.g,
+                db: foregroundValue.b - groundValue.b,
+                inverseLength: 1.0 / ((foregroundValue.r - groundValue.r) * (foregroundValue.r - groundValue.r) +
+                                      (foregroundValue.g - groundValue.g) * (foregroundValue.g - groundValue.g) +
+                                      (foregroundValue.b - groundValue.b) * (foregroundValue.b - groundValue.b))}
+            .transformLogicalPixels(&context)
+            {
+                let params = userData![as #decltype(context)]
+                let amount = ((value.r - params.ground.r) * params.dr +
+                              (value.g - params.ground.g) * params.dg +
+                              (value.b - params.ground.b) * params.db) * params.inverseLength
+                value.r = params.foreground.r
+                value.g = params.foreground.g
+                value.b = params.foreground.b
+                value.a *= Math.saturate(amount)
+            }
+
+            return
+        }
 
         let bgra          = .pixelFormat == .BGRA8
         var axis: [8] f32 = undefined

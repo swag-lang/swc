@@ -172,4 +172,9 @@ public impl Image
     Image.registerDecoder'(Tiff.Decoder)()
     Image.registerDecoder'(Ico.Decoder)()
     Image.registerDecoder'(Webp.Decoder)()
+    Image.registerDecoder'(Qoi.Decoder)()
+    Image.registerDecoder'(Psd.Decoder)()
+    Image.registerDecoder'(Dds.Decoder)()
+    Image.registerDecoder'(Ktx2.Decoder)()
+    Image.registerDecoder'(Exr.Decoder)()
 }

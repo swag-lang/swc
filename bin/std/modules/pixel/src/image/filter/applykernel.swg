@@ -35,9 +35,53 @@ impl Image
     #[Swag.Safety(.All, false)]
     mtd doKernel(dstImage: *Image, kernel: Kernel)
     {
-        // unsupported pixel format
-        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
+        if !.pixelFormat.isPacked() do
             return
+
+        let legacy = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8) and .alphaMode == .Straight
+        if !legacy
+        {
+            var context = {kernel: cast(const [..] s32) kernel, dstImage: dstImage}
+            .visitPixels(&context)
+            {
+                let params       = userData![as #decltype(context)]
+                let radius       = params.kernel[0] / 2
+                var coefficients = params.kernel.buffer + 2
+                var sum          = PixelValue{0, 0, 0, 0}
+                for var dy = -radius; dy <= radius; dy += 1
+                {
+                    let sourceY   = Math.clamp(y + dy, 0, image.height - 1)
+                    let sourceRow = image.pixels.buffer! + cast(u64) sourceY * image.rowStride
+                    for var dx = -radius; dx <= radius; dx += 1
+                    {
+                        let sourceX     = Math.clamp(x + dx, 0, image.width - 1)
+                        let source      = sourceRow + cast(u64) sourceX * image.bytesPerPixel
+                        let sample      = readLogicalPixelValue(source, image.pixelFormat, image.alphaMode)
+                        let coefficient = cast(f32) coefficients[]
+                        sum.r        += sample.r * coefficient
+                        sum.g        += sample.g * coefficient
+                        sum.b        += sample.b * coefficient
+                        coefficients += 1
+                    }
+                }
+
+                let divisor = params.kernel[1]
+                if divisor > 1
+                {
+                    let scale = cast(f32) divisor
+                    sum.r /= scale
+                    sum.g /= scale
+                    sum.b /= scale
+                }
+
+                let current = readLogicalPixelValue(pix, image.pixelFormat, image.alphaMode)
+                sum.a = current.a
+                let destination = params.dstImage.pixels.buffer! + cast(u64) y * params.dstImage.rowStride + cast(u64) x * params.dstImage.bytesPerPixel
+                writeLogicalPixelValue(destination, params.dstImage.pixelFormat, params.dstImage.alphaMode, sum)
+            }
+
+            return
+        }
 
         var f = {kernel: cast(const [..] s32) kernel, dstImage: dstImage}
         .visitPixels(&f)
@@ -120,7 +164,7 @@ impl Image
     public mtd withKernelApplied(kernel: Kernel)->Image
     {
         Debug.assert(.pixels.buffer != null)
-        var result: retval = create(.width, .height, .pixelFormat)
+        var result: retval = create(.width, .height, .pixelFormat, alphaMode: me.alphaMode)
         .doKernel(&result, kernel)
         return result
     }

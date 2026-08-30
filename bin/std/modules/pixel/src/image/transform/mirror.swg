@@ -36,7 +36,20 @@ impl Image
             return
         }
 
-        Debug.assert(false)
+        var context = {src: me, dst: dstImage}
+        Jobs.parallelFor(cast(u32) .height, &context) #code(row, data)
+        {
+            let params = cast(*#decltype(context)) data!
+            let src    = cast(const *Image) params.src
+            let dst    = cast(*Image) params.dst
+            let srcRow = src.pixels.buffer! + cast(u64) row * src.rowStride
+            let dstRow = dst.pixels.buffer! + cast(u64) row * dst.rowStride
+            for x in src.width
+            {
+                let source = srcRow + cast(u64) (src.width - x - 1) * src.bytesPerPixel
+                Memory.copy(dstRow + cast(u64) x * dst.bytesPerPixel, source, src.bytesPerPixel)
+            }
+        }
     }
 
     // Flip image horizontally
@@ -52,7 +65,7 @@ impl Image
     public mtd const mirrored()->Image
     {
         Debug.assert(.pixels.buffer != null)
-        var result: retval = create(.width, .height, .pixelFormat)
+        var result: retval = create(.width, .height, .pixelFormat, alphaMode: me.alphaMode)
         .doMirror(&result)
         return result
     }

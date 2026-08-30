@@ -13,52 +13,38 @@ impl Image
     #[Swag.Safety(.All, false)]
     mtd const doTurn(dstImage: *Image, angle: Rotation)
     {
-        #[Swag.Mixin]
-        func(BPP: u8) doIt()
+        var f = {img: me, angle: angle}
+        dstImage.visitPixels(&f)
         {
-            var f = {img: me}
-            switch angle
+            let data     = cast(*#decltype(f)) userData!
+            let srcImage = cast(const *Image) data.img
+            var nx, ny: s32
+            switch data.angle
             {
             case .Clockwise90:
-                dstImage.visitPixels(&f)
-                {
-                    let data     = cast(*#decltype(f)) userData!
-                    let srcImage = cast(const *Image) data.img
-                    let nx       = srcImage.width - y - 1
-                    let ny       = x
-                    let pixSrc   = srcImage.pixels.buffer + (nx * srcImage.bytesPerPixel) + (ny * srcImage.rowStride)
-                    copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) pixSrc!)
-                }
+                nx = srcImage.width - y - 1
+                ny = x
 
             case .HalfTurn:
-                dstImage.visitPixels(&f)
-                {
-                    let data     = cast(*#decltype(f)) userData!
-                    let srcImage = cast(const *Image) data.img
-                    let nx       = srcImage.width - x - 1
-                    let ny       = srcImage.height - y - 1
-                    let pixSrc   = srcImage.pixels.buffer + (nx * srcImage.bytesPerPixel) + (ny * srcImage.rowStride)
-                    copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) pixSrc!)
-                }
+                nx = srcImage.width - x - 1
+                ny = srcImage.height - y - 1
 
             case .Clockwise270:
-                dstImage.visitPixels(&f)
-                {
-                    let data     = cast(*#decltype(f)) userData!
-                    let srcImage = cast(const *Image) data.img
-                    let nx       = y
-                    let ny       = srcImage.height - x - 1
-                    let pixSrc   = srcImage.pixels.buffer + (nx * srcImage.bytesPerPixel) + (ny * srcImage.rowStride)
-                    copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) pixSrc!)
-                }
+                nx = y
+                ny = srcImage.height - x - 1
             }
-        }
 
-        switch .bitsPerPixel
-        {
-        case 24: doIt'24()
-        case 32: doIt'32()
-        default: Debug.assert(false)
+            let pixSrc = srcImage.pixels.buffer! + cast(u64) nx * srcImage.bytesPerPixel + cast(u64) ny * srcImage.rowStride
+            if srcImage.bytesPerPixel == 4 do
+                pix[as u32] = pixSrc[as u32]
+            elif srcImage.bytesPerPixel == 3
+            {
+                pix[0] = pixSrc[0]
+                pix[1] = pixSrc[1]
+                pix[2] = pixSrc[2]
+            }
+            else do
+                Memory.copy(pix, pixSrc, srcImage.bytesPerPixel)
         }
     }
 
@@ -81,9 +67,9 @@ impl Image
 
         var result: retval
         if angle == .HalfTurn do
-            result = create(.width, .height, .pixelFormat)
+            result = create(.width, .height, .pixelFormat, alphaMode: me.alphaMode)
         else do
-            result = create(.height, .width, .pixelFormat)
+            result = create(.height, .width, .pixelFormat, alphaMode: me.alphaMode)
         .doTurn(&result, angle)
         return result
     }

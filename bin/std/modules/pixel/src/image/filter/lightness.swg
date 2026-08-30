@@ -5,8 +5,22 @@ public impl Image
     // Change the lightness. 'factor' is [-1, 1]
     mtd lightness(factor: f32 = 0.5)
     {
-        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
+        if !.pixelFormat.isPacked() do
             return
+
+        if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied
+        {
+            var context = Math.clamp(factor, -1.0, 1.0)
+            .transformLogicalPixels(&context)
+            {
+                let adjustment = userData![as f32]
+                value.r += adjustment
+                value.g += adjustment
+                value.b += adjustment
+            }
+
+            return
+        }
 
         let level     = cast(s32) (Math.clamp(factor, -1.0, 1.0) * 255.0)
         let keepAlpha = .pixelFormat.hasAlpha()

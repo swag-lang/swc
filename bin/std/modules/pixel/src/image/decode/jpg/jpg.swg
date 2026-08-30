@@ -25,6 +25,7 @@ private
     const YH2V2           = 4
     const RGBH1V1         = 5
     const CmykH1V1        = 6
+    const YGeneric        = 7
     const Failed          = -1
     const Done            = 1
     const Okay            = 0

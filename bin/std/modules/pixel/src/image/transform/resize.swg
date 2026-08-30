@@ -47,7 +47,7 @@ public impl Image
         }
 
         using ResizeTools
-        var result: retval = create(nw, nh, .pixelFormat)
+        var result: retval = create(nw, nh, .pixelFormat, alphaMode: me.alphaMode)
         ResizeTools.doResize(&result, me, mode)
         return result
     }
@@ -351,6 +351,56 @@ namespace ResizeTools
         }
     }
 
+    #[Swag.Safety(.All, false)]
+    func scaleRowGeneric(imgDst: *Image, imgSrc: const *Image, row: s64, contrib: *LineContrib)
+    {
+        let srcRow = imgSrc.pixels.buffer! + cast(u64) row * imgSrc.rowStride
+        let dstRow = imgDst.pixels.buffer! + cast(u64) row * imgDst.rowStride
+        for x in imgDst.width
+        {
+            let contribution = contrib.row[x]
+            var sum          = PixelValue{0, 0, 0, 0}
+            var weight       = contribution.weights.buffer!
+            for var sourceX = contribution.left; sourceX <= contribution.right; sourceX += 1
+            {
+                let value  = readPixelValue(srcRow + cast(u64) sourceX * imgSrc.bytesPerPixel, imgSrc.pixelFormat)
+                let factor = cast(f32) weight[]
+                sum.r  += value.r * factor
+                sum.g  += value.g * factor
+                sum.b  += value.b * factor
+                sum.a  += value.a * factor
+                weight += 1
+            }
+
+            writePixelValue(dstRow + cast(u64) x * imgDst.bytesPerPixel, imgDst.pixelFormat, sum)
+        }
+    }
+
+    #[Swag.Safety(.All, false)]
+    func scaleColGeneric(imgDst: *Image, imgSrc: const *Image, col: s64, contrib: *LineContrib)
+    {
+        let srcCol = imgSrc.pixels.buffer! + cast(u64) col * imgSrc.bytesPerPixel
+        let dstCol = imgDst.pixels.buffer! + cast(u64) col * imgDst.bytesPerPixel
+        for y in imgDst.height
+        {
+            let contribution = contrib.row[y]
+            var sum          = PixelValue{0, 0, 0, 0}
+            var weight       = contribution.weights.buffer!
+            for var sourceY = contribution.left; sourceY <= contribution.right; sourceY += 1
+            {
+                let value  = readPixelValue(srcCol + cast(u64) sourceY * imgSrc.rowStride, imgSrc.pixelFormat)
+                let factor = cast(f32) weight[]
+                sum.r  += value.r * factor
+                sum.g  += value.g * factor
+                sum.b  += value.b * factor
+                sum.a  += value.a * factor
+                weight += 1
+            }
+
+            writePixelValue(dstCol + cast(u64) y * imgDst.rowStride, imgDst.pixelFormat, sum)
+        }
+    }
+
     func scaleCol(imgDst: *Image, imgSrc: const *Image, rmode: Image.ResizeMode)
     {
         let sh      = cast(s64) imgSrc.height
@@ -363,7 +413,12 @@ namespace ResizeTools
             if !data do
                 return
             let params = cast(*#decltype(f)) (data)
-            scaleCol(params.imgDst, params.imgSrc, cast(s64) index, params.contrib)
+            let format = params.imgSrc.pixelFormat
+            let legacy = format == .BGR8 or format == .BGRA8 or format == .RGB8 or format == .RGBA8
+            if legacy do
+                scaleCol(params.imgDst, params.imgSrc, cast(s64) index, params.contrib)
+            else do
+                scaleColGeneric(params.imgDst, params.imgSrc, cast(s64) index, params.contrib)
         }
     }
 
@@ -379,13 +434,18 @@ namespace ResizeTools
             if !data do
                 return
             let params = cast(*#decltype(f)) (data)
-            scaleRow(params.imgDst, params.imgSrc, cast(s64) index, params.contrib)
+            let format = params.imgSrc.pixelFormat
+            let legacy = format == .BGR8 or format == .BGRA8 or format == .RGB8 or format == .RGBA8
+            if legacy do
+                scaleRow(params.imgDst, params.imgSrc, cast(s64) index, params.contrib)
+            else do
+                scaleRowGeneric(params.imgDst, params.imgSrc, cast(s64) index, params.contrib)
         }
     }
 
     func doResizeFilter(dstImage: *Image, srcImage: const *Image, mode: Image.ResizeMode)
     {
-        var tmp = Image.create(dstImage.width, srcImage.height, srcImage.pixelFormat)
+        var tmp = Image.create(dstImage.width, srcImage.height, srcImage.pixelFormat, alphaMode: srcImage.alphaMode)
         scaleRow(&tmp, srcImage, mode)
         scaleCol(dstImage, &tmp, mode)
     }
@@ -411,9 +471,21 @@ namespace ResizeTools
 
         switch srcImage.bitsPerPixel
         {
-        case 24: doIt'24()
-        case 32: doIt'32()
-        default: Debug.assert(false)
+        case 24:
+            doIt'24()
+
+        case 32:
+            doIt'32()
+
+        default:
+            dstImage.visitPixels(&f)
+            {
+                let params = cast(*#decltype(f)) userData!
+                let fx     = cast(u32) (x * params.xscale)
+                let fy     = cast(u32) (y * params.yscale)
+                let pixSrc = params.srcImage.pixels.buffer! + cast(u64) fx * image.bytesPerPixel + cast(u64) fy * params.srcImage.rowStride
+                Memory.copy(pix, pixSrc, image.bytesPerPixel)
+            }
         }
     }
 

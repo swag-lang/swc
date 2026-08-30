@@ -5,8 +5,20 @@ public impl Image
     // Invert colors
     mtd invert()
     {
-        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
+        if !.pixelFormat.isPacked() do
             return
+
+        if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied
+        {
+            .transformLogicalPixels()
+            {
+                value.r = 1.0 - value.r
+                value.g = 1.0 - value.g
+                value.b = 1.0 - value.b
+            }
+
+            return
+        }
 
         let keepAlpha = .pixelFormat.hasAlpha()
         if keepAlpha

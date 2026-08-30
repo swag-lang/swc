@@ -96,7 +96,13 @@ public impl Image
         // The registry only ever holds types that implement the interface, so the table resolves.
         let itf = Swag.makeInterface(ptrEncoder, safeFound.type, IImageEncoder)!
         var result: retval
-        itf.encode(&result, me, options)
+        if .alphaMode == .Premultiplied
+        {
+            let straight = .convertedAlphaTo(.Straight)
+            itf.encode(&result, straight, options)
+        }
+        else do
+            itf.encode(&result, me, options)
         return result
     }
 
@@ -134,4 +140,8 @@ public impl Image
     Image.registerEncoder'(Tiff.Encoder)()
     Image.registerEncoder'(Ico.Encoder)()
     Image.registerEncoder'(Webp.Encoder)()
+    Image.registerEncoder'(Qoi.Encoder)()
+    Image.registerEncoder'(Dds.Encoder)()
+    Image.registerEncoder'(Ktx2.Encoder)()
+    Image.registerEncoder'(Exr.Encoder)()
 }

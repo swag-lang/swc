@@ -14,13 +14,27 @@ public impl Image
     // Transform image to grayscale, with a given factor
     mtd grayscale(factor: f32 = 1)
     {
-        // unsupported pixel format
-        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
+        if !.pixelFormat.isPacked() do
             return
 
         let f = Math.saturate(factor)
         if f == 0 do
             return
+
+        if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied
+        {
+            var context = f
+            .transformLogicalPixels(&context)
+            {
+                let blend = userData![as f32]
+                let gray  = value.r * 0.2126 + value.g * 0.7152 + value.b * 0.0722
+                value.r = Math.lerp(value.r, gray, blend)
+                value.g = Math.lerp(value.g, gray, blend)
+                value.b = Math.lerp(value.b, gray, blend)
+            }
+
+            return
+        }
 
         if f == 1
         {

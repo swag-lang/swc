@@ -5,9 +5,24 @@ public impl Image
     // Fade to a given color. 'factor' is [0, 1]
     mtd fade(color: Color, factor: f32 = 0.5)
     {
-        // unsupported pixel format
-        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
+        if !.pixelFormat.isPacked() do
             return
+
+        if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied
+        {
+            var target = PixelValue{cast(f32) color.r / 255.0, cast(f32) color.g / 255.0,
+                                    cast(f32) color.b / 255.0, cast(f32) color.a / 255.0}
+            var context = {target: target, factor: factor}
+            .transformLogicalPixels(&context)
+            {
+                let params = userData![as #decltype(context)]
+                value.r = Math.lerp(value.r, params.target.r, params.factor)
+                value.g = Math.lerp(value.g, params.target.g, params.factor)
+                value.b = Math.lerp(value.b, params.target.b, params.factor)
+            }
+
+            return
+        }
 
         var convArrR: [256] u8 = undefined
         var convArrG: [256] u8 = undefined

@@ -27,7 +27,7 @@ impl Image
     public mtd const flipped()->Image
     {
         Debug.assert(.pixels.buffer != null)
-        var result: retval = create(.width, .height, .pixelFormat)
+        var result: retval = create(.width, .height, .pixelFormat, alphaMode: me.alphaMode)
         .doFlip(&result)
         return result
     }

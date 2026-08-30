@@ -96,9 +96,8 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     }
 }
 
-// ffmpeg codes 4:2:2 and 4:4:4 Motion JPEG with two chroma blocks per minimum coded unit, which
-// the Pixel JPEG decoder does not read. The container is opened all the same — the geometry, the
-// rate and the frame table all come out — and only decoding a picture reports the limit.
+// ffmpeg codes 4:2:2 and 4:4:4 Motion JPEG with chroma grids that differ from the usual 4:2:0
+// layout. Decode all three through the same public path and compare them with independent output.
 #test
 {
     const Files = ["ffmpeg-mjpeg-422.avi", "ffmpeg-mjpeg-444.avi"]
@@ -108,8 +107,13 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
         Swag.assert(reader.width() == 64 and reader.height() == 48)
         Swag.assert(reader.frameCount() == 10)
 
-        discard catch reader.decodeFrame(0) as sampling
-        Swag.assert(sampling is UnsupportedFormatError)
+        var frame: Image
+        const Sampled: [3] u64 = [0, 1, 9]
+        for index in Sampled
+        {
+            expect reader.decodeFrameInto(&frame, index)
+            videoAssertFixtureFrame(frame, index, tolerance: 4)
+        }
     }
 }
 

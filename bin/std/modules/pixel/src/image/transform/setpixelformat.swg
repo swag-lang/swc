@@ -9,6 +9,29 @@ impl Image
 {
     mtd const doChangePf(dstImage: *Image)
     {
+        let srcLegacy = .pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8
+        let dstLegacy = dstImage.pixelFormat == .BGR8 or dstImage.pixelFormat == .BGRA8 or dstImage.pixelFormat == .RGB8 or dstImage.pixelFormat == .RGBA8
+        if !srcLegacy or !dstLegacy or .alphaMode != dstImage.alphaMode
+        {
+            var genericContext = {src: me, dst: dstImage}
+            Jobs.parallelFor(cast(u32) .height, &genericContext) #code(row, data)
+            {
+                let params = cast(*#decltype(genericContext)) data!
+                let src    = cast(const *Image) params.src
+                let dst    = cast(*Image) params.dst
+                let srcRow = src.pixels.buffer! + cast(u64) row * src.rowStride
+                let dstRow = dst.pixels.buffer! + cast(u64) row * dst.rowStride
+                for x in src.width
+                {
+                    let source = srcRow + cast(u64) x * src.bytesPerPixel
+                    let target = dstRow + cast(u64) x * dst.bytesPerPixel
+                    writeLogicalPixelValue(target, dst.pixelFormat, dst.alphaMode, readLogicalPixelValue(source, src.pixelFormat, src.alphaMode))
+                }
+            }
+
+            return
+        }
+
         var context = {src: me, dst: dstImage}
         Jobs.parallelFor(cast(u32) .height, &context) #code(row, data)
         {
@@ -85,7 +108,11 @@ impl Image
         }
     }
 
-    // Change image pixel format
+    // Converts the image in place to another packed pixel representation.
+    //
+    // Integer destinations clamp and quantize, grayscale destinations use luminance,
+    // adding alpha creates opaque samples, and removing alpha discards it. Alpha
+    // association is retained whenever both formats store alpha.
     public mtd convertTo(newPf: PixelFormat)
     {
         Debug.assert(.pixels.buffer != null)
@@ -93,12 +120,15 @@ impl Image
         if newPf == .pixelFormat do
             return
 
-        .allocWorkingBuffer(.width, .height, newPf)
+        let targetAlphaMode = newPf.hasAlpha() and .pixelFormat.hasAlpha() ? .alphaMode : AlphaMode.Straight
+        .allocWorkingBuffer(.width, .height, newPf, targetAlphaMode)
         .doChangePf(.safeWorkingBuffer())
         .applyWorkingBuffer()
     }
 
-    // Change image pixel format
+    // Returns a copy converted to another packed pixel representation.
+    //
+    // Conversion semantics match [[Image.convertTo]].
     public mtd const convertedTo(newPf: PixelFormat)->Image
     {
         Debug.assert(.pixels.buffer != null)
@@ -106,7 +136,8 @@ impl Image
         if newPf == .pixelFormat do
             return me
 
-        var result: retval = create(.width, .height, newPf)
+        let targetAlphaMode = newPf.hasAlpha() and .pixelFormat.hasAlpha() ? .alphaMode : AlphaMode.Straight
+        var result: retval  = create(.width, .height, newPf, alphaMode: targetAlphaMode)
         .doChangePf(&result)
         return result
     }

@@ -11,9 +11,8 @@ and a bounded audio queue.
 What the module competes with is ffmpeg's demuxers, and the distance is measured in formats rather
 than in design: what is missing is decoders.
 
-The picture codec of an AVI stream is the Pixel one, so what Motion JPEG this module reads is
-decided there — [pixel.image.001](pixel.image.md#pixelimage001--jpeg-chroma-sampling-is-limited-to-one-block-per-unit)
-is the layout it does not read yet.
+The picture codec of an AVI stream is the Pixel one. Its generic minimum-coded-unit walker accepts
+the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output.
 
 ### std.video.001 — H.264 decoding costs about twice what FFmpeg does per picture
 

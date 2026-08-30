@@ -52,7 +52,7 @@ impl Image
     public mtd const expanded(l, t, r, b: s32, color: Color = Color.fromArgb(Argb.White))->Image
     {
         let {cw, ch}       = .getWH(l, t, r, b)
-        var result: retval = create(cw, ch, .pixelFormat)
+        var result: retval = create(cw, ch, .pixelFormat, alphaMode: me.alphaMode)
         .doExpand(&result, l, t, r, b, color)
         return result
     }

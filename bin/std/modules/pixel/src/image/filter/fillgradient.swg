@@ -10,9 +10,28 @@ public impl Image
     // Fill with an horizontal gradient from 'color0' to 'color1'
     mtd fillGradient(color0, color1: Color)
     {
-        // unsupported pixel format
-        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
+        if !.pixelFormat.isPacked() do
             return
+
+        let legacy = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8) and .alphaMode == .Straight
+        if !legacy
+        {
+            var context = {color0: color0, color1: color1}
+            .transformLogicalPixels(&context)
+            {
+                let params = userData![as #decltype(context)]
+                let factor = image.width > 1 ? x / cast(f32) (image.width - 1) : 0
+                let first  = colorPixelValue(params.color0)
+                let second = colorPixelValue(params.color1)
+                value = {
+                    Math.lerp(first.r, second.r, factor),
+                    Math.lerp(first.g, second.g, factor),
+                    Math.lerp(first.b, second.b, factor),
+                    Math.lerp(first.a, second.a, factor)}
+            }
+
+            return
+        }
 
         #[Swag.Mixin]
         mtd(PF: PixelFormat) doIt()
@@ -50,11 +69,35 @@ public impl Image
     // Fill with a gradient with a different color at each corner
     mtd fillGradient(topLeft, topRight, bottomLeft, bottomRight: Color)
     {
-        // unsupported pixel format
-        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
+        if !.pixelFormat.isPacked() do
             return
 
-        var ctx = FillGradient4Context{topLeft, topRight, bottomLeft, bottomRight}
+        var ctx    = FillGradient4Context{topLeft, topRight, bottomLeft, bottomRight}
+        let legacy = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8) and .alphaMode == .Straight
+        if !legacy
+        {
+            .transformLogicalPixels(&ctx)
+            {
+                let colors      = userData![as FillGradient4Context]
+                let factor0     = image.width > 1 ? x / cast(f32) (image.width - 1) : 0
+                let factor1     = image.height > 1 ? y / cast(f32) (image.height - 1) : 0
+                let topLeft     = colorPixelValue(colors.topLeft)
+                let topRight    = colorPixelValue(colors.topRight)
+                let bottomLeft  = colorPixelValue(colors.bottomLeft)
+                let bottomRight = colorPixelValue(colors.bottomRight)
+                let lower       = PixelValue{
+                    Math.lerp(bottomLeft.r, bottomRight.r, factor0), Math.lerp(bottomLeft.g, bottomRight.g, factor0),
+                    Math.lerp(bottomLeft.b, bottomRight.b, factor0), Math.lerp(bottomLeft.a, bottomRight.a, factor0)}
+                let upper = PixelValue{
+                    Math.lerp(topLeft.r, topRight.r, factor0), Math.lerp(topLeft.g, topRight.g, factor0),
+                    Math.lerp(topLeft.b, topRight.b, factor0), Math.lerp(topLeft.a, topRight.a, factor0)}
+                value = {
+                    Math.lerp(lower.r, upper.r, factor1), Math.lerp(lower.g, upper.g, factor1),
+                    Math.lerp(lower.b, upper.b, factor1), Math.lerp(lower.a, upper.a, factor1)}
+            }
+
+            return
+        }
 
         #[Swag.Mixin]
         mtd(PF: PixelFormat) doIt()

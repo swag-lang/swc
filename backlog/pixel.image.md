@@ -16,9 +16,8 @@ ships; history lives in git, not here.
 
 This is the strongest module in the tree, and several parts of it are ahead of the field.
 
-- **Codecs**: eight decoders and eight encoders — BMP, GIF, ICO, JPEG including progressive, PNG,
-  TGA, TIFF, WebP with both the lossless and VP8 paths. Round-tripping eight formats is more than
-  stb offers and more than most graphics libraries carry at all.
+- **Codecs**: thirteen decoders and twelve encoders — BMP, DDS, EXR, GIF, ICO, JPEG including
+  progressive, KTX2, PNG, PSD import, QOI, TGA, TIFF, and WebP with both the lossless and VP8 paths.
 - **Computational geometry**: `poly/` has boolean path operations, path offsetting, and Delaunay
   triangulation. Skia exposes far less of this and Cairo none.
 - **Math typesetting**: `math/expression.swg` and `math/layout.swg` implement TeX-style
@@ -36,24 +35,6 @@ The gaps are in composition fidelity, color, and the GPU backend.
 ---
 
 ## Tier A — Composable image effects
-
-### pixel.image.001 — JPEG chroma sampling is limited to one block per unit
-
-- Problem: `Jpg.Decoder` recognizes four layouts by their sampling numbers, and every one of them
-  needs the two chroma components to sample `1x1`. That covers every still image in practice, and
-  not the Motion JPEG ffmpeg writes: its 4:2:2 and 4:4:4 frames sample chroma `1x2`, so they are
-  refused with `JPEG chroma sampling of 1x2 is not supported`.
-- Consequence: `std/video` opens such an AVI, reports its geometry, its rate and its frame table,
-  and then cannot show a single picture — and ffmpeg is the most common producer of these files.
-  `bin/std/modules/video/src/tests/datas/ffmpeg-mjpeg-422.avi` and its 4:4:4 sibling
-  reproduce it, and the tests in `avi.test.swg` assert the refusal today.
-- Note that the sampling factors cannot simply be reduced by their common divisor: they decide how
-  blocks are grouped into a minimum coded unit, so changing them changes the order of the entropy
-  coded stream and decodes the frame to noise.
-- Fix by walking a minimum coded unit and upsampling chroma from the sampling factors themselves,
-  instead of dispatching to four hand-written converters. Complete when both fixtures decode to
-  the same pictures as their 4:2:0 sibling.
-- Related: [std.video.md](std.video.md)
 
 ### pixel.image.002 — No image filter graph
 
@@ -136,44 +117,6 @@ Implement `symbol` instancing and viewport behavior independently of ordinary `u
 
 ---
 
-## Tier B — Pixel precision and representation
-
-### pixel.image.013 — No 16-bit integer pixel formats
-
-- `PixelFormat` is `BGR8`, `BGRA8`, `RGB8`, `RGBA8`. Add 16-bit integer RGB/RGBA formats with codec,
-  filter, conversion, and render-target behavior stated.
-- Consequence: no HDR imaging, no high-precision intermediate for a filter chain, and no headroom
-  in the render targets that pixel.image.002 would introduce. A multi-stage effect graph quantising to
-  eight bits at every step is where banding comes from.
-- Related: pixel.image.014, pixel.image.016, pixel.image.017
-
-### pixel.image.014 — No half-float pixel formats
-
-Add half-float formats with defined NaN, infinity, conversion, and render-target semantics.
-
-- Related: pixel.image.013, pixel.image.018, pixel.image.021, pixel.image.030, pixel.image.015
-
-### pixel.image.015 — No full-float pixel formats
-
-Add full-float formats independently of half precision, preserving the same conversion and
-render-target contract.
-
-- Related: pixel.image.014, pixel.image.030
-
-### pixel.image.016 — No single-channel pixel format
-
-Add grayscale/mask storage suitable for distance fields and effect masks without expanding each
-sample to RGB.
-
-- Related: pixel.image.013, pixel.image.009
-
-### pixel.image.017 — Premultiplication is not represented in pixel formats
-
-Make straight versus premultiplied alpha explicit in the type or format contract and test every
-conversion boundary.
-
-- Related: pixel.image.013, pixel.image.018
-
 ## Tier B — Colour management and display range
 
 ### pixel.image.018 — No colour management
@@ -184,7 +127,7 @@ conversion boundary.
   standard cause of gradients and antialiased edges reading darker than they should — so this is a
   fidelity question, not a checkbox. Skia and Direct2D both take a position on it; this module
   takes none, which means the caller cannot take one either.
-- Related: pixel.image.014, pixel.image.019, pixel.image.020, pixel.image.021
+- Related: pixel.image.019, pixel.image.020, pixel.image.021
 
 ### pixel.image.019 — No ICC profile handling
 
@@ -203,7 +146,7 @@ Let images and surfaces declare a wide-gamut space such as Display P3 and conver
 
 Define HDR surface formats, transfer functions, luminance metadata, and tone-mapping boundaries.
 
-- Related: pixel.image.014, pixel.image.020
+- Related: pixel.image.020
 
 ---
 
@@ -236,23 +179,15 @@ completion.
 
 ## Tier C — Image and texture codecs
 
-### pixel.image.025 — No QOI codec
-
-Add QOI encoding and decoding as the smallest remaining general-purpose codec.
-
-- Related: pixel.image.026, pixel.image.027, pixel.image.028, pixel.image.029, pixel.image.030, pixel.image.031
-
 ### pixel.image.026 — No AVIF codec
 
 Add AVIF decoding and encoding as its own dependency and color-management decision.
 
-- Related: pixel.image.018, pixel.image.025
+- Related: pixel.image.018
 
 ### pixel.image.027 — No JPEG XL codec
 
 Add JPEG XL decoding and encoding independently of AVIF.
-
-- Related: pixel.image.025
 
 ### pixel.image.028 — No DDS texture container
 
@@ -265,19 +200,6 @@ Read and write DDS metadata and supported block-compressed payloads without coup
 Read and write KTX2 and define which GPU-compressed formats can remain compressed through upload.
 
 - Related: platform.portability.066, pixel.image.028
-
-### pixel.image.030 — No EXR codec
-
-Add OpenEXR-compatible high-dynamic-range image I/O after floating-point formats exist.
-
-- Related: pixel.image.014
-
-### pixel.image.031 — No PSD importer
-
-Import a documented PSD subset, including how layers, masks, color modes, and unsupported effects
-map into Pixel structures.
-
-- Related: pixel.image.002, pixel.image.025
 
 ## Tier C — Geometry and font resources
 

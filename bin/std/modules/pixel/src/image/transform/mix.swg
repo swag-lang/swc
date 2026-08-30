@@ -40,7 +40,7 @@ impl Image
             let dstRow = dst.pixels.buffer! + cast(u64) (params.dstY + row) * dst.rowStride + cast(u64) params.dstX * dst.bytesPerPixel
             let srcRow = src.pixels.buffer! + cast(u64) (params.srcY + row) * src.rowStride + cast(u64) params.srcX * src.bytesPerPixel
 
-            if params.mode == .Copy
+            if params.mode == .Copy and dst.pixelFormat == src.pixelFormat and dst.alphaMode == src.alphaMode
             {
                 Memory.copy(dstRow, srcRow, cast(u64) params.width * dst.bytesPerPixel)
             }
@@ -48,26 +48,28 @@ impl Image
             {
                 for column in params.width
                 {
-                    let pixDst           = dstRow + cast(u64) column * 4
-                    let pixSrc           = srcRow + cast(u64) column * 4
-                    let sourceAlpha      = pixSrc[3] / 255.0
-                    let destinationAlpha = pixDst[3] / 255.0
-                    let outputAlpha      = sourceAlpha + destinationAlpha * (1.0 - sourceAlpha)
-                    if Math.isZeroEpsilon(outputAlpha)
+                    let pixDst = dstRow + cast(u64) column * dst.bytesPerPixel
+                    let pixSrc = srcRow + cast(u64) column * src.bytesPerPixel
+                    let source = readLogicalPixelValue(pixSrc, src.pixelFormat, src.alphaMode)
+                    var output = source
+                    if params.mode == .SourceOver
                     {
-                        pixDst[as u32] = 0
-                    }
-                    else
-                    {
-                        let destinationFactor = destinationAlpha * (1.0 - sourceAlpha)
-                        for channel in 3
+                        let destination = readLogicalPixelValue(pixDst, dst.pixelFormat, dst.alphaMode)
+                        output.a = source.a + destination.a * (1.0 - source.a)
+                        if Math.isZeroEpsilon(output.a)
                         {
-                            let value = (pixSrc[channel] * sourceAlpha + pixDst[channel] * destinationFactor) / outputAlpha
-                            pixDst[channel] = cast(u8) Math.round(value)
+                            output = {0, 0, 0, 0}
                         }
-
-                        pixDst[3] = cast(u8) Math.round(outputAlpha * 255.0)
+                        else
+                        {
+                            let destinationFactor = destination.a * (1.0 - source.a)
+                            output.r = (source.r * source.a + destination.r * destinationFactor) / output.a
+                            output.g = (source.g * source.a + destination.g * destinationFactor) / output.a
+                            output.b = (source.b * source.a + destination.b * destinationFactor) / output.a
+                        }
                     }
+
+                    writeLogicalPixelValue(pixDst, dst.pixelFormat, dst.alphaMode, output)
                 }
             }
         }
@@ -76,7 +78,7 @@ impl Image
     // Mix with another image
     public mtd mix(srcImage: Image, x, y: s32, mode = MixMode.Copy)
     {
-        Debug.assert(.pixelFormat == srcImage.pixelFormat, "mismatched pixel format")
+        Debug.assert(.pixelFormat.isPacked() and srcImage.pixelFormat.isPacked(), "mixing planar images is unsupported")
         Debug.assert(.pixels.buffer != null)
         .allocWorkingBuffer()
         .doMix(.safeWorkingBuffer(), srcImage, x, y, mode)
@@ -87,8 +89,8 @@ impl Image
     public mtd const mixed(srcImage: Image, x, y: s32, mode = MixMode.Copy)->Image
     {
         Debug.assert(.pixels.buffer != null)
-        Debug.assert(.pixelFormat == srcImage.pixelFormat, "mismatched pixel format")
-        var result: retval = create(.width, .height, .pixelFormat)
+        Debug.assert(.pixelFormat.isPacked() and srcImage.pixelFormat.isPacked(), "mixing planar images is unsupported")
+        var result: retval = create(.width, .height, .pixelFormat, alphaMode: me.alphaMode)
         .doMix(&result, srcImage, x, y, mode)
         return result
     }

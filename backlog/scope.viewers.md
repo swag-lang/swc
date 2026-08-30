@@ -209,14 +209,14 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 
 | Family | Extensions | Today | Missing | Entry |
 | --- | --- | --- | --- | --- |
-| Raster | `.bmp` `.gif` `.ico` `.jpg` `.png` `.tga` `.tiff` `.webp` | full | pixel, histogram, comparison, progressive huge-image tools | [scope.image.001](scope.image.md) |
+| Raster | `.bmp` `.gif` `.ico` `.jpg` `.png` `.qoi` `.tga` `.tiff` `.webp` | full | pixel, histogram, comparison, progressive huge-image tools | [scope.image.001](scope.image.md) |
 | Vector | `.svg` | full | clipping, masks, markers, symbols | pixel.image.009, pixel.image.011, pixel.image.012, pixel.image.010 |
 | Metadata | EXIF, ICC, XMP | none | panel, orientation, color management | [scope.image.011](scope.image.md) |
-| Simple raster | `.qoi` `.pnm` `.ppm` | none | Pixel codecs | pixel.image.025 |
+| Simple raster | `.pnm` `.ppm` | none | Pixel codecs | — |
 | Modern codecs | `.avif` `.heic` `.jxl` | none | Pixel codecs | pixel.image.026, pixel.image.027 |
-| High dynamic range | `.exr` `.hdr` | none | Pixel codecs | pixel.image.030 |
-| Layered | `.psd` `.xcf` | signature | Pixel importer | pixel.image.031 |
-| GPU textures | `.dds` `.ktx2` | none | Pixel containers | pixel.image.028, pixel.image.029 |
+| High dynamic range | `.exr` `.hdr` | EXR flattened image | Radiance HDR codec | — |
+| Layered | `.psd` `.xcf` | PSD flattened composite; XCF signature | layer collection model | [scope.image.008](scope.image.md) |
+| GPU textures | `.dds` `.ktx2` | base image, including BC1–BC5 decode | mip/array selection and compressed upload | pixel.image.028, pixel.image.029 |
 | Camera RAW | `.cr2` `.nef` `.arw` `.dng` | signature | embedded preview extraction | [scope.image.012](scope.image.md) |
 
 #### Audio and video
@@ -225,7 +225,7 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 | --- | --- | --- | --- | --- |
 | WAV PCM and float | `.wav` | full, streamed | professional transport/analysis | [scope.audio.001](scope.audio.md) |
 | Raw YUV4MPEG2 video | `.y4m` | full, silent, streamed by frame | the format carries no sound | — |
-| Motion JPEG video | `.avi` `.mp4` `.m4v` `.mov` | full with supported container audio | uncommon chroma layouts | pixel.image.001 |
+| Motion JPEG video | `.avi` `.mp4` `.m4v` `.mov` | full with supported container audio and generic chroma sampling | professional transport/inspection | [scope.video.001](scope.video.md) |
 | Compressed audio | `.mp3` `.flac` `.aac` `.ac3` `.eac3` | full, streamed | professional transport/analysis | [scope.audio.001](scope.audio.md) |
 | Video containers | `.mp4` `.mkv` `.webm` `.mov` `.avi` | AVI structure; others identified | ISO-BMFF and EBML trees | [scope.binary.011](scope.binary.md) |
 | Video playback | `.avi` `.mp4` `.m4v` `.mov` `.mkv` | Motion JPEG, uncompressed AVI, H.264, H.265, MPEG-4 Part 2 | professional transport/inspection; VP9 and AV1 | [scope.video.001](scope.video.md), [scope.video.014](scope.video.md) |

@@ -874,40 +874,33 @@ impl RenderOgl
             return {}
         }
 
-        var fmt: GLenum = 0
-        var tinternal   = GL_RGB
-
-        switch #complete image.pixelFormat
+        // A planar picture has no single upload format; it goes through the plane path.
+        if image.pixelFormat == .Yuv420
         {
-        case .Yuv420:
-
-            // A planar picture has no single upload format; it goes through the plane path.
             Debug.assert(false, "a planar picture is added through its view")
             return {}
-
-        case .BGR8:
-            fmt = GL_BGR
-
-        case .BGRA8:
-            fmt       = GL_BGRA
-            tinternal = GL_RGBA
-
-        case .RGB8:
-            fmt = GL_RGB
-
-        case .RGBA8:
-            fmt       = GL_RGBA
-            tinternal = GL_RGBA
         }
+
+        var straight: Image
+        var source = image
+        if image.alphaMode == .Premultiplied
+        {
+            straight = image.convertedAlphaTo(.Straight)
+            source   = &straight
+        }
+
+        let fmt       = pixelFormatToNative(source.pixelFormat)
+        let tinternal = pixelFormatToInternal(source.pixelFormat)
+        let dataType  = pixelFormatToNativeType(source.pixelFormat)
 
         var textureID: GLuint
         glGenTextures(1, &textureID)
         glBindTexture(GL_TEXTURE_2D, textureID)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-        glTexImage2D(GL_TEXTURE_2D, 0, tinternal, cast(s32) image.width, cast(s32) image.height, 0, fmt, GL_UNSIGNED_BYTE, cast([*] u8) image.pixels.buffer!)
+        glTexImage2D(GL_TEXTURE_2D, 0, tinternal, cast(s32) source.width, cast(s32) source.height, 0, fmt, dataType, cast([*] u8) source.pixels.buffer!)
 
         var result: retval
-        result.attach(cast(TextureHandle) textureID, image.pixelFormat, image.width, image.height)
+        result.attach(cast(TextureHandle) textureID, source.pixelFormat, source.width, source.height)
         return result
     }
 
@@ -919,20 +912,62 @@ impl RenderOgl
         case .Yuv420:
             return GL_RED     // One plane at a time.
 
+        case .Gray8, .Gray16, .GrayF16, .GrayF32:
+            return GL_LUMINANCE
+
+        case .GrayAlpha8, .GrayAlpha16, .GrayAlphaF16, .GrayAlphaF32:
+            return GL_LUMINANCE_ALPHA
+
         case .BGR8:
             return GL_BGR
 
         case .BGRA8:
             return GL_BGRA
 
-        case .RGB8:
+        case .RGB8, .RGB16, .RGBF16, .RGBF32:
             return GL_RGB
 
-        case .RGBA8:
+        case .RGBA8, .RGBA16, .RGBAF16, .RGBAF32:
             return GL_RGBA
         }
 
         return GL_RGBA
+    }
+
+    // Maps a Pixel sample representation to its OpenGL transfer type.
+    internal func pixelFormatToNativeType(pixelFormat: PixelFormat)->GLenum
+    {
+        switch pixelFormat
+        {
+        case .Gray16, .GrayAlpha16, .RGB16, .RGBA16:     return GL_UNSIGNED_SHORT
+        case .GrayF16, .GrayAlphaF16, .RGBF16, .RGBAF16: return GL_HALF_FLOAT
+        case .GrayF32, .GrayAlphaF32, .RGBF32, .RGBAF32: return GL_FLOAT
+        default: return GL_UNSIGNED_BYTE
+        }
+    }
+
+    // Selects texture storage that retains the source sample precision.
+    internal func pixelFormatToInternal(pixelFormat: PixelFormat)->GLenum
+    {
+        switch pixelFormat
+        {
+        case .Gray8:         return GL_LUMINANCE8
+        case .GrayAlpha8:    return GL_LUMINANCE8_ALPHA8
+        case .Gray16:        return GL_LUMINANCE16
+        case .GrayAlpha16:   return GL_LUMINANCE16_ALPHA16
+        case .GrayF16:       return GL_LUMINANCE16F_EXT
+        case .GrayAlphaF16:  return GL_LUMINANCE_ALPHA16F_EXT
+        case .GrayF32:       return GL_LUMINANCE32F_EXT
+        case .GrayAlphaF32:  return GL_LUMINANCE_ALPHA32F_EXT
+        case .RGB16:         return GL_RGB16
+        case .RGBA16:        return GL_RGBA16
+        case .RGBF16:        return GL_RGB16F
+        case .RGBAF16:       return GL_RGBA16F
+        case .RGBF32:        return GL_RGB32F
+        case .RGBAF32:       return GL_RGBA32F
+        case .BGRA8, .RGBA8: return GL_RGBA8
+        default:             return GL_RGB8
+        }
     }
 
     // Update content of texture
@@ -941,7 +976,8 @@ impl RenderOgl
         let fmt       = pixelFormatToNative(texture.pixelFormat)
         let textureID = cast(GLuint) texture.handle
         glBindTexture(GL_TEXTURE_2D, textureID)
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(s32) texture.width, cast(s32) texture.height, fmt, GL_UNSIGNED_BYTE, pixels)
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(s32) texture.width, cast(s32) texture.height, fmt, pixelFormatToNativeType(texture.pixelFormat), pixels)
     }
 
     // Reads a texture into owned CPU memory in `pixelFormat`.
@@ -950,9 +986,11 @@ impl RenderOgl
         var result: retval
         glEnable(GL_TEXTURE_2D)
         glBindTexture(GL_TEXTURE_2D, cast() texture.handle)
-        result.resize(cast(u64) texture.byteCount())
+        Debug.assert(pixelFormat.isPacked(), "texture readback requires a packed format")
+        result.resize(cast(u64) texture.width * cast(u64) texture.height * pixelFormat.bitsPerPixel() / 8)
         let fmt = pixelFormatToNative(pixelFormat)
-        glGetTexImage(GL_TEXTURE_2D, 0, fmt, GL_UNSIGNED_BYTE, result.buffer)
+        glPixelStorei(GL_PACK_ALIGNMENT, 1)
+        glGetTexImage(GL_TEXTURE_2D, 0, fmt, pixelFormatToNativeType(pixelFormat), result.buffer)
         glDisable(GL_TEXTURE_2D)
         return result
     }

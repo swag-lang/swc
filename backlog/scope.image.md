@@ -90,7 +90,7 @@ missing pixel formats and render primitives remain in [pixel.image.md](pixel.ima
   layers, mip levels, and embedded previews without pretending they share playback semantics.
 - Complete when: every decoded item is enumerable and selectable, thumbnails load lazily, item
   identity survives view changes, and format-specific relationships and dimensions are visible.
-- Related: pixel.image.028, pixel.image.029, pixel.image.031
+- Related: pixel.image.028, pixel.image.029
 
 ### scope.image.009 — The displayed image cannot be copied or exported with an explicit transformation policy
 

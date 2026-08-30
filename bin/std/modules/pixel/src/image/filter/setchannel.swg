@@ -27,8 +27,19 @@ public impl Image
     // Change the alpha channel
     mtd setAlpha(value: u8 = 0)
     {
-        if .pixelFormat != .BGRA8 do
+        if !.pixelFormat.hasAlpha() or !.pixelFormat.isPacked() do
             return
+
+        if .pixelFormat != .BGRA8 or .alphaMode == .Premultiplied
+        {
+            var alpha = value / 255.0
+            .transformLogicalPixels(&alpha)
+            {
+                value.a = userData![as f32]
+            }
+
+            return
+        }
 
         var alphaByte = value
         .visitVectorBytes(&alphaByte) #code(block, data)
@@ -53,8 +64,46 @@ public impl Image
     // Change specified color channels
     mtd setChannel(mode: ChannelMode, value: ChannelValueMode, color: u8 = 0)
     {
-        if .pixelFormat != .BGR8 and .pixelFormat != .BGRA8 do
+        if !.pixelFormat.isPacked() do
             return
+
+        let legacy = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8) and .alphaMode == .Straight
+        if !legacy
+        {
+            var rmode = mode
+            if !.pixelFormat.hasAlpha()
+            {
+                rmode &= ~.Alpha
+                if rmode == 0 or value == .Alpha do
+                    return
+            }
+
+            var context = {mode: rmode, valueMode: value, color: color / 255.0}
+            .transformLogicalPixels(&context)
+            {
+                let params = userData![as #decltype(context)]
+                var channelValue: f32
+                switch #complete params.valueMode
+                {
+                case .Color:   channelValue = params.color
+                case .MinRGB:  channelValue = Math.min(value.r, value.g, value.b)
+                case .MaxRGB:  channelValue = Math.max(value.r, value.g, value.b)
+                case .MeanRGB: channelValue = (value.r + value.g + value.b) / 3
+                case .Alpha:   channelValue = value.a
+                }
+
+                if params.mode & .Red do
+                    value.r = channelValue
+                if params.mode & .Green do
+                    value.g = channelValue
+                if params.mode & .Blue do
+                    value.b = channelValue
+                if params.mode & .Alpha do
+                    value.a = channelValue
+            }
+
+            return
+        }
 
         // Remove alpha change if it does not exists
         var rmode = mode

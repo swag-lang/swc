@@ -270,6 +270,10 @@ impl Decoder
             .convertCmykH1V1()
             scanLineOfs[] = .scanLine0.buffer
 
+        case YGeneric:
+            .convertGeneric()
+            scanLineOfs[] = .scanLine0.buffer
+
         case GrayScale:
             .convertGrayscale()
             scanLineOfs[] = .scanLine0.buffer
@@ -310,42 +314,49 @@ impl Decoder
             }
             else
             {
-                // The decoder reads the four layouts a chroma plane of one block per minimum
-                // coded unit describes, which is every subsampling in common use. A frame whose
-                // chroma samples more than that is well formed, and simply not read here.
-                if (.compSampH[1] != 1) or (.compSampV[1] != 1) or (.compSampH[2] != 1) or (.compSampV[2] != 1) do
-                    fail UnsupportedFormatError{Errors.mkString(Format.toString("JPEG chroma sampling of %x% is not supported", .compSampH[1], .compSampV[1]))}
-
-                if (.compSampH[0] == 1) and (.compSampV[0] == 1)
+                if (.compSampH[0] == 1) and (.compSampV[0] == 1) and (.compSampH[1] == 1) and (.compSampV[1] == 1) and (.compSampH[2] == 1) and (.compSampV[2] == 1)
                 {
                     .scanType        = YH1V1
                     .maxBlocksPerMcu = 3
                     .maxMcuSizeX     = 8
                     .maxMcuSizeY     = 8
                 }
-                elif (.compSampH[0] == 2) and (.compSampV[0] == 1)
+                elif (.compSampH[0] == 2) and (.compSampV[0] == 1) and (.compSampH[1] == 1) and (.compSampV[1] == 1) and (.compSampH[2] == 1) and (.compSampV[2] == 1)
                 {
                     .scanType        = YH2V1
                     .maxBlocksPerMcu = 4
                     .maxMcuSizeX     = 16
                     .maxMcuSizeY     = 8
                 }
-                elif (.compSampH[0] == 1) and (.compSampV[0] == 2)
+                elif (.compSampH[0] == 1) and (.compSampV[0] == 2) and (.compSampH[1] == 1) and (.compSampV[1] == 1) and (.compSampH[2] == 1) and (.compSampV[2] == 1)
                 {
                     .scanType        = YH1V2
                     .maxBlocksPerMcu = 4
                     .maxMcuSizeX     = 8
                     .maxMcuSizeY     = 16
                 }
-                elif (.compSampH[0] == 2) and (.compSampV[0] == 2)
+                elif (.compSampH[0] == 2) and (.compSampV[0] == 2) and (.compSampH[1] == 1) and (.compSampV[1] == 1) and (.compSampH[2] == 1) and (.compSampV[2] == 1)
                 {
                     .scanType        = YH2V2
                     .maxBlocksPerMcu = 6
                     .maxMcuSizeX     = 16
                     .maxMcuSizeY     = 16
                 }
-                else do
-                    fail InvalidFormatError{"invalid samp factors"}
+                else
+                {
+                    let maxSamplingH = Math.max(.compSampH[0], Math.max(.compSampH[1], .compSampH[2]))
+                    let maxSamplingV = Math.max(.compSampV[0], Math.max(.compSampV[1], .compSampV[2]))
+                    for component in 3
+                    {
+                        if maxSamplingH % .compSampH[component] or maxSamplingV % .compSampV[component] do
+                            fail UnsupportedFormatError{"JPEG component sampling ratios must divide the MCU sampling grid"}
+                        .maxBlocksPerMcu += .compSampH[component] * .compSampV[component]
+                    }
+
+                    .scanType    = YGeneric
+                    .maxMcuSizeX = maxSamplingH * 8
+                    .maxMcuSizeY = maxSamplingV * 8
+                }
             }
         }
         elif .compsInFrame == 4
@@ -374,7 +385,7 @@ impl Decoder
         if .scanType == GrayScale do
             .destBytesPerPixel = 1
         else do
-            .destBytesPerPixel = 4
+            .destBytesPerPixel = 3
 
         .destBytesPerScanLine     = ((.imageSizeX + 15) & 0xFFF0) * .destBytesPerPixel
         .realDestBytesPerScanLine = (.imageSizeX * .destBytesPerPixel)

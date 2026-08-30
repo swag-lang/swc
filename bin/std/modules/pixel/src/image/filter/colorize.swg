@@ -6,13 +6,28 @@ public impl Image
     #[Swag.Safety(.All, false)]
     mtd colorize(hue, saturation: f32, strength = 1.0)
     {
-        // unsupported pixel format
-        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
+        if !.pixelFormat.isPacked() do
             return
 
-        let h  = Math.clamp(hue, 0.0, 1.0)
-        let s  = Math.clamp(saturation, 0.0, 1.0)
-        let st = Math.clamp(strength, 0.0, 1.0)
+        let h      = Math.clamp(hue, 0.0, 1.0)
+        let s      = Math.clamp(saturation, 0.0, 1.0)
+        let st     = Math.clamp(strength, 0.0, 1.0)
+        let legacy = (.pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8) and .alphaMode == .Straight
+        if !legacy
+        {
+            var context = {h: h, s: s, strength: st}
+            .transformLogicalPixels(&context)
+            {
+                let params    = userData![as #decltype(context)]
+                let lightness = (Math.min(value.r, value.g, value.b) + Math.max(value.r, value.g, value.b)) * 0.5
+                let colorized = hslPixelValue(params.h, params.s, lightness)
+                value.r = Math.lerp(value.r, colorized.r, params.strength)
+                value.g = Math.lerp(value.g, colorized.g, params.strength)
+                value.b = Math.lerp(value.b, colorized.b, params.strength)
+            }
+
+            return
+        }
 
         // Precompute bgr depending on luminance
         var convArr: [256, 3] f32 = undefined

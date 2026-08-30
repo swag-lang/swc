@@ -412,6 +412,10 @@ private impl RenderCpu
             // A surface is always packed: this backend converts a planar picture on upload.
             Debug.assert(false, "cannot write one pixel of a planar picture")
 
+        case .Gray8, .GrayAlpha8, .Gray16, .GrayAlpha16, .GrayF16, .GrayAlphaF16, .GrayF32, .GrayAlphaF32,
+             .RGB16, .RGBA16, .RGBF16, .RGBAF16, .RGBF32, .RGBAF32:
+            writeLogicalPixelValue(pixel, image.pixelFormat, image.alphaMode, {cast(f32) color.r / 255.0, cast(f32) color.g / 255.0, cast(f32) color.b / 255.0, cast(f32) color.a / 255.0})
+
         case .BGRA8:
             pixel[0] = color.b
             pixel[1] = color.g
@@ -1551,8 +1555,9 @@ private impl RenderCpu
         let white = Color.fromArgb(Argb.White).argb
         if fastAlpha and !batch.solidPaint and !stencilTest and batch.paintImage != null and v0.color == white and v1.color == white and v2.color == white and paint.type == .Texture and paint.uvMode == .FillSubRect and paint.interpolationMode == .Pixel and .contentScale == 1 and (.program == CpuProgram_Simple or (.program == CpuProgram_Default and v0.cov == v1.cov and v1.cov == v2.cov and v0.cov > 0.51))
         {
-            let source = batch.paintImage!
-            if source.pixelFormat != .Yuv420
+            let source       = batch.paintImage!
+            let directFormat = source.pixelFormat == .BGR8 or source.pixelFormat == .BGRA8 or source.pixelFormat == .RGB8 or source.pixelFormat == .RGBA8
+            if directFormat and source.alphaMode == .Straight
             {
                 // Everything the sampler recomputes per pixel from the paint command is
                 // constant over the triangle.
@@ -2457,7 +2462,10 @@ impl RenderCpu
 
         var storage: CpuTexture
         storage.handle = result.handle
-        storage.image  = image[]
+        if image.alphaMode == .Premultiplied do
+            storage.image = image.convertedAlphaTo(.Straight)
+        else do
+            storage.image = image[]
         .textures.add(#move storage)
         return result
     }

@@ -44,6 +44,8 @@ struct Image
             #[Core.Serialization.Alias("pf")]
             pixelFormat: PixelFormat     // Encoding of each pixel.
 
+            alphaMode: AlphaMode     // Relationship between stored RGB and alpha samples.
+
             #[Core.Serialization.Alias("bpp")]
             bitsPerPixel: u8     // Number of bits per pixel.
 
@@ -55,6 +57,236 @@ struct Image
     // Reusable scratch image owned by this image, allocated on demand by the transforms.
     #[Core.Serialization.NoSerialize]
     workingBuffer: #null *Image
+}
+
+// One logical pixel in the representation used between storage formats.
+// Integer formats map their full range to zero through one; floating-point formats retain
+// finite values outside that range so HDR conversions do not clip until an integer target asks.
+internal struct PixelValue
+{
+    r: f32
+    g: f32
+    b: f32
+    a: f32 = 1
+}
+
+#[Swag.Inline]
+internal func colorPixelValue(color: Color)->PixelValue
+{
+    return {color.r / 255.0, color.g / 255.0, color.b / 255.0, color.a / 255.0}
+}
+
+internal func hslPixelValue(hue, saturation, lightness: f32)->PixelValue
+{
+    func hueComponent(m1, m2, hue: f32)->f32
+    {
+        var h = hue
+        if h < 0 do
+            h += 1
+        if h > 1 do
+            h -= 1
+        if 6 * h < 1 do
+            return m1 + (m2 - m1) * h * 6
+        if 2 * h < 1 do
+            return m2
+        if 3 * h < 2 do
+            return m1 + (m2 - m1) * ((2.0 / 3.0) - h) * 6
+        return m1
+    }
+
+    let h = Math.saturate(hue)
+    let s = Math.saturate(saturation)
+    let l = Math.saturate(lightness)
+    if s == 0 do
+        return {l, l, l, 1}
+    let m2 = l < 0.5 ? l * (1 + s) : (l + s) - l * s
+    let m1 = 2 * l - m2
+    return {hueComponent(m1, m2, h + 1.0 / 3.0), hueComponent(m1, m2, h), hueComponent(m1, m2, h - 1.0 / 3.0), 1}
+}
+
+#[Swag.Inline]
+internal func normalizedToU8(value: f32)->u8
+{
+    if value != value do
+        return 0
+    return cast(u8) Math.round(Math.clamp(value, 0.0, 1.0) * 255.0)
+}
+
+#[Swag.Inline]
+internal func normalizedToU16(value: f32)->u16
+{
+    if value != value do
+        return 0
+    return cast(u16) Math.round(Math.clamp(value, 0.0, 1.0) * 65535.0)
+}
+
+#[Swag.Inline]
+internal func readPixelValue(source: const [*] u8, format: PixelFormat)->PixelValue
+{
+    var result: retval
+    switch #complete format
+    {
+    case .Gray8:
+        let value = cast(f32) source[0] / 255.0
+        result = {value, value, value, 1}
+
+    case .GrayAlpha8:
+        let value = cast(f32) source[0] / 255.0
+        result = {value, value, value, cast(f32) source[1] / 255.0}
+
+    case .Gray16, .GrayAlpha16:
+        let value = cast(f32) source[as u16] / 65535.0
+        result = {value, value, value, format == .GrayAlpha16 ? cast(f32) (source + 2)[as u16] / 65535.0 : 1}
+
+    case .GrayF16, .GrayAlphaF16:
+        let value = halfToFloat(source[as u16])
+        result = {value, value, value, format == .GrayAlphaF16 ? halfToFloat((source + 2)[as u16]) : 1}
+
+    case .GrayF32, .GrayAlphaF32:
+        let value = source[as f32]
+        result = {value, value, value, format == .GrayAlphaF32 ? (source + 4)[as f32] : 1}
+
+    case .BGR8:
+        result = {cast(f32) source[2] / 255.0, cast(f32) source[1] / 255.0, cast(f32) source[0] / 255.0, 1}
+
+    case .BGRA8:
+        result = {cast(f32) source[2] / 255.0, cast(f32) source[1] / 255.0, cast(f32) source[0] / 255.0, cast(f32) source[3] / 255.0}
+
+    case .RGB8:
+        result = {cast(f32) source[0] / 255.0, cast(f32) source[1] / 255.0, cast(f32) source[2] / 255.0, 1}
+
+    case .RGBA8:
+        result = {cast(f32) source[0] / 255.0, cast(f32) source[1] / 255.0, cast(f32) source[2] / 255.0, cast(f32) source[3] / 255.0}
+
+    case .RGB16:
+        result = {cast(f32) source[as u16] / 65535.0, cast(f32) (source + 2)[as u16] / 65535.0, cast(f32) (source + 4)[as u16] / 65535.0, 1}
+
+    case .RGBA16:
+        result = {cast(f32) source[as u16] / 65535.0, cast(f32) (source + 2)[as u16] / 65535.0, cast(f32) (source + 4)[as u16] / 65535.0, cast(f32) (source + 6)[as u16] / 65535.0}
+
+    case .RGBF16:
+        result = {halfToFloat(source[as u16]), halfToFloat((source + 2)[as u16]), halfToFloat((source + 4)[as u16]), 1}
+
+    case .RGBAF16:
+        result = {halfToFloat(source[as u16]), halfToFloat((source + 2)[as u16]), halfToFloat((source + 4)[as u16]), halfToFloat((source + 6)[as u16])}
+
+    case .RGBF32:
+        result = {source[as f32], (source + 4)[as f32], (source + 8)[as f32], 1}
+
+    case .RGBAF32:
+        result = {source[as f32], (source + 4)[as f32], (source + 8)[as f32], (source + 12)[as f32]}
+
+    case .Yuv420:
+        Debug.assert(false, "a planar pixel cannot be read from packed storage")
+    }
+
+    return result
+}
+
+#[Swag.Inline]
+internal func writePixelValue(destination: [*] u8, format: PixelFormat, value: PixelValue)
+{
+    switch #complete format
+    {
+    case .Gray8, .GrayAlpha8:
+        destination[0] = normalizedToU8(value.r * 0.2126 + value.g * 0.7152 + value.b * 0.0722)
+        if format == .GrayAlpha8 do
+            destination[1] = normalizedToU8(value.a)
+
+    case .Gray16, .GrayAlpha16:
+        destination[as u16] = normalizedToU16(value.r * 0.2126 + value.g * 0.7152 + value.b * 0.0722)
+        if format == .GrayAlpha16 do
+            (destination + 2)[as u16] = normalizedToU16(value.a)
+
+    case .GrayF16, .GrayAlphaF16:
+        destination[as u16] = floatToHalf(value.r * 0.2126 + value.g * 0.7152 + value.b * 0.0722)
+        if format == .GrayAlphaF16 do
+            (destination + 2)[as u16] = floatToHalf(value.a)
+
+    case .GrayF32, .GrayAlphaF32:
+        destination[as f32] = value.r * 0.2126 + value.g * 0.7152 + value.b * 0.0722
+        if format == .GrayAlphaF32 do
+            (destination + 4)[as f32] = value.a
+
+    case .BGR8:
+        destination[0] = normalizedToU8(value.b)
+        destination[1] = normalizedToU8(value.g)
+        destination[2] = normalizedToU8(value.r)
+
+    case .BGRA8:
+        destination[0] = normalizedToU8(value.b)
+        destination[1] = normalizedToU8(value.g)
+        destination[2] = normalizedToU8(value.r)
+        destination[3] = normalizedToU8(value.a)
+
+    case .RGB8, .RGBA8:
+        destination[0] = normalizedToU8(value.r)
+        destination[1] = normalizedToU8(value.g)
+        destination[2] = normalizedToU8(value.b)
+        if format == .RGBA8 do
+            destination[3] = normalizedToU8(value.a)
+
+    case .RGB16, .RGBA16:
+        destination[as u16]       = normalizedToU16(value.r)
+        (destination + 2)[as u16] = normalizedToU16(value.g)
+        (destination + 4)[as u16] = normalizedToU16(value.b)
+        if format == .RGBA16 do
+            (destination + 6)[as u16] = normalizedToU16(value.a)
+
+    case .RGBF16, .RGBAF16:
+        destination[as u16]       = floatToHalf(value.r)
+        (destination + 2)[as u16] = floatToHalf(value.g)
+        (destination + 4)[as u16] = floatToHalf(value.b)
+        if format == .RGBAF16 do
+            (destination + 6)[as u16] = floatToHalf(value.a)
+
+    case .RGBF32, .RGBAF32:
+        destination[as f32]       = value.r
+        (destination + 4)[as f32] = value.g
+        (destination + 8)[as f32] = value.b
+        if format == .RGBAF32 do
+            (destination + 12)[as f32] = value.a
+
+    case .Yuv420:
+        Debug.assert(false, "a planar pixel cannot be written to packed storage")
+    }
+}
+
+#[Swag.Inline]
+internal func readLogicalPixelValue(source: const [*] u8, format: PixelFormat, alphaMode: AlphaMode)->PixelValue
+{
+    var result: retval = readPixelValue(source, format)
+    if alphaMode == .Premultiplied
+    {
+        if result.a > 0
+        {
+            result.r /= result.a
+            result.g /= result.a
+            result.b /= result.a
+        }
+        else
+        {
+            result.r = 0
+            result.g = 0
+            result.b = 0
+        }
+    }
+
+    return result
+}
+
+#[Swag.Inline]
+internal func writeLogicalPixelValue(destination: [*] u8, format: PixelFormat, alphaMode: AlphaMode, value: PixelValue)
+{
+    var stored = value
+    if alphaMode == .Premultiplied
+    {
+        stored.r *= stored.a
+        stored.g *= stored.a
+        stored.b *= stored.a
+    }
+
+    writePixelValue(destination, format, stored)
 }
 
 impl Image
@@ -74,12 +306,12 @@ impl Image
     // let pixels: [4] u8 = {255, 0, 0, 255}
     // let image = Image.create(1, 1, .RGBA8, pixels)
     // ```
-    func create(width, height: s32, pixelFormat: PixelFormat, buffer: #null const [..] u8 = null)->Image
+    func create(width, height: s32, pixelFormat: PixelFormat, buffer: #null const [..] u8 = null, alphaMode = AlphaMode.Straight)->Image
     {
         Debug.assert(width > 0 and height > 0, "invalid dimensions")
 
         var result: retval
-        result.init(width, height, pixelFormat)
+        result.init(width, height, pixelFormat, alphaMode)
         result.allocPixels()
         if buffer
         {
@@ -123,11 +355,12 @@ impl Image
     //
     // This resets `pixels`, metadata, and temporary storage. Call [[Image.allocPixels]]
     // afterward, or supply storage through a higher-level creation operation.
-    internal mtd init(width, height: s32, pixelFormat: PixelFormat)
+    internal mtd init(width, height: s32, pixelFormat: PixelFormat, alphaMode = AlphaMode.Straight)
     {
         Debug.assert(width > 0 and height > 0, "invalid dimensions")
         let bitsPerPixel = pixelFormat.bitsPerPixel()
         Debug.assert(pixelFormat.isPacked(), "an image holds a packed pixel format")
+        Debug.assert(pixelFormat.hasAlpha() or alphaMode == .Straight, "a format without alpha cannot be premultiplied")
         let bytesPerPixel = cast(u8) (bitsPerPixel >> 3)
         Debug.assert(width <= 0x7FFFFFFF's32 / cast(s32) bytesPerPixel, "image row is too large")
 
@@ -135,6 +368,7 @@ impl Image
         .width         = width
         .height        = height
         .pixelFormat   = pixelFormat
+        .alphaMode     = alphaMode
         .bitsPerPixel  = bitsPerPixel
         .bytesPerPixel = bytesPerPixel
         .rowStride     = .width * .bytesPerPixel
@@ -155,7 +389,7 @@ impl Image
     // Allocates reusable working storage with the current geometry and pixel format.
     internal mtd allocWorkingBuffer()
     {
-        .allocWorkingBuffer(.width, .height, .pixelFormat)
+        .allocWorkingBuffer(.width, .height, .pixelFormat, .alphaMode)
     }
 
     // Allocates reusable working storage with the requested geometry and format.
@@ -163,17 +397,23 @@ impl Image
     // An existing compatible buffer is retained; an incompatible one is released.
     internal mtd allocWorkingBuffer(newWidth, newHeight: s32, newPixelFormat: PixelFormat)
     {
+        .allocWorkingBuffer(newWidth, newHeight, newPixelFormat, newPixelFormat.hasAlpha() ? .alphaMode : .Straight)
+    }
+
+    internal mtd allocWorkingBuffer(newWidth, newHeight: s32, newPixelFormat: PixelFormat, newAlphaMode: AlphaMode)
+    {
         if .workingBuffer and
            newWidth == .workingBuffer.width and
            newHeight == .workingBuffer.height and
-           newPixelFormat == .workingBuffer.pixelFormat
+           newPixelFormat == .workingBuffer.pixelFormat and
+           newAlphaMode == .workingBuffer.alphaMode
         {
             return
         }
 
         .freeWorkingBuffer()
         .workingBuffer   = Memory.new'Image()
-        .workingBuffer[] = Image.create(newWidth, newHeight, newPixelFormat)
+        .workingBuffer[] = Image.create(newWidth, newHeight, newPixelFormat, alphaMode: newAlphaMode)
     }
 
     // Returns the allocated working image.
@@ -211,6 +451,7 @@ impl Image
     {
         let wb = .workingBuffer!
         swap(&.pixelFormat, &wb.pixelFormat)
+        swap(&.alphaMode, &wb.alphaMode)
         swap(&.pixels, &wb.pixels)
         swap(&.width, &wb.width)
         swap(&.height, &wb.height)
@@ -252,6 +493,29 @@ impl Image
                     x = cast(s32) pixIndex % p.image.width,
                     y = cast(s32) pixIndex / p.image.width,
                     userData = p.userData)
+        }
+    }
+
+    // Visits logical RGBA values in parallel and writes them back through the image's storage
+    // format and alpha association. This is the common scalar fallback for filters whose packed
+    // 8-bit specialization cannot represent a high-precision or grayscale image.
+    #[Swag.Macro]
+    internal mtd transformLogicalPixels(pixelUserData: #null *void = null,
+                                        stmt: #code(var value: PixelValue, image: *Image, x: s32, y: s32, userData))
+    {
+        var context = {image: me, userData: pixelUserData}
+        Jobs.parallelFor(cast(u32) .height, &context) #code(row, rawData)
+        {
+            let params = cast(*#decltype(context)) rawData!
+            let image  = cast(*Image) params.image
+            var pixel  = image.pixels.buffer! + cast(u64) row * image.rowStride
+            for column in image.width
+            {
+                var logical = readLogicalPixelValue(pixel, image.pixelFormat, image.alphaMode)
+                #inject(stmt, value = logical, image = image, x = column, y = cast(s32) row, userData = params.userData)
+                writeLogicalPixelValue(pixel, image.pixelFormat, image.alphaMode, logical)
+                pixel += image.bytesPerPixel
+            }
         }
     }
 
@@ -396,8 +660,35 @@ impl Image
     mtd const pixelColor(pixX, pixY: s32)->Color
     {
         Debug.assert(.isValid(), "image is invalid")
+        if .alphaMode == .Premultiplied
+        {
+            let x             = Math.clamp(pixX, 0, .width - 1)
+            let y             = .height - Math.clamp(pixY, 0, .height - 1) - 1
+            let source        = .pixels.buffer! + cast(u64) y * .rowStride + cast(u64) x * .bytesPerPixel
+            let value         = readLogicalPixelValue(source, .pixelFormat, .alphaMode)
+            var result: Color = undefined
+            result.r = normalizedToU8(value.r)
+            result.g = normalizedToU8(value.g)
+            result.b = normalizedToU8(value.b)
+            result.a = normalizedToU8(value.a)
+            return result
+        }
+
         switch #complete .pixelFormat
         {
+        case .Gray8, .GrayAlpha8, .Gray16, .GrayAlpha16, .GrayF16, .GrayAlphaF16, .GrayF32, .GrayAlphaF32,
+             .RGB16, .RGBA16, .RGBF16, .RGBAF16, .RGBF32, .RGBAF32:
+            let x             = Math.clamp(pixX, 0, .width - 1)
+            let y             = .height - Math.clamp(pixY, 0, .height - 1) - 1
+            let source        = .pixels.buffer! + cast(u64) y * .rowStride + cast(u64) x * .bytesPerPixel
+            let value         = readLogicalPixelValue(source, .pixelFormat, .alphaMode)
+            var result: Color = undefined
+            result.r = normalizedToU8(value.r)
+            result.g = normalizedToU8(value.g)
+            result.b = normalizedToU8(value.b)
+            result.a = normalizedToU8(value.a)
+            return result
+
         case .RGBA8:
             return .pixelColorDirect'RGBA8(pixX, pixY)
 

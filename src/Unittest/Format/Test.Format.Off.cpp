@@ -16,6 +16,11 @@ namespace
         SWC_RESULT(formatter.prepare(parentCtx.global(), source));
         if (formatter.text() != expected)
             return Result::Error;
+
+        Formatter secondPass(options);
+        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
+        if (secondPass.text() != expected)
+            return Result::Error;
         return Result::Continue;
     }
 }

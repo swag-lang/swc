@@ -134,7 +134,21 @@ namespace
             // keyword. Pull the span back so it starts on the keyword.
             if (span.valid())
             {
-                if (node.is(AstNodeId::FunctionDecl))
+                // Lowered `Swag.name` intrinsics keep only the member token as
+                // their AST anchor. Include the namespace qualifier so a
+                // statement intrinsic starts on `Swag`, not halfway through
+                // the source expression.
+                const uint32_t dot  = anchorPiece == INVALID_PIECE ? INVALID_PIECE : prevCode(anchorPiece);
+                const uint32_t swag = dot == INVALID_PIECE ? INVALID_PIECE : prevCode(dot);
+                if (node.isNot(AstNodeId::Identifier) &&
+                    anchorPiece != INVALID_PIECE &&
+                    Token::intrinsicFromName(model_->piece(anchorPiece).text) != TokenId::Invalid &&
+                    dot != INVALID_PIECE && model_->piece(dot).is(TokenId::SymDot) &&
+                    swag != INVALID_PIECE && model_->piece(swag).text == "Swag")
+                {
+                    span.minPiece = std::min(span.minPiece, swag);
+                }
+                else if (node.is(AstNodeId::FunctionDecl))
                 {
                     const uint32_t prev = prevCode(span.minPiece);
                     if (prev != INVALID_PIECE && (model_->piece(prev).is(TokenId::KwdFunc) || model_->piece(prev).is(TokenId::KwdMtd)))
@@ -240,15 +254,21 @@ namespace
             return i;
         }
 
-        // Node spans do not include the closing brackets of their expression,
-        // so the token after an operand may be a `)` / `]` / `}` that still
-        // belongs to it. Skips those to reach the actual operator.
+        // Node spans do not include every bracket of their expression. For an
+        // empty call the span ends on the callee before `()`, while a non-empty
+        // call commonly ends on its last argument before `)`. Skip either form
+        // to reach the actual operator.
         uint32_t nextCodeAfterOperand(const uint32_t operandEnd) const
         {
             uint32_t i = nextCode(operandEnd);
             while (i != INVALID_PIECE)
             {
                 const FormatPiece& piece = model_->piece(i);
+                if (piece.is(TokenId::SymLeftParen) && piece.match != INVALID_PIECE)
+                {
+                    i = nextCode(piece.match);
+                    continue;
+                }
                 if (piece.isNot(TokenId::SymRightParen) && piece.isNot(TokenId::SymRightBracket) && piece.isNot(TokenId::SymRightCurly))
                     break;
                 i = nextCode(i);

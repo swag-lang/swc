@@ -12,7 +12,7 @@ What the module competes with is ffmpeg's demuxers, and the distance is measured
 than in design: what is missing is decoders.
 
 The picture codec of an AVI stream is the Pixel one, so what Motion JPEG this module reads is
-decided there — [B-467](pixel.md#b-467--jpeg-chroma-sampling-is-limited-to-one-block-per-unit)
+decided there — [B-467](pixel.image.md#b-467--jpeg-chroma-sampling-is-limited-to-one-block-per-unit)
 is the layout it does not read yet.
 
 ### B-526 — H.264 decoding costs about twice what FFmpeg does per picture
@@ -32,7 +32,7 @@ is the layout it does not read yet.
   Swag Scope at half and nine tenths of its length, sixty-second runs): the decoder is not what
   limits playback of this stream on this machine. Its run-ahead queue stayed full at ten pictures
   in every run, and handing one picture over cost 3 to 8 ms. What limited the picture rate was the
-  presentation path — see B-635 in gui.md — and two defects in the player, both fixed:
+  presentation path — see B-635 in std.gui.md — and two defects in the player, both fixed:
   the run-ahead was taken with an unstable array removal, which left eight of its ten slots holding
   pictures that would never be shown, and presentation was capped at one picture per turn of the
   application loop, which let the picture fall up to 79 frames behind the clock without anything
@@ -59,7 +59,7 @@ is the layout it does not read yet.
   alias the frame, which it cannot when no address into the frame exists; the frame register is
   no longer set up in a function that names none and whose stack shape the unwind codes already
   describe; and `Swag.bitCountLz`/`Swag.bitCountTz` no longer branch. See
-  [B-637](optimization.md#b-637--a-simd-routine-keeps-its-strides-and-counts-in-the-frame)
+  [B-637](compiler.optimization.md#b-637--a-simd-routine-keeps-its-strides-and-counts-in-the-frame)
   for what the same dumps say is left.
 - Do not repeat this measurement of the call cost: marking `CabacReader.decision` `#[Swag.Inline]`
   reads as a 32 percent gain under a harness that lets the AVC lanes run, and as nothing at all
@@ -113,7 +113,7 @@ is the layout it does not read yet.
   93.6 against 93.9 — inside the noise. An earlier three-run reading said four percent and was
   contaminated by another agent building; do not trust an unpaired figure here.
   This is the same verdict the shift-guard elision got in
-  [B-617](optimization.md#b-617--a-hot-loops-loop-carried-locals-all-live-in-stack-slots):
+  [B-617](compiler.optimization.md#b-617--a-hot-loops-loop-carried-locals-all-live-in-stack-slots):
   the bin is latency-bound on its serial chain — context byte, table load, subtract, compare,
   context store — so removing a third of its instructions buys almost nothing. The change is kept
   because it is strictly less code and less memory traffic, not because it made the decoder fast.
@@ -122,7 +122,7 @@ is the layout it does not read yet.
   it — measured at nothing beyond the noise floor, and is kept only because it is plainly less
   work. Do not expect the per-4x4 grid caching below to pay merely because it removes accesses.
 - What the emitted code says is left, and it is not a source shape:
-  [B-634](optimization.md#b-634--a-short-branching-function-spills-with-the-whole-register-file-free).
+  [B-634](compiler.optimization.md#b-634--a-short-branching-function-spills-with-the-whole-register-file-free).
   After the hoisting the bin still opens with seven callee-saved pushes and a 160-byte frame, and
   still spills three values across its one branch with sixteen integer registers available. At
   roughly 568,000 context-coded bins per picture that prologue alone is about nine million
@@ -246,7 +246,7 @@ is the layout it does not read yet.
     compiler in release — 2.2x**. (clang's own `-march=native` build takes 34.1 ms: its
     auto-vectorizer costs it 1.9x on this code, so a clang figure is only an answer sheet once
     you have checked which clang figure it is.) See
-    [B-637](optimization.md#b-637--a-simd-routine-keeps-its-strides-and-counts-in-the-frame),
+    [B-637](compiler.optimization.md#b-637--a-simd-routine-keeps-its-strides-and-counts-in-the-frame),
     which carries the instruction and frame-access counts on both sides.
   - **Where that leaves the work, in order**: closing the backend's 2.2x is worth more than
     every decoder change left in this entry put together, and it helps every module of the
@@ -258,9 +258,9 @@ is the layout it does not read yet.
     (wpp-main10 + ipred, alternated processor time of the test binary) down 3 to 7 percent, and
     the back-edge reload cause across the `video` workspace from 5060 to 242. What bounds the
     next instalment is eviction churn under real pressure — see
-    [B-637](optimization.md#b-637--a-simd-routine-keeps-its-strides-and-counts-in-the-frame)
+    [B-637](compiler.optimization.md#b-637--a-simd-routine-keeps-its-strides-and-counts-in-the-frame)
     and the residency notes under
-    [B-639](optimization.md#b-639--a-loop-header-drops-every-mapping-and-the-register-to-fix-it-is-already-spoken-for).
+    [B-639](compiler.optimization.md#b-639--a-loop-header-drops-every-mapping-and-the-register-to-fix-it-is-already-spoken-for).
     Second instalment (2026-08-26 evening), measured on a C twin of the scalar loop filter
     compiled by clang-cl 20 at `/O2`, same checksum on both sides: the early-return decision
     path alone ran **2.5x** behind clang, and it decomposes into the per-call prologue of the
@@ -275,7 +275,7 @@ is the layout it does not read yet.
     `filterLumaEdge` emits 776 instructions with 171 frame accesses, `interpolateLuma` spills
     its accumulators inside the innermost body, and both run at roughly a third of the
     instructions per cycle their instruction counts predict. See
-    [B-637](optimization.md#b-637--a-simd-routine-keeps-its-strides-and-counts-in-the-frame),
+    [B-637](compiler.optimization.md#b-637--a-simd-routine-keeps-its-strides-and-counts-in-the-frame),
     which now carries these numbers. This is the first lever, ahead of the two below.
   - **Deblocking is bound by the memory it touches, not by the instructions it runs.** Filtering
     the four lines of a horizontal edge in lanes rather than one at a time took 7.5 ms to 6.5.

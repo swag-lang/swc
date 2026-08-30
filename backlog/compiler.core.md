@@ -275,9 +275,9 @@ their former order until re-triaged, so position in this imported block carries 
 
 Frontend, semantic analysis, and code generation defects: something observed in `swc` itself, with
 a reproduction and a next investigation step. Optimization passes and generated-code performance
-are [optimization.md](optimization.md); the borrow, lifetime and sanity analyses
-are [safety.md](safety.md); the `doc` and `format` commands have their own files,
-[doc.md](doc.md) and [format.md](format.md).
+are [compiler.optimization.md](compiler.optimization.md); the borrow, lifetime and sanity analyses
+are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands have their own files,
+[command.doc.md](command.doc.md) and [command.format.md](command.format.md).
 
 ## Published symbols, imports, and name resolution
 

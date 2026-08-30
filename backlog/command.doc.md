@@ -2,7 +2,7 @@
 
 This backlog covers `swc doc`, measured against rustdoc and docs.rs, godoc and
 pkg.go.dev, Doxygen, Sphinx, DocFX, and Zig's autodoc. The compiler that hosts it is
-[compiler.md](compiler.md).
+[compiler.core.md](compiler.core.md).
 
 Evidence, investigations, and intended outcomes for the command stay together here.
 [README.md](README.md) has the whole layout.
@@ -84,7 +84,7 @@ The `doc` command: what a documentation run collects, what it renders, and what 
 
 What belongs here is what the documentation pipeline itself does — collection, rendering, and the
 price of a run. A frontend, semantic-analysis, or code-generation defect that a documentation run
-merely exposed belongs in [compiler.md](compiler.md): the file follows the fix,
+merely exposed belongs in [compiler.core.md](compiler.core.md): the file follows the fix,
 not the discovery.
 
 ### B-616 — A documentation run spends nine tenths of its time re-running sema

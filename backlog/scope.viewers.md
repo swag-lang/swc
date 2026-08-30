@@ -3,7 +3,7 @@
 This backlog covers contracts, behavior, coverage, and product boundaries shared by several
 Swag Scope viewers. A capability owned by one viewer lives in its `scope.<viewer>.md` file;
 window lifecycle, document management, and operating-system integration live in
-[scope.md](scope.md). Reusable engine work remains in the owning standard-module backlog.
+[app.scope.md](app.scope.md). Reusable engine work remains in the owning standard-module backlog.
 
 ## Where the viewer family already stands
 
@@ -189,13 +189,13 @@ viewer now has one owning professional backlog, while Hexadecimal retains its ea
 | Other encodings | UTF-16/32, Windows-1252 | full, detected and overridable | legacy encodings and diagnostics | [B-052](scope.text.md) |
 | Source code | registered extensions, common build/config names, and shebang scripts | full, lexer coloring | outline, folding, overview | [B-054](scope.text.md) |
 | Markdown | `.md` `.markdown` | full | outline, synchronized source, resource diagnostics | [B-069](scope.document.md) |
-| HTML | `.html` `.htm` `.xhtml` | full | DOM/source/resource inspection; advanced engine layout | [B-074](scope.document.md), [HTML roadmap](html.md) |
+| HTML | `.html` `.htm` `.xhtml` | full | DOM/source/resource inspection; advanced engine layout | [B-074](scope.document.md), [HTML roadmap](gui.html.md) |
 | JSON, XML, YAML, TOML | `.json` `.xml` `.yaml` `.toml` | code | folding and value tree | — |
 | Diff and patch | `.diff` `.patch` | text | hunk coloring and navigation | [B-455](scope.text.md) |
 | Log | `.log` | text | level coloring, timestamps, tail | [B-456](scope.text.md) |
 | Subtitles | `.srt` `.vtt` `.ass` `.ssa` | timed transcript | cue navigation, source/styled modes, media check | [B-059](scope.text.md) |
 | Tabular text | `.csv` `.tsv` `.tab` | full up to 32 MiB | bounded streaming, dialect, sort/filter, types | [B-451](scope.text.md), [B-063](scope.text.md) |
-| PDF | `.pdf` | page rendering | partial pages, thumbnails, outline, layout modes | [B-450](scope.document.md), [B-079](scope.document.md), [pdf.md](pdf.md) |
+| PDF | `.pdf` | page rendering | partial pages, thumbnails, outline, layout modes | [B-450](scope.document.md), [B-079](scope.document.md), [gui.pdf.md](gui.pdf.md) |
 | Office OOXML | `.docx` `.xlsx` `.pptx` | structure | readable text and sheets | [B-454](scope.document.md) |
 | OpenDocument | `.odt` `.ods` `.odp` | structure | readable text and sheets | [B-454](scope.document.md) |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |

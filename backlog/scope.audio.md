@@ -3,7 +3,7 @@
 The Sound viewer already opens supported audio on a worker, streams playback through `std/audio`,
 builds a bounded 4,096-column waveform, seeks, stops, mutes, and controls volume. This backlog owns
 the professional listening and inspection surface; decoder and output-engine work remains in
-[audio.md](audio.md).
+[std.audio.md](std.audio.md).
 
 ## Transport and navigation
 

@@ -5,8 +5,8 @@ Qt, GTK4, Avalonia, Slint, Flutter, and — for the "we render every pixel ourse
 Dear ImGui and egui.
 
 Evidence, investigations, and intended outcomes owned by `bin/std/modules/gui` stay together here.
-Compiler and language work belongs in [compiler.md](compiler.md) and
-[language.md](language.md). [README.md](README.md) has the whole layout.
+Compiler and language work belongs in [compiler.core.md](compiler.core.md) and
+[language.design.md](language.design.md). [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.
@@ -102,10 +102,10 @@ Handle the platform input-language notification and update keyboard-layout-depen
 ## Tier C — Keyboard navigation
 
 These are not six independent checkboxes. Animation is infrastructure for touch inertia and
-docking feedback; docking relies on drag-and-drop polish; a second platform has to reproduce the
-accessibility, input and system-event contracts above rather than merely open a window. Each entry
-therefore names the smallest coherent version that can ship and the existing controls or
-applications that would prove it.
+docking feedback, and docking relies on drag-and-drop polish. Each entry therefore names the
+smallest coherent version that can ship and the existing controls or applications that would
+prove it. Operating-system integrations live in
+[platform.portability.md](platform.portability.md).
 
 ### B-200 — Focused controls are not scrolled into view
 
@@ -326,7 +326,7 @@ pagination path that can disagree with paper.
 ## Out of scope
 
 **A declarative markup language.** Qt has QML, Slint and Flutter have their own.
-[B-569](gui.md#b-569--data-driven-ui-resource-for-stdgui)
+[B-569](std.gui.md#b-569--data-driven-ui-resource-for-stdgui)
 already records the investigation that killed `FormCtrl`: a data-described UI is only worth it when
 the caller never needs the controls back, and every consumer immediately recovered typed pointers
 by string identifier. Do not revisit this without solving the compile-time half first — that entry
@@ -343,7 +343,7 @@ their former order until re-triaged, so position in this imported block carries 
 
 An entry noticed while working on an application belongs here when `std/gui` is where it will be
 fixed; an entry that will be fixed inside the application goes to that application's own file, such
-as [capture.md](capture.md).
+as [app.capture.md](app.capture.md).
 
 ## Declarative UI and headless automation
 

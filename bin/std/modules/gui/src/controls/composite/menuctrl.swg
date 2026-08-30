@@ -479,17 +479,18 @@ impl MenuCtrl
         if .submenuDirection == .Right do
             return false
 
-        let topView       = .topView()
+        let popupParent   = .parent!
+        let bounds        = popupParent.clientRect()
         let metrics       = .themeMetrics()
-        let parentTopLeft = topView.surfaceToLocal({surfaceRect.x, surfaceRect.y})
+        let parentTopLeft = popupParent.surfaceToLocal({surfaceRect.x, surfaceRect.y})
         let openRight     = parentTopLeft.x + surfaceRect.width - 2 * metrics.menuPopup_ShadowSize
         let openLeft      = parentTopLeft.x - submenuWidth + 2 * metrics.menuPopup_ShadowSize
         let margin        = metrics.menuPopup_WindowMargin
-        if openRight + submenuWidth <= topView.position.width - margin do
+        if openRight + submenuWidth <= bounds.right() - margin do
             return false
-        if openLeft >= margin do
+        if openLeft >= bounds.x + margin do
             return true
-        return parentTopLeft.x > topView.position.width - parentTopLeft.x - surfaceRect.width
+        return parentTopLeft.x - bounds.x > bounds.right() - parentTopLeft.x - surfaceRect.width
     }
 
     private mtd resolveSubmenuDirections()
@@ -811,11 +812,13 @@ impl MenuCtrl
         sub.ignoreNextRelease = false
         sub.clearPopupBarAnchor()
 
-        // Be sure popup menu is in the client area of the top view
+        // Keep the submenu in the same presentation layer as the popup that owns it. Menus from
+        // client content live in the top view; menus from surface chrome live above that view.
         sub.updateState()
         sub.computeLayoutPopup()
-        let topView       = .topView()
-        let parentTopLeft = topView.surfaceToLocal({surfaceRect.x, surfaceRect.y})
+        let popupParent   = sub.parent!
+        let bounds        = popupParent.clientRect()
+        let parentTopLeft = popupParent.surfaceToLocal({surfaceRect.x, surfaceRect.y})
         let subPos        = sub.position
         let openRight     = parentTopLeft.x + surfaceRect.width - 2 * sdw
         let openLeft      = parentTopLeft.x - subPos.width + 2 * sdw
@@ -825,10 +828,10 @@ impl MenuCtrl
         // Keep the complete submenu inside the window when possible, with the same outer air as
         // its root. An oversized menu is clamped on the requested side as a last resort.
         let margin = .themeMetrics().menuPopup_WindowMargin
-        pt.x = Math.clamp(pt.x, margin, Math.max(topView.position.width - subPos.width - margin, margin))
-        pt.y = Math.clamp(pt.y, margin, Math.max(topView.position.height - subPos.height - margin, margin))
+        pt.x = Math.clamp(pt.x, bounds.x + margin, Math.max(bounds.right() - subPos.width - margin, bounds.x + margin))
+        pt.y = Math.clamp(pt.y, bounds.y + margin, Math.max(bounds.bottom() - subPos.height - margin, bounds.y + margin))
 
-        pt = topView.localToSurface(pt)
+        pt = popupParent.localToSurface(pt)
         .showSubVisible(pt)
     }
 
@@ -1061,12 +1064,18 @@ public impl MenuCtrl
         .invalidate()
     }
 
-    // Creates a hidden popup menu owned by `owner`, or by `parent` when omitted.
+    // Creates a hidden popup menu in the presentation layer containing `parent`.
+    //
+    // Client controls place their menus in the root content view. Surface chrome and existing
+    // surface overlays place them in the root surface window, so the complete menu tree can cross
+    // the content inset without being clipped. `owner`, or `parent` when omitted, remains the
+    // logical owner for command routing.
     #[Swag.Discardable]
     func createPopup(parent: *Wnd, id: #null WndId = null, owner: #null *Wnd = null)->*MenuCtrl
     {
         Debug.assert(parent != null)
-        let popupParent = parent == parent.topWindow() ? parent : parent.topView()
+        let topView     = parent.topView()
+        let popupParent = parent == topView or topView.isAncestorOf(parent) ? topView : parent.topWindow()
         with let res    = Wnd.create'MenuCtrl(popupParent, null, {}, id)
         {
             .focusPolicy = .Click
@@ -1339,17 +1348,6 @@ public impl MenuCtrl
         // the button. The anchor and body themselves remain inside the surface.
         let verticalMargin = button ? -.themeMetrics().menuPopup_ShadowSize : margin
         .fitPosInParent(margin, verticalMargin, simX: !anchored, simY: true)
-
-        // A caption button is above the client view that owns its popup. Its correct local y is
-        // therefore negative by one caption height; the generic near-edge clamp must not turn
-        // that coordinate back into the top of the client view. Moving the popup back up cannot
-        // create a lower-edge overflow, and its shadow still starts at the caption button itself.
-        if button and pt.y < .position.y
-        {
-            var fitted = .position
-            fitted.y = pt.y
-            .setPosition(fitted)
-        }
 
         // Fitting a centred popup near the right edge moves the body, not its attachment point.
         // Recompute the notch from the original anchor so it remains directly under the button.

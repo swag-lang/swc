@@ -5,9 +5,9 @@ mature disk-encryption tool. It is scoped to this module and to the `bin/std` pr
 depends on.
 
 Evidence, investigations, and intended outcomes owned by the application stay together here.
-Operating-system work belongs in [portability.md](portability.md), and crypto throughput belongs
-in [optimization.md](optimization.md); compiler and language work belongs in
-[compiler.md](compiler.md) and [language.md](language.md). [README.md](README.md) has the whole
+Operating-system work belongs in [platform.portability.md](platform.portability.md), and crypto throughput belongs
+in [compiler.optimization.md](compiler.optimization.md); compiler and language work belongs in
+[compiler.core.md](compiler.core.md) and [language.design.md](language.design.md). [README.md](README.md) has the whole
 layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it

@@ -3,7 +3,7 @@
 The current viewer already navigates sibling images, pans, zooms, fits, shows actual pixels,
 rotates in either direction, mirrors either axis, resets its temporary transform, and presents
 animated GIF frames on a timeline. This backlog owns professional inspection around the codecs;
-missing pixel formats and render primitives remain in [pixel.md](pixel.md).
+missing pixel formats and render primitives remain in [pixel.image.md](pixel.image.md).
 
 ## Inspection and presentation
 
@@ -116,7 +116,7 @@ missing pixel formats and render primitives remain in [pixel.md](pixel.md).
 - Related: B-044
 
 This backlog covers image-viewer behavior owned by Swag Scope. Decoder, color, SVG, and pixel-format
-work remains in [pixel.md](pixel.md); this file owns the metadata and format composition presented
+work remains in [pixel.image.md](pixel.image.md); this file owns the metadata and format composition presented
 by the application.
 
 ## Metadata and camera files

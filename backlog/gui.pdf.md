@@ -6,7 +6,7 @@ competes with: PDFium, MuPDF, Poppler and pdf.js on the reading side, PDFBox and
 document side, and QuestPDF, ReportLab and wkhtmltopdf on the writing side.
 
 PDF-specific evidence, investigations, and intended outcomes stay together here. Compiler and
-language work belongs in [compiler.md](compiler.md) and [language.md](language.md).
+language work belongs in [compiler.core.md](compiler.core.md) and [language.design.md](language.design.md).
 [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
@@ -67,7 +67,7 @@ zooming freeze. The offline rasterization (`Page.render` over a CPU renderer) re
 headless boundary: tests, thumbnails, and export.
 
 One consequence is recorded rather than hidden: the writer (`Pdf.Document.encode`) now lives above
-`pixel`, so [B-209](pixel.md#b-209--no-vector-output) — PDF output from the painter — can no
+`pixel`, so [B-209](pixel.image.md#b-209--no-vector-output) — PDF output from the painter — can no
 longer be satisfied by calling into it from `pixel`. When that entry is taken up, either the
 writer moves below both consumers or `pixel` grows its own, and that choice belongs to B-209.
 

@@ -7,11 +7,11 @@ rendering — with CommonMark plus GFM as the reference for what a document mean
 what the whole document family is: an offline, script-free, network-free viewer.
 
 Evidence, investigations, and intended outcomes for the Markdown engine stay together here. The
-engine lives beside its widget inside `gui`, as [pdf.md](pdf.md#where-this-family-lives-and-why)
+engine lives beside its widget inside `gui`, as [gui.pdf.md](gui.pdf.md#where-this-family-lives-and-why)
 records for the document family; application-level zoom stays in
 [scope.text.md](scope.text.md), shared printing in
 [scope.viewers.md](scope.viewers.md), and shell thumbnail integration in
-[scope.md](scope.md).
+[app.scope.md](app.scope.md).
 [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it

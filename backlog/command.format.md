@@ -2,7 +2,7 @@
 
 This backlog covers `swc format`, measured against clang-format, rustfmt, gofmt,
 prettier, black and `zig fmt`. The compiler that hosts it is
-[compiler.md](compiler.md).
+[compiler.core.md](compiler.core.md).
 
 Evidence, investigations, and intended outcomes for the command stay together here.
 [README.md](README.md) has the whole layout.

@@ -2,7 +2,7 @@
 
 This backlog covers the Swag Scope application shell: document lifecycle, process and window
 management, viewer hosting, and persisted application state. Operating-system integration lives
-in [portability.md](portability.md). Work
+in [platform.portability.md](platform.portability.md). Work
 owned by a viewer lives in the corresponding domain:
 
 - [scope.viewers.md](scope.viewers.md) — shared viewer contracts, coverage, and product scope

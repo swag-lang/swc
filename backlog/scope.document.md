@@ -1,8 +1,8 @@
 # Swag Scope Document Viewer Backlog
 
 This backlog covers Swag Scope's Markdown, HTML, PDF, office-document, and ebook reading surfaces.
-Parser, layout, and renderer defects remain with their engines in [markdown.md](markdown.md),
-[html.md](html.md), and [pdf.md](pdf.md); entries here own navigation, inspection, and application
+Parser, layout, and renderer defects remain with their engines in [gui.markdown.md](gui.markdown.md),
+[gui.html.md](gui.html.md), and [gui.pdf.md](gui.pdf.md); entries here own navigation, inspection, and application
 integration around those engines.
 
 ## Markdown reading
@@ -114,13 +114,13 @@ integration around those engines.
 
 This backlog covers application-owned PDF presentation and the document viewers built by composing
 Swag Scope's existing HTML, table, and container facilities. Parser and renderer gaps owned by the
-reusable engines remain in [pdf.md](pdf.md), [html.md](html.md), and [gui.md](gui.md).
+reusable engines remain in [gui.pdf.md](gui.pdf.md), [gui.html.md](gui.html.md), and [std.gui.md](std.gui.md).
 
 ## PDF presentation
 
 ### B-450 — A PDF the module cannot fully decode is shown as a failure, not as a page
 
-- Intent: the module's own coverage gaps now live in [pdf.md](pdf.md), which is the
+- Intent: the module's own coverage gaps now live in [gui.pdf.md](gui.pdf.md), which is the
   roadmap for `std/pdf`. What stays here is the viewer's half: `PdfViewer` reports whatever
   `loadPage` or `render` failed with and shows nothing, so a document with one unsupported
   construct anywhere reads as a broken file rather than as a page with a gap in it.

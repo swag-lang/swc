@@ -3,7 +3,7 @@
 This backlog covers the Swag Scope adapters and application-owned behavior of the basic text,
 code, subtitle, table, diff, and log viewers. Markdown and HTML integration lives in
 [scope.document.md](scope.document.md); engine work owned by `std/gui` remains in
-[html.md](html.md), [markdown.md](markdown.md), or [gui.md](gui.md).
+[gui.html.md](gui.html.md), [gui.markdown.md](gui.markdown.md), or [std.gui.md](std.gui.md).
 
 ## Shared text reading
 

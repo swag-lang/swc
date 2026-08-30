@@ -4,8 +4,8 @@ This backlog covers `std/truetype`, measured against the font libraries it compe
 FreeType, stb_truetype, HarfBuzz for shaping, and msdfgen for distance fields.
 
 Evidence, investigations, and intended outcomes owned by `bin/std/modules/truetype` stay together
-here. Compiler and language work belongs in [compiler.md](compiler.md) and
-[language.md](language.md). [README.md](README.md) has the whole layout.
+here. Compiler and language work belongs in [compiler.core.md](compiler.core.md) and
+[language.design.md](language.design.md). [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.

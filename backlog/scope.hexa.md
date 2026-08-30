@@ -4,7 +4,7 @@ This backlog covers the read-only hexadecimal viewer under
 `bin/apps/modules/swagscope/src/viewers/hex`. It is measured against HxD, ImHex, 010 Editor, and
 Hex Fiend while preserving Swag Scope's differentiators: bounded streaming, instant opening,
 offline operation, and no path that modifies the file. Shared window and document lifecycle work
-stays in [scope.md](scope.md); cross-viewer contracts stay in
+stays in [app.scope.md](app.scope.md); cross-viewer contracts stay in
 [scope.viewers.md](scope.viewers.md).
 
 The current foundation already has a 256 KiB resident window aligned to 64 KiB, 64-bit offsets,

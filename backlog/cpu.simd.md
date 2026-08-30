@@ -236,7 +236,7 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   wider layout that amortizes that regrouping; the low-half multiply alone is not a useful feature.
 - Complete when: published vectors pass for all supported parameters and profile benchmarks isolate
   the packed kernel gain from independent-lane parallelism.
-- Related: B-358 in [core.md](core.md).
+- Related: B-358 in [std.core.md](std.core.md).
 
 ### B-543 — Blake2b compression remains scalar
 
@@ -307,7 +307,7 @@ own. Work dated before the window used the raw `Swag.vec*` intrinsics directly a
   the 4x4 and 8x8 dequantization zero loops with two and eight vector stores regressed 30,000 High
   Profile decodes from 7,877,846 to 8,032,948 us (1.02x slower), so the scalar loops remain.
   All three discarded results — the 1.02x zero loops, the narrower dynamic splats, and the
-  flat-add four-pixel rows recorded as neutral within 0.5% in `video.md` — sit inside the
+  flat-add four-pixel rows recorded as neutral within 0.5% in `std.video.md` — sit inside the
   call window and within its margin, which makes them the cheapest re-measures in this file.
   The 16x16 plane predictor now forms four S32x4 column groups per row and improves 2 million
   Release calls from 516,278 to 435,013 us (1.19x). Chroma DC writes its four quadrants as packed

@@ -137,9 +137,10 @@ The whole backlog lives in [backlog/](../../../backlog/) — nowhere else. Each 
 that keeps evidence, open decisions, and committed outcomes together. Read
 [backlog/README.md](../../../backlog/README.md) for the inventory and entry format.
 
-- `backlog/compiler.md`, `optimization.md`, `safety.md`, `gui.md`, and their peers are split by the
-  domain where the issue will be investigated or fixed, not by the task that noticed it.
-- `backlog/portability.md` is the cross-domain exception: every operating-system backend, product
+- `backlog/compiler.core.md`, `compiler.optimization.md`, `compiler.safety.md`, `std.gui.md`,
+  and their peers are split by the domain where the issue will be investigated or fixed, not by
+  the task that noticed it.
+- `backlog/platform.portability.md` is the cross-domain exception: every operating-system backend, product
   port, target integration, and Windows-bound contract that must be made portable lives there.
 - Evidence and intent are properties of an entry, not different storage classes. Use `Next:` to
   state the smallest useful investigation or implementation step and `Complete when:` to state
@@ -244,7 +245,7 @@ finished until they would.
 - Watch it fail without the fix before keeping it. A test that passes either way records nothing.
 - Reduce it to the language construct. A suite source is standalone: a case that still needs
   `gui` to reproduce is a `bin/std` test, not a suite test.
-- Record a `B-0xx` in [backlog/compiler.md](../../../backlog/compiler.md) when
+- Record a `B-*` in [backlog/compiler.core.md](../../../backlog/compiler.core.md) when
   the case genuinely does not reduce, saying why. That is the only accepted outcome other than a
   new test.
 

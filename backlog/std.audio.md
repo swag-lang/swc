@@ -3,8 +3,8 @@
 This backlog covers `std/audio`, measured against the embeddable audio libraries it
 competes with: miniaudio, SoLoud, OpenAL Soft, and the commercial tier of FMOD and Wwise.
 
-Cross-cutting compiler and language work belongs in [compiler.md](compiler.md) and
-[language.md](language.md). This file keeps the evidence, investigations, and intended outcomes
+Cross-cutting compiler and language work belongs in [compiler.core.md](compiler.core.md) and
+[language.design.md](language.design.md). This file keeps the evidence, investigations, and intended outcomes
 owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
@@ -24,8 +24,9 @@ driver that preserves the entire lifecycle without opening a device, wired into 
 test run never makes noise — that last part is better integrated than in most libraries of this
 size.
 
-The shape is sound. What is missing is breadth: one container, one platform, no spatialization, no
-effects, no capture.
+The shape is sound. What is missing here is breadth: one container, no spatialization, no effects,
+and no capture. Operating-system backend work lives in
+[platform.portability.md](platform.portability.md).
 
 ---
 
@@ -142,7 +143,7 @@ Expose an echo/delay effect independently of reverb and the general effects grap
 - Add capture-device enumeration and a recording stream as a peer of playback.
 - This is what a recorder, a voice-chat path, or a level meter would need. It is also a prerequisite
   if `Swag Capture` ever records video with sound —
-  [B-231](capture.md#b-231--no-video-recording).
+  [B-231](app.capture.md#b-231--no-video-recording).
 - Related: B-297, B-298, B-353
 
 ### B-297 — No full-duplex audio session

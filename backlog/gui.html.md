@@ -7,7 +7,7 @@ Ultralight — with a browser as the reference for what a page means, while stay
 them are: an offline, script-free, network-free document viewer.
 
 Evidence, investigations, and intended outcomes for the HTML engine stay together here. The engine
-lives beside its widget inside `gui`, as [pdf.md](pdf.md#where-this-family-lives-and-why) records
+lives beside its widget inside `gui`, as [gui.pdf.md](gui.pdf.md#where-this-family-lives-and-why) records
 for the document family; the view selects and copies, as the Markdown one now does too.
 [README.md](README.md) has the whole layout.
 

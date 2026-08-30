@@ -4,11 +4,11 @@ using Core
 
 private struct BacklogEntry
 {
-    heading:      String
-    line:         u64
-    nextAction:   bool
-    completeWhen: bool
-    current:      bool
+    heading:        String
+    line:           u64
+    nextAction:     bool
+    completeWhen:   bool
+    requiresFields: bool
 }
 
 private func parseDecimal(text: string, start: u64)->{value: u32, end: u64}
@@ -55,7 +55,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String, maxBacklo
         lineNumber += 1
         if !Utf8.startsWith(cast(const [..] u8) line, "### ")
         {
-            if haveEntry and entry.current
+            if haveEntry and entry.requiresFields
             {
                 entry.nextAction   = entry.nextAction or Utf8.startsWith(cast(const [..] u8) line, "- Next:")
                 entry.completeWhen = entry.completeWhen or Utf8.startsWith(cast(const [..] u8) line, "- Complete when:")
@@ -64,10 +64,10 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String, maxBacklo
             continue
         }
 
-        if haveEntry and entry.current do
+        if haveEntry and entry.requiresFields do
             errors += reportBacklogFields(fileName, &entry)
 
-        if line.count < 7 or (line[4] != 'B' and line[4] != 'F' and line[4] != 'T') or line[5] != '-'
+        if line.count < 7 or line[4] != 'B' or line[5] != '-'
         {
             Console.println("error: ", fileName, ":", lineNumber, ": backlog entry heading has no permanent identifier")
             errors    += 1
@@ -84,14 +84,6 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String, maxBacklo
             continue
         }
 
-        if (line[4] == 'F' and parsed.value >= 203) or (line[4] == 'T' and parsed.value >= 572)
-        {
-            Console.println("error: ", fileName, ":", lineNumber, ": new backlog entries must use the B identifier family")
-            errors    += 1
-            haveEntry = false
-            continue
-        }
-
         let key = String.from(line[4 until parsed.end])
         if seen.contains(key)
         {
@@ -101,14 +93,17 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String, maxBacklo
         else do
             seen.add(key)
 
-        if line[4] == 'B' do
-            maxBacklog[] = Math.max(maxBacklog[], parsed.value)
+        maxBacklog[] = Math.max(maxBacklog[], parsed.value)
 
-        entry     = BacklogEntry{heading: key, line: lineNumber, current: line[4] == 'B'}
+        // B-167 through B-641 were migrated from the closed T/F families without rewriting their
+        // established entry shapes. Earlier B entries and every future allocation use the compact
+        // fields from README.md.
+        let migrated = parsed.value >= 167 and parsed.value <= 641
+        entry     = BacklogEntry{heading: key, line: lineNumber, requiresFields: !migrated}
         haveEntry = true
     }
 
-    if haveEntry and entry.current do
+    if haveEntry and entry.requiresFields do
         errors += reportBacklogFields(fileName, &entry)
     return errors
 }
@@ -256,7 +251,7 @@ public func auditBacklog(context: *Context)->s32 fail
         let name = Path.fileName(file.fullname.toString()) orelse ""
         errors += try auditBacklogLinks(file.fullname.toString())
 
-        if name == "README.md" or name == "prompts.md" do
+        if name == "README.md" or name == "repo.prompts.md" do
             continue
 
         if Utf8.indexOf(cast(const [..] u8) readme.toString(), name) == Swag.U64.Max

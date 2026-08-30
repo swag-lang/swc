@@ -3,7 +3,7 @@
 The Video viewer already performs progressive decode, frame-accurate indexed presentation for its
 supported codecs, audio-clock synchronization, track selection, sidecar and embedded subtitles,
 seeking, full-screen hosting, mute, and volume. This backlog owns professional playback and
-inspection around `std/video`; codec implementation work remains in [video.md](video.md).
+inspection around `std/video`; codec implementation work remains in [std.video.md](std.video.md).
 
 ## Professional transport
 
@@ -157,8 +157,8 @@ inspection around `std/video`; codec implementation work remains in [video.md](v
   loss recovers, and a deterministic CPU mode remains selectable.
 
 This backlog covers playback, fallback presentation, and real-device validation owned by the
-Swag Scope video viewer. Codec and container implementation work remains in [video.md](video.md)
-or [audio.md](audio.md); this file owns how those capabilities reach the application surface.
+Swag Scope video viewer. Codec and container implementation work remains in [std.video.md](std.video.md)
+or [std.audio.md](std.audio.md); this file owns how those capabilities reach the application surface.
 
 ## Playback coverage and fallback
 
@@ -183,7 +183,7 @@ or [audio.md](audio.md); this file owns how those capabilities reach the applica
 - Complete when: Swag Scope offers a sound-only view for every decodable track when no picture
   track can be decoded, states that the picture is unavailable, and keeps ordinary video playback
   unchanged when both sides are supported.
-- Related: B-565 in [video.md](video.md)
+- Related: B-565 in [std.video.md](std.video.md)
 
 ## Real-device validation
 

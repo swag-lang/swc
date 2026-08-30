@@ -63,8 +63,8 @@ using Swag, Core, Pixel
         host.shutdown()
     }
 
-    host.surface.flags         = SurfaceFlags.StandardWindow
-    host.surfaceWnd.padding.y  = host.theme.metrics.wnd_BigCaptionCY
+    host.surface.flags        = SurfaceFlags.StandardWindow
+    host.surfaceWnd.padding.y = host.theme.metrics.wnd_BigCaptionCY
     host.root.setParent(&host.surfaceWnd)
     host.surfaceWnd.sendResizeEvent()
 
@@ -106,9 +106,14 @@ using Swag, Core, Pixel
     Swag.assert(aboutRequests == 1)
 
     let popup = MenuCtrl.createPopup(button)
-    popup.addItem("Theme", "Gui.Appearance.Test")
+    let sub   = MenuCtrl.createPopup(popup)
+    sub.addItem("Swag", "Gui.Appearance.Test")
+    popup.addPopup("Theme", sub)
+    Swag.assert(popup.parent == &host.surfaceWnd)
+    Swag.assert(sub.parent == &host.surfaceWnd)
+
     var popupChecked: bool
-    host.app.sigFrame += func|button, popup, checked = &popupChecked|(app)
+    host.app.sigFrame += func|host = &host, button, popup, sub, checked = &popupChecked|(app)
     {
         discard app
         if checked[] do
@@ -117,7 +122,11 @@ using Swag, Core, Pixel
         let anchor  = button.surfaceRect()
         let bodyTop = popup.surfaceRect().y + popup.popupBarItemSurfaceRect.height + popup.themeMetrics().menuPopup_ShadowSize
         Swag.assert(Math.abs(bodyTop - anchor.bottom()) < 0.5)
-        popup.setEndModal(null)
+        Swag.assert(host.openPopupSubMenu("Theme"))
+        Swag.assert(sub.surfaceRect().y < host.root.surfaceRect().y)
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, "appearancebutton.popup.caption")
+        sub.setEndModal(null)
         checked[] = true
     }
 

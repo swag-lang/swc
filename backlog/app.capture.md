@@ -5,8 +5,8 @@ with: Snagit, ShareX, and the Windows Snipping Tool that now ships with video an
 recognition. It is scoped to this module and to the `bin/std` facilities it depends on.
 
 Evidence, investigations, and intended outcomes owned by the application stay together here.
-Operating-system work belongs in [portability.md](portability.md); compiler and language work
-belongs in [compiler.md](compiler.md) and [language.md](language.md).
+Operating-system work belongs in [platform.portability.md](platform.portability.md); compiler and language work
+belongs in [compiler.core.md](compiler.core.md) and [language.design.md](language.design.md).
 [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
@@ -197,7 +197,7 @@ their former order until re-triaged, so position in this imported block carries 
 These application-specific leads will be fixed under `bin/apps/modules/swagcapture`.
 
 A lead that Swag Capture exposed but that will be fixed in `std/gui` belongs in
-[gui.md](gui.md) instead — the file follows the fix, not the discovery.
+[std.gui.md](std.gui.md) instead — the file follows the fix, not the discovery.
 
 ## Window automation and lifecycle
 
@@ -226,7 +226,7 @@ A lead that Swag Capture exposed but that will be fixed in `std/gui` belongs in
 - Next step: reproduce with a minimal `gui2`-sized example under the same two-monitor arrangement,
   then bisect: move-only across the boundary, resize-only on one screen, then both. If it is the
   DPI crossing, `Surface` is where the ordering of the two rebuilds is decided. Move this entry to
-  [gui.md](gui.md) once that bisection puts the defect in `Surface`.
+  [std.gui.md](std.gui.md) once that bisection puts the defect in `Surface`.
 
 ## Editor interactivity
 
@@ -284,4 +284,4 @@ A lead that Swag Capture exposed but that will be fixed in `std/gui` belongs in
   deflate path, so this is additive.
   A fourth lever, making inflate itself fast, was taken and is where the halving above came from;
   what is left of it is a backend matter, in
-  [B-617](optimization.md#b-617--a-hot-loops-loop-carried-locals-all-live-in-stack-slots).
+  [B-617](compiler.optimization.md#b-617--a-hot-loops-loop-carried-locals-all-live-in-stack-slots).

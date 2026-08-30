@@ -3,7 +3,7 @@
 The Font viewer already loads a file face, shows family/style/glyph count/units per em, renders an
 editable specimen at several pixel sizes, and pages through mapped Unicode characters. This
 backlog owns professional font inspection; shaping, font-format, hinting, and color-glyph engine work
-remains in [truetype.md](truetype.md).
+remains in [font.truetype.md](font.truetype.md).
 
 ## Faces and coverage
 
@@ -74,7 +74,7 @@ remains in [truetype.md](truetype.md).
 
 - Evidence: editable sample text uses the default GUI font path only. There is no script/language/
   direction choice, GSUB/GPOS feature list, per-feature toggle, glyph-run trace, or before/after
-  comparison; the engine gaps are tracked in `truetype.md`.
+  comparison; the engine gaps are tracked in `font.truetype.md`.
 - Next: define a viewer shaping trace and control surface that can expose supported features as the
   shaping engine gains them, beginning with current kerning/ligature behavior.
 - Complete when: chosen script, language, direction, features, glyph IDs, clusters, advances, and

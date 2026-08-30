@@ -1,7 +1,7 @@
 # Optimization Backlog
 
 Backend optimization passes, register allocation, and the performance of the code `swc` generates.
-Frontend and lowering defects are [compiler.md](compiler.md).
+Frontend and lowering defects are [compiler.core.md](compiler.core.md).
 
 Entries are grouped by the optimization capability they advance. [README.md](README.md) defines
 the shared backlog conventions.

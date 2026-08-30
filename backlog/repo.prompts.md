@@ -38,7 +38,7 @@ measured. The failures that produces look exactly like the bug the campaign was 
 
 ```
 You are running a long optimization campaign on the swc backend. Read AGENTS.md and the skills it
-points to first, then backlog/compiler.md, backlog/optimization.md, and bench/README.md.
+points to first, then backlog/compiler.core.md, backlog/compiler.optimization.md, and bench/README.md.
 
 WORK IN A SEPARATE WORKTREE
 
@@ -158,12 +158,12 @@ Pick the task with the worst ratio that you have not already exhausted, then:
 DO NOT STOP AT THE FIRST FAILURE
 
 Most of these experiments will fail. That is the normal shape of this work, and three of the
-entries already in backlog/optimization.md are failed attempts written down so the next
+entries already in backlog/compiler.optimization.md are failed attempts written down so the next
 one does not repeat them. When something does not work:
 
   - Revert it cleanly.
   - Write down what it ruled out, with the measurement, as a B-NNN entry in
-    backlog/optimization.md (take the identifier from backlog/README.md and advance it).
+    backlog/compiler.optimization.md (take the identifier from backlog/README.md and advance it).
   - Take the next hypothesis from the same mechanism, or move to the next task.
 
 The campaign ends when the goal above is met, or when you have run out of hypotheses on every task
@@ -185,7 +185,7 @@ RULES
     better in the generated code gets reverted.
   - Never change what a bench task computes. That silently resets the history.
   - A/B two swc.exe binaries by CPU time, alternating order, sampling before the process exits.
-  - Leads you cannot chase now go in backlog/optimization.md with evidence and a concrete `Next:`
+  - Leads you cannot chase now go in backlog/compiler.optimization.md with evidence and a concrete `Next:`
     step. If the evidence establishes implementation work, update that entry in place.
 
 REPORT
@@ -200,7 +200,7 @@ end of the campaign, the new ratio table next to the one above.
 
 ```
 You are running a long campaign on Swag's safety guarantees. Read AGENTS.md and the skills it
-points to first, then backlog/safety.md, backlog/compiler.md, and the language
+points to first, then backlog/compiler.safety.md, backlog/compiler.core.md, and the language
 reference page bin/reference/modules/language/src/013_004_borrowing.swg, which states what the
 language currently guarantees.
 
@@ -247,7 +247,7 @@ zero, overflow, null dereference, constant out-of-bounds, undefined read, use af
 after move) in src/Backend/Sanitizer/Checks. Tests live in bin/unittests/sanity - borrow_escape,
 borrow_invalidation, collection_mutation - and bin/unittests/safety.
 
-What is left is precision, and the live entries in `backlog/safety.md` are the authority.
+What is left is precision, and the live entries in `backlog/compiler.safety.md` are the authority.
 They currently include parameter-owned views, macro and inline expansions judged against the
 wrong body, and a backend check the language rule has made unreachable from source. Re-read that
 file before choosing a round;
@@ -444,7 +444,7 @@ delta. Cumulative total at the top, so the number is one line at any moment.
 
 ```
 You are running a compile-speed campaign on swc. Read AGENTS.md and the skills it points to first,
-then backlog/compiler.md B-167, B-168, B-169, B-171 and B-172.
+then backlog/compiler.core.md B-167, B-168, B-169, B-171 and B-172.
 
 WORK IN A SEPARATE WORKTREE
 
@@ -484,7 +484,7 @@ beating them. It is about the loop a person actually sits in.
 START BY BUILDING THE INSTRUMENT
 
 Do this before any optimization; nothing below can be judged without it, and it is B-169 in
-backlog/compiler.md.
+backlog/compiler.core.md.
 
 Today the only compiler-side numbers recorded anywhere are hello_build_ms and hello_build_peak_mb
 in bench/history.json - one four-line program. Across eleven campaigns it reads 92, 61, 74, 68, 74,
@@ -533,7 +533,7 @@ DO NOT STOP AT THE FIRST FAILURE
 
 These are large changes and the first attempt at a binary module interface will not be the one
 that ships. Land it in pieces that each keep the tree green. When a piece does not pay, revert it,
-record the measurement in backlog/tooling.md, and take the next piece - the four levers
+record the measurement in backlog/repo.tooling.md, and take the next piece - the four levers
 above are months of work and the campaign is designed to survive individual failures.
 
 The campaign ends when the five targets are met. It does not end because one lever turned out to
@@ -559,7 +559,7 @@ and what it bought.
 
 ```
 You are running a memory campaign on swc. Read AGENTS.md and the skills it points to first, then
-backlog/compiler.md B-170.
+backlog/compiler.core.md B-170.
 
 WORK IN A SEPARATE WORKTREE
 

@@ -4,8 +4,8 @@ This backlog covers `std/core`, measured against the standard libraries it compe
 the Go standard library, the .NET base class library, Rust's `std` plus its de-facto crates, the
 Python standard library, and Zig's `std`.
 
-Compiler work belongs in [compiler.md](compiler.md) and language work in
-[language.md](language.md). This file keeps the evidence, investigations, and intended outcomes
+Compiler work belongs in [compiler.core.md](compiler.core.md) and language work in
+[language.design.md](language.design.md). This file keeps the evidence, investigations, and intended outcomes
 owned by `bin/std/modules/core` together. [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
@@ -125,7 +125,7 @@ completion criteria.
   synchronization points and the configured `parallelism` contract.
 - Complete when: multi-lane published vectors still agree, the requested lane count executes in
   parallel, and a benchmark separates the lane-parallel gain from the packed permutation work.
-- Related: B-357 in [simd.md](simd.md)
+- Related: B-357 in [cpu.simd.md](cpu.simd.md)
 
 ### B-192 — No AES implementation
 
@@ -205,7 +205,7 @@ unsafe legacy modes excluded from the default surface.
   128 at level 6 — and tuning the lazy-match rule miniz inherited. Both change which matches are
   chosen, so each has to report compressed size beside time.
 - The other half is not in this file: the block loop spends its time in stack slots rather than
-  registers, which [B-617](optimization.md) measured at 1.6x against clang for the
+  registers, which [B-617](compiler.optimization.md) measured at 1.6x against clang for the
   matching Inflate loop and is a backend problem, not a library one.
 - Complete when: level 6 on the PNG and `.scc` fixtures is at least 1.5x faster than it is
   now with no more than 1% growth in compressed size, and every `core` compression test still
@@ -246,7 +246,7 @@ unsafe legacy modes excluded from the default surface.
     the crate's `onepass` engine and why its capture benchmark costs what its plain one costs.
   - **Vectors are 128 bits.** Every scan reads sixteen bytes per instruction where the crate
     reads thirty-two. That is a language matter, not a library one: see the `#simd` entries in
-    [simd.md](simd.md).
+    [cpu.simd.md](cpu.simd.md).
 - Compiling a pattern costs about eight microseconds for a small one, down from twenty-seven:
   a byte set now counts what it is worth as bytes are added to it rather than by walking all
   two hundred and fifty-six values per question, and the automata build their tables on the
@@ -318,7 +318,7 @@ should be decided deliberately and early, because B-190 will force the question 
 non-blocking sockets arrive, and answering it under that pressure is how libraries end up with two
 concurrency models.
 
-The language-design half is [B-177](language.md#b-177--the-concurrency-model-is-undecided).
+The language-design half is [B-177](language.design.md#b-177--the-concurrency-model-is-undecided).
 Record decisions there, not here.
 
 - Related: B-177, B-286, B-287, B-288

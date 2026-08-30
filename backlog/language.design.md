@@ -2,9 +2,9 @@
 
 This backlog covers the Swag language and its syntax, measured against what it competes
 with: Rust, Go, Zig, Swift, D, and the self-hosted tier of Jai and Odin. The compiler that
-implements it is [compiler.md](compiler.md).
+implements it is [compiler.core.md](compiler.core.md).
 
-Compiler defects stay in [compiler.md](compiler.md). This file keeps deliberate language design,
+Compiler defects stay in [compiler.core.md](compiler.core.md). This file keeps deliberate language design,
 surprising but specified rules, their comparative evidence, and their next decisions together.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
@@ -74,7 +74,7 @@ predicates after B-176 makes the current model's diagnostics complete.
   decision that must precede those API choices.
 - Go answered with goroutines and channels, Rust with `async` and a futures machinery that reaches
   into the type system, .NET with `Task`. Each answer changed the language, not just the library.
-- The forcing function is already scheduled: [B-190](core.md#b-190--no-blocking-tcp-sockets) puts
+- The forcing function is already scheduled: [B-190](std.core.md#b-190--no-blocking-tcp-sockets) puts
   non-blocking sockets on the path, and deciding this *under* that pressure is how languages end up
   with two concurrency models. Decide it early and deliberately, and record the decision here.
 
@@ -91,7 +91,7 @@ read one way and behave another. These are observations against the reference
 defects — the compiler does what the reference says. What is in question is whether the reference
 should say it.
 
-Compiler defects are in [compiler.md](compiler.md).
+Compiler defects are in [compiler.core.md](compiler.core.md).
 
 Every entry carries an `Elsewhere` line: what the neighbouring languages do about the same
 question. A wart no one else has and a convention half the industry shares are different problems,
@@ -288,7 +288,7 @@ with exactly one language and keeps deliberately.
   `with` and `me` had to be fixed by hand in the compiler.
 - Evidence: the ordering fix is in the tree (`Sema.Member.Auto.cpp`), and the ambiguous-`.member`
   diagnostic is already a separate finding (B-571 in
-  [compiler.md](compiler.md)).
+  [compiler.core.md](compiler.core.md)).
 - Elsewhere: the languages with a leading dot give it exactly one rule. Swift's `.member` is
   implicit-member lookup on the contextual type, and Zig's `.Field` is resolved by the expected
   type — one subject, decided by the type checker, with no second candidate to order against.

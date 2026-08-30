@@ -5,8 +5,8 @@ with: Skia, Cairo, Blend2D, NanoVG, ThorVG, and Direct2D — plus stb_image and 
 imaging side.
 
 Evidence, investigations, and intended outcomes owned by `bin/std/modules/pixel` stay together
-here. Compiler and language work belongs in [compiler.md](compiler.md) and
-[language.md](language.md).
+here. Compiler and language work belongs in [compiler.core.md](compiler.core.md) and
+[language.design.md](language.design.md).
 [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
@@ -53,7 +53,7 @@ The gaps are in composition fidelity, color, and the GPU backend.
 - Fix by walking a minimum coded unit and upsampling chroma from the sampling factors themselves,
   instead of dispatching to four hand-written converters. Complete when both fixtures decode to
   the same pictures as their 4:2:0 sibling.
-- Related: [video.md](video.md)
+- Related: [std.video.md](std.video.md)
 
 ### B-205 — No image filter graph
 

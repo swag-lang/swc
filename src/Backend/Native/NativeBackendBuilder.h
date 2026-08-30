@@ -97,6 +97,11 @@ public:
     Result runExistingArtifact();
     Result prepare();
     Result buildObject(uint32_t objIndex);
+
+    // Serialises the current object partition into COFF bytes. buildObjects() calls it for a static
+    // library; the shared-library path calls it again, on a finer partition, for the archive it
+    // publishes beside its DLL.
+    Result buildObjectBytes();
     Result publishExistingArtifact();
     Result publishExecutableDependencies();
 

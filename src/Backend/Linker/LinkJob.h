@@ -32,6 +32,12 @@ struct LinkJob
     std::vector<LinkArchiveMember> archiveMembers; // StaticLibrary: prepared object members
     LinkDebugInfo                  debugInfo;      // self-contained debug records lowered by prepareLink
 
+    // The archive a shared library publishes beside its DLL, holding the very same code one
+    // function per member so an executable links only what it reaches. Empty path when the build
+    // publishes the image alone.
+    fs::path                       staticLibraryPath;
+    std::vector<LinkArchiveMember> staticLibraryMembers;
+
     // Outputs filled by executeLink. On failure, error carries a ready-to-report diagnostic built off
     // the foreground thread (Diagnostic::get/addArgument touch no compiler/logger state); finishLink
     // reports it back on the foreground thread.

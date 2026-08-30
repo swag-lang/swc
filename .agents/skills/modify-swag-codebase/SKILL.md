@@ -265,10 +265,14 @@ periodic pass.
 
 ## Launch Every Executable Through Its Tool
 
-Never start a built binary by its path. `bin/std` compiles to shared libraries — `core.dll`,
-`pixel.dll`, `gui.dll` and the rest — and the compiler leaves the executable in its output
-directory *without* them. Run it from there and it dies before `main`, with no window and no
-diagnostic, which reads exactly like the bug you were about to investigate.
+Never start a built binary by its path. What it needs beside it is not its own code — an
+executable that names no link kind takes its dependencies' code in and runs alone — but the
+files it reads while it runs: icons, translations, fixtures, and whatever else the module
+publishes. Start it from its output directory and it comes up without them, which reads
+exactly like the bug you were about to investigate.
+
+One executable still needs libraries beside it: one whose import closure names
+`link: "shared-library"`. Its module file says so, and the link places them there.
 
 The tools place the runtime files first, then launch:
 
@@ -279,10 +283,7 @@ swc tools/scripts.swgs [dm] run <script>
 ```
 
 The same rule holds when driving a program from a helper script, a debugger, or a screenshot
-harness: point it at the tool, not at the `.exe`. An application under `bin/apps` is the one
-exception: its module file sets `publishDependencies`, so every link places the shared libraries it
-needs beside it and the executable runs on its own. That state no longer depends on which command
-ran last.
+harness: point it at the tool, not at the `.exe`.
 
 ## Measure Windows From A DPI-Aware Probe
 

@@ -358,12 +358,15 @@ private func verifyWorkspaceTestArtifactLayout(workspace: string, buildCfg: stri
         return 1
     }
 
+    // A file filter is an argument the executable reads, not a second executable. The run above
+    // reused the published one, so nothing of its own may be left anywhere -- '.output' is
+    // covered by the walk, and '.tmp' is where a filtered build used to put its copy.
     if focused
     {
         let focusedExecutable = Path.combine(workspace, ".tmp", "consumer_exe", "test", buildCfg, targetArch, "consumer_exe.test.focused.exe")
-        if !File.exists(focusedExecutable)
+        if File.exists(focusedExecutable)
         {
-            Console.println("Focused workspace test executable is missing from '.tmp'.")
+            Console.println("Focused workspace test built an executable of its own: ", focusedExecutable.toString())
             return 1
         }
     }
@@ -520,6 +523,17 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         Console.println("Workspace test did not execute its reused #test function.")
         return 1
     }
+
+    // An executable that names no link kind takes its dependencies' code in and ships alone. Its
+    // own tests check both halves of that: a call across what was a module boundary, and the
+    // absence of any shared library beside the artifact.
+    var standalone = workspaceModuleCommand("test", workspace.toString(), "standalone_exe", buildCfg)
+    standalone.add(["--no-test-jit"])
+    options.appendExtra(&standalone)
+
+    let standaloneCode = try context.runCompiler(standalone)
+    if standaloneCode != 0 do
+        return standaloneCode
 
     var verified = workspaceModuleCommand("test", workspace.toString(), "verify_expectations", buildCfg)
     verified.add(["--no-test-jit"])

@@ -824,7 +824,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         let cb            = expect src.encode("memory.tga")
         let img           = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
         let bytesPerPixel = cast(u64) src.bytesPerPixel
-        Swag.assert(cb.count == #sizeof(TgaH) + src.pixels.count)
+        Swag.assert(cb.count() == #sizeof(TgaH) + src.pixels.count)
         Swag.assert(img.pixelFormat == (bytesPerPixel == 3 ? .BGR8 : .BGRA8))
         for pixel in cast(u64) Width * Height
         {

@@ -72,6 +72,7 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
         .ctx          = &builder_->ctx(),
         .targetOs     = builder_->ctx().cmdLine().targetOs,
         .objectPath   = description.objPath,
+        .objectIndex  = description.index,
         .functions    = debugRecords.functions,
         .globals      = debugRecords.globals,
         .constants    = debugRecords.constants,

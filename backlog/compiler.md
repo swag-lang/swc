@@ -514,7 +514,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
   quoted expression and returns empty for the `AstMemberAccessExpr` a qualifier produces. Walking
   down to that member access's right side makes deduction succeed and uncovers the resolution
   failure above; the two are one feature and are worth fixing together.
-- Next step: find where the quoted suffix of a qualified type is resolved. `lookupScopedMember` in
+- Next: find where the quoted suffix of a qualified type is resolved. `lookupScopedMember` in
   `src/Compiler/Sema/Helpers/SemaHelpers.Symbol.cpp` binds the matched `Ns.Box` symbols onto the
   quoted callee and substitutes the member access with the quoted expression; establish which scope
   the suffix identifier is then matched in, and why a file-scope alias resolves there but a
@@ -522,3 +522,53 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
 - Complete when: a `sema` suite test declares a generic struct in a namespace and uses
   `Ns.Box'T` as a struct field, a function parameter, and a return type, with both explicit
   instantiation and deduction from the argument.
+
+### B-164 — A run-time loaded shared library cannot share the host's runtime
+
+- Area: compiler
+- Found while: making an executable link its dependencies' code in by default, so it ships as one
+  file (`bin/unittests/workspace/modules/standalone_exe`).
+- Observation: an executable links its whole import closure in, which gives the process one copy of
+  each module and one runtime state. A shared library it loads at run time through
+  `Core.NativeLibrary.load` was built against the shared libraries instead, so it brings a second
+  `core` with it: two allocators, two runtime contexts, and memory that cannot cross between them.
+  Nothing the compiler sees says the load will happen — the library is named by a path the program
+  computes while it runs.
+- Evidence: `runtime_context_dynamic_consumer` faulted with `0xC0000005` after its `#test` passed,
+  at shutdown, once its `core` import resolved to the archive. Pinning that import with
+  `link: "shared-library"` — which the all-or-nothing rule then propagates to the whole closure —
+  makes it pass again, and is now what the module states.
+- Next: decide whether a loaded module can adopt its host's runtime instead. The
+  `__swc_rt_stage` hook already hands an imported module the host's TLS slot and context, and
+  `NativeLibrary.load` could call it the same way; that leaves the loaded module's own `core.dll`
+  allocator as the remaining split, so the question is whether the hook can also install the host's
+  allocator. Until then the rule is the pin, and it is documented on the reference's dependency
+  page.
+- Complete when: either a loaded shared library provably shares the host's allocator and context in
+  a workspace test that links its dependencies in, or the backlog records why it cannot and the
+  compiler diagnoses the combination it can see.
+
+### B-165 — An archive member carries its module's whole read-only data
+
+- Area: compiler
+- Found while: measuring what an executable keeps once it links its dependencies in rather than
+  importing them.
+- Observation: the archive a library publishes splits its code one function per member, so the
+  linker keeps only the functions an executable reaches. Its read-only data is not split: every
+  constant the module emitted sits in member 0, which any function touching any constant pulls in
+  whole. `NativeRDataCollector` already emits only what that module's own code reaches, so the blob
+  is not waste for the library — it is waste for a consumer that uses part of the library.
+- Evidence: Swag Capture, devmode. Linking in what it used to import took `.text` from 8,508,068 to
+  6,519,590 bytes (−23%), and `.pdata`/`.xdata` fell with it (−35%), which is whole functions being
+  dropped. `.rdata` went from 7,317,785 to 7,373,360 — nothing dropped, and it is now 48% of the
+  executable. Total shipped bytes fell from 18,584,064 in six files to 15,241,216 in one (−18%);
+  splitting the data is what stands between that and a substantially smaller number.
+- Next: give read-only data the granularity the code already has. Relocations address it as
+  one scoped base symbol plus an offset (`__swc_rdata_base_<hash>`, `NativeNames.h`), which is what
+  forces one member; `NativeRDataCollector` already tracks each allocation's emitted offset and
+  owner, so the smallest useful step is to emit the merged blob as several chunks, each its own
+  object with its own base symbol, and resolve a code relocation to the chunk holding its offset.
+  Measure Swag Capture's `.rdata` again against the 7,373,360 above.
+- Complete when: an executable linking `gui` and `pixel` in keeps measurably less `.rdata` than the
+  sum those modules publish, with the workspace suite and the application tests still green.
+- Related: B-164.

@@ -392,6 +392,15 @@ namespace
         return true;
     }
 
+    // Whether this build could take its dependencies' code in at all, from the artifact it produces
+    // alone. It is the cheap half of the question — the closure still has to allow it — and it is
+    // what keeps a script from mirroring archives it will never link: a script has no artifact of
+    // its own, it runs through the compiler, which calls into the shared libraries.
+    bool mayLinkDependenciesIn(const CompilerInstance& compiler)
+    {
+        return compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable && !compiler.cmdLine().scriptMode;
+    }
+
     Utf8 resolveDependencyLinkModuleName(const fs::path& linkDir, const std::string_view fallbackStem)
     {
         Utf8 result;
@@ -1693,7 +1702,18 @@ struct ModuleSetupInputApplier
 {
     explicit ModuleSetupInputApplier(CompilerInstance& compilerInstance, TaskContext& taskContext);
 
+    // One resolved import: which plan owns it, and which binding inside that plan. A workspace-wide
+    // plan is shared by every module it builds, so the link kind is decided against the module
+    // being built and never written back into the plan.
+    struct ResolvedImport
+    {
+        const CompilerInstance::ModuleSetupImport*         request = nullptr;
+        const CompilerInstance::DependencyPlan*            plan    = nullptr;
+        const CompilerInstance::ResolvedDependencyBinding* binding = nullptr;
+    };
+
     Result apply(const CompilerInstance::ModuleSetupSnapshot& setupSnapshot, const CompilerInstance::DependencyPlan& dependencyPlan);
+    bool   shouldLinkDependenciesIn(std::span<const ResolvedImport> resolvedImports) const;
 
     CompilerInstance& instance() const
     {
@@ -1728,11 +1748,57 @@ ModuleSetupInputApplier::ModuleSetupInputApplier(CompilerInstance& compilerInsta
     ctx      = &taskContext;
 }
 
+// Whether this module takes its dependencies' code in rather than importing it, for the whole
+// import closure at once.
+//
+// Only an executable does: a library keeps importing, so that everything loading it shares one copy
+// of a module's code and of the runtime state that comes with it. And the answer covers the closure
+// or nothing, because an executable that links one module in while loading another built against
+// that same module's DLL runs two copies of it — two allocators, two runtime contexts, and memory
+// that cannot cross between them. A module pinned with `link:` states its own kind, which settles
+// the question for every other.
+bool ModuleSetupInputApplier::shouldLinkDependenciesIn(const std::span<const ModuleSetupInputApplier::ResolvedImport> resolvedImports) const
+{
+    if (!mayLinkDependenciesIn(instance()))
+        return false;
+
+    for (const ResolvedImport& resolvedImport : resolvedImports)
+    {
+        // The request is read as well as the node it resolved to: one node answers for every import
+        // naming the same module, and keeps the kind of the import that created it.
+        if (resolvedImport.request->linkBackendKind == Runtime::BuildCfgBackendKind::SharedLibrary)
+            return false;
+
+        for (const size_t nodeIndex : resolvedImport.binding->closure)
+        {
+            const CompilerInstance::ResolvedDependencyNode& node = resolvedImport.plan->nodes[nodeIndex];
+
+            // Only a module asked for as a shared library settles the question, and it settles it
+            // against linking anything in: it puts a DLL in the process whatever we do here. One
+            // asked for as a static library already answers the way we would.
+            if (node.linkBackendKind == Runtime::BuildCfgBackendKind::SharedLibrary)
+                return false;
+
+            // A module publishing a shared library but no archive of its own code cannot be linked
+            // in. One publishing neither ('export') contributes no code at all and takes part in
+            // either answer.
+            if (!node.paths.sharedDir.empty() && node.paths.staticDir.empty())
+                return false;
+        }
+    }
+
+    return true;
+}
+
 Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapshot& setupSnapshot, const CompilerInstance::DependencyPlan& dependencyPlan)
 {
     instance().moduleSetupImports_ = setupSnapshot.imports;
     instance().nativeRuntimeImports_.clear();
     instance().moduleSetupLoadedFiles_ = setupSnapshot.loadedFiles;
+
+    std::vector<std::unique_ptr<CompilerInstance::DependencyPlan>> localPlans;
+    std::vector<ResolvedImport>                                    resolvedImports;
+    resolvedImports.reserve(setupSnapshot.imports.size());
 
     for (const CompilerInstance::ModuleSetupImport& importRequest : setupSnapshot.imports)
     {
@@ -1752,31 +1818,41 @@ Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapsho
 
         // Workspace-local imports become resolvable in build order, after their producer has
         // published its artifacts. External imports are always present in the command-wide plan.
-        CompilerInstance::DependencyPlan localPlan;
+        const CompilerInstance::DependencyPlan* bindingPlan = &dependencyPlan;
         if (!binding)
         {
+            auto                  localPlan = std::make_unique<CompilerInstance::DependencyPlan>();
             DependencyPlanBuilder builder(instance(), taskCtx());
-            SWC_RESULT(builder.build(localPlan, std::span{&importRequest, 1}));
-            SWC_ASSERT(localPlan.bindings.size() == 1);
-            binding = &localPlan.bindings.front();
+            SWC_RESULT(builder.build(*localPlan, std::span{&importRequest, 1}));
+            SWC_ASSERT(localPlan->bindings.size() == 1);
+            binding     = &localPlan->bindings.front();
+            bindingPlan = localPlan.get();
+            localPlans.push_back(std::move(localPlan));
         }
 
-        const CompilerInstance::DependencyPlan& bindingPlan = localPlan.bindings.empty() ? dependencyPlan : localPlan;
-        for (const size_t nodeIndex : binding->closure)
+        resolvedImports.push_back({.request = &importRequest, .plan = bindingPlan, .binding = binding});
+    }
+
+    const bool linkDependenciesIn = shouldLinkDependenciesIn(resolvedImports);
+
+    for (const ResolvedImport& resolvedImport : resolvedImports)
+    {
+        for (const size_t nodeIndex : resolvedImport.binding->closure)
         {
-            const CompilerInstance::ResolvedDependencyNode& node = bindingPlan.nodes[nodeIndex];
+            const CompilerInstance::ResolvedDependencyNode& node = resolvedImport.plan->nodes[nodeIndex];
             instance().collectImportedApiFolderFiles(node.paths.apiDir, node.moduleName.view());
-            instance().registerImportedDependencyLinkDir(node.paths.linkDir);
+            instance().registerImportedDependencyLinkDir(linkDependenciesIn && !node.paths.staticDir.empty() ? node.paths.staticDir : node.paths.linkDir);
             instance().registerImportedSharedModuleDir(node.paths.sharedDir);
         }
 
-        const CompilerInstance::ResolvedDependencyNode& directNode = bindingPlan.nodes[binding->nodeIndex];
-        if (!directNode.paths.linkDir.empty())
+        const CompilerInstance::ResolvedDependencyNode& directNode = resolvedImport.plan->nodes[resolvedImport.binding->nodeIndex];
+        const fs::path&                                 linkDir    = linkDependenciesIn && !directNode.paths.staticDir.empty() ? directNode.paths.staticDir : directNode.paths.linkDir;
+        if (!linkDir.empty())
         {
             CompilerInstance::NativeRuntimeImport runtimeImport;
-            runtimeImport.moduleName           = importRequest.moduleName;
-            runtimeImport.linkModuleName       = resolveDependencyLinkModuleName(directNode.paths.linkDir, importRequest.moduleName.view());
-            runtimeImport.transitiveImports    = binding->transitiveImports;
+            runtimeImport.moduleName           = resolvedImport.request->moduleName;
+            runtimeImport.linkModuleName       = resolveDependencyLinkModuleName(linkDir, resolvedImport.request->moduleName.view());
+            runtimeImport.transitiveImports    = resolvedImport.binding->transitiveImports;
             runtimeImport.hasSharedRuntimeHook = !directNode.paths.sharedDir.empty();
             instance().nativeRuntimeImports_.push_back(std::move(runtimeImport));
         }
@@ -1819,12 +1895,17 @@ Result DependencyPlanBuilder::resolveLinkAndSharedDirs(CompilerInstance::Resolve
 {
     outPaths.linkDir.clear();
     outPaths.sharedDir.clear();
+    outPaths.staticDir.clear();
     outPaths.sourceRoot = FileSystem::normalizePath(dependencyRoot);
 
     Utf8     because;
     fs::path sharedDir;
     if (findDependencyConfigurationDirectoryForBackend(sharedDir, because, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), Runtime::BuildCfgBackendKind::SharedLibrary) == Result::Continue)
         outPaths.sharedDir = std::move(sharedDir);
+
+    fs::path staticDir;
+    if (findDependencyConfigurationDirectoryForBackend(staticDir, because, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), Runtime::BuildCfgBackendKind::StaticLibrary) == Result::Continue)
+        outPaths.staticDir = std::move(staticDir);
 
     if (importRequest.linkBackendKind != Runtime::BuildCfgBackendKind::None)
     {
@@ -2156,6 +2237,13 @@ Result DependencyPlanBuilder::resolveNode(size_t& outIndex, CompilerInstance::De
         SWC_RESULT(mirrorDependencyDir(paths.apiDir, sourceRoot));
         SWC_RESULT(mirrorDependencyDir(paths.linkDir, sourceRoot));
         SWC_RESULT(mirrorDependencyDir(paths.sharedDir, sourceRoot));
+
+        // Nothing here can link an archive, so the archive is not worth copying. Forget where it
+        // was rather than leave the one unmirrored path in an otherwise mirrored plan.
+        if (mayLinkDependenciesIn(instance()))
+            SWC_RESULT(mirrorDependencyDir(paths.staticDir, sourceRoot));
+        else
+            paths.staticDir.clear();
     }
 
     outIndex = plan.nodes.size();
@@ -2890,6 +2978,16 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     moduleCmdLine.files.clear();
     moduleCmdLine.outDir  = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, false);
     moduleCmdLine.workDir = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, true);
+
+    // A shared library publishes its code twice from one compilation: the DLL the compiler loads to
+    // run this module at compile time, and the archive an executable links instead of importing.
+    // Only a 'build' produces both; a test compile owns a directory of its own and links nothing.
+    moduleCmdLine.staticLibraryOutDir.clear();
+    if (moduleBuild.setup.buildCfg.backendKind == Runtime::BuildCfgBackendKind::SharedLibrary &&
+        moduleCmdLine.command != CommandKind::Test)
+    {
+        moduleCmdLine.staticLibraryOutDir = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, Runtime::BuildCfgBackendKind::StaticLibrary, false);
+    }
     // Executables do not publish an API. Keeping their output directory here lets the module API
     // pass remove files left by an older compiler before suppressing the export.
     if (writeModuleApi || moduleBuild.setup.buildCfg.backendKind == Runtime::BuildCfgBackendKind::Executable)
@@ -2941,6 +3039,8 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             if (needsRequiredArtifact)
             {
                 requiredArtifacts.push_back(artifactPaths.artifactPath);
+                if (!artifactPaths.staticLibraryPath.empty())
+                    requiredArtifacts.push_back(artifactPaths.staticLibraryPath);
                 if (probeCompiler.buildCfg().backend.debugInfo &&
                     (probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable ||
                      probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary))
@@ -3163,7 +3263,11 @@ void CompilerInstance::registerImportedSharedModuleDir(const fs::path& path)
     if (path.empty())
         return;
 
-    externalModuleMgr().registerSearchPath(FileSystem::normalizePath(path));
+    const fs::path normalizedPath = FileSystem::normalizePath(path);
+    if (importedDependencySharedDirSet_.insert(normalizedPath).second)
+        importedDependencySharedDirs_.push_back(normalizedPath);
+
+    externalModuleMgr().registerSearchPath(normalizedPath);
 }
 
 // Imported interfaces name their origin module ('core'); dependency resolution may have

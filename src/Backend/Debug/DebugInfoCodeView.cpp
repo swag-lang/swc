@@ -1483,7 +1483,7 @@ namespace
             const uint32_t unwindOffset = static_cast<uint32_t>(xdataSection.bytes.size());
             writeBytes(xdataSection.bytes, std::span{function.machineCode->unwindInfo.data(), function.machineCode->unwindInfo.size()});
 
-            const Utf8             unwindSymbolName = std::format("__swc_unwind_{:08x}_{:04}", objectHash, unwindIndex++);
+            const Utf8             unwindSymbolName = std::format("__swc_unwind_{:08x}_{:06}_{:04}", objectHash, request.objectIndex, unwindIndex++);
             DebugInfoDefinedSymbol unwindSym;
             unwindSym.name        = unwindSymbolName;
             unwindSym.sectionName = xdataSection.name;

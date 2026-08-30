@@ -965,8 +965,20 @@ Result NativeBackendBuilder::publishExecutableDependencies()
         return Result::Continue;
     };
 
+    // Every shared directory is read, including the ones this executable does not link against
+    // because it took their module's code in instead: such a directory is the only place that still
+    // names the DLL, and naming it is what lets a copy an earlier build published beside the
+    // executable be taken back out.
+    std::vector<fs::path>        sourceDirs = compiler_->importedDependencyLinkDirs();
+    std::unordered_set<fs::path> linkedAgainst(sourceDirs.begin(), sourceDirs.end());
+    for (const fs::path& sharedDir : compiler_->importedDependencySharedDirs())
+    {
+        if (!linkedAgainst.contains(sharedDir))
+            sourceDirs.push_back(sharedDir);
+    }
+
     const bool publishDebugInfo = compiler_->buildCfg().backend.debugInfo;
-    for (const fs::path& sourceDir : compiler_->importedDependencyLinkDirs())
+    for (const fs::path& sourceDir : sourceDirs)
     {
         if (sourceDir.empty())
             continue;
@@ -974,6 +986,10 @@ Result NativeBackendBuilder::publishExecutableDependencies()
         const fs::path normalizedSourceDir = FileSystem::normalizePath(sourceDir);
         if (FileSystem::pathEquals(normalizedSourceDir, FileSystem::normalizePath(artifactDir)))
             continue;
+
+        // Only a module this executable actually imports is published beside it. One whose code was
+        // linked in has nothing to ship, so its files are removed instead of copied.
+        const bool publishFromThisDir = publishDependencies && linkedAgainst.contains(normalizedSourceDir);
 
         for (fs::directory_iterator it(normalizedSourceDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
         {
@@ -993,14 +1009,14 @@ Result NativeBackendBuilder::publishExecutableDependencies()
 
             // A dependency PDB may no longer exist in the source directory after switching off
             // debug information. Derive it from the DLL so an older published copy is still removed.
-            if (extension == ".dll" && (!publishDependencies || !publishDebugInfo))
+            if (extension == ".dll" && (!publishFromThisDir || !publishDebugInfo))
             {
                 fs::path stalePdbPath = dstPath;
                 stalePdbPath.replace_extension(".pdb");
                 SWC_RESULT(removePublishedFile(stalePdbPath));
             }
 
-            if (!publishDependencies || (extension == ".pdb" && !publishDebugInfo))
+            if (!publishFromThisDir || (extension == ".pdb" && !publishDebugInfo))
             {
                 // Windows loads DLLs from the executable folder before PATH. If dependencies
                 // were published by a previous build, remove them when publish is now disabled.
@@ -1085,6 +1101,13 @@ Result NativeBackendBuilder::buildObjects()
     if (compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::StaticLibrary)
         return Result::Continue;
 
+    return buildObjectBytes();
+}
+
+Result NativeBackendBuilder::buildObjectBytes()
+{
+    objBuildFailed.store(false, std::memory_order_release);
+
     JobManager& jobMgr = ctx_.global().jobMgr();
     for (uint32_t i = 0; i < objectDescriptions.size(); ++i)
     {
@@ -1116,6 +1139,15 @@ Result NativeBackendBuilder::runGeneratedArtifact()
     {
         if (!importedLinkDir.empty())
             runtimePathDirs.push_back(importedLinkDir);
+    }
+
+    // The shared directories go on the path even when this executable linked its dependencies in
+    // and needs none of them itself: a library it loads at run time was built against the DLLs, and
+    // the loader resolves that library's own imports from the process path.
+    for (const fs::path& importedSharedDir : compiler_->importedDependencySharedDirs())
+    {
+        if (!importedSharedDir.empty() && std::ranges::find(runtimePathDirs, importedSharedDir) == runtimePathDirs.end())
+            runtimePathDirs.push_back(importedSharedDir);
     }
 
     // A smoke run is supposed to stop by itself once its frame budget is spent, and a test

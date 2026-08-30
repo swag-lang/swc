@@ -106,28 +106,28 @@ func murmur3Reference(key: const [*] u8, len: u64, seed: u64)->u64
 
 func assertMurmur3(value: u32)
 {
-    @assert(Hash.murmur3(value) == murmur3Reference(value))
+    Swag.assert(Hash.murmur3(value) == murmur3Reference(value))
 }
 
 func assertMurmur3(value: u64)
 {
-    @assert(Hash.murmur3(value) == murmur3Reference(value))
+    Swag.assert(Hash.murmur3(value) == murmur3Reference(value))
 }
 
 func assertMurmur3Pair(a, b: u32)
 {
-    @assert(Hash.murmur3(a, b) == murmur3Reference(a, b))
+    Swag.assert(Hash.murmur3(a, b) == murmur3Reference(a, b))
 }
 
 func assertMurmur3Pair(a, b: u64)
 {
-    @assert(Hash.murmur3(a, b) == murmur3Reference(a, b))
+    Swag.assert(Hash.murmur3(a, b) == murmur3Reference(a, b))
 }
 
 func fillMurmur3Pattern(buffer: [..] u8)
 {
     var i = 0'u64
-    while i < @countof(buffer)
+    while i < buffer.count
     {
         buffer[i] = cast(u8) ((i * 151 + 7) & 0xFF)
         i         += 1
@@ -136,7 +136,7 @@ func fillMurmur3Pattern(buffer: [..] u8)
 
 #test
 {
-    @assert(Hash.murmur3(0x12345678'u32, 0'u32) != Hash.murmur3(0x12345678'u32, 1'u32))
+    Swag.assert(Hash.murmur3(0x12345678'u32, 0'u32) != Hash.murmur3(0x12345678'u32, 1'u32))
 
     for value in 65536
     {
@@ -160,8 +160,8 @@ func fillMurmur3Pattern(buffer: [..] u8)
 
     for length in 34
     {
-        let ptr = cast(const [*] u8) @dataof(data)
-        @assert(Hash.murmur3(ptr, length, 0) == murmur3Reference(ptr, length, 0))
-        @assert(Hash.murmur3(ptr, length, 0x1234_5678_9ABC_DEF0'u64) == murmur3Reference(ptr, length, 0x1234_5678_9ABC_DEF0'u64))
+        let ptr = cast(const [*] u8) data.buffer
+        Swag.assert(Hash.murmur3(ptr, length, 0) == murmur3Reference(ptr, length, 0))
+        Swag.assert(Hash.murmur3(ptr, length, 0x1234_5678_9ABC_DEF0'u64) == murmur3Reference(ptr, length, 0x1234_5678_9ABC_DEF0'u64))
     }
 }

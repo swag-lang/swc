@@ -23,7 +23,7 @@ func pressCount(mask: u32)->u32
 func minimumPresses(buttonMasks: const [..] u32, targetMask: u32)->u32
 {
     var best             = 255'u32
-    let combinationCount = 1'u32 << cast(u32) @countof(buttonMasks)
+    let combinationCount = 1'u32 << cast(u32) buttonMasks.count
 
     var combo: u32
     while combo < combinationCount
@@ -31,7 +31,7 @@ func minimumPresses(buttonMasks: const [..] u32, targetMask: u32)->u32
         var state:  u32
         var button: u32
 
-        while button < @countof(buttonMasks)
+        while button < buttonMasks.count
         {
             if (combo & (1'u32 << button)) != 0
                 do state ^= buttonMasks[button]
@@ -69,6 +69,6 @@ func solvePuzzle(puzzle: LightPuzzle)->u32
         buttonMasks: [1, 2, 4, 8, 3, 12]
         }
 
-    @assert(solvePuzzle(lobbyPanel) == 2'u32)
-    @assert(solvePuzzle(stagePanel) == 2'u32)
+    Swag.assert(solvePuzzle(lobbyPanel) == 2'u32)
+    Swag.assert(solvePuzzle(stagePanel) == 2'u32)
 }

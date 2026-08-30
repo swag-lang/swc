@@ -25,55 +25,55 @@ func(T) castAndDouble(value: T)->s32 => toS32(value) * 2
 
 #test
 {
-    @assert(constSquare'(4)() == 16)
-    @assert(constSquare'(0)() == 0)
-    @assert(constSquare'(7)() == 49)
+    Swag.assert(constSquare'(4)() == 16)
+    Swag.assert(constSquare'(0)() == 0)
+    Swag.assert(constSquare'(7)() == 49)
 
-    @assert(constSum'(3, 4)() == 7)
-    @assert(constSum'(0, 0)() == 0)
-    @assert(constSum'(100, -50)() == 50)
+    Swag.assert(constSum'(3, 4)() == 7)
+    Swag.assert(constSum'(0, 0)() == 0)
+    Swag.assert(constSum'(100, -50)() == 50)
 
-    @assert(constDefaults() == 15)
-    @assert(constDefaults'(1)() == 11)
-    @assert(constDefaults'(1, 2)() == 3)
+    Swag.assert(constDefaults() == 15)
+    Swag.assert(constDefaults'(1)() == 11)
+    Swag.assert(constDefaults'(1, 2)() == 3)
 }
 
 #test
 {
     let arr = fillArray'(s32, 3)(7)
-    @assert(arr[0] == 7)
-    @assert(arr[1] == 7)
-    @assert(arr[2] == 7)
+    Swag.assert(arr[0] == 7)
+    Swag.assert(arr[1] == 7)
+    Swag.assert(arr[2] == 7)
 
     let barr = fillArray'(bool, 2)(true)
-    @assert(barr[0] == true)
-    @assert(barr[1] == true)
+    Swag.assert(barr[0] == true)
+    Swag.assert(barr[1] == true)
 
     let uarr = fillArray'(u16, 4)(9'u16)
-    @assert(uarr[0] == 9'u16)
-    @assert(uarr[3] == 9'u16)
+    Swag.assert(uarr[0] == 9'u16)
+    Swag.assert(uarr[3] == 9'u16)
 }
 
 #test
 {
     let a: [3] s32 = [10, 20, 30]
-    @assert(sumN(a) == 60)
+    Swag.assert(sumN(a) == 60)
 
     let b: [4] f64 = [1.0, 2.0, 3.0, 4.0]
-    @assert(sumN(b) == 10.0)
+    Swag.assert(sumN(b) == 10.0)
 
     let c: [2] u16 = [100'u16, 200]
-    @assert(sumN(c) == 300'u16)
+    Swag.assert(sumN(c) == 300'u16)
 
     let d: [3] s64 = [1's64, 2, 3]
-    @assert(sumN(d) == 6's64)
+    Swag.assert(sumN(d) == 6's64)
 }
 
 #test
 {
-    @assert(toS32(3.7) == 3)
-    @assert(toS32(true) == 1)
-    @assert(castAndDouble(2.5) == 4)
-    @assert(castAndDouble(false) == 0)
-    @assert(castAndDouble(5) == 10)
+    Swag.assert(toS32(3.7) == 3)
+    Swag.assert(toS32(true) == 1)
+    Swag.assert(castAndDouble(2.5) == 4)
+    Swag.assert(castAndDouble(false) == 0)
+    Swag.assert(castAndDouble(5) == 10)
 }

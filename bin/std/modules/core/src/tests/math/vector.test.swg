@@ -5,17 +5,17 @@ using Swag
 
 func expectVec2(actual, expected: Math.Vector2)
 {
-    @assert(actual.isEqualEpsilon(expected, 0.001))
+    Swag.assert(actual.isEqualEpsilon(expected, 0.001))
 }
 
 func expectVec3(actual, expected: Math.Vector3)
 {
-    @assert(actual.isEqualEpsilon(expected, 0.001))
+    Swag.assert(actual.isEqualEpsilon(expected, 0.001))
 }
 
 func expectVec4(actual, expected: Math.Vector4)
 {
-    @assert(actual.isEqualEpsilon(expected, 0.001))
+    Swag.assert(actual.isEqualEpsilon(expected, 0.001))
 }
 
 #test
@@ -26,9 +26,9 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec2(Math.Vector2.UnitY, Math.Vector2{0, 1})
     expectVec2(Math.Vector2.NegUnitX, Math.Vector2{-1, 0})
     expectVec2(Math.Vector2.NegUnitY, Math.Vector2{0, -1})
-    @assert(Math.Vector2.Max.x == Swag.F32.Max and Math.Vector2.Max.y == Swag.F32.Max)
-    @assert(Math.Vector2.NegMax.x == -Swag.F32.Max and Math.Vector2.NegMax.y == -Swag.F32.Max)
-    @assert(Math.Vector2.Min.x == Swag.F32.Min and Math.Vector2.Min.y == Swag.F32.Min)
+    Swag.assert(Math.Vector2.Max.x == Swag.F32.Max and Math.Vector2.Max.y == Swag.F32.Max)
+    Swag.assert(Math.Vector2.NegMax.x == -Swag.F32.Max and Math.Vector2.NegMax.y == -Swag.F32.Max)
+    Swag.assert(Math.Vector2.Min.x == Swag.F32.Min and Math.Vector2.Min.y == Swag.F32.Min)
 
     var vec: Math.Vector2 = 2.0
     expectVec2(vec, Math.Vector2{2, 2})
@@ -85,13 +85,13 @@ func expectVec4(actual, expected: Math.Vector4)
 #test
 {
     let vec = Math.Vector2{3, 4}
-    @assert(vec.length() == 5)
-    @assert(vec.lengthSquared() == 25)
-    @assert(vec.dot(Math.Vector2{2, 1}) == 10)
+    Swag.assert(vec.length() == 5)
+    Swag.assert(vec.lengthSquared() == 25)
+    Swag.assert(vec.dot(Math.Vector2{2, 1}) == 10)
     expectVec2(vec.cross(2), Math.Vector2{8, -6})
-    @assert(vec.cross(Math.Vector2{2, 1}) == -5)
-    @assert(vec.distanceTo(Math.Vector2{6, 8}) == 5)
-    @assert(vec.distanceSquaredTo(Math.Vector2{6, 8}) == 25)
+    Swag.assert(vec.cross(Math.Vector2{2, 1}) == -5)
+    Swag.assert(vec.distanceTo(Math.Vector2{6, 8}) == 5)
+    Swag.assert(vec.distanceSquaredTo(Math.Vector2{6, 8}) == 25)
 
     var normalized = vec
     normalized.normalize()
@@ -124,17 +124,17 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec2(vec, Math.Vector2.Zero)
 
     vec = Math.Vector2{1, -2}
-    @assert(!vec.isZero())
+    Swag.assert(!vec.isZero())
     vec.setZero()
-    @assert(vec.isZero())
-    @assert(vec.isZeroEpsilon())
-    @assert(!Math.Vector2{0.01, 0}.isZeroEpsilon(0.001))
+    Swag.assert(vec.isZero())
+    Swag.assert(vec.isZeroEpsilon())
+    Swag.assert(!Math.Vector2{0.01, 0}.isZeroEpsilon(0.001))
 
     vec = Math.Vector2{1, -2}
     vec.negate()
     expectVec2(vec, Math.Vector2{-1, 2})
-    @assert(Math.Vector2{1, 1}.isEqualEpsilon(Math.Vector2{1.00001, 0.99999}, 0.001))
-    @assert(!Math.Vector2{1, 1}.isEqualEpsilon(Math.Vector2{1.01, 1}, 0.001))
+    Swag.assert(Math.Vector2{1, 1}.isEqualEpsilon(Math.Vector2{1.00001, 0.99999}, 0.001))
+    Swag.assert(!Math.Vector2{1, 1}.isEqualEpsilon(Math.Vector2{1.01, 1}, 0.001))
 }
 
 #test
@@ -161,10 +161,10 @@ func expectVec4(actual, expected: Math.Vector4)
     vec.rotateBy(90.0'deg)
     expectVec2(vec, Math.Vector2{0, 1})
 
-    @assert(Math.isZeroEpsilon(Math.Vector2.UnitX.angleCosineTo(Math.Vector2.UnitY), 0.001))
-    @assert(Math.isEqualEpsilon(Math.Vector2.UnitX.angleTo(Math.Vector2.UnitY), Math.ConstF32.PiBy2, 0.001))
-    @assert(Math.isEqualEpsilon(Math.Vector2.UnitX.orientedAngleTo(Math.Vector2.UnitY), Math.ConstF32.PiBy2, 0.001))
-    @assert(Math.isEqualEpsilon(Math.Vector2.UnitY.orientedAngleTo(Math.Vector2.UnitX), Math.ConstF32.TwoPi - Math.ConstF32.PiBy2, 0.001))
+    Swag.assert(Math.isZeroEpsilon(Math.Vector2.UnitX.angleCosineTo(Math.Vector2.UnitY), 0.001))
+    Swag.assert(Math.isEqualEpsilon(Math.Vector2.UnitX.angleTo(Math.Vector2.UnitY), Math.ConstF32.PiBy2, 0.001))
+    Swag.assert(Math.isEqualEpsilon(Math.Vector2.UnitX.orientedAngleTo(Math.Vector2.UnitY), Math.ConstF32.PiBy2, 0.001))
+    Swag.assert(Math.isEqualEpsilon(Math.Vector2.UnitY.orientedAngleTo(Math.Vector2.UnitX), Math.ConstF32.TwoPi - Math.ConstF32.PiBy2, 0.001))
 
     expectVec2(Math.Vector2.lerp(Math.Vector2{0, 0}, Math.Vector2{10, -20}, 0.25), Math.Vector2{2.5, -5})
 
@@ -195,10 +195,10 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec2(vec.projectedOnto(Math.Vector2.Zero), Math.Vector2.Zero)
     expectVec2(Math.Vector2{2, -3}.reflected(Math.Vector2{0, 1}), Math.Vector2{2, 3})
     expectVec2(Math.Vector2{2, -4}.sign(), Math.Vector2{1, -1})
-    @assert(vec.isFinite())
-    @assert(!Math.Vector2{Swag.F32.Inf, 0}.isFinite())
-    @assert(Math.Vector2{Swag.F32.NaN, 0}.isNaN())
-    @assert(!vec.isNaN())
+    Swag.assert(vec.isFinite())
+    Swag.assert(!Math.Vector2{Swag.F32.Inf, 0}.isFinite())
+    Swag.assert(Math.Vector2{Swag.F32.NaN, 0}.isNaN())
+    Swag.assert(!vec.isNaN())
 
     var absVec = vec
     absVec.makeAbsolute()
@@ -214,9 +214,9 @@ func expectVec4(actual, expected: Math.Vector4)
 
     var velocity = Math.Vector2.Zero
     let smoothed = Math.Vector2.smoothDamp(Math.Vector2.Zero, Math.Vector2{10, 20}, &velocity, 0.5, 0.1)
-    @assert(smoothed.x > 0 and smoothed.x < 10)
-    @assert(smoothed.y > 0 and smoothed.y < 20)
-    @assert(velocity.x > 0 and velocity.y > 0)
+    Swag.assert(smoothed.x > 0 and smoothed.x < 10)
+    Swag.assert(smoothed.y > 0 and smoothed.y < 20)
+    Swag.assert(velocity.x > 0 and velocity.y > 0)
 }
 
 #test
@@ -224,9 +224,9 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec2(Math.Vector2.fromPolar(Math.ConstF32.PiBy2, 2), Math.Vector2{0, 2})
 
     let polar = Math.Vector2{0, 2}.toPolar()
-    @assert(Math.isEqualEpsilon(polar.angle, Math.ConstF32.PiBy2, 0.001))
-    @assert(Math.isEqualEpsilon(polar.radius, 2, 0.001))
-    @assert(Math.isEqualEpsilon(Math.Vector2{0, 2}.toAngle(), Math.ConstF32.PiBy2, 0.001))
+    Swag.assert(Math.isEqualEpsilon(polar.angle, Math.ConstF32.PiBy2, 0.001))
+    Swag.assert(Math.isEqualEpsilon(polar.radius, 2, 0.001))
+    Swag.assert(Math.isEqualEpsilon(Math.Vector2{0, 2}.toAngle(), Math.ConstF32.PiBy2, 0.001))
 
     var vec = Math.Vector2{2, 0}
     vec.setAngle(Math.ConstF32.PiBy2)
@@ -243,9 +243,9 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec3(Math.Vector3.NegUnitX, Math.Vector3{-1, 0, 0})
     expectVec3(Math.Vector3.NegUnitY, Math.Vector3{0, -1, 0})
     expectVec3(Math.Vector3.NegUnitZ, Math.Vector3{0, 0, -1})
-    @assert(Math.Vector3.Max.x == Swag.F32.Max and Math.Vector3.Max.y == Swag.F32.Max and Math.Vector3.Max.z == Swag.F32.Max)
-    @assert(Math.Vector3.NegMax.x == -Swag.F32.Max and Math.Vector3.NegMax.y == -Swag.F32.Max and Math.Vector3.NegMax.z == -Swag.F32.Max)
-    @assert(Math.Vector3.Min.x == Swag.F32.Min and Math.Vector3.Min.y == Swag.F32.Min and Math.Vector3.Min.z == Swag.F32.Min)
+    Swag.assert(Math.Vector3.Max.x == Swag.F32.Max and Math.Vector3.Max.y == Swag.F32.Max and Math.Vector3.Max.z == Swag.F32.Max)
+    Swag.assert(Math.Vector3.NegMax.x == -Swag.F32.Max and Math.Vector3.NegMax.y == -Swag.F32.Max and Math.Vector3.NegMax.z == -Swag.F32.Max)
+    Swag.assert(Math.Vector3.Min.x == Swag.F32.Min and Math.Vector3.Min.y == Swag.F32.Min and Math.Vector3.Min.z == Swag.F32.Min)
 
     var vec: Math.Vector3 = 2.0
     expectVec3(vec, Math.Vector3{2, 2, 2})
@@ -302,12 +302,12 @@ func expectVec4(actual, expected: Math.Vector4)
 #test
 {
     let vec = Math.Vector3{2, 3, 6}
-    @assert(vec.length() == 7)
-    @assert(vec.lengthSquared() == 49)
-    @assert(vec.dot(Math.Vector3{4, -2, 1}) == 8)
+    Swag.assert(vec.length() == 7)
+    Swag.assert(vec.lengthSquared() == 49)
+    Swag.assert(vec.dot(Math.Vector3{4, -2, 1}) == 8)
     expectVec3(Math.Vector3.UnitX.cross(Math.Vector3.UnitY), Math.Vector3.UnitZ)
-    @assert(vec.distanceTo(Math.Vector3{4, 6, 12}) == 7)
-    @assert(vec.distanceSquaredTo(Math.Vector3{4, 6, 12}) == 49)
+    Swag.assert(vec.distanceTo(Math.Vector3{4, 6, 12}) == 7)
+    Swag.assert(vec.distanceSquaredTo(Math.Vector3{4, 6, 12}) == 49)
 
     var normalized = vec
     normalized.normalize()
@@ -340,17 +340,17 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec3(vec, Math.Vector3.Zero)
 
     vec = Math.Vector3{1, -2, 3}
-    @assert(!vec.isZero())
+    Swag.assert(!vec.isZero())
     vec.setZero()
-    @assert(vec.isZero())
-    @assert(vec.isZeroEpsilon())
-    @assert(!Math.Vector3{0.01, 0, 0}.isZeroEpsilon(0.001))
+    Swag.assert(vec.isZero())
+    Swag.assert(vec.isZeroEpsilon())
+    Swag.assert(!Math.Vector3{0.01, 0, 0}.isZeroEpsilon(0.001))
 
     vec = Math.Vector3{1, -2, 3}
     vec.negate()
     expectVec3(vec, Math.Vector3{-1, 2, -3})
-    @assert(Math.Vector3{1, 1, 1}.isEqualEpsilon(Math.Vector3{1.00001, 0.99999, 1.00002}, 0.001))
-    @assert(!Math.Vector3{1, 1, 1}.isEqualEpsilon(Math.Vector3{1.01, 1, 1}, 0.001))
+    Swag.assert(Math.Vector3{1, 1, 1}.isEqualEpsilon(Math.Vector3{1.00001, 0.99999, 1.00002}, 0.001))
+    Swag.assert(!Math.Vector3{1, 1, 1}.isEqualEpsilon(Math.Vector3{1.01, 1, 1}, 0.001))
 }
 
 #test
@@ -373,8 +373,8 @@ func expectVec4(actual, expected: Math.Vector4)
 
 #test
 {
-    @assert(Math.isZeroEpsilon(Math.Vector3.UnitX.angleCosineTo(Math.Vector3.UnitY), 0.001))
-    @assert(Math.isEqualEpsilon(Math.Vector3.UnitX.angleTo(Math.Vector3.UnitY), Math.ConstF32.PiBy2, 0.001))
+    Swag.assert(Math.isZeroEpsilon(Math.Vector3.UnitX.angleCosineTo(Math.Vector3.UnitY), 0.001))
+    Swag.assert(Math.isEqualEpsilon(Math.Vector3.UnitX.angleTo(Math.Vector3.UnitY), Math.ConstF32.PiBy2, 0.001))
     expectVec3(Math.Vector3.lerp(Math.Vector3{0, 0, 0}, Math.Vector3{10, -20, 30}, 0.25), Math.Vector3{2.5, -5, 7.5})
 
     var vec = Math.Vector3{-2, 6, 3}
@@ -402,10 +402,10 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec3(vec.projectedOnto(Math.Vector3.Zero), Math.Vector3.Zero)
     expectVec3(Math.Vector3{2, -3, 4}.reflected(Math.Vector3{0, 1, 0}), Math.Vector3{2, 3, 4})
     expectVec3(Math.Vector3{2, -4, 6}.sign(), Math.Vector3{1, -1, 1})
-    @assert(vec.isFinite())
-    @assert(!Math.Vector3{Swag.F32.Inf, 0, 0}.isFinite())
-    @assert(Math.Vector3{Swag.F32.NaN, 0, 0}.isNaN())
-    @assert(!vec.isNaN())
+    Swag.assert(vec.isFinite())
+    Swag.assert(!Math.Vector3{Swag.F32.Inf, 0, 0}.isFinite())
+    Swag.assert(Math.Vector3{Swag.F32.NaN, 0, 0}.isNaN())
+    Swag.assert(!vec.isNaN())
 
     var absVec = vec
     absVec.makeAbsolute()
@@ -421,25 +421,25 @@ func expectVec4(actual, expected: Math.Vector4)
 
     var velocity = Math.Vector3.Zero
     let smoothed = Math.Vector3.smoothDamp(Math.Vector3.Zero, Math.Vector3{10, 20, 30}, &velocity, 0.5, 0.1)
-    @assert(smoothed.x > 0 and smoothed.x < 10)
-    @assert(smoothed.y > 0 and smoothed.y < 20)
-    @assert(smoothed.z > 0 and smoothed.z < 30)
-    @assert(velocity.x > 0 and velocity.y > 0 and velocity.z > 0)
+    Swag.assert(smoothed.x > 0 and smoothed.x < 10)
+    Swag.assert(smoothed.y > 0 and smoothed.y < 20)
+    Swag.assert(smoothed.z > 0 and smoothed.z < 30)
+    Swag.assert(velocity.x > 0 and velocity.y > 0 and velocity.z > 0)
 }
 
 #test
 {
     expectVec3(Math.Vector3.fromSpherical(0, Math.ConstF32.PiBy2, 3), Math.Vector3{3, 0, 0})
     let spherical = Math.Vector3{0, 3, 0}.toSpherical()
-    @assert(Math.isEqualEpsilon(spherical.theta, 0, 0.001))
-    @assert(Math.isEqualEpsilon(spherical.phi, 0, 0.001))
-    @assert(Math.isEqualEpsilon(spherical.radius, 3, 0.001))
+    Swag.assert(Math.isEqualEpsilon(spherical.theta, 0, 0.001))
+    Swag.assert(Math.isEqualEpsilon(spherical.phi, 0, 0.001))
+    Swag.assert(Math.isEqualEpsilon(spherical.radius, 3, 0.001))
 
     expectVec3(Math.Vector3.fromCylindrical(Math.ConstF32.PiBy2, 3, 4), Math.Vector3{0, 4, 3})
     let cylindrical = Math.Vector3{0, 4, 3}.toCylindrical()
-    @assert(Math.isEqualEpsilon(cylindrical.theta, Math.ConstF32.PiBy2, 0.001))
-    @assert(Math.isEqualEpsilon(cylindrical.radius, 3, 0.001))
-    @assert(cylindrical.height == 4)
+    Swag.assert(Math.isEqualEpsilon(cylindrical.theta, Math.ConstF32.PiBy2, 0.001))
+    Swag.assert(Math.isEqualEpsilon(cylindrical.radius, 3, 0.001))
+    Swag.assert(cylindrical.height == 4)
 }
 
 #test
@@ -454,9 +454,9 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec4(Math.Vector4.NegUnitY, Math.Vector4{0, -1, 0, 0})
     expectVec4(Math.Vector4.NegUnitZ, Math.Vector4{0, 0, -1, 0})
     expectVec4(Math.Vector4.NegUnitW, Math.Vector4{0, 0, 0, -1})
-    @assert(Math.Vector4.Max.x == Swag.F32.Max and Math.Vector4.Max.y == Swag.F32.Max and Math.Vector4.Max.z == Swag.F32.Max and Math.Vector4.Max.w == Swag.F32.Max)
-    @assert(Math.Vector4.NegMax.x == -Swag.F32.Max and Math.Vector4.NegMax.y == -Swag.F32.Max and Math.Vector4.NegMax.z == -Swag.F32.Max and Math.Vector4.NegMax.w == -Swag.F32.Max)
-    @assert(Math.Vector4.Min.x == Swag.F32.Min and Math.Vector4.Min.y == Swag.F32.Min and Math.Vector4.Min.z == Swag.F32.Min and Math.Vector4.Min.w == Swag.F32.Min)
+    Swag.assert(Math.Vector4.Max.x == Swag.F32.Max and Math.Vector4.Max.y == Swag.F32.Max and Math.Vector4.Max.z == Swag.F32.Max and Math.Vector4.Max.w == Swag.F32.Max)
+    Swag.assert(Math.Vector4.NegMax.x == -Swag.F32.Max and Math.Vector4.NegMax.y == -Swag.F32.Max and Math.Vector4.NegMax.z == -Swag.F32.Max and Math.Vector4.NegMax.w == -Swag.F32.Max)
+    Swag.assert(Math.Vector4.Min.x == Swag.F32.Min and Math.Vector4.Min.y == Swag.F32.Min and Math.Vector4.Min.z == Swag.F32.Min and Math.Vector4.Min.w == Swag.F32.Min)
 
     var vec: Math.Vector4 = 2.0
     expectVec4(vec, Math.Vector4{2, 2, 2, 2})
@@ -513,11 +513,11 @@ func expectVec4(actual, expected: Math.Vector4)
 #test
 {
     let vec = Math.Vector4{2, 4, 5, 6}
-    @assert(vec.length() == 9)
-    @assert(vec.lengthSquared() == 81)
-    @assert(vec.dot(Math.Vector4{4, -2, 1, 3}) == 23)
-    @assert(vec.distanceTo(Math.Vector4{4, 8, 10, 12}) == 9)
-    @assert(vec.distanceSquaredTo(Math.Vector4{4, 8, 10, 12}) == 81)
+    Swag.assert(vec.length() == 9)
+    Swag.assert(vec.lengthSquared() == 81)
+    Swag.assert(vec.dot(Math.Vector4{4, -2, 1, 3}) == 23)
+    Swag.assert(vec.distanceTo(Math.Vector4{4, 8, 10, 12}) == 9)
+    Swag.assert(vec.distanceSquaredTo(Math.Vector4{4, 8, 10, 12}) == 81)
 
     var normalized = vec
     normalized.normalize()
@@ -550,17 +550,17 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec4(vec, Math.Vector4.Zero)
 
     vec = Math.Vector4{1, -2, 3, -4}
-    @assert(!vec.isZero())
+    Swag.assert(!vec.isZero())
     vec.setZero()
-    @assert(vec.isZero())
-    @assert(vec.isZeroEpsilon())
-    @assert(!Math.Vector4{0.01, 0, 0, 0}.isZeroEpsilon(0.001))
+    Swag.assert(vec.isZero())
+    Swag.assert(vec.isZeroEpsilon())
+    Swag.assert(!Math.Vector4{0.01, 0, 0, 0}.isZeroEpsilon(0.001))
 
     vec = Math.Vector4{1, -2, 3, -4}
     vec.negate()
     expectVec4(vec, Math.Vector4{-1, 2, -3, 4})
-    @assert(Math.Vector4{1, 1, 1, 1}.isEqualEpsilon(Math.Vector4{1.00001, 0.99999, 1.00002, 0.99998}, 0.001))
-    @assert(!Math.Vector4{1, 1, 1, 1}.isEqualEpsilon(Math.Vector4{1.01, 1, 1, 1}, 0.001))
+    Swag.assert(Math.Vector4{1, 1, 1, 1}.isEqualEpsilon(Math.Vector4{1.00001, 0.99999, 1.00002, 0.99998}, 0.001))
+    Swag.assert(!Math.Vector4{1, 1, 1, 1}.isEqualEpsilon(Math.Vector4{1.01, 1, 1, 1}, 0.001))
 }
 
 #test
@@ -583,8 +583,8 @@ func expectVec4(actual, expected: Math.Vector4)
 
 #test
 {
-    @assert(Math.isZeroEpsilon(Math.Vector4.UnitX.angleCosineTo(Math.Vector4.UnitY), 0.001))
-    @assert(Math.isEqualEpsilon(Math.Vector4.UnitX.angleTo(Math.Vector4.UnitY), Math.ConstF32.PiBy2, 0.001))
+    Swag.assert(Math.isZeroEpsilon(Math.Vector4.UnitX.angleCosineTo(Math.Vector4.UnitY), 0.001))
+    Swag.assert(Math.isEqualEpsilon(Math.Vector4.UnitX.angleTo(Math.Vector4.UnitY), Math.ConstF32.PiBy2, 0.001))
     expectVec4(Math.Vector4.lerp(Math.Vector4{0, 0, 0, 0}, Math.Vector4{10, -20, 30, -40}, 0.25), Math.Vector4{2.5, -5, 7.5, -10})
 
     var vec = Math.Vector4{-2, 6, 3, -8}
@@ -612,10 +612,10 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec4(vec.projectedOnto(Math.Vector4.Zero), Math.Vector4.Zero)
     expectVec4(Math.Vector4{2, -3, 4, -5}.reflected(Math.Vector4{0, 1, 0, 0}), Math.Vector4{2, 3, 4, -5})
     expectVec4(Math.Vector4{2, -4, 6, -8}.sign(), Math.Vector4{1, -1, 1, -1})
-    @assert(vec.isFinite())
-    @assert(!Math.Vector4{Swag.F32.Inf, 0, 0, 0}.isFinite())
-    @assert(Math.Vector4{Swag.F32.NaN, 0, 0, 0}.isNaN())
-    @assert(!vec.isNaN())
+    Swag.assert(vec.isFinite())
+    Swag.assert(!Math.Vector4{Swag.F32.Inf, 0, 0, 0}.isFinite())
+    Swag.assert(Math.Vector4{Swag.F32.NaN, 0, 0, 0}.isNaN())
+    Swag.assert(!vec.isNaN())
 
     var absVec = vec
     absVec.makeAbsolute()
@@ -631,11 +631,11 @@ func expectVec4(actual, expected: Math.Vector4)
 
     var velocity = Math.Vector4.Zero
     let smoothed = Math.Vector4.smoothDamp(Math.Vector4.Zero, Math.Vector4{10, 20, 30, 40}, &velocity, 0.5, 0.1)
-    @assert(smoothed.x > 0 and smoothed.x < 10)
-    @assert(smoothed.y > 0 and smoothed.y < 20)
-    @assert(smoothed.z > 0 and smoothed.z < 30)
-    @assert(smoothed.w > 0 and smoothed.w < 40)
-    @assert(velocity.x > 0 and velocity.y > 0 and velocity.z > 0 and velocity.w > 0)
+    Swag.assert(smoothed.x > 0 and smoothed.x < 10)
+    Swag.assert(smoothed.y > 0 and smoothed.y < 20)
+    Swag.assert(smoothed.z > 0 and smoothed.z < 30)
+    Swag.assert(smoothed.w > 0 and smoothed.w < 40)
+    Swag.assert(velocity.x > 0 and velocity.y > 0 and velocity.z > 0 and velocity.w > 0)
 }
 
 #test

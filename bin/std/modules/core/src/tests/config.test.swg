@@ -9,17 +9,17 @@ using Swag
 #test
 {
     #static if #gettag("Swag.Endian", string, "little") == "big" do
-        @assert(BIG_ENDIAN)
+        Swag.assert(BIG_ENDIAN)
     else do
-        @assert(!BIG_ENDIAN)
+        Swag.assert(!BIG_ENDIAN)
 
     #static if #os == Swag.TargetOs.Windows do
-        @assert(WINDOWS)
+        Swag.assert(WINDOWS)
     else do
-        @assert(!WINDOWS)
+        Swag.assert(!WINDOWS)
 
     #static if #cfg == "devmode" or #hastag("Std.Core.Assert") do
-        @assert(ASSERT)
+        Swag.assert(ASSERT)
     else do
-        @assert(!ASSERT)
+        Swag.assert(!ASSERT)
 }

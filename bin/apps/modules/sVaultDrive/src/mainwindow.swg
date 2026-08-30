@@ -442,7 +442,7 @@ internal func parseCapacity(text: string, unitIndex: u32)->ContainerSize
     var result: retval
 
     let parsed = catch StrConv.parseU64(text) as parseError
-    if parseError != null or parsed.ovf or parsed.eat != @countof(text) or !parsed.value
+    if parseError != null or parsed.ovf or parsed.eat != text.count or !parsed.value
     {
         result.error = appStrings().msg_SizeInvalid
         return result
@@ -1327,8 +1327,8 @@ impl MainWindow
     // the two differ would go down on every keystroke of the second one.
     mtd canCreate()->bool
     {
-        return @countof(.createPath.text()) != 0 and
-               @countof(.createSize.text()) != 0
+        return (.createPath.text()).count != 0 and
+               (.createSize.text()).count != 0
     }
 
     // Whether the open form holds everything a drive needs.
@@ -1337,13 +1337,13 @@ impl MainWindow
     // field, and a wrong password is reported by the container, not by the form.
     mtd canMount()->bool
     {
-        return @countof(.mountPath.text()) != 0 and !.selectedMountPoint().isEmpty()
+        return (.mountPath.text()).count != 0 and !.selectedMountPoint().isEmpty()
     }
 
     // Whether the open form names a container the two secondary actions can act on.
     mtd canModifyVault()->bool
     {
-        return @countof(.mountPath.text()) != 0
+        return (.mountPath.text()).count != 0
     }
 
     // Puts each action in step with what its form holds.
@@ -1592,7 +1592,7 @@ impl MainWindow
     mtd createContainer()
     {
         let path = .createPath.text()
-        if !@countof(path)
+        if !path.count
         {
             .showError(appStrings().msg_ChooseCreateFile)
             return
@@ -1652,7 +1652,7 @@ impl MainWindow
     mtd mountContainer()
     {
         let path = .mountPath.text()
-        if !@countof(path)
+        if !path.count
         {
             .showError(appStrings().msg_ChooseExisting)
             return

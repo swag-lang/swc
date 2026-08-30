@@ -6,11 +6,11 @@
     {
         var x: s32 = 42
         var y: s32 = 7
-        var a: any = @mkany(&x, s32)
-        var b: any = @mkany(&y, s32)
+        var a: any = Swag.makeAny(&x, s32)
+        var b: any = Swag.makeAny(&y, s32)
         b = a
-        // @print("boxed", b)
-        let p = cast(*s32) @dataof(b)
+        // Swag.print("boxed", b)
+        let p = cast(*s32) b.buffer
         return p[]
     }
 
@@ -25,7 +25,7 @@
     {
         let t: typeinfo = #typeof(s32)
         let f           = t.flags | .Nullable
-        // @print("flags", f)
+        // Swag.print("flags", f)
         return (f & .Nullable) != 0
     }
 
@@ -40,11 +40,11 @@
     {
         if false
         {
-            // @print("unreachable")
+            // Swag.print("unreachable")
             return 1
         }
 
-        // @print("reachable")
+        // Swag.print("reachable")
         return 2
     }
 

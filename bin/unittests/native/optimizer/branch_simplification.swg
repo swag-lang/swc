@@ -42,7 +42,7 @@ func branchSimplifyLoop()->s32
 
 #test
 {
-    @assert(branchSimplifyKnownTrue() == 11)
-    @assert(branchSimplifyKnownFalse() == 22)
-    @assert(branchSimplifyLoop() == 13)
+    Swag.assert(branchSimplifyKnownTrue() == 11)
+    Swag.assert(branchSimplifyKnownFalse() == 22)
+    Swag.assert(branchSimplifyLoop() == 13)
 }

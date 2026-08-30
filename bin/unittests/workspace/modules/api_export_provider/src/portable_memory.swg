@@ -5,7 +5,7 @@
 func depMemoryCopy(destination: [*] void, source: const [*] void, size: u64)
 {
     if size do
-        @memcpy(destination, source, size)
+        Swag.memcpy(destination, source, size)
 }
 
 // Copies possibly overlapping bytes through an inline body exported to another module.
@@ -13,7 +13,7 @@ func depMemoryCopy(destination: [*] void, source: const [*] void, size: u64)
 func depMemoryMove(destination: [*] void, source: const [*] void, size: u64)
 {
     if size do
-        @memmove(destination, source, size)
+        Swag.memmove(destination, source, size)
 }
 
 // Clears bytes through an inline body exported to another module.
@@ -21,7 +21,7 @@ func depMemoryMove(destination: [*] void, source: const [*] void, size: u64)
 func depMemoryClear(destination: [*] void, size: u64)
 {
     if size do
-        @memset(destination, 0, size)
+        Swag.memset(destination, 0, size)
 }
 
 // Fills bytes through an inline body exported to another module.
@@ -29,7 +29,7 @@ func depMemoryClear(destination: [*] void, size: u64)
 func depMemorySet(destination: [*] void, value: u8, size: u64)
 {
     if size do
-        @memset(destination, value, size)
+        Swag.memset(destination, value, size)
 }
 
 // Compares bytes through an inline body exported to another module.
@@ -38,5 +38,5 @@ func depMemoryCompare(left: const [*] void, right: const [*] void, size: u64)->s
 {
     if !size do
         return 0
-    return @memcmp(left, right, size)
+    return Swag.memcmp(left, right, size)
 }

@@ -8,12 +8,12 @@ using ExportApi
 #test
 {
     var value = DepVisibility.create(2, 3, 5, 7)
-    @assert(value.writable == 2)
-    @assert(value.observed == 3)
-    @assert(value.total() == 2 + 3 + 5 + 6 + 7)
+    Swag.assert(value.writable == 2)
+    Swag.assert(value.observed == 3)
+    Swag.assert(value.total() == 2 + 3 + 5 + 6 + 7)
 
     value.writable = 11
-    @assert(value.total() == 11 + 3 + 5 + 6 + 7)
+    Swag.assert(value.total() == 11 + 3 + 5 + 6 + 7)
 }
 
 #test
@@ -25,11 +25,11 @@ using ExportApi
 #test
 {
     let value = DepVisibility.create(2, 3, 5, 7)
-    @assert(value.moduleState == 5)     // swc-expected-error {{sema_err_field_internal}}
+    Swag.assert(value.moduleState == 5)     // swc-expected-error {{sema_err_field_internal}}
 }
 
 #test
 {
     let value = DepVisibility.create(2, 3, 5, 7)
-    @assert(value.moduleObserved == 6)     // swc-expected-error {{sema_err_field_internal}}
+    Swag.assert(value.moduleObserved == 6)     // swc-expected-error {{sema_err_field_internal}}
 }

@@ -34,7 +34,7 @@ impl BorrowInvBuffer
         req.address = .data
         req.size    = .capacity
 
-        let alloc = @getcontext().allocator!
+        let alloc = Swag.getContext().allocator!
         alloc.free(&req)
 
         .data     = null
@@ -53,7 +53,7 @@ impl BorrowInvBuffer
         req.size    = newCapacity
         req.oldSize = .capacity
 
-        let alloc = @getcontext().allocator!
+        let alloc = Swag.getContext().allocator!
         alloc.realloc(&req)
 
         .data     = cast() req.address
@@ -69,14 +69,14 @@ impl BorrowInvBuffer
     // Grows first, then copies: the self-append shape the standard collections support.
     mtd append(values: [..] u8)
     {
-        .reserve(.length + @countof(values))
-        .length += @countof(values)
+        .reserve(.length + values.count)
+        .length += values.count
     }
 
     #[Swag.NoInline]
     mtd const view()->[..] u8
     {
-        return @mkslice(.data!, .length)
+        return Swag.makeSlice(.data!, .length)
     }
 
     #[Swag.NoInline]
@@ -91,7 +91,7 @@ impl BorrowInvBuffer
     #[Swag.Inline]
     mtd const inlineView()->[..] u8
     {
-        return @mkslice(.data!, .length)
+        return Swag.makeSlice(.data!, .length)
     }
 
     #[Swag.NoInline]
@@ -262,7 +262,7 @@ func borrowInvFreeBlock(block: #null [*] u8, size: u64)
     req.address = block
     req.size    = size
 
-    let alloc = @getcontext().allocator!
+    let alloc = Swag.getContext().allocator!
     alloc.free(&req)
 }
 
@@ -289,7 +289,7 @@ impl BorrowInvChained
     #[Swag.NoInline]
     mtd const view()->[..] u8
     {
-        return @mkslice(.data!, .capacity)
+        return Swag.makeSlice(.data!, .capacity)
     }
 }
 
@@ -484,7 +484,7 @@ func borrowInvContainerOfViews()->u64
     var buf: BorrowInvBuffer
     buf.reserve(8)
     let views = [buf.view(), buf.view()]
-    return @countof(views[0]) + @countof(views[1])
+    return views[0].count + views[1].count
 }
 
 interface IBorrowInvSink
@@ -890,7 +890,7 @@ impl BorrowInvTable
         req.address = .slots
         req.size    = .capacity * #sizeof(*BorrowInvNode)
 
-        let alloc = @getcontext().allocator!
+        let alloc = Swag.getContext().allocator!
         alloc.free(&req)
 
         .slots    = null
@@ -908,7 +908,7 @@ impl BorrowInvTable
         req.size    = newCapacity * #sizeof(*BorrowInvNode)
         req.oldSize = .capacity * #sizeof(*BorrowInvNode)
 
-        let alloc = @getcontext().allocator!
+        let alloc = Swag.getContext().allocator!
         alloc.realloc(&req)
 
         .slots    = cast() req.address

@@ -654,7 +654,7 @@ impl Decoder
         var tempLong:  [ListCount, 3 * MaxRefPics] bool
         var tempCount: [ListCount] u32
 
-        let totalCurr = cast(u32) (@countof(before) + @countof(after) + @countof(longTerm))
+        let totalCurr = cast(u32) (before.count + after.count + longTerm.count)
         if !totalCurr do
             fail InvalidFormatError{"HEVC predicted slice has no reference picture available"}
 

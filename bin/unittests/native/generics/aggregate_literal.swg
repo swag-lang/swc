@@ -8,5 +8,5 @@ func(T) genericIdentity(value: T)->T => value
     let idx     = 1
 
     #assert(#typeof(payload.values) == [3] s32)
-    @assert(payload.values[idx] + payload.bias == 5)
+    Swag.assert(payload.values[idx] + payload.bias == 5)
 }

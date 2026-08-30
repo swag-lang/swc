@@ -58,7 +58,7 @@ func opaqueS64(v: s64)->s64
 
 #test
 {
-    const cfg      = #run @compiler.getBuildCfg()![]
+    const cfg      = #run Swag.compiler().getBuildCfg()![]
     const expected = cfg.safetyGuards & Swag.SafetyWhat.Overflow ? true : false
     #assert(#safety(Swag.SafetyWhat.Overflow) == expected)
 }
@@ -562,7 +562,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlTruncatesS8(64's8, 1's8)
-    @assert(value == -128's8)
+    Swag.assert(value == -128's8)
 }
 
 #test
@@ -574,7 +574,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlTruncatesS16(16384's16, 1's16)
-    @assert(value == -32768's16)
+    Swag.assert(value == -32768's16)
 }
 
 #test
@@ -586,7 +586,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlTruncatesS32(1073741824's32, 1's32)
-    @assert(value == -2147483648's32)
+    Swag.assert(value == -2147483648's32)
 }
 
 #test
@@ -598,7 +598,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlTruncatesS64(4611686018427387904's64, 1's64)
-    @assert(value == -9223372036854775808's64)
+    Swag.assert(value == -9223372036854775808's64)
 }
 
 // =============================================
@@ -614,7 +614,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlTruncatesU8(128'u8, 1'u8)
-    @assert(value == 0'u8)
+    Swag.assert(value == 0'u8)
 }
 
 #test
@@ -626,7 +626,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlTruncatesU16(32768'u16, 1'u16)
-    @assert(value == 0'u16)
+    Swag.assert(value == 0'u16)
 }
 
 #test
@@ -638,7 +638,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlTruncatesU32(2147483648'u32, 1'u32)
-    @assert(value == 0'u32)
+    Swag.assert(value == 0'u32)
 }
 
 #test
@@ -650,7 +650,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlTruncatesU64(9223372036854775808'u64, 1'u64)
-    @assert(value == 0'u64)
+    Swag.assert(value == 0'u64)
 }
 
 // Shift left with count >= bit width
@@ -663,7 +663,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlLargeCountS8(1's8, 8's8)
-    @assert(value == 0's8)
+    Swag.assert(value == 0's8)
 }
 
 // Shift left with count >= bit width and zero value
@@ -676,7 +676,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlLargeCountZero(0'u8, 8'u8)
-    @assert(value == 0'u8)
+    Swag.assert(value == 0'u8)
 }
 
 // =============================================
@@ -807,7 +807,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shrSignedValueWideCount(-128's8, 0xFFFF_FFFF_FFFF_FFFF'u64)
-    @assert(value == -1's8)
+    Swag.assert(value == -1's8)
 }
 
 #test
@@ -822,7 +822,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlAssignWideCount()
-    @assert(value == 0'u8)
+    Swag.assert(value == 0'u8)
 }
 
 #test
@@ -958,7 +958,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlAssignTruncatesS8()
-    @assert(value == -128's8)
+    Swag.assert(value == -128's8)
 }
 
 #test
@@ -972,7 +972,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlAssignTruncatesU8()
-    @assert(value == 0'u8)
+    Swag.assert(value == 0'u8)
 }
 
 #test
@@ -1383,7 +1383,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run addWrapU8(255'u8, 1'u8)
-    @assert(value == 0'u8)
+    Swag.assert(value == 0'u8)
 }
 
 #test
@@ -1395,7 +1395,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run subWrapU8(0'u8, 1'u8)
-    @assert(value == 255'u8)
+    Swag.assert(value == 255'u8)
 }
 
 #test
@@ -1407,7 +1407,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run mulWrapU8(128'u8, 2'u8)
-    @assert(value == 0'u8)
+    Swag.assert(value == 0'u8)
 }
 
 #test
@@ -1419,7 +1419,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlWrapU8(1'u8, 8'u8)
-    @assert(value == 0'u8)
+    Swag.assert(value == 0'u8)
 }
 
 // #wrap is redundant on << and a negative count still errors.
@@ -1444,7 +1444,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlWrapBitLoss(64's8, 1's8)
-    @assert(value == -128's8)
+    Swag.assert(value == -128's8)
 }
 
 // #wrap on <<= keeps the ordinary truncating result.
@@ -1459,7 +1459,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlAssignWrapBitLoss()
-    @assert(value == 0'u8)
+    Swag.assert(value == 0'u8)
 }
 
 #test
@@ -1471,7 +1471,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run wrapCastU16ToU8(257'u16)
-    @assert(value == 1'u8)
+    Swag.assert(value == 1'u8)
 }
 
 #test
@@ -1483,7 +1483,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run wrapCastS8ToU8(-1's8)
-    @assert(value == 255'u8)
+    Swag.assert(value == 255'u8)
 }
 
 // =============================================
@@ -1499,7 +1499,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run addPromS8(127's8, 1's8)
-    @assert(value == 128)
+    Swag.assert(value == 128)
 }
 
 #test
@@ -1511,7 +1511,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run subPromS8(-128's8, 1's8)
-    @assert(value == -129)
+    Swag.assert(value == -129)
 }
 
 #test
@@ -1523,5 +1523,5 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run mulPromS8(127's8, 2's8)
-    @assert(value == 254)
+    Swag.assert(value == 254)
 }

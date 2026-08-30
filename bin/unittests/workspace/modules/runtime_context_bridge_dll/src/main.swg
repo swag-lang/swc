@@ -9,22 +9,22 @@ private var g_InitEntryCount: u32
 #init
 {
     g_InitEntryCount += 1
-    @assert(g_InitEntryCount == 1)
-    @assert((@getcontext().user1 & CTX_BASE_INIT_FLAG) != 0)
-    @assert(@getcontext().allocator != null)
-    @getcontext().user1 |= CTX_SHARED_INIT_FLAG
+    Swag.assert(g_InitEntryCount == 1)
+    Swag.assert((Swag.getContext().user1 & CTX_BASE_INIT_FLAG) != 0)
+    Swag.assert(Swag.getContext().allocator != null)
+    Swag.getContext().user1 |= CTX_SHARED_INIT_FLAG
 }
 
 #premain
 {
-    @assert((@getcontext().user1 & CTX_BASE_PREMAIN_FLAG) != 0)
-    @getcontext().user1 |= CTX_SHARED_PREMAIN_FLAG
+    Swag.assert((Swag.getContext().user1 & CTX_BASE_PREMAIN_FLAG) != 0)
+    Swag.getContext().user1 |= CTX_SHARED_PREMAIN_FLAG
 }
 
 #drop
 {
-    @assert(@getcontext().user0 == 43)
-    @getcontext().user1 |= CTX_SHARED_DROP_FLAG
+    Swag.assert(Swag.getContext().user0 == 43)
+    Swag.getContext().user1 |= CTX_SHARED_DROP_FLAG
 }
 
 public func ctxSharedReadContext()->u64
@@ -164,21 +164,21 @@ public impl CtxSelfBufferSet
     #[Swag.NoInline]
     mtd const toSlice()->const [..] u8
     {
-        @assert(buffer == cast([*] u8) &storage[0])
-        return @mkslice(buffer, count)
+        Swag.assert(buffer == cast([*] u8) &storage[0])
+        return Swag.makeSlice(buffer, count)
     }
 
     #[Swag.NoInline]
     mtd const contains(value: u8)->bool
     {
-        @assert(buffer == cast([*] u8) &storage[0])
+        Swag.assert(buffer == cast([*] u8) &storage[0])
         return ctxSharedContains(.toSlice(), count, value)
     }
 
     #[Swag.NoInline]
     mtd const containsViaGeneric(value: u8)->bool
     {
-        @assert(buffer == cast([*] u8) &storage[0])
+        Swag.assert(buffer == cast([*] u8) &storage[0])
         return ctxSharedContainsGeneric(.toSlice(), count, value)
     }
 }
@@ -342,14 +342,14 @@ public func ctxSharedPassNestedArray(value: CtxAbiNested, array0: [2] CtxAbiPair
 
 public func ctxSharedWritePair(dst: *CtxAbiPair, a: s32, b: s32)
 {
-    @assert(dst != null)
+    Swag.assert(dst != null)
     dst.a = a
     dst.b = b
 }
 
 public func ctxSharedWritePayload(dst: *CtxAbiPayload, seed: u64)
 {
-    @assert(dst != null)
+    Swag.assert(dst != null)
     dst.a0 = seed + 1
     dst.a1 = seed + 2
     dst.a2 = seed + 3

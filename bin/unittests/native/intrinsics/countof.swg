@@ -5,14 +5,14 @@
 // ============================================================
 
 enum Color { R, G, B }
-#assert(@countof(Color) == 3)
-#assert(@countof(Color) != 2)
+#assert(Color.count == 3)
+#assert(Color.count != 2)
 
 enum Direction { N, S, E, W }
-#assert(@countof(Direction) == 4)
+#assert(Direction.count == 4)
 
 enum Single { Only }
-#assert(@countof(Single) == 1)
+#assert(Single.count == 1)
 
 struct CountedRuntime
 {
@@ -57,15 +57,15 @@ impl RefCountedRuntime
 // Compile-time — string literals
 // ============================================================
 
-#assert(@countof("ABCDE") == 5)
-#assert(@countof("") == 0)
-#assert(@countof("X") == 1)
+#assert(("ABCDE").count == 5)
+#assert(("").count == 0)
+#assert(("X").count == 1)
 
 const StrConst = "XYZ"
-#assert(@countof(StrConst) == 3)
+#assert(StrConst.count == 3)
 
 const EmptyConst = ""
-#assert(@countof(EmptyConst) == 0)
+#assert(EmptyConst.count == 0)
 
 // ============================================================
 // Compile-time — integer passthrough
@@ -73,12 +73,12 @@ const EmptyConst = ""
 
 #test
 {
-    const a = @countof(3)
-    const b = @countof(0)
-    const c = @countof(100)
-    const d = @countof(3's8)
-    const e = @countof(4's32)
-    const f = @countof(5's64)
+    const a = (3).count
+    const b = (0).count
+    const c = (100).count
+    const d = (3's8).count
+    const e = (4's32).count
+    const f = (5's64).count
     #assert(a == 3)
     #assert(b == 0)
     #assert(c == 100)
@@ -88,24 +88,24 @@ const EmptyConst = ""
     #assert(d == 3's8)
     #assert(e == 4's32)
     #assert(f == 5's64)
-    @assert(a == 3)
-    @assert(b == 0)
-    @assert(c == 100)
-    @assert(d == 3's8)
-    @assert(e == 4's32)
-    @assert(f == 5's64)
+    Swag.assert(a == 3)
+    Swag.assert(b == 0)
+    Swag.assert(c == 100)
+    Swag.assert(d == 3's8)
+    Swag.assert(e == 4's32)
+    Swag.assert(f == 5's64)
 }
 
 #test
 {
     var runtime = cast(CountOfStrictU32) 7'u32
-    const constant = @countof(cast(CountOfStrictU32) 5'u32)
-    let value = @countof(runtime)
+    const constant = (cast(CountOfStrictU32) 5'u32).count
+    let value = runtime.count
 
     #assert(#typeof(constant) == CountOfStrictU32)
     #assert(#typeof(value) == CountOfStrictU32)
-    @assert(constant == cast(CountOfStrictU32) 5'u32)
-    @assert(value == cast(CountOfStrictU32) 7'u32)
+    Swag.assert(constant == cast(CountOfStrictU32) 5'u32)
+    Swag.assert(value == cast(CountOfStrictU32) 7'u32)
 }
 
 // ============================================================
@@ -117,37 +117,37 @@ namespace NS {}
 #test
 {
     var a: #null string
-    var b = @countof(a)
+    var b = a.count
     #assert(#typeof(b) == u64)
 
     var cs: #null cstring
-    var csc = @countof(cs)
+    var csc = cs.count
     #assert(#typeof(csc) == u64)
 
-    @assert(b == 0)
-    @assert(csc == 0)
+    Swag.assert(b == 0)
+    Swag.assert(csc == 0)
 }
 
 #test
 {
     var a: string = "hello"
-    @assert(@countof(a) == 5)
+    Swag.assert(a.count == 5)
 
     var b: string = ""
-    @assert(@countof(b) == 0)
+    Swag.assert(b.count == 0)
 
     var c: string = "X"
-    @assert(@countof(c) == 1)
+    Swag.assert(c.count == 1)
 }
 
 #test
 {
     var text = cast(CountOfStrictString) "hello"
-    @assert(@countof(text) == 5)
+    Swag.assert(text.count == 5)
 
     var data: [3] u8 = [1, 2, 3]
     var slice        = cast(CountOfStrictSlice) data
-    @assert(@countof(slice) == 3)
+    Swag.assert(slice.count == 3)
 }
 
 // ============================================================
@@ -157,54 +157,54 @@ namespace NS {}
 #test
 {
     var c: [4, 10] s32
-    const d = @countof(c)
+    const d = c.count
     #assert(d == 40)
-    @assert(d == 40)
+    Swag.assert(d == 40)
 }
 
 #test
 {
     var a: [2, 3, 4] u8
-    const b = @countof(a)
+    const b = a.count
     #assert(b == 24)
-    @assert(b == 24)
+    Swag.assert(b == 24)
 }
 
 #test
 {
     var a: [7] bool
-    const b = @countof(a)
+    const b = a.count
     #assert(b == 7)
-    @assert(b == 7)
+    Swag.assert(b == 7)
 }
 
 #test
 {
     var a: [1] u64
-    const b = @countof(a)
+    const b = a.count
     #assert(b == 1)
-    @assert(b == 1)
+    Swag.assert(b == 1)
 }
 
 #test
 {
     let value0 = CountedRuntime{count: 7}
     let value1 = CountedRuntime{count: 0}
-    const c0 = @countof(value0)
-    const c1 = @countof(value1)
+    const c0 = value0.count
+    const c1 = value1.count
     #assert(c0 == 7)
     #assert(c1 == 0)
-    @assert(c0 == 7)
-    @assert(c1 == 0)
+    Swag.assert(c0 == 7)
+    Swag.assert(c1 == 0)
 }
 
 #test
 {
     var values: [3] ZeroSized
     let slice = cast([..] ZeroSized) values
-    let count = @countof(slice)
+    let count = slice.count
     #assert(#typeof(count) == u64)
-    @assert(count == 3)
+    Swag.assert(count == 3)
 }
 
 // ============================================================
@@ -214,49 +214,49 @@ namespace NS {}
 #test
 {
     var buf: [5] s32 = [10, 20, 30, 40, 50]
-    let sl           = @mkslice(&buf[0], 3)
-    @assert(@countof(sl) == 3)
+    let sl           = Swag.makeSlice(&buf[0], 3)
+    Swag.assert(sl.count == 3)
 
-    let sl2 = @mkslice(&buf[0], 5)
-    @assert(@countof(sl2) == 5)
+    let sl2 = Swag.makeSlice(&buf[0], 5)
+    Swag.assert(sl2.count == 5)
 
-    let sl3 = @mkslice(&buf[0], 0)
-    @assert(@countof(sl3) == 0)
+    let sl3 = Swag.makeSlice(&buf[0], 0)
+    Swag.assert(sl3.count == 0)
 }
 
 func countStringRef(value: *string)->u64
 {
-    return @countof(value[])
+    return (value[]).count
 }
 
 func countCStringRef(value: *cstring)->u64
 {
-    return @countof(value[])
+    return (value[]).count
 }
 
 func countSliceRef(value: [..] u8)->u64
 {
-    return @countof(value)
+    return value.count
 }
 
 func countUnsignedRef(value: *u32)->u32
 {
-    return @countof(value[])
+    return (value[]).count
 }
 
 func countSignedRef(value: *s32)->s32
 {
-    return @countof(value[])
+    return (value[]).count
 }
 
 func countEnumRef(value: *RefCountKind)->u64
 {
-    return @countof(value[])
+    return (value[]).count
 }
 
 func countSpecOpRef(value: RefCountedRuntime)->u64
 {
-    return @countof(value)
+    return value.count
 }
 
 func loopStringRef(value: string)->u64
@@ -303,9 +303,9 @@ func loopSignedRef(value: *s32)->s32
 {
     var text             = "hello"
     var textRef: *string = &text
-    @assert(@countof(textRef[]) == 5)
-    @assert(countStringRef(textRef) == 5)
-    @assert(loopStringRef(textRef[]) == 5)
+    Swag.assert((textRef[]).count == 5)
+    Swag.assert(countStringRef(textRef) == 5)
+    Swag.assert(loopStringRef(textRef[]) == 5)
 }
 
 #test
@@ -313,66 +313,66 @@ func loopSignedRef(value: *s32)->s32
     var data:    [5] u8   = ['a'u8, 'b'u8, 'c'u8, 'd'u8, 0]
     var cstr:    cstring  = cast(cstring) &data[0]
     var cstrRef: *cstring = &cstr
-    @assert(@countof(cstrRef[]) == 4)
-    @assert(countCStringRef(cstrRef) == 4)
-    @assert(loopCStringRef(cstrRef) == 4)
+    Swag.assert((cstrRef[]).count == 4)
+    Swag.assert(countCStringRef(cstrRef) == 4)
+    Swag.assert(loopCStringRef(cstrRef) == 4)
 }
 
 #test
 {
     var array:    [2, 3] u8
     var arrayRef: *[2, 3] u8 = &array
-    @assert(@countof(arrayRef[]) == 6)
+    Swag.assert((arrayRef[]).count == 6)
 
     var flat:     [6] u8         = [1, 2, 3, 4, 5, 6]
     let slice                    = cast([..] u8) flat
     var sliceRef: const *[..] u8 = &slice
-    @assert(@countof(sliceRef[]) == 6)
-    @assert(countSliceRef(sliceRef[]) == 6)
-    @assert(loopSliceRef(sliceRef[]) == 6)
+    Swag.assert((sliceRef[]).count == 6)
+    Swag.assert(countSliceRef(sliceRef[]) == 6)
+    Swag.assert(loopSliceRef(sliceRef[]) == 6)
 }
 
 #test
 {
     var number:    u32  = 7
     var numberRef: *u32 = &number
-    @assert(#typeof(@countof(numberRef[])) == u32)
-    @assert(@countof(numberRef[]) == 7)
-    @assert(countUnsignedRef(numberRef) == 7)
-    @assert(loopUnsignedRef(numberRef) == 7)
+    Swag.assert(#typeof((numberRef[]).count) == u32)
+    Swag.assert((numberRef[]).count == 7)
+    Swag.assert(countUnsignedRef(numberRef) == 7)
+    Swag.assert(loopUnsignedRef(numberRef) == 7)
 }
 
 #test
 {
     var number:    s32  = 7
     var numberRef: *s32 = &number
-    @assert(#typeof(@countof(numberRef[])) == s32)
-    @assert(@countof(numberRef[]) == 7)
-    @assert(countSignedRef(numberRef) == 7)
-    @assert(loopSignedRef(numberRef) == 7)
+    Swag.assert(#typeof((numberRef[]).count) == s32)
+    Swag.assert((numberRef[]).count == 7)
+    Swag.assert(countSignedRef(numberRef) == 7)
+    Swag.assert(loopSignedRef(numberRef) == 7)
 }
 
 #test
 {
     var kind = RefCountKind.C
     var kindRef: *RefCountKind = &kind
-    @assert(@countof(kindRef[]) == 4)
-    @assert(countEnumRef(kindRef) == 4)
+    Swag.assert((kindRef[]).count == 4)
+    Swag.assert(countEnumRef(kindRef) == 4)
 
     let counted = RefCountedRuntime{count: 11}
     let countedRef: const *RefCountedRuntime = &counted
-    @assert(@countof(countedRef[]) == 11)
-    @assert(countSpecOpRef(countedRef) == 11)
+    Swag.assert((countedRef[]).count == 11)
+    Swag.assert(countSpecOpRef(countedRef) == 11)
 }
 
-// A '@countof' that resolves 'opCount' lowers to a call, and a truthiness context wraps
+// A '.count' that resolves 'opCount' lowers to a call, and a truthiness context wraps
 // that node in an implicit cast. Code generation must keep resolving the wrapped node to
 // its cast: losing the link left the enclosing 'if' with no condition to branch on.
 #[Swag.NoInline]
 func countedRuntimeIsNotEmpty(value: CountedRuntime)->s32
 {
     var result = 0's32
-    if @countof(value) do
+    if value.count do
         result = 1
     return result
 }
@@ -384,6 +384,6 @@ func countedRuntimeIsNotEmpty(value: CountedRuntime)->s32
     var empty: CountedRuntime
     empty.count = 0
 
-    @assert(countedRuntimeIsNotEmpty(filled) == 1)
-    @assert(countedRuntimeIsNotEmpty(empty) == 0)
+    Swag.assert(countedRuntimeIsNotEmpty(filled) == 1)
+    Swag.assert(countedRuntimeIsNotEmpty(empty) == 0)
 }

@@ -6,8 +6,8 @@
     var b: s32
     a, b = 1
     a, b += 1
-    @assert(a == 2)
-    @assert(b == 2)
+    Swag.assert(a == 2)
+    Swag.assert(b == 2)
 }
 
 #test
@@ -15,8 +15,8 @@
     var a: s32
     var b: s32
     a, ?, b = 1
-    @assert(a == 1)
-    @assert(b == 1)
+    Swag.assert(a == 1)
+    Swag.assert(b == 1)
 }
 
 #test
@@ -24,8 +24,8 @@
     var a: f32
     var b: s32
     a, b = 1
-    @assert(a == 1.0)
-    @assert(b == 1)
+    Swag.assert(a == 1.0)
+    Swag.assert(b == 1)
 }
 
 #test
@@ -35,7 +35,7 @@
     var a    = base
     a += 1
     a -= 1
-    @assert(a == base)
+    Swag.assert(a == base)
 }
 
 #test
@@ -45,14 +45,14 @@
     var count         = 0'u64
 
     ptr, count += 1
-    @assert(ptr[] == 20)
-    @assert(count == 1)
+    Swag.assert(ptr[] == 20)
+    Swag.assert(count == 1)
 
     ptr, count += 1
-    @assert(ptr[] == 30)
-    @assert(count == 2)
+    Swag.assert(ptr[] == 30)
+    Swag.assert(count == 2)
 
     ptr, count -= 1
-    @assert(ptr[] == 20)
-    @assert(count == 1)
+    Swag.assert(ptr[] == 20)
+    Swag.assert(count == 1)
 }

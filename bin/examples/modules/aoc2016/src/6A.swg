@@ -67,7 +67,7 @@ func day6A0()
         pwd += v.val
     }
 
-    @assert(pwd == "afwlyyyq")
+    Swag.assert(pwd == "afwlyyyq")
 }
 
 func day6A1()
@@ -93,5 +93,5 @@ func day6A1()
         }
     }
 
-    @assert(pwd == "afwlyyyq")
+    Swag.assert(pwd == "afwlyyyq")
 }

@@ -82,7 +82,7 @@ func(K, V) insertAssumeSpace(table: *HashTable'(K, V), key: K, value: V)
         }
 
         idx = (idx + 1) % table.capacity
-        @assert(idx != start)
+        Swag.assert(idx != start)
     }
 }
 
@@ -209,16 +209,16 @@ struct InventoryRow
     put'(string, s32)(&table, "bananas", 7)
     put'(string, s32)(&table, "apples", 20)
 
-    @assert(table.count == 2)
-    @assert(contains'(string, s32)(&table, "apples"))
-    @assert(contains'(string, s32)(&table, "bananas"))
-    @assert(!contains'(string, s32)(&table, "pears"))
-    @assert(getOr'(string, s32)(&table, "apples", -1) == 20)
-    @assert(getOr'(string, s32)(&table, "pears", -1) == -1)
+    Swag.assert(table.count == 2)
+    Swag.assert(contains'(string, s32)(&table, "apples"))
+    Swag.assert(contains'(string, s32)(&table, "bananas"))
+    Swag.assert(!contains'(string, s32)(&table, "pears"))
+    Swag.assert(getOr'(string, s32)(&table, "apples", -1) == 20)
+    Swag.assert(getOr'(string, s32)(&table, "pears", -1) == -1)
 
     let ptr = (tryGet'(string, s32)(&table, "bananas"))!
     ptr[] += 5
-    @assert(getOr'(string, s32)(&table, "bananas", -1) == 12)
+    Swag.assert(getOr'(string, s32)(&table, "bananas", -1) == 12)
 }
 
 // ---------------------------------------------------------------------------
@@ -235,12 +235,12 @@ struct InventoryRow
     put'(s32, string)(&table, 30, "thirty")
     put'(s32, string)(&table, 40, "forty")
 
-    @assert(table.count == 4)
-    @assert(getOr'(s32, string)(&table, 10, "missing") == "ten")
-    @assert(getOr'(s32, string)(&table, 20, "missing") == "twenty")
-    @assert(getOr'(s32, string)(&table, 30, "missing") == "thirty")
-    @assert(getOr'(s32, string)(&table, 40, "missing") == "forty")
-    @assert(getOr'(s32, string)(&table, 99, "missing") == "missing")
+    Swag.assert(table.count == 4)
+    Swag.assert(getOr'(s32, string)(&table, 10, "missing") == "ten")
+    Swag.assert(getOr'(s32, string)(&table, 20, "missing") == "twenty")
+    Swag.assert(getOr'(s32, string)(&table, 30, "missing") == "thirty")
+    Swag.assert(getOr'(s32, string)(&table, 40, "missing") == "forty")
+    Swag.assert(getOr'(s32, string)(&table, 99, "missing") == "missing")
 }
 
 // ---------------------------------------------------------------------------
@@ -255,12 +255,12 @@ struct InventoryRow
     for i in 100'u64 do
         put'(u64, u64)(&table, i, i * i + 3)
 
-    @assert(table.count == 100)
-    @assert(table.capacity >= 128)
-    @assert(getOr'(u64, u64)(&table, 0, 0) == 3)
-    @assert(getOr'(u64, u64)(&table, 10, 0) == 103)
-    @assert(getOr'(u64, u64)(&table, 99, 0) == 9804)
-    @assert(getOr'(u64, u64)(&table, 1_000, 55) == 55)
+    Swag.assert(table.count == 100)
+    Swag.assert(table.capacity >= 128)
+    Swag.assert(getOr'(u64, u64)(&table, 0, 0) == 3)
+    Swag.assert(getOr'(u64, u64)(&table, 10, 0) == 103)
+    Swag.assert(getOr'(u64, u64)(&table, 99, 0) == 9804)
+    Swag.assert(getOr'(u64, u64)(&table, 1_000, 55) == 55)
 }
 
 // ---------------------------------------------------------------------------
@@ -278,8 +278,8 @@ struct InventoryRow
     let hammer = getOr'(string, InventoryRow)(&table, "hammer", {sku: "missing", quantity: -1})
     let drill  = getOr'(string, InventoryRow)(&table, "drill", {sku: "missing", quantity: -1})
 
-    @assert(hammer.sku == "HM-01")
-    @assert(hammer.quantity == 8)
-    @assert(drill.sku == "missing")
-    @assert(drill.quantity == -1)
+    Swag.assert(hammer.sku == "HM-01")
+    Swag.assert(hammer.quantity == 8)
+    Swag.assert(drill.sku == "missing")
+    Swag.assert(drill.quantity == -1)
 }

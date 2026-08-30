@@ -22,14 +22,14 @@ private func vorbisDecodeAll(sound: const *SoundFile)->Array's16 fail
 private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
 {
     var sound = expect SoundFile.load(audioGetTestDataPath(Format.toString("%.ogg", name).toString()).toString())
-    @assert(sound.sampleEncoding() == .Vorbis)
-    @assert(sound.sampleRateHz() == sampleRate and sound.numChannels() == channels)
-    @assert(sound.isPacketStream() and !sound.isDataPreloaded())
+    Swag.assert(sound.sampleEncoding() == .Vorbis)
+    Swag.assert(sound.sampleRateHz() == sampleRate and sound.numChannels() == channels)
+    Swag.assert(sound.isPacketStream() and !sound.isDataPreloaded())
 
     let decoded = expect vorbisDecodeAll(&sound)
     let wanted  = expect File.readAllBytes(audioGetTestDataPath(Format.toString("%.pcm", name).toString()).toString())
-    @assert(decoded.count == sound.sampleFrameCount() * channels)
-    @assert(decoded.count * #sizeof(s16) == wanted.count)
+    Swag.assert(decoded.count == sound.sampleFrameCount() * channels)
+    Swag.assert(decoded.count * #sizeof(s16) == wanted.count)
 
     let wantedAt = cast(const [*] s16) wanted.buffer!
     var energy   = 0.0'f64
@@ -43,8 +43,8 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
 
     let rms = Math.sqrt(energy / cast(f64) decoded.count) / 32768.0'f64
     if rms > 0.0001'f64 do
-        @print("vorbis ", name, ": rms ", rms, " over ", decoded.count, " samples, worst ", worst, "\n")
-    @assert(rms <= 0.0001'f64)
+        Swag.print("vorbis ", name, ": rms ", rms, " over ", decoded.count, " samples, worst ", worst, "\n")
+    Swag.assert(rms <= 0.0001'f64)
 }
 
 // Stereo tones at 44.1 kHz: floor 1, residue 2 with coupling, and long blocks throughout.
@@ -65,11 +65,11 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
 #test
 {
     var sound = expect SoundFile.load(audioGetTestDataPath("vorbis-stereo-44100.ogg").toString())
-    @assert(sound.packetCount() == 2)
-    @assert((expect sound.packet(0)).sampleFrameCount == 44_032)
-    @assert(sound.sampleFrameCount() == 44_160)
-    @assert(sound.speakerChannelMask() == 0x0003)
-    @assert(sound.leadingTrim == 0)
+    Swag.assert(sound.packetCount() == 2)
+    Swag.assert((expect sound.packet(0)).sampleFrameCount == 44_032)
+    Swag.assert(sound.sampleFrameCount() == 44_160)
+    Swag.assert(sound.speakerChannelMask() == 0x0003)
+    Swag.assert(sound.leadingTrim == 0)
 }
 
 // A voice restarts on the run before the target and discards up to it, so the samples heard after
@@ -88,10 +88,10 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
     const Target = 44_100'u64
     expect voice.seekSampleFrame(Target)
     let decoded = expect voice.readBuffer()
-    @assert(decoded.buffer != null and decoded.size >= 32 * 2 * #sizeof(s16))
+    Swag.assert(decoded.buffer != null and decoded.size >= 32 * 2 * #sizeof(s16))
     let samples = cast(const [*] s16) decoded.buffer!
     for index in 32 * 2 do
-        @assert(samples[index] == wanted[Target * 2 + index])
+        Swag.assert(samples[index] == wanted[Target * 2 + index])
 }
 
 // A file that is not Ogg fails on its own terms rather than being decoded into noise.
@@ -106,5 +106,5 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
     expect File.writeAllBytes(path.toString(), bytes.toSlice())
     var sound = catch SoundFile.load(path.toString()) as err
     discard sound
-    @assert(err is Errors.InvalidFormatError)
+    Swag.assert(err is Errors.InvalidFormatError)
 }

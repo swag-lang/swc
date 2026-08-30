@@ -427,7 +427,7 @@ func dismissAggregateFailureInfo()->AggregateInfo
 
 func recordExpectPanic(message: #null string, loc: SourceCodeLocation)
 {
-    let cxt = @getcontext()
+    let cxt = Swag.getContext()
     cxt.user0 += 1
     cxt.user1 = cast(u64) loc.lineStart
 }
@@ -435,7 +435,7 @@ func recordExpectPanic(message: #null string, loc: SourceCodeLocation)
 #[Swag.Safety(.Expect, true)]
 func expectFailureInfo()->CatchInfo
 {
-    let cxt = @getcontext()
+    let cxt = Swag.getContext()
     cxt.user0 = 0
     cxt.user1 = 0
     cxt.panic = &recordExpectPanic
@@ -451,7 +451,7 @@ func expectFailureInfo()->CatchInfo
 #[Swag.Safety(.Expect, false)]
 func expectFailureNoSafety()->CatchInfo
 {
-    let cxt = @getcontext()
+    let cxt = Swag.getContext()
     cxt.user0 = 0
     cxt.user1 = 0
     cxt.panic = &recordExpectPanic
@@ -469,7 +469,7 @@ func repeatedCatchFailureSum()->s32
     var result: s32 = 0
     for 40
     {
-        catch alwaysFailVoid(cast(s32) @index + 1) as err6
+        catch alwaysFailVoid(cast(s32) Swag.index + 1) as err6
         let err = cast(ErrValue) err6
         result += err.code
     }
@@ -648,327 +648,327 @@ func notNullSliceSuccess()->s32
     let maybe:  #null [..] s32 = values
     let slice                  = maybe!
     #assert(#typeof(slice) == [..] s32)
-    return slice[1] + cast(s32) @countof(slice)
+    return slice[1] + cast(s32) slice.count
 }
 
 #test
 {
     let value = catch propagateBareSuccess() as err
-    @assert(value == 42)
-    @assert(err == null)
+    Swag.assert(value == 42)
+    Swag.assert(err == null)
 }
 
 #test
 {
     let value = catch propagateTrySuccess() as err
-    @assert(value == 51)
-    @assert(err == null)
+    Swag.assert(value == 51)
+    Swag.assert(err == null)
 }
 
 #test
 {
     let value = catch inlineMayFailValue(63) as err
-    @assert(value == 63)
-    @assert(err == null)
+    Swag.assert(value == 63)
+    Swag.assert(err == null)
 }
 
 #test
 {
     catch propagateTryVoidSuccess() as err9
-    @assert(err9 == null)
+    Swag.assert(err9 == null)
 }
 
 #test
 {
     let info = catchFailureInfo()
-    @assert(info.value == 0)
-    @assert(info.hasErr)
-    @assert(info.code == 17)
+    Swag.assert(info.value == 0)
+    Swag.assert(info.hasErr)
+    Swag.assert(info.code == 17)
 }
 
 #test
 {
     let info = inlineCatchFailureInfo()
-    @assert(info.value == 0)
-    @assert(info.hasErr)
-    @assert(info.code == 41)
+    Swag.assert(info.value == 0)
+    Swag.assert(info.hasErr)
+    Swag.assert(info.code == 41)
 }
 
 #test
 {
     let info = catchTryFailureInfo()
-    @assert(info.value == 0)
-    @assert(info.hasErr)
-    @assert(info.code == 18)
+    Swag.assert(info.value == 0)
+    Swag.assert(info.hasErr)
+    Swag.assert(info.code == 18)
 }
 
 #test
 {
-    @assert(catchStrictEnumFailureInfo())
+    Swag.assert(catchStrictEnumFailureInfo())
 }
 
 #test
 {
     let info = errIsAsFailureInfo()
-    @assert(info.exactType)
-    @assert(info.baseType)
-    @assert(!info.wrongType)
-    @assert(info.exactCastOk)
-    @assert(info.baseCastOk)
-    @assert(info.wrongCastNull)
-    @assert(info.code == 86)
-    @assert(info.messageOk)
+    Swag.assert(info.exactType)
+    Swag.assert(info.baseType)
+    Swag.assert(!info.wrongType)
+    Swag.assert(info.exactCastOk)
+    Swag.assert(info.baseCastOk)
+    Swag.assert(info.wrongCastNull)
+    Swag.assert(info.code == 86)
+    Swag.assert(info.messageOk)
 }
 
 #test
 {
     let info = errIsAsNullInfo()
-    @assert(!info.exactType)
-    @assert(!info.baseType)
-    @assert(info.exactCastNull)
-    @assert(info.baseCastNull)
+    Swag.assert(!info.exactType)
+    Swag.assert(!info.baseType)
+    Swag.assert(info.exactCastNull)
+    Swag.assert(info.baseCastNull)
 }
 
 #test
 {
     let value = catchAggregateSuccess()
-    @assert(value.first == 70)
-    @assert(value.second == 71)
-    @assert(value.payload[0] == 72)
-    @assert(value.payload[1] == 73)
-    @assert(value.payload[2] == 74)
+    Swag.assert(value.first == 70)
+    Swag.assert(value.second == 71)
+    Swag.assert(value.payload[0] == 72)
+    Swag.assert(value.payload[1] == 73)
+    Swag.assert(value.payload[2] == 74)
 }
 
 #test
 {
     let info = catchAggregateFailureInfo()
-    @assert(info.value.first == 0)
-    @assert(info.value.second == 0)
-    @assert(info.value.payload[0] == 0)
-    @assert(info.value.payload[1] == 0)
-    @assert(info.value.payload[2] == 0)
-    @assert(info.hasErr)
-    @assert(info.code == 71)
-    @assert(info.messageOk)
+    Swag.assert(info.value.first == 0)
+    Swag.assert(info.value.second == 0)
+    Swag.assert(info.value.payload[0] == 0)
+    Swag.assert(info.value.payload[1] == 0)
+    Swag.assert(info.value.payload[2] == 0)
+    Swag.assert(info.hasErr)
+    Swag.assert(info.code == 71)
+    Swag.assert(info.messageOk)
 }
 
 #test
 {
     catch propagateBareVoidFailure() as err10
-    @assert(err10 != null)
+    Swag.assert(err10 != null)
     let err = cast(ErrValue) err10
-    @assert(err.code == 19)
+    Swag.assert(err.code == 19)
 }
 
 #test
 {
     catch propagateTryBlockVoidFailure() as err11
-    @assert(err11 != null)
+    Swag.assert(err11 != null)
     let err = cast(ErrValue) err11
-    @assert(err.code == 21)
+    Swag.assert(err.code == 21)
 }
 
 #test
 {
     let value = catch propagateTrySuccess() as err
-    @assert(value == 51)
-    @assert(err == null)
+    Swag.assert(value == 51)
+    Swag.assert(err == null)
 }
 
 #test
 {
     let value = catch inlineMayFailValue(64) as err
-    @assert(value == 64)
-    @assert(err == null)
+    Swag.assert(value == 64)
+    Swag.assert(err == null)
 }
 
 #test
 {
     let value = catch aggregateSuccess(80)
-    @assert(value.first == 80)
-    @assert(value.second == 81)
-    @assert(value.payload[0] == 82)
-    @assert(value.payload[1] == 83)
-    @assert(value.payload[2] == 84)
+    Swag.assert(value.first == 80)
+    Swag.assert(value.second == 81)
+    Swag.assert(value.payload[0] == 82)
+    Swag.assert(value.payload[1] == 83)
+    Swag.assert(value.payload[2] == 84)
 }
 
 #test
 {
     let info = dismissFailureInfo()
-    @assert(info.value == 0)
-    @assert(!info.hasErr)
-    @assert(info.code == 0)
+    Swag.assert(info.value == 0)
+    Swag.assert(!info.hasErr)
+    Swag.assert(info.code == 0)
 }
 
 #test
 {
     let info = inlineDismissFailureInfo()
-    @assert(info.value == 0)
-    @assert(!info.hasErr)
-    @assert(info.code == 0)
+    Swag.assert(info.value == 0)
+    Swag.assert(!info.hasErr)
+    Swag.assert(info.code == 0)
 }
 
 #test
 {
     let info = dismissAggregateFailureInfo()
-    @assert(info.value.first == 0)
-    @assert(info.value.second == 0)
-    @assert(info.value.payload[0] == 0)
-    @assert(info.value.payload[1] == 0)
-    @assert(info.value.payload[2] == 0)
-    @assert(!info.hasErr)
-    @assert(info.code == 0)
-    @assert(!info.messageOk)
+    Swag.assert(info.value.first == 0)
+    Swag.assert(info.value.second == 0)
+    Swag.assert(info.value.payload[0] == 0)
+    Swag.assert(info.value.payload[1] == 0)
+    Swag.assert(info.value.payload[2] == 0)
+    Swag.assert(!info.hasErr)
+    Swag.assert(info.code == 0)
+    Swag.assert(!info.messageOk)
 }
 
 #test
 {
     let value = expect mayFailValue(77)
-    @assert(value == 77)
+    Swag.assert(value == 77)
 }
 
 #test
 {
-    @assert(notNullPointerSuccess() == 91)
+    Swag.assert(notNullPointerSuccess() == 91)
 }
 
 #test
 {
-    @assert(notNullSliceSuccess() == 8)
+    Swag.assert(notNullSliceSuccess() == 8)
 }
 
 #test
 {
     let info = expectFailureInfo()
-    @assert(info.value == 0)
-    @assert(info.hasErr)
+    Swag.assert(info.value == 0)
+    Swag.assert(info.hasErr)
 }
 
 #test
 {
     let info = expectFailureNoSafety()
-    @assert(info.value == 0)
-    @assert(!info.hasErr)
-    @assert(info.code == 0)
+    Swag.assert(info.value == 0)
+    Swag.assert(!info.hasErr)
+    Swag.assert(info.code == 0)
 }
 
 #test
 {
-    @assert(nestedTryHandled() == 23)
+    Swag.assert(nestedTryHandled() == 23)
 }
 
 #test
 {
-    @assert(traceFailCatch() == 124)
+    Swag.assert(traceFailCatch() == 124)
 }
 
 #test
 {
     let info = catchNullablePointerFailureInfo()
-    @assert(info.isNull)
-    @assert(info.hasErr)
-    @assert(info.code == 73)
+    Swag.assert(info.isNull)
+    Swag.assert(info.hasErr)
+    Swag.assert(info.code == 73)
 }
 
 #test
 {
     let info = catchNullableStringFailureInfo()
-    @assert(info.isNull)
-    @assert(info.hasErr)
-    @assert(info.code == 74)
+    Swag.assert(info.isNull)
+    Swag.assert(info.hasErr)
+    Swag.assert(info.code == 74)
 }
 
 #test
 {
     let info = catchNullableSliceFailureInfo()
-    @assert(info.isNull)
-    @assert(info.hasErr)
-    @assert(info.code == 75)
+    Swag.assert(info.isNull)
+    Swag.assert(info.hasErr)
+    Swag.assert(info.code == 75)
 }
 
 #test
 {
     let info = dismissNullablePointerFailureInfo()
-    @assert(info.isNull)
-    @assert(!info.hasErr)
-    @assert(info.code == 0)
+    Swag.assert(info.isNull)
+    Swag.assert(!info.hasErr)
+    Swag.assert(info.code == 0)
 }
 
 #test
 {
     let info = dismissNullableStringFailureInfo()
-    @assert(info.isNull)
-    @assert(!info.hasErr)
-    @assert(info.code == 0)
+    Swag.assert(info.isNull)
+    Swag.assert(!info.hasErr)
+    Swag.assert(info.code == 0)
 }
 
 #test
 {
     let info = dismissNullableSliceFailureInfo()
-    @assert(info.isNull)
-    @assert(!info.hasErr)
-    @assert(info.code == 0)
+    Swag.assert(info.isNull)
+    Swag.assert(!info.hasErr)
+    Swag.assert(info.code == 0)
 }
 
 #test
 {
     let info = chainedTryFailureInfo()
-    @assert(info.value == 0)
-    @assert(info.hasErr)
-    @assert(info.code == 81)
-    @assert(info.trace == 124)
+    Swag.assert(info.value == 0)
+    Swag.assert(info.hasErr)
+    Swag.assert(info.code == 81)
+    Swag.assert(info.trace == 124)
 }
 
 #test
 {
     let info = deferFailAfterReturnInfo()
-    @assert(info.value == 0)
-    @assert(info.hasErr)
-    @assert(info.code == 82)
-    @assert(info.trace == 123)
+    Swag.assert(info.value == 0)
+    Swag.assert(info.hasErr)
+    Swag.assert(info.code == 82)
+    Swag.assert(info.trace == 123)
 }
 
 #test
 {
     let info = errDeferOverrideFailureInfo()
-    @assert(info.value == 0)
-    @assert(info.hasErr)
-    @assert(info.code == 84)
-    @assert(info.trace == 123)
+    Swag.assert(info.value == 0)
+    Swag.assert(info.hasErr)
+    Swag.assert(info.code == 84)
+    Swag.assert(info.trace == 123)
 }
 
 #test
 {
     let info = dismissErrDeferOverrideFailureInfo()
-    @assert(info.value == 0)
-    @assert(!info.hasErr)
-    @assert(info.code == 0)
-    @assert(info.trace == 123)
+    Swag.assert(info.value == 0)
+    Swag.assert(!info.hasErr)
+    Swag.assert(info.code == 0)
+    Swag.assert(info.trace == 123)
 }
 
 #test
 {
     let info = aggregateDeferFailInfo()
-    @assert(info.value.first == 0)
-    @assert(info.value.second == 0)
-    @assert(info.value.payload[0] == 0)
-    @assert(info.value.payload[1] == 0)
-    @assert(info.value.payload[2] == 0)
-    @assert(info.hasErr)
-    @assert(info.code == 85)
-    @assert(info.trace == 12)
+    Swag.assert(info.value.first == 0)
+    Swag.assert(info.value.second == 0)
+    Swag.assert(info.value.payload[0] == 0)
+    Swag.assert(info.value.payload[1] == 0)
+    Swag.assert(info.value.payload[2] == 0)
+    Swag.assert(info.hasErr)
+    Swag.assert(info.code == 85)
+    Swag.assert(info.trace == 12)
 }
 
 #test
 {
-    @assert(repeatedCatchFailureSum() == 820)
+    Swag.assert(repeatedCatchFailureSum() == 820)
 }
 
 #test
 {
     try tryIfElse(false)
-    @assert(ErrorTrace == 1)
+    Swag.assert(ErrorTrace == 1)
 
     try tryIfElse(true)
-    @assert(ErrorTrace == 0)
+    Swag.assert(ErrorTrace == 0)
 }

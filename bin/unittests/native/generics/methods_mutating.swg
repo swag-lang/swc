@@ -170,19 +170,19 @@ impl CopyGate
 #test
 {
     var mb: MutBox's32 = {value: 0}
-    @assert(mb.get() == 0)
+    Swag.assert(mb.get() == 0)
     mb.set(42)
-    @assert(mb.get() == 42)
+    Swag.assert(mb.get() == 42)
     mb.reset(0)
-    @assert(mb.get() == 0)
+    Swag.assert(mb.get() == 0)
 }
 
 #test
 {
     var mb: MutBox'f64 = {value: 1.5}
-    @assert(mb.get() == 1.5)
+    Swag.assert(mb.get() == 1.5)
     mb.set(2.5)
-    @assert(mb.get() == 2.5)
+    Swag.assert(mb.get() == 2.5)
 }
 
 // Step counter
@@ -190,20 +190,20 @@ impl CopyGate
 {
     var sc: StepCounter's32 = {current: 0, step: 5}
     sc.advance()
-    @assert(sc.getCurrent() == 5)
+    Swag.assert(sc.getCurrent() == 5)
     sc.advance()
-    @assert(sc.getCurrent() == 10)
+    Swag.assert(sc.getCurrent() == 10)
     sc.retreat()
-    @assert(sc.getCurrent() == 5)
+    Swag.assert(sc.getCurrent() == 5)
 }
 
 #test
 {
     var sc: StepCounter'f64 = {current: 0.0, step: 0.5}
     sc.advanceN(4)
-    @assert(sc.getCurrent() == 2.0)
+    Swag.assert(sc.getCurrent() == 2.0)
     sc.retreat()
-    @assert(sc.getCurrent() == 1.5)
+    Swag.assert(sc.getCurrent() == 1.5)
 }
 
 // Accumulator: method calling method
@@ -212,19 +212,19 @@ impl CopyGate
     var acc: Accum's32 = {total: 0, count: 0}
     acc.add(10)
     acc.add(20)
-    @assert(acc.getTotal() == 30)
-    @assert(acc.getCount() == 2)
+    Swag.assert(acc.getTotal() == 30)
+    Swag.assert(acc.getCount() == 2)
 }
 
 #test
 {
     var acc: Accum's32 = {total: 0, count: 0}
     acc.addTwice(5)
-    @assert(acc.getTotal() == 10)
-    @assert(acc.getCount() == 2)
+    Swag.assert(acc.getTotal() == 10)
+    Swag.assert(acc.getCount() == 2)
     acc.add(10)
-    @assert(acc.getTotal() == 20)
-    @assert(acc.getCount() == 3)
+    Swag.assert(acc.getTotal() == 20)
+    Swag.assert(acc.getCount() == 3)
 }
 
 #test
@@ -233,9 +233,9 @@ impl CopyGate
     acc.add(3.0)
     acc.add(6.0)
     acc.add(9.0)
-    @assert(acc.getTotal() == 18.0)
-    @assert(acc.getCount() == 3)
-    @assert(acc.getAverage() == 6.0)
+    Swag.assert(acc.getTotal() == 18.0)
+    Swag.assert(acc.getCount() == 3)
+    Swag.assert(acc.getAverage() == 6.0)
 }
 
 #test
@@ -246,9 +246,9 @@ impl CopyGate
     gate.add("alpha")
     gate.add(#move moved)
 
-    @assert(gate.count == 2)
-    @assert(gate.values[0] == "alpha")
-    @assert(gate.values[1] == "beta")
+    Swag.assert(gate.count == 2)
+    Swag.assert(gate.values[0] == "alpha")
+    Swag.assert(gate.values[1] == "beta")
 }
 
 // Zip two boxes
@@ -257,8 +257,8 @@ impl CopyGate
     let b1: Box's32    = {value: 10}
     let b2: Box'string = {value: "ten"}
     let pair           = b1.zipWith'(string)(b2)
-    @assert(pair.first == 10)
-    @assert(pair.second == "ten")
+    Swag.assert(pair.first == 10)
+    Swag.assert(pair.second == "ten")
 }
 
 #test
@@ -266,59 +266,59 @@ impl CopyGate
     let b1: Box'f64  = {value: 3.14}
     let b2: Box'bool = {value: true}
     let pair         = b1.zipWith'(bool)(b2)
-    @assert(pair.first == 3.14)
-    @assert(pair.second == true)
+    Swag.assert(pair.first == 3.14)
+    Swag.assert(pair.second == true)
 }
 
 // Range methods
 #test
 {
     let r: Range's32 = {lo: 10, hi: 20}
-    @assert(r.contains(15) == true)
-    @assert(r.contains(10) == true)
-    @assert(r.contains(20) == true)
-    @assert(r.contains(5) == false)
-    @assert(r.contains(25) == false)
-    @assert(r.width() == 10)
+    Swag.assert(r.contains(15) == true)
+    Swag.assert(r.contains(10) == true)
+    Swag.assert(r.contains(20) == true)
+    Swag.assert(r.contains(5) == false)
+    Swag.assert(r.contains(25) == false)
+    Swag.assert(r.width() == 10)
 }
 
 #test
 {
     var r: Range'f64 = {lo: 1.0, hi: 5.0}
-    @assert(r.width() == 4.0)
+    Swag.assert(r.width() == 4.0)
     r.expand(1.0)
-    @assert(r.lo == 0.0)
-    @assert(r.hi == 6.0)
-    @assert(r.width() == 6.0)
+    Swag.assert(r.lo == 0.0)
+    Swag.assert(r.hi == 6.0)
+    Swag.assert(r.width() == 6.0)
     r.shrink(2.0)
-    @assert(r.lo == 2.0)
-    @assert(r.hi == 4.0)
+    Swag.assert(r.lo == 2.0)
+    Swag.assert(r.hi == 4.0)
 }
 
 // FixedVec stack-like operations
 #test
 {
     var v: FixedVec'(s32, 5) = {len: 0}
-    @assert(v.isEmpty() == true)
-    @assert(v.capacity() == 5)
+    Swag.assert(v.isEmpty() == true)
+    Swag.assert(v.capacity() == 5)
     v.push(10)
     v.push(20)
     v.push(30)
-    @assert(v.size() == 3)
-    @assert(v.isEmpty() == false)
-    @assert(v.isFull() == false)
-    @assert(v.top() == 30)
-    @assert(v.get(0) == 10)
-    @assert(v.get(1) == 20)
+    Swag.assert(v.size() == 3)
+    Swag.assert(v.isEmpty() == false)
+    Swag.assert(v.isFull() == false)
+    Swag.assert(v.top() == 30)
+    Swag.assert(v.get(0) == 10)
+    Swag.assert(v.get(1) == 20)
 
     let popped = v.pop()
-    @assert(popped == 30)
-    @assert(v.size() == 2)
-    @assert(v.top() == 20)
+    Swag.assert(popped == 30)
+    Swag.assert(v.size() == 2)
+    Swag.assert(v.top() == 20)
 
     v.clear()
-    @assert(v.isEmpty() == true)
-    @assert(v.size() == 0)
+    Swag.assert(v.isEmpty() == true)
+    Swag.assert(v.size() == 0)
 }
 
 #test
@@ -327,11 +327,11 @@ impl CopyGate
     v.push(1.1)
     v.push(2.2)
     v.push(3.3)
-    @assert(v.isFull() == true)
-    @assert(v.get(0) == 1.1)
-    @assert(v.get(2) == 3.3)
-    @assert(v.pop() == 3.3)
-    @assert(v.size() == 2)
+    Swag.assert(v.isFull() == true)
+    Swag.assert(v.get(0) == 1.1)
+    Swag.assert(v.get(2) == 3.3)
+    Swag.assert(v.pop() == 3.3)
+    Swag.assert(v.size() == 2)
 }
 
 #test
@@ -341,8 +341,8 @@ impl CopyGate
     v.push(20'u8)
     v.push(30'u8)
     v.push(40'u8)
-    @assert(v.isFull() == true)
-    @assert(v.pop() == 40'u8)
-    @assert(v.pop() == 30'u8)
-    @assert(v.size() == 2)
+    Swag.assert(v.isFull() == true)
+    Swag.assert(v.pop() == 40'u8)
+    Swag.assert(v.pop() == 30'u8)
+    Swag.assert(v.size() == 2)
 }

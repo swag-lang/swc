@@ -35,11 +35,11 @@ func countAdjacentRolls(plan: const [..] string, row, column: u32)->u32
             if neighborRow < 0 or neighborColumn < 0 do
                 continue
 
-            if neighborRow >= cast(s32) @countof(plan) do
+            if neighborRow >= cast(s32) plan.count do
                 continue
 
             let line = cast(const [..] u8) plan[cast(u32) neighborRow]
-            if neighborColumn >= cast(s32) @countof(line) do
+            if neighborColumn >= cast(s32) line.count do
                 continue
 
             neighbors += line[cast(u32) neighborColumn] == 64'u8 ? 1'u32 : 0'u32
@@ -51,18 +51,18 @@ func countAdjacentRolls(plan: const [..] string, row, column: u32)->u32
 
 func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
 {
-    @assert(@countof(plan) > 0)
+    Swag.assert(plan.count > 0)
 
     var result: ForkliftAudit
-    result.rowCount    = cast(u32) @countof(plan)
-    result.columnCount = cast(u32) @countof(cast(const [..] u8) plan[0])
+    result.rowCount    = cast(u32) plan.count
+    result.columnCount = cast(u32) (cast(const [..] u8) plan[0]).count
 
     for line, row in plan
     {
         let bytes = cast(const [..] u8) line
-        @assert(@countof(bytes) == result.columnCount)
+        Swag.assert(bytes.count == result.columnCount)
 
-        for column in @countof(bytes)
+        for column in bytes.count
         {
             var neighbors: u32
 
@@ -99,14 +99,14 @@ func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
 
     let sampleAudit = auditForkliftAccess(samplePlan)
 
-    @assert(sampleAudit.rowCount == 10'u32)
-    @assert(sampleAudit.columnCount == 10'u32)
-    @assert(sampleAudit.totalRolls == 71'u32)
-    @assert(sampleAudit.accessibleRolls == 13'u32)
-    @assert(sampleAudit.blockedRolls == 58'u32)
-    @assert(sampleAudit.densestCluster == 8'u32)
-    @assert(countAdjacentRolls(samplePlan, 0, 2) == 3'u32)
-    @assert(countAdjacentRolls(samplePlan, 5, 4) == 7'u32)
+    Swag.assert(sampleAudit.rowCount == 10'u32)
+    Swag.assert(sampleAudit.columnCount == 10'u32)
+    Swag.assert(sampleAudit.totalRolls == 71'u32)
+    Swag.assert(sampleAudit.accessibleRolls == 13'u32)
+    Swag.assert(sampleAudit.blockedRolls == 58'u32)
+    Swag.assert(sampleAudit.densestCluster == 8'u32)
+    Swag.assert(countAdjacentRolls(samplePlan, 0, 2) == 3'u32)
+    Swag.assert(countAdjacentRolls(samplePlan, 5, 4) == 7'u32)
 
     const loadingBayPlan: [6] string =
         [
@@ -120,12 +120,12 @@ func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
 
     let loadingBayAudit = auditForkliftAccess(loadingBayPlan)
 
-    @assert(loadingBayAudit.rowCount == 6'u32)
-    @assert(loadingBayAudit.columnCount == 6'u32)
-    @assert(loadingBayAudit.totalRolls == 15'u32)
-    @assert(loadingBayAudit.accessibleRolls == 3'u32)
-    @assert(loadingBayAudit.blockedRolls == 12'u32)
-    @assert(loadingBayAudit.densestCluster == 6'u32)
-    @assert(countAdjacentRolls(loadingBayPlan, 0, 2) == 3'u32)
-    @assert(countAdjacentRolls(loadingBayPlan, 3, 3) == 6'u32)
+    Swag.assert(loadingBayAudit.rowCount == 6'u32)
+    Swag.assert(loadingBayAudit.columnCount == 6'u32)
+    Swag.assert(loadingBayAudit.totalRolls == 15'u32)
+    Swag.assert(loadingBayAudit.accessibleRolls == 3'u32)
+    Swag.assert(loadingBayAudit.blockedRolls == 12'u32)
+    Swag.assert(loadingBayAudit.densestCluster == 6'u32)
+    Swag.assert(countAdjacentRolls(loadingBayPlan, 0, 2) == 3'u32)
+    Swag.assert(countAdjacentRolls(loadingBayPlan, 3, 3) == 6'u32)
 }

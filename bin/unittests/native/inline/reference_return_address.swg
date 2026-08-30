@@ -11,5 +11,5 @@ func inlineAddressReturnedReference(value: *s32)->*s32
     var value = 77
     let rp    = inlineAddressReturnedReference(&value)
     #assert(#typeof(rp) == *s32)
-    @assert(rp == &value)
+    Swag.assert(rp == &value)
 }

@@ -1,12 +1,12 @@
 #global private
 
 enum A { R, G, B }
-#assert(@countof(A) == 3)
-#assert(@countof(A) != 2)
+#assert(A.count == 3)
+#assert(A.count != 2)
 
-#assert(@countof("ABCDE") == 5)
+#assert(("ABCDE").count == 5)
 const B = "XYZ"
-#assert(@countof(B) == 3)
+#assert(B.count == 3)
 
 struct CountedBySpecOp {}
 
@@ -35,79 +35,79 @@ impl RefCountedBySpecOp
     mtd opCount() => me.count
 }
 
-#assert(@countof(CountedBySpecOp{}) == 9)
+#assert((CountedBySpecOp{}).count == 9)
 
 const ZERO_SIZED_VALUES: [3] ZeroSized        = [{}, {}, {}]
 const ZERO_SIZED_SLICE:  const [..] ZeroSized = cast(const [..] ZeroSized) ZERO_SIZED_VALUES
-#assert(@countof(ZERO_SIZED_SLICE) == 3)
+#assert(ZERO_SIZED_SLICE.count == 3)
 
 namespace NS {}
 
 func semaTest001()
 {
     var a: #null string
-    var b = @countof(a)
+    var b = a.count
     #assert(#typeof(b) == u64)
 
     var cs: #null cstring
-    var csc = @countof(cs)
+    var csc = cs.count
     #assert(#typeof(csc) == u64)
 
     var c: [4, 10] s32
-    const d = @countof(c)
+    const d = c.count
     #assert(d == 40)
 }
 
 func semaTest002()
 {
     var a: [2, 3, 4] u8
-    const b = @countof(a)
+    const b = a.count
     #assert(b == 24)
 }
 
 func semaTest003()
 {
     var a: [7] bool
-    const b = @countof(a)
+    const b = a.count
     #assert(b == 7)
 }
 
 func semaTest004()
 {
     let value = CountedBySpecOp{}
-    const count = @countof(value)
+    const count = value.count
     #assert(#typeof(count) == u64)
     #assert(count == 9)
 }
 
 func countStringRef(value: *string)->u64
 {
-    return @countof(value[])
+    return (value[]).count
 }
 
 func countCStringRef(value: *cstring)->u64
 {
-    return @countof(value[])
+    return (value[]).count
 }
 
 func countSliceRef(value: [..] u8)->u64
 {
-    return @countof(value)
+    return value.count
 }
 
 func countUnsignedRef(value: *u32)->u32
 {
-    return @countof(value[])
+    return (value[]).count
 }
 
 func countEnumRef(value: *RefCountKind)->u64
 {
-    return @countof(value[])
+    return (value[]).count
 }
 
 func countSpecOpRef(value: RefCountedBySpecOp)->u64
 {
-    return @countof(value)
+    return value.count
 }
 
 func loopStringRef(value: string)->u64
@@ -146,41 +146,41 @@ func semaTest005()
 {
     var text             = "hello"
     var textRef: *string = &text
-    #assert(#typeof(@countof(textRef[])) == u64)
+    #assert(#typeof((textRef[]).count) == u64)
     #assert(#typeof(countStringRef(textRef)) == u64)
     #assert(#typeof(loopStringRef(textRef[])) == u64)
 
     var cstrData: [4] u8   = ['a'u8, 'b'u8, 'c'u8, 0]
     var cstr:     cstring  = cast(cstring) &cstrData[0]
     var cstrRef:  *cstring = &cstr
-    #assert(#typeof(@countof(cstrRef[])) == u64)
+    #assert(#typeof((cstrRef[]).count) == u64)
     #assert(#typeof(countCStringRef(cstrRef)) == u64)
     #assert(#typeof(loopCStringRef(cstrRef)) == u64)
 
     var array:    [2, 3] u8
     var arrayRef: *[2, 3] u8 = &array
-    #assert(@countof(arrayRef[]) == 6)
+    #assert((arrayRef[]).count == 6)
 
     var flat:     [6] u8
     let slice = cast([..] u8) flat
     var sliceRef: const *[..] u8 = &slice
-    #assert(#typeof(@countof(sliceRef[])) == u64)
+    #assert(#typeof((sliceRef[]).count) == u64)
     #assert(#typeof(countSliceRef(sliceRef[])) == u64)
     #assert(#typeof(loopSliceRef(sliceRef[])) == u64)
 
     var number:    u32  = 4
     var numberRef: *u32 = &number
-    #assert(#typeof(@countof(numberRef[])) == u32)
+    #assert(#typeof((numberRef[]).count) == u32)
     #assert(#typeof(countUnsignedRef(numberRef)) == u32)
     #assert(#typeof(loopUnsignedRef(numberRef)) == u32)
 
     var kind = RefCountKind.B
     var kindRef: *RefCountKind = &kind
-    #assert(@countof(kindRef[]) == 4)
+    #assert((kindRef[]).count == 4)
     #assert(#typeof(countEnumRef(kindRef)) == u64)
 
     let spec = RefCountedBySpecOp{count: 11}
     let specRef: const *RefCountedBySpecOp = &spec
-    #assert(@countof(specRef[]) == 11)
+    #assert((specRef[]).count == 11)
     #assert(#typeof(countSpecOpRef(specRef[])) == u64)
 }

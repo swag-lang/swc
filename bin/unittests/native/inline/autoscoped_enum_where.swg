@@ -34,6 +34,6 @@ func inlineBug9Check(cells: [*] InlineBug9Cell, white: bool)->s8
     cells[2].content = .Black
     cells[3].content = .Invalid
 
-    @assert(inlineBug9Check(&cells[0], true) == 1)
-    @assert(inlineBug9Check(&cells[0], false) == 2)
+    Swag.assert(inlineBug9Check(&cells[0], true) == 1)
+    Swag.assert(inlineBug9Check(&cells[0], false) == 2)
 }

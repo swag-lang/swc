@@ -44,14 +44,14 @@ func pixelAt(image: const *Image, x, y: s32)->u32
     integratedPanel.backgroundStyle = .Panel
 
     let image = host.render()
-    @assert(pixelAt(&image, 10, 10) == host.theme.colors.bk.argb)
-    @assert(pixelAt(&image, 30, 10) == host.theme.colors.view_Bk.argb)
-    @assert(pixelAt(&image, 50, 10) == host.theme.colors.wnd_Bk.argb)
-    @assert(pixelAt(&image, 70, 10) == host.theme.colors.informationBar_Bk.argb)
-    @assert(pixelAt(&image, 90, 10) == host.theme.colors.commandBar_Bk.argb)
-    @assert(pixelAt(&image, 110, 10) == host.theme.colors.toolBar_Bk.argb)
-    @assert(pixelAt(&image, 130, 10) == host.theme.colors.wnd_Bk.argb)
-    @assert(pixelAt(&image, 140, 0) == host.theme.colors.toolBar_Bk.argb)
+    Swag.assert(pixelAt(&image, 10, 10) == host.theme.colors.bk.argb)
+    Swag.assert(pixelAt(&image, 30, 10) == host.theme.colors.view_Bk.argb)
+    Swag.assert(pixelAt(&image, 50, 10) == host.theme.colors.wnd_Bk.argb)
+    Swag.assert(pixelAt(&image, 70, 10) == host.theme.colors.informationBar_Bk.argb)
+    Swag.assert(pixelAt(&image, 90, 10) == host.theme.colors.commandBar_Bk.argb)
+    Swag.assert(pixelAt(&image, 110, 10) == host.theme.colors.toolBar_Bk.argb)
+    Swag.assert(pixelAt(&image, 130, 10) == host.theme.colors.wnd_Bk.argb)
+    Swag.assert(pixelAt(&image, 140, 0) == host.theme.colors.toolBar_Bk.argb)
     var antialiasedCorner: bool
     for y in 0 until 7
     {
@@ -63,9 +63,9 @@ func pixelAt(image: const *Image, x, y: s32)->u32
         }
     }
 
-    @assert(antialiasedCorner)
-    @assert(pixelAt(&image, 150, 10) == host.theme.colors.wnd_Bk.argb)
-    @assert(pixelAt(&image, 170, 10) == host.theme.colors.view_Bk.argb)
+    Swag.assert(antialiasedCorner)
+    Swag.assert(pixelAt(&image, 150, 10) == host.theme.colors.wnd_Bk.argb)
+    Swag.assert(pixelAt(&image, 170, 10) == host.theme.colors.view_Bk.argb)
 }
 
 // A device scale of 2 renders the same logical tree into a doubled physical target:
@@ -76,11 +76,11 @@ func pixelAt(image: const *Image, x, y: s32)->u32
     host.setup(96, 64, dpiScale: 2)
     defer host.shutdown()
 
-    @assert(host.surface.dpiScale == 2)
-    @assert(host.surface.size().x == 96 and host.surface.size().y == 64)
+    Swag.assert(host.surface.dpiScale == 2)
+    Swag.assert(host.surface.size().x == 96 and host.surface.size().y == 64)
 
     let background = host.render()
-    @assert(background.width == 192 and background.height == 128)
+    Swag.assert(background.width == 192 and background.height == 128)
 
     // A view-background child at logical (16, 8, 32, 24) must cover the physical
     // rectangle (32, 16, 64, 48).
@@ -90,15 +90,15 @@ func pixelAt(image: const *Image, x, y: s32)->u32
 
     let inside  = pixelAt(&framed, 48, 28)
     let outside = pixelAt(&framed, 24, 28)
-    @assert(inside != outside)
+    Swag.assert(inside != outside)
 
     // The edges sit on the device grid: just outside the left edge (x = 32) still
     // shows the parent background, just inside shows the child, and likewise around
     // the right edge (x = 96).
-    @assert(pixelAt(&framed, 30, 28) == outside)
-    @assert(pixelAt(&framed, 34, 28) == inside)
-    @assert(pixelAt(&framed, 94, 28) == inside)
-    @assert(pixelAt(&framed, 98, 28) == outside)
+    Swag.assert(pixelAt(&framed, 30, 28) == outside)
+    Swag.assert(pixelAt(&framed, 34, 28) == inside)
+    Swag.assert(pixelAt(&framed, 94, 28) == inside)
+    Swag.assert(pixelAt(&framed, 98, 28) == outside)
 }
 
 // The identical logical tree rendered at scale 1 and scale 2 must agree: the scaled
@@ -120,7 +120,7 @@ func pixelAt(image: const *Image, x, y: s32)->u32
     let image2 = host2.render()
 
     // Compare well inside each region, away from antialiased edges.
-    @assert(pixelAt(&image1, 24, 20) == pixelAt(&image2, 48, 40))
-    @assert(pixelAt(&image1, 8, 8) == pixelAt(&image2, 16, 16))
-    @assert(pixelAt(&image1, 90, 60) == pixelAt(&image2, 180, 120))
+    Swag.assert(pixelAt(&image1, 24, 20) == pixelAt(&image2, 48, 40))
+    Swag.assert(pixelAt(&image1, 8, 8) == pixelAt(&image2, 16, 16))
+    Swag.assert(pixelAt(&image1, 90, 60) == pixelAt(&image2, 180, 120))
 }

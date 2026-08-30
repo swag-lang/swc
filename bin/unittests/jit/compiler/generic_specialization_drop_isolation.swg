@@ -113,10 +113,10 @@ impl LeakTrackedValue
 
         if LeakExpectDrop
         {
-            @assert(dropAddr == LeakExpectedDropAddr)
-            @assert(cast(u64) .self == LeakExpectedDropSelf)
-            @assert(.tag == LeakExpectedDropTag)
-            @assert(.self![] == cast(u8) .tag)
+            Swag.assert(dropAddr == LeakExpectedDropAddr)
+            Swag.assert(cast(u64) .self == LeakExpectedDropSelf)
+            Swag.assert(.tag == LeakExpectedDropTag)
+            Swag.assert(.self![] == cast(u8) .tag)
         }
     }
 }
@@ -137,12 +137,12 @@ struct(K, V) LeakTable
 
 func(K, V) leakDropEntryValue(entry: *LeakEntry'(K, V))
 {
-    @drop(&entry.value)
+    Swag.drop(&entry.value)
 }
 
 func(V) leakDropValuePtr(ptr: *V)
 {
-    @drop(ptr)
+    Swag.drop(ptr)
 }
 
 impl LeakTable
@@ -178,7 +178,7 @@ impl LeakTable
     #[Swag.NoInline]
     mtd dropAt(index: s32)
     {
-        @drop(&.entries[index].value)
+        Swag.drop(&.entries[index].value)
         .live[index] = false
     }
 
@@ -186,7 +186,7 @@ impl LeakTable
     mtd dropViaValuePtr(index: s32)
     {
         let ptr = .valuePtr(index)
-        @drop(ptr)
+        Swag.drop(ptr)
         .live[index] = false
     }
 
@@ -194,7 +194,7 @@ impl LeakTable
     mtd dropViaEntryPtr(index: s32)
     {
         let entry = .entryPtr(index)
-        @drop(&entry.value)
+        Swag.drop(&entry.value)
         .live[index] = false
     }
 
@@ -216,9 +216,9 @@ impl LeakTable
     mtd dropAllLive()
     {
         if .live[0] do
-            @drop(&.entries[0].value)
+            Swag.drop(&.entries[0].value)
         if .live[1] do
-            @drop(&.entries[1].value)
+            Swag.drop(&.entries[1].value)
         .live = [false, false]
     }
 }
@@ -245,7 +245,7 @@ impl LeakBox
     #[Swag.NoInline]
     mtd dropAt(index: s32)
     {
-        @drop(&.table.entries[index].value)
+        Swag.drop(&.table.entries[index].value)
         .table.live[index] = false
     }
 }
@@ -272,7 +272,7 @@ impl LeakGrid
     #[Swag.NoInline]
     mtd dropAt(tableIndex: s32, entryIndex: s32)
     {
-        @drop(&.tables[tableIndex].entries[entryIndex].value)
+        Swag.drop(&.tables[tableIndex].entries[entryIndex].value)
         .tables[tableIndex].live[entryIndex] = false
     }
 }
@@ -280,7 +280,7 @@ impl LeakGrid
 #static if true
 {
     // Reproducer: interleaving `LeakTable` specializations with different key layouts can make the
-    // direct `@drop(&.entries[index].value)` path target the wrong address in a later specialization.
+    // direct `Swag.drop(&.entries[index].value)` path target the wrong address in a later specialization.
     #test
     {
         leakResetDropProbe()
@@ -297,33 +297,33 @@ impl LeakGrid
         byString.put(1, "beta", 12)
         byInt.put(1, 8, 22)
 
-        @assert(byString.entries[1].value.marker() == 37)
-        @assert(byInt.entries[1].value.marker() == 67)
-        @assert(byWide.entries[0].value.marker() == 94)
+        Swag.assert(byString.entries[1].value.marker() == 37)
+        Swag.assert(byInt.entries[1].value.marker() == 67)
+        Swag.assert(byWide.entries[0].value.marker() == 94)
 
         leakArmExpectedDrop(byInt.valueAddr(1), cast([*] u8) &byInt.entries[1].value.storage[0], 22)
         byInt.dropAt(1)
         leakDisarmExpectedDrop()
-        @assert(LeakDropCount == 1)
-        @assert(LeakLastDropAddr == cast(u64) byInt.valueAddr(1))
-        @assert(LeakLastDropSelf == cast(u64) &byInt.entries[1].value.storage[0])
-        @assert(LeakLastDropTag == 22)
+        Swag.assert(LeakDropCount == 1)
+        Swag.assert(LeakLastDropAddr == cast(u64) byInt.valueAddr(1))
+        Swag.assert(LeakLastDropSelf == cast(u64) &byInt.entries[1].value.storage[0])
+        Swag.assert(LeakLastDropTag == 22)
 
         leakArmExpectedDrop(byString.valueAddr(0), cast([*] u8) &byString.entries[0].value.storage[0], 11)
         byString.dropAt(0)
         leakDisarmExpectedDrop()
-        @assert(LeakDropCount == 2)
-        @assert(LeakLastDropAddr == cast(u64) byString.valueAddr(0))
-        @assert(LeakLastDropSelf == cast(u64) &byString.entries[0].value.storage[0])
-        @assert(LeakLastDropTag == 11)
+        Swag.assert(LeakDropCount == 2)
+        Swag.assert(LeakLastDropAddr == cast(u64) byString.valueAddr(0))
+        Swag.assert(LeakLastDropSelf == cast(u64) &byString.entries[0].value.storage[0])
+        Swag.assert(LeakLastDropTag == 11)
 
         leakArmExpectedDrop(byWide.valueAddr(1), cast([*] u8) &byWide.entries[1].value.storage[0], 32)
         byWide.dropAt(1)
         leakDisarmExpectedDrop()
-        @assert(LeakDropCount == 3)
-        @assert(LeakLastDropAddr == cast(u64) byWide.valueAddr(1))
-        @assert(LeakLastDropSelf == cast(u64) &byWide.entries[1].value.storage[0])
-        @assert(LeakLastDropTag == 32)
+        Swag.assert(LeakDropCount == 3)
+        Swag.assert(LeakLastDropAddr == cast(u64) byWide.valueAddr(1))
+        Swag.assert(LeakLastDropSelf == cast(u64) &byWide.entries[1].value.storage[0])
+        Swag.assert(LeakLastDropTag == 32)
     }
 }
 
@@ -351,26 +351,26 @@ impl LeakGrid
         leakArmExpectedDrop(byWide.valueAddr(0), cast([*] u8) &byWide.entries[0].value.storage[0], 51)
         byWide.dropViaValuePtr(0)
         leakDisarmExpectedDrop()
-        @assert(LeakLastDropAddr == cast(u64) byWide.valueAddr(0))
-        @assert(LeakLastDropTag == 51)
+        Swag.assert(LeakLastDropAddr == cast(u64) byWide.valueAddr(0))
+        Swag.assert(LeakLastDropTag == 51)
 
         leakArmExpectedDrop(byString.valueAddr(1), cast([*] u8) &byString.entries[1].value.storage[0], 62)
         byString.dropViaEntryPtr(1)
         leakDisarmExpectedDrop()
-        @assert(LeakLastDropAddr == cast(u64) byString.valueAddr(1))
-        @assert(LeakLastDropTag == 62)
+        Swag.assert(LeakLastDropAddr == cast(u64) byString.valueAddr(1))
+        Swag.assert(LeakLastDropTag == 62)
 
         leakArmExpectedDrop(byInt.valueAddr(0), cast([*] u8) &byInt.entries[0].value.storage[0], 41)
         byInt.dropViaEntryHelper(0)
         leakDisarmExpectedDrop()
-        @assert(LeakLastDropAddr == cast(u64) byInt.valueAddr(0))
-        @assert(LeakLastDropTag == 41)
+        Swag.assert(LeakLastDropAddr == cast(u64) byInt.valueAddr(0))
+        Swag.assert(LeakLastDropTag == 41)
 
         leakArmExpectedDrop(byInt.valueAddr(1), cast([*] u8) &byInt.entries[1].value.storage[0], 42)
         byInt.dropViaValueHelper(1)
         leakDisarmExpectedDrop()
-        @assert(LeakLastDropAddr == cast(u64) byInt.valueAddr(1))
-        @assert(LeakLastDropTag == 42)
+        Swag.assert(LeakLastDropAddr == cast(u64) byInt.valueAddr(1))
+        Swag.assert(LeakLastDropTag == 42)
     }
 }
 
@@ -390,20 +390,20 @@ impl LeakGrid
         boxedString.put(1, "right", 72)
         boxedInt.put(1, 5, 82)
 
-        @assert(boxedString.table.entries[0].value.marker() == 214)
-        @assert(boxedInt.table.entries[1].value.marker() == 247)
+        Swag.assert(boxedString.table.entries[0].value.marker() == 214)
+        Swag.assert(boxedInt.table.entries[1].value.marker() == 247)
 
         leakArmExpectedDrop(boxedInt.valueAddr(0), cast([*] u8) &boxedInt.table.entries[0].value.storage[0], 81)
         boxedInt.dropAt(0)
         leakDisarmExpectedDrop()
-        @assert(LeakLastDropAddr == cast(u64) boxedInt.valueAddr(0))
-        @assert(LeakLastDropTag == 81)
+        Swag.assert(LeakLastDropAddr == cast(u64) boxedInt.valueAddr(0))
+        Swag.assert(LeakLastDropTag == 81)
 
         leakArmExpectedDrop(boxedString.valueAddr(1), cast([*] u8) &boxedString.table.entries[1].value.storage[0], 72)
         boxedString.dropAt(1)
         leakDisarmExpectedDrop()
-        @assert(LeakLastDropAddr == cast(u64) boxedString.valueAddr(1))
-        @assert(LeakLastDropTag == 72)
+        Swag.assert(LeakLastDropAddr == cast(u64) boxedString.valueAddr(1))
+        Swag.assert(LeakLastDropTag == 72)
     }
 }
 
@@ -425,14 +425,14 @@ impl LeakGrid
         leakArmExpectedDrop(gridWide.valueAddr(1, 1), cast([*] u8) &gridWide.tables[1].entries[1].value.storage[0], 102)
         gridWide.dropAt(1, 1)
         leakDisarmExpectedDrop()
-        @assert(LeakLastDropAddr == cast(u64) gridWide.valueAddr(1, 1))
-        @assert(LeakLastDropTag == 102)
+        Swag.assert(LeakLastDropAddr == cast(u64) gridWide.valueAddr(1, 1))
+        Swag.assert(LeakLastDropTag == 102)
 
         leakArmExpectedDrop(gridString.valueAddr(0, 0), cast([*] u8) &gridString.tables[0].entries[0].value.storage[0], 91)
         gridString.dropAt(0, 0)
         leakDisarmExpectedDrop()
-        @assert(LeakLastDropAddr == cast(u64) gridString.valueAddr(0, 0))
-        @assert(LeakLastDropTag == 91)
+        Swag.assert(LeakLastDropAddr == cast(u64) gridString.valueAddr(0, 0))
+        Swag.assert(LeakLastDropTag == 91)
     }
 }
 
@@ -453,22 +453,22 @@ impl LeakGrid
         byInt.put(1, 7, 122)
 
         byInt.dropAllLive()
-        @assert(LeakDropCount == 2)
-        @assert(LeakFirstDropAddr == cast(u64) byInt.valueAddr(0))
-        @assert(LeakFirstDropTag == 121)
-        @assert(LeakSecondDropAddr == cast(u64) byInt.valueAddr(1))
-        @assert(LeakSecondDropTag == 122)
-        @assert(LeakLastDropAddr == cast(u64) byInt.valueAddr(1))
-        @assert(LeakLastDropTag == 122)
+        Swag.assert(LeakDropCount == 2)
+        Swag.assert(LeakFirstDropAddr == cast(u64) byInt.valueAddr(0))
+        Swag.assert(LeakFirstDropTag == 121)
+        Swag.assert(LeakSecondDropAddr == cast(u64) byInt.valueAddr(1))
+        Swag.assert(LeakSecondDropTag == 122)
+        Swag.assert(LeakLastDropAddr == cast(u64) byInt.valueAddr(1))
+        Swag.assert(LeakLastDropTag == 122)
 
         leakResetDropProbe()
         byString.dropAllLive()
-        @assert(LeakDropCount == 2)
-        @assert(LeakFirstDropAddr == cast(u64) byString.valueAddr(0))
-        @assert(LeakFirstDropTag == 111)
-        @assert(LeakSecondDropAddr == cast(u64) byString.valueAddr(1))
-        @assert(LeakSecondDropTag == 112)
-        @assert(LeakLastDropAddr == cast(u64) byString.valueAddr(1))
-        @assert(LeakLastDropTag == 112)
+        Swag.assert(LeakDropCount == 2)
+        Swag.assert(LeakFirstDropAddr == cast(u64) byString.valueAddr(0))
+        Swag.assert(LeakFirstDropTag == 111)
+        Swag.assert(LeakSecondDropAddr == cast(u64) byString.valueAddr(1))
+        Swag.assert(LeakSecondDropTag == 112)
+        Swag.assert(LeakLastDropAddr == cast(u64) byString.valueAddr(1))
+        Swag.assert(LeakLastDropTag == 112)
     }
 }

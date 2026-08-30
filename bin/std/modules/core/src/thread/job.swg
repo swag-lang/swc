@@ -170,7 +170,7 @@ public func initialize(workerCount: u32 = 0) fail
 {
     Debug.assert(g_workerCount == 0)
 
-    g_Allocator             = @getcontext().allocator
+    g_Allocator             = Swag.getContext().allocator
     g_workers.allocator     = g_Allocator
     g_pendingJobs.allocator = g_Allocator
 
@@ -260,7 +260,7 @@ public func wait(job: *Job)
 #[Swag.Macro]
 public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: #null *void = null, stmt: #code(var buffer, data))
 {
-    if !@countof(range) do
+    if !range.count do
         return
     Debug.assert(offset != 0)
 
@@ -272,11 +272,11 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: #null 
 
     func visitSlice(sliceBuffer: #null const [..] T, sliceOffset: u32, sliceContextData: #null *void)
     {
-        let scan = @dataof(sliceBuffer)
+        let scan = sliceBuffer.buffer
         if !scan do
             return
         var safeScan = scan!
-        let countof  = @countof(sliceBuffer)
+        let countof  = sliceBuffer.count
         for countof / sliceOffset
         {
             #inject(stmt, buffer = cast #unconst (*T) safeScan, data = sliceContextData)
@@ -286,7 +286,7 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: #null 
     }
 
     // Force synchronous execution if range is too small
-    let wh      = @countof(range) / offset
+    let wh      = range.count / offset
     let workers = Math.min(workerCount(), cast(u32) wh)
     if isSynchronous() or workers <= 1
     {
@@ -304,16 +304,16 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: #null 
     var sliceJobs: Array'(SliceJob'T)
     sliceJobs.resize(cast(u64) workers)
 
-    var ptr = @dataof(range)
+    var ptr = range.buffer
     for &j in sliceJobs
     {
-        let sizeSlice = @index == sliceJobs.count - 1 ? lastSplitSize : splitSize
+        let sizeSlice = Swag.index == sliceJobs.count - 1 ? lastSplitSize : splitSize
 
         j.base.lambda = &jobEntry
         j.base.data   = j
         j.offset      = offset
         j.contextData = contextData
-        j.buffer      = @mkslice(ptr, sizeSlice)
+        j.buffer      = Swag.makeSlice(ptr, sizeSlice)
         ptr           += sizeSlice
 
         schedule(j)
@@ -370,7 +370,7 @@ public func parallelFor(count: u32, contextData: #null *void = null, stmt: #code
     var startIndex = 0'u32
     for &j in sliceJobs
     {
-        let sizeSlice = @index == sliceJobs.count - 1 ? lastSplitSize : splitSize
+        let sizeSlice = Swag.index == sliceJobs.count - 1 ? lastSplitSize : splitSize
 
         j.base.lambda = &jobEntry
         j.base.data   = j

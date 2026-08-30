@@ -81,7 +81,7 @@ alias SemaNonNullHolderAlias = SemaNonNullHolder
 
 struct SemaNonNullPointerDefault
 {
-    required: const [*] u8 = @dataof(SEMA_NONULL_POINTER_DEFAULT_TEXT)
+    required: const [*] u8 = SEMA_NONULL_POINTER_DEFAULT_TEXT.buffer
 }
 
 struct SemaNonNullMoveDefault
@@ -238,7 +238,7 @@ func semaNonNullConstruction()
     acceptSemaNonNullHolder({required: &first})
 
     var mutable = holder
-    @init(mutable)(&second)
+    Swag.init(mutable)(&second)
 
     // 'undefined' remains an explicit low-level escape hatch from initialization checks.
     var undefinedPointer: *SemaNonNullItem = undefined

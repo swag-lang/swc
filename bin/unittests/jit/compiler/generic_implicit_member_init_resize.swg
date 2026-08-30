@@ -26,11 +26,11 @@ impl GenericResizeBuffer
         if newCount > .count
         {
             .reserve(newCount)
-            @init(.buffer + .count, newCount - .count)
+            Swag.init(.buffer + .count, newCount - .count)
         }
         else
         {
-            @drop(.buffer + newCount, .count - newCount)
+            Swag.drop(.buffer + newCount, .count - newCount)
         }
 
         .count = newCount
@@ -41,5 +41,5 @@ impl GenericResizeBuffer
 {
     var buffer: GenericResizeBuffer'GenericResizeTracked
     buffer.resize(0)
-    @assert(buffer.count == 0)
+    Swag.assert(buffer.count == 0)
 }

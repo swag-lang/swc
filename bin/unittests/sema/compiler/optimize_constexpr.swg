@@ -1,6 +1,6 @@
 #global private
 
-const Cfg = #run @compiler.getBuildCfg()![]
+const Cfg = #run Swag.compiler().getBuildCfg()![]
 
 func pureAdd(a: s32, b: s32)->s32
 {
@@ -54,7 +54,7 @@ namespace WrapperNs
 }
 
 #[Swag.Inline]
-func inlineTypedVariadicCount(values: s32...)->s32 => cast(s32) @countof(values)
+func inlineTypedVariadicCount(values: s32...)->s32 => cast(s32) values.count
 
 #[Swag.Macro]
 func macroAdd(a: s32, b: s32)->s32 => a + b
@@ -83,24 +83,24 @@ alias FixedArray = [pureAdd(20, 22)] s32
 
 func semaTest001()
 {
-    @assert(defaultPureArg() == 42)
-    @assert(#isconstexpr(macroAdd(20, 22)))
-    @assert(!#isconstexpr(impureAdd(20, 22)))
-    @assert(!#isconstexpr(conditionalImpureAdd(true, 20, 22)))
-    @assert(!#isconstexpr(conditionalImpureAdd(false, 20, 22)))
-    @assert(!#isconstexpr(ImpureNs.add(20, 22)))
-    @assert(!#isconstexpr(WrapperNs.impureAdd(20, 22)))
-    @assert(!#isconstexpr(WrapperNs.conditionalImpureAdd(true, 20, 22)))
-    @assert(!#isconstexpr(WrapperNs.conditionalImpureAdd(false, 20, 22)))
+    Swag.assert(defaultPureArg() == 42)
+    Swag.assert(#isconstexpr(macroAdd(20, 22)))
+    Swag.assert(!#isconstexpr(impureAdd(20, 22)))
+    Swag.assert(!#isconstexpr(conditionalImpureAdd(true, 20, 22)))
+    Swag.assert(!#isconstexpr(conditionalImpureAdd(false, 20, 22)))
+    Swag.assert(!#isconstexpr(ImpureNs.add(20, 22)))
+    Swag.assert(!#isconstexpr(WrapperNs.impureAdd(20, 22)))
+    Swag.assert(!#isconstexpr(WrapperNs.conditionalImpureAdd(true, 20, 22)))
+    Swag.assert(!#isconstexpr(WrapperNs.conditionalImpureAdd(false, 20, 22)))
 
     if Cfg.backend.optimLevel != .O0
     {
-        @assert(#isconstexpr(pureAdd(20, 22)))
-        @assert(#isconstexpr(inlineTypedVariadicCount(20, 20, 2)))
+        Swag.assert(#isconstexpr(pureAdd(20, 22)))
+        Swag.assert(#isconstexpr(inlineTypedVariadicCount(20, 20, 2)))
     }
     else
     {
-        @assert(!#isconstexpr(pureAdd(20, 22)))
-        @assert(!#isconstexpr(inlineTypedVariadicCount(20, 20, 2)))
+        Swag.assert(!#isconstexpr(pureAdd(20, 22)))
+        Swag.assert(!#isconstexpr(inlineTypedVariadicCount(20, 20, 2)))
     }
 }

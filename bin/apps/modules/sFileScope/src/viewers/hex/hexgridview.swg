@@ -163,11 +163,11 @@ func formatHexDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offs
     var result: retval
     if !bytesPerRow do
         return result
-    result.reserve(@countof(bytes) * 5)
+    result.reserve(bytes.count * 5)
 
     var line: Array'u8
     var row = 0'u64
-    while row < @countof(bytes)
+    while row < bytes.count
     {
         line.clear()
         appendHexDigits(&line, baseOffset + row, offsetDigits)
@@ -177,7 +177,7 @@ func formatHexDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offs
         for column in bytesPerRow
         {
             let index = row + column
-            if index < @countof(bytes) do
+            if index < bytes.count do
                 appendHexDigits(&line, bytes[index], 2)
             else
             {
@@ -194,13 +194,13 @@ func formatHexDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offs
         for column in bytesPerRow
         {
             let index = row + column
-            if index >= @countof(bytes) do
+            if index >= bytes.count do
                 break
             let value = bytes[index]
             line.add(isHexPrintable(value) ? value : '.'u8)
         }
 
-        result += @mkstring(line.buffer!, line.count)
+        result += Swag.makeString(line.buffer!, line.count)
         result += "\n"
         row    += bytesPerRow
     }
@@ -213,7 +213,7 @@ func formatHexDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offs
 func parseHexOffset(text: string, caret, fileSize: u64)->u64
 {
     let trimmed = Latin1.trim(text)
-    let count   = @countof(trimmed)
+    let count   = trimmed.count
     if !count or !fileSize do
         return Swag.U64.Max
 
@@ -587,7 +587,7 @@ impl HexGridView
     // Publishes the row range as a pixel span the scrollbar can drive, and places the thumb.
     mtd syncScrollBar()
     {
-        if !@isset(.scroll) do
+        if !Swag.isSet(.scroll) do
             return
 
         let span   = Math.min(cast(f32) .rowCount() * .rowHeight, HexScrollSpan)
@@ -608,7 +608,7 @@ impl HexGridView
     // them.
     mtd adoptScrollPosition(position: f32)
     {
-        if .syncing or !@isset(.scroll) do
+        if .syncing or !Swag.isSet(.scroll) do
             return
         let usable = Math.max(.scroll.scrollSize.y - .clientRect().height, 1)
         let ratio  = Math.clamp(position / usable, 0, 1)
@@ -888,14 +888,14 @@ impl HexGridView
                 appendHexDigits(&text, value, 2)
             }
 
-            Clipboard.addString(@mkstring(text.buffer!, text.count))
+            Clipboard.addString(Swag.makeString(text.buffer!, text.count))
 
         case .Text:
             var text: Array'u8
             text.reserve(bytes.count)
             for value in bytes do
                 text.add(isHexPrintable(value) ? value : '.'u8)
-            Clipboard.addString(@mkstring(text.buffer!, text.count))
+            Clipboard.addString(Swag.makeString(text.buffer!, text.count))
         }
     }
 
@@ -912,7 +912,7 @@ impl HexGridView
         var options: EditDlgOptions
         options.title   = hexStrings().ui_GoTo
         options.message = hexStrings().ui_GoToMessage
-        options.text    = @mkstring(current.buffer!, current.count)
+        options.text    = Swag.makeString(current.buffer!, current.count)
 
         let dialog = EditDlg.createSingleLine(surface!, options)
         if dialog.doModal() != Dialog.BtnOk do
@@ -1002,13 +1002,13 @@ impl HexGridView
                 let faint    = complete and raw == 0
                 let target   = faint ? &.rowHexFaint : &.rowHexStrong
                 let other    = faint ? &.rowHexStrong : &.rowHexFaint
-                for index in @countof(text)
+                for index in text.count
                 {
                     target.add(text[index])
                     other.add(' 'u8)
                 }
 
-                var written = @countof(text)
+                var written = text.count
                 while written < .valueCellChars()
                 {
                     target.add(' 'u8)
@@ -1038,7 +1038,7 @@ impl HexGridView
     {
         if !buffer.count do
             return
-        painter.drawString(x, y, @mkstring(buffer.buffer!, buffer.count), font, color)
+        painter.drawString(x, y, Swag.makeString(buffer.buffer!, buffer.count), font, color)
     }
 
     // Fills the cells of `[first, last]` in both columns.
@@ -1359,7 +1359,7 @@ impl IWnd for HexGridView
         // takes to separate it from the rows.
         let headerY = client.y + 4
         if .headerText.count do
-            painter.drawString(originX + HexViewInset + .gutterWidth(), headerY, @mkstring(.headerText.buffer!, .headerText.count), font, headerInk)
+            painter.drawString(originX + HexViewInset + .gutterWidth(), headerY, Swag.makeString(.headerText.buffer!, .headerText.count), font, headerInk)
         painter.drawString(originX + .textColumnLeft(), headerY, hexStrings().ui_TextColumn, font, headerInk)
         painter.drawLine(client.x, client.y + .headerHeight() - 2, client.right(), client.y + .headerHeight() - 2, colors.border, 1)
 
@@ -1406,11 +1406,11 @@ impl IWnd for HexGridView
                 let complete    = valueOffset + .valueSize() <= .doc.fileSize
                 let text        = .grouping == .Bytes ? Format.toString("%{X02}", .doc.byteAt(.caret)) : complete ? formatHexScalar(.grouping, .scalarAt(valueOffset)) : String.from("--")
                 .caretText.clear()
-                for index in @countof(text) do
+                for index in text.count do
                     .caretText.add(text[index])
 
                 painter.fillRect(originX + .hexCellX(column) - 1, y, cast(f32) .valueCellChars() * .charWidth + 2, .rowHeight, caretBk)
-                painter.drawString(originX + .hexCellX(column), y, @mkstring(.caretText.buffer!, .caretText.count), font, caretInk)
+                painter.drawString(originX + .hexCellX(column), y, Swag.makeString(.caretText.buffer!, .caretText.count), font, caretInk)
                 painter.drawRect(originX + .textCellX(.caret % .bytesPerRow), y, .charWidth, .rowHeight, caretBk, 1)
             }
         }

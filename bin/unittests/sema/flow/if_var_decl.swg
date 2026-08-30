@@ -48,7 +48,7 @@ func semaTest005()
     {
         result = -1
     }
-    @assert(result == 1)
+    Swag.assert(result == 1)
 }
 
 func semaTest006()
@@ -62,7 +62,7 @@ func semaTest006()
     {
         result = -1
     }
-    @assert(result == 1)
+    Swag.assert(result == 1)
 }
 
 func semaTest007()
@@ -76,5 +76,5 @@ func semaTest007()
     {
         result = -1
     }
-    @assert(result == 1)
+    Swag.assert(result == 1)
 }

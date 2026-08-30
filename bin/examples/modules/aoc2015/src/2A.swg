@@ -29,14 +29,14 @@ internal func day2ParseNumber(line: string, cursorPtr: *u64)->u32
     defer cursorPtr[] = cursor
 
     var result = 0'u32
-    while cursor < @countof(line) and line[cursor] >= '0' and line[cursor] <= '9'
+    while cursor < line.count and line[cursor] >= '0' and line[cursor] <= '9'
     {
         result *= 10
         result += cast(u32) line[cursor] - '0'
         cursor += 1
     }
 
-    if cursor < @countof(line) and line[cursor] == 'x' do
+    if cursor < line.count and line[cursor] == 'x' do
         cursor += 1
 
     return result
@@ -75,5 +75,5 @@ func day2A()
         total += 3 * gift.x * gift.y + 2 * gift.y * gift.z + 2 * gift.z * gift.x
 
     // Console.print("total: ", total)
-    @assert(total == 1588178)
+    Swag.assert(total == 1588178)
 }

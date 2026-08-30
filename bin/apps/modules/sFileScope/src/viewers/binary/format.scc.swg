@@ -56,7 +56,7 @@ func reportSccContainer(image: *BinaryImage, report: *BinaryReport, fileName: st
     reportSccManifest(report, reader.manifest())
     reportSccChunks(report, reader.chunks())
 
-    let chunks = countText(@countof(reader.chunks()), s.word_Chunk, s.word_Chunks)
+    let chunks = countText((reader.chunks()).count, s.word_Chunk, s.word_Chunks)
     report.summary = Format.toString("SCC %.% · %", major, minor, chunks)
 }
 
@@ -105,11 +105,11 @@ private func reportSccManifest(report: *BinaryReport, manifest: const *Scc.Manif
 
 private func reportSccProperties(report: *BinaryReport, properties: const [..] Scc.Property)
 {
-    if !@countof(properties) do
+    if !properties.count do
         return
 
     let s     = binStrings()
-    let total = countText(@countof(properties), s.word_Property, s.word_Properties)
+    let total = countText(properties.count, s.word_Property, s.word_Properties)
     report.beginGroup(s.scc_Properties, total.toString(), "")
 
     for property in properties
@@ -140,11 +140,11 @@ private func sccValueText(value: const *Scc.MetadataValue)->String
 // Adds the virtual hierarchy the manifest declares, parents before the entries they own.
 private func reportSccEntries(report: *BinaryReport, entries: const [..] Scc.Entry)
 {
-    if !@countof(entries) do
+    if !entries.count do
         return
 
     let s     = binStrings()
-    let total = countText(@countof(entries), s.word_Entry, s.word_Entries)
+    let total = countText(entries.count, s.word_Entry, s.word_Entries)
     report.beginGroup(s.scc_Entries, total.toString(), "", open: true)
 
     for entry in entries
@@ -182,7 +182,7 @@ private func reportSccEntries(report: *BinaryReport, entries: const [..] Scc.Ent
 private func reportSccChunks(report: *BinaryReport, chunks: const [..] Scc.ChunkInfo)
 {
     let s     = binStrings()
-    let total = countText(@countof(chunks), s.word_Chunk, s.word_Chunks)
+    let total = countText(chunks.count, s.word_Chunk, s.word_Chunks)
     report.beginGroup(s.scc_Chunks, total.toString(), "", open: true)
 
     for chunk in chunks

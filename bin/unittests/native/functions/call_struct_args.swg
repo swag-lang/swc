@@ -47,12 +47,12 @@ func ForeignReturnTriple()->Triple64
         var c = ForeignReturnPair()
         var d = ForeignReturnTriple()
     }
-    @assert(pair.a == 1)
-    @assert(pair.b == 2)
-    @assert(triple.c == 3)
+    Swag.assert(pair.a == 1)
+    Swag.assert(pair.b == 2)
+    Swag.assert(triple.c == 3)
 }
 
 #test
 {
-    @assert(SumPair32(MakePair32()) == 42)
+    Swag.assert(SumPair32(MakePair32()) == 42)
 }

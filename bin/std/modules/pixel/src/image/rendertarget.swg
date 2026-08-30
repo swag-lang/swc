@@ -34,6 +34,6 @@ internal impl RenderTarget
     // Invalidates a descriptor after its renderer has released the resources.
     mtd clear()
     {
-        @init(me, 1)
+        Swag.init(me, 1)
     }
 }

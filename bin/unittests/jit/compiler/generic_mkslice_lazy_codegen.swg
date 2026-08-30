@@ -12,7 +12,7 @@ namespace GenericMkSliceLazyCodegen
         req.size    = size
         req.address = buffer
 
-        let talloc = (allocator orelse @getcontext().allocator)!
+        let talloc = (allocator orelse Swag.getContext().allocator)!
         talloc.free(&req)
     }
 
@@ -23,7 +23,7 @@ namespace GenericMkSliceLazyCodegen
         req.size    = newSize
         req.oldSize = oldSize
 
-        let talloc = (allocator orelse @getcontext().allocator)!
+        let talloc = (allocator orelse Swag.getContext().allocator)!
         talloc.realloc(&req)
         return req.address
     }
@@ -63,13 +63,13 @@ namespace GenericMkSliceLazyCodegen
         #[Inline]
         mtd toSlice()->[..] T
         {
-            return @mkslice(.buffer, .count)
+            return Swag.makeSlice(.buffer, .count)
         }
 
         #[Inline]
         mtd const toSlice()->const [..] T
         {
-            return @mkslice(.buffer, .count)
+            return Swag.makeSlice(.buffer, .count)
         }
 
         #[Inline]
@@ -110,14 +110,14 @@ namespace GenericMkSliceLazyCodegen
         mtd mutableCount()->u64
         {
             let slice = .values.toSlice()
-            return @countof(slice)
+            return slice.count
         }
 
         #[Swag.NoInline]
         mtd const constCount()->u64
         {
             let slice = .values.toSlice()
-            return @countof(slice)
+            return slice.count
         }
 
         #[Swag.NoInline]
@@ -152,7 +152,7 @@ namespace GenericMkSliceLazyCodegen
         for item in items do
             values.add(item)
 
-        let count = @countof(values.toSlice())
+        let count = (values.toSlice()).count
         values.free()
         return count
     }
@@ -203,18 +203,18 @@ const SuiteOk        = #run GenericMkSliceLazyCodegen.runSuite()
 
 #test
 {
-    @assert(DirectS32Ok)
-    @assert(NestedS32Ok)
-    @assert(DirectU64Ok)
-    @assert(NestedU64Ok)
-    @assert(DirectBoolOk)
-    @assert(NestedBoolOk)
-    @assert(DirectPairOk)
-    @assert(NestedPairOk)
-    @assert(DirectTripleOk)
-    @assert(NestedTripleOk)
-    @assert(DirectArrayOk)
-    @assert(NestedArrayOk)
-    @assert(SuiteOk)
-    @assert(GenericMkSliceLazyCodegen.runSuite())
+    Swag.assert(DirectS32Ok)
+    Swag.assert(NestedS32Ok)
+    Swag.assert(DirectU64Ok)
+    Swag.assert(NestedU64Ok)
+    Swag.assert(DirectBoolOk)
+    Swag.assert(NestedBoolOk)
+    Swag.assert(DirectPairOk)
+    Swag.assert(NestedPairOk)
+    Swag.assert(DirectTripleOk)
+    Swag.assert(NestedTripleOk)
+    Swag.assert(DirectArrayOk)
+    Swag.assert(NestedArrayOk)
+    Swag.assert(SuiteOk)
+    Swag.assert(GenericMkSliceLazyCodegen.runSuite())
 }

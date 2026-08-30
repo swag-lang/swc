@@ -54,43 +54,43 @@ impl Grid
 #test
 {
     var c: Container's32 = {value: 10, count: 1}
-    @assert(c.getValue() == 10)
-    @assert(c.getCount() == 1)
-    @assert(c.isCountEqual(1) == true)
-    @assert(c.isCountEqual(2) == false)
+    Swag.assert(c.getValue() == 10)
+    Swag.assert(c.getCount() == 1)
+    Swag.assert(c.isCountEqual(1) == true)
+    Swag.assert(c.isCountEqual(2) == false)
     c.setValue(20)
-    @assert(c.getValue() == 20)
+    Swag.assert(c.getValue() == 20)
 }
 
 #test
 {
     var c: Container'string = {value: "hello", count: 5}
-    @assert(c.getValue() == "hello")
-    @assert(c.getCount() == 5)
+    Swag.assert(c.getValue() == "hello")
+    Swag.assert(c.getCount() == 5)
 
     c.setValue("world")
-    @assert(c.getValue() == "world")
+    Swag.assert(c.getValue() == "world")
 }
 
 #test
 {
     var c: Container'bool = {value: true, count: 2}
-    @assert(c.getValue() == true)
+    Swag.assert(c.getValue() == true)
     c.setValue(false)
-    @assert(c.getValue() == false)
-    @assert(c.isCountEqual(2) == true)
+    Swag.assert(c.getValue() == false)
+    Swag.assert(c.isCountEqual(2) == true)
 }
 
 #test
 {
     var stack: FixedStack'(s32, 4) = {top: 0}
-    @assert(stack.capacity() == 4)
-    @assert(stack.size() == 0)
+    Swag.assert(stack.capacity() == 4)
+    Swag.assert(stack.size() == 0)
     stack.push(10)
     stack.push(20)
     stack.push(30)
-    @assert(stack.size() == 3)
-    @assert(stack.peek() == 30)
+    Swag.assert(stack.size() == 3)
+    Swag.assert(stack.peek() == 30)
 }
 
 #test
@@ -98,27 +98,27 @@ impl Grid
     var stack: FixedStack'(f64, 2) = {top: 0}
     stack.push(1.5)
     stack.push(2.5)
-    @assert(stack.peek() == 2.5)
-    @assert(stack.capacity() == 2)
+    Swag.assert(stack.peek() == 2.5)
+    Swag.assert(stack.capacity() == 2)
 }
 
 #test
 {
     var g: Grid'(s32, 3) = {cells: [1, 2, 3, 4, 5, 6, 7, 8, 9]}
-    @assert(g.dimension() == 3)
-    @assert(g.totalCells() == 9)
-    @assert(g.at(0, 0) == 1)
-    @assert(g.at(1, 1) == 5)
-    @assert(g.at(2, 2) == 9)
-    @assert(g.at(0, 2) == 3)
-    @assert(g.at(2, 0) == 7)
+    Swag.assert(g.dimension() == 3)
+    Swag.assert(g.totalCells() == 9)
+    Swag.assert(g.at(0, 0) == 1)
+    Swag.assert(g.at(1, 1) == 5)
+    Swag.assert(g.at(2, 2) == 9)
+    Swag.assert(g.at(0, 2) == 3)
+    Swag.assert(g.at(2, 0) == 7)
 }
 
 #test
 {
     var g: Grid'(u8, 2) = {cells: [10'u8, 20, 30, 40]}
-    @assert(g.dimension() == 2)
-    @assert(g.totalCells() == 4)
-    @assert(g.at(0, 0) == 10'u8)
-    @assert(g.at(1, 1) == 40'u8)
+    Swag.assert(g.dimension() == 2)
+    Swag.assert(g.totalCells() == 4)
+    Swag.assert(g.at(0, 0) == 10'u8)
+    Swag.assert(g.at(1, 1) == 40'u8)
 }

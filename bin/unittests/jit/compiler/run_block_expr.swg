@@ -9,7 +9,7 @@ const ScalarValue = #run
 const PowerOfTwo: [4] s32 = #run
 {
     var arr: [4] s32
-    for i in @countof(arr) do
+    for i in arr.count do
         arr[i] = 1 << cast(u32) i
     return arr
 }
@@ -74,8 +74,8 @@ const PersistentAnyArray: [2] any = #run
         return items
     }
 
-    @assert(cast(string) value.item == "abc")
-    @assert(cast(string) value.other == "def")
-    @assert(cast(string) values[0] == "first")
-    @assert(cast(string) values[1] == "second")
+    Swag.assert(cast(string) value.item == "abc")
+    Swag.assert(cast(string) value.other == "def")
+    Swag.assert(cast(string) values[0] == "first")
+    Swag.assert(cast(string) values[1] == "second")
 }

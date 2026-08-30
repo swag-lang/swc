@@ -310,10 +310,10 @@ internal impl IImageEncoder for Encoder
     mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {
         var opt: EncodeOptions
-        if @dataof(options) != null
+        if options.buffer != null
         {
-            Debug.assert(@kindof(options) == EncodeOptions)
-            opt = @dataof(options)![as EncodeOptions]
+            Debug.assert(Swag.kindOf(options) == EncodeOptions)
+            opt = options.buffer![as EncodeOptions]
         }
 
         .stream      = result

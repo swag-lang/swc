@@ -3,16 +3,16 @@ using Swag
 
 func slicesEqual(lhs, rhs: #null const [..] s32)->bool
 {
-    if @countof(lhs) != @countof(rhs) do
+    if lhs.count != rhs.count do
         return false
-    if !@countof(lhs) or !@countof(rhs) do
+    if !lhs.count or !rhs.count do
         return true
 
     // A null slice has a zero count, so both slices are non-null past this point.
     if lhs == null or rhs == null do
         return true
 
-    for i in @countof(lhs) where lhs[i] != rhs[i] do
+    for i in lhs.count where lhs[i] != rhs[i] do
         return false
     return true
 }
@@ -33,6 +33,6 @@ func differsLoop()->bool
 
 #test
 {
-    @assert(matchesLoop())
-    @assert(differsLoop())
+    Swag.assert(matchesLoop())
+    Swag.assert(differsLoop())
 }

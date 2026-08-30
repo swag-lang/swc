@@ -186,7 +186,7 @@ func dropRelocateInfo()->LifecycleInfo
     resetLifecycleHooks()
     var dst = Tracked{8}
     var src = Tracked{3}
-    @drop(&dst)
+    Swag.drop(&dst)
     dst = #relocate src
     return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
@@ -230,7 +230,7 @@ func sliceMoveRefAssignInfo()->LifecycleInfo
     resetLifecycleHooks()
     var dst: Tracked
     var src: [2] Tracked = [Tracked{1}, Tracked{2}]
-    let slice            = @mkslice(&src[0], 2)
+    let slice            = Swag.makeSlice(&src[0], 2)
     assignTracked(&dst, #move slice[0])
     return {dst.value, src[0].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }

@@ -36,7 +36,7 @@ concerns; [[FileScope.ViewerApiVersion]] versions the contract a loader will neg
 
 #run
 {
-    let cfg = @compiler.getBuildCfg()!
+    let cfg = Swag.compiler().getBuildCfg()!
     cfg.moduleVersion     = #swcversion
     cfg.moduleRevision    = #swcrevision
     cfg.moduleBuildNum    = #swcbuildnum

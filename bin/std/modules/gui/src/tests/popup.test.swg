@@ -30,19 +30,19 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
     combo.addItem("Two", PopupHeadless_Item2)
     combo.addItem("Three")
 
-    @assert(combo.popup == null)
+    Swag.assert(combo.popup == null)
 
     host.click({100, 33})
-    @assert(combo.popup != null)
+    Swag.assert(combo.popup != null)
 
     // Selecting item 1 via the popup routes back to the combobox.
     let popup = combo.popup!
     popup.sigClosed!(popup, 1)
     host.pump()
-    @assert(combo.popup == null)
-    @assert(combo.selectedIndex == 1)
-    @assert(PopupHeadlessChangedCount == 1)
-    @assert(host.lastCommand == PopupHeadless_Item2)
+    Swag.assert(combo.popup == null)
+    Swag.assert(combo.selectedIndex == 1)
+    Swag.assert(PopupHeadlessChangedCount == 1)
+    Swag.assert(host.lastCommand == PopupHeadless_Item2)
 
     host.app.setMouseCaptureRaw(null)
 }
@@ -58,14 +58,14 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
     combo.addItem("Two")
 
     host.click({100, 33})
-    @assert(combo.popup != null)
+    Swag.assert(combo.popup != null)
 
     // The open popup captured the mouse; closing it via its own dismiss path.
     let popup = combo.popup!
     popup.sigClosed!(popup, Swag.U32.Max)
     host.pump()
-    @assert(combo.popup == null)
-    @assert(combo.selectedIndex == Swag.U32.Max)
+    Swag.assert(combo.popup == null)
+    Swag.assert(combo.selectedIndex == Swag.U32.Max)
 
     host.app.setMouseCaptureRaw(null)
 }
@@ -77,21 +77,21 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
     host.setup(240, 200)
     defer host.shutdown()
     let popup = PopupListCtrl.create(&host.root)
-    @assert(popup.itemHeight == 24)
-    @assert(popup.iconSize == 16)
+    Swag.assert(popup.itemHeight == 24)
+    Swag.assert(popup.iconSize == 16)
     popup.addItem("A")
     popup.addSeparator()
     popup.addItem("B")
 
-    @assert(popup.items.count == 3)
-    @assert(!popup.items[0]!.isSeparator)
-    @assert(popup.items[1]!.isSeparator)
-    @assert(popup.selectedIndex == Swag.U32.Max)
+    Swag.assert(popup.items.count == 3)
+    Swag.assert(!popup.items[0]!.isSeparator)
+    Swag.assert(popup.items[1]!.isSeparator)
+    Swag.assert(popup.selectedIndex == Swag.U32.Max)
 
     popup.itemHeight      = 30
     popup.separatorHeight = 8
     popup.show(20, 20, 100)
-    @assert(popup.scrollWnd.scrollSize.y == 68)
+    Swag.assert(popup.scrollWnd.scrollSize.y == 68)
     host.app.setMouseCaptureRaw(null)
 
     popup.destroy()

@@ -118,21 +118,21 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
 
 #test
 {
-    @assert(passString("abi-string") == "abi-string")
-    @assert(passString("abi-string-2") == "abi-string-2")
-    @assert(passStringAt("abi-string", 1) == 98'u8)
-    @assert(passStringAt("abi-string", 2) == 'i'u8)
-    @assert(passStringAt("abi-string", 9) == 'g'u8)
+    Swag.assert(passString("abi-string") == "abi-string")
+    Swag.assert(passString("abi-string-2") == "abi-string-2")
+    Swag.assert(passStringAt("abi-string", 1) == 98'u8)
+    Swag.assert(passStringAt("abi-string", 2) == 'i'u8)
+    Swag.assert(passStringAt("abi-string", 9) == 'g'u8)
 
     let array0 = passArray([11, 22, 33, 44])
     let array1 = passArray([101, 202, 303, 404])
     let array2 = passArray([-1, -2, -3, -4])
-    @assert(array0[0] == 11)
-    @assert(array0[3] == 44)
-    @assert(array1[0] == 101)
-    @assert(array1[3] == 404)
-    @assert(array2[0] == -1)
-    @assert(array2[3] == -4)
+    Swag.assert(array0[0] == 11)
+    Swag.assert(array0[3] == 44)
+    Swag.assert(array1[0] == 101)
+    Swag.assert(array1[3] == 404)
+    Swag.assert(array2[0] == -1)
+    Swag.assert(array2[3] == -4)
 }
 
 #test
@@ -142,17 +142,17 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
     let payload0 = passPayload({a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64})
     let payload1 = passPayload({a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64})
 
-    @assert(pair0.a == 9)
-    @assert(pair0.b == 13)
-    @assert(pair1.a == -9)
-    @assert(pair1.b == -13)
-    @assert(passPairSum({a: 9, b: 13}) == 22)
-    @assert(passPairSum({a: 90, b: 130}) == 220)
-    @assert(passPairSum({a: -90, b: 130}) == 40)
-    @assert(payload0.a0 == 10'u64)
-    @assert(payload0.a3 == 40'u64)
-    @assert(payload1.a0 == 1'u64)
-    @assert(payload1.a3 == 4'u64)
+    Swag.assert(pair0.a == 9)
+    Swag.assert(pair0.b == 13)
+    Swag.assert(pair1.a == -9)
+    Swag.assert(pair1.b == -13)
+    Swag.assert(passPairSum({a: 9, b: 13}) == 22)
+    Swag.assert(passPairSum({a: 90, b: 130}) == 220)
+    Swag.assert(passPairSum({a: -90, b: 130}) == 40)
+    Swag.assert(payload0.a0 == 10'u64)
+    Swag.assert(payload0.a3 == 40'u64)
+    Swag.assert(payload1.a0 == 1'u64)
+    Swag.assert(payload1.a3 == 4'u64)
 }
 
 #test
@@ -160,21 +160,21 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
     let p0 = passPointer(null)
     let p1 = passPointer(cast(*void) 0x1234'u64)
 
-    @assert(p0 == null)
-    @assert(p1 == cast(*void) 0x1234'u64)
-    @assert(passMixed(3, "mix", {a: 10, b: 11}, [8, 9], null) == 131)
-    @assert(passMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void) 0x4567'u64) == 330)
+    Swag.assert(p0 == null)
+    Swag.assert(p1 == cast(*void) 0x1234'u64)
+    Swag.assert(passMixed(3, "mix", {a: 10, b: 11}, [8, 9], null) == 131)
+    Swag.assert(passMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void) 0x4567'u64) == 330)
 
     const p: AbiPair = {a: 6, b: 7}
-    @assert(passConstRef(p) == 13)
-    @assert(passConstRef({a: 8, b: 9}) == 17)
-    @assert(passScalars(-5's8, -123's16, 77's32, 5000's64, 9'u8, 10'u16, 11'u32, 12'u64, 1.25'f32, 2.5'f64, true, 'R') == 5077)
-    @assert(passBoolRunePositions(true, 3, 'Q', 4, true, 'W') == 177)
-    @assert(passBoolRunePositions(false, 30, 'Q', 40, false, 'W') == 238)
-    @assert(passBoolRunePositions(true, -3, 'Q', 7, false, 'W') == 173)
-    @assert(passAliasEnum(1, 2, AbiEnum.A, 3) == 23)
-    @assert(passAliasEnum(10, 20, AbiEnum.B, 30) == 183)
-    @assert(passAliasEnum(-10, 20, AbiEnum.A, -30) == -3)
+    Swag.assert(passConstRef(p) == 13)
+    Swag.assert(passConstRef({a: 8, b: 9}) == 17)
+    Swag.assert(passScalars(-5's8, -123's16, 77's32, 5000's64, 9'u8, 10'u16, 11'u32, 12'u64, 1.25'f32, 2.5'f64, true, 'R') == 5077)
+    Swag.assert(passBoolRunePositions(true, 3, 'Q', 4, true, 'W') == 177)
+    Swag.assert(passBoolRunePositions(false, 30, 'Q', 40, false, 'W') == 238)
+    Swag.assert(passBoolRunePositions(true, -3, 'Q', 7, false, 'W') == 173)
+    Swag.assert(passAliasEnum(1, 2, AbiEnum.A, 3) == 23)
+    Swag.assert(passAliasEnum(10, 20, AbiEnum.B, 30) == 183)
+    Swag.assert(passAliasEnum(-10, 20, AbiEnum.A, -30) == -3)
 }
 
 #test
@@ -183,12 +183,12 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
     const values1: [4] s32 = [101, 202, 303, 404]
     const values2: [4] s32 = [-1, -2, -3, -4]
 
-    @assert(passSlice(values0, 2) == 33)
-    @assert(passSlice(values1, 3) == 404)
-    @assert(passSlice(values2, 0) == -1)
-    @assert(passAggregatePositions(cast(*void) 0x10'u64, [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}) == 115'u64)
-    @assert(passAggregatePositions(null, [50, 60], "Abc", {a: 70, b: 80}, {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}) == 235'u64)
-    @assert(passNested({p: {a: 3, b: 4}, q: {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}}, 5) == 62'u64)
-    @assert(passKindof({a: 1, b: 2}, {a0: 3'u64, a1: 4'u64, a2: 5'u64, a3: 6'u64}, "ok", null, [7, 8], AbiEnum.A))
-    @assert(passNestedArray({p: {a: 10, b: 11}, q: {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}}, [{a: 20, b: 21}, {a: 30, b: 31}]) == 61)
+    Swag.assert(passSlice(values0, 2) == 33)
+    Swag.assert(passSlice(values1, 3) == 404)
+    Swag.assert(passSlice(values2, 0) == -1)
+    Swag.assert(passAggregatePositions(cast(*void) 0x10'u64, [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}) == 115'u64)
+    Swag.assert(passAggregatePositions(null, [50, 60], "Abc", {a: 70, b: 80}, {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}) == 235'u64)
+    Swag.assert(passNested({p: {a: 3, b: 4}, q: {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}}, 5) == 62'u64)
+    Swag.assert(passKindof({a: 1, b: 2}, {a0: 3'u64, a1: 4'u64, a2: 5'u64, a3: 6'u64}, "ok", null, [7, 8], AbiEnum.A))
+    Swag.assert(passNestedArray({p: {a: 10, b: 11}, q: {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}}, [{a: 20, b: 21}, {a: 30, b: 31}]) == 61)
 }

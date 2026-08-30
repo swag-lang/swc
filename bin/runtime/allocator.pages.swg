@@ -126,12 +126,12 @@ var g_AllocatorOsCommitCount:   u64
 var g_AllocatorOsDecommitCount: u64
 var g_AllocatorOsReserveCount:  u64
 
-func atomicGet(addr: *u32)->u32 => @atomcmpxchg(addr, 0, 0)
-func atomicGet(addr: *u64)->u64 => @atomcmpxchg(addr, 0, 0)
+func atomicGet(addr: *u32)->u32 => Swag.atomcmpxchg(addr, 0, 0)
+func atomicGet(addr: *u64)->u64 => Swag.atomcmpxchg(addr, 0, 0)
 
 func atomicAddU64(addr: *u64, delta: u64)
 {
-    discard @atomadd(addr, delta)
+    discard Swag.atomadd(addr, delta)
 }
 
 // Two's complement wrap-around: the counters are unsigned and never underflow in a well-formed
@@ -140,12 +140,12 @@ func atomicAddU64(addr: *u64, delta: u64)
 {
     func atomicSubU64(addr: *u64, delta: u64)
     {
-        discard @atomadd(addr, ~delta + 1)
+        discard Swag.atomadd(addr, ~delta + 1)
     }
 
     func atomicSubU32(addr: *u32, delta: u32)
     {
-        discard @atomadd(addr, ~delta + 1)
+        discard Swag.atomadd(addr, ~delta + 1)
     }
 }
 
@@ -186,7 +186,7 @@ func allocatorOsDecommit(address: u64, size: u64)
 #[Swag.Safety(.Overflow, false)]
 private func allocatorNextKey(seed: u64)->u64
 {
-    var value = seed ^ (@atomadd(&g_AllocatorKeySeed, 0x9E37_79B9_7F4A_7C15'u64) + 0x9E37_79B9_7F4A_7C15'u64)
+    var value = seed ^ (Swag.atomadd(&g_AllocatorKeySeed, 0x9E37_79B9_7F4A_7C15'u64) + 0x9E37_79B9_7F4A_7C15'u64)
     value ^= value >> 30
     value *= 0xBF58_476D_1CE4_E5B9'u64
     value ^= value >> 27
@@ -239,9 +239,9 @@ impl AllocatorPage
     #[Swag.Safety(.Overflow, false)]
     mtd setupBlockDivision(blockSize: u32)
     {
-        let odd = blockSize >> cast(u32) @bitcounttz(blockSize)
+        let odd = blockSize >> cast(u32) Swag.bitCountTz(blockSize)
         .blockSize  = blockSize
-        .blockShift = cast(u32) @bitcounttz(blockSize)
+        .blockShift = cast(u32) Swag.bitCountTz(blockSize)
         .blockLimit = 0xFFFF_FFFF'u32 / odd
 
         var inverse = odd
@@ -282,12 +282,12 @@ impl AllocatorPage
 
     mtd lockRemote()
     {
-        while @atomcmpxchg(&.remoteLock, 0, 1) != 0 {}
+        while Swag.atomcmpxchg(&.remoteLock, 0, 1) != 0 {}
     }
 
     mtd unlockRemote()
     {
-        discard @atomxchg(&.remoteLock, 0)
+        discard Swag.atomxchg(&.remoteLock, 0)
     }
 
     // Moves the blocks other threads freed onto the owner's free list. A page can alternate between
@@ -311,7 +311,7 @@ impl AllocatorPage
         {
             let block = .decode(list)
             if !.isBlockAddress(block) do
-                @panic("allocator free list is corrupted", #curlocation)
+                Swag.panic("allocator free list is corrupted", #curlocation)
 
             let next = (cast(*u64) block)[]
             (cast(*u64) block)[] = .freeList
@@ -320,7 +320,7 @@ impl AllocatorPage
             taken                += 1
         }
 
-        @assert(.used >= taken)
+        Swag.assert(.used >= taken)
         .used -= taken
         atomicSubU32(&.remoteCount, taken)
     }
@@ -330,7 +330,7 @@ impl AllocatorPage
     mtd pushRemote(address: u64)
     {
         let encoded = .encode(address)
-        discard @atomadd(&.remoteCount, 1)
+        discard Swag.atomadd(&.remoteCount, 1)
 
         .lockRemote()
         (cast(*u64) address)[] = .remoteFree
@@ -348,7 +348,7 @@ impl AllocatorPage
         {
             let block = .decode(head)
             if !.isBlockAddress(block) do
-                @panic("allocator free list is corrupted", #curlocation)
+                Swag.panic("allocator free list is corrupted", #curlocation)
             .freeList = (cast(*u64) block)[]
             .used     += 1
             return block
@@ -403,7 +403,7 @@ impl AllocatorPage
     {
         (cast(*u64) address)[] = .freeList
         .freeList              = .encode(address)
-        @assert(.used > 0)
+        Swag.assert(.used > 0)
         .used -= 1
     }
 }
@@ -418,7 +418,7 @@ impl AllocatorSegment
     {
         let base  = .segmentBase()
         let start = base + cast(u64) (index << .unitShift) * AllocatorPageSize
-        return @max(start, base + AllocatorSegmentHeaderBytes)
+        return Swag.max(start, base + AllocatorSegmentHeaderBytes)
     }
 
     mtd pageCommitEnd(index: u32)->u64
@@ -438,9 +438,9 @@ impl AllocatorSegment
             if free == 0 do
                 return null
 
-            let index = cast(u32) @bitcounttz(free)
+            let index = cast(u32) Swag.bitCountTz(free)
             let bit   = 1'u64 << index
-            let seen  = @atomcmpxchg(&.pageMask, mask, mask | bit)
+            let seen  = Swag.atomcmpxchg(&.pageMask, mask, mask | bit)
             if seen != mask
             {
                 mask = seen
@@ -465,7 +465,7 @@ impl AllocatorSegment
     // idle class drops back to the segment header alone.
     mtd releasePage(page: *AllocatorPage)
     {
-        @assert(page.used == 0)
+        Swag.assert(page.used == 0)
         let index = page.unitIndex >> .unitShift
         allocatorOsDecommit(.pageCommitStart(index), .pageCommitEnd(index) - .pageCommitStart(index))
 
@@ -482,7 +482,7 @@ impl AllocatorSegment
         var mask = .pageMask
         while true
         {
-            let seen = @atomcmpxchg(&.pageMask, mask, mask & ~bit)
+            let seen = Swag.atomcmpxchg(&.pageMask, mask, mask & ~bit)
             if seen == mask do
                 return
             mask = seen
@@ -514,7 +514,7 @@ private func allocatorAddArena()->bool
 
     // Publish the arena only once its bounds are readable, so a concurrent lookup never sees a
     // half-built entry.
-    discard @atomadd(&g_AllocatorArenaCount, 1)
+    discard Swag.atomadd(&g_AllocatorArenaCount, 1)
     return true
 }
 
@@ -548,7 +548,7 @@ private func allocatorCreateSegment(unitShift: u32)->#null *AllocatorSegment
         return null
 
     let segment = cast(*AllocatorSegment) base
-    @memset(cast(*void) base, 0, AllocatorSegmentHeaderBytes)
+    Swag.memset(cast(*void) base, 0, AllocatorSegmentHeaderBytes)
     segment.unitShift  = unitShift
     segment.pageCount  = AllocatorUnitsPerSegment >> unitShift
     segment.usableMask = segment.pageCount >= 64 ? ~0'u64 : (1'u64 << segment.pageCount) - 1
@@ -597,7 +597,7 @@ func allocatorAcquireSegment(owner: *void, unitShift: u32)->#null *AllocatorSegm
 // reserved for the process lifetime, which is what keeps an address-to-page lookup always safe.
 func allocatorReleaseSegment(segment: *AllocatorSegment)
 {
-    @assert(segment.isEmpty())
+    Swag.assert(segment.isEmpty())
 
     g_AllocatorArenaMutex.lock()
     defer g_AllocatorArenaMutex.unlock()

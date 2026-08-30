@@ -25,19 +25,19 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
     let radio = RadioButton.create(&host.root, "A", {20, 20, 120, 30}, RadioButtonHeadless_Command)
     radio.sigChanged += &radioButtonHeadlessChanged
 
-    @assert(!radio.isChecked())
+    Swag.assert(!radio.isChecked())
 
     host.click({40, 35})
-    @assert(radio.isChecked())
-    @assert(RadioButtonHeadlessChangedCount == 1)
-    @assert(host.commandCount == 1)
-    @assert(host.lastCommand == RadioButtonHeadless_Command)
+    Swag.assert(radio.isChecked())
+    Swag.assert(RadioButtonHeadlessChangedCount == 1)
+    Swag.assert(host.commandCount == 1)
+    Swag.assert(host.lastCommand == RadioButtonHeadless_Command)
 
     // Already checked: no new signal/command.
     host.click({40, 35})
-    @assert(radio.isChecked())
-    @assert(RadioButtonHeadlessChangedCount == 1)
-    @assert(host.commandCount == 1)
+    Swag.assert(radio.isChecked())
+    Swag.assert(RadioButtonHeadlessChangedCount == 1)
+    Swag.assert(host.commandCount == 1)
 }
 
 // setChecked changes state silently (no signal/command).
@@ -53,11 +53,11 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
     radio.sigChanged += &radioButtonHeadlessChanged
 
     radio.setChecked(true)
-    @assert(radio.isChecked())
+    Swag.assert(radio.isChecked())
     radio.setChecked(false)
-    @assert(!radio.isChecked())
-    @assert(RadioButtonHeadlessChangedCount == 0)
-    @assert(host.commandCount == 0)
+    Swag.assert(!radio.isChecked())
+    Swag.assert(RadioButtonHeadlessChangedCount == 0)
+    Swag.assert(host.commandCount == 0)
 }
 
 // Two radios are independent windows; without a group id the framework leaves grouping to the
@@ -72,16 +72,16 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
     let a = RadioButton.create(&host.root, "A", {20, 20, 120, 30})
     let b = RadioButton.create(&host.root, "B", {20, 60, 120, 30})
 
-    @assert(host.wndAt({40, 35}) == a)
-    @assert(host.wndAt({40, 75}) == b)
+    Swag.assert(host.wndAt({40, 35}) == a)
+    Swag.assert(host.wndAt({40, 75}) == b)
 
     host.click({40, 35})
-    @assert(a.isChecked())
-    @assert(!b.isChecked())
+    Swag.assert(a.isChecked())
+    Swag.assert(!b.isChecked())
 
     // Ungrouped: both can be checked at once (grouping stays opt-in).
     b.setChecked(true)
-    @assert(a.isChecked() and b.isChecked())
+    Swag.assert(a.isChecked() and b.isChecked())
 }
 
 // Radios sharing a group id auto-uncheck each other, on both setChecked and a real click; a second
@@ -97,11 +97,11 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
     a.groupId, b.groupId, c.groupId = "density"
 
     a.setChecked(true)
-    @assert(a.isChecked() and !b.isChecked() and !c.isChecked())
+    Swag.assert(a.isChecked() and !b.isChecked() and !c.isChecked())
 
     // Clicking b checks it and unchecks a automatically.
     host.click({40, 75})
-    @assert(!a.isChecked() and b.isChecked() and !c.isChecked())
+    Swag.assert(!a.isChecked() and b.isChecked() and !c.isChecked())
 
     // A separate group under the same parent is not disturbed.
     let d = RadioButton.create(&host.root, "D", {20, 140, 160, 30})
@@ -109,7 +109,7 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
     d.groupId, e.groupId = "align"
 
     d.setChecked(true)
-    @assert(d.isChecked() and b.isChecked())
+    Swag.assert(d.isChecked() and b.isChecked())
     e.setChecked(true)
-    @assert(!d.isChecked() and e.isChecked() and b.isChecked())
+    Swag.assert(!d.isChecked() and e.isChecked() and b.isChecked())
 }

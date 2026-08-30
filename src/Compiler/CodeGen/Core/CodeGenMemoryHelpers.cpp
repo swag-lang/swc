@@ -526,7 +526,7 @@ namespace
 
     // Where the answer comes from once a block reported a difference. It walks from the start of
     // the two ranges to the first byte that differs, which is guaranteed to exist, and reads both
-    // bytes unsigned: '@memcmp' orders byte sequences lexicographically, so a byte of 0xFF is
+    // bytes unsigned: 'Swag.memcmp' orders byte sequences lexicographically, so a byte of 0xFF is
     // above a byte of 0x01 rather than below it. Reaching it costs a walk over the equal prefix,
     // which only a comparison that already answered "different" ever pays.
     void emitMemCompareFirstDifference(CodeGen& codeGen, MicroReg outResultReg, MicroReg leftAddressReg, MicroReg rightAddressReg)

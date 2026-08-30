@@ -58,7 +58,7 @@ func PtrMatch4(values: s32...)->s32
 }
 func PtrMatch5(values: ...)->s32
 {
-    return cast(s32) @countof(values)
+    return cast(s32) values.count
 }
 
 func semaTest001()

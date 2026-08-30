@@ -10,60 +10,60 @@ using Swag, Core
     var colors: ThemeColors
     colors.setSwagDark()
 
-    @assert(colors.bk == 0xFF0B0B0D)
-    @assert(colors.text == 0xFFE9E9ED)
-    @assert(colors.hilight == 0xFFF7F900)
-    @assert(colors.hilightLightContrast == 0xFF0B0B0D)
-    @assert(colors.activeRail == 0xFFF7F900)
-    @assert(colors.btnPush_StrongBk == 0xFFF7F900)
-    @assert(colors.btnPush_StrongText == 0xFF0B0B0D)
-    @assert(colors.btnIcon_CheckedBk == 0x00000000)
-    @assert(colors.btnIcon_CheckedIcon == 0xFFF7F900)
-    @assert(colors.view_Bk == 0xFF15151A)
-    @assert(colors.wnd_Bk == 0xFF202026)
-    @assert(colors.informationBar_Bk == 0xFF1A1A20)
-    @assert(colors.commandBar_Bk == 0xFF25252D)
-    @assert(colors.toolBar_Bk == 0xFF2A2A32)
-    @assert(colors.dlg_InformationIcon == 0xFFB6D2F2)
-    @assert(colors.wnd_CaptionBk == 0xFF2A2A32)
-    @assert(colors.wnd_CaptionBkLead == 0xFF46462B)
-    @assert(colors.wnd_CaptionBkTrail == 0xFF212127)
-    @assert(colors.wnd_Border == 0xFF4A4A57)
-    @assert(colors.btnPush_Bk == 0xFF2A2A32)
-    @assert(colors.edit_Border == 0xFF575763)
-    @assert(colors.frameWnd_Border == 0xFF3D3D48)
-    @assert(colors.popupItem_Marker == 0xFFF7F900)
-    @assert(colors.popupItem_SubmenuMarker == 0xFF91919D)
-    @assert(colors.splitView_Bar == colors.toolBar_Bk)
+    Swag.assert(colors.bk == 0xFF0B0B0D)
+    Swag.assert(colors.text == 0xFFE9E9ED)
+    Swag.assert(colors.hilight == 0xFFF7F900)
+    Swag.assert(colors.hilightLightContrast == 0xFF0B0B0D)
+    Swag.assert(colors.activeRail == 0xFFF7F900)
+    Swag.assert(colors.btnPush_StrongBk == 0xFFF7F900)
+    Swag.assert(colors.btnPush_StrongText == 0xFF0B0B0D)
+    Swag.assert(colors.btnIcon_CheckedBk == 0x00000000)
+    Swag.assert(colors.btnIcon_CheckedIcon == 0xFFF7F900)
+    Swag.assert(colors.view_Bk == 0xFF15151A)
+    Swag.assert(colors.wnd_Bk == 0xFF202026)
+    Swag.assert(colors.informationBar_Bk == 0xFF1A1A20)
+    Swag.assert(colors.commandBar_Bk == 0xFF25252D)
+    Swag.assert(colors.toolBar_Bk == 0xFF2A2A32)
+    Swag.assert(colors.dlg_InformationIcon == 0xFFB6D2F2)
+    Swag.assert(colors.wnd_CaptionBk == 0xFF2A2A32)
+    Swag.assert(colors.wnd_CaptionBkLead == 0xFF46462B)
+    Swag.assert(colors.wnd_CaptionBkTrail == 0xFF212127)
+    Swag.assert(colors.wnd_Border == 0xFF4A4A57)
+    Swag.assert(colors.btnPush_Bk == 0xFF2A2A32)
+    Swag.assert(colors.edit_Border == 0xFF575763)
+    Swag.assert(colors.frameWnd_Border == 0xFF3D3D48)
+    Swag.assert(colors.popupItem_Marker == 0xFFF7F900)
+    Swag.assert(colors.popupItem_SubmenuMarker == 0xFF91919D)
+    Swag.assert(colors.splitView_Bar == colors.toolBar_Bk)
 
     // The second tone is a block on ink exactly as the signature is, so nothing about it is
     // deepened here, and it fills the alternate action untouched.
-    @assert(colors.btnPush_AlternateBk == 0xFF38BDF8)
-    @assert(colors.btnPush_AlternateText == 0xFF0B0B0D)
-    @assert(colors.url_Text == 0xFF38BDF8)
-    @assert(colors.searchMatch_Bk == 0x3C38BDF8)
-    @assert(colors.searchMatch_Border.toHsl().s > 0.5)
-    @assert(colors.searchMatch_Glow == 0x7038BDF8)
+    Swag.assert(colors.btnPush_AlternateBk == 0xFF38BDF8)
+    Swag.assert(colors.btnPush_AlternateText == 0xFF0B0B0D)
+    Swag.assert(colors.url_Text == 0xFF38BDF8)
+    Swag.assert(colors.searchMatch_Bk == 0x3C38BDF8)
+    Swag.assert(colors.searchMatch_Border.toHsl().s > 0.5)
+    Swag.assert(colors.searchMatch_Glow == 0x7038BDF8)
 
     // A row, an entry and a tab carry that tone rather than a grey, which is where a theme
     // spends most of its color and where a signature never can.
-    @assert(colors.menuBar_SelectedBk == 0xFF2A4658)
-    @assert(colors.popupItem_HotBk == 0xFF2A4658)
-    @assert(colors.listItem_FocusSelectedBk == 0xFF35617C)
+    Swag.assert(colors.menuBar_SelectedBk == 0xFF2A4658)
+    Swag.assert(colors.popupItem_HotBk == 0xFF2A4658)
+    Swag.assert(colors.listItem_FocusSelectedBk == 0xFF35617C)
 
     // A filled action answers the pointer in its own color, so its three states differ.
     // Given one accent for all of them it reported nothing at the moment of the press.
-    @assert(colors.btnPushDefault_Bk != colors.btnPushDefault_HotBk)
-    @assert(colors.btnPushDefault_Bk != colors.btnPushDefault_PressedBk)
-    @assert(colors.btnPushDefault_HotBk != colors.btnPushDefault_PressedBk)
-    @assert(colors.btnPush_StrongBk != colors.btnPush_StrongHotBk)
-    @assert(colors.btnPush_StrongBk != colors.btnPush_StrongPressedBk)
-    @assert(colors.btnPush_AlternateBk != colors.btnPush_AlternateHotBk)
-    @assert(colors.btnPush_AlternateBk != colors.btnPush_AlternatePressedBk)
+    Swag.assert(colors.btnPushDefault_Bk != colors.btnPushDefault_HotBk)
+    Swag.assert(colors.btnPushDefault_Bk != colors.btnPushDefault_PressedBk)
+    Swag.assert(colors.btnPushDefault_HotBk != colors.btnPushDefault_PressedBk)
+    Swag.assert(colors.btnPush_StrongBk != colors.btnPush_StrongHotBk)
+    Swag.assert(colors.btnPush_StrongBk != colors.btnPush_StrongPressedBk)
+    Swag.assert(colors.btnPush_AlternateBk != colors.btnPush_AlternateHotBk)
+    Swag.assert(colors.btnPush_AlternateBk != colors.btnPush_AlternatePressedBk)
 
     // And the two filled forms never collapse onto each other: a surface showing both has to
     // say which one is the action it is for.
-    @assert(colors.btnPush_StrongBk != colors.btnPush_AlternateBk)
+    Swag.assert(colors.btnPush_StrongBk != colors.btnPush_AlternateBk)
 }
 
 // Every mark of every shipped palette reads on the hardest ground that palette paints.
@@ -76,25 +76,25 @@ using Swag, Core
 
         for ground in [palette.ground, palette.view, palette.panel, palette.informationBar, palette.commandBar, palette.toolBar, palette.raised]
         {
-            @assert(colors.hilight.contrastRatio(ground) >= 3.5)
-            @assert(colors.error.contrastRatio(ground) >= 3.5)
-            @assert(colors.searchMatch_Border.contrastRatio(ground) >= 3.5)
+            Swag.assert(colors.hilight.contrastRatio(ground) >= 3.5)
+            Swag.assert(colors.error.contrastRatio(ground) >= 3.5)
+            Swag.assert(colors.searchMatch_Border.contrastRatio(ground) >= 3.5)
         }
 
         // A popup is raised over the structural panel ground. Its outline is the only persistent
         // edge once the shadow falls over dark content, so both popup families use stronger ink
         // than an internal divider.
-        @assert(colors.menuPopup_Border == Color.lerpRgb(palette.faintText, palette.line, 0.15))
-        @assert(colors.menuPopup_Border.contrastRatio(palette.panel) >= 2.5)
-        @assert(colors.frameWnd_PopupBorder.contrastRatio(palette.panel) >= 2.5)
+        Swag.assert(colors.menuPopup_Border == Color.lerpRgb(palette.faintText, palette.line, 0.15))
+        Swag.assert(colors.menuPopup_Border.contrastRatio(palette.panel) >= 2.5)
+        Swag.assert(colors.frameWnd_PopupBorder.contrastRatio(palette.panel) >= 2.5)
 
         // Selection markers spend the signature because they report the chosen value. A submenu
         // chevron only reports continuation, so it stays below the wording in the ink hierarchy.
-        @assert(colors.popupItem_Marker == colors.hilight)
-        @assert(colors.popupItem_Marker.contrastRatio(palette.panel) >= 3.5)
-        @assert(colors.popupItem_SubmenuMarker == palette.faintText)
-        @assert(colors.popupItem_SubmenuMarker != colors.popupItem_Marker)
-        @assert(colors.splitView_Bar == colors.toolBar_Bk)
+        Swag.assert(colors.popupItem_Marker == colors.hilight)
+        Swag.assert(colors.popupItem_Marker.contrastRatio(palette.panel) >= 3.5)
+        Swag.assert(colors.popupItem_SubmenuMarker == palette.faintText)
+        Swag.assert(colors.popupItem_SubmenuMarker != colors.popupItem_Marker)
+        Swag.assert(colors.splitView_Bar == colors.toolBar_Bk)
     }
 }
 
@@ -109,7 +109,7 @@ using Swag, Core
         for value, idx in grounds
         {
             for other, otherIdx in grounds where otherIdx > idx do
-                @assert(value != other)
+                Swag.assert(value != other)
         }
     }
 }
@@ -122,9 +122,9 @@ using Swag, Core
 {
     var swag: ThemeColors
     swag.setSwagDark()
-    @assert(swag.wnd_CaptionBkLead != swag.wnd_CaptionBk)
-    @assert(swag.wnd_CaptionBkTrail != swag.wnd_CaptionBk)
-    @assert(swag.wnd_CaptionBkLead != swag.wnd_CaptionBkTrail)
+    Swag.assert(swag.wnd_CaptionBkLead != swag.wnd_CaptionBk)
+    Swag.assert(swag.wnd_CaptionBkTrail != swag.wnd_CaptionBk)
+    Swag.assert(swag.wnd_CaptionBkLead != swag.wnd_CaptionBkTrail)
 
     // A theme that asks for no glow keeps a flat band. The painter compares the two ends against
     // the band to skip the gradient entirely, so a ramp of nothing here would cost every neutral
@@ -133,8 +133,8 @@ using Swag, Core
     {
         var colors: ThemeColors
         colors.apply(palette)
-        @assert(colors.wnd_CaptionBkLead == colors.wnd_CaptionBk)
-        @assert(colors.wnd_CaptionBkTrail == colors.wnd_CaptionBk)
+        Swag.assert(colors.wnd_CaptionBkLead == colors.wnd_CaptionBk)
+        Swag.assert(colors.wnd_CaptionBkTrail == colors.wnd_CaptionBk)
     }
 
     // Flat does not mean merged. Without the accent rule applications used to draw below the
@@ -142,17 +142,17 @@ using Swag, Core
     // the raised body of a dialog.
     var dark: ThemeColors
     dark.setDark()
-    @assert(dark.wnd_CaptionBk == 0xFF242424)
-    @assert(dark.wnd_CaptionBkNotActived == 0xFF2C2C2C)
-    @assert(dark.wnd_CaptionBk != dark.view_Bk)
-    @assert(dark.wnd_CaptionBk != dark.dlg_Bk)
+    Swag.assert(dark.wnd_CaptionBk == 0xFF242424)
+    Swag.assert(dark.wnd_CaptionBkNotActived == 0xFF2C2C2C)
+    Swag.assert(dark.wnd_CaptionBk != dark.view_Bk)
+    Swag.assert(dark.wnd_CaptionBk != dark.dlg_Bk)
 
     var light: ThemeColors
     light.setLight()
-    @assert(light.wnd_CaptionBk == 0xFFFAFAFA)
-    @assert(light.wnd_CaptionBkNotActived == 0xFFF4F4F4)
-    @assert(light.wnd_CaptionBk != light.view_Bk)
-    @assert(light.wnd_CaptionBk != light.dlg_Bk)
+    Swag.assert(light.wnd_CaptionBk == 0xFFFAFAFA)
+    Swag.assert(light.wnd_CaptionBkNotActived == 0xFFF4F4F4)
+    Swag.assert(light.wnd_CaptionBk != light.view_Bk)
+    Swag.assert(light.wnd_CaptionBk != light.dlg_Bk)
 }
 
 // A caption shows the product mark, and which cut of it depends on the band underneath. The
@@ -165,10 +165,10 @@ using Swag, Core
     dark.setSwagDark()
     light.setLight()
 
-    @assert(markReadsOn(dark.wnd_CaptionBk))
-    @assert(!markReadsOn(light.wnd_CaptionBk))
+    Swag.assert(markReadsOn(dark.wnd_CaptionBk))
+    Swag.assert(!markReadsOn(light.wnd_CaptionBk))
 
-    @assert(markReadsOn(dark.wnd_CaptionBkLead))
+    Swag.assert(markReadsOn(dark.wnd_CaptionBkLead))
 }
 
 // A surface outline is one stroke crossing two grounds: the caption ground down to the caption
@@ -181,7 +181,7 @@ using Swag, Core
     {
         var colors: ThemeColors
         colors.apply(palette)
-        @assert(colors.wnd_Border.a == 255)
+        Swag.assert(colors.wnd_Border.a == 255)
     }
 }
 
@@ -191,36 +191,36 @@ using Swag, Core
 #test
 {
     var theme: Theme
-    @assert(theme.metrics.surfaceWnd_CornerRadius == 18)
-    @assert(theme.metrics.panel_GutterSize == 4)
-    @assert(theme.metrics.splitView_BarSize == theme.metrics.panel_GutterSize)
-    @assert(themeActionIconSize(&theme.metrics) == 20)
-    @assert(themeRowIconSize(&theme.metrics) == 16)
-    @assert(themeActionButtonSize(&theme.metrics) == 36)
-    @assert(themeCompactButtonSize(&theme.metrics) == 32)
-    @assert(themeDropDownButtonWidth(&theme.metrics) == 52)
-    @assert(theme.rects.panel_Bk.radius == 7)
-    @assert(theme.rects.btnIcon_SquareBk.radius == 4)
+    Swag.assert(theme.metrics.surfaceWnd_CornerRadius == 18)
+    Swag.assert(theme.metrics.panel_GutterSize == 4)
+    Swag.assert(theme.metrics.splitView_BarSize == theme.metrics.panel_GutterSize)
+    Swag.assert(themeActionIconSize(&theme.metrics) == 20)
+    Swag.assert(themeRowIconSize(&theme.metrics) == 16)
+    Swag.assert(themeActionButtonSize(&theme.metrics) == 36)
+    Swag.assert(themeCompactButtonSize(&theme.metrics) == 32)
+    Swag.assert(themeDropDownButtonWidth(&theme.metrics) == 52)
+    Swag.assert(theme.rects.panel_Bk.radius == 7)
+    Swag.assert(theme.rects.btnIcon_SquareBk.radius == 4)
 
     theme.setSwagDark()
-    @assert(theme.colors.activeRail == 0xFFF7F900)
-    @assert(theme.metrics.surfaceWnd_CornerRadius == 12)
-    @assert(theme.rects.btnPush_Normal.rect == theme.rects.edit_SquareBk.rect)
-    @assert(theme.rects.panel_Bk.rect == theme.rects.edit_SquareBk.rect)
-    @assert(theme.rects.btnIcon_SquareBk.rect == theme.rects.btnIcon_RoundSquareBk.rect)
-    @assert(theme.rects.btnIcon_CheckedSquare.rect == theme.rects.btnIcon_CheckedRoundSquare.rect)
-    @assert(theme.rects.btnIcon_SquareBk.radius == 4)
+    Swag.assert(theme.colors.activeRail == 0xFFF7F900)
+    Swag.assert(theme.metrics.surfaceWnd_CornerRadius == 12)
+    Swag.assert(theme.rects.btnPush_Normal.rect == theme.rects.edit_SquareBk.rect)
+    Swag.assert(theme.rects.panel_Bk.rect == theme.rects.edit_SquareBk.rect)
+    Swag.assert(theme.rects.btnIcon_SquareBk.rect == theme.rects.btnIcon_RoundSquareBk.rect)
+    Swag.assert(theme.rects.btnIcon_CheckedSquare.rect == theme.rects.btnIcon_CheckedRoundSquare.rect)
+    Swag.assert(theme.rects.btnIcon_SquareBk.radius == 4)
 
     theme.setDark()
-    @assert(theme.colors.activeRail.a == 0)
-    @assert(theme.metrics.surfaceWnd_CornerRadius == 18)
-    @assert(theme.rects.btnPush_Normal.rect != theme.rects.edit_SquareBk.rect)
-    @assert(theme.rects.panel_Bk.radius == 7)
-    @assert(theme.rects.btnIcon_SquareBk.rect == theme.rects.btnIcon_RoundSquareBk.rect)
-    @assert(theme.rects.btnIcon_CheckedSquare.rect == theme.rects.btnIcon_CheckedRoundSquare.rect)
-    @assert(theme.rects.btnIcon_SquareBk.radius == 4)
+    Swag.assert(theme.colors.activeRail.a == 0)
+    Swag.assert(theme.metrics.surfaceWnd_CornerRadius == 18)
+    Swag.assert(theme.rects.btnPush_Normal.rect != theme.rects.edit_SquareBk.rect)
+    Swag.assert(theme.rects.panel_Bk.radius == 7)
+    Swag.assert(theme.rects.btnIcon_SquareBk.rect == theme.rects.btnIcon_RoundSquareBk.rect)
+    Swag.assert(theme.rects.btnIcon_CheckedSquare.rect == theme.rects.btnIcon_CheckedRoundSquare.rect)
+    Swag.assert(theme.rects.btnIcon_SquareBk.radius == 4)
 
     theme.setSwagDark()
     theme.setLight()
-    @assert(theme.metrics.surfaceWnd_CornerRadius == 18)
+    Swag.assert(theme.metrics.surfaceWnd_CornerRadius == 18)
 }

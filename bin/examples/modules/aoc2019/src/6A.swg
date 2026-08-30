@@ -78,5 +78,5 @@ func day6A()
         total += count(&map, v)
 
     // Console.print("total: ", total)
-    @assert(total == 253104)
+    Swag.assert(total == 253104)
 }

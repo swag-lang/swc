@@ -314,7 +314,7 @@ private impl Application
             return
 
         // Detect changes
-        for i in @countof(.mouse.previousState.pressed)
+        for i in (.mouse.previousState.pressed).count
         {
             let lastP = .mouse.previousState.pressed[i]
             let curP  = .mouse.currentState.pressed[i]
@@ -388,7 +388,7 @@ private impl Application
         let modifiers = .keyboard.pressedModifiers()
 
         // Detect changes
-        for i in @countof(.keyboard.previousState.pressed)
+        for i in (.keyboard.previousState.pressed).count
         {
             let lastP = .keyboard.previousState.pressed[i]
             let curP  = .keyboard.currentState.pressed[i]
@@ -817,7 +817,7 @@ impl Application
                 .appIconTileList.release(.renderer)
         }
 
-        if @isset(.theme) do
+        if Swag.isSet(.theme) do
             .theme.freeDefault()
     }
 
@@ -942,9 +942,9 @@ impl Application
         if !.mainSurface
         {
             .refreshSystemMotionPreference()
-            if !@isset(.renderer) do
+            if !Swag.isSet(.renderer) do
                 .setRenderer(&.rendererOgl)
-            if !@isset(.theme) do
+            if !Swag.isSet(.theme) do
                 .theme = Memory.new'Theme()
             .style.set(.theme)
             registerDefaultThemeResources(&.resources)
@@ -1064,7 +1064,7 @@ impl Application
     // makes a sheet a delta over whatever palette is already applied.
     mtd loadTheme(name: string) fail
     {
-        Debug.assert(@isset(.theme), "the theme exists once the first surface is created")
+        Debug.assert(Swag.isSet(.theme), "the theme exists once the first surface is created")
 
         var resName: String = "themes/"
         resName += name

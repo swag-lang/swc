@@ -257,17 +257,17 @@ const RuntimePaletteColors: [2] RuntimePaletteColor = [RuntimePaletteSource.Gray
 
 func assertRuntimeLiteralSet(value: RuntimeLiteralSetTarget, expectedSeconds: f32)
 {
-    @assert(value.timeInSeconds == expectedSeconds)
-    @assert(value.calls == 1)
-    @assert(value.sentinel == 1234)
+    Swag.assert(value.timeInSeconds == expectedSeconds)
+    Swag.assert(value.calls == 1)
+    Swag.assert(value.sentinel == 1234)
 }
 
 func assertRuntimeLiteralOverloadSet(value: RuntimeLiteralOverloadTarget, expectedSeconds: f32, expectedTag: s32)
 {
-    @assert(value.timeInSeconds == expectedSeconds)
-    @assert(value.tag == expectedTag)
-    @assert(value.calls == 1)
-    @assert(value.sentinel == 5678)
+    Swag.assert(value.timeInSeconds == expectedSeconds)
+    Swag.assert(value.tag == expectedTag)
+    Swag.assert(value.calls == 1)
+    Swag.assert(value.sentinel == 5678)
 }
 
 #test
@@ -276,10 +276,10 @@ func assertRuntimeLiteralOverloadSet(value: RuntimeLiteralOverloadTarget, expect
     target = 42's32
 
     #assert(#typeof(target) == RuntimeSetTarget)
-    @assert(target.value == 42)
-    @assert(target.tag == 10)
-    @assert(target.calls == 1)
-    @assert(target.sentinel == 1234)
+    Swag.assert(target.value == 42)
+    Swag.assert(target.tag == 10)
+    Swag.assert(target.calls == 1)
+    Swag.assert(target.sentinel == 1234)
 }
 
 #test
@@ -287,10 +287,10 @@ func assertRuntimeLiteralOverloadSet(value: RuntimeLiteralOverloadTarget, expect
     var target = RuntimeSetTarget{}
     target = 3.5'f32
 
-    @assert(target.value == 6)
-    @assert(target.tag == 20)
-    @assert(target.calls == 1)
-    @assert(target.sentinel == 1234)
+    Swag.assert(target.value == 6)
+    Swag.assert(target.tag == 20)
+    Swag.assert(target.calls == 1)
+    Swag.assert(target.sentinel == 1234)
 }
 
 #test
@@ -299,30 +299,30 @@ func assertRuntimeLiteralOverloadSet(value: RuntimeLiteralOverloadTarget, expect
     var target = RuntimeSetTarget{}
     target = source
 
-    @assert(target.value == 42)
-    @assert(target.tag == 30)
-    @assert(target.calls == 1)
-    @assert(target.sentinel == 1234)
+    Swag.assert(target.value == 42)
+    Swag.assert(target.tag == 30)
+    Swag.assert(target.calls == 1)
+    Swag.assert(target.sentinel == 1234)
 }
 
 #test
 {
     let target: RuntimeSetTarget = 42's32
 
-    @assert(target.value == 42)
-    @assert(target.tag == 10)
-    @assert(target.calls == 1)
-    @assert(target.sentinel == 1234)
+    Swag.assert(target.value == 42)
+    Swag.assert(target.tag == 10)
+    Swag.assert(target.calls == 1)
+    Swag.assert(target.sentinel == 1234)
 }
 
 #test
 {
     let target: RuntimeSetTarget = 3.5'f32
 
-    @assert(target.value == 6)
-    @assert(target.tag == 20)
-    @assert(target.calls == 1)
-    @assert(target.sentinel == 1234)
+    Swag.assert(target.value == 6)
+    Swag.assert(target.tag == 20)
+    Swag.assert(target.calls == 1)
+    Swag.assert(target.sentinel == 1234)
 }
 
 #test
@@ -330,10 +330,10 @@ func assertRuntimeLiteralOverloadSet(value: RuntimeLiteralOverloadTarget, expect
     var holder = RuntimeSetHolder{}
     holder.target = 77's32
 
-    @assert(holder.target.value == 77)
-    @assert(holder.target.tag == 10)
-    @assert(holder.target.calls == 1)
-    @assert(holder.target.sentinel == 1234)
+    Swag.assert(holder.target.value == 77)
+    Swag.assert(holder.target.tag == 10)
+    Swag.assert(holder.target.calls == 1)
+    Swag.assert(holder.target.sentinel == 1234)
 }
 
 #test
@@ -342,35 +342,35 @@ func assertRuntimeLiteralOverloadSet(value: RuntimeLiteralOverloadTarget, expect
     let ptr    = &target
     ptr[] = 12's32
 
-    @assert(target.value == 12)
-    @assert(target.tag == 10)
-    @assert(target.calls == 1)
-    @assert(target.sentinel == 1234)
+    Swag.assert(target.value == 12)
+    Swag.assert(target.tag == 10)
+    Swag.assert(target.calls == 1)
+    Swag.assert(target.sentinel == 1234)
 }
 
 #test
 {
     let target: RuntimeParamSetTarget = 2'u64
 
-    @assert(target.value == 2)
-    @assert(target.tag == 30)
-    @assert(target.sentinel == 2)
+    Swag.assert(target.value == 2)
+    Swag.assert(target.tag == 30)
+    Swag.assert(target.sentinel == 2)
 }
 
 #test
 {
     func takesExplicit(value: RuntimeParamSetTarget)
     {
-        @assert(value.value == 5)
-        @assert(value.tag == 10)
-        @assert(value.sentinel == 777)
+        Swag.assert(value.value == 5)
+        Swag.assert(value.tag == 10)
+        Swag.assert(value.sentinel == 777)
     }
 
     func takesImplicit(value: RuntimeParamSetTarget)
     {
-        @assert(value.value == 7)
-        @assert(value.tag == 20)
-        @assert(value.sentinel == 777)
+        Swag.assert(value.value == 7)
+        Swag.assert(value.tag == 20)
+        Swag.assert(value.sentinel == 777)
     }
 
     takesExplicit(cast(RuntimeParamSetTarget) 5's32)
@@ -381,15 +381,15 @@ func assertRuntimeLiteralOverloadSet(value: RuntimeLiteralOverloadTarget, expect
 {
     let initialized: RuntimeEnumSetTarget = RuntimeEnumSetSource.Red
 
-    @assert(initialized.raw == 0x11223344)
-    @assert(initialized.tag == 20)
-    @assert(initialized.sentinel == 4321)
+    Swag.assert(initialized.raw == 0x11223344)
+    Swag.assert(initialized.tag == 20)
+    Swag.assert(initialized.sentinel == 4321)
 
     func takesImplicit(value: RuntimeEnumSetTarget)
     {
-        @assert(value.raw == 0x55667788)
-        @assert(value.tag == 20)
-        @assert(value.sentinel == 4321)
+        Swag.assert(value.raw == 0x55667788)
+        Swag.assert(value.tag == 20)
+        Swag.assert(value.sentinel == 4321)
     }
 
     takesImplicit(RuntimeEnumSetSource.Green)
@@ -474,18 +474,18 @@ func assertRuntimeLiteralOverloadSet(value: RuntimeLiteralOverloadTarget, expect
 
 #test
 {
-    @assert(RuntimeConstSetOne.x == 1.0)
-    @assert(RuntimeConstSetOne.y == 1.0)
+    Swag.assert(RuntimeConstSetOne.x == 1.0)
+    Swag.assert(RuntimeConstSetOne.y == 1.0)
 }
 
 #test
 {
-    @assert(RuntimePaletteCardOne.label == "gray")
-    @assert(RuntimePaletteCardOne.color.raw == 0xFF808080'u32)
-    @assert(RuntimePaletteCards[0].color.raw == 0xFF808080'u32)
-    @assert(RuntimePaletteCards[1].color.raw == 0xFF3366CC'u32)
-    @assert(RuntimePaletteColors[0].raw == 0xFF808080'u32)
-    @assert(RuntimePaletteColors[1].raw == 0xFF3366CC'u32)
+    Swag.assert(RuntimePaletteCardOne.label == "gray")
+    Swag.assert(RuntimePaletteCardOne.color.raw == 0xFF808080'u32)
+    Swag.assert(RuntimePaletteCards[0].color.raw == 0xFF808080'u32)
+    Swag.assert(RuntimePaletteCards[1].color.raw == 0xFF3366CC'u32)
+    Swag.assert(RuntimePaletteColors[0].raw == 0xFF808080'u32)
+    Swag.assert(RuntimePaletteColors[1].raw == 0xFF3366CC'u32)
 }
 
 #test
@@ -494,8 +494,8 @@ func assertRuntimeLiteralOverloadSet(value: RuntimeLiteralOverloadTarget, expect
     var rhs = RuntimeSetTarget{value: 9, tag: 11, calls: 13}
     lhs = rhs
 
-    @assert(lhs.value == 9)
-    @assert(lhs.tag == 11)
-    @assert(lhs.calls == 13)
-    @assert(lhs.sentinel == 1234)
+    Swag.assert(lhs.value == 9)
+    Swag.assert(lhs.tag == 11)
+    Swag.assert(lhs.calls == 13)
+    Swag.assert(lhs.sentinel == 1234)
 }

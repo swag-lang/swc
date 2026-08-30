@@ -10,7 +10,7 @@
     }
 
     let mid = cb(false)[1 to 2]
-    @assert(@countof(mid) == 2)
-    @assert(mid[0] == 60'u16)
-    @assert(mid[1] == 70'u16)
+    Swag.assert(mid.count == 2)
+    Swag.assert(mid[0] == 60'u16)
+    Swag.assert(mid[1] == 70'u16)
 }

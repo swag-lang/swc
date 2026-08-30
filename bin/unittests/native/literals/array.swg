@@ -27,9 +27,9 @@ const A2 = [1, true, 3]
     #assert(#typeof(D) == #type [2] f32)
     #assert(#typeof(D[0]) == f32)
     #assert(#typeof(D[1]) == f32)
-    @assert(B[0] == 1)
-    @assert(C[2] == 3)
-    @assert(D[1] == 2.0)
+    Swag.assert(B[0] == 1)
+    Swag.assert(C[2] == 3)
+    Swag.assert(D[1] == 2.0)
 }
 
 const G: [2] f32 = [1.0, 2]
@@ -55,7 +55,7 @@ const I: [2] s32 = [1, cast(s32) 2.2]
 {
     const K: [4] s32 = [10, 20, 30, 40]
     #assert(#typeof(K) == #type [4] s32)
-    @assert(K[3] == 40)
+    Swag.assert(K[3] == 40)
 }
 
 #test
@@ -63,7 +63,7 @@ const I: [2] s32 = [1, cast(s32) 2.2]
     const M: [2] [2] s32 = [[1, 2], [3, 4]]
     #assert(#typeof(M) == #type [2] [2] s32)
     #assert(M[1][0] == 3)
-    @assert(M[0][1] == 2)
+    Swag.assert(M[0][1] == 2)
 }
 
 const AB:  [2] u32 = [1, 2]
@@ -78,53 +78,53 @@ const AB2: [?] u32 = [[1], [2]]
 {
     var a = [10, 20, 30]
     #assert(#typeof(a) == #type [3] s32)
-    @assert(a[0] == 10)
-    @assert(a[2] == 30)
+    Swag.assert(a[0] == 10)
+    Swag.assert(a[2] == 30)
 }
 
 #test
 {
     var a = [1'f64, 2, 3]
     #assert(#typeof(a) == #type [3] f64)
-    @assert(a[2] == 3.0)
+    Swag.assert(a[2] == 3.0)
 }
 
 #test
 {
     var a = [[1, 2], [3, 4]]
     #assert(#typeof(a) == #type [2][2] s32)
-    @assert(a[0, 0] == 1)
-    @assert(a[1, 1] == 4)
-    #assert(@countof(a) == 2)
+    Swag.assert(a[0, 0] == 1)
+    Swag.assert(a[1, 1] == 4)
+    #assert(a.count == 2)
 }
 
 // Single value initialization.
 #test
 {
     var a: [40] s32 = 7
-    @assert(a[0] == 7)
-    @assert(a[39] == 7)
+    Swag.assert(a[0] == 7)
+    Swag.assert(a[39] == 7)
 }
 
 #test
 {
     var a: [2, 2] bool = true
-    @assert(a[0, 0] == true)
-    @assert(a[1, 1] == true)
+    Swag.assert(a[0, 0] == true)
+    Swag.assert(a[1, 1] == true)
 }
 
 #test
 {
     var a: [3] string = "hi"
-    @assert(a[0] == "hi")
-    @assert(a[2] == "hi")
+    Swag.assert(a[0] == "hi")
+    Swag.assert(a[2] == "hi")
 }
 
 #test
 {
     var a: [2, 3] f32 = 1.5
-    @assert(a[0, 0] == 1.5)
-    @assert(a[1, 2] == 1.5)
+    Swag.assert(a[0, 0] == 1.5)
+    Swag.assert(a[1, 2] == 1.5)
 }
 
 private
@@ -135,22 +135,22 @@ private
 #test
 {
     const a: [2] u8 = [HexFill, HexFill]
-    @assert(a[0] == 0xF0'u8)
-    @assert(a[1] == 0xF0'u8)
+    Swag.assert(a[0] == 0xF0'u8)
+    Swag.assert(a[1] == 0xF0'u8)
 }
 
 #test
 {
     const a: [3] u8 = HexFill
-    @assert(a[0] == 0xF0'u8)
-    @assert(a[2] == 0xF0'u8)
+    Swag.assert(a[0] == 0xF0'u8)
+    Swag.assert(a[2] == 0xF0'u8)
 }
 
 #test
 {
     const a = [{x: 1, y: 2}, {3, 4}]
-    @assert(a[0].x == 1)
-    @assert(a[0].y == 2)
-    @assert(a[1].x == 3)
-    @assert(a[1].y == 4)
+    Swag.assert(a[0].x == 1)
+    Swag.assert(a[0].y == 2)
+    Swag.assert(a[1].x == 3)
+    Swag.assert(a[1].y == 4)
 }

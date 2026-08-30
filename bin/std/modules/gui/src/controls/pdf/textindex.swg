@@ -237,7 +237,7 @@ impl TextIndex
 
         let source = item.text.toString()
         var scan   = 0'u64
-        while scan < @countof(source)
+        while scan < source.count
         {
             let {value, eat} = Utf8.decodeRune(source[scan to])
             let advance      = item.standardFont.glyphWidth(value) * item.fontSize
@@ -340,13 +340,13 @@ impl TextIndex
     {
         var result: retval
         let source = .text.toString()
-        if !@countof(source) do
+        if !source.count do
             return result
 
         var starts: Array'u64
         var words:  Array'bool
         var scan = 0'u64
-        while scan < @countof(source)
+        while scan < source.count
         {
             let {value, eat} = Utf8.decodeRune(source[scan to])
             starts.add(scan)
@@ -355,7 +355,7 @@ impl TextIndex
         }
 
         starts.add(scan)
-        let position  = Math.min(offset, @countof(source) - 1)
+        let position  = Math.min(offset, source.count - 1)
         var runeIndex = 0'u64
         for i in words.count where starts[i] <= position do
             runeIndex = i

@@ -14,7 +14,7 @@ struct RouteReport
 
 func lineWidth(line: string)->u32
 {
-    return cast(u32) @countof(cast(const [..] u8) line)
+    return cast(u32) (cast(const [..] u8) line).count
 }
 
 func cellIndex(x, y, width: u32)->u32
@@ -55,11 +55,11 @@ func forwardY(y: s32, direction: u32)->s32
 
 func analyzeRoute(layout: const [..] string)->RouteReport
 {
-    let height     = cast(u32) @countof(layout)
+    let height     = cast(u32) layout.count
     let width      = lineWidth(layout[0])
     let totalCells = width * height
 
-    @assert(totalCells <= MaxHallwayCells)
+    Swag.assert(totalCells <= MaxHallwayCells)
 
     var cells:     [MaxHallwayCells] u8
     var startCell: u32
@@ -67,12 +67,12 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
     for ?, rowIndex in layout
     {
-        @assert(lineWidth(layout[rowIndex]) == width)
+        Swag.assert(lineWidth(layout[rowIndex]) == width)
         let row = cast(const [..] u8) layout[rowIndex]
 
         for width
         {
-            let x     = cast(u32) @index
+            let x     = cast(u32) Swag.index
             let index = cellIndex(x, cast(u32) rowIndex, width)
             let value = row[x]
 
@@ -90,8 +90,8 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
     for MaxHallwayStates
     {
-        dist[@index]  = Swag.U64.Max
-        steps[@index] = Swag.U32.Max
+        dist[Swag.index]  = Swag.U64.Max
+        steps[Swag.index] = Swag.U32.Max
     }
 
     let startState = stateIndex(startCell, 0)
@@ -108,7 +108,7 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
         for stateCount
         {
-            let candidate = cast(u32) @index
+            let candidate = cast(u32) Swag.index
             if visited[candidate] do
                 continue
 
@@ -171,7 +171,7 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
     for 4
     {
-        let endState = stateIndex(endCell, cast(u32) @index)
+        let endState = stateIndex(endCell, cast(u32) Swag.index)
         if dist[endState] < result.bestScore or dist[endState] == result.bestScore and steps[endState] < result.stepCount
         {
             result.bestScore = dist[endState]
@@ -195,8 +195,8 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
     let sampleRoute = analyzeRoute(sampleHall)
 
-    @assert(sampleRoute.bestScore == 1006'u64)
-    @assert(sampleRoute.stepCount == 6'u32)
+    Swag.assert(sampleRoute.bestScore == 1006'u64)
+    Swag.assert(sampleRoute.stepCount == 6'u32)
 
     const serviceHall: [5] string =
         [
@@ -209,6 +209,6 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
     let serviceRoute = analyzeRoute(serviceHall)
 
-    @assert(serviceRoute.bestScore == 4010'u64)
-    @assert(serviceRoute.stepCount == 10'u32)
+    Swag.assert(serviceRoute.bestScore == 4010'u64)
+    Swag.assert(serviceRoute.stepCount == 10'u32)
 }

@@ -4,7 +4,7 @@
 // each step increases height by exactly 1 from 0 to 9.
 // Part 1 (score): count distinct 9-height cells reachable from each trailhead.
 // Part 2 (rating): count total distinct paths from each trailhead to any 9.
-// Exercises: nested functions, #static if/else, const from func, @min/@max,
+// Exercises: nested functions, #static if/else, const from func, Swag.min/Swag.max,
 // 0 until N range, #[Swag.Discardable], tuple-like struct returns.
 
 const MaxDim     = 64'u32
@@ -73,9 +73,9 @@ func parseGrid(text: string)->Grid
     var result: Grid
 
     var col: u32
-    for @countof(bytes)
+    for bytes.count
     {
-        let ch = bytes[@index]
+        let ch = bytes[Swag.index]
         if ch == '\n' or ch == '\r'
         {
             if col > 0
@@ -94,7 +94,7 @@ func parseGrid(text: string)->Grid
 
     if col > 0
     {
-        result.width  = @max(result.width, col)
+        result.width  = Swag.max(result.width, col)
         result.height += 1
     }
 
@@ -104,7 +104,7 @@ func parseGrid(text: string)->Grid
 #[Swag.Inline]
 func cellAt(grid: Grid, row, col: u32)->u8
 {
-    @assert(row < grid.height and col < grid.width)
+    Swag.assert(row < grid.height and col < grid.width)
     return grid.cells[row * MaxDim + col]
 }
 
@@ -176,10 +176,10 @@ func findTrails(grid: Grid)->TrailResult
             // Clear visited for this trailhead
             for grid.height
             {
-                let r = cast(u32) @index
+                let r = cast(u32) Swag.index
                 for grid.width
                 {
-                    let c = cast(u32) @index
+                    let c = cast(u32) Swag.index
                     visited[r * MaxDim + c] = false
                 }
             }
@@ -237,41 +237,41 @@ func analyzeTrails(text: string)->HikingReport
 {
     let sample = analyzeTrails(SampleInput)
 
-    @assert(sample.width == 8'u32)
-    @assert(sample.height == 8'u32)
-    @assert(sample.trailheads == 9'u32)
-    @assert(sample.totalScore == 36'u32)
-    @assert(sample.totalRating == 81'u32)
+    Swag.assert(sample.width == 8'u32)
+    Swag.assert(sample.height == 8'u32)
+    Swag.assert(sample.trailheads == 9'u32)
+    Swag.assert(sample.totalScore == 36'u32)
+    Swag.assert(sample.totalRating == 81'u32)
 }
 
 #test
 {
     let tiny = analyzeTrails(TinyInput)
 
-    @assert(tiny.width == 4'u32)
-    @assert(tiny.height == 4'u32)
-    @assert(tiny.trailheads == 1'u32)
-    @assert(tiny.totalScore == 1'u32)
-    @assert(tiny.totalRating == 16'u32)
+    Swag.assert(tiny.width == 4'u32)
+    Swag.assert(tiny.height == 4'u32)
+    Swag.assert(tiny.trailheads == 1'u32)
+    Swag.assert(tiny.totalScore == 1'u32)
+    Swag.assert(tiny.totalRating == 16'u32)
 }
 
 #test
 {
     let single = analyzeTrails(SingleInput)
 
-    @assert(single.width == 1'u32)
-    @assert(single.height == 1'u32)
-    @assert(single.trailheads == 0'u32)
-    @assert(single.totalScore == 0'u32)
-    @assert(single.totalRating == 0'u32)
+    Swag.assert(single.width == 1'u32)
+    Swag.assert(single.height == 1'u32)
+    Swag.assert(single.trailheads == 0'u32)
+    Swag.assert(single.totalScore == 0'u32)
+    Swag.assert(single.totalRating == 0'u32)
 }
 
 #test
 {
-    @assert(NumDirections == 4'u32)
+    Swag.assert(NumDirections == 4'u32)
     let a: TrailResult = {score: 10, rating: 20}
     let b: TrailResult = {score: 5, rating: 15}
     let c              = addTrailResult(a, b)
-    @assert(c.score == 15'u32)
-    @assert(c.rating == 35'u32)
+    Swag.assert(c.score == 15'u32)
+    Swag.assert(c.rating == 35'u32)
 }

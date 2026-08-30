@@ -25,9 +25,9 @@ func editHeadlessEnter(eb: *EditBox)
 
     let field = EditBox.create(&host.root, "query", {20, 30, 220, 28}, flags: .ClearButton)
     field.setFocus()
-    @assert(!field.children.isEmpty())
+    Swag.assert(!field.children.isEmpty())
     host.click(field.children.back().surfaceRect().center())
-    @assert(!@countof(field.text()) and field.hasFocus())
+    Swag.assert(!(field.text()).count and field.hasFocus())
 }
 
 func editHeadlessEscape(eb: *EditBox)
@@ -43,10 +43,10 @@ func editHeadlessEscape(eb: *EditBox)
     host.setup(240, 60)
     defer host.shutdown()
     let edit = EditBox.create(&host.root, "Hello", {20, 20, 200, 26})
-    @assert(edit.text() == "Hello")
+    Swag.assert(edit.text() == "Hello")
 
     edit.setText("World")
-    @assert(edit.text() == "World")
+    Swag.assert(edit.text() == "World")
 }
 
 // Typing runes inserts text at the caret.
@@ -60,7 +60,7 @@ func editHeadlessEscape(eb: *EditBox)
 
     host.sendRune(Input.Key.A, 'H')
     host.sendRune(Input.Key.A, 'i')
-    @assert(edit.text() == "Hi")
+    Swag.assert(edit.text() == "Hi")
 }
 
 // Backspace removes the rune before the caret.
@@ -74,10 +74,10 @@ func editHeadlessEscape(eb: *EditBox)
 
     host.sendRune(Input.Key.A, 'A')
     host.sendRune(Input.Key.A, 'B')
-    @assert(edit.text() == "AB")
+    Swag.assert(edit.text() == "AB")
 
     host.keyPress(Input.Key.Back)
-    @assert(edit.text() == "A")
+    Swag.assert(edit.text() == "A")
 }
 
 // selectAll + deleteSelection clears the content.
@@ -89,7 +89,7 @@ func editHeadlessEscape(eb: *EditBox)
     let edit = EditBox.create(&host.root, "Hello", {20, 20, 200, 26})
     edit.selectAll()
     edit.deleteSelection()
-    @assert(edit.text() == "")
+    Swag.assert(edit.text() == "")
 }
 
 // A read-only editbox ignores typed runes.
@@ -102,7 +102,7 @@ func editHeadlessEscape(eb: *EditBox)
     host.focus(edit)
 
     host.sendRune(Input.Key.A, 'Z')
-    @assert(edit.text() == "lock")
+    Swag.assert(edit.text() == "lock")
 }
 
 // maximum length caps the number of runes.
@@ -119,7 +119,7 @@ func editHeadlessEscape(eb: *EditBox)
     host.sendRune(Input.Key.A, '2')
     host.sendRune(Input.Key.A, '3')
     host.sendRune(Input.Key.A, '4')
-    @assert(edit.text() == "123")
+    Swag.assert(edit.text() == "123")
 }
 
 // The cached caret/selection pixel offset must match the snapped position the
@@ -135,7 +135,7 @@ func editHeadlessEscape(eb: *EditBox)
     let edit     = EditBox.create(&host.root, longText, {0, 0, 380, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
-    let len = @countof(edit.text())
+    let len = (edit.text()).count
     edit.setSelection(len, len)
 
     let fontR    = nnFont(edit.font().regular)
@@ -143,7 +143,7 @@ func editHeadlessEscape(eb: *EditBox)
     let drift    = Math.abs(edit.posSelEnd - expected)
 
     // Caret must land within a pixel of the drawn glyph edge regardless of length.
-    @assert(drift <= 1.0)
+    Swag.assert(drift <= 1.0)
 }
 
 // Right-aligned caret offset must also track the snapped draw position (this path
@@ -157,13 +157,13 @@ func editHeadlessEscape(eb: *EditBox)
     let edit     = EditBox.create(&host.root, longText, {0, 0, 380, 26}, null, EditBoxFlags.RightAligned)
     host.focus(edit)
 
-    let len = @countof(edit.text())
+    let len = (edit.text()).count
     edit.setSelection(len, len)
 
     let fontR    = nnFont(edit.font().regular)
     let expected = Pixel.Painter.measureStringSnapped(edit.text(), fontR)
     let drift    = Math.abs(edit.posSelEnd - expected)
-    @assert(drift <= 1.0)
+    Swag.assert(drift <= 1.0)
 }
 
 // A leading icon reserves the same themed gap for the caret, glyphs, selection, and hit testing.
@@ -176,11 +176,11 @@ func editHeadlessEscape(eb: *EditBox)
     let edit = EditBox.create(&host.root, "query", {0, 0, 280, 36})
     edit.setIcon(host.theme.icon(.Search, 18))
     host.focus(edit)
-    edit.setSelection(@countof(edit.text()), @countof(edit.text()))
+    edit.setSelection((edit.text()).count, (edit.text()).count)
 
     let caret    = edit.caretRect()
     let expected = edit.leftTextMargin() + edit.posSelEnd
-    @assert(Math.abs(caret.x - expected) <= 0.5)
+    Swag.assert(Math.abs(caret.x - expected) <= 0.5)
 }
 
 // Clicking maps the X position to a byte index using the same snapped advances the
@@ -199,7 +199,7 @@ func editHeadlessEscape(eb: *EditBox)
 
     // Far left clamps to the first byte.
     host.click({rect.x + 1, yc})
-    @assert(edit.selEnd == 0)
+    Swag.assert(edit.selEnd == 0)
 
     // Sweeping rightwards yields monotonically non-decreasing caret indices.
     var prev = 0'u64
@@ -207,14 +207,14 @@ func editHeadlessEscape(eb: *EditBox)
     while x < rect.right() - 2
     {
         host.click({x, yc})
-        @assert(edit.selEnd >= prev)
+        Swag.assert(edit.selEnd >= prev)
         prev = edit.selEnd
         x    += 8
     }
 
     // Far right clamps to the end of the text.
     host.click({rect.right() - 1, yc})
-    @assert(edit.selEnd == @countof(edit.text()))
+    Swag.assert(edit.selEnd == (edit.text()).count)
 }
 
 // Clicking on a glyph then reading back its caret pixel offset round-trips: the
@@ -228,7 +228,7 @@ func editHeadlessEscape(eb: *EditBox)
     host.focus(edit)
 
     let fontR = nnFont(edit.font().regular)
-    let len   = @countof(edit.text())
+    let len   = (edit.text()).count
 
     // For every caret index, the cached offset must equal the snapped advance to that
     // byte (what the renderer would place the glyph edge at).
@@ -236,7 +236,7 @@ func editHeadlessEscape(eb: *EditBox)
     {
         edit.setSelection(idx, idx)
         let expected = Pixel.Painter.measureStringSnapped(edit.text(), fontR, idx)
-        @assert(Math.abs(edit.posSelEnd - expected) <= 0.5)
+        Swag.assert(Math.abs(edit.posSelEnd - expected) <= 0.5)
     }
 }
 
@@ -250,19 +250,19 @@ func editHeadlessEscape(eb: *EditBox)
     host.focus(edit)
 
     host.keyPress(Input.Key.End)
-    @assert(edit.selBeg == 6 and edit.selEnd == 6)
+    Swag.assert(edit.selBeg == 6 and edit.selEnd == 6)
 
     host.keyPress(Input.Key.Home)
-    @assert(edit.selBeg == 0 and edit.selEnd == 0)
+    Swag.assert(edit.selBeg == 0 and edit.selEnd == 0)
 
     host.keyPress(Input.Key.Right)
-    @assert(edit.selEnd == 1)
+    Swag.assert(edit.selEnd == 1)
 
     host.keyPress(Input.Key.Right)
-    @assert(edit.selEnd == 2)
+    Swag.assert(edit.selEnd == 2)
 
     host.keyPress(Input.Key.Left)
-    @assert(edit.selEnd == 1)
+    Swag.assert(edit.selEnd == 1)
 }
 
 // Shift+arrow extends a selection while keeping its anchor; posSelBeg/posSelEnd stay
@@ -279,11 +279,11 @@ func editHeadlessEscape(eb: *EditBox)
     host.keyPress(Input.Key.Right, Input.KeyModifiers.Shift)
     host.keyPress(Input.Key.Right, Input.KeyModifiers.Shift)
     host.keyPress(Input.Key.Right, Input.KeyModifiers.Shift)
-    @assert(edit.selBeg == 0 and edit.selEnd == 3)
+    Swag.assert(edit.selBeg == 0 and edit.selEnd == 3)
 
     let fontR = nnFont(edit.font().regular)
-    @assert(Math.abs(edit.posSelBeg - Pixel.Painter.measureStringSnapped(edit.text(), fontR, 0)) <= 0.5)
-    @assert(Math.abs(edit.posSelEnd - Pixel.Painter.measureStringSnapped(edit.text(), fontR, 3)) <= 0.5)
+    Swag.assert(Math.abs(edit.posSelBeg - Pixel.Painter.measureStringSnapped(edit.text(), fontR, 0)) <= 0.5)
+    Swag.assert(Math.abs(edit.posSelEnd - Pixel.Painter.measureStringSnapped(edit.text(), fontR, 3)) <= 0.5)
 }
 
 // Ctrl+Left / Ctrl+Right jump by words.
@@ -297,16 +297,16 @@ func editHeadlessEscape(eb: *EditBox)
 
     host.keyPress(Input.Key.Home)
     host.keyPress(Input.Key.Right, Input.KeyModifiers.Control)
-    @assert(edit.selEnd == 3)     // end of "one"
+    Swag.assert(edit.selEnd == 3)     // end of "one"
 
     host.keyPress(Input.Key.Right, Input.KeyModifiers.Control)
-    @assert(edit.selEnd == 4)     // crosses the space to the start of "two"
+    Swag.assert(edit.selEnd == 4)     // crosses the space to the start of "two"
 
     host.keyPress(Input.Key.Right, Input.KeyModifiers.Control)
-    @assert(edit.selEnd == 7)     // end of "two"
+    Swag.assert(edit.selEnd == 7)     // end of "two"
 
     host.keyPress(Input.Key.Left, Input.KeyModifiers.Control)
-    @assert(edit.selEnd == 4)     // back to the start of "two"
+    Swag.assert(edit.selEnd == 4)     // back to the start of "two"
 }
 
 // A scrolled (overflowing) left-aligned box keeps the caret at the end aligned with
@@ -321,12 +321,12 @@ func editHeadlessEscape(eb: *EditBox)
     let edit = EditBox.create(&host.root, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", {0, 0, 120, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
-    let len = @countof(edit.text())
+    let len = (edit.text()).count
     edit.setSelection(len, len)
 
     let fontR    = nnFont(edit.font().regular)
     let expected = Pixel.Painter.measureStringSnapped(edit.text(), fontR, len)
-    @assert(Math.abs(edit.posSelEnd - expected) <= 0.5)
+    Swag.assert(Math.abs(edit.posSelEnd - expected) <= 0.5)
 }
 
 // A caret placed after the last character of an overflowing (scrolled) box must
@@ -340,16 +340,16 @@ func editHeadlessEscape(eb: *EditBox)
     let edit = EditBox.create(&host.root, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", {0, 0, 120, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
-    let len = @countof(edit.text())
+    let len = (edit.text()).count
     edit.setSelection(len, len)
     edit.updateScroll()
 
     // The box must actually be scrolled, otherwise the test proves nothing.
-    @assert(edit.scrollPosX > 0)
+    Swag.assert(edit.scrollPosX > 0)
 
     let cc = edit.caretClip()
-    @assert(cc.caret.x >= cc.view.x - 0.5)                 // not clipped left
-    @assert(cc.caret.right() <= cc.view.right() + 0.5)     // not clipped right (the bug)
+    Swag.assert(cc.caret.x >= cc.view.x - 0.5)                 // not clipped left
+    Swag.assert(cc.caret.right() <= cc.view.right() + 0.5)     // not clipped right (the bug)
 }
 
 // As the caret sweeps an overflowing box (home -> each rune -> end), it must stay
@@ -362,14 +362,14 @@ func editHeadlessEscape(eb: *EditBox)
     let edit = EditBox.create(&host.root, "abcdefghijklmnopqrstuvwxyz0123456789", {0, 0, 120, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
-    let len = @countof(edit.text())
+    let len = (edit.text()).count
     for idx in 0 to len
     {
         edit.setSelection(idx, idx)
         edit.updateScroll()
         let cc = edit.caretClip()
-        @assert(cc.caret.x >= cc.view.x - 0.5)
-        @assert(cc.caret.right() <= cc.view.right() + 0.5)
+        Swag.assert(cc.caret.x >= cc.view.x - 0.5)
+        Swag.assert(cc.caret.right() <= cc.view.right() + 0.5)
     }
 }
 
@@ -389,10 +389,10 @@ func editHeadlessEscape(eb: *EditBox)
 
     host.focus(edit)
     host.keyPress(Input.Key.Return)
-    @assert(EditHeadlessEnterCount == 1)
+    Swag.assert(EditHeadlessEnterCount == 1)
 
     host.keyPress(Input.Key.Escape)
-    @assert(EditHeadlessEscapeCount == 1)
+    Swag.assert(EditHeadlessEscapeCount == 1)
 }
 
 // A field of a form hands Enter and Escape to the surface, whatever was typed into it.
@@ -414,15 +414,15 @@ func editHeadlessEscape(eb: *EditBox)
     field.setText("typed")
 
     host.keyPress(Input.Key.Return)
-    @assert(host.lastCommand == EditHeadless_Default)
+    Swag.assert(host.lastCommand == EditHeadless_Default)
 
     host.keyPress(Input.Key.Escape)
-    @assert(host.lastCommand == EditHeadless_Cancel)
+    Swag.assert(host.lastCommand == EditHeadless_Cancel)
 
     // The field neither answered for the box nor undid itself: it is one control of a form the
     // reader is dismissing whole.
-    @assert(field.text() == "typed")
-    @assert(field.hasFocus())
+    Swag.assert(field.text() == "typed")
+    Swag.assert(field.hasFocus())
 }
 
 // A box that is an edit of its own keeps both keys: Escape puts back what it was given and
@@ -443,7 +443,7 @@ func editHeadlessEscape(eb: *EditBox)
 
     let before = host.commandCount
     host.keyPress(Input.Key.Escape)
-    @assert(host.commandCount == before)
-    @assert(field.text() == "kept")
-    @assert(!field.hasFocus())
+    Swag.assert(host.commandCount == before)
+    Swag.assert(field.text() == "kept")
+    Swag.assert(!field.hasFocus())
 }

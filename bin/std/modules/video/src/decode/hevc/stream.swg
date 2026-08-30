@@ -103,7 +103,7 @@ impl HevcStream
     // Configures the decoder from a container's decoder configuration and installs the samples.
     mtd open(config: const [..] u8, frames: Array'SampleEntry) fail
     {
-        if !@countof(config) do
+        if !config.count do
             fail InvalidFormatError{"H.265 track has no decoder configuration"}
 
         .config.clear()
@@ -157,7 +157,7 @@ impl HevcStream
     private mtd configure(decoder: *Decoder) fail
     {
         let config = .config.toSlice()
-        if @countof(config) < 23 do
+        if config.count < 23 do
             fail InvalidFormatError{"H.265 decoder configuration is truncated"}
         if config[0] != 1 do
             fail UnsupportedFormatError{"H.265 decoder configuration uses an unknown version"}
@@ -168,18 +168,18 @@ impl HevcStream
         var offset = 23'u64
         for arrays
         {
-            if offset + 3 > @countof(config) do
+            if offset + 3 > config.count do
                 fail InvalidFormatError{"H.265 decoder configuration is truncated"}
             let count = (cast(u32) config[offset + 1] << 8) | cast(u32) config[offset + 2]
             offset += 3
 
             for count
             {
-                if offset + 2 > @countof(config) do
+                if offset + 2 > config.count do
                     fail InvalidFormatError{"H.265 decoder configuration is truncated"}
                 let length = (cast(u64) config[offset] << 8) | cast(u64) config[offset + 1]
                 offset += 2
-                if offset + length > @countof(config) do
+                if offset + length > config.count do
                     fail InvalidFormatError{"H.265 decoder configuration is truncated"}
                 discard try decoder.readNalUnit(config[offset until offset + length])
                 offset += length
@@ -239,11 +239,11 @@ impl HevcStream
     // Extends a running stream with samples the container has since indexed.
     mtd appendFrames(frames: const [..] SampleEntry) fail
     {
-        if !@countof(frames) do
+        if !frames.count do
             return
 
         var merged: Array'SampleEntry
-        merged.reserve(.frames.count + @countof(frames))
+        merged.reserve(.frames.count + frames.count)
         for entry in .frames do
             merged.add(entry[])
         for entry in frames do
@@ -625,7 +625,7 @@ impl HevcStream
     {
         var count  = 0'u32
         var offset = 0'u64
-        while offset + cast(u64) .lengthSize <= @countof(data)
+        while offset + cast(u64) .lengthSize <= data.count
         {
             let length = try .unitLength(data, &offset)
             if length < 2 do
@@ -644,7 +644,7 @@ impl HevcStream
     {
         var hasPicture = false
         var offset     = 0'u64
-        while offset + cast(u64) .lengthSize <= @countof(data)
+        while offset + cast(u64) .lengthSize <= data.count
         {
             let length = try .unitLength(data, &offset)
             if length < 2 do
@@ -669,7 +669,7 @@ impl HevcStream
     private mtd readAuxiliaryUnits(decoder: *Decoder, data: const [..] u8) fail
     {
         var offset = 0'u64
-        while offset + cast(u64) .lengthSize <= @countof(data)
+        while offset + cast(u64) .lengthSize <= data.count
         {
             let length  = try .unitLength(data, &offset)
             let nalType = cast(u32) (data[offset] >> 1) & 0x3F
@@ -683,7 +683,7 @@ impl HevcStream
     {
         var picture = false
         var offset  = 0'u64
-        while offset + cast(u64) .lengthSize <= @countof(data)
+        while offset + cast(u64) .lengthSize <= data.count
         {
             let length = try .unitLength(data, &offset)
             if try decoder.prepareNalUnit(data[offset until offset + length]) do
@@ -710,7 +710,7 @@ impl HevcStream
     private mtd decodeAccessUnit(decoder: *Decoder, data: const [..] u8)->#null *Frame fail
     {
         var offset = 0'u64
-        while offset + cast(u64) .lengthSize <= @countof(data)
+        while offset + cast(u64) .lengthSize <= data.count
         {
             let length = try .unitLength(data, &offset)
             discard try decoder.readNalUnit(data[offset until offset + length])
@@ -726,7 +726,7 @@ impl HevcStream
         for index in .lengthSize do
             length = (length << 8) | cast(u64) data[offset[] + cast(u64) index]
         offset[] += cast(u64) .lengthSize
-        if !length or offset[] + length > @countof(data) do
+        if !length or offset[] + length > data.count do
             fail InvalidFormatError{"H.265 access unit holds a truncated network abstraction layer unit"}
         return length
     }

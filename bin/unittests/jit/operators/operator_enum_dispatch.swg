@@ -67,11 +67,11 @@ impl Vec
     let a = Vec{6, 8}
     let b = Vec{2, 3}
 
-    @assert((a + b).x == 8 and (a + b).y == 11)
-    @assert((a - b).x == 4 and (a - b).y == 5)
-    @assert((a * b).x == 12 and (a * b).y == 24)
-    @assert((a ^ b).x == 4)
-    @assert((a << b).x == 24)
+    Swag.assert((a + b).x == 8 and (a + b).y == 11)
+    Swag.assert((a - b).x == 4 and (a - b).y == 5)
+    Swag.assert((a * b).x == 12 and (a * b).y == 24)
+    Swag.assert((a ^ b).x == 4)
+    Swag.assert((a << b).x == 24)
 }
 
 // The same distinction holds at compile time.
@@ -92,9 +92,9 @@ impl Vec
     let a = Vec{6, 8}
 
     // Unary minus is 'Neg', not 'Sub'.
-    @assert((-a).x == -6 and (-a).y == -8)
-    @assert((+a).x == 6)
-    @assert((~a).x == ~6)
+    Swag.assert((-a).x == -6 and (-a).y == -8)
+    Swag.assert((+a).x == 6)
+    Swag.assert((~a).x == ~6)
 }
 
 #test
@@ -102,13 +102,13 @@ impl Vec
     var v = Vec{10, 20}
 
     v += Vec{1, 2}
-    @assert(v.x == 11 and v.y == 22)
+    Swag.assert(v.x == 11 and v.y == 22)
 
     v -= Vec{1, 2}
-    @assert(v.x == 10 and v.y == 20)
+    Swag.assert(v.x == 10 and v.y == 20)
 
     v >>= Vec{1, 1}
-    @assert(v.x == 5 and v.y == 10)
+    Swag.assert(v.x == 5 and v.y == 10)
 }
 
 // 'op.symbol()' gives back the source spelling, and it folds at compile time.
@@ -153,11 +153,11 @@ impl Scaled
     let s = Scaled{10}
 
     // Receiver on the left works for every implemented operator.
-    @assert((s + 5).value == 15)
-    @assert((s * 5).value == 50)
-    @assert((s - 5).value == 5)
+    Swag.assert((s + 5).value == 15)
+    Swag.assert((s * 5).value == 50)
+    Swag.assert((s - 5).value == 5)
 
     // Receiver on the right only for the operators listed in 'Commutative'.
-    @assert((5 + s).value == 15)
-    @assert((5 * s).value == 50)
+    Swag.assert((5 + s).value == 15)
+    Swag.assert((5 * s).value == 50)
 }

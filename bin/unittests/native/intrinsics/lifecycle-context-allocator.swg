@@ -19,7 +19,7 @@ func helperFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator =
     req.size    = size
     req.address = buffer
 
-    let talloc = (allocator orelse @getcontext().allocator)!
+    let talloc = (allocator orelse Swag.getContext().allocator)!
     talloc.free(&req)
 }
 
@@ -30,7 +30,7 @@ func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator
     req.size    = newSize
     req.oldSize = oldSize
 
-    let talloc = (allocator orelse @getcontext().allocator)!
+    let talloc = (allocator orelse Swag.getContext().allocator)!
     talloc.realloc(&req)
     return req.address
 }
@@ -46,7 +46,7 @@ func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: #null IAllocat
     req.address   = buffer
     req.hint      = hint
 
-    let talloc = (allocator orelse @getcontext().allocator)!
+    let talloc = (allocator orelse Swag.getContext().allocator)!
     talloc.free(&req)
 }
 
@@ -60,7 +60,7 @@ func memoryLikeRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, alloc
     req.oldSize   = oldSize
     req.alignment = alignment
 
-    let talloc = (allocator orelse @getcontext().allocator)!
+    let talloc = (allocator orelse Swag.getContext().allocator)!
     talloc.realloc(&req)
     return req.address
 }
@@ -135,7 +135,7 @@ impl DirectByteBuffer
         if newCapacity <= .capacity do
             return
         if .allocator == null do
-            .allocator = @getcontext().allocator
+            .allocator = Swag.getContext().allocator
 
         var req: AllocatorRequest
         req.address = .buffer
@@ -154,11 +154,11 @@ impl DirectByteBuffer
         if newCount > .count
         {
             .reserve(newCount)
-            @init(.buffer + .count, newCount - .count)
+            Swag.init(.buffer + .count, newCount - .count)
         }
         else
         {
-            @drop(.buffer + newCount, .count - newCount)
+            Swag.drop(.buffer + newCount, .count - newCount)
         }
 
         .count = newCount
@@ -169,7 +169,7 @@ impl DirectByteBuffer
         if !.buffer do
             return
 
-        @drop(.buffer, .count)
+        Swag.drop(.buffer, .count)
 
         var req: AllocatorRequest
         req.size    = .capacity
@@ -198,7 +198,7 @@ impl HelperByteBuffer
         if newCapacity <= .capacity do
             return
         if .allocator == null do
-            .allocator = @getcontext().allocator
+            .allocator = Swag.getContext().allocator
 
         .buffer   = cast(#null [*] u8) helperRealloc(.buffer, newCapacity, .capacity, .allocator)
         .capacity = newCapacity
@@ -211,11 +211,11 @@ impl HelperByteBuffer
         if newCount > .count
         {
             .reserve(newCount)
-            @init(.buffer + .count, newCount - .count)
+            Swag.init(.buffer + .count, newCount - .count)
         }
         else
         {
-            @drop(.buffer + newCount, .count - newCount)
+            Swag.drop(.buffer + newCount, .count - newCount)
         }
 
         .count = newCount
@@ -226,7 +226,7 @@ impl HelperByteBuffer
         if !.buffer do
             return
 
-        @drop(.buffer, .count)
+        Swag.drop(.buffer, .count)
         helperFree(.buffer, .capacity, .allocator)
         .buffer           = null
         .count, .capacity = 0
@@ -250,7 +250,7 @@ impl MemoryTrackedBuffer
         if newCapacity <= .capacity do
             return
         if .allocator == null do
-            .allocator = @getcontext().allocator
+            .allocator = Swag.getContext().allocator
 
         .buffer   = cast(#null [*] DropTracked) memoryLikeRealloc(.buffer, newCapacity * #sizeof(DropTracked), .capacity * #sizeof(DropTracked), .allocator)
         .capacity = newCapacity
@@ -263,11 +263,11 @@ impl MemoryTrackedBuffer
         if newCount > .count
         {
             .reserve(newCount)
-            @init(.buffer + .count, newCount - .count)(seed)
+            Swag.init(.buffer + .count, newCount - .count)(seed)
         }
         else
         {
-            @drop(.buffer + newCount, .count - newCount)
+            Swag.drop(.buffer + newCount, .count - newCount)
         }
 
         .count = newCount
@@ -278,7 +278,7 @@ impl MemoryTrackedBuffer
         if !.buffer do
             return
 
-        @drop(.buffer, .count)
+        Swag.drop(.buffer, .count)
         memoryLikeFree(.buffer, .capacity * #sizeof(DropTracked), .allocator)
         .buffer           = null
         .count, .capacity = 0
@@ -346,44 +346,44 @@ const MemoryRunInfo = #run memoryAllocatorRunDropInfo()
 
 #test
 {
-    @assert(DirectRunInfo.firstTrace == 4)
-    @assert(DirectRunInfo.secondTrace == 30_700_000_005)
-    @assert(DirectRunInfo.count == 5)
-    @assert(DirectRunInfo.capacity == 5)
+    Swag.assert(DirectRunInfo.firstTrace == 4)
+    Swag.assert(DirectRunInfo.secondTrace == 30_700_000_005)
+    Swag.assert(DirectRunInfo.count == 5)
+    Swag.assert(DirectRunInfo.capacity == 5)
 
     let v = directAllocatorRunInitInfo()
-    @assert(v.firstTrace == DirectRunInfo.firstTrace)
-    @assert(v.secondTrace == DirectRunInfo.secondTrace)
-    @assert(v.count == DirectRunInfo.count)
-    @assert(v.capacity == DirectRunInfo.capacity)
+    Swag.assert(v.firstTrace == DirectRunInfo.firstTrace)
+    Swag.assert(v.secondTrace == DirectRunInfo.secondTrace)
+    Swag.assert(v.count == DirectRunInfo.count)
+    Swag.assert(v.capacity == DirectRunInfo.capacity)
 }
 
 #test
 {
-    @assert(HelperRunInfo.firstTrace == 3)
-    @assert(HelperRunInfo.secondTrace == 400000004)
-    @assert(HelperRunInfo.count == 4)
-    @assert(HelperRunInfo.capacity == 4)
+    Swag.assert(HelperRunInfo.firstTrace == 3)
+    Swag.assert(HelperRunInfo.secondTrace == 400000004)
+    Swag.assert(HelperRunInfo.count == 4)
+    Swag.assert(HelperRunInfo.capacity == 4)
 
     let v = helperAllocatorRunInitInfo()
-    @assert(v.firstTrace == HelperRunInfo.firstTrace)
-    @assert(v.secondTrace == HelperRunInfo.secondTrace)
-    @assert(v.count == HelperRunInfo.count)
-    @assert(v.capacity == HelperRunInfo.capacity)
+    Swag.assert(v.firstTrace == HelperRunInfo.firstTrace)
+    Swag.assert(v.secondTrace == HelperRunInfo.secondTrace)
+    Swag.assert(v.count == HelperRunInfo.count)
+    Swag.assert(v.capacity == HelperRunInfo.capacity)
 }
 
 #test
 {
-    @assert(MemoryRunInfo.liveTrace == 10208080805)
-    @assert(MemoryRunInfo.drops == 7)
-    @assert(MemoryRunInfo.dropTrace == 3040102080808)
-    @assert(MemoryRunInfo.count == 0)
-    @assert(MemoryRunInfo.capacity == 0)
+    Swag.assert(MemoryRunInfo.liveTrace == 10208080805)
+    Swag.assert(MemoryRunInfo.drops == 7)
+    Swag.assert(MemoryRunInfo.dropTrace == 3040102080808)
+    Swag.assert(MemoryRunInfo.count == 0)
+    Swag.assert(MemoryRunInfo.capacity == 0)
 
     let v = memoryAllocatorRunDropInfo()
-    @assert(v.liveTrace == MemoryRunInfo.liveTrace)
-    @assert(v.drops == MemoryRunInfo.drops)
-    @assert(v.dropTrace == MemoryRunInfo.dropTrace)
-    @assert(v.count == MemoryRunInfo.count)
-    @assert(v.capacity == MemoryRunInfo.capacity)
+    Swag.assert(v.liveTrace == MemoryRunInfo.liveTrace)
+    Swag.assert(v.drops == MemoryRunInfo.drops)
+    Swag.assert(v.dropTrace == MemoryRunInfo.dropTrace)
+    Swag.assert(v.count == MemoryRunInfo.count)
+    Swag.assert(v.capacity == MemoryRunInfo.capacity)
 }

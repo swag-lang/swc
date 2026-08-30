@@ -107,7 +107,7 @@ func day4B0()
                 let val = catch StrConv.parseS32(res1[1]) as err
                 if err != null do
                     break
-                if val.eat == @countof(res1[1]) do
+                if val.eat == res1[1].count do
                     break
                 let sub = res1[1][val.eat to]
                 if sub != "cm" and sub != "in" do
@@ -118,7 +118,7 @@ func day4B0()
                     pass |= 8
 
             case "hcl":
-                if @countof(res1[1]) != 7 or res1[1][0] != '#' do
+                if res1[1].count != 7 or res1[1][0] != '#' do
                     break
                 discard catch StrConv.parseX64(res1[1][1 to]) as err
                 if err == null do
@@ -130,12 +130,12 @@ func day4B0()
 
             case "pid":
                 discard catch StrConv.toS32(res1[1]) as err
-                if err == null and @countof(res1[1]) == 9 do
+                if err == null and res1[1].count == 9 do
                     pass |= 64
             }
         }
 
-        if @index == lines.count - 1 or lines[@index + 1].length == 0
+        if Swag.index == lines.count - 1 or lines[Swag.index + 1].length == 0
         {
             if pass & 0b1111111 == 0b1111111 do
                 total += 1
@@ -144,7 +144,7 @@ func day4B0()
     }
 
     // Console.print("total: ", total)
-    @assert(total == 224)
+    Swag.assert(total == 224)
 }
 
 /////////////////////////////////////////////////////////////////
@@ -174,7 +174,7 @@ func day4B1()
                 pass |= it.value.b
         }
 
-        if @index == lines.count - 1 or lines[@index + 1].length == 0
+        if Swag.index == lines.count - 1 or lines[Swag.index + 1].length == 0
         {
             total += cast(s32) (pass == 0b1111111)
             pass  = 0
@@ -182,5 +182,5 @@ func day4B1()
     }
 
     // Console.print("total: ", total)
-    @assert(total == 224)
+    Swag.assert(total == 224)
 }

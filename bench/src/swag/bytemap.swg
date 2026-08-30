@@ -19,7 +19,7 @@ func mapInit(m: *ByteMap, capacity: u64, base: [*] u8)
     m.keyLen = cast([*] u64) (benchAlloc(capacity * #sizeof(u64)))!
     m.val    = cast([*] u64) (benchAlloc(capacity * #sizeof(u64)))!
     m.used   = cast([*] u8) benchAlloc(capacity)!
-    @memset(m.used, 0'u8, capacity)
+    Swag.memset(m.used, 0'u8, capacity)
     m.base  = base
     m.mask  = capacity - 1
     m.count = 0
@@ -46,7 +46,7 @@ func mapProbe(m: *ByteMap, off, len: u64)->u64
     var idx = h & m.mask
     while m.used[idx] != 0
     {
-        if m.keyLen[idx] == len and @memcmp(&m.base[m.keyOff[idx]], &m.base[off], len) == 0 do
+        if m.keyLen[idx] == len and Swag.memcmp(&m.base[m.keyOff[idx]], &m.base[off], len) == 0 do
             return idx
         idx = (idx + 1) & m.mask
     }

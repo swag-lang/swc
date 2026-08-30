@@ -27,5 +27,5 @@ func day4A()
         total += cast(s32) (set.count == s.count)
     }
 
-    @assert(total == 455)
+    Swag.assert(total == 455)
 }

@@ -279,7 +279,7 @@ private func isNumberStart(c: u8)->bool
 // Scans one floating-point number of a path or attribute value.
 private func scanNumber(s: string, pos: *u64)->f32
 {
-    let len = @countof(s)
+    let len = s.count
     var i   = pos[]
     while i < len and (s[i] == ' ' or s[i] == ',' or s[i] == '\t' or s[i] == '\n' or s[i] == '\r') do
         i += 1
@@ -308,22 +308,22 @@ private func scanNumber(s: string, pos: *u64)->f32
     pos[] = i
     if i == start do
         return 0
-    return catch StrConv.toF32(cast(string) @mkslice(@dataof(s) + start, i - start))
+    return catch StrConv.toF32(cast(string) Swag.makeSlice(s.buffer + start, i - start))
 }
 
 private func parseLength(value: string, defaultValue: SvgLength = {})->SvgLength
 {
     var pos = 0'u64
-    while pos < @countof(value) and (value[pos] == ' ' or value[pos] == '\t' or value[pos] == '\n' or value[pos] == '\r') do
+    while pos < value.count and (value[pos] == ' ' or value[pos] == '\t' or value[pos] == '\n' or value[pos] == '\r') do
         pos += 1
-    if pos >= @countof(value) or !isNumberStart(value[pos]) do
+    if pos >= value.count or !isNumberStart(value[pos]) do
         return defaultValue
 
     var result: retval
     result.value = scanNumber(value, &pos)
-    while pos < @countof(value) and value[pos] == ' ' do
+    while pos < value.count and value[pos] == ' ' do
         pos += 1
-    if pos < @countof(value) and value[pos] == '%'
+    if pos < value.count and value[pos] == '%'
     {
         result.value     *= 0.01
         result.isPercent = true
@@ -336,14 +336,14 @@ private func parsePaintId(value: string)->String
 {
     var result: retval
     let trimmed = Latin1.trim(value)
-    if @countof(trimmed) < 7 or Latin1.compare(cast(string) @mkslice(@dataof(trimmed), 5), "url(#", ignoreCase: true) do
+    if trimmed.count < 7 or Latin1.compare(cast(string) Swag.makeSlice(trimmed.buffer, 5), "url(#", ignoreCase: true) do
         return result
 
     var end = 5'u64
-    while end < @countof(trimmed) and trimmed[end] != ')' do
+    while end < trimmed.count and trimmed[end] != ')' do
         end += 1
     if end > 5 do
-        result = cast(string) @mkslice(@dataof(trimmed) + 5, end - 5)
+        result = cast(string) Swag.makeSlice(trimmed.buffer + 5, end - 5)
     return result
 }
 
@@ -384,7 +384,7 @@ private func hexNibble(c: u8)->u8
 private func scanCssComponent(value: string, pos: *u64, scale: f32)->f32
 {
     var result = scanNumber(value, pos)
-    if pos[] < @countof(value) and value[pos[]] == '%'
+    if pos[] < value.count and value[pos[]] == '%'
     {
         result *= 0.01 * scale
         pos[]  += 1
@@ -414,7 +414,7 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
         return result
     }
 
-    let len = @countof(text)
+    let len = text.count
     if len and text[0] == '#'
     {
         if len == 4 or len == 5
@@ -438,8 +438,8 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
         }
     }
 
-    let isRgb  = len > 4 and !Latin1.compare(cast(string) @mkslice(@dataof(text), 4), "rgb(", ignoreCase: true)
-    let isRgba = len > 5 and !Latin1.compare(cast(string) @mkslice(@dataof(text), 5), "rgba(", ignoreCase: true)
+    let isRgb  = len > 4 and !Latin1.compare(cast(string) Swag.makeSlice(text.buffer, 4), "rgb(", ignoreCase: true)
+    let isRgba = len > 5 and !Latin1.compare(cast(string) Swag.makeSlice(text.buffer, 5), "rgba(", ignoreCase: true)
     if isRgb or isRgba
     {
         var pos = isRgba ? 5'u64 : 4'u64
@@ -451,8 +451,8 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
         return result
     }
 
-    let isHsl  = len > 4 and !Latin1.compare(cast(string) @mkslice(@dataof(text), 4), "hsl(", ignoreCase: true)
-    let isHsla = len > 5 and !Latin1.compare(cast(string) @mkslice(@dataof(text), 5), "hsla(", ignoreCase: true)
+    let isHsl  = len > 4 and !Latin1.compare(cast(string) Swag.makeSlice(text.buffer, 4), "hsl(", ignoreCase: true)
+    let isHsla = len > 5 and !Latin1.compare(cast(string) Swag.makeSlice(text.buffer, 5), "hsla(", ignoreCase: true)
     if isHsl or isHsla
     {
         var pos = isHsla ? 5'u64 : 4'u64
@@ -490,15 +490,15 @@ private func parseDashPattern(value: string)->Array'SvgLength
         return result
 
     var pos = 0'u64
-    while pos < @countof(text)
+    while pos < text.count
     {
-        while pos < @countof(text) and (text[pos] == ' ' or text[pos] == ',' or text[pos] == '\t' or text[pos] == '\n' or text[pos] == '\r') do
+        while pos < text.count and (text[pos] == ' ' or text[pos] == ',' or text[pos] == '\t' or text[pos] == '\n' or text[pos] == '\r') do
             pos += 1
-        if pos >= @countof(text) or !isNumberStart(text[pos]) do
+        if pos >= text.count or !isNumberStart(text[pos]) do
             break
 
         var length = SvgLength{value: scanNumber(text, &pos)}
-        if pos < @countof(text) and text[pos] == '%'
+        if pos < text.count and text[pos] == '%'
         {
             length.value     *= 0.01
             length.isPercent = true
@@ -657,12 +657,12 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
 
     case "transform":
         var pos = 0'u64
-        let len = @countof(value)
+        let len = value.count
         while pos < len
         {
             while pos < len and (value[pos] == ' ' or value[pos] == ',') do
                 pos += 1
-            if pos + 9 < len and cast(string) @mkslice(@dataof(value) + pos, 9) == "translate"
+            if pos + 9 < len and cast(string) Swag.makeSlice(value.buffer + pos, 9) == "translate"
             {
                 pos += 9
                 while pos < len and value[pos] != '(' do
@@ -681,7 +681,7 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
                     pos += 1
                 pos += 1
             }
-            elif pos + 5 < len and cast(string) @mkslice(@dataof(value) + pos, 5) == "scale"
+            elif pos + 5 < len and cast(string) Swag.makeSlice(value.buffer + pos, 5) == "scale"
             {
                 pos += 5
                 while pos < len and value[pos] != '(' do
@@ -712,28 +712,28 @@ private func applyAttribute(state: *GroupState, name, value: string)
     {
         // Inline declarations: name:value pairs separated by ';'.
         var scan = value
-        while @countof(scan)
+        while scan.count
         {
             var stop = 0'u64
-            while stop < @countof(scan) and scan[stop] != ';' do
+            while stop < scan.count and scan[stop] != ';' do
                 stop += 1
-            let decl = @mkslice(@dataof(scan), stop)
+            let decl = Swag.makeSlice(scan.buffer, stop)
 
             var sep = 0'u64
-            while sep < @countof(decl) and decl[sep] != ':' do
+            while sep < decl.count and decl[sep] != ':' do
                 sep += 1
-            if sep < @countof(decl)
+            if sep < decl.count
             {
-                var n = cast(string) @mkslice(@dataof(decl), sep)
-                var v = cast(string) @mkslice(@dataof(decl) + sep + 1, @countof(decl) - sep - 1)
+                var n = cast(string) Swag.makeSlice(decl.buffer, sep)
+                var v = cast(string) Swag.makeSlice(decl.buffer + sep + 1, decl.count - sep - 1)
                 n = Latin1.trim(n)
                 v = Latin1.trim(v)
                 applyStyleProperty(state, n, v)
             }
 
-            if stop == @countof(scan) do
+            if stop == scan.count do
                 break
-            scan = cast(string) @mkslice(@dataof(scan) + stop + 1, @countof(scan) - stop - 1)
+            scan = cast(string) Swag.makeSlice(scan.buffer + stop + 1, scan.count - stop - 1)
         }
 
         return
@@ -746,29 +746,29 @@ private func styleValue(style, property: string)->String
 {
     var result: retval
     var scan = style
-    while @countof(scan)
+    while scan.count
     {
         var stop = 0'u64
-        while stop < @countof(scan) and scan[stop] != ';' do
+        while stop < scan.count and scan[stop] != ';' do
             stop += 1
-        let declaration = @mkslice(@dataof(scan), stop)
+        let declaration = Swag.makeSlice(scan.buffer, stop)
 
         var sep = 0'u64
-        while sep < @countof(declaration) and declaration[sep] != ':' do
+        while sep < declaration.count and declaration[sep] != ':' do
             sep += 1
-        if sep < @countof(declaration)
+        if sep < declaration.count
         {
-            let name = Latin1.trim(cast(string) @mkslice(@dataof(declaration), sep))
+            let name = Latin1.trim(cast(string) Swag.makeSlice(declaration.buffer, sep))
             if !Latin1.compare(name, property, ignoreCase: true)
             {
-                result = Latin1.trim(cast(string) @mkslice(@dataof(declaration) + sep + 1, @countof(declaration) - sep - 1))
+                result = Latin1.trim(cast(string) Swag.makeSlice(declaration.buffer + sep + 1, declaration.count - sep - 1))
                 return result
             }
         }
 
-        if stop == @countof(scan) do
+        if stop == scan.count do
             break
-        scan = cast(string) @mkslice(@dataof(scan) + stop + 1, @countof(scan) - stop - 1)
+        scan = cast(string) Swag.makeSlice(scan.buffer + stop + 1, scan.count - stop - 1)
     }
 
     return result
@@ -855,7 +855,7 @@ private func appendArc(path: *LinePath, x0, y0: f32, rxIn, ryIn: f32, largeArc, 
 // Parses one `d` attribute into subpath contours, transformed by `state`.
 private func parsePathData(list: *LinePathList, data: string, state: *GroupState)
 {
-    let len = @countof(data)
+    let len = data.count
     var pos = 0'u64
 
     var cmd:        u8
@@ -873,9 +873,9 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             return 0
 
         var look = pos[]
-        while look < @countof(data) and (data[look] == ' ' or data[look] == ',' or data[look] == '\t' or data[look] == '\n' or data[look] == '\r') do
+        while look < data.count and (data[look] == ' ' or data[look] == ',' or data[look] == '\t' or data[look] == '\n' or data[look] == '\r') do
             look += 1
-        if look >= @countof(data) or !isNumberStart(data[look])
+        if look >= data.count or !isNumberStart(data[look])
         {
             valid[] = false
             return 0
@@ -889,9 +889,9 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
         if !valid[] do
             return false
 
-        while pos[] < @countof(data) and (data[pos[]] == ' ' or data[pos[]] == ',' or data[pos[]] == '\t' or data[pos[]] == '\n' or data[pos[]] == '\r') do
+        while pos[] < data.count and (data[pos[]] == ' ' or data[pos[]] == ',' or data[pos[]] == '\t' or data[pos[]] == '\n' or data[pos[]] == '\r') do
             pos[] += 1
-        if pos[] >= @countof(data) or (data[pos[]] != '0' and data[pos[]] != '1')
+        if pos[] >= data.count or (data[pos[]] != '0' and data[pos[]] != '1')
         {
             valid[] = false
             return false
@@ -1282,12 +1282,12 @@ private func emitPoly(drawing: *Drawing, state: *GroupState, points: string, clo
     var pos  = 0'u64
     var idx  = 0
 
-    while pos < @countof(points)
+    while pos < points.count
     {
         var look = pos
-        while look < @countof(points) and (points[look] == ' ' or points[look] == ',') do
+        while look < points.count and (points[look] == ' ' or points[look] == ',') do
             look += 1
-        if look >= @countof(points) or !isNumberStart(points[look]) do
+        if look >= points.count or !isNumberStart(points[look]) do
             break
 
         let x = scanNumber(points, &pos)
@@ -1310,7 +1310,7 @@ private impl Parser
 {
     mtd skipUntil(c: u8)
     {
-        let len = @countof(.text)
+        let len = (.text).count
         while .pos < len and .text[.pos] != c do
             .pos += 1
     }
@@ -1319,41 +1319,41 @@ private impl Parser
     {
         let contentStart = .pos
         var contentEnd   = .pos
-        while contentEnd + 7 < @countof(.text)
+        while contentEnd + 7 < (.text).count
         {
-            if .text[contentEnd] == '<' and .text[contentEnd + 1] == '/' and !Latin1.compare(cast(string) @mkslice(@dataof(.text) + contentEnd + 2, 5), "style", ignoreCase: true) do
+            if .text[contentEnd] == '<' and .text[contentEnd + 1] == '/' and !Latin1.compare(cast(string) Swag.makeSlice((.text).buffer + contentEnd + 2, 5), "style", ignoreCase: true) do
                 break
             contentEnd += 1
         }
 
-        let content = cast(string) @mkslice(@dataof(.text) + contentStart, contentEnd - contentStart)
+        let content = cast(string) Swag.makeSlice((.text).buffer + contentStart, contentEnd - contentStart)
         var pos     = 0'u64
-        while pos < @countof(content)
+        while pos < content.count
         {
-            while pos < @countof(content) and content[pos] != '{' do
+            while pos < content.count and content[pos] != '{' do
                 pos += 1
-            if pos >= @countof(content) do
+            if pos >= content.count do
                 break
 
             var selectorStart = pos
             while selectorStart and content[selectorStart - 1] != '}' do
                 selectorStart -= 1
-            let selector = Latin1.trim(cast(string) @mkslice(@dataof(content) + selectorStart, pos - selectorStart))
+            let selector = Latin1.trim(cast(string) Swag.makeSlice(content.buffer + selectorStart, pos - selectorStart))
             pos += 1
             let declarationsStart = pos
-            while pos < @countof(content) and content[pos] != '}' do
+            while pos < content.count and content[pos] != '}' do
                 pos += 1
-            if pos >= @countof(content) do
+            if pos >= content.count do
                 break
 
-            if @countof(selector) and selector[0] != '@' do
-                .styles.add({String.from(selector), String.from(Latin1.trim(cast(string) @mkslice(@dataof(content) + declarationsStart, pos - declarationsStart)))})
+            if selector.count and selector[0] != '@' do
+                .styles.add({String.from(selector), String.from(Latin1.trim(cast(string) Swag.makeSlice(content.buffer + declarationsStart, pos - declarationsStart)))})
             pos += 1
         }
 
         .pos = contentEnd
         .skipUntil('>')
-        if .pos < @countof(.text) do
+        if .pos < (.text).count do
             .pos += 1
     }
 
@@ -1374,29 +1374,29 @@ private impl Parser
                 switch specificity
                 {
                 case 0:
-                    matches = @countof(selector) and selector[0] != '.' and selector[0] != '#' and !Latin1.compare(selector, elementName, ignoreCase: true)
+                    matches = selector.count and selector[0] != '.' and selector[0] != '#' and !Latin1.compare(selector, elementName, ignoreCase: true)
 
                 case 1:
-                    if @countof(selector) > 1 and selector[0] == '.' and classAttr
+                    if selector.count > 1 and selector[0] == '.' and classAttr
                     {
-                        let wanted  = cast(string) @mkslice(@dataof(selector) + 1, @countof(selector) - 1)
+                        let wanted  = cast(string) Swag.makeSlice(selector.buffer + 1, selector.count - 1)
                         var classes = classAttr.value.toString()
-                        while @countof(classes)
+                        while classes.count
                         {
                             var end = 0'u64
-                            while end < @countof(classes) and classes[end] != ' ' and classes[end] != '\t' and classes[end] != '\n' and classes[end] != '\r' do
+                            while end < classes.count and classes[end] != ' ' and classes[end] != '\t' and classes[end] != '\n' and classes[end] != '\r' do
                                 end += 1
-                            if !Latin1.compare(cast(string) @mkslice(@dataof(classes), end), wanted) do
+                            if !Latin1.compare(cast(string) Swag.makeSlice(classes.buffer, end), wanted) do
                                 matches = true
-                            if matches or end == @countof(classes) do
+                            if matches or end == classes.count do
                                 break
-                            classes = Latin1.trim(cast(string) @mkslice(@dataof(classes) + end, @countof(classes) - end))
+                            classes = Latin1.trim(cast(string) Swag.makeSlice(classes.buffer + end, classes.count - end))
                         }
                     }
 
                 case 2:
-                    if @countof(selector) > 1 and selector[0] == '#' and idAttr do
-                        matches = !Latin1.compare(cast(string) @mkslice(@dataof(selector) + 1, @countof(selector) - 1), idAttr.value.toString())
+                    if selector.count > 1 and selector[0] == '#' and idAttr do
+                        matches = !Latin1.compare(cast(string) Swag.makeSlice(selector.buffer + 1, selector.count - 1), idAttr.value.toString())
                 }
 
                 if matches do
@@ -1414,7 +1414,7 @@ private impl Parser
     mtd scanAttributes(state: *GroupState, geo: *HashTable'(String, String))->{ selfClosed: bool }
     {
         var result: retval
-        let len = @countof(.text)
+        let len = (.text).count
 
         while .pos < len
         {
@@ -1439,7 +1439,7 @@ private impl Parser
             let nameStart = .pos
             while .pos < len and .text[.pos] != '=' and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' do
                 .pos += 1
-            let name = cast(string) @mkslice(@dataof(.text) + nameStart, .pos - nameStart)
+            let name = cast(string) Swag.makeSlice((.text).buffer + nameStart, .pos - nameStart)
 
             while .pos < len and .text[.pos] != '=' and .text[.pos] != '>' and .text[.pos] != '/' do
                 .pos += 1
@@ -1456,7 +1456,7 @@ private impl Parser
             let valueStart = .pos
             while .pos < len and .text[.pos] != quote do
                 .pos += 1
-            let value = cast(string) @mkslice(@dataof(.text) + valueStart, .pos - valueStart)
+            let value = cast(string) Swag.makeSlice((.text).buffer + valueStart, .pos - valueStart)
             .pos += 1
 
             switch name
@@ -1527,7 +1527,7 @@ private impl Parser
 
     mtd parseGradientStops(gradient: *Gradient) fail
     {
-        let len = @countof(.text)
+        let len = (.text).count
         while .pos < len
         {
             .skipUntil('<')
@@ -1554,7 +1554,7 @@ private impl Parser
             let nameStart = .pos
             while .pos < len and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' and .text[.pos] != '\t' and .text[.pos] != '\n' and .text[.pos] != '\r' do
                 .pos += 1
-            let name = cast(string) @mkslice(@dataof(.text) + nameStart, .pos - nameStart)
+            let name = cast(string) Swag.makeSlice((.text).buffer + nameStart, .pos - nameStart)
 
             var state: GroupState
             var geo:   HashTable'(String, String)
@@ -1622,8 +1622,8 @@ private impl Parser
         if href
         {
             var baseId = href.value.toString()
-            if @countof(baseId) and baseId[0] == '#' do
-                baseId = cast(string) @mkslice(@dataof(baseId) + 1, @countof(baseId) - 1)
+            if baseId.count and baseId[0] == '#' do
+                baseId = cast(string) Swag.makeSlice(baseId.buffer + 1, baseId.count - 1)
             let base = .gradients.tryFind(baseId)
             if base do
                 gradient = base.value
@@ -1690,12 +1690,12 @@ private impl Parser
         {
             // The decoded size is bounded by the encoded length, so the byte budget is enforced
             // before anything is allocated.
-            if (@countof(href) / 4) * 3 > .options.maxImageBytes do
+            if (href.count / 4) * 3 > .options.maxImageBytes do
                 fail Swag.SystemError{"embedded SVG image exceeds the configured byte limit"}
             return try Image.fromDataUri(href)
         }
 
-        if @countof(.options.externalResourceRoot) == 0 do
+        if (.options.externalResourceRoot).count == 0 do
             fail Swag.SystemError{"external SVG image references are disabled"}
         if Path.isRooted(href) do
             fail Swag.SystemError{"absolute SVG image references are not allowed"}
@@ -1743,7 +1743,7 @@ private impl Parser
 
         if !.typeFace
         {
-            if @countof(.options.fontFileName) == 0 do
+            if (.options.fontFileName).count == 0 do
                 fail Swag.SystemError{"SVG text requires a configured font file"}
             .typeFace = try TypeFace.load(.options.fontFileName)
         }
@@ -1776,7 +1776,7 @@ private impl Parser
         if selfClosed do
             return
 
-        let len   = @countof(.text)
+        let len   = (.text).count
         var first = true
         while .pos < len
         {
@@ -1784,7 +1784,7 @@ private impl Parser
             .skipUntil('<')
             if .pos > textStart
             {
-                let content = cast(string) @mkslice(@dataof(.text) + textStart, .pos - textStart)
+                let content = cast(string) Swag.makeSlice((.text).buffer + textStart, .pos - textStart)
                 try .addTextRun(content, &state, geo, block, first)
                 first = false
             }
@@ -1802,7 +1802,7 @@ private impl Parser
             let nameStart = .pos
             while .pos < len and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' and .text[.pos] != '\t' and .text[.pos] != '\n' and .text[.pos] != '\r' do
                 .pos += 1
-            let name = cast(string) @mkslice(@dataof(.text) + nameStart, .pos - nameStart)
+            let name = cast(string) Swag.makeSlice((.text).buffer + nameStart, .pos - nameStart)
 
             var childState                = state
             var childGeo: HashTable'(String, String)
@@ -1817,7 +1817,7 @@ private impl Parser
 
             let childStart = .pos
             .skipUntil('<')
-            let childText = cast(string) @mkslice(@dataof(.text) + childStart, .pos - childStart)
+            let childText = cast(string) Swag.makeSlice((.text).buffer + childStart, .pos - childStart)
             try .addTextRun(childText, &childState, &childGeo, block, first)
             first = false
             if !childClosed
@@ -1860,7 +1860,7 @@ private impl Parser
         var filter: SvgFilter
         if !selfClosed
         {
-            let len = @countof(.text)
+            let len = (.text).count
             while .pos < len
             {
                 .skipUntil('<')
@@ -1877,7 +1877,7 @@ private impl Parser
                 let nameStart = .pos
                 while .pos < len and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' and .text[.pos] != '\t' and .text[.pos] != '\n' and .text[.pos] != '\r' do
                     .pos += 1
-                let name = cast(string) @mkslice(@dataof(.text) + nameStart, .pos - nameStart)
+                let name = cast(string) Swag.makeSlice((.text).buffer + nameStart, .pos - nameStart)
                 var state: GroupState
                 var attrs: HashTable'(String, String)
                 let {selfClosed: childClosed} = .scanAttributes(&state, &attrs)
@@ -1926,7 +1926,7 @@ private impl Parser
     // Parses the elements between the current position and the parent's close tag.
     mtd parseContent(parent: GroupState) fail
     {
-        let len = @countof(.text)
+        let len = (.text).count
         while .pos < len
         {
             .skipUntil('<')
@@ -1955,7 +1955,7 @@ private impl Parser
             let nameStart = .pos
             while .pos < len and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' and .text[.pos] != '\t' and .text[.pos] != '\n' and .text[.pos] != '\r' do
                 .pos += 1
-            let name = cast(string) @mkslice(@dataof(.text) + nameStart, .pos - nameStart)
+            let name = cast(string) Swag.makeSlice((.text).buffer + nameStart, .pos - nameStart)
 
             var state        = parent
             var geo: HashTable'(String, String)
@@ -2086,8 +2086,8 @@ private impl Parser
                 if href
                 {
                     var name2 = href.value.toString()
-                    if @countof(name2) and name2[0] == '#' do
-                        name2 = cast(string) @mkslice(@dataof(name2) + 1, @countof(name2) - 1)
+                    if name2.count and name2[0] == '#' do
+                        name2 = cast(string) Swag.makeSlice(name2.buffer + 1, name2.count - 1)
                     let here = .defs.tryFind(name2)
                     if here do
                         .instantiate(here.value.first, here.value.count, &state, .geoNumber(&geo, "x"), .geoNumber(&geo, "y"))

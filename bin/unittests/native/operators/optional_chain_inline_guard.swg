@@ -37,17 +37,17 @@ func optGuardGet(use: bool)->#null *OptGuardNode
 // A null receiver takes the fallback, and the method body never runs.
 #test
 {
-    @assert((optGuardGet(false)?.seven() orelse -1) == -1)
-    @assert((optGuardGet(true)?.seven() orelse -1) == 7)
+    Swag.assert((optGuardGet(false)?.seven() orelse -1) == -1)
+    Swag.assert((optGuardGet(true)?.seven() orelse -1) == 7)
 }
 
 // The guarded call mutates through the receiver only on the non-null path.
 #test
 {
     g_optGuardNode.value = 42
-    @assert((optGuardGet(true)?.bump() orelse -1) == 43)
-    @assert((optGuardGet(false)?.bump() orelse -1) == -1)
-    @assert(g_optGuardNode.value == 43)
+    Swag.assert((optGuardGet(true)?.bump() orelse -1) == 43)
+    Swag.assert((optGuardGet(false)?.bump() orelse -1) == -1)
+    Swag.assert(g_optGuardNode.value == 43)
 }
 
 // A void guarded call is a statement that does nothing when the receiver is null.
@@ -55,7 +55,7 @@ func optGuardGet(use: bool)->#null *OptGuardNode
 {
     g_optGuardNode.value = 5
     optGuardGet(false)?.reset()
-    @assert(g_optGuardNode.value == 5)
+    Swag.assert(g_optGuardNode.value == 5)
     optGuardGet(true)?.reset()
-    @assert(g_optGuardNode.value == 0)
+    Swag.assert(g_optGuardNode.value == 0)
 }

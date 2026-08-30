@@ -60,7 +60,7 @@ alias NativeNonNullHolderAlias = NativeNonNullHolder
 
 struct NativeNonNullPointerDefault
 {
-    required: const [*] u8 = @dataof(NATIVE_NONULL_POINTER_DEFAULT_TEXT)
+    required: const [*] u8 = NATIVE_NONULL_POINTER_DEFAULT_TEXT.buffer
 }
 
 struct NativeNonNullMoveDefault
@@ -251,7 +251,7 @@ func nativeNonNullConstruction()->bool
         return false
     if families.valuePointer != &first or families.blockPointer[1].value != 32 do
         return false
-    if @countof(families.slice) != 2 or families.slice[0].value != 31 do
+    if families.slice.count != 2 or families.slice[0].value != 31 do
         return false
     if families.text != "nonull" or families.ctext[0] != 'a'u8 do
         return false
@@ -266,7 +266,7 @@ func nativeNonNullConstruction()->bool
         return false
     if pointerArray[0] != &first or pointerArray[1] != &second or aliasedHolder.required != &first do
         return false
-    if pointerDefault.required != @dataof(NATIVE_NONULL_POINTER_DEFAULT_TEXT) or pointerDefault.required[0] != 'f'u8 do
+    if pointerDefault.required != NATIVE_NONULL_POINTER_DEFAULT_TEXT.buffer or pointerDefault.required[0] != 'f'u8 do
         return false
     if moveDefaultTarget.required != "explicit" or moveDefaultSource.required != "move-default" do
         return false
@@ -291,7 +291,7 @@ func nativeNonNullConstruction()->bool
         return false
 
     var mutable = holder
-    @init(mutable)(&second)
+    Swag.init(mutable)(&second)
     if mutable.required != &second or mutable.optional != null or mutable.legacy != null or mutable.count != 7 do
         return false
 
@@ -313,5 +313,5 @@ func nativeNonNullConstruction()->bool
 
 #test
 {
-    @assert(nativeNonNullConstruction())
+    Swag.assert(nativeNonNullConstruction())
 }

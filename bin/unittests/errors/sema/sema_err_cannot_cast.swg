@@ -13,7 +13,7 @@ const CannotCastSwitchPointerBytes  = ['x'u8, 'y'u8]
 
 #test
 {
-    let c   = @compiler
+    let c   = Swag.compiler()
     let msg = c.getMessage()
     let cfg = c.getBuildCfg()
     c.compileString("")
@@ -23,7 +23,7 @@ const CannotCastSwitchPointerBytes  = ['x'u8, 'y'u8]
 
 #test
 {
-    let c = @compiler
+    let c = Swag.compiler()
     c.compileString(1)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 

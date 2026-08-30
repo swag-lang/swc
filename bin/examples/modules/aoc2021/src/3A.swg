@@ -42,7 +42,7 @@ func day3A()
     let lines    = expect File.readAllLines(dataPath)
 
     var gamma, epsilon: u32
-    for c in @countof(lines[0])
+    for c in lines[0].count
     {
         gamma, epsilon <<= 1
 
@@ -55,5 +55,5 @@ func day3A()
     }
 
     // Console.print("total: ", gamma*epsilon)
-    @assert(gamma * epsilon == 2967914)
+    Swag.assert(gamma * epsilon == 2967914)
 }

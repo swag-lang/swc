@@ -50,7 +50,7 @@ var G: [5] f32 = undefined
 #run
 {
     var value = 1'f32
-    for i in @countof(G)
+    for i in G.count
     {
         G[i]  = value
         value *= 2
@@ -60,11 +60,11 @@ var G: [5] f32 = undefined
 // Validate precomputed results
 #test
 {
-    @assert(G[0] == 1)
-    @assert(G[1] == 2)
-    @assert(G[2] == 4)
-    @assert(G[3] == 8)
-    @assert(G[4] == 16)
+    Swag.assert(G[0] == 1)
+    Swag.assert(G[1] == 2)
+    Swag.assert(G[2] == 4)
+    Swag.assert(G[3] == 8)
+    Swag.assert(G[4] == 16)
 }
 
 /**
@@ -100,7 +100,7 @@ Example: initializing a static array at compile time.
     const PowerOfTwo: [N] s32 = #run
     {
         var arr: [N] s32
-        for i in @countof(arr) do
+        for i in arr.count do
             arr[i] = 1 << cast(u32) i
         return arr
     }
@@ -147,7 +147,7 @@ Example: initializing a struct in a '#run' block.
         return rgb
     }
 
-    @assert(White.r == 255 and White.g == 255 and White.b == 255)
+    Swag.assert(White.r == 255 and White.g == 255 and White.b == 255)
 }
 
 /**

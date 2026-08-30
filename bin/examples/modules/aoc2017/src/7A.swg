@@ -72,5 +72,5 @@ func day7A()
         }
     }
 
-    @assert(result == "eugwuhl")
+    Swag.assert(result == "eugwuhl")
 }

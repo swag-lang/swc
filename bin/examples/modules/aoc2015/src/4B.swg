@@ -11,7 +11,7 @@ func day4B()
 {
     #static if #cfg == "release"
     {
-        if @jit do
+        if Swag.jit() do
             return
 
         // Time.Stopwatch.scopeMeasure()
@@ -56,7 +56,7 @@ func day4B()
         {
             j.base.lambda = &jobEntry
             j.data        = j
-            j.start       = @index
+            j.start       = Swag.index
             Jobs.schedule(j)
         }
 
@@ -68,6 +68,6 @@ func day4B()
         }
 
         // Console.print("total: ", total)
-        @assert(total == 9962624)
+        Swag.assert(total == 9962624)
     }
 }

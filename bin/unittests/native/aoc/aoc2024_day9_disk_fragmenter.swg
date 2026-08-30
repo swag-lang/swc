@@ -36,7 +36,7 @@ namespace DiskLayout
     {
         var result: DiskMap
         result.blocks = cast(#null [*] u16) testAlloc(cast(u64) capacity * cast(u64) #sizeof(u16))
-        @assert(result.blocks != null)
+        Swag.assert(result.blocks != null)
         result.blockCount = 0
         result.fileCount  = 0
         return result
@@ -57,7 +57,7 @@ namespace DiskLayout
         let srcBlocks = src.blocks!
         for src.blockCount
         {
-            dstBlocks[cast(u32) @index] = srcBlocks[cast(u32) @index]
+            dstBlocks[cast(u32) Swag.index] = srcBlocks[cast(u32) Swag.index]
         }
         return result
     }
@@ -69,14 +69,14 @@ namespace DiskLayout
         let blocks = result.blocks!
         var currentFileId: u16
 
-        for @countof(bytes)
+        for bytes.count
         {
-            let ch = bytes[@index]
+            let ch = bytes[Swag.index]
             if ch < '0' or ch > '9' do
                 continue
 
             let runLength = cast(u32) (ch - '0')
-            let isFile    = (@index & 1) == 0
+            let isFile    = (Swag.index & 1) == 0
 
             #assert(#typeof(isFile) == bool)
             #assert(#typeof(runLength) == u32)
@@ -84,7 +84,7 @@ namespace DiskLayout
             let blockId = isFile ? currentFileId : FreeId
             for runLength
             {
-                @assert(result.blockCount < MaxBlocks)
+                Swag.assert(result.blockCount < MaxBlocks)
                 blocks[result.blockCount] = blockId
                 result.blockCount         += 1
             }
@@ -101,7 +101,7 @@ namespace DiskLayout
 
     func blockAt(dm: DiskMap, pos: u32)->u16
     {
-        @assert(pos < dm.blockCount)
+        Swag.assert(pos < dm.blockCount)
         let blocks = dm.blocks!
         return blocks[pos]
     }
@@ -223,7 +223,7 @@ namespace Compaction
         let blocks = dm.blocks!
         for fileLen
         {
-            let offset = cast(u32) @index
+            let offset = cast(u32) Swag.index
             blocks[gapStart + offset]  = blocks[fileStart + offset]
             blocks[fileStart + offset] = FreeId
         }
@@ -244,7 +244,7 @@ namespace Checksum
         let blocks = dm.blocks!
         for dm.blockCount
         {
-            let pos = cast(u32) @index
+            let pos = cast(u32) Swag.index
             let blk = blocks[pos]
             if blk != FreeId do
                 total += cast(u64) pos * cast(u64) blk
@@ -300,7 +300,7 @@ func getSpanInfo(text: string)->{spanCount: u32, firstFree: u32}
     let blocks    = dm.blocks!
     for dm.blockCount
     {
-        let pos = cast(u32) @index
+        let pos = cast(u32) Swag.index
         let blk = blocks[pos]
         if cast(u32) blk != prevId
         {
@@ -325,31 +325,31 @@ func getSpanInfo(text: string)->{spanCount: u32, firstFree: u32}
 {
     let sample = analyzeDisk(SampleInput)
 
-    @assert(sample.blockCount == 42'u32)
-    @assert(sample.fileCount == 10'u16)
-    @assert(sample.checksumBlocks == 1928'u64)
-    @assert(sample.checksumWholeFile == 2858'u64)
+    Swag.assert(sample.blockCount == 42'u32)
+    Swag.assert(sample.fileCount == 10'u16)
+    Swag.assert(sample.checksumBlocks == 1928'u64)
+    Swag.assert(sample.checksumWholeFile == 2858'u64)
 }
 
 #test
 {
     let small = analyzeDisk(SmallInput)
 
-    @assert(small.blockCount == 15'u32)
-    @assert(small.fileCount == 3'u16)
-    @assert(small.checksumBlocks == 60'u64)
+    Swag.assert(small.blockCount == 15'u32)
+    Swag.assert(small.fileCount == 3'u16)
+    Swag.assert(small.checksumBlocks == 60'u64)
 
     let info = getSpanInfo(SmallInput)
-    @assert(info.spanCount == 5'u32)
-    @assert(info.firstFree == 1'u32)
+    Swag.assert(info.spanCount == 5'u32)
+    Swag.assert(info.firstFree == 1'u32)
 }
 
 #test
 {
     let trivial = analyzeDisk(TrivialInput)
 
-    @assert(trivial.blockCount == 9'u32)
-    @assert(trivial.fileCount == 1'u16)
-    @assert(trivial.checksumBlocks == 0'u64)
-    @assert(trivial.checksumWholeFile == 0'u64)
+    Swag.assert(trivial.blockCount == 9'u32)
+    Swag.assert(trivial.fileCount == 1'u16)
+    Swag.assert(trivial.checksumBlocks == 0'u64)
+    Swag.assert(trivial.checksumWholeFile == 0'u64)
 }

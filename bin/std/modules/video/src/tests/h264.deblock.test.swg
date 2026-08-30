@@ -40,19 +40,19 @@ func assertDeblockHorizontalCase(seed: u64, indexA: s32, strengths: const *H264.
 
     let alpha = cast(s32) H264.DeblockAlpha[cast(u64) indexA]
     let beta  = cast(s32) H264.DeblockBeta[cast(u64) indexA]
-    referenceFilterLumaHorizontal(@dataof(expected) + 4 * DeblockTestStride, strengths, indexA, alpha, beta)
+    referenceFilterLumaHorizontal(expected.buffer + 4 * DeblockTestStride, strengths, indexA, alpha, beta)
     if strengths.bs[0] == 4 or strengths.bs[1] == 4 or strengths.bs[2] == 4 or strengths.bs[3] == 4 do
-        H264.filterLumaStrongHorizontal(@dataof(actual) + 4 * DeblockTestStride, DeblockTestStride, strengths, indexA, alpha, beta)
+        H264.filterLumaStrongHorizontal(actual.buffer + 4 * DeblockTestStride, DeblockTestStride, strengths, indexA, alpha, beta)
     else do
-        H264.filterLumaWeakHorizontal(@dataof(actual) + 4 * DeblockTestStride, DeblockTestStride, strengths, indexA, alpha, beta)
-    @assert(Memory.compare(@dataof(expected), @dataof(actual), @countof(actual)) == 0)
+        H264.filterLumaWeakHorizontal(actual.buffer + 4 * DeblockTestStride, DeblockTestStride, strengths, indexA, alpha, beta)
+    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
 
-    referenceFilterChromaHorizontal(@dataof(expected) + 4 * DeblockTestStride, strengths, indexA, alpha, beta)
+    referenceFilterChromaHorizontal(expected.buffer + 4 * DeblockTestStride, strengths, indexA, alpha, beta)
     if strengths.bs[0] == 4 or strengths.bs[1] == 4 or strengths.bs[2] == 4 or strengths.bs[3] == 4 do
-        H264.filterChromaStrongHorizontal(@dataof(actual) + 4 * DeblockTestStride, DeblockTestStride, strengths, indexA, alpha, beta)
+        H264.filterChromaStrongHorizontal(actual.buffer + 4 * DeblockTestStride, DeblockTestStride, strengths, indexA, alpha, beta)
     else do
-        H264.filterChromaWeakHorizontal(@dataof(actual) + 4 * DeblockTestStride, DeblockTestStride, strengths, indexA, alpha, beta)
-    @assert(Memory.compare(@dataof(expected), @dataof(actual), @countof(actual)) == 0)
+        H264.filterChromaWeakHorizontal(actual.buffer + 4 * DeblockTestStride, DeblockTestStride, strengths, indexA, alpha, beta)
+    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
 }
 
 #test
@@ -101,7 +101,7 @@ func assertDeblockVerticalCase(seed: u64, indexA: s32, strengths: const *H264.Ed
     let beta  = cast(s32) H264.DeblockBeta[cast(u64) indexA]
 
     // Luma: four strengths, four lines each.
-    var reference = @dataof(expected) + 8
+    var reference = expected.buffer + 8
     for segment in 4'u64
     {
         let bs = strengths.bs[segment]
@@ -113,11 +113,11 @@ func assertDeblockVerticalCase(seed: u64, indexA: s32, strengths: const *H264.Ed
         }
     }
 
-    H264.filterLumaVertical(@dataof(actual) + 8, Stride, strengths, indexA, alpha, beta)
-    @assert(Memory.compare(@dataof(expected), @dataof(actual), @countof(actual)) == 0)
+    H264.filterLumaVertical(actual.buffer + 8, Stride, strengths, indexA, alpha, beta)
+    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
 
     // Chroma: four strengths, two lines each, on the same samples.
-    reference = @dataof(expected) + 8
+    reference = expected.buffer + 8
     for segment in 4'u64
     {
         let bs = strengths.bs[segment]
@@ -131,8 +131,8 @@ func assertDeblockVerticalCase(seed: u64, indexA: s32, strengths: const *H264.Ed
 
     if strengths.bs[0] < 4 and strengths.bs[1] < 4 and strengths.bs[2] < 4 and strengths.bs[3] < 4
     {
-        H264.filterChromaWeakVertical(@dataof(actual) + 8, Stride, strengths, indexA, alpha, beta)
-        @assert(Memory.compare(@dataof(expected), @dataof(actual), @countof(actual)) == 0)
+        H264.filterChromaWeakVertical(actual.buffer + 8, Stride, strengths, indexA, alpha, beta)
+        Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
     }
 }
 

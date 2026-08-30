@@ -44,7 +44,7 @@ func undFill(v: *UndItem)
 #test
 {
     var a: UndItem = undefined
-    @assert(a.x == 1)     // swc-expected-error {{sema_err_undefined_field_use}}
+    Swag.assert(a.x == 1)     // swc-expected-error {{sema_err_undefined_field_use}}
 }
 
 // Reading the second field: the whole declared range is undefined.
@@ -52,7 +52,7 @@ func undFill(v: *UndItem)
 #test
 {
     var a: UndItem = undefined
-    @assert(a.y == 2)     // swc-expected-error {{sema_err_undefined_field_use}}
+    Swag.assert(a.y == 2)     // swc-expected-error {{sema_err_undefined_field_use}}
 }
 
 // A pointer declared '= undefined' and tested as a guard before any
@@ -77,7 +77,7 @@ func undFill(v: *UndItem)
     var a: UndItem = undefined     // swc-expected-note {{sanity_note_undefined_origin}}
     let address    = &a
     discard address
-    @assert(a.x == 1)     // swc-expected-error {{sanity_err_undefined_read}}
+    Swag.assert(a.x == 1)     // swc-expected-error {{sanity_err_undefined_read}}
 }
 
 // ---------------------------------------------------------------------------
@@ -91,8 +91,8 @@ func undFill(v: *UndItem)
     var a: UndItem = undefined
     a.x = 5
     a.y = 6
-    @assert(a.x == 5)
-    @assert(a.y == 6)
+    Swag.assert(a.x == 5)
+    Swag.assert(a.y == 6)
 }
 
 // Filling through an out-parameter initializes the storage.
@@ -101,8 +101,8 @@ func undFill(v: *UndItem)
 {
     var a: UndItem = undefined
     undFill(&a)
-    @assert(a.x == 7)
-    @assert(a.y == 8)
+    Swag.assert(a.x == 7)
+    Swag.assert(a.y == 8)
 }
 
 // A store on every path is definitely assigned at the join.
@@ -116,7 +116,7 @@ var g_undTakeBranch = false
         a.x = 1
     else do
         a.x = 2
-    @assert(a.x == 2)
+    Swag.assert(a.x == 2)
 }
 
 // ---------------------------------------------------------------------------
@@ -130,8 +130,8 @@ var g_undTakeBranch = false
 {
     var a: UndItem = undefined
     undOpaqueTouch(&a)
-    @assert(a.x == 0xDDDDDDDD)
-    @assert(a.y == 0xDDDDDDDD)
+    Swag.assert(a.x == 0xDDDDDDDD)
+    Swag.assert(a.y == 0xDDDDDDDD)
 }
 
 // A filled variable reads back its stores, poison long overwritten.
@@ -142,6 +142,6 @@ var g_undTakeBranch = false
     a.x = 11
     a.y = 12
     undOpaqueTouch(&a)
-    @assert(a.x == 11)
-    @assert(a.y == 12)
+    Swag.assert(a.x == 11)
+    Swag.assert(a.y == 12)
 }

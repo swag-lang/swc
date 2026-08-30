@@ -10,6 +10,6 @@ func injectUnknownBinding(stmt: #code(value))
 {
     injectUnknownBinding()
     {
-        @print(value)
+        Swag.print(value)
     }
 }

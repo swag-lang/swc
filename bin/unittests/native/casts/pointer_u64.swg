@@ -6,8 +6,8 @@
     var ptr       = cast(*void) raw
     var roundtrip = cast(u64) ptr
 
-    @assert(roundtrip == raw)
-    @assert(ptr == cast(*void) roundtrip)
+    Swag.assert(roundtrip == raw)
+    Swag.assert(ptr == cast(*void) roundtrip)
 }
 
 #test
@@ -16,6 +16,6 @@
     var ptr       = cast([*]u8) raw
     var roundtrip = cast(u64) ptr
 
-    @assert(roundtrip == raw)
-    @assert(ptr == cast([*]u8) roundtrip)
+    Swag.assert(roundtrip == raw)
+    Swag.assert(ptr == cast([*]u8) roundtrip)
 }

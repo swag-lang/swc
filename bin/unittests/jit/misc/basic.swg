@@ -13,7 +13,7 @@ struct S
 
 #test
 {
-    const V = #run @compiler.compileString("const _x = 0")     // swc-expected-error {{sema_err_run_expr_void}}
+    const V = #run Swag.compiler().compileString("const _x = 0")     // swc-expected-error {{sema_err_run_expr_void}}
 }
 
 #test
@@ -42,62 +42,62 @@ struct S
 
 #test
 {
-    const V = #run @compiler[]     // swc-expected-error {{sema_err_deref_operand_type}}
+    const V = #run Swag.compiler()[]     // swc-expected-error {{sema_err_deref_operand_type}}
 }
 
 #test
 {
-    const V = #run (@compiler.unknownMethod)()[]     // swc-expected-error {{sema_err_unknown_symbol}}
+    const V = #run (Swag.compiler().unknownMethod)()[]     // swc-expected-error {{sema_err_unknown_symbol}}
 }
 
 //#[Swag.PrintMicro("pre-regalloc", "post-emit")]
 #test
 {
-    const Cfg = #run @compiler.getBuildCfg()![]
+    const Cfg = #run Swag.compiler().getBuildCfg()![]
     #assert(#typeof(Cfg) == Swag.BuildCfg)
-// const toto = #run @compiler.compileString("toto")
+// const toto = #run Swag.compiler().compileString("toto")
 }
 
 #test
 {
-    const Cfg = #run (@compiler.getBuildCfg)()![]
+    const Cfg = #run (Swag.compiler().getBuildCfg)()![]
     #assert(#typeof(Cfg) == Swag.BuildCfg)
 }
 
 #test
 {
-    const Cfg1 = #run @compiler.getBuildCfg()![]
-    const Cfg2 = #run @compiler.getBuildCfg()![]
+    const Cfg1 = #run Swag.compiler().getBuildCfg()![]
+    const Cfg2 = #run Swag.compiler().getBuildCfg()![]
     #assert(#typeof(Cfg1) == Swag.BuildCfg)
     #assert(#typeof(Cfg2) == Swag.BuildCfg)
 }
 
 #test
 {
-    const Cfg = #run @compiler.getBuildCfg()![]
+    const Cfg = #run Swag.compiler().getBuildCfg()![]
     #assert(#typeof(Cfg) == s32)     // swc-expected-error {{sema_err_compiler_assert}}
 }
 
 #[Swag.PrintMicro(123)]     // swc-expected-error {{sema_err_cannot_cast}}
 #test
 {
-    const Cfg = #run @compiler.getBuildCfg()![]
+    const Cfg = #run Swag.compiler().getBuildCfg()![]
 }
 
 #test
 {
-    const Cfg = #run @compiler.getBuildCfg()![]
+    const Cfg = #run Swag.compiler().getBuildCfg()![]
 }
 
 #test
 {
-    const Cfg = #run @compiler.getBuildCfg()![]
+    const Cfg = #run Swag.compiler().getBuildCfg()![]
 }
 
 #[Swag.PrintAst(1)]     // swc-expected-error {{sema_err_cannot_cast}}
 #test
 {
-    const Cfg = #run @compiler.getBuildCfg()![]
+    const Cfg = #run Swag.compiler().getBuildCfg()![]
 }
 
 #test

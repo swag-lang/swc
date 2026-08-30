@@ -4,9 +4,9 @@
 func toDegrees(value: f32)->f32 => value * 57.295779513082320876798154814105'f32
 func toDegrees(value: f64)->f64 => value * 57.295779513082320876798154814105'f64
 #[Swag.Inline]
-func abs(value: f32)->f32 => @abs(value)
+func abs(value: f32)->f32 => Swag.abs(value)
 #[Swag.Inline]
-func abs(value: f64)->f64 => @abs(value)
+func abs(value: f64)->f64 => Swag.abs(value)
 #[Swag.Inline]
 func isEqualEpsilon(value, expected: f32, eps: f32)->bool => abs(value - expected) < eps
 #[Swag.Inline]
@@ -299,8 +299,8 @@ func(T) genericParallelVisitLike(range: [..] T, offset: u32 = 1, contextData: #n
 {
     func visitSlice(sliceBuffer: const [..] T, sliceOffset: u32, sliceContextData: #null *void)
     {
-        var scan    = @dataof(sliceBuffer)
-        let countof = @countof(sliceBuffer)
+        var scan    = sliceBuffer.buffer
+        let countof = sliceBuffer.count
         for countof / sliceOffset
         {
             #inject(stmt, buffer = cast #unconst (*T) scan, data = sliceContextData)
@@ -407,7 +407,7 @@ func inlineInjectedLocalContextDataShadow(dstImage: *InlinePixelProbe)
 #[Swag.Inline]
 func inlineGenericParallelContextDataShadow(dstImage: *InlinePixelProbe)
 {
-    genericParallelVisitLike(@mkslice(dstImage.buffer, 1), 1, dstImage)
+    genericParallelVisitLike(Swag.makeSlice(dstImage.buffer, 1), 1, dstImage)
     {
         let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) data!
         let x        = 1

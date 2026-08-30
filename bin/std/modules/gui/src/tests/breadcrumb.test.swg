@@ -26,21 +26,21 @@ func breadcrumbPressed(bc: *BreadcrumbCtrl, idx: u64)
     bc.setLayoutMetrics(8, 4, 5)
     bc.layout()
 
-    @assert(bc.items.count == 3)
-    @assert(bc.iconSize == 16)
-    @assert(bc.itemAt(1).name == "Docs")
-    @assert(bc.items[0].bodyRect.x == 0)
+    Swag.assert(bc.items.count == 3)
+    Swag.assert(bc.iconSize == 16)
+    Swag.assert(bc.itemAt(1).name == "Docs")
+    Swag.assert(bc.items[0].bodyRect.x == 0)
     let standardIconWidth = bc.items[0].bodyRect.width
     bc.iconSize = 0
     bc.layout()
-    @assert(bc.items[0].bodyRect.width == standardIconWidth + 12)
-    @assert(bc.items[0].arrowRect.width > 0)
-    @assert(bc.items[1].bodyRect.x >= bc.items[0].arrowRect.right())
-    @assert(bc.items[2].bodyRect.x >= bc.items[1].arrowRect.right())
-    @assert(bc.items[2].arrowRect.width == 0)
+    Swag.assert(bc.items[0].bodyRect.width == standardIconWidth + 12)
+    Swag.assert(bc.items[0].arrowRect.width > 0)
+    Swag.assert(bc.items[1].bodyRect.x >= bc.items[0].arrowRect.right())
+    Swag.assert(bc.items[2].bodyRect.x >= bc.items[1].arrowRect.right())
+    Swag.assert(bc.items[2].arrowRect.width == 0)
 
     bc.removeItemsFrom(2)
-    @assert(bc.items.count == 2)
+    Swag.assert(bc.items.count == 2)
 }
 
 // Clicking a level body navigates to that level; clicking a chevron with no menu content
@@ -61,11 +61,11 @@ func breadcrumbPressed(bc: *BreadcrumbCtrl, idx: u64)
 
     let r = bc.items[1].bodyRect
     host.click({r.horzCenter(), r.vertCenter()})
-    @assert(BreadcrumbPressedCount == 1)
-    @assert(BreadcrumbPressedIndex == 1)
+    Swag.assert(BreadcrumbPressedCount == 1)
+    Swag.assert(BreadcrumbPressedIndex == 1)
 
     // A chevron with no sigFillMenu produces an empty (destroyed) popup, so no navigation.
     let a = bc.items[0].arrowRect
     host.click({a.horzCenter(), a.vertCenter()})
-    @assert(BreadcrumbPressedCount == 1)
+    Swag.assert(BreadcrumbPressedCount == 1)
 }

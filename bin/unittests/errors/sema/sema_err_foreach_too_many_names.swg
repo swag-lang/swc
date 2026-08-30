@@ -13,7 +13,7 @@ impl CustomVisitTooManyNames
     {
         for idx in 2
         {
-            #inject(stmt, item = me.values[idx], index = @index)
+            #inject(stmt, item = me.values[idx], index = Swag.index)
         }
     }
 }

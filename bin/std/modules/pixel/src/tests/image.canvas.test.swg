@@ -22,13 +22,13 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
     canvas.painter.fillPath(&path, Color.fromRgb(247, 249, 0))
 
     let img = expect canvas.toImage()
-    @assert(img.width == 32)
-    @assert(img.height == 32)
+    Swag.assert(img.width == 32)
+    Swag.assert(img.height == 32)
 
     let inside = img.pixelColor(16, 16)
-    @assert(inside.r == 247 and inside.g == 249 and inside.b == 0)
-    @assert(inside.a == 255)
-    @assert(img.pixelColor(2, 2).a == 0)
+    Swag.assert(inside.r == 247 and inside.g == 249 and inside.b == 0)
+    Swag.assert(inside.a == 255)
+    Swag.assert(img.pixelColor(2, 2).a == 0)
 }
 
 // The ground is laid under the drawing, not over it.
@@ -43,8 +43,8 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
     let img = expect canvas.toImage()
 
     let corner = img.pixelColor(2, 2)
-    @assert(corner.r == 11 and corner.g == 11 and corner.b == 13 and corner.a == 255)
-    @assert(img.pixelColor(16, 16).r == 247)
+    Swag.assert(corner.r == 11 and corner.g == 11 and corner.b == 13 and corner.a == 255)
+    Swag.assert(img.pixelColor(16, 16).r == 247)
 }
 
 // A canvas opened over an image keeps that image and composites on top of it.
@@ -56,7 +56,7 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
     let base = expect ground.toImage()
 
     var over = expect ImageCanvas.create(base)
-    @assert(over.width == 32 and over.height == 32)
+    Swag.assert(over.width == 32 and over.height == 32)
 
     var path = makeSquarePath(0, 0, 16, 32)
     over.painter.fillPath(&path, Color.fromRgb(200, 100, 50))
@@ -65,11 +65,11 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 
     // The right half still shows the image the canvas was opened over.
     let kept = stamped.pixelColor(24, 16)
-    @assert(kept.r == 10 and kept.g == 20 and kept.b == 30 and kept.a == 255)
+    Swag.assert(kept.r == 10 and kept.g == 20 and kept.b == 30 and kept.a == 255)
 
     // The left half shows what was drawn on top.
     let drawn = stamped.pixelColor(8, 16)
-    @assert(drawn.r == 200 and drawn.g == 100 and drawn.b == 50)
+    Swag.assert(drawn.r == 200 and drawn.g == 100 and drawn.b == 50)
 }
 
 // A canvas can produce a series: reading it leaves the painter ready for the next frame.
@@ -80,7 +80,7 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
     var first = makeSquarePath(0, 0, 16, 16)
     canvas.painter.fillPath(&first, Color.fromRgb(255, 0, 0))
     let red = expect canvas.toImage()
-    @assert(red.pixelColor(8, 8).r == 255)
+    Swag.assert(red.pixelColor(8, 8).r == 255)
 
     var second = makeSquarePath(0, 0, 16, 16)
     canvas.painter.fillPath(&second, Color.fromRgb(0, 255, 0))
@@ -88,7 +88,7 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 
     // The second frame starts from a cleared target: the first one did not linger.
     let pixel = green.pixelColor(8, 8)
-    @assert(pixel.g == 255 and pixel.r == 0)
+    Swag.assert(pixel.g == 255 and pixel.r == 0)
 }
 
 // Everything the painter can do is available, not just paths.
@@ -100,8 +100,8 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
     canvas.painter.drawLine(0, 24, 32, 24, Color.fromRgb(255, 255, 255), 4)
 
     let img = expect canvas.toImage()
-    @assert(img.pixelColor(16, 8).r == 80)
-    @assert(img.pixelColor(16, 24).r > 200)
+    Swag.assert(img.pixelColor(16, 8).r == 80)
+    Swag.assert(img.pixelColor(16, 24).r > 200)
 }
 
 // An image with no pixels cannot be drawn over.
@@ -109,7 +109,7 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 {
     var empty: Image
     var canvas = catch ImageCanvas.create(empty) as err
-    @assert(err != null)
+    Swag.assert(err != null)
 }
 
 // An antialiased stroke reaches the pixels, opaque.
@@ -136,7 +136,7 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
     let img = expect canvas.toImage()
 
     let hit = img.pixelColor(16, 16)
-    @assert(hit.r == 247 and hit.g == 249 and hit.b == 0)
-    @assert(hit.a == 255)
-    @assert(img.pixelColor(16, 2).a == 0)
+    Swag.assert(hit.r == 247 and hit.g == 249 and hit.b == 0)
+    Swag.assert(hit.a == 255)
+    Swag.assert(img.pixelColor(16, 2).a == 0)
 }

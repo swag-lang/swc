@@ -55,6 +55,6 @@ const RotationCards = [
     let positive = RotationCard{angle: 10.0'deg}
     let negative = RotationCard{angle: -12.0'deg}
 
-    @assert(approxEqual(positive.angle.radians, 10.0'f32 * DegreesToRadians))
-    @assert(approxEqual(negative.angle.radians, -12.0'f32 * DegreesToRadians))
+    Swag.assert(approxEqual(positive.angle.radians, 10.0'f32 * DegreesToRadians))
+    Swag.assert(approxEqual(negative.angle.radians, -12.0'f32 * DegreesToRadians))
 }

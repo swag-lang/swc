@@ -25,7 +25,7 @@ func day5B()
 
     for f in lines
     {
-        if @countof(f) == 0
+        if f.count == 0
         {
             first = false
             continue
@@ -34,13 +34,13 @@ func day5B()
         if first
         {
             let split = Tokenize.split(f[], '|'u8)
-            @assert(split.count == 2)
+            Swag.assert(split.count == 2)
             order.findOrAdd(expect StrConv.toS32(split[0])).value.add(expect StrConv.toS32(split[1]))
         }
         else
         {
             var update = Slice.map(Tokenize.split(f[], ','u8).toSlice(), func(x) => expect StrConv.toS32(x))
-            @assert(update.count != 0)
+            Swag.assert(update.count != 0)
 
             var isOrdered = true
             for beforeIndex in update.count
@@ -102,14 +102,14 @@ func day5B()
                         break
                     }
 
-                    @assert(found)
+                    Swag.assert(found)
                 }
 
-                @assert(repaired.count & 1 == 1)
+                Swag.assert(repaired.count & 1 == 1)
                 total += repaired[repaired.count / 2]
             }
         }
     }
 
-    @assert(total == 6767)
+    Swag.assert(total == 6767)
 }

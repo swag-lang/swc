@@ -47,9 +47,9 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
     var event = PartialUndefinedEvent{}
     event.kind = .Changed
 
-    @assert(event.kind == PartialUndefinedEvent.Kind.Changed)
-    @assert(event.accepted == false)
-    @assert(event.from == null)
+    Swag.assert(event.kind == PartialUndefinedEvent.Kind.Changed)
+    Swag.assert(event.accepted == false)
+    Swag.assert(event.from == null)
 }
 
 #test
@@ -57,15 +57,15 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
     var value = PartialUndefinedDefaults{}
     value.required = 25
 
-    @assert(value.required == 25)
-    @assert(value.label[0] == 'r'u8)
-    @assert(value.value == 17)
-    @assert(value.enabled == false)
+    Swag.assert(value.required == 25)
+    Swag.assert(value.label[0] == 'r'u8)
+    Swag.assert(value.value == 17)
+    Swag.assert(value.enabled == false)
 }
 
 #test
 {
-    @assert(PARTIAL_UNDEFINED_CONST.label[0] == 'r'u8)
+    Swag.assert(PARTIAL_UNDEFINED_CONST.label[0] == 'r'u8)
 }
 
 #test
@@ -73,10 +73,10 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
     var value: PartialUndefinedDefaults = {}
     value.required = 31
 
-    @assert(value.required == 31)
-    @assert(value.label[0] == 'r'u8)
-    @assert(value.value == 17)
-    @assert(value.enabled == false)
+    Swag.assert(value.required == 31)
+    Swag.assert(value.label[0] == 'r'u8)
+    Swag.assert(value.value == 17)
+    Swag.assert(value.enabled == false)
 }
 
 #test
@@ -84,8 +84,8 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
     var value: PartialUndefinedDefaults
     value.required = 49
 
-    @assert(value.required == 49)
-    @assert(value.label[0] == 'r'u8)
-    @assert(value.value == 17)
-    @assert(value.enabled == false)
+    Swag.assert(value.required == 49)
+    Swag.assert(value.label[0] == 'r'u8)
+    Swag.assert(value.value == 17)
+    Swag.assert(value.enabled == false)
 }

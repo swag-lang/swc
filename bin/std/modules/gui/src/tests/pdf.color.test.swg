@@ -17,10 +17,10 @@ private func filledColors(resources: string, content: string, extra: const [..] 
 {
     let content = "0.5 g 0 0 5 5 re f 1 0 0 rg 0 0 5 5 re f 0 1 1 0 k 0 0 5 5 re f"
     let colors  = filledColors("", content, "")
-    @assert(colors.count == 3)
-    @assert(colors[0].r == 128 and colors[0].g == 128 and colors[0].b == 128)
-    @assert(colors[1].r == 255 and colors[1].g == 0 and colors[1].b == 0)
-    @assert(colors[2].r == 255 and colors[2].g == 0 and colors[2].b == 0)
+    Swag.assert(colors.count == 3)
+    Swag.assert(colors[0].r == 128 and colors[0].g == 128 and colors[0].b == 128)
+    Swag.assert(colors[1].r == 255 and colors[1].g == 0 and colors[1].b == 0)
+    Swag.assert(colors[2].r == 255 and colors[2].g == 0 and colors[2].b == 0)
 }
 
 // `cs` and `scn` name a space from the page resources, then give it its components.
@@ -37,12 +37,12 @@ private func filledColors(resources: string, content: string, extra: const [..] 
 """
 
     let colors = filledColors(resources, content, extra.toSlice())
-    @assert(colors.count == 3)
-    @assert(colors[0].r == 64 and colors[0].g == 64)
-    @assert(colors[1].r == 0 and colors[1].g == 0 and colors[1].b == 0)
+    Swag.assert(colors.count == 3)
+    Swag.assert(colors[0].r == 64 and colors[0].g == 64)
+    Swag.assert(colors[1].r == 0 and colors[1].g == 0 and colors[1].b == 0)
 
     // Without evaluating the tint transform, a spot color reads as the gray its tint darkens to.
-    @assert(colors[2].r == 191 and colors[2].g == 191 and colors[2].b == 191)
+    Swag.assert(colors[2].r == 191 and colors[2].g == 191 and colors[2].b == 191)
 }
 
 // Selecting a space resets the current color to the black that space defines.
@@ -50,8 +50,8 @@ private func filledColors(resources: string, content: string, extra: const [..] 
 {
     let content = "1 0 0 rg /DeviceCMYK cs 0 0 5 5 re f"
     let colors  = filledColors("", content, "")
-    @assert(colors.count == 1)
-    @assert(colors[0].r == 0 and colors[0].g == 0 and colors[0].b == 0)
+    Swag.assert(colors.count == 1)
+    Swag.assert(colors[0].r == 0 and colors[0].g == 0 and colors[0].b == 0)
 }
 
 // An indexed space addresses its palette through `scn` as well.
@@ -60,9 +60,9 @@ private func filledColors(resources: string, content: string, extra: const [..] 
     let resources = "/ColorSpace << /CsIndexed [/Indexed /DeviceRGB 2 <FF0000 00FF00 0000FF>] >>"
     let content   = "/CsIndexed cs 2 scn 0 0 5 5 re f 1 scn 0 0 5 5 re f"
     let colors    = filledColors(resources, content, "")
-    @assert(colors.count == 2)
-    @assert(colors[0].b == 255 and colors[0].r == 0)
-    @assert(colors[1].g == 255 and colors[1].r == 0)
+    Swag.assert(colors.count == 2)
+    Swag.assert(colors[0].b == 255 and colors[0].r == 0)
+    Swag.assert(colors[1].g == 255 and colors[1].r == 0)
 }
 
 // A space that cannot be reduced to a color — an unknown name, or a pattern — leaves the
@@ -70,8 +70,8 @@ private func filledColors(resources: string, content: string, extra: const [..] 
 // never named. A gradient-filled chart region must not become an opaque black rectangle.
 #test
 {
-    @assert(filledColors("", "/Missing cs 0 0 5 5 re f", "").count == 0)
-    @assert(filledColors("", "/Pattern cs /P0 scn 0 0 5 5 re f", "").count == 0)
+    Swag.assert(filledColors("", "/Missing cs 0 0 5 5 re f", "").count == 0)
+    Swag.assert(filledColors("", "/Pattern cs /P0 scn 0 0 5 5 re f", "").count == 0)
 }
 
 // A stroke whose own space is sound survives the loss of the fill beside it.
@@ -79,17 +79,17 @@ private func filledColors(resources: string, content: string, extra: const [..] 
 {
     let document = expect Document.decode(singlePagePdf("", cast(const [..] u8) "/Pattern cs 1 0 0 RG 0 0 5 5 re B", "").toSlice())
     let item     = onlyItem(document.pages[0], .Path)
-    @assert(!item.hasFill)
-    @assert(item.pathStrokeWidth() == 1)
-    @assert(item.itemStrokeColor().r == 255)
+    Swag.assert(!item.hasFill)
+    Swag.assert(item.pathStrokeWidth() == 1)
+    Swag.assert(item.itemStrokeColor().r == 255)
 }
 
 // Selecting a real space again ends the unsupported state.
 #test
 {
     let colors = filledColors("", "/Pattern cs 0 0 5 5 re f /DeviceRGB cs 0 1 0 scn 0 0 5 5 re f", "")
-    @assert(colors.count == 1)
-    @assert(colors[0].g == 255 and colors[0].r == 0)
+    Swag.assert(colors.count == 1)
+    Swag.assert(colors[0].g == 255 and colors[0].r == 0)
 }
 
 // `gs` carries the line width an ExtGState sets.
@@ -101,5 +101,5 @@ private func filledColors(resources: string, content: string, extra: const [..] 
     let content  = "/GS0 gs 0 0 5 5 re S"
     let document = expect Document.decode(singlePagePdf("/ExtGState << /GS0 5 0 R >>", cast(const [..] u8) content, extra.toSlice()).toSlice())
     let item     = onlyItem(document.pages[0], .Path)
-    @assert(item.pathStrokeWidth() == 7)
+    Swag.assert(item.pathStrokeWidth() == 7)
 }

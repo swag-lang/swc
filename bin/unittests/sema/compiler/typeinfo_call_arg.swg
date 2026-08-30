@@ -12,9 +12,9 @@ func(T) takesGenericType()->bool
 
 func semaTest001()
 {
-    @assert(takesType(s32))
-    @assert(takesType(#type s32))
-    @assert(takesGenericType's32())
+    Swag.assert(takesType(s32))
+    Swag.assert(takesType(#type s32))
+    Swag.assert(takesGenericType's32())
 }
 
 #[Swag.Inline]
@@ -30,7 +30,7 @@ func(T) takesGenericType1()->bool
 
 func semaTest002()
 {
-    @assert(takesType1(s32))
-    @assert(takesType1(#type s32))
-    @assert(takesGenericType1's32())
+    Swag.assert(takesType1(s32))
+    Swag.assert(takesType1(#type s32))
+    Swag.assert(takesGenericType1's32())
 }

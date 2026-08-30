@@ -79,7 +79,7 @@ internal struct BinaryViewer
 private func parseBinaryOffset(text: string, current, fileSize: u64)->u64
 {
     var index = 0'u64
-    let count = @countof(text)
+    let count = text.count
     while index < count and (text[index] == ' 'u8 or text[index] == '\t'u8) do
         index += 1
 
@@ -558,7 +558,7 @@ internal impl BinaryViewer
     // has no natural width: a flag list is as long as the flags that are set.
     mtd layoutColumns()
     {
-        if !@isset(.list) do
+        if !Swag.isSet(.list) do
             return
 
         let room  = Math.max(.list.listView.paddedClientRect().width, 480.0)
@@ -996,7 +996,7 @@ internal impl BinaryViewer
 private func runBinaryViewerLoad(thread: Threading.Thread)
 {
     let view    = cast(*BinaryViewer) thread.userParam!
-    let context = @getcontext()
+    let context = Swag.getContext()
     context.allocator = context.defaultAllocator!
     setBinaryStringsOverride(&view.loadStrings)
     let opened = view.pendingDoc.open(view.loadFileName.toString())

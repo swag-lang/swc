@@ -32,8 +32,8 @@ impl Box
 
     #assert(#typeof(pair) == Pair'(s32, u8))
     #assert(#typeof(tagged) == Pair'(string, s32))
-    @assert(pair.first == 42)
-    @assert(pair.second == 0'u8)
-    @assert(tagged.first == "ok")
-    @assert(tagged.second == 3)
+    Swag.assert(pair.first == 42)
+    Swag.assert(pair.second == 0'u8)
+    Swag.assert(tagged.first == "ok")
+    Swag.assert(tagged.second == 3)
 }

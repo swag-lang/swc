@@ -118,7 +118,7 @@ func a_takes_s32(v: s32) {}
 func semaTest015()
 {
     var y: s32 = cast() ret_u64_short()
-    @assert(y == 42)
+    Swag.assert(y == 42)
 }
 
 func semaTest016()

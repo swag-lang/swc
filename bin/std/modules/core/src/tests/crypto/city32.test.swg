@@ -6,7 +6,7 @@ using Swag
 func fillCity32Pattern(buffer: [..] u8)
 {
     var i = 0'u64
-    while i < @countof(buffer)
+    while i < buffer.count
     {
         buffer[i] = cast(u8) ((i * 73 + 19) & 0xFF)
         i         += 1
@@ -15,22 +15,22 @@ func fillCity32Pattern(buffer: [..] u8)
 
 func assertCity32(buffer: const [..] u8, expected: u32)
 {
-    @assert(Hash.City32.compute(buffer) == expected)
+    Swag.assert(Hash.City32.compute(buffer) == expected)
 
-    @assert(Hash.City32.compute(buffer) == expected)
+    Swag.assert(Hash.City32.compute(buffer) == expected)
 }
 
 #test
 {
-    @assert(Hash.City32.compute("") == 0xDC56D17A'u32)
-    @assert(Hash.City32.compute("a") == 0x3C973D4D'u32)
-    @assert(Hash.City32.compute("abc") == 0x2F635EC7'u32)
-    @assert(Hash.City32.compute("123456789012") == 0xC522AB0F'u32)
-    @assert(Hash.City32.compute("1234567890123") == 0x11BC2118'u32)
-    @assert(Hash.City32.compute("123456789012345678901234") == 0x088921D1'u32)
-    @assert(Hash.City32.compute("1234567890123456789012345") == 0x60CACDAD'u32)
+    Swag.assert(Hash.City32.compute("") == 0xDC56D17A'u32)
+    Swag.assert(Hash.City32.compute("a") == 0x3C973D4D'u32)
+    Swag.assert(Hash.City32.compute("abc") == 0x2F635EC7'u32)
+    Swag.assert(Hash.City32.compute("123456789012") == 0xC522AB0F'u32)
+    Swag.assert(Hash.City32.compute("1234567890123") == 0x11BC2118'u32)
+    Swag.assert(Hash.City32.compute("123456789012345678901234") == 0x088921D1'u32)
+    Swag.assert(Hash.City32.compute("1234567890123456789012345") == 0x60CACDAD'u32)
 
-    @assert(Hash.City32.compute("abc", 0x12345678'u32) == 0xD30EC8CC'u32)
+    Swag.assert(Hash.City32.compute("abc", 0x12345678'u32) == 0xD30EC8CC'u32)
 
     const expected: [81] u32 = [
         0xDC56D17A, 0x58F6C2CD, 0x971FA0E9, 0x50B13F74, 0x8B94C7AB, 0xCC8588FC, 0x97C13711, 0x7AE4CC55,
@@ -48,7 +48,7 @@ func assertCity32(buffer: const [..] u8, expected: u32)
     var data: [80] u8
     fillCity32Pattern(data)
 
-    for length in @countof(expected)
+    for length in expected.count
     {
         assertCity32(data[until length], expected[length])
     }

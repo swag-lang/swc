@@ -15,8 +15,8 @@ passed as arguments, or returned from other functions—enabling functional prog
     ptr0()
 
     let ptr1 = &myFunction1
-    @assert(myFunction1(2) == 4)
-    @assert(ptr1(2) == 4)
+    Swag.assert(myFunction1(2) == 4)
+    Swag.assert(ptr1(2) == 4)
 }
 
 /**
@@ -29,7 +29,7 @@ A bare lambda type is non-null and must be initialized.
 #test
 {
     var lambda: #null func()->bool
-    @assert(lambda == null)
+    Swag.assert(lambda == null)
 }
 
 /**
@@ -44,7 +44,7 @@ other functions dynamically.
     func toDo(value: s32, ptr: Callback)->s32 => ptr(value)
 
     func square(x: s32) => x * x
-    @assert(toDo(4, &square) == 16)
+    Swag.assert(toDo(4, &square) == 16)
 }
 
 /**
@@ -55,10 +55,10 @@ Anonymous (inline) functions can be defined without names for short, inline logi
 #test
 {
     var cb = func(x: s32)->s32 => x * x
-    @assert(cb(4) == 16)
+    Swag.assert(cb(4) == 16)
 
     cb = func(x: s32)->s32 => x * x * x
-    @assert(cb(4) == 64)
+    Swag.assert(cb(4) == 64)
 }
 
 /**
@@ -71,9 +71,9 @@ Anonymous functions can be passed directly as arguments.
     alias Callback = func(s32)->s32
     func toDo(value: s32, ptr: Callback)->s32 => ptr(value)
 
-    @assert(toDo(4, func(x: s32) => x * x) == 16)
-    @assert(toDo(4, func(x: s32) => x + x) == 8)
-    @assert(toDo(4, func(x: s32)->s32 { return x - x; }) == 0)
+    Swag.assert(toDo(4, func(x: s32) => x * x) == 16)
+    Swag.assert(toDo(4, func(x: s32) => x + x) == 8)
+    Swag.assert(toDo(4, func(x: s32)->s32 { return x - x; }) == 0)
 }
 
 /**
@@ -86,9 +86,9 @@ If the type is clear from context, lambda parameters can omit explicit types.
     alias Callback = func(s32)->s32
     func toDo(value: s32, ptr: Callback)->s32 => ptr(value)
 
-    @assert(toDo(4, func(x) => x * x) == 16)
-    @assert(toDo(4, func(x) => x + x) == 8)
-    @assert(toDo(4, func(x) { return x - x; }) == 0)
+    Swag.assert(toDo(4, func(x) => x * x) == 16)
+    Swag.assert(toDo(4, func(x) => x + x) == 8)
+    Swag.assert(toDo(4, func(x) { return x - x; }) == 0)
 }
 
 /**
@@ -101,11 +101,11 @@ When the variable type is known, parameter and return types can be omitted in th
     var fct: #null func(s32, s32)->bool
 
     fct = func(x, y) => x == y
-    @assert(fct(10, 10))
+    Swag.assert(fct(10, 10))
 
     fct = func(x, y) { return x != y }
 
-    @assert(fct(20, 120))
+    Swag.assert(fct(20, 120))
 }
 
 /**
@@ -116,13 +116,13 @@ Lambdas may have parameters with default values, allowing flexible invocation.
 #test
 {
     {
-        let x = func(val = true) { @assert(val == true) }
+        let x = func(val = true) { Swag.assert(val == true) }
         x()
     }
 
     {
         var x: #null func(val: bool = true)
-        x = func(val) { @assert(val == true) }
+        x = func(val) { Swag.assert(val == true) }
 
         x()
         x(true)

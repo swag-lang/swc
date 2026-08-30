@@ -79,7 +79,7 @@ private func dtsVqPacket()->Array'u8
     bits.add(120, 7)     // High-frequency VQ scale.
     bits.add(1, 10)      // The first non-zero vector.
     bits.add(0xFFFF, 16)
-    @assert(bits.bitCount <= 32 * 8)
+    Swag.assert(bits.bitCount <= 32 * 8)
     bits.bytes.resize(32)
     return bits.bytes
 }
@@ -148,7 +148,7 @@ private func dtsPredictionPacket()->Array'u8
     }
 
     bits.add(0xFFFF, 16)
-    @assert(bits.bitCount <= 32 * 8)
+    Swag.assert(bits.bitCount <= 32 * 8)
     bits.bytes.resize(32)
     return bits.bytes
 }
@@ -184,12 +184,12 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     let path  = audioGetTestDataPath(fileName)
     var sound = expect SoundFile.load(path.toString())
 
-    @assert(sound.sampleEncoding() == .Dts)
-    @assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == 6)
-    @assert(sound.speakerChannelMask() == 0x3F)
-    @assert(sound.packetCount() == 47 and sound.sampleFrameCount() == 47 * 512)
+    Swag.assert(sound.sampleEncoding() == .Dts)
+    Swag.assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == 6)
+    Swag.assert(sound.speakerChannelMask() == 0x3F)
+    Swag.assert(sound.packetCount() == 47 and sound.sampleFrameCount() == 47 * 512)
     let first = expect sound.packet(0)
-    @assert(first.sourceOffset == 0 and first.byteSize == packetBytes and first.sampleFrameCount == 512)
+    Swag.assert(first.sourceOffset == 0 and first.byteSize == packetBytes and first.sampleFrameCount == 512)
 
     discard expect createNoSoundEngine()
     defer destroyEngine()
@@ -198,14 +198,14 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     let decoded = expect voice.readBuffer()
 
     // The streaming buffer targets 100 ms. Nine complete 512-frame core packets fit.
-    @assert(decoded.size == 9 * 512 * 6 * #sizeof(s16))
+    Swag.assert(decoded.size == 9 * 512 * 6 * #sizeof(s16))
     let samples = cast(const [*] s16) decoded.buffer!
     const Frequencies: [6] f64 = [300, 400, 500, 60, 700, 800]
     for channel in 6
     {
         let wanted = dtsTonePower(samples, 2048, 2048, 6, channel, Frequencies[channel])
         let other  = dtsTonePower(samples, 2048, 2048, 6, channel, Frequencies[(channel + 1) % 6])
-        @assert(wanted > 8.0 * other)
+        Swag.assert(wanted > 8.0 * other)
     }
 
     // The frequency check above also passes a synthesis written on the 24-bit scale, where every
@@ -215,9 +215,9 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     {
         let rms = dtsToneRms(samples, 2048, 2048, 6, channel)
         if channel == 3 do
-            @assert(rms > 5_800.0 and rms < 6_400.0)
+            Swag.assert(rms > 5_800.0 and rms < 6_400.0)
         else do
-            @assert(rms > 8_100.0 and rms < 8_900.0)
+            Swag.assert(rms > 8_100.0 and rms < 8_900.0)
     }
 }
 
@@ -269,9 +269,9 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     let coreDecoded     = expect coreVoice.readBuffer()
     let extendedDecoded = expect extendedVoice.readBuffer()
 
-    @assert(coreDecoded.size == cast(u64) info.frames * info.channels * #sizeof(s16))
-    @assert(extendedDecoded.size == coreDecoded.size)
-    @assert(Slice.equals(@mkslice(cast(const [*] u8) coreDecoded.buffer!, coreDecoded.size), @mkslice(cast(const [*] u8) extendedDecoded.buffer!, extendedDecoded.size)))
+    Swag.assert(coreDecoded.size == cast(u64) info.frames * info.channels * #sizeof(s16))
+    Swag.assert(extendedDecoded.size == coreDecoded.size)
+    Swag.assert(Slice.equals(Swag.makeSlice(cast(const [*] u8) coreDecoded.buffer!, coreDecoded.size), Swag.makeSlice(cast(const [*] u8) extendedDecoded.buffer!, extendedDecoded.size)))
 }
 
 // A high-frequency VQ address is consumed and its band omitted instead of making the otherwise
@@ -292,7 +292,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     let voice = (expect Voice.create(&sound))!
     defer voice.destroy()
     let decoded = expect voice.readBuffer()
-    @assert(decoded.size == cast(u64) info.frames * #sizeof(s16))
+    Swag.assert(decoded.size == cast(u64) info.frames * #sizeof(s16))
 }
 
 // ADPCM prediction is a normal Core coding tool, not an extension. A predicted scalar band must
@@ -313,11 +313,11 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     let voice = (expect Voice.create(&sound))!
     defer voice.destroy()
     let decoded = expect voice.readBuffer()
-    let samples = @mkslice(cast(const [*] s16) decoded.buffer!, decoded.size / #sizeof(s16))
+    let samples = Swag.makeSlice(cast(const [*] s16) decoded.buffer!, decoded.size / #sizeof(s16))
     var nonZero: u64
     for sample in samples where sample do
         nonZero += 1
-    @assert(decoded.size == cast(u64) info.frames * #sizeof(s16) and nonZero > 8)
+    Swag.assert(decoded.size == cast(u64) info.frames * #sizeof(s16) and nonZero > 8)
 }
 
 // Packet framing accepts both byte orders of the 14- and 16-bit representations and rejects a
@@ -326,7 +326,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
 {
     let bytes = expect File.readAllBytes(audioGetTestDataPath("dts-5.1-48000.dts").toString())
     let info  = expect Dts.frameInfo(bytes.toSlice())
-    @assert(info.frameBytes == 2012 and info.frames == 512)
+    Swag.assert(info.frameBytes == 2012 and info.frames == 512)
 
     var bigEndian: Array'u8
     bigEndian.add(bytes.toSlice()[0 until info.frameBytes])
@@ -340,11 +340,11 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     }
 
     let swapped = expect Dts.frameInfo(bigEndian.toSlice())
-    @assert(swapped.frameBytes == info.frameBytes and swapped.speakerMask == info.speakerMask)
+    Swag.assert(swapped.frameBytes == info.frameBytes and swapped.speakerMask == info.speakerMask)
 
     let packedBytes = expect File.readAllBytes(audioGetTestDataPath("dts-5.1-48000-14be.dts").toString())
     let packedInfo  = expect Dts.frameInfo(packedBytes.toSlice())
-    @assert(packedInfo.frameBytes == 2300 and packedInfo.frames == info.frames)
+    Swag.assert(packedInfo.frameBytes == 2300 and packedInfo.frames == info.frames)
     var littleEndian14: Array'u8
     littleEndian14.add(packedBytes.toSlice()[0 until packedInfo.frameBytes])
     index = 0
@@ -357,9 +357,9 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     }
 
     let swapped14 = expect Dts.frameInfo(littleEndian14.toSlice())
-    @assert(swapped14.frameBytes == packedInfo.frameBytes and swapped14.speakerMask == packedInfo.speakerMask)
+    Swag.assert(swapped14.frameBytes == packedInfo.frameBytes and swapped14.speakerMask == packedInfo.speakerMask)
 
     var malformed = catch Dts.frameInfo(bytes.toSlice()[0 until 8]) as err
     discard malformed
-    @assert(err != null)
+    Swag.assert(err != null)
 }

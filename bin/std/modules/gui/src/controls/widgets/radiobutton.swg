@@ -242,7 +242,7 @@ impl RadioButton
     // keeps standing on the option that is checked.
     mtd selectSibling(forward: bool)->bool
     {
-        if @countof(.groupId) == 0 or !.parent do
+        if (.groupId).count == 0 or !.parent do
             return false
 
         var group: Array'(*RadioButton)
@@ -273,7 +273,7 @@ impl RadioButton
     // Clears selected sibling radios from the same non-null group.
     mtd uncheckGroupSiblings()
     {
-        if @countof(.groupId) == 0 or !.parent do
+        if (.groupId).count == 0 or !.parent do
             return
 
         for c in .parent.children

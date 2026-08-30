@@ -31,7 +31,7 @@ func semaTest003()
 
 func toto(message: string, loc: Swag.SourceCodeLocation)
 {
-    let cxt = @getcontext()
+    let cxt = Swag.getContext()
     if cxt.panic do
         cxt.panic(message, loc)
 }

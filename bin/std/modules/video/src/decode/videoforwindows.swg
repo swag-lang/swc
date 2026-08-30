@@ -62,7 +62,7 @@ func isMpeg4FourCc(code: u32)->bool
 // The four characters a bitmap header names its codec with.
 func bitmapCompression(header: const [..] u8)->u32
 {
-    if @countof(header) < BitmapCompressionOffset + 4 do
+    if header.count < BitmapCompressionOffset + 4 do
         return 0
     var code = 0'u32
     for shift in 4'u64 do
@@ -76,9 +76,9 @@ func bitmapCompression(header: const [..] u8)->u32
 // can read anything, so they are taken from where the stream itself carries them.
 func inlineSetupHeaders(sample: const [..] u8)->const [..] u8
 {
-    if @countof(sample) < 4 do
+    if sample.count < 4 do
         return sample
-    for at in @countof(sample) - 3 where !sample[at] and !sample[at + 1] and sample[at + 2] == 1 and cast(u32) sample[at + 3] == Mpeg4.CodeVop do
+    for at in sample.count - 3 where !sample[at] and !sample[at + 1] and sample[at + 2] == 1 and cast(u32) sample[at + 3] == Mpeg4.CodeVop do
         return sample[0 until at]
     return sample
 }

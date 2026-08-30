@@ -98,8 +98,10 @@ namespace
         // computes from its operands alone means the same thing wherever it is re-emitted; an
         // atomic, a context query, or a report about the running program answers about the
         // module it runs in, and stays behind the foreign call that owns that boundary.
-        const SourceView& srcView = moduleApiNodeSourceView(ctx, ast, nodeRef);
-        return Token::isPortableIntrinsic(srcView.token(node.tokRef()).id);
+        SWC_UNUSED(ctx);
+        SWC_UNUSED(ast);
+        SWC_UNUSED(nodeRef);
+        return Token::isPortableIntrinsic(node.cast<AstIntrinsicCallExpr>().intrinsicId);
     }
 
     bool canExportGeneratedInlineBody(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const SymbolFunction& function)

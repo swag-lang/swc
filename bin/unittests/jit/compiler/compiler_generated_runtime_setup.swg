@@ -3,7 +3,7 @@
 #[Swag.Compiler]
 func expectCompilerOnlyCall(value: string)->s32
 {
-    @assert(value == "inside compiler-only run call")
+    Swag.assert(value == "inside compiler-only run call")
     return 42
 }
 
@@ -32,7 +32,7 @@ struct(T, Count: s32) GuardedVector
 #test
 {
     let values: GuardedVector'(s32, 3) = {values: [1, 2, 3]}
-    @assert(#typeof(values.values) == [3] s32)
-    @assert(values.values[0] == 1)
-    @assert(values.values[2] == 3)
+    Swag.assert(#typeof(values.values) == [3] s32)
+    Swag.assert(values.values[0] == 1)
+    Swag.assert(values.values[2] == 3)
 }

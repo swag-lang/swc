@@ -313,7 +313,7 @@ func viewerMatchIsWholeWord(source: string, match: u64, length: u64)->bool
     }
 
     let end = match + length
-    if end < @countof(source)
+    if end < source.count
     {
         let {c, ?} = Utf8.decodeRune(source[end to])
         if Unicode.isWord(c) do
@@ -326,7 +326,7 @@ func viewerMatchIsWholeWord(source: string, match: u64, length: u64)->bool
 // Appends every non-overlapping match in one text container.
 func collectViewerTextMatches(source, query: string, options: ViewerSearchOptions, major, minor, baseOffset: u64, result: *Array'ViewerSearchMatch)
 {
-    if !@countof(query) do
+    if !query.count do
         return
 
     if options.regularExpression
@@ -341,16 +341,16 @@ func collectViewerTextMatches(source, query: string, options: ViewerSearchOption
             expression = &localExpression
         }
 
-        let sourceData = @dataof(source)
+        let sourceData = source.buffer
         for value in expression!.grepAll(source)
         {
             // Zero-width expressions are meaningful to a parser, but there is no document span
             // for a viewer to outline or select.
-            if !@countof(value) do
+            if !value.count do
                 continue
-            let found = cast(u64) cast(s64) (@dataof(value) - sourceData)
-            if !options.wholeWord or viewerMatchIsWholeWord(source, found, @countof(value)) do
-                result.add({major, minor, baseOffset + found, @countof(value)})
+            let found = cast(u64) cast(s64) (value.buffer - sourceData)
+            if !options.wholeWord or viewerMatchIsWholeWord(source, found, value.count) do
+                result.add({major, minor, baseOffset + found, value.count})
         }
 
         return
@@ -358,22 +358,22 @@ func collectViewerTextMatches(source, query: string, options: ViewerSearchOption
 
     let comparison = options.matchCase ? Utf8.ComparisonType.Latin1 : Utf8.ComparisonType.Latin1NoCase
     var from       = 0'u64
-    while from < @countof(source)
+    while from < source.count
     {
         let found = Utf8.indexOf(source, query, from, comparison)
         if found == Swag.U64.Max do
             break
 
-        if !options.wholeWord or viewerMatchIsWholeWord(source, found, @countof(query)) do
-            result.add({major, minor, baseOffset + found, @countof(query)})
-        from = found + Math.max(@countof(query), 1)
+        if !options.wholeWord or viewerMatchIsWholeWord(source, found, query.count) do
+            result.add({major, minor, baseOffset + found, query.count})
+        from = found + Math.max(query.count, 1)
     }
 }
 
 // Reports whether a non-empty regular-expression query can be compiled.
 func viewerSearchPatternIsValid(query: string, options: ViewerSearchOptions)->bool
 {
-    if !options.regularExpression or !@countof(query) do
+    if !options.regularExpression or !query.count do
         return true
     discard catch Parser.RegExp.create(query, ignoreCase: !options.matchCase) as expressionError
     return expressionError == null
@@ -386,7 +386,7 @@ func highlightRichEditMatch(editor: *RichEditCtrl, source: string, start, length
     {
         var result: retval
         var scan = 0'u64
-        while scan < Math.min(byteOffset, @countof(source))
+        while scan < Math.min(byteOffset, source.count)
         {
             let {c, eat} = Utf8.decodeRune(source[scan to])
             if !eat do
@@ -407,7 +407,7 @@ func highlightRichEditMatch(editor: *RichEditCtrl, source: string, start, length
     }
 
     let first = cursorAt(source, start)
-    let last  = cursorAt(source, Math.min(start + length, @countof(source)))
+    let last  = cursorAt(source, Math.min(start + length, source.count))
     editor.setSelection(first, last)
     editor.ensureCaretIsVisible(center: true)
     editor.invalidate()

@@ -2,7 +2,7 @@
 
 func semaTest001()
 {
-    var v = @getcontext()
+    var v = Swag.getContext()
     #assert(#defined(v.allocator))
     #assert(#defined(v.tempAllocator))
     #assert(#defined(v.errorAllocator))
@@ -10,12 +10,12 @@ func semaTest001()
 
 func semaTest002()
 {
-    var v = @getcontext()
+    var v = Swag.getContext()
     #assert(#defined(v.panic))
 }
 
 /*#run
 {
-    @assert(@jit)
+    Swag.assert(Swag.jit())
 }
 */

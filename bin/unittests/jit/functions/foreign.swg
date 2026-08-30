@@ -89,8 +89,8 @@ func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s3
 
 #test
 {
-    const L1 = #run LStrLenA(@dataof("A"))
-    const L5 = #run LStrLenA(@dataof("ABCDE"))
+    const L1 = #run LStrLenA(("A").buffer)
+    const L5 = #run LStrLenA(("ABCDE").buffer)
     #assert(L1 == 1)
     #assert(L5 == 5)
 }
@@ -116,16 +116,16 @@ func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s3
 #test
 {
     const CP_UTF8 = 65001'u32
-    const S1      = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("A"), 1, null, 0)
-    const S5      = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("ABCDE"), 5, null, 0)
+    const S1      = #run MultiByteToWideChar(CP_UTF8, 0'u32, ("A").buffer, 1, null, 0)
+    const S5      = #run MultiByteToWideChar(CP_UTF8, 0'u32, ("ABCDE").buffer, 5, null, 0)
     #assert(S1 == 1)
     #assert(S5 == 5)
 }
 
 #test
 {
-    const Z   = #run LStrLenA(@dataof(""))
-    const L10 = #run LStrLenA(@dataof("0123456789"))
+    const Z   = #run LStrLenA(("").buffer)
+    const L10 = #run LStrLenA(("0123456789").buffer)
     #assert(Z == 0)
     #assert(L10 == 10)
 }
@@ -155,14 +155,14 @@ func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s3
 #test
 {
     const CP_UTF8 = 65001'u32
-    const S2      = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("AB"), 2, null, 0)
-    const S8      = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("ABCDEFGH"), 8, null, 0)
+    const S2      = #run MultiByteToWideChar(CP_UTF8, 0'u32, ("AB").buffer, 2, null, 0)
+    const S8      = #run MultiByteToWideChar(CP_UTF8, 0'u32, ("ABCDEFGH").buffer, 8, null, 0)
     #assert(S2 == 2)
     #assert(S8 == 8)
 }
 
 #test { const L = #run LStrLenA("ABCDE") }                 // swc-expected-error {{sema_err_cannot_cast}}
-#test { const L = #run LStrLenA(@dataof("ABCDE"), 5) }     // swc-expected-error {{sema_err_too_many_arguments}}
+#test { const L = #run LStrLenA(("ABCDE").buffer, 5) }     // swc-expected-error {{sema_err_too_many_arguments}}
 #test { const M = #run MulDiv(1, 2) }                      // swc-expected-error {{sema_err_too_few_arguments}}
 #test { const M = #run MulDiv(1, "x", 3) }                 // swc-expected-error {{sema_err_cannot_cast}}
 #test { const M = #run MulDiv(1, 2, 3, 4) }                // swc-expected-error {{sema_err_too_many_arguments}}
@@ -176,8 +176,8 @@ func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s3
 #test { const X = #run GetPidMissingArg() }                                                      // swc-expected-error {{sema_err_too_few_arguments}}
 #test { const Y = #run GetPidMissingArg("bad") }                                                 // swc-expected-error {{sema_err_cannot_cast}}
 #test { const Z = #run GetPidAlias(1) }                                                          // swc-expected-error {{sema_err_too_many_arguments}}
-#test { const W = #run MultiByteToWideChar(65001'u32, 0'u32, @dataof("A"), 1, null) }            // swc-expected-error {{sema_err_too_few_arguments}}
-#test { const V = #run MultiByteToWideChar(65001'u32, 0'u32, @dataof("A"), "bad", null, 0) }     // swc-expected-error {{sema_err_cannot_cast}}
+#test { const W = #run MultiByteToWideChar(65001'u32, 0'u32, ("A").buffer, 1, null) }            // swc-expected-error {{sema_err_too_few_arguments}}
+#test { const V = #run MultiByteToWideChar(65001'u32, 0'u32, ("A").buffer, "bad", null, 0) }     // swc-expected-error {{sema_err_cannot_cast}}
 #test { const P = #run GetProcessId() }                                                          // swc-expected-error {{sema_err_too_few_arguments}}
 #test { const P = #run GetProcessId("bad") }                                                     // swc-expected-error {{sema_err_cannot_cast}}
 #test { const V = #run VirtualAlloc() }                                                          // swc-expected-error {{sema_err_too_few_arguments}}

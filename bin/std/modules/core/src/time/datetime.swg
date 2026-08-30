@@ -173,7 +173,7 @@ impl DateTime
     internal func parseSep(buf: *string, sep: u8, eat: *u32) fail
     {
         let view = buf[]
-        if !@countof(view) or view[0] != sep do
+        if !view.count or view[0] != sep do
             fail SyntaxError{}
         buf[] = Tokenize.eatCount(view, 1)
         eat[] += 1
@@ -185,10 +185,10 @@ impl DateTime
         var result: retval
         var buf = str
 
-        if !@countof(buf) do
+        if !buf.count do
             fail SyntaxError{}
 
-        if @countof(buf) >= 1 and
+        if buf.count >= 1 and
            Latin1.isLetter(buf[0])
         {
             // Day of week name
@@ -196,8 +196,8 @@ impl DateTime
             var dayOfWeek: DayOfWeek
             for dow, idx in DayOfWeekNames
             {
-                let len = @countof(dow)
-                if @mkstring(@dataof(buf), Math.min(@countof(buf), len)) == dow
+                let len = dow.count
+                if Swag.makeString(buf.buffer, Math.min(buf.count, len)) == dow
                 {
                     dayOfWeek  = cast() idx
                     buf        = Tokenize.eatCount(buf, cast(u64) len)
@@ -216,8 +216,8 @@ impl DateTime
             // Month name
             for dow, idx in MonthNames
             {
-                let len = @countof(dow)
-                if @mkstring(@dataof(buf), Math.min(@countof(buf), len)) == dow
+                let len = dow.count
+                if Swag.makeString(buf.buffer, Math.min(buf.count, len)) == dow
                 {
                     result.value.month = cast(u16) idx + 1
                     buf                = Tokenize.eatCount(buf, cast(u64) len)
@@ -239,7 +239,7 @@ impl DateTime
             if checkDate and dayOfWeek != result.value.dayOfWeek() do
                 fail SyntaxError{}
         }
-        elif @countof(buf) >= 10 and
+        elif buf.count >= 10 and
              Latin1.isDigit(buf[0]) and
              Latin1.isDigit(buf[1]) and
              Latin1.isDigit(buf[2]) and
@@ -262,14 +262,14 @@ impl DateTime
             fail SyntaxError{}
         }
 
-        if @countof(buf) >= 1 and
+        if buf.count >= 1 and
            buf[0] == ' '
         {
             parseSep(&buf, ' ', &result.eat)
         }
 
         // Time
-        if @countof(buf) >= 5 and
+        if buf.count >= 5 and
            Latin1.isDigit(buf[0]) and
            Latin1.isDigit(buf[1]) and
            buf[2] == ':' and
@@ -281,7 +281,7 @@ impl DateTime
             result.value.minute = parseU8(&buf, &result.eat)
 
             // Seconds
-            if @countof(buf) >= 3 and
+            if buf.count >= 3 and
                buf[0] == ':' and
                Latin1.isDigit(buf[1]) and
                Latin1.isDigit(buf[2])
@@ -291,7 +291,7 @@ impl DateTime
             }
 
             // Milliseconds
-            if @countof(buf) >= 2 and
+            if buf.count >= 2 and
                buf[0] == '.' and
                Latin1.isDigit(buf[1])
             {
@@ -375,7 +375,7 @@ impl StrConv.IConvert for DateTime
     mtd const impl convert(buf: *ConcatBuffer, convFormat: StrConv.ConvertFormat, strFormat: #null string)
     {
         var str: String
-        if @countof(strFormat) == 0 or @countof(strFormat) > 1 do
+        if strFormat.count == 0 or strFormat.count > 1 do
             str = .toString(.DateTime)
         else
         {

@@ -30,7 +30,7 @@ func aggregateStructArrayMiddle(payloadIndex: u64)->s32
 
 #test
 {
-    @assert(aggregateStructArrayDigits(0) == 127)
-    @assert(aggregateStructArrayDigits(1) == 992)
-    @assert(aggregateStructArrayMiddle(1) == 21)
+    Swag.assert(aggregateStructArrayDigits(0) == 127)
+    Swag.assert(aggregateStructArrayDigits(1) == 992)
+    Swag.assert(aggregateStructArrayMiddle(1) == 21)
 }

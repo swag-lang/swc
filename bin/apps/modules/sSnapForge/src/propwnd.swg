@@ -99,7 +99,7 @@ impl PropWnd
         if !capture or capture.selection.isEmpty()
         {
             let iform = .main.editModeToModel(.main.editMode)
-            return cast(*BaseForm) @dataof(iform)
+            return cast(*BaseForm) iform.buffer
         }
 
         return capture.getSelectedBaseForm()!
@@ -111,7 +111,7 @@ impl PropWnd
         if !capture or capture.selection.isEmpty()
         {
             let iform = .main.editModeToModel(.main.editMode)
-            return @kindof(iform)
+            return Swag.kindOf(iform)
         }
 
         return capture.getSelectedFormType()!
@@ -194,7 +194,7 @@ impl PropWnd
     // forms go through the same popup.
     mtd createPopupShapeKind(btn: *IconButton, type: typeinfo, fieldName: string)
     {
-        let cells  = cast(f32) @countof(FormShapeKind)
+        let cells  = cast(f32) FormShapeKind.count
         let frame  = btn.createAnchorPopup(popupExtent(cells, PopupCellSize), popupExtent(1, PopupCellSize))
         let layout = frame.createView'WrapLayoutCtrl()
         layout.itemWidth, layout.itemHeight = PopupCellSize
@@ -223,7 +223,7 @@ impl PropWnd
 
         let cur = selectedKind(me, type, fieldName)
 
-        for i in @countof(FormShapeKind)
+        for i in FormShapeKind.count
         {
             let btn0 = IconButton.create(frame.view!, {}, {0, 0, PopupCellSize, PopupCellSize})
             btn0.userData = enumToUserData(i)
@@ -254,7 +254,7 @@ impl PropWnd
     // and mirrors the sample stroke accordingly.
     mtd createPopupCapStyle(btn: *IconButton, begin: bool)
     {
-        let frame  = btn.createAnchorPopup(120, popupExtent(cast(f32) @countof(LineCapStyle), PopupCapRowHeight))
+        let frame  = btn.createAnchorPopup(120, popupExtent(cast(f32) LineCapStyle.count, PopupCapRowHeight))
         let layout = StackLayoutCtrl.create(frame, .Top)
         frame.setView(layout)
 
@@ -772,8 +772,8 @@ impl PropWnd
         {
             // Tool model: direct edition, no undo (as before)
             let mdl = .main.editModeToModel(.main.editMode)
-            .gridBindType = @kindof(mdl)
-            bases.add(cast(#null *u8) @dataof(mdl))
+            .gridBindType = Swag.kindOf(mdl)
+            bases.add(cast(#null *u8) mdl.buffer)
             .grid.setExternalUndoMgr(null)
             .grid.setUndoEnabled(false)
         }
@@ -787,7 +787,7 @@ impl PropWnd
 
             foreachSelected'BaseForm(capture, capture.selection)
             {
-                let t = @kindof(itf)
+                let t = Swag.kindOf(itf)
                 if !firstType do
                     firstType = t
                 elif t != firstType do
@@ -818,7 +818,7 @@ impl PropWnd
             for item in .grid.items
             {
                 let it = item!
-                if it.typeValue.name != #nameof(BaseForm.borderSize) or !@isset(it.sliderBox) do
+                if it.typeValue.name != #nameof(BaseForm.borderSize) or !Swag.isSet(it.sliderBox) do
                     continue
                 let sliderBox = it.sliderBox
                 sliderBox.label.setText(appStrings().ui_Outline)

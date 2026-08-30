@@ -113,7 +113,7 @@ func computePriority(items: const [..] InventoryItem)->ReorderPriority
 func buildRestockPlan(items: const [..] InventoryItem)->RestockPlan
 {
     var result: RestockPlan = undefined
-    result.itemCount             = cast(u32) @countof(items)
+    result.itemCount             = cast(u32) items.count
     result.reorderItemCount      = countItemsToReorder(items)
     result.totalUnitsToOrder     = computeUnitsToOrder(items)
     result.estimatedCostCents    = computeEstimatedCost(items)
@@ -134,25 +134,25 @@ func buildRestockPlan(items: const [..] InventoryItem)->RestockPlan
         {sku: "label-pack",  inStock: 25, targetStock: 25,  unitCostCents: 900,   leadTimeDays: 1,  essential: false}
         ]
 
-    @assert(@countof(inventory) == 4)
-    @assert(missingUnits(inventory[0]) == 10)
-    @assert(missingUnits(inventory[1]) == 5)
-    @assert(missingUnits(inventory[2]) == 80)
-    @assert(missingUnits(inventory[3]) == 0)
-    @assert(countItemsToReorder(inventory) == 3)
-    @assert(computeUnitsToOrder(inventory) == 95)
-    @assert(computeEstimatedCost(inventory) == 191500'u32)
-    @assert(countDelayedEssentialItems(inventory) == 1)
-    @assert(pickTopSku(inventory) == "patch-cable")
-    @assert(computePriority(inventory) == ReorderPriority.Urgent)
+    Swag.assert(inventory.count == 4)
+    Swag.assert(missingUnits(inventory[0]) == 10)
+    Swag.assert(missingUnits(inventory[1]) == 5)
+    Swag.assert(missingUnits(inventory[2]) == 80)
+    Swag.assert(missingUnits(inventory[3]) == 0)
+    Swag.assert(countItemsToReorder(inventory) == 3)
+    Swag.assert(computeUnitsToOrder(inventory) == 95)
+    Swag.assert(computeEstimatedCost(inventory) == 191500'u32)
+    Swag.assert(countDelayedEssentialItems(inventory) == 1)
+    Swag.assert(pickTopSku(inventory) == "patch-cable")
+    Swag.assert(computePriority(inventory) == ReorderPriority.Urgent)
 
     let plan = buildRestockPlan(inventory)
 
-    @assert(plan.itemCount == 4)
-    @assert(plan.reorderItemCount == 3)
-    @assert(plan.totalUnitsToOrder == 95)
-    @assert(plan.estimatedCostCents == 191500'u32)
-    @assert(plan.delayedEssentialCount == 1)
-    @assert(plan.priority == ReorderPriority.Urgent)
-    @assert(plan.topSku == "patch-cable")
+    Swag.assert(plan.itemCount == 4)
+    Swag.assert(plan.reorderItemCount == 3)
+    Swag.assert(plan.totalUnitsToOrder == 95)
+    Swag.assert(plan.estimatedCostCents == 191500'u32)
+    Swag.assert(plan.delayedEssentialCount == 1)
+    Swag.assert(plan.priority == ReorderPriority.Urgent)
+    Swag.assert(plan.topSku == "patch-cable")
 }

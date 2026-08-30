@@ -48,8 +48,8 @@ func lifecycleSafetyEnabled()->bool
 
 #test
 {
-    @assert(lifecycleSafetyDisabled() == false)
-    @assert(lifecycleSafetyEnabled() == true)
+    Swag.assert(lifecycleSafetyDisabled() == false)
+    Swag.assert(lifecycleSafetyEnabled() == true)
 }
 
 // ---------------------------------------------------------------------------
@@ -63,7 +63,7 @@ func lifecycleSafetyEnabled()->bool
     var a = UamItem{x: 1}
     var b: UamItem
     b = #relocate a       // swc-expected-note {{sanity_note_move_origin}}
-    @assert(a.x == 1)     // swc-expected-error {{sanity_err_use_after_move}}
+    Swag.assert(a.x == 1)     // swc-expected-error {{sanity_err_use_after_move}}
 }
 
 // Reading a non-first field of the abandoned local.
@@ -73,7 +73,7 @@ func lifecycleSafetyEnabled()->bool
     var a = UamItem{x: 1, y: 2}
     var b: UamItem
     b = #relocate a       // swc-expected-note {{sanity_note_move_origin}}
-    @assert(a.y == 2)     // swc-expected-error {{sanity_err_use_after_move}}
+    Swag.assert(a.y == 2)     // swc-expected-error {{sanity_err_use_after_move}}
 }
 
 // Reading a local given away with '#move' when the type has no 'opDrop': the source is
@@ -83,7 +83,7 @@ func lifecycleSafetyEnabled()->bool
 {
     var a = UamItem{x: 4}
     var b = #move a       // swc-expected-note {{sanity_note_move_origin}}
-    @assert(a.x == 4)     // swc-expected-error {{sanity_err_use_after_move}}
+    Swag.assert(a.x == 4)     // swc-expected-error {{sanity_err_use_after_move}}
 }
 
 // Reading the moved-from local THROUGH a pointer taken before the move: the lattice
@@ -95,7 +95,7 @@ func lifecycleSafetyEnabled()->bool
     let p = &a.x        // swc-expected-note {{sema_note_borrow_taken_here}}
     var b = #move a     // swc-expected-note {{sanity_note_move_origin}}
     discard b
-    @assert(p[] == 4)     // swc-expected-error {{sanity_err_use_after_move}}
+    Swag.assert(p[] == 4)     // swc-expected-error {{sanity_err_use_after_move}}
 }
 
 // ---------------------------------------------------------------------------
@@ -110,8 +110,8 @@ func lifecycleSafetyEnabled()->bool
     var b: UamItem
     b = #relocate a
     a = UamItem{x: 5}
-    @assert(a.x == 5)
-    @assert(b.x == 1)
+    Swag.assert(a.x == 5)
+    Swag.assert(b.x == 1)
 }
 
 // '#move' of a type with 'opDrop' resets the source to its defaults: reading it is
@@ -121,8 +121,8 @@ func lifecycleSafetyEnabled()->bool
 {
     var a = UamDropped{x: 3}
     var b = #move a
-    @assert(b.x == 3)
-    @assert(a.x == 9)
+    Swag.assert(b.x == 3)
+    Swag.assert(a.x == 9)
 }
 
 // A move on only one path is not a proven use-after-move at the join.
@@ -135,7 +135,7 @@ var g_takeBranch = false
     var b: UamItem
     if g_takeBranch do
         b = #relocate a
-    @assert(a.x == 1)
+    Swag.assert(a.x == 1)
 }
 
 // ---------------------------------------------------------------------------
@@ -150,8 +150,8 @@ var g_takeBranch = false
     var b: UamItem
     b = #relocate a
     opaque()
-    @assert(a.x == 0xDDDD_DDDD)
-    @assert(b.x == 1)
+    Swag.assert(a.x == 0xDDDD_DDDD)
+    Swag.assert(b.x == 1)
 }
 
 #[Swag.Safety(.Lifecycle, true)]
@@ -160,20 +160,20 @@ var g_takeBranch = false
     var a = UamItem{x: 6}
     var b = #move a     // no 'opDrop': the abandoned source is poisoned
     opaque()
-    @assert(a.x == 0xDDDD_DDDD)
-    @assert(b.x == 6)
+    Swag.assert(a.x == 0xDDDD_DDDD)
+    Swag.assert(b.x == 6)
 }
 
-// '@drop' poisons the dropped storage; the caller re-initializes it before reuse.
+// 'Swag.drop' poisons the dropped storage; the caller re-initializes it before reuse.
 #[Swag.Safety(.Lifecycle, true)]
 #test
 {
     var a = UamDropped{x: 3}
-    @drop(&a)
+    Swag.drop(&a)
     opaque()
-    @assert(a.x == 0xDDDD_DDDD)
-    @init(&a)
-    @assert(a.x == 9)
+    Swag.assert(a.x == 0xDDDD_DDDD)
+    Swag.init(&a)
+    Swag.assert(a.x == 9)
 }
 
 // ---------------------------------------------------------------------------
@@ -186,6 +186,6 @@ var g_takeBranch = false
     var a = UamItem{x: 3}
     var b: UamItem
     b = #relocate a
-    @assert(a.x == 3)     // stale bits are still readable when the check is off
-    @assert(b.x == 3)
+    Swag.assert(a.x == 3)     // stale bits are still readable when the check is off
+    Swag.assert(b.x == 3)
 }

@@ -39,7 +39,7 @@ impl Icon
     // Restores an invalid icon with the default draw size.
     mtd clear()
     {
-        @init(me, 1)
+        Swag.init(me, 1)
     }
 
     // Creates a borrowed icon descriptor for one atlas frame.

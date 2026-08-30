@@ -46,9 +46,9 @@ func formEditableText(f: IForm)->#null *String
 
 func formEditableTextDirty(f: IForm)
 {
-    if @kindof(f) == FormText
+    if Swag.kindOf(f) == FormText
     {
-        let b = cast(*FormText) @dataof(f)
+        let b = cast(*FormText) f.buffer
         b.isDirty = true
     }
 }
@@ -81,9 +81,9 @@ func formFontStylePtr(f: IForm)->#null *FontFamilyStyle
 // its render form from live fields each paint, so it needs no explicit flag here.
 func formFontDirty(f: IForm)
 {
-    if @kindof(f) == FormText
+    if Swag.kindOf(f) == FormText
     {
-        let b = cast(*FormText) @dataof(f)
+        let b = cast(*FormText) f.buffer
         b.isDirtyFont = true
     }
 }
@@ -158,7 +158,7 @@ impl Undo
         switch .kind
         {
         case .MoveBaseForm:
-            if .newSizeX != 0 or .newSizeY != 0 or @kindof(.baseForm!) == FormImage do
+            if .newSizeX != 0 or .newSizeY != 0 or Swag.kindOf(.baseForm!) == FormImage do
                 capture.invalidateFormCache(.baseForm!)
 
         case .MovePoint:
@@ -286,7 +286,7 @@ impl Undo
             .selection = capture.selection
             foreachSelected'BaseForm(capture, .selection)
             {
-                if !.acceptsType(@kindof(itf)) do
+                if !.acceptsType(Swag.kindOf(itf)) do
                     continue
                 let mdlType = .mdlType orelse #typeof(FormShape)
                 let save    = cast(*BaseForm) Memory.new(mdlType)!
@@ -328,7 +328,7 @@ impl Undo
             .selection = capture.selection
             foreachSelected'BaseForm(capture, .selection)
             {
-                if !.acceptsType(@kindof(itf)) do
+                if !.acceptsType(Swag.kindOf(itf)) do
                     continue
                 var val: u32
                 Reflection.readFieldValue(&val, .valRef, form)
@@ -499,9 +499,9 @@ impl Undo
         case .SetFormFromModel:
             foreachSelected'BaseForm(capture, .selection)
             {
-                if !.acceptsType(@kindof(itf)) do
+                if !.acceptsType(Swag.kindOf(itf)) do
                     continue
-                @assert(.mdlValue != null)
+                Swag.assert(.mdlValue != null)
                 if form.subKind != .mdlValue.subKind do
                     continue
                 itf.copy(form, .mdlValue)
@@ -510,7 +510,7 @@ impl Undo
         case .SetTypedValue:
             foreachSelected'BaseForm(capture, .selection)
             {
-                if !.acceptsType(@kindof(itf)) do
+                if !.acceptsType(Swag.kindOf(itf)) do
                     continue
                 Reflection.writeFieldValue(form, .valRef, &.valU32)
             }
@@ -584,7 +584,7 @@ impl Undo
         case .MoveToFront:
             capture.hotForm = Swag.U64.Max
             var dstIdx = capture.forms.count - 1
-            for i in @countof(.selection).reversed()
+            for i in (.selection).count.reversed()
             {
                 .reorderForm(.selection[i], dstIdx)
                 dstIdx -= 1
@@ -593,7 +593,7 @@ impl Undo
         case .MoveToBack:
             capture.hotForm = Swag.U64.Max
             var dstIdx = 0'u64
-            for i in @countof(.selection)
+            for i in (.selection).count
             {
                 .reorderForm(.selection[i], dstIdx)
                 dstIdx += 1
@@ -601,7 +601,7 @@ impl Undo
 
         case .MoveForward:
             capture.hotForm = Swag.U64.Max
-            for i in @countof(.selection).reversed()
+            for i in (.selection).count.reversed()
             {
                 let srcIdx = .selection[i]
                 if srcIdx != capture.forms.count - 1 do
@@ -610,7 +610,7 @@ impl Undo
 
         case .MoveBackward:
             capture.hotForm = Swag.U64.Max
-            for i in @countof(.selection)
+            for i in (.selection).count
             {
                 let srcIdx = .selection[i]
                 if srcIdx != 0 do
@@ -729,7 +729,7 @@ impl Undo
         case .SetFormFromModel:
             foreachSelected'BaseForm(capture, .selection)
             {
-                if !.acceptsType(@kindof(itf)) do
+                if !.acceptsType(Swag.kindOf(itf)) do
                     continue
                 if form.subKind == .mdlValue!.subKind do
                     itf.copy(form, .oldForm[idx])
@@ -738,7 +738,7 @@ impl Undo
         case .SetTypedValue:
             foreachSelected'BaseForm(capture, .selection)
             {
-                if !.acceptsType(@kindof(itf)) do
+                if !.acceptsType(Swag.kindOf(itf)) do
                     continue
                 var val = .oldU32[idx]
                 Reflection.writeFieldValue(form, .valRef, &val)

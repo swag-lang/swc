@@ -32,11 +32,11 @@ impl Vec2
 #test
 {
     var v: Vec2 = {x: 3, y: 4}
-    @assert(v.length2() == 25)
-    @assert(!v.isZero())
+    Swag.assert(v.length2() == 25)
+    Swag.assert(!v.isZero())
 
     var z: Vec2 = {x: 0, y: 0}
-    @assert(z.isZero())
+    Swag.assert(z.isZero())
 }
 
 // Method returning new struct, chained.
@@ -45,8 +45,8 @@ impl Vec2
     var a: Vec2 = {x: 1, y: 2}
     var b: Vec2 = {x: 3, y: 4}
     let result  = a.add(b).scale(2)
-    @assert(result.x == 8)
-    @assert(result.y == 12)
+    Swag.assert(result.x == 8)
+    Swag.assert(result.y == 12)
 }
 
 // Mutating method via pointer.
@@ -69,8 +69,8 @@ impl Vec2
 {
     var v: Vec2 = {x: 5, y: -3}
     v.negate()
-    @assert(v.x == -5)
-    @assert(v.y == 3)
+    Swag.assert(v.x == -5)
+    Swag.assert(v.y == 3)
 }
 
 #test
@@ -79,18 +79,18 @@ impl Vec2
     var b: Vec2 = {x: 1, y: 2}
     a.addInPlace(b)
     a.addInPlace(b)
-    @assert(a.x == 12)
-    @assert(a.y == 24)
+    Swag.assert(a.x == 12)
+    Swag.assert(a.y == 24)
 }
 
 #test
 {
     var v: Vec2 = {x: 6, y: 8}
     let p       = cast(StructImplStrictVec2Ptr) &v
-    @assert(p.length2() == 100)
+    Swag.assert(p.length2() == 100)
     p.negate()
-    @assert(v.x == -6)
-    @assert(v.y == -8)
+    Swag.assert(v.x == -6)
+    Swag.assert(v.y == -8)
 }
 
 // Struct with nested struct and methods accessing nested fields.
@@ -118,10 +118,10 @@ impl Circle
 #test
 {
     var c: Circle = {center: {x: 0, y: 0}, radius: 10}
-    @assert(c.area100() == 31400)
+    Swag.assert(c.area100() == 31400)
     c.translate(5, 7)
-    @assert(c.center.x == 5)
-    @assert(c.center.y == 7)
+    Swag.assert(c.center.x == 5)
+    Swag.assert(c.center.y == 7)
 }
 
 // Method on struct with pointer field.
@@ -151,7 +151,7 @@ impl ListNode
     var c: ListNode = {value: 3, next: null}
     var b: ListNode = {value: 2, next: &c}
     var a: ListNode = {value: 1, next: &b}
-    @assert(a.count() == 3)
-    @assert(b.count() == 2)
-    @assert(c.count() == 1)
+    Swag.assert(a.count() == 3)
+    Swag.assert(b.count() == 2)
+    Swag.assert(c.count() == 1)
 }

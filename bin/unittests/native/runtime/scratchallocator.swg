@@ -8,9 +8,9 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 {
     alloc.setup()
     alloc.configure(false, false, false, false, false)
-    let itf = @mkinterface(alloc, #typeof(alloc[]), IAllocator)
+    let itf = Swag.makeInterface(alloc, #typeof(alloc[]), IAllocator)
     scratch.setCapacity(BufSize, itf)
-    return @mkinterface(scratch, #typeof(scratch[]), IAllocator)
+    return Swag.makeInterface(scratch, #typeof(scratch[]), IAllocator)
 }
 
 // Basic alloc and free
@@ -23,12 +23,12 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var req: AllocatorRequest
     req.size = 64
     itf.alloc(&req)
-    @assert(req.address != null)
-    @assert(scratch.used >= 64)
+    Swag.assert(req.address != null)
+    Swag.assert(scratch.used >= 64)
 
     req.size = 64
     itf.free(&req)
-    @assert(req.address == null)
+    Swag.assert(req.address == null)
 
     scratch.release()
 }
@@ -43,14 +43,14 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var req: AllocatorRequest
     req.size = 100
     itf.alloc(&req)
-    @assert(scratch.used >= 100)
+    Swag.assert(scratch.used >= 100)
 
     let usedAfterFirst = scratch.used
 
     var req2: AllocatorRequest
     req2.size = 200
     itf.alloc(&req2)
-    @assert(scratch.used >= usedAfterFirst + 200)
+    Swag.assert(scratch.used >= usedAfterFirst + 200)
 
     scratch.release()
 }
@@ -72,12 +72,12 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var req2: AllocatorRequest
     req2.size = 64
     itf.alloc(&req2)
-    @assert(scratch.used > usedBefore)
+    Swag.assert(scratch.used > usedBefore)
 
     // Free last block reclaims
     req2.size = 64
     itf.free(&req2)
-    @assert(scratch.used == usedBefore)
+    Swag.assert(scratch.used == usedBefore)
 
     scratch.release()
 }
@@ -102,7 +102,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     // Free first block (not last) does nothing to used
     req1.size = 64
     itf.free(&req1)
-    @assert(scratch.used == usedBefore)
+    Swag.assert(scratch.used == usedBefore)
 
     scratch.release()
 }
@@ -117,7 +117,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var req: AllocatorRequest
     req.size = 0
     itf.alloc(&req)
-    @assert(req.address == null)
+    Swag.assert(req.address == null)
 
     scratch.release()
 }
@@ -132,7 +132,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var req: AllocatorRequest
     req.address = null
     itf.free(&req)
-    @assert(req.address == null)
+    Swag.assert(req.address == null)
 
     scratch.release()
 }
@@ -153,7 +153,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         ptr[i] = cast(u8) ((i * 3 + 5) & 0xFF)
 
     for i in 256 do
-        @assert(ptr[i] == cast(u8) ((i * 3 + 5) & 0xFF))
+        Swag.assert(ptr[i] == cast(u8) ((i * 3 + 5) & 0xFF))
 
     scratch.release()
 }
@@ -171,13 +171,13 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         var req: AllocatorRequest
         req.size = 64
         itf.alloc(&req)
-        @assert(req.address != null)
+        Swag.assert(req.address != null)
         ptrs[i] = req.address
     }
 
     // Pointers should be distinct and in increasing order (linear allocator)
     for i in 1 until 4 do
-        @assert(cast(u64) ptrs[i] > cast(u64) ptrs[i - 1])
+        Swag.assert(cast(u64) ptrs[i] > cast(u64) ptrs[i - 1])
 
     scratch.release()
 }
@@ -193,21 +193,21 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var req1: AllocatorRequest
     req1.size = BufSize - 64
     itf.alloc(&req1)
-    @assert(req1.address != null)
+    Swag.assert(req1.address != null)
 
     // This should overflow to the underlying allocator (leak)
     var req2: AllocatorRequest
     req2.size = 256
     itf.alloc(&req2)
-    @assert(req2.address != null)
-    @assert(scratch.totalLeak >= 256)
+    Swag.assert(req2.address != null)
+    Swag.assert(scratch.totalLeak >= 256)
 
     // Write to it to verify usability
     let ptr = cast([*] u8) req2.address!
     ptr[0]   = 0xAA
     ptr[255] = 0xBB
-    @assert(ptr[0] == 0xAA)
-    @assert(ptr[255] == 0xBB)
+    Swag.assert(ptr[0] == 0xAA)
+    Swag.assert(ptr[255] == 0xBB)
 
     scratch.release()
 }
@@ -228,12 +228,12 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var req2: AllocatorRequest
     req2.size = 128
     itf.alloc(&req2)
-    @assert(scratch.totalLeak >= 128)
+    Swag.assert(scratch.totalLeak >= 128)
 
     // Free the leak
     req2.size = 128
     itf.free(&req2)
-    @assert(scratch.totalLeak == 0)
+    Swag.assert(scratch.totalLeak == 0)
 
     scratch.release()
 }
@@ -255,14 +255,14 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req2.size = BufSize
     itf.alloc(&req2)
 
-    @assert(scratch.used > 0)
-    @assert(scratch.totalLeak > 0)
+    Swag.assert(scratch.used > 0)
+    Swag.assert(scratch.totalLeak > 0)
 
     var freeAll: AllocatorRequest
     itf.freeAll(&freeAll)
 
-    @assert(scratch.used == 0)
-    @assert(scratch.firstLeak == null)
+    Swag.assert(scratch.used == 0)
+    Swag.assert(scratch.firstLeak == null)
 
     scratch.release()
 }
@@ -279,14 +279,14 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
 
     let peak = scratch.maxUsed
-    @assert(peak >= 512)
+    Swag.assert(peak >= 512)
 
     // Free last
     req.size = 512
     itf.free(&req)
 
     // maxUsed should still reflect the peak
-    @assert(scratch.maxUsed == peak)
+    Swag.assert(scratch.maxUsed == peak)
 
     scratch.release()
 }
@@ -309,14 +309,14 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req2)
 
     let peak = scratch.maxLeak
-    @assert(peak >= 200)
+    Swag.assert(peak >= 200)
 
     // Free leak
     req2.size = 200
     itf.free(&req2)
 
     // maxLeak still reflects peak
-    @assert(scratch.maxLeak == peak)
+    Swag.assert(scratch.maxLeak == peak)
 
     scratch.release()
 }
@@ -339,11 +339,11 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req.oldSize = 32
     req.size    = 128
     itf.realloc(&req)
-    @assert(req.address != null)
+    Swag.assert(req.address != null)
 
     let newPtr = cast([*] u8) req.address!
     for i in 32 do
-        @assert(newPtr[i] == cast(u8) (i + 1))
+        Swag.assert(newPtr[i] == cast(u8) (i + 1))
 
     scratch.release()
 }
@@ -360,7 +360,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         var req: AllocatorRequest
         req.size = 64
         itf.alloc(&req)
-        @assert(req.address != null)
+        Swag.assert(req.address != null)
 
         // Free last immediately to reclaim
         req.size = 64
@@ -368,7 +368,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     }
 
     // Buffer should be back to 0 since we always free the last
-    @assert(scratch.used == 0)
+    Swag.assert(scratch.used == 0)
 
     scratch.release()
 }
@@ -383,11 +383,11 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var req: AllocatorRequest
     req.size = 1
     itf.alloc(&req)
-    @assert(req.address != null)
+    Swag.assert(req.address != null)
 
     let ptr = cast([*] u8) req.address!
     ptr[0] = 0xFF
-    @assert(ptr[0] == 0xFF)
+    Swag.assert(ptr[0] == 0xFF)
 
     scratch.release()
 }
@@ -407,14 +407,14 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     // FreeAll resets
     var freeAll: AllocatorRequest
     itf.freeAll(&freeAll)
-    @assert(scratch.used == 0)
+    Swag.assert(scratch.used == 0)
 
     // Allocate again
     var req2: AllocatorRequest
     req2.size = 512
     itf.alloc(&req2)
-    @assert(req2.address != null)
-    @assert(scratch.used >= 512)
+    Swag.assert(req2.address != null)
+    Swag.assert(scratch.used >= 512)
 
     scratch.release()
 }
@@ -437,10 +437,10 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     {
         leaks[i].size = 100
         itf.alloc(&leaks[i])
-        @assert(leaks[i].address != null)
+        Swag.assert(leaks[i].address != null)
     }
 
-    @assert(scratch.totalLeak >= 300)
+    Swag.assert(scratch.totalLeak >= 300)
 
     // Free leaks one by one
     for i in 3
@@ -449,7 +449,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         itf.free(&leaks[i])
     }
 
-    @assert(scratch.totalLeak == 0)
+    Swag.assert(scratch.totalLeak == 0)
 
     scratch.release()
 }
@@ -471,7 +471,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         vals[i] = cast(u32) (i * 777 + 11)
 
     for i in 10 do
-        @assert(vals[i] == cast(u32) (i * 777 + 11))
+        Swag.assert(vals[i] == cast(u32) (i * 777 + 11))
 
     scratch.release()
 }
@@ -491,17 +491,17 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     buffered.size      = 32
     buffered.alignment = 64
     itf.alloc(&buffered)
-    @assert(cast(u64) buffered.address % 64 == 0)
+    Swag.assert(cast(u64) buffered.address % 64 == 0)
 
     var overflow: AllocatorRequest
     overflow.size      = BufSize
     overflow.alignment = 128
     itf.alloc(&overflow)
-    @assert(cast(u64) overflow.address % 128 == 0)
+    Swag.assert(cast(u64) overflow.address % 128 == 0)
 
     overflow.size = BufSize
     itf.free(&overflow)
-    @assert(scratch.totalLeak == 0)
+    Swag.assert(scratch.totalLeak == 0)
 
     scratch.release()
 }
@@ -529,16 +529,16 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req.size    = 32
     itf.realloc(&req)
 
-    @assert(req.address != null)
-    @assert(req.address != oldAddress)
-    @assert(scratch.totalLeak == 32)
+    Swag.assert(req.address != null)
+    Swag.assert(req.address != oldAddress)
+    Swag.assert(scratch.totalLeak == 32)
     let resized = cast([*] u8) req.address!
     for i in 32 do
-        @assert(resized[i] == cast(u8) i)
+        Swag.assert(resized[i] == cast(u8) i)
 
     req.size = 32
     itf.free(&req)
-    @assert(scratch.totalLeak == 0)
+    Swag.assert(scratch.totalLeak == 0)
 
     scratch.release()
 }
@@ -555,10 +555,10 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
 
     scratch.release()
-    @assert(scratch.block == null)
-    @assert(scratch.used == 0)
-    @assert(scratch.capacity == 0)
-    @assert(scratch.allocator == null)
+    Swag.assert(scratch.block == null)
+    Swag.assert(scratch.used == 0)
+    Swag.assert(scratch.capacity == 0)
+    Swag.assert(scratch.allocator == null)
 }
 
 // Realloc with size 0 frees
@@ -575,7 +575,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req.oldSize = 64
     req.size    = 0
     itf.realloc(&req)
-    @assert(req.address == null)
+    Swag.assert(req.address == null)
 
     scratch.release()
 }
@@ -591,13 +591,13 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req.address = null
     req.size    = 200
     itf.realloc(&req)
-    @assert(req.address != null)
+    Swag.assert(req.address != null)
 
     let ptr = cast([*] u8) req.address!
     ptr[0]   = 1
     ptr[199] = 2
-    @assert(ptr[0] == 1)
-    @assert(ptr[199] == 2)
+    Swag.assert(ptr[0] == 1)
+    Swag.assert(ptr[199] == 2)
 
     scratch.release()
 }
@@ -616,13 +616,13 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req.oldSize = 64
     req.size    = 200
     itf.realloc(&req)
-    @assert(req.address != null)
+    Swag.assert(req.address != null)
 
     let ptr = cast([*] u8) req.address!
     ptr[0]   = 1
     ptr[199] = 2
-    @assert(ptr[0] == 1)
-    @assert(ptr[199] == 2)
+    Swag.assert(ptr[0] == 1)
+    Swag.assert(ptr[199] == 2)
 
     scratch.release()
 }
@@ -634,8 +634,8 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
-    @assert(scratch.capacity == BufSize)
-    @assert(scratch.block != null)
+    Swag.assert(scratch.capacity == BufSize)
+    Swag.assert(scratch.block != null)
 
     scratch.release()
 }
@@ -645,11 +645,11 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 {
     const High = 0x0000_0134_0000_0000'u64
 
-    @assert(ScratchAllocator.align(High, 16) == High)
-    @assert(ScratchAllocator.align(High + 1, 16) == High + 16)
-    @assert(ScratchAllocator.align(High + 15, 16) == High + 16)
-    @assert(ScratchAllocator.align(High + 16, 16) == High + 16)
-    @assert(ScratchAllocator.align(High + 9, 8) == High + 16)
+    Swag.assert(ScratchAllocator.align(High, 16) == High)
+    Swag.assert(ScratchAllocator.align(High + 1, 16) == High + 16)
+    Swag.assert(ScratchAllocator.align(High + 15, 16) == High + 16)
+    Swag.assert(ScratchAllocator.align(High + 16, 16) == High + 16)
+    Swag.assert(ScratchAllocator.align(High + 9, 8) == High + 16)
 }
 
 // Every allocation is aligned as requested, whatever the block address is
@@ -667,8 +667,8 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         itf.alloc(&req)
 
         let address = cast(u64) req.address!
-        @assert(address % cast(u64) alignment == 0)
-        @assert(address >= cast(u64) scratch.block)
+        Swag.assert(address % cast(u64) alignment == 0)
+        Swag.assert(address >= cast(u64) scratch.block)
     }
 
     scratch.release()

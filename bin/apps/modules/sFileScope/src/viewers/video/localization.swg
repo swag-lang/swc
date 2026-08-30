@@ -71,9 +71,9 @@ func videoFrameCountText(count: u64)->String
 func videoAudioTrackText(index: u32, sound: const *Audio.SoundFile)->String
 {
     let strings = videoStrings()
-    var name    = @countof(sound.displayName()) ? String.from(sound.displayName()) : Format.toString(strings.ui_AudioTrackNumber, index + 1)
+    var name    = (sound.displayName()).count ? String.from(sound.displayName()) : Format.toString(strings.ui_AudioTrackNumber, index + 1)
     var language: String
-    if @countof(sound.language()) and sound.language() != "und" do
+    if (sound.language()).count and sound.language() != "und" do
         language = Format.toString(strings.ui_AudioTrackLang, sound.language())
     return Format.toString(strings.ui_AudioTrack, name.toString(), language.toString(), videoAudioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64) sound.sampleRateHz() / 1_000.0)
 }
@@ -114,9 +114,9 @@ func videoSubtitleTrackText(index: u32, track: const *Video.Subtitle.Track, side
     let strings     = videoStrings()
     let displayName = videoSubtitleText(track.displayNameData(), track.displayNameLength())
     let language    = videoSubtitleText(track.languageTagData(), track.languageTagLength())
-    var name        = @countof(displayName) ? String.from(displayName) : Format.toString(strings.ui_SubtitleTrackNumber, index + 1)
+    var name        = displayName.count ? String.from(displayName) : Format.toString(strings.ui_SubtitleTrackNumber, index + 1)
     var languageSuffix: String
-    if @countof(language) and language != "und" do
+    if language.count and language != "und" do
         languageSuffix = Format.toString(strings.ui_SubtitleTrackLang, language)
     return Format.toString(sidecar ? strings.ui_SubtitleSidecar : strings.ui_SubtitleEmbedded, name.toString(), languageSuffix.toString())
 }

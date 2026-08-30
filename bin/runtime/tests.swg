@@ -11,7 +11,7 @@ var g_TestsFailedCnt: u32
 func __testPanicHandler(message: #null string, loc: Swag.SourceCodeLocation)
 {
     // Drop the hook first so a panic raised while printing takes the default path.
-    @getcontext().panic = null
+    Swag.getContext().panic = null
     __printPanicReport(message, loc)
     g_TestFailed = true
     __hostTestResume()
@@ -20,17 +20,17 @@ func __testPanicHandler(message: #null string, loc: Swag.SourceCodeLocation)
 // Records a hardware exception delivered by the host for the active test thread.
 func __testHardwareException(code: u32, instructionAddress: u64, accessKind: u64, accessAddress: u64)
 {
-    @print("\n#test stops on hardware exception ", cast(s64) code, "\n")
-    @print("#test faulting instruction address ", instructionAddress, "\n")
+    Swag.print("\n#test stops on hardware exception ", cast(s64) code, "\n")
+    Swag.print("#test faulting instruction address ", instructionAddress, "\n")
     let symbol = __symbolize(cast(*void) instructionAddress)
     if symbol.hasLine do
-        @print("#test faulting symbol ", symbol.name, " (", symbol.file, ":", symbol.line, ")\n")
+        Swag.print("#test faulting symbol ", symbol.name, " (", symbol.file, ":", symbol.line, ")\n")
     elif symbol.found do
-        @print("#test faulting symbol ", symbol.name, "\n")
+        Swag.print("#test faulting symbol ", symbol.name, "\n")
     if code == 0xC0000005 and (accessKind == 0 or accessKind == 1 or accessKind == 8)
     {
         let operation = accessKind == 0 ? "read" : accessKind == 1 ? "write" : "execute"
-        @print("#test attempted to ", operation, " address ", accessAddress, "\n")
+        Swag.print("#test attempted to ", operation, " address ", accessAddress, "\n")
     }
 
     g_TestFailed = true
@@ -41,7 +41,7 @@ func __testHardwareException(code: u32, instructionAddress: u64, accessKind: u64
 // every #test is skipped and #main runs on a state no test has touched.
 func __isTestRun()->bool
 {
-    for arg in @args where @stringcmp(arg, "swag.test") do
+    for arg in Swag.args() where Swag.stringCmp(arg, "swag.test") do
         return true
     return false
 }
@@ -54,14 +54,14 @@ func __runTest(fn: *void, name: const [*] u8)
     if !__isTestRun() do
         return
 
-    let testName = @mkstring(name, @countof(cast(const cstring) name))
-    @print("[swag.test] event=start executed=", cast(s64) g_TestsExecuted, " failed=", cast(s64) g_TestsFailedCnt, " name=", testName, "\n")
+    let testName = Swag.makeString(name, (cast(const cstring) name).count)
+    Swag.print("[swag.test] event=start executed=", cast(s64) g_TestsExecuted, " failed=", cast(s64) g_TestsFailedCnt, " name=", testName, "\n")
 
     g_TestsExecuted += 1
     g_TestFailed    = false
     g_TestThreadId  = __hostCurrentThreadId()
 
-    let cxt            = @getcontext()
+    let cxt            = Swag.getContext()
     let previousPanic  = cxt.panic
     let previousFilter = __hostTestInstallHardwareFilter()
     cxt.panic = cast() &__testPanicHandler
@@ -76,7 +76,7 @@ func __runTest(fn: *void, name: const [*] u8)
     if g_TestFailed do
         g_TestsFailedCnt += 1
 
-    @print("[swag.test] event=", g_TestFailed ? "fail" : "pass", " executed=", cast(s64) g_TestsExecuted, " failed=", cast(s64) g_TestsFailedCnt, " name=", testName, "\n")
+    Swag.print("[swag.test] event=", g_TestFailed ? "fail" : "pass", " executed=", cast(s64) g_TestsExecuted, " failed=", cast(s64) g_TestsFailedCnt, " name=", testName, "\n")
 }
 
 func __testsDone()
@@ -85,7 +85,7 @@ func __testsDone()
         return
 
     // Marker parsed by the compiler's test command to report the native tally.
-    @print("[swag.test] executed=", cast(s64) g_TestsExecuted, " failed=", cast(s64) g_TestsFailedCnt, "\n")
+    Swag.print("[swag.test] executed=", cast(s64) g_TestsExecuted, " failed=", cast(s64) g_TestsFailedCnt, "\n")
     if g_TestsFailedCnt do
         __exitError()
 }

@@ -29,7 +29,7 @@ impl Image
             }
             elif src.bytesPerPixel == 4
             {
-                let table   = swapColors ? @dataof(DropSwap) : @dataof(DropKeep)
+                let table   = swapColors ? DropSwap.buffer : DropKeep.buffer
                 let shuffle = Math.Simd.load(table)
                 while src.width - x >= 4
                 {
@@ -41,7 +41,7 @@ impl Image
             }
             elif dst.bytesPerPixel == 4
             {
-                let table     = swapColors ? @dataof(ExpandSwap) : @dataof(ExpandKeep)
+                let table     = swapColors ? ExpandSwap.buffer : ExpandKeep.buffer
                 let shuffle   = Math.Simd.load(table)
                 let alphaMask = cast(Math.Simd.U8x16) [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255]
                 while src.width - x >= 6

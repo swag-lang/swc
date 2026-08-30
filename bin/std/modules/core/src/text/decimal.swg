@@ -255,7 +255,7 @@ impl Decimal
         {
             let dig = n >> k
             n &= mask
-            if w < @countof(.d)
+            if w < (.d).count
             {
                 .d[w] = cast(u8) (dig + '0')
                 w     += 1
@@ -274,9 +274,9 @@ impl Decimal
 
     func prefixIsLessThan(b: const [..] u8, s: string)->bool
     {
-        for var i = 0; i < @countof(s); i += 1
+        for var i = 0; i < s.count; i += 1
         {
-            if i >= @countof(b) do
+            if i >= b.count do
                 return true
             if b[i] != s[i] do
                 return b[i] < s[i]
@@ -288,7 +288,7 @@ impl Decimal
     mtd leftShift(k: u32)
     {
         var delta = LeftCheats[k].delta
-        if prefixIsLessThan(@mkslice(&.d[0], .nd), LeftCheats[k].cutoff) do
+        if prefixIsLessThan(Swag.makeSlice(&.d[0], .nd), LeftCheats[k].cutoff) do
             delta -= 1
 
         var r = .nd             // read index
@@ -303,7 +303,7 @@ impl Decimal
             let quo = n / 10
             let rem = n - (10 * quo)
             w -= 1
-            if w < @countof(.d) do
+            if w < (.d).count do
                 .d[w] = cast(u8) (rem + '0')
             elif rem != 0 do
                 .trunc = true
@@ -317,7 +317,7 @@ impl Decimal
             let quo = n / 10
             let rem = n - (10 * quo)
             w -= 1
-            if w < @countof(.d) do
+            if w < (.d).count do
                 .d[w] = cast(u8) (rem + '0')
             elif rem != 0 do
                 .trunc = true
@@ -325,8 +325,8 @@ impl Decimal
         }
 
         .nd += delta
-        if .nd >= @countof(.d) do
-            .nd = cast(s32) @countof(.d)
+        if .nd >= (.d).count do
+            .nd = cast(s32) (.d).count
         .dp += delta
         .trim()
     }
@@ -362,8 +362,8 @@ impl Decimal
     mtd readF64(str: const [..] u8)->u32 fail
     {
         var cpt     = 0'u32
-        let countof = @countof(str)
-        var buffer  = @dataof(str)
+        let countof = str.count
+        var buffer  = str.buffer
 
         let negSign  = g_CultureInfo.numberFormat.negativeSign
         let plusSign = g_CultureInfo.numberFormat.positiveSign
@@ -410,7 +410,7 @@ impl Decimal
                     .dp -= 1
                 else
                 {
-                    if .nd < @countof(.d)
+                    if .nd < (.d).count
                     {
                         .d[.nd] = c
                         .nd     += 1
@@ -526,7 +526,7 @@ impl Decimal
             while .dp > 0
             {
                 var n: s64
-                if .dp >= @countof(PowTab) do
+                if .dp >= PowTab.count do
                     n = 27
                 else do
                     n = PowTab[.dp]
@@ -537,7 +537,7 @@ impl Decimal
             while .dp < 0 or .dp == 0 and .d[0] < '5'
             {
                 var n: s64
-                if -.dp >= @countof(PowTab) do
+                if -.dp >= PowTab.count do
                     n = 27
                 else do
                     n = PowTab[-.dp]

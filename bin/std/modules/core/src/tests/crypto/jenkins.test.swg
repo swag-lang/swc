@@ -26,25 +26,25 @@ func jenkinsReference(value: u64)->u64
 
 func assertJenkins(value: u32)
 {
-    @assert(Hash.jenkins(value) == jenkinsReference(value))
+    Swag.assert(Hash.jenkins(value) == jenkinsReference(value))
 }
 
 func assertJenkins(value: u64)
 {
-    @assert(Hash.jenkins(value) == jenkinsReference(value))
+    Swag.assert(Hash.jenkins(value) == jenkinsReference(value))
 }
 
 #test
 {
-    @assert(Hash.jenkins(0'u32) == 0x6B4ED927'u32)
-    @assert(Hash.jenkins(1'u32) == 0xB48681B6'u32)
-    @assert(Hash.jenkins(0x12345678'u32) == 0x027C5489'u32)
-    @assert(Hash.jenkins(0xFFFFFFFF'u32) == 0xFE64C182'u32)
+    Swag.assert(Hash.jenkins(0'u32) == 0x6B4ED927'u32)
+    Swag.assert(Hash.jenkins(1'u32) == 0xB48681B6'u32)
+    Swag.assert(Hash.jenkins(0x12345678'u32) == 0x027C5489'u32)
+    Swag.assert(Hash.jenkins(0xFFFFFFFF'u32) == 0xFE64C182'u32)
 
-    @assert(Hash.jenkins(0'u64) == 0'u64)
-    @assert(Hash.jenkins(1'u64) == 0x5692_161D_100B_05E5'u64)
-    @assert(Hash.jenkins(0x1234_5678_9ABC_DEF0'u64) == 0x9629_F58E_8EC5_B906'u64)
-    @assert(Hash.jenkins(0xFFFF_FFFF_FFFF_FFFF'u64) == 0xB4D0_55FC_F2CB_BD7B'u64)
+    Swag.assert(Hash.jenkins(0'u64) == 0'u64)
+    Swag.assert(Hash.jenkins(1'u64) == 0x5692_161D_100B_05E5'u64)
+    Swag.assert(Hash.jenkins(0x1234_5678_9ABC_DEF0'u64) == 0x9629_F58E_8EC5_B906'u64)
+    Swag.assert(Hash.jenkins(0xFFFF_FFFF_FFFF_FFFF'u64) == 0xB4D0_55FC_F2CB_BD7B'u64)
 
     for value in 65536
     {

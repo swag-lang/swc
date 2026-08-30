@@ -68,8 +68,8 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     let view = PdfView.create(&host.root)
     view.exchangeDocument(&reader, &page)
-    @assert(view.pageCount() == 2 and view.pageIndex == 0)
-    @assert(reader.pageCount() == 0)
+    Swag.assert(view.pageCount() == 2 and view.pageIndex == 0)
+    Swag.assert(reader.pageCount() == 0)
 }
 
 // A real multi-megabyte document keeps only its mapped source, lightweight page index and current
@@ -86,17 +86,17 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     let view = PdfView.create(&host.root)
     expect view.open(corpusPdfPath("llvm-polly-kernelgen-ncar-2012-slides.pdf"))
-    @assert(view.pageCount() == 28)
+    Swag.assert(view.pageCount() == 28)
     for pageIndex in view.pageCount() do
         expect view.showPage(pageIndex)
     let firstPass = allocator.stats()
-    @assert(firstPass.sizeAlloc < baseline.sizeAlloc + 64 * 1024 * 1024)
+    Swag.assert(firstPass.sizeAlloc < baseline.sizeAlloc + 64 * 1024 * 1024)
 
     for pageIndex in view.pageCount() do
         expect view.showPage(pageIndex)
     let secondPass = allocator.stats()
-    @assert(secondPass.sizeAlloc < baseline.sizeAlloc + 64 * 1024 * 1024)
-    @assert(secondPass.sizeAlloc <= firstPass.sizeAlloc + 2 * 1024 * 1024)
+    Swag.assert(secondPass.sizeAlloc < baseline.sizeAlloc + 64 * 1024 * 1024)
+    Swag.assert(secondPass.sizeAlloc <= firstPass.sizeAlloc + 2 * 1024 * 1024)
 }
 
 // The view paints the decoded page straight through the widget's painter: one rendered frame
@@ -114,20 +114,20 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     expect view.open(fileName.toString())
     view.resize(640, 420)
     view.applyLayout()
-    @assert(view.pageCount() == 2 and view.pageIndex == 0)
-    @assert(view.isFitted)
+    Swag.assert(view.pageCount() == 2 and view.pageIndex == 0)
+    Swag.assert(view.isFitted)
 
     let frame = host.render()
-    @assert(frame.isValid())
+    Swag.assert(frame.isValid())
     let evidence = countPageEvidence(&frame)
-    @assert(evidence.paper > 10_000)
-    @assert(evidence.ink > 50)
-    @assert(!view.reportedPaintError)
+    Swag.assert(evidence.paper > 10_000)
+    Swag.assert(evidence.ink > 50)
+    Swag.assert(!view.reportedPaintError)
 
     // Actual size is one PDF point per 1/96 logical inch, whatever the display resolution.
     view.actualSize()
-    @assert(!view.isFitted)
-    @assert(Math.isEqualEpsilon(view.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
+    Swag.assert(!view.isFitted)
+    Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
 }
 
 // A zoom step is a transform change, so the wheel takes effect immediately: no deferred
@@ -149,21 +149,21 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     let fitted = view.effectiveZoom()
     host.mouseWheel({320, 210}, 120, .Control)
-    @assert(!view.isFitted)
-    @assert(Math.isEqualEpsilon(view.effectiveZoom(), fitted * 1.12, 0.001))
+    Swag.assert(!view.isFitted)
+    Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), fitted * 1.12, 0.001))
 
     // A deep zoom stays a transform change and still paints the page region under the view.
     view.setZoom(40)
-    @assert(Math.isEqualEpsilon(view.effectiveZoom(), 40.0, 0.001))
+    Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 40.0, 0.001))
     let frame    = host.render()
     let evidence = countPageEvidence(&frame)
-    @assert(evidence.paper > 10_000)
-    @assert(!view.reportedPaintError)
+    Swag.assert(evidence.paper > 10_000)
+    Swag.assert(!view.reportedPaintError)
 
     // The plain wheel scrolls instead of zooming.
     let before = view.panOffset.y
     host.mouseWheel({320, 210}, 120)
-    @assert(view.panOffset.y == before + 60)
+    Swag.assert(view.panOffset.y == before + 60)
 }
 
 // Wheel scrolling is bounded by the page, and reversing at an edge responds on the first notch.
@@ -185,7 +185,7 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     for 32 do
         host.mouseWheel({320, 210}, 120)
-    @assert(view.panOffset == Math.Point{})
+    Swag.assert(view.panOffset == Math.Point{})
 
     view.setZoom(4)
     let client      = view.paddedClientRect()
@@ -193,16 +193,16 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     let verticalMax = Math.max(page.y * view.effectiveZoom() - client.height, 0) * 0.5
     for 128 do
         host.mouseWheel({320, 210}, 120)
-    @assert(view.panOffset.y <= verticalMax + 0.01)
-    @assert(view.panOffset.y >= verticalMax - 0.01)
+    Swag.assert(view.panOffset.y <= verticalMax + 0.01)
+    Swag.assert(view.panOffset.y >= verticalMax - 0.01)
 
     let edge = view.panOffset.y
     host.mouseWheel({320, 210}, -120)
-    @assert(view.panOffset.y == edge - PdfView.WheelScrollStep)
+    Swag.assert(view.panOffset.y == edge - PdfView.WheelScrollStep)
 
     for 256 do
         host.mouseWheel({320, 210}, -120)
-    @assert(view.panOffset.y >= -verticalMax - 0.01)
+    Swag.assert(view.panOffset.y >= -verticalMax - 0.01)
 }
 
 // The images of a page are uploaded to the renderer once per page and released with it.
@@ -221,22 +221,22 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     view.applyLayout()
 
     discard host.render()
-    @assert(view.hasTextures)
-    @assert(view.imageTextures.count == 1)
-    @assert(view.imageTextures[0].isValid())
+    Swag.assert(view.hasTextures)
+    Swag.assert(view.imageTextures.count == 1)
+    Swag.assert(view.imageTextures[0].isValid())
 
     // A second frame reuses the uploaded texture instead of building a new one.
     let handle = view.imageTextures[0].handle
     discard host.render()
-    @assert(view.imageTextures.count == 1)
-    @assert(view.imageTextures[0].handle == handle)
+    Swag.assert(view.imageTextures.count == 1)
+    Swag.assert(view.imageTextures[0].handle == handle)
 
     // Turning the page releases the previous page's textures.
     view.nextPage()
-    @assert(!view.hasTextures)
-    @assert(view.imageTextures.count == 0)
+    Swag.assert(!view.hasTextures)
+    Swag.assert(view.imageTextures.count == 0)
     discard host.render()
-    @assert(view.hasTextures and view.imageTextures.count == 0)
+    Swag.assert(view.hasTextures and view.imageTextures.count == 0)
 }
 
 // Page navigation keeps the zoom mode, reports the ends, and close releases the content.
@@ -262,18 +262,18 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     }
 
     view.nextPage()
-    @assert(view.pageIndex == 1)
+    Swag.assert(view.pageIndex == 1)
     view.nextPage()
-    @assert(view.pageIndex == 1)
+    Swag.assert(view.pageIndex == 1)
     view.previousPage()
-    @assert(view.pageIndex == 0)
+    Swag.assert(view.pageIndex == 0)
     view.previousPage()
-    @assert(view.pageIndex == 0)
-    @assert(pageChanges == 2)
+    Swag.assert(view.pageIndex == 0)
+    Swag.assert(pageChanges == 2)
 
     view.close()
-    @assert(view.pageCount() == 0)
-    @assert(!view.hasTextures and view.imageTextures.count == 0)
+    Swag.assert(view.pageCount() == 0)
+    Swag.assert(!view.hasTextures and view.imageTextures.count == 0)
 }
 
 // The text index reads a page the way a reader does: lines top to bottom, words separated by
@@ -285,26 +285,26 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     page.addText("gamma", 40, 80, 20, Color.fromArgb(Argb.Black))
 
     let index = TextIndex.build(&page)
-    @assert(index.text == "alpha beta\ngamma")
-    @assert(index.runs.count == 2)
+    Swag.assert(index.text == "alpha beta\ngamma")
+    Swag.assert(index.runs.count == 2)
 
     // A point inside the first glyph answers its exact offset.
     let hit = index.positionAt({41, 50})
-    @assert(hit.distance == 0)
-    @assert(hit.offset == 0)
+    Swag.assert(hit.distance == 0)
+    Swag.assert(hit.offset == 0)
 
     // A point far to the right of a line snaps to that line's end.
     let far = index.positionAt({300, 50})
-    @assert(far.offset == 10)
+    Swag.assert(far.offset == 10)
 
     let word = index.wordRangeAt(7)
-    @assert(index.text.toString()[word.start until word.end] == "beta")
+    Swag.assert(index.text.toString()[word.start until word.end] == "beta")
 
     var rects: Array'Math.Rectangle
     index.rangeRects(0, 5, &rects)
-    @assert(rects.count == 1)
-    @assert(rects[0].x >= 39 and rects[0].x <= 41)
-    @assert(rects[0].y >= 39 and rects[0].y <= 41)
+    Swag.assert(rects.count == 1)
+    Swag.assert(rects[0].x >= 39 and rects[0].x <= 41)
+    Swag.assert(rects[0].y >= 39 and rects[0].y <= 41)
 }
 
 // Selection on the view: a drag over words takes them, a double click takes one word, and the
@@ -333,20 +333,20 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     let dragFrom = view.localToSurface(Math.Point{originX + 33 * scale, originY + 40 * scale})
     let dragTo   = view.localToSurface(Math.Point{originX + 300 * scale, originY + 40 * scale})
     host.drag(dragFrom, dragTo)
-    @assert(view.hasSelection())
-    @assert(view.selectedText() == "PDF viewer")
-    @assert(view.copySelection())
-    @assert(Clipboard.getString() == "PDF viewer")
+    Swag.assert(view.hasSelection())
+    Swag.assert(view.selectedText() == "PDF viewer")
+    Swag.assert(view.copySelection())
+    Swag.assert(Clipboard.getString() == "PDF viewer")
 
     host.doubleClick(dragFrom)
-    @assert(view.selectedText() == "PDF")
+    Swag.assert(view.selectedText() == "PDF")
 
     view.clearSelection()
-    @assert(!view.hasSelection())
-    @assert(!view.copySelection())
+    Swag.assert(!view.hasSelection())
+    Swag.assert(!view.copySelection())
 
     view.selectAll()
-    @assert(view.selectedText() == "PDF viewer")
+    Swag.assert(view.selectedText() == "PDF viewer")
 }
 
 // Search scans forward from the current page, wraps once around the document, and turns the
@@ -365,41 +365,41 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     view.resize(640, 420)
     view.applyLayout()
 
-    @assert(view.findText("second"))
-    @assert(view.pageIndex == 1)
-    @assert(view.selectedText() == "Second")
+    Swag.assert(view.findText("second"))
+    Swag.assert(view.pageIndex == 1)
+    Swag.assert(view.selectedText() == "Second")
 
     // The same query keeps walking and comes back around to the only match.
-    @assert(view.findText("second"))
-    @assert(view.pageIndex == 1)
-    @assert(view.selectedText() == "Second")
+    Swag.assert(view.findText("second"))
+    Swag.assert(view.pageIndex == 1)
+    Swag.assert(view.selectedText() == "Second")
 
     // A match behind the current page is reached through the wrap.
-    @assert(view.findText("viewer"))
-    @assert(view.pageIndex == 0)
-    @assert(view.selectedText() == "viewer")
+    Swag.assert(view.findText("viewer"))
+    Swag.assert(view.pageIndex == 0)
+    Swag.assert(view.selectedText() == "viewer")
 
-    @assert(!view.findText("absent"))
+    Swag.assert(!view.findText("absent"))
 
     let matches = view.findTextMatches("second")
-    @assert(matches.count == 1 and matches[0].pageIndex == 1)
-    @assert(view.revealTextMatch(matches[0]) and view.selectedText() == "Second")
+    Swag.assert(matches.count == 1 and matches[0].pageIndex == 1)
+    Swag.assert(view.revealTextMatch(matches[0]) and view.selectedText() == "Second")
     var matchRect: Math.Rectangle
-    @assert(view.textMatchRect(matches[0], &matchRect) and !matchRect.isEmpty())
+    Swag.assert(view.textMatchRect(matches[0], &matchRect) and !matchRect.isEmpty())
 
     var exact: PdfTextSearchOptions
     exact.comparison = .Latin1
-    @assert(view.findTextMatches("second", exact).isEmpty())
+    Swag.assert(view.findTextMatches("second", exact).isEmpty())
 
     var words: PdfTextSearchOptions
     words.wholeWord = true
-    @assert(view.findTextMatches("view", words).isEmpty())
+    Swag.assert(view.findTextMatches("view", words).isEmpty())
 
     var expression: PdfTextSearchOptions
     expression.regularExpression = true
     let expressionMatches = view.findTextMatches(#raw "Sec.nd", expression)
-    @assert(expressionMatches.count == 1 and expressionMatches[0].pageIndex == 1 and expressionMatches[0].byteLength == 6)
-    @assert(view.findTextMatches("(", expression).isEmpty())
+    Swag.assert(expressionMatches.count == 1 and expressionMatches[0].pageIndex == 1 and expressionMatches[0].byteLength == 6)
+    Swag.assert(view.findTextMatches("(", expression).isEmpty())
 }
 
 // The context menu reaches the same selection commands the keyboard binds.
@@ -420,10 +420,10 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     host.clickPopupMenuItemWhenShown(PdfView.CtxSelectAll)
     view.showContextMenu({100, 100})
     host.pump()
-    @assert(view.selectedText() == "PDF viewer")
+    Swag.assert(view.selectedText() == "PDF viewer")
 
     host.clickPopupMenuItemWhenShown(PdfView.CtxCopy)
     view.showContextMenu({100, 100})
     host.pump()
-    @assert(Clipboard.getString() == "PDF viewer")
+    Swag.assert(Clipboard.getString() == "PDF viewer")
 }

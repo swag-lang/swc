@@ -16,16 +16,16 @@ func quarterRound(state: *[16] u32, a, b, c, d: u32)
 {
     state[][a] = add32(state[][a], state[][b])
     state[][d] ^= state[][a]
-    state[][d] = @rol(state[][d], 16)
+    state[][d] = Swag.rol(state[][d], 16)
     state[][c] = add32(state[][c], state[][d])
     state[][b] ^= state[][c]
-    state[][b] = @rol(state[][b], 12)
+    state[][b] = Swag.rol(state[][b], 12)
     state[][a] = add32(state[][a], state[][b])
     state[][d] ^= state[][a]
-    state[][d] = @rol(state[][d], 8)
+    state[][d] = Swag.rol(state[][d], 8)
     state[][c] = add32(state[][c], state[][d])
     state[][b] ^= state[][c]
-    state[][b] = @rol(state[][b], 7)
+    state[][b] = Swag.rol(state[][b], 7)
 }
 
 // The state array arrives through a pointer, so the vectorizer sees a
@@ -110,24 +110,24 @@ func threeLanes(values: *[8] u32)
         0x2A598CB0, 0xBCDF0F50, 0xA0FF67B6, 0x1E1813E1,
         0x6E6F2414, 0x3611BE53, 0x90B57CBF, 0x885F04F2]
     for i in 16 do
-        @assert(state[i] == Expected[i])
+        Swag.assert(state[i] == Expected[i])
 }
 
 #test
 {
-    @assert(chachaRoundsLocal() == 0x9679D982)
+    Swag.assert(chachaRoundsLocal() == 0x9679D982)
 }
 
 #test
 {
     var values: [8] u32 = [10, 20, 30, 40, 0, 0, 0, 0]
-    @assert(lanesThenReadBack(&values) == 21)
-    @assert(values[4] == 11 and values[5] == 21 and values[6] == 31 and values[7] == 41)
+    Swag.assert(lanesThenReadBack(&values) == 21)
+    Swag.assert(values[4] == 11 and values[5] == 21 and values[6] == 31 and values[7] == 41)
 }
 
 #test
 {
     var values: [8] u32 = [10, 20, 30, 40, 0, 0, 0, 99]
     threeLanes(&values)
-    @assert(values[4] == 11 and values[5] == 21 and values[6] == 31 and values[7] == 99)
+    Swag.assert(values[4] == 11 and values[5] == 21 and values[6] == 31 and values[7] == 99)
 }

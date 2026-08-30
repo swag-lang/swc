@@ -47,7 +47,7 @@ func aggregateLiteralRuneSlice(marker: rune)->bool
 {
     const a: [3] s32        = [1, 2, 3]
     const s: const [..] s32 = a
-    #assert(@countof(s) == 3)
+    #assert(s.count == 3)
     #assert(s[1] == 2)
 }
 
@@ -61,7 +61,7 @@ func sliceRefWindow()->u64
     var arr:    [5] s32  = [10, 20, 30, 40, 50]
     let arrRef: *[5] s32 = &arr
     let mid              = arrRef[][1 to 3]
-    return @countof(mid) + cast(u64) mid[0] + cast(u64) mid[2]
+    return mid.count + cast(u64) mid[0] + cast(u64) mid[2]
 }
 
 func textRefWindow()->string

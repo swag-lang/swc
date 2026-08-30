@@ -14,8 +14,8 @@ func Amb(a: s32) { gAmb1Last = a }
     gAmb1Last  = 0
     Amb()
     Amb(10)
-    @assert(gAmb0Calls == 1)
-    @assert(gAmb1Last == 10)
+    Swag.assert(gAmb0Calls == 1)
+    Swag.assert(gAmb1Last == 10)
 }
 
 namespace N
@@ -30,8 +30,8 @@ namespace N
     gNAmb1Last  = 0
     N.Amb()
     N.Amb(10)
-    @assert(gNAmb0Calls == 1)
-    @assert(gNAmb1Last == 10)
+    Swag.assert(gNAmb0Calls == 1)
+    Swag.assert(gNAmb1Last == 10)
 }
 
 func DeclAndDef()
@@ -42,7 +42,7 @@ func DeclAndDef() { gDeclAndDefCalls += 1 }
     gDeclAndDefCalls = 0
     DeclAndDef()
     #assert(#nameof(DeclAndDef) == "DeclAndDef")
-    @assert(gDeclAndDefCalls == 1)
+    Swag.assert(gDeclAndDefCalls == 1)
 }
 
 func DeclOnly()

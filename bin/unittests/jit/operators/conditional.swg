@@ -187,13 +187,13 @@ var g_Int42:   s32 = 42
 #test
 {
     let v = cast(s32) (g_CondTrue ? g_Float15 : g_Float25)
-    @assert(v == 1)
+    Swag.assert(v == 1)
     let w = cast(s32) (!g_CondTrue ? g_Float15 : g_Float25)
-    @assert(w == 2)
+    Swag.assert(w == 2)
 
     let f = g_CondTrue ? g_Float15 : g_Float25
-    @assert(f == 1.5)
-    @assert(f + g_Float25 == 4.0)
+    Swag.assert(f == 1.5)
+    Swag.assert(f + g_Float25 == 4.0)
 }
 
 // A conditional wrapped by an implicit cast keeps its own result type; the
@@ -202,11 +202,11 @@ var g_Int42:   s32 = 42
 #test
 {
     let x: f32 = g_CondTrue ? g_Int42 : 200
-    @assert(x == 42.0)
+    Swag.assert(x == 42.0)
     let y: f32 = !g_CondTrue ? g_Int42 : 200
-    @assert(y == 200.0)
+    Swag.assert(y == 200.0)
     let z: f64 = g_CondTrue ? g_Int42 : 200
-    @assert(z == 42.0)
+    Swag.assert(z == 42.0)
 }
 
 // A SIMD value is register-backed despite its 16-byte size. Treating it like a
@@ -215,8 +215,8 @@ var g_Int42:   s32 = 42
 {
     func ternarySimd(cond: bool)->#simd [16] u8
     {
-        let bits     = @vecsplat(1'u8)
-        let selected = cond ? bits > @vecsplat(0'u8) : @vecsplat(17'u8)
+        let bits     = Swag.vecsplat(1'u8)
+        let selected = cond ? bits > Swag.vecsplat(0'u8) : Swag.vecsplat(17'u8)
         return selected
     }
 
@@ -239,15 +239,15 @@ var g_CondSt: CondSt
 
     let p: #null *CondSt = g_CondTrue ? &g_CondSt : null
     let f: f32           = p ? p.col : 200
-    @assert(f == 200.0)
+    Swag.assert(f == 200.0)
 
-    @assert(takeF(g_CondTrue ? g_Int42 : 200) == 42.0)
+    Swag.assert(takeF(g_CondTrue ? g_Int42 : 200) == 42.0)
 
     let a = cast(f32) (g_CondTrue ? g_Int42 : 200)
-    @assert(a == 42.0)
+    Swag.assert(a == 42.0)
 
-    @assert(retF(true, 7) == 7.0)
-    @assert(retF(false, 7) == 200.0)
+    Swag.assert(retF(true, 7) == 7.0)
+    Swag.assert(retF(false, 7) == 200.0)
 }
 
 // A conditional between two typed values keeps their type whatever the enclosing function
@@ -258,11 +258,11 @@ var g_CondSt: CondSt
     func pick(flag: bool, values: const [*] s32, index: u32, other: s32, delta: s32)->u32
     {
         var chosen = flag ? values[index] : other
-        chosen = @max(0's32, chosen + delta)
+        chosen = Swag.max(0's32, chosen + delta)
         return cast(u32) chosen
     }
 
     var values: [4] s32 = [1008, 1024, 1056, 1072]
-    @assert(pick(true, &values[0], 0, 7, -144) == 864)
-    @assert(pick(false, &values[0], 0, 7, -144) == 0)
+    Swag.assert(pick(true, &values[0], 0, 7, -144) == 864)
+    Swag.assert(pick(false, &values[0], 0, 7, -144) == 0)
 }

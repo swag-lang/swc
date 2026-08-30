@@ -90,7 +90,7 @@ impl RichEditLine
     {
         .dirtyStyle = true
         var srcI = 0'u64
-        for var i = insIndex; i < insIndex + @countof(runes); i += 1
+        for var i = insIndex; i < insIndex + runes.count; i += 1
         {
             .chars.insertAt(i, runes[srcI])
             .styles.insertAt(i, styles[srcI])

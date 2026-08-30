@@ -16,7 +16,8 @@ void LangSpec::setup()
 void LangSpec::setupKeywords()
 {
 #define SWC_TOKEN_DEF(__id, __name, __kind)                             \
-    if (Token::isSpecialWord(TokenId::__id))                            \
+    if (Token::isSpecialWord(TokenId::__id) &&                          \
+        (!Token::isIntrinsic(TokenId::__id) || Token::isCompiler(TokenId::__id))) \
     {                                                                   \
         auto hash64 = Math::hash(__name);                               \
         keywordMap_.insert_or_assign(__name, hash64, TokenId::__id);    \
@@ -80,7 +81,6 @@ void LangSpec::setupCharFlags()
     charFlags_['_'].add(CharFlagsE::IdentifierStart);
     charFlags_['_'].add(CharFlagsE::IdentifierPart);
     charFlags_['#'].add(CharFlagsE::IdentifierStart);
-    charFlags_['@'].add(CharFlagsE::IdentifierStart);
     charFlags_['-'].add(CharFlagsE::Option);
 
     for (char8_t c = 'a'; c <= 'z'; c++)

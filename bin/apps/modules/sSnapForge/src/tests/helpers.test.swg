@@ -89,7 +89,7 @@ impl HeadlessFixture
 // 'Library.newFileName', and outside a sandbox those land in the user's own library.
 func testUseScratchLibrary()
 {
-    @assert(Env.isSandboxed())
+    Swag.assert(Env.isSandboxed())
     g_Library.rootFolder.clear()
     g_Library.defaultFolder.clear()
     discard catch Library.init()
@@ -198,7 +198,7 @@ func testAddImage(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*
 
 func testDeleteForm(itf: IForm)
 {
-    Memory.delete(@dataof(itf), @kindof(itf))
+    Memory.delete(itf.buffer, Swag.kindOf(itf))
 }
 
 func testTempCapturePath()->String

@@ -56,8 +56,8 @@ func aggregateLayout()->u64
 
 #test
 {
-    @assert(scalarLayout() == 14'u64)
-    @assert(stringAndNested() == 24'u64)
-    @assert(multiDecl() == 4'u64)
-    @assert(aggregateLayout() == 24'u64)
+    Swag.assert(scalarLayout() == 14'u64)
+    Swag.assert(stringAndNested() == 24'u64)
+    Swag.assert(multiDecl() == 4'u64)
+    Swag.assert(aggregateLayout() == 24'u64)
 }

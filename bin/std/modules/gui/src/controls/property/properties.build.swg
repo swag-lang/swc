@@ -255,7 +255,7 @@ internal impl Properties
 
         // If the struct has implemented the notify interface, store it
         if parentItem and bindNotify do
-            parentItem.ntfyItf = @mkinterface(addr, typeStruct, IPropertyNotify)
+            parentItem.ntfyItf = Swag.makeInterface(addr, typeStruct, IPropertyNotify)
 
         // Currently open category path (nested subgroups). Each entry pairs a "/"-split name segment
         // with the header row created for it, so consecutive fields sharing a common prefix reuse the
@@ -267,7 +267,7 @@ internal impl Properties
         // fields first even though the language forces the base to be declared first.
         var walkOrder: Array'u64
         let tsFields = typeStruct.fields!
-        for i in @countof(typeStruct.fields)
+        for i in typeStruct.fields.count
         {
             if !.usingFieldsLast or !tsFields[i].flags.has(.HasUsing) do
                 walkOrder.add(i)
@@ -275,7 +275,7 @@ internal impl Properties
 
         if .usingFieldsLast
         {
-            for i in @countof(typeStruct.fields)
+            for i in typeStruct.fields.count
             {
                 if tsFields[i].flags.has(.HasUsing) do
                     walkOrder.add(i)
@@ -284,7 +284,7 @@ internal impl Properties
 
         // A presentation dependency moves only the reflected row. Keeping the declaration intact
         // is essential for structures whose field order is also their persisted binary schema.
-        for fieldIdx in @countof(typeStruct.fields)
+        for fieldIdx in typeStruct.fields.count
         {
             let after = Reflection.attributeValue(tsFields[fieldIdx], Properties.After, "field")
             if after == null do
@@ -452,7 +452,7 @@ internal impl Properties
         let v         = Swag.TypeValue{name: text}
         with let item = .addItem(v, null, parentItem)
         {
-            if @isset(.label) do
+            if Swag.isSet(.label) do
                 .label.style.setFont(&.fontCategory)
             .level = parentItem!.level
             .flags.add(.Header | .NoSeparator | .NoFocus)

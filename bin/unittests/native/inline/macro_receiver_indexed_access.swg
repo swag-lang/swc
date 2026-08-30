@@ -14,8 +14,8 @@ impl Rack
 {
     mtd set(items: [..] T)
     {
-        .buffer = @dataof(items)
-        .count  = @countof(items)
+        .buffer = items.buffer
+        .count  = items.count
     }
 
     mtd const opIndexPtr(index: u64)->const *T
@@ -41,7 +41,7 @@ impl Rack
         for .count
         {
             scan += 1
-            let visitIdx = @index
+            let visitIdx = Swag.index
 
             #static if ptr do
                 #inject(stmt, item = cast(*T) scan, index = visitIdx)
@@ -115,10 +115,10 @@ impl Depot
     depot.racks.set(pair)
     depot.crates.set(crates)
 
-    @assert(depot.sumRack(0) == 7)
-    @assert(depot.sumRack(1) == 30)
-    @assert(depot.sumCrate(0) == 7)
-    @assert(depot.sumCrate(1) == 30)
+    Swag.assert(depot.sumRack(0) == 7)
+    Swag.assert(depot.sumRack(1) == 30)
+    Swag.assert(depot.sumCrate(0) == 7)
+    Swag.assert(depot.sumCrate(1) == 30)
     depot.scaleCrate(0, 10)
-    @assert(depot.sumCrate(0) == 70)
+    Swag.assert(depot.sumCrate(0) == 70)
 }

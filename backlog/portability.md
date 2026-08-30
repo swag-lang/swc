@@ -68,7 +68,7 @@ and process termination; keep only those irreducible operations in the Windows l
 
 ### T-270 — Linux page-allocation primitives do not exist
 
-The present non-Windows allocator fallbacks are not equivalent: `@alloc` cannot model reserved
+The present non-Windows allocator fallbacks are not equivalent: `Swag.alloc` cannot model reserved
   address space, decommitment, or a guard page, while the counters pretend commit/decommit occurred.
   Implement `mmap`/protection/release semantics and thread-exit
   cleanup exist.
@@ -79,7 +79,7 @@ The present non-Windows allocator fallbacks are not equivalent: `@alloc` cannot 
 
 Give startup a host ABI that can accept an argument vector directly. Windows may continue to
   parse its process command line, while a Unix entry point supplies `argc`/`argv`; the rest of the
-  runtime must see the same `@args` contract.
+  runtime must see the same `Swag.args()` contract.
 
 - Related: T-104, T-106, T-279
 
@@ -120,7 +120,7 @@ Move the portable parts of `process.win32.swg` out of the backend: stream-redire
 
 Make `Env.findRunArgument` search the runtime argument vector even during early initialization.
   Its portable name/value matching is currently trapped in `sandbox.win32.swg` only because it
-  reparses `GetCommandLineA` before `@args` is populated.
+  reparses `GetCommandLineA` before `Swag.args()` is populated.
 
 - Related: T-271, T-106
 
@@ -290,8 +290,8 @@ platform integration tests.
 
 ### T-114 — Decide deliberately whether Swag should ship its own libm
 
-`@sin`, `@cos`, `@tan`, the hyperbolic and inverse functions, `@atan2`, `@log`, `@log2`, `@log10`,
-`@exp`, `@exp2`, and `@pow` are language intrinsics but their runtime implementation currently
+`Swag.sin`, `Swag.cos`, `Swag.tan`, the hyperbolic and inverse functions, `Swag.atan2`, `Swag.log`, `Swag.log2`, `Swag.log10`,
+`Swag.exp`, `Swag.exp2`, and `Swag.pow` are language intrinsics but their runtime implementation currently
 calls UCRT. On a hosted Linux target the direct equivalent is the platform math library. Calling a
 library does not make an operation less intrinsic: the compiler owns its signature, constant
 semantics and safety checks, while the final implementation may still be a runtime call.

@@ -34,7 +34,7 @@ private const ChannelSlots: [9, 8] u32 = [
 internal func speakerMask(channels: u32)->u32 => channels <= 8 ? SpeakerMasks[channels] : 0
 
 // Returns the number of bits needed to hold `value`, which is what the format calls `ilog`.
-private func ilog(value: u32)->u32 => value ? 32 - cast(u32) @bitcountlz(value) : 0
+private func ilog(value: u32)->u32 => value ? 32 - cast(u32) Swag.bitCountLz(value) : 0
 
 // Unpacks the 32-bit floating-point representation the format uses for codebook scales.
 private func unpackFloat(raw: u32)->f32
@@ -60,7 +60,7 @@ private struct BitReader
 
 private impl BitReader
 {
-    func create(payload: const [..] u8)->BitReader => {@dataof(payload), @countof(payload), 0, false}
+    func create(payload: const [..] u8)->BitReader => {payload.buffer, payload.count, 0, false}
 
     // Reads `count` bits, at most 32, as an unsigned value.
     mtd read(count: u32)->u32
@@ -536,7 +536,7 @@ private impl Residue
         .partitionSize   = reader.read(24) + 1
         .classifications = reader.read(6) + 1
         .classbook       = reader.read(8)
-        if .classbook >= @countof(codebooks) do
+        if .classbook >= codebooks.count do
             fail InvalidFormatError{"Vorbis residue names a codebook that does not exist"}
 
         for cls in .classifications
@@ -556,7 +556,7 @@ private impl Residue
                 if .cascade[cls] & (1'u32 << stage)
                 {
                     let book = reader.read(8)
-                    if book >= @countof(codebooks) do
+                    if book >= codebooks.count do
                         fail InvalidFormatError{"Vorbis residue names a codebook that does not exist"}
                     if !codebooks[book].lookupType do
                         fail InvalidFormatError{"Vorbis residue names a codebook that carries no vectors"}
@@ -696,9 +696,9 @@ private impl Codec
     // Reads the identification header and sizes the buffers it implies.
     mtd readIdentification(header: const [..] u8) fail
     {
-        if @countof(header) < 30 or header[0] != 1 or header[1] != 'v' or header[2] != 'o' or header[3] != 'r' or header[4] != 'b' or header[5] != 'i' or header[6] != 's' do
+        if header.count < 30 or header[0] != 1 or header[1] != 'v' or header[2] != 'o' or header[3] != 'r' or header[4] != 'b' or header[5] != 'i' or header[6] != 's' do
             fail InvalidFormatError{"Vorbis identification header is missing"}
-        var reader = BitReader.create(header[7 until @countof(header)])
+        var reader = BitReader.create(header[7 until header.count])
         if reader.read(32) != 0 do
             fail UnsupportedFormatError{"Vorbis stream uses an unknown version"}
         .channels   = reader.read(8)
@@ -742,9 +742,9 @@ private impl Codec
     // Reads the setup header: codebooks, floors, residues, mappings, and modes.
     mtd readSetup(header: const [..] u8) fail
     {
-        if @countof(header) < 7 or header[0] != 5 or header[1] != 'v' or header[2] != 'o' or header[3] != 'r' or header[4] != 'b' or header[5] != 'i' or header[6] != 's' do
+        if header.count < 7 or header[0] != 5 or header[1] != 'v' or header[2] != 'o' or header[3] != 'r' or header[4] != 'b' or header[5] != 'i' or header[6] != 's' do
             fail InvalidFormatError{"Vorbis setup header is missing"}
-        var reader = BitReader.create(header[7 until @countof(header)])
+        var reader = BitReader.create(header[7 until header.count])
 
         let bookCount = reader.read(8) + 1
         .codebooks.resize(bookCount)
@@ -795,20 +795,20 @@ private impl Codec
     mtd readConfig(config: const [..] u8) fail
     {
         var headers: [3] Array'u8
-        if @countof(config) >= 4 and config[0] == 'O' and config[1] == 'g' and config[2] == 'g' and config[3] == 'S'
+        if config.count >= 4 and config[0] == 'O' and config[1] == 'g' and config[2] == 'g' and config[3] == 'S'
         {
             var hasSerial = false
             var completed = 0'u32
             var offset    = 0'u64
-            while offset < @countof(config) and completed < 3
+            while offset < config.count and completed < 3
             {
                 let page = try Ogg.readPageHeader(config, offset)
-                if offset + page.totalBytes() > @countof(config) do
+                if offset + page.totalBytes() > config.count do
                     fail InvalidFormatError{"Vorbis header pages are truncated"}
                 let body = config[offset + page.headerBytes until offset + page.totalBytes()]
                 if !hasSerial
                 {
-                    if (page.flags & Ogg.FirstPage) and @countof(body) >= 7 and body[0] == 1 and body[1] == 'v' and body[2] == 'o' and body[3] == 'r' and body[4] == 'b' and body[5] == 'i' and body[6] == 's'
+                    if (page.flags & Ogg.FirstPage) and body.count >= 7 and body[0] == 1 and body[1] == 'v' and body[2] == 'o' and body[3] == 'r' and body[4] == 'b' and body[5] == 'i' and body[6] == 's'
                     {
                         .serial   = page.serial
                         hasSerial = true
@@ -841,7 +841,7 @@ private impl Codec
             if completed < 3 do
                 fail InvalidFormatError{"Vorbis stream ends inside its header packets"}
         }
-        elif @countof(config) >= 3 and config[0] == 2
+        elif config.count >= 3 and config[0] == 2
         {
             // Xiph lacing: a count, then every size but the last as runs of 255-bytes.
             var offset = 1'u64
@@ -850,7 +850,7 @@ private impl Codec
             {
                 while true
                 {
-                    if offset >= @countof(config) do
+                    if offset >= config.count do
                         fail InvalidFormatError{"Vorbis header lacing is truncated"}
                     let byte = config[offset]
                     offset       += 1
@@ -860,11 +860,11 @@ private impl Codec
                 }
             }
 
-            if sizes[0] + sizes[1] > @countof(config) - offset do
+            if sizes[0] + sizes[1] > config.count - offset do
                 fail InvalidFormatError{"Vorbis header lacing exceeds the configuration"}
             headers[0].add(config[offset until offset + sizes[0]])
             headers[1].add(config[offset + sizes[0] until offset + sizes[0] + sizes[1]])
-            headers[2].add(config[offset + sizes[0] + sizes[1] until @countof(config)])
+            headers[2].add(config[offset + sizes[0] + sizes[1] until config.count])
         }
         else do
             fail InvalidFormatError{"Vorbis configuration is neither Ogg pages nor laced headers"}
@@ -1125,7 +1125,7 @@ private impl Codec
             vectors = 1
         }
 
-        let width      = residue.kind == 2 ? cast(u64) @countof(list) : 1
+        let width      = residue.kind == 2 ? cast(u64) list.count : 1
         let actualSize = cast(u64) half * width
         let limitBegin = Math.min(cast(u64) residue.begin, actualSize)
         let limitEnd   = Math.min(cast(u64) residue.end, actualSize)
@@ -1186,7 +1186,7 @@ private impl Codec
                             elif residue.kind == 1 do
                                 complete = .decodeSequential(codebook, reader, .spectrum[active[vector]].buffer! + offset, residue.partitionSize)
                             else do
-                                complete = .decodeAcrossChannels(codebook, reader, active, cast(u32) @countof(list), offset, residue.partitionSize)
+                                complete = .decodeAcrossChannels(codebook, reader, active, cast(u32) list.count, offset, residue.partitionSize)
                             if !complete do
                                 return
                         }
@@ -1453,10 +1453,10 @@ private impl Codec
         var firstSequence = Swag.U32.Max
         var offset        = 0'u64
         .packet.clear()
-        while offset < @countof(run)
+        while offset < run.count
         {
             let page = try Ogg.readPageHeader(run, offset)
-            if offset + page.totalBytes() > @countof(run) do
+            if offset + page.totalBytes() > run.count do
                 fail InvalidFormatError{"Ogg page run is truncated"}
             if page.serial == .serial
             {
@@ -1626,7 +1626,7 @@ impl IPacketCodec for Codec
     {
         .output.clear()
         var frames: u64
-        if @countof(packet) >= 4 and packet[0] == 'O' and packet[1] == 'g' and packet[2] == 'g' and packet[3] == 'S' do
+        if packet.count >= 4 and packet[0] == 'O' and packet[1] == 'g' and packet[2] == 'g' and packet[3] == 'S' do
             frames = try .decodeRun(packet)
         else do
             frames = try .decodeAudioPacket(packet)

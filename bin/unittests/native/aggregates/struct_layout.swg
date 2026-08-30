@@ -95,17 +95,17 @@ struct OverlayArray
 
     var overlay = OverlayScalar{}
     overlay.x = 666
-    @assert(overlay.y == 666)
+    Swag.assert(overlay.y == 666)
     overlay.y = 42
-    @assert(overlay.x == 42)
+    Swag.assert(overlay.x == 42)
 
     var indexed: OverlayArray
     indexed.x = 10
     indexed.y = 20
     indexed.z = 30
-    @assert(indexed.idx[0] == indexed.x)
-    @assert(indexed.idx[1] == indexed.y)
-    @assert(indexed.idx[2] == indexed.z)
+    Swag.assert(indexed.idx[0] == indexed.x)
+    Swag.assert(indexed.idx[1] == indexed.y)
+    Swag.assert(indexed.idx[2] == indexed.z)
     indexed.idx[1] = 77
-    @assert(indexed.y == 77)
+    Swag.assert(indexed.y == 77)
 }

@@ -64,9 +64,9 @@ func videoGrayRoundTrip(value: u8)->s32
 
 func videoAssertColor(actual: Color, r, g, b: u8, tolerance = 3)
 {
-    @assert(Math.abs(cast(s32) actual.r - r) <= tolerance)
-    @assert(Math.abs(cast(s32) actual.g - g) <= tolerance)
-    @assert(Math.abs(cast(s32) actual.b - b) <= tolerance)
+    Swag.assert(Math.abs(cast(s32) actual.r - r) <= tolerance)
+    Swag.assert(Math.abs(cast(s32) actual.g - g) <= tolerance)
+    Swag.assert(Math.abs(cast(s32) actual.b - b) <= tolerance)
 }
 
 func videoAssertGray(actual: Color, value: s32, tolerance = 3)
@@ -106,7 +106,7 @@ func videoFixtureSamples(width, height: s32, index: u64)->[4] VideoFixtureSample
 // Asserts that `frame` is frame `index` of a fixture clip.
 func videoAssertFixtureFrame(frame: Image, index: u64, tolerance = 3)
 {
-    @assert(frame.isValid())
+    Swag.assert(frame.isValid())
     for sample in videoFixtureSamples(frame.width, frame.height, index) do
         videoAssertColor(frame.pixelColor(sample.x, sample.y), sample.r, sample.g, sample.b, tolerance)
 }
@@ -134,7 +134,7 @@ func videoReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32)->
     let chromaSize   = chromaWidth * chromaHeight
     let frameSize    = lumaSize + chromaSize * 2
     let base         = index * frameSize
-    @assert(base + frameSize <= @countof(bytes))
+    Swag.assert(base + frameSize <= bytes.count)
 
     var result: retval = Image.create(width, height, .RGB8)
     for y in height
@@ -160,14 +160,14 @@ func videoReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32)->
 // Compares a decoded frame against the reference, reporting the first difference.
 func videoAssertReferenceFrame(frame: Image, reference: const [..] u8, index: u64, width, height: s32)
 {
-    @assert(frame.width == width and frame.height == height and frame.pixelFormat == .RGB8)
+    Swag.assert(frame.width == width and frame.height == height and frame.pixelFormat == .RGB8)
     let expected   = videoReferenceFrame(reference, index, width, height)
     var mismatches = 0'u64
     for position in frame.pixels.count where frame.pixels.buffer![position] != expected.pixels.buffer![position] do
         mismatches += 1
     if mismatches > 0 do
-        @print("frame ", index, ": ", mismatches, " of ", frame.pixels.count, " bytes differ\n")
-    @assert(mismatches == 0)
+        Swag.print("frame ", index, ": ", mismatches, " of ", frame.pixels.count, " bytes differ\n")
+    Swag.assert(mismatches == 0)
 }
 
 // Decodes a whole stream in order and demands byte-exact frames.
@@ -180,7 +180,7 @@ func videoAssertReferenceStream(name: string, width, height: s32, frameCount: u6
         discard expect Jobs.initialize(16)
 
     var reader = expect Reader.open(videoFixturePath(Format.toString("%.%", name, container).toString()))
-    @assert(reader.width() == width and reader.height() == height)
+    Swag.assert(reader.width() == width and reader.height() == height)
 
     let reference = expect File.readAllBytes(videoFixturePath(Format.toString("%.yuv", name).toString()).toString())
     var frame: Image
@@ -192,5 +192,5 @@ func videoAssertReferenceStream(name: string, width, height: s32, frameCount: u6
 
     // A progressive container only knows its length once the stream has been walked, so the count
     // is demanded here rather than at open.
-    @assert(reader.frameCount() == frameCount)
+    Swag.assert(reader.frameCount() == frameCount)
 }

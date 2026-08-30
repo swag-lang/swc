@@ -17,14 +17,14 @@ The generated file contains a `#main` hook:
 ```swag
 #main
 {
-    @print("Hello, world!\n")
+    Swag.print("Hello, world!\n")
 }
 ```
 
 The `.swgs` extension selects script mode, so there is no separate `script`
 command. The path splits the command line in two: what comes before it
 configures the compilation, and everything after it is the script's own command
-line, reaching it through `@args` and the Core environment helpers.
+line, reaching it through `Swag.args()` and the Core environment helpers.
 
 ```text
 swc -bc release hello.swgs --colors 16 report.txt
@@ -102,7 +102,7 @@ rest of the file is compiled:
 ```swag
 #run
 {
-    let cfg = @compiler.getBuildCfg()!
+    let cfg = Swag.compiler().getBuildCfg()!
     cfg.safetyGuards = Swag.SafetyWhat.All
 }
 ```
@@ -112,7 +112,7 @@ code for properties the script owns.
 
 ## Break into a debugger
 
-`@breakpoint()` emits a native breakpoint instruction in JIT or native code.
+`Swag.breakpoint()` emits a native breakpoint instruction in JIT or native code.
 Use it only while a native debugger is attached; Swag does not include the old
 interactive bytecode debugger.
 

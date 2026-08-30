@@ -63,8 +63,8 @@ private impl PasswordEdit
         var mask: Array'u8
         mask.resize(.runeCount)
         if mask.count do
-            @memset(mask.buffer, '*', mask.count)
-        .edit.setText(mask.count ? @mkstring(mask.buffer, mask.count) : "", false)
+            Swag.memset(mask.buffer, '*', mask.count)
+        .edit.setText(mask.count ? Swag.makeString(mask.buffer, mask.count) : "", false)
         .edit.setSelection(caret, caret)
     }
 
@@ -91,7 +91,7 @@ private impl PasswordEdit
             .savedSelBeg = .edit.selBeg
             .savedSelEnd = .edit.selEnd
             .isRevealed  = true
-            .edit.setText(@mkstring(&.storage[0], .byteCount), false)
+            .edit.setText(Swag.makeString(&.storage[0], .byteCount), false)
             .edit.setSelection(.byteOffsetAt(.savedSelBeg), .byteOffsetAt(.savedSelEnd))
             .app().registerHookEvents(me)
             return
@@ -177,7 +177,7 @@ private impl PasswordEdit
         let tailSize   = .byteCount - byteOffset
         if tailSize do
             Memory.copyOverlapping(&.storage[byteOffset + count], &.storage[byteOffset], tailSize)
-        @memcpy(&.storage[byteOffset], &encoded[0], count)
+        Swag.memcpy(&.storage[byteOffset], &encoded[0], count)
         .byteCount += count
         .runeCount += 1
         Crypto.secureClear(encoded)
@@ -259,7 +259,7 @@ impl IWnd for PasswordEdit
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
-        if @isset(.edit) do
+        if Swag.isSet(.edit) do
             .layoutChildren()
     }
 

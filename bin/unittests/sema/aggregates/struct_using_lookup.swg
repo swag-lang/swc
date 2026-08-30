@@ -68,12 +68,12 @@ func semaTest005()
     var innerVal: Inner
     var out:      OuterValue
     out.x = 7
-    @assert(out.v.x == 7)
+    Swag.assert(out.v.x == 7)
 
     var outPtr: OuterPtr
     outPtr.p = &innerVal
     outPtr.x = 9
-    @assert(innerVal.x == 9)
+    Swag.assert(innerVal.x == 9)
 }
 
 func semaTest006()

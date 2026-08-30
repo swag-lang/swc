@@ -6,7 +6,7 @@
     {
         var a: [4] u8 = [1, 2, 3, 4]
         var b: [4] u8 = [1, 2, 3, 4]
-        return @memcmp(&a[0], &b[0], 4) == 0
+        return Swag.memcmp(&a[0], &b[0], 4) == 0
     }
 
     const V = #run memCmpEq()
@@ -19,7 +19,7 @@
     {
         var a: [4] u8 = [1, 2, 3, 4]
         var b: [4] u8 = [1, 2, 9, 4]
-        return @memcmp(&a[0], &b[0], 4) < 0
+        return Swag.memcmp(&a[0], &b[0], 4) < 0
     }
 
     const V = #run memCmpLess()
@@ -32,7 +32,7 @@
     {
         var a: [4] u8 = [9, 2, 3, 4]
         var b: [4] u8 = [1, 2, 3, 4]
-        return @memcmp(&a[0], &b[0], 4) > 0
+        return Swag.memcmp(&a[0], &b[0], 4) > 0
     }
 
     const V = #run memCmpGreater()
@@ -45,7 +45,7 @@
     {
         var a: [2] u8 = [1, 2]
         var b: [2] u8 = [9, 8]
-        return @memcmp(&a[0], &b[0], 0)
+        return Swag.memcmp(&a[0], &b[0], 0)
     }
 
     const V = #run memCmpZeroSize()
@@ -58,7 +58,7 @@
     {
         var a: [4] u8 = [1, 2, 3, 9]
         var b: [4] u8 = [1, 2, 3, 4]
-        return @memcmp(&a[0], &b[0], 3)
+        return Swag.memcmp(&a[0], &b[0], 3)
     }
 
     const V = #run memCmpPrefix()
@@ -71,7 +71,7 @@
     {
         let a = "hello"
         let b = "hello"
-        return @memcmp(@dataof(a), @dataof(b), @countof(a)) == 0
+        return Swag.memcmp(a.buffer, b.buffer, a.count) == 0
     }
 
     const V = #run memCmpStringEq()

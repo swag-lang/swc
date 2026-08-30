@@ -140,7 +140,7 @@ alias TypedVariadicAlias = s32
 
 #test
 {
-    func variadicTypedWithHead(a: rune, values: rune...)->u64 { return @countof(values) }
+    func variadicTypedWithHead(a: rune, values: rune...)->u64 { return values.count }
     const V0 = #run variadicTypedWithHead('a', 'b', 'c')
     #assert(V0 == 2)
 }
@@ -299,7 +299,7 @@ alias TypedVariadicAlias = s32
 {
     func variadicTypedStressKind(values: TypedVariadicKind...)->bool
     {
-        if @countof(values) != 6 do
+        if values.count != 6 do
             return false
 
         for v, i in values

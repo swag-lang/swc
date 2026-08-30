@@ -1613,7 +1613,7 @@ impl Wnd
         if idx == idxToReplace do
             return
 
-        @assert(parent.children.buffer != null)
+        Swag.assert(parent.children.buffer != null)
         swap(parent.children.buffer + idx, parent.children.buffer + idxToReplace)
     }
 
@@ -2434,7 +2434,7 @@ impl Wnd
         // only its owned strings: random UpdatedFields bits can otherwise turn ordinary menu
         // entries into hidden, checked, or renamed items depending on the caller's stack.
         var evtState: retval
-        @init(&evtState, 1)
+        Swag.init(&evtState, 1)
 
         // User will fill the state
         evtState.kind   = .Compute
@@ -2465,10 +2465,10 @@ impl Wnd
 
         // We first need to be sure that the target can deal with the event
         var evtState: CommandStateEvent
-        @init(&evtState.name, 1)
-        @init(&evtState.longName, 1)
-        @init(&evtState.shortcut, 1)
-        @init(&evtState.toolTip, 1)
+        Swag.init(&evtState.name, 1)
+        Swag.init(&evtState.longName, 1)
+        Swag.init(&evtState.shortcut, 1)
+        Swag.init(&evtState.toolTip, 1)
         evtState.kind = .Compute
         evtState.id   = safeCmdId
         .sendEvent(&evtState)
@@ -2489,7 +2489,7 @@ impl Wnd
     // Register one new action
     mtd(T) registerAction()
     {
-        var itfAct = @mkinterface(null, #typeof(T), IActionUI)
+        var itfAct = Swag.makeInterface(null, #typeof(T), IActionUI)
         .actions.add(itfAct)
     }
 

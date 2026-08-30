@@ -72,7 +72,7 @@ struct DerefPlaceReceiver
 impl DerefPlaceReceiver
 {
     #[Swag.Implicit]
-    mtd opSet(value: string) { .seen = cast(s64) @countof(value) }
+    mtd opSet(value: string) { .seen = cast(s64) value.count }
 
     mtd record(value: s64) { .seen = value }
 }

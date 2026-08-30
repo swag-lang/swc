@@ -11,7 +11,7 @@ impl AstGeneratedString
     #[Implicit]
     mtd const opCast()->string
     {
-        return @mkstring(.buffer, .length)
+        return Swag.makeString(.buffer, .length)
     }
 }
 
@@ -42,9 +42,9 @@ impl AstGeneratedBuilder
             .buffer   = cast(#null [*] u8) testAlloc(.capacity)
         }
 
-        @assert(.length + cast(u64) @countof(value) <= .capacity)
-        @memcpy(.buffer + .length, @dataof(value), cast(u64) @countof(value))
-        .length += cast(u64) @countof(value)
+        Swag.assert(.length + cast(u64) value.count <= .capacity)
+        Swag.memcpy(.buffer + .length, value.buffer, cast(u64) value.count)
+        .length += cast(u64) value.count
     }
 
     mtd const toString()->AstGeneratedString
@@ -64,5 +64,5 @@ var compilerAstImplicitStringTotal: s32
         return sb.toString()
     }
 
-    @assert(compilerAstImplicitStringTotal == 17)
+    Swag.assert(compilerAstImplicitStringTotal == 17)
 }

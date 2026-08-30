@@ -24,6 +24,6 @@ func inlineLcmShadow(a, b: s64)->s64
 
 #test
 {
-    @assert(inlineGcdShadow(12, 8) == 4)
-    @assert(inlineLcmShadow(12, 8) == 24)
+    Swag.assert(inlineGcdShadow(12, 8) == 4)
+    Swag.assert(inlineLcmShadow(12, 8) == 24)
 }

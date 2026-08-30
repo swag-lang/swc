@@ -15,5 +15,5 @@ func runInlineLocalShadow(input: s32)->s32
 
 #test
 {
-    @assert(runInlineLocalShadow(7) == 107)
+    Swag.assert(runInlineLocalShadow(7) == 107)
 }

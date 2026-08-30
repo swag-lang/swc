@@ -31,15 +31,15 @@ impl Struct
 #test
 {
     let v: Struct = 4's32
-    @assert(v.x == 4)
-    @assert(v.y == 4)
-    @assert(v.z == 666)
+    Swag.assert(v.x == 4)
+    Swag.assert(v.y == 4)
+    Swag.assert(v.z == 666)
     var v1: Struct = true
-    @assert(v1.x == 1)
-    @assert(v1.y == 1)
+    Swag.assert(v1.x == 1)
+    Swag.assert(v1.y == 1)
     v1 = false
-    @assert(v1.x == 0)
-    @assert(v1.y == 0)
+    Swag.assert(v1.x == 0)
+    Swag.assert(v1.y == 0)
 }
 
 /**
@@ -67,9 +67,9 @@ impl Struct
 #test
 {
     let v: Struct = 2'u64
-    @assert(v.x == 2)
-    @assert(v.y == 2)
-    @assert(v.z == 2)
+    Swag.assert(v.x == 2)
+    Swag.assert(v.y == 2)
+    Swag.assert(v.z == 2)
 }
 
 /**
@@ -83,16 +83,16 @@ Function arguments are not automatically converted through 'opSet' unless
 {
     func takesExplicit(v: Struct)
     {
-        @assert(v.x == 5)
-        @assert(v.y == 5)
-        @assert(v.z == 666)
+        Swag.assert(v.x == 5)
+        Swag.assert(v.y == 5)
+        Swag.assert(v.z == 666)
     }
 
     func takesImplicit(v: Struct)
     {
-        @assert(v.x == 5)
-        @assert(v.y == 5)
-        @assert(v.z == 666)
+        Swag.assert(v.x == 5)
+        Swag.assert(v.y == 5)
+        Swag.assert(v.z == 666)
     }
 
     // Explicit cast triggers 'opSet(s32)'

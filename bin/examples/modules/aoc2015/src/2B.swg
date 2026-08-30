@@ -34,7 +34,7 @@ func day2B0()
     }
 
     // Console.print("total: ", total)
-    @assert(total == 3783758)
+    Swag.assert(total == 3783758)
 }
 
 /////////////////////////////////////////////////////////////////
@@ -48,5 +48,5 @@ func day2B1()
         total += gift.x * gift.y * gift.z + 2 * gift.x + 2 * gift.y
 
     // Console.print("total: ", total)
-    @assert(total == 3783758)
+    Swag.assert(total == 3783758)
 }

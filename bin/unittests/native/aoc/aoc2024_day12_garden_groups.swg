@@ -3,7 +3,7 @@
 // Advent of Code 2024 Day 12: flood-fill garden regions, compute fencing.
 // Part 1: total cost = area × perimeter.  Part 2: area × number of sides.
 // Exercises: enum, impl/mtd with arrow syntax, short functions (=>),
-// defer, for with index, bitwise operators, @bitcountnz,
+// defer, for with index, bitwise operators, Swag.bitCountNz,
 // #scope break-to-label, function overloading.
 
 const SmallInput =
@@ -77,14 +77,14 @@ func parseGrid(text: string)->Grid
     let cells = g.cells!
     for MaxDim * MaxDim
     {
-        cells[@index] = 0
+        cells[Swag.index] = 0
     }
     let bytes = cast(const [..] u8) text
     var col: u32
 
-    for @countof(bytes)
+    for bytes.count
     {
-        let ch = bytes[@index]
+        let ch = bytes[Swag.index]
         if ch == '\n' or ch == '\r'
         {
             if col > 0
@@ -103,7 +103,7 @@ func parseGrid(text: string)->Grid
 
     if col > 0
     {
-        g.width  = @max(g.width, col)
+        g.width  = Swag.max(g.width, col)
         g.height += 1
     }
 
@@ -185,8 +185,8 @@ func cornersOf(nb: Neighbors)->u32
     return n
 }
 
-// Bitwise helper: count set bits in a u8 (exercises @bitcountnz)
-func popcount8(v: u8)->u32 => cast(u32) @bitcountnz(v)
+// Bitwise helper: count set bits in a u8 (exercises Swag.bitCountNz)
+func popcount8(v: u8)->u32 => cast(u32) Swag.bitCountNz(v)
 
 // ---------------------------------------------------------------------------
 // BFS flood-fill — defer, #scope/break-to-label
@@ -269,7 +269,7 @@ func solveGrid(g: *Grid)->FenceCost
     defer testFree(visited)
     for MaxDim * MaxDim
     {
-        visited[@index] = false
+        visited[Swag.index] = false
     }
 
     var result: FenceCost
@@ -303,21 +303,21 @@ func solve(text: string)->FenceCost
 // Direction enum values
 #test
 {
-    @assert(cast(u8) Dir.N == 0)
-    @assert(cast(u8) Dir.E == 1)
-    @assert(cast(u8) Dir.S == 2)
-    @assert(cast(u8) Dir.W == 3)
+    Swag.assert(cast(u8) Dir.N == 0)
+    Swag.assert(cast(u8) Dir.E == 1)
+    Swag.assert(cast(u8) Dir.S == 2)
+    Swag.assert(cast(u8) Dir.W == 3)
 }
 
 // Short helper pack/unpack
 #test
 {
     let p = packPos(12, 34)
-    @assert(unpackRow(p) == 12'u32)
-    @assert(unpackCol(p) == 34'u32)
+    Swag.assert(unpackRow(p) == 12'u32)
+    Swag.assert(unpackCol(p) == 34'u32)
     let p2 = packPos(0, 0)
-    @assert(unpackRow(p2) == 0'u32)
-    @assert(unpackCol(p2) == 0'u32)
+    Swag.assert(unpackRow(p2) == 0'u32)
+    Swag.assert(unpackCol(p2) == 0'u32)
 }
 
 // Grid parsing and impl methods
@@ -325,16 +325,16 @@ func solve(text: string)->FenceCost
 {
     var g = parseGrid(SmallInput)
     defer freeGrid(&g)
-    @assert(g.width == 4'u32)
-    @assert(g.height == 4'u32)
-    @assert(g.cellCount() == 16'u32)
-    @assert(g.at(0, 0) == cast(u8) 'A')
-    @assert(g.at(1, 2) == cast(u8) 'C')
-    @assert(g.at(3, 3) == cast(u8) 'C')
-    @assert(g.inBounds(0, 0))
-    @assert(g.inBounds(3, 3))
-    @assert(!g.inBounds(-1, 0))
-    @assert(!g.inBounds(0, 4))
+    Swag.assert(g.width == 4'u32)
+    Swag.assert(g.height == 4'u32)
+    Swag.assert(g.cellCount() == 16'u32)
+    Swag.assert(g.at(0, 0) == cast(u8) 'A')
+    Swag.assert(g.at(1, 2) == cast(u8) 'C')
+    Swag.assert(g.at(3, 3) == cast(u8) 'C')
+    Swag.assert(g.inBounds(0, 0))
+    Swag.assert(g.inBounds(3, 3))
+    Swag.assert(!g.inBounds(-1, 0))
+    Swag.assert(!g.inBounds(0, 4))
 }
 
 // Neighbor detection and derived metrics
@@ -345,12 +345,12 @@ func solve(text: string)->FenceCost
 
     // Top-left A: has A to the east only
     let nbA = getNeighbors(&g, 0, 0)
-    @assert(perimeterOf(nbA) == 3'u32)
-    @assert(cornersOf(nbA) == 2'u32)
+    Swag.assert(perimeterOf(nbA) == 3'u32)
+    Swag.assert(cornersOf(nbA) == 2'u32)
 
     // Interior B at (1,0): B east and B south
     let nbB = getNeighbors(&g, 1, 0)
-    @assert(perimeterOf(nbB) == 2'u32)
+    Swag.assert(perimeterOf(nbB) == 2'u32)
 }
 
 // Corner counting for extremes
@@ -358,36 +358,36 @@ func solve(text: string)->FenceCost
 {
     // Isolated cell: no same-plant neighbours → 4 convex corners
     var isolated: Neighbors
-    @assert(cornersOf(isolated) == 4'u32)
+    Swag.assert(cornersOf(isolated) == 4'u32)
 
     // Horizontal strip interior: E and W same → 0 corners
     var strip: Neighbors
     strip.card[cast(u32) Dir.E] = true
     strip.card[cast(u32) Dir.W] = true
-    @assert(cornersOf(strip) == 0'u32)
+    Swag.assert(cornersOf(strip) == 0'u32)
 }
 
-// @bitcountnz exercise
+// Swag.bitCountNz exercise
 #test
 {
-    @assert(popcount8(0) == 0'u32)
-    @assert(popcount8(0xFF) == 8'u32)
-    @assert(popcount8(0x0A) == 2'u32)
-    @assert(popcount8(0x55) == 4'u32)
+    Swag.assert(popcount8(0) == 0'u32)
+    Swag.assert(popcount8(0xFF) == 8'u32)
+    Swag.assert(popcount8(0x0A) == 2'u32)
+    Swag.assert(popcount8(0x55) == 4'u32)
 }
 
 // 2x2 all different: 4 regions, each 1*4=4
 #test
 {
     let r = solve("AB\nCD")
-    @assert(r.part1 == 16'u64)
+    Swag.assert(r.part1 == 16'u64)
 }
 
 // 2x2 all same: 1 region, 4*8=32
 #test
 {
     let r = solve("AA\nAA")
-    @assert(r.part1 == 32'u64)
+    Swag.assert(r.part1 == 32'u64)
 }
 
 // 3x3 with E region (L-shape): test 3x3
@@ -395,21 +395,21 @@ func solve(text: string)->FenceCost
 {
     var g = parseGrid("AAA\nABA\nAAA")
     defer freeGrid(&g)
-    @assert(g.width == 3'u32)
-    @assert(g.height == 3'u32)
+    Swag.assert(g.width == 3'u32)
+    Swag.assert(g.height == 3'u32)
     // A region: 8 cells surrounding B; B: 1 cell
     let r = solveGrid(&g)
     // A: area=8, perimeter=16 → 128
     // B: area=1, perimeter=4 → 4
-    @assert(r.part1 == 132'u64)
+    Swag.assert(r.part1 == 132'u64)
 }
 
 // Small sample: Part1=140, Part2=80
 #test
 {
     let result = solve(SmallInput)
-    @assert(result.part1 == 140'u64)
-    @assert(result.part2 == 80'u64)
+    Swag.assert(result.part1 == 140'u64)
+    Swag.assert(result.part2 == 80'u64)
 }
 
 // Large sample dimensions
@@ -417,34 +417,34 @@ func solve(text: string)->FenceCost
 {
     var g = parseGrid(LargeInput)
     defer freeGrid(&g)
-    @assert(g.width == 10'u32)
-    @assert(g.height == 10'u32)
-    @assert(g.at(0, 0) == cast(u8) 'R')
-    @assert(g.at(9, 9) == cast(u8) 'E')
+    Swag.assert(g.width == 10'u32)
+    Swag.assert(g.height == 10'u32)
+    Swag.assert(g.at(0, 0) == cast(u8) 'R')
+    Swag.assert(g.at(9, 9) == cast(u8) 'E')
 }
 
 // Large sample: Part1=1930, Part2=1206
 #test
 {
     let result = solve(LargeInput)
-    @assert(result.part1 == 1782'u64)
-    @assert(result.part2 == 1104'u64)
+    Swag.assert(result.part1 == 1782'u64)
+    Swag.assert(result.part2 == 1104'u64)
 }
 
 // Island sample: Part1=772, Part2=436
 #test
 {
     let result = solve(IslandInput)
-    @assert(result.part1 == 772'u64)
-    @assert(result.part2 == 436'u64)
+    Swag.assert(result.part1 == 772'u64)
+    Swag.assert(result.part2 == 436'u64)
 }
 
 // Single cell grid
 #test
 {
     let result = solve("A")
-    @assert(result.part1 == 4'u64)
-    @assert(result.part2 == 4'u64)
+    Swag.assert(result.part1 == 4'u64)
+    Swag.assert(result.part2 == 4'u64)
 }
 
 // Overloaded solve: grid pointer variant
@@ -454,6 +454,6 @@ func solve(text: string)->FenceCost
     defer freeGrid(&g)
     let r1 = solveGrid(&g)
     let r2 = solveGrid(&g)
-    @assert(r1.part1 == r2.part1)
-    @assert(r1.part2 == r2.part2)
+    Swag.assert(r1.part1 == r2.part1)
+    Swag.assert(r1.part2 == r2.part2)
 }

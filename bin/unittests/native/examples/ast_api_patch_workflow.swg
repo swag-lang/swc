@@ -32,8 +32,8 @@ struct NotificationPolicy
 #[Swag.Compiler]
 func appendAst(buffer: [*] u8, start: u64, text: string)->u64
 {
-    @memcpy(buffer + start, @dataof(text), @countof(text))
-    return start + @countof(text)
+    Swag.memcpy(buffer + start, text.buffer, text.count)
+    return start + text.count
 }
 
 #[Swag.Compiler]
@@ -66,7 +66,7 @@ struct(T) ApiPatch
         var len = appendPatchFields(&buffer[0], 0, #typeof(T))
         if len == 0 do
             return ""
-        return cast(string) @mkslice(&buffer[0], len)
+        return cast(string) Swag.makeSlice(&buffer[0], len)
     }
 }
 
@@ -85,7 +85,7 @@ func(T) clearPatch(patch: *ApiPatch'T)
         }
         if len == 0 do
             return ""
-        return cast(string) @mkslice(&buffer[0], len)
+        return cast(string) Swag.makeSlice(&buffer[0], len)
     }
 }
 
@@ -109,7 +109,7 @@ func(T) capturePatch(patch: *ApiPatch'T, value: T)
         }
         if len == 0 do
             return ""
-        return cast(string) @mkslice(&buffer[0], len)
+        return cast(string) Swag.makeSlice(&buffer[0], len)
     }
 }
 
@@ -130,7 +130,7 @@ func(T) patchChangedCount(patch: ApiPatch'T)->s32
         }
         if len == 0 do
             return ""
-        return cast(string) @mkslice(&buffer[0], len)
+        return cast(string) Swag.makeSlice(&buffer[0], len)
     }
     return count
 }
@@ -154,7 +154,7 @@ func(T) patchChangedMask(patch: ApiPatch'T)->u64
         }
         if len == 0 do
             return ""
-        return cast(string) @mkslice(&buffer[0], len)
+        return cast(string) Swag.makeSlice(&buffer[0], len)
     }
     return mask
 }
@@ -184,7 +184,7 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
         }
         if len == 0 do
             return ""
-        return cast(string) @mkslice(&buffer[0], len)
+        return cast(string) Swag.makeSlice(&buffer[0], len)
     }
     return result
 }
@@ -211,17 +211,17 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
 
     let updated = applyPatch'(TenantSettings)(patch, base)
 
-    @assert(patchChangedCount'(TenantSettings)(patch) == 3)
-    @assert(patchChangedMask'(TenantSettings)(patch) == 26'u64)
-    @assert(updated.seatLimit == 25)
-    @assert(updated.storageGb == 750)
-    @assert(updated.auditRetentionDays == 30)
-    @assert(updated.ssoEnabled)
-    @assert(updated.billingEmail == "ops@acme.test")
-    @assert(updated.tier == .Growth)
-    @assert(base.storageGb == 250)
-    @assert(!base.ssoEnabled)
-    @assert(base.billingEmail == "billing@acme.test")
+    Swag.assert(patchChangedCount'(TenantSettings)(patch) == 3)
+    Swag.assert(patchChangedMask'(TenantSettings)(patch) == 26'u64)
+    Swag.assert(updated.seatLimit == 25)
+    Swag.assert(updated.storageGb == 750)
+    Swag.assert(updated.auditRetentionDays == 30)
+    Swag.assert(updated.ssoEnabled)
+    Swag.assert(updated.billingEmail == "ops@acme.test")
+    Swag.assert(updated.tier == .Growth)
+    Swag.assert(base.storageGb == 250)
+    Swag.assert(!base.ssoEnabled)
+    Swag.assert(base.billingEmail == "billing@acme.test")
 }
 
 #test
@@ -251,18 +251,18 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
 
     let rebuilt = applyPatch'(TenantSettings)(patch, blank)
 
-    @assert(patchChangedCount'(TenantSettings)(patch) == 6)
-    @assert(patchChangedMask'(TenantSettings)(patch) == 63'u64)
-    @assert(rebuilt.seatLimit == 120)
-    @assert(rebuilt.storageGb == 2000)
-    @assert(rebuilt.auditRetentionDays == 365)
-    @assert(rebuilt.ssoEnabled)
-    @assert(rebuilt.billingEmail == "finance@northwind.test")
-    @assert(rebuilt.tier == .Enterprise)
+    Swag.assert(patchChangedCount'(TenantSettings)(patch) == 6)
+    Swag.assert(patchChangedMask'(TenantSettings)(patch) == 63'u64)
+    Swag.assert(rebuilt.seatLimit == 120)
+    Swag.assert(rebuilt.storageGb == 2000)
+    Swag.assert(rebuilt.auditRetentionDays == 365)
+    Swag.assert(rebuilt.ssoEnabled)
+    Swag.assert(rebuilt.billingEmail == "finance@northwind.test")
+    Swag.assert(rebuilt.tier == .Enterprise)
 
     clearPatch'(TenantSettings)(&patch)
-    @assert(patchChangedCount'(TenantSettings)(patch) == 0)
-    @assert(patchChangedMask'(TenantSettings)(patch) == 0'u64)
+    Swag.assert(patchChangedCount'(TenantSettings)(patch) == 0)
+    Swag.assert(patchChangedMask'(TenantSettings)(patch) == 0'u64)
 }
 
 #test
@@ -283,10 +283,10 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
 
     let updated = applyPatch'(NotificationPolicy)(patch, base)
 
-    @assert(patchChangedCount'(NotificationPolicy)(patch) == 2)
-    @assert(patchChangedMask'(NotificationPolicy)(patch) == 6'u64)
-    @assert(updated.dailyDigest)
-    @assert(updated.weeklyReport)
-    @assert(updated.escalationMinutes == 15)
-    @assert(!updated.smsEnabled)
+    Swag.assert(patchChangedCount'(NotificationPolicy)(patch) == 2)
+    Swag.assert(patchChangedMask'(NotificationPolicy)(patch) == 6'u64)
+    Swag.assert(updated.dailyDigest)
+    Swag.assert(updated.weeklyReport)
+    Swag.assert(updated.escalationMinutes == 15)
+    Swag.assert(!updated.smsEnabled)
 }

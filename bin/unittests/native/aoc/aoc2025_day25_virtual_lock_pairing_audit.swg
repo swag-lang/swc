@@ -21,7 +21,7 @@ struct PairingAudit
 
 func lineWidth(line: string)->u32
 {
-    return cast(u32) @countof(cast(const [..] u8) line)
+    return cast(u32) (cast(const [..] u8) line).count
 }
 
 func filledAt(schematic: const [..] string, row, column: u32)->bool
@@ -33,11 +33,11 @@ func filledAt(schematic: const [..] string, row, column: u32)->bool
 func rowIsFilledWith(schematic: const [..] string, row: u32, ch: u8)->bool
 {
     let bytes = cast(const [..] u8) schematic[row]
-    @assert(@countof(bytes) == SchematicWidth)
+    Swag.assert(bytes.count == SchematicWidth)
 
     for SchematicWidth
     {
-        let column = cast(u32) @index
+        let column = cast(u32) Swag.index
         if bytes[column] != ch do
             return false
     }
@@ -57,30 +57,30 @@ func isKeySchematic(schematic: const [..] string)->bool
 
 func profileFromSchematic(schematic: const [..] string)->PinProfile
 {
-    @assert(@countof(schematic) == SchematicHeight)
+    Swag.assert(schematic.count == SchematicHeight)
 
     var result: PinProfile
 
     for SchematicHeight
     {
-        @assert(lineWidth(schematic[@index]) == SchematicWidth)
+        Swag.assert(lineWidth(schematic[Swag.index]) == SchematicWidth)
     }
 
     for SchematicWidth
     {
-        let column = cast(u32) @index
+        let column = cast(u32) Swag.index
         var filledCount: u32
 
         for SchematicHeight
         {
-            let row = cast(u32) @index
+            let row = cast(u32) Swag.index
             if filledAt(schematic, row, column) do
                 filledCount += 1
         }
 
-        @assert(filledCount >= 1 and filledCount <= SchematicHeight - 1)
+        Swag.assert(filledCount >= 1 and filledCount <= SchematicHeight - 1)
         result.heights[column] = filledCount - 1
-        @assert(result.heights[column] <= MaxColumnHeight)
+        Swag.assert(result.heights[column] <= MaxColumnHeight)
     }
 
     return result
@@ -90,7 +90,7 @@ func fits(lockProfile, keyProfile: PinProfile)->bool
 {
     for SchematicWidth
     {
-        let column = cast(u32) @index
+        let column = cast(u32) Swag.index
         if lockProfile.heights[column] + keyProfile.heights[column] > MaxColumnHeight do
             return false
     }
@@ -101,8 +101,8 @@ func fits(lockProfile, keyProfile: PinProfile)->bool
 func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] PinProfile)->PairingAudit
 {
     var result: PairingAudit
-    result.lockCount = cast(u32) @countof(lockProfiles)
-    result.keyCount  = cast(u32) @countof(keyProfiles)
+    result.lockCount = cast(u32) lockProfiles.count
+    result.keyCount  = cast(u32) keyProfiles.count
 
     for lockProfile in lockProfiles
     {
@@ -173,11 +173,11 @@ func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] 
         "#####"
         ]
 
-    @assert(isLockSchematic(lock0))
-    @assert(isLockSchematic(lock1))
-    @assert(isKeySchematic(key0))
-    @assert(isKeySchematic(key1))
-    @assert(isKeySchematic(key2))
+    Swag.assert(isLockSchematic(lock0))
+    Swag.assert(isLockSchematic(lock1))
+    Swag.assert(isKeySchematic(key0))
+    Swag.assert(isKeySchematic(key1))
+    Swag.assert(isKeySchematic(key2))
 
     let lockProfile0 = profileFromSchematic(lock0)
     let lockProfile1 = profileFromSchematic(lock1)
@@ -185,24 +185,24 @@ func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] 
     let keyProfile1  = profileFromSchematic(key1)
     let keyProfile2  = profileFromSchematic(key2)
 
-    @assert(lockProfile0.heights[0] == 0)
-    @assert(lockProfile0.heights[1] == 5)
-    @assert(lockProfile0.heights[2] == 3)
-    @assert(lockProfile0.heights[3] == 4)
-    @assert(lockProfile0.heights[4] == 3)
+    Swag.assert(lockProfile0.heights[0] == 0)
+    Swag.assert(lockProfile0.heights[1] == 5)
+    Swag.assert(lockProfile0.heights[2] == 3)
+    Swag.assert(lockProfile0.heights[3] == 4)
+    Swag.assert(lockProfile0.heights[4] == 3)
 
-    @assert(keyProfile0.heights[0] == 5)
-    @assert(keyProfile0.heights[1] == 0)
-    @assert(keyProfile0.heights[2] == 2)
-    @assert(keyProfile0.heights[3] == 1)
-    @assert(keyProfile0.heights[4] == 3)
+    Swag.assert(keyProfile0.heights[0] == 5)
+    Swag.assert(keyProfile0.heights[1] == 0)
+    Swag.assert(keyProfile0.heights[2] == 2)
+    Swag.assert(keyProfile0.heights[3] == 1)
+    Swag.assert(keyProfile0.heights[4] == 3)
 
-    @assert(!fits(lockProfile0, keyProfile0))
-    @assert(!fits(lockProfile0, keyProfile1))
-    @assert(fits(lockProfile0, keyProfile2))
-    @assert(!fits(lockProfile1, keyProfile0))
-    @assert(fits(lockProfile1, keyProfile1))
-    @assert(fits(lockProfile1, keyProfile2))
+    Swag.assert(!fits(lockProfile0, keyProfile0))
+    Swag.assert(!fits(lockProfile0, keyProfile1))
+    Swag.assert(fits(lockProfile0, keyProfile2))
+    Swag.assert(!fits(lockProfile1, keyProfile0))
+    Swag.assert(fits(lockProfile1, keyProfile1))
+    Swag.assert(fits(lockProfile1, keyProfile2))
 
     var sampleLocks: [2] PinProfile
     sampleLocks[0] = lockProfile0
@@ -215,7 +215,7 @@ func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] 
 
     let sampleAudit = auditPairings(sampleLocks, sampleKeys)
 
-    @assert(sampleAudit.lockCount == 2)
-    @assert(sampleAudit.keyCount == 3)
-    @assert(sampleAudit.compatiblePairCount == 3)
+    Swag.assert(sampleAudit.lockCount == 2)
+    Swag.assert(sampleAudit.keyCount == 3)
+    Swag.assert(sampleAudit.compatiblePairCount == 3)
 }

@@ -7,7 +7,7 @@ namespace WinFsp
     func isPortableGuardianInvocation()->bool
     {
         let args = Env.arguments()
-        return @countof(args) >= 2 and args[1] == WinFspGuardianArgument
+        return args.count >= 2 and args[1] == WinFspGuardianArgument
     }
 
     func guardianErrorText(err: #null any)->string
@@ -23,7 +23,7 @@ namespace WinFsp
 
     func writeGuardianStatus(path, status: string) fail
     {
-        discard File.writeAllBytes(path, @mkslice(cast(const [*] u8) @dataof(status), @countof(status)))
+        discard File.writeAllBytes(path, Swag.makeSlice(cast(const [*] u8) status.buffer, status.count))
     }
 
     func startPortableGuardian(statusPath: string) fail
@@ -37,12 +37,12 @@ namespace WinFsp
     func runPortableGuardian()->s32
     {
         let args = Env.arguments()
-        if @countof(args) < 4 or args[1] != WinFspGuardianArgument or !isElevated() do
+        if args.count < 4 or args[1] != WinFspGuardianArgument or !isElevated() do
             return 2
 
         let parsed     = catch StrConv.parseU32(args[2]) as parseError
         let statusPath = args[3]
-        if parseError != null or parsed.ovf or parsed.eat != @countof(args[2]) do
+        if parseError != null or parsed.ovf or parsed.eat != args[2].count do
             return 2
 
         let parent = OpenProcess(ProcessSynchronize, 0, parsed.value)
@@ -65,7 +65,7 @@ namespace WinFsp
         discard CloseHandle(parent)
         unloadWinFsp()
         let communicationRoot = Path.directoryName(statusPath) orelse ""
-        if @countof(communicationRoot) do
+        if communicationRoot.count do
             removeRuntimeTree(communicationRoot)
         return 0
     }
@@ -107,7 +107,7 @@ namespace WinFsp
         let operation16    = Utf16.toZeroTerminated("runas")
         let parameters16   = Utf16.toZeroTerminated(parameters)
         let directory16    = Utf16.toZeroTerminated(Path.directoryName(executablePath) orelse "")
-        let launch         = ShellExecuteW(null, @dataof(operation16), @dataof(executable16), @dataof(parameters16), @dataof(directory16), 0)
+        let launch         = ShellExecuteW(null, operation16.buffer, executable16.buffer, parameters16.buffer, directory16.buffer, 0)
         if cast(u64) launch <= 32
         {
             removeRuntimeTree(communicationRoot)
@@ -121,17 +121,17 @@ namespace WinFsp
             if readError == null
             {
                 status.trim()
-                if status.startsWith("READY\n") and @countof(status) > @countof("READY\n")
+                if status.startsWith("READY\n") and status.count > ("READY\n").count
                 {
-                    g_WinFsp.dllPath         = @mkstring(@dataof(status) + @countof("READY\n"), @countof(status) - @countof("READY\n"))
+                    g_WinFsp.dllPath         = Swag.makeString(status.buffer + ("READY\n").count, status.count - ("READY\n").count)
                     g_WinFsp.guardianManaged = true
                     return
                 }
 
                 if status.startsWith("ERROR\n")
                 {
-                    let prefixCount = @countof("ERROR\n")
-                    let detail      = @countof(status) > prefixCount ? @mkstring(@dataof(status) + prefixCount, @countof(status) - prefixCount) : "The portable WinFsp helper failed."
+                    let prefixCount = ("ERROR\n").count
+                    let detail      = status.count > prefixCount ? Swag.makeString(status.buffer + prefixCount, status.count - prefixCount) : "The portable WinFsp helper failed."
                     failWith(detail)
                 }
             }
@@ -161,15 +161,15 @@ namespace WinFsp
                     if deleteError != null
                     {
                         let entry16 = Utf16.toZeroTerminated(entry.fullname)
-                        discard MoveFileExW(@dataof(entry16), null, MoveDelayUntilReboot)
+                        discard MoveFileExW(entry16.buffer, null, MoveDelayUntilReboot)
                     }
                 }
             }
         }
 
         let path16 = Utf16.toZeroTerminated(path)
-        if !RemoveDirectoryW(@dataof(path16)) do
-            discard MoveFileExW(@dataof(path16), null, MoveDelayUntilReboot)
+        if !RemoveDirectoryW(path16.buffer) do
+            discard MoveFileExW(path16.buffer, null, MoveDelayUntilReboot)
     }
 
     func stagePortableWinFsp()->String fail
@@ -201,7 +201,7 @@ namespace WinFsp
         }
 
         let identity = Path.combine(bin, "winfsp.sxs")
-        discard File.writeAllBytes(identity, @mkslice(cast(const [*] u8) @dataof("sVaultDrive\n"), @countof("sVaultDrive\n")))
+        discard File.writeAllBytes(identity, Swag.makeSlice(cast(const [*] u8) ("sVaultDrive\n").buffer, ("sVaultDrive\n").count))
         g_WinFsp.runtimeRoot = #move root
         return dll
     }

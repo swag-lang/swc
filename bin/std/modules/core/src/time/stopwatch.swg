@@ -36,13 +36,13 @@ public impl Stopwatch
     // Resets the stopwatch and clears the elapsed time
     mtd reset()
     {
-        @init(me, 1)
+        Swag.init(me, 1)
     }
 
     // Resets the stopwatch and immediately starts measuring elapsed time
     mtd restart()
     {
-        @init(me, 1)
+        Swag.init(me, 1)
         .start()
     }
 

@@ -85,7 +85,7 @@ func semaTest001()
         })
     }
 
-    @assert(count == 4)
+    Swag.assert(count == 4)
 }
 
 func semaTest002()
@@ -104,7 +104,7 @@ func semaTest002()
         count = -10
     }
 
-    @assert(count == 1)
+    Swag.assert(count == 1)
 }
 
 func semaTest003()
@@ -120,7 +120,7 @@ func semaTest003()
         count = -10
     }
 
-    @assert(count == 1)
+    Swag.assert(count == 1)
 }
 
 func semaTest004()
@@ -130,7 +130,7 @@ func semaTest004()
     {
         count += 1
     }
-    @assert(count == 1)
+    Swag.assert(count == 1)
 }
 
 func semaTest005()
@@ -146,7 +146,7 @@ func semaTest005()
     {
         count += 1
     }
-    @assert(count == 1)
+    Swag.assert(count == 1)
 }
 
 func semaTest006()
@@ -170,7 +170,7 @@ func semaTest006()
         count = -20
     }
 
-    @assert(count == 2)
+    Swag.assert(count == 2)
 }
 
 func semaTest007()
@@ -189,5 +189,5 @@ func semaTest007()
         count = -10
     }
 
-    @assert(count == 1)
+    Swag.assert(count == 1)
 }

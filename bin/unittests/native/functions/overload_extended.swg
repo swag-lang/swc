@@ -10,11 +10,11 @@ func arity(a: s32, b: s32) { gArityResult = a + b }
 #test
 {
     arity()
-    @assert(gArityResult == 0)
+    Swag.assert(gArityResult == 0)
     arity(10)
-    @assert(gArityResult == 10)
+    Swag.assert(gArityResult == 10)
     arity(10, 20)
-    @assert(gArityResult == 30)
+    Swag.assert(gArityResult == 30)
 }
 
 // Method overload with different param types (using explicit suffixes)
@@ -40,9 +40,9 @@ impl OverS
     s.process(42's32)
     s.process(true)
     s.process("hello")
-    @assert(gOverMethodS32 == 42)
-    @assert(gOverMethodBool == true)
-    @assert(gOverMethodStr == "hello")
+    Swag.assert(gOverMethodS32 == 42)
+    Swag.assert(gOverMethodBool == true)
+    Swag.assert(gOverMethodStr == "hello")
 }
 
 // Overload with u8 vs u32 (explicit type suffixes needed)
@@ -58,8 +58,8 @@ func sizedOp(a: u32) { gOverU32 = a }
     gOverU32 = 0
     sizedOp(5'u8)
     sizedOp(1000'u32)
-    @assert(gOverU8 == 5)
-    @assert(gOverU32 == 1000)
+    Swag.assert(gOverU8 == 5)
+    Swag.assert(gOverU32 == 1000)
 }
 
 // Overload with pointer vs value
@@ -72,10 +72,10 @@ func ptrOrVal(a: *s32) { gOverPtrVal = a[] }
 {
     gOverPtrVal = 0
     ptrOrVal(42)
-    @assert(gOverPtrVal == 42)
+    Swag.assert(gOverPtrVal == 42)
     var x = 99
     ptrOrVal(&x)
-    @assert(gOverPtrVal == 99)
+    Swag.assert(gOverPtrVal == 99)
 }
 
 // Overloaded function as callback
@@ -89,7 +89,7 @@ func combine(a: s32, b: s32)->s32 { return a + b }
 #test
 {
     let result = applyOp(3, 4, &combine)
-    @assert(result == 7)
+    Swag.assert(result == 7)
 }
 
 // Method overload via static call
@@ -109,13 +109,13 @@ impl MOverS
     gMOver1 = 0
     s.doIt()
     s.doIt(42)
-    @assert(gMOver0 == 1)
-    @assert(gMOver1 == 42)
+    Swag.assert(gMOver0 == 1)
+    Swag.assert(gMOver1 == 42)
     // Static call style
     MOverS.doIt(&s)
     MOverS.doIt(&s, 99)
-    @assert(gMOver0 == 2)
-    @assert(gMOver1 == 99)
+    Swag.assert(gMOver0 == 2)
+    Swag.assert(gMOver1 == 99)
 }
 
 // Overload: bool vs s32 (bool is distinct from integer)
@@ -131,6 +131,6 @@ func boolOrInt(a: s32) { gIntHit = a }
     gIntHit  = 0
     boolOrInt(true)
     boolOrInt(42's32)
-    @assert(gBoolHit == true)
-    @assert(gIntHit == 42)
+    Swag.assert(gBoolHit == true)
+    Swag.assert(gIntHit == 42)
 }

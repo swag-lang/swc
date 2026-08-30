@@ -51,9 +51,9 @@ impl RefRangeModel
 
     model.split(4)
 
-    @assert(model.selection.count == 2)
-    @assert(model.selection.values[0].start == 2)
-    @assert(model.selection.values[0].end == 3)
-    @assert(model.selection.values[1].start == 5)
-    @assert(model.selection.values[1].end == 6)
+    Swag.assert(model.selection.count == 2)
+    Swag.assert(model.selection.values[0].start == 2)
+    Swag.assert(model.selection.values[0].end == 3)
+    Swag.assert(model.selection.values[1].start == 5)
+    Swag.assert(model.selection.values[1].end == 6)
 }

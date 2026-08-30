@@ -54,22 +54,22 @@ private func testPlugin(key = "custom", selector = ".plug")->FileScope.Plugin
     expect File.writeAllBytes(binaryFile, [0x89'u8, 0x50'u8, 0x4E'u8, 0x47'u8, 0'u8, 0xFF'u8])
 
     let registry = createViewerPluginRegistry()
-    @assert(registry.plugins.count == 14)
+    Swag.assert(registry.plugins.count == 14)
     for plugin in registry.plugins do
-        @assert(plugin.apiVersion == FileScope.ViewerApiVersion and plugin.create != null and plugin.icon != null)
+        Swag.assert(plugin.apiVersion == FileScope.ViewerApiVersion and plugin.create != null and plugin.icon != null)
 
     let picture = registry.choices(binaryFile)
-    @assert(picture.count == 3)
-    @assert(choiceName(&registry, &picture[0]) == "Image")
-    @assert(choiceName(&registry, &picture[1]) == "Binary")
-    @assert(choiceName(&registry, &picture[2]) == "Hexadecimal")
+    Swag.assert(picture.count == 3)
+    Swag.assert(choiceName(&registry, &picture[0]) == "Image")
+    Swag.assert(choiceName(&registry, &picture[1]) == "Binary")
+    Swag.assert(choiceName(&registry, &picture[2]) == "Hexadecimal")
 
     let unknown = registry.choices(textFile)
-    @assert(unknown.count == 3 and unknown[0].key == BasicTextViewerKey)
-    @assert(choiceName(&registry, &unknown[1]) == "Binary")
-    @assert(choiceName(&registry, &unknown[2]) == "Hexadecimal")
-    @assert(registry.explicitlySupports("clip.gif"))
-    @assert(!registry.explicitlySupports("clip.bin"))
+    Swag.assert(unknown.count == 3 and unknown[0].key == BasicTextViewerKey)
+    Swag.assert(choiceName(&registry, &unknown[1]) == "Binary")
+    Swag.assert(choiceName(&registry, &unknown[2]) == "Hexadecimal")
+    Swag.assert(registry.explicitlySupports("clip.gif"))
+    Swag.assert(!registry.explicitlySupports("clip.bin"))
 }
 
 // Every descriptor carries one immutable smoke basename, and that file discovers the descriptor
@@ -79,9 +79,9 @@ private func testPlugin(key = "custom", selector = ".plug")->FileScope.Plugin
     let registry = createViewerPluginRegistry()
     for plugin, i in registry.plugins
     {
-        @assert((Path.fileName(plugin.smokeFixture.toString()) orelse "") == plugin.smokeFixture.toString())
+        Swag.assert((Path.fileName(plugin.smokeFixture.toString()) orelse "") == plugin.smokeFixture.toString())
         let fixture = viewerRegistryFixturePath(plugin.smokeFixture.toString())
-        @assert(File.exists(fixture))
+        Swag.assert(File.exists(fixture))
 
         var found: bool
         for choice in registry.choices(fixture.toString()) where choice.key == plugin.key
@@ -90,39 +90,39 @@ private func testPlugin(key = "custom", selector = ".plug")->FileScope.Plugin
             break
         }
 
-        @assert(found)
+        Swag.assert(found)
         for other, j in registry.plugins where j > i do
-            @assert(plugin.smokeFixture != other.smokeFixture)
+            Swag.assert(plugin.smokeFixture != other.smokeFixture)
     }
 }
 
 #test
 {
     let registry = createViewerPluginRegistry()
-    @assert(registry.explicitlySupports("Makefile"))
-    @assert(registry.explicitlySupports("DOCKERFILE"))
-    @assert(registry.explicitlySupports("CMakeLists.txt"))
-    @assert(registry.explicitlySupports(".gitignore"))
+    Swag.assert(registry.explicitlySupports("Makefile"))
+    Swag.assert(registry.explicitlySupports("DOCKERFILE"))
+    Swag.assert(registry.explicitlySupports("CMakeLists.txt"))
+    Swag.assert(registry.explicitlySupports(".gitignore"))
 
     let html = registry.choices("page.html")
-    @assert(choiceName(&registry, &html[0]) == "HTML" and choiceName(&registry, &html[1]) == "Code")
-    @assert(choiceName(&registry, &registry.choices("Makefile")[0]) == "Code")
-    @assert(choiceName(&registry, &registry.choices("Dockerfile")[0]) == "Code")
-    @assert(choiceName(&registry, &registry.choices("CMakeLists.txt")[0]) == "Code")
-    @assert(choiceName(&registry, &registry.choices(".gitignore")[0]) == "Code")
+    Swag.assert(choiceName(&registry, &html[0]) == "HTML" and choiceName(&registry, &html[1]) == "Code")
+    Swag.assert(choiceName(&registry, &registry.choices("Makefile")[0]) == "Code")
+    Swag.assert(choiceName(&registry, &registry.choices("Dockerfile")[0]) == "Code")
+    Swag.assert(choiceName(&registry, &registry.choices("CMakeLists.txt")[0]) == "Code")
+    Swag.assert(choiceName(&registry, &registry.choices(".gitignore")[0]) == "Code")
 
     let tableChoices = registry.choices("data.csv")
-    @assert(choiceName(&registry, &tableChoices[0]) == "Table" and tableChoices[1].key == "binary" and tableChoices[2].key == "hex")
-    @assert(registry.choices("family.ttf")[0].key == "font")
-    @assert(registry.choices("outlines.otf")[0].key == "binary")
-    @assert(registry.choices("movie.mp4")[0].key == "video")
-    @assert(registry.choices("movie.mkv")[0].key == "video")
-    @assert(registry.choices("score.mid")[0].key == "midi")
-    @assert(registry.choices("dialogue.srt")[0].key == "subtitle")
+    Swag.assert(choiceName(&registry, &tableChoices[0]) == "Table" and tableChoices[1].key == "binary" and tableChoices[2].key == "hex")
+    Swag.assert(registry.choices("family.ttf")[0].key == "font")
+    Swag.assert(registry.choices("outlines.otf")[0].key == "binary")
+    Swag.assert(registry.choices("movie.mp4")[0].key == "video")
+    Swag.assert(registry.choices("movie.mkv")[0].key == "video")
+    Swag.assert(registry.choices("score.mid")[0].key == "midi")
+    Swag.assert(registry.choices("dialogue.srt")[0].key == "subtitle")
 
     const SoundFiles: [11] string = ["sound.wav", "sound.flac", "sound.mp3", "sound.aac", "sound.ac3", "sound.eac3", "sound.ec3", "sound.dts", "sound.ogg", "sound.oga", "sound.opus"]
     for file in SoundFiles do
-        @assert(registry.choices(file)[0].key == "sound")
+        Swag.assert(registry.choices(file)[0].key == "sound")
 }
 
 // The interpreter line claims an extensionless script before readable-text and wildcard plugins.
@@ -134,8 +134,8 @@ private func testPlugin(key = "custom", selector = ".plug")->FileScope.Plugin
 
     let registry = createViewerPluginRegistry()
     let choices  = registry.choices(fileName)
-    @assert(choices[0].key == "code" and choices[1].key == BasicTextViewerKey and choices[2].key == "binary" and choices[3].key == "hex")
-    @assert(codeLanguage(fileName) == .Python)
+    Swag.assert(choices[0].key == "code" and choices[1].key == BasicTextViewerKey and choices[2].key == "binary" and choices[3].key == "hex")
+    Swag.assert(codeLanguage(fileName) == .Python)
 }
 
 // Stable keys and icon contexts belong to descriptors rather than hard-coded choice variants.
@@ -144,22 +144,22 @@ private func testPlugin(key = "custom", selector = ".plug")->FileScope.Plugin
     let registry = createViewerPluginRegistry()
     for plugin, i in registry.plugins
     {
-        @assert(!plugin.key.isEmpty() and plugin.key == plugin.key.toLower())
+        Swag.assert(!plugin.key.isEmpty() and plugin.key == plugin.key.toLower())
         for other, j in registry.plugins where j > i do
-            @assert(plugin.key != other.key and plugin.iconData != other.iconData)
+            Swag.assert(plugin.key != other.key and plugin.iconData != other.iconData)
     }
 
     let movie = registry.choices("movie.mp4")
-    @assert(movie[0].key == "video" and cast(ViewerIcons) choicePlugin(&registry, &movie[0]).iconData == .Video)
-    @assert(movie[1].key == "binary" and cast(ViewerIcons) choicePlugin(&registry, &movie[1]).iconData == .Binary)
-    @assert(movie[2].key == "hex" and cast(ViewerIcons) choicePlugin(&registry, &movie[2]).iconData == .Hex)
+    Swag.assert(movie[0].key == "video" and cast(ViewerIcons) choicePlugin(&registry, &movie[0]).iconData == .Video)
+    Swag.assert(movie[1].key == "binary" and cast(ViewerIcons) choicePlugin(&registry, &movie[1]).iconData == .Binary)
+    Swag.assert(movie[2].key == "hex" and cast(ViewerIcons) choicePlugin(&registry, &movie[2]).iconData == .Hex)
 
     let plain = Gui.Testing.tempFilePath("filescope-keys-", ".unknown")
     defer discard catch File.delete(plain)
     expect File.writeAllBytes(plain, "plain UTF-8 text")
     let readable = registry.choices(plain)
-    @assert(readable[0].key == BasicTextViewerKey)
-    @assert(cast(ViewerIcons) choicePlugin(&registry, &readable[0]).iconData == .Text)
+    Swag.assert(readable[0].key == BasicTextViewerKey)
+    Swag.assert(cast(ViewerIcons) choicePlugin(&registry, &readable[0]).iconData == .Text)
 }
 
 // A descriptor unknown to the built-in registry participates in discovery and creation without
@@ -169,22 +169,22 @@ private func testPlugin(key = "custom", selector = ".plug")->FileScope.Plugin
     var registry = createViewerPluginRegistry()
     expect registry.register(testPlugin())
     let choices = registry.choices("sample.plug")
-    @assert(choices[0].key == "custom")
+    Swag.assert(choices[0].key == "custom")
 
     var host: Testing.HeadlessHost
     host.setup(320, 200)
     defer host.shutdown()
     var session = openTestViewer(choicePlugin(&registry, &choices[0]).create, &host.root, "sample.plug")
-    @assert(session.view != null and session.failureReason.isEmpty())
+    Swag.assert(session.view != null and session.failureReason.isEmpty())
 
     var duplicate = testPlugin()
     discard catch registry.register(#move duplicate) as duplicateError
-    @assert(duplicateError != null)
+    Swag.assert(duplicateError != null)
 
     var incompatible = testPlugin("future", ".future")
     incompatible.apiVersion = FileScope.ViewerApiVersion + 1
     discard catch registry.register(#move incompatible) as versionError
-    @assert(versionError != null)
+    Swag.assert(versionError != null)
 }
 
 // Folder navigation groups files by explicitly registered plugins, with extension equality only
@@ -192,9 +192,9 @@ private func testPlugin(key = "custom", selector = ".plug")->FileScope.Plugin
 #test
 {
     let registry = createViewerPluginRegistry()
-    @assert(registry.sharesViewer("a.png", "B.JPG"))
-    @assert(!registry.sharesViewer("a.png", "b.wav"))
-    @assert(registry.sharesViewer("x.foo", "y.FOO"))
-    @assert(!registry.sharesViewer("x.foo", "y.bar"))
-    @assert(!registry.sharesViewer("a.png", "x.foo"))
+    Swag.assert(registry.sharesViewer("a.png", "B.JPG"))
+    Swag.assert(!registry.sharesViewer("a.png", "b.wav"))
+    Swag.assert(registry.sharesViewer("x.foo", "y.FOO"))
+    Swag.assert(!registry.sharesViewer("x.foo", "y.bar"))
+    Swag.assert(!registry.sharesViewer("a.png", "x.foo"))
 }

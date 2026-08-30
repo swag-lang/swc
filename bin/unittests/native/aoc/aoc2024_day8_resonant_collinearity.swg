@@ -108,11 +108,11 @@ func initAntinodeGrid(width, height: u32)->AntinodeGrid
     result.height = height
     let size = cast(u64) width * cast(u64) height
     result.cells = cast(#null [*] u8) testAlloc(size)
-    @assert(result.cells != null)
+    Swag.assert(result.cells != null)
     let cells = result.cells!
     for width * height
     {
-        cells[cast(u32) @index] = 0'u8
+        cells[cast(u32) Swag.index] = 0'u8
     }
     return result
 }
@@ -140,7 +140,7 @@ func clearGrid(grid: *AntinodeGrid)
     let cells = grid.cells!
     for grid.width * grid.height
     {
-        cells[cast(u32) @index] = 0'u8
+        cells[cast(u32) Swag.index] = 0'u8
     }
 }
 
@@ -150,7 +150,7 @@ func countMarked(grid: AntinodeGrid)->u32
     let cells = grid.cells!
     for grid.width * grid.height
     {
-        if cells[cast(u32) @index] != 0'u8 do
+        if cells[cast(u32) Swag.index] != 0'u8 do
             count += 1
     }
     return count
@@ -165,7 +165,7 @@ func parseAntennaMap(result: *AntennaMap, text: string)
     let bytes = cast(const [..] u8) text
 
     var width: u32
-    while width < @countof(bytes) and !isLineBreak(bytes[width])
+    while width < bytes.count and !isLineBreak(bytes[width])
     {
         width += 1
     }
@@ -174,14 +174,14 @@ func parseAntennaMap(result: *AntennaMap, text: string)
 
     var x: u32
     var y: u32
-    for @countof(bytes)
+    for bytes.count
     {
-        let ch = bytes[@index]
+        let ch = bytes[Swag.index]
         if isLineBreak(ch)
         {
             if x > 0
             {
-                @assert(x == width)
+                Swag.assert(x == width)
                 y += 1
                 x = 0
             }
@@ -191,9 +191,9 @@ func parseAntennaMap(result: *AntennaMap, text: string)
         if isAntenna(ch)
         {
             let freq = cast(u32) ch
-            @assert(freq < MaxFrequencies)
+            Swag.assert(freq < MaxFrequencies)
             let group = &result.groups[freq]
-            @assert(group.count < MaxAntennasPerFreq)
+            Swag.assert(group.count < MaxAntennasPerFreq)
             group.positions[group.count] = {x: cast(s32) x, y: cast(s32) y}
             group.count                  += 1
             result.freqUsed[freq]        = true
@@ -213,7 +213,7 @@ func countAntennas(map: AntennaMap)->u32
     var total: u32
     for MaxFrequencies
     {
-        total += map.groups[cast(u32) @index].count
+        total += map.groups[cast(u32) Swag.index].count
     }
     return total
 }
@@ -223,7 +223,7 @@ func countFrequencies(map: AntennaMap)->u32
     var total: u32
     for MaxFrequencies
     {
-        if map.freqUsed[cast(u32) @index] do
+        if map.freqUsed[cast(u32) Swag.index] do
             total += 1
     }
     return total
@@ -237,7 +237,7 @@ func computeSimpleAntinodes(grid: *AntinodeGrid, map: AntennaMap)
 {
     for MaxFrequencies
     {
-        let freq = cast(u32) @index
+        let freq = cast(u32) Swag.index
         if !map.freqUsed[freq] do
             continue
 
@@ -264,7 +264,7 @@ func computeHarmonicAntinodes(grid: *AntinodeGrid, map: AntennaMap)
 {
     for MaxFrequencies
     {
-        let freq = cast(u32) @index
+        let freq = cast(u32) Swag.index
         if !map.freqUsed[freq] do
             continue
 
@@ -331,33 +331,33 @@ func analyzeResonance(text: string)->ResonanceReport
 {
     let sample = analyzeResonance(SampleInput)
 
-    @assert(sample.width == 12'u32)
-    @assert(sample.height == 12'u32)
-    @assert(sample.antennaCount == 7'u32)
-    @assert(sample.frequencyCount == 2'u32)
-    @assert(sample.simpleAntinodes == 14'u32)
-    @assert(sample.harmonicAntinodes == 34'u32)
+    Swag.assert(sample.width == 12'u32)
+    Swag.assert(sample.height == 12'u32)
+    Swag.assert(sample.antennaCount == 7'u32)
+    Swag.assert(sample.frequencyCount == 2'u32)
+    Swag.assert(sample.simpleAntinodes == 14'u32)
+    Swag.assert(sample.harmonicAntinodes == 34'u32)
 }
 
 #test
 {
     let small = analyzeResonance(SmallInput)
 
-    @assert(small.width == 10'u32)
-    @assert(small.height == 10'u32)
-    @assert(small.antennaCount == 2'u32)
-    @assert(small.frequencyCount == 1'u32)
-    @assert(small.simpleAntinodes == 2'u32)
-    @assert(small.harmonicAntinodes == 5'u32)
+    Swag.assert(small.width == 10'u32)
+    Swag.assert(small.height == 10'u32)
+    Swag.assert(small.antennaCount == 2'u32)
+    Swag.assert(small.frequencyCount == 1'u32)
+    Swag.assert(small.simpleAntinodes == 2'u32)
+    Swag.assert(small.harmonicAntinodes == 5'u32)
 }
 
 #test
 {
     let twoFreq = analyzeResonance(TwoFreqInput)
 
-    @assert(twoFreq.width == 10'u32)
-    @assert(twoFreq.height == 10'u32)
-    @assert(twoFreq.antennaCount == 4'u32)
-    @assert(twoFreq.frequencyCount == 2'u32)
-    @assert(twoFreq.simpleAntinodes == 4'u32)
+    Swag.assert(twoFreq.width == 10'u32)
+    Swag.assert(twoFreq.height == 10'u32)
+    Swag.assert(twoFreq.antennaCount == 4'u32)
+    Swag.assert(twoFreq.frequencyCount == 2'u32)
+    Swag.assert(twoFreq.simpleAntinodes == 4'u32)
 }

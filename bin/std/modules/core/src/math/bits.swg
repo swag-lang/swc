@@ -27,44 +27,44 @@ private const Rev8Arr: [256] u8 = [
 {
     // Returns the number of leading zero bits from the most significant bit.
     // Counts consecutive zero bits starting from the left (most significant) side.
-    func leadingZeros(x: u8)->u8   => @bitcountlz(x)
-    func leadingZeros(x: u16)->u16 => @bitcountlz(x)
-    func leadingZeros(x: u32)->u32 => @bitcountlz(x)
-    func leadingZeros(x: u64)->u64 => @bitcountlz(x)
+    func leadingZeros(x: u8)->u8   => Swag.bitCountLz(x)
+    func leadingZeros(x: u16)->u16 => Swag.bitCountLz(x)
+    func leadingZeros(x: u32)->u32 => Swag.bitCountLz(x)
+    func leadingZeros(x: u64)->u64 => Swag.bitCountLz(x)
 
     // Returns the number of trailing zero bits from the least significant bit.
     // Counts consecutive zero bits starting from the right (least significant) side.
-    func trailingZeros(x: u8)->u8   => @bitcounttz(x)
-    func trailingZeros(x: u16)->u16 => @bitcounttz(x)
-    func trailingZeros(x: u32)->u32 => @bitcounttz(x)
-    func trailingZeros(x: u64)->u64 => @bitcounttz(x)
+    func trailingZeros(x: u8)->u8   => Swag.bitCountTz(x)
+    func trailingZeros(x: u16)->u16 => Swag.bitCountTz(x)
+    func trailingZeros(x: u32)->u32 => Swag.bitCountTz(x)
+    func trailingZeros(x: u64)->u64 => Swag.bitCountTz(x)
 
     // Returns the total number of bits set to 1 in the value.
     // Also known as population count or Hamming weight.
-    func countOnes(x: u8)->u8   => @bitcountnz(x)
-    func countOnes(x: u16)->u16 => @bitcountnz(x)
-    func countOnes(x: u32)->u32 => @bitcountnz(x)
-    func countOnes(x: u64)->u64 => @bitcountnz(x)
+    func countOnes(x: u8)->u8   => Swag.bitCountNz(x)
+    func countOnes(x: u16)->u16 => Swag.bitCountNz(x)
+    func countOnes(x: u32)->u32 => Swag.bitCountNz(x)
+    func countOnes(x: u64)->u64 => Swag.bitCountNz(x)
 
     // Rotate bits left by 'y' positions.
     // Bits that overflow from the left side wrap around to the right side.
-    func rol(x: u8, y: u8)  => @rol(x, y)
-    func rol(x: u16, y: u8) => @rol(x, y)
-    func rol(x: u32, y: u8) => @rol(x, y)
-    func rol(x: u64, y: u8) => @rol(x, y)
+    func rol(x: u8, y: u8)  => Swag.rol(x, y)
+    func rol(x: u16, y: u8) => Swag.rol(x, y)
+    func rol(x: u32, y: u8) => Swag.rol(x, y)
+    func rol(x: u64, y: u8) => Swag.rol(x, y)
 
     // Rotate bits right by 'y' positions.
     // Bits that overflow from the right side wrap around to the left side.
-    func ror(x: u8, y: u8)  => @ror(x, y)
-    func ror(x: u16, y: u8) => @ror(x, y)
-    func ror(x: u32, y: u8) => @ror(x, y)
-    func ror(x: u64, y: u8) => @ror(x, y)
+    func ror(x: u8, y: u8)  => Swag.ror(x, y)
+    func ror(x: u16, y: u8) => Swag.ror(x, y)
+    func ror(x: u32, y: u8) => Swag.ror(x, y)
+    func ror(x: u64, y: u8) => Swag.ror(x, y)
 
     // Reverse the byte order of the value.
     // Converts between little-endian and big-endian representations.
-    func byteswap(x: u16) => @byteswap(x)
-    func byteswap(x: u32) => @byteswap(x)
-    func byteswap(x: u64) => @byteswap(x)
+    func byteswap(x: u16) => Swag.byteSwap(x)
+    func byteswap(x: u32) => Swag.byteSwap(x)
+    func byteswap(x: u64) => Swag.byteSwap(x)
 }
 
 // Reverse all bits in an 8-bit value using lookup table.
@@ -94,7 +94,7 @@ func reverse(x: u32)->u32
     var v = ((x >> 1) & m0) | ((x & m0) << 1)
     v = ((v >> 2) & m1) | ((v & m1) << 2)
     v = ((v >> 4) & m2) | ((v & m2) << 4)
-    return @byteswap(v)
+    return Swag.byteSwap(v)
 }
 
 // Reverse all bits in a 64-bit value using bit manipulation.
@@ -108,7 +108,7 @@ func reverse(x: u64)->u64
     var v = ((x >> 1) & m0) | ((x & m0) << 1)
     v = ((v >> 2) & m1) | ((v & m1) << 2)
     v = ((v >> 4) & m2) | ((v & m2) << 4)
-    return @byteswap(v)
+    return Swag.byteSwap(v)
 }
 
 // Reverse all bits of every byte lane.
@@ -120,7 +120,7 @@ func reverse(x: Simd.U8x16)->Simd.U8x16
 {
     const LowNibble  = cast(Simd.U8x16) [0x00, 0x80, 0x40, 0xC0, 0x20, 0xA0, 0x60, 0xE0, 0x10, 0x90, 0x50, 0xD0, 0x30, 0xB0, 0x70, 0xF0]
     const HighNibble = cast(Simd.U8x16) [0x00, 0x08, 0x04, 0x0C, 0x02, 0x0A, 0x06, 0x0E, 0x01, 0x09, 0x05, 0x0D, 0x03, 0x0B, 0x07, 0x0F]
-    const Mask       = @vecsplat(0x0F'u8)
+    const Mask       = Swag.vecsplat(0x0F'u8)
 
     // The word shift is what the byte lanes have; masking to the low nibble drops the four
     // bits it dragged in from the neighbouring byte.
@@ -132,7 +132,7 @@ func reverse(x: Simd.U8x16)->Simd.U8x16
 // Reverse all bits of every lane, wider lanes reversing their bytes as well.
 #[Inline]
 {
-    func reverse(x: Simd.U16x8)->Simd.U16x8 => @byteswap(cast #bit (Simd.U16x8) reverse(cast #bit (Simd.U8x16) x))
-    func reverse(x: Simd.U32x4)->Simd.U32x4 => @byteswap(cast #bit (Simd.U32x4) reverse(cast #bit (Simd.U8x16) x))
-    func reverse(x: Simd.U64x2)->Simd.U64x2 => @byteswap(cast #bit (Simd.U64x2) reverse(cast #bit (Simd.U8x16) x))
+    func reverse(x: Simd.U16x8)->Simd.U16x8 => Swag.byteSwap(cast #bit (Simd.U16x8) reverse(cast #bit (Simd.U8x16) x))
+    func reverse(x: Simd.U32x4)->Simd.U32x4 => Swag.byteSwap(cast #bit (Simd.U32x4) reverse(cast #bit (Simd.U8x16) x))
+    func reverse(x: Simd.U64x2)->Simd.U64x2 => Swag.byteSwap(cast #bit (Simd.U64x2) reverse(cast #bit (Simd.U8x16) x))
 }

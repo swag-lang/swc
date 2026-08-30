@@ -157,7 +157,7 @@ impl Ast
     {
         var result: retval
         result.first = cast(u32) .kids.count
-        result.count = cast(u32) @countof(children)
+        result.count = cast(u32) children.count
         .kids.add(children)
         return result
     }
@@ -174,9 +174,9 @@ impl Ast
     // Wraps a list of nodes into one node of 'kind', collapsing the trivial cases.
     mtd addList(kind: NodeKind, children: const [..] u32)->u32
     {
-        if @countof(children) == 0 do
+        if children.count == 0 do
             return .addNode({kind: .Empty})
-        if @countof(children) == 1 do
+        if children.count == 1 do
             return children[0]
 
         let range = .addChildren(children)

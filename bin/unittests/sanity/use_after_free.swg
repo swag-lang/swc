@@ -17,7 +17,7 @@ func myAlloc(size: u64)->*void
 {
     var req: AllocatorRequest
     req.size = size
-    let allocItf = @getcontext().allocator!
+    let allocItf = Swag.getContext().allocator!
     allocItf.alloc(&req)
     return req.address!
 }
@@ -28,7 +28,7 @@ func myFree(ptr: *void, size: u64)
     var req: AllocatorRequest
     req.address = ptr
     req.size    = size
-    let allocItf = @getcontext().allocator!
+    let allocItf = Swag.getContext().allocator!
     allocItf.free(&req)
 }
 
@@ -57,7 +57,7 @@ func uafForwardFreeAndReturn(ptr: *void, size: u64)->UafIndirectResult
 {
     let p      = myAlloc(4)
     let result = uafForwardFreeAndReturn(p, 4)
-    @assert(result.values[0] == 0)
+    Swag.assert(result.values[0] == 0)
 }
 
 // Read after free.
@@ -98,7 +98,7 @@ func rejectFreeBorrowed()
     var req:   AllocatorRequest
     req.address = &value
     req.size    = #sizeof(s32)
-    let allocItf = @getcontext().allocator!
+    let allocItf = Swag.getContext().allocator!
     allocItf.free(&req)     // swc-expected-error {{sanity_err_free_borrowed}}
 }
 
@@ -110,7 +110,7 @@ func rejectFreeBorrowed()
     myFree(p, 4)
     p   = cast(*s32) myAlloc(4)
     p[] = 3
-    @assert(p[] == 3)
+    Swag.assert(p[] == 3)
     myFree(p, 4)
 }
 
@@ -136,7 +136,7 @@ func useAfterConditionalFree(cond: bool)->s32
     let q = cast(*s32) myAlloc(4)
     q[] = 5
     myFree(p, 4)
-    @assert(q[] == 5)
+    Swag.assert(q[] == 5)
     myFree(q, 4)
 }
 
@@ -183,5 +183,5 @@ func uafCarrierThroughFrame(host: *UafHost)
 {
     var host: UafHost
     uafCarrierThroughFrame(&host)
-    @assert(host.value == 1)
+    Swag.assert(host.value == 1)
 }

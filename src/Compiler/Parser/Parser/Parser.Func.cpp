@@ -271,10 +271,12 @@ AstNodeRef Parser::parseFunctionDecl(const bool isInterfaceDefinition)
         flags.add(AstFunctionFlagsE::Impl);
 
     // Name
-    if (Token::isIntrinsic(id()))
-        nodePtr->tokNameRef = consume();
-    else
-        nodePtr->tokNameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    nodePtr->tokNameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    if (ast_->srcView().isRuntimeFile() && !hasContextFlag(ParserContextFlagsE::InNamespace) && nodePtr->tokNameRef.isValid())
+    {
+        const Token& tok = ast_->srcView().token(nodePtr->tokNameRef);
+        nodePtr->intrinsicId = Token::intrinsicFromName(tok.string(ast_->srcView()));
+    }
 
     // Parameters. A '#fwd' parameter makes this declaration dual-instantiated: the
     // enclosing statement is re-parsed to emit a copy variant and a move variant.
@@ -421,15 +423,274 @@ AstNodeRef Parser::parseFunctionArguments(AstNodeRef nodeExpr)
         }
     }
 
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CallExpr>(ref());
-    nodePtr->nodeExprRef          = nodeExpr;
-
-    if (hasContextFlag(ParserContextFlagsE::InAttribute))
-        nodePtr->addFlag(AstCallExprFlagsE::AttributeContext);
-
+    const TokenRef tokCallRef = ref();
     const PushContextFlags ctxFlags(this, ParserContextFlagsE::InCallArgument);
-    nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftParen);
+    const SpanRef spanArgsRef = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftParen);
+    return lowerSwagIntrinsicCall(nodeExpr, spanArgsRef, tokCallRef);
+}
+
+TokenId Parser::swagIntrinsicId(const AstNodeRef nodeExpr) const
+{
+    if (nodeExpr.isInvalid())
+        return TokenId::Invalid;
+
+    const auto* member = ast_->node(nodeExpr).safeCast<AstMemberAccessExpr>();
+    if (!member)
+        return TokenId::Invalid;
+
+    const auto* left  = ast_->node(member->nodeLeftRef).safeCast<AstIdentifier>();
+    const auto* right = ast_->node(member->nodeRightRef).safeCast<AstIdentifier>();
+    if (!left || !right)
+        return TokenId::Invalid;
+
+    const SourceView& srcView  = ast_->srcView();
+    const Token&      leftTok  = srcView.token(left->tokRef());
+    const Token&      rightTok = srcView.token(right->tokRef());
+    if (leftTok.string(srcView) != "Swag")
+        return TokenId::Invalid;
+
+    return Token::intrinsicFromName(rightTok.string(srcView));
+}
+
+AstNodeRef Parser::lowerSwagIntrinsicValue(const AstNodeRef nodeExpr)
+{
+    const TokenId intrinsicId = swagIntrinsicId(nodeExpr);
+    if (intrinsicId != TokenId::IntrinsicIndex)
+        return nodeExpr;
+
+    const auto& member             = ast_->node(nodeExpr).cast<AstMemberAccessExpr>();
+    const auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::IntrinsicValue>(ast_->node(member.nodeRightRef).tokRef());
+    nodePtr->intrinsicId           = intrinsicId;
     return nodeRef;
+}
+
+AstNodeRef Parser::lowerSwagIntrinsicCall(const AstNodeRef nodeExpr, const SpanRef spanArgsRef, const TokenRef tokCallRef)
+{
+    const TokenId intrinsicId = swagIntrinsicId(nodeExpr);
+    if (intrinsicId == TokenId::Invalid)
+    {
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CallExpr>(tokCallRef);
+        nodePtr->nodeExprRef          = nodeExpr;
+        nodePtr->spanChildrenRef      = spanArgsRef;
+        if (hasContextFlag(ParserContextFlagsE::InAttribute))
+            nodePtr->addFlag(AstCallExprFlagsE::AttributeContext);
+        return nodeRef;
+    }
+
+    SmallVector<AstNodeRef> args;
+    ast_->appendNodes(args, spanArgsRef);
+    const auto& member      = ast_->node(nodeExpr).cast<AstMemberAccessExpr>();
+    const TokenRef tokNameRef = ast_->node(member.nodeRightRef).tokRef();
+
+    auto requireArgs = [&](const uint32_t count) {
+        if (args.size() == count)
+            return;
+        const DiagnosticId id = args.size() < count ? DiagnosticId::parser_err_too_few_arguments : DiagnosticId::parser_err_too_many_arguments;
+        const AstNodeRef errorRef = args.size() > count ? args[count] : AstNodeRef::invalid();
+        const TokenRef endRef = errorRef.isValid() ? ast_->node(errorRef).tokRef() : tokCallRef;
+        reportArgumentCountError(id, tokNameRef, endRef, count, static_cast<uint32_t>(args.size())).report(*ctx_);
+    };
+
+    switch (intrinsicId)
+    {
+        case TokenId::IntrinsicCountOf:
+        {
+            requireArgs(1);
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CountOfExpr>(tokNameRef);
+            nodePtr->nodeExprRef    = args.empty() ? AstNodeRef::invalid() : args[0];
+            return nodeRef;
+        }
+
+        case TokenId::IntrinsicKindOf:
+        case TokenId::IntrinsicDataOf:
+        case TokenId::IntrinsicIsSet:
+        case TokenId::IntrinsicMakeAny:
+        case TokenId::IntrinsicMakeSlice:
+        case TokenId::IntrinsicMakeString:
+        case TokenId::IntrinsicMakeInterface:
+        case TokenId::IntrinsicIs:
+        case TokenId::IntrinsicAs:
+        case TokenId::IntrinsicTableOf:
+        {
+            uint32_t count = 1;
+            if (intrinsicId == TokenId::IntrinsicMakeAny || intrinsicId == TokenId::IntrinsicMakeSlice ||
+                intrinsicId == TokenId::IntrinsicMakeString || intrinsicId == TokenId::IntrinsicIs || intrinsicId == TokenId::IntrinsicTableOf)
+                count = 2;
+            else if (intrinsicId == TokenId::IntrinsicMakeInterface || intrinsicId == TokenId::IntrinsicAs)
+                count = 3;
+            requireArgs(count);
+            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::IntrinsicCall>(tokNameRef);
+            nodePtr->intrinsicId     = intrinsicId;
+            nodePtr->spanChildrenRef = spanArgsRef;
+            return nodeRef;
+        }
+
+        case TokenId::IntrinsicInit:
+        {
+            if (args.empty() || args.size() > 2)
+                requireArgs(args.empty() ? 1 : 2);
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicInit>(tokNameRef);
+            nodePtr->nodeWhatRef    = args.empty() ? AstNodeRef::invalid() : args[0];
+            nodePtr->nodeCountRef   = args.size() > 1 ? args[1] : AstNodeRef::invalid();
+            if (is(TokenId::SymLeftParen))
+                nodePtr->spanArgsRef = parseCompoundContent(AstNodeId::UnnamedArgumentList, TokenId::SymLeftParen);
+            else
+                nodePtr->spanArgsRef.setInvalid();
+            return nodeRef;
+        }
+
+        case TokenId::IntrinsicDrop:
+        case TokenId::IntrinsicPostCopy:
+        case TokenId::IntrinsicPostMove:
+        {
+            if (args.empty() || args.size() > 2)
+                requireArgs(args.empty() ? 1 : 2);
+
+            if (intrinsicId == TokenId::IntrinsicDrop)
+            {
+                auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicDrop>(tokNameRef);
+                nodePtr->nodeWhatRef    = args.empty() ? AstNodeRef::invalid() : args[0];
+                nodePtr->nodeCountRef   = args.size() > 1 ? args[1] : AstNodeRef::invalid();
+                return nodeRef;
+            }
+            if (intrinsicId == TokenId::IntrinsicPostCopy)
+            {
+                auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicPostCopy>(tokNameRef);
+                nodePtr->nodeWhatRef    = args.empty() ? AstNodeRef::invalid() : args[0];
+                nodePtr->nodeCountRef   = args.size() > 1 ? args[1] : AstNodeRef::invalid();
+                return nodeRef;
+            }
+
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicPostMove>(tokNameRef);
+            nodePtr->nodeWhatRef    = args.empty() ? AstNodeRef::invalid() : args[0];
+            nodePtr->nodeCountRef   = args.size() > 1 ? args[1] : AstNodeRef::invalid();
+            return nodeRef;
+        }
+
+        default:
+        {
+            uint32_t numRequiredArgs = UINT32_MAX;
+            switch (intrinsicId)
+            {
+                case TokenId::IntrinsicBreakpoint:
+                case TokenId::IntrinsicGetContext:
+                case TokenId::IntrinsicCompiler:
+                case TokenId::IntrinsicRtFlags:
+                case TokenId::IntrinsicProcessInfos:
+                case TokenId::IntrinsicArgs:
+                case TokenId::IntrinsicModules:
+                case TokenId::IntrinsicGvtd:
+                case TokenId::IntrinsicJit:
+                    numRequiredArgs = 0;
+                    break;
+
+                case TokenId::IntrinsicAssert:
+                case TokenId::IntrinsicSetContext:
+                case TokenId::IntrinsicAbs:
+                case TokenId::IntrinsicSqrt:
+                case TokenId::IntrinsicSin:
+                case TokenId::IntrinsicCos:
+                case TokenId::IntrinsicTan:
+                case TokenId::IntrinsicSinh:
+                case TokenId::IntrinsicCosh:
+                case TokenId::IntrinsicTanh:
+                case TokenId::IntrinsicASin:
+                case TokenId::IntrinsicACos:
+                case TokenId::IntrinsicATan:
+                case TokenId::IntrinsicLog:
+                case TokenId::IntrinsicLog2:
+                case TokenId::IntrinsicLog10:
+                case TokenId::IntrinsicFloor:
+                case TokenId::IntrinsicCeil:
+                case TokenId::IntrinsicTrunc:
+                case TokenId::IntrinsicRound:
+                case TokenId::IntrinsicExp:
+                case TokenId::IntrinsicExp2:
+                case TokenId::IntrinsicByteSwap:
+                case TokenId::IntrinsicBitCountNz:
+                case TokenId::IntrinsicBitCountTz:
+                case TokenId::IntrinsicBitCountLz:
+                case TokenId::IntrinsicVecSplat:
+                case TokenId::IntrinsicVecWidenLo:
+                case TokenId::IntrinsicVecWidenHi:
+                case TokenId::IntrinsicVecMask:
+                case TokenId::IntrinsicVecAny:
+                case TokenId::IntrinsicVecAll:
+                case TokenId::IntrinsicVecReduceAdd:
+                case TokenId::IntrinsicVecReduceMin:
+                case TokenId::IntrinsicVecReduceMax:
+                case TokenId::IntrinsicVecReduceAnd:
+                case TokenId::IntrinsicVecReduceOr:
+                case TokenId::IntrinsicVecReduceXor:
+                case TokenId::IntrinsicVecTruncS32:
+                    numRequiredArgs = 1;
+                    break;
+
+                case TokenId::IntrinsicCompilerError:
+                case TokenId::IntrinsicCompilerWarning:
+                case TokenId::IntrinsicPanic:
+                case TokenId::IntrinsicSafetyPanic:
+                case TokenId::IntrinsicStringCmp:
+                case TokenId::IntrinsicMin:
+                case TokenId::IntrinsicMax:
+                case TokenId::IntrinsicRol:
+                case TokenId::IntrinsicRor:
+                case TokenId::IntrinsicPow:
+                case TokenId::IntrinsicATan2:
+                case TokenId::IntrinsicAtomicXchg:
+                case TokenId::IntrinsicAtomicXor:
+                case TokenId::IntrinsicAtomicOr:
+                case TokenId::IntrinsicAtomicAnd:
+                case TokenId::IntrinsicAtomicAdd:
+                case TokenId::IntrinsicVecSatAdd:
+                case TokenId::IntrinsicVecSatSub:
+                case TokenId::IntrinsicVecPackUS:
+                case TokenId::IntrinsicVecPackSS:
+                case TokenId::IntrinsicVecInterleaveLo:
+                case TokenId::IntrinsicVecInterleaveHi:
+                case TokenId::IntrinsicVecAvgR:
+                case TokenId::IntrinsicVecMadd:
+                case TokenId::IntrinsicVecMaddUBS:
+                case TokenId::IntrinsicVecSad:
+                case TokenId::IntrinsicVecMulHi:
+                case TokenId::IntrinsicVecGather:
+                case TokenId::IntrinsicVecPerm:
+                case TokenId::IntrinsicVecShuffle:
+                    numRequiredArgs = 2;
+                    break;
+
+                case TokenId::IntrinsicMemCpy:
+                case TokenId::IntrinsicMemMove:
+                case TokenId::IntrinsicMemSet:
+                case TokenId::IntrinsicMemCmp:
+                case TokenId::IntrinsicTypeCmp:
+                case TokenId::IntrinsicAtomicCmpXchg:
+                case TokenId::IntrinsicMulAdd:
+                case TokenId::IntrinsicVecShuffle2:
+                case TokenId::IntrinsicVecAlign:
+                case TokenId::IntrinsicVecSelect:
+                    numRequiredArgs = 3;
+                    break;
+
+                default:
+                    break;
+            }
+
+            if (numRequiredArgs != UINT32_MAX)
+                requireArgs(numRequiredArgs);
+            else if (intrinsicId == TokenId::IntrinsicPrint && args.empty())
+                reportArgumentCountError(DiagnosticId::parser_err_too_few_arguments, tokNameRef, tokCallRef, 1, 0, true).report(*ctx_);
+
+            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::IntrinsicCallExpr>(tokNameRef);
+            nodePtr->intrinsicId     = intrinsicId;
+            nodePtr->nodeExprRef     = member.nodeRightRef;
+            nodePtr->spanChildrenRef = spanArgsRef;
+            ast_->node(member.nodeRightRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::CallCallee);
+            if (hasContextFlag(ParserContextFlagsE::InAttribute))
+                nodePtr->addFlag(AstCallExprFlagsE::AttributeContext);
+            return nodeRef;
+        }
+    }
 }
 
 SWC_END_NAMESPACE();

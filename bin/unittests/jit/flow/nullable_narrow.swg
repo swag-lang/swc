@@ -160,18 +160,18 @@ func narrowNotNullTolerant()->s32
     return takesPtr(q!)
 }
 
-// `@assert` panics when its condition is false, so the statements after it are only
+// `Swag.assert` panics when its condition is false, so the statements after it are only
 // reachable with the condition true: its facts hold for the remainder of the block.
 func narrowAssert(p: #null *NarrowNode)->s32
 {
-    @assert(p != null)
+    Swag.assert(p != null)
     return takesPtr(p)
 }
 
 // The proof holds across the statements that follow it, not just the next one.
 func narrowAssertAcrossStatements(p: #null *NarrowNode)->s32
 {
-    @assert(p != null)
+    Swag.assert(p != null)
     let first = takesPtr(p)
     let next  = p.next
     return first + (next ? 1 : 0) + takesPtr(p)
@@ -180,14 +180,14 @@ func narrowAssertAcrossStatements(p: #null *NarrowNode)->s32
 // A logical chain proves every operand it requires.
 func narrowAssertAnd(a, b: #null *NarrowNode)->s32
 {
-    @assert(a != null and b != null)
+    Swag.assert(a != null and b != null)
     return takesPtr(a) + takesPtr(b)
 }
 
 // Field access paths are asserted like locals.
 func narrowAssertField(o: *NarrowOwner)->s32
 {
-    @assert(o.node != null)
+    Swag.assert(o.node != null)
     return takesPtr(o.node)
 }
 
@@ -195,11 +195,11 @@ func narrowAssertField(o: *NarrowOwner)->s32
 func narrowAssertKill(p, q: #null *NarrowNode)->s32
 {
     var cur = p
-    @assert(cur != null)
+    Swag.assert(cur != null)
     var total = takesPtr(cur)
 
     cur = q
-    @assert(cur != null)
+    Swag.assert(cur != null)
     return total + takesPtr(cur)
 }
 
@@ -207,7 +207,7 @@ func narrowAssertKill(p, q: #null *NarrowNode)->s32
 func narrowAssertScoped(p: #null *NarrowNode)->s32
 {
     {
-        @assert(p != null)
+        Swag.assert(p != null)
         discard takesPtr(p)
     }
 
@@ -222,49 +222,49 @@ func narrowAssertScoped(p: #null *NarrowNode)->s32
     var node2 = NarrowNode{value: 8}
     node.next = &node2
 
-    @assert(narrowIf(&node) == 42)
-    @assert(narrowIf(null) == -1)
-    @assert(narrowCmp(&node) == 42)
-    @assert(narrowCmp(null) == -1)
-    @assert(narrowCmpElse(&node) == 42)
-    @assert(narrowCmpElse(null) == -1)
-    @assert(narrowEarlyReturn(&node) == 42)
-    @assert(narrowEarlyReturn(null) == -1)
-    @assert(narrowAnd(&node, &node2) == 50)
-    @assert(narrowAnd(&node, null) == -1)
-    @assert(narrowAnd(null, &node2) == -1)
-    @assert(narrowAndRhs(&node))
-    @assert(!narrowAndRhs(&node2))
-    @assert(!narrowAndRhs(null))
-    @assert(narrowOrReturn(&node, &node2) == 50)
-    @assert(narrowOrReturn(null, &node2) == -1)
-    @assert(narrowWhile(&node) == 50)
-    @assert(narrowWhile(null) == 0)
-    @assert(narrowTernary(&node) == 42)
-    @assert(narrowTernary(null) == -1)
+    Swag.assert(narrowIf(&node) == 42)
+    Swag.assert(narrowIf(null) == -1)
+    Swag.assert(narrowCmp(&node) == 42)
+    Swag.assert(narrowCmp(null) == -1)
+    Swag.assert(narrowCmpElse(&node) == 42)
+    Swag.assert(narrowCmpElse(null) == -1)
+    Swag.assert(narrowEarlyReturn(&node) == 42)
+    Swag.assert(narrowEarlyReturn(null) == -1)
+    Swag.assert(narrowAnd(&node, &node2) == 50)
+    Swag.assert(narrowAnd(&node, null) == -1)
+    Swag.assert(narrowAnd(null, &node2) == -1)
+    Swag.assert(narrowAndRhs(&node))
+    Swag.assert(!narrowAndRhs(&node2))
+    Swag.assert(!narrowAndRhs(null))
+    Swag.assert(narrowOrReturn(&node, &node2) == 50)
+    Swag.assert(narrowOrReturn(null, &node2) == -1)
+    Swag.assert(narrowWhile(&node) == 50)
+    Swag.assert(narrowWhile(null) == 0)
+    Swag.assert(narrowTernary(&node) == 42)
+    Swag.assert(narrowTernary(null) == -1)
 
     var owner = NarrowOwner{node: &node}
-    @assert(narrowField(&owner) == 42)
-    @assert(owner.narrowAuto() == 42)
-    @assert(narrowIfLet(&owner) == 42)
+    Swag.assert(narrowField(&owner) == 42)
+    Swag.assert(owner.narrowAuto() == 42)
+    Swag.assert(narrowIfLet(&owner) == 42)
 
     var emptyOwner: NarrowOwner
-    @assert(narrowField(&emptyOwner) == -1)
-    @assert(emptyOwner.narrowAuto() == -1)
-    @assert(narrowIfLet(&emptyOwner) == -1)
+    Swag.assert(narrowField(&emptyOwner) == -1)
+    Swag.assert(emptyOwner.narrowAuto() == -1)
+    Swag.assert(narrowIfLet(&emptyOwner) == -1)
 
-    @assert(narrowLet(&node) == 42)
-    @assert(narrowLet(null) == -1)
-    @assert(narrowAssignGen() == 7)
-    @assert(narrowKillAssign(&node, &node2) == 50)
-    @assert(narrowKillAssign(&node, null) == 42)
-    @assert(narrowKillAssign(null, &node2) == -1)
-    @assert(narrowNotNullTolerant() == 9)
+    Swag.assert(narrowLet(&node) == 42)
+    Swag.assert(narrowLet(null) == -1)
+    Swag.assert(narrowAssignGen() == 7)
+    Swag.assert(narrowKillAssign(&node, &node2) == 50)
+    Swag.assert(narrowKillAssign(&node, null) == 42)
+    Swag.assert(narrowKillAssign(null, &node2) == -1)
+    Swag.assert(narrowNotNullTolerant() == 9)
 
-    @assert(narrowAssert(&node) == 42)
-    @assert(narrowAssertAcrossStatements(&node) == 85)
-    @assert(narrowAssertAnd(&node, &node2) == 50)
-    @assert(narrowAssertField(&owner) == 42)
-    @assert(narrowAssertKill(&node, &node2) == 50)
-    @assert(narrowAssertScoped(&node) == 42)
+    Swag.assert(narrowAssert(&node) == 42)
+    Swag.assert(narrowAssertAcrossStatements(&node) == 85)
+    Swag.assert(narrowAssertAnd(&node, &node2) == 50)
+    Swag.assert(narrowAssertField(&owner) == 42)
+    Swag.assert(narrowAssertKill(&node, &node2) == 50)
+    Swag.assert(narrowAssertScoped(&node) == 42)
 }

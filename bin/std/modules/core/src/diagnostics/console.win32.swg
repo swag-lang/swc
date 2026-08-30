@@ -78,8 +78,8 @@ public func resetColor()
 
 internal func writeNative(message: string)
 {
-    let length = cast(u32) @countof(message)
-    catch WriteFile(g_StdOutputHandle, @dataof(message), length, null, null)
+    let length = cast(u32) message.count
+    catch WriteFile(g_StdOutputHandle, message.buffer, length, null, null)
 }
 
 // Wait for using input, and returns the corresponding string
@@ -96,7 +96,7 @@ public func prompt()->String
     {
         if !ReadFile(h, &buffer[0], BufSize, &dwRead, null) do
             break
-        result.append(@mkstring(&buffer[0], dwRead))
+        result.append(Swag.makeString(&buffer[0], dwRead))
         if dwRead < BufSize do
             break
         if buffer[BufSize - 1] == '\n' do

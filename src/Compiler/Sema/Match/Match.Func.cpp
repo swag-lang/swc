@@ -207,7 +207,7 @@ namespace
     {
         if (mode != Match::ResolveCallMode::Intrinsic || !argTypeRef.isValid() || !paramTypeRef.isValid())
             return false;
-        if (!SemaHelpers::isAliasPreservingNumericIntrinsic(sema.token(fn.codeRef()).id))
+        if (!SemaHelpers::isAliasPreservingNumericIntrinsic(fn.intrinsicId()))
             return false;
 
         const TypeInfo& argType = sema.typeMgr().get(argTypeRef);

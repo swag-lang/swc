@@ -23,7 +23,7 @@ By default, enums use the `s32` type for storage.
 {
     enum Values { A, B }
     let type = #typeof(Values)
-    @assert(type.rawType == s32)
+    Swag.assert(type.rawType == s32)
     #assert(#typeof(Values) == Values)
 }
 
@@ -107,13 +107,13 @@ Non-integer enums require explicit assignments.
         C = 6.0
     }
 
-    #assert(@abs(cast(f32) Value2.B - 3.14) < 0.001)
+    #assert(Swag.abs(cast(f32) Value2.B - 3.14) < 0.001)
 }
 
 /**
 # Counting Enum Values
 
-`@countof` returns the number of enum members.
+`.count` returns the number of enum members.
 */
 #test
 {
@@ -124,7 +124,7 @@ Non-integer enums require explicit assignments.
         C = "3"
     }
 
-    @assert(@countof(Value) == 3)
+    Swag.assert(Value.count == 3)
 }
 
 /**
@@ -137,9 +137,9 @@ Non-integer enums require explicit assignments.
     enum Value { A, B, C }
     using Value
 
-    @assert(A == 0)
-    @assert(B == 1)
-    @assert(Value.C == 2)
+    Swag.assert(A == 0)
+    Swag.assert(B == 1)
+    Swag.assert(Value.C == 2)
 }
 
 /**
@@ -157,7 +157,7 @@ With `#[Swag.EnumFlags]`, enum values represent bit flags. They should use unsig
     #assert(MyFlags.C == 0b00000100)
 
     let value = MyFlags.B | MyFlags.C
-    @assert(value == 0b00000110)
+    Swag.assert(value == 0b00000110)
 }
 
 /**
@@ -181,9 +181,9 @@ Enums can also store slices.
     enum Value: const [..] s32 { A = [1, 2], B = [10, 20, 30] }
     let a = cast(const [..] s32) Value.A
     let b = cast(const [..] s32) Value.B
-    #assert(@countof(a) == 2)
-    #assert(@countof(b) == 3)
-    @assert(b[2] == 30)
+    #assert(a.count == 2)
+    #assert(b.count == 3)
+    Swag.assert(b[2] == 30)
 }
 
 /**
@@ -198,10 +198,10 @@ forming the contiguous range from zero to the last value.
 
     const Array: [MyIndex] s32 = [0, 1, 2]
     const Valu                 = Array[MyIndex.First]
-    @assert(Valu == 0)
+    Swag.assert(Valu == 0)
 
     var index = MyIndex.Third
-    @assert(Array[index] == 2)
+    Swag.assert(Array[index] == 2)
 }
 
 /**
@@ -226,7 +226,7 @@ Swag infers enum types automatically in assignments and expressions.
     enum Values { A, B }
     let x: Values = Values.A
     let y: Values = .A
-    @assert(x == y)
+    Swag.assert(x == y)
 }
 
 /**
@@ -257,7 +257,7 @@ You can omit the enum name when the type is already known.
 {
     enum Values { A, B }
     let x = Values.A
-    @assert(x == .A)
+    Swag.assert(x == .A)
 }
 
 /**
@@ -271,7 +271,7 @@ This works with flags too.
     enum Values { A, B }
 
     let x = Values.A | Values.B
-    @assert((x & .A) and (x & .B))
+    Swag.assert((x & .A) and (x & .B))
 }
 
 /**
@@ -295,7 +295,7 @@ You can loop over the number of enum values with `for`, or iterate the values th
     var cpt = 0
     for RGB do
         cpt += 1
-    @assert(cpt == 3)
+    Swag.assert(cpt == 3)
 }
 
 /**
@@ -311,7 +311,7 @@ Binding a name offers a structured way to iterate and handle specific values.
         case .R: break
         case .G: break
         case .B: break
-        default: @assert(false)
+        default: Swag.assert(false)
         }
     }
 }

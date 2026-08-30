@@ -204,7 +204,7 @@ impl IWnd for FrameWnd
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if !@isset(.view) do
+        if !Swag.isSet(.view) do
             return
         var rect = .paddedClientRect()
         rect.applyPadding(.view.margin)
@@ -230,9 +230,9 @@ impl FrameWnd
     // Replaces and destroys the current view, then attaches `what` to this frame.
     mtd setView(what: *Wnd)
     {
-        if @isset(.view) and .view == what do
+        if Swag.isSet(.view) and .view == what do
             return
-        if @isset(.view) do
+        if Swag.isSet(.view) do
             .view.destroy()
         what.setParent(me)
         .view = what

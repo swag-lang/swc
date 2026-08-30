@@ -51,7 +51,7 @@ func day3A0()
             if cpt == D
             {
                 // Console.print("total: ", Math.abs(x) + Math.abs(y))
-                @assert(Math.abs(x) + Math.abs(y) == 430)
+                Swag.assert(Math.abs(x) + Math.abs(y) == 430)
                 return
             }
         }
@@ -102,7 +102,7 @@ func day3A1()
                 if cpt == D
                 {
                     // Console.print("total: ", Math.abs(x) + Math.abs(y))
-                    @assert(Math.abs(x) + Math.abs(y) == 430)
+                    Swag.assert(Math.abs(x) + Math.abs(y) == 430)
                     return
                 }
             }

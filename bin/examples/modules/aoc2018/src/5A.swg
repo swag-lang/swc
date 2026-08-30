@@ -47,5 +47,5 @@ func day5A()
     }
 
     // Console.print("total: ", line.length)
-    @assert(line.length == 10774)
+    Swag.assert(line.length == 10774)
 }

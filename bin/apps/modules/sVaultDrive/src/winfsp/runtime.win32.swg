@@ -6,20 +6,20 @@ namespace WinFsp
 {
     func resolveWinFspApi() fail
     {
-        let create            = GetProcAddress(g_WinFsp.module, @dataof("FspFileSystemCreate"))
-        let destroy           = GetProcAddress(g_WinFsp.module, @dataof("FspFileSystemDelete"))
-        let setMountPoint     = GetProcAddress(g_WinFsp.module, @dataof("FspFileSystemSetMountPoint"))
-        let removeMountPoint  = GetProcAddress(g_WinFsp.module, @dataof("FspFileSystemRemoveMountPoint"))
-        let startDispatcher   = GetProcAddress(g_WinFsp.module, @dataof("FspFileSystemStartDispatcher"))
-        let stopDispatcher    = GetProcAddress(g_WinFsp.module, @dataof("FspFileSystemStopDispatcher"))
-        let addDirInfo        = GetProcAddress(g_WinFsp.module, @dataof("FspFileSystemAddDirInfo"))
-        let setGuard          = GetProcAddress(g_WinFsp.module, @dataof("FspFileSystemSetOperationGuardStrategyF"))
-        let setSecurity       = GetProcAddress(g_WinFsp.module, @dataof("FspSetSecurityDescriptor"))
-        let deleteSecurity    = GetProcAddress(g_WinFsp.module, @dataof("FspDeleteSecurityDescriptor"))
-        let registerServer    = GetProcAddress(g_WinFsp.module, @dataof("DllRegisterServer"))
-        let unregisterServer  = GetProcAddress(g_WinFsp.module, @dataof("DllUnregisterServer"))
-        let setDebugLogHandle = GetProcAddress(g_WinFsp.module, @dataof("FspDebugLogSetHandle"))
-        let startService      = GetProcAddress(g_WinFsp.module, @dataof("FspFsctlStartService"))
+        let create            = GetProcAddress(g_WinFsp.module, ("FspFileSystemCreate").buffer)
+        let destroy           = GetProcAddress(g_WinFsp.module, ("FspFileSystemDelete").buffer)
+        let setMountPoint     = GetProcAddress(g_WinFsp.module, ("FspFileSystemSetMountPoint").buffer)
+        let removeMountPoint  = GetProcAddress(g_WinFsp.module, ("FspFileSystemRemoveMountPoint").buffer)
+        let startDispatcher   = GetProcAddress(g_WinFsp.module, ("FspFileSystemStartDispatcher").buffer)
+        let stopDispatcher    = GetProcAddress(g_WinFsp.module, ("FspFileSystemStopDispatcher").buffer)
+        let addDirInfo        = GetProcAddress(g_WinFsp.module, ("FspFileSystemAddDirInfo").buffer)
+        let setGuard          = GetProcAddress(g_WinFsp.module, ("FspFileSystemSetOperationGuardStrategyF").buffer)
+        let setSecurity       = GetProcAddress(g_WinFsp.module, ("FspSetSecurityDescriptor").buffer)
+        let deleteSecurity    = GetProcAddress(g_WinFsp.module, ("FspDeleteSecurityDescriptor").buffer)
+        let registerServer    = GetProcAddress(g_WinFsp.module, ("DllRegisterServer").buffer)
+        let unregisterServer  = GetProcAddress(g_WinFsp.module, ("DllUnregisterServer").buffer)
+        let setDebugLogHandle = GetProcAddress(g_WinFsp.module, ("FspDebugLogSetHandle").buffer)
+        let startService      = GetProcAddress(g_WinFsp.module, ("FspFsctlStartService").buffer)
 
         if !create or !destroy or !setMountPoint or !removeMountPoint or !startDispatcher or !stopDispatcher or !addDirInfo or !setGuard or !setSecurity or !deleteSecurity or !registerServer or !unregisterServer or !setDebugLogHandle or !startService do
             failWith("The bundled WinFsp runtime does not expose the expected ABI.")
@@ -60,15 +60,15 @@ namespace WinFsp
         var stream = catch File.open(winFspStageLogPath(), .Append, .Write, .Read) as openError
         if openError != null do
             return
-        discard catch stream.write(@dataof(message)!, @countof(message))
-        discard catch stream.write(@dataof("\n"), 1)
+        discard catch stream.write(message.buffer!, message.count)
+        discard catch stream.write(("\n").buffer, 1)
         stream.close()
     }
 
     func beginWinFspLog()->NativeHandle
     {
         let logPath16 = Utf16.toZeroTerminated(winFspLogPath())
-        let handle    = CreateFileW(@dataof(logPath16), GenericWrite, ShareRead, null, 2, NormalFile, null)
+        let handle    = CreateFileW(logPath16.buffer, GenericWrite, ShareRead, null, 2, NormalFile, null)
         if handle != InvalidHandle do
             (g_WinFsp.setDebugLogHandle)(handle)
         return handle
@@ -97,7 +97,7 @@ namespace WinFsp
             return
 
         #static if #hastag("SVaultDrive.Integration") do
-            discard catch File.writeAllBytes(winFspStageLogPath(), @mkslice(cast(const [*] u8) @dataof("load requested\n"), @countof("load requested\n")))
+            discard catch File.writeAllBytes(winFspStageLogPath(), Swag.makeSlice(cast(const [*] u8) ("load requested\n").buffer, ("load requested\n").count))
 
         if g_WinFsp.guardianManaged
         {

@@ -44,13 +44,13 @@ func catchElseEarlyReturn(ok: bool)->s32
 // Success skips the handler; failure runs it, then execution continues after the construct.
 #test
 {
-    @assert(catchElseRun(true) == 1000)
-    @assert(catchElseRun(false) == 42 + 1000)
+    Swag.assert(catchElseRun(true) == 1000)
+    Swag.assert(catchElseRun(false) == 42 + 1000)
 }
 
 // The anonymous handler may divert control flow (early return on failure).
 #test
 {
-    @assert(catchElseEarlyReturn(true) == 100)
-    @assert(catchElseEarlyReturn(false) == -1)
+    Swag.assert(catchElseEarlyReturn(true) == 100)
+    Swag.assert(catchElseEarlyReturn(false) == -1)
 }

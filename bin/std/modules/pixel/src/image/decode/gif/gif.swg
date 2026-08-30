@@ -121,21 +121,21 @@ public impl Decoder
 
     internal mtd init(buffer: const [..] u8, decodePixels: bool) fail
     {
-        @drop(me, 1)
-        @init(me, 1)
+        Swag.drop(me, 1)
+        Swag.init(me, 1)
 
-        .streamStart, .stream = @dataof(buffer)
-        .streamLen            = @countof(buffer)
+        .streamStart, .stream = buffer.buffer
+        .streamLen            = buffer.count
 
         // Header
         var sigver: [3] u8
         .read(sigver, 3)
-        if Memory.compare(sigver, @dataof("GIF"), 3) != 0 do
+        if Memory.compare(sigver, ("GIF").buffer, 3) != 0 do
             fail InvalidFormatError{"invalid signature"}
 
         // Version
         .read(sigver, 3)
-        if Memory.compare(sigver, @dataof("89a"), 3) != 0 do
+        if Memory.compare(sigver, ("89a").buffer, 3) != 0 do
             fail InvalidFormatError{"invalid version"}
 
         // Width x Height

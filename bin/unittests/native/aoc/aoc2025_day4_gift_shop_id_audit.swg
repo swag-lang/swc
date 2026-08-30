@@ -55,7 +55,7 @@ func isRepeatedDoubleId(value: u64)->bool
 func parseNumber(bytes: const [..] u8, index: *u32)->u64
 {
     var result: u64
-    while index[] < @countof(bytes) and bytes[index[]] >= '0' and bytes[index[]] <= '9'
+    while index[] < bytes.count and bytes[index[]] >= '0' and bytes[index[]] <= '9'
     {
         result  = result * 10'u64 + cast(u64) (bytes[index[]] - '0')
         index[] += 1
@@ -71,10 +71,10 @@ func auditProductRanges(sheet: string)->GiftShopAudit
     var result: GiftShopAudit
     var index:  u32
 
-    while index < @countof(bytes)
+    while index < bytes.count
     {
         let firstId = parseNumber(bytes, &index)
-        @assert(index < @countof(bytes) and bytes[index] == '-')
+        Swag.assert(index < bytes.count and bytes[index] == '-')
         index += 1
 
         let lastId = parseNumber(bytes, &index)
@@ -93,7 +93,7 @@ func auditProductRanges(sheet: string)->GiftShopAudit
             productId += 1
         }
 
-        if index < @countof(bytes) and bytes[index] == ',' do
+        if index < bytes.count and bytes[index] == ',' do
             index += 1
     }
 
@@ -105,16 +105,16 @@ func auditProductRanges(sheet: string)->GiftShopAudit
     const exampleSheet = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124"
     let exampleAudit = auditProductRanges(exampleSheet)
 
-    @assert(exampleAudit.rangeCount == 11'u32)
-    @assert(exampleAudit.invalidCount == 8'u32)
-    @assert(exampleAudit.invalidSum == 1227775554'u64)
-    @assert(exampleAudit.highestInvalid == 1188511885'u64)
+    Swag.assert(exampleAudit.rangeCount == 11'u32)
+    Swag.assert(exampleAudit.invalidCount == 8'u32)
+    Swag.assert(exampleAudit.invalidSum == 1227775554'u64)
+    Swag.assert(exampleAudit.highestInvalid == 1188511885'u64)
 
     const boutiqueSheet = "10-12,1200-1235,9898-9902,777776-777778"
     let boutiqueAudit = auditProductRanges(boutiqueSheet)
 
-    @assert(boutiqueAudit.rangeCount == 4'u32)
-    @assert(boutiqueAudit.invalidCount == 4'u32)
-    @assert(boutiqueAudit.invalidSum == 788898'u64)
-    @assert(boutiqueAudit.highestInvalid == 777777'u64)
+    Swag.assert(boutiqueAudit.rangeCount == 4'u32)
+    Swag.assert(boutiqueAudit.invalidCount == 4'u32)
+    Swag.assert(boutiqueAudit.invalidSum == 788898'u64)
+    Swag.assert(boutiqueAudit.highestInvalid == 777777'u64)
 }

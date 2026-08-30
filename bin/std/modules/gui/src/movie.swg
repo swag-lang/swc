@@ -86,16 +86,16 @@ private impl Movie
 
     mtd clearContent()
     {
-        @drop(&.imgList, 1)
-        @init(&.imgList, 1)
-        @drop(&.gif, 1)
-        @init(&.gif, 1)
-        @drop(&.bytes, 1)
-        @init(&.bytes, 1)
-        @drop(&.cachedFrames, 1)
-        @init(&.cachedFrames, 1)
-        @drop(&.frame, 1)
-        @init(&.frame, 1)
+        Swag.drop(&.imgList, 1)
+        Swag.init(&.imgList, 1)
+        Swag.drop(&.gif, 1)
+        Swag.init(&.gif, 1)
+        Swag.drop(&.bytes, 1)
+        Swag.init(&.bytes, 1)
+        Swag.drop(&.cachedFrames, 1)
+        Swag.init(&.cachedFrames, 1)
+        Swag.drop(&.frame, 1)
+        Swag.init(&.frame, 1)
 
         .source              = .None
         .frameCount          = 0

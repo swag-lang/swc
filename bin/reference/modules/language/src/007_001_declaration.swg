@@ -80,7 +80,7 @@ Nested functions are scoped, not closures.
     func sub(x, y: s32) => x - y
 
     let x = sub(5, 2)
-    @assert(x == 3)
+    Swag.assert(x == 3)
 }
 
 /**
@@ -93,16 +93,16 @@ Named parameters allow calling functions with arguments in any order.
     func sub(x, y: s32) => x - y
     {
         let x1 = sub(x: 5, y: 2)
-        @assert(x1 == 3)
+        Swag.assert(x1 == 3)
 
         let x2 = sub(y: 5, x: 2)
-        @assert(x2 == -3)
+        Swag.assert(x2 == -3)
     }
 
     {
         func returnMe(x, y: s32 = 0) => x + y * 2
-        @assert(returnMe(x: 10) == 10)
-        @assert(returnMe(y: 10) == 20)
+        Swag.assert(returnMe(x: 10) == 10)
+        Swag.assert(returnMe(y: 10) == 20)
     }
 }
 
@@ -121,12 +121,12 @@ These can be accessed directly or destructured.
     }
 
     let result = myFunction()
-    @assert(result.x == 1.0)
-    @assert(result.y == 2.0)
+    Swag.assert(result.x == 1.0)
+    Swag.assert(result.y == 2.0)
     let {x, y} = myFunction()
-    @assert(x == 1.0)
-    @assert(y == 2.0)
+    Swag.assert(x == 1.0)
+    Swag.assert(y == 2.0)
     let {z, w} = myFunction()
-    @assert(z == 1.0)
-    @assert(w == 2.0)
+    Swag.assert(z == 1.0)
+    Swag.assert(w == 2.0)
 }

@@ -5,12 +5,12 @@ using Core
 
 func accessTestPassword()->const [..] u8
 {
-    return @mkslice(cast(const [*] u8) @dataof("panel password"), 14)
+    return Swag.makeSlice(cast(const [*] u8) ("panel password").buffer, 14)
 }
 
 func accessTestSame(left, right: const [..] u8)->bool
 {
-    return @countof(left) == @countof(right) and @memcmp(@dataof(left), @dataof(right), @countof(left)) == 0
+    return left.count == right.count and Swag.memcmp(left.buffer, right.buffer, left.count) == 0
 }
 
 func accessTestPath(tag: string)->String
@@ -26,7 +26,7 @@ func accessTestPath(tag: string)->String
     access.setInputs(accessTestPassword(), files.toSlice())
 
     var credential = expect access.derive()
-    @assert(accessTestSame(credential.toSlice(), accessTestPassword()))
+    Swag.assert(accessTestSame(credential.toSlice(), accessTestPassword()))
 }
 
 // Key-file contents, lengths, order, and password all participate; paths do not.
@@ -56,7 +56,7 @@ func accessTestPath(tag: string)->String
     var moved: VaultAccess
     moved.setInputs(accessTestPassword(), movedFiles.toSlice())
     var movedCredential = expect moved.derive()
-    @assert(accessTestSame(firstCredential.toSlice(), movedCredential.toSlice()))
+    Swag.assert(accessTestSame(firstCredential.toSlice(), movedCredential.toSlice()))
 
     var reversedFiles: Array'String
     reversedFiles.add(String.from(secondPath))
@@ -64,12 +64,12 @@ func accessTestPath(tag: string)->String
     var reversed: VaultAccess
     reversed.setInputs(accessTestPassword(), reversedFiles.toSlice())
     var reversedCredential = expect reversed.derive()
-    @assert(!accessTestSame(firstCredential.toSlice(), reversedCredential.toSlice()))
+    Swag.assert(!accessTestSame(firstCredential.toSlice(), reversedCredential.toSlice()))
 
     var otherPassword: VaultAccess
     otherPassword.setInputs("different", firstFiles.toSlice())
     var otherCredential = expect otherPassword.derive()
-    @assert(!accessTestSame(firstCredential.toSlice(), otherCredential.toSlice()))
+    Swag.assert(!accessTestSame(firstCredential.toSlice(), otherCredential.toSlice()))
 }
 
 // Adding, replacing, and removing key files all keep exactly one verified access slot.
@@ -103,29 +103,29 @@ func accessTestPath(tag: string)->String
     // Add the first key file to a password-only vault.
     var volume = expect Volume.create(vault.toString(), rawCredential.toSlice(), MinimumSize)
     expect volume.changePassword(rawCredential.toSlice(), oldCredential.toSlice())
-    @assert(volume.keySlotCount() == 1)
+    Swag.assert(volume.keySlotCount() == 1)
     volume.close()
 
     discard catch Volume.open(vault.toString(), rawCredential.toSlice()) as rawAfterAddError
-    @assert(rawAfterAddError != null)
+    Swag.assert(rawAfterAddError != null)
     volume = expect Volume.open(vault.toString(), oldCredential.toSlice())
 
     // Replace its key-file set.
     expect volume.changePassword(oldCredential.toSlice(), newCredential.toSlice())
-    @assert(volume.keySlotCount() == 1)
+    Swag.assert(volume.keySlotCount() == 1)
     volume.close()
 
     discard catch Volume.open(vault.toString(), oldCredential.toSlice()) as oldError
-    @assert(oldError != null)
+    Swag.assert(oldError != null)
     volume = expect Volume.open(vault.toString(), newCredential.toSlice())
 
     // Remove every key file while preserving the panel password.
     expect volume.changePassword(newCredential.toSlice(), rawCredential.toSlice())
-    @assert(volume.keySlotCount() == 1)
+    Swag.assert(volume.keySlotCount() == 1)
     volume.close()
 
     discard catch Volume.open(vault.toString(), newCredential.toSlice()) as newAfterRemoveError
-    @assert(newAfterRemoveError != null)
+    Swag.assert(newAfterRemoveError != null)
     var reopened = expect Volume.open(vault.toString(), rawCredential.toSlice())
     reopened.close()
 }

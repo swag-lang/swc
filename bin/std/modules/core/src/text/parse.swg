@@ -10,11 +10,11 @@ func parseX64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 {
     var result: retval
 
-    let countof = @countof(str)
+    let countof = str.count
     if !countof do
         fail SyntaxError{}
 
-    var buffer = @dataof(str)
+    var buffer = str.buffer
     var cpt    = 0'u32
     var value  = 0'u64
 
@@ -53,11 +53,11 @@ func parseB64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 {
     var result: retval
 
-    let countof = @countof(str)
+    let countof = str.count
     if !countof do
         fail SyntaxError{}
 
-    var buffer = @dataof(str)
+    var buffer = str.buffer
     var cpt    = 0'u32
     var value  = 0'u64
 
@@ -117,7 +117,7 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 {
     var result: retval
 
-    let countof = @countof(str)
+    let countof = str.count
     if !countof do
         fail SyntaxError{}
 
@@ -142,7 +142,7 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         }
     }
 
-    var buffer = @dataof(str)
+    var buffer = str.buffer
     var cpt    = 0'u32
     var value  = 0'u64
 
@@ -219,11 +219,11 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
 {
     var result: retval
 
-    let countof = @countof(str)
+    let countof = str.count
     if !countof do
         fail SyntaxError{}
 
-    var buffer = @dataof(str)
+    var buffer = str.buffer
     var value  = 0'u64
     var cpt    = 0'u32
 
@@ -339,14 +339,14 @@ func parseBool(str: string)->{ value: bool, eat: u32 } fail
     default: fail SyntaxError{}
     }
 
-    result.eat = cast(u32) @countof(sub)
+    result.eat = cast(u32) sub.count
     return result
 }
 
 // Convert an utf8 buffer to a simple rune
 func parseRune(str: string)->{ value: rune, eat: u32 } fail
 {
-    let countof = @countof(str)
+    let countof = str.count
     if !countof do
         fail SyntaxError{}
     return Utf8.decodeRune(str)
@@ -355,7 +355,7 @@ func parseRune(str: string)->{ value: rune, eat: u32 } fail
 // Parse an identifier name in the sens of swag (ascii)
 func parseIdentifier(str: string)->#null string fail
 {
-    let countof = @countof(str)
+    let countof = str.count
     if !countof do
         fail SyntaxError{}
 
@@ -365,14 +365,14 @@ func parseIdentifier(str: string)->#null string fail
     var cpt = 1'u64
     while cpt < countof and (str[cpt] == '_'u8 or Latin1.isLetterOrDigit(str[cpt])) do
         cpt += 1
-    return @mkstring(@dataof(str), cpt)
+    return Swag.makeString(str.buffer, cpt)
 }
 
 // Convert an utf8 buffer to a String.
 // String in the buffer can be quoted (but the result will not be in that case)
 func parseString(result: *String, str: string)->u32 fail
 {
-    let countof = @countof(str)
+    let countof = str.count
     if !countof do
         fail SyntaxError{}
 
@@ -433,7 +433,7 @@ func toS8(str: string)->s8 fail
     let {v, eat, ovf} = parseS8(str)
     if ovf do
         fail OverflowError{}
-    if eat != @countof(str) do
+    if eat != str.count do
         fail SyntaxError{}
     return v
 }
@@ -444,7 +444,7 @@ func toS16(str: string)->s16 fail
     let {v, eat, ovf} = parseS16(str)
     if ovf do
         fail OverflowError{}
-    if eat != @countof(str) do
+    if eat != str.count do
         fail SyntaxError{}
     return v
 }
@@ -455,7 +455,7 @@ func toS32(str: string)->s32 fail
     let {v, eat, ovf} = parseS32(str)
     if ovf do
         fail OverflowError{}
-    if eat != @countof(str) do
+    if eat != str.count do
         fail SyntaxError{}
     return v
 }
@@ -466,7 +466,7 @@ func toS64(str: string)->s64 fail
     let {v, eat, ovf} = parseS64(str)
     if ovf do
         fail OverflowError{}
-    if eat != @countof(str) do
+    if eat != str.count do
         fail SyntaxError{}
     return v
 }
@@ -477,7 +477,7 @@ func toU8(str: string)->u8 fail
     let {v, eat, ovf} = parseU8(str)
     if ovf do
         fail OverflowError{}
-    if eat != @countof(str) do
+    if eat != str.count do
         fail SyntaxError{}
     return v
 }
@@ -488,7 +488,7 @@ func toU16(str: string)->u16 fail
     let {v, eat, ovf} = parseU16(str)
     if ovf do
         fail OverflowError{}
-    if eat != @countof(str) do
+    if eat != str.count do
         fail SyntaxError{}
     return v
 }
@@ -499,7 +499,7 @@ func toU32(str: string)->u32 fail
     let {v, eat, ovf} = parseU32(str)
     if ovf do
         fail OverflowError{}
-    if eat != @countof(str) do
+    if eat != str.count do
         fail SyntaxError{}
     return v
 }
@@ -510,7 +510,7 @@ func toU64(str: string)->u64 fail
     let {v, eat, ovf} = parseU64(str)
     if ovf do
         fail OverflowError{}
-    if eat != @countof(str) do
+    if eat != str.count do
         fail SyntaxError{}
     return v
 }
@@ -521,7 +521,7 @@ func toF32(str: string)->f32 fail
     let {v, eat, ovf} = parseF32(str)
     if ovf do
         fail OverflowError{}
-    if eat != @countof(str) do
+    if eat != str.count do
         fail SyntaxError{}
     return v
 }
@@ -532,7 +532,7 @@ func toF64(str: string)->f64 fail
     let {v, eat, ovf} = parseF64(str)
     if ovf do
         fail OverflowError{}
-    if eat != @countof(str) do
+    if eat != str.count do
         fail SyntaxError{}
     return v
 }

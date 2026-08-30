@@ -62,11 +62,11 @@ func sumForwarded(v: Pair)->u32 => sumPair(v)
 
 #test
 {
-    @assert(sum1({42}) == 42)
-    @assert(sum2({4, 2}) == 402)
-    @assert(sum4({4, 2}) == 4002)
-    @assert(sumPair({18, 24}) == 18024)
-    @assert(sumFloatPair({1.5, 2.25}) == 3.75)
+    Swag.assert(sum1({42}) == 42)
+    Swag.assert(sum2({4, 2}) == 402)
+    Swag.assert(sum4({4, 2}) == 4002)
+    Swag.assert(sumPair({18, 24}) == 18024)
+    Swag.assert(sumFloatPair({1.5, 2.25}) == 3.75)
 }
 
 #test
@@ -74,15 +74,15 @@ func sumForwarded(v: Pair)->u32 => sumPair(v)
     var v: Pair
     v.x = 30
     v.y = 12
-    @assert(sumPair(v) == 30012)
-    @assert(sumViaAddress(v) == 42)
-    @assert(sumForwarded(v) == 30012)
+    Swag.assert(sumPair(v) == 30012)
+    Swag.assert(sumViaAddress(v) == 42)
+    Swag.assert(sumForwarded(v) == 30012)
 }
 
 #test
 {
-    @assert(sumPairStack(1, 2, 3, 4, {10, 20}) == 60)
-    @assert(sumMixedLanes(1.5, {20, 21}, 0.75) == 43.25)
+    Swag.assert(sumPairStack(1, 2, 3, 4, {10, 20}) == 60)
+    Swag.assert(sumMixedLanes(1.5, {20, 21}, 0.75) == 43.25)
 }
 
 // The exact shape a native drop-target vtable calls back with, both sides Swag here.
@@ -101,8 +101,8 @@ struct DragVTable
     }
 
     var effect: u32
-    @assert(vtbl.onDrag(5, {30, 12}, &effect) == 30017)
-    @assert(effect == 42)
+    Swag.assert(vtbl.onDrag(5, {30, 12}, &effect) == 30017)
+    Swag.assert(effect == 42)
 }
 
 #test
@@ -113,7 +113,7 @@ struct DragVTable
         return base + v.x + v.y
     }
 
-    @assert(cb({1, 2}) == 8)
+    Swag.assert(cb({1, 2}) == 8)
 }
 
 var GDropCount: s32
@@ -139,13 +139,13 @@ func dropProbe()->s32
 {
     var o: Owned
     o.token = GSeed
-    @assert(readToken(o) == GSeed)
+    Swag.assert(readToken(o) == GSeed)
     return GDropCount
 }
 
 #test
 {
     GDropCount = 0
-    @assert(dropProbe() == 0)
-    @assert(GDropCount == 1)
+    Swag.assert(dropProbe() == 0)
+    Swag.assert(GDropCount == 1)
 }

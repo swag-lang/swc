@@ -21,13 +21,13 @@ using Swag, Core, Pixel
 
     let view = ImageView.create(&host.root, {0, 0, 300, 200})
     view.exchangeMovie(&movie)
-    @assert(view.movie.isValid() and !movie.isValid())
-    @assert(view.movie.frameCount == 1 and view.uploadedTexture.isValid())
+    Swag.assert(view.movie.isValid() and !movie.isValid())
+    Swag.assert(view.movie.frameCount == 1 and view.uploadedTexture.isValid())
 
     var replacement: Movie
     expect replacement.load(fileName)
     view.exchangeMovie(&replacement)
-    @assert(view.movie.isValid() and replacement.isValid())
+    Swag.assert(view.movie.isValid() and replacement.isValid())
 }
 
 // A still image starts fitted, supports explicit zoom, and releases its renderer texture cleanly.
@@ -42,41 +42,41 @@ using Swag, Core, Pixel
     image.fill(Argb.White)
     view.setImage(image)
 
-    @assert(view.isFitted)
-    @assert(Math.isEqualEpsilon(view.effectiveZoom(), 3, 0.001))
+    Swag.assert(view.isFitted)
+    Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 3, 0.001))
 
     view.actualSize()
-    @assert(!view.isFitted)
-    @assert(Math.isEqualEpsilon(view.effectiveZoom(), 1, 0.001))
+    Swag.assert(!view.isFitted)
+    Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 1, 0.001))
 
     view.zoomIn()
-    @assert(Math.isEqualEpsilon(view.effectiveZoom(), 1.25, 0.001))
+    Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 1.25, 0.001))
 
     view.zoomToFit()
-    @assert(view.isFitted)
-    @assert(view.panOffset == Math.Point{})
+    Swag.assert(view.isFitted)
+    Swag.assert(view.panOffset == Math.Point{})
 
     view.rotateClockwise()
-    @assert(view.rotationQuarterTurns == 1 and !view.isMirrored)
-    @assert(Math.isEqualEpsilon(view.effectiveZoom(), 2, 0.001))
+    Swag.assert(view.rotationQuarterTurns == 1 and !view.isMirrored)
+    Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 2, 0.001))
     view.mirrorHorizontally()
-    @assert(view.rotationQuarterTurns == 3 and view.isMirrored)
+    Swag.assert(view.rotationQuarterTurns == 3 and view.isMirrored)
     view.mirrorVertically()
-    @assert(view.rotationQuarterTurns == 3 and !view.isMirrored)
+    Swag.assert(view.rotationQuarterTurns == 3 and !view.isMirrored)
     view.rotateCounterClockwise()
-    @assert(view.rotationQuarterTurns == 2)
+    Swag.assert(view.rotationQuarterTurns == 2)
     view.resetTransform()
-    @assert(view.rotationQuarterTurns == 0 and !view.isMirrored)
+    Swag.assert(view.rotationQuarterTurns == 0 and !view.isMirrored)
 
     let textureHandle = view.uploadedTexture.handle
     image.fill(Argb.Red)
     view.updateImage(&image)
-    @assert(view.uploadedTexture.handle == textureHandle)
-    @assert(view.image.pixels[0] == 255 and view.image.pixels[1] == 0)
-    @assert(view.isFitted)
+    Swag.assert(view.uploadedTexture.handle == textureHandle)
+    Swag.assert(view.image.pixels[0] == 255 and view.image.pixels[1] == 0)
+    Swag.assert(view.isFitted)
 
     view.clear()
-    @assert(!view.uploadedTexture.isValid() and view.rotationQuarterTurns == 0 and !view.isMirrored)
+    Swag.assert(!view.uploadedTexture.isValid() and view.rotationQuarterTurns == 0 and !view.isMirrored)
 }
 
 // Exchanging a picture keeps the texture and the view, and hands the previous pixels back.
@@ -98,19 +98,19 @@ using Swag, Core, Pixel
     view.exchangeImage(&next)
 
     // The view shows the new picture, and the caller now owns the one that just left it.
-    @assert(view.uploadedTexture.handle == textureHandle)
-    @assert(view.image.pixels.buffer == nextPixels)
-    @assert(view.image.pixels[0] == 255 and view.image.pixels[1] == 0)
-    @assert(next.pixels[0] == 255 and next.pixels[1] == 255)
-    @assert(view.isFitted)
+    Swag.assert(view.uploadedTexture.handle == textureHandle)
+    Swag.assert(view.image.pixels.buffer == nextPixels)
+    Swag.assert(view.image.pixels[0] == 255 and view.image.pixels[1] == 0)
+    Swag.assert(next.pixels[0] == 255 and next.pixels[1] == 255)
+    Swag.assert(view.isFitted)
 
     // A different geometry falls back to a copy and leaves the caller's picture alone.
     var wider = Image.create(120, 50, .RGBA8)
     wider.fill(Argb.Blue)
     let widerPixels = wider.pixels.buffer
     view.exchangeImage(&wider)
-    @assert(wider.pixels.buffer == widerPixels)
-    @assert(view.image.width == 120)
+    Swag.assert(wider.pixels.buffer == widerPixels)
+    Swag.assert(view.image.width == 120)
 }
 
 // Rotation and reflection are paint-time view operations: the source keeps its dimensions and
@@ -138,8 +138,8 @@ using Swag, Core, Pixel
     view.rotateClockwise()
     view.mirrorHorizontally()
 
-    @assert(view.image.width == 3 and view.image.height == 2)
-    @assert(view.rotationQuarterTurns == 3 and view.isMirrored)
+    Swag.assert(view.image.width == 3 and view.image.height == 2)
+    Swag.assert(view.rotationQuarterTurns == 3 and view.isMirrored)
     var rendered = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&rendered, "imageview.transform")
 }
@@ -169,17 +169,17 @@ using Swag, Core, Pixel
         height: 50}
 
     view.updateVideoFrame(&picture)
-    @assert(view.hasContent())
-    @assert(!view.image.isValid())
-    @assert(view.uploadedTexture.isValid() and view.uploadedTexture.pixelFormat == .Yuv420)
-    @assert(view.contentSize().width == 100 and view.contentSize().height == 50)
-    @assert(view.isFitted)
-    @assert(Math.isEqualEpsilon(view.effectiveZoom(), 3, 0.001))
+    Swag.assert(view.hasContent())
+    Swag.assert(!view.image.isValid())
+    Swag.assert(view.uploadedTexture.isValid() and view.uploadedTexture.pixelFormat == .Yuv420)
+    Swag.assert(view.contentSize().width == 100 and view.contentSize().height == 50)
+    Swag.assert(view.isFitted)
+    Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 3, 0.001))
 
     // The next picture of a playing stream reuses the texture the first one created.
     let textureHandle = view.uploadedTexture.handle
     view.updateVideoFrame(&picture)
-    @assert(view.uploadedTexture.handle == textureHandle)
+    Swag.assert(view.uploadedTexture.handle == textureHandle)
 
     // A stream that changes size, or a view that is cleared, starts over.
     let smaller = Yuv420View{
@@ -191,11 +191,11 @@ using Swag, Core, Pixel
         width: 60,
         height: 40}
     view.updateVideoFrame(&smaller)
-    @assert(view.contentSize().width == 60 and view.contentSize().height == 40)
+    Swag.assert(view.contentSize().width == 60 and view.contentSize().height == 40)
 
     view.clear()
-    @assert(!view.hasContent())
-    @assert(!view.uploadedTexture.isValid())
+    Swag.assert(!view.hasContent())
+    Swag.assert(!view.uploadedTexture.isValid())
 }
 
 // A picture whose samples are not square is laid out and fitted with the size it is shown at,
@@ -210,14 +210,14 @@ using Swag, Core, Pixel
     var image = Image.create(100, 50, .RGBA8)
     image.fill(Argb.White)
     view.setImage(image)
-    @assert(view.isFitted)
-    @assert(Math.isEqualEpsilon(view.effectiveZoom(), 3, 0.001))
+    Swag.assert(view.isFitted)
+    Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 3, 0.001))
 
     // Two hundred columns across the same fifty rows: the fit halves.
     view.setDisplaySize(200, 50)
-    @assert(view.isFitted)
-    @assert(Math.isEqualEpsilon(view.effectiveZoom(), 1.5, 0.001))
+    Swag.assert(view.isFitted)
+    Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 1.5, 0.001))
 
     view.setDisplaySize(0, 0)
-    @assert(Math.isEqualEpsilon(view.effectiveZoom(), 3, 0.001))
+    Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 3, 0.001))
 }

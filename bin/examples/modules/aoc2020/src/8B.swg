@@ -80,7 +80,7 @@ func day8B()
         if ip == lines.count
         {
             // Console.print("total: ", total)
-            @assert(total == 2096)
+            Swag.assert(total == 2096)
             return
         }
 

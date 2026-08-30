@@ -27,44 +27,44 @@ alias MkanyStrictTypeInfo = typeinfo
 #test
 {
     var x: s32 = 42
-    let a: any = @mkany(&x, s32)
-    let p      = cast(*s32) @dataof(a)
+    let a: any = Swag.makeAny(&x, s32)
+    let p      = cast(*s32) a.buffer
 
-    @assert(@kindof(a) == s32)
-    @assert(p[] == 42)
+    Swag.assert(Swag.kindOf(a) == s32)
+    Swag.assert(p[] == 42)
 }
 
 #test
 {
     var x: s32 = 123
     var y: s32 = 7
-    var a: any = @mkany(&x, s32)
-    var b: any = @mkany(&y, s32)
+    var a: any = Swag.makeAny(&x, s32)
+    var b: any = Swag.makeAny(&y, s32)
     b = a
-    let p = cast(*s32) @dataof(b)
+    let p = cast(*s32) b.buffer
 
-    @assert(p[] == 123)
+    Swag.assert(p[] == 123)
 }
 
 #test
 {
     var p: MkanyPair = {a: 11, b: 31}
-    let a: any       = @mkany(&p, MkanyPair)
+    let a: any       = Swag.makeAny(&p, MkanyPair)
     p.b = 10
-    let data  = cast(*MkanyPair) @dataof(a)
+    let data  = cast(*MkanyPair) a.buffer
     let value = data[]
 
-    @assert(@kindof(a) == MkanyPair)
-    @assert(value.a == 11)
-    @assert(value.b == 10)
+    Swag.assert(Swag.kindOf(a) == MkanyPair)
+    Swag.assert(value.a == 11)
+    Swag.assert(value.b == 10)
 }
 
 #test
 {
     var arr: [6] s32 = [1, 2, 3, 4, 5, 6]
     let ptr          = cast(*[6] s32) &arr
-    let a:   any     = @mkany(ptr, [6] s32)
-    let p            = cast(*[6] s32) @dataof(a)
+    let a:   any     = Swag.makeAny(ptr, [6] s32)
+    let p            = cast(*[6] s32) a.buffer
     let value        = p[]
     var acc: s32     = 0
     for v, i in value
@@ -72,28 +72,28 @@ alias MkanyStrictTypeInfo = typeinfo
         acc += v * cast(s32) (i + 1)
     }
 
-    @assert(acc == 91)
+    Swag.assert(acc == 91)
 }
 
 #test
 {
     var x: s32 = 55
     let ptr    = cast([*] void) &x
-    let a: any = @mkany(ptr, s32)
-    let p      = cast(*s32) @dataof(a)
+    let a: any = Swag.makeAny(ptr, s32)
+    let p      = cast(*s32) a.buffer
 
-    @assert(@kindof(a) == s32)
-    @assert(p[] == 55)
+    Swag.assert(Swag.kindOf(a) == s32)
+    Swag.assert(p[] == 55)
 }
 
 #test
 {
     var k: MkanyKind = MkanyKind.B
-    let a: any       = @mkany(&k, MkanyKind)
-    let p            = cast(*MkanyKind) @dataof(a)
+    let a: any       = Swag.makeAny(&k, MkanyKind)
+    let p            = cast(*MkanyKind) a.buffer
 
-    @assert(@kindof(a) == MkanyKind)
-    @assert(p[] == MkanyKind.B)
+    Swag.assert(Swag.kindOf(a) == MkanyKind)
+    Swag.assert(p[] == MkanyKind.B)
 }
 
 #test
@@ -102,201 +102,201 @@ alias MkanyStrictTypeInfo = typeinfo
     var s1: s64 = 20
     var s2: s64 = 30
     var s3: s64 = 40
-    var a:  any = @mkany(&s0, s64)
-    var b:  any = @mkany(&s1, s64)
-    var c:  any = @mkany(&s2, s64)
-    var d:  any = @mkany(&s3, s64)
+    var a:  any = Swag.makeAny(&s0, s64)
+    var b:  any = Swag.makeAny(&s1, s64)
+    var c:  any = Swag.makeAny(&s2, s64)
+    var d:  any = Swag.makeAny(&s3, s64)
 
     b = a
     c = b
     d = c
-    a = @mkany(&s3, s64)
-    b = @mkany(&s2, s64)
-    c = @mkany(&s1, s64)
-    d = @mkany(&s0, s64)
+    a = Swag.makeAny(&s3, s64)
+    b = Swag.makeAny(&s2, s64)
+    c = Swag.makeAny(&s1, s64)
+    d = Swag.makeAny(&s0, s64)
 
-    let p0 = cast(*s64) @dataof(a)
-    let p1 = cast(*s64) @dataof(b)
-    let p2 = cast(*s64) @dataof(c)
-    let p3 = cast(*s64) @dataof(d)
+    let p0 = cast(*s64) a.buffer
+    let p1 = cast(*s64) b.buffer
+    let p2 = cast(*s64) c.buffer
+    let p3 = cast(*s64) d.buffer
 
-    @assert(cast(u64) (p0[] + p1[] + p2[] + p3[]) == 100'u64)
+    Swag.assert(cast(u64) (p0[] + p1[] + p2[] + p3[]) == 100'u64)
 }
 
 #test
 {
     var b:  bool = true
     var r:  rune = 'A'
-    let ab: any  = @mkany(&b, bool)
-    let ar: any  = @mkany(&r, rune)
-    let pb       = cast(*bool) @dataof(ab)
-    let pr       = cast(*rune) @dataof(ar)
+    let ab: any  = Swag.makeAny(&b, bool)
+    let ar: any  = Swag.makeAny(&r, rune)
+    let pb       = cast(*bool) ab.buffer
+    let pr       = cast(*rune) ar.buffer
 
-    @assert(cast(s32) pb[] + cast(s32) pr[] == 66)
+    Swag.assert(cast(s32) pb[] + cast(s32) pr[] == 66)
 }
 
 #test
 {
     var boxed: any = undefined
     var value: s64 = 9000
-    boxed = @mkany(&value, s64)
-    let p = cast(*s64) @dataof(boxed)
+    boxed = Swag.makeAny(&value, s64)
+    let p = cast(*s64) boxed.buffer
 
-    @assert(@kindof(boxed) == s64)
-    @assert(p[] == 9000)
+    Swag.assert(Swag.kindOf(boxed) == s64)
+    Swag.assert(p[] == 9000)
 }
 
 #test
 {
     var text:  string = "alpha"
-    let boxed: any    = @mkany(&text, string)
-    let ptr           = cast(*string) @dataof(boxed)
+    let boxed: any    = Swag.makeAny(&text, string)
+    let ptr           = cast(*string) boxed.buffer
 
     text = "beta"
 
-    @assert(@kindof(boxed) == string)
-    @assert(ptr[] == "beta")
-    @assert(@countof(ptr[]) == 4)
-    @assert(cast(string) boxed == "beta")
+    Swag.assert(Swag.kindOf(boxed) == string)
+    Swag.assert(ptr[] == "beta")
+    Swag.assert((ptr[]).count == 4)
+    Swag.assert(cast(string) boxed == "beta")
 }
 
 func mkanyCastStringFromAny(value: any)->string
 {
-    let reboxed: any = @mkany(@dataof(value), @kindof(value))
+    let reboxed: any = Swag.makeAny(value.buffer, Swag.kindOf(value))
     return cast(string) reboxed
 }
 
 func mkanyStringBytesLen(bytes: #null const [..] u8)->u64
 {
-    return @countof(bytes)
+    return bytes.count
 }
 
 func mkanyCastStringToBytesFromAny(value: any)->u64
 {
-    let reboxed: any = @mkany(@dataof(value), @kindof(value))
+    let reboxed: any = Swag.makeAny(value.buffer, Swag.kindOf(value))
     return mkanyStringBytesLen(cast(string) reboxed)
 }
 
 #test
 {
-    @assert(mkanyCastStringFromAny("gamma") == "gamma")
-    @assert(mkanyCastStringToBytesFromAny("delta") == 5)
+    Swag.assert(mkanyCastStringFromAny("gamma") == "gamma")
+    Swag.assert(mkanyCastStringToBytesFromAny("delta") == 5)
 }
 
 #test
 {
     var buffer: [4] s32  = [3, 6, 9, 12]
     var values: [..] s32 = buffer
-    let boxed:  any      = @mkany(&values, [..] s32)
-    let ptr              = cast(*[..] s32) @dataof(boxed)
+    let boxed:  any      = Swag.makeAny(&values, [..] s32)
+    let ptr              = cast(*[..] s32) boxed.buffer
 
     values[1] = 77
     values    = buffer[1 to 3]
 
-    @assert(@kindof(boxed) == [..] s32)
-    @assert(@countof(ptr[]) == 3)
-    @assert(ptr[][0] == 77)
-    @assert(ptr[][2] == 12)
+    Swag.assert(Swag.kindOf(boxed) == [..] s32)
+    Swag.assert((ptr[]).count == 3)
+    Swag.assert(ptr[][0] == 77)
+    Swag.assert(ptr[][2] == 12)
 }
 
 #test
 {
     var x:     s32 = 314
     let ptr        = cast(MkanyStrictS32Ptr) &x
-    let boxed: any = @mkany(ptr, s32)
-    let data       = cast(*s32) @dataof(boxed)
+    let boxed: any = Swag.makeAny(ptr, s32)
+    let data       = cast(*s32) boxed.buffer
 
-    @assert(@kindof(boxed) == s32)
-    @assert(data[] == 314)
+    Swag.assert(Swag.kindOf(boxed) == s32)
+    Swag.assert(data[] == 314)
 }
 
 #test
 {
     var x:     s32 = 271
     let ptr        = cast(MkanyStrictVoidPtr) &x
-    let boxed: any = @mkany(ptr, s32)
-    let data       = cast(*s32) @dataof(boxed)
+    let boxed: any = Swag.makeAny(ptr, s32)
+    let data       = cast(*s32) boxed.buffer
 
-    @assert(@kindof(boxed) == s32)
-    @assert(data[] == 271)
+    Swag.assert(Swag.kindOf(boxed) == s32)
+    Swag.assert(data[] == 271)
 }
 
 #test
 {
     var x:     s32 = 812
     let info       = cast(MkanyStrictTypeInfo) #typeof(s32)
-    let boxed: any = @mkany(&x, info)
-    let data       = cast(*s32) @dataof(boxed)
+    let boxed: any = Swag.makeAny(&x, info)
+    let data       = cast(*s32) boxed.buffer
 
-    @assert(@kindof(boxed) == s32)
-    @assert(data[] == 812)
+    Swag.assert(Swag.kindOf(boxed) == s32)
+    Swag.assert(data[] == 812)
 }
 
 #test
 {
     var x          = cast(MkanyStrictS32) 409
-    let boxed: any = @mkany(&x, MkanyStrictS32)
+    let boxed: any = Swag.makeAny(&x, MkanyStrictS32)
 
-    @assert(@kindof(boxed) == MkanyStrictS32)
-    @assert(cast(MkanyStrictS32) boxed == cast(MkanyStrictS32) 409)
+    Swag.assert(Swag.kindOf(boxed) == MkanyStrictS32)
+    Swag.assert(cast(MkanyStrictS32) boxed == cast(MkanyStrictS32) 409)
 }
 
 #test
 {
     var text       = "omega"
     let info       = #typeof(text)
-    let boxed: any = @mkany(&text, info)
+    let boxed: any = Swag.makeAny(&text, info)
 
-    @assert(@kindof(boxed) == string)
-    @assert(cast(string) boxed == "omega")
+    Swag.assert(Swag.kindOf(boxed) == string)
+    Swag.assert(cast(string) boxed == "omega")
 }
 
 #test
 {
     var value           = 733's32
     let ptr: const *s32 = &value
-    let boxed           = @mkany(ptr, s32)
+    let boxed           = Swag.makeAny(ptr, s32)
     let data            = cast(const *s32) boxed
-    let raw             = cast(const *s32) @dataof(boxed)
+    let raw             = cast(const *s32) boxed.buffer
 
-    @assert(@kindof(boxed) == s32)
-    @assert(data[] == 733)
-    @assert(raw[] == 733)
+    Swag.assert(Swag.kindOf(boxed) == s32)
+    Swag.assert(data[] == 733)
+    Swag.assert(raw[] == 733)
 }
 
 #test
 {
     var value             = 123's32
     let ptr:   const *s32 = &value
-    let boxed: const any  = @mkany(ptr, s32)
+    let boxed: const any  = Swag.makeAny(ptr, s32)
     let data              = cast(const *s32) boxed
 
     #assert(#typeof(boxed) == const any)
-    @assert(data[] == 123)
+    Swag.assert(data[] == 123)
 }
 
 #test
 {
     var storage: [3] u8        = [3'u8, 5'u8, 8'u8]
     let bytes:   const [..] u8 = cast(const [..] u8) storage
-    let boxed                  = @mkany(&bytes, const [..] u8)
+    let boxed                  = Swag.makeAny(&bytes, const [..] u8)
     let view                   = cast(const [..] u8) boxed
 
-    @assert(@countof(view) == 3)
-    @assert(view[0] == 3'u8)
-    @assert(view[2] == 8'u8)
+    Swag.assert(view.count == 3)
+    Swag.assert(view[0] == 3'u8)
+    Swag.assert(view[2] == 8'u8)
 }
 
 #test
 {
     var storage: [4] u8        = ['a'u8, 'n'u8, 'y'u8, 0]
     let text:    const cstring = cast(const cstring) &storage[0]
-    let boxed                  = @mkany(&text, const cstring)
+    let boxed                  = Swag.makeAny(&text, const cstring)
     let view                   = cast(const cstring) boxed
 
-    @assert(@countof(view) == 3)
-    @assert(view[0] == 'a'u8)
-    @assert(view[2] == 'y'u8)
+    Swag.assert(view.count == 3)
+    Swag.assert(view[0] == 'a'u8)
+    Swag.assert(view[2] == 'y'u8)
 }
 
 #test
@@ -306,7 +306,7 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let boxed:   const any     = text
     let view                   = cast(const cstring) boxed
 
-    @assert(@countof(view) == 5)
-    @assert(view[0] == 'b'u8)
-    @assert(view[4] == 'd'u8)
+    Swag.assert(view.count == 5)
+    Swag.assert(view[0] == 'b'u8)
+    Swag.assert(view[4] == 'd'u8)
 }

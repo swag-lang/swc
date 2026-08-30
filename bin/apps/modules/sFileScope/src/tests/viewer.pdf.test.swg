@@ -29,40 +29,40 @@ private func createPdfFixture()->String
     host.notify(.ThemeChanged)
 
     var result = openTestViewer(&createPdfViewer, &host.root, fileName.toString(), commandParent: &host.root)
-    @assert(result.view != null and result.commands != null)
+    Swag.assert(result.view != null and result.commands != null)
 
     let view = cast(*PdfViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    @assert(Utf8.contains(view.details.toString(), "2 pages"))
+    Swag.assert(Utf8.contains(view.details.toString(), "2 pages"))
     view.resize(640, 420)
     view.applyLayout()
 
     let pdf = view.pdfView
-    @assert(pdf.pageCount() == 2 and pdf.pageIndex == 0)
-    @assert(pdf.isFitted)
+    Swag.assert(pdf.pageCount() == 2 and pdf.pageIndex == 0)
+    Swag.assert(pdf.isFitted)
 
     // Actual size shows one PDF point per 1/96 logical inch; an explicit zoom multiplies the
     // shown size exactly, with the rasterization following the widget internally.
     pdf.actualSize()
-    @assert(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
+    Swag.assert(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
     let shown = pdf.effectiveZoom()
     pdf.setZoom(shown * 4)
-    @assert(Math.isEqualEpsilon(pdf.effectiveZoom(), shown * 4, 0.001))
+    Swag.assert(Math.isEqualEpsilon(pdf.effectiveZoom(), shown * 4, 0.001))
 
     let beforeZoomOut = pdf.effectiveZoom()
     var zoomOut       = KeyEvent{kind: .Pressed, key: .Subtract}
     view.sendEvent(&zoomOut)
-    @assert(pdf.effectiveZoom() < beforeZoomOut)
+    Swag.assert(pdf.effectiveZoom() < beforeZoomOut)
     var actual = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}
     view.sendEvent(&actual)
-    @assert(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
+    Swag.assert(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
 
     pdf.zoomToFit()
-    @assert(pdf.isFitted)
-    @assert(!view.previousButton.isEnabled() and view.nextButton.isEnabled())
+    Swag.assert(pdf.isFitted)
+    Swag.assert(!view.previousButton.isEnabled() and view.nextButton.isEnabled())
     expect pdf.showPage(1)
-    @assert(pdf.pageIndex == 1)
-    @assert(view.previousButton.isEnabled() and !view.nextButton.isEnabled())
+    Swag.assert(pdf.pageIndex == 1)
+    Swag.assert(view.previousButton.isEnabled() and !view.nextButton.isEnabled())
     Testing.assertContentFits(view)
 }
 
@@ -84,7 +84,7 @@ private func createPdfFixture()->String
     commandBar.padding         = {16, 8, 16, 8}
 
     var result = openTestViewer(&createPdfViewer, &host.root, fileName.toString(), commandParent: commandBar)
-    @assert(result.view != null and result.commands != null)
+    Swag.assert(result.view != null and result.commands != null)
 
     let view = cast(*PdfViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -108,10 +108,10 @@ private func createPdfFixture()->String
     host.setup(640, 420)
     defer host.shutdown()
     var result = openTestViewer(&createPdfViewer, &host.root, fileName, commandParent: &host.root)
-    @assert(result.view != null and result.commands != null)
+    Swag.assert(result.view != null and result.commands != null)
     let view = cast(*PdfViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    @assert(!view.failureReason.isEmpty())
+    Swag.assert(!view.failureReason.isEmpty())
 }
 
 // The viewer owns the search: PDF text lives compressed in the file, so only the viewer can
@@ -126,7 +126,7 @@ private func createPdfFixture()->String
     defer host.shutdown()
 
     var result = openTestViewer(&createPdfViewer, &host.root, fileName.toString(), commandParent: &host.root)
-    @assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
+    Swag.assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
 
     let view = cast(*PdfViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -135,14 +135,14 @@ private func createPdfFixture()->String
 
     var matches: Array'ViewerSearchMatch
     result.collectMatches!(result.view!, "second", {}, &matches)
-    @assert(matches.count == 1 and result.revealMatch!(result.view!, matches[0], "second"))
-    @assert(view.pdfView.pageIndex == 1)
-    @assert(view.pdfView.selectedText() == "Second")
+    Swag.assert(matches.count == 1 and result.revealMatch!(result.view!, matches[0], "second"))
+    Swag.assert(view.pdfView.pageIndex == 1)
+    Swag.assert(view.pdfView.selectedText() == "Second")
     var bounds: Math.Rectangle
-    @assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
+    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
     result.clearSearch!(result.view!)
-    @assert(view.pdfView.selectedText().isEmpty())
+    Swag.assert(view.pdfView.selectedText().isEmpty())
     matches.clear()
     result.collectMatches!(result.view!, "absent", {}, &matches)
-    @assert(matches.isEmpty())
+    Swag.assert(matches.isEmpty())
 }

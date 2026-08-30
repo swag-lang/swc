@@ -33,10 +33,10 @@ func boxShift0(values: *ByteBox, shift: s64)->s64
     var values: [2] u8 = [0, 1]
     let shift          = 482's64
 
-    @assert(values[0] == 0'u8)
-    @assert(values[1] == 1'u8)
-    @assert(arrayShift0(&values, shift) == 482's64)
-    @assert(cast(u8) ((values[0] + shift) % 26 + 'a') == 'o')
+    Swag.assert(values[0] == 0'u8)
+    Swag.assert(values[1] == 1'u8)
+    Swag.assert(arrayShift0(&values, shift) == 482's64)
+    Swag.assert(cast(u8) ((values[0] + shift) % 26 + 'a') == 'o')
 }
 
 #test
@@ -44,8 +44,8 @@ func boxShift0(values: *ByteBox, shift: s64)->s64
     var values = ByteBox{values: [0, 1]}
     let shift  = 482's64
 
-    @assert(values[0] == 0'u8)
-    @assert(values[1] == 1'u8)
-    @assert(boxShift0(&values, shift) == 482's64)
-    @assert(cast(u8) ((values[0] + shift) % 26 + 'a') == 'o')
+    Swag.assert(values[0] == 0'u8)
+    Swag.assert(values[1] == 1'u8)
+    Swag.assert(boxShift0(&values, shift) == 482's64)
+    Swag.assert(cast(u8) ((values[0] + shift) % 26 + 'a') == 'o')
 }

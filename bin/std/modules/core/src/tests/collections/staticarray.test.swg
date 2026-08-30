@@ -22,7 +22,7 @@ impl StaticArrayDropTracked
         if .value == 0 do
             return
 
-        @assert(.value > 0)
+        Swag.assert(.value > 0)
         StaticArrayDropCount += 1
         .value               = -1
     }
@@ -35,7 +35,7 @@ func resetStaticArrayDropTrace()
 
 func assertStaticIntArray(values: StaticArray'(s32, 4'u64), expected: const [..] s32)->bool
 {
-    if values.count != @countof(expected) do
+    if values.count != expected.count do
         return false
 
     for i in values.count
@@ -80,8 +80,8 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
     var values: StaticArray'(s32, 4'u64)
     values = seed
 
-    @assert(values.count == 4)
-    @assert(assertStaticIntArray(values, seed))
+    Swag.assert(values.count == 4)
+    Swag.assert(assertStaticIntArray(values, seed))
 }
 
 #test
@@ -89,11 +89,11 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
     var values: StaticArray'(s32, 4'u64)
     values.resize(4)
 
-    @assert(values.count == 4)
+    Swag.assert(values.count == 4)
     values[0] = 7
     values[3] = 9
-    @assert(values[0] == 7)
-    @assert(values[3] == 9)
+    Swag.assert(values[0] == 7)
+    Swag.assert(values[3] == 9)
 }
 
 #test
@@ -106,7 +106,7 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
     values.insertAt(values.count, #move moved)
 
     let expected: [3] s32 = [1, 2, 3]
-    @assert(assertStaticIntArray(values, expected))
+    Swag.assert(assertStaticIntArray(values, expected))
 }
 
 #test
@@ -119,11 +119,11 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
     for &value in values do
         value.value += 10
 
-    @assert(values[0].value == 11)
-    @assert(values[1].value == 12)
-    @assert(values[2].value == 13)
-    @assert(visitStructStaticArray(&values) == 15)
-    @assert(visitStructStaticArrayReverse(&values) == 28)
+    Swag.assert(values[0].value == 11)
+    Swag.assert(values[1].value == 12)
+    Swag.assert(values[2].value == 13)
+    Swag.assert(visitStructStaticArray(&values) == 15)
+    Swag.assert(visitStructStaticArrayReverse(&values) == 28)
 }
 
 #test
@@ -140,7 +140,7 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
             reverseIndex = index
     }
 
-    @assert(reverseIndex == 2)
+    Swag.assert(reverseIndex == 2)
 }
 
 #test
@@ -157,10 +157,10 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
 
         values.removeAtOrdered(2, 2)
 
-        @assert(values.count == 2)
-        @assert(values[0].value == 1)
-        @assert(values[1].value == 2)
+        Swag.assert(values.count == 2)
+        Swag.assert(values[0].value == 1)
+        Swag.assert(values[1].value == 2)
     }
 
-    @assert(StaticArrayDropCount == 4)
+    Swag.assert(StaticArrayDropCount == 4)
 }

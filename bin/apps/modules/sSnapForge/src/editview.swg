@@ -217,7 +217,7 @@ impl EditView
         .capture = c
         if .capture do
             .capture.setup(me)
-        if @isset(.main)
+        if Swag.isSet(.main)
         {
             .main.captureHasChanged()
             .main.updateState()

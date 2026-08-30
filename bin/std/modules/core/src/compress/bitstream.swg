@@ -21,21 +21,21 @@ impl BitStream
     // Resets the stream over `buffer`.
     mtd reset(buffer: const [..] u8)
     {
-        @init(me, 1)
+        Swag.init(me, 1)
         .stream = buffer
     }
 
     // Returns a borrowed pointer to the first source byte.
     #[Swag.Inline]
-    internal mtd startPointer() => @dataof(.stream)
+    internal mtd startPointer() => (.stream).buffer
 
     // Returns a borrowed pointer to the current source byte.
     #[Swag.Inline]
-    mtd currentPointer() => @dataof(.stream) + .curByte
+    mtd currentPointer() => (.stream).buffer + .curByte
 
     // Returns the source size in bytes.
     #[Swag.Inline]
-    mtd size() => @countof(.stream)
+    mtd size() => (.stream).count
 
     // Returns the current source byte index.
     #[Swag.Inline]
@@ -60,7 +60,7 @@ impl BitStream
         // Fast path: a single unaligned 64-bit load refills the buffer to at least
         // 56 bits at once, as long as 8 bytes remain so the load stays in bounds.
         // This avoids the per-byte loop for the bulk of the stream.
-        if .numBits <= 56 and .curByte + 8 <= @countof(.stream)
+        if .numBits <= 56 and .curByte + 8 <= (.stream).count
         {
             let chunk = .currentPointer()![as u64]
             .codeBuffer |= chunk << #wrap .numBits
@@ -90,7 +90,7 @@ impl BitStream
             }
 
             // Stop if we reached end of stream
-            if .curByte >= @countof(.stream)
+            if .curByte >= (.stream).count
             {
                 .eof = true
                 return

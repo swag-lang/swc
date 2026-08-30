@@ -57,7 +57,7 @@ private impl BitArray
     mtd realloc(newCapacityBytes: u64)
     {
         if !.allocator do
-            .allocator = @getcontext().allocator
+            .allocator = Swag.getContext().allocator
         .buffer        = cast() Memory.realloc(.buffer, newCapacityBytes, .capacityBytes, .allocator)
         .capacityBytes = newCapacityBytes
     }
@@ -120,7 +120,7 @@ public impl BitArray
     // Replaces the content of the bit array with values from a slice of booleans.
     mtd opSet(what: const [..] bool)
     {
-        let len = @countof(what)
+        let len = what.count
         .resize(len)
         if !len do
             return

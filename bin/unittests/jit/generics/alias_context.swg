@@ -70,10 +70,10 @@ func(T, U) choose(value: T, other: U)->bool
     #assert(#typeof(local) == u16)
     #assert(#typeof(boxed.value) == bool)
     #assert(#typeof(wrapped.item.value) == f32)
-    @assert(ok)
-    @assert(local == 12'u16)
-    @assert(boxed.value == true)
-    @assert(wrapped.item.value == 3.5'f32)
+    Swag.assert(ok)
+    Swag.assert(local == 12'u16)
+    Swag.assert(boxed.value == true)
+    Swag.assert(wrapped.item.value == 3.5'f32)
 }
 
 #test
@@ -85,6 +85,6 @@ func(T, U) choose(value: T, other: U)->bool
 
     #assert(#typeof(d) == s32)
     #assert(#typeof(picked) == bool)
-    @assert(d == 32)
-    @assert(picked)
+    Swag.assert(d == 32)
+    Swag.assert(picked)
 }

@@ -33,8 +33,8 @@ public impl Md5
         let index  = (.count[0] >> 3) & 0x3F
         let padLen = (index < 56) ? (56 - index) : (120 - index)
 
-        .update(@mkslice(&padding[0], padLen))
-        .update(@mkslice(&bits[0], 8))
+        .update(Swag.makeSlice(&padding[0], padLen))
+        .update(Swag.makeSlice(&bits[0], 8))
         encode(&digest[0], .state, 16)
         return digest
     }
@@ -42,7 +42,7 @@ public impl Md5
     // Resets the sequence to the standard MD5 initial state.
     mtd reset()
     {
-        @init(me, 1)
+        Swag.init(me, 1)
         .state[0] = 0x67452301
         .state[1] = 0xEFCDAB89
         .state[2] = 0x98BADCFE
@@ -53,10 +53,10 @@ public impl Md5
     mtd update(data: const [..] u8)
     {
         // Only deal with 32 bits size
-        Debug.assert(@countof(data) <= Swag.U32.Max)
+        Debug.assert(data.count <= Swag.U32.Max)
 
-        let input    = @dataof(data)
-        let inputLen = cast(u32) @countof(data)
+        let input    = data.buffer
+        let inputLen = cast(u32) data.count
 
         var index = (.count[0] >> 3) & 0x3F
         .count[0] += inputLen << 3
@@ -86,7 +86,7 @@ public impl Md5
     // Computes the MD5 digest of `buffer` in one operation.
     func compute(buffer: const [..] u8)->Digest
     {
-        let bufferLen = @countof(buffer)
+        let bufferLen = buffer.count
         if bufferLen < 56
         {
             // Short buffers fit in a single MD5 block, so skip the generic update/final pipeline.
@@ -94,7 +94,7 @@ public impl Md5
             var block: [64] u8
 
             if bufferLen do
-                Memory.copy(&block[0], @dataof(buffer), bufferLen)
+                Memory.copy(&block[0], buffer.buffer, bufferLen)
 
             block[bufferLen] = 0x80
 

@@ -505,7 +505,7 @@ Result Cast::castToSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
         return Result::Continue;
     }
 
-    // A scalar filling every lane is a broadcast, not a conversion, and '@vecsplat' is
+    // A scalar filling every lane is a broadcast, not a conversion, and 'Swag.vecsplat' is
     // the operation that says so.
     if (typeMgr.get(typeMgr.unwrapAliasEnumOrSelf(sema.ctx(), srcTypeRef)).isScalarNumeric())
         return castRequest.fail(DiagnosticId::sema_err_simd_scalar_cast, srcTypeRef, dstTypeRef);

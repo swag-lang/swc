@@ -14,12 +14,12 @@
     if !e {}
     var f: #null typeinfo
     if !f {}
-    @assert(!a)
-    @assert(!b)
-    @assert(!c)
-    @assert(!d)
-    @assert(!e)
-    @assert(!f)
+    Swag.assert(!a)
+    Swag.assert(!b)
+    Swag.assert(!c)
+    Swag.assert(!d)
+    Swag.assert(!e)
+    Swag.assert(!f)
 }
 
 #test
@@ -27,14 +27,14 @@
     var a: #null *s32
     var b: #null *s32
     if !a or !b {}
-    @assert(!a or !b)
+    Swag.assert(!a or !b)
 }
 
 #test
 {
     var a: s32
     if a and a {}
-    @assert((a and a) == false)
+    Swag.assert((a and a) == false)
 }
 
 #test
@@ -42,53 +42,53 @@
     var a: #null *s32
     var b: #null *s32
 
-    @assert(!a or !b)
+    Swag.assert(!a or !b)
 
     var ax: s32
     a = &ax
-    @assert(!a or !b)
+    Swag.assert(!a or !b)
 
     var bx: s32
     b = &bx
-    @assert((!a or !b) == false)
+    Swag.assert((!a or !b) == false)
 }
 
 #test
 {
     var a: s32
 
-    @assert((a and a) == false)
-    @assert(a or !a)
-    @assert((a or a) == false)
+    Swag.assert((a and a) == false)
+    Swag.assert(a or !a)
+    Swag.assert((a or a) == false)
 
     a = 1
-    @assert(a and a)
-    @assert(a or !a)
-    @assert(a or a)
+    Swag.assert(a and a)
+    Swag.assert(a or !a)
+    Swag.assert(a or a)
 }
 
 #test
 {
     var a: #null *s32
 
-    @assert((a and a) == false)
-    @assert(a or !a)
-    @assert((a or a) == false)
+    Swag.assert((a and a) == false)
+    Swag.assert(a or !a)
+    Swag.assert((a or a) == false)
 
     var ax: s32
     a = &ax
-    @assert(a and a)
-    @assert(a or !a)
-    @assert(a or a)
+    Swag.assert(a and a)
+    Swag.assert(a or !a)
+    Swag.assert(a or a)
 }
 
 #test
 {
     var s: #null string
-    @assert(!s)
+    Swag.assert(!s)
 
     s = "abc"
-    @assert(!s == false)
+    Swag.assert(!s == false)
 }
 
 // A slice answers a condition with its data pointer, so only a '#null' slice asks a question.
@@ -96,8 +96,8 @@
 {
     var a: [2] s32
     var s: #null [..] s32 = a
-    @assert(!s == false)
+    Swag.assert(!s == false)
 
     s = null
-    @assert(!s)
+    Swag.assert(!s)
 }

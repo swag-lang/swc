@@ -5,8 +5,8 @@ using Swag, Core
 
 func passwordBytesEqual(actual: const [..] u8, expected: string)->bool
 {
-    return @countof(actual) == @countof(expected) and
-           @memcmp(@dataof(actual), @dataof(expected), @countof(actual)) == 0
+    return actual.count == expected.count and
+           Swag.memcmp(actual.buffer, expected.buffer, actual.count) == 0
 }
 
 #test
@@ -22,19 +22,19 @@ func passwordBytesEqual(actual: const [..] u8, expected: string)->bool
     host.sendRune(Input.Key.A, '\u00E9')
     host.sendRune(Input.Key.A, '\U0001F642')
 
-    @assert(password.edit.text() == "***")
-    @assert(passwordBytesEqual(password.bytes(), "A\u00E9\U0001F642"))
-    @assert(password.byteCount == 7)
+    Swag.assert(password.edit.text() == "***")
+    Swag.assert(passwordBytesEqual(password.bytes(), "A\u00E9\U0001F642"))
+    Swag.assert(password.byteCount == 7)
 
     host.keyPress(Input.Key.Left)
     host.keyPress(Input.Key.Back)
-    @assert(password.edit.text() == "**")
-    @assert(passwordBytesEqual(password.bytes(), "A\U0001F642"))
+    Swag.assert(password.edit.text() == "**")
+    Swag.assert(passwordBytesEqual(password.bytes(), "A\U0001F642"))
 
     password.selectAll()
     host.sendRune(Input.Key.B, 'Z')
-    @assert(password.edit.text() == "*")
-    @assert(passwordBytesEqual(password.bytes(), "Z"))
+    Swag.assert(password.edit.text() == "*")
+    Swag.assert(passwordBytesEqual(password.bytes(), "Z"))
 }
 
 #test
@@ -54,12 +54,12 @@ func passwordBytesEqual(actual: const [..] u8, expected: string)->bool
 
     host.shortcut(Input.Key.V, Input.KeyModifiers.Control)
     host.shortcut(Input.Key.Insert, Input.KeyModifiers.Shift)
-    @assert(passwordBytesEqual(password.bytes(), "secret"))
-    @assert(password.edit.text() == "******")
+    Swag.assert(passwordBytesEqual(password.bytes(), "secret"))
+    Swag.assert(password.edit.text() == "******")
 
     password.clear()
-    @assert(password.isEmpty())
-    @assert(password.edit.text() == "")
+    Swag.assert(password.isEmpty())
+    Swag.assert(password.edit.text() == "")
     for byte in password.storage do
-        @assert(byte == 0)
+        Swag.assert(byte == 0)
 }

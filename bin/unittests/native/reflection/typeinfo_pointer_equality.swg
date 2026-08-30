@@ -13,8 +13,8 @@ func selectArrayTypeInfo(flag: bool)->const *Swag.TypeInfoArray
     let infoTrue  = selectArrayTypeInfo(true)
     let infoFalse = selectArrayTypeInfo(false)
 
-    @assert(infoTrue == #type const [2] f32)
-    @assert(infoFalse == #type const [2] f32)
-    @assert(infoTrue.pointedType == f32)
-    @assert(infoFalse.totalCount == 2)
+    Swag.assert(infoTrue == #type const [2] f32)
+    Swag.assert(infoFalse == #type const [2] f32)
+    Swag.assert(infoTrue.pointedType == f32)
+    Swag.assert(infoFalse.totalCount == 2)
 }

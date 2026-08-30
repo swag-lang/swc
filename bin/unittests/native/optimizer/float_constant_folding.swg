@@ -12,5 +12,5 @@ func quadraticFlatEnough(p0x, p0y, p1x, p1y, p2x, p2y: f64, tolerance: f64)->boo
 
 #test
 {
-    @assert(quadraticFlatEnough(0, 0, 1, 3, 2, 6, 0.1))
+    Swag.assert(quadraticFlatEnough(0, 0, 1, 3, 2, 6, 0.1))
 }

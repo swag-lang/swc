@@ -254,12 +254,6 @@ Diagnostic Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t le
             if (suggestion.has_value())
                 diag.addArgument(Diagnostic::ARG_VALUE, *suggestion);
         }
-        else if (id == DiagnosticId::parser_err_invalid_intrinsic)
-        {
-            const auto suggestion = findClosestTokenName(tkn, false);
-            if (suggestion.has_value())
-                diag.addArgument(Diagnostic::ARG_VALUE, *suggestion);
-        }
     }
 
     return diag;
@@ -931,8 +925,6 @@ void Lexer::lexIdentifier()
         {
             if (name[0] == '#')
                 raiseTokenError(DiagnosticId::parser_err_invalid_compiler, startTokenOffset_, static_cast<uint32_t>(name.size()));
-            else if (name[0] == '@')
-                raiseTokenError(DiagnosticId::parser_err_invalid_intrinsic, startTokenOffset_, static_cast<uint32_t>(name.size()));
             else if (!srcView_->isRuntimeFile() && !lexerFlags_.has(LexerFlagsE::AllowReservedIdentifiers) &&
                      name.size() >= 2 && name[0] == '_' && name[1] == '_')
                 raiseTokenError(DiagnosticId::lex_err_reserved_identifier, startTokenOffset_, static_cast<uint32_t>(name.size()));

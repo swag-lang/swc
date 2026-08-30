@@ -14,7 +14,7 @@ specified 'type'.
 
     let y = cast(s32) x     // Explicit cast to 's32'
     #assert(#typeof(y) == s32)
-    @assert(y == 1)
+    Swag.assert(y == 1)
 }
 
 /**
@@ -28,7 +28,7 @@ to infer the target type based on the left-hand side of the assignment.
     let x: f32 = 1.0
     let y: s32 = cast() x
     #assert(#typeof(y) == s32)
-    @assert(y == 1)
+    Swag.assert(y == 1)
 }
 
 /**
@@ -36,7 +36,7 @@ Automatic casts can also be applied when passing function arguments.
 */
 func testAutoCast(x: s32)
 {
-    @assert(x == 1)
+    Swag.assert(x == 1)
 }
 
 #test
@@ -55,7 +55,7 @@ must have the same size.
 {
     let x: f32 = 1.0
     let y: u32 = cast #bit (u32) x
-    @assert(y == 0x3F800000)     // 1.0 in IEEE 754 format
+    Swag.assert(y == 0x3F800000)     // 1.0 in IEEE 754 format
 
     #assert(cast #bit (u32) 1.0 == 0x3F800000)
     #assert(cast #bit (f32) 0x3F800000 == 1.0)
@@ -69,10 +69,10 @@ value, or vice versa.
 {
     let rawBits: u32 = 0x40490FDB
     let pi:      f32 = cast #bit (f32) rawBits
-    @assert(pi == 3.1415927)
+    Swag.assert(pi == 3.1415927)
 
     let backToBits: u32 = cast #bit (u32) pi
-    @assert(backToBits == 0x40490FDB)
+    Swag.assert(backToBits == 0x40490FDB)
 }
 
 /**
@@ -118,12 +118,12 @@ acknowledge potential data loss.
     // Explicit cast from 's16' to 's8' required
     let z0: s16 = 256
     let z1: s8  = cast #wrap (s8) z0
-    @assert(z1 == 0)
+    Swag.assert(z1 == 0)
 
     // Explicit cast from 'u16' to 's16' required
     let u_val: u16 = 65535
     let s_val: s16 = cast #wrap (s16) u_val
-    @assert(s_val == -1)
+    Swag.assert(s_val == -1)
 
     // Explicit cast from 'f64' to 'f32' required
     let large_float:   f64 = 1.23456789012345611111
@@ -152,22 +152,22 @@ enum CastPointerTag: u64
 #test
 {
     var storage: [16] u8
-    let base = @dataof(storage)
+    let base = storage.buffer
 
     let address = cast(u64) base
-    @assert(cast([*] u8) address == base)
-    @assert(cast(s64) base == cast(s64) address)
+    Swag.assert(cast([*] u8) address == base)
+    Swag.assert(cast(s64) base == cast(s64) address)
 
     // A narrower integer needs no second step towards a pointer.
-    @assert(cast(*void) 0xBEEF'u16 == cast(*void) 0xBEEF'u64)
-    @assert(cast(*void) CastPointerTag.First == cast(*void) 7'u64)
-    @assert(cast(CastPointerTag) cast(*void) 9'u64 == CastPointerTag.Second)
+    Swag.assert(cast(*void) 0xBEEF'u16 == cast(*void) 0xBEEF'u64)
+    Swag.assert(cast(*void) CastPointerTag.First == cast(*void) 7'u64)
+    Swag.assert(cast(CastPointerTag) cast(*void) 9'u64 == CastPointerTag.Second)
 
     // 'cast(u32) base' is refused. Widen the address first, then narrow that value with
     // '#wrap' to say that dropping its high half is intended.
-    @assert(cast #wrap (u32) address == cast #wrap (u32) cast(u64) base)
+    Swag.assert(cast #wrap (u32) address == cast #wrap (u32) cast(u64) base)
 
     // A deduced destination reaches a pointer from 'u64' only.
     let deduced: [*] u8 = cast() address
-    @assert(deduced == base)
+    Swag.assert(deduced == base)
 }

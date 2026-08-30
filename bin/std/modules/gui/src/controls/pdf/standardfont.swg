@@ -109,9 +109,9 @@ impl StandardFont
     func fromBaseName(name: string)->{ font: StandardFont, found: bool }
     {
         var plain = name
-        if @countof(plain) > 7 and plain[6] == '+' do
+        if plain.count > 7 and plain[6] == '+' do
             plain = plain[7 until]
-        if !@countof(plain) do
+        if !plain.count do
             return {StandardFont.Helvetica, false}
 
         var lower: String = plain

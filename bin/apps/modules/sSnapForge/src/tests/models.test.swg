@@ -13,27 +13,27 @@ using Swag, Core
     shape.kind  = .Rectangle
     shape.alpha = 35
     f.main.updateModel(shape)
-    @assert(f.main.editMode == .Shape)
-    @assert(@dataof(f.main.mdlHighlight) == &f.main.mdlFormShape)
-    @assert(f.main.mdlFormShape.subKind == .Highlight)
+    Swag.assert(f.main.editMode == .Shape)
+    Swag.assert(f.main.mdlHighlight.buffer == &f.main.mdlFormShape)
+    Swag.assert(f.main.mdlFormShape.subKind == .Highlight)
 
     f.main.updateEditMode(shape)
-    @assert(f.main.editMode == .Highlight)
-    @assert(f.main.getEditMode() == .Shape)
-    @assert(@kindof(f.main.editModeToModel(.Highlight)) == FormShape)
+    Swag.assert(f.main.editMode == .Highlight)
+    Swag.assert(f.main.getEditMode() == .Shape)
+    Swag.assert(Swag.kindOf(f.main.editModeToModel(.Highlight)) == FormShape)
 
     var emptyPoints: Array'Math.Vector2
     let draw = testAddDraw(f.capture, emptyPoints.toSlice())
     draw.subKind     = .PixSel
     draw.paintShadow = false
     f.main.updateModel(draw)
-    @assert(@dataof(f.main.mdlPixSel) == &f.main.mdlFormDraw)
-    @assert(f.main.mdlFormDraw.subKind == .PixSel)
+    Swag.assert(f.main.mdlPixSel.buffer == &f.main.mdlFormDraw)
+    Swag.assert(f.main.mdlFormDraw.subKind == .PixSel)
 
     f.main.updateEditMode(draw)
-    @assert(f.main.editMode == .PixSel)
-    @assert(f.main.getEditMode() == .Draw)
-    @assert(@kindof(f.main.editModeToModel(.PixSel)) == FormDraw)
+    Swag.assert(f.main.editMode == .PixSel)
+    Swag.assert(f.main.getEditMode() == .Draw)
+    Swag.assert(Swag.kindOf(f.main.editModeToModel(.PixSel)) == FormDraw)
 }
 
 // newFormFromModel clones every standard model and clears point/image payloads when requested.
@@ -44,62 +44,62 @@ using Swag, Core
     defer f.shutdown()
     f.main.mdlFormShape.kind = .RoundRectangle
     let shape = f.main.newFormFromModel(.Shape)
-    @assert(@kindof(shape) == FormShape)
-    @assert((cast(*FormShape) @dataof(shape)).kind == .RoundRectangle)
+    Swag.assert(Swag.kindOf(shape) == FormShape)
+    Swag.assert((cast(*FormShape) shape.buffer).kind == .RoundRectangle)
     testDeleteForm(shape)
 
     f.main.mdlFormLine.borderSize = 9
     let line = f.main.newFormFromModel(.Line)
-    @assert(@kindof(line) == FormLine)
-    @assert((cast(*FormLine) @dataof(line)).borderSize == 9)
+    Swag.assert(Swag.kindOf(line) == FormLine)
+    Swag.assert((cast(*FormLine) line.buffer).borderSize == 9)
     testDeleteForm(line)
 
     f.main.mdlFormArrow.endSize = 8
     let arrow = f.main.newFormFromModel(.Arrow)
-    @assert(@kindof(arrow) == FormArrow)
-    @assert((cast(*FormArrow) @dataof(arrow)).endSize == 8)
+    Swag.assert(Swag.kindOf(arrow) == FormArrow)
+    Swag.assert((cast(*FormArrow) arrow.buffer).endSize == 8)
     testDeleteForm(arrow)
 
     f.main.mdlFormPolygon.points.add({1, 1})
     let polygon = f.main.newFormFromModel(.Polygon, clear: true)
-    @assert(@kindof(polygon) == FormPolygon)
-    @assert((cast(*FormPolygon) @dataof(polygon)).points.count == 0)
+    Swag.assert(Swag.kindOf(polygon) == FormPolygon)
+    Swag.assert((cast(*FormPolygon) polygon.buffer).points.count == 0)
     testDeleteForm(polygon)
 
     f.main.mdlFormDraw.points.add({1, 1})
     let draw = f.main.newFormFromModel(.Draw, clear: true)
-    @assert(@kindof(draw) == FormDraw)
-    @assert((cast(*FormDraw) @dataof(draw)).points.count == 0)
+    Swag.assert(Swag.kindOf(draw) == FormDraw)
+    Swag.assert((cast(*FormDraw) draw.buffer).points.count == 0)
     testDeleteForm(draw)
 
     f.main.mdlFormText.fontSize = 72
     let text = f.main.newFormFromModel(.Text)
-    @assert(@kindof(text) == FormText)
-    @assert((cast(*FormText) @dataof(text)).fontSize == 72)
+    Swag.assert(Swag.kindOf(text) == FormText)
+    Swag.assert((cast(*FormText) text.buffer).fontSize == 72)
     testDeleteForm(text)
 
     f.main.mdlFormStep.ws = 33
     f.main.mdlFormStep.hs = 44
     let step = f.main.newFormFromModel(.Step)
-    @assert(@kindof(step) == FormStep)
-    @assert((cast(*FormStep) @dataof(step)).ws == 33)
-    @assert((cast(*FormStep) @dataof(step)).hs == 44)
+    Swag.assert(Swag.kindOf(step) == FormStep)
+    Swag.assert((cast(*FormStep) step.buffer).ws == 33)
+    Swag.assert((cast(*FormStep) step.buffer).hs == 44)
     testDeleteForm(step)
 
     f.main.mdlFormImage.kind = .Pixelate
     let image = f.main.newFormFromModel(.Image, clear: true)
-    @assert(@kindof(image) == FormImage)
-    @assert((cast(*FormImage) @dataof(image)).kind == .Pixelate)
-    @assert(!(cast(*FormImage) @dataof(image)).image.isValid())
+    Swag.assert(Swag.kindOf(image) == FormImage)
+    Swag.assert((cast(*FormImage) image.buffer).kind == .Pixelate)
+    Swag.assert(!(cast(*FormImage) image.buffer).image.isValid())
     testDeleteForm(image)
 
     f.main.mdlFormCallout.roundSize = 22
     f.main.mdlFormCallout.text      = "model text"
     let callout = f.main.newFormFromModel(.Callout, clear: true)
-    @assert(@kindof(callout) == FormCallout)
-    @assert((cast(*FormCallout) @dataof(callout)).roundSize == 22)
+    Swag.assert(Swag.kindOf(callout) == FormCallout)
+    Swag.assert((cast(*FormCallout) callout.buffer).roundSize == 22)
 
     // clear drops the text payload while keeping the style.
-    @assert((cast(*FormCallout) @dataof(callout)).text.isEmpty())
+    Swag.assert((cast(*FormCallout) callout.buffer).text.isEmpty())
     testDeleteForm(callout)
 }

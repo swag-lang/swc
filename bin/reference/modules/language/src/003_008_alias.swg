@@ -18,10 +18,10 @@ used interchangeably with the original type throughout your code.
 #test
 {
     enum RGB { R, G, B }
-    @assert(RGB.R == 0)
+    Swag.assert(RGB.R == 0)
 
     alias Color = RGB
-    @assert(Color.G == 1)
+    Swag.assert(Color.G == 1)
 }
 
 /**
@@ -78,7 +78,7 @@ especially useful for lengthy or descriptive function names.
 {
     func thisIsABigFunctionName(x: s32) => x * x
     alias myFunc = thisIsABigFunctionName
-    @assert(myFunc(4) == 16)
+    Swag.assert(myFunc(4) == 16)
 }
 
 /**
@@ -93,5 +93,5 @@ especially in large codebases with long identifiers.
     var myLongVariableName: s32 = 0
     alias short = myLongVariableName
     short += 2
-    @assert(myLongVariableName == 2)
+    Swag.assert(myLongVariableName == 2)
 }

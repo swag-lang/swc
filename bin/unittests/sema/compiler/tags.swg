@@ -31,5 +31,5 @@ const MissingString = #gettag("Swag.Missing.String", string, "fallback")
 func semaTest001()
 {
     const LocalEndian = #gettag("Swag.Endian", string, "big")
-    @assert(LocalEndian == "little")
+    Swag.assert(LocalEndian == "little")
 }

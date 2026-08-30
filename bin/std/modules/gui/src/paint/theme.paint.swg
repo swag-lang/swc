@@ -188,7 +188,7 @@ impl Theme
     // Draws rich text with an optional leading icon inside `position`.
     func drawIconText(painter: *Painter, position: Math.Rectangle, icon: Icon, name: *RichString, stringFormat: RichStringFormat, iconMargin = 4'f32)
     {
-        let count = @countof(name[])
+        let count = (name[]).count
         if count == 0 and !icon.isValid() do
             return
 

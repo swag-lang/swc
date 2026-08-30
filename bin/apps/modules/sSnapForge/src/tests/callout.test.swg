@@ -12,12 +12,12 @@ using Swag, Core
     let cf = testAddCallout(f.capture, 10, 10, 40, 20)
 
     // Body is 10,10 → 50,30; testAddCallout drops the tail below at (22, 60).
-    @assert(cf.tailY == 60)
+    Swag.assert(cf.tailY == 60)
     let b = cf.IForm.boundRect()
-    @assert(b.x == 10)
-    @assert(b.y == 10)
-    @assert(b.right() == 50)
-    @assert(b.bottom() == 60)
+    Swag.assert(b.x == 10)
+    Swag.assert(b.y == 10)
+    Swag.assert(b.right() == 50)
+    Swag.assert(b.bottom() == 60)
 }
 
 // Point 0 of a callout is the tail tip; MovePoint undo moves it and restores it.
@@ -36,17 +36,17 @@ using Swag, Core
     mp.newPosX  = 5
     mp.newPosY  = -7
     f.capture.pushUndo(mp)
-    @assert(cf.tailX == tx + 5)
-    @assert(cf.tailY == ty - 7)
+    Swag.assert(cf.tailX == tx + 5)
+    Swag.assert(cf.tailY == ty - 7)
 
     f.capture.undo()
-    @assert(cf.tailX == tx)
-    @assert(cf.tailY == ty)
+    Swag.assert(cf.tailX == tx)
+    Swag.assert(cf.tailY == ty)
 
     // Moving the whole form drags the tail along with the body.
     cf.IForm.moveForm(3, 4)
-    @assert(cf.tailX == tx + 3)
-    @assert(cf.tailY == ty + 4)
+    Swag.assert(cf.tailX == tx + 3)
+    Swag.assert(cf.tailY == ty + 4)
 }
 
 // SetText edits a callout's text (reusing the FormText undo path) with undo/redo.
@@ -62,13 +62,13 @@ using Swag, Core
     var u = f.capture.newUndo(.SetText)
     u.text = "new"
     f.capture.pushUndo(u)
-    @assert(cf.text == "new")
+    Swag.assert(cf.text == "new")
 
     f.capture.undo()
-    @assert(cf.text == "old")
+    Swag.assert(cf.text == "old")
 
     f.capture.redo()
-    @assert(cf.text == "new")
+    Swag.assert(cf.text == "new")
 }
 
 // Edit-mode plumbing recognizes the callout in both directions.
@@ -78,11 +78,11 @@ using Swag, Core
     f.setup()
     defer f.shutdown()
     let cf = testAddCallout(f.capture, 0, 0, 40, 20)
-    @assert(MainWnd.formToEditMode(cf) == .Callout)
+    Swag.assert(MainWnd.formToEditMode(cf) == .Callout)
 
     f.main.updateEditMode(cf)
-    @assert(f.main.editMode == .Callout)
-    @assert(@kindof(f.main.editModeToModel(.Callout)) == FormCallout)
+    Swag.assert(f.main.editMode == .Callout)
+    Swag.assert(Swag.kindOf(f.main.editModeToModel(.Callout)) == FormCallout)
 }
 
 // SetText must flag the render dirty so the displayed FormText glyphs actually refresh
@@ -100,8 +100,8 @@ using Swag, Core
     var u = f.capture.newUndo(.SetText)
     u.text = "new"
     f.capture.pushUndo(u)
-    @assert(text.text == "new")
-    @assert(text.isDirty)
+    Swag.assert(text.text == "new")
+    Swag.assert(text.isDirty)
 }
 
 // Font name and style edits reuse the shared FormText undo paths for a callout.
@@ -118,19 +118,19 @@ using Swag, Core
     var us = f.capture.newUndo(.SetFontStyle)
     us.fontStyle = .Bold
     f.capture.pushUndo(us)
-    @assert(cf.fontStyle == .Bold)
+    Swag.assert(cf.fontStyle == .Bold)
     f.capture.undo()
-    @assert(cf.fontStyle == .Regular)
+    Swag.assert(cf.fontStyle == .Regular)
 
     var uf = f.capture.newUndo(.SetFont)
     uf.text      = "Arial"
     uf.fontStyle = .Italic
     f.capture.pushUndo(uf)
-    @assert(cf.fontName == "Arial")
-    @assert(cf.fontStyle == .Italic)
+    Swag.assert(cf.fontName == "Arial")
+    Swag.assert(cf.fontStyle == .Italic)
     f.capture.undo()
-    @assert(cf.fontName == "old")
-    @assert(cf.fontStyle == .Regular)
+    Swag.assert(cf.fontName == "old")
+    Swag.assert(cf.fontStyle == .Regular)
 }
 
 // Painting a callout emits body/tail/text geometry without crashing, and hit-testing
@@ -152,10 +152,10 @@ using Swag, Core
     cxt.z = 1
     cf.IForm.paint(&painter, cxt)
     painter.end()
-    @assert(painter.commandBuffer.count > 0)
+    Swag.assert(painter.commandBuffer.count > 0)
 
-    @assert(cf.IForm.hitTest({80, 50}, 1))
-    @assert(!cf.IForm.hitTest({500, 500}, 1))
+    Swag.assert(cf.IForm.hitTest({80, 50}, 1))
+    Swag.assert(!cf.IForm.hitTest({500, 500}, 1))
 }
 
 // copy propagates callout style (not text) and isSame tracks style changes.
@@ -172,12 +172,12 @@ using Swag, Core
 
     var copy: FormCallout
     cf.IForm.copy(&copy, cf)
-    @assert(cf.IForm.isSame(&copy))
-    @assert(copy.roundSize == 22)
-    @assert(copy.text.isEmpty())
+    Swag.assert(cf.IForm.isSame(&copy))
+    Swag.assert(copy.roundSize == 22)
+    Swag.assert(copy.text.isEmpty())
 
     copy.roundSize += 1
-    @assert(!cf.IForm.isSame(&copy))
+    Swag.assert(!cf.IForm.isSame(&copy))
 }
 
 // The tail base stays on the straight part of an edge, clear of the rounded corners,
@@ -194,17 +194,17 @@ using Swag, Core
 
     // Tip well past the bottom-left corner: base must sit on the bottom straight span.
     let bl = cf.tailBase({-40, 100}, cf.roundSize)
-    @assert(bl.p0.y == 60 and bl.p1.y == 60)
-    @assert(bl.p0.x >= cr - 0.01)
-    @assert(bl.p1.x <= 100 - cr + 0.01)
+    Swag.assert(bl.p0.y == 60 and bl.p1.y == 60)
+    Swag.assert(bl.p0.x >= cr - 0.01)
+    Swag.assert(bl.p1.x <= 100 - cr + 0.01)
 
     // Tip past the top-right corner picks the right edge; base stays off the corners.
     let cf2 = testAddCallout(f.capture, 0, 0, 60, 100)
     cf2.roundSize = 20
     let tr = cf2.tailBase({100, -40}, cf2.roundSize)
-    @assert(tr.p0.x == 60 and tr.p1.x == 60)
-    @assert(tr.p0.y >= cr - 0.01)
-    @assert(tr.p1.y <= 100 - cr + 0.01)
+    Swag.assert(tr.p0.x == 60 and tr.p1.x == 60)
+    Swag.assert(tr.p0.y >= cr - 0.01)
+    Swag.assert(tr.p1.y <= 100 - cr + 0.01)
 }
 
 // Callouts survive the copy/paste clipboard round-trip with text and geometry intact.
@@ -225,12 +225,12 @@ using Swag, Core
     var forms = clip.toForms(f.capture)
     defer Capture.freeForms(forms)
 
-    @assert(forms.count == 1)
-    @assert(@kindof(forms[0]) == FormCallout)
-    let c2 = cast(*FormCallout) @dataof(forms[0])
-    @assert(c2.text == "hello")
-    @assert(c2.roundSize == 18)
-    @assert(c2.tailX == 4)
-    @assert(c2.tailY == 90)
-    @assert(c2.capture == f.capture)
+    Swag.assert(forms.count == 1)
+    Swag.assert(Swag.kindOf(forms[0]) == FormCallout)
+    let c2 = cast(*FormCallout) forms[0].buffer
+    Swag.assert(c2.text == "hello")
+    Swag.assert(c2.roundSize == 18)
+    Swag.assert(c2.tailX == 4)
+    Swag.assert(c2.tailY == 90)
+    Swag.assert(c2.capture == f.capture)
 }

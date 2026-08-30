@@ -25,7 +25,7 @@ Variadic parameters are treated as slices of type 'any', allowing you to process
     func myFunction(parameters: ...)
     {
         // Check the number of arguments
-        @assert(@countof(parameters) == 3)
+        Swag.assert(parameters.count == 3)
 
         // Initially, each parameter is of type 'any'
         #assert(#nameof(#typeof(parameters[0])) == "any")
@@ -33,9 +33,9 @@ Variadic parameters are treated as slices of type 'any', allowing you to process
         #assert(#nameof(#typeof(parameters[2])) == "any")
 
         // Determine actual runtime types
-        @assert(@kindof(parameters[0]) == s32)
-        @assert(@kindof(parameters[1]) == string)
-        @assert(@kindof(parameters[2]) == f32)
+        Swag.assert(Swag.kindOf(parameters[0]) == s32)
+        Swag.assert(Swag.kindOf(parameters[1]) == string)
+        Swag.assert(Swag.kindOf(parameters[2]) == f32)
     }
 
     myFunction(4, "true", 5.6'f32)
@@ -57,10 +57,10 @@ This prevents parameters from defaulting to 'any'.
         #assert(#typeof(parameters[3]) == s32)
 
         // Check values
-        @assert(parameters[0] == 10)
-        @assert(parameters[1] == 20)
-        @assert(parameters[2] == 30)
-        @assert(parameters[3] == 40)
+        Swag.assert(parameters[0] == 10)
+        Swag.assert(parameters[1] == 20)
+        Swag.assert(parameters[2] == 30)
+        Swag.assert(parameters[3] == 40)
     }
 
     myFunction(true, 10, 20, 30, 40)
@@ -75,11 +75,11 @@ Variadic parameters can be forwarded between functions while preserving their ty
 {
     func A(params: ...)
     {
-        @assert(@countof(params) == 2)
-        @assert(@kindof(params[0]) == string)
-        @assert(@kindof(params[1]) == bool)
-        @assert(cast(string) params[0] == "value")
-        @assert(cast(bool) params[1] == true)
+        Swag.assert(params.count == 2)
+        Swag.assert(Swag.kindOf(params[0]) == string)
+        Swag.assert(Swag.kindOf(params[1]) == bool)
+        Swag.assert(cast(string) params[0] == "value")
+        Swag.assert(cast(bool) params[1] == true)
     }
 
     func B(params: ...)
@@ -100,7 +100,7 @@ internal func print()
     {
         for msg in messages
         {
-            @print(prefix, " => ", cast(string) msg)
+            Swag.print(prefix, " => ", cast(string) msg)
         }
     }
 
@@ -119,7 +119,7 @@ Handle mixed-type parameters dynamically, performing type-specific actions.
 
         for p in params
         {
-            switch @kindof(p)
+            switch Swag.kindOf(p)
             {
             case s32:    sum += 1
             case string: sum += 10
@@ -130,5 +130,5 @@ Handle mixed-type parameters dynamically, performing type-specific actions.
     }
 
     let result = processParameters(1, 2, "Hello, ", 3, "World!")
-    @assert(result == 1 + 1 + 10 + 1 + 10)
+    Swag.assert(result == 1 + 1 + 10 + 1 + 10)
 }

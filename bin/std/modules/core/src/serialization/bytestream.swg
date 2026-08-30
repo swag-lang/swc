@@ -36,19 +36,19 @@ public impl ByteStream
     // Returns the unread bytes from the current position to the end.
     mtd remainingBytes()->const [..] u8
     {
-        return @mkslice(.data() + .seek, .length() - .seek)
+        return Swag.makeSlice(.data() + .seek, .length() - .seek)
     }
 
     // Returns the unread bytes as a borrowed string.
     mtd remainingString()->string
     {
-        return @mkstring(.data() + .seek, .length() - .seek)
+        return Swag.makeString(.data() + .seek, .length() - .seek)
     }
 
     // Returns the total length of the buffer (read or write)
     mtd const length()->u64
     {
-        return .writeBuffer ? .writeBuffer.count : @countof(.readBuffer)
+        return .writeBuffer ? .writeBuffer.count : (.readBuffer).count
     }
 
     // Kept in the exported dependency because public generic methods expand in
@@ -56,7 +56,7 @@ public impl ByteStream
     #[Swag.NoDoc]
     mtd data()->const [*] u8
     {
-        return .writeBuffer ? .writeBuffer.buffer! : @dataof(.readBuffer)!
+        return .writeBuffer ? .writeBuffer.buffer! : (.readBuffer).buffer!
     }
 
     // Returns true if the end of the buffer was reached during reading
@@ -85,7 +85,7 @@ public impl ByteStream
     {
         Debug.assert(.writeBuffer != null)
 
-        let count = @countof(slice)
+        let count = slice.count
         if !count do
             return
 
@@ -94,7 +94,7 @@ public impl ByteStream
             wb.reserve(.seek + count)
         let buffer = wb.buffer!
         let ptr    = buffer + .seek
-        Memory.copy(ptr, @dataof(slice), count)
+        Memory.copy(ptr, slice.buffer, count)
         .seek    += count
         wb.count = Math.max(wb.count, .seek)
     }
@@ -193,8 +193,8 @@ public impl ByteStream
     // not a character count.
     mtd writeSizedString(value: string)
     {
-        .writeLittleEndian(cast(u32) @countof(value))
-        .writeBytes(@mkslice(@dataof(value), @countof(value)))
+        .writeLittleEndian(cast(u32) value.count)
+        .writeBytes(Swag.makeSlice(value.buffer, value.count))
     }
 
     // Reads a string written by [[writeSizedString]].

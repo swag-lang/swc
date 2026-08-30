@@ -508,7 +508,7 @@ as [snapforge.md](snapforge.md).
   `autoHandled` false — so the test fails on an assertion far from the mistake, and the failure
   reads exactly like "the dialog never opened" even though it opened and was answered.
 - Evidence: `swc tools/apps.swgs dm test sSnapForge` before the fix reported 2 of 126 not passing on
-  `@assert(autoHandled)`; the dialogs did open. `runAutoStage` returns false for both a missing
+  `Swag.assert(autoHandled)`; the dialogs did open. `runAutoStage` returns false for both a missing
   modal surface and a missing button ([headless.swg:191](../bin/std/modules/gui/src/testing/headless.swg#L191)),
   and only the frame ceiling distinguishes them, after the fact.
 - Next step: separate the two outcomes in the driver. Remember, per stage, whether any modal

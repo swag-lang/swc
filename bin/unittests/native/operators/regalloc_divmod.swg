@@ -177,50 +177,50 @@ func mulDivShiftInLoop(val: u32, factor: u32, divisor: u32, cnt: u32, iters: u32
 
 #test
 {
-    @assert(divDivisorInRdx(60'u32, 3'u32, 40'u32, 8'u32, 4'u32, 5'u32) == 34'u32)
+    Swag.assert(divDivisorInRdx(60'u32, 3'u32, 40'u32, 8'u32, 4'u32, 5'u32) == 34'u32)
 }
 
 #test
 {
-    @assert(divModPair(100'u32, 7'u32) == 19'u32)
+    Swag.assert(divModPair(100'u32, 7'u32) == 19'u32)
 }
 
 #test
 {
-    @assert(divChain(120'u32, 2'u32) == 105'u32)
+    Swag.assert(divChain(120'u32, 2'u32) == 105'u32)
 }
 
 #test
 {
-    @assert(divResultAsShiftCount(12'u32, 4'u32, 5'u32) == 40'u32)
+    Swag.assert(divResultAsShiftCount(12'u32, 4'u32, 5'u32) == 40'u32)
 }
 
 #test
 {
-    @assert(divInterleavedShift(24'u32, 6'u32, 128'u32) == 225'u32)
+    Swag.assert(divInterleavedShift(24'u32, 6'u32, 128'u32) == 225'u32)
 }
 
 #test
 {
-    @assert(signedUnsignedDivMix(-90, 60'u32, 420's64) == 22's64)
+    Swag.assert(signedUnsignedDivMix(-90, 60'u32, 420's64) == 22's64)
 }
 
 #test
 {
-    @assert(mulDivChain(7'u32, 8'u32, 5'u32) == 123'u32)
+    Swag.assert(mulDivChain(7'u32, 8'u32, 5'u32) == 123'u32)
 }
 
 #test
 {
-    @assert(divInsideShiftExpr(80'u32, 10'u32, 11'u32, 4'u32) == 75'u32)
+    Swag.assert(divInsideShiftExpr(80'u32, 10'u32, 11'u32, 4'u32) == 75'u32)
 }
 
 #test
 {
-    @assert(divModInLoop(100'u32, 7'u32, 3'u32) == 13'u32)
+    Swag.assert(divModInLoop(100'u32, 7'u32, 3'u32) == 13'u32)
 }
 
 #test
 {
-    @assert(mulDivShiftInLoop(3'u32, 4'u32, 3'u32, 1'u32, 3'u32) == 16'u32)
+    Swag.assert(mulDivShiftInLoop(3'u32, 4'u32, 3'u32, 1'u32, 3'u32) == 16'u32)
 }

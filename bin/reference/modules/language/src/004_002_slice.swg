@@ -24,52 +24,52 @@ the array’s elements.
 #test
 {
     var a: const [..] u32 = [10, 20, 30, 40, 50]
-    @assert(@countof(a) == 5)
-    @assert(a[0] == 10)
-    @assert(a[4] == 50)
+    Swag.assert(a.count == 5)
+    Swag.assert(a[0] == 10)
+    Swag.assert(a[4] == 50)
 
     a = [1, 2]
-    @assert(@countof(a) == 2)
-    @assert(a[0] == 1)
-    @assert(a[1] == 2)
+    Swag.assert(a.count == 2)
+    Swag.assert(a[0] == 1)
+    Swag.assert(a[1] == 2)
 }
 
 /**
 # Accessing Slice Data
 
-The '@dataof' intrinsic retrieves the slice’s data address, and '@countof' returns
+The '.buffer' intrinsic retrieves the slice’s data address, and '.count' returns
 the number of elements.
 */
 #test
 {
     var a: const [..] u32 = [10, 20, 30, 40, 50]
-    let count             = @countof(a)
-    let addr              = @dataof(a)
+    let count             = a.count
+    let addr              = a.buffer
 
-    @assert(count == 5)
-    @assert(addr[0] == 10)
-    @assert(addr[4] == 50)
+    Swag.assert(count == 5)
+    Swag.assert(addr[0] == 10)
+    Swag.assert(addr[4] == 50)
 
     a = [1, 2]
-    @assert(@countof(a) == 2)
+    Swag.assert(a.count == 2)
 }
 
 /**
-# Creating Slices with '@mkslice'
+# Creating Slices with 'Swag.makeSlice'
 
-The '@mkslice' intrinsic creates a slice from a pointer and an element count.
+The 'Swag.makeSlice' intrinsic creates a slice from a pointer and an element count.
 */
 #test
 {
     var array: [4] u32 = [10, 20, 30, 40]
 
-    let slice: [..] u32 = @mkslice(cast([*] u32) &array[0] + 2, 2)
-    @assert(@countof(slice) == 2)
-    @assert(slice[0] == 30)
-    @assert(slice[1] == 40)
+    let slice: [..] u32 = Swag.makeSlice(cast([*] u32) &array[0] + 2, 2)
+    Swag.assert(slice.count == 2)
+    Swag.assert(slice[0] == 30)
+    Swag.assert(slice[1] == 40)
 
     slice[0] = 314
-    @assert(array[2] == 314)
+    Swag.assert(array[2] == 314)
 }
 
 /**
@@ -80,9 +80,9 @@ Strings can be sliced, but the result must be declared as 'const' since strings 
 #test
 {
     let str = "string"
-    let strSlice: const [..] u8 = @mkslice(@dataof(str), 2)
-    @assert(strSlice[0] == 's')
-    @assert(strSlice[1] == 't')
+    let strSlice: const [..] u8 = Swag.makeSlice(str.buffer, 2)
+    Swag.assert(strSlice[0] == 's')
+    Swag.assert(strSlice[1] == 't')
 }
 
 /**
@@ -95,7 +95,7 @@ keywords as a 'for' loop; '[..]' is the slice **type**, not the range operator.
 {
     let str   = "string"
     let slice = str[1 to 3]
-    @assert(slice == "tri")
+    Swag.assert(slice == "tri")
 }
 
 /**
@@ -107,7 +107,7 @@ By default, the upper bound in a slice is inclusive. To exclude it, use 'until' 
 {
     let str   = "string"
     let slice = str[1 until 3]
-    @assert(slice == "tr")
+    Swag.assert(slice == "tr")
 }
 
 /**
@@ -126,12 +126,12 @@ never describes more memory than its source holds.
 {
     let str   = "string"
     let empty = str[3 until 3]
-    @assert(@countof(empty) == 0)
-    @assert(empty == "")
+    Swag.assert(empty.count == 0)
+    Swag.assert(empty == "")
 
     let values = [10, 20, 30]
-    @assert(@countof(values[0 until 0]) == 0)
-    @assert(@countof(values[3 until 3]) == 0)
+    Swag.assert(values[0 until 0].count == 0)
+    Swag.assert(values[3 until 3].count == 0)
 }
 
 /**
@@ -143,7 +143,7 @@ Omitting the upper bound creates a slice extending to the end of the sequence.
 {
     let str   = "string"
     let slice = str[2 to]
-    @assert(slice == "ring")
+    Swag.assert(slice == "ring")
 }
 
 /**
@@ -156,10 +156,10 @@ Omitting the lower bound starts the slice from index 0.
     let str = "string"
 
     let slice = str[to 2]
-    @assert(slice == "str")
+    Swag.assert(slice == "str")
 
     let slice1 = str[until 2]
-    @assert(slice1 == "st")
+    Swag.assert(slice1 == "st")
 }
 
 /**
@@ -172,11 +172,11 @@ Arrays can be sliced the same way as strings.
 {
     let arr   = [10, 20, 30, 40]
     let slice = arr[2 to 3]
-    @assert(slice[0] == 30)
-    @assert(slice[1] == 40)
-    @assert(@countof(slice) == 2)
+    Swag.assert(slice[0] == 30)
+    Swag.assert(slice[1] == 40)
+    Swag.assert(slice.count == 2)
     let slice1 = arr[to]
-    @assert(@countof(slice1) == @countof(arr))
+    Swag.assert(slice1.count == arr.count)
 }
 
 /**
@@ -189,12 +189,12 @@ A slice can be further sliced to produce another slice.
 {
     let arr    = [10, 20, 30, 40]
     let slice1 = arr[1 to 3]
-    @assert(slice1[0] == 20)
-    @assert(slice1[1] == 30)
-    @assert(slice1[2] == 40)
+    Swag.assert(slice1[0] == 20)
+    Swag.assert(slice1[1] == 30)
+    Swag.assert(slice1[2] == 40)
     let slice2 = slice1[1 to 2]
-    @assert(slice2[0] == 30)
-    @assert(slice2[1] == 40)
+    Swag.assert(slice2[0] == 30)
+    Swag.assert(slice2[1] == 40)
 }
 
 /**
@@ -208,9 +208,9 @@ A pointer can be transformed into a slice by specifying a range.
     var arr   = [10, 20, 30, 40]
     let ptr   = &arr[2]
     let slice = ptr[0 to 1]
-    @assert(slice[0] == 30)
-    @assert(slice[1] == 40)
-    @assert(@countof(slice) == 2)
+    Swag.assert(slice[0] == 30)
+    Swag.assert(slice[1] == 40)
+    Swag.assert(slice.count == 2)
 }
 
 /**
@@ -231,13 +231,13 @@ all, which is what a '#null' slice records.
 
     let whole = source[to]
     let other = copy[to]
-    @assert(@dataof(whole) != @dataof(other))
-    @assert(whole == other)
+    Swag.assert(whole.buffer != other.buffer)
+    Swag.assert(whole == other)
 
     let head = source[to 2]
-    @assert(@dataof(whole) == @dataof(head))
-    @assert(whole != head)
+    Swag.assert(whole.buffer == head.buffer)
+    Swag.assert(whole != head)
 
     let missing: #null const [..] u8 = null
-    @assert(missing == null)
+    Swag.assert(missing == null)
 }

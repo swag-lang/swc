@@ -5,9 +5,9 @@
 #[Swag.Macro]
 func pushContext(cxt: Swag.Context, stmt: #code)
 {
-    var prev = @getcontext()
-    defer @setcontext(prev)
+    var prev = Swag.getContext()
+    defer Swag.setContext(prev)
 
-    @setcontext(cxt)
+    Swag.setContext(cxt)
     #inject(stmt)
 }

@@ -18,9 +18,9 @@ func __concreteAlias(type1: typeinfo)->typeinfo
     return __concreteAlias(typeAlias.rawType)
 }
 
-func @is(toType, fromType: #null typeinfo)->bool
+func typeIs(toType, fromType: #null typeinfo)->bool
 {
-    if @typecmp(toType, fromType, .Strict) do
+    if Swag.typeCmp(toType, fromType, .Strict) do
         return true
     if !toType or !fromType do
         return false
@@ -35,7 +35,7 @@ func @is(toType, fromType: #null typeinfo)->bool
         if usingType.kind == .Struct
         {
             let typeStruct = cast(const *Swag.TypeInfoStruct) usingType
-            if @is(toType, typeStruct) do
+            if Swag.typeIs(toType, typeStruct) do
                 return true
         }
         elif usingType.kind == .Pointer
@@ -46,7 +46,7 @@ func @is(toType, fromType: #null typeinfo)->bool
                 continue
 
             let typeStruct = cast(const *Swag.TypeInfoStruct) pointedType
-            if @is(toType, typeStruct) do
+            if Swag.typeIs(toType, typeStruct) do
                 return true
         }
     }
@@ -54,9 +54,9 @@ func @is(toType, fromType: #null typeinfo)->bool
     return false
 }
 
-func @as(toType, fromType: #null typeinfo, ptr: #null *void)->#null *void
+func typeAs(toType, fromType: #null typeinfo, ptr: #null *void)->#null *void
 {
-    if @typecmp(toType, fromType, .Strict) do
+    if Swag.typeCmp(toType, fromType, .Strict) do
         return ptr
     if !toType or !fromType or !ptr do
         return null
@@ -72,7 +72,7 @@ func @as(toType, fromType: #null typeinfo, ptr: #null *void)->#null *void
         {
             let typeStruct = cast(const *Swag.TypeInfoStruct) usingType
             let subPtr     = cast(*void) (cast([*] u8) ptr + ft.offset)
-            let result     = @as(toType, typeStruct, subPtr)
+            let result     = Swag.typeAs(toType, typeStruct, subPtr)
             if result do
                 return result
         }
@@ -85,7 +85,7 @@ func @as(toType, fromType: #null typeinfo, ptr: #null *void)->#null *void
 
             let fieldPtrAddr = cast(*#null *void) (cast([*] u8) ptr + ft.offset)
             let typeStruct   = cast(const *Swag.TypeInfoStruct) pointedType
-            let result       = @as(toType, typeStruct, fieldPtrAddr[])
+            let result       = Swag.typeAs(toType, typeStruct, fieldPtrAddr[])
             if result do
                 return result
         }
@@ -94,7 +94,7 @@ func @as(toType, fromType: #null typeinfo, ptr: #null *void)->#null *void
     return null
 }
 
-func @typecmp(typeA, typeB: #null typeinfo, cmpFlags: TypeCmpFlags)->bool
+func typeCmp(typeA, typeB: #null typeinfo, cmpFlags: TypeCmpFlags)->bool
 {
     if !typeA and !typeB do
         return true
@@ -110,7 +110,7 @@ func @typecmp(typeA, typeB: #null typeinfo, cmpFlags: TypeCmpFlags)->bool
        type1.flags & .Const
     {
         let typePointer = cast(const *Swag.TypeInfoPointer) type1
-        return @typecmp(typePointer.pointedType, type2, cmpFlags)
+        return Swag.typeCmp(typePointer.pointedType, type2, cmpFlags)
     }
 
     if (type1.kind != type2.kind) or (type1.sizeof != type2.sizeof) do
@@ -143,9 +143,9 @@ func @typecmp(typeA, typeB: #null typeinfo, cmpFlags: TypeCmpFlags)->bool
         let fields1 = type1S.fields
         let fields2 = type2S.fields
         if fields1 == null or fields2 == null do
-            return @countof(fields1) == @countof(fields2)
+            return fields1.count == fields2.count
 
-        for i in @countof(fields1)
+        for i in fields1.count
         {
             let field1 = fields1[i]
             let field2 = fields2[i]
@@ -159,7 +159,7 @@ func @typecmp(typeA, typeB: #null typeinfo, cmpFlags: TypeCmpFlags)->bool
             if !namesAreEqual and field1.name != field2.name do
                 return false
 
-            if !@typecmp(field1.pointedType!, field2.pointedType!, cmpFlags) do
+            if !Swag.typeCmp(field1.pointedType!, field2.pointedType!, cmpFlags) do
                 return false
         }
 
@@ -167,13 +167,13 @@ func @typecmp(typeA, typeB: #null typeinfo, cmpFlags: TypeCmpFlags)->bool
     }
 
     if cmpFlags & .UnScoped do
-        return @stringcmp(type1.name, type2.name)
-    return @stringcmp(type1.fullname, type2.fullname)
+        return Swag.stringCmp(type1.name, type2.name)
+    return Swag.stringCmp(type1.fullname, type2.fullname)
 }
 
 ////////////////////////////////////////////////////////////
 
-func @tableof(structType, itfType: #null const *TypeInfoStruct)->#null const *void
+func tableOf(structType, itfType: #null const *TypeInfoStruct)->#null const *void
 {
     if !structType or !itfType do
         return null
@@ -182,9 +182,9 @@ func @tableof(structType, itfType: #null const *TypeInfoStruct)->#null const *vo
     if itfs == null do
         return null
 
-    for i in @countof(itfs)
+    for i in itfs.count
     {
-        if @stringcmp(itfs[i].name, itfType.fullname) do
+        if Swag.stringCmp(itfs[i].name, itfType.fullname) do
             return itfs[i].value
     }
 
@@ -217,7 +217,7 @@ func __convertArgcArgv(args: #null const [*] u8)
             let start = cmdLine
             while cmdLine[] and cmdLine[] != '"' do
                 cmdLine += 1
-            __argv[__argc] = cast(string) @mkslice(start, cast(u64) (cmdLine - start))
+            __argv[__argc] = cast(string) Swag.makeSlice(start, cast(u64) (cmdLine - start))
             if cmdLine[] do
                 cmdLine += 1
         }
@@ -226,7 +226,7 @@ func __convertArgcArgv(args: #null const [*] u8)
             let start = cmdLine
             while cmdLine[] and cmdLine[] != ' ' do
                 cmdLine += 1
-            __argv[__argc] = cast(string) @mkslice(start, cast(u64) (cmdLine - start))
+            __argv[__argc] = cast(string) Swag.makeSlice(start, cast(u64) (cmdLine - start))
         }
 
         __argc += 1
@@ -237,37 +237,37 @@ func __convertArgcArgv(args: #null const [*] u8)
     }
 }
 
-func @args()->const [..] string
+func args()->const [..] string
 {
     if __argc == 0 do
-        __convertArgcArgv(@dataof(@pinfos.args))
-    return @mkslice(&__argv[0], cast(u64) __argc)
+        __convertArgcArgv((Swag.processInfos().args).buffer)
+    return Swag.makeSlice(&__argv[0], cast(u64) __argc)
 }
 
 ////////////////////////////////////////////////////////////
 
 // Make a build configuration copy
-const __buildCfg = #run @compiler.getBuildCfg()![]
+const __buildCfg = #run Swag.compiler().getBuildCfg()![]
 
-func @rtflags()   => @getcontext().runtimeFlags
-func @jit()->bool => @getcontext().runtimeFlags & .FromCompiler ? true : false
+func runtimeFlags()   => Swag.getContext().runtimeFlags
+func jit()->bool => Swag.getContext().runtimeFlags & .FromCompiler ? true : false
 
 func __runtimeAllocator()->IAllocator
 {
-    let cxt = @getcontext()
+    let cxt = Swag.getContext()
     if !cxt.allocator
     {
         // Under the compiler (JIT) the host installs a process-stable runtime allocator into the
-        // context. Building a swag @mkinterface allocator here would place its interface table in
+        // context. Building a swag Swag.makeInterface allocator here would place its interface table in
         // per-run JIT memory that is released between workspace modules; if that interface is then
         // cached in a process-persistent imported-DLL global (e.g. a reflection hash table) it
         // dangles and crashes on a later module's allocation. So only build it for native runs.
-        if !@jit()
+        if !Swag.jit()
         {
             let allocator = defaultAllocator()
             if !allocator.installed() do
                 allocator.setup()
-            cxt.allocator        = @mkinterface(allocator, #typeof(allocator[]), IAllocator)
+            cxt.allocator        = Swag.makeInterface(allocator, #typeof(allocator[]), IAllocator)
             cxt.defaultAllocator = cxt.allocator
         }
     }
@@ -282,13 +282,13 @@ func __ensureRuntimeAllocator()
 
 func __resetRuntimeContext()
 {
-    let cxt       = @getcontext()
+    let cxt       = Swag.getContext()
     let allocator = __runtimeAllocator()
 
     cxt.tempAllocator.release()
     cxt.errorAllocator.release()
 
-    @memset(cxt, 0, #sizeof(Swag.Context))
+    Swag.memset(cxt, 0, #sizeof(Swag.Context))
     cxt.allocator        = allocator
     cxt.defaultAllocator = allocator
 }
@@ -306,7 +306,7 @@ func __resetRuntimeContext()
 #[Swag.Optimize(false)]
 func __checkCpuBaseline(flags: RuntimeFlags)
 {
-    if @jit or (flags & .FromCompiler) do
+    if Swag.jit() or (flags & .FromCompiler) do
         return
     if __hostHasAvx2() do
         return
@@ -320,15 +320,15 @@ func __setupRuntime(flags: RuntimeFlags)
     __checkCpuBaseline(flags)
     __resetRuntimeContext()
 
-    let cxt = @getcontext()
+    let cxt = Swag.getContext()
     cxt.runtimeFlags = flags
 
-    // A native run owns its command line, and every artifact keeps its own '@pinfos', so the
+    // A native run owns its command line, and every artifact keeps its own 'Swag.processInfos()', so the
     // executable seeds its copy here and hands it down the hook chain to the modules it imports.
     // Under the compiler the real command line belongs to 'swc' itself; the host has already
     // filled the slot with the one the program is effectively launched with, so leave it alone.
     if !(flags & .FromCompiler) do
-        @pinfos.args = __osCommandLine()
+        Swag.processInfos().args = __osCommandLine()
 
     discard installAllocator(electricMode: __buildCfg.allocatorElectricMode, detectLeaks: __buildCfg.allocatorLeaks, captureStack: __buildCfg.allocatorCaptureStack, trackAllocations: __buildCfg.allocatorTrackAllocations, fillMemory: __buildCfg.allocatorFillMemory, installInContext: !(flags & .FromCompiler))
 
@@ -340,7 +340,7 @@ func __setupRuntime(flags: RuntimeFlags)
 
 func __releaseRuntime()
 {
-    let cxt = @getcontext()
+    let cxt = Swag.getContext()
 
     cxt.tempAllocator.release()
     cxt.errorAllocator.release()
@@ -350,7 +350,7 @@ func __releaseRuntime()
     let allocator = defaultAllocator()
     allocator.release()
 
-    @memset(cxt, 0, #sizeof(Swag.Context))
+    Swag.memset(cxt, 0, #sizeof(Swag.Context))
 }
 
 func __closeRuntime()
@@ -360,7 +360,7 @@ func __closeRuntime()
 
 func __dropGlobalVariables()
 {
-    for g in @gvtd
+    for g in Swag.gvtd()
     {
         var ptr = cast([*] u8) g.ptr
         for x in g.count

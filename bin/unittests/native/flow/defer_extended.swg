@@ -44,19 +44,19 @@ func deferNestedIfElse(a: bool, b: bool)->s64
 #test
 {
     // a=true, b=true: body=3, inner-defer=2, outer-if-defer=1, body=8
-    @assert(deferNestedIfElse(true, true) == 3218)
+    Swag.assert(deferNestedIfElse(true, true) == 3218)
 }
 
 #test
 {
     // a=true, b=false: body=5, inner-defer=4, outer-if-defer=1, body=8
-    @assert(deferNestedIfElse(true, false) == 5418)
+    Swag.assert(deferNestedIfElse(true, false) == 5418)
 }
 
 #test
 {
     // a=false: body=7, else-defer=6, body=8
-    @assert(deferNestedIfElse(false, false) == 768)
+    Swag.assert(deferNestedIfElse(false, false) == 768)
 }
 
 // Multiple defers in same scope (LIFO order)
@@ -75,7 +75,7 @@ func deferMultipleSameScope()->s64
 #test
 {
     // body=4, then defers in reverse: 3, 2, 1
-    @assert(deferMultipleSameScope() == 4321)
+    Swag.assert(deferMultipleSameScope() == 4321)
 }
 
 // Defer with nested loops
@@ -100,7 +100,7 @@ func deferNestedLoops()->s64
     // iteration i=0: j=0 break (j-defer=5), i-defer=1
     // iteration i=1: j=0 break (j-defer=5), i-defer=2
     // iteration i=2: j=0 break (j-defer=5), i-defer=3
-    @assert(deferNestedLoops() == 515253)
+    Swag.assert(deferNestedLoops() == 515253)
 }
 
 // Defer with while and multiple breaks
@@ -122,12 +122,12 @@ func deferWhileMultiBreak(path: s32)->s64
 
 #test
 {
-    @assert(deferWhileMultiBreak(1) == 1)     // i becomes 1, break, defer=1
+    Swag.assert(deferWhileMultiBreak(1) == 1)     // i becomes 1, break, defer=1
 }
 
 #test
 {
-    @assert(deferWhileMultiBreak(2) == 123)     // i=1 defer=1, i=2 defer=2, i=3 break defer=3
+    Swag.assert(deferWhileMultiBreak(2) == 123)     // i=1 defer=1, i=2 defer=2, i=3 break defer=3
 }
 
 // Defer with scope block
@@ -149,7 +149,7 @@ func deferScopeBlock()->s64
 #test
 {
     // block1: body=2, defer=1; block2: body=4, defer=3; body=5
-    @assert(deferScopeBlock() == 21435)
+    Swag.assert(deferScopeBlock() == 21435)
 }
 
 // Defer in single iteration for loop
@@ -167,7 +167,7 @@ func deferSingleIterFor()->s64
 
 #test
 {
-    @assert(deferSingleIterFor() == 213)
+    Swag.assert(deferSingleIterFor() == 213)
 }
 
 // Defer with block override (defer runs after block, overriding previous assignment)
@@ -178,7 +178,7 @@ func deferSingleIterFor()->s64
         defer a = 2
         a = 3
     }
-    @assert(a == 2)
+    Swag.assert(a == 2)
 }
 
 // Defer with multiple scope levels
@@ -201,7 +201,7 @@ func deferTripleNested()->s64
 #test
 {
     // innermost: body=4, defer=3; middle: defer=2; outer: defer=1
-    @assert(deferTripleNested() == 4321)
+    Swag.assert(deferTripleNested() == 4321)
 }
 
 // Defer in for with continue (defer still runs on continue)
@@ -221,7 +221,7 @@ func deferForContinue()->s64
 #test
 {
     // i=0: continue, defer=1; i=1: body=9, defer=2; i=2: continue, defer=3; i=3: body=9, defer=4
-    @assert(deferForContinue() == 192394)
+    Swag.assert(deferForContinue() == 192394)
 }
 
 // Defer ordering with early loop break
@@ -241,5 +241,5 @@ func deferForEarlyBreak()->s64
 #test
 {
     // i=0: body=8, defer=1; i=1: body=8, defer=2 (then break)
-    @assert(deferForEarlyBreak() == 8182)
+    Swag.assert(deferForEarlyBreak() == 8182)
 }

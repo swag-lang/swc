@@ -26,7 +26,7 @@ public impl Crc64
     // Resets the checksum and selects the algorithm used by subsequent updates.
     mtd reset(kind = Crc64Kind.Ecma182)
     {
-        @init(me, 1)
+        Swag.init(me, 1)
         switch #complete .kind
         {
         case .Ecma182, .Iso, .IsoXz: .kind = kind
@@ -37,11 +37,11 @@ public impl Crc64
     #[ConstExpr, Swag.Safety(.All, false)]
     mtd update(data: #null const [..] u8)
     {
-        let length = @countof(data)
+        let length = data.count
         if length == 0 do
             return
 
-        let bytes = cast(const [*] u8) @dataof(data)!
+        let bytes = cast(const [*] u8) data.buffer!
         var cur   = .currentValue
         var i     = 0'u64
         switch #complete kind

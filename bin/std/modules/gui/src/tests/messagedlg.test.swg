@@ -31,9 +31,9 @@ func unbreakableMessage()->String
         .addButton("Ok", Dialog.BtnOk, true)
     }
 
-    @assert(dlg.label.textHorizontalAlignment == .Left)
-    @assert(dlg.contentView != null)
-    @assert(dlg.label.parent!.parent == dlg.contentView)
+    Swag.assert(dlg.label.textHorizontalAlignment == .Left)
+    Swag.assert(dlg.contentView != null)
+    Swag.assert(dlg.label.parent!.parent == dlg.contentView)
 
     // The box sizes itself as it opens, so its rectangle is read from inside the modal loop.
     var width = 0'f32
@@ -43,12 +43,12 @@ func unbreakableMessage()->String
         if width[] != 0 do
             return
         width[] = dlg.surface!.position.width
-        @assert(host.clickModalButton(Dialog.BtnOk))
+        Swag.assert(host.clickModalButton(Dialog.BtnOk))
     }
 
-    @assert(dlg.doModal() == Dialog.BtnOk)
+    Swag.assert(dlg.doModal() == Dialog.BtnOk)
 
     // The message runs several times the width of the host; the box it opened does not.
-    @assert(width != 0)
-    @assert(width <= 700)
+    Swag.assert(width != 0)
+    Swag.assert(width <= 700)
 }

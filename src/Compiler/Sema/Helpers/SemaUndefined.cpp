@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Compiler/Sema/Helpers/SemaUndefined.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -1162,9 +1162,9 @@ namespace
 
                 case AstNodeId::IntrinsicCall:
                 {
-                    // '@isset(x.f)' inspects a 'Swag.Late' field's storage: neither a
+                    // 'Swag.isSet(x.f)' inspects a 'Swag.Late' field's storage: neither a
                     // read of the value nor an escape of the variable.
-                    if (tokenIdOf(node, TokenId::IntrinsicKindOf) == TokenId::IntrinsicIsSet)
+                    if (node.cast<AstIntrinsicCall>().intrinsicId == TokenId::IntrinsicIsSet)
                         return FlowExit::Normal;
                     return walkChildren(node, state);
                 }

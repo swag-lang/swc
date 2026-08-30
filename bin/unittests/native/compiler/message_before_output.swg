@@ -5,18 +5,18 @@ internal var MessageBeforeOutputValue = 0
 
 #message(CompilerMsgMask.PassBeforeOutput)
 {
-    let msg = @compiler.getMessage()!
-    let itf = @compiler
-    @assert(msg.kind == CompilerMsgKind.PassBeforeOutput)
-    @assert(msg.name == "")
-    @assert(msg.type == null)
+    let msg = Swag.compiler().getMessage()!
+    let itf = Swag.compiler()
+    Swag.assert(msg.kind == CompilerMsgKind.PassBeforeOutput)
+    Swag.assert(msg.name == "")
+    Swag.assert(msg.type == null)
     itf.compileString("#init { MessageBeforeOutputValue += 1 }\n")
 }
 
 #test
 {
-    if @getcontext().runtimeFlags == .FromCompiler do
-        @assert(MessageBeforeOutputValue == 0)
+    if Swag.getContext().runtimeFlags == .FromCompiler do
+        Swag.assert(MessageBeforeOutputValue == 0)
     else do
-        @assert(MessageBeforeOutputValue == 1)
+        Swag.assert(MessageBeforeOutputValue == 1)
 }

@@ -236,7 +236,7 @@ func htmlSplitValue(value: string, separator: u8 = ' ')->Array'String
     var index = 0'u64
     var quote = 0'u8
 
-    while index < @countof(value)
+    while index < value.count
     {
         let character = value[index]
         if quote
@@ -264,7 +264,7 @@ func htmlSplitValue(value: string, separator: u8 = ' ')->Array'String
         if split
         {
             let part = Latin1.trim(value[start until index])
-            if @countof(part) do
+            if part.count do
                 result.add(String.from(part))
             start = index + 1
         }
@@ -275,7 +275,7 @@ func htmlSplitValue(value: string, separator: u8 = ' ')->Array'String
     if index > start
     {
         let last = Latin1.trim(value[start until index])
-        if @countof(last) do
+        if last.count do
             result.add(String.from(last))
     }
 
@@ -286,15 +286,15 @@ func htmlSplitValue(value: string, separator: u8 = ' ')->Array'String
 func htmlFunctionArguments(value: string, name: string)->{ arguments: Array'String, matched: bool }
 {
     var result: retval
-    if @countof(value) <= @countof(name) + 1 do
+    if value.count <= name.count + 1 do
         return result
-    if Utf8.compare(value[0 until @countof(name)], name, .Latin1NoCase) != 0 do
+    if Utf8.compare(value[0 until name.count], name, .Latin1NoCase) != 0 do
         return result
-    if value[@countof(name)] != '(' or value[@countof(value) - 1] != ')' do
+    if value[name.count] != '(' or value[value.count - 1] != ')' do
         return result
 
     result.matched   = true
-    result.arguments = htmlSplitValue(value[@countof(name) + 1 until @countof(value) - 1], ','u8)
+    result.arguments = htmlSplitValue(value[name.count + 1 until value.count - 1], ','u8)
     return result
 }
 
@@ -309,18 +309,18 @@ func htmlParseNumber(text: string)->{ value: f32, eat: u64 }
     var index  = 0'u64
     var digits = 0'u64
 
-    if index < @countof(text) and (text[index] == '+' or text[index] == '-') do
+    if index < text.count and (text[index] == '+' or text[index] == '-') do
         index += 1
-    while index < @countof(text) and Latin1.isDigit(text[index])
+    while index < text.count and Latin1.isDigit(text[index])
     {
         index  += 1
         digits += 1
     }
 
-    if index < @countof(text) and text[index] == '.'
+    if index < text.count and text[index] == '.'
     {
         index += 1
-        while index < @countof(text) and Latin1.isDigit(text[index])
+        while index < text.count and Latin1.isDigit(text[index])
         {
             index  += 1
             digits += 1
@@ -410,7 +410,7 @@ private func htmlParseCalcExpression(pool: *HtmlValuePool, text: string, context
 
 private func htmlSkipCalcSpace(text: string, scan: *u64)
 {
-    while scan[] < @countof(text) and Latin1.isSpace(text[scan[]]) do
+    while scan[] < text.count and Latin1.isSpace(text[scan[]]) do
         scan[] += 1
 }
 
@@ -420,7 +420,7 @@ private func htmlParseCalcSum(pool: *HtmlValuePool, text: string, scan: *u64, co
     while left != HtmlNoNode
     {
         htmlSkipCalcSpace(text, scan)
-        if scan[] >= @countof(text) do
+        if scan[] >= text.count do
             break
         let operator = text[scan[]]
         if operator != '+' and operator != '-' do
@@ -447,7 +447,7 @@ private func htmlParseCalcProduct(pool: *HtmlValuePool, text: string, scan: *u64
     while left != HtmlNoNode
     {
         htmlSkipCalcSpace(text, scan)
-        if scan[] >= @countof(text) do
+        if scan[] >= text.count do
             break
         let operator = text[scan[]]
         if operator != '*' and operator != '/' do
@@ -474,7 +474,7 @@ func htmlReadBalanced(text: string, scan: *u64)->string
     let start = scan[] + 1
     var depth = 1'u32
     var index = start
-    while index < @countof(text) and depth
+    while index < text.count and depth
     {
         if text[index] == '(' do
             depth += 1
@@ -484,14 +484,14 @@ func htmlReadBalanced(text: string, scan: *u64)->string
             index += 1
     }
 
-    scan[] = Math.min(index + 1, @countof(text))
-    return text[start until Math.min(index, @countof(text))]
+    scan[] = Math.min(index + 1, text.count)
+    return text[start until Math.min(index, text.count)]
 }
 
 private func htmlParseCalcPrimary(pool: *HtmlValuePool, text: string, scan: *u64, context: HtmlLengthContext)->u32
 {
     htmlSkipCalcSpace(text, scan)
-    if scan[] >= @countof(text) do
+    if scan[] >= text.count do
         return HtmlNoNode
 
     if text[scan[]] == '('
@@ -502,10 +502,10 @@ private func htmlParseCalcPrimary(pool: *HtmlValuePool, text: string, scan: *u64
 
     let nameStart = scan[]
     var nameEnd   = scan[]
-    while nameEnd < @countof(text) and (Latin1.isLetter(text[nameEnd]) or text[nameEnd] == '-') do
+    while nameEnd < text.count and (Latin1.isLetter(text[nameEnd]) or text[nameEnd] == '-') do
         nameEnd += 1
 
-    if nameEnd > nameStart and nameEnd < @countof(text) and text[nameEnd] == '('
+    if nameEnd > nameStart and nameEnd < text.count and text[nameEnd] == '('
     {
         let name = String.from(text[nameStart until nameEnd]).toLower()
         scan[] = nameEnd
@@ -536,14 +536,14 @@ private func htmlParseCalcPrimary(pool: *HtmlValuePool, text: string, scan: *u64
     }
 
     var termEnd = scan[]
-    while termEnd < @countof(text) and text[termEnd] != '+' and text[termEnd] != '-' and text[termEnd] != '*' and text[termEnd] != '/' and text[termEnd] != ')' do
+    while termEnd < text.count and text[termEnd] != '+' and text[termEnd] != '-' and text[termEnd] != '*' and text[termEnd] != '/' and text[termEnd] != ')' do
         termEnd += 1
 
     // A sign belongs to the number when nothing readable precedes it.
     if termEnd == scan[] and (text[termEnd] == '+' or text[termEnd] == '-')
     {
         termEnd += 1
-        while termEnd < @countof(text) and text[termEnd] != '+' and text[termEnd] != '-' and text[termEnd] != '*' and text[termEnd] != '/' and text[termEnd] != ')' do
+        while termEnd < text.count and text[termEnd] != '+' and text[termEnd] != '-' and text[termEnd] != '*' and text[termEnd] != '/' and text[termEnd] != ')' do
             termEnd += 1
     }
 
@@ -556,11 +556,11 @@ private func htmlParseCalcPrimary(pool: *HtmlValuePool, text: string, scan: *u64
 
 private func htmlFoldCalcArguments(pool: *HtmlValuePool, arguments: const [..] String, op: HtmlCalcOp, context: HtmlLengthContext)->u32
 {
-    if !@countof(arguments) do
+    if !arguments.count do
         return HtmlNoNode
 
     var folded = htmlParseCalcExpression(pool, arguments[0].toString(), context)
-    for index in 1 until @countof(arguments)
+    for index in 1 until arguments.count
     {
         let right = htmlParseCalcExpression(pool, arguments[index].toString(), context)
         if folded == HtmlNoNode or right == HtmlNoNode do
@@ -581,7 +581,7 @@ func htmlParseLength(pool: *HtmlValuePool, text: string, context: HtmlLengthCont
 {
     var result: retval
     let trimmed = Latin1.trim(text)
-    if !@countof(trimmed) do
+    if !trimmed.count do
         return result
 
     let lower = String.from(trimmed).toLower()
@@ -620,7 +620,7 @@ func htmlParseLength(pool: *HtmlValuePool, text: string, context: HtmlLengthCont
     if number.eat
     {
         let unit = Latin1.trim(lower.toString()[number.eat to])
-        if !@countof(unit) or unit == "px"
+        if !unit.count or unit == "px"
         {
             result.length  = HtmlLength.pixels(number.value)
             result.matched = true

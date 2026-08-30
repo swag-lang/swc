@@ -40,12 +40,12 @@ internal func appendAllocationFailure(message: *ConcatBuffer, operation: string,
         Format.append(message, "%{X}", cast(u64) request.address)
     }
 
-    let hintLength = @countof(request.hint)
+    let hintLength = request.hint.count
     if hintLength
     {
-        let shownHintLength = @min(hintLength, AllocationPanicHintMaxBytes)
+        let shownHintLength = Swag.min(hintLength, AllocationPanicHintMaxBytes)
         message.addBytes(" [")
-        message.addBytes(@mkstring(@dataof(request.hint), shownHintLength))
+        message.addBytes(Swag.makeString(request.hint.buffer, shownHintLength))
         if shownHintLength != hintLength do
             message.addBytes("...")
         message.addBytes("]")
@@ -62,7 +62,7 @@ private func panicAllocationFailure(operation: string, request: *AllocatorReques
     message.allocator = stackAllocatorItf
     message.setFirstBucket(storage)
     appendAllocationFailure(&message, operation, request[], includeOldAllocation)
-    @panic(cast(string) message.toSlice()!, request.callerLoc)
+    Swag.panic(cast(string) message.toSlice()!, request.callerLoc)
 }
 
 // Asserts that a byte range belongs to the selected allocator.
@@ -78,7 +78,7 @@ func assertIsAllocated(buffer: #null [*] void, size: u64, allocator: #null IAllo
     req.address   = buffer
     req.hint      = hint
 
-    let talloc = (allocator orelse @getcontext().allocator)!
+    let talloc = (allocator orelse Swag.getContext().allocator)!
     talloc.assertAllocated(&req)
 }
 
@@ -95,7 +95,7 @@ func free(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null,
     req.address   = buffer
     req.hint      = hint
 
-    let talloc = (allocator orelse @getcontext().allocator)!
+    let talloc = (allocator orelse Swag.getContext().allocator)!
     talloc.free(&req)
 }
 
@@ -106,7 +106,7 @@ func freeAll(allocator: #null IAllocator, hint: #null string = null, loc = #call
     req.callerLoc = loc
     req.hint      = hint
 
-    let talloc = (allocator orelse @getcontext().allocator)!
+    let talloc = (allocator orelse Swag.getContext().allocator)!
     talloc.freeAll(&req)
 }
 
@@ -125,7 +125,7 @@ func realloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #nul
     if !newSize do
         panicAllocationFailure("Memory.realloc", &req, true)
 
-    let talloc = (allocator orelse @getcontext().allocator)!
+    let talloc = (allocator orelse Swag.getContext().allocator)!
     talloc.realloc(&req)
 
     if !req.address
@@ -150,7 +150,7 @@ func alloc(size: u64, allocator: #null IAllocator = null, alignment: u32 = 0, hi
     if !size do
         panicAllocationFailure("Memory.alloc", &req, false)
 
-    let talloc = (allocator orelse @getcontext().allocator)!
+    let talloc = (allocator orelse Swag.getContext().allocator)!
     talloc.alloc(&req)
 
     if !req.address do
@@ -170,7 +170,7 @@ func tempAlloc(size: u64, alignment: u32 = 0, hint: #null string = null, loc = #
     if !size do
         panicAllocationFailure("Memory.tempAlloc", &req, false)
 
-    @getcontext().tempAllocator.IAllocator.alloc(&req)
+    Swag.getContext().tempAllocator.IAllocator.alloc(&req)
     if !req.address do
         panicAllocationFailure("Memory.tempAlloc", &req, false)
     return req.address!
@@ -183,7 +183,7 @@ func new(type: typeinfo, allocator: #null IAllocator = null, alignment: u32 = 0,
     let userHint = hint orelse type.fullname
     if !canDefaultInit(type)
     {
-        @panic("Memory.new cannot default-initialize this type", loc)
+        Swag.panic("Memory.new cannot default-initialize this type", loc)
         return null
     }
 
@@ -197,7 +197,7 @@ func(T) new(allocator: #null IAllocator = null, alignment: u32 = 0, hint: #null 
 {
     let userHint = hint orelse #stringof(T)
     let ptr      = cast(*T) alloc(#sizeof(T), allocator, alignment, userHint, loc)
-    @init(ptr, 1)
+    Swag.init(ptr, 1)
     return ptr
 }
 
@@ -208,7 +208,7 @@ func(T) delete(ptr: #null *T, allocator: #null IAllocator = null, hint: #null st
         return
     let userHint = hint orelse #stringof(T)
     assertIsAllocated(ptr, #sizeof(T), allocator, userHint, loc)
-    @drop(ptr)
+    Swag.drop(ptr)
     free(ptr, #sizeof(T), allocator, userHint, loc)
 }
 
@@ -234,7 +234,7 @@ func(T) new(num: u64, allocator: #null IAllocator = null, alignment: u32 = 0, hi
 
     let userHint = hint orelse #stringof(T)
     let ptr      = cast([*] T) alloc(#sizeof(T) * num, allocator, alignment, userHint, loc)
-    @init(ptr, num)
+    Swag.init(ptr, num)
     return ptr
 }
 
@@ -247,6 +247,6 @@ func(T) delete(ptr: #null [*] T, num: u64, allocator: #null IAllocator = null, h
 
     let userHint = hint orelse #stringof(T)
     assertIsAllocated(ptr, #sizeof(T) * num, allocator, userHint, loc)
-    @drop(ptr, num)
+    Swag.drop(ptr, num)
     free(ptr, #sizeof(T) * num, allocator, userHint, loc)
 }

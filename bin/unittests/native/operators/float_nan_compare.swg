@@ -101,13 +101,13 @@ func switchNaNRange()->bool
     const a = Swag.F32.NaN
     const b = Swag.F32.NaN
 
-    @assert(!eqF32(a, b))
-    @assert(neF32(a, b))
-    @assert(!ltF32(a, b))
-    @assert(!leF32(a, b))
-    @assert(!gtF32(a, b))
-    @assert(!geF32(a, b))
-    @assert(cmpF32(a, b) == 0)
+    Swag.assert(!eqF32(a, b))
+    Swag.assert(neF32(a, b))
+    Swag.assert(!ltF32(a, b))
+    Swag.assert(!leF32(a, b))
+    Swag.assert(!gtF32(a, b))
+    Swag.assert(!geF32(a, b))
+    Swag.assert(cmpF32(a, b) == 0)
 }
 
 // NaN comparison for f64
@@ -116,18 +116,18 @@ func switchNaNRange()->bool
     const a = Swag.F64.NaN
     const b = Swag.F64.NaN
 
-    @assert(!eqF64(a, b))
-    @assert(neF64(a, b))
-    @assert(!ltF64(a, b))
-    @assert(!leF64(a, b))
-    @assert(!gtF64(a, b))
-    @assert(!geF64(a, b))
-    @assert(cmpF64(a, b) == 0)
+    Swag.assert(!eqF64(a, b))
+    Swag.assert(neF64(a, b))
+    Swag.assert(!ltF64(a, b))
+    Swag.assert(!leF64(a, b))
+    Swag.assert(!gtF64(a, b))
+    Swag.assert(!geF64(a, b))
+    Swag.assert(cmpF64(a, b) == 0)
 }
 
 // NaN in switch equality and range
 #test
 {
-    @assert(switchNaNEquality())
-    @assert(switchNaNRange())
+    Swag.assert(switchNaNEquality())
+    Swag.assert(switchNaNRange())
 }

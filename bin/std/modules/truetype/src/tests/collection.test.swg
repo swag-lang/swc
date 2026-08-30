@@ -7,11 +7,11 @@ using Swag, Core
 {
     let bytes = loadFontBytes("arial.ttf")
     let count = expect Face.countFaces(bytes.toSlice())
-    @assert(count == 1)
+    Swag.assert(count == 1)
 
     let face = (expect Face.loadAt(bytes.toSlice(), 0))!
     defer face.destroy()
-    @assert(face.familyName == "Arial")
+    Swag.assert(face.familyName == "Arial")
 }
 
 // Every face of a collection loads independently, and the index selects which one.
@@ -19,21 +19,21 @@ using Swag, Core
 {
     let bytes = buildFontCollection(["arial.ttf", "arialbd.ttf"])
     let count = expect Face.countFaces(bytes.toSlice())
-    @assert(count == 2)
+    Swag.assert(count == 2)
 
     let regular = (expect Face.loadAt(bytes.toSlice(), 0))!
     defer regular.destroy()
     let bold = (expect Face.loadAt(bytes.toSlice(), 1))!
     defer bold.destroy()
 
-    @assert(regular.familyName == "Arial")
-    @assert(bold.familyName == "Arial")
-    @assert(!regular.isBold())
-    @assert(bold.isBold())
+    Swag.assert(regular.familyName == "Arial")
+    Swag.assert(bold.familyName == "Arial")
+    Swag.assert(!regular.isBold())
+    Swag.assert(bold.isBold())
 
     // A collection member is a whole face: its outlines resolve as usual.
-    @assert(regular.glyphIndex('A') > 0)
-    @assert(bold.glyphIndex('A') > 0)
+    Swag.assert(regular.glyphIndex('A') > 0)
+    Swag.assert(bold.glyphIndex('A') > 0)
 }
 
 // Loading a collection without an index takes its first face.
@@ -43,7 +43,7 @@ using Swag, Core
 
     let first = (expect Face.load(bytes.toSlice()))!
     defer first.destroy()
-    @assert(first.isBold())
+    Swag.assert(first.isBold())
 }
 
 // A collection is searchable by family without loading any of its faces, and the
@@ -52,22 +52,22 @@ using Swag, Core
 {
     let bytes = buildFontCollection(["arial.ttf", "segoeui.ttf"])
 
-    @assert((expect Face.familyNameAt(bytes.toSlice(), 0)) == "Arial")
-    @assert((expect Face.familyNameAt(bytes.toSlice(), 1)) == "Segoe UI")
+    Swag.assert((expect Face.familyNameAt(bytes.toSlice(), 0)) == "Arial")
+    Swag.assert((expect Face.familyNameAt(bytes.toSlice(), 1)) == "Segoe UI")
 
     let second = (expect Face.loadAt(bytes.toSlice(), 1))!
     defer second.destroy()
-    @assert(second.familyName == (expect Face.familyNameAt(bytes.toSlice(), 1)))
+    Swag.assert(second.familyName == (expect Face.familyNameAt(bytes.toSlice(), 1)))
 }
 
 // A bare font file names its single face, and nothing beyond it.
 #test
 {
     let bytes = loadFontBytes("arial.ttf")
-    @assert((expect Face.familyNameAt(bytes.toSlice(), 0)) == "Arial")
+    Swag.assert((expect Face.familyNameAt(bytes.toSlice(), 0)) == "Arial")
 
     discard catch Face.familyNameAt(bytes.toSlice(), 1) as errBeyond
-    @assert(errBeyond != null)
+    Swag.assert(errBeyond != null)
 }
 
 // An index beyond the collection is reported rather than read out of bounds.
@@ -75,8 +75,8 @@ using Swag, Core
 {
     let bytes    = buildFontCollection(["arial.ttf", "arialbd.ttf"])
     let outOfEnd = catch Face.loadAt(bytes.toSlice(), 2) as errRange
-    @assert(errRange != null)
-    @assert(outOfEnd == null)
+    Swag.assert(errRange != null)
+    Swag.assert(outOfEnd == null)
 }
 
 // A bare font file holds no face beyond the first.
@@ -84,8 +84,8 @@ using Swag, Core
 {
     let bytes    = loadFontBytes("arial.ttf")
     let outOfEnd = catch Face.loadAt(bytes.toSlice(), 1) as errSingle
-    @assert(errSingle != null)
-    @assert(outOfEnd == null)
+    Swag.assert(errSingle != null)
+    Swag.assert(outOfEnd == null)
 }
 
 // A WOFF container is rejected on sight, and counting its faces fails for the same
@@ -93,15 +93,15 @@ using Swag, Core
 #test
 {
     let woff = catch Face.load(WoffBytes) as errWoff
-    @assert(errWoff != null)
-    @assert(woff == null)
+    Swag.assert(errWoff != null)
+    Swag.assert(woff == null)
 
     let woff2 = catch Face.load(Woff2Bytes) as errWoff2
-    @assert(errWoff2 != null)
-    @assert(woff2 == null)
+    Swag.assert(errWoff2 != null)
+    Swag.assert(woff2 == null)
 
     discard catch Face.countFaces(WoffBytes) as errCount
-    @assert(errCount != null)
+    Swag.assert(errCount != null)
 }
 
 // An OpenType container is read, so an empty one fails on its missing tables rather than
@@ -109,9 +109,9 @@ using Swag, Core
 #test
 {
     let cff = catch Face.load(OpenTypeCffBytes) as errCff
-    @assert(errCff != null)
-    @assert(cff == null)
+    Swag.assert(errCff != null)
+    Swag.assert(cff == null)
 
     let count = expect Face.countFaces(OpenTypeCffBytes)
-    @assert(count == 1)
+    Swag.assert(count == 1)
 }

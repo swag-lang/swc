@@ -17,7 +17,7 @@ func less(a, b: u64)->bool
     var n = g_Len[a]
     if g_Len[b] < n do
         n = g_Len[b]
-    let c = @memcmp(&g_Text[g_Off[a]], &g_Text[g_Off[b]], n)
+    let c = Swag.memcmp(&g_Text[g_Off[a]], &g_Text[g_Off[b]], n)
     if c != 0 do
         return c < 0
     return g_Len[a] < g_Len[b]

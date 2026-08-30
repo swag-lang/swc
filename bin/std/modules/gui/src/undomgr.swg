@@ -60,7 +60,7 @@ impl UndoManager
     mtd clear()
     {
         for &s in .steps do
-            Memory.delete(@dataof(s.cmd), @kindof(s.cmd))
+            Memory.delete(s.cmd.buffer, Swag.kindOf(s.cmd))
         .steps.clear()
         .next      = 0
         .serialGen = 0
@@ -104,7 +104,7 @@ impl UndoManager
         while .steps.count > .next
         {
             let back = .steps.popBack()
-            Memory.delete(@dataof(back.cmd), @kindof(back.cmd))
+            Memory.delete(back.cmd.buffer, Swag.kindOf(back.cmd))
         }
 
         var s = serial

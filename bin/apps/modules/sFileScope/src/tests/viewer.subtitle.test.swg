@@ -19,21 +19,21 @@ func subtitleViewerFixturePath()->String
 
     let fileName = subtitleViewerFixturePath()
     var result   = openTestViewer(&createSubtitleViewer, &host.root, fileName.toString(), commandParent: &host.root)
-    @assert(result.view != null and result.commands == null)
-    @assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
-    @assert(result.details.indexOf("SubRip") != Swag.U64.Max and result.details.indexOf("2 cues") != Swag.U64.Max)
+    Swag.assert(result.view != null and result.commands == null)
+    Swag.assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
+    Swag.assert(result.details.indexOf("SubRip") != Swag.U64.Max and result.details.indexOf("2 cues") != Swag.U64.Max)
 
     let view = cast(*SubtitleViewer) result.view!
-    @assert(view.track!.cueCount() == 2)
-    @assert(view.transcript.indexOf("00:00:00.500") != Swag.U64.Max)
-    @assert(view.transcript.indexOf("A second caption\non two lines.") != Swag.U64.Max)
+    Swag.assert(view.track!.cueCount() == 2)
+    Swag.assert(view.transcript.indexOf("00:00:00.500") != Swag.U64.Max)
+    Swag.assert(view.transcript.indexOf("A second caption\non two lines.") != Swag.U64.Max)
 
     var matches: Array'ViewerSearchMatch
     result.collectMatches!(result.view!, "second", {}, &matches)
-    @assert(matches.count == 1 and matches[0].major == 1)
-    @assert(result.revealMatch!(result.view!, matches[0], "second"))
+    Swag.assert(matches.count == 1 and matches[0].major == 1)
+    Swag.assert(result.revealMatch!(result.view!, matches[0], "second"))
     var bounds: Math.Rectangle
-    @assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
+    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
     result.clearSearch!(result.view!)
 }
 
@@ -52,7 +52,7 @@ func subtitleViewerFixturePath()->String
 
     let fileName = subtitleViewerFixturePath()
     var result   = openTestViewer(&createSubtitleViewer, &host.root, fileName.toString(), commandParent: &host.root)
-    @assert(result.view != null)
+    Swag.assert(result.view != null)
     result.view!.dockStyle = .Center
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)

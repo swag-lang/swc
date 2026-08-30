@@ -30,7 +30,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg")
 
     let image = expect loadViewerImage(fileName)
-    @assert(image.width == 128 and image.height == 64)
+    Swag.assert(image.width == 128 and image.height == 64)
 }
 
 // Pins the still-image tools beside a real vector document: zoom, fit, native size, and rotate
@@ -55,33 +55,33 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     infoBar.padding         = {16, 4, 16, 4}
 
     var result = openTestViewer(&createImageViewer, &host.root, fileName, commandParent: &host.root, actionParent: actionBar, infoParent: infoBar, services: {navigateFile: &countImageNavigation})
-    @assert(result.view != null and result.actions != null and result.info != null and result.commands == null)
+    Swag.assert(result.view != null and result.actions != null and result.info != null and result.commands == null)
 
     let view = cast(*ImageViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     var navigation: s32
     view.userData = &navigation
-    @assert(view.previousButton.isEnabled() and view.nextButton.isEnabled())
-    @assert(view.previousButton.icon.isValid() and view.nextButton.icon.isValid())
-    @assert(view.transformButton.arrowPosition == .RightDownward)
+    Swag.assert(view.previousButton.isEnabled() and view.nextButton.isEnabled())
+    Swag.assert(view.previousButton.icon.isValid() and view.nextButton.icon.isValid())
+    Swag.assert(view.transformButton.arrowPosition == .RightDownward)
     let transformMenu = view.createTransformMenu()
     defer transformMenu.destroy()
-    @assert(transformMenu.itemAt(0).name.raw == imageStrings().ui_RotateCounterClockwise)
-    @assert(transformMenu.itemAt(0).rightName.raw == "Shift+R")
-    @assert(transformMenu.itemAt(1).rightName.raw == "R")
-    @assert(transformMenu.itemAt(3).rightName.raw == "H")
-    @assert(transformMenu.itemAt(4).rightName.raw == "V")
-    @assert(transformMenu.itemAt(6).rightName.raw == "Ctrl+R")
-    @assert(!Utf8.contains(transformMenu.itemAt(0).name.raw, "("))
+    Swag.assert(transformMenu.itemAt(0).name.raw == imageStrings().ui_RotateCounterClockwise)
+    Swag.assert(transformMenu.itemAt(0).rightName.raw == "Shift+R")
+    Swag.assert(transformMenu.itemAt(1).rightName.raw == "R")
+    Swag.assert(transformMenu.itemAt(3).rightName.raw == "H")
+    Swag.assert(transformMenu.itemAt(4).rightName.raw == "V")
+    Swag.assert(transformMenu.itemAt(6).rightName.raw == "Ctrl+R")
+    Swag.assert(!Utf8.contains(transformMenu.itemAt(0).name.raw, "("))
     view.navigate(-1)
     view.navigate(1)
-    @assert(navigation == 0)
+    Swag.assert(navigation == 0)
     view.rotateCounterClockwise()
-    @assert(view.imageView.rotationQuarterTurns == 3 and Utf8.contains(view.zoomLabel.text(), "270"))
+    Swag.assert(view.imageView.rotationQuarterTurns == 3 and Utf8.contains(view.zoomLabel.text(), "270"))
     view.mirrorHorizontally()
-    @assert(view.imageView.isMirrored and Utf8.contains(view.zoomLabel.text(), imageStrings().word_Mirrored))
+    Swag.assert(view.imageView.isMirrored and Utf8.contains(view.zoomLabel.text(), imageStrings().word_Mirrored))
     view.resetTransform()
-    @assert(view.imageView.rotationQuarterTurns == 0 and !view.imageView.isMirrored)
+    Swag.assert(view.imageView.rotationQuarterTurns == 0 and !view.imageView.isMirrored)
     view.dockStyle         = .Center
     view.actions.dockStyle = .Center
     view.info.dockStyle    = .Center
@@ -105,10 +105,10 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     defer host.shutdown()
 
     var result = openTestViewer(&createImageViewer, &host.root, fileName, commandParent: &host.root, actionParent: &host.root, infoParent: &host.root)
-    @assert(result.view != null and result.actions != null and result.info != null and result.commands == null)
+    Swag.assert(result.view != null and result.actions != null and result.info != null and result.commands == null)
     let view = cast(*ImageViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    @assert(!view.failureReason.isEmpty())
+    Swag.assert(!view.failureReason.isEmpty())
 }
 
 // The application hosts image actions in its centred action slot and the zoom in its information
@@ -126,12 +126,12 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     window.openFile(fileName)
     completeImageViewerWindow(&host, window)
 
-    @assert(window.currentActions != null and window.currentActions!.parent == window.commandBar)
-    @assert(window.currentInfo != null and window.currentInfo!.parent == window.infoContentGroup)
-    @assert(window.infoContentGroup.position.x + window.currentInfo!.position.right() == window.infoBar.paddedClientRect().right())
-    @assert(window.currentInfo!.themeColors().label_TextLight == window.themeColors().label_TextFaint)
-    @assert(Math.abs(window.infoContentGroup.position.x + window.infoStatsLabel.position.horzCenter() - window.infoBar.paddedClientRect().horzCenter()) < 0.01)
-    @assert(window.currentCommands == null and !window.viewerBar.isLocallyVisible())
-    @assert(!window.searchGroup.isLocallyVisible())
-    @assert(Math.abs(window.currentActions!.position.horzCenter() - window.commandBar.paddedClientRect().horzCenter()) < 0.01)
+    Swag.assert(window.currentActions != null and window.currentActions!.parent == window.commandBar)
+    Swag.assert(window.currentInfo != null and window.currentInfo!.parent == window.infoContentGroup)
+    Swag.assert(window.infoContentGroup.position.x + window.currentInfo!.position.right() == window.infoBar.paddedClientRect().right())
+    Swag.assert(window.currentInfo!.themeColors().label_TextLight == window.themeColors().label_TextFaint)
+    Swag.assert(Math.abs(window.infoContentGroup.position.x + window.infoStatsLabel.position.horzCenter() - window.infoBar.paddedClientRect().horzCenter()) < 0.01)
+    Swag.assert(window.currentCommands == null and !window.viewerBar.isLocallyVisible())
+    Swag.assert(!window.searchGroup.isLocallyVisible())
+    Swag.assert(Math.abs(window.currentActions!.position.horzCenter() - window.commandBar.paddedClientRect().horzCenter()) < 0.01)
 }

@@ -25,9 +25,9 @@ of times returned by 'opCount'.
 #test
 {
     let v = MyStruct{}
-    @assert(@countof(v) == 4)
+    Swag.assert(v.count == 4)
     var cpt = 0
     for v do
         cpt += 1
-    @assert(cpt == 4)
+    Swag.assert(cpt == 4)
 }

@@ -7,11 +7,11 @@ using Swag
 {
     var state: Input.KeyboardState
 
-    for i in @countof(Input.Key) do
+    for i in Input.Key.count do
         state.setPressed(cast(Input.Key) i, true)
 
     state.clear()
 
-    for i in @countof(Input.Key) do
-        @assert(!state.pressed[i])
+    for i in Input.Key.count do
+        Swag.assert(!state.pressed[i])
 }

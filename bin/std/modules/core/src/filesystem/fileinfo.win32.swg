@@ -11,7 +11,7 @@ func info(fullname: string)->FileInfo fail
     var attrDatas: WIN32_FILE_ATTRIBUTE_DATA
 
     let winPath = Utf16.toZeroTerminated(fullname)
-    try GetFileAttributesExW(@dataof(winPath), GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard, &attrDatas)
+    try GetFileAttributesExW(winPath.buffer, GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard, &attrDatas)
 
     result.fullname   = fullname
     result.attributes = FileAttributes.fromDWORD(attrDatas.dwFileAttributes)

@@ -414,7 +414,7 @@ impl GizmoRect
 
     mtd apply(iform: IForm, first: bool, hitMove: u32)
     {
-        let form    = cast(*BaseForm) @dataof(iform)
+        let form    = cast(*BaseForm) iform.buffer
         let capture = form.capture!
         let oldRect = iform.boundRect()
         capture.interactiveMove = true
@@ -500,7 +500,7 @@ impl GizmoRect
     // Rotate slider in the property window so undo/redo stays consistent.
     mtd applyRotate(iform: IForm, first, last: bool, angle: f32)
     {
-        let form    = cast(*BaseForm) @dataof(iform)
+        let form    = cast(*BaseForm) iform.buffer
         let capture = form.capture!
         if !first do
             capture.undo()
@@ -511,9 +511,9 @@ impl GizmoRect
         capture.pushUndo(undo)
 
         let main = capture.editView!.main
-        if @isset(main.quickWnd) do
+        if Swag.isSet(main.quickWnd) do
             main.quickWnd.updateSelection()
-        if last and @isset(main.propWnd) do
+        if last and Swag.isSet(main.propWnd) do
             main.propWnd.selectionHasChanged()
         main.editWnd.invalidate()
     }

@@ -20,7 +20,7 @@
         hit = 4
         break
     }
-    @assert(hit == 2)
+    Swag.assert(hit == 2)
 }
 
 // Switch with negative range
@@ -40,7 +40,7 @@
         hit = 3
         break
     }
-    @assert(hit == 1)
+    Swag.assert(hit == 1)
 }
 
 // Switch hitting default
@@ -60,7 +60,7 @@
         hit = 99
         break
     }
-    @assert(hit == 99)
+    Swag.assert(hit == 99)
 }
 
 // Switch with no matching case and no default (hit is 0)
@@ -77,7 +77,7 @@
         hit = 2
         break
     }
-    @assert(hit == 0)
+    Swag.assert(hit == 0)
 }
 
 // Multiple switch statements in sequence
@@ -105,8 +105,8 @@
         rb = 0
         break
     }
-    @assert(ra == 10)
-    @assert(rb == 20)
+    Swag.assert(ra == 10)
+    Swag.assert(rb == 20)
 }
 
 // Switch inside for loop
@@ -132,7 +132,7 @@
         }
     }
     // i=0: 1, i=1: 10, i=2: 100, i=3: 1000, i=4: 1000
-    @assert(sum == 2111)
+    Swag.assert(sum == 2111)
 }
 
 // Switch with multiple values including negative
@@ -149,7 +149,7 @@
         hit = 2
         break
     }
-    @assert(hit == 1)
+    Swag.assert(hit == 1)
 }
 
 // Nested switch
@@ -181,7 +181,7 @@
         hit = 99
         break
     }
-    @assert(hit == 12)
+    Swag.assert(hit == 12)
 }
 
 // Switch on u8 type
@@ -201,7 +201,7 @@
         hit = 3
         break
     }
-    @assert(hit == 2)
+    Swag.assert(hit == 2)
 }
 
 // Switch with range at boundaries
@@ -221,7 +221,7 @@
         hit = 3
         break
     }
-    @assert(hit == 1)     // 3 is in 1 to 3 inclusive
+    Swag.assert(hit == 1)     // 3 is in 1 to 3 inclusive
 }
 
 // Switch on function return
@@ -241,7 +241,7 @@ func getChoice()->s32 { return 2 }
         hit = 3
         break
     }
-    @assert(hit == 2)
+    Swag.assert(hit == 2)
 }
 
 // Switch where clause with variable from outer scope
@@ -262,7 +262,7 @@ func getChoice()->s32 { return 2 }
         hit = 3
         break
     }
-    @assert(hit == 1)
+    Swag.assert(hit == 1)
 }
 
 // Switch where clause falling through to default
@@ -280,5 +280,5 @@ func getChoice()->s32 { return 2 }
         hit = 2
         break
     }
-    @assert(hit == 0)
+    Swag.assert(hit == 0)
 }

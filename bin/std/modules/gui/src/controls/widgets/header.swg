@@ -180,7 +180,7 @@ impl IWnd for Header
         var x = .padding.x
         for item, idx in .items
         {
-            @assert(item != null)
+            Swag.assert(item != null)
             .paintItem(evt.paintContext, item, cast(u32) idx, x)
             x += item.width
 

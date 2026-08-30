@@ -2,15 +2,15 @@
 
 #test
 {
-    @assert(1 + 1 == 2)
+    Swag.assert(1 + 1 == 2)
 }
 
 #test
 {
-    @assert(2 + 2 == 4)
+    Swag.assert(2 + 2 == 4)
 }
 
 #test
 {
-    @assert(3 + 3 == 6)
+    Swag.assert(3 + 3 == 6)
 }

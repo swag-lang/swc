@@ -29,5 +29,5 @@ func day5A()
         it        += jumps[it] - 1
     }
 
-    @assert(step == 359348)
+    Swag.assert(step == 359348)
 }

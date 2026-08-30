@@ -56,7 +56,7 @@ func runDynamicStructCast()->bool
         return false
     if itf is PointerWrapper do
         return false
-    if @dataof(itf) == null do
+    if itf.buffer == null do
         return false
     if itfBase == null or itfBase.value != 10 do
         return false
@@ -90,16 +90,16 @@ func runIntrinsicDynamicTypeInfo()->bool
     var number  = 45
     var derived = Derived{}
 
-    if !@is(baseType, derivedType) or !@is(midType, derivedType) or !@is(intType, s32) do
+    if !Swag.typeIs(baseType, derivedType) or !Swag.typeIs(midType, derivedType) or !Swag.typeIs(intType, s32) do
         return false
-    if @is(stringType, intType) do
+    if Swag.typeIs(stringType, intType) do
         return false
 
-    let intRaw = @as(intType, s32, &number)
+    let intRaw = Swag.typeAs(intType, s32, &number)
     if intRaw == null do
         return false
 
-    let baseRaw = @as(baseType, derivedType, &derived)
+    let baseRaw = Swag.typeAs(baseType, derivedType, &derived)
     if baseRaw == null do
         return false
 
@@ -107,7 +107,7 @@ func runIntrinsicDynamicTypeInfo()->bool
     let basePtr = cast(#null *Base) baseRaw
     if intPtr != &number or intPtr[] != 45 do
         return false
-    if @as(bool, intType, &number) != null do
+    if Swag.typeAs(bool, intType, &number) != null do
         return false
     if basePtr != &derived.mid.base do
         return false

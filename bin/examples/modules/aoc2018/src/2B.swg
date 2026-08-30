@@ -31,7 +31,7 @@ func day2B()
                 continue
             var diff = 0
             var result: String
-            for k in @countof(b)
+            for k in b.count
             {
                 if b[k] != a[k] do
                     diff += 1
@@ -44,7 +44,7 @@ func day2B()
             if diff == 1
             {
                 // Console.print("result ", result)
-                @assert(result == "nvosmkcdtdbfhyxsphzgraljq")
+                Swag.assert(result == "nvosmkcdtdbfhyxsphzgraljq")
                 return
             }
         }

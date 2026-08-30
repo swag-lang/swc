@@ -336,8 +336,8 @@ private func reportElfSections(image: *BinaryImage, report: *BinaryReport, secti
     }
 
     let wide  = is64 ? 8'u64 : 4
-    let total = countText(@countof(sections), s.word_Section, s.word_Sections)
-    report.beginGroup(s.shr_Sections, total.toString(), s.elf_SectionsDesc, offset: at, length: @countof(sections) * entrySize, open: true)
+    let total = countText(sections.count, s.word_Section, s.word_Sections)
+    report.beginGroup(s.shr_Sections, total.toString(), s.elf_SectionsDesc, offset: at, length: sections.count * entrySize, open: true)
 
     for section, index in sections
     {
@@ -384,7 +384,7 @@ private func reportElfDynamic(image: *BinaryImage, report: *BinaryReport, sectio
     let wide      = is64 ? 8'u64 : 4
     let at        = dynamic!.offset
     var stringsAt = 0'u64
-    if cast(u64) dynamic!.link < @countof(sections) do
+    if cast(u64) dynamic!.link < sections.count do
         stringsAt = sections[dynamic!.link].offset
 
     var entries: Array'u64
@@ -465,6 +465,6 @@ private func reportElfNotes(image: *BinaryImage, report: *BinaryReport, sections
 
         if text.isEmpty() do
             continue
-        report.field(payloadAt, payloadSize, s.shr_BuildId, @mkstring(text.buffer!, text.count))
+        report.field(payloadAt, payloadSize, s.shr_BuildId, Swag.makeString(text.buffer!, text.count))
     }
 }

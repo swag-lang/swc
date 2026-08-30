@@ -5,7 +5,7 @@
     func memsetAll()->bool
     {
         var data: [6] u8 = [1, 2, 3, 4, 5, 6]
-        @memset(&data[0], 170'u8, 6)
+        Swag.memset(&data[0], 170'u8, 6)
         return data[0] == 170'u8 and
                data[1] == 170'u8 and
                data[2] == 170'u8 and
@@ -23,7 +23,7 @@
     func memsetPartial()->bool
     {
         var data: [6] u8 = [1, 2, 3, 4, 5, 6]
-        @memset(&data[2], 9'u8, 3)
+        Swag.memset(&data[2], 9'u8, 3)
         return data[0] == 1'u8 and
                data[1] == 2'u8 and
                data[2] == 9'u8 and
@@ -41,7 +41,7 @@
     func memsetZeroSize()->bool
     {
         var data: [4] u8 = [10, 11, 12, 13]
-        @memset(&data[0], 0'u8, 0)
+        Swag.memset(&data[0], 0'u8, 0)
         return data[0] == 10'u8 and data[1] == 11'u8 and data[2] == 12'u8 and data[3] == 13'u8
     }
 

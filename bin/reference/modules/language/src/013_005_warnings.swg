@@ -65,8 +65,8 @@ func everythingOffExceptOne()->s32
 block: 'return', 'break', 'continue', 'fallthrough', or 'fail'. The statement
 compiles, but nothing can ever run it.
 
-Only those five count. '@panic' and 'unreachable' announce that control never
-reaches them, but neither is guaranteed to leave the block: '@panic' returns to
+Only those five count. 'Swag.panic' and 'unreachable' announce that control never
+reaches them, but neither is guaranteed to leave the block: 'Swag.panic' returns to
 its caller whenever a panic hook is installed, which is what the '#test' runner
 does so one failing test does not end the run, and 'unreachable' lowers to
 nothing once '#[Swag.Safety(.Unreachable, false)]' turns its guard off. The code
@@ -86,8 +86,8 @@ unreachable for the same reason.
 */
 #test
 {
-    @assert(firstDraft() == 1)
-    @assert(everythingOffExceptOne() == 1)
+    Swag.assert(firstDraft() == 1)
+    Swag.assert(everythingOffExceptOne() == 1)
 }
 
 /**
@@ -98,7 +98,7 @@ Each field of 'cfg.warnings' takes warning names separated with '|'.
 ```swag
 #run
 {
-    let cfg = @compiler.getBuildCfg()!
+    let cfg = Swag.compiler().getBuildCfg()!
     cfg.warnings.asErrors = "all"
     cfg.warnings.disabled = "sema_warn_unreachable_code"
 }

@@ -26,7 +26,7 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
     let totalBits = SIZE * 8
     var nb        = SIZE
     let buf       = cast([*] u8) (benchAlloc(SIZE + 128))!
-    @memcpy(buf, msg, SIZE)
+    Swag.memcpy(buf, msg, SIZE)
     buf[nb] = 0x80
     nb += 1
     while (nb % 64) != 56

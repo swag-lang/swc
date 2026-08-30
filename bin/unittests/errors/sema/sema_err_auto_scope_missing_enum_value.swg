@@ -28,7 +28,7 @@ func choose(opponent: Shape)->Shape
         return .Rock
     }
 
-    @assert(false)
+    Swag.assert(false)
     return .Rock
 }
 

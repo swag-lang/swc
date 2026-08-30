@@ -15,10 +15,10 @@ using Swag, Core
     let textRectBefore = textItf.boundRect()
 
     var textPaint = quickStyleNewPaintForm(textItf)
-    @assert(@dataof(textPaint.itf) != @dataof(textItf))
-    @assert(f.main.mdlFormText.text == "Keep me")
-    @assert(textItf.boundRect() == textRectBefore)
-    @assert((cast(*FormText) @dataof(textPaint.itf!)).text == "A")
+    Swag.assert(textPaint.itf.buffer != textItf.buffer)
+    Swag.assert(f.main.mdlFormText.text == "Keep me")
+    Swag.assert(textItf.boundRect() == textRectBefore)
+    Swag.assert((cast(*FormText) (textPaint.itf!).buffer).text == "A")
     quickStyleReleasePaintForm(&textPaint)
 
     f.main.mdlFormPolygon.points.add({10, 10})
@@ -28,10 +28,10 @@ using Swag, Core
     let pointBefore = f.main.mdlFormPolygon.points[0]
 
     var polyPaint = quickStyleNewPaintForm(polyItf)
-    @assert(@dataof(polyPaint.itf) != @dataof(polyItf))
-    @assert(f.main.mdlFormPolygon.points.count == 3)
-    @assert(f.main.mdlFormPolygon.points[0] == pointBefore)
-    @assert((cast(*FormPolygon) @dataof(polyPaint.itf!)).points.count == 6)
+    Swag.assert(polyPaint.itf.buffer != polyItf.buffer)
+    Swag.assert(f.main.mdlFormPolygon.points.count == 3)
+    Swag.assert(f.main.mdlFormPolygon.points[0] == pointBefore)
+    Swag.assert((cast(*FormPolygon) (polyPaint.itf!).buffer).points.count == 6)
     quickStyleReleasePaintForm(&polyPaint)
 }
 
@@ -99,14 +99,14 @@ using Swag, Core
 
         var image = f.gui.render(btn)
         let ink   = inkBounds(&image)
-        @assert(ink.width > 4 and ink.height > 4)
-        @assert(Math.abs(ink.horzCenter() - QuickCellSize * 0.5) <= 2)
-        @assert(Math.abs(ink.vertCenter() - QuickCellSize * 0.5) <= 2)
+        Swag.assert(ink.width > 4 and ink.height > 4)
+        Swag.assert(Math.abs(ink.horzCenter() - QuickCellSize * 0.5) <= 2)
+        Swag.assert(Math.abs(ink.vertCenter() - QuickCellSize * 0.5) <= 2)
 
         // Half the cell is the ceiling a glyph takes; the rest is what separates one preset
         // from the next.
-        @assert(ink.width <= QuickCellSize * 0.6)
-        @assert(ink.height <= QuickCellSize * 0.6)
+        Swag.assert(ink.width <= QuickCellSize * 0.6)
+        Swag.assert(ink.height <= QuickCellSize * 0.6)
     }
 }
 
@@ -149,7 +149,7 @@ using Swag, Core
     for item in f.main.propWnd.grid.items
     {
         let it = item!
-        if @isset(it.sliderBox)
+        if Swag.isSet(it.sliderBox)
         {
             sliderCtrlBefore = it.sliderBox
             break
@@ -168,23 +168,23 @@ using Swag, Core
         if dismissed[] do
             return
 
-        @assert(host.dismissPopupMenu())
+        Swag.assert(host.dismissPopupMenu())
         dismissed[] = true
     }
 
     f.gui.clickWnd(f.main.quickWnd.layout.children[0], Input.MouseButton.Right)
     f.gui.pump()
 
-    @assert(didDismiss)
-    @assert(f.main.propWnd.position == propRectBefore)
-    @assert(f.main.propWnd.grid.position == gridPosBefore)
-    @assert(f.main.propWnd.grid.items.count == gridItemCountBefore)
-    @assert(f.main.quickStyleBar.items[0]!.size == quickPaneSizeBefore)
-    @assert(f.main.propWnd.topLayout.position == topLayoutPosBefore)
-    @assert(sliderBefore.position == sliderCtrlPosBefore)
-    @assert(sliderBefore.slider.position == sliderTrackPosBefore)
-    @assert(sliderBefore.edit.position == sliderEditPosBefore)
-    @assert(f.main.propWnd.topLayout.children.count == propChildCountBefore)
+    Swag.assert(didDismiss)
+    Swag.assert(f.main.propWnd.position == propRectBefore)
+    Swag.assert(f.main.propWnd.grid.position == gridPosBefore)
+    Swag.assert(f.main.propWnd.grid.items.count == gridItemCountBefore)
+    Swag.assert(f.main.quickStyleBar.items[0]!.size == quickPaneSizeBefore)
+    Swag.assert(f.main.propWnd.topLayout.position == topLayoutPosBefore)
+    Swag.assert(sliderBefore.position == sliderCtrlPosBefore)
+    Swag.assert(sliderBefore.slider.position == sliderTrackPosBefore)
+    Swag.assert(sliderBefore.edit.position == sliderEditPosBefore)
+    Swag.assert(f.main.propWnd.topLayout.children.count == propChildCountBefore)
 }
 
 // Default quick styles cover every visible sSnapForge tool family with subkind tagging.
@@ -196,44 +196,44 @@ using Swag, Core
     let quick = QuickWnd.create(f.main, f.main)
     quick.setDefault()
 
-    @assert(quick.qsArrow.forms.count > 0)
-    @assert(quick.qsLine.forms.count > 0)
-    @assert(quick.qsShape.forms.count > 0)
-    @assert(quick.qsImage.forms.count > 0)
-    @assert(quick.qsStep.forms.count > 0)
-    @assert(quick.qsPolygon.forms.count > 0)
-    @assert(quick.qsText.forms.count > 0)
-    @assert(quick.qsDraw.forms.count > 0)
-    @assert(quick.qsHighlight.forms.count > 0)
-    @assert(quick.qsPixSel.forms.count > 0)
+    Swag.assert(quick.qsArrow.forms.count > 0)
+    Swag.assert(quick.qsLine.forms.count > 0)
+    Swag.assert(quick.qsShape.forms.count > 0)
+    Swag.assert(quick.qsImage.forms.count > 0)
+    Swag.assert(quick.qsStep.forms.count > 0)
+    Swag.assert(quick.qsPolygon.forms.count > 0)
+    Swag.assert(quick.qsText.forms.count > 0)
+    Swag.assert(quick.qsDraw.forms.count > 0)
+    Swag.assert(quick.qsHighlight.forms.count > 0)
+    Swag.assert(quick.qsPixSel.forms.count > 0)
 
     for it in quick.qsHighlight.forms
     {
-        let base = cast(*BaseForm) @dataof(it)
-        @assert(base.subKind == .Highlight)
-        @assert(base.alpha < 100)
+        let base = cast(*BaseForm) it.buffer
+        Swag.assert(base.subKind == .Highlight)
+        Swag.assert(base.alpha < 100)
     }
 
     for it in quick.qsPixSel.forms
     {
-        let base = cast(*BaseForm) @dataof(it)
-        @assert(base.subKind == .PixSel)
-        @assert(!base.paintShadow)
+        let base = cast(*BaseForm) it.buffer
+        Swag.assert(base.subKind == .PixSel)
+        Swag.assert(!base.paintShadow)
     }
 
     // Every image-form kind must be present in the default image styles.
     var imageKinds: Array'FormImageKind
     for it in quick.qsImage.forms
     {
-        @assert(@kindof(it) == FormImage)
-        imageKinds.add((cast(*FormImage) @dataof(it)).kind)
+        Swag.assert(Swag.kindOf(it) == FormImage)
+        imageKinds.add((cast(*FormImage) it.buffer).kind)
     }
 
-    @assert(imageKinds.contains(FormImageKind.Image))
-    @assert(imageKinds.contains(FormImageKind.Zoom))
-    @assert(imageKinds.contains(FormImageKind.Blur))
-    @assert(imageKinds.contains(FormImageKind.Pixelate))
-    @assert(imageKinds.contains(FormImageKind.Capture))
+    Swag.assert(imageKinds.contains(FormImageKind.Image))
+    Swag.assert(imageKinds.contains(FormImageKind.Zoom))
+    Swag.assert(imageKinds.contains(FormImageKind.Blur))
+    Swag.assert(imageKinds.contains(FormImageKind.Pixelate))
+    Swag.assert(imageKinds.contains(FormImageKind.Capture))
 
     quick.destroy()
     f.gui.pump()
@@ -255,9 +255,9 @@ using Swag, Core
             let btn = cast(*QuickButton) c
             if btn.userData or !btn.formItf do
                 continue
-            if @kindof(btn.formItf!) != FormImage do
+            if Swag.kindOf(btn.formItf!) != FormImage do
                 continue
-            if (cast(*FormImage) @dataof(btn.formItf!)).kind == .Blur do
+            if (cast(*FormImage) (btn.formItf!).buffer).kind == .Blur do
                 return btn.toolTip
         }
 
@@ -276,12 +276,12 @@ using Swag, Core
     f.main.editMode = .Image
     quick.setDefault()
     quick.updateQuickStyles(forceRebuild: true)
-    @assert(blurTip(quick) == appStrings().prop_KindBlur)
+    Swag.assert(blurTip(quick) == appStrings().prop_KindBlur)
 
     expect f.gui.app.setLanguage("fr")
     f.gui.notify(.LanguageChanged)
     f.gui.pump()
-    @assert(blurTip(quick) == "Flou")
+    Swag.assert(blurTip(quick) == "Flou")
 
     quick.destroy()
     f.gui.pump()
@@ -304,18 +304,18 @@ using Swag, Core
     extra.IForm.setup(f.capture)
     quick.qsShape.forms.add(extra)
     quick.updateQuickStyles(forceRebuild: true)
-    @assert(quick.qsShape.forms.count == defaultCount + 1)
-    @assert(quick.currentStyle == &quick.qsShape)
+    Swag.assert(quick.qsShape.forms.count == defaultCount + 1)
+    Swag.assert(quick.currentStyle == &quick.qsShape)
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
 
     f.main.sendCommandEvent(ActionQuickStyle.Reset)
     f.gui.pump()
 
-    @assert(f.gui.autoHandled)
-    @assert(f.gui.openedSurfaceCount() == 0)
-    @assert(quick.currentStyle == &quick.qsShape)
-    @assert(quick.qsShape.forms.count == defaultCount)
+    Swag.assert(f.gui.autoHandled)
+    Swag.assert(f.gui.openedSurfaceCount() == 0)
+    Swag.assert(quick.currentStyle == &quick.qsShape)
+    Swag.assert(quick.qsShape.forms.count == defaultCount)
 
     quick.destroy()
     f.gui.pump()
@@ -339,16 +339,16 @@ using Swag, Core
     extra.IForm.setup(f.capture)
     quick.qsShape.forms.add(extra)
     quick.updateQuickStyles(forceRebuild: true)
-    @assert(quick.qsShape.forms.count == defaultCount + 1)
+    Swag.assert(quick.qsShape.forms.count == defaultCount + 1)
 
     f.gui.clickPopupMenuItemWhenShown(ActionQuickStyle.Reset)
     f.gui.thenClickModalButton(Dialog.BtnYes)
 
     f.gui.clickWnd(quick.layout.children[0], Input.MouseButton.Right)
 
-    @assert(f.gui.autoHandled)
-    @assert(f.gui.openedSurfaceCount() == 0)
-    @assert(quick.qsShape.forms.count == defaultCount)
+    Swag.assert(f.gui.autoHandled)
+    Swag.assert(f.gui.openedSurfaceCount() == 0)
+    Swag.assert(quick.qsShape.forms.count == defaultCount)
 
     quick.destroy()
     f.gui.pump()
@@ -366,9 +366,9 @@ using Swag, Core
     quickStyle.forms.add(shape)
 
     quickStyle.sanitize()
-    @assert(quickStyle.forms.count == 1)
-    @assert(@kindof(quickStyle.forms[0]) == FormShape)
+    Swag.assert(quickStyle.forms.count == 1)
+    Swag.assert(Swag.kindOf(quickStyle.forms[0]) == FormShape)
 
     quickStyle.clear()
-    @assert(quickStyle.forms.count == 0)
+    Swag.assert(quickStyle.forms.count == 0)
 }

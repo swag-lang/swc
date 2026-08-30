@@ -170,7 +170,7 @@ func semaTest019()
 func semaTest020()
 {
     var arr: [3]s32 = [1, 2, 3]
-    for i in @countof(arr)
+    for i in arr.count
     {
         var x = i
     }
@@ -225,7 +225,7 @@ func semaTest027()
 func semaTest028()
 {
     var str: #null string
-    for it in @countof(str) {}
+    for it in str.count {}
     var v: u32
     for it in v {}
     var v1: s32 = 4
@@ -240,7 +240,7 @@ func semaTest029()
     #[Swag.EnumFlags]
     enum Bits: u32 { A, B, C }
 
-    for idx in @countof(Bits)
+    for idx in Bits.count
     {
         #assert(#typeof(idx) == u32)
         var x = idx

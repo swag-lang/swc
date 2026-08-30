@@ -10,7 +10,7 @@ namespace compiler1382
 
     #test
     {
-        @assert(toto())
+        Swag.assert(toto())
     }
 }
 
@@ -20,7 +20,7 @@ namespace compiler150
     //
     #test
     {
-        @assert(main())
+        Swag.assert(main())
     }
 
     func main()->bool
@@ -37,8 +37,8 @@ namespace compiler1647
     {
         var arr: [12] u8
         let cpt   = 3'u32
-        let slice = cast([..] u8) @mkslice(&arr[0], cast(u64) cpt)
-        @assert(@countof(slice) == 3)
+        let slice = cast([..] u8) Swag.makeSlice(&arr[0], cast(u64) cpt)
+        Swag.assert(slice.count == 3)
     }
 }
 
@@ -48,13 +48,13 @@ namespace compiler165
     //
     func main()->bool
     {
-        @assert(true)
+        Swag.assert(true)
         return true
     }
 
     #test
     {
-        @assert(main())
+        Swag.assert(main())
     }
 }
 
@@ -73,7 +73,7 @@ namespace compiler1675
         case 2:
             res = true
         }
-        @assert(res)
+        Swag.assert(res)
     }
 }
 
@@ -94,7 +94,7 @@ namespace compiler1676
         case 3:
             res = true
         }
-        @assert(res)
+        Swag.assert(res)
     }
 }
 
@@ -104,7 +104,7 @@ namespace compiler168
     //
     #test
     {
-        @assert(((2's64 + 4) * 2) == 12)
+        Swag.assert(((2's64 + 4) * 2) == 12)
     }
 }
 
@@ -119,8 +119,8 @@ namespace compiler210
 
     #test
     {
-        @assert(main(6) == 7)
-        @assert(main(4 + 6) == 11)
+        Swag.assert(main(6) == 7)
+        Swag.assert(main(4 + 6) == 11)
     }
 }
 
@@ -135,8 +135,8 @@ namespace compiler211
 
     #test
     {
-        @assert(main(main(6)) == 8)
-        @assert(main(main(main(6))) == 9)
+        Swag.assert(main(main(6)) == 8)
+        Swag.assert(main(main(main(6))) == 9)
     }
 }
 
@@ -151,14 +151,14 @@ namespace compiler217
 
     func main1()
     {
-        @assert(main(6) == 7)
-        @assert(main(4 + 6) == 11)
+        Swag.assert(main(6) == 7)
+        Swag.assert(main(4 + 6) == 11)
     }
 
     #test
     {
         main1()
-        @assert(main(6) == 7)
+        Swag.assert(main(6) == 7)
     }
 }
 
@@ -186,7 +186,7 @@ namespace compiler226
 
     #test
     {
-        @assert(main1())
+        Swag.assert(main1())
     }
 }
 
@@ -198,7 +198,7 @@ namespace compiler257
 
     #test
     {
-        @assert(test1() == 666)
+        Swag.assert(test1() == 666)
     }
 }
 
@@ -213,9 +213,9 @@ namespace compiler258
 
     #test
     {
-        @assert(test1(60, 40) == 20)
-        @assert(test1(50, 50) == 0)
-        @assert(test1(50, 60) == -10)
+        Swag.assert(test1(60, 40) == 20)
+        Swag.assert(test1(50, 50) == 0)
+        Swag.assert(test1(50, 60) == -10)
     }
 }
 
@@ -230,9 +230,9 @@ namespace compiler259
 
     #test
     {
-        @assert(test1(60.0, 40.0) == 20)
-        @assert(test1(50.0, 50.0) == 0)
-        @assert(test1(50.0, 60.0) == -10)
+        Swag.assert(test1(60.0, 40.0) == 20)
+        Swag.assert(test1(50.0, 50.0) == 0)
+        Swag.assert(test1(50.0, 60.0) == -10)
     }
 }
 
@@ -249,7 +249,7 @@ namespace compiler284
 
     #test
     {
-        @assert(main())
+        Swag.assert(main())
     }
 }
 
@@ -262,6 +262,6 @@ namespace compiler307
 
     #test
     {
-        @assert(toto() == toto1())
+        Swag.assert(toto() == toto1())
     }
 }

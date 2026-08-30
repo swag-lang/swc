@@ -45,11 +45,11 @@ internal func day6ParseNumber(line: string, cursorPtr: *u64)->u16
     var cursor = cursorPtr[]
     defer cursorPtr[] = cursor
 
-    while cursor < @countof(line) and (line[cursor] < '0' or line[cursor] > '9') do
+    while cursor < line.count and (line[cursor] < '0' or line[cursor] > '9') do
         cursor += 1
 
     var result = 0'u16
-    while cursor < @countof(line) and line[cursor] >= '0' and line[cursor] <= '9'
+    while cursor < line.count and line[cursor] >= '0' and line[cursor] <= '9'
     {
         result *= 10
         result += cast(u16) line[cursor] - '0'
@@ -152,7 +152,7 @@ func day6A0()
     }
 
     // Console.print("total: ", lights.count)
-    @assert(lights.count == 377891)
+    Swag.assert(lights.count == 377891)
 }
 
 /////////////////////////////////////////////////////////////////
@@ -215,7 +215,7 @@ func day6A1()
         total += cast(s32) v
 
     // Console.print("total: ", total)
-    @assert(total == 377891)
+    Swag.assert(total == 377891)
 }
 
 /////////////////////////////////////////////////////////////////
@@ -277,5 +277,5 @@ func day6A2()
         total += cast(s32) v
 
     // Console.print("total: ", total)
-    @assert(total == 377891)
+    Swag.assert(total == 377891)
 }

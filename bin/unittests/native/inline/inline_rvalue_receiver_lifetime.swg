@@ -23,7 +23,7 @@ impl Text
     #[Swag.Inline]
     mtd const view()->string
     {
-        return @mkstring(&.storage[0], .len)
+        return Swag.makeString(&.storage[0], .len)
     }
 }
 
@@ -38,7 +38,7 @@ func makeText()->Text
 
 func firstByte(s: string)->u8
 {
-    if @countof(s) != 2 do
+    if s.count != 2 do
         return 0
     return s[0]
 }
@@ -46,12 +46,12 @@ func firstByte(s: string)->u8
 #test
 {
     // Rvalue receiver: the slice must still see the receiver's bytes.
-    @assert(firstByte(makeText().view()) == 'H'u8)
+    Swag.assert(firstByte(makeText().view()) == 'H'u8)
 }
 
 #test
 {
     // Named receiver: the healthy control.
     let t = makeText()
-    @assert(firstByte(t.view()) == 'H'u8)
+    Swag.assert(firstByte(t.view()) == 'H'u8)
 }

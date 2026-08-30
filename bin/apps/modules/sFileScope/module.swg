@@ -6,7 +6,7 @@
 
 #run
 {
-    with let cfg = @compiler.getBuildCfg()!
+    with let cfg = Swag.compiler().getBuildCfg()!
     {
         .moduleVersion  = #swcversion
         .moduleRevision = #swcrevision

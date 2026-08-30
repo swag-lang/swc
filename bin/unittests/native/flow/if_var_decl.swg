@@ -13,7 +13,7 @@
         var z = x
         result = z
     }
-    @assert(result == 1)
+    Swag.assert(result == 1)
 }
 
 #test
@@ -24,7 +24,7 @@
         var y = x
         result = y
     }
-    @assert(result == 1)
+    Swag.assert(result == 1)
 }
 
 #test
@@ -38,7 +38,7 @@
     {
         result = x + 2
     }
-    @assert(result == 2)
+    Swag.assert(result == 2)
 }
 
 #test
@@ -52,7 +52,7 @@
     {
         result = -1
     }
-    @assert(result == 3)
+    Swag.assert(result == 3)
 }
 
 #test
@@ -66,7 +66,7 @@
     {
         result = x + 1
     }
-    @assert(result == 2)
+    Swag.assert(result == 2)
 }
 
 func ifDeclMaybePtr(p: *s32)->#null *s32 => p
@@ -83,7 +83,7 @@ func ifDeclMaybePtr(p: *s32)->#null *s32 => p
     {
         result = -1
     }
-    @assert(result == 1)
+    Swag.assert(result == 1)
 }
 
 #test
@@ -97,7 +97,7 @@ func ifDeclMaybePtr(p: *s32)->#null *s32 => p
     {
         result = -1
     }
-    @assert(result == 1)
+    Swag.assert(result == 1)
 }
 
 #test
@@ -111,5 +111,5 @@ func ifDeclMaybePtr(p: *s32)->#null *s32 => p
     {
         result = -1
     }
-    @assert(result == 1)
+    Swag.assert(result == 1)
 }

@@ -34,17 +34,17 @@ impl Vector3
 
     // Copy semantics: drop 'a' (if needed), copy 'b' to 'a', then call 'opPostCopy' on 'a'.
     a = b
-    @assert(a.x == 101)
-    @assert(a.y == 201)
-    @assert(a.z == 301)
+    Swag.assert(a.x == 101)
+    Swag.assert(a.y == 201)
+    Swag.assert(a.z == 301)
 
     // Move semantics with '#move': drop 'a' (if needed), move 'b' to 'a', then call 'opPostMove' on 'a'.
     // With 'opDrop' present, 'b' is reinitialized to defaults (666).
     a = #move b
-    @assert(a.x == 102)
-    @assert(a.y == 202)
-    @assert(a.z == 302)
-    @assert(b.x == 666)
+    Swag.assert(a.x == 102)
+    Swag.assert(a.y == 202)
+    Swag.assert(a.z == 302)
+    Swag.assert(b.x == 666)
 
     // '#nodrop' skips the initial drop of 'a'.
     a = #nodrop b           // Copy without dropping 'a' first.
@@ -129,13 +129,13 @@ automatically discarded at overload resolution: only a '#move' call is accepted.
 
     // Copy path.
     assign(&b, a)
-    @assert(b.x == 2 and b.y == 3 and b.z == 4)     // +1 via 'opPostCopy'.
-    @assert(a.x == 1 and a.y == 2 and a.z == 3)     // 'a' unchanged.
+    Swag.assert(b.x == 2 and b.y == 3 and b.z == 4)     // +1 via 'opPostCopy'.
+    Swag.assert(a.x == 1 and a.y == 2 and a.z == 3)     // 'a' unchanged.
 
     // Move path: '#move' transfers 'a' into the parameter.
     assign(&b, #move a)
-    @assert(b.x == 3 and b.y == 4 and b.z == 5)           // +2 via 'opPostMove'.
-    @assert(a.x == 666 and a.y == 666 and a.z == 666)     // 'a' reset to defaults after move.
+    Swag.assert(b.x == 3 and b.y == 4 and b.z == 5)           // +2 via 'opPostMove'.
+    Swag.assert(a.x == 666 and a.y == 666 and a.z == 666)     // 'a' reset to defaults after move.
 }
 
 #test
@@ -152,11 +152,11 @@ automatically discarded at overload resolution: only a '#move' call is accepted.
 
     // Copy call style: 'a' is copied into a temporary (+1), the temporary is moved (+2).
     assign(&b, a)
-    @assert(b.x == 4 and b.y == 5 and b.z == 6)
-    @assert(a.x == 1 and a.y == 2 and a.z == 3)     // 'a' unchanged.
+    Swag.assert(b.x == 4 and b.y == 5 and b.z == 6)
+    Swag.assert(a.x == 1 and a.y == 2 and a.z == 3)     // 'a' unchanged.
 
     // Move call style: zero extra cost.
     assign(&b, #move a)
-    @assert(b.x == 3 and b.y == 4 and b.z == 5)
-    @assert(a.x == 666 and a.y == 666 and a.z == 666)
+    Swag.assert(b.x == 3 and b.y == 4 and b.z == 5)
+    Swag.assert(a.x == 666 and a.y == 666 and a.z == 666)
 }

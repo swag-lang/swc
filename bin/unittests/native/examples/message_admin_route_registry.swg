@@ -37,7 +37,7 @@ public func rotateTenantApiKeys(tenantId: s64, actorEmail: string, forceRevoke: 
 {
     if tenantId <= 0 do
         return false
-    if @countof(actorEmail) < 12 do
+    if actorEmail.count < 12 do
         return false
     return forceRevoke
 }
@@ -49,7 +49,7 @@ public func setInvoiceDelivery(tenantId: s64, billingEmail: string, sendCopyToOp
     if sendCopyToOps do
         recipientCount = 2
 
-    return {updated: tenantId > 0 and @countof(billingEmail) >= 8, recipientCount: recipientCount}
+    return {updated: tenantId > 0 and billingEmail.count >= 8, recipientCount: recipientCount}
 }
 
 #[AdminRoute("POST", "/internal/search/rebuild-cache", "ops.write", "search.cache.rebuild", true)]
@@ -95,8 +95,8 @@ func countPathParams(path: string)->s32
 #[Compiler]
 func appendAst(buffer: [*] u8, start: u64, text: string)->u64
 {
-    @memcpy(buffer + start, @dataof(text), @countof(text))
-    return start + @countof(text)
+    Swag.memcpy(buffer + start, text.buffer, text.count)
+    return start + text.count
 }
 
 #[Compiler]
@@ -148,7 +148,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
 
 #message(CompilerMsgMask.SemFunctions)
 {
-    let msg = @compiler.getMessage()
+    let msg = Swag.compiler().getMessage()
     if msg == null or msg.type == null do
         return
 
@@ -159,7 +159,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
         if attribute.type != #typeof(AdminRoute) do
             continue
 
-        @assert(g_AdminRouteCount < MaxAdminRoutes)
+        Swag.assert(g_AdminRouteCount < MaxAdminRoutes)
         let params = attribute.params!
         g_AdminRoutes[g_AdminRouteCount] = {
             type: msg.type,
@@ -176,7 +176,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
 
 #message(CompilerMsgMask.PassAfterSemantic)
 {
-    let itf = @compiler
+    let itf = Swag.compiler()
     var buffer: [65536] u8
     var len = 0'u64
 
@@ -270,7 +270,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
         len = appendS32Literal(&buffer[0], len, countPathParams(route.path))
         len = appendAst(&buffer[0], len, ",\n")
         len = appendAst(&buffer[0], len, "            paramCount: ")
-        len = appendS32Literal(&buffer[0], len, cast(s32) @countof(typeFunc.parameters))
+        len = appendS32Literal(&buffer[0], len, cast(s32) typeFunc.parameters.count)
         len = appendAst(&buffer[0], len, ",\n")
         len = appendAst(&buffer[0], len, "            critical: ")
         len = appendBoolLiteral(&buffer[0], len, route.critical)
@@ -348,7 +348,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
         len = appendAst(&buffer[0], len, "        case ")
         len = appendS32Literal(&buffer[0], len, routeIndex)
         len = appendAst(&buffer[0], len, ": return ")
-        len = appendS32Literal(&buffer[0], len, cast(s32) @countof(typeFunc.parameters))
+        len = appendS32Literal(&buffer[0], len, cast(s32) typeFunc.parameters.count)
         len = appendAst(&buffer[0], len, "\n")
     }
     len = appendAst(&buffer[0], len, "    }\n\n")
@@ -413,64 +413,64 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
     len = appendAst(&buffer[0], len, "    return count\n")
     len = appendAst(&buffer[0], len, "}\n")
 
-    let source = cast(string) @mkslice(&buffer[0], len)
+    let source = cast(string) Swag.makeSlice(&buffer[0], len)
     itf.compileString(source)
 }
 
 #test
 {
-    @assert(GeneratedAdminRouteCount == 4)
-    @assert(countCriticalAdminRoutes() == 2)
+    Swag.assert(GeneratedAdminRouteCount == 4)
+    Swag.assert(countCriticalAdminRoutes() == 2)
 
     let usersIndex = findGeneratedAdminRoute("GET", "/tenants/:tenantId/users")
-    @assert(usersIndex != -1)
+    Swag.assert(usersIndex != -1)
     let users = getGeneratedAdminRoute(usersIndex)
-    @assert(users.handler == "listTenantUsers")
-    @assert(users.method == "GET")
-    @assert(users.path == "/tenants/:tenantId/users")
-    @assert(users.permission == "tenant.read")
-    @assert(users.auditCode == "tenant.users.list")
-    @assert(users.pathParamCount == 1)
-    @assert(users.paramCount == 2)
-    @assert(!users.critical)
-    @assert(users.returnsValue)
+    Swag.assert(users.handler == "listTenantUsers")
+    Swag.assert(users.method == "GET")
+    Swag.assert(users.path == "/tenants/:tenantId/users")
+    Swag.assert(users.permission == "tenant.read")
+    Swag.assert(users.auditCode == "tenant.users.list")
+    Swag.assert(users.pathParamCount == 1)
+    Swag.assert(users.paramCount == 2)
+    Swag.assert(!users.critical)
+    Swag.assert(users.returnsValue)
 
     let rotateIndex = findGeneratedAdminRoute("POST", "/tenants/:tenantId/rotate-api-keys")
-    @assert(rotateIndex != -1)
+    Swag.assert(rotateIndex != -1)
     let rotate = getGeneratedAdminRoute(rotateIndex)
-    @assert(rotate.handler == "rotateTenantApiKeys")
-    @assert(rotate.method == "POST")
-    @assert(rotate.path == "/tenants/:tenantId/rotate-api-keys")
-    @assert(rotate.permission == "tenant.write")
-    @assert(rotate.auditCode == "tenant.keys.rotate")
-    @assert(rotate.pathParamCount == 1)
-    @assert(rotate.paramCount == 3)
-    @assert(rotate.critical)
-    @assert(rotate.returnsValue)
+    Swag.assert(rotate.handler == "rotateTenantApiKeys")
+    Swag.assert(rotate.method == "POST")
+    Swag.assert(rotate.path == "/tenants/:tenantId/rotate-api-keys")
+    Swag.assert(rotate.permission == "tenant.write")
+    Swag.assert(rotate.auditCode == "tenant.keys.rotate")
+    Swag.assert(rotate.pathParamCount == 1)
+    Swag.assert(rotate.paramCount == 3)
+    Swag.assert(rotate.critical)
+    Swag.assert(rotate.returnsValue)
 
     let deliveryIndex = findGeneratedAdminRoute("POST", "/billing/invoice-delivery")
-    @assert(deliveryIndex != -1)
+    Swag.assert(deliveryIndex != -1)
     let delivery = getGeneratedAdminRoute(deliveryIndex)
-    @assert(delivery.handler == "setInvoiceDelivery")
-    @assert(delivery.pathParamCount == 0)
-    @assert(delivery.paramCount == 3)
-    @assert(!delivery.critical)
-    @assert(delivery.returnsValue)
+    Swag.assert(delivery.handler == "setInvoiceDelivery")
+    Swag.assert(delivery.pathParamCount == 0)
+    Swag.assert(delivery.paramCount == 3)
+    Swag.assert(!delivery.critical)
+    Swag.assert(delivery.returnsValue)
 
     let rebuildIndex = findGeneratedAdminRoute("POST", "/internal/search/rebuild-cache")
-    @assert(rebuildIndex != -1)
+    Swag.assert(rebuildIndex != -1)
     let rebuild = getGeneratedAdminRoute(rebuildIndex)
-    @assert(rebuild.handler == "rebuildSearchCache")
-    @assert(rebuild.permission == "ops.write")
-    @assert(rebuild.auditCode == "search.cache.rebuild")
-    @assert(rebuild.pathParamCount == 0)
-    @assert(rebuild.paramCount == 2)
-    @assert(rebuild.critical)
-    @assert(!rebuild.returnsValue)
+    Swag.assert(rebuild.handler == "rebuildSearchCache")
+    Swag.assert(rebuild.permission == "ops.write")
+    Swag.assert(rebuild.auditCode == "search.cache.rebuild")
+    Swag.assert(rebuild.pathParamCount == 0)
+    Swag.assert(rebuild.paramCount == 2)
+    Swag.assert(rebuild.critical)
+    Swag.assert(!rebuild.returnsValue)
 
     let missing = getGeneratedAdminRoute(99)
-    @assert(missing.handler == "")
-    @assert(findGeneratedAdminRoute("DELETE", "/missing") == -1)
+    Swag.assert(missing.handler == "")
+    Swag.assert(findGeneratedAdminRoute("DELETE", "/missing") == -1)
 }
 
 #test
@@ -495,12 +495,12 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
         sendCopyToOps: true
         }
 
-    @assert(invokeAdminRoute_listTenantUsers(listReq) == 47)
-    @assert(invokeAdminRoute_rotateTenantApiKeys(rotateReq))
+    Swag.assert(invokeAdminRoute_listTenantUsers(listReq) == 47)
+    Swag.assert(invokeAdminRoute_rotateTenantApiKeys(rotateReq))
 
     let receipt = invokeAdminRoute_setInvoiceDelivery(deliveryReq)
-    @assert(receipt.updated)
-    @assert(receipt.recipientCount == 2)
+    Swag.assert(receipt.updated)
+    Swag.assert(receipt.recipientCount == 2)
 }
 
 #test
@@ -517,7 +517,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
 
     invokeAdminRoute_rebuildSearchCache(rebuildReq)
 
-    @assert(RebuildCacheCalls == 1)
-    @assert(RebuildLastFull)
-    @assert(RebuildLastIndex == "catalog-search")
+    Swag.assert(RebuildCacheCalls == 1)
+    Swag.assert(RebuildLastFull)
+    Swag.assert(RebuildLastIndex == "catalog-search")
 }

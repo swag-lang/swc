@@ -66,49 +66,49 @@ func(T) unbox(box: Box'T)->T => box.value
 
 #test
 {
-    @assert(minVal(3, 7) == 3)
-    @assert(maxVal(3, 7) == 7)
-    @assert(clamp(5, 0, 10) == 5)
-    @assert(clamp(-5, 0, 10) == 0)
-    @assert(clamp(15, 0, 10) == 10)
+    Swag.assert(minVal(3, 7) == 3)
+    Swag.assert(maxVal(3, 7) == 7)
+    Swag.assert(clamp(5, 0, 10) == 5)
+    Swag.assert(clamp(-5, 0, 10) == 0)
+    Swag.assert(clamp(15, 0, 10) == 10)
 }
 
 #test
 {
-    @assert(absValue(-5) == 5)
-    @assert(absValue(5) == 5)
-    @assert(absValue(0) == 0)
-    @assert(absValue(-3.5) == 3.5)
+    Swag.assert(absValue(-5) == 5)
+    Swag.assert(absValue(5) == 5)
+    Swag.assert(absValue(0) == 0)
+    Swag.assert(absValue(-3.5) == 3.5)
 }
 
 #test
 {
-    @assert(addTwo(0) == 2)
-    @assert(addTwo(10) == 12)
-    @assert(addTwo(1.5) == 3.5)
+    Swag.assert(addTwo(0) == 2)
+    Swag.assert(addTwo(10) == 12)
+    Swag.assert(addTwo(1.5) == 3.5)
 }
 
 #test
 {
-    @assert(castTo'(s32, f64)(42) == 42.0)
-    @assert(castTo'(bool, s32)(true) == 1)
-    @assert(castTo'(f64, s32)(3.7) == 3)
+    Swag.assert(castTo'(s32, f64)(42) == 42.0)
+    Swag.assert(castTo'(bool, s32)(true) == 1)
+    Swag.assert(castTo'(f64, s32)(3.7) == 3)
 }
 
 #test
 {
-    @assert(constProduct'(3, 4)() == 12)
-    @assert(constProduct'(0, 100)() == 0)
-    @assert(constDoubled'(7)() == 14)
+    Swag.assert(constProduct'(3, 4)() == 12)
+    Swag.assert(constProduct'(0, 100)() == 0)
+    Swag.assert(constDoubled'(7)() == 14)
 }
 
 #test
 {
     let b = makeBox(99)
-    @assert(b.value == 99)
-    @assert(unbox(b) == 99)
+    Swag.assert(b.value == 99)
+    Swag.assert(unbox(b) == 99)
 
     let b2 = makeBox(makeBox(42))
-    @assert(b2.value.value == 42)
-    @assert(unbox(b2).value == 42)
+    Swag.assert(b2.value.value == 42)
+    Swag.assert(unbox(b2).value == 42)
 }

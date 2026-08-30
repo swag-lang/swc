@@ -41,7 +41,7 @@ impl ImageFormat
     // an error: a file dialog asks this question while its name editor is still empty.
     mtd const matches(fileName: string)->bool
     {
-        if @countof(fileName) == 0 do
+        if fileName.count == 0 do
             return false
 
         let ext = Path.lowercaseExtension(fileName)

@@ -87,7 +87,7 @@ impl Encoder
         enc.init(minCodeSize)
         enc.writeCode(enc.clearCode)
 
-        for i in @countof(indexes)
+        for i in indexes.count
         {
             if i do
                 enc.writeCode(enc.clearCode)
@@ -102,11 +102,11 @@ impl Encoder
     func writeSubBlocks(result: *ConcatBuffer, bytes: const [..] u8)
     {
         var offset = 0'u64
-        while offset < @countof(bytes)
+        while offset < bytes.count
         {
-            let blockSize = Math.min(255'u64, @countof(bytes) - offset)
+            let blockSize = Math.min(255'u64, bytes.count - offset)
             result.addNative(cast(u8) blockSize)
-            result.addBytes(@mkslice(@dataof(bytes) + offset, blockSize))
+            result.addBytes(Swag.makeSlice(bytes.buffer + offset, blockSize))
             offset += blockSize
         }
 

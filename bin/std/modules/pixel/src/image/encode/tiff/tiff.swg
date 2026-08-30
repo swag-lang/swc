@@ -69,7 +69,7 @@ func packBitsRow(result: *Array'u8, src: const [*] u8, count: u64)
 
         let literalCount = index - literalStart
         result.add(cast(u8) (literalCount - 1))
-        result.add(@mkslice(src + literalStart, literalCount))
+        result.add(Swag.makeSlice(src + literalStart, literalCount))
     }
 }
 
@@ -81,10 +81,10 @@ internal impl IImageEncoder for Encoder
     mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {
         var userOptions: EncodeOptions
-        if @dataof(options) != null
+        if options.buffer != null
         {
-            Debug.assert(@kindof(options) == EncodeOptions)
-            userOptions = @dataof(options)![as EncodeOptions]
+            Debug.assert(Swag.kindOf(options) == EncodeOptions)
+            userOptions = options.buffer![as EncodeOptions]
         }
 
         if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
@@ -176,7 +176,7 @@ internal impl IImageEncoder for Encoder
         result.addNative(42'u16)                  // magic
         result.addNative(cast(u32) ifdOffset)     // offset to first IFD
 
-        result.addBytes(@mkslice(storedData, storedLen))
+        result.addBytes(Swag.makeSlice(storedData, storedLen))
 
         if dataPad do
             result.addNative(0'u8)

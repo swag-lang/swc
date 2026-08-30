@@ -6,7 +6,7 @@ func makeContextCaptureAllocator(alloc: *Allocator)->IAllocator
 {
     alloc.setup()
     alloc.configure(false, false, true, false, true)
-    return @mkinterface(alloc, #typeof(alloc[]), IAllocator)
+    return Swag.makeInterface(alloc, #typeof(alloc[]), IAllocator)
 }
 
 func contextCaptureAlloc(size: u64, alignment: u32 = 0)->AllocatorRequest
@@ -14,21 +14,21 @@ func contextCaptureAlloc(size: u64, alignment: u32 = 0)->AllocatorRequest
     var req: AllocatorRequest
     req.size      = size
     req.alignment = alignment
-    let allocItf = @getcontext().allocator!
+    let allocItf = Swag.getContext().allocator!
     allocItf.alloc(&req)
     return req
 }
 
 func contextCaptureFree(req: *AllocatorRequest)
 {
-    let allocItf = @getcontext().allocator!
+    let allocItf = Swag.getContext().allocator!
     allocItf.free(req)
-    @assert(req.address == null)
+    Swag.assert(req.address == null)
 }
 
 #test
 {
-    if @jit() do
+    if Swag.jit() do
         return
 
     let alloc       = defaultAllocator()
@@ -36,7 +36,7 @@ func contextCaptureFree(req: *AllocatorRequest)
     let beforeSize  = alloc.stats().sizeAlloc
 
     var req = contextCaptureAlloc(80)
-    @assert(req.address != null)
+    Swag.assert(req.address != null)
 
     let ptr = cast([*] u8) req.address!
     for i in 80 do
@@ -44,22 +44,22 @@ func contextCaptureFree(req: *AllocatorRequest)
 
     req.oldSize = 80
     req.size    = 4096
-    let allocItf = @getcontext().allocator!
+    let allocItf = Swag.getContext().allocator!
     allocItf.realloc(&req)
-    @assert(req.address != null)
+    Swag.assert(req.address != null)
 
     let grown = cast([*] u8) req.address!
     for i in 80 do
-        @assert(grown[i] == cast(u8) (i + 9))
+        Swag.assert(grown[i] == cast(u8) (i + 9))
 
     contextCaptureFree(&req)
-    @assert(alloc.stats().countAlloc == beforeCount)
-    @assert(alloc.stats().sizeAlloc == beforeSize)
+    Swag.assert(alloc.stats().countAlloc == beforeCount)
+    Swag.assert(alloc.stats().sizeAlloc == beforeSize)
 }
 
 #test
 {
-    if @jit() do
+    if Swag.jit() do
         return
 
     let alloc       = defaultAllocator()
@@ -69,15 +69,15 @@ func contextCaptureFree(req: *AllocatorRequest)
     for i in 8
     {
         reqs[i] = contextCaptureAlloc(31 + cast(u64) i * 37, i % 3 == 0 ? 64 : 0)
-        @assert(reqs[i].address != null)
+        Swag.assert(reqs[i].address != null)
     }
 
-    @assert(alloc.stats().countAlloc == beforeCount + 8)
+    Swag.assert(alloc.stats().countAlloc == beforeCount + 8)
 
     for i in 8 do
         contextCaptureFree(&reqs[i])
 
-    @assert(alloc.stats().countAlloc == beforeCount)
+    Swag.assert(alloc.stats().countAlloc == beforeCount)
 }
 
 #test
@@ -89,14 +89,14 @@ func contextCaptureFree(req: *AllocatorRequest)
     req.size = 112
     req.hint = "after-context-debug"
     itf.alloc(&req)
-    @assert(req.address != null)
+    Swag.assert(req.address != null)
 
     let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
     let tracking = header.tracking!
-    @assert(header.magic == Allocator.MagicAlloc)
-    @assert(tracking.stackCount <= @countof(tracking.stack))
+    Swag.assert(header.magic == Allocator.MagicAlloc)
+    Swag.assert(tracking.stackCount <= tracking.stack.count)
 
     itf.free(&req)
-    @assert(req.address == null)
+    Swag.assert(req.address == null)
     alloc.releaseAll()
 }

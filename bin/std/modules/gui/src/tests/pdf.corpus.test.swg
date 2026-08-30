@@ -16,12 +16,12 @@ private func renderCorpus(fixtures: const [..] CorpusPdf)
     for fixture in fixtures
     {
         var reader = expect Reader.open(corpusPdfPath(fixture.name))
-        @assert(reader.pageCount() == fixture.pageCount)
+        Swag.assert(reader.pageCount() == fixture.pageCount)
         for pageIndex in fixture.pageCount
         {
             var page  = expect reader.loadPage(pageIndex)
             let image = expect page.render({scale: fixture.scale, maxDimension: 8192})
-            @assert(image.isValid())
+            Swag.assert(image.isValid())
         }
     }
 }
@@ -72,11 +72,11 @@ private func renderCorpus(fixtures: const [..] CorpusPdf)
     for font in page.fonts where font.bytes.count == 11_148
     {
         let typeface = (expect createCorpusTypeFace("FKFJSD+DejaVuSans", font.bytes.toSlice()))!
-        @assert(typeface.familyName() == "FKFJSD+DejaVuSans")
-        @assert(font.identityGlyphs)
+        Swag.assert(typeface.familyName() == "FKFJSD+DejaVuSans")
+        Swag.assert(font.identityGlyphs)
         found = true
         break
     }
 
-    @assert(found)
+    Swag.assert(found)
 }

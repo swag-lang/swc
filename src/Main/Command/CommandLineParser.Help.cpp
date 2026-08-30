@@ -149,7 +149,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         entries.clear();
         addInfoEntry(entries, "Create", "swc new script hello", LogColor::White, 0, helpArgumentLabelColor());
         addInfoEntry(entries, "Run", "swc hello.swgs", LogColor::White, 0, helpArgumentLabelColor());
-        addInfoEntry(entries, "Source", R"(#main { @print("Hello, world!\n") })", LogColor::White, 0, LogColor::Dim);
+        addInfoEntry(entries, "Source", R"(#main { Swag.print("Hello, world!\n") })", LogColor::White, 0, LogColor::Dim);
         Logger::printFieldGroup(ctx, "First Script", entries, nextHelpGroupStyle(hasPrintedGroup, 18));
 
         entries.clear();

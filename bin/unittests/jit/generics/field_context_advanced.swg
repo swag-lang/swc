@@ -60,8 +60,8 @@ struct(T) AnonymousUnionFieldHolder
     reordered.second.values[4] = 29
 
     #assert(#typeof(reordered.first.values) == #type [5] u32)
-    @assert(reordered.first.values[0] == 11'u32)
-    @assert(reordered.second.values[4] == 29'u32)
+    Swag.assert(reordered.first.values[0] == 11'u32)
+    Swag.assert(reordered.second.values[4] == 29'u32)
 }
 
 #test
@@ -75,9 +75,9 @@ struct(T) AnonymousUnionFieldHolder
 
     #assert(#typeof(composed.item.value) == Box's16)
     #assert(#typeof(sized.item.values) == #type [8] u8)
-    @assert(composed.item.value.value == 7's16)
-    @assert(sized.item.values[0] == 1'u8)
-    @assert(sized.item.values[7] == 9'u8)
+    Swag.assert(composed.item.value.value == 7's16)
+    Swag.assert(sized.item.values[0] == 1'u8)
+    Swag.assert(sized.item.values[7] == 9'u8)
 }
 
 #test
@@ -91,7 +91,7 @@ struct(T) AnonymousUnionFieldHolder
 
     #assert(#typeof(anonymousStruct.inner.item.values) == #type [4] u8)
     #assert(#typeof(anonymousUnion.inner.item.value) == s32)
-    @assert(anonymousStruct.inner.item.values[0] == 3'u8)
-    @assert(anonymousStruct.inner.item.values[3] == 5'u8)
-    @assert(anonymousUnion.inner.item.value == 42)
+    Swag.assert(anonymousStruct.inner.item.values[0] == 3'u8)
+    Swag.assert(anonymousStruct.inner.item.values[3] == 5'u8)
+    Swag.assert(anonymousUnion.inner.item.value == 42)
 }

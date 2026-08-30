@@ -31,7 +31,7 @@ namespace WinFsp
         {
             let subkey        = Utf16.toZeroTerminated(Format.toString("Network\\%", cast(rune) ('A' + index)))
             var mapping: HKEY = null
-            let status        = RegOpenKeyExW(currentUser, @dataof(subkey)!, 0, KEY_READ, &mapping)
+            let status        = RegOpenKeyExW(currentUser, subkey.buffer!, 0, KEY_READ, &mapping)
             if status == 0
             {
                 result |= 1'u32 << index

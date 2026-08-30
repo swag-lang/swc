@@ -6,8 +6,8 @@
 
     #assert(#typeof(sum) == f32)
     #assert(#typeof(temp) == f32)
-    @assert(sum == 4.0'f32)
-    @assert(temp == 3.75'f32)
+    Swag.assert(sum == 4.0'f32)
+    Swag.assert(temp == 3.75'f32)
 }
 
 #test
@@ -18,6 +18,6 @@
 
     #assert(#typeof(sum) == f32)
     #assert(#typeof(temp) == f32)
-    @assert(sum == 4.0'f32)
-    @assert(temp == 3.75'f32)
+    Swag.assert(sum == 4.0'f32)
+    Swag.assert(temp == 3.75'f32)
 }

@@ -41,18 +41,18 @@ func nonNullPointerWins()->bool
 
 #test
 {
-    @assert(zeroFallbackU32(0'u32) == 7'u32)
-    @assert(zeroFallbackU32(9'u32) == 9'u32)
-    @assert(zeroFallbackRune(cast(rune) 0'u32) == 'A'rune)
-    @assert(zeroFallbackRune('B'rune) == 'B'rune)
-    @assert(zeroFallbackF32(0.0'f32) == 3.5'f32)
-    @assert(zeroFallbackF32(2.25'f32) == 2.25'f32)
+    Swag.assert(zeroFallbackU32(0'u32) == 7'u32)
+    Swag.assert(zeroFallbackU32(9'u32) == 9'u32)
+    Swag.assert(zeroFallbackRune(cast(rune) 0'u32) == 'A'rune)
+    Swag.assert(zeroFallbackRune('B'rune) == 'B'rune)
+    Swag.assert(zeroFallbackF32(0.0'f32) == 3.5'f32)
+    Swag.assert(zeroFallbackF32(2.25'f32) == 2.25'f32)
 }
 
 #test
 {
-    @assert(nullStringFallback(null) == "fallback")
-    @assert(nullStringFallback("ok") == "ok")
-    @assert(nullPointerFallback(null) == 56)
-    @assert(nonNullPointerWins())
+    Swag.assert(nullStringFallback(null) == "fallback")
+    Swag.assert(nullStringFallback("ok") == "ok")
+    Swag.assert(nullPointerFallback(null) == 56)
+    Swag.assert(nonNullPointerWins())
 }

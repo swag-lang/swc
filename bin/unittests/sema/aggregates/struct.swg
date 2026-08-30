@@ -48,27 +48,27 @@ func semaTest002()
     a.y = &b
     b.y = null
     b.z = null
-    @assert(a.y.x == 2)
+    Swag.assert(a.y.x == 2)
 }
 
 func semaTest003()
 {
     var c: CC
     c.a = &c
-    @assert(c.a == &c)
+    Swag.assert(c.a == &c)
 }
 
 func semaTest004()
 {
     var ll: LL
     ll.p = null
-    @assert(ll.p == null)
+    Swag.assert(ll.p == null)
 }
 
 func semaTest005()
 {
     var e: NonCyclicEnum = .NCE_B
-    @assert(e == NonCyclicEnum.NCE_B)
+    Swag.assert(e == NonCyclicEnum.NCE_B)
 }
 
 struct Empty {}

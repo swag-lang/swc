@@ -30,11 +30,11 @@ var GSeeded: s32     = 1
 
 #test
 {
-    @assert(GScalar == 7)
-    @assert(GArray[0] == 10)
-    @assert(GArray[1] == 20)
-    @assert(GArray[2] == 30)
-    @assert(GPair.x == -5)
-    @assert(GPair.y == 33)
-    @assert(GSeeded == 9)
+    Swag.assert(GScalar == 7)
+    Swag.assert(GArray[0] == 10)
+    Swag.assert(GArray[1] == 20)
+    Swag.assert(GArray[2] == 30)
+    Swag.assert(GPair.x == -5)
+    Swag.assert(GPair.y == 33)
+    Swag.assert(GSeeded == 9)
 }

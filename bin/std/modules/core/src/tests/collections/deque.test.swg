@@ -5,7 +5,7 @@ using Swag
 
 func assertDeque(values: Deque's32, expected: const [..] s32)->bool
 {
-    if values.count != @countof(expected) do
+    if values.count != expected.count do
         return false
     for value, index in values
     {
@@ -25,16 +25,16 @@ func assertDeque(values: Deque's32, expected: const [..] s32)->bool
     values.pushFront(0)
 
     let expected: [4] s32 = [0, 1, 2, 3]
-    @assert(assertDeque(values, expected))
-    @assert(values.front() == 0 and values.back() == 3)
+    Swag.assert(assertDeque(values, expected))
+    Swag.assert(values.front() == 0 and values.back() == 3)
     values[1] = 10
-    @assert(values[1] == 10)
+    Swag.assert(values[1] == 10)
 
-    @assert(values.popFront() == 0)
-    @assert(values.popBack() == 3)
-    @assert(values.popFront() == 10)
-    @assert(values.popBack() == 2)
-    @assert(values.isEmpty())
+    Swag.assert(values.popFront() == 0)
+    Swag.assert(values.popBack() == 3)
+    Swag.assert(values.popFront() == 10)
+    Swag.assert(values.popBack() == 2)
+    Swag.assert(values.isEmpty())
 }
 
 #test
@@ -43,16 +43,16 @@ func assertDeque(values: Deque's32, expected: const [..] s32)->bool
     for value in 32 do
         values.pushBack(cast(s32) value)
     for value in 16 do
-        @assert(values.popFront() == cast(s32) value)
+        Swag.assert(values.popFront() == cast(s32) value)
     for value in 16 do
         values.pushFront(-cast(s32) value - 1)
 
-    @assert(values.count == 32)
+    Swag.assert(values.count == 32)
     for value in 16 do
-        @assert(values.popBack() == 31 - cast(s32) value)
+        Swag.assert(values.popBack() == 31 - cast(s32) value)
     for value in 16 do
-        @assert(values.popBack() == -cast(s32) value - 1)
-    @assert(values.isEmpty())
+        Swag.assert(values.popBack() == -cast(s32) value - 1)
+    Swag.assert(values.isEmpty())
 }
 
 #test
@@ -63,12 +63,12 @@ func assertDeque(values: Deque's32, expected: const [..] s32)->bool
     values.pushBack("back")
 
     var copy = values
-    @assert(copy.popFront() == "front")
-    @assert(copy.popBack() == "back")
-    @assert(values.count == 3 and copy.count == 1)
+    Swag.assert(copy.popFront() == "front")
+    Swag.assert(copy.popBack() == "back")
+    Swag.assert(values.count == 3 and copy.count == 1)
 
     values.clear()
-    @assert(values.isEmpty() and values.capacity() > 0)
+    Swag.assert(values.isEmpty() and values.capacity() > 0)
     values.free()
-    @assert(values.capacity() == 0)
+    Swag.assert(values.capacity() == 0)
 }

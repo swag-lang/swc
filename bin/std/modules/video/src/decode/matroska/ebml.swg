@@ -97,14 +97,14 @@ impl Cursor
 
     mtd seek(position: u64) fail
     {
-        if position > @countof(.bytes) do
+        if position > (.bytes).count do
             fail InvalidFormatError{"Matroska element offset exceeds the stream size"}
         .position = position
     }
 
     mtd readByte(limit: u64)->u8 fail
     {
-        if .position >= limit or .position >= @countof(.bytes) do
+        if .position >= limit or .position >= (.bytes).count do
             fail InvalidFormatError{"Matroska element ends before its value"}
         let result = .bytes[.position]
         .position += 1
@@ -144,13 +144,13 @@ impl Cursor
     // on is reading nothing.
     mtd const atEnd(limit: u64)->bool
     {
-        let end = Math.min(limit, @countof(.bytes))
+        let end = Math.min(limit, (.bytes).count)
         return .position >= end or !.bytes[.position]
     }
 
     mtd readElement(limit: u64)->Element fail
     {
-        if limit > @countof(.bytes) do
+        if limit > (.bytes).count do
             fail InvalidFormatError{"Matroska parent element exceeds the stream size"}
         let idVint = .readVint(limit, 4, true)
         if idVint.value > Swag.U32.Max do
@@ -238,7 +238,7 @@ impl Cursor
         var size = element.end - element.data
         while size and !.bytes[element.data + size - 1] do
             size -= 1
-        return String.from(@mkstring(@dataof(.bytes) + element.data, size))
+        return String.from(Swag.makeString((.bytes).buffer + element.data, size))
     }
 
     // Copies a binary element into owned storage.
@@ -248,7 +248,7 @@ impl Cursor
         let size = element.end - element.data
         result.resize(size)
         if size do
-            Memory.copy(result.buffer!, @dataof(.bytes) + element.data, size)
+            Memory.copy(result.buffer!, (.bytes).buffer + element.data, size)
         .seek(element.end)
         return result
     }

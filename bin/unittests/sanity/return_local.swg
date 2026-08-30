@@ -41,7 +41,7 @@ func globalAddress()->*s32
 #test
 {
     let p = globalAddress()
-    @assert(p != null)
+    Swag.assert(p != null)
 }
 
 // A pointer received as a parameter is not a frame address.
@@ -54,5 +54,5 @@ func passThrough(p: *s32)->*s32
 #test
 {
     let p = passThrough(&GlobalValue)
-    @assert(p == &GlobalValue)
+    Swag.assert(p == &GlobalValue)
 }

@@ -48,10 +48,10 @@ let bytes = File.readAllBytes("msgothic.ttc")
 let count = try Face.countFaces(bytes.toSlice())
 for count
 {
-    if (try Face.familyNameAt(bytes.toSlice(), @index)) != "MS PGothic" do
+    if (try Face.familyNameAt(bytes.toSlice(), Swag.index)) != "MS PGothic" do
         continue
 
-    let face = (try Face.loadAt(bytes.toSlice(), @index))!
+    let face = (try Face.loadAt(bytes.toSlice(), Swag.index))!
     defer face.destroy()
     break
 }

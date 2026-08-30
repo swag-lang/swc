@@ -176,7 +176,7 @@ swc hello.swgs
 ```swag
 #main
 {
-    @print("Hello, world!\n")
+    Swag.print("Hello, world!\n")
 }
 ```
 

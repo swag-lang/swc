@@ -27,7 +27,7 @@ func day7A()
         cpt = 0
         ok  = false
 
-        for i in @countof(l) - 3
+        for i in l.count - 3
         {
             if l[i] == '[' do
                 cpt += 1
@@ -50,5 +50,5 @@ func day7A()
     }
 
     // Console.print(total)
-    @assert(total == 110)
+    Swag.assert(total == 110)
 }

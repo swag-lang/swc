@@ -55,14 +55,14 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
 
 #test
 {
-    @assert(macroClosureCaptureRef(MacroClosurePayload{40}) == 464)
+    Swag.assert(macroClosureCaptureRef(MacroClosurePayload{40}) == 464)
 }
 
 #test
 {
     var payload = MacroClosurePayload{40}
     macroInjectClosureCapture(#code {
-        @assert(macroClosureCaptureRunTwice(func|&payload|()->s32
+        Swag.assert(macroClosureCaptureRunTwice(func|&payload|()->s32
         {
             payload.total += 2
             return payload.total
@@ -84,8 +84,8 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
         }
 
         let cb = makeCounter(41)
-        @assert(cb() == 42)
-        @assert(cb() == 43)
+        Swag.assert(cb() == 42)
+        Swag.assert(cb() == 43)
     })
 }
 
@@ -104,8 +104,8 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
         }
 
         let cb = makeCounter(41)
-        @assert(cb() == 42)
-        @assert(cb() == 43)
+        Swag.assert(cb() == 42)
+        Swag.assert(cb() == 43)
     }
 }
 
@@ -124,8 +124,8 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
         }
 
         let cb = makeCounter(start)
-        @assert(cb() == 42)
-        @assert(cb() == 43)
+        Swag.assert(cb() == 42)
+        Swag.assert(cb() == 43)
     }
 }
 
@@ -145,8 +145,8 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
         }
 
         let cb = makeCounter(start)
-        @assert(cb() == 43)
-        @assert(cb() == 45)
+        Swag.assert(cb() == 43)
+        Swag.assert(cb() == 45)
     }
 }
 
@@ -166,8 +166,8 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
         }
 
         let cb = makeCounter(start)
-        @assert(cb() == 44)
-        @assert(cb() == 46)
+        Swag.assert(cb() == 44)
+        Swag.assert(cb() == 46)
     }
 }
 
@@ -186,7 +186,7 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
         }
 
         let cb = makeCounter(start)
-        @assert(cb() == 43)
-        @assert(cb() == 45)
+        Swag.assert(cb() == 43)
+        Swag.assert(cb() == 45)
     }
 }

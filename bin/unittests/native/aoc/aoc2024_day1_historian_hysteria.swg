@@ -59,7 +59,7 @@ func isSpacing(ch: u8)->bool
 
 func skipSpacing(bytes: const [..] u8, index: *u32)
 {
-    while index[] < @countof(bytes) and isSpacing(bytes[index[]])
+    while index[] < bytes.count and isSpacing(bytes[index[]])
     {
         index[] += 1
     }
@@ -67,11 +67,11 @@ func skipSpacing(bytes: const [..] u8, index: *u32)
 
 func parseNumber(bytes: const [..] u8, index: *u32)->u32
 {
-    @assert(index[] < @countof(bytes))
-    @assert(isDigit(bytes[index[]]))
+    Swag.assert(index[] < bytes.count)
+    Swag.assert(isDigit(bytes[index[]]))
 
     var result: u32
-    while index[] < @countof(bytes) and isDigit(bytes[index[]])
+    while index[] < bytes.count and isDigit(bytes[index[]])
     {
         result  = result * 10'u32 + cast(u32) (bytes[index[]] - '0')
         index[] += 1
@@ -88,15 +88,15 @@ func parseLocationLists(bytes: const [..] u8)->LocationLists
     while true
     {
         skipSpacing(bytes, &index)
-        if index >= @countof(bytes) do
+        if index >= bytes.count do
             break
 
-        @assert(result.count < MaxLocationPairs)
+        Swag.assert(result.count < MaxLocationPairs)
         result.left[result.count] = parseNumber(bytes, &index)
         skipSpacing(bytes, &index)
         result.right[result.count] = parseNumber(bytes, &index)
-        @assert(result.left[result.count] <= MaxLocationId)
-        @assert(result.right[result.count] <= MaxLocationId)
+        Swag.assert(result.left[result.count] <= MaxLocationId)
+        Swag.assert(result.right[result.count] <= MaxLocationId)
         result.count += 1
     }
 
@@ -110,12 +110,12 @@ func distanceBetween(left, right: u32)->u32
 
 func buildFrequencies(leftFreq, rightFreq: [..] u32, lists: LocationLists)
 {
-    @assert(@countof(leftFreq) == MaxLocationId + 1)
-    @assert(@countof(rightFreq) == MaxLocationId + 1)
+    Swag.assert(leftFreq.count == MaxLocationId + 1)
+    Swag.assert(rightFreq.count == MaxLocationId + 1)
 
     for lists.count
     {
-        let index = cast(u32) @index
+        let index = cast(u32) Swag.index
         leftFreq[lists.left[index]]   += 1
         rightFreq[lists.right[index]] += 1
     }
@@ -125,9 +125,9 @@ func computeSimilarityFromFrequencies(leftFreq, rightFreq: const [..] u32)->u64
 {
     var result: u64
 
-    for @countof(leftFreq)
+    for leftFreq.count
     {
-        let value = cast(u32) @index
+        let value = cast(u32) Swag.index
         result += cast(u64) value * cast(u64) leftFreq[value] * cast(u64) rightFreq[value]
     }
 
@@ -136,7 +136,7 @@ func computeSimilarityFromFrequencies(leftFreq, rightFreq: const [..] u32)->u64
 
 func computeDistanceFromFrequencies(leftFreq, rightFreq: [..] u32, pairCount: u32)->u64
 {
-    let limit = cast(u32) @countof(leftFreq)
+    let limit = cast(u32) leftFreq.count
 
     var leftValue:  u32
     var rightValue: u32
@@ -154,8 +154,8 @@ func computeDistanceFromFrequencies(leftFreq, rightFreq: [..] u32, pairCount: u3
             rightValue += 1
         }
 
-        @assert(leftValue < limit)
-        @assert(rightValue < limit)
+        Swag.assert(leftValue < limit)
+        Swag.assert(rightValue < limit)
         result                += cast(u64) distanceBetween(leftValue, rightValue)
         leftFreq[leftValue]   -= 1
         rightFreq[rightValue] -= 1
@@ -180,18 +180,18 @@ func solveClean(lists: LocationLists)->HistorianReport
 
 func copyValues(outValues: [..] u32, sourceValues: const [..] u32)
 {
-    @assert(@countof(outValues) == @countof(sourceValues))
+    Swag.assert(outValues.count == sourceValues.count)
 
-    for @countof(sourceValues)
+    for sourceValues.count
     {
-        let index = cast(u32) @index
+        let index = cast(u32) Swag.index
         outValues[index] = sourceValues[index]
     }
 }
 
 func sortValues(values: [..] u32)
 {
-    let count = cast(u32) @countof(values)
+    let count = cast(u32) values.count
 
     var index = 1'u32
     while index < count
@@ -213,7 +213,7 @@ func sortValues(values: [..] u32)
 func lowerBound(sortedValues: const [..] u32, value: u32)->u32
 {
     var first: u32
-    var last = cast(u32) @countof(sortedValues)
+    var last = cast(u32) sortedValues.count
 
     while first < last
     {
@@ -230,7 +230,7 @@ func lowerBound(sortedValues: const [..] u32, value: u32)->u32
 func upperBound(sortedValues: const [..] u32, value: u32)->u32
 {
     var first: u32
-    var last = cast(u32) @countof(sortedValues)
+    var last = cast(u32) sortedValues.count
 
     while first < last
     {
@@ -247,7 +247,7 @@ func upperBound(sortedValues: const [..] u32, value: u32)->u32
 func countSortedOccurrences(sortedValues: const [..] u32, value: u32)->u32
 {
     let first = lowerBound(sortedValues, value)
-    let count = cast(u32) @countof(sortedValues)
+    let count = cast(u32) sortedValues.count
 
     if first == count or sortedValues[first] != value do
         return 0
@@ -268,7 +268,7 @@ func computeDistanceBySorting(lists: LocationLists)->u64
     var result: u64
     for lists.count
     {
-        let index = cast(u32) @index
+        let index = cast(u32) Swag.index
         result += cast(u64) distanceBetween(leftSorted[index], rightSorted[index])
     }
 
@@ -286,7 +286,7 @@ func computeSimilarityBySorting(lists: LocationLists)->u64
 
     for lists.count
     {
-        let index     = cast(u32) @index
+        let index     = cast(u32) Swag.index
         let value     = lists.left[index]
         let frequency = countSortedOccurrences(sortedSlice, value)
         result += cast(u64) value * cast(u64) frequency
@@ -342,17 +342,17 @@ const CoverageLanguageReport: HistorianReport = #run solveWithLanguageFeatures(c
     let sampleClean    = solveClean(sampleLists)
     let sampleFeatures = solveWithLanguageFeatures(cast(const [..] u8) SampleInput)
 
-    @assert(sampleClean.pairCount == 6'u32)
-    @assert(sampleClean.totalDistance == 11'u64)
-    @assert(sampleClean.similarityScore == 31'u64)
-    @assert(SampleLanguageReport.pairCount == 6'u32)
-    @assert(SampleLanguageReport.totalDistance == 11'u64)
-    @assert(SampleLanguageReport.similarityScore == 31'u64)
-    @assert(sampleFeatures.pairCount == SampleLanguageReport.pairCount)
-    @assert(sampleFeatures.totalDistance == SampleLanguageReport.totalDistance)
-    @assert(sampleFeatures.similarityScore == SampleLanguageReport.similarityScore)
-    @assert(sampleClean.totalDistance == sampleFeatures.totalDistance)
-    @assert(sampleClean.similarityScore == sampleFeatures.similarityScore)
+    Swag.assert(sampleClean.pairCount == 6'u32)
+    Swag.assert(sampleClean.totalDistance == 11'u64)
+    Swag.assert(sampleClean.similarityScore == 31'u64)
+    Swag.assert(SampleLanguageReport.pairCount == 6'u32)
+    Swag.assert(SampleLanguageReport.totalDistance == 11'u64)
+    Swag.assert(SampleLanguageReport.similarityScore == 31'u64)
+    Swag.assert(sampleFeatures.pairCount == SampleLanguageReport.pairCount)
+    Swag.assert(sampleFeatures.totalDistance == SampleLanguageReport.totalDistance)
+    Swag.assert(sampleFeatures.similarityScore == SampleLanguageReport.similarityScore)
+    Swag.assert(sampleClean.totalDistance == sampleFeatures.totalDistance)
+    Swag.assert(sampleClean.similarityScore == sampleFeatures.similarityScore)
 }
 
 #test
@@ -360,12 +360,12 @@ const CoverageLanguageReport: HistorianReport = #run solveWithLanguageFeatures(c
     let denseLists = parseLocationLists(cast(const [..] u8) DenseInput)
     let denseClean = solveClean(denseLists)
 
-    @assert(DenseLanguageReport.pairCount == 4'u32)
-    @assert(DenseLanguageReport.totalDistance == 10'u64)
-    @assert(DenseLanguageReport.similarityScore == 90'u64)
-    @assert(denseClean.pairCount == DenseLanguageReport.pairCount)
-    @assert(denseClean.totalDistance == DenseLanguageReport.totalDistance)
-    @assert(denseClean.similarityScore == DenseLanguageReport.similarityScore)
+    Swag.assert(DenseLanguageReport.pairCount == 4'u32)
+    Swag.assert(DenseLanguageReport.totalDistance == 10'u64)
+    Swag.assert(DenseLanguageReport.similarityScore == 90'u64)
+    Swag.assert(denseClean.pairCount == DenseLanguageReport.pairCount)
+    Swag.assert(denseClean.totalDistance == DenseLanguageReport.totalDistance)
+    Swag.assert(denseClean.similarityScore == DenseLanguageReport.similarityScore)
 }
 
 #test
@@ -373,10 +373,10 @@ const CoverageLanguageReport: HistorianReport = #run solveWithLanguageFeatures(c
     let coverageLists = parseLocationLists(cast(const [..] u8) CoverageInput)
     let coverageClean = solveClean(coverageLists)
 
-    @assert(CoverageLanguageReport.pairCount == 8'u32)
-    @assert(CoverageLanguageReport.totalDistance == 40'u64)
-    @assert(CoverageLanguageReport.similarityScore == 400'u64)
-    @assert(coverageClean.pairCount == CoverageLanguageReport.pairCount)
-    @assert(coverageClean.totalDistance == CoverageLanguageReport.totalDistance)
-    @assert(coverageClean.similarityScore == CoverageLanguageReport.similarityScore)
+    Swag.assert(CoverageLanguageReport.pairCount == 8'u32)
+    Swag.assert(CoverageLanguageReport.totalDistance == 40'u64)
+    Swag.assert(CoverageLanguageReport.similarityScore == 400'u64)
+    Swag.assert(coverageClean.pairCount == CoverageLanguageReport.pairCount)
+    Swag.assert(coverageClean.totalDistance == CoverageLanguageReport.totalDistance)
+    Swag.assert(coverageClean.similarityScore == CoverageLanguageReport.similarityScore)
 }

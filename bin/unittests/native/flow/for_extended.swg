@@ -8,7 +8,7 @@
     {
         count += 1
     }
-    @assert(count == 0)
+    Swag.assert(count == 0)
 }
 
 // For with index and 0 iterations
@@ -19,7 +19,7 @@
     {
         count += 1
     }
-    @assert(count == 0)
+    Swag.assert(count == 0)
 }
 
 // For with 1 iteration
@@ -30,7 +30,7 @@
     {
         count += 1
     }
-    @assert(count == 1)
+    Swag.assert(count == 1)
 }
 
 // For breaking immediately on first iteration
@@ -42,7 +42,7 @@
         count += 1
         break
     }
-    @assert(count == 1)
+    Swag.assert(count == 1)
 }
 
 // For with continue skipping all processing
@@ -55,7 +55,7 @@
         continue
         sum += 1     // unreachable
     }
-    @assert(sum == 0)
+    Swag.assert(sum == 0)
 }
 
 // For with where clause filtering everything
@@ -66,7 +66,7 @@
     {
         count += 1
     }
-    @assert(count == 0)
+    Swag.assert(count == 0)
 }
 
 // For with where clause matching everything
@@ -77,7 +77,7 @@
     {
         count += 1
     }
-    @assert(count == 5)
+    Swag.assert(count == 5)
 }
 
 // Reverse for with 0 iterations
@@ -88,7 +88,7 @@
     {
         count += 1
     }
-    @assert(count == 0)
+    Swag.assert(count == 0)
 }
 
 // Reverse for with 1 iteration
@@ -99,7 +99,7 @@
     {
         count += 1
     }
-    @assert(count == 1)
+    Swag.assert(count == 1)
 }
 
 // Nested for with inner break, outer continues
@@ -117,8 +117,8 @@
                 break
         }
     }
-    @assert(outerCount == 4)
-    @assert(innerTotal == 12)     // 4 * 3 iterations each
+    Swag.assert(outerCount == 4)
+    Swag.assert(innerTotal == 12)     // 4 * 3 iterations each
 }
 
 // For on single-element array
@@ -127,12 +127,12 @@
     var arr: [1]s32 = [42]
     var count       = 0
     var sum         = 0
-    for v in @countof(arr)
+    for v in arr.count
     {
         count += 1
         sum   += cast(s32) v
     }
-    @assert(count == 1)
+    Swag.assert(count == 1)
 }
 
 // For with early return
@@ -148,7 +148,7 @@ func forEarlyReturn()->s32
 
 #test
 {
-    @assert(forEarlyReturn() == 3)
+    Swag.assert(forEarlyReturn() == 3)
 }
 
 // Triple nested for
@@ -165,7 +165,7 @@ func forEarlyReturn()->s32
             }
         }
     }
-    @assert(count == 27)
+    Swag.assert(count == 27)
 }
 
 // For with do single statement form and break
@@ -178,7 +178,7 @@ func forEarlyReturn()->s32
             break
         count += 1
     }
-    @assert(count == 3)
+    Swag.assert(count == 3)
 }
 
 // Range to with same start and end (single element)
@@ -191,8 +191,8 @@ func forEarlyReturn()->s32
         val   = cast(s32) i
         count += 1
     }
-    @assert(count == 1)
-    @assert(val == 5)
+    Swag.assert(count == 1)
+    Swag.assert(val == 5)
 }
 
 // Range until with adjacent values (1 iteration)
@@ -205,8 +205,8 @@ func forEarlyReturn()->s32
         val   = cast(s32) i
         count += 1
     }
-    @assert(count == 1)
-    @assert(val == 5)
+    Swag.assert(count == 1)
+    Swag.assert(val == 5)
 }
 
 // For with multiple continues at different points
@@ -222,7 +222,7 @@ func forEarlyReturn()->s32
         sum += cast(s32) i
     }
     // odd numbers not divisible by 5: 1,3,7,9,11,13,17,19 = 80
-    @assert(sum == 80)
+    Swag.assert(sum == 80)
 }
 
 // For loop variable used after loop
@@ -233,7 +233,7 @@ func forEarlyReturn()->s32
     {
         lastI = cast(s32) i
     }
-    @assert(lastI == 4)
+    Swag.assert(lastI == 4)
 }
 
 // Nested for with where clauses
@@ -248,5 +248,5 @@ func forEarlyReturn()->s32
         }
     }
     // i: 0,2,4,6,8 (5 values), j: 0,3,6,9 (4 values) = 20
-    @assert(count == 20)
+    Swag.assert(count == 20)
 }

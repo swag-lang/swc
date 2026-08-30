@@ -82,7 +82,7 @@ func moveIsPossible(fromP, toP: s8)->bool
 
 func initGame()
 {
-    @init(&g_Game, 1)
+    Swag.init(&g_Game, 1)
     g_Game.gameStatus = "Game is not over"
 }
 
@@ -170,7 +170,7 @@ func computeMoves()
 
         var moves: Array's8
 
-        let i = cast(s8) @index
+        let i = cast(s8) Swag.index
         switch cell.piece
         {
         case .Pawn:

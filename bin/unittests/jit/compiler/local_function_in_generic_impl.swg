@@ -33,5 +33,5 @@ namespace LocalFunctionInGenericImpl
 #test
 {
     let box = LocalFunctionInGenericImpl.Box's32{values: [1, 2, 3]}
-    @assert(box.countValues() == 3)
+    Swag.assert(box.countValues() == 3)
 }

@@ -8,7 +8,7 @@
 func boolTestEmptinessNullableString(text: #null string)->s32
 {
     if text do
-        return cast(s32) @countof(text!)
+        return cast(s32) (text!).count
     return 0
 }
 
@@ -25,7 +25,7 @@ func boolTestEmptinessNullableSlice(values: #null const [..] s32)->s32
 // A count answers emptiness, which is what the rejected spelling reads like.
 func boolTestEmptinessCount(text: string)->s32
 {
-    if @countof(text) do
+    if text.count do
         return 1
     return 0
 }

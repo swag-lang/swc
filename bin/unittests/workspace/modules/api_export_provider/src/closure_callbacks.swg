@@ -45,21 +45,21 @@ impl DepSelfBufferSet
     #[Swag.NoInline]
     mtd const toSlice()->const [..] u8
     {
-        @assert(buffer == cast([*] u8) &storage[0])
-        return @mkslice(buffer, count)
+        Swag.assert(buffer == cast([*] u8) &storage[0])
+        return Swag.makeSlice(buffer, count)
     }
 
     #[Swag.NoInline]
     mtd const contains(value: u8)->bool
     {
-        @assert(buffer == cast([*] u8) &storage[0])
+        Swag.assert(buffer == cast([*] u8) &storage[0])
         return depContains(.toSlice(), count, value)
     }
 
     #[Swag.NoInline]
     mtd const containsViaGeneric(value: u8)->bool
     {
-        @assert(buffer == cast([*] u8) &storage[0])
+        Swag.assert(buffer == cast([*] u8) &storage[0])
         return depContainsGeneric(.toSlice(), count, value)
     }
 }

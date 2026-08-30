@@ -28,14 +28,14 @@ impl City32
             c ^= b
         }
 
-        .currentValue = murmur3(murmur3(b, murmur3(cast(u32) @countof(data), c)))
+        .currentValue = murmur3(murmur3(b, murmur3(cast(u32) data.count, c)))
     }
 
     #[Swag.Safety(.Overflow, false)]
     mtd len5to12(data: const [..] u8)
     {
-        let s   = @dataof(data)
-        let len = cast(u32) @countof(data)
+        let s   = data.buffer
+        let len = cast(u32) data.count
         var a   = len + .currentValue
         var b   = len * 5
         var c   = 9'u32
@@ -49,8 +49,8 @@ impl City32
     #[Swag.Safety(.Overflow, false)]
     mtd len13to24(data: const [..] u8)
     {
-        let s   = @dataof(data)
-        let len = cast(u32) @countof(data)
+        let s   = data.buffer
+        let len = cast(u32) data.count
         let a   = fetch(s - 4 + (len >> 1))
         let b   = fetch(s + 4)
         let c   = fetch(s + len - 8)
@@ -71,7 +71,7 @@ impl City32
     #[Swag.Safety(.Overflow, false)]
     mtd update(data: const [..] u8)
     {
-        let len = cast(u32) @countof(data)
+        let len = cast(u32) data.count
 
         switch
         {
@@ -81,7 +81,7 @@ impl City32
         }
 
         let seed = .currentValue
-        var s    = @dataof(data)
+        var s    = data.buffer
         var h    = len + seed
         var g    = C1 * len
 

@@ -162,7 +162,7 @@ impl FileStream
     // Reads at most the size of `buffer` and returns the number of bytes read.
     mtd read(buffer: [..] u8)->u64 fail
     {
-        return .read(@dataof(buffer), @countof(buffer))
+        return .read(buffer.buffer, buffer.count)
     }
 
     // Reads the next bounded UTF-8 segment without splitting an encoded rune.
@@ -204,7 +204,7 @@ impl FileStream
 
         if accepted != count do
             .seek(.Begin, start + accepted)
-        return String.from(@mkstring(bytes.buffer!, accepted))
+        return String.from(Swag.makeString(bytes.buffer!, accepted))
     }
 
     // Reads the next bounded segment of text and returns it as UTF-8, whatever `encoding` the file
@@ -264,13 +264,13 @@ impl FileStream
     // Writes at most the size of `buffer` and returns the number of bytes written.
     mtd write(buffer: const [..] u8)->u64 fail
     {
-        return .write(@dataof(buffer), @countof(buffer))
+        return .write(buffer.buffer, buffer.count)
     }
 
     // Reads the complete `buffer` and returns false only when the stream ends first.
     mtd readExact(buffer: [..] u8)->bool fail
     {
-        return .read(buffer) == @countof(buffer)
+        return .read(buffer) == buffer.count
     }
 
     // Moves to `offset`, reads the complete `buffer`, and returns false only when the stream ends first.
@@ -284,7 +284,7 @@ impl FileStream
     // Writes the complete `buffer` or fails if the stream stops accepting bytes.
     mtd writeAll(buffer: const [..] u8) fail
     {
-        if .write(buffer) != @countof(buffer) do
+        if .write(buffer) != buffer.count do
             fail Swag.SystemError{"file write stopped before all bytes were written"}
     }
 

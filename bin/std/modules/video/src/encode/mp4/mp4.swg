@@ -32,7 +32,7 @@ private struct EncodedFrame
 private func writeU8(sink: *Sink, value: u8) fail
 {
     var stored = value
-    sink.write(@mkslice(&stored, 1))
+    sink.write(Swag.makeSlice(&stored, 1))
 }
 
 // Appends a big-endian 16-bit integer.
@@ -132,10 +132,10 @@ impl IEncoder for Encoder
             fail UnsupportedFormatError{"MP4 frame dimensions exceed what the visual sample entry can describe"}
 
         .info = info
-        if @dataof(options) != null
+        if options.buffer != null
         {
-            Debug.assert(@kindof(options) == EncodeOptions)
-            .options = @dataof(options)![as EncodeOptions]
+            Debug.assert(Swag.kindOf(options) == EncodeOptions)
+            .options = options.buffer![as EncodeOptions]
         }
 
         .writeFileType(sink)
@@ -156,10 +156,10 @@ impl IEncoder for Encoder
         var encoded = image.encode(JpegName, frameOptions)
         encoded.makeLinear()
         let payload = encoded.toSlice()!
-        if @countof(payload) > Swag.U32.Max do
+        if payload.count > Swag.U32.Max do
             fail UnsupportedFormatError{"MP4 JPEG sample exceeds the four gigabytes its sample table can describe"}
 
-        .frames.add({sink.position(), cast(u32) @countof(payload)})
+        .frames.add({sink.position(), cast(u32) payload.count})
         sink.write(payload)
     }
 
@@ -352,9 +352,9 @@ private impl Encoder
         writeU16(sink, 1)
 
         const Compressor = "Swag Motion JPEG"
-        writeU8(sink, cast(u8) @countof(Compressor))
+        writeU8(sink, cast(u8) Compressor.count)
         sink.writeText(Compressor)
-        for 31 - @countof(Compressor) do
+        for 31 - Compressor.count do
             writeU8(sink, 0)
         writeU16(sink, 24)
         writeU16(sink, 0xFFFF)

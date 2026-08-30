@@ -47,14 +47,14 @@ func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.ChangeKind,
 
     let first = Path.combine(root, "before.txt")
     discard expect File.writeAllBytes(first, ['a'u8])
-    @assert(expect waitForWatchChange(&watcher, .Added, first.toString()))
+    Swag.assert(expect waitForWatchChange(&watcher, .Added, first.toString()))
 
     let second = Path.combine(root, "after.txt")
     expect File.move(second, first)
-    @assert(expect waitForWatchChange(&watcher, .Renamed, second.toString(), first.toString()))
+    Swag.assert(expect waitForWatchChange(&watcher, .Renamed, second.toString(), first.toString()))
 
     watcher.cancel()
-    @assert((expect watcher.next(0)).status == .Cancelled)
+    Swag.assert((expect watcher.next(0)).status == .Cancelled)
     watcher.close()
 }
 
@@ -72,5 +72,5 @@ func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.ChangeKind,
 
     let batch = expect watcher.next()
     thread.wait()
-    @assert(batch.status == .Cancelled)
+    Swag.assert(batch.status == .Cancelled)
 }

@@ -71,5 +71,5 @@ func day2A()
     }
 
     // Console.print("total: ", op[0])
-    @assert(op[0] == 5534943)
+    Swag.assert(op[0] == 5534943)
 }

@@ -4,8 +4,8 @@
 // following a move sequence (^v<>). Compute the sum of GPS coordinates
 // (100*row + col) of all boxes after executing every move.
 // Part 1 uses single-width boxes; Part 2 is omitted (double-width).
-// Exercises: @dataof, @mkslice, #stringof, @sqrt/@floor math intrinsics,
-// @countof on fixed arrays, string concatenation (++), #typeof.
+// Exercises: .buffer, Swag.makeSlice, #stringof, Swag.sqrt/Swag.floor math intrinsics,
+// .count on fixed arrays, string concatenation (++), #typeof.
 
 const SmallInput =
     """########
@@ -83,7 +83,7 @@ func warehouseInit()->Warehouse
     let cells = wh.cells!
     for MaxDim * MaxDim
     {
-        cells[@index] = Tile.Empty
+        cells[Swag.index] = Tile.Empty
     }
     return wh
 }
@@ -103,7 +103,7 @@ func warehouseSet(wh: *Warehouse, r, c: u32, t: Tile)
 }
 
 // ---------------------------------------------------------------------------
-// Parsing: grid + moves  (uses @mkslice, @dataof, @countof)
+// Parsing: grid + moves  (uses Swag.makeSlice, .buffer, .count)
 // ---------------------------------------------------------------------------
 
 struct Parsed
@@ -126,7 +126,7 @@ func parseInput(text: string)->Parsed
     result.wh = warehouseInit()
 
     let bytes = cast(const [..] u8) text
-    let total = @countof(bytes)
+    let total = bytes.count
 
     // --- Phase 1: parse grid lines ---
     var pos: u32
@@ -176,7 +176,7 @@ func parseInput(text: string)->Parsed
 
     if col > 0
     {
-        result.wh.w = @max(result.wh.w, col)
+        result.wh.w = Swag.max(result.wh.w, col)
         result.wh.h += 1
     }
 
@@ -197,11 +197,11 @@ func parseInput(text: string)->Parsed
     result.moves  = cast(#null [*] u8) testAlloc(cast(u64) moveCount)
     result.nMoves = moveCount
 
-    // @mkslice: create a slice view over the allocated move buffer
-    let moveSlice = @mkslice(result.moves!, cast(u64) moveCount)
+    // Swag.makeSlice: create a slice view over the allocated move buffer
+    let moveSlice = Swag.makeSlice(result.moves!, cast(u64) moveCount)
 
-    // @dataof: verify the slice's data pointer matches the allocation
-    @assert(@dataof(moveSlice) == result.moves)
+    // .buffer: verify the slice's data pointer matches the allocation
+    Swag.assert(moveSlice.buffer == result.moves)
 
     var mi: u32
     for
@@ -324,7 +324,7 @@ func solve(text: string)->u64
 // ---------------------------------------------------------------------------
 
 // Compute RMS distance of all boxes from the grid centre.
-// Exercises @sqrt and @floor.
+// Exercises Swag.sqrt and Swag.floor.
 func boxRmsFromCentre(wh: *Warehouse)->f64
 {
     let cx = cast(f64) wh.w / 2.0
@@ -348,11 +348,11 @@ func boxRmsFromCentre(wh: *Warehouse)->f64
 
     if count == 0.0 do
         return 0.0
-    return @sqrt(sumSq / count)
+    return Swag.sqrt(sumSq / count)
 }
 
 // Floor the RMS to an integer bucket.
-func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32) @floor(boxRmsFromCentre(wh))
+func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32) Swag.floor(boxRmsFromCentre(wh))
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -362,8 +362,8 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32) @floor(boxRmsFromCentre(wh))
 #test
 {
     #assert(#typeof(Tile.Empty) == Tile)
-    @assert(TileWallVal == "1")
-    @assert(GridMaxStr == "4096")
+    Swag.assert(TileWallVal == "1")
+    Swag.assert(GridMaxStr == "4096")
 }
 
 // Parse small input
@@ -372,35 +372,35 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32) @floor(boxRmsFromCentre(wh))
     var p = parseInput(SmallInput)
     defer parsedFree(&p)
 
-    @assert(p.wh.w == 8'u32)
-    @assert(p.wh.h == 8'u32)
-    @assert(p.wh.robotR == 2'u32)
-    @assert(p.wh.robotC == 2'u32)
+    Swag.assert(p.wh.w == 8'u32)
+    Swag.assert(p.wh.h == 8'u32)
+    Swag.assert(p.wh.robotR == 2'u32)
+    Swag.assert(p.wh.robotC == 2'u32)
 
     // Top-left is wall
-    @assert(warehouseAt(&p.wh, 0, 0) == Tile.Wall)
+    Swag.assert(warehouseAt(&p.wh, 0, 0) == Tile.Wall)
     // Box at (1,3)
-    @assert(warehouseAt(&p.wh, 1, 3) == Tile.Box)
+    Swag.assert(warehouseAt(&p.wh, 1, 3) == Tile.Box)
     // Robot at (2,2)
-    @assert(warehouseAt(&p.wh, 2, 2) == Tile.Robot)
+    Swag.assert(warehouseAt(&p.wh, 2, 2) == Tile.Robot)
 
     // Move count: "<^^>>>vv<v>>v<<" = 15 moves
-    @assert(p.nMoves == 15'u32)
+    Swag.assert(p.nMoves == 15'u32)
 }
 
-// @mkslice and @dataof in parsed moves
+// Swag.makeSlice and .buffer in parsed moves
 #test
 {
     var p = parseInput(SmallInput)
     defer parsedFree(&p)
 
     let moves     = p.moves!
-    let moveSlice = @mkslice(moves, cast(u64) p.nMoves)
-    @assert(@countof(moveSlice) == cast(u64) p.nMoves)
-    @assert(@dataof(moveSlice) == p.moves)
+    let moveSlice = Swag.makeSlice(moves, cast(u64) p.nMoves)
+    Swag.assert(moveSlice.count == cast(u64) p.nMoves)
+    Swag.assert(moveSlice.buffer == p.moves)
 
     // First move is '<'
-    @assert(moves[0] == '<')
+    Swag.assert(moves[0] == '<')
 }
 
 // Small sample: GPS = 2028
@@ -411,17 +411,17 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32) @floor(boxRmsFromCentre(wh))
 
     // Verify first move
     let moves = p.moves!
-    @assert(moves[0] == '<')
+    Swag.assert(moves[0] == '<')
 
     simulate(&p)
     let score = gpsScore(&p.wh)
-    @assert(score == 2739'u64)
+    Swag.assert(score == 2739'u64)
 }
 
 // Large sample
 #test
 {
-    @assert(solve(LargeInput) == 10195'u64)
+    Swag.assert(solve(LargeInput) == 10195'u64)
 }
 
 // Single box push right
@@ -436,11 +436,11 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32) @floor(boxRmsFromCentre(wh))
 
     var p = parseInput(input)
     defer parsedFree(&p)
-    @assert(p.nMoves == 1'u32)
+    Swag.assert(p.nMoves == 1'u32)
     simulate(&p)
     // Robot pushed box right: box at (1,3), robot at (1,2)
-    @assert(warehouseAt(&p.wh, 1, 3) == Tile.Box)
-    @assert(warehouseAt(&p.wh, 1, 2) == Tile.Robot)
+    Swag.assert(warehouseAt(&p.wh, 1, 3) == Tile.Box)
+    Swag.assert(warehouseAt(&p.wh, 1, 2) == Tile.Robot)
 }
 
 // Math intrinsics: RMS before simulation is positive
@@ -450,15 +450,15 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32) @floor(boxRmsFromCentre(wh))
     defer parsedFree(&p)
 
     let rms = boxRmsFromCentre(&p.wh)
-    @assert(rms > 0.0)
+    Swag.assert(rms > 0.0)
     let bucket = boxRmsBucket(&p.wh)
-    @assert(bucket >= 0)
+    Swag.assert(bucket >= 0)
 
-    // @floor always <= @sqrt value
-    let v = @sqrt(16.0'f64)
-    @assert(v == 4.0'f64)
-    @assert(@floor(3.9'f64) == 3.0'f64)
-    @assert(@floor(4.0'f64) == 4.0'f64)
+    // Swag.floor always <= Swag.sqrt value
+    let v = Swag.sqrt(16.0'f64)
+    Swag.assert(v == 4.0'f64)
+    Swag.assert(Swag.floor(3.9'f64) == 3.0'f64)
+    Swag.assert(Swag.floor(4.0'f64) == 4.0'f64)
 }
 
 // Edge case: no boxes
@@ -474,16 +474,16 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32) @floor(boxRmsFromCentre(wh))
     var p = parseInput(input)
     defer parsedFree(&p)
     simulate(&p)
-    @assert(gpsScore(&p.wh) == 0'u64)
+    Swag.assert(gpsScore(&p.wh) == 0'u64)
 }
 
-// Compound assignment review: @countof on fixed array
+// Compound assignment review: .count on fixed array
 #test
 {
     var tiles: [4] Tile
-    @assert(@countof(tiles) == 4)
+    Swag.assert(tiles.count == 4)
     tiles[0] = Tile.Wall
     tiles[1] = Tile.Box
-    @assert(tiles[0] == Tile.Wall)
-    @assert(tiles[1] == Tile.Box)
+    Swag.assert(tiles[0] == Tile.Wall)
+    Swag.assert(tiles[1] == Tile.Box)
 }

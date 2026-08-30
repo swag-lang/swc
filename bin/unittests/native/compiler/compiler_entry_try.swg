@@ -18,17 +18,17 @@ var g_State: s32
 #premain
 {
     let value = try mayFailValue(10)
-    @assert(value == 10)
+    Swag.assert(value == 10)
     g_State += value
 }
 
 #test
 {
-    @assert(g_State == 11)
+    Swag.assert(g_State == 11)
 }
 
 #drop
 {
     try mayFailVoid()
-    @assert(g_State == 11)
+    Swag.assert(g_State == 11)
 }

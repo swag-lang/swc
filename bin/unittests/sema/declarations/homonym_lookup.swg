@@ -27,7 +27,7 @@ impl GenericSetterItem
 {
     mtd opSet(values: const [..] T)
     {
-        me.count = @countof(values)
+        me.count = values.count
     }
 }
 

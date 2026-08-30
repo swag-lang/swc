@@ -13,13 +13,13 @@ using Swag, Core
     var plain: String = "data:image/png;base64,"
     plain += Base64.encode(bytes.toSlice())
     let decoded = expect Image.fromDataUri(plain.toString())
-    @assert(decoded.width == 4 and decoded.height == 3)
-    @assert(Memory.compare(source.pixels.buffer, decoded.pixels.buffer, source.byteCount) == 0)
+    Swag.assert(decoded.width == 4 and decoded.height == 3)
+    Swag.assert(Memory.compare(source.pixels.buffer, decoded.pixels.buffer, source.byteCount) == 0)
 
     var withParameter: String = "data:image/png;name=figure;base64,"
     withParameter += Base64.encode(bytes.toSlice())
     let parameterized = expect Image.fromDataUri(withParameter.toString())
-    @assert(parameterized.width == 4 and parameterized.height == 3)
+    Swag.assert(parameterized.width == 4 and parameterized.height == 3)
 }
 
 // `image/jpeg` names the decoder registered under `jpg`, which is how every generator spells
@@ -33,7 +33,7 @@ using Swag, Core
     var uri: String = "data:image/jpeg;base64,"
     uri += Base64.encode(bytes.toSlice())
     let decoded = expect Image.fromDataUri(uri.toString())
-    @assert(decoded.width == 8 and decoded.height == 8)
+    Swag.assert(decoded.width == 8 and decoded.height == 8)
 }
 
 // A reference that is not an inline image reports a failure the caller can degrade on, never a
@@ -41,14 +41,14 @@ using Swag, Core
 #test
 {
     discard catch Image.fromDataUri("data:text/plain;base64,aGk=") as notImage
-    @assert(notImage != null)
+    Swag.assert(notImage != null)
 
     discard catch Image.fromDataUri("data:image/png,plain") as notBase64
-    @assert(notBase64 != null)
+    Swag.assert(notBase64 != null)
 
     discard catch Image.fromDataUri("data:image/unknown;base64,aGk=") as noCodec
-    @assert(noCodec != null)
+    Swag.assert(noCodec != null)
 
     discard catch Image.fromDataUri("data:image/png;base64,!!!") as badPayload
-    @assert(badPayload != null)
+    Swag.assert(badPayload != null)
 }

@@ -104,12 +104,12 @@ impl SheetView
     func familyOf(name: string)->string
     {
         var length = 0'u64
-        while length < @countof(name) and name[length] != '_' do
+        while length < name.count and name[length] != '_' do
             length += 1
 
-        if length == @countof(name) do
+        if length == name.count do
             return "shared"
-        return @mkstring(@dataof(name), length)
+        return Swag.makeString(name.buffer, length)
     }
 
     // Adds the head of a family when the previous row belonged to another one.
@@ -344,7 +344,7 @@ impl IWnd for SheetWnd
     // A palette switch changes every swatch and every hexadecimal string on the sheet.
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .ThemeChanged and @isset(.view) do
+        if evt.kind == .ThemeChanged and Swag.isSet(.view) do
             .view.rebuild()
     }
 }

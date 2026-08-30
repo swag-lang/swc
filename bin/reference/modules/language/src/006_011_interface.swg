@@ -82,15 +82,15 @@ Cast to the interface and call its methods.
     var pt3: Point3
     var itf = cast(IReset) pt2
     itf.set(10)
-    @assert(pt2.x == 10)
-    @assert(pt2.y == 11)
+    Swag.assert(pt2.x == 10)
+    Swag.assert(pt2.y == 11)
     itf = cast(IReset) pt3
     itf.set(10)
-    @assert(pt3.x == 10)
-    @assert(pt3.y == 11)
-    @assert(pt3.z == 12)
+    Swag.assert(pt3.x == 10)
+    Swag.assert(pt3.y == 11)
+    Swag.assert(pt3.z == 12)
     itf.reset()
-    @assert(pt3.x == 0 and pt3.y == 0 and pt3.z == 0)
+    Swag.assert(pt3.x == 0 and pt3.y == 0 and pt3.z == 0)
 }
 
 /**
@@ -118,17 +118,17 @@ An interface occupies two pointers: object pointer + virtual table pointer.
     var itf = cast(IReset) pt2
     #assert(#sizeof(itf) == 2 * #sizeof(#null *void))
 
-    // Retrieve the concrete type with '@kindof'
+    // Retrieve the concrete type with 'Swag.kindOf'
     itf = cast(IReset) pt2
-    @assert(@kindof(itf) == Point2)
+    Swag.assert(Swag.kindOf(itf) == Point2)
     itf = cast(IReset) pt3
-    @assert(@kindof(itf) == Point3)
+    Swag.assert(Swag.kindOf(itf) == Point3)
 
-    // Retrieve the concrete data with '@dataof'
+    // Retrieve the concrete data with '.buffer'
     itf = cast(IReset) pt2
-    @assert(@dataof(itf) == &pt2)
+    Swag.assert(itf.buffer == &pt2)
     itf = cast(IReset) pt3
-    @assert(@dataof(itf) == &pt3)
+    Swag.assert(itf.buffer == &pt3)
 }
 
 /**
@@ -166,8 +166,8 @@ For 'Point3', 'isImplemented()' returns 'false' (the default).
     var v3: Point3
 
     let i2 = cast(ITest) v2
-    @assert(i2.isImplemented())
+    Swag.assert(i2.isImplemented())
 
     let i3 = cast(ITest) v3
-    @assert(!i3.isImplemented())
+    Swag.assert(!i3.isImplemented())
 }

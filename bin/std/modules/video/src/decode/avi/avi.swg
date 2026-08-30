@@ -190,7 +190,7 @@ func frameChunkId(index: u32, a, b: u32)->u32
 private func(T) readValue(source: *Source)->T fail
 {
     var result: T = undefined
-    source.readExact(@mkslice(cast([*] u8) &result, #sizeof(T)))
+    source.readExact(Swag.makeSlice(cast([*] u8) &result, #sizeof(T)))
     return result
 }
 
@@ -514,7 +514,7 @@ private impl Decoder
     mtd buildSoundTracks(source: *Source, layout: const *Layout) fail
     {
         let path = source.sourcePath()
-        if !@countof(path) do
+        if !path.count do
             return
 
         .soundTracks.reserve(layout.audioTracks.count)

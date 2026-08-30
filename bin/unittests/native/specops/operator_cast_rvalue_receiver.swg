@@ -16,7 +16,7 @@ impl CastFat
     mtd const opCast()->string
     {
         let buf = .buf!
-        return @mkstring(buf, .len)
+        return Swag.makeString(buf, .len)
     }
 }
 
@@ -31,14 +31,14 @@ impl CastSink
     #[Swag.Implicit]
     mtd opSet(value: #null string)
     {
-        .total = @countof(value)
-        .first = @countof(value) ? value![0] : 0
+        .total = value.count
+        .first = value.count ? value![0] : 0
     }
 }
 
 func makeCastFat(text: string)->CastFat
 {
-    return CastFat{buf: @dataof(text), len: @countof(text)}
+    return CastFat{buf: text.buffer, len: text.count}
 }
 
 var g_CastSink: CastSink
@@ -52,12 +52,12 @@ var g_CastSink: CastSink
 
     var sink: CastSink
     sink = makeCastFat("hello")
-    @assert(sink.total == 5)
-    @assert(sink.first == 'h'u8)
-    @assert(@countof(decoyPtr) == 16)
+    Swag.assert(sink.total == 5)
+    Swag.assert(sink.first == 'h'u8)
+    Swag.assert(decoyPtr.count == 16)
 
     // Same shape through a GLOBAL assignment target, like g_StoreArgs.
     g_CastSink = makeCastFat("worldly")
-    @assert(g_CastSink.total == 7)
-    @assert(g_CastSink.first == 'w'u8)
+    Swag.assert(g_CastSink.total == 7)
+    Swag.assert(g_CastSink.first == 'w'u8)
 }

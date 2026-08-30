@@ -270,18 +270,18 @@ func touch()
     var owner: LifecycleOwner
     var nested: LifecycleBox'LifecycleOwner
 
-    @postcopy(one)
-    @postmove(two)
-    @drop(one)
-    @drop(two)
+    Swag.postCopy(one)
+    Swag.postMove(two)
+    Swag.drop(one)
+    Swag.drop(two)
 
-    @postcopy(owner)
-    @postmove(owner)
-    @drop(owner)
+    Swag.postCopy(owner)
+    Swag.postMove(owner)
+    Swag.drop(owner)
 
-    @postcopy(nested)
-    @postmove(nested)
-    @drop(nested)
+    Swag.postCopy(nested)
+    Swag.postMove(nested)
+    Swag.drop(nested)
 
     #assert(#typeof(eqBoolA) == bool)
     #assert(#typeof(eqBoolB) == bool)
@@ -591,7 +591,7 @@ struct GeneratedInitNoise
             foundGeneratedValue = true;
         if (content.contains("swagLifecycleInitWrapper"))
             return Result::Error;
-        if (content.contains("@init(me, 1)"))
+        if (content.contains("Swag.init(me, 1)"))
             return Result::Error;
     }
 
@@ -655,9 +655,9 @@ func touch()
     let pairBool = pairA < pairB
 
     var owner: LifecycleOwner
-    @postcopy(owner)
-    @postmove(owner)
-    @drop(owner)
+    Swag.postCopy(owner)
+    Swag.postMove(owner)
+    Swag.drop(owner)
 
     #assert(#typeof(pairBool) == bool)
 }

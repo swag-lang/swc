@@ -12,12 +12,12 @@ using Swag, Core, Pixel
     app.setRenderer(&cpu)
 
     let surface = (expect app.createSurface(0, 0, 160, 96))!
-    @assert(!app.renderer.needsNativeWindow())
-    @assert(!surface.hWnd)
+    Swag.assert(!app.renderer.needsNativeWindow())
+    Swag.assert(!surface.hWnd)
 
     surface.show()
     let image = app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
-    @assert(image.isValid() and image.width == surface.rc.width and image.height == surface.rc.height)
+    Swag.assert(image.isValid() and image.width == surface.rc.width and image.height == surface.rc.height)
 }
 
 // The headless host must exercise the complete GUI paint path, not only record commands.
@@ -27,18 +27,18 @@ using Swag, Core, Pixel
     host.setup(96, 64)
     defer host.shutdown()
     let background = host.render()
-    @assert(background.isValid())
-    @assert(background.width == 96 and background.height == 64)
-    @assert(background.pixelFormat == .BGRA8)
+    Swag.assert(background.isValid())
+    Swag.assert(background.width == 96 and background.height == 64)
+    Swag.assert(background.pixelFormat == .BGRA8)
 
     let button  = PushButton.create(&host.root, "", {20, 16, 56, 32})
     let enabled = host.render()
-    @assert(Memory.compare(enabled.pixels.buffer, background.pixels.buffer, enabled.byteCount) != 0)
+    Swag.assert(Memory.compare(enabled.pixels.buffer, background.pixels.buffer, enabled.byteCount) != 0)
     Pixel.Testing.assertImageGolden(&enabled, "widget.cpu.pushbutton")
 
     button.disable()
     let disabled = host.render()
-    @assert(Memory.compare(disabled.pixels.buffer, enabled.pixels.buffer, disabled.byteCount) != 0)
+    Swag.assert(Memory.compare(disabled.pixels.buffer, enabled.pixels.buffer, disabled.byteCount) != 0)
 }
 
 // A repaint is normally one control wide, and the tree it sits in is a whole window. A window
@@ -65,8 +65,8 @@ using Swag, Core, Pixel
     // The whole surface: every button is painted.
     host.surface.invalidate()
     host.surface.paintWnd(&host.root)
-    @assert(host.surface.paintedWnds == Columns * Rows)
-    @assert(host.surface.skippedWnds == 0)
+    Swag.assert(host.surface.paintedWnds == Columns * Rows)
+    Swag.assert(host.surface.skippedWnds == 0)
 
     // One button's rectangle, from a surface that is not already dirty: a widget that asks for
     // its own repaint while painting would otherwise widen the region this measures. The other
@@ -75,8 +75,8 @@ using Swag, Core, Pixel
     host.surface.isDirty = false
     host.surface.invalidateRect({4, 4, 70, 38})
     host.surface.paintWnd(&host.root)
-    @assert(host.surface.paintedWnds + host.surface.skippedWnds == Columns * Rows)
-    @assert(host.surface.paintedWnds < 12)
+    Swag.assert(host.surface.paintedWnds + host.surface.skippedWnds == Columns * Rows)
+    Swag.assert(host.surface.paintedWnds < 12)
 }
 
 // Rejecting a window on a tighter rectangle than the one it dirties would leave the difference
@@ -94,10 +94,10 @@ using Swag, Core, Pixel
     host.surface.isDirty = false
     host.surface.invalidateRect(button.paintExtent(button.surfaceRect()))
     host.surface.paintWnd(&host.root)
-    @assert(host.surface.paintedWnds == 1 and host.surface.skippedWnds == 0)
+    Swag.assert(host.surface.paintedWnds == 1 and host.surface.skippedWnds == 0)
 
     host.surface.isDirty = false
     host.surface.invalidateRect({0, 0, 8, 8})
     host.surface.paintWnd(&host.root)
-    @assert(host.surface.paintedWnds == 0 and host.surface.skippedWnds == 1)
+    Swag.assert(host.surface.paintedWnds == 0 and host.surface.skippedWnds == 1)
 }

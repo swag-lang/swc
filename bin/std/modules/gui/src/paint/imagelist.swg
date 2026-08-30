@@ -69,6 +69,6 @@ impl ImageList
     {
         if .texture.isValid() do
             renderer.removeTexture(&.texture)
-        @init(me, 1)
+        Swag.init(me, 1)
     }
 }

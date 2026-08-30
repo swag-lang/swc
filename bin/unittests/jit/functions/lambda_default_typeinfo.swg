@@ -8,6 +8,6 @@
         return cast(u64) info.totalCount
     }
 
-    @assert(cb() == 2)
-    @assert(cb(#typeof([1, 2, 3])) == 3)
+    Swag.assert(cb() == 2)
+    Swag.assert(cb(#typeof([1, 2, 3])) == 3)
 }

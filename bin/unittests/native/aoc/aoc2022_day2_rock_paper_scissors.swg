@@ -89,7 +89,7 @@ func decodeOpponent(token: u8)->Shape
         return Shape.Scissors
     }
 
-    @assert(false)
+    Swag.assert(false)
     return Shape.Rock
 }
 
@@ -107,7 +107,7 @@ func decodePartOneShape(token: u8)->Shape
         return Shape.Scissors
     }
 
-    @assert(false)
+    Swag.assert(false)
     return Shape.Rock
 }
 
@@ -125,7 +125,7 @@ func decodeDesiredOutcome(token: u8)->Outcome
         return Outcome.Win
     }
 
-    @assert(false)
+    Swag.assert(false)
     return Outcome.Lose
 }
 
@@ -146,7 +146,7 @@ func roundOutcome(mine: Shape, opponent: Shape)->Outcome
         return opponent == Shape.Paper ? Outcome.Win : Outcome.Lose
     }
 
-    @assert(false)
+    Swag.assert(false)
     return Outcome.Lose
 }
 
@@ -167,7 +167,7 @@ func chooseShape(opponent: Shape, desired: Outcome)->Shape
         return desired == Outcome.Win ? Shape.Rock : Shape.Paper
     }
 
-    @assert(false)
+    Swag.assert(false)
     return Shape.Rock
 }
 
@@ -178,9 +178,9 @@ func roundScore(mine: Shape, opponent: Shape)->u32
 
 func storeRound(guide: *StrategyGuide, opponentToken: u8, codeToken: u8)
 {
-    @assert(isOpponentToken(opponentToken))
-    @assert(isCodeToken(codeToken))
-    @assert(guide.count < MaxRounds)
+    Swag.assert(isOpponentToken(opponentToken))
+    Swag.assert(isCodeToken(codeToken))
+    Swag.assert(guide.count < MaxRounds)
 
     let index = guide.count
     guide.rounds[index] = GuideRound{opponentToken: opponentToken, codeToken: codeToken}
@@ -195,9 +195,9 @@ func parseGuide(bytes: const [..] u8)->StrategyGuide
     var haveOpponent = false
     var haveCode     = false
 
-    for @countof(bytes)
+    for bytes.count
     {
-        let ch = bytes[@index]
+        let ch = bytes[Swag.index]
         if ch == ' 'u8 or ch == '\r'u8 do
             continue
 
@@ -205,7 +205,7 @@ func parseGuide(bytes: const [..] u8)->StrategyGuide
         {
             if haveOpponent or haveCode
             {
-                @assert(haveOpponent and haveCode)
+                Swag.assert(haveOpponent and haveCode)
                 storeRound(&result, opponentToken, codeToken)
                 haveOpponent = false
                 haveCode     = false
@@ -216,7 +216,7 @@ func parseGuide(bytes: const [..] u8)->StrategyGuide
 
         if !haveOpponent
         {
-            @assert(isOpponentToken(ch))
+            Swag.assert(isOpponentToken(ch))
             opponentToken = ch
             haveOpponent  = true
             continue
@@ -224,18 +224,18 @@ func parseGuide(bytes: const [..] u8)->StrategyGuide
 
         if !haveCode
         {
-            @assert(isCodeToken(ch))
+            Swag.assert(isCodeToken(ch))
             codeToken = ch
             haveCode  = true
             continue
         }
 
-        @assert(false)
+        Swag.assert(false)
     }
 
     if haveOpponent or haveCode
     {
-        @assert(haveOpponent and haveCode)
+        Swag.assert(haveOpponent and haveCode)
         storeRound(&result, opponentToken, codeToken)
     }
 
@@ -248,7 +248,7 @@ func solveClean(guide: StrategyGuide)->ScoreSummary
 
     for guide.count
     {
-        let round        = guide.rounds[cast(u32) @index]
+        let round        = guide.rounds[cast(u32) Swag.index]
         let opponent     = decodeOpponent(round.opponentToken)
         let partOneShape = decodePartOneShape(round.codeToken)
         let desired      = decodeDesiredOutcome(round.codeToken)
@@ -298,9 +298,9 @@ func forEachGuideLine(bytes: const [..] u8, stmt: #code(opponentToken: u8, codeT
     var haveOpponent = false
     var haveCode     = false
 
-    for @countof(bytes)
+    for bytes.count
     {
-        let ch = bytes[@index]
+        let ch = bytes[Swag.index]
         if ch == ' 'u8 or ch == '\r'u8 do
             continue
 
@@ -308,7 +308,7 @@ func forEachGuideLine(bytes: const [..] u8, stmt: #code(opponentToken: u8, codeT
         {
             if haveOpponent or haveCode
             {
-                @assert(haveOpponent and haveCode)
+                Swag.assert(haveOpponent and haveCode)
                 #inject(stmt, opponentToken = lineOpponentToken, codeToken = lineCodeToken)
                 haveOpponent = false
                 haveCode     = false
@@ -319,7 +319,7 @@ func forEachGuideLine(bytes: const [..] u8, stmt: #code(opponentToken: u8, codeT
 
         if !haveOpponent
         {
-            @assert(isOpponentToken(ch))
+            Swag.assert(isOpponentToken(ch))
             lineOpponentToken = ch
             haveOpponent      = true
             continue
@@ -327,18 +327,18 @@ func forEachGuideLine(bytes: const [..] u8, stmt: #code(opponentToken: u8, codeT
 
         if !haveCode
         {
-            @assert(isCodeToken(ch))
+            Swag.assert(isCodeToken(ch))
             lineCodeToken = ch
             haveCode      = true
             continue
         }
 
-        @assert(false)
+        Swag.assert(false)
     }
 
     if haveOpponent or haveCode
     {
-        @assert(haveOpponent and haveCode)
+        Swag.assert(haveOpponent and haveCode)
         #inject(stmt, opponentToken = lineOpponentToken, codeToken = lineCodeToken)
     }
 }
@@ -352,7 +352,7 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->ScoreSummary
     let iPartOne = cast(IRoundScorer) partOneScorer
     let iPartTwo = cast(IRoundScorer) partTwoScorer
 
-    defer @assert(featureRoundCount <= MaxRounds)
+    defer Swag.assert(featureRoundCount <= MaxRounds)
 
     forEachGuideLine(bytes)
     {
@@ -380,13 +380,13 @@ const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInpu
     let clean    = solveClean(guide)
     let features = solveWithLanguageFeatures(bytes)
 
-    @assert(guide.count == 3'u32)
-    @assert(clean.partOne == 15'u32)
-    @assert(clean.partTwo == 12'u32)
-    @assert(SampleResult.partOne == clean.partOne)
-    @assert(SampleResult.partTwo == clean.partTwo)
-    @assert(features.partOne == clean.partOne)
-    @assert(features.partTwo == clean.partTwo)
+    Swag.assert(guide.count == 3'u32)
+    Swag.assert(clean.partOne == 15'u32)
+    Swag.assert(clean.partTwo == 12'u32)
+    Swag.assert(SampleResult.partOne == clean.partOne)
+    Swag.assert(SampleResult.partTwo == clean.partTwo)
+    Swag.assert(features.partOne == clean.partOne)
+    Swag.assert(features.partTwo == clean.partTwo)
 }
 
 #test
@@ -396,13 +396,13 @@ const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInpu
     let clean    = solveClean(guide)
     let features = solveWithLanguageFeatures(bytes)
 
-    @assert(guide.count == 9'u32)
-    @assert(clean.partOne == 45'u32)
-    @assert(clean.partTwo == 45'u32)
-    @assert(CoverageResult.partOne == clean.partOne)
-    @assert(CoverageResult.partTwo == clean.partTwo)
-    @assert(features.partOne == clean.partOne)
-    @assert(features.partTwo == clean.partTwo)
+    Swag.assert(guide.count == 9'u32)
+    Swag.assert(clean.partOne == 45'u32)
+    Swag.assert(clean.partTwo == 45'u32)
+    Swag.assert(CoverageResult.partOne == clean.partOne)
+    Swag.assert(CoverageResult.partTwo == clean.partTwo)
+    Swag.assert(features.partOne == clean.partOne)
+    Swag.assert(features.partTwo == clean.partTwo)
 }
 
 #test
@@ -412,18 +412,18 @@ const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInpu
     let edgeClean    = solveClean(edgeGuide)
     let edgeFeatures = solveWithLanguageFeatures(edgeBytes)
 
-    @assert(edgeGuide.count == 2'u32)
-    @assert(edgeGuide.rounds[0].opponentToken == 'A'u8)
-    @assert(edgeGuide.rounds[0].codeToken == 'Z'u8)
-    @assert(edgeClean.partOne == 10'u32)
-    @assert(edgeClean.partTwo == 10'u32)
-    @assert(edgeFeatures.partOne == edgeClean.partOne)
-    @assert(edgeFeatures.partTwo == edgeClean.partTwo)
+    Swag.assert(edgeGuide.count == 2'u32)
+    Swag.assert(edgeGuide.rounds[0].opponentToken == 'A'u8)
+    Swag.assert(edgeGuide.rounds[0].codeToken == 'Z'u8)
+    Swag.assert(edgeClean.partOne == 10'u32)
+    Swag.assert(edgeClean.partTwo == 10'u32)
+    Swag.assert(edgeFeatures.partOne == edgeClean.partOne)
+    Swag.assert(edgeFeatures.partTwo == edgeClean.partTwo)
 
-    @assert(roundOutcome(.Rock, .Rock) == .Draw)
-    @assert(roundOutcome(.Paper, .Rock) == .Win)
-    @assert(roundOutcome(.Scissors, .Rock) == .Lose)
-    @assert(chooseShape(.Rock, .Win) == .Paper)
-    @assert(chooseShape(.Paper, .Lose) == .Rock)
-    @assert(chooseShape(.Scissors, .Draw) == .Scissors)
+    Swag.assert(roundOutcome(.Rock, .Rock) == .Draw)
+    Swag.assert(roundOutcome(.Paper, .Rock) == .Win)
+    Swag.assert(roundOutcome(.Scissors, .Rock) == .Lose)
+    Swag.assert(chooseShape(.Rock, .Win) == .Paper)
+    Swag.assert(chooseShape(.Paper, .Lose) == .Rock)
+    Swag.assert(chooseShape(.Scissors, .Draw) == .Scissors)
 }

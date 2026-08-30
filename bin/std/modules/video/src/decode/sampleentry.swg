@@ -23,11 +23,11 @@ struct SampleEntry
 // strip them, so what lies in the file is not the whole frame. A decoder is handed the frame.
 func readStoredFrame(source: *Source, entry: SampleEntry, prefix: const [..] u8, payload: *Array'u8) fail
 {
-    let count = @countof(prefix)
+    let count = prefix.count
     if payload.count != entry.size + count do
         payload.resize(entry.size + count)
     if count do
-        Memory.copy(payload.buffer!, @dataof(prefix), count)
+        Memory.copy(payload.buffer!, prefix.buffer, count)
     try source.seek(entry.offset)
     try source.readExact(payload.toSlice()[count until payload.count])
 }

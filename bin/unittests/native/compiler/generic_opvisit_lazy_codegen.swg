@@ -12,7 +12,7 @@ namespace GenericForeachLazyCodegen
         req.size    = size
         req.address = buffer
 
-        let talloc = (allocator orelse @getcontext().allocator)!
+        let talloc = (allocator orelse Swag.getContext().allocator)!
         talloc.free(&req)
     }
 
@@ -23,7 +23,7 @@ namespace GenericForeachLazyCodegen
         req.size    = newSize
         req.oldSize = oldSize
 
-        let talloc = (allocator orelse @getcontext().allocator)!
+        let talloc = (allocator orelse Swag.getContext().allocator)!
         talloc.realloc(&req)
         return req.address
     }
@@ -50,13 +50,13 @@ namespace GenericForeachLazyCodegen
         #[Inline]
         mtd toSlice()->[..] T
         {
-            return @mkslice(.buffer, .count)
+            return Swag.makeSlice(.buffer, .count)
         }
 
         #[Inline]
         mtd const toSlice()->const [..] T
         {
-            return @mkslice(.buffer, .count)
+            return Swag.makeSlice(.buffer, .count)
         }
 
         mtd add(value: T)
@@ -212,8 +212,8 @@ const RunSuiteOk  = #run GenericForeachLazyCodegen.runRuntimeSuite()
 
 #test
 {
-    @assert(IntSuiteOk)
-    @assert(BoolSuiteOk)
-    @assert(RunSuiteOk)
-    @assert(GenericForeachLazyCodegen.runRuntimeSuite())
+    Swag.assert(IntSuiteOk)
+    Swag.assert(BoolSuiteOk)
+    Swag.assert(RunSuiteOk)
+    Swag.assert(GenericForeachLazyCodegen.runRuntimeSuite())
 }

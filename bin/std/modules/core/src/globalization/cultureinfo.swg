@@ -23,16 +23,16 @@ public impl CultureInfo
     internal mtd const isLanguage(language: string)->bool
     {
         let name = .name.toString()
-        if @countof(name) < @countof(language) do
+        if name.count < language.count do
             return false
-        if Utf8.compare(@mkslice(@dataof(name), @countof(language)), @mkslice(@dataof(language), @countof(language)), .Latin1NoCase) != 0 do
+        if Utf8.compare(Swag.makeSlice(name.buffer, language.count), Swag.makeSlice(language.buffer, language.count), .Latin1NoCase) != 0 do
             return false
-        return @countof(name) == @countof(language) or name[@countof(language)] == '-'
+        return name.count == language.count or name[language.count] == '-'
     }
 
     internal mtd const isNamed(locale: string)->bool
     {
-        return Utf8.compare(.name.toSlice(), @mkslice(@dataof(locale), @countof(locale)), .Latin1NoCase) == 0
+        return Utf8.compare(.name.toSlice(), Swag.makeSlice(locale.buffer, locale.count), .Latin1NoCase) == 0
     }
 
     internal func englishDateTime()->DateTimeFormatInfo
@@ -258,7 +258,7 @@ public impl CultureInfo
     {
         var result: retval
         let turkic = .isLanguage("tr") or .isLanguage("az")
-        Utf8.visitRunes(@mkslice(@dataof(value), @countof(value)))
+        Utf8.visitRunes(Swag.makeSlice(value.buffer, value.count))
         {
             if turkic and c == 'i' do
                 result.append(0x0130)
@@ -278,7 +278,7 @@ public impl CultureInfo
     {
         var result: retval
         let turkic = .isLanguage("tr") or .isLanguage("az")
-        Utf8.visitRunes(@mkslice(@dataof(value), @countof(value)))
+        Utf8.visitRunes(Swag.makeSlice(value.buffer, value.count))
         {
             if turkic and c == 'I' do
                 result.append(0x0131)
@@ -296,7 +296,7 @@ public impl CultureInfo
     {
         var result: retval
         let turkic = .isLanguage("tr") or .isLanguage("az")
-        Utf8.visitRunes(@mkslice(@dataof(value), @countof(value)))
+        Utf8.visitRunes(Swag.makeSlice(value.buffer, value.count))
         {
             if c == 0x00DF do
                 result.append("ss")
@@ -395,7 +395,7 @@ public impl CultureInfo
         let primary  = Utf8.compare(leftKey.toSlice(), rightKey.toSlice(), .Unicode)
         if primary do
             return primary
-        return Utf8.compare(@mkslice(@dataof(left), @countof(left)), @mkslice(@dataof(right), @countof(right)), ignoreCase ? .UnicodeNoCase : .Unicode)
+        return Utf8.compare(Swag.makeSlice(left.buffer, left.count), Swag.makeSlice(right.buffer, right.count), ignoreCase ? .UnicodeNoCase : .Unicode)
     }
 }
 

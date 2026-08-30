@@ -2,5 +2,5 @@
 #test     // 
 {
     let ok = 10
-    @assert(ok == 10)
+    Swag.assert(ok == 10)
 }

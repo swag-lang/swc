@@ -12,7 +12,7 @@ internal func currentProcessId()->u32
 // Returns whether the process command line carries the run argument `name`, along with the
 // value that follows an '=' when there is one.
 //
-// Read straight from the operating system rather than through '@args'. The sandbox is armed
+// Read straight from the operating system rather than through 'Swag.args()'. The sandbox is armed
 // from a module init hook so it precedes every '#init', '#premain' and '#main' in the program,
 // and the runtime has not populated its argument vector that early.
 internal func findRunArgument(name: string)->{ found: bool, value: String }
@@ -22,22 +22,22 @@ internal func findRunArgument(name: string)->{ found: bool, value: String }
     // A compile-time run has no operating-system command line of its own: it executes inside
     // the compiler, which hands the program its arguments directly. Consult those first so a
     // test running under the interpreter is isolated exactly like the native one.
-    for arg in @args
+    for arg in Swag.args()
     {
-        if @countof(arg) < @countof(name) do
+        if arg.count < name.count do
             continue
-        if arg[0 until @countof(name)] != name do
+        if arg[0 until name.count] != name do
             continue
-        if @countof(arg) == @countof(name)
+        if arg.count == name.count
         {
             result.found = true
             return result
         }
 
-        if arg[@countof(name)] == '='
+        if arg[name.count] == '='
         {
             result.found = true
-            result.value = String.from(arg[@countof(name) + 1 until @countof(arg)])
+            result.value = String.from(arg[name.count + 1 until arg.count])
             return result
         }
     }
@@ -66,27 +66,27 @@ internal func findRunArgument(name: string)->{ found: bool, value: String }
         while cursor[] and (quoted ? cursor[] != '"' : cursor[] != ' ') do
             cursor += 1
 
-        let token = cast(string) @mkslice(start, cast(u64) (cursor - start))
+        let token = cast(string) Swag.makeSlice(start, cast(u64) (cursor - start))
         if cursor[] do
             cursor += 1
 
-        if @countof(token) < @countof(name) do
+        if token.count < name.count do
             continue
-        if token[0 until @countof(name)] != name do
+        if token[0 until name.count] != name do
             continue
 
         // An exact match, or the name followed by '=' and its value. A longer token that
         // merely starts with the name is a different argument.
-        if @countof(token) == @countof(name)
+        if token.count == name.count
         {
             result.found = true
             return result
         }
 
-        if token[@countof(name)] == '='
+        if token[name.count] == '='
         {
             result.found = true
-            result.value = String.from(token[@countof(name) + 1 until @countof(token)])
+            result.value = String.from(token[name.count + 1 until token.count])
             return result
         }
     }
@@ -112,7 +112,7 @@ internal func absolutePath(path: string)->String
 
     // Only the returned length decides: the call does not clear the thread's last error, so a
     // stale one would send an otherwise successful resolution down the fallback path.
-    let written = catch GetFullPathNameW(@dataof(winPath), MaxLength, arr16.buffer, null)
+    let written = catch GetFullPathNameW(winPath.buffer, MaxLength, arr16.buffer, null)
     if written == 0 or written > MaxLength
     {
         // Fall back to the literal path. It can only make the check stricter: a path that

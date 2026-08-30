@@ -947,7 +947,7 @@ impl IDecoder for Decoder
         }
 
         let path = source.sourcePath()
-        if @countof(path)
+        if path.count
         {
             .soundTracks.reserve(layout.audioTracks.count)
             for &audioTrack in layout.audioTracks

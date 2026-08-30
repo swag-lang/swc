@@ -17,18 +17,18 @@ func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destinatio
 {
     if !iterations do
         fail BadParameterError{"PBKDF2 needs at least one iteration"}
-    if !@countof(destination) do
+    if !destination.count do
         return
 
     const digestSize = #sizeof(HmacSha256Digest)
-    let blockCount = ((@countof(destination) - 1) / digestSize) + 1
+    let blockCount = ((destination.count - 1) / digestSize) + 1
     if blockCount > Swag.U32.Max do
         fail OverflowError{"PBKDF2 output exceeds its maximum length"}
 
     var input: Array'u8
-    input.reserve(@countof(salt) + 4)
+    input.reserve(salt.count + 4)
     input.add(salt)
-    input.resize(@countof(salt) + 4)
+    input.resize(salt.count + 4)
 
     var outputOffset = 0'u64
     for block in 1 to blockCount
@@ -46,11 +46,11 @@ func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destinatio
         {
             discard iteration
             current = HmacSha256.compute(password, current)
-            accumulateDigest(@dataof(result), @dataof(current))
+            accumulateDigest(result.buffer, current.buffer)
         }
 
-        let count = Math.min(@countof(destination) - outputOffset, digestSize)
-        @memcpy(@dataof(destination) + outputOffset, &result[0], count)
+        let count = Math.min(destination.count - outputOffset, digestSize)
+        Swag.memcpy(destination.buffer + outputOffset, &result[0], count)
         outputOffset += count
         secureClear(current)
         secureClear(result)

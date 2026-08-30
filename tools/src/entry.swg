@@ -11,7 +11,7 @@ using Core
 public func launch(name: string, loc = #callerlocation)->s32
 {
     let script = loc.fileName orelse ""
-    if @countof(script) == 0
+    if script.count == 0
     {
         Console.println("error: the tool cannot locate itself")
         return 1
@@ -37,9 +37,9 @@ public func launch(name: string, loc = #callerlocation)->s32
 private func scriptArguments()->const [..] string
 {
     let args = Env.arguments()
-    if @countof(args) == 0 do
+    if args.count == 0 do
         return args
-    return args[1 until @countof(args)]
+    return args[1 until args.count]
 }
 
 // Runs the tool `name` against `root` and returns the exit code it produced.

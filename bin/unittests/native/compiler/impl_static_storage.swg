@@ -30,7 +30,7 @@ namespace compiler_impl_static_storage
             Cache.seed(1, 9)
         }
 
-        @assert(Cache.get(0) == 7)
-        @assert(Cache.get(1) == 9)
+        Swag.assert(Cache.get(0) == 7)
+        Swag.assert(Cache.get(1) == 9)
     }
 }

@@ -94,7 +94,7 @@ namespace
         // setup pass runs before any import is applied, so a 'using Core' read there would name
         // a module that does not exist yet, while the regular pass sees the whole dependency
         // set. Runtime bootstrap files still need full processing in the setup unit so
-        // declarations such as `@compiler` remain visible to setup `#run` blocks.
+        // declarations such as `Swag.compiler()` remain visible to setup `#run` blocks.
         const bool setupDirective = isScriptModuleSetupChild(sema, childRef);
         if (sema.compiler().isModuleSetupMode())
             return setupDirective ? Result::Continue : Result::SkipChildren;

@@ -39,7 +39,7 @@ func fillGrid()
     // Put a mine at random
     for &g in g_Grid
     {
-        @init(g)
+        Swag.init(g)
         if rng.nextU32(0, 100) < g_Density
         {
             g_NumMines += 1

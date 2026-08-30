@@ -22,7 +22,7 @@ impl QuickStyle
 
     func isKnownForm(itf: IForm)->bool
     {
-        let type = @kindof(itf)
+        let type = Swag.kindOf(itf)
         return type == FormArrow or
                type == FormDraw or
                type == FormImage or
@@ -36,7 +36,7 @@ impl QuickStyle
 
     func deleteOne(itf: IForm)
     {
-        Memory.delete(@dataof(itf), @kindof(itf))
+        Memory.delete(itf.buffer, Swag.kindOf(itf))
     }
 
     mtd sanitize()
@@ -94,7 +94,7 @@ struct QuickStylePaintForm
 func quickStyleReleasePaintForm(paint: *QuickStylePaintForm)
 {
     if paint.itf do
-        Memory.delete(@dataof(paint.itf), @kindof(paint.itf))
+        Memory.delete(paint.itf.buffer, Swag.kindOf(paint.itf))
     paint.itf = null
 }
 
@@ -105,10 +105,10 @@ func quickStyleReleasePaintForm(paint: *QuickStylePaintForm)
 // printed there it overflowed the cell on both axes and crossed the sample it was naming.
 func quickStyleTip(itf: IForm)->string
 {
-    if @kindof(itf) != FormImage do
+    if Swag.kindOf(itf) != FormImage do
         return ""
 
-    let img = cast(*FormImage) @dataof(itf)
+    let img = cast(*FormImage) itf.buffer
     switch #complete img.kind
     {
     case .Image:    return appStrings().prop_KindImage
@@ -129,13 +129,13 @@ func quickStyleTip(itf: IForm)->string
 // flat by the cell and the preset reads as broken rather than as pointed.
 func quickStyleInset(itf: IForm, cxt: FormPaintContext)->f32
 {
-    let sel  = cast(*BaseForm) @dataof(itf)
-    let type = @kindof(itf)
+    let sel  = cast(*BaseForm) itf.buffer
+    let type = Swag.kindOf(itf)
 
     // An arrow is a line carrying its own defaults, so both answer through the line.
     if type == FormLine or type == FormArrow
     {
-        let line  = cast(*FormLine) @dataof(itf)
+        let line  = cast(*FormLine) itf.buffer
         let sizes = line.paintSizes(cxt)
         let beg   = Painter.capStyleExtent(line.beginCap, sizes.stroke, sizes.begScale)
         let end   = Painter.capStyleExtent(line.endCap, sizes.stroke, sizes.endScale)
@@ -155,7 +155,7 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
     let paintBase = MainWnd.newFormFromForm(srcItf)
 
     // The source is already an IForm, so its own type carries the table.
-    let paintItf = @mkinterface(paintBase, @kindof(srcItf), IForm)!
+    let paintItf = Swag.makeInterface(paintBase, Swag.kindOf(srcItf), IForm)!
 
     var cxt: FormPaintContext
     cxt.z         = 1
@@ -178,9 +178,9 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
 
     // The callout tail lives in canvas space and is never carried by a style; give the
     // preview a shortened body and an in-cell downward tail so it renders to scale.
-    if @kindof(paintItf) == FormCallout
+    if Swag.kindOf(paintItf) == FormCallout
     {
-        let cl = cast(*FormCallout) @dataof(paintItf)
+        let cl = cast(*FormCallout) paintItf.buffer
         cl.text = "A"
 
         // Read as a clean speech bubble: quick mode already normalizes the glyph size to
@@ -698,8 +698,8 @@ impl QuickWnd
         for it, i in .currentStyle.forms
         {
             let btn = cast(*IconButton) .layout.children[i]
-            let mdl = .main.modelFor(@kindof(it))
-            btn.setChecked(mode == MainWnd.formToEditMode(it) and it.isSame(cast(*BaseForm) @dataof(mdl)))
+            let mdl = .main.modelFor(Swag.kindOf(it))
+            btn.setChecked(mode == MainWnd.formToEditMode(it) and it.isSame(cast(*BaseForm) mdl.buffer))
 
             if btn.isChecked do
                 done = true
@@ -790,7 +790,7 @@ impl QuickWnd
             return
 
         let formItf     = .main.editModeToModel(.main.getEditMode())
-        let baseForm    = cast(*BaseForm) @dataof(formItf)
+        let baseForm    = cast(*BaseForm) formItf.buffer
         var canAddModel = true
         if .main.editMode == .Highlight
         {
@@ -856,7 +856,7 @@ impl QuickWnd
                 {
                     let mdlValue = MainWnd.newFormFromForm(it)
                     let undo     = capture.newUndo(.SetFormFromModel)
-                    undo.mdlType  = @kindof(it)
+                    undo.mdlType  = Swag.kindOf(it)
                     undo.mdlValue = mdlValue
                     capture.pushUndo(undo)
                 }

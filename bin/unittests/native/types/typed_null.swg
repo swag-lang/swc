@@ -3,13 +3,13 @@
 func typedNullString()->bool
 {
     let value = cast(#null string) null
-    return value == null and @countof(value) == 0
+    return value == null and value.count == 0
 }
 
 func typedNullSlice()->bool
 {
     let value = cast(#null [..] s32) null
-    return value == null and @countof(value) == 0
+    return value == null and value.count == 0
 }
 
 func typedNullAny()->bool
@@ -21,13 +21,13 @@ func typedNullAny()->bool
 func typedNullCString()->bool
 {
     let value = cast(#null cstring) null
-    return value == null and @countof(value) == 0
+    return value == null and value.count == 0
 }
 
 func typedNullConstBytes()->bool
 {
     let value = cast(#null const [..] u8) null
-    return value == null and @countof(value) == 0
+    return value == null and value.count == 0
 }
 
 func typedNullPointerOrelse()->bool
@@ -55,29 +55,29 @@ func typedNullSliceConditional(flag: bool)->bool
     let right: const [..] s32 = storage
     let resolved              = flag ? left : right
     if flag do
-        return resolved == null and @countof(resolved) == 0
+        return resolved == null and resolved.count == 0
     let vals = resolved!
-    return @countof(vals) == 2 and vals[0] == 7 and vals[1] == 8
+    return vals.count == 2 and vals[0] == 7 and vals[1] == 8
 }
 
 func typedNullDataOf()->bool
 {
     let str = cast(#null string) null
     let slc = cast(#null [..] s32) null
-    return @dataof(str) == null and @dataof(slc) == null
+    return str.buffer == null and slc.buffer == null
 }
 
 #test
 {
-    @assert(typedNullString())
-    @assert(typedNullSlice())
-    @assert(typedNullAny())
-    @assert(typedNullCString())
-    @assert(typedNullConstBytes())
-    @assert(typedNullPointerOrelse())
-    @assert(typedNullConditional(true))
-    @assert(typedNullConditional(false))
-    @assert(typedNullSliceConditional(true))
-    @assert(typedNullSliceConditional(false))
-    @assert(typedNullDataOf())
+    Swag.assert(typedNullString())
+    Swag.assert(typedNullSlice())
+    Swag.assert(typedNullAny())
+    Swag.assert(typedNullCString())
+    Swag.assert(typedNullConstBytes())
+    Swag.assert(typedNullPointerOrelse())
+    Swag.assert(typedNullConditional(true))
+    Swag.assert(typedNullConditional(false))
+    Swag.assert(typedNullSliceConditional(true))
+    Swag.assert(typedNullSliceConditional(false))
+    Swag.assert(typedNullDataOf())
 }

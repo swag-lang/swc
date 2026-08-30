@@ -77,9 +77,9 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
     for entry in pages
     {
         let report = reportPage(entry.name, entry.page)
-        @assert(report.embedded != 0)
-        @assert(report.loaded == report.embedded)
-        @assert(report.drawn != 0)
-        @assert(report.resolved == report.drawn)
+        Swag.assert(report.embedded != 0)
+        Swag.assert(report.loaded == report.embedded)
+        Swag.assert(report.drawn != 0)
+        Swag.assert(report.resolved == report.drawn)
     }
 }

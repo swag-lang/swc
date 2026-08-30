@@ -143,7 +143,7 @@ func semaTest004()
 
 func takeStringValue(value: string)->u64
 {
-    return @countof(value)
+    return value.count
 }
 
 func semaTest005()
@@ -155,6 +155,6 @@ func semaTest005()
 
     #assert(#typeof(textValue) == string)
     #assert(#typeof(textSize) == u64)
-    @assert(textValue == "abcd")
-    @assert(textSize == 4'u64)
+    Swag.assert(textValue == "abcd")
+    Swag.assert(textSize == 4'u64)
 }

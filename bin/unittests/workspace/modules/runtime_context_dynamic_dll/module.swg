@@ -2,7 +2,7 @@
 
 #run
 {
-    let cfg = @compiler.getBuildCfg()!
+    let cfg = Swag.compiler().getBuildCfg()!
     cfg.moduleNamespace = "RuntimeCtxDynamicDll"
     cfg.backendKind     = .SharedLibrary
 }

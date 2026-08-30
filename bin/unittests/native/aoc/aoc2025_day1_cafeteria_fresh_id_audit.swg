@@ -22,7 +22,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 {
     var result: u32
 
-    while index[] < @countof(bytes) and bytes[index[]] >= '0' and bytes[index[]] <= '9'
+    while index[] < bytes.count and bytes[index[]] >= '0' and bytes[index[]] <= '9'
     {
         result  = result * 10'u32 + cast(u32) (bytes[index[]] - '0')
         index[] += 1
@@ -64,7 +64,7 @@ func auditFreshIds(rangeLines: const [..] string, availableIds: const [..] u32)-
 
     for line in rangeLines
     {
-        @assert(result.rangeCount < 16)
+        Swag.assert(result.rangeCount < 16)
         ranges[result.rangeCount] = parseRange(line)
         result.rangeCount         += 1
     }
@@ -94,20 +94,20 @@ func auditFreshIds(rangeLines: const [..] string, availableIds: const [..] u32)-
 
     let sampleAudit = auditFreshIds(sampleRanges, sampleAvailable)
 
-    @assert(sampleAudit.rangeCount == 4'u32)
-    @assert(sampleAudit.availableCount == 6'u32)
-    @assert(sampleAudit.freshCount == 3'u32)
-    @assert(sampleAudit.spoiledCount == 3'u32)
-    @assert(sampleAudit.overlappingFresh == 1'u32)
+    Swag.assert(sampleAudit.rangeCount == 4'u32)
+    Swag.assert(sampleAudit.availableCount == 6'u32)
+    Swag.assert(sampleAudit.freshCount == 3'u32)
+    Swag.assert(sampleAudit.spoiledCount == 3'u32)
+    Swag.assert(sampleAudit.overlappingFresh == 1'u32)
 
     const pantryRanges:    [4] string = ["20-25", "30-32", "32-35", "100-110"]
     const pantryAvailable: [7] u32    = [19, 20, 24, 32, 34, 105, 999]
 
     let pantryAudit = auditFreshIds(pantryRanges, pantryAvailable)
 
-    @assert(pantryAudit.rangeCount == 4'u32)
-    @assert(pantryAudit.availableCount == 7'u32)
-    @assert(pantryAudit.freshCount == 5'u32)
-    @assert(pantryAudit.spoiledCount == 2'u32)
-    @assert(pantryAudit.overlappingFresh == 1'u32)
+    Swag.assert(pantryAudit.rangeCount == 4'u32)
+    Swag.assert(pantryAudit.availableCount == 7'u32)
+    Swag.assert(pantryAudit.freshCount == 5'u32)
+    Swag.assert(pantryAudit.spoiledCount == 2'u32)
+    Swag.assert(pantryAudit.overlappingFresh == 1'u32)
 }

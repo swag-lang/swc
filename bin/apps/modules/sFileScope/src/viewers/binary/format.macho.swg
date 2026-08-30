@@ -417,5 +417,5 @@ private func machUuidText(image: *BinaryImage, at: u64)->String
             text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
     }
 
-    return String.from(@mkstring(text.buffer!, text.count))
+    return String.from(Swag.makeString(text.buffer!, text.count))
 }

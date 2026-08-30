@@ -255,11 +255,11 @@ func vp8TokenIndex(plane, band: s32, context, probability: u8)->u64
 
 func vp8DecodeFrameHeader(decoder: *Vp8Decoder, source: const [..] u8) fail
 {
-    if @countof(source) < 10 do
+    if source.count < 10 do
         fail InvalidFormatError{"WebP VP8 data ends before the frame header"}
 
-    decoder.source = @dataof(source)
-    decoder.size   = cast(u32) @countof(source)
+    decoder.source = source.buffer
+    decoder.size   = cast(u32) source.count
     let data = decoder.source
     if data[0] & 1 do
         fail UnsupportedFormatError{"WebP still image contains a non-key VP8 frame"}

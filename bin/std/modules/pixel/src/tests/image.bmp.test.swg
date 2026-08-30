@@ -31,7 +31,7 @@ private func checkBmp16Masks(masks: Bmp.Masks)
 
     Bmp.decode16Row(source.buffer! + 1, actual.buffer! + 3, Pixels, masks)
     for i in actual.count do
-        @assert(actual[i] == expected[i])
+        Swag.assert(actual[i] == expected[i])
 }
 
 #test
@@ -75,21 +75,21 @@ private func checkBmp16Masks(masks: Bmp.Masks)
 #test
 {
     let img = Image.create(4, 4, .BGR8)
-    @assert(img.isValid())
-    @assert(img.width == 4)
-    @assert(img.height == 4)
-    @assert(img.pixelFormat == .BGR8)
-    @assert(img.bitsPerPixel == 24)
-    @assert(img.bytesPerPixel == 3)
-    @assert(img.pixels.count == 48)
+    Swag.assert(img.isValid())
+    Swag.assert(img.width == 4)
+    Swag.assert(img.height == 4)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(img.bitsPerPixel == 24)
+    Swag.assert(img.bytesPerPixel == 3)
+    Swag.assert(img.pixels.count == 48)
 }
 
 // Verify getTestDataPath resolves the file path correctly.
 #test
 {
     let path = getTestDataPath("test.bmp")
-    @assert(@countof(path) > 0)
-    @assert(File.exists(path))
+    Swag.assert(path.count > 0)
+    Swag.assert(File.exists(path))
 }
 
 // Read the BMP bytes from disk without decoding.
@@ -97,14 +97,14 @@ private func checkBmp16Masks(masks: Bmp.Masks)
 {
     let path  = getTestDataPath("test.bmp")
     let bytes = expect File.readAllBytes(path)
-    @assert(bytes.count == 102)
+    Swag.assert(bytes.count == 102)
 }
 
 // Verify that the decoder registry is functional and finds the BMP decoder.
 #test
 {
-    @assert(Image.canLoad("test.bmp"))
-    @assert(!Image.canLoad("test.xyz"))
+    Swag.assert(Image.canLoad("test.bmp"))
+    Swag.assert(!Image.canLoad("test.xyz"))
 }
 
 // Decode a BMP from pre-loaded bytes using Image.decode (same internal path as Image.load).
@@ -113,10 +113,10 @@ private func checkBmp16Masks(masks: Bmp.Masks)
     let path  = getTestDataPath("test.bmp")
     let bytes = expect File.readAllBytes(path)
     let img   = expect Image.decode(path, bytes.toSlice(), {})
-    @assert(img.isValid())
-    @assert(img.width == 4)
-    @assert(img.height == 4)
-    @assert(img.pixelFormat == .BGR8)
+    Swag.assert(img.isValid())
+    Swag.assert(img.width == 4)
+    Swag.assert(img.height == 4)
+    Swag.assert(img.pixelFormat == .BGR8)
 }
 
 // Load a 4x4 24-bit BMP from disk and verify image metadata.
@@ -124,40 +124,40 @@ private func checkBmp16Masks(masks: Bmp.Masks)
 {
     let path = getTestDataPath("test.bmp")
     let img  = expect Image.load(path)
-    @assert(img.isValid())
-    @assert(img.width == 4)
-    @assert(img.height == 4)
-    @assert(img.pixelFormat == .BGR8)
-    @assert(img.bitsPerPixel == 24)
-    @assert(img.bytesPerPixel == 3)
-    @assert(img.pixels.count == 48)
+    Swag.assert(img.isValid())
+    Swag.assert(img.width == 4)
+    Swag.assert(img.height == 4)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(img.bitsPerPixel == 24)
+    Swag.assert(img.bytesPerPixel == 3)
+    Swag.assert(img.pixels.count == 48)
 }
 
 // Load larger RGB/RGBA fixtures copied from the historical pixel test data.
 #test
 {
     let rgb = expect Image.load(getTestDataPath("rgb.bmp"))
-    @assert(rgb.isValid())
-    @assert(rgb.width == 660)
-    @assert(rgb.height == 441)
-    @assert(rgb.pixelFormat == .BGR8)
-    @assert(rgb.pixels.count == 873180)
-    @assert(rgb.pixels.buffer != null)
-    @assert(rgb.pixels.buffer[0] == 201'u8)
-    @assert(rgb.pixels.buffer[1] == 205'u8)
-    @assert(rgb.pixels.buffer[2] == 194'u8)
+    Swag.assert(rgb.isValid())
+    Swag.assert(rgb.width == 660)
+    Swag.assert(rgb.height == 441)
+    Swag.assert(rgb.pixelFormat == .BGR8)
+    Swag.assert(rgb.pixels.count == 873180)
+    Swag.assert(rgb.pixels.buffer != null)
+    Swag.assert(rgb.pixels.buffer[0] == 201'u8)
+    Swag.assert(rgb.pixels.buffer[1] == 205'u8)
+    Swag.assert(rgb.pixels.buffer[2] == 194'u8)
 
     let rgba = expect Image.load(getTestDataPath("rgba.bmp"))
-    @assert(rgba.isValid())
-    @assert(rgba.width == 660)
-    @assert(rgba.height == 441)
-    @assert(rgba.pixelFormat == .BGRA8)
-    @assert(rgba.pixels.count == 1164240)
-    @assert(rgba.pixels.buffer != null)
-    @assert(rgba.pixels.buffer[0] == 201'u8)
-    @assert(rgba.pixels.buffer[1] == 205'u8)
-    @assert(rgba.pixels.buffer[2] == 194'u8)
-    @assert(rgba.pixels.buffer[3] == 255'u8)
+    Swag.assert(rgba.isValid())
+    Swag.assert(rgba.width == 660)
+    Swag.assert(rgba.height == 441)
+    Swag.assert(rgba.pixelFormat == .BGRA8)
+    Swag.assert(rgba.pixels.count == 1164240)
+    Swag.assert(rgba.pixels.buffer != null)
+    Swag.assert(rgba.pixels.buffer[0] == 201'u8)
+    Swag.assert(rgba.pixels.buffer[1] == 205'u8)
+    Swag.assert(rgba.pixels.buffer[2] == 194'u8)
+    Swag.assert(rgba.pixels.buffer[3] == 255'u8)
 }
 
 // Decode tests - various BMP formats.
@@ -234,17 +234,17 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width == 2)
-    @assert(img.height == 2)
-    @assert(img.pixelFormat == .BGRA8)
-    @assert(img.bitsPerPixel == 32)
-    @assert(img.bytesPerPixel == 4)
-    @assert(img.pixels.count == 16)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[3] == 255'u8)
+    Swag.assert(img.width == 2)
+    Swag.assert(img.height == 2)
+    Swag.assert(img.pixelFormat == .BGRA8)
+    Swag.assert(img.bitsPerPixel == 32)
+    Swag.assert(img.bytesPerPixel == 4)
+    Swag.assert(img.pixels.count == 16)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 10'u8)
+    Swag.assert(img.pixels.buffer[1] == 20'u8)
+    Swag.assert(img.pixels.buffer[2] == 30'u8)
+    Swag.assert(img.pixels.buffer[3] == 255'u8)
 }
 
 // Decode a 5x5 24-bit BGR8 BMP where each row has 1 byte of alignment padding on disk.
@@ -282,15 +282,15 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width == 5)
-    @assert(img.height == 5)
-    @assert(img.pixelFormat == .BGR8)
-    @assert(img.bitsPerPixel == 24)
-    @assert(img.pixels.count == 75)     // 5x5x3 = 75, no padding in decoded result
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 100'u8)
-    @assert(img.pixels.buffer[1] == 150'u8)
-    @assert(img.pixels.buffer[2] == 200'u8)
+    Swag.assert(img.width == 5)
+    Swag.assert(img.height == 5)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(img.bitsPerPixel == 24)
+    Swag.assert(img.pixels.count == 75)     // 5x5x3 = 75, no padding in decoded result
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 100'u8)
+    Swag.assert(img.pixels.buffer[1] == 150'u8)
+    Swag.assert(img.pixels.buffer[2] == 200'u8)
 }
 
 // Decode a 2x2 24-bit BMP written with the legacy 12-byte BITMAPCOREHEADER.
@@ -334,14 +334,14 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width == 2)
-    @assert(img.height == 2)
-    @assert(img.pixelFormat == .BGR8)
-    @assert(img.pixels.count == 12)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
+    Swag.assert(img.width == 2)
+    Swag.assert(img.height == 2)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(img.pixels.count == 12)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 10'u8)
+    Swag.assert(img.pixels.buffer[1] == 20'u8)
+    Swag.assert(img.pixels.buffer[2] == 30'u8)
 }
 
 // Decode a 2x2 24-bit BMP with biCompression=BI_BITFIELDS (value 3).
@@ -386,13 +386,13 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width == 2)
-    @assert(img.height == 2)
-    @assert(img.pixelFormat == .BGR8)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 55'u8)
-    @assert(img.pixels.buffer[1] == 66'u8)
-    @assert(img.pixels.buffer[2] == 77'u8)
+    Swag.assert(img.width == 2)
+    Swag.assert(img.height == 2)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 55'u8)
+    Swag.assert(img.pixels.buffer[1] == 66'u8)
+    Swag.assert(img.pixels.buffer[2] == 77'u8)
 }
 
 // Decode a top-down 2x2 24-bit BMP. The decoder stores pixels in the
@@ -436,15 +436,15 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width == 2)
-    @assert(img.height == 2)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 7'u8)
-    @assert(img.pixels.buffer[1] == 8'u8)
-    @assert(img.pixels.buffer[2] == 9'u8)
-    @assert(img.pixels.buffer[6] == 1'u8)
-    @assert(img.pixels.buffer[7] == 2'u8)
-    @assert(img.pixels.buffer[8] == 3'u8)
+    Swag.assert(img.width == 2)
+    Swag.assert(img.height == 2)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 7'u8)
+    Swag.assert(img.pixels.buffer[1] == 8'u8)
+    Swag.assert(img.pixels.buffer[2] == 9'u8)
+    Swag.assert(img.pixels.buffer[6] == 1'u8)
+    Swag.assert(img.pixels.buffer[7] == 2'u8)
+    Swag.assert(img.pixels.buffer[8] == 3'u8)
 }
 
 // Decode an 8-bit indexed BMP through its palette.
@@ -479,14 +479,14 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixelFormat == .BGR8)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[3] == 10'u8)
-    @assert(img.pixels.buffer[4] == 20'u8)
-    @assert(img.pixels.buffer[5] == 30'u8)
-    @assert(img.pixels.buffer[9] == 70'u8)
-    @assert(img.pixels.buffer[10] == 80'u8)
-    @assert(img.pixels.buffer[11] == 90'u8)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[3] == 10'u8)
+    Swag.assert(img.pixels.buffer[4] == 20'u8)
+    Swag.assert(img.pixels.buffer[5] == 30'u8)
+    Swag.assert(img.pixels.buffer[9] == 70'u8)
+    Swag.assert(img.pixels.buffer[10] == 80'u8)
+    Swag.assert(img.pixels.buffer[11] == 90'u8)
 }
 
 // Decode packed 1-bit indexed BMP rows.
@@ -519,12 +519,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 9'u8)
-    @assert(img.pixels.buffer[1] == 8'u8)
-    @assert(img.pixels.buffer[2] == 7'u8)
-    @assert(img.pixels.buffer[3] == 0'u8)
-    @assert(img.pixels.buffer[6] == 9'u8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 9'u8)
+    Swag.assert(img.pixels.buffer[1] == 8'u8)
+    Swag.assert(img.pixels.buffer[2] == 7'u8)
+    Swag.assert(img.pixels.buffer[3] == 0'u8)
+    Swag.assert(img.pixels.buffer[6] == 9'u8)
 }
 
 // Decode packed 4-bit indexed BMP rows.
@@ -558,13 +558,13 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 11'u8)
-    @assert(img.pixels.buffer[1] == 12'u8)
-    @assert(img.pixels.buffer[2] == 13'u8)
-    @assert(img.pixels.buffer[3] == 21'u8)
-    @assert(img.pixels.buffer[4] == 22'u8)
-    @assert(img.pixels.buffer[5] == 23'u8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 11'u8)
+    Swag.assert(img.pixels.buffer[1] == 12'u8)
+    Swag.assert(img.pixels.buffer[2] == 13'u8)
+    Swag.assert(img.pixels.buffer[3] == 21'u8)
+    Swag.assert(img.pixels.buffer[4] == 22'u8)
+    Swag.assert(img.pixels.buffer[5] == 23'u8)
 }
 
 // Decode 16-bit BI_RGB pixels using the default 5-5-5 masks.
@@ -592,13 +592,13 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 0'u8)
-    @assert(img.pixels.buffer[1] == 0'u8)
-    @assert(img.pixels.buffer[2] == 255'u8)
-    @assert(img.pixels.buffer[3] == 0'u8)
-    @assert(img.pixels.buffer[4] == 255'u8)
-    @assert(img.pixels.buffer[5] == 0'u8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 0'u8)
+    Swag.assert(img.pixels.buffer[1] == 0'u8)
+    Swag.assert(img.pixels.buffer[2] == 255'u8)
+    Swag.assert(img.pixels.buffer[3] == 0'u8)
+    Swag.assert(img.pixels.buffer[4] == 255'u8)
+    Swag.assert(img.pixels.buffer[5] == 0'u8)
 }
 
 // Decode 16-bit BI_BITFIELDS pixels using explicit 5-6-5 masks.
@@ -630,13 +630,13 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 255'u8)
-    @assert(img.pixels.buffer[1] == 0'u8)
-    @assert(img.pixels.buffer[2] == 0'u8)
-    @assert(img.pixels.buffer[3] == 0'u8)
-    @assert(img.pixels.buffer[4] == 255'u8)
-    @assert(img.pixels.buffer[5] == 0'u8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 255'u8)
+    Swag.assert(img.pixels.buffer[1] == 0'u8)
+    Swag.assert(img.pixels.buffer[2] == 0'u8)
+    Swag.assert(img.pixels.buffer[3] == 0'u8)
+    Swag.assert(img.pixels.buffer[4] == 255'u8)
+    Swag.assert(img.pixels.buffer[5] == 0'u8)
 }
 
 // Decode BI_RLE8 indexed data.
@@ -680,13 +680,13 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[12] == 0'u8)
-    @assert(img.pixels.buffer[13] == 20'u8)
-    @assert(img.pixels.buffer[15] == 0'u8)
-    @assert(img.pixels.buffer[16] == 0'u8)
-    @assert(img.pixels.buffer[17] == 30'u8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 10'u8)
+    Swag.assert(img.pixels.buffer[12] == 0'u8)
+    Swag.assert(img.pixels.buffer[13] == 20'u8)
+    Swag.assert(img.pixels.buffer[15] == 0'u8)
+    Swag.assert(img.pixels.buffer[16] == 0'u8)
+    Swag.assert(img.pixels.buffer[17] == 30'u8)
 }
 
 // Decode BI_RLE4 indexed data.
@@ -722,13 +722,13 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 11'u8)
-    @assert(img.pixels.buffer[1] == 12'u8)
-    @assert(img.pixels.buffer[2] == 13'u8)
-    @assert(img.pixels.buffer[3] == 21'u8)
-    @assert(img.pixels.buffer[4] == 22'u8)
-    @assert(img.pixels.buffer[5] == 23'u8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 11'u8)
+    Swag.assert(img.pixels.buffer[1] == 12'u8)
+    Swag.assert(img.pixels.buffer[2] == 13'u8)
+    Swag.assert(img.pixels.buffer[3] == 21'u8)
+    Swag.assert(img.pixels.buffer[4] == 22'u8)
+    Swag.assert(img.pixels.buffer[5] == 23'u8)
 }
 
 // Decode with decodePixels=false: metadata fields are populated but no pixel buffer is allocated.
@@ -740,10 +740,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     opts.decodePixels = false
 
     let img = expect Image.decode(path, bytes.toSlice(), opts)
-    @assert(img.width == 4)
-    @assert(img.height == 4)
-    @assert(img.pixelFormat == .BGR8)
-    @assert(!img.isValid())
+    Swag.assert(img.width == 4)
+    Swag.assert(img.height == 4)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(!img.isValid())
 }
 
 // Error: indexed BMP with no palette must fail.
@@ -771,7 +771,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     discard expect File.writeAllBytes(path.toString(), cb)
     var img: Image
     img = catch Image.load(path.toString()) as err34
-    @assert(err34 != null)
+    Swag.assert(err34 != null)
 }
 
 // Error: buffer too small to hold the full DIB header must fail.
@@ -793,7 +793,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     discard expect File.writeAllBytes(path.toString(), cb)
     var img: Image
     img = catch Image.load(path.toString()) as err36
-    @assert(err36 != null)
+    Swag.assert(err36 != null)
 }
 
 // Error: unknown compression value (not BI_RGB, BI_RLE8, BI_RLE4, or BI_BITFIELDS) must fail.
@@ -822,7 +822,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     discard expect File.writeAllBytes(path.toString(), cb)
     var img: Image
     img = catch Image.load(path.toString()) as err38
-    @assert(err38 != null)
+    Swag.assert(err38 != null)
 }
 
 // Encode / roundtrip tests.
@@ -844,7 +844,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         var cb       = expect src.encode("memory.bmp")
         let rowBytes = cast(u64) Width * src.bytesPerPixel
         let stride   = Bmp.rowStride(Width, src.bitsPerPixel)
-        @assert(@countof(cb) == #sizeof(BmpFH) + #sizeof(Bmp.Header) + stride * Height)
+        Swag.assert(cb.count == #sizeof(BmpFH) + #sizeof(Bmp.Header) + stride * Height)
         cb.makeLinear()
         let bytes = nnBytes(cb.toSlice())
         if pixelFormat == .RGB8
@@ -852,21 +852,21 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
             for y in Height
             {
                 for offset in rowBytes until stride do
-                    @assert(bytes[#sizeof(BmpFH) + #sizeof(Bmp.Header) + cast(u64) y * stride + offset] == 0)
+                    Swag.assert(bytes[#sizeof(BmpFH) + #sizeof(Bmp.Header) + cast(u64) y * stride + offset] == 0)
             }
         }
 
         let img           = expect Image.decode("memory.bmp", bytes, {})
         let bytesPerPixel = cast(u64) src.bytesPerPixel
-        @assert(img.pixelFormat == (bytesPerPixel == 3 ? .BGR8 : .BGRA8))
+        Swag.assert(img.pixelFormat == (bytesPerPixel == 3 ? .BGR8 : .BGRA8))
         for pixel in cast(u64) Width * Height
         {
             let offset = pixel * bytesPerPixel
-            @assert(img.pixels.buffer![offset] == src.pixels.buffer![offset + 2])
-            @assert(img.pixels.buffer![offset + 1] == src.pixels.buffer![offset + 1])
-            @assert(img.pixels.buffer![offset + 2] == src.pixels.buffer![offset])
+            Swag.assert(img.pixels.buffer![offset] == src.pixels.buffer![offset + 2])
+            Swag.assert(img.pixels.buffer![offset + 1] == src.pixels.buffer![offset + 1])
+            Swag.assert(img.pixels.buffer![offset + 2] == src.pixels.buffer![offset])
             if bytesPerPixel == 4 do
-                @assert(img.pixels.buffer![offset + 3] == src.pixels.buffer![offset + 3])
+                Swag.assert(img.pixels.buffer![offset + 3] == src.pixels.buffer![offset + 3])
         }
     }
 }
@@ -882,12 +882,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width == 4)
-    @assert(img.height == 4)
-    @assert(img.pixelFormat == .BGR8)
-    @assert(img.bitsPerPixel == 24)
-    @assert(img.bytesPerPixel == 3)
-    @assert(img.pixels.count == 48)
+    Swag.assert(img.width == 4)
+    Swag.assert(img.height == 4)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(img.bitsPerPixel == 24)
+    Swag.assert(img.bytesPerPixel == 3)
+    Swag.assert(img.pixels.count == 48)
 }
 
 // Encode a BGR8 5x5 image (row stride 15 bytes - encoder pads to 16, decoder strips padding).
@@ -901,10 +901,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width == 5)
-    @assert(img.height == 5)
-    @assert(img.pixelFormat == .BGR8)
-    @assert(img.pixels.count == 75)
+    Swag.assert(img.width == 5)
+    Swag.assert(img.height == 5)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(img.pixels.count == 75)
 }
 
 // Encode BGR8: pixel byte values survive the encode/decode round-trip unchanged.
@@ -924,11 +924,11 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 200'u8)
-    @assert(img.pixels.buffer[1] == 128'u8)
-    @assert(img.pixels.buffer[2] == 64'u8)
-    @assert(img.pixels.buffer[45] == 33'u8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 200'u8)
+    Swag.assert(img.pixels.buffer[1] == 128'u8)
+    Swag.assert(img.pixels.buffer[2] == 64'u8)
+    Swag.assert(img.pixels.buffer[45] == 33'u8)
 }
 
 // Encode a BGRA8 2x2 image: raw 32-bit bytes are copied directly by the encoder.
@@ -942,12 +942,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width == 2)
-    @assert(img.height == 2)
-    @assert(img.pixelFormat == .BGRA8)
-    @assert(img.bitsPerPixel == 32)
-    @assert(img.bytesPerPixel == 4)
-    @assert(img.pixels.count == 16)
+    Swag.assert(img.width == 2)
+    Swag.assert(img.height == 2)
+    Swag.assert(img.pixelFormat == .BGRA8)
+    Swag.assert(img.bitsPerPixel == 32)
+    Swag.assert(img.bytesPerPixel == 4)
+    Swag.assert(img.pixels.count == 16)
 }
 
 // Encode BGRA8: pixel byte values survive the encode/decode round-trip unchanged.
@@ -968,13 +968,13 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[3] == 200'u8)
-    @assert(img.pixels.buffer[4] == 50'u8)
-    @assert(img.pixels.buffer[7] == 128'u8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 10'u8)
+    Swag.assert(img.pixels.buffer[1] == 20'u8)
+    Swag.assert(img.pixels.buffer[2] == 30'u8)
+    Swag.assert(img.pixels.buffer[3] == 200'u8)
+    Swag.assert(img.pixels.buffer[4] == 50'u8)
+    Swag.assert(img.pixels.buffer[7] == 128'u8)
 }
 
 // Encode an RGB8 4x4 image: encoder swaps R/B to write BGR bytes into the BMP file,
@@ -993,14 +993,14 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width == 4)
-    @assert(img.height == 4)
-    @assert(img.pixelFormat == .BGR8)     // RGB8 saved as 24-bit BGR, loads as BGR8
+    Swag.assert(img.width == 4)
+    Swag.assert(img.height == 4)
+    Swag.assert(img.pixelFormat == .BGR8)     // RGB8 saved as 24-bit BGR, loads as BGR8
     // Encoder writes [B=200, G=150, R=100]; decoder stores as BGR8 bytes verbatim
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 200'u8)     // B
-    @assert(img.pixels.buffer[1] == 150'u8)     // G
-    @assert(img.pixels.buffer[2] == 100'u8)     // R
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 200'u8)     // B
+    Swag.assert(img.pixels.buffer[1] == 150'u8)     // G
+    Swag.assert(img.pixels.buffer[2] == 100'u8)     // R
 }
 
 // Encode an RGBA8 2x2 image: encoder swaps R/B to write BGRA bytes,
@@ -1020,15 +1020,15 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width == 2)
-    @assert(img.height == 2)
-    @assert(img.pixelFormat == .BGRA8)     // RGBA8 saved as 32-bit BGRA, loads as BGRA8
+    Swag.assert(img.width == 2)
+    Swag.assert(img.height == 2)
+    Swag.assert(img.pixelFormat == .BGRA8)     // RGBA8 saved as 32-bit BGRA, loads as BGRA8
     // Encoder writes [B=30, G=20, R=10, A=255]; decoder stores as BGRA8 bytes verbatim
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 30'u8)      // B
-    @assert(img.pixels.buffer[1] == 20'u8)      // G
-    @assert(img.pixels.buffer[2] == 10'u8)      // R
-    @assert(img.pixels.buffer[3] == 255'u8)     // A
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 30'u8)      // B
+    Swag.assert(img.pixels.buffer[1] == 20'u8)      // G
+    Swag.assert(img.pixels.buffer[2] == 10'u8)      // R
+    Swag.assert(img.pixels.buffer[3] == 255'u8)     // A
 }
 
 // Encode BGR8 5x5 with row padding: pixel values survive despite the on-disk stride difference.
@@ -1048,22 +1048,22 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.bmp")
 
     // File must contain alignment padding: 5 rows x 16 bytes = 80 bytes pixel data
-    @assert(@countof(cb) == 134)     // 14+40+80
+    Swag.assert(cb.count == 134)     // 14+40+80
     cb.makeLinear()
     let bytes = nnBytes(cb.toSlice())
-    @assert(bytes != null)
-    let fh = cast(const *BmpFH) @dataof(bytes)
-    let bh = cast(const *Bmp.Header) (@dataof(bytes) + #sizeof(BmpFH))
-    @assert(fh.bfSize == cast(u32) @countof(cb))
-    @assert(fh.bfOffBits == 54'u32)
-    @assert(bh.biSizeImage == 80'u32)
+    Swag.assert(bytes != null)
+    let fh = cast(const *BmpFH) bytes.buffer
+    let bh = cast(const *Bmp.Header) (bytes.buffer + #sizeof(BmpFH))
+    Swag.assert(fh.bfSize == cast(u32) cb.count)
+    Swag.assert(fh.bfOffBits == 54'u32)
+    Swag.assert(bh.biSizeImage == 80'u32)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixels.count == 75)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 77'u8)
-    @assert(img.pixels.buffer[1] == 88'u8)
-    @assert(img.pixels.buffer[2] == 99'u8)
-    @assert(img.pixels.buffer[72] == 42'u8)
+    Swag.assert(img.pixels.count == 75)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 77'u8)
+    Swag.assert(img.pixels.buffer[1] == 88'u8)
+    Swag.assert(img.pixels.buffer[2] == 99'u8)
+    Swag.assert(img.pixels.buffer[72] == 42'u8)
 }

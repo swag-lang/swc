@@ -494,22 +494,22 @@ impl Painter
             if cxt.patternCount != 0 do
                 break
             const P = [1.0, 1.0]
-            cxt.pattern      = @dataof(P)
+            cxt.pattern      = P.buffer
             cxt.patternCount = 2
 
         case .Dot:
             const P = [1.0, 1.0]
-            cxt.pattern      = @dataof(P)
+            cxt.pattern      = P.buffer
             cxt.patternCount = 2
 
         case .Dash:
             const P = [2.0, 1.0]
-            cxt.pattern      = @dataof(P)
+            cxt.pattern      = P.buffer
             cxt.patternCount = 2
 
         case .DashDot:
             const P = [2.0, 1.0, 1.0, 1.0]
-            cxt.pattern      = @dataof(P)
+            cxt.pattern      = P.buffer
             cxt.patternCount = 4
         }
 

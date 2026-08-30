@@ -39,8 +39,8 @@ impl InitCaptureOwner
     }
 
     base = 100
-    @assert(cb() == 8)
-    @assert(cb() == 9)
+    Swag.assert(cb() == 8)
+    Swag.assert(cb() == 9)
 }
 
 #test
@@ -48,16 +48,16 @@ impl InitCaptureOwner
     let a                 = InitCaptureBox{value: 3}
     let b                 = InitCaptureBox{value: 7}
     let cb: func||()->s32 = func|left = a.value, right = b.value|()->s32 { return left * 10 + right }
-    @assert(cb() == 37)
+    Swag.assert(cb() == 37)
 }
 
 #test
 {
     var owner = InitCaptureOwner{value: 4}
     let cb    = owner.makeCallback()
-    @assert(cb() == 45)
-    @assert(cb() == 46)
-    @assert(owner.value == 6)
+    Swag.assert(cb() == 45)
+    Swag.assert(cb() == 46)
+    Swag.assert(owner.value == 6)
 }
 
 #test
@@ -69,10 +69,10 @@ impl InitCaptureOwner
         return current
     }
 
-    @assert(cb() == 13)
-    @assert(value == 13)
+    Swag.assert(cb() == 13)
+    Swag.assert(value == 13)
     value = 20
-    @assert(cb() == 23)
+    Swag.assert(cb() == 23)
 }
 
 #test
@@ -84,10 +84,10 @@ impl InitCaptureOwner
         return left
     }
 
-    @assert(cb() == 3)
-    @assert(cb() == 5)
-    @assert(pair.left == 5)
-    @assert(pair.right == 2)
+    Swag.assert(cb() == 3)
+    Swag.assert(cb() == 5)
+    Swag.assert(pair.left == 5)
+    Swag.assert(pair.right == 2)
 }
 
 #test
@@ -95,5 +95,5 @@ impl InitCaptureOwner
     let base              = 0x10
     let bit               = 0x04
     let cb: func||()->s32 = func|mask = base | (bit)|()->s32 { return mask }
-    @assert(cb() == 0x14)
+    Swag.assert(cb() == 0x14)
 }

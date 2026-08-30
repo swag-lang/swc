@@ -37,7 +37,7 @@ enum NonCyclicEnum
 
     var st: AA
     let x = st.x
-    @assert(x == 0)
+    Swag.assert(x == 0)
 }
 
 #test
@@ -49,27 +49,27 @@ enum NonCyclicEnum
     a.y = &b
     b.y = null
     b.z = null
-    @assert(a.y.x == 2)
+    Swag.assert(a.y.x == 2)
 }
 
 #test
 {
     var c: CC
     c.a = &c
-    @assert(c.a == &c)
+    Swag.assert(c.a == &c)
 }
 
 #test
 {
     var ll: LL
     ll.p = null
-    @assert(ll.p == null)
+    Swag.assert(ll.p == null)
 }
 
 #test
 {
     var e: NonCyclicEnum = .NCE_B
-    @assert(e == NonCyclicEnum.NCE_B)
+    Swag.assert(e == NonCyclicEnum.NCE_B)
 }
 
 struct Empty {}

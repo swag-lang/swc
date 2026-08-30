@@ -14,25 +14,25 @@ using Swag, Core
     discard testAddShape(f.capture, 50, 10, 10, 10)
 
     f.main.sendCommandEvent(ActionSelection.SelectAll)
-    @assert(f.capture.selection.count == 3)
+    Swag.assert(f.capture.selection.count == 3)
 
     f.capture.selection.clear()
     f.capture.selection.add(0)
     f.main.sendCommandEvent(ActionSelection.SelectSameAll)
-    @assert(f.capture.selection.count == 2)
-    @assert(f.capture.selection.contains(0))
-    @assert(f.capture.selection.contains(2))
+    Swag.assert(f.capture.selection.count == 2)
+    Swag.assert(f.capture.selection.contains(0))
+    Swag.assert(f.capture.selection.contains(2))
 
     f.main.sendCommandEvent(ActionSelection.InvertSelection)
-    @assert(f.capture.selection.count == 1)
-    @assert(f.capture.selection[0] == 1)
+    Swag.assert(f.capture.selection.count == 1)
+    Swag.assert(f.capture.selection[0] == 1)
 
     f.main.sendCommandEvent(ActionSelection.DeSelectAll)
-    @assert(f.capture.selection.count == 0)
+    Swag.assert(f.capture.selection.count == 0)
 
     let snap = f.main.snap
     f.main.sendCommandEvent(ActionSelection.Snap)
-    @assert(f.main.snap != snap)
+    Swag.assert(f.main.snap != snap)
 }
 
 // Alignment undo stores the correct axis for every horizontal and vertical variant.
@@ -47,46 +47,46 @@ using Swag, Core
     f.capture.selection.add(1)
 
     f.capture.pushUndo(f.capture.newUndo(.AlignLeft))
-    @assert(a.x == 20)
-    @assert(b.x == 20)
+    Swag.assert(a.x == 20)
+    Swag.assert(b.x == 20)
     f.capture.undo()
-    @assert(a.x == 20)
-    @assert(b.x == 80)
+    Swag.assert(a.x == 20)
+    Swag.assert(b.x == 80)
 
     f.capture.pushUndo(f.capture.newUndo(.AlignRight))
-    @assert(a.x == 100)
-    @assert(b.x == 80)
+    Swag.assert(a.x == 100)
+    Swag.assert(b.x == 80)
     f.capture.undo()
-    @assert(a.x == 20)
-    @assert(b.x == 80)
+    Swag.assert(a.x == 20)
+    Swag.assert(b.x == 80)
 
     f.capture.pushUndo(f.capture.newUndo(.AlignCenter))
-    @assert(a.x == 60)
-    @assert(b.x == 50)
+    Swag.assert(a.x == 60)
+    Swag.assert(b.x == 50)
     f.capture.undo()
-    @assert(a.x == 20)
-    @assert(b.x == 80)
+    Swag.assert(a.x == 20)
+    Swag.assert(b.x == 80)
 
     f.capture.pushUndo(f.capture.newUndo(.AlignTop))
-    @assert(a.y == 10)
-    @assert(b.y == 10)
+    Swag.assert(a.y == 10)
+    Swag.assert(b.y == 10)
     f.capture.undo()
-    @assert(a.y == 50)
-    @assert(b.y == 10)
+    Swag.assert(a.y == 50)
+    Swag.assert(b.y == 10)
 
     f.capture.pushUndo(f.capture.newUndo(.AlignBottom))
-    @assert(a.y == 50)
-    @assert(b.y == 10)
+    Swag.assert(a.y == 50)
+    Swag.assert(b.y == 10)
     f.capture.undo()
-    @assert(a.y == 50)
-    @assert(b.y == 10)
+    Swag.assert(a.y == 50)
+    Swag.assert(b.y == 10)
 
     f.capture.pushUndo(f.capture.newUndo(.AlignMiddle))
-    @assert(a.y == 30)
-    @assert(b.y == 10)
+    Swag.assert(a.y == 30)
+    Swag.assert(b.y == 10)
     f.capture.undo()
-    @assert(a.y == 50)
-    @assert(b.y == 10)
+    Swag.assert(a.y == 50)
+    Swag.assert(b.y == 10)
 }
 
 // Arrange commands reorder forms and restore both order and selection on undo.
@@ -101,39 +101,39 @@ using Swag, Core
 
     f.capture.selection.add(0)
     f.capture.pushUndo(f.capture.newUndo(.MoveToFront))
-    @assert(@dataof(f.capture.forms[2]) == a)
-    @assert(f.capture.selection.contains(2))
+    Swag.assert(f.capture.forms[2].buffer == a)
+    Swag.assert(f.capture.selection.contains(2))
     f.capture.undo()
-    @assert(@dataof(f.capture.forms[0]) == a)
-    @assert(@dataof(f.capture.forms[1]) == b)
-    @assert(@dataof(f.capture.forms[2]) == c)
-    @assert(f.capture.selection.contains(0))
+    Swag.assert(f.capture.forms[0].buffer == a)
+    Swag.assert(f.capture.forms[1].buffer == b)
+    Swag.assert(f.capture.forms[2].buffer == c)
+    Swag.assert(f.capture.selection.contains(0))
 
     f.capture.selection.clear()
     f.capture.selection.add(2)
     f.capture.pushUndo(f.capture.newUndo(.MoveToBack))
-    @assert(@dataof(f.capture.forms[0]) == c)
-    @assert(f.capture.selection.contains(0))
+    Swag.assert(f.capture.forms[0].buffer == c)
+    Swag.assert(f.capture.selection.contains(0))
     f.capture.undo()
-    @assert(@dataof(f.capture.forms[0]) == a)
-    @assert(@dataof(f.capture.forms[1]) == b)
-    @assert(@dataof(f.capture.forms[2]) == c)
+    Swag.assert(f.capture.forms[0].buffer == a)
+    Swag.assert(f.capture.forms[1].buffer == b)
+    Swag.assert(f.capture.forms[2].buffer == c)
 
     f.capture.selection.clear()
     f.capture.selection.add(0)
     f.capture.pushUndo(f.capture.newUndo(.MoveForward))
-    @assert(@dataof(f.capture.forms[1]) == a)
-    @assert(f.capture.selection.contains(1))
+    Swag.assert(f.capture.forms[1].buffer == a)
+    Swag.assert(f.capture.selection.contains(1))
     f.capture.undo()
-    @assert(@dataof(f.capture.forms[0]) == a)
+    Swag.assert(f.capture.forms[0].buffer == a)
 
     f.capture.selection.clear()
     f.capture.selection.add(2)
     f.capture.pushUndo(f.capture.newUndo(.MoveBackward))
-    @assert(@dataof(f.capture.forms[1]) == c)
-    @assert(f.capture.selection.contains(1))
+    Swag.assert(f.capture.forms[1].buffer == c)
+    Swag.assert(f.capture.selection.contains(1))
     f.capture.undo()
-    @assert(@dataof(f.capture.forms[2]) == c)
+    Swag.assert(f.capture.forms[2].buffer == c)
 }
 
 // Offset commands group by serial, undo/redo together and truncate redo after a new edit.
@@ -157,33 +157,33 @@ using Swag, Core
     u1.newPosY = 7
     f.capture.pushUndo(u1, serial)
 
-    @assert(a.x == 15)
-    @assert(a.y == 17)
-    @assert(b.x == 35)
-    @assert(b.y == 37)
-    @assert(f.capture.undoMgr.count() == 2)
-    @assert(f.capture.undoMgr.appliedCount() == 2)
+    Swag.assert(a.x == 15)
+    Swag.assert(a.y == 17)
+    Swag.assert(b.x == 35)
+    Swag.assert(b.y == 37)
+    Swag.assert(f.capture.undoMgr.count() == 2)
+    Swag.assert(f.capture.undoMgr.appliedCount() == 2)
 
     f.capture.undo()
-    @assert(a.x == 10)
-    @assert(a.y == 10)
-    @assert(b.x == 30)
-    @assert(b.y == 30)
-    @assert(f.capture.undoMgr.appliedCount() == 0)
+    Swag.assert(a.x == 10)
+    Swag.assert(a.y == 10)
+    Swag.assert(b.x == 30)
+    Swag.assert(b.y == 30)
+    Swag.assert(f.capture.undoMgr.appliedCount() == 0)
 
     f.capture.redo()
-    @assert(a.x == 15)
-    @assert(a.y == 17)
-    @assert(b.x == 35)
-    @assert(b.y == 37)
+    Swag.assert(a.x == 15)
+    Swag.assert(a.y == 17)
+    Swag.assert(b.x == 35)
+    Swag.assert(b.y == 37)
 
     f.capture.undo()
     var u2 = f.capture.newUndo(.OffsetSelection)
     u2.newPosX = -2
     f.capture.pushUndo(u2)
-    @assert(f.capture.undoMgr.count() == 1)
-    @assert(a.x == 8)
-    @assert(b.x == 28)
+    Swag.assert(f.capture.undoMgr.count() == 1)
+    Swag.assert(a.x == 8)
+    Swag.assert(b.x == 28)
 }
 
 // Create and delete selection undo records own form lifetime and selection state.
@@ -197,18 +197,18 @@ using Swag, Core
     f.capture.selection.add(0)
 
     f.capture.pushUndo(f.capture.newUndo(.DeleteSelection))
-    @assert(f.capture.forms.count == 1)
-    @assert(@dataof(f.capture.forms[0]) != a)
-    @assert(f.capture.selection.count == 0)
+    Swag.assert(f.capture.forms.count == 1)
+    Swag.assert(f.capture.forms[0].buffer != a)
+    Swag.assert(f.capture.selection.count == 0)
 
     f.capture.undo()
-    @assert(f.capture.forms.count == 2)
-    @assert(@dataof(f.capture.forms[0]) == a)
-    @assert(f.capture.selection.count == 1)
-    @assert(f.capture.selection[0] == 0)
+    Swag.assert(f.capture.forms.count == 2)
+    Swag.assert(f.capture.forms[0].buffer == a)
+    Swag.assert(f.capture.selection.count == 1)
+    Swag.assert(f.capture.selection[0] == 0)
 
     f.capture.redo()
-    @assert(f.capture.forms.count == 1)
+    Swag.assert(f.capture.forms.count == 1)
 
     let undo    = f.capture.newUndo(.CreateForm)
     let newText = Memory.new'FormText()
@@ -216,13 +216,13 @@ using Swag, Core
     newText.IForm.setBaseForm(70, 80, 20, 25)
     undo.oldForms.add(newText)
     f.capture.pushUndo(undo)
-    @assert(f.capture.forms.count == 2)
-    @assert(@kindof(f.capture.forms[1]) == FormText)
+    Swag.assert(f.capture.forms.count == 2)
+    Swag.assert(Swag.kindOf(f.capture.forms[1]) == FormText)
 
     f.capture.undo()
-    @assert(f.capture.forms.count == 1)
+    Swag.assert(f.capture.forms.count == 1)
     f.capture.redo()
-    @assert(f.capture.forms.count == 2)
+    Swag.assert(f.capture.forms.count == 2)
 }
 
 // MoveBaseForm, MovePoint and MoveCapture undo records cover geometry edits beyond selection moves.
@@ -251,11 +251,11 @@ using Swag, Core
     movePoint.newPosX  = -10
     movePoint.newPosY  = 20
     f.capture.pushUndo(movePoint)
-    @assert(line.xb == 140)
-    @assert(line.yb == 190)
+    Swag.assert(line.xb == 140)
+    Swag.assert(line.yb == 190)
     f.capture.undo()
-    @assert(line.xb == 150)
-    @assert(line.yb == 170)
+    Swag.assert(line.xb == 150)
+    Swag.assert(line.yb == 170)
 
     var moveCapture = f.capture.newUndo(.MoveCapture)
     moveCapture.newPosX  = 11
@@ -263,20 +263,20 @@ using Swag, Core
     moveCapture.newSizeX = 5
     moveCapture.newSizeY = -6
     f.capture.pushUndo(moveCapture)
-    @assert(f.capture.width == 405)
-    @assert(f.capture.height == 294)
-    @assert(f.capture.backImagePos.x == 11)
-    @assert(f.capture.backImagePos.y == -9)
-    @assert(shape.x == 21)
-    @assert(line.xa == 111)
+    Swag.assert(f.capture.width == 405)
+    Swag.assert(f.capture.height == 294)
+    Swag.assert(f.capture.backImagePos.x == 11)
+    Swag.assert(f.capture.backImagePos.y == -9)
+    Swag.assert(shape.x == 21)
+    Swag.assert(line.xa == 111)
 
     f.capture.undo()
-    @assert(f.capture.width == 400)
-    @assert(f.capture.height == 300)
-    @assert(f.capture.backImagePos.x == 0)
-    @assert(f.capture.backImagePos.y == 0)
-    @assert(shape.x == 10)
-    @assert(line.xa == 100)
+    Swag.assert(f.capture.width == 400)
+    Swag.assert(f.capture.height == 300)
+    Swag.assert(f.capture.backImagePos.x == 0)
+    Swag.assert(f.capture.backImagePos.y == 0)
+    Swag.assert(shape.x == 10)
+    Swag.assert(line.xa == 100)
 }
 
 // A capture wider than Capture.MaxSize survives a trim and its undo intact. That size is
@@ -297,16 +297,16 @@ using Swag, Core
     trim.newSizeX = -100
     trim.newSizeY = -50
     f.capture.pushUndo(trim)
-    @assert(f.capture.width == Wide - 100)
-    @assert(f.capture.height == Capture.MaxSize + 462)
+    Swag.assert(f.capture.width == Wide - 100)
+    Swag.assert(f.capture.height == Capture.MaxSize + 462)
 
     f.capture.undo()
-    @assert(f.capture.width == Wide)
-    @assert(f.capture.height == Capture.MaxSize + 512)
+    Swag.assert(f.capture.width == Wide)
+    Swag.assert(f.capture.height == Capture.MaxSize + 512)
 
     f.capture.redo()
-    @assert(f.capture.width == Wide - 100)
-    @assert(f.capture.height == Capture.MaxSize + 462)
+    Swag.assert(f.capture.width == Wide - 100)
+    Swag.assert(f.capture.height == Capture.MaxSize + 462)
 }
 
 // Text, font, rotation and style-model undo records restore user-editable form state.
@@ -329,38 +329,38 @@ using Swag, Core
     var setText = f.capture.newUndo(.SetText)
     setText.text = "after"
     f.capture.pushUndo(setText)
-    @assert(text.text == "after")
+    Swag.assert(text.text == "after")
     f.capture.undo()
-    @assert(text.text == "before")
+    Swag.assert(text.text == "before")
     f.capture.redo()
-    @assert(text.text == "after")
+    Swag.assert(text.text == "after")
 
     var setFont = f.capture.newUndo(.SetFont)
     setFont.text      = "font-b"
     setFont.fontStyle = .Bold
     f.capture.pushUndo(setFont)
-    @assert(text.fontName == "font-b")
-    @assert(text.fontStyle == .Bold)
+    Swag.assert(text.fontName == "font-b")
+    Swag.assert(text.fontStyle == .Bold)
     f.capture.undo()
-    @assert(text.fontName == "font-a")
-    @assert(text.fontStyle == .Regular)
+    Swag.assert(text.fontName == "font-a")
+    Swag.assert(text.fontStyle == .Regular)
 
     var setFontStyle = f.capture.newUndo(.SetFontStyle)
     setFontStyle.fontStyle = .Italic
     f.capture.pushUndo(setFontStyle)
-    @assert(text.fontStyle == .Italic)
+    Swag.assert(text.fontStyle == .Italic)
     f.capture.undo()
-    @assert(text.fontStyle == .Regular)
+    Swag.assert(text.fontStyle == .Regular)
 
     f.capture.selection.clear()
     f.capture.selection.add(0)
     f.capture.selection.add(1)
     f.capture.pushUndo(f.capture.newUndo(.ResetRotation))
-    @assert(text.rotate == 0)
-    @assert(shape.rotate == 0)
+    Swag.assert(text.rotate == 0)
+    Swag.assert(shape.rotate == 0)
     f.capture.undo()
-    @assert(text.rotate == 45)
-    @assert(shape.rotate == 30)
+    Swag.assert(text.rotate == 45)
+    Swag.assert(shape.rotate == 30)
 
     f.capture.selection.clear()
     f.capture.selection.add(1)
@@ -372,10 +372,10 @@ using Swag, Core
     style.mdlType  = FormShape
     style.mdlValue = model
     f.capture.pushUndo(style)
-    @assert(shape.borderSize == 12)
-    @assert(shape.backColor == ColorBlue)
+    Swag.assert(shape.borderSize == 12)
+    Swag.assert(shape.backColor == ColorBlue)
     f.capture.undo()
-    @assert(shape.borderSize == 3)
+    Swag.assert(shape.borderSize == 3)
 }
 
 // Freeze is available with a capture and toggles the frozen state, but is disabled
@@ -389,16 +389,16 @@ using Swag, Core
     f.capture.selection.add(0)
 
     var evt = Gui.Testing.commandState(ActionSelection.Freeze)
-    @assert(Gui.Testing.actionUpdate'ActionSelection(f.main, ActionSelection.Freeze, &evt))
-    @assert(!evt.disabled)
+    Swag.assert(Gui.Testing.actionUpdate'ActionSelection(f.main, ActionSelection.Freeze, &evt))
+    Swag.assert(!evt.disabled)
 
     f.main.sendCommandEvent(ActionSelection.Freeze)
-    @assert(f.main.freezeSel)
-    @assert(shape.freeze)
+    Swag.assert(f.main.freezeSel)
+    Swag.assert(shape.freeze)
 
     // Unfreeze cleanly, then drop the capture entirely.
     f.main.freezeSelection(false)
-    @assert(!f.main.freezeSel)
+    Swag.assert(!f.main.freezeSel)
 
     let old = f.main.editWnd.editView.capture
     f.main.editWnd.editView.capture = null
@@ -406,12 +406,12 @@ using Swag, Core
 
     // Without a capture the command is disabled and freezing does nothing.
     evt = Gui.Testing.commandState(ActionSelection.Freeze)
-    @assert(Gui.Testing.actionUpdate'ActionSelection(f.main, ActionSelection.Freeze, &evt))
-    @assert(evt.disabled)
+    Swag.assert(Gui.Testing.actionUpdate'ActionSelection(f.main, ActionSelection.Freeze, &evt))
+    Swag.assert(evt.disabled)
 
     f.main.freezeSelection(true)
-    @assert(!f.main.freezeSel)
-    @assert(f.main.embInfoFreeze == null)
+    Swag.assert(!f.main.freezeSel)
+    Swag.assert(f.main.embInfoFreeze == null)
 }
 
 // Snap computes x/y offsets against capture bounds and neighboring form edges.
@@ -428,23 +428,23 @@ using Swag, Core
     var nx = -42
     var ny = -42
     f.capture.snap(&nx, &ny, false, false, editForm: moving)
-    @assert(nx == -40)
-    @assert(ny == -40)
-    @assert(f.capture.snapX == 60)
-    @assert(f.capture.snapY == 60)
+    Swag.assert(nx == -40)
+    Swag.assert(ny == -40)
+    Swag.assert(f.capture.snapX == 60)
+    Swag.assert(f.capture.snapY == 60)
 
     nx = 280
     ny = 180
     f.capture.snap(&nx, &ny, true, true, editForm: moving)
-    @assert(nx == 280)
-    @assert(ny == 180)
-    @assert(f.capture.snapX == 400)
-    @assert(f.capture.snapY == 300)
+    Swag.assert(nx == 280)
+    Swag.assert(ny == 180)
+    Swag.assert(f.capture.snapX == 400)
+    Swag.assert(f.capture.snapY == 300)
 
     f.main.snap = false
     nx          = -42
     ny          = -42
     f.capture.snap(&nx, &ny, false, false, editForm: moving)
-    @assert(nx == -42)
-    @assert(ny == -42)
+    Swag.assert(nx == -42)
+    Swag.assert(ny == -42)
 }

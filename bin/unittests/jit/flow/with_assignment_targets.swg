@@ -254,7 +254,7 @@ impl JitWithPrioOwner
         var owner: JitWithPrioOwner
         return owner.viaMember()
     }
-    @assert(value == 100)     // inner.bump ran (hits 100); me.bump did NOT (hits 0)
+    Swag.assert(value == 100)     // inner.bump ran (hits 100); me.bump did NOT (hits 0)
 }
 
 #test
@@ -265,7 +265,7 @@ impl JitWithPrioOwner
         var target: JitWithPrioInner
         return owner.viaPointer(&target)
     }
-    @assert(value == 100)
+    Swag.assert(value == 100)
 }
 
 #test
@@ -276,37 +276,37 @@ impl JitWithPrioOwner
         var target: JitWithPrioInner
         return owner.viaAssign(&target)
     }
-    @assert(value == 100)
+    Swag.assert(value == 100)
 }
 
 #test
 {
     const value = #run jitWithValueAndPointer()
-    @assert(value == 915)
+    Swag.assert(value == 915)
 }
 
 #test
 {
     const value = #run jitWithAssignedValueTarget()
-    @assert(value == 1122)
+    Swag.assert(value == 1122)
 }
 
 #test
 {
     const value = #run jitWithAssignmentsAndScopes()
-    @assert(value == 45)
+    Swag.assert(value == 45)
 }
 
 #test
 {
     const value = #run jitWithNestedMemberTarget()
-    @assert(value == 2215)
+    Swag.assert(value == 2215)
 }
 
 #test
 {
     const value = #run jitWithMeDisambiguation()
-    @assert(value == 409)
+    Swag.assert(value == 409)
 }
 
 #test
@@ -318,5 +318,5 @@ impl JitWithPrioOwner
         return owner.applyMemberScope()
     }
 
-    @assert(value == 1527)
+    Swag.assert(value == 1527)
 }

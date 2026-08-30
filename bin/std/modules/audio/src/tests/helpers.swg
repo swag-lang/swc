@@ -4,17 +4,17 @@ using Swag, Core
 
 func audioAssertFloat(actual, expected: f32, epsilon = 0.0001'f32)
 {
-    @assert(Math.isEqualEpsilon(actual, expected, epsilon))
+    Swag.assert(Math.isEqualEpsilon(actual, expected, epsilon))
 }
 
 func audioAssertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 {
-    if @countof(actual) != @countof(expected) do
+    if actual.count != expected.count do
         return false
 
-    for @countof(actual)
+    for actual.count
     {
-        if actual[@index] != expected[@index] do
+        if actual[Swag.index] != expected[Swag.index] do
             return false
     }
 
@@ -23,16 +23,16 @@ func audioAssertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
 func audioAssertBufferBytes(actual: #null [*] void, actualSize: u64, expected: const [..] u8)
 {
-    @assert(actualSize == @countof(expected))
-    @assert(audioAssertBytes(@mkslice(cast(#null const [*] u8) actual, actualSize), expected))
+    Swag.assert(actualSize == expected.count)
+    Swag.assert(audioAssertBytes(Swag.makeSlice(cast(#null const [*] u8) actual, actualSize), expected))
 }
 
 func audioAssertSamples(actual: const [..] u8, expected: const [..] s16)
 {
-    @assert(@countof(actual) == @countof(expected) * #sizeof(s16))
-    let samples = cast(const [*] s16) @dataof(actual)
-    for @countof(expected) do
-        @assert(samples[@index] == expected[@index])
+    Swag.assert(actual.count == expected.count * #sizeof(s16))
+    let samples = cast(const [*] s16) actual.buffer
+    for expected.count do
+        Swag.assert(samples[Swag.index] == expected[Swag.index])
 }
 
 // Returns the OWNED path: a 'string' view would dangle as soon as the intermediate
@@ -41,20 +41,20 @@ func audioGetTestDataPath(fileName: string, loc = #callerlocation)->String
 {
     let dir  = Path.directoryName(loc.fileName)
     var path = Path.combine(dir, "datas", fileName)
-    @assert(File.exists(path))
+    Swag.assert(File.exists(path))
     return path
 }
 
 func audioDecodePcmToPcm16(sourceEncoding: SoundFileEncoding, source: [..] u8, destinationCapacity: u64)->{ destination: Array'u8, progress: CodecProgress } fail
 {
     var codec: CodecPcmToPcm16
-    let allocator = @getcontext().allocator!
+    let allocator = Swag.getContext().allocator!
     codec.configure(sourceEncoding, .Pcm16, #typeof(CodecPcmToPcm16), allocator)
 
     var result: retval
     result.destination.resize(destinationCapacity)
     let itf: ICodec       = &codec
     let destinationBuffer = result.destination.buffer!
-    result.progress = itf.decode(destinationBuffer, result.destination.count, @dataof(source), @countof(source))
+    result.progress = itf.decode(destinationBuffer, result.destination.count, source.buffer, source.count)
     return result
 }

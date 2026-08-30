@@ -37,5 +37,5 @@ func day3A()
         total += expect StrConv.toS32(split[0]) * expect StrConv.toS32(split[1])
     }
 
-    @assert(total == 196826776)
+    Swag.assert(total == 196826776)
 }

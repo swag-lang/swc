@@ -41,7 +41,7 @@ enum AnyKind
         let src            = cast([..] s32) data
         var boxed: any     = src
         let dst            = cast([..] s32) boxed
-        return @countof(dst) == 4 and dst[0] == 3 and dst[2] == 9 and dst[3] == 12
+        return dst.count == 4 and dst[0] == 3 and dst[2] == 9 and dst[3] == 12
     }
 
     const V = #run anyToSlice()

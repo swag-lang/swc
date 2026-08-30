@@ -137,7 +137,7 @@ private func reportFontNames(image: *BinaryImage, report: *BinaryReport, at: u64
         let valueAt  = stringsAt + cast(u64) image.u16At(entryAt + 10)
 
         let label = fontNameLabel(nameId)
-        if !@countof(label) do
+        if !label.count do
             continue
 
         // Windows records every name in UTF-16, and the older platforms in single bytes; the

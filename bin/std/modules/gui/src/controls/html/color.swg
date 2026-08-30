@@ -355,7 +355,7 @@ private func htmlParseHexColor(text: string)->HtmlColorValue
 {
     var result: retval
     var digits: [8] u32 = undefined
-    let count           = @countof(text)
+    let count           = text.count
     if count != 3 and count != 4 and count != 6 and count != 8 do
         return result
 
@@ -440,7 +440,7 @@ private func htmlColorMixStop(value: string)->{ color: Color, weight: f32 = -1, 
     let percent = parts[1].toString()
     if !Utf8.endsWith(percent, "%") do
         return result
-    let number = htmlParseNumber(percent[0 until @countof(percent) - 1])
+    let number = htmlParseNumber(percent[0 until percent.count - 1])
     if number.eat do
         result.weight = Math.max(number.value / 100, 0)
     return result
@@ -504,7 +504,7 @@ func htmlParseColor(text: string)->HtmlColorValue
 {
     var result: retval
     let trimmed = Latin1.trim(text)
-    if !@countof(trimmed) do
+    if !trimmed.count do
         return result
 
     if trimmed[0] == '#' do

@@ -14,7 +14,7 @@ func boundCheckEnabled()->bool
 
 #test
 {
-    const cfg      = #run @compiler.getBuildCfg()![]
+    const cfg      = #run Swag.compiler().getBuildCfg()![]
     const expected = cfg.safetyGuards & Swag.SafetyWhat.BoundCheck ? true : false
     #assert(#safety(Swag.SafetyWhat.BoundCheck) == expected)
 }
@@ -50,7 +50,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run arrayBoundCheck()
-    @assert(value == 0)
+    Swag.assert(value == 0)
 }
 
 #test
@@ -66,7 +66,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run sliceBoundCheck()
-    @assert(value == 0)
+    Swag.assert(value == 0)
 }
 
 #test
@@ -79,7 +79,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run stringBoundCheck()
-    @assert(value == 0)
+    Swag.assert(value == 0)
 }
 
 #test
@@ -87,12 +87,12 @@ func opaqueIdx(v: u64)->u64
     #[Swag.Safety(.BoundCheck, true)]
     func cstringBoundCheck()->u8
     {
-        var text: const cstring = cast(const cstring) @dataof("ab")
+        var text: const cstring = cast(const cstring) ("ab").buffer
         return text[2]     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run cstringBoundCheck()
-    @assert(value == 0)
+    Swag.assert(value == 0)
 }
 
 #test
@@ -109,7 +109,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run multiArrayBoundCheck()
-    @assert(value == 0)
+    Swag.assert(value == 0)
 }
 
 // Dynamic index: index value known only at runtime
@@ -125,7 +125,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run arrayDynamicBoundCheck(2)
-    @assert(value == 0)
+    Swag.assert(value == 0)
 }
 
 #test
@@ -142,7 +142,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run sliceDynamicBoundCheck(5)
-    @assert(value == 0)
+    Swag.assert(value == 0)
 }
 
 #test
@@ -155,7 +155,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run stringDynamicBoundCheck(10)
-    @assert(value == 0)
+    Swag.assert(value == 0)
 }
 
 #test
@@ -172,7 +172,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run multiArrayDynamicBoundCheck(2, 0)
-    @assert(value == 0)
+    Swag.assert(value == 0)
 }
 
 // Empty slice: any index is out of bounds at runtime
@@ -182,12 +182,12 @@ func opaqueIdx(v: u64)->u64
     func emptySliceBoundCheck()->s32
     {
         var values: [1] s32
-        let slice:  [..] s32 = @mkslice(&values[0], 0)
+        let slice:  [..] s32 = Swag.makeSlice(&values[0], 0)
         return slice[0]     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run emptySliceBoundCheck()
-    @assert(value == 0)
+    Swag.assert(value == 0)
 }
 
 // In-bound accesses (constant and dynamic) must not panic
@@ -204,7 +204,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run arrayInBounds(1)
-    @assert(value == 6)
+    Swag.assert(value == 6)
 }
 
 #test
@@ -221,7 +221,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run sliceInBounds(2)
-    @assert(value == 9)
+    Swag.assert(value == 9)
 }
 
 // Variadic argument bound check
@@ -291,7 +291,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run loopNegativeCount(-1)
-    @assert(value == 0)
+    Swag.assert(value == 0)
 }
 
 // An inverted range selects nothing, so a loop over it runs zero times and the guard stays
@@ -309,7 +309,7 @@ func opaqueIdx(v: u64)->u64
 
     const value = #run loopInvertedSignedRange(5, 4)
     #assert(value == 0)
-    @assert(loopInvertedSignedRange(5, 4) == 0)
+    Swag.assert(loopInvertedSignedRange(5, 4) == 0)
 }
 
 #test
@@ -325,7 +325,7 @@ func opaqueIdx(v: u64)->u64
 
     const value = #run loopInvertedUnsignedRange(5, 4)
     #assert(value == 0)
-    @assert(loopInvertedUnsignedRange(5, 4) == 0)
+    Swag.assert(loopInvertedUnsignedRange(5, 4) == 0)
 }
 
 // The guard that did move to slicing: bounds out of order, and an upper bound past the source.
@@ -336,11 +336,11 @@ func opaqueIdx(v: u64)->u64
     {
         var storage: [4] s32        = [10, 20, 30, 40]
         let values:  const [..] s32 = storage
-        return @countof(values[low to high])     // swc-expected-error {{safety_err_runtime}}
+        return values[low to high].count     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run sliceInvertedRange(3, 1)
-    @assert(value == 0)
+    Swag.assert(value == 0)
 }
 
 #test
@@ -350,11 +350,11 @@ func opaqueIdx(v: u64)->u64
     {
         var storage: [4] s32        = [10, 20, 30, 40]
         let values:  const [..] s32 = storage
-        return @countof(values[low to high])     // swc-expected-error {{safety_err_runtime}}
+        return values[low to high].count     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run sliceUpperOutOfSource(0, 10)
-    @assert(value == 0)
+    Swag.assert(value == 0)
 }
 
 // An exclusive range with equal bounds is empty, so the guard must stay silent.
@@ -370,10 +370,10 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run loopEmptyUnsignedRange(4, 4)
-    @assert(value == 0)
-    @assert(loopEmptyUnsignedRange(4, 4) == 0)
-    @assert(loopEmptyUnsignedRange(0, 0) == 0)
-    @assert(loopEmptyUnsignedRange(0, 3) == 1 + 2 + 3)
+    Swag.assert(value == 0)
+    Swag.assert(loopEmptyUnsignedRange(4, 4) == 0)
+    Swag.assert(loopEmptyUnsignedRange(0, 0) == 0)
+    Swag.assert(loopEmptyUnsignedRange(0, 3) == 1 + 2 + 3)
 }
 
 #test
@@ -388,9 +388,9 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run loopEmptySignedRange(-2, -2)
-    @assert(value == 0)
-    @assert(loopEmptySignedRange(-2, -2) == 0)
-    @assert(loopEmptySignedRange(0, 0) == 0)
+    Swag.assert(value == 0)
+    Swag.assert(loopEmptySignedRange(-2, -2) == 0)
+    Swag.assert(loopEmptySignedRange(0, 0) == 0)
 }
 
 // When bound check is disabled, out-of-bounds access must not call the safety panic
@@ -407,7 +407,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run arrayBoundCheckDisabled()
-    @assert(value == 2)
+    Swag.assert(value == 2)
 }
 
 #test
@@ -422,5 +422,5 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run loopNegativeCountDisabled(-1)
-    @assert(value == 0)
+    Swag.assert(value == 0)
 }

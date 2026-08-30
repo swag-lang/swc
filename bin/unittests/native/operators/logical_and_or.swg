@@ -10,15 +10,15 @@ func sideEffect(flag: bool, delta: s32)->bool
 // Logical and/or truth table with literals
 #test
 {
-    @assert(true and true)
-    @assert(!(true and false))
-    @assert(!(false and true))
-    @assert(!(false and false))
+    Swag.assert(true and true)
+    Swag.assert(!(true and false))
+    Swag.assert(!(false and true))
+    Swag.assert(!(false and false))
 
-    @assert(true or true)
-    @assert(true or false)
-    @assert(false or true)
-    @assert(!(false or false))
+    Swag.assert(true or true)
+    Swag.assert(true or false)
+    Swag.assert(false or true)
+    Swag.assert(!(false or false))
 }
 
 // Logical and/or truth table with variables
@@ -26,14 +26,14 @@ func sideEffect(flag: bool, delta: s32)->bool
 {
     let t = true
     let f = false
-    @assert(t and t)
-    @assert(!(t and f))
-    @assert(!(f and t))
-    @assert(!(f and f))
-    @assert(t or t)
-    @assert(t or f)
-    @assert(f or t)
-    @assert(!(f or f))
+    Swag.assert(t and t)
+    Swag.assert(!(t and f))
+    Swag.assert(!(f and t))
+    Swag.assert(!(f and f))
+    Swag.assert(t or t)
+    Swag.assert(t or f)
+    Swag.assert(f or t)
+    Swag.assert(!(f or f))
 }
 
 // Logical operators with comparison subexpressions
@@ -49,10 +49,10 @@ func sideEffect(flag: bool, delta: s32)->bool
     #assert(#typeof(c) == bool)
     #assert(#typeof(d) == bool)
 
-    @assert(a)
-    @assert(!b)
-    @assert(c)
-    @assert(!d)
+    Swag.assert(a)
+    Swag.assert(!b)
+    Swag.assert(c)
+    Swag.assert(!d)
 }
 
 // and short-circuits: right side must not be evaluated when left is false
@@ -60,8 +60,8 @@ func sideEffect(flag: bool, delta: s32)->bool
 {
     LogCounter = 0
     let a = sideEffect(false, 1) and sideEffect(true, 10)
-    @assert(!a)
-    @assert(LogCounter == 1)
+    Swag.assert(!a)
+    Swag.assert(LogCounter == 1)
 }
 
 // or short-circuits: right side must not be evaluated when left is true
@@ -69,8 +69,8 @@ func sideEffect(flag: bool, delta: s32)->bool
 {
     LogCounter = 0
     let b = sideEffect(true, 1) or sideEffect(true, 10)
-    @assert(b)
-    @assert(LogCounter == 1)
+    Swag.assert(b)
+    Swag.assert(LogCounter == 1)
 }
 
 // no short-circuit when left is true for and
@@ -78,8 +78,8 @@ func sideEffect(flag: bool, delta: s32)->bool
 {
     LogCounter = 0
     let a = sideEffect(true, 1) and sideEffect(true, 10)
-    @assert(a)
-    @assert(LogCounter == 11)
+    Swag.assert(a)
+    Swag.assert(LogCounter == 11)
 }
 
 // no short-circuit when left is false for or
@@ -87,8 +87,8 @@ func sideEffect(flag: bool, delta: s32)->bool
 {
     LogCounter = 0
     let b = sideEffect(false, 1) or sideEffect(true, 10)
-    @assert(b)
-    @assert(LogCounter == 11)
+    Swag.assert(b)
+    Swag.assert(LogCounter == 11)
 }
 
 // Chained logical operators
@@ -99,10 +99,10 @@ func sideEffect(flag: bool, delta: s32)->bool
     let c = false or false or true
     let d = false or false or false
 
-    @assert(a)
-    @assert(!b)
-    @assert(c)
-    @assert(!d)
+    Swag.assert(a)
+    Swag.assert(!b)
+    Swag.assert(c)
+    Swag.assert(!d)
 }
 
 // Mixed and/or with parenthesized grouping
@@ -112,9 +112,9 @@ func sideEffect(flag: bool, delta: s32)->bool
     let b = (false and true) or (true and false)
     let c = true and (false or true) and (true or false)
 
-    @assert(a)
-    @assert(!b)
-    @assert(c)
+    Swag.assert(a)
+    Swag.assert(!b)
+    Swag.assert(c)
 }
 
 func logicalValueProbe(value: s64, delta: s32)->s64
@@ -134,8 +134,8 @@ func logicalFloatProbe(value: f32, delta: s32)->f32
 {
     LogCounter = 0
     let value = logicalValueProbe(3, 1) or sideEffect(true, 10)
-    @assert(value)
-    @assert(LogCounter == 1)
+    Swag.assert(value)
+    Swag.assert(LogCounter == 1)
 }
 
 // Non-bool lhs truthiness must still short-circuit `and`
@@ -143,8 +143,8 @@ func logicalFloatProbe(value: f32, delta: s32)->f32
 {
     LogCounter = 0
     let value = logicalValueProbe(0, 1) and sideEffect(true, 10)
-    @assert(!value)
-    @assert(LogCounter == 1)
+    Swag.assert(!value)
+    Swag.assert(LogCounter == 1)
 }
 
 // Falsey non-bool lhs must evaluate rhs for `or`
@@ -152,8 +152,8 @@ func logicalFloatProbe(value: f32, delta: s32)->f32
 {
     LogCounter = 0
     let value = logicalValueProbe(0, 1) or sideEffect(true, 10)
-    @assert(value)
-    @assert(LogCounter == 11)
+    Swag.assert(value)
+    Swag.assert(LogCounter == 11)
 }
 
 // Float truthiness follows the same zero/non-zero short-circuit rules
@@ -161,16 +161,16 @@ func logicalFloatProbe(value: f32, delta: s32)->f32
 {
     LogCounter = 0
     let value = logicalFloatProbe(0.0'f32, 1) or sideEffect(true, 10)
-    @assert(value)
-    @assert(LogCounter == 11)
+    Swag.assert(value)
+    Swag.assert(LogCounter == 11)
 }
 
 #test
 {
     LogCounter = 0
     let value = logicalFloatProbe(2.0'f32, 1) or sideEffect(true, 10)
-    @assert(value)
-    @assert(LogCounter == 1)
+    Swag.assert(value)
+    Swag.assert(LogCounter == 1)
 }
 
 // Truthy non-bool lhs must evaluate rhs for `and`
@@ -178,8 +178,8 @@ func logicalFloatProbe(value: f32, delta: s32)->f32
 {
     LogCounter = 0
     let value = logicalValueProbe(2, 1) and sideEffect(true, 10)
-    @assert(value)
-    @assert(LogCounter == 11)
+    Swag.assert(value)
+    Swag.assert(LogCounter == 11)
 }
 
 struct LogicalNullableGuardItem
@@ -210,8 +210,8 @@ func logicalNullableMaybe(p: *LogicalNullableGuardItem)->#null *LogicalNullableG
     let ptr:   #null *LogicalNullableGuardItem = logicalNullableMaybe(&item)
     let empty: #null *LogicalNullableGuardItem = null
 
-    @assert(logicalNullableGuardOr(empty))
-    @assert(logicalNullableGuardOr(ptr))
-    @assert(!logicalNullableGuardAnd(empty))
-    @assert(logicalNullableGuardAnd(ptr))
+    Swag.assert(logicalNullableGuardOr(empty))
+    Swag.assert(logicalNullableGuardOr(ptr))
+    Swag.assert(!logicalNullableGuardAnd(empty))
+    Swag.assert(logicalNullableGuardAnd(ptr))
 }

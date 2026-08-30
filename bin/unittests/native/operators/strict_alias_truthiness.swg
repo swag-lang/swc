@@ -45,20 +45,20 @@ func runtimeHandleOrelseFallback()->bool
 
 #test
 {
-    @assert(runtimeHandleTruthy())
+    Swag.assert(runtimeHandleTruthy())
 }
 
 #test
 {
-    @assert(runtimeHandleNull())
+    Swag.assert(runtimeHandleNull())
 }
 
 #test
 {
-    @assert(runtimeHandleOrelseNonNull())
+    Swag.assert(runtimeHandleOrelseNonNull())
 }
 
 #test
 {
-    @assert(runtimeHandleOrelseFallback())
+    Swag.assert(runtimeHandleOrelseFallback())
 }

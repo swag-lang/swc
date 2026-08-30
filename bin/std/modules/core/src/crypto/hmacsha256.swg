@@ -49,14 +49,14 @@ impl HmacSha256
         .clear()
 
         var normalized: [64] u8
-        if @countof(key) > 64
+        if key.count > 64
         {
             var hashed = sha256Bytes(Hash.Sha256.compute(key))
-            @memcpy(&normalized[0], &hashed[0], #sizeof(hashed))
+            Swag.memcpy(&normalized[0], &hashed[0], #sizeof(hashed))
             secureClear(hashed)
         }
-        elif @countof(key) do
-            @memcpy(&normalized[0], @dataof(key), @countof(key))
+        elif key.count do
+            Swag.memcpy(&normalized[0], key.buffer, key.count)
 
         var innerPad: [64] u8
         var outerPad: [64] u8

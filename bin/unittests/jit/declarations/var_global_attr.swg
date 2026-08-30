@@ -10,9 +10,9 @@
         return count
     }
 
-    @assert(counter() == 1)
-    @assert(counter() == 2)
-    @assert(counter() == 3)
+    Swag.assert(counter() == 1)
+    Swag.assert(counter() == 2)
+    Swag.assert(counter() == 3)
 }
 
 #test
@@ -25,9 +25,9 @@
         return total
     }
 
-    @assert(accumulate(10) == 10)
-    @assert(accumulate(20) == 30)
-    @assert(accumulate(5) == 35)
+    Swag.assert(accumulate(10) == 10)
+    Swag.assert(accumulate(20) == 30)
+    Swag.assert(accumulate(5) == 35)
 }
 
 #test
@@ -40,7 +40,7 @@
         return state
     }
 
-    @assert(toggle() == true)
-    @assert(toggle() == false)
-    @assert(toggle() == true)
+    Swag.assert(toggle() == true)
+    Swag.assert(toggle() == false)
+    Swag.assert(toggle() == true)
 }

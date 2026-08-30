@@ -2049,7 +2049,7 @@ impl Transform
     {
         .copyAELToSEL()
         .intersectList.sort()
-        for i in @countof(.intersectList)
+        for i in (.intersectList).count
         {
             if !edgesAdjacent(nnIntersect(.intersectList[i]))
             {
@@ -3161,7 +3161,7 @@ impl Transform
     mtd buildResult(polys: *ClipperPaths)
     {
         polys.reserve(.polyOuts.count)
-        for i in @countof(.polyOuts)
+        for i in (.polyOuts).count
         {
             let outRec = nnOutRec(.polyOuts[i])
             if !outRec.pts do
@@ -3186,7 +3186,7 @@ impl Transform
 
     mtd disposeAllOutRecs()
     {
-        for i in @countof(.polyOuts) do
+        for i in (.polyOuts).count do
             .disposeOutRec(i)
         .polyOuts.clear()
     }

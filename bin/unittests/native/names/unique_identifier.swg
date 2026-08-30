@@ -20,12 +20,12 @@ func computeUniq(value: s32)->s32
     var marker = 7
     mixinUniq(value)
     mixinUniq(value + 2)
-    @assert(marker == 7)
+    Swag.assert(marker == 7)
     return total
 }
 
 // #uniq identifier scoping in mixin expansion
 #test
 {
-    @assert(computeUniq(3) == 148)
+    Swag.assert(computeUniq(3) == 148)
 }

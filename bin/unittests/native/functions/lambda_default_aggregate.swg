@@ -22,8 +22,8 @@ alias LambdaDefaultPayloadFn = func(payload = {values: [3, 4, 5], bias: 7})->s32
         return total + values[0]
     }
 
-    @assert(cb() == 3.5)
-    @assert(cb([2.0, 4.0]) == 6.0)
+    Swag.assert(cb() == 3.5)
+    Swag.assert(cb([2.0, 4.0]) == 6.0)
 }
 
 #test
@@ -36,6 +36,6 @@ alias LambdaDefaultPayloadFn = func(payload = {values: [3, 4, 5], bias: 7})->s32
         return total
     }
 
-    @assert(cb() == 19)
-    @assert(cb({values: [9, 8, 7], bias: 2}) == 26)
+    Swag.assert(cb() == 19)
+    Swag.assert(cb({values: [9, 8, 7], bias: 2}) == 26)
 }

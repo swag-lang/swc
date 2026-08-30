@@ -440,8 +440,8 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, x, y, fracX, fracY, 
     var srcStride: u64
     if x - 2 < -FramePadding or y - 2 < -FramePadding or x + 19 > planeWidth + FramePadding or y + height + 3 > planeHeight + FramePadding
     {
-        copyClamped(@dataof(window), 21, reference.luma.buffer!, reference.strideLuma, x - 2, y - 2, width + 5, height + 5, planeWidth, planeHeight)
-        src       = @dataof(window) + 2 * 21 + 2
+        copyClamped(window.buffer, 21, reference.luma.buffer!, reference.strideLuma, x - 2, y - 2, width + 5, height + 5, planeWidth, planeHeight)
+        src       = window.buffer + 2 * 21 + 2
         srcStride = 21
     }
     else
@@ -486,23 +486,23 @@ func mcLuma(dst: [*] u8, dstStride: u64, reference: *Frame, x, y, fracX, fracY, 
     if fracX == 2
     {
         // Positions f and q: the center half against the nearest horizontal half row.
-        halfCenter(@dataof(planeA), 16, src, srcStride, width, height)
-        halfHorizontalAvg(dst, dstStride, fracY == 1 ? src : src + srcStride, srcStride, @dataof(planeA), 16, width, height)
+        halfCenter(planeA.buffer, 16, src, srcStride, width, height)
+        halfHorizontalAvg(dst, dstStride, fracY == 1 ? src : src + srcStride, srcStride, planeA.buffer, 16, width, height)
         return
     }
 
     if fracY == 2
     {
         // Positions i and k: the center half against the nearest vertical half column.
-        halfCenter(@dataof(planeA), 16, src, srcStride, width, height)
-        halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, @dataof(planeA), 16, width, height)
+        halfCenter(planeA.buffer, 16, src, srcStride, width, height)
+        halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, planeA.buffer, 16, width, height)
         return
     }
 
     // Diagonal quarter positions e, g, p, r: nearest horizontal half against nearest
     // vertical half.
-    halfHorizontal(@dataof(planeA), 16, fracY == 1 ? src : src + srcStride, srcStride, width, height)
-    halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, @dataof(planeA), 16, width, height)
+    halfHorizontal(planeA.buffer, 16, fracY == 1 ? src : src + srcStride, srcStride, width, height)
+    halfVerticalAvg(dst, dstStride, fracX == 1 ? src : src + 1, srcStride, planeA.buffer, 16, width, height)
 }
 
 // Copies one byte plane. Block widths are 4, 8, or 16, so whole rows move as words;
@@ -564,8 +564,8 @@ func mcChroma(dst: [*] u8, dstStride: u64, reference: *Frame, plane: u32, x, y, 
     var srcStride: u64
     if x < -FramePadding or y < -FramePadding or x + 17 > planeWidth + FramePadding or y + height + 1 > planeHeight + FramePadding
     {
-        copyClamped(@dataof(window), 9, base, reference.strideChroma, x, y, width + 1, height + 1, planeWidth, planeHeight)
-        src       = @dataof(window)
+        copyClamped(window.buffer, 9, base, reference.strideChroma, x, y, width + 1, height + 1, planeWidth, planeHeight)
+        src       = window.buffer
         srcStride = 9
     }
     else

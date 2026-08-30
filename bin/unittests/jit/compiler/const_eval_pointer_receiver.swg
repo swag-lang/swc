@@ -47,8 +47,8 @@ const G_Extent = Extent{width: 4, height: 2}
 #test
 {
     let local = Extent{width: 3, height: 5}
-    @assert(local.area() == 15)
-    @assert(!local.isWide())
+    Swag.assert(local.area() == 15)
+    Swag.assert(!local.isWide())
 }
 
 #test
@@ -59,7 +59,7 @@ const G_Extent = Extent{width: 4, height: 2}
     let first  = Channels{red: 0x7F, green: 0xFF, blue: 0xFF}.packed()
     let second = Channels{red: 0xFF, green: 0x7F, blue: 0xFF}.packed()
     let third  = Channels{red: 0xFF, green: 0xFF, blue: 0x7F}.packed()
-    @assert(first == 0x007FFFFF)
-    @assert(second == 0x00FF7FFF)
-    @assert(third == 0x00FFFF7F)
+    Swag.assert(first == 0x007FFFFF)
+    Swag.assert(second == 0x00FF7FFF)
+    Swag.assert(third == 0x00FFFF7F)
 }

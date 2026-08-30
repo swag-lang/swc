@@ -2,25 +2,25 @@
 
 func contextSaysJit()->bool
 {
-    return @getcontext().runtimeFlags & .FromCompiler ? true : false
+    return Swag.getContext().runtimeFlags & .FromCompiler ? true : false
 }
 
 func jitCallMatchesContext()->bool
 {
-    return @jit() == contextSaysJit()
+    return Swag.jit() == contextSaysJit()
 }
 
 func jitCallCanBeStored()->bool
 {
-    let first  = @jit()
-    let second = @jit()
+    let first  = Swag.jit()
+    let second = Swag.jit()
     return first == second and first == contextSaysJit()
 }
 
 func jitCallCanDriveBranch()->bool
 {
     var value = 10
-    if @jit() do
+    if Swag.jit() do
         value += 1
     else do
         value += 2
@@ -31,21 +31,21 @@ func jitCallCanDriveBranch()->bool
 func jitCallInCompoundExpression()->bool
 {
     let expected = contextSaysJit()
-    return (@jit() and expected) or (!@jit() and !expected)
+    return (Swag.jit() and expected) or (!Swag.jit() and !expected)
 }
 
 #[Swag.Compiler]
 func compilerJitCallMatchesContext()->bool
 {
-    return @jit() and @getcontext().runtimeFlags == .FromCompiler
+    return Swag.jit() and Swag.getContext().runtimeFlags == .FromCompiler
 }
 
 #test
 {
-    @assert(jitCallMatchesContext())
-    @assert(jitCallCanBeStored())
-    @assert(jitCallCanDriveBranch())
-    @assert(jitCallInCompoundExpression())
+    Swag.assert(jitCallMatchesContext())
+    Swag.assert(jitCallCanBeStored())
+    Swag.assert(jitCallCanDriveBranch())
+    Swag.assert(jitCallInCompoundExpression())
 }
 
 #test

@@ -13,12 +13,12 @@ func takeTupleRef(param: { x: s32, y: s32 })->s32
 
 func checkTupleRef(param: { x: s32, y: s32 })
 {
-    @assert(param.x == 1)
-    @assert(param.y == 2)
+    Swag.assert(param.x == 1)
+    Swag.assert(param.y == 2)
 }
 
 #test
 {
-    @assert(takeTupleRef({3, 4}) == 7)
+    Swag.assert(takeTupleRef({3, 4}) == 7)
     checkTupleRef({1, 2})
 }

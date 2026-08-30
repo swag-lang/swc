@@ -60,7 +60,7 @@ using Swag, Core
 // opaque, colorful and a true 2D gradient.
 //
 // This is a regression guard for a compiler codegen bug: `parallelVisit` does
-// `if !@countof(range) do return`, and `!@countof(slice)` was compiled as an 8-bit
+// `if !range.count do return`, and `!slice.count` was compiled as an 8-bit
 // compare, so #null any byte count that is a multiple of 256 (e.g. 128*96*4 = 49152) was
 // wrongly seen as zero and the visit returned without writing anything.
 #test
@@ -73,10 +73,10 @@ using Swag, Core
     let bottomRight = big.pixelColor(126, 94)
     let bottomLeft  = big.pixelColor(1, 94)
 
-    @assert(topLeft.a == 255)     // fill must write opaque alpha everywhere
-    @assert(bottomRight.a == 255)
-    @assert(topLeft.argb != bottomRight.argb)     // a real 2D gradient, not a flat fill
-    @assert(topLeft.r != topLeft.g or bottomRight.r != bottomRight.g or bottomLeft.r != bottomLeft.g)
+    Swag.assert(topLeft.a == 255)     // fill must write opaque alpha everywhere
+    Swag.assert(bottomRight.a == 255)
+    Swag.assert(topLeft.argb != bottomRight.argb)     // a real 2D gradient, not a flat fill
+    Swag.assert(topLeft.r != topLeft.g or bottomRight.r != bottomRight.g or bottomLeft.r != bottomLeft.g)
 }
 
 // Same large-image coverage for an HSL plane mode, to compare with the RGB modes.
@@ -85,7 +85,7 @@ using Swag, Core
     var big = Image.create(128, 96, .RGBA8)
     big.fillHsl(.HueSaturation, Color.fromHsl(0.0, 1.0, 0.5))
     assertImage(big, 128, 96, .RGBA8)
-    @assert(big.pixelColor(1, 1).a == 255)
-    @assert(big.pixelColor(126, 94).a == 255)
-    @assert(big.pixelColor(1, 1).argb != big.pixelColor(126, 94).argb)
+    Swag.assert(big.pixelColor(1, 1).a == 255)
+    Swag.assert(big.pixelColor(126, 94).a == 255)
+    Swag.assert(big.pixelColor(1, 1).argb != big.pixelColor(126, 94).argb)
 }

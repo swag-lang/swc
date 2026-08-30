@@ -164,13 +164,13 @@ private func readStream(stream: *IStream, dest: *Array'u8)
     for
     {
         var read: ULONG
-        let hr = stream.lpVtbl.Read(stream, cast([*] void) &chunk[0], @countof(chunk), &read)
+        let hr = stream.lpVtbl.Read(stream, cast([*] void) &chunk[0], chunk.count, &read)
         if hr != S_OK and hr != S_FALSE do
             return
         if !read do
             return
 
-        dest.add(@mkslice(cast(const [*] u8) &chunk[0], cast(u64) read))
+        dest.add(Swag.makeSlice(cast(const [*] u8) &chunk[0], cast(u64) read))
     }
 }
 
@@ -204,7 +204,7 @@ private func readFormat(dataObj: *IDataObject, format: u32, index: s32 = -1)->Ar
         return result
     defer discard GlobalUnlock(buf)
 
-    result.add(@mkslice(buf!, size))
+    result.add(Swag.makeSlice(buf!, size))
     return result
 }
 
@@ -235,7 +235,7 @@ private func readFileContents(obj: *IDataObject, data: *DragData, withContents: 
         if withContents do
             bytes = readFormat(obj, g_FileContentsFormat, cast(s32) i)
 
-        data.addContent(Utf8.fromUtf16(@mkslice(name, Utf16.lengthZeroTerminated(name))), bytes.toSlice())
+        data.addContent(Utf8.fromUtf16(Swag.makeSlice(name, Utf16.lengthZeroTerminated(name))), bytes.toSlice())
     }
 }
 
@@ -270,7 +270,7 @@ private func readDragData(dataObj: #null *IDataObject, data: *DragData, withCont
                 continue
             buf.resize(len + 1)
             discard DragQueryFileW(hDrop, i, buf.buffer, len + 1)
-            data.addFile(Utf8.fromUtf16(@mkslice(buf.buffer!, cast(u64) len)))
+            data.addFile(Utf8.fromUtf16(Swag.makeSlice(buf.buffer!, cast(u64) len)))
         }
     }
 
@@ -289,13 +289,13 @@ private func readDragData(dataObj: #null *IDataObject, data: *DragData, withCont
         if utf16.count >= 2
         {
             let pz = cast(const [*] u16) utf16.buffer!
-            data.setText(Utf8.fromUtf16(@mkslice(pz, Utf16.lengthZeroTerminated(pz))))
+            data.setText(Utf8.fromUtf16(Swag.makeSlice(pz, Utf16.lengthZeroTerminated(pz))))
             break to Text
         }
 
         let ansi = readFormat(obj, CF_TEXT)
         if ansi.count do
-            data.setText(@mkstring(ansi.buffer!, @countof(cast(cstring) ansi.buffer!)))
+            data.setText(Swag.makeString(ansi.buffer!, (cast(cstring) ansi.buffer!).count))
     }
 
     // Image. A browser drags PNG bytes and the desktop drags a DIB; both decode from the name.
@@ -477,7 +477,7 @@ private func offeredFormats(data: *DragData)->Array'FORMATETC
 // `ReleaseStgMedium`, so nothing here frees it.
 private func toGlobalBlock(bytes: const [..] u8)->HGLOBAL
 {
-    let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, @countof(bytes))
+    let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, bytes.count)
     if !hglob do
         return null
 
@@ -488,7 +488,7 @@ private func toGlobalBlock(bytes: const [..] u8)->HGLOBAL
         return null
     }
 
-    Memory.copy(buf!, @dataof(bytes), @countof(bytes))
+    Memory.copy(buf!, bytes.buffer, bytes.count)
     discard GlobalUnlock(buf)
     return hglob
 }
@@ -802,7 +802,7 @@ private func srcGetStored(obj: *DragDataObject, entry: s64, med: *STGMEDIUM)->HR
         return E_OUTOFMEMORY
     defer discard GlobalUnlock(buf)
 
-    let hglob = toGlobalBlock(@mkslice(cast(const [*] u8) buf!, size))
+    let hglob = toGlobalBlock(Swag.makeSlice(cast(const [*] u8) buf!, size))
     if !hglob do
         return E_OUTOFMEMORY
 
@@ -834,7 +834,7 @@ private func srcGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
     elif format == CF_UNICODETEXT do
         hglob = buildUnicodeText(data)
     elif format == CF_TEXT do
-        hglob = toGlobalBlock(@mkslice(cast(const [*] u8) @dataof(data.text.toString()), cast(u64) @countof(data.text) + 1))
+        hglob = toGlobalBlock(Swag.makeSlice(cast(const [*] u8) (data.text.toString()).buffer, cast(u64) data.text.count + 1))
     elif g_PngDragFormat and format == g_PngDragFormat do
         hglob = toGlobalBlock(data.encodedImage())
     elif g_FileDescriptorFormat and format == g_FileDescriptorFormat do
@@ -1337,7 +1337,7 @@ internal impl Surface
     g_DropSourceVtbl.QueryContinueDrag = &dropSrcQueryContinueDrag
     g_DropSourceVtbl.GiveFeedback      = &dropSrcGiveFeedback
 
-    g_PngDragFormat        = catch RegisterClipboardFormatA(@dataof("PNG"))
-    g_FileDescriptorFormat = catch RegisterClipboardFormatA(@dataof(CFSTR_FILEDESCRIPTORW))
-    g_FileContentsFormat   = catch RegisterClipboardFormatA(@dataof(CFSTR_FILECONTENTS))
+    g_PngDragFormat        = catch RegisterClipboardFormatA(("PNG").buffer)
+    g_FileDescriptorFormat = catch RegisterClipboardFormatA(CFSTR_FILEDESCRIPTORW.buffer)
+    g_FileContentsFormat   = catch RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer)
 }

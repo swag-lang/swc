@@ -49,7 +49,7 @@ func printf(message: #null string, params: ...)
         return
 
     let safeMessage = message orelse ""
-    if @countof(params)
+    if params.count
     {
         let rendered = Format.toString(safeMessage, params)
         writeNative(rendered)

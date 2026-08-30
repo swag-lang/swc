@@ -81,7 +81,7 @@ internal
             var sizes:    [HuffmanMaxBits + 1] u16
             var nextCode: [HuffmanMaxBits] u16
 
-            @init(me, 1)
+            Swag.init(me, 1)
             for v in codeLengths do
                 sizes[v] += 1
             sizes[0] = 0
@@ -181,7 +181,7 @@ impl Inflate
         if s >= 16 do
             fail InvalidFormatError{"bad huffman code"}
         let b1 = (k >> (16 - s)) - ht.firstCode[s] + ht.firstSymbol[s]
-        if b1 >= @countof(ht.size) do
+        if b1 >= ht.size.count do
             fail InvalidFormatError{"bad huffman code"}
         if ht.size[b1] != s do
             fail InvalidFormatError{"bad huffman code"}
@@ -206,8 +206,8 @@ impl Inflate
         var nb  = cast(u32) .stream.numBits
         var cur = .stream.curByte
 
-        let src  = @dataof(.stream.stream)
-        let srcN = @countof(.stream.stream)
+        let src  = (.stream.stream).buffer
+        let srcN = (.stream.stream).count
 
         // Highest cursor from which an eight-byte load stays in bounds, expressed as
         // an exclusive bound so a source shorter than eight bytes simply has none.
@@ -273,7 +273,7 @@ impl Inflate
                 if s >= 16 do
                     fail InvalidFormatError{"bad huffman code"}
                 let b1 = (k >> (16 - s)) - repeatHt.firstCode[s] + repeatHt.firstSymbol[s]
-                if b1 >= @countof(repeatHt.size) do
+                if b1 >= repeatHt.size.count do
                     fail InvalidFormatError{"bad huffman code"}
                 if repeatHt.size[b1] != s do
                     fail InvalidFormatError{"bad huffman code"}
@@ -307,7 +307,7 @@ impl Inflate
                 .stream.curByte    = cur
                 dest.count         = count
 
-                let newSlice = @mkslice(dest.buffer + startBufCount, count - startBufCount)
+                let newSlice = Swag.makeSlice(dest.buffer + startBufCount, count - startBufCount)
                 .adler.update(newSlice)
                 return
             }
@@ -340,7 +340,7 @@ impl Inflate
                 if s >= 16 do
                     fail InvalidFormatError{"bad huffman code"}
                 let b1 = (k >> (16 - s)) - repeatZ.firstCode[s] + repeatZ.firstSymbol[s]
-                if b1 >= @countof(repeatZ.size) do
+                if b1 >= repeatZ.size.count do
                     fail InvalidFormatError{"bad huffman code"}
                 if repeatZ.size[b1] != s do
                     fail InvalidFormatError{"bad huffman code"}
@@ -454,7 +454,7 @@ impl Inflate
                     fail InvalidFormatError{"invalid buffer, length mismatch"}
 
                 .stream.revert()
-                let newSlice = @mkslice(.stream.currentPointer(), uncompressedLen)
+                let newSlice = Swag.makeSlice(.stream.currentPointer(), uncompressedLen)
                 .adler.update(newSlice)
                 result.add(newSlice)
                 .stream.advanceBytes(uncompressedLen)

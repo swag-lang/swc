@@ -72,7 +72,7 @@ impl IDiscountRule for FlatDiscount
 func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
 {
     var best: s32 = 0
-    for i in @countof(rules)
+    for i in rules.count
     {
         let d = rules[i].apply(line)
         if d > best do
@@ -90,7 +90,7 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
 
     var line: OrderLine = {kind: ProductKind.Electronics, quantity: 10, unitCent: 200}
     let disc            = rules[0].apply(&line)
-    @assert(disc == 200)
+    Swag.assert(disc == 200)
 }
 
 // Book discount activates only for books.
@@ -101,8 +101,8 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
     var otherLine: OrderLine = {kind: ProductKind.Food, quantity: 1, unitCent: 1000}
 
     let itf = cast(IDiscountRule) bd
-    @assert(itf.apply(&bookLine) == 150)
-    @assert(itf.apply(&otherLine) == 0)
+    Swag.assert(itf.apply(&bookLine) == 150)
+    Swag.assert(itf.apply(&otherLine) == 0)
 }
 
 // Multiple rules: best discount wins.
@@ -119,10 +119,10 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
 
     // 8 books at 1000c each: bulk=800, book=1200, flat=50 -> best=1200
     var line: OrderLine = {kind: ProductKind.Book, quantity: 8, unitCent: 1000}
-    @assert(bestDiscount(@mkslice(&rules[0], 3), &line) == 1200)
+    Swag.assert(bestDiscount(Swag.makeSlice(&rules[0], 3), &line) == 1200)
 }
 
-// @kindof to classify which rule type was applied.
+// Swag.kindOf to classify which rule type was applied.
 #test
 {
     var bulk: BulkDiscount
@@ -134,13 +134,13 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
     rules[1] = cast(IDiscountRule) book
     rules[2] = cast(IDiscountRule) flat
 
-    @assert(@kindof(rules[0]) == BulkDiscount)
-    @assert(@kindof(rules[1]) == BookDiscount)
-    @assert(@kindof(rules[2]) == FlatDiscount)
+    Swag.assert(Swag.kindOf(rules[0]) == BulkDiscount)
+    Swag.assert(Swag.kindOf(rules[1]) == BookDiscount)
+    Swag.assert(Swag.kindOf(rules[2]) == FlatDiscount)
 
-    @assert(rules[0].tag() == "bulk")
-    @assert(rules[1].tag() == "book")
-    @assert(rules[2].tag() == "flat")
+    Swag.assert(rules[0].tag() == "bulk")
+    Swag.assert(rules[1].tag() == "book")
+    Swag.assert(rules[2].tag() == "flat")
 }
 
 // Interface switch to dispatch by concrete type.
@@ -160,7 +160,7 @@ func classifyRule(rule: IDiscountRule)->s32
     var bulk: BulkDiscount
     var book: BookDiscount
     var flat: FlatDiscount = {amountCent: 10}
-    @assert(classifyRule(cast(IDiscountRule) bulk) == 1)
-    @assert(classifyRule(cast(IDiscountRule) book) == 2)
-    @assert(classifyRule(cast(IDiscountRule) flat) == 3)
+    Swag.assert(classifyRule(cast(IDiscountRule) bulk) == 1)
+    Swag.assert(classifyRule(cast(IDiscountRule) book) == 2)
+    Swag.assert(classifyRule(cast(IDiscountRule) flat) == 3)
 }

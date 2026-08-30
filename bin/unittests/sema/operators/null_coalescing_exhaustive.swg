@@ -47,7 +47,7 @@ func semaTest001()
     let primary: #null const [..] u8 = null
     let resolved                     = primary orelse raw
     #assert(#typeof(resolved) == const [..] u8)
-    @assert(@countof(resolved) == 2)
+    Swag.assert(resolved.count == 2)
 }
 
 func semaTest002()
@@ -55,17 +55,17 @@ func semaTest002()
     var cstrData: [3] u8 = ['o'u8, 'k'u8, 0]
     let resolved         = cast(#null cstring) null orelse cast(cstring) &cstrData[0]
     #assert(#typeof(resolved) == cstring)
-    @assert(@countof(resolved) == 2)
+    Swag.assert(resolved.count == 2)
 }
 
 func semaTest003()
 {
     var probe    = OrelseProbe{value: 7}
     var primary: #null IOrelseProbe = null
-    let fallback = @mkinterface(&probe, #typeof(probe), IOrelseProbe)
+    let fallback = Swag.makeInterface(&probe, #typeof(probe), IOrelseProbe)
     let resolved = primary orelse fallback
     #assert(#typeof(resolved) == IOrelseProbe)
-    @assert(resolved.id() == 7)
+    Swag.assert(resolved.id() == 7)
 }
 
 // A zero substitution is not 'orelse' business: the ternary carries it, and the result

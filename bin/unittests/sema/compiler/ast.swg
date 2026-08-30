@@ -42,8 +42,8 @@ enum GeneratedEnum
 #[Swag.Compiler]
 func appendAst(buf: [*] u8, start: s32, val: string)->s32
 {
-    @memcpy(buf + start, @dataof(val), cast(u64) @countof(val))
-    return start + cast(s32) @countof(val)
+    Swag.memcpy(buf + start, val.buffer, cast(u64) val.count)
+    return start + cast(s32) val.count
 }
 
 struct Vector3
@@ -55,7 +55,7 @@ struct Vector3
         len = appendAst(buf, len, "x: f32 = 1\n")
         len = appendAst(buf, len, "y: f32 = 2\n")
         len = appendAst(buf, len, "z: f32 = 3\n")
-        return cast(string) @mkslice(&buf[0], cast(u64) len)
+        return cast(string) Swag.makeSlice(&buf[0], cast(u64) len)
     }
 }
 

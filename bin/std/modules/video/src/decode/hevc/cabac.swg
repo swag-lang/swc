@@ -115,7 +115,7 @@ impl CabacReader
         // An empty buffer with a whole word of data left loads it in one swapped read.
         if .bitCount <= 0 and .position + 8 <= .size
         {
-            .bitBuffer = @byteswap((cast(const [*] u64) (.data! + .position))[0])
+            .bitBuffer = Swag.byteSwap((cast(const [*] u64) (.data! + .position))[0])
             .bitCount  = 64
             .position  += 8
             return
@@ -185,7 +185,7 @@ impl CabacReader
             result = mps ^ 1
         }
 
-        let shift = Math.max(cast(s32) @bitcountlz(range) - 23, 0)
+        let shift = Math.max(cast(s32) Swag.bitCountLz(range) - 23, 0)
         if shift != 0
         {
             range <<= cast(u32) shift
@@ -231,7 +231,7 @@ impl CabacReader
         if .low >= .range do
             return 1
 
-        let shift = Math.max(cast(s32) @bitcountlz(.range) - 23, 0)
+        let shift = Math.max(cast(s32) Swag.bitCountLz(.range) - 23, 0)
         if shift != 0
         {
             .range <<= cast(u32) shift

@@ -113,7 +113,7 @@ public impl Context
 
         let separator = Utf8.indexOf(cast(const [..] u8) relative, "/")
         let workspace = separator == Swag.U64.Max ? relative : relative[0 until separator]
-        let inside    = separator == Swag.U64.Max ? "" : relative[separator + 1 until @countof(relative)]
+        let inside    = separator == Swag.U64.Max ? "" : relative[separator + 1 until relative.count]
 
         let outRoot  = Path.combine(.binDir.toString(), workspace, ".output")
         let workRoot = Path.combine(.binDir.toString(), workspace, ".tmp")

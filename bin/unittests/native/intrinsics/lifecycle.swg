@@ -1,6 +1,6 @@
 #global private
-// This file asserts the RAW '@drop'/'@postcopy'/'@postmove'/'@init' mechanics,
-// including reading storage after '@drop': lifecycle safety (use-after-move check +
+// This file asserts the RAW 'Swag.drop'/'Swag.postCopy'/'Swag.postMove'/'Swag.init' mechanics,
+// including reading storage after 'Swag.drop': lifecycle safety (use-after-move check +
 // poisoning) is disabled for the whole file.
 #global #[Swag.Safety(.Lifecycle, false), Swag.Sanity(.Lifecycle, false)]
 using Swag
@@ -29,7 +29,7 @@ func helperFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator =
     req.size    = size
     req.address = buffer
 
-    let talloc = (allocator orelse @getcontext().allocator)!
+    let talloc = (allocator orelse Swag.getContext().allocator)!
     talloc.free(&req)
 }
 
@@ -40,7 +40,7 @@ func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator
     req.size    = newSize
     req.oldSize = oldSize
 
-    let talloc = (allocator orelse @getcontext().allocator)!
+    let talloc = (allocator orelse Swag.getContext().allocator)!
     talloc.realloc(&req)
     return req.address
 }
@@ -56,7 +56,7 @@ func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: #null IAllocat
     req.address   = buffer
     req.hint      = hint
 
-    let talloc = (allocator orelse @getcontext().allocator)!
+    let talloc = (allocator orelse Swag.getContext().allocator)!
     talloc.free(&req)
 }
 
@@ -70,7 +70,7 @@ func memoryLikeRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, alloc
     req.oldSize   = oldSize
     req.alignment = alignment
 
-    let talloc = (allocator orelse @getcontext().allocator)!
+    let talloc = (allocator orelse Swag.getContext().allocator)!
     talloc.realloc(&req)
     return req.address
 }
@@ -254,9 +254,9 @@ impl ResizeBuffer
         if newCount == .count do
             return
         if newCount > .count do
-            @init(.buffer + .count, newCount - .count)
+            Swag.init(.buffer + .count, newCount - .count)
         else do
-            @drop(.buffer + newCount, .count - newCount)
+            Swag.drop(.buffer + newCount, .count - newCount)
         .count = newCount
     }
 }
@@ -274,11 +274,11 @@ impl RemoveBuffer
         .count -= 1
         if index == .count
         {
-            @drop(.buffer + .count)
+            Swag.drop(.buffer + .count)
         }
         else
         {
-            @drop(.buffer + index)
+            Swag.drop(.buffer + index)
             .buffer[index] = #relocate .buffer[.count]
         }
     }
@@ -299,7 +299,7 @@ impl OwnedDropBuffer
         if !.buffer do
             return
 
-        @drop(.buffer, .count)
+        Swag.drop(.buffer, .count)
 
         var req: AllocatorRequest
         req.size    = .capacity * #sizeof(DropOnlyTracked)
@@ -353,7 +353,7 @@ impl ReallocDropBuffer
         if !.buffer do
             return
 
-        @drop(.buffer, .count)
+        Swag.drop(.buffer, .count)
 
         var req: AllocatorRequest
         req.size    = .capacity * #sizeof(DropOnlyTracked)
@@ -407,7 +407,7 @@ impl GenericOwnedBuffer
         if !.buffer do
             return
 
-        @drop(.buffer, .count)
+        Swag.drop(.buffer, .count)
 
         var req: AllocatorRequest
         req.size    = .capacity * #sizeof(T)
@@ -438,7 +438,7 @@ impl LazyAllocatorGenericBuffer
         if newCapacity <= .capacity do
             return
         if .allocator == null do
-            .allocator = @getcontext().allocator
+            .allocator = Swag.getContext().allocator
 
         var req: AllocatorRequest
         req.size    = newCapacity * #sizeof(T)
@@ -463,7 +463,7 @@ impl LazyAllocatorGenericBuffer
         if !.buffer do
             return
 
-        @drop(.buffer, .count)
+        Swag.drop(.buffer, .count)
 
         var req: AllocatorRequest
         req.size    = .capacity * #sizeof(T)
@@ -494,7 +494,7 @@ impl HelperAllocatorGenericBuffer
         if newCapacity <= .capacity do
             return
         if .allocator == null do
-            .allocator = @getcontext().allocator
+            .allocator = Swag.getContext().allocator
 
         .buffer   = cast(#null [*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
         .capacity = newCapacity
@@ -513,7 +513,7 @@ impl HelperAllocatorGenericBuffer
         if !.buffer do
             return
 
-        @drop(.buffer, .count)
+        Swag.drop(.buffer, .count)
         helperFree(.buffer, .capacity * #sizeof(T), .allocator)
         .buffer = null
     }
@@ -539,7 +539,7 @@ impl MemoryAllocatorGenericBuffer
         if newCapacity <= .capacity do
             return
         if .allocator == null do
-            .allocator = @getcontext().allocator
+            .allocator = Swag.getContext().allocator
 
         .buffer   = cast(#null [*] T) memoryLikeRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
         .capacity = newCapacity
@@ -560,7 +560,7 @@ impl MemoryAllocatorGenericBuffer
 
         // Drop the removed elements, then relocate the survivors into the freed slots.
         let buffer = .buffer!
-        @drop(buffer + index, num)
+        Swag.drop(buffer + index, num)
         let shiftCount = .count - (index + num)
         for i in shiftCount do
             buffer[index + i] = #relocate buffer[index + num + i]
@@ -573,7 +573,7 @@ impl MemoryAllocatorGenericBuffer
         if !.count do
             return
         for .count do
-            @drop(.buffer + @index)
+            Swag.drop(.buffer + Swag.index)
         .count = 0
     }
 
@@ -582,7 +582,7 @@ impl MemoryAllocatorGenericBuffer
         if !.buffer do
             return
 
-        @drop(.buffer, .count)
+        Swag.drop(.buffer, .count)
         memoryLikeFree(.buffer, .capacity * #sizeof(T), .allocator)
         .buffer           = null
         .count, .capacity = 0
@@ -611,7 +611,7 @@ impl PostCopyAllocatorGenericBuffer
         if newCapacity <= .capacity do
             return
         if .allocator == null do
-            .allocator = @getcontext().allocator
+            .allocator = Swag.getContext().allocator
 
         .buffer   = cast(#null [*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
         .capacity = newCapacity
@@ -630,7 +630,7 @@ impl PostCopyAllocatorGenericBuffer
         if !.buffer do
             return
 
-        @drop(.buffer, .count)
+        Swag.drop(.buffer, .count)
         helperFree(.buffer, .capacity * #sizeof(T), .allocator)
         .buffer = null
     }
@@ -684,22 +684,22 @@ impl ReceiverLifecycleTracked
 
     mtd reset()
     {
-        @init(me, 1)
+        Swag.init(me, 1)
     }
 
     mtd touchPostCopy()
     {
-        @postcopy(me, 1)
+        Swag.postCopy(me, 1)
     }
 
     mtd touchPostMove()
     {
-        @postmove(me, 1)
+        Swag.postMove(me, 1)
     }
 
     mtd touchDrop()
     {
-        @drop(me, 1)
+        Swag.drop(me, 1)
     }
 }
 
@@ -708,9 +708,9 @@ func intrinsicSingleInfo()->IntrinsicInfo
     resetLifecycleHooks()
     var a = Tracked{1}
     var b = Tracked{2}
-    @postcopy(a)
-    @postmove(b)
-    @drop(a)
+    Swag.postCopy(a)
+    Swag.postMove(b)
+    Swag.drop(a)
     return {a.value, b.value, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
@@ -718,8 +718,8 @@ func intrinsicArrayWholeInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
     var arr: [2] Tracked = [Tracked{3}, Tracked{4}]
-    @postcopy(arr)
-    @drop(arr)
+    Swag.postCopy(arr)
+    Swag.drop(arr)
     return {arr[0].value, arr[1].value, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
@@ -728,8 +728,8 @@ func intrinsicArrayCountInfo()->IntrinsicInfo
     resetLifecycleHooks()
     var arr:   [3] Tracked = [Tracked{1}, Tracked{2}, Tracked{3}]
     var count: u64         = 2
-    @postmove(&arr[0], count)
-    @drop(&arr[0], count)
+    Swag.postMove(&arr[0], count)
+    Swag.drop(&arr[0], count)
     return {arr[0].value, arr[1].value, arr[2].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
@@ -738,8 +738,8 @@ func intrinsicStrictAliasPointerCountInfo()->IntrinsicInfo
     resetLifecycleHooks()
     var arr: [2] Tracked = [Tracked{5}, Tracked{6}]
     let ptr              = cast(LifecycleStrictTrackedPtr) &arr[0]
-    @postmove(ptr, 2)
-    @drop(ptr, 2)
+    Swag.postMove(ptr, 2)
+    Swag.drop(ptr, 2)
     return {arr[0].value, arr[1].value, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
@@ -749,9 +749,9 @@ func intrinsicEmbeddedInfo()->IntrinsicInfo
     var a = EmbeddedTracked{Tracked{1}}
     var b = EmbeddedTrackedWithOps{Tracked{2}}
     var c = EmbeddedTrackedArray{[Tracked{3}, Tracked{4}]}
-    @postcopy(a)
-    @postmove(b)
-    @drop(c)
+    Swag.postCopy(a)
+    Swag.postMove(b)
+    Swag.drop(c)
     return {a.inner.value, b.inner.value, c.inner[1].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
@@ -759,38 +759,38 @@ func intrinsicEmbeddedOuterCopyDropInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
     var a = EmbeddedTrackedWithOps{Tracked{7}}
-    @postcopy(a)
-    @drop(a)
+    Swag.postCopy(a)
+    Swag.drop(a)
     return {a.inner.value, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicInitInfo()->InitInfo
 {
     var x = 666
-    @init(x)
+    Swag.init(x)
 
     var y = 666'f32
-    @init(y)(3.14)
+    Swag.init(y)(3.14)
 
     var arr = [1, 2]
-    @init(&arr, 2)
+    Swag.init(&arr, 2)
     let arrDefaultTrace = arr[0] * 10 + arr[1]
 
-    @init(&arr, 2)(555)
+    Swag.init(&arr, 2)(555)
     let arrExplicitTrace = arr[0] * 1000 + arr[1]
 
     var rgb = InitRgb{10, 20, 30}
-    @init(rgb)
+    Swag.init(rgb)
     let rgbDefaultTrace = rgb.r * 100 + rgb.g * 10 + rgb.b
 
-    @init(rgb)(5, 6, 7)
+    Swag.init(rgb)(5, 6, 7)
     let rgbExplicitTrace = rgb.r * 100 + rgb.g * 10 + rgb.b
 
     var rgbArr: [4] InitRgb
-    @init(&rgbArr, 4)(5, 6, 7)
+    Swag.init(&rgbArr, 4)(5, 6, 7)
     let rgbArrayCountTrace = rgbArr[3].r * 100 + rgbArr[3].g * 10 + rgbArr[3].b
 
-    @init(rgbArr)(50, 60, 70)
+    Swag.init(rgbArr)(50, 60, 70)
     let rgbArrayWholeTrace = rgbArr[3].r * 10000 + rgbArr[3].g * 100 + rgbArr[3].b
 
     return {x, cast(s32) (y * 100), arrDefaultTrace, arrExplicitTrace, rgbDefaultTrace, rgbExplicitTrace, rgbArrayCountTrace, rgbArrayWholeTrace}
@@ -799,8 +799,8 @@ func intrinsicInitInfo()->InitInfo
 func intrinsicDropThenInitArrayInfo()->s32
 {
     var rgb: [4] InitRgb
-    @drop(&rgb, 4)
-    @init(&rgb, 4)(5, 6, 7)
+    Swag.drop(&rgb, 4)
+    Swag.init(&rgb, 4)(5, 6, 7)
     return rgb[3].r * 100 + rgb[3].g * 10 + rgb[3].b
 }
 
@@ -1272,7 +1272,7 @@ func intrinsicInitRuntimeCountScalarInfo()->s32
     var values: [4] s32 = [9, 8, 7, 6]
     var start:  u64     = 1
     var count:  u64     = 2
-    @init(cast([*] s32) &values[0] + start, count)
+    Swag.init(cast([*] s32) &values[0] + start, count)
     return values[0] * 1000 + values[1] * 100 + values[2] * 10 + values[3]
 }
 
@@ -1281,7 +1281,7 @@ func intrinsicInitRuntimeCountStructInfo()->s32
     var values: [4] InitRgb = [InitRgb{9, 9, 9}, InitRgb{8, 8, 8}, InitRgb{7, 7, 7}, InitRgb{6, 6, 6}]
     var start:  u64         = 1
     var count:  u64         = 2
-    @init(cast([*] InitRgb) &values[0] + start, count)
+    Swag.init(cast([*] InitRgb) &values[0] + start, count)
     return values[0].r * 1000 + values[1].r * 100 + values[2].r * 10 + values[3].r
 }
 
@@ -1293,7 +1293,7 @@ func intrinsicInitRuntimeCountClosureInfo()->s32
     values[2] = func()->s32 { return 6 }
     var start: u64 = 1
     var count: u64 = 2
-    @init(cast([*] #null func||()->s32) &values[0] + start, count)
+    Swag.init(cast([*] #null func||()->s32) &values[0] + start, count)
     let first = values[0]!
     return first() * 100 + cast(s32) (values[1] == null) * 10 + cast(s32) (values[2] == null)
 }
@@ -1326,21 +1326,21 @@ func intrinsicRemoveAtDropOnlyInfo()->IntrinsicInfo
 func intrinsicHeapRemoveAtDropOnlyInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
-    let itf = @getcontext().allocator!
+    let itf = Swag.getContext().allocator!
     var req: AllocatorRequest
     req.size = 3 * #sizeof(DropOnlyTracked)
     itf.alloc(&req)
 
     let ptr = cast([*] DropOnlyTracked) req.address!
-    @init(ptr, 3)
+    Swag.init(ptr, 3)
     for i in 3 do
         ptr[i].value = cast(s32) (i + 1)
 
-    @drop(ptr + 1)
+    Swag.drop(ptr + 1)
     ptr[1] = #relocate ptr[2]
     let first  = ptr[0].value
     let second = ptr[1].value
-    @drop(ptr, 2)
+    Swag.drop(ptr, 2)
     itf.free(&req)
     return {first, second, 2, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
@@ -1349,7 +1349,7 @@ func intrinsicOwnedBufferFreeInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    let itf = @getcontext().allocator!
+    let itf = Swag.getContext().allocator!
     var req: AllocatorRequest
     req.size = 3 * #sizeof(DropOnlyTracked)
     itf.alloc(&req)
@@ -1410,7 +1410,7 @@ func intrinsicReallocOwnedBufferAutoDropInfo()->IntrinsicInfo
     resetLifecycleHooks()
 
     {
-        let itf    = @getcontext().allocator!
+        let itf    = Swag.getContext().allocator!
         var values = ReallocDropBuffer{itf, null, 0, 0}
         let ptr    = values.emplaceAddress(3)
         for i in 3 do
@@ -1425,7 +1425,7 @@ func intrinsicGenericOwnedBufferAutoDropInfo()->IntrinsicInfo
     resetLifecycleHooks()
 
     {
-        let itf    = @getcontext().allocator!
+        let itf    = Swag.getContext().allocator!
         var values = GenericOwnedBuffer'DropOnlyTracked{itf, null, 0, 0}
         let ptr    = values.emplaceAddress(3)
         for i in 3 do
@@ -1440,7 +1440,7 @@ func intrinsicGenericOwnedBufferContextAllocatorAutoDropInfo()->IntrinsicInfo
     resetLifecycleHooks()
 
     {
-        var values = GenericOwnedBuffer'DropOnlyTracked{@getcontext().allocator, null, 0, 0}
+        var values = GenericOwnedBuffer'DropOnlyTracked{Swag.getContext().allocator, null, 0, 0}
         let ptr    = values.emplaceAddress(3)
         for i in 3 do
             ptr[i].value = cast(s32) (i + 1)
@@ -1510,7 +1510,7 @@ func intrinsicReallocOwnedBufferFreeInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    let itf    = @getcontext().allocator!
+    let itf    = Swag.getContext().allocator!
     var values = ReallocDropBuffer{itf, null, 0, 0}
     let ptr    = values.emplaceAddress(3)
     for i in 3 do
@@ -1523,10 +1523,10 @@ func intrinsicReallocOwnedBufferFreeInfo()->IntrinsicInfo
 func intrinsicInitStrictEnumInfo()->bool
 {
     var value: IntrinsicStrictEnumAlias
-    @init(value)(cast(IntrinsicStrictEnumAlias) IntrinsicStrictEnum.B)
+    Swag.init(value)(cast(IntrinsicStrictEnumAlias) IntrinsicStrictEnum.B)
 
     var values: [3] IntrinsicStrictEnumAlias
-    @init(&values, 3)(cast(IntrinsicStrictEnumAlias) IntrinsicStrictEnum.A)
+    Swag.init(&values, 3)(cast(IntrinsicStrictEnumAlias) IntrinsicStrictEnum.A)
 
     return value == cast(IntrinsicStrictEnumAlias) IntrinsicStrictEnum.B and values[0] == cast(IntrinsicStrictEnumAlias) IntrinsicStrictEnum.A and values[2] == cast(IntrinsicStrictEnumAlias) IntrinsicStrictEnum.A
 }
@@ -1534,10 +1534,10 @@ func intrinsicInitStrictEnumInfo()->bool
 func intrinsicInitStrictIntInfo()->bool
 {
     var value: IntrinsicStrictIntAlias
-    @init(value)(cast(IntrinsicStrictIntAlias) 42)
+    Swag.init(value)(cast(IntrinsicStrictIntAlias) 42)
 
     var values: [3] IntrinsicStrictIntAlias
-    @init(&values, 3)(cast(IntrinsicStrictIntAlias) 7)
+    Swag.init(&values, 3)(cast(IntrinsicStrictIntAlias) 7)
 
     return value == cast(IntrinsicStrictIntAlias) 42 and values[0] == cast(IntrinsicStrictIntAlias) 7 and values[2] == cast(IntrinsicStrictIntAlias) 7
 }
@@ -1545,10 +1545,10 @@ func intrinsicInitStrictIntInfo()->bool
 func intrinsicInitStrictFloatInfo()->bool
 {
     var value: IntrinsicStrictFloatAlias
-    @init(value)(cast(IntrinsicStrictFloatAlias) 1.5)
+    Swag.init(value)(cast(IntrinsicStrictFloatAlias) 1.5)
 
     var values: [3] IntrinsicStrictFloatAlias
-    @init(&values, 3)(cast(IntrinsicStrictFloatAlias) 2.5)
+    Swag.init(&values, 3)(cast(IntrinsicStrictFloatAlias) 2.5)
 
     return value == cast(IntrinsicStrictFloatAlias) 1.5 and values[0] == cast(IntrinsicStrictFloatAlias) 2.5 and values[2] == cast(IntrinsicStrictFloatAlias) 2.5
 }
@@ -1559,10 +1559,10 @@ func intrinsicInitStrictPointerInfo()->bool
     var second: s32 = 7
 
     var value: IntrinsicStrictS32Ptr = undefined
-    @init(&value)(cast(IntrinsicStrictS32Ptr) &first)
+    Swag.init(&value)(cast(IntrinsicStrictS32Ptr) &first)
 
     var values: [2] IntrinsicStrictS32Ptr = undefined
-    @init(&values, 2)(cast(IntrinsicStrictS32Ptr) &second)
+    Swag.init(&values, 2)(cast(IntrinsicStrictS32Ptr) &second)
 
     return value[] == 42 and values[0][] == 7 and values[1][] == 7
 }
@@ -1570,10 +1570,10 @@ func intrinsicInitStrictPointerInfo()->bool
 func intrinsicInitStrictStringInfo()->bool
 {
     var value: IntrinsicStrictStringAlias = undefined
-    @init(&value)(cast(IntrinsicStrictStringAlias) "hello")
+    Swag.init(&value)(cast(IntrinsicStrictStringAlias) "hello")
 
     var values: [2] IntrinsicStrictStringAlias = undefined
-    @init(&values, 2)(cast(IntrinsicStrictStringAlias) "world")
+    Swag.init(&values, 2)(cast(IntrinsicStrictStringAlias) "world")
 
     return cast(string) value == "hello" and cast(string) values[0] == "world" and cast(string) values[1] == "world"
 }
@@ -1605,386 +1605,386 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
 #test
 {
     let v = intrinsicSingleInfo()
-    @assert(v.first == 11)
-    @assert(v.second == 22)
-    @assert(v.drops == 1)
-    @assert(v.dropTrace == 11)
-    @assert(v.postCopy == 1)
-    @assert(v.postMove == 1)
+    Swag.assert(v.first == 11)
+    Swag.assert(v.second == 22)
+    Swag.assert(v.drops == 1)
+    Swag.assert(v.dropTrace == 11)
+    Swag.assert(v.postCopy == 1)
+    Swag.assert(v.postMove == 1)
 }
 
 #test
 {
     let v = intrinsicArrayWholeInfo()
-    @assert(v.first == 13)
-    @assert(v.second == 14)
-    @assert(v.drops == 2)
-    @assert(v.dropTrace == 1314)
-    @assert(v.postCopy == 2)
-    @assert(v.postMove == 0)
+    Swag.assert(v.first == 13)
+    Swag.assert(v.second == 14)
+    Swag.assert(v.drops == 2)
+    Swag.assert(v.dropTrace == 1314)
+    Swag.assert(v.postCopy == 2)
+    Swag.assert(v.postMove == 0)
 }
 
 #test
 {
     let v = intrinsicArrayCountInfo()
-    @assert(v.first == 21)
-    @assert(v.second == 22)
-    @assert(v.third == 3)
-    @assert(v.drops == 2)
-    @assert(v.dropTrace == 2122)
-    @assert(v.postCopy == 0)
-    @assert(v.postMove == 2)
+    Swag.assert(v.first == 21)
+    Swag.assert(v.second == 22)
+    Swag.assert(v.third == 3)
+    Swag.assert(v.drops == 2)
+    Swag.assert(v.dropTrace == 2122)
+    Swag.assert(v.postCopy == 0)
+    Swag.assert(v.postMove == 2)
 }
 
 #test
 {
     let v = intrinsicStrictAliasPointerCountInfo()
-    @assert(v.first == 25)
-    @assert(v.second == 26)
-    @assert(v.drops == 2)
-    @assert(v.dropTrace == 2526)
-    @assert(v.postCopy == 0)
-    @assert(v.postMove == 2)
+    Swag.assert(v.first == 25)
+    Swag.assert(v.second == 26)
+    Swag.assert(v.drops == 2)
+    Swag.assert(v.dropTrace == 2526)
+    Swag.assert(v.postCopy == 0)
+    Swag.assert(v.postMove == 2)
 }
 
 #test
 {
     let v = intrinsicEmbeddedInfo()
-    @assert(v.first == 11)
-    @assert(v.second == 222)
-    @assert(v.third == 4)
-    @assert(v.drops == 2)
-    @assert(v.dropTrace == 304)
-    @assert(v.postCopy == 1)
-    @assert(v.postMove == 2)
+    Swag.assert(v.first == 11)
+    Swag.assert(v.second == 222)
+    Swag.assert(v.third == 4)
+    Swag.assert(v.drops == 2)
+    Swag.assert(v.dropTrace == 304)
+    Swag.assert(v.postCopy == 1)
+    Swag.assert(v.postMove == 2)
 }
 
 #test
 {
     let v = intrinsicEmbeddedOuterCopyDropInfo()
-    @assert(v.first == 117)
-    @assert(v.drops == 2)
-    @assert(v.dropTrace == 9117)
-    @assert(v.postCopy == 2)
-    @assert(v.postMove == 0)
+    Swag.assert(v.first == 117)
+    Swag.assert(v.drops == 2)
+    Swag.assert(v.dropTrace == 9117)
+    Swag.assert(v.postCopy == 2)
+    Swag.assert(v.postMove == 0)
 }
 
 #test
 {
     let v = intrinsicInitInfo()
-    @assert(v.scalarDefault == 0)
-    @assert(v.scalarExplicitScaled == 314)
-    @assert(v.arrayDefaultTrace == 0)
-    @assert(v.arrayExplicitTrace == 555555)
-    @assert(v.structDefaultTrace == 123)
-    @assert(v.structExplicitTrace == 567)
-    @assert(v.structArrayCountTrace == 567)
-    @assert(v.structArrayWholeTrace == 506070)
+    Swag.assert(v.scalarDefault == 0)
+    Swag.assert(v.scalarExplicitScaled == 314)
+    Swag.assert(v.arrayDefaultTrace == 0)
+    Swag.assert(v.arrayExplicitTrace == 555555)
+    Swag.assert(v.structDefaultTrace == 123)
+    Swag.assert(v.structExplicitTrace == 567)
+    Swag.assert(v.structArrayCountTrace == 567)
+    Swag.assert(v.structArrayWholeTrace == 506070)
 }
 
 #test
 {
     let v = intrinsicDropThenInitArrayInfo()
-    @assert(v == 567)
+    Swag.assert(v == 567)
 }
 
 #test
 {
     let v = intrinsicAutoDropPairInfo()
-    @assert(v.first == 1)
-    @assert(v.drops == 2)
-    @assert(v.dropTrace == 201)
+    Swag.assert(v.first == 1)
+    Swag.assert(v.drops == 2)
+    Swag.assert(v.dropTrace == 201)
 }
 
 #test
 {
     let v = intrinsicAutoDropNestedInfo()
-    @assert(v.first == 1)
-    @assert(v.second == 6)
-    @assert(v.drops == 6)
-    @assert(v.dropTrace == 60302050401)
+    Swag.assert(v.first == 1)
+    Swag.assert(v.second == 6)
+    Swag.assert(v.drops == 6)
+    Swag.assert(v.dropTrace == 60302050401)
 }
 
 #test
 {
     let v = intrinsicAutoDropStructArrayInfo()
-    @assert(v.first == 7)
-    @assert(v.second == 10)
-    @assert(v.drops == 4)
-    @assert(v.dropTrace == 8071009)
+    Swag.assert(v.first == 7)
+    Swag.assert(v.second == 10)
+    Swag.assert(v.drops == 4)
+    Swag.assert(v.dropTrace == 8071009)
 }
 
 #test
 {
     let v = intrinsicAutoDropReturnInfo()
-    @assert(v.first == 1)
-    @assert(v.second == 8)
-    @assert(v.third == 7)
-    @assert(v.drops == 8)
-    @assert(v.dropTrace == 805040706030201)
+    Swag.assert(v.first == 1)
+    Swag.assert(v.second == 8)
+    Swag.assert(v.third == 7)
+    Swag.assert(v.drops == 8)
+    Swag.assert(v.dropTrace == 805040706030201)
 }
 
 #test
 {
     let v = intrinsicAutoDropErrorInfo()
-    @assert(v.first == 77)
-    @assert(v.second == 1)
-    @assert(v.drops == 8)
-    @assert(v.dropTrace == 805040706030201)
+    Swag.assert(v.first == 77)
+    Swag.assert(v.second == 1)
+    Swag.assert(v.drops == 8)
+    Swag.assert(v.dropTrace == 805040706030201)
 }
 
 #test
 {
     let v = intrinsicAutoDropDeferInfo()
-    @assert(v.first == 8)
-    @assert(v.second == 6)
-    @assert(v.third == 8)
-    @assert(v.drops == 8)
-    @assert(v.dropTrace == 805040706030201)
+    Swag.assert(v.first == 8)
+    Swag.assert(v.second == 6)
+    Swag.assert(v.third == 8)
+    Swag.assert(v.drops == 8)
+    Swag.assert(v.dropTrace == 805040706030201)
 }
 
 #test
 {
     let v = intrinsicAutoDropContinueInfo()
-    @assert(v.first == 4)
-    @assert(v.second == 5)
-    @assert(v.third == 9)
-    @assert(v.drops == 8)
-    @assert(v.dropTrace == 201070605040309)
+    Swag.assert(v.first == 4)
+    Swag.assert(v.second == 5)
+    Swag.assert(v.third == 9)
+    Swag.assert(v.drops == 8)
+    Swag.assert(v.dropTrace == 201070605040309)
 }
 
 #test
 {
     let v = intrinsicAutoDropBreakScopeInfo()
-    @assert(v.first == 4)
-    @assert(v.second == 7)
-    @assert(v.third == 2)
-    @assert(v.drops == 7)
-    @assert(v.dropTrace == 7060504030201)
+    Swag.assert(v.first == 4)
+    Swag.assert(v.second == 7)
+    Swag.assert(v.third == 2)
+    Swag.assert(v.drops == 7)
+    Swag.assert(v.dropTrace == 7060504030201)
 }
 
 #test
 {
     let v = intrinsicAutoDropSwitchReturnInfo()
-    @assert(v.first == 2)
-    @assert(v.second == 6)
-    @assert(v.third == 7)
-    @assert(v.drops == 5)
-    @assert(v.dropTrace == 807060201)
+    Swag.assert(v.first == 2)
+    Swag.assert(v.second == 6)
+    Swag.assert(v.third == 7)
+    Swag.assert(v.drops == 5)
+    Swag.assert(v.dropTrace == 807060201)
 }
 
 #test
 {
     let v = intrinsicAutoDropCatchResumeInfo()
-    @assert(v.first == 55)
-    @assert(v.second == 9)
-    @assert(v.third == 1)
-    @assert(v.drops == 5)
-    @assert(v.dropTrace == 54398)
+    Swag.assert(v.first == 55)
+    Swag.assert(v.second == 9)
+    Swag.assert(v.third == 1)
+    Swag.assert(v.drops == 5)
+    Swag.assert(v.dropTrace == 54398)
 }
 
 #test
 {
     let v = intrinsicAutoDropCatchLoopInfo()
-    @assert(v.first == 5)
-    @assert(v.second == 1)
-    @assert(v.third == 17)
-    @assert(v.drops == 9)
-    @assert(v.dropTrace == 321654879)
+    Swag.assert(v.first == 5)
+    Swag.assert(v.second == 1)
+    Swag.assert(v.third == 17)
+    Swag.assert(v.drops == 9)
+    Swag.assert(v.dropTrace == 321654879)
 }
 
 #test
 {
     let v = intrinsicAutoDropSwitchFallthroughInfo()
-    @assert(v.first == 1)
-    @assert(v.second == 3)
-    @assert(v.third == 7)
-    @assert(v.drops == 7)
-    @assert(v.dropTrace == 2154376)
+    Swag.assert(v.first == 1)
+    Swag.assert(v.second == 3)
+    Swag.assert(v.third == 7)
+    Swag.assert(v.drops == 7)
+    Swag.assert(v.dropTrace == 2154376)
 }
 
 #test
 {
     let v = intrinsicAutoDropIfVarReturnInfo()
-    @assert(v.first == 2)
-    @assert(v.second == 3)
-    @assert(v.third == 6)
-    @assert(v.drops == 6)
-    @assert(v.dropTrace == 654321)
+    Swag.assert(v.first == 2)
+    Swag.assert(v.second == 3)
+    Swag.assert(v.third == 6)
+    Swag.assert(v.drops == 6)
+    Swag.assert(v.dropTrace == 654321)
 }
 
 #test
 {
     let v = intrinsicAutoDropIfVarElseInfo()
-    @assert(v.first == 6)
-    @assert(v.second == 1)
-    @assert(v.third == 9)
-    @assert(v.drops == 4)
-    @assert(v.dropTrace == 3219)
+    Swag.assert(v.first == 6)
+    Swag.assert(v.second == 1)
+    Swag.assert(v.third == 9)
+    Swag.assert(v.drops == 4)
+    Swag.assert(v.dropTrace == 3219)
 }
 
 #test
 {
     let v = intrinsicAutoDropWithVarReturnInfo()
-    @assert(v.first == 7)
-    @assert(v.second == 4)
-    @assert(v.third == 8)
-    @assert(v.drops == 5)
-    @assert(v.dropTrace == 65487)
+    Swag.assert(v.first == 7)
+    Swag.assert(v.second == 4)
+    Swag.assert(v.third == 8)
+    Swag.assert(v.drops == 5)
+    Swag.assert(v.dropTrace == 65487)
 }
 
 #test
 {
     let v = intrinsicAutoDropShadowInfo()
-    @assert(v.first == 9)
-    @assert(v.second == 2)
-    @assert(v.third == 5)
-    @assert(v.drops == 6)
-    @assert(v.dropTrace == 321549)
+    Swag.assert(v.first == 9)
+    Swag.assert(v.second == 2)
+    Swag.assert(v.third == 5)
+    Swag.assert(v.drops == 6)
+    Swag.assert(v.dropTrace == 321549)
 }
 
 #test
 {
     let scalarTrace = intrinsicInitRuntimeCountScalarInfo()
-    @assert(scalarTrace == 9006)
+    Swag.assert(scalarTrace == 9006)
 
     let structTrace = intrinsicInitRuntimeCountStructInfo()
-    @assert(structTrace == 9116)
+    Swag.assert(structTrace == 9116)
 
     let closureTrace = intrinsicInitRuntimeCountClosureInfo()
-    @assert(closureTrace == 411)
+    Swag.assert(closureTrace == 411)
 }
 
 #test
 {
     let trace = intrinsicFieldPointerResizeRuntimeInitInfo()
-    @assert(trace == 9006)
+    Swag.assert(trace == 9006)
 }
 
 #test
 {
     let trace = intrinsicFieldPointerResizeRuntimeDropIgnoredInfo()
-    @assert(trace == 9871)
+    Swag.assert(trace == 9871)
 }
 
 #test
 {
     let v = intrinsicRemoveAtDropOnlyInfo()
-    @assert(v.first == 1)
-    @assert(v.second == 3)
-    @assert(v.third == 2)
-    @assert(v.drops == 1)
-    @assert(v.dropTrace == 2)
+    Swag.assert(v.first == 1)
+    Swag.assert(v.second == 3)
+    Swag.assert(v.third == 2)
+    Swag.assert(v.drops == 1)
+    Swag.assert(v.dropTrace == 2)
 }
 
 #test
 {
     let v = intrinsicHeapRemoveAtDropOnlyInfo()
-    @assert(v.first == 1)
-    @assert(v.second == 3)
-    @assert(v.third == 2)
-    @assert(v.drops == 3)
-    @assert(v.dropTrace == 20103)
+    Swag.assert(v.first == 1)
+    Swag.assert(v.second == 3)
+    Swag.assert(v.third == 2)
+    Swag.assert(v.drops == 3)
+    Swag.assert(v.dropTrace == 20103)
 }
 
 #test
 {
     let v = intrinsicOwnedBufferFreeInfo()
-    @assert(v.drops == 3)
-    @assert(v.dropTrace == 10203)
+    Swag.assert(v.drops == 3)
+    Swag.assert(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicMemoryAllocatorGenericBufferFreeInfo()
-    @assert(v.drops == 3)
-    @assert(v.dropTrace == 10203)
+    Swag.assert(v.drops == 3)
+    Swag.assert(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicMemoryAllocatorGenericBufferRemoveRangeInfo()
-    @assert(v.first == 1)
-    @assert(v.second == 5)
-    @assert(v.third == 2)
-    @assert(v.drops == 5)
+    Swag.assert(v.first == 1)
+    Swag.assert(v.second == 5)
+    Swag.assert(v.third == 2)
+    Swag.assert(v.drops == 5)
 }
 
 #test
 {
     let v = intrinsicReallocOwnedBufferFreeInfo()
-    @assert(v.drops == 3)
-    @assert(v.dropTrace == 10203)
+    Swag.assert(v.drops == 3)
+    Swag.assert(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicReallocOwnedBufferAutoDropInfo()
-    @assert(v.drops == 3)
-    @assert(v.dropTrace == 10203)
+    Swag.assert(v.drops == 3)
+    Swag.assert(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicGenericOwnedBufferAutoDropInfo()
-    @assert(v.drops == 3)
-    @assert(v.dropTrace == 10203)
+    Swag.assert(v.drops == 3)
+    Swag.assert(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicGenericOwnedBufferContextAllocatorAutoDropInfo()
-    @assert(v.drops == 3)
-    @assert(v.dropTrace == 10203)
+    Swag.assert(v.drops == 3)
+    Swag.assert(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicLazyAllocatorGenericBufferAutoDropInfo()
-    @assert(v.drops == 3)
-    @assert(v.dropTrace == 10203)
+    Swag.assert(v.drops == 3)
+    Swag.assert(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicHelperAllocatorGenericBufferAutoDropInfo()
-    @assert(v.drops == 3)
-    @assert(v.dropTrace == 10203)
+    Swag.assert(v.drops == 3)
+    Swag.assert(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicPostCopyAllocatorGenericBufferAutoDropInfo()
-    @assert(v.drops == 3)
-    @assert(v.dropTrace == 10203)
+    Swag.assert(v.drops == 3)
+    Swag.assert(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicPostCopyAllocatorGenericBufferExplicitOpDropInfo()
-    @assert(v.drops == 3)
-    @assert(v.dropTrace == 10203)
+    Swag.assert(v.drops == 3)
+    Swag.assert(v.dropTrace == 10203)
 }
 
 #test
 {
-    @assert(intrinsicInitStrictEnumInfo())
-    @assert(intrinsicInitStrictIntInfo())
-    @assert(intrinsicInitStrictFloatInfo())
-    @assert(intrinsicInitStrictPointerInfo())
-    @assert(intrinsicInitStrictStringInfo())
-    @assert(IntrinsicRunStrictInts[0] == cast(IntrinsicStrictIntAlias) 11)
-    @assert(IntrinsicRunStrictInts[1] == cast(IntrinsicStrictIntAlias) 13)
-    @assert(IntrinsicRunStrictFloats[0] == cast(IntrinsicStrictFloatAlias) 1.25)
-    @assert(IntrinsicRunStrictFloats[1] == cast(IntrinsicStrictFloatAlias) 2.5)
+    Swag.assert(intrinsicInitStrictEnumInfo())
+    Swag.assert(intrinsicInitStrictIntInfo())
+    Swag.assert(intrinsicInitStrictFloatInfo())
+    Swag.assert(intrinsicInitStrictPointerInfo())
+    Swag.assert(intrinsicInitStrictStringInfo())
+    Swag.assert(IntrinsicRunStrictInts[0] == cast(IntrinsicStrictIntAlias) 11)
+    Swag.assert(IntrinsicRunStrictInts[1] == cast(IntrinsicStrictIntAlias) 13)
+    Swag.assert(IntrinsicRunStrictFloats[0] == cast(IntrinsicStrictFloatAlias) 1.25)
+    Swag.assert(IntrinsicRunStrictFloats[1] == cast(IntrinsicStrictFloatAlias) 2.5)
 }
 
 #test
 {
     let v = intrinsicReceiverLifecycleInfo()
-    @assert(v.first == 3)
-    @assert(v.drops == 1)
-    @assert(v.dropTrace == 37)
-    @assert(v.postCopy == 1)
-    @assert(v.postMove == 1)
+    Swag.assert(v.first == 3)
+    Swag.assert(v.drops == 1)
+    Swag.assert(v.dropTrace == 37)
+    Swag.assert(v.postCopy == 1)
+    Swag.assert(v.postMove == 1)
 }

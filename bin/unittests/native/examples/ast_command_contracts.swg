@@ -36,7 +36,7 @@ func scheduleDeployment(replicas: s32, region: string, dryRun: bool, authToken: 
         return .Rejected
     if region == "legacy-eu" do
         return .Rejected
-    if @countof(authToken) < 16 do
+    if authToken.count < 16 do
         return .Rejected
     return .Accepted
 }
@@ -46,7 +46,7 @@ func scheduleDeployment(replicas: s32, region: string, dryRun: bool, authToken: 
 #[StringPolicyRule("approvalCode", 6, false, true)]
 func submitWireTransfer(cents: s32, toAccount: string, approvalCode: string)->WireReceipt
 {
-    let approved  = cents <= 500_000 and @countof(approvalCode) >= 6
+    let approved  = cents <= 500_000 and approvalCode.count >= 6
     let queueSlot = cents / 100
     return {approved: approved, queueSlot: queueSlot, reviewRequired: cents > 200_000}
 }
@@ -56,8 +56,8 @@ func resyncCatalog()->bool => true
 #[Swag.Compiler]
 func appendAst(buffer: [*] u8, start: u64, text: string)->u64
 {
-    @memcpy(buffer + start, @dataof(text), @countof(text))
-    return start + @countof(text)
+    Swag.memcpy(buffer + start, text.buffer, text.count)
+    return start + text.count
 }
 
 #[Swag.Compiler]
@@ -161,14 +161,14 @@ func appendCommandValidation(buffer: [*] u8, start: u64, contractName: string, t
             {
                 if cast(bool) params[2].value
                 {
-                    len = appendAst(buffer, len, "    ok = ok and @countof(command.")
+                    len = appendAst(buffer, len, "    ok = ok and (command.")
                     len = appendAst(buffer, len, parameter.name!)
-                    len = appendAst(buffer, len, ") > 0\n")
+                    len = appendAst(buffer, len, ").count > 0\n")
                 }
 
-                len = appendAst(buffer, len, "    ok = ok and @countof(command.")
+                len = appendAst(buffer, len, "    ok = ok and (command.")
                 len = appendAst(buffer, len, parameter.name!)
-                len = appendAst(buffer, len, ") >= ")
+                len = appendAst(buffer, len, ").count >= ")
                 len = appendS32Literal(buffer, len, cast(s32) params[1].value)
                 len = appendAst(buffer, len, "\n")
             }
@@ -309,7 +309,7 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
 
     if len == 0 do
         return ""
-    return cast(string) @mkslice(&buffer[0], len)
+    return cast(string) Swag.makeSlice(&buffer[0], len)
 }
 
 #test
@@ -323,17 +323,17 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
     let redacted = redactScheduleDeploymentCommand(command)
     let result   = invokeScheduleDeploymentCommand(command)
 
-    @assert(command.replicas == 6)
-    @assert(command.region == "eu-west")
-    @assert(@countof(command.region) == 7)
-    @assert(@countof(command.authToken) >= 16)
-    @assert(validateScheduleDeploymentCommand(command))
-    @assert(countScheduleDeploymentCommandSecrets() == 1)
-    @assert(redacted.replicas == 6)
-    @assert(redacted.region == "eu-west")
-    @assert(!redacted.dryRun)
-    @assert(redacted.authToken == "<redacted>")
-    @assert(result == .Accepted)
+    Swag.assert(command.replicas == 6)
+    Swag.assert(command.region == "eu-west")
+    Swag.assert(command.region.count == 7)
+    Swag.assert(command.authToken.count >= 16)
+    Swag.assert(validateScheduleDeploymentCommand(command))
+    Swag.assert(countScheduleDeploymentCommandSecrets() == 1)
+    Swag.assert(redacted.replicas == 6)
+    Swag.assert(redacted.region == "eu-west")
+    Swag.assert(!redacted.dryRun)
+    Swag.assert(redacted.authToken == "<redacted>")
+    Swag.assert(result == .Accepted)
 }
 
 #test
@@ -346,8 +346,8 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
 
     let redacted = redactScheduleDeploymentCommand(command)
 
-    @assert(!validateScheduleDeploymentCommand(command))
-    @assert(redacted.authToken == "<redacted>")
+    Swag.assert(!validateScheduleDeploymentCommand(command))
+    Swag.assert(redacted.authToken == "<redacted>")
 }
 
 #test
@@ -360,21 +360,21 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
     let receipt  = invokeSubmitWireTransferCommand(command)
     let redacted = redactSubmitWireTransferCommand(command)
 
-    @assert(validateSubmitWireTransferCommand(command))
-    @assert(countSubmitWireTransferCommandSecrets() == 1)
-    @assert(receipt.approved)
-    @assert(receipt.queueSlot == 2500)
-    @assert(receipt.reviewRequired)
-    @assert(redacted.cents == 250_000)
-    @assert(redacted.toAccount == "acct-7781")
-    @assert(redacted.approvalCode == "<redacted>")
+    Swag.assert(validateSubmitWireTransferCommand(command))
+    Swag.assert(countSubmitWireTransferCommandSecrets() == 1)
+    Swag.assert(receipt.approved)
+    Swag.assert(receipt.queueSlot == 2500)
+    Swag.assert(receipt.reviewRequired)
+    Swag.assert(redacted.cents == 250_000)
+    Swag.assert(redacted.toAccount == "acct-7781")
+    Swag.assert(redacted.approvalCode == "<redacted>")
 }
 
 #test
 {
     let command: ResyncCatalogCommand = {}
 
-    @assert(validateResyncCatalogCommand(command))
-    @assert(countResyncCatalogCommandSecrets() == 0)
-    @assert(invokeResyncCatalogCommand(command))
+    Swag.assert(validateResyncCatalogCommand(command))
+    Swag.assert(countResyncCatalogCommandSecrets() == 0)
+    Swag.assert(invokeResyncCatalogCommand(command))
 }

@@ -15,7 +15,7 @@ internal func randomFillNative(buffer: *u8, size: u32)->bool
 func(T) secureClear(buffer: [..] T)
 {
     const elementSize = #sizeof(T)
-    let byteCount = @countof(buffer) * elementSize
+    let byteCount = buffer.count * elementSize
     if byteCount do
-        discard RtlZeroMemory(@dataof(buffer), byteCount)
+        discard RtlZeroMemory(buffer.buffer, byteCount)
 }

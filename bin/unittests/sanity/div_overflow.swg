@@ -43,7 +43,7 @@
 {
     var a = -2147483648's32
     var d = 2's32
-    @assert(a / d == -1073741824)
+    Swag.assert(a / d == -1073741824)
 }
 
 // -1 divisor with a non-INT_MIN dividend.
@@ -52,5 +52,5 @@
 {
     var a = 100's32
     var d = -1's32
-    @assert(a / d == -100)
+    Swag.assert(a / d == -100)
 }

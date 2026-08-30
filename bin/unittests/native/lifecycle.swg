@@ -15,11 +15,11 @@
     a += 4
     check(add(a, 5) == 9, 1)
     check(Counter == 3, 2)
-    @assert(add(a, 5) == 9)
-    @assert(Counter == 3)
+    Swag.assert(add(a, 5) == 9)
+    Swag.assert(Counter == 3)
     check(touch(4) == 7, 3)
     Counter = 3
-    @assert(touch(4) == 7)
+    Swag.assert(touch(4) == 7)
 }
 
 // Triple, square_plus_seed, and counter state
@@ -28,9 +28,9 @@
     check(triple(4) == 12, 4)
     check(square_plus_seed(5) == 32, 5)
     check(Counter == 3 or Counter == 7, 6)
-    @assert(triple(4) == 12)
-    @assert(square_plus_seed(5) == 32)
-    @assert(Counter == 3 or Counter == 7)
+    Swag.assert(triple(4) == 12)
+    Swag.assert(square_plus_seed(5) == 32)
+    Swag.assert(Counter == 3 or Counter == 7)
 }
 
 // Pointer delta and int-from-float subtraction
@@ -38,8 +38,8 @@
 {
     check(pointer_step_delta() == 1, 8)
     check(subtract_int_from_float(10.5, 2) == 8.5, 9)
-    @assert(pointer_step_delta() == 1)
-    @assert(subtract_int_from_float(10.5, 2) == 8.5)
+    Swag.assert(pointer_step_delta() == 1)
+    Swag.assert(subtract_int_from_float(10.5, 2) == 8.5)
 }
 
 #main

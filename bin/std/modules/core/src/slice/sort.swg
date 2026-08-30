@@ -4,8 +4,8 @@
 // Insertion sort algorithm (slow)
 private func(T) insertionSort(values: [..] T, compare: func||(T, T)->s32)
 {
-    var buffer = @dataof(values)
-    let count  = @countof(values)
+    var buffer = values.buffer
+    let count  = values.count
 
     for var i = 1'u64; i < count; i += 1
     {
@@ -19,20 +19,20 @@ private func(T) insertionSort(values: [..] T, compare: func||(T, T)->s32)
 // Quick sort algorithm
 private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
 {
-    let count = cast(s64) @countof(values)
+    let count = cast(s64) values.count
     if count == 0 do
         return
 
     var begin  = 0's64
     var end    = count - 1
-    var buffer = @dataof(values)
+    var buffer = values.buffer
 
     for
     {
         // If range is too small, simple sort
         if end - begin <= 10
         {
-            insertionSort(@mkslice(buffer + begin, (end - begin) + 1), compare)
+            insertionSort(Swag.makeSlice(buffer + begin, (end - begin) + 1), compare)
             return
         }
 
@@ -90,7 +90,7 @@ private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
                 end   = high - 1
             }
 
-            quickSort(@mkslice(buffer + first, (last - first) + 1), compare)
+            quickSort(Swag.makeSlice(buffer + first, (last - first) + 1), compare)
         }
         elif set1 > 0 do
             end = high - 1
@@ -117,7 +117,7 @@ func(T) sort(values: [..] T, descending = false)
 func(T) sort(values: [..] T, compare: func||(T, T)->s32)
 {
     Debug.assert(compare != null)
-    if @countof(values) <= 10 do
+    if values.count <= 10 do
         insertionSort(values, compare)
     else do
         quickSort(values, compare)
@@ -134,7 +134,7 @@ func(T) isSorted(values: const [..] T)->bool
 func(T) isSorted(values: const [..] T, compare: func||(T, T)->s32)->bool
 {
     Debug.assert(compare != null)
-    let countof = @countof(values)
+    let countof = values.count
     if countof <= 1 do
         return true
 

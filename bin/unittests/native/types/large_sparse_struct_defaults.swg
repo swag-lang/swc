@@ -27,10 +27,10 @@ struct NativeSparseDefaultSecondOwner
     var first:  NativeSparseDefaultFirstOwner
     var second: NativeSparseDefaultSecondOwner
 
-    @assert(first.payload.leaves[0].marker == 0x123456789ABCDEF0)
-    @assert(first.payload.leaves[7].marker == 0x123456789ABCDEF0)
-    @assert(first.marker == 11)
-    @assert(second.payload.leaves[0].marker == 0x123456789ABCDEF0)
-    @assert(second.payload.leaves[7].marker == 0x123456789ABCDEF0)
-    @assert(second.marker == 17)
+    Swag.assert(first.payload.leaves[0].marker == 0x123456789ABCDEF0)
+    Swag.assert(first.payload.leaves[7].marker == 0x123456789ABCDEF0)
+    Swag.assert(first.marker == 11)
+    Swag.assert(second.payload.leaves[0].marker == 0x123456789ABCDEF0)
+    Swag.assert(second.payload.leaves[7].marker == 0x123456789ABCDEF0)
+    Swag.assert(second.marker == 17)
 }

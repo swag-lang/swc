@@ -74,8 +74,8 @@ func(T) genericClonePayloadAssignBody(value: s32, extra: T)->ClonePayloadSetTarg
 
     let result = genericClonePayloadOpCastBody(ClonePayloadCastBox{value: 41}, true)
 
-    @assert(gClonePayloadOpCastCalls == 1)
-    @assert(result == 42)
+    Swag.assert(gClonePayloadOpCastCalls == 1)
+    Swag.assert(result == 42)
 }
 
 #test
@@ -84,10 +84,10 @@ func(T) genericClonePayloadAssignBody(value: s32, extra: T)->ClonePayloadSetTarg
 
     let result = localClonePayloadOpSet(40)
 
-    @assert(result.value == 42)
-    @assert(result.calls == 1)
-    @assert(result.sentinel == 77)
-    @assert(gClonePayloadOpSetCalls == 1)
+    Swag.assert(result.value == 42)
+    Swag.assert(result.calls == 1)
+    Swag.assert(result.sentinel == 77)
+    Swag.assert(gClonePayloadOpSetCalls == 1)
 }
 
 #test
@@ -96,10 +96,10 @@ func(T) genericClonePayloadAssignBody(value: s32, extra: T)->ClonePayloadSetTarg
 
     let result = genericClonePayloadExplicitOpSetBody(40, true)
 
-    @assert(result.value == 42)
-    @assert(result.calls == 1)
-    @assert(result.sentinel == 77)
-    @assert(gClonePayloadOpSetCalls == 1)
+    Swag.assert(result.value == 42)
+    Swag.assert(result.calls == 1)
+    Swag.assert(result.sentinel == 77)
+    Swag.assert(gClonePayloadOpSetCalls == 1)
 }
 
 #test
@@ -108,10 +108,10 @@ func(T) genericClonePayloadAssignBody(value: s32, extra: T)->ClonePayloadSetTarg
 
     let result = genericClonePayloadOpSetBody(40, true)
 
-    @assert(result.value == 42)
-    @assert(result.calls == 1)
-    @assert(result.sentinel == 77)
-    @assert(gClonePayloadOpSetCalls == 1)
+    Swag.assert(result.value == 42)
+    Swag.assert(result.calls == 1)
+    Swag.assert(result.sentinel == 77)
+    Swag.assert(gClonePayloadOpSetCalls == 1)
 }
 
 #test
@@ -120,8 +120,8 @@ func(T) genericClonePayloadAssignBody(value: s32, extra: T)->ClonePayloadSetTarg
 
     let result = genericClonePayloadAssignBody(40, true)
 
-    @assert(result.value == 42)
-    @assert(result.calls == 1)
-    @assert(result.sentinel == 77)
-    @assert(gClonePayloadOpSetCalls == 1)
+    Swag.assert(result.value == 42)
+    Swag.assert(result.calls == 1)
+    Swag.assert(result.sentinel == 77)
+    Swag.assert(gClonePayloadOpSetCalls == 1)
 }

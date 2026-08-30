@@ -8,5 +8,5 @@ func fallibleValue()->s32 fail
 func callWithoutHandler()
 {
     let value = fallibleValue()     // swc-expected-error {{sema_err_fallible_call_requires_handler}}
-    @print(value)
+    Swag.print(value)
 }

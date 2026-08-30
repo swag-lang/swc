@@ -11,7 +11,7 @@ impl ILogWriter for MemoryLogWriter
 {
     mtd impl print(text: string)
     {
-        if me.count < @countof(me.lines) do
+        if me.count < me.lines.count do
             me.lines[me.count] = text
         me.count += 1
     }
@@ -20,7 +20,7 @@ impl ILogWriter for MemoryLogWriter
 func makeExpectedShortLine(prefix: string, loc: Swag.SourceCodeLocation, text: string)->String
 {
     var result: retval
-    if @countof(prefix)
+    if prefix.count
     {
         result.append(prefix)
         result.append(" ")
@@ -65,10 +65,10 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
     let loc = currentLocation()
     log.print("hello", loc)
 
-    @assert(writer.count == 1)
-    @assert(writer.lines[0].toString() == makeExpectedShortLine("CORE", loc, "hello").toString())
-    @assert(log.prefix() == "CORE")
-    @assert(log.flags() == (LogFlags.Prefix | LogFlags.ShortFileName | LogFlags.Line))
+    Swag.assert(writer.count == 1)
+    Swag.assert(writer.lines[0].toString() == makeExpectedShortLine("CORE", loc, "hello").toString())
+    Swag.assert(log.prefix() == "CORE")
+    Swag.assert(log.flags() == (LogFlags.Prefix | LogFlags.ShortFileName | LogFlags.Line))
 }
 
 #test
@@ -85,10 +85,10 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
     log.print("world", loc)
 
     let expected = makeExpectedFullLoc(loc, "world")
-    @assert(writerA.count == 1)
-    @assert(writerB.count == 1)
-    @assert(writerA.lines[0].toString() == expected.toString())
-    @assert(writerB.lines[0].toString() == expected.toString())
+    Swag.assert(writerA.count == 1)
+    Swag.assert(writerB.count == 1)
+    Swag.assert(writerA.lines[0].toString() == expected.toString())
+    Swag.assert(writerB.lines[0].toString() == expected.toString())
 }
 
 #test
@@ -105,10 +105,10 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
     let secondLoc = currentLocation()
     log.print("second", secondLoc)
 
-    @assert(writer.count == 1)
+    Swag.assert(writer.count == 1)
     var expected: String
     expected.append(Path.fileName(secondLoc.fileName))
     expected.append(" ")
     expected.append("second")
-    @assert(writer.lines[0].toString() == expected.toString())
+    Swag.assert(writer.lines[0].toString() == expected.toString())
 }

@@ -2,7 +2,7 @@
 #import("runtime_context_bridge_dll")
 #run
 {
-    let cfg = @compiler.getBuildCfg()!
+    let cfg = Swag.compiler().getBuildCfg()!
     cfg.moduleNamespace = "SandboxConsumer"
     cfg.backendKind     = .Executable
 }

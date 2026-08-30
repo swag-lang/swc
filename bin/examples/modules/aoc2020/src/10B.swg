@@ -86,5 +86,5 @@ func day10B()
     vals.add(vals.back() + 3)
 
     var dp: HashTable'(u64, u64)
-    @assert(count(0, vals, &dp) == 1727094849536)
+    Swag.assert(count(0, vals, &dp) == 1727094849536)
 }

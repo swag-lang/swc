@@ -138,110 +138,110 @@ func makeDefaultRequiredRet()->DefaultRequiredRet
 #test
 {
     let small = #run makeSmall(2, 2)
-    @assert(small.x == 4)
-    @assert(small.y == 8)
+    Swag.assert(small.x == 4)
+    Swag.assert(small.y == 8)
 }
 
 #test
 {
     let big = #run cloneBig(10)
-    @assert(big.a == 11)
-    @assert(big.b == 12)
-    @assert(big.c == 13)
-    @assert(big.d == 14)
-    @assert(big.e == 15)
+    Swag.assert(big.a == 11)
+    Swag.assert(big.b == 12)
+    Swag.assert(big.c == 13)
+    Swag.assert(big.d == 14)
+    Swag.assert(big.e == 15)
 }
 
 #test
 {
     let {a, b, c, d, e} = makeBig(20)
-    @assert(a == 21)
-    @assert(b == 22)
-    @assert(c == 23)
-    @assert(d == 24)
-    @assert(e == 25)
+    Swag.assert(a == 21)
+    Swag.assert(b == 22)
+    Swag.assert(c == 23)
+    Swag.assert(d == 24)
+    Swag.assert(e == 25)
 }
 
 #test
 {
     let first = makeBig(30)
-    @assert(first.a == 31)
-    @assert(first.b == 32)
-    @assert(first.c == 33)
-    @assert(first.d == 34)
-    @assert(first.e == 35)
+    Swag.assert(first.a == 31)
+    Swag.assert(first.b == 32)
+    Swag.assert(first.c == 33)
+    Swag.assert(first.d == 34)
+    Swag.assert(first.e == 35)
 
     let {a, ?, c, ?, e} = makeBig(40)
-    @assert(a == 41)
-    @assert(c == 43)
-    @assert(e == 45)
+    Swag.assert(a == 41)
+    Swag.assert(c == 43)
+    Swag.assert(e == 45)
 }
 
 #test
 {
     let {r0, g0, b0} = makeFloat(0.5)
-    @assert(r0 == 0.5)
-    @assert(g0 == 0.75)
-    @assert(b0 == 1.0)
+    Swag.assert(r0 == 0.5)
+    Swag.assert(g0 == 0.75)
+    Swag.assert(b0 == 1.0)
 
     let {r1, ?, b1} = makeFloat(1.5)
-    @assert(r1 == 1.5)
-    @assert(b1 == 2.0)
+    Swag.assert(r1 == 1.5)
+    Swag.assert(b1 == 2.0)
 }
 
 #test
 {
     let direct = makeFloat(2.5)
-    @assert(direct.r == 2.5)
-    @assert(direct.g == 2.75)
-    @assert(direct.b == 3.0)
+    Swag.assert(direct.r == 2.5)
+    Swag.assert(direct.g == 2.75)
+    Swag.assert(direct.b == 3.0)
 
     let {r, g, b} = cloneFloat(3.5)
-    @assert(r == 3.5)
-    @assert(g == 3.75)
-    @assert(b == 4.0)
+    Swag.assert(r == 3.5)
+    Swag.assert(g == 3.75)
+    Swag.assert(b == 4.0)
 }
 
 #test
 {
-    @assert(makeScalarDefaultRet() == 0)
+    Swag.assert(makeScalarDefaultRet() == 0)
 }
 
 #test
 {
     let small = makeDefaultSmallRet()
-    @assert(small.x == 11)
-    @assert(small.y == 29)
+    Swag.assert(small.x == 11)
+    Swag.assert(small.y == 29)
 }
 
 #test
 {
     let nested = makeDefaultNestedRet()
-    @assert(nested.small.x == 11)
-    @assert(nested.small.y == 31)
-    @assert(nested.scale == 70)
-    @assert(nested.enabled)
+    Swag.assert(nested.small.x == 11)
+    Swag.assert(nested.small.y == 31)
+    Swag.assert(nested.scale == 70)
+    Swag.assert(nested.enabled)
 }
 
 #test
 {
     let big = makeDefaultBigRet()
-    @assert(big.a == 3'u64)
-    @assert(big.b == 5'u64)
-    @assert(big.c == 70'u64)
-    @assert(big.d == 11'u64)
-    @assert(big.e == 13'u64)
+    Swag.assert(big.a == 3'u64)
+    Swag.assert(big.b == 5'u64)
+    Swag.assert(big.c == 70'u64)
+    Swag.assert(big.d == 11'u64)
+    Swag.assert(big.e == 13'u64)
 }
 
 #test
 {
     let dirty = dirtyDefaultRequiredRet()
-    @assert(dirty.a == 101)
-    @assert(dirty.b == 202)
-    @assert(dirty.c == 303)
+    Swag.assert(dirty.a == 101)
+    Swag.assert(dirty.b == 202)
+    Swag.assert(dirty.c == 303)
 
     let clean = makeDefaultRequiredRet()
-    @assert(clean.a == 0)
-    @assert(clean.b == 22)
-    @assert(clean.c == 0)
+    Swag.assert(clean.a == 0)
+    Swag.assert(clean.b == 22)
+    Swag.assert(clean.c == 0)
 }

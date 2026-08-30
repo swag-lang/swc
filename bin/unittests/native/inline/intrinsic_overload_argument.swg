@@ -13,17 +13,17 @@ func addQuad(a, b: #simd [4] s32)->#simd [4] s32 => a + b
 
 #test
 {
-    let f = addF(@min(1.5'f32, 2.5), @max(1.5'f32, 2.5))
-    @assert(f == 4.0)
+    let f = addF(Swag.min(1.5'f32, 2.5), Swag.max(1.5'f32, 2.5))
+    Swag.assert(f == 4.0)
 
-    let u = addU(@min(3'u64, 4), @max(3'u64, 4))
-    @assert(u == 7)
+    let u = addU(Swag.min(3'u64, 4), Swag.max(3'u64, 4))
+    Swag.assert(u == 7)
 }
 
 #test
 {
     var v: #simd [8] s16
     v += 5
-    let r = cast([4] s32) addQuad(@vecwidenlo(v), @vecwidenhi(v))
-    @assert(r[0] == 10 and r[3] == 10)
+    let r = cast([4] s32) addQuad(Swag.vecwidenlo(v), Swag.vecwidenhi(v))
+    Swag.assert(r[0] == 10 and r[3] == 10)
 }

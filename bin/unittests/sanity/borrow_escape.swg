@@ -16,7 +16,7 @@ impl BorrowEscapeOwner
     #[Swag.Implicit, Swag.Inline]
     mtd const opCast()->string
     {
-        return @mkstring(&.buffer[0], .length)
+        return Swag.makeString(&.buffer[0], .length)
     }
 }
 
@@ -83,7 +83,7 @@ func borrowEscapeImplicitLocalOnly()->u64
     var buf: [4] u8
     buf[0] = 1
     let sl: [..] u8 = buf
-    return @countof(s) + @countof(sl)
+    return s.count + sl.count
 }
 
 // Boxing a local value into 'any' borrows the frame storage holding the value.
@@ -100,7 +100,7 @@ func borrowEscapeAnyLocalOnly(param: *BorrowEscapePayload)->any
     var value: BorrowEscapePayload
     value.text = "x"
     let boxed: any = value
-    @assert(@dataof(boxed) != null)
+    Swag.assert(boxed.buffer != null)
     return param[]
 }
 
@@ -263,14 +263,14 @@ func borrowEscapeTemporary()->u64
 {
     // swc-expected-note@+ {{sema_note_borrow_temporary_here}}
     let s: string = borrowEscapeMakeOwner()     // swc-expected-error {{sanity_err_borrow_temporary}}
-    return @countof(s)
+    return s.count
 }
 
 func borrowEscapeNamedOwner()->u64
 {
     var o         = borrowEscapeMakeOwner()
     let s: string = o
-    return @countof(s)
+    return s.count
 }
 
 // A carrier stored in a field follows the same temporary rules as a plain local:
@@ -285,7 +285,7 @@ func borrowEscapeTemporaryStringField()->u64
 {
     var holder: BorrowEscapeTemporaryField
     holder.text = borrowEscapeMakeOwner()     // swc-expected-error {{sanity_err_borrow_temporary}}
-    return @countof(holder.text)
+    return holder.text.count
 }
 
 func borrowEscapeNamedOwnerStringField()->u64
@@ -293,13 +293,13 @@ func borrowEscapeNamedOwnerStringField()->u64
     var owner = borrowEscapeMakeOwner()
     var holder: BorrowEscapeTemporaryField
     holder.text = owner
-    return @countof(holder.text)
+    return holder.text.count
 }
 
 func borrowEscapeTemporaryStringInitializer()->u64
 {
     let holder = BorrowEscapeTemporaryField{text: cast(string) borrowEscapeMakeOwner()}     // swc-expected-error {{sanity_err_borrow_temporary}}
-    return @countof(holder.text)
+    return holder.text.count
 }
 
 struct BorrowEscapeNestedTemporaryField
@@ -311,7 +311,7 @@ func borrowEscapeNestedTemporaryStringField()->u64
 {
     var holder: BorrowEscapeNestedTemporaryField
     holder.inner.text = borrowEscapeMakeOwner()     // swc-expected-error {{sanity_err_borrow_temporary}}
-    return @countof(holder.inner.text)
+    return holder.inner.text.count
 }
 
 var borrowEscapeGlobalTemporaryField: BorrowEscapeTemporaryField
@@ -530,7 +530,7 @@ func borrowEscapeThroughLocalPointer()->u64
     var holder: BorrowEscapeSelfRef
     let pHolder = &holder
     pHolder.text = owner
-    return @countof(pHolder.text)
+    return pHolder.text.count
 }
 
 // Copying a pointer whose pointee is proven local preserves that provenance.
@@ -544,7 +544,7 @@ func borrowEscapeThroughLocalPointerAlias()->u64
     let pHolder  = &holder
     let ptrAlias = pHolder
     ptrAlias.text = owner
-    return @countof(ptrAlias.text)
+    return ptrAlias.text.count
 }
 
 // A local variable holding an opaque call result does not make its POINTEE local:
@@ -562,7 +562,7 @@ func borrowEscapeThroughHeapPointer(alloc: func()->*BorrowEscapeNode)->u64
 
     let node = alloc()
     node.text = owner     // swc-expected-error {{sanity_err_borrow_escape}}
-    return @countof(node.text)
+    return node.text.count
 }
 
 // Writing borrowed data through a parameter pointer reaches caller-visible storage.
@@ -571,7 +571,7 @@ func borrowEscapeThroughParamPointer(node: *BorrowEscapeNode)
     var owner: BorrowEscapeOwner
     owner.buffer[0] = 'x'u8
     owner.length    = 1
-    node.text       = @mkstring(&owner.buffer[0], owner.length)     // swc-expected-error {{sanity_err_borrow_escape}}
+    node.text       = Swag.makeString(&owner.buffer[0], owner.length)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Aliasing a parameter pointer must preserve its caller-visible pointee.
@@ -596,7 +596,7 @@ func borrowEscapeInlineCaller()->u64
 {
     var data: [4] u8
     data[1] = 42
-    let p = borrowEscapeInlineOffset(@dataof(data))
+    let p = borrowEscapeInlineOffset(data.buffer)
     return cast(u64) p[]
 }
 
@@ -614,7 +614,7 @@ func borrowEscapeSanityOff()->*s32
 func borrowEscapeSanityOffTemporary()->u64
 {
     let s: string = borrowEscapeMakeOwner()     // swc-expected-error {{sanity_err_borrow_temporary}}
-    return @countof(s)
+    return s.count
 }
 
 // ---------------------------------------------------------------------------
@@ -1035,7 +1035,7 @@ impl BorrowEscapeOwned
     #[Swag.Implicit, Swag.Inline]
     mtd const opCast()->string
     {
-        return @mkstring(.buffer, .length)
+        return Swag.makeString(.buffer, .length)
     }
 }
 
@@ -1056,7 +1056,7 @@ func borrowEscapeOwnedLocalOnly()->u64
 {
     var str:  BorrowEscapeOwned
     let view: string = str
-    return @countof(view)
+    return view.count
 }
 
 // The view bound to a local and returned later.
@@ -1098,7 +1098,7 @@ func borrowEscapeMakeOwned()->BorrowEscapeOwned
 func borrowEscapeOwnedTemporary()->u64
 {
     let view: string = borrowEscapeMakeOwned()     // swc-expected-error {{sanity_err_borrow_temporary}}
-    return @countof(view)
+    return view.count
 }
 
 // ---------------------------------------------------------------------------

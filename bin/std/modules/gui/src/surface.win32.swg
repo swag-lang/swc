@@ -391,8 +391,8 @@ private impl Surface
         var doneClass: bool
         let className16   = Utf16.toZeroTerminated("Swag.Gui.Surface")
         let surfaceName16 = Utf16.toZeroTerminated(result.surfaceId)
-        let className     = @dataof(className16)
-        let surfaceName   = @dataof(surfaceName16)
+        let className     = className16.buffer
+        let surfaceName   = surfaceName16.buffer
         if !doneClass
         {
             doneClass = true
@@ -541,8 +541,8 @@ impl Surface
         if tip
         {
             tnid.uFlags |= NIF_TIP
-            let count = Math.min(@countof(tip), #sizeof(tnid.szTip) - 1)
-            Memory.copy(&tnid.szTip[0], @dataof(tip), count)
+            let count = Math.min(tip.count, #sizeof(tnid.szTip) - 1)
+            Memory.copy(&tnid.szTip[0], tip.buffer, count)
         }
 
         catch Shell_NotifyIconA(NIM_ADD, &tnid)
@@ -640,7 +640,7 @@ impl Surface
     // Send a custom message to the surface application with name 'surfaceId'
     func sendCustomMessage(surfaceId: string, id: u32, param: u64)->bool
     {
-        let hwnd = Win32.FindWindowA(@dataof("Swag.Gui.Surface"), @dataof(surfaceId))
+        let hwnd = Win32.FindWindowA(("Swag.Gui.Surface").buffer, surfaceId.buffer)
         if !hwnd do
             return false
         discard SendMessageA(hwnd, WM_APP + id, 0, param)

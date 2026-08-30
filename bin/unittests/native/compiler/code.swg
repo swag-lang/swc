@@ -24,14 +24,14 @@ func bumpDefault()->bool
 #[Swag.Macro]
 func sumTwice(expr: #code->s32)->s32
 {
-    @assert(#stringof(#typeof(expr)) == "#code->s32")
+    Swag.assert(#stringof(#typeof(expr)) == "#code->s32")
     return #inject(expr) + #inject(expr)
 }
 
 #[Swag.Macro]
 func repeatStmt(stmt: #code)
 {
-    @assert(#stringof(#typeof(stmt)) == "#code")
+    Swag.assert(#stringof(#typeof(stmt)) == "#code")
     #inject(stmt)
     #inject(stmt)
 }
@@ -39,21 +39,21 @@ func repeatStmt(stmt: #code)
 #[Swag.Macro]
 func checkNamed(lhs: s32, rhs: #code->s32)->s32
 {
-    @assert(#stringof(rhs) == "base + 32")
+    Swag.assert(#stringof(rhs) == "base + 32")
     return lhs + #inject(rhs)
 }
 
 #[Swag.Macro]
 func checkDefault(expr: #code->bool = bumpDefault())->bool
 {
-    @assert(#stringof(#typeof(expr)) == "#code->bool")
+    Swag.assert(#stringof(#typeof(expr)) == "#code->bool")
     return #inject(expr)
 }
 
 #[Swag.Macro]
 func consumeForwarded(expr: #code->s32)->s32
 {
-    @assert(#stringof(expr) == "base + 5")
+    Swag.assert(#stringof(expr) == "base + 5")
     return #inject(expr)
 }
 
@@ -66,14 +66,14 @@ func forward(expr: #code->s32)->s32
 #[Swag.Macro]
 func forceExpr(expr: #code->s32)->s32
 {
-    @assert(#stringof(expr) == "base * 3")
+    Swag.assert(#stringof(expr) == "base * 3")
     return #inject(expr)
 }
 
 #[Swag.Macro]
 func runWhen(cond: #code->bool, stmt: #code)
 {
-    @assert(#stringof(#typeof(cond)) == "#code->bool")
+    Swag.assert(#stringof(#typeof(cond)) == "#code->bool")
     if #inject(cond)
     {
         #inject(stmt)
@@ -114,8 +114,8 @@ func remapLoopFlow(stmt: #code)
 #test
 {
     ExprEvalCount = 0
-    @assert(sumTwice(bumpExpr(21)) == 42)
-    @assert(ExprEvalCount == 2)
+    Swag.assert(sumTwice(bumpExpr(21)) == 42)
+    Swag.assert(ExprEvalCount == 2)
 }
 
 // #code stmt is injected twice
@@ -123,24 +123,24 @@ func remapLoopFlow(stmt: #code)
 {
     StmtEvalCount = 0
     repeatStmt(#code { bumpStmt() })
-    @assert(StmtEvalCount == 2)
+    Swag.assert(StmtEvalCount == 2)
 }
 
 // Named #code param and forwarded injection
 #test
 {
     let base = 10
-    @assert(checkNamed(lhs: 10, rhs: base + 32) == 52)
-    @assert(forward(base + 5) == 15)
-    @assert(forceExpr(#code => base * 3) == 30)
+    Swag.assert(checkNamed(lhs: 10, rhs: base + 32) == 52)
+    Swag.assert(forward(base + 5) == 15)
+    Swag.assert(forceExpr(#code => base * 3) == 30)
 }
 
 // #code with default parameter value
 #test
 {
     DefaultEvalCount = 0
-    @assert(checkDefault())
-    @assert(DefaultEvalCount == 1)
+    Swag.assert(checkDefault())
+    Swag.assert(DefaultEvalCount == 1)
 }
 
 // Conditional injection via inline #code args
@@ -149,10 +149,10 @@ func remapLoopFlow(stmt: #code)
     StmtEvalCount = 0
     let execute = true
     runWhen(execute, #code { bumpStmt() })
-    @assert(StmtEvalCount == 1)
+    Swag.assert(StmtEvalCount == 1)
 
     runWhen(false, #code { bumpStmt() })
-    @assert(StmtEvalCount == 1)
+    Swag.assert(StmtEvalCount == 1)
 }
 
 // Conditional injection via trailing block
@@ -165,14 +165,14 @@ func remapLoopFlow(stmt: #code)
         bumpStmt()
     }
 
-    @assert(StmtEvalCount == 1)
+    Swag.assert(StmtEvalCount == 1)
 
     runWhen(false)
     {
         bumpStmt()
     }
 
-    @assert(StmtEvalCount == 1)
+    Swag.assert(StmtEvalCount == 1)
 }
 
 // Default runtime arg followed by trailing #code block
@@ -183,7 +183,7 @@ func remapLoopFlow(stmt: #code)
     {
         bumpStmt()
     }
-    @assert(StmtEvalCount == 1)
+    Swag.assert(StmtEvalCount == 1)
 }
 
 // break remapped to continue in for loop
@@ -198,7 +198,7 @@ func remapLoopFlow(stmt: #code)
         })
     }
 
-    @assert(count == 4)
+    Swag.assert(count == 4)
 }
 
 // break remapped to continue in element-iteration loop
@@ -214,7 +214,7 @@ func remapLoopFlow(stmt: #code)
         })
     }
 
-    @assert(count == 4)
+    Swag.assert(count == 4)
 }
 
 // break remapped to scope break
@@ -234,7 +234,7 @@ func remapLoopFlow(stmt: #code)
         count = -10
     }
 
-    @assert(count == 1)
+    Swag.assert(count == 1)
 }
 
 // break and continue both remapped in loop
@@ -259,7 +259,7 @@ func remapLoopFlow(stmt: #code)
         count = -20
     }
 
-    @assert(count == 2)
+    Swag.assert(count == 2)
 }
 
 // continue remapped to scope break
@@ -279,5 +279,5 @@ func remapLoopFlow(stmt: #code)
         count = -10
     }
 
-    @assert(count == 1)
+    Swag.assert(count == 1)
 }

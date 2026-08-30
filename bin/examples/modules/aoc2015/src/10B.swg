@@ -10,5 +10,5 @@ using Core
 func day10B()
 {
     day10EnsureLengths()
-    @assert(day10Length50 == 5103798)
+    Swag.assert(day10Length50 == 5103798)
 }

@@ -90,5 +90,5 @@ func day5B()
         total += s[0]
 
     // Console.print("total: ", total)
-    @assert(total == "RNLFDJMCT")
+    Swag.assert(total == "RNLFDJMCT")
 }

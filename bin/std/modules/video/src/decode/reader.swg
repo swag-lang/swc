@@ -159,7 +159,7 @@ impl Reader
     {
         #assert(Reflection.hasInterface(#typeof(T), IDecoder))
 
-        registerDecoderImplementation(#typeof(T), @mkinterface(null, #typeof(T), IDecoder))
+        registerDecoderImplementation(#typeof(T), Swag.makeInterface(null, #typeof(T), IDecoder))
     }
 
     // Non-generic bridge used by registerDecoder after its body is instantiated in the caller's
@@ -241,13 +241,13 @@ impl Reader
         .decoderType = selected.type
 
         // The registry only ever holds types that implement the interface, so the table resolves.
-        .decoder = @mkinterface(Memory.new(selected.type), selected.type, IDecoder)!
-        let instance = @dataof(.decoder)
-        .audioDecoder    = @mkinterface(instance, selected.type, IAudioDecoder)
-        .subtitleDecoder = @mkinterface(instance, selected.type, ISubtitleDecoder)
-        .planarDecoder   = @mkinterface(instance, selected.type, IPlanarDecoder)
-        .timedDecoder    = @mkinterface(instance, selected.type, ITimedDecoder)
-        .deferred        = @mkinterface(instance, selected.type, IDeferredDecoder)
+        .decoder = Swag.makeInterface(Memory.new(selected.type), selected.type, IDecoder)!
+        let instance = (.decoder).buffer
+        .audioDecoder    = Swag.makeInterface(instance, selected.type, IAudioDecoder)
+        .subtitleDecoder = Swag.makeInterface(instance, selected.type, ISubtitleDecoder)
+        .planarDecoder   = Swag.makeInterface(instance, selected.type, IPlanarDecoder)
+        .timedDecoder    = Swag.makeInterface(instance, selected.type, ITimedDecoder)
+        .deferred        = Swag.makeInterface(instance, selected.type, IDeferredDecoder)
         .info            = .decoder.open(&.source)
     }
 
@@ -263,7 +263,7 @@ impl Reader
         if .decoder
         {
             let type     = .decoderType!
-            let instance = @dataof(.decoder)!
+            let instance = (.decoder).buffer!
             if type.opDrop do
                 type.opDrop(instance)
             Memory.free(instance, cast(u64) type.sizeof)

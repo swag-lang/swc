@@ -382,7 +382,7 @@ private func codePaint(line: *RichEditLine, first, last: u64, style: GenericCode
 
 private func codeMatches(line: *RichEditLine, at: u64, text: string)->bool
 {
-    if at + @countof(text) > line.length() do
+    if at + text.count > line.length() do
         return false
     for value, offset in text
     {

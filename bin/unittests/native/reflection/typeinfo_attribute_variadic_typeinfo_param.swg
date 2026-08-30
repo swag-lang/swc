@@ -18,12 +18,12 @@ const VARIADIC_TYPE_INFO_PARAM_INFO = cast(const *TypeInfoStruct) #typeof(Variad
 
 #test
 {
-    @assert(@countof(VARIADIC_TYPE_INFO_PARAM_INFO.attributes) == 1)
+    Swag.assert(VARIADIC_TYPE_INFO_PARAM_INFO.attributes.count == 1)
 
     let attribute = VARIADIC_TYPE_INFO_PARAM_INFO.attributes[0]
     let value     = cast(#null typeinfo) attribute.params[0].value
 
-    @assert(attribute.type == #typeof(VariadicTypeInfoParamAttr))
-    @assert(attribute.params[0].name == "value")
-    @assert(value == VariadicTypeInfoParamPayload)
+    Swag.assert(attribute.type == #typeof(VariadicTypeInfoParamAttr))
+    Swag.assert(attribute.params[0].name == "value")
+    Swag.assert(value == VariadicTypeInfoParamPayload)
 }

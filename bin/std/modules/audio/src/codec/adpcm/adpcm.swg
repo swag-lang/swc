@@ -149,10 +149,10 @@ private impl Codec
     mtd readCoefficients(config: const [..] u8)
     {
         .coefficients.clear()
-        if @countof(config) >= 4
+        if config.count >= 4
         {
             let count = cast(u64) config[2] | (cast(u64) config[3] << 8)
-            if count and @countof(config) >= 4 + count * 4
+            if count and config.count >= 4 + count * 4
             {
                 for index in count * 2 do
                     .coefficients.add(readS16(config, 4 + index * 2))
@@ -252,7 +252,7 @@ impl IPacketCodec for Codec
 
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
-        let frames = blockFrameCount(.sourceEncoding, .channels, @countof(packet))
+        let frames = blockFrameCount(.sourceEncoding, .channels, packet.count)
         if !frames do
             fail InvalidFormatError{"ADPCM block is shorter than its header"}
         let produced = frames * .channels * #sizeof(s16)

@@ -39,5 +39,5 @@ func lateSafetyReadSet()->s32
 {
     g_lateSafetyStorage.value = 5
     g_lateSafetySet           = &g_lateSafetyStorage
-    @assert(lateSafetyReadSet() == 5)
+    Swag.assert(lateSafetyReadSet() == 5)
 }

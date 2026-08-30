@@ -300,7 +300,7 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
     switch mode
     {
     case IntraVertical:
-        storeIntra8Vertical(dst, stride, @dataof(tp) + 2)
+        storeIntra8Vertical(dst, stride, tp.buffer + 2)
 
     case IntraHorizontal:
         for row in 8'u64
@@ -336,8 +336,8 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
     case IntraDownLeft:
         for row in 8'u64
         {
-            let low  = (Simd.load(@dataof(tp) + 2 + row) + Simd.load(@dataof(tp) + 3 + row) * 2 + Simd.load(@dataof(tp) + 4 + row) + Simd.splat(2's32)) >> 2
-            let high = (Simd.load(@dataof(tp) + 6 + row) + Simd.load(@dataof(tp) + 7 + row) * 2 + Simd.load(@dataof(tp) + 8 + row) + Simd.splat(2's32)) >> 2
+            let low  = (Simd.load(tp.buffer + 2 + row) + Simd.load(tp.buffer + 3 + row) * 2 + Simd.load(tp.buffer + 4 + row) + Simd.splat(2's32)) >> 2
+            let high = (Simd.load(tp.buffer + 6 + row) + Simd.load(tp.buffer + 7 + row) * 2 + Simd.load(tp.buffer + 8 + row) + Simd.splat(2's32)) >> 2
             storeIntra8Filtered(dst + row * stride, low, high)
         }
 
@@ -418,14 +418,14 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
             let start = 2 + (row >> 1)
             if row & 1 == 0
             {
-                let low  = (Simd.load(@dataof(tp) + start) + Simd.load(@dataof(tp) + start + 1) + Simd.splat(1's32)) >> 1
-                let high = (Simd.load(@dataof(tp) + start + 4) + Simd.load(@dataof(tp) + start + 5) + Simd.splat(1's32)) >> 1
+                let low  = (Simd.load(tp.buffer + start) + Simd.load(tp.buffer + start + 1) + Simd.splat(1's32)) >> 1
+                let high = (Simd.load(tp.buffer + start + 4) + Simd.load(tp.buffer + start + 5) + Simd.splat(1's32)) >> 1
                 storeIntra8Filtered(dst + row * stride, low, high)
             }
             else
             {
-                let low  = (Simd.load(@dataof(tp) + start) + Simd.load(@dataof(tp) + start + 1) * 2 + Simd.load(@dataof(tp) + start + 2) + Simd.splat(2's32)) >> 2
-                let high = (Simd.load(@dataof(tp) + start + 4) + Simd.load(@dataof(tp) + start + 5) * 2 + Simd.load(@dataof(tp) + start + 6) + Simd.splat(2's32)) >> 2
+                let low  = (Simd.load(tp.buffer + start) + Simd.load(tp.buffer + start + 1) * 2 + Simd.load(tp.buffer + start + 2) + Simd.splat(2's32)) >> 2
+                let high = (Simd.load(tp.buffer + start + 4) + Simd.load(tp.buffer + start + 5) * 2 + Simd.load(tp.buffer + start + 6) + Simd.splat(2's32)) >> 2
                 storeIntra8Filtered(dst + row * stride, low, high)
             }
         }
@@ -443,7 +443,7 @@ func intraPredict8x8(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTo
         for z in 14'u64 until 22 do
             predicted[z] = cast(u8) lp[9]
         for row in 8'u64 do
-            Simd.storeLow8(dst + row * stride, Simd.load(@dataof(predicted) + 2 * row))
+            Simd.storeLow8(dst + row * stride, Simd.load(predicted.buffer + 2 * row))
     }
 }
 

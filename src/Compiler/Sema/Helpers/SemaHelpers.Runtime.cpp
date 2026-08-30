@@ -445,7 +445,7 @@ Result SemaHelpers::completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& sym
 
 // Whether the expression names a 'Swag.Late' slot: a field through a member access, or a bare
 // identifier for a global. Both start as null storage and receive their value later, so a
-// consumer that asks about presence rather than value goes through '@isset'.
+// consumer that asks about presence rather than value goes through 'Swag.isSet'.
 bool SemaHelpers::isLateInitAccess(Sema& sema, AstNodeRef nodeRef)
 {
     if (nodeRef.isInvalid())
@@ -467,7 +467,7 @@ bool SemaHelpers::isLateInitAccess(Sema& sema, AstNodeRef nodeRef)
 
 // A 'Swag.Late' field access requests a null-safety read guard when it resolves
 // (memberStruct). Consumers that never read the field value — pure assignment
-// target, address-of, '@isset' — call this to cancel the guard.
+// target, address-of, 'Swag.isSet' — call this to cancel the guard.
 void SemaHelpers::clearLateFieldReadGuard(Sema& sema, AstNodeRef nodeRef)
 {
     if (nodeRef.isInvalid())
@@ -475,7 +475,7 @@ void SemaHelpers::clearLateFieldReadGuard(Sema& sema, AstNodeRef nodeRef)
     const SemaNodeView view = sema.viewNode(nodeRef);
     // A 'Swag.Late' read guard sits on a field member access or on a bare identifier (a
     // 'Swag.Late' global). Both are cleared by a non-reading consumer (assignment target,
-    // address-of, '@isset').
+    // address-of, 'Swag.isSet').
     if (!view.node() || (view.node()->isNot(AstNodeId::MemberAccessExpr) && view.node()->isNot(AstNodeId::Identifier)))
         return;
     if (auto* payload = sema.loweringPayload<CodeGenLoweringPayload>(view.nodeRef()))

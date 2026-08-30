@@ -2,25 +2,25 @@
 
 func pushNullAllocatorContext()->bool
 {
-    let prev = @getcontext()
-    defer @setcontext(prev)
+    let prev = Swag.getContext()
+    defer Swag.setContext(prev)
 
     var cxt = prev[]
     cxt.allocator = null
-    @setcontext(cxt)
+    Swag.setContext(cxt)
 
-    return @getcontext().allocator == null
+    return Swag.getContext().allocator == null
 }
 
 #[Swag.Macro]
 func pushAllocatorLike(allocator: #null IAllocator, stmt: #code)
 {
-    let prev = @getcontext()
-    defer @setcontext(prev)
+    let prev = Swag.getContext()
+    defer Swag.setContext(prev)
 
     var cxt = prev[]
     cxt.allocator = allocator
-    @setcontext(cxt)
+    Swag.setContext(cxt)
 
     #inject(stmt)
 }
@@ -30,7 +30,7 @@ func pushNullAllocatorMacroContext()->bool
     var result = false
     pushAllocatorLike(null)
     {
-        result = @getcontext().allocator == null
+        result = Swag.getContext().allocator == null
     }
 
     return result
@@ -38,14 +38,14 @@ func pushNullAllocatorMacroContext()->bool
 
 #test
 {
-    @assert(@getcontext().allocator != null)
-    @assert(pushNullAllocatorContext())
-    @assert(@getcontext().allocator != null)
+    Swag.assert(Swag.getContext().allocator != null)
+    Swag.assert(pushNullAllocatorContext())
+    Swag.assert(Swag.getContext().allocator != null)
 }
 
 #test
 {
-    @assert(@getcontext().allocator != null)
-    @assert(pushNullAllocatorMacroContext())
-    @assert(@getcontext().allocator != null)
+    Swag.assert(Swag.getContext().allocator != null)
+    Swag.assert(pushNullAllocatorMacroContext())
+    Swag.assert(Swag.getContext().allocator != null)
 }

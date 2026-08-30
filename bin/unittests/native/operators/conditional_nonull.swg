@@ -77,6 +77,6 @@ func nativeConditionalNonNullBranches(flag: bool)->bool
 
 #test
 {
-    @assert(nativeConditionalNonNullBranches(true))
-    @assert(nativeConditionalNonNullBranches(false))
+    Swag.assert(nativeConditionalNonNullBranches(true))
+    Swag.assert(nativeConditionalNonNullBranches(false))
 }

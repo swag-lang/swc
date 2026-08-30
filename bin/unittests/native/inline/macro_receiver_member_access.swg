@@ -18,8 +18,8 @@ impl VisitBag
 {
     mtd set(items: [..] T)
     {
-        .buffer = @dataof(items)
-        .count  = @countof(items)
+        .buffer = items.buffer
+        .count  = items.count
     }
 
     #[Swag.Macro]
@@ -33,7 +33,7 @@ impl VisitBag
         for .count
         {
             scan += 1
-            let visitIdx = @index
+            let visitIdx = Swag.index
 
             #static if ptr do
                 #inject(stmt, item = cast(*T) scan, index = visitIdx)
@@ -84,8 +84,8 @@ impl VisitKeeper
     var storage: [3] u64 = [1, 2, 4]
     var kp:      VisitKeeper
     kp.header.bag.set(storage)
-    @assert(kp.total() == 7)
-    @assert(kp.firstAbove(1) == 2)
+    Swag.assert(kp.total() == 7)
+    Swag.assert(kp.firstAbove(1) == 2)
     kp.scale(10)
-    @assert(kp.total() == 70)
+    Swag.assert(kp.total() == 70)
 }

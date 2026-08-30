@@ -31,24 +31,24 @@ enum ReflectedState: u8
 #test
 {
     let base = #typeof(ReflectedPoint)
-    @assert(base.kind == .Struct)
+    Swag.assert(base.kind == .Struct)
 
     let type   = cast(const *Swag.TypeInfoStruct) base
     let fields = type.fields!
 
-    @assert(type.structName == "ReflectedPoint")
-    @assert(type.sizeof == #sizeof(ReflectedPoint))
-    @assert(@countof(fields) == 2)
-    @assert(fields[0].name == "x")
-    @assert(fields[0].pointedType == s32)
-    @assert(fields[0].offset == #offsetof(ReflectedPoint.x))
-    @assert(fields[1].name == "y")
-    @assert(fields[1].offset == #offsetof(ReflectedPoint.y))
+    Swag.assert(type.structName == "ReflectedPoint")
+    Swag.assert(type.sizeof == #sizeof(ReflectedPoint))
+    Swag.assert(fields.count == 2)
+    Swag.assert(fields[0].name == "x")
+    Swag.assert(fields[0].pointedType == s32)
+    Swag.assert(fields[0].offset == #offsetof(ReflectedPoint.x))
+    Swag.assert(fields[1].name == "y")
+    Swag.assert(fields[1].offset == #offsetof(ReflectedPoint.y))
 
     let methods = type.methods!
-    @assert(@countof(methods) == 1)
-    @assert(methods[0].name == "sum")
-    @assert(methods[0].pointedType!.kind == .Func)
+    Swag.assert(methods.count == 1)
+    Swag.assert(methods[0].name == "sum")
+    Swag.assert(methods[0].pointedType!.kind == .Func)
 }
 
 /**
@@ -60,17 +60,17 @@ typed reflection helper before reading it in general-purpose code.
 #test
 {
     let base = #typeof(ReflectedState)
-    @assert(base.kind == .Enum)
+    Swag.assert(base.kind == .Enum)
 
     let type   = cast(const *Swag.TypeInfoEnum) base
     let values = type.values!
 
-    @assert(type.rawType == u8)
-    @assert(@countof(values) == 3)
-    @assert(values[0].name == "Idle")
-    @assert(values[1].name == "Running")
-    @assert(values[2].name == "Done")
-    @assert(values[0].pointedType == ReflectedState)
+    Swag.assert(type.rawType == u8)
+    Swag.assert(values.count == 3)
+    Swag.assert(values[0].name == "Idle")
+    Swag.assert(values[1].name == "Running")
+    Swag.assert(values[2].name == "Done")
+    Swag.assert(values[0].pointedType == ReflectedState)
 }
 
 /**

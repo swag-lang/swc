@@ -33,7 +33,7 @@ struct TagBinArrayHolder
 func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
 {
     for it in holder.things do
-        Memory.delete(cast(*TagBinArrayThing) @dataof(it))
+        Memory.delete(cast(*TagBinArrayThing) it.buffer)
     holder.things.clear()
 }
 
@@ -59,7 +59,7 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
     let loaded = expect decoder.readAll'TagBinArrayHolder(buffer.toSlice()!)!
     defer releaseTagBinArrayHolder(loaded)
 
-    @assert(loaded.things.count == 3)
+    Swag.assert(loaded.things.count == 3)
     for it, i in loaded.things do
-        @assert(it.value() == cast(s32) (10 + i))
+        Swag.assert(it.value() == cast(s32) (10 + i))
 }

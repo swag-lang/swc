@@ -68,8 +68,8 @@ impl GenBinaryPair
     let sum = a + b
 
     #assert(#typeof(sum) == GenBinaryPair'u32)
-    @assert(sum.x == 13)
-    @assert(sum.y == 27)
+    Swag.assert(sum.x == 13)
+    Swag.assert(sum.y == 27)
 }
 
 // Test: generic pair - pair with s32
@@ -79,8 +79,8 @@ impl GenBinaryPair
     var b: GenBinaryPair's32 = {x: 3, y: 7}
     let diff                 = a - b
 
-    @assert(diff.x == 7)
-    @assert(diff.y == 13)
+    Swag.assert(diff.x == 7)
+    Swag.assert(diff.y == 13)
 }
 
 // Test: generic pair - pair with negative result (s32)
@@ -90,8 +90,8 @@ impl GenBinaryPair
     var b: GenBinaryPair's32 = {x: 10, y: 20}
     let diff                 = a - b
 
-    @assert(diff.x == -7)
-    @assert(diff.y == -13)
+    Swag.assert(diff.x == -7)
+    Swag.assert(diff.y == -13)
 }
 
 // Test: generic pair * pair with u64
@@ -101,8 +101,8 @@ impl GenBinaryPair
     var b: GenBinaryPair'u64 = {x: 3, y: 4}
     let prod                 = a * b
 
-    @assert(prod.x == 15'u64)
-    @assert(prod.y == 24'u64)
+    Swag.assert(prod.x == 15'u64)
+    Swag.assert(prod.y == 24'u64)
 }
 
 // Test: generic pair / pair with u32
@@ -112,8 +112,8 @@ impl GenBinaryPair
     var b: GenBinaryPair'u32 = {x: 4, y: 10}
     let quot                 = a / b
 
-    @assert(quot.x == 5)
-    @assert(quot.y == 10)
+    Swag.assert(quot.x == 5)
+    Swag.assert(quot.y == 10)
 }
 
 // Test: generic pair % pair with u32
@@ -123,8 +123,8 @@ impl GenBinaryPair
     var b: GenBinaryPair'u32 = {x: 5, y: 7}
     let rem = a % b
 
-    @assert(rem.x == 2)
-    @assert(rem.y == 4)
+    Swag.assert(rem.x == 2)
+    Swag.assert(rem.y == 4)
 }
 
 // Test: generic pair + scalar with s64
@@ -133,8 +133,8 @@ impl GenBinaryPair
     var a: GenBinaryPair's64 = {x: 10, y: -20}
     let result               = a + 5's64
 
-    @assert(result.x == 15)
-    @assert(result.y == -15)
+    Swag.assert(result.x == 15)
+    Swag.assert(result.y == -15)
 }
 
 // Test: generic pair * scalar with u32
@@ -143,8 +143,8 @@ impl GenBinaryPair
     var a: GenBinaryPair'u32 = {x: 3, y: 7}
     let result               = a * 10'u32
 
-    @assert(result.x == 30)
-    @assert(result.y == 70)
+    Swag.assert(result.x == 30)
+    Swag.assert(result.y == 70)
 }
 
 // Test: generic pair / scalar with u64
@@ -153,8 +153,8 @@ impl GenBinaryPair
     var a: GenBinaryPair'u64 = {x: 100, y: 200}
     let result               = a / 10'u64
 
-    @assert(result.x == 10'u64)
-    @assert(result.y == 20'u64)
+    Swag.assert(result.x == 10'u64)
+    Swag.assert(result.y == 20'u64)
 }
 
 // Test: generic pair - scalar with s32
@@ -163,8 +163,8 @@ impl GenBinaryPair
     var a: GenBinaryPair's32 = {x: 5, y: 3}
     let result               = a - 10's32
 
-    @assert(result.x == -5)
-    @assert(result.y == -7)
+    Swag.assert(result.x == -5)
+    Swag.assert(result.y == -7)
 }
 
 // Test: generic pair % scalar with u32
@@ -173,8 +173,8 @@ impl GenBinaryPair
     var a: GenBinaryPair'u32 = {x: 10, y: 17}
     let result               = a % 3'u32
 
-    @assert(result.x == 1)
-    @assert(result.y == 2)
+    Swag.assert(result.x == 1)
+    Swag.assert(result.y == 2)
 }
 
 // Test: chaining generic pair arithmetic
@@ -185,8 +185,8 @@ impl GenBinaryPair
     var c: GenBinaryPair's32 = {x: 1, y: 1}
     let result               = a + b - c
 
-    @assert(result.x == 5)
-    @assert(result.y == 7)
+    Swag.assert(result.x == 5)
+    Swag.assert(result.y == 7)
 }
 
 // Test: generic pair with u8 type
@@ -197,8 +197,8 @@ impl GenBinaryPair
     let sum                 = a + b
 
     #assert(#typeof(sum) == GenBinaryPair'u8)
-    @assert(sum.x == 13)
-    @assert(sum.y == 25)
+    Swag.assert(sum.x == 13)
+    Swag.assert(sum.y == 25)
 }
 
 // Test: generic pair with s16 type
@@ -209,6 +209,6 @@ impl GenBinaryPair
     let sum = a + b
 
     #assert(#typeof(sum) == GenBinaryPair's16)
-    @assert(sum.x == 150)
-    @assert(sum.y == 100)
+    Swag.assert(sum.x == 150)
+    Swag.assert(sum.y == 100)
 }

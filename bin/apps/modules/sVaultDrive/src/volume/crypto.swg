@@ -117,9 +117,9 @@ namespace Crypto
     // Encrypts and authenticates one record in a single pass over the data.
     func seal(keys: const *Keys, kind: u32, recordId: u64, plaintext: const [..] u8, nonce: [..] u8, ciphertext: [..] u8, tag: [..] u8) fail
     {
-        Debug.assert(@countof(nonce) == NonceSize)
-        Debug.assert(@countof(ciphertext) == @countof(plaintext))
-        Debug.assert(@countof(tag) == TagSize)
+        Debug.assert(nonce.count == NonceSize)
+        Debug.assert(ciphertext.count == plaintext.count)
+        Debug.assert(tag.count == TagSize)
         Core.Crypto.randomBytes(nonce)
         try Core.Crypto.chacha20Poly1305Seal(keys.record, nonce, plaintext, associatedData(kind, recordId), ciphertext, tag)
     }
@@ -128,7 +128,7 @@ namespace Crypto
     // for this key, kind, and position; `plaintext` is untouched when it was not.
     func open(keys: const *Keys, kind: u32, recordId: u64, nonce, ciphertext, tag: const [..] u8, plaintext: [..] u8)->bool fail
     {
-        if @countof(nonce) != NonceSize or @countof(tag) != TagSize or @countof(ciphertext) != @countof(plaintext) do
+        if nonce.count != NonceSize or tag.count != TagSize or ciphertext.count != plaintext.count do
             return false
         return Core.Crypto.chacha20Poly1305Open(keys.record, nonce, ciphertext, tag, associatedData(kind, recordId), plaintext)
     }

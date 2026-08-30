@@ -13,7 +13,7 @@ namespace compiler1387
         {
             count += 1
         }
-        @assert(count == 0)
+        Swag.assert(count == 0)
     }
 }
 
@@ -42,7 +42,7 @@ namespace compiler213
         {
             state += 1000
         }
-        @assert(state == 1011)
+        Swag.assert(state == 1011)
     }
 }
 
@@ -54,20 +54,20 @@ namespace compiler216
     {
         if false
         {
-            @assert(false)
+            Swag.assert(false)
         }
         else
         {
-            @assert(true)
+            Swag.assert(true)
         }
 
-        @assert(true)
+        Swag.assert(true)
         return true
     }
 
     #test
     {
-        @assert(main())
+        Swag.assert(main())
     }
 }
 
@@ -84,14 +84,14 @@ namespace compiler230
             a = a - 1; b = b + 1;
         }
 
-        @assert(a == 0)
-        @assert(b == 10)
+        Swag.assert(a == 0)
+        Swag.assert(b == 10)
         return b
     }
 
     #test
     {
-        @assert(main() == 10)
+        Swag.assert(main() == 10)
     }
 }
 
@@ -108,13 +108,13 @@ namespace compiler241
                 break
             continue
         }
-        @assert(a == 5)
+        Swag.assert(a == 5)
         return a
     }
 
     #test
     {
-        @assert(main() == 5)
+        Swag.assert(main() == 5)
     }
 }
 
@@ -134,16 +134,16 @@ namespace compiler242
                     break
                 }
             }
-            @assert(false)
+            Swag.assert(false)
         }
 
-        @assert(a == 1)
+        Swag.assert(a == 1)
         return a
     }
 
     #test
     {
-        @assert(main() == 1)
+        Swag.assert(main() == 1)
     }
 }
 
@@ -163,13 +163,13 @@ namespace compiler243
             }
         }
 
-        @assert(a == 10)
+        Swag.assert(a == 10)
         return a
     }
 
     #test
     {
-        @assert(toto() == 10)
+        Swag.assert(toto() == 10)
     }
 }
 
@@ -185,7 +185,7 @@ namespace compiler256
             i -= 1;
         }
 
-        @assert(i == 0)
+        Swag.assert(i == 0)
     }
 }
 
@@ -203,11 +203,11 @@ namespace compiler260
 
     #test
     {
-        @assert(fact(5) == 120)
-        @assert(fact(4) == 24)
-        @assert(fact(3) == 6)
-        @assert(fact(2) == 2)
-        @assert(fact(1) == 1)
+        Swag.assert(fact(5) == 120)
+        Swag.assert(fact(4) == 24)
+        Swag.assert(fact(3) == 6)
+        Swag.assert(fact(2) == 2)
+        Swag.assert(fact(1) == 1)
     }
 }
 
@@ -225,11 +225,11 @@ namespace compiler262
 
     #test
     {
-        @assert(fact(5) == 120)
-        @assert(fact(4) == 24)
-        @assert(fact(3) == 6)
-        @assert(fact(2) == 2)
-        @assert(fact(1) == 1)
+        Swag.assert(fact(5) == 120)
+        Swag.assert(fact(4) == 24)
+        Swag.assert(fact(3) == 6)
+        Swag.assert(fact(2) == 2)
+        Swag.assert(fact(1) == 1)
     }
 }
 
@@ -253,8 +253,8 @@ namespace compiler265
 
     #test
     {
-        @assert(test2(5) == 120)
-        @assert(test2(4) == 24)
+        Swag.assert(test2(5) == 120)
+        Swag.assert(test2(4) == 24)
     }
 }
 
@@ -265,14 +265,14 @@ namespace compiler303
     /*
     func compare (str1: string, str2: string)-> bool
     {
-    	var count1 = @countof(str1);
-    	var count2 = @countof(str2);
+	var count1 = str1.count;
+	var count2 = str2.count;
     	if(count1 != count2)
     		return false;
     
-    	@print(cast(s32) count1);
-    	var src = @dataof(str1);
-    	var dst = @dataof(str2);
+	Swag.print(cast(s32) count1);
+	var src = str1.buffer;
+	var dst = str2.buffer;
     	while(src[0] != 0)
     	{
     		if(src[0] != dst[0])
@@ -286,14 +286,14 @@ namespace compiler303
 
     func compare(str: string)
     {
-        let count = @countof(str)
-        @assert(count == 4)
+        let count = str.count
+        Swag.assert(count == 4)
     }
 
     #test
     {
         compare("toto")
-        @assert(@countof("toto") == 4)
+        Swag.assert(("toto").count == 4)
     }
 }
 
@@ -308,14 +308,14 @@ namespace compiler304
     /*
     func compare: (str1: string, str2: string)-> bool
     {
-    	var count1 = @countof(str1);
-    	var count2 = @countof(str2);
+	var count1 = str1.count;
+	var count2 = str2.count;
     	if(count1 != count2)
     		return false;
     
-    	@print(cast(s32) count1);
-    	var src = @dataof(str1);
-    	var dst = @dataof(str2);
+	Swag.print(cast(s32) count1);
+	var src = str1.buffer;
+	var dst = str2.buffer;
     	while(src[0] != 0)
     	{
     		if(src[0] != dst[0])
@@ -329,9 +329,9 @@ namespace compiler304
 
     #test
     {
-        @assert(g == true)
-        @assert(g1 == 666)
-        @assert(g2 == 0xF000_000F)
+        Swag.assert(g == true)
+        Swag.assert(g1 == 666)
+        Swag.assert(g2 == 0xF000_000F)
     }
 }
 
@@ -341,7 +341,7 @@ namespace compiler314
     //
     func len(str: string)->u32
     {
-        var p = @dataof(str)
+        var p = str.buffer
         var l = 0'u32
         while p[0] != 0
         {
@@ -349,13 +349,13 @@ namespace compiler314
             p += 1
         }
 
-        @assert(l == @countof(str))
+        Swag.assert(l == str.count)
         return l
     }
 
     #test
     {
-        @assert(len("toto") == 4)
-        @assert(len("tonton") == 6)
+        Swag.assert(len("toto") == 4)
+        Swag.assert(len("tonton") == 6)
     }
 }

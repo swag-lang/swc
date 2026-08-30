@@ -201,11 +201,11 @@ func(T) foreachSelected(capture: *Capture, selection: Array'u64, stmt: #code(for
         let f = capture.forms[s]
         #static if T != BaseForm
         {
-            if @kindof(f) != T do
+            if Swag.kindOf(f) != T do
                 continue
         }
 
-        #inject(stmt, form = cast(*T) @dataof(f), itf = f, idx = visitIdx)
+        #inject(stmt, form = cast(*T) f.buffer, itf = f, idx = visitIdx)
         visitIdx += 1
     }
 }
@@ -401,8 +401,8 @@ impl Capture
     {
         for it in forms
         {
-            let type = @kindof(it)
-            Memory.delete(@dataof(it), type)
+            let type = Swag.kindOf(it)
+            Memory.delete(it.buffer, type)
         }
     }
 
@@ -479,7 +479,7 @@ impl Capture
             for sel in .selection
             {
                 let f = .forms[sel]
-                let b = cast(*BaseForm) @dataof(f)
+                let b = cast(*BaseForm) f.buffer
                 if b.subKind == .PixSel do
                     continue
                 paintForm(&painter, {}, rect, f, zoom, snapMode: true)
@@ -489,7 +489,7 @@ impl Capture
         {
             for f in .forms
             {
-                let b = cast(*BaseForm) @dataof(f)
+                let b = cast(*BaseForm) f.buffer
                 if b.subKind == .PixSel do
                     continue
                 paintForm(&painter, {}, rect, f, zoom, snapMode: true)
@@ -836,9 +836,9 @@ impl Capture
             let itf = .forms[s]
 
             // Add real image
-            if !imgDone and @kindof(itf) == FormImage
+            if !imgDone and Swag.kindOf(itf) == FormImage
             {
-                let fimg = cast(*FormImage) @dataof(itf)
+                let fimg = cast(*FormImage) itf.buffer
                 if fimg.kind == .Image and fimg.image.isValid()
                 {
                     imgDone = true
@@ -947,7 +947,7 @@ impl Capture
 
         // Select added forms
         .selection.clear()
-        for i in @countof(undo.oldForms) do
+        for i in undo.oldForms.count do
             .selection.add(countBefore + i)
 
         .selectionHasChanged()
@@ -963,7 +963,7 @@ impl Capture
         for c in .formCaches
         {
             let entry = c!
-            if @dataof(entry.form) == @dataof(f) do
+            if entry.form.buffer == f.buffer do
                 return entry
         }
 
@@ -985,7 +985,7 @@ impl Capture
         for c in .formCaches
         {
             let entry = c!
-            if @kindof(entry.form!) == FormImage do
+            if Swag.kindOf(entry.form!) == FormImage do
                 entry.dirty = true
         }
     }
@@ -1009,7 +1009,7 @@ impl Capture
             var live = false
             for f in .forms
             {
-                if @dataof(f) == @dataof(c.form)
+                if f.buffer == c.form.buffer
                 {
                     live = true
                     break
@@ -1032,10 +1032,10 @@ impl Capture
     // through `dirty`); the cache honors those triggers without an undo.
     func formContentFresh(f: IForm)->bool
     {
-        if @kindof(f) != FormImage do
+        if Swag.kindOf(f) != FormImage do
             return true
 
-        let fi = cast(*FormImage) @dataof(f)
+        let fi = cast(*FormImage) f.buffer
         switch fi.kind
         {
         case .Image:   return !fi.image.isValid() or (fi.texture.isValid() and fi.textureKind == fi.kind and !fi.dirty)
@@ -1056,7 +1056,7 @@ impl Capture
     // change forces a re-render. Falls back when the extent exceeds [MaxFormCacheDim].
     mtd paintFormCached(painter: *Painter, rect: Math.Rectangle, f: IForm, zoom: f32)->bool
     {
-        let base = cast(*BaseForm) @dataof(f)
+        let base = cast(*BaseForm) f.buffer
 
         // The geometry of the direct path, without its view clip: the cache keeps the
         // whole form, so scrolling never invalidates it.
@@ -1081,7 +1081,7 @@ impl Capture
         if wt2 <= 0 or ht2 <= 0 do
             return false
 
-        let textSuperSample = @kindof(f) == FormText ? TextFormSuperSample : 1
+        let textSuperSample = Swag.kindOf(f) == FormText ? TextFormSuperSample : 1
         let scale           = painter.contentScale()
         let maxDim          = cast(s32) (MaxFormCacheDim / (scale * textSuperSample))
         if wt2 > maxDim or ht2 > maxDim do
@@ -1186,7 +1186,7 @@ impl Capture
         var savePaintPos:  Math.Rectangle
         var saveNoClipPos: Math.Rectangle
         var wt2, ht2:      s32
-        with let base = cast(*BaseForm) @dataof(f)
+        with let base = cast(*BaseForm) f.buffer
         {
             savePaintPos = .paintPos
 
@@ -1221,7 +1221,7 @@ impl Capture
             ht2 = cast(s32) (.paintPos.height - clipOffset.y)
         }
 
-        let textSuperSample = (!quickMode and @kindof(f) == FormText) ? TextFormSuperSample : 1
+        let textSuperSample = (!quickMode and Swag.kindOf(f) == FormText) ? TextFormSuperSample : 1
         var layer: Layer
         layer.begin(painter, {width: wt2, height: ht2, renderScale: textSuperSample})
 
@@ -1525,17 +1525,17 @@ impl Capture
         var result: retval
 
         let form = editForm orelse .forms[.selection[0]]
-        let type = @kindof(form)
+        let type = Swag.kindOf(form)
 
         if .selection.count == 1 and type == FormPolygon
         {
-            let poly = cast(*FormPolygon) @dataof(form)
+            let poly = cast(*FormPolygon) form.buffer
             result.x = poly.points[idxPt].x + nx
             result.y = poly.points[idxPt].y + ny
         }
         elif (.selection.count == 1 or editForm) and (type == FormLine or type == FormArrow)
         {
-            let line = cast(*FormLine) @dataof(form)
+            let line = cast(*FormLine) form.buffer
             if !right or !bottom
             {
                 result.x = line.xa
@@ -1611,8 +1611,8 @@ impl Capture
 
         for f, i in .forms
         {
-            let autoSel = .selection.contains(i) or @dataof(f) == @dataof(editForm)
-            let form    = cast(*BaseForm) @dataof(f)
+            let autoSel = .selection.contains(i) or f.buffer == editForm.buffer
+            let form    = cast(*BaseForm) f.buffer
 
             switch f
             {
@@ -1813,7 +1813,7 @@ impl Capture
             if .selection.count == 1
             {
                 let selForm = .forms[.selection[0]]
-                let p       = cast(*BaseForm) @dataof(selForm)
+                let p       = cast(*BaseForm) selForm.buffer
                 if !view.main.freezeSel or !p.freeze
                 {
                     if selForm.mouse(view, localPos, evt)
@@ -1841,7 +1841,7 @@ impl Capture
                 var ht = .hitTest(localPos)
                 if ht != Swag.U64.Max
                 {
-                    let p = cast(*BaseForm) @dataof(.forms[ht])
+                    let p = cast(*BaseForm) (.forms[ht]).buffer
                     if view.main.freezeSel and p.freeze do
                         ht = Swag.U64.Max
                 }
@@ -1973,7 +1973,7 @@ impl Capture
                 // A body-drag move ends here (it does NOT go through GizmoRect/sigHasChanged,
                 // unlike a resize). Refresh the Properties panel so x/y reflect the new
                 // position, mirroring the rotate path.
-                if wasMoving and @isset(view.main.propWnd) do
+                if wasMoving and Swag.isSet(view.main.propWnd) do
                     view.main.propWnd.selectionHasChanged()
             }
         }
@@ -2098,7 +2098,7 @@ impl Capture
                 let mode = editView.main.getEditMode()
                 let itf  = editView.main.newFormFromModel(mode, clear: true)
                 itf.setup(me)
-                let base = cast(*BaseForm) @dataof(itf)
+                let base = cast(*BaseForm) itf.buffer
                 if editView.main.editMode == .PixSel do
                     base.subKind = .PixSel
                 let undo = .newUndo(.CreateForm)
@@ -2165,7 +2165,7 @@ impl Capture
         if !.forms.count do
             return result
         let editView = .editView!
-        for i in @countof(.forms).reversed()
+        for i in (.forms).count.reversed()
         {
             let f = .forms[i]
             if !f.hitTest(localPos, editView.zoom) do
@@ -2186,7 +2186,7 @@ impl Capture
     {
         if .selection.isEmpty() do
             return null
-        return cast(*BaseForm) @dataof(.forms[.selection.back()])
+        return cast(*BaseForm) (.forms[.selection.back()]).buffer
     }
 
     mtd getSelectedFormType()->#null typeinfo
@@ -2194,7 +2194,7 @@ impl Capture
         if .selection.isEmpty() do
             return null
         let i = .forms[.selection.back()]
-        return @kindof(i)
+        return Swag.kindOf(i)
     }
 
     mtd updateEditModeFromSelection()
@@ -2245,7 +2245,7 @@ impl Capture
     // grouped form expands to every form sharing this id, so a group moves as a whole.
     func formOuterGroup(f: IForm)->u64
     {
-        let b = cast(*BaseForm) @dataof(f)
+        let b = cast(*BaseForm) f.buffer
         if b.groups.isEmpty() do
             return 0
         return b.groups[0]
@@ -2336,7 +2336,7 @@ impl Capture
 
         for f in forms
         {
-            let b = cast(*BaseForm) @dataof(f)
+            let b = cast(*BaseForm) f.buffer
             for gid in b.groups
             {
                 if gid == 0 or groupIndexOf(oldIds, gid) >= 0 do
@@ -2348,7 +2348,7 @@ impl Capture
 
         for f in forms
         {
-            let b = cast(*BaseForm) @dataof(f)
+            let b = cast(*BaseForm) f.buffer
             for i in b.groups.count
             {
                 let idx = groupIndexOf(oldIds, b.groups[i])

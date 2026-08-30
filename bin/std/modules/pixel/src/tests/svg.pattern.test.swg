@@ -12,10 +12,10 @@ using Swag, Core
 
     let drawing = expect Svg.Drawing.parse(Source)
     let image   = drawing.rasterize(20, 12, 1)
-    @assert(image.pixelColor(0, 6).a == 0)
+    Swag.assert(image.pixelColor(0, 6).a == 0)
     let red  = image.pixelColor(4, 6)
     let blue = image.pixelColor(6, 6)
-    @assert(red.r > 200 and red.b < 32 and red.a == 255)
-    @assert(blue.b > 200 and blue.r < 32 and blue.a == 255)
-    @assert(image.pixelColor(19, 6).a == 0)
+    Swag.assert(red.r > 200 and red.b < 32 and red.a == 255)
+    Swag.assert(blue.b > 200 and blue.r < 32 and blue.a == 255)
+    Swag.assert(image.pixelColor(19, 6).a == 0)
 }

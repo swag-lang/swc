@@ -31,8 +31,8 @@ operation that can reallocate that source.
 ```swag
 using Core
 
-let password = @mkslice(cast(const [*] u8) @dataof("password"), 8)
-let salt     = @mkslice(cast(const [*] u8) @dataof("application salt"), 16)
+let password = Swag.makeSlice(cast(const [*] u8) ("password").buffer, 8)
+let salt     = Swag.makeSlice(cast(const [*] u8) ("application salt").buffer, 16)
 var key: [32] u8
 
 try Crypto.pbkdf2HmacSha256(password, salt, 200_000, key)
@@ -72,7 +72,7 @@ let preview = try reader.readChunk(previewId)
 
 #run
 {
-    let itf = @compiler
+    let itf = Swag.compiler()
     let cfg = itf.getBuildCfg()!
     cfg.moduleVersion   = #swcversion
     cfg.moduleRevision  = #swcrevision

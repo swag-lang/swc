@@ -28,7 +28,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 {
     var result: u32
 
-    while index[] < @countof(bytes) and bytes[index[]] >= '0' and bytes[index[]] <= '9'
+    while index[] < bytes.count and bytes[index[]] >= '0' and bytes[index[]] <= '9'
     {
         result  = result * 10'u32 + cast(u32) (bytes[index[]] - '0')
         index[] += 1
@@ -52,8 +52,8 @@ func parsePoint(text: string)->Point2
 
 func estimateReplacementArea(pointLines: const [..] string)->RectangleEstimate
 {
-    @assert(@countof(pointLines) > 1)
-    @assert(@countof(pointLines) <= 24)
+    Swag.assert(pointLines.count > 1)
+    Swag.assert(pointLines.count <= 24)
 
     var points: [24] Point2
     var result: RectangleEstimate
@@ -63,14 +63,14 @@ func estimateReplacementArea(pointLines: const [..] string)->RectangleEstimate
         points[index] = parsePoint(line)
     }
 
-    result.pointCount = cast(u32) @countof(pointLines)
+    result.pointCount = cast(u32) pointLines.count
 
-    for lhs in @countof(pointLines)
+    for lhs in pointLines.count
     {
-        if cast(u32) lhs + 1 >= @countof(pointLines) do
+        if cast(u32) lhs + 1 >= pointLines.count do
             continue
 
-        for rhs in cast(u32) lhs + 1 to @countof(pointLines) - 1
+        for rhs in cast(u32) lhs + 1 to pointLines.count - 1
         {
             let a      = points[lhs]
             let b      = points[rhs]
@@ -108,12 +108,12 @@ func estimateReplacementArea(pointLines: const [..] string)->RectangleEstimate
 
     let sampleEstimate = estimateReplacementArea(sampleTiles)
 
-    @assert(sampleEstimate.pointCount == 8'u32)
-    @assert(sampleEstimate.bestArea == 50'u64)
-    @assert(sampleEstimate.bestLeft == 2'u32)
-    @assert(sampleEstimate.bestRight == 11'u32)
-    @assert(sampleEstimate.bestTop == 1'u32)
-    @assert(sampleEstimate.bestBottom == 5'u32)
+    Swag.assert(sampleEstimate.pointCount == 8'u32)
+    Swag.assert(sampleEstimate.bestArea == 50'u64)
+    Swag.assert(sampleEstimate.bestLeft == 2'u32)
+    Swag.assert(sampleEstimate.bestRight == 11'u32)
+    Swag.assert(sampleEstimate.bestTop == 1'u32)
+    Swag.assert(sampleEstimate.bestBottom == 5'u32)
 
     const lobbyTiles: [6] string =
         [
@@ -127,10 +127,10 @@ func estimateReplacementArea(pointLines: const [..] string)->RectangleEstimate
 
     let lobbyEstimate = estimateReplacementArea(lobbyTiles)
 
-    @assert(lobbyEstimate.pointCount == 6'u32)
-    @assert(lobbyEstimate.bestArea == 64'u64)
-    @assert(lobbyEstimate.bestLeft == 1'u32)
-    @assert(lobbyEstimate.bestRight == 8'u32)
-    @assert(lobbyEstimate.bestTop == 2'u32)
-    @assert(lobbyEstimate.bestBottom == 9'u32)
+    Swag.assert(lobbyEstimate.pointCount == 6'u32)
+    Swag.assert(lobbyEstimate.bestArea == 64'u64)
+    Swag.assert(lobbyEstimate.bestLeft == 1'u32)
+    Swag.assert(lobbyEstimate.bestRight == 8'u32)
+    Swag.assert(lobbyEstimate.bestTop == 2'u32)
+    Swag.assert(lobbyEstimate.bestBottom == 9'u32)
 }

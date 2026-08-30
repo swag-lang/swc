@@ -50,33 +50,33 @@ struct InlineShape
 #test
 {
     let named = Shape{sides: 5, angle: 1.5}
-    @assert(named.sides == 5)
-    @assert(named.angle.value == 101.5)
+    Swag.assert(named.sides == 5)
+    Swag.assert(named.angle.value == 101.5)
 }
 
 #test
 {
     let positional = Shape{5, 1.5}
-    @assert(positional.sides == 5)
-    @assert(positional.angle.value == 101.5)
+    Swag.assert(positional.sides == 5)
+    Swag.assert(positional.angle.value == 101.5)
 }
 
 #test
 {
     var source: f32 = 1.5
     let runtime     = Shape{sides: 5, angle: source}
-    @assert(runtime.angle.value == 101.5)
+    Swag.assert(runtime.angle.value == 101.5)
 }
 
 #test
 {
     let inlined = InlineShape{sides: 5, angle: 1.5}
-    @assert(inlined.angle.value == 101.5)
+    Swag.assert(inlined.angle.value == 101.5)
 }
 
 #test
 {
     // The same conversion outside a literal, as the control the named form must match.
     let direct: Radians = 1.5
-    @assert(direct.value == 101.5)
+    Swag.assert(direct.value == 101.5)
 }

@@ -20,7 +20,7 @@ struct DereferenceStrictAA
     var v:  *AA = &st
     var v1      = v[]
     #assert(#typeof(v1) == AA)
-    @assert(v1.x == 0)
+    Swag.assert(v1.x == 0)
 }
 
 // Dereference strict alias pointer
@@ -30,7 +30,7 @@ struct DereferenceStrictAA
     let v  = cast(DereferenceStrictAAPtr) &st
     var v1 = v[]
     #assert(#typeof(v1) == DereferenceStrictAA)
-    @assert(v1.x == 12)
+    Swag.assert(v1.x == 12)
 }
 
 // Member access through strict alias pointer
@@ -38,7 +38,7 @@ struct DereferenceStrictAA
 {
     var st = DereferenceStrictAA{x: 19}
     let v  = cast(DereferenceStrictAAPtr) &st
-    @assert(v.x == 19)
+    Swag.assert(v.x == 19)
 }
 
 // Member write through strict alias pointer
@@ -47,7 +47,7 @@ struct DereferenceStrictAA
     var st = DereferenceStrictAA{x: 23}
     let v  = cast(DereferenceStrictAAPtr) &st
     v.x = 31
-    @assert(st.x == 31)
+    Swag.assert(st.x == 31)
 }
 
 // Dereference const pointer to struct
@@ -62,7 +62,7 @@ struct DereferenceStrictAA
     var v:  const *AA = &st
     var v1            = v[]
     #assert(#typeof(v1) == AA)
-    @assert(v1.x == 0)
+    Swag.assert(v1.x == 0)
 }
 
 // Dereference inferred pointer type
@@ -78,7 +78,7 @@ struct DereferenceStrictAA
     var v1 = v[]
     #assert(#typeof(v) == *AA)
     #assert(#typeof(v1) == AA)
-    @assert(v1.x == 0)
+    Swag.assert(v1.x == 0)
 }
 
 // Dereference double pointer
@@ -95,7 +95,7 @@ struct DereferenceStrictAA
     var v1      = pp[]
     #assert(#typeof(pp) == **AA)
     #assert(#typeof(v1) == *AA)
-    @assert(v1 == v)
+    Swag.assert(v1 == v)
 }
 
 // Dereference address-of expression directly
@@ -109,5 +109,5 @@ struct DereferenceStrictAA
     var st: AA
     var v1 = (&st)[]
     #assert(#typeof(v1) == AA)
-    @assert(v1.x == 0)
+    Swag.assert(v1.x == 0)
 }

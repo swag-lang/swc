@@ -24,7 +24,7 @@ impl IWnd for ComboCtrl
 {
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if !@isset(.label) do
+        if !Swag.isSet(.label) do
             return
 
         let rect   = .clientRect()

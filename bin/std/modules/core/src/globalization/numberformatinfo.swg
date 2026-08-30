@@ -22,7 +22,7 @@ public impl NumberFormatInfo
     {
         if !.groupSizeCount do
             return 0
-        let safeCount = Math.min(cast(u64) .groupSizeCount, @countof(.groupSizes))
+        let safeCount = Math.min(cast(u64) .groupSizeCount, (.groupSizes).count)
         let safeIndex = Math.min(index, safeCount - 1)
         return .groupSizes[safeIndex]
     }

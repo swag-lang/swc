@@ -56,17 +56,17 @@ public impl Poly1305
     // Replaces any previous state and starts a new sequence for `key`.
     mtd reset(key: const [..] u8) fail
     {
-        if @countof(key) != Poly1305KeySize do
+        if key.count != Poly1305KeySize do
             fail Errors.BadParameterError{"Poly1305 needs a 32-byte key"}
 
         .clear()
 
         // The first half of the key is clamped: the masks are what keep every
         // partial product inside the range the limb arithmetic below assumes.
-        let t0 = load32Le(@dataof(key))
-        let t1 = load32Le(@dataof(key) + 4)
-        let t2 = load32Le(@dataof(key) + 8)
-        let t3 = load32Le(@dataof(key) + 12)
+        let t0 = load32Le(key.buffer)
+        let t1 = load32Le(key.buffer + 4)
+        let t2 = load32Le(key.buffer + 8)
+        let t3 = load32Le(key.buffer + 12)
         .r[0] = t0 & 0x3FF_FFFF
         .r[1] = ((t0 >> 26) | (t1 << 6)) & 0x3FF_FF03
         .r[2] = ((t1 >> 20) | (t2 << 12)) & 0x3FF_C0FF
@@ -75,7 +75,7 @@ public impl Poly1305
 
         // The second half is added once, at finalization.
         for i in 4 do
-            .pad[i] = load32Le(@dataof(key) + Poly1305BlockSize + i * 4)
+            .pad[i] = load32Le(key.buffer + Poly1305BlockSize + i * 4)
         .initialized = true
     }
 
@@ -85,10 +85,10 @@ public impl Poly1305
         Debug.assert(.initialized, "Poly1305 needs an initialized sequence")
 
         var offset = 0'u64
-        while offset < @countof(data)
+        while offset < data.count
         {
-            let count = Math.min(@countof(data) - offset, Poly1305BlockSize - .bufferCount)
-            @memcpy(&.buffer[.bufferCount], @dataof(data) + offset, count)
+            let count = Math.min(data.count - offset, Poly1305BlockSize - .bufferCount)
+            Swag.memcpy(&.buffer[.bufferCount], data.buffer + offset, count)
             .bufferCount += count
             offset       += count
             if .bufferCount == Poly1305BlockSize
@@ -110,7 +110,7 @@ public impl Poly1305
         if .bufferCount
         {
             .buffer[.bufferCount] = 1
-            @memset(&.buffer[.bufferCount + 1], 0, Poly1305BlockSize - .bufferCount - 1)
+            Swag.memset(&.buffer[.bufferCount + 1], 0, Poly1305BlockSize - .bufferCount - 1)
             .absorb(.buffer, 0)
             .bufferCount = 0
         }
@@ -202,10 +202,10 @@ public impl Poly1305
     // 2^130 - 5. `terminator` carries the implicit high bit of a full block.
     private mtd absorb(block: const [..] u8, terminator: u64)
     {
-        let t0 = load32Le(@dataof(block))
-        let t1 = load32Le(@dataof(block) + 4)
-        let t2 = load32Le(@dataof(block) + 8)
-        let t3 = load32Le(@dataof(block) + 12)
+        let t0 = load32Le(block.buffer)
+        let t1 = load32Le(block.buffer + 4)
+        let t2 = load32Le(block.buffer + 8)
+        let t3 = load32Le(block.buffer + 12)
 
         var h = .accumulator
         h[0] += t0 & 0x3FF_FFFF

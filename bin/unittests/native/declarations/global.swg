@@ -17,15 +17,15 @@ var GText:  string  = "abc"
 
 #test
 {
-    @assert(GZero == 0)
-    @assert(GInt == 21)
-    @assert(GBool)
-    @assert(GPair.x == 7)
-    @assert(GPair.y == 9)
-    @assert(GArray[0] == 1)
-    @assert(GArray[1] == 2)
-    @assert(GArray[2] == 3)
-    @assert(GText == "abc")
+    Swag.assert(GZero == 0)
+    Swag.assert(GInt == 21)
+    Swag.assert(GBool)
+    Swag.assert(GPair.x == 7)
+    Swag.assert(GPair.y == 9)
+    Swag.assert(GArray[0] == 1)
+    Swag.assert(GArray[1] == 2)
+    Swag.assert(GArray[2] == 3)
+    Swag.assert(GText == "abc")
 
     GZero     = 42
     GInt      += 9
@@ -37,22 +37,22 @@ var GText:  string  = "abc"
     GArray[2] = 30
     GText     = "xyz"
 
-    @assert(GZero == 42)
-    @assert(GInt == 30)
-    @assert(!GBool)
-    @assert(GPair.x == -5)
-    @assert(GPair.y == 33)
-    @assert(GArray[0] == 10)
-    @assert(GArray[1] == 20)
-    @assert(GArray[2] == 30)
-    @assert(GText == "xyz")
+    Swag.assert(GZero == 42)
+    Swag.assert(GInt == 30)
+    Swag.assert(!GBool)
+    Swag.assert(GPair.x == -5)
+    Swag.assert(GPair.y == 33)
+    Swag.assert(GArray[0] == 10)
+    Swag.assert(GArray[1] == 20)
+    Swag.assert(GArray[2] == 30)
+    Swag.assert(GText == "xyz")
 
     var pInt = &GInt
     pInt[] = 77
-    @assert(GInt == 77)
+    Swag.assert(GInt == 77)
 
     var pPair = &GPair
     pPair[] = {x: 100, y: 200}
-    @assert(GPair.x == 100)
-    @assert(GPair.y == 200)
+    Swag.assert(GPair.x == 100)
+    Swag.assert(GPair.y == 200)
 }

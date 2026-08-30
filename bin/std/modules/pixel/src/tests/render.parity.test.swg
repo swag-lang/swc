@@ -371,10 +371,10 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 {
     const Tolerance = 3
     let got = image.pixelColor(x, y)
-    @assert(Math.abs(cast(s32) got.a - cast(s32) expected.a) <= Tolerance)
-    @assert(Math.abs(cast(s32) got.r - cast(s32) expected.r) <= Tolerance)
-    @assert(Math.abs(cast(s32) got.g - cast(s32) expected.g) <= Tolerance)
-    @assert(Math.abs(cast(s32) got.b - cast(s32) expected.b) <= Tolerance)
+    Swag.assert(Math.abs(cast(s32) got.a - cast(s32) expected.a) <= Tolerance)
+    Swag.assert(Math.abs(cast(s32) got.r - cast(s32) expected.r) <= Tolerance)
+    Swag.assert(Math.abs(cast(s32) got.g - cast(s32) expected.g) <= Tolerance)
+    Swag.assert(Math.abs(cast(s32) got.b - cast(s32) expected.b) <= Tolerance)
 }
 
 // The rasterized document keeps its authored colors and coverage, and leaves the pixels it
@@ -399,9 +399,9 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
     // The half-transparent circle over the rounded rect resolves to a blend of the two,
     // opaque because the rect below it is.
     let blended = image.pixelColor(38, 24)
-    @assert(blended.a == 255)
-    @assert(blended.r > 0x2E and blended.r < 0xEF)
-    @assert(blended.b > 0x6F and blended.b < 0xDE)
+    Swag.assert(blended.a == 255)
+    Swag.assert(blended.r > 0x2E and blended.r < 0xEF)
+    Swag.assert(blended.b > 0x6F and blended.b < 0xDE)
 }
 
 // Both backends run the same submission, so the rasterized document must come out the same
@@ -572,9 +572,9 @@ private func assertPlanarCornersUpright(image: const *Image, view: const *Yuv420
         let chromaAt = cast(u64) (y >> 1) * view.chromaStride + cast(u64) (x >> 1)
         let expected = expectedPlanarColor(view.luma[cast(u64) y * view.lumaStride + cast(u64) x], view.chromaB[chromaAt], view.chromaR[chromaAt], view.matrix, view.studioRange)
         let actual   = image.pixelColor(x, y)
-        @assert(Math.abs(cast(s32) actual.r - cast(s32) expected.r) <= 1)
-        @assert(Math.abs(cast(s32) actual.g - cast(s32) expected.g) <= 1)
-        @assert(Math.abs(cast(s32) actual.b - cast(s32) expected.b) <= 1)
+        Swag.assert(Math.abs(cast(s32) actual.r - cast(s32) expected.r) <= 1)
+        Swag.assert(Math.abs(cast(s32) actual.g - cast(s32) expected.g) <= 1)
+        Swag.assert(Math.abs(cast(s32) actual.b - cast(s32) expected.b) <= 1)
     }
 }
 

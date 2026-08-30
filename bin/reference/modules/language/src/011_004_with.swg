@@ -54,8 +54,8 @@ the variable name.
         .y = 2     // Equivalent to 'pt.y = 2'
     }
 
-    @assert(pt.x == 1)
-    @assert(pt.y == 2)
+    Swag.assert(pt.x == 1)
+    Swag.assert(pt.y == 2)
 }
 
 /**
@@ -69,12 +69,12 @@ Inside a 'with' block, you can invoke methods and access fields directly.
     {
         .setOne()     // Equivalent to 'pt.setOne()'
         .y = 2        // Adjust a single field afterward
-        @assert(.x == 1)
-        @assert(.y == 2)
+        Swag.assert(.x == 1)
+        Swag.assert(.y == 2)
     }
 
-    @assert(pt.x == 1)
-    @assert(pt.y == 2)
+    Swag.assert(pt.x == 1)
+    Swag.assert(pt.y == 2)
 }
 
 /**
@@ -103,7 +103,7 @@ immediately inside the block.
         .y = 20
     }
 
-    @assert(pt.x == 10 and pt.y == 20)
+    Swag.assert(pt.x == 10 and pt.y == 20)
 }
 
 #test
@@ -114,7 +114,7 @@ immediately inside the block.
         .y = 20
     }
 
-    @assert(pt.x == 10 and pt.y == 20)
+    Swag.assert(pt.x == 10 and pt.y == 20)
 }
 
 /**
@@ -131,5 +131,5 @@ immediately.
         .y = 20
     }
 
-    @assert(pt.x == 10 and pt.y == 20)
+    Swag.assert(pt.x == 10 and pt.y == 20)
 }

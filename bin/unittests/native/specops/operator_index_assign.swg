@@ -124,15 +124,15 @@ struct RuntimeIndexAssignHolder
     var box = RuntimeIndexAssignBox{values: [2, 3]}
     box[0] += 5
 
-    @assert(box.values[0] == 7)
-    @assert(box.values[1] == 3)
-    @assert(box.writes == 1)
-    @assert(box.shifts == 0)
-    @assert(box.reads == 0)
+    Swag.assert(box.values[0] == 7)
+    Swag.assert(box.values[1] == 3)
+    Swag.assert(box.writes == 1)
+    Swag.assert(box.shifts == 0)
+    Swag.assert(box.reads == 0)
 
     let observed = box[0]
-    @assert(observed == 7)
-    @assert(box.reads == 1)
+    Swag.assert(observed == 7)
+    Swag.assert(box.reads == 1)
 }
 
 #test
@@ -140,11 +140,11 @@ struct RuntimeIndexAssignHolder
     var box = RuntimeIndexAssignBox{values: [2, 3]}
     box[1] *= 4
 
-    @assert(box.values[0] == 2)
-    @assert(box.values[1] == 12)
-    @assert(box.writes == 1)
-    @assert(box.shifts == 0)
-    @assert(box.reads == 0)
+    Swag.assert(box.values[0] == 2)
+    Swag.assert(box.values[1] == 12)
+    Swag.assert(box.writes == 1)
+    Swag.assert(box.shifts == 0)
+    Swag.assert(box.reads == 0)
 }
 
 #test
@@ -152,11 +152,11 @@ struct RuntimeIndexAssignHolder
     var box = RuntimeIndexAssignBox{values: [3, 5]}
     box[0] <<= 2'u32
 
-    @assert(box.values[0] == 12)
-    @assert(box.values[1] == 5)
-    @assert(box.writes == 0)
-    @assert(box.shifts == 1)
-    @assert(box.reads == 0)
+    Swag.assert(box.values[0] == 12)
+    Swag.assert(box.values[1] == 5)
+    Swag.assert(box.writes == 0)
+    Swag.assert(box.shifts == 1)
+    Swag.assert(box.reads == 0)
 }
 
 #test
@@ -169,15 +169,15 @@ struct RuntimeIndexAssignHolder
     holder.value[1]     += 6
     holder.writeOnly[0] += 7
 
-    @assert(holder.value.values[0] == 1)
-    @assert(holder.value.values[1] == 16)
-    @assert(holder.value.writes == 1)
-    @assert(holder.value.shifts == 0)
-    @assert(holder.value.reads == 0)
+    Swag.assert(holder.value.values[0] == 1)
+    Swag.assert(holder.value.values[1] == 16)
+    Swag.assert(holder.value.writes == 1)
+    Swag.assert(holder.value.shifts == 0)
+    Swag.assert(holder.value.reads == 0)
 
-    @assert(holder.writeOnly.first == 11)
-    @assert(holder.writeOnly.second == 9)
-    @assert(holder.writeOnly.writes == 1)
+    Swag.assert(holder.writeOnly.first == 11)
+    Swag.assert(holder.writeOnly.second == 9)
+    Swag.assert(holder.writeOnly.writes == 1)
 }
 
 #test
@@ -185,14 +185,14 @@ struct RuntimeIndexAssignHolder
     var box = RuntimeRefIndexAssignBox{values: [10, 20]}
     box[0] += 7
 
-    @assert(box.values[0] == 17)
-    @assert(box.values[1] == 20)
-    @assert(box.writes == 1)
-    @assert(box.reads == 0)
+    Swag.assert(box.values[0] == 17)
+    Swag.assert(box.values[1] == 20)
+    Swag.assert(box.writes == 1)
+    Swag.assert(box.reads == 0)
 
     let observed = box[0]
-    @assert(observed == 17)
-    @assert(box.reads == 1)
+    Swag.assert(observed == 17)
+    Swag.assert(box.reads == 1)
 }
 
 #test
@@ -200,8 +200,8 @@ struct RuntimeIndexAssignHolder
     var box = RuntimeMultiIndexAssignBox{values: [1, 2, 3, 4]}
     box[0, 1] += 8
 
-    @assert(box.values[0] == 1)
-    @assert(box.values[1] == 10)
-    @assert(box.writes == 1)
-    @assert(box.reads == 0)
+    Swag.assert(box.values[0] == 1)
+    Swag.assert(box.values[1] == 10)
+    Swag.assert(box.writes == 1)
+    Swag.assert(box.reads == 0)
 }

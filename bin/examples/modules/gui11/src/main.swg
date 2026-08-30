@@ -224,7 +224,7 @@ func buildStagePage(parent: *Wnd)->*Wnd
 
     let easing = ComboBox.create(controls)
     g_StageEasing = easing
-    for index in @countof(WallCurves) do
+    for index in WallCurves.count do
         discard easing.addItem(curveName(WallCurves[index]))
     easing.setSelectedIndex(5, false)
     easing.sigChanged += func(box, index)
@@ -401,7 +401,7 @@ func buildFieldPage(parent: *Wnd)->*Wnd
 
     let easing = ComboBox.create(controls)
     g_FieldEasing = easing
-    for index in @countof(WallCurves) do
+    for index in WallCurves.count do
         discard easing.addItem(curveName(WallCurves[index]))
     easing.setSelectedIndex(2, false)
     easing.sigChanged += func(box, index)

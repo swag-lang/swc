@@ -167,10 +167,10 @@ func readTemplateInline()->Tracked
     resetHooks(7)
     {
         var x = makeResource()
-        @assert(x.id == 7)
+        Swag.assert(x.id == 7)
     }
-    @assert(DropCount == 1)
-    @assert(DropTrace == 7)
+    Swag.assert(DropCount == 1)
+    Swag.assert(DropTrace == 7)
 }
 
 // A full-lifecycle local runs 'opPostMove' on the way out, never 'opPostCopy'.
@@ -179,11 +179,11 @@ func readTemplateInline()->Tracked
     resetHooks(9)
     {
         var x = makeTracked()
-        @assert(x.value == 9)
+        Swag.assert(x.value == 9)
     }
-    @assert(PostMoveCount == 1)
-    @assert(PostCopyCount == 0)
-    @assert(DropCount == 1)
+    Swag.assert(PostMoveCount == 1)
+    Swag.assert(PostCopyCount == 0)
+    Swag.assert(DropCount == 1)
 }
 
 // Forwarding an owned call result moves it again instead of deep-copying it.
@@ -192,10 +192,10 @@ func readTemplateInline()->Tracked
     resetHooks(11)
     {
         var x = forwardTracked()
-        @assert(x.value == 11)
+        Swag.assert(x.value == 11)
     }
-    @assert(PostCopyCount == 0)
-    @assert(DropCount == 1)
+    Swag.assert(PostCopyCount == 0)
+    Swag.assert(DropCount == 1)
 }
 
 // Each return site moves independently, branch or not.
@@ -205,20 +205,20 @@ func readTemplateInline()->Tracked
     g_cond = true
     {
         var x = makeTrackedBranch()
-        @assert(x.value == 13)
+        Swag.assert(x.value == 13)
     }
-    @assert(PostCopyCount == 0)
-    @assert(DropCount == 1)
+    Swag.assert(PostCopyCount == 0)
+    Swag.assert(DropCount == 1)
 
     resetHooks(17)
     g_cond = false
     {
         var x = makeTrackedBranch()
-        @assert(x.value == 17)
+        Swag.assert(x.value == 17)
     }
-    @assert(g_sink == 17)
-    @assert(PostCopyCount == 0)
-    @assert(DropCount == 1)
+    Swag.assert(g_sink == 17)
+    Swag.assert(PostCopyCount == 0)
+    Swag.assert(DropCount == 1)
 }
 
 // A 'defer' still observes the local after the return: the value is copied out and the
@@ -229,11 +229,11 @@ func readTemplateInline()->Tracked
     g_sink = 0
     {
         var x = makeTrackedDeferred()
-        @assert(x.value == 19)
+        Swag.assert(x.value == 19)
     }
-    @assert(g_sink == 19)
-    @assert(PostCopyCount == 1)
-    @assert(DropCount == 2)
+    Swag.assert(g_sink == 19)
+    Swag.assert(PostCopyCount == 1)
+    Swag.assert(DropCount == 2)
 }
 
 // A register-returned struct transfers its bits without any hook; the local's drop is
@@ -243,10 +243,10 @@ func readTemplateInline()->Tracked
     resetHooks(21)
     {
         var x = makeSmallTracked()
-        @assert(x.value == 21)
+        Swag.assert(x.value == 21)
     }
-    @assert(DropCount == 1)
-    @assert(DropTrace == 21)
+    Swag.assert(DropCount == 1)
+    Swag.assert(DropTrace == 21)
 }
 
 // A 'retval' local is built straight in the caller's slot: returning it runs no hook
@@ -258,12 +258,12 @@ func readTemplateInline()->Tracked
     resetHooks(27)
     {
         var x = makeTrackedRetval()
-        @assert(x.value == 27)
+        Swag.assert(x.value == 27)
     }
-    @assert(PostMoveCount == 0)
-    @assert(PostCopyCount == 0)
-    @assert(DropCount == 1)
-    @assert(DropTrace == 27)
+    Swag.assert(PostMoveCount == 0)
+    Swag.assert(PostCopyCount == 0)
+    Swag.assert(DropCount == 1)
+    Swag.assert(DropTrace == 27)
 }
 
 // An inlined return moves the local out: 'opPostMove' runs into the result slot and
@@ -275,11 +275,11 @@ func readTemplateInline()->Tracked
     resetHooks(23)
     {
         var x = makeTrackedInline()
-        @assert(x.value == 23)
+        Swag.assert(x.value == 23)
     }
-    @assert(PostMoveCount == 1)
-    @assert(PostCopyCount <= 1)
-    @assert(DropCount == 1)
+    Swag.assert(PostMoveCount == 1)
+    Swag.assert(PostCopyCount <= 1)
+    Swag.assert(DropCount == 1)
 }
 
 // An inlined return of a live lvalue deep-copies it: the source stays untouched, no
@@ -290,14 +290,14 @@ func readTemplateInline()->Tracked
     resetHooks(0)
     {
         var x = readTemplateInline()
-        @assert(x.value == 41)
+        Swag.assert(x.value == 41)
         x.value = 1
     }
-    @assert(g_Template.value == 41)
-    @assert(PostCopyCount >= 1)
-    @assert(PostMoveCount == 0)
-    @assert(DropCount == 1)
-    @assert(DropTrace == 1)
+    Swag.assert(g_Template.value == 41)
+    Swag.assert(PostCopyCount >= 1)
+    Swag.assert(PostMoveCount == 0)
+    Swag.assert(DropCount == 1)
+    Swag.assert(DropTrace == 1)
 }
 
 // Ownership stays one-to-one across repeated calls.
@@ -309,5 +309,5 @@ func readTemplateInline()->Tracked
         var x = makeResource()
         g_sink += x.id
     }
-    @assert(DropCount == 8)
+    Swag.assert(DropCount == 8)
 }

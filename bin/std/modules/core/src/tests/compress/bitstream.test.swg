@@ -5,12 +5,12 @@ using Swag
 
 func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 {
-    if @countof(actual) != @countof(expected) do
+    if actual.count != expected.count do
         return false
 
-    for @countof(actual)
+    for actual.count
     {
-        if actual[@index] != expected[@index] do
+        if actual[Swag.index] != expected[Swag.index] do
             return false
     }
 
@@ -20,23 +20,23 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 #test
 {
     let input: [3] u8 = [0xCA, 0x74, 0x05]
-    let start         = cast(const [*] u8) @dataof(input)
+    let start         = cast(const [*] u8) input.buffer
 
     var stream: Compress.BitStream
     stream.reset(input)
 
-    @assert(stream.size() == 3)
-    @assert(stream.currentPointer() == start)
-    @assert(stream.bytePosition() == 0)
+    Swag.assert(stream.size() == 3)
+    Swag.assert(stream.currentPointer() == start)
+    Swag.assert(stream.bytePosition() == 0)
 
-    @assert(stream.peekBits(4) == 0xA)
-    @assert(stream.readBits(4) == 0xA)
-    @assert(stream.peekBitsUnchecked(4) == 0xC)
-    @assert(stream.readBitsUnchecked(4) == 0xC)
-    @assert(stream.readBits(8) == 0x74)
-    @assert(stream.readBits(8) == 0x05)
-    @assert(stream.currentPointer() == start + 3)
-    @assert(stream.isEof())
+    Swag.assert(stream.peekBits(4) == 0xA)
+    Swag.assert(stream.readBits(4) == 0xA)
+    Swag.assert(stream.peekBitsUnchecked(4) == 0xC)
+    Swag.assert(stream.readBitsUnchecked(4) == 0xC)
+    Swag.assert(stream.readBits(8) == 0x74)
+    Swag.assert(stream.readBits(8) == 0x05)
+    Swag.assert(stream.currentPointer() == start + 3)
+    Swag.assert(stream.isEof())
 }
 
 #test
@@ -70,7 +70,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
         if got != exp do
             Console.println("BITSTREAM DIVERGE bitPos=", bitPos, " w=", w, " got=", got, " exp=", exp)
-        @assert(got == exp)
+        Swag.assert(got == exp)
         bitPos += w
     }
 }
@@ -82,26 +82,26 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     var stream: Compress.BitStream
     stream.reset(input)
 
-    @assert(stream.readBits(3) == 6)
+    Swag.assert(stream.readBits(3) == 6)
     stream.discardToNextByte()
-    @assert(stream.readBits(8) == 0xAB)
+    Swag.assert(stream.readBits(8) == 0xAB)
 }
 
 #test
 {
     let input: [3] u8 = [0xAA, 0xBB, 0xCC]
-    let start         = cast(const [*] u8) @dataof(input)
+    let start         = cast(const [*] u8) input.buffer
 
     var stream: Compress.BitStream
     stream.reset(input)
     stream.refill(8)
 
-    @assert(stream.readBitsUnchecked(8) == 0xAA)
+    Swag.assert(stream.readBitsUnchecked(8) == 0xAA)
     stream.revert()
 
-    @assert(stream.currentPointer() == start + 1)
-    @assert(stream.readBits(8) == 0xBB)
-    @assert(stream.readBits(8) == 0xCC)
+    Swag.assert(stream.currentPointer() == start + 1)
+    Swag.assert(stream.readBits(8) == 0xBB)
+    Swag.assert(stream.readBits(8) == 0xCC)
 }
 
 #test
@@ -115,9 +115,9 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     var bytes:    [3] u8
     stream.peekBytes(3, &bytes[0])
 
-    @assert(assertBytes(bytes, expected))
-    @assert(stream.readBits(8) == 0x40)
-    @assert(stream.readBits(8) == 0x50)
+    Swag.assert(assertBytes(bytes, expected))
+    Swag.assert(stream.readBits(8) == 0x40)
+    Swag.assert(stream.readBits(8) == 0x50)
 }
 
 #test
@@ -129,7 +129,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     let expectedDirect: [4] u8 = [0x10, 0x20, 0x30, 0x40]
     var direct:         [4] u8
     littleEndianView.peek32(&direct[0])
-    @assert(assertBytes(direct, expectedDirect))
+    Swag.assert(assertBytes(direct, expectedDirect))
 
     var bigEndianView: Compress.BitStream
     bigEndianView.reset(input)
@@ -137,7 +137,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     bigEndianView.peek32Be(&converted[0])
 
     #static if BIG_ENDIAN do
-        @assert(assertBytes(converted, expectedDirect))
+        Swag.assert(assertBytes(converted, expectedDirect))
     else do
-        @assert(assertBytes(converted, [0x40, 0x30, 0x20, 0x10]))
+        Swag.assert(assertBytes(converted, [0x40, 0x30, 0x20, 0x10]))
 }

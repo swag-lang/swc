@@ -57,5 +57,5 @@ using Core
 
 func day7B()
 {
-    @assert(A == 14134)
+    Swag.assert(A == 14134)
 }

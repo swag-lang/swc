@@ -28,7 +28,7 @@ namespace WinFsp
         var length = 0'u64
         while value[length] do
             length += 1
-        return @mkstring(value, length)
+        return Swag.makeString(value, length)
     }
 
     func volumeSerialNumber(creationTime: u64)->u32
@@ -66,7 +66,7 @@ namespace WinFsp
         free[]  = volume.freeBytes()
         let count = Math.min(volume.label.length, cast(u64) labelCapacity - 1)
         if count do
-            @memcpy(label, volume.label.buffer, count)
+            Swag.memcpy(label, volume.label.buffer, count)
         label[count] = 0
         return StatusSuccess
     }
@@ -77,7 +77,7 @@ namespace WinFsp
         volume.accessLock.lockExclusive()
         defer volume.accessLock.unlockExclusive()
         let value = cString(label)
-        if @countof(value) > 32 * 4 do
+        if value.count > 32 * 4 do
             return StatusInvalidParameter
         volume.label = value
         volume.touchScalars()
@@ -108,9 +108,9 @@ namespace WinFsp
         let parent = volume.resolveParent(name).parent
         if !parent do
             return StatusObjectNameNotFound
-        var securityBytes = @mkslice(cast(const [*] u8) @dataof(""), 0)
+        var securityBytes = Swag.makeSlice(cast(const [*] u8) ("").buffer, 0)
         if securitySize do
-            securityBytes = @mkslice(cast(const [*] u8) security!, securitySize)
+            securityBytes = Swag.makeSlice(cast(const [*] u8) security!, securitySize)
         let id = catch volume.createNodePending(name, directory != 0, attributes, securityBytes) as err
         if err != null do
             return statusFromError(err)
@@ -199,7 +199,7 @@ namespace WinFsp
             return StatusObjectNameNotFound
         if node!.isDirectory() do
             return StatusFileIsDirectory
-        let count = catch volume.readNode(nodeId, offset, @mkslice(cast([*] u8) buffer!, length)) as err
+        let count = catch volume.readNode(nodeId, offset, Swag.makeSlice(cast([*] u8) buffer!, length)) as err
         if err != null do
             return statusFromError(err)
         transferred[] = count
@@ -246,7 +246,7 @@ namespace WinFsp
                 return StatusDiskFull
         }
 
-        let count = catch volume.writeNode(nodeId, offset, @mkslice(cast(const [*] u8) buffer!, length), writeToEnd != 0, constrained != 0) as err
+        let count = catch volume.writeNode(nodeId, offset, Swag.makeSlice(cast(const [*] u8) buffer!, length), writeToEnd != 0, constrained != 0) as err
         if err != null do
             return statusFromError(err, volume.freeBlockCount() ? StatusIoDeviceError : StatusDiskFull)
         transferred[] = count
@@ -364,12 +364,12 @@ namespace WinFsp
             return StatusObjectNameNotFound
         let stored    = node!.security.toSlice()
         let available = securitySize[]
-        securitySize[] = cast(u32) @countof(stored)
-        if !@countof(stored) do
+        securitySize[] = cast(u32) stored.count
+        if !stored.count do
             return StatusSuccess
-        if !security or available < @countof(stored) do
+        if !security or available < stored.count do
             return security ? StatusBufferOverflow : StatusSuccess
-        @memcpy(security!, @dataof(stored), @countof(stored))
+        Swag.memcpy(security!, stored.buffer, stored.count)
         return StatusSuccess
     }
 
@@ -384,7 +384,7 @@ namespace WinFsp
         let validNode = node!
         validNode.security.resize(securitySize)
         if securitySize do
-            @memcpy(validNode.security.buffer, security!, securitySize)
+            Swag.memcpy(validNode.security.buffer, security!, securitySize)
         validNode.changeTime = volumeTimeNow()
         volume.touch(nodeId)
         return StatusSuccess
@@ -392,7 +392,7 @@ namespace WinFsp
 
     func sameName(left: string, right: string)->bool
     {
-        return Utf8.compare(@mkslice(@dataof(left), @countof(left)), @mkslice(@dataof(right), @countof(right)), .UnicodeNoCase) == 0
+        return Utf8.compare(Swag.makeSlice(left.buffer, left.count), Swag.makeSlice(right.buffer, right.count), .UnicodeNoCase) == 0
     }
 
     func callbackReadDirectory(context: #null *void, nodeId: u64, marker: #null const [*] u8, emit: EmitDirFn, emitContext: #null *void, complete: *u8)->s32
@@ -409,17 +409,17 @@ namespace WinFsp
         let markerName = cString(marker)
         var info:  FileInfo
         var child: #null *Node
-        if !@countof(markerName)
+        if !markerName.count
         {
             if nodeId != 1
             {
                 discard fillInfo(volume, nodeId, &info)
-                if !emit(emitContext, @dataof("."), &info) do
+                if !emit(emitContext, (".").buffer, &info) do
                     return StatusSuccess
 
                 let parentId = directory!.parentId
                 discard fillInfo(volume, parentId, &info)
-                if !emit(emitContext, @dataof(".."), &info) do
+                if !emit(emitContext, ("..").buffer, &info) do
                     return StatusSuccess
             }
 
@@ -429,7 +429,7 @@ namespace WinFsp
         {
             let parentId = directory!.parentId
             discard fillInfo(volume, parentId, &info)
-            if !emit(emitContext, @dataof(".."), &info) do
+            if !emit(emitContext, ("..").buffer, &info) do
                 return StatusSuccess
             child = volume.firstChild(nodeId)
         }

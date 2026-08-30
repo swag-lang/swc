@@ -13,7 +13,7 @@ func rotateExactArray(values: [4] s32)
 
 func fillExactDigest(digest: ExactArrayParamJitDigest, seed: u8)
 {
-    for i in @countof(digest) do
+    for i in digest.count do
         digest[i] = seed + cast(u8) i
 }
 
@@ -42,10 +42,10 @@ impl ExactArrayParamJitWriter
 {
     var values: [4] s32 = [11, 22, 33, 44]
     rotateExactArray(values)
-    @assert(values[0] == 22)
-    @assert(values[1] == 33)
-    @assert(values[2] == 44)
-    @assert(values[3] == 11)
+    Swag.assert(values[0] == 22)
+    Swag.assert(values[1] == 33)
+    Swag.assert(values[2] == 44)
+    Swag.assert(values[3] == 11)
 }
 
 #test
@@ -57,9 +57,9 @@ impl ExactArrayParamJitWriter
     for value in digest do
         checksum += cast(s32) value
 
-    @assert(digest[0] == 9'u8)
-    @assert(digest[15] == 24'u8)
-    @assert(checksum == 264)
+    Swag.assert(digest[0] == 9'u8)
+    Swag.assert(digest[15] == 24'u8)
+    Swag.assert(checksum == 264)
 }
 
 #test
@@ -67,10 +67,10 @@ impl ExactArrayParamJitWriter
     var values: [4] s32 = [1, 10, 100, 1000]
     var writer          = ExactArrayParamJitWriter{delta: 5}
     writer.write(values)
-    @assert(values[0] == 6)
-    @assert(values[1] == 16)
-    @assert(values[2] == 107)
-    @assert(values[3] == 1008)
+    Swag.assert(values[0] == 6)
+    Swag.assert(values[1] == 16)
+    Swag.assert(values[2] == 107)
+    Swag.assert(values[3] == 1008)
 }
 
 #test
@@ -83,16 +83,16 @@ impl ExactArrayParamJitWriter
 
     var values: [4] s32 = [3, 6, 9, 12]
     patch(values)
-    @assert(values[0] == 103)
-    @assert(values[1] == 6)
-    @assert(values[2] == 9)
-    @assert(values[3] == 5)
+    Swag.assert(values[0] == 103)
+    Swag.assert(values[1] == 6)
+    Swag.assert(values[2] == 9)
+    Swag.assert(values[3] == 5)
 }
 
 #test
 {
     var pair: [2] u16 = [7'u16, 42'u16]
     reverseExactPair(pair)
-    @assert(pair[0] == 42'u16)
-    @assert(pair[1] == 7'u16)
+    Swag.assert(pair[0] == 42'u16)
+    Swag.assert(pair[1] == 7'u16)
 }

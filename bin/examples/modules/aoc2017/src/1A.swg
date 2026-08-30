@@ -29,12 +29,12 @@ func day1A()
     let text     = expect File.readAllText(dataPath)
 
     var total = 0
-    for i in @countof(text)
+    for i in text.count
     {
         if text[i] == text[(i + 1) % text.length] do
             total += text[i] - '0'
     }
 
     // Console.print("total: ", total)
-    @assert(total == 1393)
+    Swag.assert(total == 1393)
 }

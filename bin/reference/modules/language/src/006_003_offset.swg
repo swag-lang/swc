@@ -26,7 +26,7 @@ layouts, such as overlapping fields or sharing memory space between fields.
     v.x = 666
 
     // Since 'x' and 'y' share memory, updating 'x' updates 'y'.
-    @assert(v.y == 666)
+    Swag.assert(v.y == 666)
 }
 
 /**
@@ -53,7 +53,7 @@ enabling indexed access to those fields via a single view.
     v.z = 30
 
     // Each index in 'idx' maps directly to x/y/z.
-    @assert(v.idx[0] == v.x)
-    @assert(v.idx[1] == v.y)
-    @assert(v.idx[2] == v.z)
+    Swag.assert(v.idx[0] == v.x)
+    Swag.assert(v.idx[1] == v.y)
+    Swag.assert(v.idx[2] == v.z)
 }

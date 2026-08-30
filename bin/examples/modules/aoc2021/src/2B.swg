@@ -51,5 +51,5 @@ func day2B()
     }
 
     // Console.print("total: ", h*d)
-    @assert(h * d == 1963088820)
+    Swag.assert(h * d == 1963088820)
 }

@@ -40,7 +40,7 @@ public func runGoldens(context: *Context, _options: *Options)->s32 fail
             if !Utf8.endsWith(cast(const [..] u8) full, suffix) do
                 continue
 
-            var golden = String.from(full[0 until @countof(full) - @countof(suffix)])
+            var golden = String.from(full[0 until full.count - suffix.count])
             golden += extension
 
             try File.move(golden.toString(), full)

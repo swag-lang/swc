@@ -33,21 +33,21 @@ func(A, B) makePairSecond(a: A, b: B)->B => b
     let values: [4] u16 = [10'u16, 20, 30, 40]
     let pair:   [2] s32 = [1, 2]
 
-    @assert(echo'(s32)(7) == 7)
-    @assert(echo(true) == true)
-    @assert(echo(3.14) == 3.14)
-    @assert(echo'(u8)(255'u8) == 255'u8)
-    @assert(doubleLeftLiteral'(s32)(21) == 42)
-    @assert(doubleLeftLiteral(2.5'f32) == 5.0'f32)
-    @assert(mixedMultiply(1's32, 2'f32) == 2.0'f32)
-    @assert(defaultValue() == 11)
-    @assert(defaultValue'(f64)() == 11.0)
-    @assert(bias(7) == 10)
-    @assert(bias'(10)(7) == 17)
-    @assert(bias'(0)(7) == 7)
-    @assert(arrayCount'(u16, 4)(values) == 4)
-    @assert(arrayCount(values) == 4)
-    @assert(partialCount'(s32)(pair) == 2)
+    Swag.assert(echo'(s32)(7) == 7)
+    Swag.assert(echo(true) == true)
+    Swag.assert(echo(3.14) == 3.14)
+    Swag.assert(echo'(u8)(255'u8) == 255'u8)
+    Swag.assert(doubleLeftLiteral'(s32)(21) == 42)
+    Swag.assert(doubleLeftLiteral(2.5'f32) == 5.0'f32)
+    Swag.assert(mixedMultiply(1's32, 2'f32) == 2.0'f32)
+    Swag.assert(defaultValue() == 11)
+    Swag.assert(defaultValue'(f64)() == 11.0)
+    Swag.assert(bias(7) == 10)
+    Swag.assert(bias'(10)(7) == 17)
+    Swag.assert(bias'(0)(7) == 7)
+    Swag.assert(arrayCount'(u16, 4)(values) == 4)
+    Swag.assert(arrayCount(values) == 4)
+    Swag.assert(partialCount'(s32)(pair) == 2)
 }
 
 #test
@@ -55,68 +55,68 @@ func(A, B) makePairSecond(a: A, b: B)->B => b
     func(T) localDouble(value: T) => 2 * value
     func(T = s32, V = s32) localMixedMultiply(a: T, b: V) => a * b
 
-    @assert(localDouble'(s32)(21) == 42)
-    @assert(localDouble(2.5'f32) == 5.0'f32)
-    @assert(localMixedMultiply(1's32, 2'f32) == 2.0'f32)
+    Swag.assert(localDouble'(s32)(21) == 42)
+    Swag.assert(localDouble(2.5'f32) == 5.0'f32)
+    Swag.assert(localMixedMultiply(1's32, 2'f32) == 2.0'f32)
 }
 
 #test
 {
-    @assert(echo(42) == 42)
-    @assert(echo(true) == true)
-    @assert(echo(3.14) == 3.14)
-    @assert(echo("hello") == "hello")
+    Swag.assert(echo(42) == 42)
+    Swag.assert(echo(true) == true)
+    Swag.assert(echo(3.14) == 3.14)
+    Swag.assert(echo("hello") == "hello")
 
-    @assert(double(5) == 10)
-    @assert(double(2.5) == 5.0)
+    Swag.assert(double(5) == 10)
+    Swag.assert(double(2.5) == 5.0)
 
-    @assert(first(1, 2) == 1)
-    @assert(first("a", "b") == "a")
+    Swag.assert(first(1, 2) == 1)
+    Swag.assert(first("a", "b") == "a")
 
-    @assert(isZero(0) == true)
-    @assert(isZero(1) == false)
-    @assert(isZero(0.0) == true)
+    Swag.assert(isZero(0) == true)
+    Swag.assert(isZero(1) == false)
+    Swag.assert(isZero(0.0) == true)
 }
 
 #test
 {
-    @assert(wrapEcho(42) == 42)
-    @assert(wrapEcho(true) == true)
-    @assert(wrapEcho("nested") == "nested")
+    Swag.assert(wrapEcho(42) == 42)
+    Swag.assert(wrapEcho(true) == true)
+    Swag.assert(wrapEcho("nested") == "nested")
 
-    @assert(doubleEcho(99) == 99)
-    @assert(doubleEcho(false) == false)
-    @assert(doubleEcho("echo") == "echo")
+    Swag.assert(doubleEcho(99) == 99)
+    Swag.assert(doubleEcho(false) == false)
+    Swag.assert(doubleEcho("echo") == "echo")
 }
 
 #test
 {
     var x: s32 = 42
-    @assert(deref(&x) == 42)
+    Swag.assert(deref(&x) == 42)
 
     var y: f64 = 3.14
-    @assert(deref(&y) == 3.14)
+    Swag.assert(deref(&y) == 3.14)
 
     var b: bool = true
-    @assert(deref(&b) == true)
+    Swag.assert(deref(&b) == true)
 
-    @assert(addrValue(&x) == &x)
+    Swag.assert(addrValue(&x) == &x)
 }
 
 #test
 {
-    @assert(makePairFirst(1, 2.0) == 1)
-    @assert(makePairSecond(1, 2.0) == 2.0)
-    @assert(makePairFirst(true, "hi") == true)
-    @assert(makePairSecond(true, "hi") == "hi")
-    @assert(makePairFirst'(u8, u16)(10'u8, 20'u16) == 10'u8)
-    @assert(makePairSecond'(u8, u16)(10'u8, 20'u16) == 20'u16)
-    @assert(makePairFirst("left", 123) == "left")
+    Swag.assert(makePairFirst(1, 2.0) == 1)
+    Swag.assert(makePairSecond(1, 2.0) == 2.0)
+    Swag.assert(makePairFirst(true, "hi") == true)
+    Swag.assert(makePairSecond(true, "hi") == "hi")
+    Swag.assert(makePairFirst'(u8, u16)(10'u8, 20'u16) == 10'u8)
+    Swag.assert(makePairSecond'(u8, u16)(10'u8, 20'u16) == 20'u16)
+    Swag.assert(makePairFirst("left", 123) == "left")
 }
 
 #test
 {
-    @assert(first'(s32)(10, 20) == 10)
-    @assert(first'(bool)(true, false) == true)
-    @assert(first'(f32)(1.5'f32, 2.5'f32) == 1.5'f32)
+    Swag.assert(first'(s32)(10, 20) == 10)
+    Swag.assert(first'(bool)(true, false) == true)
+    Swag.assert(first'(f32)(1.5'f32, 2.5'f32) == 1.5'f32)
 }

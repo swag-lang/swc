@@ -121,7 +121,7 @@ impl LibraryWnd
 {
     mtd applyLanguage()
     {
-        if !@isset(.viewBtn) do
+        if !Swag.isSet(.viewBtn) do
             return
 
         .viewBtn.setText(appStrings().ui_BarView)
@@ -349,7 +349,7 @@ impl LibraryWnd
 
     mtd const namedFiltersEqual(a, b: const [..] LibraryNamedFilter)->bool
     {
-        if @countof(a) != @countof(b) do
+        if a.count != b.count do
             return false
         for value, i in a
         {
@@ -399,7 +399,7 @@ impl LibraryWnd
     // what prevents a fixed-width rail from manufacturing a horizontal scroll bar.
     mtd layoutSidebarColumns()
     {
-        if !@isset(.listCtrl) do
+        if !Swag.isSet(.listCtrl) do
             return
         let available = .listCtrl.listView.paddedClientRect().width
         if available <= 0 do
@@ -550,7 +550,7 @@ impl LibraryWnd
 
     mtd refreshAutomaticFilters(force = false)
     {
-        if !@isset(.listCtrl) do
+        if !Swag.isSet(.listCtrl) do
             return
 
         let applications = .collectNamedFilters(true)
@@ -673,7 +673,7 @@ impl LibraryWnd
 
     mtd updateFolderMode()
     {
-        if !@isset(.sideBar) do
+        if !Swag.isSet(.sideBar) do
             return
         if .currentFolder() == Library.getFolder() do
             .sideBar.show()
@@ -784,12 +784,12 @@ impl LibraryWnd
         let id = result!
         if Utf8.startsWith(id, "sSnapForge.library.app:")
         {
-            .applicationFilter = String.from(id[@countof("sSnapForge.library.app:") until @countof(id)])
+            .applicationFilter = String.from(id[("sSnapForge.library.app:").count until id.count])
             .view.filter()
         }
         elif Utf8.startsWith(id, "sSnapForge.library.tag:")
         {
-            .tagFilter = String.from(id[@countof("sSnapForge.library.tag:") until @countof(id)])
+            .tagFilter = String.from(id[("sSnapForge.library.tag:").count until id.count])
             .view.filter()
         }
     }
@@ -1027,7 +1027,7 @@ impl LibraryWnd
     // each carrying its full path in 'tag' so navigation can act on it.
     mtd updateBreadcrumb()
     {
-        if !@isset(.breadcrumb) do
+        if !Swag.isSet(.breadcrumb) do
             return
         .breadcrumb.clear()
 
@@ -1044,13 +1044,13 @@ impl LibraryWnd
         let libRoot = Library.getFolder()
         var fulls: Array'String
         var p       = folder.toString()
-        while @countof(p) != 0
+        while p.count != 0
         {
             fulls.add(String.from(p))
             if p == libRoot.toString() do
                 break
             let parent = Path.directoryName(p)
-            if parent == null or @countof(parent) == 0 or parent == p do
+            if parent == null or parent.count == 0 or parent == p do
                 break
             p = parent
         }
@@ -1060,7 +1060,7 @@ impl LibraryWnd
         {
             let fp = fulls[idx].toString()
             var nm = Path.fileName(fp) orelse ""
-            if @countof(nm) == 0 do
+            if nm.count == 0 do
                 nm = fp
 
             // At the row size of the chart, like every other glyph of this window. A breadcrumb

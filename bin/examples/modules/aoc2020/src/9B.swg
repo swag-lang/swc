@@ -55,7 +55,7 @@ func day9B()
             if sum == target
             {
                 // Console.print("total: ", min+max)
-                @assert(min + max == 70672245)
+                Swag.assert(min + max == 70672245)
                 return
             }
         }

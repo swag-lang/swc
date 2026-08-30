@@ -155,6 +155,8 @@ impl MutexRW
 // LIBC
 ////////////////////////////////////////////////////////////
 
+namespace __Win32RT
+{
 #[Swag.Foreign(module: "ucrtbase", link: "ucrt", callconv: Swag.CallConv.C)]
 {
     func sinf(val: f32)->f32
@@ -192,56 +194,57 @@ impl MutexRW
     func pow(val1, val2: f64)->f64
     func atan2(val1, val2: f64)->f64
 }
+}
 
 ////////////////////////////////////////////////////////////
 // INTRINSIC WRAPPERS
 ////////////////////////////////////////////////////////////
 
 {
-    func @sin(value: f32)->f32 => sinf(value)
-    func @sin(value: f64)->f64 => sin(value)
-    func @cos(value: f32)->f32 => cosf(value)
-    func @cos(value: f64)->f64 => cos(value)
-    func @tan(value: f32)->f32 => tanf(value)
-    func @tan(value: f64)->f64 => tan(value)
+    func sin(value: f32)->f32 => __Win32RT.sinf(value)
+    func sin(value: f64)->f64 => __Win32RT.sin(value)
+    func cos(value: f32)->f32 => __Win32RT.cosf(value)
+    func cos(value: f64)->f64 => __Win32RT.cos(value)
+    func tan(value: f32)->f32 => __Win32RT.tanf(value)
+    func tan(value: f64)->f64 => __Win32RT.tan(value)
 
-    func @sinh(value: f32)->f32 => sinhf(value)
-    func @sinh(value: f64)->f64 => sinh(value)
-    func @cosh(value: f32)->f32 => coshf(value)
-    func @cosh(value: f64)->f64 => cosh(value)
-    func @tanh(value: f32)->f32 => tanhf(value)
-    func @tanh(value: f64)->f64 => tanh(value)
+    func sinh(value: f32)->f32 => __Win32RT.sinhf(value)
+    func sinh(value: f64)->f64 => __Win32RT.sinh(value)
+    func cosh(value: f32)->f32 => __Win32RT.coshf(value)
+    func cosh(value: f64)->f64 => __Win32RT.cosh(value)
+    func tanh(value: f32)->f32 => __Win32RT.tanhf(value)
+    func tanh(value: f64)->f64 => __Win32RT.tanh(value)
 
-    func @asin(value: f32)->f32 => asinf(value)
-    func @asin(value: f64)->f64 => asin(value)
-    func @acos(value: f32)->f32 => acosf(value)
-    func @acos(value: f64)->f64 => acos(value)
-    func @atan(value: f32)->f32 => atanf(value)
-    func @atan(value: f64)->f64 => atan(value)
+    func asin(value: f32)->f32 => __Win32RT.asinf(value)
+    func asin(value: f64)->f64 => __Win32RT.asin(value)
+    func acos(value: f32)->f32 => __Win32RT.acosf(value)
+    func acos(value: f64)->f64 => __Win32RT.acos(value)
+    func atan(value: f32)->f32 => __Win32RT.atanf(value)
+    func atan(value: f64)->f64 => __Win32RT.atan(value)
 
-    func @log(value: f32)->f32   => logf(value)
-    func @log(value: f64)->f64   => log(value)
-    func @log2(value: f32)->f32  => log2f(value)
-    func @log2(value: f64)->f64  => log2(value)
-    func @log10(value: f32)->f32 => log10f(value)
-    func @log10(value: f64)->f64 => log10(value)
+    func log(value: f32)->f32   => __Win32RT.logf(value)
+    func log(value: f64)->f64   => __Win32RT.log(value)
+    func log2(value: f32)->f32  => __Win32RT.log2f(value)
+    func log2(value: f64)->f64  => __Win32RT.log2(value)
+    func log10(value: f32)->f32 => __Win32RT.log10f(value)
+    func log10(value: f64)->f64 => __Win32RT.log10(value)
 
-    func @exp(value: f32)->f32  => expf(value)
-    func @exp(value: f64)->f64  => exp(value)
-    func @exp2(value: f32)->f32 => exp2f(value)
-    func @exp2(value: f64)->f64 => exp2(value)
+    func exp(value: f32)->f32  => __Win32RT.expf(value)
+    func exp(value: f64)->f64  => __Win32RT.exp(value)
+    func exp2(value: f32)->f32 => __Win32RT.exp2f(value)
+    func exp2(value: f64)->f64 => __Win32RT.exp2(value)
 
-    func @pow(value1, value2: f32)->f32 => powf(value1, value2)
-    func @pow(value1, value2: f64)->f64 => pow(value1, value2)
+    func pow(value1, value2: f32)->f32 => __Win32RT.powf(value1, value2)
+    func pow(value1, value2: f64)->f64 => __Win32RT.pow(value1, value2)
 
-    func @atan2(value1, value2: f32)->f32 => atan2f(value1, value2)
-    func @atan2(value1, value2: f64)->f64 => atan2(value1, value2)
+    func atan2(value1, value2: f32)->f32 => __Win32RT.atan2f(value1, value2)
+    func atan2(value1, value2: f64)->f64 => __Win32RT.atan2(value1, value2)
 }
 
 ////////////////////////////////////////////////////////////
 // The command line this process was launched with, still owned by the operating system and
 // therefore valid for the whole run. The buffer holds the executable path followed by the
-// arguments, which is the shape '@args' parses.
+// arguments, which is the shape 'Swag.args()' parses.
 func __osCommandLine()->#null string
 {
     // The system states the command line in both eight-bit and wide forms, and only the wide one
@@ -259,14 +262,14 @@ func __osCommandLine()->#null string
         {
             let buffer = cast(#null [*] u8) VirtualAlloc(null, cast(u64) bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)
             if buffer and WideCharToMultiByte(CP_UTF8, 0, wide!, -1, buffer, bytes, null, null) == bytes do
-                return @mkstring(buffer!, cast(u64) (bytes - 1))
+                return Swag.makeString(buffer!, cast(u64) (bytes - 1))
         }
     }
 
     let cmdLine = GetCommandLineA()
     if !cmdLine do
         return null
-    return @mkstring(cmdLine!, @countof(cast(const cstring) cmdLine!))
+    return Swag.makeString(cmdLine!, (cast(const cstring) cmdLine!).count)
 }
 
 // Windows answers this only once the operating system has enabled YMM state, which is exactly
@@ -276,11 +279,11 @@ func __hostHasAvx2()->bool => __Win32RT.IsProcessorFeaturePresent(__Win32RT.PF_A
 ////////////////////////////////////////////////////////////
 func __printString(message: #null string)
 {
-    if !message or !@countof(message) do
+    if !message or !message.count do
         return
     using __Win32RT
-    let len = cast(u32) @countof(message)
-    discard WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), @dataof(message), len, null, null)
+    let len = cast(u32) message.count
+    discard WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), message.buffer, len, null, null)
 }
 
 ////////////////////////////////////////////////////////////
@@ -289,7 +292,7 @@ func __raiseException666(message: #null string, loc: Swag.SourceCodeLocation, ki
     // In a native binary there is no compiler above us to catch the exception:
     // route the failure through the panic path (which the native #test runner
     // hooks), instead of dying silently on an unhandled SEH exception.
-    if !@jit
+    if !Swag.jit()
     {
         var msg = message
         if !msg
@@ -302,21 +305,21 @@ func __raiseException666(message: #null string, loc: Swag.SourceCodeLocation, ki
             }
         }
 
-        @panic(msg, loc)
+        Swag.panic(msg, loc)
         return
     }
 
-    let cxt = @getcontext()
+    let cxt = Swag.getContext()
     cxt.exceptionLoc       = loc
     cxt.exceptionParams[0] = cast(const *void) &cxt.exceptionLoc
-    cxt.exceptionParams[1] = cast(#null const *void) @dataof(message)
-    cxt.exceptionParams[2] = cast(const *void) cast(u64) @countof(message)
+    cxt.exceptionParams[1] = cast(#null const *void) message.buffer
+    cxt.exceptionParams[2] = cast(const *void) cast(u64) message.count
     cxt.exceptionParams[3] = cast(const *void) cast(u64) kind
     __Win32RT.RaiseException(666, 0, 4, &cxt.exceptionParams[0])
 }
 
 ////////////////////////////////////////////////////////////
-func __loaddll(name: string) => __Win32RT.LoadLibraryA(@dataof(name))
+func __loaddll(name: string) => __Win32RT.LoadLibraryA(name.buffer)
 
 func __exit()
 {
@@ -407,7 +410,7 @@ func __hostTestRestoreHardwareFilter(previous: #null *void)
 func __captureStack(skip: u32, wh: [..] *void)->u32
 {
     using __Win32RT
-    let nb = RtlCaptureStackBackTrace(skip + 1, cast() @countof(wh), cast() @dataof(wh), null)
+    let nb = RtlCaptureStackBackTrace(skip + 1, cast() wh.count, cast() wh.buffer, null)
     return nb
 }
 

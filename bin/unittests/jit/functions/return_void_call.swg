@@ -25,9 +25,9 @@ func shortcutExplicitReturnVoidCall()->void
 {
     gReturnVoidCallValue = 0
     shortcutImplicitReturnVoidCall()
-    @assert(gReturnVoidCallValue == 1)
+    Swag.assert(gReturnVoidCallValue == 1)
 
     gReturnVoidCallValue = 0
     shortcutExplicitReturnVoidCall()
-    @assert(gReturnVoidCallValue == 2)
+    Swag.assert(gReturnVoidCallValue == 2)
 }

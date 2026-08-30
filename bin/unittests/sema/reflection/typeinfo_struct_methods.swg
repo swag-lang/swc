@@ -127,7 +127,7 @@ const EXPORTED_SCORE_TYPE  = cast(#null const *Swag.TypeInfoFunc) EXPORTED_SCORE
 func hasExpectedMethodReflection(type: typeinfo, expectedCount: s32, expectedName: string)->bool
 {
     let info = cast(const *Swag.TypeInfoStruct) type
-    if @countof(info.methods) != expectedCount do
+    if info.methods.count != expectedCount do
         return false
 
     if expectedCount == 0 do
@@ -155,7 +155,7 @@ func hasMethodNamed(type: typeinfo, expectedName: string)->bool
 func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
 {
     let info = cast(const *Swag.TypeInfoStruct) type
-    if @countof(info.methods) != 1 do
+    if info.methods.count != 1 do
         return false
 
     let methodInfo = info.methods![0]
@@ -166,7 +166,7 @@ func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
     if methodInfo.name != "ping" or
        methodType.kind != .Func or
        params == null or
-       @countof(params) != 1 or
+       params.count != 1 or
        params[0].pointedType != #type const *SimpleMethodProbe or
        methodType.returnType != s32 or
        methodInfo.value == null do
@@ -180,7 +180,7 @@ func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
 func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
 {
     let info = cast(const *Swag.TypeInfoStruct) type
-    if @countof(info.methods) != 1 do
+    if info.methods.count != 1 do
         return false
 
     let methodInfo = info.methods![0]
@@ -191,7 +191,7 @@ func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
     if methodInfo.name != "copyFrom" or
        methodType.kind != .Func or
        params == null or
-       @countof(params) != 2 or
+       params.count != 2 or
        params[0].pointedType != #type *GenericMethodProbe's32 or
        params[1].pointedType != #type const [..] s32 or
        methodType.returnType != s32 or
@@ -208,7 +208,7 @@ func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
 func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
 {
     let info = cast(const *Swag.TypeInfoStruct) type
-    if @countof(info.methods) != 4 do
+    if info.methods.count != 4 do
         return false
 
     let methods    = info.methods!
@@ -228,7 +228,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
     if scaleInfo.name != "scaleValue" or
        scaleType.kind != .Func or
        scaleParams == null or
-       @countof(scaleParams) != 2 or
+       scaleParams.count != 2 or
        scaleParams[0].pointedType != s32 or
        scaleParams[1].pointedType != s32 or
        scaleType.returnType != s32 or
@@ -239,7 +239,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
     if addInfo.name != "add" or
        addType.kind != .Func or
        addParams == null or
-       @countof(addParams) != 2 or
+       addParams.count != 2 or
        addParams[0].pointedType != #type *ExportedMethodProbe or
        addParams[1].pointedType != s32 or
        addType.returnType != s32 or
@@ -250,7 +250,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
     if scaledInfo.name != "scaled" or
        scaledType.kind != .Func or
        scaledParams == null or
-       @countof(scaledParams) != 2 or
+       scaledParams.count != 2 or
        scaledParams[0].pointedType != #type const *ExportedMethodProbe or
        scaledParams[1].pointedType != s32 or
        scaledType.returnType != s32 or
@@ -261,7 +261,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
     if scoreInfo.name != "score" or
        scoreType.kind != .Func or
        scoreParams == null or
-       @countof(scoreParams) != 2 or
+       scoreParams.count != 2 or
        scoreParams[0].pointedType != #type *ExportedMethodProbe or
        scoreParams[1].pointedType != s32 or
        scoreType.returnType != s32 or
@@ -307,49 +307,49 @@ const COMPILE_TIME_METHOD_REFLECTION_OK = #run compileTimeMethodReflectionWorks(
 
 #assert(HIDDEN_INFO.methods == null)
 
-#assert(@countof(SIMPLE_INFO.methods) == 1)
+#assert(SIMPLE_INFO.methods.count == 1)
 #assert(SIMPLE_METHOD_INFO.name == "ping")
 #assert(SIMPLE_METHOD_INFO.pointedType.kind == .Func)
-#assert(@countof(SIMPLE_METHOD_TYPE.parameters) == 1)
+#assert(SIMPLE_METHOD_TYPE.parameters.count == 1)
 #assert(SIMPLE_METHOD_TYPE.parameters[0].pointedType == #type const *SimpleMethodProbe)
 #assert(SIMPLE_METHOD_TYPE.returnType == s32)
 
 #assert(GENERIC_INFO.name == "GenericMethodProbe")
 #assert(GENERIC_INFO.methods == null)
 
-#assert(@countof(ARRAY_INFO.methods) == 1)
+#assert(ARRAY_INFO.methods.count == 1)
 #assert(ARRAY_METHOD_INFO.name == "copyFrom")
 #assert(ARRAY_METHOD_INFO.pointedType.kind == .Func)
-#assert(@countof(ARRAY_METHOD_TYPE.parameters) == 2)
+#assert(ARRAY_METHOD_TYPE.parameters.count == 2)
 #assert(ARRAY_METHOD_TYPE.parameters[0].pointedType == #type *GenericMethodProbe's32)
 #assert(ARRAY_METHOD_TYPE.parameters[1].pointedType == #type const [..] s32)
 #assert(ARRAY_METHOD_TYPE.returnType == s32)
 
-#assert(@countof(EXPORTED_INFO.methods) == 4)
+#assert(EXPORTED_INFO.methods.count == 4)
 #assert(EXPORTED_SCALE_INFO.name == "scaleValue")
 #assert(EXPORTED_SCALE_INFO.pointedType.kind == .Func)
-#assert(@countof(EXPORTED_SCALE_TYPE.parameters) == 2)
+#assert(EXPORTED_SCALE_TYPE.parameters.count == 2)
 #assert(EXPORTED_SCALE_TYPE.parameters[0].pointedType == s32)
 #assert(EXPORTED_SCALE_TYPE.parameters[1].pointedType == s32)
 #assert(EXPORTED_SCALE_TYPE.returnType == s32)
 
 #assert(EXPORTED_ADD_INFO.name == "add")
 #assert(EXPORTED_ADD_INFO.pointedType.kind == .Func)
-#assert(@countof(EXPORTED_ADD_TYPE.parameters) == 2)
+#assert(EXPORTED_ADD_TYPE.parameters.count == 2)
 #assert(EXPORTED_ADD_TYPE.parameters[0].pointedType == #type *ExportedMethodProbe)
 #assert(EXPORTED_ADD_TYPE.parameters[1].pointedType == s32)
 #assert(EXPORTED_ADD_TYPE.returnType == s32)
 
 #assert(EXPORTED_SCALED_INFO.name == "scaled")
 #assert(EXPORTED_SCALED_INFO.pointedType.kind == .Func)
-#assert(@countof(EXPORTED_SCALED_TYPE.parameters) == 2)
+#assert(EXPORTED_SCALED_TYPE.parameters.count == 2)
 #assert(EXPORTED_SCALED_TYPE.parameters[0].pointedType == #type const *ExportedMethodProbe)
 #assert(EXPORTED_SCALED_TYPE.parameters[1].pointedType == s32)
 #assert(EXPORTED_SCALED_TYPE.returnType == s32)
 
 #assert(EXPORTED_SCORE_INFO.name == "score")
 #assert(EXPORTED_SCORE_INFO.pointedType.kind == .Func)
-#assert(@countof(EXPORTED_SCORE_TYPE.parameters) == 2)
+#assert(EXPORTED_SCORE_TYPE.parameters.count == 2)
 #assert(EXPORTED_SCORE_TYPE.parameters[0].pointedType == #type *ExportedMethodProbe)
 #assert(EXPORTED_SCORE_TYPE.parameters[1].pointedType == s32)
 #assert(EXPORTED_SCORE_TYPE.returnType == s32)

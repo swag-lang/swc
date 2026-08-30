@@ -204,7 +204,7 @@ let renderer: IRenderer = &cpu
   contextual conversion replaces the interface cast, not the required `&`. Keep an explicit
   interface cast for the rarer value-to-interface construction when no borrowed pointer is the
   intended representation.
-- Use `@mkinterface` only for genuinely reflective construction, such as a generic interface value
+- Use `Swag.makeInterface` only for genuinely reflective construction, such as a generic interface value
   with no concrete receiver. When an instance exists, prefer a typed interface binding.
 - Omit redundant explicit types and conversions when the compiler preserves the intended type.
   Keep casts that document or enforce narrowing, signedness, representation, pointer nullability,

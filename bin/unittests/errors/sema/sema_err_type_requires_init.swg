@@ -161,14 +161,14 @@ func nonNullRequiresInitFallible()->*NonNullRequiresInitItem fail
 {
     var item = NonNullRequiresInitItem{value: 1}
     var ptr: *NonNullRequiresInitItem = &item
-    @init(&ptr)     // swc-expected-error {{sema_err_type_requires_init}}
+    Swag.init(&ptr)     // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test
 {
     var item  = NonNullRequiresInitItem{value: 1}
     var value = NonNullRequiresInitHolder{required: &item}
-    @init(value)     // swc-expected-error {{sema_err_type_requires_init}}
+    Swag.init(value)     // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 // The diagnostic must point at the declaration itself, even when the check has to

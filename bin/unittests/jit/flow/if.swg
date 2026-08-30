@@ -114,7 +114,7 @@
         if !enabled do
             return 1
 
-        if text != null and @countof(text)
+        if text != null and text.count
         {
             if !hasClear do
                 return 2
@@ -164,7 +164,7 @@ impl EarlyReturnAndElifText
 
     mtd const opEquals(other: #null string)->bool
     {
-        return .length == @countof(other)
+        return .length == other.count
     }
 }
 
@@ -186,7 +186,7 @@ impl EarlyReturnAndElifBox
 
     mtd setText(text: #null string)
     {
-        .text.length = @countof(text)
+        .text.length = text.count
     }
 
     mtd showHide()
@@ -194,7 +194,7 @@ impl EarlyReturnAndElifBox
         if !.enabled do
             return
 
-        if .text != null and @countof(.text)
+        if .text != null and (.text).count
         {
             if !.button
             {
@@ -221,11 +221,11 @@ var EarlyReturnAndElifGlobalButton: EarlyReturnAndElifButton
     box.enabled = true
     box.setText("abc")
     box.showHide()
-    @assert(box.button != null)
-    @assert(box.value == 10)
+    Swag.assert(box.button != null)
+    Swag.assert(box.value == 10)
 
     box.setText(null)
     box.showHide()
-    @assert(box.button == null)
-    @assert(box.value == 20)
+    Swag.assert(box.button == null)
+    Swag.assert(box.value == 20)
 }

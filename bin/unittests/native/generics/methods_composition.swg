@@ -62,47 +62,47 @@ impl Counter
 {
     let c: Container's32 = {value: 42, count: 1}
     let b                = c.toBox()
-    @assert(b.value == 42)
+    Swag.assert(b.value == 42)
 
     let c2: Container'string = {value: "boxed", count: 1}
     let b2 = c2.toBox()
-    @assert(b2.value == "boxed")
+    Swag.assert(b2.value == "boxed")
 
     let c3: Container'bool = {value: true, count: 0}
     let b3                 = c3.toBox()
-    @assert(b3.value == true)
+    Swag.assert(b3.value == true)
 }
 
 #test
 {
     let c: Container's32 = {value: 5, count: 1}
     let p                = c.pairWith(10)
-    @assert(p.first == 5)
-    @assert(p.second == 10)
+    Swag.assert(p.first == 5)
+    Swag.assert(p.second == 10)
 
     let words: Container'string = {value: "alpha", count: 2}
     let pair = words.pairWith("beta")
-    @assert(pair.first == "alpha")
-    @assert(pair.second == "beta")
+    Swag.assert(pair.first == "alpha")
+    Swag.assert(pair.second == "beta")
 }
 
 #test
 {
     var acc: Accumulator's32 = {value: 0}
-    @assert(acc.get() == 0)
+    Swag.assert(acc.get() == 0)
     acc.set(100)
-    @assert(acc.get() == 100)
+    Swag.assert(acc.get() == 100)
 
     var accBool: Accumulator'bool = {value: false}
-    @assert(accBool.get() == false)
+    Swag.assert(accBool.get() == false)
     accBool.set(true)
-    @assert(accBool.get() == true)
+    Swag.assert(accBool.get() == true)
 }
 
 #test
 {
-    @assert(Counter.staticIdentity(42) == 42)
-    @assert(Counter.staticIdentity(true) == true)
-    @assert(Counter.staticIdentity("hi") == "hi")
-    @assert(Counter.staticIdentity(255'u8) == 255'u8)
+    Swag.assert(Counter.staticIdentity(42) == 42)
+    Swag.assert(Counter.staticIdentity(true) == true)
+    Swag.assert(Counter.staticIdentity("hi") == "hi")
+    Swag.assert(Counter.staticIdentity(255'u8) == 255'u8)
 }

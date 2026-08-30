@@ -175,5 +175,5 @@ enum SliceBacked: const [..] s32
 }
 const SliceBackedA = cast(const [..] s32) SliceBacked.A
 const SliceBackedB = cast(const [..] s32) SliceBacked.B
-#assert(@countof(SliceBackedA) == 2)
-#assert(@countof(SliceBackedB) == 3)
+#assert(SliceBackedA.count == 2)
+#assert(SliceBackedB.count == 3)

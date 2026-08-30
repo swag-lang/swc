@@ -66,7 +66,7 @@ impl IOrelseProbe for OrelseProbe
     {
         var data: [3] u8 = ['o'u8, 'k'u8, 0]
         let resolved     = cast(#null cstring) null orelse cast(cstring) &data[0]
-        return resolved != null and @countof(resolved) == 2
+        return resolved != null and resolved.count == 2
     }
 
     const V = #run cstringFallback()
@@ -79,7 +79,7 @@ impl IOrelseProbe for OrelseProbe
     {
         var probe    = OrelseProbe{value: 55}
         var primary: #null IOrelseProbe = null
-        let fallback = @mkinterface(&probe, #typeof(probe), IOrelseProbe)
+        let fallback = Swag.makeInterface(&probe, #typeof(probe), IOrelseProbe)
         let resolved = primary orelse fallback
         return resolved.id() == 55
     }

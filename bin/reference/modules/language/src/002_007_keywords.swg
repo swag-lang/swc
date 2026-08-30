@@ -98,45 +98,45 @@ attribute instead.
 Intrinsic values:
 
 ```swag
-@args  @compiler  @gvtd  @index  @jit
-@modules  @pinfos  @rtflags
+Swag.args()  Swag.compiler()  Swag.gvtd()  Swag.index  Swag.jit()
+Swag.modules()  Swag.processInfos()  Swag.runtimeFlags()
 ```
 
 Type, value, lifecycle, and control intrinsics:
 
 ```swag
-@as  @assert  @breakpoint  @compilererror  @compilerwarning
-@countof  @dataof  @drop  @getcontext  @init  @is  @isset
-@kindof  @mkany  @mkinterface  @mkslice  @mkstring  @panic
-@postcopy  @postmove  @print  @safetypanic  @setcontext
-@stringcmp  @tableof  @typecmp
+Swag.typeAs  Swag.assert  Swag.breakpoint  Swag.compilerError  Swag.compilerWarning
+.count  .buffer  Swag.drop  Swag.getContext  Swag.init  Swag.typeIs  Swag.isSet
+Swag.kindOf  Swag.makeAny  Swag.makeInterface  Swag.makeSlice  Swag.makeString  Swag.panic
+Swag.postCopy  Swag.postMove  Swag.print  Swag.safetyPanic  Swag.setContext
+Swag.stringCmp  Swag.tableOf  Swag.typeCmp
 ```
 
 Math and bit intrinsics:
 
 ```swag
-@abs  @acos  @asin  @atan  @atan2  @bitcountlz  @bitcountnz
-@bitcounttz  @byteswap  @ceil  @cos  @cosh  @exp  @exp2
-@floor  @log  @log10  @log2  @max  @min  @muladd  @pow
-@rol  @ror  @round  @sin  @sinh  @sqrt  @tan  @tanh  @trunc
+Swag.abs  Swag.acos  Swag.asin  Swag.atan  Swag.atan2  Swag.bitCountLz  Swag.bitCountNz
+Swag.bitCountTz  Swag.byteSwap  Swag.ceil  Swag.cos  Swag.cosh  Swag.exp  Swag.exp2
+Swag.floor  Swag.log  Swag.log10  Swag.log2  Swag.max  Swag.min  Swag.muladd  Swag.pow
+Swag.rol  Swag.ror  Swag.round  Swag.sin  Swag.sinh  Swag.sqrt  Swag.tan  Swag.tanh  Swag.trunc
 ```
 
 Memory, atomic, and C variadic intrinsics:
 
 ```swag
-@atomadd  @atomand  @atomcmpxchg  @atomor  @atomxchg  @atomxor
-@memcmp  @memcpy  @memmove  @memset
+Swag.atomadd  Swag.atomand  Swag.atomcmpxchg  Swag.atomor  Swag.atomxchg  Swag.atomxor
+Swag.memcmp  Swag.memcpy  Swag.memmove  Swag.memset
 ```
 
 Packed vector intrinsics:
 
 ```swag
-@vecalign  @vecall  @vecany  @vecavgr  @vecgather  @vecinterleavehi
-@vecinterleavelo  @vecmadd  @vecmaddubs  @vecmask  @vecmulhi  @vecpackss
-@vecpackus  @vecperm  @vecreduceadd  @vecreduceand  @vecreducemax
-@vecreducemin  @vecreduceor  @vecreducexor  @vecsad  @vecsatadd  @vecsatsub
-@vecselect  @vecshuffle  @vecshuffle2  @vecsplat  @vectruncs32  @vecwidenhi
-@vecwidenlo
+Swag.vecalign  Swag.vecall  Swag.vecany  Swag.vecavgr  Swag.vecgather  Swag.vecinterleavehi
+Swag.vecinterleavelo  Swag.vecmadd  Swag.vecmaddubs  Swag.vecmask  Swag.vecmulhi  Swag.vecpackss
+Swag.vecpackus  Swag.vecperm  Swag.vecreduceadd  Swag.vecreduceand  Swag.vecreducemax
+Swag.vecreducemin  Swag.vecreduceor  Swag.vecreducexor  Swag.vecsad  Swag.vecsatadd  Swag.vecsatsub
+Swag.vecselect  Swag.vecshuffle  Swag.vecshuffle2  Swag.vecsplat  Swag.vectruncs32  Swag.vecwidenhi
+Swag.vecwidenlo
 ```
 
 > NOTE:

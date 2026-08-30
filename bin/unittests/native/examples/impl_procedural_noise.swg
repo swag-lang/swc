@@ -110,8 +110,8 @@ func gridValue(x, y, seed: s32)->f32
 
 func valueNoise(x, y: f32, seed: s32)->f32
 {
-    let x0 = cast(s32) @floor(x)
-    let y0 = cast(s32) @floor(y)
+    let x0 = cast(s32) Swag.floor(x)
+    let y0 = cast(s32) Swag.floor(y)
     let tx = smoothStep(x - x0)
     let ty = smoothStep(y - y0)
 
@@ -134,7 +134,7 @@ func fractalNoise(x, y: f32, seed: s32)->f32
 
     for 4
     {
-        let octaveSeed = seed + cast(s32) @index * 131
+        let octaveSeed = seed + cast(s32) Swag.index * 131
         sum        += valueNoise(x * frequency, y * frequency, octaveSeed) * amplitude
         normalizer += amplitude
         amplitude  *= 0.55'f32
@@ -225,9 +225,9 @@ func buildGardenPlan(seed: u32)->GardenPlanSummary
     let springLayoutB = buildGardenPlan(0x00C0FFEE'u32)
     let autumnLayout  = buildGardenPlan(0x0BADF00D'u32)
 
-    @assert(sameSummary(springLayoutA, springLayoutB))
-    @assert(sameSummary(springLayoutA, autumnLayout) == false)
-    @assert(springLayoutA.layoutSignature != autumnLayout.layoutSignature)
+    Swag.assert(sameSummary(springLayoutA, springLayoutB))
+    Swag.assert(sameSummary(springLayoutA, autumnLayout) == false)
+    Swag.assert(springLayoutA.layoutSignature != autumnLayout.layoutSignature)
 
     let totalPlotsA = springLayoutA.pondPlots +
                       springLayoutA.wildflowerPlots +
@@ -239,18 +239,18 @@ func buildGardenPlan(seed: u32)->GardenPlanSummary
                       autumnLayout.stonePathPlots +
                       autumnLayout.vegetablePlots
 
-    @assert(totalPlotsA == 12)
-    @assert(totalPlotsB == 12)
+    Swag.assert(totalPlotsA == 12)
+    Swag.assert(totalPlotsB == 12)
 
-    @assert(springLayoutA.raisedBeds >= springLayoutA.vegetablePlots * 2)
-    @assert(springLayoutA.irrigatedPlots <= springLayoutA.vegetablePlots)
-    @assert(springLayoutA.waterReserveLiters >= springLayoutA.pondPlots * 900)
-    @assert(springLayoutA.fertilityScore >= springLayoutA.wildflowerPlots * 6)
-    @assert(springLayoutA.layoutSignature > 0)
+    Swag.assert(springLayoutA.raisedBeds >= springLayoutA.vegetablePlots * 2)
+    Swag.assert(springLayoutA.irrigatedPlots <= springLayoutA.vegetablePlots)
+    Swag.assert(springLayoutA.waterReserveLiters >= springLayoutA.pondPlots * 900)
+    Swag.assert(springLayoutA.fertilityScore >= springLayoutA.wildflowerPlots * 6)
+    Swag.assert(springLayoutA.layoutSignature > 0)
 
-    @assert(autumnLayout.raisedBeds >= autumnLayout.vegetablePlots * 2)
-    @assert(autumnLayout.irrigatedPlots <= autumnLayout.vegetablePlots)
-    @assert(autumnLayout.waterReserveLiters >= autumnLayout.pondPlots * 900)
-    @assert(autumnLayout.compostBins >= 0)
-    @assert(autumnLayout.layoutSignature > 0)
+    Swag.assert(autumnLayout.raisedBeds >= autumnLayout.vegetablePlots * 2)
+    Swag.assert(autumnLayout.irrigatedPlots <= autumnLayout.vegetablePlots)
+    Swag.assert(autumnLayout.waterReserveLiters >= autumnLayout.pondPlots * 900)
+    Swag.assert(autumnLayout.compostBins >= 0)
+    Swag.assert(autumnLayout.layoutSignature > 0)
 }

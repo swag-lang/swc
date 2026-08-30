@@ -32,7 +32,7 @@ struct Single2 {x: f32}
     #assert(VEC3I.x == 1)
     #assert(VEC3I.y == 2)
     #assert(VEC3I.z == 3)
-    @assert(VEC3I.z == 3)
+    Swag.assert(VEC3I.z == 3)
 }
 
 #test
@@ -41,7 +41,7 @@ struct Single2 {x: f32}
     #assert(VEC3I.x == 1)
     #assert(VEC3I.y == 2)
     #assert(VEC3I.z == 3)
-    @assert(VEC3I.y == 2)
+    Swag.assert(VEC3I.y == 2)
 }
 
 #test
@@ -50,7 +50,7 @@ struct Single2 {x: f32}
     #assert(VEC3I.x == 1)
     #assert(VEC3I.y == 2)
     #assert(VEC3I.z == 0)
-    @assert(VEC3I.z == 0)
+    Swag.assert(VEC3I.z == 0)
 }
 
 struct InvalidCast {x: s32, y: s32}
@@ -86,7 +86,7 @@ struct RequiredDefaults {x: s32 = undefined, y: s32 = 5, z: s32 = undefined}
     #assert(REQUIRED_DEFAULTS.x == 1)
     #assert(REQUIRED_DEFAULTS.y == 2)
     #assert(REQUIRED_DEFAULTS.z == 3)
-    @assert(REQUIRED_DEFAULTS.y == 2)
+    Swag.assert(REQUIRED_DEFAULTS.y == 2)
 }
 struct Point {x, y: s32}
 struct Rect {topLeft: Point, bottomRight: Point}
@@ -98,7 +98,7 @@ struct Rect {topLeft: Point, bottomRight: Point}
     #assert(RECT.topLeft.y == 2)
     #assert(RECT.bottomRight.x == 3)
     #assert(RECT.bottomRight.y == 4)
-    @assert(RECT.bottomRight.y == 4)
+    Swag.assert(RECT.bottomRight.y == 4)
 }
 
 #test
@@ -108,7 +108,7 @@ struct Rect {topLeft: Point, bottomRight: Point}
     #assert(RECT.topLeft.y == 2)
     #assert(RECT.bottomRight.x == 3)
     #assert(RECT.bottomRight.y == 4)
-    @assert(RECT.topLeft.x == 1)
+    Swag.assert(RECT.topLeft.x == 1)
 }
 
 #test
@@ -118,7 +118,7 @@ struct Rect {topLeft: Point, bottomRight: Point}
     #assert(RECT.topLeft.y == 2)
     #assert(RECT.bottomRight.x == 3)
     #assert(RECT.bottomRight.y == 4)
-    @assert(RECT.bottomRight.x == 3)
+    Swag.assert(RECT.bottomRight.x == 3)
 }
 
 #test
@@ -128,7 +128,7 @@ struct Rect {topLeft: Point, bottomRight: Point}
     #assert(RECT.topLeft.y == 2)
     #assert(RECT.bottomRight.x == 3)
     #assert(RECT.bottomRight.y == 4)
-    @assert(RECT.topLeft.y == 2)
+    Swag.assert(RECT.topLeft.y == 2)
 }
 
 struct Color {r, g, b: u8 = 0}
@@ -142,7 +142,7 @@ struct Vertex {pos: Point, color: Color}
     #assert(VERTEX.color.r == 255)
     #assert(VERTEX.color.g == 128)
     #assert(VERTEX.color.b == 64)
-    @assert(VERTEX.color.b == 64)
+    Swag.assert(VERTEX.color.b == 64)
 }
 
 #test
@@ -153,7 +153,7 @@ struct Vertex {pos: Point, color: Color}
     #assert(VERTEX.color.r == 255)
     #assert(VERTEX.color.g == 128)
     #assert(VERTEX.color.b == 0)
-    @assert(VERTEX.color.b == 0)
+    Swag.assert(VERTEX.color.b == 0)
 }
 
 #test
@@ -164,7 +164,7 @@ struct Vertex {pos: Point, color: Color}
     #assert(VERTEX.color.r == 255)
     #assert(VERTEX.color.g == 128)
     #assert(VERTEX.color.b == 64)
-    @assert(VERTEX.pos.y == 10)
+    Swag.assert(VERTEX.pos.y == 10)
 }
 
 #test
@@ -175,7 +175,7 @@ struct Vertex {pos: Point, color: Color}
     #assert(VERTEX.color.r == 0)
     #assert(VERTEX.color.g == 0)
     #assert(VERTEX.color.b == 0)
-    @assert(VERTEX.color.g == 0)
+    Swag.assert(VERTEX.color.g == 0)
 }
 
 struct Transform {pos: Point, scale: Vec3F}
@@ -191,7 +191,7 @@ struct Entity {name: Simple2, transform: Transform}
     #assert(ENTITY.transform.scale.x == 1)
     #assert(ENTITY.transform.scale.y == 2)
     #assert(ENTITY.transform.scale.z == 3)
-    @assert(ENTITY.transform.pos.y == 200)
+    Swag.assert(ENTITY.transform.pos.y == 200)
 }
 
 #test
@@ -204,7 +204,7 @@ struct Entity {name: Simple2, transform: Transform}
     #assert(ENTITY.transform.scale.x == 1)
     #assert(ENTITY.transform.scale.y == 2)
     #assert(ENTITY.transform.scale.z == 3)
-    @assert(ENTITY.transform.scale.z == 3)
+    Swag.assert(ENTITY.transform.scale.z == 3)
 }
 
 /*

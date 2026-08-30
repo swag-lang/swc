@@ -1,5 +1,5 @@
 #global private
-const Cfg = #run @compiler.getBuildCfg()![]
+const Cfg = #run Swag.compiler().getBuildCfg()![]
 
 #assert(#typeof(Cfg) == Swag.BuildCfg)
 #assert(#typeof(Cfg.backend.optimLevel) == Swag.BuildCfgBackendOptimLevel)
@@ -20,9 +20,9 @@ const Cfg = #run @compiler.getBuildCfg()![]
 // BuildCfg fields are valid at runtime
 #test
 {
-    @assert(Cfg.registeredConfigs == "devmode|release")
-    @assert(Cfg.backendKind != Swag.BuildCfgBackendKind.None)
-    @assert(Cfg.moduleVersion >= 0'u32)
-    @assert(Cfg.moduleRevision >= 0'u32)
-    @assert(Cfg.moduleBuildNum >= 0'u32)
+    Swag.assert(Cfg.registeredConfigs == "devmode|release")
+    Swag.assert(Cfg.backendKind != Swag.BuildCfgBackendKind.None)
+    Swag.assert(Cfg.moduleVersion >= 0'u32)
+    Swag.assert(Cfg.moduleRevision >= 0'u32)
+    Swag.assert(Cfg.moduleBuildNum >= 0'u32)
 }

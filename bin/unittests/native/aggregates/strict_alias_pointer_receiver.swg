@@ -31,11 +31,11 @@ impl StrictAliasVec2
     let p = cast(StrictAliasVec2Ptr) &v
 
     #assert(#typeof(p) == StrictAliasVec2Ptr)
-    @assert(p.length2() == 100)
+    Swag.assert(p.length2() == 100)
 
     p.negate()
-    @assert(v.x == -6)
-    @assert(v.y == -8)
+    Swag.assert(v.x == -6)
+    Swag.assert(v.y == -8)
 }
 
 // A member read through the strict-alias receiver keeps the field's own type.
@@ -45,5 +45,5 @@ impl StrictAliasVec2
     let p = cast(StrictAliasVec2Ptr) &v
 
     #assert(#typeof(p.x) == s32)
-    @assert(p.x * p.y == 12)
+    Swag.assert(p.x * p.y == 12)
 }

@@ -305,10 +305,10 @@ func genericMatrixStaysAligned()->bool
 
 #test
 {
-    @assert(podShapesStayEmpty())
-    @assert(initPointersRestoreDefaults())
-    @assert(directPartialLifecyclePointersWork())
-    @assert(synthesizedPartialLifecyclePointersWork())
-    @assert(mixedLifecycleFlagsMatchPointers())
-    @assert(genericMatrixStaysAligned())
+    Swag.assert(podShapesStayEmpty())
+    Swag.assert(initPointersRestoreDefaults())
+    Swag.assert(directPartialLifecyclePointersWork())
+    Swag.assert(synthesizedPartialLifecyclePointersWork())
+    Swag.assert(mixedLifecycleFlagsMatchPointers())
+    Swag.assert(genericMatrixStaysAligned())
 }

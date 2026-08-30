@@ -28,6 +28,6 @@ func distToPixel(v: s32)->s32
 
     // The baseline (y = 0) must stay put, and the x-height must end up on (or within
     // rounding of) a whole pixel, at least as well aligned as before.
-    @assert(distToPixel(after) <= distToPixel(before) + 1)
-    @assert(distToPixel(after) <= 3)
+    Swag.assert(distToPixel(after) <= distToPixel(before) + 1)
+    Swag.assert(distToPixel(after) <= 3)
 }

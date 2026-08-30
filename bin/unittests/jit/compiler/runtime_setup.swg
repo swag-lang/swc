@@ -1,7 +1,7 @@
 #global private
 func runtimeSetupWorks()->bool
 {
-    let cxt = @getcontext()
+    let cxt = Swag.getContext()
     if !cxt.allocator or !cxt.tempAllocator.capacity or !cxt.errorAllocator.capacity do
         return false
 
@@ -16,7 +16,7 @@ func runtimeSetupWorks()->bool
 
 #test
 {
-    @assert(runtimeSetupWorks())
+    Swag.assert(runtimeSetupWorks())
 
     const V = #run runtimeSetupWorks()
     #assert(V)
@@ -26,13 +26,13 @@ func runtimeSetupWorks()->bool
 {
     func writeContextValue()->bool
     {
-        @getcontext().user0 = 0xC0FFEE
+        Swag.getContext().user0 = 0xC0FFEE
         return true
     }
 
     func contextStartsClean()->bool
     {
-        return @getcontext().user0 == 0
+        return Swag.getContext().user0 == 0
     }
 
     const A = #run writeContextValue()

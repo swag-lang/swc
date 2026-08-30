@@ -7,9 +7,9 @@ func assertBuilderString(value: String, expected: string)->bool
 {
     let text = value.toString()
     return value == expected and
-           @countof(value) == @countof(expected) and
-           @countof(text) == @countof(expected) and
-           Memory.compare(@dataof(text), @dataof(expected), @countof(expected)) == 0
+           value.count == expected.count and
+           text.count == expected.count and
+           Memory.compare(text.buffer, expected.buffer, expected.count) == 0
 }
 
 #test
@@ -18,13 +18,13 @@ func assertBuilderString(value: String, expected: string)->bool
     builder.appendString("abc")
     builder.zeroTerminate()
 
-    @assert(builder.count() == 3)
-    @assert(assertBuilderString(builder.toString(), "abc"))
+    Swag.assert(builder.count() == 3)
+    Swag.assert(assertBuilderString(builder.toString(), "abc"))
 
     builder.zeroTerminate()
-    @assert(builder.count() == 3)
+    Swag.assert(builder.count() == 3)
 
     builder.appendString("def")
-    @assert(builder.count() == 6)
-    @assert(assertBuilderString(builder.moveToString(), "abcdef"))
+    Swag.assert(builder.count() == 6)
+    Swag.assert(assertBuilderString(builder.moveToString(), "abcdef"))
 }

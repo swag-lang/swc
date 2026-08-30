@@ -3,63 +3,63 @@
 #test
 {
     #[Swag.NoInline]
-    func minS32(a, b: s32)->s32 => @min(a, b)
+    func minS32(a, b: s32)->s32 => Swag.min(a, b)
     #[Swag.NoInline]
-    func maxS32(a, b: s32)->s32 => @max(a, b)
+    func maxS32(a, b: s32)->s32 => Swag.max(a, b)
     #[Swag.NoInline]
-    func absS32(v: s32)->s32 => @abs(v)
+    func absS32(v: s32)->s32 => Swag.abs(v)
     #[Swag.NoInline]
-    func absF64(v: f64)->f64 => @abs(v)
+    func absF64(v: f64)->f64 => Swag.abs(v)
 
     #[Swag.NoInline]
-    func sqrtF64(v: f64)->f64 => @sqrt(v)
+    func sqrtF64(v: f64)->f64 => Swag.sqrt(v)
     #[Swag.NoInline]
-    func sinF64(v: f64)->f64 => @sin(v)
+    func sinF64(v: f64)->f64 => Swag.sin(v)
     #[Swag.NoInline]
-    func cosF64(v: f64)->f64 => @cos(v)
+    func cosF64(v: f64)->f64 => Swag.cos(v)
     #[Swag.NoInline]
-    func tanF64(v: f64)->f64 => @tan(v)
+    func tanF64(v: f64)->f64 => Swag.tan(v)
 
     #[Swag.NoInline]
-    func sinhF64(v: f64)->f64 => @sinh(v)
+    func sinhF64(v: f64)->f64 => Swag.sinh(v)
     #[Swag.NoInline]
-    func coshF64(v: f64)->f64 => @cosh(v)
+    func coshF64(v: f64)->f64 => Swag.cosh(v)
     #[Swag.NoInline]
-    func tanhF64(v: f64)->f64 => @tanh(v)
+    func tanhF64(v: f64)->f64 => Swag.tanh(v)
 
     #[Swag.NoInline]
-    func asinF64(v: f64)->f64 => @asin(v)
+    func asinF64(v: f64)->f64 => Swag.asin(v)
     #[Swag.NoInline]
-    func acosF64(v: f64)->f64 => @acos(v)
+    func acosF64(v: f64)->f64 => Swag.acos(v)
     #[Swag.NoInline]
-    func atanF64(v: f64)->f64 => @atan(v)
+    func atanF64(v: f64)->f64 => Swag.atan(v)
     #[Swag.NoInline]
-    func atan2F64(a, b: f64)->f64 => @atan2(a, b)
+    func atan2F64(a, b: f64)->f64 => Swag.atan2(a, b)
 
     #[Swag.NoInline]
-    func logF64(v: f64)->f64 => @log(v)
+    func logF64(v: f64)->f64 => Swag.log(v)
     #[Swag.NoInline]
-    func log2F64(v: f64)->f64 => @log2(v)
+    func log2F64(v: f64)->f64 => Swag.log2(v)
     #[Swag.NoInline]
-    func log10F64(v: f64)->f64 => @log10(v)
+    func log10F64(v: f64)->f64 => Swag.log10(v)
 
     #[Swag.NoInline]
-    func floorF64(v: f64)->f64 => @floor(v)
+    func floorF64(v: f64)->f64 => Swag.floor(v)
     #[Swag.NoInline]
-    func ceilF64(v: f64)->f64 => @ceil(v)
+    func ceilF64(v: f64)->f64 => Swag.ceil(v)
     #[Swag.NoInline]
-    func truncF64(v: f64)->f64 => @trunc(v)
+    func truncF64(v: f64)->f64 => Swag.trunc(v)
     #[Swag.NoInline]
-    func roundF64(v: f64)->f64 => @round(v)
+    func roundF64(v: f64)->f64 => Swag.round(v)
 
     #[Swag.NoInline]
-    func expF64(v: f64)->f64 => @exp(v)
+    func expF64(v: f64)->f64 => Swag.exp(v)
     #[Swag.NoInline]
-    func exp2F64(v: f64)->f64 => @exp2(v)
+    func exp2F64(v: f64)->f64 => Swag.exp2(v)
     #[Swag.NoInline]
-    func powF64(a, b: f64)->f64 => @pow(a, b)
+    func powF64(a, b: f64)->f64 => Swag.pow(a, b)
     #[Swag.NoInline]
-    func mulAddF64(a, b, c: f64)->f64 => @muladd(a, b, c)
+    func mulAddF64(a, b, c: f64)->f64 => Swag.muladd(a, b, c)
 
     #assert(#run minS32(4, -2) == -2)
     #assert(#run maxS32(4, -2) == 4)

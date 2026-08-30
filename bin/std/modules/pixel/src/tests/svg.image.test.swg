@@ -13,9 +13,9 @@ using Swag, Core
 
     let drawing = expect Svg.Drawing.parse(Source, options)
     let image   = drawing.rasterize(40, 40, 1)
-    @assert(image.pixelColor(2, 2).a == 0)
-    @assert(image.pixelColor(20, 20).a > 0)
-    @assert(image.pixelColor(35, 35).a > 0)
+    Swag.assert(image.pixelColor(2, 2).a == 0)
+    Swag.assert(image.pixelColor(20, 20).a > 0)
+    Swag.assert(image.pixelColor(35, 35).a > 0)
 }
 
 // Data images need no filesystem authority, while a relative reference without a root is rejected.
@@ -25,15 +25,15 @@ using Swag, Core
     const Source   = "<svg width='4' height='4'><image width='4' height='4' href='data:image/png;base64," ++ Embedded ++ "'/></svg>"
     let drawing = expect Svg.Drawing.parse(Source)
     let image   = drawing.rasterize(4, 4, 1)
-    @assert(image.pixelColor(2, 2).a > 0)
+    Swag.assert(image.pixelColor(2, 2).a > 0)
 
     const External = "<svg width='4' height='4'><image width='4' height='4' href='basi2c08.png'/></svg>"
     discard catch Svg.Drawing.parse(External) as err
-    @assert(err != null)
+    Swag.assert(err != null)
 
     var options: Svg.ParseOptions
     options.externalResourceRoot = Path.directoryName(getTestDataPath("basi2c08.png").toString())!
     const Escape = "<svg width='4' height='4'><image width='4' height='4' href='../basi2c08.png'/></svg>"
     discard catch Svg.Drawing.parse(Escape, options) as escapeErr
-    @assert(escapeErr != null)
+    Swag.assert(escapeErr != null)
 }

@@ -185,7 +185,7 @@ func testCoreTupleAliasRuntimeLifecycle()->bool
 
 #test
 {
-    @assert(testCoreTupleRuntimeLifecycle())
-    @assert(testCoreTupleArrayRuntimeLifecycle())
-    @assert(testCoreTupleAliasRuntimeLifecycle())
+    Swag.assert(testCoreTupleRuntimeLifecycle())
+    Swag.assert(testCoreTupleArrayRuntimeLifecycle())
+    Swag.assert(testCoreTupleAliasRuntimeLifecycle())
 }

@@ -9,6 +9,6 @@
         return {first: 41'u16, second: 42'u16}
     }
 
-    @assert(cb(false).first == 41'u16)
-    @assert(cb(true).second == 32'u16)
+    Swag.assert(cb(false).first == 41'u16)
+    Swag.assert(cb(true).second == 32'u16)
 }

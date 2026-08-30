@@ -22,10 +22,10 @@ func isDirectorySeparator(c: u8)->bool
 // Returns whether `fullname` is a lexically valid path on the selected target.
 func isValidPathName(fullname: string)->bool
 {
-    if @countof(fullname) == 0 do
+    if fullname.count == 0 do
         return false
 
-    let extendedSyntax = TargetHasWindowsPathSyntax and @countof(fullname) >= 4 and isDirectorySeparator(fullname[0]) and isDirectorySeparator(fullname[1]) and fullname[2] == '?' and isDirectorySeparator(fullname[3])
+    let extendedSyntax = TargetHasWindowsPathSyntax and fullname.count >= 4 and isDirectorySeparator(fullname[0]) and isDirectorySeparator(fullname[1]) and fullname[2] == '?' and isDirectorySeparator(fullname[3])
     for c, index in fullname
     {
         if c == 0 do
@@ -44,7 +44,7 @@ func isValidPathName(fullname: string)->bool
 // Returns whether `fullname` is a lexically valid single file name on the selected target.
 func isValidFileName(fullname: string)->bool
 {
-    if @countof(fullname) == 0 do
+    if fullname.count == 0 do
         return false
     for c in fullname
     {
@@ -60,16 +60,16 @@ func isValidFileName(fullname: string)->bool
 // Returns the length of the root prefix under the selected target's lexical policy.
 func rootLength(fullname: string)->u32
 {
-    if @countof(fullname) == 0 do
+    if fullname.count == 0 do
         return 0
     if !TargetHasWindowsPathSyntax do
         return isDirectorySeparator(fullname[0]) ? 1 : 0
 
     func startsWithOrdinal(source, value: string)->bool
     {
-        if @countof(source) < @countof(value) do
+        if source.count < value.count do
             return false
-        for i in @countof(value) where value[i] != source[i] do
+        for i in value.count where value[i] != source[i] do
             return false
         return true
     }
@@ -77,7 +77,7 @@ func rootLength(fullname: string)->u32
     var index                 = 0'u32
     var volumeSeparatorLength = 2'u32
     var uncRootLength         = 2'u32
-    let pathLength            = @countof(fullname)
+    let pathLength            = fullname.count
 
     const ExtendedPathPrefix = #raw "\\?\"
     const UncExtendedPathPrefix = #raw "\\?\UNC\"
@@ -87,9 +87,9 @@ func rootLength(fullname: string)->u32
     if extendedSyntax
     {
         if extendedUncSyntax do
-            uncRootLength = @countof(UncExtendedPathPrefix)
+            uncRootLength = UncExtendedPathPrefix.count
         else do
-            volumeSeparatorLength += @countof(ExtendedPathPrefix)
+            volumeSeparatorLength += ExtendedPathPrefix.count
     }
 
     if (!extendedSyntax or extendedUncSyntax) and isDirectorySeparator(fullname[0])
@@ -136,7 +136,7 @@ func rootName(fullname: #null string)->#null string
     let length = rootLength(path)
     if !length do
         return null
-    return cast() @mkslice(@dataof(path), cast(u64) length)
+    return cast() Swag.makeSlice(path.buffer, cast(u64) length)
 }
 
 // Returns true if the given path is rooted (starts with a separator or a drive letter and colon)
@@ -147,7 +147,7 @@ func isRooted(fullname: #null string)->bool
         return false
     let path = fullname
     Debug.assert(isValidPathName(path))
-    let countof = @countof(path)
+    let countof = path.count
     if countof >= 1 and isDirectorySeparator(path[0]) do
         return true
     if VolumeSeparator != 0 and countof >= 2 and path[1] == VolumeSeparator do
@@ -164,7 +164,7 @@ func directoryName(fullname: #null string)->#null string
     let path = fullname
     Debug.assert(isValidPathName(path))
 
-    let countof = @countof(path)
+    let countof = path.count
     var cpt     = countof
     while cpt
     {
@@ -176,7 +176,7 @@ func directoryName(fullname: #null string)->#null string
                 return null
             if VolumeSeparator != 0 and cpt == 2 and path[1] == VolumeSeparator do
                 return null
-            return cast() @mkslice(@dataof(path), cast(u64) cpt)
+            return cast() Swag.makeSlice(path.buffer, cast(u64) cpt)
         }
     }
 
@@ -192,7 +192,7 @@ func fileName(fullname: #null string)->#null string
     let path = fullname
     Debug.assert(isValidPathName(path))
 
-    let countof = @countof(path)
+    let countof = path.count
     var cpt     = countof
     while cpt
     {
@@ -202,7 +202,7 @@ func fileName(fullname: #null string)->#null string
         {
             if cpt == countof - 1 do
                 return null
-            return cast() @mkslice(@dataof(path) + cpt + 1, cast(u64) (countof - cpt) - 1)
+            return cast() Swag.makeSlice(path.buffer + cpt + 1, cast(u64) (countof - cpt) - 1)
         }
     }
 
@@ -218,7 +218,7 @@ func fileNameWithoutExtension(fullname: #null string)->#null string
     let path = fullname
     Debug.assert(isValidPathName(path))
 
-    let countof = @countof(path)
+    let countof = path.count
     var cpt     = countof
     var last    = countof
     while cpt
@@ -231,12 +231,12 @@ func fileNameWithoutExtension(fullname: #null string)->#null string
         {
             if cpt == countof - 1 do
                 return null
-            return cast() @mkslice(@dataof(path) + cpt + 1, cast(u64) (last - cpt) - 1)
+            return cast() Swag.makeSlice(path.buffer + cpt + 1, cast(u64) (last - cpt) - 1)
         }
     }
 
     if last != countof do
-        return cast() @mkslice(@dataof(path), cast(u64) last)
+        return cast() Swag.makeSlice(path.buffer, cast(u64) last)
     return path
 }
 
@@ -250,13 +250,13 @@ func extension(fullname: #null string)->#null string
     let path = fullname
     Debug.assert(isValidPathName(path))
 
-    var cpt = @countof(path)
+    var cpt = path.count
     while cpt
     {
         cpt -= 1
         let c = path[cpt]
         if c == '.' do
-            return cast() @mkslice(@dataof(path) + cpt, cast(u64) @countof(path) - cpt)
+            return cast() Swag.makeSlice(path.buffer + cpt, cast(u64) path.count - cpt)
         if isDirectorySeparator(c) or VolumeSeparator != 0 and c == VolumeSeparator do
             break
     }
@@ -288,7 +288,7 @@ func hasExtension(fullname: #null string)->bool
     let path = fullname
     Debug.assert(isValidPathName(path))
 
-    var cpt = @countof(path)
+    var cpt = path.count
     while cpt
     {
         cpt -= 1
@@ -309,7 +309,7 @@ func combine(fullnames: #null string...)->String
     for one in fullnames
     {
         let part = one orelse ""
-        if @countof(part) == 0 do
+        if part.count == 0 do
             continue
 
         if result.length

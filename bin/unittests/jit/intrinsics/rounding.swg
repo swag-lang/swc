@@ -3,22 +3,22 @@
 #test
 {
     #[Swag.NoInline]
-    func floorF32(v: f32)->f32 => @floor(v)
+    func floorF32(v: f32)->f32 => Swag.floor(v)
     #[Swag.NoInline]
-    func ceilF32(v: f32)->f32 => @ceil(v)
+    func ceilF32(v: f32)->f32 => Swag.ceil(v)
     #[Swag.NoInline]
-    func truncF32(v: f32)->f32 => @trunc(v)
+    func truncF32(v: f32)->f32 => Swag.trunc(v)
     #[Swag.NoInline]
-    func roundF32(v: f32)->f32 => @round(v)
+    func roundF32(v: f32)->f32 => Swag.round(v)
 
     #[Swag.NoInline]
-    func floorF64(v: f64)->f64 => @floor(v)
+    func floorF64(v: f64)->f64 => Swag.floor(v)
     #[Swag.NoInline]
-    func ceilF64(v: f64)->f64 => @ceil(v)
+    func ceilF64(v: f64)->f64 => Swag.ceil(v)
     #[Swag.NoInline]
-    func truncF64(v: f64)->f64 => @trunc(v)
+    func truncF64(v: f64)->f64 => Swag.trunc(v)
     #[Swag.NoInline]
-    func roundF64(v: f64)->f64 => @round(v)
+    func roundF64(v: f64)->f64 => Swag.round(v)
 
     const A0 = #run floorF32(1.75'f32)
     const A1 = #run floorF64(-1.1)

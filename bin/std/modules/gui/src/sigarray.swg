@@ -52,8 +52,8 @@ impl SigArray
     // Removes every callback and restores the enabled state.
     mtd clear()
     {
-        @drop(me, 1)
-        @init(me, 1)
+        Swag.drop(me, 1)
+        Swag.init(me, 1)
     }
 
     // Invokes all registered callbacks in registration order unless disabled.
@@ -63,7 +63,7 @@ impl SigArray
             return
 
         // Be sure the call has the right number of arguments
-        Debug.assert(@countof(params) == @countof(#typeof(T).parameters))
+        Debug.assert(params.count == (#typeof(T).parameters).count)
 
         for fn in .callbacks
         {
@@ -74,7 +74,7 @@ impl SigArray
 
                 sb.appendString("fn(")
                 let tsParams = ts.parameters!
-                for i in @countof(ts.parameters)
+                for i in tsParams.count
                 {
                     if i do
                         sb.appendString(",")

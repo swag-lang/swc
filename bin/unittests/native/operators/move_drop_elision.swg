@@ -45,8 +45,8 @@ impl Tracked
         dst = #move src
     }
     // Drops: 'dst' as assignment target (7), 'dst' at scope exit (3+20). 'src': elided.
-    @assert(DropCount == 2)
-    @assert(DropTrace == 723)
+    Swag.assert(DropCount == 2)
+    Swag.assert(DropTrace == 723)
 }
 
 // A read after the move keeps the documented reset semantics: no elision.
@@ -59,9 +59,9 @@ impl Tracked
         dst    = #move src
         g_sink = src.value
     }
-    @assert(g_sink == 5)     // reset to defaults
-    @assert(DropCount == 3)
-    @assert(DropTrace == 72305)
+    Swag.assert(g_sink == 5)     // reset to defaults
+    Swag.assert(DropCount == 3)
+    Swag.assert(DropTrace == 72305)
 }
 
 // A move inside a branch does not post-dominate the scope exit: no elision.
@@ -74,8 +74,8 @@ impl Tracked
         if g_cond do
             dst = #move src
     }
-    @assert(DropCount == 3)
-    @assert(DropTrace == 72305)
+    Swag.assert(DropCount == 3)
+    Swag.assert(DropTrace == 72305)
 }
 
 // A taken address can outlive the move: no elision.
@@ -89,9 +89,9 @@ impl Tracked
         g_sink = p.value
         dst    = #move src
     }
-    @assert(g_sink == 3)
-    @assert(DropCount == 3)
-    @assert(DropTrace == 72305)
+    Swag.assert(g_sink == 3)
+    Swag.assert(DropCount == 3)
+    Swag.assert(DropTrace == 72305)
 }
 
 // A move inside a loop below the declaration re-reads the source next iteration: no elision.
@@ -104,8 +104,8 @@ impl Tracked
         for var i = 0; i < 1; i += 1 do
             dst = #nodrop #move src
     }
-    @assert(DropCount == 2)
-    @assert(DropTrace == 2305)
+    Swag.assert(DropCount == 2)
+    Swag.assert(DropTrace == 2305)
 }
 
 // Elision also applies to the 'var a = #move b' initialization form.
@@ -117,9 +117,9 @@ impl Tracked
         var dst = #move src
         g_sink = dst.value
     }
-    @assert(g_sink == 23)
-    @assert(DropCount == 1)
-    @assert(DropTrace == 23)
+    Swag.assert(g_sink == 23)
+    Swag.assert(DropCount == 1)
+    Swag.assert(DropTrace == 23)
 }
 
 // Only the LAST move of a chain elides: the first one keeps the reset semantics.
@@ -134,6 +134,6 @@ impl Tracked
         d2 = #move src     // moves the reset value (5); 'src' then elided
     }
     // Drops: d1 target (6), d2 target (7), scope: d2 (5+20), d1 (3+20). src: elided.
-    @assert(DropCount == 4)
-    @assert(DropTrace == 6072523)
+    Swag.assert(DropCount == 4)
+    Swag.assert(DropTrace == 6072523)
 }

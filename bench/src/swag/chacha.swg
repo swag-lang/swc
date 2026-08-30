@@ -12,16 +12,16 @@ func quarterRound(state: *[16] u32, a, b, c, d: u32)
 {
     state[][a] = add32(state[][a], state[][b])
     state[][d] ^= state[][a]
-    state[][d] = @rol(state[][d], 16)
+    state[][d] = Swag.rol(state[][d], 16)
     state[][c] = add32(state[][c], state[][d])
     state[][b] ^= state[][c]
-    state[][b] = @rol(state[][b], 12)
+    state[][b] = Swag.rol(state[][b], 12)
     state[][a] = add32(state[][a], state[][b])
     state[][d] ^= state[][a]
-    state[][d] = @rol(state[][d], 8)
+    state[][d] = Swag.rol(state[][d], 8)
     state[][c] = add32(state[][c], state[][d])
     state[][b] ^= state[][c]
-    state[][b] = @rol(state[][b], 7)
+    state[][b] = Swag.rol(state[][b], 7)
 }
 
 #run

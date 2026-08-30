@@ -7,7 +7,7 @@ public func depPlaceholderExport(value: DepPlaceholderScalar)->DepPlaceholderSca
 
 #message(CompilerMsgMask.PassAfterSemantic)
 {
-    let itf = @compiler
+    let itf = Swag.compiler()
     itf.compileString(
         "public func depPlaceholderExport(value: s32)->s32\n" ++
         "{\n" ++

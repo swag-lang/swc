@@ -94,12 +94,12 @@ func elfTotal(elf: Elf)->u32
 
 func collectTotals(outTotals: [..] u32, elves: const [..] Elf, mapper: func(Elf)->u32)->u32
 {
-    @assert(@countof(outTotals) >= @countof(elves))
+    Swag.assert(outTotals.count >= elves.count)
 
-    let elfCount = cast(u32) @countof(elves)
+    let elfCount = cast(u32) elves.count
     for elfCount
     {
-        let index = cast(u32) @index
+        let index = cast(u32) Swag.index
         outTotals[index] = mapper(elves[index])
     }
 
@@ -108,7 +108,7 @@ func collectTotals(outTotals: [..] u32, elves: const [..] Elf, mapper: func(Elf)
 
 func sortDescending(values: [..] u32)
 {
-    let count = @countof(values)
+    let count = values.count
     for var i = 0'u64; i < count; i += 1
     {
         var best = i
@@ -161,7 +161,7 @@ func rankFromIndex(idx: u32)->Rank
 
 func addFoodItem(elf: *Elf, name: string, calories: u32)
 {
-    @assert(elf.itemCount < MaxFoodItemsPerElf)
+    Swag.assert(elf.itemCount < MaxFoodItemsPerElf)
     let itemIndex = elf.itemCount
     elf.items[itemIndex] = FoodItem{name: name, calories: calories}
     elf.itemCount        += 1
@@ -212,43 +212,43 @@ func makeElf(id: u32, cals: const [..] u32)->Elf
     elves[4] = makeElf(4, [10000'u32])
 
     let elfSlice = elves[to]
-    @assert(@countof(elfSlice) == 5)
+    Swag.assert(elfSlice.count == 5)
 
     let best = solvePartOne(elfSlice)
-    @assert(best == 24000)
+    Swag.assert(best == 24000)
 
     let top3 = solvePartTwo(elfSlice)
-    @assert(top3 == 45000)
+    Swag.assert(top3 == 45000)
 
     let top2 = solvePartTwo'(2)(elfSlice)
-    @assert(top2 == 35000)
+    Swag.assert(top2 == 35000)
 
     let totalE0 = e0.ICalorieSource.totalCalories()
-    @assert(totalE0 == 6000)
+    Swag.assert(totalE0 == 6000)
 
-    @assert(maxOf'(u32)(10, 20) == 20)
-    @assert(minOf'(u32)(10, 20) == 10)
+    Swag.assert(maxOf'(u32)(10, 20) == 20)
+    Swag.assert(minOf'(u32)(10, 20) == 10)
 
     var a = 42'u32
     var b = 99'u32
     swap'(u32)(&a, &b)
-    @assert(a == 99 and b == 42)
+    Swag.assert(a == 99 and b == 42)
 
-    @assert(rankFromIndex(0) == .First)
-    @assert(rankFromIndex(1) == .Second)
-    @assert(rankFromIndex(2) == .Third)
+    Swag.assert(rankFromIndex(0) == .First)
+    Swag.assert(rankFromIndex(1) == .Second)
+    Swag.assert(rankFromIndex(2) == .Third)
 
     var totals: [MaxElves] u32
     let totalCount = collectTotals(totals, elfSlice, func(e: Elf)->u32 { return elfTotal(e) })
-    @assert(totalCount == 5)
-    @assert(totals[0] == 6000)
-    @assert(totals[3] == 24000)
+    Swag.assert(totalCount == 5)
+    Swag.assert(totals[0] == 6000)
+    Swag.assert(totals[3] == 24000)
 
     var sorted = totals
     sortDescending(sorted[until totalCount])
-    @assert(sorted[0] == 24000)
-    @assert(sorted[1] == 11000)
-    @assert(sorted[2] == 10000)
-    @assert(sorted[3] == 6000)
-    @assert(sorted[4] == 4000)
+    Swag.assert(sorted[0] == 24000)
+    Swag.assert(sorted[1] == 11000)
+    Swag.assert(sorted[2] == 10000)
+    Swag.assert(sorted[3] == 6000)
+    Swag.assert(sorted[4] == 4000)
 }

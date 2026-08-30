@@ -19,5 +19,5 @@ func mixinPayloadClosure(payload: MixinClosurePayload)->s32
 
 #test
 {
-    @assert(mixinPayloadClosure(MixinClosurePayload{[10, 20, 30], 4}) == 24)
+    Swag.assert(mixinPayloadClosure(MixinClosurePayload{[10, 20, 30], 4}) == 24)
 }

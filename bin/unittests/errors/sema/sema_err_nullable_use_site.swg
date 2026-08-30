@@ -122,11 +122,11 @@ func nullableUseSiteKilled(p: #null *NullableUseSiteItem, q: #null *NullableUseS
     return a + cur.value     // swc-expected-error {{sema_err_nullable_member_access}}
 }
 
-// An '@assert' proof is scoped to its own block and does not outlive it.
+// An 'Swag.assert' proof is scoped to its own block and does not outlive it.
 func nullableUseSiteAssertScoped(p: #null *NullableUseSiteItem)->s32
 {
     {
-        @assert(p != null)
+        Swag.assert(p != null)
         discard p.value
     }
 
@@ -136,7 +136,7 @@ func nullableUseSiteAssertScoped(p: #null *NullableUseSiteItem)->s32
 // An assertion on another path proves nothing about this one.
 func nullableUseSiteAssertOtherPath(p: #null *NullableUseSiteItem, q: #null *NullableUseSiteItem)->s32
 {
-    @assert(q != null)
+    Swag.assert(q != null)
     return p.value     // swc-expected-error {{sema_err_nullable_member_access}}
 }
 

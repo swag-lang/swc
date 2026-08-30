@@ -42,13 +42,13 @@ func decodeNameRecord(nameTable: #null const [..] u8, stringOffset, recordOffset
 
     if platformID == 0 or platformID == 3
     {
-        if (@countof(raw) & 1) != 0 do
+        if (raw.count & 1) != 0 do
             fault(0x91)
 
         var chars: Array'u16
-        chars.resize(@countof(raw) / 2)
+        chars.resize(raw.count / 2)
         for chars.count do
-            chars[@index] = readU16(raw, cast(u64) @index * 2)
+            chars[Swag.index] = readU16(raw, cast(u64) Swag.index * 2)
         return Utf8.fromUtf16(chars.toSlice())
     }
 
@@ -67,7 +67,7 @@ func decodeBestName(nameTable: #null const [..] u8, nameID: u16)->String fail
 
     for count
     {
-        let base = 6'u64 + cast(u64) @index * 12
+        let base = 6'u64 + cast(u64) Swag.index * 12
         if readU16(nameTable, base + 6) != nameID do
             continue
 
@@ -91,7 +91,7 @@ func parseNames(faceData: *FaceImpl, fallbackFamilyName: string) fail
     let rec          = findTable(faceData, TAG_NAME)
     if !rec
     {
-        if !@countof(fallbackFamilyName) do
+        if !fallbackFamilyName.count do
             fault(0x91)
         faceData.face.setNames(String.from(fallbackFamilyName), defaultStyle)
         return
@@ -102,7 +102,7 @@ func parseNames(faceData: *FaceImpl, fallbackFamilyName: string) fail
     var familyName = decodeBestName(nameTable, NAME_ID_FAMILY)
     var styleName  = decodeBestName(nameTable, NAME_ID_STYLE)
     if familyName.length == 0 do
-        familyName = String.from(@countof(fallbackFamilyName) ? fallbackFamilyName : DEFAULT_FAMILY_NAME)
+        familyName = String.from(fallbackFamilyName.count ? fallbackFamilyName : DEFAULT_FAMILY_NAME)
     if styleName.length == 0 do
         styleName = defaultStyle
     faceData.face.setNames(familyName, styleName)
@@ -136,11 +136,11 @@ func parseOS2(faceData: *FaceImpl) fail
         return
 
     let table = getSlice(faceData.fontData.toSlice(), rec.offset, rec.length)
-    if @countof(table) < 4 do
+    if table.count < 4 do
         return
 
     let version = readU16(table, 0)
-    if version >= 2 and @countof(table) >= 90
+    if version >= 2 and table.count >= 90
     {
         faceData.xHeight   = readS16(table, 86)
         faceData.capHeight = readS16(table, 88)
@@ -173,11 +173,11 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
 
     for count
     {
-        let base       = 4'u64 + cast(u64) @index * 8
+        let base       = 4'u64 + cast(u64) Swag.index * 8
         let platformID = readU16(cmapTable, base + 0)
         let encodingID = readU16(cmapTable, base + 2)
         let offset     = readU32(cmapTable, base + 4)
-        let subTable   = getSlice(cmapTable, offset, @countof(cmapTable) - offset)
+        let subTable   = getSlice(cmapTable, offset, cmapTable.count - offset)
         let format     = readU16(subTable, 0)
 
         // Variation sequences supplement the selected map rather than compete with
@@ -223,21 +223,21 @@ func buildGlyphMetrics(faceData: *FaceImpl) fail
     for faceData.face.glyphCount
     {
         var metric: GlyphMetric
-        if @index < faceData.numLongMetrics
+        if Swag.index < faceData.numLongMetrics
         {
-            let base = cast(u64) @index * 4
+            let base = cast(u64) Swag.index * 4
             metric.advanceWidth    = readU16(hmtx, base + 0)
             metric.leftSideBearing = readS16(hmtx, base + 2)
             lastAdvance            = metric.advanceWidth
         }
         else
         {
-            let base = cast(u64) faceData.numLongMetrics * 4 + cast(u64) (@index - faceData.numLongMetrics) * 2
+            let base = cast(u64) faceData.numLongMetrics * 4 + cast(u64) (Swag.index - faceData.numLongMetrics) * 2
             metric.advanceWidth    = lastAdvance
             metric.leftSideBearing = readS16(hmtx, base)
         }
 
-        faceData.glyphMetrics[@index] = metric
+        faceData.glyphMetrics[Swag.index] = metric
     }
 }
 
@@ -249,12 +249,12 @@ func buildGlyphLocations(faceData: *FaceImpl) fail
     if faceData.indexToLocFormat == 0
     {
         for faceData.glyphLocations.count do
-            faceData.glyphLocations[@index] = cast(u32) readU16(loca, cast(u64) @index * 2) * 2
+            faceData.glyphLocations[Swag.index] = cast(u32) readU16(loca, cast(u64) Swag.index * 2) * 2
     }
     else
     {
         for faceData.glyphLocations.count do
-            faceData.glyphLocations[@index] = readU32(loca, cast(u64) @index * 4)
+            faceData.glyphLocations[Swag.index] = readU32(loca, cast(u64) Swag.index * 4)
     }
 }
 
@@ -267,7 +267,7 @@ func parseKern(faceData: *FaceImpl) fail
         return
 
     let table = getSlice(faceData.fontData.toSlice(), rec.offset, rec.length)
-    if @countof(table) < 4 do
+    if table.count < 4 do
         return
 
     let nTables = readU16(table, 2)
@@ -275,7 +275,7 @@ func parseKern(faceData: *FaceImpl) fail
 
     for nTables
     {
-        if offset + 6 > @countof(table) do
+        if offset + 6 > table.count do
             break
 
         let length     = readU16(table, offset + 2)
@@ -290,7 +290,7 @@ func parseKern(faceData: *FaceImpl) fail
             var pairOff = offset + 14     // after nPairs/searchRange/entrySelector/rangeShift
             for nPairs
             {
-                if pairOff + 6 > @countof(table) do
+                if pairOff + 6 > table.count do
                     break
                 let left  = readU16(table, pairOff + 0)
                 let right = readU16(table, pairOff + 2)
@@ -331,7 +331,7 @@ func checkSfntVersion(data: #null const [..] u8, offset: u64) fail
 // collection, and one for a bare font file.
 func countFacesIn(data: #null const [..] u8)->u32 fail
 {
-    if @countof(data) < 12 do
+    if data.count < 12 do
         fault(0x02)
     if readU32(data, 0) == TAG_TTCF do
         return readU32(data, 8)
@@ -347,7 +347,7 @@ func countFacesIn(data: #null const [..] u8)->u32 fail
 // directory moves.
 func findFaceOffset(data: #null const [..] u8, faceIndex: u32)->u64 fail
 {
-    if @countof(data) < 12 do
+    if data.count < 12 do
         fault(0x02)
 
     var offset = 0'u64
@@ -372,7 +372,7 @@ func findTableAt(data: #null const [..] u8, faceOffset: u64, tag: u32)->#null co
     let numTables = readU16(data, faceOffset + 4)
     for numTables
     {
-        let base = faceOffset + 12 + cast(u64) @index * 16
+        let base = faceOffset + 12 + cast(u64) Swag.index * 16
         if readU32(data, base) != tag do
             continue
         return getSlice(data, readU32(data, base + 8), readU32(data, base + 12))
@@ -492,7 +492,7 @@ func parseProgramFace(faceData: *FaceImpl, fallbackFamilyName: string) fail
     faceData.face.setHorizontalMetrics(ascender, descender, 0, cast(s16) faceData.face.bbox.xMax)
 
     if !name.length do
-        name = String.from(@countof(fallbackFamilyName) ? fallbackFamilyName : DEFAULT_FAMILY_NAME)
+        name = String.from(fallbackFamilyName.count ? fallbackFamilyName : DEFAULT_FAMILY_NAME)
     faceData.face.setNames(name, String.from(DEFAULT_STYLE_NAME))
     faceData.face.setUnderline(cast(s16) -(cast(s32) faceData.unitsPerEm / 10), cast(s16) (faceData.unitsPerEm / 20))
 
@@ -518,10 +518,10 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
 
     for numTables
     {
-        let base = faceOffset + 12 + cast(u64) @index * 16
-        faceData.tables[@index].tag    = readU32(data, base + 0)
-        faceData.tables[@index].offset = readU32(data, base + 8)
-        faceData.tables[@index].length = readU32(data, base + 12)
+        let base = faceOffset + 12 + cast(u64) Swag.index * 16
+        faceData.tables[Swag.index].tag    = readU32(data, base + 0)
+        faceData.tables[Swag.index].offset = readU32(data, base + 8)
+        faceData.tables[Swag.index].length = readU32(data, base + 12)
     }
 
     let cffTable = findTable(faceData, TAG_CFF)
@@ -529,7 +529,7 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
         faceData.outlineSource = .Cff
 
     let head = getTableSlice(faceData, TAG_HEAD, 0x8E)
-    if @countof(head) < 54 do
+    if head.count < 54 do
         fault(0xB9)
 
     faceData.unitsPerEm = readU16(head, 18)
@@ -538,7 +538,7 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
     faceData.indexToLocFormat = readS16(head, 50)
 
     let hhea = getTableSlice(faceData, TAG_HHEA, 0x8F)
-    if @countof(hhea) < 36 do
+    if hhea.count < 36 do
         fault(0x8F)
 
     let ascender  = readS16(hhea, 4)
@@ -548,7 +548,7 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
     faceData.numLongMetrics = readU16(hhea, 34)
 
     let maxp = getTableSlice(faceData, TAG_MAXP, 0x8E)
-    if @countof(maxp) < 6 do
+    if maxp.count < 6 do
         fault(0x8E)
 
     faceData.face.setGlyphCount(readU16(maxp, 4))
@@ -567,7 +567,7 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
         buildGlyphLocations(faceData)
     }
 
-    let isSubset = @countof(fallbackFamilyName) != 0
+    let isSubset = fallbackFamilyName.count != 0
     parseCMap(faceData, isSubset)
     if !faceData.hasCMap and faceData.outlineSource == .Cff do
         buildSyntheticCMap(faceData)

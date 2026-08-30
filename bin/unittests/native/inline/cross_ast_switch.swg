@@ -8,7 +8,7 @@
 {
     var c: InlineSw.SwClassifier
     c.bias = 1
-    @assert(c.classify(InlineSw.SwKind.A) == 11)
-    @assert(c.classify(InlineSw.SwKind.B) == 21)
-    @assert(c.classify(InlineSw.SwKind.C) == 31)
+    Swag.assert(c.classify(InlineSw.SwKind.A) == 11)
+    Swag.assert(c.classify(InlineSw.SwKind.B) == 21)
+    Swag.assert(c.classify(InlineSw.SwKind.C) == 31)
 }

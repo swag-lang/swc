@@ -27,5 +27,5 @@ func runInlineCaptureBug(arr: [*] u8, count: u32)->s32
 #test
 {
     var data: [4] u8 = [1, 5, 3, 9]
-    @assert(runInlineCaptureBug(&data[0], 4) == 4)
+    Swag.assert(runInlineCaptureBug(&data[0], 4) == 4)
 }

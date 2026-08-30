@@ -3,11 +3,11 @@
 #test
 {
     #[Swag.NoInline]
-    func bswapU16(v: u16)->u16 => @byteswap(v)
+    func bswapU16(v: u16)->u16 => Swag.byteSwap(v)
     #[Swag.NoInline]
-    func bswapU32(v: u32)->u32 => @byteswap(v)
+    func bswapU32(v: u32)->u32 => Swag.byteSwap(v)
     #[Swag.NoInline]
-    func bswapU64(v: u64)->u64 => @byteswap(v)
+    func bswapU64(v: u64)->u64 => Swag.byteSwap(v)
 
     const A = #run bswapU16(0x1234'u16)
     const B = #run bswapU32(0x12345678'u32)

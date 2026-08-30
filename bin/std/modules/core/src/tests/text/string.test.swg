@@ -8,10 +8,10 @@ func assertString(value: String, expected: string)->bool
     let text  = value.toString()
     let slice = value.toSlice()
     return value == expected and
-           @countof(value) == @countof(expected) and
-           @countof(text) == @countof(expected) and
-           @countof(slice) == @countof(expected) and
-           Memory.compare(@dataof(text), @dataof(expected), @countof(expected)) == 0
+           value.count == expected.count and
+           text.count == expected.count and
+           slice.count == expected.count and
+           Memory.compare(text.buffer, expected.buffer, expected.count) == 0
 }
 
 func makePatternString(count: u64)->String
@@ -42,70 +42,70 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 #test
 {
     var value: String
-    @assert(value.isNull())
-    @assert(value.isEmpty())
-    @assert(value.isNullOrEmpty())
-    @assert(assertString(value, ""))
+    Swag.assert(value.isNull())
+    Swag.assert(value.isEmpty())
+    Swag.assert(value.isNullOrEmpty())
+    Swag.assert(assertString(value, ""))
 
     value.ensureNotNull()
-    @assert(!value.isNull())
-    @assert(value.isEmpty())
-    @assert(value.isNullOrEmpty())
-    @assert(assertString(value, ""))
+    Swag.assert(!value.isNull())
+    Swag.assert(value.isEmpty())
+    Swag.assert(value.isNullOrEmpty())
+    Swag.assert(assertString(value, ""))
 
     value = " core "
-    @assert(!value.isNull())
-    @assert(!value.isEmpty())
-    @assert(!value.isNullOrEmpty())
-    @assert(assertString(value, " core "))
+    Swag.assert(!value.isNull())
+    Swag.assert(!value.isEmpty())
+    Swag.assert(!value.isNullOrEmpty())
+    Swag.assert(assertString(value, " core "))
 
     value.trim()
-    @assert(assertString(value, "core"))
+    Swag.assert(assertString(value, "core"))
 
     value.insert(0, "[")
     value.append("]")
-    @assert(assertString(value, "[core]"))
+    Swag.assert(assertString(value, "[core]"))
 
     value.remove(0)
     value.removeBack()
-    @assert(assertString(value, "core"))
+    Swag.assert(assertString(value, "core"))
 
     value.clear()
-    @assert(value.isEmpty())
-    @assert(value.isNullOrEmpty())
-    @assert(assertString(value, ""))
+    Swag.assert(value.isEmpty())
+    Swag.assert(value.isNullOrEmpty())
+    Swag.assert(assertString(value, ""))
     let emptyCstr = cast(#null cstring) value
-    @assert(@countof(emptyCstr) == 0)
+    Swag.assert(emptyCstr.count == 0)
 
     value = "abc"
-    @assert(assertString(value, "abc"))
+    Swag.assert(assertString(value, "abc"))
     let cstr = cast(#null cstring) value
-    @assert(@countof(cstr) == 3)
+    Swag.assert(cstr.count == 3)
 
     let nullText: #null string = null
     value = nullText
-    @assert(value.isEmpty())
-    @assert(assertString(value, ""))
+    Swag.assert(value.isEmpty())
+    Swag.assert(assertString(value, ""))
     let nullCstr = cast(#null cstring) value
-    @assert(@countof(nullCstr) == 0)
+    Swag.assert(nullCstr.count == 0)
 }
 
 #test
 {
     var value: String = "abcdef"
-    @assert(assertString(value, "abcdef"))
+    Swag.assert(assertString(value, "abcdef"))
 
-    @assert(value[0] == 'a'u8)
-    @assert(value.back() == 'f'u8)
-    @assert(value[1 to 3] == "bcd")
-    @assert(value < "abcdeg")
-    @assert(value > "abcdee")
-    @assert((value <=> "abcdef") == 0)
+    Swag.assert(value[0] == 'a'u8)
+    Swag.assert(value.back() == 'f'u8)
+    Swag.assert(value[1 to 3] == "bcd")
+    Swag.assert(value < "abcdeg")
+    Swag.assert(value > "abcdee")
+    Swag.assert((value <=> "abcdef") == 0)
 
     value[1] = 'Z'u8
     value[2] += 1'u8
     value[2] -= 1'u8
-    @assert(assertString(value, "aZcdef"))
+    Swag.assert(assertString(value, "aZcdef"))
 
     var sumBytes:   u32
     var sumIndexes: u64
@@ -115,15 +115,15 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
         sumIndexes += index
     }
 
-    @assert(sumBytes == cast(u32) 'a'u8 + cast(u32) 'Z'u8 + cast(u32) 'c'u8 + cast(u32) 'd'u8 + cast(u32) 'e'u8 + cast(u32) 'f'u8)
-    @assert(sumIndexes == 15)
+    Swag.assert(sumBytes == cast(u32) 'a'u8 + cast(u32) 'Z'u8 + cast(u32) 'c'u8 + cast(u32) 'd'u8 + cast(u32) 'e'u8 + cast(u32) 'f'u8)
+    Swag.assert(sumIndexes == 15)
 
     for &byte in value do
         byte[] += 1'u8
 
-    @assert(assertString(value, "b[defg"))
+    Swag.assert(assertString(value, "b[defg"))
 
-    @assert(reverseIndexOfByteAtLeast(value, 'd'u8) == 5)
+    Swag.assert(reverseIndexOfByteAtLeast(value, 'd'u8) == 5)
 }
 
 #test
@@ -132,27 +132,27 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     value.append('A'u8)
     value.append('B'rune)
     value.append("\u00E9")
-    @assert(assertString(value, "AB\u00E9"))
+    Swag.assert(assertString(value, "AB\u00E9"))
 
     value += "!"
     value += '?'rune
     value += '#'u8
-    @assert(assertString(value, "AB\u00E9!?#"))
+    Swag.assert(assertString(value, "AB\u00E9!?#"))
 
     let strings: [3] string = ["-", "xy", "-"]
     value += strings
-    @assert(assertString(value, "AB\u00E9!?#-xy-"))
+    Swag.assert(assertString(value, "AB\u00E9!?#-xy-"))
 
     let runes: [2] rune = ['\u00E9'rune, '!'rune]
     value += runes
-    @assert(assertString(value, "AB\u00E9!?#-xy-\u00E9!"))
+    Swag.assert(assertString(value, "AB\u00E9!?#-xy-\u00E9!"))
 
     let bytes: [3] u8 = ['1'u8, '2'u8, '3'u8]
     value += bytes
-    @assert(assertString(value, "AB\u00E9!?#-xy-\u00E9!123"))
+    Swag.assert(assertString(value, "AB\u00E9!?#-xy-\u00E9!123"))
 
     value.appendFormat(":%/%/%%", "left", "right")
-    @assert(assertString(value, "AB\u00E9!?#-xy-\u00E9!123:left/right/%"))
+    Swag.assert(assertString(value, "AB\u00E9!?#-xy-\u00E9!123:left/right/%"))
 }
 
 #test
@@ -161,20 +161,20 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 
     value.insert(0, '['u8)
     value.insert(1, "std:")
-    value.insert(@countof(value), ']'u8)
-    value.insert(@countof(value), "")
-    @assert(assertString(value, "[std:core]"))
+    value.insert(value.count, ']'u8)
+    value.insert(value.count, "")
+    Swag.assert(assertString(value, "[std:core]"))
 
     value.remove(1, 4)
-    @assert(assertString(value, "[core]"))
+    Swag.assert(assertString(value, "[core]"))
 
     value.removeBack(1)
     value.remove(0, 1)
-    @assert(assertString(value, "core"))
+    Swag.assert(assertString(value, "core"))
 
     value.remove(2, 0)
     value.removeBack(0)
-    @assert(assertString(value, "core"))
+    Swag.assert(assertString(value, "core"))
 }
 
 #test
@@ -182,93 +182,93 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     var value: String = "1234"
     let tail          = value[1 to 3]
     value = tail
-    @assert(assertString(value, "234"))
+    Swag.assert(assertString(value, "234"))
 
     value = "1234"
     let middle = value[1 to 2]
     value.insert(0, middle)
-    @assert(assertString(value, "231234"))
+    Swag.assert(assertString(value, "231234"))
 
     value = "1234"
     let repl = value[1 to 2]
     value.replace("1", repl)
-    @assert(assertString(value, "23234"))
+    Swag.assert(assertString(value, "23234"))
 }
 
 #test
 {
     var value: String = "  \tcore\r\n"
     value.trimStart()
-    @assert(assertString(value, "core\r\n"))
+    Swag.assert(assertString(value, "core\r\n"))
 
     value = "  \tcore\r\n"
     value.trimEnd()
-    @assert(assertString(value, "  \tcore"))
+    Swag.assert(assertString(value, "  \tcore"))
 
     value.trim()
-    @assert(assertString(value, "core"))
+    Swag.assert(assertString(value, "core"))
 
     value = "                \u00A0core\u00A0                "
     value.trimStart()
-    @assert(assertString(value, "core\u00A0                "))
+    Swag.assert(assertString(value, "core\u00A0                "))
     value.trimEnd()
-    @assert(assertString(value, "core"))
+    Swag.assert(assertString(value, "core"))
 
     value = "one fish, two fish, red fish"
     value.replace("fish", "cat")
-    @assert(assertString(value, "one cat, two cat, red cat"))
+    Swag.assert(assertString(value, "one cat, two cat, red cat"))
 
     value.replace("cat", "bird")
-    @assert(assertString(value, "one bird, two bird, red bird"))
+    Swag.assert(assertString(value, "one bird, two bird, red bird"))
 
     value.replace("bird", "")
-    @assert(assertString(value, "one , two , red "))
+    Swag.assert(assertString(value, "one , two , red "))
 
     value.replace("", "ignored")
-    @assert(assertString(value, "one , two , red "))
+    Swag.assert(assertString(value, "one , two , red "))
 
     value = "AaA"
     value.replace("a", "x", Utf8.ComparisonType.Latin1NoCase)
-    @assert(assertString(value, "xxx"))
+    Swag.assert(assertString(value, "xxx"))
 
     value = "a,b,,c"
     value.replace(','rune, "|")
-    @assert(assertString(value, "a|b||c"))
+    Swag.assert(assertString(value, "a|b||c"))
 
     value.replace('|'rune, "")
-    @assert(assertString(value, "abc"))
+    Swag.assert(assertString(value, "abc"))
 }
 
 #test
 {
     var value: String = "Core Caf\u00E9"
 
-    @assert(value.contains('C'u8))
-    @assert(value.contains('\u00E9'rune))
-    @assert(value.contains(cast(string) "Caf"))
+    Swag.assert(value.contains('C'u8))
+    Swag.assert(value.contains('\u00E9'rune))
+    Swag.assert(value.contains(cast(string) "Caf"))
 
     let needle: [3] u8 = ['a'u8, 'f'u8, 0xC3]
-    @assert(value.contains(cast(const [..] u8) needle))
+    Swag.assert(value.contains(cast(const [..] u8) needle))
 
-    @assert(value.startsWith("Core"))
-    @assert(value.startsWith("core", Utf8.ComparisonType.Latin1NoCase))
-    @assert(!value.startsWith("Cafe"))
+    Swag.assert(value.startsWith("Core"))
+    Swag.assert(value.startsWith("core", Utf8.ComparisonType.Latin1NoCase))
+    Swag.assert(!value.startsWith("Cafe"))
 
-    @assert(value.endsWith("Café"))
-    @assert(!value.endsWith("Core"))
-    @assert(value.endsWith("café", Utf8.ComparisonType.Latin1NoCase))
+    Swag.assert(value.endsWith("Café"))
+    Swag.assert(!value.endsWith("Core"))
+    Swag.assert(value.endsWith("café", Utf8.ComparisonType.Latin1NoCase))
 
-    @assert(value.indexOf("Core") == 0)
-    @assert(value.indexOf("Caf") == 5)
-    @assert(value.indexOf("core", comparisonType: Utf8.ComparisonType.Latin1NoCase) == 0)
-    @assert(value.indexOf("missing") == Swag.U64.Max)
-    @assert(value.indexOf('\u00E9'rune) == 8)
-    @assert(value.indexOf('\u00E9'rune, 10) == Swag.U64.Max)
+    Swag.assert(value.indexOf("Core") == 0)
+    Swag.assert(value.indexOf("Caf") == 5)
+    Swag.assert(value.indexOf("core", comparisonType: Utf8.ComparisonType.Latin1NoCase) == 0)
+    Swag.assert(value.indexOf("missing") == Swag.U64.Max)
+    Swag.assert(value.indexOf('\u00E9'rune) == 8)
+    Swag.assert(value.indexOf('\u00E9'rune, 10) == Swag.U64.Max)
 
     let runes = value.toRuneArray()
-    @assert(runes.count == 9)
-    @assert(runes[0] == 'C'rune)
-    @assert(runes[8] == '\u00E9'rune)
+    Swag.assert(runes.count == 9)
+    Swag.assert(runes[0] == 'C'rune)
+    Swag.assert(runes[8] == '\u00E9'rune)
 }
 
 #test
@@ -276,30 +276,30 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     var value: String = "alpha"
     let ptr           = cast(const *String) &value
 
-    @assert(ptr.toString() == "alpha")
-    @assert(ptr[] == "alpha")
+    Swag.assert(ptr.toString() == "alpha")
+    Swag.assert(ptr[] == "alpha")
 }
 
 #test
 {
     var value: String = "az\u00E9"
     value.makeUpper()
-    @assert(assertString(value, "AZ\u00C9"))
+    Swag.assert(assertString(value, "AZ\u00C9"))
 
     value.makeLower()
-    @assert(assertString(value, "az\u00E9"))
+    Swag.assert(assertString(value, "az\u00E9"))
 
     value = "az\u00E9"
     value.makeUpper(CharacterSet.Unicode)
-    @assert(assertString(value, "AZ\u00C9"))
+    Swag.assert(assertString(value, "AZ\u00C9"))
 
     value.makeLower(CharacterSet.Unicode)
-    @assert(assertString(value, "az\u00E9"))
+    Swag.assert(assertString(value, "az\u00E9"))
 
-    @assert(assertString(value.toUpper(), "AZ\u00C9"))
-    @assert(assertString(value.toLower(), "az\u00E9"))
-    @assert(assertString(String.toUpper("az\u00E9"), "AZ\u00C9"))
-    @assert(assertString(String.toLower("AZ\u00C9"), "az\u00E9"))
+    Swag.assert(assertString(value.toUpper(), "AZ\u00C9"))
+    Swag.assert(assertString(value.toLower(), "az\u00E9"))
+    Swag.assert(assertString(String.toUpper("az\u00E9"), "AZ\u00C9"))
+    Swag.assert(assertString(String.toLower("AZ\u00C9"), "az\u00E9"))
 }
 
 #test
@@ -308,66 +308,66 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     var smallCopy: String
     smallCopy = small
     small[0]  = 'S'u8
-    @assert(assertString(small, "Small"))
-    @assert(assertString(smallCopy, "small"))
+    Swag.assert(assertString(small, "Small"))
+    Swag.assert(assertString(smallCopy, "small"))
 
     var movedSmall: String
     movedSmall = #move smallCopy
-    @assert(assertString(movedSmall, "small"))
+    Swag.assert(assertString(movedSmall, "small"))
 
     var big                 = makePatternString(80)
     var expectedBig: String = big
-    @assert(big.capacity > StringSmallSize)
+    Swag.assert(big.capacity > StringSmallSize)
 
     var bigCopy: String
     bigCopy = big
     big[0]  = 'Z'u8
-    @assert(big[0] == 'Z'u8)
-    @assert(expectedBig[0] == 'a'u8)
-    @assert(assertString(bigCopy, expectedBig.toString()))
+    Swag.assert(big[0] == 'Z'u8)
+    Swag.assert(expectedBig[0] == 'a'u8)
+    Swag.assert(assertString(bigCopy, expectedBig.toString()))
 
     var movedBig: String
     movedBig = #move bigCopy
-    @assert(assertString(movedBig, expectedBig.toString()))
+    Swag.assert(assertString(movedBig, expectedBig.toString()))
 
     var reserved: String = "reserve"
     reserved.reserve(64)
-    @assert(reserved.capacity >= 64)
-    @assert(assertString(reserved, "reserve"))
+    Swag.assert(reserved.capacity >= 64)
+    Swag.assert(assertString(reserved, "reserve"))
 
     reserved.grow(128)
-    @assert(reserved.capacity >= 128)
-    @assert(assertString(reserved, "reserve"))
+    Swag.assert(reserved.capacity >= 128)
+    Swag.assert(assertString(reserved, "reserve"))
 }
 
 #test
 {
     let fromValue = String.from("from")
-    @assert(assertString(fromValue, "from"))
+    Swag.assert(assertString(fromValue, "from"))
 
     let fromNull = String.from(null)
-    @assert(assertString(fromNull, ""))
+    Swag.assert(assertString(fromNull, ""))
 
     let joined = String.join("a", "b", "c")
-    @assert(joined == "abc")
-    @assert(@countof(joined) == 3)
-    @assert(assertString(joined, "abc"))
+    Swag.assert(joined == "abc")
+    Swag.assert(joined.count == 3)
+    Swag.assert(assertString(joined, "abc"))
 
     let joinedWithSeparator = String.joinWith(",", "a", "b", "c")
-    @assert(assertString(joinedWithSeparator, "a,b,c"))
+    Swag.assert(assertString(joinedWithSeparator, "a,b,c"))
 
     let joinedWithoutSeparator = String.joinWith("", "a", "b", "c")
-    @assert(assertString(joinedWithoutSeparator, "abc"))
+    Swag.assert(assertString(joinedWithoutSeparator, "abc"))
 
     var value: String = "123456789"
-    @assert(Hash.hash32(value) == Hash.hashBytes32(value.toSlice()))
+    Swag.assert(Hash.hash32(value) == Hash.hashBytes32(value.toSlice()))
 }
 
 #test
 {
     var value: String = "caf\u00E9"
-    @assert(value.contains('\u00E9'rune))
-    @assert(value.indexOf('\u00E9'rune) == 3)
+    Swag.assert(value.contains('\u00E9'rune))
+    Swag.assert(value.indexOf('\u00E9'rune) == 3)
 }
 
 // Appending 'String' rvalues must accumulate intact content: the temporary's buffer has
@@ -379,7 +379,7 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
         accumulator += Format.toString("fragment-%-padded-beyond-the-small-string-size;", i)
 
     // 32 fragments of 46 bytes plus the decimal digits of 0..31.
-    @assert(accumulator.length == 32 * 46 + 10 + 22 * 2)
-    @assert(accumulator.startsWith("fragment-0-padded"))
-    @assert(accumulator.endsWith("fragment-31-padded-beyond-the-small-string-size;"))
+    Swag.assert(accumulator.length == 32 * 46 + 10 + 22 * 2)
+    Swag.assert(accumulator.startsWith("fragment-0-padded"))
+    Swag.assert(accumulator.endsWith("fragment-31-padded-beyond-the-small-string-size;"))
 }

@@ -6,13 +6,13 @@
 // The returned slice is borrowed from the runtime and remains valid for the
 // lifetime of the process. Element zero is the executable path when supplied by
 // the operating system.
-func arguments()->const [..] string => @args
+func arguments()->const [..] string => Swag.args()
 
 // Returns the command-line argument at `index`, or `null` when it is out of range.
 func argument(index: u32)->#null string
 {
-    let args = @args
-    if index >= @countof(args) do
+    let args = Swag.args()
+    if index >= args.count do
         return null
     return args[index]
 }
@@ -20,7 +20,7 @@ func argument(index: u32)->#null string
 // Returns whether the command line contains `argument` exactly.
 func hasArgument(argument: string)->bool
 {
-    return Slice.contains(@args, argument)
+    return Slice.contains(Swag.args(), argument)
 }
 
 // Returns the executable path reported as command-line argument zero.
@@ -28,8 +28,8 @@ func hasArgument(argument: string)->bool
 // Returns an empty string when the runtime did not provide any arguments.
 func executablePath()->string
 {
-    let args = @args
-    if @countof(args) == 0 do
+    let args = Swag.args()
+    if args.count == 0 do
         return ""
     return args[0]
 }
@@ -141,10 +141,10 @@ enum SystemMetric
 
 #premain
 {
-    if !(@rtflags & .FromCompiler)
+    if !(Swag.runtimeFlags() & .FromCompiler)
     {
         let str = getNativeArgs()
-        if @countof(str) do
-            @pinfos.args = str
+        if str.count do
+            Swag.processInfos().args = str
     }
 }

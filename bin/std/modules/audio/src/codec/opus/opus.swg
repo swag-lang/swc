@@ -34,7 +34,7 @@ private const SilenceFrame: [2] u8 = [0xFF, 0xFF]
 // The count follows from the table of contents alone, so an index can be built without decoding.
 internal func packetFrames(packet: const [..] u8)->u64
 {
-    if !@countof(packet) do
+    if !packet.count do
         return 0
     let toc    = cast(u32) packet[0]
     let config = toc >> 3
@@ -54,7 +54,7 @@ internal func packetFrames(packet: const [..] u8)->u64
         frames = 2
     elif code == 3
     {
-        if @countof(packet) < 2 do
+        if packet.count < 2 do
             return 0
         frames = cast(u64) packet[1] & 63
         if !frames do
@@ -160,18 +160,18 @@ private impl Decoder
     mtd readConfig(config: const [..] u8) fail
     {
         var head: Array'u8
-        if @countof(config) >= 4 and config[0] == 'O' and config[1] == 'g' and config[2] == 'g' and config[3] == 'S'
+        if config.count >= 4 and config[0] == 'O' and config[1] == 'g' and config[2] == 'g' and config[3] == 'S'
         {
             var hasSerial = false
             var completed = 0'u32
             var offset    = 0'u64
-            while offset < @countof(config) and completed < 2
+            while offset < config.count and completed < 2
             {
                 let page = try Ogg.readPageHeader(config, offset)
-                if offset + page.totalBytes() > @countof(config) do
+                if offset + page.totalBytes() > config.count do
                     fail InvalidFormatError{"Opus header pages are truncated"}
                 let body = config[offset + page.headerBytes until offset + page.totalBytes()]
-                if !hasSerial and (page.flags & Ogg.FirstPage) and @countof(body) >= 8 and body[0] == 'O' and body[1] == 'p' and body[2] == 'u' and body[3] == 's' and body[4] == 'H' and body[5] == 'e' and body[6] == 'a' and body[7] == 'd'
+                if !hasSerial and (page.flags & Ogg.FirstPage) and body.count >= 8 and body[0] == 'O' and body[1] == 'p' and body[2] == 'u' and body[3] == 's' and body[4] == 'H' and body[5] == 'e' and body[6] == 'a' and body[7] == 'd'
                 {
                     .serial   = page.serial
                     hasSerial = true
@@ -232,7 +232,7 @@ private impl Decoder
             pcm[i] = 0
 
         // A frame of one byte or none is a request for concealment; a file plays it as silence.
-        if @countof(data) <= 1
+        if data.count <= 1
         {
             for i in frameSize * CC do
                 .output[base + i] = 0
@@ -241,7 +241,7 @@ private impl Decoder
         }
 
         var dec = RangeDecoder.create(data)
-        var len = cast(s32) @countof(data)
+        var len = cast(s32) data.count
 
         if mode != ModeCelt
         {
@@ -371,13 +371,13 @@ private impl Decoder
     // Splits a packet into its frames, RFC 6716 clause 3.2, and decodes each of them.
     mtd decodePacketFrames(packet: const [..] u8)->u64 fail
     {
-        if !@countof(packet) do
+        if !packet.count do
             fail InvalidFormatError{"Opus packet is empty"}
         let info  = frameInfo(packet[0])
         var sizes: [MaxFramesPerPacket] u32
         var count = 1'u32
         var pos   = 1'u64
-        var len   = cast(s64) @countof(packet) - 1
+        var len   = cast(s64) packet.count - 1
         switch cast(u32) packet[0] & 3
         {
         case 0:
@@ -451,7 +451,7 @@ private impl Decoder
             fail InvalidFormatError{"Opus frame is larger than the format allows"}
         for i in count
         {
-            if pos + sizes[i] > @countof(packet) do
+            if pos + sizes[i] > packet.count do
                 fail InvalidFormatError{"Opus frame runs past its packet"}
             try .decodeFrame(packet[pos until pos + sizes[i]], info)
             pos += sizes[i]
@@ -469,10 +469,10 @@ private impl Decoder
         var firstSequence = Swag.U32.Max
         var offset        = 0'u64
         .packet.clear()
-        while offset < @countof(run)
+        while offset < run.count
         {
             let page = try Ogg.readPageHeader(run, offset)
-            if offset + page.totalBytes() > @countof(run) do
+            if offset + page.totalBytes() > run.count do
                 fail InvalidFormatError{"Ogg page run is truncated"}
             if page.serial == .serial
             {
@@ -552,7 +552,7 @@ impl IPacketCodec for Decoder
     {
         .output.clear()
         var frames: u64
-        if @countof(packet) >= 4 and packet[0] == 'O' and packet[1] == 'g' and packet[2] == 'g' and packet[3] == 'S' do
+        if packet.count >= 4 and packet[0] == 'O' and packet[1] == 'g' and packet[2] == 'g' and packet[3] == 'S' do
             frames = try .decodeRun(packet)
         else do
             frames = try .decodePacketFrames(packet)

@@ -160,7 +160,7 @@ impl FloatExt
     {
         if .mant == 0 do
             return
-        let shift = @bitcountlz(.mant)
+        let shift = Swag.bitCountLz(.mant)
         .mant <<= cast(u32) shift
         .exp  -= cast(s64) shift
     }
@@ -298,7 +298,7 @@ impl FloatExt
 
         // Write the digits of integer: the digits of rest are omitted.
         var buf: [32] u8
-        var pos = @countof(buf)
+        var pos = buf.count
 
         var v = integer
         while v > 0
@@ -310,10 +310,10 @@ impl FloatExt
             v        = v1
         }
 
-        for var i = pos; i < @countof(buf); i += 1 do
+        for var i = pos; i < buf.count; i += 1 do
             d.d[i - pos] = buf[i]
 
-        var nd = cast(s64) (@countof(buf) - pos)
+        var nd = cast(s64) (buf.count - pos)
         d.nd   = nd
         d.dp   = integerDigits + exp10
         needed -= nd
@@ -432,7 +432,7 @@ impl FloatExt
         {
             // an exact integer.
             var buf: [24] u8
-            var n = @countof(buf) - 1
+            var n = buf.count - 1
             var v = .mant
             while v > 0
             {
@@ -443,7 +443,7 @@ impl FloatExt
                 v      = v1
             }
 
-            let nd = cast(s64) (@countof(buf) - n - 1)
+            let nd = cast(s64) (buf.count - n - 1)
             for var i = 0; i < nd; i += 1 do
                 d.d[i] = buf[n + 1 + i]
 

@@ -14,14 +14,14 @@ struct DesignReport
 func matchesPattern(design: const [..] u8, startIndex: u32, pattern: string)->bool
 {
     let patternBytes  = cast(const [..] u8) pattern
-    let patternLength = cast(u32) @countof(patternBytes)
+    let patternLength = cast(u32) patternBytes.count
 
-    if startIndex + patternLength > cast(u32) @countof(design) do
+    if startIndex + patternLength > cast(u32) design.count do
         return false
 
     for patternLength
     {
-        let offset = cast(u32) @index
+        let offset = cast(u32) Swag.index
         if design[startIndex + offset] != patternBytes[offset] do
             return false
     }
@@ -32,15 +32,15 @@ func matchesPattern(design: const [..] u8, startIndex: u32, pattern: string)->bo
 func countAssemblies(patterns: const [..] string, design: string)->u64
 {
     let designBytes  = cast(const [..] u8) design
-    let designLength = cast(u32) @countof(designBytes)
-    @assert(designLength <= MaxDesignLength)
+    let designLength = cast(u32) designBytes.count
+    Swag.assert(designLength <= MaxDesignLength)
 
     var ways: [MaxDesignLength + 1] u64
     ways[0] = 1
 
     for designLength
     {
-        let index = cast(u32) @index
+        let index = cast(u32) Swag.index
         if ways[index] == 0 do
             continue
 
@@ -48,7 +48,7 @@ func countAssemblies(patterns: const [..] string, design: string)->u64
         {
             if matchesPattern(designBytes, index, pattern)
             {
-                let patternLength = cast(u32) @countof(cast(const [..] u8) pattern)
+                let patternLength = cast(u32) (cast(const [..] u8) pattern).count
                 ways[index + patternLength] += ways[index]
             }
         }
@@ -91,14 +91,14 @@ func analyzeBadgeRequests(patterns: const [..] string, designs: const [..] strin
 
     let sampleReport = analyzeBadgeRequests(samplePatterns, sampleDesigns)
 
-    @assert(sampleReport.matchableCount == 6)
-    @assert(sampleReport.totalArrangements == 16)
+    Swag.assert(sampleReport.matchableCount == 6)
+    Swag.assert(sampleReport.totalArrangements == 16)
 
     const compactPatterns: [4] string = ["a", "ab", "ba", "b"]
     const compactDesigns:  [4] string = ["aba", "abba", "bbb", "c"]
 
     let compactReport = analyzeBadgeRequests(compactPatterns, compactDesigns)
 
-    @assert(compactReport.matchableCount == 3)
-    @assert(compactReport.totalArrangements == 8)
+    Swag.assert(compactReport.matchableCount == 3)
+    Swag.assert(compactReport.totalArrangements == 8)
 }

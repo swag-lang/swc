@@ -691,7 +691,7 @@ func filterLumaVertical(pix: [*] u8, stride: u64, strengths: const *EdgeStrength
     let c6 = cast #bit(Simd.U64x2) Simd.interleaveLow(b5, b7)
     let c7 = cast #bit(Simd.U64x2) Simd.interleaveHigh(b5, b7)
 
-    let rows = @dataof(tile)
+    let rows = tile.buffer
     Simd.store(rows, cast #bit(Simd.U8x16) Simd.interleaveLow(c0, c2))
     Simd.store(rows + TileStride, cast #bit(Simd.U8x16) Simd.interleaveHigh(c0, c2))
     Simd.store(rows + 2 * TileStride, cast #bit(Simd.U8x16) Simd.interleaveLow(c1, c3))
@@ -742,8 +742,8 @@ func filterLumaVertical(pix: [*] u8, stride: u64, strengths: const *EdgeStrength
     storeLines4(pix - 3 + 12 * stride, stride, cast #bit(Simd.U32x4) Simd.interleaveHigh(x1, y1))
 
     var pairs: [16] u16 = undefined
-    Simd.store(cast([*] u8) @dataof(pairs), Simd.interleaveLow(q1, q2))
-    Simd.store(cast([*] u8) @dataof(pairs) + 16, Simd.interleaveHigh(q1, q2))
+    Simd.store(cast([*] u8) pairs.buffer, Simd.interleaveLow(q1, q2))
+    Simd.store(cast([*] u8) pairs.buffer + 16, Simd.interleaveHigh(q1, q2))
     for line in 16'u64 do
         (cast([*] u16) (pix + 1 + line * stride))[0] = pairs[line]
 }
@@ -778,7 +778,7 @@ func filterChromaWeakVertical(pix: [*] u8, stride: u64, strengths: const *EdgeSt
     let c0 = cast #bit(Simd.U64x2) Simd.interleaveLow(b0, b1)
     let c1 = cast #bit(Simd.U64x2) Simd.interleaveHigh(b0, b1)
 
-    let rows = @dataof(tile)
+    let rows = tile.buffer
     Simd.store(rows, cast #bit(Simd.U8x16) c0)
     Simd.store(rows + TileStride, cast #bit(Simd.U8x16) Simd.interleaveHigh(c0, c0))
     Simd.store(rows + 2 * TileStride, cast #bit(Simd.U8x16) c1)
@@ -789,7 +789,7 @@ func filterChromaWeakVertical(pix: [*] u8, stride: u64, strengths: const *EdgeSt
     // Only p0 q0 change: one word per line.
     let p0 = Simd.load(rows + TileStride)
     let q0 = Simd.load(rows + 2 * TileStride)
-    Simd.store(cast([*] u8) @dataof(pairs), Simd.interleaveLow(p0, q0))
+    Simd.store(cast([*] u8) pairs.buffer, Simd.interleaveLow(p0, q0))
     for line in 8'u64 do
         (cast([*] u16) (pix - 1 + line * stride))[0] = pairs[line]
 }

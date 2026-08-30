@@ -41,9 +41,9 @@ func assertWeightUni(src: [*] u8, width, height, logDenom, weight, offset: s32)
         actual[index]   = 0xA5
     }
 
-    referenceWeightUni(@dataof(expected), src, width, height, logDenom, weight, offset)
-    H264.weightUni(@dataof(actual), WeightStride, src, 16, width, height, logDenom, weight, offset)
-    @assert(Memory.compare(@dataof(expected), @dataof(actual), @countof(actual)) == 0)
+    referenceWeightUni(expected.buffer, src, width, height, logDenom, weight, offset)
+    H264.weightUni(actual.buffer, WeightStride, src, 16, width, height, logDenom, weight, offset)
+    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
 }
 
 func assertWeightBi(src0, src1: [*] u8, width, height, logDenom, weight0, weight1, offset0, offset1: s32)
@@ -56,9 +56,9 @@ func assertWeightBi(src0, src1: [*] u8, width, height, logDenom, weight0, weight
         actual[index]   = 0x5A
     }
 
-    referenceWeightBi(@dataof(expected), src0, src1, width, height, logDenom, weight0, weight1, offset0, offset1)
-    H264.weightBi(@dataof(actual), WeightStride, src0, src1, 16, width, height, logDenom, weight0, weight1, offset0, offset1)
-    @assert(Memory.compare(@dataof(expected), @dataof(actual), @countof(actual)) == 0)
+    referenceWeightBi(expected.buffer, src0, src1, width, height, logDenom, weight0, weight1, offset0, offset1)
+    H264.weightBi(actual.buffer, WeightStride, src0, src1, 16, width, height, logDenom, weight0, weight1, offset0, offset1)
+    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
 }
 
 #test
@@ -81,8 +81,8 @@ func assertWeightBi(src0, src1: [*] u8, width, height, logDenom, weight0, weight
                 {
                     for offset in WeightOffsets
                     {
-                        assertWeightUni(@dataof(src0), width, height, logDenom, weight, offset)
-                        assertWeightBi(@dataof(src0), @dataof(src1), width, height, logDenom, weight, -weight, offset, -offset)
+                        assertWeightUni(src0.buffer, width, height, logDenom, weight, offset)
+                        assertWeightBi(src0.buffer, src1.buffer, width, height, logDenom, weight, -weight, offset, -offset)
                     }
                 }
             }

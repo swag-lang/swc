@@ -12,6 +12,6 @@ func makeAnyEmptyBoxingJit(flag: bool)->AnyEmptyBoxingJit
 #test
 {
     let boxed: any = makeAnyEmptyBoxingJit(false)
-    @assert(@kindof(boxed) == AnyEmptyBoxingJit)
-    @assert(cast(const *AnyEmptyBoxingJit) boxed != null)
+    Swag.assert(Swag.kindOf(boxed) == AnyEmptyBoxingJit)
+    Swag.assert(cast(const *AnyEmptyBoxingJit) boxed != null)
 }

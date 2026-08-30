@@ -40,7 +40,7 @@ func day3B()
         for ii in 3
         {
             let l = lines[idx]
-            for i in @countof(l)
+            for i in l.count
             {
                 var s: s32
                 if Latin1.isLower(l[i]) do
@@ -69,5 +69,5 @@ func day3B()
     }
 
     // Console.print("total: ", total)
-    @assert(total == 2415)
+    Swag.assert(total == 2415)
 }

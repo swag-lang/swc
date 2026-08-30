@@ -9,7 +9,7 @@
         return [50'u16, 60, 70, 80]
     }
 
-    let p = @dataof(cb(false))
-    @assert(p[0] == 50'u16)
-    @assert(p[3] == 80'u16)
+    let p = (cb(false)).buffer
+    Swag.assert(p[0] == 50'u16)
+    Swag.assert(p[3] == 80'u16)
 }

@@ -33,8 +33,8 @@ namespace NS {}
     gBasicF1Last  = 0
     F0()
     F1(1)
-    @assert(gBasicF0Calls == 1)
-    @assert(gBasicF1Last == 1)
+    Swag.assert(gBasicF0Calls == 1)
+    Swag.assert(gBasicF1Last == 1)
 }
 
 #test
@@ -54,12 +54,12 @@ namespace NS {}
     F5(1, 2)
     F6(1)
     F6(1, 2)
-    @assert(gBasicACalls == 1)
-    @assert(gBasicBLast == 10)
-    @assert(gBasicCLast == 3)
-    @assert(gBasicDLast == 12)
-    @assert(gBasicF5Last == 12)
-    @assert(gBasicF6Last == 12)
+    Swag.assert(gBasicACalls == 1)
+    Swag.assert(gBasicBLast == 10)
+    Swag.assert(gBasicCLast == 3)
+    Swag.assert(gBasicDLast == 12)
+    Swag.assert(gBasicF5Last == 12)
+    Swag.assert(gBasicF6Last == 12)
 }
 
 func F0() { gBasicF0Calls += 1 }

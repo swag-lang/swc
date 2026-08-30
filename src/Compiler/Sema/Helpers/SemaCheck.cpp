@@ -21,7 +21,7 @@ namespace
     // block written after a call is that call's '#code' argument rather than a statement of
     // the block, and whether it runs at all is the callee's decision, so it never ends the
     // flow. A warning that can be promoted to an error has to be trustworthy, so a statement
-    // that merely promises to leave the block ('@panic', 'unreachable') does not count.
+    // that merely promises to leave the block ('Swag.panic', 'unreachable') does not count.
     bool stopsBlockFlow(Sema& sema, AstNodeRef blockRef, AstNodeRef childRef)
     {
         if (childRef.isInvalid() || sema.isImplicitCodeBlockArg(blockRef, childRef))
@@ -341,6 +341,12 @@ namespace
             return isConstIndexedSource(sema, resolvedRef);
         if (node.is(AstNodeId::UnaryExpr))
             return isDerefConstSource(sema, node.cast<AstUnaryExpr>());
+        if (node.is(AstNodeId::ParenExpr))
+        {
+            const AstNodeRef   exprRef  = node.cast<AstParenExpr>().nodeExprRef;
+            const SemaNodeView exprView = sema.viewNodeTypeConstantSymbol(exprRef);
+            return isConstAssignmentTargetImpl(sema, exprRef, exprView);
+        }
         // 'expr[as T]' writes through the source pointer like a plain dereference.
         if (node.is(AstNodeId::CastExpr) && node.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::DerefPlace))
         {

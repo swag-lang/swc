@@ -228,7 +228,7 @@ impl IWnd for ListView
 {
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if @isset(.list) do
+        if Swag.isSet(.list) do
             .list.computeLayout()
     }
 
@@ -657,7 +657,7 @@ impl IWnd for ListView
             painter.fillRect(rail, colors.activeRail)
         }
 
-        if @isset(.list.header) and .list.listFlags.has(.VerticalLines)
+        if Swag.isSet(.list.header) and .list.listFlags.has(.VerticalLines)
         {
             rect = .paddedClientRect()
             for idx in 1 until .list.header.items.count
@@ -863,7 +863,7 @@ private impl ListView
             var labelPos = rect
 
             // Right
-            if @isset(.list.header)
+            if Swag.isSet(.list.header)
             {
                 labelPos.x     = .columnPosition(item.column)
                 labelPos.width = .list.header.itemWidthForColumn(item.column)
@@ -878,7 +878,7 @@ private impl ListView
             // outline drawn around the glyph rather than as a mark beside it. A list with a
             // header takes that air from the header's own column inset instead; adding it here
             // as well would slide every cell out from under its title.
-            if !@isset(.list.header)
+            if !Swag.isSet(.list.header)
             {
                 let gutter = metrics.activeRail_Size + metrics.activeRail_Margin
                 labelPos.moveLeft(gutter)
@@ -953,7 +953,7 @@ private impl ListView
             }
 
             // Take care of header item margin
-            if @isset(.list.header) do
+            if Swag.isSet(.list.header) do
                 labelPos.moveLeft(.list.header.itemPadding)
 
             // Left margin, or icon
@@ -1218,7 +1218,7 @@ impl ListCtrl
                 return false
 
             var list = cast(*ListCtrl) wnd
-            if !@isset(list.header) do
+            if !Swag.isSet(list.header) do
                 return false
             var header = list.header
             if header.form == .Transparent do
@@ -1427,7 +1427,7 @@ impl ListCtrl
         var scrollWidth: f32 = undefined
         if .horizontalExtent > 0 do
             scrollWidth = .horizontalExtent
-        elif @isset(.header) do
+        elif Swag.isSet(.header) do
             scrollWidth = .header.contentWidth()
         else do
             scrollWidth = clientRect.width
@@ -1518,21 +1518,21 @@ impl ListCtrl
         .focusIndex    = Swag.U32.Max
         .selModel.clear()
         .checkModel.clear()
-        if @isset(.scrollWnd) do
+        if Swag.isSet(.scrollWnd) do
             .computeLayout()
     }
 
     // Adds a named column to the list header.
     mtd addColumn(name: string, width: f32 = 100, icon: Icon = {})
     {
-        Debug.assert(@isset(.header))
+        Debug.assert(Swag.isSet(.header))
         .header.addColumn(name, width, icon)
     }
 
     // Changes one header column width.
     mtd setColumnWidth(idx: u32, width: f32)
     {
-        Debug.assert(@isset(.header))
+        Debug.assert(Swag.isSet(.header))
         .header.setItemWidth(idx, width)
     }
 
@@ -1759,7 +1759,7 @@ impl ListCtrl
         .sort(column, descending, &.lines)
         .mapIndexes()
 
-        if @isset(.header) and persistent do
+        if Swag.isSet(.header) and persistent do
             .header.setSortIndicator(column, descending ? .Descending : .Ascending)
 
         .invalidate()
@@ -1768,7 +1768,7 @@ impl ListCtrl
     // Sort list as before
     mtd sort()
     {
-        if @isset(.header) and .header.sortDirection != .None do
+        if Swag.isSet(.header) and .header.sortDirection != .None do
             .sort(.header.sortColumn, .header.sortDirection == .Descending)
         else do
             .sort(0, false)
@@ -1782,7 +1782,7 @@ impl ListCtrl
         line.expanded = true
         .sigExpanded.call(me, line)
 
-        if @isset(.header) and .header.sortDirection != .None do
+        if Swag.isSet(.header) and .header.sortDirection != .None do
             .sort(.header.sortColumn, .header.sortDirection == .Descending, &line.lines)
 
         let res = .idxLineToIdxList.tryFind(line.index)

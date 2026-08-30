@@ -86,7 +86,7 @@ impl Writer
     {
         #assert(Reflection.hasInterface(#typeof(T), IEncoder))
 
-        registerEncoderImplementation(#typeof(T), @mkinterface(null, #typeof(T), IEncoder))
+        registerEncoderImplementation(#typeof(T), Swag.makeInterface(null, #typeof(T), IEncoder))
     }
 
     // Non-generic bridge used by registerEncoder after its body is instantiated in the caller's
@@ -191,7 +191,7 @@ impl Writer
         .encoderType = selected.type
 
         // The registry only ever holds types that implement the interface, so the table resolves.
-        .encoder = @mkinterface(Memory.new(selected.type), selected.type, IEncoder)!
+        .encoder = Swag.makeInterface(Memory.new(selected.type), selected.type, IEncoder)!
         .encoder.begin(&.sink, .info, options)
     }
 
@@ -255,7 +255,7 @@ impl Writer
             return
 
         let type     = .encoderType!
-        let instance = @dataof(.encoder)!
+        let instance = (.encoder).buffer!
         if type.opDrop do
             type.opDrop(instance)
         Memory.free(instance, cast(u64) type.sizeof)

@@ -63,7 +63,7 @@ func day5B0()
     }
 
     // Console.print("total: ", best)
-    @assert(best == 5122)
+    Swag.assert(best == 5122)
 }
 
 /////////////////////////////////////////////////////////////////
@@ -93,5 +93,5 @@ func day5B1()
     }
 
     // Console.print("total: ", best)
-    @assert(best == 5122)
+    Swag.assert(best == 5122)
 }

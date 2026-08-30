@@ -343,7 +343,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
   three writers able to corrupt or misread memory underneath a stack like this one: a struct
   layout republished through transient zero and partially accumulated sizes on every post-node
   resume (`SymbolStruct::computeLayout`, now computed into locals and published once, atomically);
-  imported native modules keeping `@pinfos.args` slices into a destroyed compiler instance's
+  imported native modules keeping `Swag.processInfos().args` slices into a destroyed compiler instance's
   storage (`ensureProcessInfosRunArgs`, now interning into process-lifetime storage); and the call
   matcher reading the signature type of a selected candidate before that type was published
   (`Match::resolveFunctionCandidates`, which now parks until the winner is typed — caught live as
@@ -360,7 +360,7 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
 - Area: compiler
 - Found while: tracking an intermittent JIT '#test' failure in `swc test -w bin/apps -m sSnapForge
   --rebuild`, which turned out to be imported native modules (core.dll and siblings, loaded once
-  per process) keeping `@pinfos.args` slices into the run-argument storage of a dependency-build
+  per process) keeping `Swag.processInfos().args` slices into the run-argument storage of a dependency-build
   compiler instance that had already been destroyed. That defect is fixed by interning the handed
   storage for the lifetime of the process, but the *class* — long-lived imported modules holding a
   pointer into per-instance state — was only caught because a heap block happened to be reused with
@@ -420,16 +420,16 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
 - Evidence: two consecutive `bin/swc.dm.exe tools/apps.swgs dm build sFileScope` runs assert
   in `NodePayload::setSemaPayload` at `NodePayload.cpp:806` because
   `shard->semaPayloads` already contains the node. Both name the `start` reference inside
-  `line[start until @countof(line)]` at `tools/src/backlog.swg:172`, under the `#code` body passed
+  `line[start until line.count]` at `tools/src/backlog.swg:172`, under the `#code` body passed
   to `Utf8.visitRunes`. The defect has not yet been reduced because the tool combines a slice of a
   `string`, a captured mutable index, and macro-generated traversal; removing one without first
   identifying the second semantic visit would risk recording the wrong mechanism. A second,
   macro-free witness was found while optimizing `Latin1.trim`: passing
-  `bytes[first until @countof(bytes)]` directly to `lastNonSpace` triggers the same assertion on
+  `bytes[first until bytes.count]` directly to `lastNonSpace` triggers the same assertion on
   `first`, while binding that slice to a local before the call compiles. This removes macro
   expansion from the minimum mechanism and leaves a slice expression used as a call argument.
   At 0.1.167, the macro-free witness — a standalone `#test` passing
-  `bytes[first until @countof(bytes)]` straight into a `const [..] u8` parameter — compiles and
+  `bytes[first until bytes.count]` straight into a `const [..] u8` parameter — compiles and
   runs, every `tools/*.swgs` invocation checks `backlog.swg` without asserting, and two
   consecutive `bin/swc.dm.exe tools/apps.swgs dm build sFileScope` runs are green. Nothing
   in that release targeted payload ownership, so the double visit is more likely scheduling

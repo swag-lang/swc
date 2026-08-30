@@ -19,13 +19,13 @@ func readRune(ok: bool)->rune fail
 #test
 {
     let value = catch readRune(true) as err
-    @assert(err == null)
-    @assert(value == 'é'rune)
+    Swag.assert(err == null)
+    Swag.assert(value == 'é'rune)
 }
 
 #test
 {
     let value = catch readRune(false) as err
-    @assert(err != null)
-    @assert(cast(u32) value == 0)
+    Swag.assert(err != null)
+    Swag.assert(cast(u32) value == 0)
 }

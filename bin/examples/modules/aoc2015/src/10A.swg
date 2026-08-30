@@ -55,9 +55,9 @@ internal func day10WriteCount(write: [*] u8, count: u64)->[*] u8
 internal func day10RunStep(input: string, output: *String)
 {
     output.clear()
-    output.reserve((@countof(input) * 2) + 1)
+    output.reserve((input.count * 2) + 1)
 
-    let inputLen = @countof(input)
+    let inputLen = input.count
     var i        = 0'u64
     var write    = output.buffer!
     while i < inputLen
@@ -93,7 +93,7 @@ internal func day10EnsureLengths()
         day10RunStep(current.toString(), &next)
         swap(&current, &next)
 
-        if @index == 39 do
+        if Swag.index == 39 do
             day10Length40 = current.length
     }
 
@@ -104,5 +104,5 @@ internal func day10EnsureLengths()
 func day10A()
 {
     day10EnsureLengths()
-    @assert(day10Length40 == 360154)
+    Swag.assert(day10Length40 == 360154)
 }

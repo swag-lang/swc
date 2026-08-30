@@ -175,7 +175,7 @@ impl SelModel
         {
             for itemIndex in range.start to range.end
             {
-                #inject(stmt, item = itemIndex, index = @index, break = break to Up)
+                #inject(stmt, item = itemIndex, index = Swag.index, break = break to Up)
             }
         }
     }

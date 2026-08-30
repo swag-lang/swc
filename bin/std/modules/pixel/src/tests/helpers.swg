@@ -8,7 +8,7 @@ func getTestDataPath(fileName: string, loc = #callerlocation)->String
 {
     let dir  = Path.directoryName(loc.fileName)
     var path = Path.combine(dir, "datas", fileName)
-    @assert(File.exists(path))
+    Swag.assert(File.exists(path))
     return path
 }
 
@@ -36,16 +36,16 @@ func cbToArray(cb: *ConcatBuffer)->Array'u8
     cb.makeLinear()
     var result: retval
     let s = cb.toSlice()
-    result.resize(@countof(s))
-    if @countof(s) do
-        Memory.copy(result.buffer, @dataof(s), @countof(s))
+    result.resize(s.count)
+    if s.count do
+        Memory.copy(result.buffer, s.buffer, s.count)
     return result
 }
 
 func nnBytes(bytes: #null const [..] u8)->const [..] u8
 {
-    @assert(bytes != null)
-    return @mkslice(cast(const [*] u8) @dataof(bytes)!, @countof(bytes))
+    Swag.assert(bytes != null)
+    return Swag.makeSlice(cast(const [*] u8) bytes.buffer!, bytes.count)
 }
 
 func loadTestTypeFace(fullname: string)->#null *TypeFace fail
@@ -56,25 +56,25 @@ func loadTestTypeFace(fullname: string)->#null *TypeFace fail
 func makeImage(width, height: s32, pf: PixelFormat, buffer: const [..] u8)->Image
 {
     let expectedSize = cast(u64) (width * height * cast(s32) (pf.bitsPerPixel() >> 3))
-    @assert(@countof(buffer) == expectedSize)
+    Swag.assert(buffer.count == expectedSize)
     return Image.create(width, height, pf, buffer)
 }
 
 func assertImage(img: Image, width, height: s32, pf: PixelFormat)
 {
-    @assert(img.isValid())
-    @assert(img.width == width)
-    @assert(img.height == height)
-    @assert(img.pixelFormat == pf)
+    Swag.assert(img.isValid())
+    Swag.assert(img.width == width)
+    Swag.assert(img.height == height)
+    Swag.assert(img.pixelFormat == pf)
 }
 
 func assertPixel(img: Image, x, y: s32, expected: Color)
 {
     let got = img.pixelColor(x, y)
-    @assert(got.r == expected.r)
-    @assert(got.g == expected.g)
-    @assert(got.b == expected.b)
-    @assert(got.a == expected.a)
+    Swag.assert(got.r == expected.r)
+    Swag.assert(got.g == expected.g)
+    Swag.assert(got.b == expected.b)
+    Swag.assert(got.a == expected.a)
 }
 
 func assertPixel(img: Image, x, y: s32, argb: u32)

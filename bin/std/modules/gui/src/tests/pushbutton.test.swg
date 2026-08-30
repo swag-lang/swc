@@ -41,13 +41,13 @@ func pushButtonHeadlessResetCounters()
     defer host.shutdown()
 
     let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30})
-    @assert(button.text() == "Run")
+    Swag.assert(button.text() == "Run")
 
     button.setText("Stop")
-    @assert(button.text() == "Stop")
+    Swag.assert(button.text() == "Stop")
 
     button.setText(null)
-    @assert(button.text() == "")
+    Swag.assert(button.text() == "")
 }
 
 // Space and Enter activate the focused button with the same signal and command as a click.
@@ -65,9 +65,9 @@ func pushButtonHeadlessResetCounters()
 
     host.keyPress(Input.Key.Space)
     host.keyPress(Input.Key.Return)
-    @assert(PushButtonHeadlessPressedCount == 2)
-    @assert(host.commandCount == 2 and host.lastCommand == PushButtonHeadless_Command)
-    @assert(button.form == .Default)
+    Swag.assert(PushButtonHeadlessPressedCount == 2)
+    Swag.assert(host.commandCount == 2 and host.lastCommand == PushButtonHeadless_Command)
+    Swag.assert(button.form == .Default)
 }
 
 #test
@@ -82,13 +82,13 @@ func pushButtonHeadlessResetCounters()
     button.sigPressed += &pushButtonHeadlessPressed
 
     host.moveMouse({40, 30})
-    @assert(button.isHot)
-    @assert(button.isIn)
+    Swag.assert(button.isHot)
+    Swag.assert(button.isIn)
 
     host.moveMouse({150, 80})
-    @assert(!button.isHot)
-    @assert(!button.isIn)
-    @assert(host.commandCount == 0)
+    Swag.assert(!button.isHot)
+    Swag.assert(!button.isIn)
+    Swag.assert(host.commandCount == 0)
 }
 
 #test
@@ -103,21 +103,21 @@ func pushButtonHeadlessResetCounters()
     button.sigPressed += &pushButtonHeadlessPressed
 
     host.mouseDown({40, 30})
-    @assert(button.isPressed)
-    @assert(button.isPressing)
-    @assert(button.isIn)
-    @assert(host.app.mouseCaptureWnd == button)
-    @assert(host.commandCount == 0)
-    @assert(PushButtonHeadlessPressedCount == 0)
+    Swag.assert(button.isPressed)
+    Swag.assert(button.isPressing)
+    Swag.assert(button.isIn)
+    Swag.assert(host.app.mouseCaptureWnd == button)
+    Swag.assert(host.commandCount == 0)
+    Swag.assert(PushButtonHeadlessPressedCount == 0)
 
     host.mouseUp({40, 30})
-    @assert(host.commandCount == 1)
-    @assert(host.lastCommand == PushButtonHeadless_Command)
-    @assert(PushButtonHeadlessPressedCount == 1)
-    @assert(!button.isPressed)
-    @assert(!button.isPressing)
-    @assert(button.isIn)
-    @assert(host.app.mouseCaptureWnd == null)
+    Swag.assert(host.commandCount == 1)
+    Swag.assert(host.lastCommand == PushButtonHeadless_Command)
+    Swag.assert(PushButtonHeadlessPressedCount == 1)
+    Swag.assert(!button.isPressed)
+    Swag.assert(!button.isPressing)
+    Swag.assert(button.isIn)
+    Swag.assert(host.app.mouseCaptureWnd == null)
 }
 
 #test
@@ -136,17 +136,17 @@ func pushButtonHeadlessResetCounters()
 
     host.click({40, 30})
 
-    @assert(PushButtonHeadlessPressedCount == 1)
-    @assert(button.wndFlags.has(.Hidden))
-    @assert(!button.isHot)
-    @assert(!button.isIn)
-    @assert(!button.isPressed)
-    @assert(!button.isPressing)
-    @assert(button.aniBk.themeCrc == Swag.U32.Max)
-    @assert(button.aniBorder.themeCrc == Swag.U32.Max)
-    @assert(button.aniText.themeCrc == Swag.U32.Max)
-    @assert(host.app.mouseCaptureWnd == null)
-    @assert(host.app.mouseEnterWnd == null)
+    Swag.assert(PushButtonHeadlessPressedCount == 1)
+    Swag.assert(button.wndFlags.has(.Hidden))
+    Swag.assert(!button.isHot)
+    Swag.assert(!button.isIn)
+    Swag.assert(!button.isPressed)
+    Swag.assert(!button.isPressing)
+    Swag.assert(button.aniBk.themeCrc == Swag.U32.Max)
+    Swag.assert(button.aniBorder.themeCrc == Swag.U32.Max)
+    Swag.assert(button.aniText.themeCrc == Swag.U32.Max)
+    Swag.assert(host.app.mouseCaptureWnd == null)
+    Swag.assert(host.app.mouseEnterWnd == null)
 }
 
 #test
@@ -170,17 +170,17 @@ func pushButtonHeadlessResetCounters()
 
     host.click({40, 30})
 
-    @assert(PushButtonHeadlessPressedCount == 1)
-    @assert(panel.wndFlags.has(.Hidden))
-    @assert(!button.isHot)
-    @assert(!button.isIn)
-    @assert(!button.isPressed)
-    @assert(!button.isPressing)
-    @assert(button.aniBk.themeCrc == Swag.U32.Max)
-    @assert(button.aniBorder.themeCrc == Swag.U32.Max)
-    @assert(button.aniText.themeCrc == Swag.U32.Max)
-    @assert(host.app.mouseCaptureWnd == null)
-    @assert(host.app.mouseEnterWnd == null)
+    Swag.assert(PushButtonHeadlessPressedCount == 1)
+    Swag.assert(panel.wndFlags.has(.Hidden))
+    Swag.assert(!button.isHot)
+    Swag.assert(!button.isIn)
+    Swag.assert(!button.isPressed)
+    Swag.assert(!button.isPressing)
+    Swag.assert(button.aniBk.themeCrc == Swag.U32.Max)
+    Swag.assert(button.aniBorder.themeCrc == Swag.U32.Max)
+    Swag.assert(button.aniText.themeCrc == Swag.U32.Max)
+    Swag.assert(host.app.mouseCaptureWnd == null)
+    Swag.assert(host.app.mouseEnterWnd == null)
 }
 
 #test
@@ -196,18 +196,18 @@ func pushButtonHeadlessResetCounters()
 
     host.mouseDown({40, 30})
     host.moveMouse({150, 80})
-    @assert(!button.isPressed)
-    @assert(button.isPressing)
-    @assert(!button.isIn)
-    @assert(host.app.mouseCaptureWnd == button)
+    Swag.assert(!button.isPressed)
+    Swag.assert(button.isPressing)
+    Swag.assert(!button.isIn)
+    Swag.assert(host.app.mouseCaptureWnd == button)
 
     host.mouseUp({150, 80})
-    @assert(host.commandCount == 0)
-    @assert(PushButtonHeadlessPressedCount == 0)
-    @assert(!button.isPressed)
-    @assert(!button.isPressing)
-    @assert(!button.isIn)
-    @assert(host.app.mouseCaptureWnd == null)
+    Swag.assert(host.commandCount == 0)
+    Swag.assert(PushButtonHeadlessPressedCount == 0)
+    Swag.assert(!button.isPressed)
+    Swag.assert(!button.isPressing)
+    Swag.assert(!button.isIn)
+    Swag.assert(host.app.mouseCaptureWnd == null)
 }
 
 #test
@@ -224,17 +224,17 @@ func pushButtonHeadlessResetCounters()
     host.mouseDown({40, 30})
     host.moveMouse({150, 80})
     host.moveMouse({40, 30})
-    @assert(button.isPressed)
-    @assert(button.isPressing)
-    @assert(button.isIn)
+    Swag.assert(button.isPressed)
+    Swag.assert(button.isPressing)
+    Swag.assert(button.isIn)
 
     host.mouseUp({40, 30})
-    @assert(host.commandCount == 1)
-    @assert(host.lastCommand == PushButtonHeadless_Command)
-    @assert(PushButtonHeadlessPressedCount == 1)
-    @assert(!button.isPressed)
-    @assert(!button.isPressing)
-    @assert(host.app.mouseCaptureWnd == null)
+    Swag.assert(host.commandCount == 1)
+    Swag.assert(host.lastCommand == PushButtonHeadless_Command)
+    Swag.assert(PushButtonHeadlessPressedCount == 1)
+    Swag.assert(!button.isPressed)
+    Swag.assert(!button.isPressing)
+    Swag.assert(host.app.mouseCaptureWnd == null)
 }
 
 #test
@@ -249,18 +249,18 @@ func pushButtonHeadlessResetCounters()
     button.sigPressed += &pushButtonHeadlessPressed
 
     host.mouseDown({150, 80})
-    @assert(host.app.mouseCaptureWnd == null)
+    Swag.assert(host.app.mouseCaptureWnd == null)
 
     host.moveMouse({40, 30})
-    @assert(button.isIn)
-    @assert(!button.isPressed)
-    @assert(!button.isPressing)
+    Swag.assert(button.isIn)
+    Swag.assert(!button.isPressed)
+    Swag.assert(!button.isPressing)
 
     host.mouseUp({40, 30})
-    @assert(host.commandCount == 0)
-    @assert(PushButtonHeadlessPressedCount == 0)
-    @assert(!button.isPressed)
-    @assert(!button.isPressing)
+    Swag.assert(host.commandCount == 0)
+    Swag.assert(PushButtonHeadlessPressedCount == 0)
+    Swag.assert(!button.isPressed)
+    Swag.assert(!button.isPressing)
 }
 
 #test
@@ -275,24 +275,24 @@ func pushButtonHeadlessResetCounters()
     button.sigPressed += &pushButtonHeadlessPressed
 
     host.moveMouse({40, 30})
-    @assert(button.isHot)
-    @assert(button.isIn)
-    @assert(host.app.mouseEnterWnd == button)
+    Swag.assert(button.isHot)
+    Swag.assert(button.isIn)
+    Swag.assert(host.app.mouseEnterWnd == button)
     button.aniBk.themeCrc     = 42'u32
     button.aniBorder.themeCrc = 43'u32
     button.aniText.themeCrc   = 44'u32
     button.disable()
     host.click({40, 30})
 
-    @assert(host.commandCount == 0)
-    @assert(PushButtonHeadlessPressedCount == 0)
-    @assert(!button.isHot)
-    @assert(!button.isIn)
-    @assert(button.aniBk.themeCrc == Swag.U32.Max)
-    @assert(button.aniBorder.themeCrc == Swag.U32.Max)
-    @assert(button.aniText.themeCrc == Swag.U32.Max)
-    @assert(host.app.mouseEnterWnd == null)
-    @assert(host.app.mouseCaptureWnd == null)
+    Swag.assert(host.commandCount == 0)
+    Swag.assert(PushButtonHeadlessPressedCount == 0)
+    Swag.assert(!button.isHot)
+    Swag.assert(!button.isIn)
+    Swag.assert(button.aniBk.themeCrc == Swag.U32.Max)
+    Swag.assert(button.aniBorder.themeCrc == Swag.U32.Max)
+    Swag.assert(button.aniText.themeCrc == Swag.U32.Max)
+    Swag.assert(host.app.mouseEnterWnd == null)
+    Swag.assert(host.app.mouseCaptureWnd == null)
 }
 
 #test
@@ -312,14 +312,14 @@ func pushButtonHeadlessResetCounters()
     button.hide()
     host.click({40, 30})
 
-    @assert(host.commandCount == 0)
-    @assert(PushButtonHeadlessPressedCount == 0)
-    @assert(!button.isHot)
-    @assert(!button.isIn)
-    @assert(button.aniBk.themeCrc == Swag.U32.Max)
-    @assert(button.aniBorder.themeCrc == Swag.U32.Max)
-    @assert(button.aniText.themeCrc == Swag.U32.Max)
-    @assert(host.app.mouseCaptureWnd == null)
+    Swag.assert(host.commandCount == 0)
+    Swag.assert(PushButtonHeadlessPressedCount == 0)
+    Swag.assert(!button.isHot)
+    Swag.assert(!button.isIn)
+    Swag.assert(button.aniBk.themeCrc == Swag.U32.Max)
+    Swag.assert(button.aniBorder.themeCrc == Swag.U32.Max)
+    Swag.assert(button.aniText.themeCrc == Swag.U32.Max)
+    Swag.assert(host.app.mouseCaptureWnd == null)
 }
 
 #test
@@ -336,12 +336,12 @@ func pushButtonHeadlessResetCounters()
 
     host.click({40, 30}, Input.MouseButton.Right)
 
-    @assert(host.commandCount == 0)
-    @assert(PushButtonHeadlessPressedCount == 0)
-    @assert(PushButtonHeadlessRightPressedCount == 1)
-    @assert(!button.isPressed)
-    @assert(!button.isPressing)
-    @assert(host.app.mouseCaptureWnd == null)
+    Swag.assert(host.commandCount == 0)
+    Swag.assert(PushButtonHeadlessPressedCount == 0)
+    Swag.assert(PushButtonHeadlessRightPressedCount == 1)
+    Swag.assert(!button.isPressed)
+    Swag.assert(!button.isPressing)
+    Swag.assert(host.app.mouseCaptureWnd == null)
 }
 
 #test
@@ -357,9 +357,9 @@ func pushButtonHeadlessResetCounters()
 
     host.click({40, 30})
 
-    @assert(host.commandCount == 0)
-    @assert(PushButtonHeadlessPressedCount == 1)
-    @assert(!button.isPressed)
-    @assert(!button.isPressing)
-    @assert(host.app.mouseCaptureWnd == null)
+    Swag.assert(host.commandCount == 0)
+    Swag.assert(PushButtonHeadlessPressedCount == 1)
+    Swag.assert(!button.isPressed)
+    Swag.assert(!button.isPressing)
+    Swag.assert(host.app.mouseCaptureWnd == null)
 }

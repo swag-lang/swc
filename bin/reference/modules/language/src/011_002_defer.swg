@@ -11,7 +11,7 @@ them.
 #test
 {
     var v = 0
-    defer @assert(v == 1)     // Ensures v equals 1 on scope exit.
+    defer Swag.assert(v == 1)     // Ensures v equals 1 on scope exit.
     v += 1                    // Increment v.
 
 // When the scope ends, the deferred expression executes here.
@@ -28,7 +28,7 @@ you to group operations that should all run when leaving the scope.
     defer
     {
         v += 10
-        @assert(v == 15)
+        Swag.assert(v == 15)
     }
 
     v += 5
@@ -53,7 +53,7 @@ control flow paths.
             break     // Exiting early still triggers the defer expression.
     }
 
-    @assert(G == 3)
+    Swag.assert(G == 3)
 }
 
 /**
@@ -64,7 +64,7 @@ order. The most recent defer runs first when the scope ends.
 #test
 {
     var x = 1
-    defer @assert(x == 2)     // Executes second
+    defer Swag.assert(x == 2)     // Executes second
     defer x *= 2              // Executes first
 
 // Execution order is reversed for predictable cleanup flow.
@@ -92,15 +92,15 @@ release logic stay close together and cleanup always happens.
         resource = createResource()
         defer
         {
-            @assert(resource.isResourceCreated())
+            Swag.assert(resource.isResourceCreated())
             releaseResource(&resource)
         }
 
-        if @index == 2 do
+        if Swag.index == 2 do
             break     // Defer ensures cleanup even on early exit.
     }
 
-    @assert(!resource.isResourceCreated())
+    Swag.assert(!resource.isResourceCreated())
 }
 
 /**
@@ -135,5 +135,5 @@ to errors. This pattern creates robust, error-resilient code.
     }
 
     let success = performTask()
-    @assert(success)
+    Swag.assert(success)
 }

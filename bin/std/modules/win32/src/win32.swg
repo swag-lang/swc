@@ -9,7 +9,7 @@ func failWinError(errorMessageID: u32) fail
     var err: Swag.SystemError
     err.errorID = errorMessageID
 
-    let cxt = @getcontext()
+    let cxt = Swag.getContext()
 
     // We check that the contextual error allocator has been initialized.
     // In case this is called at a very early stage (in #init)
@@ -29,7 +29,7 @@ func failWinError(errorMessageID: u32) fail
                 len -= 1
             }
 
-            err.message = @mkstring(errorMsg, len)
+            err.message = Swag.makeString(errorMsg, len)
         }
     }
 

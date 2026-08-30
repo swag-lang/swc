@@ -22,23 +22,23 @@ struct OrderedMapKey
     {
         keyCode = keyCode * 100 + key
         if index == 1 do
-            @assert(value[] == "TWENTY")
+            Swag.assert(value[] == "TWENTY")
     }
 
-    @assert(keyCode == 102030)
-    @assert(map.count == 3 and map.capacity() >= 3)
-    @assert(map.lowerBound(20) == 1)
-    @assert(map.upperBound(20) == 2)
-    @assert(map.contains(10) and !map.contains(11))
-    @assert(map.find(30).value == "thirty")
+    Swag.assert(keyCode == 102030)
+    Swag.assert(map.count == 3 and map.capacity() >= 3)
+    Swag.assert(map.lowerBound(20) == 1)
+    Swag.assert(map.upperBound(20) == 2)
+    Swag.assert(map.contains(10) and !map.contains(11))
+    Swag.assert(map.find(30).value == "thirty")
 
     let middle = map.range(15, 30)
-    @assert(@countof(middle) == 1 and middle[0].key == 20 and middle[0].value == "TWENTY")
-    @assert(@countof(map.range(30, 10)) == 0)
+    Swag.assert(middle.count == 1 and middle[0].key == 20 and middle[0].value == "TWENTY")
+    Swag.assert((map.range(30, 10)).count == 0)
 
-    @assert(map.remove(20))
-    @assert(!map.remove(20))
-    @assert(map.count == 2)
+    Swag.assert(map.remove(20))
+    Swag.assert(!map.remove(20))
+    Swag.assert(map.count == 2)
 }
 
 #test
@@ -56,8 +56,8 @@ struct OrderedMapKey
     for key in map.reversed() do
         reverse = reverse * 10 + key
 
-    @assert(forward == 321)
-    @assert(reverse == 123)
+    Swag.assert(forward == 321)
+    Swag.assert(reverse == 123)
 }
 
 #test
@@ -67,9 +67,9 @@ struct OrderedMapKey
     map.add({rank: 4}, 40)
     map.add({rank: 1}, 10)
 
-    @assert(map.find(OrderedMapKey{rank: 1}).value == 10)
+    Swag.assert(map.find(OrderedMapKey{rank: 1}).value == 10)
 
     var copy = map
     copy.add({rank: 2}, 20)
-    @assert(map.count == 2 and copy.count == 3)
+    Swag.assert(map.count == 2 and copy.count == 3)
 }

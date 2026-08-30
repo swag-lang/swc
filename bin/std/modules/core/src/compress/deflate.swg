@@ -1215,7 +1215,7 @@ public impl Deflate
         if !.state do
             .state = Memory.new'Compressor()
         else do
-            @init(.state, 1)
+            Swag.init(.state, 1)
         .setup(createCompFlagsFromZipParams(level, strategy))
         .initFlags = flags
     }
@@ -1223,7 +1223,7 @@ public impl Deflate
     // Compress the source buffer
     mtd compress(result: *Array'u8, src: const [..] u8) fail
     {
-        if @countof(src) > Swag.U32.Max
+        if src.count > Swag.U32.Max
         {
             var err: UnsupportedFormatError
             err.message = "source buffer too big"
@@ -1234,9 +1234,9 @@ public impl Deflate
 
         let d = .state!
         d.result     = result
-        d.inBuf      = @dataof(src)
-        d.inSrc      = @dataof(src)
-        d.srcBufLeft = @countof(src)
+        d.inBuf      = src.buffer
+        d.inSrc      = src.buffer
+        d.srcBufLeft = src.count
         d.outBufOfs  = result.count
 
         .compress()

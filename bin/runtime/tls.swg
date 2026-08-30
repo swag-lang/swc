@@ -12,7 +12,7 @@ func __tlsAlloc()->u64
 {
     let slot = __hostTlsAlloc()
     if slot == Swag.U64.Max do
-        @panic("too many thread-local globals for the platform", #curlocation)
+        Swag.panic("too many thread-local globals for the platform", #curlocation)
     return slot
 }
 
@@ -29,7 +29,7 @@ func __tlsGetPtr(id: u64, size: u64, init: const *void)->#null *void
     ptr = __bootstrapAlloc(size)
     if !ptr do
         return null
-    @memcpy(ptr, init, size)
+    Swag.memcpy(ptr, init, size)
     if !__tlsSetValue(id, ptr)
     {
         __bootstrapFree(cast(#null [*] void) ptr)
@@ -38,7 +38,7 @@ func __tlsGetPtr(id: u64, size: u64, init: const *void)->#null *void
 
     // The lazily-created context starts zeroed, which is unusable: the first allocation on such a
     // thread would call through a null allocator interface. Set the slot before installing the
-    // allocator so @getcontext() inside __runtimeAllocator resolves to this context.
+    // allocator so Swag.getContext() inside __runtimeAllocator resolves to this context.
     discard __runtimeAllocator()
     return ptr
 }
@@ -49,14 +49,14 @@ func __tlsGetPtr(id: u64, size: u64, init: const *void)->#null *void
 // allocation because the normal Swag allocator itself reaches this path.
 func __tlsVarPtr(idSlot: *u64, size: u64, init: const *void)->#null *void
 {
-    var id = @atomcmpxchg(idSlot, 0, 0)
+    var id = Swag.atomcmpxchg(idSlot, 0, 0)
     if id == 0
     {
         let slot = __hostThreadStorageAlloc(&__releaseTlsVar)
         if !slot do
-            @panic("too many thread-local globals for the platform", #curlocation)
+            Swag.panic("too many thread-local globals for the platform", #curlocation)
 
-        let previous = @atomcmpxchg(idSlot, 0, slot)
+        let previous = Swag.atomcmpxchg(idSlot, 0, slot)
         if previous == 0 do
             id = slot
         else
@@ -74,7 +74,7 @@ func __tlsVarPtr(idSlot: *u64, size: u64, init: const *void)->#null *void
     if !created do
         return null
 
-    @memcpy(created, init, size)
+    Swag.memcpy(created, init, size)
     if !__hostThreadStorageSet(id, created)
     {
         __bootstrapFree(cast(#null [*] void) created)

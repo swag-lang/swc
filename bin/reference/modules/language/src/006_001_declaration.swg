@@ -68,8 +68,8 @@ This is particularly useful for lightweight, temporary groupings of data.
 
     tuple.x = 1.0
     tuple.y = 2.0
-    @assert(tuple.x == 1.0)
-    @assert(tuple.y == 2.0)
+    Swag.assert(tuple.x == 1.0)
+    Swag.assert(tuple.y == 2.0)
 }
 
 #test
@@ -103,8 +103,8 @@ providing a convenient way to ensure fields are set to a known state.
     }
 
     let v = MyStruct{}     // Initializing struct with default values
-    @assert(v.x == 666)
-    @assert(v.y == "454")
+    Swag.assert(v.x == 666)
+    Swag.assert(v.y == "454")
 }
 
 /**
@@ -124,23 +124,23 @@ is a matter of where the type reads best, never of syntax.
 
     // Default initialization
     let v0: MyStruct
-    @assert(v0.x == 1)
-    @assert(v0.y == 1)
+    Swag.assert(v0.x == 1)
+    Swag.assert(v0.y == 1)
 
     // Positional initialization
     let v1 = MyStruct{10, 20}
-    @assert(v1.x == 10)
-    @assert(v1.y == 20)
+    Swag.assert(v1.x == 10)
+    Swag.assert(v1.y == 20)
 
     // Named initialization
     let v2 = MyStruct{y: 20}
-    @assert(v2.x == 1)
-    @assert(v2.y == 20)
+    Swag.assert(v2.x == 1)
+    Swag.assert(v2.y == 20)
 
     // Tuple initialization
     let v3: MyStruct = {10, 20}
-    @assert(v3.x == 10)
-    @assert(v3.y == 20)
+    Swag.assert(v3.x == 10)
+    Swag.assert(v3.y == 20)
 }
 
 /**
@@ -180,15 +180,15 @@ struct Struct3
 
 func toto(v: Struct3)
 {
-    @assert(v.x == 5)
-    @assert(v.y == 5)
-    @assert(v.z == 666)
+    Swag.assert(v.x == 5)
+    Swag.assert(v.y == 5)
+    Swag.assert(v.z == 666)
 }
 
 func titi(v: Struct3)
 {
-    @assert(v.x == 5)
-    @assert(v.y == 666)
+    Swag.assert(v.x == 5)
+    Swag.assert(v.y == 666)
 }
 
 #test

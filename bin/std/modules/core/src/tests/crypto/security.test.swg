@@ -6,13 +6,13 @@ using Swag
 
 func cryptoBytesEqual(left, right: const [..] u8)->bool
 {
-    return @countof(left) == @countof(right) and
-           @memcmp(@dataof(left), @dataof(right), @countof(left)) == 0
+    return left.count == right.count and
+           Swag.memcmp(left.buffer, right.buffer, left.count) == 0
 }
 
 #test
 {
-    let key               = @mkslice(cast(const [*] u8) @dataof("key"), 3)
+    let key               = Swag.makeSlice(cast(const [*] u8) ("key").buffer, 3)
     let text              = "The quick brown fox jumps over the lazy dog"
     let expected: [32] u8 = [
         0xF7, 0xBC, 0x83, 0xF4, 0x30, 0x53, 0x84, 0x24,
@@ -20,21 +20,21 @@ func cryptoBytesEqual(left, right: const [..] u8)->bool
         0xEF, 0x4D, 0x59, 0xA1, 0x49, 0x46, 0x17, 0x59,
         0x97, 0x47, 0x9D, 0xBC, 0x2D, 0x1A, 0x3C, 0xD8]
 
-    let actual = Crypto.HmacSha256.compute(key, @mkslice(cast(const [*] u8) @dataof(text), @countof(text)))
-    @assert(cryptoBytesEqual(actual, expected))
+    let actual = Crypto.HmacSha256.compute(key, Swag.makeSlice(cast(const [*] u8) text.buffer, text.count))
+    Swag.assert(cryptoBytesEqual(actual, expected))
 
     var incremental = Crypto.HmacSha256.create(key)
-    incremental.update(@mkslice(cast(const [*] u8) @dataof(text), 12))
-    incremental.update(@mkslice(cast(const [*] u8) @dataof(text) + 12, @countof(text) - 12))
+    incremental.update(Swag.makeSlice(cast(const [*] u8) text.buffer, 12))
+    incremental.update(Swag.makeSlice(cast(const [*] u8) text.buffer + 12, text.count - 12))
     let split = incremental.finalize()
-    @assert(cryptoBytesEqual(split, expected))
-    @assert(!incremental.initialized)
+    Swag.assert(cryptoBytesEqual(split, expected))
+    Swag.assert(!incremental.initialized)
 }
 
 #test
 {
-    let password          = @mkslice(cast(const [*] u8) @dataof("password"), 8)
-    let salt              = @mkslice(cast(const [*] u8) @dataof("salt"), 4)
+    let password          = Swag.makeSlice(cast(const [*] u8) ("password").buffer, 8)
+    let salt              = Swag.makeSlice(cast(const [*] u8) ("salt").buffer, 4)
     let expected: [64] u8 = [
         0xAE, 0x4D, 0x0C, 0x95, 0xAF, 0x6B, 0x46, 0xD3,
         0x2D, 0x0A, 0xDF, 0xF9, 0x28, 0xF0, 0x6D, 0xD0,
@@ -47,48 +47,48 @@ func cryptoBytesEqual(left, right: const [..] u8)->bool
 
     var actual: [64] u8
     expect Crypto.pbkdf2HmacSha256(password, salt, 2, actual)
-    @assert(cryptoBytesEqual(actual, expected))
+    Swag.assert(cryptoBytesEqual(actual, expected))
 
     var partial: [40] u8
     expect Crypto.pbkdf2HmacSha256(password, salt, 2, partial)
-    @assert(cryptoBytesEqual(partial, expected[until 40]))
+    Swag.assert(cryptoBytesEqual(partial, expected[until 40]))
 
     var tails: [64] u8
     for length in 65
     {
-        for @countof(tails) do
-            tails[@index] = 0xA5
-        expect Crypto.pbkdf2HmacSha256(password, salt, 2, @mkslice(@dataof(tails), length))
+        for tails.count do
+            tails[Swag.index] = 0xA5
+        expect Crypto.pbkdf2HmacSha256(password, salt, 2, Swag.makeSlice(tails.buffer, length))
         for i in length do
-            @assert(tails[i] == expected[i])
-        for i in length until @countof(tails) do
-            @assert(tails[i] == 0xA5)
+            Swag.assert(tails[i] == expected[i])
+        for i in length until tails.count do
+            Swag.assert(tails[i] == 0xA5)
     }
 
     discard catch Crypto.pbkdf2HmacSha256(password, salt, 0, partial) as err
-    @assert(err is Errors.BadParameterError)
+    Swag.assert(err is Errors.BadParameterError)
 }
 
 #test
 {
-    let empty         = @mkslice(cast(const [*] u8) @dataof(""), 0)
+    let empty         = Swag.makeSlice(cast(const [*] u8) ("").buffer, 0)
     let one:   [1] u8 = [1]
     let other: [1] u8 = [2]
-    @assert(Crypto.constantTimeEqual(empty, empty))
-    @assert(Crypto.constantTimeEqual(one, one))
-    @assert(!Crypto.constantTimeEqual(one, other))
-    @assert(!Crypto.constantTimeEqual(empty, one))
+    Swag.assert(Crypto.constantTimeEqual(empty, empty))
+    Swag.assert(Crypto.constantTimeEqual(one, one))
+    Swag.assert(!Crypto.constantTimeEqual(one, other))
+    Swag.assert(!Crypto.constantTimeEqual(empty, one))
 
     var random: [64] u8
     expect Crypto.randomBytes(random)
     var anyNonZero: bool
     for byte in random do
         anyNonZero = anyNonZero or byte != 0
-    @assert(anyNonZero)
+    Swag.assert(anyNonZero)
 
     Crypto.secureClear(random)
     for byte in random do
-        @assert(byte == 0)
+        Swag.assert(byte == 0)
 }
 
 #test
@@ -107,11 +107,11 @@ func cryptoBytesEqual(left, right: const [..] u8)->bool
         {
             let a = left[offset until offset + length]
             let b = right[offset until offset + length]
-            @assert(Crypto.constantTimeEqual(a, b))
+            Swag.assert(Crypto.constantTimeEqual(a, b))
             if length
             {
                 right[offset + length - 1] ^= 0x80
-                @assert(!Crypto.constantTimeEqual(a, b))
+                Swag.assert(!Crypto.constantTimeEqual(a, b))
                 right[offset + length - 1] ^= 0x80
             }
         }

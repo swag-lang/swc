@@ -42,10 +42,10 @@ struct Holder
 }
 
 #[Swag.Optimize(false)]
-func viewText(buffer: const [*] u8, count: u64)->string => cast(string) @mkslice(buffer, count)
+func viewText(buffer: const [*] u8, count: u64)->string => cast(string) Swag.makeSlice(buffer, count)
 
 #[Swag.Optimize(false)]
-func viewBytes(buffer: const [*] u8, count: u64)->const [..] u8 => @mkslice(buffer, count)
+func viewBytes(buffer: const [*] u8, count: u64)->const [..] u8 => Swag.makeSlice(buffer, count)
 
 #[Swag.Optimize(false)]
 func eqNames(a, b: [2] string)->bool => a == b
@@ -78,12 +78,12 @@ var g_other: [3] u8 = ['a', 'b', 'z']
     let other = viewText(cast(const [*] u8) &g_other[0], 3)
     let short = viewText(cast(const [*] u8) &g_left[0], 2)
 
-    @assert(left == right)
-    @assert(eqNames([left, left], [right, right]))
-    @assert(!eqNames([left, left], [right, other]))
-    @assert(!eqNames([left, left], [short, right]))
-    @assert(!neNames([left, left], [right, right]))
-    @assert(neNames([left, left], [right, other]))
+    Swag.assert(left == right)
+    Swag.assert(eqNames([left, left], [right, right]))
+    Swag.assert(!eqNames([left, left], [right, other]))
+    Swag.assert(!eqNames([left, left], [short, right]))
+    Swag.assert(!neNames([left, left], [right, right]))
+    Swag.assert(neNames([left, left], [right, other]))
 }
 
 // A second dimension keeps the element comparison.
@@ -97,8 +97,8 @@ var g_other: [3] u8 = ['a', 'b', 'z']
     var equal:     [2, 2] string = [[right, right], [right, right]]
     var different: [2, 2] string = [[right, right], [right, other]]
 
-    @assert(eqGrid(same, equal))
-    @assert(!eqGrid(same, different))
+    Swag.assert(eqGrid(same, equal))
+    Swag.assert(!eqGrid(same, different))
 }
 
 // A slice element compares its content, like a bare slice does.
@@ -108,24 +108,24 @@ var g_other: [3] u8 = ['a', 'b', 'z']
     let right = viewBytes(cast(const [*] u8) &g_right[0], 3)
     let other = viewBytes(cast(const [*] u8) &g_other[0], 3)
 
-    @assert(left == right)
-    @assert(eqViews([left, left], [right, right]))
-    @assert(!eqViews([left, left], [right, other]))
+    Swag.assert(left == right)
+    Swag.assert(eqViews([left, left], [right, right]))
+    Swag.assert(!eqViews([left, left], [right, other]))
 }
 
 // A struct element answers through the 'opEquals' it owns.
 #test
 {
-    @assert(Point{1, 2} == Point{1, 9})
-    @assert(eqPoints([{1, 2}, {3, 4}], [{1, 9}, {3, 9}]))
-    @assert(!eqPoints([{1, 2}, {3, 4}], [{1, 9}, {4, 9}]))
+    Swag.assert(Point{1, 2} == Point{1, 9})
+    Swag.assert(eqPoints([{1, 2}, {3, 4}], [{1, 9}, {3, 9}]))
+    Swag.assert(!eqPoints([{1, 2}, {3, 4}], [{1, 9}, {4, 9}]))
 }
 
 // An array no wider than a machine register still asks its elements.
 #test
 {
-    @assert(eqTolerances([{10}, {20}], [{11}, {21}]))
-    @assert(!eqTolerances([{10}, {20}], [{11}, {30}]))
+    Swag.assert(eqTolerances([{10}, {20}], [{11}, {21}]))
+    Swag.assert(!eqTolerances([{10}, {20}], [{11}, {30}]))
 }
 
 // A struct holding such an array asks the array, which asks its elements.
@@ -135,14 +135,14 @@ var g_other: [3] u8 = ['a', 'b', 'z']
     let right = viewText(cast(const [*] u8) &g_right[0], 3)
     let other = viewText(cast(const [*] u8) &g_other[0], 3)
 
-    @assert(eqHolder(Holder{[left, left], 7}, Holder{[right, right], 7}))
-    @assert(!eqHolder(Holder{[left, left], 7}, Holder{[right, right], 8}))
-    @assert(!eqHolder(Holder{[left, left], 7}, Holder{[right, other], 7}))
+    Swag.assert(eqHolder(Holder{[left, left], 7}, Holder{[right, right], 7}))
+    Swag.assert(!eqHolder(Holder{[left, left], 7}, Holder{[right, right], 8}))
+    Swag.assert(!eqHolder(Holder{[left, left], 7}, Holder{[right, other], 7}))
 }
 
 // An element with nothing of its own to say still compares as one contiguous run.
 #test
 {
-    @assert(eqPlain([1, 2, 3, 4], [1, 2, 3, 4]))
-    @assert(!eqPlain([1, 2, 3, 4], [1, 2, 3, 5]))
+    Swag.assert(eqPlain([1, 2, 3, 4], [1, 2, 3, 4]))
+    Swag.assert(!eqPlain([1, 2, 3, 4], [1, 2, 3, 5]))
 }

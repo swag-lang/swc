@@ -44,16 +44,16 @@ public impl DateTimeFormatInfo
 
     internal mtd const matches(pattern: string, index: u64, token: string)->bool
     {
-        if index + @countof(token) > @countof(pattern) do
+        if index + token.count > pattern.count do
             return false
-        return Utf8.compare(@mkslice(@dataof(pattern) + index, @countof(token)), @mkslice(@dataof(token), @countof(token)), .Latin1) == 0
+        return Utf8.compare(Swag.makeSlice(pattern.buffer + index, token.count), Swag.makeSlice(token.buffer, token.count), .Latin1) == 0
     }
 
     internal mtd const formatPattern(value: Time.DateTime, pattern: string)->String
     {
         var result: retval
         var index = 0'u64
-        while index < @countof(pattern)
+        while index < pattern.count
         {
             if .matches(pattern, index, "dddd")
             {

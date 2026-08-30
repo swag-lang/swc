@@ -22,8 +22,8 @@ which is particularly useful for optimizing memory when only one field is used a
     let v = MyUnion{x: 666}
 
     // All fields share the same memory location — updating one affects all
-    @assert(v.y == 666)
-    @assert(v.z == 666)
+    Swag.assert(v.y == 666)
+    Swag.assert(v.z == 666)
 }
 
 /**

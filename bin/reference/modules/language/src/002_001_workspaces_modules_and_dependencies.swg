@@ -31,12 +31,12 @@ namespaces.
 # The 'module.swg' File
 
 'module.swg' executes at compile time and configures the current module through
-'@compiler'. A minimal executable configuration looks like this:
+'Swag.compiler()'. A minimal executable configuration looks like this:
 
 ```swag
 #run
 {
-    let cfg = @compiler.getBuildCfg()!
+    let cfg = Swag.compiler().getBuildCfg()!
     cfg.moduleVersion  = 1
     cfg.moduleRevision = 0
     cfg.moduleBuildNum = 0
@@ -91,7 +91,7 @@ An executable asks for the third copy itself:
 ```swag
 #run
 {
-    let cfg = @compiler.getBuildCfg()!
+    let cfg = Swag.compiler().getBuildCfg()!
     cfg.backendKind         = .Executable
     cfg.publishDependencies = true
 }

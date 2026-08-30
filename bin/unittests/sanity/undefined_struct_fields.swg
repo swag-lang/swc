@@ -28,8 +28,8 @@ func undFieldTouch(v: *UndFieldItem)
 {
     var a: UndFieldItem
     undFieldTouch(&a)
-    @assert(a.ready == 7)
-    @assert(a.value == 0xDDDDDDDD)
+    Swag.assert(a.ready == 7)
+    Swag.assert(a.value == 0xDDDDDDDD)
 }
 
 // A written field reads back its store, poison overwritten.
@@ -39,8 +39,8 @@ func undFieldTouch(v: *UndFieldItem)
     var a: UndFieldItem
     a.value = 11
     undFieldTouch(&a)
-    @assert(a.ready == 7)
-    @assert(a.value == 11)
+    Swag.assert(a.ready == 7)
+    Swag.assert(a.value == 11)
 }
 
 // Literal construction also poisons the undefined field.
@@ -49,6 +49,6 @@ func undFieldTouch(v: *UndFieldItem)
 {
     var a = UndFieldItem{ready: 9}
     undFieldTouch(&a)
-    @assert(a.ready == 9)
-    @assert(a.value == 0xDDDDDDDD)
+    Swag.assert(a.ready == 9)
+    Swag.assert(a.value == 0xDDDDDDDD)
 }

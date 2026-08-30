@@ -951,7 +951,7 @@ private impl AacCodec
 
     mtd decodeRaw(packet: const [..] u8, destination: [*] s16) fail
     {
-        var reader          = BitReader.create(@dataof(packet), @countof(packet))
+        var reader          = BitReader.create(packet.buffer, packet.count)
         var decodedChannels = 0's32
         Memory.set(&.pairStart, 0, #sizeof(.pairStart))
         Memory.set(&.usesMs, 0, #sizeof(.usesMs))
@@ -1034,9 +1034,9 @@ impl IPacketCodec for AacCodec
 
     mtd impl initialize(config: const [..] u8, sampleRateHz, channels: u32) fail
     {
-        if @countof(config) < 2 do
+        if config.count < 2 do
             fail InvalidFormatError{"AAC AudioSpecificConfig is truncated"}
-        var reader     = BitReader.create(@dataof(config), @countof(config))
+        var reader     = BitReader.create(config.buffer, config.count)
         let objectType = reader.get(5)
         if objectType != 2 do
             fail UnsupportedFormatError{"audio decoder supports AAC Low Complexity only"}

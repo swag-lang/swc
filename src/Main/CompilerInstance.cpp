@@ -692,14 +692,14 @@ uint32_t CompilerInstance::nativeProcessInfosOffset()
     return nativeProcessInfosOffset_;
 }
 
-// Populate '@pinfos.args' for a JIT-hosted program run. A native executable fills this
+// Populate 'Swag.processInfos().args' for a JIT-hosted program run. A native executable fills this
 // from its real OS command line at startup, but a JIT-hosted run (swc run/test) never
-// does, so the program's '@args' would come back empty -- which breaks the runtime's
-// 'swag.test' panic guard (it scans @args), letting a headless panic pop an interactive
+// does, so the program's 'Swag.args()' would come back empty -- which breaks the runtime's
+// 'swag.test' panic guard (it scans Swag.args()), letting a headless panic pop an interactive
 // dialog box. We build the command line the program is effectively launched with: argv[0]
 // plus the effective run args (which include the auto-added 'swag.test' for the test
 // command). This is done lazily at run time -- never at codegen -- so compile-time '#run'
-// code keeps seeing a zeroed @pinfos (see the context_intrinsics unit test).
+// code keeps seeing a zeroed Swag.processInfos() (see the context_intrinsics unit test).
 void CompilerInstance::ensureProcessInfosRunArgs()
 {
     if (processInfosRunArgsReady_)
@@ -753,7 +753,7 @@ void CompilerInstance::ensureProcessInfosRunArgs()
     infos->args = {stableArgs.data(), stableArgs.length()};
 }
 
-// The process infos JIT-compiled code sees through '@pinfos'.
+// The process infos JIT-compiled code sees through 'Swag.processInfos()'.
 const Runtime::ProcessInfos& CompilerInstance::processInfos()
 {
     const auto* infos = globalZeroSegment_.ptr<Runtime::ProcessInfos>(nativeProcessInfosOffset());

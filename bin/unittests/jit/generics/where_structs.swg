@@ -92,12 +92,12 @@ struct(T, Count: s32) FloatHistory
     #assert(#typeof(fixed.values[0]) == s64)
     #assert(#typeof(defaultBox.value) == Real64)
     #assert(#typeof(twin.second) == s32)
-    @assert(point.x == 1.0'f64)
-    @assert(point.y == 2.0'f64)
-    @assert(fixed.values[2] == 30's64)
-    @assert(defaultBox.value == 4.0'f64)
-    @assert(twin.first == 1)
-    @assert(twin.second == 2)
+    Swag.assert(point.x == 1.0'f64)
+    Swag.assert(point.y == 2.0'f64)
+    Swag.assert(fixed.values[2] == 30's64)
+    Swag.assert(defaultBox.value == 4.0'f64)
+    Swag.assert(twin.first == 1)
+    Swag.assert(twin.second == 2)
 }
 
 #test
@@ -114,12 +114,12 @@ struct(T, Count: s32) FloatHistory
     #assert(#typeof(small.values) == #type [4] u8)
     #assert(#typeof(segment.start.x) == f32)
     #assert(#typeof(matrix.data[0]) == f32)
-    @assert(compact.values[0] == 10'u16)
-    @assert(compact.values[1] == 20'u16)
-    @assert(small.values[3] == 4'u8)
-    @assert(segment.stop.y == 3.0'f32)
-    @assert(matrix.data[0] == 1.0'f32)
-    @assert(matrix.data[5] == 6.0'f32)
+    Swag.assert(compact.values[0] == 10'u16)
+    Swag.assert(compact.values[1] == 20'u16)
+    Swag.assert(small.values[3] == 4'u8)
+    Swag.assert(segment.stop.y == 3.0'f32)
+    Swag.assert(matrix.data[0] == 1.0'f32)
+    Swag.assert(matrix.data[5] == 6.0'f32)
 }
 
 #test
@@ -131,9 +131,9 @@ struct(T, Count: s32) FloatHistory
     #assert(#typeof(square.data) == #type [4] f32)
     #assert(#typeof(safe.min) == f32)
     #assert(#typeof(history.values[1]) == f64)
-    @assert(square.data[3] == 4.0'f32)
-    @assert(safe.min == 10.0'f32)
-    @assert(safe.max == 90.0'f32)
-    @assert(history.values[0] == 1.0'f64)
-    @assert(history.values[2] == 3.0'f64)
+    Swag.assert(square.data[3] == 4.0'f32)
+    Swag.assert(safe.min == 10.0'f32)
+    Swag.assert(safe.max == 90.0'f32)
+    Swag.assert(history.values[0] == 1.0'f64)
+    Swag.assert(history.values[2] == 3.0'f64)
 }

@@ -15,7 +15,7 @@ func s()->[2] u32
     for l, g in I
     {
         var i: u32
-        while i < @countof(l) and l[i] != ':'u8 do
+        while i < l.count and l[i] != ':'u8 do
             i += 1
         i += 1
 
@@ -23,7 +23,7 @@ func s()->[2] u32
         var y: u32 = 0
         var z: u32 = 0
 
-        while i < @countof(l)
+        while i < l.count
         {
             if l[i] < '0'u8 or l[i] > '9'u8
             {
@@ -32,7 +32,7 @@ func s()->[2] u32
             }
 
             var n: u32 = 0
-            while i < @countof(l) and l[i] >= '0' and l[i] <= '9'
+            while i < l.count and l[i] >= '0' and l[i] <= '9'
             {
                 n = n * 10 + (l[i] & 15)
                 i += 1
@@ -46,7 +46,7 @@ func s()->[2] u32
             case 'b' where n > z: z = n
             }
 
-            while i < @countof(l) and l[i] != ',' and l[i] != ';'
+            while i < l.count and l[i] != ',' and l[i] != ';'
             {
                 i += 1
             }
@@ -63,5 +63,5 @@ func s()->[2] u32
 #test
 {
     let r = s()
-    @assert(r[0] == 8 and r[1] == 2286)
+    Swag.assert(r[0] == 8 and r[1] == 2286)
 }

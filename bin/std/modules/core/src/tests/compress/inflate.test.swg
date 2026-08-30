@@ -15,13 +15,13 @@ using Swag
     let compressed   = expect zl.compress(original)
     var zl2: Compress.ZLib
     let decompressed = expect zl2.decompress(compressed.toSlice())
-    @assert(@countof(decompressed) == 4000)
+    Swag.assert(decompressed.count == 4000)
 
     var ok = true
     for i in 4000 do
         if decompressed[i] != original[i] do
             ok = false
-    @assert(ok)
+    Swag.assert(ok)
 }
 
 // Match distances and lengths around the 8/16-byte copy boundaries round-trip
@@ -52,17 +52,17 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 
     var reader: Compress.ZLib
     let decoded = expect reader.decompress(compressed.toSlice())
-    @assert(@countof(decoded) == @countof(input))
-    for i in @countof(input) do
-        @assert(decoded[i] == input[i])
+    Swag.assert(decoded.count == input.count)
+    for i in input.count do
+        Swag.assert(decoded[i] == input[i])
 
     // Again with the decoded size known up front: that path pre-sizes the output,
     // so the block loop never grows it and takes different branches.
     var hinted: Compress.ZLib
-    let sized = expect hinted.decompress(compressed.toSlice(), @countof(input))
-    @assert(@countof(sized) == @countof(input))
-    for i in @countof(input) do
-        @assert(sized[i] == input[i])
+    let sized = expect hinted.decompress(compressed.toSlice(), input.count)
+    Swag.assert(sized.count == input.count)
+    for i in input.count do
+        Swag.assert(sized[i] == input[i])
 }
 
 // Every length in a window around the eight-byte step of the block loop, at every

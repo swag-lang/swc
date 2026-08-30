@@ -174,8 +174,8 @@ private func relativeResourceName(root: string, fullname: string)->String
     // The enumeration returns `root` verbatim as the path prefix; what follows the
     // separator is the resource name.
     var rel = fullname
-    if @countof(fullname) > @countof(root) and Utf8.startsWith(fullname, root) do
-        rel = fullname[@countof(root) + 1 to]
+    if fullname.count > root.count and Utf8.startsWith(fullname, root) do
+        rel = fullname[root.count + 1 to]
 
     result = rel
     result.replace("\\", "/")

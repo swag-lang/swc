@@ -1,6 +1,6 @@
 #global private
 
-// Cross-file (=> cross-Ast) inline of blockCopy/@memcpy from inside a METHOD that copies its own
+// Cross-file (=> cross-Ast) inline of blockCopy/Swag.memcpy from inside a METHOD that copies its own
 // member array, exactly like Hash.Sha1.final:
 //     Memory.copy(result, &.state[0], #sizeof(.state))
 // The auto-member argument `&.state[0]` must resolve against the caller's receiver when the
@@ -31,9 +31,9 @@ impl CryptoState
     var dst: [5] u32
     h.extract(&dst[0])
 
-    @assert(dst[0] == 0x11111111)
-    @assert(dst[1] == 0x22222222)
-    @assert(dst[2] == 0x33333333)
-    @assert(dst[3] == 0x44444444)
-    @assert(dst[4] == 0x55555555)
+    Swag.assert(dst[0] == 0x11111111)
+    Swag.assert(dst[1] == 0x22222222)
+    Swag.assert(dst[2] == 0x33333333)
+    Swag.assert(dst[3] == 0x44444444)
+    Swag.assert(dst[4] == 0x55555555)
 }

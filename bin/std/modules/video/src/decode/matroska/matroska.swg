@@ -88,7 +88,7 @@ private func dtsPacketBits(bytes: const [..] u8, bitPosition, count: u32, little
 
 internal func dtsSpeakerMask(packet: const [..] u8)->u32 fail
 {
-    if @countof(packet) < 11 do
+    if packet.count < 11 do
         fail InvalidFormatError{"Matroska DTS packet header is truncated"}
 
     let bigEndian16    = packet[0] == 0x7F and packet[1] == 0xFE and packet[2] == 0x80 and packet[3] == 0x01
@@ -99,14 +99,14 @@ internal func dtsSpeakerMask(packet: const [..] u8)->u32 fail
         fail InvalidFormatError{"Matroska DTS packet has no core sync word"}
 
     let packed14 = bigEndian14 or littleEndian14
-    if packed14 and @countof(packet) < 16 do
+    if packed14 and packet.count < 16 do
         fail InvalidFormatError{"Matroska DTS packet header is truncated"}
 
     let littleEndian = littleEndian16 or littleEndian14
     let mode         = dtsPacketBits(packet, 60, 6, littleEndian, packed14)
     let lfe          = dtsPacketBits(packet, 85, 2, littleEndian, packed14)
     const Masks: [10] u32 = [0x0004, 0x0003, 0x0003, 0x0003, 0x0003, 0x0007, 0x0103, 0x0107, 0x0033, 0x0037]
-    if mode >= @countof(Masks) or lfe == 3 do
+    if mode >= Masks.count or lfe == 3 do
         fail InvalidFormatError{"Matroska DTS packet states an invalid channel arrangement"}
     return Masks[mode] | (lfe ? 0x0008 : 0)
 }
@@ -307,7 +307,7 @@ private impl Track
         if encoding == .Dts
         {
             let packet = .audioPackets[0]
-            if packet.sourceOffset > @countof(bytes) or packet.byteSize > @countof(bytes) - packet.sourceOffset do
+            if packet.sourceOffset > bytes.count or packet.byteSize > bytes.count - packet.sourceOffset do
                 fail InvalidFormatError{"Matroska DTS audio packet is truncated"}
             return try dtsSpeakerMask(bytes[packet.sourceOffset until packet.sourceOffset + packet.byteSize])
         }
@@ -315,7 +315,7 @@ private impl Track
         if encoding != .Ac3 and encoding != .Eac3 do
             return 0
         let packet = .audioPackets[0]
-        if packet.sourceOffset > @countof(bytes) or packet.byteSize > @countof(bytes) - packet.sourceOffset do
+        if packet.sourceOffset > bytes.count or packet.byteSize > bytes.count - packet.sourceOffset do
             fail InvalidFormatError{"Matroska Dolby audio packet is truncated"}
         if encoding == .Eac3
         {
@@ -469,7 +469,7 @@ private impl Layout
             .releasedThrough = .scanPosition
         if .scanPosition < .releasedThrough + ScanReleaseKeepBytes + ScanReleaseStepBytes do
             return
-        let end = Math.min(.scanPosition - ScanReleaseKeepBytes, @countof(bytes))
+        let end = Math.min(.scanPosition - ScanReleaseKeepBytes, bytes.count)
         File.MappedRegion.releasePages(bytes[.releasedThrough until end])
         .releasedThrough = end
     }
@@ -692,19 +692,19 @@ private impl Layout
     mtd openContainer(bytes: const [..] u8)->Container fail
     {
         var result: retval = {Cursor.open(bytes), {}}
-        if !@countof(bytes) do
+        if !bytes.count do
             fail InvalidFormatError{"Matroska stream is empty"}
 
-        let header = result.cursor.readElement(@countof(bytes))
+        let header = result.cursor.readElement(bytes.count)
         if header.id != EbmlId do
             fail InvalidFormatError{"Matroska stream has no EBML header"}
         .parseHeader(&result.cursor, header)
         result.cursor.seek(header.end)
 
         var hasSegment: bool
-        while result.cursor.position < @countof(bytes)
+        while result.cursor.position < bytes.count
         {
-            let element = result.cursor.readElement(@countof(bytes))
+            let element = result.cursor.readElement(bytes.count)
             if element.id == SegmentId
             {
                 result.segment = element
@@ -1403,7 +1403,7 @@ private impl Layout
             track.videoSamples.add({payload, .laceSizes[0], timestamp, isSync})
             if track.videoSamples.count == 1 and track.needsInlineSetup()
             {
-                let end = Math.min(payload + .laceSizes[0], @countof(cursor.bytes))
+                let end = Math.min(payload + .laceSizes[0], cursor.bytes.count)
                 track.setup.add(Video.inlineSetupHeaders(cursor.bytes[payload until end]))
             }
 
@@ -1463,7 +1463,7 @@ private impl Layout
 
     mtd audioPacketFrames(bytes: const [..] u8, offset, size: u64, track: *Track)->u32 fail
     {
-        if offset > @countof(bytes) or size > @countof(bytes) - offset do
+        if offset > bytes.count or size > bytes.count - offset do
             fail InvalidFormatError{"Matroska audio packet is truncated"}
         return try track.durationProbe.frames(bytes[offset until offset + size])
     }
@@ -1624,7 +1624,7 @@ private func buildSubtitleTracks(bytes: const [..] u8, layout: *Layout, result: 
         var track  = Subtitle.Track.create(source.name.toString(), source.language.toString(), source.subtitleFormat())
         for sample in source.subtitleSamples
         {
-            if sample.offset > @countof(bytes) or sample.size > @countof(bytes) - sample.offset do
+            if sample.offset > bytes.count or sample.size > bytes.count - sample.offset do
                 fail InvalidFormatError{"Matroska subtitle packet is truncated"}
             var payload: String
             if source.headerStrip.count do
@@ -1793,9 +1793,9 @@ private impl Decoder
     mtd appendAvailableFrames(track: const *Track) fail
     {
         let samples = track.videoSamples.toSlice()
-        if @countof(samples) <= .streamSampleCount do
+        if samples.count <= .streamSampleCount do
             return
-        let added = samples[.streamSampleCount until @countof(samples)]
+        let added = samples[.streamSampleCount until samples.count]
         if !.streamOpen
         {
             try .video.open(track.pictureKind(), track.videoConfiguration(), added, track.headerStrip.toSlice())
@@ -1804,7 +1804,7 @@ private impl Decoder
         }
         else do
             try .video.appendFrames(added)
-        .streamSampleCount = @countof(samples)
+        .streamSampleCount = samples.count
     }
 
     mtd replaceAvailableFrames(track: const *Track) fail
@@ -1817,7 +1817,7 @@ private impl Decoder
         }
         else do
             try .video.replaceFrames(samples)
-        .streamSampleCount = @countof(samples)
+        .streamSampleCount = samples.count
     }
 
     mtd targetTimestamp(index: u64)->s64
@@ -2130,7 +2130,7 @@ impl IDecoder for Decoder
     mtd impl open(source: *Source)->StreamInfo fail
     {
         let path = source.sourcePath()
-        if @countof(path)
+        if path.count
         {
             var mapped = File.MappedFile.open(path)
             .fileIndex              = Memory.new'FileIndex()
@@ -2206,7 +2206,7 @@ impl IDecoder for Decoder
         while true
         {
             let samples = layout.tracks[layout.selectedVideo].videoSamples.toSlice()
-            while .syncScanAt < @countof(samples)
+            while .syncScanAt < samples.count
             {
                 if samples[.syncScanAt].isSync
                 {

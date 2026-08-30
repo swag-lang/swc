@@ -52,7 +52,7 @@ private func atomTextLength(atom: const *InlineAtom)->u64
 {
     if atom.isBreak or atom.isSpace do
         return 1
-    return @countof(atom.text)
+    return atom.text.count
 }
 
 // Returns the text one atom contributes to the view's text.
@@ -192,10 +192,10 @@ impl InlineView
             let source = atomText(atom)
             let low    = Math.max(start, atom.textStart) - atom.textStart
             let high   = Math.min(end, atomEnd) - atom.textStart
-            if low == 0 and high >= @countof(source) do
+            if low == 0 and high >= source.count do
                 result += source
-            elif low < @countof(source) do
-                result += source[low until Math.min(high, @countof(source))]
+            elif low < source.count do
+                result += source[low until Math.min(high, source.count)]
         }
 
         return result
@@ -203,7 +203,7 @@ impl InlineView
 
     mtd searchMatchCount(text: string)->u64
     {
-        if !@countof(text) do
+        if !text.count do
             return 0
 
         let source = .text()
@@ -215,7 +215,7 @@ impl InlineView
             if match == Swag.U64.Max do
                 return count
             count += 1
-            from  = match + @countof(text)
+            from  = match + text.count
         }
     }
 
@@ -223,7 +223,7 @@ impl InlineView
     mtd highlightText(text: string, occurrence: u64 = 0)->bool
     {
         .clearSearchHighlight()
-        if !@countof(text) do
+        if !text.count do
             return false
 
         let source = .text()
@@ -234,11 +234,11 @@ impl InlineView
             match = Utf8.indexOf(source.toString(), text, from, .Latin1NoCase)
             if match == Swag.U64.Max do
                 return false
-            from = match + @countof(text)
+            from = match + text.count
         }
 
         .searchStart = match
-        .searchEnd   = match + @countof(text)
+        .searchEnd   = match + text.count
         for &atom in .atoms where atom.textStart < .searchEnd and atom.textStart + atomTextLength(atom) > .searchStart do
             atom.searchHit = true
         .invalidate()
@@ -261,7 +261,7 @@ impl InlineView
         var start = 0'u64
         var index = 0'u64
         var runes = 0'u32
-        while index < @countof(text)
+        while index < text.count
         {
             let {?, eat} = Utf8.decodeRune(text[index to])
             index += eat
@@ -273,7 +273,7 @@ impl InlineView
             runes = 0
         }
 
-        if start < @countof(text) do
+        if start < text.count do
             .appendTextAtom(text[start to], state)
     }
 
@@ -281,9 +281,9 @@ impl InlineView
     {
         var start = 0'u64
         var index = 0'u64
-        while index <= @countof(text)
+        while index <= text.count
         {
-            let atEnd = index == @countof(text)
+            let atEnd = index == text.count
             let split = !atEnd and (text[index] == ' ' or text[index] == '\t' or text[index] == '\n' or text[index] == '\r')
             if !atEnd and !split
             {
@@ -298,7 +298,7 @@ impl InlineView
                 break
 
             var whitespaceEnd = index + 1
-            if text[index] == '\r' and whitespaceEnd < @countof(text) and text[whitespaceEnd] == '\n' do
+            if text[index] == '\r' and whitespaceEnd < text.count and text[whitespaceEnd] == '\n' do
                 whitespaceEnd += 1
 
             let isBreak = text[index] == '\n' or text[index] == '\r'
@@ -346,7 +346,7 @@ impl InlineView
         var textStart = 0'u64
         var linkStart = Swag.U64.Max
 
-        while index < @countof(text)
+        while index < text.count
         {
             if text[index] != '<'
             {
@@ -514,7 +514,7 @@ impl InlineView
             textStart = index
         }
 
-        if textStart < @countof(text) do
+        if textStart < text.count do
             .appendText(text[textStart to], state)
 
         // Every atom takes its place in the view's text now, once, so a search, a hit test, a
@@ -864,7 +864,7 @@ impl InlineView
         let font   = .font(atom)
         var scan   = 0'u64
         var before = 0'f32
-        while scan < @countof(source)
+        while scan < source.count
         {
             let {?, eat} = Utf8.decodeRune(source[scan to])
             let after    = Painter.measureString(source[0 until scan + eat], font).width

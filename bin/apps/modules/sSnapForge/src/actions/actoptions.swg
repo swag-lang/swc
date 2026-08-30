@@ -23,7 +23,7 @@ impl MainWnd
     // must be rebuilt. An empty name conservatively refreshes every effect after detached undo.
     mtd applyOptionChange(fieldName: string)->bool
     {
-        if @countof(fieldName) == 0
+        if fieldName.count == 0
         {
             .setToolRailWidth()
             .app().invalidate()

@@ -53,7 +53,7 @@ namespace WinFsp
             .context        = Memory.new'NativeMountContext()
             .context.volume = volume
             let sddl = Utf16.toZeroTerminated("O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)")
-            if !ConvertStringSecurityDescriptorToSecurityDescriptorW(@dataof(sddl), SddlRevisionOne, &.context.defaultSecurity, null)
+            if !ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl.buffer, SddlRevisionOne, &.context.defaultSecurity, null)
             {
                 .stop()
                 failWith("Windows could not create the volume security descriptor.")
@@ -83,13 +83,13 @@ namespace WinFsp
             traceWinFspStage("volume flags initialized")
             let fileSystemName = Utf16.toZeroTerminated("sVaultDrive")
             traceWinFspStage("copying filesystem name")
-            @memcpy(@dataof(params.fileSystemName), @dataof(fileSystemName), @countof(fileSystemName) * #sizeof(u16))
+            Swag.memcpy(params.fileSystemName.buffer, fileSystemName.buffer, fileSystemName.count * #sizeof(u16))
             traceWinFspStage("FSP_FSCTL_VOLUME_PARAMS ready")
 
             let deviceName = Utf16.toZeroTerminated(WinFspDiskName)
             let fsCreate   = g_WinFsp.fsCreate
             traceWinFspStage("calling FspFileSystemCreate")
-            let createStatus = fsCreate(@dataof(deviceName), &params, &g_FspInterface, &.fileSystem)
+            let createStatus = fsCreate(deviceName.buffer, &params, &g_FspInterface, &.fileSystem)
             traceWinFspStage(Format.toString("FspFileSystemCreate returned %{X}", statusBits(createStatus)))
             if createStatus != StatusSuccess
             {
@@ -105,7 +105,7 @@ namespace WinFsp
             (g_WinFsp.setGuard)(fileSystem, 0)
             let mountPoint16 = Utf16.toZeroTerminated(mountPoint)
             traceWinFspStage("calling FspFileSystemSetMountPoint")
-            var status = (g_WinFsp.setMountPoint)(fileSystem, @dataof(mountPoint16))
+            var status = (g_WinFsp.setMountPoint)(fileSystem, mountPoint16.buffer)
             traceWinFspStage(Format.toString("FspFileSystemSetMountPoint returned %{X}", statusBits(status)))
             if status == StatusSuccess
             {
@@ -127,7 +127,7 @@ namespace WinFsp
         {
             if .fileSystem
             {
-                @assert(.fileSystem != null)
+                Swag.assert(.fileSystem != null)
                 (g_WinFsp.stopDispatcher)(.fileSystem)
                 (g_WinFsp.removeMountPoint)(.fileSystem)
                 (g_WinFsp.destroy)(.fileSystem)

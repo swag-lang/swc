@@ -83,8 +83,8 @@ impl Image
         result.allocPixels()
         if buffer
         {
-            Debug.assert(@countof(buffer) == result.byteCount, "pixel buffer size does not match image geometry")
-            Memory.copy(cast([*] u8) result.pixels.buffer!, @dataof(buffer), @countof(buffer))
+            Debug.assert(buffer.count == result.byteCount, "pixel buffer size does not match image geometry")
+            Memory.copy(cast([*] u8) result.pixels.buffer!, buffer.buffer, buffer.count)
         }
 
         return result
@@ -113,7 +113,7 @@ impl Image
         var scan = pixels.buffer
         for width * height
         {
-            #inject(stmt, pixel = scan, index = @index)
+            #inject(stmt, pixel = scan, index = Swag.index)
 
             scan += bytesPerPixel
         }
@@ -197,7 +197,7 @@ impl Image
     {
         const VectorSize = #sizeof(Math.Simd.U8x16)
         let count = .byteCount - .byteCount % VectorSize
-        Jobs.parallelVisit(@mkslice(cast([*] u8) .pixels.buffer!, count), VectorSize, contextData) #code(buffer, rawData)
+        Jobs.parallelVisit(Swag.makeSlice(cast([*] u8) .pixels.buffer!, count), VectorSize, contextData) #code(buffer, rawData)
         {
             #inject(stmt, block = cast([*] u8) buffer, data = rawData)
         }
@@ -237,7 +237,7 @@ impl Image
 
         let self: const *Image = me
         var p = {image: self, userData: pixelUserData}
-        Jobs.parallelVisit(@mkslice(cast([*] u8) self.pixels.buffer!, self.pixels.count), cast(u32) (.bytesPerPixel * stride), &p)
+        Jobs.parallelVisit(Swag.makeSlice(cast([*] u8) self.pixels.buffer!, self.pixels.count), cast(u32) (.bytesPerPixel * stride), &p)
         {
             if !data do
                 return
@@ -258,8 +258,8 @@ impl Image
     // Releases all owned image content and restores an empty value.
     mtd release()
     {
-        @drop(me, 1)
-        @init(me, 1)
+        Swag.drop(me, 1)
+        Swag.init(me, 1)
     }
 
     // Sets every byte of the pixel buffer to zero.

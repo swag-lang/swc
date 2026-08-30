@@ -42,7 +42,7 @@ func __dbgStr(off: u32)->string
 
     let sec = __dbgCacheSection!
     let p   = cast([*] u8) &sec[cast(u64) off]
-    return @mkstring(p, @countof(cast(cstring) p))
+    return Swag.makeString(p, (cast(cstring) p).count)
 }
 
 func __symbolize(addr: *void)->__SwagSym
@@ -98,7 +98,7 @@ func __logStackTrace(wh: const [..] *void, startAfter: #null *Swag.SourceCodeLoc
 {
     var hasStarted = false
 
-    for i in @countof(wh)
+    for i in wh.count
     {
         let info = __symbolize(wh[i])
         if !info.found do
@@ -113,13 +113,13 @@ func __logStackTrace(wh: const [..] *void, startAfter: #null *Swag.SourceCodeLoc
             if startAfter.lineStart != info.line do
                 continue
             let afterName = startAfter.fileName
-            if @countof(info.file) != @countof(afterName) do
+            if info.file.count != afterName.count do
                 continue
 
             var samePath = true
             if afterName != null
             {
-                for it in @countof(info.file)
+                for it in info.file.count
                 {
                     if info.file[it] == afterName[it] do
                         continue
@@ -139,13 +139,13 @@ func __logStackTrace(wh: const [..] *void, startAfter: #null *Swag.SourceCodeLoc
         }
 
         hasStarted = true
-        @print(info.name)
+        Swag.print(info.name)
         if info.hasLine
         {
-            @print(" --> ")
-            @print(info.file, ":", info.line)
+            Swag.print(" --> ")
+            Swag.print(info.file, ":", info.line)
         }
 
-        @print("\n")
+        Swag.print("\n")
     }
 }

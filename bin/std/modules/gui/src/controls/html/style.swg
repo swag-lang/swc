@@ -865,8 +865,8 @@ impl HtmlComputedStyle
         for family in families
         {
             var name = family.toString()
-            if @countof(name) >= 2 and (name[0] == '"' or name[0] == '\'') do
-                name = name[1 until @countof(name) - 1]
+            if name.count >= 2 and (name[0] == '"' or name[0] == '\'') do
+                name = name[1 until name.count - 1]
 
             switch name
             {
@@ -906,7 +906,7 @@ impl HtmlComputedStyle
         {
             let text   = parts[index].toString()
             let number = htmlParseNumber(text)
-            if number.eat == @countof(text) do
+            if number.eat == text.count do
                 continue
 
             let parsed = .length(text, context)
@@ -951,7 +951,7 @@ impl HtmlComputedStyle
 
             default:
                 let number = htmlParseNumber(text)
-                if number.eat == @countof(text) and number.value >= 1 and number.value <= 1000 do
+                if number.eat == text.count and number.value >= 1 and number.value <= 1000 do
                     .fontWeight = cast(u32) number.value
             }
         }
@@ -1018,7 +1018,7 @@ impl HtmlComputedStyle
         {
             let text   = part.toString()
             let number = htmlParseNumber(text)
-            if number.eat == @countof(text) and numbers < 2
+            if number.eat == text.count and numbers < 2
             {
                 if !numbers do
                     .flexGrow = number.value
@@ -1057,7 +1057,7 @@ impl HtmlComputedStyle
             {
                 let countText = Latin1.trim(call.arguments[0].toString())
                 let count     = htmlParseNumber(countText)
-                if count.eat == @countof(countText) and count.value >= 1
+                if count.eat == countText.count and count.value >= 1
                 {
                     // A count large enough to hit this bound is hostile input, not a layout.
                     let times = cast(u32) Math.min(count.value, 1024)
@@ -1233,7 +1233,7 @@ impl HtmlComputedStyle
             else
             {
                 let number = htmlParseNumber(value)
-                if number.eat == @countof(Latin1.trim(value))
+                if number.eat == (Latin1.trim(value)).count
                 {
                     .lineHeight = HtmlLength.percent(number.value)
                 }
@@ -1754,9 +1754,9 @@ impl HtmlComputedStyle
 
         case .Content:
             var text = Latin1.trim(value)
-            if @countof(text) >= 2 and (text[0] == '"' or text[0] == '\'') and text[@countof(text) - 1] == text[0]
+            if text.count >= 2 and (text[0] == '"' or text[0] == '\'') and text[text.count - 1] == text[0]
             {
-                .content    = context.pool.addString(htmlDecodeText(text[1 until @countof(text) - 1]).toString())
+                .content    = context.pool.addString(htmlDecodeText(text[1 until text.count - 1]).toString())
                 .hasContent = true
             }
             elif text == "none" or text == "normal"

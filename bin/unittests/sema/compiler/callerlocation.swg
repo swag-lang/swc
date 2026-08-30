@@ -118,7 +118,7 @@ const InlineMiddleDecl = #location(inlineMiddle)
 func semaTest001()
 {
     let loc = inlineMiddle()
-    @assert(loc.funcName == InlineMiddleDecl.funcName)
+    Swag.assert(loc.funcName == InlineMiddleDecl.funcName)
 }
 
 // =========================================================================
@@ -151,7 +151,7 @@ func semaTest002()
     var custom: SourceCodeLocation
     custom.lineStart = 999
     let loc = captureLoc(custom)
-    @assert(loc.lineStart == 999)
+    Swag.assert(loc.lineStart == 999)
 }
 
 // =========================================================================
@@ -205,7 +205,7 @@ func statementRunCaller()
     #run
     {
         let loc = statementRunTarget()
-        @assert(loc.funcName == #location(statementRunCaller).funcName)
+        Swag.assert(loc.funcName == #location(statementRunCaller).funcName)
     }
 }
 

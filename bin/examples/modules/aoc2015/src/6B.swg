@@ -79,5 +79,5 @@ func day6B()
         total += v
 
     // Console.print("total: ", total)
-    @assert(total == 14110788)
+    Swag.assert(total == 14110788)
 }

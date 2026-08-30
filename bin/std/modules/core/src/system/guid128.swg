@@ -80,7 +80,7 @@ impl Guid128
     #[Swag.Safety(.BoundCheck, false)]
     mtd const toString(result: [..] u8)
     {
-        Debug.assert(@countof(result) == 36)
+        Debug.assert(result.count == 36)
 
         const Tbl = "0123456789abcdef"
 
@@ -148,7 +148,7 @@ impl Guid128
     // Tries to parse the canonical `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` form.
     func tryParse(str: string, result: *Guid128)->bool
     {
-        if @countof(str) != 36 do
+        if str.count != 36 do
             return false
 
         var parsed: Guid128
@@ -196,6 +196,6 @@ impl Hash.IHash32 for Guid128
     // Uses CRC32 algorithm on the entire 16-byte identifier data.
     mtd const impl compute()->u32
     {
-        return Hash.Crc32.compute(@mkslice(&.bytes[0], 16))
+        return Hash.Crc32.compute(Swag.makeSlice(&.bytes[0], 16))
     }
 }

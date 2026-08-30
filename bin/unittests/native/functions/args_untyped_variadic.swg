@@ -2,41 +2,41 @@
 
 func variadicAnyOnly(values: ...)->u64
 {
-    return @countof(values)
+    return values.count
 }
 
 func variadicAnyWithHead(a: s32, values: ...)->s32
 {
-    return a + cast(s32) @countof(values)
+    return a + cast(s32) values.count
 }
 
 func variadicAnyS32(values: ...)->s32
 {
-    let p0 = cast(*s32) @dataof(values[0])
-    let p1 = cast(*s32) @dataof(values[1])
-    let p2 = cast(*s32) @dataof(values[2])
-    let p3 = cast(*s32) @dataof(values[3])
+    let p0 = cast(*s32) values[0].buffer
+    let p1 = cast(*s32) values[1].buffer
+    let p2 = cast(*s32) values[2].buffer
+    let p3 = cast(*s32) values[3].buffer
     return p0[] + p1[] + p2[] + p3[]
 }
 
 func variadicAnyF64(a: f64, values: ...)->f64
 {
-    let p0 = cast(*f64) @dataof(values[0])
-    let p1 = cast(*f64) @dataof(values[1])
+    let p0 = cast(*f64) values[0].buffer
+    let p1 = cast(*f64) values[1].buffer
     return a + p0[] + p1[]
 }
 
 func variadicAnyBool(a: bool, values: ...)->s32
 {
-    let p0 = cast(*bool) @dataof(values[0])
-    let p1 = cast(*bool) @dataof(values[1])
+    let p0 = cast(*bool) values[0].buffer
+    let p1 = cast(*bool) values[1].buffer
     return cast(s32) a + cast(s32) p0[] + cast(s32) p1[]
 }
 
 func variadicAnyRune(a: rune, values: ...)->s32
 {
-    let p0 = cast(*rune) @dataof(values[0])
-    let p1 = cast(*rune) @dataof(values[1])
+    let p0 = cast(*rune) values[0].buffer
+    let p1 = cast(*rune) values[1].buffer
     return cast(s32) a + cast(s32) p0[] + cast(s32) p1[]
 }
 
@@ -63,19 +63,19 @@ alias VariadicStrictF32Alias  = f32
 
 func variadicAnyStrictFlag(values: ...)->bool
 {
-    return @kindof(values[0]) == VariadicStrictFlagAlias and cast(VariadicStrictFlagAlias) values[0] == cast(VariadicStrictFlagAlias) VariadicStrictFlag.B
+    return Swag.kindOf(values[0]) == VariadicStrictFlagAlias and cast(VariadicStrictFlagAlias) values[0] == cast(VariadicStrictFlagAlias) VariadicStrictFlag.B
 }
 
 func variadicAnyStrictF32(values: ...)->bool
 {
-    return @kindof(values[0]) == VariadicStrictF32Alias and cast(VariadicStrictF32Alias) values[0] == cast(VariadicStrictF32Alias) 1.5
+    return Swag.kindOf(values[0]) == VariadicStrictF32Alias and cast(VariadicStrictF32Alias) values[0] == cast(VariadicStrictF32Alias) 1.5
 }
 
 func variadicAnyWideIntArray(values: ...)->bool
 {
-    if @countof(values) != 1 do
+    if values.count != 1 do
         return false
-    if @kindof(values[0]) != [2] s64 do
+    if Swag.kindOf(values[0]) != [2] s64 do
         return false
 
     let arr = cast([2] s64) values[0]
@@ -87,20 +87,20 @@ func variadicAnyWideIntArray(values: ...)->bool
 
 #test
 {
-    @assert(variadicAnyOnly() == 0)
-    @assert(variadicAnyOnly(1, 2, 3, 4) == 4)
-    @assert(variadicAnyWithHead(42) == 42)
-    @assert(variadicAnyWithHead(42, "x", 1, false) == 45)
+    Swag.assert(variadicAnyOnly() == 0)
+    Swag.assert(variadicAnyOnly(1, 2, 3, 4) == 4)
+    Swag.assert(variadicAnyWithHead(42) == 42)
+    Swag.assert(variadicAnyWithHead(42, "x", 1, false) == 45)
 }
 
 #test
 {
-    @assert(variadicAnyS32(1's32, 2's32, 3's32, 4's32) == 10)
-    @assert(variadicAnyF64(10.0'f64, 0.5'f64, 1.25'f64) == 11.75'f64)
-    @assert(variadicAnyBool(false, true, true) == 2)
-    @assert(variadicAnyRune('a', 'b', 'c') == 294)
-    @assert(variadicAnyString("ab", "cd", "ef") == 41'u8)
-    @assert(variadicAnyStrictFlag(cast(VariadicStrictFlagAlias) VariadicStrictFlag.B))
-    @assert(variadicAnyStrictF32(cast(VariadicStrictF32Alias) 1.5))
-    @assert(variadicAnyWideIntArray([1, 5_000_000_000]))
+    Swag.assert(variadicAnyS32(1's32, 2's32, 3's32, 4's32) == 10)
+    Swag.assert(variadicAnyF64(10.0'f64, 0.5'f64, 1.25'f64) == 11.75'f64)
+    Swag.assert(variadicAnyBool(false, true, true) == 2)
+    Swag.assert(variadicAnyRune('a', 'b', 'c') == 294)
+    Swag.assert(variadicAnyString("ab", "cd", "ef") == 41'u8)
+    Swag.assert(variadicAnyStrictFlag(cast(VariadicStrictFlagAlias) VariadicStrictFlag.B))
+    Swag.assert(variadicAnyStrictF32(cast(VariadicStrictF32Alias) 1.5))
+    Swag.assert(variadicAnyWideIntArray([1, 5_000_000_000]))
 }

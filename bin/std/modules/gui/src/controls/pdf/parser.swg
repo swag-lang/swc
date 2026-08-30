@@ -6,7 +6,7 @@ impl PdfParser
 {
     mtd skip()
     {
-        while .pos < @countof(.bytes)
+        while .pos < (.bytes).count
         {
             if isWhite(.bytes[.pos])
             {
@@ -16,16 +16,16 @@ impl PdfParser
 
             if .bytes[.pos] != '%' do
                 break
-            while .pos < @countof(.bytes) and .bytes[.pos] != '\n' and .bytes[.pos] != '\r' do
+            while .pos < (.bytes).count and .bytes[.pos] != '\n' and .bytes[.pos] != '\r' do
                 .pos += 1
         }
     }
 
     mtd startsWith(text: string)->bool
     {
-        if .pos + @countof(text) > @countof(.bytes) do
+        if .pos + text.count > (.bytes).count do
             return false
-        return !Memory.compare(@dataof(.bytes) + .pos, @dataof(text), @countof(text))
+        return !Memory.compare((.bytes).buffer + .pos, text.buffer, text.count)
     }
 
     mtd consumeWord(text: string)->bool
@@ -33,8 +33,8 @@ impl PdfParser
         .skip()
         if !.startsWith(text) do
             return false
-        let end = .pos + @countof(text)
-        if end < @countof(.bytes) and !isDelimiter(.bytes[end]) do
+        let end = .pos + text.count
+        if end < (.bytes).count and !isDelimiter(.bytes[end]) do
             return false
         .pos = end
         return true
@@ -50,10 +50,10 @@ impl PdfParser
     mtd parseUnsigned(value: *u64)->bool
     {
         .skip()
-        if .pos >= @countof(.bytes) or !isDigit(.bytes[.pos]) do
+        if .pos >= (.bytes).count or !isDigit(.bytes[.pos]) do
             return false
         var result = 0'u64
-        while .pos < @countof(.bytes) and isDigit(.bytes[.pos])
+        while .pos < (.bytes).count and isDigit(.bytes[.pos])
         {
             let digit = cast(u64) (.bytes[.pos] - '0')
             if result > (Swag.U64.Max - digit) / 10 do
@@ -70,11 +70,11 @@ impl PdfParser
     {
         .skip()
         let start = .pos
-        if .pos < @countof(.bytes) and (.bytes[.pos] == '+' or .bytes[.pos] == '-') do
+        if .pos < (.bytes).count and (.bytes[.pos] == '+' or .bytes[.pos] == '-') do
             .pos += 1
         var hasDigit = false
         var hasDot   = false
-        while .pos < @countof(.bytes)
+        while .pos < (.bytes).count
         {
             let c = .bytes[.pos]
             if isDigit(c)
@@ -97,7 +97,7 @@ impl PdfParser
         if !hasDigit do
             fail InvalidFormatError{"PDF number has no digits"}
 
-        let spelling = cast(string) @mkslice(@dataof(.bytes) + start, .pos - start)
+        let spelling = cast(string) Swag.makeSlice((.bytes).buffer + start, .pos - start)
         if !hasDot
         {
             let first      = try StrConv.toS64(spelling)
@@ -133,9 +133,9 @@ impl PdfParser
         .pos += 1
         var node: Node
         node.kind = .Name
-        while .pos < @countof(.bytes) and !isDelimiter(.bytes[.pos])
+        while .pos < (.bytes).count and !isDelimiter(.bytes[.pos])
         {
-            if .bytes[.pos] == '#' and .pos + 2 < @countof(.bytes) and isHex(.bytes[.pos + 1]) and isHex(.bytes[.pos + 2])
+            if .bytes[.pos] == '#' and .pos + 2 < (.bytes).count and isHex(.bytes[.pos + 1]) and isHex(.bytes[.pos + 2])
             {
                 node.text += hexValue(.bytes[.pos + 1]) * 16 + hexValue(.bytes[.pos + 2])
                 .pos      += 3
@@ -157,13 +157,13 @@ impl PdfParser
         var depth = 1'u32
         var node: Node
         node.kind = .String
-        while .pos < @countof(.bytes) and depth
+        while .pos < (.bytes).count and depth
         {
             var c = .bytes[.pos]
             .pos += 1
             if c == '\\'
             {
-                if .pos >= @countof(.bytes) do
+                if .pos >= (.bytes).count do
                     break
                 c    = .bytes[.pos]
                 .pos += 1
@@ -188,7 +188,7 @@ impl PdfParser
                     continue
 
                 case '\r':
-                    if .pos < @countof(.bytes) and .bytes[.pos] == '\n' do
+                    if .pos < (.bytes).count and .bytes[.pos] == '\n' do
                         .pos += 1
                     continue
 
@@ -196,7 +196,7 @@ impl PdfParser
                     if c >= '0' and c <= '7'
                     {
                         var value = cast(u32) (c - '0')
-                        for 2 where .pos < @countof(.bytes) and .bytes[.pos] >= '0' and .bytes[.pos] <= '7'
+                        for 2 where .pos < (.bytes).count and .bytes[.pos] >= '0' and .bytes[.pos] <= '7'
                         {
                             value = value * 8 + .bytes[.pos] - '0'
                             .pos  += 1
@@ -241,7 +241,7 @@ impl PdfParser
         var node: Node
         node.kind = .String
         var high = Swag.U8.Max
-        while .pos < @countof(.bytes) and .bytes[.pos] != '>'
+        while .pos < (.bytes).count and .bytes[.pos] != '>'
         {
             let c = .bytes[.pos]
             .pos += 1
@@ -259,7 +259,7 @@ impl PdfParser
             }
         }
 
-        if .pos >= @countof(.bytes) do
+        if .pos >= (.bytes).count do
             fail InvalidFormatError{"PDF hexadecimal string is not closed"}
         .pos += 1
         if high != Swag.U8.Max do
@@ -276,7 +276,7 @@ impl PdfParser
         for
         {
             .skip()
-            if .pos >= @countof(.bytes) do
+            if .pos >= (.bytes).count do
                 fail InvalidFormatError{"PDF array is not closed"}
             if .bytes[.pos] == ']'
             {
@@ -305,7 +305,7 @@ impl PdfParser
                 break
             }
 
-            if .pos >= @countof(.bytes) or .bytes[.pos] != '/' do
+            if .pos >= (.bytes).count or .bytes[.pos] != '/' do
                 fail InvalidFormatError{"PDF dictionary needs a name key"}
             let keyNode = try .parseName()
             let key     = .nodes[keyNode].text
@@ -318,7 +318,7 @@ impl PdfParser
     mtd parseValue()->u32 fail
     {
         .skip()
-        if .pos >= @countof(.bytes) do
+        if .pos >= (.bytes).count do
             fail InvalidFormatError{"PDF value is missing"}
         let c = .bytes[.pos]
         if c == '/' do
@@ -352,14 +352,14 @@ impl PdfParser
 
     mtd findFrom(start: u64, text: string)->u64
     {
-        if !@countof(text) or start >= @countof(.bytes) do
+        if !text.count or start >= (.bytes).count do
             return Swag.U64.Max
-        let last = @countof(.bytes) - @countof(text)
+        let last = (.bytes).count - text.count
         if start > last do
             return Swag.U64.Max
         for i in start to last
         {
-            if !Memory.compare(@dataof(.bytes) + i, @dataof(text), @countof(text)) do
+            if !Memory.compare((.bytes).buffer + i, text.buffer, text.count) do
                 return i
         }
 
@@ -372,7 +372,7 @@ impl PdfParser
     mtd findForwardIntegerObject(objectNumber: u32)->s64
     {
         var probe = PdfParser{bytes: .bytes, pos: .pos}
-        while probe.pos < @countof(probe.bytes)
+        while probe.pos < probe.bytes.count
         {
             let start = probe.pos
             var number, generation: u64
@@ -409,18 +409,18 @@ impl PdfParser
             return
         }
 
-        if .pos < @countof(.bytes) and .bytes[.pos] == '\r' do
+        if .pos < (.bytes).count and .bytes[.pos] == '\r' do
             .pos += 1
-        if .pos < @countof(.bytes) and .bytes[.pos] == '\n' do
+        if .pos < (.bytes).count and .bytes[.pos] == '\n' do
             .pos += 1
         let start          = .pos
         let declaredLength = .declaredStreamLength(nodeId)
         if declaredLength >= 0
         {
             let length = cast(u64) declaredLength
-            if length > @countof(.bytes) - start do
+            if length > (.bytes).count - start do
                 fail InvalidFormatError{"PDF stream exceeds its declared length"}
-            .nodes[nodeId].stream = @mkslice(@dataof(.bytes) + start, length)
+            .nodes[nodeId].stream = Swag.makeSlice((.bytes).buffer + start, length)
             .pos = start + length
             if !.consumeWord("endstream") do
                 fail InvalidFormatError{"PDF stream length does not end at endstream"}
@@ -433,8 +433,8 @@ impl PdfParser
         var length = end - start
         while length and (.bytes[start + length - 1] == '\n' or .bytes[start + length - 1] == '\r') do
             length -= 1
-        .nodes[nodeId].stream = @mkslice(@dataof(.bytes) + start, length)
-        .pos = end + @countof("endstream")
+        .nodes[nodeId].stream = Swag.makeSlice((.bytes).buffer + start, length)
+        .pos = end + ("endstream").count
     }
 
     mtd scanObjects() fail
@@ -444,12 +444,12 @@ impl PdfParser
         // every offset in the file is relative to the header, not to the container around it.
         const HeaderSearchLimit = 1024'u64
         var headerPos = Swag.U64.Max
-        if @countof(.bytes) >= 8
+        if (.bytes).count >= 8
         {
-            let last = Math.min(@countof(.bytes) - 5, HeaderSearchLimit)
+            let last = Math.min((.bytes).count - 5, HeaderSearchLimit)
             for i in 0 to last
             {
-                if !Memory.compare(@dataof(.bytes) + i, @dataof("%PDF-"), 5)
+                if !Memory.compare((.bytes).buffer + i, ("%PDF-").buffer, 5)
                 {
                     headerPos = i
                     break
@@ -460,8 +460,8 @@ impl PdfParser
         if headerPos == Swag.U64.Max do
             fail InvalidFormatError{"input has no PDF header"}
         if headerPos do
-            .bytes = @mkslice(@dataof(.bytes) + headerPos, @countof(.bytes) - headerPos)
-        while .pos < @countof(.bytes)
+            .bytes = Swag.makeSlice((.bytes).buffer + headerPos, (.bytes).count - headerPos)
+        while .pos < (.bytes).count
         {
             let start        = .pos
             var objectNumber = 0'u64
@@ -589,7 +589,7 @@ impl PdfParser
             let found = .findFrom(search, "trailer")
             if found == Swag.U64.Max do
                 break
-            search = found + @countof("trailer")
+            search = found + ("trailer").count
             .pos   = search
             .skip()
             if !.startsWith("<<") do
@@ -701,7 +701,7 @@ impl PdfParser
         for value in .nodes[filterId].values
         {
             let name = .name(value)
-            if @countof(name) do
+            if name.count do
                 result.add(name)
         }
 
@@ -751,7 +751,7 @@ impl PdfParser
         var result: Array'u8 = .nodes[id].stream
         let filters          = #move .streamFilters(id)
         var count            = filters.count
-        if stopAtImageCodec and count and @countof(.imageCodec(id)) do
+        if stopAtImageCodec and count and (.imageCodec(id)).count do
             count -= 1
 
         for index in count
@@ -835,11 +835,11 @@ impl PdfParser
             // number of bytes for the sum to stay inside one component.
             if bits != 8 and bits != 16 do
                 fail UnsupportedFormatError{"PDF TIFF predictor bit depth is not supported"}
-            if @countof(data) % rowBytes do
+            if data.count % rowBytes do
                 fail InvalidFormatError{"PDF TIFF predictor rows are truncated"}
             var result: retval = data
             let stride         = cast(u64) colors * cast(u64) (bits / 8)
-            for row in @countof(data) / rowBytes
+            for row in data.count / rowBytes
             {
                 let base = row * rowBytes
                 for x in stride until rowBytes do
@@ -853,11 +853,11 @@ impl PdfParser
             fail UnsupportedFormatError{"PDF stream predictor is not supported"}
 
         let encodedRow = rowBytes + 1
-        if @countof(data) % encodedRow do
+        if data.count % encodedRow do
             fail InvalidFormatError{"PDF PNG predictor rows are truncated"}
         var result: retval
-        result.resize(@countof(data) / encodedRow * rowBytes)
-        for row in @countof(data) / encodedRow
+        result.resize(data.count / encodedRow * rowBytes)
+        for row in data.count / encodedRow
         {
             let source = row * encodedRow
             let target = row * rowBytes

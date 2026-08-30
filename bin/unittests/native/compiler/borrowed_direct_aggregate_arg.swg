@@ -13,5 +13,5 @@ func(T) makeBorrowedArgBox(value: T)->BorrowedArgBox'T
 #test
 {
     let nested = makeBorrowedArgBox(makeBorrowedArgBox(42))
-    @assert(nested.value.value == 42)
+    Swag.assert(nested.value.value == 42)
 }

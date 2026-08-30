@@ -53,7 +53,7 @@ func day6A()
     {
         for c in l.bytes() do
             map.add(c)
-        if @index == lines.count - 1 or lines[@index + 1].length == 0
+        if Swag.index == lines.count - 1 or lines[Swag.index + 1].length == 0
         {
             total += map.count
             map.clear()
@@ -61,5 +61,5 @@ func day6A()
     }
 
     // Console.print("total: ", total)
-    @assert(total == 6249)
+    Swag.assert(total == 6249)
 }

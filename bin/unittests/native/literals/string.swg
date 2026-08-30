@@ -10,9 +10,9 @@ namespace compiler1643
     {
         const tbl = "0123456789ABCDEF"
         var c = tbl[0]
-        // @print(cast(s64) c)
-        @assert(tbl[0] == cast(u8) '0'rune)
-        @assert(tbl[1] == cast(u8) '1'rune)
+        // Swag.print(cast(s64) c)
+        Swag.assert(tbl[0] == cast(u8) '0'rune)
+        Swag.assert(tbl[1] == cast(u8) '1'rune)
     }
 }
 
@@ -25,7 +25,7 @@ namespace compiler1644
         const tbl = "0123456789ABCDEF"
         let x = 1
         let c = tbl[x]
-        @assert(c == cast(u8) '1'rune)
+        Swag.assert(c == cast(u8) '1'rune)
     }
 }
 
@@ -36,8 +36,8 @@ namespace compiler1654
     #test
     {
         let s   = "%%"
-        let ptr = @dataof(s)
-        @assert(ptr[0] == cast(u8) '%'rune)
+        let ptr = s.buffer
+        Swag.assert(ptr[0] == cast(u8) '%'rune)
     }
 }
 
@@ -49,13 +49,13 @@ namespace compiler1673
 
     func toto(x: ...)->typeinfo
     {
-        @assert(@kindof(x[0]).fullname == "s32")
-        return @kindof(x[0])
+        Swag.assert(Swag.kindOf(x[0]).fullname == "s32")
+        return Swag.kindOf(x[0])
     }
 
     #test
     {
-        @assert(toto(5) == s32)
+        Swag.assert(toto(5) == s32)
     }
 }
 
@@ -66,14 +66,14 @@ namespace compiler169
     #[ConstExpr]
     func main()->s32
     {
-        // @print("toto\n");
+        // Swag.print("toto\n");
         return 666
     }
 
     #test
     {
         var r = main()
-        @assert(r == 666)
+        Swag.assert(r == 666)
     }
 }
 
@@ -83,27 +83,27 @@ namespace compiler247
     //
     func main(a: s32 = 6)->s32
     {
-        // @print("1");
+        // Swag.print("1");
         return a
     }
 
     func main(a: s32, b: s32)->s32
     {
-        // @print("2");
+        // Swag.print("2");
         return b
     }
 
     func main1()
     {
-        @assert(main() == 6)
-        @assert(main(5) == 5)
-        @assert(main(5, 7) == 7)
+        Swag.assert(main() == 6)
+        Swag.assert(main(5) == 5)
+        Swag.assert(main(5, 7) == 7)
     }
 
     #test
     {
         main1()
-        @assert(main(5, 7) == 7)
+        Swag.assert(main(5, 7) == 7)
     }
 }
 
@@ -113,14 +113,14 @@ namespace compiler291
     //
     func test2(v: string, v1: string)->bool
     {
-        // @print(v);
-        // @print(v1);
+        // Swag.print(v);
+        // Swag.print(v1);
         return v == "toto" and v1 == "titi"
     }
 
     #test
     {
-        @assert(test2("toto", "titi"))
+        Swag.assert(test2("toto", "titi"))
     }
 }
 
@@ -131,10 +131,10 @@ namespace compiler292
     #test
     {
         let b = "abcd"
-        @assert(b[0] == cast(u8) 'a'rune)
-        @assert(b[1] == cast(u8) 'b'rune)
-        @assert(b[2] == cast(u8) 'c'rune)
-        @assert(b[3] == cast(u8) 'd'rune)
+        Swag.assert(b[0] == cast(u8) 'a'rune)
+        Swag.assert(b[1] == cast(u8) 'b'rune)
+        Swag.assert(b[2] == cast(u8) 'c'rune)
+        Swag.assert(b[3] == cast(u8) 'd'rune)
     }
 }
 
@@ -142,15 +142,15 @@ namespace cstring_index_runtime
 {
     #test
     {
-        var text: const cstring = cast(const cstring) @dataof("abcd")
-        @assert(text[0] == cast(u8) 'a'rune)
-        @assert(text[3] == cast(u8) 'd'rune)
+        var text: const cstring = cast(const cstring) ("abcd").buffer
+        Swag.assert(text[0] == cast(u8) 'a'rune)
+        Swag.assert(text[3] == cast(u8) 'd'rune)
     }
 
     #test
     {
-        let value = (cast(const cstring) @dataof("abcd"))[2]
-        @assert(value == cast(u8) 'c'rune)
+        let value = (cast(const cstring) ("abcd").buffer)[2]
+        Swag.assert(value == cast(u8) 'c'rune)
     }
 }
 
@@ -161,7 +161,7 @@ namespace compiler293
     #test
     {
         let b = "XYZ"
-        @assert(b[2] == cast(u8) 'Z'rune)
+        Swag.assert(b[2] == cast(u8) 'Z'rune)
     }
 }
 
@@ -177,7 +177,7 @@ namespace compiler297
     #test
     {
         let c = test1()
-        @assert(c == "toto1")
+        Swag.assert(c == "toto1")
     }
 }
 
@@ -193,12 +193,10 @@ namespace compiler298
     #test
     {
         var res = test2()
-        // @op(res, count) == 5;
-
-        // @print(res);
-        // @print(test2.count);
-        @assert(res == "toto1")
-        @assert(@countof(res) == 5)
+        // Swag.print(res);
+        // Swag.print(test2.count);
+        Swag.assert(res == "toto1")
+        Swag.assert(res.count == 5)
     }
 }
 
@@ -208,8 +206,8 @@ namespace compiler299
     //
     #test
     {
-        @assert(@countof("toto") == 4)
-        @assert(@countof("totototo") == 8)
+        Swag.assert(("toto").count == 4)
+        Swag.assert(("totototo").count == 8)
     }
 }
 
@@ -220,10 +218,10 @@ namespace compiler301
     #test
     {
         var str = "toto"
-        var c   = @countof(str)
-        @assert(c == 4)
+        var c   = str.count
+        Swag.assert(c == 4)
 
-        str = "totototo"; c = @countof(str); @assert(c == 8)
+        str = "totototo"; c = str.count; Swag.assert(c == 8)
     }
 }
 
@@ -234,11 +232,11 @@ namespace compiler302
     #test
     {
         let str             = "ABCD"
-        let p: const [*] u8 = @dataof(str)
-        @assert(p[0] == cast(u8) 'A'rune)
-        @assert(p[1] == cast(u8) 'B'rune)
-        @assert(p[2] == cast(u8) 'C'rune)
-        @assert(p[3] == cast(u8) 'D'rune)
+        let p: const [*] u8 = str.buffer
+        Swag.assert(p[0] == cast(u8) 'A'rune)
+        Swag.assert(p[1] == cast(u8) 'B'rune)
+        Swag.assert(p[2] == cast(u8) 'C'rune)
+        Swag.assert(p[3] == cast(u8) 'D'rune)
     }
 }
 
@@ -250,8 +248,8 @@ namespace compiler308
 
     #test
     {
-        let c = @countof(g)
-        @assert(c == 4)
+        let c = g.count
+        Swag.assert(c == 4)
     }
 }
 
@@ -262,8 +260,8 @@ namespace compiler309
     #test
     {
         let c = "toto"
-        @assert(c == "toto")
-        @assert(c != "titi")
+        Swag.assert(c == "toto")
+        Swag.assert(c != "titi")
     }
 }
 
@@ -275,8 +273,8 @@ namespace compiler311
 
     #test
     {
-        g = "toto"; @assert(g == "toto")
-        g = "titi"; @assert(g == "titi")
-    // @print(g);
+        g = "toto"; Swag.assert(g == "toto")
+        g = "titi"; Swag.assert(g == "titi")
+    // Swag.print(g);
     }
 }

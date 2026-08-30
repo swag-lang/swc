@@ -202,8 +202,7 @@ Result AstIntrinsicValue::semaPostNode(Sema& sema)
 {
     sema.setIsValue(*this);
 
-    const Token& tok = sema.token(codeRef());
-    switch (tok.id)
+    switch (intrinsicId)
     {
         case TokenId::IntrinsicIndex:
         {
@@ -362,14 +361,14 @@ namespace
         return SemaHelpers::intrinsicCountOf(sema, sema.curNodeRef(), children[0]);
     }
 
-    // '@isset(expr.field)' / '@isset(g)' tests whether a 'Swag.Late' field or global has
+    // 'Swag.isSet(expr.field)' / 'Swag.isSet(g)' tests whether a 'Swag.Late' field or global has
     // received its value.
     Result semaIntrinsicIsSet(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
         if (!SemaHelpers::isLateInitAccess(sema, children[0]))
             return SemaError::raise(sema, DiagnosticId::sema_err_isset_not_late_field, children[0]);
 
-        // '@isset' inspects the storage, it never reads the value: cancel the read guard.
+        // 'Swag.isSet' inspects the storage, it never reads the value: cancel the read guard.
         // Late members are never constant-extracted, so the operand always has
         // runtime storage to inspect.
         SemaHelpers::clearLateFieldReadGuard(sema, children[0]);
@@ -644,11 +643,10 @@ namespace
 
 Result AstIntrinsicCall::semaPostNode(Sema& sema)
 {
-    const Token&            tok = sema.token(codeRef());
     SmallVector<AstNodeRef> children;
     sema.ast().appendNodes(children, spanChildrenRef);
 
-    switch (tok.id)
+    switch (intrinsicId)
     {
         case TokenId::IntrinsicDataOf:
             return semaIntrinsicDataOf(sema, *this, children);

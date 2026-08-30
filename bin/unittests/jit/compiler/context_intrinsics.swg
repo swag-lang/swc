@@ -4,7 +4,7 @@
 {
     func contextFlagsAreCompiler()->bool
     {
-        return @getcontext().runtimeFlags == .FromCompiler
+        return Swag.getContext().runtimeFlags == .FromCompiler
     }
 
     const V = #run contextFlagsAreCompiler()
@@ -15,15 +15,15 @@
 {
     func canSwapContextPointer()->bool
     {
-        let prev = @getcontext()
+        let prev = Swag.getContext()
         var cxt  = prev[]
         cxt.user0 = 0xA17E
 
-        @setcontext(cxt)
-        let swapped = @getcontext () == &cxt and @getcontext().user0 == 0xA17E
-        @setcontext(prev)
+        Swag.setContext(cxt)
+        let swapped = Swag.getContext() == &cxt and Swag.getContext().user0 == 0xA17E
+        Swag.setContext(prev)
 
-        return swapped and @getcontext () == prev
+        return swapped and Swag.getContext() == prev
     }
 
     const V = #run canSwapContextPointer()
@@ -34,7 +34,7 @@
 {
     func pinfosAreZeroed()->bool
     {
-        return @countof(@pinfos.modules) == 0 and @countof(@pinfos.args) == 0
+        return (Swag.processInfos().modules).count == 0 and (Swag.processInfos().args).count == 0
     }
 
     const V = #run pinfosAreZeroed()

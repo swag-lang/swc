@@ -16,15 +16,15 @@ impl ForeachAliasBuffer
     #[Macro, Swag.CalleeReturn]
     mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
     {
-        for @countof(.data)
+        for (.data).count
         {
             #static if ptr
             {
-                #inject(stmt, item = &me.data[@index], index = @index)
+                #inject(stmt, item = &me.data[Swag.index], index = Swag.index)
             }
             else
             {
-                #inject(stmt, item = me.data[@index], index = @index)
+                #inject(stmt, item = me.data[Swag.index], index = Swag.index)
             }
         }
     }

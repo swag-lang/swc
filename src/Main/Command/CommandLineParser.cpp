@@ -903,7 +903,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
         configureScriptCommand(*cmdLine_, fs::path(args[scriptIndex].c_str()));
         command_ = commandName(cmdLine_->command);
 
-        // The script reads these itself, through '@args'. The compiler hands them over without
+        // The script reads these itself, through 'Swag.args()'. The compiler hands them over without
         // looking at them, so a tool written as a script is free to take '-bc' or '--help' and
         // mean its own thing by them.
         for (size_t i = scriptIndex + 1; i < args.size(); i++)

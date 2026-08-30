@@ -41,7 +41,7 @@ overwrites an existing path. The generated source is:
 ```swag
 #main
 {
-    @print("Hello, world!\n")
+    Swag.print("Hello, world!\n")
 }
 ```
 

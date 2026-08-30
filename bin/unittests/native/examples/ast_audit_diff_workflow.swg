@@ -31,8 +31,8 @@ struct WarehouseLimits
 #[Swag.Compiler]
 func appendAst(buffer: [*] u8, start: u64, text: string)->u64
 {
-    @memcpy(buffer + start, @dataof(text), @countof(text))
-    return start + @countof(text)
+    Swag.memcpy(buffer + start, text.buffer, text.count)
+    return start + text.count
 }
 
 #[Swag.Compiler]
@@ -71,7 +71,7 @@ struct(T) AuditDiff
         var len = appendAuditDiffFields(&buffer[0], 0, #typeof(T))
         if len == 0 do
             return ""
-        return cast(string) @mkslice(&buffer[0], len)
+        return cast(string) Swag.makeSlice(&buffer[0], len)
     }
 }
 
@@ -107,7 +107,7 @@ func(T) buildAuditDiff(before: T, after: T)->AuditDiff'T
         }
         if len == 0 do
             return ""
-        return cast(string) @mkslice(&buffer[0], len)
+        return cast(string) Swag.makeSlice(&buffer[0], len)
     }
     return result
 }
@@ -129,7 +129,7 @@ func(T) auditChangedCount(diff: AuditDiff'T)->s32
         }
         if len == 0 do
             return ""
-        return cast(string) @mkslice(&buffer[0], len)
+        return cast(string) Swag.makeSlice(&buffer[0], len)
     }
     return count
 }
@@ -155,7 +155,7 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
         }
         if len == 0 do
             return ""
-        return cast(string) @mkslice(&buffer[0], len)
+        return cast(string) Swag.makeSlice(&buffer[0], len)
     }
     return result
 }
@@ -183,32 +183,32 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
     let diff    = buildAuditDiff'(DeployConfig)(before, after)
     let rebuilt = applyAuditDiff'(DeployConfig)(before, diff)
 
-    @assert(diff.changed_replicas)
-    @assert(diff.old_replicas == 3)
-    @assert(diff.new_replicas == 6)
+    Swag.assert(diff.changed_replicas)
+    Swag.assert(diff.old_replicas == 3)
+    Swag.assert(diff.new_replicas == 6)
 
-    @assert(diff.changed_rollout)
-    @assert(diff.old_rollout == .Manual)
-    @assert(diff.new_rollout == .Progressive)
+    Swag.assert(diff.changed_rollout)
+    Swag.assert(diff.old_rollout == .Manual)
+    Swag.assert(diff.new_rollout == .Progressive)
 
-    @assert(!diff.changed_pauseSeconds)
-    @assert(diff.old_pauseSeconds == 20)
-    @assert(diff.new_pauseSeconds == 20)
+    Swag.assert(!diff.changed_pauseSeconds)
+    Swag.assert(diff.old_pauseSeconds == 20)
+    Swag.assert(diff.new_pauseSeconds == 20)
 
-    @assert(diff.changed_alertsEnabled)
-    @assert(!diff.old_alertsEnabled)
-    @assert(diff.new_alertsEnabled)
+    Swag.assert(diff.changed_alertsEnabled)
+    Swag.assert(!diff.old_alertsEnabled)
+    Swag.assert(diff.new_alertsEnabled)
 
-    @assert(!diff.changed_owner)
-    @assert(diff.old_owner == "ops@contoso.test")
-    @assert(diff.new_owner == "ops@contoso.test")
+    Swag.assert(!diff.changed_owner)
+    Swag.assert(diff.old_owner == "ops@contoso.test")
+    Swag.assert(diff.new_owner == "ops@contoso.test")
 
-    @assert(auditChangedCount'(DeployConfig)(diff) == 3)
-    @assert(rebuilt.replicas == 6)
-    @assert(rebuilt.rollout == .Progressive)
-    @assert(rebuilt.pauseSeconds == 20)
-    @assert(rebuilt.alertsEnabled)
-    @assert(rebuilt.owner == "ops@contoso.test")
+    Swag.assert(auditChangedCount'(DeployConfig)(diff) == 3)
+    Swag.assert(rebuilt.replicas == 6)
+    Swag.assert(rebuilt.rollout == .Progressive)
+    Swag.assert(rebuilt.pauseSeconds == 20)
+    Swag.assert(rebuilt.alertsEnabled)
+    Swag.assert(rebuilt.owner == "ops@contoso.test")
 }
 
 #test
@@ -232,20 +232,20 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
     let diff    = buildAuditDiff'(WarehouseLimits)(before, after)
     let rebuilt = applyAuditDiff'(WarehouseLimits)(before, diff)
 
-    @assert(!diff.changed_maxBins)
-    @assert(diff.changed_maxLoadKg)
-    @assert(diff.old_maxLoadKg == 1200)
-    @assert(diff.new_maxLoadKg == 1800)
-    @assert(diff.changed_requiresScan)
-    @assert(diff.old_requiresScan)
-    @assert(!diff.new_requiresScan)
-    @assert(diff.changed_overflowContact)
-    @assert(diff.old_overflowContact == "night-shift@warehouse.test")
-    @assert(diff.new_overflowContact == "dispatch@warehouse.test")
-    @assert(auditChangedCount'(WarehouseLimits)(diff) == 3)
+    Swag.assert(!diff.changed_maxBins)
+    Swag.assert(diff.changed_maxLoadKg)
+    Swag.assert(diff.old_maxLoadKg == 1200)
+    Swag.assert(diff.new_maxLoadKg == 1800)
+    Swag.assert(diff.changed_requiresScan)
+    Swag.assert(diff.old_requiresScan)
+    Swag.assert(!diff.new_requiresScan)
+    Swag.assert(diff.changed_overflowContact)
+    Swag.assert(diff.old_overflowContact == "night-shift@warehouse.test")
+    Swag.assert(diff.new_overflowContact == "dispatch@warehouse.test")
+    Swag.assert(auditChangedCount'(WarehouseLimits)(diff) == 3)
 
-    @assert(rebuilt.maxBins == 48)
-    @assert(rebuilt.maxLoadKg == 1800)
-    @assert(!rebuilt.requiresScan)
-    @assert(rebuilt.overflowContact == "dispatch@warehouse.test")
+    Swag.assert(rebuilt.maxBins == 48)
+    Swag.assert(rebuilt.maxLoadKg == 1800)
+    Swag.assert(!rebuilt.requiresScan)
+    Swag.assert(rebuilt.overflowContact == "dispatch@warehouse.test")
 }

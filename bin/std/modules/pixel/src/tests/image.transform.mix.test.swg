@@ -36,28 +36,28 @@ using Swag, Core
 #test
 {
     var dstPixels: [48] u8 = undefined
-    for index in @countof(dstPixels) do
+    for index in dstPixels.count do
         dstPixels[index] = cast(u8) (index * 3 + 1)
     var srcPixels: [24] u8 = undefined
-    for index in @countof(srcPixels) do
+    for index in srcPixels.count do
         srcPixels[index] = cast(u8) (index * 5 + 7)
 
     let dst = makeImage(4, 3, .RGBA8, dstPixels)
     let src = makeImage(3, 2, .RGBA8, srcPixels)
 
     var expected: Array'u8
-    expected.resize(@countof(dstPixels))
-    Memory.copy(expected.buffer, @dataof(dstPixels), expected.count)
+    expected.resize(dstPixels.count)
+    Memory.copy(expected.buffer, dstPixels.buffer, expected.count)
     for row in 2
     {
         let target = expected.buffer! + cast(u64) (row + 1) * 16
-        let source = @dataof(srcPixels) + cast(u64) row * 12 + 4
+        let source = srcPixels.buffer + cast(u64) row * 12 + 4
         Memory.copy(target, source, 8)
     }
 
     let clipped = dst.mixed(src, -1, 1, .Copy)
-    @assert(Memory.compare(clipped.pixels.buffer, expected.buffer, expected.count) == 0)
+    Swag.assert(Memory.compare(clipped.pixels.buffer, expected.buffer, expected.count) == 0)
 
     let outside = dst.mixed(src, 8, -5, .Copy)
-    @assert(Memory.compare(outside.pixels.buffer, @dataof(dstPixels), @countof(dstPixels)) == 0)
+    Swag.assert(Memory.compare(outside.pixels.buffer, dstPixels.buffer, dstPixels.count) == 0)
 }

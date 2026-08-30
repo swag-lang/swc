@@ -58,7 +58,7 @@ impl Array
             .initNewSlots(0, .count)
             let buffer = .buffer!
             for .count do
-                buffer[@index] = #nodrop oldBuffer[@index]
+                buffer[Swag.index] = #nodrop oldBuffer[Swag.index]
         }
         else
         {
@@ -88,7 +88,7 @@ impl Array
         Debug.safetyBoundCheck(lower < .count, "lower bound out of range")
         Debug.safetyBoundCheck(upper < .count, "upper bound out of range")
         let buffer = .buffer!
-        return @mkslice(buffer + lower, (upper + 1) - lower)
+        return Swag.makeSlice(buffer + lower, (upper + 1) - lower)
     }
 
     // Returns the address of the element at the specified index.
@@ -132,10 +132,10 @@ impl Array
     mtd opSet(arr: const [..] T)
         where Reflection.canCopy(T)
     {
-        let countof = @countof(arr)
+        let countof = arr.count
         if countof and .buffer
         {
-            let dataof = @dataof(arr)
+            let dataof = arr.buffer
             if dataof >= .buffer and dataof < .buffer + .count
             {
                 var copy: Array'T
@@ -148,7 +148,7 @@ impl Array
         .clear()
         if !countof do
             return
-        var dataof = @dataof(arr)
+        var dataof = arr.buffer
 
         .grow(countof)
         #static if Reflection.hasPostCopy(T)
@@ -184,7 +184,7 @@ impl Array
         for .count
         {
             scan += 1
-            let visitIdx = @index
+            let visitIdx = Swag.index
 
             #static if ptr do
                 #inject(stmt, item = cast(*T) scan, index = visitIdx)
@@ -239,7 +239,7 @@ impl Array
     mtd realloc(newCapacity: u64)
     {
         if !.allocator do
-            .allocator = @getcontext().allocator
+            .allocator = Swag.getContext().allocator
 
         if newCapacity == 0
         {
@@ -257,7 +257,7 @@ impl Array
         {
             if .buffer and newBuffer != .buffer
             {
-                @postmove(newBuffer, .count)
+                Swag.postMove(newBuffer, .count)
             }
         }
 
@@ -275,7 +275,7 @@ impl Array
         // Need to drop every structs
         #static if Reflection.hasDrop(T)
         {
-            @drop(.buffer, .count)
+            Swag.drop(.buffer, .count)
         }
 
         Memory.free(.buffer, .capacity * #sizeof(T), .allocator)
@@ -297,10 +297,10 @@ impl Array
     mtd const isEmpty() => .count == 0
 
     // Returns a mutable slice containing all elements of the array.
-    mtd toSlice()->[..] T => @mkslice(.buffer, .count)
+    mtd toSlice()->[..] T => Swag.makeSlice(.buffer, .count)
 
     // Returns an immutable slice containing all elements of the array.
-    mtd const toSlice()->const [..] T => @mkslice(.buffer, .count)
+    mtd const toSlice()->const [..] T => Swag.makeSlice(.buffer, .count)
 
     #[Inline]
     #[Swag.NoDoc]
@@ -311,7 +311,7 @@ impl Array
 
         #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
         {
-            @init(.buffer + index, num)
+            Swag.init(.buffer + index, num)
         }
     }
 
@@ -366,12 +366,12 @@ impl Array
         if newCount > .count
         {
             .grow(newCount)
-            @init(.buffer + .count, newCount - .count)
+            Swag.init(.buffer + .count, newCount - .count)
             .count = newCount
         }
         else
         {
-            @drop(.buffer + newCount, .count - newCount)
+            Swag.drop(.buffer + newCount, .count - newCount)
             .count = newCount
         }
     }
@@ -383,7 +383,7 @@ impl Array
         #static if Reflection.hasDrop(T)
         {
             for .count do
-                @drop(.buffer + @index)
+                Swag.drop(.buffer + Swag.index)
         }
 
         .count = 0
@@ -443,7 +443,7 @@ impl Array
         .count += num
         let buffer = .buffer!
         var res    = buffer + .count - num
-        @init(res, num)
+        Swag.init(res, num)
         return res
     }
 
@@ -477,12 +477,12 @@ impl Array
     mtd insertAt(index: u64, values: const [..] T)
         where Reflection.canCopy(T)
     {
-        var sliceCount = @countof(values)
+        var sliceCount = values.count
         if !sliceCount do
             return
         if .buffer
         {
-            let dataof = @dataof(values)
+            let dataof = values.buffer
             if dataof >= .buffer and dataof < .buffer + .count
             {
                 var copy: Array'T
@@ -516,7 +516,7 @@ impl Array
         }
         else
         {
-            Memory.copy(buffer + index, @dataof(values), #sizeof(T) * sliceCount)
+            Memory.copy(buffer + index, values.buffer, #sizeof(T) * sliceCount)
         }
     }
 
@@ -525,12 +525,12 @@ impl Array
     mtd emplaceAt(index: u64, values: [..] T)
         where Reflection.canCopy(T)
     {
-        var sliceCount = @countof(values)
+        var sliceCount = values.count
         if !sliceCount do
             return
         if .buffer
         {
-            let dataof = @dataof(values)
+            let dataof = values.buffer
             if dataof >= .buffer and dataof < .buffer + .count
             {
                 var copy: Array'T
@@ -554,7 +554,7 @@ impl Array
         }
         else
         {
-            Memory.copyOverlapping(buffer + index + @countof(values), buffer + index, #sizeof(T) * (.count - sliceCount - index))
+            Memory.copyOverlapping(buffer + index + values.count, buffer + index, #sizeof(T) * (.count - sliceCount - index))
         }
 
         #static if Reflection.hasPostMove(T)
@@ -564,7 +564,7 @@ impl Array
         }
         else
         {
-            Memory.copy(buffer + index, @dataof(values), #sizeof(T) * sliceCount)
+            Memory.copy(buffer + index, values.buffer, #sizeof(T) * sliceCount)
         }
     }
 
@@ -572,12 +572,12 @@ impl Array
     mtd add(values: #null const [..] T)
         where Reflection.canCopy(T)
     {
-        var sliceCount = @countof(values)
+        var sliceCount = values.count
         if !sliceCount do
             return
         if .buffer
         {
-            let dataof = @dataof(values)
+            let dataof = values.buffer
             if dataof >= .buffer and dataof < .buffer + .count
             {
                 var copy: Array'T
@@ -598,13 +598,13 @@ impl Array
             var destPtr = buffer + oldCount
             for sliceCount
             {
-                destPtr[] = #nodrop vals[@index]
+                destPtr[] = #nodrop vals[Swag.index]
                 destPtr   += 1
             }
         }
         else
         {
-            Memory.copy(buffer + oldCount, @dataof(values), sliceCount * #sizeof(T))
+            Memory.copy(buffer + oldCount, values.buffer, sliceCount * #sizeof(T))
         }
     }
 
@@ -636,7 +636,7 @@ impl Array
             // Drop the removed elements, then relocate the survivors into the freed slots.
             #static if Reflection.hasDrop(T)
             {
-                @drop(.buffer + index, num)
+                Swag.drop(.buffer + index, num)
             }
 
             let buffer = .buffer!
@@ -667,11 +667,11 @@ impl Array
         .count -= 1
         if index == .count
         {
-            @drop(.buffer + .count)
+            Swag.drop(.buffer + .count)
         }
         else
         {
-            @drop(.buffer + index)
+            Swag.drop(.buffer + index)
             let buffer = .buffer!
             buffer[index] = #relocate buffer[.count]
         }
@@ -689,7 +689,7 @@ impl Array
         #static if Reflection.hasDrop(T)
         {
             for idx in numValues do
-                @drop(.buffer + index + idx)
+                Swag.drop(.buffer + index + idx)
         }
 
         if index >= .count do
@@ -734,7 +734,7 @@ impl Array
         if .count <= 1 do
             return
         let buffer = .buffer!
-        Slice.sort(@mkslice(buffer, .count), func(x, y: T)->s32 => x <=> y)
+        Slice.sort(Swag.makeSlice(buffer, .count), func(x, y: T)->s32 => x <=> y)
     }
 
     // Sorts the array in descending order.
@@ -744,7 +744,7 @@ impl Array
         if .count <= 1 do
             return
         let buffer = .buffer!
-        Slice.sort(@mkslice(buffer, .count), func(x, y: T)->s32 => y <=> x)
+        Slice.sort(Swag.makeSlice(buffer, .count), func(x, y: T)->s32 => y <=> x)
     }
 
     // Sorts the array using a custom comparison function.
@@ -754,7 +754,7 @@ impl Array
         if .count <= 1 do
             return
         let buffer = .buffer!
-        Slice.sort(@mkslice(buffer, .count), cb)
+        Slice.sort(Swag.makeSlice(buffer, .count), cb)
     }
 
     // Returns a copy of the first element of the array.
@@ -811,7 +811,7 @@ impl Array
     mtd removeBack()
     {
         Debug.assert(.count > 0, "array is empty")
-        @drop(.buffer + .count - 1)
+        Swag.drop(.buffer + .count - 1)
         .count -= 1
     }
 }

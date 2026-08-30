@@ -20,7 +20,7 @@ func nullSafetyEnabled()->bool
 
 #test
 {
-    const cfg      = #run @compiler.getBuildCfg()![]
+    const cfg      = #run Swag.compiler().getBuildCfg()![]
     const expected = cfg.safetyGuards & Swag.SafetyWhat.Null ? true : false
     #assert(#safety(Swag.SafetyWhat.Null) == expected)
 }
@@ -77,7 +77,7 @@ func nullSafetyEnabled()->bool
 {
     var p: #null *NullDerefItem = null
     let q = p!
-    @assert(q.x == 0)     // swc-expected-error {{sanity_err_null_deref}}
+    Swag.assert(q.x == 0)     // swc-expected-error {{sanity_err_null_deref}}
 }
 
 // Path-sensitive: the dereference is inside the branch where the guard proves the
@@ -107,7 +107,7 @@ func nullSafetyEnabled()->bool
     {
         p.x = 1
     }
-    @assert(v.x == 0)
+    Swag.assert(v.x == 0)
 }
 
 // Correlated conditions: the same guard controls both the assignment and the use,
@@ -141,7 +141,7 @@ func correlatedGuard(cond: bool)
     var v: NullDerefItem
     var p: *NullDerefItem = &v
     p.x = 42
-    @assert(v.x == 42)
+    Swag.assert(v.x == 42)
 }
 
 // Null pointer reassigned to a real local before any use.
@@ -151,7 +151,7 @@ func correlatedGuard(cond: bool)
     var p: #null *NullDerefItem = null
     p   = &w
     p.x = 7
-    @assert(w.x == 7)
+    Swag.assert(w.x == 7)
 }
 
 // Copy of a valid pointer.
@@ -161,7 +161,7 @@ func correlatedGuard(cond: bool)
     var p = &v
     var q = p
     q.y = 11
-    @assert(v.y == 11)
+    Swag.assert(v.y == 11)
 }
 
 // An unknown (parameter) pointer is never assumed null: no false positive.
@@ -174,5 +174,5 @@ func writeThroughParam(p: *NullDerefItem)
 {
     var v: NullDerefItem
     writeThroughParam(&v)
-    @assert(v.x == 99)
+    Swag.assert(v.x == 99)
 }

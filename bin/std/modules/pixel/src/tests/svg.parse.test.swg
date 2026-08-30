@@ -24,14 +24,14 @@ private const ManyStopSvg = "<svg width='20' height='8'>" ++
 #test
 {
     let drawing = expect Svg.Drawing.parse(ManyStopSvg)
-    @assert(drawing.shapeCount() == 1)
+    Swag.assert(drawing.shapeCount() == 1)
 
     let image = drawing.rasterize(20, 8, 1)
     let left  = image.pixelColor(1, 4)
     let right = image.pixelColor(18, 4)
-    @assert(left.r > left.b)
-    @assert(right.b > right.r)
-    @assert(left.a == 255 and right.a == 255)
+    Swag.assert(left.r > left.b)
+    Swag.assert(right.b > right.r)
+    Swag.assert(left.a == 255 and right.a == 255)
 
     const ColorSource = "<svg width='30' height='10'>" ++
                         "<rect width='10' height='10' fill='rgba(255,0,0,0.5)'/>" ++
@@ -42,9 +42,9 @@ private const ManyStopSvg = "<svg width='20' height='8'>" ++
     let red          = colors.pixelColor(5, 5)
     let green        = colors.pixelColor(15, 5)
     let blue         = colors.pixelColor(25, 5)
-    @assert(red.r > 170 and red.g == 0 and red.b == 0 and red.a > 120 and red.a < 136)
-    @assert(green.g > 240 and green.a == 255)
-    @assert(blue.b > 170 and blue.r == 0 and blue.g == 0 and blue.a > 120 and blue.a < 136)
+    Swag.assert(red.r > 170 and red.g == 0 and red.b == 0 and red.a > 120 and red.a < 136)
+    Swag.assert(green.g > 240 and green.a == 255)
+    Swag.assert(blue.b > 170 and blue.r == 0 and blue.g == 0 and blue.a > 120 and blue.a < 136)
 }
 
 // A radial paint server carries its inner radius, stop opacity and repeat policy.
@@ -60,8 +60,8 @@ private const ManyStopSvg = "<svg width='20' height='8'>" ++
     let image   = drawing.rasterize(20, 20, 1)
     let center  = image.pixelColor(10, 10)
     let edge    = image.pixelColor(18, 10)
-    @assert(center.r > edge.r)
-    @assert(center.a < edge.a)
+    Swag.assert(center.r > edge.r)
+    Swag.assert(center.a < edge.a)
 }
 
 // Public WPT files form a small compatibility corpus, including metadata and
@@ -78,7 +78,7 @@ private const ManyStopSvg = "<svg width='20' height='8'>" ++
     {
         let text    = expect File.readAllText(getTestDataPath(name))
         let drawing = expect Svg.Drawing.parse(text.toString())
-        @assert(drawing.shapeCount() == ShapeCounts[i])
+        Swag.assert(drawing.shapeCount() == ShapeCounts[i])
     }
 }
 
@@ -89,8 +89,8 @@ private const ManyStopSvg = "<svg width='20' height='8'>" ++
     let text    = expect File.readAllText(getTestDataPath("svg-wpt.radialgradient-basic-002.svg"))
     let drawing = expect Svg.Drawing.parse(text.toString())
     let image   = drawing.rasterize(48, 36, 1)
-    @assert(image.pixelColor(12, 24).a > 0)
-    @assert(image.pixelColor(36, 24).a > 0)
+    Swag.assert(image.pixelColor(12, 24).a > 0)
+    Swag.assert(image.pixelColor(36, 24).a > 0)
 }
 
 // The public line fixture calibrates its dash pattern through pathLength=25:
@@ -100,17 +100,17 @@ private const ManyStopSvg = "<svg width='20' height='8'>" ++
     let text    = expect File.readAllText(getTestDataPath("svg-wpt.line-dasharray.svg"))
     let drawing = expect Svg.Drawing.parse(text.toString())
     let image   = drawing.rasterize(300, 200, 1)
-    @assert(image.pixelColor(60, 100).a > 0)
-    @assert(image.pixelColor(78, 100).a == 0)
-    @assert(image.pixelColor(90, 100).a > 0)
+    Swag.assert(image.pixelColor(60, 100).a > 0)
+    Swag.assert(image.pixelColor(78, 100).a == 0)
+    Swag.assert(image.pixelColor(90, 100).a > 0)
 
     const OffsetSource = "<svg width='100' height='20'><line x1='0' y1='10' x2='100' y2='10' " ++
                          "stroke='blue' stroke-width='2' stroke-dasharray='10 10' stroke-dashoffset='5'/></svg>"
     let offsetDrawing = expect Svg.Drawing.parse(OffsetSource)
     let offsetImage   = offsetDrawing.rasterize(100, 20, 1)
-    @assert(offsetImage.pixelColor(2, 10).a > 0)
-    @assert(offsetImage.pixelColor(8, 10).a == 0)
-    @assert(offsetImage.pixelColor(18, 10).a > 0)
+    Swag.assert(offsetImage.pixelColor(2, 10).a > 0)
+    Swag.assert(offsetImage.pixelColor(8, 10).a == 0)
+    Swag.assert(offsetImage.pixelColor(18, 10).a > 0)
 }
 
 // Sample-aligned tiles preserve every resolved byte when geometry crosses both tile axes.
@@ -129,7 +129,7 @@ private const ManyStopSvg = "<svg width='20' height='8'>" ++
 
     let tiled   = drawing.rasterize(renderer, 300, 260, 4)
     let untiled = drawing.rasterizeWithSampleTileSide(renderer, 300, 260, 4, 2048)
-    @assert(tiled.pixels.count == untiled.pixels.count)
+    Swag.assert(tiled.pixels.count == untiled.pixels.count)
     for value, index in tiled.pixels do
-        @assert(value == untiled.pixels[index])
+        Swag.assert(value == untiled.pixels[index])
 }

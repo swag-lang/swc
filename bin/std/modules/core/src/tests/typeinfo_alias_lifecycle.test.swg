@@ -99,5 +99,5 @@ func testCoreAliasLifecycleRuntimeFlags()->bool
 
 #test
 {
-    @assert(testCoreAliasLifecycleRuntimeFlags())
+    Swag.assert(testCoreAliasLifecycleRuntimeFlags())
 }

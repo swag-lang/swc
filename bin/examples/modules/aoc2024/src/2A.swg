@@ -56,10 +56,10 @@ func day2A()
         for v in first
         {
             let a = expect StrConv.toS32(v)
-            if @index
+            if Swag.index
             {
                 let diff = a - prev
-                if @abs(diff) < 1 or @abs(diff) > 3 do
+                if Swag.abs(diff) < 1 or Swag.abs(diff) > 3 do
                     bad = true
                 if ls and Math.sign(diff) != ls do
                     bad = true
@@ -72,5 +72,5 @@ func day2A()
         total += bad == false ? 1 : 0
     }
 
-    @assert(total == 549)
+    Swag.assert(total == 549)
 }

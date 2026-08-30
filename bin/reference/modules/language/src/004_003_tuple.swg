@@ -21,9 +21,9 @@ Tuple fields are automatically named 'itemX', where 'X' is the zero-based index 
 #test
 {
     let tuple = {"string", 2, true}
-    @assert(tuple.item0 == "string")
-    @assert(tuple.item1 == 2)
-    @assert(tuple.item2 == true)
+    Swag.assert(tuple.item0 == "string")
+    Swag.assert(tuple.item1 == 2)
+    Swag.assert(tuple.item2 == true)
 }
 
 /**
@@ -35,8 +35,8 @@ Tuple fields can have explicit names.
 #test
 {
     let tuple = {x: 1.0, y: 2.0}
-    @assert(tuple.x == 1.0)
-    @assert(tuple.y == 2.0)
+    Swag.assert(tuple.x == 1.0)
+    Swag.assert(tuple.y == 2.0)
 }
 
 /**
@@ -51,8 +51,8 @@ unless overridden.
     let x = 555
     let y = 666
     let t = {x, y}
-    @assert(t.x == 555)
-    @assert(t.y == 666)
+    Swag.assert(t.x == 555)
+    Swag.assert(t.y == 666)
 }
 
 /**
@@ -76,8 +76,8 @@ Tuples can be assigned to each other if their field types match, even if field n
     y = {1, 2}
     x = y
 
-    @assert(x.a == 1)
-    @assert(x.b == 2)
+    Swag.assert(x.a == 1)
+    Swag.assert(x.b == 2)
     #assert(#typeof(x) != #typeof(y))
 }
 
@@ -92,13 +92,13 @@ one binding or placeholder for every field.
 {
     let tuple1           = {x: 1.0, y: 2.0}
     let {value0, value1} = tuple1
-    @assert(value0 == 1.0)
-    @assert(value1 == 2.0)
+    Swag.assert(value0 == 1.0)
+    Swag.assert(value1 == 2.0)
 
     let tuple2        = {"name", true}
     let {name, value} = tuple2
-    @assert(name == "name")
-    @assert(value == true)
+    Swag.assert(name == "name")
+    Swag.assert(value == true)
 }
 
 /**
@@ -111,10 +111,10 @@ Use '?' as a placeholder to ignore a field.
 {
     let tuple1 = {x: 1.0, y: 2.0}
     let {x, ?} = tuple1
-    @assert(x == 1.0)
+    Swag.assert(x == 1.0)
 
     let {?, y} = tuple1
-    @assert(y == 2.0)
+    Swag.assert(y == 2.0)
 }
 
 /**
@@ -129,11 +129,11 @@ positional and named entries cannot be mixed.
 {
     let point = {x: 10.0, y: 20.0}
     let {y: vertical, x: horizontal} = point
-    @assert(horizontal == 10.0)
-    @assert(vertical == 20.0)
+    Swag.assert(horizontal == 10.0)
+    Swag.assert(vertical == 20.0)
 
     let {x: onlyX} = point
-    @assert(onlyX == 10.0)
+    Swag.assert(onlyX == 10.0)
 }
 
 /**
@@ -145,13 +145,13 @@ and unnamed fields appear in either order.
 {
     let namedThenUnnamed          = {x: 11, 22}
     let {x: first, item1: second} = namedThenUnnamed
-    @assert(first == 11)
-    @assert(second == 22)
+    Swag.assert(first == 11)
+    Swag.assert(second == 22)
 
     let unnamedThenNamed          = {33, y: 44}
     let {item0: third, y: fourth} = unnamedThenNamed
-    @assert(third == 33)
-    @assert(fourth == 44)
+    Swag.assert(third == 33)
+    Swag.assert(fourth == 44)
 }
 
 /**
@@ -164,11 +164,11 @@ The same positional and named patterns can assign to existing storage.
 {
     var first, second: s32
     {first, second} = {1, 2}
-    @assert(first == 1)
-    @assert(second == 2)
+    Swag.assert(first == 1)
+    Swag.assert(second == 2)
 
     var point = {x: 3, y: 4}
     {y: second, x: first} = point
-    @assert(first == 3)
-    @assert(second == 4)
+    Swag.assert(first == 3)
+    Swag.assert(second == 4)
 }

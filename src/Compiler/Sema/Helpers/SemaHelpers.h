@@ -52,7 +52,7 @@ namespace SemaHelpers
     // Dividing by a literal zero is an error whether it is written '/' or '/='. Call it only
     // once the right operand is known to be constant.
     Result checkDivideByZeroConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView);
-    // Whether '@init(what, args...)' spells out a struct's fields one by one, rather than
+    // Whether 'Swag.init(what, args...)' spells out a struct's fields one by one, rather than
     // handing it a single value of its own type to copy.
     bool    intrinsicInitTreatsArgsAsStructTuple(Sema& sema, TypeRef fillTypeRef, const SmallVector<AstNodeRef>& args);
     bool    extractNarrowPath(Sema& sema, AstNodeRef nodeRef, SmallVector4<const Symbol*>& outPath);
@@ -60,10 +60,10 @@ namespace SemaHelpers
     TypeRef nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef);
     // Which statements count as leaving the enclosing block. 'Guaranteed' keeps only the
     // ones that always do; 'Declared' adds the two that merely promise to and can still fall
-    // through. '@panic' returns to its caller whenever a panic hook is installed — which is
+    // through. 'Swag.panic' returns to its caller whenever a panic hook is installed — which is
     // exactly what the '#test' runner does, so one failing test does not end the run — and
     // under '#run', where the compiler decides whether execution continues
-    // ('@panic' in bin/runtime/error.swg). 'unreachable' lowers to nothing once
+    // ('Swag.panic' in bin/runtime/error.swg). 'unreachable' lowers to nothing once
     // '#[Swag.Safety(.Unreachable, false)]' turns its guard off.
     enum class LocalFlowStop : uint8_t
     {

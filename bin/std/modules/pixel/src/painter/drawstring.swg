@@ -376,17 +376,17 @@ impl Painter
         result.hasInk        = false
         result.metrics.ascent, result.metrics.descent, result.metrics.width, result.metrics.height = 0
         result.glyphs.clear()
-        result.glyphs.reserve(@countof(text))
+        result.glyphs.reserve(text.count)
 
-        var count              = @countof(text)
-        var scan               = @dataof(text)
+        var count              = text.count
+        var scan               = text.buffer
         var byteIdx            = 0'u64
         var previousGlyphIndex = 0'u32
         let letterSpacingRef   = letterSpacing / font.scale()
 
         while count
         {
-            let sl       = @mkslice(scan, count)
+            let sl       = Swag.makeSlice(scan, count)
             let {c, eat} = Utf8.decodeRune(sl)
             if eat == 0 do
                 break
@@ -456,7 +456,7 @@ impl Painter
     func glyphs(text: string, font: *Font)->Array'(const *GlyphDesc)
     {
         var result: retval
-        result.reserve(@countof(text))
+        result.reserve(text.count)
         Utf8.visitRunes(text)
         {
             result.add(font.getGlyphDesc(c))
@@ -469,7 +469,7 @@ impl Painter
     func glyphs(text: Array'rune, font: *Font)->Array'(const *GlyphDesc)
     {
         var result: retval
-        result.reserve(@countof(text))
+        result.reserve(text.count)
         for c in text
         {
             result.add(font.getGlyphDesc(c))
@@ -752,7 +752,7 @@ impl Painter
     // Draw a simple string
     mtd drawString(left, top: f32, text: string, font: *Font, color: Color, under = UnderlineStyle.None, zoom = 1.0)
     {
-        if @countof(text) == 0 or .isInvisible(color) do
+        if text.count == 0 or .isInvisible(color) do
             return
 
         let brush = Brush.createSolid(color)
@@ -762,7 +762,7 @@ impl Painter
     // Draw a simple string
     mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0)
     {
-        if @countof(text) == 0 or .isInvisible(brush) do
+        if text.count == 0 or .isInvisible(brush) do
             return
         if .layoutOnly do
             return
@@ -779,7 +779,7 @@ impl Painter
     // Draw a simple string with MSDF text effects (outline/glow/bevel/shadow).
     mtd drawString(left, top: f32, text: string, font: *Font, color: Color, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0)
     {
-        if @countof(text) == 0 do
+        if text.count == 0 do
             return
         let brush = Brush.createSolid(color)
         .drawString(left, top, text, font, brush, effect, under, zoom)
@@ -788,7 +788,7 @@ impl Painter
     // Draw a simple string with a brush and MSDF text effects.
     mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0)
     {
-        if @countof(text) == 0 do
+        if text.count == 0 do
             return
         if .layoutOnly do
             return
@@ -1044,7 +1044,7 @@ impl Painter
                 let c        = &text.chunks[cut]
                 let fitBytes = fitShapedPrefix(&c.shaped, room, deviceScale)
 
-                var trimmed = String.from(fitBytes == Swag.U64.Max ? c.slice : @mkstring(@dataof(c.slice), fitBytes))
+                var trimmed = String.from(fitBytes == Swag.U64.Max ? c.slice : Swag.makeString(c.slice.buffer, fitBytes))
                 trimmed += mark
 
                 // A shaped run copies the glyphs it needs and borrows nothing from its source

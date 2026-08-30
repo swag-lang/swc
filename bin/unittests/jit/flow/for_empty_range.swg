@@ -21,7 +21,7 @@
 
     const V = #run constantEmpty()
     #assert(V == 0)
-    @assert(constantEmpty() == 0)
+    Swag.assert(constantEmpty() == 0)
 }
 
 #test
@@ -36,7 +36,7 @@
 
     const V = #run constantEmptyNonZeroBound()
     #assert(V == 0)
-    @assert(constantEmptyNonZeroBound() == 0)
+    Swag.assert(constantEmptyNonZeroBound() == 0)
 }
 
 #test
@@ -51,7 +51,7 @@
 
     const V = #run constantEmptyNegativeBound()
     #assert(V == 0)
-    @assert(constantEmptyNegativeBound() == 0)
+    Swag.assert(constantEmptyNegativeBound() == 0)
 }
 
 // The inclusive form with equal bounds still visits exactly one value.
@@ -67,7 +67,7 @@
 
     const V = #run constantInclusiveSingle()
     #assert(V == 5)
-    @assert(constantInclusiveSingle() == 5)
+    Swag.assert(constantInclusiveSingle() == 5)
 }
 
 //
@@ -85,10 +85,10 @@ func loopUntil(low, high: s32)->s32
 #test
 {
     // Empty at zero, empty away from zero, then a non-empty control.
-    @assert(loopUntil(0, 0) == 0)
-    @assert(loopUntil(7, 7) == 0)
-    @assert(loopUntil(0, 3) == 1 + 2 + 3)
-    @assert(loopUntil(-2, -2) == 0)
+    Swag.assert(loopUntil(0, 0) == 0)
+    Swag.assert(loopUntil(7, 7) == 0)
+    Swag.assert(loopUntil(0, 3) == 1 + 2 + 3)
+    Swag.assert(loopUntil(-2, -2) == 0)
 
     #assert(#run loopUntil(0, 0) == 0)
     #assert(#run loopUntil(7, 7) == 0)
@@ -105,9 +105,9 @@ func loopUntilUnsigned(low, high: u32)->u32
 
 #test
 {
-    @assert(loopUntilUnsigned(0, 0) == 0)
-    @assert(loopUntilUnsigned(4, 4) == 0)
-    @assert(loopUntilUnsigned(0, 3) == 1 + 2 + 3)
+    Swag.assert(loopUntilUnsigned(0, 0) == 0)
+    Swag.assert(loopUntilUnsigned(4, 4) == 0)
+    Swag.assert(loopUntilUnsigned(0, 3) == 1 + 2 + 3)
 
     #assert(#run loopUntilUnsigned(0, 0) == 0)
     #assert(#run loopUntilUnsigned(4, 4) == 0)
@@ -116,7 +116,7 @@ func loopUntilUnsigned(low, high: u32)->u32
 func countElements(values: const [..] s32)->s32
 {
     var acc: s32 = 0
-    for i in 0 until cast(s32) @countof(values) do
+    for i in 0 until cast(s32) values.count do
         acc += values[i]
     return acc
 }
@@ -124,11 +124,11 @@ func countElements(values: const [..] s32)->s32
 #test
 {
     var storage                = [10, 20, 30]
-    let empty:  const [..] s32 = @mkslice(&storage[0], 0)
+    let empty:  const [..] s32 = Swag.makeSlice(&storage[0], 0)
     let filled: const [..] s32 = storage
 
-    @assert(countElements(empty) == 0)
-    @assert(countElements(filled) == 60)
+    Swag.assert(countElements(empty) == 0)
+    Swag.assert(countElements(filled) == 60)
 }
 
 //
@@ -145,9 +145,9 @@ func reverseLoopUntil(low, high: s32)->s32
 
 #test
 {
-    @assert(reverseLoopUntil(0, 0) == 0)
-    @assert(reverseLoopUntil(6, 6) == 0)
-    @assert(reverseLoopUntil(0, 3) == 1 + 2 + 3)
+    Swag.assert(reverseLoopUntil(0, 0) == 0)
+    Swag.assert(reverseLoopUntil(6, 6) == 0)
+    Swag.assert(reverseLoopUntil(0, 3) == 1 + 2 + 3)
 
     #assert(#run reverseLoopUntil(0, 0) == 0)
     #assert(#run reverseLoopUntil(6, 6) == 0)
@@ -165,7 +165,7 @@ func reverseLoopUntil(low, high: s32)->s32
 
     const V = #run constantReverseEmpty()
     #assert(V == 0)
-    @assert(constantReverseEmpty() == 0)
+    Swag.assert(constantReverseEmpty() == 0)
 }
 
 //
@@ -182,8 +182,8 @@ func reverseLoopUntil(low, high: s32)->s32
         return acc
     }
 
-    @assert(emptyWithWhereFilter(0, 0) == 0)
-    @assert(emptyWithWhereFilter(0, 3) == 1 + 3)
+    Swag.assert(emptyWithWhereFilter(0, 0) == 0)
+    Swag.assert(emptyWithWhereFilter(0, 3) == 1 + 3)
 }
 
 #test
@@ -202,8 +202,8 @@ func reverseLoopUntil(low, high: s32)->s32
         return acc
     }
 
-    @assert(emptyInnerLoop(0) == 3)
-    @assert(emptyInnerLoop(1) == 33)
+    Swag.assert(emptyInnerLoop(0) == 3)
+    Swag.assert(emptyInnerLoop(1) == 33)
 }
 
 //
@@ -224,7 +224,7 @@ func reverseLoopUntil(low, high: s32)->s32
 
     const V = #run invertedExclusive(5, 4)
     #assert(V == 0)
-    @assert(invertedExclusive(5, 4) == 0)
+    Swag.assert(invertedExclusive(5, 4) == 0)
 }
 
 #[Swag.Safety(.BoundCheck, true)]
@@ -241,7 +241,7 @@ func reverseLoopUntil(low, high: s32)->s32
 
     const V = #run invertedInclusive(5, 4)
     #assert(V == 0)
-    @assert(invertedInclusive(5, 4) == 0)
+    Swag.assert(invertedInclusive(5, 4) == 0)
 }
 
 #[Swag.Safety(.BoundCheck, false)]
@@ -256,7 +256,7 @@ func reverseLoopUntil(low, high: s32)->s32
         return acc
     }
 
-    @assert(invertedUnguarded(5, 4) == 0)
+    Swag.assert(invertedUnguarded(5, 4) == 0)
 }
 
 // The collection-sized idiom on a signed counter: an empty collection makes the range
@@ -272,8 +272,8 @@ func reverseLoopUntil(low, high: s32)->s32
         return acc
     }
 
-    @assert(sumUpToLast(0) == 0)
-    @assert(sumUpToLast(3) == 1 + 2 + 3)
+    Swag.assert(sumUpToLast(0) == 0)
+    Swag.assert(sumUpToLast(3) == 1 + 2 + 3)
 }
 
 // '.reversed()' walks the same range backwards and is empty on the same input.
@@ -288,5 +288,5 @@ func reverseLoopUntil(low, high: s32)->s32
         return acc
     }
 
-    @assert(invertedReverse(5, 4) == 0)
+    Swag.assert(invertedReverse(5, 4) == 0)
 }

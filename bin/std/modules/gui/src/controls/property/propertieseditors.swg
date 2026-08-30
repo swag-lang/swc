@@ -52,13 +52,13 @@ impl Properties
     // Register a custom editor type T (which must implement IPropertyEditor) for ALL grids.
     // Call once, typically from a #init block — mirrors Image.addDecoder / Image.addEncoder.
     //
-    // The body is kept to #typeof/@mkinterface and delegates the registry mutation to the
+    // The body is kept to #typeof/Swag.makeInterface and delegates the registry mutation to the
     // non-generic addEditor: this generic is instantiated in the CALLER's module, which cannot
     // see the module-internal 'editors' static — addEditor, compiled here, can.
     func(T) registerEditor()
     {
         #assert(Reflection.hasInterface(#typeof(T), IPropertyEditor))
-        Properties.addEditor(#typeof(T), @mkinterface(null, #typeof(T), IPropertyEditor))
+        Properties.addEditor(#typeof(T), Swag.makeInterface(null, #typeof(T), IPropertyEditor))
     }
 
     // Append a {type, itf} entry to the registry. Public so the generic registerEditor above can

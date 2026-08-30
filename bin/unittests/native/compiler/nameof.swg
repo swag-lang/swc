@@ -28,7 +28,7 @@ struct NamedStruct
     const enumName     = #nameof(Color.Green)
     const fullEnumName = #fullnameof(Color.Green)
 
-    @assert(globalName == "GlobalValue")
-    @assert(enumName == "Green")
-    @assert(fullEnumName == "Color.Green")
+    Swag.assert(globalName == "GlobalValue")
+    Swag.assert(enumName == "Green")
+    Swag.assert(fullEnumName == "Color.Green")
 }

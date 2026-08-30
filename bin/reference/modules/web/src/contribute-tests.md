@@ -24,7 +24,7 @@ internal-only behavior when its real boundary has a dedicated harness.
 ## Write a successful source test
 
 Keep the file focused and deterministic. `#assert` proves compile-time facts;
-`@assert` proves behavior while a `#test` function executes:
+`Swag.assert` proves behavior while a `#test` function executes:
 
 ```swag
 #global private
@@ -35,7 +35,7 @@ Keep the file focused and deterministic. `#assert` proves compile-time facts;
     let value = 6 * 7
 
     #assert(Expected == 42)
-    @assert(value == Expected)
+    Swag.assert(value == Expected)
 }
 ```
 
@@ -88,7 +88,7 @@ the `release` and `devmode` language configurations.
 - Keep every individual test below 40 seconds, excluding compiler build time.
 - Avoid external services, user-specific paths, timing assumptions, and random
   input without a recorded seed.
-- Keep passing tests silent; use temporary `@print` calls only while debugging.
+- Keep passing tests silent; use temporary `Swag.print` calls only while debugging.
 - Review any `*.actual.txt` snapshot before accepting it with
   `swc tools\goldens.swgs`.
 - Retain a regression test after the compiler fix lands.

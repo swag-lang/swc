@@ -14,17 +14,17 @@ Unintentional fallthroughs are prevented by default, ensuring each `case` is iso
 
     switch value
     {
-    case 0:  @assert(false)
-    case 5:  @assert(false)
-    case 6:  @assert(true)
-    default: @assert(false)
+    case 0:  Swag.assert(false)
+    case 5:  Swag.assert(false)
+    case 6:  Swag.assert(true)
+    default: Swag.assert(false)
     }
 
     let ch = 'A'rune
 
     switch ch
     {
-    case 'B': @assert(false)
+    case 'B': Swag.assert(false)
     case 'A': break
     }
 }
@@ -41,8 +41,8 @@ A `case` can match multiple values, simplifying logic when several values share 
 
     switch value
     {
-    case 2, 4, 6: @assert(true)
-    default:      @assert(false)
+    case 2, 4, 6: Swag.assert(true)
+    default:      Swag.assert(false)
     }
 
     // Alternatively, list each value on its own line for clarity.
@@ -50,9 +50,9 @@ A `case` can match multiple values, simplifying logic when several values share 
     {
     case 2,
          4,
-         6: @assert(true)
+         6: Swag.assert(true)
 
-    default: @assert(false)
+    default: Swag.assert(false)
     }
 }
 
@@ -68,9 +68,9 @@ A `case` can match multiple values, simplifying logic when several values share 
 
     switch value
     {
-    case "myString":    @assert(true)
-    case "otherString": @assert(false)
-    default:            @assert(false)
+    case "myString":    Swag.assert(true)
+    case "otherString": Swag.assert(false)
+    default:            Swag.assert(false)
     }
 }
 
@@ -87,8 +87,8 @@ Use `fallthrough` to intentionally continue execution into the next case.
     switch value
     {
     case 6:  fallthrough
-    case 7:  @assert(value == 6)
-    default: @assert(true)
+    case 7:  Swag.assert(value == 6)
+    default: Swag.assert(true)
     }
 }
 
@@ -107,10 +107,10 @@ Use `break` to exit a `case` early when a certain condition is met.
     case 6:
         if value == 6 do
             break
-        @assert(false)
+        Swag.assert(false)
 
     default:
-        @assert(false)
+        Swag.assert(false)
     }
 }
 
@@ -126,9 +126,9 @@ A `case` cannot be left empty. Use `break` explicitly when no action is required
 
     switch value
     {
-    case 5:  @assert(false)
+    case 5:  Swag.assert(false)
     case 6:  break
-    default: @assert(false)
+    default: Swag.assert(false)
     }
 }
 
@@ -146,9 +146,9 @@ A `case` cannot be left empty. Use `break` explicitly when no action is required
 
     switch test
     {
-    case a:     @assert(false)
-    case b:     @assert(false)
-    case b + 1: @assert(true)
+    case a:     Swag.assert(false)
+    case b:     Swag.assert(false)
+    case b + 1: Swag.assert(true)
     }
 }
 
@@ -167,7 +167,7 @@ Ordinary constants and other case expressions remain valid.
 
     switch state
     {
-    case .Idle:  @assert(false)
+    case .Idle:  Swag.assert(false)
     case .Ready: break
     }
 }
@@ -194,8 +194,8 @@ declared enum value needs a `case`, and a `default` is rejected.
     switch #complete color
     {
     case .Red:   break
-    case .Green: @assert(false)
-    case .Blue:  @assert(false)
+    case .Green: Swag.assert(false)
+    case .Blue:  Swag.assert(false)
     }
 }
 
@@ -212,11 +212,11 @@ Swag supports matching a **range of values** in `case` conditions for concise ra
 
     switch x
     {
-    case 0 to 5:  @assert(false)
+    case 0 to 5:  Swag.assert(false)
     case 6 to 15: success = true
     }
 
-    @assert(success)
+    Swag.assert(success)
 }
 
 /**
@@ -233,10 +233,10 @@ When ranges overlap, the **first matching range** is executed; later overlaps ar
     switch x
     {
     case 0 to 10:    success = true
-    case 5 until 15: @assert(false)
+    case 5 until 15: Swag.assert(false)
     }
 
-    @assert(success)
+    Swag.assert(success)
 }
 
 /**
@@ -252,9 +252,9 @@ Add a `where` clause to a `case` to refine matching conditions based on addition
 
     switch x
     {
-    case 6 where y == 9:  @assert(false)
-    case 6 where y == 10: @assert(true)
-    default:              @assert(false)
+    case 6 where y == 9:  Swag.assert(false)
+    case 6 where y == 10: Swag.assert(true)
+    default:              Swag.assert(false)
     }
 }
 
@@ -270,10 +270,10 @@ A `where` clause can also modify the `default` case for conditional fallbacks.
     let y = 10
     switch x
     {
-    case 6 where y == 10:  @assert(false)
-    case 7 where y == 9:   @assert(false)
+    case 6 where y == 10:  Swag.assert(false)
+    case 7 where y == 9:   Swag.assert(false)
     default where y == 10: break
-    default:               @assert(false)
+    default:               Swag.assert(false)
     }
 }
 
@@ -289,7 +289,7 @@ When switching on `any` or `interface` types, cases match based on the **underly
     switch x
     {
     case string: break
-    default:     @assert(false)
+    default:     Swag.assert(false)
     }
 }
 
@@ -310,11 +310,11 @@ Example 1: Simple Type Binding
     switch x
     {
     case string as str:
-        @assert(str == "value")
+        Swag.assert(str == "value")
         break
 
     default:
-        @assert(false)
+        Swag.assert(false)
     }
 }
 
@@ -328,15 +328,15 @@ Example 2: Type Binding with 'where' Clause
     switch x
     {
     case string as str where str == "value":
-        @assert(str == "value")
+        Swag.assert(str == "value")
         break
 
     case string as str where str == "not_a_value":
-        @assert(str == "not_a_value")
+        Swag.assert(str == "not_a_value")
         break
 
     default:
-        @assert(false)
+        Swag.assert(false)
     }
 }
 
@@ -355,13 +355,13 @@ Each `case` is evaluated in order, executing the first one that evaluates to `tr
     switch
     {
     case value == 6 or value > 10:
-        @assert(true)
+        Swag.assert(true)
         fallthrough
 
     case value1 == "true":
-        @assert(true)
+        Swag.assert(true)
 
     default:
-        @assert(false)
+        Swag.assert(false)
     }
 }

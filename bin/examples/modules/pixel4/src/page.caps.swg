@@ -66,10 +66,10 @@ func drawCapsPage(painter: *Pixel.Painter)
     drawPageHeader(painter, "Pixel path drawing", "Page 1 : starts, endings and cap styles on the same straight segment.")
 
     let body      = drawPanel(painter, {28, 98, 924, 586}, "Caps and endings", "The path starts on the left, ends on the right. Only the pen changes from row to row.")
-    let rowHeight = body.height / cast(f32) @countof(CapRows)
+    let rowHeight = body.height / cast(f32) CapRows.count
 
     painter.pushClippingSurfaceRect(body)
-    for i in @countof(CapRows)
+    for i in CapRows.count
     {
         let rowRect = Math.Rectangle{body.x, body.y + i * rowHeight, body.width, rowHeight}
         drawCapRow(painter, rowRect, CapRows[i])

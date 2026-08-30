@@ -80,7 +80,7 @@ struct Track
 private func timestampNumber(text: string)->f64 fail
 {
     let trimmed = Latin1.trim(text)
-    if !@countof(trimmed) do
+    if !trimmed.count do
         fail InvalidFormatError{"subtitle timestamp has an empty component"}
     return try StrConv.toF64(trimmed)
 }
@@ -107,7 +107,7 @@ private func stripSubtitleMarkup(result: *String, text: string)
     result.clear()
     var insideTag, insideOverride: bool
     var index = 0'u64
-    while index < @countof(text)
+    while index < text.count
     {
         if text[index] == '<'
         {
@@ -139,7 +139,7 @@ private func stripSubtitleMarkup(result: *String, text: string)
             continue
         }
 
-        if text[index] == '\\' and index + 1 < @countof(text)
+        if text[index] == '\\' and index + 1 < text.count
         {
             let escaped = text[index + 1]
             if escaped == 'N' or escaped == 'n'
@@ -194,9 +194,9 @@ private func inferFormat(fileName, source: string)->Format fail
         return .WebVtt
     if Utf8.startsWith(head, "[Script Info]") or Utf8.indexOf(head, "[Events]", 0, .Latin1NoCase) != Swag.U64.Max do
         return .SubStationAlpha
-    if @countof(head) and head[0] == '[' do
+    if head.count and head[0] == '[' do
         return .Lyric
-    if @countof(head) and head[0] == '{' do
+    if head.count and head[0] == '{' do
         return .MicroDvd
     if Utf8.indexOf(head, "-->") != Swag.U64.Max do
         return .SubRip
@@ -211,7 +211,7 @@ private func cueTimeLine(line: string)->{startSeconds, endSeconds: f64} fail
     let start = try parseTimestamp(line[0 until arrow])
     let rest  = Latin1.trim(line[arrow + 3 to])
     var endAt = 0'u64
-    while endAt < @countof(rest) and !Latin1.isSpace(rest[endAt]) do
+    while endAt < rest.count and !Latin1.isSpace(rest[endAt]) do
         endAt += 1
     let end = try parseTimestamp(rest[0 until endAt])
     if end <= start do
@@ -239,7 +239,7 @@ private func decodeSubRip(track: *Track, source: string) fail
     var index = 0'u64
     while index < lines.count
     {
-        while index < lines.count and !@countof(Latin1.trim(lines[index])) do
+        while index < lines.count and !(Latin1.trim(lines[index])).count do
             index += 1
         if index >= lines.count do
             break
@@ -251,7 +251,7 @@ private func decodeSubRip(track: *Track, source: string) fail
         let times = try cueTimeLine(lines[index])
         index += 1
         let first = index
-        while index < lines.count and @countof(Latin1.trim(lines[index])) do
+        while index < lines.count and (Latin1.trim(lines[index])).count do
             index += 1
         var text: String
         joinCueLines(&text, lines.toSlice(), first, index)
@@ -268,13 +268,13 @@ private func decodeWebVtt(track: *Track, source: string) fail
         index = 1
     while index < lines.count
     {
-        while index < lines.count and !@countof(Latin1.trim(lines[index])) do
+        while index < lines.count and !(Latin1.trim(lines[index])).count do
             index += 1
         if index >= lines.count do
             break
         if Utf8.startsWith(Latin1.trim(lines[index]), "NOTE")
         {
-            while index < lines.count and @countof(Latin1.trim(lines[index])) do
+            while index < lines.count and (Latin1.trim(lines[index])).count do
                 index += 1
             continue
         }
@@ -286,7 +286,7 @@ private func decodeWebVtt(track: *Track, source: string) fail
         let times = try cueTimeLine(lines[index])
         index += 1
         let first = index
-        while index < lines.count and @countof(Latin1.trim(lines[index])) do
+        while index < lines.count and (Latin1.trim(lines[index])).count do
             index += 1
         var text: String
         joinCueLines(&text, lines.toSlice(), first, index)
@@ -299,7 +299,7 @@ private func commaField(line: string, field: u32)->string
 {
     var start   = 0'u64
     var current = 0'u32
-    for index in @countof(line)
+    for index in line.count
     {
         if line[index] != ',' do
             continue
@@ -315,7 +315,7 @@ private func commaField(line: string, field: u32)->string
 private func commaTail(line: string, field: u32)->string
 {
     var current = 0'u32
-    for index in @countof(line) where line[index] == ','
+    for index in line.count where line[index] == ','
     {
         if current == field do
             return line[index + 1 to]
@@ -335,7 +335,7 @@ private func decodeSubStationAlpha(track: *Track, source: string) fail
     for raw in lines
     {
         let line = Latin1.trim(raw)
-        if @countof(line) and line[0] == '['
+        if line.count and line[0] == '['
         {
             inEvents = Latin1.compare(line, "[Events]", ignoreCase: true) == 0
             continue
@@ -387,7 +387,7 @@ private func decodeLyric(track: *Track, source: string) fail
     {
         var line = Latin1.trim(raw)
         var times: Array'f64
-        while @countof(line) and line[0] == '['
+        while line.count and line[0] == '['
         {
             let close = Utf8.indexOf(line, "]")
             if close == Swag.U64.Max do
@@ -416,10 +416,10 @@ private func decodeMicroDvd(track: *Track, source: string) fail
     for raw in lines
     {
         let line = Latin1.trim(raw)
-        if @countof(line) < 6 or line[0] != '{' do
+        if line.count < 6 or line[0] != '{' do
             continue
         let firstClose = Utf8.indexOf(line, "}")
-        if firstClose == Swag.U64.Max or firstClose + 1 >= @countof(line) or line[firstClose + 1] != '{' do
+        if firstClose == Swag.U64.Max or firstClose + 1 >= line.count or line[firstClose + 1] != '{' do
             continue
         let secondClose = Utf8.indexOf(line, "}", firstClose + 2)
         if secondClose == Swag.U64.Max do
@@ -641,7 +641,7 @@ impl Track
     #[Swag.NoInline]
     func loadOwned(fileName: string)->#null *Track fail
     {
-        let allocator = (@getcontext().defaultAllocator orelse @getcontext().allocator)!
+        let allocator = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
         let result    = Memory.new'Track(allocator)
         result.allocationAllocator   = allocator
         result.name.allocator        = allocator
@@ -670,13 +670,13 @@ impl Track
     // after appending container cues that are not already ordered.
     mtd addCue(startSeconds, endSeconds: f64, text: string)
     {
-        if !@countof(text) or startSeconds < 0 or endSeconds <= startSeconds do
+        if !text.count or startSeconds < 0 or endSeconds <= startSeconds do
             return
         let cue = .cues.emplaceInitAddress()
         cue.startSeconds = startSeconds
         cue.endSeconds   = endSeconds
         cue.textOffset   = .textStorage.length
-        cue.textLength   = @countof(text)
+        cue.textLength   = text.count
         .textStorage     += text
     }
 

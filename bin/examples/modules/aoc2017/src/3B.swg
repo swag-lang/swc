@@ -54,7 +54,7 @@ func day3B()
                 if s >= D
                 {
                     // Console.print("total: ", s)
-                    @assert(s == 312453)
+                    Swag.assert(s == 312453)
                     return
                 }
 

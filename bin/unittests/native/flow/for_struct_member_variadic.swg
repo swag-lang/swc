@@ -13,24 +13,24 @@ struct Tagged
 func firstByteOfArg(args: ...)->u8
 {
     let arg  = args[0]
-    let data = cast(const [*] u8) @dataof(arg)
+    let data = cast(const [*] u8) arg.buffer
     let str  = data![as string]
-    return @countof(str) ? str[0] : 0
+    return str.count ? str[0] : 0
 }
 
 func argCount(args: ...)->u64
 {
     let arg  = args[0]
-    let data = cast(const [*] u8) @dataof(arg)
+    let data = cast(const [*] u8) arg.buffer
     let str  = data![as string]
-    return @countof(str)
+    return str.count
 }
 
 #test
 {
     // Direct member.
     var items: [2] Tagged = [{name: "alpha", kind: 1}, {name: "beta", kind: 2}]
-    @assert(argCount(items[0].name) == 5)
+    Swag.assert(argCount(items[0].name) == 5)
 }
 
 #test
@@ -38,7 +38,7 @@ func argCount(args: ...)->u64
     // Member through an explicit pointer.
     var items: [2] Tagged = [{name: "alpha", kind: 1}, {name: "beta", kind: 2}]
     let p                 = &items[1]
-    @assert(argCount(p.name) == 4)
+    Swag.assert(argCount(p.name) == 4)
 }
 
 #test
@@ -53,6 +53,6 @@ func argCount(args: ...)->u64
         firsts += firstByteOfArg(it.name)
     }
 
-    @assert(total == 9)
-    @assert(firsts == 'a'u8 + 'b'u8)
+    Swag.assert(total == 9)
+    Swag.assert(firsts == 'a'u8 + 'b'u8)
 }

@@ -91,7 +91,7 @@ impl TemporaryVisits
     {
         for idx in 2
         {
-            #inject(stmt, item = cast(s32) @index, index = @index)
+            #inject(stmt, item = cast(s32) Swag.index, index = Swag.index)
         }
     }
 }
@@ -141,15 +141,15 @@ func makeLoopTemporaryOwner(value: s32)->TemporaryOwner
 func consume(value: s32)
 {
     EventTrace = EventTrace * 10 + 3
-    @assert(value == Seed)
+    Swag.assert(value == Seed)
 }
 
 #[Swag.NoInline]
 func consumePair(left: s32, right: s32)
 {
     EventTrace = EventTrace * 10 + 3
-    @assert(left == 4)
-    @assert(right == 5)
+    Swag.assert(left == 4)
+    Swag.assert(right == 5)
 }
 
 #[Swag.NoInline]
@@ -178,7 +178,7 @@ func visitFailureTemporary() fail
     EventTrace = 0
     Seed       += 1
     discard makeTemporaryOwner(Seed)
-    @assert(DropCount == 1)
+    Swag.assert(DropCount == 1)
 }
 
 // A conversion may borrow the result until its consumer returns; the owner dies after
@@ -189,8 +189,8 @@ func visitFailureTemporary() fail
     EventTrace = 0
     Seed       += 1
     consume(makeTemporaryOwner(Seed))
-    @assert(DropCount == 1)
-    @assert(EventTrace == 132)
+    Swag.assert(DropCount == 1)
+    Swag.assert(EventTrace == 132)
 }
 
 // An inline borrower does not shorten the lifetime of its receiver.
@@ -200,8 +200,8 @@ func visitFailureTemporary() fail
     EventTrace = 0
     Seed       += 1
     consume(makeTemporaryOwner(Seed).inlineValue())
-    @assert(DropCount == 1)
-    @assert(EventTrace == 132)
+    Swag.assert(DropCount == 1)
+    Swag.assert(EventTrace == 132)
 }
 
 // Several temporaries survive through the same consumer and then die in reverse order.
@@ -211,9 +211,9 @@ func visitFailureTemporary() fail
     DropTrace  = 0
     EventTrace = 0
     consumePair(makeTemporaryOwner(4), makeTemporaryOwner(5))
-    @assert(DropCount == 2)
-    @assert(DropTrace == 54)
-    @assert(EventTrace == 11322)
+    Swag.assert(DropCount == 2)
+    Swag.assert(DropTrace == 54)
+    Swag.assert(EventTrace == 11322)
 }
 
 // A nested temporary does not take over the destination storage of the outer call.
@@ -224,10 +224,10 @@ func visitFailureTemporary() fail
     Seed       += 1
     {
         var owner = relayTemporaryOwner(makeTemporaryOwner(Seed))
-        @assert(DropCount == 1)
-        @assert(owner.value == Seed)
+        Swag.assert(DropCount == 1)
+        Swag.assert(owner.value == Seed)
     }
-    @assert(DropCount == 2)
+    Swag.assert(DropCount == 2)
 }
 
 // Destructuring transfers every owned field out of the aggregate call result.
@@ -237,12 +237,12 @@ func visitFailureTemporary() fail
     DropTrace = 0
     {
         var {first, second} = makeOwnerPair(4, 5)
-        @assert(DropCount == 0)
-        @assert(first.value == 4)
-        @assert(second.value == 5)
+        Swag.assert(DropCount == 0)
+        Swag.assert(first.value == 4)
+        Swag.assert(second.value == 5)
     }
-    @assert(DropCount == 2)
-    @assert(DropTrace == 54)
+    Swag.assert(DropCount == 2)
+    Swag.assert(DropTrace == 54)
 }
 
 // A temporary created only in a conditional branch is dropped only when that branch runs.
@@ -252,9 +252,9 @@ func visitFailureTemporary() fail
     EventTrace = 0
     Seed       += 1
     if Seed == -1 do consume(makeTemporaryOwner(Seed))
-    @assert(DropCount == 0)
+    Swag.assert(DropCount == 0)
     if true do consume(makeTemporaryOwner(Seed))
-    @assert(DropCount == 1)
+    Swag.assert(DropCount == 1)
 }
 
 // An opVisit expansion preserves the caller's branch and statement boundaries.
@@ -265,15 +265,15 @@ func visitFailureTemporary() fail
     for value in TemporaryVisits{}
     {
         if value == 0 do discard makeTemporaryOwner(7)
-        @assert(DropCount == 1)
+        Swag.assert(DropCount == 1)
     }
-    @assert(DropCount == 1)
+    Swag.assert(DropCount == 1)
 
     // The unused failure branch must not drop its uninitialized call temporary
     // when the opVisit expansion ends.
     DropCount = 0
     catch visitFailureTemporary()
-    @assert(DropCount == 0)
+    Swag.assert(DropCount == 0)
 }
 
 // A temporary in an unbraced loop body dies on every iteration.
@@ -283,7 +283,7 @@ func visitFailureTemporary() fail
     EventTrace = 0
     Seed       = 0
     while Seed < 2 do discard makeLoopTemporaryOwner(7)
-    @assert(DropCount == 2)
+    Swag.assert(DropCount == 2)
 }
 
 // A loop condition owns a fresh temporary on every evaluation, not until loop exit.
@@ -294,10 +294,10 @@ func visitFailureTemporary() fail
     Seed       += 1
     while isSeed(makeTemporaryOwner(Seed))
     {
-        @assert(DropCount == 1)
+        Swag.assert(DropCount == 1)
         break
     }
-    @assert(DropCount == 1)
+    Swag.assert(DropCount == 1)
 }
 
 // A drop-only assignment transfers the bits; only the old target and the new owner die.
@@ -309,10 +309,10 @@ func visitFailureTemporary() fail
     {
         var owner = TemporaryOwner{value: -1}
         owner = makeTemporaryOwner(Seed)
-        @assert(DropCount == 1)
-        @assert(owner.value == Seed)
+        Swag.assert(DropCount == 1)
+        Swag.assert(owner.value == Seed)
     }
-    @assert(DropCount == 2)
+    Swag.assert(DropCount == 2)
 }
 
 // Assigning an owned result uses post-move repair, then transfers its lifetime.
@@ -332,12 +332,12 @@ func visitFailureTemporary() fail
         PostCopyCount = 0
         PostMoveCount = 0
         owner         = makeTransferOwner(7)
-        @assert(DropCount == 1)
-        @assert(PostCopyCount == callPostCopyCount)
-        @assert(PostMoveCount == callPostMoveCount + 1)
-        @assert(owner.value == 7)
+        Swag.assert(DropCount == 1)
+        Swag.assert(PostCopyCount == callPostCopyCount)
+        Swag.assert(PostMoveCount == callPostMoveCount + 1)
+        Swag.assert(owner.value == 7)
     }
-    @assert(DropCount == 2)
+    Swag.assert(DropCount == 2)
 }
 
 // Destructuring assignment drops each old target value before the matching field of the
@@ -349,10 +349,10 @@ func visitFailureTemporary() fail
     DropCount                 = 0
     DropTrace                 = 0
     {pair.first, pair.second} = makeOwnerPair(4, 5)
-    @assert(DropCount == 2)
-    @assert(DropTrace == 89)
-    @assert(pair.first.value == 4)
-    @assert(pair.second.value == 5)
+    Swag.assert(DropCount == 2)
+    Swag.assert(DropTrace == 89)
+    Swag.assert(pair.first.value == 4)
+    Swag.assert(pair.second.value == 5)
 }
 
 // A field the pattern skips still belongs to the call result, so it dies with the statement
@@ -363,10 +363,10 @@ func visitFailureTemporary() fail
     DropCount       = 0
     DropTrace       = 0
     {pair.first, ?} = makeOwnerPair(4, 5)
-    @assert(DropCount == 2)
-    @assert(DropTrace == 85)
-    @assert(pair.first.value == 4)
-    @assert(pair.second.value == 9)
+    Swag.assert(DropCount == 2)
+    Swag.assert(DropTrace == 85)
+    Swag.assert(pair.first.value == 4)
+    Swag.assert(pair.second.value == 9)
 }
 
 // A right side that outlives the statement is copied, not moved: every target repairs the
@@ -379,11 +379,11 @@ func visitFailureTemporary() fail
     PostCopyCount                 = 0
     PostMoveCount                 = 0
     {target.first, target.second} = source
-    @assert(DropCount == 2)
-    @assert(PostCopyCount == 2)
-    @assert(PostMoveCount == 0)
-    @assert(target.first.value == 4)
-    @assert(target.second.value == 5)
+    Swag.assert(DropCount == 2)
+    Swag.assert(PostCopyCount == 2)
+    Swag.assert(PostMoveCount == 0)
+    Swag.assert(target.first.value == 4)
+    Swag.assert(target.second.value == 5)
 }
 
 // A consumed call result is moved instead, so every target repairs through post-move.
@@ -399,11 +399,11 @@ func visitFailureTemporary() fail
     PostCopyCount                 = 0
     PostMoveCount                 = 0
     {target.first, target.second} = makeTransferPair(4, 5)
-    @assert(DropCount == 2)
-    @assert(PostCopyCount == callPostCopyCount)
-    @assert(PostMoveCount == callPostMoveCount + 2)
-    @assert(target.first.value == 4)
-    @assert(target.second.value == 5)
+    Swag.assert(DropCount == 2)
+    Swag.assert(PostCopyCount == callPostCopyCount)
+    Swag.assert(PostMoveCount == callPostMoveCount + 2)
+    Swag.assert(target.first.value == 4)
+    Swag.assert(target.second.value == 5)
 }
 
 // Returning through an inline result transfers the call temporary to the caller.
@@ -414,7 +414,7 @@ func visitFailureTemporary() fail
     Seed       += 1
     {
         var owner = forwardTemporaryOwner()
-        @assert(owner.value == Seed)
+        Swag.assert(owner.value == Seed)
     }
-    @assert(DropCount == 1)
+    Swag.assert(DropCount == 1)
 }

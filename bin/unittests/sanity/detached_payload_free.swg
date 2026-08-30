@@ -17,7 +17,7 @@ func myAlloc(size: u64)->*void
 {
     var req: AllocatorRequest
     req.size = size
-    let allocItf = @getcontext().allocator!
+    let allocItf = Swag.getContext().allocator!
     allocItf.alloc(&req)
     return req.address!
 }
@@ -28,7 +28,7 @@ func myFree(ptr: *void, size: u64)
     var req: AllocatorRequest
     req.address = ptr
     req.size    = size
-    let allocItf = @getcontext().allocator!
+    let allocItf = Swag.getContext().allocator!
     allocItf.free(&req)
 }
 
@@ -114,7 +114,7 @@ func newOwner()->*DetachedOwner
 #[Swag.Sanity(.Lifecycle, true)]
 func deleteOwner(owner: *DetachedOwner)
 {
-    @drop(&owner.items)
+    Swag.drop(&owner.items)
     myFree(cast(*void) owner, #sizeof(DetachedOwner))
 }
 
@@ -126,8 +126,8 @@ func deleteOwner(owner: *DetachedOwner)
     let owner = newOwner()
     owner.setState(1)
     owner.setStatus(2)
-    @assert(owner.items.capacity == 2)
-    @assert(owner.items.table![1] == 2)
+    Swag.assert(owner.items.capacity == 2)
+    Swag.assert(owner.items.table![1] == 2)
     deleteOwner(owner)
 }
 
@@ -139,8 +139,8 @@ func deleteOwner(owner: *DetachedOwner)
     let owner = newOwner()
     owner.setState(1)
     var view = owner.items.entry(0)
-    @assert(view[] == 1)
+    Swag.assert(view[] == 1)
     view = owner.items.addEntry(3)
-    @assert(view[] == 3)
+    Swag.assert(view[] == 3)
     deleteOwner(owner)
 }

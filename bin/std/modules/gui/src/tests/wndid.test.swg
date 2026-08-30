@@ -11,8 +11,8 @@ struct GuiWndIdTestScope
 
 #test
 {
-    @assert(GuiWndIdTestScope.Run == "GuiWndIdTestScope.Run")
-    @assert(GuiWndIdTestScope.Cancel == "GuiWndIdTestScope.Cancel")
-    @assert(Dialog.BtnOk == "Dialog.BtnOk")
-    @assert(Dialog.BtnCancel == "Dialog.BtnCancel")
+    Swag.assert(GuiWndIdTestScope.Run == "GuiWndIdTestScope.Run")
+    Swag.assert(GuiWndIdTestScope.Cancel == "GuiWndIdTestScope.Cancel")
+    Swag.assert(Dialog.BtnOk == "Dialog.BtnOk")
+    Swag.assert(Dialog.BtnCancel == "Dialog.BtnCancel")
 }

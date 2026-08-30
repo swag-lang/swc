@@ -6,9 +6,9 @@
 func hexBytes(text: string)->Array'u8
 {
     var result: retval
-    result.reserve(@countof(text) / 2)
+    result.reserve(text.count / 2)
     var index = 0'u64
-    while index + 1 < @countof(text)
+    while index + 1 < text.count
     {
         result.add(cast(u8) ((hexDigit(text[index]) << 4) | hexDigit(text[index + 1])))
         index += 2
@@ -31,7 +31,7 @@ func assertBlake2b(data: const [..] u8, expected: string)
     var oneShot: Array'u8
     oneShot.resize(reference.count)
     expect Hash.Blake2b.compute(data, oneShot.toSlice())
-    @assert(Crypto.constantTimeEqual(oneShot.toSlice(), reference.toSlice()))
+    Swag.assert(Crypto.constantTimeEqual(oneShot.toSlice(), reference.toSlice()))
 
     // The incremental path must agree with the one-shot path, including when the
     // input is split across a block boundary.
@@ -39,15 +39,15 @@ func assertBlake2b(data: const [..] u8, expected: string)
     streamed.resize(reference.count)
     var hash   = expect Hash.Blake2b.create(reference.count)
     var offset = 0'u64
-    while offset < @countof(data)
+    while offset < data.count
     {
-        let chunk = Math.min(@countof(data) - offset, 7'u64)
+        let chunk = Math.min(data.count - offset, 7'u64)
         hash.update(data[offset until offset + chunk])
         offset += chunk
     }
 
     expect hash.finalize(streamed.toSlice())
-    @assert(Crypto.constantTimeEqual(streamed.toSlice(), reference.toSlice()))
+    Swag.assert(Crypto.constantTimeEqual(streamed.toSlice(), reference.toSlice()))
 }
 
 #test
@@ -65,11 +65,11 @@ func assertBlake2b(data: const [..] u8, expected: string)
     var long:  [64] u8
     expect Hash.Blake2b.compute("abc", short)
     expect Hash.Blake2b.compute("abc", long)
-    @assert(!Crypto.constantTimeEqual(short, long[0 until 32]))
+    Swag.assert(!Crypto.constantTimeEqual(short, long[0 until 32]))
 
     // BLAKE2b-256 of "abc", from the reference implementation.
     let expected = hexBytes("bddd813c634239723171ef3fee98579b94964e3bb1cb3e427262c8c068d52319")
-    @assert(Crypto.constantTimeEqual(short, expected.toSlice()))
+    Swag.assert(Crypto.constantTimeEqual(short, expected.toSlice()))
 }
 
 #test
@@ -81,7 +81,7 @@ func assertBlake2b(data: const [..] u8, expected: string)
     var unkeyed: [32] u8
     expect Hash.Blake2b.computeKeyed(key, "abc", keyed)
     expect Hash.Blake2b.compute("abc", unkeyed)
-    @assert(!Crypto.constantTimeEqual(keyed, unkeyed))
+    Swag.assert(!Crypto.constantTimeEqual(keyed, unkeyed))
 
     // RFC 7693 appendix E keyed vector: key 00..3f, input 00, 64-byte digest.
     var fullKey: [64] u8
@@ -91,24 +91,24 @@ func assertBlake2b(data: const [..] u8, expected: string)
     var digest: [64] u8
     expect Hash.Blake2b.computeKeyed(fullKey, input, digest)
     let expected = hexBytes("961f6dd1e4dd30f63901690c512e78e4b45e4742ed197c3c5e45c549fd25f2e4187b0bc9fe30492b16b0d0bc4ef9b0f34c7003fac09a5ef1532e69430234cebd")
-    @assert(Crypto.constantTimeEqual(digest, expected.toSlice()))
+    Swag.assert(Crypto.constantTimeEqual(digest, expected.toSlice()))
 }
 
 #test
 {
     // The digest length is validated at both ends of the sequence.
     discard catch Hash.Blake2b.create(0) as emptyDigest
-    @assert(emptyDigest != null)
+    Swag.assert(emptyDigest != null)
     discard catch Hash.Blake2b.create(Hash.Blake2bMaxDigestSize + 1) as hugeDigest
-    @assert(hugeDigest != null)
+    Swag.assert(hugeDigest != null)
 
     var hash = expect Hash.Blake2b.create(32)
     var wrong: [16] u8
     discard catch hash.finalize(wrong) as lengthMismatch
-    @assert(lengthMismatch != null)
+    Swag.assert(lengthMismatch != null)
 
     var oversizedKey: [Hash.Blake2bMaxKeySize + 1] u8
     var digest:       [32] u8
     discard catch Hash.Blake2b.computeKeyed(oversizedKey, "abc", digest) as hugeKey
-    @assert(hugeKey != null)
+    Swag.assert(hugeKey != null)
 }

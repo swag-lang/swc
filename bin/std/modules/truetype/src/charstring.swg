@@ -196,7 +196,7 @@ private func execType2(state: *Type2State, code: #null const [..] u8, depth: u32
         fault(0x89)
 
     var pos = 0'u64
-    while pos < @countof(code)
+    while pos < code.count
     {
         let b0 = readU8(code, pos)
         pos += 1
@@ -679,7 +679,7 @@ private func runComposedAccent(font: *CffFont, gid: u32, builder: *OutlineBuilde
 func cffGlyphForStandardCode(font: *CffFont, code: u8)->u32
 {
     let name = standardEncodingName(code)
-    if !@countof(name) do
+    if !name.count do
         return 0
     return font.nameToGid.getOrDefault(String.from(name), 0)
 }
@@ -798,7 +798,7 @@ private func execType1(state: *Type1State, code: #null const [..] u8, depth: u32
         fault(0x89)
 
     var pos = 0'u64
-    while pos < @countof(code)
+    while pos < code.count
     {
         let b0 = readU8(code, pos)
         pos += 1
@@ -1114,7 +1114,7 @@ private func runType1ComposedAccent(font: *Type1Font, gid: u32, builder: *Outlin
 func type1GlyphForStandardCode(font: *Type1Font, code: u8)->u32
 {
     let name = standardEncodingName(code)
-    if !@countof(name) do
+    if !name.count do
         return 0
     return font.nameToGid.getOrDefault(String.from(name), 0)
 }

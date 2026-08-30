@@ -90,5 +90,5 @@ func day7A()
     }
 
     // Console.print("result: ", result)
-    @assert(result == "GJFMDHNBCIVTUWEQYALSPXZORK")
+    Swag.assert(result == "GJFMDHNBCIVTUWEQYALSPXZORK")
 }

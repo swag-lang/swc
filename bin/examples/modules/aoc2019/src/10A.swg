@@ -143,5 +143,5 @@ func day10A()
         }
     }
 
-    @assert(Slice.max(tot[to]).value == 214)
+    Swag.assert(Slice.max(tot[to]).value == 214)
 }

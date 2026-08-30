@@ -79,6 +79,6 @@ namespace InjectExprCloneSupport
 
     var direct = 0
     InjectExprCloneSupport.assignInjectedS32(&direct, InjectExprCloneSupport.visitStructBuffer(&values))
-    @assert(direct == 123)
-    @assert(InjectExprCloneSupport.visitStructBuffer(&values) == 123)
+    Swag.assert(direct == 123)
+    Swag.assert(InjectExprCloneSupport.visitStructBuffer(&values) == 123)
 }

@@ -68,10 +68,10 @@ rules because ordinary left shift already truncates discarded bits.
 {
     let count: u64 = 256
 
-    @assert(0x81'u8 << 1 == 0x02'u8)
-    @assert(0x81'u8 << count == 0'u8)
-    @assert(0x81'u8 >> count == 0'u8)
-    @assert(-128's8 >> count == -1's8)
+    Swag.assert(0x81'u8 << 1 == 0x02'u8)
+    Swag.assert(0x81'u8 << count == 0'u8)
+    Swag.assert(0x81'u8 >> count == 0'u8)
+    Swag.assert(-128's8 >> count == -1's8)
     #assert(#typeof(1'u8 << count) == u8)
 }
 
@@ -113,9 +113,9 @@ NOT, and negation.
     y = ~y     // Bitwise NOT
     z = -z     // Negation
 
-    @assert(z == -1)
-    @assert(x == false)
-    @assert(y == 0b1111_1110)
+    Swag.assert(z == -1)
+    Swag.assert(x == false)
+    Swag.assert(y == 0b1111_1110)
 }
 
 /**
@@ -139,12 +139,12 @@ equality, inequality, and relational comparisons.
     {
         let x = 5
         let y = 10
-        @assert(x == 5)
-        @assert(x != 10)
-        @assert(x <= 5)
-        @assert(x < 10)
-        @assert(x >= 5)
-        @assert(x > 0)
+        Swag.assert(x == 5)
+        Swag.assert(x != 10)
+        Swag.assert(x <= 5)
+        Swag.assert(x < 10)
+        Swag.assert(x >= 5)
+        Swag.assert(x > 0)
     }
 }
 
@@ -194,9 +194,9 @@ struct Measure
     let b = Measure{reading: {value: 11}, label: 7}
     let c = Measure{reading: {value: 10}, label: 8}
 
-    @assert(a.reading == b.reading)     // the member decides these readings are equal
-    @assert(a == b)                     // so the two measures are equal too
-    @assert(a != c)                     // 'label' still compares as the number it is
+    Swag.assert(a.reading == b.reading)     // the member decides these readings are equal
+    Swag.assert(a == b)                     // so the two measures are equal too
+    Swag.assert(a != c)                     // 'label' still compares as the number it is
 }
 
 /**
@@ -215,8 +215,8 @@ contiguous run of bytes. A struct member that is an array follows the same rule.
     var nearby: [2] Tolerance   = [{value: 11}, {value: 21}]
     var distant: [2] Tolerance  = [{value: 11}, {value: 30}]
 
-    @assert(readings == nearby)     // every element decides it is the same reading
-    @assert(readings != distant)
+    Swag.assert(readings == nearby)     // every element decides it is the same reading
+    Swag.assert(readings != distant)
 }
 
 /**
@@ -244,10 +244,10 @@ Syntax:
 #test
 {
     let x = true ? 1 : 666
-    @assert(x == 1)
+    Swag.assert(x == 1)
 
     let y = (x == 52) ? 1 : 666
-    @assert(y == 666)
+    Swag.assert(y == 666)
 }
 
 /**
@@ -268,22 +268,22 @@ A <=> B ==  1 if A > B
     {
         let a = -1.5 <=> 2.31
         #assert(#typeof(a) == s32)
-        @assert(a == -1)
+        Swag.assert(a == -1)
 
-        @assert(-10 <=> 10 == -1)
-        @assert(10 <=> -10 == 1)
-        @assert(10 <=> 10 == 0)
+        Swag.assert(-10 <=> 10 == -1)
+        Swag.assert(10 <=> -10 == 1)
+        Swag.assert(10 <=> 10 == 0)
     }
 
     {
         let x1 = 10 <=> 20
-        @assert(x1 == -1)
+        Swag.assert(x1 == -1)
 
         let x2 = 20 <=> 10
-        @assert(x2 == 1)
+        Swag.assert(x2 == 1)
 
         let x3 = 20 <=> 20
-        @assert(x3 == 0)
+        Swag.assert(x3 == 0)
     }
 }
 
@@ -301,12 +301,12 @@ zero one, so the result is non-null even when the operand was not.
     let b               = "string2"
 
     var c = a orelse b
-    @assert(c == "string1")
+    Swag.assert(c == "string1")
     #assert(#typeof(c) == string)     // the result drops '#null'
 
     a = null
     c = a orelse b
-    @assert(c == "string2")
+    Swag.assert(c == "string2")
 }
 
 /**
@@ -326,7 +326,7 @@ and the ternary already expresses it:
 {
     let count = 0
     let n     = count != 0 ? count : 10
-    @assert(n == 10)
+    Swag.assert(n == 10)
 }
 
 /**
@@ -337,10 +337,10 @@ and the ternary already expresses it:
 #test
 {
     var empty = ""
-    @assert((empty orelse "fallback") == "")
+    Swag.assert((empty orelse "fallback") == "")
 
     var missing: #null string = null
-    @assert((missing orelse "fallback") == "fallback")
+    Swag.assert((missing orelse "fallback") == "fallback")
 }
 
 /**
@@ -415,32 +415,32 @@ operators '== !=', so 'a < b == c' parses as '(a < b) == c'.
 */
 #test
 {
-    @assert(10 + 2 * 3 == 16)
-    @assert((10 + 2) * 3 == 36)
-    @assert((5 + 3 < 10 - 2) == false)
-    @assert((false and false or true) == true)
-    @assert((10 & 2 << 1) == 0)
-    @assert(((10 & 2) << 1) == 4)
+    Swag.assert(10 + 2 * 3 == 16)
+    Swag.assert((10 + 2) * 3 == 36)
+    Swag.assert((5 + 3 < 10 - 2) == false)
+    Swag.assert((false and false or true) == true)
+    Swag.assert((10 & 2 << 1) == 0)
+    Swag.assert(((10 & 2) << 1) == 4)
 
     // '^' binds tighter than '|': parses as 1 | (2 ^ 3) == 1 | 1 == 1.
-    @assert((1 | 2 ^ 3) == 1)
+    Swag.assert((1 | 2 ^ 3) == 1)
 
     // Bitwise binds tighter than comparison: parses as (2 & 3) == 2.
     // Under the C ordering this would be 2 & (3 == 2) and would not even compile.
-    @assert(2 & 3 == 2)
+    Swag.assert(2 & 3 == 2)
 
     // Ordering comparisons bind tighter than equality: parses as (1 < 2) == true.
-    @assert(1 < 2 == true)
+    Swag.assert(1 < 2 == true)
 
     // The spaceship shares the ordering level, still tighter than equality: (1 <=> 2) == -1.
-    @assert(1 <=> 2 == -1)
+    Swag.assert(1 <=> 2 == -1)
 
     // Prefix operators bind tighter than any binary operator.
-    @assert((!false == true) == true)
-    @assert(-2 * 3 == -6)
-    @assert(~0'u8 == 255)
+    Swag.assert((!false == true) == true)
+    Swag.assert(-2 * 3 == -6)
+    Swag.assert(~0'u8 == 255)
 
     // 'orelse' and the ternary sit at the loosest level and group to the right.
     let a: #null string = null
-    @assert((a orelse (false ? "x" : "y")) == "y")
+    Swag.assert((a orelse (false ? "x" : "y")) == "y")
 }

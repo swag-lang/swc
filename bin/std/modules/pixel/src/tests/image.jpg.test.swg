@@ -5,13 +5,13 @@ using Swag, Core
 func assertNearByte(value, expected: u8, tolerance: u8)
 {
     let diff = Math.abs(cast(s32) value - cast(s32) expected)
-    @assert(diff <= tolerance)
+    Swag.assert(diff <= tolerance)
 }
 
 func assertJpgPixelNear(img: Image, b, g, r: u8, tolerance: u8)
 {
-    @assert(img.isValid())
-    @assert(img.pixels.buffer != null)
+    Swag.assert(img.isValid())
+    Swag.assert(img.pixels.buffer != null)
     assertNearByte(img.pixels.buffer[0], b, tolerance)
     assertNearByte(img.pixels.buffer[1], g, tolerance)
     assertNearByte(img.pixels.buffer[2], r, tolerance)
@@ -20,31 +20,31 @@ func assertJpgPixelNear(img: Image, b, g, r: u8, tolerance: u8)
 func assertLoadedJpg(fileName: string, width, height: s32, b, g, r: u8)
 {
     let img = expect Image.load(getTestDataPath(fileName))
-    @assert(img.isValid())
-    @assert(img.width == width)
-    @assert(img.height == height)
-    @assert(img.pixelFormat == .BGR8)
-    @assert(img.bitsPerPixel == 24)
-    @assert(img.bytesPerPixel == 3)
-    @assert(img.pixels.count == cast(u64) width * height * 3)
+    Swag.assert(img.isValid())
+    Swag.assert(img.width == width)
+    Swag.assert(img.height == height)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(img.bitsPerPixel == 24)
+    Swag.assert(img.bytesPerPixel == 3)
+    Swag.assert(img.pixels.count == cast(u64) width * height * 3)
     assertJpgPixelNear(img, b, g, r, 8'u8)
 }
 
 func assertJpgHasMarker(bytes: const [..] u8, marker: u8)
 {
-    for i in @countof(bytes) - 1
+    for i in bytes.count - 1
     {
         if bytes[i] == 0xFF and bytes[i + 1] == marker do
             return
     }
 
-    @assert(false)
+    Swag.assert(false)
 }
 
 func addAdobeRgbMarker(encoded: const [..] u8)->Array'u8
 {
-    @assert(@countof(encoded) >= 2)
-    @assert(encoded[0] == 0xFF and encoded[1] == 0xD8)
+    Swag.assert(encoded.count >= 2)
+    Swag.assert(encoded[0] == 0xFF and encoded[1] == 0xD8)
 
     const app14: [16] u8 = [
         0xFF, 0xEE, 0, 14,
@@ -102,30 +102,30 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 
     let cb    = expect src.encode("memory.jpg", opt)
     let bytes = nnBytes(cb.toSlice())
-    @assert(@countof(bytes) > 20)
-    @assert(bytes[0] == 0xFF and bytes[1] == 0xD8)
-    @assert(bytes[@countof(bytes) - 2] == 0xFF and bytes[@countof(bytes) - 1] == 0xD9)
+    Swag.assert(bytes.count > 20)
+    Swag.assert(bytes[0] == 0xFF and bytes[1] == 0xD8)
+    Swag.assert(bytes[bytes.count - 2] == 0xFF and bytes[bytes.count - 1] == 0xD9)
     assertJpgHasMarker(bytes, 0xDB'u8)
     assertJpgHasMarker(bytes, 0xC0'u8)
     assertJpgHasMarker(bytes, 0xC4'u8)
     assertJpgHasMarker(bytes, 0xDA'u8)
 
     let img = expect Image.decode("encoded.jpg", bytes, {})
-    @assert(img.width == src.width)
-    @assert(img.height == src.height)
-    @assert(img.pixelFormat == .BGR8)
-    @assert(img.pixels.count == cast(u64) src.width * src.height * 3)
+    Swag.assert(img.width == src.width)
+    Swag.assert(img.height == src.height)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(img.pixels.count == cast(u64) src.width * src.height * 3)
     assertJpgPixelNear(img, expectedB, expectedG, expectedR, tolerance)
 }
 
 // Decoder and encoder registries accept both JPEG extensions.
 #test
 {
-    @assert(Image.canLoad("photo.jpg"))
-    @assert(Image.canLoad("photo.jpeg"))
-    @assert(!Image.canLoad("photo.jxl"))
-    @assert(Image.canSave("photo.jpg"))
-    @assert(Image.canSave("photo.jpeg"))
+    Swag.assert(Image.canLoad("photo.jpg"))
+    Swag.assert(Image.canLoad("photo.jpeg"))
+    Swag.assert(!Image.canLoad("photo.jxl"))
+    Swag.assert(Image.canSave("photo.jpg"))
+    Swag.assert(Image.canSave("photo.jpeg"))
 }
 
 // Load real baseline JPEG fixtures with different sampling layouts.
@@ -144,8 +144,8 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     for pixel in cast(u64) gray.width * gray.height
     {
         let offset = pixel * 3
-        @assert(gray.pixels.buffer![offset] == gray.pixels.buffer![offset + 1])
-        @assert(gray.pixels.buffer![offset] == gray.pixels.buffer![offset + 2])
+        Swag.assert(gray.pixels.buffer![offset] == gray.pixels.buffer![offset + 1])
+        Swag.assert(gray.pixels.buffer![offset] == gray.pixels.buffer![offset + 2])
     }
 
     assertLoadedJpg("progh1v1.jpg", 660, 441, 202'u8, 206'u8, 195'u8)
@@ -157,9 +157,9 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 {
     let bytes = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))
     let img   = expect Image.decode("fixture.jpeg", bytes.toSlice(), {})
-    @assert(img.width == 660)
-    @assert(img.height == 441)
-    @assert(img.pixelFormat == .BGR8)
+    Swag.assert(img.width == 660)
+    Swag.assert(img.height == 441)
+    Swag.assert(img.pixelFormat == .BGR8)
     assertJpgPixelNear(img, 202'u8, 200'u8, 192'u8, 8'u8)
 }
 
@@ -171,10 +171,10 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     opts.decodePixels = false
 
     let img = expect Image.decode("meta.jpg", bytes.toSlice(), opts)
-    @assert(img.width == 1024)
-    @assert(img.height == 768)
-    @assert(img.pixelFormat == .BGR8)
-    @assert(!img.isValid())
+    Swag.assert(img.width == 1024)
+    Swag.assert(img.height == 768)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(!img.isValid())
 }
 
 // Invalid and truncated buffers should fail without producing an image.
@@ -182,12 +182,12 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 {
     let bad: [8] u8 = [0, 1, 2, 3, 4, 5, 6, 7]
     var img: Image
-    img = catch Image.decode("bad.jpg", @mkslice(&bad[0], @countof(bad)), {}) as err8
-    @assert(err8 != null)
+    img = catch Image.decode("bad.jpg", Swag.makeSlice(&bad[0], bad.count), {}) as err8
+    Swag.assert(err8 != null)
 
     let bytes = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))
-    img = catch Image.decode("truncated.jpg", @mkslice(bytes.buffer, 32), {}) as err10
-    @assert(err10 != null)
+    img = catch Image.decode("truncated.jpg", Swag.makeSlice(bytes.buffer, 32), {}) as err10
+    Swag.assert(err10 != null)
 }
 
 // Encode BGR8 and round-trip through the JPEG decoder.
@@ -241,7 +241,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     let encoded  = expect src.encode("memory.jpg", options)
     let adobeRgb = addAdobeRgbMarker(nnBytes(encoded.toSlice()))
     let decoded  = expect Image.decode("adobe-rgb.jpg", nnBytes(adobeRgb.toSlice()), {})
-    @assert(decoded.width == 8 and decoded.height == 8)
+    Swag.assert(decoded.width == 8 and decoded.height == 8)
 
     // The source encoder's Y, Cb and Cr component samples become direct R, G and B.
     assertJpgPixelNear(decoded, 255, 85, 76, 4)

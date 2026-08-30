@@ -6,7 +6,7 @@
 // machine; only non-negative integer solutions are valid.
 // Part 2 shifts every prize coordinate by 10 000 000 000 000.
 // Exercises: switch with fallthrough, 'switch #complete', reverse-view iteration,
-// 0 to N inclusive range, ternary operator, @abs, while..do,
+// 0 to N inclusive range, ternary operator, Swag.abs, while..do,
 // #[Swag.NoInline], struct literal arguments.
 
 const SampleInput =
@@ -68,7 +68,7 @@ enum ParseState: u8
 func parseNum(bytes: const [..] u8, pos: *u32)->s64
 {
     var neg = false
-    if pos[] < @countof(bytes) and bytes[pos[]] == '-'
+    if pos[] < bytes.count and bytes[pos[]] == '-'
     {
         neg   = true
         pos[] += 1
@@ -77,7 +77,7 @@ func parseNum(bytes: const [..] u8, pos: *u32)->s64
     var val: s64
     for
     {
-        if pos[] >= @countof(bytes) or bytes[pos[]] < '0' or bytes[pos[]] > '9' do
+        if pos[] >= bytes.count or bytes[pos[]] < '0' or bytes[pos[]] > '9' do
             break
         val   = val * 10 + cast(s64) (bytes[pos[]] - '0')
         pos[] += 1
@@ -90,7 +90,7 @@ func skipToNum(bytes: const [..] u8, pos: *u32)
 {
     for
     {
-        if pos[] >= @countof(bytes) do
+        if pos[] >= bytes.count do
             break
         let ch = bytes[pos[]]
         if ch == '-' or (ch >= '0' and ch <= '9') do
@@ -108,11 +108,11 @@ func parseMachines(text: string, out: [*] Machine)->u32
 
     for
     {
-        if pos >= @countof(bytes) or count >= MaxMachines do
+        if pos >= bytes.count or count >= MaxMachines do
             break
 
         skipToNum(bytes, &pos)
-        if pos >= @countof(bytes) do
+        if pos >= bytes.count do
             break
 
         let v1 = parseNum(bytes, &pos)
@@ -204,7 +204,7 @@ func solve(text: string)->Result
 }
 
 // ---------------------------------------------------------------------------
-// Utility: inclusive range + @abs exercise
+// Utility: inclusive range + Swag.abs exercise
 // ---------------------------------------------------------------------------
 
 // Count how many machines in a range [lo, hi] (inclusive 'to') have
@@ -220,8 +220,8 @@ func countSolvable(machines: [*] Machine, lo: u32, hi: u32)->u32
     return count
 }
 
-// Determinant magnitude helper (exercises @abs)
-func detMagnitude(m: Machine)->s64 => @abs(m.a.x * m.b.y - m.a.y * m.b.x)
+// Determinant magnitude helper (exercises Swag.abs)
+func detMagnitude(m: Machine)->s64 => Swag.abs(m.a.x * m.b.y - m.a.y * m.b.x)
 
 // ---------------------------------------------------------------------------
 // Switch with fallthrough exercise
@@ -263,8 +263,8 @@ func costTier(cost: u64)->u32
     let a: Vec2 = {x: 10, y: 20}
     let b: Vec2 = {x: 10, y: 20}
     let c: Vec2 = {x: 10, y: 99}
-    @assert(vec2Eq(a, b))
-    @assert(!vec2Eq(a, c))
+    Swag.assert(vec2Eq(a, b))
+    Swag.assert(!vec2Eq(a, c))
 }
 
 // Parse number with ternary, negative, while..do
@@ -273,12 +273,12 @@ func costTier(cost: u64)->u32
     let bytes    = cast(const [..] u8) "X+94"
     var pos: u32 = 2
     let v        = parseNum(bytes, &pos)
-    @assert(v == 94)
+    Swag.assert(v == 94)
 
     let bytes2    = cast(const [..] u8) "-42rest"
     var pos2: u32 = 0
     let v2        = parseNum(bytes2, &pos2)
-    @assert(v2 == -42)
+    Swag.assert(v2 == -42)
 }
 
 // Parse full sample input
@@ -286,11 +286,11 @@ func costTier(cost: u64)->u32
 {
     var machines: [MaxMachines] Machine
     let n = parseMachines(SampleInput, &machines[0])
-    @assert(n == 4'u32)
-    @assert(vec2Eq(machines[0].a, {x: 94, y: 34}))
-    @assert(vec2Eq(machines[0].b, {x: 22, y: 67}))
-    @assert(vec2Eq(machines[0].prize, {x: 8400, y: 5400}))
-    @assert(vec2Eq(machines[3].a, {x: 69, y: 23}))
+    Swag.assert(n == 4'u32)
+    Swag.assert(vec2Eq(machines[0].a, {x: 94, y: 34}))
+    Swag.assert(vec2Eq(machines[0].b, {x: 22, y: 67}))
+    Swag.assert(vec2Eq(machines[0].prize, {x: 8400, y: 5400}))
+    Swag.assert(vec2Eq(machines[3].a, {x: 69, y: 23}))
 }
 
 // Individual machine solve
@@ -298,74 +298,74 @@ func costTier(cost: u64)->u32
 {
     // Machine 1: A=(94,34) B=(22,67) Prize=(8400,5400) → 80A+40B = 280
     let m1: Machine = {a: {x: 94, y: 34}, b: {x: 22, y: 67}, prize: {x: 8400, y: 5400}}
-    @assert(solveMachine(m1) == 280'u64)
+    Swag.assert(solveMachine(m1) == 280'u64)
 
     // Machine 2: no integer solution
     let m2: Machine = {a: {x: 26, y: 66}, b: {x: 67, y: 21}, prize: {x: 12748, y: 12176}}
-    @assert(solveMachine(m2) == 0'u64)
+    Swag.assert(solveMachine(m2) == 0'u64)
 
     // Machine 3: A=(17,86) B=(84,37) Prize=(7870,6450) → 38A+86B = 200
     let m3: Machine = {a: {x: 17, y: 86}, b: {x: 84, y: 37}, prize: {x: 7870, y: 6450}}
-    @assert(solveMachine(m3) == 200'u64)
+    Swag.assert(solveMachine(m3) == 200'u64)
 
     // Machine 4: no integer solution
     let m4: Machine = {a: {x: 69, y: 23}, b: {x: 27, y: 71}, prize: {x: 18641, y: 10279}}
-    @assert(solveMachine(m4) == 0'u64)
+    Swag.assert(solveMachine(m4) == 0'u64)
 }
 
 // Full sample: Part1 = 480
 #test
 {
     let result = solve(SampleInput)
-    @assert(result.part1 == 480'u64)
+    Swag.assert(result.part1 == 480'u64)
 }
 
 // Part2: machines 2 and 4 become solvable with the offset
 #test
 {
     let result = solve(SampleInput)
-    @assert(result.part2 > 0'u64)
+    Swag.assert(result.part2 > 0'u64)
 }
 
-// Inclusive range and @abs
+// Inclusive range and Swag.abs
 #test
 {
     var machines: [MaxMachines] Machine
     let n = parseMachines(SampleInput, &machines[0])
 
     // Machines 0 and 2 are solvable (indices 0 to 3 inclusive)
-    @assert(countSolvable(&machines[0], 0, n - 1) == 2'u32)
+    Swag.assert(countSolvable(&machines[0], 0, n - 1) == 2'u32)
     // Only machine 0 in range [0, 0]
-    @assert(countSolvable(&machines[0], 0, 0) == 1'u32)
+    Swag.assert(countSolvable(&machines[0], 0, 0) == 1'u32)
 
     // Determinant magnitude
-    @assert(detMagnitude(machines[0]) > 0)
+    Swag.assert(detMagnitude(machines[0]) > 0)
 }
 
 // Cost tier switch exercise
 #test
 {
-    @assert(costTier(0) == 0'u32)
-    @assert(costTier(1) == 1'u32)
-    @assert(costTier(99) == 1'u32)
-    @assert(costTier(100) == 2'u32)
-    @assert(costTier(280) == 2'u32)
-    @assert(costTier(1000) == 3'u32)
-    @assert(costTier(99999) == 3'u32)
+    Swag.assert(costTier(0) == 0'u32)
+    Swag.assert(costTier(1) == 1'u32)
+    Swag.assert(costTier(99) == 1'u32)
+    Swag.assert(costTier(100) == 2'u32)
+    Swag.assert(costTier(280) == 2'u32)
+    Swag.assert(costTier(1000) == 3'u32)
+    Swag.assert(costTier(99999) == 3'u32)
 }
 
 // Edge case: zero-delta buttons (det=0)
 #test
 {
     let m: Machine = {a: {x: 0, y: 0}, b: {x: 0, y: 0}, prize: {x: 100, y: 100}}
-    @assert(solveMachine(m) == 0'u64)
+    Swag.assert(solveMachine(m) == 0'u64)
 }
 
 // Edge case: prize at origin
 #test
 {
     let m: Machine = {a: {x: 1, y: 0}, b: {x: 0, y: 1}, prize: {x: 0, y: 0}}
-    @assert(solveMachine(m) == 0'u64)
+    Swag.assert(solveMachine(m) == 0'u64)
 }
 
 // reverse-view iteration: reverse order produces same sum
@@ -381,6 +381,6 @@ func costTier(cost: u64)->u32
     {
         rev += cast(s64) i
     }
-    @assert(fwd == rev)
-    @assert(fwd == 55)
+    Swag.assert(fwd == rev)
+    Swag.assert(fwd == 55)
 }

@@ -43,9 +43,9 @@ using Swag
         break
     }
 
-    @assert(count == 6)
-    @assert(switchHit == 11)
+    Swag.assert(count == 6)
+    Swag.assert(switchHit == 11)
 
     intType = null
-    @assert(!intType)
+    Swag.assert(!intType)
 }

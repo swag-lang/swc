@@ -110,8 +110,8 @@ Prefer an options struct or enum over a growing sequence of Boolean parameters.
 
 - Establish validity in constructors and mutators. Do not expose partially
   initialized states unless the type explicitly models a builder or decoder.
-- When resetting an entire value, call `@drop(me, 1)` first if it can own
-  resources, then call `@init(me, 1)` to restore its declared defaults. Follow
+- When resetting an entire value, call `Swag.drop(me, 1)` first if it can own
+  resources, then call `Swag.init(me, 1)` to restore its declared defaults. Follow
   initialization only with assignments required by non-zero invariants or
   freshly sampled external state; do not use `Memory.clear` for whole values or
   maintain a hand-written field-by-field clear. Reserve `Memory.clear` for raw

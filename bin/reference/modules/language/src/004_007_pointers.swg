@@ -25,7 +25,7 @@ It is good practice to check for null pointers before dereferencing them to avoi
 #test
 {
     var ptr1: #null *u8
-    @assert(ptr1 == null)     // Uninitialized pointers are null by default
+    Swag.assert(ptr1 == null)     // Uninitialized pointers are null by default
 }
 
 /**
@@ -42,12 +42,12 @@ null, only a `#null` one asks a real question there. A bare `*u8`, `[*] u8`, sli
 `string`, `cstring`, `func` value, `interface` or `typeinfo` in a condition is a constant
 that can only be true, and every boolean context rejects it. A slice and a string test
 their data pointer, never their count, so an empty one is still present: emptiness is
-`@countof(x) == 0`.
+`x.count == 0`.
 
 A `#null` value cannot flow into a bare (non-null) slot directly, and it cannot be
 dereferenced, indexed, member-accessed or called while it is still nullable: every use
 site needs a proof. Flow narrowing provides it implicitly (a dominating null test such
-as `if p == null do return`, `if p do ...`, `@assert(p != null)`, or the left side of
+as `if p == null do return`, `if p do ...`, `Swag.assert(p != null)`, or the left side of
 `and`/`or`), the postfix `!` asserts it explicitly (a safety check panics at runtime if
 the value is still null), and `?.` skips the access entirely when the value is null.
 Comparisons between `#null` and bare values of the same type are always allowed.
@@ -86,7 +86,7 @@ Dereferencing a value whose type is still `#null` is a compile-time error: the f
 must prove the value non-null first. The sanctioned routes are a dominating null test
 (flow narrowing), the `?.` guarded access, and the postfix `!` assertion.
 
-`@assert(p != null)` is a dominating null test like any other: the statements after it
+`Swag.assert(p != null)` is a dominating null test like any other: the statements after it
 are only reachable when the condition held, so the proof covers the remainder of the
 enclosing block. It reads as a precondition rather than as a per-use assertion, which
 suits a value that is guaranteed non-null for a whole function body. Like every other
@@ -137,39 +137,39 @@ region is dead, not wrong.
 
     // Narrowing: the null test dominates the dereference.
     if p != null do
-        @assert(p.count == 2)
+        Swag.assert(p.count == 2)
 
     // The postfix '!' asserts the proof explicitly (panics at runtime if wrong).
     let q = p!
-    @assert(q.count == 2)
+    Swag.assert(q.count == 2)
 
-    // '@assert' proves the path for the rest of the block, like a precondition.
-    @assert(p != null)
-    @assert(p.count == 2)
+    // 'Swag.assert' proves the path for the rest of the block, like a precondition.
+    Swag.assert(p != null)
+    Swag.assert(p.count == 2)
 
     // '!' asserts instead of skipping, so the member keeps its plain type.
-    @assert(p!.count == 2)
-    @assert(p!.next!.count == 7)
+    Swag.assert(p!.count == 2)
+    Swag.assert(p!.next!.count == 7)
 
     // '?.' skips the access when null; 'orelse' provides the scalar fallback.
     // 'orelse' binds loosely, so the comparison needs the parentheses.
-    @assert((p?.count orelse -1) == 2)
-    @assert((p?.next?.count orelse -1) == 7)
+    Swag.assert((p?.count orelse -1) == 2)
+    Swag.assert((p?.next?.count orelse -1) == 7)
 
     // A nullable-capable chain result carries the null outcome itself.
     let tail = p?.next
-    @assert(tail != null)
+    Swag.assert(tail != null)
 
     p = null
-    @assert((p?.count orelse -1) == -1)
-    @assert(p?.next == null)
+    Swag.assert((p?.count orelse -1) == -1)
+    Swag.assert(p?.next == null)
 
     // Every path assigns a present value, so the value is proven after the 'if'.
     if second.count > 0 do
         p = &first
     else do
         p = &second
-    @assert(p.count == 2)
+    Swag.assert(p.count == 2)
 }
 
 /**
@@ -201,19 +201,19 @@ impl ReachDoc
     let ptr   = &value
 
     // Members are reached directly through the pointer.
-    @assert(ptr.x == 1)
+    Swag.assert(ptr.x == 1)
     ptr.y = 20
-    @assert(value.y == 20)
+    Swag.assert(value.y == 20)
 
     // A method call binds the pointed-to object as its receiver.
     ptr.shift(10)
-    @assert(value.x == 11)
+    Swag.assert(value.x == 11)
 
     // '[]' reads or replaces the whole pointed value.
     let copy = ptr[]
-    @assert(copy.y == 20)
+    Swag.assert(copy.y == 20)
     ptr[] = ReachDoc{7, 8}
-    @assert(value.x == 7)
+    Swag.assert(value.x == 7)
 }
 
 /**
@@ -246,18 +246,18 @@ impl ElemBoxDoc
     // Without a dedicated write operator, assignments go through the element address.
     box[0] = 41
     box[0] += 1
-    @assert(box.values[0] == 42)
+    Swag.assert(box.values[0] == 42)
 
     // The element address escapes as a plain pointer and stays writable.
     let p = &box[1]
     #assert(#typeof(p) == *s32)
     p[] = 7
-    @assert(box.values[1] == 7)
+    Swag.assert(box.values[1] == 7)
 
     // Indexing through a pointer to the container reaches the same hooks.
     let boxPtr = &box
     boxPtr[2] = 5
-    @assert(box.values[2] == 5)
+    Swag.assert(box.values[2] == 5)
 }
 
 /**
@@ -298,11 +298,11 @@ impl SlotBoxDoc
 
     // The slot's value is still nullable: prove it, or assert it with '!'.
     let slot = bound[]
-    @assert(slot!.count == 3)
+    Swag.assert(slot!.count == 3)
 
     // Writing through the address updates the slot itself.
     bound[] = null
-    @assert(box.slot == null)
+    Swag.assert(box.slot == null)
 }
 
 /**
@@ -315,7 +315,7 @@ a constructor, the first stage of `main`. It replaces the `#null ... = null` +
 cannot be initialized at their declaration.
 
 The exposed type is non-null, so uses need no `!`; every read is guarded (a runtime
-null panic when still unset). `@isset` tests whether the value has been assigned, without
+null panic when still unset). `Swag.isSet` tests whether the value has been assigned, without
 reading it. `Swag.Late` needs a nullable-capable type (pointer, slice, `string`, `cstring`,
 interface, function): it uses the null bit pattern as the 'unset' sentinel. A local or
 parameter uses `= undefined` definite assignment instead.
@@ -341,13 +341,13 @@ func setupLateDocResource()
     // The type is non-null: no '!', no null test needed at the use site.
     #assert(#typeof(g_lateDocResource) == *LateDocResource)
 
-    // Unset until setup runs, and '@isset' says so without reading the value.
-    @assert(!@isset(g_lateDocResource))
+    // Unset until setup runs, and 'Swag.isSet' says so without reading the value.
+    Swag.assert(!Swag.isSet(g_lateDocResource))
     setupLateDocResource()
-    @assert(@isset(g_lateDocResource))
+    Swag.assert(Swag.isSet(g_lateDocResource))
 
     // Guarded read yields the value directly.
-    @assert(g_lateDocResource.weight == 5)
+    Swag.assert(g_lateDocResource.weight == 5)
 }
 
 /**
@@ -360,7 +360,7 @@ This allows you to access or modify a variable indirectly via its memory address
 {
     var value = 1
     let ptr   = &value
-    @assert(#nameof(#typeof(ptr)) == "*s32")     // The pointer type matches the variable's type
+    Swag.assert(#nameof(#typeof(ptr)) == "*s32")     // The pointer type matches the variable's type
 }
 
 /**
@@ -375,15 +375,15 @@ readable without parentheses.
 {
     var value = 42
     let ptr   = &value
-    @assert(ptr[] == 42)     // Reads the value stored at the pointer
+    Swag.assert(ptr[] == 42)     // Reads the value stored at the pointer
     ptr[] = 7                // Replaces the whole pointed value
-    @assert(value == 7)
+    Swag.assert(value == 7)
 
     // Being postfix, it chains without parentheses.
     var grid: [2, 3] s32
     let gp = &grid
     gp[][1, 2] = 5
-    @assert(grid[1, 2] == 5)
+    Swag.assert(grid[1, 2] == 5)
 }
 
 /**
@@ -398,12 +398,12 @@ without a chain of pointer casts.
 {
     var f = 1.0'f32
     let p = &f
-    @assert(p[as u32] == 0x3F80_0000)     // The float's bit pattern, not a conversion
+    Swag.assert(p[as u32] == 0x3F80_0000)     // The float's bit pattern, not a conversion
 
     var value = 0's32
     let vp    = &value
     vp[as u32] = 0xFFFF_FFFF     // Writes through the reinterpreted place
-    @assert(value == -1)
+    Swag.assert(value == -1)
 }
 
 /**
@@ -420,13 +420,13 @@ the element count is known: `p[as [4] u32][1]` names the second word of the firs
         bytes[i] = cast(u8) i
 
     // Walk the same storage as four words.
-    let words = cast([*] u32) @dataof(bytes)
-    @assert(words[0] == 0x0302_0100)
-    @assert(words[1] == 0x0706_0504)
+    let words = cast([*] u32) bytes.buffer
+    Swag.assert(words[0] == 0x0302_0100)
+    Swag.assert(words[1] == 0x0706_0504)
 
     // Or name a fixed shape in one postfix step.
-    let p = @dataof(bytes)
-    @assert(p[as [4] u32][1] == 0x0706_0504)
+    let p = bytes.buffer
+    Swag.assert(p[as [4] u32][1] == 0x0706_0504)
 }
 
 /**
@@ -440,8 +440,8 @@ to point somewhere else; `let` is what makes a pointer itself immutable.
 #test
 {
     let str            = "string"
-    let ptr: const *u8 = @dataof(str)
-    @assert(ptr[] == 's')     // Reading through the pointer is fine,
+    let ptr: const *u8 = str.buffer
+    Swag.assert(ptr[] == 's')     // Reading through the pointer is fine,
 // but assigning to 'ptr[]' would be rejected
 }
 
@@ -504,14 +504,14 @@ This is particularly useful when traversing arrays or buffers via pointers.
 {
     var arr = [1, 2, 3, 4]
     let ptr = cast([*] s32) &arr[0]
-    @assert(#typeof(ptr) == [*] s32)
+    Swag.assert(#typeof(ptr) == [*] s32)
     let value1 = ptr[0]
-    @assert(value1 == 1)
+    Swag.assert(value1 == 1)
     #assert(#typeof(value1) == s32)
     let value2 = ptr[1]
-    @assert(value2 == 2)
+    Swag.assert(value2 == 2)
     #assert(#typeof(value2) == s32)
     let value = ptr[]
-    @assert(value == 1)
+    Swag.assert(value == 1)
     #assert(#typeof(value) == s32)
 }

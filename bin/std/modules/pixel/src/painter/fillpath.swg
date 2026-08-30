@@ -305,12 +305,12 @@ public impl Painter
     // Fill the polygon with the given 'brush'
     mtd fillPolygon(points: [..] Math.Vector2, brush: Brush)
     {
-        if @countof(points) < 3 do
+        if points.count < 3 do
             return
 
         var path: LinePath
         path.start(points[0].x, points[0].y)
-        for pt in points where @index do
+        for pt in points where Swag.index do
             path.lineTo(pt.x, pt.y)
         path.close()
         .fillPath(&path, brush)

@@ -71,7 +71,7 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     let packets = expect ac3TestPackets(path)
     var config: Array'u8
     var sound   = expect SoundFile.openPacketStream(path, .Ac3, 48_000, 6, packets.count * 1536, packets.toSlice(), config.toSlice())
-    @assert(sound.packetCount() == 16 and sound.speakerChannelMask() == 0x3F)
+    Swag.assert(sound.packetCount() == 16 and sound.speakerChannelMask() == 0x3F)
 
     discard expect createNoSoundEngine()
     defer destroyEngine()
@@ -80,14 +80,14 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     let decoded = expect voice.readBuffer()
 
     // The streaming buffer targets 100 ms. Three complete 32 ms AC-3 sync frames fit.
-    @assert(decoded.size == 3 * 1536 * 6 * #sizeof(s16))
+    Swag.assert(decoded.size == 3 * 1536 * 6 * #sizeof(s16))
     let samples = cast(const [*] s16) decoded.buffer!
     const Frequencies: [6] f64 = [300, 400, 500, 600, 700, 800]
     for channel in 6
     {
         let wanted = dolbyTonePower(samples, 2048, 2048, 6, channel, Frequencies[channel])
         let other  = dolbyTonePower(samples, 2048, 2048, 6, channel, Frequencies[(channel + 1) % 6])
-        @assert(wanted > 8.0 * other)
+        Swag.assert(wanted > 8.0 * other)
     }
 }
 
@@ -105,10 +105,10 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     let voice = (expect Voice.create(&sound))!
     defer voice.destroy()
     let decoded = expect voice.readBuffer()
-    @assert(decoded.size == 3 * 1536 * 2 * #sizeof(s16))
+    Swag.assert(decoded.size == 3 * 1536 * 2 * #sizeof(s16))
     let samples = cast(const [*] s16) decoded.buffer!
-    @assert(dolbyTonePower(samples, 2048, 2048, 2, 0, 440) > 8.0 * dolbyTonePower(samples, 2048, 2048, 2, 0, 660))
-    @assert(dolbyTonePower(samples, 2048, 2048, 2, 1, 660) > 8.0 * dolbyTonePower(samples, 2048, 2048, 2, 1, 440))
+    Swag.assert(dolbyTonePower(samples, 2048, 2048, 2, 0, 440) > 8.0 * dolbyTonePower(samples, 2048, 2048, 2, 0, 660))
+    Swag.assert(dolbyTonePower(samples, 2048, 2048, 2, 1, 660) > 8.0 * dolbyTonePower(samples, 2048, 2048, 2, 1, 440))
 }
 
 // The independent E-AC-3 path decodes the common six-block, standard-coupling profile and
@@ -119,21 +119,21 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     let packets = expect eac3TestPackets(path)
     var config: Array'u8
     var sound   = expect SoundFile.openPacketStream(path, .Eac3, 48_000, 6, packets.count * 1536, packets.toSlice(), config.toSlice())
-    @assert(sound.packetCount() == 16 and sound.speakerChannelMask() == 0x3F)
+    Swag.assert(sound.packetCount() == 16 and sound.speakerChannelMask() == 0x3F)
 
     discard expect createNoSoundEngine()
     defer destroyEngine()
     let voice = (expect Voice.create(&sound))!
     defer voice.destroy()
     let decoded = expect voice.readBuffer()
-    @assert(decoded.size == 3 * 1536 * 6 * #sizeof(s16))
+    Swag.assert(decoded.size == 3 * 1536 * 6 * #sizeof(s16))
     let samples = cast(const [*] s16) decoded.buffer!
     const Frequencies: [6] f64 = [300, 400, 500, 600, 700, 800]
     for channel in 6
     {
         let wanted = dolbyTonePower(samples, 2048, 2048, 6, channel, Frequencies[channel])
         let other  = dolbyTonePower(samples, 2048, 2048, 6, channel, Frequencies[(channel + 1) % 6])
-        @assert(wanted > 8.0 * other)
+        Swag.assert(wanted > 8.0 * other)
     }
 }
 
@@ -144,15 +144,15 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     let wanted = expect ac3TestPackets(path)
     var sound  = expect SoundFile.load(path.toString())
 
-    @assert(sound.sampleEncoding() == .Ac3)
-    @assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == 6)
-    @assert(sound.packetCount() == wanted.count)
+    Swag.assert(sound.sampleEncoding() == .Ac3)
+    Swag.assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == 6)
+    Swag.assert(sound.packetCount() == wanted.count)
     for index in wanted.count
     {
         let got = expect sound.packet(index)
-        @assert(got.sourceOffset == wanted[index].sourceOffset)
-        @assert(got.byteSize == wanted[index].byteSize)
-        @assert(got.sampleFrameCount == wanted[index].sampleFrameCount)
+        Swag.assert(got.sourceOffset == wanted[index].sourceOffset)
+        Swag.assert(got.byteSize == wanted[index].byteSize)
+        Swag.assert(got.sampleFrameCount == wanted[index].sampleFrameCount)
     }
 }
 
@@ -163,17 +163,17 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     let wanted = expect eac3TestPackets(path)
     var sound  = expect SoundFile.load(path.toString())
 
-    @assert(sound.sampleEncoding() == .Eac3)
-    @assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == 6)
-    @assert(sound.packetCount() == wanted.count)
+    Swag.assert(sound.sampleEncoding() == .Eac3)
+    Swag.assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == 6)
+    Swag.assert(sound.packetCount() == wanted.count)
     for index in wanted.count
     {
         let got = expect sound.packet(index)
-        @assert(got.sourceOffset == wanted[index].sourceOffset)
-        @assert(got.byteSize == wanted[index].byteSize)
-        @assert(got.sampleFrameCount == wanted[index].sampleFrameCount)
+        Swag.assert(got.sourceOffset == wanted[index].sourceOffset)
+        Swag.assert(got.byteSize == wanted[index].byteSize)
+        Swag.assert(got.sampleFrameCount == wanted[index].sampleFrameCount)
     }
 
     var stereo = expect SoundFile.load(audioGetTestDataPath("eac3-stereo-48000.eac3").toString())
-    @assert(stereo.numChannels() == 2 and stereo.sampleRateHz() == 48_000)
+    Swag.assert(stereo.numChannels() == 2 and stereo.sampleRateHz() == 48_000)
 }

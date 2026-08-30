@@ -8,11 +8,11 @@ func lateLocal()
 {
     #[Swag.Late]
     var value: *s32     // swc-expected-error {{sema_err_late_not_field}}
-    @print(value)
+    Swag.print(value)
 }
 
 func lateParam( #[Swag.Late]
 value: *s32)     // swc-expected-error {{sema_err_late_not_field}}
 {
-    @print(value)
+    Swag.print(value)
 }

@@ -86,7 +86,7 @@ private func transformPoint(state: const *GraphicsState, page: const *Page, x, y
 
 private func operandNumber(parser: const *PdfParser, operands: Array'u32, index: u64)->f32
 {
-    if index >= @countof(operands) do
+    if index >= operands.count do
         return 0
     let value = parser.number(operands[index])
     return value < 0 ? -cast(f32) (-value) : cast(f32) value
@@ -102,16 +102,16 @@ private func nodeNumber(parser: const *PdfParser, nodeId: u32)->f32
 private func colorComponents(parser: const *PdfParser, operands: Array'u32, target: [..] f32)->u32
 {
     var count = 0'u64
-    while count < @countof(operands) and count < @countof(target)
+    while count < operands.count and count < target.count
     {
-        let id = parser.resolve(operands[@countof(operands) - count - 1])
+        let id = parser.resolve(operands[operands.count - count - 1])
         if id == InvalidNode or (parser.nodes[id].kind != .Integer and parser.nodes[id].kind != .Real) do
             break
         count += 1
     }
 
     for i in count do
-        target[i] = cast(f32) parser.number(operands[@countof(operands) - count + i])
+        target[i] = cast(f32) parser.number(operands[operands.count - count + i])
     return cast(u32) count
 }
 
@@ -153,8 +153,8 @@ private func appendPathItem(page: *Page, path: *LinePathList, state: const *Grap
     if close
     {
         let paths = path.toSlice()
-        if @countof(paths) do
-            paths[@countof(paths) - 1].close()
+        if paths.count do
+            paths[paths.count - 1].close()
     }
 
     var item = Item.createPath()
@@ -169,7 +169,7 @@ private func appendPathItem(page: *Page, path: *LinePathList, state: const *Grap
     item.clip        = state.clip
     item.hasClip     = state.hasClip
     page.appendItem(#move item)
-    @init(path, 1)
+    Swag.init(path, 1)
 }
 
 private func fontIndex(parser: const *PdfParser, page: const *Page, resourcesId: u32, name: string)->u32
@@ -214,7 +214,7 @@ private func appendText(parser: const *PdfParser, page: *Page, resourcesId: u32,
     if font do
         advance = font.runAdvance(bytes, state.fontSize, state.charSpacing, state.wordSpacing)
     else do
-        advance = cast(f32) @countof(bytes) * state.fontSize * 0.5
+        advance = cast(f32) bytes.count * state.fontSize * 0.5
 
     // Render modes 3 and 7 add no marks; the text still moves the position, which is how
     // an invisible layer over a scanned page stays aligned with what it transcribes.
@@ -352,7 +352,7 @@ private func appendInlineImage(parser: *PdfParser, content: *PdfParser, page: *P
     for
     {
         content.skip()
-        if content.pos >= @countof(content.bytes) do
+        if content.pos >= content.bytes.count do
             fail InvalidFormatError{"PDF inline image has no data marker"}
         if content.consumeWord("ID") do
             break
@@ -365,7 +365,7 @@ private func appendInlineImage(parser: *PdfParser, content: *PdfParser, page: *P
     }
 
     // Exactly one whitespace byte separates ID from the samples.
-    if content.pos < @countof(content.bytes) and isWhite(content.bytes[content.pos]) do
+    if content.pos < content.bytes.count and isWhite(content.bytes[content.pos]) do
         content.pos += 1
     let start = content.pos
 
@@ -384,14 +384,14 @@ private func appendInlineImage(parser: *PdfParser, content: *PdfParser, page: *P
     }
 
     var end = Swag.U64.Max
-    if length >= 0 and start + cast(u64) length <= @countof(content.bytes) do
+    if length >= 0 and start + cast(u64) length <= content.bytes.count do
         end = start + cast(u64) length
     else do
         end = findInlineImageEnd(content.bytes, start)
     if end == Swag.U64.Max do
         fail InvalidFormatError{"PDF inline image has no EI marker"}
 
-    parser.nodes[imageId].stream = @mkslice(@dataof(content.bytes) + start, end - start)
+    parser.nodes[imageId].stream = Swag.makeSlice(content.bytes.buffer + start, end - start)
     content.pos = end
     discard content.consumeWord("EI")
     try appendImageItem(parser, page, state, imageId, resourcesId)
@@ -401,11 +401,11 @@ private func appendInlineImage(parser: *PdfParser, content: *PdfParser, page: *P
 private func findInlineImageEnd(bytes: const [..] u8, start: u64)->u64
 {
     var pos = start
-    while pos + 2 <= @countof(bytes)
+    while pos + 2 <= bytes.count
     {
         if bytes[pos] == 'E' and bytes[pos + 1] == 'I' and pos > start and isWhite(bytes[pos - 1])
         {
-            if pos + 2 == @countof(bytes) or isDelimiter(bytes[pos + 2]) do
+            if pos + 2 == bytes.count or isDelimiter(bytes[pos + 2]) do
                 return pos - 1
         }
 
@@ -455,10 +455,10 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
     var pendingClip: bool
     var values:      [8] f32
 
-    while content.pos < @countof(bytes)
+    while content.pos < bytes.count
     {
         content.skip()
-        if content.pos >= @countof(bytes) do
+        if content.pos >= bytes.count do
             break
         let c = bytes[content.pos]
         if c == '/' or c == '(' or c == '[' or c == '<' or isDigit(c) or c == '+' or c == '-' or c == '.'
@@ -468,7 +468,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
         }
 
         let start = content.pos
-        while content.pos < @countof(bytes) and !isDelimiter(bytes[content.pos]) do
+        while content.pos < bytes.count and !isDelimiter(bytes[content.pos]) do
             content.pos += 1
         if content.pos == start
         {
@@ -476,7 +476,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             continue
         }
 
-        let op = cast(string) @mkslice(@dataof(bytes) + start, content.pos - start)
+        let op = cast(string) Swag.makeSlice(bytes.buffer + start, content.pos - start)
         switch op
         {
         case "q":
@@ -486,8 +486,8 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
             if stack.count
             {
                 var restored = #move stack.popBack()
-                @drop(&state, 1)
-                @init(&state, 1)
+                Swag.drop(&state, 1)
+                Swag.init(&state, 1)
                 state = #move restored
             }
 
@@ -1047,7 +1047,7 @@ private func collectPages(parser: *PdfParser, pages: *Array'PageSource, nodeId, 
 private func metadataString(parser: const *PdfParser, dictId: u32, key: string)->String
 {
     let raw = parser.stringValue(parser.dict(dictId, key))
-    if @countof(raw) >= 2 and raw[0] == 0xFE and raw[1] == 0xFF
+    if raw.count >= 2 and raw[0] == 0xFE and raw[1] == 0xFF
     {
         var result = #move Text.decode(cast(const [..] u8) raw[2 until], .Utf16Be)
         return #move result

@@ -5,9 +5,9 @@ using Core, Gui
 
 func assertClassificationFolder(result: const *ViewerClassifiedFile, names: const [..] String)
 {
-    @assert(result.folderFiles.count == @countof(names))
+    Swag.assert(result.folderFiles.count == names.count)
     for name, index in names do
-        @assert(result.folderFiles[index] == name[])
+        Swag.assert(result.folderFiles[index] == name[])
 }
 
 // Reusing the asynchronous classifier replaces its previous folder snapshot. It must never append

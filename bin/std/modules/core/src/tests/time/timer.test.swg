@@ -14,13 +14,13 @@ var g_timerMarker: u64
 
 func timerTestCallback(_timer: *Time.Timer)
 {
-    g_timerMarker = @getcontext().user0
+    g_timerMarker = Swag.getContext().user0
     Atomic.add(&g_timerFired, 1)
 }
 
 #test
 {
-    let context       = @getcontext()
+    let context       = Swag.getContext()
     let previousUser0 = context.user0
     context.user0 = TimerTestMarker
     defer context.user0 = previousUser0
@@ -35,8 +35,8 @@ func timerTestCallback(_timer: *Time.Timer)
         Threading.Thread.sleep(10'ms)
     }
 
-    @assert(Atomic.get(&g_timerFired) != 0)
-    @assert(g_timerMarker == TimerTestMarker)
+    Swag.assert(Atomic.get(&g_timerFired) != 0)
+    Swag.assert(g_timerMarker == TimerTestMarker)
 
     timer.release()
 }

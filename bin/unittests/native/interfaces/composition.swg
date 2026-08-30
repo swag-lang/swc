@@ -39,12 +39,12 @@ impl IValue for Counter
     var n          = cast(IName) c
     var v          = cast(IValue) c
 
-    @assert(n.getName() == "hits")
-    @assert(v.getValue() == 0)
+    Swag.assert(n.getName() == "hits")
+    Swag.assert(v.getValue() == 0)
 
     v.setValue(5)
-    @assert(c.count == 5)
-    @assert(v.getValue() == 5)
+    Swag.assert(c.count == 5)
+    Swag.assert(v.getValue() == 5)
 }
 
 // Interface stored as struct field and dispatched through it.
@@ -67,8 +67,8 @@ func increment(h: *Holder)
     h.itf = cast(IValue) c
     increment(&h)
     increment(&h)
-    @assert(c.count == 12)
-    @assert(h.itf!.getValue() == 12)
+    Swag.assert(c.count == 12)
+    Swag.assert(h.itf!.getValue() == 12)
 }
 
 // Iterate over an array of interfaces with different concrete types.
@@ -99,7 +99,7 @@ impl IValue for Tripler
     for i in 2 do
         sum += items[i].getValue()
 
-    @assert(sum == 25)
+    Swag.assert(sum == 25)
 }
 
 // Mutation through interface array elements.
@@ -117,24 +117,24 @@ impl IValue for Tripler
     for i in 3 do
         arr[i].setValue(arr[i].getValue() * 10)
 
-    @assert(a.count == 10)
-    @assert(b.count == 20)
-    @assert(c.count == 30)
+    Swag.assert(a.count == 10)
+    Swag.assert(b.count == 20)
+    Swag.assert(c.count == 30)
 }
 
-// Interface reassignment between different concrete types via @kindof.
+// Interface reassignment between different concrete types via Swag.kindOf.
 #test
 {
     var d: Doubler = {val: 7}
     var t: Tripler = {val: 7}
 
     var itf: IValue = cast(IValue) d
-    @assert(itf.getValue() == 14)
-    @assert(@kindof(itf) == Doubler)
+    Swag.assert(itf.getValue() == 14)
+    Swag.assert(Swag.kindOf(itf) == Doubler)
 
     itf = cast(IValue) t
-    @assert(itf.getValue() == 21)
-    @assert(@kindof(itf) == Tripler)
+    Swag.assert(itf.getValue() == 21)
+    Swag.assert(Swag.kindOf(itf) == Tripler)
 }
 
 // Interface passed to a generic-like helper function.
@@ -157,6 +157,6 @@ func sumValues(items: [*] IValue, count: u32)->s32
     arr[1] = cast(IValue) d2
     arr[2] = cast(IValue) t1
 
-    @assert(sumValues(&arr[0], 3) == 6 + 14 + 6)
-    @assert(sumValues(&arr[0], 3) == 26)
+    Swag.assert(sumValues(&arr[0], 3) == 6 + 14 + 6)
+    Swag.assert(sumValues(&arr[0], 3) == 26)
 }

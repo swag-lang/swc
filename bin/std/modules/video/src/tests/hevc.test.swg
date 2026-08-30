@@ -7,9 +7,9 @@ using Core, Core.Errors, Pixel
 // reconstruction path applies the bit-depth scale exactly once after this derivation.
 #test
 {
-    @assert(Hevc.deriveChromaOffset(0, 3, 1) == -64)
-    @assert(Hevc.deriveChromaOffset(300, 3, 1) == 127)
-    @assert(Hevc.deriveChromaOffset(-300, 1, 1) == -128)
+    Swag.assert(Hevc.deriveChromaOffset(0, 3, 1) == -64)
+    Swag.assert(Hevc.deriveChromaOffset(300, 3, 1) == 127)
+    Swag.assert(Hevc.deriveChromaOffset(-300, 1, 1) == -128)
 }
 
 // The same access units, muxed two ways, decode to the same pictures.
@@ -46,13 +46,13 @@ using Core, Core.Errors, Pixel
     while expectedSync > 0 and decoder.video.hevc.syncFlags[expectedSync] == 0 do
         expectedSync -= 1
     decoder.video.hevc.seekTo(47)
-    @assert(expectedSync > 0 and decoder.video.hevc.nextDecode == expectedSync)
+    Swag.assert(expectedSync > 0 and decoder.video.hevc.nextDecode == expectedSync)
 
     let reference = expect File.readAllBytes(videoFixturePath("ffmpeg-hevc-main.yuv").toString())
     var frame: Image
     expect idecoder.decodeFrame(&source, &frame)
     videoAssertReferenceFrame(frame, reference.toSlice(), 47, 96, 64)
-    @assert(decoder.video.hevc.skippedNonReference > 0)
+    Swag.assert(decoder.video.hevc.skippedNonReference > 0)
 }
 
 // A player that falls behind may advance by several display ranks. That is a forward decode, not
@@ -75,7 +75,7 @@ using Core, Core.Errors, Pixel
         index += 3
     }
 
-    @assert(decoder.video.hevc.pending.count <= 4)
+    Swag.assert(decoder.video.hevc.pending.count <= 4)
 }
 
 // The reader reports the track geometry from the decoder configuration record, before any access
@@ -83,9 +83,9 @@ using Core, Core.Errors, Pixel
 #test
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-hevc-main.mp4"))
-    @assert(reader.width() == 96 and reader.height() == 64)
-    @assert(reader.frameCount() == 60)
-    @assert(reader.hasPlanarFrames())
+    Swag.assert(reader.width() == 96 and reader.height() == 64)
+    Swag.assert(reader.frameCount() == 60)
+    Swag.assert(reader.hasPlanarFrames())
 }
 
 // Identity weights at integer positions go directly from the reference pictures to the result.
@@ -151,13 +151,13 @@ using Core, Core.Errors, Pixel
 
     var picture: PlanarFrame
     current.writePlanar(&picture)
-    @assert(picture.matrix == .Bt709 and !picture.studioRange)
+    Swag.assert(picture.matrix == .Bt709 and !picture.studioRange)
     for y in 32's32
     {
         for x in 32's32
         {
             let reconstructed = (x + y + 100 + 2 * x + y + 1) >> 1
-            @assert(picture.luma[cast(u64) y * cast(u64) picture.strideLuma + cast(u64) x] == cast(u8) ((reconstructed + 2) >> 2))
+            Swag.assert(picture.luma[cast(u64) y * cast(u64) picture.strideLuma + cast(u64) x] == cast(u8) ((reconstructed + 2) >> 2))
         }
     }
 
@@ -168,8 +168,8 @@ using Core, Core.Errors, Pixel
             let blue  = (20 + x + y + 60 + 2 * x + y + 1) >> 1
             let red   = (40 + x + y + 80 + 2 * x + y + 1) >> 1
             let index = cast(u64) y * cast(u64) picture.strideChroma + cast(u64) x
-            @assert(picture.chromaB[index] == cast(u8) ((blue + 2) >> 2))
-            @assert(picture.chromaR[index] == cast(u8) ((red + 2) >> 2))
+            Swag.assert(picture.chromaB[index] == cast(u8) ((blue + 2) >> 2))
+            Swag.assert(picture.chromaR[index] == cast(u8) ((red + 2) >> 2))
         }
     }
 }
@@ -182,7 +182,7 @@ using Core, Core.Errors, Pixel
 #test
 {
     var reader = expect Reader.open(videoFixturePath("edited-open-group-start.mkv"))
-    @assert(reader.width() == 96 and reader.height() == 64)
+    Swag.assert(reader.width() == 96 and reader.height() == 64)
 
     let reference = expect File.readAllBytes(videoFixturePath("edited-open-group-start.yuv").toString())
     let bytes     = reference.toSlice()
@@ -196,7 +196,7 @@ using Core, Core.Errors, Pixel
         for y in 64'u64
         {
             for x in 96'u64 do
-                @assert(frame.luma[y * cast(u64) frame.strideLuma + x] == bytes[rank * frameSize + y * 96 + x])
+                Swag.assert(frame.luma[y * cast(u64) frame.strideLuma + x] == bytes[rank * frameSize + y * 96 + x])
         }
     }
 
@@ -206,6 +206,6 @@ using Core, Core.Errors, Pixel
     for y in 64'u64
     {
         for x in 96'u64 do
-            @assert(early.luma[y * cast(u64) early.strideLuma + x] == bytes[y * 96 + x])
+            Swag.assert(early.luma[y * cast(u64) early.strideLuma + x] == bytes[y * 96 + x])
     }
 }

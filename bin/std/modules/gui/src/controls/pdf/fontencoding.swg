@@ -138,9 +138,9 @@ func glyphNameRune(name: string)->rune
     for entry in GlyphNames where entry.name == name do
         return cast(rune) entry.value
 
-    if @countof(name) == 7 and name[0 to 2] == "uni" do
+    if name.count == 7 and name[0 to 2] == "uni" do
         return parseGlyphHex(name[3 until])
-    if @countof(name) >= 5 and @countof(name) <= 7 and name[0] == 'u' do
+    if name.count >= 5 and name.count <= 7 and name[0] == 'u' do
         return parseGlyphHex(name[1 until])
     return 0
 }

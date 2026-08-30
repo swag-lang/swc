@@ -20,8 +20,8 @@ struct(var T) GenericBox
     #assert(#typeof(integer) == GenericBox's32)
     #assert(#typeof(integer.value) == s32)
     #assert(#typeof(text.value) == string)
-    @assert(integer.value == 42)
-    @assert(text.value == "answer")
+    Swag.assert(integer.value == 42)
+    Swag.assert(text.value == "answer")
 }
 
 /**
@@ -41,7 +41,7 @@ struct(var T, const Count: s32) GenericBuffer
     let flags: GenericBuffer'(bool, 3) = {values: [true, false, true]}
 
     #assert(#typeof(flags.values) == #type [3] bool)
-    @assert(flags.values[0] and !flags.values[1] and flags.values[2])
+    Swag.assert(flags.values[0] and !flags.values[1] and flags.values[2])
 }
 
 /**
@@ -69,10 +69,10 @@ impl GenericBox
     let box  = GenericBox'u16{value: 12}
     let pair = box.pair("items")
 
-    @assert(box.get() == 12)
+    Swag.assert(box.get() == 12)
     #assert(#typeof(pair.first) == u16)
     #assert(#typeof(pair.second) == string)
-    @assert(pair.second == "items")
+    Swag.assert(pair.second == "items")
 }
 
 /**

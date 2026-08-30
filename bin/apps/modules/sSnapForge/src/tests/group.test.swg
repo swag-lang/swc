@@ -15,51 +15,51 @@ using Swag, Core
     let c = testAddShape(f.capture, 40, 0, 10, 10)
 
     f.capture.selection.add(0)
-    @assert(!f.capture.canGroup())
+    Swag.assert(!f.capture.canGroup())
     f.capture.selection.add(1)
-    @assert(f.capture.canGroup())
-    @assert(!f.capture.canUngroup())
+    Swag.assert(f.capture.canGroup())
+    Swag.assert(!f.capture.canUngroup())
 
     f.capture.pushUndo(f.capture.newUndo(.Group))
-    @assert(a.groups.count == 1)
-    @assert(b.groups.count == 1)
-    @assert(a.groups[0] == b.groups[0])
-    @assert(c.groups.count == 0)
-    @assert(f.capture.canUngroup())
+    Swag.assert(a.groups.count == 1)
+    Swag.assert(b.groups.count == 1)
+    Swag.assert(a.groups[0] == b.groups[0])
+    Swag.assert(c.groups.count == 0)
+    Swag.assert(f.capture.canUngroup())
     let gid = a.groups[0]
 
     // Selecting a single member expands to every member of its group.
     f.capture.selection.clear()
     f.capture.selection.add(0)
     f.capture.expandSelectionToGroups()
-    @assert(f.capture.selection.count == 2)
-    @assert(f.capture.selection.contains(0))
-    @assert(f.capture.selection.contains(1))
+    Swag.assert(f.capture.selection.count == 2)
+    Swag.assert(f.capture.selection.contains(0))
+    Swag.assert(f.capture.selection.contains(1))
 
     // A loose form stays alone.
     f.capture.selection.clear()
     f.capture.selection.add(2)
     f.capture.expandSelectionToGroups()
-    @assert(f.capture.selection.count == 1)
+    Swag.assert(f.capture.selection.count == 1)
 
     f.capture.undo()
-    @assert(a.groups.count == 0)
-    @assert(b.groups.count == 0)
+    Swag.assert(a.groups.count == 0)
+    Swag.assert(b.groups.count == 0)
 
     // Redo reuses the same minted id instead of allocating a new one.
     f.capture.redo()
-    @assert(a.groups[0] == gid)
-    @assert(b.groups[0] == gid)
+    Swag.assert(a.groups[0] == gid)
+    Swag.assert(b.groups[0] == gid)
 
     f.capture.selection.clear()
     f.capture.selection.add(0)
     f.capture.selection.add(1)
     f.capture.pushUndo(f.capture.newUndo(.Ungroup))
-    @assert(a.groups.count == 0)
-    @assert(b.groups.count == 0)
+    Swag.assert(a.groups.count == 0)
+    Swag.assert(b.groups.count == 0)
     f.capture.undo()
-    @assert(a.groups[0] == gid)
-    @assert(b.groups[0] == gid)
+    Swag.assert(a.groups[0] == gid)
+    Swag.assert(b.groups[0] == gid)
 }
 
 // Nested groups: wrapping an existing group prepends a new outer id; ungrouping pops
@@ -86,36 +86,36 @@ using Swag, Core
     f.capture.pushUndo(f.capture.newUndo(.Group))
     let outer = a.groups[0]
 
-    @assert(outer != inner)
-    @assert(a.groups.count == 2)
-    @assert(a.groups[0] == outer)
-    @assert(a.groups[1] == inner)
-    @assert(b.groups.count == 2)
-    @assert(c.groups.count == 1)
-    @assert(c.groups[0] == outer)
+    Swag.assert(outer != inner)
+    Swag.assert(a.groups.count == 2)
+    Swag.assert(a.groups[0] == outer)
+    Swag.assert(a.groups[1] == inner)
+    Swag.assert(b.groups.count == 2)
+    Swag.assert(c.groups.count == 1)
+    Swag.assert(c.groups[0] == outer)
 
     // Any member selects the whole outer group.
     f.capture.selection.clear()
     f.capture.selection.add(2)
     f.capture.expandSelectionToGroups()
-    @assert(f.capture.selection.count == 3)
+    Swag.assert(f.capture.selection.count == 3)
 
     // Ungroup collapses the outer level, keeping the inner A+B group intact.
     f.capture.pushUndo(f.capture.newUndo(.Ungroup))
-    @assert(a.groups.count == 1)
-    @assert(a.groups[0] == inner)
-    @assert(b.groups[0] == inner)
-    @assert(c.groups.count == 0)
+    Swag.assert(a.groups.count == 1)
+    Swag.assert(a.groups[0] == inner)
+    Swag.assert(b.groups[0] == inner)
+    Swag.assert(c.groups.count == 0)
 
     f.capture.selection.clear()
     f.capture.selection.add(0)
     f.capture.expandSelectionToGroups()
-    @assert(f.capture.selection.count == 2)
-    @assert(f.capture.selection.contains(1))
+    Swag.assert(f.capture.selection.count == 2)
+    Swag.assert(f.capture.selection.contains(1))
 
     f.capture.undo()
-    @assert(a.groups.count == 2)
-    @assert(c.groups.count == 1)
+    Swag.assert(a.groups.count == 2)
+    Swag.assert(c.groups.count == 1)
 }
 
 // Grouping survives a save/load round-trip, together with the id allocator.
@@ -145,17 +145,17 @@ using Swag, Core
     expect f.capture.save()
     let loaded = expect Capture.load(path)!
     defer Memory.delete(loaded)
-    @assert(loaded.forms.count == 3)
-    @assert(loaded.nextGroupId == nextId)
+    Swag.assert(loaded.forms.count == 3)
+    Swag.assert(loaded.nextGroupId == nextId)
 
-    let la = cast(*BaseForm) @dataof(loaded.forms[0])
-    let lb = cast(*BaseForm) @dataof(loaded.forms[1])
-    let lc = cast(*BaseForm) @dataof(loaded.forms[2])
-    @assert(la.groups.count == 1)
-    @assert(la.groups[0] == gid)
-    @assert(lb.groups.count == 1)
-    @assert(lb.groups[0] == gid)
-    @assert(lc.groups.count == 0)
+    let la = cast(*BaseForm) loaded.forms[0].buffer
+    let lb = cast(*BaseForm) loaded.forms[1].buffer
+    let lc = cast(*BaseForm) loaded.forms[2].buffer
+    Swag.assert(la.groups.count == 1)
+    Swag.assert(la.groups[0] == gid)
+    Swag.assert(lb.groups.count == 1)
+    Swag.assert(lb.groups[0] == gid)
+    Swag.assert(lc.groups.count == 0)
 }
 
 // Pasting a grouped selection keeps the copies grouped together but under a fresh id,
@@ -180,12 +180,12 @@ using Swag, Core
     f.capture.selection.clear()
     f.main.sendCommandEvent(ActionCopyPaste.Paste)
 
-    @assert(f.capture.forms.count == 4)
-    let pa = cast(*BaseForm) @dataof(f.capture.forms[2])
-    let pb = cast(*BaseForm) @dataof(f.capture.forms[3])
-    @assert(pa.groups.count == 1)
-    @assert(pb.groups.count == 1)
-    @assert(pa.groups[0] == pb.groups[0])
-    @assert(pa.groups[0] != origGid)
-    @assert(a.groups[0] == origGid)
+    Swag.assert(f.capture.forms.count == 4)
+    let pa = cast(*BaseForm) f.capture.forms[2].buffer
+    let pb = cast(*BaseForm) f.capture.forms[3].buffer
+    Swag.assert(pa.groups.count == 1)
+    Swag.assert(pb.groups.count == 1)
+    Swag.assert(pa.groups[0] == pb.groups[0])
+    Swag.assert(pa.groups[0] != origGid)
+    Swag.assert(a.groups[0] == origGid)
 }

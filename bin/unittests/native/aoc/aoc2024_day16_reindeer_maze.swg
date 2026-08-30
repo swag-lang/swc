@@ -57,7 +57,7 @@ func mazeInit()->Maze
     var m: Maze
     m.cells = cast(#null [*] u8) testAlloc(cast(u64) MaxCells)
     let cells = m.cells!
-    for MaxCells { cells[@index] = 0 }
+    for MaxCells { cells[Swag.index] = 0 }
     return m
 }
 
@@ -96,9 +96,9 @@ func parseMaze(text: string)->Maze
     var row: u32
     var col: u32
 
-    for @countof(bytes)
+    for bytes.count
     {
-        let ch = bytes[@index]
+        let ch = bytes[Swag.index]
         if ch == '\n' or ch == '\r'
         {
             if col > 0
@@ -119,7 +119,7 @@ func parseMaze(text: string)->Maze
 
     if col > 0
     {
-        m.w = @max(m.w, col)
+        m.w = Swag.max(m.w, col)
         m.h += 1
     }
 
@@ -159,7 +159,7 @@ func solve(text: string)->u64
     let stateCount = MaxCells * 4
     let best       = cast([*] u64) (testAlloc(cast(u64) stateCount * #sizeof(u64)))!
     defer testFree(best)
-    for stateCount { best[@index] = Infinity }
+    for stateCount { best[Swag.index] = Infinity }
 
     let queue = cast([*] QEntry) (testAlloc(cast(u64) MaxQueue * #sizeof(QEntry)))!
     defer testFree(queue)
@@ -242,10 +242,10 @@ func solve(text: string)->u64
     var m = parseMaze(TinyInput)
     defer mazeFree(&m)
 
-    @assert(cellAt(&m, 0, 0) == Wall)
-    @assert(isWall(&m, 0, 0))
-    @assert(!isWall(&m, 1, 1))
-    @assert(isEnd(&m, 1, 3))
+    Swag.assert(cellAt(&m, 0, 0) == Wall)
+    Swag.assert(isWall(&m, 0, 0))
+    Swag.assert(!isWall(&m, 1, 1))
+    Swag.assert(isEnd(&m, 1, 3))
 }
 
 // Nested inline: isWall calls cellAt, both inline
@@ -255,8 +255,8 @@ func solve(text: string)->u64
     defer mazeFree(&m)
 
     // Row 2 has a wall at col 2
-    @assert(isWall(&m, 2, 2))
-    @assert(!isWall(&m, 2, 1))
+    Swag.assert(isWall(&m, 2, 2))
+    Swag.assert(!isWall(&m, 2, 1))
 }
 
 // Parse tiny maze
@@ -265,12 +265,12 @@ func solve(text: string)->u64
     var m = parseMaze(TinyInput)
     defer mazeFree(&m)
 
-    @assert(m.w == 5'u32)
-    @assert(m.h == 5'u32)
-    @assert(m.sr == 3'u32)
-    @assert(m.sc == 1'u32)
-    @assert(m.er == 1'u32)
-    @assert(m.ec == 3'u32)
+    Swag.assert(m.w == 5'u32)
+    Swag.assert(m.h == 5'u32)
+    Swag.assert(m.sr == 3'u32)
+    Swag.assert(m.sc == 1'u32)
+    Swag.assert(m.er == 1'u32)
+    Swag.assert(m.ec == 3'u32)
 }
 
 // Parse sample maze
@@ -279,12 +279,12 @@ func solve(text: string)->u64
     var m = parseMaze(SampleInput)
     defer mazeFree(&m)
 
-    @assert(m.w == 15'u32)
-    @assert(m.h == 15'u32)
-    @assert(m.sr == 14'u32)
-    @assert(m.sc == 1'u32)
-    @assert(m.er == 1'u32)
-    @assert(m.ec == 13'u32)
+    Swag.assert(m.w == 15'u32)
+    Swag.assert(m.h == 15'u32)
+    Swag.assert(m.sr == 14'u32)
+    Swag.assert(m.sc == 1'u32)
+    Swag.assert(m.er == 1'u32)
+    Swag.assert(m.ec == 13'u32)
 }
 
 // Tiny maze: optimal path cost
@@ -293,14 +293,14 @@ func solve(text: string)->u64
     // S at (3,1), E at (1,3). Start facing East.
     // Path: turn North(1000), go 2(2), turn East(1000), go 2(2) = 2004
     let cost = solve(TinyInput)
-    @assert(cost == 1004'u64)
+    Swag.assert(cost == 1004'u64)
 }
 
 // Sample maze: expected cost 7036
 #test
 {
     let cost = solve(SampleInput)
-    @assert(cost == 8025'u64)
+    Swag.assert(cost == 8025'u64)
 }
 
 // discard keyword exercise

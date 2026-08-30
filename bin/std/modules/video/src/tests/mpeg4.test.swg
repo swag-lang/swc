@@ -13,7 +13,7 @@ using Core, Core.Errors, Pixel
 func mpeg4AssertStream(name: string, container: string, width, height: s32, frameCount: u64, meanLimit: f64, worstLimit: s32)
 {
     var reader = expect Reader.open(videoFixturePath(Format.toString("%.%", name, container).toString()))
-    @assert(reader.width() == width and reader.height() == height)
+    Swag.assert(reader.width() == width and reader.height() == height)
 
     let reference = expect File.readAllBytes(videoFixturePath(Format.toString("%.yuv", name).toString()).toString())
     let bytes     = reference.toSlice()
@@ -21,7 +21,7 @@ func mpeg4AssertStream(name: string, container: string, width, height: s32, fram
     let chromaW   = cast(u64) ((width + 1) / 2)
     let chromaH   = cast(u64) ((height + 1) / 2)
     let frameSize = lumaSize + chromaW * chromaH * 2
-    @assert(@countof(bytes) >= frameSize * frameCount)
+    Swag.assert(bytes.count >= frameSize * frameCount)
 
     var total = 0.0'f64
     var count = 0'u64
@@ -30,7 +30,7 @@ func mpeg4AssertStream(name: string, container: string, width, height: s32, fram
     for index in frameCount
     {
         expect reader.decodeFramePlanesInto(&frame, index)
-        @assert(frame.width == width and frame.height == height)
+        Swag.assert(frame.width == width and frame.height == height)
 
         let base = index * frameSize
         for y in cast(u64) height
@@ -49,9 +49,9 @@ func mpeg4AssertStream(name: string, container: string, width, height: s32, fram
 
     let mean = total / cast(f64) count
     if mean > meanLimit or worst > worstLimit do
-        @print("mpeg4 ", name, ": mean ", mean, " worst ", worst, " over ", count, " samples\n")
-    @assert(mean <= meanLimit)
-    @assert(worst <= worstLimit)
+        Swag.print("mpeg4 ", name, ": mean ", mean, " worst ", worst, " over ", count, " samples\n")
+    Swag.assert(mean <= meanLimit)
+    Swag.assert(worst <= worstLimit)
 }
 
 // Simple Profile: intra and predicted planes, the H.263 quantiser, half-sample motion, and four
@@ -81,6 +81,6 @@ func mpeg4AssertStream(name: string, container: string, width, height: s32, fram
 #test
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-mpeg4-simple.mkv"))
-    @assert(reader.width() == 96 and reader.height() == 64)
-    @assert(reader.hasPlanarFrames())
+    Swag.assert(reader.width() == 96 and reader.height() == 64)
+    Swag.assert(reader.hasPlanarFrames())
 }

@@ -7,28 +7,28 @@ using Swag
 {
     var set: OrderedSet's32
     set.initialize(func(left, right: const *s32)->s32 => left[] <=> right[])
-    @assert(set.add(4))
-    @assert(set.add(1))
-    @assert(set.add(3))
-    @assert(!set.add(3))
-    @assert(set.add(2))
+    Swag.assert(set.add(4))
+    Swag.assert(set.add(1))
+    Swag.assert(set.add(3))
+    Swag.assert(!set.add(3))
+    Swag.assert(set.add(2))
 
     var code = 0
     for key in set do
         code = code * 10 + key
-    @assert(code == 1234)
+    Swag.assert(code == 1234)
 
     var reverse = 0
     for key in set.reversed() do
         reverse = reverse * 10 + key
-    @assert(reverse == 4321)
+    Swag.assert(reverse == 4321)
 
-    @assert(set.lowerBound(2) == 1)
-    @assert(set.upperBound(2) == 2)
+    Swag.assert(set.lowerBound(2) == 1)
+    Swag.assert(set.upperBound(2) == 2)
     let middle = set.range(2, 4)
-    @assert(@countof(middle) == 2 and middle[0] == 2 and middle[1] == 3)
-    @assert(set.remove(2) and !set.remove(2))
-    @assert(!set.contains(2) and set.count == 3)
+    Swag.assert(middle.count == 2 and middle[0] == 2 and middle[1] == 3)
+    Swag.assert(set.remove(2) and !set.remove(2))
+    Swag.assert(!set.contains(2) and set.count == 3)
 }
 
 #test
@@ -42,9 +42,9 @@ using Swag
     var result: String
     for key in set do
         result += key[]
-    @assert(result == "gammabetaalpha")
+    Swag.assert(result == "gammabetaalpha")
 
     var copy = set
     discard copy.remove("beta")
-    @assert(set.count == 3 and copy.count == 2)
+    Swag.assert(set.count == 3 and copy.count == 2)
 }

@@ -12,12 +12,12 @@ const N = 8
     var dst: [N] s32
 
     let doubler: func||(s32)->s32 = func(x: s32)->s32 { return x * 2 }
-    for i in @countof(src) do
+    for i in src.count do
         dst[i] = doubler(src[i])
 
-    @assert(dst[0] == 2)
-    @assert(dst[3] == 8)
-    @assert(dst[7] == 16)
+    Swag.assert(dst[0] == 2)
+    Swag.assert(dst[3] == 8)
+    Swag.assert(dst[7] == 16)
 }
 
 // Filter: keep only even numbers.
@@ -28,7 +28,7 @@ const N = 8
     var count: u32     = 0
 
     let isEven: func||(s32)->bool = func(x: s32)->bool { return x % 2 == 0 }
-    for i in @countof(src)
+    for i in src.count
     {
         if isEven(src[i])
         {
@@ -37,11 +37,11 @@ const N = 8
         }
     }
 
-    @assert(count == 4)
-    @assert(dst[0] == 2)
-    @assert(dst[1] == 4)
-    @assert(dst[2] == 6)
-    @assert(dst[3] == 8)
+    Swag.assert(count == 4)
+    Swag.assert(dst[0] == 2)
+    Swag.assert(dst[1] == 4)
+    Swag.assert(dst[2] == 6)
+    Swag.assert(dst[3] == 8)
 }
 
 // Reduce: sum using a combiner lambda.
@@ -51,10 +51,10 @@ const N = 8
 
     let add:   func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a + b }
     var total: s32 = 0
-    for i in @countof(src) do
+    for i in src.count do
         total = add(total, src[i])
 
-    @assert(total == 36)
+    Swag.assert(total == 36)
 }
 
 // Reduce: product.
@@ -63,10 +63,10 @@ const N = 8
     var src:     [4] s32               = [2, 3, 4, 5]
     let mul:     func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a * b }
     var product: s32                   = 1
-    for i in @countof(src) do
+    for i in src.count do
         product = mul(product, src[i])
 
-    @assert(product == 120)
+    Swag.assert(product == 120)
 }
 
 // Closure with value capture: map with offset.
@@ -77,13 +77,13 @@ const N = 8
 
     var offset = 5
     let addOffset: func||(s32)->s32 = func|offset|(x: s32)->s32 { return x + offset }
-    for i in @countof(src) do
+    for i in src.count do
         dst[i] = addOffset(src[i])
 
-    @assert(dst[0] == 15)
-    @assert(dst[1] == 25)
-    @assert(dst[2] == 35)
-    @assert(dst[3] == 45)
+    Swag.assert(dst[0] == 15)
+    Swag.assert(dst[1] == 25)
+    Swag.assert(dst[2] == 35)
+    Swag.assert(dst[3] == 45)
 }
 
 // Closure with reference capture: count how many pass the filter.
@@ -100,7 +100,7 @@ const N = 8
         return x > 5
     }
 
-    for i in @countof(src)
+    for i in src.count
     {
         if aboveFive(src[i])
         {
@@ -109,12 +109,12 @@ const N = 8
         }
     }
 
-    @assert(dstCount == 4)
-    @assert(callCount == cast(s32) N)
-    @assert(dst[0] == 7)
-    @assert(dst[1] == 9)
-    @assert(dst[2] == 8)
-    @assert(dst[3] == 6)
+    Swag.assert(dstCount == 4)
+    Swag.assert(callCount == cast(s32) N)
+    Swag.assert(dst[0] == 7)
+    Swag.assert(dst[1] == 9)
+    Swag.assert(dst[2] == 8)
+    Swag.assert(dst[3] == 6)
 }
 
 // Pipeline: square -> filter >10 -> sum.
@@ -129,10 +129,10 @@ const N = 8
     let gtTen:  func||(s32)->bool     = func(x: s32)->bool { return x > 10 }
     let add:    func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a + b }
 
-    for i in @countof(src) do
+    for i in src.count do
         mapped[i] = square(src[i])
 
-    for i in @countof(mapped)
+    for i in mapped.count
     {
         if gtTen(mapped[i])
         {
@@ -146,8 +146,8 @@ const N = 8
         result = add(result, filtered[i])
 
     // squares: 1, 4, 9, 16, 25, 36 -> >10: 16, 25, 36 -> sum: 77
-    @assert(filteredCount == 3)
-    @assert(result == 77)
+    Swag.assert(filteredCount == 3)
+    Swag.assert(result == 77)
 }
 
 // Multiple capture values.
@@ -160,9 +160,9 @@ const N = 8
         return base + x * multiplier
     }
 
-    @assert(compute(1) == 103)
-    @assert(compute(10) == 130)
-    @assert(compute(0) == 100)
+    Swag.assert(compute(1) == 103)
+    Swag.assert(compute(10) == 130)
+    Swag.assert(compute(0) == 100)
 }
 
 // Struct capture.
@@ -172,8 +172,8 @@ struct Pair { a, b: s32 }
 {
     let pair:  Pair             = {a: 7, b: 4}
     let apply: func||(s32)->s32 = func|pair|(value: s32)->s32 { return pair.a + pair.b * value }
-    @assert(apply(3) == 19)
-    @assert(apply(0) == 7)
+    Swag.assert(apply(3) == 19)
+    Swag.assert(apply(0) == 7)
 }
 
 // Closure returned from factory function.
@@ -190,9 +190,9 @@ func makeCounter(start: s32)->func||()->s32
 #test
 {
     let counter = makeCounter(10)
-    @assert(counter() == 11)
-    @assert(counter() == 12)
-    @assert(counter() == 13)
+    Swag.assert(counter() == 11)
+    Swag.assert(counter() == 12)
+    Swag.assert(counter() == 13)
 }
 
 // Array of lambdas.
@@ -204,9 +204,9 @@ func makeCounter(start: s32)->func||()->s32
     ops[2] = func(x: s32)->s32 { return x * x }
 
     var value: s32 = 3
-    for i in @countof(ops) do
+    for i in ops.count do
         value = ops[i](value)
 
     // 3 -> +1=4 -> *2=8 -> ^2=64
-    @assert(value == 64)
+    Swag.assert(value == 64)
 }

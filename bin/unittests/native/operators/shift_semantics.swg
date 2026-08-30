@@ -52,9 +52,9 @@ func referenceShiftRightS8(value: s8, count: u64)->s8
 
             for count in [0'u64, 1, 2, 6, 7, 8, 9, 63, 64, 255, 256, 257, 0x1_0000_0000, 0xFFFF_FFFF_FFFF_FFFF]
             {
-                @assert(shiftLeftU8ByU64(unsignedValue, count) == referenceShiftLeftU8(unsignedValue, count))
-                @assert(shiftRightU8ByU64(unsignedValue, count) == referenceShiftRightU8(unsignedValue, count))
-                @assert(shiftRightS8ByU64(signedValue, count) == referenceShiftRightS8(signedValue, count))
+                Swag.assert(shiftLeftU8ByU64(unsignedValue, count) == referenceShiftLeftU8(unsignedValue, count))
+                Swag.assert(shiftRightU8ByU64(unsignedValue, count) == referenceShiftRightU8(unsignedValue, count))
+                Swag.assert(shiftRightS8ByU64(signedValue, count) == referenceShiftRightS8(signedValue, count))
             }
         }
     }
@@ -65,10 +65,10 @@ func referenceShiftRightS8(value: s8, count: u64)->s8
     #[Swag.Safety(.Overflow, true)]
     func truncatingLeft(value: u8, count: u64)->u8 => value << count
 
-    @assert(truncatingLeft(0x80'u8, 1'u64) == 0'u8)
-    @assert(truncatingLeft(0xFF'u8, 4'u64) == 0xF0'u8)
-    @assert(truncatingLeft(1'u8, 8'u64) == 0'u8)
-    @assert(truncatingLeft(1'u8, 256'u64) == 0'u8)
+    Swag.assert(truncatingLeft(0x80'u8, 1'u64) == 0'u8)
+    Swag.assert(truncatingLeft(0xFF'u8, 4'u64) == 0xF0'u8)
+    Swag.assert(truncatingLeft(1'u8, 8'u64) == 0'u8)
+    Swag.assert(truncatingLeft(1'u8, 256'u64) == 0'u8)
 }
 
 #test
@@ -80,6 +80,6 @@ func referenceShiftRightS8(value: s8, count: u64)->s8
     left  <<= count
     right >>= count
 
-    @assert(left == 0'u8)
-    @assert(right == -1's8)
+    Swag.assert(left == 0'u8)
+    Swag.assert(right == -1's8)
 }

@@ -1183,7 +1183,9 @@ namespace
         return Result::Continue;
     }
 
-    Result memberEnum(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, const SymbolEnum& enumSym, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
+    Result lowerProjectionByName(Sema& sema, AstMemberAccessExpr& node, IdentifierRef idRef, bool& outHandled);
+
+    Result memberEnum(Sema& sema, AstNodeRef targetNodeRef, AstMemberAccessExpr& node, const SymbolEnum& enumSym, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
         const SourceCodeRef codeRef{node.srcViewRef(), tokNameRef};
         SWC_RESULT(sema.waitSemaCompleted(&enumSym, codeRef));
@@ -1201,6 +1203,9 @@ namespace
 
             bool handled = false;
             SWC_RESULT(tryBindUfcsFreeFunctions(sema, targetNodeRef, node, idRef, tokNameRef, allowOverloadSet, handled));
+            if (handled)
+                return Result::SkipChildren;
+            SWC_RESULT(lowerProjectionByName(sema, node, idRef, handled));
             if (handled)
                 return Result::SkipChildren;
             return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef);
@@ -1280,6 +1285,9 @@ namespace
             SWC_RESULT(tryBindUfcsFreeFunctions(sema, targetNodeRef, node, idRef, tokNameRef, allowOverloadSet, handled));
             if (handled)
                 return Result::SkipChildren;
+            SWC_RESULT(lowerProjectionByName(sema, node, idRef, handled));
+            if (handled)
+                return Result::SkipChildren;
             return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef);
         }
 
@@ -1323,7 +1331,7 @@ namespace
                 canExtractConstantMember = false;
             // A 'Swag.Late' field's value only exists at runtime: extracting the
             // constant would leak the null 'unset' state into a non-null type
-            // and bypass both the read guard and '@isset'.
+            // and bypass both the read guard and 'Swag.isSet'.
             if (fieldVar.hasExtraFlag(SymbolVariableFlagsE::LateInit))
                 canExtractConstantMember = false;
         }
@@ -1341,7 +1349,7 @@ namespace
         // Reading a 'Swag.Late' field is guarded: its storage stays null until the first
         // assignment while its type is non-null. Request the null-safety payload;
         // consumers that never read the value (pure assignment target, address-of,
-        // '@isset') clear it back.
+        // 'Swag.isSet') clear it back.
         if (finalSymCount == 1 && symbols[0]->isVariable() &&
             symbols[0]->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit))
         {
@@ -1394,6 +1402,71 @@ namespace
 
         return Result::SkipChildren;
     }
+
+    bool nativeProjectionSupportsCount(const TypeInfo& typeInfo)
+    {
+        return typeInfo.isString() ||
+               typeInfo.isCString() ||
+               typeInfo.isSlice() ||
+               typeInfo.isArray() ||
+               typeInfo.isAggregateArray() ||
+               typeInfo.isAnyVariadic() ||
+               typeInfo.isInt() ||
+               typeInfo.isBool() ||
+               typeInfo.isFloat() ||
+               typeInfo.isCharRune();
+    }
+
+    bool nativeProjectionSupportsBuffer(const TypeInfo& typeInfo)
+    {
+        return typeInfo.isString() ||
+               typeInfo.isCString() ||
+               typeInfo.isSlice() ||
+               typeInfo.isArray() ||
+               typeInfo.isAggregateArray() ||
+               typeInfo.isAnyVariadic() ||
+               typeInfo.isAny() ||
+               typeInfo.isInterface();
+    }
+
+    Result tryLowerNativeProjection(Sema& sema, AstMemberAccessExpr& node, const SemaNodeView& leftView, const IdentifierRef idRef, bool& outHandled)
+    {
+        outHandled = false;
+        if (node.hasFlag(AstMemberAccessExprFlagsE::OptionalAccess) || !leftView.typeRef().isValid())
+            return Result::Continue;
+
+        const TypeRef typeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), leftView.typeRef());
+        if (typeRef.isInvalid())
+            return Result::Continue;
+
+        const TypeInfo&        typeInfo = sema.typeMgr().get(typeRef);
+        const std::string_view name     = sema.idMgr().get(idRef).name;
+        if (name == "count" && nativeProjectionSupportsCount(typeInfo))
+            return lowerProjectionByName(sema, node, idRef, outHandled);
+
+        if (name == "buffer" && nativeProjectionSupportsBuffer(typeInfo))
+            return lowerProjectionByName(sema, node, idRef, outHandled);
+
+        return Result::Continue;
+    }
+
+    Result lowerProjectionByName(Sema& sema, AstMemberAccessExpr& node, const IdentifierRef idRef, bool& outHandled)
+    {
+        outHandled = false;
+        const std::string_view name = sema.idMgr().get(idRef).name;
+        if (name == "count")
+        {
+            node.projectionId = TokenId::IntrinsicCountOf;
+            outHandled = true;
+        }
+        else if (name == "buffer")
+        {
+            node.projectionId = TokenId::IntrinsicDataOf;
+            outHandled = true;
+        }
+
+        return Result::Continue;
+    }
 }
 
 Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMemberAccessExpr& node, bool allowOverloadSet)
@@ -1416,6 +1489,10 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     // Namespace
     if (nodeLeftView.sym() && nodeLeftView.sym()->isNamespace())
         return memberNamespace(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
+
+    SWC_RESULT(tryLowerNativeProjection(sema, node, nodeLeftView, idRef, handled));
+    if (handled)
+        return Result::SkipChildren;
 
     // Auto-deduce generic arguments for bare generic root structs in expression context.
     // Generic roots have a type payload so they can be used as type values, but member

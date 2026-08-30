@@ -36,14 +36,14 @@ impl TweakFile
     // Reads a value name, which walks into a nested struct at each '.'.
     private func parseName(str: string)->#null string fail
     {
-        var count = @countof(try StrConv.parseIdentifier(str))
-        while count + 1 < @countof(str) and str[count] == '.'u8
+        var count = (try StrConv.parseIdentifier(str)).count
+        while count + 1 < str.count and str[count] == '.'u8
         {
-            let part = try StrConv.parseIdentifier(@mkstring(@dataof(str) + count + 1, @countof(str) - count - 1))
-            count += 1 + @countof(part)
+            let part = try StrConv.parseIdentifier(Swag.makeString(str.buffer + count + 1, str.count - count - 1))
+            count += 1 + part.count
         }
 
-        return @mkstring(@dataof(str), count)
+        return Swag.makeString(str.buffer, count)
     }
 
     // Resolves `name` against `type`, one segment per '.'.
@@ -56,8 +56,8 @@ impl TweakFile
         for
         {
             let dot     = Slice.findLinear(rest, '.'u8)
-            let segment = dot == Swag.U64.Max ? @countof(rest) : dot
-            let field   = Reflection.findField(current, @mkstring(@dataof(rest), segment))
+            let segment = dot == Swag.U64.Max ? rest.count : dot
+            let field   = Reflection.findField(current, Swag.makeString(rest.buffer, segment))
             if !field do
                 return {}
 
@@ -66,7 +66,7 @@ impl TweakFile
             if dot == Swag.U64.Max do
                 break
 
-            rest = @mkstring(@dataof(rest) + segment + 1, @countof(rest) - segment - 1)
+            rest = Swag.makeString(rest.buffer + segment + 1, rest.count - segment - 1)
         }
 
         result.type = current
@@ -117,7 +117,7 @@ impl TweakFile
         for oneit, idx in lines
         {
             var one = Tokenize.eatSpaces(oneit)
-            if @countof(one) == 0 do
+            if one.count == 0 do
                 continue
             if one[0] == '#' do
                 continue
@@ -161,9 +161,9 @@ impl TweakFile
             let path = resolveName(currentFolder.type, id)
             if !path.type do
                 fail SyntaxError{Errors.mkString(Format.toString("value [[%]] not found in folder [[%]]", id, currentFolder.type.name)), line: idx + 1}
-            one = Tokenize.eatCount(one, @countof(id))
+            one = Tokenize.eatCount(one, id.count)
             one = Tokenize.eatSpaces(one)
-            if !@countof(one) do
+            if !one.count do
                 fail SyntaxError{"missing value", line: idx + 1}
 
             // Reference to another value using '$' syntax
@@ -183,8 +183,8 @@ impl TweakFile
                 let folder = currentFolder
                 let refr   = Ref{folder, otherPath, path}
                 refs.add(refr)
-                one = Tokenize.eatSpaces(Tokenize.eatCount(one, @countof(other)))
-                if @countof(one) and one[0] != '#' do
+                one = Tokenize.eatSpaces(Tokenize.eatCount(one, other.count))
+                if one.count and one[0] != '#' do
                     fail SyntaxError{"invalid characters after value", line: idx + 1}
                 continue
             }
@@ -196,10 +196,10 @@ impl TweakFile
             one = parsedOne orelse ""
 
             // Ensure nothing invalid follows the value
-            if @countof(one) and !Latin1.isSpace(one[0]) and one[0] != '#' do
+            if one.count and !Latin1.isSpace(one[0]) and one[0] != '#' do
                 fail SyntaxError{"syntax error in value", line: idx + 1}
             one = Tokenize.eatSpaces(one)
-            if @countof(one) and one[0] != '#' do
+            if one.count and one[0] != '#' do
                 fail SyntaxError{"invalid characters after value", line: idx + 1}
         }
 

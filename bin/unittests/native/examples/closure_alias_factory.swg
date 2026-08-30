@@ -85,27 +85,27 @@ func buildQuote(plan: SubscriptionPlan, order: TeamOrder, supportFeeRule: Suppor
     let startupOrder = TeamOrder{requestedSeats: 8, analyticsAddOnCents: 1200, needsPrioritySupport: false}
     let startupQuote = buildQuote(growthPlan, startupOrder, supportFeeRule)
 
-    @assert(startupQuote.billableSeats == 5)
-    @assert(startupQuote.seatSubtotalCents == 12000)
-    @assert(startupQuote.discountCents == 0)
-    @assert(startupQuote.supportCents == 0)
-    @assert(startupQuote.totalCents == 13200)
+    Swag.assert(startupQuote.billableSeats == 5)
+    Swag.assert(startupQuote.seatSubtotalCents == 12000)
+    Swag.assert(startupQuote.discountCents == 0)
+    Swag.assert(startupQuote.supportCents == 0)
+    Swag.assert(startupQuote.totalCents == 13200)
 
     let scaleUpOrder = TeamOrder{requestedSeats: 12, analyticsAddOnCents: 5000, needsPrioritySupport: true}
     let scaleUpQuote = buildQuote(growthPlan, scaleUpOrder, supportFeeRule)
 
-    @assert(scaleUpQuote.billableSeats == 9)
-    @assert(scaleUpQuote.seatSubtotalCents == 21600)
-    @assert(scaleUpQuote.discountCents == 1200)
-    @assert(scaleUpQuote.supportCents == 2500)
-    @assert(scaleUpQuote.totalCents == 27900)
+    Swag.assert(scaleUpQuote.billableSeats == 9)
+    Swag.assert(scaleUpQuote.seatSubtotalCents == 21600)
+    Swag.assert(scaleUpQuote.discountCents == 1200)
+    Swag.assert(scaleUpQuote.supportCents == 2500)
+    Swag.assert(scaleUpQuote.totalCents == 27900)
 
     let enterpriseOrder = TeamOrder{requestedSeats: 22, analyticsAddOnCents: 9000, needsPrioritySupport: true}
     let enterpriseQuote = buildQuote(growthPlan, enterpriseOrder, supportFeeRule)
 
-    @assert(enterpriseQuote.billableSeats == 19)
-    @assert(enterpriseQuote.seatSubtotalCents == 45600)
-    @assert(enterpriseQuote.discountCents == 6300)
-    @assert(enterpriseQuote.supportCents == 2500)
-    @assert(enterpriseQuote.totalCents == 50800)
+    Swag.assert(enterpriseQuote.billableSeats == 19)
+    Swag.assert(enterpriseQuote.seatSubtotalCents == 45600)
+    Swag.assert(enterpriseQuote.discountCents == 6300)
+    Swag.assert(enterpriseQuote.supportCents == 2500)
+    Swag.assert(enterpriseQuote.totalCents == 50800)
 }

@@ -49,6 +49,6 @@ func day3B()
             here.add(id)
     }
 
-    @assert(here.count == 1)
-    @assert(here.contains(251))
+    Swag.assert(here.count == 1)
+    Swag.assert(here.contains(251))
 }

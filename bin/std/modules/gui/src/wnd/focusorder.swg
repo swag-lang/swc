@@ -256,7 +256,7 @@ private impl FocusOrder
             return null
 
         let radio = cast(*RadioButton) wnd
-        if @countof(radio.groupId) == 0 or !radio.parent do
+        if radio.groupId.count == 0 or !radio.parent do
             return null
 
         var first: #null *Wnd

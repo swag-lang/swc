@@ -55,7 +55,7 @@ impl Source
     {
         var result: retval
         result.memory = bytes
-        result.length = @countof(bytes)
+        result.length = bytes.count
         return result
     }
 
@@ -106,7 +106,7 @@ impl Source
     // case: a decoder that hits the end of a stream reopens or seeks rather than resuming.
     mtd readExact(buffer: [..] u8) fail
     {
-        let wanted = @countof(buffer)
+        let wanted = buffer.count
         if wanted > .remaining() do
             fail InvalidFormatError{"video stream ends before the requested bytes"}
         if !wanted do
@@ -114,7 +114,7 @@ impl Source
 
         if !.isFile
         {
-            Memory.copy(@dataof(buffer), @dataof(.memory)! + .cursor, wanted)
+            Memory.copy(buffer.buffer, (.memory).buffer! + .cursor, wanted)
             .cursor += wanted
             return
         }
@@ -126,7 +126,7 @@ impl Source
             if .cursor >= .windowStart and .cursor < .windowStart + .windowCount
             {
                 let available = Math.min(missing, .windowStart + .windowCount - .cursor)
-                Memory.copy(@dataof(buffer) + done, .window.buffer! + (.cursor - .windowStart), available)
+                Memory.copy(buffer.buffer + done, .window.buffer! + (.cursor - .windowStart), available)
                 done    += available
                 .cursor += available
                 continue
@@ -150,7 +150,7 @@ impl Source
     mtd readByte()->u8 fail
     {
         var value: u8
-        .readExact(@mkslice(&value, 1))
+        .readExact(Swag.makeSlice(&value, 1))
         return value
     }
 
@@ -169,7 +169,7 @@ impl Source
             {
                 if bytes.count and bytes.back() == '\r' do
                     discard bytes.popBack()
-                return String.from(@mkstring(bytes.buffer, bytes.count))
+                return String.from(Swag.makeString(bytes.buffer, bytes.count))
             }
 
             bytes.add(value)

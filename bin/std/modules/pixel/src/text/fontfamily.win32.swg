@@ -18,7 +18,7 @@ public struct SystemFontFamilyInfo
     public
     {
         name:  String                                             // Family name.
-        faces: [@countof(FontFamilyStyle)] SystemFontFaceInfo     // Face descriptor indexed by [[Pixel.FontFamilyStyle]].
+        faces: [FontFamilyStyle.count] SystemFontFaceInfo     // Face descriptor indexed by [[Pixel.FontFamilyStyle]].
     }
 }
 
@@ -29,7 +29,7 @@ impl FontFamily
         let len = Utf16.lengthUntilZero(fa.lfFaceName)
         if !len do
             return TRUE
-        let x = Utf8.fromUtf16(@mkslice(&fa.lfFaceName[0], len))
+        let x = Utf8.fromUtf16(Swag.makeSlice(&fa.lfFaceName[0], len))
 
         let ret = cast(*SystemFontFamilyInfo) cast #bit (u64) lParam
         var idx = cast(u64) FontFamilyStyle.Regular
@@ -56,7 +56,7 @@ impl FontFamily
             let len = Utf16.lengthUntilZero(fa.lfFaceName)
             if !len do
                 return TRUE
-            let x = Utf8.fromUtf16(@mkslice(&fa.lfFaceName[0], len))
+            let x = Utf8.fromUtf16(Swag.makeSlice(&fa.lfFaceName[0], len))
 
             // Ignore vertical aliases, which Windows prefixes with `@`.
             if x[0] == '@' do
@@ -154,7 +154,7 @@ impl FontFamily
 
         if logFont.name.isEmpty()
         {
-            for i in @countof(FontFamilyStyle)
+            for i in FontFamilyStyle.count
             {
                 logFont = fontFamily.faces[i]
                 if !logFont.name.isEmpty() do

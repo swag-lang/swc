@@ -9,7 +9,7 @@ namespace compiler115
     #test
     {
         var v = 10's8 + 2.0'f64
-        @assert(v == 12.0)
+        Swag.assert(v == 12.0)
     }
 }
 
@@ -27,14 +27,14 @@ namespace compiler1580
         }
 
         let a = Color.Green
-        @assert(a == 1)
+        Swag.assert(a == 1)
     }
 
     func toto()->bool { return true }
 
     #test
     {
-        @assert(toto())
+        Swag.assert(toto())
     }
 }
 
@@ -47,7 +47,7 @@ namespace compiler1629
         var arr: [64] u8
         var ptr = cast([*] #null [*] void) &arr[0]
         ptr[0] = null
-        @assert(ptr[0] == null)
+        Swag.assert(ptr[0] == null)
     }
 }
 
@@ -65,8 +65,8 @@ namespace compiler1633
     {
         var st: A
         // st.y = 0
-        @assert(st.x == 0)
-        @assert(st.y == 0)
+        Swag.assert(st.x == 0)
+        Swag.assert(st.y == 0)
     }
 }
 
@@ -84,7 +84,7 @@ namespace compiler1637
     {
         var st: A
         st.y = 0
-        @assert(st.y == 0)
+        Swag.assert(st.y == 0)
     }
 }
 
@@ -103,7 +103,7 @@ namespace compiler1638
     {
         var st: A
         st.y = 0
-        @assert(st.y == 0)
+        Swag.assert(st.y == 0)
     }
 }
 
@@ -117,7 +117,7 @@ namespace compiler1640
         c += 0xFF00
         var usedBuckets: u32
         usedBuckets = c ? 1 : 0
-        @assert(usedBuckets == 1)
+        Swag.assert(usedBuckets == 1)
     }
 }
 
@@ -132,7 +132,7 @@ namespace compiler1648
 
         let m: u32 = 16
         x %= cast(u64) m
-        @assert(x == 15)
+        Swag.assert(x == 15)
     }
 }
 
@@ -143,13 +143,13 @@ namespace compiler1651
     func toto1(x: any)->s32
     {
         let v = cast(s32) x
-        @assert(v == 100)
+        Swag.assert(v == 100)
         return v
     }
 
     #test
     {
-        @assert(toto1(100) == 100)
+        Swag.assert(toto1(100) == 100)
     }
 }
 
@@ -157,14 +157,14 @@ namespace compiler1651
 namespace compiler1653
 {
     //
-    func toto(x: ...)->u64 { return @countof(x) }
+    func toto(x: ...)->u64 { return x.count }
 
-    func toto1(x: u32...)->u64 { return @countof(x) }
+    func toto1(x: u32...)->u64 { return x.count }
 
     #test
     {
-        @assert(toto() == 0)
-        @assert(toto1() == 0)
+        Swag.assert(toto() == 0)
+        Swag.assert(toto1() == 0)
     }
 }
 
@@ -176,7 +176,7 @@ namespace compiler1659
     {
         let precision: u32 = 5
         let roundValue     = 0.5 / (10 * precision)
-        @assert(roundValue == 0.01)
+        Swag.assert(roundValue == 0.01)
     }
 }
 
@@ -198,8 +198,8 @@ namespace compiler1661
         addr[0] = &addr1
         // addr1[0] = &value
 
-        // @print(addr[0].value)
-        @assert(addr[0] == &addr1)
+        // Swag.print(addr[0].value)
+        Swag.assert(addr[0] == &addr1)
     }
 }
 
@@ -220,7 +220,7 @@ namespace compiler1662
 
         addr[0] = cast([*] [*] s64) &addr1
 
-        @assert(addr[0][0][0] == 666)
+        Swag.assert(addr[0][0][0] == 666)
     }
 }
 
@@ -241,8 +241,8 @@ namespace compiler1663
 
         addr[0] = cast([*] [*] TT) &addr1
 
-        // @print(addr1.value)
-        @assert(addr[0][0].value == 456)
+        // Swag.print(addr1.value)
+        Swag.assert(addr[0][0].value == 456)
     }
 }
 
@@ -262,8 +262,8 @@ namespace compiler1664
 
         addr[0, 0] = &value
 
-        // @print(addr[0,0].value)
-        @assert(addr[0, 0].value == 456)
+        // Swag.print(addr[0,0].value)
+        Swag.assert(addr[0, 0].value == 456)
     }
 }
 
@@ -281,15 +281,15 @@ namespace compiler1666
     func C(x: ...)
     {
         let ptr1 = cast(TT) x[0]
-        // @print(cast(s64) ptr1.value)
-        @assert(ptr1.value == 456)
+        // Swag.print(cast(s64) ptr1.value)
+        Swag.assert(ptr1.value == 456)
     }
 
     #test
     {
         var x: TT
         C(x)
-        @assert(x.value == 456)
+        Swag.assert(x.value == 456)
     }
 }
 
@@ -299,15 +299,15 @@ namespace compiler1668
     //
     func function(x: s32, y: s32 = 100)->s32
     {
-        @assert(x == 50)
-        @assert(y == 100)
+        Swag.assert(x == 50)
+        Swag.assert(y == 100)
         return y
     }
 
     #test
     {
         let ptr = &function
-        @assert(ptr(50) == 100)
+        Swag.assert(ptr(50) == 100)
     }
 }
 
@@ -317,14 +317,14 @@ namespace compiler1669
     //
     func function(x: s32, y: ...)->u64
     {
-        @assert(x == 50)
-        return @countof(y)
+        Swag.assert(x == 50)
+        return y.count
     }
 
     #test
     {
         let ptr = &function
-        @assert(ptr(50) == 0)
+        Swag.assert(ptr(50) == 0)
     }
 }
 
@@ -334,17 +334,17 @@ namespace compiler167
     //
     #test
     {
-        @assert(1 == 1)
+        Swag.assert(1 == 1)
     }
 
     #test
     {
-        @assert(2 > 1)
+        Swag.assert(2 > 1)
     }
 
     #test
     {
-        @assert(!false)
+        Swag.assert(!false)
     }
 }
 
@@ -356,13 +356,13 @@ namespace compiler1671
 
     func toto(x: ...)->typeinfo
     {
-        @assert(@kindof(x[0]) == s32)
-        return @kindof(x[0])
+        Swag.assert(Swag.kindOf(x[0]) == s32)
+        return Swag.kindOf(x[0])
     }
 
     #test
     {
-        @assert(toto(5) == s32)
+        Swag.assert(toto(5) == s32)
     }
 }
 
@@ -379,14 +379,14 @@ namespace compiler1677
 
     func C(x: TT)->s64
     {
-        @assert(x.value == 456)
+        Swag.assert(x.value == 456)
         return x.value
     }
 
     #test
     {
         var x: TT
-        @assert(C(x) == 456)
+        Swag.assert(C(x) == 456)
     }
 }
 
@@ -403,8 +403,8 @@ namespace compiler1678
 
     func D(x: TT)->s64
     {
-        // @print(cast(s64) x.value)
-        @assert(x.value == 456)
+        // Swag.print(cast(s64) x.value)
+        Swag.assert(x.value == 456)
         return x.value
     }
 
@@ -416,7 +416,7 @@ namespace compiler1678
     #test
     {
         var x: TT
-        @assert(C(x) == 456)
+        Swag.assert(C(x) == 456)
     }
 }
 
@@ -447,15 +447,15 @@ namespace compiler1679
 
     func C(x: TT)->s64
     {
-        // @print(cast(s64) x.value)
-        @assert(x.value == 456)
+        // Swag.print(cast(s64) x.value)
+        Swag.assert(x.value == 456)
         return x.value
     }
 
     #test
     {
         var x: TT
-        @assert(D(x) == 456)
+        Swag.assert(D(x) == 456)
     }
 }
 
@@ -484,15 +484,15 @@ namespace compiler1680
 
     func C(x: TT)->s64
     {
-        // @print(cast(s64) x.value)
-        @assert(x.value == 456)
+        // Swag.print(cast(s64) x.value)
+        Swag.assert(x.value == 456)
         return x.value
     }
 
     #test
     {
         var x: TT
-        @assert(D(x) == 456)
+        Swag.assert(D(x) == 456)
     }
 }
 
@@ -513,15 +513,15 @@ namespace compiler1681
 
     func C(x: myStruct)->s64
     {
-        // @print(cast(s64) x.value)
-        @assert(x.value == 456)
+        // Swag.print(cast(s64) x.value)
+        Swag.assert(x.value == 456)
         return x.value
     }
 
     #test
     {
         var x: myStruct
-        @assert(C(x) == 456)
+        Swag.assert(C(x) == 456)
     }
 }
 
@@ -542,16 +542,16 @@ namespace compiler1682
 
     func C(x: any)->s64
     {
-        // @print(cast(s64) x.value)
+        // Swag.print(cast(s64) x.value)
         let val = cast(myStruct) x
-        @assert(val.value == 456)
+        Swag.assert(val.value == 456)
         return val.value
     }
 
     #test
     {
         var x: myStruct
-        @assert(C(x) == 456)
+        Swag.assert(C(x) == 456)
     }
 }
 
@@ -562,7 +562,7 @@ namespace compiler1788
     #test
     {
         G += 1
-        @assert(G == 1)
+        Swag.assert(G == 1)
     }
 
     #init
@@ -577,8 +577,8 @@ namespace compiler206
     //
     #test
     {
-        @assert(1 == 1)
-        @assert(2 == 2)
+        Swag.assert(1 == 1)
+        Swag.assert(2 == 2)
     }
 }
 
@@ -588,13 +588,13 @@ namespace compiler208
     //
     func main(a: s64)->s64
     {
-        @assert(a == 666)
+        Swag.assert(a == 666)
         return a
     }
 
     #test
     {
-        @assert(main(666's64) == 666)
+        Swag.assert(main(666's64) == 666)
     }
 }
 
@@ -604,14 +604,14 @@ namespace compiler209
     //
     func main(a: f64, b: f64)->f64
     {
-        @assert(a == 666)
-        @assert(b == 555)
+        Swag.assert(a == 666)
+        Swag.assert(b == 555)
         return a + b
     }
 
     #test
     {
-        @assert(main(666'f64, 555'f64) == 1221.0)
+        Swag.assert(main(666'f64, 555'f64) == 1221.0)
     }
 }
 
@@ -625,9 +625,9 @@ namespace compiler218
 
     #test
     {
-        @assert(g == 5)
-        @assert(h == 5555)
-        @assert(i == 1.5)
+        Swag.assert(g == 5)
+        Swag.assert(h == 5555)
+        Swag.assert(i == 1.5)
     }
 }
 
@@ -642,7 +642,7 @@ namespace compiler219
 
     #test
     {
-        @assert(v == 555)
+        Swag.assert(v == 555)
     }
 }
 
@@ -655,7 +655,7 @@ namespace compiler221
     #test
     {
         v = 6; v = (5 * 3) + 11;
-        @assert(v == 26)
+        Swag.assert(v == 26)
     }
 }
 
@@ -667,14 +667,14 @@ namespace compiler223
 
     func main()
     {
-        @assert(v == 50)
-        v = 666; @assert(v == 666)
+        Swag.assert(v == 50)
+        v = 666; Swag.assert(v == 666)
     }
 
     #test
     {
         main()
-        @assert(v == 666)
+        Swag.assert(v == 666)
     }
 }
 
@@ -690,18 +690,18 @@ namespace compiler224
 
     func main()
     {
-        @assert(b0 == true)
-        @assert(b1 == 1)
-        @assert(b2 == 2)
-        @assert(b3 == 3)
-        @assert(b4 == 4)
+        Swag.assert(b0 == true)
+        Swag.assert(b1 == 1)
+        Swag.assert(b2 == 2)
+        Swag.assert(b3 == 3)
+        Swag.assert(b4 == 4)
     }
 
     #test
     {
         main()
-        @assert(b0 == true)
-        @assert(b4 == 4)
+        Swag.assert(b0 == true)
+        Swag.assert(b4 == 4)
     }
 }
 
@@ -715,22 +715,22 @@ namespace compiler225
 
     func main()
     {
-        @assert(b0 == true)
-        b0 = false; @assert(b0 == false)
+        Swag.assert(b0 == true)
+        b0 = false; Swag.assert(b0 == false)
 
-        @assert(b1 == 666)
-        b1 = 50; @assert(b1 == 50)
+        Swag.assert(b1 == 666)
+        b1 = 50; Swag.assert(b1 == 50)
 
-        @assert(b2 == 1.5)
-        b2 = 1 + 3; @assert(b2 == 4.0)
+        Swag.assert(b2 == 1.5)
+        b2 = 1 + 3; Swag.assert(b2 == 4.0)
     }
 
     #test
     {
         main()
-        @assert(b0 == false)
-        @assert(b1 == 50)
-        @assert(b2 == 4.0)
+        Swag.assert(b0 == false)
+        Swag.assert(b1 == 50)
+        Swag.assert(b2 == 4.0)
     }
 }
 
@@ -742,10 +742,10 @@ namespace compiler227
     {
         var a: s32
         var b: s32
-        a = 666; b = 100; @assert(a == 666)
-        @assert(b == 100)
-        a = 500; @assert(a == 500)
-        @assert(b == 100)
+        a = 666; b = 100; Swag.assert(a == 666)
+        Swag.assert(b == 100)
+        a = 500; Swag.assert(a == 500)
+        Swag.assert(b == 100)
         return a + b
     }
 
@@ -756,7 +756,7 @@ namespace compiler227
 
     #test
     {
-        @assert(main1() == 600)
+        Swag.assert(main1() == 600)
     }
 }
 
@@ -771,13 +771,13 @@ namespace compiler228
             var b: s32
             a = 666; b = 100;
         }
-        @assert(a == 666)
+        Swag.assert(a == 666)
         return a
     }
 
     #test
     {
-        @assert(main() == 666)
+        Swag.assert(main() == 666)
     }
 }
 
@@ -788,15 +788,15 @@ namespace compiler229
     func main()->s64
     {
         let a: s32 = 666
-        @assert(a == 666)
+        Swag.assert(a == 666)
         let b: s64 = 555
-        @assert(b == 555)
+        Swag.assert(b == 555)
         return a + b
     }
 
     #test
     {
-        @assert(main() == 1221)
+        Swag.assert(main() == 1221)
     }
 }
 
@@ -807,16 +807,16 @@ namespace compiler231
     func main()->f64
     {
         var a = 10
-        a += 1; @assert(a == 11)
+        a += 1; Swag.assert(a == 11)
 
         var b = 1.0'f64
-        b += 1.5'f64; @assert(b == 2.5)
+        b += 1.5'f64; Swag.assert(b == 2.5)
         return cast(f64) a + b
     }
 
     #test
     {
-        @assert(main() == 13.5)
+        Swag.assert(main() == 13.5)
     }
 }
 
@@ -827,11 +827,11 @@ namespace compiler234
     #test
     {
         var a = 1
-        a *= 2; @assert(a == 2)
-        a *= 2; @assert(a == 4)
+        a *= 2; Swag.assert(a == 2)
+        a *= 2; Swag.assert(a == 4)
 
         var b = 1.0'f32
-        b /= 2; @assert(b == 0.5)
+        b /= 2; Swag.assert(b == 0.5)
     }
 }
 
@@ -842,17 +842,17 @@ namespace compiler235
     func main()->s32
     {
         var a = 0xFFFFFF45
-        a &= 0xFF; @assert(a == 0x45)
-        a |= 0x100; @assert(a == 0x145)
+        a &= 0xFF; Swag.assert(a == 0x45)
+        a |= 0x100; Swag.assert(a == 0x145)
 
         var b = 0b1001
-        b ^= 0b1111; @assert(b == 0b0110)
+        b ^= 0b1111; Swag.assert(b == 0b0110)
         return a + b
     }
 
     #test
     {
-        @assert(main() == 331)
+        Swag.assert(main() == 331)
     }
 }
 
@@ -863,14 +863,14 @@ namespace compiler236
     func main()->s32
     {
         var a = 0b10101010
-        a >>= 1; @assert(a == 0b1010101)
-        a <<= 2; @assert(a == 0b101010100)
+        a >>= 1; Swag.assert(a == 0b1010101)
+        a <<= 2; Swag.assert(a == 0b101010100)
         return a
     }
 
     #test
     {
-        @assert(main() == 0b101010100)
+        Swag.assert(main() == 0b101010100)
     }
 }
 
@@ -882,14 +882,14 @@ namespace compiler238
     {
         var a = 1
         var b = 666
-        a = b; @assert(a == 666)
-        b = 10; a += b; @assert(a == 676)
+        a = b; Swag.assert(a == 666)
+        b = 10; a += b; Swag.assert(a == 676)
         return a
     }
 
     #test
     {
-        @assert(main() == 676)
+        Swag.assert(main() == 676)
     }
 }
 
@@ -899,7 +899,7 @@ namespace compiler246
     //
     func main(a: s32 = 6)->s32
     {
-        @assert(a == 6)
+        Swag.assert(a == 6)
         return a
     }
 
@@ -910,7 +910,7 @@ namespace compiler246
 
     #test
     {
-        @assert(main1() == 6)
+        Swag.assert(main1() == 6)
     }
 }
 
@@ -928,13 +928,13 @@ namespace compiler249
 
     func main1()
     {
-        @assert(main() == 55)
+        Swag.assert(main() == 55)
     }
 
     #test
     {
         main1()
-        @assert(main() == 55)
+        Swag.assert(main() == 55)
     }
 }
 
@@ -947,7 +947,7 @@ namespace compiler287
         var a: bool = true
         let b       = &a
         let c       = b[]
-        @assert(c == true)
+        Swag.assert(c == true)
     }
 
     #test
@@ -955,7 +955,7 @@ namespace compiler287
         var a: s32 = 666
         let b      = &a
         let c      = b[]
-        @assert(c == 666)
+        Swag.assert(c == 666)
     }
 }
 
@@ -967,9 +967,9 @@ namespace compiler310
 
     #test
     {
-        g = false; @assert(g == false)
-        g = true; @assert(g == true)
-    // @print(g);
+        g = false; Swag.assert(g == false)
+        g = true; Swag.assert(g == true)
+    // Swag.print(g);
     }
 }
 
@@ -982,11 +982,11 @@ namespace compiler322
         var a: s32  = 666
         let b       = &a
         var c: *s32 = b
-        c = b; @assert(b[] == 666)
-        @assert(c[] == 666)
-    /*@assert(a == 1);
+        c = b; Swag.assert(b[] == 666)
+        Swag.assert(c[] == 666)
+    /*Swag.assert(a == 1);
     	b[0] = 666;
-    	@assert(a == 666);*/
+	Swag.assert(a == 666);*/
     }
 }
 
@@ -998,8 +998,8 @@ namespace compiler323
     {
         var a: s32 = 1
         var b      = &a
-        b[] = 666; @assert(a == 666)
-        @assert(b[] == a)
+        b[] = 666; Swag.assert(a == 666)
+        Swag.assert(b[] == a)
     }
 }
 
@@ -1011,10 +1011,10 @@ namespace compiler324
     #test
     {
         var a: [4] s32
-        a[0] = 1; a[1] = 2; a[2] = 20; a[3] = 30; @assert(a[0] == 1)
-        @assert(a[1] == 2)
-        @assert(a[2] == 20)
-        @assert(a[3] == 30)
+        a[0] = 1; a[1] = 2; a[2] = 20; a[3] = 30; Swag.assert(a[0] == 1)
+        Swag.assert(a[1] == 2)
+        Swag.assert(a[2] == 20)
+        Swag.assert(a[3] == 30)
     }
 }
 
@@ -1026,9 +1026,9 @@ namespace compiler332
     {
         var a: [2] s32 = [50, 60]
         let b          = 666
-        @assert(a[0] == 50)
-        @assert(a[1] == 60)
-        @assert(b == 666)
+        Swag.assert(a[0] == 50)
+        Swag.assert(a[1] == 60)
+        Swag.assert(b == 666)
     }
 }
 
@@ -1040,8 +1040,8 @@ namespace compiler333
 
     #test
     {
-        @assert(a[0] == 50)
-        @assert(a[1] == 60)
+        Swag.assert(a[0] == 50)
+        Swag.assert(a[1] == 60)
     }
 }
 
@@ -1051,8 +1051,8 @@ namespace compiler335
     //
     #test
     {
-        @assert(16 == 4 * 2 * 2)
-        @assert(16 == 16)
+        Swag.assert(16 == 4 * 2 * 2)
+        Swag.assert(16 == 16)
     }
 }
 
@@ -1067,7 +1067,7 @@ namespace compiler339
         a[0, 1] = 2
         a[1, 0] = 3
         a[1, 1] = 4
-        @assert(a[0, 0] + a[0, 1] + a[1, 0] + a[1, 1] == 10)
+        Swag.assert(a[0, 0] + a[0, 1] + a[1, 0] + a[1, 1] == 10)
     }
 }
 
@@ -1078,11 +1078,11 @@ namespace compiler340
     #test
     {
         var a: [2, 2] s32 = [[1, 2], [3, 4]]
-        @assert(a[0, 0] == 1)
-        @assert(a[0, 1] == 2)
-        @assert(a[1, 0] == 3)
-        @assert(a[1, 1] == 4)
-        @assert(a[0, 0] + a[0, 1] + a[1, 0] + a[1, 1] == 10);
+        Swag.assert(a[0, 0] == 1)
+        Swag.assert(a[0, 1] == 2)
+        Swag.assert(a[1, 0] == 3)
+        Swag.assert(a[1, 1] == 4)
+        Swag.assert(a[0, 0] + a[0, 1] + a[1, 0] + a[1, 1] == 10);
     }
 }
 
@@ -1097,12 +1097,12 @@ namespace compiler342
         let pa1 = &a
         let pa2 = &a
         let pb  = &b
-        @assert(pa1 == pa2)
-        @assert(pb > pa1)
-        @assert(pa1 < pb)
-        @assert(pb >= pa1)
-        @assert(pa1 <= pb)
-        @assert(pa1 != pb)
+        Swag.assert(pa1 == pa2)
+        Swag.assert(pb > pa1)
+        Swag.assert(pa1 < pb)
+        Swag.assert(pb >= pa1)
+        Swag.assert(pa1 <= pb)
+        Swag.assert(pa1 != pb)
     }
 }
 
@@ -1113,7 +1113,7 @@ namespace compiler343
     #test
     {
         let a: #null *s32 = null
-        @assert(a == null)
+        Swag.assert(a == null)
     }
 }
 
@@ -1124,8 +1124,8 @@ namespace compiler344
     #test
     {
         var a: s32
-        @assert(a == 0)
+        Swag.assert(a == 0)
         var b: #null *s32 = null
-        @assert(b == null)
+        Swag.assert(b == null)
     }
 }

@@ -30,7 +30,7 @@ private struct AdtsHeader
 // Reads one ADTS header, clause 1.A.3.2.1.
 private func readAdtsHeader(bytes: const [..] u8)->AdtsHeader fail
 {
-    if @countof(bytes) < 7 do
+    if bytes.count < 7 do
         fail InvalidFormatError{"ADTS header is truncated"}
     if bytes[0] != 0xFF or (bytes[1] & 0xF0) != 0xF0 do
         fail InvalidFormatError{"ADTS frame has no sync word"}

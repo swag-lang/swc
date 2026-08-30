@@ -7,6 +7,6 @@ func(T) takesType()->bool
 
 func semaTest001()
 {
-    @assert(takesType'{ buf: const [..] u8, seek: u64 }())
-    @assert(takesType'{ compressed: bool, tmpBuf: *u8 }())
+    Swag.assert(takesType'{ buf: const [..] u8, seek: u64 }())
+    Swag.assert(takesType'{ compressed: bool, tmpBuf: *u8 }())
 }

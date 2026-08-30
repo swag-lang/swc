@@ -145,10 +145,10 @@ impl CffFont
     mtd const stringOf(sid: u32)->String fail
     {
         let standard = standardString(sid)
-        if @countof(standard) do
+        if standard.count do
             return String.from(standard)
 
-        let custom = .strings.item(.block, sid - cast(u32) @countof(StandardStrings))
+        let custom = .strings.item(.block, sid - cast(u32) StandardStrings.count)
         return String.from(cast(#null string) custom)
     }
 }
@@ -203,7 +203,7 @@ func readCffIndex(block: #null const [..] u8, offset: u64)->CffIndex fail
     }
 
     result.end = result.starts.back()
-    if result.end > @countof(block) do
+    if result.end > block.count do
         fault(0x08)
     return result
 }
@@ -287,7 +287,7 @@ func parseCffDict(data: #null const [..] u8)->CffDict fail
     var pending: Array'f64
     var pos = 0'u64
 
-    while pos < @countof(data)
+    while pos < data.count
     {
         let b0 = readU8(data, pos)
         if b0 <= 21
@@ -451,7 +451,7 @@ private func readCffEncoding(font: *CffFont, offset: u64) fail
         for code in 256'u32
         {
             let name = standardEncodingName(cast(u8) code)
-            if !@countof(name) do
+            if !name.count do
                 continue
             let found = font.nameToGid.tryFind(String.from(name))
             if found do

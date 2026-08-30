@@ -16,5 +16,5 @@ func readPointerValueArgument(value: PointerValueArgumentPayload)->s32
     var value = PointerValueArgumentPayload{x: 4, y: 7}
     let ptr   = &value
 
-    @assert(readPointerValueArgument(ptr) == 47)
+    Swag.assert(readPointerValueArgument(ptr) == 47)
 }

@@ -45,7 +45,7 @@ func day5A0()
             continue
 
         var vowels, dbl = 0
-        for i in @countof(l)
+        for i in l.count
         {
             if Utf8.indexOf("aeiou", cast(rune) l[i]) != Swag.U64.Max do
                 vowels += 1
@@ -58,7 +58,7 @@ func day5A0()
     }
 
     // Console.print("total: ", total)
-    @assert(total == 258)
+    Swag.assert(total == 258)
 }
 
 /////////////////////////////////////////////////////////////////
@@ -84,5 +84,5 @@ func day5A1()
     }
 
     // Console.print("total: ", total)
-    @assert(total == 258)
+    Swag.assert(total == 258)
 }

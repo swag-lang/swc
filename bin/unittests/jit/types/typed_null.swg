@@ -5,7 +5,7 @@
     func typedNullString()->bool
     {
         let value = cast(#null string) null
-        return value == null and @countof(value) == 0
+        return value == null and value.count == 0
     }
 
     const V = #run typedNullString()
@@ -17,7 +17,7 @@
     func typedNullSlice()->bool
     {
         let value = cast(#null [..] s32) null
-        return value == null and @countof(value) == 0
+        return value == null and value.count == 0
     }
 
     const V = #run typedNullSlice()
@@ -41,7 +41,7 @@
     func typedNullConstBytes()->bool
     {
         let value = cast(#null const [..] u8) null
-        return value == null and @countof(value) == 0
+        return value == null and value.count == 0
     }
 
     const V = #run typedNullConstBytes()

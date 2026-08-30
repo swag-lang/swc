@@ -17,6 +17,6 @@ var GMulTwo: UnaryFn = &mulTwo
 
 #test
 {
-    @assert(GAddOne(41) == 42)
-    @assert(GMulTwo(21) == 42)
+    Swag.assert(GAddOne(41) == 42)
+    Swag.assert(GMulTwo(21) == 42)
 }

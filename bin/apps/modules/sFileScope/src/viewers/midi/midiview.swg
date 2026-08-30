@@ -290,7 +290,7 @@ internal impl IWnd for MidiRollView
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
-        if @isset(.scroll) do
+        if Swag.isSet(.scroll) do
             .refreshLayout()
     }
 

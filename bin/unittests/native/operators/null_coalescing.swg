@@ -41,9 +41,9 @@ func fallbackString()->string
 #test
 {
     var a: s32
-    @assert((a != 0 ? a : 11) == 11)
+    Swag.assert((a != 0 ? a : 11) == 11)
     a = 5
-    @assert((a != 0 ? a : 11) == 5)
+    Swag.assert((a != 0 ? a : 11) == 5)
 }
 
 // Out-of-line so `p` is not flow-narrowed at the `orelse` site: a proven non-null left
@@ -54,17 +54,17 @@ func nullCoalescingNullFallback(p: #null *s32)->#null *s32 => p orelse null
 {
     var p: #null *s32
     var v: s32 = 10
-    @assert((p orelse &v) == &v)
+    Swag.assert((p orelse &v) == &v)
     p = &v
-    @assert(nullCoalescingNullFallback(p) == &v)
+    Swag.assert(nullCoalescingNullFallback(p) == &v)
 }
 
 #test
 {
     var s: #null string
-    @assert((s orelse "fallback") == "fallback")
+    Swag.assert((s orelse "fallback") == "fallback")
     s = "ok"
-    @assert((s orelse "fallback") == "ok")
+    Swag.assert((s orelse "fallback") == "ok")
 }
 
 #test
@@ -72,8 +72,8 @@ func nullCoalescingNullFallback(p: #null *s32)->#null *s32 => p orelse null
     NullCoercCounter = 0
     let value = 12'u32 != 0 ? 12'u32 : fallbackU32()
 
-    @assert(value == 12'u32)
-    @assert(NullCoercCounter == 0)
+    Swag.assert(value == 12'u32)
+    Swag.assert(NullCoercCounter == 0)
 }
 
 #test
@@ -82,9 +82,9 @@ func nullCoalescingNullFallback(p: #null *s32)->#null *s32 => p orelse null
     var ptr: #null *s32 = null
     let value           = ptr orelse fallbackPointer()
 
-    @assert(value == &NullCoercValue)
-    @assert(value[] == 33)
-    @assert(NullCoercCounter == 1)
+    Swag.assert(value == &NullCoercValue)
+    Swag.assert(value[] == 33)
+    Swag.assert(NullCoercCounter == 1)
 }
 
 #test
@@ -93,8 +93,8 @@ func nullCoalescingNullFallback(p: #null *s32)->#null *s32 => p orelse null
     var s: #null string = null
     let value           = s orelse fallbackString()
 
-    @assert(value == "fallback")
-    @assert(NullCoercCounter == 1)
+    Swag.assert(value == "fallback")
+    Swag.assert(NullCoercCounter == 1)
 }
 
 #test
@@ -103,6 +103,6 @@ func nullCoalescingNullFallback(p: #null *s32)->#null *s32 => p orelse null
     let s: string = "ok"
     let value     = s orelse fallbackString()
 
-    @assert(value == "ok")
-    @assert(NullCoercCounter == 0)
+    Swag.assert(value == "ok")
+    Swag.assert(NullCoercCounter == 0)
 }

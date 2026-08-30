@@ -1724,7 +1724,7 @@ namespace
             const TaskState& state = job->ctx().state();
             if (state.kind == TaskStateKind::SemaWaitCompilerDefined)
             {
-                // @CompilerNotDefined
+                // Swag.compiler()NotDefined
                 auto* semaJob = job->cast<SemaJob>();
                 semaJob->sema().setConstant(state.nodeRef, semaJob->sema().cstMgr().cstFalse());
                 doneSomething = true;

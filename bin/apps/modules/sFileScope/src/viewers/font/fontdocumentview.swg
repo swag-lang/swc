@@ -144,7 +144,7 @@ private impl FontDocumentView
         let sample = .sampleEdit.text()
         for size in FontSampleSizes
         {
-            let top      = .layout.sampleTops[@index]
+            let top      = .layout.sampleTops[Swag.index]
             let sizeText = Format.toString("% px", size)
             painter.drawString(FontContentInset, top + FontCellPadding, sizeText.toString(), .fontCode, colors.label_TextFaint)
             painter.drawString(FontContentInset + FontSampleLabelWidth, top, sample, .sampleFont(size), colors.label_Text)
@@ -213,7 +213,7 @@ internal impl IWnd for FontDocumentView
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
-        if !@isset(.scroll) do
+        if !Swag.isSet(.scroll) do
             return
         .refreshLayout()
     }
@@ -323,7 +323,7 @@ internal impl FontDocumentView
 
         for size in FontSampleSizes
         {
-            .layout.sampleTops[@index] = y
+            .layout.sampleTops[Swag.index] = y
             y += .sampleFont(size).height + FontSampleGap
         }
 

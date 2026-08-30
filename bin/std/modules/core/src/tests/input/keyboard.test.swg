@@ -7,13 +7,13 @@ using Swag
 {
     var keyboard: Input.Keyboard
 
-    for i in @countof(Input.Key)
+    for i in Input.Key.count
     {
         let key = cast(Input.Key) i
-        @assert(!keyboard.isKeyPressed(key))
-        @assert(keyboard.isKeyReleased(key))
-        @assert(!keyboard.isKeyJustPressed(key))
-        @assert(!keyboard.isKeyJustReleased(key))
+        Swag.assert(!keyboard.isKeyPressed(key))
+        Swag.assert(keyboard.isKeyReleased(key))
+        Swag.assert(!keyboard.isKeyJustPressed(key))
+        Swag.assert(!keyboard.isKeyJustReleased(key))
     }
 }
 
@@ -21,30 +21,30 @@ using Swag
 {
     var keyboard: Input.Keyboard
 
-    for i in @countof(Input.Key)
+    for i in Input.Key.count
     {
         let key = cast(Input.Key) i
 
         keyboard.setKeyStates(key, false, true)
 
-        @assert(keyboard.isKeyPressed(key))
-        @assert(!keyboard.isKeyReleased(key))
-        @assert(keyboard.isKeyJustPressed(key))
-        @assert(!keyboard.isKeyJustReleased(key))
+        Swag.assert(keyboard.isKeyPressed(key))
+        Swag.assert(!keyboard.isKeyReleased(key))
+        Swag.assert(keyboard.isKeyJustPressed(key))
+        Swag.assert(!keyboard.isKeyJustReleased(key))
 
         keyboard.setKeyStates(key, true, true)
 
-        @assert(keyboard.isKeyPressed(key))
-        @assert(!keyboard.isKeyReleased(key))
-        @assert(!keyboard.isKeyJustPressed(key))
-        @assert(!keyboard.isKeyJustReleased(key))
+        Swag.assert(keyboard.isKeyPressed(key))
+        Swag.assert(!keyboard.isKeyReleased(key))
+        Swag.assert(!keyboard.isKeyJustPressed(key))
+        Swag.assert(!keyboard.isKeyJustReleased(key))
 
         keyboard.setKeyStates(key, true, false)
 
-        @assert(!keyboard.isKeyPressed(key))
-        @assert(keyboard.isKeyReleased(key))
-        @assert(!keyboard.isKeyJustPressed(key))
-        @assert(keyboard.isKeyJustReleased(key))
+        Swag.assert(!keyboard.isKeyPressed(key))
+        Swag.assert(keyboard.isKeyReleased(key))
+        Swag.assert(!keyboard.isKeyJustPressed(key))
+        Swag.assert(keyboard.isKeyJustReleased(key))
     }
 }
 
@@ -52,38 +52,38 @@ using Swag
 {
     var keyboard: Input.Keyboard
 
-    @assert(keyboard.pressedModifiers() == Input.KeyModifiers.None)
+    Swag.assert(keyboard.pressedModifiers() == Input.KeyModifiers.None)
 
     keyboard.setKeyStates(.LShift, false, true)
-    @assert(keyboard.isKeyPressed(Input.Key.LShift))
-    @assert(!keyboard.isKeyPressed(Input.Key.RShift))
-    @assert(!keyboard.isKeyPressed(Input.Key.LControl))
-    @assert(!keyboard.isKeyPressed(Input.Key.RControl))
-    @assert(!keyboard.isKeyPressed(Input.Key.LMenu))
-    @assert(!keyboard.isKeyPressed(Input.Key.RMenu))
-    @assert(keyboard.pressedModifiers() == Input.KeyModifiers.Shift)
+    Swag.assert(keyboard.isKeyPressed(Input.Key.LShift))
+    Swag.assert(!keyboard.isKeyPressed(Input.Key.RShift))
+    Swag.assert(!keyboard.isKeyPressed(Input.Key.LControl))
+    Swag.assert(!keyboard.isKeyPressed(Input.Key.RControl))
+    Swag.assert(!keyboard.isKeyPressed(Input.Key.LMenu))
+    Swag.assert(!keyboard.isKeyPressed(Input.Key.RMenu))
+    Swag.assert(keyboard.pressedModifiers() == Input.KeyModifiers.Shift)
 
     keyboard.setKeyStates(.RShift, false, true)
-    @assert(keyboard.pressedModifiers() == Input.KeyModifiers.Shift)
+    Swag.assert(keyboard.pressedModifiers() == Input.KeyModifiers.Shift)
 
     keyboard.setKeyStates(.LControl, false, true)
-    @assert(keyboard.pressedModifiers() == Input.KeyModifiers.CtrlShift)
+    Swag.assert(keyboard.pressedModifiers() == Input.KeyModifiers.CtrlShift)
 
     keyboard.setKeyStates(.RControl, false, true)
-    @assert(keyboard.pressedModifiers() == Input.KeyModifiers.CtrlShift)
+    Swag.assert(keyboard.pressedModifiers() == Input.KeyModifiers.CtrlShift)
 
     keyboard.setKeyStates(.LMenu, false, true)
-    @assert(keyboard.pressedModifiers() == (Input.KeyModifiers.CtrlShift | Input.KeyModifiers.Alt))
+    Swag.assert(keyboard.pressedModifiers() == (Input.KeyModifiers.CtrlShift | Input.KeyModifiers.Alt))
 
     keyboard.setKeyStates(.RMenu, false, true)
-    @assert(keyboard.pressedModifiers() == (Input.KeyModifiers.CtrlShift | Input.KeyModifiers.Alt))
+    Swag.assert(keyboard.pressedModifiers() == (Input.KeyModifiers.CtrlShift | Input.KeyModifiers.Alt))
 }
 
 #test
 {
     var keyboard: Input.Keyboard
 
-    for i in @countof(Input.Key)
+    for i in Input.Key.count
     {
         keyboard.setKeyStates(cast(Input.Key) i, true, true)
         keyboard.isRepeating[i] = true
@@ -92,11 +92,11 @@ using Swag
 
     keyboard.clear()
 
-    for i in @countof(Input.Key)
+    for i in Input.Key.count
     {
-        @assert(!keyboard.previousState.pressed[i])
-        @assert(!keyboard.currentState.pressed[i])
-        @assert(!keyboard.isRepeating[i])
-        @assert(keyboard.pressedAtMs[i] == 0)
+        Swag.assert(!keyboard.previousState.pressed[i])
+        Swag.assert(!keyboard.currentState.pressed[i])
+        Swag.assert(!keyboard.isRepeating[i])
+        Swag.assert(keyboard.pressedAtMs[i] == 0)
     }
 }

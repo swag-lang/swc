@@ -11,7 +11,7 @@ Once the condition becomes `false`, the loop terminates.
     var i = 0
     while i < 10 do
         i += 1
-    @assert(i == 10)
+    Swag.assert(i == 10)
 }
 
 /**
@@ -30,7 +30,7 @@ This is useful when you need to stop the loop based on a specific condition.
         i += 1
     }
 
-    @assert(i == 5)
+    Swag.assert(i == 5)
 }
 
 /**
@@ -52,7 +52,7 @@ It is useful for ignoring specific cases within the loop.
         sum += i
     }
 
-    @assert(sum == 25)
+    Swag.assert(sum == 25)
 }
 
 /**
@@ -81,7 +81,7 @@ A `while` loop can contain another `while` loop.
         i += 1
     }
 
-    @assert(count == 6)
+    Swag.assert(count == 6)
 }
 
 /**
@@ -103,7 +103,7 @@ for more complex and controlled iteration logic.
         iterations += 1
     }
 
-    @assert(a == 100)
-    @assert(b == 201)
-    @assert(iterations == 10)
+    Swag.assert(a == 100)
+    Swag.assert(b == 201)
+    Swag.assert(iterations == 10)
 }

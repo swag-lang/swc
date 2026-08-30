@@ -18,7 +18,7 @@ func dynCastSafetyEnabled()->bool
 
 #test
 {
-    const cfg      = #run @compiler.getBuildCfg()![]
+    const cfg      = #run Swag.compiler().getBuildCfg()![]
     const expected = cfg.safetyGuards & Swag.SafetyWhat.DynCast ? true : false
     #assert(#safety(Swag.SafetyWhat.DynCast) == expected)
 }
@@ -117,7 +117,7 @@ func dynCastSafetyEnabled()->bool
 }
 
 // =============================================
-// Struct cast from any using @as mechanism
+// Struct cast from any using Swag.typeAs mechanism
 // =============================================
 
 struct Base

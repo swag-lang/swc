@@ -16,5 +16,5 @@ var InlineMillisecondsRuntimeValue = 250'u32
     // belongs to the f64 result selected in the provider; lowering it as an integer operation
     // would encode an invalid integer opcode over float registers.
     let duration = inlineDurationFromMilliseconds(InlineMillisecondsRuntimeValue)
-    @assert(duration.seconds == 0.25)
+    Swag.assert(duration.seconds == 0.25)
 }

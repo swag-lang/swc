@@ -52,14 +52,14 @@ func macroClosureCaptureValue(value: s32)->s32
 
 #test
 {
-    @assert(macroClosureCaptureValue(20 + 21) == 42)
+    Swag.assert(macroClosureCaptureValue(20 + 21) == 42)
 }
 
 #test
 {
     var payload = JitMacroClosurePayload{40}
     jitMacroInjectClosureCapture(#code {
-        @assert(jitMacroClosureCaptureRunTwice(func|&payload|()->s32
+        Swag.assert(jitMacroClosureCaptureRunTwice(func|&payload|()->s32
         {
             payload.total += 2
             return payload.total
@@ -81,8 +81,8 @@ func macroClosureCaptureValue(value: s32)->s32
         }
 
         let cb = makeCounter(41)
-        @assert(cb() == 42)
-        @assert(cb() == 43)
+        Swag.assert(cb() == 42)
+        Swag.assert(cb() == 43)
     })
 }
 
@@ -101,8 +101,8 @@ func macroClosureCaptureValue(value: s32)->s32
         }
 
         let cb = makeCounter(41)
-        @assert(cb() == 42)
-        @assert(cb() == 43)
+        Swag.assert(cb() == 42)
+        Swag.assert(cb() == 43)
     }
 }
 
@@ -121,8 +121,8 @@ func macroClosureCaptureValue(value: s32)->s32
         }
 
         let cb = makeCounter(start)
-        @assert(cb() == 42)
-        @assert(cb() == 43)
+        Swag.assert(cb() == 42)
+        Swag.assert(cb() == 43)
     }
 }
 
@@ -142,8 +142,8 @@ func macroClosureCaptureValue(value: s32)->s32
         }
 
         let cb = makeCounter(start)
-        @assert(cb() == 43)
-        @assert(cb() == 45)
+        Swag.assert(cb() == 43)
+        Swag.assert(cb() == 45)
     }
 }
 
@@ -163,8 +163,8 @@ func macroClosureCaptureValue(value: s32)->s32
         }
 
         let cb = makeCounter(start)
-        @assert(cb() == 44)
-        @assert(cb() == 46)
+        Swag.assert(cb() == 44)
+        Swag.assert(cb() == 46)
     }
 }
 
@@ -183,7 +183,7 @@ func macroClosureCaptureValue(value: s32)->s32
         }
 
         let cb = makeCounter(start)
-        @assert(cb() == 43)
-        @assert(cb() == 45)
+        Swag.assert(cb() == 43)
+        Swag.assert(cb() == 45)
     }
 }

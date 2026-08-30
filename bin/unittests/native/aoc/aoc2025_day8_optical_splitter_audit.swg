@@ -28,39 +28,39 @@ func findStartColumn(plan: const [..] string)->u32
 {
     let firstRow = cast(const [..] u8) plan[0]
 
-    for column in @countof(firstRow)
+    for column in firstRow.count
     {
         if firstRow[column] == 'S' do
             return cast(u32) column
     }
 
-    @assert(false)
+    Swag.assert(false)
     return 0
 }
 
 func auditSplitterRack(plan: const [..] string)->SplitterAudit
 {
-    @assert(@countof(plan) > 0)
+    Swag.assert(plan.count > 0)
 
     let firstRow = cast(const [..] u8) plan[0]
-    let width    = cast(u32) @countof(firstRow)
+    let width    = cast(u32) firstRow.count
 
-    @assert(width <= 96)
+    Swag.assert(width <= 96)
 
     for line in plan
     {
-        @assert(@countof(cast(const [..] u8) line) == width)
+        Swag.assert((cast(const [..] u8) line).count == width)
     }
 
     var current: [96] bool
     var next:    [96] bool
     var result:  SplitterAudit
 
-    result.rowCount                = cast(u32) @countof(plan)
+    result.rowCount                = cast(u32) plan.count
     result.columnCount             = width
     current[findStartColumn(plan)] = true
 
-    for row in 1 to @countof(plan) - 1
+    for row in 1 to plan.count - 1
     {
         let bytes = cast(const [..] u8) plan[row]
 
@@ -123,10 +123,10 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
 
     let sampleAudit = auditSplitterRack(samplePlan)
 
-    @assert(sampleAudit.rowCount == 16'u32)
-    @assert(sampleAudit.columnCount == 15'u32)
-    @assert(sampleAudit.splitCount == 21'u32)
-    @assert(sampleAudit.survivingBeamCount == 9'u32)
+    Swag.assert(sampleAudit.rowCount == 16'u32)
+    Swag.assert(sampleAudit.columnCount == 15'u32)
+    Swag.assert(sampleAudit.splitCount == 21'u32)
+    Swag.assert(sampleAudit.survivingBeamCount == 9'u32)
 
     const servicePlan: [9] string =
         [
@@ -143,8 +143,8 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
 
     let serviceAudit = auditSplitterRack(servicePlan)
 
-    @assert(serviceAudit.rowCount == 9'u32)
-    @assert(serviceAudit.columnCount == 9'u32)
-    @assert(serviceAudit.splitCount == 9'u32)
-    @assert(serviceAudit.survivingBeamCount == 5'u32)
+    Swag.assert(serviceAudit.rowCount == 9'u32)
+    Swag.assert(serviceAudit.columnCount == 9'u32)
+    Swag.assert(serviceAudit.splitCount == 9'u32)
+    Swag.assert(serviceAudit.survivingBeamCount == 5'u32)
 }

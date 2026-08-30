@@ -18,7 +18,7 @@ func depScale(value: f32)->f32
 
 func depStringLength(text: string)->u64
 {
-    return @countof(text)
+    return text.count
 }
 
 struct DepCalculator

@@ -317,12 +317,12 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
 
     let securityDecision = buildTriageDecision(securityIncident)
 
-    @assert(securityDecision.queue == "security-response")
-    @assert(securityDecision.responseTargetMinutes == 5)
-    @assert(securityDecision.escalationLevel == 10)
-    @assert(securityDecision.pageOnCall == true)
-    @assert(securityDecision.notifyCustomerSuccess == true)
-    @assert(securityDecision.sendStatusPageLink == true)
+    Swag.assert(securityDecision.queue == "security-response")
+    Swag.assert(securityDecision.responseTargetMinutes == 5)
+    Swag.assert(securityDecision.escalationLevel == 10)
+    Swag.assert(securityDecision.pageOnCall == true)
+    Swag.assert(securityDecision.notifyCustomerSuccess == true)
+    Swag.assert(securityDecision.sendStatusPageLink == true)
 
     const billingRequest: SupportTicket =
         {
@@ -337,12 +337,12 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
 
     let billingDecision = buildTriageDecision(billingRequest)
 
-    @assert(billingDecision.queue == "finance-ops")
-    @assert(billingDecision.responseTargetMinutes == 240)
-    @assert(billingDecision.escalationLevel == 1)
-    @assert(billingDecision.pageOnCall == false)
-    @assert(billingDecision.notifyCustomerSuccess == false)
-    @assert(billingDecision.sendStatusPageLink == false)
+    Swag.assert(billingDecision.queue == "finance-ops")
+    Swag.assert(billingDecision.responseTargetMinutes == 240)
+    Swag.assert(billingDecision.escalationLevel == 1)
+    Swag.assert(billingDecision.pageOnCall == false)
+    Swag.assert(billingDecision.notifyCustomerSuccess == false)
+    Swag.assert(billingDecision.sendStatusPageLink == false)
 
     const identityLockout: SupportTicket =
         {
@@ -357,12 +357,12 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
 
     let identityDecision = buildTriageDecision(identityLockout)
 
-    @assert(identityDecision.queue == "identity-urgent")
-    @assert(identityDecision.responseTargetMinutes == 30)
-    @assert(identityDecision.escalationLevel == 4)
-    @assert(identityDecision.pageOnCall == true)
-    @assert(identityDecision.notifyCustomerSuccess == true)
-    @assert(identityDecision.sendStatusPageLink == false)
+    Swag.assert(identityDecision.queue == "identity-urgent")
+    Swag.assert(identityDecision.responseTargetMinutes == 30)
+    Swag.assert(identityDecision.escalationLevel == 4)
+    Swag.assert(identityDecision.pageOnCall == true)
+    Swag.assert(identityDecision.notifyCustomerSuccess == true)
+    Swag.assert(identityDecision.sendStatusPageLink == false)
 
     const analyticsBacklog: SupportTicket =
         {
@@ -377,10 +377,10 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
 
     let analyticsDecision = buildTriageDecision(analyticsBacklog)
 
-    @assert(analyticsDecision.queue == "platform-automation")
-    @assert(analyticsDecision.responseTargetMinutes == 120)
-    @assert(analyticsDecision.escalationLevel == 3)
-    @assert(analyticsDecision.pageOnCall == false)
-    @assert(analyticsDecision.notifyCustomerSuccess == true)
-    @assert(analyticsDecision.sendStatusPageLink == true)
+    Swag.assert(analyticsDecision.queue == "platform-automation")
+    Swag.assert(analyticsDecision.responseTargetMinutes == 120)
+    Swag.assert(analyticsDecision.escalationLevel == 3)
+    Swag.assert(analyticsDecision.pageOnCall == false)
+    Swag.assert(analyticsDecision.notifyCustomerSuccess == true)
+    Swag.assert(analyticsDecision.sendStatusPageLink == true)
 }

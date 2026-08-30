@@ -18,12 +18,12 @@
     {
         let values = [10, 20, 30]
         let slice  = values[0 until 0]
-        return @countof(slice)
+        return slice.count
     }
 
     const V = #run emptyArraySliceAtZero()
     #assert(V == 0)
-    @assert(emptyArraySliceAtZero() == 0)
+    Swag.assert(emptyArraySliceAtZero() == 0)
 }
 
 #test
@@ -32,12 +32,12 @@
     {
         let values = [10, 20, 30]
         let slice  = values[2 until 2]
-        return @countof(slice)
+        return slice.count
     }
 
     const V = #run emptyArraySliceInside()
     #assert(V == 0)
-    @assert(emptyArraySliceInside() == 0)
+    Swag.assert(emptyArraySliceInside() == 0)
 }
 
 #test
@@ -46,13 +46,13 @@
     {
         let text  = "string"
         let slice = text[3 until 3]
-        return @countof(slice)
+        return slice.count
     }
 
     const V = #run emptyStringSlice()
     #assert(V == 0)
-    @assert(emptyStringSlice() == 0)
-    @assert("string"[3 until 3] == "")
+    Swag.assert(emptyStringSlice() == 0)
+    Swag.assert("string"[3 until 3] == "")
 }
 
 // The inclusive form with equal bounds still selects exactly one element.
@@ -62,13 +62,13 @@
     {
         let values = [10, 20, 30]
         let slice  = values[1 to 1]
-        @assert(@countof(slice) == 1)
+        Swag.assert(slice.count == 1)
         return slice[0]
     }
 
     const V = #run inclusiveSingleElement()
     #assert(V == 20)
-    @assert(inclusiveSingleElement() == 20)
+    Swag.assert(inclusiveSingleElement() == 20)
 }
 
 //
@@ -78,7 +78,7 @@
 func sliceCount(values: const [..] s32, low, high: u64)->u64
 {
     let slice = values[low until high]
-    return @countof(slice)
+    return slice.count
 }
 
 #test
@@ -86,10 +86,10 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
     var storage: [4] s32        = [1, 2, 3, 4]
     let values:  const [..] s32 = storage
 
-    @assert(sliceCount(values, 0, 0) == 0)
-    @assert(sliceCount(values, 2, 2) == 0)
-    @assert(sliceCount(values, 4, 4) == 0)
-    @assert(sliceCount(values, 1, 3) == 2)
+    Swag.assert(sliceCount(values, 0, 0) == 0)
+    Swag.assert(sliceCount(values, 2, 2) == 0)
+    Swag.assert(sliceCount(values, 4, 4) == 0)
+    Swag.assert(sliceCount(values, 1, 3) == 2)
 }
 
 // An empty slice of an empty slice stays empty, and iterating it visits nothing.
@@ -107,12 +107,12 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
             acc += v
         for v in empty do
             acc += v
-        return acc + cast(s32) (@countof(empty) + @countof(again))
+        return acc + cast(s32) (empty.count + again.count)
     }
 
     const V = #run sliceOfEmptySlice()
     #assert(V == 0)
-    @assert(sliceOfEmptySlice() == 0)
+    Swag.assert(sliceOfEmptySlice() == 0)
 }
 
 // An empty slice keeps pointing inside its source, so the source is left untouched.
@@ -123,13 +123,13 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
         var storage: [3] s32        = [4, 5, 6]
         let values:  const [..] s32 = storage
         let empty                   = values[1 until 1]
-        @assert(@countof(empty) == 0)
+        Swag.assert(empty.count == 0)
         return storage[0] + storage[1] + storage[2]
     }
 
     const V = #run emptySliceLeavesSourceIntact()
     #assert(V == 15)
-    @assert(emptySliceLeavesSourceIntact() == 15)
+    Swag.assert(emptySliceLeavesSourceIntact() == 15)
 }
 
 //
@@ -141,14 +141,14 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
 {
     func windowOf(values: const [..] s32, low, high: u64)->u64
     {
-        return @countof(values[low to high])
+        return values[low to high].count
     }
 
     var storage: [4] s32 = [10, 20, 30, 40]
 
-    @assert(windowOf(storage, 1, 2) == 2)
-    @assert(windowOf(storage, 0, 3) == 4)
-    @assert(windowOf(storage, 2, 2) == 1)
+    Swag.assert(windowOf(storage, 1, 2) == 2)
+    Swag.assert(windowOf(storage, 0, 3) == 4)
+    Swag.assert(windowOf(storage, 2, 2) == 1)
 }
 
 // Without guards an inverted range yields an empty view, never a wrapped count.
@@ -160,9 +160,9 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
     {
         var storage: [4] s32        = [10, 20, 30, 40]
         let values:  const [..] s32 = storage
-        return @countof(values[low to high])
+        return values[low to high].count
     }
 
-    @assert(invertedUnguarded(3, 1) == 0)
-    @assert(invertedUnguarded(1, 2) == 2)
+    Swag.assert(invertedUnguarded(3, 1) == 0)
+    Swag.assert(invertedUnguarded(1, 2) == 2)
 }

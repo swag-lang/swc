@@ -10,12 +10,12 @@ providing a streamlined and efficient way to process each item.
 {
     for value in "ABC"
     {
-        let a = @index
+        let a = Swag.index
         switch a
         {
-        case 0: @assert(value == 'A')
-        case 1: @assert(value == 'B')
-        case 2: @assert(value == 'C')
+        case 0: Swag.assert(value == 'A')
+        case 1: Swag.assert(value == 'B')
+        case 2: Swag.assert(value == 'C')
         }
     }
 }
@@ -37,7 +37,7 @@ Use `?` for the discarded element and put the index in the second binding:
         sum += index
     }
 
-    @assert(sum == 3)
+    Swag.assert(sum == 3)
 }
 
 /**
@@ -54,9 +54,9 @@ their position determines which value they receive.
         let a = index
         switch a
         {
-        case 0: @assert(value == 'A')
-        case 1: @assert(value == 'B')
-        case 2: @assert(value == 'C')
+        case 0: Swag.assert(value == 'A')
+        case 1: Swag.assert(value == 'B')
+        case 2: Swag.assert(value == 'C')
         }
     }
 }
@@ -82,38 +82,38 @@ enum Channel: u8
     for value, channel in levels
     {
         #assert(#typeof(channel) == Channel)
-        @assert(value == levels[channel])
+        Swag.assert(value == levels[channel])
         sum += value
     }
 
-    @assert(sum == 60)
+    Swag.assert(sum == 60)
 }
 
 /**
 # Reverse Order with '.reversed()'
 Iterate from the last element to the first through a borrowed reverse view.
-The second visit value is the index within the original collection; '@index'
+The second visit value is the index within the original collection; 'Swag.index'
 is the ordinal within the view.
 */
 #test
 {
-    let text = cast(const cstring) @dataof("ABC")
+    let text = cast(const cstring) ("ABC").buffer
     var cpt  = 0
     for value, index in text.reversed()
     {
         switch cpt
         {
         case 0:
-            @assert(value == 'C')
-            @assert(index == 2)
+            Swag.assert(value == 'C')
+            Swag.assert(index == 2)
 
         case 1:
-            @assert(value == 'B')
-            @assert(index == 1)
+            Swag.assert(value == 'B')
+            Swag.assert(index == 1)
 
         case 2:
-            @assert(value == 'A')
-            @assert(index == 0)
+            Swag.assert(value == 'A')
+            Swag.assert(index == 0)
         }
 
         cpt += 1
@@ -132,7 +132,7 @@ A scalar element is copied into its binding.
     var result = 0
     for it in array do
         result += it
-    @assert(result == 10 + 20 + 30)
+    Swag.assert(result == 10 + 20 + 30)
 }
 
 /**
@@ -146,7 +146,7 @@ Element iteration works with multi-dimensional arrays and visits each element in
     var result            = 0
     for it in array do
         result += it
-    @assert(result == 10 + 20 + 30 + 40)
+    Swag.assert(result == 10 + 20 + 30 + 40)
 }
 
 /**
@@ -173,7 +173,7 @@ Use '&' when the loop must write.
         sum += p.x + p.y
     }
 
-    @assert(sum == 10)
+    Swag.assert(sum == 10)
 }
 
 /**
@@ -196,11 +196,11 @@ binding; the whole element is read or written with '[]'.
         it[]   = 555
     }
 
-    @assert(result == 1 + 2 + 3 + 4)
-    @assert(array[0, 0] == 555)
-    @assert(array[0, 1] == 555)
-    @assert(array[1, 0] == 555)
-    @assert(array[1, 1] == 555)
+    Swag.assert(result == 1 + 2 + 3 + 4)
+    Swag.assert(array[0, 0] == 555)
+    Swag.assert(array[0, 1] == 555)
+    Swag.assert(array[1, 0] == 555)
+    Swag.assert(array[1, 1] == 555)
 }
 
 /**
@@ -219,8 +219,8 @@ The same '&' binding replaces a struct element in one write.
     for &p, index in points do
         p[] = Point{cast(s32) index, cast(s32) index}
 
-    @assert(points[0].x == 0 and points[0].y == 0)
-    @assert(points[1].x == 1 and points[1].y == 1)
+    Swag.assert(points[0].x == 0 and points[0].y == 0)
+    Swag.assert(points[1].x == 1 and points[1].y == 1)
 }
 
 /**
@@ -236,14 +236,14 @@ This avoids explicit branching inside the loop.
 
     for value in array where value & 1 == 0 do
         result += value
-    @assert(result == 6)
+    Swag.assert(result == 6)
 
     // Equivalent with an 'if' guard:
     result = 0
     for value in array do
         if value & 1 == 0 do
             result += value
-    @assert(result == 6)
+    Swag.assert(result == 6)
 
     // Equivalent using 'continue' to skip odd values:
     result = 0
@@ -254,5 +254,5 @@ This avoids explicit branching inside the loop.
         result += value
     }
 
-    @assert(result == 6)
+    Swag.assert(result == 6)
 }

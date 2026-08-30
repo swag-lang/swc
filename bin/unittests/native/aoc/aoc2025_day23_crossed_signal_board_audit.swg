@@ -39,33 +39,33 @@ func stringLess(left, right: string)->bool
 {
     let leftBytes    = cast(const [..] u8) left
     let rightBytes   = cast(const [..] u8) right
-    let commonLength = @min(@countof(leftBytes), @countof(rightBytes))
+    let commonLength = Swag.min(leftBytes.count, rightBytes.count)
 
     for commonLength
     {
-        let index = cast(u32) @index
+        let index = cast(u32) Swag.index
         if leftBytes[index] < rightBytes[index] do
             return true
         if leftBytes[index] > rightBytes[index] do
             return false
     }
 
-    return @countof(leftBytes) < @countof(rightBytes)
+    return leftBytes.count < rightBytes.count
 }
 
 func parseWireIndex(name: string)->u32
 {
     let bytes = cast(const [..] u8) name
-    @assert(@countof(bytes) == 3)
-    @assert(bytes[1] >= '0' and bytes[1] <= '9')
-    @assert(bytes[2] >= '0' and bytes[2] <= '9')
+    Swag.assert(bytes.count == 3)
+    Swag.assert(bytes[1] >= '0' and bytes[1] <= '9')
+    Swag.assert(bytes[2] >= '0' and bytes[2] <= '9')
     return cast(u32) (bytes[1] - '0') * 10'u32 + cast(u32) (bytes[2] - '0')
 }
 
 func startsWith(name: string, prefix: u8)->bool
 {
     let bytes = cast(const [..] u8) name
-    return @countof(bytes) == 3 and bytes[0] == prefix
+    return bytes.count == 3 and bytes[0] == prefix
 }
 
 func isInputWire(name: string)->bool
@@ -96,7 +96,7 @@ func findWireIndex(wireNames: const [..] string, wireCount: u32, name: string)->
 {
     for wireCount
     {
-        let index = cast(u32) @index
+        let index = cast(u32) Swag.index
         if wireNames[index] == name do
             return index
     }
@@ -108,12 +108,12 @@ func registerSuspect(suspects: [..] string, suspectCount: *u32, name: string)
 {
     for suspectCount[]
     {
-        let index = cast(u32) @index
+        let index = cast(u32) Swag.index
         if suspects[index] == name do
             return
     }
 
-    @assert(suspectCount[] < MaxSuspects)
+    Swag.assert(suspectCount[] < MaxSuspects)
     suspects[suspectCount[]] = name
     suspectCount[]           += 1
 }
@@ -150,10 +150,10 @@ func sortSuspects(suspects: [..] string, suspectCount: u32)
 {
     for suspectCount
     {
-        let left = cast(u32) @index
+        let left = cast(u32) Swag.index
         for suspectCount
         {
-            let right = cast(u32) @index
+            let right = cast(u32) Swag.index
             if right <= left do
                 continue
 
@@ -169,12 +169,12 @@ func sortSuspects(suspects: [..] string, suspectCount: u32)
 
 func suspectsMatch(audit: BoardAudit, expected: const [..] string)->bool
 {
-    if audit.suspectCount != cast(u32) @countof(expected) do
+    if audit.suspectCount != cast(u32) expected.count do
         return false
 
     for audit.suspectCount
     {
-        let index = cast(u32) @index
+        let index = cast(u32) Swag.index
         if audit.suspects[index] != expected[index] do
             return false
     }
@@ -196,18 +196,18 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
 
     for wire in initialWires
     {
-        @assert(wireCount < MaxWires)
+        Swag.assert(wireCount < MaxWires)
         wireNames[wireCount]  = wire.name
         wireKnown[wireCount]  = true
         wireValues[wireCount] = wire.value
         wireCount             += 1
     }
 
-    @assert(@countof(gates) <= MaxGates)
+    Swag.assert(gates.count <= MaxGates)
     var gateResolved:  [MaxGates] bool
     var resolvedCount: u32
 
-    while resolvedCount < cast(u32) @countof(gates)
+    while resolvedCount < cast(u32) gates.count
     {
         var progress = false
 
@@ -226,7 +226,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
             var outputIndex = findWireIndex(wireNameSlice, wireCount, gate.output)
             if outputIndex == Swag.U32.Max
             {
-                @assert(wireCount < MaxWires)
+                Swag.assert(wireCount < MaxWires)
                 outputIndex          = wireCount
                 wireNames[wireCount] = gate.output
                 wireCount            += 1
@@ -239,12 +239,12 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
             progress                = true
         }
 
-        @assert(progress)
+        Swag.assert(progress)
     }
 
     for wireCount
     {
-        let wireIndex = cast(u32) @index
+        let wireIndex = cast(u32) Swag.index
         if wireKnown[wireIndex] and isOutputWire(wireNames[wireIndex]) and wireValues[wireIndex] != 0
         {
             let bitIndex = parseWireIndex(wireNames[wireIndex])
@@ -330,7 +330,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
 
     let sampleAudit = auditBoard(sampleInputs, sampleGates)
 
-    @assert(sampleAudit.outputValue == 2024'u64)
+    Swag.assert(sampleAudit.outputValue == 2024'u64)
 
     const swappedInputs: [6] WireValue =
         [
@@ -361,6 +361,6 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
     let swappedAudit = auditBoard(swappedInputs, swappedAdder)
     const expectedSuspects: [2] string = ["a01", "z01"]
 
-    @assert(swappedAudit.outputValue == 8'u64)
-    @assert(suspectsMatch(swappedAudit, expectedSuspects))
+    Swag.assert(swappedAudit.outputValue == 8'u64)
+    Swag.assert(suspectsMatch(swappedAudit, expectedSuspects))
 }

@@ -6,5 +6,5 @@
     CrossFileMacroRegression.runWhen(value == 0, #code {
         value = 42
     })
-    @assert(value == 42)
+    Swag.assert(value == 42)
 }

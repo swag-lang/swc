@@ -9,6 +9,6 @@ using Swag, Core
 
     var image: Image
     let texture = render.addImage(image)
-    @assert(!texture.isValid())
-    @assert(texture.width == 0 and texture.height == 0)
+    Swag.assert(!texture.isValid())
+    Swag.assert(texture.width == 0 and texture.height == 0)
 }

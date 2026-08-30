@@ -79,7 +79,7 @@ func day7B()
                 continue
             w.tick -= 1
             if w.tick == 0 do
-                done.add(@index)
+                done.add(Swag.index)
         }
 
         var avail: Array'u8
@@ -94,7 +94,7 @@ func day7B()
             if c == last
             {
                 // Console.print("total: ", total)
-                @assert(total == 1050)
+                Swag.assert(total == 1050)
                 return
             }
 

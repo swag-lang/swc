@@ -11,5 +11,5 @@ func compute(v: s32)->s32
 #test
 {
     var r: s32 = compute(20)
-    @assert(r == 42)
+    Swag.assert(r == 42)
 }

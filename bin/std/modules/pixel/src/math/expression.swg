@@ -230,7 +230,7 @@ private func mathOwnedSlice(source: string, start, end: u64)->String
 {
     var result: retval
     if end > start do
-        result = @mkstring(@dataof(source) + start, end - start)
+        result = Swag.makeString(source.buffer + start, end - start)
     return result
 }
 
@@ -285,9 +285,9 @@ private func mathLiteralClass(c: rune)->MathAtomClass
 
 private func mathIsAsciiVariable(text: string)->bool
 {
-    if @countof(text) != 1 do
+    if text.count != 1 do
         return false
-    return mathIsAsciiLetter(@dataof(text)![0])
+    return mathIsAsciiLetter(text.buffer![0])
 }
 
 private func mathSymbol(text: string, atomClass = MathAtomClass.Ord, large = false, limitsMode = MathLimitsMode.Automatic)->MathSymbolSpec
@@ -571,7 +571,7 @@ private func mathCommandSymbol(command: string)->MathSymbolSpec
 
 private impl MathParser
 {
-    mtd count()->u64 => @countof(.source)
+    mtd count()->u64 => (.source).count
 
     mtd eof()->bool => .pos >= .count()
 
@@ -579,7 +579,7 @@ private impl MathParser
     {
         if .eof() do
             return 0
-        return @dataof(.source)![.pos]
+        return (.source).buffer![.pos]
     }
 
     mtd peekAt(offset: u64)->u8
@@ -587,7 +587,7 @@ private impl MathParser
         let at = .pos + offset
         if at >= .count() do
             return 0
-        return @dataof(.source)![at]
+        return (.source).buffer![at]
     }
 
     mtd skipMathSpaces()
@@ -627,7 +627,7 @@ private impl MathParser
         if .eof() do
             mathFail("math expression ends, but this position needs an atom", .pos)
 
-        let slice    = @mkslice(@dataof(.source) + .pos, .count() - .pos)
+        let slice    = Swag.makeSlice((.source).buffer + .pos, .count() - .pos)
         let {c, eat} = Utf8.decodeRune(slice)
         if eat == 0 do
             mathFail("math expression contains an incomplete UTF-8 sequence", .pos)
@@ -640,13 +640,13 @@ private impl MathParser
     {
         if .peek() != '\\' do
             return false
-        let size = @countof(word)
+        let size = word.count
         if .pos + 1 + size > .count() do
             return false
-        let got = @mkstring(@dataof(.source) + .pos + 1, size)
+        let got = Swag.makeString((.source).buffer + .pos + 1, size)
         if got != word do
             return false
-        if .pos + 1 + size < .count() and mathIsAsciiLetter(@dataof(.source)![.pos + 1 + size]) do
+        if .pos + 1 + size < .count() and mathIsAsciiLetter((.source).buffer![.pos + 1 + size]) do
             return false
         return true
     }
@@ -1121,7 +1121,7 @@ private impl MathParser
         if .peek() == '\\' do
             return .parseCommand()
         if .peek() == '^' or .peek() == '_' do
-            mathFail(Format.toString("math script marker '%' has no base", @mkstring(@dataof(.source) + .pos, 1)), at)
+            mathFail(Format.toString("math script marker '%' has no base", Swag.makeString((.source).buffer + .pos, 1)), at)
         if .peek() == '~'
         {
             .pos += 1

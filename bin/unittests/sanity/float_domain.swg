@@ -13,7 +13,7 @@
 #test
 {
     var x = -1.0'f32
-    let y = @sqrt(x)     // swc-expected-error {{sanity_err_invalid_argument}}
+    let y = Swag.sqrt(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
 
@@ -22,7 +22,7 @@
 #test
 {
     var x = -2.0'f64
-    let y = @sqrt(x)     // swc-expected-error {{sanity_err_invalid_argument}}
+    let y = Swag.sqrt(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
 
@@ -31,7 +31,7 @@
 #test
 {
     var x = -1.0'f32
-    let y = @log(x)     // swc-expected-error {{sanity_err_invalid_argument}}
+    let y = Swag.log(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
 
@@ -40,7 +40,7 @@
 #test
 {
     var x = -5.0'f64
-    let y = @log10(x)     // swc-expected-error {{sanity_err_invalid_argument}}
+    let y = Swag.log10(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
 
@@ -49,7 +49,7 @@
 #test
 {
     var x = 2.0'f32
-    let y = @asin(x)     // swc-expected-error {{sanity_err_invalid_argument}}
+    let y = Swag.asin(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
 
@@ -58,7 +58,7 @@
 #test
 {
     var x = -3.0'f64
-    let y = @acos(x)     // swc-expected-error {{sanity_err_invalid_argument}}
+    let y = Swag.acos(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
 
@@ -70,21 +70,21 @@
 #test
 {
     var x = 4.0'f32
-    @assert(@sqrt(x) == 2.0'f32)
+    Swag.assert(Swag.sqrt(x) == 2.0'f32)
 }
 
 #[Swag.Sanity(.Math, true)]
 #test
 {
     var x = 1.0'f64
-    @assert(@log(x) == 0.0'f64)
+    Swag.assert(Swag.log(x) == 0.0'f64)
 }
 
 #[Swag.Sanity(.Math, true)]
 #test
 {
     var x = 0.5'f32
-    let y = @asin(x)
+    let y = Swag.asin(x)
     discard y
 }
 
@@ -93,17 +93,17 @@
 #test
 {
     var x = -0.0'f32
-    let y = @sqrt(x)
+    let y = Swag.sqrt(x)
     discard y
 }
 
 // An unknown (parameter) value is never assumed out of domain: no false positive.
 func rootOf(v: f32)->f32
 {
-    return @sqrt(v)
+    return Swag.sqrt(v)
 }
 
 #test
 {
-    @assert(rootOf(9.0'f32) == 3.0'f32)
+    Swag.assert(rootOf(9.0'f32) == 3.0'f32)
 }

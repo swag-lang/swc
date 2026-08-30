@@ -30,8 +30,8 @@ impl BitReader
 {
     mtd init(payload: const [..] u8)
     {
-        .data    = @dataof(payload)
-        .size    = @countof(payload)
+        .data    = payload.buffer
+        .size    = payload.count
         .bitPos  = 0
         .overran = false
     }
@@ -142,7 +142,7 @@ impl BitReader
 // across NAL units, so a decoder unescapes a whole stream with one allocation.
 func unescapeRbsp(destination: *Array'u8, data: const [..] u8)
 {
-    let count = @countof(data)
+    let count = data.count
     destination.clear()
     if !count do
         return
@@ -155,7 +155,7 @@ func unescapeRbsp(destination: *Array'u8, data: const [..] u8)
     {
         if count - index >= 16
         {
-            let bytes = Math.Simd.load(@dataof(data) + index)
+            let bytes = Math.Simd.load(data.buffer + index)
             if !Math.Simd.anyTrue(bytes == threes)
             {
                 Math.Simd.store(output + outputIndex, bytes)
@@ -197,7 +197,7 @@ func unescapeRbsp(destination: *Array'u8, data: const [..] u8)
 // parser works on the unescaped one; this converts between the two without keeping a map.
 func escapedOffsetOf(data: const [..] u8, unescapedCount: u64)->u64
 {
-    let count    = @countof(data)
+    let count    = data.count
     var produced = 0'u64
     var index    = 0'u64
     var zeros    = 0'u32
@@ -226,7 +226,7 @@ func escapedOffsetOf(data: const [..] u8, unescapedCount: u64)->u64
 // in one pass is what keeps a zero run that crosses a boundary from being read twice.
 func unescapeRbspWithBounds(destination: *Array'u8, data: const [..] u8, escapedBounds: const [..] u64, unescapedBounds: *Array'u64)
 {
-    let count = @countof(data)
+    let count = data.count
     destination.clear()
     destination.resize(count)
     unescapedBounds.clear()
@@ -239,7 +239,7 @@ func unescapeRbspWithBounds(destination: *Array'u8, data: const [..] u8, escaped
 
     while index < count
     {
-        while boundary < @countof(escapedBounds) and escapedBounds[boundary] <= index
+        while boundary < escapedBounds.count and escapedBounds[boundary] <= index
         {
             unescapedBounds.add(produced)
             boundary += 1
@@ -259,7 +259,7 @@ func unescapeRbspWithBounds(destination: *Array'u8, data: const [..] u8, escaped
         index            += 1
     }
 
-    while boundary < @countof(escapedBounds)
+    while boundary < escapedBounds.count
     {
         unescapedBounds.add(produced)
         boundary += 1

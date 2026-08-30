@@ -66,7 +66,7 @@ impl TypeFace
         let length = Utf16.lengthUntilZero(logFont.lfFaceName)
         if !length do
             return ""
-        return Utf8.fromUtf16(@mkslice(&logFont.lfFaceName[0], length))
+        return Utf8.fromUtf16(Swag.makeSlice(&logFont.lfFaceName[0], length))
     }
 
     // Loads the face `family` names out of the font data GDI returned.
@@ -80,13 +80,13 @@ impl TypeFace
     func loadFaceForFamily(bytes: const [..] u8, family: string, allocator: IAllocator)->#null *Face fail
     {
         let count = try Face.countFaces(bytes)
-        if count > 1 and @countof(family) != 0
+        if count > 1 and family.count != 0
         {
             for count
             {
-                let name = catch Face.familyNameAt(bytes, @index) as err
+                let name = catch Face.familyNameAt(bytes, Swag.index) as err
                 if err == null and !Latin1.compare(name, family, ignoreCase: true) do
-                    return Face.loadAt(bytes, @index, allocator)
+                    return Face.loadAt(bytes, Swag.index, allocator)
             }
         }
 
@@ -103,7 +103,7 @@ impl TypeFace
         if here do
             return here.value!
 
-        let allocator = (@getcontext().defaultAllocator orelse @getcontext().allocator)!
+        let allocator = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
 
         // Everything that can fail runs before the cached value exists. Dropping a
         // typeface destroys the face it holds, and a typeface built ahead of its face

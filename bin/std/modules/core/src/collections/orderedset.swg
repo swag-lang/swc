@@ -144,8 +144,8 @@ impl OrderedSet
         let first = .lowerBound(lower)
         let last  = .lowerBound(upper)
         if last <= first do
-            return @mkslice(cast(const [*] K) 1'u64, 0)
-        return @mkslice(.keys.buffer! + first, last - first)
+            return Swag.makeSlice(cast(const [*] K) 1'u64, 0)
+        return Swag.makeSlice(.keys.buffer! + first, last - first)
     }
 
     // Returns whether the set contains `key`.

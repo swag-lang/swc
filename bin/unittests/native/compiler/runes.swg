@@ -4,7 +4,7 @@ const Token = #runes("A😀B")
 
 func runeCount(text: const [..] rune)->u64
 {
-    return @countof(text)
+    return text.count
 }
 
 func secondRune(text: const [..] rune)->rune
@@ -15,11 +15,11 @@ func secondRune(text: const [..] rune)->rune
 #test
 {
     #assert(#typeof(Token) == const [..] rune)
-    @assert(@countof(Token) == 3)
-    @assert(Token[0] == 'A'rune)
-    @assert(Token[1] == '😀'rune)
-    @assert(Token[2] == 'B'rune)
+    Swag.assert(Token.count == 3)
+    Swag.assert(Token[0] == 'A'rune)
+    Swag.assert(Token[1] == '😀'rune)
+    Swag.assert(Token[2] == 'B'rune)
 
-    @assert(runeCount(#runes("hé")) == 2)
-    @assert(secondRune(#runes("hé")) == 'é'rune)
+    Swag.assert(runeCount(#runes("hé")) == 2)
+    Swag.assert(secondRune(#runes("hé")) == 'é'rune)
 }

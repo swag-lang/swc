@@ -64,7 +64,7 @@ namespace CodeGenVectorHelpers
 
     // Rotates every lane, by a count known here or carried in an integer
     // register. Both reduce the count modulo the lane width, like the scalar
-    // '@rol' and '@ror'.
+    // 'Swag.rol' and 'Swag.ror'.
     MicroReg emitRotateImm(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType, uint32_t count, bool rotateLeft);
     MicroReg emitRotateVar(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType, MicroReg countReg, bool rotateLeft);
 

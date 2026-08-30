@@ -45,14 +45,14 @@ impl IStore for Store
     g_copies, g_moves = 0
     var t = Tracked{1}
     i.set(t)     // copy slot
-    @assert(s.value.x == 1)
-    @assert(g_copies == 1)
-    @assert(g_moves == 0)
+    Swag.assert(s.value.x == 1)
+    Swag.assert(g_copies == 1)
+    Swag.assert(g_moves == 0)
 
     var u = Tracked{2}
     i.set(#move u)     // move slot
-    @assert(s.value.x == 2)
-    @assert(g_moves == 1)
+    Swag.assert(s.value.x == 2)
+    Swag.assert(g_moves == 1)
 }
 
 // A single '#move' interface method accepts both call styles through the interface
@@ -83,13 +83,13 @@ impl ISink for Sink
     g_copies, g_moves = 0
     var t = Tracked{3}
     i.sink(t)     // copy call style: temp copy + move
-    @assert(s.value.x == 3)
-    @assert(t.x == 3)     // source untouched
-    @assert(g_copies == 1)
-    @assert(g_moves == 1)
+    Swag.assert(s.value.x == 3)
+    Swag.assert(t.x == 3)     // source untouched
+    Swag.assert(g_copies == 1)
+    Swag.assert(g_moves == 1)
 
     var u = Tracked{4}
     i.sink(#move u)     // move call style
-    @assert(s.value.x == 4)
-    @assert(g_moves == 2)
+    Swag.assert(s.value.x == 4)
+    Swag.assert(g_moves == 2)
 }

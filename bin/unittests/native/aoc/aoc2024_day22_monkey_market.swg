@@ -4,7 +4,7 @@
 // Part 1: sum of 2000th secret numbers.
 // Part 2: find the 4-change price sequence that maximises bananas.
 // Exercises: bitwise XOR, #run compile-time tables, reverse-view iteration sliding
-// window, with &ptr blocks, inline + retval, @mkslice in inline, large
+// window, with &ptr blocks, inline + retval, Swag.makeSlice in inline, large
 // heap arrays.
 
 const SamplePart1 =
@@ -73,9 +73,9 @@ func parseBuyers(text: string)->BuyerList
     var inNum = false
     var acc:    u64
 
-    for @countof(bytes)
+    for bytes.count
     {
-        let ch = bytes[@index]
+        let ch = bytes[Swag.index]
         if ch >= '0' and ch <= '9'
         {
             acc   = acc * 10 + cast(u64) (ch - '0')
@@ -154,7 +154,7 @@ func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
     // Global totals for each possible 4-change sequence
     let totals = cast([*] u64) (testAlloc(cast(u64) SeqCount * #sizeof(u64)))!
     defer testFree(totals)
-    for SeqCount { totals[@index] = 0 }
+    for SeqCount { totals[Swag.index] = 0 }
 
     // Per-buyer seen flags
     let seen = cast([*] bool) (testAlloc(cast(u64) SeqCount * #sizeof(bool)))!
@@ -163,7 +163,7 @@ func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
     for bi in buyers.count
     {
         // Clear seen flags
-        for SeqCount { seen[@index] = false }
+        for SeqCount { seen[Swag.index] = false }
 
         var s         = buyers.secrets[bi]
         var prevPrice = cast(s32) (s % 10)
@@ -202,8 +202,8 @@ func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
     var best: u64
     for SeqCount
     {
-        if totals[@index] > best do
-            best = totals[@index]
+        if totals[Swag.index] > best do
+            best = totals[Swag.index]
     }
 
     return makeSeqResult(best)
@@ -238,53 +238,53 @@ func solve(text: string)->SolveResult
 {
     var s: u64 = 123
     s = evolve(s)
-    @assert(s == 15887950'u64)
+    Swag.assert(s == 15887950'u64)
     s = evolve(s)
-    @assert(s == 16495136'u64)
+    Swag.assert(s == 16495136'u64)
 }
 
 // evolveN
 #test
 {
-    @assert(evolveN(1, 2000) == 8685429'u64)
-    @assert(evolveN(10, 2000) == 4700978'u64)
-    @assert(evolveN(100, 2000) == 15273692'u64)
-    @assert(evolveN(2024, 2000) == 8667524'u64)
+    Swag.assert(evolveN(1, 2000) == 8685429'u64)
+    Swag.assert(evolveN(10, 2000) == 4700978'u64)
+    Swag.assert(evolveN(100, 2000) == 15273692'u64)
+    Swag.assert(evolveN(2024, 2000) == 8667524'u64)
 }
 
 // Parsing
 #test
 {
     let buyers = parseBuyers(SamplePart1)
-    @assert(buyers.count == 4'u32)
-    @assert(buyers.secrets[0] == 1'u64)
-    @assert(buyers.secrets[1] == 10'u64)
-    @assert(buyers.secrets[2] == 100'u64)
-    @assert(buyers.secrets[3] == 2024'u64)
+    Swag.assert(buyers.count == 4'u32)
+    Swag.assert(buyers.secrets[0] == 1'u64)
+    Swag.assert(buyers.secrets[1] == 10'u64)
+    Swag.assert(buyers.secrets[2] == 100'u64)
+    Swag.assert(buyers.secrets[3] == 2024'u64)
 }
 
 // Part 1
 #test
 {
     var buyers = parseBuyers(SamplePart1)
-    @assert(solvePart1(&buyers, 2000) == 37327623'u64)
+    Swag.assert(solvePart1(&buyers, 2000) == 37327623'u64)
 }
 
 // encodeSeq inline
 #test
 {
     let idx = encodeSeq(-2, 1, -1, 3)
-    @assert(idx < SeqCount)
+    Swag.assert(idx < SeqCount)
     // Different sequences give different indices
     let idx2 = encodeSeq(0, 0, 0, 0)
-    @assert(idx != idx2)
+    Swag.assert(idx != idx2)
 }
 
 // makeSeqResult inline + retval
 #test
 {
     let r = makeSeqResult(42)
-    @assert(r.bestBananas == 42'u64)
+    Swag.assert(r.bestBananas == 42'u64)
 }
 
 // reverse-view iteration sliding window
@@ -294,10 +294,10 @@ func solve(text: string)->SolveResult
     ch[0] = 10; ch[1] = 20; ch[2] = 30; ch[3] = 40
     for i in range(1, 4).reversed() { ch[i] = ch[i - 1] }
     ch[0] = 99
-    @assert(ch[0] == 99)
-    @assert(ch[1] == 10)
-    @assert(ch[2] == 20)
-    @assert(ch[3] == 30)
+    Swag.assert(ch[0] == 99)
+    Swag.assert(ch[1] == 10)
+    Swag.assert(ch[2] == 20)
+    Swag.assert(ch[3] == 30)
 }
 
 // Part 2 sample: best sequence gives 23 bananas
@@ -305,14 +305,14 @@ func solve(text: string)->SolveResult
 {
     var buyers = parseBuyers(SamplePart2)
     let p2     = solvePart2(&buyers, 2000)
-    @assert(p2.bestBananas == 23'u64)
+    Swag.assert(p2.bestBananas == 23'u64)
 }
 
 // mix and prune inline
 #test
 {
-    @assert(mix(42, 15) == 37'u64)                // 42 ^ 15 = 37
-    @assert(prune(100000000) == 16113920'u64)     // 100000000 % 16777216
+    Swag.assert(mix(42, 15) == 37'u64)                // 42 ^ 15 = 37
+    Swag.assert(prune(100000000) == 16113920'u64)     // 100000000 % 16777216
 }
 
 // with &ptr on Coord (exercises the with-pointer fix)
@@ -324,11 +324,11 @@ func solve(text: string)->SolveResult
         .part1 = 111
         .part2 = 222
     }
-    @assert(sr.part1 == 111'u64)
-    @assert(sr.part2 == 222'u64)
+    Swag.assert(sr.part1 == 111'u64)
+    Swag.assert(sr.part2 == 222'u64)
 }
 
-// @mkslice in inline (exercises the mkslice fix)
+// Swag.makeSlice in inline (exercises the mkslice fix)
 struct SliceBuf
 {
     data: [8] u8
@@ -340,7 +340,7 @@ impl SliceBuf
     #[Swag.Inline]
     mtd asSlice()->const [..] u8
     {
-        return @mkslice(&me.data[0], cast(u64) me.len)
+        return Swag.makeSlice(&me.data[0], cast(u64) me.len)
     }
 }
 
@@ -351,7 +351,7 @@ impl SliceBuf
     buf.data[1] = 'i'
     buf.len     = 2
     let sl = buf.asSlice()
-    @assert(@countof(sl) == 2)
-    @assert(sl[0] == 'H')
-    @assert(sl[1] == 'i')
+    Swag.assert(sl.count == 2)
+    Swag.assert(sl[0] == 'H')
+    Swag.assert(sl[1] == 'i')
 }

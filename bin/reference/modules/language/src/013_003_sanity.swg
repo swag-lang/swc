@@ -77,7 +77,7 @@ again.
     {
         var req: Swag.AllocatorRequest
         req.size = size
-        let allocItf = @getcontext().allocator!
+        let allocItf = Swag.getContext().allocator!
         allocItf.alloc(&req)
         return req.address
     }
@@ -87,7 +87,7 @@ again.
         var req: Swag.AllocatorRequest
         req.address = ptr
         req.size    = size
-        let allocItf = @getcontext().allocator!
+        let allocItf = Swag.getContext().allocator!
         allocItf.free(&req)
     }
 
@@ -116,11 +116,11 @@ cannot prove still fail deterministically.
 
     var a = Item{x: 1}
     var b = #move a
-    @assert(b.x == 1)
+    Swag.assert(b.x == 1)
 
-    // @assert(a.x == 1)  // Uncomment: error, use of moved-from value
+    // Swag.assert(a.x == 1)  // Uncomment: error, use of moved-from value
     a = Item{x: 2}
-    @assert(a.x == 2)     // Reassigning makes it readable again
+    Swag.assert(a.x == 2)     // Reassigning makes it readable again
 }
 
 /**

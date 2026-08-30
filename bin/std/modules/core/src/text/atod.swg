@@ -779,7 +779,7 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
         return result
 
     // Normalization.
-    let clz = @bitcountlz(man)
+    let clz = Swag.bitCountLz(man)
     man <<= cast(u32) clz
 
     const ExponentBias = 1023
@@ -872,7 +872,7 @@ func special(s: const [..] u8)->{ value: f64, eat: u32 }
 public func parse(s: const [..] u8)->{ value: f64, eat: u32, ovf: bool } fail
 {
     var result: retval
-    let countof = @countof(s)
+    let countof = s.count
     if !countof do
         return result
 

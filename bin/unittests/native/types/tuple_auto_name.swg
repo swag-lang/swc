@@ -12,5 +12,5 @@ func readAutoNamedTupleThroughDecltype(seed: s32)->s32
 
 #test
 {
-    @assert(readAutoNamedTupleThroughDecltype(10) == 36)
+    Swag.assert(readAutoNamedTupleThroughDecltype(10) == 36)
 }

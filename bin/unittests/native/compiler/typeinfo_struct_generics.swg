@@ -10,7 +10,7 @@ const STRUCT_INFO = cast(const *Swag.TypeInfoStruct) #typeof(GenericBuffer'(u16,
 const COUNT_VALUE = cast(#null const *s32) STRUCT_INFO.generics[1].value
 
 #assert(STRUCT_INFO.fromGeneric != null)
-#assert(@countof(STRUCT_INFO.generics) == 2)
+#assert(STRUCT_INFO.generics.count == 2)
 #assert(STRUCT_INFO.generics[0].name == "T")
 #assert(STRUCT_INFO.generics[0].pointedType == u16)
 #assert(STRUCT_INFO.generics[1].name == "N")
@@ -19,9 +19,9 @@ const COUNT_VALUE = cast(#null const *s32) STRUCT_INFO.generics[1].value
 
 #test
 {
-    @assert(STRUCT_INFO.fromGeneric != null)
-    @assert(@countof(STRUCT_INFO.generics) == 2)
-    @assert(STRUCT_INFO.generics[0].pointedType == u16)
-    @assert(STRUCT_INFO.generics[1].pointedType == s32)
-    @assert(COUNT_VALUE[] == 7)
+    Swag.assert(STRUCT_INFO.fromGeneric != null)
+    Swag.assert(STRUCT_INFO.generics.count == 2)
+    Swag.assert(STRUCT_INFO.generics[0].pointedType == u16)
+    Swag.assert(STRUCT_INFO.generics[1].pointedType == s32)
+    Swag.assert(COUNT_VALUE[] == 7)
 }

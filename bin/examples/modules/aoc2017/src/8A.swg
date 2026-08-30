@@ -34,7 +34,7 @@ func day8A()
 
     for l in lines
     {
-        @assert(re.match(l[]))
+        Swag.assert(re.match(l[]))
         var v0 = expect StrConv.toS32(re[3])
         let v1 = expect StrConv.toS32(re[6])
         if !regs.contains(re[1]) do
@@ -62,5 +62,5 @@ func day8A()
 
     for k, v in regs do
         total = Math.max(total, v)
-    @assert(total == 4066)
+    Swag.assert(total == 4066)
 }

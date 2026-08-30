@@ -43,7 +43,7 @@ func day4A()
             for c in l[idx + 1 to idx + 5]
             {
                 var max, maxi = 0'u64
-                for i in @countof(count) where count[i] > max
+                for i in count.count where count[i] > max
                 {
                     max  = count[i]
                     maxi = i
@@ -63,6 +63,6 @@ func day4A()
         }
 
         // Console.print("total: ", total)
-        @assert(total == 361724)
+        Swag.assert(total == 361724)
     }
 }

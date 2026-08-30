@@ -22,9 +22,9 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     defer face.destroy()
 
     let page = fontCharacterPage(face, 0x20, 192)
-    @assert(page.characters.count == 192)
-    @assert(containsCharacter(page.characters.toSlice(), 'A'))
-    @assert(page.end >= cast(u32) 'A' and page.hasNext)
+    Swag.assert(page.characters.count == 192)
+    Swag.assert(containsCharacter(page.characters.toSlice(), 'A'))
+    Swag.assert(page.end >= cast(u32) 'A' and page.hasNext)
 }
 
 #test
@@ -35,17 +35,17 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 
     let fixture = fontFixturePath()
     var result  = openTestViewer(&createFontViewer, &host.root, fixture, commandParent: &host.root)
-    @assert(result.view != null and result.commands != null)
+    Swag.assert(result.view != null and result.commands != null)
 
     let view = cast(*FontViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    @assert(view.details.indexOf("Segoe UI") != Swag.U64.Max)
-    @assert(view.document.hasCharacter('A'))
+    Swag.assert(view.details.indexOf("Segoe UI") != Swag.U64.Max)
+    Swag.assert(view.document.hasCharacter('A'))
     let firstStart = view.document.pageStart
     view.document.nextPage()
-    @assert(view.document.pageStart > firstStart)
+    Swag.assert(view.document.pageStart > firstStart)
     view.document.previousPage()
-    @assert(view.document.pageStart == firstStart)
+    Swag.assert(view.document.pageStart == firstStart)
 }
 
 #test
@@ -65,7 +65,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 
     let fixture = fontFixturePath()
     var result  = openTestViewer(&createFontViewer, &host.root, fixture, commandParent: commandBar)
-    @assert(result.view != null)
+    Swag.assert(result.view != null)
     let view = cast(*FontViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle          = .Center
@@ -96,8 +96,8 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     defer host.shutdown()
 
     var result = openTestViewer(&createFontViewer, &host.root, fileName, commandParent: &host.root)
-    @assert(result.view != null and result.commands != null)
+    Swag.assert(result.view != null and result.commands != null)
     let view = cast(*FontViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    @assert(!view.failureReason.isEmpty())
+    Swag.assert(!view.failureReason.isEmpty())
 }

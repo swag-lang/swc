@@ -8,7 +8,7 @@ func assert(expr: #code->bool, message: #null string = null, loc = #callerlocati
     #static if ASSERT
     {
         if !#inject(expr) do
-            @panic(message, loc)
+            Swag.panic(message, loc)
     }
 }
 
@@ -19,7 +19,7 @@ func(what: Swag.SafetyWhat) safety(expr: #code->bool, message: #null string = nu
     #static if #safety(what)
     {
         if !#inject(expr) do
-            @panic(message, loc)
+            Swag.panic(message, loc)
     }
 }
 

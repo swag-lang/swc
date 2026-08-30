@@ -13,15 +13,15 @@ impl Scc.ICodec for ReverseSccCodec
     mtd impl encode(source: const [..] u8)->Array'u8 fail
     {
         var result: retval
-        result.resize(@countof(source))
+        result.resize(source.count)
         for value, index in source do
-            result[@countof(source) - index - 1] = value
+            result[source.count - index - 1] = value
         return result
     }
 
     mtd impl decode(source: const [..] u8, decodedSize: u64)->Array'u8 fail
     {
-        if @countof(source) != decodedSize do
+        if source.count != decodedSize do
             fail Errors.InvalidFormatError{"reverse test codec received a different size"}
         return .encode(source)
     }
@@ -31,7 +31,7 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
 
 func sameSccBytes(left, right: const [..] u8)->bool
 {
-    return @countof(left) == @countof(right) and (!@countof(left) or @memcmp(@dataof(left), @dataof(right), @countof(left)) == 0)
+    return left.count == right.count and (!left.count or Swag.memcmp(left.buffer, right.buffer, left.count) == 0)
 }
 
 // The header and one selected chunk are sufficient; unrelated payload corruption is lazy.
@@ -66,25 +66,25 @@ func sameSccBytes(left, right: const [..] u8)->bool
     {
         var index: Scc.Reader
         expect index.initialize(path)
-        @assert(index.kind() == kind)
-        @assert(index.manifest().name == "Indexed document")
-        @assert(@countof(index.chunks()) == 2)
-        @assert(index.findRole(previewRole)!.id == previewId)
+        Swag.assert(index.kind() == kind)
+        Swag.assert(index.manifest().name == "Indexed document")
+        Swag.assert((index.chunks()).count == 2)
+        Swag.assert(index.findRole(previewRole)!.id == previewId)
         imageOffset = index.findChunk(imageId)!.offset
     }
 
     var stream  = expect File.open(path, .Open, .ReadWrite, .Read)
     var damaged = 0xA5'u8
-    expect stream.writeAllAt(imageOffset, @mkslice(&damaged, 1))
+    expect stream.writeAllAt(imageOffset, Swag.makeSlice(&damaged, 1))
     stream.close()
 
     // Opening and reading the preview do not touch the damaged image payload.
     var reader: Scc.Reader
     expect reader.initialize(path)
     var preview = expect reader.readChunk(previewId)
-    @assert(sameSccBytes(preview.toSlice(), "small preview"))
+    Swag.assert(sameSccBytes(preview.toSlice(), "small preview"))
     discard catch reader.readChunk(imageId) as damagedError
-    @assert(damagedError != null)
+    Swag.assert(damagedError != null)
 }
 
 // Predefined Deflate and a caller-provided codec both round-trip independently.
@@ -109,13 +109,13 @@ func sameSccBytes(left, right: const [..] u8)->bool
     var reader: Scc.Reader
     expect reader.initialize(path)
     discard catch reader.readChunk(customId) as missingCodec
-    @assert(missingCodec != null)
+    Swag.assert(missingCodec != null)
     reader.registerCodec(&custom)
 
     let customBytes  = expect reader.readChunk(customId)
     let deflateBytes = expect reader.readChunk(deflateId)
-    @assert(sameSccBytes(customBytes.toSlice(), "custom codec"))
-    @assert(sameSccBytes(deflateBytes.toSlice(), "deflate deflate deflate deflate"))
+    Swag.assert(sameSccBytes(customBytes.toSlice(), "custom codec"))
+    Swag.assert(sameSccBytes(deflateBytes.toSlice(), "deflate deflate deflate deflate"))
 }
 
 // Header limits are enforced before the decoder allocates attacker-controlled sizes.
@@ -133,7 +133,7 @@ func sameSccBytes(left, right: const [..] u8)->bool
     limits.maxHeaderSize = 1
     var reader: Scc.Reader
     discard catch reader.initialize(path, limits) as limitError
-    @assert(limitError != null)
+    Swag.assert(limitError != null)
 }
 
 // Empty containers remain valid and closing a reader releases the Windows file lock.
@@ -151,12 +151,12 @@ func sameSccBytes(left, right: const [..] u8)->bool
 
     var reader: Scc.Reader
     expect reader.initialize(path)
-    @assert(reader.manifest().name == "Metadata only")
-    @assert(@countof(reader.chunks()) == 0)
+    Swag.assert(reader.manifest().name == "Metadata only")
+    Swag.assert((reader.chunks()).count == 0)
     reader.close()
 
     expect File.delete(path)
-    @assert(!File.exists(path))
+    Swag.assert(!File.exists(path))
 }
 
 // The virtual hierarchy can group one logical file and its alternate representations.
@@ -188,9 +188,9 @@ func sameSccBytes(left, right: const [..] u8)->bool
 
     var reader: Scc.Reader
     expect reader.initialize(path)
-    @assert(reader.manifest().entries.count == 2)
-    @assert(reader.manifest().entries[1].parentId == folder.id)
-    @assert(reader.manifest().entries[1].variantChunks[0] == jpg)
+    Swag.assert(reader.manifest().entries.count == 2)
+    Swag.assert(reader.manifest().entries[1].parentId == folder.id)
+    Swag.assert(reader.manifest().entries[1].variantChunks[0] == jpg)
 }
 
 // Invalid virtual references fail before an existing destination can be replaced.
@@ -209,7 +209,7 @@ func sameSccBytes(left, right: const [..] u8)->bool
     writer.manifest().entries.add(entry)
 
     discard catch writer.saveAtomic(path) as invalid
-    @assert(invalid != null)
+    Swag.assert(invalid != null)
     let bytes = expect File.readAllBytes(path)
-    @assert(sameSccBytes(bytes.toSlice(), "keep me"))
+    Swag.assert(sameSccBytes(bytes.toSlice(), "keep me"))
 }

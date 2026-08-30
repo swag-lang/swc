@@ -2,14 +2,14 @@ using Swag, Core
 
 func assertRange(buffer: #null const [..] u8, offset, length: u64) fail
 {
-    if offset + length > @countof(buffer) do
+    if offset + length > buffer.count do
         fault(0x03)
 }
 
 func getSlice(buffer: #null const [..] u8, offset, length: u64)->#null const [..] u8 fail
 {
     assertRange(buffer, offset, length)
-    return @mkslice(@dataof(buffer) + offset, length)
+    return Swag.makeSlice(buffer.buffer + offset, length)
 }
 
 func readU8(buffer: #null const [..] u8, offset: u64)->u8 fail

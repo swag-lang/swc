@@ -19,30 +19,30 @@ This expression must yield a **positive integer**.
     var cpt = 0
     for 10 do
         cpt += 1
-    @assert(cpt == 10)
+    Swag.assert(cpt == 10)
 }
 
 /**
-# Using '@index'
+# Using 'Swag.index'
 
-Within a `for`, the compiler provides the built-in `@index`, representing the current iteration (starting from 0).
+Within a `for`, the compiler provides the built-in `Swag.index`, representing the current iteration (starting from 0).
 */
 #test
 {
     var cpt = 0'u64
     for 5
     {
-        cpt += @index
+        cpt += Swag.index
     }
 
-    @assert(cpt == 0 + 1 + 2 + 3 + 4)
+    Swag.assert(cpt == 0 + 1 + 2 + 3 + 4)
 }
 
 /**
 # Naming the Loop Index
 
 You can bind the loop index by naming it before `in`. In a counted loop, that name
-always denotes the current index, while `@index` remains accessible.
+always denotes the current index, while `Swag.index` remains accessible.
 */
 #test
 {
@@ -52,27 +52,27 @@ always denotes the current index, while `@index` remains accessible.
     for i in 5
     {
         cpt  += i
-        cpt1 += @index
+        cpt1 += Swag.index
     }
 
-    @assert(cpt == 0 + 1 + 2 + 3 + 4)
-    @assert(cpt1 == cpt)
+    Swag.assert(cpt == 0 + 1 + 2 + 3 + 4)
+    Swag.assert(cpt1 == cpt)
 }
 
 /**
 # Looping Over Arrays and Slices
 
-The `for` construct can iterate over any type supporting `@countof`, such as arrays, slices, or strings.
+The `for` construct can iterate over any type supporting `.count`, such as arrays, slices, or strings.
 */
 #test
 {
     var arr = [10, 20, 30, 40]
-    #assert(@countof(arr) == 4)
+    #assert(arr.count == 4)
 
     var cpt = 0
     for arr do
-        cpt += arr[@index]
-    @assert(cpt == 10 + 20 + 30 + 40)
+        cpt += arr[Swag.index]
+    Swag.assert(cpt == 10 + 20 + 30 + 40)
 }
 
 /**
@@ -85,7 +85,7 @@ The `for` construct can iterate over any type supporting `@countof`, such as arr
     var cpt = 0
     for "⻘" do
         cpt += 1
-    @assert(cpt == 3)
+    Swag.assert(cpt == 3)
 }
 
 /**
@@ -101,11 +101,11 @@ To iterate in reverse order, iterate the zero-allocation view returned by
     for index in reversed(3)
     {
         if cpt == 0 do
-            @assert(index == 2)
+            Swag.assert(index == 2)
         elif cpt == 1 do
-            @assert(index == 1)
+            Swag.assert(index == 1)
         elif cpt == 2 do
-            @assert(index == 0)
+            Swag.assert(index == 0)
         cpt += 1
     }
 }
@@ -132,7 +132,7 @@ The `break` and `continue` keywords control loop flow.
         cpt += 1
     }
 
-    @assert(cpt == 5)
+    Swag.assert(cpt == 5)
 }
 
 /**
@@ -150,7 +150,7 @@ The `break` and `continue` keywords control loop flow.
         cpt += 1
     }
 
-    @assert(cpt == 9)
+    Swag.assert(cpt == 9)
 }
 
 /**
@@ -190,8 +190,8 @@ The `for` loop supports signed integer ranges, offering flexible intervals.
         sum   += i
     }
 
-    @assert(sum == 0)
-    @assert(count == 3)
+    Swag.assert(sum == 0)
+    Swag.assert(count == 3)
 }
 
 /**
@@ -207,7 +207,7 @@ The `for` loop supports signed integer ranges, offering flexible intervals.
         cpt += i
     }
 
-    @assert(cpt == 1 + 2)
+    Swag.assert(cpt == 1 + 2)
 }
 
 /**
@@ -228,14 +228,14 @@ is an error.
         return sum
     }
 
-    @assert(sumUpTo(0) == 0)
-    @assert(sumUpTo(4) == 0 + 1 + 2 + 3)
+    Swag.assert(sumUpTo(0) == 0)
+    Swag.assert(sumUpTo(4) == 0 + 1 + 2 + 3)
 
     // The same holds for a constant empty range, and away from zero.
     var cpt = 0
     for i in 7 until 7 do
         cpt += 1
-    @assert(cpt == 0)
+    Swag.assert(cpt == 0)
 }
 
 /**
@@ -262,7 +262,7 @@ Use `break` to exit.
 {
     for
     {
-        if @index == 4 do
+        if Swag.index == 4 do
             break
     }
 }
@@ -288,7 +288,7 @@ Only iterations meeting the condition are executed.
         result += i
     }
 
-    @assert(result == 0 + 2 + 4 + 6 + 8)
+    Swag.assert(result == 0 + 2 + 4 + 6 + 8)
 }
 
 /**
@@ -301,12 +301,12 @@ Loop over the element count and use `where` to filter which indices run the body
     var arr        = [10, 21, 30, 41, 50]
     var sumOfEvens = 0
 
-    for i in @countof(arr) where arr[i] % 2 == 0
+    for i in arr.count where arr[i] % 2 == 0
     {
         sumOfEvens += arr[i]
     }
 
-    @assert(sumOfEvens == 10 + 30 + 50)
+    Swag.assert(sumOfEvens == 10 + 30 + 50)
 }
 
 /**
@@ -319,12 +319,12 @@ The `where` clause supports multiple logical conditions for advanced filtering.
     var arr         = [10, 15, 20, 25, 30, 35]
     var filteredSum = 0
 
-    for i in @countof(arr) where arr[i] % 2 == 0 and arr[i] > 15
+    for i in arr.count where arr[i] % 2 == 0 and arr[i] > 15
     {
         filteredSum += arr[i]
     }
 
-    @assert(filteredSum == 20 + 30)
+    Swag.assert(filteredSum == 20 + 30)
 }
 
 #test
@@ -332,12 +332,12 @@ The `where` clause supports multiple logical conditions for advanced filtering.
     var arr        = [10, 25, 30, 45, 50, 65]
     var complexSum = 0
 
-    for i in @countof(arr) where arr[i] % 2 == 0 or arr[i] > 40
+    for i in arr.count where arr[i] % 2 == 0 or arr[i] > 40
     {
         complexSum += arr[i]
     }
 
-    @assert(complexSum == 10 + 30 + 45 + 50 + 65)
+    Swag.assert(complexSum == 10 + 30 + 45 + 50 + 65)
 }
 
 /**
@@ -354,7 +354,7 @@ The `where` clause can also be applied to ranges.
         sumOfPositiveEvens += i
     }
 
-    @assert(sumOfPositiveEvens == 2 + 4)
+    Swag.assert(sumOfPositiveEvens == 2 + 4)
 }
 
 /**
@@ -367,12 +367,12 @@ You can combine a reverse view with `where` for conditional iteration.
     var arr         = [10, 20, 30, 40, 50]
     var reversedSum = 0
 
-    for i in reversed(@countof(arr)) where arr[i] % 2 == 0
+    for i in reversed(arr.count) where arr[i] % 2 == 0
     {
         reversedSum += arr[i]
     }
 
-    @assert(reversedSum == 50 + 40 + 30 + 20 + 10)
+    Swag.assert(reversedSum == 50 + 40 + 30 + 20 + 10)
 }
 
 /**
@@ -387,7 +387,7 @@ Swag also supports a C-style `for` loop with initialization, condition, and incr
     // Standard syntax
     for var i = 0; i < 10; i += 1 do
         cpt += 1
-    @assert(cpt == 10)
+    Swag.assert(cpt == 10)
 
     // Alternative syntax with newlines
     for var i = 0; i < 10; i += 1
@@ -395,26 +395,26 @@ Swag also supports a C-style `for` loop with initialization, condition, and incr
         cpt += 1
     }
 
-    @assert(cpt == 20)
+    Swag.assert(cpt == 20)
 }
 
 /**
-# Accessing Loop Index with '@index'
+# Accessing Loop Index with 'Swag.index'
 
-In all `for` variants, `@index` provides the current iteration index.
+In all `for` variants, `Swag.index` provides the current iteration index.
 */
 #test
 {
     var cpt = 0'u64
 
     for var i: u32 = 10; i < 15; i += 1 do
-        cpt += @index
-    @assert(cpt == 0 + 1 + 2 + 3 + 4)
+        cpt += Swag.index
+    Swag.assert(cpt == 0 + 1 + 2 + 3 + 4)
 
     var cpt1 = 0'u64
     for var i = 10; i < 15; i += 1 do
-        cpt1 += @index
-    @assert(cpt1 == 0 + 1 + 2 + 3 + 4)
+        cpt1 += Swag.index
+    Swag.assert(cpt1 == 0 + 1 + 2 + 3 + 4)
 }
 
 /**
@@ -433,7 +433,7 @@ In all `for` variants, `@index` provides the current iteration index.
         sum += i
     }
 
-    @assert(sum == 0 + 1 + 2 + 3 + 4)
+    Swag.assert(sum == 0 + 1 + 2 + 3 + 4)
 
     sum = 0
     for var i = 0; i < 10; i += 1
@@ -443,13 +443,13 @@ In all `for` variants, `@index` provides the current iteration index.
         sum += i
     }
 
-    @assert(sum == 1 + 3 + 5 + 7 + 9)
+    Swag.assert(sum == 1 + 3 + 5 + 7 + 9)
 }
 
 /**
 # Nested 'for' Loops
 
-Swag supports nested loops. In nested contexts, `@index` refers to the current innermost loop.
+Swag supports nested loops. In nested contexts, `Swag.index` refers to the current innermost loop.
 */
 #test
 {
@@ -459,11 +459,11 @@ Swag supports nested loops. In nested contexts, `@index` refers to the current i
     {
         for var j = 0; j < 5; j += 1
         {
-            result += @index
+            result += Swag.index
         }
     }
 
-    @assert(result == 10 * 5)
+    Swag.assert(result == 10 * 5)
 }
 
 /**
@@ -476,10 +476,10 @@ You can also use `for` to iterate over arrays and collections.
     var array = [1, 2, 3, 4, 5]
     var sum   = 0
 
-    for var i = 0; i < @countof(array); i += 1
+    for var i = 0; i < array.count; i += 1
     {
         sum += array[i]
     }
 
-    @assert(sum == 1 + 2 + 3 + 4 + 5)
+    Swag.assert(sum == 1 + 2 + 3 + 4 + 5)
 }

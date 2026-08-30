@@ -21,15 +21,14 @@
     { "include": "#op-invalid" },
     { "include": "#keywords-invalid" },
     { "include": "#keywords-logic" },
-    { "include": "#function-call" },
-    { "include": "#function-call1" },
-    { "include": "#multi-strings" },
     { "include": "#intrinsics" },
     { "include": "#intrinsics-buildin" },
     { "include": "#intrinsics-control" },
+    { "include": "#function-call" },
+    { "include": "#function-call1" },
+    { "include": "#multi-strings" },
     { "include": "#intrinsics-alias" },
     { "include": "#intrinsics-invalid" },
-    { "include": "#intrinsics-literal" },
     { "include": "#compiler-user" },
     { "include": "#compiler-invalid" },
     { "include": "#types-me" },
@@ -156,7 +155,7 @@
       "patterns": [
         {
           "name": "entity.name.function.intrinsic",
-          "match": "(@)(tableof|stringcmp|typecmp|is|as|getcontext|setcontext|print|compilererror|compilerwarning|breakpoint|assert|panic|safetypanic|init|drop|mkany|mkslice|mkstring|mkinterface|kindof|countof|dataof|isset|postcopy|postmove)\\b"
+          "match": "\\bSwag\\.(tableOf|stringCmp|typeCmp|typeIs|typeAs|getContext|setContext|print|compilerError|compilerWarning|breakpoint|assert|panic|safetyPanic|init|drop|makeAny|makeSlice|makeString|makeInterface|kindOf|isSet|postCopy|postMove)\\b"
         }
       ]
     },
@@ -164,7 +163,7 @@
       "patterns": [
         {
           "name": "entity.name.tag",
-          "match": "(@)(rol|ror|muladd|byteswap|bitcountnz|bitcounttz|bitcountlz|min|max|sqrt|sin|cos|tan|sinh|cosh|tanh|asin|acos|atan|atan2|log|log2|log10|floor|ceil|trunc|round|abs|exp|exp2|pow|memcpy|memmove|memset|memcmp|atomadd|atomand|atomor|atomxor|atomxchg|atomcmpxchg|vecsplat|vecsatadd|vecsatsub|vecpackus|vecpackss|vecinterleavelo|vecinterleavehi|vecwidenlo|vecwidenhi|vecavgr|vecmaddubs|vecmadd|vecmulhi|vecreduceadd|vecreducemin|vecreducemax|vecreduceand|vecreduceor|vecreducexor|vecsad|vecshuffle2|vecshuffle|vecalign|vectruncs32|vecgather|vecperm|vecselect|vecmask|vecany|vecall)\\b"
+          "match": "\\bSwag\\.(rol|ror|muladd|byteSwap|bitCountNz|bitCountTz|bitCountLz|min|max|sqrt|sin|cos|tan|sinh|cosh|tanh|asin|acos|atan|atan2|log|log2|log10|floor|ceil|trunc|round|abs|exp|exp2|pow|memcpy|memmove|memset|memcmp|atomadd|atomand|atomor|atomxor|atomxchg|atomcmpxchg|vecsplat|vecsatadd|vecsatsub|vecpackus|vecpackss|vecinterleavelo|vecinterleavehi|vecwidenlo|vecwidenhi|vecavgr|vecmaddubs|vecmadd|vecmulhi|vecreduceadd|vecreducemin|vecreducemax|vecreduceand|vecreduceor|vecreducexor|vecsad|vecshuffle2|vecshuffle|vecalign|vectruncs32|vecgather|vecperm|vecselect|vecmask|vecany|vecall)\\b"
         }
       ]
     },
@@ -172,7 +171,7 @@
       "patterns": [
         {
           "name": "constant.character.escape",
-          "match": "(@)(index|args|jit|compiler|pinfos|modules|gvtd|rtflags)\\b"
+          "match": "\\bSwag\\.(index|args|jit|compiler|processInfos|modules|gvtd|runtimeFlags)\\b"
         }
       ]
     },
@@ -181,14 +180,6 @@
         {
           "name": "constant.character.escape",
           "match": "(.)(item)([0-9]+)|(#)(uniq)([0-9]+)"
-        }
-      ]
-    },
-    "intrinsics-literal": {
-      "patterns": [
-        {
-          "name": "keyword.declaration",
-          "match": "@"
         }
       ]
     },

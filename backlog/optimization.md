@@ -249,7 +249,7 @@ the shared backlog conventions.
 
 - Area: compiler
 - Found while: T-504, profiling the H.264 decoder on a 1080p30 Main stream in release.
-- Observation: `cond ? a : b`, `@min`, `@max`, `@abs` and `Math.clamp` through them lower to a
+- Observation: `cond ? a : b`, `Swag.min`, `Swag.max`, `Swag.abs` and `Math.clamp` through them lower to a
   compare and a conditional move: the ternary diamond converts when both arms are short, pure
   and cannot fault (`Pass.BranchSimplify`, `convertDiamondsToConditionalMoves`), the intrinsics
   through the single-arm conversion beside it. What still compiles to compare-and-branch is the
@@ -270,7 +270,7 @@ the shared backlog conventions.
 
 - Area: optimization
 - Found while: T-504, giving the H.264 decoder per-row reference progress so pictures overlap.
-- Observation: `Core.Atomic.get` is written as `@atomcmpxchg(addr, 0, 0)`, so every atomic read
+- Observation: `Core.Atomic.get` is written as `Swag.atomcmpxchg(addr, 0, 0)`, so every atomic read
   compiles to a `LOCK CMPXCHG`. That takes the cache line exclusively, writes it, and orders the
   whole pipeline, for what is only a read. On x86-64 an aligned load of that width is already
   atomic and already carries acquire ordering, so the locked form buys nothing and costs the line
@@ -283,7 +283,7 @@ the shared backlog conventions.
   times per macroblock, and the time came back. Every other spin in the repository still pays it:
   `Jobs.isDone`, `Jobs.wait`, the deblocking wavefront, `Frame.heldByCaller`, and the frame-pool
   scan in `startPicture` all poll through `Atomic.get`.
-- Next step: add a relaxed atomic load to the language — an `@atomget` intrinsic lowering to a
+- Next step: add a relaxed atomic load to the language — a `Swag.atomget` intrinsic lowering to a
   plain `MOV` on x86-64, with the same acquire guarantee the current form provides — and make
   `Atomic.get` use it. Measure `tools/unittests.swgs dm cpp` for the intrinsic itself, then the
   `Jobs` scheduler and the deblocking wavefront before and after; both spin on it today.
@@ -315,7 +315,7 @@ the shared backlog conventions.
   each of the three variable shifts carries a width guard of `cmp` plus `cmovae`, which is cheap
   next to the spills and was already elided once for
   [F-136](#f-136--a-hot-loops-loop-carried-locals-all-live-in-stack-slots) and measured at zero.
-- Two of the three costs are gone (2026-08-24). `@bitcountlz` no longer branches: the scan runs
+- Two of the three costs are gone (2026-08-24). `Swag.bitCountLz` no longer branches: the scan runs
   unconditionally and a conditional move supplies the operand-width answer for zero, so the
   sequence is one basic block instead of two and the caller keeps one fewer allocation boundary.
   And the function no longer carries a frame register: it names none, its stack shape is one
@@ -524,7 +524,7 @@ the shared backlog conventions.
   workspace, release, static counts: 19928 spill reloads. Concrete-touch is now the largest row
   (5840, 29% — a new code the old taxonomy folded elsewhere; `Decoder.configureMetadata`, a cold
   call-dense builder, owns 1747 of them alone), then boundary-48 (3576, 17%), join-disagree
-  (3567, 17% — diamond-heavy comparison chains: the generated `opEquals` bodies, `@typecmp`,
+  (3567, 17% — diamond-heavy comparison chains: the generated `opEquals` bodies, `Swag.typeCmp`,
   `Allocator.reallocate`), evict (2736, 14%), residency-prune (2382, 11%). Join-backedge is down
   to 149 — residency holds — and join-nosnap is zero: every conditional-jump edge does record a
   snapshot, so there is no missing-snapshot lot to take. The static join-disagree row lives in

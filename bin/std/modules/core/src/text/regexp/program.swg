@@ -712,7 +712,7 @@ func isWordByte(value: u8)->bool
 // characters, so `\bcat\b` must not match inside a word that begins with one.
 func assertionHolds(kind: AssertKind, hay: const [..] u8, pos: u64)->bool
 {
-    let count = @countof(hay)
+    let count = hay.count
 
     switch kind
     {
@@ -725,14 +725,14 @@ func assertionHolds(kind: AssertKind, hay: const [..] u8, pos: u64)->bool
     var beforeIsWord = false
     if pos > 0
     {
-        let before = Utf8.decodeLastRune(@mkslice(@dataof(hay), pos))
+        let before = Utf8.decodeLastRune(Swag.makeSlice(hay.buffer, pos))
         beforeIsWord = Unicode.isWord(before.c)
     }
 
     var afterIsWord = false
     if pos < count
     {
-        let after = Utf8.decodeRune(@mkslice(@dataof(hay) + pos, count - pos))
+        let after = Utf8.decodeRune(Swag.makeSlice(hay.buffer + pos, count - pos))
         afterIsWord = Unicode.isWord(after.c)
     }
 

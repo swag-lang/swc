@@ -10,9 +10,9 @@ alias LambdaDefaultTypeInfoFn = func(info = #typeof(lambdaDefaultTypeInfoFunc0))
     let cb: LambdaDefaultTypeInfoFn = func(info)->u64
     {
         #assert(#typeof(info) == const *TypeInfoFunc)
-        return cast(u64) @countof(info.parameters)
+        return cast(u64) info.parameters.count
     }
 
-    @assert(cb() == 0)
-    @assert(cb(#typeof(lambdaDefaultTypeInfoFunc1)) == 1)
+    Swag.assert(cb() == 0)
+    Swag.assert(cb(#typeof(lambdaDefaultTypeInfoFunc1)) == 1)
 }

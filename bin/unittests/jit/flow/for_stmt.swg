@@ -78,7 +78,7 @@ impl StringRefIndexBox
         var acc: s32     = 0
         for arr
         {
-            acc += arr[@index] * cast(s32) (@index + 1)
+            acc += arr[Swag.index] * cast(s32) (Swag.index + 1)
         }
 
         return acc
@@ -115,9 +115,9 @@ impl StringRefIndexBox
             switch i
             {
             case 1:
-                acc += cast(s32) @index
+                acc += cast(s32) Swag.index
             default:
-                acc += cast(s32) @index
+                acc += cast(s32) Swag.index
             }
         }
 
@@ -165,7 +165,7 @@ impl StringRefIndexBox
     {
         let value    = FixedCountedLoop{}
         var acc: s32 = 0
-        for i in @countof(value) do
+        for i in value.count do
             acc += cast(s32) i
         return acc
     }
@@ -180,7 +180,7 @@ impl StringRefIndexBox
     {
         var box = StringRefIndexBox{rows: ["10110", "00100"]}
         var sum = 0
-        for i in @countof(box[0][]) do
+        for i in box[0][].count do
             sum += cast(s32) i
         return sum
     }

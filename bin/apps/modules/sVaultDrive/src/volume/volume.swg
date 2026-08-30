@@ -168,7 +168,7 @@ func camouflageSize(logicalSize: u64, avoidedSize = 0'u64)->u64 fail
         failWith("The requested capacity leaves no room for camouflage.", .InvalidInput)
 
     var random = 0'u64
-    Core.Crypto.randomBytes(@mkslice(cast([*] u8) &random, #sizeof(random)))
+    Core.Crypto.randomBytes(Swag.makeSlice(cast([*] u8) &random, #sizeof(random)))
     let range  = maximum - minimum + 1
     var result = logicalSize + minimum + random % range
     if result == avoidedSize do
@@ -418,7 +418,7 @@ impl Volume
         if !.file.readExactAt(KeySlotAreaOffset, area) do
             failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
 
-        @memcpy(&.slotSalt[0], &area[0], Crypto.SaltSize)
+        Swag.memcpy(&.slotSalt[0], &area[0], Crypto.SaltSize)
         var slotKey = try Crypto.deriveSlotKey(password, .slotSalt)
         defer Core.Crypto.secureClear(slotKey)
         var candidate: [Crypto.MasterKeySize] u8
@@ -431,7 +431,7 @@ impl Volume
             defer slot.clear()
             if try slot.unwrap(slotKey, index, candidate)
             {
-                @memcpy(&.master[0], &candidate[0], Crypto.MasterKeySize)
+                Swag.memcpy(&.master[0], &candidate[0], Crypto.MasterKeySize)
                 found = true
             }
         }
@@ -552,7 +552,7 @@ impl Volume
     // protection is [[Volume.changePassword]] with an empty replacement.
     mtd addPassword(additional: const [..] u8)->u64 fail
     {
-        if !@countof(additional) do
+        if !additional.count do
             failWith("A password is required.", .PasswordRequired)
         if (try .findKeySlot(additional)) != Swag.U64.Max do
             failWith("That password already opens this container.", .AlreadyExists)
@@ -596,7 +596,7 @@ impl Volume
     }
 
     // Number of passwords that currently open this container.
-    mtd const keySlotCount()->u64 => @bitcountnz(.keySlotMask)
+    mtd const keySlotCount()->u64 => Swag.bitCountNz(.keySlotMask)
 
     // Extends the container to `requestedSize` bytes and gives the new blocks to the free list.
     //
@@ -952,7 +952,7 @@ impl Volume
 
         var magic: [#sizeof(HeaderMagic)] u8
         reader.readBytes(&magic[0], #sizeof(magic))
-        if @memcmp(&magic[0], &HeaderMagic[0], #sizeof(magic)) != 0 do
+        if Swag.memcmp(&magic[0], &HeaderMagic[0], #sizeof(magic)) != 0 do
             failWith("The container does not start with an sVaultDrive header.", .Corrupted)
 
         let version = reader.readLittleEndian'u32()
@@ -1074,7 +1074,7 @@ impl Volume
 
     mtd readMetadataPage(physical: u64, destination: [..] u8) fail
     {
-        Debug.assert(@countof(destination) == BlockSize)
+        Debug.assert(destination.count == BlockSize)
         var record: [BlockRecordSize] u8
         {
             Sync.scopedLock(&.ioLock)
@@ -1091,7 +1091,7 @@ impl Volume
 
     mtd writeMetadataPage(physical: u64, source: const [..] u8) fail
     {
-        Debug.assert(@countof(source) == BlockSize)
+        Debug.assert(source.count == BlockSize)
         var record: [BlockRecordSize] u8
         let nonce      = record[0 until Crypto.NonceSize]
         let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
@@ -1176,7 +1176,7 @@ impl Volume
     // record never look alike.
     mtd writeFramedRecord(offset, area: u64, locatorKind, recordKind: u32, recordId: u64, plain: const [..] u8) fail
     {
-        let used = HeaderRecordPrefixSize + @countof(plain) + Crypto.TagSize
+        let used = HeaderRecordPrefixSize + plain.count + Crypto.TagSize
         if used > area do
             failWith("A metadata record no longer fits its area.", .DiskFull)
 
@@ -1189,12 +1189,12 @@ impl Volume
 
         var locator = try Crypto.recordLocator(.keys.locator, locatorKind, recordId)
         defer Core.Crypto.secureClear(locator)
-        @memcpy(record.buffer, &locator[0], HeaderLocatorCheckSize)
-        Crypto.store32((record.buffer + HeaderLocatorCheckSize)!, cast(u32) @countof(plain) ^ Crypto.load32(&locator[HeaderLocatorCheckSize]))
+        Swag.memcpy(record.buffer, &locator[0], HeaderLocatorCheckSize)
+        Crypto.store32((record.buffer + HeaderLocatorCheckSize)!, cast(u32) plain.count ^ Crypto.load32(&locator[HeaderLocatorCheckSize]))
 
         let nonce      = record[Crypto.RecordLocatorSize until HeaderRecordPrefixSize]
-        let ciphertext = record[HeaderRecordPrefixSize until HeaderRecordPrefixSize + @countof(plain)]
-        let tag        = record[HeaderRecordPrefixSize + @countof(plain) until used]
+        let ciphertext = record[HeaderRecordPrefixSize until HeaderRecordPrefixSize + plain.count]
+        let tag        = record[HeaderRecordPrefixSize + plain.count until used]
         try Crypto.seal(&.keys, recordKind, recordId, plain, nonce, ciphertext, tag)
         Sync.scopedLock(&.ioLock)
         .file.writeAllAt(offset, record.toSlice())
@@ -1229,7 +1229,7 @@ impl Volume
         plain.resize(plainSize)
         let nonce      = record[0 until Crypto.NonceSize]
         let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + plainSize]
-        let tag        = record[Crypto.NonceSize + plainSize until @countof(record)]
+        let tag        = record[Crypto.NonceSize + plainSize until record.count]
         if !(try Crypto.open(&.keys, recordKind, recordId, nonce, ciphertext, tag, plain.toSlice())) do
             return result
 
@@ -1536,7 +1536,7 @@ impl Volume
 
     mtd readPhysical(physical: u64, destination: [..] u8) fail
     {
-        Debug.assert(@countof(destination) == BlockSize)
+        Debug.assert(destination.count == BlockSize)
         var record: [BlockRecordSize] u8
         {
             Sync.scopedLock(&.ioLock)
@@ -1553,7 +1553,7 @@ impl Volume
 
     mtd readBlock(node: *Node, logical: u64, destination: [..] u8) fail
     {
-        @memset(@dataof(destination), 0, @countof(destination))
+        Swag.memset(destination.buffer, 0, destination.count)
         let search = node.blockSearch(logical)
         if search.found
         {
@@ -1564,8 +1564,8 @@ impl Volume
 
     mtd readPhysicalRun(physical: u64, destination: [..] u8) fail
     {
-        Debug.assert(@countof(destination) != 0 and @countof(destination) % BlockSize == 0)
-        let count = @countof(destination) / BlockSize
+        Debug.assert(destination.count != 0 and destination.count % BlockSize == 0)
+        let count = destination.count / BlockSize
         Debug.assert(count <= MaximumIoBatchBlocks)
 
         var records: Array'u8
@@ -1600,15 +1600,15 @@ impl Volume
 
     mtd writePhysicalRun(physical: u64, source: const [..] u8) fail
     {
-        Debug.assert(@countof(source) != 0 and @countof(source) % BlockSize == 0)
-        let count = @countof(source) / BlockSize
+        Debug.assert(source.count != 0 and source.count % BlockSize == 0)
+        let count = source.count / BlockSize
         Debug.assert(count <= MaximumIoBatchBlocks)
 
         var records: Array'u8
         records.resize(count * BlockRecordSize)
         Core.Crypto.randomBytes(records.toSlice())
 
-        var plain = @mkslice(cast #unconst ([*] u8) @dataof(source), @countof(source))
+        var plain = Swag.makeSlice(cast #unconst ([*] u8) source.buffer, source.count)
         var batch = CryptoBatch{keys: &.keys, physical: physical, records: records.toSlice(), plain: plain}
         Jobs.parallelFor(cast(u32) count, &batch) #code(jobIndex, data)
         {
@@ -1690,7 +1690,7 @@ impl Volume
 
     mtd writeBlock(nodeId, logical: u64, source: const [..] u8) fail
     {
-        Debug.assert(@countof(source) == BlockSize)
+        Debug.assert(source.count == BlockSize)
         let allocated = try .blocks.allocateRun(1)
         let physical  = allocated.first
         var published = false
@@ -1710,9 +1710,9 @@ impl Volume
 
     mtd writeFullBlocks(nodeId, logical: u64, source: const [..] u8) fail
     {
-        Debug.assert(@countof(source) != 0 and @countof(source) % BlockSize == 0)
+        Debug.assert(source.count != 0 and source.count % BlockSize == 0)
         var doneBlocks = 0'u64
-        let blockCount = @countof(source) / BlockSize
+        let blockCount = source.count / BlockSize
         while doneBlocks < blockCount
         {
             let requested = Math.min(blockCount - doneBlocks, MaximumIoBatchBlocks)
@@ -1785,7 +1785,7 @@ impl Volume
         let mapping = node.blocks[search.index]
         .readPhysical(mapping.physical + logical - mapping.logical, block)
         let end = Math.min(newSize, (logical + 1) * BlockSize)
-        @memset(&block[oldSize % BlockSize], 0, end - oldSize)
+        Swag.memset(&block[oldSize % BlockSize], 0, end - oldSize)
         .writeBlock(nodeId, logical, block)
     }
 
@@ -1815,10 +1815,10 @@ impl Volume
         let validNode = node!
         if validNode.isDirectory() do
             failWith("Cannot read a directory as a file.", .IsDirectory)
-        if offset >= validNode.size or !@countof(destination) do
+        if offset >= validNode.size or !destination.count do
             return 0
 
-        let count = Math.min(@countof(destination), validNode.size - offset)
+        let count = Math.min(destination.count, validNode.size - offset)
         var done  = 0'u64
         while done < count
         {
@@ -1845,14 +1845,14 @@ impl Volume
                 let nextLogical = search.index < validNode.blocks.count ? validNode.blocks[search.index].logical : logical + remainingBlocks
                 let holeBlocks  = Math.min(remainingBlocks, nextLogical - logical)
                 let holeBytes   = holeBlocks * BlockSize
-                @memset(@dataof(destination) + done, 0, holeBytes)
+                Swag.memset(destination.buffer + done, 0, holeBytes)
                 done += holeBytes
                 continue
             }
 
             var block: [BlockSize] u8
             .readBlock(validNode, logical, block)
-            @memcpy(@dataof(destination) + done, &block[inBlock], chunk)
+            Swag.memcpy(destination.buffer + done, &block[inBlock], chunk)
             Core.Crypto.secureClear(block)
             done += chunk
         }
@@ -1875,7 +1875,7 @@ impl Volume
         var writeOffset = offset
         if writeToEnd do
             writeOffset = validNode.size
-        var count = @countof(source)
+        var count = source.count
         if constrained
         {
             if writeOffset >= validNode.size do
@@ -1913,7 +1913,7 @@ impl Volume
             var block: [BlockSize] u8
             if inBlock or chunk != BlockSize do
                 .readBlock(current, logical, block)
-            @memcpy(&block[inBlock], @dataof(source) + done, chunk)
+            Swag.memcpy(&block[inBlock], source.buffer + done, chunk)
             .writeBlock(nodeId, logical, block)
             Core.Crypto.secureClear(block)
             done += chunk
@@ -1940,7 +1940,7 @@ impl Volume
         if parent == null or !parent!.isDirectory() do
             failWith("Parent directory does not exist.", .NotFound)
         let validParent = parent!
-        if !@countof(name) or name == "." or name == ".." do
+        if !name.count or name == "." or name == ".." do
             failWith("Invalid file name.", .InvalidInput)
         if .findChild(validParent.id, name) do
             failWith("A file with this name already exists.", .AlreadyExists)
@@ -2022,7 +2022,7 @@ impl Volume
         if id == 1 do
             failWith("Cannot rename the root directory.", .AccessDenied)
         let {parent, name} = .resolveParent(newPath)
-        if parent == null or !parent!.isDirectory() or !@countof(name) do
+        if parent == null or !parent!.isDirectory() or !name.count do
             failWith("The destination directory does not exist.", .NotFound)
         let validParent         = parent!
         let destinationParentId = validParent.id

@@ -189,11 +189,11 @@ impl Generator
     // Randomizes the order of a slice using Fisher-Yates shuffling.
     mtd(V) shuffle(slice: [..] V)
     {
-        let count = @countof(slice)
+        let count = slice.count
         if count < 2 do
             return
 
-        let data = @dataof(slice)
+        let data = slice.buffer
         for var index = count - 1; index > 0; index -= 1
         {
             let other = .nextU64(0, index + 1)

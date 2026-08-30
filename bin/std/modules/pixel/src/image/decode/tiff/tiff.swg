@@ -173,7 +173,7 @@ func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) fail
             let value = p[0]
             p += 1
             for count do
-                dst[out + @index] = value
+                dst[out + Swag.index] = value
             out += count
         }
     }
@@ -185,8 +185,8 @@ internal impl IImageDecoder for Decoder
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
-        let base    = @dataof(buffer)
-        let countof = @countof(buffer)
+        let base    = buffer.buffer
+        let countof = buffer.count
         let last    = base + countof
 
         if countof < 8 do

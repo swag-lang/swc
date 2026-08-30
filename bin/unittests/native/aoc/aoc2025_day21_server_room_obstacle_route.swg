@@ -29,17 +29,17 @@ func cellIndex(x, y, gridSize: u32)->u32
 func hasEscapeRoute(outSteps: *u32, drops: const [..] ByteDrop, gridSize, dropCount: u32)->bool
 {
     let totalCells = gridSize * gridSize
-    @assert(gridSize <= MaxGridSize)
-    @assert(totalCells <= MaxGridCells)
-    @assert(dropCount <= cast(u32) @countof(drops))
+    Swag.assert(gridSize <= MaxGridSize)
+    Swag.assert(totalCells <= MaxGridCells)
+    Swag.assert(dropCount <= cast(u32) drops.count)
 
     var blocked: [MaxGridCells] bool
 
     for dropCount
     {
-        let drop = drops[@index]
-        @assert(drop.x < gridSize)
-        @assert(drop.y < gridSize)
+        let drop = drops[Swag.index]
+        Swag.assert(drop.x < gridSize)
+        Swag.assert(drop.y < gridSize)
         blocked[cellIndex(drop.x, drop.y, gridSize)] = true
     }
 
@@ -130,13 +130,13 @@ func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount
     var result: RouteReport
     var steps:  u32
 
-    @assert(hasEscapeRoute(&steps, drops, gridSize, initialDropCount))
+    Swag.assert(hasEscapeRoute(&steps, drops, gridSize, initialDropCount))
     result.shortestSteps = steps
 
-    let extraDrops = cast(u32) @countof(drops) - initialDropCount
+    let extraDrops = cast(u32) drops.count - initialDropCount
     for extraDrops
     {
-        let dropCount = initialDropCount + cast(u32) @index + 1
+        let dropCount = initialDropCount + cast(u32) Swag.index + 1
         if !hasEscapeRoute(&steps, drops, gridSize, dropCount)
         {
             let blocking = drops[dropCount - 1]
@@ -147,7 +147,7 @@ func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount
         }
     }
 
-    @assert(result.firstBlockingDropCount != 0)
+    Swag.assert(result.firstBlockingDropCount != 0)
     return result
 }
 
@@ -184,10 +184,10 @@ func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount
 
     let sampleReport = analyzeObstacleDrops(sampleDrops, 7, 12)
 
-    @assert(sampleReport.shortestSteps == 22)
-    @assert(sampleReport.firstBlockingX == 6)
-    @assert(sampleReport.firstBlockingY == 1)
-    @assert(sampleReport.firstBlockingDropCount == 21)
+    Swag.assert(sampleReport.shortestSteps == 22)
+    Swag.assert(sampleReport.firstBlockingX == 6)
+    Swag.assert(sampleReport.firstBlockingY == 1)
+    Swag.assert(sampleReport.firstBlockingDropCount == 21)
 
     const compactDrops: [7] ByteDrop =
         [
@@ -202,8 +202,8 @@ func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount
 
     let compactReport = analyzeObstacleDrops(compactDrops, 5, 4)
 
-    @assert(compactReport.shortestSteps == 8)
-    @assert(compactReport.firstBlockingX == 0)
-    @assert(compactReport.firstBlockingY == 3)
-    @assert(compactReport.firstBlockingDropCount == 7)
+    Swag.assert(compactReport.shortestSteps == 8)
+    Swag.assert(compactReport.firstBlockingX == 0)
+    Swag.assert(compactReport.firstBlockingY == 3)
+    Swag.assert(compactReport.firstBlockingDropCount == 7)
 }

@@ -111,7 +111,7 @@ func fmtE(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64, 
         let m = Math.min(d.nd, prec + 1)
         if i < m
         {
-            dst.addBytes(@mkslice(&d.d[i], m - i))
+            dst.addBytes(Swag.makeSlice(&d.d[i], m - i))
             i = m
         }
 
@@ -169,7 +169,7 @@ func fmtF(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64)
     if d.dp > 0
     {
         var m = Math.min(d.nd, d.dp)
-        dst.addBytes(@mkslice(&d.d[0], m))
+        dst.addBytes(Swag.makeSlice(&d.d[0], m))
         while m < d.dp
         {
             dst.addNative('0'u8)

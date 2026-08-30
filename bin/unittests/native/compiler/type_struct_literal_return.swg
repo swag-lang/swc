@@ -12,10 +12,10 @@ func makeTypeStructLiteralPayloads() => [{first: #type [2] TypeStructLiteralNati
     let firstInfo  = cast(const *Swag.TypeInfoArray) payload.first
     let secondInfo = cast(const *Swag.TypeInfoArray) payload.second
 
-    @assert(payload.first == #type [2] TypeStructLiteralNativePoint)
-    @assert(payload.second == #type [3] TypeStructLiteralNativePoint)
-    @assert(firstInfo.totalCount == 2)
-    @assert(secondInfo.totalCount == 3)
+    Swag.assert(payload.first == #type [2] TypeStructLiteralNativePoint)
+    Swag.assert(payload.second == #type [3] TypeStructLiteralNativePoint)
+    Swag.assert(firstInfo.totalCount == 2)
+    Swag.assert(secondInfo.totalCount == 3)
 }
 
 #test
@@ -25,9 +25,9 @@ func makeTypeStructLiteralPayloads() => [{first: #type [2] TypeStructLiteralNati
     let secondInfo = cast(const *Swag.TypeInfoArray) payloads[1].first
     let index      = 1
 
-    @assert(payloads[0].first == #type [2] TypeStructLiteralNativePoint)
-    @assert(payloads[1].first == #type [3] TypeStructLiteralNativePoint)
-    @assert(payloads[index].first == #type [3] TypeStructLiteralNativePoint)
-    @assert(firstInfo.totalCount == 2)
-    @assert(secondInfo.totalCount == 3)
+    Swag.assert(payloads[0].first == #type [2] TypeStructLiteralNativePoint)
+    Swag.assert(payloads[1].first == #type [3] TypeStructLiteralNativePoint)
+    Swag.assert(payloads[index].first == #type [3] TypeStructLiteralNativePoint)
+    Swag.assert(firstInfo.totalCount == 2)
+    Swag.assert(secondInfo.totalCount == 3)
 }

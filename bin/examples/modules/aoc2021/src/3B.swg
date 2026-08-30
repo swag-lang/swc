@@ -38,7 +38,7 @@ internal var lines: Array'String
 func calc(a, b: u8)->u64
 {
     var scan = lines
-    for c in @countof(scan[0])
+    for c in scan[0].count
     {
         var count = 0
         for l in scan do
@@ -70,5 +70,5 @@ func day3B()
     let co2 = calc('0', '1')
 
     // Console.print("total: ", o2*co2)
-    @assert(o2 * co2 == 7041258)
+    Swag.assert(o2 * co2 == 7041258)
 }

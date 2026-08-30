@@ -10,6 +10,6 @@
     var m: InlineGeo.GeoMaker
     m.base = 41
     let c = m.corner()
-    @assert(c.x == 41)
-    @assert(c.y == 42)
+    Swag.assert(c.x == 41)
+    Swag.assert(c.y == 42)
 }

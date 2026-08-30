@@ -18,7 +18,7 @@ func addObject(bytes: *Array'u8, number: u32, body: string)
 // Appends one stream object whose `/Length` is computed from the payload.
 func addStreamObject(bytes: *Array'u8, number: u32, dictionary: string, stream: const [..] u8)
 {
-    bytes.add(cast(const [..] u8) Format.toString("% 0 obj\n<< % /Length % >>\nstream\n", number, dictionary, @countof(stream)).toString())
+    bytes.add(cast(const [..] u8) Format.toString("% 0 obj\n<< % /Length % >>\nstream\n", number, dictionary, stream.count).toString())
     bytes.add(stream)
     bytes.add(cast(const [..] u8) "\nendstream\nendobj\n")
 }
@@ -51,7 +51,7 @@ func onlyItem(page: const *Pdf.Page, kind: Pdf.ItemKind)->const *Pdf.Item
         count  += 1
     }
 
-    @assert(count == 1)
+    Swag.assert(count == 1)
     return result!
 }
 

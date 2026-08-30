@@ -111,7 +111,7 @@ impl RichString
             chunk.fontStyle    = .Italic
         }
 
-        chunk.slice = @mkstring(.raw.buffer + startChunk, idx - startChunk)
+        chunk.slice = Swag.makeString(.raw.buffer + startChunk, idx - startChunk)
         .chunks.add(chunk)
         startChunk = idx
     }
@@ -161,13 +161,13 @@ impl RichString
     {
         var result: retval
 
-        var scan  = @dataof(str)
-        var count = @countof(str)
+        var scan  = str.buffer
+        var count = str.count
         result.reserve(count)
 
         while count
         {
-            let sl      = @mkslice(scan, count)
+            let sl      = Swag.makeSlice(scan, count)
             var handled = false
             switch
             {
@@ -269,7 +269,7 @@ impl RichString
         var scan = .raw.buffer
         while count
         {
-            var sl      = @mkslice(scan, count)
+            var sl      = Swag.makeSlice(scan, count)
             var handled = false
             switch
             {
@@ -380,7 +380,7 @@ impl RichString
                 count         -= eat
                 if c == '\r' and count
                 {
-                    sl = @mkslice(scan, count)
+                    sl = Swag.makeSlice(scan, count)
                     let {next, nextEat} = Utf8.decodeRune(sl)
                     if next == '\n'
                     {
@@ -400,7 +400,7 @@ impl RichString
                 {
                     byteIdx, scan += eat
                     count         -= eat
-                    sl            = @mkslice(scan, count)
+                    sl            = Swag.makeSlice(scan, count)
                     {c, eat}      = Utf8.decodeRune(sl)
                 }
 

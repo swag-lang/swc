@@ -11,15 +11,15 @@ using Swag, Core
     discard expect face.setPixelSize(0, 20)
     let glyphIndex = face.glyphIndex('A')
     discard expect face.loadGlyph(glyphIndex, .Render)
-    @assert(face.glyph.bitmap.width > 0)
-    @assert(face.glyph.bitmap.rows > 0)
-    @assert(face.glyph.bitmap.pitch == cast(s32) face.glyph.bitmap.width)
-    @assert(face.glyph.bitmap.pixelMode.bytesPerPixel() == 1)
-    @assert(countBitmapCoverage(&face.glyph.bitmap) > 0)
+    Swag.assert(face.glyph.bitmap.width > 0)
+    Swag.assert(face.glyph.bitmap.rows > 0)
+    Swag.assert(face.glyph.bitmap.pitch == cast(s32) face.glyph.bitmap.width)
+    Swag.assert(face.glyph.bitmap.pixelMode.bytesPerPixel() == 1)
+    Swag.assert(countBitmapCoverage(&face.glyph.bitmap) > 0)
 
     discard expect face.loadChar(' ', .Default)
     discard expect face.renderGlyph()
-    @assert(countBitmapCoverage(&face.glyph.bitmap) == 0)
+    Swag.assert(countBitmapCoverage(&face.glyph.bitmap) == 0)
 }
 
 #test
@@ -37,26 +37,26 @@ using Swag, Core
 
     discard expect face.renderGlyphSdf(8)
     let sdf = &face.glyph.bitmap
-    @assert(sdf.width > normal.width)
-    @assert(sdf.rows > normal.rows)
-    @assert(sdf.pitch == cast(s32) sdf.width)
-    @assert(face.glyph.bitmapLeft < normalLeft)
-    @assert(face.glyph.bitmapTop > normalTop)
+    Swag.assert(sdf.width > normal.width)
+    Swag.assert(sdf.rows > normal.rows)
+    Swag.assert(sdf.pitch == cast(s32) sdf.width)
+    Swag.assert(face.glyph.bitmapLeft < normalLeft)
+    Swag.assert(face.glyph.bitmapTop > normalTop)
 
     var hasOutside = false
     var hasInside  = false
     let sdfBuf     = sdf.buffer!
     for cast(u64) sdf.width * sdf.rows
     {
-        let value = sdfBuf[@index]
+        let value = sdfBuf[Swag.index]
         if value < 128 do
             hasOutside = true
         if value > 128 do
             hasInside = true
     }
 
-    @assert(hasOutside)
-    @assert(hasInside)
+    Swag.assert(hasOutside)
+    Swag.assert(hasInside)
 }
 
 // The two-pixel SDF kernel must be byte-identical to the scalar distance and winding
@@ -88,8 +88,8 @@ using Swag, Core
 
             discard expect face.renderGlyphSdf(spread)
             let bitmap = &face.glyph.bitmap
-            @assert(bitmap.width == width)
-            @assert(bitmap.rows == rows)
+            Swag.assert(bitmap.width == width)
+            Swag.assert(bitmap.rows == rows)
             if width & 1 do
                 sawOddWidth = true
 
@@ -103,13 +103,13 @@ using Swag, Core
                     let signedDistance = isInside(edges.toSlice(), sampleX, sampleY) ? distance : -distance
                     let value          = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
                     let expected       = cast(u8) Math.round(value)
-                    @assert(bitmap.buffer![cast(u64) py * bitmap.width + px] == expected)
+                    Swag.assert(bitmap.buffer![cast(u64) py * bitmap.width + px] == expected)
                 }
             }
         }
     }
 
-    @assert(sawOddWidth)
+    Swag.assert(sawOddWidth)
 }
 
 // The analytic rasterizer must produce true anti-aliasing: fully-outside pixels (0),
@@ -124,8 +124,8 @@ using Swag, Core
     discard expect face.loadChar('A', .Default)
     discard expect face.renderGlyph()
     let bmp = &face.glyph.bitmap
-    @assert(bmp.width > 0)
-    @assert(bmp.rows > 0)
+    Swag.assert(bmp.width > 0)
+    Swag.assert(bmp.rows > 0)
 
     var hasZero    = false
     var hasFull    = false
@@ -133,7 +133,7 @@ using Swag, Core
     let bmpBuf     = bmp.buffer!
     for cast(u64) bmp.width * bmp.rows
     {
-        let v = bmpBuf[@index]
+        let v = bmpBuf[Swag.index]
         if v == 0 do
             hasZero = true
         elif v == 255 do
@@ -142,9 +142,9 @@ using Swag, Core
             hasPartial = true
     }
 
-    @assert(hasZero)        // background corners
-    @assert(hasFull)        // solid stems are fully covered
-    @assert(hasPartial)     // anti-aliased edges
+    Swag.assert(hasZero)        // background corners
+    Swag.assert(hasFull)        // solid stems are fully covered
+    Swag.assert(hasPartial)     // anti-aliased edges
 }
 
 #test
@@ -156,7 +156,7 @@ using Swag, Core
     discard expect face.setPixelSize(0, 20)
     discard expect face.loadChar('A', .Default)
     discard catch face.loadGlyph(face.glyphCount + 1, .Default) as err15
-    @assert(err15 != null)
+    Swag.assert(err15 != null)
 }
 
 // Multi-channel SDF: 3 bytes per pixel, padded like the single-channel SDF, and the
@@ -178,14 +178,14 @@ using Swag, Core
     let spread = 8'u32
     discard expect face.renderGlyphMsdf(spread)
     let msdf = &face.glyph.bitmap
-    @assert(msdf.width > normalWidth)
-    @assert(msdf.rows > normalRows)
+    Swag.assert(msdf.width > normalWidth)
+    Swag.assert(msdf.rows > normalRows)
 
     // MTSDF: 4 bytes per pixel (RGB multi-channel field + true SDF in alpha).
-    @assert(msdf.pitch == cast(s32) msdf.width * 4)
-    @assert(msdf.pixelMode.bytesPerPixel() == 4)
-    @assert(face.glyph.bitmapLeft == normalLeft - cast(s32) spread)
-    @assert(face.glyph.bitmapTop == normalTop + cast(s32) spread)
+    Swag.assert(msdf.pitch == cast(s32) msdf.width * 4)
+    Swag.assert(msdf.pixelMode.bytesPerPixel() == 4)
+    Swag.assert(face.glyph.bitmapLeft == normalLeft - cast(s32) spread)
+    Swag.assert(face.glyph.bitmapTop == normalTop + cast(s32) spread)
 
     // The padded border must be fully outside (median < 128), the glyph body must
     // contain inside pixels (median > 128), and channels must actually differ
@@ -220,13 +220,13 @@ using Swag, Core
         }
     }
 
-    @assert(hasInside)
-    @assert(hasOutside)
-    @assert(channelsDiffer)
-    @assert(hasInsideA)
-    @assert(hasOutsideA)
+    Swag.assert(hasInside)
+    Swag.assert(hasOutside)
+    Swag.assert(channelsDiffer)
+    Swag.assert(hasInsideA)
+    Swag.assert(hasOutsideA)
 
     // Top-left corner of the padded bounding box is far outside the glyph.
     let corner = Math.max(Math.min(msdfBuf[0], msdfBuf[1]), Math.min(Math.max(msdfBuf[0], msdfBuf[1]), msdfBuf[2]))
-    @assert(corner < 128)
+    Swag.assert(corner < 128)
 }

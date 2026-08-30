@@ -8,15 +8,15 @@ using Swag, Core
     var line: RichEditLine
     line.chars.add('x')
     line.styles.add(0)
-    @assert(line.runeAt(0) == 'x')
+    Swag.assert(line.runeAt(0) == 'x')
     line.setStyleAt(0, 7)
-    @assert(line.styleAt(0) == 7)
-    @assert(line.setLexerState(12))
-    @assert(!line.setLexerState(12))
-    @assert(line.lexerState() == 12)
+    Swag.assert(line.styleAt(0) == 7)
+    Swag.assert(line.setLexerState(12))
+    Swag.assert(!line.setLexerState(12))
+    Swag.assert(line.lexerState() == 12)
     line.dirtyStyle = false
     line.markStyleDirty()
-    @assert(line.dirtyStyle)
+    Swag.assert(line.dirtyStyle)
 }
 
 // The default shortcut table contains one command per key/modifier pair.
@@ -26,18 +26,18 @@ using Swag, Core
     host.setup(320, 220)
     defer host.shutdown()
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
-    @assert(ed.commandForShortcut(Input.Key.Down, Input.KeyModifiers.Shift) == .SelectRuneDown)
-    @assert(ed.commandForShortcut(Input.Key.Down, Input.KeyModifiers.Control) == .ScrollLineDown)
+    Swag.assert(ed.commandForShortcut(Input.Key.Down, Input.KeyModifiers.Shift) == .SelectRuneDown)
+    Swag.assert(ed.commandForShortcut(Input.Key.Down, Input.KeyModifiers.Control) == .ScrollLineDown)
 
     let mappingCount = ed.mapping.count
     ed.setDefaultMapping()
-    @assert(ed.mapping.count == mappingCount)
+    Swag.assert(ed.mapping.count == mappingCount)
 
     for i in ed.mapping.count
     {
         for j in i + 1 until ed.mapping.count
         {
-            @assert(ed.mapping[i].key != ed.mapping[j].key or ed.mapping[i].modifiers != ed.mapping[j].modifiers)
+            Swag.assert(ed.mapping[i].key != ed.mapping[j].key or ed.mapping[i].modifiers != ed.mapping[j].modifiers)
         }
     }
 }
@@ -50,13 +50,13 @@ using Swag, Core
     defer host.shutdown()
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
     ed.setText("Hello")
-    @assert(ed.text() == "Hello")
+    Swag.assert(ed.text() == "Hello")
 
     ed.addText(" World")
-    @assert(ed.text() == "Hello World")
+    Swag.assert(ed.text() == "Hello World")
 
     ed.clear()
-    @assert(ed.text() == "")
+    Swag.assert(ed.text() == "")
 }
 
 #test
@@ -77,11 +77,11 @@ using Swag, Core
     for 80 do
         ed.addText("one line\n")
     host.settleAnimations(ed)
-    @assert(ed.scrollableClientRect().height > ed.paddedClientRect().height)
+    Swag.assert(ed.scrollableClientRect().height > ed.paddedClientRect().height)
 
     ed.scrollWnd.setScrollPos(0, 40)
-    @assert(ed.scrollPosition().y > 0)
-    @assert(notified)
+    Swag.assert(ed.scrollPosition().y > 0)
+    Swag.assert(notified)
 }
 
 // A streaming document can expose its eventual height before all text is resident, and appending
@@ -98,23 +98,23 @@ using Swag, Core
     host.settleAnimations(ed)
 
     let loadedHeight = ed.loadedDocumentHeight()
-    @assert(loadedHeight > 0)
+    Swag.assert(loadedHeight > 0)
     ed.setEstimatedDocumentHeight(loadedHeight * 4)
     ed.setScrollPosition({0, loadedHeight * 2})
     let position = ed.scrollPosition()
-    @assert(position.y > loadedHeight)
+    Swag.assert(position.y > loadedHeight)
 
     // Rendering the not-yet-resident gap must stay safe and blank while the owner fetches more.
     host.settleAnimations(ed)
     for 10 do
         ed.addText("another line\n")
     host.settleAnimations(ed)
-    @assert(ed.scrollPosition() == position)
-    @assert(ed.scrollableClientRect().height >= loadedHeight * 4)
+    Swag.assert(ed.scrollPosition() == position)
+    Swag.assert(ed.scrollableClientRect().height >= loadedHeight * 4)
 
     ed.setEstimatedDocumentHeight(0)
     host.settleAnimations(ed)
-    @assert(ed.scrollableClientRect().height == ed.loadedDocumentHeight())
+    Swag.assert(ed.scrollableClientRect().height == ed.loadedDocumentHeight())
 }
 
 // selectAll selects the whole content.
@@ -126,7 +126,7 @@ using Swag, Core
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
     ed.setText("Selectable")
     ed.selectAll()
-    @assert(ed.selectedText() == "Selectable")
+    Swag.assert(ed.selectedText() == "Selectable")
 }
 
 // insertText at the cursor, with undo/redo.
@@ -142,13 +142,13 @@ using Swag, Core
     ed.pushUndo()
     ed.insertText("X")
     ed.popUndo()
-    @assert(ed.text() == "Xabc")
+    Swag.assert(ed.text() == "Xabc")
 
     ed.undo()
-    @assert(ed.text() == "abc")
+    Swag.assert(ed.text() == "abc")
 
     ed.redo()
-    @assert(ed.text() == "Xabc")
+    Swag.assert(ed.text() == "Xabc")
 }
 
 // The context menu reaches the same clipboard commands the keyboard does, and a read-only
@@ -164,18 +164,18 @@ using Swag, Core
     host.clickPopupMenuItemWhenShown(RichEditCtrl.CtxSelectAll)
     ed.showContextMenu({60, 60})
     host.pump()
-    @assert(ed.selectedText() == "First line")
+    Swag.assert(ed.selectedText() == "First line")
 
     host.clickPopupMenuItemWhenShown(RichEditCtrl.CtxCopy)
     ed.showContextMenu({60, 60})
     host.pump()
-    @assert(Clipboard.getString() == "First line")
+    Swag.assert(Clipboard.getString() == "First line")
 
     // Cut through the menu edits the document, which a read-only editor must refuse to offer.
     host.clickPopupMenuItemWhenShown(RichEditCtrl.CtxCut)
     ed.showContextMenu({60, 60})
     host.pump()
-    @assert(ed.text() == "")
+    Swag.assert(ed.text() == "")
 
     ed.setText("Frozen")
     ed.setFlags(.ReadOnly)
@@ -183,6 +183,6 @@ using Swag, Core
     host.clickPopupMenuItemWhenShown(RichEditCtrl.CtxCopy)
     ed.showContextMenu({60, 60})
     host.pump()
-    @assert(Clipboard.getString() == "Frozen")
-    @assert(ed.text() == "Frozen")
+    Swag.assert(Clipboard.getString() == "Frozen")
+    Swag.assert(ed.text() == "Frozen")
 }

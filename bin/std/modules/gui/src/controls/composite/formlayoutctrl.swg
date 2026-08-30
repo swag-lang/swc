@@ -153,7 +153,7 @@ private impl FormLayoutCtrl
         // itself, and a blank label above it reserves the height of a name that is not there —
         // which reads as the option having drifted away from the field it qualifies.
         var cursor = y
-        if @countof(row.label.name) != 0
+        if row.label.name.count != 0
         {
             if place do
                 row.label.arrange({client.x, y, client.width, .options.labelHeight})

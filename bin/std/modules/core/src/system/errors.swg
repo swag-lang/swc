@@ -103,7 +103,7 @@ func message(err: #null any)->string
     if err == null do
         return ""
 
-    var type = Reflection.resolveAliases(@kindof(err))
+    var type = Reflection.resolveAliases(Swag.kindOf(err))
     let name = type.name orelse ""
 
     // Walk the leading embedded structs: the base of an error family sits at offset zero,
@@ -112,14 +112,14 @@ func message(err: #null any)->string
     {
         if type == Swag.BaseError
         {
-            let base = cast(const *Swag.BaseError) @dataof(err)!
+            let base = cast(const *Swag.BaseError) err.buffer!
             let text = base.message orelse ""
-            return @countof(text) ? text : name
+            return text.count ? text : name
         }
 
         let structType = cast(const *Swag.TypeInfoStruct) type
         let fields     = structType.fields
-        if @countof(fields) == 0 or fields![0].offset != 0 do
+        if fields.count == 0 or fields![0].offset != 0 do
             break
 
         let fieldType = fields![0].pointedType
@@ -139,11 +139,11 @@ func mkString(str: #null string)->#null string
     if str == null do
         return null
 
-    let count = @countof(str)
-    let ptr   = @getcontext().errorAllocator.alloc(count)
-    @memcpy(ptr, @dataof(str), count)
+    let count = str.count
+    let ptr   = Swag.getContext().errorAllocator.alloc(count)
+    Swag.memcpy(ptr, str.buffer, count)
     let safePtr = cast(#null [*] u8) ptr
     if !safePtr do
         return null
-    return @mkstring(safePtr, count)
+    return Swag.makeString(safePtr, count)
 }

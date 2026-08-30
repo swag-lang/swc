@@ -5,12 +5,12 @@ using Swag
 
 func expectCurveVec(actual, expected: Math.Vector2)
 {
-    @assert(actual.isEqualEpsilon(expected, 0.001))
+    Swag.assert(actual.isEqualEpsilon(expected, 0.001))
 }
 
 func expectCurveRect(actual, expected: Math.Rectangle)
 {
-    @assert(actual.isEqualEpsilon(expected, 0.001))
+    Swag.assert(actual.isEqualEpsilon(expected, 0.001))
 }
 
 #test
@@ -151,7 +151,7 @@ func presetTolerance(preset: Math.CurvePreset)->f32
         for step in Samples + 1
         {
             let p = cast(f32) step / cast(f32) Samples
-            @assert(Math.isEqualEpsilon(named.evaluate(p), referencePreset(preset, p), tolerance))
+            Swag.assert(Math.isEqualEpsilon(named.evaluate(p), referencePreset(preset, p), tolerance))
         }
     }
 }
@@ -162,10 +162,10 @@ func presetTolerance(preset: Math.CurvePreset)->f32
     for preset in Math.CurvePreset
     {
         let curve = Math.Curve.shared(preset)
-        @assert(Math.isEqualEpsilon(curve.evaluateNormalized(0), 0, 0.0001))
-        @assert(Math.isEqualEpsilon(curve.evaluateNormalized(1), 1, 0.0001))
-        @assert(curve.evaluateNormalized(-4) == curve.evaluateNormalized(0))
-        @assert(curve.evaluateNormalized(9) == curve.evaluateNormalized(1))
+        Swag.assert(Math.isEqualEpsilon(curve.evaluateNormalized(0), 0, 0.0001))
+        Swag.assert(Math.isEqualEpsilon(curve.evaluateNormalized(1), 1, 0.0001))
+        Swag.assert(curve.evaluateNormalized(-4) == curve.evaluateNormalized(0))
+        Swag.assert(curve.evaluateNormalized(9) == curve.evaluateNormalized(1))
     }
 }
 
@@ -173,16 +173,16 @@ func presetTolerance(preset: Math.CurvePreset)->f32
 #test
 {
     var back = Math.CurvePreset.EaseOutBack
-    @assert(back.evaluate(0.7) > 1)
+    Swag.assert(back.evaluate(0.7) > 1)
 
     var anticipate = Math.CurvePreset.EaseInBack
-    @assert(anticipate.evaluate(0.3) < 0)
+    Swag.assert(anticipate.evaluate(0.3) < 0)
 
     var bounce = Math.CurvePreset.EaseOutBounce
     for step in 101
     {
         let value = bounce.evaluate(cast(f32) step / 100)
-        @assert(value >= 0 and value <= 1.0001)
+        Swag.assert(value >= 0 and value <= 1.0001)
     }
 }
 
@@ -190,40 +190,40 @@ func presetTolerance(preset: Math.CurvePreset)->f32
 #test
 {
     var owned = Math.Curve.create(.Linear)
-    @assert(owned.keys.count == 2)
+    Swag.assert(owned.keys.count == 2)
 
     owned.keys[1].y = 4
-    @assert(Math.isEqualEpsilon(owned.evaluateNormalized(0.5), 2, 0.0001))
-    @assert(Math.isEqualEpsilon(Math.Curve.shared(.Linear).evaluateNormalized(0.5), 0.5, 0.0001))
+    Swag.assert(Math.isEqualEpsilon(owned.evaluateNormalized(0.5), 2, 0.0001))
+    Swag.assert(Math.isEqualEpsilon(Math.Curve.shared(.Linear).evaluateNormalized(0.5), 0.5, 0.0001))
 }
 
 // Keys land in abscissa order however they are added, and the returned index says where.
 #test
 {
     var curve: Math.Curve
-    @assert(curve.isEmpty())
-    @assert(curve.evaluateNormalized(0.5) == 0)
+    Swag.assert(curve.isEmpty())
+    Swag.assert(curve.evaluateNormalized(0.5) == 0)
 
-    @assert(curve.addKey(1, 1) == 0)
-    @assert(curve.addKey(0, 0) == 0)
-    @assert(curve.addKey(0.5, 0.25) == 1)
-    @assert(curve.keys.count == 3)
-    @assert(curve.keys[0].x == 0)
-    @assert(curve.keys[1].x == 0.5)
-    @assert(curve.keys[2].x == 1)
+    Swag.assert(curve.addKey(1, 1) == 0)
+    Swag.assert(curve.addKey(0, 0) == 0)
+    Swag.assert(curve.addKey(0.5, 0.25) == 1)
+    Swag.assert(curve.keys.count == 3)
+    Swag.assert(curve.keys[0].x == 0)
+    Swag.assert(curve.keys[1].x == 0.5)
+    Swag.assert(curve.keys[2].x == 1)
 
     // An abscissa edited past its neighbour is what 'sortKeys' exists for.
     curve.keys[0].x = 0.75
     curve.sortKeys()
-    @assert(curve.keys[0].x == 0.5)
-    @assert(curve.keys[2].x == 1)
+    Swag.assert(curve.keys[0].x == 0.5)
+    Swag.assert(curve.keys[2].x == 1)
 
     curve.removeKeyAt(1)
-    @assert(curve.keys.count == 2)
-    @assert(curve.keys[1].x == 1)
+    Swag.assert(curve.keys.count == 2)
+    Swag.assert(curve.keys[1].x == 1)
 
     curve.clear()
-    @assert(curve.isEmpty())
+    Swag.assert(curve.isEmpty())
 }
 
 // One curve carries several interpolations at once: a hold, a ramp, then a smooth arrival.
@@ -236,18 +236,18 @@ func presetTolerance(preset: Math.CurvePreset)->f32
     discard curve.addKey(1, 2)
 
     // The constant segment holds its own ordinate right up to the next key.
-    @assert(curve.evaluateNormalized(0) == 0)
-    @assert(curve.evaluateNormalized(0.2) == 0)
+    Swag.assert(curve.evaluateNormalized(0) == 0)
+    Swag.assert(curve.evaluateNormalized(0.2) == 0)
 
     // The straight segment is read by its chord.
-    @assert(Math.isEqualEpsilon(curve.evaluateNormalized(0.5), 0.5, 0.0001))
+    Swag.assert(Math.isEqualEpsilon(curve.evaluateNormalized(0.5), 0.5, 0.0001))
 
     // The smoothstep segment is symmetric about its middle and flat at both of its ends, so it
     // leaves the first key behind its own chord and reaches the second one ahead of it.
-    @assert(Math.isEqualEpsilon(curve.evaluateNormalized(0.875), 1.5, 0.0001))
-    @assert(curve.evaluateNormalized(0.8) < 1.2)
-    @assert(curve.evaluateNormalized(0.95) > 1.8)
-    @assert(curve.evaluateNormalized(1) == 2)
+    Swag.assert(Math.isEqualEpsilon(curve.evaluateNormalized(0.875), 1.5, 0.0001))
+    Swag.assert(curve.evaluateNormalized(0.8) < 1.2)
+    Swag.assert(curve.evaluateNormalized(0.95) > 1.8)
+    Swag.assert(curve.evaluateNormalized(1) == 2)
 }
 
 // A key holding two different slopes breaks the curve into a corner instead of rounding it.
@@ -260,18 +260,18 @@ func presetTolerance(preset: Math.CurvePreset)->f32
     broken.setTangents(1, 4, -4)
 
     // The corner is the point both segments reach, and neither flattens onto it.
-    @assert(Math.isEqualEpsilon(broken.evaluateNormalized(0.5), 1, 0.0001))
+    Swag.assert(Math.isEqualEpsilon(broken.evaluateNormalized(0.5), 1, 0.0001))
     let rising  = broken.evaluateNormalized(0.5) - broken.evaluateNormalized(0.45)
     let falling = broken.evaluateNormalized(0.55) - broken.evaluateNormalized(0.5)
-    @assert(rising > 0.1)
-    @assert(falling < -0.1)
+    Swag.assert(rising > 0.1)
+    Swag.assert(falling < -0.1)
 
     // Smoothing the same key replaces the corner with the chord slope of its neighbours, which is
     // flat here, so the middle key becomes the top of a rounded arch.
     broken.smoothTangents()
-    @assert(broken.keys[1].inTangent == broken.keys[1].outTangent)
-    @assert(Math.isEqualEpsilon(broken.keys[1].inTangent, 0, 0.0001))
-    @assert(broken.evaluateNormalized(0.55) > broken.evaluateNormalized(0.65))
+    Swag.assert(broken.keys[1].inTangent == broken.keys[1].outTangent)
+    Swag.assert(Math.isEqualEpsilon(broken.keys[1].inTangent, 0, 0.0001))
+    Swag.assert(broken.evaluateNormalized(0.55) > broken.evaluateNormalized(0.65))
 }
 
 // Two keys at one abscissa are a vertical jump: the later one takes over from there on.
@@ -283,9 +283,9 @@ func presetTolerance(preset: Math.CurvePreset)->f32
     discard stepped.addKey(0.5, 1, .Constant)
     discard stepped.addKey(1, 1, .Constant)
 
-    @assert(stepped.evaluateNormalized(0.49) == 0)
-    @assert(stepped.evaluateNormalized(0.5) == 1)
-    @assert(stepped.evaluateNormalized(1) == 1)
+    Swag.assert(stepped.evaluateNormalized(0.49) == 0)
+    Swag.assert(stepped.evaluateNormalized(0.5) == 1)
+    Swag.assert(stepped.evaluateNormalized(1) == 1)
 }
 
 // A Bézier segment at the neutral weight draws exactly the Hermite segment of the same tangents.
@@ -303,14 +303,14 @@ func presetTolerance(preset: Math.CurvePreset)->f32
     for step in 65
     {
         let x = cast(f32) step / 64
-        @assert(Math.isEqualEpsilon(bezier.evaluateNormalized(x), hermite.evaluateNormalized(x), 0.0005))
+        Swag.assert(Math.isEqualEpsilon(bezier.evaluateNormalized(x), hermite.evaluateNormalized(x), 0.0005))
     }
 
     // Lengthening the leaving handle keeps the endpoints and pushes the curve toward its tangent.
     bezier.setWeights(0, Math.Curve.NeutralWeight, 0.9)
-    @assert(Math.isEqualEpsilon(bezier.evaluateNormalized(0), 0, 0.0001))
-    @assert(Math.isEqualEpsilon(bezier.evaluateNormalized(1), 1, 0.0001))
-    @assert(bezier.evaluateNormalized(0.25) > hermite.evaluateNormalized(0.25))
+    Swag.assert(Math.isEqualEpsilon(bezier.evaluateNormalized(0), 0, 0.0001))
+    Swag.assert(Math.isEqualEpsilon(bezier.evaluateNormalized(1), 1, 0.0001))
+    Swag.assert(bezier.evaluateNormalized(0.25) > hermite.evaluateNormalized(0.25))
 }
 
 // The style-sheet form maps onto the same keys, straight line included.
@@ -320,20 +320,20 @@ func presetTolerance(preset: Math.CurvePreset)->f32
     for step in 33
     {
         let x = cast(f32) step / 32
-        @assert(Math.isEqualEpsilon(straight.evaluateNormalized(x), x, 0.001))
+        Swag.assert(Math.isEqualEpsilon(straight.evaluateNormalized(x), x, 0.001))
     }
 
     // The classic 'ease' of a style sheet starts fast and settles slowly.
     let ease = Math.Curve.createBezier(0.25, 0.1, 0.25, 1)
-    @assert(Math.isEqualEpsilon(ease.evaluateNormalized(0), 0, 0.001))
-    @assert(Math.isEqualEpsilon(ease.evaluateNormalized(1), 1, 0.001))
-    @assert(ease.evaluateNormalized(0.5) > 0.5)
+    Swag.assert(Math.isEqualEpsilon(ease.evaluateNormalized(0), 0, 0.001))
+    Swag.assert(Math.isEqualEpsilon(ease.evaluateNormalized(1), 1, 0.001))
+    Swag.assert(ease.evaluateNormalized(0.5) > 0.5)
 
     var previous = 0'f32
     for step in 65
     {
         let value = ease.evaluateNormalized(cast(f32) step / 64)
-        @assert(value >= previous - 0.0001)
+        Swag.assert(value >= previous - 0.0001)
         previous = value
     }
 }
@@ -344,25 +344,25 @@ func presetTolerance(preset: Math.CurvePreset)->f32
     var curve = Math.Curve.create(.Linear)
     curve.setRange(0, 2, 10, 20)
 
-    @assert(Math.isEqualEpsilon(curve.evaluate(0), 10, 0.0001))
-    @assert(Math.isEqualEpsilon(curve.evaluate(1), 15, 0.0001))
-    @assert(Math.isEqualEpsilon(curve.evaluate(2), 20, 0.0001))
+    Swag.assert(Math.isEqualEpsilon(curve.evaluate(0), 10, 0.0001))
+    Swag.assert(Math.isEqualEpsilon(curve.evaluate(1), 15, 0.0001))
+    Swag.assert(Math.isEqualEpsilon(curve.evaluate(2), 20, 0.0001))
 
     // Outside the window the curve still clamps onto its end keys.
-    @assert(Math.isEqualEpsilon(curve.evaluate(-5), 10, 0.0001))
-    @assert(Math.isEqualEpsilon(curve.evaluate(7), 20, 0.0001))
+    Swag.assert(Math.isEqualEpsilon(curve.evaluate(-5), 10, 0.0001))
+    Swag.assert(Math.isEqualEpsilon(curve.evaluate(7), 20, 0.0001))
 
     // An end below its start mirrors that axis, and the keys are unchanged either way.
     curve.setRange(0, 1, 1, 0)
-    @assert(Math.isEqualEpsilon(curve.evaluate(0), 1, 0.0001))
-    @assert(Math.isEqualEpsilon(curve.evaluate(0.25), 0.75, 0.0001))
-    @assert(Math.isEqualEpsilon(curve.evaluate(1), 0, 0.0001))
-    @assert(Math.isEqualEpsilon(curve.evaluateNormalized(0.25), 0.25, 0.0001))
+    Swag.assert(Math.isEqualEpsilon(curve.evaluate(0), 1, 0.0001))
+    Swag.assert(Math.isEqualEpsilon(curve.evaluate(0.25), 0.75, 0.0001))
+    Swag.assert(Math.isEqualEpsilon(curve.evaluate(1), 0, 0.0001))
+    Swag.assert(Math.isEqualEpsilon(curve.evaluateNormalized(0.25), 0.25, 0.0001))
 
     // An overshooting shape overshoots the window too, which is the point of choosing one.
     var back = Math.Curve.create(.EaseOutBack)
     back.setRange(0, 1, 0, 100)
-    @assert(back.evaluate(0.7) > 100)
+    Swag.assert(back.evaluate(0.7) > 100)
 }
 
 // A curve survives a serialization round trip, keys, tangents, modes and window alike.
@@ -385,18 +385,18 @@ func presetTolerance(preset: Math.CurvePreset)->f32
     let decoded = expect decoder.readAll'Math.Curve(bytes.toSlice())!
     defer Memory.delete(decoded)
 
-    @assert(decoded.keys.count == curve.keys.count)
-    @assert(decoded.startX == curve.startX and decoded.endX == curve.endX)
-    @assert(decoded.startY == curve.startY and decoded.endY == curve.endY)
-    @assert(decoded.keys[0].interpolation == .Constant)
-    @assert(decoded.keys[1].interpolation == .Bezier)
-    @assert(decoded.keys[1].inTangent == 3 and decoded.keys[1].outTangent == -1)
-    @assert(Math.isEqualEpsilon(decoded.keys[1].inWeight, 0.2, 0.0001))
-    @assert(Math.isEqualEpsilon(decoded.keys[1].outWeight, 0.8, 0.0001))
+    Swag.assert(decoded.keys.count == curve.keys.count)
+    Swag.assert(decoded.startX == curve.startX and decoded.endX == curve.endX)
+    Swag.assert(decoded.startY == curve.startY and decoded.endY == curve.endY)
+    Swag.assert(decoded.keys[0].interpolation == .Constant)
+    Swag.assert(decoded.keys[1].interpolation == .Bezier)
+    Swag.assert(decoded.keys[1].inTangent == 3 and decoded.keys[1].outTangent == -1)
+    Swag.assert(Math.isEqualEpsilon(decoded.keys[1].inWeight, 0.2, 0.0001))
+    Swag.assert(Math.isEqualEpsilon(decoded.keys[1].outWeight, 0.8, 0.0001))
 
     for step in 33
     {
         let x = -1 + cast(f32) step / 8
-        @assert(Math.isEqualEpsilon(decoded.evaluate(x), curve.evaluate(x), 0.0001))
+        Swag.assert(Math.isEqualEpsilon(decoded.evaluate(x), curve.evaluate(x), 0.0001))
     }
 }

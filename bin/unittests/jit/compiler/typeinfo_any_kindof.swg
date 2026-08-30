@@ -14,11 +14,11 @@ func anyKindOfFunc()->s32 => 1
     {
         let structBox: any = #typeof(AnyKindOfStruct)
         let funcBox:   any = #typeof(anyKindOfFunc)
-        return @kindof(structBox) == const *TypeInfoStruct and
-               @kindof(funcBox) == const *TypeInfoFunc and
+        return Swag.kindOf(structBox) == const *TypeInfoStruct and
+               Swag.kindOf(funcBox) == const *TypeInfoFunc and
                (cast(const *TypeInfoStruct) structBox).fields[0].name == "x" and
                (cast(const *TypeInfoFunc) funcBox).returnType == s32
     }
 
-    @assert(boxedTypeInfoKindof())
+    Swag.assert(boxedTypeInfoKindof())
 }

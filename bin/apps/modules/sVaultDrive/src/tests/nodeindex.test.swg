@@ -18,7 +18,7 @@ using Core
     nodes.add(#move root)
 
     var index: NodeIndex
-    @assert(index.add(&nodes[0], 0))
+    Swag.assert(index.add(&nodes[0], 0))
     for i in NodeCount
     {
         var node: Node
@@ -27,21 +27,21 @@ using Core
         node.name     = Format.toString("entry_%", i)
         let position = nodes.count
         nodes.add(#move node)
-        @assert(index.add(&nodes[position], position))
+        Swag.assert(index.add(&nodes[position], position))
     }
 
-    @assert(index.childId(RootNodeId, "ENTRY_99999") == NodeCount + RootNodeId)
+    Swag.assert(index.childId(RootNodeId, "ENTRY_99999") == NodeCount + RootNodeId)
 
     var childId = index.firstChildId(RootNodeId)
     var count   = 0'u64
     while childId
     {
-        @assert(childId == count + RootNodeId + 1)
+        Swag.assert(childId == count + RootNodeId + 1)
         childId = index.nextSiblingId(childId)
         count   += 1
     }
 
-    @assert(count == NodeCount)
+    Swag.assert(count == NodeCount)
 
     // Removing alternating children exercises both ends and every interior
     // link without turning removal into an ordered-array shift.
@@ -56,10 +56,10 @@ using Core
     count   = 0
     while childId
     {
-        @assert(childId == count * 2 + RootNodeId + 2)
+        Swag.assert(childId == count * 2 + RootNodeId + 2)
         childId = index.nextSiblingId(childId)
         count   += 1
     }
 
-    @assert(count == NodeCount / 2 and index.hasChildren(RootNodeId))
+    Swag.assert(count == NodeCount / 2 and index.hasChildren(RootNodeId))
 }

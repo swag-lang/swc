@@ -165,9 +165,9 @@ private func allocatorThreadHeapFlsId()->u64
         return id
 
     let candidate = __hostThreadStorageAlloc(&retireAllocatorThreadHeap)
-    @assert(candidate != 0)
+    Swag.assert(candidate != 0)
 
-    let previous = @atomcmpxchg(&g_AllocatorThreadHeapFlsId, AllocatorInvalidFlsId, candidate)
+    let previous = Swag.atomcmpxchg(&g_AllocatorThreadHeapFlsId, AllocatorInvalidFlsId, candidate)
     if previous != AllocatorInvalidFlsId
     {
         __hostThreadStorageFree(candidate)
@@ -184,7 +184,7 @@ func currentAllocatorThreadHeap()->#null *AllocatorThreadHeap
 
 private func setCurrentAllocatorThreadHeap(heap: #null *AllocatorThreadHeap)
 {
-    @assert(__hostThreadStorageSet(allocatorThreadHeapFlsId(), heap))
+    Swag.assert(__hostThreadStorageSet(allocatorThreadHeapFlsId(), heap))
 }
 
 private func currentThreadId()->u64
@@ -226,7 +226,7 @@ impl Allocator
             return AllocatorInvalidClass
 
         let value  = size - 1
-        let bucket = 63 - cast(u32) @bitcountlz(value)
+        let bucket = 63 - cast(u32) Swag.bitCountLz(value)
         let step   = cast(u32) ((value >> (bucket - 2)) & 3)
         return 9 + (bucket - 7) * 4 + step
     }
@@ -247,31 +247,31 @@ impl Allocator
         var size = value
         if size < 1024
         {
-            @print(size, " bytes")
+            Swag.print(size, " bytes")
             return
         }
 
         size /= 1024
         if size < 1024
         {
-            @print(size, " Kb")
+            Swag.print(size, " Kb")
             return
         }
 
         size /= 1024
         if size < 1024
         {
-            @print(size, " Mb")
+            Swag.print(size, " Mb")
             return
         }
 
         size /= 1024
-        @print(size, " Gb")
+        Swag.print(size, " Gb")
     }
 
     mtd setup()
     {
-        @init(me, 1)
+        Swag.init(me, 1)
         .installMagic = InstalledMagic
         .configure(false, true, false, false, false)
     }
@@ -361,7 +361,7 @@ impl Allocator
         if !address do
             return null
 
-        @memset(address, 0, #sizeof(AllocatorThreadHeap))
+        Swag.memset(address, 0, #sizeof(AllocatorThreadHeap))
         let heap = cast(*AllocatorThreadHeap) address
         heap.allocator = me
         heap.threadId  = currentThreadId()
@@ -406,7 +406,7 @@ impl Allocator
     // remote free racing with this only ever lands on storage that is still mapped.
     mtd retireThreadHeap(heap: *AllocatorThreadHeap)
     {
-        if @atomxchg(&heap.retired, 1) != 0 do
+        if Swag.atomxchg(&heap.retired, 1) != 0 do
             return
 
         .segmentMutex.lock()
@@ -672,7 +672,7 @@ impl Allocator
     mtd checkFree(header: *AllocatorHeader)
     {
         if header.magic != MagicFree or .footerMagic(header) != MagicFree do
-            @panic("memory block corruption", #curlocation)
+            Swag.panic("memory block corruption", #curlocation)
     }
 
     mtd checkAllocated(header: *AllocatorHeader, callerLoc = #callerlocation)
@@ -680,7 +680,7 @@ impl Allocator
         let footMagic = .footerMagic(header)
         if (header.magic != MagicAlloc and header.magic != MagicFree) or
            (footMagic != MagicAlloc and footMagic != MagicFree) do
-            @panic("memory block corruption", callerLoc)
+            Swag.panic("memory block corruption", callerLoc)
 
         if header.magic == MagicFree
         {
@@ -688,7 +688,7 @@ impl Allocator
             let tracking = header.tracking
             if tracking and tracking.loc.fileName do
                 loc = tracking.loc
-            @panic("memory block is freed twice", loc)
+            Swag.panic("memory block is freed twice", loc)
         }
     }
 
@@ -740,7 +740,7 @@ impl Allocator
                 .firstQuarantine.prev = null
             else do
                 .lastQuarantine = null
-            @assert(.quarantineBytes >= oldest.allocSize)
+            Swag.assert(.quarantineBytes >= oldest.allocSize)
             .quarantineBytes -= oldest.allocSize
             .quarantineCount -= 1
             .osFree(oldest.allocAddr, oldest.allocSize)
@@ -749,7 +749,7 @@ impl Allocator
 
     mtd allocateHeaderBlock(request: *AllocatorRequest, classIndex: u32)
     {
-        let alignment    = @max(request.alignment, AllocatorPagePathAlignment)
+        let alignment    = Swag.max(request.alignment, AllocatorPagePathAlignment)
         let trackingSize = .diagnosticMode() ? cast(u64) #sizeof(AllocatorTracking) : 0'u64
         let prefix       = memAlign(trackingSize + #sizeof(AllocatorHeader), alignment)
         let blockSize    = classIndex == AllocatorInvalidClass ? request.size : classSize(classIndex)
@@ -797,17 +797,17 @@ impl Allocator
         .setFooterMagic(header, MagicAlloc)
 
         if .fillAlloc do
-            @memset(cast(*void) userAddr, AllocByte, request.size)
+            Swag.memset(cast(*void) userAddr, AllocByte, request.size)
 
         let tracking = header.tracking
         if tracking
         {
             tracking.loc        = request.callerLoc
             tracking.hint       = request.hint
-            tracking.stackCount = .captureAllocStack ? __captureStack(2, @mkslice(&tracking.stack[0], @countof(tracking.stack))) : 0
-            tracking.allocId    = @atomadd(&.nextId, 1) + 1
+            tracking.stackCount = .captureAllocStack ? __captureStack(2, Swag.makeSlice(&tracking.stack[0], tracking.stack.count)) : 0
+            tracking.allocId    = Swag.atomadd(&.nextId, 1) + 1
             if tracking.allocId == .breakOnAllocId do
-                @assert(false)
+                Swag.assert(false)
         }
 
         atomicAddU64(&.headerCount, 1)
@@ -830,7 +830,7 @@ impl Allocator
         atomicSubU64(&.headerBytes, header.blockSize)
 
         if .fillFree do
-            @memset(cast(*void) address, FreeByte, header.userSize)
+            Swag.memset(cast(*void) address, FreeByte, header.userSize)
 
         header.magic = MagicFree
         .setFooterMagic(header, MagicFree)
@@ -897,7 +897,7 @@ impl Allocator
         // Fill the whole block, not only the request: the page path keeps no user size, so a later
         // reallocation inside the same class must find the pattern everywhere it can now reach.
         if .fillAlloc do
-            @memset(cast(*void) block, AllocByte, classSize(classIndex))
+            Swag.memset(cast(*void) block, AllocByte, classSize(classIndex))
 
         request.address = cast(*void) block
     }
@@ -940,7 +940,7 @@ impl Allocator
                 .setFooterMagic(oldHeader, MagicAlloc)
 
                 if .fillAlloc and oldSize < request.size do
-                    @memset(.userAddress(oldHeader) + oldSize, AllocByte, request.size - oldSize)
+                    Swag.memset(.userAddress(oldHeader) + oldSize, AllocByte, request.size - oldSize)
 
                 return
             }
@@ -963,7 +963,7 @@ impl Allocator
             return
         }
 
-        @memcpy(allocReq.address, cast(*void) oldAddress, @min(oldBlockSize, request.size))
+        Swag.memcpy(allocReq.address, cast(*void) oldAddress, Swag.min(oldBlockSize, request.size))
 
         var freeReq = request[]
         freeReq.address = cast(*void) oldAddress
@@ -977,9 +977,9 @@ impl Allocator
     mtd checkPageAddress(page: *AllocatorPage, address: u64, callerLoc: SourceCodeLocation)
     {
         if page.state == AllocatorPageState.Free do
-            @panic("memory block is not allocated", callerLoc)
+            Swag.panic("memory block is not allocated", callerLoc)
         if !page.isBlockAddress(address) do
-            @panic("memory block address is not the start of an allocation", callerLoc)
+            Swag.panic("memory block address is not the start of an allocation", callerLoc)
     }
 
     mtd freeBlock(request: *AllocatorRequest)
@@ -1000,7 +1000,7 @@ impl Allocator
         .checkPageAddress(page, address, request.callerLoc)
 
         if .fillFree do
-            @memset(cast(*void) address, FreeByte, page.blockSize)
+            Swag.memset(cast(*void) address, FreeByte, page.blockSize)
 
         // Only the owning thread may touch the page's own free list; anyone else hands the block
         // over through the page's atomic list, which the owner drains when it runs dry.
@@ -1008,7 +1008,7 @@ impl Allocator
         if heap and page.ownerHeap == heap
         {
             if page.freeList == page.encode(address) do
-                @panic("memory block is freed twice", request.callerLoc)
+                Swag.panic("memory block is freed twice", request.callerLoc)
 
             page.releaseBlock(address)
             if page.used == 0 do
@@ -1033,7 +1033,7 @@ impl Allocator
             // the free list is what separates the two, and only a caller that asked for the check
             // pays for it.
             if page.holdsFreeBlock(address) do
-                @panic("memory block is not allocated", callerLoc)
+                Swag.panic("memory block is not allocated", callerLoc)
             return
         }
 
@@ -1249,17 +1249,17 @@ impl Allocator
         if live == 0 do
             return
 
-        @print("\nSwag allocator: memory remains allocated\n")
-        @print("---------------------------------------\n")
-        @print(live)
+        Swag.print("\nSwag allocator: memory remains allocated\n")
+        Swag.print("---------------------------------------\n")
+        Swag.print(live)
         if live == 1 do
-            @print(" allocation, totaling ")
+            Swag.print(" allocation, totaling ")
         else do
-            @print(" allocations, totaling ")
+            Swag.print(" allocations, totaling ")
 
         printDisplaySize(snapshot.sizeAlloc)
-        @print("\n")
-        @print("---------------------------------------\n")
+        Swag.print("\n")
+        Swag.print("---------------------------------------\n")
 
         var scan = .firstAlloc
         var cpt  = 0
@@ -1268,26 +1268,26 @@ impl Allocator
             .checkAllocated(scan)
             let tracking = scan.tracking!
 
-            @print("\x1b[91m")
-            @print("allocation #", tracking.allocId, ": size ")
+            Swag.print("\x1b[91m")
+            Swag.print("allocation #", tracking.allocId, ": size ")
             printDisplaySize(scan.userSize)
             if tracking.hint do
-                @print(", hint ", tracking.hint)
-            @print("\n")
-            @print("\x1b[36m")
-            @print("source: ")
-            @print(tracking.loc.fileName, ":", tracking.loc.lineStart, "\n")
+                Swag.print(", hint ", tracking.hint)
+            Swag.print("\n")
+            Swag.print("\x1b[36m")
+            Swag.print("source: ")
+            Swag.print(tracking.loc.fileName, ":", tracking.loc.lineStart, "\n")
             if tracking.stackCount do
-                __logStackTrace(@mkslice(&tracking.stack[0], tracking.stackCount), &tracking.loc, false)
-            @print("---------------------------------------\n")
+                __logStackTrace(Swag.makeSlice(&tracking.stack[0], tracking.stackCount), &tracking.loc, false)
+            Swag.print("---------------------------------------\n")
 
             scan = scan.next
             cpt  += 1
             if .showMaxLeaks and cpt >= .showMaxLeaks
             {
-                @print("\x1b[91m")
-                @print("remaining allocation details omitted\n")
-                @print("\x1b[97m")
+                Swag.print("\x1b[91m")
+                Swag.print("remaining allocation details omitted\n")
+                Swag.print("\x1b[97m")
                 break
             }
         }
@@ -1303,7 +1303,7 @@ impl Allocator
         .releaseAll()
         .mutex.unlock()
 
-        @init(me, 1)
+        Swag.init(me, 1)
     }
 
     mtd opDrop()
@@ -1329,7 +1329,7 @@ impl IAllocator for Allocator
     #[Swag.Inline]
     mtd lockDiagnostic()->bool
     {
-        @assert(.installed())
+        Swag.assert(.installed())
         let useDiagnosticLock = .diagnosticMode()
         if useDiagnosticLock do
             .mutex.lock()
@@ -1402,7 +1402,7 @@ func releaseAllocatorThreadCache()
 
 func installAllocator(electricMode: bool = false, detectLeaks: bool = true, captureStack: bool = false, trackAllocations: bool = false, fillMemory: bool = false, installInContext: bool = true)->*Allocator
 {
-    let cxt = @getcontext()
+    let cxt = Swag.getContext()
 
     let alloc = &g_DefaultAllocator
     if !alloc.installed() do
@@ -1411,7 +1411,7 @@ func installAllocator(electricMode: bool = false, detectLeaks: bool = true, capt
 
     if installInContext
     {
-        cxt.allocator        = @mkinterface(alloc, #typeof(alloc[]), IAllocator)
+        cxt.allocator        = Swag.makeInterface(alloc, #typeof(alloc[]), IAllocator)
         cxt.defaultAllocator = cxt.allocator
     }
 

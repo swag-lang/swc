@@ -22,7 +22,7 @@ impl RefIndexBuffer
     func testRead(x: *Vec2)->s32 { return x.x + x.y; }
     var v: Vec2 = {x: 8, y: 13}
     var sum     = testRead(&v)
-    @assert(sum == 21)
+    Swag.assert(sum == 21)
 }
 
 #test
@@ -34,8 +34,8 @@ impl RefIndexBuffer
     }
     var v: Vec2 = {x: 9, y: 4}
     testWrite(&v)
-    @assert(v.x == 18)
-    @assert(v.y == 11)
+    Swag.assert(v.x == 18)
+    Swag.assert(v.y == 11)
 }
 
 #test
@@ -47,9 +47,9 @@ impl RefIndexBuffer
     }
     var v: s32 = 10
     var p      = getPtr(&v)
-    @assert(p[] == 10)
+    Swag.assert(p[] == 10)
     writeThrough(p)
-    @assert(v == 42)
+    Swag.assert(v == 42)
 }
 
 func writeScalarRef(target: *s32, value: s32)
@@ -63,16 +63,16 @@ func writeScalarRef(target: *s32, value: s32)
     var valueRef: *s32 = &value
 
     valueRef[] = 42
-    @assert(valueRef[] == 42)
-    @assert(value == 42)
+    Swag.assert(valueRef[] == 42)
+    Swag.assert(value == 42)
 
     valueRef[] += 8
-    @assert(valueRef[] == 50)
-    @assert(value == 50)
+    Swag.assert(valueRef[] == 50)
+    Swag.assert(value == 50)
 
     writeScalarRef(&value, 99)
-    @assert(valueRef[] == 99)
-    @assert(value == 99)
+    Swag.assert(valueRef[] == 99)
+    Swag.assert(value == 99)
 }
 
 #test
@@ -86,8 +86,8 @@ func writeScalarRef(target: *s32, value: s32)
     var v: Vec2 = {x: 1, y: 2}
     var p       = getPtr(&v)
     writeThrough(p)
-    @assert(v.x == -3)
-    @assert(v.y == 99)
+    Swag.assert(v.x == -3)
+    Swag.assert(v.y == 99)
 }
 
 func writeVecRef(target: *Vec2, value: Vec2)
@@ -102,16 +102,16 @@ func writeVecRef(target: *Vec2, value: Vec2)
     let other:    Vec2  = {x: 30, y: 40}
 
     valueRef[] = other
-    @assert(valueRef.x == 30)
-    @assert(valueRef.y == 40)
-    @assert(value.x == 30)
-    @assert(value.y == 40)
+    Swag.assert(valueRef.x == 30)
+    Swag.assert(valueRef.y == 40)
+    Swag.assert(value.x == 30)
+    Swag.assert(value.y == 40)
 
     writeVecRef(&value, {x: -5, y: 12})
-    @assert(valueRef.x == -5)
-    @assert(valueRef.y == 12)
-    @assert(value.x == -5)
-    @assert(value.y == 12)
+    Swag.assert(valueRef.x == -5)
+    Swag.assert(valueRef.y == 12)
+    Swag.assert(value.x == -5)
+    Swag.assert(value.y == 12)
 }
 
 #test
@@ -126,17 +126,17 @@ func writeVecRef(target: *Vec2, value: Vec2)
     var right: Vec2 = {x: 300, y: 400}
     var p0          = choose(true, &left, &right)
     var p1          = choose(false, &left, &right)
-    @assert(p0.x == 100)
-    @assert(p0.y == 200)
-    @assert(p1.x == 300)
-    @assert(p1.y == 400)
+    Swag.assert(p0.x == 100)
+    Swag.assert(p0.y == 200)
+    Swag.assert(p1.x == 300)
+    Swag.assert(p1.y == 400)
 }
 
 #test
 {
     func nextDigit(bytes: const [..] u8, index: *u64)->u8
     {
-        if index[] < @countof(bytes)
+        if index[] < bytes.count
         {
             let value = bytes[index[]]
             index[] += 1
@@ -148,9 +148,9 @@ func writeVecRef(target: *Vec2, value: Vec2)
 
     let bytes = cast(const [..] u8) "42"
     var index: u64
-    @assert(nextDigit(bytes, &index) == '4'u8)
-    @assert(nextDigit(bytes, &index) == '2'u8)
-    @assert(index == 2'u64)
+    Swag.assert(nextDigit(bytes, &index) == '4'u8)
+    Swag.assert(nextDigit(bytes, &index) == '2'u8)
+    Swag.assert(index == 2'u64)
 }
 
 #test
@@ -163,9 +163,9 @@ func writeVecRef(target: *Vec2, value: Vec2)
     total      += valueRef[]
     valueRef[] += 5
 
-    @assert(total == 13)
-    @assert(valueRef[] == 17)
-    @assert(values.values[0] == 17)
+    Swag.assert(total == 13)
+    Swag.assert(valueRef[] == 17)
+    Swag.assert(values.values[0] == 17)
 }
 
 struct A {}
@@ -177,7 +177,7 @@ func titi(a: *A) { gRefTitiCalls += 1 }
     var a: A
     gRefTitiCalls = 0
     titi(&a)
-    @assert(gRefTitiCalls == 1)
+    Swag.assert(gRefTitiCalls == 1)
 }
 
 func tata(a: A) { gRefTataCalls += 1 }
@@ -186,7 +186,7 @@ func tata(a: A) { gRefTataCalls += 1 }
     var a: A
     gRefTataCalls = 0
     tata(a)
-    @assert(gRefTataCalls == 1)
+    Swag.assert(gRefTataCalls == 1)
 }
 
 struct ConstAddrValue
@@ -206,16 +206,16 @@ func readConstAddr(value: ConstAddrValue)->s32 { return value.x }
     let holder:   ConstAddrHolder       = {value: {x: 123}}
     var valueRef: const *ConstAddrValue = &holder.value
 
-    @assert(valueRef.x == 123)
-    @assert(readConstAddr(&holder.value) == 123)
+    Swag.assert(valueRef.x == 123)
+    Swag.assert(readConstAddr(&holder.value) == 123)
 }
 
 func inspectConstScalar(value: s32, expected: s32)
 {
     let ptr = &value
     #assert(#typeof(ptr) == *s32)
-    @assert(value == expected)
-    @assert(ptr[] == expected)
+    Swag.assert(value == expected)
+    Swag.assert(ptr[] == expected)
 }
 
 func sumConstAnon(value: { x: s32, y: s32 })->s32
@@ -260,8 +260,8 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smooth
 {
     let tupleValue = {x: 1, y: 2}
     let pairValue  = RefPair{x: 3, y: 4}
-    @assert(sumConstAnon(tupleValue) == 3)
-    @assert(sumConstPair(&pairValue) == 7)
+    Swag.assert(sumConstAnon(tupleValue) == 3)
+    Swag.assert(sumConstPair(&pairValue) == 7)
 }
 
 #test
@@ -274,8 +274,8 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smooth
     #assert(#typeof(copied) == f32)
     #assert(#typeof(sum) == f32)
 
-    @assert(copied == 1.5'f32)
-    @assert(sum == 4.0'f32)
+    Swag.assert(copied == 1.5'f32)
+    Swag.assert(sum == 4.0'f32)
 }
 
 #test
@@ -284,7 +284,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smooth
     let sum        = addRefValue(&value, 2.5'f32)
 
     #assert(#typeof(sum) == f32)
-    @assert(sum == 4.0'f32)
+    Swag.assert(sum == 4.0'f32)
 }
 
 #test
@@ -293,7 +293,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smooth
     let temp       = dampRefValue(&value, 2.0'f32, 3.0'f32, 0.5'f32)
 
     #assert(#typeof(temp) == f32)
-    @assert(temp == 3.75'f32)
+    Swag.assert(temp == 3.75'f32)
 }
 
 #test
@@ -304,8 +304,8 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smooth
 
     #assert(#typeof(sum) == f32)
     #assert(#typeof(temp) == f32)
-    @assert(sum == 4.0'f32)
-    @assert(temp == 3.75'f32)
+    Swag.assert(sum == 4.0'f32)
+    Swag.assert(temp == 3.75'f32)
 }
 
 #test
@@ -314,7 +314,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smooth
     let temp       = dampRefValueWithLiterals(4.0'f32, 1.0'f32, &value, 0.5'f32, 0.25'f32)
 
     #assert(#typeof(temp) == f32)
-    @assert(temp == 3.375'f32)
+    Swag.assert(temp == 3.375'f32)
 }
 
 #test
@@ -323,8 +323,8 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smooth
     var valueRef: *u32 = &grid[1, 2]
 
     valueRef[] += 1'u32
-    @assert(grid[1, 2] == 1'u32)
+    Swag.assert(grid[1, 2] == 1'u32)
 
     valueRef[] = 7'u32
-    @assert(grid[1, 2] == 7'u32)
+    Swag.assert(grid[1, 2] == 7'u32)
 }

@@ -113,7 +113,7 @@ impl Driver
     {
         Debug.assert(!.isCreated)
         .driverIsClosing     = false
-        .allocationAllocator = (@getcontext().defaultAllocator orelse @getcontext().allocator)!
+        .allocationAllocator = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
 
         // Every driver-owned collection can be mutated on one thread and released
         // on another, so all of them use the engine's stable allocator.
@@ -205,8 +205,8 @@ impl Driver
         ////////////////
         .destroyNative()
 
-        @drop(me, 1)
-        @init(me, 1)
+        Swag.drop(me, 1)
+        Swag.init(me, 1)
     }
 
     mtd updateVoice(voice: *Voice, cmd: UpdateCommand)

@@ -53,7 +53,7 @@ impl FormImage
 
     mtd opPostCopy()
     {
-        @init(&.texture, 1)
+        Swag.init(&.texture, 1)
     }
 
     mtd backCaptureMask(mask: *Image)

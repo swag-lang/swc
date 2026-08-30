@@ -7,24 +7,24 @@ using Win32
 func createNative(dirname: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirname)
-    catch CreateDirectoryW(@dataof(winPath), null) as err
+    catch CreateDirectoryW(winPath.buffer, null) as err
     Errors.transformWinErrors(err, dirname)
 }
 
 func deleteEmptyNative(dirName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirName)
-    catch RemoveDirectoryW(@dataof(winPath)) as err
+    catch RemoveDirectoryW(winPath.buffer) as err
     Errors.transformWinErrors(err, dirName)
 }
 
 // Returns true if the given directory exists
 func exists(dirName: string)->bool
 {
-    if @countof(dirName) == 0 do
+    if dirName.count == 0 do
         return false
     let winPath    = Utf16.toZeroTerminated(dirName)
-    let attributes = catch GetFileAttributesW(@dataof(winPath)) as err
+    let attributes = catch GetFileAttributesW(winPath.buffer) as err
     if err != null do
         return false
     if attributes == 0xFFFFFFFF do
@@ -41,21 +41,21 @@ func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
     var result:   retval
     var findfile: WIN32_FIND_DATAW
     var fileTime: SYSTEMTIME
-    let dataof = cast(const [*] u16) @dataof(findfile.cFileName)
+    let dataof = cast(const [*] u16) findfile.cFileName.buffer
     var toScan = String.from(dirName)
     if toScan.back() == Path.VolumeSeparator do
         toScan += Path.DirectorySeparator
     let searchPath = Path.combine(toScan.toString(), "*")
 
     let winPath = Utf16.toZeroTerminated(searchPath)
-    let handle  = try FindFirstFileExW(@dataof(winPath), .FindExInfoBasic, &findfile, .FindExSearchNameMatch, null, FIND_FIRST_EX_LARGE_FETCH)
+    let handle  = try FindFirstFileExW(winPath.buffer, .FindExInfoBasic, &findfile, .FindExSearchNameMatch, null, FIND_FIRST_EX_LARGE_FETCH)
     if handle == INVALID_HANDLE_VALUE do
         return result
     defer expect FindClose(handle)
 
     for
     {
-        let fileName = Utf8.fromUtf16(@mkslice(dataof, Utf16.lengthUntilZero(findfile.cFileName)))
+        let fileName = Utf8.fromUtf16(Swag.makeSlice(dataof, Utf16.lengthUntilZero(findfile.cFileName)))
         var info: FileInfo
         info.fullname   = Path.combine(toScan.toString(), fileName.toString())
         info.attributes = FileAttributes.fromDWORD(findfile.dwFileAttributes)
@@ -85,7 +85,7 @@ func currentPath()->String fail
 
     var arr16: Array'u16
     arr16.reserve(cast(u64) length + 1)
-    arr16.count = GetCurrentDirectoryW(length + 1, @dataof(arr16))
+    arr16.count = GetCurrentDirectoryW(length + 1, arr16.buffer)
 
     result = Utf8.fromUtf16(arr16.toSlice())
     Path.normalize(&result)
@@ -96,7 +96,7 @@ func currentPath()->String fail
 func setCurrentPath(dirName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirName)
-    catch SetCurrentDirectoryW(@dataof(winPath)) as err
+    catch SetCurrentDirectoryW(winPath.buffer) as err
     Errors.transformWinErrors(err, dirName)
 }
 
@@ -113,8 +113,8 @@ func drives()->Array'String fail
     var ptr = cast([*] u8) &volName[0]
     while ptr[0]
     {
-        let len = @countof(cast(cstring) ptr)
-        result.add(@mkstring(ptr, len))
+        let len = (cast(cstring) ptr).count
+        result.add(Swag.makeString(ptr, len))
         ptr += len + 1
     }
 
@@ -139,10 +139,10 @@ func volumes()->Array'String fail
         catch GetVolumePathNamesForVolumeNameA(volName, driveName, MAX_PATH, &ret) as err
         if err == null
         {
-            let len = @countof(cast(cstring) driveName)
+            let len = (cast(cstring) driveName).count
             if len
             {
-                var str = String.from(@mkstring(&driveName[0], len))
+                var str = String.from(Swag.makeString(&driveName[0], len))
                 Path.normalize(&str)
                 result.add(str)
             }

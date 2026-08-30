@@ -21,20 +21,20 @@ using Swag, Core
     f.main.pixSelFillCol = ColorRed
     f.main.sendCommandEvent(ActionPixSel.Fill)
     let filledBytes = Gui.Testing.countNonZeroBytes(f.capture.backImg)
-    @assert(filledBytes > 0)
-    @assert(f.capture.canUndo())
+    Swag.assert(filledBytes > 0)
+    Swag.assert(f.capture.canUndo())
 
     f.capture.undo()
-    @assert(Gui.Testing.countNonZeroBytes(f.capture.backImg) == 0)
+    Swag.assert(Gui.Testing.countNonZeroBytes(f.capture.backImg) == 0)
 
     f.capture.redo()
-    @assert(Gui.Testing.countNonZeroBytes(f.capture.backImg) == filledBytes)
+    Swag.assert(Gui.Testing.countNonZeroBytes(f.capture.backImg) == filledBytes)
 
     f.main.sendCommandEvent(ActionPixSel.Clear)
-    @assert(Gui.Testing.countNonZeroBytes(f.capture.backImg) == 0)
+    Swag.assert(Gui.Testing.countNonZeroBytes(f.capture.backImg) == 0)
 
     f.capture.undo()
-    @assert(Gui.Testing.countNonZeroBytes(f.capture.backImg) == filledBytes)
+    Swag.assert(Gui.Testing.countNonZeroBytes(f.capture.backImg) == filledBytes)
 }
 
 // Smart fill uses surrounding pixels to replace a pixel-selection area and remains undoable.
@@ -61,13 +61,13 @@ using Swag, Core
 
     f.main.sendCommandEvent(ActionPixSel.SmartFill)
     let after = f.capture.backImg.pixelColor(12, 12)
-    @assert(after.argb != before.argb)
+    Swag.assert(after.argb != before.argb)
 
     f.capture.undo()
-    @assert(f.capture.backImg.pixelColor(12, 12).argb == before.argb)
+    Swag.assert(f.capture.backImg.pixelColor(12, 12).argb == before.argb)
 
     f.capture.redo()
-    @assert(f.capture.backImg.pixelColor(12, 12).argb == after.argb)
+    Swag.assert(f.capture.backImg.pixelColor(12, 12).argb == after.argb)
 }
 
 // Smart move captures a pixel selection into a movable image form, then deletes the
@@ -89,27 +89,27 @@ using Swag, Core
 
     f.main.sendCommandEvent(ActionPixSel.SmartMove)
 
-    @assert(f.capture.forms.count == 1)
-    @assert(f.capture.selection.count == 1)
-    @assert(f.capture.selection[0] == 0)
-    @assert(@kindof(f.capture.forms[0]) == FormImage)
+    Swag.assert(f.capture.forms.count == 1)
+    Swag.assert(f.capture.selection.count == 1)
+    Swag.assert(f.capture.selection[0] == 0)
+    Swag.assert(Swag.kindOf(f.capture.forms[0]) == FormImage)
 
-    let imgForm = cast(*FormImage) @dataof(f.capture.forms[0])
-    @assert(imgForm.kind == .Capture)
-    @assert(imgForm.image.isValid())
-    @assert(imgForm.image.width == 12)
-    @assert(imgForm.image.height == 12)
-    @assert(imgForm.texture.isValid())
-    @assert(f.capture.backImg.pixelColor(12, 12).argb != before.argb)
+    let imgForm = cast(*FormImage) f.capture.forms[0].buffer
+    Swag.assert(imgForm.kind == .Capture)
+    Swag.assert(imgForm.image.isValid())
+    Swag.assert(imgForm.image.width == 12)
+    Swag.assert(imgForm.image.height == 12)
+    Swag.assert(imgForm.texture.isValid())
+    Swag.assert(f.capture.backImg.pixelColor(12, 12).argb != before.argb)
 
     f.capture.undo()
-    @assert(f.capture.forms.count == 1)
-    @assert(@kindof(f.capture.forms[0]) == FormShape)
-    @assert(f.capture.backImg.pixelColor(12, 12).argb == before.argb)
+    Swag.assert(f.capture.forms.count == 1)
+    Swag.assert(Swag.kindOf(f.capture.forms[0]) == FormShape)
+    Swag.assert(f.capture.backImg.pixelColor(12, 12).argb == before.argb)
 
     f.capture.redo()
-    @assert(f.capture.forms.count == 1)
-    @assert(@kindof(f.capture.forms[0]) == FormImage)
+    Swag.assert(f.capture.forms.count == 1)
+    Swag.assert(Swag.kindOf(f.capture.forms[0]) == FormImage)
 }
 
 // Pixel-selection extraction filters the current selection without rendering.
@@ -125,6 +125,6 @@ using Swag, Core
     f.capture.selection.add(1)
 
     let pixSels = f.main.getPixSels()
-    @assert(pixSels.count == 1)
-    @assert(@dataof(pixSels[0]) == pixSel)
+    Swag.assert(pixSels.count == 1)
+    Swag.assert(pixSels[0].buffer == pixSel)
 }

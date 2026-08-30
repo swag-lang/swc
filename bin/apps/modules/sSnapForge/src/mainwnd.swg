@@ -162,7 +162,7 @@ impl IWnd for MainWnd
             .addItem(ActionCapture.FullScreen)
             .addItem(ActionCapture.ActiveWnd)
 
-            for idx in @countof(me.monitors) do
+            for idx in me.monitors.count do
                 .addItem(ActionCapture.screenId(idx))
 
             .addSeparator()
@@ -397,7 +397,7 @@ impl MainWnd
         }
 
         // Reflect the new title on the library preview(s) that reference this file.
-        if @isset(.libWnd) and @isset(.libWnd.view)
+        if Swag.isSet(.libWnd) and Swag.isSet(.libWnd.view)
         {
             for it in .libWnd.view.items where it.capture and it.fi.fullname == file do
                 it.capture.title = title
@@ -514,7 +514,7 @@ impl MainWnd
 
             for it in capture.forms
             {
-                let p = cast(*BaseForm) @dataof(it)
+                let p = cast(*BaseForm) it.buffer
                 p.freeze = true
             }
         }
@@ -524,18 +524,18 @@ impl MainWnd
     {
         .updateCommandState()
         .updateToolTitle()
-        if @isset(.propWnd) do
+        if Swag.isSet(.propWnd) do
             .propWnd.selectionHasChanged()
-        if @isset(.quickWnd) do
+        if Swag.isSet(.quickWnd) do
             .quickWnd.updateQuickStyles()
     }
 
     mtd captureHasChanged()
     {
         .updateSizeDisplay()
-        if @isset(.recentWnd)
+        if Swag.isSet(.recentWnd)
         {
-            if @isset(.toolRail) do
+            if Swag.isSet(.toolRail) do
                 .toolRail.updateCommandState()
             .updateRecent()
         }
@@ -550,7 +550,7 @@ impl MainWnd
 
     mtd updateRecent()
     {
-        if @isset(.recentWnd) do
+        if Swag.isSet(.recentWnd) do
             .recentWnd.updateRecent()
     }
 
@@ -582,7 +582,7 @@ impl MainWnd
     // panel used to carry, and unlike them it says something the reader does not know.
     mtd updateToolTitle()
     {
-        if !@isset(.toolTitle) do
+        if !Swag.isSet(.toolTitle) do
             return
 
         var name = appStrings().act_Select
@@ -702,7 +702,7 @@ impl MainWnd
 
     mtd createTopMenu()
     {
-        @assert(me.parent != null)
+        Swag.assert(me.parent != null)
         let parentWnd = me.parent
         let metrics   = .themeMetrics()
         with .topMenu = MenuCtrl.createBar(parentWnd, owner: me)
@@ -735,7 +735,7 @@ impl MainWnd
         {
             .addItems([ActionCapture.Area, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd])
 
-            for idx in @countof(me.monitors) do
+            for idx in me.monitors.count do
                 .addItem(ActionCapture.screenId(idx))
 
             .addSeparator()
@@ -950,7 +950,7 @@ impl MainWnd
 
         // Pixel-selection forms borrow a theme color, so their retained renderings
         // follow the switch.
-        if @isset(.editWnd)
+        if Swag.isSet(.editWnd)
         {
             let capture = .editWnd.getCapture()
             if capture do

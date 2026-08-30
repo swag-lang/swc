@@ -45,13 +45,13 @@ func testSetupGlobalMain(main: *MainWnd)
 
     f.main.editorOptions.theme = .Dark
     f.main.setTheme()
-    @assert(f.main.appearanceButton.appearanceTheme == .Dark and f.gui.theme.colors.bk == ThemeColors.darkPalette().ground)
+    Swag.assert(f.main.appearanceButton.appearanceTheme == .Dark and f.gui.theme.colors.bk == ThemeColors.darkPalette().ground)
     f.main.editorOptions.theme = .Light
     f.main.setTheme()
-    @assert(f.main.appearanceButton.appearanceTheme == .Light and f.gui.theme.colors.bk == ThemeColors.lightPalette().ground)
+    Swag.assert(f.main.appearanceButton.appearanceTheme == .Light and f.gui.theme.colors.bk == ThemeColors.lightPalette().ground)
     f.main.editorOptions.theme = .SwagDark
     f.main.setTheme()
-    @assert(f.main.appearanceButton.appearanceTheme == .SwagDark and f.gui.theme.colors.bk == ThemeColors.swagDarkPalette().ground)
+    Swag.assert(f.main.appearanceButton.appearanceTheme == .SwagDark and f.gui.theme.colors.bk == ThemeColors.swagDarkPalette().ground)
 }
 
 // A rail-only option change must not reapply unrelated application-wide settings. Repeating the
@@ -75,17 +75,17 @@ func testSetupGlobalMain(main: *MainWnd)
     discard f.main.applyOptionChange(#nameof(EditorOptions.showToolBarLabels))
 
     let metrics = f.main.themeMetrics()
-    @assert(f.main.toolRail.position.width == RailLabelWidth + metrics.activeRail_Size + metrics.activeRail_Margin)
-    @assert(f.main.themeColors().wnd_Bk == lightBackground)
-    @assert(Gui.activeLanguage() == "fr")
+    Swag.assert(f.main.toolRail.position.width == RailLabelWidth + metrics.activeRail_Size + metrics.activeRail_Margin)
+    Swag.assert(f.main.themeColors().wnd_Bk == lightBackground)
+    Swag.assert(Gui.activeLanguage() == "fr")
 
     for i in 32
     {
         f.main.editorOptions.showToolBarLabels = i % 2 == 0
         discard f.main.applyOptionChange(#nameof(EditorOptions.showToolBarLabels))
         let expected = f.main.editorOptions.showToolBarLabels ? RailLabelWidth + metrics.activeRail_Size + metrics.activeRail_Margin : themeActionButtonSize(metrics) + metrics.activeRail_Size
-        @assert(f.main.toolRail.position.width == expected)
-        @assert(f.main.app().animator.activeCount() == 0)
+        Swag.assert(f.main.toolRail.position.width == expected)
+        Swag.assert(f.main.app().animator.activeCount() == 0)
     }
 }
 
@@ -110,10 +110,10 @@ func testSetupGlobalMain(main: *MainWnd)
     // Counting both used to leave the glyph visibly adrift from its selection marker.
     let firstTool = cast(*IconButton) f.main.toolRail.children[0]
     let metrics   = f.main.themeMetrics()
-    @assert(firstTool.flags.has(.IconOnly))
-    @assert(firstTool.padding.x == 0)
-    @assert(firstTool.padding.z == (themeActionButtonSize(metrics) - themeActionIconSize(metrics)) * 0.5)
-    @assert(firstTool.position.width == themeActionButtonSize(metrics) + metrics.activeRail_Size)
+    Swag.assert(firstTool.flags.has(.IconOnly))
+    Swag.assert(firstTool.padding.x == 0)
+    Swag.assert(firstTool.padding.z == (themeActionButtonSize(metrics) - themeActionIconSize(metrics)) * 0.5)
+    Swag.assert(firstTool.position.width == themeActionButtonSize(metrics) + metrics.activeRail_Size)
 
     // The wait indicator of a library scan stands in the command bar, not over the captures. It
     // used to be a child of the scroll window at 8,8 — which is exactly where the view's own
@@ -123,66 +123,66 @@ func testSetupGlobalMain(main: *MainWnd)
     // is visible.
     let bar     = f.main.libWnd.commandBar
     let spinner = cast(*Wnd) f.main.libWnd.view.imgSpin!
-    @assert(spinner.parent == cast(*Wnd) bar)
-    @assert(!spinner.isLocallyVisible())
+    Swag.assert(spinner.parent == cast(*Wnd) bar)
+    Swag.assert(!spinner.isLocallyVisible())
 
     let packed = bar.measure({}).preferred.x
     spinner.show()
-    @assert(bar.measure({}).preferred.x > packed)
+    Swag.assert(bar.measure({}).preferred.x > packed)
     spinner.hide()
-    @assert(bar.measure({}).preferred.x == packed)
+    Swag.assert(bar.measure({}).preferred.x == packed)
 
     var evt = Gui.Testing.commandState(ActionGlobal.ShowLibrary)
-    @assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
-    @assert(!evt.name.isEmpty())
-    @assert(!evt.checked)
-    @assert(@countof(f.main.libraryBtn.text()) != 0)
-    @assert(f.main.libraryBtn.icon.isValid())
-    @assert(f.main.libraryBtn.form == .Normal)
-    @assert(f.main.libraryBtn.position.width == f.main.captureBtn.position.width)
-    @assert(f.main.icon(.RatingStar, RatingGlyphSize).isValid())
-    @assert(f.main.commandReadouts.isLocallyVisible())
+    Swag.assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
+    Swag.assert(!evt.name.isEmpty())
+    Swag.assert(!evt.checked)
+    Swag.assert((f.main.libraryBtn.text()).count != 0)
+    Swag.assert(f.main.libraryBtn.icon.isValid())
+    Swag.assert(f.main.libraryBtn.form == .Normal)
+    Swag.assert(f.main.libraryBtn.position.width == f.main.captureBtn.position.width)
+    Swag.assert(f.main.icon(.RatingStar, RatingGlyphSize).isValid())
+    Swag.assert(f.main.commandReadouts.isLocallyVisible())
 
     f.gui.focus(f.main.libraryBtn)
     f.gui.keyPress(Input.Key.Space)
-    @assert(f.main.libraryMode)
+    Swag.assert(f.main.libraryMode)
 
     // Filled, Library wears the theme's alternate tone: Capture is what the surface is for and
     // keeps the signature, and the page the reader can leave to is the other thing a theme owns
     // a second color for.
-    @assert(f.main.libraryBtn.form == .Alternate)
-    @assert(!f.main.editWnd.isLocallyVisible())
-    @assert(f.main.libWnd.isLocallyVisible())
-    @assert(!f.main.commandReadouts.isLocallyVisible())
-    @assert(!f.main.app().animator.isActive(f.main.libWnd, AnimationChannel.from("Gui.Page.Offset")))
-    @assert(f.main.libWnd.presentationOpacity == 1 and f.main.libWnd.presentationOffset == Math.Point{})
+    Swag.assert(f.main.libraryBtn.form == .Alternate)
+    Swag.assert(!f.main.editWnd.isLocallyVisible())
+    Swag.assert(f.main.libWnd.isLocallyVisible())
+    Swag.assert(!f.main.commandReadouts.isLocallyVisible())
+    Swag.assert(!f.main.app().animator.isActive(f.main.libWnd, AnimationChannel.from("Gui.Page.Offset")))
+    Swag.assert(f.main.libWnd.presentationOpacity == 1 and f.main.libWnd.presentationOffset == Math.Point{})
 
     evt = Gui.Testing.commandState(ActionGlobal.ShowLibrary)
-    @assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
-    @assert(evt.checked)
+    Swag.assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
+    Swag.assert(evt.checked)
 
     f.gui.keyPress(Input.Key.Space)
-    @assert(!f.main.libraryMode)
-    @assert(f.main.libraryBtn.form == .Normal)
-    @assert(f.main.editWnd.isLocallyVisible())
-    @assert(!f.main.libWnd.isLocallyVisible())
-    @assert(f.main.commandReadouts.isLocallyVisible())
-    @assert(!f.main.app().animator.isActive(f.main.editWnd, AnimationChannel.from("Gui.Page.Offset")))
-    @assert(f.main.editWnd.presentationOpacity == 1 and f.main.editWnd.presentationOffset == Math.Point{})
+    Swag.assert(!f.main.libraryMode)
+    Swag.assert(f.main.libraryBtn.form == .Normal)
+    Swag.assert(f.main.editWnd.isLocallyVisible())
+    Swag.assert(!f.main.libWnd.isLocallyVisible())
+    Swag.assert(f.main.commandReadouts.isLocallyVisible())
+    Swag.assert(!f.main.app().animator.isActive(f.main.editWnd, AnimationChannel.from("Gui.Page.Offset")))
+    Swag.assert(f.main.editWnd.presentationOpacity == 1 and f.main.editWnd.presentationOffset == Math.Point{})
 
     let surface = f.main.surface!
     surface.show()
-    @assert(!surface.isHidden)
+    Swag.assert(!surface.isHidden)
 
-    @assert(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.Minimize))
-    @assert(surface.isHidden)
+    Swag.assert(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.Minimize))
+    Swag.assert(surface.isHidden)
 
-    @assert(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowEditor))
-    @assert(!surface.isHidden)
+    Swag.assert(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowEditor))
+    Swag.assert(!surface.isHidden)
 
     evt = Gui.Testing.commandState(ActionGlobal.Exit)
-    @assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.Exit, &evt))
-    @assert(!evt.name.isEmpty())
+    Swag.assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.Exit, &evt))
+    Swag.assert(!evt.name.isEmpty())
 }
 
 // The fixed dark matte was once the persisted default. It now migrates to the theme-derived
@@ -196,13 +196,13 @@ func testSetupGlobalMain(main: *MainWnd)
 
     f.main.editorOptions.editBackColor = 0xFF2E2E2E'u32
     f.main.migrateStoredOptions()
-    @assert(f.main.editorOptions.editBackColor == 0)
+    Swag.assert(f.main.editorOptions.editBackColor == 0)
 
     f.main.editorOptions.editBackColor = 0xFF123456'u32
     f.main.migrateStoredOptions()
-    @assert(f.main.editorOptions.editBackColor == 0xFF123456'u32)
+    Swag.assert(f.main.editorOptions.editBackColor == 0xFF123456'u32)
 
     f.main.editorOptions.theme = cast(AppearanceTheme) 99
     f.main.migrateStoredOptions()
-    @assert(f.main.editorOptions.theme == .SwagDark)
+    Swag.assert(f.main.editorOptions.theme == .SwagDark)
 }

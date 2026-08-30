@@ -36,23 +36,23 @@ func triCount(pts: [..] Vector2)->u64
     open.add({0, 3})
     open.recompute()
 
-    @assert(Math.isEqualEpsilon(open.area, 6, 0.001))
-    @assert(Math.isEqualEpsilon(open.perimeter, 12, 0.001))
-    @assert(open.minBounds == Vector2{0, 0})
-    @assert(open.maxBounds == Vector2{4, 3})
-    @assert(open.isClockwise)
-    @assert(open.isConvex)
-    @assert(open.isSimple)
+    Swag.assert(Math.isEqualEpsilon(open.area, 6, 0.001))
+    Swag.assert(Math.isEqualEpsilon(open.perimeter, 12, 0.001))
+    Swag.assert(open.minBounds == Vector2{0, 0})
+    Swag.assert(open.maxBounds == Vector2{4, 3})
+    Swag.assert(open.isClockwise)
+    Swag.assert(open.isConvex)
+    Swag.assert(open.isSimple)
 
     var explicitlyClosed = open
     let closingPoint     = explicitlyClosed.points[0]
     explicitlyClosed.add(closingPoint)
     explicitlyClosed.recompute()
 
-    @assert(Math.isEqualEpsilon(explicitlyClosed.area, open.area, 0.001))
-    @assert(Math.isEqualEpsilon(explicitlyClosed.perimeter, open.perimeter, 0.001))
-    @assert(explicitlyClosed.minBounds == open.minBounds)
-    @assert(explicitlyClosed.maxBounds == open.maxBounds)
+    Swag.assert(Math.isEqualEpsilon(explicitlyClosed.area, open.area, 0.001))
+    Swag.assert(Math.isEqualEpsilon(explicitlyClosed.perimeter, open.perimeter, 0.001))
+    Swag.assert(explicitlyClosed.minBounds == open.minBounds)
+    Swag.assert(explicitlyClosed.maxBounds == open.maxBounds)
 }
 
 // Degenerate contours remain well-defined and never inherit stale cached bounds.
@@ -61,15 +61,15 @@ func triCount(pts: [..] Vector2)->u64
     var poly: Pixel.Polygon
     poly.add({7, 9})
     poly.recompute()
-    @assert(poly.area == 0)
-    @assert(poly.perimeter == 0)
-    @assert(poly.minBounds == Vector2{7, 9})
-    @assert(poly.maxBounds == Vector2{7, 9})
+    Swag.assert(poly.area == 0)
+    Swag.assert(poly.perimeter == 0)
+    Swag.assert(poly.minBounds == Vector2{7, 9})
+    Swag.assert(poly.maxBounds == Vector2{7, 9})
 
     poly.clear()
     poly.recompute()
-    @assert(poly.minBounds == Vector2{})
-    @assert(poly.maxBounds == Vector2{})
+    Swag.assert(poly.minBounds == Vector2{})
+    Swag.assert(poly.maxBounds == Vector2{})
 }
 
 // Regular convex N-gon centered at (cx,cy).
@@ -91,7 +91,7 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
     for n in 3 until 13
     {
         let poly = makeNgon(100, 100, 60, n)
-        @assert(triCount(poly[to]) == cast(u64) (n - 2))
+        Swag.assert(triCount(poly[to]) == cast(u64) (n - 2))
     }
 }
 
@@ -101,8 +101,8 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
     var tri  = [Vector2{0, 0}, Vector2{100, 0}, Vector2{50, 100}]
     var quad = [Vector2{0, 0}, Vector2{100, 0}, Vector2{100, 100}, Vector2{0, 100}]
 
-    @assert(triCount(tri) == 1)
-    @assert(triCount(quad) == 2)
+    Swag.assert(triCount(tri) == 1)
+    Swag.assert(triCount(quad) == 2)
 }
 
 // Concave polygons: still N-2 triangles for a simple ring.
@@ -110,13 +110,13 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
 {
     // Concave dart (4 vertices)
     var dart = [Vector2{0, 0}, Vector2{50, 30}, Vector2{100, 0}, Vector2{50, 100}]
-    @assert(triCount(dart) == 2)
+    Swag.assert(triCount(dart) == 2)
 
     // L-shape (6 vertices)
     var lshape = [
         Vector2{0, 0}, Vector2{60, 0}, Vector2{60, 20},
         Vector2{20, 20}, Vector2{20, 60}, Vector2{0, 60}]
-    @assert(triCount(lshape) == 4)
+    Swag.assert(triCount(lshape) == 4)
 
     // Plus / cross (12 vertices). Coordinates are deliberately irregular: a
     // perfectly axis-aligned cross makes several vertices share an x/y during the
@@ -126,7 +126,7 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
         Vector2{21, 1}, Vector2{41, 2}, Vector2{43, 21}, Vector2{61, 23},
         Vector2{62, 41}, Vector2{43, 43}, Vector2{41, 61}, Vector2{22, 62},
         Vector2{21, 43}, Vector2{2, 41}, Vector2{1, 22}, Vector2{19, 19}]
-    @assert(triCount(plus) == 10)
+    Swag.assert(triCount(plus) == 10)
 }
 
 // Star polygons (non-convex, many concavities) with 3..10 branches.
@@ -146,6 +146,6 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
         }
 
         // A 2b-vertex simple star ring -> 2b-2 triangles.
-        @assert(triCount(pts[to]) == cast(u64) (total - 2))
+        Swag.assert(triCount(pts[to]) == cast(u64) (total - 2))
     }
 }

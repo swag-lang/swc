@@ -11,7 +11,7 @@ func exerciseGenericCloneCodegen()->bool
     values.add(3)
 
     let slice = values.toSlice()
-    if @countof(slice) != 3 or slice[1] != 2 do
+    if slice.count != 3 or slice[1] != 2 do
         return false
 
     var total = 0's32
@@ -31,5 +31,5 @@ func exerciseGenericCloneCodegen()->bool
 
 #test
 {
-    @assert(exerciseGenericCloneCodegen())
+    Swag.assert(exerciseGenericCloneCodegen())
 }

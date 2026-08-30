@@ -979,7 +979,7 @@ private func shellSplit(dec: *RangeDecoder, total: u32, table: const [..] u8, fi
     if total > 0
     {
         let at = cast(u32) SilkShellCodeTableOffsets[total]
-        first[]  = dec.decodeIcdf(table[at until @countof(table)], 8)
+        first[]  = dec.decodeIcdf(table[at until table.count], 8)
         second[] = total - first[]
     }
     else

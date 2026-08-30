@@ -40,7 +40,7 @@ swc test -w <repository-root>/bin/reference -m language -bc release
 
 - A '#test' block runs only for the 'test' command.
 - '#assert' checks a condition while compiling.
-- '@assert' checks a condition while the generated program runs.
+- 'Swag.assert' checks a condition while the generated program runs.
 - Deliberately invalid examples stay commented out and explain the diagnostic
   they are intended to produce.
 - Most declarations are private to this module so examples do not accidentally
@@ -48,7 +48,7 @@ swc test -w <repository-root>/bin/reference -m language -bc release
 
 > TIP:
 > Copy a '#test' body into a function or executable while experimenting. Keep
-> '#assert' for compile-time facts and '@assert' for runtime behavior.
+> '#assert' for compile-time facts and 'Swag.assert' for runtime behavior.
 
 # Accuracy and Scope
 

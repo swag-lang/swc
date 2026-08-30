@@ -19,20 +19,20 @@ func canDiscard()->s32
 {
     gMustUseCalls = 0
     let v = mustUse()
-    @assert(v == 1)
-    @assert(gMustUseCalls == 1)
+    Swag.assert(v == 1)
+    Swag.assert(gMustUseCalls == 1)
 }
 
 #test
 {
     gMustUseCalls = 0
     discard mustUse()
-    @assert(gMustUseCalls == 1)
+    Swag.assert(gMustUseCalls == 1)
 }
 
 #test
 {
     gCanDiscardCalls = 0
     canDiscard()
-    @assert(gCanDiscardCalls == 1)
+    Swag.assert(gCanDiscardCalls == 1)
 }

@@ -174,7 +174,7 @@ impl BreadcrumbCtrl
         let sr  = .surfaceRect()
         let sp  = Math.Point{sr.x + ar.horzCenter(), sr.y + ar.bottom()}
         let sel = menu.doModal(sp, .AnchorTopCenter, autoDestroy: true)
-        if @countof(sel) != 0 do
+        if sel.count != 0 do
             .sigMenuSelected.call(me, index, sel)
     }
 }

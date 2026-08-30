@@ -34,7 +34,7 @@ func day7B()
                 inside += it
         }
 
-        for i in 0 until @countof(outside) - 2
+        for i in 0 until outside.count - 2
         {
             if outside[i] == outside[i + 2] and
                outside[i] != outside[i + 1] and
@@ -47,5 +47,5 @@ func day7B()
     }
 
     // Console.print(total)
-    @assert(total == 242)
+    Swag.assert(total == 242)
 }

@@ -151,7 +151,7 @@ func buildMark(scale, originX, originY: f32)->LinePath
     var result: retval
     var pen    = MarkPen{&result, scale, originX, originY}
 
-    let count = @countof(corners)
+    let count = corners.count
     for &corner, index in corners do
         pen.open(corner, corners[(index + count - 1) % count], corners[(index + 1) % count])
 
@@ -247,14 +247,14 @@ func writeFavicon(svgPath, icoPath: string) fail
 // Reports one generated file, in the compiler's own step voice.
 func wrote(path: string)
 {
-    @print("  ✓  brand       ", path, "\n")
+    Swag.print("  ✓  brand       ", path, "\n")
 }
 
 #main
 {
     const ROOT = "web"
 
-    @print("  ◆  swag        brand • cutting\n")
+    Swag.print("  ◆  swag        brand • cutting\n")
 
     catch
     {
@@ -266,9 +266,9 @@ func wrote(path: string)
 
     if err != null
     {
-        @print("  ✖  brand       ", err, "\n")
+        Swag.print("  ✖  brand       ", err, "\n")
         return
     }
 
-    @print("  ✓  brand       done\n")
+    Swag.print("  ✓  brand       done\n")
 }

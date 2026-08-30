@@ -591,7 +591,7 @@ private impl TagBin
         // Feed the decompressor exactly the announced run, so a malformed payload can
         // never consume the bytes of the elements that follow.
         let rem   = .stream.remainingBytes()
-        let input = @mkslice(@dataof(rem), compressedSize)
+        let input = Swag.makeSlice(rem.buffer, compressedSize)
 
         var decompressor: Core.Compress.Inflate
         catch decompressor.decompress(decompressedBuffer, input) as err
@@ -737,7 +737,7 @@ private impl TagBin
             let rem = .stream.remainingBytes()
             if uncompressedSize == compressedSize
             {
-                .stream = ByteStream.openRead(@mkslice(@dataof(rem), compressedSize))
+                .stream = ByteStream.openRead(Swag.makeSlice(rem.buffer, compressedSize))
             }
             else
             {
@@ -745,7 +745,7 @@ private impl TagBin
                     .bodyBuffer.reserve(uncompressedSize)
 
                 var decompressor: Core.Compress.Inflate
-                catch decompressor.decompress(&.bodyBuffer, @mkslice(@dataof(rem), compressedSize)) as err
+                catch decompressor.decompress(&.bodyBuffer, Swag.makeSlice(rem.buffer, compressedSize)) as err
                 if err != null or .bodyBuffer.count != uncompressedSize do
                     fail SerializationError{"corrupted compressed body"}
 

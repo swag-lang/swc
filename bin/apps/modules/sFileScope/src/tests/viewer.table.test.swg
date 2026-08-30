@@ -9,15 +9,15 @@ using Core, Pixel, Gui
 
     const Source = "name;note;value\r\nalpha;\"two; parts\";1\r\nbeta;\"two\"\" quotes\";2\r\ngamma;\"two\r\nlines\";3\r\n"
     let delimiter = detectTableDelimiter("sample.csv", Source)
-    @assert(delimiter == ';')
+    Swag.assert(delimiter == ';')
 
     let document = expect parseTableDocument(Source, delimiter)
-    @assert(document.columns.count == 3 and document.rows.count == 3)
-    @assert(document.columns[0] == "name" and document.columns[2] == "value")
-    @assert(document.rows[0].cells[1] == "two; parts")
-    @assert(document.rows[1].cells[1] == "two\" quotes")
-    @assert(document.rows[2].cells[1] == "two\nlines")
-    @assert(detectTableDelimiter("sample.tsv", "a,b\tc\n1,2\t3") == '\t')
+    Swag.assert(document.columns.count == 3 and document.rows.count == 3)
+    Swag.assert(document.columns[0] == "name" and document.columns[2] == "value")
+    Swag.assert(document.rows[0].cells[1] == "two; parts")
+    Swag.assert(document.rows[1].cells[1] == "two\" quotes")
+    Swag.assert(document.rows[2].cells[1] == "two\nlines")
+    Swag.assert(detectTableDelimiter("sample.tsv", "a,b\tc\n1,2\t3") == '\t')
 }
 
 #test
@@ -25,11 +25,11 @@ using Core, Pixel, Gui
     registerTableStrings(&g_App)
 
     let document = expect parseTableDocument(";second\n1;2;3\n", ';')
-    @assert(document.columns.count == 3 and document.rows.count == 1)
-    @assert(document.columns[0] == "Column 1" and document.columns[1] == "second" and document.columns[2] == "Column 3")
+    Swag.assert(document.columns.count == 3 and document.rows.count == 1)
+    Swag.assert(document.columns[0] == "Column 1" and document.columns[1] == "second" and document.columns[2] == "Column 3")
 
     discard catch parseTableDocument("name,value\n\"unfinished", ',') as quoteError
-    @assert(quoteError != null)
+    Swag.assert(quoteError != null)
 }
 
 #test
@@ -43,21 +43,21 @@ using Core, Pixel, Gui
     defer host.shutdown()
 
     var result = openTestViewer(&createTableViewer, &host.root, fileName, commandParent: &host.root)
-    @assert(result.view != null and result.commands == null and result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
+    Swag.assert(result.view != null and result.commands == null and result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
     let view = cast(*TableViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
-    @assert(view.list.isVirtual and view.list.lineCount() == 3 and view.list.header.items.count == 3)
+    Swag.assert(view.list.isVirtual and view.list.lineCount() == 3 and view.list.header.items.count == 3)
     var line: ListLine
     view.fillLine(&line, 1)
-    @assert(line.itemAt(0).name.raw == "Reykjavik" and line.itemAt(2).name.raw == "rain")
+    Swag.assert(line.itemAt(0).name.raw == "Reykjavik" and line.itemAt(2).name.raw == "rain")
     var matches: Array'ViewerSearchMatch
     result.collectMatches!(result.view!, "humid", {}, &matches)
-    @assert(matches.count == 1 and result.revealMatch!(result.view!, matches[0], "humid"))
-    @assert(view.searchRow == 2 and view.searchColumn == 2 and view.searchOffset == 0 and view.searchLength == 5)
+    Swag.assert(matches.count == 1 and result.revealMatch!(result.view!, matches[0], "humid"))
+    Swag.assert(view.searchRow == 2 and view.searchColumn == 2 and view.searchOffset == 0 and view.searchLength == 5)
     var bounds: Math.Rectangle
-    @assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
+    Swag.assert(result.searchBounds!(result.view!, matches[0], &bounds) and !bounds.isEmpty())
     result.clearSearch!(result.view!)
-    @assert(!result.searchBounds!(result.view!, matches[0], &bounds))
+    Swag.assert(!result.searchBounds!(result.view!, matches[0], &bounds))
 }
 
 #test
@@ -71,17 +71,17 @@ using Core, Pixel, Gui
         giant += "z"
 
     let leading = tableCellPreviewRange(giant.toString())
-    @assert(leading.start == 0 and leading.end <= TableCellPreviewBytes)
+    Swag.assert(leading.start == 0 and leading.end <= TableCellPreviewBytes)
 
     let focused = tableCellPreviewRange(giant.toString(), 8 * 1024)
-    @assert(focused.start > 0 and focused.end - focused.start <= TableCellPreviewBytes)
-    @assert(focused.start <= 8 * 1024 and focused.end >= 8 * 1024 + @countof("needle"))
+    Swag.assert(focused.start > 0 and focused.end - focused.start <= TableCellPreviewBytes)
+    Swag.assert(focused.start <= 8 * 1024 and focused.end >= 8 * 1024 + ("needle").count)
 
     var unicode = String.from("x")
     for 400 do
         unicode += "\U0001F642"
     let unicodeRange = tableCellPreviewRange(unicode.toString())
-    @assert(Utf8.isValid(unicode.toSlice()[unicodeRange.start until unicodeRange.end]))
+    Swag.assert(Utf8.isValid(unicode.toSlice()[unicodeRange.start until unicodeRange.end]))
 
     var view: TableViewer
     view.document.columns.add("payload")
@@ -92,7 +92,7 @@ using Core, Pixel, Gui
     var line: ListLine
     view.fillLine(&line, 0)
     let displayed = line.itemAt(0).name.raw.toString()
-    @assert(@countof(displayed) <= TableCellPreviewBytes)
+    Swag.assert(displayed.count <= TableCellPreviewBytes)
 }
 
 #test
@@ -110,7 +110,7 @@ using Core, Pixel, Gui
     host.notify(.ThemeChanged)
 
     var result = openTestViewer(&createTableViewer, &host.root, fileName, commandParent: &host.root)
-    @assert(result.view != null)
+    Swag.assert(result.view != null)
     let view = cast(*TableViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
     view.dockStyle = .Center

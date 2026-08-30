@@ -57,5 +57,5 @@ func day8A()
     }
 
     discard read(nums, 0)
-    @assert(metadataTotal == 45194)
+    Swag.assert(metadataTotal == 45194)
 }

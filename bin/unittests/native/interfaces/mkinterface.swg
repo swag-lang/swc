@@ -27,7 +27,7 @@ func validateRuntimeInterface(itf: IAction, expectedType: const *Swag.TypeInfoSt
     if runtimeItf == null or runtimeItf.itable == null do
         return false
 
-    let kind      = cast(const *Swag.TypeInfoStruct) @kindof(itf)
+    let kind      = cast(const *Swag.TypeInfoStruct) Swag.kindOf(itf)
     let tableType = cast(#null const *Swag.TypeInfoStruct) runtimeItf.itable[]
     if kind != expectedType or tableType != expectedType do
         return false
@@ -41,40 +41,40 @@ func validateRuntimeInterface(itf: IAction, expectedType: const *Swag.TypeInfoSt
 #test
 {
     var actions: [2] IAction = undefined
-    actions[0] = @mkinterface(null, #typeof(UndoAction{}), IAction)
-    actions[1] = @mkinterface(null, #typeof(RedoAction{}), IAction)
+    actions[0] = Swag.makeInterface(null, #typeof(UndoAction{}), IAction)
+    actions[1] = Swag.makeInterface(null, #typeof(RedoAction{}), IAction)
 
-    @assert(actions[0].accept(1))
-    @assert(actions[1].execute(3) == 83)
-    @assert(validateRuntimeInterface(actions[0], cast(const *Swag.TypeInfoStruct) #typeof(UndoAction{}), true))
-    @assert(validateRuntimeInterface(actions[1], cast(const *Swag.TypeInfoStruct) #typeof(RedoAction{}), true))
+    Swag.assert(actions[0].accept(1))
+    Swag.assert(actions[1].execute(3) == 83)
+    Swag.assert(validateRuntimeInterface(actions[0], cast(const *Swag.TypeInfoStruct) #typeof(UndoAction{}), true))
+    Swag.assert(validateRuntimeInterface(actions[1], cast(const *Swag.TypeInfoStruct) #typeof(RedoAction{}), true))
 
     var local               = UndoAction{}
     var castAction: IAction = local
-    @assert(validateRuntimeInterface(castAction, cast(const *Swag.TypeInfoStruct) #typeof(UndoAction{}), false))
+    Swag.assert(validateRuntimeInterface(castAction, cast(const *Swag.TypeInfoStruct) #typeof(UndoAction{}), false))
 
     let constPtr: const *UndoAction = &local
-    let constAction                 = @mkinterface(constPtr, UndoAction, IAction)
-    let rawConst                    = cast(const *UndoAction) @dataof(constAction)
+    let constAction                 = Swag.makeInterface(constPtr, UndoAction, IAction)
+    let rawConst                    = cast(const *UndoAction) constAction.buffer
     #assert(#typeof(constAction) == const IAction)
-    @assert(rawConst == constPtr)
+    Swag.assert(rawConst == constPtr)
 
     let constFromDeref: const IAction = constPtr[]
-    let rawFromDeref = cast(const *UndoAction) @dataof(constFromDeref)
+    let rawFromDeref = cast(const *UndoAction) constFromDeref.buffer
     #assert(#typeof(constFromDeref) == const IAction)
-    @assert(rawFromDeref != null)
+    Swag.assert(rawFromDeref != null)
 
     let constRef: const *UndoAction = &local
-    let constFromRef                = @mkinterface(constRef, UndoAction, IAction)
-    let rawFromRef                  = cast(const *UndoAction) @dataof(constFromRef)
+    let constFromRef                = Swag.makeInterface(constRef, UndoAction, IAction)
+    let rawFromRef                  = cast(const *UndoAction) constFromRef.buffer
     #assert(#typeof(constFromRef) == const IAction)
-    @assert(rawFromRef == constPtr)
+    Swag.assert(rawFromRef == constPtr)
 
-    let boxedConstAction   = @mkany(&constAction, const IAction)
+    let boxedConstAction   = Swag.makeAny(&constAction, const IAction)
     let unboxedConstAction = cast(const IAction) boxedConstAction
-    let rawUnboxedConst    = cast(const *UndoAction) @dataof(unboxedConstAction)
+    let rawUnboxedConst    = cast(const *UndoAction) unboxedConstAction.buffer
     #assert(#typeof(unboxedConstAction) == const IAction)
-    @assert(rawUnboxedConst == constPtr)
+    Swag.assert(rawUnboxedConst == constPtr)
 
     let constFromValue: const IAction = local
     #assert(#typeof(constFromValue) == const IAction)

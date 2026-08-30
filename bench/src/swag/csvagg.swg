@@ -61,7 +61,7 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
         n       = writeUInt(text, n, j)
         text[n] = ','
         n += 1
-        for i in @countof(region)
+        for i in region.count
         {
             text[n] = region[i]
             n += 1
@@ -200,7 +200,7 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
             var la = agg.keyLen[a]
             if agg.keyLen[b] < la do
                 la = agg.keyLen[b]
-            let c = @memcmp(&text[agg.keyOff[b]], &text[agg.keyOff[a]], la)
+            let c = Swag.memcmp(&text[agg.keyOff[b]], &text[agg.keyOff[a]], la)
             if c < 0 or (c == 0 and agg.keyLen[b] < agg.keyLen[a]) do
                 best = j
         }

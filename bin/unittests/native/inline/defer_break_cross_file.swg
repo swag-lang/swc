@@ -9,13 +9,13 @@
         resource = true
         defer
         {
-            @assert(InlineRegressionBug15.isResourceCreated(resource))
+            Swag.assert(InlineRegressionBug15.isResourceCreated(resource))
             resource = false
         }
 
-        if @index == 2 do
+        if Swag.index == 2 do
             break
     }
 
-    @assert(!InlineRegressionBug15.isResourceCreated(resource))
+    Swag.assert(!InlineRegressionBug15.isResourceCreated(resource))
 }

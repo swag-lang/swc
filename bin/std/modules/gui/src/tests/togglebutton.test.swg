@@ -25,18 +25,18 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
     let toggle = ToggleButton.create(&host.root, {20, 20, 60, 30}, ToggleButtonHeadless_Command)
     toggle.sigChanged += &toggleButtonHeadlessChanged
 
-    @assert(!toggle.isChecked())
+    Swag.assert(!toggle.isChecked())
 
     host.click({40, 35})
-    @assert(toggle.isChecked())
-    @assert(ToggleButtonHeadlessChangedCount == 1)
-    @assert(host.commandCount == 1)
-    @assert(host.lastCommand == ToggleButtonHeadless_Command)
+    Swag.assert(toggle.isChecked())
+    Swag.assert(ToggleButtonHeadlessChangedCount == 1)
+    Swag.assert(host.commandCount == 1)
+    Swag.assert(host.lastCommand == ToggleButtonHeadless_Command)
 
     host.click({40, 35})
-    @assert(!toggle.isChecked())
-    @assert(ToggleButtonHeadlessChangedCount == 2)
-    @assert(host.commandCount == 2)
+    Swag.assert(!toggle.isChecked())
+    Swag.assert(ToggleButtonHeadlessChangedCount == 2)
+    Swag.assert(host.commandCount == 2)
 }
 
 // Pressing then leaving the button before release cancels the toggle.
@@ -55,10 +55,10 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
     host.moveMouse({200, 100})
     host.mouseUp({200, 100})
 
-    @assert(!toggle.isChecked())
-    @assert(ToggleButtonHeadlessChangedCount == 0)
-    @assert(host.commandCount == 0)
-    @assert(host.app.mouseCaptureWnd == null)
+    Swag.assert(!toggle.isChecked())
+    Swag.assert(ToggleButtonHeadlessChangedCount == 0)
+    Swag.assert(host.commandCount == 0)
+    Swag.assert(host.app.mouseCaptureWnd == null)
 }
 
 // Programmatic changes are silent; keyboard activation follows pointer activation.
@@ -73,13 +73,13 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
     let toggle = ToggleButton.create(&host.root, {20, 20, 60, 30}, ToggleButtonHeadless_Command)
     toggle.sigChanged += &toggleButtonHeadlessChanged
     toggle.setChecked(true)
-    @assert(toggle.isChecked())
-    @assert(ToggleButtonHeadlessChangedCount == 0 and host.commandCount == 0)
+    Swag.assert(toggle.isChecked())
+    Swag.assert(ToggleButtonHeadlessChangedCount == 0 and host.commandCount == 0)
 
     host.focus(toggle)
     host.keyPress(Input.Key.Space)
-    @assert(!toggle.isChecked())
-    @assert(ToggleButtonHeadlessChangedCount == 1 and host.commandCount == 1)
+    Swag.assert(!toggle.isChecked())
+    Swag.assert(ToggleButtonHeadlessChangedCount == 1 and host.commandCount == 1)
 }
 
 // Hiding a toggle button resets its transient pointer and animated paint state.
@@ -97,9 +97,9 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
 
     toggle.hide()
 
-    @assert(!toggle.isHot)
-    @assert(!toggle.isPressed)
-    @assert(toggle.aniBk.themeCrc == Swag.U32.Max)
-    @assert(toggle.aniBorder.themeCrc == Swag.U32.Max)
-    @assert(toggle.aniMark.themeCrc == Swag.U32.Max)
+    Swag.assert(!toggle.isHot)
+    Swag.assert(!toggle.isPressed)
+    Swag.assert(toggle.aniBk.themeCrc == Swag.U32.Max)
+    Swag.assert(toggle.aniBorder.themeCrc == Swag.U32.Max)
+    Swag.assert(toggle.aniMark.themeCrc == Swag.U32.Max)
 }

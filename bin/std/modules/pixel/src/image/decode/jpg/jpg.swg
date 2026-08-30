@@ -251,9 +251,9 @@ impl Decoder
 
     mtd init(buffer: const [..] u8) fail
     {
-        @init(me, 1)
-        .stream    = @dataof(buffer)
-        .streamLen = cast(s32) @countof(buffer)
+        Swag.init(me, 1)
+        .stream    = buffer.buffer
+        .streamLen = cast(s32) buffer.count
 
         .inBufOfs = .inBuf
         .prepareInBuffer()

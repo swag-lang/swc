@@ -54,7 +54,7 @@ func semaTest003()
 {
     var a: A
     var i = cast(I) a
-    @assert(i.A() == 0)
+    Swag.assert(i.A() == 0)
 }
 
 func semaTest004()

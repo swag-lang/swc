@@ -53,7 +53,7 @@ impl Mpeg4Stream
     // Configures the decoder from a container's setup headers and installs the samples.
     mtd open(config: const [..] u8, frames: Array'SampleEntry) fail
     {
-        if !@countof(config) do
+        if !config.count do
             fail InvalidFormatError{"MPEG-4 track has no decoder configuration"}
 
         .config.clear()
@@ -109,7 +109,7 @@ impl Mpeg4Stream
     // decoder has read, so the anchors it holds stay the anchors they were.
     mtd appendFrames(frames: const [..] SampleEntry) fail
     {
-        if !@countof(frames) do
+        if !frames.count do
             return
         .frames.add(frames)
         .rebuildOrder()

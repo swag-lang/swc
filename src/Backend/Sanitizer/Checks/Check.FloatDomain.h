@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 // outside the operation's domain, mirroring the runtime `Math` safety checks:
 // - `sqrt(x)` with `x < 0` (lowers to an inline `FloatSqrt` micro-op);
 // - `log/log2/log10(x)` with `x < 0` and `asin/acos(x)` with `x` outside [-1, 1]
-//   (lower to calls to the `@log`/`@asin`/... runtime functions, whose first float
+//   (lower to calls to the `Swag.log`/`Swag.asin`/... runtime functions, whose first float
 //   argument register is inspected at the call site).
 class FloatDomainCheck final : public SanitizerCheck
 {

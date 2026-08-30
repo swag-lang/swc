@@ -185,6 +185,8 @@ struct AstCompilerCall : AstCompoundT<AstNodeId::CompilerCall>
 // -----------------------------------------------------------------------------
 struct AstIntrinsicCall : AstCompoundT<AstNodeId::IntrinsicCall>
 {
+    TokenId intrinsicId = TokenId::Invalid;
+
     Result codeGenPostNode(CodeGen& codeGen) const;
 
     Result     semaPostNode(Sema& sema);
@@ -200,6 +202,8 @@ struct AstIntrinsicCallVariadic : AstCompoundT<AstNodeId::IntrinsicCallVariadic>
 // -----------------------------------------------------------------------------
 struct AstIntrinsicValue : AstNodeT<AstNodeId::IntrinsicValue>
 {
+    TokenId intrinsicId = TokenId::Invalid;
+
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
@@ -265,6 +269,7 @@ struct AstClosureExpr : AstLambdaExprT<AstNodeId::ClosureExpr, AstFunctionFlagsE
 // -----------------------------------------------------------------------------
 struct AstFunctionDecl : AstNamedNodeT<AstNodeId::FunctionDecl, AstFunctionFlagsE>
 {
+    TokenId    intrinsicId = TokenId::Invalid;
     SpanRef    spanGenericParamsRef;
     AstNodeRef nodeParamsRef;
     AstNodeRef nodeReturnTypeRef;
@@ -539,6 +544,8 @@ struct AstCallExpr : AstCallExprT<AstNodeId::CallExpr, AstCallExprFlagsE>
 // -----------------------------------------------------------------------------
 struct AstIntrinsicCallExpr : AstCallExprT<AstNodeId::IntrinsicCallExpr, AstCallExprFlagsE>
 {
+    TokenId intrinsicId = TokenId::Invalid;
+
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema) const;
@@ -849,12 +856,14 @@ struct AstMemberAccessExpr : AstNodeT<AstNodeId::MemberAccessExpr, AstMemberAcce
 {
     AstNodeRef nodeLeftRef;
     AstNodeRef nodeRightRef;
+    TokenId    projectionId = TokenId::Invalid;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
     Result     codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result     codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
+    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 

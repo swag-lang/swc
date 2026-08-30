@@ -207,7 +207,7 @@ void Sanitizer::walkChain(uint32_t head, SanitizerState cur, std::span<Sanitizer
         if (transferCallTarget_ && def.flags.has(MicroInstrFlagsE::IsCallInstruction))
         {
             const auto calleeName = transferCallTarget_->name(ctx());
-            if (calleeName == "@safetypanic" || calleeName == "@panic")
+            if (calleeName == "Swag.safetyPanic" || calleeName == "Swag.panic")
                 return;
         }
 

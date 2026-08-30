@@ -92,13 +92,13 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
 // and an image refuses it because an image is one tightly packed row.
 #test
 {
-    @assert(PixelFormat.RGB8.isPacked())
-    @assert(PixelFormat.BGRA8.isPacked())
-    @assert(!PixelFormat.Yuv420.isPacked())
-    @assert(PixelFormat.Yuv420.channels() == 3)
-    @assert(PixelFormat.Yuv420.bitDepth() == 8)
-    @assert(!PixelFormat.Yuv420.hasAlpha())
-    @assert(PixelFormat.Yuv420.bitsPerPixel() == 12)
+    Swag.assert(PixelFormat.RGB8.isPacked())
+    Swag.assert(PixelFormat.BGRA8.isPacked())
+    Swag.assert(!PixelFormat.Yuv420.isPacked())
+    Swag.assert(PixelFormat.Yuv420.channels() == 3)
+    Swag.assert(PixelFormat.Yuv420.bitDepth() == 8)
+    Swag.assert(!PixelFormat.Yuv420.hasAlpha())
+    Swag.assert(PixelFormat.Yuv420.bitsPerPixel() == 12)
 }
 
 // Matrix and range metadata select distinct conversions, including the sixteen-pixel SIMD path.
@@ -115,13 +115,13 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     var image: Image
     source.convertToRgb(&image)
     let studio = expectedPlanarColor(Luma, ChromaB, ChromaR, .Bt709, true)
-    @assert(image.pixelColor(0, 0) == studio and image.pixelColor(15, 1) == studio)
+    Swag.assert(image.pixelColor(0, 0) == studio and image.pixelColor(15, 1) == studio)
 
     source.studioRange = false
     source.convertToRgb(&image)
     let full = expectedPlanarColor(Luma, ChromaB, ChromaR, .Bt709, false)
-    @assert(image.pixelColor(0, 0) == full and image.pixelColor(15, 1) == full)
-    @assert(full != studio)
+    Swag.assert(image.pixelColor(0, 0) == full and image.pixelColor(15, 1) == full)
+    Swag.assert(full != studio)
 }
 
 // A picture handed over as planes travels as an ordinary texture and reaches the surface as the
@@ -140,8 +140,8 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     let source  = flatPlanarPicture(&storage, 8, 6, Luma, ChromaB, ChromaR)
     var texture = renderer.addImage(&source)
     defer renderer.removeTexture(&texture)
-    @assert(texture.isValid() and texture.pixelFormat == .Yuv420)
-    @assert(texture.width == 8 and texture.height == 6)
+    Swag.assert(texture.isValid() and texture.pixelFormat == .Yuv420)
+    Swag.assert(texture.width == 8 and texture.height == 6)
 
     var target = renderer.createRenderTarget(8, 6)
     defer renderer.deleteRenderTarget(&target)
@@ -164,9 +164,9 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
         for x in 8's32
         {
             let actual = image.pixelColor(x, y)
-            @assert(Math.abs(cast(s32) actual.r - cast(s32) expected.r) <= 1)
-            @assert(Math.abs(cast(s32) actual.g - cast(s32) expected.g) <= 1)
-            @assert(Math.abs(cast(s32) actual.b - cast(s32) expected.b) <= 1)
+            Swag.assert(Math.abs(cast(s32) actual.r - cast(s32) expected.r) <= 1)
+            Swag.assert(Math.abs(cast(s32) actual.g - cast(s32) expected.g) <= 1)
+            Swag.assert(Math.abs(cast(s32) actual.b - cast(s32) expected.b) <= 1)
         }
     }
 }
@@ -225,7 +225,7 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     for y in 4's32
     {
         for x in 4's32 do
-            @assert(image.pixelColor(x, y).r >= 250)
+            Swag.assert(image.pixelColor(x, y).r >= 250)
     }
 }
 
@@ -260,8 +260,8 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     renderer.draw(&painter)
 
     let image = renderer.readRenderTarget(&target, 0, 0, 4, 4)
-    @assert(image.pixelColor(0, 0).r >= 250)
-    @assert(image.pixelColor(3, 3).r >= 250)
+    Swag.assert(image.pixelColor(0, 0).r >= 250)
+    Swag.assert(image.pixelColor(3, 3).r >= 250)
 }
 
 // The OpenGL shader consumes the same BT.709 factors as the CPU conversion.

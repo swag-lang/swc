@@ -20,7 +20,7 @@ func inlineLocalMacroInject(count: s32, contextData: *void, stmt: #code(data: *v
     var runs = 0
     inlineLocalMacroInject(3, &runs)
     {
-        discard @atomadd(cast(*s32) data, 1)
+        discard Swag.atomadd(cast(*s32) data, 1)
     }
-    @assert(runs == 3)
+    Swag.assert(runs == 3)
 }

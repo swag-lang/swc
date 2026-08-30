@@ -5,11 +5,11 @@ using Swag
 
 func assertSha1Digest(digest: Hash.Sha1.Digest, e0, e1, e2, e3, e4: u32)
 {
-    @assert(digest[0] == e0)
-    @assert(digest[1] == e1)
-    @assert(digest[2] == e2)
-    @assert(digest[3] == e3)
-    @assert(digest[4] == e4)
+    Swag.assert(digest[0] == e0)
+    Swag.assert(digest[1] == e1)
+    Swag.assert(digest[2] == e2)
+    Swag.assert(digest[3] == e3)
+    Swag.assert(digest[4] == e4)
 }
 
 func assertSha1(buffer: const [..] u8, e0, e1, e2, e3, e4: u32)
@@ -35,7 +35,7 @@ func assertSha1(buffer: const [..] u8, e0, e1, e2, e3, e4: u32)
 func fillSha1Pattern(buffer: [..] u8)
 {
     var i = 0'u64
-    while i < @countof(buffer)
+    while i < buffer.count
     {
         buffer[i] = cast(u8) ((i * 37 + 11) & 0xFF)
         i         += 1

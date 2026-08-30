@@ -2,7 +2,7 @@
 
 #run
 {
-    let cfg = @compiler.getBuildCfg()!
+    let cfg = Swag.compiler().getBuildCfg()!
     cfg.moduleNamespace = "RuntimeCtxDynamicConsumer"
     cfg.backendKind     = .Executable
 }

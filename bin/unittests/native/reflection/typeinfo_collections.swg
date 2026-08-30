@@ -12,7 +12,7 @@ func isSecond(mode: ReflectMode)->bool => mode == .Second
 const ENUM_INFO = cast(const *Swag.TypeInfoEnum) #typeof(ReflectMode)
 #assert(#typeof(ReflectMode).kind == .Enum)
 #assert(ENUM_INFO.rawType == s16)
-#assert(@countof(ENUM_INFO.values) == 3)
+#assert(ENUM_INFO.values.count == 3)
 #assert(ENUM_INFO.values[0].name == "First")
 #assert(ENUM_INFO.values[1].name == "Second")
 #assert(ENUM_INFO.values[2].name == "Third")
@@ -41,7 +41,7 @@ const SLICE_INFO = cast(const *Swag.TypeInfoSlice) #typeof(#type [..] ReflectMod
 
 const FUNC_INFO = cast(const *Swag.TypeInfoFunc) #typeof(isSecond)
 #assert(#typeof(isSecond) == #type func(ReflectMode)->bool)
-#assert(@countof(FUNC_INFO.parameters) == 1)
+#assert(FUNC_INFO.parameters.count == 1)
 #assert(FUNC_INFO.parameters[0].pointedType == ReflectMode)
 #assert(FUNC_INFO.returnType == bool)
 
@@ -52,12 +52,12 @@ const FUNC_INFO = cast(const *Swag.TypeInfoFunc) #typeof(isSecond)
     let arrayInfo = cast(const *Swag.TypeInfoArray) #typeof(#type [2, 3] ReflectMode)
     let sliceInfo = cast(const *Swag.TypeInfoSlice) #typeof(#type [..] ReflectMode)
 
-    @assert(enumInfo.rawType == s16)
-    @assert(cast(s16) second[] == 7)
-    @assert(arrayInfo.count == 2)
-    @assert(arrayInfo.totalCount == 6)
-    @assert(arrayInfo.finalType == ReflectMode)
-    @assert(sliceInfo.pointedType == ReflectMode)
+    Swag.assert(enumInfo.rawType == s16)
+    Swag.assert(cast(s16) second[] == 7)
+    Swag.assert(arrayInfo.count == 2)
+    Swag.assert(arrayInfo.totalCount == 6)
+    Swag.assert(arrayInfo.finalType == ReflectMode)
+    Swag.assert(sliceInfo.pointedType == ReflectMode)
 }
 
 #test
@@ -67,14 +67,14 @@ const FUNC_INFO = cast(const *Swag.TypeInfoFunc) #typeof(isSecond)
     let arrayInfo           = cast(const *Swag.TypeInfoArray) types[1]
     let sliceInfo           = cast(const *Swag.TypeInfoSlice) types[2]
     let funcInfo            = cast(const *Swag.TypeInfoFunc) types[3]
-    @assert(types[0] == ReflectMode)
-    @assert(types[1] == #type [2] ReflectMode)
-    @assert(types[2] == #type [..] ReflectMode)
-    @assert(types[3] == #type func(ReflectMode)->bool)
-    @assert(enumInfo.rawType == s16)
-    @assert(arrayInfo.count == 2)
-    @assert(arrayInfo.pointedType == ReflectMode)
-    @assert(sliceInfo.pointedType == ReflectMode)
-    @assert(funcInfo.parameters![0].pointedType == ReflectMode)
-    @assert(funcInfo.returnType == bool)
+    Swag.assert(types[0] == ReflectMode)
+    Swag.assert(types[1] == #type [2] ReflectMode)
+    Swag.assert(types[2] == #type [..] ReflectMode)
+    Swag.assert(types[3] == #type func(ReflectMode)->bool)
+    Swag.assert(enumInfo.rawType == s16)
+    Swag.assert(arrayInfo.count == 2)
+    Swag.assert(arrayInfo.pointedType == ReflectMode)
+    Swag.assert(sliceInfo.pointedType == ReflectMode)
+    Swag.assert(funcInfo.parameters![0].pointedType == ReflectMode)
+    Swag.assert(funcInfo.returnType == bool)
 }

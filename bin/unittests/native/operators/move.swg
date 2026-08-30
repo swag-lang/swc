@@ -23,5 +23,5 @@ func assign(a: *Vec, b: Vec)
     var out: Vec
     assign(&out, #move v)
     out = #move v
-    @assert(out.x == 1)
+    Swag.assert(out.x == 1)
 }

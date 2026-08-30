@@ -81,8 +81,8 @@ impl Thread
     {
         Debug.assert(!.isValid(), "thread already created")
 
-        .context = @getcontext()[]
-        @init(&.context.tempAllocator, 1)
+        .context = Swag.getContext()[]
+        Swag.init(&.context.tempAllocator, 1)
         let allocator = .context.allocator!
         if tempAllocSize < 0 do
             .context.tempAllocator.setCapacity(.context.tempAllocator.capacity, allocator)
@@ -132,7 +132,7 @@ impl Thread
 private func threadEntry(param: #null *void)->u32
 {
     let thread = cast(*Thread) param!
-    @setcontext(thread.context)
+    Swag.setContext(thread.context)
     let lambda = thread.userLambda
     if lambda
     {
@@ -150,9 +150,9 @@ func wait(threads: *Thread...)
 {
     var handles: [MaxThreadWaitCount] ThreadHandle
     var start = 0'u64
-    while start < @countof(threads)
+    while start < threads.count
     {
-        let count = Math.min(MaxThreadWaitCount, cast(u32) (@countof(threads) - start))
+        let count = Math.min(MaxThreadWaitCount, cast(u32) (threads.count - start))
         for i in count
         {
             let thread = threads[start + cast(u64) i]
@@ -160,7 +160,7 @@ func wait(threads: *Thread...)
             handles[i] = thread.handle
         }
 
-        waitManyNative(@mkslice(&handles[0], cast(u64) count))
+        waitManyNative(Swag.makeSlice(&handles[0], cast(u64) count))
         start += count
     }
 

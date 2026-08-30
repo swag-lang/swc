@@ -25,7 +25,7 @@ alias StrictForeachF32           = f32
         var x = v
         sum += x
     }
-    @assert(sum == 6)
+    Swag.assert(sum == 6)
 }
 
 #test
@@ -42,8 +42,8 @@ alias StrictForeachF32           = f32
         sumV += x
         sumI += cast(s32) y
     }
-    @assert(sumV == 3)
-    @assert(sumI == 1)
+    Swag.assert(sumV == 3)
+    Swag.assert(sumI == 1)
 }
 
 #test
@@ -55,7 +55,7 @@ alias StrictForeachF32           = f32
         var x = v
         sum += x
     }
-    @assert(sum == 3)
+    Swag.assert(sum == 3)
 }
 
 #test
@@ -65,8 +65,8 @@ alias StrictForeachF32           = f32
     {
         v[] += 1
     }
-    @assert(arr[0] == 11)
-    @assert(arr[1] == 21)
+    Swag.assert(arr[0] == 11)
+    Swag.assert(arr[1] == 21)
 }
 
 #test
@@ -83,8 +83,8 @@ alias StrictForeachF32           = f32
         sumV += cast(s32) x
         sumI += cast(s32) y
     }
-    @assert(sumV == cast(s32) 'A'u8 + cast(s32) 'B'u8)
-    @assert(sumI == 1)
+    Swag.assert(sumV == cast(s32) 'A'u8 + cast(s32) 'B'u8)
+    Swag.assert(sumI == 1)
 }
 
 #test
@@ -96,12 +96,12 @@ alias StrictForeachF32           = f32
         #assert(#typeof(v) == #type const *u8)
         sum += cast(s32) v[]
     }
-    @assert(sum == cast(s32) 'C'u8 + cast(s32) 'D'u8)
+    Swag.assert(sum == cast(s32) 'C'u8 + cast(s32) 'D'u8)
 }
 
 #test
 {
-    var text: const cstring = cast(const cstring) @dataof("AZ")
+    var text: const cstring = cast(const cstring) ("AZ").buffer
     var sumV                = 0
     var sumI: u64
     for v, i in text
@@ -111,36 +111,36 @@ alias StrictForeachF32           = f32
         sumV += cast(s32) v
         sumI += i
     }
-    @assert(sumV == cast(s32) 'A'u8 + cast(s32) 'Z'u8)
-    @assert(sumI == 1)
+    Swag.assert(sumV == cast(s32) 'A'u8 + cast(s32) 'Z'u8)
+    Swag.assert(sumI == 1)
 }
 
 #test
 {
-    var text: const cstring = cast(const cstring) @dataof("CD")
+    var text: const cstring = cast(const cstring) ("CD").buffer
     var sum                 = 0
     for &v in text
     {
         #assert(#typeof(v) == #type const *u8)
         sum += cast(s32) v[]
     }
-    @assert(sum == cast(s32) 'C'u8 + cast(s32) 'D'u8)
+    Swag.assert(sum == cast(s32) 'C'u8 + cast(s32) 'D'u8)
 }
 
 #test
 {
-    var text:  const cstring = cast(const cstring) @dataof("ABC")
+    var text:  const cstring = cast(const cstring) ("ABC").buffer
     var order: [3] u8
     var pos:   u64
     for v, i in (text).reversed()
     {
         order[pos] = v
         pos        += 1
-        @assert(i == 2 - (pos - 1))
+        Swag.assert(i == 2 - (pos - 1))
     }
-    @assert(order[0] == 'C'u8)
-    @assert(order[1] == 'B'u8)
-    @assert(order[2] == 'A'u8)
+    Swag.assert(order[0] == 'C'u8)
+    Swag.assert(order[1] == 'B'u8)
+    Swag.assert(order[2] == 'A'u8)
 }
 
 func foreachCStringRefSum(value: *cstring)->s32
@@ -155,7 +155,7 @@ func foreachCStringRefSum(value: *cstring)->s32
 {
     var textData: [3] u8  = ['B'u8, 'Y'u8, 0]
     var text:     cstring = cast(cstring) &textData[0]
-    @assert(foreachCStringRefSum(&text) == cast(s32) 'B'u8 + cast(s32) 'Y'u8)
+    Swag.assert(foreachCStringRefSum(&text) == cast(s32) 'B'u8 + cast(s32) 'Y'u8)
 }
 
 #test
@@ -173,8 +173,8 @@ func foreachCStringRefSum(value: *cstring)->s32
         sumV += x
         sumI += cast(s32) y
     }
-    @assert(sumV == 7)
-    @assert(sumI == 1)
+    Swag.assert(sumV == 7)
+    Swag.assert(sumI == 1)
 }
 
 #test
@@ -192,7 +192,7 @@ func foreachCStringRefSum(value: *cstring)->s32
         }
         return count
     }
-    @assert(foreachVariadicAny(1, 2, 3) == 3)
+    Swag.assert(foreachVariadicAny(1, 2, 3) == 3)
 }
 
 #test
@@ -210,7 +210,7 @@ func foreachCStringRefSum(value: *cstring)->s32
         }
         return count
     }
-    @assert(foreachVariadicTyped(1, 2, 3) == 3)
+    Swag.assert(foreachVariadicTyped(1, 2, 3) == 3)
 }
 
 #test
@@ -224,7 +224,7 @@ func foreachCStringRefSum(value: *cstring)->s32
         }
         return count
     }
-    @assert(foreachVariadicAnyErr(1, true, "a") == 3)
+    Swag.assert(foreachVariadicAnyErr(1, true, "a") == 3)
 }
 
 #test
@@ -238,7 +238,7 @@ func foreachCStringRefSum(value: *cstring)->s32
         }
         return count
     }
-    @assert(foreachVariadicTypedErr(5, 6) == 2)
+    Swag.assert(foreachVariadicTypedErr(5, 6) == 2)
 }
 
 #test
@@ -260,8 +260,8 @@ func foreachCStringRefSum(value: *cstring)->s32
         sumI += idx
     }
 
-    @assert(sumV == 16)
-    @assert(sumI == 3)
+    Swag.assert(sumV == 16)
+    Swag.assert(sumI == 3)
 }
 
 #test
@@ -274,7 +274,7 @@ func foreachCStringRefSum(value: *cstring)->s32
         sum += cast(f32) value
     }
 
-    @assert(sum == 4.0'f32)
+    Swag.assert(sum == 4.0'f32)
 }
 
 #test
@@ -286,7 +286,7 @@ func foreachCStringRefSum(value: *cstring)->s32
     for value in Bits do
         mask |= cast(u32) value
 
-    @assert(mask == 7)
+    Swag.assert(mask == 7)
 }
 
 #test
@@ -301,8 +301,8 @@ func foreachCStringRefSum(value: *cstring)->s32
         sumI += idx
     }
 
-    @assert(sumV == 16)
-    @assert(sumI == 3)
+    Swag.assert(sumV == 16)
+    Swag.assert(sumI == 3)
 }
 
 #test
@@ -317,8 +317,8 @@ func foreachCStringRefSum(value: *cstring)->s32
         sumI += idx
     }
 
-    @assert(sumV == 16)
-    @assert(sumI == 3)
+    Swag.assert(sumV == 16)
+    Swag.assert(sumI == 3)
 }
 
 // A '&name' binding stays mutable when the iterated storage is mutable. The immutable
@@ -329,7 +329,7 @@ func foreachCStringRefSum(value: *cstring)->s32
     var values = [1, 2, 3]
     for &v in values do
         v[] = 9
-    @assert(values[0] == 9 and values[1] == 9 and values[2] == 9)
+    Swag.assert(values[0] == 9 and values[1] == 9 and values[2] == 9)
 }
 
 #test
@@ -339,7 +339,7 @@ func foreachCStringRefSum(value: *cstring)->s32
     let view: [..] s32 = backing
     for &v in view do
         v[] = 7
-    @assert(backing[0] == 7 and backing[1] == 7 and backing[2] == 7)
+    Swag.assert(backing[0] == 7 and backing[1] == 7 and backing[2] == 7)
 }
 
 #test
@@ -349,5 +349,5 @@ func foreachCStringRefSum(value: *cstring)->s32
     var sum    = 0
     for v in values do
         sum += v
-    @assert(sum == 6)
+    Swag.assert(sum == 6)
 }

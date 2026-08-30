@@ -58,7 +58,7 @@ with other destructuring forms.
     for ?, doubled in values do
         total += doubled
 
-    @assert(total == 303)
+    Swag.assert(total == 303)
 }
 
 #[Swag.Opaque]
@@ -104,7 +104,7 @@ does not copy the source or allocate memory. Since the view itself implements
     for value in values.reversed() do
         code = code * 100 + value
 
-    @assert(code == 302010)
+    Swag.assert(code == 302010)
 }
 
 struct SliceStruct
@@ -117,7 +117,7 @@ impl SliceStruct
     #[Swag.Macro]
     mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
-        for index in @countof(me.buffer)
+        for index in me.buffer.count
         {
             #static if ptr do
                 #inject(stmt, item = cast(*s32) &me.buffer[index], index = index)
@@ -142,8 +142,8 @@ into the loop binding.
     for &value, index in values do
         value[] += cast(s32) index
 
-    @assert(values.buffer[0] == 1)
-    @assert(values.buffer[4] == 9)
+    Swag.assert(values.buffer[0] == 1)
+    Swag.assert(values.buffer[4] == 9)
 }
 
 /**
@@ -161,5 +161,5 @@ Both return constant-size, zero-allocation views.
     for left, right in values.pairs() do
         code = code * 100 + left * 10 + right
 
-    @assert(code == 244668)
+    Swag.assert(code == 244668)
 }

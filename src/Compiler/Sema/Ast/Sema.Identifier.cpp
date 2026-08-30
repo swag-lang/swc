@@ -587,7 +587,7 @@ namespace
 Result AstIdentifier::semaPostNode(Sema& sema) const
 {
     // Can be forced to false in case of an identifier inside a #defined
-    // @CompilerNotDefined
+    // Swag.compiler()NotDefined
     const SemaNodeView view = sema.curViewConstant();
     if (view.cstRef().isValid())
         return Result::Continue;
@@ -757,7 +757,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 
         // A 'Swag.Late' global read is guarded like a 'Swag.Late' field: the storage is zero
         // (null) until the first assignment while the exposed type is non-null. Request
-        // the null-read guard here; a pure assignment target, '&g' or '@isset(g)' clears
+        // the null-read guard here; a pure assignment target, '&g' or 'Swag.isSet(g)' clears
         // it. Struct fields are reached through member access, so a bare identifier
         // carrying the LateInit flag is always a global - no static cross-function proof
         // is possible, so the runtime guard always stays.

@@ -66,5 +66,5 @@ func day2B()
     }
 
     // Console.printf("%{X} %", cde, cde)
-    @assert(cde == 841940)
+    Swag.assert(cde == 841940)
 }

@@ -36,7 +36,7 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
     ConstantRef cstRef = nodeLiteralView.cstRef();
 
     // Special case for negation: we need to negate before casting, in order for -128's8 to compile, for example.
-    // @MinusLiteralSuffix
+    // Swag.minusLiteralSuffix
     const auto* parentNode = sema.visit().parentNode();
     if (parentNode->is(AstNodeId::UnaryExpr))
     {

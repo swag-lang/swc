@@ -47,7 +47,7 @@ impl FrameHeader
 // Reads the four header bytes of a frame, or says why they are not one.
 func readHeader(bytes: const [..] u8)->FrameHeader fail
 {
-    if @countof(bytes) < 4 do
+    if bytes.count < 4 do
         fail InvalidFormatError{"MP3 frame header is truncated"}
     if bytes[0] != 0xFF or (bytes[1] & 0xE0) != 0xE0 do
         fail InvalidFormatError{"MP3 frame has no sync word"}
@@ -111,7 +111,7 @@ struct BitReader
 
 impl BitReader
 {
-    func create(payload: const [..] u8)->BitReader => {@dataof(payload), @countof(payload) * 8, 0}
+    func create(payload: const [..] u8)->BitReader => {payload.buffer, payload.count * 8, 0}
 
     // Reads `count` bits, at most 24 at a time. Past the end every bit reads as zero, which lets a
     // truncated granule finish rather than fault; the caller sees it through `overran`.
@@ -456,7 +456,7 @@ impl Codec
         for 32'u32
         {
             let slot = cast(u64) (node * 2) + cast(u64) reader.read(1)
-            if slot >= @countof(tree) do
+            if slot >= tree.count do
                 return -1
             let next = tree[slot]
             if next < 0 do
@@ -827,7 +827,7 @@ impl Codec
     mtd decodeFrame(packet: const [..] u8)->u32 fail
     {
         let header = try readHeader(packet)
-        if @countof(packet) < header.frameBytes do
+        if packet.count < header.frameBytes do
             fail InvalidFormatError{"MP3 frame is shorter than its header states"}
         if header.sampleRate != .sampleRate or header.channels != .channels do
             fail InvalidFormatError{"MP3 frame does not match the stream its container declared"}

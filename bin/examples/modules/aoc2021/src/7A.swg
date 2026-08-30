@@ -57,5 +57,5 @@ func day7A()
         total += Math.abs(v - median)
 
     // Console.print("total: ", total)
-    @assert(total == 342730)
+    Swag.assert(total == 342730)
 }

@@ -1,4 +1,4 @@
 #main
 {
-    @print("hello, world\n")
+    Swag.print("hello, world\n")
 }

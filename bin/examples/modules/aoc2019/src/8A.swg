@@ -50,9 +50,9 @@ func day8A()
             total = count[1] * count[2]
         }
 
-        @init(count)
+        Swag.init(count)
     }
 
     // Console.print("total: ", total)
-    @assert(total == 1716)
+    Swag.assert(total == 1716)
 }

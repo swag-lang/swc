@@ -9,5 +9,5 @@ func makeValue()->s32
 
 func semaTest001()
 {
-    @assert(GIf.makeValue() == 42)
+    Swag.assert(GIf.makeValue() == 42)
 }

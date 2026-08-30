@@ -51,5 +51,5 @@ func day6B()
         set[val] = total
     }
 
-    @assert(total == 8038)
+    Swag.assert(total == 8038)
 }

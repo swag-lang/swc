@@ -8,17 +8,17 @@ using Core, Pixel
 // Asserts that 'rect' equals the given coordinates within 'eps'.
 func assertRect(rect: Math.Rectangle, x, y, width, height: f32, eps: f32 = 0.001)
 {
-    @assert(Math.abs(rect.x - x) < eps)
-    @assert(Math.abs(rect.y - y) < eps)
-    @assert(Math.abs(rect.width - width) < eps)
-    @assert(Math.abs(rect.height - height) < eps)
+    Swag.assert(Math.abs(rect.x - x) < eps)
+    Swag.assert(Math.abs(rect.y - y) < eps)
+    Swag.assert(Math.abs(rect.width - width) < eps)
+    Swag.assert(Math.abs(rect.height - height) < eps)
 }
 
 // Asserts that 'pt' equals the given coordinates within 'eps'.
 func assertPoint(pt: Math.Vector2, x, y: f32, eps: f32 = 0.001)
 {
-    @assert(Math.abs(pt.x - x) < eps)
-    @assert(Math.abs(pt.y - y) < eps)
+    Swag.assert(Math.abs(pt.x - x) < eps)
+    Swag.assert(Math.abs(pt.y - y) < eps)
 }
 
 // Asserts that no window in the tree is smaller than the content it says it needs.
@@ -48,7 +48,7 @@ func assertContentFits(root: *Wnd, tolerance = 0.5'f32)
                         root.position.width,
                         "x",
                         root.position.height)
-        @assert(false)
+        Swag.assert(false)
     }
 
     for child in root.children do
@@ -76,7 +76,7 @@ func tempFilePath(prefix, extension: string)->String
 func textBytes(text: string)->Array'u8
 {
     var result: retval
-    result.add(@mkslice(cast(const [*] u8) @dataof(text), cast(u64) @countof(text)))
+    result.add(Swag.makeSlice(cast(const [*] u8) text.buffer, cast(u64) text.count))
     return result
 }
 
@@ -120,10 +120,10 @@ func countNonZeroBytes(img: Image)->u64
 func commandState(id: WndId)->CommandStateEvent
 {
     var evt: CommandStateEvent
-    @init(&evt.name, 1)
-    @init(&evt.longName, 1)
-    @init(&evt.shortcut, 1)
-    @init(&evt.toolTip, 1)
+    Swag.init(&evt.name, 1)
+    Swag.init(&evt.longName, 1)
+    Swag.init(&evt.shortcut, 1)
+    Swag.init(&evt.toolTip, 1)
     evt.id = id
     return evt
 }
@@ -131,20 +131,20 @@ func commandState(id: WndId)->CommandStateEvent
 // Asks action type T whether it accepts the command, through its IActionUI interface.
 func(T) actionAccept(wnd: #null *Wnd, id: WndId)->bool
 {
-    let act = @mkinterface(null, #typeof(T), IActionUI)
+    let act = Swag.makeInterface(null, #typeof(T), IActionUI)
     return act.accept({wnd: wnd, id: id})
 }
 
 // Executes action type T through its IActionUI interface, as the command dispatch would.
 func(T) actionExecute(wnd: #null *Wnd, id: WndId)->bool
 {
-    let act = @mkinterface(null, #typeof(T), IActionUI)
+    let act = Swag.makeInterface(null, #typeof(T), IActionUI)
     return act.execute({wnd: wnd, id: id})
 }
 
 // Updates the command state of action type T through its IActionUI interface.
 func(T) actionUpdate(wnd: *Wnd, id: WndId, evt: *CommandStateEvent)->bool
 {
-    let act = @mkinterface(null, #typeof(T), IActionUI)
+    let act = Swag.makeInterface(null, #typeof(T), IActionUI)
     return act.update({wnd: wnd, id: id}, evt)
 }

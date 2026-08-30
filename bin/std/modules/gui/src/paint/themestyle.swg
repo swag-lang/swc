@@ -218,7 +218,7 @@ impl ThemeStyle
     // Removes every local font-face override.
     mtd clearFont()
     {
-        @init(&.font, 1)
+        Swag.init(&.font, 1)
         .dirty = true
     }
 }

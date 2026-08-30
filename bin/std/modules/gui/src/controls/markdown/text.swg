@@ -8,7 +8,7 @@ func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }
     var result: retval
     result.value = "&"
     result.eat   = 1
-    if start >= @countof(source) or source[start] != '&' do
+    if start >= source.count or source[start] != '&' do
         return result
 
     let close = Utf8.indexOf(source, ';'rune, start + 1)
@@ -58,23 +58,23 @@ func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }
         result.value = "™"
 
     default:
-        if @countof(entity) < 2 or entity[0] != '#' do
+        if entity.count < 2 or entity[0] != '#' do
             return result
 
-        let hexadecimal = @countof(entity) > 2 and (entity[1] == 'x' or entity[1] == 'X')
+        let hexadecimal = entity.count > 2 and (entity[1] == 'x' or entity[1] == 'X')
         let digits      = hexadecimal ? entity[2 to] : entity[1 to]
         var number: u64
         if hexadecimal
         {
             let parsed = catch StrConv.parseX64(digits) as parseError
-            if parseError != null or parsed.ovf or parsed.eat != @countof(digits) do
+            if parseError != null or parsed.ovf or parsed.eat != digits.count do
                 return result
             number = parsed.value
         }
         else
         {
             let parsed = catch StrConv.parseU64(digits) as parseError
-            if parseError != null or parsed.ovf or parsed.eat != @countof(digits) do
+            if parseError != null or parsed.ovf or parsed.eat != digits.count do
                 return result
             number = parsed.value
         }
@@ -101,7 +101,7 @@ func richText(text: string, decodeEntities = false)->String
 {
     var result: retval
     var index = 0'u64
-    while index < @countof(text)
+    while index < text.count
     {
         if decodeEntities and text[index] == '&'
         {

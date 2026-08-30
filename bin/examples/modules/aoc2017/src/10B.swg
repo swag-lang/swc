@@ -64,7 +64,7 @@ func day10B()
         res += Format.toString("%{X}", v)
     }
 
-    @assert(res == "62E2204D2CA4F4924F6E7A80F1288786")
+    Swag.assert(res == "62E2204D2CA4F4924F6E7A80F1288786")
 
     res.clear()
     for i in 16
@@ -73,5 +73,5 @@ func day10B()
         res += Format.toString("%{X}", Slice.reduce(v, func(x, y) => x ^ y))
     }
 
-    @assert(res == "62E2204D2CA4F4924F6E7A80F1288786")
+    Swag.assert(res == "62E2204D2CA4F4924F6E7A80F1288786")
 }

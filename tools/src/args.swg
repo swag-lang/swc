@@ -42,7 +42,7 @@ public impl Options
             let text = value.toString()
             if text == name do
                 return true
-            if @countof(text) > @countof(name) and text[0 until @countof(name)] == name and text[@countof(name)] == '=' do
+            if text.count > name.count and text[0 until name.count] == name and text[name.count] == '=' do
                 return true
         }
 

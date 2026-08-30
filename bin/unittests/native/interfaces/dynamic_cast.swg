@@ -41,21 +41,21 @@ func runIntrinsicDynamicTypeInfo()->bool
     var number  = 45
     var derived = Derived{}
 
-    if !@is(baseType, derivedType) or !@is(midType, derivedType) or !@is(intType, s32) do
+    if !Swag.typeIs(baseType, derivedType) or !Swag.typeIs(midType, derivedType) or !Swag.typeIs(intType, s32) do
         return false
-    if @is(stringType, intType) do
+    if Swag.typeIs(stringType, intType) do
         return false
 
-    let intRaw = @as(intType, s32, &number)
+    let intRaw = Swag.typeAs(intType, s32, &number)
     if intRaw == null do
         return false
 
-    let baseRaw = @as(baseType, derivedType, &derived)
+    let baseRaw = Swag.typeAs(baseType, derivedType, &derived)
     if baseRaw == null do
         return false
 
     let strictDerivedPtr = cast(DynamicCastStrictDerivedPtr) &derived
-    let strictBaseRaw    = @as(baseType, derivedType, strictDerivedPtr)
+    let strictBaseRaw    = Swag.typeAs(baseType, derivedType, strictDerivedPtr)
     if strictBaseRaw == null do
         return false
 
@@ -64,7 +64,7 @@ func runIntrinsicDynamicTypeInfo()->bool
     let strictBasePtr = cast(#null *Base) strictBaseRaw
     if intPtr != &number or intPtr[] != 45 do
         return false
-    if @as(bool, intType, &number) != null do
+    if Swag.typeAs(bool, intType, &number) != null do
         return false
     if basePtr != &derived.mid.base do
         return false
@@ -81,44 +81,44 @@ func runIntrinsicDynamicTypeInfo()->bool
     let derivedPtr = &derived
     let asMid      = derivedPtr as Mid
     let asBase     = derivedPtr as Base
-    @assert(derivedPtr is Derived)
-    @assert(derivedPtr is Mid)
-    @assert(derivedPtr is Base)
-    @assert(!derivedPtr is PointerWrapper)
-    @assert(asMid == &derived.mid)
-    @assert(asBase == &derived.mid.base)
+    Swag.assert(derivedPtr is Derived)
+    Swag.assert(derivedPtr is Mid)
+    Swag.assert(derivedPtr is Base)
+    Swag.assert(!derivedPtr is PointerWrapper)
+    Swag.assert(asMid == &derived.mid)
+    Swag.assert(asBase == &derived.mid.base)
 
     var base        = Base{value: 77}
     var wrapper     = PointerWrapper{base: &base}
     let wrapperPtr  = &wrapper
     let wrappedBase = wrapperPtr as Base
-    @assert(wrapperPtr is Base)
-    @assert(wrappedBase == &base)
+    Swag.assert(wrapperPtr is Base)
+    Swag.assert(wrappedBase == &base)
 
     let itf: INode = derived
     let itfBase    = itf as Base
-    @assert(itf is Derived)
-    @assert(itf is Mid)
-    @assert(itf is Base)
-    @assert(!itf is PointerWrapper)
-    @assert(@dataof(itf) != null)
-    @assert(itfBase != null)
-    @assert(itfBase!.value == 10)
+    Swag.assert(itf is Derived)
+    Swag.assert(itf is Mid)
+    Swag.assert(itf is Base)
+    Swag.assert(!itf is PointerWrapper)
+    Swag.assert(itf.buffer != null)
+    Swag.assert(itfBase != null)
+    Swag.assert(itfBase!.value == 10)
 
     let dyn: any = derived
     let dynBase  = dyn as Base
-    @assert(dyn is Derived)
-    @assert(dyn is Base)
-    @assert(!dyn is PointerWrapper)
-    @assert(dynBase != null)
-    @assert(dynBase!.value == 10)
+    Swag.assert(dyn is Derived)
+    Swag.assert(dyn is Base)
+    Swag.assert(!dyn is PointerWrapper)
+    Swag.assert(dynBase != null)
+    Swag.assert(dynBase!.value == 10)
 
     let notStruct: any = 33
-    @assert(!notStruct is Base)
-    @assert(notStruct as Base == null)
+    Swag.assert(!notStruct is Base)
+    Swag.assert(notStruct as Base == null)
 }
 
 #test
 {
-    @assert(runIntrinsicDynamicTypeInfo())
+    Swag.assert(runIntrinsicDynamicTypeInfo())
 }

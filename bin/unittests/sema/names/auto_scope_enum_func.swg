@@ -44,12 +44,12 @@ func semaTest003()
 func semaTest004()
 {
     let flags = withFlags(.A | .B)
-    @assert(flags == OverFlags.A | OverFlags.B)
+    Swag.assert(flags == OverFlags.A | OverFlags.B)
 }
 
 func semaTest005()
 {
     var flags = OverFlags.A
     flags.addFlagsByUfcs(.B)
-    @assert(flags == OverFlags.A | OverFlags.B)
+    Swag.assert(flags == OverFlags.A | OverFlags.B)
 }

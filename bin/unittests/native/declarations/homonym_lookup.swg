@@ -27,7 +27,7 @@ impl GenericSetterItem
 {
     mtd opSet(values: const [..] T)
     {
-        me.count = @countof(values)
+        me.count = values.count
     }
 }
 
@@ -39,13 +39,13 @@ func makeShadowItem(value: s32)->ShadowItem { return {count: value} }
 #test
 {
     let set: ShadowItem = {count: 3}
-    @assert(set.count == 3)
+    Swag.assert(set.count == 3)
 }
 
 #test
 {
     let set: ShadowItem = makeShadowItem(4)
-    @assert(set.count == 4)
+    Swag.assert(set.count == 4)
 }
 
 func readShadow(set: ShadowItem)->s32
@@ -55,32 +55,32 @@ func readShadow(set: ShadowItem)->s32
 
 #test
 {
-    @assert(readShadow({count: 5}) == 5)
+    Swag.assert(readShadow({count: 5}) == 5)
 }
 
 #test
 {
     {
         let set: ShadowItem = {count: 6}
-        @assert(set.count == 6)
+        Swag.assert(set.count == 6)
     }
 }
 
 #test
 {
     let set: ShadowItem = makeShadowItem(7)
-    @assert(set.count == 7)
+    Swag.assert(set.count == 7)
 }
 
 #test
 {
     let set: SetterItem = 8
-    @assert(set.count == 8)
+    Swag.assert(set.count == 8)
 }
 
 #test
 {
     let values = [1, 2, 3]
     let set: GenericSetterItem's32 = values[to]
-    @assert(set.count == 3)
+    Swag.assert(set.count == 3)
 }

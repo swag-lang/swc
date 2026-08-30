@@ -2,6 +2,7 @@
 #pragma once
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Parser/Ast/AstNodeId.h"
+#include "Compiler/Lexer/Token.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"

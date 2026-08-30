@@ -87,8 +87,8 @@ public impl Outline
         let points = .points!
         for cast(u32) .pointCount
         {
-            points[@index].x += xOffset
-            points[@index].y += yOffset
+            points[Swag.index].x += xOffset
+            points[Swag.index].y += yOffset
         }
     }
 
@@ -104,9 +104,9 @@ public impl Outline
         let points = .points!
         for cast(u32) .pointCount
         {
-            let pt = points[@index]
-            points[@index].x = roundDiv(cast(s64) pt.x * matrix.xx + cast(s64) pt.y * matrix.xy, 65536)
-            points[@index].y = roundDiv(cast(s64) pt.x * matrix.yx + cast(s64) pt.y * matrix.yy, 65536)
+            let pt = points[Swag.index]
+            points[Swag.index].x = roundDiv(cast(s64) pt.x * matrix.xx + cast(s64) pt.y * matrix.xy, 65536)
+            points[Swag.index].y = roundDiv(cast(s64) pt.x * matrix.yx + cast(s64) pt.y * matrix.yy, 65536)
         }
     }
 
@@ -137,8 +137,8 @@ public impl Outline
         let contours = .contours!
         for cast(u32) .contourCount
         {
-            let endIdx = cast(u32) contours[@index]
-            let slice  = @mkslice(points + start, endIdx - start + 1)
+            let endIdx = cast(u32) contours[Swag.index]
+            let slice  = Swag.makeSlice(points + start, endIdx - start + 1)
             applyEmboldenToContour(slice, perSide, ccw)
             start = endIdx + 1
         }
@@ -186,7 +186,7 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
     let contours     = cast(const [*] s16) outline.contours!
     for cast(u32) outline.contourCount
     {
-        let contourEnd = cast(u32) contours[@index]
+        let contourEnd = cast(u32) contours[Swag.index]
         let first      = points[contourStart]
         let last       = points[contourEnd]
         let firstOn    = isOnCurve(tags[contourStart])
@@ -263,14 +263,14 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
 
 func contourSignedArea(points: const [..] Vector)->f64
 {
-    if @countof(points) < 3 do
+    if points.count < 3 do
         return 0
 
     var area: f64 = 0.0
-    for @countof(points)
+    for points.count
     {
-        let p0 = points[@index]
-        let p1 = points[(@index + 1) % @countof(points)]
+        let p0 = points[Swag.index]
+        let p1 = points[(Swag.index + 1) % points.count]
         area += cast(f64) p0.x * cast(f64) p1.y - cast(f64) p1.x * cast(f64) p0.y
     }
 
@@ -291,8 +291,8 @@ func totalOutlineSignedArea(outline: const *Outline)->f64
     let contours = cast(const [*] s16) outline.contours!
     for cast(u32) outline.contourCount
     {
-        let endIdx = cast(u32) contours[@index]
-        let slice  = @mkslice(points + start, endIdx - start + 1)
+        let endIdx = cast(u32) contours[Swag.index]
+        let slice  = Swag.makeSlice(points + start, endIdx - start + 1)
         total += contourSignedArea(slice)
         start = endIdx + 1
     }
@@ -302,17 +302,17 @@ func totalOutlineSignedArea(outline: const *Outline)->f64
 
 func applyEmboldenToContour(points: [..] Vector, strength: f64, ccw: bool)
 {
-    if @countof(points) < 2 or Math.isZeroEpsilon(cast(f32) strength) do
+    if points.count < 2 or Math.isZeroEpsilon(cast(f32) strength) do
         return
 
     var source: Array'Vector
     source.add(points)
 
-    for @countof(points)
+    for points.count
     {
-        let prev = source[(source.count + @index - 1) % source.count]
-        let cur  = source[@index]
-        let next = source[(@index + 1) % source.count]
+        let prev = source[(source.count + Swag.index - 1) % source.count]
+        let cur  = source[Swag.index]
+        let next = source[(Swag.index + 1) % source.count]
 
         var e0x = cast(f64) (cur.x - prev.x)
         var e0y = cast(f64) (cur.y - prev.y)
@@ -356,7 +356,7 @@ func applyEmboldenToContour(points: [..] Vector, strength: f64, ccw: bool)
 
         let dot   = Math.abs(dirx * n1x + diry * n1y)
         let miter = dot > 0.25 ? Math.min(4.0, 1.0 / dot) : 1.0
-        points[@index].x = cast(s32) Math.round(cur.x + dirx * strength * miter)
-        points[@index].y = cast(s32) Math.round(cur.y + diry * strength * miter)
+        points[Swag.index].x = cast(s32) Math.round(cur.x + dirx * strength * miter)
+        points[Swag.index].y = cast(s32) Math.round(cur.y + diry * strength * miter)
     }
 }

@@ -34,16 +34,16 @@ struct PtrWrap
 #test
 {
     var a: Vec2 = {x: 1, y: 2}
-    @assert(a.x == 1)
-    @assert(a.y == 2)
+    Swag.assert(a.x == 1)
+    Swag.assert(a.y == 2)
 }
 
 #test
 {
     var a: Vec2 = {x: -9, y: 12}
     var b       = a
-    @assert(b.x == -9)
-    @assert(b.y == 12)
+    Swag.assert(b.x == -9)
+    Swag.assert(b.y == 12)
 }
 
 #test
@@ -51,8 +51,8 @@ struct PtrWrap
     var a: Vec2 = {x: 3, y: 4}
     var b: Vec2
     b = a
-    @assert(b.x == 3)
-    @assert(b.y == 4)
+    Swag.assert(b.x == 3)
+    Swag.assert(b.y == 4)
 }
 
 #test
@@ -60,8 +60,8 @@ struct PtrWrap
     var a: Vec2 = {x: 10, y: 20}
     var p       = &a
     p[] = {x: 30, y: 40}
-    @assert(a.x == 30)
-    @assert(a.y == 40)
+    Swag.assert(a.x == 30)
+    Swag.assert(a.y == 40)
 }
 
 #test
@@ -71,17 +71,17 @@ struct PtrWrap
     var py      = &a.y
     px[] = 70
     py[] = 80
-    @assert(a.x == 70)
-    @assert(a.y == 80)
+    Swag.assert(a.x == 70)
+    Swag.assert(a.y == 80)
 }
 
 #test
 {
     var b: Box2 = {min: {x: 1, y: 2}, max: {x: 3, y: 4}}
-    @assert(b.min.x == 1)
-    @assert(b.min.y == 2)
-    @assert(b.max.x == 3)
-    @assert(b.max.y == 4)
+    Swag.assert(b.min.x == 1)
+    Swag.assert(b.min.y == 2)
+    Swag.assert(b.max.x == 3)
+    Swag.assert(b.max.y == 4)
 }
 
 #test
@@ -89,10 +89,10 @@ struct PtrWrap
     var b0: Box2 = {min: {x: 2, y: 5}, max: {x: 7, y: 9}}
     var b1: Box2 = {min: {x: 0, y: 0}, max: {x: 0, y: 0}}
     b1 = b0
-    @assert(b1.min.x == 2)
-    @assert(b1.min.y == 5)
-    @assert(b1.max.x == 7)
-    @assert(b1.max.y == 9)
+    Swag.assert(b1.min.x == 2)
+    Swag.assert(b1.min.y == 5)
+    Swag.assert(b1.max.x == 7)
+    Swag.assert(b1.max.y == 9)
 }
 
 #test
@@ -100,18 +100,18 @@ struct PtrWrap
     var b: Box2 = {min: {x: 0, y: 0}, max: {x: 0, y: 0}}
     b.min = {x: 11, y: 22}
     b.max = {x: 33, y: 44}
-    @assert(b.min.x == 11)
-    @assert(b.min.y == 22)
-    @assert(b.max.x == 33)
-    @assert(b.max.y == 44)
+    Swag.assert(b.min.x == 11)
+    Swag.assert(b.min.y == 22)
+    Swag.assert(b.max.x == 33)
+    Swag.assert(b.max.y == 44)
 }
 
 #test
 {
     var h: Holder = {count: 5, flags: {a: true, b: false}}
-    @assert(h.count == 5)
-    @assert(h.flags.a)
-    @assert(!h.flags.b)
+    Swag.assert(h.count == 5)
+    Swag.assert(h.flags.a)
+    Swag.assert(!h.flags.b)
 }
 
 #test
@@ -120,9 +120,9 @@ struct PtrWrap
     h.flags.a = true
     h.flags.b = true
     h.count   = 12
-    @assert(h.count == 12)
-    @assert(h.flags.a)
-    @assert(h.flags.b)
+    Swag.assert(h.count == 12)
+    Swag.assert(h.flags.a)
+    Swag.assert(h.flags.b)
 }
 
 #test
@@ -130,18 +130,18 @@ struct PtrWrap
     var h: Holder = {count: 1, flags: {a: false, b: true}}
     var ph        = &h
     ph[] = {count: 9, flags: {a: true, b: false}}
-    @assert(h.count == 9)
-    @assert(h.flags.a)
-    @assert(!h.flags.b)
+    Swag.assert(h.count == 9)
+    Swag.assert(h.flags.a)
+    Swag.assert(!h.flags.b)
 }
 
 #test
 {
     var v             = 123's32
     var wrap: PtrWrap = {value: &v}
-    @assert(wrap.value[] == 123)
+    Swag.assert(wrap.value[] == 123)
     wrap.value[] = 321
-    @assert(v == 321)
+    Swag.assert(v == 321)
 }
 
 #test
@@ -151,10 +151,10 @@ struct PtrWrap
     var pleft       = &left
     var pright      = &right
     pleft[] = pright[]
-    @assert(left.x == 1)
-    @assert(left.y == 2)
-    @assert(right.x == 1)
-    @assert(right.y == 2)
+    Swag.assert(left.x == 1)
+    Swag.assert(left.y == 2)
+    Swag.assert(right.x == 1)
+    Swag.assert(right.y == 2)
 }
 
 #test
@@ -162,8 +162,8 @@ struct PtrWrap
     var a: Flags = {a: false, b: false}
     var b: Flags = {a: true, b: true}
     a = b
-    @assert(a.a)
-    @assert(a.b)
+    Swag.assert(a.a)
+    Swag.assert(a.b)
 }
 
 #test
@@ -171,6 +171,6 @@ struct PtrWrap
     func test(x: *Vec2)->*Vec2 { return x; }
     var v: Vec2 = {x: 5, y: 10}
     var p       = test(&v)
-    @assert(p.x == 5)
-    @assert(p.y == 10)
+    Swag.assert(p.x == 5)
+    Swag.assert(p.y == 10)
 }

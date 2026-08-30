@@ -88,7 +88,7 @@ func day5A()
 
     for f in lines
     {
-        if @countof(f) == 0
+        if f.count == 0
         {
             first = false
             continue
@@ -97,13 +97,13 @@ func day5A()
         if first
         {
             let split = Tokenize.split(f[], '|'u8)
-            @assert(split.count == 2)
+            Swag.assert(split.count == 2)
             order.findOrAdd(expect StrConv.toS32(split[0])).value.add(expect StrConv.toS32(split[1]))
         }
         else
         {
             let update = Tokenize.split(f[], ','u8)
-            @assert(update.count != 0)
+            Swag.assert(update.count != 0)
 
             var isOrdered = true
             for beforeIndex in update.count
@@ -125,11 +125,11 @@ func day5A()
 
             if isOrdered
             {
-                @assert(update.count & 1 == 1)
+                Swag.assert(update.count & 1 == 1)
                 total += expect StrConv.toS32(update[update.count / 2])
             }
         }
     }
 
-    @assert(total == 4462)
+    Swag.assert(total == 4462)
 }

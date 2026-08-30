@@ -27,14 +27,14 @@ alias CoreNonNullRuntimeDefaultAlias = CoreNonNullRuntimeDefault
 
 func recordCoreNonNullGuardPanic(message: #null string, loc: Swag.SourceCodeLocation)
 {
-    @getcontext().user0 += 1
+    Swag.getContext().user0 += 1
 }
 
 func testCoreNonNullDynamicInitialization()->bool
 {
     var item          = CoreNonNullDynamicItem{value: 71}
     let requiredType  = #typeof(*CoreNonNullDynamicItem)
-    let cxt           = @getcontext()
+    let cxt           = Swag.getContext()
     let previousPanic = cxt.panic
     let previousUser0 = cxt.user0
     cxt.user0 = 0
@@ -143,25 +143,25 @@ func testCoreNonNullDynamicInitialization()->bool
     let appendedAliasValue     = cast(#null *CoreNonNullRuntimeDefault) appendedAliasPtr
     let initializedAppendAlias = appendedAliasValue != null and appendedAliasValue.value == "fallback"
 
-    @assert(cxt.user0 == 6)
-    @assert(rejectedNew)
-    @assert(preservedReset)
-    @assert(preservedArray)
-    @assert(rejectedZeroNew)
-    @assert(preservedZeroReset)
-    @assert(rejectedZeroAppend)
-    @assert(initializedNewArray)
-    @assert(initializedNewAlias)
-    @assert(initializedNestedAliasArray)
-    @assert(initializedNestedArray)
-    @assert(initializedResetArray)
-    @assert(initializedResetAlias)
-    @assert(initializedAppendArray)
-    @assert(initializedAppendAlias)
+    Swag.assert(cxt.user0 == 6)
+    Swag.assert(rejectedNew)
+    Swag.assert(preservedReset)
+    Swag.assert(preservedArray)
+    Swag.assert(rejectedZeroNew)
+    Swag.assert(preservedZeroReset)
+    Swag.assert(rejectedZeroAppend)
+    Swag.assert(initializedNewArray)
+    Swag.assert(initializedNewAlias)
+    Swag.assert(initializedNestedAliasArray)
+    Swag.assert(initializedNestedArray)
+    Swag.assert(initializedResetArray)
+    Swag.assert(initializedResetAlias)
+    Swag.assert(initializedAppendArray)
+    Swag.assert(initializedAppendAlias)
     return true
 }
 
 #test
 {
-    @assert(testCoreNonNullDynamicInitialization())
+    Swag.assert(testCoreNonNullDynamicInitialization())
 }

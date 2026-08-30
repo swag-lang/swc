@@ -20,7 +20,7 @@ func compactMutationFor(text: string)->u64
     for ch in text
     {
         let runLength = ch - '0'
-        if @index & 1 do
+        if Swag.index & 1 do
             map.add({MutationFreeSpanId, runLength})
         else
         {
@@ -30,7 +30,7 @@ func compactMutationFor(text: string)->u64
     }
 
     var last = map.count - #wrap 1
-    for i in @countof(map)
+    for i in map.count
     {
         if map[i].what != MutationFreeSpanId do
             continue
@@ -78,7 +78,7 @@ func compactMutationWhile(text: string)->u64
     for ch in text
     {
         let runLength = ch - '0'
-        if @index & 1 do
+        if Swag.index & 1 do
             map.add({MutationFreeSpanId, runLength})
         else
         {
@@ -147,12 +147,12 @@ func buildMutationStressInput(repeats: u32)->String
 
 #test
 {
-    @assert(compactMutationWhile(MutationStressChunk) == 1928'u64)
-    @assert(compactMutationFor(MutationStressChunk) == 1928'u64)
+    Swag.assert(compactMutationWhile(MutationStressChunk) == 1928'u64)
+    Swag.assert(compactMutationFor(MutationStressChunk) == 1928'u64)
 }
 
 #test
 {
     let stress = buildMutationStressInput(MutationStressRepeats)
-    @assert(compactMutationFor(stress) == compactMutationWhile(stress))
+    Swag.assert(compactMutationFor(stress) == compactMutationWhile(stress))
 }

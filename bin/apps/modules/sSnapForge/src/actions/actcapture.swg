@@ -169,7 +169,7 @@ impl MainWnd
                 .width, .widthOrg   = img.width
                 .height, .heightOrg = img.height
                 .backImg            = img
-                .sourceKind         = sourceKind == .Unknown ? (@countof(linked) == 0 ? .Clipboard : .ImageFile) : sourceKind
+                .sourceKind         = sourceKind == .Unknown ? (linked.count == 0 ? .Clipboard : .ImageFile) : sourceKind
                 .capturedAt         = Time.DateTime.now()
             }
         }

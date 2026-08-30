@@ -6,7 +6,7 @@ internal impl Properties
     mtd validateDynamicString(item: *PropertiesItem)
     {
         var data = cast(*String) item.data!
-        if @isset(item.editBox) do
+        if Swag.isSet(item.editBox) do
             data[] = item.editBox.text()
         .commitItemChange(item)
     }
@@ -15,7 +15,7 @@ internal impl Properties
     // families. The first entry is the theme's default font and stores an empty name.
     mtd refreshFontName(item: *PropertiesItem)
     {
-        if !@isset(item.comboBox) do
+        if !Swag.isSet(item.comboBox) do
             return
 
         if .fieldIsMixed(item)
@@ -60,7 +60,7 @@ internal impl Properties
         var combo: #null *ComboBox
         if .kind == .Panel
         {
-            if @isset(item.label) do
+            if Swag.isSet(item.label) do
                 item.label.hide()
             with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
@@ -115,7 +115,7 @@ internal impl Properties
         var ed: #null *EditBox
         if .kind == .Panel
         {
-            if @isset(item.label) do
+            if Swag.isSet(item.label) do
                 item.label.hide()
             with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), data![as String], flags: .ReleaseFocusOnEnterOrEscape)
             {
@@ -182,7 +182,7 @@ internal impl Properties
         var ed: #null *EditBox
         if .kind == .Panel
         {
-            if @isset(item.label) do
+            if Swag.isSet(item.label) do
                 item.label.hide()
             with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), data![as string])
             {

@@ -33,7 +33,7 @@ func genericLazyMethodReflectionSkipsFailedWhere()->bool
         return false
 
     let info = cast(const *Swag.TypeInfoStruct) #typeof(GenericLazyMethodBox'func||()->s32)
-    if @countof(info.methods) < 1 do
+    if info.methods.count < 1 do
         return false
 
     var hasCount               = false
@@ -55,7 +55,7 @@ func genericLazyMethodReflectionSkipsFailedWhere()->bool
         let params = methodType.parameters
         if methodType.kind != .Func or
            params == null or
-           @countof(params) != 1 or
+           params.count != 1 or
            params[0].pointedType != #type *GenericLazyMethodBox'func||()->s32 or
            methodType.returnType != s32 do
             return false
@@ -68,5 +68,5 @@ func genericLazyMethodReflectionSkipsFailedWhere()->bool
 
 #test
 {
-    @assert(genericLazyMethodReflectionSkipsFailedWhere())
+    Swag.assert(genericLazyMethodReflectionSkipsFailedWhere())
 }

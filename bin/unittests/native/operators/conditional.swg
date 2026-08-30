@@ -39,22 +39,22 @@ func chooseConditionalStrictS32(flag: bool)->ConditionalStrictS32
 
     const d = true ? 20's32 : 10's16
     #assert(#typeof(d) == s32)
-    @assert(a == 10)
-    @assert(b == 20)
-    @assert(c == 1.0)
-    @assert(d == 20)
+    Swag.assert(a == 10)
+    Swag.assert(b == 20)
+    Swag.assert(c == 1.0)
+    Swag.assert(d == 20)
 }
 
 // Ternary with zero as false condition
 #test
 {
     var a = 0 ? 1 : 2
-    @assert(a == 2)
+    Swag.assert(a == 2)
 
     var b = 0.0'f32 ? 1 : 2
     var c = 1.5'f32 ? 1 : 2
-    @assert(b == 2)
-    @assert(c == 1)
+    Swag.assert(b == 2)
+    Swag.assert(c == 1)
 }
 
 namespace NC{}
@@ -68,8 +68,8 @@ var var2 = 20
 
 #test
 {
-    @assert(chooseConditionalStrictF32(true) == cast(ConditionalStrictF32) 1.5)
-    @assert(chooseConditionalStrictF32(false) == cast(ConditionalStrictF32) 2.5)
+    Swag.assert(chooseConditionalStrictF32(true) == cast(ConditionalStrictF32) 1.5)
+    Swag.assert(chooseConditionalStrictF32(false) == cast(ConditionalStrictF32) 2.5)
 }
 
 #test
@@ -79,8 +79,8 @@ var var2 = 20
 
     #assert(#typeof(a) == ConditionalStrictS32)
     #assert(#typeof(b) == ConditionalStrictF32)
-    @assert(a == cast(ConditionalStrictS32) 11)
-    @assert(b == cast(ConditionalStrictF32) 2.5)
-    @assert(chooseConditionalStrictS32(true) == cast(ConditionalStrictS32) 11)
-    @assert(chooseConditionalStrictS32(false) == cast(ConditionalStrictS32) 22)
+    Swag.assert(a == cast(ConditionalStrictS32) 11)
+    Swag.assert(b == cast(ConditionalStrictF32) 2.5)
+    Swag.assert(chooseConditionalStrictS32(true) == cast(ConditionalStrictS32) 11)
+    Swag.assert(chooseConditionalStrictS32(false) == cast(ConditionalStrictS32) 22)
 }

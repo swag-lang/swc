@@ -391,7 +391,7 @@ func repeatedCatchFailureSum()->s32
     var result: s32 = 0
     for 40
     {
-        catch alwaysFailVoid(cast(s32) @index + 1) as err7
+        catch alwaysFailVoid(cast(s32) Swag.index + 1) as err7
         let err = cast(ErrValue) err7
         result += err.code
     }
@@ -617,7 +617,7 @@ func notNullSliceSuccess()->s32
     let maybe:  #null [..] s32 = values
     let slice                  = maybe!
     #assert(#typeof(slice) == [..] s32)
-    return slice[1] + cast(s32) @countof(slice)
+    return slice[1] + cast(s32) slice.count
 }
 
 func dismissSuccessValue()->s32

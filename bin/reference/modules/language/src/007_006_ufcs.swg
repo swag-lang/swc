@@ -11,7 +11,7 @@ This enables calling standalone functions as if they were instance methods, impr
     func myFunc(param: bool) => param
 
     let b = false
-    @assert(myFunc(b) == b.myFunc())     // UFCS allows method-like syntax
+    Swag.assert(myFunc(b) == b.myFunc())     // UFCS allows method-like syntax
 }
 
 /**
@@ -37,11 +37,11 @@ with structs or objects.
 
     // UFCS - called like a method
     pt.set(10)
-    @assert(pt.x == 10 and pt.y == 10)
+    Swag.assert(pt.x == 10 and pt.y == 10)
 
     // Normal static function call
     set(&pt, 20)
-    @assert(pt.x == 20 and pt.y == 20)
+    Swag.assert(pt.x == 20 and pt.y == 20)
 }
 
 /**
@@ -65,11 +65,11 @@ UFCS works with multi-parameter functions as long as the first parameter type ma
 
     // UFCS style
     v.add(1.0, 2.0)
-    @assert(v.x == 1.0 and v.y == 2.0)
+    Swag.assert(v.x == 1.0 and v.y == 2.0)
 
     // Standard function call
     add(&v, 3.0, 4.0)
-    @assert(v.x == 4.0 and v.y == 6.0)
+    Swag.assert(v.x == 4.0 and v.y == 6.0)
 }
 
 /**
@@ -103,9 +103,9 @@ UFCS supports overloaded functions, selecting the correct overload based on argu
 
     // UFCS: multiply by scalar
     c1.multiply(2.0)
-    @assert(c1.real == 4.0 and c1.imag == 6.0)
+    Swag.assert(c1.real == 4.0 and c1.imag == 6.0)
 
     // UFCS: multiply by another complex number
     c1.multiply(&c2)
-    @assert(c1.real == -14.0 and c1.imag == 44.0)
+    Swag.assert(c1.real == -14.0 and c1.imag == 44.0)
 }

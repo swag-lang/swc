@@ -15,6 +15,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
+#include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -1137,7 +1138,21 @@ namespace
     Result semaCallExprPreNodeChildCommon(Sema& sema, const T& node, AstNodeRef childRef)
     {
         if (childRef == node.nodeExprRef)
+        {
+            if constexpr (std::is_same_v<T, AstIntrinsicCallExpr>)
+            {
+                Utf8 intrinsicName = "Swag.";
+                intrinsicName += Token::intrinsicName(node.intrinsicId);
+                const IdentifierRef idRef = sema.idMgr().addIdentifierOwned(intrinsicName);
+
+                MatchContext lookUpCxt;
+                lookUpCxt.codeRef = node.codeRef();
+                SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
+                SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, childRef, true, lookUpCxt.symbols().span()));
+                return Result::SkipChildren;
+            }
             return Result::Continue;
+        }
 
         if (isCallAliasChild(node, sema.ast(), childRef))
             return Result::SkipChildren;
@@ -1196,7 +1211,7 @@ namespace
         return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::RaiseException, node.codeRef());
     }
 
-    // `@assert(cond)` panics when `cond` is false, so the statements after it are only
+    // `Swag.assert(cond)` panics when `cond` is false, so the statements after it are only
     // reachable with `cond` true: its flow facts hold for the remainder of the enclosing
     // block, exactly like the surviving branch of a guard-style `if ... do return`.
     void setupIntrinsicAssertNarrowFacts(Sema& sema, const AstIntrinsicCallExpr& node)
@@ -1242,7 +1257,7 @@ namespace
     {
         if (sema.viewConstant(sema.curNodeRef()).hasConstant())
             return Result::Continue;
-        if (!intrinsicNeedsMathRuntimeSafety(sema.token(node.codeRef()).id))
+        if (!intrinsicNeedsMathRuntimeSafety(node.intrinsicId))
             return Result::Continue;
         return SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Math, node.codeRef());
     }
@@ -1274,7 +1289,7 @@ namespace
 
     Result applyAliasPreservingIntrinsicResultType(Sema& sema, const AstIntrinsicCallExpr& node, std::span<AstNodeRef> args)
     {
-        const TokenId tokenId = sema.token(node.codeRef()).id;
+        const TokenId tokenId = node.intrinsicId;
         if (!SemaHelpers::isAliasPreservingNumericIntrinsic(tokenId) || args.empty())
             return Result::Continue;
 
@@ -1480,21 +1495,20 @@ Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(semaCallExprCommon(sema, *this, true));
 
-    const Token& tok = sema.token(codeRef());
-    if (tok.id == TokenId::IntrinsicGetContext)
+    if (intrinsicId == TokenId::IntrinsicGetContext)
     {
         // The intrinsic yields the current TLS context storage, not a by-value context snapshot.
         sema.setIsLValue(sema.curNodeRef());
         SWC_RESULT(setupIntrinsicGetContextRuntimeCall(sema, *this));
     }
-    else if (tok.id == TokenId::IntrinsicSetContext)
+    else if (intrinsicId == TokenId::IntrinsicSetContext)
         SWC_RESULT(setupIntrinsicSetContextRuntimeCall(sema, *this));
-    else if (tok.id == TokenId::IntrinsicAssert)
+    else if (intrinsicId == TokenId::IntrinsicAssert)
     {
         SWC_RESULT(setupIntrinsicAssertRuntimeCall(sema, *this));
         setupIntrinsicAssertNarrowFacts(sema, *this);
     }
-    else if (tok.id == TokenId::IntrinsicGvtd)
+    else if (intrinsicId == TokenId::IntrinsicGvtd)
     {
         if (SymbolFunction* fn = sema.currentFunction())
             fn->setUsesGvtd();

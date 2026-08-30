@@ -138,7 +138,7 @@ private func runApplicationWorkspace(context: *Context, options: *Options, name,
     var arguments: Arguments
     arguments.add([command, "--workspace", applicationWorkspace(context).toString()])
     arguments.add(["--build-cfg", options.buildCfg.toString()])
-    if @countof(name) do
+    if name.count do
         arguments.add(["--workspace-module", name])
 
     // Applications and test-enabled library modules run once in their emitted artifacts. An
@@ -169,7 +169,7 @@ private func runApplicationWorkspace(context: *Context, options: *Options, name,
     if code != 0 or command != "build" do
         return code
 
-    if @countof(name) do
+    if name.count do
         return try packageApplication(context, options, name)
     for moduleName in context.workspaceModules("apps")
     {

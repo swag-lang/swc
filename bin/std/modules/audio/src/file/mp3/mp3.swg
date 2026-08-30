@@ -56,7 +56,7 @@ private func readEncoderInfo(frame: const [..] u8, header: const *FrameHeader)->
 
     // The tag sits right after the side information of the frame that carries it.
     let at = 4 + header.sideInfoBytes
-    if at + 8 > @countof(frame) do
+    if at + 8 > frame.count do
         return result
     let isXing = frame[at] == 'X' and frame[at + 1] == 'i' and frame[at + 2] == 'n' and frame[at + 3] == 'g'
     let isInfo = frame[at] == 'I' and frame[at + 1] == 'n' and frame[at + 2] == 'f' and frame[at + 3] == 'o'
@@ -67,7 +67,7 @@ private func readEncoderInfo(frame: const [..] u8, header: const *FrameHeader)->
 
     // The LAME extension follows the tag at a fixed distance and states the priming.
     let lame = at + 120
-    if lame + 24 > @countof(frame) do
+    if lame + 24 > frame.count do
         return result
     let delay = (cast(u64) frame[lame + 0x15] << 4) | (cast(u64) frame[lame + 0x16] >> 4)
     if delay do

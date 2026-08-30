@@ -157,7 +157,7 @@ func initialSpaceColor(space: const *ImageSpace)->Color
 func spaceColor(space: const *ImageSpace, values: const [..] f32)->Color
 {
     var operands: [8] f32
-    for i in Math.min(@countof(values), 8'u64) do
+    for i in Math.min(values.count, 8'u64) do
         operands[i] = values[i]
 
     var target: [3] u8
@@ -167,7 +167,7 @@ func spaceColor(space: const *ImageSpace, values: const [..] f32)->Color
         return Color.fromRgb(target[0], target[1], target[2])
     }
 
-    if !@countof(values) or !space.palette.count do
+    if !values.count or !space.palette.count do
         return Color.fromArgb(Argb.Black)
     let index = cast(u64) Math.clamp(cast(s32) Math.round(operands[0]), 0, cast(s32) space.hival)
     let entry = index * cast(u64) space.baseComponents
@@ -253,7 +253,7 @@ func resolveImageSpace(parser: *PdfParser, spaceRaw, resourcesId: u32, depth: u3
     case "ICCBased":
 
         // The profile itself is not applied; the component count decides the family.
-        let stream = @countof(values) > 1 ? parser.resolve(values[1]) : InvalidNode
+        let stream = values.count > 1 ? parser.resolve(values[1]) : InvalidNode
         let count  = parser.integer(parser.dict(stream, "N"), 3)
         switch count
         {
@@ -285,7 +285,7 @@ func resolveImageSpace(parser: *PdfParser, spaceRaw, resourcesId: u32, depth: u3
     case "Lab":
         result.kind       = .Lab
         result.components = 3
-        let parameters = @countof(values) > 1 ? parser.resolve(values[1]) : InvalidNode
+        let parameters = values.count > 1 ? parser.resolve(values[1]) : InvalidNode
         let rangeId    = parser.dict(parameters, "Range")
         if rangeId != InvalidNode and parser.nodes[rangeId].kind == .Array and parser.nodes[rangeId].values.count >= 4
         {
@@ -296,7 +296,7 @@ func resolveImageSpace(parser: *PdfParser, spaceRaw, resourcesId: u32, depth: u3
         return result
 
     case "Indexed", "I":
-        if @countof(values) < 4 do
+        if values.count < 4 do
             fail InvalidFormatError{"PDF indexed color space is incomplete"}
         let base = #move try resolveImageSpace(parser, values[1], resourcesId, depth + 1)
         if base.kind == .Indexed do
@@ -331,7 +331,7 @@ func resolveImageSpace(parser: *PdfParser, spaceRaw, resourcesId: u32, depth: u3
         return result
 
     case "DeviceN":
-        let names = @countof(values) > 1 ? parser.resolve(values[1]) : InvalidNode
+        let names = values.count > 1 ? parser.resolve(values[1]) : InvalidNode
         if names == InvalidNode or parser.nodes[names].kind != .Array or !parser.nodes[names].values.count do
             fail InvalidFormatError{"PDF DeviceN color space names no colorants"}
         result.kind       = .Subtractive
@@ -483,7 +483,7 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->Samp
 
     if depth == 8 and decodeId == InvalidNode and space.kind == .Rgb and space.components == 3
     {
-        Memory.copy(result.rgb.buffer, @dataof(bytes), result.rgb.count)
+        Memory.copy(result.rgb.buffer, bytes.buffer, result.rgb.count)
         try applyColorKeyMask(parser, nodeId, &result, bytes.toSlice(), space, depth, rowBytes)
         return result
     }

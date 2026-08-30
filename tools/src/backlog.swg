@@ -15,7 +15,7 @@ private func parseDecimal(text: string, start: u64)->{value: u32, end: u64}
 {
     var value: u32
     var pos = start
-    while pos < @countof(text) and Latin1.isDigit(text[pos])
+    while pos < text.count and Latin1.isDigit(text[pos])
     {
         value = value * 10 + cast(u32) (text[pos] - '0')
         pos   += 1
@@ -67,7 +67,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String, maxBacklo
         if haveEntry and entry.current do
             errors += reportBacklogFields(fileName, &entry)
 
-        if @countof(line) < 7 or (line[4] != 'B' and line[4] != 'F' and line[4] != 'T') or line[5] != '-'
+        if line.count < 7 or (line[4] != 'B' and line[4] != 'F' and line[4] != 'T') or line[5] != '-'
         {
             Console.println("error: ", fileName, ":", lineNumber, ": backlog entry heading has no permanent identifier")
             errors    += 1
@@ -76,7 +76,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String, maxBacklo
         }
 
         let parsed = parseDecimal(line, 6)
-        if parsed.end == 6 or !Utf8.startsWith(cast(const [..] u8) line[parsed.end until @countof(line)], " — ")
+        if parsed.end == 6 or !Utf8.startsWith(cast(const [..] u8) line[parsed.end until line.count], " — ")
         {
             Console.println("error: ", fileName, ":", lineNumber, ": malformed backlog identifier heading")
             errors    += 1
@@ -120,20 +120,20 @@ private func readCounter(readme: string)->u32
     let start = Utf8.indexOf(cast(const [..] u8) readme, prefix)
     if start == Swag.U64.Max do
         return 0
-    return parseDecimal(readme, start + @countof(prefix)).value
+    return parseDecimal(readme, start + prefix.count).value
 }
 
 private func markdownHeadingAnchor(line: string)->String
 {
     var result: retval
     var start:  u64
-    while start < @countof(line) and start < 6 and line[start] == '#' do
+    while start < line.count and start < 6 and line[start] == '#' do
         start += 1
-    if start == 0 or start >= @countof(line) or line[start] != ' ' do
+    if start == 0 or start >= line.count or line[start] != ' ' do
         return result
 
     start += 1
-    Utf8.visitRunes(cast(const [..] u8) line[start until @countof(line)]) #code(c, charIndex, byteIndex)
+    Utf8.visitRunes(cast(const [..] u8) line[start until line.count]) #code(c, charIndex, byteIndex)
     {
         discard charIndex
         discard byteIndex
@@ -168,7 +168,7 @@ private func auditBacklogLink(fileName: string, lineNumber: u64, destination: st
     let hash = Utf8.indexOf(cast(const [..] u8) destination, "#")
     let path = hash == Swag.U64.Max ? destination : destination[0 until hash]
 
-    var target = @countof(path) == 0 ? String.from(fileName) : Path.combine(Path.directoryName(fileName) orelse "", path)
+    var target = path.count == 0 ? String.from(fileName) : Path.combine(Path.directoryName(fileName) orelse "", path)
     Path.normalize(&target)
     if !File.exists(target.toString()) and !Directory.exists(target.toString())
     {
@@ -179,9 +179,9 @@ private func auditBacklogLink(fileName: string, lineNumber: u64, destination: st
     if hash == Swag.U64.Max do
         return 0
 
-    var anchor = String.from(destination[hash + 1 until @countof(destination)])
+    var anchor = String.from(destination[hash + 1 until destination.count])
     anchor = anchor.toLower()
-    let sourceLineAnchor = @countof(anchor.toString()) > 1 and anchor[0] == 'l' and Latin1.isDigit(anchor[1])
+    let sourceLineAnchor = (anchor.toString()).count > 1 and anchor[0] == 'l' and Latin1.isDigit(anchor[1])
     if anchor.isEmpty() or sourceLineAnchor or (Path.extension(target.toString()) orelse "") != ".md" do
         return 0
     if try hasMarkdownHeading(target.toString(), anchor.toString()) do
@@ -213,9 +213,9 @@ private func auditBacklogLinks(fileName: string)->u32 fail
     {
         lineNumber += 1
         var offset = 0'u64
-        while offset < @countof(line)
+        while offset < line.count
         {
-            let marker = Utf8.indexOf(cast(const [..] u8) line[offset until @countof(line)], "](")
+            let marker = Utf8.indexOf(cast(const [..] u8) line[offset until line.count], "](")
             if marker == Swag.U64.Max do
                 break
 
@@ -226,7 +226,7 @@ private func auditBacklogLinks(fileName: string)->u32 fail
                 continue
             }
 
-            let close = Utf8.indexOf(cast(const [..] u8) line[start until @countof(line)], ")")
+            let close = Utf8.indexOf(cast(const [..] u8) line[start until line.count], ")")
             if close == Swag.U64.Max do
                 break
 

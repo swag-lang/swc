@@ -1794,7 +1794,7 @@ impl Slice
         if isIntra16
         {
             let nC    = .lumaNc(mb, 0, 0)
-            let count = residualCavlc(&.bits, nC, 16, @dataof(mb.residual!.lumaDc))
+            let count = residualCavlc(&.bits, nC, 16, (mb.residual!.lumaDc).buffer)
             mb.dcFlags[0] = count > 0 ? 1 : 0
             if count > 0
             {
@@ -1818,19 +1818,19 @@ impl Slice
                 var count: u32
                 if isIntra16
                 {
-                    count = residualCavlc(&.bits, nC, 15, @dataof(mb.residual!.lumaAc) + cast(u64) raster * 16 + 1)
+                    count = residualCavlc(&.bits, nC, 15, (mb.residual!.lumaAc).buffer + cast(u64) raster * 16 + 1)
                 }
                 elif mb.transform8x8
                 {
                     // CAVLC codes an 8x8 block as four interleaved 4x4 blocks.
                     var cell16: [16] s16 = undefined
-                    count = residualCavlc(&.bits, nC, 16, @dataof(cell16))
+                    count = residualCavlc(&.bits, nC, 16, cell16.buffer)
                     for coefficient in 16'u64 do
                         mb.residual!.luma8[cast(u64) quad * 64 + coefficient * 4 + cast(u64) cell] = cell16[coefficient]
                 }
                 else
                 {
-                    count = residualCavlc(&.bits, nC, 16, @dataof(mb.residual!.lumaAc) + cast(u64) raster * 16)
+                    count = residualCavlc(&.bits, nC, 16, (mb.residual!.lumaAc).buffer + cast(u64) raster * 16)
                 }
 
                 mb.nzLuma[cast(u64) raster] = cast(u8) count
@@ -1858,7 +1858,7 @@ impl Slice
         {
             for plane in 2'u64
             {
-                let count = residualCavlc(&.bits, -1, 4, @dataof(mb.residual!.chromaDc) + plane * 4)
+                let count = residualCavlc(&.bits, -1, 4, (mb.residual!.chromaDc).buffer + plane * 4)
                 mb.dcFlags[1 + plane] = count > 0 ? 1 : 0
             }
         }
@@ -1871,7 +1871,7 @@ impl Slice
                 for block in 4's32
                 {
                     let nC    = .chromaNc(mb, cast(u32) plane, block & 1, block >> 1)
-                    let count = residualCavlc(&.bits, nC, 15, @dataof(mb.residual!.chromaAc) + plane * 64 + cast(u64) block * 16 + 1)
+                    let count = residualCavlc(&.bits, nC, 15, (mb.residual!.chromaAc).buffer + plane * 64 + cast(u64) block * 16 + 1)
                     if plane == 0 do
                         mb.nzCb[cast(u64) block] = cast(u8) count
                     else do

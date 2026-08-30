@@ -22,7 +22,7 @@ func day9B()
     let line     = expect File.readAllText(dataPath)
 
     var garbage, group, score, count = 0
-    for var i = 0; i < @countof(line); i += 1
+    for var i = 0; i < line.count; i += 1
     {
         switch
         {
@@ -47,5 +47,5 @@ func day9B()
         }
     }
 
-    @assert(count == 5601)
+    Swag.assert(count == 5601)
 }

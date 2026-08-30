@@ -17,7 +17,7 @@
     }
 
     const V = #run ifDeclSimple()
-    @assert(V == 1)
+    Swag.assert(V == 1)
 }
 
 #test
@@ -33,7 +33,7 @@
     }
 
     const V = #run ifDeclWithTypeWhere()
-    @assert(V == 2)
+    Swag.assert(V == 2)
 }
 
 #test
@@ -51,7 +51,7 @@
     }
 
     const V = #run ifDeclFalseElse()
-    @assert(V == 2)
+    Swag.assert(V == 2)
 }
 
 #test
@@ -69,7 +69,7 @@
     }
 
     const V = #run ifDeclWhereZeroIsTrue()
-    @assert(V == 3)
+    Swag.assert(V == 3)
 }
 
 #test
@@ -87,7 +87,7 @@
     }
 
     const V = #run ifDeclWhereFalseUsesElse()
-    @assert(V == 2)
+    Swag.assert(V == 2)
 }
 
 #test
@@ -106,7 +106,7 @@
     }
 
     const V = #run ifDeclNullablePointer()
-    @assert(V == 1)
+    Swag.assert(V == 1)
 }
 
 #test
@@ -121,7 +121,7 @@
     }
 
     const V = #run ifDeclNullableStringNull()
-    @assert(V == 1)
+    Swag.assert(V == 1)
 }
 
 #test
@@ -136,7 +136,7 @@
     }
 
     const V = #run ifDeclNullableSliceNull()
-    @assert(V == 1)
+    Swag.assert(V == 1)
 }
 
 // 'if const' declarations must work in condition position.
@@ -151,7 +151,7 @@
     }
 
     const V = #run ifConstTruthy()
-    @assert(V == 1)
+    Swag.assert(V == 1)
 }
 
 #test
@@ -165,5 +165,5 @@
     }
 
     const V = #run ifConstFalsy()
-    @assert(V == 42)
+    Swag.assert(V == 42)
 }

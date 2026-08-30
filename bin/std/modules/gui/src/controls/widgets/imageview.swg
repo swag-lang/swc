@@ -296,8 +296,8 @@ impl ImageView
         if .uploadedTexture.isValid() do
             .app().renderer.removeTexture(&.uploadedTexture)
         .movie.clear()
-        @drop(&.image, 1)
-        @init(&.image, 1)
+        Swag.drop(&.image, 1)
+        Swag.init(&.image, 1)
         .planarWidth          = 0
         .planarHeight         = 0
         .zoom                 = 1
@@ -489,8 +489,8 @@ impl ImageView
     {
         if .uploadedTexture.isValid() do
             .app().renderer.removeTexture(&.uploadedTexture)
-        @drop(&.image, 1)
-        @init(&.image, 1)
+        Swag.drop(&.image, 1)
+        Swag.init(&.image, 1)
         .planarWidth, .planarHeight = 0
         swap(&.movie, movie)
         if .movie.isValid() do

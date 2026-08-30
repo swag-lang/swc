@@ -68,7 +68,7 @@ func encode(bytes: const [..] u8)->String
     const Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
     var result: retval
-    let count       = @countof(bytes)
+    let count       = bytes.count
     let resultCount = ((count + 2) / 3) * 4
     result.reserve(resultCount + 1)
 
@@ -76,7 +76,7 @@ func encode(bytes: const [..] u8)->String
     var outIndex = 0'u64
     while count - index >= 16
     {
-        Math.Simd.store(result.buffer! + outIndex, encodeBlock(@dataof(bytes) + index))
+        Math.Simd.store(result.buffer! + outIndex, encodeBlock(bytes.buffer + index))
         index    += 12
         outIndex += 16
     }
@@ -124,17 +124,17 @@ func encode(bytes: const [..] u8)->String
 func decode(text: string)->Array'u8 fail
 {
     var result: retval
-    result.reserve((@countof(text) / 4 + 1) * 3 + 16)
+    result.reserve((text.count / 4 + 1) * 3 + 16)
 
     var digits: [4] u8
     var count = 0'u32
     var ended = false
     var index = 0'u64
-    while index < @countof(text)
+    while index < text.count
     {
-        if !count and !ended and @countof(text) - index >= 16
+        if !count and !ended and text.count - index >= 16
         {
-            let block = decodeBlock(@dataof(text) + index)
+            let block = decodeBlock(text.buffer + index)
             if block.valid
             {
                 Math.Simd.store(result.buffer! + result.count, block.decoded)

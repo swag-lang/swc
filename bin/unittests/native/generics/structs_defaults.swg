@@ -18,22 +18,22 @@ struct(T) PtrHolder
 #test
 {
     let partial: DefaultBuffer'u16 = {values: [10'u16, 20]}
-    @assert(partial.values[0] == 10'u16)
-    @assert(partial.values[1] == 20'u16)
+    Swag.assert(partial.values[0] == 10'u16)
+    Swag.assert(partial.values[1] == 20'u16)
     #assert(#typeof(partial.values) == #type [2] u16)
 
     let explicit: DefaultBuffer'(s32, 3) = {values: [1, 2, 3]}
-    @assert(explicit.values[2] == 3)
+    Swag.assert(explicit.values[2] == 3)
 
     let bools: DefaultBuffer'(bool, 3) = {values: [true, false, true]}
-    @assert(bools.values[1] == false)
+    Swag.assert(bools.values[1] == false)
 
     let defBox: DefaultBox = {value: 42}
-    @assert(defBox.value == 42)
+    Swag.assert(defBox.value == 42)
     #assert(#typeof(defBox.value) == s32)
 
     let defBoxF: DefaultBox'f64 = {value: 1.5}
-    @assert(defBoxF.value == 1.5)
+    Swag.assert(defBoxF.value == 1.5)
     #assert(#typeof(defBoxF.value) == f64)
 }
 
@@ -41,9 +41,9 @@ struct(T) PtrHolder
 {
     var x:      s32           = 42
     let holder: PtrHolder's32 = {ptr: &x}
-    @assert(holder.ptr[] == 42)
+    Swag.assert(holder.ptr[] == 42)
 
     var y:       f64           = 1.5
     let holderF: PtrHolder'f64 = {ptr: &y}
-    @assert(holderF.ptr[] == 1.5)
+    Swag.assert(holderF.ptr[] == 1.5)
 }

@@ -160,114 +160,114 @@ func(T, N: s32) countOf(values: [N] T, target: T)->s32
 
 #test
 {
-    @assert(clampPositive(5) == 5)
-    @assert(clampPositive(-3) == 0)
-    @assert(clampPositive(0) == 0)
-    @assert(clampPositive(-1.5) == 0.0)
-    @assert(clampPositive(2.5) == 2.5)
+    Swag.assert(clampPositive(5) == 5)
+    Swag.assert(clampPositive(-3) == 0)
+    Swag.assert(clampPositive(0) == 0)
+    Swag.assert(clampPositive(-1.5) == 0.0)
+    Swag.assert(clampPositive(2.5) == 2.5)
 }
 
 #test
 {
     let a: [3] s32 = [10, 20, 30]
-    @assert(sum(a) == 60)
+    Swag.assert(sum(a) == 60)
 
     let b: [4] f64 = [1.0, 2.0, 3.0, 4.0]
-    @assert(sum(b) == 10.0)
+    Swag.assert(sum(b) == 10.0)
 
     let c: [2] s64 = [100's64, 200]
-    @assert(sum(c) == 300's64)
+    Swag.assert(sum(c) == 300's64)
 }
 
 #test
 {
     let a: [5] s32 = [-2, 3, -1, 0, 5]
-    @assert(countPositive(a) == 2)
+    Swag.assert(countPositive(a) == 2)
 
     let b: [3] f64 = [-1.0, 0.0, 1.0]
-    @assert(countPositive(b) == 1)
+    Swag.assert(countPositive(b) == 1)
 }
 
 #test
 {
-    @assert(addTwo(5) == 7)
-    @assert(addTwo(0) == 2)
-    @assert(addFour(10) == 14)
-    @assert(addFour(0) == 4)
-    @assert(addFour'(f64)(1.0) == 5.0)
+    Swag.assert(addTwo(5) == 7)
+    Swag.assert(addTwo(0) == 2)
+    Swag.assert(addFour(10) == 14)
+    Swag.assert(addFour(0) == 4)
+    Swag.assert(addFour'(f64)(1.0) == 5.0)
 }
 
 #test
 {
-    @assert(doubleAsF64(5) == 10.0)
-    @assert(doubleAsF64(3'u8) == 6.0)
-    @assert(doubleAsF64(2's16) == 4.0)
+    Swag.assert(doubleAsF64(5) == 10.0)
+    Swag.assert(doubleAsF64(3'u8) == 6.0)
+    Swag.assert(doubleAsF64(2's16) == 4.0)
 }
 
 #test
 {
-    @assert(absValue(-5) == 5)
-    @assert(absValue(5) == 5)
-    @assert(absValue(0) == 0)
-    @assert(absValue(-3.5) == 3.5)
-    @assert(absValue(2.5) == 2.5)
+    Swag.assert(absValue(-5) == 5)
+    Swag.assert(absValue(5) == 5)
+    Swag.assert(absValue(0) == 0)
+    Swag.assert(absValue(-3.5) == 3.5)
+    Swag.assert(absValue(2.5) == 2.5)
 }
 
 #test
 {
-    @assert(minVal(3, 7) == 3)
-    @assert(minVal(7, 3) == 3)
-    @assert(maxVal(3, 7) == 7)
-    @assert(maxVal(7, 3) == 7)
-    @assert(minVal(1.5, 2.5) == 1.5)
-    @assert(maxVal(1.5, 2.5) == 2.5)
+    Swag.assert(minVal(3, 7) == 3)
+    Swag.assert(minVal(7, 3) == 3)
+    Swag.assert(maxVal(3, 7) == 7)
+    Swag.assert(maxVal(7, 3) == 7)
+    Swag.assert(minVal(1.5, 2.5) == 1.5)
+    Swag.assert(maxVal(1.5, 2.5) == 2.5)
 }
 
 #test
 {
-    @assert(clamp(5, 0, 10) == 5)
-    @assert(clamp(-5, 0, 10) == 0)
-    @assert(clamp(15, 0, 10) == 10)
-    @assert(clamp(3.5, 1.0, 5.0) == 3.5)
-    @assert(clamp(0.5, 1.0, 5.0) == 1.0)
-    @assert(clamp(9.0, 1.0, 5.0) == 5.0)
+    Swag.assert(clamp(5, 0, 10) == 5)
+    Swag.assert(clamp(-5, 0, 10) == 0)
+    Swag.assert(clamp(15, 0, 10) == 10)
+    Swag.assert(clamp(3.5, 1.0, 5.0) == 3.5)
+    Swag.assert(clamp(0.5, 1.0, 5.0) == 1.0)
+    Swag.assert(clamp(9.0, 1.0, 5.0) == 5.0)
 }
 
 #test
 {
-    @assert(applyS32(5, &doubleS32) == 10)
-    @assert(applyS32(-3, &negateS32) == 3)
-    @assert(applyS32(0, &doubleS32) == 0)
-    @assert(applyF64(2.5, &doubleF64) == 5.0)
+    Swag.assert(applyS32(5, &doubleS32) == 10)
+    Swag.assert(applyS32(-3, &negateS32) == 3)
+    Swag.assert(applyS32(0, &doubleS32) == 0)
+    Swag.assert(applyF64(2.5, &doubleF64) == 5.0)
 }
 
 #test
 {
     let values: [3] s32 = [1, 2, 3]
     let doubled         = mapS32x3(values, &doubleS32)
-    @assert(doubled[0] == 2)
-    @assert(doubled[1] == 4)
-    @assert(doubled[2] == 6)
+    Swag.assert(doubled[0] == 2)
+    Swag.assert(doubled[1] == 4)
+    Swag.assert(doubled[2] == 6)
 
     let negated = mapS32x3(values, &negateS32)
-    @assert(negated[0] == -1)
-    @assert(negated[1] == -2)
-    @assert(negated[2] == -3)
+    Swag.assert(negated[0] == -1)
+    Swag.assert(negated[1] == -2)
+    Swag.assert(negated[2] == -3)
 }
 
 #test
 {
     let values: [4] s32 = [1, 2, 3, 4]
-    @assert(reduceS32x4(values, 0, &addS32) == 10)
-    @assert(reduceS32x4(values, 1, &mulS32) == 24)
+    Swag.assert(reduceS32x4(values, 0, &addS32) == 10)
+    Swag.assert(reduceS32x4(values, 1, &mulS32) == 24)
 }
 
 #test
 {
-    @assert(castTo'(s32, f64)(42) == 42.0)
-    @assert(castTo'(f64, s32)(3.7) == 3)
-    @assert(castTo'(u8, s32)(255'u8) == 255)
-    @assert(castTo'(bool, s32)(true) == 1)
+    Swag.assert(castTo'(s32, f64)(42) == 42.0)
+    Swag.assert(castTo'(f64, s32)(3.7) == 3)
+    Swag.assert(castTo'(u8, s32)(255'u8) == 255)
+    Swag.assert(castTo'(bool, s32)(true) == 1)
 }
 
 #test
@@ -275,57 +275,57 @@ func(T, N: s32) countOf(values: [N] T, target: T)->s32
     var a: s32 = 10
     var b: s32 = 20
     swap(&a, &b)
-    @assert(a == 20)
-    @assert(b == 10)
+    Swag.assert(a == 20)
+    Swag.assert(b == 10)
 
     var x: f64 = 1.5
     var y: f64 = 2.5
     swap(&x, &y)
-    @assert(x == 2.5)
-    @assert(y == 1.5)
+    Swag.assert(x == 2.5)
+    Swag.assert(y == 1.5)
 }
 
 #test
 {
     let arr: [5] s32 = [10, 20, 30, 40, 50]
-    @assert(indexOf(arr, 30) == 2)
-    @assert(indexOf(arr, 10) == 0)
-    @assert(indexOf(arr, 50) == 4)
-    @assert(indexOf(arr, 99) == -1)
+    Swag.assert(indexOf(arr, 30) == 2)
+    Swag.assert(indexOf(arr, 10) == 0)
+    Swag.assert(indexOf(arr, 50) == 4)
+    Swag.assert(indexOf(arr, 99) == -1)
 }
 
 #test
 {
     let ones: [3] s32 = [1, 1, 1]
-    @assert(allEqual(ones, 1) == true)
-    @assert(allEqual(ones, 2) == false)
+    Swag.assert(allEqual(ones, 1) == true)
+    Swag.assert(allEqual(ones, 2) == false)
 
     let mixed: [3] s32 = [1, 2, 1]
-    @assert(allEqual(mixed, 1) == false)
+    Swag.assert(allEqual(mixed, 1) == false)
 }
 
 #test
 {
     let arr: [4] s32 = [10, 20, 30, 40]
     let rev          = reverse(arr)
-    @assert(rev[0] == 40)
-    @assert(rev[1] == 30)
-    @assert(rev[2] == 20)
-    @assert(rev[3] == 10)
+    Swag.assert(rev[0] == 40)
+    Swag.assert(rev[1] == 30)
+    Swag.assert(rev[2] == 20)
+    Swag.assert(rev[3] == 10)
 
     let farr: [3] f64 = [1.0, 2.0, 3.0]
     let frev          = reverse(farr)
-    @assert(frev[0] == 3.0)
-    @assert(frev[1] == 2.0)
-    @assert(frev[2] == 1.0)
+    Swag.assert(frev[0] == 3.0)
+    Swag.assert(frev[1] == 2.0)
+    Swag.assert(frev[2] == 1.0)
 }
 
 #test
 {
     let arr: [5] s32 = [10, 20, 30, 20, 50]
-    @assert(contains(arr, 30) == true)
-    @assert(contains(arr, 99) == false)
-    @assert(countOf(arr, 20) == 2)
-    @assert(countOf(arr, 10) == 1)
-    @assert(countOf(arr, 99) == 0)
+    Swag.assert(contains(arr, 30) == true)
+    Swag.assert(contains(arr, 99) == false)
+    Swag.assert(countOf(arr, 20) == 2)
+    Swag.assert(countOf(arr, 10) == 1)
+    Swag.assert(countOf(arr, 99) == 0)
 }

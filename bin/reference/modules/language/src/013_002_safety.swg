@@ -54,7 +54,7 @@ It is unnecessary for shifts, whose discarded bits already truncate normally.
 {
     var x = 255'u8
     x += #wrap 1
-    @assert(x == 0)
+    Swag.assert(x == 0)
 }
 
 /**
@@ -67,7 +67,7 @@ Disable overflow safety checks in a scope with '#[Swag.Safety(.Overflow, false)]
 {
     var x = 255'u8
     x += 1
-    @assert(x == 0)
+    Swag.assert(x == 0)
 }
 
 /**
@@ -78,8 +78,8 @@ For 8/16-bit operations, use '#prom' to promote to 32-bit and avoid overflow.
 #test
 {
     let x = 255'u8 + #prom 1
-    @assert(x == 256)
-    @assert(#typeof(x) == u32)
+    Swag.assert(x == 256)
+    Swag.assert(#typeof(x) == u32)
 }
 
 /**
@@ -94,13 +94,13 @@ Swag checks casts for potential information loss between integer types.
     // var y0 = cast(s8) x1  // Would panic: 255 not representable as s8
 
     let y1 = cast #wrap (s8) x1
-    @assert(y1 == -1)
+    Swag.assert(y1 == -1)
 
     let x2 = -1's8
 
     // var y2 = cast(u8) x2  // Would panic: negative to unsigned
     let y2 = cast #wrap (u8) x2
-    @assert(y2 == 255)
+    Swag.assert(y2 == 255)
 }
 
 /**
@@ -115,7 +115,7 @@ Same as above: '#[Swag.Safety(.Overflow, false)]' allows overflowing operations.
     x += 255     // -> 254 (wrap)
     x += 1       // -> 255
     x >>= 1      // -> 127
-    @assert(x == 127)
+    Swag.assert(x == 127)
 }
 
 /**
@@ -130,7 +130,7 @@ Swag panics if a cast from 'any' to another type is invalid.
     let y      = cast(string) x
 
 // var z = cast(s32) x  // Would panic: underlying type mismatch
-// @assert(z == 0)
+// Swag.assert(z == 0)
 }
 
 /**
@@ -150,7 +150,7 @@ Swag panics if an index is out of range when dereferencing sized values
     var x   = [0, 1, 2]
     var idx = 10
 
-// @assert(x[idx] == 1)  // Would panic: out-of-bounds
+// Swag.assert(x[idx] == 1)  // Would panic: out-of-bounds
 }
 
 /**
@@ -162,10 +162,10 @@ Indexing a slice is checked for bounds.
 {
     let x: const [..] s32 = [0, 1, 2]
     var idx               = 1
-    @assert(x[idx] == 1)
+    Swag.assert(x[idx] == 1)
     idx += 9
 
-// @assert(x[idx] == 1)  // Would panic: out-of-bounds
+// Swag.assert(x[idx] == 1)  // Would panic: out-of-bounds
 }
 
 /**
@@ -178,7 +178,7 @@ Slice operations are checked for bounds.
     var x: const [..] s32 = [0, 1, 2]
 
 // var slice = x[1 to 4]   // Would panic: out-of-bounds
-// @assert(slice[0] == 1)
+// Swag.assert(slice[0] == 1)
 }
 
 #test
@@ -187,7 +187,7 @@ Slice operations are checked for bounds.
     var idx = 10
 
 // var slice = x[0 to idx] // Would panic: out-of-bounds
-// @assert(slice[0] == 's')
+// Swag.assert(slice[0] == 's')
 }
 
 /**
@@ -207,11 +207,11 @@ empty, not inverted, so it runs zero iterations without panicking.
         return sum
     }
 
-    @assert(sumRange(0, 0) == 0)
-    @assert(sumRange(2, 2) == 0)
-    @assert(sumRange(0, 4) == 0 + 1 + 2 + 3)
+    Swag.assert(sumRange(0, 0) == 0)
+    Swag.assert(sumRange(2, 2) == 0)
+    Swag.assert(sumRange(0, 4) == 0 + 1 + 2 + 3)
 
-// @assert(sumRange(4, 2) == 0)  // Would panic: lower bound above upper bound
+// Swag.assert(sumRange(4, 2) == 0)  // Would panic: lower bound above upper bound
 }
 
 /**
@@ -227,7 +227,7 @@ arguments.
     var y = 0'f32
 
 // var z = x / y  // Would panic: division by zero
-// @print(z)
+// Swag.print(z)
 }
 
 /**
@@ -237,13 +237,13 @@ Swag validates arguments for several math intrinsics and panics if invalid.
 */
 #test
 {
-// @abs(-128)        // Invalid for abs on this target
-// @log(-2'f32)      // Invalid: log of negative
-// @log2(-2'f32)     // Invalid: log2 of negative
-// @log10(2'f64)     // Example: implementation-specific constraints
-// @sqrt(-2'f32)     // Invalid: sqrt of negative
-// @asin(-2'f32)     // Invalid: asin out of range
-// @acos(2'f32)      // Invalid: acos out of range
+// Swag.abs(-128)        // Invalid for abs on this target
+// Swag.log(-2'f32)      // Invalid: log of negative
+// Swag.log2(-2'f32)     // Invalid: log2 of negative
+// Swag.log10(2'f64)     // Example: implementation-specific constraints
+// Swag.sqrt(-2'f32)     // Invalid: sqrt of negative
+// Swag.asin(-2'f32)     // Invalid: asin out of range
+// Swag.acos(2'f32)      // Invalid: acos out of range
 }
 
 /**
@@ -279,7 +279,7 @@ execution continues after the switch, in every build configuration.
         return -1
     }
 
-    @assert(colorRank(Color.Blue) == -1)
+    Swag.assert(colorRank(Color.Blue) == -1)
 }
 
 /**

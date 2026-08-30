@@ -24,7 +24,7 @@ func day1B()
         if !l.isEmpty() do
             one += expect StrConv.toU64(l[])
 
-        if l.isEmpty() or @index == lines.count - 1
+        if l.isEmpty() or Swag.index == lines.count - 1
         {
             switch
             {
@@ -41,5 +41,5 @@ func day1B()
     let total = count[0] + count[1] + count[2]
 
     // Console.print("total: ", total)
-    @assert(total == 203002)
+    Swag.assert(total == 203002)
 }

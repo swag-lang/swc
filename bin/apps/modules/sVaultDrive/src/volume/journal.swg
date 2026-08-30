@@ -49,15 +49,15 @@ impl JournalRecord
         writer.writeLittleEndian(nextNodeId)
         writer.writeSizedString(label)
 
-        writer.writeLittleEndian(@countof(removed))
+        writer.writeLittleEndian(removed.count)
         for id in removed do
             writer.writeLittleEndian(id)
 
-        writer.writeLittleEndian(@countof(upserted))
+        writer.writeLittleEndian(upserted.count)
         for node in upserted do
             node.serialize(&writer)
 
-        writer.writeLittleEndian(@countof(metadata))
+        writer.writeLittleEndian(metadata.count)
         for node in metadata
         {
             writer.writeLittleEndian(node.id)
@@ -104,7 +104,7 @@ impl JournalRecord
 
         // Records written before metadata patches were introduced end after the full-node list.
         // Keeping that form readable preserves every existing container.
-        if @countof(reader.remainingBytes())
+        if (reader.remainingBytes()).count
         {
             let metadataCount = reader.readLittleEndian'u64()
             if metadataCount > MaximumNodeCount do

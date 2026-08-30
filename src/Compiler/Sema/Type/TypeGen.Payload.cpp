@@ -877,7 +877,7 @@ namespace
                 tv.name.length                 = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), Utf8{symInterface->getFullScopedName(ctx)});
                 entry.structInterfaceTypes.push_back(symInterface->typeRef());
 
-                // Wire the interface method table (itable) into `value` so `@mkinterface`/`@tableof`
+                // Wire the interface method table (itable) into `value` so `Swag.makeInterface`/`Swag.tableOf`
                 // can build an interface from a runtime typeinfo when the implementing struct lives
                 // in a module the call site cannot enumerate as a static candidate (e.g. core's
                 // `parseValue` building an interface for `Pixel.Color`). Layout matches

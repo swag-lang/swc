@@ -124,7 +124,7 @@ impl PropertiesCtrl
         .list.clear()
 
         // In the filter bar
-        if @isset(.tab)
+        if Swag.isSet(.tab)
         {
             .tab.clear()
             let tabItem = .tab.addItem(strings().prop_All)
@@ -136,13 +136,13 @@ impl PropertiesCtrl
         {
             let item = it.item!
             var naked: String
-            if @isset(item.label) do
+            if Swag.isSet(item.label) do
                 naked = RichString.plainText(item.label.text())
             else do
                 naked = Properties.resolveText(item.typeValue.name orelse "")
 
             // In the filter bar
-            if @isset(.tab) and it.lvl == 0
+            if Swag.isSet(.tab) and it.lvl == 0
             {
                 let tabItem = .tab.addItem(naked)
                 tabItem.userData0 = cast(#null *void) idx

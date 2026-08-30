@@ -65,7 +65,7 @@ func day5B0()
                 if !here[r, c]
                 {
                     // Console.print("total: ", r, " ", c, " ", r*8+c,"\n")
-                    @assert(r * 8 + c == 714)
+                    Swag.assert(r * 8 + c == 714)
                     return
                 }
             }
@@ -102,12 +102,12 @@ func day5B1()
     }
 
     seats.sort()
-    for i in @countof(seats)
+    for i in seats.count
     {
         if seats[i + 1] - seats[i] != 1
         {
             // Console.print("total: ", seats[i]+1)
-            @assert(seats[i] + 1 == 714)
+            Swag.assert(seats[i] + 1 == 714)
             return
         }
     }

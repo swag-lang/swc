@@ -101,7 +101,7 @@ private struct OrderedCounter
 private func isHtmlBlockStart(line: string)->bool
 {
     let trimmed = Latin1.trim(line)
-    if !@countof(trimmed) or trimmed[0] != '<' do
+    if !trimmed.count or trimmed[0] != '<' do
         return false
 
     // A fragment: this asks the HTML parser what the line starts, not what document it makes.
@@ -168,7 +168,7 @@ internal func parseBlocks(source: string)->Array'Block
     {
         let raw     = lines[index]
         let trimmed = Latin1.trim(raw)
-        if !@countof(trimmed)
+        if !trimmed.count
         {
             index += 1
             continue
@@ -211,7 +211,7 @@ internal func parseBlocks(source: string)->Array'Block
         if fence.found
         {
             var code: String
-            if @countof(fence.info) do
+            if fence.info.count do
                 code += Format.toString("<p3>%</p>\n", richText(String.from(fence.info).toUpper().toString()))
             index += 1
             while index < lines.count
@@ -219,7 +219,7 @@ internal func parseBlocks(source: string)->Array'Block
                 // A closing fence carries no info and is at least as long as its opener, so a
                 // longer fence can display a shorter one as content.
                 let close = parseFence(lines[index])
-                if close.found and close.marker == fence.marker and close.length >= fence.length and !@countof(close.info)
+                if close.found and close.marker == fence.marker and close.length >= fence.length and !close.info.count
                 {
                     index += 1
                     break
@@ -238,14 +238,14 @@ internal func parseBlocks(source: string)->Array'Block
         {
             var math: String
             var line = trimmed[2 to]
-            if Utf8.endsWith(line, "$$") and @countof(line) >= 2
+            if Utf8.endsWith(line, "$$") and line.count >= 2
             {
-                math  = Latin1.trim(line[0 until @countof(line) - 2])
+                math  = Latin1.trim(line[0 until line.count - 2])
                 index += 1
             }
             else
             {
-                if @countof(line) do
+                if line.count do
                     math += Latin1.trim(line)
                 index += 1
                 while index < lines.count and !Utf8.startsWith(Latin1.trim(lines[index]), "$$")
@@ -270,12 +270,12 @@ internal func parseBlocks(source: string)->Array'Block
             var line = Latin1.trim(trimmed[2 to])
             if Utf8.endsWith(line, "\\]")
             {
-                math  = Latin1.trim(line[0 until @countof(line) - 2])
+                math  = Latin1.trim(line[0 until line.count - 2])
                 index += 1
             }
             else
             {
-                if @countof(line) do
+                if line.count do
                     math += line
                 index += 1
                 while index < lines.count and !Utf8.startsWith(Latin1.trim(lines[index]), "\\]")
@@ -297,7 +297,7 @@ internal func parseBlocks(source: string)->Array'Block
         if isHtmlBlockStart(raw)
         {
             var html: String
-            while index < lines.count and @countof(Latin1.trim(lines[index]))
+            while index < lines.count and (Latin1.trim(lines[index])).count
             {
                 if !html.isEmpty() do
                     html += "\n"
@@ -333,7 +333,7 @@ internal func parseBlocks(source: string)->Array'Block
                 table += "\n"
                 table += lines[index + 1]
                 index += 2
-                while index < lines.count and Utf8.contains(lines[index], '|'rune) and @countof(Latin1.trim(lines[index]))
+                while index < lines.count and Utf8.contains(lines[index], '|'rune) and (Latin1.trim(lines[index])).count
                 {
                     table += "\n"
                     table += lines[index]
@@ -370,7 +370,7 @@ internal func parseBlocks(source: string)->Array'Block
                 {
                     let continuation = parseListItem(lines[index])
                     let next         = Latin1.trim(lines[index])
-                    if !@countof(next) or continuation.found or continuation.indent < current.contentIndent or parseFence(lines[index]).found do
+                    if !next.count or continuation.found or continuation.indent < current.contentIndent or parseFence(lines[index]).found do
                         break
 
                     content  += hasHardBreak(previous) ? "\n" : " "
@@ -446,7 +446,7 @@ internal func parseBlocks(source: string)->Array'Block
                     }
                 }
 
-                if @countof(content)
+                if content.count
                 {
                     if !quote.isEmpty() do
                         quote += "\n"
@@ -466,7 +466,7 @@ internal func parseBlocks(source: string)->Array'Block
         {
             let next           = Latin1.trim(lines[index])
             let nextDefinition = parseReferenceDefinition(lines[index])
-            if !@countof(next) or parseHeading(lines[index]).level or isRule(lines[index]) or parseListItem(lines[index]).found or Utf8.startsWith(next, ">") or Utf8.startsWith(next, "$$") or Utf8.startsWith(next, "\\[") or Utf8.compare(next, "[TOC]", .Latin1NoCase) == 0 or nextDefinition.found or parseFence(lines[index]).found do
+            if !next.count or parseHeading(lines[index]).level or isRule(lines[index]) or parseListItem(lines[index]).found or Utf8.startsWith(next, ">") or Utf8.startsWith(next, "$$") or Utf8.startsWith(next, "\\[") or Utf8.compare(next, "[TOC]", .Latin1NoCase) == 0 or nextDefinition.found or parseFence(lines[index]).found do
                 break
             if index + 1 < lines.count and setextLevel(lines[index + 1]) do
                 break

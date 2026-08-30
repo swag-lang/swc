@@ -1812,7 +1812,7 @@ private impl RenderCpu
         }
 
         let white = Color.fromArgb(Argb.White).argb
-        for vertex in @mkslice(vertices, 6)
+        for vertex in Swag.makeSlice(vertices, 6)
         {
             if vertex.color != white or vertex.cov != 1 do
                 return false
@@ -2178,7 +2178,7 @@ private impl RenderCpu
         case .BindTexture0:
             .paintCommand = cmd[]
             if cmd.texture0.gradientStopCount do
-                .gradientStops = @mkslice(painter.gradientStops.buffer + cmd.texture0.gradientStopStart, cmd.texture0.gradientStopCount)
+                .gradientStops = Swag.makeSlice(painter.gradientStops.buffer + cmd.texture0.gradientStopStart, cmd.texture0.gradientStopCount)
             else do
                 .gradientStops = null
             .paintOn = true
@@ -2254,8 +2254,8 @@ impl RenderCpu
     // Every outstanding texture and render-target handle from this renderer becomes invalid.
     mtd reset()
     {
-        @drop(me, 1)
-        @init(me, 1)
+        Swag.drop(me, 1)
+        Swag.init(me, 1)
     }
 
     // Starts a CPU frame with the requested positive BGRA surface dimensions.

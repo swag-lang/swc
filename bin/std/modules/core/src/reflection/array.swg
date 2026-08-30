@@ -101,7 +101,7 @@ func swapRuntimeValues(basePointer: #null *void, valueType: #null typeinfo, inde
     let pa     = base + indexA * size
     let pb     = base + indexB * size
 
-    let allocator = @getcontext().allocator
+    let allocator = Swag.getContext().allocator
     let tmp       = cast([*] u8) Memory.alloc(size, allocator)
     defer Memory.free(tmp, size, allocator)
 
@@ -125,14 +125,14 @@ func appendDynamicArrayElement(arrayPointer: #null *void, elementType: #null typ
 {
     if !arrayPointer or !elementType
     {
-        @panic("Reflection.appendDynamicArrayElement cannot append to a null array or null type", #curlocation)
+        Swag.panic("Reflection.appendDynamicArrayElement cannot append to a null array or null type", #curlocation)
         return null
     }
 
     let nnType = elementType
     if initialize and !Memory.canDefaultInit(nnType)
     {
-        @panic("Reflection.appendDynamicArrayElement cannot default-initialize this type", #curlocation)
+        Swag.panic("Reflection.appendDynamicArrayElement cannot default-initialize this type", #curlocation)
         return null
     }
 
@@ -145,7 +145,7 @@ func appendDynamicArrayElement(arrayPointer: #null *void, elementType: #null typ
     if arr.count >= arr.capacity
     {
         if arr.allocator == null do
-            arr.allocator = @getcontext().allocator
+            arr.allocator = Swag.getContext().allocator
 
         let oldBuffer   = arr.buffer
         let oldCapacity = arr.capacity

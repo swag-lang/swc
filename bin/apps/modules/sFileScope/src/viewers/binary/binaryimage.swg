@@ -79,7 +79,7 @@ impl BinaryImage
     // Returns whether the bytes at `offset` are exactly `magic`.
     mtd const matches(offset: u64, magic: string)->bool
     {
-        let count = @countof(magic)
+        let count = magic.count
         if !.has(offset, count) do
             return false
         for index in count where .bytes[offset + index] != magic[index] do
@@ -200,6 +200,6 @@ impl BinaryImage
             text.add(value >= 32 and value < 127 ? value : '.'u8)
         }
 
-        return String.from(@mkstring(text.buffer!, text.count))
+        return String.from(Swag.makeString(text.buffer!, text.count))
     }
 }

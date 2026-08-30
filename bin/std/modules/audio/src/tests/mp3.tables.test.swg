@@ -13,7 +13,7 @@ private func mp3WalkTree(tree: const [..] s16, length: u32, code: u32)->s32
     {
         let bit  = (code >> (length - 1 - index)) & 1
         let slot = cast(u64) (node * 2) + cast(u64) bit
-        if slot >= @countof(tree) do
+        if slot >= tree.count do
             return -1
 
         let next = tree[slot]
@@ -37,37 +37,37 @@ private func mp3WalkTree(tree: const [..] s16, length: u32, code: u32)->s32
 // `Tree` is what the decoder walks. This is what keeps the second from drifting from the first.
 private func mp3AssertTable(name: string, lengths: const [..] u8, codes: const [..] u16, tree: const [..] s16)
 {
-    @assert(@countof(lengths) == @countof(codes))
+    Swag.assert(lengths.count == codes.count)
 
     var kraft = 0.0'f64
-    for symbol in @countof(lengths)
+    for symbol in lengths.count
     {
         let length = cast(u32) lengths[symbol]
-        @assert(length > 0 and length <= 19)
+        Swag.assert(length > 0 and length <= 19)
         kraft += Math.pow(0.5'f64, cast(f64) length)
 
         // The code must fit the length it states.
-        @assert(cast(u32) codes[symbol] < (1'u32 << length))
+        Swag.assert(cast(u32) codes[symbol] < (1'u32 << length))
 
         let reached = mp3WalkTree(tree, length, cast(u32) codes[symbol])
         if reached != cast(s32) symbol do
-            @print("mp3 table ", name, ": symbol ", symbol, " decodes to ", reached, "\n")
-        @assert(reached == cast(s32) symbol)
+            Swag.print("mp3 table ", name, ": symbol ", symbol, " decodes to ", reached, "\n")
+        Swag.assert(reached == cast(s32) symbol)
     }
 
     // A complete prefix code has a Kraft sum of exactly one. Below one leaves bit patterns that
     // decode to nothing; above one is impossible without two codes sharing a path.
-    @assert(Math.abs(kraft - 1.0'f64) < 1e-9)
+    Swag.assert(Math.abs(kraft - 1.0'f64) < 1e-9)
 
     // Every branch of the tree must lead somewhere: a slot pointing at itself or past the end
     // would make the decoder loop or read out of bounds.
-    for slot in @countof(tree)
+    for slot in tree.count
     {
         let value = tree[slot]
         if value >= 0 do
-            @assert(cast(u64) value * 2 + 1 < @countof(tree) and cast(u64) value * 2 > slot)
+            Swag.assert(cast(u64) value * 2 + 1 < tree.count and cast(u64) value * 2 > slot)
         else do
-            @assert(cast(u64) (-value - 1) < @countof(lengths))
+            Swag.assert(cast(u64) (-value - 1) < lengths.count)
     }
 }
 
@@ -100,8 +100,8 @@ private func mp3AssertTable(name: string, lengths: const [..] u8, codes: const [
 
     for symbol in 16'u32
     {
-        @assert(Mp3.Count1BLen[symbol] == 4)
-        @assert(cast(u32) Mp3.Count1BCod[symbol] == 15 - symbol)
+        Swag.assert(Mp3.Count1BLen[symbol] == 4)
+        Swag.assert(cast(u32) Mp3.Count1BCod[symbol] == 15 - symbol)
     }
 }
 
@@ -116,8 +116,8 @@ private func mp3AssertTable(name: string, lengths: const [..] u8, codes: const [
                               1, 2, 3, 4, 6, 8, 10, 13, 4, 5, 6, 7, 8, 9, 11, 13]
     for index in 32'u64
     {
-        @assert(Mp3.HuffCodeTable[index] == Expected[index])
-        @assert(Mp3.HuffLinbits[index] == Escapes[index])
+        Swag.assert(Mp3.HuffCodeTable[index] == Expected[index])
+        Swag.assert(Mp3.HuffLinbits[index] == Escapes[index])
     }
 }
 
@@ -129,13 +129,13 @@ private func mp3AssertTable(name: string, lengths: const [..] u8, codes: const [
         var total = 0'u32
         for band in 22'u64 do
             total += cast(u32) Mp3.ScfBandLong[rate, band]
-        @assert(total == 576)
-        @assert(Mp3.ScfBandLong[rate, 22] == 0)
+        Swag.assert(total == 576)
+        Swag.assert(Mp3.ScfBandLong[rate, 22] == 0)
 
         total = 0
         for band in 39'u64 do
             total += cast(u32) Mp3.ScfBandShort[rate, band]
-        @assert(total == 576)
-        @assert(Mp3.ScfBandShort[rate, 39] == 0)
+        Swag.assert(total == 576)
+        Swag.assert(Mp3.ScfBandShort[rate, 39] == 0)
     }
 }

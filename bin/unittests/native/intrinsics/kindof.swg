@@ -4,109 +4,109 @@
 alias StrictKindOfAny = any
 
 // ============================================================
-// @kindof result type with a plain any
+// Swag.kindOf result type with a plain any
 // ============================================================
 
 #test
 {
     var a: any = 0's32
-    var b      = @kindof(a)
+    var b      = Swag.kindOf(a)
     #assert(#typeof(b) == typeinfo)
-    @assert(#typeof(b) == typeinfo)
+    Swag.assert(#typeof(b) == typeinfo)
 }
 
 // ============================================================
-// @kindof with @mkany — primitive types
+// Swag.kindOf with Swag.makeAny — primitive types
 // ============================================================
 
 #test
 {
     var x: s32
-    var a: any = @mkany(&x, s32)
-    var b      = @kindof(a)
-    @assert(b == s32)
+    var a: any = Swag.makeAny(&x, s32)
+    var b      = Swag.kindOf(a)
+    Swag.assert(b == s32)
 }
 
 #test
 {
     var x: f32
-    var a: any = @mkany(cast(*void) &x, f32)
-    var b      = @kindof(a)
-    @assert(b == f32)
+    var a: any = Swag.makeAny(cast(*void) &x, f32)
+    var b      = Swag.kindOf(a)
+    Swag.assert(b == f32)
 }
 
 #test
 {
     var x: u8
-    var a: any = @mkany(&x, u8)
-    @assert(@kindof(a) == u8)
+    var a: any = Swag.makeAny(&x, u8)
+    Swag.assert(Swag.kindOf(a) == u8)
 }
 
 #test
 {
     var x: u16
-    var a: any = @mkany(&x, u16)
-    @assert(@kindof(a) == u16)
+    var a: any = Swag.makeAny(&x, u16)
+    Swag.assert(Swag.kindOf(a) == u16)
 }
 
 #test
 {
     var x: u32
-    var a: any = @mkany(&x, u32)
-    @assert(@kindof(a) == u32)
+    var a: any = Swag.makeAny(&x, u32)
+    Swag.assert(Swag.kindOf(a) == u32)
 }
 
 #test
 {
     var x: u64
-    var a: any = @mkany(&x, u64)
-    @assert(@kindof(a) == u64)
+    var a: any = Swag.makeAny(&x, u64)
+    Swag.assert(Swag.kindOf(a) == u64)
 }
 
 #test
 {
     var x: s8
-    var a: any = @mkany(&x, s8)
-    @assert(@kindof(a) == s8)
+    var a: any = Swag.makeAny(&x, s8)
+    Swag.assert(Swag.kindOf(a) == s8)
 }
 
 #test
 {
     var x: s16
-    var a: any = @mkany(&x, s16)
-    @assert(@kindof(a) == s16)
+    var a: any = Swag.makeAny(&x, s16)
+    Swag.assert(Swag.kindOf(a) == s16)
 }
 
 #test
 {
     var x: s64
-    var a: any = @mkany(&x, s64)
-    @assert(@kindof(a) == s64)
+    var a: any = Swag.makeAny(&x, s64)
+    Swag.assert(Swag.kindOf(a) == s64)
 }
 
 #test
 {
     var x: f64
-    var a: any = @mkany(&x, f64)
-    @assert(@kindof(a) == f64)
+    var a: any = Swag.makeAny(&x, f64)
+    Swag.assert(Swag.kindOf(a) == f64)
 }
 
 #test
 {
     var x: bool
-    var a: any = @mkany(&x, bool)
-    @assert(@kindof(a) == bool)
+    var a: any = Swag.makeAny(&x, bool)
+    Swag.assert(Swag.kindOf(a) == bool)
 }
 
 #test
 {
     var x: rune
-    var a: any = @mkany(&x, rune)
-    @assert(@kindof(a) == rune)
+    var a: any = Swag.makeAny(&x, rune)
+    Swag.assert(Swag.kindOf(a) == rune)
 }
 
 // ============================================================
-// @kindof with struct types
+// Swag.kindOf with struct types
 // ============================================================
 
 struct Point { x: s32, y: s32 }
@@ -114,12 +114,12 @@ struct Point { x: s32, y: s32 }
 #test
 {
     var p      = Point{1, 2}
-    var a: any = @mkany(&p, Point)
-    @assert(@kindof(a) == Point)
+    var a: any = Swag.makeAny(&p, Point)
+    Swag.assert(Swag.kindOf(a) == Point)
 }
 
 // ============================================================
-// @kindof with enum types
+// Swag.kindOf with enum types
 // ============================================================
 
 enum Kind: u8 { A = 1, B = 2 }
@@ -135,57 +135,57 @@ alias StrictKindAlias = Kind
 #test
 {
     var k      = Kind.A
-    var a: any = @mkany(&k, Kind)
-    @assert(@kindof(a) == Kind)
+    var a: any = Swag.makeAny(&k, Kind)
+    Swag.assert(Swag.kindOf(a) == Kind)
 }
 
 #test
 {
     var k      = cast(StrictKindAlias) Kind.B
-    var a: any = @mkany(&k, StrictKindAlias)
-    @assert(@kindof(a) == StrictKindAlias)
-    @assert(cast(StrictKindAlias) a == cast(StrictKindAlias) Kind.B)
+    var a: any = Swag.makeAny(&k, StrictKindAlias)
+    Swag.assert(Swag.kindOf(a) == StrictKindAlias)
+    Swag.assert(cast(StrictKindAlias) a == cast(StrictKindAlias) Kind.B)
 }
 
 // ============================================================
-// @kindof — reassigning the any changes the kind
+// Swag.kindOf — reassigning the any changes the kind
 // ============================================================
 
 #test
 {
     var x: s32 = 1
     var y: f64 = 2.0
-    var a: any = @mkany(&x, s32)
-    @assert(@kindof(a) == s32)
-    a = @mkany(&y, f64)
-    @assert(@kindof(a) == f64)
+    var a: any = Swag.makeAny(&x, s32)
+    Swag.assert(Swag.kindOf(a) == s32)
+    a = Swag.makeAny(&y, f64)
+    Swag.assert(Swag.kindOf(a) == f64)
 }
 
 // ============================================================
-// @kindof with string
+// Swag.kindOf with string
 // ============================================================
 
 #test
 {
     var s: string = "hello"
-    var a: any    = @mkany(&s, string)
-    @assert(@kindof(a) == string)
+    var a: any    = Swag.makeAny(&s, string)
+    Swag.assert(Swag.kindOf(a) == string)
 }
 
 #test
 {
     var x:   s32 = 42
-    var raw: any = @mkany(&x, s32)
+    var raw: any = Swag.makeAny(&x, s32)
     let boxed    = (&raw)[as StrictKindOfAny]
-    var b        = @kindof(boxed)
+    var b        = Swag.kindOf(boxed)
     #assert(#typeof(b) == typeinfo)
-    @assert(b == s32)
+    Swag.assert(b == s32)
 }
 
 #test
 {
     var text: string = "alias-kind"
-    var raw:  any    = @mkany(&text, string)
+    var raw:  any    = Swag.makeAny(&text, string)
     let boxed        = (&raw)[as StrictKindOfAny]
-    @assert(@kindof(boxed) == string)
+    Swag.assert(Swag.kindOf(boxed) == string)
 }

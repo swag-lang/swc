@@ -53,15 +53,15 @@ func invokeMaterializedAutoInlineClosure(callback: AutoInlineCallback)->u32
 {
     var widened: u64
     storeWidenedAutoInlineValue(autoInlineValue(41), &widened)
-    @assert(widened == 42)
+    Swag.assert(widened == 42)
 
     let kind = AutoInlineArgumentKind.Second
-    @assert(autoInlineInferredParameter(kind) == 1)
+    Swag.assert(autoInlineInferredParameter(kind) == 1)
 
     let offset: u32 = 1
-    @assert(invokeMaterializedAutoInlineClosure(func|offset|(value) => value + offset) == 42)
+    Swag.assert(invokeMaterializedAutoInlineClosure(func|offset|(value) => value + offset) == 42)
 
     var receiver = AutoInlineReceiver{41}
     receiver.storeNextValue(&widened)
-    @assert(widened == 42)
+    Swag.assert(widened == 42)
 }

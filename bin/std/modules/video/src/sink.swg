@@ -65,7 +65,7 @@ impl Sink
     // Appends `bytes` to the stream.
     mtd write(bytes: const [..] u8) fail
     {
-        let count = @countof(bytes)
+        let count = bytes.count
         if !count do
             return
 
@@ -89,7 +89,7 @@ impl Sink
             .flush()
         if .pending.count != WindowSize do
             .pending.resize(WindowSize)
-        Memory.copy(.pending.buffer! + .pendingCount, @dataof(bytes)!, count)
+        Memory.copy(.pending.buffer! + .pendingCount, bytes.buffer!, count)
         .pendingCount += count
     }
 
@@ -111,7 +111,7 @@ impl Sink
     // appending resumes exactly where it stopped.
     mtd patch(offset: u64, bytes: const [..] u8) fail
     {
-        let count = @countof(bytes)
+        let count = bytes.count
         if !count do
             return
         if offset > .written or count > .written - offset do

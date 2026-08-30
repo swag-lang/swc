@@ -29,7 +29,7 @@ impl PanelWnd
     mtd contentRect()->Math.Rectangle
     {
         var result: retval = .clientRect()
-        let top            = @countof(.title) ? PanelPadding + PanelTitle : PanelPadding
+        let top            = (.title).count ? PanelPadding + PanelTitle : PanelPadding
         result.applyPadding({PanelPadding, top, PanelPadding, PanelPadding})
         return result
     }
@@ -46,7 +46,7 @@ impl IWnd for PanelWnd
         painter.fillRoundRect(rect, PanelRadius, PanelRadius, colors.wnd_Bk)
         painter.drawRoundRect(rect, PanelRadius, PanelRadius, colors.border, 1)
 
-        if !@countof(.title) do
+        if !(.title).count do
             return
         let font = .theme().createDefaultFont(13, .Bold)
         painter.drawString(rect.x + PanelPadding, font.opticalTop(rect.y + PanelPadding + 9, 13), .title, font, colors.label_Text)

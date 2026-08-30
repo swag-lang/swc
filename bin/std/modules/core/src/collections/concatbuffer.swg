@@ -156,7 +156,7 @@ impl ConcatBuffer
 
         // Need to allocate a new bucket
         if !.allocator do
-            .allocator = @getcontext().allocator
+            .allocator = Swag.getContext().allocator
         let newBucket = Memory.new'ConcatBufferBucket(.allocator)
 
         if .lastBucket
@@ -248,7 +248,7 @@ impl ConcatBuffer
                currentSP > data + curBucket.count - #sizeof(T)
             {
                 var v = val
-                .addBytes(@mkslice(cast([*] u8) &v, #sizeof(T)), false)
+                .addBytes(Swag.makeSlice(cast([*] u8) &v, #sizeof(T)), false)
                 return
             }
 
@@ -270,18 +270,18 @@ impl ConcatBuffer
     #[Swag.Inline]
     mtd(T) addStruct(val: T)
     {
-        .addBytes(@mkslice(cast(const [*] u8) &val, #sizeof(T)))
+        .addBytes(Swag.makeSlice(cast(const [*] u8) &val, #sizeof(T)))
     }
 
     // Appends a slice of bytes to the buffer.
     // If 'contiguous' is false, the slice can be split across multiple buckets if necessary.
     mtd addBytes(bytes: #null const [..] u8, contiguous = true)
     {
-        var num = @countof(bytes)
+        var num = bytes.count
         if !num do
             return
 
-        var slicePtr = @dataof(bytes)
+        var slicePtr = bytes.buffer
 
         // Be sure we have a buffer
         if !.lastBucket do
@@ -482,7 +482,7 @@ impl ConcatBuffer
         if .lastBucket == .firstBucket
         {
             let firstBucket = .firstBucket!
-            return @mkslice(firstBucket.data, firstBucket.count)
+            return Swag.makeSlice(firstBucket.data, firstBucket.count)
         }
 
         return null
@@ -493,9 +493,9 @@ impl ConcatBuffer
     mtd setFirstBucket(data: [..] u8)
     {
         Debug.assert(.firstBucket == null)
-        @init(&.viewFirstBucket, 1)
-        .viewFirstBucket.data                 = @dataof(data)
-        .viewFirstBucket.size                 = @countof(data)
+        Swag.init(&.viewFirstBucket, 1)
+        .viewFirstBucket.data                 = data.buffer
+        .viewFirstBucket.size                 = data.count
         .firstBucket, .lastBucket, .curBucket = &.viewFirstBucket
         .currentSP                            = .viewFirstBucket.data
     }
@@ -518,7 +518,7 @@ impl ConcatBuffer
         while ptr != lastBucket.next
         {
             let b = ptr!
-            result.append(@mkstring(b.data, b.count))
+            result.append(Swag.makeString(b.data, b.count))
             ptr = b.next
         }
 

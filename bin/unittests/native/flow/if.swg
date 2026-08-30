@@ -29,7 +29,7 @@
     {
         state += 100000
     }
-    @assert(state == 10101)
+    Swag.assert(state == 10101)
 }
 
 #test
@@ -40,7 +40,7 @@
         var x = 0
         count += 1
     }
-    @assert(count == 1)
+    Swag.assert(count == 1)
 }
 
 #test
@@ -54,7 +54,7 @@
     {
         value = 1
     }
-    @assert(value == 0)
+    Swag.assert(value == 0)
 }
 
 #test
@@ -68,5 +68,5 @@
             count += 1
         }
     }
-    @assert(count == 1)
+    Swag.assert(count == 1)
 }

@@ -25,6 +25,6 @@ func inlineArrayLiteralDigitsForward()->s32
 
 #test
 {
-    @assert(inlineArrayLiteralDigitsForward() == 4321)
-    @assert(inlineArrayLiteralEdges([7, 8, 9, 6]) == 76)
+    Swag.assert(inlineArrayLiteralDigitsForward() == 4321)
+    Swag.assert(inlineArrayLiteralEdges([7, 8, 9, 6]) == 76)
 }

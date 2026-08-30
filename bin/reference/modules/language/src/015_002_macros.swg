@@ -29,7 +29,7 @@ the caller unless explicitly elevated.
 
     let a = 0
     myMacro()     // no conflict with outer 'a'
-    @assert(a == 0)
+    Swag.assert(a == 0)
 }
 
 /**
@@ -65,7 +65,7 @@ locals.
         a += 1
     }
 
-    @assert(a == 2)
+    Swag.assert(a == 2)
 }
 
 /**
@@ -79,7 +79,7 @@ explicit expression literal, mirroring the short function form 'func() => expr'.
     #[Swag.Macro]
     func myMacro(what: #code->bool)
     {
-        @assert(#inject(what))
+        Swag.assert(#inject(what))
     }
 
     // A plain expression argument converts to code implicitly
@@ -112,7 +112,7 @@ never shadows a caller variable used by the injected block.
         a += 2     // operates on the caller's 'a'
     }
 
-    @assert(a == 3)
+    Swag.assert(a == 3)
 }
 
 /**
@@ -133,8 +133,8 @@ wrapping is needed.
     // The declared names are visible at the call site by default.
     call(20)
     {
-        @assert(value == 20)
-        @assert(double == 40)
+        Swag.assert(value == 20)
+        Swag.assert(double == 40)
     }
 }
 
@@ -159,20 +159,20 @@ argument.
         total = x + y
     }
 
-    @assert(total == 60)
+    Swag.assert(total == 60)
 
     // Inline form: the code literal is a normal argument.
     call(10, #code(a, b) {
         total = a + b
     })
-    @assert(total == 30)
+    Swag.assert(total == 30)
 
     // Partial binder: only the first parameter is renamed, like 'for'.
     call(5) #code(first) {
         total = first + double
     }
 
-    @assert(total == 15)
+    Swag.assert(total == 15)
 }
 
 /**
@@ -195,7 +195,7 @@ also types (and checks) the binding.
         got     = counter
     }
 
-    @assert(got == 15)
+    Swag.assert(got == 15)
 }
 
 /**
@@ -222,14 +222,14 @@ They can be used to generate tight loops with caller-visible indices, etc.
         a += index     // sum 0..4
     }
 
-    @assert(a == 0 + 1 + 2 + 3 + 4)
+    Swag.assert(a == 0 + 1 + 2 + 3 + 4)
 
     repeat(3)
     {
         a += index     // add 0..2
     }
 
-    @assert(a == 10 + 3)
+    Swag.assert(a == 10 + 3)
 }
 
 /**
@@ -264,7 +264,7 @@ Bindings and control-flow replacements live in the same '#inject'.
             break     // remapped to 'break to ScopeTarget'
     }
 
-    @assert(a == 10)
+    Swag.assert(a == 10)
 }
 
 /**
@@ -307,6 +307,6 @@ Remap both 'break' and 'continue' to influence outer/inner loop flow.
             break
     }
 
-    @assert(a == 8)
-    @assert(b == 6)
+    Swag.assert(a == 8)
+    Swag.assert(b == 6)
 }

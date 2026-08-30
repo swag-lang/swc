@@ -52,7 +52,7 @@ private const SubstituteMono: [4] [4] string = [
 // Returns the face standing in for a font whose program cannot be drawn.
 private func substituteTypeface(fallbackFontFile: string, resource: #null const *FontResource)->*TypeFace fail
 {
-    if @countof(fallbackFontFile) do
+    if fallbackFontFile.count do
         return try TypeFace.load(fallbackFontFile)
 
     var serif      = false

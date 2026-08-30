@@ -92,7 +92,7 @@ public impl TextReader
 
         for
         {
-            @assert(.buffer.buffer != null)
+            Swag.assert(.buffer.buffer != null)
             var ptr  = .buffer.buffer + .byteSeek
             let ptrB = ptr
             let ptrE = .buffer.buffer + .buffer.count
@@ -111,7 +111,7 @@ public impl TextReader
                 ptr += 1
 
             let range = cast(u64) (ptr - ptrB)
-            result[] += @mkstring(ptrB, range)
+            result[] += Swag.makeString(ptrB, range)
 
             // We have reached the end of the buffer without finding an eol
             // Restart

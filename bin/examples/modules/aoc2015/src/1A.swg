@@ -33,5 +33,5 @@ func day1A()
     for c in lines.bytes() do
         total += c == '(' ? 1 : -1
 
-    @assert(total == 232)
+    Swag.assert(total == 232)
 }

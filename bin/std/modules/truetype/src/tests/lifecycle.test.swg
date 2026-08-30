@@ -8,30 +8,30 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     scope.init(fileName)
     let face = scope.face!
 
-    @assert(scope.bytes.count > 0)
-    @assert(face.glyphCount > 0)
-    @assert(!face.familyName.isEmpty())
-    @assert(!face.styleName.isEmpty())
-    @assert((face.style & (.Bold | .Italic)) == expectedStyle)
+    Swag.assert(scope.bytes.count > 0)
+    Swag.assert(face.glyphCount > 0)
+    Swag.assert(!face.familyName.isEmpty())
+    Swag.assert(!face.styleName.isEmpty())
+    Swag.assert((face.style & (.Bold | .Italic)) == expectedStyle)
 
     let glyphA = face.glyphIndex('A')
-    @assert(glyphA > 0)
+    Swag.assert(glyphA > 0)
 
     discard expect face.setPixelSize(0, 18)
     discard expect face.loadGlyph(glyphA, .Render)
-    @assert(face.glyph.bitmap.width > 0)
-    @assert(face.glyph.bitmap.rows > 0)
-    @assert(countBitmapCoverage(&face.glyph.bitmap) > 0)
+    Swag.assert(face.glyph.bitmap.width > 0)
+    Swag.assert(face.glyph.bitmap.rows > 0)
+    Swag.assert(countBitmapCoverage(&face.glyph.bitmap) > 0)
 }
 
 #test
 {
     let badFace0: #null *Face = catch Face.load(BrokenFontBytes) as err3
-    @assert(err3 != null)
+    Swag.assert(err3 != null)
 
     var empty:    Array'u8
     let badFace1: #null *Face = catch Face.load(empty.toSlice()) as err4
-    @assert(err4 != null)
+    Swag.assert(err4 != null)
 }
 
 #test
@@ -40,34 +40,34 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     scope.init()
     let face = scope.face!
 
-    @assert(scope.bytes.count > 0)
-    @assert(face.glyphCount > 0)
-    @assert(!face.familyName.isEmpty())
-    @assert(!face.styleName.isEmpty())
-    @assert(face.unitsPerEm > 0)
-    @assert(face.ascender > 0)
-    @assert(face.descender < 0)
-    @assert(face.maxAdvanceWidth > 0)
+    Swag.assert(scope.bytes.count > 0)
+    Swag.assert(face.glyphCount > 0)
+    Swag.assert(!face.familyName.isEmpty())
+    Swag.assert(!face.styleName.isEmpty())
+    Swag.assert(face.unitsPerEm > 0)
+    Swag.assert(face.ascender > 0)
+    Swag.assert(face.descender < 0)
+    Swag.assert(face.maxAdvanceWidth > 0)
 
     discard expect face.setPixelSize(0, 16)
-    @assert(face.size.metrics.xPpem == 16)
-    @assert(face.size.metrics.yPpem == 16)
-    @assert(face.size.metrics.ascender > 0)
-    @assert(face.size.metrics.descender < 0)
-    @assert(face.size.metrics.maxAdvance > 0)
+    Swag.assert(face.size.metrics.xPpem == 16)
+    Swag.assert(face.size.metrics.yPpem == 16)
+    Swag.assert(face.size.metrics.ascender > 0)
+    Swag.assert(face.size.metrics.descender < 0)
+    Swag.assert(face.size.metrics.maxAdvance > 0)
 
     discard expect face.setPixelSize(24, 0)
-    @assert(face.size.metrics.xPpem == 24)
-    @assert(face.size.metrics.yPpem == 24)
+    Swag.assert(face.size.metrics.xPpem == 24)
+    Swag.assert(face.size.metrics.yPpem == 24)
 
     discard catch face.setPixelSize(0, 0) as err8
-    @assert(err8 != null)
+    Swag.assert(err8 != null)
 
     discard catch face.setPixelSize(Swag.U16.Max + 1, 16) as err9
-    @assert(err9 != null)
+    Swag.assert(err9 != null)
 
-    @assert(face.hasChar('A'))
-    @assert(!face.hasChar(0x10FFFF))
+    Swag.assert(face.hasChar('A'))
+    Swag.assert(!face.hasChar(0x10FFFF))
 }
 
 #test
@@ -82,7 +82,7 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 // the thread context switches allocators must not route the pointer to the new one.
 #test
 {
-    let context           = @getcontext()
+    let context           = Swag.getContext()
     let originalAllocator = context.allocator!
 
     var scratchA: ScratchAllocator
@@ -99,7 +99,7 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     context.allocator = allocatorA
 
     let face = expect Face.load(bytes.toSlice(), allocatorA)
-    @assert(face != null)
+    Swag.assert(face != null)
 
     context.allocator = allocatorB
     face!.destroy()

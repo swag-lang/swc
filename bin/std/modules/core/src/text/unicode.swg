@@ -163,21 +163,21 @@ public
 public func fromUtf8(dest: [..] rune, src: const [..] u8)->u32
 {
     var count     = 0'u32
-    var srcPtr    = @dataof(src)
-    var destPtr   = @dataof(dest)
-    var srcLength = @countof(src)
+    var srcPtr    = src.buffer
+    var destPtr   = dest.buffer
+    var srcLength = src.count
 
     var {c, eat} = Utf8.decodeRune(src)
     while eat != 0
     {
-        Debug.assert(count != @countof(dest), "destination buffer is too small")
+        Debug.assert(count != dest.count, "destination buffer is too small")
 
         destPtr[]      = c
         destPtr, count += 1
 
         srcPtr    += eat
         srcLength -= eat
-        {c, eat}  = Utf8.decodeRune(@mkslice(srcPtr, srcLength))
+        {c, eat}  = Utf8.decodeRune(Swag.makeSlice(srcPtr, srcLength))
     }
 
     return count
@@ -187,16 +187,16 @@ public func fromUtf8(dest: [..] rune, src: const [..] u8)->u32
 public func fromUtf8(src: const [..] u8)->Array'rune
 {
     var result: retval
-    result.reserve(@countof(src))
-    result.count = fromUtf8(@mkslice(result.buffer, @countof(src)), src)
+    result.reserve(src.count)
+    result.count = fromUtf8(Swag.makeSlice(result.buffer, src.count), src)
     return result
 }
 
 // Make a rune buffer upper case
 public func makeUpper(buffer: [..] rune)
 {
-    var p = @dataof(buffer)
-    for @countof(buffer)
+    var p = buffer.buffer
+    for buffer.count
     {
         p[] = toUpper(p[])
         p   += 1
@@ -206,8 +206,8 @@ public func makeUpper(buffer: [..] rune)
 // Make a rune buffer lower case
 public func makeLower(buffer: [..] rune)
 {
-    var p = @dataof(buffer)
-    for @countof(buffer)
+    var p = buffer.buffer
+    for buffer.count
     {
         p[] = toLower(p[])
         p   += 1
@@ -217,8 +217,8 @@ public func makeLower(buffer: [..] rune)
 // Compare two unicode strings, and returns -1, 0 or 1
 func compare(src, dst: const [..] rune, ignoreCase = false, len: u64 = 0)->s32
 {
-    let length      = @countof(src)
-    let otherLength = @countof(dst)
+    let length      = src.count
+    let otherLength = dst.count
 
     var minLen: u64 = undefined
     if len
@@ -249,7 +249,7 @@ func compare(src, dst: const [..] rune, ignoreCase = false, len: u64 = 0)->s32
     }
     else
     {
-        result = Memory.compare(@dataof(src), @dataof(dst), minLen * #sizeof(rune))
+        result = Memory.compare(src.buffer, dst.buffer, minLen * #sizeof(rune))
     }
 
     if result != 0 do
@@ -285,7 +285,7 @@ func isInTable(ranges: const [..] Range, r: rune)->bool
 {
     // linear search for a small array or a latin1 character
     const LinearLimit = 18
-    if @countof(ranges) <= LinearLimit or r <= 255
+    if ranges.count <= LinearLimit or r <= 255
     {
         for &range in ranges
         {
@@ -300,7 +300,7 @@ func isInTable(ranges: const [..] Range, r: rune)->bool
 
     // binary search over ranges
     var lo = 0'u64
-    var hi = @countof(ranges)
+    var hi = ranges.count
     while lo < hi
     {
         let m     = lo + (hi - lo) / 2
@@ -325,7 +325,7 @@ func caseChangeTo(wCase: WantedCase, r: rune, caseRange: const [..] CaseRange)->
 
     // binary search over ranges
     var lo = 0'u64
-    var hi = @countof(caseRange)
+    var hi = caseRange.count
     while lo < hi
     {
         let m  = lo + (hi - lo) / 2

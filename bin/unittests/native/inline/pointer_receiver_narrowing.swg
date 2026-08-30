@@ -21,5 +21,5 @@ impl PointerReceiverNarrowing
     var value: PointerReceiverNarrowing
     value.buffer = &storage[0]
     value.clearFirst()
-    @assert(storage[0] == 0)
+    Swag.assert(storage[0] == 0)
 }

@@ -86,7 +86,7 @@ namespace
 
     // Two 'typeinfo' values name the same type when their runtime hashes match. That hash is what
     // the generated code compares — reflection exports it as 'TypeInfo.crc', and both
-    // 'CodeGenCompareHelpers::emitTypeInfoEqualJump' and '@typecmp' answer from it — so folding the
+    // 'CodeGenCompareHelpers::emitTypeInfoEqualJump' and 'Swag.typeCmp' answer from it — so folding the
     // comparison on anything stricter would let one expression report 'false' where the same
     // expression reports 'true' at run time. The hash deliberately ignores the '#null' qualifier at
     // every nesting depth, which is exactly the pair that used to disagree: '#null string' against

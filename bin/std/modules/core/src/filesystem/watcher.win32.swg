@@ -55,15 +55,15 @@ impl Watcher
     {
         let raw   = Memory.alloc(#sizeof(WatcherNative))
         let state = cast(*WatcherNative) raw
-        @init(state, 1)
+        Swag.init(state, 1)
         defer if !.native
         {
-            @drop(state, 1)
+            Swag.drop(state, 1)
             Memory.free(raw, #sizeof(WatcherNative))
         }
 
         let winPath = Utf16.toZeroTerminated(.root.toString())
-        state.directory = CreateFileW(@dataof(winPath), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, null)
+        state.directory = CreateFileW(winPath.buffer, FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, null)
         defer if !.native and state.directory do
             CloseHandle(state.directory)
 
@@ -95,7 +95,7 @@ impl Watcher
 
         CloseHandle(state.event)
         CloseHandle(state.directory)
-        @drop(state, 1)
+        Swag.drop(state, 1)
         Memory.free(cast([*] void) state, #sizeof(WatcherNative))
         .native = null
     }
@@ -138,7 +138,7 @@ impl Watcher
         {
             let info     = cast(const *FILE_NOTIFY_INFORMATION) (state.buffer.buffer! + offset)
             let nameData = cast(const [*] u16) &info.FileName[0]
-            var name     = Utf8.fromUtf16(@mkslice(nameData, cast(u64) info.FileNameLength / #sizeof(u16)))
+            var name     = Utf8.fromUtf16(Swag.makeSlice(nameData, cast(u64) info.FileNameLength / #sizeof(u16)))
             let relative = name.toString()
 
             if info.Action != FILE_ACTION_RENAMED_NEW_NAME and info.Action != FILE_ACTION_RENAMED_OLD_NAME and state.pendingRename.length

@@ -5,7 +5,7 @@ using Swag
 
 func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
 {
-    if values.count != @countof(expected) do
+    if values.count != expected.count do
         return false
 
     for value, index in values[]
@@ -27,20 +27,20 @@ func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
     values.addNew()[] = 3
 
     var copy = values
-    @assert(assertIntArrayPtr(&copy, [1, 2, 3]))
+    Swag.assert(assertIntArrayPtr(&copy, [1, 2, 3]))
 
     for value, index in values
     {
         let src = value!
         let dup = copy[index]!
-        @assert(dup != src)
-        @assert(dup[] == src[])
+        Swag.assert(dup != src)
+        Swag.assert(dup[] == src[])
     }
 
     let slot1 = copy[1]!
     slot1[] = 42
-    @assert(values[1]![] == 2)
-    @assert(copy[1]![] == 42)
+    Swag.assert(values[1]![] == 2)
+    Swag.assert(copy[1]![] == 42)
 }
 
 #test
@@ -52,14 +52,14 @@ func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
 
     var copy = values
 
-    @assert(copy.count == 3)
-    @assert(copy[1] == null)
-    @assert(copy[0] != null)
-    @assert(copy[2] != null)
-    @assert(copy[0] != values[0])
-    @assert(copy[2] != values[2])
-    @assert(copy[0]![] == 7)
-    @assert(copy[2]![] == 9)
+    Swag.assert(copy.count == 3)
+    Swag.assert(copy[1] == null)
+    Swag.assert(copy[0] != null)
+    Swag.assert(copy[2] != null)
+    Swag.assert(copy[0] != values[0])
+    Swag.assert(copy[2] != values[2])
+    Swag.assert(copy[0]![] == 7)
+    Swag.assert(copy[2]![] == 9)
 }
 
 var g_ApDropCount: s32
@@ -90,43 +90,43 @@ impl ApTracked
         p.id = cast(s32) i
     }
 
-    @assert(arr.count == 5)
-    @assert(arr.first()!.id == 0)
-    @assert(arr.last()!.id == 4)
+    Swag.assert(arr.count == 5)
+    Swag.assert(arr.first()!.id == 0)
+    Swag.assert(arr.last()!.id == 4)
 
     let third = arr[2]
-    @assert(arr.indexOf(third) == 2)
-    @assert(arr.contains(third))
-    @assert(arr.indexOf(cast(#null *ApTracked) null) == Swag.U64.Max)
-    @assert(!arr.contains(cast(#null *ApTracked) null))
+    Swag.assert(arr.indexOf(third) == 2)
+    Swag.assert(arr.contains(third))
+    Swag.assert(arr.indexOf(cast(#null *ApTracked) null) == Swag.U64.Max)
+    Swag.assert(!arr.contains(cast(#null *ApTracked) null))
 
     // deleteAt keeps order and drops the object: [0,1,2,3,4] -> remove id 1 -> [0,2,3,4].
     arr.deleteAt(1)
-    @assert(arr.count == 4 and g_ApDropCount == 1)
+    Swag.assert(arr.count == 4 and g_ApDropCount == 1)
     let a0 = arr[0]!
     let a1 = arr[1]!
     let a2 = arr[2]!
     let a3 = arr[3]!
-    @assert(a0.id == 0 and a1.id == 2 and a2.id == 3 and a3.id == 4)
+    Swag.assert(a0.id == 0 and a1.id == 2 and a2.id == 3 and a3.id == 4)
 
     // deleteBack drops the last: -> [0,2,3].
     arr.deleteBack()
-    @assert(arr.count == 3 and g_ApDropCount == 2)
-    @assert(arr.last()!.id == 3)
+    Swag.assert(arr.count == 3 and g_ApDropCount == 2)
+    Swag.assert(arr.last()!.id == 3)
 
     // deleteAtUnordered swaps the last into the hole: remove index 0 (id 0) -> [3,2].
     arr.deleteAtUnordered(0)
-    @assert(arr.count == 2 and g_ApDropCount == 3)
+    Swag.assert(arr.count == 2 and g_ApDropCount == 3)
     let b0 = arr[0]!
     let b1 = arr[1]!
-    @assert(b0.id == 3 and b1.id == 2)
+    Swag.assert(b0.id == 3 and b1.id == 2)
 
     // insertNewPtr allocates and inserts at the index.
     let ins = arr.insertNew(1)
     ins.id = 99
-    @assert(arr.count == 3)
+    Swag.assert(arr.count == 3)
     let c1 = arr[1]!
-    @assert(c1.id == 99)
+    Swag.assert(c1.id == 99)
 
 // The 3 remaining elements are deallocated when 'arr' drops at scope end.
 }
@@ -163,30 +163,30 @@ impl ApFlagged
         i += 1
     }
 
-    @assert(shown == 1)
+    Swag.assert(shown == 1)
 }
 
 func apCountByValue(values: Array'rune)->u64
 {
     var total = 0'u64
-    for i in @countof(values) do
+    for i in values.count do
         total += cast(u64) values[i]
     return total
 }
 
-// '@countof' on a by-value Array parameter goes through the receiver-only spec-op
+// '.count' on a by-value Array parameter goes through the receiver-only spec-op
 // fallback: the pointer-world receiver must pass the operand's ADDRESS, not load its
 // first field bytes as the receiver pointer.
 #test
 {
     var runes: Array'rune
     runes.add('X')
-    @assert(apCountByValue(runes) == cast(u64) 'X')
+    Swag.assert(apCountByValue(runes) == cast(u64) 'X')
 
     var holder: ArrayPtr'ApFlagged
     discard holder.addNew()
     let first = holder[0]!
     first.tag = 2
     g_ApTotal = apCountByValue(runes) + first.tag
-    @assert(g_ApTotal == cast(u64) 'X' + 2)
+    Swag.assert(g_ApTotal == cast(u64) 'X' + 2)
 }

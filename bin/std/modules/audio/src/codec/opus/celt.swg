@@ -1749,7 +1749,7 @@ internal impl CeltDecoder
         let N      = M * CeltShortSize
         let C      = .streamChannels
         let CC     = .channels
-        let len    = cast(s32) @countof(data)
+        let len    = cast(s32) data.count
         let effEnd = Math.min(.endBand, CeltBandCount)
 
         if C == 1

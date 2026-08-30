@@ -34,7 +34,7 @@ private impl PalettePicker
 
         var x = rect.x
         var y = rect.y
-        for i in @countof(.colors)
+        for i in (.colors).count
         {
             .itemRects[i] = {x, y, cast(f32) .itemSize, cast(f32) .itemSize}
             x             += .itemSize + .spacing
@@ -85,7 +85,7 @@ impl IWnd for PalettePicker
         evt.accepted = false
 
         var newHotIndex = Swag.S32.Max
-        for i in @countof(.itemRects)
+        for i in (.itemRects).count
         {
             if .itemRects[i].contains(pos)
             {
@@ -186,7 +186,7 @@ impl PalettePicker
         if .selectedIndex == Swag.S32.Max do
             return
         .selectedIndex = Swag.S32.Max
-        @init(&.selectedColor, 1)
+        Swag.init(&.selectedColor, 1)
         .invalidate()
         if notify do
             .sigSelectionChanged.call(me)
@@ -199,7 +199,7 @@ impl PalettePicker
         .itemRects.clear()
         .hotIndex      = Swag.S32.Max
         .selectedIndex = Swag.S32.Max
-        @init(&.selectedColor, 1)
+        Swag.init(&.selectedColor, 1)
         .invalidate()
     }
 

@@ -54,10 +54,10 @@ impl InlineBug11List
 
     var list = InlineBug11List{&nodes[0]}
     var popped: *InlineBug11Node = undefined
-    @assert(list.pop(&popped))
-    @assert(popped == &nodes[0])
-    @assert(list.head == &nodes[1])
-    @assert(nodes[0].next == null)
-    @assert(nodes[0].prev == null)
-    @assert(nodes[1].prev == null)
+    Swag.assert(list.pop(&popped))
+    Swag.assert(popped == &nodes[0])
+    Swag.assert(list.head == &nodes[1])
+    Swag.assert(nodes[0].next == null)
+    Swag.assert(nodes[0].prev == null)
+    Swag.assert(nodes[1].prev == null)
 }

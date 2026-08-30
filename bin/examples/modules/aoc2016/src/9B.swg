@@ -30,14 +30,14 @@ func day9B()
 
     var r            = expect Parser.RegExp.create(#raw "\((\d+)x(\d+)\)")
     var start, total = 0'u64
-    while start != @countof(line)
+    while start != line.count
     {
         let res = r.partialMatch(line[start to])
         if res
         {
             let n = expect StrConv.toU64(r[1])
             let x = expect StrConv.toU64(r[2])
-            start += @countof(res)
+            start += res.count
             for i in n do
                 sum[start + i] *= x
         }
@@ -48,5 +48,5 @@ func day9B()
         }
     }
 
-    @assert(total == 11658395076)
+    Swag.assert(total == 11658395076)
 }

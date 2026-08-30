@@ -108,5 +108,5 @@ func day4A()
     total *= numbers[bestScore]
 
     // Console.print("total: ", total)
-    @assert(total == 41503)
+    Swag.assert(total == 41503)
 }

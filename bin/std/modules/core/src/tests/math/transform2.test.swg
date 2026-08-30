@@ -5,36 +5,36 @@ using Swag
 
 func expectVec2(actual, expected: Math.Vector2)
 {
-    @assert(actual.isEqualEpsilon(expected, 0.001))
+    Swag.assert(actual.isEqualEpsilon(expected, 0.001))
 }
 
 func expectTransform(actual, expected: Math.Transform2)
 {
-    @assert(Math.isEqualEpsilon(actual.m11, expected.m11, 0.001))
-    @assert(Math.isEqualEpsilon(actual.m12, expected.m12, 0.001))
-    @assert(Math.isEqualEpsilon(actual.m21, expected.m21, 0.001))
-    @assert(Math.isEqualEpsilon(actual.m22, expected.m22, 0.001))
-    @assert(Math.isEqualEpsilon(actual.tx, expected.tx, 0.001))
-    @assert(Math.isEqualEpsilon(actual.ty, expected.ty, 0.001))
+    Swag.assert(Math.isEqualEpsilon(actual.m11, expected.m11, 0.001))
+    Swag.assert(Math.isEqualEpsilon(actual.m12, expected.m12, 0.001))
+    Swag.assert(Math.isEqualEpsilon(actual.m21, expected.m21, 0.001))
+    Swag.assert(Math.isEqualEpsilon(actual.m22, expected.m22, 0.001))
+    Swag.assert(Math.isEqualEpsilon(actual.tx, expected.tx, 0.001))
+    Swag.assert(Math.isEqualEpsilon(actual.ty, expected.ty, 0.001))
 }
 
 #test
 {
     let identity = Math.Transform2.Identity
-    @assert(identity.isIdentity())
+    Swag.assert(identity.isIdentity())
     expectTransform(identity, Math.Transform2{1, 0, 0, 1, 0, 0})
     expectVec2(identity.transformPoint(Math.Vector2{3, -4}), Math.Vector2{3, -4})
     expectVec2(identity.translation(), Math.Vector2.Zero)
 
-    @assert(identity.m[0, 0] == identity.m11)
-    @assert(identity.m[0, 1] == identity.m12)
-    @assert(identity.m[1, 0] == identity.m21)
-    @assert(identity.m[1, 1] == identity.m22)
+    Swag.assert(identity.m[0, 0] == identity.m11)
+    Swag.assert(identity.m[0, 1] == identity.m12)
+    Swag.assert(identity.m[1, 0] == identity.m21)
+    Swag.assert(identity.m[1, 1] == identity.m22)
 
     var transform = Math.Transform2{2, 3, 4, 5, 6, 7}
-    @assert(!transform.isIdentity())
+    Swag.assert(!transform.isIdentity())
     transform.setIdentity()
-    @assert(transform.isIdentity())
+    Swag.assert(transform.isIdentity())
     expectTransform(transform, Math.Transform2.Identity)
 }
 
@@ -48,8 +48,8 @@ func expectTransform(actual, expected: Math.Transform2)
     transform.setTranslation(Math.Vector2{-5, 6})
     expectVec2(transform.translation(), Math.Vector2{-5, 6})
     expectVec2(transform.transformPoint(Math.Vector2{1, 2}), Math.Vector2{-4, 8})
-    @assert(transform.m31 == transform.tx)
-    @assert(transform.m32 == transform.ty)
+    Swag.assert(transform.m31 == transform.tx)
+    Swag.assert(transform.m32 == transform.ty)
 }
 
 #test

@@ -49,12 +49,12 @@ private var nestedReturnFactory = NestedReturnFactory{1}
         nested: nestedReturnFactory.make()
         }
 
-    @assert(result.defaulted.a == 10)
-    @assert(result.defaulted.b == 20)
-    @assert(result.defaulted.c == 30)
-    @assert(result.defaulted.d == 40)
-    @assert(result.nested.a == 1)
-    @assert(result.nested.b == 2)
-    @assert(result.nested.c == 3)
-    @assert(result.nested.d == 4)
+    Swag.assert(result.defaulted.a == 10)
+    Swag.assert(result.defaulted.b == 20)
+    Swag.assert(result.defaulted.c == 30)
+    Swag.assert(result.defaulted.d == 40)
+    Swag.assert(result.nested.a == 1)
+    Swag.assert(result.nested.b == 2)
+    Swag.assert(result.nested.c == 3)
+    Swag.assert(result.nested.d == 4)
 }

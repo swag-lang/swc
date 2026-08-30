@@ -21,7 +21,7 @@ impl Matrix3x3
     // Replaces every element with the identity matrix.
     mtd setIdentity()
     {
-        @init(me, 1)
+        Swag.init(me, 1)
         .m[0, 0] = 1
         .m[1, 1] = 1
         .m[2, 2] = 1

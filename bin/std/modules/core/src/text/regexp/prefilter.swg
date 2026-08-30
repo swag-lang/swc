@@ -380,7 +380,7 @@ impl Prefilter
     func fromLiteral(bytes: const [..] u8)->Prefilter
     {
         var result: retval
-        if @countof(bytes) == 0 do
+        if bytes.count == 0 do
             return result
 
         result.kind = .Literal
@@ -464,7 +464,7 @@ impl Prefilter
     // subject when there is none left.
     mtd const find(hay: const [..] u8, at: u64)->u64
     {
-        let count = @countof(hay)
+        let count = hay.count
 
         switch .kind
         {
@@ -507,8 +507,8 @@ impl Prefilter
     // by offset. Because the shape is the whole pattern, a check that passes is a match.
     mtd const findSequence(hay: const [..] u8, at: u64)->u64
     {
-        let count  = @countof(hay)
-        let data   = @dataof(hay)
+        let count  = hay.count
+        let data   = hay.buffer
         let length = .sequence.count
         if length == 0 or count < length do
             return count
@@ -571,8 +571,8 @@ impl Prefilter
     // nearly as fast as looking for one byte while stopping a hundred times less often.
     mtd const findTwoOffsets(hay: const [..] u8, at: u64)->u64
     {
-        let count = @countof(hay)
-        let data  = @dataof(hay)
+        let count = hay.count
+        let data  = hay.buffer
         let first = .scanAt
         let last  = .scanAt2
         let far   = first > last ? first : last
@@ -631,8 +631,8 @@ impl Prefilter
     // every low nibble, the other turns every high nibble into the bit that would name it.
     mtd const findSet(hay: const [..] u8, at: u64, which: u64)->u64
     {
-        let count = @countof(hay)
-        let data  = @dataof(hay)
+        let count = hay.count
+        let data  = hay.buffer
         var pos   = at
 
         let wanted    = .kind == PrefilterKind.Sequence ? &.sequence[which] : &.sets[which]
@@ -663,8 +663,8 @@ impl Prefilter
     // of them: a pattern whose first byte is common is usually rare a few bytes further in.
     mtd const findPair(hay: const [..] u8, at: u64)->u64
     {
-        let count = @countof(hay)
-        let data  = @dataof(hay)
+        let count = hay.count
+        let data  = hay.buffer
         let first = .offsets[0]
         let last  = .offsets[1]
 
@@ -701,13 +701,13 @@ impl Prefilter
     // byte in two hundred.
     mtd const findLiteral(hay: const [..] u8, at: u64)->u64
     {
-        let count  = @countof(hay)
-        let data   = @dataof(hay)
+        let count  = hay.count
+        let data   = hay.buffer
         let wanted = .literal.count
         if wanted == 0 or count < wanted do
             return count
 
-        let needle = cast(const [*] u8) @dataof(.literal)!
+        let needle = cast(const [*] u8) (.literal).buffer!
 
         // One byte is looked for by the plain byte scan; there is no second byte to pair it
         // with, and comparing the same byte twice would only halve the throughput.
@@ -813,8 +813,8 @@ func combinedMask(m0, m1, m2, m3: Simd.U8x16)->u64
 // Returns the first offset at or after 'at' holding that byte, or the length of the subject.
 func findByte(hay: const [..] u8, at: u64, value: u8)->u64
 {
-    let count = @countof(hay)
-    let data  = @dataof(hay)
+    let count = hay.count
+    let data  = hay.buffer
     var pos   = at
 
     let wanted = Simd.splat(value)
@@ -850,8 +850,8 @@ func findByte(hay: const [..] u8, at: u64, value: u8)->u64
 // The same, for either of two bytes.
 func findByte2(hay: const [..] u8, at: u64, first, second: u8)->u64
 {
-    let count = @countof(hay)
-    let data  = @dataof(hay)
+    let count = hay.count
+    let data  = hay.buffer
     var pos   = at
 
     let wanted1 = Simd.splat(first)
@@ -879,8 +879,8 @@ func findByte2(hay: const [..] u8, at: u64, first, second: u8)->u64
 // The same, for any of three bytes.
 func findByte3(hay: const [..] u8, at: u64, first, second, third: u8)->u64
 {
-    let count = @countof(hay)
-    let data  = @dataof(hay)
+    let count = hay.count
+    let data  = hay.buffer
     var pos   = at
 
     let wanted1 = Simd.splat(first)

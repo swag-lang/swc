@@ -84,5 +84,5 @@ func day7B()
     }
 
     discard sum(&set, &result, set.find("eugwuhl").value)
-    @assert(result == 420)
+    Swag.assert(result == 420)
 }

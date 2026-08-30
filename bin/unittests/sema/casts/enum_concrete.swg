@@ -39,20 +39,20 @@ const FLAGS_ALL = Flags16.Read | Flags16.Write | Flags16.Exec
 func semaTest001()
 {
     let value = SignedCode.Neg
-    @assert(cast(s32) value == -5)
-    @assert(cast(f64) value == -5)
+    Swag.assert(cast(s32) value == -5)
+    Swag.assert(cast(f64) value == -5)
 }
 
 func semaTest002()
 {
     let value = UnsignedCode.B
-    @assert(cast(u16) value == 255)
-    @assert(cast(f32) value == 255)
+    Swag.assert(cast(u16) value == 255)
+    Swag.assert(cast(f32) value == 255)
 }
 
 func semaTest003()
 {
     let v = Flags16.Read | Flags16.Write
-    @assert(cast(u16) v == 3)
-    @assert(cast(bool) v)
+    Swag.assert(cast(u16) v == 3)
+    Swag.assert(cast(bool) v)
 }

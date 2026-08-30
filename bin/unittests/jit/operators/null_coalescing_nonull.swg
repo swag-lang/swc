@@ -43,9 +43,9 @@ func jitOrelseNonNullBranches()->bool
 
     #assert(#typeof(selectedSliceFallback) == [..] u32)
     #assert(#typeof(selectedSlicePrimary) == [..] u32)
-    if @countof(selectedSliceFallback) != 2 or selectedSliceFallback[0] != 41 or selectedSliceFallback[1] != 42 do
+    if selectedSliceFallback.count != 2 or selectedSliceFallback[0] != 41 or selectedSliceFallback[1] != 42 do
         return false
-    if @countof(selectedSlicePrimary) != 2 or selectedSlicePrimary[0] != 31 or selectedSlicePrimary[1] != 32 do
+    if selectedSlicePrimary.count != 2 or selectedSlicePrimary[0] != 31 or selectedSlicePrimary[1] != 32 do
         return false
 
     var nullAny:     #null any = null
@@ -72,5 +72,5 @@ func jitOrelseNonNullBranches()->bool
 
 #test
 {
-    @assert(jitOrelseNonNullBranches())
+    Swag.assert(jitOrelseNonNullBranches())
 }

@@ -43,11 +43,11 @@ struct Evt
 #test
 {
     var wheel = Evt{kind: .Wheel, surfacePos: {320, 210}, delta: {0, 120}, modifiers: .Control}
-    @assert(wheel.kind == .Wheel)
-    @assert(wheel.surfacePos.x == 320 and wheel.surfacePos.y == 210)
-    @assert(wheel.delta.x == 0 and wheel.delta.y == 120)
-    @assert(wheel.modifiers == .Control)
-    @assert(wheel.type == null and wheel.target == null and !wheel.accepted)
+    Swag.assert(wheel.kind == .Wheel)
+    Swag.assert(wheel.surfacePos.x == 320 and wheel.surfacePos.y == 210)
+    Swag.assert(wheel.delta.x == 0 and wheel.delta.y == 120)
+    Swag.assert(wheel.modifiers == .Control)
+    Swag.assert(wheel.type == null and wheel.target == null and !wheel.accepted)
 }
 
 // The same conversion holds for a nested tuple element and for an array of float pairs built
@@ -55,9 +55,9 @@ struct Evt
 #test
 {
     var pairs: [2] Point = [{1, 2}, {3, 4}]
-    @assert(pairs[0].x == 1 and pairs[0].y == 2)
-    @assert(pairs[1].x == 3 and pairs[1].y == 4)
+    Swag.assert(pairs[0].x == 1 and pairs[0].y == 2)
+    Swag.assert(pairs[1].x == 3 and pairs[1].y == 4)
 
     var mixed = Evt{kind: .Wheel, surfacePos: {x: 5, y: 6.5}}
-    @assert(mixed.surfacePos.x == 5 and mixed.surfacePos.y == 6.5)
+    Swag.assert(mixed.surfacePos.x == 5 and mixed.surfacePos.y == 6.5)
 }

@@ -202,7 +202,7 @@ impl Dfa
         let stateId = cast(u32) .stateOffset.count
         .stateOffset.add(.stateData.count)
         .stateFlags.add(flags)
-        .stateData.add(cast(u32) @countof(pcs))
+        .stateData.add(cast(u32) pcs.count)
         .stateData.add(pcs)
 
         let base = .trans.count
@@ -230,10 +230,10 @@ impl Dfa
             return false
 
         let offset = .stateOffset[stateId]
-        if .stateData[offset] != cast(u32) @countof(pcs) do
+        if .stateData[offset] != cast(u32) pcs.count do
             return false
 
-        for var i = 0'u64; i < @countof(pcs); i += 1
+        for var i = 0'u64; i < pcs.count; i += 1
         {
             if .stateData[offset + 1 + i] != pcs[i] do
                 return false
@@ -254,7 +254,7 @@ impl Dfa
         {
             let offset = .stateOffset[stateId]
             let count  = .stateData[offset]
-            let pcs    = @mkslice(cast(const [*] u32) &.stateData[offset + 1], cast(u64) count)
+            let pcs    = Swag.makeSlice(cast(const [*] u32) &.stateData[offset + 1], cast(u64) count)
 
             var slot = hashState(.stateFlags[stateId], pcs) & .hashMask
             while .hashSlots[slot] != 0 do
@@ -449,7 +449,7 @@ impl Dfa
     mtd startStateReverse(program: const *Program, hay: const [..] u8, at: u64)->u32
     {
         var flags = FlagIsStart
-        if at == @countof(hay) do
+        if at == hay.count do
             flags |= FlagFromStart
         else
         {
@@ -517,7 +517,7 @@ impl Dfa
         // that happens rarely is a call, to keep this function — and its stack frame — small.
         let usePrefilter = !anchored and prefilter.isEnabled()
         let classes      = cast(const [*] u8) &program.byteClass[0]
-        let data         = @dataof(hay)
+        let data         = hay.buffer
         let quitHigh     = .quitHigh
         var transitions  = .trans.buffer!
         var lastMatch    = NoOffset
@@ -631,7 +631,7 @@ impl Dfa
             return QuitOffset
 
         let classes     = cast(const [*] u8) &program.byteClass[0]
-        let data        = @dataof(hay)
+        let data        = hay.buffer
         let quitHigh    = .quitHigh
         var transitions = .trans.buffer!
         var lastMatch   = NoOffset
@@ -698,7 +698,7 @@ impl Dfa
         }
 
         let classes     = cast(const [*] u8) &program.byteClass[0]
-        let data        = @dataof(hay)
+        let data        = hay.buffer
         let quitHigh    = .quitHigh
         var transitions = .trans.buffer!
         var lastMatch   = NoOffset

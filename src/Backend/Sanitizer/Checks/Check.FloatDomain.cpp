@@ -52,8 +52,8 @@ namespace
             return;
 
         const std::string_view name  = target->name(sanitizer.ctx());
-        const bool             isLog = name == "@log" || name == "@log2" || name == "@log10";
-        const bool             isArc = name == "@asin" || name == "@acos";
+        const bool             isLog = name == "Swag.log" || name == "Swag.log2" || name == "Swag.log10";
+        const bool             isArc = name == "Swag.asin" || name == "Swag.acos";
         if (!isLog && !isArc)
             return;
 
@@ -101,7 +101,7 @@ void FloatDomainCheck::run(Sanitizer& sanitizer, const SanitizerState& state, co
         if (operand.kind == SanitizerValueKind::Constant &&
             constantAsDouble(value, operand.constant, static_cast<uint32_t>(ops[2].opBits)) &&
             value < 0.0)
-            sanitizer.report(inst, DiagnosticId::sanity_err_invalid_argument, "@sqrt", "a nonnegative argument");
+            sanitizer.report(inst, DiagnosticId::sanity_err_invalid_argument, "Swag.sqrt", "a nonnegative argument");
         return;
     }
 

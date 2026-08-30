@@ -86,7 +86,7 @@ impl XAudio2DriverNative
         X3DAudioInitialize(.speakerMask, X3DAUDIO_SPEED_OF_SOUND, .x3DInstance)
 
         // Context for xaudio2 threads
-        let cxt = @getcontext()
+        let cxt = Swag.getContext()
         g_ThreadCxt = cxt[]
     }
 
@@ -168,9 +168,9 @@ internal
     {
         // XAudio2 invokes these functions on native worker threads. Install the
         // application context before touching any Swag service.
-        let cxt = @getcontext()
-        if cxt == null or @dataof(cxt.allocator) == null do
-            @setcontext(&g_ThreadCxt)
+        let cxt = Swag.getContext()
+        if cxt == null or cxt.allocator.buffer == null do
+            Swag.setContext(&g_ThreadCxt)
     }
 
     func onVoiceProcessingPassStart(_me: *IXAudio2VoiceCallback, _bytesRequired: UINT32) {}
@@ -411,7 +411,7 @@ internal impl Voice
         var sfxSendList:  XAUDIO2_VOICE_SENDS              = undefined
         var pSFXSEndList: #null *XAUDIO2_VOICE_SENDS
 
-        let count = @countof(buses)
+        let count = buses.count
         if count > MaxBus do
             fail SystemError{"too many buses", errorID: count}
 

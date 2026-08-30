@@ -115,18 +115,18 @@ impl Voice
         let desc = findCodec(.requestedEncoding, file.encoding)
         if !desc do
             fail UnsupportedFormatError{"unsupported encoding"}
-        let allocator   = .handle ? .allocationAllocator : @getcontext().allocator!
+        let allocator   = .handle ? .allocationAllocator : Swag.getContext().allocator!
         let decoderData = Memory.new(desc.type, allocator)!
         let decoder     = cast(*Codec) decoderData
         decoder.configure(file.encoding, .requestedEncoding, desc.type, allocator)
-        .codec = @mkinterface(decoder, desc.type, ICodec)
+        .codec = Swag.makeInterface(decoder, desc.type, ICodec)
     }
 
     mtd destroyCodec()
     {
         if !.codec do
             return
-        let decoder   = cast(*Codec) @dataof(.codec)!
+        let decoder   = cast(*Codec) (.codec).buffer!
         let allocator = decoder.allocationAllocator
         if decoder.type.opDrop do
             decoder.type.opDrop(decoder)
@@ -140,11 +140,11 @@ impl Voice
         let desc = findPacketCodec(file.encoding)
         if !desc do
             fail UnsupportedFormatError{"unsupported packetized encoding"}
-        let allocator   = .handle ? .allocationAllocator : @getcontext().allocator!
+        let allocator   = .handle ? .allocationAllocator : Swag.getContext().allocator!
         let decoderData = Memory.new(desc.type, allocator)!
         let decoder     = cast(*Codec) decoderData
         decoder.configure(file.encoding, .Pcm16, desc.type, allocator)
-        .packetCodec = @mkinterface(decoder, desc.type, IPacketCodec)
+        .packetCodec = Swag.makeInterface(decoder, desc.type, IPacketCodec)
         defer #fail .destroyPacketCodec()
         .packetCodec!.initialize(file.decoderConfig.toSlice(), file.sampleRate, file.channelCount)
     }
@@ -153,7 +153,7 @@ impl Voice
     {
         if !.packetCodec do
             return
-        let decoder   = cast(*Codec) @dataof(.packetCodec)!
+        let decoder   = cast(*Codec) (.packetCodec).buffer!
         let allocator = decoder.allocationAllocator
         if decoder.type.opDrop do
             decoder.type.opDrop(decoder)

@@ -40,7 +40,7 @@ impl ConformanceRun
         // Annex B frames every unit with a three or four byte start code.
         var starts: Array'u64
         var index = 0'u64
-        while index + 3 <= @countof(data)
+        while index + 3 <= data.count
         {
             if data[index] == 0 and data[index + 1] == 0 and data[index + 2] == 1
             {
@@ -55,7 +55,7 @@ impl ConformanceRun
         for entry in starts.count
         {
             let first = starts[entry]
-            var last  = entry + 1 < starts.count ? starts[entry + 1] - 3 : @countof(data)
+            var last  = entry + 1 < starts.count ? starts[entry + 1] - 3 : data.count
 
             // A start code may carry a leading zero byte that belongs to neither unit.
             while last > first and data[last - 1] == 0 do
@@ -88,37 +88,37 @@ impl ConformanceRun
     private mtd readHashMessages(unit: const [..] u8)
     {
         var payload: Array'u8
-        unescapeRbsp(&payload, unit[2 until @countof(unit)])
+        unescapeRbsp(&payload, unit[2 until unit.count])
         let bytes = payload.toSlice()
 
         var offset = 0'u64
-        while offset + 2 < @countof(bytes)
+        while offset + 2 < bytes.count
         {
             var payloadType = 0'u32
-            while offset < @countof(bytes) and bytes[offset] == 0xFF
+            while offset < bytes.count and bytes[offset] == 0xFF
             {
                 payloadType += 255
                 offset      += 1
             }
 
-            if offset >= @countof(bytes) do
+            if offset >= bytes.count do
                 return
             payloadType += cast(u32) bytes[offset]
             offset      += 1
 
             var payloadSize = 0'u64
-            while offset < @countof(bytes) and bytes[offset] == 0xFF
+            while offset < bytes.count and bytes[offset] == 0xFF
             {
                 payloadSize += 255
                 offset      += 1
             }
 
-            if offset >= @countof(bytes) do
+            if offset >= bytes.count do
                 return
             payloadSize += cast(u64) bytes[offset]
             offset      += 1
 
-            if offset + payloadSize > @countof(bytes) do
+            if offset + payloadSize > bytes.count do
                 return
             if payloadType == DecodedPictureHashPayload and payloadSize > 0 do
                 .readPictureHash(bytes[offset until offset + payloadSize])
@@ -135,7 +135,7 @@ impl ConformanceRun
             return
 
         var text: String
-        for index in 1 until @countof(payload) do
+        for index in 1 until payload.count do
             appendHexByte(&text, payload[index])
         .expected.add(#move text)
         .hashCount += 1
@@ -225,9 +225,9 @@ func checkConformance(name: string, pictures: u32)
     var run: ConformanceRun
     expect run.run(videoFixturePath(name).toString())
 
-    @assert(run.pictureCount == pictures)
-    @assert(run.hashCount == pictures)
-    @assert(run.firstMismatch() < 0)
+    Swag.assert(run.pictureCount == pictures)
+    Swag.assert(run.hashCount == pictures)
+    Swag.assert(run.firstMismatch() < 0)
 }
 
 // Every intra prediction mode, at every transform size, in an intra-only stream.

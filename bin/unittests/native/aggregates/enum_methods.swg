@@ -41,35 +41,35 @@ impl Direction
 #test
 {
     let d = Direction.North
-    @assert(Direction.opposite(d) == Direction.South)
-    @assert(Direction.isVertical(d))
-    @assert(!Direction.isHorizontal(d))
+    Swag.assert(Direction.opposite(d) == Direction.South)
+    Swag.assert(Direction.isVertical(d))
+    Swag.assert(!Direction.isHorizontal(d))
 }
 
 #test
 {
     let d = Direction.East
-    @assert(Direction.opposite(d) == Direction.West)
-    @assert(!Direction.isVertical(d))
-    @assert(Direction.isHorizontal(d))
+    Swag.assert(Direction.opposite(d) == Direction.West)
+    Swag.assert(!Direction.isVertical(d))
+    Swag.assert(Direction.isHorizontal(d))
 }
 
 // Using directive.
 #test
 {
     using Direction
-    @assert(opposite(South) == North)
-    @assert(opposite(West) == East)
-    @assert(isVertical(North))
-    @assert(!isVertical(East))
+    Swag.assert(opposite(South) == North)
+    Swag.assert(opposite(West) == East)
+    Swag.assert(isVertical(North))
+    Swag.assert(!isVertical(East))
 }
 
 // Round-trip.
 #test
 {
     using Direction
-    @assert(opposite(opposite(North)) == North)
-    @assert(opposite(opposite(East)) == East)
+    Swag.assert(opposite(opposite(North)) == North)
+    Swag.assert(opposite(opposite(East)) == East)
 }
 
 // Enum with explicit values.
@@ -88,12 +88,12 @@ impl Priority
 
 #test
 {
-    @assert(!Priority.isUrgent(Priority.Medium))
-    @assert(Priority.isUrgent(Priority.High))
-    @assert(Priority.isLow(Priority.Low))
-    @assert(!Priority.isLow(Priority.High))
+    Swag.assert(!Priority.isUrgent(Priority.Medium))
+    Swag.assert(Priority.isUrgent(Priority.High))
+    Swag.assert(Priority.isLow(Priority.Low))
+    Swag.assert(!Priority.isLow(Priority.High))
     let p = Priority.Low
-    @assert(p.isLow() == true)
+    Swag.assert(p.isLow() == true)
 }
 
 // Enum flags with bitwise operations.
@@ -108,19 +108,19 @@ enum Permissions: u32
 #test
 {
     let rw = Permissions.Read | Permissions.Write
-    @assert((cast(u32) rw & cast(u32) Permissions.Read) != 0)
-    @assert((cast(u32) rw & cast(u32) Permissions.Write) != 0)
-    @assert((cast(u32) rw & cast(u32) Permissions.Execute) == 0)
+    Swag.assert((cast(u32) rw & cast(u32) Permissions.Read) != 0)
+    Swag.assert((cast(u32) rw & cast(u32) Permissions.Write) != 0)
+    Swag.assert((cast(u32) rw & cast(u32) Permissions.Execute) == 0)
 }
 
 #test
 {
     let all = Permissions.Read | Permissions.Write | Permissions.Execute
-    @assert(cast(u32) all == 7)
+    Swag.assert(cast(u32) all == 7)
     let toggled = all ^ Permissions.Write
-    @assert((cast(u32) toggled & cast(u32) Permissions.Read) != 0)
-    @assert((cast(u32) toggled & cast(u32) Permissions.Write) == 0)
-    @assert((cast(u32) toggled & cast(u32) Permissions.Execute) != 0)
+    Swag.assert((cast(u32) toggled & cast(u32) Permissions.Read) != 0)
+    Swag.assert((cast(u32) toggled & cast(u32) Permissions.Write) == 0)
+    Swag.assert((cast(u32) toggled & cast(u32) Permissions.Execute) != 0)
 }
 
 // Enum used as array index.
@@ -129,9 +129,9 @@ enum Slot: u8 { A, B, C }
 #test
 {
     var values: [3] s32 = [10, 20, 30]
-    @assert(values[cast(u8) Slot.A] == 10)
-    @assert(values[cast(u8) Slot.B] == 20)
-    @assert(values[cast(u8) Slot.C] == 30)
+    Swag.assert(values[cast(u8) Slot.A] == 10)
+    Swag.assert(values[cast(u8) Slot.B] == 20)
+    Swag.assert(values[cast(u8) Slot.C] == 30)
 }
 
 enum ImportedAliasErrors { FailedToLoad, FailedToSave }
@@ -147,6 +147,6 @@ alias StrictImportedAliasErrorsAlias = ImportedAliasErrors
     let saved  = StrictImportedAliasErrorsAlias.FailedToSave
     #assert(#typeof(loaded) == ImportedAliasErrors)
     #assert(#typeof(saved) == ImportedAliasErrors)
-    @assert(loaded == ImportedAliasErrors.FailedToLoad)
-    @assert(saved == ImportedAliasErrors.FailedToSave)
+    Swag.assert(loaded == ImportedAliasErrors.FailedToLoad)
+    Swag.assert(saved == ImportedAliasErrors.FailedToSave)
 }

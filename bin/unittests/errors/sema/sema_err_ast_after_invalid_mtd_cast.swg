@@ -18,7 +18,7 @@ impl AstAfterInvalidCastString
     #[Swag.Implicit, Swag.Inline]
     mtd const opCast()->string
     {
-        return @mkstring(.buffer, .length)
+        return Swag.makeString(.buffer, .length)
     }
 }
 
@@ -26,8 +26,8 @@ impl AstAfterInvalidCastStringBuilder
 {
     mtd append(val: string)
     {
-        @memcpy(&.buf[.len], @dataof(val), cast(u64) @countof(val))
-        .len += cast(s32) @countof(val)
+        Swag.memcpy(&.buf[.len], val.buffer, cast(u64) val.count)
+        .len += cast(s32) val.count
     }
 
     mtd toString()->AstAfterInvalidCastString
@@ -56,13 +56,14 @@ impl AstAfterInvalidCastSignal
             {
                 var sb: AstAfterInvalidCastStringBuilder
                 let ts = #typeof(T)
+                let tsParameters = ts.parameters
                 sb.append("fn(")
-                for i in @countof(ts.parameters)
+                for i in tsParameters.count
                 {
                     if i do
                         sb.append(",")
                     sb.append("cast(")
-                    let paramType = ts.parameters[i].pointedType!
+                    let paramType = tsParameters[i].pointedType!
                     sb.append(paramType.fullname!)
                     sb.append(") params[")
                     sb.append("0")

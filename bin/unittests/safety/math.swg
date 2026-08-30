@@ -31,30 +31,30 @@ func opaqueF32(v: f32)->f32
 #[Swag.Safety(.Math, true)]
 func invalidConstantSqrt()->f64
 {
-    return @sqrt(-1.0'f64)     // swc-expected-error {{safety_err_invalid_argument}}
+    return Swag.sqrt(-1.0'f64)     // swc-expected-error {{safety_err_invalid_argument}}
 }
 
 #[Swag.Safety(.Math, true)]
 func invalidConstantAsin()->f64
 {
-    return @asin(1.5'f64)     // swc-expected-error {{safety_err_invalid_argument}}
+    return Swag.asin(1.5'f64)     // swc-expected-error {{safety_err_invalid_argument}}
 }
 
 #[Swag.Safety(.Math, true)]
 func invalidConstantLog()->f64
 {
-    return @log(0.0'f64)     // swc-expected-error {{safety_err_invalid_argument}}
+    return Swag.log(0.0'f64)     // swc-expected-error {{safety_err_invalid_argument}}
 }
 
 #[Swag.Safety(.Math, true)]
 func invalidConstantPow()->f64
 {
-    return @pow(-1.0'f64, 0.5'f64)     // swc-expected-error {{safety_err_invalid_argument}}
+    return Swag.pow(-1.0'f64, 0.5'f64)     // swc-expected-error {{safety_err_invalid_argument}}
 }
 
 #test
 {
-    const cfg      = #run @compiler.getBuildCfg()![]
+    const cfg      = #run Swag.compiler().getBuildCfg()![]
     const expected = cfg.safetyGuards & Swag.SafetyWhat.Math ? true : false
     #assert(#safety(Swag.SafetyWhat.Math) == expected)
 }
@@ -76,11 +76,11 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func invalidSqrt(v: f64)->f64
     {
-        return @sqrt(v)     // swc-expected-error {{safety_err_runtime}}
+        return Swag.sqrt(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run invalidSqrt(opaqueF64(-1.0))
-    @assert(value == 0.0)
+    Swag.assert(value == 0.0)
 }
 
 #test
@@ -88,11 +88,11 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func invalidAsin(v: f64)->f64
     {
-        return @asin(v)     // swc-expected-error {{safety_err_runtime}}
+        return Swag.asin(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run invalidAsin(opaqueF64(2.0))
-    @assert(value == 0.0)
+    Swag.assert(value == 0.0)
 }
 
 #test
@@ -100,11 +100,11 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func invalidAcos(v: f64)->f64
     {
-        return @acos(v)     // swc-expected-error {{safety_err_runtime}}
+        return Swag.acos(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run invalidAcos(opaqueF64(-2.0))
-    @assert(value == 0.0)
+    Swag.assert(value == 0.0)
 }
 
 #test
@@ -112,11 +112,11 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func invalidLog(v: f64)->f64
     {
-        return @log(v)     // swc-expected-error {{safety_err_runtime}}
+        return Swag.log(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run invalidLog(opaqueF64(-1.0))
-    @assert(value == 0.0)
+    Swag.assert(value == 0.0)
 }
 
 #test
@@ -124,11 +124,11 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func invalidLog2(v: f64)->f64
     {
-        return @log2(v)     // swc-expected-error {{safety_err_runtime}}
+        return Swag.log2(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run invalidLog2(opaqueF64(-1.0))
-    @assert(value == 0.0)
+    Swag.assert(value == 0.0)
 }
 
 #test
@@ -136,11 +136,11 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func invalidLog10(v: f64)->f64
     {
-        return @log10(v)     // swc-expected-error {{safety_err_runtime}}
+        return Swag.log10(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run invalidLog10(opaqueF64(-1.0))
-    @assert(value == 0.0)
+    Swag.assert(value == 0.0)
 }
 
 #test
@@ -148,11 +148,11 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func invalidPow(a, b: f64)->f64
     {
-        return @pow(a, b)     // swc-expected-error {{safety_err_runtime}}
+        return Swag.pow(a, b)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run invalidPow(opaqueF64(-1.0), opaqueF64(0.5))
-    @assert(value == 0.0)
+    Swag.assert(value == 0.0)
 }
 
 #test
@@ -160,11 +160,11 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func validMath(a, b: f64)->f64
     {
-        return @sqrt(a) + @log(b) + @asin(0.0'f64) + @acos(1.0'f64) + @pow(2.0'f64, 3.0'f64)
+        return Swag.sqrt(a) + Swag.log(b) + Swag.asin(0.0'f64) + Swag.acos(1.0'f64) + Swag.pow(2.0'f64, 3.0'f64)
     }
 
     const value = #run validMath(9.0, 1.0)
-    @assert(value == 11.0)
+    Swag.assert(value == 11.0)
 }
 
 #test
@@ -172,11 +172,11 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, false)]
     func invalidSqrtDisabled(v: f64)->f64
     {
-        return @sqrt(v)
+        return Swag.sqrt(v)
     }
 
     const value = #run invalidSqrtDisabled(opaqueF64(-1.0))
-    @assert(value != value)
+    Swag.assert(value != value)
 }
 
 #test
@@ -184,11 +184,11 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, false)]
     func invalidLogDisabled(v: f64)->f64
     {
-        return @log(v)
+        return Swag.log(v)
     }
 
     const value = #run invalidLogDisabled(opaqueF64(-1.0))
-    @assert(value != value)
+    Swag.assert(value != value)
 }
 
 #test
@@ -196,11 +196,11 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, false)]
     func invalidPowDisabled(a, b: f64)->f64
     {
-        return @pow(a, b)
+        return Swag.pow(a, b)
     }
 
     const value = #run invalidPowDisabled(opaqueF64(-1.0), opaqueF64(0.5))
-    @assert(value != value)
+    Swag.assert(value != value)
 }
 
 // =============================================
@@ -212,7 +212,7 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func invalidSqrtF32(v: f32)->f32
     {
-        return @sqrt(v)     // swc-expected-error {{safety_err_runtime}}
+        return Swag.sqrt(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run invalidSqrtF32(opaqueF32(-1.0'f32))
@@ -223,7 +223,7 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func invalidAsinF32(v: f32)->f32
     {
-        return @asin(v)     // swc-expected-error {{safety_err_runtime}}
+        return Swag.asin(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run invalidAsinF32(opaqueF32(2.0'f32))
@@ -234,7 +234,7 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func invalidAcosF32(v: f32)->f32
     {
-        return @acos(v)     // swc-expected-error {{safety_err_runtime}}
+        return Swag.acos(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run invalidAcosF32(opaqueF32(-2.0'f32))
@@ -245,7 +245,7 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func invalidLogF32(v: f32)->f32
     {
-        return @log(v)     // swc-expected-error {{safety_err_runtime}}
+        return Swag.log(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run invalidLogF32(opaqueF32(-1.0'f32))
@@ -256,7 +256,7 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func invalidLog2F32(v: f32)->f32
     {
-        return @log2(v)     // swc-expected-error {{safety_err_runtime}}
+        return Swag.log2(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run invalidLog2F32(opaqueF32(-1.0'f32))
@@ -267,7 +267,7 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func invalidLog10F32(v: f32)->f32
     {
-        return @log10(v)     // swc-expected-error {{safety_err_runtime}}
+        return Swag.log10(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run invalidLog10F32(opaqueF32(-1.0'f32))
@@ -278,7 +278,7 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func invalidPowF32(a, b: f32)->f32
     {
-        return @pow(a, b)     // swc-expected-error {{safety_err_runtime}}
+        return Swag.pow(a, b)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run invalidPowF32(opaqueF32(-1.0'f32), opaqueF32(0.5'f32))
@@ -288,37 +288,37 @@ func invalidConstantPow()->f64
 // Additional domain boundary cases
 // =============================================
 
-// @asin with value < -1
+// Swag.asin with value < -1
 #test
 {
     #[Swag.Safety(.Math, true)]
     func invalidAsinNeg(v: f64)->f64
     {
-        return @asin(v)     // swc-expected-error {{safety_err_runtime}}
+        return Swag.asin(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run invalidAsinNeg(opaqueF64(-2.0))
 }
 
-// @acos with value > 1
+// Swag.acos with value > 1
 #test
 {
     #[Swag.Safety(.Math, true)]
     func invalidAcosPos(v: f64)->f64
     {
-        return @acos(v)     // swc-expected-error {{safety_err_runtime}}
+        return Swag.acos(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run invalidAcosPos(opaqueF64(2.0))
 }
 
-// Valid boundary: @asin(-1.0) and @acos(1.0) must not panic
+// Valid boundary: Swag.asin(-1.0) and Swag.acos(1.0) must not panic
 #test
 {
     #[Swag.Safety(.Math, true)]
     func validAsinBoundary()->f64
     {
-        return @asin(-1.0'f64) + @asin(1.0'f64)
+        return Swag.asin(-1.0'f64) + Swag.asin(1.0'f64)
     }
 
     const value = #run validAsinBoundary()
@@ -329,34 +329,34 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func validAcosBoundary()->f64
     {
-        return @acos(-1.0'f64) + @acos(1.0'f64)
+        return Swag.acos(-1.0'f64) + Swag.acos(1.0'f64)
     }
 
     const value = #run validAcosBoundary()
 }
 
-// Valid: @sqrt(0.0) must not panic
+// Valid: Swag.sqrt(0.0) must not panic
 #test
 {
     #[Swag.Safety(.Math, true)]
     func validSqrtZero()->f64
     {
-        return @sqrt(0.0'f64)
+        return Swag.sqrt(0.0'f64)
     }
 
     const value = #run validSqrtZero()
-    @assert(value == 0.0)
+    Swag.assert(value == 0.0)
 }
 
-// Valid: @pow with integer exponent on negative base must not panic
+// Valid: Swag.pow with integer exponent on negative base must not panic
 #test
 {
     #[Swag.Safety(.Math, true)]
     func validPowIntExp(a, b: f64)->f64
     {
-        return @pow(a, b)
+        return Swag.pow(a, b)
     }
 
     const value = #run validPowIntExp(-2.0, 3.0)
-    @assert(value == -8.0)
+    Swag.assert(value == -8.0)
 }

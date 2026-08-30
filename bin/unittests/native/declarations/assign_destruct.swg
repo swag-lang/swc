@@ -27,8 +27,8 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
     var a: s32
     var b: bool
     {a, b} = s
-    @assert(a == 0)
-    @assert(!b)
+    Swag.assert(a == 0)
+    Swag.assert(!b)
 }
 
 #test
@@ -36,21 +36,21 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
     var s: Pair
     var a: s32
     {a, ?} = s
-    @assert(a == 0)
+    Swag.assert(a == 0)
 }
 
 #test
 {
     let pair = Pair{a: 81, b: true}
     let {b: second, a: first} = pair
-    @assert(first == 81)
-    @assert(second)
+    Swag.assert(first == 81)
+    Swag.assert(second)
 
     var outA: s32
     var outB: bool
     {b: outB, a: outA} = pair
-    @assert(outA == 81)
-    @assert(outB)
+    Swag.assert(outA == 81)
+    Swag.assert(outB)
 }
 
 #test
@@ -59,13 +59,13 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
     var first:  s32
     var second: s32
     {item1: second, x: first} = namedThenUnnamed
-    @assert(first == 91)
-    @assert(second == 92)
+    Swag.assert(first == 91)
+    Swag.assert(second == 92)
 
     var unnamedThenNamed = {101's32, y: 102's32}
     {y: second, item0: first} = unnamedThenNamed
-    @assert(first == 101)
-    @assert(second == 102)
+    Swag.assert(first == 101)
+    Swag.assert(second == 102)
 }
 
 #test
@@ -73,16 +73,16 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
     var first:  s32
     var second: s32
     {first, second} = {111, 112}
-    @assert(first == 111)
-    @assert(second == 112)
+    Swag.assert(first == 111)
+    Swag.assert(second == 112)
 
     {x: first, item1: second} = {x: 113, 114}
-    @assert(first == 113)
-    @assert(second == 114)
+    Swag.assert(first == 113)
+    Swag.assert(second == 114)
 
     {item0: first, y: second} = {115, y: 116}
-    @assert(first == 115)
-    @assert(second == 116)
+    Swag.assert(first == 115)
+    Swag.assert(second == 116)
 }
 
 #test
@@ -90,15 +90,15 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
     var first:  u32
     var second: u32
     {first, second} = nativeMakeAssignDestructRet(11, 22)
-    @assert(first == 11)
-    @assert(second == 22)
+    Swag.assert(first == 11)
+    Swag.assert(second == 22)
 }
 
 #test
 {
     var second: u32
     {?, second} = nativeMakeAssignDestructRet(33, 44)
-    @assert(second == 44)
+    Swag.assert(second == 44)
 }
 
 #test
@@ -106,8 +106,8 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
     var first:  u32 = 7
     var second: u32
     {first, second} = nativeMakeAssignDestructRet(first + 1, first + 2)
-    @assert(first == 8)
-    @assert(second == 9)
+    Swag.assert(first == 8)
+    Swag.assert(second == 9)
 }
 
 #test
@@ -115,15 +115,15 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
     var first:  u32
     var second: u32
     {first, second} = nativeMakeAnonymousAssignDestructRet(55, 66)
-    @assert(first == 55)
-    @assert(second == 66)
+    Swag.assert(first == 55)
+    Swag.assert(second == 66)
 }
 
 #test
 {
     var second: u32
     {?, second} = nativeMakeAnonymousAssignDestructRet(77, 88)
-    @assert(second == 88)
+    Swag.assert(second == 88)
 }
 
 #test
@@ -146,7 +146,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
         return total
     }
 
-    @assert(run() == 33)
+    Swag.assert(run() == 33)
 }
 
 #test
@@ -187,14 +187,14 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
     }
 
     let {nextLeaf, sumLeaf} = read(data[to], 2)
-    @assert(nextLeaf == 7)
-    @assert(sumLeaf == 33)
+    Swag.assert(nextLeaf == 7)
+    Swag.assert(sumLeaf == 33)
 
     let {nextBranch, sumBranch} = read(data[to], 7)
-    @assert(nextBranch == 13)
-    @assert(sumBranch == 0)
+    Swag.assert(nextBranch == 13)
+    Swag.assert(sumBranch == 0)
 
     var total: u32
     {?, total} = read(data[to], 0)
-    @assert(total == 66)
+    Swag.assert(total == 66)
 }

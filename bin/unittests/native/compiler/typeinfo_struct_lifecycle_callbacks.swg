@@ -232,24 +232,24 @@ func typeinfoGenericComposedLifecycleWorks()->bool
     resetCounts()
 
     let type = #typeof(GenericLifecycleContainer'LifecycleProbe)
-    @assert(hasDropFlag(type))
-    @assert(hasPostCopyFlag(type))
-    @assert(hasPostMoveFlag(type))
-    @assert(hasDropPointer(type))
-    @assert(hasPostCopyPointer(type))
-    @assert(hasPostMovePointer(type))
+    Swag.assert(hasDropFlag(type))
+    Swag.assert(hasPostCopyFlag(type))
+    Swag.assert(hasPostMoveFlag(type))
+    Swag.assert(hasDropPointer(type))
+    Swag.assert(hasPostCopyPointer(type))
+    Swag.assert(hasPostMovePointer(type))
 
     var value = GenericLifecycleContainer'LifecycleProbe{value: LifecycleProbe{value: 3}}
     runPostCopy(type, &value)
-    @assert(PostCopyCount == 1)
-    @assert(value.value.value == 13)
+    Swag.assert(PostCopyCount == 1)
+    Swag.assert(value.value.value == 13)
 
     runPostMove(type, &value)
-    @assert(PostMoveCount == 1)
-    @assert(value.value.value == 113)
+    Swag.assert(PostMoveCount == 1)
+    Swag.assert(value.value.value == 113)
 
     runDrop(type, &value)
-    @assert(DropCount == 1)
+    Swag.assert(DropCount == 1)
     return true
 }
 
@@ -258,22 +258,22 @@ func typeinfoGenericDirectLifecycleWorks()->bool
     resetCounts()
 
     let type = #typeof(GenericDirectLifecycleProbe's32)
-    @assert(hasDropFlag(type))
-    @assert(hasPostCopyFlag(type))
-    @assert(hasPostMoveFlag(type))
-    @assert(hasDropPointer(type))
-    @assert(hasPostCopyPointer(type))
-    @assert(hasPostMovePointer(type))
+    Swag.assert(hasDropFlag(type))
+    Swag.assert(hasPostCopyFlag(type))
+    Swag.assert(hasPostMoveFlag(type))
+    Swag.assert(hasDropPointer(type))
+    Swag.assert(hasPostCopyPointer(type))
+    Swag.assert(hasPostMovePointer(type))
 
     var value = GenericDirectLifecycleProbe's32{value: 3}
     runPostCopy(type, &value)
-    @assert(PostCopyCount == 10)
+    Swag.assert(PostCopyCount == 10)
 
     runPostMove(type, &value)
-    @assert(PostMoveCount == 10)
+    Swag.assert(PostMoveCount == 10)
 
     runDrop(type, &value)
-    @assert(DropCount == 10)
+    Swag.assert(DropCount == 10)
     return true
 }
 
@@ -326,13 +326,13 @@ func typeinfoOrderedMoveWorks()->bool
 
 #test
 {
-    @assert(typeinfoDirectDropWorks())
-    @assert(typeinfoDirectCopyWorks())
-    @assert(typeinfoDirectMoveWorks())
-    @assert(typeinfoComposedLifecycleWorks())
-    @assert(typeinfoGenericComposedLifecycleWorks())
-    @assert(typeinfoGenericDirectLifecycleWorks())
-    @assert(typeinfoOrderedDropWorks())
-    @assert(typeinfoOrderedCopyWorks())
-    @assert(typeinfoOrderedMoveWorks())
+    Swag.assert(typeinfoDirectDropWorks())
+    Swag.assert(typeinfoDirectCopyWorks())
+    Swag.assert(typeinfoDirectMoveWorks())
+    Swag.assert(typeinfoComposedLifecycleWorks())
+    Swag.assert(typeinfoGenericComposedLifecycleWorks())
+    Swag.assert(typeinfoGenericDirectLifecycleWorks())
+    Swag.assert(typeinfoOrderedDropWorks())
+    Swag.assert(typeinfoOrderedCopyWorks())
+    Swag.assert(typeinfoOrderedMoveWorks())
 }

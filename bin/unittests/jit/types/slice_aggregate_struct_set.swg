@@ -19,8 +19,8 @@ impl Wrapped
     #[Swag.Implicit]
     mtd opSet(value: string)
     {
-        .length = @countof(value)
-        .ptr    = @dataof(value)
+        .length = value.count
+        .ptr    = value.buffer
     }
 }
 
@@ -38,36 +38,36 @@ func totalLength(values: const [..] Wrapped)->u64
 func totalLengthReport(values: const [..] Wrapped, expected: u64)->string
 {
     let total = totalLength(values)
-    @assert(total == expected)
+    Swag.assert(total == expected)
     return total == expected ? "" : "unexpected total length\n"
 }
 
 // All-literal aggregate as a call argument.
 #test
 {
-    @assert(totalLength(["ab", "cde"]) == 5)
+    Swag.assert(totalLength(["ab", "cde"]) == 5)
 }
 
 // A single literal element.
 #test
 {
-    @assert(totalLength(["--publish"]) == 9)
+    Swag.assert(totalLength(["--publish"]) == 9)
 }
 
 // The same call as an argument of another call: the aggregate must not be treated as
-// a constant-call argument. '@print' stays the outer call because an intrinsic is what keeps
+// a constant-call argument. 'Swag.print' stays the outer call because an intrinsic is what keeps
 // the inner one at run time, and what it writes is empty unless the total is wrong, so a
 // passing suite says nothing.
 #test
 {
-    @print(totalLengthReport(["ab", "c"], 3), "")
+    Swag.print(totalLengthReport(["ab", "c"], 3), "")
 }
 
 // All-literal aggregate initializing a slice binding.
 #test
 {
     let values: const [..] Wrapped = ["a", "bc", "def"]
-    @assert(totalLength(values) == 6)
+    Swag.assert(totalLength(values) == 6)
 }
 
 // One runtime element mixed with literals: the shape that already worked.
@@ -75,7 +75,7 @@ func totalLengthReport(values: const [..] Wrapped, expected: u64)->string
 {
     var runtime: Wrapped
     runtime = "wxyz"
-    @assert(totalLength(["ab", runtime]) == 6)
+    Swag.assert(totalLength(["ab", runtime]) == 6)
 }
 
 // Elements built through 'opSet' point at real payloads, not at stale constants.
@@ -83,10 +83,10 @@ func totalLengthReport(values: const [..] Wrapped, expected: u64)->string
 {
     func firstByte(values: const [..] Wrapped)->u8
     {
-        @assert(@countof(values) == 2)
-        @assert(values[1].length == 1)
+        Swag.assert(values.count == 2)
+        Swag.assert(values[1].length == 1)
         return values[0].ptr![]
     }
 
-    @assert(firstByte(["qr", "s"]) == 'q')
+    Swag.assert(firstByte(["qr", "s"]) == 'q')
 }

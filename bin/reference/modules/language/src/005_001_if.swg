@@ -17,14 +17,14 @@ They can be used for clarity or grouping, but they are not required.
     var a = 0
 
     if a == 1 do
-        @assert(false)
+        Swag.assert(false)
 
     if a == 1 do
-        @assert(false)
+        Swag.assert(false)
 
     if a == 0
     {
-        @assert(true)
+        Swag.assert(true)
     }
 
     // The 'else' keyword works as in most languages.
@@ -33,26 +33,26 @@ They can be used for clarity or grouping, but they are not required.
         a += 1
     else do
         a += 2
-    @assert(a == 1)
+    Swag.assert(a == 1)
 
     // 'elif' functions like 'else if' in other languages.
     if a == 1 do
         a += 1
     else do
         if a == 2 do
-            @assert(false)
+            Swag.assert(false)
         elif a == 3 do
-            @assert(false)
+            Swag.assert(false)
         elif a == 4 do
-            @assert(false)
+            Swag.assert(false)
 
     // Logical expressions work as expected with 'and' and 'or'.
     if a == 0 and a == 1 do
-        @assert(false)
+        Swag.assert(false)
     if a == 0 or a == 1 do
-        @assert(false)
+        Swag.assert(false)
     if a == 1 or a == 2 do
-        @assert(true)
+        Swag.assert(true)
 }
 
 /**
@@ -71,19 +71,19 @@ non-zero (or non-null) values are considered `true`.
     // Since 'a' is 0, the condition is false and the block will not execute.
     if let a = 0
     {
-        @assert(false)
+        Swag.assert(false)
     }
 
     // Redeclare 'a' as a constant in another scope.
     // Since 'a' is 1, the block will execute.
     if const a = 1 do
-        @assert(a == 1)
+        Swag.assert(a == 1)
     else do
-        @assert(false)
+        Swag.assert(false)
     if let a = 1 do
-        @assert(a == 1)
+        Swag.assert(a == 1)
     else do
-        @assert(false)
+        Swag.assert(false)
 }
 
 /**
@@ -100,13 +100,13 @@ with a `where` clause. The `where` condition is only evaluated if the variable t
 
     // The 'where' clause runs only if 'str' is not null.
     if let str = retSomething() where str[0] == 's' do
-        @assert(true)
+        Swag.assert(true)
     else do
-        @assert(false)
+        Swag.assert(false)
 
     // Since 'retNothing()' returns null, the 'where' clause is skipped.
     if let str = retNothing() where str[0] == 's' do
-        @assert(false)
+        Swag.assert(false)
     else do
-        @assert(true)
+        Swag.assert(true)
 }

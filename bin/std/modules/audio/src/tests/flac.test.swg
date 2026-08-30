@@ -40,20 +40,20 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
 {
     let path  = audioGetTestDataPath(Format.toString("%.flac", name).toString())
     var sound = expect SoundFile.load(path.toString())
-    @assert(sound.sampleEncoding() == .Flac)
-    @assert(sound.sampleRateHz() == sampleRate and sound.numChannels() == channels)
+    Swag.assert(sound.sampleEncoding() == .Flac)
+    Swag.assert(sound.sampleRateHz() == sampleRate and sound.numChannels() == channels)
 
     let decoded = expect flacDecodeAll(&sound)
     let wanted  = expect File.readAllBytes(audioGetTestDataPath(Format.toString("%.pcm", name).toString()).toString())
-    @assert(sound.sampleFrameCount() * cast(u64) channels * #sizeof(s16) == wanted.count)
-    @assert(decoded.count == wanted.count)
+    Swag.assert(sound.sampleFrameCount() * cast(u64) channels * #sizeof(s16) == wanted.count)
+    Swag.assert(decoded.count == wanted.count)
 
     var mismatches = 0'u64
     for index in decoded.count where decoded[index] != wanted[index] do
         mismatches += 1
     if mismatches do
-        @print("flac ", name, ": ", mismatches, " of ", decoded.count, " bytes differ\n")
-    @assert(mismatches == 0)
+        Swag.print("flac ", name, ": ", mismatches, " of ", decoded.count, " bytes differ\n")
+    Swag.assert(mismatches == 0)
 }
 
 // Stereo, 44.1 kHz, sixteen bits: the shape a music file has.
@@ -74,11 +74,11 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
 #test
 {
     var sound = expect SoundFile.load(audioGetTestDataPath("flac-5.1-48000.flac").toString())
-    @assert(sound.isPacketStream() and !sound.isDataPreloaded())
-    @assert(sound.packetCount() == 6)
-    @assert((expect sound.packet(0)).sampleFrameCount == 4608)
-    @assert(sound.sampleFrameCount() == 24_000)
-    @assert(sound.speakerChannelMask() == 0x3F)
+    Swag.assert(sound.isPacketStream() and !sound.isDataPreloaded())
+    Swag.assert(sound.packetCount() == 6)
+    Swag.assert((expect sound.packet(0)).sampleFrameCount == 4608)
+    Swag.assert(sound.sampleFrameCount() == 24_000)
+    Swag.assert(sound.speakerChannelMask() == 0x3F)
 }
 
 // A file that carries the marker and nothing else fails on its own terms rather than being
@@ -94,7 +94,7 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     expect File.writeAllBytes(path.toString(), bytes.toSlice())
     var sound = catch SoundFile.load(path.toString()) as err
     discard sound
-    @assert(err != null)
+    Swag.assert(err != null)
 }
 
 // The codec is reachable through the registry a container uses, and what a voice plays back is
@@ -108,11 +108,11 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     let voice = (expect Voice.create(&sound))!
     defer voice.destroy()
     let decoded = expect voice.readBuffer()
-    @assert(decoded.size != 0)
+    Swag.assert(decoded.size != 0)
 
     let wanted = expect File.readAllBytes(audioGetTestDataPath("flac-5.1-48000.pcm").toString())
     let bytes  = cast(const [*] u8) decoded.buffer!
     let count  = Math.min(cast(u64) decoded.size, wanted.count)
     for index in count do
-        @assert(bytes[index] == wanted[index])
+        Swag.assert(bytes[index] == wanted[index])
 }

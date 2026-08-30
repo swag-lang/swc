@@ -15,48 +15,48 @@ func webpMultiplyHigh(value, coefficient: s32)->s32
 func assertWebpPixelFromTop(image: Image, x, y, r, g, b, a: u8)
 {
     let color = image.pixelColor(x, y)
-    @assert(color.r == r)
-    @assert(color.g == g)
-    @assert(color.b == b)
-    @assert(color.a == a)
+    Swag.assert(color.r == r)
+    Swag.assert(color.g == g)
+    Swag.assert(color.b == b)
+    Swag.assert(color.a == a)
 }
 
 func checkWebpAgainstPng(fileName, goldenName: string, width, height: s32)
 {
     let decoded = expect Image.load(getTestDataPath(fileName))
-    @assert(decoded.isValid())
-    @assert(decoded.width == width)
-    @assert(decoded.height == height)
-    @assert(decoded.pixelFormat == .RGBA8)
+    Swag.assert(decoded.isValid())
+    Swag.assert(decoded.width == width)
+    Swag.assert(decoded.height == height)
+    Swag.assert(decoded.pixelFormat == .RGBA8)
 
     let golden = expect Image.load(getTestDataPath(goldenName))
-    @assert(golden.width == width)
-    @assert(golden.height == height)
+    Swag.assert(golden.width == width)
+    Swag.assert(golden.height == height)
     for y in height do
         for x in width
         {
             let got  = decoded.pixelColor(x, y)
             let want = golden.pixelColor(x, y)
-            @assert(got.r == want.r)
-            @assert(got.g == want.g)
-            @assert(got.b == want.b)
-            @assert(got.a == want.a)
+            Swag.assert(got.r == want.r)
+            Swag.assert(got.g == want.g)
+            Swag.assert(got.b == want.b)
+            Swag.assert(got.a == want.a)
         }
 }
 
 func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha: bool)
 {
     let decoded = expect Image.load(getTestDataPath(fileName))
-    @assert(decoded.isValid())
-    @assert(decoded.width == width)
-    @assert(decoded.height == height)
-    @assert(decoded.pixelFormat == .RGBA8)
+    Swag.assert(decoded.isValid())
+    Swag.assert(decoded.width == width)
+    Swag.assert(decoded.height == height)
+    Swag.assert(decoded.pixelFormat == .RGBA8)
 
     let golden     = expect Image.load(getTestDataPath(goldenName))
     let halfWidth  = (width + 1) / 2
     let halfHeight = (height + 1) / 2
-    @assert(golden.width == 2 * halfWidth)
-    @assert(golden.height == height + halfHeight + (withAlpha ? height : 0))
+    Swag.assert(golden.width == 2 * halfWidth)
+    Swag.assert(golden.height == height + halfHeight + (withAlpha ? height : 0))
 
     for y in height
     {
@@ -73,10 +73,10 @@ func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha:
             let expectedB = webpExpectedChannel((webpMultiplyHigh(luma, 19077) + webpMultiplyHigh(cb, 33050) - 17685) >> 6)
             let expectedA = withAlpha ? golden.pixelColor(x, height + halfHeight + sourceY).r : 0xFF
             let got       = decoded.pixelColor(x, y)
-            @assert(got.r == expectedR)
-            @assert(got.g == expectedG)
-            @assert(got.b == expectedB)
-            @assert(got.a == expectedA)
+            Swag.assert(got.r == expectedR)
+            Swag.assert(got.g == expectedG)
+            Swag.assert(got.b == expectedB)
+            Swag.assert(got.a == expectedA)
         }
     }
 }
@@ -85,36 +85,36 @@ func assertEncodedWebpRoundtrip(source: Image)
 {
     let buffer = expect source.encode("memory.webp")
     let bytes  = nnBytes(buffer.toSlice())
-    @assert(@countof(bytes) >= 21)
-    @assert(bytes[0] == 'R' and bytes[1] == 'I' and bytes[2] == 'F' and bytes[3] == 'F')
-    @assert(bytes[8] == 'W' and bytes[9] == 'E' and bytes[10] == 'B' and bytes[11] == 'P')
-    @assert(bytes[12] == 'V' and bytes[13] == 'P' and bytes[14] == '8' and bytes[15] == 'L')
+    Swag.assert(bytes.count >= 21)
+    Swag.assert(bytes[0] == 'R' and bytes[1] == 'I' and bytes[2] == 'F' and bytes[3] == 'F')
+    Swag.assert(bytes[8] == 'W' and bytes[9] == 'E' and bytes[10] == 'B' and bytes[11] == 'P')
+    Swag.assert(bytes[12] == 'V' and bytes[13] == 'P' and bytes[14] == '8' and bytes[15] == 'L')
     let riffSize = cast(u32) bytes[4] | (cast(u32) bytes[5] << 8) |
                    (cast(u32) bytes[6] << 16) | (cast(u32) bytes[7] << 24)
-    @assert(cast(u64) riffSize + 8 == @countof(bytes))
+    Swag.assert(cast(u64) riffSize + 8 == bytes.count)
 
     let decoded = expect Image.decode("encoded.webp", bytes, {})
-    @assert(decoded.width == source.width)
-    @assert(decoded.height == source.height)
-    @assert(decoded.pixelFormat == .RGBA8)
+    Swag.assert(decoded.width == source.width)
+    Swag.assert(decoded.height == source.height)
+    Swag.assert(decoded.pixelFormat == .RGBA8)
     for y in source.height do
         for x in source.width
         {
             let got  = decoded.pixelColor(x, y)
             let want = source.pixelColor(x, y)
-            @assert(got.r == want.r)
-            @assert(got.g == want.g)
-            @assert(got.b == want.b)
-            @assert(got.a == want.a)
+            Swag.assert(got.r == want.r)
+            Swag.assert(got.g == want.g)
+            Swag.assert(got.b == want.b)
+            Swag.assert(got.a == want.a)
         }
 }
 
 // The decoder and encoder registries recognise WebP files.
 #test
 {
-    @assert(Image.canLoad("image.webp"))
-    @assert(!Image.canLoad("image.webm"))
-    @assert(Image.canSave("image.webp"))
+    Swag.assert(Image.canLoad("image.webp"))
+    Swag.assert(!Image.canLoad("image.webm"))
+    Swag.assert(Image.canSave("image.webp"))
 }
 
 // Lossless encoding preserves every channel and the image row orientation.
@@ -138,7 +138,7 @@ func assertEncodedWebpRoundtrip(source: Image)
     source.fill(Color.fromArgb(37'u8, 19'u8, 73'u8, 211'u8))
 
     let buffer = expect source.encode("memory.webp")
-    @assert(buffer.count() < 128)
+    Swag.assert(buffer.count() < 128)
     assertEncodedWebpRoundtrip(source)
 }
 
@@ -147,7 +147,7 @@ func assertEncodedWebpRoundtrip(source: Image)
 {
     var source: Image
     discard catch source.encode("memory.webp") as encodeError
-    @assert(encodeError != null)
+    Swag.assert(encodeError != null)
 }
 
 // Decode an official VP8L fixture and compare every pixel with its PNG golden image.
@@ -161,10 +161,10 @@ func assertEncodedWebpRoundtrip(source: Image)
 #test
 {
     let decoded = expect Image.load(getTestDataPath("color-cache.lossless.webp"))
-    @assert(decoded.isValid())
-    @assert(decoded.width == 32)
-    @assert(decoded.height == 32)
-    @assert(decoded.pixelFormat == .RGBA8)
+    Swag.assert(decoded.isValid())
+    Swag.assert(decoded.width == 32)
+    Swag.assert(decoded.height == 32)
+    Swag.assert(decoded.pixelFormat == .RGBA8)
     assertWebpPixelFromTop(decoded, 0, 0, 165, 0, 67, 255)
     assertWebpPixelFromTop(decoded, 16, 16, 173, 0, 123, 255)
 }
@@ -173,10 +173,10 @@ func assertEncodedWebpRoundtrip(source: Image)
 #test
 {
     let decoded = expect Image.load(getTestDataPath("transforms.lossless.webp"))
-    @assert(decoded.isValid())
-    @assert(decoded.width == 32)
-    @assert(decoded.height == 32)
-    @assert(decoded.pixelFormat == .RGBA8)
+    Swag.assert(decoded.isValid())
+    Swag.assert(decoded.width == 32)
+    Swag.assert(decoded.height == 32)
+    Swag.assert(decoded.pixelFormat == .RGBA8)
     assertWebpPixelFromTop(decoded, 31, 0, 217, 155, 147, 77)
     assertWebpPixelFromTop(decoded, 0, 31, 93, 85, 15, 201)
 }
@@ -185,10 +185,10 @@ func assertEncodedWebpRoundtrip(source: Image)
 #test
 {
     let decoded = expect Image.load(getTestDataPath("cross-color.lossless.webp"))
-    @assert(decoded.isValid())
-    @assert(decoded.width == 32)
-    @assert(decoded.height == 32)
-    @assert(decoded.pixelFormat == .RGBA8)
+    Swag.assert(decoded.isValid())
+    Swag.assert(decoded.width == 32)
+    Swag.assert(decoded.height == 32)
+    Swag.assert(decoded.pixelFormat == .RGBA8)
     assertWebpPixelFromTop(decoded, 0, 0, 255, 0, 255, 255)
     assertWebpPixelFromTop(decoded, 16, 16, 31, 224, 79, 255)
 }
@@ -200,10 +200,10 @@ func assertEncodedWebpRoundtrip(source: Image)
     var options: DecodeOptions
     options.decodePixels = false
     let decoded = expect Image.decode("metadata.webp", bytes.toSlice(), options)
-    @assert(decoded.width == 75)
-    @assert(decoded.height == 100)
-    @assert(decoded.pixelFormat == .RGBA8)
-    @assert(!decoded.isValid())
+    Swag.assert(decoded.width == 75)
+    Swag.assert(decoded.height == 100)
+    Swag.assert(decoded.pixelFormat == .RGBA8)
+    Swag.assert(!decoded.isValid())
 }
 
 // Invalid and truncated RIFF data fails before allocating an image.
@@ -212,12 +212,12 @@ func assertEncodedWebpRoundtrip(source: Image)
     let bad: [12] u8 = [
         'R', 'I', 'F', 'F', 4, 0, 0, 0, 'N', 'O', 'P', 'E']
     var decoded: Image
-    decoded = catch Image.decode("bad.webp", @mkslice(&bad[0], @countof(bad)), {}) as err5
-    @assert(err5 != null)
+    decoded = catch Image.decode("bad.webp", Swag.makeSlice(&bad[0], bad.count), {}) as err5
+    Swag.assert(err5 != null)
 
     let bytes = expect File.readAllBytes(getTestDataPath("gopher-doc.lossless.webp"))
-    decoded = catch Image.decode("truncated.webp", @mkslice(bytes.buffer, 32), {}) as err7
-    @assert(err7 != null)
+    decoded = catch Image.decode("truncated.webp", Swag.makeSlice(bytes.buffer, 32), {}) as err7
+    Swag.assert(err7 != null)
 }
 
 // Decode a VP8 fixture and compare it with the official split-plane YCbCr golden image.
@@ -281,10 +281,10 @@ func assertEncodedWebpRoundtrip(source: Image)
     var options: DecodeOptions
     options.decodePixels = false
     let decoded = expect Image.decode("metadata.webp", bytes.toSlice(), options)
-    @assert(decoded.width == 150)
-    @assert(decoded.height == 100)
-    @assert(decoded.pixelFormat == .RGBA8)
-    @assert(!decoded.isValid())
+    Swag.assert(decoded.width == 150)
+    Swag.assert(decoded.height == 100)
+    Swag.assert(decoded.pixelFormat == .RGBA8)
+    Swag.assert(!decoded.isValid())
 }
 
 // Animated WebP is rejected because Image represents one static image.
@@ -295,6 +295,6 @@ func assertEncodedWebpRoundtrip(source: Image)
         'V', 'P', '8', 'X', 10, 0, 0, 0,
         2, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     var decoded: Image
-    decoded = catch Image.decode("animated.webp", @mkslice(&animated[0], @countof(animated)), {}) as decodeError
-    @assert(decodeError != null)
+    decoded = catch Image.decode("animated.webp", Swag.makeSlice(&animated[0], animated.count), {}) as decodeError
+    Swag.assert(decodeError != null)
 }

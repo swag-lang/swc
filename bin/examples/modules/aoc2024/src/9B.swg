@@ -34,7 +34,7 @@ func day9BA()
     /*var x = 0
     for 100_000_000:
         x += 1
-    @print(x)*/
+    Swag.print(x)*/
 
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "9.txt")
     let line     = expect File.readAllText(dataPath)
@@ -45,7 +45,7 @@ func day9BA()
     for t in line
     {
         let r = t - '0'
-        if @index & 1 do
+        if Swag.index & 1 do
             map.add({-1, r})
         else
         {
@@ -96,7 +96,7 @@ func day9BA()
         }
     }
 
-    @assert(total == 6183632723350)
+    Swag.assert(total == 6183632723350)
 }
 
 //#[Swag.Optimize(.All, false)]
@@ -178,5 +178,5 @@ func day9BB()
         }
     }
 
-    @assert(total == 6183632723350)
+    Swag.assert(total == 6183632723350)
 }

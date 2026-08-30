@@ -299,5 +299,5 @@ func day9A()
         }
     }
 
-    @assert(set.count == 5735)
+    Swag.assert(set.count == 5735)
 }

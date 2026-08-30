@@ -46,5 +46,5 @@ func day3B()
         }
     }
 
-    @assert(total == 106780429)
+    Swag.assert(total == 106780429)
 }

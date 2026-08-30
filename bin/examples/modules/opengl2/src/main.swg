@@ -60,7 +60,7 @@ func createShader()
     var infoLog:       String
 
     let vertexShaderID      = glCreateShader(GL_VERTEX_SHADER)
-    var vertexSourcePointer = @dataof(VertexShader)
+    var vertexSourcePointer = VertexShader.buffer
     glShaderSource(vertexShaderID, 1, &vertexSourcePointer, null)
     glCompileShader(vertexShaderID)
     glGetShaderiv(vertexShaderID, GL_COMPILE_STATUS, &result)
@@ -69,7 +69,7 @@ func createShader()
     glGetShaderInfoLog(vertexShaderID, infoLogLength, null, infoLog.buffer)
 
     let fragmentShaderID   = glCreateShader(GL_FRAGMENT_SHADER)
-    var pixelSourcePointer = @dataof(PixelShader)
+    var pixelSourcePointer = PixelShader.buffer
     glShaderSource(fragmentShaderID, 1, &pixelSourcePointer, null)
     glCompileShader(fragmentShaderID)
     glGetShaderiv(fragmentShaderID, GL_COMPILE_STATUS, &result)
@@ -100,7 +100,7 @@ func createShader()
 
     glGenBuffers(1, &g_VertexBuffer)
     glBindBuffer(GL_ARRAY_BUFFER, g_VertexBuffer)
-    glBufferData(GL_ARRAY_BUFFER, #sizeof(VertexBufferData), @dataof(VertexBufferData), GL_STATIC_DRAW)
+    glBufferData(GL_ARRAY_BUFFER, #sizeof(VertexBufferData), VertexBufferData.buffer, GL_STATIC_DRAW)
     createShader()
 
     g_Window.callbacks.onResize = &onResize

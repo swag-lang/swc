@@ -106,6 +106,8 @@ struct Token
     static TokenIdKind      toKind(TokenId id) { return TOKEN_ID_INFOS[static_cast<size_t>(id)].kind; }
     static std::string_view toName(TokenId id);
     static std::string_view toFamily(TokenId id);
+    static std::string_view intrinsicName(TokenId id);
+    static TokenId          intrinsicFromName(std::string_view name);
     static TokenId          toRelated(TokenId id);
     static TokenId          assignToBinary(TokenId op);
     static TokenId          canonicalBinary(TokenId op);

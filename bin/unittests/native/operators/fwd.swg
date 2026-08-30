@@ -33,10 +33,10 @@ func storeVia(v: #fwd Tracked)
     g_copies, g_moves = 0
     var t = Tracked{10}
     store(t)
-    @assert(g_slot.x == 10)
-    @assert(g_copies == 1)
-    @assert(g_moves == 0)
-    @assert(t.x == 10)     // source untouched
+    Swag.assert(g_slot.x == 10)
+    Swag.assert(g_copies == 1)
+    Swag.assert(g_moves == 0)
+    Swag.assert(t.x == 10)     // source untouched
 }
 
 // '#fwd' parameter: calling with '#move' selects the move variant.
@@ -45,9 +45,9 @@ func storeVia(v: #fwd Tracked)
     g_copies, g_moves = 0
     var t = Tracked{20}
     store(#move t)
-    @assert(g_slot.x == 20)
-    @assert(g_copies == 0)
-    @assert(g_moves == 1)
+    Swag.assert(g_slot.x == 20)
+    Swag.assert(g_copies == 0)
+    Swag.assert(g_moves == 1)
 }
 
 // '#fwd' in a call argument forwards the passing mode through a call chain.
@@ -56,16 +56,16 @@ func storeVia(v: #fwd Tracked)
     g_copies, g_moves = 0
     var t = Tracked{30}
     storeVia(t)
-    @assert(g_slot.x == 30)
-    @assert(g_copies == 1)
-    @assert(g_moves == 0)
+    Swag.assert(g_slot.x == 30)
+    Swag.assert(g_copies == 1)
+    Swag.assert(g_moves == 0)
 
     g_copies, g_moves = 0
     var u = Tracked{40}
     storeVia(#move u)
-    @assert(g_slot.x == 40)
-    @assert(g_copies == 0)
-    @assert(g_moves == 1)
+    Swag.assert(g_slot.x == 40)
+    Swag.assert(g_copies == 0)
+    Swag.assert(g_moves == 1)
 }
 
 struct(T) Box
@@ -88,13 +88,13 @@ impl Box
     var b: Box'Tracked
     var t = Tracked{50}
     b.put(t)
-    @assert(b.value.x == 50)
-    @assert(g_copies == 1)
+    Swag.assert(b.value.x == 50)
+    Swag.assert(g_copies == 1)
 
     var u = Tracked{60}
     b.put(#move u)
-    @assert(b.value.x == 60)
-    @assert(g_moves == 1)
+    Swag.assert(b.value.x == 60)
+    Swag.assert(g_moves == 1)
 }
 
 var g_a: Tracked
@@ -115,12 +115,12 @@ func storeBoth(a: #fwd Tracked, b: #fwd Tracked)
     var t = Tracked{80}
     var u = Tracked{81}
     storeBoth(t, #move u)
-    @assert(g_a.x == 80)
-    @assert(g_b.x == 81)
-    @assert(g_copies == 2)     // both parameters are copied by the body
-    @assert(g_moves == 1)      // the '#move' argument moved into its temporary
-    @assert(t.x == 80)         // plain argument untouched
-    @assert(u.x == 0)          // '#move' argument honored: source reset to defaults
+    Swag.assert(g_a.x == 80)
+    Swag.assert(g_b.x == 81)
+    Swag.assert(g_copies == 2)     // both parameters are copied by the body
+    Swag.assert(g_moves == 1)      // the '#move' argument moved into its temporary
+    Swag.assert(t.x == 80)         // plain argument untouched
+    Swag.assert(u.x == 0)          // '#move' argument honored: source reset to defaults
 }
 
 #[Swag.NoCopy]
@@ -147,5 +147,5 @@ func storeMoveOnly(v: #fwd MoveOnly)
 {
     var m = MoveOnly{70}
     storeMoveOnly(#move m)
-    @assert(g_moveOnly.x == 70)
+    Swag.assert(g_moveOnly.x == 70)
 }

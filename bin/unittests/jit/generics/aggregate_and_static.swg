@@ -31,7 +31,7 @@ impl Vector3
     let value = pairFirst({second: 2'u16, first: 1'u16})
 
     #assert(#typeof(value) == u16)
-    @assert(value == 1'u16)
+    Swag.assert(value == 1'u16)
 }
 
 #test
@@ -41,5 +41,5 @@ impl Vector3
     let d              = Vector3's32.dot(&a, &b)
 
     #assert(#typeof(d) == s32)
-    @assert(d == 32)
+    Swag.assert(d == 32)
 }

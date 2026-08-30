@@ -142,7 +142,7 @@ impl IWnd for CurveWall
     {
         let painter = evt.paintContext.painter
         let rect    = .clientRect()
-        let count   = cast(s32) @countof(WallCurves)
+        let count   = cast(s32) WallCurves.count
 
         let columns = Math.clamp(cast(s32) ((rect.width + CardGap) / (MinCardWidth + CardGap)), 1, 3)
         let rows    = (count + columns - 1) / columns

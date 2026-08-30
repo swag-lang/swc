@@ -125,17 +125,17 @@ struct WorkflowState
     flow.slots[1] = flow.accum.a
     let total = flow.slots[0] + flow.slots[1]
 
-    @assert(flow.target.value == 10)
-    @assert(flow.target.tag == 20)
-    @assert(flow.target.calls == 2)
-    @assert(flow.accum.a == 8)
-    @assert(flow.accum.b == 11)
-    @assert(flow.accum.calls == 2)
-    @assert(flow.slots.first == 10)
-    @assert(flow.slots.second == 8)
-    @assert(flow.slots.writes == 1)
-    @assert(flow.slots.reads == 2)
-    @assert(total == 18)
+    Swag.assert(flow.target.value == 10)
+    Swag.assert(flow.target.tag == 20)
+    Swag.assert(flow.target.calls == 2)
+    Swag.assert(flow.accum.a == 8)
+    Swag.assert(flow.accum.b == 11)
+    Swag.assert(flow.accum.calls == 2)
+    Swag.assert(flow.slots.first == 10)
+    Swag.assert(flow.slots.second == 8)
+    Swag.assert(flow.slots.writes == 1)
+    Swag.assert(flow.slots.reads == 2)
+    Swag.assert(total == 18)
 }
 
 // ---------------------------------------------------------------------------
@@ -152,14 +152,14 @@ struct WorkflowState
     let first  = flow.slots[0]
     let second = flow.slots[1]
 
-    @assert(flow.target.value == 42)
-    @assert(flow.target.tag == 10)
-    @assert(flow.accum.a == 5)
-    @assert(flow.accum.b == 5)
-    @assert(flow.accum.calls == 1)
-    @assert(flow.slots.first == 47)
-    @assert(flow.slots.writes == 1)
-    @assert(flow.slots.reads == 2)
-    @assert(first == 47)
-    @assert(second == 0)
+    Swag.assert(flow.target.value == 42)
+    Swag.assert(flow.target.tag == 10)
+    Swag.assert(flow.accum.a == 5)
+    Swag.assert(flow.accum.b == 5)
+    Swag.assert(flow.accum.calls == 1)
+    Swag.assert(flow.slots.first == 47)
+    Swag.assert(flow.slots.writes == 1)
+    Swag.assert(flow.slots.reads == 2)
+    Swag.assert(first == 47)
+    Swag.assert(second == 0)
 }

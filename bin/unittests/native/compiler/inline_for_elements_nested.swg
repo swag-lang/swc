@@ -11,7 +11,7 @@ impl Visits
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32))
         where !ptr
     {
-        for idx in @countof(.values)
+        for idx in (.values).count
         {
             #inject(stmt, item = me.values[idx])
         }
@@ -48,6 +48,6 @@ func countCommon(a: Visits, b: Visits)->s32
 {
     let a = Visits{values: [10, 20, 30, 40]}
     let b = Visits{values: [20, 40, 50, 60]}
-    @assert(countCommon(a, b) == 2)
-    @assert(countCommon(a, a) == 4)
+    Swag.assert(countCommon(a, b) == 2)
+    Swag.assert(countCommon(a, a) == 4)
 }

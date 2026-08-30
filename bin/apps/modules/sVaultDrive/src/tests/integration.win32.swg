@@ -22,16 +22,16 @@ namespace Integration
     func isVisibilityProbeInvocation()->bool
     {
         let args = Env.arguments()
-        return @countof(args) >= 3 and args[1] == VisibilityProbeArgument
+        return args.count >= 3 and args[1] == VisibilityProbeArgument
     }
 
     func runVisibilityProbe()->s32
     {
         let args = Env.arguments()
-        if @countof(args) < 3 do
+        if args.count < 3 do
             return 2
         let payload = "VISIBLE"
-        discard catch File.writeAllBytes(args[2], @mkslice(cast(const [*] u8) @dataof(payload), @countof(payload))) as writeError
+        discard catch File.writeAllBytes(args[2], Swag.makeSlice(cast(const [*] u8) payload.buffer, payload.count)) as writeError
         return writeError == null ? 0 : 1
     }
 
@@ -45,12 +45,12 @@ namespace Integration
 
     func password()->const [..] u8
     {
-        return @mkslice(cast(const [*] u8) @dataof(PasswordText), @countof(PasswordText))
+        return Swag.makeSlice(cast(const [*] u8) PasswordText.buffer, PasswordText.count)
     }
 
     func wrongPassword()->const [..] u8
     {
-        return @mkslice(cast(const [*] u8) @dataof(WrongPasswordText), @countof(WrongPasswordText))
+        return Swag.makeSlice(cast(const [*] u8) WrongPasswordText.buffer, WrongPasswordText.count)
     }
 
     func verify(condition: bool, message: string) fail
@@ -62,8 +62,8 @@ namespace Integration
 
     func sameBytes(left, right: const [..] u8)->bool
     {
-        return @countof(left) == @countof(right) and
-               @memcmp(@dataof(left), @dataof(right), @countof(left)) == 0
+        return left.count == right.count and
+               Swag.memcmp(left.buffer, right.buffer, left.count) == 0
     }
 
     func allZero(bytes: const [..] u8)->bool
@@ -100,27 +100,27 @@ namespace Integration
     {
         let existing16    = Utf16.toZeroTerminated(existing)
         let replacement16 = Utf16.toZeroTerminated(replacement)
-        if !MoveFileExW(@dataof(existing16), @dataof(replacement16), replace ? MoveReplaceExisting : 0) do
+        if !MoveFileExW(existing16.buffer, replacement16.buffer, replace ? MoveReplaceExisting : 0) do
             failWith(Format.toString("Windows error %: cannot rename [[%]] to [[%]].", GetLastError(), existing, replacement))
     }
 
     func setAttributes(path: string, attributes: u32) fail
     {
         let path16 = Utf16.toZeroTerminated(path)
-        if !SetFileAttributesW(@dataof(path16), attributes) do
+        if !SetFileAttributesW(path16.buffer, attributes) do
             failWith(Format.toString("Windows error %: cannot set attributes on [[%]].", GetLastError(), path))
     }
 
     func attributes(path: string)->u32
     {
         let path16 = Utf16.toZeroTerminated(path)
-        return GetFileAttributesW(@dataof(path16))
+        return GetFileAttributesW(path16.buffer)
     }
 
     func removeDirectory(path: string) fail
     {
         let path16 = Utf16.toZeroTerminated(path)
-        if !WinFsp.RemoveDirectoryW(@dataof(path16)) do
+        if !WinFsp.RemoveDirectoryW(path16.buffer) do
             failWith(Format.toString("Windows error %: cannot remove directory [[%]].", GetLastError(), path))
     }
 
@@ -142,8 +142,8 @@ namespace Integration
         var stream = catch File.open(resultPath(), .Append, .Write, .Read) as openError
         if openError != null do
             return
-        discard catch stream.write(@dataof(message)!, @countof(message))
-        discard catch stream.write(@dataof("\n"), 1)
+        discard catch stream.write(message.buffer!, message.count)
+        discard catch stream.write(("\n").buffer, 1)
         stream.close()
     }
 
@@ -261,13 +261,13 @@ namespace Integration
 
         let empty = Path.combine(documents, "empty.txt")
         trace("FS: empty file")
-        discard File.writeAllBytes(empty, @mkslice(cast(const [*] u8) @dataof(""), 0))
+        discard File.writeAllBytes(empty, Swag.makeSlice(cast(const [*] u8) ("").buffer, 0))
         try verify(File.exists(empty) and (try File.openRead(empty)).size() == 0, "zero-length files must be supported")
 
         let unicode = Path.combine(documents, "résumé-東京.txt")
         trace("FS: Unicode file")
         let unicodePayload = "UTF-8 names are preserved"
-        discard File.writeAllBytes(unicode, @mkslice(cast(const [*] u8) @dataof(unicodePayload), @countof(unicodePayload)))
+        discard File.writeAllBytes(unicode, Swag.makeSlice(cast(const [*] u8) unicodePayload.buffer, unicodePayload.count))
         let unicodeRead = try File.readAllText(unicode)
         try verify(unicodeRead == unicodePayload, "Unicode file names and text must round-trip")
 
@@ -297,8 +297,8 @@ namespace Integration
         sparseStream.close()
         let sparseData = try File.readAllBytes(sparse)
         try verify(sparseData.count == 128 * 1024 + 17 + #sizeof(marker), "a sparse write must extend the file to the requested offset")
-        try verify(allZero(@mkslice(sparseData.buffer, 128 * 1024 + 17)), "sparse holes must read back as zero")
-        try verify(@memcmp(sparseData.buffer + 128 * 1024 + 17, &marker[0], #sizeof(marker)) == 0, "the sparse tail must retain its data")
+        try verify(allZero(Swag.makeSlice(sparseData.buffer, 128 * 1024 + 17)), "sparse holes must read back as zero")
+        try verify(Swag.memcmp(sparseData.buffer + 128 * 1024 + 17, &marker[0], #sizeof(marker)) == 0, "the sparse tail must retain its data")
 
         let renamed = Path.combine(documents, "renamed.bin")
         trace("FS: file and directory rename")
@@ -413,7 +413,7 @@ namespace Integration
 
         let newAfterRemount = Path.combine(root, "created-after-remount.txt")
         let text            = "mounted twice"
-        discard File.writeAllBytes(newAfterRemount, @mkslice(cast(const [*] u8) @dataof(text), @countof(text)))
+        discard File.writeAllBytes(newAfterRemount, Swag.makeSlice(cast(const [*] u8) text.buffer, text.count))
         try verify((try File.readAllText(newAfterRemount)) == text, "the remounted drive must remain writable")
 
         try box.unmountVolume()
@@ -510,7 +510,7 @@ namespace Integration
     func runAndExit()
     {
         let running = "RUNNING\n"
-        discard catch File.writeAllBytes(resultPath(), @mkslice(cast(const [*] u8) @dataof(running), @countof(running)))
+        discard catch File.writeAllBytes(resultPath(), Swag.makeSlice(cast(const [*] u8) running.buffer, running.count))
         let passed = run()
         let report = passed ? Format.toString("PASS: % end-to-end checks completed successfully.", g_CheckCount) : Format.toString("FAIL: %", g_Failure)
         trace(report)

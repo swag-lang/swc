@@ -7,25 +7,25 @@ using Swag
 {
     var literal = expect Parser.RegExp.create("1")
 
-    @assert(literal.match("1"))
-    @assert(!literal.match("2"))
+    Swag.assert(literal.match("1"))
+    Swag.assert(!literal.match("2"))
 }
 
 #test
 {
     var digitClass = expect Parser.RegExp.create("\\d")
 
-    @assert(digitClass.match("7"))
-    @assert(!digitClass.match("x"))
+    Swag.assert(digitClass.match("7"))
+    Swag.assert(!digitClass.match("x"))
 }
 
 #test
 {
     var exact = expect Parser.RegExp.create("abc")
 
-    @assert(exact.match("abc"))
-    @assert(!exact.match("ab"))
-    @assert(!exact.match("abcd"))
+    Swag.assert(exact.match("abc"))
+    Swag.assert(!exact.match("ab"))
+    Swag.assert(!exact.match("abcd"))
 }
 
 #test
@@ -34,10 +34,10 @@ using Swag
     {
         var boxed = Parser.RegExp.create(#raw "(\d+)x(\d+)x(\d+)")
 
-        @assert(boxed.match("2x3x4"))
-        @assert(boxed.getCapture(1) == "2")
-        @assert(boxed.getCapture(2) == "3")
-        @assert(boxed.getCapture(3) == "4")
+        Swag.assert(boxed.match("2x3x4"))
+        Swag.assert(boxed.getCapture(1) == "2")
+        Swag.assert(boxed.getCapture(2) == "3")
+        Swag.assert(boxed.getCapture(3) == "4")
     }
 }
 
@@ -49,10 +49,10 @@ using Swag
 
         for 256
         {
-            @assert(boxed.match("2x3x4"))
-            @assert(boxed.getCapture(1) == "2")
-            @assert(boxed.getCapture(2) == "3")
-            @assert(boxed.getCapture(3) == "4")
+            Swag.assert(boxed.match("2x3x4"))
+            Swag.assert(boxed.getCapture(1) == "2")
+            Swag.assert(boxed.getCapture(2) == "3")
+            Swag.assert(boxed.getCapture(3) == "4")
         }
     }
 }
@@ -62,9 +62,9 @@ using Swag
     var insensitive = expect Parser.RegExp.create("AbC", true)
     var sensitive   = expect Parser.RegExp.create("AbC")
 
-    @assert(insensitive.match("abc"))
-    @assert(insensitive.match("ABC"))
-    @assert(!sensitive.match("abc"))
+    Swag.assert(insensitive.match("abc"))
+    Swag.assert(insensitive.match("ABC"))
+    Swag.assert(!sensitive.match("abc"))
 }
 
 #test
@@ -76,16 +76,16 @@ using Swag
     var posixHex     = expect Parser.RegExp.create(#raw "[[:xdigit:]]+")
     var noDigits     = expect Parser.RegExp.create(#raw "[^[:digit:]]+")
 
-    @assert(asciiLetters.match("ABC"))
-    @assert(middleRange.match("BCD"))
-    @assert(literals.match("cab"))
-    @assert(noCaseList.match("ABBA"))
-    @assert(posixHex.match("1A2f"))
-    @assert(noDigits.match("abc!?"))
-    @assert(!middleRange.match("AE"))
-    @assert(!literals.match("cadz"))
-    @assert(!posixHex.match("1A2g"))
-    @assert(!noDigits.match("abc3"))
+    Swag.assert(asciiLetters.match("ABC"))
+    Swag.assert(middleRange.match("BCD"))
+    Swag.assert(literals.match("cab"))
+    Swag.assert(noCaseList.match("ABBA"))
+    Swag.assert(posixHex.match("1A2f"))
+    Swag.assert(noDigits.match("abc!?"))
+    Swag.assert(!middleRange.match("AE"))
+    Swag.assert(!literals.match("cadz"))
+    Swag.assert(!posixHex.match("1A2g"))
+    Swag.assert(!noDigits.match("abc3"))
 }
 
 #test
@@ -93,12 +93,12 @@ using Swag
     var simpleAlt  = expect Parser.RegExp.create(#raw "a|bc")
     var groupedAlt = expect Parser.RegExp.create(#raw "(ab|cd)e")
 
-    @assert(simpleAlt.match("a"))
-    @assert(simpleAlt.match("bc"))
-    @assert(!simpleAlt.match("b"))
-    @assert(groupedAlt.match("abe"))
-    @assert(groupedAlt.match("cde"))
-    @assert(!groupedAlt.match("abce"))
+    Swag.assert(simpleAlt.match("a"))
+    Swag.assert(simpleAlt.match("bc"))
+    Swag.assert(!simpleAlt.match("b"))
+    Swag.assert(groupedAlt.match("abe"))
+    Swag.assert(groupedAlt.match("cde"))
+    Swag.assert(!groupedAlt.match("abce"))
 }
 
 #test
@@ -114,25 +114,25 @@ using Swag
     var notUpper   = expect Parser.RegExp.create(#raw "\U+")
     var unicodeSym = expect Parser.RegExp.create(#raw "\pS+")
 
-    @assert(wildcard.match("abc"))
-    @assert(wildcard.match("a\u00E9c"))
-    @assert(!wildcard.match("ac"))
-    @assert(alnum.match("abc123"))
-    @assert(alpha.match("abcXYZ"))
-    @assert(!alnum.match("abc-123"))
-    @assert(!alpha.match("abc1"))
-    @assert(asciiOnly.match("AZ09!?"))
-    @assert(!asciiOnly.match("\u00E9"))
-    @assert(blanks.match(" \t"))
-    @assert(!blanks.match(" \n"))
-    @assert(spaces.match(" \t\n"))
-    @assert(words.match("abc_123"))
-    @assert(!words.match("abc-123"))
-    @assert(notLower.match("ABC!?"))
-    @assert(!notLower.match("AbC"))
-    @assert(notUpper.match("abc!?"))
-    @assert(!notUpper.match("aBc"))
-    @assert(unicodeSym.match("+="))
+    Swag.assert(wildcard.match("abc"))
+    Swag.assert(wildcard.match("a\u00E9c"))
+    Swag.assert(!wildcard.match("ac"))
+    Swag.assert(alnum.match("abc123"))
+    Swag.assert(alpha.match("abcXYZ"))
+    Swag.assert(!alnum.match("abc-123"))
+    Swag.assert(!alpha.match("abc1"))
+    Swag.assert(asciiOnly.match("AZ09!?"))
+    Swag.assert(!asciiOnly.match("\u00E9"))
+    Swag.assert(blanks.match(" \t"))
+    Swag.assert(!blanks.match(" \n"))
+    Swag.assert(spaces.match(" \t\n"))
+    Swag.assert(words.match("abc_123"))
+    Swag.assert(!words.match("abc-123"))
+    Swag.assert(notLower.match("ABC!?"))
+    Swag.assert(!notLower.match("AbC"))
+    Swag.assert(notUpper.match("abc!?"))
+    Swag.assert(!notUpper.match("aBc"))
+    Swag.assert(unicodeSym.match("+="))
 }
 
 #test
@@ -146,18 +146,18 @@ using Swag
     var digits       = expect Parser.RegExp.create(#raw "[\dA]+")
     var spaces       = expect Parser.RegExp.create(#raw "[a\s]+")
 
-    @assert(closeBracket.match("]]"))
-    @assert(openBracket.match("[["))
-    @assert(backslash.match("\\"))
-    @assert(backspace.match("\b\b"))
-    @assert(!backspace.match("ab"))
-    @assert(backspace.grep("ab") == null)
-    @assert(hyphen.match("--"))
-    @assert(caret.match("^^"))
-    @assert(digits.match("A42"))
-    @assert(!digits.match("A4-2"))
-    @assert(spaces.match("a \t"))
-    @assert(!spaces.match("ab"))
+    Swag.assert(closeBracket.match("]]"))
+    Swag.assert(openBracket.match("[["))
+    Swag.assert(backslash.match("\\"))
+    Swag.assert(backspace.match("\b\b"))
+    Swag.assert(!backspace.match("ab"))
+    Swag.assert(backspace.grep("ab") == null)
+    Swag.assert(hyphen.match("--"))
+    Swag.assert(caret.match("^^"))
+    Swag.assert(digits.match("A42"))
+    Swag.assert(!digits.match("A4-2"))
+    Swag.assert(spaces.match("a \t"))
+    Swag.assert(!spaces.match("ab"))
 }
 
 #test
@@ -188,110 +188,110 @@ using Swag
     var slash                   = expect Parser.RegExp.create(#raw "\/path\\file")
     var controls                = expect Parser.RegExp.create("\\n\\r\\t\\f\\v\\a")
 
-    @assert(literalAlt.match("a|b"))
-    @assert(!literalAlt.match("ab"))
-    @assert(literalPipeLeadingAlt.match("|"))
-    @assert(literalPipeLeadingAlt.match("a"))
-    @assert(!literalPipeLeadingAlt.match("b"))
-    @assert(literalPipeTrailingAlt.match("a"))
-    @assert(literalPipeTrailingAlt.match("|"))
-    @assert(!literalPipeTrailingAlt.match("b"))
-    @assert(literalPipeMixedAlt.match("a|"))
-    @assert(literalPipeMixedAlt.match("b"))
-    @assert(!literalPipeMixedAlt.match("|"))
-    @assert(multiLiteralPipeAlt.match("|"))
-    @assert(multiLiteralPipeAlt.match("a"))
-    @assert(multiLiteralPipeAlt.match("b"))
-    @assert(!multiLiteralPipeAlt.match("ab"))
-    @assert(parenAlt.match("("))
-    @assert(parenAlt.match("a"))
-    @assert(closeParenAlt.match(")"))
-    @assert(closeParenAlt.match("a"))
-    @assert(openBracketAlt.match("["))
-    @assert(openBracketAlt.match("a"))
-    @assert(closeBracketAlt.match("]"))
-    @assert(closeBracketAlt.match("a"))
-    @assert(openBraceAlt.match("{"))
-    @assert(openBraceAlt.match("a"))
-    @assert(closeBraceAlt.match("}"))
-    @assert(closeBraceAlt.match("a"))
-    @assert(captureLiteralPipeAlt.match("|b"))
-    @assert(captureLiteralPipeAlt.getCapture(1) == "|")
-    @assert(captureLiteralPipeAlt.getCapture(2) == "b")
-    @assert(captureLiteralPipeAlt.match("ab"))
-    @assert(captureLiteralPipeAlt.getCapture(1) == "a")
-    @assert(captureLiteralPipeAlt.getCapture(2) == "b")
-    @assert(captureAlt.match("ac"))
-    @assert(captureAlt.getCapture(1) == "a")
-    @assert(captureAlt.getCapture(2) == "c")
-    @assert(captureAlt.captures().count == 2)
-    @assert(captureLeadingEmptyAlt.match("b"))
-    @assert(captureLeadingEmptyAlt.getCapture(1) == "")
-    @assert(captureLeadingEmptyAlt.getCapture(2) == "b")
-    @assert(captureLeadingEmptyAlt.match("ab"))
-    @assert(captureLeadingEmptyAlt.getCapture(1) == "a")
-    @assert(captureLeadingEmptyAlt.getCapture(2) == "b")
-    @assert(captureTrailingEmptyAlt.match("b"))
-    @assert(captureTrailingEmptyAlt.getCapture(1) == "")
-    @assert(captureTrailingEmptyAlt.getCapture(2) == "b")
-    @assert(captureTrailingEmptyAlt.match("ab"))
-    @assert(captureTrailingEmptyAlt.getCapture(1) == "a")
-    @assert(captureTrailingEmptyAlt.getCapture(2) == "b")
-    @assert(plainAlt.match("a"))
-    @assert(plainAlt.captures().count == 0)
-    @assert(leadingEmptyAlt.match(""))
-    @assert(leadingEmptyAlt.match("a"))
-    @assert(!leadingEmptyAlt.match("aa"))
-    @assert(trailingEmptyAlt.match(""))
-    @assert(trailingEmptyAlt.match("a"))
-    @assert(!trailingEmptyAlt.match("aa"))
-    @assert(doubleEmptyAlt.match(""))
-    @assert(doubleEmptyAlt.match("a"))
-    @assert(doubleEmptyAlt.match("b"))
-    @assert(!doubleEmptyAlt.match("ab"))
-    @assert(onlyEmptyAlt.match(""))
-    @assert(!onlyEmptyAlt.match("a"))
-    @assert(middleEmptyAlt.match("c"))
-    @assert(middleEmptyAlt.match("ac"))
-    @assert(!middleEmptyAlt.match("aac"))
-    @assert(escaped.match("()[]{}.+*?"))
-    @assert(anchors.match("^$"))
-    @assert(slash.match("/path\\file"))
-    @assert(controls.match("\n\r\t\f\v\a"))
+    Swag.assert(literalAlt.match("a|b"))
+    Swag.assert(!literalAlt.match("ab"))
+    Swag.assert(literalPipeLeadingAlt.match("|"))
+    Swag.assert(literalPipeLeadingAlt.match("a"))
+    Swag.assert(!literalPipeLeadingAlt.match("b"))
+    Swag.assert(literalPipeTrailingAlt.match("a"))
+    Swag.assert(literalPipeTrailingAlt.match("|"))
+    Swag.assert(!literalPipeTrailingAlt.match("b"))
+    Swag.assert(literalPipeMixedAlt.match("a|"))
+    Swag.assert(literalPipeMixedAlt.match("b"))
+    Swag.assert(!literalPipeMixedAlt.match("|"))
+    Swag.assert(multiLiteralPipeAlt.match("|"))
+    Swag.assert(multiLiteralPipeAlt.match("a"))
+    Swag.assert(multiLiteralPipeAlt.match("b"))
+    Swag.assert(!multiLiteralPipeAlt.match("ab"))
+    Swag.assert(parenAlt.match("("))
+    Swag.assert(parenAlt.match("a"))
+    Swag.assert(closeParenAlt.match(")"))
+    Swag.assert(closeParenAlt.match("a"))
+    Swag.assert(openBracketAlt.match("["))
+    Swag.assert(openBracketAlt.match("a"))
+    Swag.assert(closeBracketAlt.match("]"))
+    Swag.assert(closeBracketAlt.match("a"))
+    Swag.assert(openBraceAlt.match("{"))
+    Swag.assert(openBraceAlt.match("a"))
+    Swag.assert(closeBraceAlt.match("}"))
+    Swag.assert(closeBraceAlt.match("a"))
+    Swag.assert(captureLiteralPipeAlt.match("|b"))
+    Swag.assert(captureLiteralPipeAlt.getCapture(1) == "|")
+    Swag.assert(captureLiteralPipeAlt.getCapture(2) == "b")
+    Swag.assert(captureLiteralPipeAlt.match("ab"))
+    Swag.assert(captureLiteralPipeAlt.getCapture(1) == "a")
+    Swag.assert(captureLiteralPipeAlt.getCapture(2) == "b")
+    Swag.assert(captureAlt.match("ac"))
+    Swag.assert(captureAlt.getCapture(1) == "a")
+    Swag.assert(captureAlt.getCapture(2) == "c")
+    Swag.assert(captureAlt.captures().count == 2)
+    Swag.assert(captureLeadingEmptyAlt.match("b"))
+    Swag.assert(captureLeadingEmptyAlt.getCapture(1) == "")
+    Swag.assert(captureLeadingEmptyAlt.getCapture(2) == "b")
+    Swag.assert(captureLeadingEmptyAlt.match("ab"))
+    Swag.assert(captureLeadingEmptyAlt.getCapture(1) == "a")
+    Swag.assert(captureLeadingEmptyAlt.getCapture(2) == "b")
+    Swag.assert(captureTrailingEmptyAlt.match("b"))
+    Swag.assert(captureTrailingEmptyAlt.getCapture(1) == "")
+    Swag.assert(captureTrailingEmptyAlt.getCapture(2) == "b")
+    Swag.assert(captureTrailingEmptyAlt.match("ab"))
+    Swag.assert(captureTrailingEmptyAlt.getCapture(1) == "a")
+    Swag.assert(captureTrailingEmptyAlt.getCapture(2) == "b")
+    Swag.assert(plainAlt.match("a"))
+    Swag.assert(plainAlt.captures().count == 0)
+    Swag.assert(leadingEmptyAlt.match(""))
+    Swag.assert(leadingEmptyAlt.match("a"))
+    Swag.assert(!leadingEmptyAlt.match("aa"))
+    Swag.assert(trailingEmptyAlt.match(""))
+    Swag.assert(trailingEmptyAlt.match("a"))
+    Swag.assert(!trailingEmptyAlt.match("aa"))
+    Swag.assert(doubleEmptyAlt.match(""))
+    Swag.assert(doubleEmptyAlt.match("a"))
+    Swag.assert(doubleEmptyAlt.match("b"))
+    Swag.assert(!doubleEmptyAlt.match("ab"))
+    Swag.assert(onlyEmptyAlt.match(""))
+    Swag.assert(!onlyEmptyAlt.match("a"))
+    Swag.assert(middleEmptyAlt.match("c"))
+    Swag.assert(middleEmptyAlt.match("ac"))
+    Swag.assert(!middleEmptyAlt.match("aac"))
+    Swag.assert(escaped.match("()[]{}.+*?"))
+    Swag.assert(anchors.match("^$"))
+    Swag.assert(slash.match("/path\\file"))
+    Swag.assert(controls.match("\n\r\t\f\v\a"))
 }
 
 #test
 {
     var captures = expect Parser.RegExp.create(#raw "(\d+)-(\w+)")
 
-    @assert(captures.match("42-test"))
-    @assert(captures.getCapture(1) == "42")
-    @assert(captures[2] == "test")
+    Swag.assert(captures.match("42-test"))
+    Swag.assert(captures.getCapture(1) == "42")
+    Swag.assert(captures[2] == "test")
 
     let all = captures.captures()
-    @assert(all.count >= 2)
-    @assert(all.contains("42"))
-    @assert(all.contains("test"))
+    Swag.assert(all.count >= 2)
+    Swag.assert(all.contains("42"))
+    Swag.assert(all.contains("test"))
 }
 
 #test
 {
     var overload: Parser.RegExp
 
-    @assert(expect overload.match(#raw "(\d+)", "123"))
-    @assert(overload.getCapture(1) == "123")
-    @assert(!(expect overload.match(#raw "(\d+)", "abc")))
-    @assert(overload.captures().count == 0)
-    @assert(expect overload.match("AbC", "abc", true))
+    Swag.assert(expect overload.match(#raw "(\d+)", "123"))
+    Swag.assert(overload.getCapture(1) == "123")
+    Swag.assert(!(expect overload.match(#raw "(\d+)", "abc")))
+    Swag.assert(overload.captures().count == 0)
+    Swag.assert(expect overload.match("AbC", "abc", true))
 }
 
 #test
 {
     var repeated = expect Parser.RegExp.create(#raw "([a-z])\1")
 
-    @assert(repeated.match("ll"))
-    @assert(repeated.getCapture(1) == "l")
-    @assert(!repeated.match("ab"))
+    Swag.assert(repeated.match("ll"))
+    Swag.assert(repeated.getCapture(1) == "l")
+    Swag.assert(!repeated.match("ab"))
 }
 
 #test
@@ -300,14 +300,14 @@ using Swag
     {
         var repeated = Parser.RegExp.create(#raw "([a-z]+)-\1")
 
-        @assert(repeated.match("abc-abc"))
-        @assert(repeated.getCapture(1) == "abc")
-        @assert(!repeated.match("abc-ab"))
+        Swag.assert(repeated.match("abc-abc"))
+        Swag.assert(repeated.getCapture(1) == "abc")
+        Swag.assert(!repeated.match("abc-ab"))
 
         for 256
         {
-            @assert(repeated.match("xyz-xyz"))
-            @assert(repeated.getCapture(1) == "xyz")
+            Swag.assert(repeated.match("xyz-xyz"))
+            Swag.assert(repeated.getCapture(1) == "xyz")
         }
     }
 }
@@ -328,46 +328,46 @@ using Swag
     var nonEmptyTailRef       = expect Parser.RegExp.create(#raw "([a-z]+)(\d+)-\2")
     var emptyTailRef          = expect Parser.RegExp.create(#raw "([a-z]+)(\d*)-\2")
 
-    @assert(emptyGroup.match(""))
-    @assert(emptyGroup.getCapture(1) == "")
+    Swag.assert(emptyGroup.match(""))
+    Swag.assert(emptyGroup.getCapture(1) == "")
 
-    @assert(explicitEmptyGroup.match(""))
-    @assert(explicitEmptyGroup.getCapture(1) == "")
-    @assert(explicitEmptyRef.match("-"))
-    @assert(explicitEmptyRef.getCapture(1) == "")
-    @assert(explicitEmptyAltGroup.match(""))
-    @assert(explicitEmptyAltGroup.getCapture(1) == "")
-    @assert(explicitEmptyAltRef.match("-"))
-    @assert(explicitEmptyAltRef.getCapture(1) == "")
-    @assert(optionalAltRef.match("-"))
-    @assert(optionalAltRef.getCapture(1) == "")
-    @assert(optionalAltRef.match("a-a"))
-    @assert(optionalAltRef.getCapture(1) == "a")
-    @assert(countedEmptyGroup.match("a"))
-    @assert(countedEmptyGroup.getCapture(1) == "")
-    @assert(countedEmptyGroup.getCapture(2) == "a")
-    @assert(countedEmptyAltGroup.match("a"))
-    @assert(countedEmptyAltGroup.getCapture(1) == "")
-    @assert(countedEmptyAltGroup.getCapture(2) == "a")
+    Swag.assert(explicitEmptyGroup.match(""))
+    Swag.assert(explicitEmptyGroup.getCapture(1) == "")
+    Swag.assert(explicitEmptyRef.match("-"))
+    Swag.assert(explicitEmptyRef.getCapture(1) == "")
+    Swag.assert(explicitEmptyAltGroup.match(""))
+    Swag.assert(explicitEmptyAltGroup.getCapture(1) == "")
+    Swag.assert(explicitEmptyAltRef.match("-"))
+    Swag.assert(explicitEmptyAltRef.getCapture(1) == "")
+    Swag.assert(optionalAltRef.match("-"))
+    Swag.assert(optionalAltRef.getCapture(1) == "")
+    Swag.assert(optionalAltRef.match("a-a"))
+    Swag.assert(optionalAltRef.getCapture(1) == "a")
+    Swag.assert(countedEmptyGroup.match("a"))
+    Swag.assert(countedEmptyGroup.getCapture(1) == "")
+    Swag.assert(countedEmptyGroup.getCapture(2) == "a")
+    Swag.assert(countedEmptyAltGroup.match("a"))
+    Swag.assert(countedEmptyAltGroup.getCapture(1) == "")
+    Swag.assert(countedEmptyAltGroup.getCapture(2) == "a")
 
-    @assert(emptyRef.match("-"))
-    @assert(emptyRef.getCapture(1) == "")
+    Swag.assert(emptyRef.match("-"))
+    Swag.assert(emptyRef.getCapture(1) == "")
 
-    @assert(emptyTail.match("abc"))
-    @assert(emptyTail.getCapture(1) == "abc")
-    @assert(emptyTail.getCapture(2) == "")
+    Swag.assert(emptyTail.match("abc"))
+    Swag.assert(emptyTail.getCapture(1) == "abc")
+    Swag.assert(emptyTail.getCapture(2) == "")
 
-    @assert(emptyTailSep.match("abc-"))
-    @assert(emptyTailSep.getCapture(1) == "abc")
-    @assert(emptyTailSep.getCapture(2) == "")
+    Swag.assert(emptyTailSep.match("abc-"))
+    Swag.assert(emptyTailSep.getCapture(1) == "abc")
+    Swag.assert(emptyTailSep.getCapture(2) == "")
 
-    @assert(nonEmptyTailRef.match("abc12-12"))
-    @assert(nonEmptyTailRef.getCapture(1) == "abc")
-    @assert(nonEmptyTailRef.getCapture(2) == "12")
+    Swag.assert(nonEmptyTailRef.match("abc12-12"))
+    Swag.assert(nonEmptyTailRef.getCapture(1) == "abc")
+    Swag.assert(nonEmptyTailRef.getCapture(2) == "12")
 
-    @assert(emptyTailRef.match("abc-"))
-    @assert(emptyTailRef.getCapture(1) == "abc")
-    @assert(emptyTailRef.getCapture(2) == "")
+    Swag.assert(emptyTailRef.match("abc-"))
+    Swag.assert(emptyTailRef.getCapture(1) == "abc")
+    Swag.assert(emptyTailRef.getCapture(2) == "")
 }
 
 #test
@@ -386,45 +386,45 @@ using Swag
     var zeroSiblingNestedRef2 = expect Parser.RegExp.create(#raw "((a)(b)){0}\2")
     var zeroSiblingNestedRef3 = expect Parser.RegExp.create(#raw "((a)(b)){0}\3")
 
-    @assert(baseline.match("bc"))
+    Swag.assert(baseline.match("bc"))
     let baselineCount = baseline.captures().count
 
-    @assert(optionalGroup.match("bc"))
-    @assert(optionalGroup.getCapture(2) == "c")
-    @assert(optionalGroup.captures().count == baselineCount)
+    Swag.assert(optionalGroup.match("bc"))
+    Swag.assert(optionalGroup.getCapture(2) == "c")
+    Swag.assert(optionalGroup.captures().count == baselineCount)
 
-    @assert(optionalGroup.match("abc"))
-    @assert(optionalGroup.getCapture(1) == "a")
-    @assert(optionalGroup.getCapture(2) == "c")
-    @assert(optionalGroup.match("bc"))
-    @assert(optionalGroup.getCapture(2) == "c")
-    @assert(optionalGroup.captures().count == baselineCount)
+    Swag.assert(optionalGroup.match("abc"))
+    Swag.assert(optionalGroup.getCapture(1) == "a")
+    Swag.assert(optionalGroup.getCapture(2) == "c")
+    Swag.assert(optionalGroup.match("bc"))
+    Swag.assert(optionalGroup.getCapture(2) == "c")
+    Swag.assert(optionalGroup.captures().count == baselineCount)
 
-    @assert(optionalStar.match("bc"))
-    @assert(optionalStar.getCapture(2) == "c")
-    @assert(optionalStar.captures().count == baselineCount)
+    Swag.assert(optionalStar.match("bc"))
+    Swag.assert(optionalStar.getCapture(2) == "c")
+    Swag.assert(optionalStar.captures().count == baselineCount)
 
-    @assert(optionalRef.match(""))
-    @assert(optionalRef.match("aa"))
-    @assert(!optionalRef.match("a"))
-    @assert(zeroRef.match(""))
-    @assert(!zeroRef.match("a"))
-    @assert(zeroFirst.match("b"))
-    @assert(zeroFirst.getCapture(2) == "b")
-    @assert(zeroNested.match("c"))
-    @assert(zeroNested.getCapture(1) == "")
-    @assert(zeroNested.getCapture(2) == "")
-    @assert(zeroNested.getCapture(3) == "c")
-    @assert(zeroSiblingNested.match("c"))
-    @assert(zeroSiblingNested.getCapture(1) == "")
-    @assert(zeroSiblingNested.getCapture(2) == "")
-    @assert(zeroSiblingNested.getCapture(3) == "")
-    @assert(zeroSiblingNested.getCapture(4) == "c")
-    @assert(zeroNestedRef1.match(""))
-    @assert(zeroNestedRef2.match(""))
-    @assert(zeroSiblingNestedRef1.match(""))
-    @assert(zeroSiblingNestedRef2.match(""))
-    @assert(zeroSiblingNestedRef3.match(""))
+    Swag.assert(optionalRef.match(""))
+    Swag.assert(optionalRef.match("aa"))
+    Swag.assert(!optionalRef.match("a"))
+    Swag.assert(zeroRef.match(""))
+    Swag.assert(!zeroRef.match("a"))
+    Swag.assert(zeroFirst.match("b"))
+    Swag.assert(zeroFirst.getCapture(2) == "b")
+    Swag.assert(zeroNested.match("c"))
+    Swag.assert(zeroNested.getCapture(1) == "")
+    Swag.assert(zeroNested.getCapture(2) == "")
+    Swag.assert(zeroNested.getCapture(3) == "c")
+    Swag.assert(zeroSiblingNested.match("c"))
+    Swag.assert(zeroSiblingNested.getCapture(1) == "")
+    Swag.assert(zeroSiblingNested.getCapture(2) == "")
+    Swag.assert(zeroSiblingNested.getCapture(3) == "")
+    Swag.assert(zeroSiblingNested.getCapture(4) == "c")
+    Swag.assert(zeroNestedRef1.match(""))
+    Swag.assert(zeroNestedRef2.match(""))
+    Swag.assert(zeroSiblingNestedRef1.match(""))
+    Swag.assert(zeroSiblingNestedRef2.match(""))
+    Swag.assert(zeroSiblingNestedRef3.match(""))
 }
 
 #test
@@ -447,91 +447,91 @@ using Swag
     var nestedTrailingAltSiblingRef   = expect Parser.RegExp.create(#raw "((a)(|b))-\1-\2-\3")
     var nestedSiblingsCountedRef      = expect Parser.RegExp.create(#raw "((a)(b)){2}\1\2\3")
 
-    @assert(nested.match("abc"))
-    @assert(nested.getCapture(1) == "ab")
-    @assert(nested.getCapture(2) == "a")
-    @assert(nested.getCapture(3) == "c")
-    @assert(nested.captures().count == 3)
-    @assert(nestedRef.match("ab-ab-a"))
-    @assert(nestedRef.getCapture(1) == "ab")
-    @assert(nestedRef.getCapture(2) == "a")
-    @assert(nestedCounted.match("ababc"))
-    @assert(nestedCounted.getCapture(1) == "ab")
-    @assert(nestedCounted.getCapture(2) == "a")
-    @assert(nestedCounted.getCapture(3) == "c")
-    @assert(deepNested.match("ab"))
-    @assert(deepNested.getCapture(1) == "a")
-    @assert(deepNested.getCapture(2) == "a")
-    @assert(deepNested.getCapture(3) == "a")
-    @assert(deepNested.getCapture(4) == "b")
-    @assert(nestedSiblings.match("abc"))
-    @assert(nestedSiblings.getCapture(1) == "ab")
-    @assert(nestedSiblings.getCapture(2) == "a")
-    @assert(nestedSiblings.getCapture(3) == "b")
-    @assert(nestedSiblings.getCapture(4) == "c")
-    @assert(nestedSiblingsRef.match("ab-ab-a-b"))
-    @assert(nestedSiblingsRef.getCapture(1) == "ab")
-    @assert(nestedSiblingsRef.getCapture(2) == "a")
-    @assert(nestedSiblingsRef.getCapture(3) == "b")
-    @assert(nestedSiblingsCounted.match("ababc"))
-    @assert(nestedSiblingsCounted.getCapture(1) == "ab")
-    @assert(nestedSiblingsCounted.getCapture(2) == "a")
-    @assert(nestedSiblingsCounted.getCapture(3) == "b")
-    @assert(nestedSiblingsCounted.getCapture(4) == "c")
-    @assert(nestedLeadingEmptySiblingRef.match("a-a--a"))
-    @assert(nestedLeadingEmptySiblingRef.getCapture(1) == "a")
-    @assert(nestedLeadingEmptySiblingRef.getCapture(2) == "")
-    @assert(nestedLeadingEmptySiblingRef.getCapture(3) == "a")
-    @assert(nestedTrailingEmptySiblingRef.match("a-a-a-"))
-    @assert(nestedTrailingEmptySiblingRef.getCapture(1) == "a")
-    @assert(nestedTrailingEmptySiblingRef.getCapture(2) == "a")
-    @assert(nestedTrailingEmptySiblingRef.getCapture(3) == "")
-    @assert(nestedSiblingsCountedRef.match("abababab"))
-    @assert(nestedSiblingsCountedRef.getCapture(1) == "ab")
-    @assert(nestedSiblingsCountedRef.getCapture(2) == "a")
-    @assert(nestedSiblingsCountedRef.getCapture(3) == "b")
-    @assert(nestedLeadingEmptySibling.match("ab"))
-    @assert(nestedLeadingEmptySibling.getCapture(1) == "a")
-    @assert(nestedLeadingEmptySibling.getCapture(2) == "")
-    @assert(nestedLeadingEmptySibling.getCapture(3) == "a")
-    @assert(nestedLeadingEmptySibling.getCapture(4) == "b")
-    @assert(nestedTrailingEmptySibling.match("ab"))
-    @assert(nestedTrailingEmptySibling.getCapture(1) == "a")
-    @assert(nestedTrailingEmptySibling.getCapture(2) == "a")
-    @assert(nestedTrailingEmptySibling.getCapture(3) == "")
-    @assert(nestedTrailingEmptySibling.getCapture(4) == "b")
-    @assert(nestedLeadingAltSibling.match("bc"))
-    @assert(nestedLeadingAltSibling.getCapture(1) == "b")
-    @assert(nestedLeadingAltSibling.getCapture(2) == "")
-    @assert(nestedLeadingAltSibling.getCapture(3) == "b")
-    @assert(nestedLeadingAltSibling.getCapture(4) == "c")
-    @assert(nestedLeadingAltSibling.match("abc"))
-    @assert(nestedLeadingAltSibling.getCapture(1) == "ab")
-    @assert(nestedLeadingAltSibling.getCapture(2) == "a")
-    @assert(nestedLeadingAltSibling.getCapture(3) == "b")
-    @assert(nestedLeadingAltSibling.getCapture(4) == "c")
-    @assert(nestedTrailingAltSibling.match("ac"))
-    @assert(nestedTrailingAltSibling.getCapture(1) == "a")
-    @assert(nestedTrailingAltSibling.getCapture(2) == "a")
-    @assert(nestedTrailingAltSibling.getCapture(3) == "")
-    @assert(nestedTrailingAltSibling.getCapture(4) == "c")
-    @assert(nestedTrailingAltSibling.match("abc"))
-    @assert(nestedTrailingAltSibling.getCapture(1) == "ab")
-    @assert(nestedTrailingAltSibling.getCapture(2) == "a")
-    @assert(nestedTrailingAltSibling.getCapture(3) == "b")
-    @assert(nestedTrailingAltSibling.getCapture(4) == "c")
-    @assert(deepNestedRef.match("a-a-a-a"))
-    @assert(deepNestedRef.getCapture(1) == "a")
-    @assert(deepNestedRef.getCapture(2) == "a")
-    @assert(deepNestedRef.getCapture(3) == "a")
-    @assert(nestedLeadingAltSiblingRef.match("b-b--b"))
-    @assert(nestedLeadingAltSiblingRef.getCapture(1) == "b")
-    @assert(nestedLeadingAltSiblingRef.getCapture(2) == "")
-    @assert(nestedLeadingAltSiblingRef.getCapture(3) == "b")
-    @assert(nestedTrailingAltSiblingRef.match("a-a-a-"))
-    @assert(nestedTrailingAltSiblingRef.getCapture(1) == "a")
-    @assert(nestedTrailingAltSiblingRef.getCapture(2) == "a")
-    @assert(nestedTrailingAltSiblingRef.getCapture(3) == "")
+    Swag.assert(nested.match("abc"))
+    Swag.assert(nested.getCapture(1) == "ab")
+    Swag.assert(nested.getCapture(2) == "a")
+    Swag.assert(nested.getCapture(3) == "c")
+    Swag.assert(nested.captures().count == 3)
+    Swag.assert(nestedRef.match("ab-ab-a"))
+    Swag.assert(nestedRef.getCapture(1) == "ab")
+    Swag.assert(nestedRef.getCapture(2) == "a")
+    Swag.assert(nestedCounted.match("ababc"))
+    Swag.assert(nestedCounted.getCapture(1) == "ab")
+    Swag.assert(nestedCounted.getCapture(2) == "a")
+    Swag.assert(nestedCounted.getCapture(3) == "c")
+    Swag.assert(deepNested.match("ab"))
+    Swag.assert(deepNested.getCapture(1) == "a")
+    Swag.assert(deepNested.getCapture(2) == "a")
+    Swag.assert(deepNested.getCapture(3) == "a")
+    Swag.assert(deepNested.getCapture(4) == "b")
+    Swag.assert(nestedSiblings.match("abc"))
+    Swag.assert(nestedSiblings.getCapture(1) == "ab")
+    Swag.assert(nestedSiblings.getCapture(2) == "a")
+    Swag.assert(nestedSiblings.getCapture(3) == "b")
+    Swag.assert(nestedSiblings.getCapture(4) == "c")
+    Swag.assert(nestedSiblingsRef.match("ab-ab-a-b"))
+    Swag.assert(nestedSiblingsRef.getCapture(1) == "ab")
+    Swag.assert(nestedSiblingsRef.getCapture(2) == "a")
+    Swag.assert(nestedSiblingsRef.getCapture(3) == "b")
+    Swag.assert(nestedSiblingsCounted.match("ababc"))
+    Swag.assert(nestedSiblingsCounted.getCapture(1) == "ab")
+    Swag.assert(nestedSiblingsCounted.getCapture(2) == "a")
+    Swag.assert(nestedSiblingsCounted.getCapture(3) == "b")
+    Swag.assert(nestedSiblingsCounted.getCapture(4) == "c")
+    Swag.assert(nestedLeadingEmptySiblingRef.match("a-a--a"))
+    Swag.assert(nestedLeadingEmptySiblingRef.getCapture(1) == "a")
+    Swag.assert(nestedLeadingEmptySiblingRef.getCapture(2) == "")
+    Swag.assert(nestedLeadingEmptySiblingRef.getCapture(3) == "a")
+    Swag.assert(nestedTrailingEmptySiblingRef.match("a-a-a-"))
+    Swag.assert(nestedTrailingEmptySiblingRef.getCapture(1) == "a")
+    Swag.assert(nestedTrailingEmptySiblingRef.getCapture(2) == "a")
+    Swag.assert(nestedTrailingEmptySiblingRef.getCapture(3) == "")
+    Swag.assert(nestedSiblingsCountedRef.match("abababab"))
+    Swag.assert(nestedSiblingsCountedRef.getCapture(1) == "ab")
+    Swag.assert(nestedSiblingsCountedRef.getCapture(2) == "a")
+    Swag.assert(nestedSiblingsCountedRef.getCapture(3) == "b")
+    Swag.assert(nestedLeadingEmptySibling.match("ab"))
+    Swag.assert(nestedLeadingEmptySibling.getCapture(1) == "a")
+    Swag.assert(nestedLeadingEmptySibling.getCapture(2) == "")
+    Swag.assert(nestedLeadingEmptySibling.getCapture(3) == "a")
+    Swag.assert(nestedLeadingEmptySibling.getCapture(4) == "b")
+    Swag.assert(nestedTrailingEmptySibling.match("ab"))
+    Swag.assert(nestedTrailingEmptySibling.getCapture(1) == "a")
+    Swag.assert(nestedTrailingEmptySibling.getCapture(2) == "a")
+    Swag.assert(nestedTrailingEmptySibling.getCapture(3) == "")
+    Swag.assert(nestedTrailingEmptySibling.getCapture(4) == "b")
+    Swag.assert(nestedLeadingAltSibling.match("bc"))
+    Swag.assert(nestedLeadingAltSibling.getCapture(1) == "b")
+    Swag.assert(nestedLeadingAltSibling.getCapture(2) == "")
+    Swag.assert(nestedLeadingAltSibling.getCapture(3) == "b")
+    Swag.assert(nestedLeadingAltSibling.getCapture(4) == "c")
+    Swag.assert(nestedLeadingAltSibling.match("abc"))
+    Swag.assert(nestedLeadingAltSibling.getCapture(1) == "ab")
+    Swag.assert(nestedLeadingAltSibling.getCapture(2) == "a")
+    Swag.assert(nestedLeadingAltSibling.getCapture(3) == "b")
+    Swag.assert(nestedLeadingAltSibling.getCapture(4) == "c")
+    Swag.assert(nestedTrailingAltSibling.match("ac"))
+    Swag.assert(nestedTrailingAltSibling.getCapture(1) == "a")
+    Swag.assert(nestedTrailingAltSibling.getCapture(2) == "a")
+    Swag.assert(nestedTrailingAltSibling.getCapture(3) == "")
+    Swag.assert(nestedTrailingAltSibling.getCapture(4) == "c")
+    Swag.assert(nestedTrailingAltSibling.match("abc"))
+    Swag.assert(nestedTrailingAltSibling.getCapture(1) == "ab")
+    Swag.assert(nestedTrailingAltSibling.getCapture(2) == "a")
+    Swag.assert(nestedTrailingAltSibling.getCapture(3) == "b")
+    Swag.assert(nestedTrailingAltSibling.getCapture(4) == "c")
+    Swag.assert(deepNestedRef.match("a-a-a-a"))
+    Swag.assert(deepNestedRef.getCapture(1) == "a")
+    Swag.assert(deepNestedRef.getCapture(2) == "a")
+    Swag.assert(deepNestedRef.getCapture(3) == "a")
+    Swag.assert(nestedLeadingAltSiblingRef.match("b-b--b"))
+    Swag.assert(nestedLeadingAltSiblingRef.getCapture(1) == "b")
+    Swag.assert(nestedLeadingAltSiblingRef.getCapture(2) == "")
+    Swag.assert(nestedLeadingAltSiblingRef.getCapture(3) == "b")
+    Swag.assert(nestedTrailingAltSiblingRef.match("a-a-a-"))
+    Swag.assert(nestedTrailingAltSiblingRef.getCapture(1) == "a")
+    Swag.assert(nestedTrailingAltSiblingRef.getCapture(2) == "a")
+    Swag.assert(nestedTrailingAltSiblingRef.getCapture(3) == "")
 }
 
 #test
@@ -539,9 +539,9 @@ using Swag
     var digits = expect Parser.RegExp.create(#raw "\d+")
 
     let prefix = digits.partialMatch("123abc")
-    @assert(prefix != null)
-    @assert(cast(#null string) prefix == "123")
-    @assert(digits.partialMatch("abc123") == null)
+    Swag.assert(prefix != null)
+    Swag.assert(cast(#null string) prefix == "123")
+    Swag.assert(digits.partialMatch("abc123") == null)
 }
 
 #test
@@ -549,17 +549,17 @@ using Swag
     var anchored = expect Parser.RegExp.create(#raw "^(\d+)")
 
     let first = anchored.partialMatch("123abc")
-    @assert(first != null)
-    @assert(cast(#null string) first == "123")
-    @assert(anchored.getCapture(1) == "123")
+    Swag.assert(first != null)
+    Swag.assert(cast(#null string) first == "123")
+    Swag.assert(anchored.getCapture(1) == "123")
 
     let second = anchored.partialMatch("456def")
-    @assert(second != null)
-    @assert(cast(#null string) second == "456")
-    @assert(anchored.getCapture(1) == "456")
+    Swag.assert(second != null)
+    Swag.assert(cast(#null string) second == "456")
+    Swag.assert(anchored.getCapture(1) == "456")
 
-    @assert(anchored.partialMatch("abc") == null)
-    @assert(anchored.captures().count == 0)
+    Swag.assert(anchored.partialMatch("abc") == null)
+    Swag.assert(anchored.captures().count == 0)
 }
 
 #test
@@ -571,9 +571,9 @@ using Swag
         for 256
         {
             let prefix = anchored.partialMatch("789xyz")
-            @assert(prefix != null)
-            @assert(cast(#null string) prefix == "789")
-            @assert(anchored.getCapture(1) == "789")
+            Swag.assert(prefix != null)
+            Swag.assert(cast(#null string) prefix == "789")
+            Swag.assert(anchored.getCapture(1) == "789")
         }
     }
 }
@@ -582,10 +582,10 @@ using Swag
 {
     let all = expect Parser.RegExp.grepAll(#raw "\d+", "a12b345c6")
 
-    @assert(all.count == 3)
-    @assert(all[0] == "12")
-    @assert(all[1] == "345")
-    @assert(all[2] == "6")
+    Swag.assert(all.count == 3)
+    Swag.assert(all[0] == "12")
+    Swag.assert(all[1] == "345")
+    Swag.assert(all[2] == "6")
 }
 
 #test
@@ -594,9 +594,9 @@ using Swag
     let none  = expect Parser.RegExp.grepAll(#raw "\d+", null)
     var part  = expect Parser.RegExp.create(#raw "\d+")
 
-    @assert(first == "12")
-    @assert(none.count == 0)
-    @assert(part.partialMatch(null) == null)
+    Swag.assert(first == "12")
+    Swag.assert(none.count == 0)
+    Swag.assert(part.partialMatch(null) == null)
 }
 
 #test
@@ -608,17 +608,17 @@ using Swag
         for 256
         {
             let first = captures.grep("a12")
-            @assert(first != null)
-            @assert(cast(#null string) first == "12")
-            @assert(captures.getCapture(1) == "12")
+            Swag.assert(first != null)
+            Swag.assert(cast(#null string) first == "12")
+            Swag.assert(captures.getCapture(1) == "12")
 
-            @assert(captures.grep("abc") == null)
-            @assert(captures.captures().count == 0)
+            Swag.assert(captures.grep("abc") == null)
+            Swag.assert(captures.captures().count == 0)
 
             let second = captures.grep("34x")
-            @assert(second != null)
-            @assert(cast(#null string) second == "34")
-            @assert(captures.getCapture(1) == "34")
+            Swag.assert(second != null)
+            Swag.assert(cast(#null string) second == "34")
+            Swag.assert(captures.getCapture(1) == "34")
         }
     }
 }
@@ -628,12 +628,12 @@ using Swag
     var endOfBuffer = expect Parser.RegExp.create(#raw "$")
 
     let match = endOfBuffer.grep("abc")
-    @assert(match != null)
-    @assert(cast(#null string) match == "")
+    Swag.assert(match != null)
+    Swag.assert(cast(#null string) match == "")
 
     let all = endOfBuffer.grepAll("abc")
-    @assert(all.count == 1)
-    @assert(all[0] == "")
+    Swag.assert(all.count == 1)
+    Swag.assert(all[0] == "")
 }
 
 #test
@@ -641,12 +641,12 @@ using Swag
     var empty = expect Parser.RegExp.create(#raw "^$")
 
     let match = empty.grep("")
-    @assert(match != null)
-    @assert(cast(#null string) match == "")
+    Swag.assert(match != null)
+    Swag.assert(cast(#null string) match == "")
 
     let all = empty.grepAll("")
-    @assert(all.count == 1)
-    @assert(all[0] == "")
+    Swag.assert(all.count == 1)
+    Swag.assert(all[0] == "")
 }
 
 #test
@@ -655,11 +655,11 @@ using Swag
     let first  = words.grep("\u00E9 scatter cat")
     let second = words.grep("\u00E9 scatter cat")
 
-    @assert(first != null)
-    @assert(cast(#null string) first == "cat")
-    @assert(second != null)
-    @assert(cast(#null string) second == "cat")
-    @assert(words.grep("\u00E9 scatter catnap") == null)
+    Swag.assert(first != null)
+    Swag.assert(cast(#null string) first == "cat")
+    Swag.assert(second != null)
+    Swag.assert(cast(#null string) second == "cat")
+    Swag.assert(words.grep("\u00E9 scatter catnap") == null)
 }
 
 #test
@@ -667,25 +667,25 @@ using Swag
     var boundary = expect Parser.RegExp.create(#raw "\b")
 
     let word = boundary.grep("cat")
-    @assert(word != null)
-    @assert(cast(#null string) word == "")
+    Swag.assert(word != null)
+    Swag.assert(cast(#null string) word == "")
 
-    @assert(boundary.grep("!?") == null)
-    @assert(boundary.grep("") == null)
+    Swag.assert(boundary.grep("!?") == null)
+    Swag.assert(boundary.grep("") == null)
 
     let all = boundary.grepAll(" cat!")
-    @assert(all.count == 2)
-    @assert(all[0] == "")
-    @assert(all[1] == "")
+    Swag.assert(all.count == 2)
+    Swag.assert(all[0] == "")
+    Swag.assert(all[1] == "")
 }
 
 #test
 {
     let all = expect Parser.RegExp.grepAll(#raw "\d+", "\u00E912\u03B2345")
 
-    @assert(all.count == 2)
-    @assert(all[0] == "12")
-    @assert(all[1] == "345")
+    Swag.assert(all.count == 2)
+    Swag.assert(all[0] == "12")
+    Swag.assert(all[1] == "345")
 }
 
 #test
@@ -693,29 +693,29 @@ using Swag
     var anchored = expect Parser.RegExp.create(#raw "^\d+")
 
     let atStart = anchored.grep("12 34")
-    @assert(atStart != null)
-    @assert(cast(#null string) atStart == "12")
-    @assert(anchored.grep("aa12") == null)
+    Swag.assert(atStart != null)
+    Swag.assert(cast(#null string) atStart == "12")
+    Swag.assert(anchored.grep("aa12") == null)
 
     let all = anchored.grepAll("12 34")
-    @assert(all.count == 1)
-    @assert(all[0] == "12")
+    Swag.assert(all.count == 1)
+    Swag.assert(all[0] == "12")
 }
 
 #test
 {
     var words = expect Parser.RegExp.create(#raw "\bcat\b")
 
-    @assert(words.grep("\u00E9cat") == null)
+    Swag.assert(words.grep("\u00E9cat") == null)
 
     let match = words.grep("\u00E9 cat")
-    @assert(match != null)
-    @assert(cast(#null string) match == "cat")
+    Swag.assert(match != null)
+    Swag.assert(cast(#null string) match == "cat")
 
     let all = words.grepAll("\u00E9 cat catnap cat")
-    @assert(all.count == 2)
-    @assert(all[0] == "cat")
-    @assert(all[1] == "cat")
+    Swag.assert(all.count == 2)
+    Swag.assert(all[0] == "cat")
+    Swag.assert(all[1] == "cat")
 }
 
 #test
@@ -723,10 +723,10 @@ using Swag
     var anchored = expect Parser.RegExp.create(#raw "^\bcat\b$")
     var letters  = expect Parser.RegExp.create(#raw "\pL+")
 
-    @assert(anchored.match("cat"))
-    @assert(!anchored.match("scatter"))
-    @assert(letters.match("Cafe"))
-    @assert(letters.match("CafeNoir"))
+    Swag.assert(anchored.match("cat"))
+    Swag.assert(!anchored.match("scatter"))
+    Swag.assert(letters.match("Cafe"))
+    Swag.assert(letters.match("CafeNoir"))
 }
 
 #test
@@ -735,13 +735,13 @@ using Swag
     var revRange   = expect Parser.RegExp.create(#raw "[d-b]+")
     var nonLetters = expect Parser.RegExp.create(#raw "[^a-z]+")
 
-    @assert(optional.match("color"))
-    @assert(optional.match("colour"))
-    @assert(!optional.match("colouur"))
-    @assert(revRange.match("bcd"))
-    @assert(!revRange.match("abe"))
-    @assert(nonLetters.match("123!?"))
-    @assert(!nonLetters.match("abc"))
+    Swag.assert(optional.match("color"))
+    Swag.assert(optional.match("colour"))
+    Swag.assert(!optional.match("colouur"))
+    Swag.assert(revRange.match("bcd"))
+    Swag.assert(!revRange.match("abe"))
+    Swag.assert(nonLetters.match("123!?"))
+    Swag.assert(!nonLetters.match("abc"))
 }
 
 #test
@@ -751,16 +751,16 @@ using Swag
     var plus = expect Parser.RegExp.create(#raw "ba{1,}c")
     var same = expect Parser.RegExp.create(#raw "ba{1,1}c")
 
-    @assert(star.match("bc"))
-    @assert(star.match("baaac"))
-    @assert(opt.match("bc"))
-    @assert(opt.match("bac"))
-    @assert(!opt.match("baac"))
-    @assert(plus.match("bac"))
-    @assert(plus.match("baaac"))
-    @assert(!plus.match("bc"))
-    @assert(same.match("bac"))
-    @assert(!same.match("baac"))
+    Swag.assert(star.match("bc"))
+    Swag.assert(star.match("baaac"))
+    Swag.assert(opt.match("bc"))
+    Swag.assert(opt.match("bac"))
+    Swag.assert(!opt.match("baac"))
+    Swag.assert(plus.match("bac"))
+    Swag.assert(plus.match("baaac"))
+    Swag.assert(!plus.match("bc"))
+    Swag.assert(same.match("bac"))
+    Swag.assert(!same.match("baac"))
 }
 
 #test
@@ -774,18 +774,18 @@ using Swag
     var unicodeNum  = expect Parser.RegExp.create(#raw "\pN+")
     var unicodeMath = expect Parser.RegExp.create(#raw "\p{Sm}+")
 
-    @assert(blanks.match(" \tabc"))
-    @assert(nonDigits.match("abc!?"))
-    @assert(!nonDigits.match("abc3"))
-    @assert(nonWords.match("!? "))
-    @assert(!nonWords.match("word_"))
-    @assert(nonSpaces.match("abc!?"))
-    @assert(!nonSpaces.match("abc "))
-    @assert(unicodeLow.match("AbC"))
-    @assert(unicodeUp.match("ABC"))
-    @assert(!unicodeUp.match("AbC"))
-    @assert(unicodeNum.match("123"))
-    @assert(unicodeMath.match("+="))
+    Swag.assert(blanks.match(" \tabc"))
+    Swag.assert(nonDigits.match("abc!?"))
+    Swag.assert(!nonDigits.match("abc3"))
+    Swag.assert(nonWords.match("!? "))
+    Swag.assert(!nonWords.match("word_"))
+    Swag.assert(nonSpaces.match("abc!?"))
+    Swag.assert(!nonSpaces.match("abc "))
+    Swag.assert(unicodeLow.match("AbC"))
+    Swag.assert(unicodeUp.match("ABC"))
+    Swag.assert(!unicodeUp.match("AbC"))
+    Swag.assert(unicodeNum.match("123"))
+    Swag.assert(unicodeMath.match("+="))
 }
 
 #test
@@ -805,129 +805,129 @@ using Swag
     var countedTrailingAltSiblingRangeRef = expect Parser.RegExp.create(#raw "((a)(|b)){0,2}\1\2\3")
     var countedBackRef                    = expect Parser.RegExp.create(#raw "([ab]){2}\1")
 
-    @assert(counted.match("abbc"))
-    @assert(counted.match("abbbc"))
-    @assert(!counted.match("abc"))
-    @assert(!counted.match("abbbbc"))
-    @assert(countedGroup.match("aab"))
-    @assert(countedGroup.getCapture(1) == "a")
-    @assert(countedGroup.getCapture(2) == "b")
-    @assert(countedAltGroup.match("abc"))
-    @assert(countedAltGroup.getCapture(1) == "b")
-    @assert(countedAltGroup.getCapture(2) == "c")
-    @assert(countedAltGroup.captures().count == 2)
-    @assert(countedEmptyAltRange.match("b"))
-    @assert(countedEmptyAltRange.getCapture(1) == "")
-    @assert(countedEmptyAltRange.getCapture(2) == "b")
-    @assert(countedEmptyAltRange.match("ab"))
-    @assert(countedEmptyAltRange.getCapture(1) == "a")
-    @assert(countedEmptyAltRange.getCapture(2) == "b")
-    @assert(countedEmptyAltRange.match("aab"))
-    @assert(countedEmptyAltRange.getCapture(1) == "a")
-    @assert(countedEmptyAltRange.getCapture(2) == "b")
-    @assert(countedSiblingRange.match("c"))
-    @assert(countedSiblingRange.getCapture(1) == "")
-    @assert(countedSiblingRange.getCapture(2) == "")
-    @assert(countedSiblingRange.getCapture(3) == "")
-    @assert(countedSiblingRange.getCapture(4) == "c")
-    @assert(countedSiblingRange.match("abc"))
-    @assert(countedSiblingRange.getCapture(1) == "ab")
-    @assert(countedSiblingRange.getCapture(2) == "a")
-    @assert(countedSiblingRange.getCapture(3) == "b")
-    @assert(countedSiblingRange.getCapture(4) == "c")
-    @assert(countedSiblingRange.match("ababc"))
-    @assert(countedSiblingRange.getCapture(1) == "ab")
-    @assert(countedSiblingRange.getCapture(2) == "a")
-    @assert(countedSiblingRange.getCapture(3) == "b")
-    @assert(countedSiblingRange.getCapture(4) == "c")
-    @assert(countedSiblingRangeRef.match(""))
-    @assert(countedSiblingRangeRef.match("ababab"))
-    @assert(countedSiblingRangeRef.getCapture(1) == "ab")
-    @assert(countedSiblingRangeRef.getCapture(2) == "a")
-    @assert(countedSiblingRangeRef.getCapture(3) == "b")
-    @assert(countedSiblingRangeRef.match("abababab"))
-    @assert(countedSiblingRangeRef.getCapture(1) == "ab")
-    @assert(countedSiblingRangeRef.getCapture(2) == "a")
-    @assert(countedSiblingRangeRef.getCapture(3) == "b")
-    @assert(countedLeadingAltSibling.match("babc"))
-    @assert(countedLeadingAltSibling.getCapture(1) == "ab")
-    @assert(countedLeadingAltSibling.getCapture(2) == "a")
-    @assert(countedLeadingAltSibling.getCapture(3) == "b")
-    @assert(countedLeadingAltSibling.getCapture(4) == "c")
-    @assert(countedLeadingAltSibling.match("abbc"))
-    @assert(countedLeadingAltSibling.getCapture(1) == "b")
-    @assert(countedLeadingAltSibling.getCapture(2) == "")
-    @assert(countedLeadingAltSibling.getCapture(3) == "b")
-    @assert(countedLeadingAltSibling.getCapture(4) == "c")
-    @assert(countedTrailingAltSibling.match("abac"))
-    @assert(countedTrailingAltSibling.getCapture(1) == "a")
-    @assert(countedTrailingAltSibling.getCapture(2) == "a")
-    @assert(countedTrailingAltSibling.getCapture(3) == "")
-    @assert(countedTrailingAltSibling.getCapture(4) == "c")
-    @assert(countedTrailingAltSibling.match("aabc"))
-    @assert(countedTrailingAltSibling.getCapture(1) == "ab")
-    @assert(countedTrailingAltSibling.getCapture(2) == "a")
-    @assert(countedTrailingAltSibling.getCapture(3) == "b")
-    @assert(countedTrailingAltSibling.getCapture(4) == "c")
-    @assert(countedLeadingAltSiblingRange.match("c"))
-    @assert(countedLeadingAltSiblingRange.getCapture(1) == "")
-    @assert(countedLeadingAltSiblingRange.getCapture(2) == "")
-    @assert(countedLeadingAltSiblingRange.getCapture(3) == "")
-    @assert(countedLeadingAltSiblingRange.getCapture(4) == "c")
-    @assert(countedLeadingAltSiblingRange.match("bc"))
-    @assert(countedLeadingAltSiblingRange.getCapture(1) == "b")
-    @assert(countedLeadingAltSiblingRange.getCapture(2) == "")
-    @assert(countedLeadingAltSiblingRange.getCapture(3) == "b")
-    @assert(countedLeadingAltSiblingRange.getCapture(4) == "c")
-    @assert(countedLeadingAltSiblingRange.match("babc"))
-    @assert(countedLeadingAltSiblingRange.getCapture(1) == "ab")
-    @assert(countedLeadingAltSiblingRange.getCapture(2) == "a")
-    @assert(countedLeadingAltSiblingRange.getCapture(3) == "b")
-    @assert(countedLeadingAltSiblingRange.getCapture(4) == "c")
-    @assert(countedTrailingAltSiblingRange.match("c"))
-    @assert(countedTrailingAltSiblingRange.getCapture(1) == "")
-    @assert(countedTrailingAltSiblingRange.getCapture(2) == "")
-    @assert(countedTrailingAltSiblingRange.getCapture(3) == "")
-    @assert(countedTrailingAltSiblingRange.getCapture(4) == "c")
-    @assert(countedTrailingAltSiblingRange.match("ac"))
-    @assert(countedTrailingAltSiblingRange.getCapture(1) == "a")
-    @assert(countedTrailingAltSiblingRange.getCapture(2) == "a")
-    @assert(countedTrailingAltSiblingRange.getCapture(3) == "")
-    @assert(countedTrailingAltSiblingRange.getCapture(4) == "c")
-    @assert(countedTrailingAltSiblingRange.match("abac"))
-    @assert(countedTrailingAltSiblingRange.getCapture(1) == "a")
-    @assert(countedTrailingAltSiblingRange.getCapture(2) == "a")
-    @assert(countedTrailingAltSiblingRange.getCapture(3) == "")
-    @assert(countedTrailingAltSiblingRange.getCapture(4) == "c")
-    @assert(countedLeadingAltSiblingRangeRef.match(""))
-    @assert(countedLeadingAltSiblingRangeRef.match("bbb"))
-    @assert(countedLeadingAltSiblingRangeRef.getCapture(1) == "b")
-    @assert(countedLeadingAltSiblingRangeRef.getCapture(2) == "")
-    @assert(countedLeadingAltSiblingRangeRef.getCapture(3) == "b")
-    @assert(countedLeadingAltSiblingRangeRef.match("ababab"))
-    @assert(countedLeadingAltSiblingRangeRef.getCapture(1) == "ab")
-    @assert(countedLeadingAltSiblingRangeRef.getCapture(2) == "a")
-    @assert(countedLeadingAltSiblingRangeRef.getCapture(3) == "b")
-    @assert(countedTrailingAltSiblingRangeRef.match(""))
-    @assert(countedTrailingAltSiblingRangeRef.match("aaa"))
-    @assert(countedTrailingAltSiblingRangeRef.getCapture(1) == "a")
-    @assert(countedTrailingAltSiblingRangeRef.getCapture(2) == "a")
-    @assert(countedTrailingAltSiblingRangeRef.getCapture(3) == "")
-    @assert(countedTrailingAltSiblingRangeRef.match("ababab"))
-    @assert(countedTrailingAltSiblingRangeRef.getCapture(1) == "ab")
-    @assert(countedTrailingAltSiblingRangeRef.getCapture(2) == "a")
-    @assert(countedTrailingAltSiblingRangeRef.getCapture(3) == "b")
-    @assert(countedRangeGroup.match("b"))
-    @assert(countedRangeGroup.getCapture(2) == "b")
-    @assert(countedRangeGroup.match("ab"))
-    @assert(countedRangeGroup.getCapture(1) == "a")
-    @assert(countedRangeGroup.getCapture(2) == "b")
-    @assert(countedRangeGroup.match("aab"))
-    @assert(countedRangeGroup.getCapture(1) == "a")
-    @assert(countedRangeGroup.getCapture(2) == "b")
-    @assert(countedBackRef.match("abb"))
-    @assert(countedBackRef.match("baa"))
-    @assert(!countedBackRef.match("aba"))
+    Swag.assert(counted.match("abbc"))
+    Swag.assert(counted.match("abbbc"))
+    Swag.assert(!counted.match("abc"))
+    Swag.assert(!counted.match("abbbbc"))
+    Swag.assert(countedGroup.match("aab"))
+    Swag.assert(countedGroup.getCapture(1) == "a")
+    Swag.assert(countedGroup.getCapture(2) == "b")
+    Swag.assert(countedAltGroup.match("abc"))
+    Swag.assert(countedAltGroup.getCapture(1) == "b")
+    Swag.assert(countedAltGroup.getCapture(2) == "c")
+    Swag.assert(countedAltGroup.captures().count == 2)
+    Swag.assert(countedEmptyAltRange.match("b"))
+    Swag.assert(countedEmptyAltRange.getCapture(1) == "")
+    Swag.assert(countedEmptyAltRange.getCapture(2) == "b")
+    Swag.assert(countedEmptyAltRange.match("ab"))
+    Swag.assert(countedEmptyAltRange.getCapture(1) == "a")
+    Swag.assert(countedEmptyAltRange.getCapture(2) == "b")
+    Swag.assert(countedEmptyAltRange.match("aab"))
+    Swag.assert(countedEmptyAltRange.getCapture(1) == "a")
+    Swag.assert(countedEmptyAltRange.getCapture(2) == "b")
+    Swag.assert(countedSiblingRange.match("c"))
+    Swag.assert(countedSiblingRange.getCapture(1) == "")
+    Swag.assert(countedSiblingRange.getCapture(2) == "")
+    Swag.assert(countedSiblingRange.getCapture(3) == "")
+    Swag.assert(countedSiblingRange.getCapture(4) == "c")
+    Swag.assert(countedSiblingRange.match("abc"))
+    Swag.assert(countedSiblingRange.getCapture(1) == "ab")
+    Swag.assert(countedSiblingRange.getCapture(2) == "a")
+    Swag.assert(countedSiblingRange.getCapture(3) == "b")
+    Swag.assert(countedSiblingRange.getCapture(4) == "c")
+    Swag.assert(countedSiblingRange.match("ababc"))
+    Swag.assert(countedSiblingRange.getCapture(1) == "ab")
+    Swag.assert(countedSiblingRange.getCapture(2) == "a")
+    Swag.assert(countedSiblingRange.getCapture(3) == "b")
+    Swag.assert(countedSiblingRange.getCapture(4) == "c")
+    Swag.assert(countedSiblingRangeRef.match(""))
+    Swag.assert(countedSiblingRangeRef.match("ababab"))
+    Swag.assert(countedSiblingRangeRef.getCapture(1) == "ab")
+    Swag.assert(countedSiblingRangeRef.getCapture(2) == "a")
+    Swag.assert(countedSiblingRangeRef.getCapture(3) == "b")
+    Swag.assert(countedSiblingRangeRef.match("abababab"))
+    Swag.assert(countedSiblingRangeRef.getCapture(1) == "ab")
+    Swag.assert(countedSiblingRangeRef.getCapture(2) == "a")
+    Swag.assert(countedSiblingRangeRef.getCapture(3) == "b")
+    Swag.assert(countedLeadingAltSibling.match("babc"))
+    Swag.assert(countedLeadingAltSibling.getCapture(1) == "ab")
+    Swag.assert(countedLeadingAltSibling.getCapture(2) == "a")
+    Swag.assert(countedLeadingAltSibling.getCapture(3) == "b")
+    Swag.assert(countedLeadingAltSibling.getCapture(4) == "c")
+    Swag.assert(countedLeadingAltSibling.match("abbc"))
+    Swag.assert(countedLeadingAltSibling.getCapture(1) == "b")
+    Swag.assert(countedLeadingAltSibling.getCapture(2) == "")
+    Swag.assert(countedLeadingAltSibling.getCapture(3) == "b")
+    Swag.assert(countedLeadingAltSibling.getCapture(4) == "c")
+    Swag.assert(countedTrailingAltSibling.match("abac"))
+    Swag.assert(countedTrailingAltSibling.getCapture(1) == "a")
+    Swag.assert(countedTrailingAltSibling.getCapture(2) == "a")
+    Swag.assert(countedTrailingAltSibling.getCapture(3) == "")
+    Swag.assert(countedTrailingAltSibling.getCapture(4) == "c")
+    Swag.assert(countedTrailingAltSibling.match("aabc"))
+    Swag.assert(countedTrailingAltSibling.getCapture(1) == "ab")
+    Swag.assert(countedTrailingAltSibling.getCapture(2) == "a")
+    Swag.assert(countedTrailingAltSibling.getCapture(3) == "b")
+    Swag.assert(countedTrailingAltSibling.getCapture(4) == "c")
+    Swag.assert(countedLeadingAltSiblingRange.match("c"))
+    Swag.assert(countedLeadingAltSiblingRange.getCapture(1) == "")
+    Swag.assert(countedLeadingAltSiblingRange.getCapture(2) == "")
+    Swag.assert(countedLeadingAltSiblingRange.getCapture(3) == "")
+    Swag.assert(countedLeadingAltSiblingRange.getCapture(4) == "c")
+    Swag.assert(countedLeadingAltSiblingRange.match("bc"))
+    Swag.assert(countedLeadingAltSiblingRange.getCapture(1) == "b")
+    Swag.assert(countedLeadingAltSiblingRange.getCapture(2) == "")
+    Swag.assert(countedLeadingAltSiblingRange.getCapture(3) == "b")
+    Swag.assert(countedLeadingAltSiblingRange.getCapture(4) == "c")
+    Swag.assert(countedLeadingAltSiblingRange.match("babc"))
+    Swag.assert(countedLeadingAltSiblingRange.getCapture(1) == "ab")
+    Swag.assert(countedLeadingAltSiblingRange.getCapture(2) == "a")
+    Swag.assert(countedLeadingAltSiblingRange.getCapture(3) == "b")
+    Swag.assert(countedLeadingAltSiblingRange.getCapture(4) == "c")
+    Swag.assert(countedTrailingAltSiblingRange.match("c"))
+    Swag.assert(countedTrailingAltSiblingRange.getCapture(1) == "")
+    Swag.assert(countedTrailingAltSiblingRange.getCapture(2) == "")
+    Swag.assert(countedTrailingAltSiblingRange.getCapture(3) == "")
+    Swag.assert(countedTrailingAltSiblingRange.getCapture(4) == "c")
+    Swag.assert(countedTrailingAltSiblingRange.match("ac"))
+    Swag.assert(countedTrailingAltSiblingRange.getCapture(1) == "a")
+    Swag.assert(countedTrailingAltSiblingRange.getCapture(2) == "a")
+    Swag.assert(countedTrailingAltSiblingRange.getCapture(3) == "")
+    Swag.assert(countedTrailingAltSiblingRange.getCapture(4) == "c")
+    Swag.assert(countedTrailingAltSiblingRange.match("abac"))
+    Swag.assert(countedTrailingAltSiblingRange.getCapture(1) == "a")
+    Swag.assert(countedTrailingAltSiblingRange.getCapture(2) == "a")
+    Swag.assert(countedTrailingAltSiblingRange.getCapture(3) == "")
+    Swag.assert(countedTrailingAltSiblingRange.getCapture(4) == "c")
+    Swag.assert(countedLeadingAltSiblingRangeRef.match(""))
+    Swag.assert(countedLeadingAltSiblingRangeRef.match("bbb"))
+    Swag.assert(countedLeadingAltSiblingRangeRef.getCapture(1) == "b")
+    Swag.assert(countedLeadingAltSiblingRangeRef.getCapture(2) == "")
+    Swag.assert(countedLeadingAltSiblingRangeRef.getCapture(3) == "b")
+    Swag.assert(countedLeadingAltSiblingRangeRef.match("ababab"))
+    Swag.assert(countedLeadingAltSiblingRangeRef.getCapture(1) == "ab")
+    Swag.assert(countedLeadingAltSiblingRangeRef.getCapture(2) == "a")
+    Swag.assert(countedLeadingAltSiblingRangeRef.getCapture(3) == "b")
+    Swag.assert(countedTrailingAltSiblingRangeRef.match(""))
+    Swag.assert(countedTrailingAltSiblingRangeRef.match("aaa"))
+    Swag.assert(countedTrailingAltSiblingRangeRef.getCapture(1) == "a")
+    Swag.assert(countedTrailingAltSiblingRangeRef.getCapture(2) == "a")
+    Swag.assert(countedTrailingAltSiblingRangeRef.getCapture(3) == "")
+    Swag.assert(countedTrailingAltSiblingRangeRef.match("ababab"))
+    Swag.assert(countedTrailingAltSiblingRangeRef.getCapture(1) == "ab")
+    Swag.assert(countedTrailingAltSiblingRangeRef.getCapture(2) == "a")
+    Swag.assert(countedTrailingAltSiblingRangeRef.getCapture(3) == "b")
+    Swag.assert(countedRangeGroup.match("b"))
+    Swag.assert(countedRangeGroup.getCapture(2) == "b")
+    Swag.assert(countedRangeGroup.match("ab"))
+    Swag.assert(countedRangeGroup.getCapture(1) == "a")
+    Swag.assert(countedRangeGroup.getCapture(2) == "b")
+    Swag.assert(countedRangeGroup.match("aab"))
+    Swag.assert(countedRangeGroup.getCapture(1) == "a")
+    Swag.assert(countedRangeGroup.getCapture(2) == "b")
+    Swag.assert(countedBackRef.match("abb"))
+    Swag.assert(countedBackRef.match("baa"))
+    Swag.assert(!countedBackRef.match("aba"))
 }
 
 #test
@@ -952,177 +952,177 @@ using Swag
     var upToTwo          = expect Parser.RegExp.create(#raw "a{0,2}bc")
     var groupUpToTwo     = expect Parser.RegExp.create(#raw "(ab){0,2}c")
 
-    @assert(emptyExactZero.match(""))
-    @assert(!emptyExactZero.match("a"))
-    @assert(emptyGroupZero.match(""))
-    @assert(!emptyGroupZero.match("ab"))
-    @assert(emptyDigitZero.match(""))
-    @assert(!emptyDigitZero.match("1"))
-    @assert(emptyUnicodeZero.match(""))
-    @assert(!emptyUnicodeZero.match("7"))
-    @assert(leftEmptyAlt.match(""))
-    @assert(leftEmptyAlt.match("b"))
-    @assert(!leftEmptyAlt.match("a"))
-    @assert(rightEmptyAlt.match(""))
-    @assert(rightEmptyAlt.match("a"))
-    @assert(!rightEmptyAlt.match("b"))
-    @assert(innerEmptyAlt.match("c"))
-    @assert(innerEmptyAlt.match("ac"))
-    @assert(!innerEmptyAlt.match("bc"))
+    Swag.assert(emptyExactZero.match(""))
+    Swag.assert(!emptyExactZero.match("a"))
+    Swag.assert(emptyGroupZero.match(""))
+    Swag.assert(!emptyGroupZero.match("ab"))
+    Swag.assert(emptyDigitZero.match(""))
+    Swag.assert(!emptyDigitZero.match("1"))
+    Swag.assert(emptyUnicodeZero.match(""))
+    Swag.assert(!emptyUnicodeZero.match("7"))
+    Swag.assert(leftEmptyAlt.match(""))
+    Swag.assert(leftEmptyAlt.match("b"))
+    Swag.assert(!leftEmptyAlt.match("a"))
+    Swag.assert(rightEmptyAlt.match(""))
+    Swag.assert(rightEmptyAlt.match("a"))
+    Swag.assert(!rightEmptyAlt.match("b"))
+    Swag.assert(innerEmptyAlt.match("c"))
+    Swag.assert(innerEmptyAlt.match("ac"))
+    Swag.assert(!innerEmptyAlt.match("bc"))
     let emptyPrefix = emptyExactZero.partialMatch("abc")
-    @assert(emptyPrefix != null)
-    @assert(cast(#null string) emptyPrefix == "")
+    Swag.assert(emptyPrefix != null)
+    Swag.assert(cast(#null string) emptyPrefix == "")
     let emptyFirst = emptyDigitZero.grep("abc")
-    @assert(emptyFirst != null)
-    @assert(cast(#null string) emptyFirst == "")
+    Swag.assert(emptyFirst != null)
+    Swag.assert(cast(#null string) emptyFirst == "")
     let emptyAll = emptyGroupZero.grepAll("ab")
-    @assert(emptyAll.count == 3)
-    @assert(emptyAll[0] == "")
-    @assert(emptyAll[1] == "")
-    @assert(emptyAll[2] == "")
-    @assert(exactZero.match("bc"))
-    @assert(!exactZero.match("abc"))
-    @assert(rangeZero.match("c"))
-    @assert(!rangeZero.match("ac"))
-    @assert(groupedZero.match("c"))
-    @assert(!groupedZero.match("abc"))
-    @assert(escapedZero.match("a"))
-    @assert(escapedZero.match("(a"))
-    @assert(escapedZero.match("((a"))
-    @assert(!escapedZero.match("(((a"))
-    @assert(escapedCloseZero.match("a"))
-    @assert(escapedCloseZero.match(")a"))
-    @assert(escapedCloseZero.match("))a"))
-    @assert(!escapedCloseZero.match(")))a"))
-    @assert(escapedPipeZero.match("a"))
-    @assert(escapedPipeZero.match("|a"))
-    @assert(escapedPipeZero.match("||a"))
-    @assert(!escapedPipeZero.match("|||a"))
-    @assert(digitExactZero.match("a"))
-    @assert(!digitExactZero.match("1a"))
-    @assert(digitUpToTwo.match("a"))
-    @assert(digitUpToTwo.match("1a"))
-    @assert(digitUpToTwo.match("12a"))
-    @assert(!digitUpToTwo.match("123a"))
-    @assert(unicodeUpToTwo.match("a"))
-    @assert(unicodeUpToTwo.match("42a"))
-    @assert(!unicodeUpToTwo.match("123a"))
-    @assert(anythingUpToTwo.match("a"))
-    @assert(anythingUpToTwo.match("xa"))
-    @assert(anythingUpToTwo.match("xya"))
-    @assert(!anythingUpToTwo.match("xyza"))
-    @assert(upToTwo.match("bc"))
-    @assert(upToTwo.match("abc"))
-    @assert(upToTwo.match("aabc"))
-    @assert(!upToTwo.match("aaabc"))
-    @assert(groupUpToTwo.match("c"))
-    @assert(groupUpToTwo.match("abc"))
-    @assert(groupUpToTwo.match("ababc"))
-    @assert(!groupUpToTwo.match("abababc"))
+    Swag.assert(emptyAll.count == 3)
+    Swag.assert(emptyAll[0] == "")
+    Swag.assert(emptyAll[1] == "")
+    Swag.assert(emptyAll[2] == "")
+    Swag.assert(exactZero.match("bc"))
+    Swag.assert(!exactZero.match("abc"))
+    Swag.assert(rangeZero.match("c"))
+    Swag.assert(!rangeZero.match("ac"))
+    Swag.assert(groupedZero.match("c"))
+    Swag.assert(!groupedZero.match("abc"))
+    Swag.assert(escapedZero.match("a"))
+    Swag.assert(escapedZero.match("(a"))
+    Swag.assert(escapedZero.match("((a"))
+    Swag.assert(!escapedZero.match("(((a"))
+    Swag.assert(escapedCloseZero.match("a"))
+    Swag.assert(escapedCloseZero.match(")a"))
+    Swag.assert(escapedCloseZero.match("))a"))
+    Swag.assert(!escapedCloseZero.match(")))a"))
+    Swag.assert(escapedPipeZero.match("a"))
+    Swag.assert(escapedPipeZero.match("|a"))
+    Swag.assert(escapedPipeZero.match("||a"))
+    Swag.assert(!escapedPipeZero.match("|||a"))
+    Swag.assert(digitExactZero.match("a"))
+    Swag.assert(!digitExactZero.match("1a"))
+    Swag.assert(digitUpToTwo.match("a"))
+    Swag.assert(digitUpToTwo.match("1a"))
+    Swag.assert(digitUpToTwo.match("12a"))
+    Swag.assert(!digitUpToTwo.match("123a"))
+    Swag.assert(unicodeUpToTwo.match("a"))
+    Swag.assert(unicodeUpToTwo.match("42a"))
+    Swag.assert(!unicodeUpToTwo.match("123a"))
+    Swag.assert(anythingUpToTwo.match("a"))
+    Swag.assert(anythingUpToTwo.match("xa"))
+    Swag.assert(anythingUpToTwo.match("xya"))
+    Swag.assert(!anythingUpToTwo.match("xyza"))
+    Swag.assert(upToTwo.match("bc"))
+    Swag.assert(upToTwo.match("abc"))
+    Swag.assert(upToTwo.match("aabc"))
+    Swag.assert(!upToTwo.match("aaabc"))
+    Swag.assert(groupUpToTwo.match("c"))
+    Swag.assert(groupUpToTwo.match("abc"))
+    Swag.assert(groupUpToTwo.match("ababc"))
+    Swag.assert(!groupUpToTwo.match("abababc"))
 }
 
 #test
 {
     discard catch Parser.RegExp.create(#raw "a{2,1}") as err
 
-    @assert(err != null)
-    @assert(err is Errors.SyntaxError)
+    Swag.assert(err != null)
+    Swag.assert(err is Errors.SyntaxError)
 }
 
 #test
 {
     discard catch Parser.RegExp.create(#raw "{1}") as err2
 
-    @assert(err2 != null)
-    @assert(err2 is Errors.SyntaxError)
+    Swag.assert(err2 != null)
+    Swag.assert(err2 is Errors.SyntaxError)
 }
 
 #test
 {
     discard catch Parser.RegExp.create(#raw "(") as err3
 
-    @assert(err3 != null)
-    @assert(err3 is Errors.SyntaxError)
+    Swag.assert(err3 != null)
+    Swag.assert(err3 is Errors.SyntaxError)
 }
 
 #test
 {
     discard catch Parser.RegExp.create(#raw "[abc") as err4
 
-    @assert(err4 != null)
-    @assert(err4 is Errors.SyntaxError)
+    Swag.assert(err4 != null)
+    Swag.assert(err4 is Errors.SyntaxError)
 }
 
 #test
 {
     discard catch Parser.RegExp.create(#raw "\pQ") as err5
 
-    @assert(err5 != null)
-    @assert(err5 is Errors.SyntaxError)
+    Swag.assert(err5 != null)
+    Swag.assert(err5 is Errors.SyntaxError)
 }
 
 #test
 {
     discard catch Parser.RegExp.create(#raw "\p{Lx}") as err6
 
-    @assert(err6 != null)
-    @assert(err6 is Errors.SyntaxError)
+    Swag.assert(err6 != null)
+    Swag.assert(err6 is Errors.SyntaxError)
 }
 
 #test
 {
     discard catch Parser.RegExp.create("\\") as err7
 
-    @assert(err7 != null)
-    @assert(err7 is Errors.SyntaxError)
+    Swag.assert(err7 != null)
+    Swag.assert(err7 is Errors.SyntaxError)
 }
 
 #test
 {
     discard catch Parser.RegExp.create(#raw "\q") as err8
 
-    @assert(err8 != null)
-    @assert(err8 is Errors.SyntaxError)
+    Swag.assert(err8 != null)
+    Swag.assert(err8 is Errors.SyntaxError)
 }
 
 #test
 {
     discard catch Parser.RegExp.create(#raw "[\q]") as err9
 
-    @assert(err9 != null)
-    @assert(err9 is Errors.SyntaxError)
+    Swag.assert(err9 != null)
+    Swag.assert(err9 is Errors.SyntaxError)
 }
 
 #test
 {
     discard catch Parser.RegExp.create(#raw "\p") as err10
 
-    @assert(err10 != null)
-    @assert(err10 is Errors.SyntaxError)
+    Swag.assert(err10 != null)
+    Swag.assert(err10 is Errors.SyntaxError)
 }
 
 #test
 {
     discard catch Parser.RegExp.create(#raw "\p{L") as err11
 
-    @assert(err11 != null)
-    @assert(err11 is Errors.SyntaxError)
+    Swag.assert(err11 != null)
+    Swag.assert(err11 is Errors.SyntaxError)
 }
 
 #test
 {
     discard catch Parser.RegExp.create(#raw "[[:bogus:]]") as err12
 
-    @assert(err12 != null)
-    @assert(err12 is Errors.SyntaxError)
+    Swag.assert(err12 != null)
+    Swag.assert(err12 is Errors.SyntaxError)
 }
 
 #test
 {
     discard catch Parser.RegExp.create(#raw "[[:digit]]") as err13
 
-    @assert(err13 != null)
-    @assert(err13 is Errors.SyntaxError)
+    Swag.assert(err13 != null)
+    Swag.assert(err13 is Errors.SyntaxError)
 }
 
 #test
@@ -1134,20 +1134,20 @@ using Swag
     var noSingle    = expect Parser.RegExp.create(#raw "[^x]")
     var noCaseAware = expect Parser.RegExp.create(#raw "[^a]+", true)
 
-    @assert(noLetters.match("xyz"))
-    @assert(!noLetters.match("abc"))
-    @assert(!noLetters.match("xbz"))
-    @assert(noMixed.match("xyz8"))
-    @assert(!noMixed.match("9"))
-    @assert(!noMixed.match("b"))
-    @assert(noClass.match("ab!"))
-    @assert(!noClass.match("a1"))
-    @assert(!noClass.match("a b"))
-    @assert(noSingle.match("y"))
-    @assert(!noSingle.match("x"))
-    @assert(noCaseAware.match("bc"))
-    @assert(!noCaseAware.match("A"))
-    @assert(!noCaseAware.match("a"))
+    Swag.assert(noLetters.match("xyz"))
+    Swag.assert(!noLetters.match("abc"))
+    Swag.assert(!noLetters.match("xbz"))
+    Swag.assert(noMixed.match("xyz8"))
+    Swag.assert(!noMixed.match("9"))
+    Swag.assert(!noMixed.match("b"))
+    Swag.assert(noClass.match("ab!"))
+    Swag.assert(!noClass.match("a1"))
+    Swag.assert(!noClass.match("a b"))
+    Swag.assert(noSingle.match("y"))
+    Swag.assert(!noSingle.match("x"))
+    Swag.assert(noCaseAware.match("bc"))
+    Swag.assert(!noCaseAware.match("A"))
+    Swag.assert(!noCaseAware.match("a"))
 }
 
 #test
@@ -1156,14 +1156,14 @@ using Swag
     var mixed      = expect Parser.RegExp.create(#raw "(?:ab)(c)")
     var nestedOnly = expect Parser.RegExp.create(#raw "(?:(a)b)+")
 
-    @assert(group.match("ababab"))
-    @assert(!group.match("aba"))
-    @assert(group.captureCount() == 0)
-    @assert(mixed.match("abc"))
-    @assert(mixed.getCapture(1) == "c")
-    @assert(mixed.captureCount() == 1)
-    @assert(nestedOnly.match("abab"))
-    @assert(nestedOnly.getCapture(1) == "a")
+    Swag.assert(group.match("ababab"))
+    Swag.assert(!group.match("aba"))
+    Swag.assert(group.captureCount() == 0)
+    Swag.assert(mixed.match("abc"))
+    Swag.assert(mixed.getCapture(1) == "c")
+    Swag.assert(mixed.captureCount() == 1)
+    Swag.assert(nestedOnly.match("abab"))
+    Swag.assert(nestedOnly.getCapture(1) == "a")
 }
 
 #test
@@ -1172,15 +1172,15 @@ using Swag
     var quoted = expect Parser.RegExp.create(#raw "(?'word'\l+)")
     var python = expect Parser.RegExp.create(#raw "(?P<num>\d+)")
 
-    @assert(angle.match("2024-07"))
-    @assert(angle.getCapture("year") == "2024")
-    @assert(angle.getCapture("month") == "07")
-    @assert(angle.getCapture("day") == "")
-    @assert(angle.getCapture(1) == "2024")
-    @assert(quoted.match("hello"))
-    @assert(quoted.getCapture("word") == "hello")
-    @assert(python.match("42"))
-    @assert(python.getCapture("num") == "42")
+    Swag.assert(angle.match("2024-07"))
+    Swag.assert(angle.getCapture("year") == "2024")
+    Swag.assert(angle.getCapture("month") == "07")
+    Swag.assert(angle.getCapture("day") == "")
+    Swag.assert(angle.getCapture(1) == "2024")
+    Swag.assert(quoted.match("hello"))
+    Swag.assert(quoted.getCapture("word") == "hello")
+    Swag.assert(python.match("42"))
+    Swag.assert(python.getCapture("num") == "42")
 }
 
 #test
@@ -1191,18 +1191,18 @@ using Swag
     var lazyCount = expect Parser.RegExp.create(#raw "a{1,3}?b")
 
     let tag = lazyStar.grep("<one><two>")
-    @assert(tag != null)
-    @assert(cast(#null string) tag == "<one>")
-    @assert(lazyStar.getCapture(1) == "one")
+    Swag.assert(tag != null)
+    Swag.assert(cast(#null string) tag == "<one>")
+    Swag.assert(lazyStar.getCapture(1) == "one")
 
-    @assert(lazyPlus.match("aab"))
+    Swag.assert(lazyPlus.match("aab"))
 
     let shortest = lazyOpt.grep("ab")
-    @assert(shortest != null)
-    @assert(cast(#null string) shortest == "a")
+    Swag.assert(shortest != null)
+    Swag.assert(cast(#null string) shortest == "a")
 
-    @assert(lazyCount.match("aab"))
-    @assert(!lazyCount.match("aaaab"))
+    Swag.assert(lazyCount.match("aab"))
+    Swag.assert(!lazyCount.match("aaaab"))
 }
 
 #test
@@ -1213,18 +1213,18 @@ using Swag
     var lines    = expect Parser.RegExp.create(#raw "(?m)^b$")
     var noDotAll = expect Parser.RegExp.create(#raw "(?-s)a.b")
 
-    @assert(scoped.match("AbC"))
-    @assert(partial.match("abCDef"))
-    @assert(!partial.match("ABcdef"))
-    @assert(disabled.match("ABcd"))
-    @assert(!disabled.match("ABCD"))
+    Swag.assert(scoped.match("AbC"))
+    Swag.assert(partial.match("abCDef"))
+    Swag.assert(!partial.match("ABcdef"))
+    Swag.assert(disabled.match("ABcd"))
+    Swag.assert(!disabled.match("ABCD"))
 
     let line = lines.grep("a\nb\nc")
-    @assert(line != null)
-    @assert(cast(#null string) line == "b")
+    Swag.assert(line != null)
+    Swag.assert(cast(#null string) line == "b")
 
-    @assert(noDotAll.match("axb"))
-    @assert(!noDotAll.match("a\nb"))
+    Swag.assert(noDotAll.match("axb"))
+    Swag.assert(!noDotAll.match("a\nb"))
 }
 
 #test
@@ -1233,14 +1233,14 @@ using Swag
     var notBoundary = expect Parser.RegExp.create(#raw "a\Bb")
     var insideWord  = expect Parser.RegExp.create(#raw "\Bcat\B")
 
-    @assert(whole.match("abc"))
-    @assert(whole.grep("xabc") == null)
-    @assert(notBoundary.match("ab"))
+    Swag.assert(whole.match("abc"))
+    Swag.assert(whole.grep("xabc") == null)
+    Swag.assert(notBoundary.match("ab"))
 
     let inside = insideWord.grep("scatter")
-    @assert(inside != null)
-    @assert(cast(#null string) inside == "cat")
-    @assert(insideWord.grep("a cat") == null)
+    Swag.assert(inside != null)
+    Swag.assert(cast(#null string) inside == "cat")
+    Swag.assert(insideWord.grep("a cat") == null)
 }
 
 #test
@@ -1252,13 +1252,13 @@ using Swag
     var nul     = expect Parser.RegExp.create(#raw "a\0b")
     var inClass = expect Parser.RegExp.create(#raw "[\x41-\x43]+")
 
-    @assert(hexByte.match("AB"))
-    @assert(hexRune.match("\u00E9"))
-    @assert(hexWide.match("\U0001F600\U0001F600"))
-    @assert(escape.match("\u001B"))
-    @assert(!nul.match("ab"))
-    @assert(inClass.match("ABC"))
-    @assert(!inClass.match("D"))
+    Swag.assert(hexByte.match("AB"))
+    Swag.assert(hexRune.match("\u00E9"))
+    Swag.assert(hexWide.match("\U0001F600\U0001F600"))
+    Swag.assert(escape.match("\u001B"))
+    Swag.assert(!nul.match("ab"))
+    Swag.assert(inClass.match("ABC"))
+    Swag.assert(!inClass.match("D"))
 }
 
 #test
@@ -1268,14 +1268,14 @@ using Swag
     var graph = expect Parser.RegExp.create(#raw "[[:graph:]]+")
     var print = expect Parser.RegExp.create(#raw "[[:print:]]+")
 
-    @assert(punct.match("!?;"))
-    @assert(!punct.match("a"))
-    @assert(cntrl.match("\u0001\u0002"))
-    @assert(!cntrl.match(" "))
-    @assert(graph.match("ab!"))
-    @assert(!graph.match("a b"))
-    @assert(print.match("a b"))
-    @assert(!print.match("a\tb"))
+    Swag.assert(punct.match("!?;"))
+    Swag.assert(!punct.match("a"))
+    Swag.assert(cntrl.match("\u0001\u0002"))
+    Swag.assert(!cntrl.match(" "))
+    Swag.assert(graph.match("ab!"))
+    Swag.assert(!graph.match("a b"))
+    Swag.assert(print.match("a b"))
+    Swag.assert(!print.match("a\tb"))
 }
 
 #test
@@ -1285,12 +1285,12 @@ using Swag
     var letters    = expect Parser.RegExp.create(#raw "\p{Letter}+")
     var titles     = expect Parser.RegExp.create(#raw "\p{Lt}")
 
-    @assert(decimals.match("123"))
-    @assert(!decimals.match("12a"))
-    @assert(notLetters.match("12!?"))
-    @assert(!notLetters.match("12a"))
-    @assert(letters.match("Caf\u00E9"))
-    @assert(titles.match("\u01C5"))
+    Swag.assert(decimals.match("123"))
+    Swag.assert(!decimals.match("12a"))
+    Swag.assert(notLetters.match("12!?"))
+    Swag.assert(!notLetters.match("12a"))
+    Swag.assert(letters.match("Caf\u00E9"))
+    Swag.assert(titles.match("\u01C5"))
 }
 
 #test
@@ -1302,18 +1302,18 @@ using Swag
     var mixed     = expect Parser.RegExp.create(#raw "\w+\x{00E9}\w+")
     var wideClass = expect Parser.RegExp.create(#raw "[a\x{4E2D}\x{1F600}]+")
 
-    @assert(accented.match("\u00E9\u00FF"))
-    @assert(!accented.match("a"))
-    @assert(anyRune.match("a\u00E9\u4E2D"))
-    @assert(!anyRune.match("ab"))
-    @assert(mixed.match("ab\u00E9cd"))
-    @assert(wideClass.match("a\u4E2D\U0001F600a"))
-    @assert(!wideClass.match("b"))
+    Swag.assert(accented.match("\u00E9\u00FF"))
+    Swag.assert(!accented.match("a"))
+    Swag.assert(anyRune.match("a\u00E9\u4E2D"))
+    Swag.assert(!anyRune.match("ab"))
+    Swag.assert(mixed.match("ab\u00E9cd"))
+    Swag.assert(wideClass.match("a\u4E2D\U0001F600a"))
+    Swag.assert(!wideClass.match("b"))
 
     let all = expect Parser.RegExp.grepAll(#raw "\x{00E9}+", "a\u00E9b\u00E9\u00E9c")
-    @assert(all.count == 2)
-    @assert(all[0] == "\u00E9")
-    @assert(all[1] == "\u00E9\u00E9")
+    Swag.assert(all.count == 2)
+    Swag.assert(all[0] == "\u00E9")
+    Swag.assert(all[1] == "\u00E9\u00E9")
 }
 
 #test
@@ -1321,45 +1321,45 @@ using Swag
     var digits = expect Parser.RegExp.create(#raw "\d+")
 
     let first = digits.find("ab 12 cd 345")
-    @assert(first.found)
-    @assert(first.span.start == 3)
-    @assert(first.span.end == 5)
+    Swag.assert(first.found)
+    Swag.assert(first.span.start == 3)
+    Swag.assert(first.span.end == 5)
 
     let second = digits.find("ab 12 cd 345", 5)
-    @assert(second.found)
-    @assert(second.span.start == 9)
-    @assert(second.span.end == 12)
+    Swag.assert(second.found)
+    Swag.assert(second.span.start == 9)
+    Swag.assert(second.span.end == 12)
 
-    @assert(!digits.find("abc").found)
-    @assert(!digits.find(null).found)
+    Swag.assert(!digits.find("abc").found)
+    Swag.assert(!digits.find(null).found)
 
     let spans = digits.findAll("ab 12 cd 345")
-    @assert(spans.count == 2)
-    @assert(spans[0].start == 3)
-    @assert(spans[1].end == 12)
+    Swag.assert(spans.count == 2)
+    Swag.assert(spans[0].start == 3)
+    Swag.assert(spans[1].end == 12)
 }
 
 #test
 {
     var parts = expect Parser.RegExp.create(#raw "(\w+)@(\w+)")
 
-    @assert(parts.match("user@host"))
+    Swag.assert(parts.match("user@host"))
 
     let whole = parts.captureSpan(0)
-    @assert(whole.found)
-    @assert(whole.span.start == 0)
-    @assert(whole.span.end == 9)
+    Swag.assert(whole.found)
+    Swag.assert(whole.span.start == 0)
+    Swag.assert(whole.span.end == 9)
 
     let user = parts.captureSpan(1)
-    @assert(user.found)
-    @assert(user.span.start == 0)
-    @assert(user.span.end == 4)
+    Swag.assert(user.found)
+    Swag.assert(user.span.start == 0)
+    Swag.assert(user.span.end == 4)
 
     let host = parts.captureSpan(2)
-    @assert(host.found)
-    @assert(host.span.start == 5)
+    Swag.assert(host.found)
+    Swag.assert(host.span.start == 5)
 
-    @assert(!parts.captureSpan(3).found)
+    Swag.assert(!parts.captureSpan(3).found)
 }
 
 #test
@@ -1368,12 +1368,12 @@ using Swag
     var named = expect Parser.RegExp.create(#raw "(?<key>\w+)=(?<value>\w+)")
     var vowel = expect Parser.RegExp.create(#raw "[aeiou]")
 
-    @assert(swap.replaceAll("ab-cd and ef-gh", "$2:$1") == "cd:ab and gh:ef")
-    @assert(named.replaceAll("x=1", "${value}/${key}") == "1/x")
-    @assert(vowel.replaceAll("banana", "*") == "b*n*n*")
-    @assert(vowel.replaceAll("xyz", "*") == "xyz")
-    @assert(swap.replaceAll("ab-cd", "$$0 is $0") == "$0 is ab-cd")
-    @assert(vowel.replaceAll(null, "*") == "")
+    Swag.assert(swap.replaceAll("ab-cd and ef-gh", "$2:$1") == "cd:ab and gh:ef")
+    Swag.assert(named.replaceAll("x=1", "${value}/${key}") == "1/x")
+    Swag.assert(vowel.replaceAll("banana", "*") == "b*n*n*")
+    Swag.assert(vowel.replaceAll("xyz", "*") == "xyz")
+    Swag.assert(swap.replaceAll("ab-cd", "$$0 is $0") == "$0 is ab-cd")
+    Swag.assert(vowel.replaceAll(null, "*") == "")
 }
 
 #test
@@ -1382,21 +1382,21 @@ using Swag
     var wide  = expect Parser.RegExp.create(#raw "\d+")
 
     let fields = comma.split("a, b,c ,d")
-    @assert(fields.count == 4)
-    @assert(fields[0] == "a")
-    @assert(fields[1] == "b")
-    @assert(fields[2] == "c ")
-    @assert(fields[3] == "d")
+    Swag.assert(fields.count == 4)
+    Swag.assert(fields[0] == "a")
+    Swag.assert(fields[1] == "b")
+    Swag.assert(fields[2] == "c ")
+    Swag.assert(fields[3] == "d")
 
     let around = wide.split("12ab34")
-    @assert(around.count == 3)
-    @assert(around[0] == "")
-    @assert(around[1] == "ab")
-    @assert(around[2] == "")
+    Swag.assert(around.count == 3)
+    Swag.assert(around[0] == "")
+    Swag.assert(around[1] == "ab")
+    Swag.assert(around[2] == "")
 
     let none = comma.split("abc")
-    @assert(none.count == 1)
-    @assert(none[0] == "abc")
+    Swag.assert(none.count == 1)
+    Swag.assert(none[0] == "abc")
 }
 
 #test
@@ -1407,10 +1407,10 @@ using Swag
     var nested     = expect Parser.RegExp.create(#raw "(a*)*b")
     var alternated = expect Parser.RegExp.create(#raw "(a|aa)+c")
 
-    @assert(!nested.match("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
-    @assert(nested.match("aaab"))
-    @assert(!alternated.match("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
-    @assert(alternated.match("aaac"))
+    Swag.assert(!nested.match("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+    Swag.assert(nested.match("aaab"))
+    Swag.assert(!alternated.match("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+    Swag.assert(alternated.match("aaac"))
 }
 
 #test
@@ -1422,13 +1422,13 @@ using Swag
     for 1000 do
         subject.append('a'u8)
 
-    @assert(many.match(subject.toString()))
-    @assert(!many.match("aaa"))
-    @assert(wide.match("ababc"))
+    Swag.assert(many.match(subject.toString()))
+    Swag.assert(!many.match("aaa"))
+    Swag.assert(wide.match("ababc"))
 
     discard catch Parser.RegExp.create(#raw "a{1001}") as tooMany
-    @assert(tooMany != null)
-    @assert(tooMany is Errors.SyntaxError)
+    Swag.assert(tooMany != null)
+    Swag.assert(tooMany is Errors.SyntaxError)
 }
 
 #test
@@ -1436,34 +1436,34 @@ using Swag
     // Constructs that are not supported must be rejected, not silently matched as something
     // else.
     discard catch Parser.RegExp.create(#raw "(?=abc)") as lookAhead
-    @assert(lookAhead is Errors.SyntaxError)
+    Swag.assert(lookAhead is Errors.SyntaxError)
 
     discard catch Parser.RegExp.create(#raw "(?<=abc)") as lookBehind
-    @assert(lookBehind is Errors.SyntaxError)
+    Swag.assert(lookBehind is Errors.SyntaxError)
 
     discard catch Parser.RegExp.create(#raw "a*+") as possessive
-    @assert(possessive is Errors.SyntaxError)
+    Swag.assert(possessive is Errors.SyntaxError)
 
     discard catch Parser.RegExp.create(#raw "(?<name") as unterminatedName
-    @assert(unterminatedName is Errors.SyntaxError)
+    Swag.assert(unterminatedName is Errors.SyntaxError)
 
     discard catch Parser.RegExp.create(#raw "(?<>a)") as emptyName
-    @assert(emptyName is Errors.SyntaxError)
+    Swag.assert(emptyName is Errors.SyntaxError)
 
     discard catch Parser.RegExp.create(#raw "\x{}") as emptyHex
-    @assert(emptyHex is Errors.SyntaxError)
+    Swag.assert(emptyHex is Errors.SyntaxError)
 
     discard catch Parser.RegExp.create(#raw "\x{110000}") as tooWide
-    @assert(tooWide is Errors.SyntaxError)
+    Swag.assert(tooWide is Errors.SyntaxError)
 
     discard catch Parser.RegExp.create(#raw "(?y)a") as badFlag
-    @assert(badFlag is Errors.SyntaxError)
+    Swag.assert(badFlag is Errors.SyntaxError)
 
     discard catch Parser.RegExp.create(#raw "^*") as repeatedAssert
-    @assert(repeatedAssert is Errors.SyntaxError)
+    Swag.assert(repeatedAssert is Errors.SyntaxError)
 
     discard catch Parser.RegExp.create(#raw "[a-\d]") as classBound
-    @assert(classBound is Errors.SyntaxError)
+    Swag.assert(classBound is Errors.SyntaxError)
 }
 
 #test
@@ -1481,14 +1481,14 @@ using Swag
         subject.append("filler needle text x1 a@b ")
     }
 
-    @assert(literal.findAll(subject.toString()).count == 200)
-    @assert(inner.findAll(subject.toString()).count == 200)
-    @assert(byteSet.findAll(subject.toString()).count == 200)
-    @assert(anchored.findAll(subject.toString()).count == 1)
+    Swag.assert(literal.findAll(subject.toString()).count == 200)
+    Swag.assert(inner.findAll(subject.toString()).count == 200)
+    Swag.assert(byteSet.findAll(subject.toString()).count == 200)
+    Swag.assert(anchored.findAll(subject.toString()).count == 1)
 
     let first = literal.find(subject.toString())
-    @assert(first.found)
-    @assert(first.span.start == 7)
+    Swag.assert(first.found)
+    Swag.assert(first.span.start == 7)
 }
 
 // A deterministic pseudo-random source, so a failure names one seed and reproduces exactly.
@@ -1595,7 +1595,7 @@ func buildSubject(rng: *Rng)->String
     var result: retval
     let length = rng.below(18)
     for var i = 0'u64; i < length; i += 1 do
-        result.append(Alphabet[rng.below(@countof(Alphabet))])
+        result.append(Alphabet[rng.below(Alphabet.count)])
     return result
 }
 
@@ -1638,19 +1638,19 @@ func buildSubject(rng: *Rng)->String
         for 12
         {
             subject = buildSubject(&rng)
-            let hay = @mkslice(@dataof(subject.toString()), subject.length)
+            let hay = Swag.makeSlice((subject.toString()).buffer, subject.length)
 
             let reference = vm.run(&program, hay, 0, subject.length, false, false)
             let found     = expression.find(subject.toString())
 
             compared += 1
 
-            @assert(found.found == reference)
+            Swag.assert(found.found == reference)
             if !reference do
                 continue
 
-            @assert(found.span.start == vm.matchSlots[0])
-            @assert(found.span.end == vm.matchSlots[1])
+            Swag.assert(found.span.start == vm.matchSlots[0])
+            Swag.assert(found.span.end == vm.matchSlots[1])
 
             // Every capture engine has to report what the simulation reports, group by group.
             for var group = 1'u32; group <= expression.captureCount(); group += 1
@@ -1660,11 +1660,11 @@ func buildSubject(rng: *Rng)->String
                 let closing  = vm.matchSlots[2 * group + 1]
                 let expected = opening != Parser.Regex.NoSlot and closing != Parser.Regex.NoSlot
 
-                @assert(span.found == expected)
+                Swag.assert(span.found == expected)
                 if !expected do
                     continue
-                @assert(span.span.start == opening)
-                @assert(span.span.end == closing)
+                Swag.assert(span.span.start == opening)
+                Swag.assert(span.span.end == closing)
             }
 
             // Every occurrence, found the way a caller asks for them, against the same
@@ -1680,8 +1680,8 @@ func buildSubject(rng: *Rng)->String
                 if !vm.run(&program, hay, at, subject.length, false, false) do
                     break
 
-                @assert(every[seen].start == vm.matchSlots[0])
-                @assert(every[seen].end == vm.matchSlots[1])
+                Swag.assert(every[seen].start == vm.matchSlots[0])
+                Swag.assert(every[seen].end == vm.matchSlots[1])
                 seen += 1
 
                 if vm.matchSlots[1] > vm.matchSlots[0]
@@ -1695,13 +1695,13 @@ func buildSubject(rng: *Rng)->String
                     at += 1
             }
 
-            @assert(seen == every.count)
+            Swag.assert(seen == every.count)
 
             let reference2 = vm.run(&program, hay, 0, subject.length, false, false)
-            @assert(reference2 == reference)
+            Swag.assert(reference2 == reference)
         }
     }
 
     // A generated suite that stops generating proves nothing, so it says how much it compared.
-    @assert(compared > 3000)
+    Swag.assert(compared > 3000)
 }

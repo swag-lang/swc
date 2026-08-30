@@ -7,8 +7,8 @@
         var last: u8 = 0
         for 4'u8
         {
-            @assert(#typeof(@index) == u8)
-            last = @index
+            Swag.assert(#typeof(Swag.index) == u8)
+            last = Swag.index
         }
 
         return last
@@ -25,9 +25,9 @@
         var acc: s16 = 0
         for i in 1's16 until 4's16
         {
-            @assert(#typeof(@index) == s16)
-            @assert(@index == i)
-            acc += @index
+            Swag.assert(#typeof(Swag.index) == s16)
+            Swag.assert(Swag.index == i)
+            acc += Swag.index
         }
 
         return acc
@@ -46,8 +46,8 @@
 
         for value in arr
         {
-            @assert(#typeof(@index) == u64)
-            acc += @index + cast(u64) value
+            Swag.assert(#typeof(Swag.index) == u64)
+            acc += Swag.index + cast(u64) value
         }
 
         return acc
@@ -65,15 +65,15 @@
         var str: string = "abcd"
         var acc: u64    = 0
 
-        for i in @countof(arr)
+        for i in arr.count
         {
             acc += cast(u64) i
         }
 
-        for i in @countof(str)
+        for i in str.count
         {
-            @assert(#typeof(i) == u64)
-            @assert(#typeof(@index) == u64)
+            Swag.assert(#typeof(i) == u64)
+            Swag.assert(#typeof(Swag.index) == u64)
             acc += i
         }
 

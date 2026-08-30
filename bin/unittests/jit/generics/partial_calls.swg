@@ -55,8 +55,8 @@ impl SimpleMethodProbe
 
     #assert(#typeof(freeOk) == bool)
     #assert(#typeof(methodOk) == bool)
-    @assert(freeOk)
-    @assert(methodOk)
+    Swag.assert(freeOk)
+    Swag.assert(methodOk)
 }
 
 #test
@@ -66,6 +66,6 @@ impl SimpleMethodProbe
 
     #assert(#typeof(concrete) == bool)
     #assert(#typeof(local) == bool)
-    @assert(concrete)
-    @assert(local)
+    Swag.assert(concrete)
+    Swag.assert(local)
 }

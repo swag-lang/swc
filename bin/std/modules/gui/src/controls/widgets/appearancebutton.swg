@@ -100,7 +100,7 @@ impl AppearanceButton
     // reports a user-visible choice. The stored choice changes only after resources were applied.
     mtd setAppearanceLanguage(tag: string, notify = false) fail
     {
-        let resolved = @countof(tag) ? tag : systemLanguage()
+        let resolved = tag.count ? tag : systemLanguage()
         try .app().setLanguage(resolved)
         .language = tag
         .toolTip  = strings().appearance_ToolTip

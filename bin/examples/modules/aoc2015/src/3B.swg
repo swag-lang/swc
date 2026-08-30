@@ -43,5 +43,5 @@ func day3B()
     }
 
     // Console.print("total: ", set.count)
-    @assert(set.count == 2631)
+    Swag.assert(set.count == 2631)
 }

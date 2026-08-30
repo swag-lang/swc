@@ -71,7 +71,7 @@ const SemaLitArr1 = [1'f64, 2, 3]
 
 const SemaLitArr2 = [[1, 2], [3, 4]]
 #assert(#typeof(SemaLitArr2) == #type [2][2] s32)
-#assert(@countof(SemaLitArr2) == 2)
+#assert(SemaLitArr2.count == 2)
 
 const SemaLitArr3 = [0'u16, 31, 59]
 #assert(#typeof(SemaLitArr3) == #type [3] u16)

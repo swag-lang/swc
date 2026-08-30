@@ -41,7 +41,7 @@ impl Log
     // Build the formatted log message header based on the current flags.
     private mtd buildHeader(loc: Swag.SourceCodeLocation)
     {
-        if .formatFlags & .Prefix and @countof(.prefixText)
+        if .formatFlags & .Prefix and (.prefixText).count
         {
             .buf.appendString(.prefixText)
             .buf.appendString(" ")

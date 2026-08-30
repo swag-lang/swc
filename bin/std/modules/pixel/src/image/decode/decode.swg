@@ -65,7 +65,7 @@ impl Image
 
         // Decode
         // The registry only ever holds types that implement the interface, so the table resolves.
-        let itf    = @mkinterface(ptrDecoder, decoder.type, IImageDecoder)!
+        let itf    = Swag.makeInterface(ptrDecoder, decoder.type, IImageDecoder)!
         var result = #move try itf.decode(bytes, options)
         return #move result
     }
@@ -82,7 +82,7 @@ public impl Image
         for &decoder in decoders where decoder.type == #typeof(T) do
             return
 
-        let itf = @mkinterface(null, #typeof(T), IImageDecoder)
+        let itf = Swag.makeInterface(null, #typeof(T), IImageDecoder)
         decoders.add({itf.format(), #typeof(T)})
     }
 

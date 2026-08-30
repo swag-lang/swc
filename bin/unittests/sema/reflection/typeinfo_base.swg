@@ -10,7 +10,7 @@
 #assert((cast(const *Swag.TypeInfoPointer) #typeof(*f32)).pointedType.name == "f32")
 
 struct A { R, G, B: s32 }
-#assert(@countof((cast(const *Swag.TypeInfoStruct) #typeof(A)).fields) == 3)
+#assert(((cast(const *Swag.TypeInfoStruct) #typeof(A)).fields).count == 3)
 
 func semaTest001()
 {

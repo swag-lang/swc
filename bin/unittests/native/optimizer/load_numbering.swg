@@ -60,15 +60,15 @@ func storeThroughOtherPointer(buf, other: [*] s32)->s32
 #test
 {
     var digits: [8] u8 = ['1', '2', '3', ',', '4', '5', '\n', 0]
-    @assert(parseDigits(&digits[0], 0, 7) == 123)
-    @assert(parseDigits(&digits[0], 4, 6) == 45)
+    Swag.assert(parseDigits(&digits[0], 0, 7) == 123)
+    Swag.assert(parseDigits(&digits[0], 4, 6) == 45)
 
     var buf: [4] s32 = [10, 20, 30, 40]
-    @assert(sameCellTwice(&buf[0]) == 60)
-    @assert(storeBetweenLoads(&buf[0]) == 5)
-    @assert(buf[0] == 15)
-    @assert(callBetweenLoads(&buf[0]) == 1)
-    @assert(buf[1] == 21)
-    @assert(storeThroughOtherPointer(&buf[0], &buf[3]) == 7)
-    @assert(buf[3] == 47)
+    Swag.assert(sameCellTwice(&buf[0]) == 60)
+    Swag.assert(storeBetweenLoads(&buf[0]) == 5)
+    Swag.assert(buf[0] == 15)
+    Swag.assert(callBetweenLoads(&buf[0]) == 1)
+    Swag.assert(buf[1] == 21)
+    Swag.assert(storeThroughOtherPointer(&buf[0], &buf[3]) == 7)
+    Swag.assert(buf[3] == 47)
 }

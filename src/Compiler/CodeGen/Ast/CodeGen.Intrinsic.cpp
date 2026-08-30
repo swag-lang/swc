@@ -388,7 +388,7 @@ namespace
         if (!addressReg.isValid())
             return Result::Continue;
 
-        // Under lifecycle safety, '@drop' poisons the dropped storage: the caller is
+        // Under lifecycle safety, 'Swag.drop' poisons the dropped storage: the caller is
         // expected to re-initialize or overwrite it before any further use.
         const bool poisonAfterDrop = lifecycleKind == CodeGen::LifecycleKind::Drop &&
                                      CodeGenSafety::hasLifecycleRuntimeSafety(codeGen);
@@ -443,7 +443,7 @@ namespace
                 return *payload;
         }
 
-        // `@countof` can target a stored symbol not reached through the current AST walk, so fall
+        // `.count` can target a stored symbol not reached through the current AST walk, so fall
         // back to sema-owned symbol/type views before using the transient node payload.
         const SemaNodeView storedView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Symbol);
         if (storedView.sym() && storedView.sym()->isVariable())
@@ -499,7 +499,7 @@ namespace
 
         // The runtime element count is always a natural-width `u64` (slice/string `count`/`length`
         // fields, or a byte scan for C strings), so type the produced value as `u64` rather than the
-        // surrounding context type. Using the context type (e.g. `bool` for `if !@countof(s)`) made the
+        // surrounding context type. Using the context type (e.g. `bool` for `if !s.count`) made the
         // value be loaded as 64 bits but compared/consumed at the narrower width, so counts that are a
         // multiple of 256 (low byte zero) were wrongly seen as zero. Any narrowing the context needs is
         // handled by the normal conversion path on the consumer side.
@@ -556,8 +556,7 @@ namespace
 
 Result AstIntrinsicValue::codeGenPostNode(CodeGen& codeGen) const
 {
-    const Token& tok = codeGen.token(codeRef());
-    switch (tok.id)
+    switch (intrinsicId)
     {
         case TokenId::IntrinsicIndex:
         {

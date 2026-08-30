@@ -133,11 +133,11 @@ func semaTest001()
     {
         .x += 1
         .add(2)
-        @assert(.sum() == 35)
+        Swag.assert(.sum() == 35)
     }
 
-    @assert(point.x == 13)
-    @assert(point.y == 22)
+    Swag.assert(point.x == 13)
+    Swag.assert(point.y == 22)
 }
 
 func semaTest002()
@@ -148,8 +148,8 @@ func semaTest002()
         .y += 7
     }
 
-    @assert(point.x == 15)
-    @assert(point.y == 27)
+    Swag.assert(point.x == 15)
+    Swag.assert(point.y == 27)
 }
 
 func semaTest003()
@@ -162,9 +162,9 @@ func semaTest003()
         .y += 7
     }
 
-    @assert(ptr == &point)
-    @assert(point.x == 15)
-    @assert(point.y == 27)
+    Swag.assert(ptr == &point)
+    Swag.assert(point.x == 15)
+    Swag.assert(point.y == 27)
 }
 
 func semaTest004()
@@ -178,8 +178,8 @@ func semaTest004()
         .add(3)
     }
 
-    @assert(point.x == 10)
-    @assert(point.y == 3)
+    Swag.assert(point.x == 10)
+    Swag.assert(point.y == 3)
 }
 
 func semaTest005()
@@ -193,8 +193,8 @@ func semaTest005()
         .y += 5
     }
 
-    @assert(point.x == 14)
-    @assert(point.y == 25)
+    Swag.assert(point.x == 14)
+    Swag.assert(point.y == 25)
 }
 
 func semaTest006()
@@ -217,7 +217,7 @@ func semaTest006()
         sum += .bias(2)
     }
 
-    @assert(sum == 21)
+    Swag.assert(sum == 21)
 }
 
 func semaTest007()
@@ -228,8 +228,8 @@ func semaTest007()
         .b = 13
     }
 
-    @assert(pair.a == 8)
-    @assert(pair.b == 13)
+    Swag.assert(pair.a == 8)
+    Swag.assert(pair.b == 13)
 }
 
 func semaTest008()
@@ -251,33 +251,33 @@ func semaTest008()
         }
     }
 
-    @assert(point.x == 11)
-    @assert(point.y == 22)
+    Swag.assert(point.x == 11)
+    Swag.assert(point.y == 22)
 }
 
 func semaTest009()
 {
     var owner: SemaWithOwner
-    @assert(owner.applyShadow() == 1020)
+    Swag.assert(owner.applyShadow() == 1020)
 }
 
 func semaTest010()
 {
     let pair = semaWithRetval()
-    @assert(pair.a == 1)
-    @assert(pair.b == 2)
+    Swag.assert(pair.a == 1)
+    Swag.assert(pair.b == 2)
 }
 
 func semaTest011()
 {
     let pair = semaWithRetvalUndefined()
-    @assert(pair.a == 5)
-    @assert(pair.b == 8)
+    Swag.assert(pair.a == 5)
+    Swag.assert(pair.b == 8)
 }
 
 func semaTest012()
 {
     var owner: SemaWithMemberOwner
     owner.point = semaWithMakePoint()
-    @assert(owner.applyMemberScope() == 1527)
+    Swag.assert(owner.applyMemberScope() == 1527)
 }

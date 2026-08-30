@@ -8,4 +8,4 @@ using Swag
 func depAddVectors(a, b: #simd [4] s32)->#simd [4] s32 => a + b
 
 #[Swag.NoInline]
-func depSatAddVectors(a, b: #simd [16] u8)->#simd [16] u8 => @vecsatadd(a, b)
+func depSatAddVectors(a, b: #simd [16] u8)->#simd [16] u8 => Swag.vecsatadd(a, b)

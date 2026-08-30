@@ -33,7 +33,7 @@ const ConstexprSquares = [
 #test
 {
     var runtimeValue = 5
-    @assert(constexprSquare(runtimeValue) == 25)
+    Swag.assert(constexprSquare(runtimeValue) == 25)
 }
 
 /**
@@ -107,7 +107,7 @@ func constexprIsPowerOfTwo(value: u32)->bool
 
 const TableSize = constexprFactorial(3)
 var ConstexprSizedTable: [TableSize] u8
-#assert(@countof(ConstexprSizedTable) == 6)
+#assert(ConstexprSizedTable.count == 6)
 
 /**
 # Failure Is a Compile-Time Diagnostic

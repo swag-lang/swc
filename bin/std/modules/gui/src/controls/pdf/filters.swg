@@ -56,13 +56,13 @@ internal func decodeAscii85(data: const [..] u8)->Array'u8 fail
     var group:  [5] u8
     var groupCount = 0'u32
     var pos        = 0'u64
-    while pos < @countof(data)
+    while pos < data.count
     {
         let c = data[pos]
         pos += 1
         if isWhite(c) do
             continue
-        if c == '<' and pos < @countof(data) and data[pos] == '~'
+        if c == '<' and pos < data.count and data[pos] == '~'
         {
             pos += 1
             continue
@@ -70,7 +70,7 @@ internal func decodeAscii85(data: const [..] u8)->Array'u8 fail
 
         if c == '~'
         {
-            if pos >= @countof(data) or data[pos] != '>' do
+            if pos >= data.count or data[pos] != '>' do
                 fail InvalidFormatError{"ASCII85Decode stream has an invalid terminator"}
             break
         }
@@ -123,7 +123,7 @@ internal func decodeRunLength(data: const [..] u8)->Array'u8 fail
 {
     var result: retval
     var pos = 0'u64
-    while pos < @countof(data)
+    while pos < data.count
     {
         let length = data[pos]
         pos += 1
@@ -132,14 +132,14 @@ internal func decodeRunLength(data: const [..] u8)->Array'u8 fail
         if length <= 127
         {
             let count = cast(u64) length + 1
-            if pos + count > @countof(data) do
+            if pos + count > data.count do
                 fail InvalidFormatError{"RunLengthDecode literal run is truncated"}
             result.add(data[pos until pos + count])
             pos += count
             continue
         }
 
-        if pos >= @countof(data) do
+        if pos >= data.count do
             fail InvalidFormatError{"RunLengthDecode repeated run is truncated"}
         let value = data[pos]
         pos += 1
@@ -222,7 +222,7 @@ internal func decodeLzw(data: const [..] u8, earlyChange = true)->Array'u8 fail
 
     for
     {
-        while bitCount < codeBits and pos < @countof(data)
+        while bitCount < codeBits and pos < data.count
         {
             bitBuffer = bitBuffer << 8 | data[pos]
             bitCount  += 8

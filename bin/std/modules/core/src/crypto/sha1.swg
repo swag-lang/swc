@@ -154,7 +154,7 @@ public impl Sha1
     // Resets the sequence to the standard SHA-1 initial state.
     mtd reset()
     {
-        @init(me, 1)
+        Swag.init(me, 1)
         .state[0] = 0x67452301
         .state[1] = 0xEFCDAB89
         .state[2] = 0x98BADCFE
@@ -165,8 +165,8 @@ public impl Sha1
     // Includes `buffer` in the running digest.
     mtd update(buffer: const [..] u8)
     {
-        let buf = @dataof(buffer)
-        let len = @countof(buffer)
+        let buf = buffer.buffer
+        let len = buffer.count
 
         for i in len
         {

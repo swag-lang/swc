@@ -47,10 +47,10 @@ func totalQty(lines: const [..] ProductLine)->s32
 
     const a:    [3] s32        = [4, 5, 6]
     const view: const [..] s32 = a
-    @assert(pick(a, 2) == 6)
-    @assert(pick([10, 20, 30], 1) == 20)
-    @assert(@countof(view) == 3)
-    @assert(view[1] == 5)
+    Swag.assert(pick(a, 2) == 6)
+    Swag.assert(pick([10, 20, 30], 1) == 20)
+    Swag.assert(view.count == 3)
+    Swag.assert(view[1] == 5)
 }
 
 #test
@@ -59,12 +59,12 @@ func totalQty(lines: const [..] ProductLine)->s32
     let mid  = values[1 to 3]
     let tail = mid[1 to]
 
-    @assert(@countof(mid) == 3)
-    @assert(mid[0] == 20)
-    @assert(mid[2] == 40)
-    @assert(@countof(tail) == 2)
-    @assert(tail[0] == 30)
-    @assert(tail[1] == 40)
+    Swag.assert(mid.count == 3)
+    Swag.assert(mid[0] == 20)
+    Swag.assert(mid[2] == 40)
+    Swag.assert(tail.count == 2)
+    Swag.assert(tail[0] == 30)
+    Swag.assert(tail[1] == 40)
 }
 
 #test
@@ -74,12 +74,12 @@ func totalQty(lines: const [..] ProductLine)->s32
     let head         = bytes[until 3]
     let tail         = bytes[2 to]
 
-    @assert(@countof(head) == 3)
-    @assert(head[0] == 'c'u8)
-    @assert(head[2] == 'n'u8)
-    @assert(@countof(tail) == 3)
-    @assert(tail[0] == 'n'u8)
-    @assert(tail[2] == 't'u8)
+    Swag.assert(head.count == 3)
+    Swag.assert(head[0] == 'c'u8)
+    Swag.assert(head[2] == 'n'u8)
+    Swag.assert(tail.count == 3)
+    Swag.assert(tail[0] == 'n'u8)
+    Swag.assert(tail[2] == 't'u8)
 }
 
 #test
@@ -87,13 +87,13 @@ func totalQty(lines: const [..] ProductLine)->s32
     const emptyText  = ""
     const emptyBytes = cast(const [..] u8) emptyText
 
-    @assert(@countof(emptyBytes) == 0)
-    @assert(byteChecksum(emptyBytes) == 0'u32)
+    Swag.assert(emptyBytes.count == 0)
+    Swag.assert(byteChecksum(emptyBytes) == 0'u32)
 }
 
 #test
 {
-    @assert(aggregateLiteralRuneSlice('\u00E9'rune))
+    Swag.assert(aggregateLiteralRuneSlice('\u00E9'rune))
 }
 
 #test
@@ -105,9 +105,9 @@ func totalQty(lines: const [..] ProductLine)->s32
         ]
 
     const view: const [..] ProductLine = lines
-    @assert(@countof(view) == 2)
-    @assert(view[0].sku == "keyboard")
-    @assert(view[1].sku == "cable")
-    @assert(view[1].qty == 3)
-    @assert(totalQty(lines) == 4)
+    Swag.assert(view.count == 2)
+    Swag.assert(view[0].sku == "keyboard")
+    Swag.assert(view[1].sku == "cable")
+    Swag.assert(view[1].qty == 3)
+    Swag.assert(totalQty(lines) == 4)
 }

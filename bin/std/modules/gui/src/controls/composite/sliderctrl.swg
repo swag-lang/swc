@@ -32,7 +32,7 @@ impl IWnd for SliderCtrl
 {
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if !@isset(.label) do
+        if !Swag.isSet(.label) do
             return
         let rect    = .clientRect()
         let metrics = .themeMetrics()

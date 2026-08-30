@@ -19,14 +19,14 @@ using Swag, Core
     let before02 = f.capture.backImg.pixelColor(0, 2)
 
     f.main.sendCommandEvent(ActionImage.MirrorImage)
-    @assert(f.capture.backImg.pixelColor(0, 0).argb == before30.argb)
+    Swag.assert(f.capture.backImg.pixelColor(0, 0).argb == before30.argb)
     f.capture.undo()
-    @assert(f.capture.backImg.pixelColor(0, 0).argb == before00.argb)
+    Swag.assert(f.capture.backImg.pixelColor(0, 0).argb == before00.argb)
 
     f.main.sendCommandEvent(ActionImage.FlipImage)
-    @assert(f.capture.backImg.pixelColor(0, 0).argb == before02.argb)
+    Swag.assert(f.capture.backImg.pixelColor(0, 0).argb == before02.argb)
     f.capture.undo()
-    @assert(f.capture.backImg.pixelColor(0, 0).argb == before00.argb)
+    Swag.assert(f.capture.backImg.pixelColor(0, 0).argb == before00.argb)
 }
 
 // Rotation and explicit resize update both the image and the capture dimensions
@@ -41,30 +41,30 @@ using Swag, Core
     f.capture.backImg = Gui.Testing.indexedImage(30, 20)
 
     f.main.sendCommandEvent(ActionImage.RotateImageRight)
-    @assert(f.capture.backImg.width == 20)
-    @assert(f.capture.backImg.height == 30)
-    @assert(f.capture.width == 20)
-    @assert(f.capture.height == 30)
-    @assert(f.capture.canUndo())
+    Swag.assert(f.capture.backImg.width == 20)
+    Swag.assert(f.capture.backImg.height == 30)
+    Swag.assert(f.capture.width == 20)
+    Swag.assert(f.capture.height == 30)
+    Swag.assert(f.capture.canUndo())
 
     f.capture.undo()
-    @assert(f.capture.backImg.width == 30)
-    @assert(f.capture.backImg.height == 20)
-    @assert(f.capture.width == 30)
-    @assert(f.capture.height == 20)
+    Swag.assert(f.capture.backImg.width == 30)
+    Swag.assert(f.capture.backImg.height == 20)
+    Swag.assert(f.capture.width == 30)
+    Swag.assert(f.capture.height == 20)
 
     f.main.sendCommandEvent(ActionImage.RotateImageLeft)
-    @assert(f.capture.backImg.width == 20)
-    @assert(f.capture.backImg.height == 30)
-    @assert(f.capture.width == 20)
-    @assert(f.capture.height == 30)
-    @assert(f.capture.canUndo())
+    Swag.assert(f.capture.backImg.width == 20)
+    Swag.assert(f.capture.backImg.height == 30)
+    Swag.assert(f.capture.width == 20)
+    Swag.assert(f.capture.height == 30)
+    Swag.assert(f.capture.canUndo())
 
     f.capture.undo()
-    @assert(f.capture.backImg.width == 30)
-    @assert(f.capture.backImg.height == 20)
-    @assert(f.capture.width == 30)
-    @assert(f.capture.height == 20)
+    Swag.assert(f.capture.backImg.width == 30)
+    Swag.assert(f.capture.backImg.height == 20)
+    Swag.assert(f.capture.width == 30)
+    Swag.assert(f.capture.height == 20)
 
     g_KeepRatio = false
     f.gui.clickModalButtonWhenShown(Dialog.BtnOk)
@@ -74,17 +74,17 @@ using Swag, Core
     f.main.sendCommandEvent(ActionImage.ResizeImage)
     f.gui.pump()
 
-    @assert(f.gui.autoHandled)
-    @assert(f.capture.backImg.width == 40)
-    @assert(f.capture.backImg.height == 28)
-    @assert(f.capture.width == 40)
-    @assert(f.capture.height == 28)
+    Swag.assert(f.gui.autoHandled)
+    Swag.assert(f.capture.backImg.width == 40)
+    Swag.assert(f.capture.backImg.height == 28)
+    Swag.assert(f.capture.width == 40)
+    Swag.assert(f.capture.height == 28)
 
     f.capture.undo()
-    @assert(f.capture.backImg.width == 30)
-    @assert(f.capture.backImg.height == 20)
-    @assert(f.capture.width == 30)
-    @assert(f.capture.height == 20)
+    Swag.assert(f.capture.backImg.width == 30)
+    Swag.assert(f.capture.backImg.height == 20)
+    Swag.assert(f.capture.width == 30)
+    Swag.assert(f.capture.height == 20)
 }
 
 // Dialog-backed image actions can now run through a real headless modal surface.
@@ -109,7 +109,7 @@ using Swag, Core
         g_Height = 27
         if !didClick[]
         {
-            @assert(host.clickModalButton(Dialog.BtnOk))
+            Swag.assert(host.clickModalButton(Dialog.BtnOk))
             didClick[] = true
         }
     }
@@ -117,18 +117,18 @@ using Swag, Core
     f.main.sendCommandEvent(ActionImage.ExpandCapture)
     f.gui.pump()
 
-    @assert(f.gui.openedSurfaceCount() == 0)
-    @assert(modalFrames == 1)
-    @assert(didClick)
-    @assert(f.capture.width == 42)
-    @assert(f.capture.height == 27)
-    @assert(f.capture.backImagePos.x == 0)
-    @assert(f.capture.backImagePos.y == 0)
-    @assert(f.capture.canUndo())
+    Swag.assert(f.gui.openedSurfaceCount() == 0)
+    Swag.assert(modalFrames == 1)
+    Swag.assert(didClick)
+    Swag.assert(f.capture.width == 42)
+    Swag.assert(f.capture.height == 27)
+    Swag.assert(f.capture.backImagePos.x == 0)
+    Swag.assert(f.capture.backImagePos.y == 0)
+    Swag.assert(f.capture.canUndo())
 
     f.capture.undo()
-    @assert(f.capture.width == 30)
-    @assert(f.capture.height == 20)
+    Swag.assert(f.capture.width == 30)
+    Swag.assert(f.capture.height == 20)
 }
 
 // Expand Image uses the same modal resize dialog but only grows the backing
@@ -150,7 +150,7 @@ using Swag, Core
         g_Height = 27
         if !didClick[]
         {
-            @assert(host.clickModalButton(Dialog.BtnOk))
+            Swag.assert(host.clickModalButton(Dialog.BtnOk))
             didClick[] = true
         }
     }
@@ -158,18 +158,18 @@ using Swag, Core
     f.main.sendCommandEvent(ActionImage.ExpandImage)
     f.gui.pump()
 
-    @assert(didClick)
-    @assert(f.capture.backImg.width == 42)
-    @assert(f.capture.backImg.height == 27)
-    @assert(f.capture.width == 30)
-    @assert(f.capture.height == 20)
-    @assert(f.capture.canUndo())
+    Swag.assert(didClick)
+    Swag.assert(f.capture.backImg.width == 42)
+    Swag.assert(f.capture.backImg.height == 27)
+    Swag.assert(f.capture.width == 30)
+    Swag.assert(f.capture.height == 20)
+    Swag.assert(f.capture.canUndo())
 
     f.capture.undo()
-    @assert(f.capture.backImg.width == 30)
-    @assert(f.capture.backImg.height == 20)
-    @assert(f.capture.width == 30)
-    @assert(f.capture.height == 20)
+    Swag.assert(f.capture.backImg.width == 30)
+    Swag.assert(f.capture.backImg.height == 20)
+    Swag.assert(f.capture.width == 30)
+    Swag.assert(f.capture.height == 20)
 }
 
 // Trim Capture can be exercised entirely in memory: it crops to visible content,
@@ -188,19 +188,19 @@ using Swag, Core
     discard testAddShape(f.capture, 150, 150, 20, 20)
 
     f.main.sendCommandEvent(ActionImage.TrimCapture)
-    @assert(f.capture.forms.count == 1)
-    @assert(@dataof(f.capture.forms[0]) == inside)
-    @assert(f.capture.width == 30)
-    @assert(f.capture.height == 25)
+    Swag.assert(f.capture.forms.count == 1)
+    Swag.assert(f.capture.forms[0].buffer == inside)
+    Swag.assert(f.capture.width == 30)
+    Swag.assert(f.capture.height == 25)
     Gui.Testing.assertRect(inside.IForm.boundRect(), 0, 0, 30, 25)
-    @assert(f.capture.backImg.width == 30)
-    @assert(f.capture.backImg.height == 25)
+    Swag.assert(f.capture.backImg.width == 30)
+    Swag.assert(f.capture.backImg.height == 25)
 
     f.capture.undo()
-    @assert(f.capture.forms.count == 2)
-    @assert(f.capture.width == 100)
-    @assert(f.capture.height == 80)
+    Swag.assert(f.capture.forms.count == 2)
+    Swag.assert(f.capture.width == 100)
+    Swag.assert(f.capture.height == 80)
     Gui.Testing.assertRect(inside.IForm.boundRect(), 10, 15, 30, 25)
-    @assert(f.capture.backImg.width == 100)
-    @assert(f.capture.backImg.height == 80)
+    Swag.assert(f.capture.backImg.width == 100)
+    Swag.assert(f.capture.backImg.height == 80)
 }

@@ -9,7 +9,7 @@ using Swag
 func copy(destination: #null [*] void, source: #null const [*] void, size: u64)
 {
     if size do
-        @memcpy(destination, source, size)
+        Swag.memcpy(destination, source, size)
 }
 
 // Copies bytes between memory regions that may overlap.
@@ -18,7 +18,7 @@ func copy(destination: #null [*] void, source: #null const [*] void, size: u64)
 func copyOverlapping(destination: #null [*] void, source: #null const [*] void, size: u64)
 {
     if size do
-        @memmove(destination, source, size)
+        Swag.memmove(destination, source, size)
 }
 
 // Compares two byte sequences lexicographically.
@@ -27,23 +27,23 @@ func compare(left, right: #null const [*] void, size: u64)->s32
 {
     if !size do
         return 0
-    return @memcmp(left, right, size)
+    return Swag.memcmp(left, right, size)
 }
 
 // Returns whether two values have identical object representations.
 #[Inline]
 func(T) bytesEqual(left, right: const *T)->bool
 {
-    return @memcmp(left, right, #sizeof(T)) == 0
+    return Swag.memcmp(left, right, #sizeof(T)) == 0
 }
 
 // Fills raw storage with zero bytes.
-// Use `@init` instead when resetting a declared value to its language defaults.
+// Use `Swag.init` instead when resetting a declared value to its language defaults.
 #[Inline]
 func clear(dest: [*] void, size: u64)
 {
     if size do
-        @memset(dest, 0, size)
+        Swag.memset(dest, 0, size)
 }
 
 // Fills raw storage with a repeated byte value.
@@ -51,7 +51,7 @@ func clear(dest: [*] void, size: u64)
 func set(dest: [*] void, value: u8, size: u64)
 {
     if size do
-        @memset(dest, value, size)
+        Swag.memset(dest, value, size)
 }
 
 // Rounds a value up to the requested power-of-two alignment.
@@ -74,19 +74,19 @@ func align(value: const [*] void, alignment: u32)->const [*] void
 // Releases every allocation owned by the current temporary allocator.
 func releaseTemporaryAllocations()
 {
-    @getcontext().tempAllocator.releaseAll()
+    Swag.getContext().tempAllocator.releaseAll()
 }
 
 // Runs a code block with allocator installed as the current allocator.
 #[Swag.Macro]
 func withAllocator(allocator: #null Swag.IAllocator, stmt: #code)
 {
-    let prev = @getcontext()
-    defer @setcontext(prev)
+    let prev = Swag.getContext()
+    defer Swag.setContext(prev)
 
     var cxt = prev[]
     cxt.allocator = allocator
-    @setcontext(cxt)
+    Swag.setContext(cxt)
 
     #inject(stmt)
 }
@@ -95,12 +95,12 @@ func withAllocator(allocator: #null Swag.IAllocator, stmt: #code)
 #[Swag.Macro]
 func withTemporaryAllocator(stmt: #code)
 {
-    let prev = @getcontext()
-    defer @setcontext(prev)
+    let prev = Swag.getContext()
+    defer Swag.setContext(prev)
 
     var cxt = prev[]
-    cxt.allocator = @getcontext().tempAllocator
-    @setcontext(cxt)
+    cxt.allocator = Swag.getContext().tempAllocator
+    Swag.setContext(cxt)
 
     #inject(stmt)
 }

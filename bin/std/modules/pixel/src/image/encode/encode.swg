@@ -49,7 +49,7 @@ public impl Image
         for &encoder in encoders where encoder.type == #typeof(T) do
             return
 
-        let itf = @mkinterface(null, #typeof(T), IImageEncoder)
+        let itf = Swag.makeInterface(null, #typeof(T), IImageEncoder)
         encoders.add({itf.format(), #typeof(T)})
     }
 
@@ -94,7 +94,7 @@ public impl Image
 
         // Encode
         // The registry only ever holds types that implement the interface, so the table resolves.
-        let itf = @mkinterface(ptrEncoder, safeFound.type, IImageEncoder)!
+        let itf = Swag.makeInterface(ptrEncoder, safeFound.type, IImageEncoder)!
         var result: retval
         itf.encode(&result, me, options)
         return result

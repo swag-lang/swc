@@ -122,7 +122,7 @@ namespace CodeGenCompareHelpers
     //
     // Type identity is the runtime hash, not the address of the descriptor: a qualified form such
     // as '#null string' gets its own typeinfo but shares the hash of 'string', which is the rule
-    // '@typecmp' applies. Comparing the pointers alone would report those as different types, so
+    // 'Swag.typeCmp' applies. Comparing the pointers alone would report those as different types, so
     // every construct that matches a type against another one has to come through here.
     inline void emitTypeInfoEqualJump(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, MicroLabelRef equalLabel, MicroLabelRef notEqualLabel)
     {

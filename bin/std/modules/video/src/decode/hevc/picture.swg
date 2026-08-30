@@ -50,14 +50,14 @@ impl Decoder
 
     private mtd readNalUnitMode(payload: const [..] u8, deferPicture: bool)->bool fail
     {
-        if @countof(payload) < 3 do
+        if payload.count < 3 do
             fail InvalidFormatError{"HEVC network abstraction layer unit is truncated"}
         if (payload[0] & 0x80) != 0 do
             fail InvalidFormatError{"HEVC network abstraction layer unit sets the forbidden bit"}
 
         let nalType    = cast(u32) (payload[0] >> 1) & 0x3F
         let temporalId = cast(u32) (payload[1] & 7) - 1
-        let body       = payload[2 until @countof(payload)]
+        let body       = payload[2 until payload.count]
 
         switch nalType
         {
@@ -334,10 +334,10 @@ impl Decoder
         // The slice data starts on the byte boundary the header ended at.
         let headerBytes  = reader.bitPos >> 3
         let escapedStart = escapedOffsetOf(body, headerBytes)
-        if escapedStart >= @countof(body) do
+        if escapedStart >= body.count do
             fail InvalidFormatError{"HEVC slice segment carries no data"}
 
-        let data = body[escapedStart until @countof(body)]
+        let data = body[escapedStart until body.count]
 
         // Every entry point splits the data into a substream of its own.
         var escapedBounds: Array'u64
@@ -346,7 +346,7 @@ impl Decoder
         for offset in .header.entryPointOffsets
         {
             running += cast(u64) offset
-            if running >= @countof(data) do
+            if running >= data.count do
                 fail InvalidFormatError{"HEVC slice entry point runs past the end of its segment"}
             escapedBounds.add(running)
         }
@@ -505,21 +505,21 @@ impl Decoder
 
         let workersSize = cast(u64) rowCount * #sizeof(Decoder)
         let workers     = cast([*] Decoder) Memory.alloc(workersSize)
-        @init(workers, rowCount)
+        Swag.init(workers, rowCount)
         let eventsSize = cast(u64) rowCount * #sizeof(Sync.Event)
         let events     = cast([*] Sync.Event) Memory.alloc(eventsSize)
-        @init(events, rowCount)
+        Swag.init(events, rowCount)
         for row in rowCount do
             events[row].init(manual: true)
         defer
         {
             for row in rowCount do
                 events[row].release()
-            @drop(events, rowCount)
+            Swag.drop(events, rowCount)
             Memory.free(events, eventsSize)
             for row in rowCount do
                 .detachWavefrontWorker(&workers[row])
-            @drop(workers, rowCount)
+            Swag.drop(workers, rowCount)
             Memory.free(workers, workersSize)
         }
 

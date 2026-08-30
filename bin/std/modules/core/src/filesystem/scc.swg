@@ -427,7 +427,7 @@ impl Writer
         pending.info.codecId         = options.codecId
         pending.info.schemaVersion   = options.schemaVersion
         pending.info.flags           = options.flags
-        pending.info.decodedSize     = @countof(source)
+        pending.info.decodedSize     = source.count
         pending.info.decodedChecksum = Hash.Crc32.compute(source)
         pending.alignment            = options.alignment ? options.alignment : 1
         pending.bytes                = try encodePayload(.codecs, options.codecId, source)
@@ -526,7 +526,7 @@ impl Reader
         var prefix: [PrefixSize] u8
         if !.stream.readExact(prefix) do
             fail InvalidFormatError{"SCC prefix is truncated"}
-        if @memcmp(&prefix[0], @dataof(Magic), @countof(Magic)) != 0 do
+        if Swag.memcmp(&prefix[0], Magic.buffer, Magic.count) != 0 do
             fail InvalidFormatError{"file does not contain an SCC signature"}
         if readU32(prefix, 12) or readU32(prefix, 28) do
             fail UnsupportedFormatError{"SCC prefix contains unsupported flags"}
@@ -682,5 +682,5 @@ func hasSignature(fileName: string)->bool fail
     var magic: [8] u8
     if !stream.readExact(magic) do
         return false
-    return @memcmp(&magic[0], @dataof(Magic), @countof(Magic)) == 0
+    return Swag.memcmp(&magic[0], Magic.buffer, Magic.count) == 0
 }

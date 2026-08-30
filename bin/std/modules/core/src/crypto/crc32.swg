@@ -504,10 +504,10 @@ public impl Crc32
     // Includes `data` in the running checksum.
     mtd update(data: #null const [..] u8)
     {
-        var length = @countof(data)
+        var length = data.count
         if !length do
             return
-        var current = cast(const [*] u32) @dataof(data)!
+        var current = cast(const [*] u32) data.buffer!
 
         var cur = ~.currentValue
         const unroll      = 4

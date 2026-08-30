@@ -45,8 +45,8 @@ impl ContextStaticBox
     let doubled = v.doubled()
 
     #assert(#typeof(doubled) == ContextStaticVec2's32)
-    @assert(doubled.x == 6)
-    @assert(doubled.y == 8)
+    Swag.assert(doubled.x == 6)
+    Swag.assert(doubled.y == 8)
 }
 
 #test
@@ -57,8 +57,8 @@ impl ContextStaticBox
 
     #assert(#typeof(expanded) == ContextStaticVec2's32)
     #assert(#typeof(aliased) == ContextStaticVec2's32)
-    @assert(expanded.x == 11)
-    @assert(expanded.y == 21)
-    @assert(aliased.x == 12)
-    @assert(aliased.y == 22)
+    Swag.assert(expanded.x == 11)
+    Swag.assert(expanded.y == 21)
+    Swag.assert(aliased.x == 12)
+    Swag.assert(aliased.y == 22)
 }

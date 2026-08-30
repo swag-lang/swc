@@ -166,7 +166,7 @@ impl MappedRegion
     mtd const bytes()->const [..] u8
     {
         Debug.assert(.isOpen())
-        return @mkslice(.view, .length)
+        return Swag.makeSlice(.view, .length)
     }
 
     // Returns a writable view of shared or copy-on-write bytes.
@@ -174,7 +174,7 @@ impl MappedRegion
     {
         Debug.assert(.isOpen())
         Debug.assert(.access != .Read)
-        return @mkslice(.view, .length)
+        return Swag.makeSlice(.view, .length)
     }
 
     // Flushes shared writable pages and the duplicated file handle.
@@ -204,7 +204,7 @@ impl MappedRegion
     // that page resident only until its next access.
     func releasePages(bytes: const [..] u8)
     {
-        if !@countof(bytes) do
+        if !bytes.count do
             return
         releasePagesNative(bytes)
     }

@@ -140,7 +140,7 @@ impl HashTable
             return
 
         if !.allocator do
-            .allocator = @getcontext().allocator
+            .allocator = Swag.getContext().allocator
 
         let oldTable = .tablePtr()
         let newTable = cast([*] HashTableEntry'(K, V)) Memory.alloc(.capacity * #sizeof(HashTableEntry'(K, V)), .allocator)
@@ -202,7 +202,7 @@ impl HashTable
         #scope(Up)
         for .capacity
         {
-            let tableIndex = @index
+            let tableIndex = Swag.index
 
             if table[tableIndex].hash < HashTable.HASH_FIRST do
                 continue
@@ -259,8 +259,8 @@ impl HashTable
         {
             for i in .capacity where table[i].hash >= HashTable.HASH_DELETED
             {
-                @drop(&table[i].key)
-                @drop(&table[i].value)
+                Swag.drop(&table[i].key)
+                Swag.drop(&table[i].value)
             }
         }
 
@@ -294,7 +294,7 @@ impl HashTable
         let newCapacityBytes = reqCapacity * #sizeof(HashTableEntry'(K, V))
 
         if !.allocator do
-            .allocator = @getcontext().allocator
+            .allocator = Swag.getContext().allocator
         .table = cast([*] HashTableEntry'(K, V)) Memory.alloc(newCapacityBytes, .allocator)
         let table = .tablePtr()
 
@@ -315,8 +315,8 @@ impl HashTable
             }
             elif h == HashTable.HASH_DELETED
             {
-                @drop(&oldTablePtr[i].key)
-                @drop(&oldTablePtr[i].value)
+                Swag.drop(&oldTablePtr[i].key)
+                Swag.drop(&oldTablePtr[i].value)
             }
         }
 
@@ -426,7 +426,7 @@ impl HashTable
         index = .getNewIndex(key[], index, hashVal)
         if table[index].hash >= HashTable.HASH_FIRST
         {
-            @drop(&table[index].value)
+            Swag.drop(&table[index].value)
             table[index].value = #relocate value[]
             return table + index
         }
@@ -440,8 +440,8 @@ impl HashTable
         {
             if table[index].hash == HashTable.HASH_DELETED do
                 .deleted -= 1
-            @drop(&table[index].key)
-            @drop(&table[index].value)
+            Swag.drop(&table[index].key)
+            Swag.drop(&table[index].value)
             table[index].key   = #relocate key[]
             table[index].value = #relocate value[]
         }
@@ -627,8 +627,8 @@ impl HashTable
 
                 if hashval >= HashTable.HASH_DELETED
                 {
-                    @drop(&table[i].key)
-                    @drop(&table[i].value)
+                    Swag.drop(&table[i].key)
+                    Swag.drop(&table[i].value)
                 }
 
                 if hashval == HashTable.HASH_DELETED do
@@ -652,7 +652,7 @@ impl StrConv.IConvert for HashTable
         buf.addBytes("[")
         for k, v in me
         {
-            if @index do
+            if Swag.index do
                 buf.addBytes(", ")
 
             buf.addBytes("key = ")

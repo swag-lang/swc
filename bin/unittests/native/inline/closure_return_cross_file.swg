@@ -4,6 +4,6 @@
 {
     let fct = InlineRegressionBug12.getInc()
 
-    @assert(fct() == 11)
-    @assert(fct() == 12)
+    Swag.assert(fct() == 11)
+    Swag.assert(fct() == 12)
 }

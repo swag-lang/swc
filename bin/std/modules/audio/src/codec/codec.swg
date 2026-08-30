@@ -205,7 +205,7 @@ public func(T) registerCodec()
     #assert(Reflection.hasInterface(#typeof(T), ICodec))
     #assert(startsWithCodecHeader(#typeof(T)))
 
-    registerCodecImplementation(#typeof(T), @mkinterface(null, #typeof(T), ICodec))
+    registerCodecImplementation(#typeof(T), Swag.makeInterface(null, #typeof(T), ICodec))
 }
 
 // Non-generic bridge used by registerCodec after its body is instantiated in the caller's
@@ -228,7 +228,7 @@ public func(T) registerPacketCodec()
     #assert(Reflection.hasInterface(#typeof(T), IPacketCodec))
     #assert(startsWithCodecHeader(#typeof(T)))
 
-    registerPacketCodecImplementation(#typeof(T), @mkinterface(null, #typeof(T), IPacketCodec))
+    registerPacketCodecImplementation(#typeof(T), Swag.makeInterface(null, #typeof(T), IPacketCodec))
 }
 
 // Non-generic bridge used by registerPacketCodec after its body is instantiated in the

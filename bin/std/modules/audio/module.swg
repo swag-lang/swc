@@ -43,7 +43,7 @@ encodings fail instead of being guessed.
 
 #run
 {
-    let itf = @compiler
+    let itf = Swag.compiler()
     let cfg = itf.getBuildCfg()!
     cfg.moduleVersion   = #swcversion
     cfg.moduleRevision  = #swcrevision

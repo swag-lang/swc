@@ -61,7 +61,7 @@ func day9A()
     for t in line
     {
         let r = t - '0'
-        if @index & 1 do
+        if Swag.index & 1 do
             map.add({-1, r})
         else
         {
@@ -71,7 +71,7 @@ func day9A()
     }
 
     var last = map.count - #wrap 1
-    for i in @countof(map)
+    for i in map.count
     {
         if map[i].what != -1 do
             continue
@@ -112,5 +112,5 @@ func day9A()
         }
     }
 
-    @assert(total == 6154342787400)
+    Swag.assert(total == 6154342787400)
 }

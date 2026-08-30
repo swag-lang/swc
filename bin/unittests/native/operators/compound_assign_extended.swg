@@ -9,11 +9,11 @@
     arr[2] *= 3
     arr[3] /= 2
     arr[4] %= 3
-    @assert(arr[0] == 11)
-    @assert(arr[1] == 1)
-    @assert(arr[2] == 9)
-    @assert(arr[3] == 2)
-    @assert(arr[4] == 2)
+    Swag.assert(arr[0] == 11)
+    Swag.assert(arr[1] == 1)
+    Swag.assert(arr[2] == 9)
+    Swag.assert(arr[3] == 2)
+    Swag.assert(arr[4] == 2)
 }
 
 // Compound assignment on array elements - bitwise
@@ -23,9 +23,9 @@
     arr[0] &= 0x0F'u32
     arr[1] |= 0xF0'u32
     arr[2] ^= 0x03'u32
-    @assert(arr[0] == 0x0F'u32)
-    @assert(arr[1] == 0xFF'u32)
-    @assert(arr[2] == 0x02'u32)
+    Swag.assert(arr[0] == 0x0F'u32)
+    Swag.assert(arr[1] == 0xFF'u32)
+    Swag.assert(arr[2] == 0x02'u32)
 }
 
 // Compound assignment in a loop
@@ -36,7 +36,7 @@
     {
         total += cast(s32) i
     }
-    @assert(total == 45)
+    Swag.assert(total == 45)
 }
 
 // Compound multiply in loop (factorial)
@@ -47,7 +47,7 @@
     {
         result *= cast(s64) i
     }
-    @assert(result == 3628800)     // 10!
+    Swag.assert(result == 3628800)     // 10!
 }
 
 // Chained compound assignments on same variable
@@ -59,7 +59,7 @@
     x -= 1     // 5
     x += 5     // 10
     x /= 2     // 5
-    @assert(x == 5)
+    Swag.assert(x == 5)
 }
 
 // Compound shift on u64
@@ -67,9 +67,9 @@
 {
     var a: u64 = 1'u64
     a <<= 32
-    @assert(a == 0x0000_0001_0000_0000'u64)
+    Swag.assert(a == 0x0000_0001_0000_0000'u64)
     a >>= 16
-    @assert(a == 0x0000_0000_0001_0000'u64)
+    Swag.assert(a == 0x0000_0000_0001_0000'u64)
 }
 
 // Compound assignment with f32
@@ -77,13 +77,13 @@
 {
     var f: f32 = 1.0'f32
     f += 0.5'f32
-    @assert(f == 1.5'f32)
+    Swag.assert(f == 1.5'f32)
     f *= 4.0'f32
-    @assert(f == 6.0'f32)
+    Swag.assert(f == 6.0'f32)
     f -= 1.0'f32
-    @assert(f == 5.0'f32)
+    Swag.assert(f == 5.0'f32)
     f /= 2.5'f32
-    @assert(f == 2.0'f32)
+    Swag.assert(f == 2.0'f32)
 }
 
 // XOR swap pattern
@@ -94,8 +94,8 @@
     a ^= b
     b ^= a
     a ^= b
-    @assert(a == 99)
-    @assert(b == 42)
+    Swag.assert(a == 99)
+    Swag.assert(b == 42)
 }
 
 // XOR swap with u64
@@ -106,8 +106,8 @@
     a ^= b
     b ^= a
     a ^= b
-    @assert(a == 0xCAFE_BABE'u64)
-    @assert(b == 0xDEAD_BEEF'u64)
+    Swag.assert(a == 0xCAFE_BABE'u64)
+    Swag.assert(b == 0xDEAD_BEEF'u64)
 }
 
 // Compound assignment through pointer
@@ -116,9 +116,9 @@
     var x: s32 = 10
     var p      = &x
     p[] += 5
-    @assert(x == 15)
+    Swag.assert(x == 15)
     p[] *= 2
-    @assert(x == 30)
+    Swag.assert(x == 30)
 }
 
 // Compound modulo
@@ -126,9 +126,9 @@
 {
     var x: s32 = 100
     x %= 30
-    @assert(x == 10)
+    Swag.assert(x == 10)
     x %= 7
-    @assert(x == 3)
+    Swag.assert(x == 3)
 }
 
 // All compound bitwise on same variable
@@ -140,5 +140,5 @@
     x ^= 0x0F'u32     // 0xB0
     x <<= 4           // 0xB00
     x >>= 8           // 0x0B
-    @assert(x == 0x0B'u32)
+    Swag.assert(x == 0x0B'u32)
 }

@@ -3,7 +3,7 @@
 // Advent of Code 2024 Day 23: find cliques in a LAN party graph.
 // Part 1: count triangles where at least one node starts with 't'.
 // Part 2: find largest clique, output names sorted, comma-separated.
-// Exercises: @mkslice in inline (day 19 fix), inline + retval (day 20 fix),
+// Exercises: Swag.makeSlice in inline (day 19 fix), inline + retval (day 20 fix),
 // with &ptr (day 21 fix), reverse-view iteration, nested struct methods, adjacency
 // matrix bit manipulation, sorting with spaceship <=>.
 
@@ -55,7 +55,7 @@ func graphInit()->Graph
     var g: Graph
     g.adj = cast(#null [*] bool) testAlloc(cast(u64) MaxNodes * MaxNodes * #sizeof(bool))
     let adj = g.adj!
-    for MaxNodes * MaxNodes { adj[@index] = false }
+    for MaxNodes * MaxNodes { adj[Swag.index] = false }
     return g
 }
 
@@ -112,16 +112,16 @@ func parseGraph(text: string)->Graph
 
     for
     {
-        if pos >= @countof(bytes) do break
+        if pos >= bytes.count do break
 
         // Skip whitespace/newlines
         for
         {
-            if pos >= @countof(bytes) do break
+            if pos >= bytes.count do break
             if bytes[pos] != '\n' and bytes[pos] != '\r' do break
             pos += 1
         }
-        if pos + 4 >= @countof(bytes) do break
+        if pos + 4 >= bytes.count do break
 
         let a0 = bytes[pos]; let a1 = bytes[pos + 1]
         // skip '-'
@@ -362,10 +362,10 @@ func solve(text: string)->SolveResult
 // nameToIdx inline
 #test
 {
-    @assert(nameToIdx('a', 'a') == 0'u32)
-    @assert(nameToIdx('a', 'b') == 1'u32)
-    @assert(nameToIdx('b', 'a') == 26'u32)
-    @assert(nameToIdx('t', 'c') == nameToIdx('t', 'a') + 2)
+    Swag.assert(nameToIdx('a', 'a') == 0'u32)
+    Swag.assert(nameToIdx('a', 'b') == 1'u32)
+    Swag.assert(nameToIdx('b', 'a') == 26'u32)
+    Swag.assert(nameToIdx('t', 'c') == nameToIdx('t', 'a') + 2)
 }
 
 // Parse graph
@@ -373,17 +373,17 @@ func solve(text: string)->SolveResult
 {
     var g = parseGraph(SampleInput)
     defer graphFree(&g)
-    @assert(g.count > 0'u32)
+    Swag.assert(g.count > 0'u32)
 
     // kh-tc edge exists
     let kh = nameToIdx('k', 'h')
     let tc = nameToIdx('t', 'c')
-    @assert(g.edge(kh, tc))
-    @assert(g.edge(tc, kh))
+    Swag.assert(g.edge(kh, tc))
+    Swag.assert(g.edge(tc, kh))
 
     // non-edge
     let de = nameToIdx('d', 'e')
-    @assert(!g.edge(kh, de))
+    Swag.assert(!g.edge(kh, de))
 }
 
 // startsWithT inline
@@ -391,9 +391,9 @@ func solve(text: string)->SolveResult
 {
     var g = parseGraph(SampleInput)
     defer graphFree(&g)
-    @assert(g.startsWithT(nameToIdx('t', 'c')))
-    @assert(g.startsWithT(nameToIdx('t', 'a')))
-    @assert(!g.startsWithT(nameToIdx('k', 'h')))
+    Swag.assert(g.startsWithT(nameToIdx('t', 'c')))
+    Swag.assert(g.startsWithT(nameToIdx('t', 'a')))
+    Swag.assert(!g.startsWithT(nameToIdx('k', 'h')))
 }
 
 // Minimal triangle test
@@ -405,8 +405,8 @@ func solve(text: string)->SolveResult
     g.addEdge(nameToIdx('t', 'a'), nameToIdx('t', 'b'))
     g.addEdge(nameToIdx('t', 'b'), nameToIdx('t', 'c'))
     g.addEdge(nameToIdx('t', 'a'), nameToIdx('t', 'c'))
-    @assert(g.count == 3'u32)
-    @assert(countTrianglesWithT(&g) == 1'u64)
+    Swag.assert(g.count == 3'u32)
+    Swag.assert(countTrianglesWithT(&g) == 1'u64)
 }
 
 // Node count
@@ -414,7 +414,7 @@ func solve(text: string)->SolveResult
 {
     var g = parseGraph(SampleInput)
     defer graphFree(&g)
-    @assert(g.count == 16'u32)
+    Swag.assert(g.count == 16'u32)
 }
 
 // Count ALL triangles (should be 12 in sample)
@@ -451,7 +451,7 @@ func solve(text: string)->SolveResult
         }
     }
 
-    @assert(total > 0'u64)
+    Swag.assert(total > 0'u64)
 }
 
 // Part 1: 7 triangles with t
@@ -461,15 +461,15 @@ func solve(text: string)->SolveResult
     defer graphFree(&g)
     let tc = countTrianglesWithT(&g)
     // With the 26-edge sample, there are 4 triangles with 't'
-    @assert(tc == 4'u64)
+    Swag.assert(tc == 4'u64)
 }
 
 // Full solve
 #test
 {
     let result = solve(SampleInput)
-    @assert(result.part1 == 4'u64)
-    @assert(result.part2Len > 0'u32)
+    Swag.assert(result.part1 == 4'u64)
+    Swag.assert(result.part2Len > 0'u32)
 }
 
 // with &ptr (exercises day 21 fix)
@@ -481,7 +481,7 @@ func solve(text: string)->SolveResult
         .part1    = 42
         .part2Len = 0
     }
-    @assert(sr.part1 == 42'u64)
+    Swag.assert(sr.part1 == 42'u64)
 }
 
 // Inline returning struct via retval (exercises day 20 fix)
@@ -496,10 +496,10 @@ func makeIdx(a: u8, b: u8)->{ idx: u32 }
 #test
 {
     let r = makeIdx('t', 'c')
-    @assert(r.idx == nameToIdx('t', 'c'))
+    Swag.assert(r.idx == nameToIdx('t', 'c'))
 }
 
-// @mkslice in inline (exercises day 19 fix)
+// Swag.makeSlice in inline (exercises day 19 fix)
 struct NameBuf
 {
     data: [4] u8
@@ -511,7 +511,7 @@ impl NameBuf
     #[Swag.Inline]
     mtd asSlice()->const [..] u8
     {
-        return @mkslice(&me.data[0], cast(u64) me.len)
+        return Swag.makeSlice(&me.data[0], cast(u64) me.len)
     }
 }
 
@@ -521,6 +521,6 @@ impl NameBuf
     nb.data[0] = 'a'; nb.data[1] = 'b'
     nb.len     = 2
     let sl = nb.asSlice()
-    @assert(@countof(sl) == 2)
-    @assert(sl[0] == 'a')
+    Swag.assert(sl.count == 2)
+    Swag.assert(sl[0] == 'a')
 }

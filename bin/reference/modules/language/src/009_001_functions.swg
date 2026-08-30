@@ -17,11 +17,11 @@ func(var T) genericTwice(value: T)->T
 
 #test
 {
-    @assert(genericTwice(21's32) == 42)
-    @assert(genericTwice(1.5'f32) == 3.0'f32)
+    Swag.assert(genericTwice(21's32) == 42)
+    Swag.assert(genericTwice(1.5'f32) == 3.0'f32)
 
     // An apostrophe supplies generic arguments explicitly.
-    @assert(genericTwice's64(12) == 24)
+    Swag.assert(genericTwice's64(12) == 24)
 }
 
 /**
@@ -39,8 +39,8 @@ func(var Key, var Value) genericSelect(key: Key, value: Value)->Value
 
 #test
 {
-    @assert(genericSelect(7'u32, "seven") == "seven")
-    @assert(genericSelect'(u32, bool)(7, true))
+    Swag.assert(genericSelect(7'u32, "seven") == "seven")
+    Swag.assert(genericSelect'(u32, bool)(7, true))
 }
 
 /**
@@ -59,7 +59,7 @@ func(var T = s32) genericZero()->T
 {
     #assert(#typeof(genericZero()) == s32)
     #assert(#typeof(genericZero'f64()) == f64)
-    @assert(genericZero'f64() == 0.0'f64)
+    Swag.assert(genericZero'f64() == 0.0'f64)
 }
 
 /**
@@ -82,7 +82,7 @@ func(var T, const Count: s32) genericRepeat(value: T)->[Count] T
 {
     let values = genericRepeat'(s32, 3)(9)
     #assert(#typeof(values) == #type [3] s32)
-    @assert(values[0] == 9 and values[1] == 9 and values[2] == 9)
+    Swag.assert(values[0] == 9 and values[1] == 9 and values[2] == 9)
 }
 
 /**
@@ -102,7 +102,7 @@ alias RepeatFourBytes = genericRepeat'(u8, 4)
 {
     let bytes = RepeatFourBytes(0xA5)
     #assert(#typeof(bytes) == #type [4] u8)
-    @assert(bytes[3] == 0xA5)
+    Swag.assert(bytes[3] == 0xA5)
 }
 
 /**

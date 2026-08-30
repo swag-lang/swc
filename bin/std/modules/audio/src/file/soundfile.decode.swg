@@ -34,11 +34,11 @@ impl SoundFile
             if !desc do
                 fail UnsupportedFormatError{"unsupported packetized encoding"}
 
-            let allocator   = @getcontext().allocator!
+            let allocator   = Swag.getContext().allocator!
             let decoderData = Memory.new(desc.type, allocator)!
             let decoder     = cast(*Codec) decoderData
             decoder.configure(.encoding, .Pcm16, desc.type, allocator)
-            let packetCodec = @mkinterface(decoder, desc.type, IPacketCodec)
+            let packetCodec = Swag.makeInterface(decoder, desc.type, IPacketCodec)
             defer
             {
                 if decoder.type.opDrop do
@@ -94,7 +94,7 @@ impl SoundFile
         }
 
         var codec: CodecPcmToPcm16
-        codec.configure(.encoding, .Pcm16, #typeof(CodecPcmToPcm16), @getcontext().allocator!)
+        codec.configure(.encoding, .Pcm16, #typeof(CodecPcmToPcm16), Swag.getContext().allocator!)
         let itf:   ICodec = &codec
         var empty: u8
         discard try itf.initialize(&empty, 0)

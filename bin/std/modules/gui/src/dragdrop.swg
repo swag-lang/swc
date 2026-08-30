@@ -166,8 +166,8 @@ impl DragData
     // Empties the payload so the same storage can carry the next gesture.
     mtd clear()
     {
-        @drop(me, 1)
-        @init(me, 1)
+        Swag.drop(me, 1)
+        Swag.init(me, 1)
     }
 
     // Appends one path to the payload.

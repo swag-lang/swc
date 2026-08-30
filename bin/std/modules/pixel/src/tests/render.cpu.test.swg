@@ -97,8 +97,8 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     let image    = renderCpu(12, 12, &painter)
     let diagonal = image.pixelColor(5, 5)
     let regular  = image.pixelColor(5, 4)
-    @assert(diagonal == regular)
-    @assert(diagonal.r >= 127 and diagonal.r <= 129)
+    Swag.assert(diagonal == regular)
+    Swag.assert(diagonal.r >= 127 and diagonal.r <= 129)
 }
 
 // The separable modes follow the standard per-channel blend functions, then apply source-over
@@ -240,7 +240,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     for y in 3's32
     {
         for x in 4's32 do
-            @assert(image.pixelColor(x + 2, y + 2) == source.pixelColor(x + 1, y))
+            Swag.assert(image.pixelColor(x + 2, y + 2) == source.pixelColor(x + 1, y))
     }
 
     assertPixel(image, 1, 2, Argb.Zero)
@@ -333,8 +333,8 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 
     let image = render.readRenderTarget(&target, 0, 0, 32, 32)
     let hit   = image.pixelColor(16, 16)
-    @assert(hit.r == 255 and hit.g > 200 and hit.a == 255)
-    @assert(image.pixelColor(16, 2).a == 0)
+    Swag.assert(hit.r == 255 and hit.g > 200 and hit.a == 255)
+    Swag.assert(image.pixelColor(16, 2).a == 0)
 }
 
 // The built-in blur program is interpreted directly by the CPU backend.
@@ -366,9 +366,9 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     render.draw(&painter)
 
     let image = render.readRenderTarget(&target, 0, 0, 9, 9)
-    @assert(image.pixelColor(4, 4).a > 0)
-    @assert(image.pixelColor(3, 4).a > 0)
-    @assert(image.pixelColor(4, 3).a == 0)
+    Swag.assert(image.pixelColor(4, 4).a > 0)
+    Swag.assert(image.pixelColor(3, 4).a > 0)
+    Swag.assert(image.pixelColor(4, 3).a == 0)
 }
 
 // Clear obeys the command-stream scissor and channel mask, as glClear does.
@@ -428,8 +428,8 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     assertPixel(image, 1, 2, Argb.Zero)
     let left  = image.pixelColor(2, 2)
     let right = image.pixelColor(9, 2)
-    @assert(left.r > left.b)
-    @assert(right.b > right.r)
+    Swag.assert(left.r > left.b)
+    Swag.assert(right.b > right.r)
 }
 
 // The built-in resolve shader averages each supersampling block and returns straight alpha.
@@ -478,7 +478,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 
     let image = render.readRenderTarget(&target, 0, 0, 2, 2)
     let gray  = image.pixelColor(0, 0)
-    @assert(gray.r >= 127 and gray.r <= 128 and gray.g == gray.r and gray.b == gray.r and gray.a == 255)
+    Swag.assert(gray.r >= 127 and gray.r <= 128 and gray.g == gray.r and gray.b == gray.r and gray.a == 255)
     assertPixel(image, 1, 0, Argb.Blue)
 }
 
@@ -521,6 +521,6 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     for var y = 0; y < Height; y += 1
     {
         for var x = 0; x < Narrow; x += 1 do
-            @assert(serial.pixelColor(x, y) == banded.pixelColor(x, y))
+            Swag.assert(serial.pixelColor(x, y) == banded.pixelColor(x, y))
     }
 }

@@ -3,9 +3,9 @@
 #test
 {
     #[Swag.NoInline]
-    func mulAddF32(a, b, c: f32)->f32 => @muladd(a, b, c)
+    func mulAddF32(a, b, c: f32)->f32 => Swag.muladd(a, b, c)
     #[Swag.NoInline]
-    func mulAddF64(a, b, c: f64)->f64 => @muladd(a, b, c)
+    func mulAddF64(a, b, c: f64)->f64 => Swag.muladd(a, b, c)
 
     const A = #run mulAddF32(2.5'f32, 4.0'f32, -1.0'f32)
     const B = #run mulAddF64(3.0, 7.0, 5.0)

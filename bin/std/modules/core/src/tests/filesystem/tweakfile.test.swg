@@ -25,10 +25,10 @@ struct TweakBeta
     tweak.registerFolder'TweakBeta(&beta)
 
     discard expect tweak.parse("/TweakAlpha\nfoo 1\nbar $foo\n/TweakBeta\nbar 2\nfoo $bar\n")
-    @assert(alpha.foo == 1)
-    @assert(alpha.bar == 1)
-    @assert(beta.bar == 2)
-    @assert(beta.foo == 2)
+    Swag.assert(alpha.foo == 1)
+    Swag.assert(alpha.bar == 1)
+    Swag.assert(beta.bar == 2)
+    Swag.assert(beta.foo == 2)
 }
 
 #test
@@ -45,8 +45,8 @@ struct TweakBeta
     tweak.registerFolder'TweakCycle(&cycle)
 
     discard catch tweak.parse("/TweakCycle\nfoo $bar\nbar $foo\n") as err2
-    @assert(err2 != null)
-    @assert(err2 is Errors.SyntaxError)
+    Swag.assert(err2 != null)
+    Swag.assert(err2 is Errors.SyntaxError)
 }
 
 namespace TweakDeep
@@ -77,7 +77,7 @@ namespace TweakDeep
     tweak.registerFolder'TweakDeep.Palette(&palette)
 
     discard expect tweak.parse("/Sheet\nwidth 44\nheight 27.5\n/Palette\nmain 3\n")
-    @assert(sheet.width == 44)
-    @assert(sheet.height == 27.5)
-    @assert(palette.main == 3)
+    Swag.assert(sheet.width == 44)
+    Swag.assert(sheet.height == 27.5)
+    Swag.assert(palette.main == 3)
 }

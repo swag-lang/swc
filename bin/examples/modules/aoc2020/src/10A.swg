@@ -102,5 +102,5 @@ func day10A()
     }
 
     let total = cpt1 * (cpt3 + 1)
-    @assert(total == 2368)
+    Swag.assert(total == 2368)
 }

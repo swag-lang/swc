@@ -45,7 +45,7 @@ func numericPos(key: u8)->KeyPos
     case '0'u8: return {1, 3}
     case 'A'u8: return {2, 3}
     default:
-        @assert(false)
+        Swag.assert(false)
         return {0, 0}
     }
 }
@@ -60,7 +60,7 @@ func directionalPos(key: u8)->KeyPos
     case 'v'u8: return {1, 1}
     case '>'u8: return {2, 1}
     default:
-        @assert(false)
+        Swag.assert(false)
         return {0, 0}
     }
 }
@@ -75,7 +75,7 @@ func directionalKeyIndex(key: u8)->u32
     case 'v'u8: return 3
     case '>'u8: return 4
     default:
-        @assert(false)
+        Swag.assert(false)
         return 0
     }
 }
@@ -126,7 +126,7 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
         case '>'u8: x += 1
         case '^'u8: y -= 1
         case 'v'u8: y += 1
-        default:    @assert(false)
+        default:    Swag.assert(false)
         }
 
         if directionalPad
@@ -152,7 +152,7 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
         case '>'u8: x += 1
         case '^'u8: y -= 1
         case 'v'u8: y += 1
-        default:    @assert(false)
+        default:    Swag.assert(false)
         }
 
         if directionalPad
@@ -186,7 +186,7 @@ func sequenceCost(path: PathBuffer, depth: u32)->u64
 
     for path.count
     {
-        let next      = path.buttons[@index]
+        let next      = path.buttons[Swag.index]
         let fromIndex = directionalKeyIndex(current)
         let toIndex   = directionalKeyIndex(next)
         let cached    = DirectionalMemo[depth][fromIndex][toIndex]
@@ -300,5 +300,5 @@ func complexitySum(codes: const [..] string, depth: u32)->u64
         "379A"
         ]
 
-    @assert(complexitySum(sampleCodes, 2) == 126_384'u64)
+    Swag.assert(complexitySum(sampleCodes, 2) == 126_384'u64)
 }

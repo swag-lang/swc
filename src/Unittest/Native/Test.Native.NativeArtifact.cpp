@@ -449,12 +449,12 @@ struct SecondOwner
 {
     var first: FirstOwner
     var second: SecondOwner
-    @assert(first.payload.leaves[0].marker == 0x123456789ABCDEF0)
-    @assert(first.payload.leaves[7].marker == 0x123456789ABCDEF0)
-    @assert(first.marker == 11)
-    @assert(second.payload.leaves[0].marker == 0x123456789ABCDEF0)
-    @assert(second.payload.leaves[7].marker == 0x123456789ABCDEF0)
-    @assert(second.marker == 17)
+    Swag.assert(first.payload.leaves[0].marker == 0x123456789ABCDEF0)
+    Swag.assert(first.payload.leaves[7].marker == 0x123456789ABCDEF0)
+    Swag.assert(first.marker == 11)
+    Swag.assert(second.payload.leaves[0].marker == 0x123456789ABCDEF0)
+    Swag.assert(second.payload.leaves[7].marker == 0x123456789ABCDEF0)
+    Swag.assert(second.marker == 17)
 }
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "LargeSparseStructDefaultsStayComposable");
@@ -787,7 +787,7 @@ var GValue: s32 = 0
     const a = 666
     let b = #run a
     GValue = b
-    @assert(GValue == 666)
+    Swag.assert(GValue == 666)
 }
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "CompilerRunExprInsideTestKeepsJitRunnable");
@@ -899,7 +899,7 @@ var GAddOne: UnaryFn = &addOne
 
 #test
 {
-    @assert(GAddOne(41) == 42)
+    Swag.assert(GAddOne(41) == 42)
 }
 
 #main
@@ -1037,14 +1037,14 @@ impl Buffer
 {
     mtd opSet(text: string)
     {
-        .value = cast(u32) @countof(text)
+        .value = cast(u32) text.count
     }
 }
 #test
 {
     var value: Buffer
     value = "abc"
-    @assert(value.value == 3)
+    Swag.assert(value.value == 3)
 }
 #test
 {
@@ -1052,7 +1052,7 @@ impl Buffer
     src = "wxyz"
     var dst: Buffer
     dst = src
-    @assert(dst.value == 4)
+    Swag.assert(dst.value == 4)
 }
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "SilentSpecOpProbeDoesNotDropStructCopyTests");
@@ -1087,7 +1087,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_TestFileFilterSelectsAUnionOfSourcePaths)
 {
-    static constexpr std::string_view SOURCE     = R"(#test { @assert(true) }
+    static constexpr std::string_view SOURCE     = R"(#test { Swag.assert(true) }
 )";
     const fs::path                    firstPath  = Unittest::makeTestSourcePath("NativeArtifact", "TestFileFilterFirst");
     const fs::path                    secondPath = Unittest::makeTestSourcePath("NativeArtifact", "TestFileFilterSecond");

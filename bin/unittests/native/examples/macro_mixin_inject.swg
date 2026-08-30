@@ -54,9 +54,9 @@ func declareShippingFees(baseFeeCents: s32)
 #[Swag.Macro]
 func visitInvoiceLines(lines: const [..] InvoiceLine, stmt: #code(line: InvoiceLine, index: s32, lineTotalCents: s32))
 {
-    for @countof(lines)
+    for lines.count
     {
-        #inject(stmt, line = lines[@index], index = cast(s32) @index, lineTotalCents = lines[@index].quantity * lines[@index].unitPriceCents)
+        #inject(stmt, line = lines[Swag.index], index = cast(s32) Swag.index, lineTotalCents = lines[Swag.index].quantity * lines[Swag.index].unitPriceCents)
     }
 }
 
@@ -80,10 +80,10 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
 
     visitInvoiceLines(lines)
     {
-        @assert(index >= 0)
-        @assert(line.quantity > 0)
-        @assert(line.unitPriceCents > 0)
-        @assert(lineTotalCents == line.quantity * line.unitPriceCents)
+        Swag.assert(index >= 0)
+        Swag.assert(line.quantity > 0)
+        Swag.assert(line.unitPriceCents > 0)
+        Swag.assert(lineTotalCents == line.quantity * line.unitPriceCents)
         accumulateInvoiceLine(lineTotalCents, line.taxable)
     }
 
@@ -117,14 +117,14 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
 
     let starterTotals = buildInvoiceTotals(starterInvoice, false)
 
-    @assert(starterTotals.lineCount == 3)
-    @assert(starterTotals.taxableLineCount == 2)
-    @assert(starterTotals.subtotalCents == 21000)
-    @assert(starterTotals.taxableSubtotalCents == 13000)
-    @assert(starterTotals.discountCents == 1200)
-    @assert(starterTotals.shippingCents == 600)
-    @assert(starterTotals.taxCents == 1300)
-    @assert(starterTotals.totalCents == 21700)
+    Swag.assert(starterTotals.lineCount == 3)
+    Swag.assert(starterTotals.taxableLineCount == 2)
+    Swag.assert(starterTotals.subtotalCents == 21000)
+    Swag.assert(starterTotals.taxableSubtotalCents == 13000)
+    Swag.assert(starterTotals.discountCents == 1200)
+    Swag.assert(starterTotals.shippingCents == 600)
+    Swag.assert(starterTotals.taxCents == 1300)
+    Swag.assert(starterTotals.totalCents == 21700)
 
     const enterpriseInvoice: [4] InvoiceLine =
         [
@@ -136,12 +136,12 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
 
     let enterpriseTotals = buildInvoiceTotals(enterpriseInvoice, true)
 
-    @assert(enterpriseTotals.lineCount == 4)
-    @assert(enterpriseTotals.taxableLineCount == 2)
-    @assert(enterpriseTotals.subtotalCents == 53300)
-    @assert(enterpriseTotals.taxableSubtotalCents == 33800)
-    @assert(enterpriseTotals.discountCents == 3500)
-    @assert(enterpriseTotals.shippingCents == 1500)
-    @assert(enterpriseTotals.taxCents == 3380)
-    @assert(enterpriseTotals.totalCents == 54680)
+    Swag.assert(enterpriseTotals.lineCount == 4)
+    Swag.assert(enterpriseTotals.taxableLineCount == 2)
+    Swag.assert(enterpriseTotals.subtotalCents == 53300)
+    Swag.assert(enterpriseTotals.taxableSubtotalCents == 33800)
+    Swag.assert(enterpriseTotals.discountCents == 3500)
+    Swag.assert(enterpriseTotals.shippingCents == 1500)
+    Swag.assert(enterpriseTotals.taxCents == 3380)
+    Swag.assert(enterpriseTotals.totalCents == 54680)
 }

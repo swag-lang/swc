@@ -415,14 +415,14 @@ func deferReturnDropInfo()->DeferDropInfo
     let v1 = deferParameterDropInfo()
     let v2 = deferReturnDropInfo()
     let v3 = deferEmbeddedParameterDropInfo()
-    @assert(v0.count == 2)
-    @assert(v0.drops == 2)
-    @assert(v1.count == 0)
-    @assert(v1.drops == 1)
-    @assert(v2.count == 42)
-    @assert(v2.drops == 1)
-    @assert(v3.count == 0)
-    @assert(v3.drops == 1)
+    Swag.assert(v0.count == 2)
+    Swag.assert(v0.drops == 2)
+    Swag.assert(v1.count == 0)
+    Swag.assert(v1.drops == 1)
+    Swag.assert(v2.count == 42)
+    Swag.assert(v2.drops == 1)
+    Swag.assert(v3.count == 0)
+    Swag.assert(v3.drops == 1)
 }
 
 #test
@@ -653,7 +653,7 @@ func deferReturnDropInfo()->DeferDropInfo
         {
             if deferSkippedAddressBranch() do
                 consumePointerForDefer(value)
-            @assert(value == cast(*u8) 0x1234'u64)
+            Swag.assert(value == cast(*u8) 0x1234'u64)
         }
 
         return value

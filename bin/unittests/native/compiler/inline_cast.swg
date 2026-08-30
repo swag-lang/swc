@@ -24,7 +24,7 @@ alias StrictTestFlags = TestFlags
 func boxStrictTestFlags(value: StrictTestFlags)->bool
 {
     let boxed: any = value
-    return @kindof(boxed) == StrictTestFlags and cast(StrictTestFlags) boxed == value
+    return Swag.kindOf(boxed) == StrictTestFlags and cast(StrictTestFlags) boxed == value
 }
 
 #[Swag.Inline]
@@ -38,16 +38,16 @@ func widen(value: u32)->u64
 func boxStrictTestFlagsAuto(value: StrictTestFlags)->bool
 {
     let boxed: any = value
-    return @kindof(boxed) == StrictTestFlags and cast(StrictTestFlags) boxed == value
+    return Swag.kindOf(boxed) == StrictTestFlags and cast(StrictTestFlags) boxed == value
 }
 
 #test
 {
-    @assert(boxStrictTestFlags(cast(StrictTestFlags) TestFlags.C))
-    @assert(widen(41) == 42)
+    Swag.assert(boxStrictTestFlags(cast(StrictTestFlags) TestFlags.C))
+    Swag.assert(widen(41) == 42)
 
     const seed: any = cast(StrictTestFlags) TestFlags.B
-    @assert(@kindof(seed) == StrictTestFlags)
-    @assert(boxStrictTestFlagsAuto(cast(StrictTestFlags) TestFlags.C))
-    @assert(boxStrictTestFlagsAuto(cast(StrictTestFlags) TestFlags.A))
+    Swag.assert(Swag.kindOf(seed) == StrictTestFlags)
+    Swag.assert(boxStrictTestFlagsAuto(cast(StrictTestFlags) TestFlags.C))
+    Swag.assert(boxStrictTestFlagsAuto(cast(StrictTestFlags) TestFlags.A))
 }

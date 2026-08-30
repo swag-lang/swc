@@ -82,7 +82,7 @@ using Swag, Core
     {
         let path = list.newPath()
         path.start(points[0].x, points[0].y)
-        for point in points where @index do
+        for point in points where Swag.index do
             path.lineTo(point.x, point.y)
         path.close()
     }

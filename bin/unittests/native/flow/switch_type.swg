@@ -10,7 +10,7 @@
         hit = 1
         break
     }
-    @assert(hit == 1)
+    Swag.assert(hit == 1)
 }
 
 #test
@@ -23,7 +23,7 @@
         hit = 1
         break
     }
-    @assert(hit == 1)
+    Swag.assert(hit == 1)
 }
 
 #test
@@ -39,7 +39,7 @@
         hit = 2
         break
     }
-    @assert(hit == 2)
+    Swag.assert(hit == 2)
 }
 
 // A comparison that folds must answer like the same comparison at run time. Type identity is
@@ -51,7 +51,7 @@ const TN: typeinfo = NullString
 #test
 {
     var a: typeinfo = NullString
-    @assert(a == string)
+    Swag.assert(a == string)
 }
 
 // A nullable form is the same type as the plain one, so 'case' selects it just like '=='
@@ -61,7 +61,7 @@ const TN: typeinfo = NullString
 {
     var text: #null string = "value"
     var a:    typeinfo     = #typeof(text)
-    @assert(a == string)
+    Swag.assert(a == string)
 
     var hit = 0
     switch a
@@ -73,14 +73,14 @@ const TN: typeinfo = NullString
         hit = 2
         break
     }
-    @assert(hit == 1)
+    Swag.assert(hit == 1)
 }
 
 #test
 {
     var ptr: #null *s32
     var a:   typeinfo = #typeof(ptr)
-    @assert(a == *s32)
+    Swag.assert(a == *s32)
 
     var hit = 0
     switch a
@@ -92,5 +92,5 @@ const TN: typeinfo = NullString
         hit = 2
         break
     }
-    @assert(hit == 1)
+    Swag.assert(hit == 1)
 }

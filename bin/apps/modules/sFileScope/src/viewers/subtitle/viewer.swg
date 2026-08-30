@@ -71,7 +71,7 @@ private impl SubtitleViewer
             let offset  = .transcript.length
             let content = videoSubtitleText(.track!.cueTextData(index), .track!.cueTextLength(index))
             .transcript += content
-            .cueText.add({offset, @countof(content)})
+            .cueText.add({offset, content.count})
         }
     }
 

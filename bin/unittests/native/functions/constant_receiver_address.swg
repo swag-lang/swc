@@ -15,7 +15,7 @@ impl Fmt
     #[Swag.NoInline]
     mtd const extensionCount()->u64
     {
-        return @countof(.extensions)
+        return (.extensions).count
     }
 
     #[Swag.NoInline]
@@ -29,8 +29,8 @@ impl Fmt
 {
     // Literal-initialized let: the receiver keeps its constant.
     let png = Fmt{"PNG", ".png"}
-    @assert(png.extensionCount() == 4)
-    @assert(png.firstByte() == '.'u8)
+    Swag.assert(png.extensionCount() == 4)
+    Swag.assert(png.firstByte() == '.'u8)
 }
 
 const G_Png = Fmt{"PNG", ".png"}
@@ -38,6 +38,6 @@ const G_Png = Fmt{"PNG", ".png"}
 #test
 {
     // Global constant receiver.
-    @assert(G_Png.extensionCount() == 4)
-    @assert(G_Png.firstByte() == '.'u8)
+    Swag.assert(G_Png.extensionCount() == 4)
+    Swag.assert(G_Png.firstByte() == '.'u8)
 }

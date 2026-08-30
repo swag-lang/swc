@@ -26,12 +26,12 @@ func assertPlanarMatchesPacked(reader: *Reader, index: u64)
 {
     var picture: PlanarFrame
     expect reader.decodeFramePlanesInto(&picture, index)
-    @assert(picture.isValid())
-    @assert(picture.width == reader.width() and picture.height == reader.height())
-    @assert(picture.strideLuma == cast(u32) reader.width())
-    @assert(picture.strideChroma == cast(u32) ((reader.width() + 1) / 2))
-    @assert(picture.chromaHeight() == (reader.height() + 1) / 2)
-    @assert(picture.luma.count == cast(u64) picture.width * cast(u64) picture.height)
+    Swag.assert(picture.isValid())
+    Swag.assert(picture.width == reader.width() and picture.height == reader.height())
+    Swag.assert(picture.strideLuma == cast(u32) reader.width())
+    Swag.assert(picture.strideChroma == cast(u32) ((reader.width() + 1) / 2))
+    Swag.assert(picture.chromaHeight() == (reader.height() + 1) / 2)
+    Swag.assert(picture.luma.count == cast(u64) picture.width * cast(u64) picture.height)
 
     var packed: Image
     expect reader.decodeFrameInto(&packed, index)
@@ -41,7 +41,7 @@ func assertPlanarMatchesPacked(reader: *Reader, index: u64)
         {
             let planar = planarPixel(&picture, x, y)
             let target = packed.pixelColor(x, y)
-            @assert(planar.r == target.r and planar.g == target.g and planar.b == target.b)
+            Swag.assert(planar.r == target.r and planar.g == target.g and planar.b == target.b)
         }
     }
 }
@@ -50,7 +50,7 @@ func assertPlanarMatchesPacked(reader: *Reader, index: u64)
 #test
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-high.mp4"))
-    @assert(reader.hasPlanarFrames())
+    Swag.assert(reader.hasPlanarFrames())
     for index in 3'u64 do
         assertPlanarMatchesPacked(&reader, index)
 }
@@ -59,7 +59,7 @@ func assertPlanarMatchesPacked(reader: *Reader, index: u64)
 #test
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-crop.mp4"))
-    @assert(reader.hasPlanarFrames())
+    Swag.assert(reader.hasPlanarFrames())
     assertPlanarMatchesPacked(&reader, 0)
     assertPlanarMatchesPacked(&reader, 1)
 }
@@ -69,9 +69,9 @@ func assertPlanarMatchesPacked(reader: *Reader, index: u64)
 #test
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-mjpeg.mp4"))
-    @assert(!reader.hasPlanarFrames())
+    Swag.assert(!reader.hasPlanarFrames())
 
     var picture: PlanarFrame
     catch reader.decodeFramePlanesInto(&picture, 0) as planarError
-    @assert(planarError != null)
+    Swag.assert(planarError != null)
 }

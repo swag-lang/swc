@@ -52,7 +52,7 @@ struct(T) Result
 // Returns true if 'oneArg' is a valid option (starting with a delimiter)
 func isOption(oneArg: string, _options: ParseOptions)->bool
 {
-    if @countof(oneArg) == 0 do
+    if oneArg.count == 0 do
         return false
     return oneArg[0] == '-'
 }
@@ -68,13 +68,13 @@ func isValue(oneArg: string, typeField: typeinfo, options: ParseOptions)->bool
     if !Reflection.isInteger(concreteType) and !Reflection.isFloat(concreteType) do
         return false
 
-    if @countof(oneArg) < 2 do
+    if oneArg.count < 2 do
         return false
     if !Latin1.isDigit(oneArg[1])
     {
         if !Reflection.isFloat(concreteType) do
             return false
-        if oneArg[1] != '.'u8 or @countof(oneArg) < 3 or !Latin1.isDigit(oneArg[2]) do
+        if oneArg[1] != '.'u8 or oneArg.count < 3 or !Latin1.isDigit(oneArg[2]) do
             return false
     }
 
@@ -97,7 +97,7 @@ private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->A
     {
         var oneArg = it
         oneArg = Latin1.trim(oneArg)
-        if !@countof(oneArg) do
+        if !oneArg.count do
             continue
 
         if !isOption(oneArg, options)
@@ -112,7 +112,7 @@ private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->A
             let name = Latin1.trim(split[0])
             allArgs.add(SplitArgument{value: name, raw: oneArg})
             let other = Latin1.trim(split[1])
-            if @countof(other) do
+            if other.count do
                 allArgs.add(SplitArgument{value: other, raw: "", attachedValue: true})
         }
         else
@@ -154,8 +154,8 @@ struct FieldResult
 // 'build-cfg' designates a field declared 'buildCfg'.
 func isSameName(candidate: string, name: string)->bool
 {
-    let countCandidate = @countof(candidate)
-    let countName      = @countof(name)
+    let countCandidate = candidate.count
+    let countName      = name.count
 
     var atCandidate = 0'u64
     var atName      = 0'u64
@@ -187,7 +187,7 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
         if isSameName(it.name orelse "", name)
         {
             result.field = it
-            result.index = @index
+            result.index = Swag.index
             return result
         }
 
@@ -196,7 +196,7 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
         if aliasName != null and isSameName(aliasName orelse "", name)
         {
             result.field = it
-            result.index = @index
+            result.index = Swag.index
             return result
         }
     }
@@ -232,7 +232,7 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
 
     // Parse all
     let typeof     = #typeof(T)
-    let maxItp     = @countof(allArgs)
+    let maxItp     = allArgs.count
     var seenOption = false
     for var itp = 0; itp < maxItp; itp += 1
     {
@@ -258,7 +258,7 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
 
         // One leading dash or two spell the same option, so '--name' and '-name' both reach 'name'.
         oneArg = Tokenize.eatCount(oneArg, 1)
-        if @countof(oneArg) and oneArg[0] == '-' do
+        if oneArg.count and oneArg[0] == '-' do
             oneArg = Tokenize.eatCount(oneArg, 1)
 
         let fieldResult = getField(typeof, oneArg)
@@ -304,7 +304,7 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
 
             if err != null do
                 fail SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", oneArg))}
-            if @countof(rest) do
+            if rest.count do
                 fail SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", oneArg))}
         }
 

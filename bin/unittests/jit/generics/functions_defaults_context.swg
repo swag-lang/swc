@@ -96,8 +96,8 @@ func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16
 
     #assert(#typeof(made) == s32)
     #assert(#typeof(mapped) == bool)
-    @assert(made == 42)
-    @assert(mapped)
+    Swag.assert(made == 42)
+    Swag.assert(mapped)
 }
 
 #test
@@ -111,9 +111,9 @@ func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16
     #assert(#typeof(first) == u16)
     #assert(#typeof(tail) == u8)
     #assert(#typeof(forwarded) == s64)
-    @assert(first == 1'u16)
-    @assert(tail == 4'u8)
-    @assert(forwarded == 5's64)
+    Swag.assert(first == 1'u16)
+    Swag.assert(tail == 4'u8)
+    Swag.assert(forwarded == 5's64)
 }
 
 #test
@@ -131,12 +131,12 @@ func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16
     #assert(#typeof(sliceValue) == u16)
     #assert(#typeof(stringValue) == u8)
     #assert(#typeof(firstChar) == u8)
-    @assert(value == 42)
-    @assert(arrayValue == 1'u16)
-    @assert(matrixValue == 3'u8)
-    @assert(sliceValue == 1'u16)
-    @assert(stringValue == "a"[0])
-    @assert(firstChar == "a"[0])
+    Swag.assert(value == 42)
+    Swag.assert(arrayValue == 1'u16)
+    Swag.assert(matrixValue == 3'u8)
+    Swag.assert(sliceValue == 1'u16)
+    Swag.assert(stringValue == "a"[0])
+    Swag.assert(firstChar == "a"[0])
 }
 
 #test
@@ -149,8 +149,8 @@ func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16
     #assert(#typeof(renamed) == u8)
     #assert(#typeof(field) == u16)
     #assert(#typeof(defaultField) == u16)
-    @assert(count == 3)
-    @assert(renamed == 1'u8)
-    @assert(field == 12'u16)
-    @assert(defaultField == 12'u16)
+    Swag.assert(count == 3)
+    Swag.assert(renamed == 1'u8)
+    Swag.assert(field == 12'u16)
+    Swag.assert(defaultField == 12'u16)
 }

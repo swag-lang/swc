@@ -2,11 +2,11 @@ using Core, Pixel
 
 func addPolygonPath(path: *LinePath, points: [..] Math.Vector2)
 {
-    if @countof(points) < 2 do
+    if points.count < 2 do
         return
 
     path.start(points[0].x, points[0].y)
-    for pt in points where @index do
+    for pt in points where Swag.index do
         path.lineTo(pt.x, pt.y)
     path.close()
 }
@@ -32,9 +32,9 @@ func buildPolygonHoleList(rect: Math.Rectangle)->LinePathList
     {
         let path = result.newPath()
         path.start(inner[0].x, inner[0].y)
-        for i in 1 to @countof(inner)
+        for i in 1 to inner.count
         {
-            let idx = @countof(inner) - i
+            let idx = inner.count - i
             path.lineTo(inner[idx].x, inner[idx].y)
         }
 

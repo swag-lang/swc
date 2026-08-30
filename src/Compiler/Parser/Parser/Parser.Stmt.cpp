@@ -644,8 +644,10 @@ SpanRef Parser::parseQualifiedName()
 
 AstNodeRef Parser::parseNamespace()
 {
-    auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::NamespaceDecl>(consume());
-    nodePtr->spanNameRef     = parseQualifiedName();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NamespaceDecl>(consume());
+    nodePtr->spanNameRef    = parseQualifiedName();
+
+    const PushContextFlags context(this, ParserContextFlagsE::InNamespace);
     nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
     return nodeRef;
 }
@@ -1029,7 +1031,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
 
         default:
             // An '@' intrinsic that yields a value is a primary expression like any other, so it
-            // opens a statement the same way: '@dataof(buf)[as u32] = 1'. The statement-only
+            // opens a statement the same way: 'buf.buffer[as u32] = 1'. The statement-only
             // intrinsics carry no 'Return' kind and are handled above.
             if (Token::isIntrinsicReturn(id()) && !Token::isCompiler(id()))
                 return parseAssignStmt();

@@ -83,8 +83,8 @@ impl Application
         let winKey = Input.Keyboard.keyToVirtualKey(key)
 
         var crc32: Hash.Crc32
-        crc32.update(@mkslice(cast(const [*] u8) &mod, 4))
-        crc32.update(@mkslice(cast(const [*] u8) &winKey, 4))
+        crc32.update(Swag.makeSlice(cast(const [*] u8) &mod, 4))
+        crc32.update(Swag.makeSlice(cast(const [*] u8) &winKey, 4))
         return cast(s32) (crc32.value() & 0x7FFFFFFF)
     }
 
@@ -267,13 +267,13 @@ impl Application
     internal mtd fileOrDirectoryIcon(name: string, isDirectory: bool, small = true)->Icon
     {
         var result: retval
-        if !@countof(name) do
+        if !name.count do
             return result
 
         var ext = Path.extension(name)
 
         var extractFromFile = false
-        if isDirectory and name[@countof(name) - 1] == Path.VolumeSeparator do
+        if isDirectory and name[name.count - 1] == Path.VolumeSeparator do
             ext = "c:"
         elif isDirectory do
             ext = "c:/temp"
@@ -301,7 +301,7 @@ impl Application
         var sfi: SHFILEINFOA
         if extractFromFile
         {
-            catch ExtractIconExA(@dataof(ext), 0, null, &sfi.hIcon, 1)
+            catch ExtractIconExA(ext.buffer, 0, null, &sfi.hIcon, 1)
             if !sfi.hIcon
             {
                 ext = Path.extension(name)
@@ -324,7 +324,7 @@ impl Application
 
         let safeExt = ext orelse ".txt"
         if !sfi.hIcon do
-            discard SHGetFileInfoA(@dataof(safeExt), isDirectory ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL, &sfi, #sizeof(SHFILEINFOA), SHGFI_USEFILEATTRIBUTES | SHGFI_ICON | SHGFI_SMALLICON)
+            discard SHGetFileInfoA(safeExt.buffer, isDirectory ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL, &sfi, #sizeof(SHFILEINFOA), SHGFI_USEFILEATTRIBUTES | SHGFI_ICON | SHGFI_SMALLICON)
         if !sfi.hIcon do
             return result
 

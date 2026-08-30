@@ -22,12 +22,12 @@ public func hashBytes32(buffer: #null const [..] u8)->u32
     const Mix2  = 0xC2B2AE3D27D4EB4F'u64
     const Final = 0xD6E8FEB86659FD93'u64
 
-    let length = @countof(buffer)
+    let length = buffer.count
     var result = Mix1 ^ (length * Mix2)
 
     if length
     {
-        let data = cast(const [*] u8) @dataof(buffer)!
+        let data = cast(const [*] u8) buffer.buffer!
         if length >= 8
         {
             var offset = 0'u64
@@ -84,7 +84,7 @@ public func(T) hash32(value: T)->u32
     elif Reflection.isStruct(T) and #sizeof(T) == 4 do
         return murmur3((&value)[as u32])
     elif Reflection.isStruct(T) do
-        return hashBytes32(@mkslice(cast(const [*] u8) &value, #sizeof(T)))
+        return hashBytes32(Swag.makeSlice(cast(const [*] u8) &value, #sizeof(T)))
     elif Reflection.isInteger(T) and #sizeof(T) == 8
     {
         let hashed = cast #bit (u64) value

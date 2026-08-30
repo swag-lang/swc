@@ -77,7 +77,7 @@ func wrapVector(value: s32, fcode: u32)->s32
 // over rounds through the table for that count.
 func chromaVector(vectors: const [..] Vector)->Vector
 {
-    let count = @countof(vectors)
+    let count = vectors.count
     var sum: Vector
     for vector in vectors
     {

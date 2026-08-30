@@ -111,7 +111,7 @@ func parseHeaderSequence(plain: const [..] u8)->u64 fail
 
     var magic: [#sizeof(HeaderMagic)] u8
     reader.readBytes(&magic[0], #sizeof(magic))
-    if @memcmp(&magic[0], &HeaderMagic[0], #sizeof(magic)) != 0 do
+    if Swag.memcmp(&magic[0], &HeaderMagic[0], #sizeof(magic)) != 0 do
         failWith("The container does not start with an sVaultDrive header.", .Corrupted)
 
     let version = reader.readLittleEndian'u32()

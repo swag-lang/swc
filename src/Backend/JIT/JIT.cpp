@@ -181,7 +181,7 @@ namespace
         const uint64_t tlsIdPlusOne = *CompilerInstance::runtimeContextTlsIdStorage() + 1;
 
         // A JIT run has no operating-system command line of its own: the effective one exists only
-        // in the compiler, so hand it to every imported module. Otherwise '@args' answers from the
+        // in the compiler, so hand it to every imported module. Otherwise 'Swag.args()' answers from the
         // module's own, never-filled slot, and 'Env.hasArg' says something different depending on
         // whether it was compiled into the module under test or into an imported library.
         ctx.compiler().ensureProcessInfosRunArgs();
@@ -204,7 +204,7 @@ namespace
 
             // Shared runtime hooks refresh the imported module TLS slot before
             // their one-time lifecycle guards, which is exactly what JIT needs
-            // to keep @getcontext() valid inside imported DLL code like core.dll.
+            // to keep Swag.getContext() valid inside imported DLL code like core.dll.
             const auto hookInvoker = reinterpret_cast<RuntimeHookInvoker>(hookAddress);
             hookInvoker(static_cast<uint64_t>(RuntimeHookStage::Init), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler), processArgs);
             hookInvoker(static_cast<uint64_t>(RuntimeHookStage::PreMain), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler), processArgs);
@@ -1380,7 +1380,7 @@ namespace
             return {};
 
         const std::string_view text = Utf8Helper::trim(range.srcView->codeView(range.offset, range.len));
-        if (!text.starts_with("@assert"))
+        if (!text.starts_with("Swag.assert"))
             return {};
 
         const size_t openParen = text.find('(');
@@ -1776,8 +1776,8 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
         ctx.compiler().initPerThreadRuntimeContextForJit();
 
         // This is an actual program run (not compile-time evaluation), so make the
-        // program's '@args' reflect the command line it was effectively launched with.
-        // Done here rather than at codegen so compile-time '#run' keeps a zeroed @pinfos.
+        // program's 'Swag.args()' reflect the command line it was effectively launched with.
+        // Done here rather than at codegen so compile-time '#run' keeps a zeroed Swag.processInfos().
         ctx.compiler().ensureProcessInfosRunArgs();
     }
 

@@ -53,7 +53,7 @@ func unitSize(encoding: Encoding)->u64
 func hasBom(bytes: const [..] u8, encoding: Encoding)->bool
 {
     let length = bomLength(encoding)
-    if !length or @countof(bytes) < length do
+    if !length or bytes.count < length do
         return false
 
     switch encoding
@@ -78,15 +78,15 @@ private func countZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
     const VectorSize = #sizeof(Math.Simd.U8x16)
     let zero  = Math.Simd.splat(0'u8)
     var index = 0'u64
-    while @countof(bytes) - index >= VectorSize
+    while bytes.count - index >= VectorSize
     {
-        let mask = Math.Simd.bitmask(Math.Simd.load(@dataof(bytes) + index) == zero)
+        let mask = Math.Simd.bitmask(Math.Simd.load(bytes.buffer + index) == zero)
         result.even += Math.countOnes(mask & 0x5555)
         result.odd  += Math.countOnes(mask & 0xAAAA)
         index       += VectorSize
     }
 
-    while index < @countof(bytes)
+    while index < bytes.count
     {
         if !bytes[index]
         {
@@ -110,7 +110,7 @@ private func isValidUtf8Prefix(bytes: const [..] u8)->bool
 
     // A probe is a prefix of a file, so its last character can be incomplete. Only a
     // three-byte tail can be, since that is the longest UTF-8 sequence minus one byte.
-    let count = @countof(bytes)
+    let count = bytes.count
     for back in 1 to 3 where back < count
     {
         if Utf8.isValid(bytes[0 until count - back]) do
@@ -143,7 +143,7 @@ func detectEncoding(probe: const [..] u8)->Encoding
     if !total and isValidUtf8Prefix(probe) do
         return .Utf8
 
-    if total * 4 >= @countof(probe)
+    if total * 4 >= probe.count
     {
         if zeros.odd > zeros.even * 4 do
             return .Utf16Le
@@ -174,8 +174,8 @@ private func decodeUtf16BeUnits(bytes: const [..] u8)->Array'u16
 {
     const SwapBytes = cast(Math.Simd.U8x16) [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14]
     var result: retval
-    result.resize(@countof(bytes) / 2)
-    let source      = @dataof(bytes)
+    result.resize(bytes.count / 2)
+    let source      = bytes.buffer
     let destination = result.buffer!
     var offset      = 0'u64
 
@@ -199,8 +199,8 @@ private func decodeUtf32BeRunes(bytes: const [..] u8)->Array'rune
 {
     const SwapBytes = cast(Math.Simd.U8x16) [3'u8, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12]
     var result: retval
-    result.resize(@countof(bytes) / 4)
-    let source      = @dataof(bytes)
+    result.resize(bytes.count / 4)
+    let source      = bytes.buffer
     let destination = result.buffer!
     var offset      = 0'u64
 
@@ -231,25 +231,25 @@ private func decodeUtf32BeRunes(bytes: const [..] u8)->Array'rune
 func decode(bytes: const [..] u8, encoding: Encoding)->String
 {
     var result: retval
-    if !@countof(bytes) do
+    if !bytes.count do
         return result
 
     switch encoding
     {
     case .Utf8:
-        result = @mkstring(@dataof(bytes), @countof(bytes))
+        result = Swag.makeString(bytes.buffer, bytes.count)
         return result
 
     case .Windows1252:
         var runes: Array'rune
-        runes.reserve(@countof(bytes))
+        runes.reserve(bytes.count)
         for value in bytes do
             runes.add(windows1252Rune(value))
         result = Utf8.fromUnicode(runes.toSlice())
         return result
 
     case .Utf16Le:
-        result = Utf8.fromUtf16(@mkslice(cast(const [*] u16) @dataof(bytes), @countof(bytes) / 2))
+        result = Utf8.fromUtf16(Swag.makeSlice(cast(const [*] u16) bytes.buffer, bytes.count / 2))
         return result
 
     case .Utf16Be:
@@ -258,7 +258,7 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
         return result
 
     case .Utf32Le:
-        result = Utf8.fromUnicode(@mkslice(cast(const [*] rune) @dataof(bytes), @countof(bytes) / 4))
+        result = Utf8.fromUnicode(Swag.makeSlice(cast(const [*] rune) bytes.buffer, bytes.count / 4))
         return result
 
     case .Utf32Be:
@@ -277,7 +277,7 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
 // character at all.
 func looksLikeText(probe: const [..] u8, encoding: Encoding)->bool
 {
-    if !@countof(probe) do
+    if !probe.count do
         return true
 
     let text = decode(probe, encoding)

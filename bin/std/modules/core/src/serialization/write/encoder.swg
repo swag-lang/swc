@@ -249,7 +249,7 @@ impl Encoder
             }
 
             // A structure with an implementation of ISerialize
-            let itf = @mkinterface(data, type, ISerialize)
+            let itf = Swag.makeInterface(data, type, ISerialize)
             if itf != null
             {
                 if itf.write(cast(IEncoder) me[]) do
@@ -306,9 +306,9 @@ impl Encoder
     // Will call [[Encoder.start]], [[Encoder.writeValue]] and [[Encoder.end]]
     mtd writeAll(result: *ConcatBuffer, value: any) fail
     {
-        Debug.assert(Reflection.isStruct(@kindof(value)))
+        Debug.assert(Reflection.isStruct(Swag.kindOf(value)))
         start(me, result)
-        .writeValue(@dataof(value), @kindof(value))
+        .writeValue(value.buffer, Swag.kindOf(value))
         end(me)
     }
 }

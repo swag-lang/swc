@@ -97,7 +97,7 @@ namespace
     Result constantFoldMinus(Sema& sema, ConstantRef& result, const SemaNodeView& view)
     {
         // In the case of a literal with a suffix, it has already been done
-        // @MinusLiteralSuffix
+        // Swag.minusLiteralSuffix
         if (view.node()->is(AstNodeId::SuffixLiteral))
         {
             result = view.cstRef();

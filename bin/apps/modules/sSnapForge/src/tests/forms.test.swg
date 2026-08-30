@@ -44,11 +44,11 @@ func testTextPaintTransform(text: *FormText, tx, ty, z, renderScale: f32)->TextP
 
 func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
 {
-    @assert(base.found and scaled.found)
-    @assert(Math.abs(base.tr.m11 - scaled.tr.m11 / scale) < 0.001)
-    @assert(Math.abs(base.tr.m22 - scaled.tr.m22 / scale) < 0.001)
-    @assert(Math.abs(base.tr.tx - scaled.tr.tx / scale) < 0.01)
-    @assert(Math.abs(base.tr.ty - scaled.tr.ty / scale) < 0.01)
+    Swag.assert(base.found and scaled.found)
+    Swag.assert(Math.abs(base.tr.m11 - scaled.tr.m11 / scale) < 0.001)
+    Swag.assert(Math.abs(base.tr.m22 - scaled.tr.m22 / scale) < 0.001)
+    Swag.assert(Math.abs(base.tr.tx - scaled.tr.tx / scale) < 0.01)
+    Swag.assert(Math.abs(base.tr.ty - scaled.tr.ty / scale) < 0.01)
 }
 
 // Off-screen form layers reserve only the geometry that can escape the tight bound.
@@ -57,8 +57,8 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     var shape: FormShape
     shape.borderSize = 5
     let shapeItf: IForm = &shape
-    @assert(BaseForm.paintOverdraw(shapeItf, false) == 10)
-    @assert(BaseForm.paintOverdraw(shapeItf, true) == QuickPaintOverdraw)
+    Swag.assert(BaseForm.paintOverdraw(shapeItf, false) == 10)
+    Swag.assert(BaseForm.paintOverdraw(shapeItf, true) == QuickPaintOverdraw)
 
     var line: FormLine
     line.borderSize = 5
@@ -66,7 +66,7 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     line.endSize    = 20
     line.endCap     = .RoundAnchor
     let lineItf: IForm = &line
-    @assert(BaseForm.paintOverdraw(lineItf, false) == 52)
+    Swag.assert(BaseForm.paintOverdraw(lineItf, false) == 52)
 
     // FormArrow embeds FormLine but has its own runtime type. Its arrowhead must reserve the
     // same layer margin instead of falling back to the ordinary-stroke extent.
@@ -75,7 +75,7 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     arrow.endSize    = 8
     arrow.endCap     = .ArrowAnchor
     let arrowItf: IForm = &arrow
-    @assert(BaseForm.paintOverdraw(arrowItf, false) == 22)
+    Swag.assert(BaseForm.paintOverdraw(arrowItf, false) == 22)
 }
 
 // Rectangle-like forms normalize negative sizes and keep their base geometry coherent.
@@ -98,11 +98,11 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     Gui.Testing.assertRect(shape.IForm.boundRect(), 126, 112, 46, 68)
 
     shape.kind = .Ellipse
-    @assert(shape.IForm.isInside({149, 146}))
-    @assert(!shape.IForm.isInside({126, 112}))
+    Swag.assert(shape.IForm.isInside({149, 146}))
+    Swag.assert(!shape.IForm.isInside({126, 112}))
 
     shape.kind = .Rectangle
-    @assert(shape.IForm.isInside({-1000, -1000}))
+    Swag.assert(shape.IForm.isInside({-1000, -1000}))
 }
 
 // Text supersampling must only increase raster resolution, never logical layout.
@@ -131,23 +131,23 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     f.setup()
     defer f.shutdown()
     let text = testAddText(f.capture, 20, 30, 120, 50)
-    @assert(text.IForm.mustClipToBound())
-    @assert(text.IForm.canRotate())
-    @assert(text.IForm.hitTest({30, 40}, 1))
-    @assert(!text.IForm.hitTest({10, 10}, 1))
+    Swag.assert(text.IForm.mustClipToBound())
+    Swag.assert(text.IForm.canRotate())
+    Swag.assert(text.IForm.hitTest({30, 40}, 1))
+    Swag.assert(!text.IForm.hitTest({10, 10}, 1))
     text.subKind = .Highlight
-    @assert(!text.IForm.canRotate())
+    Swag.assert(!text.IForm.canRotate())
 
     let image = testAddImage(f.capture, 40, 50, 80, 90)
-    @assert(image.IForm.canRotate())
-    @assert(image.IForm.hitTest({50, 60}, 1))
-    @assert(!image.IForm.hitTest({5, 5}, 1))
+    Swag.assert(image.IForm.canRotate())
+    Swag.assert(image.IForm.hitTest({50, 60}, 1))
+    Swag.assert(!image.IForm.hitTest({5, 5}, 1))
     image.kind       = .Image
     image.place      = .Free
     image.editInside = true
     image.freePos    = {3, 4, 10, 20}
-    @assert(image.kind == .Image and image.place == .Free and image.editInside)
-    @assert(!image.IForm.canRotate())
+    Swag.assert(image.kind == .Image and image.place == .Free and image.editInside)
+    Swag.assert(!image.IForm.canRotate())
     image.IForm.moveBaseForm(7, 8, 9, 10)
     Gui.Testing.assertRect(image.freePos, 10, 12, 19, 30)
 
@@ -156,11 +156,11 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     step.hs                 = 40
     f.capture.nextStepIndex = 7
     var evt = testMouse(.Move)
-    @assert(!step.IForm.edit(&evt, {100, 90}, {120, 110}, 1))
+    Swag.assert(!step.IForm.edit(&evt, {100, 90}, {120, 110}, 1))
     Gui.Testing.assertRect(step.IForm.boundRect(), 85, 70, 30, 40)
-    @assert(step.index == 7)
-    @assert(f.capture.nextStepIndex == 8)
-    @assert(step.isDirty)
+    Swag.assert(step.index == 7)
+    Swag.assert(f.capture.nextStepIndex == 8)
+    Swag.assert(step.isDirty)
 }
 
 // Line-like forms keep endpoint, control-point and bound-rect state consistent.
@@ -173,26 +173,26 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     Gui.Testing.assertRect(line.IForm.boundRect(), 10, 20, 30, 40)
 
     line.IForm.movePoint(0, 5, -10)
-    @assert(line.xa == 15)
-    @assert(line.ya == 50)
+    Swag.assert(line.xa == 15)
+    Swag.assert(line.ya == 50)
     line.IForm.movePoint(1, -15, 25)
-    @assert(line.xb == 25)
-    @assert(line.yb == 45)
+    Swag.assert(line.xb == 25)
+    Swag.assert(line.yb == 45)
 
     line.bezier = true
     line.IForm.movePoint(2, 30, -5)
-    @assert(line.xc == 40)
-    @assert(line.yc == 5)
+    Swag.assert(line.xc == 40)
+    Swag.assert(line.yc == 5)
     let br0 = line.IForm.boundRect()
     let br1 = line.IForm.boundRect()
-    @assert(br0 == br1)
+    Swag.assert(br0 == br1)
 
     let arrow = testAddArrow(f.capture, 100, 120, 140, 150)
     arrow.IForm.moveBaseForm(-10, 5, 0, 0)
-    @assert(arrow.xa == 90)
-    @assert(arrow.ya == 125)
-    @assert(arrow.xb == 130)
-    @assert(arrow.yb == 155)
+    Swag.assert(arrow.xa == 90)
+    Swag.assert(arrow.ya == 125)
+    Swag.assert(arrow.xb == 130)
+    Swag.assert(arrow.yb == 155)
 }
 
 // Polygon and draw forms share point-list movement, scaling and inside tests.
@@ -207,8 +207,8 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     polyPoints.add({40, 50})
     let polygon = testAddPolygon(f.capture, polyPoints.toSlice())
     Gui.Testing.assertRect(polygon.IForm.boundRect(), 10, 10, 50, 40)
-    @assert(polygon.IForm.isInside({35, 20}))
-    @assert(!polygon.IForm.isInside({5, 5}))
+    Swag.assert(polygon.IForm.isInside({35, 20}))
+    Swag.assert(!polygon.IForm.isInside({5, 5}))
 
     polygon.IForm.movePoint(1, 10, 15)
     Gui.Testing.assertPoint(polygon.points[1], 70, 25)
@@ -224,8 +224,8 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     let draw = testAddDraw(f.capture, drawPoints.toSlice())
     draw.borderSize = 10
     Gui.Testing.assertRect(draw.IForm.boundRect(), 95, 95, 40, 50)
-    @assert(draw.IForm.isInside({118, 112}))
-    @assert(!draw.IForm.isInside({80, 80}))
+    Swag.assert(draw.IForm.isInside({118, 112}))
+    Swag.assert(!draw.IForm.isInside({80, 80}))
     draw.IForm.movePoint(2, -10, 20)
     Gui.Testing.assertPoint(draw.points[2], 120, 160)
     draw.IForm.moveForm(3, -4)
@@ -240,24 +240,24 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     defer f.shutdown()
     let shape   = testAddShape(f.capture, 0, 0, 1, 1)
     var moveEvt = testMouse(.Move)
-    @assert(shape.IForm.edit(&moveEvt, {80, 70}, {50, 20}, 1))
+    Swag.assert(shape.IForm.edit(&moveEvt, {80, 70}, {50, 20}, 1))
     Gui.Testing.assertRect(shape.IForm.boundRect(), 50, 20, 30, 50)
     var releaseEvt = testMouse(.Released)
-    @assert(!shape.IForm.edit(&releaseEvt, {80, 70}, {50, 20}, 1))
+    Swag.assert(!shape.IForm.edit(&releaseEvt, {80, 70}, {50, 20}, 1))
 
     let line = testAddLine(f.capture, 0, 0, 1, 1)
-    @assert(line.IForm.edit(&moveEvt, {10, 20}, {70, 90}, 2))
-    @assert(line.xa == 5)
-    @assert(line.ya == 10)
-    @assert(line.xb == 35)
-    @assert(line.yb == 45)
-    @assert(!line.IForm.edit(&releaseEvt, {10, 20}, {70, 90}, 2))
+    Swag.assert(line.IForm.edit(&moveEvt, {10, 20}, {70, 90}, 2))
+    Swag.assert(line.xa == 5)
+    Swag.assert(line.ya == 10)
+    Swag.assert(line.xb == 35)
+    Swag.assert(line.yb == 45)
+    Swag.assert(!line.IForm.edit(&releaseEvt, {10, 20}, {70, 90}, 2))
 
     let image = testAddImage(f.capture, 0, 0, 1, 1)
-    @assert(image.IForm.edit(&moveEvt, {20, 30}, {60, 100}, 1))
-    @assert(!image.isReadyToCapture)
-    @assert(!image.IForm.edit(&releaseEvt, {20, 30}, {60, 100}, 1))
-    @assert(image.isReadyToCapture)
+    Swag.assert(image.IForm.edit(&moveEvt, {20, 30}, {60, 100}, 1))
+    Swag.assert(!image.isReadyToCapture)
+    Swag.assert(!image.IForm.edit(&releaseEvt, {20, 30}, {60, 100}, 1))
+    Swag.assert(image.isReadyToCapture)
 }
 
 // Point-list edit methods add, update and finish without relying on painting.
@@ -272,24 +272,24 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
 
     var emptyPoints: Array'Math.Vector2
     let polygon = testAddPolygon(f.capture, emptyPoints.toSlice())
-    @assert(polygon.IForm.edit(&moveEvt, {10, 10}, {20, 20}, 1))
-    @assert(polygon.points.count == 2)
+    Swag.assert(polygon.IForm.edit(&moveEvt, {10, 10}, {20, 20}, 1))
+    Swag.assert(polygon.points.count == 2)
     Gui.Testing.assertPoint(polygon.points[0], 10, 10)
     Gui.Testing.assertPoint(polygon.points[1], 20, 20)
-    @assert(polygon.IForm.edit(&releaseEvt, {10, 10}, {40, 50}, 1))
-    @assert(polygon.points.count == 3)
+    Swag.assert(polygon.IForm.edit(&releaseEvt, {10, 10}, {40, 50}, 1))
+    Swag.assert(polygon.points.count == 3)
     Gui.Testing.assertPoint(polygon.points[2], 40, 50)
-    @assert(!polygon.IForm.edit(&doubleEvt, {10, 10}, {40, 50}, 1))
-    @assert(polygon.points.count == 3)
+    Swag.assert(!polygon.IForm.edit(&doubleEvt, {10, 10}, {40, 50}, 1))
+    Swag.assert(polygon.points.count == 3)
 
     let draw = testAddDraw(f.capture, emptyPoints.toSlice())
-    @assert(draw.IForm.edit(&moveEvt, {5, 5}, {8, 8}, 1))
-    @assert(draw.points.count == 2)
-    @assert(draw.IForm.edit(&moveEvt, {5, 5}, {14, 8}, 1))
-    @assert(draw.points.count == 3)
-    @assert(draw.IForm.edit(&moveEvt, {5, 5}, {15, 9}, 1))
-    @assert(draw.points.count == 3)
-    @assert(!draw.IForm.edit(&releaseEvt, {5, 5}, {15, 9}, 1))
+    Swag.assert(draw.IForm.edit(&moveEvt, {5, 5}, {8, 8}, 1))
+    Swag.assert(draw.points.count == 2)
+    Swag.assert(draw.IForm.edit(&moveEvt, {5, 5}, {14, 8}, 1))
+    Swag.assert(draw.points.count == 3)
+    Swag.assert(draw.IForm.edit(&moveEvt, {5, 5}, {15, 9}, 1))
+    Swag.assert(draw.points.count == 3)
+    Swag.assert(!draw.IForm.edit(&releaseEvt, {5, 5}, {15, 9}, 1))
 }
 
 // Copy/isSame covers every concrete form family and the regression-sensitive subKind fields.
@@ -303,10 +303,10 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     shape.roundSize = 25
     var shapeCopy: FormShape
     shape.IForm.copy(&shapeCopy, shape)
-    @assert(shapeCopy.subKind == .Highlight)
-    @assert(shape.IForm.isSame(&shapeCopy))
+    Swag.assert(shapeCopy.subKind == .Highlight)
+    Swag.assert(shape.IForm.isSame(&shapeCopy))
     shapeCopy.roundSize += 1
-    @assert(!shape.IForm.isSame(&shapeCopy))
+    Swag.assert(!shape.IForm.isSame(&shapeCopy))
 
     let text = testAddText(f.capture, 0, 0, 50, 60)
     text.fontSize  = 34
@@ -314,9 +314,9 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     text.joinStyle = .Bevel
     var textCopy: FormText
     text.IForm.copy(&textCopy, text)
-    @assert(text.IForm.isSame(&textCopy))
+    Swag.assert(text.IForm.isSame(&textCopy))
     textCopy.fontSize += 1
-    @assert(!text.IForm.isSame(&textCopy))
+    Swag.assert(!text.IForm.isSame(&textCopy))
 
     let step = testAddStep(f.capture, 0, 0, 20, 30)
     step.kind      = .RoundRectangle
@@ -325,11 +325,11 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     step.hs        = 44
     var stepCopy: FormStep
     step.IForm.copy(&stepCopy, step)
-    @assert(stepCopy.ws == 36)
-    @assert(stepCopy.hs == 44)
-    @assert(step.IForm.isSame(&stepCopy))
+    Swag.assert(stepCopy.ws == 36)
+    Swag.assert(stepCopy.hs == 44)
+    Swag.assert(step.IForm.isSame(&stepCopy))
     stepCopy.typeIndex = .LetterUp
-    @assert(!step.IForm.isSame(&stepCopy))
+    Swag.assert(!step.IForm.isSame(&stepCopy))
 
     let line = testAddLine(f.capture, 0, 0, 10, 10, .PixSel)
     line.dashCap     = .Round
@@ -337,11 +337,11 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     line.paintShadow = false
     var lineCopy: FormLine
     line.IForm.copy(&lineCopy, line)
-    @assert(lineCopy.subKind == .PixSel)
-    @assert(lineCopy.paintShadow == false)
-    @assert(line.IForm.isSame(&lineCopy))
+    Swag.assert(lineCopy.subKind == .PixSel)
+    Swag.assert(lineCopy.paintShadow == false)
+    Swag.assert(line.IForm.isSame(&lineCopy))
     lineCopy.subKind = .Highlight
-    @assert(!line.IForm.isSame(&lineCopy))
+    Swag.assert(!line.IForm.isSame(&lineCopy))
 
     var points: Array'Math.Vector2
     points.add({1, 1})
@@ -353,21 +353,21 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     polygon.bezier      = true
     var polygonCopy: FormPolygon
     polygon.IForm.copy(&polygonCopy, polygon)
-    @assert(polygonCopy.subKind == .Highlight)
-    @assert(polygonCopy.paintShadow == false)
-    @assert(polygon.IForm.isSame(&polygonCopy))
+    Swag.assert(polygonCopy.subKind == .Highlight)
+    Swag.assert(polygonCopy.paintShadow == false)
+    Swag.assert(polygon.IForm.isSame(&polygonCopy))
     polygonCopy.subKind = .PixSel
-    @assert(!polygon.IForm.isSame(&polygonCopy))
+    Swag.assert(!polygon.IForm.isSame(&polygonCopy))
 
     let draw = testAddDraw(f.capture, points.toSlice(), .PixSel)
     draw.paintShadow = false
     var drawCopy: FormDraw
     draw.IForm.copy(&drawCopy, draw)
-    @assert(drawCopy.subKind == .PixSel)
-    @assert(drawCopy.paintShadow == false)
-    @assert(draw.IForm.isSame(&drawCopy))
+    Swag.assert(drawCopy.subKind == .PixSel)
+    Swag.assert(drawCopy.paintShadow == false)
+    Swag.assert(draw.IForm.isSame(&drawCopy))
     drawCopy.paintShadow = true
-    @assert(!draw.IForm.isSame(&drawCopy))
+    Swag.assert(!draw.IForm.isSame(&drawCopy))
 
     let image = testAddImage(f.capture, 0, 0, 40, 50)
     image.kind      = .Image
@@ -375,10 +375,10 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     image.backColor = ColorRed
     var imageCopy: FormImage
     image.IForm.copy(&imageCopy, image)
-    @assert(image.IForm.isSame(&imageCopy))
+    Swag.assert(image.IForm.isSame(&imageCopy))
     imageCopy.backColor = ColorBlue
-    @assert(!image.IForm.isSame(&imageCopy))
+    Swag.assert(!image.IForm.isSame(&imageCopy))
     image.kind     = .Blur
     imageCopy.kind = .Blur
-    @assert(image.IForm.isSame(&imageCopy))
+    Swag.assert(image.IForm.isSame(&imageCopy))
 }

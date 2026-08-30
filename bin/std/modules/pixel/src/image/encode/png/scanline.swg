@@ -96,7 +96,7 @@ impl Encoder
 
     mtd writeIDatBytes(sl: [*] u8, len: u32) fail
     {
-        .bufferToCompress.add(@mkslice(sl, len))
+        .bufferToCompress.add(Swag.makeSlice(sl, len))
     }
 
     mtd encodeRow(row: [*] u8)->bool fail

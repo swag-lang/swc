@@ -187,12 +187,12 @@ func drawWrappedText(painter: *Pixel.Painter, rect: Math.Rectangle, text: string
 
 func drawClosedOutline(painter: *Pixel.Painter, points: [..] Math.Vector2, pen: Pen)
 {
-    if @countof(points) < 2 do
+    if points.count < 2 do
         return
 
     var path: LinePath
     path.start(points[0].x, points[0].y)
-    for pt in points where @index do
+    for pt in points where Swag.index do
         path.lineTo(pt.x, pt.y)
     path.close()
     painter.drawPath(&path, pen)

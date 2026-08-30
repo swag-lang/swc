@@ -73,16 +73,16 @@ private func run(op: *Array's64, input: s64)->s64
         /*
         switch inst
         {
-        case 1:   @print(ip, " ", "1: [", op[ip+3], "] = ", param0, " + ", param1, "\n")
-        case 2:   @print(ip, " ", "2: [", op[ip+3], "] = ", param0, " * ", param1, "\n")
-        case 3:   @print(ip, " ", "3: [", op[ip+1], "] = ", input, "\n")
-        case 4:   @print(ip, " ", "4: out = ", param0, "\n")
-        case 5:   @print(ip, " ", "5: if ", param0, " != 0 goto ", param1, "\n")
-        case 6:   @print(ip, " ", "6: if ", param0, " == 0 goto ", param1, "\n")
-        case 7:   @print(ip, " ", "7: [", op[ip+3], "] = ", param0, " < ", param1, "\n")
-        case 8:   @print(ip, " ", "8: [", op[ip+3], "] = ", param0, " == ", param1, "\n")
-        case 9:   @print(ip, " ", "9: base += ", param0, " (", base+param0, ")", "\n")
-        default:  @print("?\n")
+        case 1:   Swag.print(ip, " ", "1: [", op[ip+3], "] = ", param0, " + ", param1, "\n")
+        case 2:   Swag.print(ip, " ", "2: [", op[ip+3], "] = ", param0, " * ", param1, "\n")
+        case 3:   Swag.print(ip, " ", "3: [", op[ip+1], "] = ", input, "\n")
+        case 4:   Swag.print(ip, " ", "4: out = ", param0, "\n")
+        case 5:   Swag.print(ip, " ", "5: if ", param0, " != 0 goto ", param1, "\n")
+        case 6:   Swag.print(ip, " ", "6: if ", param0, " == 0 goto ", param1, "\n")
+        case 7:   Swag.print(ip, " ", "7: [", op[ip+3], "] = ", param0, " < ", param1, "\n")
+        case 8:   Swag.print(ip, " ", "8: [", op[ip+3], "] = ", param0, " == ", param1, "\n")
+        case 9:   Swag.print(ip, " ", "9: base += ", param0, " (", base+param0, ")", "\n")
+        default:  Swag.print("?\n")
         }
 */
         switch inst
@@ -138,5 +138,5 @@ func day9A()
     let total = run(&prg, 1)
 
     // Console.print("total: ", total)
-    @assert(total == 3013554615)
+    Swag.assert(total == 3013554615)
 }

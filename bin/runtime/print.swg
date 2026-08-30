@@ -134,7 +134,7 @@ func __printU64(value: u64)
 {
     var buf: [100] u8
     __utoa(&buf[0], value)
-    let str = cast(string) @mkslice(&buf[0], @countof(cast(cstring) &buf[0]))
+    let str = cast(string) Swag.makeSlice(&buf[0], (cast(cstring) &buf[0]).count)
     __printString(str)
 }
 
@@ -142,7 +142,7 @@ func __printS64(value: s64)
 {
     var buf: [100] u8
     __itoa(&buf[0], value)
-    let str = cast(string) @mkslice(&buf[0], @countof(cast(cstring) &buf[0]))
+    let str = cast(string) Swag.makeSlice(&buf[0], (cast(cstring) &buf[0]).count)
     __printString(str)
 }
 
@@ -150,24 +150,24 @@ func __printF64(value: f64)
 {
     var buf: [100] u8
     __ftoa(&buf[0], value)
-    let str = cast(string) @mkslice(&buf[0], @countof(cast(cstring) &buf[0]))
+    let str = cast(string) Swag.makeSlice(&buf[0], (cast(cstring) &buf[0]).count)
     __printString(str)
 }
 
 // Basic print to console function
-func @print(params: ...)
+func print(params: ...)
 {
     for it in params
     {
         var v  = it
-        var ko = @kindof(v)
+        var ko = Swag.kindOf(v)
 
         if ko.flags & TypeInfoFlags.PointerRef
         {
             let ptr = cast(const *TypeInfoPointer) ko
             ko = cast() ptr.pointedType
-            let val = cast(**u64) @dataof(v)
-            v = @mkany(val[], ko)
+            let val = cast(**u64) v.buffer
+            v = Swag.makeAny(val[], ko)
         }
 
         if ko.flags & TypeInfoFlags.PointerTypeInfo
@@ -182,8 +182,8 @@ func @print(params: ...)
         {
             #[Safety(.DynCast, false)]
             let ptr = cast(const [*] u8) v
-            let len = @countof(cast(const cstring) ptr)
-            __printString(@mkstring(ptr, len))
+            let len = (cast(const cstring) ptr).count
+            __printString(Swag.makeString(ptr, len))
             continue
         }
 
@@ -200,7 +200,7 @@ func @print(params: ...)
         if ko.kind == .Native
         {
             let native = cast(const *TypeInfoNative) ko
-            let data   = @dataof(v)
+            let data   = v.buffer
             switch native.nativeKind
             {
             case .S8:     __printS64(cast(s64) data[as s8])
@@ -229,26 +229,26 @@ func @print(params: ...)
 ////////////////////////////////////////////////////////////
 
 // Compares two strings, and returns 'true' if they are equal.
-func @stringcmp(str1: #null string, str2: #null string)->bool
+func stringCmp(str1: #null string, str2: #null string)->bool
 {
-    let num1 = @countof(str1)
-    let num2 = @countof(str2)
+    let num1 = str1.count
+    let num2 = str2.count
     if num1 != num2 do
         return false
     if num1 == 0 and num2 == 0 do
         return true
-    let data1 = @dataof(str1)
-    let data2 = @dataof(str2)
+    let data1 = str1.buffer
+    let data2 = str2.buffer
     if data1 == null or data2 == null do
         return data1 == data2
     if data1 == data2 do
         return true
-    return !@memcmp(data1, data2, num1)
+    return !Swag.memcmp(data1, data2, num1)
 }
 
 // Compares the content of two slices, and returns 'true' if they hold the same elements.
 // '==' between two slices of the same element type lowers to this call, so it answers the
-// same question as '@stringcmp' does for two strings.
+// same question as 'Swag.stringCmp' does for two strings.
 func __sliceCmp(data1, data2: #null const [*] void, count1, count2, sizeOf: u64)->bool
 {
     if count1 != count2 do
@@ -259,5 +259,5 @@ func __sliceCmp(data1, data2: #null const [*] void, count1, count2, sizeOf: u64)
         return data1 == data2
     if data1 == data2 do
         return true
-    return !@memcmp(data1, data2, count1 * sizeOf)
+    return !Swag.memcmp(data1, data2, count1 * sizeOf)
 }

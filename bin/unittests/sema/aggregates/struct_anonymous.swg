@@ -22,8 +22,8 @@ func semaTest002()
 func semaTest003()
 {
     let s = toto()
-    @assert(s.x == 42)
-    @assert(s.y)
+    Swag.assert(s.x == 42)
+    Swag.assert(s.y)
 }
 
 func semaTest004()
@@ -32,6 +32,6 @@ func semaTest004()
     var t: struct { x: s32; y: bool }
     t.x = 1
     t.y = false
-    @assert(t.x == 1)
-    @assert(!t.y)
+    Swag.assert(t.x == 1)
+    Swag.assert(!t.y)
 }

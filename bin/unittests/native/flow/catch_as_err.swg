@@ -45,14 +45,14 @@ func catchAsErrValue(ok: bool)->s32
 
 #test
 {
-    @assert(catchAsErrRun(true) == 1000)
-    @assert(catchAsErrRun(false) == 7)
+    Swag.assert(catchAsErrRun(true) == 1000)
+    Swag.assert(catchAsErrRun(false) == 7)
 }
 
 #test
 {
-    @assert(catchAsErrValue(true) == 42)
-    @assert(catchAsErrValue(false) == -7)
+    Swag.assert(catchAsErrValue(true) == 42)
+    Swag.assert(catchAsErrValue(false) == -7)
 }
 
 // An 'as err' capture keeps its runtime lowering even when the operand folds to a compile-time
@@ -68,15 +68,15 @@ func catchAsErrInlineFoldable(value: s32)->s32 fail
 #test
 {
     let x = catch catchAsErrInlineFoldable(63) as err
-    @assert(x == 63)
-    @assert(err == null)
+    Swag.assert(x == 63)
+    Swag.assert(err == null)
 }
 
 #test
 {
     // Same through the statement form, where the result is discarded entirely.
     discard catch catchAsErrInlineFoldable(11) as err
-    @assert(err == null)
+    Swag.assert(err == null)
 }
 
 #[Swag.Inline]
@@ -86,10 +86,10 @@ func catchAsErrInlineVoid() fail {}
 {
     // Void inline callee: the statement and block forms of the capture.
     catch catchAsErrInlineVoid() as err
-    @assert(err == null)
+    Swag.assert(err == null)
 
     catch { discard catchAsErrInlineFoldable(9) } as err2
-    @assert(err2 == null)
+    Swag.assert(err2 == null)
 }
 
 // The captured error is dismissed after the catch, so a following fallible flow starts clean;
@@ -104,12 +104,12 @@ func catchAsErrReraise(ok: bool)->s32 fail
 
 #test
 {
-    @assert(catch catchAsErrReraise(true) == 5)
+    Swag.assert(catch catchAsErrReraise(true) == 5)
     var seen = 0
     discard catch catchAsErrReraise(false) as err
     if err != null do
         seen = (cast(CatchAsErrError) err).code
-    @assert(seen == 7)
+    Swag.assert(seen == 7)
 }
 
 var catchAsErrFailDeferCount: s32
@@ -130,9 +130,9 @@ func catchAsErrSuccessWithFailDefer() fail
     // Reusing an error-stack slot after a handled capture must not restore the old error when a
     // nested `expect` succeeds; in particular, the surrounding successful frame stays no-fail.
     catch catchAsErrMayFail(false) as previousError
-    @assert(previousError != null)
+    Swag.assert(previousError != null)
 
     catchAsErrFailDeferCount = 0
     discard expect catchAsErrSuccessWithFailDefer()
-    @assert(catchAsErrFailDeferCount == 0)
+    Swag.assert(catchAsErrFailDeferCount == 0)
 }

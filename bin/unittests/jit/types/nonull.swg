@@ -60,7 +60,7 @@ alias JitNonNullHolderAlias = JitNonNullHolder
 
 struct JitNonNullPointerDefault
 {
-    required: const [*] u8 = @dataof(JIT_NONULL_POINTER_DEFAULT_TEXT)
+    required: const [*] u8 = JIT_NONULL_POINTER_DEFAULT_TEXT.buffer
 }
 
 struct JitNonNullMoveDefault
@@ -163,10 +163,10 @@ func jitNonNullConstruction()->bool
 
     let aliasReadOnlyType = #typeof(aliasReadOnly)
     let aliasRequiredType = #typeof(aliasRequired)
-    @assert(aliasReadOnlyType.flags & Swag.TypeInfoFlags.Const)
-    @assert(aliasReadOnlyType.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
-    @assert(aliasRequiredType.flags & Swag.TypeInfoFlags.Const)
-    @assert(aliasRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
+    Swag.assert(aliasReadOnlyType.flags & Swag.TypeInfoFlags.Const)
+    Swag.assert(aliasReadOnlyType.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
+    Swag.assert(aliasRequiredType.flags & Swag.TypeInfoFlags.Const)
+    Swag.assert(aliasRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
 
     let holderType           = cast(const *Swag.TypeInfoStruct) #typeof(JitNonNullHolder)
     let nestedType           = #typeof(JitNonNullNested)
@@ -251,7 +251,7 @@ func jitNonNullConstruction()->bool
         return false
     if families.valuePointer != &first or families.blockPointer[1].value != 32 do
         return false
-    if @countof(families.slice) != 2 or families.slice[0].value != 31 do
+    if families.slice.count != 2 or families.slice[0].value != 31 do
         return false
     if families.text != "nonull" or families.ctext[0] != 'a'u8 do
         return false
@@ -266,7 +266,7 @@ func jitNonNullConstruction()->bool
         return false
     if pointerArray[0] != &first or pointerArray[1] != &second or aliasedHolder.required != &first do
         return false
-    if pointerDefault.required != @dataof(JIT_NONULL_POINTER_DEFAULT_TEXT) or pointerDefault.required[0] != 'f'u8 do
+    if pointerDefault.required != JIT_NONULL_POINTER_DEFAULT_TEXT.buffer or pointerDefault.required[0] != 'f'u8 do
         return false
     if moveDefaultTarget.required != "explicit" or moveDefaultSource.required != "move-default" do
         return false
@@ -275,21 +275,21 @@ func jitNonNullConstruction()->bool
     let omittedDefaults = JitNonNullDefaultContainer{}
     let partialDefaults: [2] JitNonNullStringDefault = [{value: "explicit"}]
 
-    @assert(defaultItem.value == "fallback")
-    @assert(defaultArray[0].value == "fallback")
-    @assert(defaultArray[1].value == "fallback")
-    @assert(omittedDefaults.direct.value == "fallback")
-    @assert(omittedDefaults.array[0].value == "fallback")
-    @assert(omittedDefaults.array[1].value == "fallback")
-    @assert(omittedDefaults.aliased.value == "fallback")
-    @assert(partialDefaults[0].value == "explicit")
-    @assert(partialDefaults[1].value == "fallback")
-    @assert(JIT_NONULL_DEFAULT_CONTAINER.array[1].value == "fallback")
-    @assert(JIT_NONULL_PARTIAL_ARRAY[0].value == "explicit")
-    @assert(JIT_NONULL_PARTIAL_ARRAY[1].value == "fallback")
+    Swag.assert(defaultItem.value == "fallback")
+    Swag.assert(defaultArray[0].value == "fallback")
+    Swag.assert(defaultArray[1].value == "fallback")
+    Swag.assert(omittedDefaults.direct.value == "fallback")
+    Swag.assert(omittedDefaults.array[0].value == "fallback")
+    Swag.assert(omittedDefaults.array[1].value == "fallback")
+    Swag.assert(omittedDefaults.aliased.value == "fallback")
+    Swag.assert(partialDefaults[0].value == "explicit")
+    Swag.assert(partialDefaults[1].value == "fallback")
+    Swag.assert(JIT_NONULL_DEFAULT_CONTAINER.array[1].value == "fallback")
+    Swag.assert(JIT_NONULL_PARTIAL_ARRAY[0].value == "explicit")
+    Swag.assert(JIT_NONULL_PARTIAL_ARRAY[1].value == "fallback")
 
     var mutable = holder
-    @init(mutable)(&second)
+    Swag.init(mutable)(&second)
     if mutable.required != &second or mutable.optional != null or mutable.legacy != null or mutable.count != 7 do
         return false
 
@@ -310,5 +310,5 @@ func jitNonNullConstruction()->bool
 
 #test
 {
-    @assert(jitNonNullConstruction())
+    Swag.assert(jitNonNullConstruction())
 }

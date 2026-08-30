@@ -9,7 +9,7 @@ const ScalarValue = #run
 const PowerOfTwo: [4] s32 = #run
 {
     var arr: [4] s32
-    for i in @countof(arr) do
+    for i in arr.count do
         arr[i] = 1 << cast(u32) i
     return arr
 }
@@ -127,7 +127,7 @@ const PersistentBytesHolder: BytesHolder = #run
 #[Swag.Compiler]
 func assertCompilerOnlyRunCall(value: string)
 {
-    @assert(value == "inside compiler-only run call")
+    Swag.assert(value == "inside compiler-only run call")
 }
 
 func functionScopedRunBlock()
@@ -172,10 +172,10 @@ func functionScopedShortCompilerOnlyRunCall()
 #assert(cast(string) PersistentStrictAny == "strict")
 #assert(cast(string) PersistentStrictAnyArray[0] == "left")
 #assert(cast(string) PersistentStrictAnyArray[1] == "right")
-#assert(@countof(PersistentBytes) == 4)
+#assert(PersistentBytes.count == 4)
 #assert(PersistentBytes[0] == 1)
 #assert(PersistentBytes[3] == 4)
-#assert(@countof(PersistentBytesHolder.bytes) == 4)
+#assert(PersistentBytesHolder.bytes.count == 4)
 #assert(PersistentBytesHolder.bytes[0] == 1)
 #assert(PersistentBytesHolder.bytes[3] == 4)
 
@@ -202,8 +202,8 @@ func functionScopedShortCompilerOnlyRunCall()
         return items
     }
 
-    @assert(cast(string) value.item == "abc")
-    @assert(cast(string) value.other == "def")
-    @assert(cast(string) values[0] == "first")
-    @assert(cast(string) values[1] == "second")
+    Swag.assert(cast(string) value.item == "abc")
+    Swag.assert(cast(string) value.other == "def")
+    Swag.assert(cast(string) values[0] == "first")
+    Swag.assert(cast(string) values[1] == "second")
 }

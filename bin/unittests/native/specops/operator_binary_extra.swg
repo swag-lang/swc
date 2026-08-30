@@ -40,7 +40,7 @@ impl RuntimeCommBox
     var zero   = RuntimeCommBox{value: 0}
     let result = a + zero
 
-    @assert(result.value == 42)
+    Swag.assert(result.value == 42)
 }
 
 // Test: multiplicative identity (a * 1 == a)
@@ -50,7 +50,7 @@ impl RuntimeCommBox
     var one    = RuntimeCommBox{value: 1}
     let result = a * one
 
-    @assert(result.value == 42)
+    Swag.assert(result.value == 42)
 }
 
 // Test: multiplicative zero (a * 0 == 0)
@@ -60,7 +60,7 @@ impl RuntimeCommBox
     var zero   = RuntimeCommBox{value: 0}
     let result = a * zero
 
-    @assert(result.value == 0)
+    Swag.assert(result.value == 0)
 }
 
 // Test: commutativity of + (a + b == b + a)
@@ -69,7 +69,7 @@ impl RuntimeCommBox
     var a = RuntimeCommBox{value: 13}
     var b = RuntimeCommBox{value: 29}
 
-    @assert((a + b) == (b + a))
+    Swag.assert((a + b) == (b + a))
 }
 
 // Test: commutativity of * (a * b == b * a)
@@ -78,7 +78,7 @@ impl RuntimeCommBox
     var a = RuntimeCommBox{value: 7}
     var b = RuntimeCommBox{value: 11}
 
-    @assert((a * b) == (b * a))
+    Swag.assert((a * b) == (b * a))
 }
 
 // Test: associativity of + ((a+b)+c == a+(b+c))
@@ -88,7 +88,7 @@ impl RuntimeCommBox
     var b = RuntimeCommBox{value: 5}
     var c = RuntimeCommBox{value: 7}
 
-    @assert(((a + b) + c) == (a + (b + c)))
+    Swag.assert(((a + b) + c) == (a + (b + c)))
 }
 
 // ============================================================================
@@ -159,8 +159,8 @@ impl RuntimeFullArithBox
     var rhs  = RuntimeFullArithBox{a: 3, b: 7}
     let diff = lhs - rhs
 
-    @assert(diff.a == 7)
-    @assert(diff.b == 13)
+    Swag.assert(diff.a == 7)
+    Swag.assert(diff.b == 13)
 }
 
 // Test: struct / struct
@@ -170,8 +170,8 @@ impl RuntimeFullArithBox
     var rhs  = RuntimeFullArithBox{a: 10, b: 5}
     let quot = lhs / rhs
 
-    @assert(quot.a == 10)
-    @assert(quot.b == 10)
+    Swag.assert(quot.a == 10)
+    Swag.assert(quot.b == 10)
 }
 
 // Test: struct % struct
@@ -181,8 +181,8 @@ impl RuntimeFullArithBox
     var rhs = RuntimeFullArithBox{a: 5, b: 7}
     let rem = lhs % rhs
 
-    @assert(rem.a == 2)
-    @assert(rem.b == 4)
+    Swag.assert(rem.a == 2)
+    Swag.assert(rem.b == 4)
 }
 
 // Test: struct - scalar
@@ -191,8 +191,8 @@ impl RuntimeFullArithBox
     var box    = RuntimeFullArithBox{a: 10, b: 20}
     let result = box - 3
 
-    @assert(result.a == 7)
-    @assert(result.b == 17)
+    Swag.assert(result.a == 7)
+    Swag.assert(result.b == 17)
 }
 
 // Test: struct / scalar
@@ -201,8 +201,8 @@ impl RuntimeFullArithBox
     var box    = RuntimeFullArithBox{a: 100, b: 200}
     let result = box / 10
 
-    @assert(result.a == 10)
-    @assert(result.b == 20)
+    Swag.assert(result.a == 10)
+    Swag.assert(result.b == 20)
 }
 
 // Test: struct % scalar
@@ -211,8 +211,8 @@ impl RuntimeFullArithBox
     var box    = RuntimeFullArithBox{a: 10, b: 17}
     let result = box % 3
 
-    @assert(result.a == 1)
-    @assert(result.b == 2)
+    Swag.assert(result.a == 1)
+    Swag.assert(result.b == 2)
 }
 
 // Test: mixed chaining (a + b - c * d)
@@ -222,8 +222,8 @@ impl RuntimeFullArithBox
     var b      = RuntimeFullArithBox{a: 5, b: 5}
     let result = a + b - a
 
-    @assert(result.a == 5)
-    @assert(result.b == 5)
+    Swag.assert(result.a == 5)
+    Swag.assert(result.b == 5)
 }
 
 // ============================================================================
@@ -275,8 +275,8 @@ impl RuntimeRightArithBox
     var box    = RuntimeRightArithBox{a: 3, b: 7}
     let result = 4 * box
 
-    @assert(result.a == 12)
-    @assert(result.b == 28)
+    Swag.assert(result.a == 12)
+    Swag.assert(result.b == 28)
 }
 
 // Test: non-commutative scalar - struct keeps the operand order
@@ -285,6 +285,6 @@ impl RuntimeRightArithBox
     var box    = RuntimeRightArithBox{a: 3, b: 7}
     let result = 10 - box
 
-    @assert(result.a == 7)
-    @assert(result.b == 3)
+    Swag.assert(result.a == 7)
+    Swag.assert(result.b == 3)
 }

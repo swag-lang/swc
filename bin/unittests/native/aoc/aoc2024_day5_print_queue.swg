@@ -23,19 +23,19 @@ impl Update
 {
     mtd opIndexPtr(index: u32)->*s32
     {
-        @assert(index < .count)
+        Swag.assert(index < .count)
         return &.pages[index]
     }
 
     mtd const opIndexPtr(index: u32)->const *s32
     {
-        @assert(index < .count)
+        Swag.assert(index < .count)
         return &.pages[index]
     }
 
     mtd const middle()->s32
     {
-        @assert(.count & 1'u32 == 1'u32)
+        Swag.assert(.count & 1'u32 == 1'u32)
         return .pages[.count / 2'u32]
     }
 }
@@ -117,7 +117,7 @@ func clearUpdate(result: *Update)
     result.count = 0'u32
     for MaxUpdatePages
     {
-        result.pages[cast(u32) @index] = 0
+        result.pages[cast(u32) Swag.index] = 0
     }
 }
 
@@ -133,7 +133,7 @@ func copyUpdate(result: *Update, source: Update)
 
     for source.count
     {
-        let index = cast(u32) @index
+        let index = cast(u32) Swag.index
         writePage(&result.pages[index], source[index])
     }
 }
@@ -144,7 +144,7 @@ func findPageIndex(result: *u32, update: Update, page: s32)->bool
 
     for update.count
     {
-        let index = cast(u32) @index
+        let index = cast(u32) Swag.index
         if update[index] == page
         {
             result[] = index
@@ -159,7 +159,7 @@ func hasRule(scenario: PrintQueueScenario, before, after: s32)->bool
 {
     for scenario.ruleCount
     {
-        let rule = &scenario.rules[cast(u32) @index]
+        let rule = &scenario.rules[cast(u32) Swag.index]
         if rule.before == before and rule.after == after do
             return true
     }
@@ -171,7 +171,7 @@ func isOrderedUpdate(scenario: PrintQueueScenario, update: Update)->bool
 {
     for scenario.ruleCount
     {
-        let rule = &scenario.rules[cast(u32) @index]
+        let rule = &scenario.rules[cast(u32) Swag.index]
 
         var beforeIndex: u32
         var afterIndex:  u32
@@ -191,7 +191,7 @@ func hasIncomingRule(scenario: PrintQueueScenario, source: Update, used: [MaxUpd
 
     for source.count
     {
-        let otherIndex = cast(u32) @index
+        let otherIndex = cast(u32) Swag.index
         if used[otherIndex] or otherIndex == candidateIndex do
             continue
 
@@ -229,7 +229,7 @@ func repairUpdate(result: *Update, scenario: PrintQueueScenario, source: Update)
             break
         }
 
-        @assert(found)
+        Swag.assert(found)
     }
 }
 
@@ -240,7 +240,7 @@ func sameUpdate(lhs, rhs: Update)->bool
 
     for lhs.count
     {
-        let index = cast(u32) @index
+        let index = cast(u32) Swag.index
         if lhs[index] != rhs[index] do
             return false
     }
@@ -254,7 +254,7 @@ func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
 
     for scenario.updateCount
     {
-        let update = &scenario.updates[cast(u32) @index]
+        let update = &scenario.updates[cast(u32) Swag.index]
 
         if isOrderedUpdate(scenario, update)
         {
@@ -279,13 +279,13 @@ func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
     var copied: Update
     copyUpdate(&copied, &update)
 
-    @assert(first == 75)
-    @assert(update[1] == 53)
-    @assert(update.middle() == 53)
-    @assert(sameUpdate(&copied, &update))
+    Swag.assert(first == 75)
+    Swag.assert(update[1] == 53)
+    Swag.assert(update.middle() == 53)
+    Swag.assert(sameUpdate(&copied, &update))
 
     let frozen = update
-    @assert(frozen[2] == 61)
+    Swag.assert(frozen[2] == 61)
 }
 
 #test
@@ -306,15 +306,15 @@ func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
     repairUpdate(&repaired2, &sample, &sample.updates[5])
     let expected2: Update = {count: 5'u32, pages: [97, 75, 47, 29, 13]}
 
-    @assert(isOrderedUpdate(&sample, &sample.updates[0]))
-    @assert(!isOrderedUpdate(&sample, &sample.updates[3]))
-    @assert(sampleAudit.updateCount == 6'u32)
-    @assert(sampleAudit.validUpdateCount == 3'u32)
-    @assert(sampleAudit.orderedMiddleSum == 143)
-    @assert(sampleAudit.correctedMiddleSum == 123)
-    @assert(sameUpdate(&repaired0, &expected0))
-    @assert(sameUpdate(&repaired1, &expected1))
-    @assert(sameUpdate(&repaired2, &expected2))
+    Swag.assert(isOrderedUpdate(&sample, &sample.updates[0]))
+    Swag.assert(!isOrderedUpdate(&sample, &sample.updates[3]))
+    Swag.assert(sampleAudit.updateCount == 6'u32)
+    Swag.assert(sampleAudit.validUpdateCount == 3'u32)
+    Swag.assert(sampleAudit.orderedMiddleSum == 143)
+    Swag.assert(sampleAudit.correctedMiddleSum == 123)
+    Swag.assert(sameUpdate(&repaired0, &expected0))
+    Swag.assert(sameUpdate(&repaired1, &expected1))
+    Swag.assert(sameUpdate(&repaired2, &expected2))
 }
 
 #test
@@ -331,10 +331,10 @@ func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
     repairUpdate(&repairedB, &tieBreak, &tieBreak.updates[2])
     let expectedB: Update = {count: 3'u32, pages: [10, 20, 30, 0, 0]}
 
-    @assert(tieBreakAudit.updateCount == 3'u32)
-    @assert(tieBreakAudit.validUpdateCount == 1'u32)
-    @assert(tieBreakAudit.orderedMiddleSum == 20)
-    @assert(tieBreakAudit.correctedMiddleSum == 30)
-    @assert(sameUpdate(&repairedA, &expectedA))
-    @assert(sameUpdate(&repairedB, &expectedB))
+    Swag.assert(tieBreakAudit.updateCount == 3'u32)
+    Swag.assert(tieBreakAudit.validUpdateCount == 1'u32)
+    Swag.assert(tieBreakAudit.orderedMiddleSum == 20)
+    Swag.assert(tieBreakAudit.correctedMiddleSum == 30)
+    Swag.assert(sameUpdate(&repairedA, &expectedA))
+    Swag.assert(sameUpdate(&repairedB, &expectedB))
 }

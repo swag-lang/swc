@@ -7,16 +7,16 @@ using Swag
 func assertOnlyFileAttribute(value: u32, expected: File.FileAttributes)
 {
     let attributes = File.FileAttributes.fromDWORD(value)
-    @assert(attributes == expected)
-    @assert(attributes.has(expected))
+    Swag.assert(attributes == expected)
+    Swag.assert(attributes.has(expected))
 }
 
 #test
 {
     using File.FileAttributes
 
-    @assert(File.FileAttributes.fromDWORD(0) == None)
-    @assert(File.FileAttributes.fromDWORD(0xFFFF_FFFF'u32) == None)
+    Swag.assert(File.FileAttributes.fromDWORD(0) == None)
+    Swag.assert(File.FileAttributes.fromDWORD(0xFFFF_FFFF'u32) == None)
 
     assertOnlyFileAttribute(0x0000_0001, ReadOnly)
     assertOnlyFileAttribute(0x0000_0002, Hidden)
@@ -34,18 +34,18 @@ func assertOnlyFileAttribute(value: u32, expected: File.FileAttributes)
     assertOnlyFileAttribute(0x0000_4000, Encrypted)
 
     let attributes = File.FileAttributes.fromDWORD(0x0000_0010 | 0x0000_0020 | 0x0000_0400 | 0x0000_4000)
-    @assert(attributes.has(Directory))
-    @assert(attributes.has(Archive))
-    @assert(attributes.has(ReparsePoint))
-    @assert(attributes.has(Encrypted))
-    @assert(!attributes.has(ReadOnly))
-    @assert(!attributes.has(Hidden))
-    @assert(!attributes.has(System))
-    @assert(!attributes.has(Device))
-    @assert(!attributes.has(Normal))
-    @assert(!attributes.has(Temporary))
-    @assert(!attributes.has(SparseFile))
-    @assert(!attributes.has(Compressed))
-    @assert(!attributes.has(Offline))
-    @assert(!attributes.has(NotContentIndexed))
+    Swag.assert(attributes.has(Directory))
+    Swag.assert(attributes.has(Archive))
+    Swag.assert(attributes.has(ReparsePoint))
+    Swag.assert(attributes.has(Encrypted))
+    Swag.assert(!attributes.has(ReadOnly))
+    Swag.assert(!attributes.has(Hidden))
+    Swag.assert(!attributes.has(System))
+    Swag.assert(!attributes.has(Device))
+    Swag.assert(!attributes.has(Normal))
+    Swag.assert(!attributes.has(Temporary))
+    Swag.assert(!attributes.has(SparseFile))
+    Swag.assert(!attributes.has(Compressed))
+    Swag.assert(!attributes.has(Offline))
+    Swag.assert(!attributes.has(NotContentIndexed))
 }

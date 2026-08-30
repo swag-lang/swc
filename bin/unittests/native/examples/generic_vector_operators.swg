@@ -111,9 +111,9 @@ impl Vector3
     let pos            = +v
 
     #assert(#typeof(pos) == Vector3's32)
-    @assert(pos.x == 1)
-    @assert(pos.y == -2)
-    @assert(pos.z == 3)
+    Swag.assert(pos.x == 1)
+    Swag.assert(pos.y == -2)
+    Swag.assert(pos.z == 3)
 }
 
 // Test: unary - negates all components
@@ -122,9 +122,9 @@ impl Vector3
     var v: Vector3's32 = {x: 5, y: -10, z: 0}
     let neg            = -v
 
-    @assert(neg.x == -5)
-    @assert(neg.y == 10)
-    @assert(neg.z == 0)
+    Swag.assert(neg.x == -5)
+    Swag.assert(neg.y == 10)
+    Swag.assert(neg.z == 0)
 }
 
 // Test: unary ~ bitwise NOT
@@ -133,9 +133,9 @@ impl Vector3
     var v: Vector3'u32 = {x: 0, y: 0xFFFF_FFFF, z: 0x00FF_00FF}
     let inv            = ~v
 
-    @assert(inv.x == 0xFFFF_FFFF)
-    @assert(inv.y == 0)
-    @assert(inv.z == 0xFF00_FF00)
+    Swag.assert(inv.x == 0xFFFF_FFFF)
+    Swag.assert(inv.y == 0)
+    Swag.assert(inv.z == 0xFF00_FF00)
 }
 
 // Test: double negation is identity
@@ -144,9 +144,9 @@ impl Vector3
     var v: Vector3's64 = {x: 42, y: -99, z: 0}
     let dn             = -(-v)
 
-    @assert(dn.x == 42)
-    @assert(dn.y == -99)
-    @assert(dn.z == 0)
+    Swag.assert(dn.x == 42)
+    Swag.assert(dn.y == -99)
+    Swag.assert(dn.z == 0)
 }
 
 // Test: double bitwise NOT is identity
@@ -155,9 +155,9 @@ impl Vector3
     var v: Vector3'u64 = {x: 0xCAFE, y: 0xBABE, z: 0xDEAD}
     let di             = ~(~v)
 
-    @assert(di.x == 0xCAFE'u64)
-    @assert(di.y == 0xBABE'u64)
-    @assert(di.z == 0xDEAD'u64)
+    Swag.assert(di.x == 0xCAFE'u64)
+    Swag.assert(di.y == 0xBABE'u64)
+    Swag.assert(di.z == 0xDEAD'u64)
 }
 
 // ---------------------------------------------------------------------------
@@ -172,9 +172,9 @@ impl Vector3
     let sum            = a + b
 
     #assert(#typeof(sum) == Vector3's32)
-    @assert(sum.x == 11)
-    @assert(sum.y == 22)
-    @assert(sum.z == 33)
+    Swag.assert(sum.x == 11)
+    Swag.assert(sum.y == 22)
+    Swag.assert(sum.z == 33)
 }
 
 // Test: vector - vector with negative results
@@ -184,9 +184,9 @@ impl Vector3
     var b: Vector3's32 = {x: 10, y: 5, z: 8}
     let diff           = a - b
 
-    @assert(diff.x == -7)
-    @assert(diff.y == 0)
-    @assert(diff.z == -7)
+    Swag.assert(diff.x == -7)
+    Swag.assert(diff.y == 0)
+    Swag.assert(diff.z == -7)
 }
 
 // Test: vector * vector component-wise
@@ -196,9 +196,9 @@ impl Vector3
     var b: Vector3'u32 = {x: 5, y: 6, z: 7}
     let prod           = a * b
 
-    @assert(prod.x == 10)
-    @assert(prod.y == 18)
-    @assert(prod.z == 28)
+    Swag.assert(prod.x == 10)
+    Swag.assert(prod.y == 18)
+    Swag.assert(prod.z == 28)
 }
 
 // Test: vector / vector
@@ -208,9 +208,9 @@ impl Vector3
     var b: Vector3'u64 = {x: 10, y: 20, z: 30}
     let quot           = a / b
 
-    @assert(quot.x == 10'u64)
-    @assert(quot.y == 10'u64)
-    @assert(quot.z == 10'u64)
+    Swag.assert(quot.x == 10'u64)
+    Swag.assert(quot.y == 10'u64)
+    Swag.assert(quot.z == 10'u64)
 }
 
 // ---------------------------------------------------------------------------
@@ -223,9 +223,9 @@ impl Vector3
     var v: Vector3's32 = {x: 1, y: -2, z: 3}
     let scaled         = v * 3's32
 
-    @assert(scaled.x == 3)
-    @assert(scaled.y == -6)
-    @assert(scaled.z == 9)
+    Swag.assert(scaled.x == 3)
+    Swag.assert(scaled.y == -6)
+    Swag.assert(scaled.z == 9)
 }
 
 // Test: vector + scalar (offset all components)
@@ -234,9 +234,9 @@ impl Vector3
     var v: Vector3's32 = {x: -5, y: 0, z: 5}
     let result         = v + 10's32
 
-    @assert(result.x == 5)
-    @assert(result.y == 10)
-    @assert(result.z == 15)
+    Swag.assert(result.x == 5)
+    Swag.assert(result.y == 10)
+    Swag.assert(result.z == 15)
 }
 
 // Test: vector / scalar
@@ -245,9 +245,9 @@ impl Vector3
     var v: Vector3'u64 = {x: 100, y: 200, z: 300}
     let result         = v / 10'u64
 
-    @assert(result.x == 10'u64)
-    @assert(result.y == 20'u64)
-    @assert(result.z == 30'u64)
+    Swag.assert(result.x == 10'u64)
+    Swag.assert(result.y == 20'u64)
+    Swag.assert(result.z == 30'u64)
 }
 
 // Test: vector - scalar with underflow into negatives
@@ -256,9 +256,9 @@ impl Vector3
     var v: Vector3's32 = {x: 2, y: 5, z: 0}
     let result         = v - 3's32
 
-    @assert(result.x == -1)
-    @assert(result.y == 2)
-    @assert(result.z == -3)
+    Swag.assert(result.x == -1)
+    Swag.assert(result.y == 2)
+    Swag.assert(result.z == -3)
 }
 
 // Test: scalar * vector (commutative right-hand fallback)
@@ -267,9 +267,9 @@ impl Vector3
     var v: Vector3's32 = {x: 1, y: -2, z: 3}
     let scaled         = 3's32 * v
 
-    @assert(scaled.x == 3)
-    @assert(scaled.y == -6)
-    @assert(scaled.z == 9)
+    Swag.assert(scaled.x == 3)
+    Swag.assert(scaled.y == -6)
+    Swag.assert(scaled.z == 9)
 }
 
 // Test: scalar - vector keeps operand order
@@ -278,9 +278,9 @@ impl Vector3
     var v: Vector3's32 = {x: 1, y: 2, z: 3}
     let result         = 10's32 - v
 
-    @assert(result.x == 9)
-    @assert(result.y == 8)
-    @assert(result.z == 7)
+    Swag.assert(result.x == 9)
+    Swag.assert(result.y == 8)
+    Swag.assert(result.z == 7)
 }
 
 // ---------------------------------------------------------------------------
@@ -295,9 +295,9 @@ impl Vector3
     var c: Vector3's32 = {x: 10, y: 10, z: 10}
     let result         = a + b - c
 
-    @assert(result.x == -5)
-    @assert(result.y == -3)
-    @assert(result.z == -1)
+    Swag.assert(result.x == -5)
+    Swag.assert(result.y == -3)
+    Swag.assert(result.z == -1)
 }
 
 // Test: negation then addition
@@ -307,9 +307,9 @@ impl Vector3
     var b: Vector3's32 = {x: 1, y: 2, z: 3}
     let result         = (-a) + b
 
-    @assert(result.x == 0)
-    @assert(result.y == 0)
-    @assert(result.z == 0)
+    Swag.assert(result.x == 0)
+    Swag.assert(result.y == 0)
+    Swag.assert(result.z == 0)
 }
 
 // Test: scale then subtract
@@ -319,9 +319,9 @@ impl Vector3
     var b: Vector3's32 = {x: 1, y: 2, z: 3}
     let result         = a - b * 2's32
 
-    @assert(result.x == 1)
-    @assert(result.y == 2)
-    @assert(result.z == 3)
+    Swag.assert(result.x == 1)
+    Swag.assert(result.y == 2)
+    Swag.assert(result.z == 3)
 }
 
 // ---------------------------------------------------------------------------
@@ -335,7 +335,7 @@ impl Vector3
     var b: Vector3's32 = {x: 0, y: 1, z: 0}
     let d              = Vector3's32.dot(&a, &b)
 
-    @assert(d == 0)
+    Swag.assert(d == 0)
 }
 
 // Test: dot product of parallel vectors
@@ -346,7 +346,7 @@ impl Vector3
     let d              = Vector3's32.dot(&a, &b)
 
     // 4 + 9 + 16 = 29
-    @assert(d == 29)
+    Swag.assert(d == 29)
 }
 
 // Test: squared length
@@ -356,7 +356,7 @@ impl Vector3
     let lsq            = v.lengthSq()
 
     // 9 + 16 + 0 = 25
-    @assert(lsq == 25)
+    Swag.assert(lsq == 25)
 }
 
 // ---------------------------------------------------------------------------
@@ -372,12 +372,12 @@ impl Vector3
     let diff          = a - b
 
     #assert(#typeof(sum) == Vector3'u8)
-    @assert(sum.x == 11)
-    @assert(sum.y == 22)
-    @assert(sum.z == 33)
-    @assert(diff.x == 9)
-    @assert(diff.y == 18)
-    @assert(diff.z == 27)
+    Swag.assert(sum.x == 11)
+    Swag.assert(sum.y == 22)
+    Swag.assert(sum.z == 33)
+    Swag.assert(diff.x == 9)
+    Swag.assert(diff.y == 18)
+    Swag.assert(diff.z == 27)
 }
 
 // Test: Vector3 with s16
@@ -387,9 +387,9 @@ impl Vector3
     let neg            = -v
 
     #assert(#typeof(neg) == Vector3's16)
-    @assert(neg.x == -100)
-    @assert(neg.y == 200)
-    @assert(neg.z == -300)
+    Swag.assert(neg.x == -100)
+    Swag.assert(neg.y == 200)
+    Swag.assert(neg.z == -300)
 }
 
 // Test: Vector3 with u64 scalar multiply
@@ -398,7 +398,7 @@ impl Vector3
     var v: Vector3'u64 = {x: 1, y: 2, z: 3}
     let result         = v * 1000'u64
 
-    @assert(result.x == 1000'u64)
-    @assert(result.y == 2000'u64)
-    @assert(result.z == 3000'u64)
+    Swag.assert(result.x == 1000'u64)
+    Swag.assert(result.y == 2000'u64)
+    Swag.assert(result.z == 3000'u64)
 }

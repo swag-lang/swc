@@ -25,5 +25,5 @@ impl IQualifiedUsing for QualifiedUsingDerived {}
 #test
 {
     var derived: QualifiedUsingDerived
-    @assert(derived.IQualifiedUsing.value() == 42)
+    Swag.assert(derived.IQualifiedUsing.value() == 42)
 }

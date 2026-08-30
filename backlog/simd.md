@@ -42,7 +42,7 @@ sample paths use in-module branchless helpers instead of the `Math` family. So t
 understates the packed side, and where it does not — PNG Paeth scoring, T-548 — it inflates it
 instead. It applies to the accepted kernels as much as to the discarded ones: every number dated
 inside that window has to be re-baselined before it is trusted, and the entries below name their
-own. Work dated before the window used the raw `@vec*` intrinsics directly and is unaffected.
+own. Work dated before the window used the raw `Swag.vec*` intrinsics directly and is unaffected.
 
 ## Tier A — Target selection, widths, and calling boundaries
 
@@ -173,7 +173,7 @@ own. Work dated before the window used the raw `@vec*` intrinsics directly and i
 ### T-507 — Packed code generation misses idiomatic hardware forms
 
 - Intent: select immediate shuffles, fused multiply-add, horizontal forms, SAD, and direct lane
-  insert instead of generic sequences. Landed 2026-08-22: `@vecselect` is one `vpblendvb` (the
+  insert instead of generic sequences. Landed 2026-08-22: `Swag.vecselect` is one `vpblendvb` (the
   mask's byte sign bits carry a whole-lane compare mask exactly), and a constant 32- or 64-bit
   lane read of a register-resident vector is a `movd`/`movq` — lane zero directly, another lane
   through one `pshufd` — instead of a spill and a reload, which is what `storeLow4`/`storeLow8`

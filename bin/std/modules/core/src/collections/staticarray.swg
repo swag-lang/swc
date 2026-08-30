@@ -50,7 +50,7 @@ impl StaticArray
         Debug.safetyBoundCheck(lower <= upper, "lower bound greater than upper bound")
         Debug.safetyBoundCheck(lower < .count, "lower bound out of range")
         Debug.safetyBoundCheck(upper < .count, "upper bound out of range")
-        return @mkslice(&.buffer[lower], (upper + 1) - lower)
+        return Swag.makeSlice(&.buffer[lower], (upper + 1) - lower)
     }
 
     // Returns the address of the element at the specified index.
@@ -91,10 +91,10 @@ impl StaticArray
     mtd opSet(arr: const [..] T)
         where Reflection.canCopy(T)
     {
-        let countof = @countof(arr)
+        let countof = arr.count
         if countof
         {
-            let dataof = @dataof(arr)
+            let dataof = arr.buffer
             let buffer = cast([*] T) &.buffer[0]
             if dataof >= buffer and dataof < buffer + .count
             {
@@ -109,7 +109,7 @@ impl StaticArray
         if !countof do
             return
         Debug.assert(countof <= N, "slice is too big")
-        var dataof = @dataof(arr)
+        var dataof = arr.buffer
 
         #static if Reflection.hasPostCopy(T)
         {
@@ -140,7 +140,7 @@ impl StaticArray
         for .count
         {
             scan += 1
-            let visitIdx = @index
+            let visitIdx = Swag.index
 
             #static if ptr do
                 #inject(stmt, item = cast(*T) scan, index = visitIdx)
@@ -184,14 +184,14 @@ impl StaticArray
     #[Inline]
     mtd toSlice()->[..] T
     {
-        return @mkslice(&.buffer[0], .count)
+        return Swag.makeSlice(&.buffer[0], .count)
     }
 
     // Returns an immutable slice containing all valid elements of the array.
     #[Inline]
     mtd const toSlice()->const [..] T
     {
-        return @mkslice(&.buffer[0], .count)
+        return Swag.makeSlice(&.buffer[0], .count)
     }
 
     // Changes the number of elements in the array to 'newCount'.
@@ -204,15 +204,15 @@ impl StaticArray
         if newCount > .count
         {
             let data = cast([*] T) &.buffer[0]
-            @init(data + .count, newCount - .count)
+            Swag.init(data + .count, newCount - .count)
             .count = newCount
         }
         else
         {
             let data         = cast([*] T) &.buffer[0]
             let droppedCount = .count - newCount
-            @drop(data + newCount, droppedCount)
-            @init(data + newCount, droppedCount)
+            Swag.drop(data + newCount, droppedCount)
+            Swag.init(data + newCount, droppedCount)
             .count = newCount
         }
     }
@@ -225,9 +225,9 @@ impl StaticArray
         #static if Reflection.hasDrop(T)
         {
             for oldCount do
-                @drop(&.buffer[@index])
+                Swag.drop(&.buffer[Swag.index])
 
-            @init(&.buffer[0], oldCount)
+            Swag.init(&.buffer[0], oldCount)
         }
 
         .count = 0
@@ -270,7 +270,7 @@ impl StaticArray
         Debug.assert(.count + num <= N, "the array is full")
         .count += num
         var res = cast([*] T) &.buffer[0] + .count - num
-        @init(res, num)
+        Swag.init(res, num)
         return res
     }
 
@@ -303,11 +303,11 @@ impl StaticArray
     mtd insertAt(index: u64, values: #null const [..] T)
         where Reflection.canCopy(T)
     {
-        var sliceCount = @countof(values)
+        var sliceCount = values.count
         if !sliceCount do
             return
         let buffer = cast([*] T) &.buffer[0]
-        let dataof = @dataof(values)
+        let dataof = values.buffer
         if dataof >= buffer and dataof < buffer + .count
         {
             var copy: Array'T
@@ -339,7 +339,7 @@ impl StaticArray
         }
         else
         {
-            Memory.copy(&.buffer[index], @dataof(values), #sizeof(T) * sliceCount)
+            Memory.copy(&.buffer[index], values.buffer, #sizeof(T) * sliceCount)
         }
     }
 
@@ -348,11 +348,11 @@ impl StaticArray
     mtd emplaceAt(index: u64, values: [..] T)
         where Reflection.canCopy(T)
     {
-        var sliceCount = @countof(values)
+        var sliceCount = values.count
         if !sliceCount do
             return
         let buffer = cast([*] T) &.buffer[0]
-        let dataof = @dataof(values)
+        let dataof = values.buffer
         if dataof >= buffer and dataof < buffer + .count
         {
             var copy: Array'T
@@ -373,7 +373,7 @@ impl StaticArray
         }
         else
         {
-            Memory.copyOverlapping(&.buffer[index + @countof(values)], &.buffer[index], #sizeof(T) * (.count - sliceCount - index))
+            Memory.copyOverlapping(&.buffer[index + values.count], &.buffer[index], #sizeof(T) * (.count - sliceCount - index))
         }
 
         #static if Reflection.hasPostMove(T)
@@ -383,7 +383,7 @@ impl StaticArray
         }
         else
         {
-            Memory.copy(&.buffer[index], @dataof(values), #sizeof(T) * sliceCount)
+            Memory.copy(&.buffer[index], values.buffer, #sizeof(T) * sliceCount)
         }
     }
 
@@ -392,11 +392,11 @@ impl StaticArray
     mtd add(values: #null const [..] T)
         where Reflection.canCopy(T)
     {
-        var sliceCount = @countof(values)
+        var sliceCount = values.count
         if !sliceCount do
             return
         let buffer = cast([*] T) &.buffer[0]
-        let dataof = @dataof(values)
+        let dataof = values.buffer
         if dataof >= buffer and dataof < buffer + .count
         {
             var copy: Array'T
@@ -414,13 +414,13 @@ impl StaticArray
             var destPtr = cast([*] T) &.buffer[oldCount]
             for sliceCount
             {
-                destPtr[] = #nodrop vals[@index]
+                destPtr[] = #nodrop vals[Swag.index]
                 destPtr   += 1
             }
         }
         else
         {
-            Memory.copy(&.buffer[oldCount], @dataof(values), sliceCount * #sizeof(T))
+            Memory.copy(&.buffer[oldCount], values.buffer, sliceCount * #sizeof(T))
         }
     }
 
@@ -443,7 +443,7 @@ impl StaticArray
             // Drop the removed elements, then relocate the survivors into the freed slots.
             #static if Reflection.hasDrop(T)
             {
-                @drop(&.buffer[index], num)
+                Swag.drop(&.buffer[index], num)
             }
 
             for i in shiftCount
@@ -456,7 +456,7 @@ impl StaticArray
 
         #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
         {
-            @init(&.buffer[.count], oldCount - .count)
+            Swag.init(&.buffer[.count], oldCount - .count)
         }
     }
 
@@ -479,17 +479,17 @@ impl StaticArray
         .count -= 1
         if index == .count
         {
-            @drop(&.buffer[.count])
+            Swag.drop(&.buffer[.count])
         }
         else
         {
-            @drop(&.buffer[index])
+            Swag.drop(&.buffer[index])
             .buffer[index] = #relocate .buffer[.count]
         }
 
         #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
         {
-            @init(&.buffer[.count], oldCount - .count)
+            Swag.init(&.buffer[.count], oldCount - .count)
         }
     }
 
@@ -506,14 +506,14 @@ impl StaticArray
         #static if Reflection.hasDrop(T)
         {
             for idx in numValues do
-                @drop(&.buffer[index + idx])
+                Swag.drop(&.buffer[index + idx])
         }
 
         if index >= .count
         {
             #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
             {
-                @init(&.buffer[.count], oldCount - .count)
+                Swag.init(&.buffer[.count], oldCount - .count)
             }
 
             return
@@ -535,7 +535,7 @@ impl StaticArray
 
         #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
         {
-            @init(&.buffer[.count], oldCount - .count)
+            Swag.init(&.buffer[.count], oldCount - .count)
         }
     }
 
@@ -620,7 +620,7 @@ impl StaticArray
         result = #relocate .buffer[backIndex]
         #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
         {
-            @init(&.buffer[backIndex], 1)
+            Swag.init(&.buffer[backIndex], 1)
         }
 
         .count -= 1
@@ -633,10 +633,10 @@ impl StaticArray
     {
         Debug.assert(.count > 0, "array is empty")
         let backIndex = .count - 1
-        @drop(&.buffer[backIndex])
+        Swag.drop(&.buffer[backIndex])
         #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
         {
-            @init(&.buffer[backIndex], 1)
+            Swag.init(&.buffer[backIndex], 1)
         }
 
         .count -= 1

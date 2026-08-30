@@ -35,9 +35,9 @@ struct ReactorReport
 
 func resetMemo(memo: [..] s32)
 {
-    for @countof(memo)
+    for memo.count
     {
-        memo[@index] = -1
+        memo[Swag.index] = -1
     }
 }
 
@@ -55,7 +55,7 @@ func countPaths(memo: [..] s32, graph: ReactorGraph, nodeIndex: u32)->u32
 
     for outputCount
     {
-        let nextIndex = graph.outputs[nodeIndex][@index]
+        let nextIndex = graph.outputs[nodeIndex][Swag.index]
         total += countPaths(memo, graph, nextIndex)
     }
 
@@ -77,7 +77,7 @@ func longestChain(memo: [..] s32, graph: ReactorGraph, nodeIndex: u32)->u32
 
     for outputCount
     {
-        let nextIndex = graph.outputs[nodeIndex][@index]
+        let nextIndex = graph.outputs[nodeIndex][Swag.index]
         let candidate = 1'u32 + longestChain(memo, graph, nextIndex)
         if candidate > best do
             best = candidate
@@ -110,7 +110,7 @@ func auditReactor(graph: ReactorGraph)->ReactorReport
         var branchMemo:        [..] s32 = branchMemoStorage
         resetMemo(branchMemo)
 
-        let nextIndex   = graph.outputs[intakeIndex][@index]
+        let nextIndex   = graph.outputs[intakeIndex][Swag.index]
         let branchPaths = countPaths(branchMemo, graph, nextIndex)
         if branchPaths > result.busiestBranchPaths do
             result.busiestBranchPaths = branchPaths
@@ -206,13 +206,13 @@ func buildCompactReactor()->ReactorGraph
 {
     let sampleReport = auditReactor(buildSampleReactor())
 
-    @assert(sampleReport.pathCount == 10'u32)
-    @assert(sampleReport.busiestBranchPaths == 4'u32)
-    @assert(sampleReport.longestChain == 5'u32)
+    Swag.assert(sampleReport.pathCount == 10'u32)
+    Swag.assert(sampleReport.busiestBranchPaths == 4'u32)
+    Swag.assert(sampleReport.longestChain == 5'u32)
 
     let compactReport = auditReactor(buildCompactReactor())
 
-    @assert(compactReport.pathCount == 4'u32)
-    @assert(compactReport.busiestBranchPaths == 2'u32)
-    @assert(compactReport.longestChain == 3'u32)
+    Swag.assert(compactReport.pathCount == 4'u32)
+    Swag.assert(compactReport.busiestBranchPaths == 2'u32)
+    Swag.assert(compactReport.longestChain == 3'u32)
 }

@@ -82,7 +82,7 @@ func __memoryCopyBackward(target: [*] u8, source: const [*] u8, size: u64)
     }
 }
 
-func @memset(dst: #null [*] void, value: u8, size: u64)
+func memset(dst: #null [*] void, value: u8, size: u64)
 {
     if !size do
         return
@@ -91,7 +91,7 @@ func @memset(dst: #null [*] void, value: u8, size: u64)
     var offset = 0'u64
 
     let word   = cast(u64) value * 0x0101_0101_0101_0101
-    let vector = @vecsplat(word)
+    let vector = Swag.vecsplat(word)
     while size - offset >= 4 * MemoryVectorSize
     {
         let targetVectors = cast([*] MemoryFillVector) (target + offset)
@@ -121,13 +121,13 @@ func @memset(dst: #null [*] void, value: u8, size: u64)
     }
 }
 
-func @memcpy(dst: #null [*] void, src: #null const [*] void, size: u64)
+func memcpy(dst: #null [*] void, src: #null const [*] void, size: u64)
 {
     if size do
         __memoryCopyForward(cast([*] u8) dst!, cast(const [*] u8) src!, size)
 }
 
-func @memmove(dst: #null [*] void, src: #null const [*] void, size: u64)
+func memmove(dst: #null [*] void, src: #null const [*] void, size: u64)
 {
     if !size or dst == src do
         return
@@ -142,7 +142,7 @@ func @memmove(dst: #null [*] void, src: #null const [*] void, size: u64)
         __memoryCopyBackward(target, source, size)
 }
 
-func @memcmp(left, right: #null const [*] void, size: u64)->s32
+func memcmp(left, right: #null const [*] void, size: u64)->s32
 {
     if !size do
         return 0
@@ -154,7 +154,7 @@ func @memcmp(left, right: #null const [*] void, size: u64)->s32
     {
         let leftVector  = (leftBytes + offset)[as MemoryVector]
         let rightVector = (rightBytes + offset)[as MemoryVector]
-        if @vecmask(leftVector == rightVector) != 0xFFFF
+        if Swag.vecmask(leftVector == rightVector) != 0xFFFF
         {
             for index in MemoryVectorSize
             {

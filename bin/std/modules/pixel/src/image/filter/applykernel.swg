@@ -49,7 +49,7 @@ impl Image
             let w          = image.width
             let h          = image.height
             let px         = cast([*] u8) image.pixels.buffer!
-            var ks         = @dataof(params.kernel) + 2
+            var ks         = params.kernel.buffer + 2
 
             var bs, gs, rs: s32
 

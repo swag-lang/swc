@@ -15,10 +15,10 @@ using Swag
     let either   = false or funcType
     let selected = scalarType ? 10 : 20
 
-    @assert(both)
-    @assert(either)
-    @assert(selected == 10)
+    Swag.assert(both)
+    Swag.assert(either)
+    Swag.assert(selected == 10)
 
     arrayType = null
-    @assert(!arrayType)
+    Swag.assert(!arrayType)
 }

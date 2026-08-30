@@ -47,21 +47,21 @@ impl DynArray
 
     mtd pop()->T
     {
-        @assert(.count > 0)
+        Swag.assert(.count > 0)
         .count -= 1
         return .data![.count]
     }
 
     func get(me, index: u64)->T
     {
-        @assert(index < me.count)
+        Swag.assert(index < me.count)
         let data = me .data!
         return data[index]
     }
 
     func set(me, index: u64, value: T)
     {
-        @assert(index < me.count)
+        Swag.assert(index < me.count)
         let data = me .data!
         data[index] = value
     }
@@ -73,7 +73,7 @@ impl DynArray
 
     mtd last()->T
     {
-        @assert(.count > 0)
+        Swag.assert(.count > 0)
         return .data![.count - 1]
     }
 
@@ -91,7 +91,7 @@ impl DynArray
 
     func removeAt(me, index: u64)
     {
-        @assert(index < me.count)
+        Swag.assert(index < me.count)
         let data = me .data!
         var i    = index
         while i + 1 < me.count
@@ -105,7 +105,7 @@ impl DynArray
 
     func insertAt(me, index: u64, value: T)
     {
-        @assert(index <= me.count)
+        Swag.assert(index <= me.count)
         if me.count == me.capacity
         {
             let newCapacity = me.capacity * 2
@@ -152,29 +152,29 @@ impl DynArray
     var arr = DynArray'u32.create()
     defer arr.destroy()
 
-    @assert(arr.count == 0)
-    @assert(arr.capacity == DefaultCapacity)
+    Swag.assert(arr.count == 0)
+    Swag.assert(arr.capacity == DefaultCapacity)
 
     arr.push(10)
     arr.push(20)
     arr.push(30)
-    @assert(arr.count == 3)
-    @assert(arr.get(0) == 10)
-    @assert(arr.get(1) == 20)
-    @assert(arr.get(2) == 30)
-    @assert(arr.last() == 30)
+    Swag.assert(arr.count == 3)
+    Swag.assert(arr.get(0) == 10)
+    Swag.assert(arr.get(1) == 20)
+    Swag.assert(arr.get(2) == 30)
+    Swag.assert(arr.last() == 30)
 
     let popped = arr.pop()
-    @assert(popped == 30)
-    @assert(arr.count == 2)
+    Swag.assert(popped == 30)
+    Swag.assert(arr.count == 2)
 
     // Force a grow beyond initial capacity
     arr.push(40)
     arr.push(50)
     arr.push(60)
-    @assert(arr.count == 5)
-    @assert(arr.capacity >= 5)
-    @assert(arr.get(4) == 60)
+    Swag.assert(arr.count == 5)
+    Swag.assert(arr.capacity >= 5)
+    Swag.assert(arr.get(4) == 60)
 }
 
 // ---------------------------------------------------------------------------
@@ -191,21 +191,21 @@ impl DynArray
     arr.push(7)
     arr.push(-3)
 
-    @assert(arr.count == 4)
-    @assert(arr.contains(-5))
-    @assert(arr.contains(0))
-    @assert(arr.contains(7))
-    @assert(!arr.contains(99))
+    Swag.assert(arr.count == 4)
+    Swag.assert(arr.contains(-5))
+    Swag.assert(arr.contains(0))
+    Swag.assert(arr.contains(7))
+    Swag.assert(!arr.contains(99))
 
     arr.set(1, 42)
-    @assert(arr.get(1) == 42)
-    @assert(!arr.contains(0))
+    Swag.assert(arr.get(1) == 42)
+    Swag.assert(!arr.contains(0))
 
     arr.removeAt(0)
-    @assert(arr.count == 3)
-    @assert(arr.get(0) == 42)
-    @assert(arr.get(1) == 7)
-    @assert(arr.get(2) == -3)
+    Swag.assert(arr.count == 3)
+    Swag.assert(arr.get(0) == 42)
+    Swag.assert(arr.get(1) == 7)
+    Swag.assert(arr.get(2) == -3)
 }
 
 // ---------------------------------------------------------------------------
@@ -221,13 +221,13 @@ impl DynArray
     arr.push(2.75)
     arr.push(3.125)
 
-    @assert(arr.count == 3)
-    @assert(arr.get(0) == 1.5)
-    @assert(arr.get(1) == 2.75)
-    @assert(arr.get(2) == 3.125)
+    Swag.assert(arr.count == 3)
+    Swag.assert(arr.get(0) == 1.5)
+    Swag.assert(arr.get(1) == 2.75)
+    Swag.assert(arr.get(2) == 3.125)
 
     let sum = arr.get(0) + arr.get(1) + arr.get(2)
-    @assert(sum == 7.375)
+    Swag.assert(sum == 7.375)
 }
 
 // ---------------------------------------------------------------------------
@@ -244,17 +244,17 @@ impl DynArray
     arr.push('D')
 
     arr.insertAt(2, 'C')
-    @assert(arr.count == 4)
-    @assert(arr.get(0) == 'A')
-    @assert(arr.get(1) == 'B')
-    @assert(arr.get(2) == 'C')
-    @assert(arr.get(3) == 'D')
+    Swag.assert(arr.count == 4)
+    Swag.assert(arr.get(0) == 'A')
+    Swag.assert(arr.get(1) == 'B')
+    Swag.assert(arr.get(2) == 'C')
+    Swag.assert(arr.get(3) == 'D')
 
     arr.reverse()
-    @assert(arr.get(0) == 'D')
-    @assert(arr.get(1) == 'C')
-    @assert(arr.get(2) == 'B')
-    @assert(arr.get(3) == 'A')
+    Swag.assert(arr.get(0) == 'D')
+    Swag.assert(arr.get(1) == 'C')
+    Swag.assert(arr.get(2) == 'B')
+    Swag.assert(arr.get(3) == 'A')
 }
 
 // ---------------------------------------------------------------------------
@@ -269,16 +269,16 @@ impl DynArray
     arr.push(true)
     arr.push(false)
     arr.push(true)
-    @assert(arr.count == 3)
-    @assert(arr.get(0) == true)
-    @assert(arr.get(1) == false)
+    Swag.assert(arr.count == 3)
+    Swag.assert(arr.get(0) == true)
+    Swag.assert(arr.get(1) == false)
 
     arr.clear()
-    @assert(arr.count == 0)
+    Swag.assert(arr.count == 0)
 
     arr.push(false)
-    @assert(arr.count == 1)
-    @assert(arr.get(0) == false)
+    Swag.assert(arr.count == 1)
+    Swag.assert(arr.get(0) == false)
 }
 
 // ---------------------------------------------------------------------------
@@ -293,18 +293,18 @@ impl DynArray
     for i in 100'u64 do
         arr.push(i * i)
 
-    @assert(arr.count == 100)
-    @assert(arr.capacity >= 100)
-    @assert(arr.get(0) == 0)
-    @assert(arr.get(1) == 1)
-    @assert(arr.get(10) == 100)
-    @assert(arr.get(99) == 9801)
+    Swag.assert(arr.count == 100)
+    Swag.assert(arr.capacity >= 100)
+    Swag.assert(arr.get(0) == 0)
+    Swag.assert(arr.get(1) == 1)
+    Swag.assert(arr.get(10) == 100)
+    Swag.assert(arr.get(99) == 9801)
 
     // Pop half
     for 50 do
         arr.pop()
-    @assert(arr.count == 50)
-    @assert(arr.last() == 49 * 49)
+    Swag.assert(arr.count == 50)
+    Swag.assert(arr.last() == 49 * 49)
 }
 
 // ---------------------------------------------------------------------------
@@ -318,20 +318,20 @@ impl DynArray
 
     // Insert at index 0 on empty array
     arr.insertAt(0, 100)
-    @assert(arr.count == 1)
-    @assert(arr.get(0) == 100)
+    Swag.assert(arr.count == 1)
+    Swag.assert(arr.get(0) == 100)
 
     // Insert at end
     arr.insertAt(1, 300)
-    @assert(arr.count == 2)
-    @assert(arr.get(1) == 300)
+    Swag.assert(arr.count == 2)
+    Swag.assert(arr.get(1) == 300)
 
     // Insert in the middle
     arr.insertAt(1, 200)
-    @assert(arr.count == 3)
-    @assert(arr.get(0) == 100)
-    @assert(arr.get(1) == 200)
-    @assert(arr.get(2) == 300)
+    Swag.assert(arr.count == 3)
+    Swag.assert(arr.get(0) == 100)
+    Swag.assert(arr.get(1) == 200)
+    Swag.assert(arr.get(2) == 300)
 }
 
 // ---------------------------------------------------------------------------
@@ -348,9 +348,9 @@ impl DynArray
     arr.push(2.0)
     arr.push(3.0)
     arr.reverse()
-    @assert(arr.get(0) == 3.0)
-    @assert(arr.get(1) == 2.0)
-    @assert(arr.get(2) == 1.0)
+    Swag.assert(arr.get(0) == 3.0)
+    Swag.assert(arr.get(1) == 2.0)
+    Swag.assert(arr.get(2) == 1.0)
 
     arr.clear()
 
@@ -360,10 +360,10 @@ impl DynArray
     arr.push(30.0)
     arr.push(40.0)
     arr.reverse()
-    @assert(arr.get(0) == 40.0)
-    @assert(arr.get(1) == 30.0)
-    @assert(arr.get(2) == 20.0)
-    @assert(arr.get(3) == 10.0)
+    Swag.assert(arr.get(0) == 40.0)
+    Swag.assert(arr.get(1) == 30.0)
+    Swag.assert(arr.get(2) == 20.0)
+    Swag.assert(arr.get(3) == 10.0)
 }
 
 // ---------------------------------------------------------------------------
@@ -383,19 +383,19 @@ impl DynArray
 
     // Remove last element
     arr.removeAt(4)
-    @assert(arr.count == 4)
-    @assert(arr.last() == 400)
+    Swag.assert(arr.count == 4)
+    Swag.assert(arr.last() == 400)
 
     // Remove first element
     arr.removeAt(0)
-    @assert(arr.count == 3)
-    @assert(arr.get(0) == 200)
+    Swag.assert(arr.count == 3)
+    Swag.assert(arr.get(0) == 200)
 
     // Remove middle element
     arr.removeAt(1)
-    @assert(arr.count == 2)
-    @assert(arr.get(0) == 200)
-    @assert(arr.get(1) == 400)
+    Swag.assert(arr.count == 2)
+    Swag.assert(arr.get(0) == 200)
+    Swag.assert(arr.get(1) == 400)
 }
 
 // ---------------------------------------------------------------------------
@@ -417,17 +417,17 @@ struct Point
     arr.push({x: 3, y: 4})
     arr.push({x: 5, y: 6})
 
-    @assert(arr.count == 3)
-    @assert(arr.get(0).x == 1)
-    @assert(arr.get(0).y == 2)
-    @assert(arr.get(1).x == 3)
-    @assert(arr.get(2).y == 6)
+    Swag.assert(arr.count == 3)
+    Swag.assert(arr.get(0).x == 1)
+    Swag.assert(arr.get(0).y == 2)
+    Swag.assert(arr.get(1).x == 3)
+    Swag.assert(arr.get(2).y == 6)
 
     arr.set(1, {x: 10, y: 20})
-    @assert(arr.get(1).x == 10)
-    @assert(arr.get(1).y == 20)
+    Swag.assert(arr.get(1).x == 10)
+    Swag.assert(arr.get(1).y == 20)
 
     arr.reverse()
-    @assert(arr.get(0).x == 5)
-    @assert(arr.get(2).x == 1)
+    Swag.assert(arr.get(0).x == 5)
+    Swag.assert(arr.get(2).x == 1)
 }

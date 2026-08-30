@@ -35,8 +35,8 @@ private func layoutCentered(font: *Font, text: string, box: Math.Rectangle)->Ric
     var cache: FontCache
     let font = makeBaselineTestFont(&cache)
 
-    @assert(font.capHeight > 0)
-    @assert(font.capHeight < font.ascent)
+    Swag.assert(font.capHeight > 0)
+    Swag.assert(font.capHeight < font.ascent)
 }
 
 // The middle a glyph is levelled with is the middle of the capitals: inside the band the
@@ -52,12 +52,12 @@ private func layoutCentered(font: *Font, text: string, box: Math.Rectangle)->Ric
     let baseline   = Center - font.height * 0.5 + font.ascent
     let opticalMid = font.opticalTop(Center, 0)
 
-    @assert(opticalMid < baseline)
-    @assert(opticalMid > baseline - font.capHeight)
-    @assert(Math.abs(opticalMid - (baseline - font.capHeight * 0.5)) < 0.01)
+    Swag.assert(opticalMid < baseline)
+    Swag.assert(opticalMid > baseline - font.capHeight)
+    Swag.assert(Math.abs(opticalMid - (baseline - font.capHeight * 0.5)) < 0.01)
 
     // The size is taken off around that middle, so a 16-pixel glyph straddles it.
-    @assert(Math.abs(font.opticalTop(Center, 16) - (opticalMid - 8)) < 0.01)
+    Swag.assert(Math.abs(font.opticalTop(Center, 16) - (opticalMid - 8)) < 0.01)
 }
 
 // Words centered in the same box land on the same line, whatever glyphs they carry. Measured
@@ -73,10 +73,10 @@ private func layoutCentered(font: *Font, text: string, box: Math.Rectangle)->Ric
     let descend  = layoutCentered(font, "Capture", box)     // Carries a descender.
     let accented = layoutCentered(font, "Édition", box)     // Carries an accent.
 
-    @assert(plain.boundRect.y == descend.boundRect.y)
-    @assert(plain.boundRect.y == accented.boundRect.y)
-    @assert(plain.boundRect.height == descend.boundRect.height)
-    @assert(plain.boundRect.height == accented.boundRect.height)
+    Swag.assert(plain.boundRect.y == descend.boundRect.y)
+    Swag.assert(plain.boundRect.y == accented.boundRect.y)
+    Swag.assert(plain.boundRect.height == descend.boundRect.height)
+    Swag.assert(plain.boundRect.height == accented.boundRect.height)
 }
 
 // The band a single line reserves is the font's, so the reported height does not shrink to the
@@ -88,5 +88,5 @@ private func layoutCentered(font: *Font, text: string, box: Math.Rectangle)->Ric
     let box  = Math.Rectangle{0, 0, 400, 40}
 
     let text = layoutCentered(font, "acemo", box)
-    @assert(text.boundRect.height >= font.height)
+    Swag.assert(text.boundRect.height >= font.height)
 }

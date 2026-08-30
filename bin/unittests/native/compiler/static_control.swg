@@ -106,9 +106,9 @@ func(T) selectedFromType()->s32
 #test
 {
     let value = StaticFields{2}
-    @assert(value.value == 2)
-    @assert(StaticValues.Value0 != StaticValues.Value1)
-    @assert(selectedInFunction() == 42)
-    @assert(selectedFromMultipleCases() == 42)
-    @assert(selectedFromType's32() == 42)
+    Swag.assert(value.value == 2)
+    Swag.assert(StaticValues.Value0 != StaticValues.Value1)
+    Swag.assert(selectedInFunction() == 42)
+    Swag.assert(selectedFromMultipleCases() == 42)
+    Swag.assert(selectedFromType's32() == 42)
 }

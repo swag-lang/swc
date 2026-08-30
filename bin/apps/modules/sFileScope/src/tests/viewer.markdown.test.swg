@@ -22,8 +22,8 @@ private func markdownWhiteyFixturePath()->String
 
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_sfilescope_markdown_%.md", Guid64.random()).toString())
     var result   = openTestViewer(&createMarkdownViewer, &host.root, fileName.toString(), commandParent: &host.root)
-    @assert(result.view == null and result.commands == null)
-    @assert(!result.failureReason.isEmpty())
+    Swag.assert(result.view == null and result.commands == null)
+    Swag.assert(!result.failureReason.isEmpty())
 }
 
 #test
@@ -35,7 +35,7 @@ private func markdownWhiteyFixturePath()->String
     var source = expect File.readAllText(markdownFixturePath())
     for 160 do
         source += "A README paragraph remains available for progressive wheel navigation.\n\n"
-    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -45,11 +45,11 @@ private func markdownWhiteyFixturePath()->String
 
     var result = openTestViewer(&createMarkdownViewer, &host.root, fileName.toString(), commandParent: &host.root)
     let wnd    = result.view
-    @assert(wnd != null)
-    @assert(result.commands != null)
-    @assert(result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
-    @assert(result.isLoading != null and result.isLoading!(wnd!))
-    @assert(Utf8.contains(result.details.toString(), "Markdown"))
+    Swag.assert(wnd != null)
+    Swag.assert(result.commands != null)
+    Swag.assert(result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
+    Swag.assert(result.isLoading != null and result.isLoading!(wnd!))
+    Swag.assert(Utf8.contains(result.details.toString(), "Markdown"))
     let commands = result.commands
     commands!.applyLayout()
 
@@ -57,28 +57,28 @@ private func markdownWhiteyFixturePath()->String
     // popup closes, leaving navigation keys attached to the document.
     let widthCombo = cast(*ComboBox) commands!.children[0]
     let themeCombo = cast(*ComboBox) commands!.children[1]
-    @assert((cast(*Markdown.View) wnd!).hasFocus())
+    Swag.assert((cast(*Markdown.View) wnd!).hasFocus())
     var comboPoint = widthCombo.surfaceRect().center()
     widthCombo.surface!.surfaceToScreen(&comboPoint)
     host.mouseDown(comboPoint)
-    @assert(widthCombo.hasFocus() and !widthCombo.hasVisibleFocus())
+    Swag.assert(widthCombo.hasFocus() and !widthCombo.hasVisibleFocus())
     host.keyPress(Input.Key.Escape)
-    @assert((cast(*Markdown.View) wnd!).hasFocus())
+    Swag.assert((cast(*Markdown.View) wnd!).hasFocus())
     host.mouseUp(comboPoint)
 
     comboPoint = themeCombo.surfaceRect().center()
     themeCombo.surface!.surfaceToScreen(&comboPoint)
     host.mouseDown(comboPoint)
-    @assert(themeCombo.hasFocus() and !themeCombo.hasVisibleFocus())
+    Swag.assert(themeCombo.hasFocus() and !themeCombo.hasVisibleFocus())
     host.keyPress(Input.Key.Escape)
-    @assert((cast(*Markdown.View) wnd!).hasFocus())
+    Swag.assert((cast(*Markdown.View) wnd!).hasFocus())
     host.mouseUp(comboPoint)
 
     // The application spinner follows scheduled work, not lazy source left on disk.
     for 64 where result.isLoading!(wnd!) do
         host.fireTimers()
-    @assert(!result.isLoading!(wnd!))
-    @assert((cast(*Markdown.View) wnd!).hasUnloadedSource())
+    Swag.assert(!result.isLoading!(wnd!))
+    Swag.assert((cast(*Markdown.View) wnd!).hasUnloadedSource())
 }
 
 // Reveals a marker beyond the initial resident window of a multi-megabyte Markdown document while
@@ -92,7 +92,7 @@ private func markdownWhiteyFixturePath()->String
     let fixture       = expect File.readAllText(markdownFixturePath())
     let query         = "distant markdown verification marker"
     let fixtureOffset = Utf8.indexOf(fixture.toString(), query)
-    @assert(fixtureOffset != Swag.U64.Max)
+    Swag.assert(fixtureOffset != Swag.U64.Max)
     var source: String
     for 32_000 do
         source += "## Streamed section\n\nA paragraph remains outside the resident window.\n\n"
@@ -100,8 +100,8 @@ private func markdownWhiteyFixturePath()->String
     source += fixture
     for 8_000 do
         source += "A trailing paragraph keeps the document large.\n\n"
-    @assert(source.length >= 2 * 1024 * 1024)
-    discard expect File.writeAllBytes(fileName, @mkslice(cast(const [*] u8) source.buffer!, source.length))
+    Swag.assert(source.length >= 2 * 1024 * 1024)
+    discard expect File.writeAllBytes(fileName, Swag.makeSlice(cast(const [*] u8) source.buffer!, source.length))
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -109,7 +109,7 @@ private func markdownWhiteyFixturePath()->String
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(960, 680)
     view.applyLayout()
-    @assert(view.revealFileOffset(offset, query))
+    Swag.assert(view.revealFileOffset(offset, query))
 
     var found:  bool
     var bounds: Math.Rectangle
@@ -119,16 +119,16 @@ private func markdownWhiteyFixturePath()->String
         found = view.searchMatchRect(&bounds)
     }
 
-    @assert(found and !bounds.isEmpty())
-    @assert(view.hasUnloadedSource())
-    @assert(view.loadedDocumentHeight() > view.documentStyle.topInset)
+    Swag.assert(found and !bounds.isEmpty())
+    Swag.assert(view.hasUnloadedSource())
+    Swag.assert(view.loadedDocumentHeight() > view.documentStyle.topInset)
     let revealedBounds = bounds
     for 64 do
         host.fireTimers()
-    @assert(view.searchMatchRect(&bounds))
-    @assert(Math.abs(bounds.y - revealedBounds.y) < 1)
+    Swag.assert(view.searchMatchRect(&bounds))
+    Swag.assert(Math.abs(bounds.y - revealedBounds.y) < 1)
     view.clearSearchHighlight()
-    @assert(!view.searchMatchRect(&bounds))
+    Swag.assert(!view.searchMatchRect(&bounds))
 }
 
 #test
@@ -146,18 +146,18 @@ private func markdownWhiteyFixturePath()->String
     view.resize(960, 680)
     view.applyLayout()
 
-    @assert(!view.isLoading())
-    @assert(view.loadedDocumentHeight() > style.topInset)
-    @assert(view.documentStyle.maxContentWidth == style.maxContentWidth)
+    Swag.assert(!view.isLoading())
+    Swag.assert(view.loadedDocumentHeight() > style.topInset)
+    Swag.assert(view.documentStyle.maxContentWidth == style.maxContentWidth)
     Testing.assertContentFits(view)
     host.settleAnimations(view, 8)
     var image = host.render(view)
     Pixel.Testing.assertImageGolden(&image, "viewer.markdown.document")
-    @assert(view.findText("Notes provide useful context"))
-    @assert(view.findText("Alignment"))
-    @assert(view.findText("fibonacci"))
-    @assert(view.findText("begin{bmatrix}"))
-    @assert(view.findText("Footnotes remain readable"))
+    Swag.assert(view.findText("Notes provide useful context"))
+    Swag.assert(view.findText("Alignment"))
+    Swag.assert(view.findText("fibonacci"))
+    Swag.assert(view.findText("begin{bmatrix}"))
+    Swag.assert(view.findText("Footnotes remain readable"))
 }
 
 // Exercises the application-bound appearance and every shipped document profile headlessly,
@@ -172,20 +172,20 @@ private func markdownWhiteyFixturePath()->String
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    for themeIndex in @countof(backgrounds)
+    for themeIndex in backgrounds.count
     {
         let view = Markdown.View.createText(&host.root, source.toString())
         view.resize(960, 680)
         applyMarkdownViewerStyle(view, themeIndex, 1)
         view.applyLayout()
         view.computeStyle()
-        @assert(view.themeColors().view_Bk.argb == backgrounds[themeIndex])
-        @assert(view.documentStyle.lineHeight >= 1.5)
+        Swag.assert(view.themeColors().view_Bk.argb == backgrounds[themeIndex])
+        Swag.assert(view.documentStyle.lineHeight >= 1.5)
         if themeIndex == 5 do
-            @assert(view.documentStyle.headingAlignment == .Center)
+            Swag.assert(view.documentStyle.headingAlignment == .Center)
         Testing.assertContentFits(view)
         var image = host.render(view)
-        @assert(image.isValid())
+        Swag.assert(image.isValid())
         view.destroy()
     }
 }

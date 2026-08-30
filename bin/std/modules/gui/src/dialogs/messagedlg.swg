@@ -41,7 +41,7 @@ public impl MessageDlg
         let dlg = Wnd.create'MessageDlg()
 
         let srf = dlg.createSurface(from, 0, 0, 500, 300)
-        if @countof(options.title) do
+        if options.title.count do
             srf.setTitle(options.title)
 
         let body = dlg.createContentView()
@@ -102,7 +102,7 @@ public impl MessageDlg
 
         // The room the message loses to the frame and to the standard body inset, on each side.
         let chrome   = 2 * metrics.dialog_Padding + 2 * metrics.wnd_BorderSize
-        let iconRoom = @isset(.labelIcon) ? .labelIcon.position.width : 0
+        let iconRoom = Swag.isSet(.labelIcon) ? .labelIcon.position.width : 0
 
         // Width: what the actions need side by side, then whatever more the message wants, up to
         // the width it is allowed to run before wrapping. The label answers with its own format
@@ -133,7 +133,7 @@ public impl MessageDlg
         .applyLayout()
 
         var contentHeight = Math.min(MaxMessageHeight, .label.itf.measureContent({.label.position.width, 0}).y)
-        if @isset(.labelIcon) do
+        if Swag.isSet(.labelIcon) do
             contentHeight = Math.max(contentHeight, .labelIcon.icon.sizeY)
 
         let ext = .extension
@@ -158,7 +158,7 @@ public impl MessageDlg
     // Changes the large icon tint.
     mtd setIconColor(color: Color)
     {
-        Debug.assert(@isset(.labelIcon))
+        Debug.assert(Swag.isSet(.labelIcon))
         .labelIcon.setIconColor(color)
     }
 
@@ -169,7 +169,7 @@ public impl MessageDlg
             return
 
         let gap = .themeMetrics().dialog_BtnPadding * 2
-        if !@isset(.labelIcon) do
+        if !Swag.isSet(.labelIcon) do
             .labelIcon = Label.create(.label.parent!, "", {0, 0, icon.sizeX + gap, 0})
 
         with me.labelIcon
@@ -194,7 +194,7 @@ public impl MessageDlg
 
         // Every box names itself. Left empty the caption still takes its band, so the box opened
         // under an empty bar and read as one the application had forgotten to finish.
-        if !@countof(opt.title) do
+        if !opt.title.count do
             opt.title = strings().dlg_InfoTitle
 
         with let dlg = create(from, message, opt)
@@ -215,7 +215,7 @@ public impl MessageDlg
             opt.iconColor = from.app.theme.colors.dlg_InformationIcon
         }
 
-        if !@countof(opt.title) do
+        if !opt.title.count do
             opt.title = strings().dlg_ConfirmTitle
 
         with let dlg = create(from, message, opt)
@@ -237,7 +237,7 @@ public impl MessageDlg
             opt.iconColor = from.app.theme.colors.dlg_InformationIcon
         }
 
-        if !@countof(opt.title) do
+        if !opt.title.count do
             opt.title = strings().dlg_ConfirmTitle
 
         with let dlg = create(from, message, opt)
@@ -259,7 +259,7 @@ public impl MessageDlg
             opt.iconColor = from.app.theme.colors.dlg_InformationIcon
         }
 
-        if !@countof(opt.title) do
+        if !opt.title.count do
             opt.title = strings().dlg_ConfirmTitle
 
         with let dlg = create(from, message, opt)
@@ -291,7 +291,7 @@ public impl MessageDlg
         }
 
         var opt = options
-        if !@countof(opt.title) do
+        if !opt.title.count do
             opt.title = strings().dlg_ConfirmTitle
 
         return yesNo(from, txt.toString(), defaultId, opt)
@@ -327,7 +327,7 @@ public impl MessageDlg
             opt.iconColor = from.app.theme.colors.error
         }
 
-        if !@countof(opt.title) do
+        if !opt.title.count do
             opt.title = strings().dlg_ErrorTitle
 
         with let dlg = create(from, txt.toString(), opt)

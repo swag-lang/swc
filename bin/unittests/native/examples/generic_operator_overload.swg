@@ -93,8 +93,8 @@ impl Complex
     let pos            = +z
 
     #assert(#typeof(pos) == Complex's32)
-    @assert(pos.re == 3)
-    @assert(pos.im == -4)
+    Swag.assert(pos.re == 3)
+    Swag.assert(pos.im == -4)
 }
 
 // Test: unary - negates both parts
@@ -103,8 +103,8 @@ impl Complex
     var z: Complex's32 = {re: 5, im: -7}
     let neg            = -z
 
-    @assert(neg.re == -5)
-    @assert(neg.im == 7)
+    Swag.assert(neg.re == -5)
+    Swag.assert(neg.im == 7)
 }
 
 // Test: double negation is identity
@@ -113,8 +113,8 @@ impl Complex
     var z: Complex's64 = {re: 42, im: -99}
     let dn             = -(-z)
 
-    @assert(dn.re == 42)
-    @assert(dn.im == -99)
+    Swag.assert(dn.re == 42)
+    Swag.assert(dn.im == -99)
 }
 
 // Test: negation of zero
@@ -123,8 +123,8 @@ impl Complex
     var z: Complex's32 = {re: 0, im: 0}
     let neg            = -z
 
-    @assert(neg.re == 0)
-    @assert(neg.im == 0)
+    Swag.assert(neg.re == 0)
+    Swag.assert(neg.im == 0)
 }
 
 // ---------------------------------------------------------------------------
@@ -139,8 +139,8 @@ impl Complex
     let sum            = a + b
 
     #assert(#typeof(sum) == Complex's32)
-    @assert(sum.re == 4)
-    @assert(sum.im == 6)
+    Swag.assert(sum.re == 4)
+    Swag.assert(sum.im == 6)
 }
 
 // Test: subtraction
@@ -150,8 +150,8 @@ impl Complex
     var b: Complex's32 = {re: 3, im: 25}
     let diff           = a - b
 
-    @assert(diff.re == 7)
-    @assert(diff.im == -5)
+    Swag.assert(diff.re == 7)
+    Swag.assert(diff.im == -5)
 }
 
 // Test: multiplication  (1+2i)*(3+4i) = (3-8)+(4+6)i = -5+10i
@@ -161,8 +161,8 @@ impl Complex
     var b: Complex's32 = {re: 3, im: 4}
     let prod           = a * b
 
-    @assert(prod.re == -5)
-    @assert(prod.im == 10)
+    Swag.assert(prod.re == -5)
+    Swag.assert(prod.im == 10)
 }
 
 // Test: multiplication by conjugate yields real (normSq)
@@ -173,8 +173,8 @@ impl Complex
     let conj           = z.conjugate()
     let prod           = z * conj
 
-    @assert(prod.re == 25)
-    @assert(prod.im == 0)
+    Swag.assert(prod.re == 25)
+    Swag.assert(prod.im == 0)
 }
 
 // Test: multiplication by (0+1i) rotates 90 degrees
@@ -185,8 +185,8 @@ impl Complex
     var i_unit: Complex's32 = {re: 0, im: 1}
     let rot                 = z * i_unit
 
-    @assert(rot.re == -3)
-    @assert(rot.im == 5)
+    Swag.assert(rot.re == -3)
+    Swag.assert(rot.im == 5)
 }
 
 // ---------------------------------------------------------------------------
@@ -199,8 +199,8 @@ impl Complex
     var z: Complex's32 = {re: 2, im: 7}
     let result         = z + 10's32
 
-    @assert(result.re == 12)
-    @assert(result.im == 7)
+    Swag.assert(result.re == 12)
+    Swag.assert(result.im == 7)
 }
 
 // Test: subtract scalar
@@ -209,8 +209,8 @@ impl Complex
     var z: Complex's32 = {re: 5, im: 3}
     let result         = z - 8's32
 
-    @assert(result.re == -3)
-    @assert(result.im == 3)
+    Swag.assert(result.re == -3)
+    Swag.assert(result.im == 3)
 }
 
 // Test: multiply by scalar scales both parts
@@ -219,8 +219,8 @@ impl Complex
     var z: Complex's32 = {re: 2, im: -3}
     let result         = z * 4's32
 
-    @assert(result.re == 8)
-    @assert(result.im == -12)
+    Swag.assert(result.re == 8)
+    Swag.assert(result.im == -12)
 }
 
 // Test: multiply by zero scalar
@@ -229,8 +229,8 @@ impl Complex
     var z: Complex's32 = {re: 99, im: -42}
     let result         = z * 0's32
 
-    @assert(result.re == 0)
-    @assert(result.im == 0)
+    Swag.assert(result.re == 0)
+    Swag.assert(result.im == 0)
 }
 
 // ---------------------------------------------------------------------------
@@ -245,8 +245,8 @@ impl Complex
     var c: Complex's32 = {re: 3, im: 3}
     let result         = a + b + c
 
-    @assert(result.re == 6)
-    @assert(result.im == 6)
+    Swag.assert(result.re == 6)
+    Swag.assert(result.im == 6)
 }
 
 // Test: add then negate
@@ -256,8 +256,8 @@ impl Complex
     var b: Complex's32 = {re: 5, im: 5}
     let result         = -(a + b)
 
-    @assert(result.re == -15)
-    @assert(result.im == -25)
+    Swag.assert(result.re == -15)
+    Swag.assert(result.im == -25)
 }
 
 // Test: z + (-z) == 0
@@ -266,8 +266,8 @@ impl Complex
     var z: Complex's64 = {re: 123, im: -456}
     let result         = z + (-z)
 
-    @assert(result.re == 0)
-    @assert(result.im == 0)
+    Swag.assert(result.re == 0)
+    Swag.assert(result.im == 0)
 }
 
 // Test: scale then subtract
@@ -277,8 +277,8 @@ impl Complex
     var b: Complex's32 = {re: 2, im: 3}
     let result         = a - b * 2's32
 
-    @assert(result.re == 2)
-    @assert(result.im == 3)
+    Swag.assert(result.re == 2)
+    Swag.assert(result.im == 3)
 }
 
 // ---------------------------------------------------------------------------
@@ -291,8 +291,8 @@ impl Complex
     var z: Complex's32 = {re: 3, im: 4}
     let conj           = z.conjugate()
 
-    @assert(conj.re == 3)
-    @assert(conj.im == -4)
+    Swag.assert(conj.re == 3)
+    Swag.assert(conj.im == -4)
 }
 
 // Test: conjugate of pure real is itself
@@ -301,8 +301,8 @@ impl Complex
     var z: Complex's32 = {re: 7, im: 0}
     let conj           = z.conjugate()
 
-    @assert(conj.re == 7)
-    @assert(conj.im == 0)
+    Swag.assert(conj.re == 7)
+    Swag.assert(conj.im == 0)
 }
 
 // Test: double conjugate is identity
@@ -311,8 +311,8 @@ impl Complex
     var z: Complex's32 = {re: -2, im: 5}
     let cc             = z.conjugate().conjugate()
 
-    @assert(cc.re == -2)
-    @assert(cc.im == 5)
+    Swag.assert(cc.re == -2)
+    Swag.assert(cc.im == 5)
 }
 
 // Test: normSq of 3+4i == 25
@@ -321,7 +321,7 @@ impl Complex
     var z: Complex's32 = {re: 3, im: 4}
     let n              = z.normSq()
 
-    @assert(n == 25)
+    Swag.assert(n == 25)
 }
 
 // Test: normSq of pure imaginary
@@ -330,7 +330,7 @@ impl Complex
     var z: Complex's32 = {re: 0, im: 6}
     let n              = z.normSq()
 
-    @assert(n == 36)
+    Swag.assert(n == 36)
 }
 
 // Test: normSq of zero
@@ -339,7 +339,7 @@ impl Complex
     var z: Complex's32 = {re: 0, im: 0}
     let n              = z.normSq()
 
-    @assert(n == 0)
+    Swag.assert(n == 0)
 }
 
 // ---------------------------------------------------------------------------
@@ -354,8 +354,8 @@ impl Complex
     let sum            = a + b
 
     #assert(#typeof(sum) == Complex's64)
-    @assert(sum.re == 400000)
-    @assert(sum.im == 200000)
+    Swag.assert(sum.re == 400000)
+    Swag.assert(sum.im == 200000)
 }
 
 // Test: Complex with s16
@@ -367,8 +367,8 @@ impl Complex
 
     // (10+20i)*(5-10i) = (50+200)+(−100+100)i = 250+0i
     #assert(#typeof(prod) == Complex's16)
-    @assert(prod.re == 250)
-    @assert(prod.im == 0)
+    Swag.assert(prod.re == 250)
+    Swag.assert(prod.im == 0)
 }
 
 // Test: Complex's64 multiplication associativity spot check
@@ -382,6 +382,6 @@ impl Complex
     let lhs = a * (b * c)
     let rhs = (a * b) * c
 
-    @assert(lhs.re == rhs.re)
-    @assert(lhs.im == rhs.im)
+    Swag.assert(lhs.re == rhs.re)
+    Swag.assert(lhs.im == rhs.im)
 }

@@ -50,6 +50,6 @@ func(T) makeInterface(object: *T, value: s32)->IGenericUsingCast
 {
     var wrapper: GenericUsingWrapper
     let itf = makeInterface(&wrapper, 91)
-    @assert(itf.baseValue() == 91)
-    @assert(itf.partialValue() == 101)
+    Swag.assert(itf.baseValue() == 91)
+    Swag.assert(itf.partialValue() == 101)
 }

@@ -151,7 +151,7 @@ public impl Sha256
     // Resets the sequence to the standard SHA-256 initial state.
     mtd reset()
     {
-        @init(me, 1)
+        Swag.init(me, 1)
         .state[0] = 0x6A09E667
         .state[1] = 0xBB67AE85
         .state[2] = 0x3C6EF372
@@ -165,8 +165,8 @@ public impl Sha256
     // Includes `buffer` in the running digest.
     mtd update(buffer: const [..] u8)
     {
-        let buf = @dataof(buffer)
-        let len = @countof(buffer)
+        let buf = buffer.buffer
+        let len = buffer.count
 
         for i in len
         {

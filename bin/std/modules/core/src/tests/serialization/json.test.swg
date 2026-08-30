@@ -55,12 +55,12 @@ func makeJsonPayload()->JsonPayload
 
 func assertIntArray(values: Array's32, expected: const [..] s32)->bool
 {
-    if values.count != @countof(expected) do
+    if values.count != expected.count do
         return false
 
     for values.count
     {
-        if values[@index] != expected[@index] do
+        if values[Swag.index] != expected[Swag.index] do
             return false
     }
 
@@ -90,13 +90,13 @@ func assertJsonPayload(value: JsonPayload)->bool
     var buffer: ConcatBuffer
     expect encoder.writeAll(&buffer, payload)
     let json = buffer.toString()
-    @assert(json == "{\"id\":7,\"active\":true,\"name\":\"core\",\"counts\":[-1,0,4],\"pair\":{\"x\":3,\"y\":-2},\"fixed\":[1,2,3]}")
-    @assert(json.indexOf("transient") == Swag.U64.Max)
+    Swag.assert(json == "{\"id\":7,\"active\":true,\"name\":\"core\",\"counts\":[-1,0,4],\"pair\":{\"x\":3,\"y\":-2},\"fixed\":[1,2,3]}")
+    Swag.assert(json.indexOf("transient") == Swag.U64.Max)
 
     var decoder: Serialization.Decoder'Serialization.Read.Json
     let decoded = expect decoder.readAll'JsonPayload(json.toSlice())!
-    @assert(assertJsonPayload(decoded[]))
-    @assert(decoded.transient == 0)
+    Swag.assert(assertJsonPayload(decoded[]))
+    Swag.assert(decoded.transient == 0)
 
     Memory.delete(decoded)
 }
@@ -106,7 +106,7 @@ func assertJsonPayload(value: JsonPayload)->bool
     let source:  String = "{\"oldName\":42}"
     var decoder: Serialization.Decoder'Serialization.Read.Json
     let decoded         = expect decoder.readAll'JsonAliasPayload(source.toSlice())!
-    @assert(decoded.newName == 42)
+    Swag.assert(decoded.newName == 42)
     Memory.delete(decoded)
 }
 
@@ -121,7 +121,7 @@ func assertJsonPayload(value: JsonPayload)->bool
     var buffer: ConcatBuffer
     expect encoder.writeAll(&buffer, payload)
     let json = buffer.toString()
-    @assert(json == "{\n  \"id\": 7,\n  \"active\": true,\n  \"name\": \"core\",\n  \"counts\": [\n    -1,\n    0,\n    4\n  ],\n  \"pair\": {\n    \"x\": 3,\n    \"y\": -2\n  },\n  \"fixed\": [\n    1,\n    2,\n    3\n  ]\n}")
+    Swag.assert(json == "{\n  \"id\": 7,\n  \"active\": true,\n  \"name\": \"core\",\n  \"counts\": [\n    -1,\n    0,\n    4\n  ],\n  \"pair\": {\n    \"x\": 3,\n    \"y\": -2\n  },\n  \"fixed\": [\n    1,\n    2,\n    3\n  ]\n}")
 }
 
 #test
@@ -130,16 +130,16 @@ func assertJsonPayload(value: JsonPayload)->bool
 
     var decoder: Serialization.Decoder'Serialization.Read.Json
     let decoded = expect decoder.readAll'JsonPayload(json.toSlice())!
-    @assert(decoded.id == 8)
-    @assert(!decoded.active)
-    @assert(decoded.name.isNullOrEmpty())
-    @assert(assertIntArray(decoded.counts, [9, 8]))
-    @assert(decoded.pair.x == -1)
-    @assert(decoded.pair.y == 2)
-    @assert(decoded.fixed[0] == 5)
-    @assert(decoded.fixed[1] == 6)
-    @assert(decoded.fixed[2] == 7)
-    @assert(decoded.transient == 0)
+    Swag.assert(decoded.id == 8)
+    Swag.assert(!decoded.active)
+    Swag.assert(decoded.name.isNullOrEmpty())
+    Swag.assert(assertIntArray(decoded.counts, [9, 8]))
+    Swag.assert(decoded.pair.x == -1)
+    Swag.assert(decoded.pair.y == 2)
+    Swag.assert(decoded.fixed[0] == 5)
+    Swag.assert(decoded.fixed[1] == 6)
+    Swag.assert(decoded.fixed[2] == 7)
+    Swag.assert(decoded.transient == 0)
 
     Memory.delete(decoded)
 }
@@ -150,15 +150,15 @@ func assertJsonPayload(value: JsonPayload)->bool
 
     var decoder: Serialization.Decoder'Serialization.Read.Json
     let decoded = expect decoder.readAll'JsonPayload(interoperable.toSlice())!
-    @assert(assertJsonPayload(decoded[]))
+    Swag.assert(assertJsonPayload(decoded[]))
     Memory.delete(decoded)
 
     let missing: String = "{\"id\":12}"
     let partial         = expect decoder.readAll'JsonPayload(missing.toSlice())!
-    @assert(partial.id == 12)
-    @assert(!partial.active)
-    @assert(partial.name.isNullOrEmpty())
-    @assert(partial.counts.count == 0)
+    Swag.assert(partial.id == 12)
+    Swag.assert(!partial.active)
+    Swag.assert(partial.name.isNullOrEmpty())
+    Swag.assert(partial.counts.count == 0)
     Memory.delete(partial)
 }
 
@@ -168,7 +168,7 @@ func assertJsonPayload(value: JsonPayload)->bool
     var encoder: Serialization.Encoder'Serialization.Write.Json
     var buffer:  ConcatBuffer
     expect encoder.writeAll(&buffer, payload)
-    @assert(buffer.toString() == "{\"value\":null}")
+    Swag.assert(buffer.toString() == "{\"value\":null}")
 }
 
 #test
@@ -179,22 +179,22 @@ func assertJsonPayload(value: JsonPayload)->bool
     var encoder: Serialization.Encoder'Serialization.Write.Json
     var buffer:  ConcatBuffer
     expect encoder.writeAll(&buffer, payload)
-    @assert(buffer.toString() == "{\"text\":\"quote=\\\" slash=\\\\ controls=\\b\\f\\n\\r\\t caf\u00E9 \U0001F642\"}")
+    Swag.assert(buffer.toString() == "{\"text\":\"quote=\\\" slash=\\\\ controls=\\b\\f\\n\\r\\t caf\u00E9 \U0001F642\"}")
 
     var decoder: Serialization.Decoder'Serialization.Read.Json
     let decoded = expect decoder.readAll'JsonStringPayload(buffer.toSlice()!)!
-    @assert(decoded.text == payload.text)
+    Swag.assert(decoded.text == payload.text)
     Memory.delete(decoded)
 
     let escaped: String = #raw """{"text":"A\u00E9\uD83D\uDE42"}"""
     let unicode = expect decoder.readAll'JsonStringPayload(escaped.toSlice())!
-    @assert(unicode.text == "A\u00E9\U0001F642")
+    Swag.assert(unicode.text == "A\u00E9\U0001F642")
     Memory.delete(unicode)
 
     let invalidEscape: String = #raw """{"text":"\q"}"""
     let rejected = catch decoder.readAll'JsonStringPayload(invalidEscape.toSlice()) as errInvalidEscape
-    @assert(rejected == null)
-    @assert(errInvalidEscape != null)
+    Swag.assert(rejected == null)
+    Swag.assert(errInvalidEscape != null)
 }
 
 #test
@@ -211,8 +211,8 @@ func assertJsonPayload(value: JsonPayload)->bool
     for input in InvalidJson
     {
         var decoder: Serialization.Decoder'Serialization.Read.Json
-        let decoded = catch decoder.readAll'JsonPayload(@mkslice(@dataof(input), @countof(input))) as err
-        @assert(decoded == null)
-        @assert(err != null)
+        let decoded = catch decoder.readAll'JsonPayload(Swag.makeSlice(input.buffer, input.count)) as err
+        Swag.assert(decoded == null)
+        Swag.assert(err != null)
     }
 }

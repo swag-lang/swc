@@ -55,7 +55,7 @@ internal impl Bot
         if .count == 2 and .val[0] == 17 and .val[1] == 61
         {
             result = .id
-            @assert(.id == 47)
+            Swag.assert(.id == 47)
         }
     }
 
@@ -142,6 +142,6 @@ func day10AB()
 
     executeLines(lines)
 
-    @assert(result == 47)
-    @assert(bots[0].out * bots[1].out * bots[2].out == 2666)
+    Swag.assert(result == 47)
+    Swag.assert(bots[0].out * bots[1].out * bots[2].out == 2666)
 }

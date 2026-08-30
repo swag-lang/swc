@@ -58,7 +58,7 @@ func nullSliceFallback()->bool
     let fallbackValues: [2] u32        = [7, 9]
     let fallback:       [..] u32       = fallbackValues
     let resolved                       = value orelse fallback
-    return @countof(resolved) == 2 and resolved[0] == 7 and resolved[1] == 9
+    return resolved.count == 2 and resolved[0] == 7 and resolved[1] == 9
 }
 
 func nonNullSliceWins()->bool
@@ -68,14 +68,14 @@ func nonNullSliceWins()->bool
     let primary:        [..] u32 = primaryValues
     let fallback:       [..] u32 = fallbackValues
     let resolved                 = primary orelse fallback
-    return @countof(resolved) == 2 and resolved[0] == 1 and resolved[1] == 2
+    return resolved.count == 2 and resolved[0] == 1 and resolved[1] == 2
 }
 
 func nullInterfaceFallbackWritesThroughSelectedReceiver()->bool
 {
     var value: #null INullCoalescingProbe = null
     var fallbackProbe = NullCoalescingProbe{tag: 77}
-    let fallback      = @mkinterface(&fallbackProbe, #typeof(fallbackProbe), INullCoalescingProbe)
+    let fallback      = Swag.makeInterface(&fallbackProbe, #typeof(fallbackProbe), INullCoalescingProbe)
     let selected      = value orelse fallback
 
     var written: u64 = 0
@@ -89,8 +89,8 @@ func nonNullInterfaceWinsAndKeepsRuntimeShape()->bool
 {
     var primaryProbe  = NullCoalescingProbe{tag: 11}
     var fallbackProbe = NullCoalescingProbe{tag: 22}
-    let primary       = @mkinterface(&primaryProbe, #typeof(primaryProbe), INullCoalescingProbe)
-    let fallback      = @mkinterface(&fallbackProbe, #typeof(fallbackProbe), INullCoalescingProbe)
+    let primary       = Swag.makeInterface(&primaryProbe, #typeof(primaryProbe), INullCoalescingProbe)
+    let fallback      = Swag.makeInterface(&fallbackProbe, #typeof(fallbackProbe), INullCoalescingProbe)
     let selected      = primary orelse fallback
 
     var written: u64 = 0

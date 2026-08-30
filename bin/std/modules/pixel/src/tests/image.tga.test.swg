@@ -81,7 +81,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
         Tga.decodeTga16Row(source.buffer! + 1, actual.buffer! + 3, Pixels, alphaFromBit)
         for i in actual.count do
-            @assert(actual[i] == expected[i])
+            Swag.assert(actual[i] == expected[i])
 
         for i in actual.count
         {
@@ -100,7 +100,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
         Tga.decodeTga16RowReversed(source.buffer! + 1, actual.buffer! + 3, Pixels, alphaFromBit)
         for i in actual.count do
-            @assert(actual[i] == expected[i])
+            Swag.assert(actual[i] == expected[i])
     }
 
     actual.resize(3 + Pixels * 3 + 1)
@@ -121,7 +121,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     Tga.decodeTga15RowReversed(source.buffer! + 1, actual.buffer! + 3, Pixels)
     for i in actual.count do
-        @assert(actual[i] == expected[i])
+        Swag.assert(actual[i] == expected[i])
 }
 
 // Fill unaligned packed rows across every SIMD tail width without touching sentinels.
@@ -157,7 +157,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
             else do
                 PackedPixel.fillBgra32Row(source.buffer! + 1, actual.buffer! + 3, pixelCount)
             for i in actual.count do
-                @assert(actual[i] == expected[i])
+                Swag.assert(actual[i] == expected[i])
         }
     }
 }
@@ -197,7 +197,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
             else do
                 PackedPixel.reverseBgra32Row(source.buffer! + 1, actual.buffer! + 3, pixelCount)
             for i in actual.count do
-                @assert(actual[i] == expected[i])
+                Swag.assert(actual[i] == expected[i])
         }
     }
 }
@@ -223,7 +223,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
         if mismatch < Candidates do
             candidates[1 + mismatch * 4 + 2] ^= 0xFF
-        @assert(PackedPixel.countSame32(pixel.buffer! + 1, candidates.buffer! + 1, Candidates) == mismatch)
+        Swag.assert(PackedPixel.countSame32(pixel.buffer! + 1, candidates.buffer! + 1, Candidates) == mismatch)
     }
 }
 
@@ -239,7 +239,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         cb.addNative(cast(u16) ((i * 1907 + 123) & 0x7FFF))
 
     let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
-    @assert(img.width == Width and img.height == Height and img.pixelFormat == .BGR8)
+    Swag.assert(img.width == Width and img.height == Height and img.pixelFormat == .BGR8)
     for i in cast(u64) Width * Height
     {
         let sourceY = i / Width
@@ -247,9 +247,9 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         let targetY = Height - sourceY - 1
         let offset  = (targetY * Width + x) * 3
         let value   = cast(u32) ((i * 1907 + 123) & 0x7FFF)
-        @assert(img.pixels.buffer![offset] == Tga.expand5(value & 31))
-        @assert(img.pixels.buffer![offset + 1] == Tga.expand5((value >> 5) & 31))
-        @assert(img.pixels.buffer![offset + 2] == Tga.expand5((value >> 10) & 31))
+        Swag.assert(img.pixels.buffer![offset] == Tga.expand5(value & 31))
+        Swag.assert(img.pixels.buffer![offset + 1] == Tga.expand5((value >> 5) & 31))
+        Swag.assert(img.pixels.buffer![offset + 2] == Tga.expand5((value >> 10) & 31))
     }
 }
 
@@ -265,7 +265,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
             cb.addNative(cast(u16) ((i * 1907 + 123) & 0x7FFF))
 
         let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
-        @assert(img.width == Width and img.height == Height and img.pixelFormat == .BGR8)
+        Swag.assert(img.width == Width and img.height == Height and img.pixelFormat == .BGR8)
         for i in cast(u64) Width * Height
         {
             let sourceY = i / Width
@@ -274,9 +274,9 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
             let targetX = Width - sourceX - 1
             let offset  = (targetY * Width + targetX) * 3
             let value   = cast(u32) ((i * 1907 + 123) & 0x7FFF)
-            @assert(img.pixels.buffer![offset] == Tga.expand5(value & 31))
-            @assert(img.pixels.buffer![offset + 1] == Tga.expand5((value >> 5) & 31))
-            @assert(img.pixels.buffer![offset + 2] == Tga.expand5((value >> 10) & 31))
+            Swag.assert(img.pixels.buffer![offset] == Tga.expand5(value & 31))
+            Swag.assert(img.pixels.buffer![offset + 1] == Tga.expand5((value >> 5) & 31))
+            Swag.assert(img.pixels.buffer![offset + 2] == Tga.expand5((value >> 10) & 31))
         }
     }
 
@@ -287,7 +287,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
             cb.addNative(cast(u16) (i * 1907 + 123))
 
         let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
-        @assert(img.width == Width and img.height == Height and img.pixelFormat == .BGRA8)
+        Swag.assert(img.width == Width and img.height == Height and img.pixelFormat == .BGRA8)
         for i in cast(u64) Width * Height
         {
             let sourceY = i / Width
@@ -296,10 +296,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
             let targetX = Width - sourceX - 1
             let offset  = (targetY * Width + targetX) * 4
             let value   = cast(u32) ((i * 1907 + 123) & 0xFFFF)
-            @assert(img.pixels.buffer![offset] == Tga.expand5(value & 31))
-            @assert(img.pixels.buffer![offset + 1] == Tga.expand5((value >> 5) & 31))
-            @assert(img.pixels.buffer![offset + 2] == Tga.expand5((value >> 10) & 31))
-            @assert(img.pixels.buffer![offset + 3] == (value & 0x8000 ? 255'u8 : 0'u8))
+            Swag.assert(img.pixels.buffer![offset] == Tga.expand5(value & 31))
+            Swag.assert(img.pixels.buffer![offset + 1] == Tga.expand5((value >> 5) & 31))
+            Swag.assert(img.pixels.buffer![offset + 2] == Tga.expand5((value >> 10) & 31))
+            Swag.assert(img.pixels.buffer![offset + 3] == (value & 0x8000 ? 255'u8 : 0'u8))
         }
     }
 }
@@ -323,8 +323,8 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
             }
 
             let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
-            @assert(img.width == Width and img.height == Height)
-            @assert(img.pixelFormat == (bpp == 24 ? .BGR8 : .BGRA8))
+            Swag.assert(img.width == Width and img.height == Height)
+            Swag.assert(img.pixelFormat == (bpp == 24 ? .BGR8 : .BGRA8))
             for pixel in cast(u64) Width * Height
             {
                 let sourceY = pixel / Width
@@ -333,7 +333,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
                 let targetX = rightMode ? Width - sourceX - 1 : sourceX
                 let offset  = (targetY * Width + targetX) * bytesPerPixel
                 for channel in bytesPerPixel do
-                    @assert(img.pixels.buffer![offset + channel] == cast(u8) ((pixel * 29 + channel * 71 + 13) & 0xFF))
+                    Swag.assert(img.pixels.buffer![offset + channel] == cast(u8) ((pixel * 29 + channel * 71 + 13) & 0xFF))
             }
         }
     }
@@ -342,8 +342,8 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 // Decoder and encoder registries recognise TGA files.
 #test
 {
-    @assert(Image.canLoad("in.tga"))
-    @assert(Image.canSave("out.tga"))
+    Swag.assert(Image.canLoad("in.tga"))
+    Swag.assert(Image.canSave("out.tga"))
 }
 
 // Decode a raw 2x2 24-bit TGA with the default bottom-left origin.
@@ -368,68 +368,68 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width == 2)
-    @assert(img.height == 2)
-    @assert(img.pixelFormat == .BGR8)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[9] == 100'u8)
-    @assert(img.pixels.buffer[10] == 110'u8)
-    @assert(img.pixels.buffer[11] == 120'u8)
+    Swag.assert(img.width == 2)
+    Swag.assert(img.height == 2)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 10'u8)
+    Swag.assert(img.pixels.buffer[1] == 20'u8)
+    Swag.assert(img.pixels.buffer[2] == 30'u8)
+    Swag.assert(img.pixels.buffer[9] == 100'u8)
+    Swag.assert(img.pixels.buffer[10] == 110'u8)
+    Swag.assert(img.pixels.buffer[11] == 120'u8)
 }
 
 // Load larger RGB/RGBA fixtures copied from the historical pixel test data.
 #test
 {
     let rgb = expect Image.load(getTestDataPath("rgb.tga"))
-    @assert(rgb.isValid())
-    @assert(rgb.width == 660)
-    @assert(rgb.height == 441)
-    @assert(rgb.pixelFormat == .BGR8)
-    @assert(rgb.pixels.count == 873180)
-    @assert(rgb.pixels.buffer != null)
-    @assert(rgb.pixels.buffer[0] == 201'u8)
-    @assert(rgb.pixels.buffer[1] == 205'u8)
-    @assert(rgb.pixels.buffer[2] == 194'u8)
+    Swag.assert(rgb.isValid())
+    Swag.assert(rgb.width == 660)
+    Swag.assert(rgb.height == 441)
+    Swag.assert(rgb.pixelFormat == .BGR8)
+    Swag.assert(rgb.pixels.count == 873180)
+    Swag.assert(rgb.pixels.buffer != null)
+    Swag.assert(rgb.pixels.buffer[0] == 201'u8)
+    Swag.assert(rgb.pixels.buffer[1] == 205'u8)
+    Swag.assert(rgb.pixels.buffer[2] == 194'u8)
 
     let rgba = expect Image.load(getTestDataPath("rgba.tga"))
-    @assert(rgba.isValid())
-    @assert(rgba.width == 660)
-    @assert(rgba.height == 441)
-    @assert(rgba.pixelFormat == .BGRA8)
-    @assert(rgba.pixels.count == 1164240)
-    @assert(rgba.pixels.buffer != null)
-    @assert(rgba.pixels.buffer[0] == 201'u8)
-    @assert(rgba.pixels.buffer[1] == 205'u8)
-    @assert(rgba.pixels.buffer[2] == 194'u8)
-    @assert(rgba.pixels.buffer[3] == 255'u8)
+    Swag.assert(rgba.isValid())
+    Swag.assert(rgba.width == 660)
+    Swag.assert(rgba.height == 441)
+    Swag.assert(rgba.pixelFormat == .BGRA8)
+    Swag.assert(rgba.pixels.count == 1164240)
+    Swag.assert(rgba.pixels.buffer != null)
+    Swag.assert(rgba.pixels.buffer[0] == 201'u8)
+    Swag.assert(rgba.pixels.buffer[1] == 205'u8)
+    Swag.assert(rgba.pixels.buffer[2] == 194'u8)
+    Swag.assert(rgba.pixels.buffer[3] == 255'u8)
 }
 
 // Load RLE RGB/RGBA fixtures copied from the historical pixel test data.
 #test
 {
     let rle24 = expect Image.load(getTestDataPath("rle24.tga"))
-    @assert(rle24.isValid())
-    @assert(rle24.width == 660)
-    @assert(rle24.height == 441)
-    @assert(rle24.pixelFormat == .BGR8)
-    @assert(rle24.pixels.buffer != null)
-    @assert(rle24.pixels.buffer[0] == 201'u8)
-    @assert(rle24.pixels.buffer[1] == 205'u8)
-    @assert(rle24.pixels.buffer[2] == 194'u8)
+    Swag.assert(rle24.isValid())
+    Swag.assert(rle24.width == 660)
+    Swag.assert(rle24.height == 441)
+    Swag.assert(rle24.pixelFormat == .BGR8)
+    Swag.assert(rle24.pixels.buffer != null)
+    Swag.assert(rle24.pixels.buffer[0] == 201'u8)
+    Swag.assert(rle24.pixels.buffer[1] == 205'u8)
+    Swag.assert(rle24.pixels.buffer[2] == 194'u8)
 
     let rle32 = expect Image.load(getTestDataPath("rle32.tga"))
-    @assert(rle32.isValid())
-    @assert(rle32.width == 660)
-    @assert(rle32.height == 441)
-    @assert(rle32.pixelFormat == .BGRA8)
-    @assert(rle32.pixels.buffer != null)
-    @assert(rle32.pixels.buffer[0] == 201'u8)
-    @assert(rle32.pixels.buffer[1] == 205'u8)
-    @assert(rle32.pixels.buffer[2] == 194'u8)
-    @assert(rle32.pixels.buffer[3] == 255'u8)
+    Swag.assert(rle32.isValid())
+    Swag.assert(rle32.width == 660)
+    Swag.assert(rle32.height == 441)
+    Swag.assert(rle32.pixelFormat == .BGRA8)
+    Swag.assert(rle32.pixels.buffer != null)
+    Swag.assert(rle32.pixels.buffer[0] == 201'u8)
+    Swag.assert(rle32.pixels.buffer[1] == 205'u8)
+    Swag.assert(rle32.pixels.buffer[2] == 194'u8)
+    Swag.assert(rle32.pixels.buffer[3] == 255'u8)
 }
 
 // Decode skips the optional image ID field before pixel data.
@@ -454,10 +454,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 8'u8)
-    @assert(img.pixels.buffer[1] == 9'u8)
-    @assert(img.pixels.buffer[2] == 10'u8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 8'u8)
+    Swag.assert(img.pixels.buffer[1] == 9'u8)
+    Swag.assert(img.pixels.buffer[2] == 10'u8)
 }
 
 // Decode a top-origin TGA into the module's bottom-up image buffer.
@@ -482,13 +482,13 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 7'u8)
-    @assert(img.pixels.buffer[1] == 8'u8)
-    @assert(img.pixels.buffer[2] == 9'u8)
-    @assert(img.pixels.buffer[6] == 1'u8)
-    @assert(img.pixels.buffer[7] == 2'u8)
-    @assert(img.pixels.buffer[8] == 3'u8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 7'u8)
+    Swag.assert(img.pixels.buffer[1] == 8'u8)
+    Swag.assert(img.pixels.buffer[2] == 9'u8)
+    Swag.assert(img.pixels.buffer[6] == 1'u8)
+    Swag.assert(img.pixels.buffer[7] == 2'u8)
+    Swag.assert(img.pixels.buffer[8] == 3'u8)
 }
 
 // Decode a right-origin TGA by reversing pixels within the row.
@@ -507,13 +507,13 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 4'u8)
-    @assert(img.pixels.buffer[1] == 5'u8)
-    @assert(img.pixels.buffer[2] == 6'u8)
-    @assert(img.pixels.buffer[3] == 1'u8)
-    @assert(img.pixels.buffer[4] == 2'u8)
-    @assert(img.pixels.buffer[5] == 3'u8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 4'u8)
+    Swag.assert(img.pixels.buffer[1] == 5'u8)
+    Swag.assert(img.pixels.buffer[2] == 6'u8)
+    Swag.assert(img.pixels.buffer[3] == 1'u8)
+    Swag.assert(img.pixels.buffer[4] == 2'u8)
+    Swag.assert(img.pixels.buffer[5] == 3'u8)
 }
 
 // Decode 16-bit true-color TGA pixels as BGRA8.
@@ -528,16 +528,16 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixelFormat == .BGRA8)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 0'u8)
-    @assert(img.pixels.buffer[1] == 0'u8)
-    @assert(img.pixels.buffer[2] == 255'u8)
-    @assert(img.pixels.buffer[3] == 255'u8)
-    @assert(img.pixels.buffer[4] == 0'u8)
-    @assert(img.pixels.buffer[5] == 255'u8)
-    @assert(img.pixels.buffer[6] == 0'u8)
-    @assert(img.pixels.buffer[7] == 0'u8)
+    Swag.assert(img.pixelFormat == .BGRA8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 0'u8)
+    Swag.assert(img.pixels.buffer[1] == 0'u8)
+    Swag.assert(img.pixels.buffer[2] == 255'u8)
+    Swag.assert(img.pixels.buffer[3] == 255'u8)
+    Swag.assert(img.pixels.buffer[4] == 0'u8)
+    Swag.assert(img.pixels.buffer[5] == 255'u8)
+    Swag.assert(img.pixels.buffer[6] == 0'u8)
+    Swag.assert(img.pixels.buffer[7] == 0'u8)
 }
 
 // Decode 8-bit grayscale TGA as BGR8.
@@ -553,14 +553,14 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixelFormat == .BGR8)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 5'u8)
-    @assert(img.pixels.buffer[1] == 5'u8)
-    @assert(img.pixels.buffer[2] == 5'u8)
-    @assert(img.pixels.buffer[6] == 15'u8)
-    @assert(img.pixels.buffer[7] == 15'u8)
-    @assert(img.pixels.buffer[8] == 15'u8)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 5'u8)
+    Swag.assert(img.pixels.buffer[1] == 5'u8)
+    Swag.assert(img.pixels.buffer[2] == 5'u8)
+    Swag.assert(img.pixels.buffer[6] == 15'u8)
+    Swag.assert(img.pixels.buffer[7] == 15'u8)
+    Swag.assert(img.pixels.buffer[8] == 15'u8)
 }
 
 // Decode an 8-bit indexed TGA with a non-zero palette base index.
@@ -586,14 +586,14 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixelFormat == .BGR8)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[3] == 40'u8)
-    @assert(img.pixels.buffer[4] == 50'u8)
-    @assert(img.pixels.buffer[5] == 60'u8)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 10'u8)
+    Swag.assert(img.pixels.buffer[1] == 20'u8)
+    Swag.assert(img.pixels.buffer[2] == 30'u8)
+    Swag.assert(img.pixels.buffer[3] == 40'u8)
+    Swag.assert(img.pixels.buffer[4] == 50'u8)
+    Swag.assert(img.pixels.buffer[5] == 60'u8)
 }
 
 // Decode indexed TGA with 32-bit palette entries and preserve alpha.
@@ -619,12 +619,12 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixelFormat == .BGRA8)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 3'u8)
-    @assert(img.pixels.buffer[1] == 4'u8)
-    @assert(img.pixels.buffer[2] == 5'u8)
-    @assert(img.pixels.buffer[3] == 6'u8)
+    Swag.assert(img.pixelFormat == .BGRA8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 3'u8)
+    Swag.assert(img.pixels.buffer[1] == 4'u8)
+    Swag.assert(img.pixels.buffer[2] == 5'u8)
+    Swag.assert(img.pixels.buffer[3] == 6'u8)
 }
 
 // Decode RLE true-color packets.
@@ -641,11 +641,11 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 1'u8)
-    @assert(img.pixels.buffer[9] == 1'u8)
-    @assert(img.pixels.buffer[10] == 2'u8)
-    @assert(img.pixels.buffer[11] == 3'u8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 1'u8)
+    Swag.assert(img.pixels.buffer[9] == 1'u8)
+    Swag.assert(img.pixels.buffer[10] == 2'u8)
+    Swag.assert(img.pixels.buffer[11] == 3'u8)
 }
 
 // Decode mixed raw and repeated packets that cross rows in every origin mode.
@@ -700,7 +700,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
                 }
 
                 let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
-                @assert(img.pixelFormat == (bpp == 24 ? .BGR8 : .BGRA8))
+                Swag.assert(img.pixelFormat == (bpp == 24 ? .BGR8 : .BGRA8))
                 for pixel in Pixels
                 {
                     let sourceY = pixel / Width
@@ -709,7 +709,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
                     let targetX = rightMode ? Width - sourceX - 1 : sourceX
                     let offset  = (targetY * Width + targetX) * bytesPerPixel
                     for channel in bytesPerPixel do
-                        @assert(img.pixels.buffer![offset + channel] == expected[pixel * bytesPerPixel + channel])
+                        Swag.assert(img.pixels.buffer![offset + channel] == expected[pixel * bytesPerPixel + channel])
                 }
             }
         }
@@ -741,10 +741,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 1'u8)
-    @assert(img.pixels.buffer[3] == 4'u8)
-    @assert(img.pixels.buffer[6] == 7'u8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 1'u8)
+    Swag.assert(img.pixels.buffer[3] == 4'u8)
+    Swag.assert(img.pixels.buffer[6] == 7'u8)
 }
 
 // Decode RLE grayscale packets.
@@ -761,10 +761,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 9'u8)
-    @assert(img.pixels.buffer[3] == 10'u8)
-    @assert(img.pixels.buffer[6] == 11'u8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 9'u8)
+    Swag.assert(img.pixels.buffer[3] == 10'u8)
+    Swag.assert(img.pixels.buffer[6] == 11'u8)
 }
 
 // Decode metadata without allocating pixels.
@@ -777,10 +777,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     opts.decodePixels = false
 
     let img = expect Image.decode("meta.tga", nnBytes(cb.toSlice()), opts)
-    @assert(img.width == 2)
-    @assert(img.height == 2)
-    @assert(img.pixelFormat == .BGR8)
-    @assert(!img.isValid())
+    Swag.assert(img.width == 2)
+    Swag.assert(img.height == 2)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(!img.isValid())
 }
 
 // Error: RLE packet cannot exceed the destination image.
@@ -795,7 +795,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     var img: Image
     img = catch Image.decode("bad.tga", nnBytes(cb.toSlice()), {}) as err28
-    @assert(err28 != null)
+    Swag.assert(err28 != null)
 }
 
 // Error: color-mapped images require palette data.
@@ -807,7 +807,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     var img: Image
     img = catch Image.decode("bad.tga", nnBytes(cb.toSlice()), {}) as err29
-    @assert(err29 != null)
+    Swag.assert(err29 != null)
 }
 
 // Encode full SIMD blocks and tails from RGB/RGBA into TGA's BGR/BGRA order.
@@ -824,16 +824,16 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         let cb            = expect src.encode("memory.tga")
         let img           = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
         let bytesPerPixel = cast(u64) src.bytesPerPixel
-        @assert(@countof(cb) == #sizeof(TgaH) + src.pixels.count)
-        @assert(img.pixelFormat == (bytesPerPixel == 3 ? .BGR8 : .BGRA8))
+        Swag.assert(cb.count == #sizeof(TgaH) + src.pixels.count)
+        Swag.assert(img.pixelFormat == (bytesPerPixel == 3 ? .BGR8 : .BGRA8))
         for pixel in cast(u64) Width * Height
         {
             let offset = pixel * bytesPerPixel
-            @assert(img.pixels.buffer![offset] == src.pixels.buffer![offset + 2])
-            @assert(img.pixels.buffer![offset + 1] == src.pixels.buffer![offset + 1])
-            @assert(img.pixels.buffer![offset + 2] == src.pixels.buffer![offset])
+            Swag.assert(img.pixels.buffer![offset] == src.pixels.buffer![offset + 2])
+            Swag.assert(img.pixels.buffer![offset + 1] == src.pixels.buffer![offset + 1])
+            Swag.assert(img.pixels.buffer![offset + 2] == src.pixels.buffer![offset])
             if bytesPerPixel == 4 do
-                @assert(img.pixels.buffer![offset + 3] == src.pixels.buffer![offset + 3])
+                Swag.assert(img.pixels.buffer![offset + 3] == src.pixels.buffer![offset + 3])
         }
     }
 }
@@ -855,9 +855,9 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.tga")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 1'u8)
-    @assert(img.pixels.buffer[5] == 6'u8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 1'u8)
+    Swag.assert(img.pixels.buffer[5] == 6'u8)
 }
 
 // Encode RGB8 by swapping R/B into the on-disk BGR order.
@@ -874,11 +874,11 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.tga")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixelFormat == .BGR8)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 30'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 10'u8)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 30'u8)
+    Swag.assert(img.pixels.buffer[1] == 20'u8)
+    Swag.assert(img.pixels.buffer[2] == 10'u8)
 }
 
 // Encode RGBA8 with descriptor alpha bits and preserve alpha through round-trip.
@@ -896,20 +896,20 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.tga")
     cb.makeLinear()
     let bytes = nnBytes(cb.toSlice())
-    @assert(bytes != null)
-    let h = cast(const *TgaH) @dataof(bytes)
-    @assert(h.imageTypeCode == TGA_TYPE_RGB)
-    @assert(h.bitsPerPixel == 32'u8)
-    @assert(h.descriptorByte == 8'u8)
+    Swag.assert(bytes != null)
+    let h = cast(const *TgaH) bytes.buffer
+    Swag.assert(h.imageTypeCode == TGA_TYPE_RGB)
+    Swag.assert(h.bitsPerPixel == 32'u8)
+    Swag.assert(h.descriptorByte == 8'u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixelFormat == .BGRA8)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 3'u8)
-    @assert(img.pixels.buffer[1] == 2'u8)
-    @assert(img.pixels.buffer[2] == 1'u8)
-    @assert(img.pixels.buffer[3] == 4'u8)
+    Swag.assert(img.pixelFormat == .BGRA8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 3'u8)
+    Swag.assert(img.pixels.buffer[1] == 2'u8)
+    Swag.assert(img.pixels.buffer[2] == 1'u8)
+    Swag.assert(img.pixels.buffer[3] == 4'u8)
 }
 
 // Split uniform input at the 128-pixel RLE limit in every channel order.
@@ -927,14 +927,14 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         cb.makeLinear()
         let bytes         = nnBytes(cb.toSlice())
         let bytesPerPixel = cast(u64) src.bytesPerPixel
-        @assert(@countof(bytes) == #sizeof(TgaH) + 3 * (1 + bytesPerPixel))
-        @assert(bytes[#sizeof(TgaH)] == 0xFF)
-        @assert(bytes[#sizeof(TgaH) + 1 + bytesPerPixel] == 0xFF)
-        @assert(bytes[#sizeof(TgaH) + 2 + 2 * bytesPerPixel] == 0)
+        Swag.assert(bytes.count == #sizeof(TgaH) + 3 * (1 + bytesPerPixel))
+        Swag.assert(bytes[#sizeof(TgaH)] == 0xFF)
+        Swag.assert(bytes[#sizeof(TgaH) + 1 + bytesPerPixel] == 0xFF)
+        Swag.assert(bytes[#sizeof(TgaH) + 2 + 2 * bytesPerPixel] == 0)
 
         let img = expect Image.decode("memory.tga", bytes, {})
         for i in img.pixels.count do
-            @assert(img.pixels.buffer![i] == 73)
+            Swag.assert(img.pixels.buffer![i] == 73)
     }
 }
 
@@ -954,26 +954,26 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         cb.makeLinear()
         let bytes         = nnBytes(cb.toSlice())
         let bytesPerPixel = cast(u64) src.bytesPerPixel
-        @assert(bytes[#sizeof(TgaH)] == 0x7F)
-        @assert(bytes[#sizeof(TgaH) + 1 + 128 * bytesPerPixel] == 2)
+        Swag.assert(bytes[#sizeof(TgaH)] == 0x7F)
+        Swag.assert(bytes[#sizeof(TgaH) + 1 + 128 * bytesPerPixel] == 2)
 
         let img = expect Image.decode("memory.tga", bytes, {})
-        @assert(img.pixelFormat == (pixelFormat == .BGR8 or pixelFormat == .RGB8 ? .BGR8 : .BGRA8))
+        Swag.assert(img.pixelFormat == (pixelFormat == .BGR8 or pixelFormat == .RGB8 ? .BGR8 : .BGRA8))
         for pixel in cast(u64) Width
         {
             let offset = pixel * bytesPerPixel
             if pixelFormat == .BGR8 or pixelFormat == .BGRA8
             {
                 for channel in bytesPerPixel do
-                    @assert(img.pixels.buffer![offset + channel] == src.pixels.buffer![offset + channel])
+                    Swag.assert(img.pixels.buffer![offset + channel] == src.pixels.buffer![offset + channel])
             }
             else
             {
-                @assert(img.pixels.buffer![offset] == src.pixels.buffer![offset + 2])
-                @assert(img.pixels.buffer![offset + 1] == src.pixels.buffer![offset + 1])
-                @assert(img.pixels.buffer![offset + 2] == src.pixels.buffer![offset])
+                Swag.assert(img.pixels.buffer![offset] == src.pixels.buffer![offset + 2])
+                Swag.assert(img.pixels.buffer![offset + 1] == src.pixels.buffer![offset + 1])
+                Swag.assert(img.pixels.buffer![offset + 2] == src.pixels.buffer![offset])
                 if bytesPerPixel == 4 do
-                    @assert(img.pixels.buffer![offset + 3] == src.pixels.buffer![offset + 3])
+                    Swag.assert(img.pixels.buffer![offset + 3] == src.pixels.buffer![offset + 3])
             }
         }
     }
@@ -1006,13 +1006,13 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     let cb    = expect src.encode("memory.tga", options)
     let bytes = nnBytes(cb.toSlice())
-    @assert(bytes[2] == TGA_TYPE_RLE_RGB)
-    @assert(bytes[18] == 0x83'u8)
-    @assert(@countof(bytes) < 18 + src.pixels.count)
+    Swag.assert(bytes[2] == TGA_TYPE_RLE_RGB)
+    Swag.assert(bytes[18] == 0x83'u8)
+    Swag.assert(bytes.count < 18 + src.pixels.count)
 
     let img = expect Image.decode("encoded-rle.tga", bytes, {})
-    @assert(img.pixelFormat == .BGR8)
-    @assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
+    Swag.assert(img.pixelFormat == .BGR8)
+    Swag.assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
 }
 
 // RLE encoding preserves alpha while converting RGBA input to TGA's BGRA order.
@@ -1034,15 +1034,15 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     let cb    = expect src.encode("memory.tga", options)
     let bytes = nnBytes(cb.toSlice())
-    @assert(bytes[2] == TGA_TYPE_RLE_RGB)
-    @assert(bytes[16] == 32'u8)
-    @assert(bytes[17] == 8'u8)
+    Swag.assert(bytes[2] == TGA_TYPE_RLE_RGB)
+    Swag.assert(bytes[16] == 32'u8)
+    Swag.assert(bytes[17] == 8'u8)
 
     let img = expect Image.decode("encoded-rle-alpha.tga", bytes, {})
-    @assert(img.pixelFormat == .BGRA8)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 3'u8)
-    @assert(img.pixels.buffer[1] == 2'u8)
-    @assert(img.pixels.buffer[2] == 1'u8)
-    @assert(img.pixels.buffer[3] == 4'u8)
+    Swag.assert(img.pixelFormat == .BGRA8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 3'u8)
+    Swag.assert(img.pixels.buffer[1] == 2'u8)
+    Swag.assert(img.pixels.buffer[2] == 1'u8)
+    Swag.assert(img.pixels.buffer[3] == 4'u8)
 }

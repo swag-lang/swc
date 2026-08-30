@@ -130,7 +130,7 @@ impl HtmlLayout
     // two entries, which costs a little memory and never a wrong width.
     mtd measure(styleIndex: u32, text: string)->f32
     {
-        if !@countof(text) do
+        if !text.count do
             return 0
 
         // The key carries the face, the tracking and the device grid rather than the style
@@ -618,7 +618,7 @@ impl HtmlLayout
 
         var result: retval
         var left = value
-        for index in @countof(Values)
+        for index in Values.count
         {
             while left >= Values[index]
             {
@@ -694,7 +694,7 @@ private impl HtmlLayout
     #[Swag.Optimize(false)]
     func wordEnd(text: string, start: u64)->u64
     {
-        let length    = @countof(text)
+        let length    = text.count
         let directEnd = length > 7 ? length - 7 : 0
         var result    = start
         while result < directEnd
@@ -709,7 +709,7 @@ private impl HtmlLayout
 
         var tail: [16] u8
         let tailCount = length - result
-        @memcpy(&tail[0], @dataof(text) + result, tailCount)
+        Swag.memcpy(&tail[0], text.buffer + result, tailCount)
         for index in tailCount
         {
             if Latin1.isSpace(tail[index]) do
@@ -733,13 +733,13 @@ private impl HtmlLayout
         let keepSpaces = style.whiteSpace == .Pre or style.whiteSpace == .PreWrap
 
         var index = 0'u64
-        while index < @countof(text)
+        while index < text.count
         {
             let character = text[index]
             if character == '\n' or character == '\r'
             {
                 var eat = 1'u64
-                if character == '\r' and index + 1 < @countof(text) and text[index + 1] == '\n' do
+                if character == '\r' and index + 1 < text.count and text[index + 1] == '\n' do
                     eat = 2
                 if keepBreaks
                 {
@@ -768,7 +768,7 @@ private impl HtmlLayout
 
                 var end    = index
                 var spaces = 0'u32
-                while end < @countof(text) and (text[end] == ' ' or text[end] == '\t')
+                while end < text.count and (text[end] == ' ' or text[end] == '\t')
                 {
                     if text[end] == ' ' do
                         spaces += 1
@@ -1935,17 +1935,17 @@ private impl HtmlLayout
         let source: String = .boxes[box].items[index].text
         let styleIndex     = .boxes[box].items[index].style
         let text           = source.toString()
-        if @countof(text) < 2 do
+        if text.count < 2 do
             return false
 
         // The longest prefix that fits, keeping at least one character on each side.
         var fit  = 0'u64
         var scan = 0'u64
-        while scan < @countof(text)
+        while scan < text.count
         {
             let {?, eat} = Utf8.decodeRune(text[scan to])
             let next     = scan + eat
-            if next >= @countof(text) do
+            if next >= text.count do
                 break
             if .measure(styleIndex, text[0 until next]) > room do
                 break
@@ -2074,7 +2074,7 @@ private impl HtmlLayout
     mtd layoutFlexLine(box: u32, items: const [..] u32, bases: const [..] f32, contentX, lineTop, contentWidth, total, gap: f32, containing: HtmlContainingBlock)->f32
     {
         let style     = &.styles[.boxes[box].style]
-        let itemCount = @countof(items)
+        let itemCount = items.count
         let free      = contentWidth - total
 
         var sizes: Array'f32
@@ -2198,7 +2198,7 @@ private impl HtmlLayout
     mtd layoutFlexColumn(box: u32, items: const [..] u32, contentX, contentY, contentWidth, gap: f32, containing: HtmlContainingBlock)->f32
     {
         let style     = &.styles[.boxes[box].style]
-        let itemCount = @countof(items)
+        let itemCount = items.count
         var y         = contentY
         for index in itemCount
         {

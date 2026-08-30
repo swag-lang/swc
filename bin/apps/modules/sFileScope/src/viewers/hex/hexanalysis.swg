@@ -83,7 +83,7 @@ private impl HexStringScanner
         {
             if result.strings.count < HexAnalysisStringLimit
             {
-                var text = String.from(@mkstring(.preview.buffer, .preview.count))
+                var text = String.from(Swag.makeString(.preview.buffer, .preview.count))
                 if .units > .preview.count do
                     text += "..."
                 var entry = HexAnalysisString{offset: .start, length: .length, kind: kind}

@@ -37,12 +37,12 @@ func MergeOverlay(lhs, rhs: OverlayColor)->OverlayColor
     rhs.r = 70
     rhs.a = 80
 
-    @assert(ReadOverlayAlpha(lhs) == 40)
+    Swag.assert(ReadOverlayAlpha(lhs) == 40)
 
     let merged = MergeOverlay(lhs, rhs)
-    @assert(merged.b == 50)
-    @assert(merged.g == 20)
-    @assert(merged.r == 70)
-    @assert(merged.a == 40)
-    @assert(merged.argb == 0x28461432)
+    Swag.assert(merged.b == 50)
+    Swag.assert(merged.g == 20)
+    Swag.assert(merged.r == 70)
+    Swag.assert(merged.a == 40)
+    Swag.assert(merged.argb == 0x28461432)
 }

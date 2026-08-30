@@ -1,6 +1,6 @@
 #global private
-// This file asserts the RAW '@drop'/'@postcopy'/'@postmove'/'@init' mechanics,
-// including reading storage after '@drop': lifecycle safety (use-after-move check +
+// This file asserts the RAW 'Swag.drop'/'Swag.postCopy'/'Swag.postMove'/'Swag.init' mechanics,
+// including reading storage after 'Swag.drop': lifecycle safety (use-after-move check +
 // poisoning) is disabled for the whole file.
 #global #[Swag.Safety(.Lifecycle, false), Swag.Sanity(.Lifecycle, false)]
 
@@ -203,22 +203,22 @@ impl ReceiverLifecycleTracked
 
     mtd reset()
     {
-        @init(me, 1)
+        Swag.init(me, 1)
     }
 
     mtd touchPostCopy()
     {
-        @postcopy(me, 1)
+        Swag.postCopy(me, 1)
     }
 
     mtd touchPostMove()
     {
-        @postmove(me, 1)
+        Swag.postMove(me, 1)
     }
 
     mtd touchDrop()
     {
-        @drop(me, 1)
+        Swag.drop(me, 1)
     }
 }
 
@@ -227,9 +227,9 @@ func intrinsicSingleInfo()->IntrinsicInfo
     resetLifecycleHooks()
     var a = Tracked{1}
     var b = Tracked{2}
-    @postcopy(a)
-    @postmove(b)
-    @drop(a)
+    Swag.postCopy(a)
+    Swag.postMove(b)
+    Swag.drop(a)
     return {a.value, b.value, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
@@ -237,8 +237,8 @@ func intrinsicArrayWholeInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
     var arr: [2] Tracked = [Tracked{3}, Tracked{4}]
-    @postcopy(arr)
-    @drop(arr)
+    Swag.postCopy(arr)
+    Swag.drop(arr)
     return {arr[0].value, arr[1].value, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
@@ -247,8 +247,8 @@ func intrinsicArrayCountInfo()->IntrinsicInfo
     resetLifecycleHooks()
     var arr:   [3] Tracked = [Tracked{1}, Tracked{2}, Tracked{3}]
     var count: u64         = 2
-    @postmove(&arr[0], count)
-    @drop(&arr[0], count)
+    Swag.postMove(&arr[0], count)
+    Swag.drop(&arr[0], count)
     return {arr[0].value, arr[1].value, arr[2].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
@@ -258,9 +258,9 @@ func intrinsicEmbeddedInfo()->IntrinsicInfo
     var a = EmbeddedTracked{Tracked{1}}
     var b = EmbeddedTrackedWithOps{Tracked{2}}
     var c = EmbeddedTrackedArray{[Tracked{3}, Tracked{4}]}
-    @postcopy(a)
-    @postmove(b)
-    @drop(c)
+    Swag.postCopy(a)
+    Swag.postMove(b)
+    Swag.drop(c)
     return {a.inner.value, b.inner.value, c.inner[1].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
@@ -268,38 +268,38 @@ func intrinsicEmbeddedOuterCopyDropInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
     var a = EmbeddedTrackedWithOps{Tracked{7}}
-    @postcopy(a)
-    @drop(a)
+    Swag.postCopy(a)
+    Swag.drop(a)
     return {a.inner.value, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicInitInfo()->InitInfo
 {
     var x = 666
-    @init(x)
+    Swag.init(x)
 
     var y = 666'f32
-    @init(y)(3.14)
+    Swag.init(y)(3.14)
 
     var arr = [1, 2]
-    @init(&arr, 2)
+    Swag.init(&arr, 2)
     let arrDefaultTrace = arr[0] * 10 + arr[1]
 
-    @init(&arr, 2)(555)
+    Swag.init(&arr, 2)(555)
     let arrExplicitTrace = arr[0] * 1000 + arr[1]
 
     var rgb = InitRgb{10, 20, 30}
-    @init(rgb)
+    Swag.init(rgb)
     let rgbDefaultTrace = rgb.r * 100 + rgb.g * 10 + rgb.b
 
-    @init(rgb)(5, 6, 7)
+    Swag.init(rgb)(5, 6, 7)
     let rgbExplicitTrace = rgb.r * 100 + rgb.g * 10 + rgb.b
 
     var rgbArr: [4] InitRgb
-    @init(&rgbArr, 4)(5, 6, 7)
+    Swag.init(&rgbArr, 4)(5, 6, 7)
     let rgbArrayCountTrace = rgbArr[3].r * 100 + rgbArr[3].g * 10 + rgbArr[3].b
 
-    @init(rgbArr)(50, 60, 70)
+    Swag.init(rgbArr)(50, 60, 70)
     let rgbArrayWholeTrace = rgbArr[3].r * 10000 + rgbArr[3].g * 100 + rgbArr[3].b
 
     return {x, cast(s32) (y * 100), arrDefaultTrace, arrExplicitTrace, rgbDefaultTrace, rgbExplicitTrace, rgbArrayCountTrace, rgbArrayWholeTrace}
@@ -308,8 +308,8 @@ func intrinsicInitInfo()->InitInfo
 func intrinsicDropThenInitArrayInfo()->s32
 {
     var rgb: [4] InitRgb
-    @drop(&rgb, 4)
-    @init(&rgb, 4)(5, 6, 7)
+    Swag.drop(&rgb, 4)
+    Swag.init(&rgb, 4)(5, 6, 7)
     return rgb[3].r * 100 + rgb[3].g * 10 + rgb[3].b
 }
 

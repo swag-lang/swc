@@ -16,7 +16,7 @@ func sumAny(a: any, b: any)->s64
 {
     const c: any = 1's64
     let d = cast(s64) c
-    @assert(d == 1)
+    Swag.assert(d == 1)
 }
 
 #test
@@ -24,43 +24,43 @@ func sumAny(a: any, b: any)->s64
     const c: any = -123's32
     let d = cast(s32) c
     let e = cast(s64) c
-    @assert(d == -123)
-    @assert(e == -123)
+    Swag.assert(d == -123)
+    Swag.assert(e == -123)
 }
 
 #test
 {
     const c: any = 987654321's64
     let d: s64 = cast() c
-    @assert(d == 987654321)
+    Swag.assert(d == 987654321)
 }
 
 #test
 {
     const c: any = true
     let d = cast(bool) c
-    @assert(d)
+    Swag.assert(d)
 }
 
 #test
 {
     const c: any = 2.5'f64
     let d = cast(f64) c
-    @assert(d == 2.5'f64)
+    Swag.assert(d == 2.5'f64)
 }
 
 #test
 {
     const c: any = "run-any"
     let d = cast(string) c
-    @assert(d == "run-any")
+    Swag.assert(d == "run-any")
 }
 
 #test
 {
     const c: any = 333's64
     let d = anyToS64(c)
-    @assert(d == 333)
+    Swag.assert(d == 333)
 }
 
 #test
@@ -68,12 +68,12 @@ func sumAny(a: any, b: any)->s64
     var a: s64 = 100
     var b: s64 = 23
     let d      = sumAny(a, b)
-    @assert(d == 123)
+    Swag.assert(d == 123)
 }
 
 func s64Test(s: s64)
 {
-    @assert(s == 1)
+    Swag.assert(s == 1)
 }
 
 enum A { B = 1 }
@@ -81,23 +81,23 @@ enum A { B = 1 }
 {
     const c: any = A.B
     let d = cast(s64) c
-    @assert(d == 1)
+    Swag.assert(d == 1)
     s64Test(cast(s64) c)
 }
 
 #test
 {
     var a: any = 1.0
-    @assert(@kindof(a) == f32)
+    Swag.assert(Swag.kindOf(a) == f32)
     var b = cast(f32) a
-    @assert(b == 1.0'f32)
+    Swag.assert(b == 1.0'f32)
 }
 
 #test
 {
     var a: any = 1
-    @assert(@kindof(a) == s32)
+    Swag.assert(Swag.kindOf(a) == s32)
     var b = cast(s32) a
-    @assert(b == 1)
-// @print(b)
+    Swag.assert(b == 1)
+// Swag.print(b)
 }

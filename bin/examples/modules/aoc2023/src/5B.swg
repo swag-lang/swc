@@ -149,5 +149,5 @@ func day5B()
         total = Math.min(total, r.start)
 
     // Console.print("total: ", total)
-    @assert(total == 69323688)
+    Swag.assert(total == 69323688)
 }

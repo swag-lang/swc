@@ -106,7 +106,7 @@ impl Counted
     // instead of replacing it, so two 'Counted' values still compare as the storage they are.
     mtd const opEquals(other: #null string)->bool
     {
-        return .length == @countof(other)
+        return .length == other.count
     }
 }
 
@@ -145,13 +145,13 @@ struct PaddedHolder
 #[Swag.Optimize(false)]
 func viewText(buffer: const [*] u8)->string
 {
-    return cast(string) @mkslice(buffer, 3'u64)
+    return cast(string) Swag.makeSlice(buffer, 3'u64)
 }
 
 #[Swag.Optimize(false)]
 func viewBytes(buffer: const [*] u8)->const [..] u8
 {
-    return @mkslice(buffer, 3'u64)
+    return Swag.makeSlice(buffer, 3'u64)
 }
 
 #test
@@ -161,14 +161,14 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
 
     let leftText  = viewText(cast(const [*] u8) &left[0])
     let rightText = viewText(cast(const [*] u8) &right[0])
-    @assert(leftText == rightText)
+    Swag.assert(leftText == rightText)
 
     let a = StringHolder{text: leftText, tag: 7}
     let b = StringHolder{text: rightText, tag: 7}
     let c = StringHolder{text: rightText, tag: 8}
-    @assert(a == b)
-    @assert(!(a != b))
-    @assert(a != c)
+    Swag.assert(a == b)
+    Swag.assert(!(a != b))
+    Swag.assert(a != c)
 }
 
 #test
@@ -179,8 +179,8 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = NestedHolder{holder: {text: viewText(cast(const [*] u8) &left[0]), tag: 7}, extra: 3}
     let b = NestedHolder{holder: {text: viewText(cast(const [*] u8) &right[0]), tag: 7}, extra: 3}
     let c = NestedHolder{holder: {text: viewText(cast(const [*] u8) &right[0]), tag: 7}, extra: 4}
-    @assert(a == b)
-    @assert(a != c)
+    Swag.assert(a == b)
+    Swag.assert(a != c)
 }
 
 #test
@@ -191,8 +191,8 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = SliceHolder{data: viewBytes(cast(const [*] u8) &left[0]), tag: 1}
     let b = SliceHolder{data: viewBytes(cast(const [*] u8) &right[0]), tag: 1}
     let c = SliceHolder{data: viewBytes(cast(const [*] u8) &right[0]), tag: 2}
-    @assert(a == b)
-    @assert(a != c)
+    Swag.assert(a == b)
+    Swag.assert(a != c)
 }
 
 #test
@@ -201,8 +201,8 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = OverloadHolder{inner: {value: 1}, tag: 7}
     let b = OverloadHolder{inner: {value: 2}, tag: 7}
     let c = OverloadHolder{inner: {value: 2}, tag: 8}
-    @assert(a == b)
-    @assert(a != c)
+    Swag.assert(a == b)
+    Swag.assert(a != c)
 }
 
 #test
@@ -221,8 +221,8 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = LocalHolder'string{value: viewText(cast(const [*] u8) &left[0]), tag: 1}
     let b = LocalHolder'string{value: viewText(cast(const [*] u8) &right[0]), tag: 1}
     let c = LocalHolder'string{value: viewText(cast(const [*] u8) &right[0]), tag: 2}
-    @assert(a == b)
-    @assert(a != c)
+    Swag.assert(a == b)
+    Swag.assert(a != c)
 
     struct LocalPlainHolder
     {
@@ -232,7 +232,7 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
 
     let d = LocalPlainHolder{text: viewText(cast(const [*] u8) &left[0]), tag: 1}
     let e = LocalPlainHolder{text: viewText(cast(const [*] u8) &right[0]), tag: 1}
-    @assert(d == e)
+    Swag.assert(d == e)
 }
 
 #test
@@ -244,14 +244,14 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = GenericHolder'string{value: viewText(cast(const [*] u8) &left[0]), tag: 4}
     let b = GenericHolder'string{value: viewText(cast(const [*] u8) &right[0]), tag: 4}
     let c = GenericHolder'string{value: viewText(cast(const [*] u8) &right[0]), tag: 5}
-    @assert(a == b)
-    @assert(a != c)
+    Swag.assert(a == b)
+    Swag.assert(a != c)
 
     let d = GenericHolder's32{value: 5, tag: 4}
     let e = GenericHolder's32{value: 5, tag: 4}
     let f = GenericHolder's32{value: 6, tag: 4}
-    @assert(d == e)
-    @assert(d != f)
+    Swag.assert(d == e)
+    Swag.assert(d != f)
 }
 
 #test
@@ -260,8 +260,8 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = IgnoredStringHolder{text: "one", tag: 2}
     let b = IgnoredStringHolder{text: "two", tag: 2}
     let c = IgnoredStringHolder{text: "one", tag: 3}
-    @assert(a == b)
-    @assert(a != c)
+    Swag.assert(a == b)
+    Swag.assert(a != c)
 }
 
 #test
@@ -272,7 +272,7 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     // An explicit '#[Swag.Operators]' still owns the comparison.
     let a = ExplicitStringHolder{text: viewText(cast(const [*] u8) &left[0]), tag: 9}
     let b = ExplicitStringHolder{text: viewText(cast(const [*] u8) &right[0]), tag: 9}
-    @assert(a == b)
+    Swag.assert(a == b)
 }
 
 #test
@@ -282,8 +282,8 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = Embedder{base: {tag: 1}, extra: 5}
     let b = Embedder{base: {tag: 2}, extra: 5}
     let c = Embedder{base: {tag: 1}, extra: 6}
-    @assert(a == b)
-    @assert(a != c)
+    Swag.assert(a == b)
+    Swag.assert(a != c)
 }
 
 #test
@@ -293,8 +293,8 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = PlainEmbedder{base: {tag: 1}, extra: 5}
     let b = PlainEmbedder{base: {tag: 2}, extra: 5}
     let c = PlainEmbedder{base: {tag: 1}, extra: 6}
-    @assert(a == b)
-    @assert(a != c)
+    Swag.assert(a == b)
+    Swag.assert(a != c)
 }
 
 #test
@@ -307,15 +307,15 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = CountedHolder{counted: {length: 3}, text: viewText(cast(const [*] u8) &left[0])}
     let b = CountedHolder{counted: {length: 3}, text: viewText(cast(const [*] u8) &right[0])}
     let c = CountedHolder{counted: {length: 4}, text: viewText(cast(const [*] u8) &right[0])}
-    @assert(a == b)
-    @assert(a != c)
+    Swag.assert(a == b)
+    Swag.assert(a != c)
 
-    @assert(a.counted == b.counted)
-    @assert(a.counted != c.counted)
+    Swag.assert(a.counted == b.counted)
+    Swag.assert(a.counted != c.counted)
 
     // The foreign overload keeps answering what it was written for.
-    @assert(a.counted == "abc")
-    @assert(a.counted != "ab")
+    Swag.assert(a.counted == "abc")
+    Swag.assert(a.counted != "ab")
 }
 
 #test
@@ -326,10 +326,10 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     var b: OverlappedHolder = undefined
     a.text = "same"
     b.text = "same"
-    @assert(a == b)
+    Swag.assert(a == b)
 
     b.text = "other"
-    @assert(a != b)
+    Swag.assert(a != b)
 }
 
 #[Swag.Optimize(false)]
@@ -348,16 +348,16 @@ func eqPaddedArray(a, b: [3] Padded)->bool => a == b
     // a defaulted value zeroes its storage.
     var a: Padded = undefined
     var b: Padded = undefined
-    @memset(&a, 0xAA, #sizeof(Padded))
-    @memset(&b, 0x55, #sizeof(Padded))
+    Swag.memset(&a, 0xAA, #sizeof(Padded))
+    Swag.memset(&b, 0x55, #sizeof(Padded))
     a.small = 1
     a.wide  = 2
     b.small = 1
     b.wide  = 2
-    @assert(eqPadded(a, b))
+    Swag.assert(eqPadded(a, b))
 
     b.wide = 3
-    @assert(!eqPadded(a, b))
+    Swag.assert(!eqPadded(a, b))
 }
 
 #test
@@ -365,8 +365,8 @@ func eqPaddedArray(a, b: [3] Padded)->bool => a == b
     // The same holds through a nested member and through an array element.
     var a: PaddedHolder = undefined
     var b: PaddedHolder = undefined
-    @memset(&a, 0xAA, #sizeof(PaddedHolder))
-    @memset(&b, 0x55, #sizeof(PaddedHolder))
+    Swag.memset(&a, 0xAA, #sizeof(PaddedHolder))
+    Swag.memset(&b, 0x55, #sizeof(PaddedHolder))
     a.first.small  = 1
     a.first.wide   = 2
     a.second.small = 3
@@ -375,15 +375,15 @@ func eqPaddedArray(a, b: [3] Padded)->bool => a == b
     b.first.wide   = 2
     b.second.small = 3
     b.second.wide  = 4
-    @assert(eqPaddedHolder(a, b))
+    Swag.assert(eqPaddedHolder(a, b))
 
     b.second.wide = 5
-    @assert(!eqPaddedHolder(a, b))
+    Swag.assert(!eqPaddedHolder(a, b))
 
     var c: [3] Padded = undefined
     var d: [3] Padded = undefined
-    @memset(&c, 0xAA, #sizeof([3] Padded))
-    @memset(&d, 0x55, #sizeof([3] Padded))
+    Swag.memset(&c, 0xAA, #sizeof([3] Padded))
+    Swag.memset(&d, 0x55, #sizeof([3] Padded))
     for i in 3
     {
         c[i].small = 1
@@ -392,10 +392,10 @@ func eqPaddedArray(a, b: [3] Padded)->bool => a == b
         d[i].wide  = 2
     }
 
-    @assert(eqPaddedArray(c, d))
+    Swag.assert(eqPaddedArray(c, d))
 
     d[2].wide = 3
-    @assert(!eqPaddedArray(c, d))
+    Swag.assert(!eqPaddedArray(c, d))
 }
 
 #test
@@ -407,6 +407,6 @@ func eqPaddedArray(a, b: [3] Padded)->bool => a == b
     #assert(A == B)
 
     let c = PlainPair{x: 1, y: 3}
-    @assert(A == B)
-    @assert(A != c)
+    Swag.assert(A == B)
+    Swag.assert(A != c)
 }

@@ -45,8 +45,8 @@ func waitManyThreads(threads: [..] Threading.Thread)
     discard expect thread.start()
     thread.wait()
 
-    @assert(initPriority == THREAD_PRIORITY_ABOVE_NORMAL)
-    @assert(updatedPriority == THREAD_PRIORITY_HIGHEST)
+    Swag.assert(initPriority == THREAD_PRIORITY_ABOVE_NORMAL)
+    Swag.assert(updatedPriority == THREAD_PRIORITY_HIGHEST)
 }
 
 #test
@@ -73,5 +73,5 @@ func waitManyThreads(threads: [..] Threading.Thread)
     let completedAfterWait = Atomic.get(&doneCount)
     waitUntilDone(&doneCount)
 
-    @assert(completedAfterWait == WaitManyExpectedDoneCount)
+    Swag.assert(completedAfterWait == WaitManyExpectedDoneCount)
 }

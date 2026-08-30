@@ -15,8 +15,8 @@ func autocastTempArrayToSliceConsume(values: const [..] u16)->u16
     }
 
     let view: const [..] u16 = cb(false)
-    @assert(@countof(view) == 4)
-    @assert(view[0] == 50'u16)
-    @assert(view[3] == 80'u16)
-    @assert(autocastTempArrayToSliceConsume(cb(false)) == 130'u16)
+    Swag.assert(view.count == 4)
+    Swag.assert(view[0] == 50'u16)
+    Swag.assert(view[3] == 80'u16)
+    Swag.assert(autocastTempArrayToSliceConsume(cb(false)) == 130'u16)
 }

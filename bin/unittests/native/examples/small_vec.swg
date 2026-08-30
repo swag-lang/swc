@@ -68,7 +68,7 @@ impl SmallVec
 
     mtd const at(i: u64)->s32
     {
-        @assert(i < .count)
+        Swag.assert(i < .count)
         return .ptr![i]
     }
 
@@ -137,11 +137,11 @@ impl SmallVec
     v.push(20)
     v.push(30)
 
-    @assert(v.count == 3)
-    @assert(v.isInline())
-    @assert(v.at(0) == 10)
-    @assert(v.at(1) == 20)
-    @assert(v.at(2) == 30)
+    Swag.assert(v.count == 3)
+    Swag.assert(v.isInline())
+    Swag.assert(v.at(0) == 10)
+    Swag.assert(v.at(1) == 20)
+    Swag.assert(v.at(2) == 30)
 }
 
 // ---------------------------------------------------------------------------
@@ -156,11 +156,11 @@ impl SmallVec
     for i in 8'u64 do
         v.push(cast(s32) i * 7)
 
-    @assert(v.count == 8)
-    @assert(!v.isInline())
-    @assert(v.capacity >= 8)
-    @assert(v.at(0) == 0)
-    @assert(v.at(7) == 49)
+    Swag.assert(v.count == 8)
+    Swag.assert(!v.isInline())
+    Swag.assert(v.capacity >= 8)
+    Swag.assert(v.at(0) == 0)
+    Swag.assert(v.at(7) == 49)
 }
 
 // ---------------------------------------------------------------------------
@@ -179,16 +179,16 @@ impl SmallVec
     dst.init()
     dst = src
 
-    @assert(dst.count == 3)
-    @assert(dst.isInline())
-    @assert(dst.at(0) == 1)
-    @assert(dst.at(2) == 3)
+    Swag.assert(dst.count == 3)
+    Swag.assert(dst.isInline())
+    Swag.assert(dst.at(0) == 1)
+    Swag.assert(dst.at(2) == 3)
 
     // Mutate dst -- src must be unaffected.
     let dstPtr = dst.ptr!
     dstPtr[0] = 99
-    @assert(src.at(0) == 1)
-    @assert(dst.at(0) == 99)
+    Swag.assert(src.at(0) == 1)
+    Swag.assert(dst.at(0) == 99)
 }
 
 // ---------------------------------------------------------------------------
@@ -202,24 +202,24 @@ impl SmallVec
     for i in 6'u64 do
         src.push(cast(s32) i + 100)
 
-    @assert(!src.isInline())
+    Swag.assert(!src.isInline())
 
     var dst: SmallVec
     dst.init()
     dst = src
 
-    @assert(dst.count == 6)
-    @assert(!dst.isInline())
-    @assert(dst.ptr != src.ptr)
+    Swag.assert(dst.count == 6)
+    Swag.assert(!dst.isInline())
+    Swag.assert(dst.ptr != src.ptr)
 
-    @assert(dst.at(0) == 100)
-    @assert(dst.at(5) == 105)
+    Swag.assert(dst.at(0) == 100)
+    Swag.assert(dst.at(5) == 105)
 
     // Mutate dst -- src stays intact.
     let dstPtr = dst.ptr!
     dstPtr[0] = -1
-    @assert(src.at(0) == 100)
-    @assert(dst.at(0) == -1)
+    Swag.assert(src.at(0) == 100)
+    Swag.assert(dst.at(0) == -1)
 }
 
 // ---------------------------------------------------------------------------
@@ -233,22 +233,22 @@ impl SmallVec
     src.push(7)
     src.push(8)
 
-    @assert(src.isInline())
+    Swag.assert(src.isInline())
 
     var dst: SmallVec
     dst.init()
     dst = #move src
 
-    @assert(dst.count == 2)
-    @assert(dst.isInline())
-    @assert(dst.at(0) == 7)
-    @assert(dst.at(1) == 8)
+    Swag.assert(dst.count == 2)
+    Swag.assert(dst.isInline())
+    Swag.assert(dst.at(0) == 7)
+    Swag.assert(dst.at(1) == 8)
 
     // Reuse the moved-from source.
     src.init()
     src.push(42)
-    @assert(src.count == 1)
-    @assert(src.at(0) == 42)
+    Swag.assert(src.count == 1)
+    Swag.assert(src.at(0) == 42)
 }
 
 // ---------------------------------------------------------------------------
@@ -262,17 +262,17 @@ impl SmallVec
     for i in 6'u64 do
         src.push(cast(s32) i)
 
-    @assert(!src.isInline())
+    Swag.assert(!src.isInline())
     let heapPtr = src.ptr
 
     var dst: SmallVec
     dst.init()
     dst = #move src
 
-    @assert(dst.count == 6)
-    @assert(!dst.isInline())
-    @assert(dst.ptr == heapPtr)
-    @assert(dst.at(5) == 5)
+    Swag.assert(dst.count == 6)
+    Swag.assert(!dst.isInline())
+    Swag.assert(dst.ptr == heapPtr)
+    Swag.assert(dst.at(5) == 5)
 }
 
 // ---------------------------------------------------------------------------
@@ -288,7 +288,7 @@ impl SmallVec
     a.push(3)
     a.push(4)
 
-    @assert(a.isInline())
+    Swag.assert(a.isInline())
 
     // Copy a -> b  (inline opPostCopy)
     var b: SmallVec
@@ -298,36 +298,36 @@ impl SmallVec
     // Push b past inline cap -> heap
     b.push(5)
     b.push(6)
-    @assert(!b.isInline())
+    Swag.assert(!b.isInline())
 
     // Copy b -> c  (heap opPostCopy)
     var c: SmallVec
     c.init()
     c = b
 
-    @assert(c.count == 6)
-    @assert(c.ptr != b.ptr)
-    @assert(c.at(0) == 1)
-    @assert(c.at(5) == 6)
+    Swag.assert(c.count == 6)
+    Swag.assert(c.ptr != b.ptr)
+    Swag.assert(c.at(0) == 1)
+    Swag.assert(c.at(5) == 6)
 
     // Move c -> d  (heap opPostMove)
     var d: SmallVec
     d.init()
     d = #move c
 
-    @assert(d.count == 6)
-    @assert(!d.isInline())
-    @assert(d.at(3) == 4)
+    Swag.assert(d.count == 6)
+    Swag.assert(!d.isInline())
+    Swag.assert(d.at(3) == 4)
 
     // Move a -> e  (inline opPostMove)
     var e: SmallVec
     e.init()
     e = #move a
 
-    @assert(e.count == 4)
-    @assert(e.isInline())
-    @assert(e.at(0) == 1)
-    @assert(e.at(3) == 4)
+    Swag.assert(e.count == 4)
+    Swag.assert(e.isInline())
+    Swag.assert(e.at(0) == 1)
+    Swag.assert(e.at(3) == 4)
 
 // All variables drop at end-of-scope: d frees heap, e frees nothing (inline).
 }
@@ -347,21 +347,21 @@ impl SmallVec
     dst.init()
     dst = src
 
-    @assert(dst.isInline())
+    Swag.assert(dst.isInline())
 
     // Grow dst past inline cap.
     dst.push(30)
     dst.push(40)
     dst.push(50)
-    @assert(!dst.isInline())
-    @assert(dst.count == 5)
+    Swag.assert(!dst.isInline())
+    Swag.assert(dst.count == 5)
 
     // src still inline and untouched.
-    @assert(src.isInline())
-    @assert(src.count == 2)
-    @assert(src.at(0) == 10)
+    Swag.assert(src.isInline())
+    Swag.assert(src.count == 2)
+    Swag.assert(src.at(0) == 10)
 
-    @assert(dst.at(4) == 50)
+    Swag.assert(dst.at(4) == 50)
 }
 
 // ---------------------------------------------------------------------------
@@ -376,20 +376,20 @@ impl SmallVec
     var cpy: SmallVec
     cpy.init()
     cpy = empty
-    @assert(cpy.count == 0)
-    @assert(cpy.isInline())
+    Swag.assert(cpy.count == 0)
+    Swag.assert(cpy.isInline())
 
     var moved: SmallVec
     moved.init()
     moved = #move empty
-    @assert(moved.count == 0)
-    @assert(moved.isInline())
+    Swag.assert(moved.count == 0)
+    Swag.assert(moved.isInline())
 
     // Populate the moved-from variable, then copy it.
     empty.init()
     empty.push(77)
     cpy = empty
-    @assert(cpy.at(0) == 77)
+    Swag.assert(cpy.at(0) == 77)
 }
 
 // ---------------------------------------------------------------------------
@@ -402,7 +402,7 @@ impl SmallVec
     dst.init()
     for i in 6'u64 do
         dst.push(cast(s32) i)
-    @assert(!dst.isInline())
+    Swag.assert(!dst.isInline())
 
     // Copy a small vec into dst. The old heap buffer must be freed (opDrop)
     // before the new inline data is post-copied in.
@@ -412,9 +412,9 @@ impl SmallVec
 
     dst = src
 
-    @assert(dst.count == 1)
-    @assert(dst.isInline())
-    @assert(dst.at(0) == 99)
+    Swag.assert(dst.count == 1)
+    Swag.assert(dst.isInline())
+    Swag.assert(dst.at(0) == 99)
 }
 
 // ---------------------------------------------------------------------------
@@ -427,7 +427,7 @@ impl SmallVec
     dst.init()
     for i in 8'u64 do
         dst.push(cast(s32) i * 3)
-    @assert(!dst.isInline())
+    Swag.assert(!dst.isInline())
 
     var src: SmallVec
     src.init()
@@ -436,10 +436,10 @@ impl SmallVec
 
     dst = #move src
 
-    @assert(dst.count == 2)
-    @assert(dst.isInline())
-    @assert(dst.at(0) == 42)
-    @assert(dst.at(1) == 43)
+    Swag.assert(dst.count == 2)
+    Swag.assert(dst.isInline())
+    Swag.assert(dst.at(0) == 42)
+    Swag.assert(dst.at(1) == 43)
 }
 
 // ---------------------------------------------------------------------------
@@ -463,8 +463,8 @@ struct Pair
     for i in 6'u64 do
         p.right.push(cast(s32) i)
 
-    @assert(p.left.isInline())
-    @assert(!p.right.isInline())
+    Swag.assert(p.left.isInline())
+    Swag.assert(!p.right.isInline())
 
     // Copy the whole pair -- both SmallVecs get opPostCopy'd.
     var q: Pair
@@ -472,11 +472,11 @@ struct Pair
     q.right.init()
     q = p
 
-    @assert(q.left.count == 2)
-    @assert(q.right.count == 6)
-    @assert(q.right.ptr != p.right.ptr)
-    @assert(q.left.at(0) == 1)
-    @assert(q.right.at(5) == 5)
+    Swag.assert(q.left.count == 2)
+    Swag.assert(q.right.count == 6)
+    Swag.assert(q.right.ptr != p.right.ptr)
+    Swag.assert(q.left.at(0) == 1)
+    Swag.assert(q.right.at(5) == 5)
 
     // Move the pair -- both SmallVecs get opPostMove'd.
     var r: Pair
@@ -484,8 +484,8 @@ struct Pair
     r.right.init()
     r = #move p
 
-    @assert(r.left.count == 2)
-    @assert(r.right.count == 6)
-    @assert(r.left.at(1) == 2)
-    @assert(r.right.at(0) == 0)
+    Swag.assert(r.left.count == 2)
+    Swag.assert(r.right.count == 6)
+    Swag.assert(r.left.at(1) == 2)
+    Swag.assert(r.right.at(0) == 0)
 }

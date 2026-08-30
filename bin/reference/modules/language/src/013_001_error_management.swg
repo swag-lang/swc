@@ -17,7 +17,7 @@ func count(name: #null string)->u64 fail
 {
     if name == null do
         fail MyError{base: Swag.BaseError{"name cannot be null"}, code: 7}
-    return @countof(name)
+    return name.count
 }
 
 /**
@@ -31,12 +31,12 @@ capture in a given scope needs its own name.
 #test
 {
     let value = catch count(null) as err
-    @assert(value == 0)
-    @assert(err != null)
+    Swag.assert(value == 0)
+    Swag.assert(err != null)
 
     let e = cast(MyError) err
-    @assert(e.code == 7)
-    @assert(e.message == "name cannot be null")
+    Swag.assert(e.code == 7)
+    Swag.assert(e.message == "name cannot be null")
 }
 
 /**
@@ -57,14 +57,14 @@ func recordTrace(name: #null string, out: *s32) fail
 
     catch recordTrace("swag", &seen) else do
         seen = -2
-    @assert(seen == 4)     // success: the handler does not run
+    Swag.assert(seen == 4)     // success: the handler does not run
 
     catch recordTrace(null, &seen) else
     {
         seen = -2
     }
 
-    @assert(seen == -2)     // failure: the handler ran instead
+    Swag.assert(seen == -2)     // failure: the handler ran instead
 }
 
 /**
@@ -81,8 +81,8 @@ func safeCount(name: #null string)->u64
 
 #test
 {
-    @assert(safeCount("hello") == 5)
-    @assert(safeCount(null) == 0)
+    Swag.assert(safeCount("hello") == 5)
+    Swag.assert(safeCount(null) == 0)
 }
 
 /**
@@ -98,16 +98,16 @@ func propagateCount(name: #null string)->u64 fail
 #test
 {
     let value = catch propagateCount("abc") as err
-    @assert(value == 3)
-    @assert(err == null)
+    Swag.assert(value == 3)
+    Swag.assert(err == null)
 }
 
 #test
 {
     let value = catch propagateCount(null) as err
-    @assert(value == 0)
-    @assert(err != null)
-    @assert((cast(MyError) err).code == 7)
+    Swag.assert(value == 0)
+    Swag.assert(err != null)
+    Swag.assert((cast(MyError) err).code == 7)
 }
 
 /**
@@ -123,9 +123,9 @@ func implicitTryCount(name: #null string)->u64 fail
 #test
 {
     let value = catch implicitTryCount(null) as err
-    @assert(value == 0)
-    @assert(err != null)
-    @assert((cast(MyError) err).code == 7)
+    Swag.assert(value == 0)
+    Swag.assert(err != null)
+    Swag.assert((cast(MyError) err).code == 7)
 }
 
 /**
@@ -173,16 +173,16 @@ func blockCatchElse(name: #null string)->u64
 #test
 {
     let value = catch blockTry("ab", null) as err
-    @assert(value == 0)
-    @assert(err != null)
-    @assert((cast(MyError) err).code == 7)
+    Swag.assert(value == 0)
+    Swag.assert(err != null)
+    Swag.assert((cast(MyError) err).code == 7)
 }
 
 #test
 {
-    @assert(blockCatchCode() == 7)
-    @assert(blockCatchElse("abcd") == 4)
-    @assert(blockCatchElse(null) == 99)
+    Swag.assert(blockCatchCode() == 7)
+    Swag.assert(blockCatchElse("abcd") == 4)
+    Swag.assert(blockCatchElse(null) == 99)
 }
 
 /**
@@ -193,13 +193,13 @@ success path concise when failure is not expected.
 #test
 {
     let value = try count("swag")
-    @assert(value == 4)
+    Swag.assert(value == 4)
 }
 
 #test
 {
     let value = expect count("swag")
-    @assert(value == 4)
+    Swag.assert(value == 4)
 }
 
 /**
@@ -219,7 +219,7 @@ func deferOnFail(name: #null string)->u64 fail
 {
     DeferTrace = 0
     let value = catch deferOnFail(null) as err
-    @assert(value == 0)
-    @assert(err != null)
-    @assert(DeferTrace == 1)
+    Swag.assert(value == 0)
+    Swag.assert(err != null)
+    Swag.assert(DeferTrace == 1)
 }

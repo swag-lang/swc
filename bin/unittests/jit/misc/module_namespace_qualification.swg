@@ -9,6 +9,6 @@ namespace Helpers
 
 #test
 {
-    @assert(Jit.moduleValue() == 41)
-    @assert(Jit.Helpers.viaModule() == 42)
+    Swag.assert(Jit.moduleValue() == 41)
+    Swag.assert(Jit.Helpers.viaModule() == 42)
 }

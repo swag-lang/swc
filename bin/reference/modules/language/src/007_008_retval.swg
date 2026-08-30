@@ -16,7 +16,7 @@ especially when working with complex or generic return types.
         return result
     }
 
-    @assert(toto() == 10)
+    Swag.assert(toto() == 10)
 }
 
 /**
@@ -47,9 +47,9 @@ step, or when the return type has no name you could write.
     }
 
     let {r, g, b} = getWhite()
-    @assert(r == 0.5)
-    @assert(g == 0.1)
-    @assert(b == 1.0)
+    Swag.assert(r == 0.5)
+    Swag.assert(g == 0.1)
+    Swag.assert(b == 1.0)
 }
 
 /**
@@ -68,7 +68,7 @@ initialization or copying, resulting in faster, more memory-efficient code.
     }
 
     var arr = toto()
-    @assert(arr[0] == 0)
-    @assert(arr[100] == 100)
-    @assert(arr[254] == 254)
+    Swag.assert(arr[0] == 0)
+    Swag.assert(arr[100] == 100)
+    Swag.assert(arr[254] == 254)
 }

@@ -9,5 +9,5 @@ func semaTest001()
     let widenedInfo: #null typeinfo = inlineNullableTypeInfo(info)
 
     #assert(#typeof(widenedInfo) == #null typeinfo)
-    @assert(widenedInfo == s32)
+    Swag.assert(widenedInfo == s32)
 }

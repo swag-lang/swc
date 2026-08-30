@@ -14,7 +14,7 @@ func unreachableSafetyEnabled()->bool
 
 #test
 {
-    const cfg      = #run @compiler.getBuildCfg()![]
+    const cfg      = #run Swag.compiler().getBuildCfg()![]
     const expected = cfg.safetyGuards & Swag.SafetyWhat.Unreachable ? true : false
     #assert(#safety(Swag.SafetyWhat.Unreachable) == expected)
 }
@@ -41,7 +41,7 @@ func unreachableSafetyEnabled()->bool
     }
 
     const value = #run hitUnreachable()
-    @assert(value == 0)
+    Swag.assert(value == 0)
 }
 
 #test
@@ -54,7 +54,7 @@ func unreachableSafetyEnabled()->bool
     }
 
     const value = #run ignoreUnreachable()
-    @assert(value == 42)
+    Swag.assert(value == 42)
 }
 
 // Unreachable in a conditional branch
@@ -89,5 +89,5 @@ func unreachableSafetyEnabled()->bool
     }
 
     const value = #run unreachableNotReached(-1)
-    @assert(value == 42)
+    Swag.assert(value == 42)
 }

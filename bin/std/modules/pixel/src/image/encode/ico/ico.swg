@@ -44,9 +44,9 @@ public func encodeAll(images: const [..] Image)->ConcatBuffer fail
 
 private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
 {
-    if @countof(images) == 0 do
+    if images.count == 0 do
         fail InvalidFormatError{"an icon needs at least one image"}
-    if @countof(images) > 0xFFFF do
+    if images.count > 0xFFFF do
         fail UnsupportedFormatError{"an icon holds at most 65535 images"}
 
     for &image in images
@@ -61,11 +61,11 @@ private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
     var dir: IconDir
     dir.reserved = 0
     dir.type     = 1
-    dir.count    = cast(u16) @countof(images)
+    dir.count    = cast(u16) images.count
     result.addStruct(dir)
 
     // Every entry points at its own DIB, so the offsets are known before any pixel is written.
-    var offset = cast(u32) (#sizeof(IconDir) + @countof(images) * #sizeof(IconDirEntry))
+    var offset = cast(u32) (#sizeof(IconDir) + images.count * #sizeof(IconDirEntry))
     for &image in images
     {
         let dibBytes = dibSizeOf(image)
@@ -131,7 +131,7 @@ private func appendDib(result: *ConcatBuffer, image: Image)
         switch image.pixelFormat
         {
         case .BGRA8:
-            result.addBytes(@mkslice(psrc, xorStride))
+            result.addBytes(Swag.makeSlice(psrc, xorStride))
 
         case .BGR8:
             for width

@@ -50,13 +50,13 @@ private func store64(data: [*] u8, value: u64)
 private func mix(state: *[16] u64, a, b, c, d: u64, x, y: u64)
 {
     state[][a] += state[][b] + x
-    state[][d] = @ror(state[][d] ^ state[][a], 32'u8)
+    state[][d] = Swag.ror(state[][d] ^ state[][a], 32'u8)
     state[][c] += state[][d]
-    state[][b] = @ror(state[][b] ^ state[][c], 24'u8)
+    state[][b] = Swag.ror(state[][b] ^ state[][c], 24'u8)
     state[][a] += state[][b] + y
-    state[][d] = @ror(state[][d] ^ state[][a], 16'u8)
+    state[][d] = Swag.ror(state[][d] ^ state[][a], 16'u8)
     state[][c] += state[][d]
-    state[][b] = @ror(state[][b] ^ state[][c], 63'u8)
+    state[][b] = Swag.ror(state[][b] ^ state[][c], 63'u8)
 }
 
 // Computes a BLAKE2b digest incrementally, in unkeyed or keyed mode.
@@ -112,20 +112,20 @@ public impl Blake2b
     {
         if !digestSize or digestSize > Blake2bMaxDigestSize do
             fail Errors.BadParameterError{"BLAKE2b needs a digest length of 1 to 64 bytes"}
-        if @countof(key) > Blake2bMaxKeySize do
+        if key.count > Blake2bMaxKeySize do
             fail Errors.BadParameterError{"BLAKE2b accepts a key of at most 64 bytes"}
 
         .clear()
         .state      = Iv
         .digestSize = digestSize
-        .state[0]   ^= 0x0101_0000 ^ (@countof(key) << 8) ^ digestSize
+        .state[0]   ^= 0x0101_0000 ^ (key.count << 8) ^ digestSize
 
         // The key becomes one full padded block, so an empty key and a key of
         // zero bytes of payload can never collide.
-        if @countof(key)
+        if key.count
         {
             var keyBlock: [Blake2bBlockSize] u8
-            @memcpy(&keyBlock[0], @dataof(key), @countof(key))
+            Swag.memcpy(&keyBlock[0], key.buffer, key.count)
             .update(keyBlock)
             Crypto.secureClear(keyBlock)
         }
@@ -135,7 +135,7 @@ public impl Blake2b
     mtd update(data: const [..] u8)
     {
         var offset = 0'u64
-        while offset < @countof(data)
+        while offset < data.count
         {
             // A full buffer is only compressed once more input is known to
             // follow, because the last block takes the finalization flag.
@@ -145,8 +145,8 @@ public impl Blake2b
                 .bufferCount = 0
             }
 
-            let count = Math.min(@countof(data) - offset, Blake2bBlockSize - .bufferCount)
-            @memcpy(&.buffer[.bufferCount], @dataof(data) + offset, count)
+            let count = Math.min(data.count - offset, Blake2bBlockSize - .bufferCount)
+            Swag.memcpy(&.buffer[.bufferCount], data.buffer + offset, count)
             .bufferCount += count
             offset       += count
         }
@@ -158,16 +158,16 @@ public impl Blake2b
     // with. Call [[Core.Hash.Blake2b.reset]] before reusing this value.
     mtd finalize(destination: [..] u8) fail
     {
-        if @countof(destination) != .digestSize do
+        if destination.count != .digestSize do
             fail Errors.BadParameterError{"BLAKE2b needs a destination of the declared digest length"}
 
-        @memset(&.buffer[.bufferCount], 0, Blake2bBlockSize - .bufferCount)
+        Swag.memset(&.buffer[.bufferCount], 0, Blake2bBlockSize - .bufferCount)
         .compress(true)
 
         var words: [Blake2bMaxDigestSize] u8
         for i in 8 do
             store64(&words[i * 8], .state[i])
-        @memcpy(@dataof(destination), &words[0], .digestSize)
+        Swag.memcpy(destination.buffer, &words[0], .digestSize)
         Crypto.secureClear(words)
         .clear()
     }
@@ -191,20 +191,20 @@ public impl Blake2b
 
     // Computes an unkeyed BLAKE2b digest of `data` in one operation.
     //
-    // The digest length is `@countof(destination)`, from 1 to 64 bytes.
+    // The digest length is `destination.count`, from 1 to 64 bytes.
     func compute(data: const [..] u8, destination: [..] u8) fail
     {
-        var hash = try Blake2b.create(@countof(destination))
+        var hash = try Blake2b.create(destination.count)
         hash.update(data)
         try hash.finalize(destination)
     }
 
     // Computes a keyed BLAKE2b digest of `data` in one operation.
     //
-    // The digest length is `@countof(destination)`, from 1 to 64 bytes.
+    // The digest length is `destination.count`, from 1 to 64 bytes.
     func computeKeyed(key, data: const [..] u8, destination: [..] u8) fail
     {
-        var hash = try Blake2b.createKeyed(key, @countof(destination))
+        var hash = try Blake2b.createKeyed(key, destination.count)
         hash.update(data)
         try hash.finalize(destination)
     }

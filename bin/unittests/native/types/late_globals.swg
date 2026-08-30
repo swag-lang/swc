@@ -3,7 +3,7 @@
 // 'Swag.Late' also qualifies a GLOBAL variable: its zero (null) storage is the 'unset'
 // sentinel, its exposed type is non-null, and every read is guarded (a runtime null
 // panic when still unset). No static cross-function proof is possible, so the guard
-// always runs. '@isset' tests the storage without reading the value.
+// always runs. 'Swag.isSet' tests the storage without reading the value.
 
 struct LateGlobalItem
 {
@@ -19,20 +19,20 @@ var g_lateGlobalName: string
 // Full life: unset, assigned, read (guarded), written through.
 func lateGlobalLifecycle()->bool
 {
-    if @isset(g_lateGlobalItem) or @isset(g_lateGlobalName) do
+    if Swag.isSet(g_lateGlobalItem) or Swag.isSet(g_lateGlobalName) do
         return false
 
     g_lateGlobalStorage.value = 7
     g_lateGlobalItem          = &g_lateGlobalStorage
     g_lateGlobalName          = "hello"
 
-    if !@isset(g_lateGlobalItem) or !@isset(g_lateGlobalName) do
+    if !Swag.isSet(g_lateGlobalItem) or !Swag.isSet(g_lateGlobalName) do
         return false
 
     let p: *LateGlobalItem = g_lateGlobalItem
     if p.value != 7 do
         return false
-    if @countof(g_lateGlobalName) != 5 do
+    if g_lateGlobalName.count != 5 do
         return false
 
     g_lateGlobalItem.value = 8
@@ -49,7 +49,7 @@ func lateGlobalAddressOf()->bool
     g_lateGlobalAddrStorage.value = 3
     let slot = &g_lateGlobalAddr
     slot[] = &g_lateGlobalAddrStorage
-    return @isset(g_lateGlobalAddr) and g_lateGlobalAddr.value == 3
+    return Swag.isSet(g_lateGlobalAddr) and g_lateGlobalAddr.value == 3
 }
 
 // A 'Swag.Late' global read auto-inlined through an accessor stays guarded and non-null.
@@ -68,7 +68,7 @@ func lateGlobalThroughAccessor()->bool
 
 #test
 {
-    @assert(lateGlobalLifecycle())
-    @assert(lateGlobalAddressOf())
-    @assert(lateGlobalThroughAccessor())
+    Swag.assert(lateGlobalLifecycle())
+    Swag.assert(lateGlobalAddressOf())
+    Swag.assert(lateGlobalThroughAccessor())
 }

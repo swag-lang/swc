@@ -204,7 +204,7 @@ impl Dialog
     #[Swag.Discardable]
     mtd addButton(str: string, id: WndId, isDefault: bool = false)->*PushButton
     {
-        Debug.assert(@countof(str) != 0, "dialog button text cannot be empty")
+        Debug.assert(str.count != 0, "dialog button text cannot be empty")
         if isDefault
         {
             for button in .buttons where button.form == .Default do

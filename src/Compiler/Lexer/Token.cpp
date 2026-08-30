@@ -69,6 +69,31 @@ std::string_view Token::toFamily(TokenId id)
     return "token";
 }
 
+std::string_view Token::intrinsicName(const TokenId id)
+{
+    if (!isIntrinsic(id) || isCompiler(id))
+        return {};
+
+    std::string_view name = toName(id);
+    constexpr auto   prefix = std::string_view{"Swag."};
+    if (!name.starts_with(prefix))
+        return {};
+    name.remove_prefix(prefix.size());
+    return name;
+}
+
+TokenId Token::intrinsicFromName(const std::string_view name)
+{
+    for (uint32_t i = 0; i < static_cast<uint32_t>(TokenId::Count); ++i)
+    {
+        const auto id = static_cast<TokenId>(i);
+        if (intrinsicName(id) == name)
+            return id;
+    }
+
+    return TokenId::Invalid;
+}
+
 TokenId Token::toRelated(TokenId id)
 {
     switch (id)

@@ -127,7 +127,7 @@ using Swag
     {
         var result = 0'u64
         for type in types do
-            result = @max(result, cast(u64) type.sizeof)
+            result = Swag.max(result, cast(u64) type.sizeof)
         return result
     }
 
@@ -148,7 +148,7 @@ using Swag
 
         if !canCopy(type)
         {
-            @panic("Reflection.assign cannot copy this type", #curlocation)
+            Swag.panic("Reflection.assign cannot copy this type", #curlocation)
             return
         }
 
@@ -165,7 +165,7 @@ using Swag
     {
         if !destination or !type
         {
-            @panic("Reflection.reset cannot reset a null type", #curlocation)
+            Swag.panic("Reflection.reset cannot reset a null type", #curlocation)
             return
         }
 
@@ -173,7 +173,7 @@ using Swag
         let nnType = type
         if !Memory.canDefaultInit(nnType)
         {
-            @panic("Reflection.reset cannot default-initialize this type", #curlocation)
+            Swag.panic("Reflection.reset cannot default-initialize this type", #curlocation)
             return
         }
 
@@ -372,7 +372,7 @@ func inferInterfaceImplementation(itf: typeinfo, fieldCrcs: const [..] u32)->#nu
     registerTypeGraphNoLock(#typeof(f64))
     registerTypeGraphNoLock(#typeof(rune))
 
-    for m in @pinfos.modules
+    for m in Swag.processInfos().modules
     {
         for t in m.types
         {

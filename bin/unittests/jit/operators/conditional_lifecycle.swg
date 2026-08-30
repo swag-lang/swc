@@ -71,15 +71,15 @@ func makeTracked(v: s32)->Tracked
         var source = makeTracked(1)
         {
             let picked = g_pick ? makeTracked(2) : source
-            @assert(picked.value == 11)
-            @assert(source.value == 1)
-            @assert(PostCopyCount == 1)
+            Swag.assert(picked.value == 11)
+            Swag.assert(source.value == 1)
+            Swag.assert(PostCopyCount == 1)
         }
-        @assert(source.value == 1)
-        @assert(DropCount == 1)
+        Swag.assert(source.value == 1)
+        Swag.assert(DropCount == 1)
     }
-    @assert(DropCount == 2)
-    @assert(DropTrace == 1101)
+    Swag.assert(DropCount == 2)
+    Swag.assert(DropTrace == 1101)
 }
 
 // Selecting the temporary arm copies it the same way; the untouched lvalue arm keeps
@@ -92,14 +92,14 @@ func makeTracked(v: s32)->Tracked
         var source = makeTracked(1)
         {
             let picked = g_pick ? makeTracked(2) : source
-            @assert(picked.value == 12)
-            @assert(source.value == 1)
-            @assert(PostCopyCount == 1)
+            Swag.assert(picked.value == 12)
+            Swag.assert(source.value == 1)
+            Swag.assert(PostCopyCount == 1)
         }
-        @assert(DropCount == 1)
+        Swag.assert(DropCount == 1)
     }
-    @assert(DropCount == 2)
-    @assert(DropTrace == 1201)
+    Swag.assert(DropCount == 2)
+    Swag.assert(DropTrace == 1201)
 }
 
 // Two lvalue arms: whichever wins is copied, the loser is not touched.
@@ -112,14 +112,14 @@ func makeTracked(v: s32)->Tracked
         var right = makeTracked(4)
         {
             let picked = g_pick ? left : right
-            @assert(picked.value == 14)
-            @assert(PostCopyCount == 1)
+            Swag.assert(picked.value == 14)
+            Swag.assert(PostCopyCount == 1)
         }
-        @assert(left.value == 3)
-        @assert(right.value == 4)
-        @assert(DropCount == 1)
+        Swag.assert(left.value == 3)
+        Swag.assert(right.value == 4)
+        Swag.assert(DropCount == 1)
     }
-    @assert(DropCount == 3)
+    Swag.assert(DropCount == 3)
 }
 
 // 'var' binds the same way as 'let'.
@@ -131,13 +131,13 @@ func makeTracked(v: s32)->Tracked
         var source = makeTracked(6)
         {
             var picked = g_pick ? makeTracked(7) : source
-            @assert(picked.value == 16)
+            Swag.assert(picked.value == 16)
             picked.value = 8
         }
-        @assert(source.value == 6)
-        @assert(PostCopyCount == 1)
-        @assert(DropCount == 1)
-        @assert(DropTrace == 8)
+        Swag.assert(source.value == 6)
+        Swag.assert(PostCopyCount == 1)
+        Swag.assert(DropCount == 1)
+        Swag.assert(DropTrace == 8)
     }
-    @assert(DropCount == 2)
+    Swag.assert(DropCount == 2)
 }

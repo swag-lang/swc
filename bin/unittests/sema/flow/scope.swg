@@ -40,7 +40,7 @@ func semaTest004()
     {
         #scope(Grouped)
         {
-            if @index == 3 do
+            if Swag.index == 3 do
                 continue
             break
         }
@@ -54,7 +54,7 @@ func semaTest005()
     {
         #scope(Grouped)
         {
-            switch @index
+            switch Swag.index
             {
             case 0:
                 break

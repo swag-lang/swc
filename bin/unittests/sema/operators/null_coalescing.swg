@@ -18,7 +18,7 @@ const F         = E orelse "f"
     let missing:  #null any = null
     let fallback: any       = true
     let resolved            = missing orelse fallback
-    @assert(@kindof(resolved) == bool)
+    Swag.assert(Swag.kindOf(resolved) == bool)
 }
 
 const S0: #null const [..] u8 = null
@@ -39,24 +39,24 @@ func semaTest002()
 {
     var p: #null *s32
     var v: s32 = 10
-    @assert((p orelse &v) == &v)
+    Swag.assert((p orelse &v) == &v)
     p = &v
-    @assert(nullCoalescingNullFallback(p) == &v)
+    Swag.assert(nullCoalescingNullFallback(p) == &v)
 }
 
 func semaTest003()
 {
     var s: #null string
-    @assert((s orelse "fallback") == "fallback")
+    Swag.assert((s orelse "fallback") == "fallback")
     s = "ok"
-    @assert((s orelse "fallback") == "ok")
+    Swag.assert((s orelse "fallback") == "ok")
 }
 
 // Substituting a zero is a different question, and the ternary answers it.
 func semaTest004()
 {
     var a: s32
-    @assert((a != 0 ? a : 11) == 11)
+    Swag.assert((a != 0 ? a : 11) == 11)
     a = 5
-    @assert((a != 0 ? a : 11) == 5)
+    Swag.assert((a != 0 ? a : 11) == 5)
 }

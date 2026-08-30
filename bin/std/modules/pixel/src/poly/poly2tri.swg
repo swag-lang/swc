@@ -689,7 +689,7 @@ impl Tessellate
             if .freeNodes.count
             {
                 let p = .freeNodes.popBack()
-                @init(p, 1)
+                Swag.init(p, 1)
                 return p
             }
 
@@ -705,8 +705,8 @@ impl Tessellate
     // Clear content
     public mtd clear()
     {
-        @init(&.basin, 1)
-        @init(&.edgeEvent, 1)
+        Swag.init(&.basin, 1)
+        Swag.init(&.edgeEvent, 1)
         .polyStart = 0
 
         if .head do
@@ -790,7 +790,7 @@ impl Tessellate
         {
             for pt, i in polyline
             {
-                let nexti = (i + 1) % @countof(polyline)
+                let nexti = (i + 1) % polyline.count
                 let edge  = newEdge()
                 edge.set(pt, polyline[nexti])
                 .edges.add(edge)

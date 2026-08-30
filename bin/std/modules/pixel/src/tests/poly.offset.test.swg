@@ -17,12 +17,12 @@ func assertOffsetCleanPreservesPathIdentity()
 
     paths.flatten(.Normal)
     paths.offset(2)
-    @assert(paths.paths.count == 2)
+    Swag.assert(paths.paths.count == 2)
 
-    @assert(paths.paths[0].serial == 10)
-    @assert(paths.paths[1].serial == 20)
-    @assert(paths.paths[0].polygon.points.count != 0)
-    @assert(paths.paths[1].polygon.points.count != 0)
+    Swag.assert(paths.paths[0].serial == 10)
+    Swag.assert(paths.paths[1].serial == 20)
+    Swag.assert(paths.paths[0].polygon.points.count != 0)
+    Swag.assert(paths.paths[1].polygon.points.count != 0)
 }
 
 #test

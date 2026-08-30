@@ -187,7 +187,7 @@ impl Mat4
 func compileShader(stage: GLenum, source: string)->GLuint
 {
     let id  = glCreateShader(stage)
-    var ptr = @dataof(source)
+    var ptr = source.buffer
     glShaderSource(id, 1, &ptr, null)
     glCompileShader(id)
 
@@ -221,9 +221,9 @@ func createProgram()
     glDeleteShader(vertexShaderID)
     glDeleteShader(fragmentShaderID)
 
-    g_LocMVP      = glGetUniformLocation(g_ProgramID, @dataof("uMVP"))
-    g_LocModel    = glGetUniformLocation(g_ProgramID, @dataof("uModel"))
-    g_LocLightDir = glGetUniformLocation(g_ProgramID, @dataof("uLightDir"))
+    g_LocMVP      = glGetUniformLocation(g_ProgramID, ("uMVP").buffer)
+    g_LocModel    = glGetUniformLocation(g_ProgramID, ("uModel").buffer)
+    g_LocLightDir = glGetUniformLocation(g_ProgramID, ("uLightDir").buffer)
 }
 
 func display()
@@ -266,7 +266,7 @@ func display()
     glEnableVertexAttribArray(2)
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, Stride, offset)
 
-    glDrawElements(GL_TRIANGLES, @countof(Indices), GL_UNSIGNED_INT, null)
+    glDrawElements(GL_TRIANGLES, Indices.count, GL_UNSIGNED_INT, null)
 
     glDisableVertexAttribArray(0)
     glDisableVertexAttribArray(1)
@@ -292,11 +292,11 @@ func onResize(_window: *Env.Window, width, height: s32)
 
     glGenBuffers(1, &g_VertexBuffer)
     glBindBuffer(GL_ARRAY_BUFFER, g_VertexBuffer)
-    glBufferData(GL_ARRAY_BUFFER, #sizeof(Vertices), @dataof(Vertices), GL_STATIC_DRAW)
+    glBufferData(GL_ARRAY_BUFFER, #sizeof(Vertices), Vertices.buffer, GL_STATIC_DRAW)
 
     glGenBuffers(1, &g_IndexBuffer)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_IndexBuffer)
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, #sizeof(Indices), @dataof(Indices), GL_STATIC_DRAW)
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, #sizeof(Indices), Indices.buffer, GL_STATIC_DRAW)
 
     createProgram()
 

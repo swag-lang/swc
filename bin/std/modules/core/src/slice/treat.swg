@@ -5,7 +5,7 @@
 #[Swag.Inline]
 func(T) forEachMutable(values: [..] T, action: func||(*T))
 {
-    for i in @countof(values) do
+    for i in values.count do
         action(&values[i])
 }
 
@@ -24,11 +24,11 @@ func(T, R) map(values: const [..] T, transform: func||(T)->R)->Array'R
 // The first reduced value is the first element of the slice.
 func(T) reduce(values: const [..] T, combine: func||(T, T)->T)->T
 {
-    Debug.assert(@countof(values) > 0, "cannot reduce an empty slice")
+    Debug.assert(values.count > 0, "cannot reduce an empty slice")
     var result = values[0]
-    if @countof(values) == 1 do
+    if values.count == 1 do
         return result
-    for i in 1 to @countof(values) - 1 do
+    for i in 1 to values.count - 1 do
         result = combine(result, values[i])
     return result
 }
@@ -36,13 +36,13 @@ func(T) reduce(values: const [..] T, combine: func||(T, T)->T)->T
 // Get the minimum value of a slice, and the corresponding value index.
 func(T) min(values: const [..] T)->{ value: T, index: u64 }
 {
-    Debug.assert(@countof(values) > 0, "cannot get the minimum of an empty slice")
+    Debug.assert(values.count > 0, "cannot get the minimum of an empty slice")
     var result: retval
     result.value = values[0]
-    if @countof(values) == 1 do
+    if values.count == 1 do
         return result
 
-    for i in 1 to @countof(values) - 1
+    for i in 1 to values.count - 1
     {
         if values[i] < result.value
         {
@@ -57,13 +57,13 @@ func(T) min(values: const [..] T)->{ value: T, index: u64 }
 // Get the maximum value of a slice, and the corresponding value index.
 func(T) max(values: const [..] T)->{ value: T, index: u64 }
 {
-    Debug.assert(@countof(values) > 0, "cannot get the maximum of an empty slice")
+    Debug.assert(values.count > 0, "cannot get the maximum of an empty slice")
     var result: retval
     result.value = values[0]
-    if @countof(values) == 1 do
+    if values.count == 1 do
         return result
 
-    for i in 1 to @countof(values) - 1
+    for i in 1 to values.count - 1
     {
         if values[i] > result.value
         {
@@ -114,11 +114,11 @@ func(T) noneOf(values: const [..] T, predicate: func||(T)->bool)->bool
 // Reverse the content of a slice
 func(T) reverse(values: [..] T)
 {
-    if @countof(values) <= 1 do
+    if values.count <= 1 do
         return
     var i = 0'u64
-    var j = @countof(values) - 1
-    let d = @dataof(values)
+    var j = values.count - 1
+    let d = values.buffer
     while i < j
     {
         swap(d + i, d + j)
@@ -132,7 +132,7 @@ func(T) reverse(values: [..] T)
 // To obtain all permutations, the slice must be sorted the first time.
 func(T) nextPermutation(values: [..] T)->bool
 {
-    let count = @countof(values)
+    let count = values.count
     if count < 2 do
         return false
 

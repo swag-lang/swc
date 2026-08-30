@@ -17,8 +17,8 @@ func getSecond()->u8
 
 #test
 {
-    #assert(#typeof(SelfBytes) == [@countof(SelfBytes)] u8)
-    #assert(@countof(SelfBytes) > 16)
+    #assert(#typeof(SelfBytes) == [SelfBytes.count] u8)
+    #assert(SelfBytes.count > 16)
     #assert(SelfBytes[0] == '#'u8)
     #assert(SelfBytes[1] == 'g'u8)
 }

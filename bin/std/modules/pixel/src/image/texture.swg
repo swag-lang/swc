@@ -46,7 +46,7 @@ impl Texture
     // Invalidates the descriptor without releasing a renderer resource.
     internal mtd clear()
     {
-        @init(me, 1)
+        Swag.init(me, 1)
     }
 
     // Describes the resource a renderer just created.

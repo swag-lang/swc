@@ -110,8 +110,8 @@ impl IPropertyNotify for PropHeadlessRoData
     prop.addStruct(data)
 
     // 1 implicit section item + 3 fields.
-    @assert(prop.items.count == 4)
-    @assert(prop.items[0]!.flags.has(.Section))
+    Swag.assert(prop.items.count == 4)
+    Swag.assert(prop.items[0]!.flags.has(.Section))
 }
 
 // Public configuration methods keep their observable state synchronized, and clear makes the
@@ -128,19 +128,19 @@ impl IPropertyNotify for PropHeadlessRoData
     prop.setRevertButtonsVisible(false)
     prop.addStruct(data)
 
-    @assert(prop.editorWidth == 280)
-    @assert(prop.usingFieldsLast)
-    @assert(!prop.revertButtonsVisible)
-    @assert(prop.items.count == 4)
+    Swag.assert(prop.editorWidth == 280)
+    Swag.assert(prop.usingFieldsLast)
+    Swag.assert(!prop.revertButtonsVisible)
+    Swag.assert(prop.items.count == 4)
 
     prop.focusNavigation()
-    @assert(prop.selItem != null)
+    Swag.assert(prop.selItem != null)
     prop.setFilter("no matching property")
-    @assert(!prop.items[1]!.line.isVisible())
+    Swag.assert(!prop.items[1]!.line.isVisible())
 
     prop.clear()
-    @assert(prop.items.count == 0)
-    @assert(!prop.selItem)
+    Swag.assert(prop.items.count == 0)
+    Swag.assert(!prop.selItem)
 }
 
 // A field kept for persistence can opt out of a generated editor without leaving its structure.
@@ -153,9 +153,9 @@ impl IPropertyNotify for PropHeadlessRoData
     let prop = Properties.create(&host.root, {0, 0, 240, 160})
     prop.addStruct(data)
 
-    @assert(prop.items.count == 2)
-    @assert(prop.items[1]!.typeValue.name == #nameof(PropHeadlessHiddenData.visible))
-    @assert(data.persistedOnly == 2)
+    Swag.assert(prop.items.count == 2)
+    Swag.assert(prop.items[1]!.typeValue.name == #nameof(PropHeadlessHiddenData.visible))
+    Swag.assert(data.persistedOnly == 2)
 }
 
 // PropertiesCtrl keeps visible grid rows after the same staged layout sequence
@@ -184,18 +184,18 @@ impl IPropertyNotify for PropHeadlessRoData
 
     page.applyLayout()
 
-    @assert(ctrl.position == Math.Rectangle{0, 0, 560, 666})
-    @assert(ctrl.splitter.position.width > 0)
-    @assert(ctrl.splitter.position.height > 0)
-    @assert(ctrl.properties.position.width > 0)
-    @assert(ctrl.properties.position.height > 0)
-    @assert(ctrl.properties.edView.position.width > 0)
-    @assert(ctrl.properties.edView.position.height > 0)
-    @assert(ctrl.properties.items.count == 6)
-    @assert(ctrl.properties.items[0]!.line.isVisible())
-    @assert(ctrl.properties.items[1]!.line.isVisible())
-    @assert(ctrl.properties.items[1]!.line.position.height == ctrl.properties.gridLineHeight)
-    @assert(ctrl.properties.items[1]!.line.position.y >= ctrl.properties.gridLineHeight)
+    Swag.assert(ctrl.position == Math.Rectangle{0, 0, 560, 666})
+    Swag.assert(ctrl.splitter.position.width > 0)
+    Swag.assert(ctrl.splitter.position.height > 0)
+    Swag.assert(ctrl.properties.position.width > 0)
+    Swag.assert(ctrl.properties.position.height > 0)
+    Swag.assert(ctrl.properties.edView.position.width > 0)
+    Swag.assert(ctrl.properties.edView.position.height > 0)
+    Swag.assert(ctrl.properties.items.count == 6)
+    Swag.assert(ctrl.properties.items[0]!.line.isVisible())
+    Swag.assert(ctrl.properties.items[1]!.line.isVisible())
+    Swag.assert(ctrl.properties.items[1]!.line.position.height == ctrl.properties.gridLineHeight)
+    Swag.assert(ctrl.properties.items[1]!.line.position.y >= ctrl.properties.gridLineHeight)
 }
 
 // Keyboard navigation: focusNavigation selects the first navigable row, arrows move the
@@ -210,22 +210,22 @@ impl IPropertyNotify for PropHeadlessRoData
     prop.addStruct(data)     // [0]=section [1]=count [2]=label [3]=enabled
 
     prop.focusNavigation()
-    @assert(prop.selItem == prop.items[1])     // section row is skipped
-    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
+    Swag.assert(prop.selItem == prop.items[1])     // section row is skipped
+    Swag.assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
 
     host.keyPress(Input.Key.Down)
-    @assert(prop.selItem == prop.items[2])
+    Swag.assert(prop.selItem == prop.items[2])
     host.keyPress(Input.Key.Down)
-    @assert(prop.selItem == prop.items[3])
+    Swag.assert(prop.selItem == prop.items[3])
     host.keyPress(Input.Key.Down)     // clamp at the last row
-    @assert(prop.selItem == prop.items[3])
+    Swag.assert(prop.selItem == prop.items[3])
     host.keyPress(Input.Key.Up)
-    @assert(prop.selItem == prop.items[2])
+    Swag.assert(prop.selItem == prop.items[2])
 
     host.keyPress(Input.Key.Home)
-    @assert(prop.selItem == prop.items[1])
+    Swag.assert(prop.selItem == prop.items[1])
     host.keyPress(Input.Key.End)
-    @assert(prop.selItem == prop.items[3])
+    Swag.assert(prop.selItem == prop.items[3])
 }
 
 // Enter starts editing the selected row (focuses its editor); Escape returns to
@@ -241,10 +241,10 @@ impl IPropertyNotify for PropHeadlessRoData
 
     prop.focusNavigation()     // selItem = count row
     host.keyPress(Input.Key.Return)
-    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.items[1]!.editBox)
+    Swag.assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.items[1]!.editBox)
 
     host.keyPress(Input.Key.Escape)
-    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
+    Swag.assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
 }
 
 // While editing, Up/Down auto-commit and move the selection back to navigation
@@ -260,11 +260,11 @@ impl IPropertyNotify for PropHeadlessRoData
 
     prop.focusNavigation()              // count row
     host.keyPress(Input.Key.Return)     // edit count
-    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.items[1]!.editBox)
+    Swag.assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.items[1]!.editBox)
 
     host.keyPress(Input.Key.Down)     // commit + move to label row
-    @assert(prop.selItem == prop.items[2])
-    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
+    Swag.assert(prop.selItem == prop.items[2])
+    Swag.assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
 }
 
 // Tab commits the current edit and starts editing the next editable row.
@@ -280,8 +280,8 @@ impl IPropertyNotify for PropHeadlessRoData
     prop.focusNavigation()
     host.keyPress(Input.Key.Return)     // edit count
     host.keyPress(Input.Key.Tab)        // -> edit label row
-    @assert(prop.selItem == prop.items[2])
-    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.items[2]!.editBox)
+    Swag.assert(prop.selItem == prop.items[2])
+    Swag.assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.items[2]!.editBox)
 }
 
 struct PropHeadlessActionData
@@ -312,7 +312,7 @@ struct PropHeadlessArrayData
     prop.edView.sendResizeEvent()
 
     // items: [0]=section [1]=origin (vector) [2]=actions (array) [3]=element "0" [4]=visible (bool)
-    @assert(@isset(prop.items[1]!.label) and @isset(prop.items[2]!.label) and @isset(prop.items[4]!.label))
+    Swag.assert(Swag.isSet(prop.items[1]!.label) and Swag.isSet(prop.items[2]!.label) and Swag.isSet(prop.items[4]!.label))
 
     // For each value row, the inner value line must start at or below the label bottom.
     func assertBelowLabel(item: *PropertiesItem)
@@ -322,7 +322,7 @@ struct PropHeadlessArrayData
         {
             if c == cast(#null *Wnd) item.label do
                 continue
-            @assert(c.position.y >= labelBottom)
+            Swag.assert(c.position.y >= labelBottom)
         }
     }
 
@@ -333,14 +333,14 @@ struct PropHeadlessArrayData
     // Rows and labels span the whole control (the value editors keep their own cap)
     let originItem = prop.items[1]!
     let rowWidth   = originItem.line.position.width
-    @assert(rowWidth > cast(f32) prop.editorWidth)
-    @assert(Math.isEqualEpsilon(originItem.label.position.x, cast(f32) prop.leftMargin, 0.01))
-    @assert(Math.isEqualEpsilon(originItem.label.position.width, rowWidth - prop.leftMargin - prop.rightMargin, 0.01))
+    Swag.assert(rowWidth > cast(f32) prop.editorWidth)
+    Swag.assert(Math.isEqualEpsilon(originItem.label.position.x, cast(f32) prop.leftMargin, 0.01))
+    Swag.assert(Math.isEqualEpsilon(originItem.label.position.width, rowWidth - prop.leftMargin - prop.rightMargin, 0.01))
 
     let actionsItem = prop.items[2]!
     let actionRight = cast(f32) prop.editorWidth - prop.rightMargin - PropRevertGap
-    @assert(@isset(actionsItem.arrayAddButton))
-    @assert(Math.isEqualEpsilon(actionsItem.label.position.x + actionsItem.arrayAddButton.position.right(), actionRight, 0.01))
+    Swag.assert(Swag.isSet(actionsItem.arrayAddButton))
+    Swag.assert(Math.isEqualEpsilon(actionsItem.label.position.x + actionsItem.arrayAddButton.position.right(), actionRight, 0.01))
 
     // The bool description is nudged down to optically center on the box: it carries a
     // positive top text padding derived from the font descent (never a hard-coded value).
@@ -351,9 +351,9 @@ struct PropHeadlessArrayData
         if c != cast(#null *Wnd) chk do
             desc = cast(*Label) c
     let descLbl = desc!
-    @assert(descLbl.textPadding.y > 0)
-    @assert(Math.abs(descLbl.textPadding.y + descLbl.textPadding.w) < 0.01)     // pure translation, no height loss
-    @assert(chkRow.position.height >= descLbl.position.bottom())                // wrapped info text is not clipped
+    Swag.assert(descLbl.textPadding.y > 0)
+    Swag.assert(Math.abs(descLbl.textPadding.y + descLbl.textPadding.w) < 0.01)     // pure translation, no height loss
+    Swag.assert(chkRow.position.height >= descLbl.position.bottom())                // wrapped info text is not clipped
 }
 
 struct PropHeadlessColorData
@@ -376,7 +376,7 @@ struct PropHeadlessColorData
     prop.addStruct(data, "S")
     prop.edView.sendResizeEvent()
 
-    @assert(prop.scrollWnd.scrollSize.y > prop.position.height)     // content overflows -> scrollable
+    Swag.assert(prop.scrollWnd.scrollSize.y > prop.position.height)     // content overflows -> scrollable
 
     func sendWheel(p: *Properties, deltaY: f32)
     {
@@ -390,18 +390,18 @@ struct PropHeadlessColorData
     let y0 = prop.scrollWnd.scrollPosition().y
     sendWheel(prop, -6)     // scroll down
     let y1 = prop.scrollWnd.scrollPosition().y
-    @assert(y1 != y0)
+    Swag.assert(y1 != y0)
 
     // Modal: with a popup open, the same wheel is swallowed and the list stays put.
     let popup = Wnd.create'Wnd(&host.root, {})
     prop.editPopup = popup
     sendWheel(prop, -6)
-    @assert(prop.scrollWnd.scrollPosition().y == y1)
+    Swag.assert(prop.scrollWnd.scrollPosition().y == y1)
 
     // Clearing the popup restores scrolling.
     prop.editPopup = null
     sendWheel(prop, 6)     // scroll back up
-    @assert(prop.scrollWnd.scrollPosition().y != y1)
+    Swag.assert(prop.scrollWnd.scrollPosition().y != y1)
 }
 
 func findIconButton(w: *Wnd)->#null *IconButton
@@ -435,13 +435,13 @@ func findIconButton(w: *Wnd)->#null *IconButton
 
     // Hover the button (no popup yet) -> hot.
     host.sendMouseEvent(btn, .Enter, {0, 0}, .Left, .None)
-    @assert(btn.isHot)
+    Swag.assert(btn.isHot)
 
     // With a popup open, a MouseLeave must still reach the button and clear the hover.
     let popup = Wnd.create'Wnd(&host.root, {})
     prop.editPopup = popup
     host.sendMouseEvent(btn, .Leave, {0, 0}, .Left, .None)
-    @assert(!btn.isHot)
+    Swag.assert(!btn.isHot)
 }
 
 // In navigation mode, Space toggles a bool row's checkbox in place.
@@ -457,12 +457,12 @@ func findIconButton(w: *Wnd)->#null *IconButton
     prop.focusNavigation()
     host.keyPress(Input.Key.End)     // enabled (checkbox) row
     let chk = prop.items[3]!.checkBox
-    @assert(chk.isChecked())
+    Swag.assert(chk.isChecked())
 
     host.keyPress(Input.Key.Space)
-    @assert(!chk.isChecked())
+    Swag.assert(!chk.isChecked())
     host.keyPress(Input.Key.Space)
-    @assert(chk.isChecked())
+    Swag.assert(chk.isChecked())
 }
 
 // Navigating a slider row: Right steps the slider track and focuses it (auto-commit
@@ -478,25 +478,25 @@ func findIconButton(w: *Wnd)->#null *IconButton
     prop.edView.sendResizeEvent()
 
     prop.focusNavigation()
-    @assert(prop.selItem == prop.items[1])     // section is not navigable in list mode
+    Swag.assert(prop.selItem == prop.items[1])     // section is not navigable in list mode
 
     // The very first Right in navigation steps the slider and focuses it (so the
     // value changes immediately, not only on the second press).
     host.keyPress(Input.Key.Right)
     let volumeSlider = prop.items[1]!.sliderBox
-    @assert(volumeSlider.value() > 50)
-    @assert(data.volume > 50)
-    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) volumeSlider.slider)
+    Swag.assert(volumeSlider.value() > 50)
+    Swag.assert(data.volume > 50)
+    Swag.assert(host.app.keyboardFocusWnd == cast(#null *Wnd) volumeSlider.slider)
 
     // A further Right keeps stepping (now in edit mode on the focused slider).
     let v1 = volumeSlider.value()
     host.keyPress(Input.Key.Right)
-    @assert(volumeSlider.value() > v1)
+    Swag.assert(volumeSlider.value() > v1)
 
     // Down auto-commits and moves to the next row, back in navigation mode.
     host.keyPress(Input.Key.Down)
-    @assert(prop.selItem == prop.items[2])
-    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
+    Swag.assert(prop.selItem == prop.items[2])
+    Swag.assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
 }
 
 // Enter on a slider row edits its value box like a plain editbox row: it focuses the
@@ -512,15 +512,15 @@ func findIconButton(w: *Wnd)->#null *IconButton
     prop.edView.sendResizeEvent()
 
     prop.focusNavigation()
-    @assert(prop.selItem == prop.items[1])
+    Swag.assert(prop.selItem == prop.items[1])
 
     let edit = prop.items[1]!.sliderBox.edit
 
     // Enter focuses the value box (not the slider track) and selects its whole text.
     host.keyPress(Input.Key.Return)
-    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) edit)
-    @assert(edit.selBeg == 0 and edit.selEnd == @countof(edit.text()))
-    @assert(@countof(edit.text()) > 0)
+    Swag.assert(host.app.keyboardFocusWnd == cast(#null *Wnd) edit)
+    Swag.assert(edit.selBeg == 0 and edit.selEnd == (edit.text()).count)
+    Swag.assert((edit.text()).count > 0)
 }
 
 // Editing an enum row: Enter focuses the combo, Left/Right change the selection
@@ -536,36 +536,36 @@ func findIconButton(w: *Wnd)->#null *IconButton
     prop.edView.sendResizeEvent()
 
     prop.focusNavigation()
-    @assert(prop.selItem == prop.items[1])
+    Swag.assert(prop.selItem == prop.items[1])
     let combo = prop.items[1]!.comboBox
-    @assert(combo.selectedIndex == 1)     // Mid
+    Swag.assert(combo.selectedIndex == 1)     // Mid
 
     // Enter opens the drop-down popup. The grid keeps the keyboard focus and forwards
     // the keys to the popup (so they never leak to page navigation outside the grid).
     host.keyPress(Input.Key.Return)
-    @assert(combo.popup != null)
-    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
+    Swag.assert(combo.popup != null)
+    Swag.assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
 
     let pview = cast(*PopupListView) combo.popup!.scrollWnd.view!
-    @assert(pview.hotIdx == 1)     // highlight starts on the current value
+    Swag.assert(pview.hotIdx == 1)     // highlight starts on the current value
 
     // Down moves the highlight only; the committed value stays until Enter.
     host.keyPress(Input.Key.Down)     // highlight Mid -> High
-    @assert(pview.hotIdx == 2)
-    @assert(combo.selectedIndex == 1)     // not committed yet
-    @assert(data.choice == .Mid)
+    Swag.assert(pview.hotIdx == 2)
+    Swag.assert(combo.selectedIndex == 1)     // not committed yet
+    Swag.assert(data.choice == .Mid)
 
     // A per-frame mouse-move outside the popup must not wipe the keyboard highlight.
     host.sendMouseEvent(cast(*Wnd) pview!, MouseEvent.Kind.Move, {2, 2}, Input.MouseButton.Left, Input.KeyModifiers.None)
-    @assert(pview.hotIdx == 2)
+    Swag.assert(pview.hotIdx == 2)
 
     // Enter commits the highlighted item (writes the data) and closes the edit.
     host.keyPress(Input.Key.Return)
     host.pump()
-    @assert(combo.selectedIndex == 2)
-    @assert(data.choice == .High)
-    @assert(combo.popup == null)
-    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
+    Swag.assert(combo.selectedIndex == 2)
+    Swag.assert(data.choice == .High)
+    Swag.assert(combo.popup == null)
+    Swag.assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
 }
 
 // A row with a custom/composite editor (e.g. a Math.Point) is navigable and can be
@@ -581,15 +581,15 @@ func findIconButton(w: *Wnd)->#null *IconButton
     prop.edView.sendResizeEvent()
 
     prop.focusNavigation()
-    @assert(prop.selItem == prop.items[1])     // the custom 'origin' row is selectable
+    Swag.assert(prop.selItem == prop.items[1])     // the custom 'origin' row is selectable
 
     host.keyPress(Input.Key.Return)     // edit -> focus the first inner editbox
     let f = host.app.keyboardFocusWnd!
-    @assert(f.type == EditBox)
+    Swag.assert(f.type == EditBox)
 
     host.keyPress(Input.Key.Down)     // commit + move to the next row
-    @assert(prop.selItem == prop.items[2])
-    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
+    Swag.assert(prop.selItem == prop.items[2])
+    Swag.assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
 }
 
 // focusNavigation keeps the already-selected row (so clicking a header/custom row does not
@@ -605,7 +605,7 @@ func findIconButton(w: *Wnd)->#null *IconButton
 
     prop.setSelItem(prop.items[1])     // as if 'origin' was just clicked
     prop.focusNavigation()
-    @assert(prop.selItem == prop.items[1])     // kept, not reset to the first row
+    Swag.assert(prop.selItem == prop.items[1])     // kept, not reset to the first row
 }
 
 // A named section becomes the first item and is registered.
@@ -618,9 +618,9 @@ func findIconButton(w: *Wnd)->#null *IconButton
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data, "Settings")
 
-    @assert(prop.items.count == 4)
-    @assert(prop.items[0]!.flags.has(.Section))
-    @assert(prop.sections.count == 1)
+    Swag.assert(prop.items.count == 4)
+    Swag.assert(prop.items[0]!.flags.has(.Section))
+    Swag.assert(prop.sections.count == 1)
 }
 
 // PropertiesCtrl grid keeps deterministic line and editor heights.
@@ -634,26 +634,26 @@ func findIconButton(w: *Wnd)->#null *IconButton
     ctrl.addStruct(data, "Settings")
     ctrl.properties.edView.sendResizeEvent()
 
-    @assert(ctrl.properties.items.count == 4)
+    Swag.assert(ctrl.properties.items.count == 4)
     let it0 = ctrl.properties.items[0]!
     let it1 = ctrl.properties.items[1]!
     let it2 = ctrl.properties.items[2]!
     let it3 = ctrl.properties.items[3]!
-    @assert(it0.line.position.y == 2)
-    @assert(it1.line.position.y == 38)
-    @assert(it2.line.position.y == 74)
-    @assert(it3.line.position.y == 110)
-    @assert(it0.line.position.height == 32)
-    @assert(it1.line.position.height == 32)
-    @assert(it2.line.position.height == 32)
-    @assert(it3.line.position.height == 32)
-    @assert(it0.line.position.width > 0)
+    Swag.assert(it0.line.position.y == 2)
+    Swag.assert(it1.line.position.y == 38)
+    Swag.assert(it2.line.position.y == 74)
+    Swag.assert(it3.line.position.y == 110)
+    Swag.assert(it0.line.position.height == 32)
+    Swag.assert(it1.line.position.height == 32)
+    Swag.assert(it2.line.position.height == 32)
+    Swag.assert(it3.line.position.height == 32)
+    Swag.assert(it0.line.position.width > 0)
 
     let countItem = it1
-    @assert(countItem.label.position == Math.Rectangle{0, 0, 150, 32})
-    @assert(countItem.editBox.position.height == ctrl.properties.themeMetrics().editBox_Height)
-    @assert(countItem.editBox.position.y == Math.round((countItem.line.position.height - countItem.editBox.position.height) * 0.5))
-    @assert(ctrl.properties.scrollWnd.scrollSize.y > ctrl.properties.position.height)
+    Swag.assert(countItem.label.position == Math.Rectangle{0, 0, 150, 32})
+    Swag.assert(countItem.editBox.position.height == ctrl.properties.themeMetrics().editBox_Height)
+    Swag.assert(countItem.editBox.position.y == Math.round((countItem.line.position.height - countItem.editBox.position.height) * 0.5))
+    Swag.assert(ctrl.properties.scrollWnd.scrollSize.y > ctrl.properties.position.height)
 }
 
 // Properties list keeps rows visible after being docked with a filter bar, as
@@ -681,16 +681,16 @@ func findIconButton(w: *Wnd)->#null *IconButton
 
     page.applyLayout()
 
-    @assert(prop.items.count == 18)
+    Swag.assert(prop.items.count == 18)
     let it0 = prop.items[0]!
     let it1 = prop.items[1]!
-    @assert(it0.line.isVisible())
-    @assert(it1.line.isVisible())
-    @assert(it0.line.position.height > 0)
-    @assert(it1.line.position.y > it0.line.position.y)
-    @assert(it0.label.position.height > 0)
-    @assert(it1.label.position.height > 0)
-    @assert(prop.scrollWnd.scrollSize.y > prop.position.height)
+    Swag.assert(it0.line.isVisible())
+    Swag.assert(it1.line.isVisible())
+    Swag.assert(it0.line.position.height > 0)
+    Swag.assert(it1.line.position.y > it0.line.position.y)
+    Swag.assert(it0.label.position.height > 0)
+    Swag.assert(it1.label.position.height > 0)
+    Swag.assert(prop.scrollWnd.scrollSize.y > prop.position.height)
 }
 
 //
@@ -757,10 +757,10 @@ func findFieldItem(prop: *Properties, name: string)->#null *PropertiesItem
 
     let option      = findFieldItem(prop, #nameof(MultiBadges.Star))!
     let optionLabel = cast(*Label) option.line.children[1]
-    @assert(option.checkBox.dockStyle == .Left)
-    @assert(option.line.position.height == prop.gridLineHeight)
-    @assert(optionLabel.position.x - option.checkBox.position.right() >= PropCondensedCheckTextGap)
-    @assert(option.checkBox.position.vertCenter() == optionLabel.position.vertCenter())
+    Swag.assert(option.checkBox.dockStyle == .Left)
+    Swag.assert(option.line.position.height == prop.gridLineHeight)
+    Swag.assert(optionLabel.position.x - option.checkBox.position.right() >= PropCondensedCheckTextGap)
+    Swag.assert(option.checkBox.position.vertCenter() == optionLabel.position.vertCenter())
 }
 
 // Edits applied through the grid write into every selected instance.
@@ -780,23 +780,23 @@ func findFieldItem(prop: *Properties, name: string)->#null *PropertiesItem
     prop.edView.sendResizeEvent()
 
     let countItem = findFieldItem(prop, "count")!
-    @assert(prop.instanceCount(countItem) == 3)
-    @assert(!prop.fieldIsMixed(countItem))     // all start equal (0)
+    Swag.assert(prop.instanceCount(countItem) == 3)
+    Swag.assert(!prop.fieldIsMixed(countItem))     // all start equal (0)
 
     // Edit the native field: all three instances change together.
     countItem.editBox.setText("9")
     prop.validateNative(countItem)
-    @assert(t0.count == 9 and t1.count == 9 and t2.count == 9)
+    Swag.assert(t0.count == 9 and t1.count == 9 and t2.count == 9)
 
     // Bool toggle propagates to all.
     let flagItem = findFieldItem(prop, "flag")!
     flagItem.checkBox.toggle()
-    @assert(t0.flag and t1.flag and t2.flag)
+    Swag.assert(t0.flag and t1.flag and t2.flag)
 
     // Enum selection propagates to all.
     let choiceItem = findFieldItem(prop, "choice")!
     choiceItem.comboBox.setSelectedIndex(2)     // High
-    @assert(t0.choice == .High and t1.choice == .High and t2.choice == .High)
+    Swag.assert(t0.choice == .High and t1.choice == .High and t2.choice == .High)
 }
 
 // A field that differs across instances is "mixed": the editor shows no concrete value,
@@ -820,19 +820,19 @@ func findFieldItem(prop: *Properties, name: string)->#null *PropertiesItem
     prop.edView.sendResizeEvent()
 
     let countItem = findFieldItem(prop, "count")!
-    @assert(prop.fieldIsMixed(countItem))
-    @assert(countItem.editBox.text() == "")     // blank when mixed
+    Swag.assert(prop.fieldIsMixed(countItem))
+    Swag.assert(countItem.editBox.text() == "")     // blank when mixed
 
     let flagItem = findFieldItem(prop, "flag")!
-    @assert(prop.fieldIsMixed(flagItem))
-    @assert(flagItem.checkBox.state == .Indeterminate)     // indeterminate when mixed
+    Swag.assert(prop.fieldIsMixed(flagItem))
+    Swag.assert(flagItem.checkBox.state == .Indeterminate)     // indeterminate when mixed
 
     // Editing the mixed native field sets both instances and clears the mixed state.
     countItem.editBox.setText("7")
     prop.validateNative(countItem)
-    @assert(t0.count == 7 and t1.count == 7)
-    @assert(!prop.fieldIsMixed(countItem))
-    @assert(countItem.editBox.text() == "7")
+    Swag.assert(t0.count == 7 and t1.count == 7)
+    Swag.assert(!prop.fieldIsMixed(countItem))
+    Swag.assert(countItem.editBox.text() == "7")
 }
 
 // A single instance behaves exactly like the classic addStruct (no multi state).
@@ -850,13 +850,13 @@ func findFieldItem(prop: *Properties, name: string)->#null *PropertiesItem
     prop.edView.sendResizeEvent()
 
     let countItem = findFieldItem(prop, "count")!
-    @assert(prop.instanceCount(countItem) == 1)
-    @assert(!prop.fieldIsMixed(countItem))
-    @assert(countItem.editBox.text() == "3")
+    Swag.assert(prop.instanceCount(countItem) == 1)
+    Swag.assert(!prop.fieldIsMixed(countItem))
+    Swag.assert(countItem.editBox.text() == "3")
 
     countItem.editBox.setText("8")
     prop.validateNative(countItem)
-    @assert(t0.count == 8)
+    Swag.assert(t0.count == 8)
 }
 
 func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
@@ -890,20 +890,20 @@ func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
     let posItem = findFieldItem(prop, "pos")!
 
     // x component differs -> mixed; y component is uniform -> not mixed.
-    @assert(prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
-    @assert(!prop.subFieldIsMixed(posItem, #sizeof(f32), #sizeof(f32)))
+    Swag.assert(prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
+    Swag.assert(!prop.subFieldIsMixed(posItem, #sizeof(f32), #sizeof(f32)))
 
     var boxes: Array'(#null *EditBox)
     collectEditBoxes(posItem.line, &boxes)
-    @assert(boxes.count == 2)     // x and y
+    Swag.assert(boxes.count == 2)     // x and y
 
     // Set x = 5 on the first component box; both instances get x = 5, y is preserved.
     let box0 = boxes[0]!
     box0.setText("5")
     box0.sigFocusLost.call(box0)
-    @assert(t0.pos.x == 5 and t1.pos.x == 5)
-    @assert(t0.pos.y == 10 and t1.pos.y == 10)     // untouched
-    @assert(!prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
+    Swag.assert(t0.pos.x == 5 and t1.pos.x == 5)
+    Swag.assert(t0.pos.y == 10 and t1.pos.y == 10)     // untouched
+    Swag.assert(!prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
 }
 
 // Enum-flags multi-edit logic: a bit that disagrees across instances is "mixed", and
@@ -930,20 +930,20 @@ func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
     let lockMask = cast(u64) cast(s32) MultiBadges.Lock
     let pinMask  = cast(u64) cast(s32) MultiBadges.Pin
 
-    @assert(!prop.flagBitIsMixed(&item, starMask))     // shared -> uniform
-    @assert(prop.flagBitIsMixed(&item, lockMask))      // disagrees -> mixed
-    @assert(!prop.flagBitIsMixed(&item, pinMask))      // neither has it -> uniform
+    Swag.assert(!prop.flagBitIsMixed(&item, starMask))     // shared -> uniform
+    Swag.assert(prop.flagBitIsMixed(&item, lockMask))      // disagrees -> mixed
+    Swag.assert(!prop.flagBitIsMixed(&item, pinMask))      // neither has it -> uniform
 
     // Set Pin on every instance: Lock stays only on b1, Star stays on both.
     prop.writeEnumBit(&item, pinMask, true)
-    @assert(cast(bool) (b0 & MultiBadges.Pin) and cast(bool) (b1 & MultiBadges.Pin))
-    @assert(!cast(bool) (b0 & MultiBadges.Lock))
-    @assert(cast(bool) (b1 & MultiBadges.Lock))
-    @assert(cast(bool) (b0 & MultiBadges.Star) and cast(bool) (b1 & MultiBadges.Star))
+    Swag.assert(cast(bool) (b0 & MultiBadges.Pin) and cast(bool) (b1 & MultiBadges.Pin))
+    Swag.assert(!cast(bool) (b0 & MultiBadges.Lock))
+    Swag.assert(cast(bool) (b1 & MultiBadges.Lock))
+    Swag.assert(cast(bool) (b0 & MultiBadges.Star) and cast(bool) (b1 & MultiBadges.Star))
 
     // Clearing a shared bit clears it everywhere.
     prop.writeEnumBit(&item, starMask, false)
-    @assert(!cast(bool) (b0 & MultiBadges.Star) and !cast(bool) (b1 & MultiBadges.Star))
+    Swag.assert(!cast(bool) (b0 & MultiBadges.Star) and !cast(bool) (b1 & MultiBadges.Star))
 }
 
 // Dynamic strings are compared and propagated by content (they own a heap buffer).
@@ -964,18 +964,18 @@ func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
     prop.edView.sendResizeEvent()
 
     let nameItem = findFieldItem(prop, "name")!
-    @assert(prop.fieldIsMixed(nameItem))
-    @assert(nameItem.editBox.text() == "")
+    Swag.assert(prop.fieldIsMixed(nameItem))
+    Swag.assert(nameItem.editBox.text() == "")
 
     nameItem.editBox.setText("shared")
     prop.validateDynamicString(nameItem)
-    @assert(t0.name == "shared" and t1.name == "shared")
-    @assert(!prop.fieldIsMixed(nameItem))
+    Swag.assert(t0.name == "shared" and t1.name == "shared")
+    Swag.assert(!prop.fieldIsMixed(nameItem))
 
     // Same content in distinct buffers must not read as mixed.
     t0.name = "same"
     t1.name = "same"
-    @assert(!prop.fieldIsMixed(nameItem))
+    Swag.assert(!prop.fieldIsMixed(nameItem))
 }
 
 // A color (struct via the built-in ColorEditor) reports mixed and propagates as a whole value.
@@ -996,12 +996,12 @@ func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
     prop.edView.sendResizeEvent()
 
     let tintItem = findFieldItem(prop, "tint")!
-    @assert(prop.fieldIsMixed(tintItem))
+    Swag.assert(prop.fieldIsMixed(tintItem))
 
     // Make them equal and refresh: no longer mixed.
     t1.tint = Pixel.Argb.Red
     prop.refresh()
-    @assert(!prop.fieldIsMixed(tintItem))
+    Swag.assert(!prop.fieldIsMixed(tintItem))
 }
 
 //
@@ -1047,24 +1047,24 @@ impl Gui.IPropertyNotify for ValData
     let nameItem  = findFieldItem(prop, "name")!
     let countItem = findFieldItem(prop, "count")!
 
-    @assert(nameItem.validation == .Error)     // empty name flagged on build
-    @assert(nameItem.validationMsg == "Name is required.")
-    @assert(countItem.validation == .None)
-    @assert(@isset(nameItem.validationLabel) and nameItem.validationLabel.isVisible())
-    @assert(nameItem.validationLabel.textPadding.y > 0)
-    @assert(Math.abs(nameItem.validationLabel.textPadding.y + nameItem.validationLabel.textPadding.w) < 0.01)
+    Swag.assert(nameItem.validation == .Error)     // empty name flagged on build
+    Swag.assert(nameItem.validationMsg == "Name is required.")
+    Swag.assert(countItem.validation == .None)
+    Swag.assert(Swag.isSet(nameItem.validationLabel) and nameItem.validationLabel.isVisible())
+    Swag.assert(nameItem.validationLabel.textPadding.y > 0)
+    Swag.assert(Math.abs(nameItem.validationLabel.textPadding.y + nameItem.validationLabel.textPadding.w) < 0.01)
 
     // Editing into an invalid range raises a warning.
     countItem.editBox.setText("150")
     prop.validateNative(countItem)
-    @assert(data.count == 150)
-    @assert(countItem.validation == .Warning)
-    @assert(countItem.validationMsg == "Count is unusually large.")
+    Swag.assert(data.count == 150)
+    Swag.assert(countItem.validation == .Warning)
+    Swag.assert(countItem.validationMsg == "Count is unusually large.")
 
     // Fixing the name clears its error.
     nameItem.editBox.setText("hello")
     prop.validateDynamicString(nameItem)
-    @assert(nameItem.validation == .None)
+    Swag.assert(nameItem.validation == .None)
 }
 
 // A validation set manually (no notify interface) is kept across refreshes.
@@ -1081,14 +1081,14 @@ impl Gui.IPropertyNotify for ValData
     let it = findFieldItem(prop, "count")!
 
     prop.setItemValidation(it, .Error, "bad value")
-    @assert(it.validation == .Error and it.validationMsg == "bad value")
+    Swag.assert(it.validation == .Error and it.validationMsg == "bad value")
 
     // updateValidation must not clobber a manual state when there is no notify interface.
     prop.updateValidation()
-    @assert(it.validation == .Error)
+    Swag.assert(it.validation == .Error)
 
     prop.setItemValidation(it, .None)
-    @assert(it.validation == .None)
+    Swag.assert(it.validation == .None)
 }
 
 // Read-only fields gray (disable) their editor, while staying visible. Covers both the
@@ -1107,24 +1107,24 @@ impl Gui.IPropertyNotify for ValData
     let normalItem  = findFieldItem(prop, #nameof(PropHeadlessRoData.normal))!
     let lockedItem  = findFieldItem(prop, #nameof(PropHeadlessRoData.locked))!
     let dynamicItem = findFieldItem(prop, #nameof(PropHeadlessRoData.dynamic))!
-    @assert(@isset(normalItem.editBox) and @isset(lockedItem.editBox) and @isset(dynamicItem.editBox))
+    Swag.assert(Swag.isSet(normalItem.editBox) and Swag.isSet(lockedItem.editBox) and Swag.isSet(dynamicItem.editBox))
 
     // Edit-box editors stay focusable but become read-only. The editable field is not; the
     // read-only fields (attribute + dynamic) are. They are not changeable either.
-    @assert(!normalItem.editBox.flags.has(.ReadOnly))
-    @assert(lockedItem.editBox.flags.has(.ReadOnly))
-    @assert(dynamicItem.editBox.flags.has(.ReadOnly))
-    @assert(prop.canChangeItem(normalItem))
-    @assert(!prop.canChangeItem(lockedItem))
-    @assert(!prop.canChangeItem(dynamicItem))
+    Swag.assert(!normalItem.editBox.flags.has(.ReadOnly))
+    Swag.assert(lockedItem.editBox.flags.has(.ReadOnly))
+    Swag.assert(dynamicItem.editBox.flags.has(.ReadOnly))
+    Swag.assert(prop.canChangeItem(normalItem))
+    Swag.assert(!prop.canChangeItem(lockedItem))
+    Swag.assert(!prop.canChangeItem(dynamicItem))
 
     // Clearing the dynamic flag releases only that field; the attribute one stays locked.
     g_PropRoDynamic = false
     prop.setCurrentSection(Swag.U32.Max)
-    @assert(!dynamicItem.editBox.flags.has(.ReadOnly))
-    @assert(prop.canChangeItem(dynamicItem))
-    @assert(lockedItem.editBox.flags.has(.ReadOnly))
-    @assert(!prop.canChangeItem(lockedItem))
+    Swag.assert(!dynamicItem.editBox.flags.has(.ReadOnly))
+    Swag.assert(prop.canChangeItem(dynamicItem))
+    Swag.assert(lockedItem.editBox.flags.has(.ReadOnly))
+    Swag.assert(!prop.canChangeItem(lockedItem))
 }
 
 // Reordering array elements (static + dynamic) and removing a dynamic element by the correct
@@ -1150,31 +1150,31 @@ impl Gui.IPropertyNotify for ValData
     var elems: Array'(#null *PropertiesItem)
     for it in prop.items where it!.parent == dynArr do
         elems.add(it)
-    @assert(elems.count == 3)
+    Swag.assert(elems.count == 3)
 
     // Move element 0 down -> [20,10,30], then element 2 up -> [20,30,10].
     prop.moveArrayValue(elems[0]!, 1)
-    @assert(data.dyn[0].id == 20 and data.dyn[1].id == 10 and data.dyn[2].id == 30)
+    Swag.assert(data.dyn[0].id == 20 and data.dyn[1].id == 10 and data.dyn[2].id == 30)
     prop.moveArrayValue(elems[2]!, -1)
-    @assert(data.dyn[0].id == 20 and data.dyn[1].id == 30 and data.dyn[2].id == 10)
+    Swag.assert(data.dyn[0].id == 20 and data.dyn[1].id == 30 and data.dyn[2].id == 10)
 
     // Move at the boundaries is a no-op.
     prop.moveArrayValue(elems[0]!, -1)
-    @assert(data.dyn[0].id == 20)
+    Swag.assert(data.dyn[0].id == 20)
 
     // Remove the element at index 1 (id 30) -> [20,10]. Used to compute an out-of-bounds index
     // for struct arrays with more than one element.
     prop.removeArrayValue(elems[1]!)
-    @assert(data.dyn.count == 2 and data.dyn[0].id == 20 and data.dyn[1].id == 10)
+    Swag.assert(data.dyn.count == 2 and data.dyn[0].id == 20 and data.dyn[1].id == 10)
 
     // Static array reorder: [1,2,3], move index 0 down -> [2,1,3].
     let statArr = findFieldItem(prop, #nameof(PropMoveData.stat))!
     var statElems: Array'(#null *PropertiesItem)
     for it in prop.items where it!.parent == statArr do
         statElems.add(it)
-    @assert(statElems.count == 3)
+    Swag.assert(statElems.count == 3)
     prop.moveArrayValue(statElems[0]!, 1)
-    @assert(data.stat[0] == 2 and data.stat[1] == 1 and data.stat[2] == 3)
+    Swag.assert(data.stat[0] == 2 and data.stat[1] == 1 and data.stat[2] == 3)
 }
 
 // The context-menu commands run through the shared gui action system (ActionProperties /
@@ -1199,26 +1199,26 @@ impl Gui.IPropertyNotify for ValData
     prop.menuItem = idField
     prop.sendCommandEvent(ActionProperties.Copy)
     var got: s32
-    @assert(Clipboard.getTypedValue(&got, idField.type!) and got == 10)
+    Swag.assert(Clipboard.getTypedValue(&got, idField.type!) and got == 10)
 
     let dynArr = findFieldItem(prop, #nameof(PropMoveData.dyn))
     var elems: Array'(#null *PropertiesItem)
     for it in prop.items where it!.parent == dynArr do
         elems.add(it)
-    @assert(elems.count == 3)
+    Swag.assert(elems.count == 3)
 
     // update(): Move Up is disabled on the first element, enabled on the second.
     prop.menuItem = elems[0]
     var st = prop.sendComputeCommandStateEvent(ActionProperties.MoveUp)
-    @assert(st.updatedFields.has(.Disabled) and st.disabled)
+    Swag.assert(st.updatedFields.has(.Disabled) and st.disabled)
     prop.menuItem = elems[1]
     st            = prop.sendComputeCommandStateEvent(ActionProperties.MoveUp)
-    @assert(st.updatedFields.has(.Disabled) and !st.disabled)
+    Swag.assert(st.updatedFields.has(.Disabled) and !st.disabled)
 
     // execute(): Move Up on element 1 reorders the underlying array, dispatched through the real
     // CommandEvent path (sendCommandEvent updates state first, then sends the command).
     prop.sendCommandEvent(ActionProperties.MoveUp)
-    @assert(data.dyn[0].id == 20 and data.dyn[1].id == 10 and data.dyn[2].id == 30)
+    Swag.assert(data.dyn[0].id == 20 and data.dyn[1].id == 10 and data.dyn[2].id == 30)
 }
 
 // --- Custom editor registry -------------------------------------------------
@@ -1295,21 +1295,21 @@ impl IPropertyEditor for PropAngleEditor
 
     // The editor ran once for 'rot'; the struct was NOT expanded into a 'deg' child row, so
     // items = [section, rot, name].
-    @assert(g_PropAngleEditorCalls == 1)
-    @assert(prop.items.count == 3)
+    Swag.assert(g_PropAngleEditorCalls == 1)
+    Swag.assert(prop.items.count == 3)
 
     let rot = findFieldItem(prop, #nameof(PropHeadlessAngleData.rot))!
-    @assert(@isset(rot.editBox))
-    @assert(rot.numChilds == 0)
-    @assert(rot.editBox.text() == "45 deg")
+    Swag.assert(Swag.isSet(rot.editBox))
+    Swag.assert(rot.numChilds == 0)
+    Swag.assert(rot.editBox.text() == "45 deg")
 
     // A plain field next to it still uses the built-in editor.
     let name = findFieldItem(prop, #nameof(PropHeadlessAngleData.name))
-    @assert(name != null and @isset(name.editBox))
+    Swag.assert(name != null and Swag.isSet(name.editBox))
 
     // The registry resolves the editor for the angle type, but not for an unrelated one.
-    @assert(Properties.findEditor(PropHeadlessAngle) != null)
-    @assert(Properties.findEditor(#null string) == null)
+    Swag.assert(Properties.findEditor(PropHeadlessAngle) != null)
+    Swag.assert(Properties.findEditor(#null string) == null)
 }
 
 // --- Reset to default -------------------------------------------------------
@@ -1366,42 +1366,42 @@ impl IPropertyNotify for PropDefaultCustom
     let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))!
 
     // The default value comes from a real default-constructed instance of the struct.
-    @assert(countItem.defaultData != null)
-    @assert(countItem.defaultData![as s32] == 42)
+    Swag.assert(countItem.defaultData != null)
+    Swag.assert(countItem.defaultData![as s32] == 42)
 
     // Freshly built: at default -> not modified, no revert button, cannot... still resettable type.
-    @assert(!countItem.isModified)
-    @assert(prop.canReset(countItem))
-    @assert(!@isset(countItem.revertButton) or !countItem.revertButton.isVisible())
+    Swag.assert(!countItem.isModified)
+    Swag.assert(prop.canReset(countItem))
+    Swag.assert(!Swag.isSet(countItem.revertButton) or !countItem.revertButton.isVisible())
 
     // Static string field is read-only -> never resettable and never modified.
     let nameItem = findFieldItem(prop, #nameof(PropDefaultData.name))!
-    @assert(!prop.canReset(nameItem))
-    @assert(!nameItem.isModified)
+    Swag.assert(!prop.canReset(nameItem))
+    Swag.assert(!nameItem.isModified)
 
     // Bool list rows span the whole row (the side description wraps over the control
     // width). List mode has NO revert button: a modified row is marked by the painted
     // vertical accent bar (VSCode-style), and reset lives in the context menu.
     let enabledItem = findFieldItem(prop, #nameof(PropDefaultData.enabled))!
-    @assert(@isset(enabledItem.checkBox))
+    Swag.assert(Swag.isSet(enabledItem.checkBox))
     data.enabled = false
     prop.updateStates()
-    @assert(enabledItem.isModified)
-    @assert(!@isset(enabledItem.revertButton))
+    Swag.assert(enabledItem.isModified)
+    Swag.assert(!Swag.isSet(enabledItem.revertButton))
     let contentWidth = cast(f32) prop.editorWidth - prop.leftMargin - prop.rightMargin
-    @assert(enabledItem.checkBox.parent!.position.width > contentWidth)
+    Swag.assert(enabledItem.checkBox.parent!.position.width > contentWidth)
 
     // Edit the value away from its default: the row becomes modified (no button either).
     countItem.editBox.setText("99")
     prop.validateNative(countItem)
-    @assert(data.count == 99)
-    @assert(countItem.isModified)
-    @assert(!@isset(countItem.revertButton))
+    Swag.assert(data.count == 99)
+    Swag.assert(countItem.isModified)
+    Swag.assert(!Swag.isSet(countItem.revertButton))
 
     // Reset (the context-menu action path) restores the declared default.
     prop.resetItemDefault(countItem)
-    @assert(data.count == 42)
-    @assert(!countItem.isModified)
+    Swag.assert(data.count == 42)
+    Swag.assert(!countItem.isModified)
 }
 
 // The "Reset to default" context-menu command goes through the shared action system: update()
@@ -1420,17 +1420,17 @@ impl IPropertyNotify for PropDefaultCustom
 
     // At default: the command exists but is disabled.
     var st = prop.sendComputeCommandStateEvent(ActionProperties.ResetDefault)
-    @assert(st.updatedFields.has(.Disabled) and st.disabled)
+    Swag.assert(st.updatedFields.has(.Disabled) and st.disabled)
 
     // After a change: enabled, and executing it restores the default.
     data.count = 7
     prop.updateStates()
-    @assert(countItem.isModified)
+    Swag.assert(countItem.isModified)
     st = prop.sendComputeCommandStateEvent(ActionProperties.ResetDefault)
-    @assert(st.updatedFields.has(.Disabled) and !st.disabled)
+    Swag.assert(st.updatedFields.has(.Disabled) and !st.disabled)
 
     prop.sendCommandEvent(ActionProperties.ResetDefault)
-    @assert(data.count == 42 and !countItem.isModified)
+    Swag.assert(data.count == 42 and !countItem.isModified)
 }
 
 // The test and the reset are both customizable through IPropertyNotify: isItemAtDefault forces the
@@ -1450,17 +1450,17 @@ impl IPropertyNotify for PropDefaultCustom
     let valItem = findFieldItem(prop, #nameof(PropDefaultCustom.val))!
 
     // Value equals the declared default (5), but the override forces "modified".
-    @assert(valItem.data![as s32] == 5)
-    @assert(valItem.isModified)
+    Swag.assert(valItem.data![as s32] == 5)
+    Swag.assert(valItem.isModified)
 
     // Reset is taken over by the notify interface: our handler runs, the built-in copy does not.
     prop.resetItemDefault(valItem)
-    @assert(g_PropDefResetCalls == 1)
+    Swag.assert(g_PropDefResetCalls == 1)
 
     // Flipping the override back reports "at default".
     g_PropDefForceModified = false
     prop.updateStates()
-    @assert(!valItem.isModified)
+    Swag.assert(!valItem.isModified)
 }
 
 // Grid mode: the revert column is reserved on the right of every resettable row (docked, present
@@ -1476,21 +1476,21 @@ impl IPropertyNotify for PropDefaultCustom
     prop.addStruct(data)
 
     let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))!
-    @assert(@isset(countItem.editBox))
+    Swag.assert(Swag.isSet(countItem.editBox))
 
     // The revert arrow is docked to the right of the row (the trailing action margin) and present
     // from the start; while at its default the arrow is hidden (disabled) but the column stays
     // reserved so the editor keeps a constant width.
     let btn = countItem.revertButton
-    @assert(btn.dockStyle == .Right)
-    @assert(btn.isDisabled())
+    Swag.assert(btn.dockStyle == .Right)
+    Swag.assert(btn.isDisabled())
     let editWidthClean = countItem.editBox.position.width
 
     // Change the value: the arrow becomes active WITHOUT resizing the editor.
     data.count = 5
     prop.updateStates()
-    @assert(countItem.isModified and !btn.isDisabled())
-    @assert(countItem.editBox.position.width == editWidthClean)
+    Swag.assert(countItem.isModified and !btn.isDisabled())
+    Swag.assert(countItem.editBox.position.width == editWidthClean)
 
     // Reset hides the arrow again; the editor width is still unchanged.
     btn.isHot              = true
@@ -1501,16 +1501,16 @@ impl IPropertyNotify for PropDefaultCustom
     host.app.mouseEnterWnd = btn
     host.app.setMouseCaptureRaw(btn)
     prop.resetItemDefault(countItem)
-    @assert(!countItem.isModified and btn.isDisabled())
-    @assert(countItem.editBox.position.width == editWidthClean)
-    @assert(!btn.icon.isValid())
-    @assert(!btn.isHot)
-    @assert(!btn.isIn)
-    @assert(!btn.isPressed)
-    @assert(!btn.isPressing)
-    @assert(btn.aniBk.themeCrc == Swag.U32.Max)
-    @assert(host.app.mouseEnterWnd == null)
-    @assert(host.app.mouseCaptureWnd == null)
+    Swag.assert(!countItem.isModified and btn.isDisabled())
+    Swag.assert(countItem.editBox.position.width == editWidthClean)
+    Swag.assert(!btn.icon.isValid())
+    Swag.assert(!btn.isHot)
+    Swag.assert(!btn.isIn)
+    Swag.assert(!btn.isPressed)
+    Swag.assert(!btn.isPressing)
+    Swag.assert(btn.aniBk.themeCrc == Swag.U32.Max)
+    Swag.assert(host.app.mouseEnterWnd == null)
+    Swag.assert(host.app.mouseCaptureWnd == null)
 }
 
 // Condensed grid mode: the revert button is sized to the condensed editor height, then docked
@@ -1525,17 +1525,17 @@ impl IPropertyNotify for PropDefaultCustom
     prop.addStruct(data)
 
     let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))!
-    @assert(@isset(countItem.revertButton))
+    Swag.assert(Swag.isSet(countItem.revertButton))
 
     let btn = countItem.revertButton
-    @assert(btn.position.height == PropCondensedControlHeight)
-    @assert(Math.isEqualEpsilon(btn.position.vertCenter(), countItem.line.clientRect().vertCenter(), 0.01))
+    Swag.assert(btn.position.height == PropCondensedControlHeight)
+    Swag.assert(Math.isEqualEpsilon(btn.position.vertCenter(), countItem.line.clientRect().vertCenter(), 0.01))
 
     data.count = 5
     prop.updateStates()
-    @assert(countItem.isModified and !btn.isDisabled())
-    @assert(btn.position.height == PropCondensedControlHeight)
-    @assert(Math.isEqualEpsilon(btn.position.vertCenter(), countItem.line.clientRect().vertCenter(), 0.01))
+    Swag.assert(countItem.isModified and !btn.isDisabled())
+    Swag.assert(btn.position.height == PropCondensedControlHeight)
+    Swag.assert(Math.isEqualEpsilon(btn.position.vertCenter(), countItem.line.clientRect().vertCenter(), 0.01))
 }
 
 // Multi-selection: a field is "modified" when it differs from the default in ANY edited instance,
@@ -1556,11 +1556,11 @@ impl IPropertyNotify for PropDefaultCustom
     prop.addStructMulti(PropDefaultData, bases.toSlice(), "S")
 
     let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))!
-    @assert(countItem.isModified)     // one instance differs
+    Swag.assert(countItem.isModified)     // one instance differs
 
     prop.resetItemDefault(countItem)
-    @assert(t0.count == 42 and t1.count == 42)
-    @assert(!countItem.isModified)
+    Swag.assert(t0.count == 42 and t1.count == 42)
+    Swag.assert(!countItem.isModified)
 }
 
 // Undo/redo of a scalar field edit: each commit records one step; undo/redo walk the timeline;
@@ -1576,40 +1576,40 @@ impl IPropertyNotify for PropDefaultCustom
     prop.addStruct(data)
 
     let it = findFieldItem(prop, #nameof(PropHeadlessData.count))!
-    @assert(!prop.canUndo() and !prop.canRedo())
+    Swag.assert(!prop.canUndo() and !prop.canRedo())
 
     // Writing the same value back records nothing.
     it.data![as s32] = 42
     prop.commitItemChange(it)
-    @assert(!prop.canUndo())
+    Swag.assert(!prop.canUndo())
 
     // Two real edits.
     it.data![as s32] = 100
     prop.commitItemChange(it)
-    @assert(data.count == 100 and prop.canUndo() and !prop.canRedo())
+    Swag.assert(data.count == 100 and prop.canUndo() and !prop.canRedo())
 
     it.data![as s32] = 7
     prop.commitItemChange(it)
-    @assert(data.count == 7)
+    Swag.assert(data.count == 7)
 
     prop.undo()
-    @assert(data.count == 100 and prop.canUndo() and prop.canRedo())
+    Swag.assert(data.count == 100 and prop.canUndo() and prop.canRedo())
     prop.undo()
-    @assert(data.count == 42 and !prop.canUndo())
+    Swag.assert(data.count == 42 and !prop.canUndo())
 
     prop.redo()
-    @assert(data.count == 100)
+    Swag.assert(data.count == 100)
     prop.redo()
-    @assert(data.count == 7 and !prop.canRedo())
+    Swag.assert(data.count == 7 and !prop.canRedo())
 
     // New edit after undo truncates the redo tail.
     prop.undo()     // -> 100
     prop.undo()     // -> 42
     it.data![as s32] = 55
     prop.commitItemChange(it)
-    @assert(data.count == 55 and !prop.canRedo())
+    Swag.assert(data.count == 55 and !prop.canRedo())
     prop.undo()
-    @assert(data.count == 42)
+    Swag.assert(data.count == 42)
 }
 
 // Undo/redo of a dynamic String field (copied by content, not by raw bytes).
@@ -1627,12 +1627,12 @@ impl IPropertyNotify for PropDefaultCustom
 
     it.data![as String] = "beta"
     prop.commitItemChange(it)
-    @assert(data.name == "beta")
+    Swag.assert(data.name == "beta")
 
     prop.undo()
-    @assert(data.name == "alpha")
+    Swag.assert(data.name == "alpha")
     prop.redo()
-    @assert(data.name == "beta")
+    Swag.assert(data.name == "beta")
 }
 
 // Undo/redo across a multi-selection edit restores every edited instance.
@@ -1652,12 +1652,12 @@ impl IPropertyNotify for PropDefaultCustom
 
     it.data![as s32] = 100     // edit instance 0; hasChanged propagates
     prop.commitItemChange(it)
-    @assert(t0.count == 100 and t1.count == 100)
+    Swag.assert(t0.count == 100 and t1.count == 100)
 
     prop.undo()
-    @assert(t0.count == 42 and t1.count == 42)
+    Swag.assert(t0.count == 42 and t1.count == 42)
     prop.redo()
-    @assert(t0.count == 100 and t1.count == 100)
+    Swag.assert(t0.count == 100 and t1.count == 100)
 }
 
 // Ctrl+Z / Ctrl+Y (and Ctrl+Shift+Z) drive undo/redo while the grid is in navigation mode.
@@ -1674,16 +1674,16 @@ impl IPropertyNotify for PropDefaultCustom
     let it = findFieldItem(prop, #nameof(PropHeadlessData.count))!
     it.data![as s32] = 100
     prop.commitItemChange(it)
-    @assert(data.count == 100)
+    Swag.assert(data.count == 100)
 
     host.keyPress(Input.Key.Z, Input.KeyModifiers.Control)
-    @assert(data.count == 42)
+    Swag.assert(data.count == 42)
     host.keyPress(Input.Key.Y, Input.KeyModifiers.Control)
-    @assert(data.count == 100)
+    Swag.assert(data.count == 100)
     host.keyPress(Input.Key.Z, Input.KeyModifiers.Control)
-    @assert(data.count == 42)
+    Swag.assert(data.count == 42)
     host.keyPress(Input.Key.Z, Input.KeyModifiers.Control | Input.KeyModifiers.Shift)
-    @assert(data.count == 100)
+    Swag.assert(data.count == 100)
 }
 
 // --- Nested subgroups (#3) and decorators (#5) ------------------------------
@@ -1720,19 +1720,19 @@ struct PropDecorData
     let transform = findFieldItem(prop, "Transform")!
     let advanced  = findFieldItem(prop, "Advanced")!
     let physics   = findFieldItem(prop, "Physics")!
-    @assert(transform.flags.has(.Category) and transform.level == 0)
-    @assert(advanced.flags.has(.Category) and advanced.level == 1)
-    @assert(physics.flags.has(.Category) and physics.level == 0)
-    @assert(advanced.parent == transform)     // subgroup nested under its prefix
+    Swag.assert(transform.flags.has(.Category) and transform.level == 0)
+    Swag.assert(advanced.flags.has(.Category) and advanced.level == 1)
+    Swag.assert(physics.flags.has(.Category) and physics.level == 0)
+    Swag.assert(advanced.parent == transform)     // subgroup nested under its prefix
 
     // Fields indent with their group depth: a top-level field is at indent 0, a subgroup field one
     // step further, and the subgroup header lines up with the fields it groups.
     let px    = findFieldItem(prop, #nameof(PropDecorData.px))!
     let shear = findFieldItem(prop, #nameof(PropDecorData.shear))!
-    @assert(prop.itemIndent(px) == 0)
-    @assert(prop.itemIndent(transform) == 0)
-    @assert(prop.itemIndent(shear) > prop.itemIndent(px))
-    @assert(prop.itemIndent(advanced) == prop.itemIndent(shear))     // subgroup header aligns with its field
+    Swag.assert(prop.itemIndent(px) == 0)
+    Swag.assert(prop.itemIndent(transform) == 0)
+    Swag.assert(prop.itemIndent(shear) > prop.itemIndent(px))
+    Swag.assert(prop.itemIndent(advanced) == prop.itemIndent(shear))     // subgroup header aligns with its field
 
     // The three decorators on 'mass' produced three extra rows before it, all under Physics.
     var spacer, heading, note: #null *PropertiesItem
@@ -1750,14 +1750,14 @@ struct PropDecorData
     let spacerIt  = spacer!
     let headingIt = heading!
     let noteIt    = note!
-    @assert(headingIt.parent == physics and spacerIt.parent == physics and noteIt.parent == physics)
-    @assert(headingIt.typeValue.name == "Body")
-    @assert(spacerIt.line.position.height == 16)     // Gap(16)
-    @assert(@isset(noteIt.label))                    // the info bar label
+    Swag.assert(headingIt.parent == physics and spacerIt.parent == physics and noteIt.parent == physics)
+    Swag.assert(headingIt.typeValue.name == "Body")
+    Swag.assert(spacerIt.line.position.height == 16)     // Gap(16)
+    Swag.assert(Swag.isSet(noteIt.label))                    // the info bar label
 
     // Decorators are inert: not focusable and never expandable.
-    @assert(headingIt.flags.has(.NoFocus) and spacerIt.flags.has(.NoFocus) and noteIt.flags.has(.NoFocus))
-    @assert(headingIt.numChilds == 0 and spacerIt.numChilds == 0 and noteIt.numChilds == 0)
+    Swag.assert(headingIt.flags.has(.NoFocus) and spacerIt.flags.has(.NoFocus) and noteIt.flags.has(.NoFocus))
+    Swag.assert(headingIt.numChilds == 0 and spacerIt.numChilds == 0 and noteIt.numChilds == 0)
 }
 
 struct PropHeadlessFontStyleData
@@ -1793,12 +1793,12 @@ struct PropHeadlessPanelStringData
     let fixed       = findFieldItem(prop, #nameof(PropHeadlessPanelStringData.fixed))!
     let dynamicCtrl = cast(*EditCtrl) dynamic.line.children[1]
     let fixedCtrl   = cast(*EditCtrl) fixed.line.children[1]
-    @assert(!dynamic.label.isVisible() and !fixed.label.isVisible())
-    @assert(dynamicCtrl.label.text() == "Dynamic text" and fixedCtrl.label.text() == "Fixed text")
-    @assert(dynamicCtrl.label.position.width == fixedCtrl.label.position.width)
-    @assert(dynamicCtrl.edit.position.x == fixedCtrl.edit.position.x)
-    @assert(dynamicCtrl.edit.text() == "Editable" and fixedCtrl.edit.text() == "Read only")
-    @assert(fixedCtrl.edit.flags.has(.ReadOnly))
+    Swag.assert(!dynamic.label.isVisible() and !fixed.label.isVisible())
+    Swag.assert(dynamicCtrl.label.text() == "Dynamic text" and fixedCtrl.label.text() == "Fixed text")
+    Swag.assert(dynamicCtrl.label.position.width == fixedCtrl.label.position.width)
+    Swag.assert(dynamicCtrl.edit.position.x == fixedCtrl.edit.position.x)
+    Swag.assert(dynamicCtrl.edit.text() == "Editable" and fixedCtrl.edit.text() == "Read only")
+    Swag.assert(fixedCtrl.edit.flags.has(.ReadOnly))
 }
 
 // The bold/italic buttons of the FontFamilyStyle editor are independent toggles: a
@@ -1823,13 +1823,13 @@ struct PropHeadlessPanelStringData
     let btnItalic = cast(*IconButton) stack.children[1]
 
     host.clickWnd(btnBold)
-    @assert(data.style == .Bold)
+    Swag.assert(data.style == .Bold)
     host.clickWnd(btnItalic)
-    @assert(data.style == .BoldItalic)
+    Swag.assert(data.style == .BoldItalic)
     host.clickWnd(btnBold)
-    @assert(data.style == .Italic)
+    Swag.assert(data.style == .Italic)
     host.clickWnd(btnItalic)
-    @assert(data.style == .Regular)
+    Swag.assert(data.style == .Regular)
 }
 
 struct PropHeadlessUsingBase
@@ -1859,7 +1859,7 @@ struct PropHeadlessUsingDerived
                 return idx
         }
 
-        @assert(false)
+        Swag.assert(false)
         return 0
     }
 
@@ -1868,13 +1868,13 @@ struct PropHeadlessUsingDerived
     // Declaration order by default: the 'using' base fields come first
     let prop0 = Properties.create(&host.root, {0, 0, 240, 300})
     prop0.addStruct(data)
-    @assert(indexOf(prop0, "baseVal") < indexOf(prop0, "ownVal"))
+    Swag.assert(indexOf(prop0, "baseVal") < indexOf(prop0, "ownVal"))
 
     // Most specific first with usingFieldsLast
     let prop1 = Properties.create(&host.root, {0, 0, 240, 300})
     prop1.setUsingFieldsLast(true)
     prop1.addStruct(data)
-    @assert(indexOf(prop1, "ownVal") < indexOf(prop1, "baseVal"))
+    Swag.assert(indexOf(prop1, "ownVal") < indexOf(prop1, "baseVal"))
 }
 
 enum PropFilterChoice
@@ -1914,17 +1914,17 @@ impl IPropertyNotify for PropFilterHost
     prop.addStruct(data)
 
     let item = prop.items[1]!
-    @assert(@isset(item.comboBox))
-    @assert(item.comboBox.items.count == 3)
+    Swag.assert(Swag.isSet(item.comboBox))
+    Swag.assert(item.comboBox.items.count == 3)
 
     // Medium is enum value 2 but combo slot 1 (Hidden is filtered out)
-    @assert(item.comboBox.selectedIndex == 1)
+    Swag.assert(item.comboBox.selectedIndex == 1)
 
     // Selecting the last combo slot writes the matching enum value back
     item.comboBox.setSelectedIndex(2)
-    @assert(data.choice == .High)
+    Swag.assert(data.choice == .High)
     item.comboBox.setSelectedIndex(0)
-    @assert(data.choice == .Low)
+    Swag.assert(data.choice == .Low)
 }
 
 // A String field naming a document, and one holding free text beside it.
@@ -1954,16 +1954,16 @@ struct PropDropData
     let sourceItem = findFieldItem(prop, "source")!
     let noteItem   = findFieldItem(prop, "note")!
 
-    @assert(host.dropFilesOnWnd(sourceItem.editBox, ["c:/assets/mesh.obj"]) == DropEffect.Copy)
-    @assert(sourceItem.editBox.text() == "c:/assets/mesh.obj")
+    Swag.assert(host.dropFilesOnWnd(sourceItem.editBox, ["c:/assets/mesh.obj"]) == DropEffect.Copy)
+    Swag.assert(sourceItem.editBox.text() == "c:/assets/mesh.obj")
 
     // The editor holds it until the focus leaves, which is when a typed value lands too.
     prop.validateDynamicString(sourceItem)
-    @assert(data.source == "c:/assets/mesh.obj")
+    Swag.assert(data.source == "c:/assets/mesh.obj")
 
     // A field that did not ask for paths refuses them and keeps what it had.
-    @assert(host.dropFilesOnWnd(noteItem.editBox, ["c:/assets/mesh.obj"]) == DropEffect.None)
-    @assert(noteItem.editBox.text() == "")
+    Swag.assert(host.dropFilesOnWnd(noteItem.editBox, ["c:/assets/mesh.obj"]) == DropEffect.None)
+    Swag.assert(noteItem.editBox.text() == "")
 }
 
 struct PropSameCategData
@@ -1999,8 +1999,8 @@ struct PropSameCategData
             categs += 1
     }
 
-    @assert(categs == 1)
-    @assert(opt.properties.items.count == 5)
+    Swag.assert(categs == 1)
+    Swag.assert(opt.properties.items.count == 5)
 
     // The bool description spans the control width, not the value column
     var descItem: #null *PropertiesItem
@@ -2011,8 +2011,8 @@ struct PropSameCategData
     }
 
     let descIt = descItem!
-    @assert(@isset(descIt.checkBox))
-    @assert(descIt.checkBox.parent!.position.width > cast(f32) opt.properties.editorWidth)
+    Swag.assert(Swag.isSet(descIt.checkBox))
+    Swag.assert(descIt.checkBox.parent!.position.width > cast(f32) opt.properties.editorWidth)
 }
 
 enum PropAlignChoice { A, B, C }
@@ -2048,11 +2048,11 @@ struct PropAlignData
         {
             let it = item!
             var w: #null *Wnd
-            if @isset(it.sliderBox) do
+            if Swag.isSet(it.sliderBox) do
                 w = it.sliderBox
-            elif @isset(it.comboBox) do
+            elif Swag.isSet(it.comboBox) do
                 w = it.comboBox
-            elif @isset(it.editBox) do
+            elif Swag.isSet(it.editBox) do
                 w = it.editBox
             if !w do
                 continue
@@ -2060,10 +2060,10 @@ struct PropAlignData
             let wnd = w!
             if right < 0 do
                 right = wnd.position.right()
-            @assert(Math.isEqualEpsilon(wnd.position.right(), right, 0.01))
+            Swag.assert(Math.isEqualEpsilon(wnd.position.right(), right, 0.01))
         }
 
-        @assert(right > 0)
+        Swag.assert(right > 0)
     }
 
     assertAligned(prop)
@@ -2087,7 +2087,7 @@ struct PropAlignData
     // Whatever this test installs, the next one starts with the declared strings.
     defer Properties.setTextResolver(null)
 
-    @assert(Properties.resolveText("Thickness") == "Thickness")
+    Swag.assert(Properties.resolveText("Thickness") == "Thickness")
 
     Properties.setTextResolver(func(key: string)->#null string
     {
@@ -2100,16 +2100,16 @@ struct PropAlignData
         return null
     })
 
-    @assert(Properties.resolveText("Thickness") == "Epaisseur")
-    @assert(Properties.resolveText("Count") == "Count")
+    Swag.assert(Properties.resolveText("Thickness") == "Epaisseur")
+    Swag.assert(Properties.resolveText("Count") == "Count")
 
     // An installed resolver outranks the module's own wording for the same key, and the
     // module still answers for the keys the resolver declines.
-    @assert(Properties.resolveText("Debug") == "Diagnostics")
-    @assert(Properties.resolveText("Show Clip Rect") == strings().prop_ShowClipRect)
+    Swag.assert(Properties.resolveText("Debug") == "Diagnostics")
+    Swag.assert(Properties.resolveText("Show Clip Rect") == strings().prop_ShowClipRect)
 
     Properties.setTextResolver(null)
-    @assert(Properties.resolveText("Thickness") == "Thickness")
+    Swag.assert(Properties.resolveText("Thickness") == "Thickness")
 }
 
 // Every generated row goes through the resolver: the field label, the category header,
@@ -2144,19 +2144,19 @@ struct PropAlignData
     for item in prop.items
     {
         let it = item!
-        if !@isset(it.label) do
+        if !Swag.isSet(it.label) do
             continue
         if it.label.text() == "Nombres" do
             sawCategory = true
         if it.label.text() == "Nombre" do
             sawLabel = true
-        if @isset(it.comboBox) and it.comboBox.items.count == 2 and it.comboBox.items[0]!.name.raw == "Droite" do
+        if Swag.isSet(it.comboBox) and it.comboBox.items.count == 2 and it.comboBox.items[0]!.name.raw == "Droite" do
             sawCombo = true
     }
 
-    @assert(sawCategory)
-    @assert(sawLabel)
-    @assert(sawCombo)
+    Swag.assert(sawCategory)
+    Swag.assert(sawLabel)
+    Swag.assert(sawCombo)
 }
 
 // Filtering is stronger than the persisted disclosure state: a match remains reachable through
@@ -2174,14 +2174,14 @@ struct PropAlignData
     let numbers = findFieldItem(prop, "Numbers")!
     let count   = findFieldItem(prop, #nameof(PropHeadlessGroupedData.count))!
     prop.collapseAll()
-    @assert(!numbers.flags.has(.Expanded) and !count.line.isVisible())
+    Swag.assert(!numbers.flags.has(.Expanded) and !count.line.isVisible())
 
     prop.setFilter("Count")
-    @assert(numbers.line.isVisible() and count.line.isVisible())
-    @assert(!numbers.flags.has(.Expanded))
+    Swag.assert(numbers.line.isVisible() and count.line.isVisible())
+    Swag.assert(!numbers.flags.has(.Expanded))
 
     prop.setFilter("")
-    @assert(!numbers.flags.has(.Expanded) and !count.line.isVisible())
+    Swag.assert(!numbers.flags.has(.Expanded) and !count.line.isVisible())
 }
 
 // The modified-only view composes with default tracking and updates immediately when an edit is
@@ -2203,24 +2203,24 @@ struct PropAlignData
 
     data.enabled = false
     prop.updateStates()
-    @assert(enabled.isModified and !count.isModified)
+    Swag.assert(enabled.isModified and !count.isModified)
 
     prop.collapseAll()
     prop.expandModified()
-    @assert(!numbers.flags.has(.Expanded) and flags.flags.has(.Expanded))
-    @assert(!count.line.isVisible() and enabled.line.isVisible())
+    Swag.assert(!numbers.flags.has(.Expanded) and flags.flags.has(.Expanded))
+    Swag.assert(!count.line.isVisible() and enabled.line.isVisible())
 
     prop.expandAll()
-    @assert(count.line.isVisible() and enabled.line.isVisible())
+    Swag.assert(count.line.isVisible() and enabled.line.isVisible())
 
     prop.setModifiedOnly(true)
-    @assert(prop.modifiedOnly)
-    @assert(!count.line.isVisible() and enabled.line.isVisible())
+    Swag.assert(prop.modifiedOnly)
+    Swag.assert(!count.line.isVisible() and enabled.line.isVisible())
 
     prop.resetItemDefault(enabled)
-    @assert(!enabled.isModified and !enabled.line.isVisible())
+    Swag.assert(!enabled.isModified and !enabled.line.isVisible())
     prop.setModifiedOnly(false)
-    @assert(count.line.isVisible() and enabled.line.isVisible())
+    Swag.assert(count.line.isVisible() and enabled.line.isVisible())
 }
 
 enum PropGoldenChoice

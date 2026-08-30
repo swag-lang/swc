@@ -521,7 +521,7 @@ impl SplitterCtrl
 
         .numVisiblePanes += visible ? 1 : -1
         pane.visible     = visible
-        if @isset(pane.view) do
+        if Swag.isSet(pane.view) do
             pane.view.show(visible)
         if pane.label do
             pane.label.show(visible)

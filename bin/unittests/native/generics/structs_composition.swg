@@ -55,14 +55,14 @@ func(T) swapPair(p: Pair'(T, T))->Pair'(T, T)
 #test
 {
     let wrapped: Wrapper'string = {item: {value: "nested"}}
-    @assert(wrapped.item.value == "nested")
+    Swag.assert(wrapped.item.value == "nested")
     #assert(#typeof(wrapped.item.value) == string)
 
     let deep: DeepWrapper's32 = {inner: {item: {value: 99}}}
-    @assert(deep.inner.item.value == 99)
+    Swag.assert(deep.inner.item.value == 99)
 
     let deepText: DeepWrapper'string = {inner: {item: {value: "deep"}}}
-    @assert(deepText.inner.item.value == "deep")
+    Swag.assert(deepText.inner.item.value == "deep")
 }
 
 #test
@@ -71,8 +71,8 @@ func(T) swapPair(p: Pair'(T, T))->Pair'(T, T)
     let second:  Buffer'(u8, 3)       = {values: [4'u8, 5, 6]}
     let doubled: DoubleBuffer'(u8, 3) = {first: first, second: second}
 
-    @assert(doubled.first.values[0] == 1'u8)
-    @assert(doubled.second.values[2] == 6'u8)
+    Swag.assert(doubled.first.values[0] == 1'u8)
+    Swag.assert(doubled.second.values[2] == 6'u8)
     #assert(#typeof(doubled.first.values) == #type [3] u8)
     #assert(#typeof(doubled.second.values) == #type [3] u8)
 }
@@ -80,30 +80,30 @@ func(T) swapPair(p: Pair'(T, T))->Pair'(T, T)
 #test
 {
     let p: Pair'(s32, f64) = {first: 1, second: 2.5}
-    @assert(p.first == 1)
-    @assert(p.second == 2.5)
+    Swag.assert(p.first == 1)
+    Swag.assert(p.second == 2.5)
 
     let p2: Pair'(string, bool) = {first: "yes", second: true}
-    @assert(p2.first == "yes")
-    @assert(p2.second == true)
+    Swag.assert(p2.first == "yes")
+    Swag.assert(p2.second == true)
 
     let t: Triple'(s32, f64, bool) = {a: 10, b: 3.14, c: false}
-    @assert(t.a == 10)
-    @assert(t.b == 3.14)
-    @assert(t.c == false)
+    Swag.assert(t.a == 10)
+    Swag.assert(t.b == 3.14)
+    Swag.assert(t.c == false)
 }
 
 #test
 {
     let p: Pair'(s32, s32) = {first: 10, second: 20}
     let swapped            = swapPair'(s32)(p)
-    @assert(swapped.first == 20)
-    @assert(swapped.second == 10)
+    Swag.assert(swapped.first == 20)
+    Swag.assert(swapped.second == 10)
 
     let names: Pair'(string, string) = {first: "left", second: "right"}
     let swappedNames                 = swapPair'(string)(names)
-    @assert(swappedNames.first == "right")
-    @assert(swappedNames.second == "left")
+    Swag.assert(swappedNames.first == "right")
+    Swag.assert(swappedNames.second == "left")
 }
 
 #test
@@ -112,16 +112,16 @@ func(T) swapPair(p: Pair'(T, T))->Pair'(T, T)
         first: {first: 1, second: 2},
         second: {first: 3.0, second: 4.0}}
 
-    @assert(nested.first.first == 1)
-    @assert(nested.first.second == 2)
-    @assert(nested.second.first == 3.0)
-    @assert(nested.second.second == 4.0)
+    Swag.assert(nested.first.first == 1)
+    Swag.assert(nested.first.second == 2)
+    Swag.assert(nested.second.first == 3.0)
+    Swag.assert(nested.second.second == 4.0)
 }
 
 #test
 {
     let ba: BoxArray'(s32, 3) = {boxes: [{value: 1}, {value: 2}, {value: 3}]}
-    @assert(ba.boxes[0].value == 1)
-    @assert(ba.boxes[1].value == 2)
-    @assert(ba.boxes[2].value == 3)
+    Swag.assert(ba.boxes[0].value == 1)
+    Swag.assert(ba.boxes[1].value == 2)
+    Swag.assert(ba.boxes[2].value == 3)
 }

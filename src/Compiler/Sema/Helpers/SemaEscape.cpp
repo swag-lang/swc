@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -904,8 +904,9 @@ namespace
 
     SemaEscapeInfo intrinsicCallEscapeInfo(Sema& sema, AstNodeRef intrinsicRef, const AstIntrinsicCall& intrinsic, uint32_t& budget)
     {
-        const Token& tok = sema.token(sema.node(intrinsicRef).codeRef());
-        if (!tok.isAny({TokenId::IntrinsicMakeString, TokenId::IntrinsicMakeSlice, TokenId::IntrinsicDataOf}))
+        if (intrinsic.intrinsicId != TokenId::IntrinsicMakeString &&
+            intrinsic.intrinsicId != TokenId::IntrinsicMakeSlice &&
+            intrinsic.intrinsicId != TokenId::IntrinsicDataOf)
             return {};
 
         SmallVector<AstNodeRef> children;
@@ -3517,11 +3518,11 @@ namespace
         return false;
     }
 
-    // Would this '@setcontext' argument install storage belonging to THIS frame? The
+    // Would this 'Swag.setContext' argument install storage belonging to THIS frame? The
     // intrinsic takes a pointer, so the answer is decided by the spelling. A context VALUE
     // is handed over by an implicit address-of, which makes the frame slot the installed
     // address. A POINTER hands over what it already points at, and the pointer local
-    // 'let prev = @getcontext()' points at storage the runtime owns - rooting the
+    // 'let prev = Swag.getContext()' points at storage the runtime owns - rooting the
     // judgement at the variable instead of at what it addresses would report the restore
     // in every scoped use.
     bool setContextInstallsFrameStorage(Sema& sema, AstNodeRef argRef)
@@ -3580,7 +3581,7 @@ namespace
             const AstNode& node = sema.node(nodeRef);
             if (nodeRef != exceptRef &&
                 node.is(AstNodeId::IntrinsicCallExpr) &&
-                sema.token(node.codeRef()).id == TokenId::IntrinsicSetContext &&
+                node.cast<AstIntrinsicCallExpr>().intrinsicId == TokenId::IntrinsicSetContext &&
                 !setContextInstallsFrameStorage(sema, intrinsicFirstArgument(sema, nodeRef)))
                 return true;
 

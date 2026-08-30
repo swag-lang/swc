@@ -1291,7 +1291,7 @@ func drawNumberAsSprite(number: s32)
     thePainter().pushTransform()
 
     let str = Format.toString("%", number)
-    for i in @countof(str).reversed()
+    for i in str.count.reversed()
     {
         switch str[i]
         {

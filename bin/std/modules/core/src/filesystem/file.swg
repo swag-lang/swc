@@ -162,7 +162,7 @@ func readAllBytes(fullname: string)->Array'u8 fail
 func writeAllBytes(fullname: string, buffer: const [..] u8)->u64 fail
 {
     var stream = openWrite(fullname)
-    return stream.write(@dataof(buffer), @countof(buffer))
+    return stream.write(buffer.buffer, buffer.count)
 }
 
 // Writes the content of a ConcatBuffer to a file
@@ -187,8 +187,8 @@ func writeAllLines(fullname: string, lines: Array'(string))->u64 fail
     var total = 0'u64
     for v in lines
     {
-        total += stream.write(@dataof(v), @countof(v))
-        total += stream.write(@dataof("\n"), 1)
+        total += stream.write(v.buffer, v.count)
+        total += stream.write(("\n").buffer, 1)
     }
 
     return total

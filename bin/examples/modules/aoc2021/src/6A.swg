@@ -64,7 +64,7 @@ func day6A()
 
     for day in 80
     {
-        for f in @countof(values)
+        for f in values.count
         {
             if values[f] == 0
             {
@@ -77,5 +77,5 @@ func day6A()
     }
 
     // Console.print("total: ", values.count)
-    @assert(values.count == 388739)
+    Swag.assert(values.count == 388739)
 }

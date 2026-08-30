@@ -279,10 +279,10 @@ impl BasicTextView
             .hasText       = !chunk.isEmpty()
             .virtualHeight = previousHeight
             .updateEstimatedHeight()
-            if @countof(text)
+            if text.count
             {
                 if .encoding == .Utf8 do
-                    highlightRichEditMatch(.editor, chunk.toString(), requested - actual, @countof(text))
+                    highlightRichEditMatch(.editor, chunk.toString(), requested - actual, text.count)
                 else do
                     discard .editor.findText(text)
             }

@@ -207,7 +207,7 @@ impl Decoder
             fail InvalidFormatError{"bad variable marker"}
         left -= 2
 
-        @assert(!.acceptMetadata)
+        Swag.assert(!.acceptMetadata)
         while left
         {
             .getBits1(8)
@@ -350,7 +350,7 @@ impl Decoder
             let c = cast(u8) .getBits1(8)
             left -= 1
 
-            if prefixCount < @countof(prefix)
+            if prefixCount < prefix.count
             {
                 prefix[prefixCount] = c
                 prefixCount         += 1
@@ -372,7 +372,7 @@ impl Decoder
             .hasJfifMarker = true
         }
 
-        if cast(u32) marker == cast(u32) Marker.M_APP0 + 14 and prefixCount == @countof(prefix) and prefix[0] == 'A' and prefix[1] == 'd' and prefix[2] == 'o' and prefix[3] == 'b' and prefix[4] == 'e'
+        if cast(u32) marker == cast(u32) Marker.M_APP0 + 14 and prefixCount == prefix.count and prefix[0] == 'A' and prefix[1] == 'd' and prefix[2] == 'o' and prefix[3] == 'b' and prefix[4] == 'e'
         {
             .hasAdobeMarker = true
             .adobeTransform = prefix[11]

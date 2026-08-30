@@ -261,61 +261,61 @@ func nativeWithMeDisambiguation()->s32
 
 #test
 {
-    @assert(nativeWithValueAndPointer() == 24)
+    Swag.assert(nativeWithValueAndPointer() == 24)
 }
 
 #test
 {
-    @assert(nativeWithAssignmentsAndScopes() == 45)
+    Swag.assert(nativeWithAssignmentsAndScopes() == 45)
 }
 
 #test
 {
-    @assert(nativeWithAssignedValueTarget() == 1122)
+    Swag.assert(nativeWithAssignedValueTarget() == 1122)
 }
 
 #test
 {
-    @assert(nativeWithAnonymous() == 813)
+    Swag.assert(nativeWithAnonymous() == 813)
 }
 
 #test
 {
-    @assert(nativeWithLocalInit() == 2236)
+    Swag.assert(nativeWithLocalInit() == 2236)
 }
 
 #test
 {
-    @assert(nativeWithLetPointer() == 1324)
+    Swag.assert(nativeWithLetPointer() == 1324)
 }
 
 #test
 {
-    @assert(nativeWithNestedMemberTarget() == 2215)
+    Swag.assert(nativeWithNestedMemberTarget() == 2215)
 }
 
 #test
 {
-    @assert(nativeWithMeDisambiguation() == 409)
+    Swag.assert(nativeWithMeDisambiguation() == 409)
 }
 
 #test
 {
     let pair = nativeWithRetval()
-    @assert(pair.a == 21)
-    @assert(pair.b == 34)
+    Swag.assert(pair.a == 21)
+    Swag.assert(pair.b == 34)
 }
 
 #test
 {
     let pair = nativeWithRetvalUndefined()
-    @assert(pair.a == 55)
-    @assert(pair.b == 89)
+    Swag.assert(pair.a == 55)
+    Swag.assert(pair.b == 89)
 }
 
 #test
 {
     var owner: NativeWithMemberOwner
     owner.point = nativeWithMakePoint(10, 20)
-    @assert(owner.applyMemberScope() == 1527)
+    Swag.assert(owner.applyMemberScope() == 1527)
 }

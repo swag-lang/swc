@@ -26,7 +26,7 @@ impl IActionUI for ActionEdit
             if capture.selection.count
             {
                 let f = capture.forms[capture.selection.back()]
-                lastSelType = @kindof(f)
+                lastSelType = Swag.kindOf(f)
             }
         }
 
@@ -48,9 +48,9 @@ impl IActionUI for ActionEdit
                 for it in capture.selection
                 {
                     let itfForm = capture.forms[it]
-                    if @kindof(itfForm) != FormImage do
+                    if Swag.kindOf(itfForm) != FormImage do
                         continue
-                    let b = cast(*FormImage) @dataof(itfForm)
+                    let b = cast(*FormImage) itfForm.buffer
                     if b.kind != .Image do
                         continue
                     evt.hidden = false
@@ -75,7 +75,7 @@ impl IActionUI for ActionEdit
                     if !itfForm.canRotate() do
                         continue
                     evt.hidden = false
-                    let b = cast(*BaseForm) @dataof(itfForm)
+                    let b = cast(*BaseForm) itfForm.buffer
                     if !Math.isZeroEpsilon(b.rotate)
                     {
                         evt.disabled = false

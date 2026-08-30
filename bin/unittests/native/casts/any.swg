@@ -7,14 +7,14 @@ alias AnyCastStrictAny = any
 {
     var a: any = 12
     var b: s32 = cast() a
-    @assert(b == 12)
+    Swag.assert(b == 12)
 }
 
 #test
 {
     func takes(v: s32) {}
     var a: any = 12
-    @assert(cast(s32) a == 12)
+    Swag.assert(cast(s32) a == 12)
 }
 
 #test
@@ -23,7 +23,7 @@ alias AnyCastStrictAny = any
     var a: any = 12
     var b: s32 = cast() a
     takes(b)
-    @assert(b == 12)
+    Swag.assert(b == 12)
 }
 
 #test
@@ -34,7 +34,7 @@ alias AnyCastStrictAny = any
     {
         passed = true
     }
-    @assert(passed)
+    Swag.assert(passed)
 }
 
 #test
@@ -42,8 +42,8 @@ alias AnyCastStrictAny = any
     var a: any   = 42
     let refValue = cast(const *s32) a
     let ptrValue = cast(const *s32) a
-    @assert(refValue[] == 42)
-    @assert(ptrValue[] == 42)
+    Swag.assert(refValue[] == 42)
+    Swag.assert(ptrValue[] == 42)
 }
 
 struct AnyCastBase
@@ -64,22 +64,22 @@ struct AnyCompareType {}
     var boxed: any = AnyCastDerived{base: {value: 9}, extra: 2}
     let baseRef    = cast(const *AnyCastBase) boxed
     let basePtr    = cast(const *AnyCastBase) boxed
-    @assert(baseRef.value == 9)
-    @assert(basePtr.value == 9)
+    Swag.assert(baseRef.value == 9)
+    Swag.assert(basePtr.value == 9)
 }
 
 #test
 {
     var x: any = 6
-    @assert(x == s32)
-    @assert(x != bool)
+    Swag.assert(x == s32)
+    Swag.assert(x != bool)
 
     x = "string"
-    @assert(x == string)
-    @assert(x != s32)
+    Swag.assert(x == string)
+    Swag.assert(x != s32)
 
     x = AnyCompareType{}
-    @assert(x == AnyCompareType)
+    Swag.assert(x == AnyCompareType)
 }
 
 #test
@@ -87,14 +87,14 @@ struct AnyCompareType {}
     var raw: any = 12
     let boxed    = (&raw)[as AnyCastStrictAny]
 
-    @assert(cast(s32) boxed == 12)
+    Swag.assert(cast(s32) boxed == 12)
 }
 
 #test
 {
     let boxed = cast(AnyCastStrictAny) 21
 
-    @assert(cast(s32) boxed == 21)
+    Swag.assert(cast(s32) boxed == 21)
 }
 
 #test
@@ -104,8 +104,8 @@ struct AnyCompareType {}
     let refValue = cast(const *s32) boxed
     let ptrValue = cast(const *s32) boxed
 
-    @assert(refValue[] == 42)
-    @assert(ptrValue[] == 42)
+    Swag.assert(refValue[] == 42)
+    Swag.assert(ptrValue[] == 42)
 }
 
 #test
@@ -115,6 +115,6 @@ struct AnyCompareType {}
     let baseRef  = cast(const *AnyCastBase) boxed
     let basePtr  = cast(const *AnyCastBase) boxed
 
-    @assert(baseRef.value == 9)
-    @assert(basePtr.value == 9)
+    Swag.assert(baseRef.value == 9)
+    Swag.assert(basePtr.value == 9)
 }

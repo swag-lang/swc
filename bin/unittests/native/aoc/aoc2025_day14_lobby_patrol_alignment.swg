@@ -89,7 +89,7 @@ func analyzePatrol(robots: const [..] PatrolRobot, width, height, safetyStep, se
 
     for cast(u32) (searchLimit + 1)
     {
-        let step = cast(s32) @index
+        let step = cast(s32) Swag.index
 
         var minX = Swag.S32.Max
         var minY = Swag.S32.Max
@@ -136,9 +136,9 @@ func analyzePatrol(robots: const [..] PatrolRobot, width, height, safetyStep, se
 
     let sampleReport = analyzePatrol(sampleRobots, 11, 7, 2, 20)
 
-    @assert(sampleReport.safetyFactor == 1'u64)
-    @assert(sampleReport.mostCompactStep == 3'u32)
-    @assert(sampleReport.compactArea == 15'u32)
+    Swag.assert(sampleReport.safetyFactor == 1'u64)
+    Swag.assert(sampleReport.mostCompactStep == 3'u32)
+    Swag.assert(sampleReport.compactArea == 15'u32)
 
     const concourseRobots: [8] PatrolRobot =
         [
@@ -154,7 +154,7 @@ func analyzePatrol(robots: const [..] PatrolRobot, width, height, safetyStep, se
 
     let concourseReport = analyzePatrol(concourseRobots, 11, 7, 1, 20)
 
-    @assert(concourseReport.safetyFactor == 1'u64)
-    @assert(concourseReport.mostCompactStep == 2'u32)
-    @assert(concourseReport.compactArea == 27'u32)
+    Swag.assert(concourseReport.safetyFactor == 1'u64)
+    Swag.assert(concourseReport.mostCompactStep == 2'u32)
+    Swag.assert(concourseReport.compactArea == 27'u32)
 }

@@ -1,12 +1,12 @@
-# `if @countof(x)` crashes code generation when `x` resolves `opCount`
+# `if x.count` crashes code generation when `x` resolves `opCount`
 
 - Area: compiler
-- Found while: testing an image codec name, where the condition was `@countof` over a
+- Found while: testing an image codec name, where the condition was `.count` over a
   `Core.String`.
-- Observation: an `if` whose whole condition is `@countof(value)`, and whose type resolves the
+- Observation: an `if` whose whole condition is `value.count`, and whose type resolves the
   count through a user `opCount` method, dereferences a null payload in code generation and takes
   the process down. The same intrinsic compiles in neighbouring positions, so the defect is in
-  how the statement matches its condition child, not in `@countof` itself.
+  how the statement matches its condition child, not in `.count` itself.
 - Evidence: the failure reads a null state after the condition callback never created its payload.
   This standalone file reproduces it:
 
@@ -20,7 +20,7 @@
 
   func classify(box: Box)->s32
   {
-      if @countof(box) do
+      if box.count do
           return 1
       return 0
   }

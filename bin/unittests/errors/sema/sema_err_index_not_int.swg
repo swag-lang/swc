@@ -33,7 +33,7 @@ enum VariadicKind: u16
 
 #test
 {
-    func variadicAnyOnly(values: ...)->u64 { return @countof(values) }
+    func variadicAnyOnly(values: ...)->u64 { return values.count }
     const V0 = #run variadicAnyOnly()
     const V1 = #run variadicAnyOnly(1, 2, 3, 4)
     #assert(V0 == 0)
@@ -42,7 +42,7 @@ enum VariadicKind: u16
 
 #test
 {
-    func variadicAnyWithHead(a: s32, values: ...)->s32 { return a + cast(s32) @countof(values) }
+    func variadicAnyWithHead(a: s32, values: ...)->s32 { return a + cast(s32) values.count }
     const V0 = #run variadicAnyWithHead(42)
     const V1 = #run variadicAnyWithHead(42, "x", 1, false)
     #assert(V0 == 42)
@@ -53,10 +53,10 @@ enum VariadicKind: u16
 {
     func variadicAny(values: ...)->s32
     {
-        let p0 = cast(*s32) @dataof(values[0])
-        let p1 = cast(*s32) @dataof(values[1])
-        let p2 = cast(*s32) @dataof(values[2])
-        let p3 = cast(*s32) @dataof(values[3])
+        let p0 = cast(*s32) values[0].buffer
+        let p1 = cast(*s32) values[1].buffer
+        let p2 = cast(*s32) values[2].buffer
+        let p3 = cast(*s32) values[3].buffer
         return p0[] + p1[] + p2[] + p3[]
     }
 
@@ -68,10 +68,10 @@ enum VariadicKind: u16
 {
     func variadicAny(values: ...)->s64
     {
-        let p0 = cast(*s64) @dataof(values[0])
-        let p1 = cast(*s64) @dataof(values[1])
-        let p2 = cast(*s64) @dataof(values[2])
-        let p3 = cast(*s64) @dataof(values[3])
+        let p0 = cast(*s64) values[0].buffer
+        let p1 = cast(*s64) values[1].buffer
+        let p2 = cast(*s64) values[2].buffer
+        let p3 = cast(*s64) values[3].buffer
         return p0[] + p1[] + p2[] + p3[]
     }
 
@@ -84,8 +84,8 @@ enum VariadicKind: u16
 {
     func variadicAnyWithHead(a: s64, values: ...)->s64
     {
-        let p0 = cast(*s64) @dataof(values[0])
-        let p1 = cast(*s64) @dataof(values[1])
+        let p0 = cast(*s64) values[0].buffer
+        let p1 = cast(*s64) values[1].buffer
         return a + p0[] + p1[]
     }
 
@@ -98,10 +98,10 @@ enum VariadicKind: u16
 {
     func variadicAny(values: ...)->u32
     {
-        let p0 = cast(*u32) @dataof(values[0])
-        let p1 = cast(*u32) @dataof(values[1])
-        let p2 = cast(*u32) @dataof(values[2])
-        let p3 = cast(*u32) @dataof(values[3])
+        let p0 = cast(*u32) values[0].buffer
+        let p1 = cast(*u32) values[1].buffer
+        let p2 = cast(*u32) values[2].buffer
+        let p3 = cast(*u32) values[3].buffer
         return p0[] + p1[] + p2[] + p3[]
     }
 
@@ -114,8 +114,8 @@ enum VariadicKind: u16
 {
     func variadicAnyWithHead(a: u32, values: ...)->u32
     {
-        let p0 = cast(*u32) @dataof(values[0])
-        let p1 = cast(*u32) @dataof(values[1])
+        let p0 = cast(*u32) values[0].buffer
+        let p1 = cast(*u32) values[1].buffer
         return a + p0[] + p1[]
     }
 
@@ -128,9 +128,9 @@ enum VariadicKind: u16
 {
     func variadicAny(values: ...)->f32
     {
-        let p0 = cast(*f32) @dataof(values[0])
-        let p1 = cast(*f32) @dataof(values[1])
-        let p2 = cast(*f32) @dataof(values[2])
+        let p0 = cast(*f32) values[0].buffer
+        let p1 = cast(*f32) values[1].buffer
+        let p2 = cast(*f32) values[2].buffer
         return p0[] + p1[] + p2[]
     }
 
@@ -143,8 +143,8 @@ enum VariadicKind: u16
 {
     func variadicAnyWithHead(a: f32, values: ...)->f32
     {
-        let p0 = cast(*f32) @dataof(values[0])
-        let p1 = cast(*f32) @dataof(values[1])
+        let p0 = cast(*f32) values[0].buffer
+        let p1 = cast(*f32) values[1].buffer
         return a + p0[] + p1[]
     }
 
@@ -157,10 +157,10 @@ enum VariadicKind: u16
 {
     func variadicAny(values: ...)->f64
     {
-        let p0 = cast(*f64) @dataof(values[0])
-        let p1 = cast(*f64) @dataof(values[1])
-        let p2 = cast(*f64) @dataof(values[2])
-        let p3 = cast(*f64) @dataof(values[3])
+        let p0 = cast(*f64) values[0].buffer
+        let p1 = cast(*f64) values[1].buffer
+        let p2 = cast(*f64) values[2].buffer
+        let p3 = cast(*f64) values[3].buffer
         return p0[] + p1[] + p2[] + p3[]
     }
 
@@ -173,8 +173,8 @@ enum VariadicKind: u16
 {
     func variadicAnyWithHead(a: f64, values: ...)->f64
     {
-        let p0 = cast(*f64) @dataof(values[0])
-        let p1 = cast(*f64) @dataof(values[1])
+        let p0 = cast(*f64) values[0].buffer
+        let p1 = cast(*f64) values[1].buffer
         return a + p0[] + p1[]
     }
 
@@ -187,10 +187,10 @@ enum VariadicKind: u16
 {
     func variadicAny(values: ...)->s32
     {
-        let p0 = cast(*bool) @dataof(values[0])
-        let p1 = cast(*bool) @dataof(values[1])
-        let p2 = cast(*bool) @dataof(values[2])
-        let p3 = cast(*bool) @dataof(values[3])
+        let p0 = cast(*bool) values[0].buffer
+        let p1 = cast(*bool) values[1].buffer
+        let p2 = cast(*bool) values[2].buffer
+        let p3 = cast(*bool) values[3].buffer
         return cast(s32) p0[] + cast(s32) p1[] + cast(s32) p2[] + cast(s32) p3[]
     }
 
@@ -202,8 +202,8 @@ enum VariadicKind: u16
 {
     func variadicAnyWithHead(a: bool, values: ...)->s32
     {
-        let p0 = cast(*bool) @dataof(values[0])
-        let p1 = cast(*bool) @dataof(values[1])
+        let p0 = cast(*bool) values[0].buffer
+        let p1 = cast(*bool) values[1].buffer
         return cast(s32) a + cast(s32) p0[] + cast(s32) p1[]
     }
 
@@ -215,9 +215,9 @@ enum VariadicKind: u16
 {
     func variadicAny(values: ...)->s32
     {
-        let p0 = cast(*rune) @dataof(values[0])
-        let p1 = cast(*rune) @dataof(values[1])
-        let p2 = cast(*rune) @dataof(values[2])
+        let p0 = cast(*rune) values[0].buffer
+        let p1 = cast(*rune) values[1].buffer
+        let p2 = cast(*rune) values[2].buffer
         return cast(s32) p0[] + cast(s32) p1[] + cast(s32) p2[]
     }
 
@@ -229,8 +229,8 @@ enum VariadicKind: u16
 {
     func variadicAnyWithHead(a: rune, values: ...)->s32
     {
-        let p0 = cast(*rune) @dataof(values[0])
-        let p1 = cast(*rune) @dataof(values[1])
+        let p0 = cast(*rune) values[0].buffer
+        let p1 = cast(*rune) values[1].buffer
         return cast(s32) a + cast(s32) p0[] + cast(s32) p1[]
     }
 
@@ -240,7 +240,7 @@ enum VariadicKind: u16
 
 #test
 {
-    func variadicAnyWithHead(a: rune, values: ...)->u64 { return @countof(values) }
+    func variadicAnyWithHead(a: rune, values: ...)->u64 { return values.count }
     const V0 = #run variadicAnyWithHead('a', 'b', 'c')
     #assert(V0 == 2)
 }
@@ -286,9 +286,9 @@ enum VariadicKind: u16
 {
     func variadicAny(values: ...)->bool
     {
-        let p0 = cast(*s32) @dataof(values[0])
-        let p1 = cast(*bool) @dataof(values[1])
-        let p2 = cast(*f64) @dataof(values[2])
+        let p0 = cast(*s32) values[0].buffer
+        let p1 = cast(*bool) values[1].buffer
+        let p2 = cast(*f64) values[2].buffer
         return p0[] == 1 and p1[] and p2[] == 12.5'f64 and cast(string) values[3] == "ab"
     }
 
@@ -298,7 +298,7 @@ enum VariadicKind: u16
 
 #test
 {
-    func variadicAnyOnly(values: ...)->u64 { return @countof(values) }
+    func variadicAnyOnly(values: ...)->u64 { return values.count }
     const V0 = #run variadicAnyOnly(1, 2.5, 3)
     #assert(V0 == 3)
 }
@@ -365,7 +365,7 @@ enum VariadicKind: u16
 {
     func variadicAny(values: ...)->bool
     {
-        return @kindof(values[0]) == s32 and @kindof(values[1]) == f64 and @kindof(values[2]) == bool and @kindof(values[3]) == string
+        return Swag.kindOf(values[0]) == s32 and Swag.kindOf(values[1]) == f64 and Swag.kindOf(values[2]) == bool and Swag.kindOf(values[3]) == string
     }
 
     const V0 = #run variadicAny(7's32, 8.5'f64, true, "ok")
@@ -376,7 +376,7 @@ enum VariadicKind: u16
 {
     func variadicAny(values: ...)->bool
     {
-        return @kindof(values[0]) == rune and @kindof(values[1]) == u64 and @kindof(values[2]) == f32
+        return Swag.kindOf(values[0]) == rune and Swag.kindOf(values[1]) == u64 and Swag.kindOf(values[2]) == f32
     }
 
     const V0 = #run variadicAny(cast(rune) 'A', 12'u64, 3.25'f32)
@@ -387,8 +387,8 @@ enum VariadicKind: u16
 {
     func variadicAny(values: ...)->s32
     {
-        let p0 = cast(*VariadicPair) @dataof(values[0])
-        let p1 = cast(*VariadicPair) @dataof(values[1])
+        let p0 = cast(*VariadicPair) values[0].buffer
+        let p1 = cast(*VariadicPair) values[1].buffer
         let v0 = p0[]
         let v1 = p1[]
         return v0.a + v0.b + v1.a + v1.b
@@ -404,8 +404,8 @@ enum VariadicKind: u16
 {
     func variadicAny(values: ...)->s32
     {
-        let p0 = cast(*[4] s32) @dataof(values[0])
-        let p1 = cast(*[4] s32) @dataof(values[1])
+        let p0 = cast(*[4] s32) values[0].buffer
+        let p1 = cast(*[4] s32) values[1].buffer
         let a0 = p0[]
         let a1 = p1[]
         return a0[0] + a0[3] + a1[1] + a1[2]
@@ -421,8 +421,8 @@ enum VariadicKind: u16
 {
     func variadicAny(values: ...)->u16
     {
-        let p0 = cast(*VariadicKind) @dataof(values[0])
-        let p1 = cast(*VariadicKind) @dataof(values[1])
+        let p0 = cast(*VariadicKind) values[0].buffer
+        let p1 = cast(*VariadicKind) values[1].buffer
         return cast(u16) p0[] + cast(u16) p1[]
     }
 
@@ -435,8 +435,8 @@ enum VariadicKind: u16
 {
     func variadicAny(values: ...)->u64
     {
-        let p0  = cast(*VariadicPayload) @dataof(values[0])
-        let p1  = cast(*[2] u64) @dataof(values[1])
+        let p0  = cast(*VariadicPayload) values[0].buffer
+        let p1  = cast(*[2] u64) values[1].buffer
         let s0  = cast(string) values[2]
         let ptr = cast(*void) values[3]
         let v0  = p0[]
@@ -483,15 +483,15 @@ enum VariadicKind: u16
 {
     func variadicAnyStressAKinds(values: ...)->bool
     {
-        if @countof(values) != 4 do
+        if values.count != 4 do
             return false
-        if @kindof(values[0]) != VariadicPair do
+        if Swag.kindOf(values[0]) != VariadicPair do
             return false
-        if @kindof(values[1]) != VariadicPayload do
+        if Swag.kindOf(values[1]) != VariadicPayload do
             return false
-        if @kindof(values[2]) != VariadicKind do
+        if Swag.kindOf(values[2]) != VariadicKind do
             return false
-        if @kindof(values[3]) != string do
+        if Swag.kindOf(values[3]) != string do
             return false
 
         return true
@@ -543,15 +543,15 @@ enum VariadicKind: u16
 {
     func variadicAnyStressB(values: ...)->bool
     {
-        if @countof(values) != 4 do
+        if values.count != 4 do
             return false
-        if @kindof(values[0]) != *void do
+        if Swag.kindOf(values[0]) != *void do
             return false
-        if @kindof(values[1]) != bool do
+        if Swag.kindOf(values[1]) != bool do
             return false
-        if @kindof(values[2]) != rune do
+        if Swag.kindOf(values[2]) != rune do
             return false
-        if @kindof(values[3]) != s64 do
+        if Swag.kindOf(values[3]) != s64 do
             return false
 
         let ptr = cast(*void) values[0]
@@ -573,13 +573,13 @@ enum VariadicKind: u16
 {
     func variadicAnyStressC(values: ...)->bool
     {
-        if @countof(values) != 3 do
+        if values.count != 3 do
             return false
-        if @kindof(values[0]) != u64 do
+        if Swag.kindOf(values[0]) != u64 do
             return false
-        if @kindof(values[1]) != s32 do
+        if Swag.kindOf(values[1]) != s32 do
             return false
-        if @kindof(values[2]) != f64 do
+        if Swag.kindOf(values[2]) != f64 do
             return false
 
         let u64v = cast(u64) values[0]
@@ -621,9 +621,9 @@ enum VariadicKind: u16
 {
     func variadicAnyStressD(values: ...)->bool
     {
-        if @countof(values) != 1 do
+        if values.count != 1 do
             return false
-        if @kindof(values[0]) != [4] s32 do
+        if Swag.kindOf(values[0]) != [4] s32 do
             return false
         let arr = cast([4] s32) values[0]
         return arr[0] == -1 and arr[1] == 0 and arr[2] == 1 and arr[3] == 2
@@ -637,15 +637,15 @@ enum VariadicKind: u16
 {
     func variadicAnyStressWithHead(a: VariadicPair, values: ...)->bool
     {
-        @assert(a.a == 11 and a.b == 22)
-        @assert(@countof(values) == 7)
-        @assert(@kindof(values[0]) == VariadicPair)
-        @assert(@kindof(values[1]) == VariadicPayload)
-        @assert(@kindof(values[2]) == VariadicKind)
-        @assert(@kindof(values[3]) == string)
-        @assert(@kindof(values[4]) == bool)
-        @assert(@kindof(values[5]) == f32)
-        @assert(@kindof(values[6]) == *void)
+        Swag.assert(a.a == 11 and a.b == 22)
+        Swag.assert(values.count == 7)
+        Swag.assert(Swag.kindOf(values[0]) == VariadicPair)
+        Swag.assert(Swag.kindOf(values[1]) == VariadicPayload)
+        Swag.assert(Swag.kindOf(values[2]) == VariadicKind)
+        Swag.assert(Swag.kindOf(values[3]) == string)
+        Swag.assert(Swag.kindOf(values[4]) == bool)
+        Swag.assert(Swag.kindOf(values[5]) == f32)
+        Swag.assert(Swag.kindOf(values[6]) == *void)
 
         let p       = cast(VariadicPair) values[0]
         let payload = cast(VariadicPayload) values[1]
@@ -655,14 +655,14 @@ enum VariadicKind: u16
         let f       = cast(f32) values[5]
         let ptr     = cast(*void) values[6]
 
-        @assert(p.a == 33 and p.b == 44)
-        @assert(payload.arr[0] == 1 and payload.arr[1] == 2 and payload.arr[2] == 3)
-        @assert(!payload.flag and payload.tag == 9'u8)
-        @assert(kind == VariadicKind.A)
-        @assert(text == "head-check")
-        @assert(!b)
-        @assert(f == 1.25'f32)
-        @assert(ptr == cast(*void) 0x99'u64)
+        Swag.assert(p.a == 33 and p.b == 44)
+        Swag.assert(payload.arr[0] == 1 and payload.arr[1] == 2 and payload.arr[2] == 3)
+        Swag.assert(!payload.flag and payload.tag == 9'u8)
+        Swag.assert(kind == VariadicKind.A)
+        Swag.assert(text == "head-check")
+        Swag.assert(!b)
+        Swag.assert(f == 1.25'f32)
+        Swag.assert(ptr == cast(*void) 0x99'u64)
         return true
     }
 
@@ -687,23 +687,23 @@ enum VariadicKind: u16
 
         for v, i in values
         {
-            if @kindof(v) == s32
+            if Swag.kindOf(v) == s32
             {
-                let p = cast(*s32) @dataof(v)
+                let p = cast(*s32) v.buffer
                 acc += p[] * cast(s32) (i + 1)
                 continue
             }
 
-            if @kindof(v) == bool
+            if Swag.kindOf(v) == bool
             {
-                let p = cast(*bool) @dataof(v)
+                let p = cast(*bool) v.buffer
                 acc += cast(s32) p[] * 100
                 continue
             }
 
-            if @kindof(v) == rune
+            if Swag.kindOf(v) == rune
             {
-                let p = cast(*rune) @dataof(v)
+                let p = cast(*rune) v.buffer
                 acc += cast(s32) p[]
             }
         }
@@ -719,17 +719,17 @@ enum VariadicKind: u16
 {
     func variadicAnyStressKinds(values: ...)->bool
     {
-        if @countof(values) != 8 do
+        if values.count != 8 do
             return false
 
-        return @kindof(values[0]) == s32 and
-               @kindof(values[1]) == s64 and
-               @kindof(values[2]) == u32 and
-               @kindof(values[3]) == f64 and
-               @kindof(values[4]) == bool and
-               @kindof(values[5]) == rune and
-               @kindof(values[6]) == string and
-               @kindof(values[7]) == *void
+        return Swag.kindOf(values[0]) == s32 and
+               Swag.kindOf(values[1]) == s64 and
+               Swag.kindOf(values[2]) == u32 and
+               Swag.kindOf(values[3]) == f64 and
+               Swag.kindOf(values[4]) == bool and
+               Swag.kindOf(values[5]) == rune and
+               Swag.kindOf(values[6]) == string and
+               Swag.kindOf(values[7]) == *void
     }
 
     const V0 = #run variadicAnyStressKinds(1's32, 2's64, 3'u32, 4.5'f64, true, cast(rune) 'X', "ok", cast(*void) 0x55'u64)
@@ -740,9 +740,9 @@ enum VariadicKind: u16
 {
     func variadicAnyStressAggregates(values: ...)->u64
     {
-        let p0 = cast(*VariadicPair) @dataof(values[0])
-        let p1 = cast(*VariadicPayload) @dataof(values[1])
-        let p2 = cast(*[3] s32) @dataof(values[2])
+        let p0 = cast(*VariadicPair) values[0].buffer
+        let p1 = cast(*VariadicPayload) values[1].buffer
+        let p2 = cast(*[3] s32) values[2].buffer
 
         let v0 = p0[]
         let v1 = p1[]

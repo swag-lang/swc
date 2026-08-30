@@ -15,7 +15,7 @@ func getTestDataPath(fileName: string, loc = #callerlocation)->String
 {
     let dir  = Path.directoryName(loc.fileName)
     var path = Path.combine(dir, "datas", fileName)
-    @assert(File.exists(path))
+    Swag.assert(File.exists(path))
     return path
 }
 
@@ -52,7 +52,7 @@ func buildFontCollection(fileNames: const [..] string)->Array'u8
 {
     var result: retval
 
-    let headerSize = 12 + cast(u64) @countof(fileNames) * 4
+    let headerSize = 12 + cast(u64) fileNames.count * 4
     result.resize(headerSize)
 
     var fontOffsets: Array'u32
@@ -69,16 +69,16 @@ func buildFontCollection(fileNames: const [..] string)->Array'u8
         let tableCount = readBigU16(&result, cast(u64) fontOffset + 4)
         for tableCount
         {
-            let record = cast(u64) fontOffset + 12 + cast(u64) @index * 16
+            let record = cast(u64) fontOffset + 12 + cast(u64) Swag.index * 16
             writeBigU32(&result, record + 8, readBigU32(&result, record + 8) + fontOffset)
         }
     }
 
     writeBigU32(&result, 0, imageTag('t'u32, 't'u32, 'c'u32, 'f'u32))
     writeBigU32(&result, 4, 0x0001_0000)
-    writeBigU32(&result, 8, cast(u32) @countof(fileNames))
+    writeBigU32(&result, 8, cast(u32) fileNames.count)
     for offset in fontOffsets do
-        writeBigU32(&result, 12 + cast(u64) @index * 4, offset)
+        writeBigU32(&result, 12 + cast(u64) Swag.index * 4, offset)
 
     return result
 }
@@ -96,7 +96,7 @@ impl FaceScope
         .bytes = loadFontBytes(fileName)
 
         .face = expect Face.load(.bytes.toSlice())
-        @assert(.face != null)
+        Swag.assert(.face != null)
     }
 
     mtd opDrop()
@@ -132,7 +132,7 @@ func getOutlineBounds(outline: const *Outline)->BBox
     let pts = outline.points!
     for cast(u32) outline.pointCount
     {
-        let pt = pts[@index]
+        let pt = pts[Swag.index]
         result.xMin = Math.min(result.xMin, pt.x)
         result.yMin = Math.min(result.yMin, pt.y)
         result.xMax = Math.max(result.xMax, pt.x)
@@ -150,7 +150,7 @@ func countBitmapCoverage(bitmap: const *Bitmap)->u32
     var count = 0'u32
     for cast(u64) bitmap.width * bitmap.rows
     {
-        if bitmap.buffer[@index] != 0 do
+        if bitmap.buffer[Swag.index] != 0 do
             count += 1
     }
 
@@ -159,14 +159,14 @@ func countBitmapCoverage(bitmap: const *Bitmap)->u32
 
 func findPointWithNonZeroY(outline: const *Outline)->u32
 {
-    @assert(outline != null)
+    Swag.assert(outline != null)
     let pts = outline.points!
     for cast(u32) outline.pointCount
     {
-        if pts[@index].y != 0 do
-            return @index
+        if pts[Swag.index].y != 0 do
+            return Swag.index
     }
 
-    @assert(false)
+    Swag.assert(false)
     return 0
 }

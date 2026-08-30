@@ -98,7 +98,7 @@ func memoInit()->Memo
     m.vals  = cast(#null [*] u64) testAlloc(cast(u64) MapCap * #sizeof(u64))
     m.alive = cast(#null [*] bool) testAlloc(cast(u64) MapCap * #sizeof(bool))
     let alive = m.alive!
-    for MapCap { alive[@index] = false }
+    for MapCap { alive[Swag.index] = false }
     return m
 }
 
@@ -123,7 +123,7 @@ func memoProbe(m: *Memo, key: u64)->u32
             return idx
         idx = (idx + 1) % MapCap
     }
-    @assert(false)
+    Swag.assert(false)
     return 0
 }
 
@@ -200,7 +200,7 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
     // At depth 0, the human directly presses: just manhattan + 1 (for 'A')
     if depth == 0
     {
-        let cost = cast(u64) (@abs(dr) + @abs(dc)) + 1
+        let cost = cast(u64) (Swag.abs(dr) + Swag.abs(dc)) + 1
         memoPut(memo, key, cost)
         return cost
     }
@@ -219,7 +219,7 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
         var cur:  u32 = 1     // start at 'A' on directional pad
 
         // Horizontal moves
-        var hSteps = cast(u32) @abs(dc)
+        var hSteps = cast(u32) Swag.abs(dc)
         if dc != 0
         {
             let hKey = dirKeyIdx(0, dc)
@@ -231,7 +231,7 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
         }
 
         // Vertical moves
-        var vSteps = cast(u32) @abs(dr)
+        var vSteps = cast(u32) Swag.abs(dr)
         if dr != 0
         {
             let vKey = dirKeyIdx(dr, 0)
@@ -255,7 +255,7 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
         var cur:  u32 = 1     // start at 'A'
 
         // Vertical moves
-        var vSteps = cast(u32) @abs(dr)
+        var vSteps = cast(u32) Swag.abs(dr)
         if dr != 0
         {
             let vKey = dirKeyIdx(dr, 0)
@@ -267,7 +267,7 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
         }
 
         // Horizontal moves
-        var hSteps = cast(u32) @abs(dc)
+        var hSteps = cast(u32) Swag.abs(dc)
         if dc != 0
         {
             let hKey = dirKeyIdx(0, dc)
@@ -346,22 +346,22 @@ func solve(text: string)->SolveResult
 
     for
     {
-        if pos >= @countof(bytes) do break
+        if pos >= bytes.count do break
 
         // Skip newlines
         for
         {
-            if pos >= @countof(bytes) do break
+            if pos >= bytes.count do break
             if bytes[pos] != '\n' and bytes[pos] != '\r' do break
             pos += 1
         }
-        if pos >= @countof(bytes) do break
+        if pos >= bytes.count do break
 
         // Read code
         let codeStart = pos
         for
         {
-            if pos >= @countof(bytes) do break
+            if pos >= bytes.count do break
             if bytes[pos] == '\n' or bytes[pos] == '\r' do break
             pos += 1
         }
@@ -369,7 +369,7 @@ func solve(text: string)->SolveResult
         let codeLen = pos - codeStart
         if codeLen == 0 do continue
 
-        let codeSlice = @mkslice(&bytes[codeStart], cast(u64) codeLen)
+        let codeSlice = Swag.makeSlice(&bytes[codeStart], cast(u64) codeLen)
         let numVal    = codeNumericValue(codeSlice, codeLen)
 
         let cost1 = solveCode(codeSlice, codeLen, 2, &memo)
@@ -390,37 +390,37 @@ func solve(text: string)->SolveResult
 #test
 {
     // '7' is at (0,0)
-    @assert(NumPad[7].r == 0)
-    @assert(NumPad[7].c == 0)
+    Swag.assert(NumPad[7].r == 0)
+    Swag.assert(NumPad[7].c == 0)
     // 'A' is at (3,2)
-    @assert(NumPad[10].r == 3)
-    @assert(NumPad[10].c == 2)
+    Swag.assert(NumPad[10].r == 3)
+    Swag.assert(NumPad[10].c == 2)
     // '0' is at (3,1)
-    @assert(NumPad[0].r == 3)
-    @assert(NumPad[0].c == 1)
+    Swag.assert(NumPad[0].r == 3)
+    Swag.assert(NumPad[0].c == 1)
 }
 
 // Directional pad
 #test
 {
     // '^' at (0,1)
-    @assert(DirPad[0].r == 0)
-    @assert(DirPad[0].c == 1)
+    Swag.assert(DirPad[0].r == 0)
+    Swag.assert(DirPad[0].c == 1)
     // 'A' at (0,2)
-    @assert(DirPad[1].r == 0)
-    @assert(DirPad[1].c == 2)
+    Swag.assert(DirPad[1].r == 0)
+    Swag.assert(DirPad[1].c == 2)
     // '<' at (1,0)
-    @assert(DirPad[2].r == 1)
-    @assert(DirPad[2].c == 0)
+    Swag.assert(DirPad[2].r == 1)
+    Swag.assert(DirPad[2].c == 0)
 }
 
 // dirKeyIdx inline
 #test
 {
-    @assert(dirKeyIdx(-1, 0) == 0'u32)     // ^
-    @assert(dirKeyIdx(1, 0) == 3'u32)      // v
-    @assert(dirKeyIdx(0, -1) == 2'u32)     // <
-    @assert(dirKeyIdx(0, 1) == 4'u32)      // >
+    Swag.assert(dirKeyIdx(-1, 0) == 0'u32)     // ^
+    Swag.assert(dirKeyIdx(1, 0) == 3'u32)      // v
+    Swag.assert(dirKeyIdx(0, -1) == 2'u32)     // <
+    Swag.assert(dirKeyIdx(0, 1) == 4'u32)      // >
 }
 
 // packKey inline
@@ -428,9 +428,9 @@ func solve(text: string)->SolveResult
 {
     let k1 = packKey(0, 1, 2, true)
     let k2 = packKey(0, 1, 2, false)
-    @assert(k1 != k2)
+    Swag.assert(k1 != k2)
     let k3 = packKey(1, 0, 2, true)
-    @assert(k1 != k3)
+    Swag.assert(k1 != k3)
 }
 
 // Memo basics
@@ -441,20 +441,20 @@ func solve(text: string)->SolveResult
 
     var found: bool
     discard memoGet(&m, 42, &found)
-    @assert(!found)
+    Swag.assert(!found)
 
     memoPut(&m, 42, 100)
     let v = memoGet(&m, 42, &found)
-    @assert(found)
-    @assert(v == 100'u64)
+    Swag.assert(found)
+    Swag.assert(v == 100'u64)
 }
 
 // charToNumIdx
 #test
 {
-    @assert(charToNumIdx('0') == 0'u32)
-    @assert(charToNumIdx('9') == 9'u32)
-    @assert(charToNumIdx('A') == 10'u32)
+    Swag.assert(charToNumIdx('0') == 0'u32)
+    Swag.assert(charToNumIdx('9') == 9'u32)
+    Swag.assert(charToNumIdx('A') == 10'u32)
 }
 
 // codeNumericValue
@@ -462,8 +462,8 @@ func solve(text: string)->SolveResult
 {
     var buf: [4] u8
     buf[0] = '0'; buf[1] = '2'; buf[2] = '9'; buf[3] = 'A'
-    let sl = @mkslice(&buf[0], 4'u64)
-    @assert(codeNumericValue(sl, 4) == 29'u64)
+    let sl = Swag.makeSlice(&buf[0], 4'u64)
+    Swag.assert(codeNumericValue(sl, 4) == 29'u64)
 }
 
 // Depth 0: direct presses, manhattan + 1
@@ -473,14 +473,14 @@ func solve(text: string)->SolveResult
     defer memoFree(&m)
     // A(10) to 0(0): A at (3,2), 0 at (3,1) → manhattan 1 + press = 2
     let c = moveCost(10, 0, 0, true, &m)
-    @assert(c == 2'u64)
+    Swag.assert(c == 2'u64)
 }
 
 // Sample Part 1 = 126384
 #test
 {
     let result = solve(SampleInput)
-    @assert(result.part1 == 126384'u64)
+    Swag.assert(result.part1 == 126384'u64)
 }
 
 // Single code "029A" at depth 2 = 68 presses
@@ -490,16 +490,16 @@ func solve(text: string)->SolveResult
     defer memoFree(&m)
     var buf: [4] u8
     buf[0] = '0'; buf[1] = '2'; buf[2] = '9'; buf[3] = 'A'
-    let sl   = @mkslice(&buf[0], 4'u64)
+    let sl   = Swag.makeSlice(&buf[0], 4'u64)
     let cost = solveCode(sl, 4, 2, &m)
-    @assert(cost == 68'u64)
+    Swag.assert(cost == 68'u64)
 }
 
 // Part 2 is computed but no sample answer given — just verify it runs
 #test
 {
     let result = solve(SampleInput)
-    @assert(result.part2 > 0'u64)
+    Swag.assert(result.part2 > 0'u64)
 }
 
 // with &ptr: exercises the fix for with-pointer codegen crash
@@ -511,6 +511,6 @@ func solve(text: string)->SolveResult
         .r = 5
         .c = 10
     }
-    @assert(c.r == 5)
-    @assert(c.c == 10)
+    Swag.assert(c.r == 5)
+    Swag.assert(c.c == 10)
 }

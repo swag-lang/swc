@@ -195,14 +195,14 @@ struct RecursiveAssocNode
     var payload:    RecursiveAssocPayload'RecursiveAssocNode
     let assocEntry = assocTable.makeEntry(10, payload)
 
-    @assert(assocTable.entrySize() == 32)
-    @assert(assocTable.entryAlign() == 8)
-    @assert(#typeof(assocEntry) == RecursiveAssocEntry'(u32, RecursiveAssocPayload'RecursiveAssocNode))
-    @assert(assocEntry.hash == 7)
-    @assert(assocEntry.key == 10)
-    @assert(assocEntry.value.count == 0)
-    @assert(assocEntry.value.first == null)
-    @assert(assocEntry.value.second == null)
+    Swag.assert(assocTable.entrySize() == 32)
+    Swag.assert(assocTable.entryAlign() == 8)
+    Swag.assert(#typeof(assocEntry) == RecursiveAssocEntry'(u32, RecursiveAssocPayload'RecursiveAssocNode))
+    Swag.assert(assocEntry.hash == 7)
+    Swag.assert(assocEntry.key == 10)
+    Swag.assert(assocEntry.value.count == 0)
+    Swag.assert(assocEntry.value.first == null)
+    Swag.assert(assocEntry.value.second == null)
 }
 
 #test
@@ -215,19 +215,19 @@ struct RecursiveAssocNode
     assocMap.add(10, valueA)
     assocMap.add(20, valueB)
 
-    @assert(assocMap.count == 2)
-    @assert(assocMap.capacity >= 8)
-    @assert(assocMap.contains(10))
-    @assert(assocMap.contains(20))
+    Swag.assert(assocMap.count == 2)
+    Swag.assert(assocMap.capacity >= 8)
+    Swag.assert(assocMap.contains(10))
+    Swag.assert(assocMap.contains(20))
 
     let foundA = assocMap.tryFind(10)!
     let foundB = assocMap.tryFind(20)!
-    @assert(foundA.value.count == 1)
-    @assert(foundB.value.count == 1)
-    @assert(foundA.value.first == &nodeA)
-    @assert(foundA.value.second == null)
-    @assert(foundB.value.first == null)
-    @assert(foundB.value.second == &nodeB)
+    Swag.assert(foundA.value.count == 1)
+    Swag.assert(foundB.value.count == 1)
+    Swag.assert(foundA.value.first == &nodeA)
+    Swag.assert(foundA.value.second == null)
+    Swag.assert(foundB.value.first == null)
+    Swag.assert(foundB.value.second == &nodeB)
 }
 
 #test
@@ -240,16 +240,16 @@ struct RecursiveAssocNode
     assocMap.add(20, valueB)
 
     var assocCopy = assocMap
-    @assert(assocCopy.count == 2)
-    @assert(assocCopy.contains(10))
-    @assert(assocCopy.contains(20))
+    Swag.assert(assocCopy.count == 2)
+    Swag.assert(assocCopy.contains(10))
+    Swag.assert(assocCopy.contains(20))
 
     let copyA = assocCopy.tryFind(10)!
     let copyB = assocCopy.tryFind(20)!
-    @assert(copyA.value.count == 1)
-    @assert(copyB.value.count == 1)
-    @assert(copyA.value.first == &nodeA)
-    @assert(copyA.value.second == null)
-    @assert(copyB.value.first == null)
-    @assert(copyB.value.second == &nodeB)
+    Swag.assert(copyA.value.count == 1)
+    Swag.assert(copyB.value.count == 1)
+    Swag.assert(copyA.value.first == &nodeA)
+    Swag.assert(copyA.value.second == null)
+    Swag.assert(copyB.value.first == null)
+    Swag.assert(copyB.value.second == &nodeB)
 }

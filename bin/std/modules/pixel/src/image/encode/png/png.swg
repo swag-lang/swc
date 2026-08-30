@@ -170,14 +170,14 @@ impl Encoder
     mtd writeData(buf: const [*] u8, bytes: u32)
     {
         let stream = .stream!
-        stream.addBytes(@mkslice(buf, bytes))
+        stream.addBytes(Swag.makeSlice(buf, bytes))
     }
 
     mtd writeU32(val: u32)
     {
         var v      = Math.nativeToBigEndian(val)
         let stream = .stream!
-        stream.addBytes(@mkslice(cast(const [*] u8) &v, 4))
+        stream.addBytes(Swag.makeSlice(cast(const [*] u8) &v, 4))
     }
 
     mtd writeHeader(chunkType: const [4] u8, chunkLength: u64)->[*] u8
@@ -202,7 +202,7 @@ impl Encoder
 
     mtd finishChunk()
     {
-        .crc.update(@mkslice(.writePtr, .currentChunk.length))
+        .crc.update(Swag.makeSlice(.writePtr, .currentChunk.length))
         .currentChunk.crc = .crc.value()
         .writeU32(.currentChunk.crc)
     }
@@ -264,10 +264,10 @@ internal impl IImageEncoder for Encoder
     {
         var defaultOptions: EncodeOptions
         .userOptions = defaultOptions
-        if @dataof(options) != null
+        if options.buffer != null
         {
-            Debug.assert(@kindof(options) == EncodeOptions)
-            .userOptions = @dataof(options)![as EncodeOptions]
+            Debug.assert(Swag.kindOf(options) == EncodeOptions)
+            .userOptions = options.buffer![as EncodeOptions]
         }
 
         // unsupported pixel format

@@ -3,23 +3,23 @@
 func semaTest001()
 {
     var buf: [100] u8
-    let str = @mkslice(&buf[0], @countof(buf))
+    let str = Swag.makeSlice(&buf[0], buf.count)
     #assert(#typeof(str) == [..] u8)
 
-    let str1 = @mkslice(&buf[0], 10)
+    let str1 = Swag.makeSlice(&buf[0], 10)
     #assert(#typeof(str1) == [..] u8)
-    let str2 = @mkslice(&buf[0], 10's16)
+    let str2 = Swag.makeSlice(&buf[0], 10's16)
     #assert(#typeof(str2) == [..] u8)
 
     var xv:  s32
     var ptr: const *s32 = &xv
-    let str3            = @mkslice(ptr, 20)
+    let str3            = Swag.makeSlice(ptr, 20)
     #assert(#typeof(str3) == const [..] s32)
 }
 
 func semaTest002()
 {
     var buf4: [100] u8
-    let str4 = cast(string) @mkslice(&buf4[0], @countof(buf4))
+    let str4 = cast(string) Swag.makeSlice(&buf4[0], buf4.count)
     #assert(#typeof(str4) == string)
 }

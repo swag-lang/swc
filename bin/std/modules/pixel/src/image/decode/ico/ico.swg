@@ -208,8 +208,8 @@ internal impl IImageDecoder for Decoder
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
-        let base    = @dataof(buffer)
-        let countof = @countof(buffer)
+        let base    = buffer.buffer
+        let countof = buffer.count
         let last    = base + countof
 
         if countof < #sizeof(IconDir) do
@@ -250,8 +250,8 @@ internal impl IImageDecoder for Decoder
         if isPngSignature(imgPtr, imgLen)
         {
             var pngDec: Png.Decoder
-            let itf = @mkinterface(&pngDec, #typeof(Png.Decoder), IImageDecoder)
-            return try itf.decode(@mkslice(imgPtr, imgLen), options)
+            let itf = Swag.makeInterface(&pngDec, #typeof(Png.Decoder), IImageDecoder)
+            return try itf.decode(Swag.makeSlice(imgPtr, imgLen), options)
         }
 
         // BMP/DIB-encoded entry

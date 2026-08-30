@@ -5,14 +5,14 @@ using Swag
 
 func assertSha256Digest(digest: Hash.Sha256.Digest, e0, e1, e2, e3, e4, e5, e6, e7: u32)
 {
-    @assert(digest[0] == e0)
-    @assert(digest[1] == e1)
-    @assert(digest[2] == e2)
-    @assert(digest[3] == e3)
-    @assert(digest[4] == e4)
-    @assert(digest[5] == e5)
-    @assert(digest[6] == e6)
-    @assert(digest[7] == e7)
+    Swag.assert(digest[0] == e0)
+    Swag.assert(digest[1] == e1)
+    Swag.assert(digest[2] == e2)
+    Swag.assert(digest[3] == e3)
+    Swag.assert(digest[4] == e4)
+    Swag.assert(digest[5] == e5)
+    Swag.assert(digest[6] == e6)
+    Swag.assert(digest[7] == e7)
 }
 
 func assertSha256(buffer: const [..] u8, e0, e1, e2, e3, e4, e5, e6, e7: u32)
@@ -38,7 +38,7 @@ func assertSha256(buffer: const [..] u8, e0, e1, e2, e3, e4, e5, e6, e7: u32)
 func fillSha256Pattern(buffer: [..] u8)
 {
     var i = 0'u64
-    while i < @countof(buffer)
+    while i < buffer.count
     {
         buffer[i] = cast(u8) ((i * 37 + 11) & 0xFF)
         i         += 1

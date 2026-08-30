@@ -547,8 +547,8 @@ with exactly one language and keeps deliberately.
   const Mask    = 0xF0
   const DecMask = 240
   var value: s32 = 0x7F
-  @print(#nameof(#typeof(value & Mask)))       // u32
-  @print(#nameof(#typeof(value & DecMask)))    // s32
+  Swag.print(#nameof(#typeof(value & Mask)))       // u32
+  Swag.print(#nameof(#typeof(value & DecMask)))    // s32
   ```
 
   A `let bound = 0xF0` behaves like the `const`. The boundary is worth stating exactly, because it
@@ -637,14 +637,14 @@ with exactly one language and keeps deliberately.
   ```swag
   func takeS32(value: s32)->s32 => value
   func takeU8(value: u8)->u8 => value
-  @print(takeS32(cast() 1.9), " ", takeU8(cast() 1.9))     // 1 1
+  Swag.print(takeS32(cast() 1.9), " ", takeU8(cast() 1.9))     // 1 1
   ```
 
 - Elsewhere: target-inferred conversion exists, but never lossy and never as one spelling for every
   kind of loss. Rust's `.into()` is inferred from the target and is restricted to `From`
   implementations, which are lossless by contract; the lossy conversion is `as`, and `as` always
   names its type. Zig infers the destination of `@intCast` from context — the closest analogue —
-  but the conversion kind is in the name (`@intCast`, `@floatFromInt`, `@truncate`), and an
+  but the conversion kind is in the name (`@intCast`, `@floatFromInt`, `Swag.truncate`), and an
   out-of-range `@intCast` panics in safe builds instead of arriving as a value. C++ has no
   type-inferred cast at all, and the guidance that produced `static_cast` was precisely that a cast
   should say what it does. Swag's `cast()` is one token covering the whole set.
@@ -754,7 +754,7 @@ with exactly one language and keeps deliberately.
 - Observation: one role, three types. Binding the index over a collection gives a `u64`, over a
   counted loop a `u32`, and over a range an `s32`. Nothing at the use site distinguishes the three,
   and the difference is exactly the one F-048 turns into arithmetic: an index that is unsigned in
-  two of the three forms, next to a `@countof` that is always `u64` and a signed computation that is
+  two of the three forms, next to a `.count` that is always `u64` and a signed computation that is
   `s32`. The reference asserts the collection case (`#assert(#typeof(index) == u64)`
   ([005_003_for_elements.swg:29-40](../bin/reference/modules/language/src/005_003_for_elements.swg#L29-L40)))
   and never mentions that the other two forms answer differently.
@@ -778,7 +778,7 @@ with exactly one language and keeps deliberately.
   `Enumerable.Range` both give `int`. Where a language does use an unsigned index everywhere,
   as C++ does with `size_t`, the uniformity is the point, and the `i >= 0` loop bug that comes with
   it is a single well-known hazard rather than a per-form one.
-- Next step: decide whether the three should agree, and on what. `u64` matches `@countof` and is the
+- Next step: decide whether the three should agree, and on what. `u64` matches `.count` and is the
   only one that cannot overflow on a real collection; `s32` is the one that makes `i - 1` behave.
   The cheapest useful step first: add the three-way result above to the `for` chapter, since a
   reader today has no way to know which one they have without `#typeof`. Then check whether a
@@ -812,17 +812,17 @@ with exactly one language and keeps deliberately.
 
 ## What a payload pointer promises
 
-### F-186 — '@dataof' answers a non-null pointer for a payload that can be absent
+### F-186 — '.buffer' answers a non-null pointer for a payload that can be absent
 
 - Area: language
 - Found while: widening the never-null condition rule (F-184). The `bin/` sweep it forced stopped
-  on `if @dataof(ptrAny[])` in `convertAny`, which reads as "does this value carry a payload" and
+  on `if (ptrAny[]).buffer` in `convertAny`, which reads as "does this value carry a payload" and
   which the type system now calls a constant.
-- Observation: `@dataof` of a `string` or `cstring` now carries the source's `#null`, but the `any`
+- Observation: `.buffer` of a `string` or `cstring` now carries the source's `#null`, but the `any`
   and `interface` cases still answer a non-null block pointer whatever the payload is. The
-  container's own nullability is not the payload's: a non-null `any` built by `@mkany(null, type)`
+  container's own nullability is not the payload's: a non-null `any` built by `Swag.makeAny(null, type)`
   and an interface whose `obj` was never set both hand back null, and `bin/std` already tests for
-  it — `encoder.swg` writes `if !itf.obj` on the raw field precisely because `@dataof` would not
+  it — `encoder.swg` writes `if !itf.obj` on the raw field precisely because `.buffer` would not
   let it ask.
 - Evidence: `semaIntrinsicDataOf` ([Sema.Intrinsic.cpp](../src/Compiler/Sema/Ast/Sema.Intrinsic.cpp))
   builds the `any` and `interface` results with `TypeInfo::makeBlockPointer(typeVoid(), flags)`,
@@ -832,6 +832,6 @@ with exactly one language and keeps deliberately.
   reference, never to the handle that carries it.
 - Next step: decide whether the `any` and `interface` payload pointers are always nullable-capable,
   which is what the runtime says. The obstacle is scale, not doctrine: `bin/` holds around 1300
-  `@dataof` uses and the interface form is the common one, so the sweep is `cast(*T) @dataof(itf)!`
+  `.buffer` uses and the interface form is the common one, so the sweep is `cast(*T) itf.buffer!`
   at every site. Measure it before committing, and consider whether a non-null `any` should instead
-  be the type that promises a payload, making `@mkany(null, type)` the thing that needs `#null`.
+  be the type that promises a payload, making `Swag.makeAny(null, type)` the thing that needs `#null`.

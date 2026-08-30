@@ -241,7 +241,7 @@ private func ensureReferenceLanguage()
 // application registers its own tag next to the resources that carry it. GUI thread only.
 func registerLanguage(tag, nativeName: string)
 {
-    Debug.assert(@countof(tag) != 0, "empty language tag")
+    Debug.assert(tag.count != 0, "empty language tag")
 
     ensureReferenceLanguage()
     for &existing in g_Localization.languages where existing.tag == tag
@@ -301,7 +301,7 @@ func systemLanguage()->string
 // [[Application.setLanguage]], which also notifies every surface. GUI thread only.
 func applyLanguage(resources: const *Resources.Bundle, tag: string) fail
 {
-    Debug.assert(@countof(tag) != 0, "empty language tag")
+    Debug.assert(tag.count != 0, "empty language tag")
 
     let state = &g_Localization
     if !findLanguage(tag) do
@@ -417,7 +417,7 @@ private func parseStringsContent(type: typeinfo, data: [*] u8, content: string, 
     for oneit, idx in lines
     {
         var one = Tokenize.eatSpaces(oneit)
-        if @countof(one) == 0 do
+        if one.count == 0 do
             continue
         if one[0] == '#' do
             continue
@@ -433,11 +433,11 @@ private func parseStringsContent(type: typeinfo, data: [*] u8, content: string, 
         if safeField.pointedType != string do
             fail SyntaxError{Errors.mkString(Format.toString("string key [[%]] does not target a [[string]] field", id)), line: idx + 1}
 
-        one = Tokenize.eatCount(one, @countof(id))
+        one = Tokenize.eatCount(one, id.count)
         one = Tokenize.eatSpaces(one)
 
         var value: String
-        if @countof(one) and one[0] == '"' do
+        if one.count and one[0] == '"' do
             discard try StrConv.parseString(&value, one)
         else do
             value = one

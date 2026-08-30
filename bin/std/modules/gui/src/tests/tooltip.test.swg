@@ -24,24 +24,24 @@ func assertPassiveAndFits(tip: *FrameWnd, label: *Label)
     // No viewport, no editable field, and no stop the keyboard traversal could land on.
     for wnd in tree
     {
-        @assert(wnd.type != ScrollWnd)
-        @assert(wnd.type != RichEditCtrl)
-        @assert(wnd.focusPolicy == FocusPolicy.None)
+        Swag.assert(wnd.type != ScrollWnd)
+        Swag.assert(wnd.type != RichEditCtrl)
+        Swag.assert(wnd.focusPolicy == FocusPolicy.None)
     }
 
     // The text fits the box the tip committed, on both axes.
     let need = label.measure({label.position.width, 0}).preferred
-    @assert(need.x <= label.position.width)
-    @assert(need.y <= label.position.height)
+    Swag.assert(need.x <= label.position.width)
+    Swag.assert(need.y <= label.position.height)
 
     // Inside both caps: the one the theme sets, and the window that has to show it.
     let metrics = tip.themeMetrics()
     let parent  = tip.parent!
-    @assert(tip.position.width <= metrics.toolTip_MaxWidth)
-    @assert(tip.position.height <= metrics.toolTip_MaxHeight)
-    @assert(tip.position.x >= 0 and tip.position.y >= 0)
-    @assert(tip.position.right() <= parent.position.width)
-    @assert(tip.position.bottom() <= parent.position.height)
+    Swag.assert(tip.position.width <= metrics.toolTip_MaxWidth)
+    Swag.assert(tip.position.height <= metrics.toolTip_MaxHeight)
+    Swag.assert(tip.position.x >= 0 and tip.position.y >= 0)
+    Swag.assert(tip.position.right() <= parent.position.width)
+    Swag.assert(tip.position.bottom() <= parent.position.height)
 }
 
 // Shows a tip immediately and returns the label it built.
@@ -65,13 +65,13 @@ func showTip(owner: *Wnd, text: string)->*Label
     assertPassiveAndFits(tip, lbl)
 
     // Nothing was dropped, so no line budget was needed and the text is intact.
-    @assert(lbl.maxLines == 0)
-    @assert(lbl.text() == "Refresh")
+    Swag.assert(lbl.maxLines == 0)
+    Swag.assert(lbl.text() == "Refresh")
 
     // One line of text, plus the tip's own inset, and no room spent on anything else.
     let metrics = host.root.themeMetrics()
     let line    = lbl.font().regular!.height
-    @assert(tip.position.height <= Math.ceil(line + metrics.toolTip_Padding.y + metrics.toolTip_Padding.w))
+    Swag.assert(tip.position.height <= Math.ceil(line + metrics.toolTip_Padding.y + metrics.toolTip_Padding.w))
 }
 
 // A tip longer than the width cap wraps instead of growing, and still holds all of its text.
@@ -89,8 +89,8 @@ func showTip(owner: *Wnd, text: string)->*Label
 
     // Wrapped, not cut: several lines tall, and no budget was imposed.
     let line = lbl.font().regular!.height
-    @assert(tip.position.height > line * 1.5)
-    @assert(lbl.maxLines == 0)
+    Swag.assert(tip.position.height > line * 1.5)
+    Swag.assert(lbl.maxLines == 0)
 }
 
 // The history label that exposed the clipping bug keeps one physical pixel beyond its measured
@@ -106,7 +106,7 @@ func showTip(owner: *Wnd, text: string)->*Label
     let tip = host.app.toolTip.current!
     assertPassiveAndFits(tip, lbl)
 
-    @assert(lbl.maxLines == 0)
+    Swag.assert(lbl.maxLines == 0)
 
     host.settleAnimations(&host.surfaceWnd)
     let rendered = host.render(&host.surfaceWnd)
@@ -132,8 +132,8 @@ func showTip(owner: *Wnd, text: string)->*Label
 
     // The height cap bit, so the label carries the line budget that produces the ellipsis.
     let metrics = host.root.themeMetrics()
-    @assert(lbl.maxLines > 1)
-    @assert(tip.position.height > metrics.toolTip_MaxHeight - lbl.font().regular!.height)
+    Swag.assert(lbl.maxLines > 1)
+    Swag.assert(tip.position.height > metrics.toolTip_MaxHeight - lbl.font().regular!.height)
 }
 
 // A window smaller than the theme's caps bounds the tip too, rather than shoving it back inside.
@@ -167,21 +167,21 @@ var g_LinkText:  String
     let lbl = showTip(btn, "Read <b>the guide</b> at <url>swag-lang.org</url> for the rest")
 
     assertPassiveAndFits(host.app.toolTip.current!, lbl)
-    @assert(lbl.name.hasUrl)
+    Swag.assert(lbl.name.hasUrl)
 
     // The palette survived. A tip that painted its text with one explicit color would collapse
     // the link, the three markup slots and the plain ink into the same value.
     let colors = lbl.themeColors()
-    @assert(colors.label_Text == colors.toolTip_Text)
-    @assert(colors.url_Text == colors.toolTip_Link)
-    @assert(colors.richColor1 == colors.toolTip_Rich1)
-    @assert(colors.url_Text != colors.label_Text)
+    Swag.assert(colors.label_Text == colors.toolTip_Text)
+    Swag.assert(colors.url_Text == colors.toolTip_Link)
+    Swag.assert(colors.richColor1 == colors.toolTip_Rich1)
+    Swag.assert(colors.url_Text != colors.label_Text)
 
     // The pointer may rest on it, which is what makes the link clickable; leaving ends it.
     host.app.toolTip.pointerMoved(btn, lbl)
-    @assert(host.app.toolTip.current != null)
+    Swag.assert(host.app.toolTip.current != null)
     host.app.toolTip.pointerMoved(lbl, &host.root)
-    @assert(host.app.toolTip.current == null)
+    Swag.assert(host.app.toolTip.current == null)
 
     host.app.toolTip.sigLinkActivated += func(owner, link)
     {
@@ -191,8 +191,8 @@ var g_LinkText:  String
 
     let again = showTip(btn, "Read <url>swag-lang.org</url>")
     again.sigLinkActivated.call(again, "swag-lang.org")
-    @assert(g_LinkOwner == btn)
-    @assert(g_LinkText == "swag-lang.org")
+    Swag.assert(g_LinkOwner == btn)
+    Swag.assert(g_LinkText == "swag-lang.org")
 }
 
 // A tip with nothing to click stays out of the way: the pointer reaching it ends it.
@@ -205,9 +205,9 @@ var g_LinkText:  String
     let btn = PushButton.create(&host.root, "Refresh", {20, 20, 100, 30})
     let lbl = showTip(btn, "Refresh")
 
-    @assert(!lbl.name.hasUrl)
+    Swag.assert(!lbl.name.hasUrl)
     host.app.toolTip.pointerMoved(btn, lbl)
-    @assert(host.app.toolTip.current == null)
+    Swag.assert(host.app.toolTip.current == null)
 }
 
 // A tip belongs to its application, so one left open cannot reach the next application.
@@ -221,14 +221,14 @@ var g_LinkText:  String
     first.setup(420, 200)
     let btn = PushButton.create(&first.root, "Refresh", {20, 20, 100, 30})
     discard showTip(btn, "Refresh")
-    @assert(first.app.toolTip.current != null)
+    Swag.assert(first.app.toolTip.current != null)
     first.shutdown()
 
     var second: Testing.HeadlessHost
     second.setup(420, 200)
     defer second.shutdown()
-    @assert(second.app.toolTip.current == null)
-    @assert(second.app.toolTip.pending == null)
+    Swag.assert(second.app.toolTip.current == null)
+    Swag.assert(second.app.toolTip.pending == null)
 }
 
 // The shapes a tip can take, rendered.

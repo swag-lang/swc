@@ -229,7 +229,7 @@ private func auditPortabilityFile(context: *Context, path: string)->u32 fail
         let rawTrimmed = Latin1.trim(rawLine)
         let code       = portabilityCode(rawLine, &state)
         let trimmed    = Latin1.trim(code.toString())
-        if @countof(trimmed) == 0 do
+        if trimmed.count == 0 do
             continue
 
         if Utf8.startsWith(cast(const [..] u8) trimmed, "#global public") do
@@ -264,9 +264,9 @@ private func auditPortabilityFile(context: *Context, path: string)->u32 fail
         let nativeNamespace = nativeNamespaceOnLine(trimmed)
         let nativeType      = nativeIdentifierOnLine(trimmed)
         let approvedLine    = isApprovedDeclaration(path, trimmed)
-        if !native and !approvedLine and (@countof(nativeNamespace) != 0 or @countof(nativeType) != 0)
+        if !native and !approvedLine and (nativeNamespace.count != 0 or nativeType.count != 0)
         {
-            let marker = @countof(nativeNamespace) != 0 ? nativeNamespace : nativeType
+            let marker = nativeNamespace.count != 0 ? nativeNamespace : nativeType
             reportPortability(path, lineNumber, Format.toString("platform-neutral source cannot name native identifier '%'", marker).toString())
             errors += 1
         }
@@ -281,7 +281,7 @@ private func auditPortabilityFile(context: *Context, path: string)->u32 fail
 
 private func auditPublicNativeDeclaration(path: string, line: string, lineNumber: u64, nativeType: string, approved: bool, state: *PortabilityParseState)->u32
 {
-    if @countof(nativeType) == 0 or approved or state.privateDepth != 0 do
+    if nativeType.count == 0 or approved or state.privateDepth != 0 do
         return 0
 
     let privateLine = startsWithAccess(line, "private") or startsWithAccess(line, "internal")
@@ -421,11 +421,11 @@ private func portabilityCode(line: string, state: *PortabilityParseState)->Strin
     var escaped = false
     var index   = 0'u64
 
-    while index < @countof(line)
+    while index < line.count
     {
         if state.multilineText
         {
-            if index + 2 < @countof(line) and line[index] == '"' and line[index + 1] == '"' and line[index + 2] == '"'
+            if index + 2 < line.count and line[index] == '"' and line[index + 1] == '"' and line[index + 2] == '"'
             {
                 state.multilineText = false
                 index               += 3
@@ -437,7 +437,7 @@ private func portabilityCode(line: string, state: *PortabilityParseState)->Strin
 
         if state.blockComment
         {
-            if index + 1 < @countof(line) and line[index] == '*' and line[index + 1] == '/'
+            if index + 1 < line.count and line[index] == '*' and line[index + 1] == '/'
             {
                 state.blockComment = false
                 index              += 2
@@ -447,16 +447,16 @@ private func portabilityCode(line: string, state: *PortabilityParseState)->Strin
             continue
         }
 
-        if !quoted and index + 1 < @countof(line) and line[index] == '/' and line[index + 1] == '/' do
+        if !quoted and index + 1 < line.count and line[index] == '/' and line[index + 1] == '/' do
             break
-        if !quoted and index + 1 < @countof(line) and line[index] == '/' and line[index + 1] == '*'
+        if !quoted and index + 1 < line.count and line[index] == '/' and line[index + 1] == '*'
         {
             state.blockComment = true
             index              += 2
             continue
         }
 
-        if !quoted and index + 2 < @countof(line) and line[index] == '"' and line[index + 1] == '"' and line[index + 2] == '"'
+        if !quoted and index + 2 < line.count and line[index] == '"' and line[index + 1] == '"' and line[index + 2] == '"'
         {
             state.multilineText = true
             result              += ' '
@@ -492,9 +492,9 @@ private func portabilityCode(line: string, state: *PortabilityParseState)->Strin
 
 private func portabilityRelativePath(context: *Context, fullname: string)->String
 {
-    let rootLength = @countof(context.root.toString())
-    let start      = rootLength < @countof(fullname) and (fullname[rootLength] == '/' or fullname[rootLength] == '\\') ? rootLength + 1 : rootLength
-    var result     = String.from(fullname[start until @countof(fullname)])
+    let rootLength = (context.root.toString()).count
+    let start      = rootLength < fullname.count and (fullname[rootLength] == '/' or fullname[rootLength] == '\\') ? rootLength + 1 : rootLength
+    var result     = String.from(fullname[start until fullname.count])
     result.replace("\\", "/")
     return result
 }
@@ -544,16 +544,16 @@ private func nativeIdentifierOnLine(line: string)->string
 private func containsIdentifier(text: string, identifier: string)->bool
 {
     var offset = 0'u64
-    while offset < @countof(text)
+    while offset < text.count
     {
-        let found = Utf8.indexOf(cast(const [..] u8) text[offset until @countof(text)], identifier)
+        let found = Utf8.indexOf(cast(const [..] u8) text[offset until text.count], identifier)
         if found == Swag.U64.Max do
             return false
 
         let start  = offset + found
-        let end    = start + @countof(identifier)
+        let end    = start + identifier.count
         let before = start == 0 or !Latin1.isWord(text[start - 1])
-        let after  = end == @countof(text) or !Latin1.isWord(text[end])
+        let after  = end == text.count or !Latin1.isWord(text[end])
         if before and after do
             return true
         offset = start + 1
@@ -565,9 +565,9 @@ private func containsIdentifier(text: string, identifier: string)->bool
 private func containsIdentifierPrefix(text: string, prefix: string)->bool
 {
     var offset = 0'u64
-    while offset < @countof(text)
+    while offset < text.count
     {
-        let found = Utf8.indexOf(cast(const [..] u8) text[offset until @countof(text)], prefix)
+        let found = Utf8.indexOf(cast(const [..] u8) text[offset until text.count], prefix)
         if found == Swag.U64.Max do
             return false
 
@@ -582,7 +582,7 @@ private func containsIdentifierPrefix(text: string, prefix: string)->bool
 
 private func isApprovedDeclaration(path: string, line: string)->bool
 {
-    for index in @countof(NativeDeclarationApprovals) / 2
+    for index in NativeDeclarationApprovals.count / 2
     {
         if samePath(path, NativeDeclarationApprovals[index * 2]) and line == NativeDeclarationApprovals[index * 2 + 1] do
             return true
@@ -637,7 +637,7 @@ private func declarationStartsWith(line: string, kind: string)->bool
         let marker = Format.toString("% ", access)
         if Utf8.startsWith(cast(const [..] u8) declaration, marker.toString())
         {
-            declaration = Latin1.trim(declaration[@countof(marker.toString()) until @countof(declaration)])
+            declaration = Latin1.trim(declaration[(marker.toString()).count until declaration.count])
             break
         }
     }

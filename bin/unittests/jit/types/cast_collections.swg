@@ -27,7 +27,7 @@ func makeConstArrayString()->string
     {
         var data: [4] s32 = [1, 2, 3, 4]
         let values        = cast([..] s32) data
-        return @countof(values) == 4 and values[0] == 1 and values[1] == 2 and values[3] == 4
+        return values.count == 4 and values[0] == 1 and values[1] == 2 and values[3] == 4
     }
 
     const V = #run localArrayToSliceView()
@@ -38,7 +38,7 @@ func makeConstArrayString()->string
 {
     const text = #run makeConstArrayString()
 
-    #assert(@countof(text) == 3)
+    #assert(text.count == 3)
     #assert(text == "xyz")
 }
 
@@ -48,7 +48,7 @@ func makeConstArrayString()->string
     {
         let text: string = "ABCD"
         let bytes        = cast(const [..] u8) text
-        return @countof(bytes) == 4 and bytes[0] == 65'u8 and bytes[3] == 68'u8
+        return bytes.count == 4 and bytes[0] == 65'u8 and bytes[3] == 68'u8
     }
 
     const V = #run stringToConstBytes()
@@ -63,7 +63,7 @@ func makeConstArrayString()->string
         let bytes        = cast([..] u8) data
         let text         = cast(string) bytes
         let back         = cast(const [..] u8) text
-        return text == "Hello" and @countof(back) == 5 and back[1] == 101'u8 and back[4] == 111'u8
+        return text == "Hello" and back.count == 5 and back[1] == 101'u8 and back[4] == 111'u8
     }
 
     const V = #run sliceToStringRoundtrip()
@@ -79,7 +79,7 @@ func makeConstArrayString()->string
         var sum:   u32     = 0
         for value in bytes do
             sum += cast(u32) value
-        return @countof(bytes) == 4 and sum == 10'u32
+        return bytes.count == 4 and sum == 10'u32
     }
 
     const V = #run wordArrayToByteView()

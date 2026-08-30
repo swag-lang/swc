@@ -47,7 +47,7 @@ struct OuterAnonymousUnion
     a.v.x = 5
     let x = a.x
     #assert(#typeof(x) == s32)
-    @assert(x == 5)
+    Swag.assert(x == 5)
 }
 
 #test
@@ -58,7 +58,7 @@ struct OuterAnonymousUnion
     a.p = &inner
     let x = a.x
     #assert(#typeof(x) == s32)
-    @assert(x == 6)
+    Swag.assert(x == 6)
 }
 
 #test
@@ -69,7 +69,7 @@ struct OuterAnonymousUnion
     a.p = cast(StructUsingStrictInnerPtr) &inner
     let x = a.x
     #assert(#typeof(x) == s32)
-    @assert(x == 8)
+    Swag.assert(x == 8)
 }
 
 #test
@@ -77,18 +77,18 @@ struct OuterAnonymousUnion
     var s: OuterAnonymousStruct
     s.x = 4
     s.y = 9
-    @assert(s.data.x == 4)
-    @assert(s.data.y == 9)
+    Swag.assert(s.data.x == 4)
+    Swag.assert(s.data.y == 9)
 }
 
 #test
 {
     var u: OuterAnonymousUnion
     u.bytes[0] = 0x2A
-    @assert(u.data.bytes[0] == 0x2A)
+    Swag.assert(u.data.bytes[0] == 0x2A)
 
     u.words[1] = 0x11223344
-    @assert(u.data.words[1] == 0x11223344)
+    Swag.assert(u.data.words[1] == 0x11223344)
 }
 
 #test
@@ -96,12 +96,12 @@ struct OuterAnonymousUnion
     var innerVal: Inner
     var out:      OuterValue
     out.x = 7
-    @assert(out.v.x == 7)
+    Swag.assert(out.v.x == 7)
 
     var outPtr: OuterPtr
     outPtr.p = &innerVal
     outPtr.x = 9
-    @assert(innerVal.x == 9)
+    Swag.assert(innerVal.x == 9)
 }
 
 #test
@@ -110,10 +110,10 @@ struct OuterAnonymousUnion
     out.x = 11
 
     let basePtr: const *Inner = &out
-    @assert(basePtr.x == 11)
+    Swag.assert(basePtr.x == 11)
 
     let baseRef: const *Inner = &out
-    @assert(baseRef.x == 11)
+    Swag.assert(baseRef.x == 11)
 }
 
 struct Inner2

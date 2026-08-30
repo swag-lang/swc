@@ -25,33 +25,33 @@ of elements.
 /**
 # Array Size and Memory
 
-The '@countof' intrinsic returns the number of elements in an array, while
+The '.count' intrinsic returns the number of elements in an array, while
 '#sizeof' returns the total memory size in bytes.
 */
 #test
 {
     var array: [2] s32
     #assert(#typeof(array).count == 2)
-    #assert(@countof(array) == 2)
+    #assert(array.count == 2)
     #assert(#sizeof(array) == 2 * #sizeof(s32))
 }
 
 /**
 # Obtaining the Address of an Array
 
-The '@dataof' intrinsic retrieves the address of the first element in an array.
+The '.buffer' intrinsic retrieves the address of the first element in an array.
 */
 #test
 {
     var array: [2] s32
-    var ptr0 = @dataof(array)
+    var ptr0 = array.buffer
     ptr0[0] = 1
 
     var ptr1 = cast([*] s32) &array[0]
     ptr1[1] = 2
 
-    @assert(array[0] == 1)
-    @assert(array[1] == 2)
+    Swag.assert(array[0] == 1)
+    Swag.assert(array[1] == 2)
 }
 
 /**
@@ -62,7 +62,7 @@ An array literal is a list of elements enclosed in brackets '[A, B, ...]'.
 #test
 {
     var arr = [1, 2, 3, 4]
-    #assert(@countof(arr) == 4)
+    #assert(arr.count == 4)
     #assert(#typeof(arr) == #type [4] s32)
 }
 
@@ -74,14 +74,14 @@ Swag can deduce array size and element type from the initialization expression.
 #test
 {
     var array: [?] s32 = [1, 2]
-    @assert(array[0] == 1)
-    @assert(array[1] == 2)
-    #assert(@countof(array) == 2)
+    Swag.assert(array[0] == 1)
+    Swag.assert(array[1] == 2)
+    #assert(array.count == 2)
     var array1 = ["10", "20", "30"]
-    @assert(array1[0] == "10")
-    @assert(array1[1] == "20")
-    @assert(array1[2] == "30")
-    #assert(@countof(array1) == 3)
+    Swag.assert(array1[0] == "10")
+    Swag.assert(array1[1] == "20")
+    Swag.assert(array1[2] == "30")
+    #assert(array1.count == 3)
 }
 
 /**
@@ -93,8 +93,8 @@ Static arrays are automatically initialized with zero values (0 for numbers,
 #test
 {
     var array: [2] s32
-    @assert(array[0] == 0)
-    @assert(array[1] == 0)
+    Swag.assert(array[0] == 0)
+    Swag.assert(array[1] == 0)
 }
 
 /**
@@ -136,9 +136,9 @@ let widened = [1's32, 2.75, 3]     // a '[3] f32', not a '[3] s32'
 #test
 {
     var arr = [1'f64, 2, 3, 4]
-    #assert(@countof(arr) == 4)
+    #assert(arr.count == 4)
     #assert(#typeof(arr) == #type [4] f64)
-    @assert(arr[3] == 4.0)
+    Swag.assert(arr[3] == 4.0)
 }
 
 /**
@@ -193,8 +193,8 @@ directly from the initialization expression.
 {
     var array  = [1, 2, 3, 4]
     var array1 = [[1, 2], [3, 4]]
-    #assert(@countof(array) == 4)
-    #assert(@countof(array1) == 2)
+    #assert(array.count == 4)
+    #assert(array1.count == 2)
 }
 
 /**
@@ -207,9 +207,9 @@ strings, booleans, and runes.
 #test
 {
     var arr: [2, 2] bool = true
-    @assert(arr[0, 0] == true)
-    @assert(arr[1, 1] == true)
+    Swag.assert(arr[0, 0] == true)
+    Swag.assert(arr[1, 1] == true)
     var arr1: [5, 10] string = "string"
-    @assert(arr1[0, 0] == "string")
-    @assert(arr1[4, 9] == "string")
+    Swag.assert(arr1[0, 0] == "string")
+    Swag.assert(arr1[4, 9] == "string")
 }

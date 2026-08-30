@@ -87,7 +87,7 @@ frames, and file access errors use Swag's normal `fail` mechanism.
 
 #run
 {
-    let itf = @compiler
+    let itf = Swag.compiler()
     let cfg = itf.getBuildCfg()!
     cfg.moduleVersion   = #swcversion
     cfg.moduleRevision  = #swcrevision

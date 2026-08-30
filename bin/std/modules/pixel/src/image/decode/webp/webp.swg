@@ -74,17 +74,17 @@ func readU32(data: const [*] u8)->u32
 
 func parseContainer(buffer: const [..] u8)->Container fail
 {
-    if @countof(buffer) < 12 do
+    if buffer.count < 12 do
         fail InvalidFormatError{"WebP data ends before the RIFF header"}
 
-    let source = @dataof(buffer)
+    let source = buffer.buffer
     if readU32(source) != WEBP_FOURCC_RIFF or readU32(source + 8) != WEBP_FOURCC_WEBP do
         fail InvalidFormatError{"WebP data does not contain a RIFF WEBP header"}
 
     let riffSize = cast(u64) readU32(source + 4)
     if riffSize < 4 do
         fail InvalidFormatError{"WebP RIFF size does not include the WEBP form type"}
-    if riffSize + 8 > @countof(buffer) do
+    if riffSize + 8 > buffer.count do
         fail InvalidFormatError{"WebP data ends before the declared RIFF size"}
 
     var result: retval
@@ -174,7 +174,7 @@ func flipRgbaRows(pixels: *Array'u8, width, height: s32)
 
 func decodeLossless(container: Container, options: DecodeOptions)->Image fail
 {
-    let imageData = @mkslice(cast(const [*] u8) container.image.data!, container.image.size)
+    let imageData = Swag.makeSlice(cast(const [*] u8) container.image.data!, container.image.size)
     var reader:        LosslessBitReader = undefined
     var width, height: s32
     losslessDecodeHeader(&reader, imageData, &width, &height)
@@ -325,8 +325,8 @@ func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
 
 func decodeLossy(container: Container, options: DecodeOptions)->Image fail
 {
-    let imageData           = @mkslice(cast(const [*] u8) container.image.data!, container.image.size)
-    var decoder: Vp8Decoder = {source: @dataof(imageData)}
+    let imageData           = Swag.makeSlice(cast(const [*] u8) container.image.data!, container.image.size)
+    var decoder: Vp8Decoder = {source: imageData.buffer}
     vp8DecodeFrameHeader(&decoder, imageData)
 
     if container.hasExtendedHeader and

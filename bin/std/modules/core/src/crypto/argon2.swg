@@ -48,13 +48,13 @@ private func store32Le(data: [*] u8, value: u32)
 private func mixBlock(block: [*] u64, a, b, c, d: u64)
 {
     block[a] += block[b] + 2 * truncate32(block[a]) * truncate32(block[b])
-    block[d] = @ror(block[d] ^ block[a], 32'u8)
+    block[d] = Swag.ror(block[d] ^ block[a], 32'u8)
     block[c] += block[d] + 2 * truncate32(block[c]) * truncate32(block[d])
-    block[b] = @ror(block[b] ^ block[c], 24'u8)
+    block[b] = Swag.ror(block[b] ^ block[c], 24'u8)
     block[a] += block[b] + 2 * truncate32(block[a]) * truncate32(block[b])
-    block[d] = @ror(block[d] ^ block[a], 16'u8)
+    block[d] = Swag.ror(block[d] ^ block[a], 16'u8)
     block[c] += block[d] + 2 * truncate32(block[c]) * truncate32(block[d])
-    block[b] = @ror(block[b] ^ block[c], 63'u8)
+    block[b] = Swag.ror(block[b] ^ block[c], 63'u8)
 }
 
 // Applies the Argon2 permutation to the sixteen words addressed by `base` and
@@ -109,11 +109,11 @@ private func compress(destination: [*] u64, x, y: const [*] u64, accumulate: boo
 private func variableHash(input: const [..] u8, destination: [..] u8) fail
 {
     var prefix: [4] u8
-    store32Le(&prefix[0], cast(u32) @countof(destination))
+    store32Le(&prefix[0], cast(u32) destination.count)
 
-    if @countof(destination) <= Hash.Blake2bMaxDigestSize
+    if destination.count <= Hash.Blake2bMaxDigestSize
     {
-        var hash = try Hash.Blake2b.create(@countof(destination))
+        var hash = try Hash.Blake2b.create(destination.count)
         hash.update(prefix)
         hash.update(input)
         try hash.finalize(destination)
@@ -133,19 +133,19 @@ private func variableHash(input: const [..] u8, destination: [..] u8) fail
     // length into its state and the two do not agree.
     const strideSize = Hash.Blake2bMaxDigestSize / 2
     var written = 0'u64
-    while @countof(destination) - written > Hash.Blake2bMaxDigestSize
+    while destination.count - written > Hash.Blake2bMaxDigestSize
     {
-        @memcpy(@dataof(destination) + written, &current[0], strideSize)
+        Swag.memcpy(destination.buffer + written, &current[0], strideSize)
         written += strideSize
-        if @countof(destination) - written > Hash.Blake2bMaxDigestSize do
+        if destination.count - written > Hash.Blake2bMaxDigestSize do
             try Hash.Blake2b.compute(current, current)
     }
 
-    let remaining = @countof(destination) - written
+    let remaining = destination.count - written
     var tail: [Hash.Blake2bMaxDigestSize] u8
     defer secureClear(tail)
     try Hash.Blake2b.compute(current, tail[0 until remaining])
-    @memcpy(@dataof(destination) + written, &tail[0], remaining)
+    Swag.memcpy(destination.buffer + written, &tail[0], remaining)
 }
 
 // Regenerates the block of pseudo-random addresses used by the data-independent
@@ -225,9 +225,9 @@ public func argon2id(password, salt: const [..] u8, parameters: Argon2Parameters
 // exactly to reproduce the tag.
 public func argon2id(password, salt, secret, associatedData: const [..] u8, parameters: Argon2Parameters, destination: [..] u8) fail
 {
-    if @countof(destination) < Argon2MinTagSize do
+    if destination.count < Argon2MinTagSize do
         fail Errors.BadParameterError{"Argon2 needs a tag of at least 4 bytes"}
-    if @countof(salt) < Argon2MinSaltSize do
+    if salt.count < Argon2MinSaltSize do
         fail Errors.BadParameterError{"Argon2 needs a salt of at least 8 bytes"}
     if !parameters.parallelism or parameters.parallelism > 0xFF_FFFF do
         fail Errors.BadParameterError{"Argon2 needs 1 to 16777215 lanes"}
@@ -235,7 +235,7 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
         fail Errors.BadParameterError{"Argon2 needs at least one pass"}
     if parameters.memoryKib < 8 * parameters.parallelism do
         fail Errors.BadParameterError{"Argon2 needs at least eight kibibytes of memory per lane"}
-    if @countof(secret) > Hash.Blake2bMaxKeySize do
+    if secret.count > Hash.Blake2bMaxKeySize do
         fail Errors.BadParameterError{"Argon2 accepts a secret of at most 64 bytes"}
 
     let lanes         = cast(u64) parameters.parallelism
@@ -253,7 +253,7 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
     var scalar: [4] u8
     store32Le(&scalar[0], parameters.parallelism)
     initial.update(scalar)
-    store32Le(&scalar[0], cast(u32) @countof(destination))
+    store32Le(&scalar[0], cast(u32) destination.count)
     initial.update(scalar)
     store32Le(&scalar[0], parameters.memoryKib)
     initial.update(scalar)
@@ -263,16 +263,16 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
     initial.update(scalar)
     store32Le(&scalar[0], Argon2TypeId)
     initial.update(scalar)
-    store32Le(&scalar[0], cast(u32) @countof(password))
+    store32Le(&scalar[0], cast(u32) password.count)
     initial.update(scalar)
     initial.update(password)
-    store32Le(&scalar[0], cast(u32) @countof(salt))
+    store32Le(&scalar[0], cast(u32) salt.count)
     initial.update(scalar)
     initial.update(salt)
-    store32Le(&scalar[0], cast(u32) @countof(secret))
+    store32Le(&scalar[0], cast(u32) secret.count)
     initial.update(scalar)
     initial.update(secret)
-    store32Le(&scalar[0], cast(u32) @countof(associatedData))
+    store32Le(&scalar[0], cast(u32) associatedData.count)
     initial.update(scalar)
     initial.update(associatedData)
     try initial.finalize(seed)
@@ -286,7 +286,7 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
     // else is produced by the compression function.
     var origin: [Hash.Blake2bMaxDigestSize + 8] u8
     defer secureClear(origin)
-    @memcpy(&origin[0], &seed[0], Hash.Blake2bMaxDigestSize)
+    Swag.memcpy(&origin[0], &seed[0], Hash.Blake2bMaxDigestSize)
     for lane in lanes
     {
         for slot in 2
@@ -294,7 +294,7 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
             store32Le(&origin[Hash.Blake2bMaxDigestSize], cast(u32) slot)
             store32Le(&origin[Hash.Blake2bMaxDigestSize + 4], cast(u32) lane)
             let target = (lane * laneLength + slot) * Argon2Words
-            try variableHash(origin, @mkslice(cast([*] u8) (blocks + target), Argon2BlockSize))
+            try variableHash(origin, Swag.makeSlice(cast([*] u8) (blocks + target), Argon2BlockSize))
         }
     }
 
@@ -315,7 +315,7 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
                 let independent = !pass and slice < Argon2SyncPoints / 2
                 if independent
                 {
-                    @memset(&input[0], 0, Argon2BlockSize)
+                    Swag.memset(&input[0], 0, Argon2BlockSize)
                     input[0] = pass
                     input[1] = lane
                     input[2] = slice
@@ -375,5 +375,5 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
             final[i] ^= blocks[last + i]
     }
 
-    try variableHash(@mkslice(cast(const [*] u8) &final[0], Argon2BlockSize), destination)
+    try variableHash(Swag.makeSlice(cast(const [*] u8) &final[0], Argon2BlockSize), destination)
 }

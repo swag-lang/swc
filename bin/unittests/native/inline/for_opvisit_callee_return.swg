@@ -10,7 +10,7 @@ impl InlineBug10VisitBytes
 {
     mtd const reversed()->ConstReversedSlice'u8
     {
-        return reverseSlice(@mkslice(&me.values[0], me.count))
+        return reverseSlice(Swag.makeSlice(&me.values[0], me.count))
     }
 
     #[Macro]
@@ -19,7 +19,7 @@ impl InlineBug10VisitBytes
     {
         for .count
         {
-            let idx = @index
+            let idx = Swag.index
 
             #inject(stmt, item = me.values[idx], index = idx)
         }
@@ -62,8 +62,8 @@ func bug10ReverseIndexOfVisitAtLeast(values: InlineBug10VisitBytes, minValue: u8
 #test
 {
     var values      = [1'u8, 4, 2, 9, 3]
-    let visitValues = InlineBug10VisitBytes{values, @countof(values)}
-    @assert(bug10ReverseIndexOfVisitAtLeast(visitValues, 8) == 3)
-    @assert(inlineBug10ReverseIndexOfVisitAtLeast(visitValues, 8) == 3)
-    @assert(inlineBug10ReverseIndexOfVisitAtLeast(visitValues, 10) == Swag.U64.Max)
+    let visitValues = InlineBug10VisitBytes{values, values.count}
+    Swag.assert(bug10ReverseIndexOfVisitAtLeast(visitValues, 8) == 3)
+    Swag.assert(inlineBug10ReverseIndexOfVisitAtLeast(visitValues, 8) == 3)
+    Swag.assert(inlineBug10ReverseIndexOfVisitAtLeast(visitValues, 10) == Swag.U64.Max)
 }

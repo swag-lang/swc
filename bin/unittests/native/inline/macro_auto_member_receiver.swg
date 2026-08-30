@@ -21,7 +21,7 @@ enum CrossAstSafetyWhat
 func(what: CrossAstSafetyWhat) crossAstSafety(cond: #code->bool, loc = #callerlocation)
 {
     if !#inject(cond) do
-        @panic("cross-ast safety failed", loc)
+        Swag.panic("cross-ast safety failed", loc)
 }
 
 #[Swag.Macro]
@@ -51,6 +51,6 @@ impl CrossAstVec
     var v: CrossAstVec
     v.value = 7
     v.count = 5
-    @assert(v.at(2) == 7)
-    @assert(v.at(0) == 7)
+    Swag.assert(v.at(2) == 7)
+    Swag.assert(v.at(0) == 7)
 }

@@ -4,12 +4,12 @@ using Swag
 #[Swag.Macro]
 func pushAllocatorMacro(allocator: #null IAllocator, stmt: #code)
 {
-    let prev = @getcontext()
-    defer @setcontext(prev)
+    let prev = Swag.getContext()
+    defer Swag.setContext(prev)
 
     var cxt = prev[]
     cxt.allocator = allocator
-    @setcontext(cxt)
+    Swag.setContext(cxt)
 
     #inject(stmt)
 }
@@ -30,7 +30,7 @@ func pushAllocatorWithNull()->bool
 {
     pushAllocatorMacro(null)
     {
-        return @getcontext().allocator == null
+        return Swag.getContext().allocator == null
     }
 
     return false
@@ -38,11 +38,11 @@ func pushAllocatorWithNull()->bool
 
 func pushAllocatorWithLocalInterface()->bool
 {
-    let tempAllocator = @getcontext().tempAllocator
+    let tempAllocator = Swag.getContext().tempAllocator
 
     pushAllocatorMacro(tempAllocator)
     {
-        return allocatorObject(@getcontext().allocator) != null and allocatorITable(@getcontext().allocator) != null
+        return allocatorObject(Swag.getContext().allocator) != null and allocatorITable(Swag.getContext().allocator) != null
     }
 
     return false
@@ -50,6 +50,6 @@ func pushAllocatorWithLocalInterface()->bool
 
 #test
 {
-    @assert(pushAllocatorWithNull())
-    @assert(pushAllocatorWithLocalInterface())
+    Swag.assert(pushAllocatorWithNull())
+    Swag.assert(pushAllocatorWithLocalInterface())
 }

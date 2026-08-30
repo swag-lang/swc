@@ -10,6 +10,6 @@
 
     items[1].clearFirst()
 
-    @assert(items[0].storage[0] == 11)
-    @assert(items[1].storage[0] == 0)
+    Swag.assert(items[0].storage[0] == 11)
+    Swag.assert(items[1].storage[0] == 0)
 }

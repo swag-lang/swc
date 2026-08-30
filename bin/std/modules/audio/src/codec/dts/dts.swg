@@ -49,7 +49,7 @@ private impl BitReader
 {
     func create(packet: const [..] u8)->BitReader fail
     {
-        if @countof(packet) < 4 do
+        if packet.count < 4 do
             fail InvalidFormatError{"DTS packet header is truncated"}
         let bigEndian16    = packet[0] == 0x7F and packet[1] == 0xFE and packet[2] == 0x80 and packet[3] == 0x01
         let littleEndian16 = packet[0] == 0xFE and packet[1] == 0x7F and packet[2] == 0x01 and packet[3] == 0x80
@@ -59,8 +59,8 @@ private impl BitReader
             fail InvalidFormatError{"DTS packet has no core sync word"}
 
         let packed14 = bigEndian14 or littleEndian14
-        let bitSize  = packed14 ? (@countof(packet) / 2) * 14 : @countof(packet) * 8
-        return {@dataof(packet), bitSize, 0, littleEndian16 or littleEndian14, packed14}
+        let bitSize  = packed14 ? (packet.count / 2) * 14 : packet.count * 8
+        return {packet.buffer, bitSize, 0, littleEndian16 or littleEndian14, packed14}
     }
 
     mtd read(count: u32)->u32
@@ -166,7 +166,7 @@ private func parseFrameHeader(reader: *BitReader)->FrameHeader fail
     let unpackedFrameBytes = reader.read(14) + 1
     result.frameBytes = reader.packed14 ? unpackedFrameBytes * 8 / 14 * 2 : unpackedFrameBytes
     result.mode       = reader.read(6)
-    if result.mode >= @countof(ModeChannels) do
+    if result.mode >= ModeChannels.count do
         fail UnsupportedFormatError{"DTS packet uses an unsupported channel arrangement"}
     result.primaryChannels = ModeChannels[result.mode]
     let rateIndex = reader.read(4)
@@ -430,7 +430,7 @@ private impl Codec
     {
         var reader = try BitReader.create(packet)
         var header = try parseFrameHeader(&reader)
-        if header.frameBytes != @countof(packet) do
+        if header.frameBytes != packet.count do
             fail InvalidFormatError{"DTS packet size does not match its core-frame header"}
         if header.sampleRate != .sampleRate or header.channels != .channels do
             fail InvalidFormatError{"DTS packet shape differs from its container track"}
@@ -555,13 +555,13 @@ private impl Codec
                     if band < vqStart[channel] and !allocation[channel, band] do
                         continue
                     let scaleIndex = reader.read(bitCount)
-                    if scaleIndex >= @countof(ScaleFactors) do
+                    if scaleIndex >= ScaleFactors.count do
                         fail InvalidFormatError{"DTS scale-factor index exceeds its table"}
                     scales[channel, band, 0] = ScaleFactors[scaleIndex]
                     if transition[channel, band]
                     {
                         let second = reader.read(bitCount)
-                        if second >= @countof(ScaleFactors) do
+                        if second >= ScaleFactors.count do
                             fail InvalidFormatError{"DTS scale-factor index exceeds its table"}
                         scales[channel, band, 1] = ScaleFactors[second]
                     }
@@ -589,12 +589,12 @@ private impl Codec
             if header.lfe
             {
                 let count = 2 * header.lfe * subsubframes
-                if lfePosition + count > @countof(lfeSamples) do
+                if lfePosition + count > lfeSamples.count do
                     fail InvalidFormatError{"DTS LFE sample table exceeds the frame"}
                 for index in count do
                     lfeSamples[lfePosition + index] = cast(f64) reader.readSigned(8)
                 let scaleIndex = reader.read(8)
-                if scaleIndex >= @countof(ScaleFactors) do
+                if scaleIndex >= ScaleFactors.count do
                     fail InvalidFormatError{"DTS LFE scale-factor index exceeds its table"}
                 let scale = ScaleFactors[scaleIndex] * 0.035
                 for index in count do
@@ -718,7 +718,7 @@ impl IPacketCodec for Codec
     {
         let info     = try frameInfo(packet)
         let required = cast(u64) info.frames * .channels * #sizeof(s16)
-        if info.frameBytes > @countof(packet) do
+        if info.frameBytes > packet.count do
             fail InvalidFormatError{"DTS packet size does not match its core-frame header"}
         if destinationSize < required do
             fail BadParameterError{"DTS destination buffer is too small"}

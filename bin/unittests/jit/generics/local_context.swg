@@ -123,15 +123,15 @@ func(T) localUnionPartialLiteral(value: T)->T
 
 #test
 {
-    @assert(localStructDefaultType'f32())
-    @assert(localUnionDefaultType'f32())
+    Swag.assert(localStructDefaultType'f32())
+    Swag.assert(localUnionDefaultType'f32())
 
     let structValue = localStructExplicitType'f32()
     let unionValue  = localUnionExplicitType'f32()
     #assert(#typeof(structValue) == u16)
     #assert(#typeof(unionValue) == u16)
-    @assert(structValue == 7'u16)
-    @assert(unionValue == 9'u16)
+    Swag.assert(structValue == 7'u16)
+    Swag.assert(unionValue == 9'u16)
 }
 
 #test
@@ -145,10 +145,10 @@ func(T) localUnionPartialLiteral(value: T)->T
     #assert(#typeof(structImplicit) == f32)
     #assert(#typeof(unionExplicit) == u16)
     #assert(#typeof(unionImplicit) == f32)
-    @assert(structExplicit == 11'u16)
-    @assert(structImplicit == 1.5'f32)
-    @assert(unionExplicit == 13'u16)
-    @assert(unionImplicit == 2.5'f32)
+    Swag.assert(structExplicit == 11'u16)
+    Swag.assert(structImplicit == 1.5'f32)
+    Swag.assert(unionExplicit == 13'u16)
+    Swag.assert(unionImplicit == 2.5'f32)
 }
 
 #test
@@ -158,6 +158,6 @@ func(T) localUnionPartialLiteral(value: T)->T
 
     #assert(#typeof(structPartial) == f32)
     #assert(#typeof(unionPartial) == f32)
-    @assert(structPartial == 4.5'f32)
-    @assert(unionPartial == 6.5'f32)
+    Swag.assert(structPartial == 4.5'f32)
+    Swag.assert(unionPartial == 6.5'f32)
 }

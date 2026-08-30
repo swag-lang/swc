@@ -29,7 +29,7 @@ func levelMax(inter: bool, last: u32, run: u32)->u32
     let levelOf: const [..] u16 = inter ? TcoefInterLevel : TcoefIntraLevel
 
     var result = 0'u32
-    for entry in @countof(lastOf) where cast(u32) lastOf[entry] == last and cast(u32) runOf[entry] == run do
+    for entry in lastOf.count where cast(u32) lastOf[entry] == last and cast(u32) runOf[entry] == run do
         result = Math.max(result, cast(u32) levelOf[entry])
     return result
 }
@@ -44,7 +44,7 @@ func runMax(inter: bool, last: u32, level: u32)->u32
 
     var result = 0'u32
     var found  = false
-    for entry in @countof(lastOf) where cast(u32) lastOf[entry] == last and cast(u32) levelOf[entry] == level
+    for entry in lastOf.count where cast(u32) lastOf[entry] == last and cast(u32) levelOf[entry] == level
     {
         result = found ? Math.max(result, cast(u32) runOf[entry]) : cast(u32) runOf[entry]
         found  = true

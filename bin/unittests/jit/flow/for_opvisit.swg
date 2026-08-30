@@ -24,7 +24,7 @@ impl JitFieldVisits
             default: visitItem = me.z
             }
 
-            #inject(stmt, item = visitItem, index = @index)
+            #inject(stmt, item = visitItem, index = Swag.index)
         }
     }
 }
@@ -43,14 +43,14 @@ impl JitBufferVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(*s32) &(me.values[idx]), index = @index)
+                #inject(stmt, item = cast(*s32) &(me.values[idx]), index = Swag.index)
             }
         }
         else
         {
             for idx in 3
             {
-                #inject(stmt, item = me.values[idx], index = @index)
+                #inject(stmt, item = me.values[idx], index = Swag.index)
             }
         }
     }
@@ -69,7 +69,7 @@ impl JitReverseVisits
     {
         for idx in 3
         {
-            #inject(stmt, item = me.values[idx], index = @index)
+            #inject(stmt, item = me.values[idx], index = Swag.index)
         }
     }
 
@@ -111,7 +111,7 @@ impl JitHiddenAliasVisits
     {
         for idx in 3
         {
-            #inject(stmt, item = me.values[idx], tens = me.values[idx] * 10, index = @index)
+            #inject(stmt, item = me.values[idx], tens = me.values[idx] * 10, index = Swag.index)
         }
     }
 }
@@ -139,7 +139,7 @@ impl JitFieldPointerVisits
                 case 2: visitItem = me.third
                 }
 
-                #inject(stmt, item = visitItem, index = @index)
+                #inject(stmt, item = visitItem, index = Swag.index)
             }
         }
     }
@@ -159,14 +159,14 @@ impl JitConstPointerVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = @index)
+                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = Swag.index)
             }
         }
         else
         {
             for idx in 3
             {
-                #inject(stmt, item = me.values[idx], index = @index)
+                #inject(stmt, item = me.values[idx], index = Swag.index)
             }
         }
     }
@@ -178,12 +178,12 @@ impl JitReturnVisits
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32))
         where !ptr
     {
-        if !@countof(.values) do
+        if !(.values).count do
             return
 
-        var remain = @countof(.values)
+        var remain = (.values).count
         #scope(Up)
-        for idx in @countof(.values)
+        for idx in (.values).count
         {
             #scope(Down)
             {
@@ -358,5 +358,5 @@ func jitForeachVisitReturn()->bool
 
 #test
 {
-    @assert(jitForeachVisitReturn())
+    Swag.assert(jitForeachVisitReturn())
 }

@@ -40,9 +40,9 @@ namespace SemaEscape
     // caller-parameter arguments.
     void noteCallArguments(Sema& sema, AstNodeRef callRef);
 
-    // '@setcontext' stores a POINTER to its argument in runtime-owned storage that
+    // 'Swag.setContext' stores a POINTER to its argument in runtime-owned storage that
     // outlives the frame, so installing a frame local and returning leaves every later
-    // '@getcontext' reading recycled stack. Silent when the body restores a previous
+    // 'Swag.getContext' reading recycled stack. Silent when the body restores a previous
     // context with a 'defer', which is what makes the scoped idiom sound.
     Result checkSetContext(Sema& sema, AstNodeRef intrinsicRef, AstNodeRef argRef);
 

@@ -10,7 +10,7 @@ impl Swag.IAllocator for RejectAllocationAllocator
 {
     mtd impl alloc(request: *Swag.AllocatorRequest)
     {
-        @getcontext().user0 = cast(u64) request
+        Swag.getContext().user0 = cast(u64) request
         request.address     = null
     }
 
@@ -23,7 +23,7 @@ impl Swag.IAllocator for RejectAllocationAllocator
 func recordAllocationFailure(message: #null string, loc: Swag.SourceCodeLocation)
 {
     AllocationFailureMatched = message == "Memory.alloc cannot allocate memory: requested size 777 bytes, alignment 32 bytes [asset cache]"
-    let request = cast(#null *Swag.AllocatorRequest) @getcontext().user0
+    let request = cast(#null *Swag.AllocatorRequest) Swag.getContext().user0
     if request do
         request.address = &AllocationFailureFallback
 }
@@ -39,26 +39,26 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
 {
     let request = Swag.AllocatorRequest{size: 0, alignment: 32, hint: "zero request"}
     let message = formatAllocationFailure("Memory.alloc", request, false)
-    @assert(message.toString() == "Memory.alloc cannot allocate memory: requested size 0 bytes, alignment 32 bytes [zero request]")
+    Swag.assert(message.toString() == "Memory.alloc cannot allocate memory: requested size 0 bytes, alignment 32 bytes [zero request]")
 }
 
 #test
 {
     let request = Swag.AllocatorRequest{size: 8192, alignment: 64, hint: "temporary arena"}
     let message = formatAllocationFailure("Memory.tempAlloc", request, false)
-    @assert(message.toString() == "Memory.tempAlloc cannot allocate memory: requested size 8192 bytes, alignment 64 bytes [temporary arena]")
+    Swag.assert(message.toString() == "Memory.tempAlloc cannot allocate memory: requested size 8192 bytes, alignment 64 bytes [temporary arena]")
 }
 
 #test
 {
     let request = Swag.AllocatorRequest{address: cast(#null *void) 0x1234, size: 16384, oldSize: 4096, alignment: 128, hint: "growing texture cache"}
     let message = formatAllocationFailure("Memory.realloc", request, true)
-    @assert(message.toString() == "Memory.realloc cannot reallocate memory: requested size 16384 bytes, old size 4096 bytes, alignment 128 bytes, address 0x1234 [growing texture cache]")
+    Swag.assert(message.toString() == "Memory.realloc cannot reallocate memory: requested size 16384 bytes, old size 4096 bytes, alignment 128 bytes, address 0x1234 [growing texture cache]")
 }
 
 #test
 {
-    let cxt           = @getcontext()
+    let cxt           = Swag.getContext()
     let previousPanic = cxt.panic
     let previousUser0 = cxt.user0
     defer cxt.panic = previousPanic
@@ -70,6 +70,6 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
     var reject:    RejectAllocationAllocator
     let allocator: Swag.IAllocator = &reject
     let result = Memory.alloc(777, allocator, 32, "asset cache")
-    @assert(AllocationFailureMatched)
-    @assert(result == &AllocationFailureFallback)
+    Swag.assert(AllocationFailureMatched)
+    Swag.assert(result == &AllocationFailureFallback)
 }

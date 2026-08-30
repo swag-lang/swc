@@ -28,14 +28,14 @@ func day9A()
 
     var r     = expect Parser.RegExp.create(#raw "\((\d+)x(\d+)\)")
     var start = 0'u64
-    while start != @countof(line)
+    while start != line.count
     {
         let res = r.partialMatch(line[start to])
         if res
         {
             let n = expect StrConv.toS32(r[1])
             var x = expect StrConv.toS32(r[2])
-            start += @countof(res)
+            start += res.count
 
             while x
             {
@@ -52,5 +52,5 @@ func day9A()
         start  += 1
     }
 
-    @assert(decode.length == 120765)
+    Swag.assert(decode.length == 120765)
 }

@@ -58,7 +58,7 @@ Where the shared one belongs, in order of preference:
 ### Collapse Twins Onto One Parameter
 
 Two functions whose bodies differ by a single constant, field, or diagnostic id are one function
-with one more parameter. `#sizeof`/`#alignof`, `@memcpy`/`@memmove`, and `#safety`/`#sanity` each
+with one more parameter. `#sizeof`/`#alignof`, `Swag.memcpy`/`Swag.memmove`, and `#safety`/`#sanity` each
 collapsed this way, and so did five `registerNative*Function` methods that differed only in the
 bucket they appended to. A `bool` parameter is acceptable when the call site reads clearly; pass a
 pointer-to-member or an id when it does not.

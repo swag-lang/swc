@@ -47,7 +47,7 @@ func keySlotIndex(random: u64)->u64 => random & (KeySlotCount - 1)
 func randomKeySlotIndex()->u64 fail
 {
     var random: u64
-    Core.Crypto.randomBytes(@mkslice(cast([*] u8) &random, #sizeof(random)))
+    Core.Crypto.randomBytes(Swag.makeSlice(cast([*] u8) &random, #sizeof(random)))
     return keySlotIndex(random)
 }
 
@@ -56,8 +56,8 @@ impl KeySlot
     // Builds a slot that unwraps `master` with the container-wide password key.
     func create(slotKey, master: const [..] u8, index: u64)->KeySlot fail
     {
-        Debug.assert(@countof(slotKey) == Crypto.KeySize)
-        Debug.assert(@countof(master) == Crypto.MasterKeySize)
+        Debug.assert(slotKey.count == Crypto.KeySize)
+        Debug.assert(master.count == Crypto.MasterKeySize)
 
         var result: retval
         Core.Crypto.randomBytes(result.nonce)
@@ -69,8 +69,8 @@ impl KeySlot
     // to the already-derived password key.
     mtd const unwrap(slotKey: const [..] u8, index: u64, master: [..] u8)->bool fail
     {
-        Debug.assert(@countof(slotKey) == Crypto.KeySize)
-        Debug.assert(@countof(master) == Crypto.MasterKeySize)
+        Debug.assert(slotKey.count == Crypto.KeySize)
+        Debug.assert(master.count == Crypto.MasterKeySize)
         return Core.Crypto.chacha20Poly1305Open(slotKey, .nonce, .wrapped, .tag, Crypto.associatedData(KeySlotKind, index), master)
     }
 
@@ -81,11 +81,11 @@ impl KeySlot
         Core.Crypto.randomBytes(result)
 
         var offset = 0'u64
-        @memcpy(&result[offset], &.nonce[0], Crypto.NonceSize)
+        Swag.memcpy(&result[offset], &.nonce[0], Crypto.NonceSize)
         offset += Crypto.NonceSize
-        @memcpy(&result[offset], &.wrapped[0], Crypto.MasterKeySize)
+        Swag.memcpy(&result[offset], &.wrapped[0], Crypto.MasterKeySize)
         offset += Crypto.MasterKeySize
-        @memcpy(&result[offset], &.tag[0], Crypto.TagSize)
+        Swag.memcpy(&result[offset], &.tag[0], Crypto.TagSize)
         return result
     }
 
@@ -93,15 +93,15 @@ impl KeySlot
     // unused slot simply fails to unwrap.
     func decode(record: const [..] u8)->KeySlot
     {
-        Debug.assert(@countof(record) == KeySlotPayloadSize)
+        Debug.assert(record.count == KeySlotPayloadSize)
 
         var result: retval
         var offset = 0'u64
-        @memcpy(&result.nonce[0], @dataof(record) + offset, Crypto.NonceSize)
+        Swag.memcpy(&result.nonce[0], record.buffer + offset, Crypto.NonceSize)
         offset += Crypto.NonceSize
-        @memcpy(&result.wrapped[0], @dataof(record) + offset, Crypto.MasterKeySize)
+        Swag.memcpy(&result.wrapped[0], record.buffer + offset, Crypto.MasterKeySize)
         offset += Crypto.MasterKeySize
-        @memcpy(&result.tag[0], @dataof(record) + offset, Crypto.TagSize)
+        Swag.memcpy(&result.tag[0], record.buffer + offset, Crypto.TagSize)
         return result
     }
 

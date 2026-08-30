@@ -40,10 +40,10 @@ struct(T)
 
     #assert(#typeof(ints2) == #type [3] s32)
     #assert(#typeof(floats2) == #type [2] f64)
-    @assert(ints2[0] == 1)
-    @assert(ints2[2] == 3)
-    @assert(floats2[0] == 1.0'f64)
-    @assert(floats2[1] == 2.0'f64)
+    Swag.assert(ints2[0] == 1)
+    Swag.assert(ints2[2] == 3)
+    Swag.assert(floats2[0] == 1.0'f64)
+    Swag.assert(floats2[1] == 2.0'f64)
 }
 
 #test
@@ -56,10 +56,10 @@ struct(T)
     #assert(#typeof(pair.first.value) == s32)
     #assert(#typeof(pair.second.value) == string)
     #assert(#typeof(deep.value.value.value) == bool)
-    @assert(wrap.inner.value == 12)
-    @assert(pair.first.value == 7)
-    @assert(pair.second.value == "ok")
-    @assert(deep.value.value.value)
+    Swag.assert(wrap.inner.value == 12)
+    Swag.assert(pair.first.value == 7)
+    Swag.assert(pair.second.value == "ok")
+    Swag.assert(deep.value.value.value)
 }
 
 #test
@@ -71,8 +71,8 @@ struct(T)
     #assert(#typeof(b1) == #typeof(b2))
     #assert(#typeof(b1) == Box's32)
     #assert(#typeof(p1) == Pair'(s32, f64))
-    @assert(b1.value == 1)
-    @assert(b2.value == 2)
-    @assert(p1.first == 1)
-    @assert(p1.second == 2.5'f64)
+    Swag.assert(b1.value == 1)
+    Swag.assert(b2.value == 2)
+    Swag.assert(p1.first == 1)
+    Swag.assert(p1.second == 2.5'f64)
 }

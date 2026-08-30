@@ -77,6 +77,6 @@ func jitConditionalNonNullBranches(flag: bool)->bool
 
 #test
 {
-    @assert(jitConditionalNonNullBranches(true))
-    @assert(jitConditionalNonNullBranches(false))
+    Swag.assert(jitConditionalNonNullBranches(true))
+    Swag.assert(jitConditionalNonNullBranches(false))
 }

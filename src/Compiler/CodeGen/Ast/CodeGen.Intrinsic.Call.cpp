@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
@@ -563,7 +563,7 @@ namespace
         return Result::Continue;
     }
 
-    // `@tableof` counterpart of emitMakeInterfaceFromRuntimeTypeInfo: read the method table from the
+    // `Swag.tableOf` counterpart of emitMakeInterfaceFromRuntimeTypeInfo: read the method table from the
     // runtime typeinfo's interface array. On a match writes the itable to `outTableReg` and jumps to
     // `doneLabel`; otherwise falls through leaving `outTableReg` untouched.
     Result emitTableOfFromRuntimeTypeInfo(CodeGen& codeGen, MicroReg objectTypeReg, MicroReg interfaceTypeReg, MicroReg outTableReg, MicroLabelRef doneLabel)
@@ -729,7 +729,7 @@ namespace
         return Result::Continue;
     }
 
-    // '@memcpy' and '@memmove' lower to an inline block copy only when the size is a constant;
+    // 'Swag.memcpy' and 'Swag.memmove' lower to an inline block copy only when the size is a constant;
     // otherwise the runtime call stands. They differ solely in overlap handling.
     Result codeGenMemBlockIntrinsic(CodeGen& codeGen, const AstIntrinsicCallExpr& node, bool mayOverlap)
     {
@@ -869,7 +869,7 @@ namespace
     // pointer and a compile-time candidate type info. Types reflected from an
     // imported API are regenerated locally in every importing module, so the same
     // logical type has a different `TypeInfo` pointer per module; their reflection
-    // `crc` identity stays equal (the same identity `@is`/`@typecmp` rely on).
+    // `crc` identity stays equal (the same identity `Swag.typeIs`/`Swag.typeCmp` rely on).
     // On match, falls through to the following code; otherwise jumps to mismatchLabel.
     void emitTypeInfoIdentityMatchOrJump(CodeGen& codeGen, MicroReg runtimeTypeReg, MicroReg candidateTypeReg, MicroLabelRef matchLabel, MicroLabelRef mismatchLabel)
     {
@@ -964,7 +964,7 @@ namespace
         const MicroLabelRef doneLabel   = builder.createLabel();
 
         // Static candidates first: they share `ensureInterfaceMethodTable`'s cached constant with
-        // the direct path and `@tableof`, so all routes to the same (struct, interface) yield one
+        // the direct path and `Swag.tableOf`, so all routes to the same (struct, interface) yield one
         // itable pointer.
         for (const auto& candidate : preparedCandidates)
         {
@@ -1086,7 +1086,7 @@ namespace
         const MicroLabelRef doneLabel        = builder.createLabel();
 
         // Static candidates first (share `ensureInterfaceMethodTable`'s cached constant with
-        // `@mkinterface`, so both intrinsics yield the same itable pointer).
+        // `Swag.makeInterface`, so both intrinsics yield the same itable pointer).
         for (const auto& candidate : preparedCandidates)
         {
             const ConstantValue& objectTypeCst = codeGen.cstMgr().get(candidate.objectTypeCstRef);
@@ -1167,7 +1167,7 @@ namespace
         return Result::Continue;
     }
 
-    // '@isset(x.field)': the operand payload is the 'Swag.Late' field address; the
+    // 'Swag.isSet(x.field)': the operand payload is the 'Swag.Late' field address; the
     // field is set iff its presence word is non-zero.
     Result codeGenIsSet(CodeGen& codeGen, const AstIntrinsicCall& node)
     {
@@ -2023,8 +2023,7 @@ namespace
 
 Result AstIntrinsicCall::codeGenPostNode(CodeGen& codeGen) const
 {
-    const Token& tok = codeGen.token(codeRef());
-    switch (tok.id)
+    switch (intrinsicId)
     {
         case TokenId::IntrinsicDataOf:
             return codeGenDataOf(codeGen, *this);
@@ -2081,7 +2080,7 @@ namespace
         return true;
     }
 
-    // '@vecsplat' fills every lane with one scalar. The result type carries the lane, and
+    // 'Swag.vecsplat' fills every lane with one scalar. The result type carries the lane, and
     // the argument already has that exact type, so nothing converts here.
     Result codeGenVectorSplat(CodeGen& codeGen, AstNodeRef srcNodeRef, bool& outHandled)
     {
@@ -2615,14 +2614,12 @@ namespace
 
 Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const Token& tok = codeGen.token(codeRef());
-
     bool vectorHandled = false;
-    SWC_RESULT(codeGenVectorIntrinsic(codeGen, *this, tok.id, vectorHandled));
+    SWC_RESULT(codeGenVectorIntrinsic(codeGen, *this, intrinsicId, vectorHandled));
     if (vectorHandled)
         return Result::Continue;
 
-    switch (tok.id)
+    switch (intrinsicId)
     {
         case TokenId::IntrinsicAssert:
             return codeGenAssert(codeGen, *this);

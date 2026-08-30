@@ -73,7 +73,7 @@ internal impl IImageEncoder for Encoder
             switch image.pixelFormat
             {
             case .BGR8, .BGRA8:
-                result.addBytes(@mkslice(psrc, rowBytes))
+                result.addBytes(Swag.makeSlice(psrc, rowBytes))
                 psrc += rowBytes
             }
 

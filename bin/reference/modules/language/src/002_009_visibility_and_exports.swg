@@ -21,7 +21,7 @@ internal const VisibilityModuleLocal = 20
 
 #test
 {
-    @assert(VisibilityFileLocal + VisibilityModuleLocal == 30)
+    Swag.assert(VisibilityFileLocal + VisibilityModuleLocal == 30)
 }
 
 /**
@@ -142,7 +142,7 @@ impl Counter
     c.bump()
 
     // 'public readonly' reads from anywhere; only its own type writes it.
-    @assert(c.count == 4)
+    Swag.assert(c.count == 4)
 }
 
 /**

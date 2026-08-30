@@ -73,7 +73,7 @@ func day7B0()
     let total = count(&id, "shiny gold")
 
     // Console.print("total: ", total)
-    @assert(total == 9339)
+    Swag.assert(total == 9339)
 }
 
 /////////////////////////////////////////////////////////////////
@@ -115,5 +115,5 @@ func day7B1()
     let total = count(&id, "shiny gold")
 
     // Console.print("total: ", total)
-    @assert(total == 9339)
+    Swag.assert(total == 9339)
 }

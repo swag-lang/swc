@@ -32,7 +32,7 @@ This example increments 'a' by 1 each time it is called.
     var a = 0
     myMixin()     // Equivalent to writing 'a += 1' directly here
     myMixin()
-    @assert(a == 2)
+    Swag.assert(a == 2)
 }
 
 /**
@@ -51,7 +51,7 @@ Here, 'increment' defaults to 1.
     var a = 0
     myMixin()      // Uses default: 'a += 1'
     myMixin(2)     // Uses provided value: 'a += 2'
-    @assert(a == 3)
+    Swag.assert(a == 3)
 }
 
 /**
@@ -76,7 +76,7 @@ The mixin can execute this block multiple times using '#inject'.
     doItTwice(#code {
         a += 1
     })
-    @assert(a == 2)
+    Swag.assert(a == 2)
 }
 
 /**
@@ -107,7 +107,7 @@ separate block after the call.
         a += value
     }
 
-    @assert(a == 12)
+    Swag.assert(a == 12)
 }
 
 /**
@@ -134,7 +134,7 @@ plain declarations there.
         b += amount
     }
 
-    @assert(a == b and b == 10)
+    Swag.assert(a == b and b == 10)
 }
 
 /**
@@ -159,5 +159,5 @@ invocation refers to that invocation's generated symbol.
     toScope()
     toScope()
 
-    @assert(total == 3)
+    Swag.assert(total == 3)
 }

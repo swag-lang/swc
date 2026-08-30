@@ -16,6 +16,6 @@ func readAggregatePointerMember(flag: bool)->u16
 
 #test
 {
-    @assert(readAggregatePointerMember(true) == 70'u16)
-    @assert(readAggregatePointerMember(false) == 80'u16)
+    Swag.assert(readAggregatePointerMember(true) == 70'u16)
+    Swag.assert(readAggregatePointerMember(false) == 80'u16)
 }

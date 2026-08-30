@@ -68,7 +68,7 @@ func lookupCMap4(cmap: #null const [..] u8, charCode: u32)->u32 fail
 
     let rangePos = rangesOff + idx * 2
     let glyphPos = rangePos + range + cast(u64) (charCode - startCode) * 2
-    if glyphPos + 2 > @countof(cmap) do
+    if glyphPos + 2 > cmap.count do
         return 0
 
     var glyph = readU16(cmap, glyphPos)

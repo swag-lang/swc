@@ -29,7 +29,7 @@ func canReachTarget(target: u64, first: u64, operands: [..] u64)->bool
 
         if next > target do
             return false
-        if @countof(operands) == 1 do
+        if operands.count == 1 do
             return next == target
 
         return search(target, next, operands[1 to], '+') or
@@ -45,8 +45,8 @@ func canReachTarget(target: u64, first: u64, operands: [..] u64)->bool
 #test
 {
     let eq0: [4] u64 = [6, 8, 6, 15]
-    @assert(canReachTarget(7290, eq0[0], eq0[1 to]))
+    Swag.assert(canReachTarget(7290, eq0[0], eq0[1 to]))
 
     let eq1: [4] u64 = [9, 7, 18, 13]
-    @assert(!canReachTarget(21037, eq1[0], eq1[1 to]))
+    Swag.assert(!canReachTarget(21037, eq1[0], eq1[1 to]))
 }

@@ -58,7 +58,7 @@ func day9A()
     for l in lines
     {
         let v1 = expect StrConv.toS32(l[])
-        if @index < N
+        if Swag.index < N
         {
             for v0 in val do
                 sum.add(v0 + v1)
@@ -69,7 +69,7 @@ func day9A()
         if !sum.contains(v1)
         {
             // Console.print("total: ", v1)
-            @assert(v1 == 552655238)
+            Swag.assert(v1 == 552655238)
             break
         }
 

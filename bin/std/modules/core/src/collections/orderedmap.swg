@@ -159,8 +159,8 @@ impl OrderedMap
         let first = .lowerBound(lower)
         let last  = .lowerBound(upper)
         if last <= first do
-            return @mkslice(cast(const [*] OrderedMapEntry'(K, V)) 1'u64, 0)
-        return @mkslice(.entries.buffer! + first, last - first)
+            return Swag.makeSlice(cast(const [*] OrderedMapEntry'(K, V)) 1'u64, 0)
+        return Swag.makeSlice(.entries.buffer! + first, last - first)
     }
 
     // Returns whether the map contains `key`.

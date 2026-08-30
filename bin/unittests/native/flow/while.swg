@@ -8,7 +8,7 @@
         var x = 0
         i += 1
     }
-    @assert(i == 3)
+    Swag.assert(i == 3)
 }
 
 #test
@@ -20,7 +20,7 @@
         count += 1
     }
 
-    @assert(count == 4)
+    Swag.assert(count == 4)
 }
 
 #test
@@ -38,5 +38,5 @@
         outer += 1
     }
 
-    @assert(outer == 2)
+    Swag.assert(outer == 2)
 }

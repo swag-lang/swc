@@ -41,7 +41,7 @@ cancelled automatically when their target is hidden or destroyed. See
 
 #run
 {
-    let itf = @compiler
+    let itf = Swag.compiler()
     let cfg = itf.getBuildCfg()!
     cfg.moduleVersion     = #swcversion
     cfg.moduleRevision    = #swcrevision

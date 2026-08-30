@@ -19,7 +19,7 @@ func canDiscard()->s32
 #test
 {
     let v = mustUse()
-    @assert(v == 1)
+    Swag.assert(v == 1)
 }
 
 #test

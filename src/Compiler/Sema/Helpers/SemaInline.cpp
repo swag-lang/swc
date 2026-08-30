@@ -1270,7 +1270,15 @@ namespace
             sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef)
         {
             const Ast* parentAst = resolveInlineAnalysisNodeAst(sema, sourceAst, parentRef);
-            return !parentAst || parentAst->node(parentRef).isNot(AstNodeId::CountOfExpr);
+            if (!parentAst)
+                return true;
+
+            const AstNode& parentNode = parentAst->node(parentRef);
+            if (parentNode.is(AstNodeId::CountOfExpr))
+                return false;
+            if (const auto* member = parentNode.safeCast<AstMemberAccessExpr>())
+                return member->nodeLeftRef != nodeRef || member->projectionId != TokenId::IntrinsicCountOf;
+            return true;
         }
 
         SmallVector<AstNodeRef> children;
@@ -1284,7 +1292,7 @@ namespace
         return false;
     }
 
-    // A pack the body only measures with '#countof' answers from the binding's type and
+    // A pack the body only measures with '.count' answers from the binding's type and
     // needs no home; any other use consumes the pack itself. The body scan is the costly
     // part, so it runs after the cheap tests.
     bool forceMaterializeInlineVariadicBinding(Sema& sema, const Ast& sourceAst, AstNodeRef bodyRef, const SemaClone::ParamBinding& binding, const TypeInfo& paramType)

@@ -25,7 +25,7 @@ const ATTRIBUTE_USING_INFO = cast(const *Swag.TypeInfoStruct) #typeof(AttributeU
 
 #test
 {
-    @assert(@countof(ATTRIBUTE_USING_INFO.fields) == 2)
+    Swag.assert(ATTRIBUTE_USING_INFO.fields.count == 2)
 
     var foundGrouped = false
     var foundDirect  = false
@@ -37,24 +37,24 @@ const ATTRIBUTE_USING_INFO = cast(const *Swag.TypeInfoStruct) #typeof(AttributeU
             if attribute.type != #typeof(AttributeUsingScope.ScopedLabel) do
                 continue
 
-            @assert(@countof(attribute.params) == 1)
+            Swag.assert(attribute.params.count == 1)
             let params = attribute.params!
-            @assert(params[0].name == "value")
+            Swag.assert(params[0].name == "value")
 
             if field.name == "grouped"
             {
                 foundGrouped = true
-                @assert(cast(#null string) params[0].value == "grouped")
+                Swag.assert(cast(#null string) params[0].value == "grouped")
             }
 
             if field.name == "direct"
             {
                 foundDirect = true
-                @assert(cast(#null string) params[0].value == "direct")
+                Swag.assert(cast(#null string) params[0].value == "direct")
             }
         }
     }
 
-    @assert(foundGrouped)
-    @assert(foundDirect)
+    Swag.assert(foundGrouped)
+    Swag.assert(foundDirect)
 }

@@ -34,6 +34,6 @@ namespace ExpectBlockBindings
 
 #test
 {
-    @assert(ExpectBlockBindings.parseWithVarBindings() == 46)
-    @assert(ExpectBlockBindings.parseWithLetBindings() == 15)
+    Swag.assert(ExpectBlockBindings.parseWithVarBindings() == 46)
+    Swag.assert(ExpectBlockBindings.parseWithLetBindings() == 15)
 }

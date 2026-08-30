@@ -31,10 +31,10 @@ impl CrossAstCastProbe
 {
     var probe: CrossAstCastProbe'u64
     probe.val = 42
-    @assert(probe.asS32() == 42)
-    @assert(probe.doubledAsU8() == 84)
+    Swag.assert(probe.asS32() == 42)
+    Swag.assert(probe.doubledAsU8() == 84)
 
     var probe2: CrossAstCastProbe'f64
     probe2.val = 7.0
-    @assert(probe2.asS32() == 7)
+    Swag.assert(probe2.asS32() == 7)
 }

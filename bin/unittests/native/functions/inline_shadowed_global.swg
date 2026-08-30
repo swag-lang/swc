@@ -30,5 +30,5 @@ impl Angle
 #test
 {
     let angle = Angle{rad: 4}
-    @assert(angle.toDegrees() == 8)
+    Swag.assert(angle.toDegrees() == 8)
 }

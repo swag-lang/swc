@@ -9,6 +9,6 @@ func typeofStructLiteralField(valueIndex: u64)->s32
 
 #test
 {
-    @assert(typeofStructLiteralField(0) == 10)
-    @assert(typeofStructLiteralField(2) == 2)
+    Swag.assert(typeofStructLiteralField(0) == 10)
+    Swag.assert(typeofStructLiteralField(2) == 2)
 }

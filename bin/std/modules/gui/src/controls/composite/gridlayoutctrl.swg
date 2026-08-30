@@ -185,7 +185,7 @@ private impl GridLayoutCtrl
     mtd computeTrackSizes(tracks: const [..] GridTrack, content: const [..] f32, available: f32, spacing: f32, forceEqual: bool)->Array'f32
     {
         var result: retval
-        let count = @countof(tracks)
+        let count = tracks.count
         if !count do
             return result
 

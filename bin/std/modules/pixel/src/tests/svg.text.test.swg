@@ -26,8 +26,8 @@ private func countTextPixels(image: const *Image, left, right: s32)->u32
 
     let drawing = expect Svg.Drawing.parse(Source, options)
     let image   = drawing.rasterize(64, 24, 1)
-    @assert(countTextPixels(&image, 2, 28) > 20)
-    @assert(countTextPixels(&image, 32, 52) > 20)
+    Swag.assert(countTextPixels(&image, 2, 28) > 20)
+    Swag.assert(countTextPixels(&image, 32, 52) > 20)
 
     var hasRed = false
     for y in image.height
@@ -39,5 +39,5 @@ private func countTextPixels(image: const *Image, left, right: s32)->u32
         }
     }
 
-    @assert(hasRed)
+    Swag.assert(hasRed)
 }

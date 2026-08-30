@@ -41,11 +41,11 @@ func nullableDerefOptional(n: #null *NullableDerefNode)->s32
 #test
 {
     var node = NullableDerefNode{value: 41}
-    @assert(nullableDerefNarrowed(&node, false) == 42)
-    @assert(node.value == 42)
-    @assert(nullableDerefNarrowed(&node, true) == 0)
-    @assert(nullableDerefAsserted(&node, false) == 43)
-    @assert(nullableDerefOptional(&node) == 44)
-    @assert(nullableDerefOptional(null) == 0)
-    @assert(node.value == 44)
+    Swag.assert(nullableDerefNarrowed(&node, false) == 42)
+    Swag.assert(node.value == 42)
+    Swag.assert(nullableDerefNarrowed(&node, true) == 0)
+    Swag.assert(nullableDerefAsserted(&node, false) == 43)
+    Swag.assert(nullableDerefOptional(&node) == 44)
+    Swag.assert(nullableDerefOptional(null) == 0)
+    Swag.assert(node.value == 44)
 }

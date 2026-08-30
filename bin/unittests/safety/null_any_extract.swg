@@ -43,7 +43,7 @@
         return back == null
     }
 
-    @assert(nullAnyExtractDisabled())
+    Swag.assert(nullAnyExtractDisabled())
 }
 
 #test
@@ -66,5 +66,5 @@
         return cast(s32) boxed == 42
     }
 
-    @assert(nullAnyExtractOk())
+    Swag.assert(nullAnyExtractOk())
 }

@@ -26,5 +26,5 @@ func day5B()
         step  += 1
     }
 
-    @assert(step == 27688760)
+    Swag.assert(step == 27688760)
 }

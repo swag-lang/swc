@@ -8,7 +8,7 @@
     {
         count += 1
     }
-    @assert(count == 0)
+    Swag.assert(count == 0)
 }
 
 // While with break
@@ -21,7 +21,7 @@
         if count == 5 do
             break
     }
-    @assert(count == 5)
+    Swag.assert(count == 5)
 }
 
 // While with continue
@@ -36,7 +36,7 @@
             continue
         sum += i
     }
-    @assert(sum == 25)     // 1 + 3 + 5 + 7 + 9
+    Swag.assert(sum == 25)     // 1 + 3 + 5 + 7 + 9
 }
 
 // While with both break and continue
@@ -54,7 +54,7 @@
         sum += i
     }
     // 1 + 2 + 4 + 5 + 7 + 8 + 10 = 37
-    @assert(sum == 37)
+    Swag.assert(sum == 37)
 }
 
 // While with complex boolean condition (AND)
@@ -69,9 +69,9 @@
         j     -= 1
         count += 1
     }
-    @assert(count == 5)
-    @assert(i == 5)
-    @assert(j == 5)
+    Swag.assert(count == 5)
+    Swag.assert(i == 5)
+    Swag.assert(j == 5)
 }
 
 // While with complex boolean condition (OR)
@@ -85,7 +85,7 @@
         if i >= 5 do
             done = true
     }
-    @assert(i == 5)
+    Swag.assert(i == 5)
 }
 
 // While with early return from function
@@ -103,8 +103,8 @@ func whileEarlyReturn(limit: s32)->s32
 
 #test
 {
-    @assert(whileEarlyReturn(7) == 7)
-    @assert(whileEarlyReturn(1) == 1)
+    Swag.assert(whileEarlyReturn(7) == 7)
+    Swag.assert(whileEarlyReturn(1) == 1)
 }
 
 // Nested while with outer break
@@ -124,7 +124,7 @@ func whileEarlyReturn(limit: s32)->s32
         }
         i += 1
     }
-    @assert(total == 10)     // 5 outer * 2 inner
+    Swag.assert(total == 10)     // 5 outer * 2 inner
 }
 
 // While modifying condition variable in complex way
@@ -137,8 +137,8 @@ func whileEarlyReturn(limit: s32)->s32
         x     *= 2
         steps += 1
     }
-    @assert(x == 128)
-    @assert(steps == 7)
+    Swag.assert(x == 128)
+    Swag.assert(steps == 7)
 }
 
 // While with side effect in condition
@@ -157,8 +157,8 @@ func sideEffectCheck(val: s32)->bool
     {
         i += 1
     }
-    @assert(i == 3)
-    @assert(gSideEffectCount == 4)     // checked 0,1,2,3 - last check returns false
+    Swag.assert(i == 3)
+    Swag.assert(gSideEffectCount == 4)     // checked 0,1,2,3 - last check returns false
 }
 
 // While single iteration
@@ -171,5 +171,5 @@ func sideEffectCheck(val: s32)->bool
         count += 1
         i     += 1
     }
-    @assert(count == 1)
+    Swag.assert(count == 1)
 }

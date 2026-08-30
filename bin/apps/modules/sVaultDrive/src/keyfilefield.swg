@@ -43,7 +43,7 @@ impl IWnd for KeyFileField
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
-        if !@isset(.remove) do
+        if !Swag.isSet(.remove) do
             return
         let room = .clientRect()
         let gap  = .themeMetrics().dialog_BtnPadding
@@ -231,7 +231,7 @@ impl KeyFileField
 
     mtd samePaths(paths: const [..] String)->bool
     {
-        if .paths.count != @countof(paths) do
+        if .paths.count != paths.count do
             return false
         for &path, index in .paths where path.toString() != paths[index].toString() do
             return false

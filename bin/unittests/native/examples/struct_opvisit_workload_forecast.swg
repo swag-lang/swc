@@ -59,7 +59,7 @@ impl WorkloadForecast
                 case 4: visitItem = me.friday
                 }
 
-                #inject(stmt, item = visitItem, index = @index)
+                #inject(stmt, item = visitItem, index = Swag.index)
             }
         }
     }
@@ -80,7 +80,7 @@ impl WorkloadForecast
             default: visitItem = me.friday
             }
 
-            #inject(stmt, item = visitItem, index = @index)
+            #inject(stmt, item = visitItem, index = Swag.index)
         }
     }
 
@@ -130,9 +130,9 @@ func maxAdjacentRise(forecast: WorkloadForecast)->s32
         friday: 35
         }
 
-    @assert(totalStops(forecast) == 148)
-    @assert(adjacentSignature(forecast) == 54544756)
-    @assert(maxAdjacentRise(forecast) == 6)
+    Swag.assert(totalStops(forecast) == 148)
+    Swag.assert(adjacentSignature(forecast) == 54544756)
+    Swag.assert(maxAdjacentRise(forecast) == 6)
 
     for &stops, day in forecast
     {
@@ -150,12 +150,12 @@ func maxAdjacentRise(forecast: WorkloadForecast)->s32
         }
     }
 
-    @assert(forecast.monday == 26)
-    @assert(forecast.tuesday == 30)
-    @assert(forecast.wednesday == 29)
-    @assert(forecast.thursday == 29)
-    @assert(forecast.friday == 30)
-    @assert(totalStops(forecast) == 144)
-    @assert(adjacentSignature(forecast) == 54495051)
-    @assert(maxAdjacentRise(forecast) == 4)
+    Swag.assert(forecast.monday == 26)
+    Swag.assert(forecast.tuesday == 30)
+    Swag.assert(forecast.wednesday == 29)
+    Swag.assert(forecast.thursday == 29)
+    Swag.assert(forecast.friday == 30)
+    Swag.assert(totalStops(forecast) == 144)
+    Swag.assert(adjacentSignature(forecast) == 54495051)
+    Swag.assert(maxAdjacentRise(forecast) == 4)
 }

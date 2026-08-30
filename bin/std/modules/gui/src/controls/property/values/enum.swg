@@ -20,7 +20,7 @@ internal impl Properties
 
     mtd refreshEnumFlags(item: *PropertiesItem)
     {
-        if @isset(item.checkBox)
+        if Swag.isSet(item.checkBox)
         {
             var val1, val2: u64
             switch item.typeValue.pointedType!.sizeof
@@ -53,7 +53,7 @@ internal impl Properties
 
     mtd refreshEnum(item: *PropertiesItem)
     {
-        if @isset(item.comboBox)
+        if Swag.isSet(item.comboBox)
         {
             let typeEnum = cast(const *Swag.TypeInfoEnum) item.typeValue.pointedType!
 
@@ -107,7 +107,7 @@ internal impl Properties
 
     mtd validateEnumFlags(item: *PropertiesItem)
     {
-        if @isset(item.checkBox)
+        if Swag.isSet(item.checkBox)
         {
             // Set/clear this one flag bit in every edited instance (other bits, which may
             // differ per instance, are left alone). The row's mask is the flag value.
@@ -121,7 +121,7 @@ internal impl Properties
 
     mtd validateEnum(item: *PropertiesItem)
     {
-        if @isset(item.comboBox)
+        if Swag.isSet(item.comboBox)
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -253,7 +253,7 @@ internal impl Properties
         // Panel row: a full-width labeled combo, right edge aligned with the other editors
         if .kind == .Panel
         {
-            if @isset(item.label) do
+            if Swag.isSet(item.label) do
                 item.label.hide()
             with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {

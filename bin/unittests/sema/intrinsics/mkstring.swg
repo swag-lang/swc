@@ -3,7 +3,7 @@
 func semaTest001()
 {
     var buf: [100] u8
-    let str = @mkstring(&buf[0], 10)
+    let str = Swag.makeString(&buf[0], 10)
     #assert(#typeof(str) == string)
-    @assert(@countof(str) == 10)
+    Swag.assert(str.count == 10)
 }

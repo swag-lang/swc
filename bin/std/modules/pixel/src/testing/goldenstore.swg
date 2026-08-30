@@ -60,7 +60,7 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
     if errRead != null
     {
         Console.println("[golden] cannot read ", path)
-        @assert(false)
+        Swag.assert(false)
         return
     }
 
@@ -70,7 +70,7 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
     let actual = actualPath(path.toString(), ".txt")
     writeText(actual.toString(), text)
     reportDiff(name, path.toString(), actual.toString(), expected.toString(), text)
-    @assert(false)
+    Swag.assert(false)
 }
 
 // Compares two owned pixel buffers with the same bounded tolerance as image goldens.
@@ -97,7 +97,7 @@ func assertImagesNear(expected, actual: const *Image, name: string, options: Ima
     Console.println("        expected: ", expectedPath)
     Console.println("        actual  : ", actualPath)
     reportImageDifference(&difference, expected, actual)
-    @assert(false)
+    Swag.assert(false)
 }
 
 // Compares owned pixels against the PNG golden named `name`.
@@ -115,7 +115,7 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
     {
         if !writeImage(image, path.toString())
         {
-            @assert(false)
+            Swag.assert(false)
             return
         }
 
@@ -128,7 +128,7 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
     if errRead != null
     {
         Console.println("[golden] cannot read ", path)
-        @assert(false)
+        Swag.assert(false)
         return
     }
 
@@ -143,7 +143,7 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
     Console.println("         golden : ", path)
     Console.println("         actual : ", actual)
     reportImageDifference(&difference, &expected, image)
-    @assert(false)
+    Swag.assert(false)
 }
 
 private
@@ -269,7 +269,7 @@ private
     func actualPath(path, extension: string)->String
     {
         var result = String.from(path)
-        result.removeBack(@countof(extension))
+        result.removeBack(extension.count)
         result += ".actual"
         result += extension
         return result
@@ -292,7 +292,7 @@ private
             }
         }
 
-        discard catch File.writeAllBytes(path, @mkslice(@dataof(text), @countof(text))) as errWrite
+        discard catch File.writeAllBytes(path, Swag.makeSlice(text.buffer, text.count)) as errWrite
         if errWrite != null
         {
             Console.println("[golden] cannot write ", path)
@@ -305,7 +305,7 @@ private
         var result: retval
         var cur:    String
 
-        for i in @countof(text)
+        for i in text.count
         {
             if text[i] == '\n'u8
             {

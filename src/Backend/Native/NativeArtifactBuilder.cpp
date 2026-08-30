@@ -136,13 +136,13 @@ namespace
         }
     }
 
-    // Copies the caller's process command line into this artifact's own '@pinfos.args'.
+    // Copies the caller's process command line into this artifact's own 'Swag.processInfos().args'.
     //
-    // '@pinfos' resolves to a per-artifact slot of the zero-initialized data segment, so every
+    // 'Swag.processInfos()' resolves to a per-artifact slot of the zero-initialized data segment, so every
     // executable and every shared library starts with its own empty copy. Whoever owns the real
     // command line -- the startup thunk of a native run, or the compiler for a JIT run -- passes it
     // down the hook chain, and each artifact adopts it here. Without this an imported module
-    // answers '@args' from a slot nobody ever filled, and code as ordinary as 'Env.hasArg' returns
+    // answers 'Swag.args()' from a slot nobody ever filled, and code as ordinary as 'Env.hasArg' returns
     // a different answer depending on which module it was compiled into.
     void emitAdoptProcessArgs(MicroBuilder& builder, CompilerInstance& compiler, MicroReg processArgsReg, uint32_t& nextVirtualIntRegIndex)
     {
@@ -846,8 +846,8 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     builder.emitLoadRegMem(hookArgs.tlsIdPlusOne, tlsStorageReg, 0, MicroOpBits::B64);
 
     // '__setupRuntime' has just read the real command line from the operating system into this
-    // executable's own '@pinfos.args'. Hand that slot down the hook chain so every imported module
-    // adopts it: '@pinfos' is per-artifact, so without this '@args' answers the executable and
+    // executable's own 'Swag.processInfos().args'. Hand that slot down the hook chain so every imported module
+    // adopts it: 'Swag.processInfos()' is per-artifact, so without this 'Swag.args()' answers the executable and
     // comes back empty in every shared library, and the runtime's own 'swag.test' guard -- which
     // is what makes a '#test' run at all -- never sees the argument the compiler passed.
     hookArgs.processArgs = nextVirtualIntReg(nextVirtualIntRegIndex);

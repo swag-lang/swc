@@ -14,7 +14,7 @@ private func semaTest001()
         value += 1
     })
 
-    @assert(value == 1)
+    Swag.assert(value == 1)
 }
 
 #[Swag.Mixin]
@@ -37,5 +37,5 @@ private func semaTest002()
         total += value
     }
 
-    @assert(total == 12)
+    Swag.assert(total == 12)
 }

@@ -49,7 +49,7 @@ func scopedLockUnlocksAfterContinue()->bool
         if sync.depth != 1 do
             return false
 
-        if @index != 3 do
+        if Swag.index != 3 do
             continue
 
         reachedTail += 1
@@ -105,7 +105,7 @@ func sharedLockUnlocksAfterContinue()->bool
         if sync.sharedDepth != 1 do
             return false
 
-        if @index != 2 do
+        if Swag.index != 2 do
             continue
 
         reachedTail += 1
@@ -119,8 +119,8 @@ func sharedLockUnlocksAfterContinue()->bool
 
 #test
 {
-    @assert(scopedLockUnlocksAfterContinue())
-    @assert(scopedLockUnlocksAfterBreak())
-    @assert(scopedLockUnlocksAfterReturn())
-    @assert(sharedLockUnlocksAfterContinue())
+    Swag.assert(scopedLockUnlocksAfterContinue())
+    Swag.assert(scopedLockUnlocksAfterBreak())
+    Swag.assert(scopedLockUnlocksAfterReturn())
+    Swag.assert(sharedLockUnlocksAfterContinue())
 }

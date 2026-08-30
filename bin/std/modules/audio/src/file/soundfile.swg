@@ -156,7 +156,7 @@ impl SoundFile
     func decodableExtensions()->Array'String
     {
         var result: retval
-        result.reserve(@countof(SoundFileFormats))
+        result.reserve(SoundFileFormats.count)
         for format in SoundFileFormats do
             result.add(String.from(format.extension))
         return result
@@ -336,9 +336,9 @@ impl SoundFile
             fail UnsupportedFormatError{"unsupported packetized sound encoding"}
         if !sampleRateHz or !channels or channels > 8 do
             fail BadParameterError{"packetized sound needs one to eight channels and a non-zero sample rate"}
-        if !@countof(packets) do
+        if !packets.count do
             fail BadParameterError{"packetized sound needs packets"}
-        if packetEncodingNeedsConfig(encoding) and !@countof(decoderConfig) do
+        if packetEncodingNeedsConfig(encoding) and !decoderConfig.count do
             fail BadParameterError{"packetized sound needs decoder configuration"}
 
         var stream     = File.openRead(path)
@@ -373,8 +373,8 @@ impl SoundFile
         }
 
         result.leadingTrim = options.leadingTrimFrames
-        result.packets.reserve(@countof(packets))
-        result.packetStarts.reserve(@countof(packets))
+        result.packets.reserve(packets.count)
+        result.packetStarts.reserve(packets.count)
         result.decoderConfig.add(decoderConfig)
 
         var decodedFrames = 0'u64
@@ -429,7 +429,7 @@ impl SoundFile
 
         if !sampleRateHz or !channels do
             fail BadParameterError{"packetized PCM needs channels and a non-zero sample rate"}
-        if !@countof(packets) do
+        if !packets.count do
             fail BadParameterError{"packetized PCM needs source chunks"}
         let bytesPerFrame = cast(u64) channels * cast(u64) (bitsPerSample / 8)
         var stream        = File.openRead(path)
@@ -446,8 +446,8 @@ impl SoundFile
             result.waveSpeakerMask = 4
         elif channels == 2 do
             result.waveSpeakerMask = 3
-        result.packets.reserve(@countof(packets))
-        result.packetStarts.reserve(@countof(packets))
+        result.packets.reserve(packets.count)
+        result.packetStarts.reserve(packets.count)
 
         for packet in packets
         {

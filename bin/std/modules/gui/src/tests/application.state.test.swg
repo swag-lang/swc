@@ -12,19 +12,19 @@ using Swag, Core
     var app: Application
     app.setStatePath(path)
     expect app.saveState()
-    @assert(expect Scc.hasSignature(path))
+    Swag.assert(expect Scc.hasSignature(path))
 
     var reader: Scc.Reader
     expect reader.initialize(path)
-    @assert(reader.kind() == expect Guid128.parse("89c98d18-11dc-42a0-910c-4bb64b3e2776"))
-    @assert(@countof(reader.chunks()) == 1)
-    @assert(reader.manifest().name == Path.fileName(path))
+    Swag.assert(reader.kind() == expect Guid128.parse("89c98d18-11dc-42a0-910c-4bb64b3e2776"))
+    Swag.assert((reader.chunks()).count == 1)
+    Swag.assert(reader.manifest().name == Path.fileName(path))
     var legacy = expect reader.readChunk(reader.chunks()[0].id)
     reader.close()
 
     expect File.writeAllBytes(path, legacy.toSlice())
-    @assert(!(expect Scc.hasSignature(path)))
+    Swag.assert(!(expect Scc.hasSignature(path)))
     expect app.loadState()
     expect app.saveState()
-    @assert(expect Scc.hasSignature(path))
+    Swag.assert(expect Scc.hasSignature(path))
 }

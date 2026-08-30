@@ -219,7 +219,7 @@ func peDirectoryName(index: u64)->string
     const Names = ["Export", "Import", "Resource", "Exception", "Certificate", "BaseRelocation",
                    "Debug", "Architecture", "GlobalPtr", "TLS", "LoadConfig", "BoundImport",
                    "IAT", "DelayImport", "COMDescriptor", "Reserved"]
-    if index >= @countof(Names) do
+    if index >= Names.count do
         return "?"
     return Names[index]
 }
@@ -439,7 +439,7 @@ private func peDosStubText(image: *BinaryImage, peOffset: u64)->String
         text.add(value >= 32 and value < 127 ? value : ' 'u8)
     }
 
-    return String.from(Latin1.trim(@mkstring(text.buffer!, text.count)))
+    return String.from(Latin1.trim(Swag.makeString(text.buffer!, text.count)))
 }
 
 // Adds the toolchain fingerprint Microsoft linkers leave between the DOS stub and the PE signature.
@@ -1021,7 +1021,7 @@ private func peResourceLabel(image: *BinaryImage, base: u64, nameId: u32, depth:
     if !depth
     {
         let standard = peResourceTypeName(nameId)
-        if @countof(standard) do
+        if standard.count do
             return Format.toString("% (%)", standard, nameId)
         return Format.toString(s.pe_ResourceType, nameId)
     }

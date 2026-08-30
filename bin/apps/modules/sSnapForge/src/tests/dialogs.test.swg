@@ -16,10 +16,10 @@ using Swag, Core
     let main = MainWnd.create(&gui.root)
     g_Main = main
 
-    @assert(!main.appearanceButton.sigAboutRequested.isEmpty())
+    Swag.assert(!main.appearanceButton.sigAboutRequested.isEmpty())
     gui.clickModalButtonWhenShown(Dialog.BtnCancel)
-    @assert(Gui.Testing.actionExecute'ActionAbout(main, ActionAbout.About))
+    Swag.assert(Gui.Testing.actionExecute'ActionAbout(main, ActionAbout.About))
     gui.pump()
-    @assert(gui.autoHandled)
-    @assert(gui.openedSurfaceCount() == 0)
+    Swag.assert(gui.autoHandled)
+    Swag.assert(gui.openedSurfaceCount() == 0)
 }

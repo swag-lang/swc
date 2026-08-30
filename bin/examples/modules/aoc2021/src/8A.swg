@@ -82,12 +82,12 @@ func day8A()
         let part2 = Tokenize.split(parts[1], " ")
         for it in part2
         {
-            switch @countof(it)
+            switch it.count
             {
             case 2, 3, 4, 7: total += 1
             }
         }
     }
 
-    @assert(total == 288)
+    Swag.assert(total == 288)
 }

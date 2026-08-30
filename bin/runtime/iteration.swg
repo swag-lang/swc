@@ -126,11 +126,11 @@ impl ReversedSlice
     #[Swag.Macro]
     mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
-        var scan = @dataof(.values) + @countof(.values)
-        for offset in @countof(.values)
+        var scan = (.values).buffer + (.values).count
+        for offset in (.values).count
         {
             scan -= 1
-            let index = @countof(.values) - offset - 1
+            let index = (.values).count - offset - 1
             #static if ptr do
                 #inject(stmt, item = cast(*T) scan, index = index)
             elif #typeof(#type T).kind == .Struct do
@@ -153,11 +153,11 @@ impl ConstReversedSlice
     mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
         where !ptr
     {
-        var scan = @dataof(.values) + @countof(.values)
-        for offset in @countof(.values)
+        var scan = (.values).buffer + (.values).count
+        for offset in (.values).count
         {
             scan -= 1
-            let index = @countof(.values) - offset - 1
+            let index = (.values).count - offset - 1
             #static if #typeof(#type T).kind == .Struct do
                 #inject(stmt, item = cast(const *T) scan, index = index)
             else do
@@ -195,11 +195,11 @@ impl Pairs
     mtd(ptr: bool) const opVisit(stmt: #code(left, right))
         where !ptr
     {
-        let count = @countof(.values)
+        let count = (.values).count
         if count < 2 do
             return
 
-        let data = @dataof(.values)
+        let data = (.values).buffer
         for index in count - 1
         {
             #static if #typeof(#type T).kind == .Struct do
@@ -230,7 +230,7 @@ impl ReversedCString
     mtd(ptr: bool) const opVisit(stmt: #code(item: u8, index: u64))
         where !ptr
     {
-        let count = @countof(.value)
+        let count = (.value).count
         for offset in count
         {
             let index = count - offset - 1

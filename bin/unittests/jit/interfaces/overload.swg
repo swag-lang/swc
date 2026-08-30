@@ -38,7 +38,7 @@ impl IOverloaded for Overloaded
     let renderer = cast(IOverloaded) &object
     var value:  s32
 
-    @assert(renderer.select("value") == 1)
-    @assert(renderer.select(&value) == 2)
-    @assert(renderer.select(Selection{3}) == 3)
+    Swag.assert(renderer.select("value") == 1)
+    Swag.assert(renderer.select(&value) == 2)
+    Swag.assert(renderer.select(Selection{3}) == 3)
 }

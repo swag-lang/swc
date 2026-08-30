@@ -31,11 +31,11 @@ func probeLocal(i: u64)->bool
 #test
 {
     var h: Holder
-    @assert(!h.probe(2))
+    Swag.assert(!h.probe(2))
     h.activate(2)
-    @assert(h.probe(2))
-    @assert(h.slab.cells[2].n == 10)
-    @assert(!h.probe(0))
-    @assert(!h.probe(1))
-    @assert(!probeLocal(0))
+    Swag.assert(h.probe(2))
+    Swag.assert(h.slab.cells[2].n == 10)
+    Swag.assert(!h.probe(0))
+    Swag.assert(!h.probe(1))
+    Swag.assert(!probeLocal(0))
 }

@@ -22,14 +22,14 @@ private func opusDecodeAll(sound: const *SoundFile)->Array's16 fail
 private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
 {
     var sound = expect SoundFile.load(audioGetTestDataPath(Format.toString("%.opus", name).toString()).toString())
-    @assert(sound.sampleEncoding() == .Opus)
-    @assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == channels)
-    @assert(sound.isPacketStream() and !sound.isDataPreloaded())
+    Swag.assert(sound.sampleEncoding() == .Opus)
+    Swag.assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == channels)
+    Swag.assert(sound.isPacketStream() and !sound.isDataPreloaded())
 
     let decoded = expect opusDecodeAll(&sound)
     let wanted  = expect File.readAllBytes(audioGetTestDataPath(Format.toString("%.pcm", name).toString()).toString())
-    @assert(decoded.count == sound.sampleFrameCount() * channels)
-    @assert(decoded.count * #sizeof(s16) == wanted.count)
+    Swag.assert(decoded.count == sound.sampleFrameCount() * channels)
+    Swag.assert(decoded.count * #sizeof(s16) == wanted.count)
 
     let wantedAt = cast(const [*] s16) wanted.buffer!
     var energy   = 0.0'f64
@@ -48,8 +48,8 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
 
     let rms = Math.sqrt(energy / cast(f64) decoded.count) / 32768.0'f64
     if rms > tolerance do
-        @print("opus ", name, ": rms ", rms, " over ", decoded.count, " samples, worst ", worst, " at ", worstAt, "\n")
-    @assert(rms <= tolerance)
+        Swag.print("opus ", name, ": rms ", rms, " over ", decoded.count, " samples, worst ", worst, " at ", worstAt, "\n")
+    Swag.assert(rms <= tolerance)
 }
 
 // Stereo tones in 20 ms CELT frames: the transform layer, its allocation, spreading, and stereo
@@ -84,13 +84,13 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
 #test
 {
     var sound = expect SoundFile.load(audioGetTestDataPath("opus-stereo-48000.opus").toString())
-    @assert(sound.sampleFrameCount() == 48_000)
-    @assert(sound.leadingTrim == 312)
-    @assert(sound.speakerChannelMask() == 0x0003)
+    Swag.assert(sound.sampleFrameCount() == 48_000)
+    Swag.assert(sound.leadingTrim == 312)
+    Swag.assert(sound.speakerChannelMask() == 0x0003)
     var total = 0'u64
     for index in sound.packetCount() do
         total += (expect sound.packet(index)).sampleFrameCount
-    @assert(total == 48_000 + 312)
+    Swag.assert(total == 48_000 + 312)
 }
 
 // A voice restarts on the run before the target and discards up to it, so the samples heard after
@@ -109,10 +109,10 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     const Target = 30_000'u64
     expect voice.seekSampleFrame(Target)
     let decoded = expect voice.readBuffer()
-    @assert(decoded.buffer != null and decoded.size >= 32 * 2 * #sizeof(s16))
+    Swag.assert(decoded.buffer != null and decoded.size >= 32 * 2 * #sizeof(s16))
     let samples = cast(const [*] s16) decoded.buffer!
     for index in 32 * 2 do
-        @assert(samples[index] == wanted[Target * 2 + index])
+        Swag.assert(samples[index] == wanted[Target * 2 + index])
 }
 
 // A stream whose header announces a channel mapping the decoder does not implement fails on its
@@ -127,7 +127,7 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
 
     // The mapping family lives at byte 18 of OpusHead, which the first page carries after its
     // 28-byte header; the page checksum must follow the change for the reader to reach it.
-    @assert(bytes[28 + 18] == 0)
+    Swag.assert(bytes[28 + 18] == 0)
     bytes[28 + 18] = 1
     let firstPage = expect Ogg.readPageHeader(bytes.toSlice(), 0)
     let table     = Ogg.buildChecksumTable()
@@ -137,5 +137,5 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     expect File.writeAllBytes(path.toString(), bytes.toSlice())
     var sound = catch SoundFile.load(path.toString()) as err
     discard sound
-    @assert(err is Errors.UnsupportedFormatError)
+    Swag.assert(err is Errors.UnsupportedFormatError)
 }

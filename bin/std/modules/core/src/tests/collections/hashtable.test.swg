@@ -39,20 +39,20 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
 #test
 {
     var table: HashTable'(s32, s32)
-    @assert(table.count == 0)
-    @assert(!table.contains(1))
-    @assert(table.tryFind(1) == null)
+    Swag.assert(table.count == 0)
+    Swag.assert(!table.contains(1))
+    Swag.assert(table.tryFind(1) == null)
 
     table.add(1, 10)
     table[1] = 11
     table[3] = 30
 
-    @assert(table.count == 2)
-    @assert(table.contains(1))
-    @assert(table.contains(3))
-    @assert(table.getOrDefault(9, 99) == 99)
-    @assert(table[1] == 11)
-    @assert(table[3] == 30)
+    Swag.assert(table.count == 2)
+    Swag.assert(table.contains(1))
+    Swag.assert(table.contains(3))
+    Swag.assert(table.getOrDefault(9, 99) == 99)
+    Swag.assert(table[1] == 11)
+    Swag.assert(table[3] == 30)
 }
 
 #test
@@ -68,9 +68,9 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
     let entryTwo = table.find(2)
     entryTwo.value += 2
 
-    @assert(table.count == 2)
-    @assert(table[2] == 22)
-    @assert(table[4] == 40)
+    Swag.assert(table.count == 2)
+    Swag.assert(table[2] == 22)
+    Swag.assert(table[4] == 40)
 }
 
 #test
@@ -91,8 +91,8 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
         sumValues += value
     }
 
-    @assert(sumKeys == 10)
-    @assert(sumValues == 103)
+    Swag.assert(sumKeys == 10)
+    Swag.assert(sumValues == 103)
 }
 
 #test
@@ -103,7 +103,7 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
     table.add(3, 30)
     table.add(4, 40)
 
-    @assert(assertReverseIntTableIteration(table))
+    Swag.assert(assertReverseIntTableIteration(table))
 }
 
 #test
@@ -114,24 +114,24 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
     table.add(3, 30)
 
     table.remove(2)
-    @assert(!table.contains(2))
-    @assert(table.count == 2)
+    Swag.assert(!table.contains(2))
+    Swag.assert(table.count == 2)
 
     table.add(2, 200)
     table.add(2, 999, false)
-    @assert(table.count == 3)
-    @assert(table[2] == 200)
+    Swag.assert(table.count == 3)
+    Swag.assert(table[2] == 200)
 
     table.clear()
-    @assert(table.count == 0)
-    @assert(!table.contains(1))
-    @assert(!table.contains(2))
+    Swag.assert(table.count == 0)
+    Swag.assert(!table.contains(1))
+    Swag.assert(!table.contains(2))
 }
 
 func assertTableStringValue(table: HashTable'(string, String), key: string, expected: string)->bool
 {
     let entry = table.tryFind(key)
-    return entry != null and entry.value == expected and @countof(entry.value) == @countof(expected)
+    return entry != null and entry.value == expected and entry.value.count == expected.count
 }
 
 #test
@@ -140,7 +140,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     original.add("alpha", 1)
 
     let entry = original.tryFind("alpha")!
-    @assert(entry.value == 1)
+    Swag.assert(entry.value == 1)
 }
 
 #test
@@ -154,7 +154,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     var original: HashTable'(string, String)
     original.add("alpha", "one")
 
-    @assert(assertTableStringValue(original, "alpha", "one"))
+    Swag.assert(assertTableStringValue(original, "alpha", "one"))
 }
 
 #test
@@ -163,9 +163,9 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     original.add("alpha", "one")
     original.add("beta", "two")
 
-    @assert(assertTableStringValue(original, "alpha", "one"))
-    @assert(assertTableStringValue(original, "beta", "two"))
-    @assert(original.tryFind("gamma") == null)
+    Swag.assert(assertTableStringValue(original, "alpha", "one"))
+    Swag.assert(assertTableStringValue(original, "beta", "two"))
+    Swag.assert(original.tryFind("gamma") == null)
 }
 
 #test
@@ -178,13 +178,13 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     copy["alpha"]                 = "uno"
     copy.findOrAdd("gamma").value = "three"
 
-    @assert(assertTableStringValue(original, "alpha", "one"))
-    @assert(assertTableStringValue(original, "beta", "two"))
-    @assert(original.tryFind("gamma") == null)
+    Swag.assert(assertTableStringValue(original, "alpha", "one"))
+    Swag.assert(assertTableStringValue(original, "beta", "two"))
+    Swag.assert(original.tryFind("gamma") == null)
 
-    @assert(assertTableStringValue(copy, "alpha", "uno"))
-    @assert(assertTableStringValue(copy, "beta", "two"))
-    @assert(assertTableStringValue(copy, "gamma", "three"))
+    Swag.assert(assertTableStringValue(copy, "alpha", "uno"))
+    Swag.assert(assertTableStringValue(copy, "beta", "two"))
+    Swag.assert(assertTableStringValue(copy, "gamma", "three"))
 }
 
 #test
@@ -197,11 +197,11 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     var copy = original
     copy.add("alpha", "uno")
 
-    @assert(original.tryFind("alpha") == null)
-    @assert(assertTableStringValue(original, "beta", "two"))
+    Swag.assert(original.tryFind("alpha") == null)
+    Swag.assert(assertTableStringValue(original, "beta", "two"))
 
-    @assert(assertTableStringValue(copy, "alpha", "uno"))
-    @assert(assertTableStringValue(copy, "beta", "two"))
+    Swag.assert(assertTableStringValue(copy, "alpha", "uno"))
+    Swag.assert(assertTableStringValue(copy, "beta", "two"))
 }
 
 #test
@@ -212,11 +212,11 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
 
     table.opSet([struct { k: s32, v: s32 }{k: 3, v: 30}])
 
-    @assert(table.count == 1)
-    @assert(!table.contains(1))
-    @assert(!table.contains(2))
-    @assert(table.contains(3))
-    @assert(table[3] == 30)
+    Swag.assert(table.count == 1)
+    Swag.assert(!table.contains(1))
+    Swag.assert(!table.contains(2))
+    Swag.assert(table.contains(3))
+    Swag.assert(table[3] == 30)
 }
 
 #test
@@ -228,11 +228,11 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     table.add(42, 420)
     table.add(74, 740)
 
-    @assert(table.capacity >= 33)
-    @assert(table.contains(10))
-    @assert(table.contains(42))
-    @assert(table.contains(74))
-    @assert(table[10] == 100)
-    @assert(table[42] == 420)
-    @assert(table[74] == 740)
+    Swag.assert(table.capacity >= 33)
+    Swag.assert(table.contains(10))
+    Swag.assert(table.contains(42))
+    Swag.assert(table.contains(74))
+    Swag.assert(table[10] == 100)
+    Swag.assert(table[42] == 420)
+    Swag.assert(table[74] == 740)
 }

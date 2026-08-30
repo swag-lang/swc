@@ -172,51 +172,51 @@ func notNullAssign(newValue: s32)
     g_notNullNode.next   = &g_notNullOther
     g_notNullOther.value = 9
 
-    @assert(notNullScalar() == 42)
-    @assert(notNullString() == "hello")
-    @assert(notNullNested() == 7)
-    @assert(notNullTwoLinks() == 9)
-    @assert(notNullInterface(cast(INotNullAccess) g_notNullNode) == 42)
-    @assert(notNullRedundant(&g_notNullNode) == 42)
-    @assert(notNullRedundant(null) == -1)
-    @assert(notNullMixedWithOptional(&g_notNullNode) == 9)
-    @assert(notNullMixedWithOptional(null) == -1)
+    Swag.assert(notNullScalar() == 42)
+    Swag.assert(notNullString() == "hello")
+    Swag.assert(notNullNested() == 7)
+    Swag.assert(notNullTwoLinks() == 9)
+    Swag.assert(notNullInterface(cast(INotNullAccess) g_notNullNode) == 42)
+    Swag.assert(notNullRedundant(&g_notNullNode) == 42)
+    Swag.assert(notNullRedundant(null) == -1)
+    Swag.assert(notNullMixedWithOptional(&g_notNullNode) == 9)
+    Swag.assert(notNullMixedWithOptional(null) == -1)
 }
 
 #test
 {
     g_notNullNode.value = 42
-    @assert(notNullMethod() == 43)
+    Swag.assert(notNullMethod() == 43)
 
     notNullVoidCall()
-    @assert(g_notNullNode.value == 0)
+    Swag.assert(g_notNullNode.value == 0)
 
     notNullAssign(5)
-    @assert(g_notNullNode.value == 5)
+    Swag.assert(g_notNullNode.value == 5)
 }
 
 #test
 {
     g_notNullNode.value = 42
-    @assert(notNullBinding() == 42)
-    @assert(notNullAfterExpect() == 42)
-    @assert(notNullCastOperand(&g_notNullNode) == 42)
+    Swag.assert(notNullBinding() == 42)
+    Swag.assert(notNullAfterExpect() == 42)
+    Swag.assert(notNullCastOperand(&g_notNullNode) == 42)
 
     var values = [7's32, 8, 9]
-    @assert(notNullIndex(@dataof(values)) == 8)
+    Swag.assert(notNullIndex(values.buffer) == 8)
 
     var single = 11's32
-    @assert(notNullDeref(&single) == 11)
+    Swag.assert(notNullDeref(&single) == 11)
 
     var box = NotNullBox{slot: &g_notNullNode}
-    @assert(notNullThroughConstRef(&box) == 42)
-    @assert(notNullThroughRef(&box) == 42)
-    @assert(notNullDerefThroughRef(&box) == 42)
+    Swag.assert(notNullThroughConstRef(&box) == 42)
+    Swag.assert(notNullThroughRef(&box) == 42)
+    Swag.assert(notNullDerefThroughRef(&box) == 42)
 
     notNullWriteThroughRef(&box, 17)
-    @assert(g_notNullNode.value == 17)
+    Swag.assert(g_notNullNode.value == 17)
     g_notNullNode.value = 42
 
     func twelve()->s32 => 12
-    @assert(notNullCall(&twelve) == 12)
+    Swag.assert(notNullCall(&twelve) == 12)
 }

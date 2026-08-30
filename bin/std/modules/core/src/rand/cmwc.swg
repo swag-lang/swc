@@ -20,7 +20,7 @@ impl ComplementaryMultiplyWithCarry4096
     {
         var generator: MultiplyWithCarry32
         generator.seedU32(value)
-        for stateIndex in @countof(.state) do
+        for stateIndex in (.state).count do
             .state[stateIndex] = generator.nextU32()
         .index = 4095
         .carry = value % 809430660

@@ -12,7 +12,7 @@ namespace GenericCloneCodegenSupport
         req.size    = size
         req.address = buffer
 
-        let talloc = (allocator orelse @getcontext().allocator)!
+        let talloc = (allocator orelse Swag.getContext().allocator)!
         talloc.free(&req)
     }
 
@@ -23,7 +23,7 @@ namespace GenericCloneCodegenSupport
         req.size    = newSize
         req.oldSize = oldSize
 
-        let talloc = (allocator orelse @getcontext().allocator)!
+        let talloc = (allocator orelse Swag.getContext().allocator)!
         talloc.realloc(&req)
         return req.address
     }
@@ -49,7 +49,7 @@ namespace GenericCloneCodegenSupport
 
         mtd toSlice()->[..] T
         {
-            return @mkslice(.buffer, .count)
+            return Swag.makeSlice(.buffer, .count)
         }
 
         mtd add(value: T)
@@ -144,8 +144,8 @@ namespace GenericCloneCodegenSupport
     box.add(22)
 
     let values = box.toSlice()
-    @assert(values[0] == 11)
-    @assert(values[1] == 22)
+    Swag.assert(values[0] == 11)
+    Swag.assert(values[1] == 22)
 
     box.free()
 }
@@ -158,8 +158,8 @@ namespace GenericCloneCodegenSupport
     box.addNew(9)
 
     let values = box.values.toSlice()
-    @assert(values[0][] == 7)
-    @assert(values[1][] == 9)
+    Swag.assert(values[0][] == 7)
+    Swag.assert(values[1][] == 9)
 
     box.clear()
     box.values.free()
@@ -171,9 +171,9 @@ namespace GenericCloneCodegenSupport
     values.addNew(3)
     values.addNew(5)
 
-    @assert(values.first![] == 3)
-    @assert(values.second![] == 5)
+    Swag.assert(values.first![] == 3)
+    Swag.assert(values.second![] == 5)
 
     values.clearOwned()
-    @assert(values.count == 0)
+    Swag.assert(values.count == 0)
 }

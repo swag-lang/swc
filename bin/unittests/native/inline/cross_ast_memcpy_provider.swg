@@ -4,5 +4,5 @@
 public func blockCopy(dest: [*] void, src: const [*] void, size: u64)
 {
     if size do
-        @memcpy(dest, src, size)
+        Swag.memcpy(dest, src, size)
 }

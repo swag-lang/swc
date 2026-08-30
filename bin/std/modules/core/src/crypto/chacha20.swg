@@ -29,16 +29,16 @@ private func quarterRound(state: *[16] u32, a, b, c, d: u32)
 {
     state[][a] = add32(state[][a], state[][b])
     state[][d] ^= state[][a]
-    state[][d] = @rol(state[][d], 16)
+    state[][d] = Swag.rol(state[][d], 16)
     state[][c] = add32(state[][c], state[][d])
     state[][b] ^= state[][c]
-    state[][b] = @rol(state[][b], 12)
+    state[][b] = Swag.rol(state[][b], 12)
     state[][a] = add32(state[][a], state[][b])
     state[][d] ^= state[][a]
-    state[][d] = @rol(state[][d], 8)
+    state[][d] = Swag.rol(state[][d], 8)
     state[][c] = add32(state[][c], state[][d])
     state[][b] ^= state[][c]
-    state[][b] = @rol(state[][b], 7)
+    state[][b] = Swag.rol(state[][b], 7)
 }
 
 #[Swag.Inline]
@@ -69,11 +69,11 @@ private func chacha20XorFour(key, nonce: const [..] u8, counter: u32, source: co
     initial[2] = Math.Simd.splat(0x79622D32'u32)
     initial[3] = Math.Simd.splat(0x6B206574'u32)
     for i in 8 do
-        initial[4 + i] = Math.Simd.splat(load32(@dataof(key) + i * 4))
+        initial[4 + i] = Math.Simd.splat(load32(key.buffer + i * 4))
     initial[12] = cast(Math.Simd.U32x4) [counter, counter + 1, counter + 2, counter + 3]
-    initial[13] = Math.Simd.splat(load32(@dataof(nonce)))
-    initial[14] = Math.Simd.splat(load32(@dataof(nonce) + 4))
-    initial[15] = Math.Simd.splat(load32(@dataof(nonce) + 8))
+    initial[13] = Math.Simd.splat(load32(nonce.buffer))
+    initial[14] = Math.Simd.splat(load32(nonce.buffer + 4))
+    initial[15] = Math.Simd.splat(load32(nonce.buffer + 8))
 
     var state = initial
     for round in 10
@@ -115,9 +115,9 @@ private func chacha20XorFour(key, nonce: const [..] u8, counter: u32, source: co
 // Produces one IETF ChaCha20 key-stream block for `counter`.
 func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[ChaCha20BlockSize] u8 fail
 {
-    if @countof(key) != ChaCha20KeySize do
+    if key.count != ChaCha20KeySize do
         fail Errors.BadParameterError{"ChaCha20 needs a 32-byte key"}
-    if @countof(nonce) != ChaCha20NonceSize do
+    if nonce.count != ChaCha20NonceSize do
         fail Errors.BadParameterError{"ChaCha20 needs a 12-byte nonce"}
 
     var initial: [16] u32
@@ -126,11 +126,11 @@ func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[Cha
     initial[2] = 0x79622D32
     initial[3] = 0x6B206574
     for i in 8 do
-        initial[4 + i] = load32(@dataof(key) + i * 4)
+        initial[4 + i] = load32(key.buffer + i * 4)
     initial[12] = counter
-    initial[13] = load32(@dataof(nonce))
-    initial[14] = load32(@dataof(nonce) + 4)
-    initial[15] = load32(@dataof(nonce) + 8)
+    initial[13] = load32(nonce.buffer)
+    initial[14] = load32(nonce.buffer + 4)
+    initial[15] = load32(nonce.buffer + 8)
 
     var state = initial
     for round in 10
@@ -159,36 +159,36 @@ func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[Cha
 // Source and destination can be the same slice. Other overlapping ranges are not supported.
 func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initialCounter = 0'u32) fail
 {
-    if @countof(key) != ChaCha20KeySize do
+    if key.count != ChaCha20KeySize do
         fail Errors.BadParameterError{"ChaCha20 needs a 32-byte key"}
-    if @countof(nonce) != ChaCha20NonceSize do
+    if nonce.count != ChaCha20NonceSize do
         fail Errors.BadParameterError{"ChaCha20 needs a 12-byte nonce"}
-    if @countof(source) != @countof(destination) do
+    if source.count != destination.count do
         fail Errors.BadParameterError{"ChaCha20 source and destination need the same length"}
 
-    let blockCount = @countof(source) ? ((@countof(source) - 1) / ChaCha20BlockSize) + 1 : 0
+    let blockCount = source.count ? ((source.count - 1) / ChaCha20BlockSize) + 1 : 0
     if blockCount and blockCount - 1 > Swag.U32.Max - initialCounter do
         fail Errors.OverflowError{"ChaCha20 input exceeds the counter range"}
 
     var offset  = 0'u64
     var counter = initialCounter
-    while @countof(source) - offset >= 4 * ChaCha20BlockSize
+    while source.count - offset >= 4 * ChaCha20BlockSize
     {
-        chacha20XorFour(key, nonce, counter, @dataof(source) + offset, @dataof(destination) + offset)
+        chacha20XorFour(key, nonce, counter, source.buffer + offset, destination.buffer + offset)
         offset += 4 * ChaCha20BlockSize
-        if offset < @countof(source) do
+        if offset < source.count do
             counter += 4
     }
 
-    while offset < @countof(source)
+    while offset < source.count
     {
         var block = chacha20Block(key, counter, nonce)
-        let count = Math.min(@countof(source) - offset, ChaCha20BlockSize)
+        let count = Math.min(source.count - offset, ChaCha20BlockSize)
 
         // Apply the key stream a word at a time; the tail of the final
         // partial block falls back to bytes.
-        let src = @dataof(source) + offset
-        let dst = @dataof(destination) + offset
+        let src = source.buffer + offset
+        let dst = destination.buffer + offset
         var i   = 0'u64
         while i + 8 <= count
         {
@@ -204,7 +204,7 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
 
         secureClear(block)
         offset += count
-        if offset < @countof(source) do
+        if offset < source.count do
             counter += 1
     }
 }

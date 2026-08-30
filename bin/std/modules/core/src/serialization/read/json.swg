@@ -279,7 +279,7 @@ public impl Json
 
     internal mtd beginObject() fail
     {
-        if .containerDepth == @countof(.containerKinds) do
+        if .containerDepth == (.containerKinds).count do
             fail .getError("JSON nesting is too deep")
         .zapBlanks()
         .expectByte('{', "JSON object is missing its opening brace")
@@ -322,7 +322,7 @@ public impl Json
     {
         .zapBlanks()
         .expectByte('[', "JSON array is missing its opening bracket")
-        if .containerDepth == @countof(.containerKinds) do
+        if .containerDepth == (.containerKinds).count do
             fail .getError("JSON nesting is too deep")
         let index = .containerDepth
         .containerKinds[index] = 0
@@ -491,7 +491,7 @@ public impl Json
             let start = .stream.position()
             .skipNumber()
             let length = .stream.position() - start
-            let token  = @mkstring(.stream.data() + start, length)
+            let token  = Swag.makeString(.stream.data() + start, length)
             #static switch NT
             {
             case f32:

@@ -91,7 +91,7 @@ func waitForSoundOpen(host: *Testing.HeadlessHost, view: *SoundViewer)
         attempts += 1
     }
 
-    @assert(view.openFinished)
+    Swag.assert(view.openFinished)
 }
 
 func markSoundOpenFailure(wnd: *Wnd, reason: string)
@@ -104,21 +104,21 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
 #test
 {
     destroyEngine()
-    @assert(acquireSoundEngine(.NoSound))
-    @assert(isEngineCreated())
-    @assert(acquireSoundEngine(.NoSound))
+    Swag.assert(acquireSoundEngine(.NoSound))
+    Swag.assert(isEngineCreated())
+    Swag.assert(acquireSoundEngine(.NoSound))
 
     releaseSoundEngine()
-    @assert(isEngineCreated())
+    Swag.assert(isEngineCreated())
     releaseSoundEngine()
-    @assert(!isEngineCreated())
-    @assert(soundDurationText(0.25) == "250 ms")
-    @assert(soundDurationText(2.5) == "2.50 s")
-    @assert(mediaTimeText(5.9) == "0:05")
-    @assert(mediaTimeText(65.9) == "1:05")
-    @assert(mediaTimeText(3_665.0) == "1:01:05")
-    @assert(mediaTimeRangeText(5, 65) == "0:05 / 1:05")
-    @assert(mediaTimeRangeText(0, 0.5) == "0:00 / 0:01")
+    Swag.assert(!isEngineCreated())
+    Swag.assert(soundDurationText(0.25) == "250 ms")
+    Swag.assert(soundDurationText(2.5) == "2.50 s")
+    Swag.assert(mediaTimeText(5.9) == "0:05")
+    Swag.assert(mediaTimeText(65.9) == "1:05")
+    Swag.assert(mediaTimeText(3_665.0) == "1:01:05")
+    Swag.assert(mediaTimeRangeText(5, 65) == "0:05 / 1:05")
+    Swag.assert(mediaTimeRangeText(0, 0.5) == "0:00 / 0:01")
 }
 
 // A WAV decoder refusal crosses the progressive viewer boundary without blocking its creator.
@@ -134,13 +134,13 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
 
     var failed: bool
     var result = openTestViewer(&createSoundViewer, &host.root, fileName, commandParent: &host.root, services: {reportFailure: &markSoundOpenFailure})
-    @assert(result.view != null and result.commands != null)
-    @assert(result.isLoading != null and result.needsLoadingOverlay != null)
+    Swag.assert(result.view != null and result.commands != null)
+    Swag.assert(result.isLoading != null and result.needsLoadingOverlay != null)
     let view = cast(*SoundViewer) result.view!
     view.userData = &failed
-    @assert(result.isLoading!(view) and result.needsLoadingOverlay!(view))
+    Swag.assert(result.isLoading!(view) and result.needsLoadingOverlay!(view))
     waitForSoundOpen(&host, view)
-    @assert(failed and !view.openFailure.isEmpty())
+    Swag.assert(failed and !view.openFailure.isEmpty())
 }
 
 #test
@@ -150,7 +150,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     defer discard catch File.delete(fileName)
     discard expect File.writeAllBytes(fileName, TinyWav)
 
-    @assert(acquireSoundEngine(.NoSound))
+    Swag.assert(acquireSoundEngine(.NoSound))
     defer releaseSoundEngine()
 
     var host: Testing.HeadlessHost
@@ -158,51 +158,51 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     var result   = openTestViewer(&createSoundViewer, &host.root, fileName, commandParent: commands)
-    @assert(result.view != null)
-    @assert(result.commands != null and result.isLoading != null and result.needsLoadingOverlay != null)
+    Swag.assert(result.view != null)
+    Swag.assert(result.commands != null and result.isLoading != null and result.needsLoadingOverlay != null)
     let view = cast(*SoundViewer) result.view!
-    @assert(result.isLoading!(view) and result.needsLoadingOverlay!(view))
+    Swag.assert(result.isLoading!(view) and result.needsLoadingOverlay!(view))
     waitForSoundOpen(&host, view)
-    @assert(!result.needsLoadingOverlay!(view))
-    @assert(view.engineReady and view.playButton.isEnabled())
-    @assert(view.backwardButton.icon.isValid() and view.forwardButton.icon.isValid())
-    @assert(view.muteButton.icon.isValid() and view.muteButton.flags.has(.Toggle))
-    @assert(!view.sound.isDataPreloaded())
-    @assert(view.waveform.samples.count == 4)
+    Swag.assert(!result.needsLoadingOverlay!(view))
+    Swag.assert(view.engineReady and view.playButton.isEnabled())
+    Swag.assert(view.backwardButton.icon.isValid() and view.forwardButton.icon.isValid())
+    Swag.assert(view.muteButton.icon.isValid() and view.muteButton.flags.has(.Toggle))
+    Swag.assert(!view.sound.isDataPreloaded())
+    Swag.assert(view.waveform.samples.count == 4)
     finishWaveform(view)
-    @assert(!result.isLoading!(view))
-    @assert(view.waveform.readyCount == 4)
-    @assert(view.timeline.isEnabled() and view.timeLabel.text() == "0:00 / 0:01")
+    Swag.assert(!result.isLoading!(view))
+    Swag.assert(view.waveform.readyCount == 4)
+    Swag.assert(view.timeline.isEnabled() and view.timeLabel.text() == "0:00 / 0:01")
 
     // A second file opened after the engine exists must decode exactly like the first one: the
     // waveform of every file but the first went missing when a failure inside the engine was
     // swallowed on its way out of the module.
     let replacementCommands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     var replacementResult   = openTestViewer(&createSoundViewer, &host.root, fileName, commandParent: replacementCommands)
-    @assert(replacementResult.view != null)
+    Swag.assert(replacementResult.view != null)
     let replacement = cast(*SoundViewer) replacementResult.view!
     waitForSoundOpen(&host, replacement)
     finishWaveform(replacement)
-    @assert(replacement.engineReady and replacement.playButton.isEnabled())
-    @assert(replacement.waveform.samples.count == view.waveform.samples.count)
-    @assert(replacement.duration == view.duration)
-    @assert(replacement.details == view.details)
+    Swag.assert(replacement.engineReady and replacement.playButton.isEnabled())
+    Swag.assert(replacement.waveform.samples.count == view.waveform.samples.count)
+    Swag.assert(replacement.duration == view.duration)
+    Swag.assert(replacement.details == view.details)
 
     view.togglePlayback()
-    @assert(view.playing and view.voice != null)
+    Swag.assert(view.playing and view.voice != null)
     view.seekSeconds(view.duration * 0.5)
-    @assert(view.voice!.playbackSampleFrame() == 2)
+    Swag.assert(view.voice!.playbackSampleFrame() == 2)
     view.setVolume(0.4)
-    @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.4, 0.001))
+    Swag.assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.4, 0.001))
     view.setMuted(true)
-    @assert(view.muted and view.muteButton.isChecked)
-    @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0, 0.001))
+    Swag.assert(view.muted and view.muteButton.isChecked)
+    Swag.assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0, 0.001))
     view.setMuted(false)
-    @assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.4, 0.001))
+    Swag.assert(Math.isEqualEpsilon(expect view.voice!.volume(), 0.4, 0.001))
     view.togglePlayback()
-    @assert(!view.playing)
+    Swag.assert(!view.playing)
     view.stopPlayback()
-    @assert(view.elapsed == 0)
+    Swag.assert(view.elapsed == 0)
 }
 
 #test
@@ -213,7 +213,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     let wav = previewWav()
     discard expect File.writeAllBytes(fileName, wav.toSlice())
 
-    @assert(acquireSoundEngine(.NoSound))
+    Swag.assert(acquireSoundEngine(.NoSound))
     defer releaseSoundEngine()
 
     var host: Testing.HeadlessHost
@@ -229,7 +229,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     commandBar.backgroundStyle = .Window
     commandBar.padding         = {16, 8, 16, 8}
     var result = openTestViewer(&createSoundViewer, &host.root, fileName, commandParent: commandBar)
-    @assert(result.view != null)
+    Swag.assert(result.view != null)
     let view = cast(*SoundViewer) result.view!
     waitForSoundOpen(&host, view)
     finishWaveform(view)
@@ -250,18 +250,18 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
 #test
 {
     let fixture = expect File.readAllText(waveformFixturePath())
-    @assert(Utf8.contains(fixture.toString(), "1.0") and Utf8.contains(fixture.toString(), "-1.0"))
+    Swag.assert(Utf8.contains(fixture.toString(), "1.0") and Utf8.contains(fixture.toString(), "-1.0"))
     let samples = buildWaveform([0'u8, 128'u8, 255'u8], .Pcm8, 1)
-    @assert(samples.count == 3)
-    @assert(samples[0].peak == 1 and samples[1].peak == 0 and samples[2].peak > 0.99)
-    @assert(samples[0].body == samples[0].peak)
+    Swag.assert(samples.count == 3)
+    Swag.assert(samples[0].peak == 1 and samples[1].peak == 0 and samples[2].peak > 0.99)
+    Swag.assert(samples[0].body == samples[0].peak)
 }
 
 #test
 {
     let samples = buildWaveform([0'u8, 0x80'u8, 0'u8, 0'u8, 0xFF'u8, 0x7F'u8], .Pcm16, 1)
-    @assert(samples.count == 3)
-    @assert(samples[0].peak == 1 and samples[1].peak == 0 and samples[2].peak > 0.99)
+    Swag.assert(samples.count == 3)
+    Swag.assert(samples[0].peak == 1 and samples[1].peak == 0 and samples[2].peak > 0.99)
 }
 
 // One slice covering several frames reports the loudest of them and the mean of them, and the two
@@ -274,23 +274,23 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
         payload[index] = index == 0 ? 255'u8 : 128'u8
 
     let samples = buildWaveform(payload.toSlice(), .Pcm8, 1)
-    @assert(samples.count == 8)
-    @assert(samples[0].peak > 0.99 and samples[0].body > 0.99)
+    Swag.assert(samples.count == 8)
+    Swag.assert(samples[0].peak > 0.99 and samples[0].body > 0.99)
 
     let single = buildWaveform(payload.toSlice()[0 until 4], .Pcm8, 1)
-    @assert(single.count == 4)
-    @assert(single[0].peak > 0.99 and single[1].peak == 0)
+    Swag.assert(single.count == 4)
+    Swag.assert(single[0].peak > 0.99 and single[1].peak == 0)
 }
 
 // The time scale is graduated on numbers a reader thinks in, and its labels shorten with the step.
 #test
 {
-    @assert(waveformTickStep(4.2, 640) == 1)
-    @assert(waveformTickStep(0.7, 640) == 0.25)
-    @assert(waveformTickStep(600, 640) == 120)
-    @assert(waveformTickText(2, 1) == "2")
-    @assert(waveformTickText(0.5, 0.25) == "0.50")
-    @assert(waveformTickText(95, 30) == "1:35")
+    Swag.assert(waveformTickStep(4.2, 640) == 1)
+    Swag.assert(waveformTickStep(0.7, 640) == 0.25)
+    Swag.assert(waveformTickStep(600, 640) == 120)
+    Swag.assert(waveformTickText(2, 1) == "2")
+    Swag.assert(waveformTickText(0.5, 0.25) == "0.50")
+    Swag.assert(waveformTickText(95, 30) == "1:35")
 }
 
 // Reads a recorded sound rather than a synthesized one. Its metadata and waveform must not depend
@@ -299,12 +299,12 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
 {
     let pacmanWav = Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "pacman_beginning.wav")
     let sound     = expect SoundFile.load(pacmanWav.toString())
-    @assert(sound.sampleRateHz() == 11_025)
-    @assert(sound.numChannels() == 1)
-    @assert(sound.sampleStorageBits() == 8)
-    @assert(sound.durationInSeconds() > 4.2 and sound.durationInSeconds() < 4.3)
+    Swag.assert(sound.sampleRateHz() == 11_025)
+    Swag.assert(sound.numChannels() == 1)
+    Swag.assert(sound.sampleStorageBits() == 8)
+    Swag.assert(sound.durationInSeconds() > 4.2 and sound.durationInSeconds() < 4.3)
     let waveform = buildWaveform(sound.preloadedData(), sound.sampleEncoding(), sound.numChannels())
-    @assert(waveform.count == 4_096)
+    Swag.assert(waveform.count == 4_096)
     var visible: bool
     for sample in waveform where sample.peak > 0.05 and sample.body > 0
     {
@@ -312,21 +312,21 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
         break
     }
 
-    @assert(visible)
+    Swag.assert(visible)
 
     var host: Testing.HeadlessHost
     host.setup(640, 320)
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     var result   = openTestViewer(&createSoundViewer, &host.root, pacmanWav.toString(), commandParent: commands)
-    @assert(result.view != null)
+    Swag.assert(result.view != null)
     let view = cast(*SoundViewer) result.view!
     waitForSoundOpen(&host, view)
-    @assert(!view.sound.isDataPreloaded())
+    Swag.assert(!view.sound.isDataPreloaded())
     finishWaveform(view)
-    @assert(view.details.indexOf("11025") != Swag.U64.Max)
-    @assert(view.details.indexOf("8 bit") != Swag.U64.Max)
-    @assert(view.waveform.samples.count == 4_096)
-    @assert(view.waveform.readyCount == view.waveform.samples.count)
-    @assert(view.waveform.duration == view.duration)
+    Swag.assert(view.details.indexOf("11025") != Swag.U64.Max)
+    Swag.assert(view.details.indexOf("8 bit") != Swag.U64.Max)
+    Swag.assert(view.waveform.samples.count == 4_096)
+    Swag.assert(view.waveform.readyCount == view.waveform.samples.count)
+    Swag.assert(view.waveform.duration == view.duration)
 }

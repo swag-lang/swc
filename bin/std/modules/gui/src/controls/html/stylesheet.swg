@@ -230,21 +230,21 @@ impl HtmlMatchContext
 
     mtd const elementPosition(element: u32)->{ index: u32, count: u32 }
     {
-        if element >= @countof(.elementIndex) or !.elementIndex[element] do
+        if element >= (.elementIndex).count or !.elementIndex[element] do
             return {1, 1}
         return {.elementIndex[element], .elementCount[element]}
     }
 
     mtd const typePosition(element: u32)->{ index: u32, count: u32 }
     {
-        if element >= @countof(.typeIndex) or !.typeIndex[element] do
+        if element >= (.typeIndex).count or !.typeIndex[element] do
             return {1, 1}
         return {.typeIndex[element], .typeCount[element]}
     }
 
     mtd const previous(element: u32)->u32
     {
-        if element >= @countof(.previousElement) or !.previousElement[element] do
+        if element >= (.previousElement).count or !.previousElement[element] do
             return HtmlNoNode
         return .previousElement[element] - 1
     }
@@ -313,7 +313,7 @@ impl HtmlStyleSheet
     {
         output.clear()
         let id = document.id(element)
-        if @countof(id)
+        if id.count
         {
             let found = .idIndex.tryFind(id)
             if found do
@@ -395,16 +395,16 @@ impl HtmlStyleSheet
             return false
 
         case .DashMatch:
-            return value == expected or (Utf8.startsWith(value, expected) and @countof(value) > @countof(expected) and value[@countof(expected)] == '-')
+            return value == expected or (Utf8.startsWith(value, expected) and value.count > expected.count and value[expected.count] == '-')
 
         case .Prefix:
-            return @countof(expected) and Utf8.startsWith(value, expected)
+            return expected.count and Utf8.startsWith(value, expected)
 
         case .Suffix:
-            return @countof(expected) and Utf8.endsWith(value, expected)
+            return expected.count and Utf8.endsWith(value, expected)
 
         case .Contains:
-            return @countof(expected) and Utf8.contains(value, expected)
+            return expected.count and Utf8.contains(value, expected)
         }
 
         return false
@@ -475,7 +475,7 @@ impl HtmlStyleSheet
     // failing compound selector rejects the rule immediately.
     mtd const matches(rule: const *HtmlRule, element: u32, context: const *HtmlMatchContext)->bool
     {
-        if rule.media != HtmlNoNode and (rule.media >= @countof(context.mediaOn) or !context.mediaOn[rule.media]) do
+        if rule.media != HtmlNoNode and (rule.media >= context.mediaOn.count or !context.mediaOn[rule.media]) do
             return false
         if !.matchesPart(&rule.parts[rule.parts.count - 1], element, context) do
             return false
@@ -565,11 +565,11 @@ impl HtmlStyleSheet
 
         var matched = true
         var index   = 0'u64
-        while index < @countof(text)
+        while index < text.count
         {
-            while index < @countof(text) and Latin1.isSpace(text[index]) do
+            while index < text.count and Latin1.isSpace(text[index]) do
                 index += 1
-            if index >= @countof(text) do
+            if index >= text.count do
                 break
 
             if text[index] == '('
@@ -583,7 +583,7 @@ impl HtmlStyleSheet
             }
 
             var wordEnd = index
-            while wordEnd < @countof(text) and !Latin1.isSpace(text[wordEnd]) and text[wordEnd] != '(' do
+            while wordEnd < text.count and !Latin1.isSpace(text[wordEnd]) and text[wordEnd] != '(' do
                 wordEnd += 1
 
             // The only media types a document window can answer for are the screen ones.
@@ -638,7 +638,7 @@ private func htmlStripCssComments(source: string)->String
     var quote  = 0'u8
     var copied = 0'u64
 
-    while index < @countof(source)
+    while index < source.count
     {
         let character = source[index]
         if quote
@@ -658,11 +658,11 @@ private func htmlStripCssComments(source: string)->String
             continue
         }
 
-        if character == '/' and index + 1 < @countof(source) and source[index + 1] == '*'
+        if character == '/' and index + 1 < source.count and source[index + 1] == '*'
         {
             result += source[copied until index]
             let end = Utf8.indexOf(source, "*/", index + 2)
-            index  = end == Swag.U64.Max ? @countof(source) : end + 2
+            index  = end == Swag.U64.Max ? source.count : end + 2
             copied = index
             continue
         }
@@ -688,11 +688,11 @@ impl HtmlStyleSheet
     private mtd parseRules(source: string, media: u32)
     {
         var index = 0'u64
-        while index < @countof(source)
+        while index < source.count
         {
-            while index < @countof(source) and Latin1.isSpace(source[index]) do
+            while index < source.count and Latin1.isSpace(source[index]) do
                 index += 1
-            if index >= @countof(source) do
+            if index >= source.count do
                 return
 
             if source[index] == '@'
@@ -718,7 +718,7 @@ impl HtmlStyleSheet
         var index = from
         var depth = 0'u32
         var quote = 0'u8
-        while index < @countof(source)
+        while index < source.count
         {
             let character = source[index]
             if quote
@@ -759,7 +759,7 @@ impl HtmlStyleSheet
     private mtd parseAtRule(source: string, from: u64, media: u32)->u64
     {
         var nameEnd = from + 1
-        while nameEnd < @countof(source) and (Latin1.isLetter(source[nameEnd]) or source[nameEnd] == '-') do
+        while nameEnd < source.count and (Latin1.isLetter(source[nameEnd]) or source[nameEnd] == '-') do
             nameEnd += 1
 
         let name      = String.from(source[from + 1 until nameEnd]).toLower()
@@ -767,7 +767,7 @@ impl HtmlStyleSheet
         let semicolon = Utf8.indexOf(source, ';'rune, nameEnd)
         if brace == Swag.U64.Max
         {
-            return semicolon == Swag.U64.Max ? @countof(source) : semicolon + 1
+            return semicolon == Swag.U64.Max ? source.count : semicolon + 1
         }
 
         var scan = brace
@@ -838,7 +838,7 @@ impl HtmlStyleSheet
 
             let property = Latin1.trim(text[0 until colon])
             var value    = Latin1.trim(text[colon + 1 to])
-            if !@countof(property) or !@countof(value) do
+            if !property.count or !value.count do
                 continue
 
             var declaration: HtmlDeclaration
@@ -881,7 +881,7 @@ impl HtmlStyleSheet
         // when no explicit combinator was written between two of them.
         var combinator = HtmlCombinator.Descendant
 
-        while index < @countof(selector)
+        while index < selector.count
         {
             let character = selector[index]
             if Latin1.isSpace(character)
@@ -930,7 +930,7 @@ impl HtmlStyleSheet
         var result: retval
         var read:   bool
 
-        while index[] < @countof(selector)
+        while index[] < selector.count
         {
             let character = selector[index[]]
             if Latin1.isSpace(character) or character == '>' or character == '+' or character == '~' do
@@ -979,7 +979,7 @@ impl HtmlStyleSheet
     {
         var result: retval
         let start = index[]
-        while index[] < @countof(selector)
+        while index[] < selector.count
         {
             let character = selector[index[]]
             if !Latin1.isLetterOrDigit(character) and character != '-' and character != '_' and character != '\\' do
@@ -1002,14 +1002,14 @@ impl HtmlStyleSheet
 
         var attribute: HtmlAttributeSelector
         var nameEnd = 0'u64
-        while nameEnd < @countof(body) and (Latin1.isLetterOrDigit(body[nameEnd]) or body[nameEnd] == '-' or body[nameEnd] == '_') do
+        while nameEnd < body.count and (Latin1.isLetterOrDigit(body[nameEnd]) or body[nameEnd] == '-' or body[nameEnd] == '_') do
             nameEnd += 1
         if !nameEnd do
             return false
 
         attribute.name = String.from(body[0 until nameEnd]).toLower()
         var rest = Latin1.trim(body[nameEnd to])
-        if !@countof(rest)
+        if !rest.count
         {
             part.attributes.add(#move attribute)
             return true
@@ -1029,7 +1029,7 @@ impl HtmlStyleSheet
 
         if attribute.match != .Equals
         {
-            if @countof(rest) < 2 or rest[1] != '=' do
+            if rest.count < 2 or rest[1] != '=' do
                 return false
             valueStart = 2
         }
@@ -1038,10 +1038,10 @@ impl HtmlStyleSheet
 
         // A case-insensitivity flag is accepted and ignored, because a document that carries one
         // still selects the same element in practice.
-        if @countof(value) >= 2 and (Utf8.endsWith(value, " i") or Utf8.endsWith(value, " I")) do
-            value = Latin1.trim(value[0 until @countof(value) - 2])
-        if @countof(value) >= 2 and (value[0] == '"' or value[0] == '\'') and value[@countof(value) - 1] == value[0] do
-            value = value[1 until @countof(value) - 1]
+        if value.count >= 2 and (Utf8.endsWith(value, " i") or Utf8.endsWith(value, " I")) do
+            value = Latin1.trim(value[0 until value.count - 2])
+        if value.count >= 2 and (value[0] == '"' or value[0] == '\'') and value[value.count - 1] == value[0] do
+            value = value[1 until value.count - 1]
 
         attribute.value = value
         part.attributes.add(#move attribute)
@@ -1052,7 +1052,7 @@ impl HtmlStyleSheet
     {
         index[] += 1
         var element = false
-        if index[] < @countof(selector) and selector[index[]] == ':'
+        if index[] < selector.count and selector[index[]] == ':'
         {
             element = true
             index[] += 1
@@ -1060,7 +1060,7 @@ impl HtmlStyleSheet
 
         let name = HtmlStyleSheet.readIdentifier(selector, index).toLower()
         var argument: String
-        if index[] < @countof(selector) and selector[index[]] == '('
+        if index[] < selector.count and selector[index[]] == '('
         {
             var scan = index[]
             argument = htmlReadBalanced(selector, &scan)
@@ -1213,7 +1213,7 @@ impl HtmlStyleSheet
             if n == Swag.U64.Max
             {
                 let number = htmlParseNumber(text)
-                if number.eat == @countof(text)
+                if number.eat == text.count
                 {
                     b       = cast(s32) number.value
                     matched = true
@@ -1223,24 +1223,24 @@ impl HtmlStyleSheet
             {
                 let aPart = text[0 until n]
                 matched = true
-                if !@countof(aPart) or aPart == "+" do
+                if !aPart.count or aPart == "+" do
                     a = 1
                 elif aPart == "-" do
                     a = -1
                 else
                 {
                     let number = htmlParseNumber(aPart)
-                    if number.eat == @countof(aPart) do
+                    if number.eat == aPart.count do
                         a = cast(s32) number.value
                     else do
                         matched = false
                 }
 
                 let bPart = text[n + 1 to]
-                if @countof(bPart) and matched
+                if bPart.count and matched
                 {
                     let number = htmlParseNumber(bPart)
-                    if number.eat == @countof(bPart) do
+                    if number.eat == bPart.count do
                         b = cast(s32) number.value
                     else do
                         matched = false
@@ -1269,7 +1269,7 @@ private func htmlReadBalancedBrace(source: string, scan: *u64)->string
     var index = start
     var quote = 0'u8
 
-    while index < @countof(source) and depth
+    while index < source.count and depth
     {
         let character = source[index]
         if quote
@@ -1291,6 +1291,6 @@ private func htmlReadBalancedBrace(source: string, scan: *u64)->string
             index += 1
     }
 
-    scan[] = Math.min(index + 1, @countof(source))
-    return source[start until Math.min(index, @countof(source))]
+    scan[] = Math.min(index + 1, source.count)
+    return source[start until Math.min(index, source.count)]
 }

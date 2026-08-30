@@ -98,22 +98,22 @@ func outerMacroDoubleInject(ctxData: *void, stmt: #code(data: *void))
 
 #test
 {
-    @assert(localGenericSignature(41) == 41)
+    Swag.assert(localGenericSignature(41) == 41)
 }
 
 #test
 {
-    @assert(localMacroRelay(21) == 42)
+    Swag.assert(localMacroRelay(21) == 42)
 }
 
 #test
 {
-    @assert(localNestedShadow(41) == 42)
+    Swag.assert(localNestedShadow(41) == 42)
 }
 
 #test
 {
-    @assert(forcedLocalMacroRelay(14) == 42)
+    Swag.assert(forcedLocalMacroRelay(14) == 42)
 }
 
 #test
@@ -121,9 +121,9 @@ func outerMacroDoubleInject(ctxData: *void, stmt: #code(data: *void))
     var runs = 0
     localForMacroInject(3, &runs)
     {
-        discard @atomadd(cast(*s32) data, 1)
+        discard Swag.atomadd(cast(*s32) data, 1)
     }
-    @assert(runs == 3)
+    Swag.assert(runs == 3)
 }
 
 #test
@@ -131,7 +131,7 @@ func outerMacroDoubleInject(ctxData: *void, stmt: #code(data: *void))
     var c = 0
     outerMacroDoubleInject(&c)
     {
-        discard @atomadd(cast(*s32) data, 1)
+        discard Swag.atomadd(cast(*s32) data, 1)
     }
-    @assert(c == 3)
+    Swag.assert(c == 3)
 }

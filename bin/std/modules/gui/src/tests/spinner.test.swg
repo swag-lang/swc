@@ -30,7 +30,7 @@ func inkCount(image: const *Image)->s32
 
     let size = host.root.themeMetrics().spinner_Size
     let spin = Spinner.create(&host.root, {8, 8})
-    @assert(spin.position.width == size and spin.position.height == size)
+    Swag.assert(spin.position.width == size and spin.position.height == size)
 }
 
 // Painting advances the cycle and wraps it, so a spinner left on screen never stops and never
@@ -44,7 +44,7 @@ func inkCount(image: const *Image)->s32
     let spin = Spinner.create(&host.root, {16, 16, 32, 32})
     spin.animationPhase = 0.95
     discard host.render()
-    @assert(spin.animationPhase >= 0 and spin.animationPhase < 1)
+    Swag.assert(spin.animationPhase >= 0 and spin.animationPhase < 1)
 }
 
 // The ring is drawn, never sampled from an atlas: rendering the same logical spinner at twice the
@@ -68,10 +68,10 @@ func inkCount(image: const *Image)->s32
     let image2 = host2.render()
     let ink2   = inkCount(&image2)
 
-    @assert(ink1 > 0)
-    @assert(image2.width == 2 * image1.width and image2.height == 2 * image1.height)
+    Swag.assert(ink1 > 0)
+    Swag.assert(image2.width == 2 * image1.width and image2.height == 2 * image1.height)
 
     // Four times the area, give or take the antialiased rim of eight small disks.
     let ratio = cast(f32) ink2 / cast(f32) ink1
-    @assert(ratio > 3.5 and ratio < 4.5)
+    Swag.assert(ratio > 3.5 and ratio < 4.5)
 }

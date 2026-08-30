@@ -7,7 +7,7 @@ using Win32
 func deleteNative(fullName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(fullName)
-    catch DeleteFileW(@dataof(winPath)) as err
+    catch DeleteFileW(winPath.buffer) as err
     Errors.transformWinErrors(err, fullName)
 }
 
@@ -15,7 +15,7 @@ func moveNative(newName, oldName: string) fail
 {
     let winOld = Utf16.toZeroTerminated(oldName)
     let winNew = Utf16.toZeroTerminated(newName)
-    catch MoveFileExW(@dataof(winOld), @dataof(winNew), MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED) as err
+    catch MoveFileExW(winOld.buffer, winNew.buffer, MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED) as err
     Errors.transformWinErrors(err, oldName)
 }
 
@@ -23,7 +23,7 @@ func touchNative(fullName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(fullName)
 
-    let hFile = catch CreateFileW(@dataof(winPath), FILE_WRITE_ATTRIBUTES, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null) as err
+    let hFile = catch CreateFileW(winPath.buffer, FILE_WRITE_ATTRIBUTES, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null) as err
     Errors.transformWinErrors(err, fullName)
     defer CloseHandle(hFile)
 
@@ -41,7 +41,7 @@ func exists(fullName: string)->bool
         return false
     let safeName   = fullName orelse ""
     let winPath    = Utf16.toZeroTerminated(safeName)
-    let attributes = catch GetFileAttributesW(@dataof(winPath)) as err
+    let attributes = catch GetFileAttributesW(winPath.buffer) as err
     if err != null do
         return false
     if attributes == 0xFFFFFFFF do
@@ -94,7 +94,7 @@ func openNative(fullName: string, mode: FileMode, access: FileAccess, share: Fil
     }
 
     let winPath = Utf16.toZeroTerminated(fullName)
-    let hFile   = catch CreateFileW(@dataof(winPath), wAccess, wShare, securityPtr, wMode, FILE_ATTRIBUTE_NORMAL, null) as err
+    let hFile   = catch CreateFileW(winPath.buffer, wAccess, wShare, securityPtr, wMode, FILE_ATTRIBUTE_NORMAL, null) as err
     Errors.transformWinErrors(err, fullName)
     return cast(FileHandle) hFile
 }

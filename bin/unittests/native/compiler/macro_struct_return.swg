@@ -22,9 +22,9 @@ struct InvoiceTotals
 #[Swag.Macro]
 func visitInvoiceLines(lines: const [..] InvoiceLine, stmt: #code(line, lineTotalCents: s32))
 {
-    for @countof(lines)
+    for lines.count
     {
-        #inject(stmt, line = lines[@index], lineTotalCents = lines[@index].quantity * lines[@index].unitPriceCents)
+        #inject(stmt, line = lines[Swag.index], lineTotalCents = lines[Swag.index].quantity * lines[Swag.index].unitPriceCents)
     }
 }
 
@@ -37,9 +37,9 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
 
     visitInvoiceLines(lines)
     {
-        @assert(line.quantity > 0)
-        @assert(line.unitPriceCents > 0)
-        @assert(lineTotalCents == line.quantity * line.unitPriceCents)
+        Swag.assert(line.quantity > 0)
+        Swag.assert(line.unitPriceCents > 0)
+        Swag.assert(lineTotalCents == line.quantity * line.unitPriceCents)
         lineCount     += 1
         subtotalCents += lineTotalCents
         if line.taxable
@@ -78,11 +78,11 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
 
     let starterTotals = buildInvoiceTotals(starterInvoice, false)
 
-    @assert(starterTotals.lineCount == 3)
-    @assert(starterTotals.taxableLineCount == 2)
-    @assert(starterTotals.subtotalCents == 21000)
-    @assert(starterTotals.taxableSubtotalCents == 13000)
-    @assert(starterTotals.shippingCents == 600)
-    @assert(starterTotals.taxCents == 1300)
-    @assert(starterTotals.totalCents == 22900)
+    Swag.assert(starterTotals.lineCount == 3)
+    Swag.assert(starterTotals.taxableLineCount == 2)
+    Swag.assert(starterTotals.subtotalCents == 21000)
+    Swag.assert(starterTotals.taxableSubtotalCents == 13000)
+    Swag.assert(starterTotals.shippingCents == 600)
+    Swag.assert(starterTotals.taxCents == 1300)
+    Swag.assert(starterTotals.totalCents == 22900)
 }

@@ -25,7 +25,7 @@ alias StrictDefaultFloat = f32
 
 func assertDefaultVoid(a: s32 = 6)
 {
-    @assert(a == 6)
+    Swag.assert(a == 6)
 }
 
 func addDefault(a: s32, b: s32 = 5, c: s32 = 6)->s32
@@ -123,55 +123,55 @@ func arrayDefaultSum(values: [3] s32 = [1, 2, 3])->s32
     callDefaultsManyTimes()
     callDefaultsManyTimes()
 
-    @assert(addDefault(1) == 12)
-    @assert(addDefault(1, 2) == 9)
-    @assert(addDefault(1, 2, 3) == 6)
-    @assert(addDefault(c: 3, a: 1) == 9)
-    @assert(addDefault(a: 1, c: 3) == 9)
-    @assert(addDefault(a: 1, b: 2, c: 3) == 6)
-    @assert(defaultCounter == 30)
+    Swag.assert(addDefault(1) == 12)
+    Swag.assert(addDefault(1, 2) == 9)
+    Swag.assert(addDefault(1, 2, 3) == 6)
+    Swag.assert(addDefault(c: 3, a: 1) == 9)
+    Swag.assert(addDefault(a: 1, c: 3) == 9)
+    Swag.assert(addDefault(a: 1, b: 2, c: 3) == 6)
+    Swag.assert(defaultCounter == 30)
 }
 
 #test
 {
-    @assert(boolDefault() == 7)
-    @assert(boolDefault(false) == 3)
-    @assert(boolDefault(flag: true) == 7)
+    Swag.assert(boolDefault() == 7)
+    Swag.assert(boolDefault(false) == 3)
+    Swag.assert(boolDefault(flag: true) == 7)
 
-    @assert(floatDefault() == 3.5)
-    @assert(floatDefault(3.0) == 5.0)
-    @assert(floatDefault(b: 4.5, a: 0.5) == 5.0)
+    Swag.assert(floatDefault() == 3.5)
+    Swag.assert(floatDefault(3.0) == 5.0)
+    Swag.assert(floatDefault(b: 4.5, a: 0.5) == 5.0)
 }
 
 #test
 {
-    @assert(stringDefaultTag() == 1)
-    @assert(stringDefaultTag("hello") == 2)
-    @assert(pointerDefaultIsNull())
+    Swag.assert(stringDefaultTag() == 1)
+    Swag.assert(stringDefaultTag("hello") == 2)
+    Swag.assert(pointerDefaultIsNull())
 
-    @assert(pointerDefaultIsNull())
+    Swag.assert(pointerDefaultIsNull())
     var local: s32 = 10
-    @assert(!pointerDefaultIsNull(&local))
-    @assert(pointerDefaultIsNull(ptr: null))
+    Swag.assert(!pointerDefaultIsNull(&local))
+    Swag.assert(pointerDefaultIsNull(ptr: null))
 }
 
 #test
 {
-    @assert(enumDefault() == 20)
-    @assert(enumDefault(DefaultKind.A) == 10)
-    @assert(enumDefault(kind: DefaultKind.C) == 30)
-    @assert(strictEnumDefault() == 20)
-    @assert(strictEnumDefault(cast(StrictDefaultKind) DefaultKind.A) == 10)
-    @assert(strictFloatDefault())
+    Swag.assert(enumDefault() == 20)
+    Swag.assert(enumDefault(DefaultKind.A) == 10)
+    Swag.assert(enumDefault(kind: DefaultKind.C) == 30)
+    Swag.assert(strictEnumDefault() == 20)
+    Swag.assert(strictEnumDefault(cast(StrictDefaultKind) DefaultKind.A) == 10)
+    Swag.assert(strictFloatDefault())
 
-    @assert(vecDefaultSum() == 30)
-    @assert(vecDefaultSum({x: 3, y: 4}) == 7)
-    @assert(vecDefaultSum(v: {x: -1, y: 8}) == 7)
+    Swag.assert(vecDefaultSum() == 30)
+    Swag.assert(vecDefaultSum({x: 3, y: 4}) == 7)
+    Swag.assert(vecDefaultSum(v: {x: -1, y: 8}) == 7)
 }
 
 #test
 {
-    @assert(arrayDefaultSum() == 6)
-    @assert(arrayDefaultSum([5, 6, 7]) == 18)
-    @assert(arrayDefaultSum(values: [9, 0, 1]) == 10)
+    Swag.assert(arrayDefaultSum() == 6)
+    Swag.assert(arrayDefaultSum([5, 6, 7]) == 18)
+    Swag.assert(arrayDefaultSum(values: [9, 0, 1]) == 10)
 }

@@ -57,9 +57,9 @@ struct RuntimeAssignHolder
     var box = RuntimeAssignBox{a: 1, b: 2}
     box += 3's32
 
-    @assert(box.a == 4)
-    @assert(box.b == 5)
-    @assert(box.calls == 1)
+    Swag.assert(box.a == 4)
+    Swag.assert(box.b == 5)
+    Swag.assert(box.calls == 1)
 }
 
 #test
@@ -67,9 +67,9 @@ struct RuntimeAssignHolder
     var box = RuntimeAssignBox{a: 2, b: 3}
     box *= 4's32
 
-    @assert(box.a == 8)
-    @assert(box.b == 12)
-    @assert(box.calls == 1)
+    Swag.assert(box.a == 8)
+    Swag.assert(box.b == 12)
+    Swag.assert(box.calls == 1)
 }
 
 #test
@@ -77,9 +77,9 @@ struct RuntimeAssignHolder
     var box = RuntimeAssignBox{a: 3, b: 5}
     box <<= 2'u32
 
-    @assert(box.a == 12)
-    @assert(box.b == 20)
-    @assert(box.calls == 1)
+    Swag.assert(box.a == 12)
+    Swag.assert(box.b == 20)
+    Swag.assert(box.calls == 1)
 }
 
 #test
@@ -88,9 +88,9 @@ struct RuntimeAssignHolder
     var rhs = RuntimeAssignBox{a: 13, b: 17}
     lhs += rhs
 
-    @assert(lhs.a == 20)
-    @assert(lhs.b == 28)
-    @assert(lhs.calls == 1)
+    Swag.assert(lhs.a == 20)
+    Swag.assert(lhs.b == 28)
+    Swag.assert(lhs.calls == 1)
 }
 
 #test
@@ -98,9 +98,9 @@ struct RuntimeAssignHolder
     var holder = RuntimeAssignHolder{}
     holder.value += 9's32
 
-    @assert(holder.value.a == 9)
-    @assert(holder.value.b == 9)
-    @assert(holder.value.calls == 1)
+    Swag.assert(holder.value.a == 9)
+    Swag.assert(holder.value.b == 9)
+    Swag.assert(holder.value.calls == 1)
 }
 
 #test
@@ -109,7 +109,7 @@ struct RuntimeAssignHolder
     let ptr = &box
     ptr[] += 5's32
 
-    @assert(box.a == 15)
-    @assert(box.b == 25)
-    @assert(box.calls == 1)
+    Swag.assert(box.a == 15)
+    Swag.assert(box.b == 25)
+    Swag.assert(box.calls == 1)
 }

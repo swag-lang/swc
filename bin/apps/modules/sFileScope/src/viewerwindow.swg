@@ -133,7 +133,7 @@ impl IWnd for ViewerInfoLayout
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         discard evt
-        if @isset(.fileGroup) and @isset(.generalLabel) do
+        if Swag.isSet(.fileGroup) and Swag.isSet(.generalLabel) do
             .computeLayout()
     }
 }
@@ -1613,7 +1613,7 @@ impl ViewerWindow
 
     private mtd finishSmokeReview(exitCode: s32, message: string)
     {
-        if @countof(message) do
+        if message.count do
             Console.println(message)
         if .smokeTimer
         {
@@ -2309,7 +2309,7 @@ impl ViewerWindow
 
     private mtd validateSearchEdit(edit: *EditBox)->EditBoxCheckResult
     {
-        if !@countof(edit.text()) do
+        if !(edit.text()).count do
             return .Valid
         if .activeChoiceIndex < .instances.count
         {
@@ -2418,7 +2418,7 @@ impl ViewerWindow
 
     private mtd navigateSearch(direction: s32)
     {
-        if !.searchBox.isEnabled() or !@countof(.searchBox.text()) do
+        if !.searchBox.isEnabled() or !(.searchBox.text()).count do
             return
         if .searchQuery != .searchBox.text()
         {
@@ -2735,7 +2735,7 @@ impl ViewerWindow
         }
 
         bytes.resize(count)
-        .searchCarry += @mkstring(bytes.buffer!, bytes.count)
+        .searchCarry += Swag.makeString(bytes.buffer!, bytes.count)
         let eof      = count == 0
         let instance = &.instances[.activeChoiceIndex]
 
@@ -3073,7 +3073,7 @@ impl ViewerWindow
         if !line do
             return
         let index = line!.index
-        if index >= @countof(files) do
+        if index >= files.count do
             return
 
         // The actions below outlive the list they were asked from: forgetting a file rebuilds
@@ -3110,7 +3110,7 @@ impl ViewerWindow
         for one in .folderHistory where Directory.exists(one.folder.toString()) and File.exists(one.file.toString())
         {
             var name = Path.fileName(one.folder.toString()) orelse one.folder.toString()
-            if !@countof(name) do
+            if !name.count do
                 name = one.folder.toString()
             var icon = .app().directoryIcon(one.folder.toString(), true)
             icon.color = .themeColors().label_Text
@@ -3124,7 +3124,7 @@ impl ViewerWindow
         }
 
         let folder = menu.doModal(.folderHistoryButton, autoDestroy: true) orelse ""
-        if !@countof(folder) do
+        if !folder.count do
             return
         for one in .folderHistory where one.folder == folder
         {
@@ -3202,7 +3202,7 @@ impl ViewerWindow
         if selected.isEmpty() or !selected[0] do
             return
         let index = selected[0]!.index
-        if index >= @countof(files) do
+        if index >= files.count do
             return
         let fileName = files[index].toString()
         if .currentFile != fileName do
@@ -3220,7 +3220,7 @@ impl ViewerWindow
             .siblings.add(file[])
         }
 
-        for i in @countof(.siblings) where .siblings[i] == .currentFile
+        for i in (.siblings).count where .siblings[i] == .currentFile
         {
             .siblingIndex = i
             break

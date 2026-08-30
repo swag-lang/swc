@@ -10,7 +10,7 @@ func md5String(buffer: const [..] u8)->String
 
 func assertMd5(buffer: const [..] u8, expected: string)
 {
-    @assert(md5String(buffer) == expected)
+    Swag.assert(md5String(buffer) == expected)
 
     var md5: Hash.Md5
     md5.reset()
@@ -19,7 +19,7 @@ func assertMd5(buffer: const [..] u8, expected: string)
 
     var digest: Hash.Md5.Digest
     digest = md5.finalize()
-    @assert(Hash.Md5.toString(digest) == expected)
+    Swag.assert(Hash.Md5.toString(digest) == expected)
 }
 
 func assertMd5Split(buffer: const [..] u8, split0, split1: u64, expected: string)
@@ -28,17 +28,17 @@ func assertMd5Split(buffer: const [..] u8, split0, split1: u64, expected: string
     md5.reset()
     md5.update(buffer[until split0])
     md5.update(buffer[split0 until split1])
-    md5.update(buffer[split1 until @countof(buffer)])
+    md5.update(buffer[split1 until buffer.count])
 
     var digest: Hash.Md5.Digest
     digest = md5.finalize()
-    @assert(Hash.Md5.toString(digest) == expected)
+    Swag.assert(Hash.Md5.toString(digest) == expected)
 }
 
 func fillMd5Pattern(buffer: [..] u8)
 {
     var i = 0'u64
-    while i < @countof(buffer)
+    while i < buffer.count
     {
         buffer[i] = cast(u8) ((i * 37 + 11) & 0xFF)
         i         += 1
@@ -58,7 +58,7 @@ func fillMd5Pattern(buffer: [..] u8)
     var md5: Hash.Md5
     md5.update("dirty")
     md5.reset()
-    @assert(md5String("") == "D41D8CD98F00B204E9800998ECF8427E")
+    Swag.assert(md5String("") == "D41D8CD98F00B204E9800998ECF8427E")
 
     var data: [130] u8
     fillMd5Pattern(data)

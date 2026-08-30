@@ -18,9 +18,9 @@ private func strokedPath(y: f32)->LinePathList
     var document = expect Document.decode(singlePagePdf("", cast(const [..] u8) content, "", "[0 0 100 50]").toSlice())
     let decoded  = onlyItem(document.pages[0], .Path)
     let style    = decoded.pathStrokeStyle()
-    @assert(style.cap == .Square and style.join == .Round and style.miterLimit == 7)
-    @assert(style.dashPattern.count == 6 and style.dashPattern[0] == 10 and style.dashPattern[3] == 10)
-    @assert(style.dashPhase == 2)
+    Swag.assert(style.cap == .Square and style.join == .Round and style.miterLimit == 7)
+    Swag.assert(style.dashPattern.count == 6 and style.dashPattern[0] == 10 and style.dashPattern[3] == 10)
+    Swag.assert(style.dashPhase == 2)
 
     var editedStyle = PathStrokeStyle{cap: .Butt, join: .Bevel, miterLimit: 4}
     editedStyle.dashPattern.add(10)
@@ -28,16 +28,16 @@ private func strokedPath(y: f32)->LinePathList
     document.editPage(0).setPathStrokeStyle(0, editedStyle)
     let bytes   = expect document.encode()
     let encoded = cast(string) bytes.toSlice()
-    @assert(Utf8.indexOf(encoded, "0 J\n2 j\n4 M\n[10 10] 0 d") != Swag.U64.Max)
+    Swag.assert(Utf8.indexOf(encoded, "0 J\n2 j\n4 M\n[10 10] 0 d") != Swag.U64.Max)
     var roundTrip = expect Document.decode(bytes.toSlice())
     let final     = onlyItem(roundTrip.pages[0], .Path).pathStrokeStyle()
-    @assert(final.cap == .Butt and final.join == .Bevel and final.miterLimit == 4)
-    @assert(final.dashPattern.count == 2 and final.dashPattern[0] == 10 and final.dashPattern[1] == 10)
+    Swag.assert(final.cap == .Butt and final.join == .Bevel and final.miterLimit == 4)
+    Swag.assert(final.dashPattern.count == 2 and final.dashPattern[0] == 10 and final.dashPattern[1] == 10)
 
     let image = expect roundTrip.editPage(0).render({background: Color.fromArgb(Argb.White)})
-    @assert(image.pixelColor(25, 15).r < 32)
-    @assert(image.pixelColor(35, 15).r > 223)
-    @assert(image.pixelColor(45, 15).r < 32)
+    Swag.assert(image.pixelColor(25, 15).r < 32)
+    Swag.assert(image.pixelColor(35, 15).r > 223)
+    Swag.assert(image.pixelColor(45, 15).r < 32)
 }
 
 // The graphics-state stack restores the complete stroke style, including its owned dash array.
@@ -45,12 +45,12 @@ private func strokedPath(y: f32)->LinePathList
 {
     let content  = "2 J [8 4] -3 d q 1 J [2 2] 0 d 4 w 20 35 m 80 35 l S Q 4 w 20 15 m 80 15 l S"
     let document = expect Document.decode(singlePagePdf("", cast(const [..] u8) content, "", "[0 0 100 50]").toSlice())
-    @assert(document.pages[0].items.count == 2)
+    Swag.assert(document.pages[0].items.count == 2)
 
     let nested   = document.pages[0].items[0].pathStrokeStyle()
     let restored = document.pages[0].items[1].pathStrokeStyle()
-    @assert(nested.cap == .Round and nested.dashPattern[0] == 2 and nested.dashPhase == 0)
-    @assert(restored.cap == .Square and restored.dashPattern[0] == 8 and restored.dashPhase == -3)
+    Swag.assert(nested.cap == .Round and nested.dashPattern[0] == 2 and nested.dashPhase == 0)
+    Swag.assert(restored.cap == .Square and restored.dashPattern[0] == 8 and restored.dashPhase == -3)
 }
 
 // The default PDF cap is flat; square caps extend by half the stroke width.
@@ -63,8 +63,8 @@ private func strokedPath(y: f32)->LinePathList
     document.addPage(#move page)
 
     let image = expect document.editPage(0).render({background: Color.fromArgb(Argb.White)})
-    @assert(image.pixelColor(16, 15).r > 223)
-    @assert(image.pixelColor(16, 35).r < 32)
+    Swag.assert(image.pixelColor(16, 15).r > 223)
+    Swag.assert(image.pixelColor(16, 35).r < 32)
 }
 
 // A zero-width PDF stroke remains visible as a one-device-pixel hairline.
@@ -86,7 +86,7 @@ private func strokedPath(y: f32)->LinePathList
         }
     }
 
-    @assert(hasHairline)
+    Swag.assert(hasHairline)
 }
 
 // Malformed stroke parameters stop decoding instead of leaking impossible geometry to Pixel.
@@ -97,6 +97,6 @@ private func strokedPath(y: f32)->LinePathList
     {
         let bytes = singlePagePdf("", cast(const [..] u8) content, "")
         discard catch Document.decode(bytes.toSlice()) as strokeError
-        @assert(strokeError != null)
+        Swag.assert(strokeError != null)
     }
 }

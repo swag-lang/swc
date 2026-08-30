@@ -18,52 +18,52 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
     let bar     = dlg.buttonBar
 
     // A compact caption still gives its title and controls enough vertical air to read as chrome.
-    @assert(metrics.wnd_SmallCaptionCY == 36)
-    @assert(metrics.wnd_SmallCaptionCY - metrics.wnd_CaptionIconSize >= 2 * metrics.wnd_CaptionButtonMargin)
+    Swag.assert(metrics.wnd_SmallCaptionCY == 36)
+    Swag.assert(metrics.wnd_SmallCaptionCY - metrics.wnd_CaptionIconSize >= 2 * metrics.wnd_CaptionButtonMargin)
 
     // The bar is one row of actions and the air above and below it, and never a hand-set band.
-    @assert(Math.abs(bar.position.height - (metrics.btnPush_Height + 2 * metrics.dialog_BtnPadding)) < 0.5)
+    Swag.assert(Math.abs(bar.position.height - (metrics.btnPush_Height + 2 * metrics.dialog_BtnPadding)) < 0.5)
 
     // Every action is at least the theme button and they all read as one row.
-    @assert(!dlg.buttons.isEmpty())
+    Swag.assert(!dlg.buttons.isEmpty())
     for btn in dlg.buttons
     {
-        @assert(Math.abs(btn.position.height - metrics.btnPush_Height) < 0.5)
-        @assert(btn.position.width >= metrics.btnPush_Width - 0.5)
-        @assert(Math.abs(btn.position.y - dlg.buttons[0].position.y) < 0.5)
+        Swag.assert(Math.abs(btn.position.height - metrics.btnPush_Height) < 0.5)
+        Swag.assert(btn.position.width >= metrics.btnPush_Width - 0.5)
+        Swag.assert(Math.abs(btn.position.y - dlg.buttons[0].position.y) < 0.5)
     }
 
     // One gap between two actions, and it is the bar's own.
     for i in 1 until dlg.buttons.count
     {
         let gap = dlg.buttons[i].position.x - dlg.buttons[i - 1].position.right()
-        @assert(Math.abs(gap - metrics.dialog_BtnPadding) < 0.5)
+        Swag.assert(Math.abs(gap - metrics.dialog_BtnPadding) < 0.5)
     }
 
     // The row ends on the inset the body keeps, so the last action and whatever the box holds
     // read on one right edge instead of on two that nearly agree.
     let last = dlg.buttons[dlg.buttons.count - 1]
-    @assert(Math.abs(bar.position.width - last.position.right() - metrics.dialog_Padding) < 0.5)
+    Swag.assert(Math.abs(bar.position.width - last.position.right() - metrics.dialog_Padding) < 0.5)
 
     // One dominant action, so the bar says what Enter decides.
     var defaults = 0
     for btn in dlg.buttons where btn.form == .Default do
         defaults += 1
-    @assert(defaults == 1)
+    Swag.assert(defaults == 1)
 
     // The body keeps one inset, the same on all four sides, and the box owns it rather than
     // each dialog restating it.
     let body = dlg.contentView!
-    @assert(Math.abs(body.padding.x - bodyInset) < 0.5)
-    @assert(Math.abs(body.padding.y - bodyInset) < 0.5)
-    @assert(Math.abs(body.padding.z - bodyInset) < 0.5)
-    @assert(Math.abs(body.padding.w - bodyInset) < 0.5)
+    Swag.assert(Math.abs(body.padding.x - bodyInset) < 0.5)
+    Swag.assert(Math.abs(body.padding.y - bodyInset) < 0.5)
+    Swag.assert(Math.abs(body.padding.z - bodyInset) < 0.5)
+    Swag.assert(Math.abs(body.padding.w - bodyInset) < 0.5)
 
     // A box names itself: the caption takes its band whether or not anything is written in it.
-    @assert(!dlg.surface!.wnd.name.isEmpty())
+    Swag.assert(!dlg.surface!.wnd.name.isEmpty())
 
     // And it is as tall as what it holds: nothing of the body falls under the action bar.
-    @assert(body.position.bottom() <= bar.position.y + 0.5)
+    Swag.assert(body.position.bottom() <= bar.position.y + 0.5)
 }
 
 // Every predefined dialog is the same composition around a different content.
@@ -140,8 +140,8 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
     let bar  = fb.backButton.parent!
     let form = fb.editFile.parent!
 
-    @assert(Math.abs(list.position.x - (bar.position.x + bar.padding.x)) < 0.5)
-    @assert(Math.abs(list.position.x - (form.position.x + form.padding.x)) < 0.5)
-    @assert(Math.abs(list.position.right() - (bar.position.right() - bar.padding.z)) < 0.5)
-    @assert(Math.abs(list.position.right() - (form.position.right() - form.padding.z)) < 0.5)
+    Swag.assert(Math.abs(list.position.x - (bar.position.x + bar.padding.x)) < 0.5)
+    Swag.assert(Math.abs(list.position.x - (form.position.x + form.padding.x)) < 0.5)
+    Swag.assert(Math.abs(list.position.right() - (bar.position.right() - bar.padding.z)) < 0.5)
+    Swag.assert(Math.abs(list.position.right() - (form.position.right() - form.padding.z)) < 0.5)
 }

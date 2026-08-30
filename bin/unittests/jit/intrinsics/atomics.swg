@@ -9,23 +9,23 @@ alias AtomicStrictU32 = u32
 #test
 {
     #[Swag.NoInline]
-    func atomAddS32(ptr: *s32, value: s32)->s32 => @atomadd(ptr, value)
+    func atomAddS32(ptr: *s32, value: s32)->s32 => Swag.atomadd(ptr, value)
     #[Swag.NoInline]
-    func atomAndU32(ptr: *u32, value: u32)->u32 => @atomand(ptr, value)
+    func atomAndU32(ptr: *u32, value: u32)->u32 => Swag.atomand(ptr, value)
     #[Swag.NoInline]
-    func atomOrU32(ptr: *u32, value: u32)->u32 => @atomor(ptr, value)
+    func atomOrU32(ptr: *u32, value: u32)->u32 => Swag.atomor(ptr, value)
     #[Swag.NoInline]
-    func atomXorU32(ptr: *u32, value: u32)->u32 => @atomxor(ptr, value)
+    func atomXorU32(ptr: *u32, value: u32)->u32 => Swag.atomxor(ptr, value)
     #[Swag.NoInline]
-    func atomXchgU32(ptr: *u32, value: u32)->u32 => @atomxchg(ptr, value)
+    func atomXchgU32(ptr: *u32, value: u32)->u32 => Swag.atomxchg(ptr, value)
     #[Swag.NoInline]
-    func atomCmpXchgS32(ptr: *s32, compareTo, exchangeWith: s32)->s32 => @atomcmpxchg(ptr, compareTo, exchangeWith)
+    func atomCmpXchgS32(ptr: *s32, compareTo, exchangeWith: s32)->s32 => Swag.atomcmpxchg(ptr, compareTo, exchangeWith)
     #[Swag.NoInline]
-    func atomAddStrictS32(ptr: *s32, value: AtomicStrictS32)->AtomicStrictS32 => @atomadd(ptr, value)
+    func atomAddStrictS32(ptr: *s32, value: AtomicStrictS32)->AtomicStrictS32 => Swag.atomadd(ptr, value)
     #[Swag.NoInline]
-    func atomOrStrictU32(ptr: *u32, value: AtomicStrictU32)->AtomicStrictU32 => @atomor(ptr, value)
+    func atomOrStrictU32(ptr: *u32, value: AtomicStrictU32)->AtomicStrictU32 => Swag.atomor(ptr, value)
     #[Swag.NoInline]
-    func atomCmpXchgStrictS32(ptr: *s32, compareTo, exchangeWith: AtomicStrictS32)->AtomicStrictS32 => @atomcmpxchg(ptr, compareTo, exchangeWith)
+    func atomCmpXchgStrictS32(ptr: *s32, compareTo, exchangeWith: AtomicStrictS32)->AtomicStrictS32 => Swag.atomcmpxchg(ptr, compareTo, exchangeWith)
 
     #[Swag.NoInline]
     func runAtomAdd()->bool

@@ -49,7 +49,7 @@ func day8B()
     var antennas:  Array'{ f: u8, x, y: s64 }
     var antinodes: HashSet'{ x, y: u32 }
 
-    for l in @countof(lines)
+    for l in lines.count
     {
         for f, c in lines[l] where f != '.'
         {
@@ -74,5 +74,5 @@ func day8B()
         }
     }
 
-    @assert(antinodes.count == 994)
+    Swag.assert(antinodes.count == 994)
 }

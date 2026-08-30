@@ -114,7 +114,7 @@ impl Guid64
     // Writes exactly 16 uppercase hexadecimal digits to `result`.
     mtd const toString(result: [..] u8)
     {
-        Debug.assert(@countof(result) == 16)
+        Debug.assert(result.count == 16)
 
         const Tbl = "0123456789ABCDEF"
 
@@ -178,9 +178,9 @@ impl Guid64
     {
         var startIndex = 0'u64
 
-        if @countof(str) >= 2 and str[0] == '0' and (str[1] == 'x' or str[1] == 'X') do
+        if str.count >= 2 and str[0] == '0' and (str[1] == 'x' or str[1] == 'X') do
             startIndex = 2
-        if @countof(str) - startIndex != 16 do
+        if str.count - startIndex != 16 do
             return false
 
         var value: u64 = 0
@@ -226,6 +226,6 @@ impl Hash.IHash32 for Guid64
     // Uses CRC32 algorithm on the 8-byte GUID data for consistent hashing.
     mtd const impl compute()->u32
     {
-        return Hash.Crc32.compute(@mkslice(cast(const [*] u8) &.value, #sizeof(u64)))
+        return Hash.Crc32.compute(Swag.makeSlice(cast(const [*] u8) &.value, #sizeof(u64)))
     }
 }

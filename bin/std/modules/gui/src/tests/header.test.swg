@@ -10,28 +10,28 @@ using Swag, Core
     host.setup(320, 80)
     defer host.shutdown()
     let header = Header.create(&host.root, {10, 10, 300, 24})
-    @assert(header.items.count == 0)
+    Swag.assert(header.items.count == 0)
 
     header.addColumn("Name", 120)
     header.addColumn("Size", 80)
-    @assert(header.items.count == 2)
-    @assert(header.flags.has(.Clickable) and header.flags.has(.Separators))
+    Swag.assert(header.items.count == 2)
+    Swag.assert(header.flags.has(.Clickable) and header.flags.has(.Separators))
 
-    @assert(header.itemAt(0).name.raw == "Name")
-    @assert(header.itemAt(1).name.raw == "Size")
-    @assert(Math.abs(header.itemWidthAt(0) - 120) < 0.01)
-    @assert(header.itemForColumn(1) == header.itemAt(1))
+    Swag.assert(header.itemAt(0).name.raw == "Name")
+    Swag.assert(header.itemAt(1).name.raw == "Size")
+    Swag.assert(Math.abs(header.itemWidthAt(0) - 120) < 0.01)
+    Swag.assert(header.itemForColumn(1) == header.itemAt(1))
 
     header.setItemWidthLimits(0, 100, 140)
     header.setItemWidth(0, 20)
-    @assert(header.itemWidthAt(0) == 100)
+    Swag.assert(header.itemWidthAt(0) == 100)
     header.setItemWidthForColumn(0, 300)
-    @assert(header.itemWidthAt(0) == 140)
+    Swag.assert(header.itemWidthAt(0) == 140)
 
     header.setSortIndicator(1, .Descending)
-    @assert(header.sortColumn == 1 and header.sortDirection == .Descending)
+    Swag.assert(header.sortColumn == 1 and header.sortDirection == .Descending)
     header.clearSortIndicator()
-    @assert(header.sortColumn == Swag.U32.Max and header.sortDirection == .None)
+    Swag.assert(header.sortColumn == Swag.U32.Max and header.sortDirection == .None)
 }
 
 // A compact read-only table can keep the header baseline without drawing or activating vertical
@@ -51,13 +51,13 @@ using Swag, Core
     var evt = MouseEvent{kind: .Move}
     evt.surfacePos = header.localToSurface(Math.Point{92, 10})
     header.sendEvent(&evt)
-    @assert(header.hotSeparator)
+    Swag.assert(header.hotSeparator)
 
     header.updateFlags(remove: .Separators)
-    @assert(!header.flags.has(.Separators))
-    @assert(!header.hotSeparator)
+    Swag.assert(!header.flags.has(.Separators))
+    Swag.assert(!header.hotSeparator)
     header.sendEvent(&evt)
-    @assert(!header.hotSeparator)
+    Swag.assert(!header.hotSeparator)
     discard host.render()
 }
 
@@ -93,7 +93,7 @@ using Swag, Core
         y += 1
     }
 
-    @assert(normalInk)
+    Swag.assert(normalInk)
 
     page.setPresentationOpacity(0.5)
     page.setPresentationOffset({8, 0})
@@ -113,5 +113,5 @@ using Swag, Core
         y += 1
     }
 
-    @assert(presentedInk)
+    Swag.assert(presentedInk)
 }

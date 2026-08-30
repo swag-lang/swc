@@ -10,8 +10,8 @@ private func renderNullableGlyph(face: *TypeFace)->#null const *Bitmap fail => t
 {
     const truncated: [4] u8 = [0, 1, 0, 0]
     let face = catch createNullableTypeFace("pixel-test-truncated-font", truncated) as loadError
-    @assert(loadError != null)
-    @assert(face == null)
+    Swag.assert(loadError != null)
+    Swag.assert(face == null)
 }
 
 // A typeface remains usable after its caller releases the source bytes: TrueType.Face owns the
@@ -23,7 +23,7 @@ private func renderNullableGlyph(face: *TypeFace)->#null const *Bitmap fail => t
     bytes.fill(0)
     bytes.free()
 
-    @assert(@countof(face.familyName()) != 0)
+    Swag.assert((face.familyName()).count != 0)
     let bitmap = expect renderNullableGlyph(face)!
-    @assert(bitmap.width != 0)
+    Swag.assert(bitmap.width != 0)
 }

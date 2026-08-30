@@ -4,5 +4,5 @@
 // 'core' without a 'using' has to compile, start, and reach the entry point.
 #main
 {
-    @print("SWAG_IMPORTED_CORE_WITHOUT_USING_RAN\n")
+    Swag.print("SWAG_IMPORTED_CORE_WITHOUT_USING_RAN\n")
 }

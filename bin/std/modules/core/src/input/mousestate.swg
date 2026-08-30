@@ -54,7 +54,7 @@ impl MouseState
     // Reset the state to its default value
     mtd clear()
     {
-        @init(me, 1)
+        Swag.init(me, 1)
         .position = mousePosition()
     }
 }

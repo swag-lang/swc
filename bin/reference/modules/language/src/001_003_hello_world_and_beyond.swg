@@ -3,13 +3,13 @@
 /**
 # The Smallest Executable
 
-'#main' is the entry point of an executable module. '@print' is a compiler
+'#main' is the entry point of an executable module. 'Swag.print' is a compiler
 intrinsic available without importing a standard module.
 
 ```swag
 #main
 {
-    @print("Hello, world!\n")
+    Swag.print("Hello, world!\n")
 }
 ```
 
@@ -22,7 +22,7 @@ const ShowHelloOutput = false
 #test
 {
     if ShowHelloOutput do
-        @print("Hello, world!\n")
+        Swag.print("Hello, world!\n")
 }
 
 /**
@@ -42,7 +42,7 @@ const HelloAudience = #run helloAudience()
 #test
 {
     if ShowHelloOutput do
-        @print("Hello, ", HelloAudience, "!\n")
+        Swag.print("Hello, ", HelloAudience, "!\n")
 }
 
 /**

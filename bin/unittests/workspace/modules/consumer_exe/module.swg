@@ -10,7 +10,7 @@
 #run
 {
     // Keep the workspace rooted at an executable so we validate direct exe -> dll usage.
-    let cfg = @compiler.getBuildCfg()!
+    let cfg = Swag.compiler().getBuildCfg()!
     cfg.embeddedImports   = true
     cfg.moduleNamespace   = "ConsumerExe"
     cfg.backendKind       = .Executable

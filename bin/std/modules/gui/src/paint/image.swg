@@ -52,7 +52,7 @@ impl PaintImage
     // Releases resources owned by this value.
     public mtd opDrop()
     {
-        if @isset(.surface) do
+        if Swag.isSet(.surface) do
             .surface.destroy()
     }
 

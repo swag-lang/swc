@@ -4,8 +4,8 @@
 # Code Inspection
 
 '#message' registers a compile-time handler for compiler events. Inside the
-handler, '@compiler.getMessage()' describes the event and
-'@compiler.compileString()' adds generated Swag source to the current module.
+handler, 'Swag.compiler().getMessage()' describes the event and
+'Swag.compiler().compileString()' adds generated Swag source to the current module.
 
 Use the narrowest message mask possible. Per-symbol masks such as
 'SemFunctions' may run many times; pass masks such as 'PassAfterSemantic' run
@@ -16,7 +16,7 @@ internal var CodeInspectionHookRan = false
 
 #message(Swag.CompilerMsgMask.PassAfterSemantic)
 {
-    let itf = @compiler
+    let itf = Swag.compiler()
     let msg = itf.getMessage()!
 
     if msg.kind != Swag.CompilerMsgKind.PassAfterSemantic do
@@ -26,7 +26,7 @@ internal var CodeInspectionHookRan = false
 
 #test
 {
-    @assert(CodeInspectionHookRan)
+    Swag.assert(CodeInspectionHookRan)
 }
 
 /**

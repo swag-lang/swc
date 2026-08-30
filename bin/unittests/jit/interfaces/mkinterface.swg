@@ -27,7 +27,7 @@ func validateRuntimeInterface(itf: IAction, expectedType: const *Swag.TypeInfoSt
     if runtimeItf == null or runtimeItf.itable == null do
         return false
 
-    let kind      = cast(const *Swag.TypeInfoStruct) @kindof(itf)
+    let kind      = cast(const *Swag.TypeInfoStruct) Swag.kindOf(itf)
     let tableType = cast(#null const *Swag.TypeInfoStruct) runtimeItf.itable[]
     if kind != expectedType or tableType != expectedType do
         return false
@@ -41,8 +41,8 @@ func validateRuntimeInterface(itf: IAction, expectedType: const *Swag.TypeInfoSt
 func runActionRegistry()->bool
 {
     var actions: [2] IAction = undefined
-    actions[0] = @mkinterface(null, #typeof(UndoAction{}), IAction)
-    actions[1] = @mkinterface(null, #typeof(RedoAction{}), IAction)
+    actions[0] = Swag.makeInterface(null, #typeof(UndoAction{}), IAction)
+    actions[1] = Swag.makeInterface(null, #typeof(RedoAction{}), IAction)
 
     var local               = UndoAction{}
     var castAction: IAction = local

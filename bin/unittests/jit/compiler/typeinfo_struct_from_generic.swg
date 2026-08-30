@@ -19,5 +19,5 @@ func hasSharedGenericRoot()->bool
 
 #test
 {
-    @assert(hasSharedGenericRoot())
+    Swag.assert(hasSharedGenericRoot())
 }

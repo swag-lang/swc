@@ -32,9 +32,9 @@ func autoTypedAccumulator(value: s32)->s32
 
 #test
 {
-    @assert(inlineTypedLocalAlias(20) == 42)
-    @assert(autoTypedLocalAlias(20) == 42)
+    Swag.assert(inlineTypedLocalAlias(20) == 42)
+    Swag.assert(autoTypedLocalAlias(20) == 42)
 
-    @assert(inlineTypedAccumulator(40) == 42)
-    @assert(autoTypedAccumulator(40) == 42)
+    Swag.assert(inlineTypedAccumulator(40) == 42)
+    Swag.assert(autoTypedAccumulator(40) == 42)
 }

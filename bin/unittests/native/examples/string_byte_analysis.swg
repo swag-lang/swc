@@ -15,7 +15,7 @@ struct CsvPreview
 func countRows(csv: string)->u32
 {
     let bytes = cast(const [..] u8) csv
-    if !@countof(bytes) do
+    if !bytes.count do
         return 0
 
     var result = 1'u32
@@ -31,7 +31,7 @@ func countRows(csv: string)->u32
 func countColumns(csv: string)->u32
 {
     let bytes = cast(const [..] u8) csv
-    if !@countof(bytes) do
+    if !bytes.count do
         return 0
 
     var result = 1'u32
@@ -123,7 +123,7 @@ func buildCsvPreview(csv: string)->CsvPreview
     result.numericCellCount  = countNumericCells(csv)
     result.longestLineLength = longestLineLength(csv)
     result.hasQuotedField    = hasQuotedField(csv)
-    result.byteCount         = cast(u32) @countof(bytes)
+    result.byteCount         = cast(u32) bytes.count
     return result
 }
 
@@ -132,18 +132,18 @@ func buildCsvPreview(csv: string)->CsvPreview
 {
     const csv = "id,name,qty,price_cents\n1,keyboard,4,12900\n2,\"mouse pad\",12,2500\n3,cable,8,900"
 
-    @assert(countRows(csv) == 4)
-    @assert(countColumns(csv) == 4)
-    @assert(countNumericCells(csv) == 9)
-    @assert(longestLineLength(csv) == 23)
-    @assert(hasQuotedField(csv))
+    Swag.assert(countRows(csv) == 4)
+    Swag.assert(countColumns(csv) == 4)
+    Swag.assert(countNumericCells(csv) == 9)
+    Swag.assert(longestLineLength(csv) == 23)
+    Swag.assert(hasQuotedField(csv))
 
     let preview = buildCsvPreview(csv)
 
-    @assert(preview.rowCount == 4)
-    @assert(preview.columnCount == 4)
-    @assert(preview.numericCellCount == 9)
-    @assert(preview.longestLineLength == 23)
-    @assert(preview.hasQuotedField)
-    @assert(preview.byteCount == 78)
+    Swag.assert(preview.rowCount == 4)
+    Swag.assert(preview.columnCount == 4)
+    Swag.assert(preview.numericCellCount == 9)
+    Swag.assert(preview.longestLineLength == 23)
+    Swag.assert(preview.hasQuotedField)
+    Swag.assert(preview.byteCount == 78)
 }

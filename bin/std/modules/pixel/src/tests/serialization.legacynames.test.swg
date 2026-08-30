@@ -66,20 +66,20 @@ func makeLegacyImage()->LegacyImage
     let decoded = expect decoder.readAll'Image(buffer.toString().toSlice())!
     defer Memory.delete(decoded)
 
-    @assert(decoded.width == 3)
-    @assert(decoded.height == 2)
-    @assert(decoded.rowStride == 12)
-    @assert(decoded.pixelFormat == PixelFormat.BGRA8)
-    @assert(decoded.bitsPerPixel == 32)
-    @assert(decoded.bytesPerPixel == 4)
-    @assert(decoded.byteCount == 24)
-    @assert(decoded.isValid())
+    Swag.assert(decoded.width == 3)
+    Swag.assert(decoded.height == 2)
+    Swag.assert(decoded.rowStride == 12)
+    Swag.assert(decoded.pixelFormat == PixelFormat.BGRA8)
+    Swag.assert(decoded.bitsPerPixel == 32)
+    Swag.assert(decoded.bytesPerPixel == 4)
+    Swag.assert(decoded.byteCount == 24)
+    Swag.assert(decoded.isValid())
 
     for i in decoded.byteCount do
-        @assert(decoded.pixels.buffer![i] == cast(u8) (i * 7))
+        Swag.assert(decoded.pixels.buffer![i] == cast(u8) (i * 7))
 
-    @assert(decoded.metadata.count == 1)
-    @assert(decoded.metadata[0].signature == 0xCAFE)
-    @assert(decoded.metadata[0].tag.count == 1)
-    @assert(decoded.metadata[0].value.count == 1)
+    Swag.assert(decoded.metadata.count == 1)
+    Swag.assert(decoded.metadata[0].signature == 0xCAFE)
+    Swag.assert(decoded.metadata[0].tag.count == 1)
+    Swag.assert(decoded.metadata[0].value.count == 1)
 }

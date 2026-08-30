@@ -23,7 +23,7 @@ public impl Arguments
     // Appends every token, in the order given.
     mtd add(tokens: const [..] string)
     {
-        .values.reserve(@countof(.values) + @countof(tokens))
+        .values.reserve((.values).count + tokens.count)
         for token in tokens do
             .values.add(String.from(token))
     }
@@ -39,5 +39,5 @@ public impl Arguments
     mtd const toSlice()->const [..] String => .values.toSlice()
 
     // Returns how many tokens have been named so far.
-    mtd const count()->u64 => @countof(.values)
+    mtd const count()->u64 => (.values).count
 }

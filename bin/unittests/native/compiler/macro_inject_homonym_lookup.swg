@@ -24,7 +24,7 @@ func injectPlain(stmt: #code)
         result = set.count
     }
 
-    @assert(result == 3)
+    Swag.assert(result == 3)
 }
 
 #test
@@ -37,7 +37,7 @@ func injectPlain(stmt: #code)
         result = before + score
     }
 
-    @assert(result == 42)
+    Swag.assert(result == 42)
 }
 
 #test
@@ -53,7 +53,7 @@ func injectPlain(stmt: #code)
         result += set().count
     }
 
-    @assert(result == 5)
+    Swag.assert(result == 5)
 }
 
 #test
@@ -70,5 +70,5 @@ func injectPlain(stmt: #code)
         result += entry()
     }
 
-    @assert(result == 106)
+    Swag.assert(result == 106)
 }

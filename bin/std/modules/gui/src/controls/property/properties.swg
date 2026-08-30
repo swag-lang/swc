@@ -261,7 +261,7 @@ impl IWnd for Properties
         for itIt in .items
         {
             let it = itIt!
-            if @isset(it.validationLabel) and it.validation != .None do
+            if Swag.isSet(it.validationLabel) and it.validation != .None do
                 .applyValidationVisual(it)
             if it.flags.has(.Note) do
                 .applyNoteVisual(it)
@@ -362,17 +362,17 @@ internal impl Properties
                 .refreshBool(item)
             elif Reflection.isInteger(pointed) or Reflection.isFloat(pointed) do
                 .refreshNative(item)
-            elif Reflection.isString(pointed) and @isset(item.editBox)
+            elif Reflection.isString(pointed) and Swag.isSet(item.editBox)
             {
                 item.editBox.setText(item.data![as string])
                 .setEditMixed(item, item.editBox)
             }
-            elif pointed == Core.String and @isset(item.editBox)
+            elif pointed == Core.String and Swag.isSet(item.editBox)
             {
                 item.editBox.setText(item.data![as String])
                 .setEditMixed(item, item.editBox)
             }
-            elif pointed == Core.String and @isset(item.comboBox) do
+            elif pointed == Core.String and Swag.isSet(item.comboBox) do
                 .refreshFontName(item)
             elif Reflection.isStruct(pointed)
             {
@@ -535,11 +535,11 @@ impl Properties
     // Add a new struct to display.
     mtd addStruct(val: any, section: #null string = null)
     {
-        let typeof = @kindof(val)
+        let typeof = Swag.kindOf(val)
         Debug.assert(typeof.kind == .Struct)
 
         var bases: Array'(*u8)
-        bases.add(cast(*u8) @dataof(val))
+        bases.add(cast(*u8) val.buffer)
         .addStructMulti(typeof, bases.toSlice(), section)
     }
 
@@ -552,7 +552,7 @@ impl Properties
     mtd addStructMulti(typeof: typeinfo, bases: [..] *u8, section: #null string = null, onlyNamed = false)
     {
         Debug.assert(typeof.kind == .Struct)
-        Debug.assert(@countof(bases) >= 1)
+        Debug.assert(bases.count >= 1)
 
         .buildOnlyNamed = onlyNamed
         defer .buildOnlyNamed = false
@@ -598,7 +598,7 @@ impl Properties
 
         // Editors were first filled from instance 0 before the instance addresses existed;
         // refresh so any field that differs across instances now shows as "mixed".
-        if @countof(bases) > 1 do
+        if bases.count > 1 do
             .refresh()
 
         .updateStates()
@@ -611,7 +611,7 @@ impl Properties
     // address (their element storage is not at a fixed struct offset).
     internal mtd assignInstances(fromIdx: u64, bases: [..] *u8)
     {
-        if @countof(bases) <= 1 do
+        if bases.count <= 1 do
             return
 
         let base0 = cast([*] u8) bases[0]
@@ -824,7 +824,7 @@ impl Properties
         var scan = cast(#null *PropertiesItem) item
         while scan
         {
-            if @isset(scan.line) and scan.line.isDisabled() do
+            if Swag.isSet(scan.line) and scan.line.isDisabled() do
                 return false
             scan = scan.parent
         }
@@ -858,7 +858,7 @@ impl Properties
         // exactly like a static string; any other editor (slider, combo, checkbox, ...) is
         // grayed instead, since those have no read-only mode.
         let readOnly = .isItemReadOnly(item)
-        if @isset(item.editBox)
+        if Swag.isSet(item.editBox)
         {
             if readOnly do
                 item.editBox.updateFlags(.ReadOnly)
@@ -868,18 +868,18 @@ impl Properties
 
         for c in item.line.children
         {
-            if @isset(item.label) and c == item.label do
+            if Swag.isSet(item.label) and c == item.label do
                 continue
-            if @isset(item.labelDesc) and c == item.labelDesc do
+            if Swag.isSet(item.labelDesc) and c == item.labelDesc do
                 continue
-            if @isset(item.validationLabel) and c == item.validationLabel do
+            if Swag.isSet(item.validationLabel) and c == item.validationLabel do
                 continue
-            if @isset(item.editBox) and c == cast(#null *Wnd) item.editBox do
+            if Swag.isSet(item.editBox) and c == cast(#null *Wnd) item.editBox do
                 continue
 
             // The revert arrow manages its own enabled state (enabled only while modified), so it
             // must not be swept along with the row's read-only state here.
-            if @isset(item.revertButton) and c == cast(#null *Wnd) item.revertButton do
+            if Swag.isSet(item.revertButton) and c == cast(#null *Wnd) item.revertButton do
                 continue
             c.enable(!readOnly)
         }

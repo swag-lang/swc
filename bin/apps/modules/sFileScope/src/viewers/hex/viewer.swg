@@ -20,7 +20,7 @@ private func formatHexBinaryScalar(value, bits: u64)->String
         text.add(value & (1'u64 << shift) ? '1'u8 : '0'u8)
     }
 
-    return String.from(@mkstring(text.buffer!, text.count))
+    return String.from(Swag.makeString(text.buffer!, text.count))
 }
 
 // Writes an unsigned scalar in the octal spelling used by the inspector.
@@ -37,7 +37,7 @@ private func formatHexOctalScalar(value, bits: u64)->String
         text.add('0'u8 + cast(u8) ((value >> shift) & 7))
     }
 
-    return String.from(@mkstring(text.buffer!, text.count))
+    return String.from(Swag.makeString(text.buffer!, text.count))
 }
 
 private func loadHexDocument(fileName: string)->HexDocument fail
@@ -297,7 +297,7 @@ internal impl HexViewer
     {
         var bytes: Array'u8
         appendHexDigits(&bytes, offset, .grid.offsetDigits)
-        return String.from(@mkstring(bytes.buffer!, bytes.count))
+        return String.from(Swag.makeString(bytes.buffer!, bytes.count))
     }
 
     private mtd inspectorScalar(bytes: const [..] u8, size: u64)->u64

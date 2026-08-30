@@ -12,10 +12,10 @@ trailing zero; take its data pointer before casting that pointer to 'cstring'.
 #test
 {
     let literal = "Swag"
-    let text    = cast(const cstring) @dataof(literal)
-    @assert(@countof(text) == 4)
-    @assert(text[0] == 'S'u8)
-    @assert(text[3] == 'g'u8)
+    let text    = cast(const cstring) literal.buffer
+    Swag.assert(text.count == 4)
+    Swag.assert(text[0] == 'S'u8)
+    Swag.assert(text[3] == 'g'u8)
 }
 
 /**

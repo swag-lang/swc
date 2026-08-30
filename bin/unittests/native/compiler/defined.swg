@@ -18,8 +18,8 @@ const ForwardDefined = 3
     const LocalConst = 4
     #assert(#defined(LocalConst))
 
-    @assert(GlobalValue == 1)
-    @assert(Scope.NestedValue == 2)
-    @assert(ForwardDefined == 3)
-    @assert(LocalConst == 4)
+    Swag.assert(GlobalValue == 1)
+    Swag.assert(Scope.NestedValue == 2)
+    Swag.assert(ForwardDefined == 3)
+    Swag.assert(LocalConst == 4)
 }

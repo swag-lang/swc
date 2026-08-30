@@ -15,11 +15,11 @@ func buildMutationMap(text: string)->[3] MutationSpan
     for ch in text
     {
         let runLength = ch - '0'
-        if @index & 1 do
-            map[@index] = {MutationFreeSpanId, runLength}
+        if Swag.index & 1 do
+            map[Swag.index] = {MutationFreeSpanId, runLength}
         else
         {
-            map[@index] = {nextId, runLength}
+            map[Swag.index] = {nextId, runLength}
             nextId      += 1
         }
     }
@@ -30,10 +30,10 @@ func buildMutationMap(text: string)->[3] MutationSpan
 #test
 {
     let map = buildMutationMap("233")
-    @assert(map[0].what == 0)
-    @assert(map[0].num == 2)
-    @assert(map[1].what == -1)
-    @assert(map[1].num == 3)
-    @assert(map[2].what == 1)
-    @assert(map[2].num == 3)
+    Swag.assert(map[0].what == 0)
+    Swag.assert(map[0].num == 2)
+    Swag.assert(map[1].what == -1)
+    Swag.assert(map[1].num == 3)
+    Swag.assert(map[2].what == 1)
+    Swag.assert(map[2].num == 3)
 }

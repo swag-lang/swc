@@ -97,7 +97,7 @@ private
 private func indexOfAnyAscii(src: const [*] u8, length: u64, what: const [..] u8)->u64
 {
     const VectorSize = #sizeof(Math.Simd.U8x16)
-    let count   = @countof(what)
+    let count   = what.count
     let needle0 = Math.Simd.splat(what[0])
     let needle1 = count > 1 ? Math.Simd.splat(what[1]) : needle0
     let needle2 = count > 2 ? Math.Simd.splat(what[2]) : needle0
@@ -132,7 +132,7 @@ private func indexOfAnyAscii(src: const [*] u8, length: u64, what: const [..] u8
 private func lastIndexOfAnyAscii(src: const [*] u8, length: u64, what: const [..] u8)->u64
 {
     const VectorSize = #sizeof(Math.Simd.U8x16)
-    let count   = @countof(what)
+    let count   = what.count
     let needle0 = Math.Simd.splat(what[0])
     let needle1 = count > 1 ? Math.Simd.splat(what[1]) : needle0
     let needle2 = count > 2 ? Math.Simd.splat(what[2]) : needle0
@@ -166,8 +166,8 @@ private func lastIndexOfAnyAscii(src: const [*] u8, length: u64, what: const [..
 
 private func lastIndexOfSubslice(src: const [*] u8, length: u64, what: const [..] u8)->u64
 {
-    let whatLength   = @countof(what)
-    let lastByte     = @mkslice(@dataof(what) + whatLength - 1, 1)
+    let whatLength   = what.count
+    let lastByte     = Swag.makeSlice(what.buffer + whatLength - 1, 1)
     var searchLength = length
     while searchLength >= whatLength
     {
@@ -175,7 +175,7 @@ private func lastIndexOfSubslice(src: const [*] u8, length: u64, what: const [..
         if endIndex == Swag.U64.Max or endIndex + 1 < whatLength do
             return Swag.U64.Max
         let startIndex = endIndex + 1 - whatLength
-        if Memory.compare(src + startIndex, @dataof(what), whatLength) == 0 do
+        if Memory.compare(src + startIndex, what.buffer, whatLength) == 0 do
             return startIndex
         searchLength = endIndex
     }
@@ -201,7 +201,7 @@ private func indexOfSubsliceNoCase(src: const [*] u8, length: u64, what: const [
         hasAlternate = true
     }
 
-    let whatLength = @countof(what)
+    let whatLength = what.count
     let lastStart  = length - whatLength
     let numStarts  = lastStart + 1
     let needle0    = Math.Simd.splat(needles[0])
@@ -216,7 +216,7 @@ private func indexOfSubsliceNoCase(src: const [*] u8, length: u64, what: const [
         while mask
         {
             let candidate = offset + Math.trailingZeros(mask)
-            if compare(@mkslice(src + candidate, whatLength), what, .Latin1NoCase) == 0 do
+            if compare(Swag.makeSlice(src + candidate, whatLength), what, .Latin1NoCase) == 0 do
                 return candidate
             mask &= mask - 1
         }
@@ -226,7 +226,7 @@ private func indexOfSubsliceNoCase(src: const [*] u8, length: u64, what: const [
 
     while offset <= lastStart
     {
-        if compare(@mkslice(src + offset, whatLength), what, .Latin1NoCase) == 0 do
+        if compare(Swag.makeSlice(src + offset, whatLength), what, .Latin1NoCase) == 0 do
             return offset
         offset += 1
     }
@@ -252,7 +252,7 @@ private func lastIndexOfSubsliceNoCase(src: const [*] u8, length: u64, what: con
         hasAlternate = true
     }
 
-    let whatLength = @countof(what)
+    let whatLength = what.count
     let needle0    = Math.Simd.splat(needles[0])
     let needle1    = Math.Simd.splat(needles[1])
     var offset     = length - whatLength + 1
@@ -267,7 +267,7 @@ private func lastIndexOfSubsliceNoCase(src: const [*] u8, length: u64, what: con
         {
             let bit       = 31 - Math.leadingZeros(mask)
             let candidate = offset + bit
-            if compare(@mkslice(src + candidate, whatLength), what, .Latin1NoCase) == 0 do
+            if compare(Swag.makeSlice(src + candidate, whatLength), what, .Latin1NoCase) == 0 do
                 return candidate
             mask &= ~(1'u32 << bit)
         }
@@ -276,7 +276,7 @@ private func lastIndexOfSubsliceNoCase(src: const [*] u8, length: u64, what: con
     while offset
     {
         offset -= 1
-        if compare(@mkslice(src + offset, whatLength), what, .Latin1NoCase) == 0 do
+        if compare(Swag.makeSlice(src + offset, whatLength), what, .Latin1NoCase) == 0 do
             return offset
     }
 
@@ -289,14 +289,14 @@ func decodeLastRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
 {
     var result: retval
 
-    let countof = @countof(buffer)
+    let countof = buffer.count
     if !countof
     {
         result.c = RuneError
         return result
     }
 
-    let dataof = @dataof(buffer)
+    let dataof = buffer.buffer
     var ptr    = dataof + (countof - 1)
 
     // Ascii
@@ -331,7 +331,7 @@ func decodeLastRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
         }
     }
 
-    result = decodeRune(@mkslice(ptr, cast(u64) eat))
+    result = decodeRune(Swag.makeSlice(ptr, cast(u64) eat))
     if result.eat != eat
     {
         result.c   = RuneError
@@ -348,14 +348,14 @@ func decodeRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
 {
     var result: retval
 
-    let countof = @countof(buffer)
+    let countof = buffer.count
     if countof == 0
     {
         result.c = RuneError
         return result
     }
 
-    let dataof = @dataof(buffer)
+    let dataof = buffer.buffer
     let p0     = cast(rune) dataof[]
     if (p0 & 0x80) == 0
     {
@@ -438,7 +438,7 @@ func decodeRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
 // 'dest' must be at least 4 bytes long
 func encodeRune(dest: [..] u8, src: rune)->u32
 {
-    Debug.assert(@countof(dest) >= 4, "destination buffer is too small")
+    Debug.assert(dest.count >= 4, "destination buffer is too small")
 
     switch
     {
@@ -486,10 +486,10 @@ func fromUnicode(dest: [..] u8, src: const [..] rune)->u64
     const FourByteContinuation = cast(Math.Simd.U8x16) [128'u8, 4, 128, 128, 128, 5, 128, 128, 128, 6, 128, 128, 128, 7, 128, 128]
     const FourByteMiddle       = cast(Math.Simd.U8x16) [128'u8, 128, 0, 128, 128, 128, 1, 128, 128, 128, 2, 128, 128, 128, 3, 128]
     const FourByteLast         = cast(Math.Simd.U8x16) [128'u8, 128, 128, 4, 128, 128, 128, 5, 128, 128, 128, 6, 128, 128, 128, 7]
-    var srcPtr     = cast(const [*] s32) @dataof(src)
-    var destPtr    = @dataof(dest)
-    var srcLength  = @countof(src)
-    var destLength = @countof(dest)
+    var srcPtr     = cast(const [*] s32) src.buffer
+    var destPtr    = dest.buffer
+    var srcLength  = src.count
+    var destLength = dest.count
     var total      = 0'u64
 
     while srcLength
@@ -563,7 +563,7 @@ func fromUnicode(dest: [..] u8, src: const [..] rune)->u64
         }
 
         Debug.assert(destLength >= 4, "destination buffer is too small")
-        let cpt = encodeRune(@mkslice(destPtr, destLength), cast(rune) srcPtr[])
+        let cpt = encodeRune(Swag.makeSlice(destPtr, destLength), cast(rune) srcPtr[])
         srcPtr     += 1
         srcLength  -= 1
         destPtr    += cpt
@@ -578,8 +578,8 @@ func fromUnicode(dest: [..] u8, src: const [..] rune)->u64
 func fromUnicode(src: const [..] rune)->String
 {
     var result: retval
-    result.reserve(4 * @countof(src))
-    result.length = fromUnicode(@mkslice(result.buffer, result.capacity), src)
+    result.reserve(4 * src.count)
+    result.length = fromUnicode(Swag.makeSlice(result.buffer, result.capacity), src)
     return result
 }
 
@@ -605,10 +605,10 @@ func fromUtf16(dest: [..] u8, src: const [..] u16)->u64
     const LastFourBytesToLow   = cast(Math.Simd.U8x16) [8'u8, 9, 10, 11, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
     const VectorSize           = #sizeof(Math.Simd.U16x8) / #sizeof(u16)
     var count      = 0'u64
-    var srcPtr     = @dataof(src)
-    var destPtr    = @dataof(dest)
-    var srcLength  = @countof(src)
-    var destLength = @countof(dest)
+    var srcPtr     = src.buffer
+    var destPtr    = dest.buffer
+    var srcLength  = src.count
+    var destLength = dest.count
 
     while srcLength
     {
@@ -689,10 +689,10 @@ func fromUtf16(dest: [..] u8, src: const [..] u16)->u64
             }
         }
 
-        let {c, eat} = Utf16.decodeRune(@mkslice(srcPtr, srcLength))
+        let {c, eat} = Utf16.decodeRune(Swag.makeSlice(srcPtr, srcLength))
 
         Debug.assert(destLength >= 4, "destination buffer is too small")
-        let eatDest = encodeRune(@mkslice(destPtr, destLength), c)
+        let eatDest = encodeRune(Swag.makeSlice(destPtr, destLength), c)
         destPtr, count += eatDest
         destLength     -= eatDest
 
@@ -707,8 +707,8 @@ func fromUtf16(dest: [..] u8, src: const [..] u16)->u64
 func fromUtf16(src: const [..] u16)->String
 {
     var result: retval
-    result.reserve(4 * @countof(src))
-    result.length = fromUtf16(@mkslice(result.buffer, result.capacity), src)
+    result.reserve(4 * src.count)
+    result.length = fromUtf16(Swag.makeSlice(result.buffer, result.capacity), src)
     Debug.assert(result.length + 1 < result.capacity)
     let buffer = result.buffer!
     buffer[result.length] = 0
@@ -732,8 +732,8 @@ func isValidRune(c: rune)->bool
 // If it's an invalid encoding, returns 1.
 func countBytesAt(buffer: const [..] u8)->u32
 {
-    let dataof  = @dataof(buffer)
-    let countof = @countof(buffer)
+    let dataof  = buffer.buffer
+    let countof = buffer.count
     if !countof do
         return 1
 
@@ -777,7 +777,7 @@ func byteIndex(buffer: const [..] u8, charIndex: u64)->{ index: u64, success: bo
 {
     var result: retval
 
-    var countof = @countof(buffer)
+    var countof = buffer.count
     if !countof do
         return result
 
@@ -787,7 +787,7 @@ func byteIndex(buffer: const [..] u8, charIndex: u64)->{ index: u64, success: bo
         return result
     }
 
-    var dataof = @dataof(buffer)
+    var dataof = buffer.buffer
 
     var resultChar = 0'u64
     var resultByte = 0'u64
@@ -801,7 +801,7 @@ func byteIndex(buffer: const [..] u8, charIndex: u64)->{ index: u64, success: bo
             continue
         }
 
-        let val = countBytesAt(@mkslice(dataof, countof))
+        let val = countBytesAt(Swag.makeSlice(dataof, countof))
         Debug.assert(val <= countof, "invalid utf8 character")
         resultByte += val
         resultChar += 1
@@ -810,15 +810,15 @@ func byteIndex(buffer: const [..] u8, charIndex: u64)->{ index: u64, success: bo
     }
 
     result.index   = resultByte
-    result.success = resultByte < @countof(buffer)
+    result.success = resultByte < buffer.count
     return result
 }
 
 // Returns the number of runes in an utf8 buffer
 func countRunes(buffer: const [..] u8)->u64
 {
-    var dataof  = @dataof(buffer)
-    var countof = @countof(buffer)
+    var dataof  = buffer.buffer
+    var countof = buffer.count
 
     var cpt = 0'u64
     while countof
@@ -831,7 +831,7 @@ func countRunes(buffer: const [..] u8)->u64
             continue
         }
 
-        let val = countBytesAt(@mkslice(dataof, countof))
+        let val = countBytesAt(Swag.makeSlice(dataof, countof))
         Debug.assert(val <= countof)
         cpt     += 1
         dataof  += val
@@ -851,7 +851,7 @@ func indexOf(src: const [..] u8, what: rune, startByteIndex = 0'u64)->u64
 // Find the given string, and returns the byte index of it
 func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, comparisonType = ComparisonType.Latin1)->u64
 {
-    let length = @countof(src)
+    let length = src.count
     if !length do
         return Swag.U64.Max
     if startByteIndex >= length
@@ -860,28 +860,28 @@ func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, compariso
         return Swag.U64.Max
     }
 
-    let countof = @countof(what)
+    let countof = what.count
     if !countof or countof > (length - startByteIndex) do
         return Swag.U64.Max
 
     if comparisonType == .Latin1 or comparisonType == .Unicode
     {
-        let result = Slice.findSubslice(@mkslice(@dataof(src) + startByteIndex, length - startByteIndex), what)
+        let result = Slice.findSubslice(Swag.makeSlice(src.buffer + startByteIndex, length - startByteIndex), what)
         return result == Swag.U64.Max ? result : startByteIndex + result
     }
 
     if comparisonType == .Latin1NoCase
     {
-        let result = indexOfSubsliceNoCase(@dataof(src) + startByteIndex, length - startByteIndex, what)
+        let result = indexOfSubsliceNoCase(src.buffer + startByteIndex, length - startByteIndex, what)
         return result == Swag.U64.Max ? result : startByteIndex + result
     }
 
     var idx    = startByteIndex
-    var scan   = @dataof(src) + startByteIndex
+    var scan   = src.buffer + startByteIndex
     var remain = length - startByteIndex
     while countof <= remain
     {
-        let res = compare(@mkslice(scan, countof), what, comparisonType)
+        let res = compare(Swag.makeSlice(scan, countof), what, comparisonType)
         if res == 0 do
             return idx
         scan, idx += 1
@@ -895,7 +895,7 @@ func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, compariso
 // Returns 'Swag.U64.Max' if not found
 func indexOfAny(src: const [..] u8, what: const [..] u8, startByteIndex = 0'u64)->u64
 {
-    let length = @countof(src)
+    let length = src.count
     if !length do
         return Swag.U64.Max
     if startByteIndex >= length
@@ -904,18 +904,18 @@ func indexOfAny(src: const [..] u8, what: const [..] u8, startByteIndex = 0'u64)
         return Swag.U64.Max
     }
 
-    let countof = @countof(what)
+    let countof = what.count
     if !countof do
         return Swag.U64.Max
 
     if countof <= 4
     {
-        let result = indexOfAnyAscii(@dataof(src) + startByteIndex, length - startByteIndex, what)
+        let result = indexOfAnyAscii(src.buffer + startByteIndex, length - startByteIndex, what)
         return result == Swag.U64.Max ? result : startByteIndex + result
     }
 
     var idx    = startByteIndex
-    var scan   = @dataof(src) + startByteIndex
+    var scan   = src.buffer + startByteIndex
     var remain = length - startByteIndex
     while remain
     {
@@ -931,7 +931,7 @@ func indexOfAny(src: const [..] u8, what: const [..] u8, startByteIndex = 0'u64)
 // Find one of the runes in 'what', and returns the byte index of it
 func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u64)->u64
 {
-    let length = @countof(src)
+    let length = src.count
     if !length do
         return Swag.U64.Max
     if startByteIndex >= length
@@ -940,7 +940,7 @@ func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u6
         return Swag.U64.Max
     }
 
-    let countof = @countof(what)
+    let countof = what.count
     if !countof do
         return Swag.U64.Max
 
@@ -954,18 +954,18 @@ func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u6
             ascii[index] = cast(u8) value
             if index + 1 == countof
             {
-                let result = indexOfAnyAscii(@dataof(src) + startByteIndex, length - startByteIndex, @mkslice(@dataof(ascii), countof))
+                let result = indexOfAnyAscii(src.buffer + startByteIndex, length - startByteIndex, Swag.makeSlice(ascii.buffer, countof))
                 return result == Swag.U64.Max ? result : startByteIndex + result
             }
         }
     }
 
     var idx    = startByteIndex
-    var scan   = @dataof(src) + startByteIndex
+    var scan   = src.buffer + startByteIndex
     var remain = length - startByteIndex
     while remain
     {
-        let res = Utf8.decodeRune(@mkslice(scan, remain))
+        let res = Utf8.decodeRune(Swag.makeSlice(scan, remain))
         if !res.eat do
             break
         if Slice.contains(what, res.c) do
@@ -1012,10 +1012,10 @@ func lastIndexOf(src: const [..] u8, what: rune)->u64
 // Returns 'Swag.U64.Max' if not found
 func lastIndexOfAny(src: const [..] u8, what: const [..] rune)->u64
 {
-    let length = @countof(src)
+    let length = src.count
     if !length do
         return Swag.U64.Max
-    let countof = @countof(what)
+    let countof = what.count
     if !countof do
         return Swag.U64.Max
 
@@ -1028,16 +1028,16 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] rune)->u64
                 break
             ascii[index] = cast(u8) value
             if index + 1 == countof do
-                return lastIndexOfAnyAscii(@dataof(src), length, @mkslice(@dataof(ascii), countof))
+                return lastIndexOfAnyAscii(src.buffer, length, Swag.makeSlice(ascii.buffer, countof))
         }
     }
 
-    let dataof = @dataof(src)
+    let dataof = src.buffer
 
     var byteIdx = length
     for
     {
-        let sl       = @mkslice(dataof, byteIdx)
+        let sl       = Swag.makeSlice(dataof, byteIdx)
         let {c, eat} = decodeLastRune(sl)
         if eat == 0 do
             return Swag.U64.Max
@@ -1054,16 +1054,16 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] rune)->u64
 // Returns 'Swag.U64.Max' if not found
 func lastIndexOfAny(src: const [..] u8, what: const [..] u8)->u64
 {
-    let length = @countof(src)
+    let length = src.count
     if !length do
         return Swag.U64.Max
-    if !@countof(what) do
+    if !what.count do
         return Swag.U64.Max
 
-    if @countof(what) <= 4 do
-        return lastIndexOfAnyAscii(@dataof(src), length, what)
+    if what.count <= 4 do
+        return lastIndexOfAnyAscii(src.buffer, length, what)
 
-    var scan    = @dataof(src) + length
+    var scan    = src.buffer + length
     var byteIdx = length
     while byteIdx
     {
@@ -1079,24 +1079,24 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] u8)->u64
 // Returns 'Swag.U64.Max' if not found
 func lastIndexOf(src: const [..] u8, what: string, comparisonType = ComparisonType.Latin1)->u64
 {
-    let length = @countof(src)
+    let length = src.count
     if !length do
         return Swag.U64.Max
-    let lengthStr = @countof(what)
+    let lengthStr = what.count
     if lengthStr > length do
         return Swag.U64.Max
     if !lengthStr do
         return length
     if comparisonType == .Latin1 or comparisonType == .Unicode do
-        return lastIndexOfSubslice(@dataof(src), length, what)
+        return lastIndexOfSubslice(src.buffer, length, what)
     if comparisonType == .Latin1NoCase do
-        return lastIndexOfSubsliceNoCase(@dataof(src), length, what)
+        return lastIndexOfSubsliceNoCase(src.buffer, length, what)
 
     var idx    = length - lengthStr
-    var dataof = @dataof(src) + idx
+    var dataof = src.buffer + idx
     for
     {
-        let res = compare(@mkslice(dataof, lengthStr), what, comparisonType)
+        let res = compare(Swag.makeSlice(dataof, lengthStr), what, comparisonType)
         if res == 0 do
             return idx
         if !idx do
@@ -1110,52 +1110,52 @@ func lastIndexOf(src: const [..] u8, what: string, comparisonType = ComparisonTy
 // Return true if the string starts with 'str'
 func startsWith(src: #null const [..] u8, str: string, comparisonType = ComparisonType.Latin1)->bool
 {
-    let length = @countof(src)
+    let length = src.count
     if !length do
         return false
-    let countof = @countof(str)
+    let countof = str.count
     if countof > length do
         return false
-    let buffer = @dataof(src)
-    return compare(@mkslice(buffer, countof), str, comparisonType) == 0
+    let buffer = src.buffer
+    return compare(Swag.makeSlice(buffer, countof), str, comparisonType) == 0
 }
 
 // Return true if the string ends with 'str'
 func endsWith(src: const [..] u8, str: string, comparisonType = ComparisonType.Latin1)->bool
 {
-    let length = @countof(src)
+    let length = src.count
     if !length do
         return false
-    let countof = @countof(str)
+    let countof = str.count
     if countof > length do
         return false
-    let buffer = @dataof(src)
-    return compare(@mkslice((buffer + length) - countof, countof), str, comparisonType) == 0
+    let buffer = src.buffer
+    return compare(Swag.makeSlice((buffer + length) - countof, countof), str, comparisonType) == 0
 }
 
 // Returns the first rune of the slice
 func firstRune(src: const [..] u8)->rune
 {
-    let countof = @countof(src)
+    let countof = src.count
     if !countof do
         return 0
-    let dataof = @dataof(src)!
+    let dataof = src.buffer!
     if Latin1.isAscii(dataof[0]) do
         return cast(rune) dataof[0]
-    let {c, ?} = Utf8.decodeRune(@mkslice(dataof, countof))
+    let {c, ?} = Utf8.decodeRune(Swag.makeSlice(dataof, countof))
     return c
 }
 
 // Returns the last rune of the slice
 func lastRune(src: const [..] u8)->rune
 {
-    let countof = @countof(src)
+    let countof = src.count
     if !countof do
         return 0
-    let dataof = @dataof(src)!
+    let dataof = src.buffer!
     if Latin1.isAscii(dataof[countof - 1]) do
         return cast(rune) dataof[countof - 1]
-    let {c, ?} = Utf8.decodeLastRune(@mkslice(dataof, countof))
+    let {c, ?} = Utf8.decodeLastRune(Swag.makeSlice(dataof, countof))
     return c
 }
 
@@ -1185,18 +1185,18 @@ func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s
         return Core.Latin1.compare(src, dst)     // bytes compare
 
     case .UnicodeNoCase:
-        var length      = @countof(src)
-        var otherLength = @countof(dst)
-        var data        = @dataof(src)
-        var otherData   = @dataof(dst)
+        var length      = src.count
+        var otherLength = dst.count
+        var data        = src.buffer
+        var otherData   = dst.buffer
 
         var result:     s32
         var c1, c2:     rune
         var eat1, eat2: u32
         for
         {
-            {c1, eat1} = decodeRune(@mkslice(data, length))
-            {c2, eat2} = decodeRune(@mkslice(otherData, otherLength))
+            {c1, eat1} = decodeRune(Swag.makeSlice(data, length))
+            {c2, eat2} = decodeRune(Swag.makeSlice(otherData, otherLength))
             if eat1 == 0 or eat2 == 0 do
                 break
 
@@ -1233,16 +1233,16 @@ func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s
 #[Swag.Macro]
 func visitRunes(buffer: const [..] u8, stmt: #code(c: rune, charIdx: u64, byteIdx: u64))
 {
-    var count = @countof(buffer)
+    var count = buffer.count
     if !count do
         return
 
     var curByteIdx = 0'u64
     var curCharIdx = 0'u64
-    var scan       = @dataof(buffer)
+    var scan       = buffer.buffer
     while count
     {
-        let sl             = @mkslice(scan, count)
+        let sl             = Swag.makeSlice(scan, count)
         let {curRune, eat} = decodeRune(sl)
         if eat == 0 do
             break
@@ -1261,8 +1261,8 @@ func visitRunes(buffer: const [..] u8, stmt: #code(c: rune, charIdx: u64, byteId
 // Returns true if the utf8 sequence is valid
 func isValid(buffer: const [..] u8)->bool
 {
-    var p       = @dataof(buffer)
-    var countof = @countof(buffer)
+    var p       = buffer.buffer
+    var countof = buffer.count
     if !countof do
         return true
 

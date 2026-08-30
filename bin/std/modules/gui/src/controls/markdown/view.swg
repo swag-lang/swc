@@ -196,14 +196,14 @@ private func streamBoundary(source: string)->u64
             fenceMarker = fence.marker
             fenceLength = fence.length
         }
-        elif fence.found and fence.marker == fenceMarker and fence.length >= fenceLength and !@countof(fence.info)
+        elif fence.found and fence.marker == fenceMarker and fence.length >= fenceLength and !fence.info.count
         {
             fenceMarker = 0
         }
         elif !fenceMarker and Utf8.startsWith(trimmed, "$$")
         {
             let rest = trimmed[2 to]
-            if !(@countof(rest) >= 2 and Utf8.endsWith(rest, "$$")) do
+            if !(rest.count >= 2 and Utf8.endsWith(rest, "$$")) do
                 displayMath = !displayMath
         }
         elif !fenceMarker and Utf8.startsWith(trimmed, "\\[") do
@@ -211,7 +211,7 @@ private func streamBoundary(source: string)->u64
         elif !fenceMarker and Utf8.startsWith(trimmed, "\\]") do
             bracketMath = false
 
-        if !fenceMarker and !displayMath and !bracketMath and !@countof(trimmed) do
+        if !fenceMarker and !displayMath and !bracketMath and !trimmed.count do
             result = index + 1
         lineStart = index + 1
     }
@@ -982,7 +982,7 @@ impl View
     // Scrolls to the next rendered block containing `text`, wrapping once at the end.
     mtd findText(text: string)->bool
     {
-        if !@countof(text) or .blocks.isEmpty() do
+        if !text.count or .blocks.isEmpty() do
             return false
 
         for &block in .blocks
@@ -1026,7 +1026,7 @@ impl View
     // collapse onto its first visible match.
     private mtd findTextOccurrence(text: string, occurrence: u64)->bool
     {
-        if !@countof(text) or .blocks.isEmpty() do
+        if !text.count or .blocks.isEmpty() do
             return false
 
         for &block in .blocks
@@ -1132,7 +1132,7 @@ impl View
                 if match == Swag.U64.Max or match >= targetInResident do
                     break
                 .pendingSearchOccurrence += 1
-                searchFrom               = match + Math.max(@countof(text), 1)
+                searchFrom               = match + Math.max(text.count, 1)
             }
 
             .sourceDone          = .bytesRead >= .fileSize
@@ -1290,7 +1290,7 @@ internal impl IWnd for View
 {
     mtd impl onThemeEvent(evt: *ThemeEvent)
     {
-        if @isset(.scroll) do
+        if Swag.isSet(.scroll) do
             .applyDocumentStyle()
     }
 

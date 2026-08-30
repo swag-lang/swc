@@ -30,8 +30,8 @@ before the parameter list. The type uses 'func||(...)'.
 
     let fct: func||() = func|a, b|()
     {
-        @assert(a == 125)
-        @assert(b == 521)
+        Swag.assert(a == 125)
+        Swag.assert(b == 521)
     }
 
     fct()
@@ -56,7 +56,7 @@ clear callback-local name.
 
     let fct: func||()->s32 = func|left = leftBox.value, right = rightBox.value|()->s32 { return left * 10 + right }
 
-    @assert(fct() == 27)
+    Swag.assert(fct() == 27)
 }
 
 /**
@@ -73,10 +73,10 @@ reach the original storage.
     let fct: func||() = func|&a|() { a += 1 }
 
     fct()
-    @assert(a == 126)
+    Swag.assert(a == 126)
 
     fct()
-    @assert(a == 127)
+    Swag.assert(a == 127)
 }
 
 /**
@@ -95,8 +95,8 @@ addressable.
         return current
     }
 
-    @assert(fct() == 126)
-    @assert(a == 126)
+    Swag.assert(fct() == 126)
+    Swag.assert(a == 126)
 }
 
 /**
@@ -109,7 +109,7 @@ A closure variable can also hold a regular lambda (no captures).
     var fct: #null func||(s32, s32)->s32
 
     fct = func(x, y) => x + y
-    @assert(fct(1, 2) == 3)
+    Swag.assert(fct(1, 2) == 3)
 }
 
 /**
@@ -131,7 +131,7 @@ and are plain data (POD).
         return res
     }
     let result = fct(4)
-    @assert(result == 1 + 2 + 3 + 4)
+    Swag.assert(result == 1 + 2 + 3 + 4)
 }
 
 /**
@@ -156,9 +156,9 @@ closure. The source is untouched, whether it was declared 'let' or 'var'.
 
     let fct = getInc()
 
-    @assert(fct() == 11)
-    @assert(fct() == 12)
-    @assert(fct() == 13)
+    Swag.assert(fct() == 11)
+    Swag.assert(fct() == 12)
+    Swag.assert(fct() == 13)
 }
 
 /**
@@ -174,6 +174,6 @@ first assignment. Use '&' instead of 'var' to write the outer variable itself.
     let writable: func||()      = func|&counter|() { counter += 1 }
 
     writable()
-    @assert(counter == 1)
-    @assert(readOnly() == 0)     // The read-only capture copied the original value
+    Swag.assert(counter == 1)
+    Swag.assert(readOnly() == 0)     // The read-only capture copied the original value
 }

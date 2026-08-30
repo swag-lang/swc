@@ -60,11 +60,11 @@ func loadMainWindowState(window: *MainWindow, bytes: const [..] u8)
 
 func containsStateBytes(bytes, needle: const [..] u8)->bool
 {
-    if !@countof(needle) or @countof(needle) > @countof(bytes) do
+    if !needle.count or needle.count > bytes.count do
         return false
-    for offset in @countof(bytes) - @countof(needle) + 1
+    for offset in bytes.count - needle.count + 1
     {
-        if @memcmp(@dataof(bytes) + offset, @dataof(needle), @countof(needle)) == 0 do
+        if Swag.memcmp(bytes.buffer + offset, needle.buffer, needle.count) == 0 do
             return true
     }
 
@@ -78,21 +78,21 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
-    @assert(activeLanguage() == ReferenceLanguage)
-    @assert(window.createButton.text() == "Create encrypted vault")
-    @assert(window.language == ReferenceLanguage)
-    @assert(window.appearanceButton.parent == &host.surfaceWnd)
-    @assert(window.appearanceButton.focusPolicy == .None)
+    Swag.assert(activeLanguage() == ReferenceLanguage)
+    Swag.assert(window.createButton.text() == "Create encrypted vault")
+    Swag.assert(window.language == ReferenceLanguage)
+    Swag.assert(window.appearanceButton.parent == &host.surfaceWnd)
+    Swag.assert(window.appearanceButton.focusPolicy == .None)
 
     window.themeIndex = cast(u32) AppearanceTheme.Dark
     window.applyTheme()
-    @assert(window.appearanceButton.appearanceTheme == .Dark and host.theme.colors.bk == ThemeColors.darkPalette().ground)
+    Swag.assert(window.appearanceButton.appearanceTheme == .Dark and host.theme.colors.bk == ThemeColors.darkPalette().ground)
     window.themeIndex = cast(u32) AppearanceTheme.Light
     window.applyTheme()
-    @assert(window.appearanceButton.appearanceTheme == .Light and host.theme.colors.bk == ThemeColors.lightPalette().ground)
+    Swag.assert(window.appearanceButton.appearanceTheme == .Light and host.theme.colors.bk == ThemeColors.lightPalette().ground)
     window.themeIndex = cast(u32) AppearanceTheme.SwagDark
     window.applyTheme()
-    @assert(window.appearanceButton.appearanceTheme == .SwagDark and host.theme.colors.bk == ThemeColors.swagDarkPalette().ground)
+    Swag.assert(window.appearanceButton.appearanceTheme == .SwagDark and host.theme.colors.bk == ThemeColors.swagDarkPalette().ground)
 }
 
 // Privacy is the default and keeps every vault path out of persistent state.
@@ -102,21 +102,21 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
-    @assert(window.privacyMode)
-    @assert(window.privacyModeControl.isChecked())
-    @assert(!window.mountedDrives.startupEnabled)
+    Swag.assert(window.privacyMode)
+    Swag.assert(window.privacyModeControl.isChecked())
+    Swag.assert(!window.mountedDrives.startupEnabled)
 
     window.mountSettings.path = String.from("C:\\private\\unlisted")
     window.startupVaults.add({String.from("C:\\private\\startup"), String.from("mount-x"), true, false})
     window.fileDlgState.currentFolder = String.from("C:\\private\\browse-private")
     var state = saveMainWindowState(window)
-    @assert(!containsStateBytes(state.toSlice(), @mkslice(cast(const [*] u8) @dataof("unlisted"), 8)))
-    @assert(!containsStateBytes(state.toSlice(), @mkslice(cast(const [*] u8) @dataof("startup"), 7)))
-    @assert(!containsStateBytes(state.toSlice(), @mkslice(cast(const [*] u8) @dataof("browse-private"), 14)))
+    Swag.assert(!containsStateBytes(state.toSlice(), Swag.makeSlice(cast(const [*] u8) ("unlisted").buffer, 8)))
+    Swag.assert(!containsStateBytes(state.toSlice(), Swag.makeSlice(cast(const [*] u8) ("startup").buffer, 7)))
+    Swag.assert(!containsStateBytes(state.toSlice(), Swag.makeSlice(cast(const [*] u8) ("browse-private").buffer, 14)))
 
     window.clearPrivateState()
-    @assert(window.mountSettings.path.isEmpty())
-    @assert(window.startupVaults.isEmpty())
+    Swag.assert(window.mountSettings.path.isEmpty())
+    Swag.assert(window.startupVaults.isEmpty())
 }
 
 // The caption appearance action reaches the standard application about dialog.
@@ -126,13 +126,13 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
-    @assert(!window.appearanceButton.sigAboutRequested.isEmpty())
+    Swag.assert(!window.appearanceButton.sigAboutRequested.isEmpty())
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
     window.showAbout()
     host.pump()
 
-    @assert(host.autoHandled)
-    @assert(host.openedSurfaceCount() == 0)
+    Swag.assert(host.autoHandled)
+    Swag.assert(host.openedSurfaceCount() == 0)
 }
 
 // A card's form has to end inside the card, in every language.
@@ -152,7 +152,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     if needed > room + tolerance
     {
         Console.println("form does not end inside its card: needs ", needed, ", body holds ", room)
-        @assert(false)
+        Swag.assert(false)
     }
 }
 
@@ -199,19 +199,19 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     expect window.appearanceButton.setAppearanceLanguage("fr", notify: true)
     host.notify(.LanguageChanged)
 
-    @assert(unmount.text() == "Démonter")
-    @assert(window.createButton.text() == "Créer le coffre chiffré")
-    @assert(window.createKeyFiles.generate.toolTip == "Créer un fichier clé aléatoire")
+    Swag.assert(unmount.text() == "Démonter")
+    Swag.assert(window.createButton.text() == "Créer le coffre chiffré")
+    Swag.assert(window.createKeyFiles.generate.toolTip == "Créer un fichier clé aléatoire")
 
     // The third card follows too, headings and all.
-    @assert(window.mountedDrives.list.header.itemAt(cast(u32) MountedColumn.Startup).name.raw == "AU DÉMARRAGE")
-    @assert(window.mountedDrives.list.header.itemAt(cast(u32) MountedColumn.Size).name.raw == "TAILLE")
-    @assert(window.mountedDrives.list.header.itemAt(cast(u32) MountedColumn.Available).name.raw == "DISPONIBLE")
-    @assert(window.mountedDrives.empty.text() == "Aucun lecteur monté.")
+    Swag.assert(window.mountedDrives.list.header.itemAt(cast(u32) MountedColumn.Startup).name.raw == "AU DÉMARRAGE")
+    Swag.assert(window.mountedDrives.list.header.itemAt(cast(u32) MountedColumn.Size).name.raw == "TAILLE")
+    Swag.assert(window.mountedDrives.list.header.itemAt(cast(u32) MountedColumn.Available).name.raw == "DISPONIBLE")
+    Swag.assert(window.mountedDrives.empty.text() == "Aucun lecteur monté.")
 
     expect window.appearanceButton.setAppearanceLanguage(ReferenceLanguage, notify: true)
     host.notify(.LanguageChanged)
-    @assert(unmount.text() == "Unmount")
+    Swag.assert(unmount.text() == "Unmount")
 }
 
 // Picking a language remembers it, and the system entry restores "follow the account".
@@ -223,17 +223,17 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     defer discard catch g_App.setLanguage(ReferenceLanguage)
 
     // The window opens on the reference language rather than on the account.
-    @assert(window.appearanceButton.language == ReferenceLanguage)
+    Swag.assert(window.appearanceButton.language == ReferenceLanguage)
 
     expect window.appearanceButton.setAppearanceLanguage("fr", notify: true)
     host.notify(.LanguageChanged)
-    @assert(window.language == "fr")
-    @assert(activeLanguage() == "fr")
-    @assert(window.appearanceButton.language == "fr")
+    Swag.assert(window.language == "fr")
+    Swag.assert(activeLanguage() == "fr")
+    Swag.assert(window.appearanceButton.language == "fr")
 
     expect window.appearanceButton.setAppearanceLanguage("", notify: true)
-    @assert(window.language.isEmpty())
-    @assert(activeLanguage() == systemLanguage())
+    Swag.assert(window.language.isEmpty())
+    Swag.assert(activeLanguage() == systemLanguage())
 }
 
 // The last successful mount prepares the next open-vault form without retaining a credential.
@@ -247,7 +247,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     window.applyPrivacyControl()
 
     let drive = window.selectedMountPoint()
-    @assert(!drive.isEmpty())
+    Swag.assert(!drive.isEmpty())
 
     window.operation.path     = String.from("C:\\vaults\\remembered")
     window.operation.mount    = drive
@@ -256,16 +256,16 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 
     // Put unmistakable bytes in the password storage. Persistent state must never observe them.
     let secret = "not a setting"
-    @memcpy(&window.mountPassword.storage[0], @dataof(secret), @countof(secret))
-    window.mountPassword.byteCount = @countof(secret)
+    Swag.memcpy(&window.mountPassword.storage[0], secret.buffer, secret.count)
+    window.mountPassword.byteCount = secret.count
 
     var state       = saveMainWindowState(window)
-    let secretBytes = @mkslice(cast(const [*] u8) @dataof(secret), @countof(secret))
-    @assert(!containsStateBytes(state.toSlice(), secretBytes))
+    let secretBytes = Swag.makeSlice(cast(const [*] u8) secret.buffer, secret.count)
+    Swag.assert(!containsStateBytes(state.toSlice(), secretBytes))
 
     window.mountKeyFiles.paths.add(String.from("C:\\private\\access.key"))
     state = saveMainWindowState(window)
-    @assert(!containsStateBytes(state.toSlice(), @mkslice(cast(const [*] u8) @dataof("access.key"), 10)))
+    Swag.assert(!containsStateBytes(state.toSlice(), Swag.makeSlice(cast(const [*] u8) ("access.key").buffer, 10)))
 
     window.mountSettings = {}
     window.mountPath.setText("")
@@ -275,11 +275,11 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     window.mountKeyFiles.setPaths(noKeyFiles.toSlice())
     loadMainWindowState(window, state.toSlice())
 
-    @assert(window.mountPath.text() == "C:\\vaults\\remembered")
-    @assert(window.selectedMountPoint() == drive)
-    @assert(window.readOnly.isChecked())
-    @assert(window.mountPassword.isEmpty())
-    @assert(window.mountKeyFiles.paths.isEmpty())
+    Swag.assert(window.mountPath.text() == "C:\\vaults\\remembered")
+    Swag.assert(window.selectedMountPoint() == drive)
+    Swag.assert(window.readOnly.isChecked())
+    Swag.assert(window.mountPassword.isEmpty())
+    Swag.assert(window.mountKeyFiles.paths.isEmpty())
 }
 
 // Automatic-unmount choices are explicit persistent policy, and the timeout is only actionable
@@ -290,10 +290,10 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
-    @assert(window.unmountOnLock.isChecked())
-    @assert(window.unmountOnSuspend.isChecked())
-    @assert(!window.unmountOnIdle.isChecked())
-    @assert(!window.idleTimeout.isEnabled())
+    Swag.assert(window.unmountOnLock.isChecked())
+    Swag.assert(window.unmountOnSuspend.isChecked())
+    Swag.assert(!window.unmountOnIdle.isChecked())
+    Swag.assert(!window.idleTimeout.isEnabled())
 
     window.unmountOnLock.toggle()
     window.unmountOnIdle.toggle()
@@ -305,11 +305,11 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     window.applyAutoUnmountControls()
     loadMainWindowState(window, state.toSlice())
 
-    @assert(!window.autoUnmount.onSessionLock)
-    @assert(window.autoUnmount.onSuspend)
-    @assert(window.autoUnmount.onIdle)
-    @assert(window.autoUnmount.idleMinutes == 30)
-    @assert(window.idleTimeout.isEnabled())
+    Swag.assert(!window.autoUnmount.onSessionLock)
+    Swag.assert(window.autoUnmount.onSuspend)
+    Swag.assert(window.autoUnmount.onIdle)
+    Swag.assert(window.autoUnmount.idleMinutes == 30)
+    Swag.assert(window.idleTimeout.isEnabled())
 }
 
 // A configured event closes protected drives only. An unprotected container has no key to wipe
@@ -325,14 +325,14 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     window.mountedDrives.refresh()
     window.handleAutoUnmount(.SessionLock)
 
-    @assert(window.mountedDrives.drives.count == 1)
-    @assert(window.mountedDrives.drives[0].path == "C:\\open")
-    @assert(window.statusMessage == .AutoUnmounted)
+    Swag.assert(window.mountedDrives.drives.count == 1)
+    Swag.assert(window.mountedDrives.drives[0].path == "C:\\open")
+    Swag.assert(window.statusMessage == .AutoUnmounted)
 
     window.autoUnmount.onSessionLock = false
     window.mountedDrives.drives.add({null, String.from("C:\\second"), String.from("mount-z"), String.from("Z:"), true, false, false, 0, 0})
     window.handleAutoUnmount(.SessionLock)
-    @assert(window.mountedDrives.drives.count == 2)
+    Swag.assert(window.mountedDrives.drives.count == 2)
 }
 
 // The page on show is reachable from the keyboard, in the order it reads, and it is the only
@@ -349,18 +349,18 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 
     // It opens on the first field to fill in and not on the strip, even though the strip is what
     // reads first, and Tab moves on from there.
-    @assert(window.createPath.hasFocus())
+    Swag.assert(window.createPath.hasFocus())
     host.keyPress(Input.Key.Tab)
-    @assert(window.browseCreate.hasFocus())
+    Swag.assert(window.browseCreate.hasFocus())
 
     let order = Gui.FocusOrder.collect(window)
 
     // A button that cannot work is down, and the keyboard does not stop on it: on a form with
     // nothing filled in, the action of the create page is out of the ring. So is every control
     // of the two pages that are not on show.
-    @assert(order.stops.count == 9)
-    @assert(order.stops[0] == cast(*Wnd) window.tabs)
-    @assert(order.stops[1] == cast(*Wnd) window.createPath)
+    Swag.assert(order.stops.count == 9)
+    Swag.assert(order.stops[0] == cast(*Wnd) window.tabs)
+    Swag.assert(order.stops[1] == cast(*Wnd) window.createPath)
 
     // Live, each action takes its place after the card it answers for, and the dominant one
     // comes last on its card because the bar stacks from its right edge.
@@ -371,43 +371,43 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     window.keyFilesButton.enable(true)
 
     let full = Gui.FocusOrder.collect(window)
-    @assert(full.stops.count == 10)
-    @assert(full.stops[0] == cast(*Wnd) window.tabs)
-    @assert(full.stops[1] == cast(*Wnd) window.createPath)
-    @assert(full.stops[2] == cast(*Wnd) window.browseCreate)
-    @assert(full.stops[3] == cast(*Wnd) window.createSize)
-    @assert(full.stops[4] == cast(*Wnd) window.createUnit)
-    @assert(full.stops[5] == cast(*Wnd) window.createPassword)
-    @assert(full.stops[6] == cast(*Wnd) window.confirmPassword)
-    @assert(full.stops[7] == cast(*Wnd) window.createKeyFiles.add)
-    @assert(full.stops[8] == cast(*Wnd) window.createKeyFiles.generate)
-    @assert(full.stops[9] == cast(*Wnd) window.createButton)
+    Swag.assert(full.stops.count == 10)
+    Swag.assert(full.stops[0] == cast(*Wnd) window.tabs)
+    Swag.assert(full.stops[1] == cast(*Wnd) window.createPath)
+    Swag.assert(full.stops[2] == cast(*Wnd) window.browseCreate)
+    Swag.assert(full.stops[3] == cast(*Wnd) window.createSize)
+    Swag.assert(full.stops[4] == cast(*Wnd) window.createUnit)
+    Swag.assert(full.stops[5] == cast(*Wnd) window.createPassword)
+    Swag.assert(full.stops[6] == cast(*Wnd) window.confirmPassword)
+    Swag.assert(full.stops[7] == cast(*Wnd) window.createKeyFiles.add)
+    Swag.assert(full.stops[8] == cast(*Wnd) window.createKeyFiles.generate)
+    Swag.assert(full.stops[9] == cast(*Wnd) window.createButton)
 
     // Bringing up another page swaps the whole middle of the ring for that page's controls, and
     // the dominant action still comes last on its card because the bar stacks from its right edge.
     window.showTab(1)
     let opened = Gui.FocusOrder.collect(window)
-    @assert(opened.stops.count == 11)
-    @assert(opened.stops[0] == cast(*Wnd) window.tabs)
-    @assert(opened.stops[1] == cast(*Wnd) window.mountPath)
-    @assert(opened.stops[2] == cast(*Wnd) window.browseMount)
-    @assert(opened.stops[3] == cast(*Wnd) window.mountPassword)
-    @assert(opened.stops[4] == cast(*Wnd) window.mountKeyFiles.add)
-    @assert(!window.mountKeyFiles.generate.isVisible())
-    @assert(opened.stops[5] == cast(*Wnd) window.drive)
-    @assert(opened.stops[6] == cast(*Wnd) window.readOnly)
-    @assert(opened.stops[7] == cast(*Wnd) window.keyFilesButton)
-    @assert(opened.stops[8] == cast(*Wnd) window.passwordButton)
-    @assert(opened.stops[9] == cast(*Wnd) window.resizeButton)
-    @assert(opened.stops[10] == cast(*Wnd) window.mountButton)
+    Swag.assert(opened.stops.count == 11)
+    Swag.assert(opened.stops[0] == cast(*Wnd) window.tabs)
+    Swag.assert(opened.stops[1] == cast(*Wnd) window.mountPath)
+    Swag.assert(opened.stops[2] == cast(*Wnd) window.browseMount)
+    Swag.assert(opened.stops[3] == cast(*Wnd) window.mountPassword)
+    Swag.assert(opened.stops[4] == cast(*Wnd) window.mountKeyFiles.add)
+    Swag.assert(!window.mountKeyFiles.generate.isVisible())
+    Swag.assert(opened.stops[5] == cast(*Wnd) window.drive)
+    Swag.assert(opened.stops[6] == cast(*Wnd) window.readOnly)
+    Swag.assert(opened.stops[7] == cast(*Wnd) window.keyFilesButton)
+    Swag.assert(opened.stops[8] == cast(*Wnd) window.passwordButton)
+    Swag.assert(opened.stops[9] == cast(*Wnd) window.resizeButton)
+    Swag.assert(opened.stops[10] == cast(*Wnd) window.mountButton)
 
     window.showTab(3)
     let options = Gui.FocusOrder.collect(window)
-    @assert(options.stops[0] == cast(*Wnd) window.tabs)
-    @assert(options.stops[1] == cast(*Wnd) window.privacyModeControl)
-    @assert(options.stops[2] == cast(*Wnd) window.unmountOnLock)
-    @assert(options.stops[3] == cast(*Wnd) window.unmountOnSuspend)
-    @assert(options.stops[4] == cast(*Wnd) window.unmountOnIdle)
+    Swag.assert(options.stops[0] == cast(*Wnd) window.tabs)
+    Swag.assert(options.stops[1] == cast(*Wnd) window.privacyModeControl)
+    Swag.assert(options.stops[2] == cast(*Wnd) window.unmountOnLock)
+    Swag.assert(options.stops[3] == cast(*Wnd) window.unmountOnSuspend)
+    Swag.assert(options.stops[4] == cast(*Wnd) window.unmountOnIdle)
 
     window.showTab(0)
 }
@@ -426,9 +426,9 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     // then Tab from the field the page opens on to the action beside it.
     window.showTab(1)
     window.mountPath.setFocus()
-    @assert(window.mountPath.hasFocus())
+    Swag.assert(window.mountPath.hasFocus())
     host.keyPress(Input.Key.Tab)
-    @assert(window.browseMount.hasFocus())
+    Swag.assert(window.browseMount.hasFocus())
 
     // The box runs a nested loop, so the way out is armed before it opens. Escape has to reach
     // the cancel action of the box from the file list the box opens the keyboard on. A box that
@@ -455,18 +455,18 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 
     // A zero frame count means the browse action never opened the box; `forced` means the box
     // opened and Escape was not what closed it.
-    @assert(frames != 0)
-    @assert(!forced)
-    @assert(host.openedSurfaceCount() == 0)
+    Swag.assert(frames != 0)
+    Swag.assert(!forced)
+    Swag.assert(host.openedSurfaceCount() == 0)
 
     // Nothing was chosen, and the keyboard is back where it was.
-    @assert(@countof(window.mountPath.text()) == 0)
-    @assert(window.browseMount.hasFocus())
+    Swag.assert((window.mountPath.text()).count == 0)
+    Swag.assert(window.browseMount.hasFocus())
 
     host.keyPress(Input.Key.Tab)
-    @assert(window.mountPassword.hasFocus())
+    Swag.assert(window.mountPassword.hasFocus())
     host.keyPress(Input.Key.Tab, Input.KeyModifiers.Shift)
-    @assert(window.browseMount.hasFocus())
+    Swag.assert(window.browseMount.hasFocus())
 }
 
 // A form that goes down while it holds the keyboard hands it to what is still live.
@@ -477,13 +477,13 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     defer host.shutdown()
 
     window.createPassword.setFocus()
-    @assert(window.createPassword.hasFocus())
+    Swag.assert(window.createPassword.hasFocus())
 
     // What a creation does: both forms go down and the create button stays live, because during a
     // creation it is what stops it. The keyboard has to follow, or the next key reaches a control
     // the user can no longer act on.
     window.setState(.Creating)
-    @assert(window.createButton.hasFocus())
+    Swag.assert(window.createButton.hasFocus())
 }
 
 // The status line is named, not written, so it says the same thing in the new language.
@@ -494,14 +494,14 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     defer host.shutdown()
     defer discard catch g_App.setLanguage(ReferenceLanguage)
 
-    @assert(window.statusText() == "Ready — create a vault or choose one to open.")
+    Swag.assert(window.statusText() == "Ready — create a vault or choose one to open.")
 
     window.statusDrive = "Z:"
     window.setStatus(.Mounted)
-    @assert(Utf8.contains(window.statusText().toString(), "Z:"))
+    Swag.assert(Utf8.contains(window.statusText().toString(), "Z:"))
 
     expect g_App.setLanguage("fr")
-    @assert(Utf8.startsWith(window.statusText().toString(), "Lecteur chiffré monté sur Z:"))
+    Swag.assert(Utf8.startsWith(window.statusText().toString(), "Lecteur chiffré monté sur Z:"))
 }
 
 // A failure says its sentence in the active language, not the diagnostic the layer wrote.
@@ -522,23 +522,23 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     }
 
     // The English diagnostic never reaches the reader, in either language.
-    @assert(messageFor(.PasswordOrDamaged) == "The password or key files are incorrect, or the container is damaged.")
-    @assert(messageFor(.Corrupted) == "The container is damaged.")
-    @assert(messageFor(.PasswordRequired) == "A password is required.")
-    @assert(messageFor(.Canceled) == "The operation stopped.")
+    Swag.assert(messageFor(.PasswordOrDamaged) == "The password or key files are incorrect, or the container is damaged.")
+    Swag.assert(messageFor(.Corrupted) == "The container is damaged.")
+    Swag.assert(messageFor(.PasswordRequired) == "A password is required.")
+    Swag.assert(messageFor(.Canceled) == "The operation stopped.")
 
     // Every way a container can refuse to open answers the same sentence: telling wrong access
     // from a damaged container is exactly what the format refuses to do.
-    @assert(messageFor(.PasswordOrDamaged) != messageFor(.Corrupted))
+    Swag.assert(messageFor(.PasswordOrDamaged) != messageFor(.Corrupted))
 
     expect g_App.setLanguage("fr")
-    @assert(messageFor(.PasswordOrDamaged) == "Le mot de passe ou les fichiers clés sont incorrects, ou le conteneur est endommagé.")
-    @assert(messageFor(.PasswordRequired) == appStrings().msg_PasswordRequired)
-    @assert(messageFor(.DiskFull) == appStrings().msg_ErrDiskFull)
+    Swag.assert(messageFor(.PasswordOrDamaged) == "Le mot de passe ou les fichiers clés sont incorrects, ou le conteneur est endommagé.")
+    Swag.assert(messageFor(.PasswordRequired) == appStrings().msg_PasswordRequired)
+    Swag.assert(messageFor(.DiskFull) == appStrings().msg_ErrDiskFull)
 
     // A kind that means nothing to a reader reads as the generic damaged-container wording.
-    @assert(messageFor(.DirectoryNotEmpty) == appStrings().msg_ErrDamaged)
-    @assert(messageFor(.NotDirectory) == appStrings().msg_ErrDamaged)
+    Swag.assert(messageFor(.DirectoryNotEmpty) == appStrings().msg_ErrDamaged)
+    Swag.assert(messageFor(.NotDirectory) == appStrings().msg_ErrDamaged)
 }
 
 // A form with no password in it is a form that can act: an empty password is a vault that
@@ -549,19 +549,19 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
-    @assert(!window.canCreate())
+    Swag.assert(!window.canCreate())
     window.createPath.setText("C:\\open")
-    @assert(window.canCreate())
-    @assert(window.createButton.isEnabled())
+    Swag.assert(window.canCreate())
+    Swag.assert(window.createButton.isEnabled())
 
     // The two actions that change a container need the file and nothing else: the password they
     // act on is the one their own box asks for, never what this card happens to be holding.
-    @assert(!window.canModifyVault())
+    Swag.assert(!window.canModifyVault())
     window.mountPath.setText("C:\\open")
-    @assert(window.canModifyVault())
-    @assert(window.canMount())
-    @assert(window.passwordButton.isEnabled())
-    @assert(window.resizeButton.isEnabled())
+    Swag.assert(window.canModifyVault())
+    Swag.assert(window.canMount())
+    Swag.assert(window.passwordButton.isEnabled())
+    Swag.assert(window.resizeButton.isEnabled())
 }
 
 // Opens `dialog`, backs straight out of it, and reports that the box really came up.
@@ -571,8 +571,8 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
-    @assert(dialog.doModal() == Dialog.BtnCancel)
-    @assert(host.autoHandled)
+    Swag.assert(dialog.doModal() == Dialog.BtnCancel)
+    Swag.assert(host.autoHandled)
 }
 
 // Boxes contain only the change being made. Current password and key files stay on the open card,
@@ -589,35 +589,35 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     let change = FormDlg.create(&host.surface, options)
     let fields = buildPasswordChangeForm(change)
 
-    @assert(change.form.rows.count == 2)
-    @assert(change.form.rows[0].field == cast(*Wnd) fields.replacement)
-    @assert(change.form.rows[0].label.name.raw == texts.ui_NewPassword)
-    @assert(change.form.rows[1].field == cast(*Wnd) fields.confirm)
+    Swag.assert(change.form.rows.count == 2)
+    Swag.assert(change.form.rows[0].field == cast(*Wnd) fields.replacement)
+    Swag.assert(change.form.rows[0].label.name.raw == texts.ui_NewPassword)
+    Swag.assert(change.form.rows[1].field == cast(*Wnd) fields.confirm)
     openAndDismiss(&host, change)
 
     let resize       = FormDlg.create(&host.surface, options)
     let resizeFields = buildVaultResizeForm(resize)
 
-    @assert(resize.form.rows.count == 2)
-    @assert(resize.form.rows[0].field == cast(*Wnd) resizeFields.capacity)
-    @assert(resize.form.rows[0].label.name.raw == texts.ui_NewCapacity)
-    @assert(resizeFields.capacity.text() == "256")
-    @assert(resizeFields.unit.selectedIndex == 0)
-    @assert(resizeFields.keepCapacity.isChecked())
-    @assert(!resizeFields.capacity.isEnabled())
-    @assert(!resizeFields.unit.isEnabled())
+    Swag.assert(resize.form.rows.count == 2)
+    Swag.assert(resize.form.rows[0].field == cast(*Wnd) resizeFields.capacity)
+    Swag.assert(resize.form.rows[0].label.name.raw == texts.ui_NewCapacity)
+    Swag.assert(resizeFields.capacity.text() == "256")
+    Swag.assert(resizeFields.unit.selectedIndex == 0)
+    Swag.assert(resizeFields.keepCapacity.isChecked())
+    Swag.assert(!resizeFields.capacity.isEnabled())
+    Swag.assert(!resizeFields.unit.isEnabled())
     resizeFields.keepCapacity.toggle()
-    @assert(resizeFields.capacity.isEnabled())
-    @assert(resizeFields.unit.isEnabled())
+    Swag.assert(resizeFields.capacity.isEnabled())
+    Swag.assert(resizeFields.unit.isEnabled())
     openAndDismiss(&host, resize)
 
     var currentFiles: Array'String
     currentFiles.add(String.from("C:\\keys\\first.key"))
     let keyFiles      = FormDlg.create(&host.surface, options)
     let keyFileFields = buildKeyFileChangeForm(keyFiles, currentFiles.toSlice())
-    @assert(keyFiles.form.rows.count == 1)
-    @assert(keyFiles.form.rows[0].field == cast(*Wnd) keyFileFields)
-    @assert(keyFileFields.samePaths(currentFiles.toSlice()))
+    Swag.assert(keyFiles.form.rows.count == 1)
+    Swag.assert(keyFiles.form.rows[0].field == cast(*Wnd) keyFileFields)
+    Swag.assert(keyFileFields.samePaths(currentFiles.toSlice()))
     openAndDismiss(&host, keyFiles)
 }
 
@@ -641,7 +641,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
         if needed > form.position.height + 0.5
         {
             Console.println("form does not end inside its box: needs ", needed, ", box holds ", form.position.height)
-            @assert(false)
+            Swag.assert(false)
         }
     }
 
@@ -679,39 +679,39 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     window.privacyMode = false
     window.applyPrivacyControl()
 
-    @assert(!window.mountedDrives.list.isLocallyVisible())
-    @assert(window.mountedDrives.empty.isLocallyVisible())
-    @assert(window.mountedDrives.selectedIndex() == Swag.U64.Max)
-    @assert(!window.mountedDrives.unmountButton.isEnabled())
+    Swag.assert(!window.mountedDrives.list.isLocallyVisible())
+    Swag.assert(window.mountedDrives.empty.isLocallyVisible())
+    Swag.assert(window.mountedDrives.selectedIndex() == Swag.U64.Max)
+    Swag.assert(!window.mountedDrives.unmountButton.isEnabled())
 
     window.mountedDrives.drives.add({null, String.from("C:\\vaults\\one"), String.from("mount-x"), String.from("X:"), true, false, false, 256 * 1024 * 1024, 192 * 1024 * 1024})
     window.mountedDrives.drives.add({null, String.from("C:\\vaults\\two"), String.from("mount-y"), String.from("Y:"), false, false, true, 2 * 1024 * 1024 * 1024, 1536 * 1024 * 1024})
     window.mountedDrives.refresh()
 
-    @assert(window.mountedDrives.list.isLocallyVisible())
-    @assert(!window.mountedDrives.empty.isLocallyVisible())
-    @assert(window.mountedDrives.list.lineCount() == 2)
+    Swag.assert(window.mountedDrives.list.isLocallyVisible())
+    Swag.assert(!window.mountedDrives.empty.isLocallyVisible())
+    Swag.assert(window.mountedDrives.list.lineCount() == 2)
 
     // The row a drive occupies is the row the drive list gives it, and the mark it carries
     // travels with it. A row names the vault, not the folder it happens to sit in.
-    @assert(!window.mountedDrives.list.isLineChecked(0))
-    @assert(window.mountedDrives.list.isLineChecked(1))
-    @assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Drive).name.raw == "Y:")
-    @assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Size).name.raw == "2 GiB")
-    @assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Available).name.raw == "1536 MiB")
-    @assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Vault).name.raw == "two")
+    Swag.assert(!window.mountedDrives.list.isLineChecked(0))
+    Swag.assert(window.mountedDrives.list.isLineChecked(1))
+    Swag.assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Drive).name.raw == "Y:")
+    Swag.assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Size).name.raw == "2 GiB")
+    Swag.assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Available).name.raw == "1536 MiB")
+    Swag.assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Vault).name.raw == "two")
 
     // The list opens on its first row, so the one action of the card is live straight away.
     window.setState(.Ready)
-    @assert(window.mountedDrives.selectedIndex() == 0)
-    @assert(window.mountedDrives.unmountButton.isEnabled())
+    Swag.assert(window.mountedDrives.selectedIndex() == 0)
+    Swag.assert(window.mountedDrives.unmountButton.isEnabled())
 
     // Handing a drive over drops its row, and the card goes back to its one line with the last.
     discard window.mountedDrives.detach(0)
-    @assert(window.mountedDrives.list.lineCount() == 1)
+    Swag.assert(window.mountedDrives.list.lineCount() == 1)
     discard window.mountedDrives.detach(0)
-    @assert(window.mountedDrives.empty.isLocallyVisible())
-    @assert(!window.mountedDrives.unmountButton.isEnabled())
+    Swag.assert(window.mountedDrives.empty.isLocallyVisible())
+    Swag.assert(!window.mountedDrives.unmountButton.isEnabled())
 }
 
 // Checking a drive puts it in the list sVaultDrive mounts at its next start, and unchecking it
@@ -729,18 +729,18 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     window.mountedDrives.refresh()
 
     window.mountedDrives.list.setLineChecked(0, true)
-    @assert(window.startupVaults.count == 1)
-    @assert(window.startupVaults[0].path == "C:\\one")
-    @assert(window.startupVaults[0].drive == "mount-x")
-    @assert(window.startupVaults[0].needsPassword)
+    Swag.assert(window.startupVaults.count == 1)
+    Swag.assert(window.startupVaults[0].path == "C:\\one")
+    Swag.assert(window.startupVaults[0].drive == "mount-x")
+    Swag.assert(window.startupVaults[0].needsPassword)
 
     discard window.mountedDrives.detach(0)
-    @assert(window.startupVaults.count == 1)
+    Swag.assert(window.startupVaults.count == 1)
 
     window.mountedDrives.drives.add({null, String.from("C:\\one"), String.from("mount-x"), String.from("X:"), true, false, true, 0, 0})
     window.mountedDrives.refresh()
     window.mountedDrives.list.setLineChecked(0, false)
-    @assert(window.startupVaults.isEmpty())
+    Swag.assert(window.startupVaults.isEmpty())
 }
 
 // A capacity is read back the way a reader wrote it, and refused when it says nothing.
@@ -750,18 +750,18 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     discard testSetupMainWindow(&host)
     defer host.shutdown()
 
-    @assert(capacityText(256 * 1024 * 1024) == "256 MiB")
-    @assert(capacityText(2 * 1024 * 1024 * 1024) == "2 GiB")
+    Swag.assert(capacityText(256 * 1024 * 1024) == "256 MiB")
+    Swag.assert(capacityText(2 * 1024 * 1024 * 1024) == "2 GiB")
 
     // A size that is not a whole gibibyte stays in mebibytes rather than growing a decimal.
-    @assert(capacityText(1536 * 1024 * 1024) == "1536 MiB")
+    Swag.assert(capacityText(1536 * 1024 * 1024) == "1536 MiB")
 
-    @assert(parseCapacity("256", 0).bytes == 256 * 1024 * 1024)
-    @assert(parseCapacity("2", 1).bytes == 2 * 1024 * 1024 * 1024)
-    @assert(!parseCapacity("", 0).error.isEmpty())
-    @assert(!parseCapacity("0", 0).error.isEmpty())
-    @assert(!parseCapacity("12x", 0).error.isEmpty())
-    @assert(!parseCapacity("18446744073709551615", 1).error.isEmpty())
+    Swag.assert(parseCapacity("256", 0).bytes == 256 * 1024 * 1024)
+    Swag.assert(parseCapacity("2", 1).bytes == 2 * 1024 * 1024 * 1024)
+    Swag.assert(!parseCapacity("", 0).error.isEmpty())
+    Swag.assert(!parseCapacity("0", 0).error.isEmpty())
+    Swag.assert(!parseCapacity("12x", 0).error.isEmpty())
+    Swag.assert(!parseCapacity("18446744073709551615", 1).error.isEmpty())
 }
 
 // The creation dialog preserves the exact filename; a vault has no required extension.
@@ -775,8 +775,8 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     host.acceptModalFileDialog(path)
     window.chooseContainer(window.createPath, true)
 
-    @assert(host.autoHandled)
-    @assert(window.createPath.text() == path.toString())
+    Swag.assert(host.autoHandled)
+    Swag.assert(window.createPath.text() == path.toString())
 }
 
 // Privacy keeps browse history off disk, but the open dialog still returns to its last folder
@@ -794,14 +794,14 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     host.acceptModalFileDialog(path.toString())
     window.chooseContainer(window.mountPath, false)
 
-    @assert(host.autoHandled)
-    @assert(window.mountPath.text() == path.toString())
-    @assert(Path.equals(window.fileDlgState.currentFolder.toString(), Path.directoryName(path) orelse ""))
+    Swag.assert(host.autoHandled)
+    Swag.assert(window.mountPath.text() == path.toString())
+    Swag.assert(Path.equals(window.fileDlgState.currentFolder.toString(), Path.directoryName(path) orelse ""))
 
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
     window.chooseContainer(window.mountPath, false)
-    @assert(host.autoHandled)
-    @assert(Path.equals(window.fileDlgState.currentFolder.toString(), Path.directoryName(path) orelse ""))
+    Swag.assert(host.autoHandled)
+    Swag.assert(Path.equals(window.fileDlgState.currentFolder.toString(), Path.directoryName(path) orelse ""))
 }
 
 // The panel can add an existing key file, generate a cryptographically random one, and remove
@@ -818,22 +818,22 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     host.acceptModalFileDialog(existing.toString())
     window.createKeyFiles.add.sigPressed.call(cast(*Button) window.createKeyFiles.add)
-    @assert(host.autoHandled)
-    @assert(window.createKeyFiles.paths.count == 1)
-    @assert(window.createKeyFiles.paths[0] == existing)
+    Swag.assert(host.autoHandled)
+    Swag.assert(window.createKeyFiles.paths.count == 1)
+    Swag.assert(window.createKeyFiles.paths[0] == existing)
 
     let generated = Testing.tempFilePath("vaultdrive-key-random-", ".key")
     defer discard catch File.delete(generated)
     host.acceptModalFileDialog(generated.toString())
     window.createKeyFiles.generate.sigPressed.call(cast(*Button) window.createKeyFiles.generate)
-    @assert(host.autoHandled)
-    @assert(window.createKeyFiles.paths.count == 2)
-    @assert((expect File.info(generated.toString())).size == 64)
+    Swag.assert(host.autoHandled)
+    Swag.assert(window.createKeyFiles.paths.count == 2)
+    Swag.assert((expect File.info(generated.toString())).size == 64)
 
     window.createKeyFiles.files.setSelectedIndex(0, notify: false)
     window.createKeyFiles.remove.sigPressed.call(cast(*Button) window.createKeyFiles.remove)
-    @assert(window.createKeyFiles.paths.count == 1)
-    @assert(window.createKeyFiles.paths[0] == generated)
+    Swag.assert(window.createKeyFiles.paths.count == 1)
+    Swag.assert(window.createKeyFiles.paths[0] == generated)
 }
 
 // A container dropped on the path field of a card fills it, exactly as browsing to it would.
@@ -844,11 +844,11 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     defer host.shutdown()
 
     window.showTab(MainWindow.OpenTabIndex)
-    @assert(host.dropFilesOnWnd(window.mountPath, ["c:/vaults/private"]) == DropEffect.Copy)
-    @assert(window.mountPath.text() == "c:/vaults/private")
+    Swag.assert(host.dropFilesOnWnd(window.mountPath, ["c:/vaults/private"]) == DropEffect.Copy)
+    Swag.assert(window.mountPath.text() == "c:/vaults/private")
 
     // Filling the field is what makes the action live, whether a dialog or a drop wrote it.
-    @assert(window.mountButton.isEnabled())
+    Swag.assert(window.mountButton.isEnabled())
 }
 
 // A container dropped anywhere else on the window opens the page that mounts one.
@@ -859,11 +859,11 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     defer host.shutdown()
 
     window.showTab(0)
-    @assert(host.dropFilesOnWnd(window, ["c:/vaults/private"]) == DropEffect.Copy)
+    Swag.assert(host.dropFilesOnWnd(window, ["c:/vaults/private"]) == DropEffect.Copy)
 
-    @assert(window.tabs.selectedIndex == MainWindow.OpenTabIndex)
-    @assert(window.mountPath.text() == "c:/vaults/private")
-    @assert(window.mountPath.hasFocus())
+    Swag.assert(window.tabs.selectedIndex == MainWindow.OpenTabIndex)
+    Swag.assert(window.mountPath.text() == "c:/vaults/private")
+    Swag.assert(window.mountPath.hasFocus())
 }
 
 // A filename extension never decides whether a dropped file is a container.
@@ -874,15 +874,15 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     defer host.shutdown()
 
     window.showTab(0)
-    @assert(host.dropFilesOnWnd(window, ["c:/vaults/private.anything"]) == DropEffect.Copy)
-    @assert(window.tabs.selectedIndex == MainWindow.OpenTabIndex)
-    @assert(window.mountPath.text() == "c:/vaults/private.anything")
+    Swag.assert(host.dropFilesOnWnd(window, ["c:/vaults/private.anything"]) == DropEffect.Copy)
+    Swag.assert(window.tabs.selectedIndex == MainWindow.OpenTabIndex)
+    Swag.assert(window.mountPath.text() == "c:/vaults/private.anything")
 
     // Two files name no single vault to open.
     window.showTab(0)
     window.mountPath.setText("")
-    @assert(host.dropFilesOnWnd(window, ["c:/vaults/a", "c:/vaults/b"]) == DropEffect.None)
-    @assert(window.tabs.selectedIndex == 0)
+    Swag.assert(host.dropFilesOnWnd(window, ["c:/vaults/a", "c:/vaults/b"]) == DropEffect.None)
+    Swag.assert(window.tabs.selectedIndex == 0)
 }
 
 // What the shipped window looks like.

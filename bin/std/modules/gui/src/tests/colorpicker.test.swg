@@ -24,20 +24,20 @@ func colorPickerHeadlessChanged(c: *ColorPicker)
     picker.sigColorChanged += &colorPickerHeadlessChanged
 
     picker.setColor(Argb.Red)
-    @assert(Math.abs(picker.red - 1) < 0.01)
-    @assert(Math.abs(picker.green - 0) < 0.01)
-    @assert(Math.abs(picker.blue - 0) < 0.01)
-    @assert(Math.abs(picker.alpha - 1) < 0.01)
-    @assert(ColorPickerHeadlessChangedCount == 0)
+    Swag.assert(Math.abs(picker.red - 1) < 0.01)
+    Swag.assert(Math.abs(picker.green - 0) < 0.01)
+    Swag.assert(Math.abs(picker.blue - 0) < 0.01)
+    Swag.assert(Math.abs(picker.alpha - 1) < 0.01)
+    Swag.assert(ColorPickerHeadlessChangedCount == 0)
 
     picker.setColor(Argb.Blue)
-    @assert(Math.abs(picker.blue - 1) < 0.01)
-    @assert(Math.abs(picker.red - 0) < 0.01)
-    @assert(ColorPickerHeadlessChangedCount == 1)
+    Swag.assert(Math.abs(picker.blue - 1) < 0.01)
+    Swag.assert(Math.abs(picker.red - 0) < 0.01)
+    Swag.assert(ColorPickerHeadlessChangedCount == 1)
 
     picker.setColor(Argb.Red, notify: false)
-    @assert(picker.color() == Argb.Red)
-    @assert(ColorPickerHeadlessChangedCount == 1)
+    Swag.assert(picker.color() == Argb.Red)
+    Swag.assert(ColorPickerHeadlessChangedCount == 1)
 }
 
 // setHsl updates the HSL components and notifies once.
@@ -53,10 +53,10 @@ func colorPickerHeadlessChanged(c: *ColorPicker)
     picker.sigColorChanged += &colorPickerHeadlessChanged
 
     picker.setHsl(0.5, picker.saturation, picker.lightness)
-    @assert(Math.abs(picker.hue - 0.5) < 0.01)
-    @assert(ColorPickerHeadlessChangedCount == 1)
+    Swag.assert(Math.abs(picker.hue - 0.5) < 0.01)
+    Swag.assert(ColorPickerHeadlessChangedCount == 1)
 
     // Same hue again: no change, no signal.
     picker.setHsl(0.5, picker.saturation, picker.lightness)
-    @assert(ColorPickerHeadlessChangedCount == 1)
+    Swag.assert(ColorPickerHeadlessChangedCount == 1)
 }

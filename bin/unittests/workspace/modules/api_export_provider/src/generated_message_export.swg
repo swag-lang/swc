@@ -1,6 +1,6 @@
 #message(CompilerMsgMask.PassAfterSemantic)
 {
-    let itf = @compiler
+    let itf = Swag.compiler()
     itf.compileString(
         "public func depGeneratedExport()->s32\n" ++
         "{\n" ++

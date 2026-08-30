@@ -88,7 +88,7 @@ void CommandLineParser::registerCommands()
     addEnum(HelpOptionGroup::Target, "sema doc test build run smoke", "--build-cfg", "-bc",
             &cmdLine_->buildCfg,
             std::move(buildCfgChoices),
-            "Set the registered build configuration used by #cfg and @compiler.getBuildCfg()");
+            "Set the registered build configuration used by #cfg and Swag.compiler().getBuildCfg()");
     addEnum(HelpOptionGroup::Target, "sema doc test build run smoke", "--artifact-kind", "-ak",
             &cmdLine_->backendKind,
             {
@@ -97,7 +97,7 @@ void CommandLineParser::registerCommands()
                 {"static-library", Runtime::BuildCfgBackendKind::StaticLibrary},
                 {"export", Runtime::BuildCfgBackendKind::Export},
             },
-            "Select the backend kind exposed through @compiler.getBuildCfg(); export builds produce dependency and API output without a native artifact",
+            "Select the backend kind exposed through Swag.compiler().getBuildCfg(); export builds produce dependency and API output without a native artifact",
             true,
             {&StructConfigAssignHook::setBoolTrue, &cmdLine_->artifactKindExplicit});
     add(HelpOptionGroup::Target, "sema doc test build run smoke", "--cpu", "-cpu",
@@ -105,16 +105,16 @@ void CommandLineParser::registerCommands()
         "Set the target CPU string used by #cpu and compiler target queries");
     add(HelpOptionGroup::Target, "sema doc test build run smoke", "--artifact-name", "-n",
         &cmdLine_->name,
-        "Set the artifact name exposed through @compiler.getBuildCfg() and used for native outputs");
+        "Set the artifact name exposed through Swag.compiler().getBuildCfg() and used for native outputs");
     add(HelpOptionGroup::Target, "sema doc test build run smoke", "--module-namespace", nullptr,
         &cmdLine_->moduleNamespace,
-        "Override the module namespace exposed through @compiler.getBuildCfg() and used as the semantic module root");
+        "Override the module namespace exposed through Swag.compiler().getBuildCfg() and used as the semantic module root");
     add(HelpOptionGroup::Target, "sema doc test build run smoke", "--out-dir", "-od",
         &cmdLine_->outDir,
-        "Set the artifact output directory exposed through @compiler.getBuildCfg()");
+        "Set the artifact output directory exposed through Swag.compiler().getBuildCfg()");
     add(HelpOptionGroup::Target, "sema doc test build run smoke", "--work-dir", "-wd",
         &cmdLine_->workDir,
-        "Set the work directory exposed through @compiler.getBuildCfg()");
+        "Set the work directory exposed through Swag.compiler().getBuildCfg()");
     addEnum(HelpOptionGroup::Target, "sema doc test build run smoke", "--optim-level", "-O",
             &cmdLine_->optimLevel,
             {

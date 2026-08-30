@@ -591,8 +591,8 @@ impl PdfView
     mtd close()
     {
         .releaseTextures()
-        @drop(&.page, 1)
-        @init(&.page, 1)
+        Swag.drop(&.page, 1)
+        Swag.init(&.page, 1)
         .fonts.reset(0)
         .clearTextState()
         .searchQuery.clear()
@@ -623,8 +623,8 @@ impl PdfView
 
         var page = #move try .reader.loadPage(index)
         .releaseTextures()
-        @drop(&.page, 1)
-        @init(&.page, 1)
+        Swag.drop(&.page, 1)
+        Swag.init(&.page, 1)
         .page      = #move page
         .hasPage   = true
         .pageIndex = index
@@ -722,7 +722,7 @@ impl PdfView
     mtd findTextMatches(text: string, options: PdfTextSearchOptions = {})->Array'PdfTextMatch
     {
         var result: retval
-        if !.hasPage or !@countof(text) do
+        if !.hasPage or !text.count do
             return result
 
         func isWholeWord(source: string, offset, length: u64)->bool
@@ -735,7 +735,7 @@ impl PdfView
             }
 
             let end = offset + length
-            if end < @countof(source)
+            if end < source.count
             {
                 let {c, ?} = Utf8.decodeRune(source[end to])
                 if Unicode.isWord(c) do
@@ -753,27 +753,27 @@ impl PdfView
                 var expression = catch Parser.RegExp.create(text, ignoreCase) as expressionError
                 if expressionError != null do
                     return
-                let sourceData = @dataof(source)
+                let sourceData = source.buffer
                 for value in expression.grepAll(source)
                 {
-                    if !@countof(value) do
+                    if !value.count do
                         continue
-                    let found = cast(u64) cast(s64) (@dataof(value) - sourceData)
-                    if !options.wholeWord or isWholeWord(source, found, @countof(value)) do
-                        result.add({pageIndex, found, @countof(value)})
+                    let found = cast(u64) cast(s64) (value.buffer - sourceData)
+                    if !options.wholeWord or isWholeWord(source, found, value.count) do
+                        result.add({pageIndex, found, value.count})
                 }
                 return
             }
 
             var from = 0'u64
-            while from < @countof(source)
+            while from < source.count
             {
                 let found = Utf8.indexOf(source, text, from, options.comparison)
                 if found == Swag.U64.Max do
                     break
-                if !options.wholeWord or isWholeWord(source, found, @countof(text)) do
-                    result.add({pageIndex, found, @countof(text)})
-                from = found + Math.max(@countof(text), 1)
+                if !options.wholeWord or isWholeWord(source, found, text.count) do
+                    result.add({pageIndex, found, text.count})
+                from = found + Math.max(text.count, 1)
             }
         }
 
@@ -901,7 +901,7 @@ impl PdfView
     // so the first search through a large document pays one decode per crossed page.
     mtd findText(text: string)->bool
     {
-        if !.hasPage or !@countof(text) do
+        if !.hasPage or !text.count do
             return false
 
         if .searchQuery != text
@@ -929,7 +929,7 @@ impl PdfView
                 let found = Utf8.indexOf(.textIndex.text.toString(), text, from, .Latin1NoCase)
                 if found == Swag.U64.Max do
                     continue
-                .revealMatch(pageIdx, found, @countof(text))
+                .revealMatch(pageIdx, found, text.count)
                 return true
             }
 
@@ -946,7 +946,7 @@ impl PdfView
             .showPageOrReport(pageIdx)
             if .pageIndex != pageIdx do
                 return false
-            .revealMatch(pageIdx, found, @countof(text))
+            .revealMatch(pageIdx, found, text.count)
             return true
         }
 

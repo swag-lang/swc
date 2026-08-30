@@ -31,7 +31,7 @@ internal func testRoundTrip(host: *Testing.HeadlessHost, source: *IDataObject)->
     let target = cast(*IDropTarget) &host.surface.dropTarget
 
     var effect = DROPEFFECT_COPY
-    @assert(target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect) == S_OK)
+    Swag.assert(target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect) == S_OK)
     return &host.surface.dropTarget.data
 }
 
@@ -46,16 +46,16 @@ internal func testRoundTripDrop(host: *Testing.HeadlessHost, source: *IDataObjec
     let target = cast(*IDropTarget) &host.surface.dropTarget
 
     var effect = DROPEFFECT_COPY
-    @assert(target.lpVtbl.Drop(target, source, 0, {60, 60}, &effect) == S_OK)
+    Swag.assert(target.lpVtbl.Drop(target, source, 0, {60, 60}, &effect) == S_OK)
 }
 
 // Copies `text` into a movable block, which is what a `TYMED_HGLOBAL` medium transfers.
 internal func testGlobalBlock(text: string)->HGLOBAL
 {
-    let size  = cast(u64) @countof(text)
+    let size  = cast(u64) text.count
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
     let buf   = cast([*] u8) GlobalLock(hglob)!
-    Memory.copy(buf, @dataof(text), size)
+    Memory.copy(buf, text.buffer, size)
     discard GlobalUnlock(buf)
     return hglob
 }
@@ -296,16 +296,16 @@ impl IWnd for PlatformCatcher
     let target = cast(*IDropTarget) &host.surface.dropTarget
 
     var effect = DROPEFFECT_COPY
-    @assert(target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect) == S_OK)
-    @assert(effect == DROPEFFECT_COPY)
+    Swag.assert(target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect) == S_OK)
+    Swag.assert(effect == DROPEFFECT_COPY)
 
     effect = DROPEFFECT_COPY
-    @assert(target.lpVtbl.Drop(target, source, 0, {60, 60}, &effect) == S_OK)
-    @assert(effect == DROPEFFECT_COPY)
+    Swag.assert(target.lpVtbl.Drop(target, source, 0, {60, 60}, &effect) == S_OK)
+    Swag.assert(effect == DROPEFFECT_COPY)
 
-    @assert(catcher.drops == 1)
-    @assert(catcher.files.count == 1)
-    @assert(catcher.files[0] == "c:/tmp/dropped.txt")
+    Swag.assert(catcher.drops == 1)
+    Swag.assert(catcher.files.count == 1)
+    Swag.assert(catcher.files[0] == "c:/tmp/dropped.txt")
 }
 
 // A list of files survives the DROPFILES block, in order.
@@ -322,12 +322,12 @@ impl IWnd for PlatformCatcher
     var session: DragSession
     let payload = testRoundTrip(&host, testDragSource(&session, &data))
 
-    @assert(payload.files.count == 2)
-    @assert(payload.files[0] == "c:/tmp/first.png")
-    @assert(payload.files[1] == "c:/tmp/second name with spaces.png")
-    @assert(payload.singleFile() == null)
-    @assert(!payload.hasText())
-    @assert(!payload.hasImage())
+    Swag.assert(payload.files.count == 2)
+    Swag.assert(payload.files[0] == "c:/tmp/first.png")
+    Swag.assert(payload.files[1] == "c:/tmp/second name with spaces.png")
+    Swag.assert(payload.singleFile() == null)
+    Swag.assert(!payload.hasText())
+    Swag.assert(!payload.hasImage())
 }
 
 // One file alone is what a field naming a document reads through `singleFile`.
@@ -341,7 +341,7 @@ impl IWnd for PlatformCatcher
     data.addFile("c:/tmp/only.txt")
 
     var session: DragSession
-    @assert(testRoundTrip(&host, testDragSource(&session, &data)).singleFile() == "c:/tmp/only.txt")
+    Swag.assert(testRoundTrip(&host, testDragSource(&session, &data)).singleFile() == "c:/tmp/only.txt")
 }
 
 // Text survives the UTF-16 medium, including what does not fit in one byte.
@@ -357,8 +357,8 @@ impl IWnd for PlatformCatcher
     var session: DragSession
     let payload = testRoundTrip(&host, testDragSource(&session, &data))
 
-    @assert(payload.text == "drag héllo → wörld")
-    @assert(!payload.hasFiles())
+    Swag.assert(payload.text == "drag héllo → wörld")
+    Swag.assert(!payload.hasFiles())
 }
 
 // A picture survives the PNG medium, pixel for pixel.
@@ -376,12 +376,12 @@ impl IWnd for PlatformCatcher
     var session: DragSession
     let payload = testRoundTrip(&host, testDragSource(&session, &data))
 
-    @assert(payload.hasImage())
+    Swag.assert(payload.hasImage())
     let decoded = payload.image()!
-    @assert(decoded.width == 7)
-    @assert(decoded.height == 5)
-    @assert(decoded.pixelColor(0, 0).argb == source.pixelColor(0, 0).argb)
-    @assert(decoded.pixelColor(6, 4).argb == source.pixelColor(6, 4).argb)
+    Swag.assert(decoded.width == 7)
+    Swag.assert(decoded.height == 5)
+    Swag.assert(decoded.pixelColor(0, 0).argb == source.pixelColor(0, 0).argb)
+    Swag.assert(decoded.pixelColor(6, 4).argb == source.pixelColor(6, 4).argb)
 }
 
 // Files and a picture together: a folder takes the file, an editor takes the bitmap, and the
@@ -401,8 +401,8 @@ impl IWnd for PlatformCatcher
     var session: DragSession
     let payload = testRoundTrip(&host, testDragSource(&session, &data))
 
-    @assert(payload.singleFile() == "c:/tmp/shot.png")
-    @assert(payload.hasImage())
+    Swag.assert(payload.singleFile() == "c:/tmp/shot.png")
+    Swag.assert(payload.hasImage())
 }
 
 // The source enumerates what it offers, most specific first, and stops cleanly.
@@ -420,37 +420,37 @@ impl IWnd for PlatformCatcher
     let source = testDragSource(&session, &data)
 
     var raw: LPVOID
-    @assert(source.lpVtbl.EnumFormatEtc(source, 1, &raw) == S_OK)
+    Swag.assert(source.lpVtbl.EnumFormatEtc(source, 1, &raw) == S_OK)
     let formats = cast(*IEnumFORMATETC) raw!
     defer discard formats.lpVtbl.Release(formats)
 
     var entries: [8] FORMATETC
     var fetched: ULONG
-    @assert(formats.lpVtbl.Next(formats, 8, &entries[0], &fetched) == S_FALSE)
-    @assert(fetched == 3)
-    @assert(entries[0].cfFormat == cast(CLIPFORMAT) CF_HDROP)
-    @assert(entries[1].cfFormat == cast(CLIPFORMAT) CF_UNICODETEXT)
-    @assert(entries[2].cfFormat == cast(CLIPFORMAT) CF_TEXT)
-    @assert(entries[0].tymed == TYMED_HGLOBAL)
-    @assert(entries[0].dwAspect == DVASPECT_CONTENT)
+    Swag.assert(formats.lpVtbl.Next(formats, 8, &entries[0], &fetched) == S_FALSE)
+    Swag.assert(fetched == 3)
+    Swag.assert(entries[0].cfFormat == cast(CLIPFORMAT) CF_HDROP)
+    Swag.assert(entries[1].cfFormat == cast(CLIPFORMAT) CF_UNICODETEXT)
+    Swag.assert(entries[2].cfFormat == cast(CLIPFORMAT) CF_TEXT)
+    Swag.assert(entries[0].tymed == TYMED_HGLOBAL)
+    Swag.assert(entries[0].dwAspect == DVASPECT_CONTENT)
 
     // Rewinding starts the walk again, and a clone keeps its own place in it.
-    @assert(formats.lpVtbl.Reset(formats) == S_OK)
-    @assert(formats.lpVtbl.Skip(formats, 1) == S_OK)
+    Swag.assert(formats.lpVtbl.Reset(formats) == S_OK)
+    Swag.assert(formats.lpVtbl.Skip(formats, 1) == S_OK)
 
     var rawClone: LPVOID
-    @assert(formats.lpVtbl.Clone(formats, &rawClone) == S_OK)
+    Swag.assert(formats.lpVtbl.Clone(formats, &rawClone) == S_OK)
     let clone = cast(*IEnumFORMATETC) rawClone!
     defer discard clone.lpVtbl.Release(clone)
 
-    @assert(clone.lpVtbl.Next(clone, 1, &entries[0], &fetched) == S_OK)
-    @assert(fetched == 1)
-    @assert(entries[0].cfFormat == cast(CLIPFORMAT) CF_UNICODETEXT)
+    Swag.assert(clone.lpVtbl.Next(clone, 1, &entries[0], &fetched) == S_OK)
+    Swag.assert(fetched == 1)
+    Swag.assert(entries[0].cfFormat == cast(CLIPFORMAT) CF_UNICODETEXT)
 
     // Asking past the end is a clean stop, not a failure.
-    @assert(formats.lpVtbl.Skip(formats, 99) == S_FALSE)
-    @assert(formats.lpVtbl.Next(formats, 1, &entries[0], &fetched) == S_FALSE)
-    @assert(fetched == 0)
+    Swag.assert(formats.lpVtbl.Skip(formats, 99) == S_FALSE)
+    Swag.assert(formats.lpVtbl.Next(formats, 1, &entries[0], &fetched) == S_FALSE)
+    Swag.assert(fetched == 0)
 }
 
 // A format nobody offered is refused rather than answered with an empty medium.
@@ -471,15 +471,15 @@ impl IWnd for PlatformCatcher
     fmt.dwAspect = DVASPECT_CONTENT
     fmt.lindex   = -1
     fmt.tymed    = TYMED_HGLOBAL
-    @assert(source.lpVtbl.QueryGetData(source, &fmt) == DV_E_FORMATETC)
+    Swag.assert(source.lpVtbl.QueryGetData(source, &fmt) == DV_E_FORMATETC)
 
     var med: STGMEDIUM
-    @assert(source.lpVtbl.GetData(source, &fmt, &med) == DV_E_FORMATETC)
+    Swag.assert(source.lpVtbl.GetData(source, &fmt, &med) == DV_E_FORMATETC)
 
     // A format it does offer, but through a medium it cannot produce, is refused too.
     fmt.cfFormat = cast(CLIPFORMAT) CF_UNICODETEXT
     fmt.tymed    = TYMED_ISTREAM
-    @assert(source.lpVtbl.QueryGetData(source, &fmt) == DV_E_FORMATETC)
+    Swag.assert(source.lpVtbl.QueryGetData(source, &fmt) == DV_E_FORMATETC)
 }
 
 // The interfaces answer the identity questions COM asks of every object.
@@ -494,17 +494,17 @@ impl IWnd for PlatformCatcher
 
     var out: LPVOID
     var iid = IID_IDropTarget
-    @assert(target.lpVtbl.QueryInterface(target, &iid, &out) == S_OK)
-    @assert(cast(#null *void) out == cast(#null *void) target)
+    Swag.assert(target.lpVtbl.QueryInterface(target, &iid, &out) == S_OK)
+    Swag.assert(cast(#null *void) out == cast(#null *void) target)
 
     // An interface the object does not implement is refused, and clears the output.
     var otherIid = IID_IDataObject
-    @assert(target.lpVtbl.QueryInterface(target, &otherIid, &out) == E_NOINTERFACE)
-    @assert(out == null)
+    Swag.assert(target.lpVtbl.QueryInterface(target, &otherIid, &out) == E_NOINTERFACE)
+    Swag.assert(out == null)
 
     // The count the surface owns survives a balanced pair.
     let before = target.lpVtbl.AddRef(target)
-    @assert(target.lpVtbl.Release(target) == before - 1)
+    Swag.assert(target.lpVtbl.Release(target) == before - 1)
 
     var data: DragData
     data.setText("x")
@@ -512,18 +512,18 @@ impl IWnd for PlatformCatcher
     let source = testDragSource(&session, &data)
 
     var srcIid = IID_IDataObject
-    @assert(source.lpVtbl.QueryInterface(source, &srcIid, &out) == S_OK)
-    @assert(source.lpVtbl.QueryInterface(source, &iid, &out) == E_NOINTERFACE)
+    Swag.assert(source.lpVtbl.QueryInterface(source, &srcIid, &out) == S_OK)
+    Swag.assert(source.lpVtbl.QueryInterface(source, &iid, &out) == E_NOINTERFACE)
 
     let dropSrc   = cast(*IDropSource) &session.dropSrc
     var srcSrcIid = IID_IDropSource
-    @assert(dropSrc.lpVtbl.QueryInterface(dropSrc, &srcSrcIid, &out) == S_OK)
+    Swag.assert(dropSrc.lpVtbl.QueryInterface(dropSrc, &srcSrcIid, &out) == S_OK)
 
     // Escape gives up, letting the button go drops, holding it keeps the gesture running.
-    @assert(dropSrc.lpVtbl.QueryContinueDrag(dropSrc, TRUE, MK_LBUTTON) == DRAGDROP_S_CANCEL)
-    @assert(dropSrc.lpVtbl.QueryContinueDrag(dropSrc, FALSE, 0) == DRAGDROP_S_DROP)
-    @assert(dropSrc.lpVtbl.QueryContinueDrag(dropSrc, FALSE, MK_LBUTTON) == S_OK)
-    @assert(dropSrc.lpVtbl.GiveFeedback(dropSrc, DROPEFFECT_COPY) == DRAGDROP_S_USEDEFAULTCURSORS)
+    Swag.assert(dropSrc.lpVtbl.QueryContinueDrag(dropSrc, TRUE, MK_LBUTTON) == DRAGDROP_S_CANCEL)
+    Swag.assert(dropSrc.lpVtbl.QueryContinueDrag(dropSrc, FALSE, 0) == DRAGDROP_S_DROP)
+    Swag.assert(dropSrc.lpVtbl.QueryContinueDrag(dropSrc, FALSE, MK_LBUTTON) == S_OK)
+    Swag.assert(dropSrc.lpVtbl.GiveFeedback(dropSrc, DROPEFFECT_COPY) == DRAGDROP_S_USEDEFAULTCURSORS)
 }
 
 // A drag that leaves without dropping is reported the same way a cancelled one is.
@@ -544,10 +544,10 @@ impl IWnd for PlatformCatcher
 
     var effect = DROPEFFECT_COPY
     discard target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
-    @assert(host.surface.dropTarget.data.singleFile() == "c:/tmp/only.txt")
+    Swag.assert(host.surface.dropTarget.data.singleFile() == "c:/tmp/only.txt")
 
-    @assert(target.lpVtbl.DragLeave(target) == S_OK)
-    @assert(host.surface.dropTarget.data.files.count == 0)
+    Swag.assert(target.lpVtbl.DragLeave(target) == S_OK)
+    Swag.assert(host.surface.dropTarget.data.files.count == 0)
 }
 
 // A file with no path travels by name while the gesture hovers, and by content once it lands.
@@ -579,21 +579,21 @@ impl IWnd for PlatformCatcher
 
     // Hovering announces the names and asks for nothing else, so the producer has not run.
     let hovering = testRoundTrip(&host, source)
-    @assert(hovering.contents.count == 2)
-    @assert(hovering.contents[0].name == "report.txt")
-    @assert(hovering.contents[1].name == "late.bin")
-    @assert(@countof(hovering.contentData(0)) == 0)
-    @assert(produced == 0)
+    Swag.assert(hovering.contents.count == 2)
+    Swag.assert(hovering.contents[0].name == "report.txt")
+    Swag.assert(hovering.contents[1].name == "late.bin")
+    Swag.assert((hovering.contentData(0)).count == 0)
+    Swag.assert(produced == 0)
 
     // The release is what pays for the content, and each file keeps its own. The payload is read
     // from inside the event, because the platform clears it as soon as the drop is delivered.
     testRoundTripDrop(&host, source)
-    @assert(produced == 1)
-    @assert(catcher.names.count == 2)
-    @assert(catcher.names[0] == "report.txt")
-    @assert(catcher.names[1] == "late.bin")
-    @assert(Testing.bytesAre(catcher.blobs[0].toSlice(), "already here"))
-    @assert(Testing.bytesAre(catcher.blobs[1].toSlice(), "made on demand"))
+    Swag.assert(produced == 1)
+    Swag.assert(catcher.names.count == 2)
+    Swag.assert(catcher.names[0] == "report.txt")
+    Swag.assert(catcher.names[1] == "late.bin")
+    Swag.assert(Testing.bytesAre(catcher.blobs[0].toSlice(), "already here"))
+    Swag.assert(Testing.bytesAre(catcher.blobs[1].toSlice(), "made on demand"))
 }
 
 // A physical path wins over a duplicate deferred-content offer. Shell data objects can publish
@@ -618,8 +618,8 @@ impl IWnd for PlatformCatcher
 
     var session: DragSession
     testRoundTripDrop(&host, testDragSource(&session, &data))
-    @assert(produced == 0)
-    @assert(catcher.names.count == 0)
+    Swag.assert(produced == 0)
+    Swag.assert(catcher.names.count == 0)
 }
 
 // The source enumerates a file with no path as a descriptor plus one entry per file, and names
@@ -638,28 +638,28 @@ impl IWnd for PlatformCatcher
     let source = testDragSource(&session, &data)
 
     var raw: LPVOID
-    @assert(source.lpVtbl.EnumFormatEtc(source, 1, &raw) == S_OK)
+    Swag.assert(source.lpVtbl.EnumFormatEtc(source, 1, &raw) == S_OK)
     let formats = cast(*IEnumFORMATETC) raw!
     defer discard formats.lpVtbl.Release(formats)
 
     var entries: [8] FORMATETC
     var fetched: ULONG
-    @assert(formats.lpVtbl.Next(formats, 8, &entries[0], &fetched) == S_FALSE)
-    @assert(fetched == 3)
+    Swag.assert(formats.lpVtbl.Next(formats, 8, &entries[0], &fetched) == S_FALSE)
+    Swag.assert(fetched == 3)
 
-    @assert(entries[0].cfFormat == cast(CLIPFORMAT) catch RegisterClipboardFormatA(@dataof(CFSTR_FILEDESCRIPTORW)))
-    @assert(entries[0].lindex == -1)
+    Swag.assert(entries[0].cfFormat == cast(CLIPFORMAT) catch RegisterClipboardFormatA(CFSTR_FILEDESCRIPTORW.buffer))
+    Swag.assert(entries[0].lindex == -1)
 
-    let contents = cast(CLIPFORMAT) catch RegisterClipboardFormatA(@dataof(CFSTR_FILECONTENTS))
-    @assert(entries[1].cfFormat == contents and entries[1].lindex == 0)
-    @assert(entries[2].cfFormat == contents and entries[2].lindex == 1)
-    @assert(entries[1].tymed & TYMED_ISTREAM)
+    let contents = cast(CLIPFORMAT) catch RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer)
+    Swag.assert(entries[1].cfFormat == contents and entries[1].lindex == 0)
+    Swag.assert(entries[2].cfFormat == contents and entries[2].lindex == 1)
+    Swag.assert(entries[1].tymed & TYMED_ISTREAM)
 
     // One item of a multi-item format is named exactly, so asking past the last one is refused
     // rather than answered with the first.
     var fmt = entries[2]
     fmt.lindex = 2
-    @assert(source.lpVtbl.QueryGetData(source, &fmt) == DV_E_FORMATETC)
+    Swag.assert(source.lpVtbl.QueryGetData(source, &fmt) == DV_E_FORMATETC)
 }
 
 // A format published solely as a stream reads as what it carries, not as nothing on offer.
@@ -683,7 +683,7 @@ impl IWnd for PlatformCatcher
     streamOnly.setup(&session.dataObj)
 
     let payload = testRoundTrip(&host, cast(*IDataObject) &streamOnly)
-    @assert(payload.text == "carried by a stream")
+    Swag.assert(payload.text == "carried by a stream")
 }
 
 // A format set on the source object is handed back to whoever asks for it.
@@ -702,44 +702,44 @@ impl IWnd for PlatformCatcher
     var session: DragSession
     let source = testDragSource(&session, &data)
 
-    let format = cast(CLIPFORMAT) catch RegisterClipboardFormatA(@dataof("SwagDragPrivate"))
+    let format = cast(CLIPFORMAT) catch RegisterClipboardFormatA(("SwagDragPrivate").buffer)
 
     var fmt: FORMATETC
     fmt.cfFormat = format
     fmt.dwAspect = DVASPECT_CONTENT
     fmt.lindex   = -1
     fmt.tymed    = TYMED_HGLOBAL
-    @assert(source.lpVtbl.QueryGetData(source, &fmt) == DV_E_FORMATETC)
+    Swag.assert(source.lpVtbl.QueryGetData(source, &fmt) == DV_E_FORMATETC)
 
     var med: STGMEDIUM
     med.tymed   = TYMED_HGLOBAL
     med.hGlobal = testGlobalBlock("private bits")
-    @assert(source.lpVtbl.SetData(source, &fmt, &med, TRUE) == S_OK)
+    Swag.assert(source.lpVtbl.SetData(source, &fmt, &med, TRUE) == S_OK)
 
     // It now reads back through the same two questions every other format answers.
-    @assert(source.lpVtbl.QueryGetData(source, &fmt) == S_OK)
+    Swag.assert(source.lpVtbl.QueryGetData(source, &fmt) == S_OK)
 
     var out: STGMEDIUM
-    @assert(source.lpVtbl.GetData(source, &fmt, &out) == S_OK)
-    @assert(out.tymed == TYMED_HGLOBAL)
+    Swag.assert(source.lpVtbl.GetData(source, &fmt, &out) == S_OK)
+    Swag.assert(out.tymed == TYMED_HGLOBAL)
     defer ReleaseStgMedium(&out)
 
     let buf = cast([*] u8) GlobalLock(out.hGlobal)!
-    @assert(@mkstring(buf, 12) == "private bits")
+    Swag.assert(Swag.makeString(buf, 12) == "private bits")
     discard GlobalUnlock(buf)
 
     // And it is part of what the object enumerates, beside what it produces itself.
     var raw: LPVOID
-    @assert(source.lpVtbl.EnumFormatEtc(source, 1, &raw) == S_OK)
+    Swag.assert(source.lpVtbl.EnumFormatEtc(source, 1, &raw) == S_OK)
     let formats = cast(*IEnumFORMATETC) raw!
     defer discard formats.lpVtbl.Release(formats)
 
     var entries: [8] FORMATETC
     var fetched: ULONG
     discard formats.lpVtbl.Next(formats, 8, &entries[0], &fetched)
-    @assert(fetched == 3)
-    @assert(entries[2].cfFormat == format)
+    Swag.assert(fetched == 3)
+    Swag.assert(entries[2].cfFormat == format)
 
     // Lending a medium instead of handing it over is refused rather than half-supported.
-    @assert(source.lpVtbl.SetData(source, &fmt, &med, FALSE) == E_NOTIMPL)
+    Swag.assert(source.lpVtbl.SetData(source, &fmt, &med, FALSE) == E_NOTIMPL)
 }

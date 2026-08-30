@@ -3,34 +3,34 @@
 #[Swag.Compiler]
 func checkProcessInfosAndArgs()->bool
 {
-    let a = @countof(@pinfos.args)
-    let b = @pinfos.args
+    let a = (Swag.processInfos().args).count
+    let b = Swag.processInfos().args
     #assert(#typeof(b) == #null string)
-    let c = @jit
+    let c = Swag.jit()
     #assert(#typeof(c) == bool)
-    let d = @args
+    let d = Swag.args()
     #assert(#typeof(d) == const [..] string)
-    let e = @jit
+    let e = Swag.jit()
     #assert(#typeof(e) == bool)
     #assert(#typeof(a) == u64)
-    @assert(@countof(d) >= 0)
-    @assert(e == @jit)
+    Swag.assert(d.count >= 0)
+    Swag.assert(e == Swag.jit())
     return true
 }
 
 #[Swag.Compiler]
 func checkArgs()->bool
 {
-    let a = @args
+    let a = Swag.args()
     #assert(#typeof(a) == const [..] string)
-    @assert(@countof(a) >= 0)
+    Swag.assert(a.count >= 0)
     return true
 }
 
 #[Swag.Compiler]
 func checkProcessInfosArgsType()->bool
 {
-    let a = @pinfos.args
+    let a = Swag.processInfos().args
     #assert(#typeof(a) == #null string)
     return true
 }

@@ -38,7 +38,7 @@ private func loadTableDocument(fileName: string)->TableDocument fail
 internal func tableCellPreviewRange(value: string, focus = Swag.U64.Max)->{ start, end: u64 }
 {
     var result: retval
-    result.end = @countof(value)
+    result.end = value.count
     if result.end <= TableCellPreviewBytes do
         return result
 
@@ -48,15 +48,15 @@ internal func tableCellPreviewRange(value: string, focus = Swag.U64.Max)->{ star
     while result.start and (value[result.start] & 0xC0) == 0x80 do
         result.start -= 1
 
-    result.end = Math.min(result.start + TableCellPreviewBytes, @countof(value))
-    while result.end < @countof(value) and (value[result.end] & 0xC0) == 0x80 do
+    result.end = Math.min(result.start + TableCellPreviewBytes, value.count)
+    while result.end < value.count and (value[result.end] & 0xC0) == 0x80 do
         result.end -= 1
     return result
 }
 
 private func finishTableCell(row: *TableRow, cell: *Array'u8)
 {
-    row.cells.add(String.from(cell.isEmpty() ? "" : @mkstring(cell.buffer!, cell.count)))
+    row.cells.add(String.from(cell.isEmpty() ? "" : Swag.makeString(cell.buffer!, cell.count)))
     cell.clear()
 }
 
@@ -79,14 +79,14 @@ internal func parseTableDocument(text: string, delimiter: u8)->TableDocument fai
     var closedQuote: bool
     var touched:     bool
     var at = 0'u64
-    while at < @countof(text)
+    while at < text.count
     {
         let value = text[at]
         if quoted
         {
             if value == '"'
             {
-                if at + 1 < @countof(text) and text[at + 1] == '"'
+                if at + 1 < text.count and text[at + 1] == '"'
                 {
                     cell.add('"'u8)
                     at += 2
@@ -102,7 +102,7 @@ internal func parseTableDocument(text: string, delimiter: u8)->TableDocument fai
             if value == '\r'
             {
                 cell.add('\n'u8)
-                at += at + 1 < @countof(text) and text[at + 1] == '\n' ? 2 : 1
+                at += at + 1 < text.count and text[at + 1] == '\n' ? 2 : 1
                 continue
             }
 
@@ -125,7 +125,7 @@ internal func parseTableDocument(text: string, delimiter: u8)->TableDocument fai
             finishTableRow(&result, &row, &cell)
             touched     = false
             closedQuote = false
-            at          += value == '\r' and at + 1 < @countof(text) and text[at + 1] == '\n' ? 2 : 1
+            at          += value == '\r' and at + 1 < text.count and text[at + 1] == '\n' ? 2 : 1
             continue
         }
 
@@ -179,12 +179,12 @@ private func delimiterCount(text: string, delimiter: u8)->u64
     var quoted: bool
     var at      = 0'u64
     var records = 0'u32
-    while at < @countof(text) and at < 16 * 1024 and records < 8
+    while at < text.count and at < 16 * 1024 and records < 8
     {
         let value = text[at]
         if value == '"'
         {
-            if quoted and at + 1 < @countof(text) and text[at + 1] == '"' do
+            if quoted and at + 1 < text.count and text[at + 1] == '"' do
                 at += 2
             else
             {
@@ -200,7 +200,7 @@ private func delimiterCount(text: string, delimiter: u8)->u64
         if !quoted and (value == '\r' or value == '\n')
         {
             records += 1
-            if value == '\r' and at + 1 < @countof(text) and text[at + 1] == '\n' do
+            if value == '\r' and at + 1 < text.count and text[at + 1] == '\n' do
                 at += 2
             else do
                 at += 1
@@ -344,7 +344,7 @@ private impl TableViewer
             {
                 item.colorBk = .themeColors().edit_SelectedBk
                 item.colorFg = .themeColors().label_Text
-                if .searchLength and .searchOffset + .searchLength <= @countof(value)
+                if .searchLength and .searchOffset + .searchLength <= value.count
                 {
                     let markedStart = Math.max(.searchOffset, range.start)
                     let markedEnd   = Math.min(.searchOffset + .searchLength, range.end)
@@ -358,7 +358,7 @@ private impl TableViewer
                         marked += value[markedStart until markedEnd]
                         marked += "</b>"
                         marked += value[markedEnd until range.end]
-                        if range.end < @countof(value) do
+                        if range.end < value.count do
                             marked += "\u2026"
                         item.name = marked.toString()
                     }

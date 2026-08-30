@@ -12,7 +12,7 @@ func(T) swap(x, y: *T)
     tmp = #relocate x[]
     x[] = #relocate y[]
     y[] = #relocate tmp
-    @memset(cast([*] void) &tmp, 0, #sizeof(T))
+    Swag.memset(cast([*] void) &tmp, 0, #sizeof(T))
 }
 
 // Ensures that the first value is less than or equal to the second value.

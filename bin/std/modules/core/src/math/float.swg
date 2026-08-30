@@ -203,176 +203,176 @@ alias ConstF64 = Const'f64
 #[Swag.ConstExpr, Swag.Inline]
 {
     // Returns the signed arc tangent of the coordinates 'y' and 'x'.
-    func atan2(y, x: f32) => @atan2(y, x)
+    func atan2(y, x: f32) => Swag.atan2(y, x)
 
     // Returns the signed arc tangent of the coordinates 'y' and 'x'.
-    func atan2(y, x: f64) => @atan2(y, x)
+    func atan2(y, x: f64) => Swag.atan2(y, x)
 
     // Performs the sqrt operation.
-    func sqrt(x: f32) => @sqrt(x)
+    func sqrt(x: f32) => Swag.sqrt(x)
 
     // Returns the square root.
-    func sqrt(x: f64) => @sqrt(x)
+    func sqrt(x: f64) => Swag.sqrt(x)
 
     // Performs the sin operation.
-    func sin(x: f32) => @sin(x)
+    func sin(x: f32) => Swag.sin(x)
 
     // Returns the sine of an angle in radians.
-    func sin(x: f64) => @sin(x)
+    func sin(x: f64) => Swag.sin(x)
 
     // Performs the cos operation.
-    func cos(x: f32) => @cos(x)
+    func cos(x: f32) => Swag.cos(x)
 
     // Returns the cosine of an angle in radians.
-    func cos(x: f64) => @cos(x)
+    func cos(x: f64) => Swag.cos(x)
 
     // Performs the tan operation.
-    func tan(x: f32) => @tan(x)
+    func tan(x: f32) => Swag.tan(x)
 
     // Returns the tangent of an angle in radians.
-    func tan(x: f64) => @tan(x)
+    func tan(x: f64) => Swag.tan(x)
 
     // Performs the sinh operation.
-    func sinh(x: f32) => @sinh(x)
+    func sinh(x: f32) => Swag.sinh(x)
 
     // Returns the hyperbolic sine.
-    func sinh(x: f64) => @sinh(x)
+    func sinh(x: f64) => Swag.sinh(x)
 
     // Performs the cosh operation.
-    func cosh(x: f32) => @cosh(x)
+    func cosh(x: f32) => Swag.cosh(x)
 
     // Returns the hyperbolic cosine.
-    func cosh(x: f64) => @cosh(x)
+    func cosh(x: f64) => Swag.cosh(x)
 
     // Performs the tanh operation.
-    func tanh(x: f32) => @tanh(x)
+    func tanh(x: f32) => Swag.tanh(x)
 
     // Returns the hyperbolic tangent.
-    func tanh(x: f64) => @tanh(x)
+    func tanh(x: f64) => Swag.tanh(x)
 
     // Performs the asin operation.
-    func asin(x: f32) => @asin(x)
+    func asin(x: f32) => Swag.asin(x)
 
     // Returns the arc sine in radians.
-    func asin(x: f64) => @asin(x)
+    func asin(x: f64) => Swag.asin(x)
 
     // Performs the acos operation.
-    func acos(x: f32) => @acos(x)
+    func acos(x: f32) => Swag.acos(x)
 
     // Returns the arc cosine in radians.
-    func acos(x: f64) => @acos(x)
+    func acos(x: f64) => Swag.acos(x)
 
     // Performs the atan operation.
-    func atan(x: f32) => @atan(x)
+    func atan(x: f32) => Swag.atan(x)
 
     // Returns the arc tangent in radians.
-    func atan(x: f64) => @atan(x)
+    func atan(x: f64) => Swag.atan(x)
 
     // Performs the log operation.
-    func log(x: f32) => @log(x)
+    func log(x: f32) => Swag.log(x)
 
     // Returns the natural logarithm.
-    func log(x: f64) => @log(x)
+    func log(x: f64) => Swag.log(x)
 
     // Performs the log2 operation.
-    func log2(x: f32) => @log2(x)
+    func log2(x: f32) => Swag.log2(x)
 
     // Returns the base-two logarithm.
-    func log2(x: f64) => @log2(x)
+    func log2(x: f64) => Swag.log2(x)
 
     // Performs the log10 operation.
-    func log10(x: f32) => @log10(x)
+    func log10(x: f32) => Swag.log10(x)
 
     // Returns the base-ten logarithm.
-    func log10(x: f64) => @log10(x)
+    func log10(x: f64) => Swag.log10(x)
 
     // Performs the floor operation.
-    func floor(x: f32) => @floor(x)
+    func floor(x: f32) => Swag.floor(x)
 
     // Rounds downward to an integer-valued number.
-    func floor(x: f64) => @floor(x)
+    func floor(x: f64) => Swag.floor(x)
 
     // Performs the ceil operation.
-    func ceil(x: f32) => @ceil(x)
+    func ceil(x: f32) => Swag.ceil(x)
 
     // Rounds upward to an integer-valued number.
-    func ceil(x: f64) => @ceil(x)
+    func ceil(x: f64) => Swag.ceil(x)
 
     // Performs the trunc operation.
-    func trunc(x: f32) => @trunc(x)
+    func trunc(x: f32) => Swag.trunc(x)
 
     // Removes the fractional part.
-    func trunc(x: f64) => @trunc(x)
+    func trunc(x: f64) => Swag.trunc(x)
 
     // Performs the round operation.
-    func round(x: f32) => @round(x)
+    func round(x: f32) => Swag.round(x)
 
     // Rounds to the nearest integer-valued number.
-    func round(x: f64) => @round(x)
+    func round(x: f64) => Swag.round(x)
 
     // Performs the floor s32 operation.
-    func floorS32(x: f32) => cast(s32) @floor(x)
+    func floorS32(x: f32) => cast(s32) Swag.floor(x)
 
     // Performs the floor s64 operation.
-    func floorS64(x: f64) => cast(s64) @floor(x)
+    func floorS64(x: f64) => cast(s64) Swag.floor(x)
 
     // Performs the ceil s32 operation.
-    func ceilS32(x: f32) => cast(s32) @ceil(x)
+    func ceilS32(x: f32) => cast(s32) Swag.ceil(x)
 
     // Performs the ceil s64 operation.
-    func ceilS64(x: f64) => cast(s64) @ceil(x)
+    func ceilS64(x: f64) => cast(s64) Swag.ceil(x)
 
     // Performs the trunc s32 operation.
-    func truncS32(x: f32) => cast(s32) @trunc(x)
+    func truncS32(x: f32) => cast(s32) Swag.trunc(x)
 
     // Performs the trunc s64 operation.
-    func truncS64(x: f64) => cast(s64) @trunc(x)
+    func truncS64(x: f64) => cast(s64) Swag.trunc(x)
 
     // Performs the round s32 operation.
-    func roundS32(x: f32) => cast(s32) @round(x)
+    func roundS32(x: f32) => cast(s32) Swag.round(x)
 
     // Performs the round s64 operation.
-    func roundS64(x: f64) => cast(s64) @round(x)
+    func roundS64(x: f64) => cast(s64) Swag.round(x)
 
     // Performs the abs operation.
-    func abs(x: f32) => @abs(x)
+    func abs(x: f32) => Swag.abs(x)
 
     // Returns the absolute value.
-    func abs(x: f64) => @abs(x)
+    func abs(x: f64) => Swag.abs(x)
 
     // Performs the min operation.
-    func min(x, y: f32) => @min(x, y)
+    func min(x, y: f32) => Swag.min(x, y)
 
     // Returns the lesser value.
-    func min(x, y: f64) => @min(x, y)
+    func min(x, y: f64) => Swag.min(x, y)
 
     // Performs the max operation.
-    func max(x, y: f32) => @max(x, y)
+    func max(x, y: f32) => Swag.max(x, y)
 
     // Returns the greater value.
-    func max(x, y: f64) => @max(x, y)
+    func max(x, y: f64) => Swag.max(x, y)
 
     // Performs the exp operation.
-    func exp(x: f32) => @exp(x)
+    func exp(x: f32) => Swag.exp(x)
 
     // Raises Euler's number to the requested power.
-    func exp(x: f64) => @exp(x)
+    func exp(x: f64) => Swag.exp(x)
 
     // Performs the exp2 operation.
-    func exp2(x: f32) => @exp2(x)
+    func exp2(x: f32) => Swag.exp2(x)
 
     // Raises two to the requested power.
-    func exp2(x: f64) => @exp2(x)
+    func exp2(x: f64) => Swag.exp2(x)
 
     // Performs the pow operation.
-    func pow(x, y: f32) => @pow(x, y)
+    func pow(x, y: f32) => Swag.pow(x, y)
 
     // Raises a value to a power.
-    func pow(x, y: f64) => @pow(x, y)
+    func pow(x, y: f64) => Swag.pow(x, y)
 
     // Performs the mul add operation.
-    func mulAdd(x, y, z: f32) => @muladd(x, y, z)
+    func mulAdd(x, y, z: f32) => Swag.muladd(x, y, z)
 
     // Multiplies two values and adds a third.
-    func mulAdd(x, y, z: f64) => @muladd(x, y, z)
+    func mulAdd(x, y, z: f64) => Swag.muladd(x, y, z)
 }

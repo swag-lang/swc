@@ -13,10 +13,10 @@
     #assert(#typeof(c) == u32)
     #assert(#typeof(d) == u64)
 
-    @assert(a == 42)
-    @assert(b == 255'u8)
-    @assert(c == 3735928559'u32)
-    @assert(d == 18446744073709551615'u64)
+    Swag.assert(a == 42)
+    Swag.assert(b == 255'u8)
+    Swag.assert(c == 3735928559'u32)
+    Swag.assert(d == 18446744073709551615'u64)
 }
 
 // Binary literals
@@ -30,9 +30,9 @@
     #assert(#typeof(b) == u8)
     #assert(#typeof(c) == u16)
 
-    @assert(a == 42)
-    @assert(b == 255'u8)
-    @assert(c == 43690'u16)
+    Swag.assert(a == 42)
+    Swag.assert(b == 255'u8)
+    Swag.assert(c == 43690'u16)
 }
 
 // Hex and binary consistency
@@ -41,8 +41,8 @@
     let hex = 0x2A'u32
     let bin = 0b0010_1010'u32
     let dec = 42'u32
-    @assert(hex == bin)
-    @assert(hex == dec)
+    Swag.assert(hex == bin)
+    Swag.assert(hex == dec)
 }
 
 // Integer type suffixes
@@ -66,10 +66,10 @@
     #assert(#typeof(g) == s64)
     #assert(#typeof(h) == u64)
 
-    @assert(a == 127's8)
-    @assert(b == 255'u8)
-    @assert(c == 32767's16)
-    @assert(d == 65535'u16)
+    Swag.assert(a == 127's8)
+    Swag.assert(b == 255'u8)
+    Swag.assert(c == 32767's16)
+    Swag.assert(d == 65535'u16)
 }
 
 // Float type suffixes
@@ -85,9 +85,9 @@
     #assert(#typeof(c) == f32)
     #assert(#typeof(d) == f64)
 
-    @assert(a > 3.13'f32 and a < 3.15'f32)
-    @assert(c == 0.0'f32)
-    @assert(d == 1.0'f64)
+    Swag.assert(a > 3.13'f32 and a < 3.15'f32)
+    Swag.assert(c == 0.0'f32)
+    Swag.assert(d == 1.0'f64)
 }
 
 // Digit separator underscores
@@ -97,9 +97,9 @@
     let b = 0xFF_FF'u32
     let c = 0b1010_1010'u32
 
-    @assert(a == 1000000)
-    @assert(b == 65535'u32)
-    @assert(c == 170'u32)
+    Swag.assert(a == 1000000)
+    Swag.assert(b == 65535'u32)
+    Swag.assert(c == 170'u32)
 }
 
 // Hex type suffixes
@@ -119,10 +119,10 @@
     #assert(#typeof(e) == s32)
     #assert(#typeof(f) == u32)
 
-    @assert(a == 127's8)
-    @assert(b == 255'u8)
-    @assert(c == 32767's16)
-    @assert(d == 65535'u16)
-    @assert(e == 2147483647's32)
-    @assert(f == 4294967295'u32)
+    Swag.assert(a == 127's8)
+    Swag.assert(b == 255'u8)
+    Swag.assert(c == 32767's16)
+    Swag.assert(d == 65535'u16)
+    Swag.assert(e == 2147483647's32)
+    Swag.assert(f == 4294967295'u32)
 }

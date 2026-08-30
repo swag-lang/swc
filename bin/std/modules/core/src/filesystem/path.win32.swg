@@ -13,13 +13,13 @@ func absolute(fullname: string)->String fail
     tmpArr.reserve(100)
 
     let winPath = Utf16.toZeroTerminated(fullname)
-    var res     = cast(u64) try GetFullPathNameW(@dataof(winPath), cast(DWORD) tmpArr.capacity, tmpArr.buffer, null)
+    var res     = cast(u64) try GetFullPathNameW(winPath.buffer, cast(DWORD) tmpArr.capacity, tmpArr.buffer, null)
 
     // No enough room in destination, give it another try
     if res >= 100
     {
         tmpArr.reserve(res + 1)
-        res = cast(u64) try GetFullPathNameW(@dataof(winPath), cast(DWORD) tmpArr.capacity, tmpArr.buffer, null)
+        res = cast(u64) try GetFullPathNameW(winPath.buffer, cast(DWORD) tmpArr.capacity, tmpArr.buffer, null)
     }
 
     tmpArr.count = res

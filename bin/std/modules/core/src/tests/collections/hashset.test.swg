@@ -39,21 +39,21 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 #test
 {
     var values: HashSet's32
-    @assert(values.count == 0)
-    @assert(!values.contains(1))
+    Swag.assert(values.count == 0)
+    Swag.assert(!values.contains(1))
 
     values.add(1)
     values.add(3)
     values.add(1)
 
-    @assert(values.count == 2)
-    @assert(values.contains(1))
-    @assert(values.contains(3))
+    Swag.assert(values.count == 2)
+    Swag.assert(values.contains(1))
+    Swag.assert(values.contains(3))
 
     var sum = 0
     for value in values do
         sum += value
-    @assert(sum == 4)
+    Swag.assert(sum == 4)
 }
 
 #test
@@ -64,7 +64,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     values.add(3)
     values.add(4)
 
-    @assert(assertReverseIntSetIteration(values))
+    Swag.assert(assertReverseIntSetIteration(values))
 }
 
 #test
@@ -75,18 +75,18 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     values.add(3)
 
     values.remove(2)
-    @assert(!values.contains(2))
-    @assert(values.count == 2)
+    Swag.assert(!values.contains(2))
+    Swag.assert(values.count == 2)
 
     values.add(2)
-    @assert(values.contains(2))
-    @assert(values.count == 3)
+    Swag.assert(values.contains(2))
+    Swag.assert(values.count == 3)
 
     values.clear()
-    @assert(values.count == 0)
-    @assert(!values.contains(1))
-    @assert(!values.contains(2))
-    @assert(!values.contains(3))
+    Swag.assert(values.count == 0)
+    Swag.assert(!values.contains(1))
+    Swag.assert(!values.contains(2))
+    Swag.assert(!values.contains(3))
 }
 
 #test
@@ -97,11 +97,11 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     values.add("alpha")
     values.add(#move moved)
 
-    @assert(values.count == 2)
-    @assert(values.contains("alpha"))
-    @assert(values.contains("beta"))
-    @assert(assertStringSetHas(values, "alpha"))
-    @assert(assertStringSetHas(values, "beta"))
+    Swag.assert(values.count == 2)
+    Swag.assert(values.contains("alpha"))
+    Swag.assert(values.contains("beta"))
+    Swag.assert(assertStringSetHas(values, "alpha"))
+    Swag.assert(assertStringSetHas(values, "beta"))
 }
 
 #test
@@ -115,12 +115,12 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     copy.add("gamma")
     copy.add("alpha")
 
-    @assert(!assertStringSetHas(original, "alpha"))
-    @assert(assertStringSetHas(original, "beta"))
+    Swag.assert(!assertStringSetHas(original, "alpha"))
+    Swag.assert(assertStringSetHas(original, "beta"))
 
-    @assert(assertStringSetHas(copy, "alpha"))
-    @assert(assertStringSetHas(copy, "beta"))
-    @assert(assertStringSetHas(copy, "gamma"))
+    Swag.assert(assertStringSetHas(copy, "alpha"))
+    Swag.assert(assertStringSetHas(copy, "beta"))
+    Swag.assert(assertStringSetHas(copy, "gamma"))
 }
 
 #test
@@ -132,10 +132,10 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     let seed: [1] s32 = [3]
     values = seed
 
-    @assert(values.count == 1)
-    @assert(!values.contains(1))
-    @assert(!values.contains(2))
-    @assert(values.contains(3))
+    Swag.assert(values.count == 1)
+    Swag.assert(!values.contains(1))
+    Swag.assert(!values.contains(2))
+    Swag.assert(values.contains(3))
 }
 
 #test
@@ -147,26 +147,26 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     values.add(42)
     values.add(74)
 
-    @assert(values.capacity >= 33)
-    @assert(values.contains(10))
-    @assert(values.contains(42))
-    @assert(values.contains(74))
+    Swag.assert(values.capacity >= 33)
+    Swag.assert(values.contains(10))
+    Swag.assert(values.contains(42))
+    Swag.assert(values.contains(74))
 }
 
 #test
 {
     var values: HashSet's32
 
-    @assert(values.toggle(10))
-    @assert(values.contains(10))
-    @assert(values.count == 1)
+    Swag.assert(values.toggle(10))
+    Swag.assert(values.contains(10))
+    Swag.assert(values.count == 1)
 
-    @assert(!values.toggle(10))
-    @assert(!values.contains(10))
-    @assert(values.count == 0)
+    Swag.assert(!values.toggle(10))
+    Swag.assert(!values.contains(10))
+    Swag.assert(values.count == 0)
 
     values.add(42)
-    @assert(!values.toggle(42))
-    @assert(!values.contains(42))
-    @assert(values.count == 0)
+    Swag.assert(!values.toggle(42))
+    Swag.assert(!values.contains(42))
+    Swag.assert(values.count == 0)
 }

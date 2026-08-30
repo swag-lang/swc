@@ -22,23 +22,23 @@ func assertAdler32(buffer: const [..] u8)
 {
     let expected = adler32Reference(buffer)
 
-    @assert(Hash.Adler32.compute(buffer) == expected)
+    Swag.assert(Hash.Adler32.compute(buffer) == expected)
 
     var adler: Hash.Adler32
     adler.reset()
     adler.update(buffer)
-    @assert(adler.value() == expected)
+    Swag.assert(adler.value() == expected)
 
     adler.reset()
     adler.update("")
     adler.update(buffer)
-    @assert(adler.value() == expected)
+    Swag.assert(adler.value() == expected)
 }
 
 func fillAdlerPattern(buffer: [..] u8)
 {
     var i = 0'u64
-    while i < @countof(buffer)
+    while i < buffer.count
     {
         buffer[i] = cast(u8) ((i * 37 + 11) & 0xFF)
         i         += 1
@@ -47,10 +47,10 @@ func fillAdlerPattern(buffer: [..] u8)
 
 #test
 {
-    @assert(Hash.Adler32.compute("") == 1'u32)
-    @assert(Hash.Adler32.compute("a") == 0x00620062'u32)
-    @assert(Hash.Adler32.compute("abc") == 0x024D0127'u32)
-    @assert(Hash.Adler32.compute("Wikipedia") == 0x11E60398'u32)
+    Swag.assert(Hash.Adler32.compute("") == 1'u32)
+    Swag.assert(Hash.Adler32.compute("a") == 0x00620062'u32)
+    Swag.assert(Hash.Adler32.compute("abc") == 0x024D0127'u32)
+    Swag.assert(Hash.Adler32.compute("Wikipedia") == 0x11E60398'u32)
 
     assertAdler32("")
     assertAdler32("a")
@@ -61,7 +61,7 @@ func fillAdlerPattern(buffer: [..] u8)
     var adler: Hash.Adler32
     adler.update("dirty")
     adler.reset()
-    @assert(adler.value() == 1'u32)
+    Swag.assert(adler.value() == 1'u32)
 
     var data: [11121] u8
     fillAdlerPattern(data)
@@ -85,5 +85,5 @@ func fillAdlerPattern(buffer: [..] u8)
     split.update(data[1 until 16])
     split.update(data[16 until 5552])
     split.update(data[5552 until 11121])
-    @assert(split.value() == Hash.Adler32.compute(data))
+    Swag.assert(split.value() == Hash.Adler32.compute(data))
 }

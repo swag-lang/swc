@@ -42,7 +42,7 @@ Outer structures continue to run.
         cpt += 1
     }
 
-    @assert(cpt == 10)
+    Swag.assert(cpt == 10)
 }
 
 /**
@@ -62,10 +62,10 @@ from anywhere inside it, however deeply nested.
             break to BigScope     // Leave the whole 'BigScope'
         }
 
-        @assert(false)     // Unreachable
+        Swag.assert(false)     // Unreachable
     }
 
-    @assert(cpt == 1)
+    Swag.assert(cpt == 1)
 }
 
 /**
@@ -87,7 +87,7 @@ piece of a loop body in a scope does not change where its 'break' statements go.
         }
     }
 
-    @assert(runs == 1)
+    Swag.assert(runs == 1)
 }
 
 /**
@@ -108,7 +108,7 @@ loop, and a '#scope' that encloses no loop rejects both bare statements.
         }
     }
 
-    @assert(visited == 3)
+    Swag.assert(visited == 3)
 }
 
 /**
@@ -127,7 +127,7 @@ soon as a 'break to' has to reach it.
         total += step
     }
 
-    @assert(total == 4)
+    Swag.assert(total == 4)
 }
 
 /**
@@ -142,10 +142,10 @@ after that labeled statement.
     {
         for 10
         {
-            if @index == 5 do
+            if Swag.index == 5 do
                 break to Up     // Exit to after the labeled 'for'
         }
 
-        @assert(false)     // Unreachable
+        Swag.assert(false)     // Unreachable
     }
 }

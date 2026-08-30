@@ -7,7 +7,7 @@
     {
         sum += i
     }
-    @assert(sum == 3)
+    Swag.assert(sum == 3)
 }
 
 #test
@@ -20,6 +20,6 @@
         last  = x
         count += 1
     }
-    @assert(count == 1)
-    @assert(last == 0)
+    Swag.assert(count == 1)
+    Swag.assert(last == 0)
 }

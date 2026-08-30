@@ -130,7 +130,7 @@ func parseProgram(text: string, cpu: *Cpu)
     var pos: u32
     for
     {
-        if pos >= @countof(bytes) do break
+        if pos >= bytes.count do break
         let ch = bytes[pos]
         if ch >= '0' and ch <= '9'
         {
@@ -185,10 +185,10 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
 {
     var cpu: Cpu
     parseProgram(SampleProg, &cpu)
-    @assert(cpu.memLen == 6'u32)
-    @assert(cpu.mem[0] == 0)
-    @assert(cpu.mem[1] == 1)
-    @assert(cpu.mem[5] == 0)
+    Swag.assert(cpu.memLen == 6'u32)
+    Swag.assert(cpu.mem[0] == 0)
+    Swag.assert(cpu.mem[1] == 1)
+    Swag.assert(cpu.mem[5] == 0)
 }
 
 // Inline mtd: fetch advances ip
@@ -198,11 +198,11 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
     parseProgram(SampleProg, &cpu)
     cpu.ip = 0
     let v0 = cpu.fetch()
-    @assert(v0 == 0)
-    @assert(cpu.ip == 1'u32)
+    Swag.assert(v0 == 0)
+    Swag.assert(cpu.ip == 1'u32)
     let v1 = cpu.fetch()
-    @assert(v1 == 1)
-    @assert(cpu.ip == 2'u32)
+    Swag.assert(v1 == 1)
+    Swag.assert(cpu.ip == 2'u32)
 }
 
 // Inline mtd: combo operand
@@ -212,11 +212,11 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
     cpu.regs[0] = 100
     cpu.regs[1] = 200
     cpu.regs[2] = 300
-    @assert(cpu.combo(0) == 0'u64)
-    @assert(cpu.combo(3) == 3'u64)
-    @assert(cpu.combo(4) == 100'u64)
-    @assert(cpu.combo(5) == 200'u64)
-    @assert(cpu.combo(6) == 300'u64)
+    Swag.assert(cpu.combo(0) == 0'u64)
+    Swag.assert(cpu.combo(3) == 3'u64)
+    Swag.assert(cpu.combo(4) == 100'u64)
+    Swag.assert(cpu.combo(5) == 200'u64)
+    Swag.assert(cpu.combo(6) == 300'u64)
 }
 
 // Small example: program 2,6 with C=9 → B = 9%8 = 1
@@ -226,7 +226,7 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
     parseProgram(SmallProg, &cpu)
     cpu.reset(SmallRegA, 0, SmallRegC)
     run(&cpu)
-    @assert(cpu.regs[1] == 1'u64)
+    Swag.assert(cpu.regs[1] == 1'u64)
 }
 
 // XOR example: program 1,7 with B=29 → B = 29^7 = 26
@@ -236,7 +236,7 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
     parseProgram(XorProg, &cpu)
     cpu.reset(0, XorRegB, 0)
     run(&cpu)
-    @assert(cpu.regs[1] == 26'u64)
+    Swag.assert(cpu.regs[1] == 26'u64)
 }
 
 // Sample: A=729, prog=0,1,5,4,3,0 → output 4,6,3,5,6,3,5,2,1,0
@@ -247,7 +247,7 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
     cpu.reset(SampleRegA, 0, 0)
     run(&cpu)
     var expected: [10] u8 = [4, 6, 3, 5, 6, 3, 5, 2, 1, 0]
-    @assert(outputEquals(&cpu, &expected[0], 10))
+    Swag.assert(outputEquals(&cpu, &expected[0], 10))
 }
 
 // Emit test
@@ -257,10 +257,10 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
     cpu.emit(7)
     cpu.emit(3)
     cpu.emit(1)
-    @assert(cpu.outLen == 3'u32)
-    @assert(cpu.out[0] == 7)
-    @assert(cpu.out[1] == 3)
-    @assert(cpu.out[2] == 1)
+    Swag.assert(cpu.outLen == 3'u32)
+    Swag.assert(cpu.out[0] == 7)
+    Swag.assert(cpu.out[1] == 3)
+    Swag.assert(cpu.out[2] == 1)
 }
 
 // Reset clears output and sets registers
@@ -270,11 +270,11 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
     cpu.emit(1)
     cpu.emit(2)
     cpu.reset(10, 20, 30)
-    @assert(cpu.outLen == 0'u32)
-    @assert(cpu.regs[0] == 10'u64)
-    @assert(cpu.regs[1] == 20'u64)
-    @assert(cpu.regs[2] == 30'u64)
-    @assert(cpu.ip == 0'u32)
+    Swag.assert(cpu.outLen == 0'u32)
+    Swag.assert(cpu.regs[0] == 10'u64)
+    Swag.assert(cpu.regs[1] == 20'u64)
+    Swag.assert(cpu.regs[2] == 30'u64)
+    Swag.assert(cpu.ip == 0'u32)
 }
 
 // Self-output search: prog=0,3,5,4,3,0 with A=117440 outputs itself
@@ -284,7 +284,7 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
     parseProgram("0,3,5,4,3,0", &cpu)
     cpu.reset(117440, 0, 0)
     run(&cpu)
-    @assert(outputMatchesProgram(&cpu))
+    Swag.assert(outputMatchesProgram(&cpu))
 }
 
 // Bitwise shift: A=1024, adv by 5 → A = 1024 >> 5 = 32
@@ -295,5 +295,5 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
     cpu.reset(1024, 0, 0)
     cpu.regs[1] = 5
     run(&cpu)
-    @assert(cpu.regs[0] == 32'u64)
+    Swag.assert(cpu.regs[0] == 32'u64)
 }

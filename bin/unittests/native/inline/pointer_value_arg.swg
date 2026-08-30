@@ -4,7 +4,7 @@
 func inlineCopy(dest: [*] void, src: const [*] void, size: u64)
 {
     if size do
-        @memcpy(dest, src, size)
+        Swag.memcpy(dest, src, size)
 }
 
 func copyWithRuntimeTypeSize(dest: [*] void, src: const [*] void, valueType: typeinfo)
@@ -26,7 +26,7 @@ func copyWithRuntimeTypeSize(dest: [*] void, src: const [*] void, valueType: typ
     let size = #sizeof(s32)
 
     inlineCopy(dest, from, size)
-    @assert(dst[0] == 20)
+    Swag.assert(dst[0] == 20)
 }
 
 #test
@@ -40,5 +40,5 @@ func copyWithRuntimeTypeSize(dest: [*] void, src: const [*] void, valueType: typ
     let from = cast([*] u8) &src[1]
 
     copyWithRuntimeTypeSize(dest, from, #typeof(s32))
-    @assert(dst[0] == 20)
+    Swag.assert(dst[0] == 20)
 }

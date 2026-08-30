@@ -7,17 +7,17 @@ using Swag, Core
 #test
 {
     let png = ImageFormat{"PNG", ".png"}
-    @assert(png.matches("capture.png"))
-    @assert(png.matches("C:/a folder/CAPTURE.PNG"))
-    @assert(!png.matches("capture.jpg"))
-    @assert(!png.matches("png"))
-    @assert(!png.matches("capture"))
-    @assert(!png.matches(""))
+    Swag.assert(png.matches("capture.png"))
+    Swag.assert(png.matches("C:/a folder/CAPTURE.PNG"))
+    Swag.assert(!png.matches("capture.jpg"))
+    Swag.assert(!png.matches("png"))
+    Swag.assert(!png.matches("capture"))
+    Swag.assert(!png.matches(""))
 
     let jpeg = ImageFormat{"JPEG", ".jpg;.jpeg"}
-    @assert(jpeg.matches("photo.jpg"))
-    @assert(jpeg.matches("photo.jpeg"))
-    @assert(!jpeg.matches("photo.jpe"))
+    Swag.assert(jpeg.matches("photo.jpg"))
+    Swag.assert(jpeg.matches("photo.jpeg"))
+    Swag.assert(!jpeg.matches("photo.jpe"))
 }
 
 // Every registered encoder and decoder declares a usable format, and the declared
@@ -26,26 +26,26 @@ using Swag, Core
 #test
 {
     let encodable = Image.encodableFormats()
-    @assert(encodable.count >= 8)
+    Swag.assert(encodable.count >= 8)
     for &format in encodable
     {
-        @assert(@countof(format.name) != 0)
+        Swag.assert(format.name.count != 0)
         for ext in Tokenize.split(format.extensions, ';'rune)
         {
-            @assert(Utf8.startsWith(ext, "."))
-            @assert(Image.canSave(Format.toString("image%", ext)))
+            Swag.assert(Utf8.startsWith(ext, "."))
+            Swag.assert(Image.canSave(Format.toString("image%", ext)))
         }
     }
 
     let decodable = Image.decodableFormats()
-    @assert(decodable.count >= 8)
+    Swag.assert(decodable.count >= 8)
     for &format in decodable
     {
-        @assert(@countof(format.name) != 0)
+        Swag.assert(format.name.count != 0)
         for ext in Tokenize.split(format.extensions, ';'rune)
         {
-            @assert(Utf8.startsWith(ext, "."))
-            @assert(Image.canLoad(Format.toString("image%", ext)))
+            Swag.assert(Utf8.startsWith(ext, "."))
+            Swag.assert(Image.canLoad(Format.toString("image%", ext)))
         }
     }
 }
@@ -54,15 +54,15 @@ using Swag, Core
 // and the matching encode/decode entry points fail rather than picking an arbitrary codec.
 #test
 {
-    @assert(!Image.canSave("capture.unknown"))
-    @assert(!Image.canLoad("capture.unknown"))
-    @assert(!Image.canSave("capture"))
+    Swag.assert(!Image.canSave("capture.unknown"))
+    Swag.assert(!Image.canLoad("capture.unknown"))
+    Swag.assert(!Image.canSave("capture"))
 
     var img = Image.create(2, 2, .RGBA8)
     img.clear()
     discard catch img.encode("capture.unknown") as errEncode
-    @assert(errEncode != null)
+    Swag.assert(errEncode != null)
 
     discard catch Image.decode("capture.unknown", img.pixels.toSlice()) as errDecode
-    @assert(errDecode != null)
+    Swag.assert(errDecode != null)
 }

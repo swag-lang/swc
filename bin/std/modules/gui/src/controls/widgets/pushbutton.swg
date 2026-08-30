@@ -359,7 +359,7 @@ impl PushButton
         let metrics = .themeMetrics()
 
         var result = .captionWidth(bold: .form == .Strong) + 2 * metrics.btnPush_TextMargin
-        if .icon.isValid() and @countof(.name) != 0 do
+        if .icon.isValid() and (.name).count != 0 do
             result += metrics.iconText_Margin
         return result
     }

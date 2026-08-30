@@ -10,13 +10,13 @@
 
         for arr
         {
-            outer += cast(s32) @index
+            outer += cast(s32) Swag.index
 
             for value in arr
             {
-                if @index == 0 do
+                if Swag.index == 0 do
                     continue
-                inner += value + cast(s32) @index
+                inner += value + cast(s32) Swag.index
             }
         }
 
@@ -36,11 +36,11 @@
 
         for arr
         {
-            if @index == 0 do
+            if Swag.index == 0 do
                 continue
-            if @index == 4 do
+            if Swag.index == 4 do
                 break
-            acc += arr[@index] + cast(s32) @index
+            acc += arr[Swag.index] + cast(s32) Swag.index
         }
 
         return acc
@@ -57,7 +57,7 @@
         var acc: s32 = 0
         for 6
         {
-            acc += cast(s32) @index * 3
+            acc += cast(s32) Swag.index * 3
         }
 
         return acc

@@ -25,17 +25,17 @@ namespace Outer
 // Qualified access at each level.
 #test
 {
-    @assert(Outer.VALUE == 10)
-    @assert(Outer.Inner.VALUE == 20)
-    @assert(Outer.Inner.Deep.VALUE == 30)
+    Swag.assert(Outer.VALUE == 10)
+    Swag.assert(Outer.Inner.VALUE == 20)
+    Swag.assert(Outer.Inner.Deep.VALUE == 30)
 }
 
 // Functions resolve to their own namespace constants.
 #test
 {
-    @assert(Outer.get() == 10)
-    @assert(Outer.Inner.get() == 20)
-    @assert(Outer.Inner.Deep.get() == 30)
+    Swag.assert(Outer.get() == 10)
+    Swag.assert(Outer.Inner.get() == 20)
+    Swag.assert(Outer.Inner.Deep.get() == 30)
 }
 
 // Using a nested namespace.
@@ -45,8 +45,8 @@ namespace UseInner
 
     #test
     {
-        @assert(get() == 20)
-        @assert(Deep.get() == 30)
+        Swag.assert(get() == 20)
+        Swag.assert(Deep.get() == 30)
     }
 }
 
@@ -69,10 +69,10 @@ namespace Geometry
 #test
 {
     let o = Geometry.origin()
-    @assert(o.x == 0 and o.y == 0)
+    Swag.assert(o.x == 0 and o.y == 0)
 
     let moved = Geometry.Transform.translate(o, 3, 4)
-    @assert(moved.x == 3 and moved.y == 4)
+    Swag.assert(moved.x == 3 and moved.y == 4)
 }
 
 // Dotted namespace declaration.
@@ -84,6 +84,6 @@ namespace A.B.C
 
 #test
 {
-    @assert(A.B.C.X == 42)
-    @assert(A.B.C.getX() == 42)
+    Swag.assert(A.B.C.X == 42)
+    Swag.assert(A.B.C.getX() == 42)
 }

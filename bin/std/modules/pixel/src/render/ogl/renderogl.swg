@@ -239,15 +239,15 @@ private impl RenderOgl
     {
         {
             expect .createShader(&.shaderSimple, VertexShaderSimple, PixelShaderSimple)
-            let text0 = glGetUniformLocation(cast(GLuint) .shaderSimple.handle, @dataof("inTexture0"))
+            let text0 = glGetUniformLocation(cast(GLuint) .shaderSimple.handle, ("inTexture0").buffer)
             glUseProgram(cast(GLuint) .shaderSimple.handle)
             glUniform1i(text0, 0)
         }
 
         {
             expect .createShader(&.shaderAA, VertexShaderAA, PixelShaderAA)
-            let text0 = glGetUniformLocation(cast(GLuint) .shaderAA.handle, @dataof("inTexture0"))
-            let text1 = glGetUniformLocation(cast(GLuint) .shaderAA.handle, @dataof("inTexture1"))
+            let text0 = glGetUniformLocation(cast(GLuint) .shaderAA.handle, ("inTexture0").buffer)
+            let text1 = glGetUniformLocation(cast(GLuint) .shaderAA.handle, ("inTexture1").buffer)
             glUseProgram(cast(GLuint) .shaderAA.handle)
             glUniform1i(text0, 0)
             glUniform1i(text1, 1)
@@ -257,11 +257,11 @@ private impl RenderOgl
             // The picture arrives as three planes on units 0, 3 and 4, and the shader converts
             // while it samples: that is what lets a decoder skip the conversion entirely.
             expect .createShader(&.shaderYuv, VertexShaderSimple, PixelShaderYuv)
-            let text0   = glGetUniformLocation(cast(GLuint) .shaderYuv.handle, @dataof("inTexture0"))
-            let chromaB = glGetUniformLocation(cast(GLuint) .shaderYuv.handle, @dataof("inChromaB"))
-            let chromaR = glGetUniformLocation(cast(GLuint) .shaderYuv.handle, @dataof("inChromaR"))
-            .shaderYuv.lumaRed = cast(ShaderParamHandle) glGetUniformLocation(cast(GLuint) .shaderYuv.handle, @dataof("yuvLumaRed"))
-            .shaderYuv.green   = cast(ShaderParamHandle) glGetUniformLocation(cast(GLuint) .shaderYuv.handle, @dataof("yuvGreen"))
+            let text0   = glGetUniformLocation(cast(GLuint) .shaderYuv.handle, ("inTexture0").buffer)
+            let chromaB = glGetUniformLocation(cast(GLuint) .shaderYuv.handle, ("inChromaB").buffer)
+            let chromaR = glGetUniformLocation(cast(GLuint) .shaderYuv.handle, ("inChromaR").buffer)
+            .shaderYuv.lumaRed = cast(ShaderParamHandle) glGetUniformLocation(cast(GLuint) .shaderYuv.handle, ("yuvLumaRed").buffer)
+            .shaderYuv.green   = cast(ShaderParamHandle) glGetUniformLocation(cast(GLuint) .shaderYuv.handle, ("yuvGreen").buffer)
             glUseProgram(cast(GLuint) .shaderYuv.handle)
             glUniform1i(text0, 0)
             glUniform1i(chromaB, 3)
@@ -270,9 +270,9 @@ private impl RenderOgl
 
         {
             expect .createShader(&.shaderFont, VertexShaderFont, PixelShaderFont)
-            let text0 = glGetUniformLocation(cast(GLuint) .shaderFont.handle, @dataof("inTexture0"))
-            let text1 = glGetUniformLocation(cast(GLuint) .shaderFont.handle, @dataof("inTexture1"))
-            let gamma = glGetUniformLocation(cast(GLuint) .shaderFont.handle, @dataof("fontGamma"))
+            let text0 = glGetUniformLocation(cast(GLuint) .shaderFont.handle, ("inTexture0").buffer)
+            let text1 = glGetUniformLocation(cast(GLuint) .shaderFont.handle, ("inTexture1").buffer)
+            let gamma = glGetUniformLocation(cast(GLuint) .shaderFont.handle, ("fontGamma").buffer)
             glUseProgram(cast(GLuint) .shaderFont.handle)
             glUniform1i(text0, 0)
             glUniform1i(text1, 1)
@@ -281,10 +281,10 @@ private impl RenderOgl
 
         {
             expect .createShader(&.shaderFontMsdf, VertexShaderFont, PixelShaderFontMsdf)
-            let text0 = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("inTexture0"))
-            let text1 = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("inTexture1"))
-            let gamma = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("fontGamma"))
-            let range = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("msdfRange"))
+            let text0 = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, ("inTexture0").buffer)
+            let text1 = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, ("inTexture1").buffer)
+            let gamma = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, ("fontGamma").buffer)
+            let range = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, ("msdfRange").buffer)
             glUseProgram(cast(GLuint) .shaderFontMsdf.handle)
             glUniform1i(text0, 0)
             glUniform1i(text1, 1)
@@ -292,40 +292,40 @@ private impl RenderOgl
             glUniform1f(range, MsdfRange)
 
             let h = cast(GLuint) .shaderFontMsdf.handle
-            .shaderFontMsdf.fxEnabled      = cast() glGetUniformLocation(h, @dataof("fxEnabled"))
-            .shaderFontMsdf.fxFaceDilate   = cast() glGetUniformLocation(h, @dataof("fxFaceDilate"))
-            .shaderFontMsdf.fxFaceSoftness = cast() glGetUniformLocation(h, @dataof("fxFaceSoftness"))
-            .shaderFontMsdf.fxOutlineWidth = cast() glGetUniformLocation(h, @dataof("fxOutlineWidth"))
-            .shaderFontMsdf.fxOutlineColor = cast() glGetUniformLocation(h, @dataof("fxOutlineColor"))
-            .shaderFontMsdf.fxGlowColor    = cast() glGetUniformLocation(h, @dataof("fxGlowColor"))
-            .shaderFontMsdf.fxGlowOffset   = cast() glGetUniformLocation(h, @dataof("fxGlowOffset"))
-            .shaderFontMsdf.fxGlowInner    = cast() glGetUniformLocation(h, @dataof("fxGlowInner"))
-            .shaderFontMsdf.fxGlowOuter    = cast() glGetUniformLocation(h, @dataof("fxGlowOuter"))
-            .shaderFontMsdf.fxGlowPower    = cast() glGetUniformLocation(h, @dataof("fxGlowPower"))
-            .shaderFontMsdf.fxBevel        = cast() glGetUniformLocation(h, @dataof("fxBevel"))
+            .shaderFontMsdf.fxEnabled      = cast() glGetUniformLocation(h, ("fxEnabled").buffer)
+            .shaderFontMsdf.fxFaceDilate   = cast() glGetUniformLocation(h, ("fxFaceDilate").buffer)
+            .shaderFontMsdf.fxFaceSoftness = cast() glGetUniformLocation(h, ("fxFaceSoftness").buffer)
+            .shaderFontMsdf.fxOutlineWidth = cast() glGetUniformLocation(h, ("fxOutlineWidth").buffer)
+            .shaderFontMsdf.fxOutlineColor = cast() glGetUniformLocation(h, ("fxOutlineColor").buffer)
+            .shaderFontMsdf.fxGlowColor    = cast() glGetUniformLocation(h, ("fxGlowColor").buffer)
+            .shaderFontMsdf.fxGlowOffset   = cast() glGetUniformLocation(h, ("fxGlowOffset").buffer)
+            .shaderFontMsdf.fxGlowInner    = cast() glGetUniformLocation(h, ("fxGlowInner").buffer)
+            .shaderFontMsdf.fxGlowOuter    = cast() glGetUniformLocation(h, ("fxGlowOuter").buffer)
+            .shaderFontMsdf.fxGlowPower    = cast() glGetUniformLocation(h, ("fxGlowPower").buffer)
+            .shaderFontMsdf.fxBevel        = cast() glGetUniformLocation(h, ("fxBevel").buffer)
         }
 
         {
             expect .createShader(&.shaderBlur, VertexShaderSimple, PixelShaderBlur)
-            let text0 = glGetUniformLocation(cast(GLuint) .shaderBlur.handle, @dataof("inTexture0"))
+            let text0 = glGetUniformLocation(cast(GLuint) .shaderBlur.handle, ("inTexture0").buffer)
             glUseProgram(cast(GLuint) .shaderBlur.handle)
             glUniform1i(text0, 0)
-            .shaderBlur.axis   = cast() glGetUniformLocation(cast(GLuint) .shaderBlur.handle, @dataof("axis"))
-            .shaderBlur.radius = cast() glGetUniformLocation(cast(GLuint) .shaderBlur.handle, @dataof("radius"))
+            .shaderBlur.axis   = cast() glGetUniformLocation(cast(GLuint) .shaderBlur.handle, ("axis").buffer)
+            .shaderBlur.radius = cast() glGetUniformLocation(cast(GLuint) .shaderBlur.handle, ("radius").buffer)
         }
 
         {
             expect .createShader(&.shaderResolve, VertexShaderSimple, PixelShaderResolve)
-            let text0 = glGetUniformLocation(cast(GLuint) .shaderResolve.handle, @dataof("inTexture0"))
+            let text0 = glGetUniformLocation(cast(GLuint) .shaderResolve.handle, ("inTexture0").buffer)
             glUseProgram(cast(GLuint) .shaderResolve.handle)
             glUniform1i(text0, 0)
-            .shaderResolve.factor = cast() glGetUniformLocation(cast(GLuint) .shaderResolve.handle, @dataof("factor"))
+            .shaderResolve.factor = cast() glGetUniformLocation(cast(GLuint) .shaderResolve.handle, ("factor").buffer)
         }
     }
 
     func generateTexture(datas: const [..] u8, w, h: s32)->GLuint
     {
-        Debug.assert(@countof(datas) <= 8 * 8)
+        Debug.assert(datas.count <= 8 * 8)
 
         var arr: [64] u32
         for p, i in datas do
@@ -586,7 +586,7 @@ impl RenderOgl
 
     internal func GLDebugMessageCallback(Source: GLenum, Type: GLenum, Id: GLuint, Severity: GLenum, Length: GLsizei, Message: const *GLchar, UserParam: const *void)
     {
-    // @print(cast(cstring) (Message));
+    // Swag.print(cast(cstring) (Message));
     }
 
     // Initializes OpenGL extensions, built-in shaders, buffers, and hatch textures.
@@ -1326,7 +1326,7 @@ impl RenderOgl
                 glUniform2f(cast(GLint) curShader.gradientAngles, cast(GLfloat) params.gradientAngle0, cast(GLfloat) params.gradientAngle1)
                 glUniform1i(cast(GLint) curShader.gradientCount, cast(GLint) params.gradientStopCount)
 
-                let stops = @mkslice(dc.gradientStops.buffer + params.gradientStopStart, params.gradientStopCount)
+                let stops = Swag.makeSlice(dc.gradientStops.buffer + params.gradientStopStart, params.gradientStopCount)
                 if params.gradientStopCount <= 8
                 {
                     glUniform1i(cast(GLint) curShader.gradientTextureEnabled, 0)
@@ -1610,8 +1610,8 @@ impl RenderOgl
     // Create the given shader
     internal mtd createShader(base: *ShaderBase, vertex, pixel: const [..] u8) fail
     {
-        var buf: String = @mkstring(@dataof(vertex), @countof(vertex))
-        buf.replace("#include base", @mkstring(@dataof(BaseVertexShader), @countof(BaseVertexShader)))
+        var buf: String = Swag.makeString(vertex.buffer, vertex.count)
+        buf.replace("#include base", Swag.makeString(BaseVertexShader.buffer, BaseVertexShader.count))
 
         let vertexShaderID      = glCreateShader(GL_VERTEX_SHADER)
         var vertexSourcePointer = buf.buffer
@@ -1620,11 +1620,11 @@ impl RenderOgl
         glCompileShader(vertexShaderID)
         try setShaderCompileError(vertexShaderID)
 
-        buf = @mkstring(@dataof(pixel), @countof(pixel))
+        buf = Swag.makeString(pixel.buffer, pixel.count)
         var baseBuilder: StringBuilder
         if .usesKhrAdvancedBlending() do
             baseBuilder.appendString(KhrAdvancedBlendShaderHeader)
-        baseBuilder.appendString(@mkstring(@dataof(BasePixelShader), @countof(BasePixelShader)))
+        baseBuilder.appendString(Swag.makeString(BasePixelShader.buffer, BasePixelShader.count))
         let baseSource = baseBuilder.moveToString()
         buf.replace("#include base", baseSource)
 
@@ -1647,26 +1647,26 @@ impl RenderOgl
 
         base.handle = cast(ShaderHandle) progID
 
-        base.mvp                    = cast() glGetUniformLocation(progID, @dataof("mvp"))
-        base.mdl                    = cast() glGetUniformLocation(progID, @dataof("mdl"))
-        base.boundRect              = cast() glGetUniformLocation(progID, @dataof("boundRect"))
-        base.textureRect            = cast() glGetUniformLocation(progID, @dataof("textureRect"))
-        base.uvMode                 = cast() glGetUniformLocation(progID, @dataof("uvMode"))
-        base.interpolationMode      = cast() glGetUniformLocation(progID, @dataof("interpolationMode"))
-        base.copyMode               = cast() glGetUniformLocation(progID, @dataof("copyMode"))
-        base.textureW               = cast() glGetUniformLocation(progID, @dataof("textureW"))
-        base.textureH               = cast() glGetUniformLocation(progID, @dataof("textureH"))
-        base.paintType              = cast() glGetUniformLocation(progID, @dataof("paintType"))
-        base.gradientSpread         = cast() glGetUniformLocation(progID, @dataof("gradientSpread"))
-        base.gradientStart          = cast() glGetUniformLocation(progID, @dataof("gradientStart"))
-        base.gradientEnd            = cast() glGetUniformLocation(progID, @dataof("gradientEnd"))
-        base.gradientRadius         = cast() glGetUniformLocation(progID, @dataof("gradientRadius"))
-        base.gradientAngles         = cast() glGetUniformLocation(progID, @dataof("gradientAngles"))
-        base.gradientCount          = cast() glGetUniformLocation(progID, @dataof("gradientCount"))
-        base.gradientOffsets        = cast() glGetUniformLocation(progID, @dataof("gradientOffsets[0]"))
-        base.gradientColors         = cast() glGetUniformLocation(progID, @dataof("gradientColors[0]"))
-        base.gradientTexture        = cast() glGetUniformLocation(progID, @dataof("gradientTexture"))
-        base.gradientTextureEnabled = cast() glGetUniformLocation(progID, @dataof("gradientTextureEnabled"))
-        base.premultiplyBlendSource = cast() glGetUniformLocation(progID, @dataof("premultiplyBlendSource"))
+        base.mvp                    = cast() glGetUniformLocation(progID, ("mvp").buffer)
+        base.mdl                    = cast() glGetUniformLocation(progID, ("mdl").buffer)
+        base.boundRect              = cast() glGetUniformLocation(progID, ("boundRect").buffer)
+        base.textureRect            = cast() glGetUniformLocation(progID, ("textureRect").buffer)
+        base.uvMode                 = cast() glGetUniformLocation(progID, ("uvMode").buffer)
+        base.interpolationMode      = cast() glGetUniformLocation(progID, ("interpolationMode").buffer)
+        base.copyMode               = cast() glGetUniformLocation(progID, ("copyMode").buffer)
+        base.textureW               = cast() glGetUniformLocation(progID, ("textureW").buffer)
+        base.textureH               = cast() glGetUniformLocation(progID, ("textureH").buffer)
+        base.paintType              = cast() glGetUniformLocation(progID, ("paintType").buffer)
+        base.gradientSpread         = cast() glGetUniformLocation(progID, ("gradientSpread").buffer)
+        base.gradientStart          = cast() glGetUniformLocation(progID, ("gradientStart").buffer)
+        base.gradientEnd            = cast() glGetUniformLocation(progID, ("gradientEnd").buffer)
+        base.gradientRadius         = cast() glGetUniformLocation(progID, ("gradientRadius").buffer)
+        base.gradientAngles         = cast() glGetUniformLocation(progID, ("gradientAngles").buffer)
+        base.gradientCount          = cast() glGetUniformLocation(progID, ("gradientCount").buffer)
+        base.gradientOffsets        = cast() glGetUniformLocation(progID, ("gradientOffsets[0]").buffer)
+        base.gradientColors         = cast() glGetUniformLocation(progID, ("gradientColors[0]").buffer)
+        base.gradientTexture        = cast() glGetUniformLocation(progID, ("gradientTexture").buffer)
+        base.gradientTextureEnabled = cast() glGetUniformLocation(progID, ("gradientTextureEnabled").buffer)
+        base.premultiplyBlendSource = cast() glGetUniformLocation(progID, ("premultiplyBlendSource").buffer)
     }
 }

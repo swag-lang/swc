@@ -58,8 +58,8 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     }
 
     host.keyPress(Input.Key.Left)
-    @assert(pressedCount == 1)
-    @assert(host.app.keyboardFocusWnd == &host.root)
+    Swag.assert(pressedCount == 1)
+    Swag.assert(host.app.keyboardFocusWnd == &host.root)
 }
 
 // The ring reads the way the eye does, not the way the tree was built.
@@ -72,10 +72,10 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     let card  = focusHeadlessCard(&host.root, {10, 10, 200, 180})
     let order = FocusOrder.collect(&host.root)
 
-    @assert(order.stops.count == 3)
-    @assert(order.stops[0] == cast(*Wnd) card.field)
-    @assert(order.stops[1] == cast(*Wnd) card.browse)
-    @assert(order.stops[2] == cast(*Wnd) card.submit)
+    Swag.assert(order.stops.count == 3)
+    Swag.assert(order.stops[0] == cast(*Wnd) card.field)
+    Swag.assert(order.stops[1] == cast(*Wnd) card.browse)
+    Swag.assert(order.stops[2] == cast(*Wnd) card.submit)
 }
 
 // Two columns keep their own fields together instead of interleaving row by row.
@@ -89,11 +89,11 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     let right = focusHeadlessCard(&host.root, {200, 10, 180, 180})
     let order = FocusOrder.collect(&host.root)
 
-    @assert(order.stops.count == 6)
-    @assert(order.stops[0] == cast(*Wnd) left.field)
-    @assert(order.stops[2] == cast(*Wnd) left.submit)
-    @assert(order.stops[3] == cast(*Wnd) right.field)
-    @assert(order.stops[5] == cast(*Wnd) right.submit)
+    Swag.assert(order.stops.count == 6)
+    Swag.assert(order.stops[0] == cast(*Wnd) left.field)
+    Swag.assert(order.stops[2] == cast(*Wnd) left.submit)
+    Swag.assert(order.stops[3] == cast(*Wnd) right.field)
+    Swag.assert(order.stops[5] == cast(*Wnd) right.submit)
 }
 
 // Tab walks the ring and wraps around, Shift+Tab walks it backwards.
@@ -105,19 +105,19 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     let card = focusHeadlessCard(&host.root, {10, 10, 200, 180})
     host.root.setInitialFocus()
-    @assert(card.field.hasFocus())
+    Swag.assert(card.field.hasFocus())
 
     host.keyPress(Input.Key.Tab)
-    @assert(card.browse.hasFocus())
+    Swag.assert(card.browse.hasFocus())
     host.keyPress(Input.Key.Tab)
-    @assert(card.submit.hasFocus())
+    Swag.assert(card.submit.hasFocus())
 
     // Wraps rather than leaving the surface.
     host.keyPress(Input.Key.Tab)
-    @assert(card.field.hasFocus())
+    Swag.assert(card.field.hasFocus())
 
     host.keyPress(Input.Key.Tab, Input.KeyModifiers.Shift)
-    @assert(card.submit.hasFocus())
+    Swag.assert(card.submit.hasFocus())
 }
 
 // The ring shows only while the keyboard is what moved the focus.
@@ -130,15 +130,15 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     let card = focusHeadlessCard(&host.root, {10, 10, 200, 180})
 
     host.clickWnd(card.submit)
-    @assert(card.submit.hasFocus())
-    @assert(!card.submit.hasVisibleFocus())
+    Swag.assert(card.submit.hasFocus())
+    Swag.assert(!card.submit.hasVisibleFocus())
 
     host.keyPress(Input.Key.Tab)
-    @assert(card.field.hasFocus())
-    @assert(card.field.hasVisibleFocus())
+    Swag.assert(card.field.hasFocus())
+    Swag.assert(card.field.hasVisibleFocus())
 
     host.clickWnd(card.submit)
-    @assert(!card.submit.hasVisibleFocus())
+    Swag.assert(!card.submit.hasVisibleFocus())
 }
 
 // Native surface deactivation removes the logical focus and its caret, then activation restores
@@ -158,19 +158,19 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     }
 
     edit.setFocus()
-    @assert(edit.hasFocus())
-    @assert(edit.timerCaret != null)
+    Swag.assert(edit.hasFocus())
+    Swag.assert(edit.timerCaret != null)
 
     host.surface.loseKeyboardFocus()
-    @assert(host.app.keyboardFocusWnd == null)
-    @assert(!edit.hasFocus())
-    @assert(edit.timerCaret == null)
-    @assert(host.surface.focusWnd == cast(#null *Wnd) edit)
-    @assert(lostCount == 1)
+    Swag.assert(host.app.keyboardFocusWnd == null)
+    Swag.assert(!edit.hasFocus())
+    Swag.assert(edit.timerCaret == null)
+    Swag.assert(host.surface.focusWnd == cast(#null *Wnd) edit)
+    Swag.assert(lostCount == 1)
 
-    @assert(host.surface.restoreFocus())
-    @assert(edit.hasFocus())
-    @assert(edit.timerCaret != null)
+    Swag.assert(host.surface.restoreFocus())
+    Swag.assert(edit.hasFocus())
+    Swag.assert(edit.timerCaret != null)
 }
 
 // A hidden or disabled control hands the keyboard to what follows it.
@@ -182,19 +182,19 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     let card = focusHeadlessCard(&host.root, {10, 10, 200, 180})
     card.field.setFocus()
-    @assert(card.field.hasFocus())
+    Swag.assert(card.field.hasFocus())
 
     card.field.hide()
-    @assert(card.browse.hasFocus())
+    Swag.assert(card.browse.hasFocus())
 
     card.browse.disable()
-    @assert(card.submit.hasFocus())
+    Swag.assert(card.submit.hasFocus())
 
     // A whole form going down hands the keyboard to what follows the form.
     let second = focusHeadlessCard(&host.root, {220, 10, 160, 180})
     second.field.setFocus()
     second.body.disable()
-    @assert(second.submit.hasFocus())
+    Swag.assert(second.submit.hasFocus())
 }
 
 // A control taken off the surface hands the keyboard on rather than dropping it.
@@ -209,13 +209,13 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     let card = focusHeadlessCard(&host.root, {10, 10, 200, 180})
     card.browse.setFocus()
-    @assert(card.browse.hasFocus())
+    Swag.assert(card.browse.hasFocus())
 
     card.browse.destroy()
-    @assert(card.submit.hasFocus())
+    Swag.assert(card.submit.hasFocus())
 
     host.pump()
-    @assert(card.submit.hasFocus())
+    Swag.assert(card.submit.hasFocus())
 }
 
 // A Lost callback can dismantle the old focused subtree without recursively losing focus again.
@@ -242,8 +242,8 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     first.setFocus()
     next.setFocus()
 
-    @assert(lostCount == 1)
-    @assert(next.hasFocus())
+    Swag.assert(lostCount == 1)
+    Swag.assert(next.hasFocus())
 }
 
 // A composite is one stop, and the focus lands on the part of it that reads the keys.
@@ -257,17 +257,17 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     let list     = ListCtrl.createSimple(&host.root, {10, 50, 200, 100})
     let order    = FocusOrder.collect(&host.root)
 
-    @assert(order.stops.count == 2)
-    @assert(order.stops[0] == cast(*Wnd) password)
-    @assert(order.stops[1] == cast(*Wnd) list)
+    Swag.assert(order.stops.count == 2)
+    Swag.assert(order.stops[0] == cast(*Wnd) password)
+    Swag.assert(order.stops[1] == cast(*Wnd) list)
 
     password.setFocus()
-    @assert(password.hasFocus())
-    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) password.edit)
+    Swag.assert(password.hasFocus())
+    Swag.assert(host.app.keyboardFocusWnd == cast(#null *Wnd) password.edit)
 
     host.keyPress(Input.Key.Tab)
-    @assert(list.hasFocus())
-    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) list.listView)
+    Swag.assert(list.hasFocus())
+    Swag.assert(host.app.keyboardFocusWnd == cast(#null *Wnd) list.listView)
 }
 
 // A group of options is one stop, entered on the option that is checked.
@@ -285,23 +285,23 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     b.setChecked(true)
 
     let order = FocusOrder.collect(&host.root)
-    @assert(order.stops.count == 2)
-    @assert(order.stops[0] == cast(*Wnd) b)
-    @assert(order.stops[1] == cast(*Wnd) after)
+    Swag.assert(order.stops.count == 2)
+    Swag.assert(order.stops[0] == cast(*Wnd) b)
+    Swag.assert(order.stops[1] == cast(*Wnd) after)
 
     // The arrows choose inside the group, and Tab is what leaves it.
     b.setFocus()
     host.keyPress(Input.Key.Down)
-    @assert(c.isChecked())
-    @assert(c.hasFocus())
+    Swag.assert(c.isChecked())
+    Swag.assert(c.hasFocus())
 
     // The group wraps rather than handing the keyboard to the button beside it.
     host.keyPress(Input.Key.Down)
-    @assert(a.isChecked())
-    @assert(a.hasFocus())
+    Swag.assert(a.isChecked())
+    Swag.assert(a.hasFocus())
 
     host.keyPress(Input.Key.Tab)
-    @assert(after.hasFocus())
+    Swag.assert(after.hasFocus())
 }
 
 // Enter and Escape stand for the two standard buttons of the surface.
@@ -325,18 +325,18 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     // does not answer keys to see the surface answer for it.
     field.setFocus()
     host.keyPress(Input.Key.Escape)
-    @assert(host.lastCommand == FocusHeadless_Cancel)
+    Swag.assert(host.lastCommand == FocusHeadless_Cancel)
 
     host.focus(&host.root)
     host.keyPress(Input.Key.Return)
-    @assert(host.lastCommand == FocusHeadless_Default)
+    Swag.assert(host.lastCommand == FocusHeadless_Default)
 
     // A button that is down does not answer for the surface.
     let previous = host.commandCount
     cancel.disable()
     host.focus(&host.root)
     host.keyPress(Input.Key.Escape)
-    @assert(host.commandCount == previous)
+    Swag.assert(host.commandCount == previous)
 }
 
 // The arrows walk the group the focus stands in; Tab is what crosses the whole box.
@@ -354,18 +354,18 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     yes.setFocus()
     host.keyPress(Input.Key.Right)
-    @assert(no.hasFocus())
+    Swag.assert(no.hasFocus())
     host.keyPress(Input.Key.Down)
-    @assert(more.hasFocus())
+    Swag.assert(more.hasFocus())
 
     // The bar wraps on itself rather than reaching the field above it.
     host.keyPress(Input.Key.Right)
-    @assert(yes.hasFocus())
+    Swag.assert(yes.hasFocus())
     host.keyPress(Input.Key.Left)
-    @assert(more.hasFocus())
+    Swag.assert(more.hasFocus())
 
     host.keyPress(Input.Key.Tab)
-    @assert(field.hasFocus())
+    Swag.assert(field.hasFocus())
 }
 
 // A list keeps the keys it reads and hands back the ones it does not.
@@ -392,25 +392,25 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     // What the list reads stays with the list.
     list.setFocus()
-    @assert(list.hasFocus())
+    Swag.assert(list.hasFocus())
     host.keyPress(Input.Key.Down)
-    @assert(list.isLineSelected(0))
-    @assert(list.hasFocus())
+    Swag.assert(list.isLineSelected(0))
+    Swag.assert(list.hasFocus())
 
     // What it does not read goes to the surface.
     host.keyPress(Input.Key.Escape)
-    @assert(host.lastCommand == FocusHeadless_Cancel)
-    @assert(list.hasFocus())
+    Swag.assert(host.lastCommand == FocusHeadless_Cancel)
+    Swag.assert(list.hasFocus())
 
     host.keyPress(Input.Key.Tab)
-    @assert(ok.hasFocus())
+    Swag.assert(ok.hasFocus())
     host.keyPress(Input.Key.Tab, Input.KeyModifiers.Shift)
-    @assert(list.hasFocus())
+    Swag.assert(list.hasFocus())
 
     // An empty list has nothing to read at all, and still must not eat the way out.
     list.clear()
     host.keyPress(Input.Key.Tab)
-    @assert(ok.hasFocus())
+    Swag.assert(ok.hasFocus())
 }
 
 // The accent stands on the action Enter would run, which a focused button is.
@@ -433,29 +433,29 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     // The keyboard is in a field, so the box answers Enter with the action it named.
     field.setFocus()
-    @assert(ok.paintedForm() == .Default)
-    @assert(cancel.paintedForm() == .Normal)
+    Swag.assert(ok.paintedForm() == .Default)
+    Swag.assert(cancel.paintedForm() == .Normal)
 
     host.keyPress(Input.Key.Tab)
-    @assert(ok.hasFocus())
-    @assert(ok.paintedForm() == .Default)
+    Swag.assert(ok.hasFocus())
+    Swag.assert(ok.paintedForm() == .Default)
 
     // The arrows walk the bar and the fill follows them.
     host.keyPress(Input.Key.Right)
-    @assert(cancel.hasFocus())
-    @assert(cancel.paintedForm() == .Default)
-    @assert(ok.paintedForm() == .Normal)
+    Swag.assert(cancel.hasFocus())
+    Swag.assert(cancel.paintedForm() == .Default)
+    Swag.assert(ok.paintedForm() == .Normal)
 
     host.keyPress(Input.Key.Left)
-    @assert(ok.hasFocus())
-    @assert(ok.paintedForm() == .Default)
-    @assert(cancel.paintedForm() == .Normal)
+    Swag.assert(ok.hasFocus())
+    Swag.assert(ok.paintedForm() == .Default)
+    Swag.assert(cancel.paintedForm() == .Normal)
 
     // Back on the field, the box shows its own default again.
     host.keyPress(Input.Key.Tab, Input.KeyModifiers.Shift)
-    @assert(field.hasFocus())
-    @assert(ok.paintedForm() == .Default)
-    @assert(cancel.paintedForm() == .Normal)
+    Swag.assert(field.hasFocus())
+    Swag.assert(ok.paintedForm() == .Default)
+    Swag.assert(cancel.paintedForm() == .Normal)
 }
 
 // A box gives the keyboard back to the control it was opened from.
@@ -470,23 +470,23 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     let card = focusHeadlessCard(&host.root, {10, 10, 200, 180})
     card.browse.setFocus()
-    @assert(card.browse.hasFocus())
+    Swag.assert(card.browse.hasFocus())
 
     let dlg = Dialog.create(&host.surface, 260, 150, title: "Pick")
     dlg.addButton("Ok", Dialog.BtnOk, true)
     dlg.addButton("Cancel", Dialog.BtnCancel)
 
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
-    @assert(dlg.doModal() == Dialog.BtnCancel)
-    @assert(host.autoHandled)
+    Swag.assert(dlg.doModal() == Dialog.BtnCancel)
+    Swag.assert(host.autoHandled)
 
     // The box is queued for destruction on the way out; the surface is gone once that is drained.
     host.pump()
-    @assert(host.openedSurfaceCount() == 0)
+    Swag.assert(host.openedSurfaceCount() == 0)
 
-    @assert(card.browse.hasFocus())
+    Swag.assert(card.browse.hasFocus())
     host.keyPress(Input.Key.Tab)
-    @assert(card.submit.hasFocus())
+    Swag.assert(card.submit.hasFocus())
 }
 
 // A stop alone in its group answers the arrows with the whole ring, and a modified arrow is a
@@ -503,12 +503,12 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     inner.setFocus()
     host.keyPress(Input.Key.Right)
-    @assert(alone.hasFocus())
+    Swag.assert(alone.hasFocus())
 
     host.keyPress(Input.Key.Right, Input.KeyModifiers.Shift)
-    @assert(alone.hasFocus())
+    Swag.assert(alone.hasFocus())
     host.keyPress(Input.Key.Right, Input.KeyModifiers.Control)
-    @assert(alone.hasFocus())
+    Swag.assert(alone.hasFocus())
 }
 
 // A box opens on the action it names as its default, with the ring already showing.
@@ -532,13 +532,13 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
         // Reading order would have opened on `Yes`, and a focused button answers Enter itself:
         // the box would have answered yes to a question whose default is no.
-        @assert(no.hasFocus())
-        @assert(no.hasVisibleFocus())
-        @assert(host.clickModalButton(Dialog.BtnNo))
+        Swag.assert(no.hasFocus())
+        Swag.assert(no.hasVisibleFocus())
+        Swag.assert(host.clickModalButton(Dialog.BtnNo))
     }
 
-    @assert(dlg.doModal() == Dialog.BtnNo)
-    @assert(checked)
+    Swag.assert(dlg.doModal() == Dialog.BtnNo)
+    Swag.assert(checked)
 }
 
 // A box with something to fill in opens on that instead, and its default still answers Enter.
@@ -565,14 +565,14 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
             return
         checked[] = true
 
-        @assert(field.hasFocus())
+        Swag.assert(field.hasFocus())
 
         // The field declines Enter, so the box still answers with the action it named.
         host.keyPress(Input.Key.Return)
     }
 
-    @assert(dlg.doModal() == Dialog.BtnOk)
-    @assert(checked)
+    Swag.assert(dlg.doModal() == Dialog.BtnOk)
+    Swag.assert(checked)
 }
 
 // A control the reader would act on is passed over, and the box opens on its named default.
@@ -595,8 +595,8 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     dlg.applyLayout()
 
     // Both read before the action bar, so either is what the box would have opened on.
-    @assert(FocusOrder.collect(dlg.surface!.wnd).first() == cast(*Wnd) again)
-    @assert(again.wndFlags.has(.ActivatesOnKey) and toggle.wndFlags.has(.ActivatesOnKey))
+    Swag.assert(FocusOrder.collect(dlg.surface!.wnd).first() == cast(*Wnd) again)
+    Swag.assert(again.wndFlags.has(.ActivatesOnKey) and toggle.wndFlags.has(.ActivatesOnKey))
 
     var checked: bool
     host.app.sigFrame += func|host = &host, again, toggle, no, checked = &checked|(app)
@@ -606,19 +606,19 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
             return
         checked[] = true
 
-        @assert(no.hasFocus())
-        @assert(!again.hasFocus() and !toggle.hasFocus())
+        Swag.assert(no.hasFocus())
+        Swag.assert(!again.hasFocus() and !toggle.hasFocus())
 
         // Passed over is not left out: the ring still wraps onto the options.
         host.keyPress(Input.Key.Tab)
-        @assert(again.hasFocus())
+        Swag.assert(again.hasFocus())
 
         no.setFocus()
-        @assert(host.clickModalButton(Dialog.BtnNo))
+        Swag.assert(host.clickModalButton(Dialog.BtnNo))
     }
 
-    @assert(dlg.doModal() == Dialog.BtnNo)
-    @assert(checked)
+    Swag.assert(dlg.doModal() == Dialog.BtnNo)
+    Swag.assert(checked)
 }
 
 // What the ring looks like on a control that has nothing else to show for the focus.
@@ -637,18 +637,18 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     // Tab is what turns the ring on, so this goes through the real navigation.
     host.keyPress(Input.Key.Tab)
-    @assert(button.hasVisibleFocus())
+    Swag.assert(button.hasVisibleFocus())
 
     let ringed = host.render()
-    @assert(Memory.compare(ringed.pixels.buffer, idle.pixels.buffer, ringed.byteCount) != 0)
+    Swag.assert(Memory.compare(ringed.pixels.buffer, idle.pixels.buffer, ringed.byteCount) != 0)
     Pixel.Testing.assertImageGolden(&ringed, "focus.ring.pushbutton")
 
     // A press takes the ring away again without taking the focus. The image is not compared
     // against the idle one: the pointer is over the button now, which is a state of its own.
     host.clickWnd(button)
-    @assert(button.hasFocus() and !button.hasVisibleFocus())
+    Swag.assert(button.hasFocus() and !button.hasVisibleFocus())
     let pressed = host.render()
-    @assert(Memory.compare(pressed.pixels.buffer, ringed.pixels.buffer, pressed.byteCount) != 0)
+    Swag.assert(Memory.compare(pressed.pixels.buffer, ringed.pixels.buffer, pressed.byteCount) != 0)
 }
 
 // What an action bar looks like when the keyboard has moved off the action the box named.
@@ -676,10 +676,10 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     // The fill crosses the bar as an animation, so the image is taken once it has arrived.
     host.keyPress(Input.Key.Right)
-    @assert(cancel.hasFocus())
+    Swag.assert(cancel.hasFocus())
     host.settleAnimations()
     let onOther = host.render()
-    @assert(Memory.compare(onOther.pixels.buffer, onDefault.pixels.buffer, onOther.byteCount) != 0)
+    Swag.assert(Memory.compare(onOther.pixels.buffer, onDefault.pixels.buffer, onOther.byteCount) != 0)
     Pixel.Testing.assertImageGolden(&onOther, "focus.default.follows.keyboard")
 }
 
@@ -697,10 +697,10 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     let idle   = host.render()
 
     host.keyPress(Input.Key.Tab)
-    @assert(button.hasVisibleFocus())
+    Swag.assert(button.hasVisibleFocus())
 
     let ringed = host.render()
-    @assert(Memory.compare(ringed.pixels.buffer, idle.pixels.buffer, ringed.byteCount) != 0)
+    Swag.assert(Memory.compare(ringed.pixels.buffer, idle.pixels.buffer, ringed.byteCount) != 0)
     Pixel.Testing.assertImageGolden(&ringed, "focus.ring.pushbutton.default")
 }
 
@@ -723,7 +723,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     let button = PushButton.create(&host.root, "Go", {20, 16, 80, 32})
     host.keyPress(Input.Key.Tab)
-    @assert(button.hasVisibleFocus())
+    Swag.assert(button.hasVisibleFocus())
 
     host.settleAnimations()
     let ringed = host.render()
@@ -745,7 +745,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     toggle.setChecked(true)
 
     host.keyPress(Input.Key.Tab)
-    @assert(toggle.hasVisibleFocus())
+    Swag.assert(toggle.hasVisibleFocus())
 
     host.settleAnimations()
     let ringed = host.render()

@@ -11,7 +11,7 @@ using Win32
 internal func loadNativeLibrary(path: string)->*void fail
 {
     let nativePath = Utf16.toZeroTerminated(path)
-    let handle     = LoadLibraryW(@dataof(nativePath))
+    let handle     = LoadLibraryW(nativePath.buffer)
     if !handle do
         failWinError(GetLastError())
     return handle!
@@ -19,7 +19,7 @@ internal func loadNativeLibrary(path: string)->*void fail
 
 internal func nativeLibrarySymbol(handle: *void, name: string)->#null const *void
 {
-    return GetProcAddress(cast(HMODULE) handle, @dataof(name))
+    return GetProcAddress(cast(HMODULE) handle, name.buffer)
 }
 
 internal func closeNativeLibrary(handle: *void)

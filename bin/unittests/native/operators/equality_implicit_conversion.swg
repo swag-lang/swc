@@ -13,14 +13,14 @@ struct EqualityPoint
     let mutableView:  [..] u8       = mutableBytes
     let readOnlyView: const [..] u8 = mutableBytes
 
-    @assert(mutableView == readOnlyView)
-    @assert(readOnlyView == mutableView)
-    @assert(mutableView == [1'u8, 2'u8, 3'u8, 4'u8])
-    @assert([1'u8, 2'u8, 3'u8, 4'u8] == readOnlyView)
+    Swag.assert(mutableView == readOnlyView)
+    Swag.assert(readOnlyView == mutableView)
+    Swag.assert(mutableView == [1'u8, 2'u8, 3'u8, 4'u8])
+    Swag.assert([1'u8, 2'u8, 3'u8, 4'u8] == readOnlyView)
 
     let missing: #null const [..] u8 = null
-    @assert(missing != mutableView)
-    @assert(mutableView != missing)
+    Swag.assert(missing != mutableView)
+    Swag.assert(mutableView != missing)
 }
 
 // Fixed arrays follow the same read-only qualification rule.
@@ -28,8 +28,8 @@ struct EqualityPoint
 {
     var mutableArray:  [4] u8       = [1, 2, 3, 4]
     let readOnlyArray: const [4] u8 = mutableArray
-    @assert(mutableArray == readOnlyArray)
-    @assert(readOnlyArray == mutableArray)
+    Swag.assert(mutableArray == readOnlyArray)
+    Swag.assert(readOnlyArray == mutableArray)
 }
 
 // Reference normalization must happen before a structure literal is contextualized.
@@ -37,6 +37,6 @@ struct EqualityPoint
 {
     var point = EqualityPoint{10, 20}
     let pointRef: const *EqualityPoint = &point
-    @assert(pointRef[] == {10, 20})
-    @assert({10, 20} == pointRef[])
+    Swag.assert(pointRef[] == {10, 20})
+    Swag.assert({10, 20} == pointRef[])
 }

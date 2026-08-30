@@ -58,10 +58,10 @@ func day1A()
     arr1.sort()
 
     var total = 0
-    for i in @countof(arr0)
+    for i in arr0.count
     {
-        total += @abs(arr1[i] - arr0[i])
+        total += Swag.abs(arr1[i] - arr0[i])
     }
 
-    @assert(total == 2742123)
+    Swag.assert(total == 2742123)
 }

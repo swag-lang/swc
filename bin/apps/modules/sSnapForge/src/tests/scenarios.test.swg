@@ -36,8 +36,8 @@ impl ScenarioFixture
     mtd shutdown()
     {
         .main.libWnd.requestClose()
-        @drop(&g_Library, 1)
-        @init(&g_Library, 1)
+        Swag.drop(&g_Library, 1)
+        Swag.init(&g_Library, 1)
         .gui.shutdown()
         discard catch Directory.delete(.rootFolder, recurse: true)
         g_Main = null
@@ -52,7 +52,7 @@ impl ScenarioFixture
         .main.applyLayout()
         .gui.settleAnimations(.main)
         var rendered = .gui.render(.main)
-        @assert(rendered.isValid())
+        Swag.assert(rendered.isValid())
     }
 
     mtd toggleLibrary()
@@ -96,24 +96,24 @@ func scenarioDeleteCaptureFiles(path: String)
     let path = scenarioNewCapture(f.main, "Scenario Editor")
     defer scenarioDeleteCaptureFiles(path)
 
-    @assert(File.exists(path))
-    @assert(f.main.editWnd.getCapture()!.file == path)
-    @assert(f.main.recentWnd.recentView.items.count == 1)
-    @assert(g_Library.files.count == 1)
+    Swag.assert(File.exists(path))
+    Swag.assert(f.main.editWnd.getCapture()!.file == path)
+    Swag.assert(f.main.recentWnd.recentView.items.count == 1)
+    Swag.assert(g_Library.files.count == 1)
 
     f.toggleLibrary()
 
-    @assert(f.main.libraryMode)
-    @assert(f.main.libWnd.view.allItems.count == 1)
-    @assert(f.main.libWnd.view.items.count == 1)
-    @assert(f.main.libWnd.view.items[0]!.loaded)
-    @assert(f.main.libWnd.sidebarApplications.count == 1)
-    @assert(f.main.libWnd.sidebarApplications[0].name == "Scenario Editor")
+    Swag.assert(f.main.libraryMode)
+    Swag.assert(f.main.libWnd.view.allItems.count == 1)
+    Swag.assert(f.main.libWnd.view.items.count == 1)
+    Swag.assert(f.main.libWnd.view.items[0]!.loaded)
+    Swag.assert(f.main.libWnd.sidebarApplications.count == 1)
+    Swag.assert(f.main.libWnd.sidebarApplications[0].name == "Scenario Editor")
 
     f.toggleLibrary()
 
-    @assert(!f.main.libraryMode)
-    @assert(f.main.editWnd.getCapture()!.file == path)
+    Swag.assert(!f.main.libraryMode)
+    Swag.assert(f.main.editWnd.getCapture()!.file == path)
 }
 
 // Editing a capture schedules the real history timer, which saves it. Opening the same item
@@ -132,12 +132,12 @@ func scenarioDeleteCaptureFiles(path: String)
     discard testAddShape(capture, 8, 10, 30, 20)
     capture.changed = true
     f.main.captureHasChanged()
-    @assert(f.main.recentWnd.timer != null)
+    Swag.assert(f.main.recentWnd.timer != null)
     f.gui.fireTimer(f.main.recentWnd.timer)
 
     let saved = expect Capture.load(path)!
-    @assert(saved.title == "Persisted scenario")
-    @assert(saved.forms.count == 1)
+    Swag.assert(saved.title == "Persisted scenario")
+    Swag.assert(saved.forms.count == 1)
     Memory.delete(saved)
 
     f.toggleLibrary()
@@ -145,10 +145,10 @@ func scenarioDeleteCaptureFiles(path: String)
     f.main.libWnd.view.openItem(item)
     f.gui.pump()
 
-    @assert(!f.main.libraryMode)
-    @assert(f.main.editWnd.getCapture()!.file == path)
-    @assert(f.main.editWnd.getCapture()!.title == "Persisted scenario")
-    @assert(f.main.editWnd.getCapture()!.forms.count == 1)
+    Swag.assert(!f.main.libraryMode)
+    Swag.assert(f.main.editWnd.getCapture()!.file == path)
+    Swag.assert(f.main.editWnd.getCapture()!.title == "Persisted scenario")
+    Swag.assert(f.main.editWnd.getCapture()!.forms.count == 1)
 }
 
 // The history popup deletes through every production observer after the library has been
@@ -165,18 +165,18 @@ func scenarioDeleteCaptureFiles(path: String)
 
     f.toggleLibrary()
     f.toggleLibrary()
-    @assert(f.main.recentWnd.recentView.selected == 0)
+    Swag.assert(f.main.recentWnd.recentView.selected == 0)
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
-    @assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture))
+    Swag.assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture))
     f.gui.pump()
 
-    @assert(f.gui.autoHandled)
-    @assert(!File.exists(path))
-    @assert(File.exists(trashPath))
-    @assert(g_Library.files.count == 0)
-    @assert(f.main.recentWnd.recentView.items.count == 0)
-    @assert(f.main.libWnd.view.items.count == 0)
+    Swag.assert(f.gui.autoHandled)
+    Swag.assert(!File.exists(path))
+    Swag.assert(File.exists(trashPath))
+    Swag.assert(g_Library.files.count == 0)
+    Swag.assert(f.main.recentWnd.recentView.items.count == 0)
+    Swag.assert(f.main.libWnd.view.items.count == 0)
 }
 
 // A library deletion remains recoverable through the recycle-bin page. Restoring it repopulates
@@ -195,31 +195,31 @@ func scenarioDeleteCaptureFiles(path: String)
     f.main.libWnd.view.focusItem = 0
     f.main.libWnd.view.selModel.select(0)
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
-    @assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture))
+    Swag.assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture))
     f.gui.pump()
 
-    @assert(!File.exists(path))
-    @assert(File.exists(trashPath))
+    Swag.assert(!File.exists(path))
+    Swag.assert(File.exists(trashPath))
 
     f.main.libWnd.setTrashMode(true)
     f.settleLibrary()
-    @assert(f.main.libWnd.view.items.count == 1)
+    Swag.assert(f.main.libWnd.view.items.count == 1)
     f.main.libWnd.view.focusItem = 0
     f.main.libWnd.view.selModel.select(0)
-    @assert(Gui.Testing.actionExecute'ActionLibTrash(f.main.libWnd, ActionLibTrash.Restore))
+    Swag.assert(Gui.Testing.actionExecute'ActionLibTrash(f.main.libWnd, ActionLibTrash.Restore))
 
-    @assert(File.exists(path))
-    @assert(!File.exists(trashPath))
-    @assert(g_Library.files.count == 1)
+    Swag.assert(File.exists(path))
+    Swag.assert(!File.exists(trashPath))
+    Swag.assert(g_Library.files.count == 1)
 
     f.main.libWnd.setTrashMode(false)
     f.settleLibrary()
-    @assert(f.main.libWnd.view.items.count == 1)
+    Swag.assert(f.main.libWnd.view.items.count == 1)
     f.main.libWnd.view.openItem(f.main.libWnd.view.items[0]!)
     f.gui.pump()
 
-    @assert(!f.main.libraryMode)
-    @assert(f.main.editWnd.getCapture()!.file == path)
+    Swag.assert(!f.main.libraryMode)
+    Swag.assert(f.main.editWnd.getCapture()!.file == path)
 }
 
 // Removing the last item in history selects its surviving neighbour. This protects the editor,
@@ -237,17 +237,17 @@ func scenarioDeleteCaptureFiles(path: String)
 
     f.toggleLibrary()
     f.toggleLibrary()
-    @assert(f.main.recentWnd.recentView.items.count == 2)
+    Swag.assert(f.main.recentWnd.recentView.items.count == 2)
     f.main.recentWnd.recentView.select(1)
-    @assert(f.main.editWnd.getCapture()!.file == firstPath)
+    Swag.assert(f.main.editWnd.getCapture()!.file == firstPath)
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
-    @assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture))
+    Swag.assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture))
     f.gui.pump()
 
-    @assert(f.main.recentWnd.recentView.items.count == 1)
-    @assert(f.main.recentWnd.recentView.selected == 0)
-    @assert(f.main.editWnd.getCapture()!.file == secondPath)
-    @assert(!File.exists(firstPath))
-    @assert(File.exists(secondPath))
+    Swag.assert(f.main.recentWnd.recentView.items.count == 1)
+    Swag.assert(f.main.recentWnd.recentView.selected == 0)
+    Swag.assert(f.main.editWnd.getCapture()!.file == secondPath)
+    Swag.assert(!File.exists(firstPath))
+    Swag.assert(File.exists(secondPath))
 }

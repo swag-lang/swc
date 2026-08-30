@@ -303,7 +303,7 @@ impl IWnd for LibraryView
             elif it.kind == .Image do
                 label = Path.fileName(it.fi.fullname) orelse ""
 
-            if @countof(label)
+            if label.count
             {
                 let font = me .font().regular!
                 let cx   = it.rect.horzCenter()
@@ -408,7 +408,7 @@ impl LibraryView
         }
 
         g_UpdatingLib = true
-        if @isset(.imgSpin) do
+        if Swag.isSet(.imgSpin) do
             .imgSpin.show()
         try
         {
@@ -572,7 +572,7 @@ impl LibraryView
                 // Nothing is known about an item until its preview loads. While a search
                 // is active hide it (it re-appears once loaded if it matches) so results
                 // are not padded with unloaded, possibly non-matching, captures.
-                if @countof(search) != 0 or .libWnd.contentFilter == .ScreenCaptures or .libWnd.contentFilter == .ImportedCaptures or .libWnd.favoritesOnly or .libWnd.minimumRating or !.libWnd.applicationFilter.isEmpty() or !.libWnd.tagFilter.isEmpty() do
+                if search.count != 0 or .libWnd.contentFilter == .ScreenCaptures or .libWnd.contentFilter == .ImportedCaptures or .libWnd.favoritesOnly or .libWnd.minimumRating or !.libWnd.applicationFilter.isEmpty() or !.libWnd.tagFilter.isEmpty() do
                     continue
                 itn.filtered = false
                 .items.add(itn)
@@ -716,7 +716,7 @@ impl LibraryView
                 continue
 
             .loadOne(it)
-            if (@index & 15) == 0 do
+            if (Swag.index & 15) == 0 do
                 .postInvalidateEvent()
         }
 
@@ -759,7 +759,7 @@ impl LibraryView
                 if similarity > best
                 {
                     best       = similarity
-                    bestI      = @index
+                    bestI      = Swag.index
                     foundMatch = true
                 }
             }

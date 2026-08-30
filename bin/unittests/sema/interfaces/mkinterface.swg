@@ -1,4 +1,4 @@
-// Regression test for @mkinterface during front-end analysis.
+// Regression test for Swag.makeInterface during front-end analysis.
 #global private
 
 interface IAction
@@ -26,8 +26,8 @@ impl IAction for RedoAction
 func semaTest001()
 {
     var actions: [2] IAction = undefined
-    actions[0] = @mkinterface(null, #typeof(UndoAction{}), IAction)
-    actions[1] = @mkinterface(null, #typeof(RedoAction{}), IAction)
+    actions[0] = Swag.makeInterface(null, #typeof(UndoAction{}), IAction)
+    actions[1] = Swag.makeInterface(null, #typeof(RedoAction{}), IAction)
 
     discard actions[0].accept(1)
     discard actions[1].execute(3)

@@ -41,7 +41,7 @@ impl Encoder
             return
 
         let stream = .stream!
-        stream.addBytes(@mkslice(cast(const [*] u8) &.outBuf[0], cast(u64) .outCount))
+        stream.addBytes(Swag.makeSlice(cast(const [*] u8) &.outBuf[0], cast(u64) .outCount))
         .outCount = 0
     }
 

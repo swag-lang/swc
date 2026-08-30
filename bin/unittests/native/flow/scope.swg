@@ -15,7 +15,7 @@
         count = -10
     }
 
-    @assert(count == 1)
+    Swag.assert(count == 1)
 }
 
 #test
@@ -29,7 +29,7 @@
         break to Up
     }
 
-    @assert(count == 1)
+    Swag.assert(count == 1)
 }
 
 // A '#scope' is transparent to the bare statements: both reach the enclosing loop.
@@ -48,7 +48,7 @@
         }
     }
 
-    @assert(count == 4)
+    Swag.assert(count == 4)
 }
 
 #test
@@ -67,5 +67,5 @@
         break to A
     }
 
-    @assert(count == 2)
+    Swag.assert(count == 2)
 }

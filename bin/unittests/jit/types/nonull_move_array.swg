@@ -33,8 +33,8 @@ func consumeJitNonNullMoveArray(value: JitNonNullMoveArrayNestedAlias)->bool
 {
     var source: JitNonNullMoveArrayNestedAlias = [{value: "init-a"}, {value: "init-b"}]
     let target = #move source
-    @assert(target[0].value == "init-a" and target[1].value == "init-b")
-    @assert(source[0].value == "reset" and source[1].value == "reset")
+    Swag.assert(target[0].value == "init-a" and target[1].value == "init-b")
+    Swag.assert(source[0].value == "reset" and source[1].value == "reset")
 }
 
 #test
@@ -42,20 +42,20 @@ func consumeJitNonNullMoveArray(value: JitNonNullMoveArrayNestedAlias)->bool
     var source: [2] JitNonNullMoveArrayDefault = [{value: "assign-a"}, {value: "assign-b"}]
     var target: [2] JitNonNullMoveArrayDefault = [{value: "old-a"}, {value: "old-b"}]
     target = #move source
-    @assert(target[0].value == "assign-a" and target[1].value == "assign-b")
-    @assert(source[0].value == "reset" and source[1].value == "reset")
+    Swag.assert(target[0].value == "assign-a" and target[1].value == "assign-b")
+    Swag.assert(source[0].value == "reset" and source[1].value == "reset")
 }
 
 #test
 {
     var source: JitNonNullMoveArrayNestedAlias = [{value: "call-a"}, {value: "call-b"}]
-    @assert(consumeJitNonNullMoveArray(#move source))
-    @assert(source[0].value == "reset" and source[1].value == "reset")
+    Swag.assert(consumeJitNonNullMoveArray(#move source))
+    Swag.assert(source[0].value == "reset" and source[1].value == "reset")
 }
 
 #test
 {
     var source = JitNonNullMoveUndefinedEscape{value: "explicit"}
     let target = #move source
-    @assert(target.value == "explicit")
+    Swag.assert(target.value == "explicit")
 }

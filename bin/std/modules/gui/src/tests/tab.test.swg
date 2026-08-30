@@ -19,23 +19,23 @@ var TabHeadlessSelChangedCount: u32
     tab.addItem("A")
     tab.addItem("B")
     tab.addItem("C")
-    @assert(tab.items.count == 3)
-    @assert(tab.selectedIndex == 0)
+    Swag.assert(tab.items.count == 3)
+    Swag.assert(tab.selectedIndex == 0)
 
     tab.setSelectedIndex(2)
-    @assert(tab.selectedIndex == 2)
-    @assert(TabHeadlessSelChangedCount == 1)
-    @assert(tab.selectedItem()!.name.raw == "C")
+    Swag.assert(tab.selectedIndex == 2)
+    Swag.assert(TabHeadlessSelChangedCount == 1)
+    Swag.assert(tab.selectedItem()!.name.raw == "C")
 
     // Selecting the current tab is a no-op.
     tab.setSelectedIndex(2)
-    @assert(TabHeadlessSelChangedCount == 1)
+    Swag.assert(TabHeadlessSelChangedCount == 1)
 
     host.focus(tab)
     host.keyPress(Input.Key.Left)
-    @assert(tab.selectedIndex == 1 and TabHeadlessSelChangedCount == 2)
+    Swag.assert(tab.selectedIndex == 1 and TabHeadlessSelChangedCount == 2)
     host.keyPress(Input.Key.Home)
-    @assert(tab.selectedIndex == 0 and TabHeadlessSelChangedCount == 3)
+    Swag.assert(tab.selectedIndex == 0 and TabHeadlessSelChangedCount == 3)
 }
 
 // Tab views are shown/hidden according to the selection.
@@ -51,12 +51,12 @@ var TabHeadlessSelChangedCount: u32
     tab.addItem("A", {}, viewA)
     tab.addItem("B", {}, viewB)
 
-    @assert(!viewA.wndFlags.has(.Hidden))
-    @assert(viewB.wndFlags.has(.Hidden))
+    Swag.assert(!viewA.wndFlags.has(.Hidden))
+    Swag.assert(viewB.wndFlags.has(.Hidden))
 
     tab.setSelectedIndex(1)
-    @assert(viewA.wndFlags.has(.Hidden))
-    @assert(!viewB.wndFlags.has(.Hidden))
+    Swag.assert(viewA.wndFlags.has(.Hidden))
+    Swag.assert(!viewB.wndFlags.has(.Hidden))
 }
 
 // Opt-in page transitions keep the outgoing page painted under the incoming fade while preserving
@@ -80,30 +80,30 @@ var TabHeadlessSelChangedCount: u32
     let before      = host.render()
     let beforeColor = before.pixelColor(160, 120)
     let emptyColor  = host.theme.colors.dlg_Bk
-    @assert(beforeColor.argb != emptyColor.argb)
+    Swag.assert(beforeColor.argb != emptyColor.argb)
 
     tab.setSelectedIndex(1)
-    @assert(viewA.wndFlags.has(.Hidden) and !viewB.wndFlags.has(.Hidden))
-    @assert(viewA.paintsWhenHidden)
-    @assert(viewA.presentationOpacity == 1)
-    @assert(viewB.presentationOpacity == 0)
-    @assert(viewB.presentationOffset.x == tab.themeMetrics().motion_PageOffset)
+    Swag.assert(viewA.wndFlags.has(.Hidden) and !viewB.wndFlags.has(.Hidden))
+    Swag.assert(viewA.paintsWhenHidden)
+    Swag.assert(viewA.presentationOpacity == 1)
+    Swag.assert(viewB.presentationOpacity == 0)
+    Swag.assert(viewB.presentationOffset.x == tab.themeMetrics().motion_PageOffset)
     let start = host.render()
-    @assert(start.pixelColor(160, 120).argb == beforeColor.argb)
+    Swag.assert(start.pixelColor(160, 120).argb == beforeColor.argb)
     let logicalPosition = viewB.position
 
     host.advanceAnimations(tab.themeMetrics().motion_PageSeconds * 0.5)
-    @assert(viewA.presentationOpacity > 0 and viewA.presentationOpacity < 1)
-    @assert(viewB.presentationOpacity > 0 and viewB.presentationOpacity < 1)
-    @assert(viewB.position == logicalPosition)
+    Swag.assert(viewA.presentationOpacity > 0 and viewA.presentationOpacity < 1)
+    Swag.assert(viewB.presentationOpacity > 0 and viewB.presentationOpacity < 1)
+    Swag.assert(viewB.position == logicalPosition)
     let halfway = host.render()
-    @assert(halfway.pixelColor(160, 120).argb != emptyColor.argb)
+    Swag.assert(halfway.pixelColor(160, 120).argb != emptyColor.argb)
     host.finishAnimations()
-    @assert(!viewA.paintsWhenHidden)
-    @assert(viewA.presentationOpacity == 1)
-    @assert(viewB.presentationOpacity == 1 and viewB.presentationOffset == Math.Point{})
+    Swag.assert(!viewA.paintsWhenHidden)
+    Swag.assert(viewA.presentationOpacity == 1)
+    Swag.assert(viewB.presentationOpacity == 1 and viewB.presentationOffset == Math.Point{})
     let finished = host.render()
-    @assert(finished.pixelColor(160, 120).argb != beforeColor.argb)
+    Swag.assert(finished.pixelColor(160, 120).argb != beforeColor.argb)
 }
 
 // Removing tabs destroys owned pages, preserves the selected item identity, and clears safely.
@@ -125,15 +125,15 @@ var TabHeadlessSelChangedCount: u32
 
     tab.setSelectedIndex(2)
     tab.removeItemAt(0)
-    @assert(tab.selectedIndex == 1 and tab.selectedItem()!.name.raw == "C")
-    @assert(TabHeadlessSelChangedCount == 1)
+    Swag.assert(tab.selectedIndex == 1 and tab.selectedItem()!.name.raw == "C")
+    Swag.assert(TabHeadlessSelChangedCount == 1)
 
     tab.removeItemAt(1)
-    @assert(tab.selectedIndex == 0 and tab.selectedItem()!.name.raw == "B")
-    @assert(TabHeadlessSelChangedCount == 2)
+    Swag.assert(tab.selectedIndex == 0 and tab.selectedItem()!.name.raw == "B")
+    Swag.assert(TabHeadlessSelChangedCount == 2)
 
     tab.clear()
-    @assert(tab.items.isEmpty() and tab.selectedItem() == null and tab.selectedIndex == Swag.U32.Max)
-    @assert(viewA.isPendingDestroy and viewB.isPendingDestroy and viewC.isPendingDestroy)
+    Swag.assert(tab.items.isEmpty() and tab.selectedItem() == null and tab.selectedIndex == Swag.U32.Max)
+    Swag.assert(viewA.isPendingDestroy and viewB.isPendingDestroy and viewC.isPendingDestroy)
     host.pump()
 }

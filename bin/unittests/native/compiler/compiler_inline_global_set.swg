@@ -12,5 +12,5 @@ func inlineCompilerSet()
 #test
 {
     #run inlineCompilerSet()
-    @assert(X == 6)
+    Swag.assert(X == 6)
 }

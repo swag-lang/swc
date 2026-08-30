@@ -48,7 +48,6 @@ public:
 
     TokenId keyword(std::string_view name, uint32_t hash) const;
     TokenId keyword(std::string_view name) const;
-
     static constexpr std::string_view VERIFY_COMMENT_OPTION   = "swc-option";
     static constexpr std::string_view VERIFY_COMMENT_EXPECTED = "swc-expected-";
 

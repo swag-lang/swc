@@ -3,43 +3,43 @@
 #test
 {
     #[Swag.NoInline]
-    func minRuntimeS8(a: s8, b: s8)->s8 => @min(a, b)
+    func minRuntimeS8(a: s8, b: s8)->s8 => Swag.min(a, b)
     #[Swag.NoInline]
-    func maxRuntimeS8(a: s8, b: s8)->s8 => @max(a, b)
+    func maxRuntimeS8(a: s8, b: s8)->s8 => Swag.max(a, b)
     #[Swag.NoInline]
-    func minRuntimeS16(a: s16, b: s16)->s16 => @min(a, b)
+    func minRuntimeS16(a: s16, b: s16)->s16 => Swag.min(a, b)
     #[Swag.NoInline]
-    func maxRuntimeS16(a: s16, b: s16)->s16 => @max(a, b)
+    func maxRuntimeS16(a: s16, b: s16)->s16 => Swag.max(a, b)
     #[Swag.NoInline]
-    func minRuntimeS32(a: s32, b: s32)->s32 => @min(a, b)
+    func minRuntimeS32(a: s32, b: s32)->s32 => Swag.min(a, b)
     #[Swag.NoInline]
-    func maxRuntimeS32(a: s32, b: s32)->s32 => @max(a, b)
+    func maxRuntimeS32(a: s32, b: s32)->s32 => Swag.max(a, b)
     #[Swag.NoInline]
-    func minRuntimeS64(a: s64, b: s64)->s64 => @min(a, b)
+    func minRuntimeS64(a: s64, b: s64)->s64 => Swag.min(a, b)
     #[Swag.NoInline]
-    func maxRuntimeS64(a: s64, b: s64)->s64 => @max(a, b)
+    func maxRuntimeS64(a: s64, b: s64)->s64 => Swag.max(a, b)
 
     #[Swag.NoInline]
-    func minRuntimeU8(a: u8, b: u8)->u8 => @min(a, b)
+    func minRuntimeU8(a: u8, b: u8)->u8 => Swag.min(a, b)
     #[Swag.NoInline]
-    func maxRuntimeU8(a: u8, b: u8)->u8 => @max(a, b)
+    func maxRuntimeU8(a: u8, b: u8)->u8 => Swag.max(a, b)
     #[Swag.NoInline]
-    func minRuntimeU16(a: u16, b: u16)->u16 => @min(a, b)
+    func minRuntimeU16(a: u16, b: u16)->u16 => Swag.min(a, b)
     #[Swag.NoInline]
-    func maxRuntimeU16(a: u16, b: u16)->u16 => @max(a, b)
+    func maxRuntimeU16(a: u16, b: u16)->u16 => Swag.max(a, b)
     #[Swag.NoInline]
-    func minRuntimeU32(a: u32, b: u32)->u32 => @min(a, b)
+    func minRuntimeU32(a: u32, b: u32)->u32 => Swag.min(a, b)
     #[Swag.NoInline]
-    func maxRuntimeU32(a: u32, b: u32)->u32 => @max(a, b)
+    func maxRuntimeU32(a: u32, b: u32)->u32 => Swag.max(a, b)
     #[Swag.NoInline]
-    func minRuntimeU64(a: u64, b: u64)->u64 => @min(a, b)
+    func minRuntimeU64(a: u64, b: u64)->u64 => Swag.min(a, b)
     #[Swag.NoInline]
-    func maxRuntimeU64(a: u64, b: u64)->u64 => @max(a, b)
+    func maxRuntimeU64(a: u64, b: u64)->u64 => Swag.max(a, b)
 
     #[Swag.NoInline]
-    func minRuntimeF64(a: f64, b: f64)->f64 => @min(a, b)
+    func minRuntimeF64(a: f64, b: f64)->f64 => Swag.min(a, b)
     #[Swag.NoInline]
-    func maxRuntimeF32(a: f32, b: f32)->f32 => @max(a, b)
+    func maxRuntimeF32(a: f32, b: f32)->f32 => Swag.max(a, b)
 
     const S8Min  = #run minRuntimeS8(-7's8, 3's8)
     const S8Max  = #run maxRuntimeS8(-7's8, 3's8)

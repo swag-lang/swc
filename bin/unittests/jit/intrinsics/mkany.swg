@@ -17,8 +17,8 @@ enum MkanyKind: u16
     func mkanyRoundtripS32()->s32
     {
         var x: s32 = 42
-        let a: any = @mkany(&x, s32)
-        let p      = cast(*s32) @dataof(a)
+        let a: any = Swag.makeAny(&x, s32)
+        let p      = cast(*s32) a.buffer
         return p[]
     }
 
@@ -32,10 +32,10 @@ enum MkanyKind: u16
     {
         var x: s32 = 123
         var y: s32 = 7
-        var a: any = @mkany(&x, s32)
-        var b: any = @mkany(&y, s32)
+        var a: any = Swag.makeAny(&x, s32)
+        var b: any = Swag.makeAny(&y, s32)
         b = a
-        let p = cast(*s32) @dataof(b)
+        let p = cast(*s32) b.buffer
         return p[]
     }
 
@@ -48,8 +48,8 @@ enum MkanyKind: u16
     func mkanyKindof()->bool
     {
         var x: s64 = 9000
-        let a: any = @mkany(&x, s64)
-        return @kindof(a) == s64
+        let a: any = Swag.makeAny(&x, s64)
+        return Swag.kindOf(a) == s64
     }
 
     const V = #run mkanyKindof()
@@ -61,8 +61,8 @@ enum MkanyKind: u16
     func mkanyRoundtripPair()->s32
     {
         var p: MkanyPair = {a: 11, b: 31}
-        let a: any       = @mkany(&p, MkanyPair)
-        let data         = cast(*MkanyPair) @dataof(a)
+        let a: any       = Swag.makeAny(&p, MkanyPair)
+        let data         = cast(*MkanyPair) a.buffer
         let value        = data[]
         return value.a + value.b
     }
@@ -77,8 +77,8 @@ enum MkanyKind: u16
     {
         var arr: [6] s32 = [1, 2, 3, 4, 5, 6]
         let ptr          = cast(*[6] s32) &arr
-        let a:   any     = @mkany(ptr, [6] s32)
-        let p            = cast(*[6] s32) @dataof(a)
+        let a:   any     = Swag.makeAny(ptr, [6] s32)
+        let p            = cast(*[6] s32) a.buffer
         let value        = p[]
         var acc: s32     = 0
         for v, i in value
@@ -99,8 +99,8 @@ enum MkanyKind: u16
     {
         var x: s32 = 55
         let ptr    = cast([*] void) &x
-        let a: any = @mkany(ptr, s32)
-        let p      = cast(*s32) @dataof(a)
+        let a: any = Swag.makeAny(ptr, s32)
+        let p      = cast(*s32) a.buffer
         return p[]
     }
 
@@ -113,10 +113,10 @@ enum MkanyKind: u16
     func mkanyKindAndValue()->bool
     {
         var k: MkanyKind = MkanyKind.B
-        let a: any       = @mkany(&k, MkanyKind)
-        if @kindof(a) != MkanyKind do
+        let a: any       = Swag.makeAny(&k, MkanyKind)
+        if Swag.kindOf(a) != MkanyKind do
             return false
-        let p = cast(*MkanyKind) @dataof(a)
+        let p = cast(*MkanyKind) a.buffer
         return p[] == MkanyKind.B
     }
 
@@ -132,23 +132,23 @@ enum MkanyKind: u16
         var s1: s64 = 20
         var s2: s64 = 30
         var s3: s64 = 40
-        var a:  any = @mkany(&s0, s64)
-        var b:  any = @mkany(&s1, s64)
-        var c:  any = @mkany(&s2, s64)
-        var d:  any = @mkany(&s3, s64)
+        var a:  any = Swag.makeAny(&s0, s64)
+        var b:  any = Swag.makeAny(&s1, s64)
+        var c:  any = Swag.makeAny(&s2, s64)
+        var d:  any = Swag.makeAny(&s3, s64)
 
         b = a
         c = b
         d = c
-        a = @mkany(&s3, s64)
-        b = @mkany(&s2, s64)
-        c = @mkany(&s1, s64)
-        d = @mkany(&s0, s64)
+        a = Swag.makeAny(&s3, s64)
+        b = Swag.makeAny(&s2, s64)
+        c = Swag.makeAny(&s1, s64)
+        d = Swag.makeAny(&s0, s64)
 
-        let p0 = cast(*s64) @dataof(a)
-        let p1 = cast(*s64) @dataof(b)
-        let p2 = cast(*s64) @dataof(c)
-        let p3 = cast(*s64) @dataof(d)
+        let p0 = cast(*s64) a.buffer
+        let p1 = cast(*s64) b.buffer
+        let p2 = cast(*s64) c.buffer
+        let p3 = cast(*s64) d.buffer
         return cast(u64) (p0[] + p1[] + p2[] + p3[])
     }
 
@@ -160,7 +160,7 @@ enum MkanyKind: u16
 {
     func mkanyCastStringFromAny(value: any)->string
     {
-        let reboxed: any = @mkany(@dataof(value), @kindof(value))
+        let reboxed: any = Swag.makeAny(value.buffer, Swag.kindOf(value))
         return cast(string) reboxed
     }
 
@@ -172,12 +172,12 @@ enum MkanyKind: u16
 {
     func mkanyStringBytesLen(bytes: #null const [..] u8)->u64
     {
-        return @countof(bytes)
+        return bytes.count
     }
 
     func mkanyCastStringToBytesFromAny(value: any)->u64
     {
-        let reboxed: any = @mkany(@dataof(value), @kindof(value))
+        let reboxed: any = Swag.makeAny(value.buffer, Swag.kindOf(value))
         return mkanyStringBytesLen(cast(string) reboxed)
     }
 
@@ -191,10 +191,10 @@ enum MkanyKind: u16
     {
         var b:  bool = true
         var r:  rune = 'A'
-        let ab: any  = @mkany(&b, bool)
-        let ar: any  = @mkany(&r, rune)
-        let pb       = cast(*bool) @dataof(ab)
-        let pr       = cast(*rune) @dataof(ar)
+        let ab: any  = Swag.makeAny(&b, bool)
+        let ar: any  = Swag.makeAny(&r, rune)
+        let pb       = cast(*bool) ab.buffer
+        let pr       = cast(*rune) ar.buffer
         return cast(s32) pb[] + cast(s32) pr[]
     }
 
@@ -208,8 +208,8 @@ enum MkanyKind: u16
     {
         var values     = [1, 2.5]
         let info       = #typeof(values)
-        let boxed: any = @mkany(&values, info)
-        let data       = cast(*[2] f32) @dataof(boxed)
+        let boxed: any = Swag.makeAny(&values, info)
+        let data       = cast(*[2] f32) boxed.buffer
         let array      = data[]
         return array[0] + array[1]
     }

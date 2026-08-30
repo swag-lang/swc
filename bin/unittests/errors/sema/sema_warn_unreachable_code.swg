@@ -54,12 +54,12 @@ func namedBeatsBlanket()->s32
     return dead
 }
 
-// '@panic' and 'unreachable' announce that control never reaches them, but neither is
+// 'Swag.panic' and 'unreachable' announce that control never reaches them, but neither is
 // guaranteed to leave the block — a panic hook returns to the caller, and 'unreachable'
 // lowers to nothing with its guard off — so nothing after them is reported.
 func notGuaranteed()->s32
 {
-    @panic("stop", #curlocation)
+    Swag.panic("stop", #curlocation)
     return 2
 }
 
@@ -101,13 +101,13 @@ func codeBlockArgument(flag: bool)->s32
 
 #test
 {
-    @assert(afterReturn() == 1)
-    @assert(twoJumps() == 1)
-    @assert(silenced() == 1)
-    @assert(promoted() == 1)
-    @assert(blanket() == 1)
-    @assert(namedBeatsBlanket() == 1)
-    @assert(nestedJump() == 1)
-    @assert(codeBlockArgument(true) == 7)
-    @assert(codeBlockArgument(false) == 9)
+    Swag.assert(afterReturn() == 1)
+    Swag.assert(twoJumps() == 1)
+    Swag.assert(silenced() == 1)
+    Swag.assert(promoted() == 1)
+    Swag.assert(blanket() == 1)
+    Swag.assert(namedBeatsBlanket() == 1)
+    Swag.assert(nestedJump() == 1)
+    Swag.assert(codeBlockArgument(true) == 7)
+    Swag.assert(codeBlockArgument(false) == 9)
 }

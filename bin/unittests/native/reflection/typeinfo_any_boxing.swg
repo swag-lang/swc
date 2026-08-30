@@ -17,5 +17,5 @@ struct BoxedTypeInfoPair
                unboxed.name == "BoxedTypeInfoPair"
     }
 
-    @assert(boxStructTypeInfoInAny())
+    Swag.assert(boxStructTypeInfoInAny())
 }

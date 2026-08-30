@@ -16,7 +16,7 @@ func day8B()
 
     for l in lines
     {
-        @assert(re.match(l[]))
+        Swag.assert(re.match(l[]))
         var v0 = expect StrConv.toS32(re[3])
         let v1 = expect StrConv.toS32(re[6])
         if !regs.contains(re[1]) do
@@ -46,5 +46,5 @@ func day8B()
         }
     }
 
-    @assert(total == 4829)
+    Swag.assert(total == 4829)
 }

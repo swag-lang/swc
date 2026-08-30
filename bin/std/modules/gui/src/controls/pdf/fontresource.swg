@@ -128,7 +128,7 @@ impl FontResource
         if value
         {
             let name = runeGlyphName(value)
-            if @countof(name)
+            if name.count
             {
                 let mapped = font.glyphIndexByName(name)
                 if mapped do
@@ -187,7 +187,7 @@ impl FontResource
         var result: retval
         let size = Math.max(.codeBytes, 1)
         var pos  = 0'u64
-        while pos + size <= @countof(bytes)
+        while pos + size <= bytes.count
         {
             var code = 0'u32
             for i in size do
@@ -216,8 +216,8 @@ impl FontResource
         var result: retval
         let size = Math.max(.codeBytes, 1)
         var pos  = 0'u64
-        result.reserve(@countof(bytes) / size)
-        while pos + size <= @countof(bytes)
+        result.reserve(bytes.count / size)
+        while pos + size <= bytes.count
         {
             var code = 0'u32
             for i in size do
@@ -255,7 +255,7 @@ impl FontResource
         var result = 0.0'f32
         let size   = Math.max(.codeBytes, 1)
         var pos    = 0'u64
-        while pos + size <= @countof(bytes)
+        while pos + size <= bytes.count
         {
             var code = 0'u32
             for i in size do
@@ -443,11 +443,11 @@ private func readCidWidths(parser: const *PdfParser, font: *FontResource, widths
         return
     let values = parser.nodes[widthsId].values
     var index  = 0'u64
-    while index < @countof(values)
+    while index < values.count
     {
         let first = parser.integer(values[index])
         index += 1
-        if index >= @countof(values) or first < 0 do
+        if index >= values.count or first < 0 do
             return
 
         let listId = parser.resolve(values[index])
@@ -461,7 +461,7 @@ private func readCidWidths(parser: const *PdfParser, font: *FontResource, widths
 
         let last = parser.integer(values[index])
         index += 1
-        if index >= @countof(values) or last < first or last - first > 65_535 do
+        if index >= values.count or last < first or last - first > 65_535 do
             return
         let width = cast(f32) parser.number(values[index]) / 1000.0
         index += 1
@@ -485,7 +485,7 @@ private func readEncoding(parser: const *PdfParser, font: *FontResource, encodin
     if parser.nodes[encodingId].kind != .Dictionary do
         return
     let baseName = parser.name(parser.dict(encodingId, "BaseEncoding"))
-    if @countof(baseName) do
+    if baseName.count do
         applyBaseEncoding(font, baseName)
 
     // `/Differences` alternates a starting code with the glyph names that follow it.
@@ -550,10 +550,10 @@ private func readToUnicode(font: *FontResource, bytes: const [..] u8)
     var scanner = PdfParser{bytes: bytes}
     var pending: Array'u32
     var section = CMapSection.None
-    while scanner.pos < @countof(bytes)
+    while scanner.pos < bytes.count
     {
         scanner.skip()
-        if scanner.pos >= @countof(bytes) do
+        if scanner.pos >= bytes.count do
             break
 
         // The PostScript scaffolding around the mapping sections carries dictionaries and
@@ -594,9 +594,9 @@ private func readToUnicode(font: *FontResource, bytes: const [..] u8)
         }
 
         let start = scanner.pos
-        while scanner.pos < @countof(bytes) and !isDelimiter(bytes[scanner.pos]) do
+        while scanner.pos < bytes.count and !isDelimiter(bytes[scanner.pos]) do
             scanner.pos += 1
-        let word = cast(string) @mkslice(@dataof(bytes) + start, scanner.pos - start)
+        let word = cast(string) Swag.makeSlice(bytes.buffer + start, scanner.pos - start)
         switch word
         {
         case "begincodespacerange":
@@ -639,7 +639,7 @@ private func readToUnicode(font: *FontResource, bytes: const [..] u8)
 
 private func applyCMapChars(font: *FontResource, scanner: const *PdfParser, pending: const [..] u32)
 {
-    for i in @countof(pending) / 2
+    for i in pending.count / 2
     {
         let source = &scanner.nodes[pending[i * 2]]
         let target = &scanner.nodes[pending[i * 2 + 1]]
@@ -654,7 +654,7 @@ private func applyCMapChars(font: *FontResource, scanner: const *PdfParser, pend
 
 private func applyCMapRanges(font: *FontResource, scanner: const *PdfParser, pending: const [..] u32)
 {
-    for i in @countof(pending) / 3
+    for i in pending.count / 3
     {
         let low  = &scanner.nodes[pending[i * 3]]
         let high = &scanner.nodes[pending[i * 3 + 1]]

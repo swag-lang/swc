@@ -25,64 +25,64 @@ impl IAllocator for LibraryRejectAllocator
     let libWnd = cast(*Wnd) f.main.libWnd!
 
     var sizeEvt = Gui.Testing.commandState(ActionRecentSize.LibBig)
-    @assert(Gui.Testing.actionUpdate'ActionRecentSize(f.main, ActionRecentSize.LibBig, &sizeEvt))
-    @assert(!sizeEvt.checked)
+    Swag.assert(Gui.Testing.actionUpdate'ActionRecentSize(f.main, ActionRecentSize.LibBig, &sizeEvt))
+    Swag.assert(!sizeEvt.checked)
     f.main.sendCommandEvent(ActionRecentSize.LibBig)
-    @assert(f.main.libWnd.previewSize == .Big)
-    @assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.LibMedium))
-    @assert(f.main.libWnd.previewSize == .Medium)
-    @assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.LibSmall))
-    @assert(f.main.libWnd.previewSize == .Small)
+    Swag.assert(f.main.libWnd.previewSize == .Big)
+    Swag.assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.LibMedium))
+    Swag.assert(f.main.libWnd.previewSize == .Medium)
+    Swag.assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.LibSmall))
+    Swag.assert(f.main.libWnd.previewSize == .Small)
 
     var overlayEvt = Gui.Testing.commandState(ActionLibView.Ratings)
-    @assert(Gui.Testing.actionUpdate'ActionLibView(libWnd, ActionLibView.Ratings, &overlayEvt))
-    @assert(overlayEvt.checked)
-    @assert(Gui.Testing.actionExecute'ActionLibView(libWnd, ActionLibView.Ratings))
-    @assert(!f.main.libWnd.showRatingOverlay)
-    @assert(Gui.Testing.actionExecute'ActionLibView(libWnd, ActionLibView.LinkMarkers))
-    @assert(!f.main.libWnd.showLinkOverlay)
+    Swag.assert(Gui.Testing.actionUpdate'ActionLibView(libWnd, ActionLibView.Ratings, &overlayEvt))
+    Swag.assert(overlayEvt.checked)
+    Swag.assert(Gui.Testing.actionExecute'ActionLibView(libWnd, ActionLibView.Ratings))
+    Swag.assert(!f.main.libWnd.showRatingOverlay)
+    Swag.assert(Gui.Testing.actionExecute'ActionLibView(libWnd, ActionLibView.LinkMarkers))
+    Swag.assert(!f.main.libWnd.showLinkOverlay)
 
-    @assert(ratingLabel(0) == appStrings().act_NoRating)
-    @assert(ratingLabel(3) == appStrings().act_Rating3)
-    @assert(ratingLabel(5) == appStrings().act_Rating5)
+    Swag.assert(ratingLabel(0) == appStrings().act_NoRating)
+    Swag.assert(ratingLabel(3) == appStrings().act_Rating3)
+    Swag.assert(ratingLabel(5) == appStrings().act_Rating5)
 
     with f.main.recentBar = Wnd.create'Wnd(f.main, {0, 0, 0, 128})
     {
         .dockStyle = .Bottom
     }
 
-    @assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentSmall))
-    @assert(f.main.bottomSize == .Small)
-    @assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentMedium))
-    @assert(f.main.bottomSize == .Medium)
-    @assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentBig))
-    @assert(f.main.bottomSize == .Big)
+    Swag.assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentSmall))
+    Swag.assert(f.main.bottomSize == .Small)
+    Swag.assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentMedium))
+    Swag.assert(f.main.bottomSize == .Medium)
+    Swag.assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentBig))
+    Swag.assert(f.main.bottomSize == .Big)
 
     var evt = Gui.Testing.commandState(ActionLibSort.Recent)
-    @assert(Gui.Testing.actionUpdate'ActionLibSort(libWnd, ActionLibSort.Recent, &evt))
-    @assert(evt.checked)
+    Swag.assert(Gui.Testing.actionUpdate'ActionLibSort(libWnd, ActionLibSort.Recent, &evt))
+    Swag.assert(evt.checked)
 
     libWnd.sendCommandEvent(ActionLibSort.FileSize)
-    @assert(f.main.libWnd.sortMethod == .FileSize)
+    Swag.assert(f.main.libWnd.sortMethod == .FileSize)
 
     evt = Gui.Testing.commandState(ActionLibSort.Invert)
-    @assert(Gui.Testing.actionUpdate'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
-    @assert(!evt.name.isEmpty())
-    @assert(!evt.disabled)
+    Swag.assert(Gui.Testing.actionUpdate'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
+    Swag.assert(!evt.name.isEmpty())
+    Swag.assert(!evt.disabled)
 
     libWnd.sendCommandEvent(ActionLibSort.Invert)
-    @assert(f.main.libWnd.invertSort)
+    Swag.assert(f.main.libWnd.invertSort)
 
     libWnd.sendCommandEvent(ActionLibSort.Similar)
     evt = Gui.Testing.commandState(ActionLibSort.Invert)
-    @assert(Gui.Testing.actionUpdate'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
-    @assert(evt.disabled)
+    Swag.assert(Gui.Testing.actionUpdate'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
+    Swag.assert(evt.disabled)
 
     evt = Gui.Testing.commandState(ActionLibFilter.LinkedImage)
-    @assert(Gui.Testing.actionUpdate'ActionLibFilter(libWnd, ActionLibFilter.LinkedImage, &evt))
-    @assert(evt.checked)
+    Swag.assert(Gui.Testing.actionUpdate'ActionLibFilter(libWnd, ActionLibFilter.LinkedImage, &evt))
+    Swag.assert(evt.checked)
     libWnd.sendCommandEvent(ActionLibFilter.LinkedImage)
-    @assert(!f.main.libWnd.showLinkedImage)
+    Swag.assert(!f.main.libWnd.showLinkedImage)
 
     f.main.libWnd.contentFilter     = .Images
     f.main.libWnd.favoritesOnly     = true
@@ -90,21 +90,21 @@ impl IAllocator for LibraryRejectAllocator
     f.main.libWnd.applicationFilter = "chrome"
     f.main.libWnd.tagFilter         = "docs"
     libWnd.sendCommandEvent(ActionLibFilter.Reset)
-    @assert(f.main.libWnd.contentFilter == .All)
-    @assert(!f.main.libWnd.favoritesOnly)
-    @assert(f.main.libWnd.minimumRating == 0)
-    @assert(f.main.libWnd.applicationFilter.isEmpty())
-    @assert(f.main.libWnd.tagFilter.isEmpty())
-    @assert(f.main.libWnd.showLinkedImage)
+    Swag.assert(f.main.libWnd.contentFilter == .All)
+    Swag.assert(!f.main.libWnd.favoritesOnly)
+    Swag.assert(f.main.libWnd.minimumRating == 0)
+    Swag.assert(f.main.libWnd.applicationFilter.isEmpty())
+    Swag.assert(f.main.libWnd.tagFilter.isEmpty())
+    Swag.assert(f.main.libWnd.showLinkedImage)
 
     evt = Gui.Testing.commandState(ActionLibSel.Right)
-    @assert(Gui.Testing.actionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
-    @assert(evt.disabled)
+    Swag.assert(Gui.Testing.actionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
+    Swag.assert(evt.disabled)
 
     f.main.libWnd.view.focusItem = 0
     evt = Gui.Testing.commandState(ActionLibSel.Right)
-    @assert(Gui.Testing.actionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
-    @assert(!evt.disabled)
+    Swag.assert(Gui.Testing.actionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
+    Swag.assert(!evt.disabled)
 }
 
 // Library view filtering, sorting and keyboard-style movement operate entirely
@@ -124,101 +124,101 @@ impl IAllocator for LibraryRejectAllocator
 
     view.filterDay = 2
     view.filter()
-    @assert(view.items.count == 1)
-    @assert(view.items[0] == dirty)
+    Swag.assert(view.items.count == 1)
+    Swag.assert(view.items[0] == dirty)
     view.filterDay = 0
     view.filter()
 
     lib.sortMethod = .FileSize
     lib.invertSort = false
     view.sort()
-    @assert(view.items[0] == big)
-    @assert(view.items[1] == dirty)
-    @assert(view.items[2] == old)
+    Swag.assert(view.items[0] == big)
+    Swag.assert(view.items[1] == dirty)
+    Swag.assert(view.items[2] == old)
 
     lib.invertSort = true
     view.sort()
-    @assert(view.items[0] == old)
-    @assert(view.items[1] == dirty)
-    @assert(view.items[2] == big)
+    Swag.assert(view.items[0] == old)
+    Swag.assert(view.items[1] == dirty)
+    Swag.assert(view.items[2] == big)
 
     lib.sortMethod = .Recent
     lib.invertSort = false
     view.sort()
-    @assert(view.items[0] == big)
-    @assert(view.items[1] == dirty)
-    @assert(view.items[2] == old)
+    Swag.assert(view.items[0] == big)
+    Swag.assert(view.items[1] == dirty)
+    Swag.assert(view.items[2] == old)
 
     lib.showUnSavedLinkedImage = false
     view.filter()
-    @assert(view.items.count == 2)
-    @assert(view.items.contains(old))
-    @assert(view.items.contains(big))
-    @assert(!view.items.contains(dirty))
+    Swag.assert(view.items.count == 2)
+    Swag.assert(view.items.contains(old))
+    Swag.assert(view.items.contains(big))
+    Swag.assert(!view.items.contains(dirty))
 
     lib.showUnSavedLinkedImage = true
     lib.showLinkedImage        = false
     view.filter()
-    @assert(view.items.count == 1)
-    @assert(view.items[0] == old)
+    Swag.assert(view.items.count == 1)
+    Swag.assert(view.items[0] == old)
 
     lib.showLinkedImage = true
     view.filter()
     view.sort()
 
     wnd.sendCommandEvent(ActionLibFilter.UpToDateLinkedImage)
-    @assert(!lib.showUpToDateLinkedImage)
-    @assert(view.items.count == 2)
-    @assert(view.items.contains(old))
-    @assert(!view.items.contains(big))
-    @assert(view.items.contains(dirty))
+    Swag.assert(!lib.showUpToDateLinkedImage)
+    Swag.assert(view.items.count == 2)
+    Swag.assert(view.items.contains(old))
+    Swag.assert(!view.items.contains(big))
+    Swag.assert(view.items.contains(dirty))
 
     wnd.sendCommandEvent(ActionLibFilter.UpToDateLinkedImage)
     wnd.sendCommandEvent(ActionLibFilter.UnSavedLinkedImage)
-    @assert(!lib.showUnSavedLinkedImage)
-    @assert(view.items.count == 2)
-    @assert(view.items.contains(old))
-    @assert(view.items.contains(big))
-    @assert(!view.items.contains(dirty))
+    Swag.assert(!lib.showUnSavedLinkedImage)
+    Swag.assert(view.items.count == 2)
+    Swag.assert(view.items.contains(old))
+    Swag.assert(view.items.contains(big))
+    Swag.assert(!view.items.contains(dirty))
 
     wnd.sendCommandEvent(ActionLibFilter.UnSavedLinkedImage)
     wnd.sendCommandEvent(ActionLibFilter.UnLinkedImage)
-    @assert(!lib.showUnLinkedImage)
-    @assert(view.items.count == 2)
-    @assert(!view.items.contains(old))
-    @assert(view.items.contains(big))
-    @assert(view.items.contains(dirty))
+    Swag.assert(!lib.showUnLinkedImage)
+    Swag.assert(view.items.count == 2)
+    Swag.assert(!view.items.contains(old))
+    Swag.assert(view.items.contains(big))
+    Swag.assert(view.items.contains(dirty))
 
     wnd.sendCommandEvent(ActionLibFilter.UnLinkedImage)
     view.filter()
     view.sort()
     view.focusItem = 1
     wnd.sendCommandEvent(ActionLibSel.Home)
-    @assert(view.focusItem == 0)
-    @assert(view.selModel.isSelected(0))
+    Swag.assert(view.focusItem == 0)
+    Swag.assert(view.selModel.isSelected(0))
 
     wnd.sendCommandEvent(ActionLibSel.Right)
-    @assert(view.focusItem == 1)
-    @assert(view.selModel.isSelected(1))
-    @assert(!view.selModel.isSelected(0))
+    Swag.assert(view.focusItem == 1)
+    Swag.assert(view.selModel.isSelected(1))
+    Swag.assert(!view.selModel.isSelected(0))
 
     wnd.sendCommandEvent(ActionLibSel.End)
-    @assert(view.focusItem == 2)
-    @assert(view.selModel.isSelected(2))
+    Swag.assert(view.focusItem == 2)
+    Swag.assert(view.selModel.isSelected(2))
 
     wnd.sendCommandEvent(ActionLibSel.Left)
-    @assert(view.focusItem == 1)
+    Swag.assert(view.focusItem == 1)
 
     lib.previewSize = .Medium
     view.setPosition({0, 0, 360, 420})
     view.focusItem = 0
     wnd.sendCommandEvent(ActionLibSel.Down)
-    @assert(view.focusItem == 1)
-    @assert(view.selModel.isSelected(1))
+    Swag.assert(view.focusItem == 1)
+    Swag.assert(view.selModel.isSelected(1))
 
     wnd.sendCommandEvent(ActionLibSel.Up)
-    @assert(view.focusItem == 0)
-    @assert(view.selModel.isSelected(0))
+    Swag.assert(view.focusItem == 0)
+    Swag.assert(view.selModel.isSelected(0))
 }
 
 // Deleting a multi-selection removes every selected capture, even though the
@@ -263,7 +263,7 @@ impl IAllocator for LibraryRejectAllocator
         capture.file    = path
         capture.changed = true
         expect capture.save()
-        @assert(File.exists(path))
+        Swag.assert(File.exists(path))
         Memory.delete(capture)
 
         g_Library.addFile(path)
@@ -283,8 +283,8 @@ impl IAllocator for LibraryRejectAllocator
         g_Library.onDeleteFile.clear()
     }
 
-    @assert(view.items.count == 3)
-    @assert(g_Library.files.count == 3)
+    Swag.assert(view.items.count == 3)
+    Swag.assert(g_Library.files.count == 3)
 
     for idx in view.items.count do
         view.selModel.select(cast() idx)
@@ -293,12 +293,12 @@ impl IAllocator for LibraryRejectAllocator
 
     // Every selection is gone from the view, the library, and its original location,
     // but soft-delete keeps a recoverable copy in the recycle bin.
-    @assert(view.items.count == 0)
-    @assert(g_Library.files.count == 0)
+    Swag.assert(view.items.count == 0)
+    Swag.assert(g_Library.files.count == 0)
     for p in paths
     {
-        @assert(!File.exists(p[]))
-        @assert(File.exists(Path.combine(Library.getTrashFolder(), Path.fileName(p[]))))
+        Swag.assert(!File.exists(p[]))
+        Swag.assert(File.exists(Path.combine(Library.getTrashFolder(), Path.fileName(p[]))))
     }
 }
 
@@ -318,21 +318,21 @@ impl IAllocator for LibraryRejectAllocator
     discard testAddLibraryItem(view, "gamma.scc", 10, 3, title: "Login error")
 
     lib.setSearch("login")
-    @assert(view.items.count == 2)
+    Swag.assert(view.items.count == 2)
 
     lib.setSearch("REPORT")
-    @assert(view.items.count == 1)
-    @assert(view.items[0]!.fi.fullname == "beta.scc")
+    Swag.assert(view.items.count == 1)
+    Swag.assert(view.items[0]!.fi.fullname == "beta.scc")
 
     lib.setSearch("gamma")
-    @assert(view.items.count == 1)
-    @assert(view.items[0]!.fi.fullname == "gamma.scc")
+    Swag.assert(view.items.count == 1)
+    Swag.assert(view.items[0]!.fi.fullname == "gamma.scc")
 
     lib.setSearch("nomatch")
-    @assert(view.items.count == 0)
+    Swag.assert(view.items.count == 0)
 
     lib.setSearch("")
-    @assert(view.items.count == 3)
+    Swag.assert(view.items.count == 3)
 }
 
 // Filling the date sidebar from a fresh (empty) list must open the year/month/day
@@ -372,17 +372,17 @@ impl IAllocator for LibraryRejectAllocator
     fi.lastWriteTime.day   = 2
     g_Library.files.add(fi)
 
-    @assert(libWnd.listCtrl.lineCount() == 0)
+    Swag.assert(libWnd.listCtrl.lineCount() == 0)
     libWnd.fill()
 
     // Root lines only: "All Items" + the 2024 and 2023 year groups (months and
     // days are children of their year/month lines).
-    @assert(libWnd.listCtrl.lineCount() == 3)
-    @assert(libWnd.view.items.count == 3)
+    Swag.assert(libWnd.listCtrl.lineCount() == 3)
+    Swag.assert(libWnd.view.items.count == 3)
 
     // A second fill with lines already present must keep the sidebar as is.
     libWnd.fill()
-    @assert(libWnd.listCtrl.lineCount() == 3)
+    Swag.assert(libWnd.listCtrl.lineCount() == 3)
 
     libWnd.view.thread.safeForceEnd()
     libWnd.view.thread.wait()
@@ -432,64 +432,64 @@ impl IAllocator for LibraryRejectAllocator
 
     lib.contentFilter = .ScreenCaptures
     view.filter()
-    @assert(view.items.count == 2)
-    @assert(view.items.contains(chrome))
-    @assert(view.items.contains(slack))
+    Swag.assert(view.items.count == 2)
+    Swag.assert(view.items.contains(chrome))
+    Swag.assert(view.items.contains(slack))
 
     lib.contentFilter = .Images
     view.filter()
-    @assert(view.items.count == 1)
-    @assert(view.items[0] == image)
+    Swag.assert(view.items.count == 1)
+    Swag.assert(view.items[0] == image)
 
     lib.contentFilter     = .All
     lib.applicationFilter = "CHROME"
     view.filter()
-    @assert(view.items.count == 1)
-    @assert(view.items[0] == chrome)
+    Swag.assert(view.items.count == 1)
+    Swag.assert(view.items[0] == chrome)
 
     lib.applicationFilter.clear()
     lib.tagFilter = "DOCS"
     view.filter()
-    @assert(view.items.count == 1)
-    @assert(view.items[0] == chrome)
+    Swag.assert(view.items.count == 1)
+    Swag.assert(view.items[0] == chrome)
 
     lib.tagFilter.clear()
     lib.favoritesOnly = true
     view.filter()
-    @assert(view.items.count == 1)
-    @assert(view.items[0] == chrome)
+    Swag.assert(view.items.count == 1)
+    Swag.assert(view.items[0] == chrome)
 
     lib.favoritesOnly = false
     lib.minimumRating = 3
     view.filter()
-    @assert(view.items.count == 1)
-    @assert(view.items[0] == chrome)
+    Swag.assert(view.items.count == 1)
+    Swag.assert(view.items[0] == chrome)
 
     lib.minimumRating = 0
     lib.setSearch("language reference")
-    @assert(view.items.count == 1)
-    @assert(view.items[0] == chrome)
+    Swag.assert(view.items.count == 1)
+    Swag.assert(view.items[0] == chrome)
     lib.setSearch("")
 
     lib.sortMethod = .Application
     view.sort()
-    @assert(view.items.back() == slack)
+    Swag.assert(view.items.back() == slack)
 
     lib.sortMethod = .Dimensions
     view.sort()
-    @assert(view.items[0] == image)
+    Swag.assert(view.items[0] == image)
 
     lib.sortMethod = .Name
     view.sort()
-    @assert(view.items[0] == chrome)
+    Swag.assert(view.items[0] == chrome)
 
     for item, i in view.items where item == slack do
         view.setFocusItem(cast(u32) i)
     lib.sortMethod = .Dimensions
     view.sort()
-    @assert(view.focusItem < view.items.count)
-    @assert(view.items[view.focusItem] == slack)
-    @assert(view.selModel.isSelected(view.focusItem))
+    Swag.assert(view.focusItem < view.items.count)
+    Swag.assert(view.items[view.focusItem] == slack)
+    Swag.assert(view.selModel.isSelected(view.focusItem))
 }
 
 // A regular image file is decoded into its own preview item. It never masquerades as a
@@ -513,18 +513,18 @@ impl IAllocator for LibraryRejectAllocator
     view.items.add(item)
     view.loadOne(item)
 
-    @assert(item.loaded)
-    @assert(!item.capture)
-    @assert(item.image.isValid())
-    @assert(item.width == 48)
-    @assert(item.height == 32)
-    @assert(item.haar.size != 0)
+    Swag.assert(item.loaded)
+    Swag.assert(!item.capture)
+    Swag.assert(item.image.isValid())
+    Swag.assert(item.width == 48)
+    Swag.assert(item.height == 32)
+    Swag.assert(item.haar.size != 0)
 
     f.main.libraryMode = true
     view.focusItem     = 0
     var deleteState = Gui.Testing.commandState(ActionFile.DeleteCapture)
-    @assert(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.DeleteCapture, &deleteState))
-    @assert(deleteState.disabled)
+    Swag.assert(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.DeleteCapture, &deleteState))
+    Swag.assert(deleteState.disabled)
 }
 
 // The root is configurable, indexes captures and ordinary images together, and remains
@@ -553,7 +553,7 @@ impl IAllocator for LibraryRejectAllocator
     capture.file                      = capturePath
     capture.changed                   = true
     expect capture.save()
-    @assert(Capture.isFile(capturePath))
+    Swag.assert(Capture.isFile(capturePath))
     Memory.delete(capture)
 
     var image = Gui.Testing.indexedImage(10, 7)
@@ -561,18 +561,18 @@ impl IAllocator for LibraryRejectAllocator
 
     let previousRoot = Library.getFolder()
     discard catch g_Library.setFolder(capturePath) as invalidRootError
-    @assert(invalidRootError != null)
-    @assert(Library.getFolder() == previousRoot)
+    Swag.assert(invalidRootError != null)
+    Swag.assert(Library.getFolder() == previousRoot)
 
     expect g_Library.setFolder(root)
     g_Library.fill()
-    @assert(Library.getFolder() == root)
-    @assert(g_Library.files.count == 2)
+    Swag.assert(Library.getFolder() == root)
+    Swag.assert(g_Library.files.count == 2)
     let generatedFile      = Library.newFileName()
     let generatedDirectory = Path.directoryName(generatedFile)
-    @assert(generatedDirectory != null)
-    @assert(Path.equals(generatedDirectory!, root))
-    @assert(Path.lowercaseExtension(generatedFile) == CaptureFileExtension)
+    Swag.assert(generatedDirectory != null)
+    Swag.assert(Path.equals(generatedDirectory!, root))
+    Swag.assert(Path.lowercaseExtension(generatedFile) == CaptureFileExtension)
 }
 
 // The library chrome keeps its two fixed edges under every mode transition: the date/filter
@@ -594,24 +594,24 @@ impl IAllocator for LibraryRejectAllocator
     lib.listCtrl.computeLayout()
     lib.commandBar.computeLayout()
 
-    @assert(@countof(lib.folderBtn.text()) != 0)
-    @assert(lib.searchEdit.position.right() == lib.commandBar.paddedClientRect().right())
-    @assert(lib.listCtrl.scrollWnd.scrollSize.x <= lib.listCtrl.listView.paddedClientRect().width)
-    @assert(lib.commandBar.children.count == 7)
-    @assert(lib.sortBtn.position.x - lib.viewBtn.position.right() == LibButtonGap)
-    @assert(lib.filterBtn.position.x - lib.sortBtn.position.right() == LibButtonGap)
-    @assert(lib.folderBtn.position.x - lib.filterBtn.position.right() == LibButtonGap)
+    Swag.assert((lib.folderBtn.text()).count != 0)
+    Swag.assert(lib.searchEdit.position.right() == lib.commandBar.paddedClientRect().right())
+    Swag.assert(lib.listCtrl.scrollWnd.scrollSize.x <= lib.listCtrl.listView.paddedClientRect().width)
+    Swag.assert(lib.commandBar.children.count == 7)
+    Swag.assert(lib.sortBtn.position.x - lib.viewBtn.position.right() == LibButtonGap)
+    Swag.assert(lib.filterBtn.position.x - lib.sortBtn.position.right() == LibButtonGap)
+    Swag.assert(lib.folderBtn.position.x - lib.filterBtn.position.right() == LibButtonGap)
 
-    @assert(lib.sideBar.isLocallyVisible())
-    @assert(lib.view.scrollWnd.position.x == SideBarWidth)
+    Swag.assert(lib.sideBar.isLocallyVisible())
+    Swag.assert(lib.view.scrollWnd.position.x == SideBarWidth)
 
     lib.setTrashMode(true)
-    @assert(!lib.sideBar.isLocallyVisible())
-    @assert(lib.view.scrollWnd.position.x == 0)
+    Swag.assert(!lib.sideBar.isLocallyVisible())
+    Swag.assert(lib.view.scrollWnd.position.x == 0)
 
     lib.setTrashMode(false)
-    @assert(lib.sideBar.isLocallyVisible())
-    @assert(lib.view.scrollWnd.position.x == SideBarWidth)
+    Swag.assert(lib.sideBar.isLocallyVisible())
+    Swag.assert(lib.view.scrollWnd.position.x == SideBarWidth)
 
     let chrome = testAddLibraryItem(lib.view, "chrome.scc", 10, 1)
     chrome.capture!.sourceApplication = "Chrome"
@@ -622,11 +622,11 @@ impl IAllocator for LibraryRejectAllocator
     slack.capture!.tags.add("work")
     lib.refreshAutomaticFilters()
 
-    @assert(lib.sidebarApplications.count == 2)
-    @assert(lib.sidebarApplications[0].name == "Chrome")
-    @assert(lib.sidebarApplications[0].executable == Env.executablePath())
-    @assert(lib.sidebarApplications[0].count == 1)
-    @assert(lib.sidebarTags.count == 2)
+    Swag.assert(lib.sidebarApplications.count == 2)
+    Swag.assert(lib.sidebarApplications[0].name == "Chrome")
+    Swag.assert(lib.sidebarApplications[0].executable == Env.executablePath())
+    Swag.assert(lib.sidebarApplications[0].count == 1)
+    Swag.assert(lib.sidebarTags.count == 2)
 
     // Comparing unchanged filters only borrows their elements. A copied array would try to
     // allocate through its retained allocator and turn this no-op refresh into a panic.
@@ -652,15 +652,15 @@ impl IAllocator for LibraryRejectAllocator
         let idx = cast(u64) line.userData0
         if idx < lib.sidebarApplications.count and lib.sidebarApplications[idx].name == "Chrome"
         {
-            @assert(line.itemAt(0).icon.isValid())
-            @assert(line.itemAt(0).icon.color == Argb.White)
+            Swag.assert(line.itemAt(0).icon.isValid())
+            Swag.assert(line.itemAt(0).icon.color == Argb.White)
             lib.listCtrl.selectLine(cast(u32) i)
         }
     }
 
-    @assert(lib.applicationFilter == "Chrome")
-    @assert(lib.view.items.count == 1)
-    @assert(lib.view.items[0] == chrome)
+    Swag.assert(lib.applicationFilter == "Chrome")
+    Swag.assert(lib.view.items.count == 1)
+    Swag.assert(lib.view.items[0] == chrome)
 
     for i in lib.listCtrl.lineCount()
     {
@@ -672,8 +672,8 @@ impl IAllocator for LibraryRejectAllocator
             lib.listCtrl.selectLine(cast(u32) i)
     }
 
-    @assert(lib.applicationFilter.isEmpty())
-    @assert(lib.tagFilter == "work")
-    @assert(lib.view.items.count == 1)
-    @assert(lib.view.items[0] == slack)
+    Swag.assert(lib.applicationFilter.isEmpty())
+    Swag.assert(lib.tagFilter == "work")
+    Swag.assert(lib.view.items.count == 1)
+    Swag.assert(lib.view.items[0] == slack)
 }

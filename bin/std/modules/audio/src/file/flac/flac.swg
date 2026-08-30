@@ -35,7 +35,7 @@ private func headerCrc8(bytes: const [..] u8)->u8
 // residuals — so the header's own checksum is what answers.
 private func frameHeaderSize(bytes: const [..] u8, offset: u64)->u64
 {
-    if @countof(bytes) - offset < 5 do
+    if bytes.count - offset < 5 do
         return 0
     if bytes[offset] != 0xFF or (bytes[offset + 1] & 0xFC) != 0xF8 do
         return 0
@@ -72,7 +72,7 @@ private func frameHeaderSize(bytes: const [..] u8, offset: u64)->u64
     elif sampleRateCode == 13 or sampleRateCode == 14 do
         size += 2
 
-    if @countof(bytes) - offset < size + 1 do
+    if bytes.count - offset < size + 1 do
         return 0
     if headerCrc8(bytes[offset until offset + size]) != bytes[offset + size] do
         return 0

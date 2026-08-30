@@ -42,7 +42,7 @@ private func parseTableCells(line: string)->Array'String
     var result: retval
     let trimmed = Latin1.trim(line)
     var start   = 0'u64
-    var end     = @countof(trimmed)
+    var end     = trimmed.count
     if start < end and trimmed[start] == '|' do
         start += 1
     if end > start and trimmed[end - 1] == '|' do
@@ -117,7 +117,7 @@ impl TableView
     {
         for column in .columnCount
         {
-            let source = column < @countof(cells) ? cells[column].toString() : ""
+            let source = column < cells.count ? cells[column].toString() : ""
             let markup = renderInline(source)
             var content: String
             if header do
@@ -228,8 +228,8 @@ impl TableView
         for column in result.columnCount
         {
             let separator = column < separators.count ? Latin1.trim(separators[column].toString()) : ""
-            let left      = @countof(separator) and separator[0] == ':'
-            let right     = @countof(separator) and separator[@countof(separator) - 1] == ':'
+            let left      = separator.count and separator[0] == ':'
+            let right     = separator.count and separator[separator.count - 1] == ':'
             var alignment = TableAlignment.Left
             if left and right do
                 alignment = .Center
@@ -242,7 +242,7 @@ impl TableView
         result.rowCount = 1
         for index in 2 until lines.count
         {
-            if !@countof(Latin1.trim(lines[index])) do
+            if !(Latin1.trim(lines[index])).count do
                 continue
             let row = parseTableCells(lines[index])
             result.addRow(result, row.toSlice(), result.rowCount, false)

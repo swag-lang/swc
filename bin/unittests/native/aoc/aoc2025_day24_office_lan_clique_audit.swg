@@ -54,7 +54,7 @@ func findComputerIndex(labels: const [..] u16, labelCount: u32, target: u16)->u3
 {
     for labelCount
     {
-        let index = cast(u32) @index
+        let index = cast(u32) Swag.index
         if labels[index] == target do
             return index
     }
@@ -81,13 +81,13 @@ func isClique(mask: u32, adjacency: const [..] bool, computerCount: u32)->bool
 {
     for computerCount
     {
-        let left = cast(u32) @index
+        let left = cast(u32) Swag.index
         if (mask & (1'u32 << left)) == 0'u32 do
             continue
 
         for computerCount
         {
-            let right = cast(u32) @index
+            let right = cast(u32) Swag.index
             if right <= left do
                 continue
 
@@ -109,7 +109,7 @@ func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16
 
     for computerCount
     {
-        let index = cast(u32) @index
+        let index = cast(u32) Swag.index
         if (mask & (1'u32 << index)) != 0'u32
         {
             selected[selectedCount] = labels[index]
@@ -119,10 +119,10 @@ func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16
 
     for selectedCount
     {
-        let left = cast(u32) @index
+        let left = cast(u32) Swag.index
         for selectedCount
         {
-            let right = cast(u32) @index
+            let right = cast(u32) Swag.index
             if right <= left do
                 continue
 
@@ -138,7 +138,7 @@ func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16
     var length: u32
     for selectedCount
     {
-        let index = cast(u32) @index
+        let index = cast(u32) Swag.index
         let label = selected[index]
 
         if index != 0
@@ -158,11 +158,11 @@ func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16
 
 func passwordLess(leftPassword: const [..] u8, leftLength: u32, rightPassword: const [..] u8, rightLength: u32)->bool
 {
-    let commonLength = @min(leftLength, rightLength)
+    let commonLength = Swag.min(leftLength, rightLength)
 
     for commonLength
     {
-        let index = cast(u32) @index
+        let index = cast(u32) Swag.index
         if leftPassword[index] < rightPassword[index] do
             return true
         if leftPassword[index] > rightPassword[index] do
@@ -175,12 +175,12 @@ func passwordLess(leftPassword: const [..] u8, leftLength: u32, rightPassword: c
 func passwordMatches(audit: LanAudit, expected: string)->bool
 {
     let expectedBytes = cast(const [..] u8) expected
-    if audit.passwordLength != cast(u32) @countof(expectedBytes) do
+    if audit.passwordLength != cast(u32) expectedBytes.count do
         return false
 
     for audit.passwordLength
     {
-        let index = cast(u32) @index
+        let index = cast(u32) Swag.index
         if audit.password[index] != expectedBytes[index] do
             return false
     }
@@ -200,8 +200,8 @@ func auditLan(connections: const [..] string)->LanAudit
     for line in connections
     {
         let bytes = cast(const [..] u8) line
-        @assert(@countof(bytes) == 5)
-        @assert(bytes[2] == '-'u8)
+        Swag.assert(bytes.count == 5)
+        Swag.assert(bytes[2] == '-'u8)
 
         let leftLabel  = parseLabel(bytes, 0)
         let rightLabel = parseLabel(bytes, 3)
@@ -209,7 +209,7 @@ func auditLan(connections: const [..] string)->LanAudit
         var leftIndex = findComputerIndex(labelSlice, computerCount, leftLabel)
         if leftIndex == Swag.U32.Max
         {
-            @assert(computerCount < MaxComputers)
+            Swag.assert(computerCount < MaxComputers)
             leftIndex             = computerCount
             labels[computerCount] = leftLabel
             computerCount         += 1
@@ -218,7 +218,7 @@ func auditLan(connections: const [..] string)->LanAudit
         var rightIndex = findComputerIndex(labelSlice, computerCount, rightLabel)
         if rightIndex == Swag.U32.Max
         {
-            @assert(computerCount < MaxComputers)
+            Swag.assert(computerCount < MaxComputers)
             rightIndex            = computerCount
             labels[computerCount] = rightLabel
             computerCount         += 1
@@ -230,10 +230,10 @@ func auditLan(connections: const [..] string)->LanAudit
 
     for computerCount
     {
-        let first = cast(u32) @index
+        let first = cast(u32) Swag.index
         for computerCount
         {
-            let second = cast(u32) @index
+            let second = cast(u32) Swag.index
             if second <= first do
                 continue
 
@@ -242,7 +242,7 @@ func auditLan(connections: const [..] string)->LanAudit
 
             for computerCount
             {
-                let third = cast(u32) @index
+                let third = cast(u32) Swag.index
                 if third <= second do
                     continue
 
@@ -255,12 +255,12 @@ func auditLan(connections: const [..] string)->LanAudit
         }
     }
 
-    @assert(computerCount < 31)
+    Swag.assert(computerCount < 31)
     let subsetCount = 1'u32 << computerCount
 
     for subsetCount - 1
     {
-        let mask       = cast(u32) @index + 1
+        let mask       = cast(u32) Swag.index + 1
         let cliqueSize = countBits(mask)
         if cliqueSize < result.largestCliqueSize do
             continue
@@ -281,7 +281,7 @@ func auditLan(connections: const [..] string)->LanAudit
 
             for candidateLength
             {
-                let index = cast(u32) @index
+                let index = cast(u32) Swag.index
                 result.password[index] = candidatePassword[index]
             }
         }
@@ -330,9 +330,9 @@ func auditLan(connections: const [..] string)->LanAudit
 
     let sampleAudit = auditLan(sampleConnections)
 
-    @assert(sampleAudit.leadTripletCount == 7)
-    @assert(sampleAudit.largestCliqueSize == 4)
-    @assert(passwordMatches(sampleAudit, "co,de,ka,ta"))
+    Swag.assert(sampleAudit.leadTripletCount == 7)
+    Swag.assert(sampleAudit.largestCliqueSize == 4)
+    Swag.assert(passwordMatches(sampleAudit, "co,de,ka,ta"))
 
     const compactConnections: [6] string =
         [
@@ -346,7 +346,7 @@ func auditLan(connections: const [..] string)->LanAudit
 
     let compactAudit = auditLan(compactConnections)
 
-    @assert(compactAudit.leadTripletCount == 3)
-    @assert(compactAudit.largestCliqueSize == 4)
-    @assert(passwordMatches(compactAudit, "aa,bb,cc,tt"))
+    Swag.assert(compactAudit.leadTripletCount == 3)
+    Swag.assert(compactAudit.largestCliqueSize == 4)
+    Swag.assert(passwordMatches(compactAudit, "aa,bb,cc,tt"))
 }

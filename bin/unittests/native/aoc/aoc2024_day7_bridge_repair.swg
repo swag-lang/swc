@@ -89,7 +89,7 @@ func initEquationList(initialCapacity: u32)->EquationList
     var result: EquationList
     result.capacity = initialCapacity
     result.data     = cast(#null [*] Equation) testAlloc(cast(u64) initialCapacity * cast(u64) #sizeof(Equation))
-    @assert(result.data != null)
+    Swag.assert(result.data != null)
     return result
 }
 
@@ -107,7 +107,7 @@ func appendEquation(list: EquationList, eq: Equation)->EquationList
     {
         let newCapacity = result.capacity * 2'u32
         result.data = cast(#null [*] Equation) testRealloc(result.data, cast(u64) newCapacity * cast(u64) #sizeof(Equation))
-        @assert(result.data != null)
+        Swag.assert(result.data != null)
         result.capacity  = newCapacity
         result.growCount += 1'u32
     }
@@ -125,7 +125,7 @@ func appendEquation(list: EquationList, eq: Equation)->EquationList
 func parseU64(bytes: const [..] u8, pos: *u32)->u64
 {
     var value: u64
-    while pos[] < @countof(bytes) and isDigit(bytes[pos[]])
+    while pos[] < bytes.count and isDigit(bytes[pos[]])
     {
         value = value * 10 + cast(u64) (bytes[pos[]] - '0')
         pos[] += 1
@@ -136,7 +136,7 @@ func parseU64(bytes: const [..] u8, pos: *u32)->u64
 
 func skipSpaces(bytes: const [..] u8, pos: *u32)
 {
-    while pos[] < @countof(bytes) and bytes[pos[]] == ' 'u8
+    while pos[] < bytes.count and bytes[pos[]] == ' 'u8
     {
         pos[] += 1
     }
@@ -148,7 +148,7 @@ func parseEquations(text: string)->EquationList
     var list  = initEquationList(InitialEquationCapacity)
     var pos: u32
 
-    while pos < @countof(bytes)
+    while pos < bytes.count
     {
         if isLineBreak(bytes[pos])
         {
@@ -159,13 +159,13 @@ func parseEquations(text: string)->EquationList
         var eq: Equation
         eq.target = parseU64(bytes, &pos)
 
-        @assert(pos < @countof(bytes) and bytes[pos] == ':'u8)
+        Swag.assert(pos < bytes.count and bytes[pos] == ':'u8)
         pos += 1
         skipSpaces(bytes, &pos)
 
-        while pos < @countof(bytes) and !isLineBreak(bytes[pos])
+        while pos < bytes.count and !isLineBreak(bytes[pos])
         {
-            @assert(eq.operandCount < MaxOperands)
+            Swag.assert(eq.operandCount < MaxOperands)
             eq.operands[eq.operandCount] = parseU64(bytes, &pos)
             eq.operandCount              += 1
             skipSpaces(bytes, &pos)
@@ -224,7 +224,7 @@ func calibrate(text: string)->CalibrationReport
     let data = list.data!
     for list.count
     {
-        let eq = data[cast(u32) @index]
+        let eq = data[cast(u32) Swag.index]
 
         if isEquationSolvable(eq, false) do
             result.twoOpTotal += eq.target
@@ -241,38 +241,38 @@ func calibrate(text: string)->CalibrationReport
 
 #test
 {
-    @assert(concatNumbers(15, 6) == 156)
-    @assert(concatNumbers(1, 0) == 10)
-    @assert(concatNumbers(0, 5) == 5)
-    @assert(concatNumbers(12, 345) == 12345)
-    @assert(concatNumbers(99, 99) == 9999)
+    Swag.assert(concatNumbers(15, 6) == 156)
+    Swag.assert(concatNumbers(1, 0) == 10)
+    Swag.assert(concatNumbers(0, 5) == 5)
+    Swag.assert(concatNumbers(12, 345) == 12345)
+    Swag.assert(concatNumbers(99, 99) == 9999)
 }
 
 #test
 {
     let sample = calibrate(SampleInput)
 
-    @assert(sample.equationCount == 9'u32)
-    @assert(sample.twoOpTotal == 3749'u64)
-    @assert(sample.threeOpTotal == 11387'u64)
-    @assert(sample.allocGrowCount == 2'u32)
+    Swag.assert(sample.equationCount == 9'u32)
+    Swag.assert(sample.twoOpTotal == 3749'u64)
+    Swag.assert(sample.threeOpTotal == 11387'u64)
+    Swag.assert(sample.allocGrowCount == 2'u32)
 }
 
 #test
 {
     let single = calibrate(SingleInput)
 
-    @assert(single.equationCount == 1'u32)
-    @assert(single.twoOpTotal == 6'u64)
-    @assert(single.threeOpTotal == 6'u64)
-    @assert(single.allocGrowCount == 0'u32)
+    Swag.assert(single.equationCount == 1'u32)
+    Swag.assert(single.twoOpTotal == 6'u64)
+    Swag.assert(single.threeOpTotal == 6'u64)
+    Swag.assert(single.allocGrowCount == 0'u32)
 }
 
 #test
 {
     let concat = calibrate(ConcatInput)
 
-    @assert(concat.equationCount == 2'u32)
-    @assert(concat.twoOpTotal == 0'u64)
-    @assert(concat.threeOpTotal == 348'u64)
+    Swag.assert(concat.equationCount == 2'u32)
+    Swag.assert(concat.twoOpTotal == 0'u64)
+    Swag.assert(concat.threeOpTotal == 348'u64)
 }

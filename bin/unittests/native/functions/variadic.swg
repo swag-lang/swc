@@ -8,8 +8,8 @@ var gVariadicTotoHead:   s32
 var gVariadicTutuCalls:  u64
 var gVariadicTutuTotal:  u64
 var gVariadicTutuHead:   s32
-func titi(a: ...) { gVariadicAnyTotal += @countof(a) }
-func tata(a: s32...) { gVariadicTypedTotal += @countof(a) }
+func titi(a: ...) { gVariadicAnyTotal += a.count }
+func tata(a: s32...) { gVariadicTypedTotal += a.count }
 
 #test
 {
@@ -19,14 +19,14 @@ func tata(a: s32...) { gVariadicTypedTotal += @countof(a) }
     titi()
     tata(1, 2, 3)
     tata()
-    @assert(gVariadicAnyTotal == 2)
-    @assert(gVariadicTypedTotal == 3)
+    Swag.assert(gVariadicAnyTotal == 2)
+    Swag.assert(gVariadicTypedTotal == 3)
 }
 
 func toto(a: s32, b: ...)
 {
     gVariadicTotoCalls += 1
-    gVariadicTotoTotal += @countof(b)
+    gVariadicTotoTotal += b.count
     gVariadicTotoHead  = a
 }
 #test
@@ -36,15 +36,15 @@ func toto(a: s32, b: ...)
     gVariadicTotoHead  = 0
     toto(1, "a", "b")
     toto(1)
-    @assert(gVariadicTotoCalls == 2)
-    @assert(gVariadicTotoTotal == 2)
-    @assert(gVariadicTotoHead == 1)
+    Swag.assert(gVariadicTotoCalls == 2)
+    Swag.assert(gVariadicTotoTotal == 2)
+    Swag.assert(gVariadicTotoHead == 1)
 }
 
 func tutu(a: s32, b: s32...)
 {
     gVariadicTutuCalls += 1
-    gVariadicTutuTotal += @countof(b)
+    gVariadicTutuTotal += b.count
     gVariadicTutuHead  = a
 }
 #test
@@ -55,7 +55,7 @@ func tutu(a: s32, b: s32...)
     tutu(1)
     tutu(1, 2)
     tutu(1, 2, 3)
-    @assert(gVariadicTutuCalls == 3)
-    @assert(gVariadicTutuTotal == 3)
-    @assert(gVariadicTutuHead == 1)
+    Swag.assert(gVariadicTutuCalls == 3)
+    Swag.assert(gVariadicTutuTotal == 3)
+    Swag.assert(gVariadicTutuHead == 1)
 }

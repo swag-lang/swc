@@ -19,7 +19,7 @@ private const UintBits   = 8'u32
 internal const BitRes = 3'u32
 
 // Returns the number of bits needed to hold `value`.
-internal func ilog(value: u32)->u32 => value ? 32 - cast(u32) @bitcountlz(value) : 0
+internal func ilog(value: u32)->u32 => value ? 32 - cast(u32) Swag.bitCountLz(value) : 0
 
 // Pulls symbols out of one frame, both from its front through the range coder and from its
 // back as raw bits.
@@ -44,8 +44,8 @@ internal impl RangeDecoder
     func create(frame: const [..] u8)->RangeDecoder
     {
         var result: retval
-        result.data      = @dataof(frame)
-        result.storage   = cast(u32) @countof(frame)
+        result.data      = frame.buffer
+        result.storage   = cast(u32) frame.count
         result.bitsTotal = 9
         result.range     = 1'u32 << CodeExtra
         result.remainder = result.readByte()

@@ -7,10 +7,10 @@ var g_App: Application
 
 func viewerStartupFile(arguments: const [..] string)->String
 {
-    if @countof(arguments) <= 1 do
+    if arguments.count <= 1 do
         return {}
 
-    for argument in arguments[1 until @countof(arguments)]
+    for argument in arguments[1 until arguments.count]
     {
         if Path.isValidPathName(argument) and File.exists(argument) do
             return String.from(argument)
@@ -21,14 +21,14 @@ func viewerStartupFile(arguments: const [..] string)->String
 
 func viewerSmokeDirectory(arguments: const [..] string)->String
 {
-    if @countof(arguments) <= 1 do
+    if arguments.count <= 1 do
         return {}
 
-    for argument in arguments[1 until @countof(arguments)]
+    for argument in arguments[1 until arguments.count]
     {
         if !Utf8.startsWith(cast(const [..] u8) argument, ViewerSmokeArgument) do
             continue
-        return String.from(argument[@countof(ViewerSmokeArgument) until @countof(argument)])
+        return String.from(argument[ViewerSmokeArgument.count until argument.count])
     }
 
     return {}

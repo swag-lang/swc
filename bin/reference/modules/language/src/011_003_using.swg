@@ -9,10 +9,10 @@ members. For enums, it simplifies code by avoiding repetitive type prefixes.
 #test
 {
     enum RGB { R, G, B }
-    @assert(RGB.R == 0)     // Fully qualified access.
+    Swag.assert(RGB.R == 0)     // Fully qualified access.
 
     using RGB           // Import enum members into the current scope.
-    @assert(G == 1)     // 'G' accessible directly without 'RGB.' prefix.
+    Swag.assert(G == 1)     // 'G' accessible directly without 'RGB.' prefix.
 }
 
 /**
@@ -41,8 +41,8 @@ for composition-like behavior, improving code readability and reducing nesting.
     value.y = 0
     value.z = 0
 
-    @assert(&value.x == &value.base.x)
-    @assert(&value.y == &value.base.y)
+    Swag.assert(&value.x == &value.base.x)
+    Swag.assert(&value.y == &value.base.y)
 
     // Automatic cast: Point3 can be treated as Point2.
     func set1(ptr: *Point2)
@@ -52,8 +52,8 @@ for composition-like behavior, improving code readability and reducing nesting.
 
     set1(&value)
 
-    @assert(value.x == 1)
-    @assert(value.y == 1)
-    @assert(value.base.x == 1)
-    @assert(value.base.y == 1)
+    Swag.assert(value.x == 1)
+    Swag.assert(value.y == 1)
+    Swag.assert(value.base.x == 1)
+    Swag.assert(value.base.y == 1)
 }

@@ -5,11 +5,11 @@ using Swag, Core
 func assertGifPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
 {
     let idx = cast(u64) (yFromBottom * img.width + x) * img.bytesPerPixel
-    @assert(img.pixels.buffer![idx] == r)
-    @assert(img.pixels.buffer![idx + 1] == g)
-    @assert(img.pixels.buffer![idx + 2] == b)
+    Swag.assert(img.pixels.buffer![idx] == r)
+    Swag.assert(img.pixels.buffer![idx + 1] == g)
+    Swag.assert(img.pixels.buffer![idx + 2] == b)
     if img.bytesPerPixel == 4 do
-        @assert(img.pixels.buffer![idx + 3] == a)
+        Swag.assert(img.pixels.buffer![idx + 3] == a)
 }
 
 func quantizedGifChannel(value: u8, maxLevel: u32)->u8
@@ -38,7 +38,7 @@ func assertQuantizedGif24(pixelFormat: PixelFormat) fail
     var encoded = expect source.encode("memory.gif")
     encoded.makeLinear()
     let decoded = expect Image.decode("quantized.gif", nnBytes(encoded.toSlice()), {})
-    @assert(decoded.pixelFormat == .RGB8)
+    Swag.assert(decoded.pixelFormat == .RGB8)
     for i in Width
     {
         let r = cast(u8) (i & 0xFF)
@@ -70,7 +70,7 @@ func assertQuantizedGif32(pixelFormat: PixelFormat, withTransparency: bool) fail
     var encoded = expect source.encode("memory.gif")
     encoded.makeLinear()
     let decoded = expect Image.decode("quantized.gif", nnBytes(encoded.toSlice()), {})
-    @assert(decoded.pixelFormat == (withTransparency ? .RGBA8 : .RGB8))
+    Swag.assert(decoded.pixelFormat == (withTransparency ? .RGBA8 : .RGB8))
     for i in Width
     {
         let r = cast(u8) (i & 0xFF)
@@ -92,14 +92,14 @@ func assertQuantizedGif32(pixelFormat: PixelFormat, withTransparency: bool) fail
 
 func assertGifHeader(bytes: const [..] u8, width, height: u16)
 {
-    @assert(@countof(bytes) > 20)
-    @assert(bytes[0] == 'G' and bytes[1] == 'I' and bytes[2] == 'F')
-    @assert(bytes[3] == '8' and bytes[4] == '9' and bytes[5] == 'a')
-    @assert(bytes[6] == cast(u8) (width & 0xFF))
-    @assert(bytes[7] == cast(u8) (width >> 8))
-    @assert(bytes[8] == cast(u8) (height & 0xFF))
-    @assert(bytes[9] == cast(u8) (height >> 8))
-    @assert(bytes[@countof(bytes) - 1] == 0x3B'u8)
+    Swag.assert(bytes.count > 20)
+    Swag.assert(bytes[0] == 'G' and bytes[1] == 'I' and bytes[2] == 'F')
+    Swag.assert(bytes[3] == '8' and bytes[4] == '9' and bytes[5] == 'a')
+    Swag.assert(bytes[6] == cast(u8) (width & 0xFF))
+    Swag.assert(bytes[7] == cast(u8) (width >> 8))
+    Swag.assert(bytes[8] == cast(u8) (height & 0xFF))
+    Swag.assert(bytes[9] == cast(u8) (height >> 8))
+    Swag.assert(bytes[bytes.count - 1] == 0x3B'u8)
 }
 
 func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
@@ -109,34 +109,34 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     assertGifHeader(bytes, cast(u16) src.width, cast(u16) src.height)
 
     let img = expect Image.decode("encoded.gif", bytes, {})
-    @assert(img.width == src.width)
-    @assert(img.height == src.height)
-    @assert(img.pixelFormat == expectedPf)
-    @assert(img.pixels.count == cast(u64) src.width * src.height * img.bytesPerPixel)
+    Swag.assert(img.width == src.width)
+    Swag.assert(img.height == src.height)
+    Swag.assert(img.pixelFormat == expectedPf)
+    Swag.assert(img.pixels.count == cast(u64) src.width * src.height * img.bytesPerPixel)
 }
 
 // Decoder and encoder registries recognise GIF files.
 #test
 {
-    @assert(Image.canLoad("in.gif"))
-    @assert(Image.canSave("out.gif"))
+    Swag.assert(Image.canLoad("in.gif"))
+    Swag.assert(Image.canSave("out.gif"))
 }
 
 // Load animated GIF fixtures and decode their first frames.
 #test
 {
     let rgb = expect Image.load(getTestDataPath("test.gif"))
-    @assert(rgb.isValid())
-    @assert(rgb.width == 439)
-    @assert(rgb.height == 341)
-    @assert(rgb.pixelFormat == .RGBA8)
+    Swag.assert(rgb.isValid())
+    Swag.assert(rgb.width == 439)
+    Swag.assert(rgb.height == 341)
+    Swag.assert(rgb.pixelFormat == .RGBA8)
     assertGifPixelAt(rgb, 0, 0, 183'u8, 107'u8, 3'u8, 255'u8)
 
     let rgba = expect Image.load(getTestDataPath("testa.gif"))
-    @assert(rgba.isValid())
-    @assert(rgba.width == 250)
-    @assert(rgba.height == 261)
-    @assert(rgba.pixelFormat == .RGBA8)
+    Swag.assert(rgba.isValid())
+    Swag.assert(rgba.width == 250)
+    Swag.assert(rgba.height == 261)
+    Swag.assert(rgba.pixelFormat == .RGBA8)
     assertGifPixelAt(rgba, 0, 0, 0'u8, 0'u8, 0'u8, 0'u8)
 }
 
@@ -147,7 +147,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     var dec: Gif.Decoder
     expect dec.open(nnBytes(bytes.toSlice()))
     let numFrames = expect dec.frameCount()
-    @assert(numFrames == 21)
+    Swag.assert(numFrames == 21)
 
     var frame: Image
     var count = 0
@@ -159,10 +159,10 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
         count += 1
     }
 
-    @assert(count == 21)
-    @assert(frame.width == 439)
-    @assert(frame.height == 341)
-    @assert(frame.pixelFormat == .RGBA8)
+    Swag.assert(count == 21)
+    Swag.assert(frame.width == 439)
+    Swag.assert(frame.height == 341)
+    Swag.assert(frame.pixelFormat == .RGBA8)
 }
 
 // Decode with decodePixels=false: metadata fields are populated but no pixel buffer is allocated.
@@ -173,10 +173,10 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     opts.decodePixels = false
 
     let img = expect Image.decode("meta.gif", bytes.toSlice(), opts)
-    @assert(img.width == 250)
-    @assert(img.height == 261)
-    @assert(img.pixelFormat == .RGBA8)
-    @assert(!img.isValid())
+    Swag.assert(img.width == 250)
+    Swag.assert(img.height == 261)
+    Swag.assert(img.pixelFormat == .RGBA8)
+    Swag.assert(!img.isValid())
 }
 
 // Invalid and truncated buffers should fail without producing an image.
@@ -184,12 +184,12 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 {
     let bad: [8] u8 = [0, 1, 2, 3, 4, 5, 6, 7]
     var img: Image
-    img = catch Image.decode("bad.gif", @mkslice(&bad[0], @countof(bad)), {}) as err11
-    @assert(err11 != null)
+    img = catch Image.decode("bad.gif", Swag.makeSlice(&bad[0], bad.count), {}) as err11
+    Swag.assert(err11 != null)
 
     let bytes = expect File.readAllBytes(getTestDataPath("test.gif"))
-    img = catch Image.decode("truncated.gif", @mkslice(bytes.buffer, 32), {}) as err13
-    @assert(err13 != null)
+    img = catch Image.decode("truncated.gif", Swag.makeSlice(bytes.buffer, 32), {}) as err13
+    Swag.assert(err13 != null)
 }
 
 // Encode RGB8 images with an exact palette and preserve the colors through the decoder.
@@ -212,8 +212,8 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 
     let cb  = expect src.encode("memory.gif")
     let img = expect Image.decode("rgb.gif", nnBytes(cb.toSlice()), {})
-    @assert(img.pixelFormat == .RGB8)
-    @assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
+    Swag.assert(img.pixelFormat == .RGB8)
+    Swag.assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
 }
 
 // Encode RGBA8 with GIF's single transparent index.
@@ -280,9 +280,9 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 
     let cb  = expect src.encode("memory.gif")
     let img = expect Image.decode("quantized.gif", nnBytes(cb.toSlice()), {})
-    @assert(img.width == 17)
-    @assert(img.height == 17)
-    @assert(img.pixelFormat == .RGB8)
+    Swag.assert(img.width == 17)
+    Swag.assert(img.height == 17)
+    Swag.assert(img.pixelFormat == .RGB8)
     assertGifPixelAt(img, 0, 0, 0'u8, 0'u8, 0'u8, 255'u8)
 }
 

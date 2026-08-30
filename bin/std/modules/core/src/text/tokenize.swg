@@ -4,11 +4,11 @@
 // Removes surrounding double quotes from the string, if present
 func eatQuotes(str: string)->string
 {
-    let countof = @countof(str)
+    let countof = str.count
     if countof < 2 do
         return str
     if str[0] == '"' and str[countof - 1] == '"' do
-        return @mkstring(@dataof(str) + 1, countof - 2)
+        return Swag.makeString(str.buffer + 1, countof - 2)
     return str
 }
 
@@ -17,22 +17,22 @@ func eatCount(str: string, count: u64)->string
 {
     if str == null do
         return str
-    let countof = @countof(str)
+    let countof = str.count
     let cpt     = Math.min(count, countof)
-    return @mkstring(@dataof(str) + cpt, countof - cpt)
+    return Swag.makeString(str.buffer + cpt, countof - cpt)
 }
 
 // Removes leading space characters from the string and returns the trimmed result
 func eatSpaces(str: string)->string
 {
-    let countof = @countof(str)
+    let countof = str.count
     if !countof do
         return str
 
     var cpt = 0'u64
     while cpt < countof and Latin1.isSpace(str[cpt]) do
         cpt += 1
-    return @mkstring(@dataof(str) + cpt, countof - cpt)
+    return Swag.makeString(str.buffer + cpt, countof - cpt)
 }
 
 // Splits the string into an array of lines using newline or carriage return as delimiters
@@ -41,11 +41,11 @@ func eatSpaces(str: string)->string
 func splitLines(src: string)->Array'(string)
 {
     var result: retval
-    let countof = @countof(src)
+    let countof = src.count
     if !countof do
         return result
 
-    var dataof = @dataof(src)
+    var dataof = src.buffer
     var cpt    = 0
     var end    = dataof
     while cpt < countof
@@ -56,7 +56,7 @@ func splitLines(src: string)->Array'(string)
             cpt += 1
         }
 
-        let onestr = @mkstring(dataof, cast(u64) (end - dataof))
+        let onestr = Swag.makeString(dataof, cast(u64) (end - dataof))
         result.add(onestr)
         if cpt < countof - 1 and end[] == '\r' and end[1] == '\n' do
             end, cpt += 1
@@ -69,7 +69,7 @@ func splitLines(src: string)->Array'(string)
 
 private func addSplitPart(result: *Array'(string), value: string, removeEmpty: bool)
 {
-    if removeEmpty and !@countof(value) do
+    if removeEmpty and !value.count do
         return
     result.add(value)
 }
@@ -79,7 +79,7 @@ private func addSplitPart(result: *Array'(string), value: string, removeEmpty: b
 // All strings will be invalid if 'src' String is destroyed
 func split(src: string, separator: u8, maxSplit: u32 = 0, removeEmpty = true)->Array'(string)
 {
-    let countof = @countof(src)
+    let countof = src.count
     var result: retval
     if !countof do
         return result
@@ -110,8 +110,8 @@ func split(src: string, separator: u8, maxSplit: u32 = 0, removeEmpty = true)->A
 // All strings will be invalid if 'src' String is destroyed
 func split(src: string, separator: string, maxSplit: u32 = 0, removeEmpty = true)->Array'(string)
 {
-    let countof          = @countof(src)
-    let separatorCountof = @countof(separator)
+    let countof          = src.count
+    let separatorCountof = separator.count
 
     var result: retval
     if !countof do
@@ -160,7 +160,7 @@ func split(src: string, separator: rune, maxSplit: u32 = 0, removeEmpty = true)-
 // All strings will be invalid if 'src' String is destroyed
 func splitAny(src: string, separators: const [..] rune, maxSplit: u32 = 0, removeEmpty = true)->Array'(string)
 {
-    let countof = @countof(src)
+    let countof = src.count
 
     var result: retval
     if !countof do
@@ -196,21 +196,21 @@ func splitAny(src: string, separators: const [..] rune, maxSplit: u32 = 0, remov
 // Returns the prefix before the first Latin-1 whitespace character.
 func prefixToWhitespace(str: string)->string
 {
-    let countof = @countof(str)
+    let countof = str.count
     var cpt     = 0'u64
     while cpt < countof and !Latin1.isSpace(str[cpt]) do
         cpt += 1
-    return @mkstring(@dataof(str), cpt)
+    return Swag.makeString(str.buffer, cpt)
 }
 
 // Returns the leading Latin-1 alphanumeric characters.
 func alphanumericPrefix(str: string)->string
 {
-    let countof = @countof(str)
+    let countof = str.count
     var cpt     = 0'u64
     while cpt < countof and (Latin1.isDigit(str[cpt]) or Latin1.isLetter(str[cpt])) do
         cpt += 1
-    return @mkstring(@dataof(str), cpt)
+    return Swag.makeString(str.buffer, cpt)
 }
 
 // Returns bytes from `startByteIndex` through the next `delimiter`.
@@ -219,10 +219,10 @@ func alphanumericPrefix(str: string)->string
 // remains, the result extends to the end of `source`.
 func sliceToDelimiter(source: string, delimiter: u8, startByteIndex = 0'u64, includeDelimiter = true)->string
 {
-    var dataof = @dataof(source)
-    var length = @countof(source)
+    var dataof = source.buffer
+    var length = source.count
     if startByteIndex >= length do
-        return @mkstring(dataof, 0)
+        return Swag.makeString(dataof, 0)
 
     length -= startByteIndex
     dataof += startByteIndex
@@ -233,12 +233,12 @@ func sliceToDelimiter(source: string, delimiter: u8, startByteIndex = 0'u64, inc
         {
             if includeDelimiter do
                 scan += 1
-            return @mkstring(dataof, cast(u64) (scan - dataof))
+            return Swag.makeString(dataof, cast(u64) (scan - dataof))
         }
 
         scan   += 1
         length -= 1
     }
 
-    return @mkstring(dataof, cast(u64) (scan - dataof))
+    return Swag.makeString(dataof, cast(u64) (scan - dataof))
 }

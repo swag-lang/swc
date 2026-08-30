@@ -22,7 +22,7 @@ struct AutoScopeRequest
     let request = &requestStorage
     request.mode = .Realloc
     if request.mode == .Realloc {}
-    @assert(request.mode == .Realloc)
+    Swag.assert(request.mode == .Realloc)
 }
 
 func toto()->A { return .R }
@@ -31,7 +31,7 @@ func toto()->A { return .R }
 #test
 {
     if (toto() == .R) {}
-    @assert(toto() == .R)
+    Swag.assert(toto() == .R)
 }
 
 // Auto-scope enum flags with bitwise or
@@ -39,7 +39,7 @@ func toto()->A { return .R }
 {
     let x: A = .B
     let y    = x | .R
-    @assert(y == 5)
+    Swag.assert(y == 5)
 }
 
 enum AA { R = 1, G = 2, B = 4 }
@@ -63,7 +63,7 @@ impl E
     var f: F
     f.x = .G
     let a = f.x == .G
-    @assert(a)
+    Swag.assert(a)
 }
 
 const Recent = "Recent"
@@ -92,6 +92,6 @@ impl AutoScopeConflictLibrary
     var lib: AutoScopeConflictLibrary
     lib.sortMethod = .Recent
 
-    @assert(lib.sortMethod == .Recent)
-    @assert(lib.useConflictName())
+    Swag.assert(lib.sortMethod == .Recent)
+    Swag.assert(lib.useConflictName())
 }

@@ -38,8 +38,8 @@ namespace A.B.C
 #test
 {
     // Access functions using their fully qualified namespace paths.
-    @assert(A.a() == 1)         // Calls 'a' from namespace 'A'
-    @assert(A.B.C.a() == 2)     // Calls 'a' from nested namespace 'A.B.C'
+    Swag.assert(A.a() == 1)         // Calls 'a' from namespace 'A'
+    Swag.assert(A.B.C.a() == 2)     // Calls 'a' from nested namespace 'A.B.C'
 }
 
 /**

@@ -8,14 +8,14 @@ using Swag
     var left  = 10
     var right = -4
     Core.swap(&left, &right)
-    @assert(left == -4)
-    @assert(right == 10)
+    Swag.assert(left == -4)
+    Swag.assert(right == 10)
 
     var first:  String = "alpha"
     var second: String = "beta"
     Core.swap(&first, &second)
-    @assert(first == "beta")
-    @assert(second == "alpha")
+    Swag.assert(first == "beta")
+    Swag.assert(second == "alpha")
 }
 
 #test
@@ -23,14 +23,14 @@ using Swag
     var low  = 9
     var high = -3
     Core.orderMinMax(&low, &high)
-    @assert(low == -3)
-    @assert(high == 9)
+    Swag.assert(low == -3)
+    Swag.assert(high == 9)
 
     var sameLeft  = 4
     var sameRight = 4
     Core.orderMinMax(&sameLeft, &sameRight)
-    @assert(sameLeft == 4)
-    @assert(sameRight == 4)
+    Swag.assert(sameLeft == 4)
+    Swag.assert(sameRight == 4)
 }
 
 #test
@@ -38,12 +38,12 @@ using Swag
     var high = -1
     var low  = 12
     Core.orderMaxMin(&high, &low)
-    @assert(high == 12)
-    @assert(low == -1)
+    Swag.assert(high == 12)
+    Swag.assert(low == -1)
 
     var sameLeft  = 7
     var sameRight = 7
     Core.orderMaxMin(&sameLeft, &sameRight)
-    @assert(sameLeft == 7)
-    @assert(sameRight == 7)
+    Swag.assert(sameLeft == 7)
+    Swag.assert(sameRight == 7)
 }

@@ -15,12 +15,12 @@ func sumValues(values: [..] s32)->s32
     a[0, 1] = 2
     a[1, 0] = 3
     a[1, 1] = 4
-    @assert(a[0, 0] + a[0, 1] + a[1, 0] + a[1, 1] == 10)
+    Swag.assert(a[0, 0] + a[0, 1] + a[1, 0] + a[1, 1] == 10)
 
     var b: [2, 3, 4] s32
     b[1, 2, 3] = 42
-    @assert(b[1, 2, 3] == 42)
-    @assert(b[1][2][3] == 42)
+    Swag.assert(b[1, 2, 3] == 42)
+    Swag.assert(b[1][2][3] == 42)
 }
 
 #test
@@ -38,15 +38,15 @@ func sumValues(values: [..] s32)->s32
     cube[1, 0, 2] += 10
 
     let ptr = &cube[1, 1, 2]
-    @assert(ptr[] == 12)
+    Swag.assert(ptr[] == 12)
     ptr[] = 77
 
-    @assert(cube[0][1][1] == 50)
-    @assert(cube[1][0][2] == 19)
-    @assert(cube[1, 1, 0] == cube[1][1][0])
-    @assert(cube[1, 1, 2] == 77)
-    @assert(sumValues(cast([..] s32) cube[0, 1]) == 60)
-    @assert(sumValues(cast([..] s32) cube[1][0]) == 34)
+    Swag.assert(cube[0][1][1] == 50)
+    Swag.assert(cube[1][0][2] == 19)
+    Swag.assert(cube[1, 1, 0] == cube[1][1][0])
+    Swag.assert(cube[1, 1, 2] == 77)
+    Swag.assert(sumValues(cast([..] s32) cube[0, 1]) == 60)
+    Swag.assert(sumValues(cast([..] s32) cube[1][0]) == 34)
 }
 
 #test
@@ -58,7 +58,7 @@ func sumValues(values: [..] s32)->s32
     grid[2, 0] = top[1] + middle[1]
     grid[2, 1] = top[0] + middle[0]
 
-    @assert(grid[2, 0] == 6)
-    @assert(grid[2, 1] == 4)
-    @assert(sumValues(cast([..] s32) grid[2]) == 10)
+    Swag.assert(grid[2, 0] == 6)
+    Swag.assert(grid[2, 1] == 4)
+    Swag.assert(sumValues(cast([..] s32) grid[2]) == 10)
 }

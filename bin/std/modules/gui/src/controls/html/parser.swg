@@ -330,7 +330,7 @@ impl HtmlParser
             return 0
         .dropNewline = false
         if text[0] == '\r' do
-            return @countof(text) > 1 and text[1] == '\n' ? 2 : 1
+            return text.count > 1 and text[1] == '\n' ? 2 : 1
         return text[0] == '\n' ? 1 : 0
     }
 
@@ -340,23 +340,23 @@ impl HtmlParser
     // read in chunks yields exactly the tree the whole source yields.
     mtd emitText(text: string, offset: u64)
     {
-        if !@countof(text) do
+        if !text.count do
             return
 
         let eat     = .eatDroppedNewline(text)
         let content = text[eat to]
-        if !@countof(content) do
+        if !content.count do
             return
 
         // Whitespace between the sections of a document is not content; anything else there is
         // what starts the body.
         if .mode == .Document and (.atDocumentLevel() or .stack.back().tag == .Head)
         {
-            if !@countof(Latin1.trim(content)) do
+            if !(Latin1.trim(content)).count do
                 return
             .ensureBody(offset + eat)
         }
-        elif .stack.count == 1 and !@countof(Latin1.trim(content))
+        elif .stack.count == 1 and !(Latin1.trim(content)).count
         {
             return
         }
@@ -365,7 +365,7 @@ impl HtmlParser
         // rows stays where the source put it — unless a fostered run already sits in front of
         // the table, where a chunk edge may have isolated one of the run's own spaces.
         var anchor = .fosterAnchor()
-        if anchor != HtmlNoNode and !@countof(Latin1.trim(content)) and !.document.precededByText(anchor) do
+        if anchor != HtmlNoNode and !(Latin1.trim(content)).count and !.document.precededByText(anchor) do
             anchor = HtmlNoNode
         let decoded = .document.internDecoded(content)
         if anchor != HtmlNoNode
@@ -380,12 +380,12 @@ impl HtmlParser
     // Emits raw element content verbatim, because a script or a stylesheet carries no markup.
     mtd emitRawText(text: string, offset: u64)
     {
-        if !@countof(text) do
+        if !text.count do
             return
 
         let eat     = .eatDroppedNewline(text)
         let content = text[eat to]
-        if !@countof(content) do
+        if !content.count do
             return
 
         .document.appendText(.current(), .document.intern(content), offset + eat)
@@ -395,7 +395,7 @@ impl HtmlParser
     // it to lower case has to build anything at all.
     func hasUpper(text: string)->bool
     {
-        for index in @countof(text) where Latin1.isUpper(text[index]) do
+        for index in text.count where Latin1.isUpper(text[index]) do
             return true
         return false
     }
@@ -405,15 +405,15 @@ impl HtmlParser
     mtd readAttributes(element: u32, tag: string)
     {
         var index = 0'u64
-        while index < @countof(tag)
+        while index < tag.count
         {
-            while index < @countof(tag) and Latin1.isSpace(tag[index]) do
+            while index < tag.count and Latin1.isSpace(tag[index]) do
                 index += 1
-            if index >= @countof(tag) do
+            if index >= tag.count do
                 return
 
             let nameStart = index
-            while index < @countof(tag) and !Latin1.isSpace(tag[index]) and tag[index] != '=' and tag[index] != '/' do
+            while index < tag.count and !Latin1.isSpace(tag[index]) and tag[index] != '=' and tag[index] != '/' do
                 index += 1
             if index == nameStart
             {
@@ -423,18 +423,18 @@ impl HtmlParser
 
             let name = .document.internLower(tag[nameStart until index])
             var empty: HtmlRange
-            while index < @countof(tag) and Latin1.isSpace(tag[index]) do
+            while index < tag.count and Latin1.isSpace(tag[index]) do
                 index += 1
-            if index >= @countof(tag) or tag[index] != '='
+            if index >= tag.count or tag[index] != '='
             {
                 .document.addAttribute(element, name, empty)
                 continue
             }
 
             index += 1
-            while index < @countof(tag) and Latin1.isSpace(tag[index]) do
+            while index < tag.count and Latin1.isSpace(tag[index]) do
                 index += 1
-            if index >= @countof(tag)
+            if index >= tag.count
             {
                 .document.addAttribute(element, name, empty)
                 return
@@ -447,13 +447,13 @@ impl HtmlParser
             {
                 valueStart = index + 1
                 valueEnd   = valueStart
-                while valueEnd < @countof(tag) and tag[valueEnd] != quote do
+                while valueEnd < tag.count and tag[valueEnd] != quote do
                     valueEnd += 1
-                index = Math.min(valueEnd + 1, @countof(tag))
+                index = Math.min(valueEnd + 1, tag.count)
             }
             else
             {
-                while valueEnd < @countof(tag) and !Latin1.isSpace(tag[valueEnd]) do
+                while valueEnd < tag.count and !Latin1.isSpace(tag[valueEnd]) do
                     valueEnd += 1
                 index = valueEnd
             }
@@ -520,7 +520,7 @@ impl HtmlParser
 
         .readAttributes(element, attributes)
 
-        let selfClosing = @countof(attributes) and attributes[@countof(attributes) - 1] == '/'
+        let selfClosing = attributes.count and attributes[attributes.count - 1] == '/'
         if HtmlDocument.isVoidTag(interned) or selfClosing do
             return
 
@@ -643,7 +643,7 @@ impl HtmlParser
         var scan   = start
         var quote  = 0'u8
         var equals = false
-        while scan < @countof(source)
+        while scan < source.count
         {
             let character = source[scan]
             if quote
@@ -704,20 +704,20 @@ impl HtmlParser
             return Swag.U64.Max
 
         let tag = source[index + 1 until close]
-        if !@countof(tag) do
+        if !tag.count do
             return close + 1
 
         if tag[0] == '/'
         {
             var nameEnd = 1'u64
-            while nameEnd < @countof(tag) and !Latin1.isSpace(tag[nameEnd]) do
+            while nameEnd < tag.count and !Latin1.isSpace(tag[nameEnd]) do
                 nameEnd += 1
             .closeElement(tag[1 until nameEnd], .baseOffset + index)
             return close + 1
         }
 
         var nameEnd = 0'u64
-        while nameEnd < @countof(tag) and !Latin1.isSpace(tag[nameEnd]) and tag[nameEnd] != '/' do
+        while nameEnd < tag.count and !Latin1.isSpace(tag[nameEnd]) and tag[nameEnd] != '/' do
             nameEnd += 1
         if !nameEnd do
             return close + 1
@@ -760,8 +760,8 @@ impl HtmlParser
     {
         const MaxEntityLength = 32'u64
 
-        var scan = @countof(text)
-        let stop = @countof(text) > MaxEntityLength ? @countof(text) - MaxEntityLength : 0
+        var scan = text.count
+        let stop = text.count > MaxEntityLength ? text.count - MaxEntityLength : 0
         while scan > stop
         {
             scan -= 1
@@ -771,7 +771,7 @@ impl HtmlParser
                 break
         }
 
-        return @countof(text)
+        return text.count
     }
 
     // Parses everything `chunk` completes, keeping the rest for the next call.
@@ -797,7 +797,7 @@ impl HtmlParser
         var index  = 0'u64
         var kept   = 0'u64
 
-        while index < @countof(source)
+        while index < source.count
         {
             if .inRawText
             {
@@ -810,7 +810,7 @@ impl HtmlParser
                     .emitRawText(source[index to], .baseOffset + index)
                     .inRawText = false
                     .stack.removeBack()
-                    index = @countof(source)
+                    index = source.count
                     break
                 }
 
@@ -826,7 +826,7 @@ impl HtmlParser
                 {
                     if !final do
                         break
-                    index = @countof(source)
+                    index = source.count
                     break
                 }
 
@@ -837,10 +837,10 @@ impl HtmlParser
 
             var end = Utf8.indexOf(source, '<'rune, index)
             if end == Swag.U64.Max do
-                end = @countof(source)
+                end = source.count
 
             var text = source[index until end]
-            if !final and end == @countof(source)
+            if !final and end == source.count
             {
                 let safe = HtmlParser.safeTextEnd(text)
                 text = text[0 until safe]
@@ -856,7 +856,7 @@ impl HtmlParser
         }
 
         if final do
-            kept = @countof(source)
+            kept = source.count
         if !kept do
             return
 

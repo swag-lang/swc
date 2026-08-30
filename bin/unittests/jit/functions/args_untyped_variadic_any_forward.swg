@@ -16,22 +16,22 @@ struct VariadicAnyPair
 
 func anyIsS32(value: any)->bool
 {
-    return @kindof(value) == s32 and cast(s32) value == 42
+    return Swag.kindOf(value) == s32 and cast(s32) value == 42
 }
 
 func anyIsBool(value: any)->bool
 {
-    return @kindof(value) == bool and cast(bool) value
+    return Swag.kindOf(value) == bool and cast(bool) value
 }
 
 func anyIsString(value: any)->bool
 {
-    return @kindof(value) == string and cast(string) value == "variadic-any"
+    return Swag.kindOf(value) == string and cast(string) value == "variadic-any"
 }
 
 func anyIsBox(value: any)->bool
 {
-    if @kindof(value) != VariadicAnyBox do
+    if Swag.kindOf(value) != VariadicAnyBox do
         return false
 
     let box = cast(VariadicAnyBox) value
@@ -40,7 +40,7 @@ func anyIsBox(value: any)->bool
 
 func anyIsPair(value: any)->bool
 {
-    if @kindof(value) != VariadicAnyPair do
+    if Swag.kindOf(value) != VariadicAnyPair do
         return false
 
     let pair = cast(VariadicAnyPair) value
@@ -49,7 +49,7 @@ func anyIsPair(value: any)->bool
 
 func anyDataS32(value: any)->s32
 {
-    let ptr = cast(*s32) @dataof(value)
+    let ptr = cast(*s32) value.buffer
     return ptr[]
 }
 
@@ -102,11 +102,11 @@ func variadicFirstAnyDataS32(values: ...)->s32
         let v0 = relayAny(values[0])
         let v1 = relayAny(values[1])
         let v2 = relayAny(values[2])
-        return @kindof(v0) == s32 and
+        return Swag.kindOf(v0) == s32 and
                cast(s32) v0 == 42 and
-               @kindof(v1) == string and
+               Swag.kindOf(v1) == string and
                cast(string) v1 == "relay" and
-               @kindof(v2) == VariadicAnyBox and
+               Swag.kindOf(v2) == VariadicAnyBox and
                (cast(VariadicAnyBox) v2).value == 314
     }
 
@@ -169,7 +169,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
                 return false
         }
 
-        return @countof(values) == 3
+        return values.count == 3
     }
 
     const box: VariadicAnyBox = {value: 314}
@@ -194,7 +194,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
     func boxedAnyDataThroughVariadic()->s32
     {
         var value: s32 = 1234
-        let boxed: any = @mkany(&value, s32)
+        let boxed: any = Swag.makeAny(&value, s32)
         return variadicFirstAnyDataS32(boxed)
     }
 
@@ -305,7 +305,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
     func strictAnyDataThroughVariadic()->s32
     {
         var value: s32 = 1234
-        var raw:   any = @mkany(&value, s32)
+        var raw:   any = Swag.makeAny(&value, s32)
         let boxed      = (&raw)[as VariadicStrictAny]
         return variadicFirstAnyDataS32(boxed)
     }

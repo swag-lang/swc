@@ -122,12 +122,12 @@ internal func soundSample(bytes: const [..] u8, offset: u64, encoding: SoundFile
 internal func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, channels: u32)->Array'WaveformPoint
 {
     var result: retval
-    if !@countof(bytes) or !channels do
+    if !bytes.count or !channels do
         return result
 
     let bytesPerSample = encoding == .Pcm8 ? 1'u64 : (encoding == .Pcm16 ? 2 : (encoding == .Pcm24 ? 3 : 4))
     let bytesPerFrame  = bytesPerSample * channels
-    let frameCount     = @countof(bytes) / bytesPerFrame
+    let frameCount     = bytes.count / bytesPerFrame
     let pointCount     = Math.min(frameCount, WaveformPointCount)
     if !pointCount do
         return result
@@ -195,7 +195,7 @@ internal impl WaveformReducer
 {
     mtd consume(samples: const [..] s16)
     {
-        let frames = @countof(samples) / .channels
+        let frames = samples.count / .channels
         for frame in frames
         {
             let target = Math.min(.frameOffset * .pointCount / .frameCount, .pointCount - 1)
@@ -240,7 +240,7 @@ internal func waveformTickStep(duration: f32, plotWidth: f32)->f32
     let wanted = duration * 120 / Math.max(plotWidth, 1)
     for step in Steps where step >= wanted do
         return step
-    return Steps[@countof(Steps) - 1]
+    return Steps[Steps.count - 1]
 }
 
 // Formats one graduation of the time scale, in the shortest spelling its step allows.
@@ -890,7 +890,7 @@ internal impl SoundViewer
 private func runSoundViewerOpen(thread: Thread)
 {
     let view    = cast(*SoundViewer) thread.userParam!
-    let context = @getcontext()
+    let context = Swag.getContext()
     context.allocator = context.defaultAllocator!
     var sound = catch SoundFile.load(view.openFileName.toString(), preloadData: false) as openError
     if openError != null

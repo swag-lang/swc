@@ -16,4 +16,4 @@ SWC_DIAG_DEF(sanity_err_borrow_temporary, Error, "borrowed data from a temporary
 SWC_DIAG_DEF(sanity_err_borrow_materialized, Error, "borrowed data backed by function-local storage escapes through {what}; [help] copy the data into caller-owned storage")
 SWC_DIAG_DEF(sanity_err_collection_mutated, Error, "'{value}' structurally modifies '{sym}' during its iteration; [help] break out of the loop before calling '{value}', or apply the changes after iteration")
 SWC_DIAG_DEF(sanity_err_borrow_invalidated, Error, "'{value}' structurally modifies '{sym}' while '{what}' refers to its storage; [help] take '{what}' again after '{value}', or copy the data")
-SWC_DIAG_DEF(sanity_err_context_escape, Error, "'@setcontext' stores a pointer to local variable '{sym}' beyond its frame; [help] save the previous context, then restore it with 'defer @setcontext(prev)'")
+SWC_DIAG_DEF(sanity_err_context_escape, Error, "'Swag.setContext' stores a pointer to local variable '{sym}' beyond its frame; [help] save the previous context, then restore it with 'defer Swag.setContext(prev)'")

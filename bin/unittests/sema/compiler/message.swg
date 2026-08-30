@@ -86,8 +86,8 @@ var MessageUnknownCountArrayCount = 0
 
 #message(CompilerMsgMask.SemFunctions)
 {
-    let msg = @compiler.getMessage()!
-    @assert(msg.kind == CompilerMsgKind.SemFunctions)
+    let msg = Swag.compiler().getMessage()!
+    Swag.assert(msg.kind == CompilerMsgKind.SemFunctions)
 
     if msg.name == "messageCompilerOnlyFn" do
         MessageSawCompilerOnlyFunction = true
@@ -96,8 +96,8 @@ var MessageUnknownCountArrayCount = 0
     {
         MessageEarlyFunctionCount += 1
         MessageSawEarlyFunction   = true
-        @assert(msg.type != null)
-        let itf = @compiler
+        Swag.assert(msg.type != null)
+        let itf = Swag.compiler()
         itf.compileString("const _MessageBatchedForwardRefOk = MessageBatchLate() == 11\n")
     }
 
@@ -106,8 +106,8 @@ var MessageUnknownCountArrayCount = 0
         MessageLateFunctionCount += 1
         MessageSawLateFunction   = true
         let typeFunc = cast(const *TypeInfoFunc) msg.type!
-        @assert(@countof(typeFunc.parameters) == 0)
-        @assert(typeFunc.returnType!.name == "s32")
+        Swag.assert(typeFunc.parameters.count == 0)
+        Swag.assert(typeFunc.returnType!.name == "s32")
     }
 
     if msg.name == "MessagePlaceholderOnly"
@@ -116,10 +116,10 @@ var MessageUnknownCountArrayCount = 0
         MessageSawPlaceholderFunction   = true
         let typeFunc = cast(const *TypeInfoFunc) msg.type!
         let params   = typeFunc.parameters!
-        @assert(@countof(params) == 1)
-        @assert(params[0].name == "value")
-        @assert(params[0].pointedType!.name == "s32")
-        @assert(typeFunc.returnType!.name == "s32")
+        Swag.assert(params.count == 1)
+        Swag.assert(params[0].name == "value")
+        Swag.assert(params[0].pointedType!.name == "s32")
+        Swag.assert(typeFunc.returnType!.name == "s32")
     }
 
     if msg.name == "MessageMarkedNoParam"
@@ -127,12 +127,12 @@ var MessageUnknownCountArrayCount = 0
         MessageMarkedNoParamCount += 1
         MessageSawMarkedNoParam   = true
         let typeFunc = cast(const *TypeInfoFunc) msg.type!
-        @assert(@countof(typeFunc.parameters) == 0)
-        @assert(typeFunc.returnType!.name == "u32")
+        Swag.assert(typeFunc.parameters.count == 0)
+        Swag.assert(typeFunc.returnType!.name == "u32")
         var foundMarker = false
         for attribute in typeFunc.attributes where attribute.type == #typeof(MessageMarker) do
             foundMarker = true
-        @assert(foundMarker)
+        Swag.assert(foundMarker)
     }
 
     if msg.name == "MessagePlainNoParam"
@@ -140,25 +140,25 @@ var MessageUnknownCountArrayCount = 0
         MessagePlainNoParamCount += 1
         MessageSawPlainNoParam   = true
         let typeFunc = cast(const *TypeInfoFunc) msg.type!
-        @assert(@countof(typeFunc.parameters) == 0)
-        @assert(typeFunc.returnType!.name == "u32")
+        Swag.assert(typeFunc.parameters.count == 0)
+        Swag.assert(typeFunc.returnType!.name == "u32")
         for attribute in typeFunc.attributes do
-            @assert(attribute.type != #typeof(MessageMarker))
+            Swag.assert(attribute.type != #typeof(MessageMarker))
     }
 }
 
 #message(CompilerMsgMask.SemTypes)
 {
-    let msg = @compiler.getMessage()!
-    @assert(msg.kind == CompilerMsgKind.SemTypes)
+    let msg = Swag.compiler().getMessage()!
+    Swag.assert(msg.kind == CompilerMsgKind.SemTypes)
 
     if msg.name == "MessageLateType"
     {
         MessageLateTypeCount += 1
         MessageSawLateType   = true
         let msgType = msg.type!
-        @assert(msgType.kind == TypeInfoKind.Struct)
-        @assert(msgType.name == "MessageLateType")
+        Swag.assert(msgType.kind == TypeInfoKind.Struct)
+        Swag.assert(msgType.name == "MessageLateType")
     }
 
     if msg.name == "MessageStrictHandle"
@@ -166,25 +166,25 @@ var MessageUnknownCountArrayCount = 0
         MessageStrictAliasCount += 1
         MessageSawStrictAlias   = true
         let msgType = msg.type!
-        @assert(msgType.kind == TypeInfoKind.Alias)
-        @assert(msgType.name == "MessageStrictHandle")
+        Swag.assert(msgType.kind == TypeInfoKind.Alias)
+        Swag.assert(msgType.name == "MessageStrictHandle")
 
         let aliasType = cast(const *TypeInfoAlias) msgType
         let rawType   = aliasType.rawType!
-        @assert(rawType.name == "const *void")
+        Swag.assert(rawType.name == "const *void")
     }
 }
 
 #message(CompilerMsgMask.SemGlobals)
 {
-    let msg = @compiler.getMessage()!
-    @assert(msg.kind == CompilerMsgKind.SemGlobals)
+    let msg = Swag.compiler().getMessage()!
+    Swag.assert(msg.kind == CompilerMsgKind.SemGlobals)
 
     if msg.name == "MessageLateGlobal"
     {
         MessageLateGlobalCount += 1
         MessageSawLateGlobal   = true
-        @assert(msg.type!.name == "s32")
+        Swag.assert(msg.type!.name == "s32")
     }
 
     if msg.name == "MessageUnknownCountArray"
@@ -192,38 +192,38 @@ var MessageUnknownCountArrayCount = 0
         MessageUnknownCountArrayCount += 1
         MessageSawUnknownCountArray   = true
         let msgType = msg.type!
-        @assert(msgType.kind == TypeInfoKind.Array)
+        Swag.assert(msgType.kind == TypeInfoKind.Array)
 
         let typeArray = cast(const *TypeInfoArray) msgType
-        @assert(typeArray.pointedType!.name == "s32")
-        @assert(typeArray.finalType!.name == "s32")
-        @assert(typeArray.count == 0)
-        @assert(typeArray.totalCount == 0)
+        Swag.assert(typeArray.pointedType!.name == "s32")
+        Swag.assert(typeArray.finalType!.name == "s32")
+        Swag.assert(typeArray.count == 0)
+        Swag.assert(typeArray.totalCount == 0)
     }
 }
 
 #message(CompilerMsgMask.PassAfterSemantic)
 {
-    let itf = @compiler
-    @assert(MessageSawEarlyFunction)
-    @assert(MessageSawLateFunction)
-    @assert(MessageSawPlaceholderFunction)
-    @assert(MessageSawMarkedNoParam)
-    @assert(MessageSawPlainNoParam)
-    @assert(MessageSawLateType)
-    @assert(MessageSawLateGlobal)
-    @assert(MessageSawStrictAlias)
-    @assert(MessageSawUnknownCountArray)
-    @assert(!MessageSawCompilerOnlyFunction)
-    @assert(MessageEarlyFunctionCount == 1)
-    @assert(MessageLateFunctionCount == 1)
-    @assert(MessagePlaceholderFunctionCount == 1)
-    @assert(MessageMarkedNoParamCount == 1)
-    @assert(MessagePlainNoParamCount == 1)
-    @assert(MessageLateTypeCount == 1)
-    @assert(MessageLateGlobalCount == 1)
-    @assert(MessageStrictAliasCount == 1)
-    @assert(MessageUnknownCountArrayCount == 1)
+    let itf = Swag.compiler()
+    Swag.assert(MessageSawEarlyFunction)
+    Swag.assert(MessageSawLateFunction)
+    Swag.assert(MessageSawPlaceholderFunction)
+    Swag.assert(MessageSawMarkedNoParam)
+    Swag.assert(MessageSawPlainNoParam)
+    Swag.assert(MessageSawLateType)
+    Swag.assert(MessageSawLateGlobal)
+    Swag.assert(MessageSawStrictAlias)
+    Swag.assert(MessageSawUnknownCountArray)
+    Swag.assert(!MessageSawCompilerOnlyFunction)
+    Swag.assert(MessageEarlyFunctionCount == 1)
+    Swag.assert(MessageLateFunctionCount == 1)
+    Swag.assert(MessagePlaceholderFunctionCount == 1)
+    Swag.assert(MessageMarkedNoParamCount == 1)
+    Swag.assert(MessagePlainNoParamCount == 1)
+    Swag.assert(MessageLateTypeCount == 1)
+    Swag.assert(MessageLateGlobalCount == 1)
+    Swag.assert(MessageStrictAliasCount == 1)
+    Swag.assert(MessageUnknownCountArrayCount == 1)
 
     itf.compileString("#assert(_MessageBatchedForwardRefOk)\n")
 }

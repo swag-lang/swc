@@ -19,7 +19,7 @@ namespace compiler1064
     // #run fibonacci result persists at runtime
     #test
     {
-        @assert(fibonacciOfAge == 987)
+        Swag.assert(fibonacciOfAge == 987)
     }
 }
 
@@ -41,7 +41,7 @@ namespace compiler1386
     #test
     {
         using A, B
-        @assert(#typeof(A.AA) != #typeof(B.BB))
+        Swag.assert(#typeof(A.AA) != #typeof(B.BB))
     }
 }
 
@@ -60,7 +60,7 @@ namespace compiler1504
     #test
     {
         #run set()
-        @assert(X == 6)
+        Swag.assert(X == 6)
     }
 }
 
@@ -70,8 +70,8 @@ namespace compiler1505
     #[Swag.Compiler]
     func set(x: string)
     {
-        @assert(x == "inside function set")
-    // @print(x)
+        Swag.assert(x == "inside function set")
+    // Swag.print(x)
     }
 
     #test
@@ -90,8 +90,8 @@ namespace compiler1506
     #[Swag.Compiler]
     func set(x: string)
     {
-        @assert(x == "inside function set")
-    // @print(x)
+        Swag.assert(x == "inside function set")
+    // Swag.print(x)
     }
 
     #test
@@ -136,14 +136,14 @@ namespace compiler1665
     {
         var ptr1 = cast(const * TT) x[0]
         var ptr2 = cast(TT) x[0]
-        @assert(ptr1.x == 456)
-        @assert(ptr2.y == 456)
+        Swag.assert(ptr1.x == 456)
+        Swag.assert(ptr2.y == 456)
         ptr2.x = 100
-        @assert(ptr1.x == 456)
+        Swag.assert(ptr1.x == 456)
 
-    /*@print(@kindof(x[0]).name); @print("\n")
-        @print(#typeof(ptr1).name); @print("\n")
-        @print(#typeof(ptr2).name); @print("\n")*/
+    /*Swag.print(Swag.kindOf(x[0]).name); Swag.print("\n")
+        Swag.print(#typeof(ptr1).name); Swag.print("\n")
+        Swag.print(#typeof(ptr2).name); Swag.print("\n")*/
     // ptr1.value = 0
     }
 
@@ -152,7 +152,7 @@ namespace compiler1665
     {
         var x: TT
         C(x)
-        @assert(x.x == 456)
+        Swag.assert(x.x == 456)
     }
 }
 
@@ -169,7 +169,7 @@ namespace compiler1667
 
     func C(x: ...)
     {
-    // @print(#typeof(x[0]).name)
+    // Swag.print(#typeof(x[0]).name)
     // var ptr1 = cast(const TT) x[0]
     // ptr1.value = 456
     }
@@ -179,7 +179,7 @@ namespace compiler1667
     {
         var x: TT
         C(x)
-        @assert(x.value == 456)
+        Swag.assert(x.value == 456)
     }
 }
 
@@ -197,7 +197,7 @@ namespace compiler1672
     // #typeof on variadic element returns any
     #test
     {
-        @assert(toto(5) == any)
+        Swag.assert(toto(5) == any)
     }
 }
 
@@ -206,7 +206,7 @@ namespace compiler1888
 {
     func toto(x: s64)
     {
-        @assert(x == 666)
+        Swag.assert(x == 666)
     }
 
     func titi()
@@ -221,7 +221,7 @@ namespace compiler1893
 {
     func toto(x: s64)
     {
-        @assert(x == 666)
+        Swag.assert(x == 666)
     }
 
     func titi(x: bool)
@@ -248,16 +248,16 @@ namespace compiler239
         let a = #run main1()
         let b = main1()
         let c = main2()
-        @assert(a == 77)
-        @assert(b == 77)
-        @assert(c == 666)
+        Swag.assert(a == 77)
+        Swag.assert(b == 77)
+        Swag.assert(c == 666)
     }
 
     // #run and direct call return same value
     #test
     {
         main()
-        @assert(main1() == 77)
+        Swag.assert(main1() == 77)
     }
 }
 
@@ -288,7 +288,7 @@ namespace compiler2447
     // #run result used as array size
     #test
     {
-        @assert(@countof(arr) == 10)
+        Swag.assert(arr.count == 10)
     }
 }
 
@@ -306,14 +306,14 @@ namespace compiler250
 
     func main1()
     {
-        @assert(main() == 55)
+        Swag.assert(main() == 55)
     }
 
     // #run as default parameter value
     #test
     {
         main1()
-        @assert(main() == 55)
+        Swag.assert(main() == 55)
     }
 }
 
@@ -342,19 +342,19 @@ namespace compiler295
     //
     #test
     {
-        @assert(#sizeof(bool) == 1)
-        @assert(#sizeof(s8) == 1)
-        @assert(#sizeof(s16) == 2)
-        @assert(#sizeof(s32) == 4)
-        @assert(#sizeof(s64) == 8)
-        @assert(#sizeof(u8) == 1)
-        @assert(#sizeof(u16) == 2)
-        @assert(#sizeof(u32) == 4)
-        @assert(#sizeof(u64) == 8)
-        @assert(#sizeof(f32) == 4)
-        @assert(#sizeof(f64) == 8)
-        @assert(#sizeof(rune) == 4)
-        @assert(#sizeof(string) == 8 + 8)
+        Swag.assert(#sizeof(bool) == 1)
+        Swag.assert(#sizeof(s8) == 1)
+        Swag.assert(#sizeof(s16) == 2)
+        Swag.assert(#sizeof(s32) == 4)
+        Swag.assert(#sizeof(s64) == 8)
+        Swag.assert(#sizeof(u8) == 1)
+        Swag.assert(#sizeof(u16) == 2)
+        Swag.assert(#sizeof(u32) == 4)
+        Swag.assert(#sizeof(u64) == 8)
+        Swag.assert(#sizeof(f32) == 4)
+        Swag.assert(#sizeof(f64) == 8)
+        Swag.assert(#sizeof(rune) == 4)
+        Swag.assert(#sizeof(string) == 8 + 8)
     }
 }
 
@@ -397,12 +397,12 @@ namespace compiler296
     //
     #test
     {
-        @assert(#sizeof(*bool) == 8)
-        @assert(#sizeof(1's32) == 4)
-        @assert(#sizeof(1'u64) == 8)
-        @assert(#sizeof(1.0'f32) == 4)
-        @assert(#sizeof(1.0'f64) == 8)
-        @assert(#sizeof(5 * 4's32) == 4)
+        Swag.assert(#sizeof(*bool) == 8)
+        Swag.assert(#sizeof(1's32) == 4)
+        Swag.assert(#sizeof(1'u64) == 8)
+        Swag.assert(#sizeof(1.0'f32) == 4)
+        Swag.assert(#sizeof(1.0'f64) == 8)
+        Swag.assert(#sizeof(5 * 4's32) == 4)
     }
 }
 
@@ -437,8 +437,8 @@ namespace compiler3029
     #test
     {
         let {x1, y1} = #run toto(2, 2)
-        @assert(x1 == 4)
-        @assert(y1 == 8)
+        Swag.assert(x1 == 4)
+        Swag.assert(y1 == 8)
     }
 }
 
@@ -469,7 +469,7 @@ namespace compiler3120
     #test
     {
         const Msg = #run mySillyFunction()
-        @assert(Msg == "666")
+        Swag.assert(Msg == "666")
     }
 }
 
@@ -496,7 +496,7 @@ namespace compiler3324
             return ret
         }
 
-        @assert(a == 660)
+        Swag.assert(a == 660)
     }
 }
 
@@ -522,7 +522,7 @@ namespace compiler3325
                     T = bool
                 }
 
-                sum += @countof(T.name)
+                sum += T.name.count
             }
 
             return sum
@@ -540,9 +540,9 @@ namespace compiler334
     #test
     {
         var a: [2, 2] s32
-        @assert(#sizeof(a) == 16)
+        Swag.assert(#sizeof(a) == 16)
         var b: [5, 5] bool
-        @assert(#sizeof(b) == 25)
+        Swag.assert(#sizeof(b) == 25)
     }
 }
 
@@ -565,8 +565,8 @@ namespace compiler345
     {
         var a: s32  = undefined
         var b: *s32 = undefined
-        @assert(#typeof(a) == s32)
-        @assert(#typeof(b) == *s32)
+        Swag.assert(#typeof(a) == s32)
+        Swag.assert(#typeof(b) == *s32)
     }
 }
 
@@ -577,14 +577,14 @@ namespace compiler350
     {
         const a = 666
         let b = #run a
-        @assert(b == 666)
+        Swag.assert(b == 666)
     }
 }
 
 // _compiler4101.swg
 namespace compiler4101
 {
-    const C = #run @compiler.getBuildCfg()!.backendKind
+    const C = #run Swag.compiler().getBuildCfg()!.backendKind
 }
 
 // _compiler4102.swg
@@ -601,7 +601,7 @@ namespace compiler4102
 // _compiler4104.swg
 namespace compiler4104
 {
-    const CFG: Swag.BuildCfg = #run @compiler.getBuildCfg()![]
+    const CFG: Swag.BuildCfg = #run Swag.compiler().getBuildCfg()![]
 }
 
 // _compiler4266.swg
@@ -628,7 +628,7 @@ namespace compiler4844
         const PowerOfTwo: [N] s32 = #run
         {
             var arr: [N] s32
-            for i in @countof(arr) do
+            for i in arr.count do
                 arr[i] = 1 << cast(u32) i
             return arr
         }
@@ -729,9 +729,9 @@ namespace compiler4849
             return words
         }
 
-        @assert(cast(string) value.item == "abc")
-        @assert(cast(string) value.other == "def")
-        @assert(cast(string) values[0] == "first")
-        @assert(cast(string) values[1] == "second")
+        Swag.assert(cast(string) value.item == "abc")
+        Swag.assert(cast(string) value.other == "def")
+        Swag.assert(cast(string) values[0] == "first")
+        Swag.assert(cast(string) values[1] == "second")
     }
 }

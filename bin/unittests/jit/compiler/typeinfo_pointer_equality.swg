@@ -14,6 +14,6 @@ func conditionalArrayTypeInfo(flag: bool)->bool
 
 #test
 {
-    @assert(conditionalArrayTypeInfo(true))
-    @assert(conditionalArrayTypeInfo(false))
+    Swag.assert(conditionalArrayTypeInfo(true))
+    Swag.assert(conditionalArrayTypeInfo(false))
 }

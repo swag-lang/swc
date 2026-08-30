@@ -18,7 +18,7 @@ impl BufferBox
     {
         var ptr = .buffer
         let len = .count
-        return @mkslice(ptr, len)
+        return Swag.makeSlice(ptr, len)
     }
 }
 

@@ -33,12 +33,12 @@ alias PointerArithmeticStrictU8     = u8
 
     let c2 = p - off1
     #assert(#typeof(c2) == [*]s32)
-    @assert((a - p) == 1)
-    @assert((a2 - p) == 1)
-    @assert((b - p) == 1)
-    @assert((b2 - p) == 1)
-    @assert((p - c) == 1)
-    @assert((p - c2) == 1)
+    Swag.assert((a - p) == 1)
+    Swag.assert((a2 - p) == 1)
+    Swag.assert((b - p) == 1)
+    Swag.assert((b2 - p) == 1)
+    Swag.assert((p - c) == 1)
+    Swag.assert((p - c2) == 1)
 }
 
 #assert(#typeof((cast(#null [*]s32) null) - (cast(#null [*]s32) null)) == s64)
@@ -51,11 +51,11 @@ alias PointerArithmeticStrictU8     = u8
     let p4            = 4 + base
     let p1            = p4 - 3
 
-    @assert(p2[] == 30)
-    @assert(p4[] == 50)
-    @assert(p1[] == 20)
-    @assert((p4 - base) == 4)
-    @assert((p2 - p1) == 1)
+    Swag.assert(p2[] == 30)
+    Swag.assert(p4[] == 50)
+    Swag.assert(p1[] == 20)
+    Swag.assert((p4 - base) == 4)
+    Swag.assert((p2 - p1) == 1)
 }
 
 #test
@@ -63,10 +63,10 @@ alias PointerArithmeticStrictU8     = u8
     var data: [4] u8 = [0, 1, 2, 3]
     var ptr          = cast([*] u8) &data[0]
     ptr += 1'u8
-    @assert(ptr[0] == 1'u8)
-    @assert(ptr[1] == 2'u8)
+    Swag.assert(ptr[0] == 1'u8)
+    Swag.assert(ptr[1] == 2'u8)
     ptr -= 1
-    @assert(ptr[3] == 3'u8)
+    Swag.assert(ptr[3] == 3'u8)
 }
 
 #test
@@ -77,11 +77,11 @@ alias PointerArithmeticStrictU8     = u8
     let p4            = 4 + base
     let p1            = p4 - 3
 
-    @assert(p2[as s32] == 30)
-    @assert(p4[as s32] == 50)
-    @assert(p1[as s32] == 20)
-    @assert((p4 - base) == 4)
-    @assert((p2 - p1) == 1)
+    Swag.assert(p2[as s32] == 30)
+    Swag.assert(p4[as s32] == 50)
+    Swag.assert(p1[as s32] == 20)
+    Swag.assert((p4 - base) == 4)
+    Swag.assert((p2 - p1) == 1)
 }
 
 #test
@@ -89,10 +89,10 @@ alias PointerArithmeticStrictU8     = u8
     var data: [4] u8 = [0, 1, 2, 3]
     var ptr          = cast(PointerArithmeticStrictU8Ptr) &data[0]
     ptr += 1'u8
-    @assert((cast([*] u8) ptr)[0] == 1'u8)
-    @assert((cast([*] u8) ptr)[1] == 2'u8)
+    Swag.assert((cast([*] u8) ptr)[0] == 1'u8)
+    Swag.assert((cast([*] u8) ptr)[1] == 2'u8)
     ptr -= 1
-    @assert((cast([*] u8) ptr)[3] == 3'u8)
+    Swag.assert((cast([*] u8) ptr)[3] == 3'u8)
 }
 
 #test
@@ -102,7 +102,7 @@ alias PointerArithmeticStrictU8     = u8
     var ptr    = cast([*] u8) &data[0]
     let offset = cast(PointerArithmeticStrictU8) 255
     ptr += offset
-    @assert(ptr[] == 42)
+    Swag.assert(ptr[] == 42)
     ptr -= offset
-    @assert(ptr[255] == 42)
+    Swag.assert(ptr[255] == 42)
 }

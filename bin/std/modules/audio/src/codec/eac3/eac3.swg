@@ -618,9 +618,9 @@ private impl Eac3Codec
 
     mtd decodeFrame(packet: const [..] u8, destination: [*] s16) fail
     {
-        var reader = BitReader.create(@dataof(packet), @countof(packet))
+        var reader = BitReader.create(packet.buffer, packet.count)
         let bsi    = try parseEac3Bsi(&reader)
-        if bsi.frameSize != @countof(packet) do
+        if bsi.frameSize != packet.count do
             fail InvalidFormatError{"E-AC-3 packet size does not match its sync-frame header"}
         if bsi.sampleRate != .sampleRate do
             fail InvalidFormatError{"E-AC-3 packet sample rate differs from its container track"}
@@ -698,9 +698,9 @@ impl IPacketCodec for Eac3Codec
 
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
-        if @countof(packet) < 6 do
+        if packet.count < 6 do
             fail InvalidFormatError{"E-AC-3 packet is truncated"}
-        var header   = BitReader.create(@dataof(packet), @countof(packet))
+        var header   = BitReader.create(packet.buffer, packet.count)
         let bsi      = try parseEac3Bsi(&header)
         let required = cast(u64) bsi.blocks * SamplesPerBlock * .channels * #sizeof(s16)
         if destinationSize < required do
@@ -717,7 +717,7 @@ internal func eac3FrameInfo(packet: const [..] u8)->FrameInfo fail
     const Reduced: [3] u32 = [24_000, 22_050, 16_000]
     const Blocks:  [4] u32 = [1, 2, 3, 6]
 
-    if @countof(packet) < 5 do
+    if packet.count < 5 do
         fail InvalidFormatError{"E-AC-3 packet header is truncated"}
     if packet[0] != 0x0B or packet[1] != 0x77 do
         fail InvalidFormatError{"E-AC-3 packet has no sync word"}
@@ -752,7 +752,7 @@ internal func eac3FrameInfo(packet: const [..] u8)->FrameInfo fail
 // which it carries is stated in the frame header.
 internal func eac3PacketFrameCount(packet: const [..] u8)->u32 fail
 {
-    if @countof(packet) < 5 do
+    if packet.count < 5 do
         fail InvalidFormatError{"E-AC-3 packet header is truncated"}
     if packet[0] != 0x0B or packet[1] != 0x77 do
         fail InvalidFormatError{"E-AC-3 packet has no sync word"}

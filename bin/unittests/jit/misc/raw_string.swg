@@ -18,7 +18,7 @@
 {
     // A backslash never hides the closing quote in a raw literal.
     #assert(#raw "ends with a backslash \" == "ends with a backslash \\")
-    #assert(@countof(#raw "\\") == 2)
+    #assert((#raw "\\").count == 2)
 }
 
 #test
@@ -58,15 +58,15 @@ b"""
     // An empty raw literal, and one holding only blanks.
     #assert(#raw "" == "")
     #assert(#raw " " == " ")
-    #assert(@countof(#raw """ """) == 1)
+    #assert((#raw """ """).count == 1)
 }
 
 #test
 {
     // '#raw' is a compile-time reading rule, so the value is an ordinary string afterwards.
     let pattern = #raw "(\d+)x(\d+)"
-    @assert(pattern == "(\\d+)x(\\d+)")
-    @assert(@countof(pattern) == 11)
+    Swag.assert(pattern == "(\\d+)x(\\d+)")
+    Swag.assert(pattern.count == 11)
 
     var acc = 0
     for c in pattern
@@ -75,5 +75,5 @@ b"""
             acc += 1
     }
 
-    @assert(acc == 2)
+    Swag.assert(acc == 2)
 }

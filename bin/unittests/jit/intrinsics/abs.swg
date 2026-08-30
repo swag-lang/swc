@@ -3,18 +3,18 @@
 #test
 {
     #[Swag.NoInline]
-    func absRuntimeS8(v: s8)->s8 => @abs(v)
+    func absRuntimeS8(v: s8)->s8 => Swag.abs(v)
     #[Swag.NoInline]
-    func absRuntimeS16(v: s16)->s16 => @abs(v)
+    func absRuntimeS16(v: s16)->s16 => Swag.abs(v)
     #[Swag.NoInline]
-    func absRuntimeS32(v: s32)->s32 => @abs(v)
+    func absRuntimeS32(v: s32)->s32 => Swag.abs(v)
     #[Swag.NoInline]
-    func absRuntimeS64(v: s64)->s64 => @abs(v)
+    func absRuntimeS64(v: s64)->s64 => Swag.abs(v)
 
     #[Swag.NoInline]
-    func absRuntimeF32(v: f32)->f32 => @abs(v)
+    func absRuntimeF32(v: f32)->f32 => Swag.abs(v)
     #[Swag.NoInline]
-    func absRuntimeF64(v: f64)->f64 => @abs(v)
+    func absRuntimeF64(v: f64)->f64 => Swag.abs(v)
 
     const S8  = #run absRuntimeS8(-7's8)
     const S16 = #run absRuntimeS16(-321's16)

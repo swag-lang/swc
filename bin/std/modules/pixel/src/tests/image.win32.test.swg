@@ -21,8 +21,8 @@ using Swag, Win32
     defer discard catch DestroyIcon(icon)
 
     let roundTrip = expect Image.from(icon)
-    @assert(roundTrip.pixelFormat == .BGRA8)
+    Swag.assert(roundTrip.pixelFormat == .BGRA8)
     let result = roundTrip.pixels.buffer!
-    @assert(result[0] == 0x00 and result[1] == 0xF9 and result[2] == 0xF7 and result[3] == 0xFF)
-    @assert(result[4] == 0x0D and result[5] == 0x0B and result[6] == 0x0B and result[7] == 0xFF)
+    Swag.assert(result[0] == 0x00 and result[1] == 0xF9 and result[2] == 0xF7 and result[3] == 0xFF)
+    Swag.assert(result[4] == 0x0D and result[5] == 0x0B and result[6] == 0x0B and result[7] == 0xFF)
 }

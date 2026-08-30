@@ -19,7 +19,7 @@ struct NullableName
 impl NullableName
 {
     #[Swag.Implicit]
-    mtd opSet(value: #null string) { .length = @countof(value) }
+    mtd opSet(value: #null string) { .length = value.count }
 }
 
 struct StrictName
@@ -30,7 +30,7 @@ struct StrictName
 impl StrictName
 {
     #[Swag.Implicit]
-    mtd opSet(value: string) { .length = @countof(value) }
+    mtd opSet(value: string) { .length = value.count }
 }
 
 struct Counted
@@ -67,47 +67,47 @@ struct CountedPair
     second: Counted
 }
 
-func nullableLength(value: #null string)->u64 => @countof(value)
+func nullableLength(value: #null string)->u64 => value.count
 
 #test
 {
     // The same constant is correct in every position that already worked.
-    @assert(nullableLength(KEY) == 4)
-    @assert((cast(NullableName) KEY).length == 4)
+    Swag.assert(nullableLength(KEY) == 4)
+    Swag.assert((cast(NullableName) KEY).length == 4)
 
     var row: Row = undefined
     row.id   = 1
     row.name = KEY
-    @assert(row.name.length == 4)
+    Swag.assert(row.name.length == 4)
 }
 
 #test
 {
     // Positional and named literal slots, untyped and typed constants, literal and local.
     let local: string = KEY
-    @assert(Row{1, KEY}.name.length == 4)
-    @assert(Row{1, TKEY}.name.length == 4)
-    @assert(Row{1, "text"}.name.length == 4)
-    @assert(Row{1, local}.name.length == 4)
-    @assert(Row{name: KEY}.name.length == 4)
-    @assert(SoloRow{KEY}.name.length == 4)
+    Swag.assert(Row{1, KEY}.name.length == 4)
+    Swag.assert(Row{1, TKEY}.name.length == 4)
+    Swag.assert(Row{1, "text"}.name.length == 4)
+    Swag.assert(Row{1, local}.name.length == 4)
+    Swag.assert(Row{name: KEY}.name.length == 4)
+    Swag.assert(SoloRow{KEY}.name.length == 4)
 }
 
 #test
 {
     // A non-nullable operator parameter takes a different path through the cast, and has to
     // reach the same result.
-    @assert(StrictRow{1, KEY}.name.length == 4)
-    @assert(StrictRow{name: TKEY}.name.length == 4)
+    Swag.assert(StrictRow{1, KEY}.name.length == 4)
+    Swag.assert(StrictRow{name: TKEY}.name.length == 4)
 }
 
 #test
 {
     // The same shape with a numeric constant, and nested inside an array literal.
-    @assert(CountedPair{NUM, 7}.first.value == 42)
-    @assert(CountedPair{NUM, 7}.second.value == 7)
+    Swag.assert(CountedPair{NUM, 7}.first.value == 42)
+    Swag.assert(CountedPair{NUM, 7}.second.value == 7)
 
     let rows = [Row{1, KEY}, Row{2, TKEY}]
-    @assert(rows[0].name.length == 4)
-    @assert(rows[1].name.length == 4)
+    Swag.assert(rows[0].name.length == 4)
+    Swag.assert(rows[1].name.length == 4)
 }

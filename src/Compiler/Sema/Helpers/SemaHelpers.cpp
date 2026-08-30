@@ -651,7 +651,7 @@ bool SemaHelpers::stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop s
             return stop == LocalFlowStop::Declared;
 
         case AstNodeId::IntrinsicCallExpr:
-            return stop == LocalFlowStop::Declared && sema.token(node.codeRef()).id == TokenId::IntrinsicPanic;
+            return stop == LocalFlowStop::Declared && node.cast<AstIntrinsicCallExpr>().intrinsicId == TokenId::IntrinsicPanic;
 
         case AstNodeId::IfStmt:
         {

@@ -109,7 +109,7 @@ namespace
     }
 
     // The #null qualifier must not affect runtime type identity: `#null string` and
-    // `string` are the same runtime type (mirrors the qualifier masking in `@typecmp`).
+    // `string` are the same runtime type (mirrors the qualifier masking in `Swag.typeCmp`).
     uint32_t identityFlags(const TypeInfo& typeInfo)
     {
         TypeInfoFlags flags = typeInfo.flags();
@@ -170,7 +170,7 @@ namespace
         // (srcViewRef/tokRef): an imported type is regenerated with different
         // source refs in each importing module, which would make the same logical
         // type hash differently per module and break cross-module identity used by
-        // `@is`, `@typecmp` and `@mkinterface`. The structural hash (field/generic
+        // `Swag.typeIs`, `Swag.typeCmp` and `Swag.makeInterface`. The structural hash (field/generic
         // types) still distinguishes types that share a name.
         if (symbol.idRef().isValid())
         {

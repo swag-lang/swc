@@ -654,7 +654,7 @@ impl Core.StrConv.IPokeValue for Color
         var ovf: bool
 
         var one = Tokenize.eatSpaces(buf)
-        if @countof(one) == 0 do
+        if one.count == 0 do
             fail SyntaxError{}
 
         if buf[0] == '0' and buf[1] | 32 == 'x'
@@ -692,7 +692,7 @@ impl Core.StrConv.IPokeValue for Color
         else
         {
             let id = (try parseIdentifier(one)) orelse ""
-            one   = Tokenize.eatCount(one, @countof(id))
+            one   = Tokenize.eatCount(one, id.count)
             .argb = cast(u32) Argb.fromName(id)
         }
 

@@ -23,26 +23,26 @@ Many pure intrinsics accept constant operands and are evaluated by the compiler.
 The same call can also execute at runtime when an operand is dynamic.
 */
 
-const IntrinsicCompileTimeMinimum = @min(12's32, 7's32)
+const IntrinsicCompileTimeMinimum = Swag.min(12's32, 7's32)
 #assert(IntrinsicCompileTimeMinimum == 7)
 
 #test
 {
     var left:  s32 = 12
     let right: s32 = 7
-    @assert(@min(left, right) == 7)
+    Swag.assert(Swag.min(left, right) == 7)
 }
 
 /**
 # Failure Behavior
 
-'@assert' and '@panic' stop execution. Compiler-facing code can report
-diagnostics with '@compilererror' and '@compilerwarning'. Memory and math
+'Swag.assert' and 'Swag.panic' stop execution. Compiler-facing code can report
+diagnostics with 'Swag.compilerError' and 'Swag.compilerWarning'. Memory and math
 intrinsics are also subject to the safety and sanity policies described later in
 this reference.
 
 > WARNING:
-> Intrinsics do not imply ownership. '@mkslice' and '@mkstring' create views,
-> while '@memcpy' ignores value lifecycle hooks. The caller remains responsible
+> Intrinsics do not imply ownership. 'Swag.makeSlice' and 'Swag.makeString' create views,
+> while 'Swag.memcpy' ignores value lifecycle hooks. The caller remains responsible
 > for lifetime, bounds, alignment, and element semantics.
 */

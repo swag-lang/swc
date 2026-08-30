@@ -1,7 +1,7 @@
 #global private
 func runtimeSetupWorks()->bool
 {
-    let cxt = @getcontext()
+    let cxt = Swag.getContext()
     if !cxt.allocator or !cxt.tempAllocator.capacity or !cxt.errorAllocator.capacity do
         return false
 
@@ -16,5 +16,5 @@ func runtimeSetupWorks()->bool
 
 #test
 {
-    @assert(runtimeSetupWorks())
+    Swag.assert(runtimeSetupWorks())
 }

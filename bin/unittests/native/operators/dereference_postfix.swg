@@ -5,7 +5,7 @@
 {
     var value = 42's32
     let p     = &value
-    @assert(p[] == 42)
+    Swag.assert(p[] == 42)
 }
 
 // Write through the postfix dereference
@@ -14,7 +14,7 @@
     var value = 1's32
     let p     = &value
     p[] = 7
-    @assert(value == 7)
+    Swag.assert(value == 7)
 }
 
 // Compound assignment through the postfix dereference
@@ -23,7 +23,7 @@
     var value = 40's32
     let p     = &value
     p[] += 2
-    @assert(value == 42)
+    Swag.assert(value == 42)
 }
 
 // Whole struct value read and replace
@@ -39,9 +39,9 @@
     let p    = &st
     var copy = p[]
     #assert(#typeof(copy) == AA)
-    @assert(copy.x == 1 and copy.y == 2)
+    Swag.assert(copy.x == 1 and copy.y == 2)
     p[] = AA{x: 3, y: 4}
-    @assert(st.x == 3 and st.y == 4)
+    Swag.assert(st.x == 3 and st.y == 4)
 }
 
 // The postfix dereference composes left-to-right through a double pointer
@@ -50,9 +50,9 @@
     var value = 5's32
     var p     = &value
     var pp    = &p
-    @assert(pp[][] == 5)
+    Swag.assert(pp[][] == 5)
     pp[][] = 9
-    @assert(value == 9)
+    Swag.assert(value == 9)
 }
 
 // Postfix dereference then index
@@ -60,9 +60,9 @@
 {
     var arr: [3] s32 = [1, 2, 3]
     let p            = &arr
-    @assert(p[][1] == 2)
+    Swag.assert(p[][1] == 2)
     p[][2] = 9
-    @assert(arr[2] == 9)
+    Swag.assert(arr[2] == 9)
 }
 
 // 'expr[as T]' reads the pointed storage as a T of the same size
@@ -70,7 +70,7 @@
 {
     var bits = 0xFFFF_FFFF'u32
     let p    = &bits
-    @assert(p[as s32] == -1)
+    Swag.assert(p[as s32] == -1)
 }
 
 // 'expr[as T]' writes through the reinterpreted place
@@ -79,7 +79,7 @@
     var value = 0's32
     let p     = &value
     p[as u32] = 0xFFFF_FFFF
-    @assert(value == -1)
+    Swag.assert(value == -1)
 }
 
 // 'expr[as T]' opens a narrower window on the storage (x64 is little-endian)
@@ -87,9 +87,9 @@
 {
     var value = 0x0102_0304'u32
     let p     = &value
-    @assert(p[as u8] == 0x04)
+    Swag.assert(p[as u8] == 0x04)
     p[as u8] = 0xFF
-    @assert(value == 0x0102_03FF)
+    Swag.assert(value == 0x0102_03FF)
 }
 
 // 'expr[as T]' exposes the bit pattern of a float
@@ -97,7 +97,7 @@
 {
     var f = 1.0'f32
     let p = &f
-    @assert(p[as u32] == 0x3F80_0000)
+    Swag.assert(p[as u32] == 0x3F80_0000)
 }
 
 // A conversion around 'expr[as T]' converts the T that was read; it never widens the read
@@ -122,13 +122,13 @@ func derefPlaceWidenF32(data: const *void)->f64
 #test
 {
     var value: s32 = -7
-    @assert(derefPlaceWidenS32(&value) == -7)
+    Swag.assert(derefPlaceWidenS32(&value) == -7)
 
     var bits: u32 = 0xFFFF_FFFF
-    @assert(derefPlaceWidenU32(&bits) == 0xFFFF_FFFF)
+    Swag.assert(derefPlaceWidenU32(&bits) == 0xFFFF_FFFF)
 
     var single: f32 = 1.5
-    @assert(derefPlaceWidenF32(&single) == 1.5)
+    Swag.assert(derefPlaceWidenF32(&single) == 1.5)
 }
 
 // The same conversion inside the caller's frame, where the neighbouring storage is a known
@@ -138,7 +138,7 @@ func derefPlaceWidenF32(data: const *void)->f64
     var pair:    [2] s32 = [-7, 0x7FFF_FFFF]
     let p                = &pair[0]
     let widened: s64     = p[as s32]
-    @assert(widened == -7)
+    Swag.assert(widened == -7)
 }
 
 struct DerefPlaceReceiver
@@ -149,7 +149,7 @@ struct DerefPlaceReceiver
 impl DerefPlaceReceiver
 {
     #[Swag.Implicit]
-    mtd opSet(value: string) { .seen = cast(s64) @countof(value) }
+    mtd opSet(value: string) { .seen = cast(s64) value.count }
 
     mtd(op: Swag.Operator) opAssign(value: s64)
         where op == .AddAssign
@@ -166,7 +166,7 @@ impl DerefPlaceReceiver
     var slot: DerefPlaceReceiver
     let p = cast(*void) &slot
     p[as DerefPlaceReceiver].record(11)
-    @assert(slot.seen == 11)
+    Swag.assert(slot.seen == 11)
 }
 
 // A member write through the reinterpreted place
@@ -175,7 +175,7 @@ impl DerefPlaceReceiver
     var slot: DerefPlaceReceiver
     let p = cast(*void) &slot
     p[as DerefPlaceReceiver].seen = 5
-    @assert(slot.seen == 5)
+    Swag.assert(slot.seen == 5)
 }
 
 // An assignment routed through the implicit 'opSet' of the reinterpreted place
@@ -184,7 +184,7 @@ impl DerefPlaceReceiver
     var slot: DerefPlaceReceiver
     let p = cast(*void) &slot
     p[as DerefPlaceReceiver] = "beta"
-    @assert(slot.seen == 4)
+    Swag.assert(slot.seen == 4)
 }
 
 // A compound assignment routed through 'opAssign' of the reinterpreted place
@@ -193,5 +193,5 @@ impl DerefPlaceReceiver
     var slot: DerefPlaceReceiver
     let p = cast(*void) &slot
     p[as DerefPlaceReceiver] += 3
-    @assert(slot.seen == 3)
+    Swag.assert(slot.seen == 3)
 }

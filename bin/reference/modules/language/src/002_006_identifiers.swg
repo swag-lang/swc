@@ -42,17 +42,17 @@ Examples of compiler instructions:
 # Intrinsics
 
 Names beginning with '@' represent compiler-provided intrinsic values and
-operations. Availability depends on the intrinsic and context: '@compiler' is
+operations. Availability depends on the intrinsic and context: 'Swag.compiler()' is
 compile-time only, while math and memory intrinsics can also generate runtime
 code.
 
 Examples of intrinsic functions:
 
 ```swag
-@min()
-@max()
-@sqrt()
-@print()
+Swag.min()
+Swag.max()
+Swag.sqrt()
+Swag.print()
 ```
 
 */

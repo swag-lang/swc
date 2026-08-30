@@ -457,7 +457,7 @@ private impl EditBox
     // Keeps the optional clear button in sync with the current flags and text.
     mtd syncClearButton()
     {
-        let mustShow = .flags.has(.ClearButton) and .textStorage != null and @countof(.textStorage)
+        let mustShow = .flags.has(.ClearButton) and .textStorage != null and (.textStorage).count
         if !mustShow
         {
             if .clearBtn
@@ -505,7 +505,7 @@ private impl EditBox
         case .Insert:
             if ctrl and !shift and .selBeg != .selEnd
             {
-                Clipboard.addString(@mkstring(.textStorage.buffer + .selectionStartIndex(), .selectionEndIndex() - .selectionStartIndex()))
+                Clipboard.addString(Swag.makeString(.textStorage.buffer + .selectionStartIndex(), .selectionEndIndex() - .selectionStartIndex()))
                 return true
             }
             elif shift and !ctrl
@@ -518,14 +518,14 @@ private impl EditBox
         case .C:
             if ctrl and .selBeg != .selEnd
             {
-                Clipboard.addString(@mkstring(.textStorage.buffer + .selectionStartIndex(), .selectionEndIndex() - .selectionStartIndex()))
+                Clipboard.addString(Swag.makeString(.textStorage.buffer + .selectionStartIndex(), .selectionEndIndex() - .selectionStartIndex()))
                 return true
             }
 
         case .X:
             if ctrl and .selBeg != .selEnd
             {
-                Clipboard.addString(@mkstring(.textStorage.buffer + .selectionStartIndex(), .selectionEndIndex() - .selectionStartIndex()))
+                Clipboard.addString(Swag.makeString(.textStorage.buffer + .selectionStartIndex(), .selectionEndIndex() - .selectionStartIndex()))
                 .deleteSelection()
                 return true
             }
@@ -647,7 +647,7 @@ private impl EditBox
     {
         .deleteSelectionPrivate()
         .textStorage.insert(.selEnd, s)
-        .setSelection(.selEnd + @countof(s), .selEnd + @countof(s))
+        .setSelection(.selEnd + s.count, .selEnd + s.count)
         .countRunes += 1
     }
 
@@ -700,7 +700,7 @@ private impl EditBox
                     res = .Incomplete
                 elif parseErr == Errors.OverflowError do
                     res = .InvalidVisible
-                elif parseErr != null or eat != @countof(.textStorage) do
+                elif parseErr != null or eat != (.textStorage).count do
                     res = .InvalidSilent
             }
         }
@@ -727,7 +727,7 @@ private impl EditBox
         let mustValidate = .validator or .inputMode != .Text
         if !mustValidate
         {
-            .insertUtf8(@mkstring(&utf8[0], cpt))
+            .insertUtf8(Swag.makeString(&utf8[0], cpt))
             .notifyChanged()
             return
         }
@@ -735,7 +735,7 @@ private impl EditBox
         let saveText   = .textStorage
         let saveSelBeg = .selBeg
         let saveSelEnd = .selEnd
-        .insertUtf8(@mkstring(&utf8[0], cpt))
+        .insertUtf8(Swag.makeString(&utf8[0], cpt))
 
         let res = .checkContent()
         if res == .InvalidSilent
@@ -1049,7 +1049,7 @@ private impl EditBox
     {
         if !sel do
             return sel
-        let str      = @mkstring(.textStorage.buffer, sel)
+        let str      = Swag.makeString(.textStorage.buffer, sel)
         let {?, eat} = Utf8.decodeLastRune(str)
         return sel - eat
     }
@@ -1059,7 +1059,7 @@ private impl EditBox
     {
         if sel == .textStorage.length do
             return sel
-        let str      = @mkstring(.textStorage.buffer + sel, .textStorage.length - sel)
+        let str      = Swag.makeString(.textStorage.buffer + sel, .textStorage.length - sel)
         let {?, eat} = Utf8.decodeRune(str)
         return sel + eat
     }

@@ -539,9 +539,9 @@ private impl Ac3Codec
 
     mtd decodeFrame(packet: const [..] u8, destination: [*] s16) fail
     {
-        var reader = BitReader.create(@dataof(packet), @countof(packet))
+        var reader = BitReader.create(packet.buffer, packet.count)
         let bsi    = try parseAc3Bsi(&reader)
-        if bsi.frameSize != @countof(packet) do
+        if bsi.frameSize != packet.count do
             fail InvalidFormatError{"AC-3 packet size does not match its sync-frame header"}
         if SampleRates[bsi.fscod] != .sampleRate do
             fail InvalidFormatError{"AC-3 packet sample rate differs from its container track"}
@@ -609,7 +609,7 @@ internal func ac3FrameInfo(packet: const [..] u8)->FrameInfo fail
     const BitRates: [19] u32 = [32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 448, 512, 576, 640]
     const Rates:    [3] u32  = [48_000, 44_100, 32_000]
 
-    if @countof(packet) < 7 do
+    if packet.count < 7 do
         fail InvalidFormatError{"AC-3 packet header is truncated"}
     if packet[0] != 0x0B or packet[1] != 0x77 do
         fail InvalidFormatError{"AC-3 packet has no sync word"}
@@ -650,7 +650,7 @@ internal func ac3FrameInfo(packet: const [..] u8)->FrameInfo fail
 // Every AC-3 frame carries six blocks of 256 samples, so only the sync word needs checking.
 internal func ac3PacketFrameCount(packet: const [..] u8)->u32 fail
 {
-    if @countof(packet) < 7 do
+    if packet.count < 7 do
         fail InvalidFormatError{"AC-3 packet header is truncated"}
     if packet[0] != 0x0B or packet[1] != 0x77 do
         fail InvalidFormatError{"AC-3 packet has no sync word"}

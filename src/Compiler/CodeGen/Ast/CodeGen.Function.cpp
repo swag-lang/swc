@@ -78,7 +78,7 @@ namespace
         if (!codeGen.function().usesGvtd())
             return;
 
-        // `@gvtd` returns a slice built in the current frame, so reserve scratch space once in the local
+        // `Swag.gvtd()` returns a slice built in the current frame, so reserve scratch space once in the local
         // stack layout and keep the referenced drop helpers alive as dependencies.
         SmallVector<CodeGenGvtdEntry> entries;
         if (const SymbolModule* rootModule = codeGen.compiler().symModule())

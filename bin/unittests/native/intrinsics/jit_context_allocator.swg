@@ -2,43 +2,43 @@
 
 func jitValueFromRuntimeFlags()->bool
 {
-    return @getcontext().runtimeFlags & .FromCompiler ? true : false
+    return Swag.getContext().runtimeFlags & .FromCompiler ? true : false
 }
 
 func jitStableWithNullAllocatorContext()->bool
 {
-    let prev     = @getcontext()
-    let expected = @jit()
+    let prev     = Swag.getContext()
+    let expected = Swag.jit()
 
     var cxt = prev[]
     cxt.allocator = null
-    @setcontext(cxt)
+    Swag.setContext(cxt)
 
-    let during              = @jit()
+    let during              = Swag.jit()
     let matchesRuntimeFlags = during == jitValueFromRuntimeFlags()
 
-    @setcontext(prev)
-    return expected == during and matchesRuntimeFlags and @jit() == expected
+    Swag.setContext(prev)
+    return expected == during and matchesRuntimeFlags and Swag.jit() == expected
 }
 
 #[Swag.Compiler]
 func compilerJitStableWithNullAllocatorContext()->bool
 {
-    let prev = @getcontext()
+    let prev = Swag.getContext()
 
     var cxt = prev[]
     cxt.allocator = null
-    @setcontext(cxt)
+    Swag.setContext(cxt)
 
-    let result = @jit() and @getcontext().runtimeFlags == .FromCompiler and @getcontext().allocator == null
+    let result = Swag.jit() and Swag.getContext().runtimeFlags == .FromCompiler and Swag.getContext().allocator == null
 
-    @setcontext(prev)
-    return result and @jit()
+    Swag.setContext(prev)
+    return result and Swag.jit()
 }
 
 #test
 {
-    @assert(jitStableWithNullAllocatorContext())
+    Swag.assert(jitStableWithNullAllocatorContext())
 }
 
 #test

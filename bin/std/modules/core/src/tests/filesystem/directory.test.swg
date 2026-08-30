@@ -9,7 +9,7 @@ using Swag
     let dirName = CoreTests.makeFilesystemTestPath("core_invalid?dir")
 
     discard catch Directory.create(dirName) as err
-    @assert(err != null)
-    @assert(err is Errors.InvalidFileNameError)
-    @assert(!Directory.exists(dirName))
+    Swag.assert(err != null)
+    Swag.assert(err is Errors.InvalidFileNameError)
+    Swag.assert(!Directory.exists(dirName))
 }

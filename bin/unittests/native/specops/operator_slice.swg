@@ -22,7 +22,7 @@ impl RuntimeSliceBox
         .sliceCalls += 1
         .lastLow    = low
         .lastUp     = up
-        return @mkslice(&.values[low], (up + 1) - low)
+        return Swag.makeSlice(&.values[low], (up + 1) - low)
     }
 }
 
@@ -42,7 +42,7 @@ impl RuntimeStringSliceBox
     #[Swag.NoInline]
     mtd const opSlice(low, up: u64)->string
     {
-        return @mkstring(&.bytes[low], (up + 1) - low)
+        return Swag.makeString(&.bytes[low], (up + 1) - low)
     }
 }
 
@@ -57,13 +57,13 @@ struct RuntimeSliceHolder
     let slice = box[1 to 3]
 
     #assert(#typeof(slice) == [..] s32)
-    @assert(@countof(slice) == 3)
-    @assert(slice[0] == 20)
-    @assert(slice[1] == 30)
-    @assert(slice[2] == 40)
-    @assert(box.sliceCalls == 1)
-    @assert(box.lastLow == 1)
-    @assert(box.lastUp == 3)
+    Swag.assert(slice.count == 3)
+    Swag.assert(slice[0] == 20)
+    Swag.assert(slice[1] == 30)
+    Swag.assert(slice[2] == 40)
+    Swag.assert(box.sliceCalls == 1)
+    Swag.assert(box.lastLow == 1)
+    Swag.assert(box.lastUp == 3)
 }
 
 #test
@@ -71,12 +71,12 @@ struct RuntimeSliceHolder
     var box   = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
     let slice = box[1 until 3]
 
-    @assert(@countof(slice) == 2)
-    @assert(slice[0] == 20)
-    @assert(slice[1] == 30)
-    @assert(box.sliceCalls == 1)
-    @assert(box.lastLow == 1)
-    @assert(box.lastUp == 2)
+    Swag.assert(slice.count == 2)
+    Swag.assert(slice[0] == 20)
+    Swag.assert(slice[1] == 30)
+    Swag.assert(box.sliceCalls == 1)
+    Swag.assert(box.lastLow == 1)
+    Swag.assert(box.lastUp == 2)
 }
 
 #test
@@ -84,12 +84,12 @@ struct RuntimeSliceHolder
     var box   = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
     let slice = box[to 2]
 
-    @assert(@countof(slice) == 3)
-    @assert(slice[0] == 10)
-    @assert(slice[1] == 20)
-    @assert(slice[2] == 30)
-    @assert(box.lastLow == 0)
-    @assert(box.lastUp == 2)
+    Swag.assert(slice.count == 3)
+    Swag.assert(slice[0] == 10)
+    Swag.assert(slice[1] == 20)
+    Swag.assert(slice[2] == 30)
+    Swag.assert(box.lastLow == 0)
+    Swag.assert(box.lastUp == 2)
 }
 
 #test
@@ -97,12 +97,12 @@ struct RuntimeSliceHolder
     var box   = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
     let slice = box[2 to]
 
-    @assert(@countof(slice) == 3)
-    @assert(slice[0] == 30)
-    @assert(slice[1] == 40)
-    @assert(slice[2] == 50)
-    @assert(box.lastLow == 2)
-    @assert(box.lastUp == 4)
+    Swag.assert(slice.count == 3)
+    Swag.assert(slice[0] == 30)
+    Swag.assert(slice[1] == 40)
+    Swag.assert(slice[2] == 50)
+    Swag.assert(box.lastLow == 2)
+    Swag.assert(box.lastUp == 4)
 }
 
 #test
@@ -110,11 +110,11 @@ struct RuntimeSliceHolder
     var box   = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
     let slice = box[to]
 
-    @assert(@countof(slice) == 5)
-    @assert(slice[0] == 10)
-    @assert(slice[4] == 50)
-    @assert(box.lastLow == 0)
-    @assert(box.lastUp == 4)
+    Swag.assert(slice.count == 5)
+    Swag.assert(slice[0] == 10)
+    Swag.assert(slice[4] == 50)
+    Swag.assert(box.lastLow == 0)
+    Swag.assert(box.lastUp == 4)
 }
 
 #test
@@ -122,13 +122,13 @@ struct RuntimeSliceHolder
     var holder = RuntimeSliceHolder{value: RuntimeSliceBox{values: [10, 20, 30, 40, 50]}}
     let slice  = holder.value[1 until 4]
 
-    @assert(@countof(slice) == 3)
-    @assert(slice[0] == 20)
-    @assert(slice[1] == 30)
-    @assert(slice[2] == 40)
-    @assert(holder.value.sliceCalls == 1)
-    @assert(holder.value.lastLow == 1)
-    @assert(holder.value.lastUp == 3)
+    Swag.assert(slice.count == 3)
+    Swag.assert(slice[0] == 20)
+    Swag.assert(slice[1] == 30)
+    Swag.assert(slice[2] == 40)
+    Swag.assert(holder.value.sliceCalls == 1)
+    Swag.assert(holder.value.lastLow == 1)
+    Swag.assert(holder.value.lastUp == 3)
 }
 
 #test
@@ -139,7 +139,7 @@ struct RuntimeSliceHolder
     let head   = box[to 2]
 
     #assert(#typeof(middle) == string)
-    @assert(middle == "trin")
-    @assert(tail == "ring")
-    @assert(head == "str")
+    Swag.assert(middle == "trin")
+    Swag.assert(tail == "ring")
+    Swag.assert(head == "str")
 }

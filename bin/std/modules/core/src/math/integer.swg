@@ -114,30 +114,30 @@ func hasByte(value: u64, byte: u8)->bool
 // Wrappers for intrinsics
 #[ConstExpr, Inline]
 {
-    func min(x, y: s8)  => @min(x, y)
-    func min(x, y: s16) => @min(x, y)
-    func min(x, y: s32) => @min(x, y)
-    func min(x, y: s64) => @min(x, y)
+    func min(x, y: s8)  => Swag.min(x, y)
+    func min(x, y: s16) => Swag.min(x, y)
+    func min(x, y: s32) => Swag.min(x, y)
+    func min(x, y: s64) => Swag.min(x, y)
 
-    func max(x, y: s8)  => @max(x, y)
-    func max(x, y: s16) => @max(x, y)
-    func max(x, y: s32) => @max(x, y)
-    func max(x, y: s64) => @max(x, y)
+    func max(x, y: s8)  => Swag.max(x, y)
+    func max(x, y: s16) => Swag.max(x, y)
+    func max(x, y: s32) => Swag.max(x, y)
+    func max(x, y: s64) => Swag.max(x, y)
 
-    func min(x, y: u8)  => @min(x, y)
-    func min(x, y: u16) => @min(x, y)
-    func min(x, y: u32) => @min(x, y)
-    func min(x, y: u64) => @min(x, y)
+    func min(x, y: u8)  => Swag.min(x, y)
+    func min(x, y: u16) => Swag.min(x, y)
+    func min(x, y: u32) => Swag.min(x, y)
+    func min(x, y: u64) => Swag.min(x, y)
 
-    func max(x, y: u8)  => @max(x, y)
-    func max(x, y: u16) => @max(x, y)
-    func max(x, y: u32) => @max(x, y)
-    func max(x, y: u64) => @max(x, y)
+    func max(x, y: u8)  => Swag.max(x, y)
+    func max(x, y: u16) => Swag.max(x, y)
+    func max(x, y: u32) => Swag.max(x, y)
+    func max(x, y: u64) => Swag.max(x, y)
 
-    func abs(x: s8)  => @abs(x)
-    func abs(x: s16) => @abs(x)
-    func abs(x: s32) => @abs(x)
-    func abs(x: s64) => @abs(x)
+    func abs(x: s8)  => Swag.abs(x)
+    func abs(x: s16) => Swag.abs(x)
+    func abs(x: s32) => Swag.abs(x)
+    func abs(x: s64) => Swag.abs(x)
 }
 
 // Find the gcd between 'a' and 'b'

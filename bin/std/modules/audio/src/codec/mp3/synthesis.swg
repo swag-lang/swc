@@ -49,7 +49,7 @@ func reorderShortBlocks(lines: *Granule576, bands: const [..] u8, firstBand, fir
     var band                = cast(u64) firstBand
     var written             = 0'u64
 
-    while band < @countof(bands)
+    while band < bands.count
     {
         let width = cast(u32) bands[band]
         if !width do

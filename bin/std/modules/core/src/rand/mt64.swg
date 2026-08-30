@@ -44,7 +44,7 @@ public impl MersenneTwister64
     #[Swag.Safety(.Overflow, false)]
     mtd seedU64(seed: const [..] u64)
     {
-        let keyLength = @countof(seed)
+        let keyLength = seed.count
 
         .seedU64(19650218)
         var i = 1

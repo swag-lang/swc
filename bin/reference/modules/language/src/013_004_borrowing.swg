@@ -43,16 +43,16 @@ var borrowGlobalValue:  s32
         return cast(const [..] u8) borrowGlobalBuffer     // A global's storage is fine
     }
 
-    @assert(@countof(makeView()) == 4)
+    Swag.assert(makeView().count == 4)
 }
 
 /**
 A temporary is the same story with a shorter life: it dies at the end of the statement
 that built it, so binding a view of one is already too late. Name the owner first.
 
-Storage the RUNTIME keeps counts too. '@setcontext' installs a pointer to what it is
+Storage the RUNTIME keeps counts too. 'Swag.setContext' installs a pointer to what it is
 given, so handing it a frame-local context and leaving without putting the previous one
-back is rejected: every later '@getcontext' would read recycled stack. The scoped spelling
+back is rejected: every later 'Swag.getContext' would read recycled stack. The scoped spelling
 is what makes a local context legal — take the current one, install the changed copy,
 restore the original before the scope ends — and it is what 'Core.withAllocator' is built
 on.
@@ -89,7 +89,7 @@ function does not hide the borrow.
         return wrapper(&borrowGlobalValue)     // Caller-owned data flows through
     }
 
-    @assert(caller() == &borrowGlobalValue)
+    Swag.assert(caller() == &borrowGlobalValue)
 }
 
 /**
@@ -110,7 +110,7 @@ independently; a dynamic index conservatively overlaps every element.
     var views: Views = undefined
     views.local  = &local
     views.global = &borrowGlobalValue
-    @assert(views.global == &borrowGlobalValue)
+    Swag.assert(views.global == &borrowGlobalValue)
 }
 
 /**
@@ -157,7 +157,7 @@ func borrowStash(p: *s32)
     }
 
     caller()
-    @assert(borrowGlobalStash == &borrowGlobalValue)
+    Swag.assert(borrowGlobalStash == &borrowGlobalValue)
 }
 
 /**
@@ -220,7 +220,7 @@ shape — is fine too: the snapshot is never read again.
     var total:  s32
     for v in values do
         total += v
-    @assert(total == 0)
+    Swag.assert(total == 0)
 }
 
 /**

@@ -56,8 +56,8 @@ func semaTest001()
 {
     var node:        Node
     var guardedNode: GuardedNode
-    @assert(!pick())
-    @assert(select(&node))
-    @assert(guardedMethod(&guardedNode))
-    @assert(guardedNotNull(&guardedNode))
+    Swag.assert(!pick())
+    Swag.assert(select(&node))
+    Swag.assert(guardedMethod(&guardedNode))
+    Swag.assert(guardedNotNull(&guardedNode))
 }

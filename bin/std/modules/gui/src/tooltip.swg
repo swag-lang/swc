@@ -100,7 +100,7 @@ impl State
     private mtd isInteractive()->bool
     {
         let current = .current
-        if !current or !@isset(current.view) do
+        if !current or !Swag.isSet(current.view) do
             return false
         let label = cast(*Label) current.view
         return label.name.hasUrl
@@ -161,7 +161,7 @@ impl State
     // fits: text the height cap truncates is text nobody reads.
     public mtd show(owner: *Wnd, surfacePos: Math.Point, str: #null string, delay: Time.Duration = 500'ms)
     {
-        if str == null or @countof(str) == 0 do
+        if str == null or str.count == 0 do
             return
 
         if !.current and delay.seconds > 0

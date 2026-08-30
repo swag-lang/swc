@@ -230,20 +230,20 @@ impl AffineMap
 #test
 {
     var v: Vec2's32 = {x: 3, y: 4}
-    @assert(v.lengthSq() == 25)
+    Swag.assert(v.lengthSq() == 25)
 
     var p = v.perp()
-    @assert(p.x == -4 and p.y == 3)
+    Swag.assert(p.x == -4 and p.y == 3)
 
     // Perpendicular preserves length
-    @assert(p.lengthSq() == 25)
+    Swag.assert(p.lengthSq() == 25)
 
     // Perpendicular is orthogonal
-    @assert(Vec2's32.dot(&v, &p) == 0)
+    Swag.assert(Vec2's32.dot(&v, &p) == 0)
 
     // perp(perp(v)) == -v
     let pp = p.perp()
-    @assert(pp.x == -3 and pp.y == -4)
+    Swag.assert(pp.x == -3 and pp.y == -4)
 }
 
 // ===========================================================================
@@ -253,27 +253,27 @@ impl AffineMap
 #test
 {
     let id: Mat2's32 = {a: 1, b: 0, c: 0, d: 1}
-    @assert(id.trace() == 2)
-    @assert(id.det() == 1)
+    Swag.assert(id.trace() == 2)
+    Swag.assert(id.det() == 1)
 
     let z: Mat2's32 = {a: 0, b: 0, c: 0, d: 0}
-    @assert(z.trace() == 0)
-    @assert(z.det() == 0)
+    Swag.assert(z.trace() == 0)
+    Swag.assert(z.det() == 0)
 }
 
 #test
 {
     let m: Mat2's32 = {a: 3, b: 1, c: 2, d: 4}
 
-    @assert(m.det() == 10)      // 3*4 - 1*2
-    @assert(m.trace() == 7)     // 3 + 4
+    Swag.assert(m.det() == 10)      // 3*4 - 1*2
+    Swag.assert(m.trace() == 7)     // 3 + 4
 
     let t = m.transpose()
     #assert(#typeof(t) == Mat2's32)
-    @assert(t.a == 3 and t.b == 2 and t.c == 1 and t.d == 4)
+    Swag.assert(t.a == 3 and t.b == 2 and t.c == 1 and t.d == 4)
 
     // Determinant is invariant under transpose
-    @assert(t.det() == m.det())
+    Swag.assert(t.det() == m.det())
 }
 
 // ===========================================================================
@@ -287,13 +287,13 @@ impl AffineMap
     let r0 = m.row0()
     let r1 = m.row1()
     #assert(#typeof(r0) == Vec2's32)
-    @assert(r0.x == 1 and r0.y == 2)
-    @assert(r1.x == 3 and r1.y == 4)
+    Swag.assert(r0.x == 1 and r0.y == 2)
+    Swag.assert(r1.x == 3 and r1.y == 4)
 
     let c0 = m.col0()
     let c1 = m.col1()
-    @assert(c0.x == 1 and c0.y == 3)
-    @assert(c1.x == 2 and c1.y == 4)
+    Swag.assert(c0.x == 1 and c0.y == 3)
+    Swag.assert(c1.x == 2 and c1.y == 4)
 }
 
 // ===========================================================================
@@ -306,28 +306,28 @@ impl AffineMap
     let b: Mat2's32 = {a: 5, b: 6, c: 7, d: 8}
 
     let sum = a + b
-    @assert(sum.a == 6 and sum.b == 8 and sum.c == 10 and sum.d == 12)
+    Swag.assert(sum.a == 6 and sum.b == 8 and sum.c == 10 and sum.d == 12)
 
     let diff = b - a
-    @assert(diff.a == 4 and diff.b == 4 and diff.c == 4 and diff.d == 4)
+    Swag.assert(diff.a == 4 and diff.b == 4 and diff.c == 4 and diff.d == 4)
 }
 
 #test
 {
     let m: Mat2's32 = {a: 2, b: -1, c: 3, d: 5}
     let scaled      = m * 3's32
-    @assert(scaled.a == 6 and scaled.b == -3 and scaled.c == 9 and scaled.d == 15)
+    Swag.assert(scaled.a == 6 and scaled.b == -3 and scaled.c == 9 and scaled.d == 15)
 }
 
 #test
 {
     let m: Mat2's32 = {a: 1, b: -2, c: 3, d: -4}
     let neg         = -m
-    @assert(neg.a == -1 and neg.b == 2 and neg.c == -3 and neg.d == 4)
+    Swag.assert(neg.a == -1 and neg.b == 2 and neg.c == -3 and neg.d == 4)
 
     // Double negation is identity
     let nn = -(-m)
-    @assert(nn.a == m.a and nn.b == m.b and nn.c == m.c and nn.d == m.d)
+    Swag.assert(nn.a == m.a and nn.b == m.b and nn.c == m.c and nn.d == m.d)
 }
 
 // ===========================================================================
@@ -342,15 +342,15 @@ impl AffineMap
     // A * B = | 1*5+2*7  1*6+2*8 | = | 19  22 |
     //         | 3*5+4*7  3*6+4*8 |   | 43  50 |
     let ab = a * b
-    @assert(ab.a == 19 and ab.b == 22 and ab.c == 43 and ab.d == 50)
+    Swag.assert(ab.a == 19 and ab.b == 22 and ab.c == 43 and ab.d == 50)
 
     // B * A = | 5*1+6*3  5*2+6*4 | = | 23  34 |
     //         | 7*1+8*3  7*2+8*4 |   | 31  46 |
     let ba = b * a
-    @assert(ba.a == 23 and ba.b == 34 and ba.c == 31 and ba.d == 46)
+    Swag.assert(ba.a == 23 and ba.b == 34 and ba.c == 31 and ba.d == 46)
 
     // Non-commutative: A*B != B*A
-    @assert(ab.a != ba.a or ab.b != ba.b or ab.c != ba.c or ab.d != ba.d)
+    Swag.assert(ab.a != ba.a or ab.b != ba.b or ab.c != ba.c or ab.d != ba.d)
 }
 
 // Identity is the multiplicative neutral element
@@ -360,10 +360,10 @@ impl AffineMap
     let m:  Mat2's32 = {a: 7, b: -3, c: 2, d: 11}
 
     let left = id * m
-    @assert(left.a == m.a and left.b == m.b and left.c == m.c and left.d == m.d)
+    Swag.assert(left.a == m.a and left.b == m.b and left.c == m.c and left.d == m.d)
 
     let right = m * id
-    @assert(right.a == m.a and right.b == m.b and right.c == m.c and right.d == m.d)
+    Swag.assert(right.a == m.a and right.b == m.b and right.c == m.c and right.d == m.d)
 }
 
 // Associativity: (A*B)*C == A*(B*C)
@@ -376,8 +376,8 @@ impl AffineMap
     let ab_c = (a * b) * c
     let a_bc = a * (b * c)
 
-    @assert(ab_c.a == a_bc.a and ab_c.b == a_bc.b)
-    @assert(ab_c.c == a_bc.c and ab_c.d == a_bc.d)
+    Swag.assert(ab_c.a == a_bc.a and ab_c.b == a_bc.b)
+    Swag.assert(ab_c.c == a_bc.c and ab_c.d == a_bc.d)
 }
 
 // det(A*B) == det(A) * det(B)
@@ -387,7 +387,7 @@ impl AffineMap
     let b: Mat2's32 = {a: 4, b: -1, c: 2, d: 3}
 
     let product = a * b
-    @assert(product.det() == a.det() * b.det())
+    Swag.assert(product.det() == a.det() * b.det())
 }
 
 // ===========================================================================
@@ -401,7 +401,7 @@ impl AffineMap
     let result       = id.transform(&v)
 
     #assert(#typeof(result) == Vec2's32)
-    @assert(result.x == 7 and result.y == 13)
+    Swag.assert(result.x == 7 and result.y == 13)
 }
 
 // 90-degree CCW rotation via matrix
@@ -411,16 +411,16 @@ impl AffineMap
 
     var v0: Vec2's32 = {x: 1, y: 0}
     var v1           = rot90.transform(&v0)
-    @assert(v1.x == 0 and v1.y == 1)
+    Swag.assert(v1.x == 0 and v1.y == 1)
 
     var v2 = rot90.transform(&v1)
-    @assert(v2.x == -1 and v2.y == 0)
+    Swag.assert(v2.x == -1 and v2.y == 0)
 
     var v3 = rot90.transform(&v2)
-    @assert(v3.x == 0 and v3.y == -1)
+    Swag.assert(v3.x == 0 and v3.y == -1)
 
     var v4 = rot90.transform(&v3)
-    @assert(v4.x == 1 and v4.y == 0)     // full circle
+    Swag.assert(v4.x == 1 and v4.y == 0)     // full circle
 }
 
 // Scaling transform
@@ -429,7 +429,7 @@ impl AffineMap
     let scale: Mat2's32 = {a: 3, b: 0, c: 0, d: 2}
     var v:     Vec2's32 = {x: 4, y: 5}
     let result          = scale.transform(&v)
-    @assert(result.x == 12 and result.y == 10)
+    Swag.assert(result.x == 12 and result.y == 10)
 }
 
 // Shear transform
@@ -440,7 +440,7 @@ impl AffineMap
     let result          = shear.transform(&v)
 
     // x' = 1*3 + 2*4 = 11, y' = 0*3 + 1*4 = 4
-    @assert(result.x == 11 and result.y == 4)
+    Swag.assert(result.x == 11 and result.y == 4)
 }
 
 // ===========================================================================
@@ -454,14 +454,14 @@ impl AffineMap
     let m            = Mat2's32.fromCols(&c0, &c1)
 
     // row0 = (c0.x, c1.x), row1 = (c0.y, c1.y)
-    @assert(m.a == 1 and m.b == 2)
-    @assert(m.c == 3 and m.d == 4)
+    Swag.assert(m.a == 1 and m.b == 2)
+    Swag.assert(m.c == 3 and m.d == 4)
 
     // Roundtrip: extract columns back
     let ec0 = m.col0()
     let ec1 = m.col1()
-    @assert(ec0.x == 1 and ec0.y == 3)
-    @assert(ec1.x == 2 and ec1.y == 4)
+    Swag.assert(ec0.x == 1 and ec0.y == 3)
+    Swag.assert(ec1.x == 2 and ec1.y == 4)
 }
 
 #test
@@ -470,13 +470,13 @@ impl AffineMap
     var r1: Vec2's32 = {x: 7, y: 8}
     let m            = Mat2's32.fromRows(&r0, &r1)
 
-    @assert(m.a == 5 and m.b == 6)
-    @assert(m.c == 7 and m.d == 8)
+    Swag.assert(m.a == 5 and m.b == 6)
+    Swag.assert(m.c == 7 and m.d == 8)
 
     let er0 = m.row0()
     let er1 = m.row1()
-    @assert(er0.x == 5 and er0.y == 6)
-    @assert(er1.x == 7 and er1.y == 8)
+    Swag.assert(er0.x == 5 and er0.y == 6)
+    Swag.assert(er1.x == 7 and er1.y == 8)
 }
 
 // Outer product: v * w^T produces a rank-1 matrix
@@ -488,10 +488,10 @@ impl AffineMap
 
     // | 2*4  2*5 |   | 8   10 |
     // | 3*4  3*5 | = | 12  15 |
-    @assert(m.a == 8 and m.b == 10 and m.c == 12 and m.d == 15)
+    Swag.assert(m.a == 8 and m.b == 10 and m.c == 12 and m.d == 15)
 
     // Rank-1 matrix has zero determinant
-    @assert(m.det() == 0)
+    Swag.assert(m.det() == 0)
 }
 
 // ===========================================================================
@@ -506,7 +506,7 @@ impl AffineMap
     let result      = t.apply(&p)
 
     #assert(#typeof(result) == Vec2's32)
-    @assert(result.x == 13 and result.y == 2)
+    Swag.assert(result.x == 13 and result.y == 2)
 }
 
 // Pure scaling
@@ -516,8 +516,8 @@ impl AffineMap
     var p: Vec2's32 = {x: 4, y: 5}
     let result      = s.apply(&p)
 
-    @assert(result.x == 12 and result.y == 10)
-    @assert(s.det() == 6)     // 3 * 2
+    Swag.assert(result.x == 12 and result.y == 10)
+    Swag.assert(s.det() == 6)     // 3 * 2
 }
 
 // Compose: scale after translate
@@ -532,12 +532,12 @@ impl AffineMap
 
     // translate(3,4) = (4,5), then scale(4,5) = (8,10)
     let result = composed.apply(&p)
-    @assert(result.x == 8 and result.y == 10)
+    Swag.assert(result.x == 8 and result.y == 10)
 
     // Verify against step-by-step
     var step1 = translate.apply(&p)
     let step2 = scale.apply(&step1)
-    @assert(result.x == step2.x and result.y == step2.y)
+    Swag.assert(result.x == step2.x and result.y == step2.y)
 }
 
 // Compose: translate after scale (different order, different result)
@@ -552,12 +552,12 @@ impl AffineMap
 
     // scale(3,4) = (6,8), then translate(6,8) = (7,9)
     let result = composed.apply(&p)
-    @assert(result.x == 7 and result.y == 9)
+    Swag.assert(result.x == 7 and result.y == 9)
 
     // Composition is non-commutative
     let otherWay    = AffineMap's32.compose(&scale, &translate)
     let otherResult = otherWay.apply(&p)
-    @assert(result.x != otherResult.x or result.y != otherResult.y)
+    Swag.assert(result.x != otherResult.x or result.y != otherResult.y)
 }
 
 // Compose associativity: (A . B) . C == A . (B . C)
@@ -576,7 +576,7 @@ impl AffineMap
     var p: Vec2's32 = {x: 1, y: 1}
     let r1          = ab_c.apply(&p)
     let r2          = a_bc.apply(&p)
-    @assert(r1.x == r2.x and r1.y == r2.y)
+    Swag.assert(r1.x == r2.x and r1.y == r2.y)
 }
 
 // ===========================================================================
@@ -587,7 +587,7 @@ impl AffineMap
 {
     let m: Mat2's64 = {a: 100000's64, b: 200000's64, c: 300000's64, d: 400000's64}
     #assert(#typeof(m) == Mat2's64)
-    @assert(m.det() == 100000's64 * 400000 - 200000's64 * 300000)
+    Swag.assert(m.det() == 100000's64 * 400000 - 200000's64 * 300000)
 
     var v: Vec2's64 = {x: 1000's64, y: 2000's64}
     let result      = m.transform(&v)
@@ -595,8 +595,8 @@ impl AffineMap
 
     // x' = 100000*1000 + 200000*2000 = 500000000
     // y' = 300000*1000 + 400000*2000 = 1100000000
-    @assert(result.x == 500000000's64)
-    @assert(result.y == 1100000000's64)
+    Swag.assert(result.x == 500000000's64)
+    Swag.assert(result.y == 1100000000's64)
 }
 
 #test
@@ -606,5 +606,5 @@ impl AffineMap
     let result      = t.apply(&p)
 
     #assert(#typeof(result) == Vec2's64)
-    @assert(result.x == 1000042's64 and result.y == -499901's64)
+    Swag.assert(result.x == 1000042's64 and result.y == -499901's64)
 }

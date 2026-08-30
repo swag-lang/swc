@@ -5,10 +5,10 @@ using Swag
 
 func expectNumericArray4(values: Math.NumericArray'(s32, 4'u32), expected: const [..] s32)
 {
-    @assert(@countof(expected) == 4)
+    Swag.assert(expected.count == 4)
     for i in 4
     {
-        @assert(values[i] == expected[i])
+        Swag.assert(values[i] == expected[i])
     }
 }
 
@@ -42,8 +42,8 @@ func expectNumericArray4(values: Math.NumericArray'(s32, 4'u32), expected: const
     expectNumericArray4(left * right, [10, 40, 150, 320])
     expectNumericArray4(left / right, [10, 10, 6, 5])
 
-    @assert(left == left)
-    @assert(left != right)
+    Swag.assert(left == left)
+    Swag.assert(left != right)
 }
 
 #test

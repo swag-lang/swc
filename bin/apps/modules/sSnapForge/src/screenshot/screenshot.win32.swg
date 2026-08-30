@@ -64,7 +64,7 @@ internal
         {
             var className: [256] CHAR
             let n   = GetClassNameA(hWnd, &className[0], 256)
-            let str = String.from(@mkstring(&className[0], n))
+            let str = String.from(Swag.makeString(&className[0], n))
 
             let systemClasses = [
                 "Windows.UI.Core.CoreWindow",     // UWP system windows
@@ -98,14 +98,14 @@ func captureWindowInfo(hWnd: HWND)->CaptureWindowInfo
         window = root
 
     var title: [1024] u16
-    let titleLength = GetWindowTextW(window, &title[0], cast(s32) @countof(title))
+    let titleLength = GetWindowTextW(window, &title[0], cast(s32) title.count)
     if titleLength > 0 do
-        result.title = Utf8.fromUtf16(@mkslice(&title[0], cast(u64) titleLength))
+        result.title = Utf8.fromUtf16(Swag.makeSlice(&title[0], cast(u64) titleLength))
 
     var className: [256] u16
-    let classLength = GetClassNameW(window, &className[0], cast(s32) @countof(className))
+    let classLength = GetClassNameW(window, &className[0], cast(s32) className.count)
     if classLength > 0 do
-        result.className = Utf8.fromUtf16(@mkslice(&className[0], cast(u64) classLength))
+        result.className = Utf8.fromUtf16(Swag.makeSlice(&className[0], cast(u64) classLength))
 
     var processId: u32
     discard CaptureNative.GetWindowThreadProcessId(window, &processId)
@@ -120,10 +120,10 @@ func captureWindowInfo(hWnd: HWND)->CaptureWindowInfo
     var path: Array'u16
     path.resize(32768)
     var pathLength = cast(u32) path.count
-    if !CaptureNative.QueryFullProcessImageNameW(process, 0, @dataof(path.toSlice()), &pathLength) do
+    if !CaptureNative.QueryFullProcessImageNameW(process, 0, (path.toSlice()).buffer, &pathLength) do
         return result
 
-    result.executable  = Utf8.fromUtf16(@mkslice(@dataof(path.toSlice()), cast(u64) pathLength))
+    result.executable  = Utf8.fromUtf16(Swag.makeSlice((path.toSlice()).buffer, cast(u64) pathLength))
     result.application = Path.fileNameWithoutExtension(result.executable) orelse ""
     return result
 }

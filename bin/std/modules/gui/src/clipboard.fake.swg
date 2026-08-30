@@ -53,8 +53,8 @@ public func resetFake() fail
 func fakeClear()
 {
     let enabled = g_Fake.enabled
-    @drop(&g_Fake, 1)
-    @init(&g_Fake, 1)
+    Swag.drop(&g_Fake, 1)
+    Swag.init(&g_Fake, 1)
     g_Fake.enabled = enabled
 }
 

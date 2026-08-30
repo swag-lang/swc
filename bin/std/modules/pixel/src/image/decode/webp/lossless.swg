@@ -205,7 +205,7 @@ impl LosslessHuffmanTree
         var symbolCount: u32
         var lastSymbol:  u32
         var maxLength:   u32
-        for symbol in @countof(codeLengths)
+        for symbol in codeLengths.count
         {
             let length = codeLengths[symbol]
             if length
@@ -237,14 +237,14 @@ impl LosslessHuffmanTree
         var nextCodes:   [LOSSLESS_MAX_CODE_LENGTH + 1] u32
         var currentCode: u32
         var length = 1'u64
-        while length < @countof(nextCodes)
+        while length < nextCodes.count
         {
             currentCode       = (currentCode + histogram[length - 1]) << 1
             nextCodes[length] = currentCode
             length            += 1
         }
 
-        for symbol in @countof(codeLengths)
+        for symbol in codeLengths.count
         {
             let length = codeLengths[symbol]
             if !length do
@@ -322,8 +322,8 @@ impl LosslessHuffmanTree
 
 func losslessDistance(width: s32, code: u32)->s32
 {
-    if code > @countof(LOSSLESS_DISTANCE_MAP) do
-        return cast(s32) code - @countof(LOSSLESS_DISTANCE_MAP)
+    if code > LOSSLESS_DISTANCE_MAP.count do
+        return cast(s32) code - LOSSLESS_DISTANCE_MAP.count
 
     let distanceCode = cast(s32) LOSSLESS_DISTANCE_MAP[code - 1]
     let yOffset      = distanceCode >> 4
@@ -337,18 +337,18 @@ func losslessDecodeCodeLengths(reader: *LosslessBitReader, destination: [..] u32
     var tree: LosslessHuffmanTree
     tree.build(codeLengthCodeLengths)
 
-    var maxSymbol = @countof(destination)
+    var maxSymbol = destination.count
     if reader.read(1)
     {
         let countBits = 2 + 2 * reader.read(3)
         maxSymbol = cast(u64) reader.read(countBits) + 2
-        if maxSymbol > @countof(destination) do
+        if maxSymbol > destination.count do
             fail InvalidFormatError{"WebP lossless code lengths exceed their alphabet"}
     }
 
     var previousLength = 8'u32
     var symbol: u64
-    while symbol < @countof(destination)
+    while symbol < destination.count
     {
         if maxSymbol == 0 do
             break
@@ -368,7 +368,7 @@ func losslessDecodeCodeLengths(reader: *LosslessBitReader, destination: [..] u32
             fail InvalidFormatError{"WebP lossless code-length repeat symbol is out of range"}
         let repeatIndex = codeLength - 16
         let repeat      = reader.read(LOSSLESS_REPEAT_BITS[repeatIndex]) + LOSSLESS_REPEAT_OFFSETS[repeatIndex]
-        if symbol + repeat > @countof(destination) do
+        if symbol + repeat > destination.count do
             fail InvalidFormatError{"WebP lossless code-length repeat exceeds its alphabet"}
 
         let repeatedLength = codeLength == 16 ? previousLength : 0'u32
@@ -396,24 +396,24 @@ func losslessDecodeHuffmanTree(reader: *LosslessBitReader, tree: #null *Lossless
     }
 
     let codeCount = reader.read(4) + 4
-    if codeCount > @countof(LOSSLESS_CODE_LENGTH_ORDER) do
+    if codeCount > LOSSLESS_CODE_LENGTH_ORDER.count do
         losslessTreeError()
 
-    var codeLengthCodeLengths: [@countof(LOSSLESS_CODE_LENGTH_ORDER)] u32
+    var codeLengthCodeLengths: [LOSSLESS_CODE_LENGTH_ORDER.count] u32
     for i in codeCount do
         codeLengthCodeLengths[LOSSLESS_CODE_LENGTH_ORDER[i]] = reader.read(3)
 
     var codeLengths: Array'u32
     codeLengths.resize(alphabetSize)
-    losslessDecodeCodeLengths(reader, codeLengths.toSlice(), @mkslice(&codeLengthCodeLengths[0], @countof(codeLengthCodeLengths)))
+    losslessDecodeCodeLengths(reader, codeLengths.toSlice(), Swag.makeSlice(&codeLengthCodeLengths[0], codeLengthCodeLengths.count))
     if tree do
         tree.build(codeLengths.toSlice())
 }
 
 func losslessDecodeHeader(reader: *LosslessBitReader, source: const [..] u8, width: *s32, height: *s32) fail
 {
-    reader.ptr   = @dataof(source)
-    reader.last  = reader.ptr + @countof(source)
+    reader.ptr   = source.buffer
+    reader.last  = reader.ptr + source.count
     reader.bits  = 0
     reader.nBits = 0
     if reader.read(8) != 0x2F do

@@ -1,4 +1,4 @@
-﻿#global private
+#global private
 
 // ---------------------------------------------------------------------------
 // Provable out-of-bounds access on a fixed-size stack array: the index is a
@@ -53,8 +53,8 @@
     var hi = 3
     a[lo] = 1
     a[hi] = 2
-    @assert(a[lo] == 1)
-    @assert(a[hi] == 2)
+    Swag.assert(a[lo] == 1)
+    Swag.assert(a[hi] == 2)
 }
 
 // An unknown index is never flagged (the runtime guard covers it).

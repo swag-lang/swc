@@ -65,6 +65,11 @@ public:
     }
 
     TypeRef                             returnTypeRef() const { return returnType_; }
+    TokenId                             intrinsicId() const
+    {
+        const auto* fnDecl = decl() ? decl()->safeCast<AstFunctionDecl>() : nullptr;
+        return fnDecl ? fnDecl->intrinsicId : TokenId::Invalid;
+    }
     void                                setReturnTypeRef(TypeRef typeRef) { returnType_ = typeRef; }
     RtAttributeFlags                    rtAttributeFlags() const;
     void                                setRtAttributeFlags(RtAttributeFlags attr);

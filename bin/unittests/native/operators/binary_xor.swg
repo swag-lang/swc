@@ -30,8 +30,8 @@ func bitXorWide(a: u64, b: u64)->u64
     #assert(#typeof(v0) == u32)
     #assert(#typeof(v3) == u64)
 
-    @assert(v0 == 42'u32)
-    @assert(v1 == 42'u32)
-    @assert(v2 == 0'u32)
-    @assert(v3 == 0xFFFF_FFFF_FFFF_FFFF'u64)
+    Swag.assert(v0 == 42'u32)
+    Swag.assert(v1 == 42'u32)
+    Swag.assert(v2 == 0'u32)
+    Swag.assert(v3 == 0xFFFF_FFFF_FFFF_FFFF'u64)
 }

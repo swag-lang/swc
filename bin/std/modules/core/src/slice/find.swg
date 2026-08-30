@@ -62,7 +62,7 @@ private func verifyByteCandidates(values, subslice: const [*] u8, subCount, base
 func(T, V) findSorted(values: #null const [..] T, value: V)->u64
 {
     var lower = 0'u64
-    var upper = @countof(values)
+    var upper = values.count
     if !upper do
         return Swag.U64.Max
     let vals = values!
@@ -88,10 +88,10 @@ func(T, V) findSorted(values: #null const [..] T, value: V)->u64
 // Returns Swag.U64.Max if not found.
 func findLinear(values: #null const [..] u8, value: u8)->u64
 {
-    let count = @countof(values)
+    let count = values.count
     if !count do
         return Swag.U64.Max
-    return findByte(@dataof(values!), count, value)
+    return findByte((values!).buffer, count, value)
 }
 
 func(T, V) findLinear(values: #null const [..] T, value: V)->u64
@@ -104,15 +104,15 @@ func(T, V) findLinear(values: #null const [..] T, value: V)->u64
 // Returns the first index of `subslice`, or `Swag.U64.Max` when it is absent.
 func findSubslice(values, subslice: const [..] u8)->u64
 {
-    let valueCount = @countof(values)
-    let subCount   = @countof(subslice)
+    let valueCount = values.count
+    let subCount   = subslice.count
     if !subCount do
         return 0
     if subCount > valueCount do
         return Swag.U64.Max
 
-    let valueData      = @dataof(values)
-    let subData        = @dataof(subslice)
+    let valueData      = values.buffer
+    let subData        = subslice.buffer
     let lastStart      = valueCount - subCount
     let candidateCount = lastStart + 1
     const VectorSize = #sizeof(Math.Simd.U8x16)
@@ -147,12 +147,12 @@ func findSubslice(values, subslice: const [..] u8)->u64
 
 func(T) findSubslice(values: const [..] T, subslice: const [..] T)->u64
 {
-    if !@countof(subslice) do
+    if !subslice.count do
         return 0
-    if @countof(subslice) > @countof(values) do
+    if subslice.count > values.count do
         return Swag.U64.Max
 
-    for it0 in 0 to @countof(values) - @countof(subslice)
+    for it0 in 0 to values.count - subslice.count
     {
         var ok = true
         for item, it1 in subslice
@@ -198,24 +198,24 @@ func(T, V) contains(values: #null const [..] T, value: V)->bool
 #[Swag.ConstExpr]
 func equals(dst, src: #null const [..] u8)->bool
 {
-    if @countof(dst) != @countof(src) do
+    if dst.count != src.count do
         return false
-    if !@countof(dst) do
+    if !dst.count do
         return true
-    return Memory.compare(@dataof(dst!), @dataof(src!), @countof(dst)) == 0
+    return Memory.compare((dst!).buffer, (src!).buffer, dst.count) == 0
 }
 
 #[Swag.ConstExpr]
 func(T) equals(dst, src: #null const [..] T)->bool
 {
-    if @countof(dst) != @countof(src) do
+    if dst.count != src.count do
         return false
-    if !@countof(dst) or !@countof(src) do
+    if !dst.count or !src.count do
         return true
 
     let dstn = dst!
     let srcn = src!
-    for i in @countof(dstn) where dstn[i] != srcn[i] do
+    for i in dstn.count where dstn[i] != srcn[i] do
         return false
     return true
 }

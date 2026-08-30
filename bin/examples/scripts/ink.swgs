@@ -126,7 +126,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         {
             if newDrop
             {
-                currentColor = Palette[counter % @countof(Palette)]
+                currentColor = Palette[counter % Palette.count]
                 newDrop      = false
                 counter      += 1
             }

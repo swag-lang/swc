@@ -2,7 +2,7 @@ internal impl Properties
 {
     mtd refreshBool(item: *PropertiesItem)
     {
-        if @isset(item.checkBox)
+        if Swag.isSet(item.checkBox)
         {
             // Multi-selection: a disagreeing bool shows as the indeterminate (mixed) mark.
             if .fieldIsMixed(item) do
@@ -11,7 +11,7 @@ internal impl Properties
                 item.checkBox.setState(item.data![as bool] ? .Checked : .Unchecked)
             item.checkBox.invalidate()
         }
-        elif @isset(item.comboBox)
+        elif Swag.isSet(item.comboBox)
         {
             // Multi-selection: clear the selection when the instances disagree.
             if .fieldIsMixed(item) do
@@ -24,9 +24,9 @@ internal impl Properties
     mtd validateBool(item: *PropertiesItem)
     {
         var data = cast(*bool) item.data!
-        if @isset(item.checkBox) do
+        if Swag.isSet(item.checkBox) do
             data[] = item.checkBox.isChecked()
-        elif @isset(item.comboBox)
+        elif Swag.isSet(item.comboBox)
         {
             // A deselected combo means "mixed" was just shown: nothing to write.
             let sel = item.comboBox.selectedIndex
@@ -46,7 +46,7 @@ internal impl Properties
 
         if .kind == .Panel
         {
-            if @isset(item.label) do
+            if Swag.isSet(item.label) do
                 item.label.hide()
             with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
@@ -95,7 +95,7 @@ internal impl Properties
         if .kind == .Panel
         {
             let itemP = .addItem(value, data, parentItem)
-            if @isset(itemP.label) do
+            if Swag.isSet(itemP.label) do
                 itemP.label.hide()
             with let ed = CheckButton.create(itemP.line!, itemDisplayName(value).toString())
             {
@@ -131,7 +131,7 @@ internal impl Properties
         else do
             line.layoutSpec.alignX = .Stretch
 
-        if !@isset(item.label)
+        if !Swag.isSet(item.label)
         {
             line.margin.y = .listNameMarginBefore
             line.margin.w = .listNameMarginAfter

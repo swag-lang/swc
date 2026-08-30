@@ -815,11 +815,11 @@ namespace
         switch (kind)
         {
             case SpecOpKind::OpDrop:
-                return "@drop";
+                return "Swag.drop";
             case SpecOpKind::OpPostCopy:
-                return "@postcopy";
+                return "Swag.postCopy";
             case SpecOpKind::OpPostMove:
-                return "@postmove";
+                return "Swag.postMove";
             default:
                 return {};
         }
@@ -921,7 +921,7 @@ namespace
         source += SemaSpecOp::generatedInitWrapperName();
         source += "()\n";
         source += "    {\n";
-        source += "        @init(me, 1)\n";
+        source += "        Swag.init(me, 1)\n";
         source += "    }\n";
     }
 

@@ -32,12 +32,12 @@ func bestBankOutput(bank: string)->s32
 
     var best = -1
 
-    for i in @countof(digits)
+    for i in digits.count
     {
         let first = digitValue(digits[i])
-        if i + 1 >= @countof(digits) do continue
+        if i + 1 >= digits.count do continue
 
-        for j in i + 1 to cast(u64) @countof(digits) - 1
+        for j in i + 1 to cast(u64) digits.count - 1
         {
             let second = digitValue(digits[j])
             let value  = first * 10 + second
@@ -51,7 +51,7 @@ func bestBankOutput(bank: string)->s32
 func auditBanks(banks: const [..] string)->BatteryAudit
 {
     var result: BatteryAudit
-    result.bankCount  = cast(u32) @countof(banks)
+    result.bankCount  = cast(u32) banks.count
     result.lowestBank = Swag.S32.Max
 
     for bank in banks
@@ -77,14 +77,14 @@ func auditBanks(banks: const [..] string)->BatteryAudit
 
     let sampleAudit = auditBanks(sampleBanks)
 
-    @assert(bestBankOutput(sampleBanks[0]) == 98)
-    @assert(bestBankOutput(sampleBanks[1]) == 89)
-    @assert(bestBankOutput(sampleBanks[2]) == 78)
-    @assert(bestBankOutput(sampleBanks[3]) == 92)
-    @assert(sampleAudit.bankCount == 4'u32)
-    @assert(sampleAudit.totalOutput == 357)
-    @assert(sampleAudit.highestBank == 98)
-    @assert(sampleAudit.lowestBank == 78)
+    Swag.assert(bestBankOutput(sampleBanks[0]) == 98)
+    Swag.assert(bestBankOutput(sampleBanks[1]) == 89)
+    Swag.assert(bestBankOutput(sampleBanks[2]) == 78)
+    Swag.assert(bestBankOutput(sampleBanks[3]) == 92)
+    Swag.assert(sampleAudit.bankCount == 4'u32)
+    Swag.assert(sampleAudit.totalOutput == 357)
+    Swag.assert(sampleAudit.highestBank == 98)
+    Swag.assert(sampleAudit.lowestBank == 78)
 
     const depotBanks: [5] string =
         [
@@ -97,13 +97,13 @@ func auditBanks(banks: const [..] string)->BatteryAudit
 
     let depotAudit = auditBanks(depotBanks)
 
-    @assert(bestBankOutput(depotBanks[0]) == 55)
-    @assert(bestBankOutput(depotBanks[1]) == 79)
-    @assert(bestBankOutput(depotBanks[2]) == 55)
-    @assert(bestBankOutput(depotBanks[3]) == 66)
-    @assert(bestBankOutput(depotBanks[4]) == 88)
-    @assert(depotAudit.bankCount == 5'u32)
-    @assert(depotAudit.totalOutput == 343)
-    @assert(depotAudit.highestBank == 88)
-    @assert(depotAudit.lowestBank == 55)
+    Swag.assert(bestBankOutput(depotBanks[0]) == 55)
+    Swag.assert(bestBankOutput(depotBanks[1]) == 79)
+    Swag.assert(bestBankOutput(depotBanks[2]) == 55)
+    Swag.assert(bestBankOutput(depotBanks[3]) == 66)
+    Swag.assert(bestBankOutput(depotBanks[4]) == 88)
+    Swag.assert(depotAudit.bankCount == 5'u32)
+    Swag.assert(depotAudit.totalOutput == 343)
+    Swag.assert(depotAudit.highestBank == 88)
+    Swag.assert(depotAudit.lowestBank == 55)
 }

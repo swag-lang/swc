@@ -90,8 +90,8 @@ private func isSpaceByte(value: u8, includeLatin1: bool)->bool
 internal func firstNonSpace(buffer: const [..] u8, includeLatin1 = true)->u64
 {
     const VectorSize = #sizeof(Math.Simd.U8x16)
-    let data   = @dataof(buffer)
-    let count  = @countof(buffer)
+    let data   = buffer.buffer
+    let count  = buffer.count
     var offset = 0'u64
     while count - offset >= VectorSize
     {
@@ -110,8 +110,8 @@ internal func firstNonSpace(buffer: const [..] u8, includeLatin1 = true)->u64
 internal func lastNonSpace(buffer: const [..] u8, includeLatin1 = true)->u64
 {
     const VectorSize = #sizeof(Math.Simd.U8x16)
-    let data   = @dataof(buffer)
-    var offset = @countof(buffer)
+    let data   = buffer.buffer
+    var offset = buffer.count
     while offset >= VectorSize
     {
         let block = offset - VectorSize
@@ -137,16 +137,16 @@ func makeUpper(buffer: [..] u8)
     let utf8Gap    = Math.Simd.splat(0xB7'u8)
     let caseBit    = Math.Simd.splat(0x20'u8)
     var offset     = 0'u64
-    while @countof(buffer) - offset >= VectorSize
+    while buffer.count - offset >= VectorSize
     {
-        let value     = Math.Simd.load(@dataof(buffer) + offset)
+        let value     = Math.Simd.load(buffer.buffer + offset)
         let asciiMask = (value >= asciiFirst) & (value <= asciiLast)
         let utf8Mask  = (value >= utf8First) & (value <= utf8Last) & (value != utf8Gap)
-        Math.Simd.store(@dataof(buffer) + offset, value - ((asciiMask | utf8Mask) & caseBit))
+        Math.Simd.store(buffer.buffer + offset, value - ((asciiMask | utf8Mask) & caseBit))
         offset += VectorSize
     }
 
-    while offset < @countof(buffer)
+    while offset < buffer.count
     {
         let c = &buffer[offset]
         if isLowerUtf8(c[]) do
@@ -168,13 +168,13 @@ func makeLower(buffer: [..] u8)
 {
     const VectorSize = #sizeof(Math.Simd.U8x16)
     var offset = 0'u64
-    while @countof(buffer) - offset >= VectorSize
+    while buffer.count - offset >= VectorSize
     {
-        Math.Simd.store(@dataof(buffer) + offset, toLowerUtf8(Math.Simd.load(@dataof(buffer) + offset)))
+        Math.Simd.store(buffer.buffer + offset, toLowerUtf8(Math.Simd.load(buffer.buffer + offset)))
         offset += VectorSize
     }
 
-    while offset < @countof(buffer)
+    while offset < buffer.count
     {
         let c = &buffer[offset]
         if isUpperUtf8(c[]) do
@@ -187,8 +187,8 @@ func makeLower(buffer: [..] u8)
 // Returns -1, 0 or 1
 func compare(src, dst: const [..] u8, ignoreCase = false)->s32
 {
-    let length      = @countof(src)
-    let otherLength = @countof(dst)
+    let length      = src.count
+    let otherLength = dst.count
     let minLen      = Math.min(length, otherLength)
 
     var result: s32
@@ -198,8 +198,8 @@ func compare(src, dst: const [..] u8, ignoreCase = false)->s32
         var offset = 0'u64
         while minLen - offset >= VectorSize
         {
-            let raw1 = Math.Simd.load(@dataof(src) + offset)
-            let raw2 = Math.Simd.load(@dataof(dst) + offset)
+            let raw1 = Math.Simd.load(src.buffer + offset)
+            let raw2 = Math.Simd.load(dst.buffer + offset)
             if Math.Simd.bitmask(raw1 == raw2) == 0xFFFF
             {
                 offset += VectorSize
@@ -235,7 +235,7 @@ func compare(src, dst: const [..] u8, ignoreCase = false)->s32
     }
     else
     {
-        result = Memory.compare(@dataof(src), @dataof(dst), minLen)
+        result = Memory.compare(src.buffer, dst.buffer, minLen)
     }
 
     if result != 0 do
@@ -255,8 +255,8 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
 {
     func compareLeft(src, dst: const [..] u8)->s32
     {
-        var csrc   = @countof(src)
-        var cdst   = @countof(dst)
+        var csrc   = src.count
+        var cdst   = dst.count
         var ai, bi = 0
         for
         {
@@ -287,8 +287,8 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
     func compareRight(src, dst: const [..] u8)->s32
     {
         var bias   = 0
-        var csrc   = @countof(src)
-        var cdst   = @countof(dst)
+        var csrc   = src.count
+        var cdst   = dst.count
         var ai, bi = 0
         for
         {
@@ -325,10 +325,10 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
         return 0
     }
 
-    let dsrc = @dataof(src)
-    let ddst = @dataof(dst)
-    var csrc = @countof(src)
-    var cdst = @countof(dst)
+    let dsrc = src.buffer
+    let ddst = dst.buffer
+    var csrc = src.count
+    var cdst = dst.count
 
     var ai, bi = 0
     for
@@ -355,8 +355,8 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
         if isDigit(ca) and isDigit(cb)
         {
             var result = 0
-            let sl0    = @mkslice(dsrc + ai, csrc)
-            let sl1    = @mkslice(ddst + bi, cdst)
+            let sl0    = Swag.makeSlice(dsrc + ai, csrc)
+            let sl1    = Swag.makeSlice(ddst + bi, cdst)
             if ca == '0'u8 or cb == '0'u8 do
                 result = compareLeft(sl0, sl1)
             else do
@@ -389,11 +389,11 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
 // Trim the string.
 func trim(str: string)->string
 {
-    let bytes = @mkslice(@dataof(str), @countof(str))
+    let bytes = Swag.makeSlice(str.buffer, str.count)
     let first = firstNonSpace(bytes)
-    if first == @countof(str) do
+    if first == str.count do
         return ""
-    let tail = bytes[first until @countof(bytes)]
+    let tail = bytes[first until bytes.count]
     let last = first + lastNonSpace(tail)
-    return @mkstring(@dataof(str) + first, last - first)
+    return Swag.makeString(str.buffer + first, last - first)
 }

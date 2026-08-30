@@ -51,5 +51,5 @@ func day1A()
     let total = Math.abs(px) + Math.abs(py)
 
     // Console.print("total: ", total)
-    @assert(total == 242)
+    Swag.assert(total == 242)
 }

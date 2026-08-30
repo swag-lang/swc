@@ -22,11 +22,11 @@ func day1B()
         total += c == '(' ? 1 : -1
         if total == -1
         {
-            total = 1 + cast(s32) @index
+            total = 1 + cast(s32) Swag.index
             break
         }
     }
 
     // Console.print("total: ", total)
-    @assert(total == 1783)
+    Swag.assert(total == 1783)
 }

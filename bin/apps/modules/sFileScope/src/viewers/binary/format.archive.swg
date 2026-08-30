@@ -208,16 +208,16 @@ private func arLongNamesAt(image: *BinaryImage, offsets: const [..] u64)->u64
 // a slash followed by an offset into the member that holds the names too long to fit here.
 private func arMemberName(image: *BinaryImage, raw: string, longNamesAt: u64)->String
 {
-    if @countof(raw) == 0 do
+    if raw.count == 0 do
         return String.from(BinaryNoValue)
 
-    if raw[0] == '/'u8 and @countof(raw) > 1 and raw[1] >= '0'u8 and raw[1] <= '9'u8
+    if raw[0] == '/'u8 and raw.count > 1 and raw[1] >= '0'u8 and raw[1] <= '9'u8
     {
         if longNamesAt == Swag.U64.Max do
             return String.from(raw)
 
         var offset = 0'u64
-        for index in 1 until @countof(raw)
+        for index in 1 until raw.count
         {
             if raw[index] < '0'u8 or raw[index] > '9'u8 do
                 break
@@ -229,8 +229,8 @@ private func arMemberName(image: *BinaryImage, raw: string, longNamesAt: u64)->S
     }
 
     // GNU archives close a short name with a slash so a trailing blank cannot be part of it.
-    if raw[@countof(raw) - 1] == '/'u8 and @countof(raw) > 1 do
-        return String.from(raw[0 until @countof(raw) - 1])
+    if raw[raw.count - 1] == '/'u8 and raw.count > 1 do
+        return String.from(raw[0 until raw.count - 1])
     return String.from(raw)
 }
 

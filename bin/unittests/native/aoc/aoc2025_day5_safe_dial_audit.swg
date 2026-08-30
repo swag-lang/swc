@@ -37,7 +37,7 @@ func parseRotation(text: string)->Rotation
     var result: Rotation
     result.turnLeft = bytes[0] == 'L'
 
-    for i in 1 to cast(u32) @countof(bytes) - 1 do
+    for i in 1 to cast(u32) bytes.count - 1 do
         result.clicks = result.clicks * 10 + cast(s32) (bytes[i] - '0')
 
     return result
@@ -82,10 +82,10 @@ func auditRotations(lines: const [..] string, startPosition: s32)->SafeAudit
 
     let entranceAudit = auditRotations(entranceSheet, 50)
 
-    @assert(entranceAudit.zeroHits == 3)
-    @assert(entranceAudit.finalPosition == 32)
-    @assert(entranceAudit.totalClicks == 462)
-    @assert(entranceAudit.longestRotation == 99)
+    Swag.assert(entranceAudit.zeroHits == 3)
+    Swag.assert(entranceAudit.finalPosition == 32)
+    Swag.assert(entranceAudit.totalClicks == 462)
+    Swag.assert(entranceAudit.longestRotation == 99)
 
     const cashRoomSheet: [6] string =
         [
@@ -99,8 +99,8 @@ func auditRotations(lines: const [..] string, startPosition: s32)->SafeAudit
 
     let cashRoomAudit = auditRotations(cashRoomSheet, 50)
 
-    @assert(cashRoomAudit.zeroHits == 3)
-    @assert(cashRoomAudit.finalPosition == 0)
-    @assert(cashRoomAudit.totalClicks == 250)
-    @assert(cashRoomAudit.longestRotation == 99)
+    Swag.assert(cashRoomAudit.zeroHits == 3)
+    Swag.assert(cashRoomAudit.finalPosition == 0)
+    Swag.assert(cashRoomAudit.totalClicks == 250)
+    Swag.assert(cashRoomAudit.longestRotation == 99)
 }

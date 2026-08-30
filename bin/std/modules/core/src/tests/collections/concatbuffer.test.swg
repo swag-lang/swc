@@ -46,26 +46,26 @@ func backBucketCount(buffer: ConcatBuffer)->u64
     for bucket in buffer.reversed() do
         reverseCode = reverseCode * 10 + bucket.count
 
-    @assert(forwardCode == 332)
-    @assert(reverseCode == 233)
+    Swag.assert(forwardCode == 332)
+    Swag.assert(reverseCode == 233)
 }
 
 #test
 {
     let buffer = buildConcatBuffer()
 
-    @assert(frontBucketCount(buffer) == 3)
-    @assert(backBucketCount(buffer) == 2)
+    Swag.assert(frontBucketCount(buffer) == 3)
+    Swag.assert(backBucketCount(buffer) == 2)
 }
 
 #test
 {
     let storage = cast([*] u8) Memory.alloc(8)
     var buffer: ConcatBuffer
-    buffer.setFirstBucket(@mkslice(storage, 8))
+    buffer.setFirstBucket(Swag.makeSlice(storage, 8))
     buffer.addBytes(cast(const [..] u8) "abc")
 
     let text = buffer.moveToString()
     storage[0] = 'z'u8
-    @assert(text.toString() == "abc")
+    Swag.assert(text.toString() == "abc")
 }

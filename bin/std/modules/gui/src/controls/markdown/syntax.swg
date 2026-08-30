@@ -5,9 +5,9 @@ using Core
 
 private func findClosing(text: string, marker: string, start: u64, wordBoundaryClose = false)->u64
 {
-    let markerLength = @countof(marker)
+    let markerLength = marker.count
     var index        = start
-    while index < @countof(text)
+    while index < text.count
     {
         if text[index] != marker[0]
         {
@@ -16,13 +16,13 @@ private func findClosing(text: string, marker: string, start: u64, wordBoundaryC
         }
 
         var runEnd = index + 1
-        while runEnd < @countof(text) and text[runEnd] == marker[0] do
+        while runEnd < text.count and text[runEnd] == marker[0] do
             runEnd += 1
         let runLength = runEnd - index
 
         // Underscore emphasis never closes inside a word, so 'foo_bar' in '_foo_bar_' stays plain
         // and the emphasis closes on the word-final run instead.
-        let boundary = !wordBoundaryClose or runEnd >= @countof(text) or !Latin1.isWord(text[runEnd])
+        let boundary = !wordBoundaryClose or runEnd >= text.count or !Latin1.isWord(text[runEnd])
         if markerLength == 1 and runLength & 1 and boundary do
             return runEnd - 1
         if markerLength > 1 and runLength >= markerLength and boundary do
@@ -40,11 +40,11 @@ private func canOpenUnderscore(text: string, index: u64)->bool
 
 private func findInlineMathEnd(text: string, start: u64)->u64
 {
-    if start >= @countof(text) or Latin1.isSpace(text[start]) do
+    if start >= text.count or Latin1.isSpace(text[start]) do
         return Swag.U64.Max
 
     var index = start
-    while index < @countof(text)
+    while index < text.count
     {
         if text[index] != '$'
         {
@@ -54,7 +54,7 @@ private func findInlineMathEnd(text: string, start: u64)->u64
 
         let escaped     = index > start and text[index - 1] == '\\'
         let spaceBefore = index == start or Latin1.isSpace(text[index - 1])
-        let digitAfter  = index + 1 < @countof(text) and Latin1.isDigit(text[index + 1])
+        let digitAfter  = index + 1 < text.count and Latin1.isDigit(text[index + 1])
         if !escaped and !spaceBefore and !digitAfter do
             return index
         index += 1
@@ -66,7 +66,7 @@ private func findInlineMathEnd(text: string, start: u64)->u64
 private func findBareUrlEnd(text: string, start: u64)->u64
 {
     var end = start
-    while end < @countof(text) and !Latin1.isSpace(text[end]) and text[end] != '<' and text[end] != '>' do
+    while end < text.count and !Latin1.isSpace(text[end]) and text[end] != '<' and text[end] != '>' do
         end += 1
     while end > start and (text[end - 1] == '.' or text[end - 1] == ',' or text[end - 1] == ';' or text[end - 1] == ':' or text[end - 1] == '!' or text[end - 1] == '?') do
         end -= 1
@@ -93,12 +93,12 @@ func parseLinkTarget(text: string, start: u64)->LinkTargetInfo
 {
     var result: retval
     var index = start
-    while index < @countof(text) and text[index] == ' ' do
+    while index < text.count and text[index] == ' ' do
         index += 1
 
     var targetStart = index
     var targetEnd   = index
-    if index < @countof(text) and text[index] == '<'
+    if index < text.count and text[index] == '<'
     {
         targetStart = index + 1
         let close = Utf8.indexOf(text, '>'rune, targetStart)
@@ -110,10 +110,10 @@ func parseLinkTarget(text: string, start: u64)->LinkTargetInfo
     else
     {
         var depth = 0
-        while index < @countof(text)
+        while index < text.count
         {
             let value = text[index]
-            if value == '\\' and index + 1 < @countof(text)
+            if value == '\\' and index + 1 < text.count
             {
                 index += 2
                 continue
@@ -135,23 +135,23 @@ func parseLinkTarget(text: string, start: u64)->LinkTargetInfo
         targetEnd = index
     }
 
-    while index < @countof(text) and (text[index] == ' ' or text[index] == '\t') do
+    while index < text.count and (text[index] == ' ' or text[index] == '\t') do
         index += 1
 
-    if index < @countof(text) and (text[index] == '"' or text[index] == '\'')
+    if index < text.count and (text[index] == '"' or text[index] == '\'')
     {
         let quote = text[index]
         var close = index + 1
-        while close < @countof(text) and text[close] != quote do
+        while close < text.count and text[close] != quote do
             close += 1
-        if close >= @countof(text) do
+        if close >= text.count do
             return result
         index = close + 1
-        while index < @countof(text) and (text[index] == ' ' or text[index] == '\t') do
+        while index < text.count and (text[index] == ' ' or text[index] == '\t') do
             index += 1
     }
 
-    if index >= @countof(text) or text[index] != ')' do
+    if index >= text.count or text[index] != ')' do
         return result
     result.found  = true
     result.target = text[targetStart until targetEnd]
@@ -163,7 +163,7 @@ func parseLinkTarget(text: string, start: u64)->LinkTargetInfo
 // title so '[guide]: url "Title"' activates the same target as its inline form.
 func referenceTarget(value: string)->string
 {
-    if @countof(value) and value[0] == '<'
+    if value.count and value[0] == '<'
     {
         let close = Utf8.indexOf(value, '>'rune, 1)
         if close != Swag.U64.Max do
@@ -171,7 +171,7 @@ func referenceTarget(value: string)->string
     }
 
     var end = 0'u64
-    while end < @countof(value) and value[end] != ' ' and value[end] != '\t' do
+    while end < value.count and value[end] != ' ' and value[end] != '\t' do
         end += 1
     return value[0 until end]
 }
@@ -188,7 +188,7 @@ func parseReferenceDefinition(line: string)->ReferenceInfo
 {
     var result: retval
     let trimmed = Latin1.trim(line)
-    if @countof(trimmed) < 4 or trimmed[0] != '[' do
+    if trimmed.count < 4 or trimmed[0] != '[' do
         return result
     let close = Utf8.indexOf(trimmed, "]: ")
     let tight = close == Swag.U64.Max ? Utf8.indexOf(trimmed, "]:") : close
@@ -244,7 +244,7 @@ private func appendHtmlInlineNode(output: *String, document: const *HtmlDocument
         let source = document.attribute(node, "src")
         let alt    = document.attribute(node, "alt")
         output[] += "<a><p3>[Image"
-        if @countof(alt)
+        if alt.count
         {
             output[] += ": "
             output[] += richText(alt)
@@ -313,7 +313,7 @@ private func parseHtmlInline(text: string, start: u64, references: #null const [
     parser.start(&document, .Fragment)
 
     var end = start
-    while end < @countof(text)
+    while end < text.count
     {
         let decoded = Utf8.decodeRune(text[end to])
         parser.feed(text[end until end + decoded.eat])
@@ -339,9 +339,9 @@ func renderInline(text: string, references: #null const [..] Reference = null, p
 {
     var result: retval
     var index = 0'u64
-    while index < @countof(text)
+    while index < text.count
     {
-        if text[index] == '\\' and index + 1 < @countof(text) and text[index + 1] == '('
+        if text[index] == '\\' and index + 1 < text.count and text[index + 1] == '('
         {
             let end = Utf8.indexOf(text, "\\)", index + 2)
             if end != Swag.U64.Max
@@ -354,17 +354,17 @@ func renderInline(text: string, references: #null const [..] Reference = null, p
             }
         }
 
-        if text[index] == '\\' and index + 1 < @countof(text)
+        if text[index] == '\\' and index + 1 < text.count
         {
             result += richText(text[index + 1 until index + 2])
             index  += 2
             continue
         }
 
-        if text[index] == '!' and index + 1 < @countof(text) and text[index + 1] == '['
+        if text[index] == '!' and index + 1 < text.count and text[index + 1] == '['
         {
             let labelEnd = Utf8.indexOf(text, ']'rune, index + 2)
-            if labelEnd != Swag.U64.Max and labelEnd + 1 < @countof(text) and text[labelEnd + 1] == '('
+            if labelEnd != Swag.U64.Max and labelEnd + 1 < text.count and text[labelEnd + 1] == '('
             {
                 let target = parseLinkTarget(text, labelEnd + 2)
                 if target.found
@@ -379,14 +379,14 @@ func renderInline(text: string, references: #null const [..] Reference = null, p
                 }
             }
 
-            if labelEnd != Swag.U64.Max and labelEnd + 1 < @countof(text) and text[labelEnd + 1] == '['
+            if labelEnd != Swag.U64.Max and labelEnd + 1 < text.count and text[labelEnd + 1] == '['
             {
                 let referenceEnd = Utf8.indexOf(text, ']'rune, labelEnd + 2)
                 if referenceEnd != Swag.U64.Max
                 {
                     let referenceName = referenceEnd == labelEnd + 2 ? text[index + 2 until labelEnd] : text[labelEnd + 2 until referenceEnd]
                     let target        = resolveReferenceTarget(references, referenceName)
-                    if @countof(target)
+                    if target.count
                     {
                         result += "<a><p3>[Image: "
                         result += richText(text[index + 2 until labelEnd], true)
@@ -412,7 +412,7 @@ func renderInline(text: string, references: #null const [..] Reference = null, p
                 continue
             }
 
-            if labelEnd != Swag.U64.Max and labelEnd + 1 < @countof(text) and text[labelEnd + 1] == '('
+            if labelEnd != Swag.U64.Max and labelEnd + 1 < text.count and text[labelEnd + 1] == '('
             {
                 let target = parseLinkTarget(text, labelEnd + 2)
                 if target.found
@@ -431,7 +431,7 @@ func renderInline(text: string, references: #null const [..] Reference = null, p
             {
                 var referenceEnd  = labelEnd
                 var referenceName = text[index + 1 until labelEnd]
-                if labelEnd + 1 < @countof(text) and text[labelEnd + 1] == '['
+                if labelEnd + 1 < text.count and text[labelEnd + 1] == '['
                 {
                     referenceEnd = Utf8.indexOf(text, ']'rune, labelEnd + 2)
                     if referenceEnd != Swag.U64.Max and referenceEnd > labelEnd + 2 do
@@ -441,7 +441,7 @@ func renderInline(text: string, references: #null const [..] Reference = null, p
                 if referenceEnd != Swag.U64.Max
                 {
                     let target = resolveReferenceTarget(references, referenceName)
-                    if @countof(target)
+                    if target.count
                     {
                         result += "<a>"
                         result += renderInline(text[index + 1 until labelEnd], references, parsedHtmlText)
@@ -518,7 +518,7 @@ func renderInline(text: string, references: #null const [..] Reference = null, p
             }
         }
 
-        if index + 1 < @countof(text) and text[index] == '~' and text[index + 1] == '~'
+        if index + 1 < text.count and text[index] == '~' and text[index + 1] == '~'
         {
             let end = Utf8.indexOf(text, "~~", index + 2)
             if end != Swag.U64.Max
@@ -531,7 +531,7 @@ func renderInline(text: string, references: #null const [..] Reference = null, p
             }
         }
 
-        if index + 1 < @countof(text) and text[index] == '=' and text[index + 1] == '='
+        if index + 1 < text.count and text[index] == '=' and text[index + 1] == '='
         {
             let end = Utf8.indexOf(text, "==", index + 2)
             if end != Swag.U64.Max
@@ -544,7 +544,7 @@ func renderInline(text: string, references: #null const [..] Reference = null, p
             }
         }
 
-        if index + 2 < @countof(text) and ((text[index] == '*' and text[index + 1] == '*' and text[index + 2] == '*') or (text[index] == '_' and text[index + 1] == '_' and text[index + 2] == '_' and canOpenUnderscore(text, index)))
+        if index + 2 < text.count and ((text[index] == '*' and text[index + 1] == '*' and text[index + 2] == '*') or (text[index] == '_' and text[index + 1] == '_' and text[index + 2] == '_' and canOpenUnderscore(text, index)))
         {
             let marker = text[index until index + 3]
             let end    = findClosing(text, marker, index + 3, wordBoundaryClose: text[index] == '_')
@@ -558,7 +558,7 @@ func renderInline(text: string, references: #null const [..] Reference = null, p
             }
         }
 
-        if index + 1 < @countof(text) and ((text[index] == '*' and text[index + 1] == '*') or (text[index] == '_' and text[index + 1] == '_' and canOpenUnderscore(text, index)))
+        if index + 1 < text.count and ((text[index] == '*' and text[index + 1] == '*') or (text[index] == '_' and text[index + 1] == '_' and canOpenUnderscore(text, index)))
         {
             let marker = text[index until index + 2]
             let end    = findClosing(text, marker, index + 2, wordBoundaryClose: text[index] == '_')
@@ -589,7 +589,7 @@ func renderInline(text: string, references: #null const [..] Reference = null, p
         if text[index] == '`'
         {
             var open = index + 1
-            while open < @countof(text) and text[open] == '`' do
+            while open < text.count and text[open] == '`' do
                 open += 1
             let runLength = open - index
 
@@ -597,7 +597,7 @@ func renderInline(text: string, references: #null const [..] Reference = null, p
             // quote literal backticks.
             var end    = Swag.U64.Max
             var search = open
-            while search < @countof(text)
+            while search < text.count
             {
                 if text[search] != '`'
                 {
@@ -606,7 +606,7 @@ func renderInline(text: string, references: #null const [..] Reference = null, p
                 }
 
                 var runEnd = search + 1
-                while runEnd < @countof(text) and text[runEnd] == '`' do
+                while runEnd < text.count and text[runEnd] == '`' do
                     runEnd += 1
                 if runEnd - search == runLength
                 {
@@ -620,8 +620,8 @@ func renderInline(text: string, references: #null const [..] Reference = null, p
             if end != Swag.U64.Max
             {
                 var content = text[open until end]
-                if @countof(content) >= 2 and content[0] == ' ' and content[@countof(content) - 1] == ' ' and @countof(Latin1.trim(content)) do
-                    content = content[1 until @countof(content) - 1]
+                if content.count >= 2 and content[0] == ' ' and content[content.count - 1] == ' ' and (Latin1.trim(content)).count do
+                    content = content[1 until content.count - 1]
                 result += "<c>"
                 result += richText(content)
                 result += "</c>"
@@ -647,7 +647,7 @@ func renderInline(text: string, references: #null const [..] Reference = null, p
             }
         }
 
-        if text[index] == '~' and (index + 1 >= @countof(text) or text[index + 1] != '~')
+        if text[index] == '~' and (index + 1 >= text.count or text[index + 1] != '~')
         {
             let end = Utf8.indexOf(text, '~'rune, index + 1)
             if end != Swag.U64.Max and end > index + 1
@@ -710,15 +710,15 @@ func parseHeading(line: string)->HeadingInfo
 {
     var result: retval
     let trimmed = Latin1.trim(line)
-    while result.level < @countof(trimmed) and result.level < 6 and trimmed[result.level] == '#' do
+    while result.level < trimmed.count and result.level < 6 and trimmed[result.level] == '#' do
         result.level += 1
-    if !result.level or result.level >= @countof(trimmed) or trimmed[result.level] != ' '
+    if !result.level or result.level >= trimmed.count or trimmed[result.level] != ' '
     {
         result.level = 0
         return result
     }
 
-    var end = @countof(trimmed)
+    var end = trimmed.count
     while end and (trimmed[end - 1] == ' ' or trimmed[end - 1] == '#') do
         end -= 1
     result.text = trimmed[result.level + 1 until end]
@@ -728,7 +728,7 @@ func parseHeading(line: string)->HeadingInfo
 func setextLevel(line: string)->u32
 {
     let trimmed = Latin1.trim(line)
-    if @countof(trimmed) < 3 do
+    if trimmed.count < 3 do
         return 0
     let marker = trimmed[0]
     if marker != '=' and marker != '-' do
@@ -761,7 +761,7 @@ func isRule(line: string)->bool
 
 func hasHardBreak(line: string)->bool
 {
-    let count = @countof(line)
+    let count = line.count
     if count >= 2 and line[count - 1] == ' ' and line[count - 2] == ' ' do
         return true
 
@@ -773,16 +773,16 @@ func parseListItem(line: string)->ListInfo
 {
     var result: retval
     var index = 0'u64
-    while index < @countof(line) and (line[index] == ' ' or line[index] == '\t')
+    while index < line.count and (line[index] == ' ' or line[index] == '\t')
     {
         result.indent += line[index] == '\t' ? 4 : 1
         index         += 1
     }
 
-    if index >= @countof(line) do
+    if index >= line.count do
         return result
 
-    if (line[index] == '-' or line[index] == '*' or line[index] == '+') and index + 1 < @countof(line) and line[index + 1] == ' '
+    if (line[index] == '-' or line[index] == '*' or line[index] == '+') and index + 1 < line.count and line[index + 1] == ' '
     {
         result.found         = true
         result.content       = line[index + 2 to]
@@ -791,9 +791,9 @@ func parseListItem(line: string)->ListInfo
     }
 
     let digitStart = index
-    while index < @countof(line) and Latin1.isDigit(line[index]) do
+    while index < line.count and Latin1.isDigit(line[index]) do
         index += 1
-    if index > digitStart and index + 1 < @countof(line) and (line[index] == '.' or line[index] == ')') and line[index + 1] == ' '
+    if index > digitStart and index + 1 < line.count and (line[index] == '.' or line[index] == ')') and line[index + 1] == ' '
     {
         result.found         = true
         result.ordered       = true
@@ -826,11 +826,11 @@ func parseFence(line: string)->FenceInfo
 {
     var result: retval
     let trimmed = Latin1.trim(line)
-    if @countof(trimmed) < 3 or (trimmed[0] != '`' and trimmed[0] != '~') do
+    if trimmed.count < 3 or (trimmed[0] != '`' and trimmed[0] != '~') do
         return result
 
     var run = 1'u64
-    while run < @countof(trimmed) and trimmed[run] == trimmed[0] do
+    while run < trimmed.count and trimmed[run] == trimmed[0] do
         run += 1
     if run < 3 do
         return result

@@ -139,27 +139,27 @@ func optChainNarrowedRedundant(p: #null *OptChainNode)->s32
     g_optChainNode.next        = &g_optChainOther
     g_optChainOther.value      = 9
 
-    @assert(optChainScalar(true) == 42)
-    @assert(optChainScalar(false) == -1)
-    @assert(optChainBool(true) == false)
-    @assert(optChainBool(false) == true)
-    @assert(optChainFloat(true) == 2.5)
-    @assert(optChainFloat(false) == -1.5)
-    @assert(optChainDeep(true) == 7)
-    @assert(optChainDeep(false) == -1)
+    Swag.assert(optChainScalar(true) == 42)
+    Swag.assert(optChainScalar(false) == -1)
+    Swag.assert(optChainBool(true) == false)
+    Swag.assert(optChainBool(false) == true)
+    Swag.assert(optChainFloat(true) == 2.5)
+    Swag.assert(optChainFloat(false) == -1.5)
+    Swag.assert(optChainDeep(true) == 7)
+    Swag.assert(optChainDeep(false) == -1)
 }
 
 #test
 {
     g_optChainNode.value = 42
-    @assert(optChainMethod(true) == 43)
-    @assert(optChainMethod(false) == -1)
+    Swag.assert(optChainMethod(true) == 43)
+    Swag.assert(optChainMethod(false) == -1)
 
     optChainVoidCall(true)
-    @assert(g_optChainNode.value == 0)
+    Swag.assert(g_optChainNode.value == 0)
     g_optChainNode.value = 5
     optChainVoidCall(false)
-    @assert(g_optChainNode.value == 5)
+    Swag.assert(g_optChainNode.value == 5)
 }
 
 #test
@@ -168,23 +168,23 @@ func optChainNarrowedRedundant(p: #null *OptChainNode)->s32
     g_optChainNode.next   = &g_optChainOther
     g_optChainOther.value = 9
 
-    @assert(optChainNullablePtr(true) == &g_optChainOther)
-    @assert(optChainNullablePtr(false) == null)
-    @assert(optChainString(true) == "hello")
-    @assert(optChainString(false) == null)
-    @assert(optChainTwoLinks(true) == 9)
-    @assert(optChainTwoLinks(false) == -1)
-    @assert(optChainCondition(true))
-    @assert(!optChainCondition(false))
+    Swag.assert(optChainNullablePtr(true) == &g_optChainOther)
+    Swag.assert(optChainNullablePtr(false) == null)
+    Swag.assert(optChainString(true) == "hello")
+    Swag.assert(optChainString(false) == null)
+    Swag.assert(optChainTwoLinks(true) == 9)
+    Swag.assert(optChainTwoLinks(false) == -1)
+    Swag.assert(optChainCondition(true))
+    Swag.assert(!optChainCondition(false))
 
     g_optChainNode.next = null
-    @assert(optChainTwoLinks(true) == -1)
-    @assert(!optChainCondition(true))
+    Swag.assert(optChainTwoLinks(true) == -1)
+    Swag.assert(!optChainCondition(true))
     g_optChainNode.next = &g_optChainOther
 
     g_optChainNode.value = 42
-    @assert(optChainInterface(cast(IOptChain) g_optChainNode) == 42)
-    @assert(optChainInterface(null) == -1)
-    @assert(optChainNarrowedRedundant(&g_optChainNode) == 42)
-    @assert(optChainNarrowedRedundant(null) == -1)
+    Swag.assert(optChainInterface(cast(IOptChain) g_optChainNode) == 42)
+    Swag.assert(optChainInterface(null) == -1)
+    Swag.assert(optChainNarrowedRedundant(&g_optChainNode) == 42)
+    Swag.assert(optChainNarrowedRedundant(null) == -1)
 }

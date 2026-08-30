@@ -382,7 +382,7 @@ private func videoSubtitleTrackCommand(sidecar: bool, index: u32)->String
 
 internal func videoSubtitleText(data: #null const [*] u8, length: u64)->string
 {
-    return data and length ? cast(string) @mkslice(data!, length) : ""
+    return data and length ? cast(string) Swag.makeSlice(data!, length) : ""
 }
 
 private func videoSubtitlePresentationAt(track: const *Subtitle.Track, seconds: f64, result: *String)->f64
@@ -445,7 +445,7 @@ private func loadVideoSidecars(fileName: string, result: *Array'*Subtitle.Track)
         if !candidate or !Utf8.startsWith(candidate!, stem!, .Latin1NoCase) do
             continue
         let exactName = Latin1.compare(candidate!, stem!, ignoreCase: true) == 0
-        if !exactName and (@countof(candidate!) <= @countof(stem!) or candidate![@countof(stem!)] != '.') do
+        if !exactName and ((candidate!).count <= (stem!).count or candidate![(stem!).count] != '.') do
             continue
 
         candidates.add(String.from(file.fullname.toString()))

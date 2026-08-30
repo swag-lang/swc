@@ -12,5 +12,5 @@
                unboxed.name == "const [2] f32"
     }
 
-    @assert(boxArrayTypeInfoInAny())
+    Swag.assert(boxArrayTypeInfoInAny())
 }

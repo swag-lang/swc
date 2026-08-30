@@ -34,7 +34,7 @@ public impl Adler32
     // Resets the checksum to its initial Adler-32 value.
     mtd reset()
     {
-        @init(me, 1)
+        Swag.init(me, 1)
     }
 
     // Includes `buffer` in the running checksum.
@@ -43,11 +43,11 @@ public impl Adler32
         var s1 = .currentValue & 0xFFFF
         var s2 = (.currentValue >> 16) & 0xFFFF
 
-        let countof = @countof(buffer)
+        let countof = buffer.count
         if !countof do
             return
 
-        let input = @dataof(buffer)
+        let input = buffer.buffer
         if countof == 1
         {
             s1 += input[0]

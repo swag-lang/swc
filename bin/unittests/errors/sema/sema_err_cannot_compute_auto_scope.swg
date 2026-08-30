@@ -24,7 +24,7 @@ impl AutoScopeOpBox
     let b = AutoScopeOpBox{2}
 
     // The overload is genuinely unusable once its body failed, so the call site reports too.
-    @assert((a + b).value == 3)     // swc-expected-error {{sema_err_binary_operand_type}}
+    Swag.assert((a + b).value == 3)     // swc-expected-error {{sema_err_binary_operand_type}}
 }
 
 #test

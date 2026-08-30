@@ -107,7 +107,7 @@ impl Decoder
         // Application Authentication Code
         .read(app_auth_code, 3)
 
-        if !Memory.compare(app_id, @dataof("NETSCAPE"), @countof(app_id))
+        if !Memory.compare(app_id, ("NETSCAPE").buffer, app_id.count)
         {
             // Discard block size (0x03) and constant byte (0x01).
             .seek(2)

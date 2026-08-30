@@ -50,7 +50,7 @@ func waitOneNative(handle: ThreadHandle)
 
 func waitManyNative(handles: const [..] ThreadHandle)
 {
-    expect WaitForMultipleObjects(cast(u32) @countof(handles), cast(const *HANDLE) @dataof(handles), TRUE, INFINITE)
+    expect WaitForMultipleObjects(cast(u32) handles.count, cast(const *HANDLE) handles.buffer, TRUE, INFINITE)
 }
 
 func isDoneNative(handle: ThreadHandle)->bool

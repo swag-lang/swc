@@ -17,7 +17,7 @@ internal const DAY4_SECRET = "yzbqklnj"
 
 internal func day4InitBuffer(buffer: [..] u8)
 {
-    Memory.copy(&buffer[0], @dataof(DAY4_SECRET), @countof(DAY4_SECRET))
+    Memory.copy(&buffer[0], DAY4_SECRET.buffer, DAY4_SECRET.count)
 }
 
 internal func day4BuildInput(buffer: [..] u8, value: u64)->const [..] u8
@@ -34,7 +34,7 @@ internal func day4BuildInput(buffer: [..] u8, value: u64)->const [..] u8
             break
     }
 
-    var writeIndex = @countof(DAY4_SECRET)
+    var writeIndex = DAY4_SECRET.count
     while digitCount
     {
         digitCount         -= 1
@@ -42,7 +42,7 @@ internal func day4BuildInput(buffer: [..] u8, value: u64)->const [..] u8
         writeIndex         += 1
     }
 
-    return @mkslice(&buffer[0], writeIndex)
+    return Swag.makeSlice(&buffer[0], writeIndex)
 }
 
 func day4A()
@@ -51,11 +51,11 @@ func day4A()
     day4InitBuffer(buffer)
     for
     {
-        let v = Hash.Md5.compute(day4BuildInput(buffer, @index))
+        let v = Hash.Md5.compute(day4BuildInput(buffer, Swag.index))
         if v[0] == 0 and v[1] == 0 and (v[2] & 0xF0) == 0
         {
-            // Console.print("total: ", @index)
-            @assert(@index == 282749)
+            // Console.print("total: ", Swag.index)
+            Swag.assert(Swag.index == 282749)
             break
         }
     }

@@ -39,11 +39,11 @@ func moveScalarInRegister(value: #move u64, a, b, c, d: u64)
 {
     var v = 77'u64
     moveScalarOnStack(1, 2, 3, 4, #move v)
-    @assert(g_out == 77)
+    Swag.assert(g_out == 77)
 
     var w = 88'u64
     moveScalarInRegister(#move w, 1, 2, 3, 4)
-    @assert(g_out == 88)
+    Swag.assert(g_out == 88)
 }
 
 func fwdScalarOnStack(a, b, c, d: u64, value: #fwd u64)
@@ -56,11 +56,11 @@ func fwdScalarOnStack(a, b, c, d: u64, value: #fwd u64)
 {
     var v = 11'u64
     fwdScalarOnStack(1, 2, 3, 4, #move v)
-    @assert(g_out == 11)
+    Swag.assert(g_out == 11)
 
     let plain = 22'u64
     fwdScalarOnStack(1, 2, 3, 4, plain)
-    @assert(g_out == 22)
+    Swag.assert(g_out == 22)
 }
 
 func moveStructOnStack(a, b, c, d: u64, value: #move Tracked)
@@ -74,10 +74,10 @@ func moveStructOnStack(a, b, c, d: u64, value: #move Tracked)
     g_copies, g_moves = 0
     var t = Tracked{5, 6}
     moveStructOnStack(1, 2, 3, 4, #move t)
-    @assert(g_slot.x == 5 and g_slot.y == 6)
-    @assert(g_moves == 1)
-    @assert(g_copies == 0)
-    @assert(t.x == 0 and t.y == 0)
+    Swag.assert(g_slot.x == 5 and g_slot.y == 6)
+    Swag.assert(g_moves == 1)
+    Swag.assert(g_copies == 0)
+    Swag.assert(t.x == 0 and t.y == 0)
 }
 
 struct Table
@@ -106,8 +106,8 @@ impl Table
 {
     var table: Table
     table.store(0, 1, 10, 30'u64)
-    @assert(table.slots[0] == 41)
+    Swag.assert(table.slots[0] == 41)
 
     table.storeDefault(1)
-    @assert(table.slots[1] == 109)
+    Swag.assert(table.slots[1] == 109)
 }

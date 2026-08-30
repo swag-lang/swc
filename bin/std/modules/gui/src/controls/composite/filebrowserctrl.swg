@@ -120,7 +120,7 @@ private impl FileBrowserCtrl
         .forwardButton.enable(.history.canGoForward())
         .historyButton.enable(.options.state != null and !.options.state.recentFolders.isEmpty())
         let parent = Path.directoryName(.currentFolder.toString()) orelse ""
-        .upButton.enable(@countof(parent) != 0 and parent != .currentFolder.toString())
+        .upButton.enable(parent.count != 0 and parent != .currentFolder.toString())
     }
 
     // Opens the recent-folders menu below the history button and navigates to the choice.
@@ -136,7 +136,7 @@ private impl FileBrowserCtrl
             if !Directory.exists(recent.toString()) do
                 continue
             var name = Path.fileName(recent.toString()) orelse ""
-            if !@countof(name) do
+            if !name.count do
                 name = recent.toString()
             var icon = .app().directoryIcon(recent.toString(), true)
             icon.color = .themeColors().label_Text
@@ -153,13 +153,13 @@ private impl FileBrowserCtrl
         let sr     = .historyButton.surfaceRect()
         let sel    = menu.doModal({sr.x, sr.bottom()}, .TopLeft, autoDestroy: true)
         let chosen = sel orelse ""
-        if @countof(chosen) do
+        if chosen.count do
             .setCurrentFolder(chosen)
     }
 
     mtd showFolder(folder: string)->bool
     {
-        if !@countof(folder) or !Directory.exists(folder) do
+        if !folder.count or !Directory.exists(folder) do
             return false
 
         var normalized = String.from(folder)
@@ -182,7 +182,7 @@ private impl FileBrowserCtrl
         .comboPathStr.clear()
 
         let all = Tokenize.split(.currentFolder.toString(), '/'rune)
-        for i in @countof(all).reversed()
+        for i in all.count.reversed()
         {
             var str: String
             for j in i + 1
@@ -658,7 +658,7 @@ impl FileBrowserCtrl
 
         with fileBrowser
         {
-            if @countof(fileBrowser.options.initialFolder) do
+            if fileBrowser.options.initialFolder.count do
                 .setCurrentFolder(fileBrowser.options.initialFolder)
             elif fileBrowser.options.state and !fileBrowser.options.state.currentFolder.isEmpty() do
                 .setCurrentFolder(fileBrowser.options.state.currentFolder)
@@ -749,7 +749,7 @@ impl FileBrowserCtrl
     mtd goUp()->bool
     {
         let parent = Path.directoryName(.currentFolder.toString()) orelse ""
-        if !@countof(parent) or parent == .currentFolder.toString() do
+        if !parent.count or parent == .currentFolder.toString() do
             return false
         return .setCurrentFolder(parent)
     }
@@ -797,7 +797,7 @@ impl FileBrowserCtrl
 
             // Filter
             var show = true
-            if !fi.isDirectory() and @countof(filterExtensions)
+            if !fi.isDirectory() and filterExtensions.count
             {
                 show = false
                 for t in tokens
@@ -900,7 +900,7 @@ impl FileBrowserCtrl
     mtd recordRecentFolder(folder: string)
     {
         let state = .options.state
-        if !state or !@countof(folder) or !Directory.exists(folder) do
+        if !state or !folder.count or !Directory.exists(folder) do
             return
 
         var normalized = String.from(folder)
@@ -960,7 +960,7 @@ impl FileBrowserCtrl
             var val = Path.combine(.currentFolder, t1.toString())
 
             // Append extension if not done by the user
-            if .options.mode != .SelectFolder and @countof(filterExtensions) and !Path.hasExtension(val, filterExtensions!)
+            if .options.mode != .SelectFolder and filterExtensions.count and !Path.hasExtension(val, filterExtensions!)
             {
                 let exts = Tokenize.split(filterExtensions!, ';'rune)
                 val += exts[0]

@@ -35,7 +35,7 @@ linker. It does not declare functions by itself.
 
 #test
 {
-    @assert(GetCurrentProcessId() != 0)
+    Swag.assert(GetCurrentProcessId() != 0)
     Sleep(0)
 }
 

@@ -27,8 +27,8 @@ impl ITest for Point3 {}
     var v3: Point3
 
     let i2 = cast(ITest) v2
-    @assert(i2.isImplemented())
+    Swag.assert(i2.isImplemented())
 
     let i3 = cast(ITest) v3
-    @assert(!i3.isImplemented())
+    Swag.assert(!i3.isImplemented())
 }

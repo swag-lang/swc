@@ -1058,7 +1058,7 @@ Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
     if (isBoolTestAlwaysTrue(sema, castRequest, srcTypeRef))
     {
         // A 'Swag.Late' slot is the one non-null value that legitimately starts empty, and the
-        // spelling that asks so is '@isset': the general help would send the reader to '#null',
+        // spelling that asks so is 'Swag.isSet': the general help would send the reader to '#null',
         // which the attribute rejects.
         const DiagnosticId diagId = SemaHelpers::isLateInitAccess(sema, castRequest.errorNodeRef) ? DiagnosticId::sema_err_bool_test_late_slot : boolTestAlwaysTrueDiagId(srcType);
         const Result       res    = castRequest.fail(diagId, srcTypeRef, dstTypeRef);

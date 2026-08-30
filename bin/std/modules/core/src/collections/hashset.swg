@@ -134,7 +134,7 @@ impl HashSet
             return
 
         if !.allocator do
-            .allocator = @getcontext().allocator
+            .allocator = Swag.getContext().allocator
 
         let oldTable = .tablePtr()
         let newTable = cast([*] HashSetEntry'(K)) Memory.alloc(.capacity * #sizeof(HashSetEntry'(K)), .allocator)
@@ -173,7 +173,7 @@ impl HashSet
         #scope(Up)
         for .capacity
         {
-            let tableIndex = @index
+            let tableIndex = Swag.index
             if table[tableIndex].hash < HashSet.HASH_FIRST do
                 continue
 
@@ -226,7 +226,7 @@ impl HashSet
             for i in .capacity
             {
                 if table[i].hash >= HashSet.HASH_DELETED do
-                    @drop(&table[i].key)
+                    Swag.drop(&table[i].key)
             }
         }
 
@@ -261,7 +261,7 @@ impl HashSet
         let newCapacityBytes = reqCapacity * #sizeof(HashSetEntry'(K))
 
         if !.allocator do
-            .allocator = @getcontext().allocator
+            .allocator = Swag.getContext().allocator
         .table = cast([*] HashSetEntry'(K)) Memory.alloc(newCapacityBytes, .allocator)
         let table = .tablePtr()
 
@@ -281,7 +281,7 @@ impl HashSet
             }
             elif h == HashSet.HASH_DELETED
             {
-                @drop(&oldTablePtr[i].key)
+                Swag.drop(&oldTablePtr[i].key)
             }
         }
 
@@ -392,7 +392,7 @@ impl HashSet
         {
             if table[index].hash == HashSet.HASH_DELETED do
                 .deleted -= 1
-            @drop(&table[index].key)
+            Swag.drop(&table[index].key)
             table[index].key = #relocate key[]
         }
 
@@ -512,7 +512,7 @@ impl HashSet
             {
                 let hashval = table[i].hash
                 if hashval >= HashSet.HASH_DELETED do
-                    @drop(&table[i].key)
+                    Swag.drop(&table[i].key)
 
                 if hashval == HashSet.HASH_DELETED do
                     .deleted -= 1
@@ -535,7 +535,7 @@ impl StrConv.IConvert for HashSet
         buf.addBytes("[")
         for k in me
         {
-            if @index do
+            if Swag.index do
                 buf.addBytes(", ")
             StrConv.convert'K(buf, k, convFormat, strFormat)
         }

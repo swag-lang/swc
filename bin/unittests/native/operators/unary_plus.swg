@@ -62,12 +62,12 @@ func unaryPlusStrictF32(a: UnaryPlusStrictF32)->UnaryPlusStrictF32
     #assert(#typeof(v4) == rune)
     #assert(#typeof(v5) == f32)
 
-    @assert(v0 == 42'u32)
-    @assert(v1 == 42.5'f64)
-    @assert(v2 == 42'u64)
-    @assert(v3 == -42)
-    @assert(v4 == 'A'rune)
-    @assert(v5 == 42.5'f32)
+    Swag.assert(v0 == 42'u32)
+    Swag.assert(v1 == 42.5'f64)
+    Swag.assert(v2 == 42'u64)
+    Swag.assert(v3 == -42)
+    Swag.assert(v4 == 'A'rune)
+    Swag.assert(v5 == 42.5'f32)
 }
 
 #test
@@ -82,8 +82,8 @@ func unaryPlusStrictF32(a: UnaryPlusStrictF32)->UnaryPlusStrictF32
     #assert(#typeof(constantInt) == UnaryPlusStrictS32)
     #assert(#typeof(constantFloat) == UnaryPlusStrictF32)
 
-    @assert(runtimeInt == cast(UnaryPlusStrictS32) -42)
-    @assert(runtimeFloat == cast(UnaryPlusStrictF32) 42.5'f32)
-    @assert(constantInt == cast(UnaryPlusStrictS32) -42)
-    @assert(constantFloat == cast(UnaryPlusStrictF32) 42.5'f32)
+    Swag.assert(runtimeInt == cast(UnaryPlusStrictS32) -42)
+    Swag.assert(runtimeFloat == cast(UnaryPlusStrictF32) 42.5'f32)
+    Swag.assert(constantInt == cast(UnaryPlusStrictS32) -42)
+    Swag.assert(constantFloat == cast(UnaryPlusStrictF32) 42.5'f32)
 }

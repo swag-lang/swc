@@ -19,9 +19,9 @@ making the code easier to read and maintain.
     x += 1
     y += 1
 
-    // Use the '@assert' intrinsic to verify the correctness of the logic.
-    @assert(x == 2)     // Confirms that 'x' equals 2. Raises an error if it fails.
-    @assert(y == x)     // Confirms that 'y' equals 'x', which should also be 2.
+    // Use the 'Swag.assert' intrinsic to verify the correctness of the logic.
+    Swag.assert(x == 2)     // Confirms that 'x' equals 2. Raises an error if it fails.
+    Swag.assert(y == x)     // Confirms that 'y' equals 'x', which should also be 2.
 }
 
 /**
@@ -56,6 +56,6 @@ control flow harder to scan.
     y += 1
 
     // Assert correctness of both variables.
-    @assert(x == 1)
-    @assert(y == 1)
+    Swag.assert(x == 1)
+    Swag.assert(y == 1)
 }

@@ -46,5 +46,5 @@ func day4B()
     }
 
     // Console.print("total: ", guard*min)
-    @assert(guard * min == 10491)
+    Swag.assert(guard * min == 10491)
 }

@@ -129,7 +129,7 @@ internal func clearLeftoverDefaultRoot(root: string) fail
 
                 if !adopted
                 {
-                    @print("[swag.sandbox] cannot clear the leftover sandbox root at '", root.toString(), "', nor adopt a sibling\n")
+                    Swag.print("[swag.sandbox] cannot clear the leftover sandbox root at '", root.toString(), "', nor adopt a sibling\n")
                     abortUnsandboxed()
                 }
             }
@@ -141,10 +141,10 @@ internal func clearLeftoverDefaultRoot(root: string) fail
             // exactly what the caller asked to prevent. The message is the only trace left
             // before the run dies, so it names both roots: that is what tells an unusable
             // request apart from a second arming that disagrees with the first.
-            @print("[swag.sandbox] cannot arm the sandbox at '", root.toString(), "'")
+            Swag.print("[swag.sandbox] cannot arm the sandbox at '", root.toString(), "'")
             if g_Sandboxed do
-                @print(", already armed at '", g_SandboxRoot.toString(), "'")
-            @print("\n")
+                Swag.print(", already armed at '", g_SandboxRoot.toString(), "'")
+            Swag.print("\n")
             abortUnsandboxed()
         }
 
@@ -159,7 +159,7 @@ internal func clearLeftoverDefaultRoot(root: string) fail
             // A grant that does not hold is worse than no grant at all: the run keeps going and
             // every recording it was launched to make is refused one by one, which reads as a
             // test failure rather than as a launcher mistake.
-            @print("[swag.sandbox] cannot grant the corpus at '", corpus.value.toString(), "'\n")
+            Swag.print("[swag.sandbox] cannot grant the corpus at '", corpus.value.toString(), "'\n")
             abortUnsandboxed()
         }
     }
@@ -176,7 +176,7 @@ internal func clearLeftoverDefaultRoot(root: string) fail
 // its drop hooks keeps its root, which is what makes a failure findable afterwards.
 #drop
 {
-    if !g_Sandboxed or !g_DefaultRoot or (@rtflags & .FromCompiler) do
+    if !g_Sandboxed or !g_DefaultRoot or (Swag.runtimeFlags() & .FromCompiler) do
         return
     discard catch Directory.delete(g_SandboxRoot.toString(), recurse: true)
 }
@@ -184,7 +184,7 @@ internal func clearLeftoverDefaultRoot(root: string) fail
 // Stops a run that asked to be isolated and could not be.
 private func abortUnsandboxed(loc = #callerlocation)
 {
-    @panic("sandbox setup failed", loc)
+    Swag.panic("sandbox setup failed", loc)
 }
 
 // Names a category of machine state an application mutates outside its own files.
@@ -203,7 +203,7 @@ enum SystemMutation
 // armed root is not, because code may already hold paths derived from the previous one.
 func enterSandbox(root: string) fail
 {
-    if @countof(root) == 0 do
+    if root.count == 0 do
         fail BadParameterError{"a sandbox needs a root directory"}
 
     let normalized = absolutePath(root)
@@ -227,11 +227,11 @@ func enterSandbox(root: string) fail
 // below the temporary directory.
 private func createDirectoryTree(path: string) fail
 {
-    if @countof(path) == 0 or Directory.exists(path) do
+    if path.count == 0 or Directory.exists(path) do
         return
 
     let parent = Path.directoryName(path)
-    if parent != null and @countof(parent) != 0 and parent != path do
+    if parent != null and parent.count != 0 and parent != path do
         try createDirectoryTree(parent)
 
     try Directory.create(path)
@@ -249,7 +249,7 @@ private func createDirectoryTree(path: string) fail
 // root is not, because code may already hold paths derived from the previous one.
 func grantCorpus(root: string) fail
 {
-    if @countof(root) == 0 do
+    if root.count == 0 do
         fail BadParameterError{"a corpus needs a root directory"}
 
     let normalized = absolutePath(root)
@@ -327,7 +327,7 @@ internal func denySystemMutation(mutation: SystemMutation)->bool
 // or a difference in case cannot smuggle a location past the check.
 func isInsideDirectory(root: string, path: string)->bool
 {
-    if @countof(root) == 0 do
+    if root.count == 0 do
         return false
 
     let full = absolutePath(path).toLower()
@@ -335,15 +335,15 @@ func isInsideDirectory(root: string, path: string)->bool
     let f    = full.toString()
     let r    = base.toString()
 
-    if @countof(f) < @countof(r) do
+    if f.count < r.count do
         return false
-    if f[0 until @countof(r)] != r do
+    if f[0 until r.count] != r do
         return false
 
     // A prefix match is not containment: 'C:/tmp/sandboxed' starts with 'C:/tmp/sandbox'.
-    if @countof(f) == @countof(r) do
+    if f.count == r.count do
         return true
-    return Path.isDirectorySeparator(f[@countof(r)])
+    return Path.isDirectorySeparator(f[r.count])
 }
 
 // Reports whether `path` is inside the sandbox. Answers true when nothing is armed.

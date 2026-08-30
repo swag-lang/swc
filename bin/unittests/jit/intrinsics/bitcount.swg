@@ -3,31 +3,31 @@
 #test
 {
     #[Swag.NoInline]
-    func nzU8(v: u8)->u8 => @bitcountnz(v)
+    func nzU8(v: u8)->u8 => Swag.bitCountNz(v)
     #[Swag.NoInline]
-    func nzU16(v: u16)->u16 => @bitcountnz(v)
+    func nzU16(v: u16)->u16 => Swag.bitCountNz(v)
     #[Swag.NoInline]
-    func nzU32(v: u32)->u32 => @bitcountnz(v)
+    func nzU32(v: u32)->u32 => Swag.bitCountNz(v)
     #[Swag.NoInline]
-    func nzU64(v: u64)->u64 => @bitcountnz(v)
+    func nzU64(v: u64)->u64 => Swag.bitCountNz(v)
 
     #[Swag.NoInline]
-    func tzU8(v: u8)->u8 => @bitcounttz(v)
+    func tzU8(v: u8)->u8 => Swag.bitCountTz(v)
     #[Swag.NoInline]
-    func tzU16(v: u16)->u16 => @bitcounttz(v)
+    func tzU16(v: u16)->u16 => Swag.bitCountTz(v)
     #[Swag.NoInline]
-    func tzU32(v: u32)->u32 => @bitcounttz(v)
+    func tzU32(v: u32)->u32 => Swag.bitCountTz(v)
     #[Swag.NoInline]
-    func tzU64(v: u64)->u64 => @bitcounttz(v)
+    func tzU64(v: u64)->u64 => Swag.bitCountTz(v)
 
     #[Swag.NoInline]
-    func lzU8(v: u8)->u8 => @bitcountlz(v)
+    func lzU8(v: u8)->u8 => Swag.bitCountLz(v)
     #[Swag.NoInline]
-    func lzU16(v: u16)->u16 => @bitcountlz(v)
+    func lzU16(v: u16)->u16 => Swag.bitCountLz(v)
     #[Swag.NoInline]
-    func lzU32(v: u32)->u32 => @bitcountlz(v)
+    func lzU32(v: u32)->u32 => Swag.bitCountLz(v)
     #[Swag.NoInline]
-    func lzU64(v: u64)->u64 => @bitcountlz(v)
+    func lzU64(v: u64)->u64 => Swag.bitCountLz(v)
 
     const A0 = #run nzU8(0b10110000'u8)
     const A1 = #run nzU16(0xF0F0'u16)

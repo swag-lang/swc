@@ -60,9 +60,9 @@ impl FormDlg
         result.form           = FormLayoutCtrl.create(result.createContentView(), options.formOptions)
         result.form.dockStyle = .Center
 
-        result.addButton(@countof(options.confirmButtonText) ? options.confirmButtonText : strings().dlg_Ok, Dialog.BtnOk, true)
+        result.addButton(options.confirmButtonText.count ? options.confirmButtonText : strings().dlg_Ok, Dialog.BtnOk, true)
         if options.showCancelButton do
-            result.addButton(@countof(options.cancelButtonText) ? options.cancelButtonText : strings().dlg_Cancel, Dialog.BtnCancel)
+            result.addButton(options.cancelButtonText.count ? options.cancelButtonText : strings().dlg_Cancel, Dialog.BtnCancel)
         result.applyLayout()
         return result
     }

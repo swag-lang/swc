@@ -73,7 +73,7 @@ private func sort()
         if a.value != b.value do
             return a.value <=> b.value
 
-        for i in @countof(a.val)
+        for i in a.val.count
         {
             let it0 = map.find(a.val[i])
             let it1 = map.find(b.val[i])
@@ -142,5 +142,5 @@ func day7A()
         total += (idx + 1) * c.bid
 
     // Console.print("total: ", total)
-    @assert(total == 249748283)
+    Swag.assert(total == 249748283)
 }

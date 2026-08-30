@@ -185,8 +185,8 @@ impl RichEditCtrl
                     let newL = .newLine(curLine + 1)
                     newL.wordWrap = true
 
-                    newL.chars.add(@mkslice(l.chars.buffer + i, l.chars.count - i))
-                    newL.styles.add(@mkslice(l.styles.buffer + i, l.chars.count - i))
+                    newL.chars.add(Swag.makeSlice(l.chars.buffer + i, l.chars.count - i))
+                    newL.styles.add(Swag.makeSlice(l.styles.buffer + i, l.chars.count - i))
                     newL.dirtyStyle       = false
                     newL.lexerEndingState = l.lexerEndingState
                     newL.lexerCptCmt      = l.lexerCptCmt
@@ -249,7 +249,7 @@ impl RichEditCtrl
 
         if !selRect
         {
-            for i in @countof(runes)
+            for i in runes.count
             {
                 let c = runes[i]
                 let s = nstyles[i]
@@ -270,7 +270,7 @@ impl RichEditCtrl
                     var posIns = posInLine
                     if posIns > line.length() do
                         posIns = line.length()
-                    line.insertRunes(posIns, @mkslice(runes.buffer + rankBeg, rankEnd - rankBeg), @mkslice(nstyles.buffer + rankBeg, rankEnd - rankBeg))
+                    line.insertRunes(posIns, Swag.makeSlice(runes.buffer + rankBeg, rankEnd - rankBeg), Swag.makeSlice(nstyles.buffer + rankBeg, rankEnd - rankBeg))
                     if rankEnd == runes.count do
                         break
                     if rankEnd >= runes.count - 1 do
@@ -479,7 +479,7 @@ public impl RichEditCtrl
     // Search starts after the current selection and wraps once at the end of the document.
     mtd findText(text: string)->bool
     {
-        if !@countof(text) or !.lines.count do
+        if !text.count or !.lines.count do
             return false
 
         let origin = .selectionEnd()
@@ -679,7 +679,7 @@ public impl RichEditCtrl
                 cp.lineIndex = caretI
                 if cp.charPosInLine > .lines[cp.lineIndex]!.length() do
                     continue
-                .insertTextPrivate(&cp, @mkstring(&az[0], cpt), st)
+                .insertTextPrivate(&cp, Swag.makeString(&az[0], cpt), st)
             }
 
             .moveCursorRight(&.selBeg)
@@ -687,7 +687,7 @@ public impl RichEditCtrl
         }
         else
         {
-            .insertTextPrivate(&.cursorPos, @mkstring(&az[0], cpt), st)
+            .insertTextPrivate(&.cursorPos, Swag.makeString(&az[0], cpt), st)
             .clearSelection()
         }
 
@@ -781,14 +781,14 @@ public impl RichEditCtrl
             {
                 while beg.charPosInLine < line.length() and Unicode.isSpace(line.chars[beg.charPosInLine])
                 {
-                    if Slice.equals(@mkslice(line.chars.buffer + beg.charPosInLine, lenTxt), arrR.toSlice()) do
+                    if Slice.equals(Swag.makeSlice(line.chars.buffer + beg.charPosInLine, lenTxt), arrR.toSlice()) do
                         break
                     beg.charPosInLine += 1
                 }
             }
 
             var beg1 = beg
-            if beg.charPosInLine < line.length() and Slice.equals(@mkslice(line.chars.buffer + beg.charPosInLine, lenTxt), arrR.toSlice())
+            if beg.charPosInLine < line.length() and Slice.equals(Swag.makeSlice(line.chars.buffer + beg.charPosInLine, lenTxt), arrR.toSlice())
             {
                 beg1.charPosInLine += lenTxt
             }

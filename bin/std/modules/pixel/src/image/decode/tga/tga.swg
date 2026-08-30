@@ -414,8 +414,8 @@ internal impl IImageDecoder for Decoder
 
     func impl decode(me, buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
-        var dataof  = @dataof(buffer)
-        let countof = @countof(buffer)
+        var dataof  = buffer.buffer
+        let countof = buffer.count
         let last    = dataof + countof
 
         if countof < #sizeof(Header) do

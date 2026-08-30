@@ -2,7 +2,7 @@
 /**
 # The Compiler Interface
 
-'@compiler' exposes 'Swag.ICompiler' while code is executing at compile time.
+'Swag.compiler()' exposes 'Swag.ICompiler' while code is executing at compile time.
 At runtime the intrinsic is 'null', so keep it inside '#run', '#message',
 macros, mixins, or other compile-time-only code.
 
@@ -21,7 +21,7 @@ A module setup file commonly uses '#run' to configure its build:
 ```swag
 #run
 {
-    let cfg = @compiler.getBuildCfg()!
+    let cfg = Swag.compiler().getBuildCfg()!
     cfg.moduleVersion  = 1
     cfg.moduleRevision = 0
     cfg.backendKind    = .Executable
@@ -40,7 +40,7 @@ Subscribe with a mask from 'Swag.CompilerMsgMask':
 ```swag
 #message(Swag.CompilerMsgMask.SemFunctions)
 {
-    let message = @compiler.getMessage()!
+    let message = Swag.compiler().getMessage()!
     if message.type == null or message.name == null do
         return
 
@@ -61,7 +61,7 @@ different source file.
 ```swag
 #message(Swag.CompilerMsgMask.PassAfterSemantic)
 {
-    @compiler.compileString(
+    Swag.compiler().compileString(
         "internal func generatedAnswer()->s32 { return 42 }\n")
 }
 ```

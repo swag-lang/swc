@@ -49,10 +49,10 @@ func unaryMinusStrictF32(a: UnaryMinusStrictF32)->UnaryMinusStrictF32
     #assert(#typeof(v2) == s64)
     #assert(#typeof(v3) == s32)
 
-    @assert(v0 == -42)
-    @assert(v1 == -42.5'f64)
-    @assert(v2 == -42's64)
-    @assert(v3 == 42)
+    Swag.assert(v0 == -42)
+    Swag.assert(v1 == -42.5'f64)
+    Swag.assert(v2 == -42's64)
+    Swag.assert(v3 == 42)
 }
 
 #test
@@ -63,8 +63,8 @@ func unaryMinusStrictF32(a: UnaryMinusStrictF32)->UnaryMinusStrictF32
     #assert(#typeof(runtimeValue) == UnaryMinusStrictS32)
     #assert(#typeof(constantValue) == UnaryMinusStrictS32)
 
-    @assert(runtimeValue == cast(UnaryMinusStrictS32) -42)
-    @assert(constantValue == cast(UnaryMinusStrictS32) -42)
+    Swag.assert(runtimeValue == cast(UnaryMinusStrictS32) -42)
+    Swag.assert(constantValue == cast(UnaryMinusStrictS32) -42)
 }
 
 #test
@@ -75,6 +75,6 @@ func unaryMinusStrictF32(a: UnaryMinusStrictF32)->UnaryMinusStrictF32
     #assert(#typeof(runtimeValue) == UnaryMinusStrictF32)
     #assert(#typeof(constantValue) == UnaryMinusStrictF32)
 
-    @assert(runtimeValue == cast(UnaryMinusStrictF32) -1.5'f32)
-    @assert(constantValue == cast(UnaryMinusStrictF32) -1.5'f32)
+    Swag.assert(runtimeValue == cast(UnaryMinusStrictF32) -1.5'f32)
+    Swag.assert(constantValue == cast(UnaryMinusStrictF32) -1.5'f32)
 }

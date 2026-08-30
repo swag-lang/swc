@@ -31,7 +31,7 @@ namespace WinFsp
         if !value do
             return ""
         let validValue = value!
-        return Utf8.fromUtf16(@mkslice(validValue, Utf16.lengthZeroTerminated(validValue)))
+        return Utf8.fromUtf16(Swag.makeSlice(validValue, Utf16.lengthZeroTerminated(validValue)))
     }
 
     func copySecurity(fileSystem: *FspFileSystem, nodeId: u64, security: #null *void, securitySize: *u64)->s32
@@ -45,13 +45,13 @@ namespace WinFsp
 
         let available = securitySize[]
         let stored    = node!.security.toSlice()
-        if @countof(stored)
+        if stored.count
         {
-            securitySize[] = @countof(stored)
-            if security and available < @countof(stored) do
+            securitySize[] = stored.count
+            if security and available < stored.count do
                 return StatusBufferOverflow
             if security do
-                @memcpy(security!, @dataof(stored), @countof(stored))
+                Swag.memcpy(security!, stored.buffer, stored.count)
             return StatusSuccess
         }
 
@@ -60,21 +60,21 @@ namespace WinFsp
         if security and available < required do
             return StatusBufferOverflow
         if security and required do
-            @memcpy(security!, context.defaultSecurity!, required)
+            Swag.memcpy(security!, context.defaultSecurity!, required)
         return StatusSuccess
     }
 
     func fspGetVolumeInfo(fileSystem: *FspFileSystem, info: *FspVolumeInfo)->s32
     {
         var label: [128] u8
-        let status = callbackGetVolumeInfo(mountedVolume(fileSystem), &info.totalSize, &info.freeSize, @dataof(label), cast(u32) @countof(label))
+        let status = callbackGetVolumeInfo(mountedVolume(fileSystem), &info.totalSize, &info.freeSize, label.buffer, cast(u32) label.count)
         if status != StatusSuccess do
             return status
 
-        let label16 = Utf16.fromUtf8(cString(@dataof(label)))
-        let count   = Math.min(@countof(label16), cast(u64) @countof(info.volumeLabel))
+        let label16 = Utf16.fromUtf8(cString(label.buffer))
+        let count   = Math.min(label16.count, cast(u64) info.volumeLabel.count)
         if count do
-            @memcpy(@dataof(info.volumeLabel), @dataof(label16), count * #sizeof(u16))
+            Swag.memcpy(info.volumeLabel.buffer, label16.buffer, count * #sizeof(u16))
         info.volumeLabelLength = cast(u16) (count * #sizeof(u16))
         return StatusSuccess
     }
@@ -213,18 +213,18 @@ namespace WinFsp
     {
         let context = cast(*FspEmitContext) emitContext!
         let name16  = Utf16.toZeroTerminated(cString(name))
-        let bytes   = #offsetof(FspDirInfo.fileName) + @countof(name16) * #sizeof(u16)
+        let bytes   = #offsetof(FspDirInfo.fileName) + name16.count * #sizeof(u16)
         if bytes > Swag.U16.Max do
             return 0
 
         var storage: Array'u8
         storage.resize(bytes)
-        @memset(storage.buffer, 0, bytes)
+        Swag.memset(storage.buffer, 0, bytes)
         let dirInfo = cast(*FspDirInfo) storage.buffer!
         dirInfo.size     = cast(u16) bytes
         dirInfo.fileInfo = info[]
-        if @countof(name16) > 1 do
-            @memcpy(&dirInfo.fileName[0], @dataof(name16), (@countof(name16) - 1) * #sizeof(u16))
+        if name16.count > 1 do
+            Swag.memcpy(&dirInfo.fileName[0], name16.buffer, (name16.count - 1) * #sizeof(u16))
         return (g_WinFsp.addDirInfo)(dirInfo, context.buffer, context.length, context.transferred)
     }
 
@@ -249,13 +249,13 @@ namespace WinFsp
             return status
 
         let name16 = Utf16.toZeroTerminated(value)
-        let bytes  = #offsetof(FspDirInfo.fileName) + @countof(name16) * #sizeof(u16)
+        let bytes  = #offsetof(FspDirInfo.fileName) + name16.count * #sizeof(u16)
         if bytes > Swag.U16.Max do
             return StatusInvalidParameter
         dirInfo.size     = cast(u16) bytes
         dirInfo.fileInfo = info
-        if @countof(name16) > 1 do
-            @memcpy(&dirInfo.fileName[0], @dataof(name16), (@countof(name16) - 1) * #sizeof(u16))
+        if name16.count > 1 do
+            Swag.memcpy(&dirInfo.fileName[0], name16.buffer, (name16.count - 1) * #sizeof(u16))
         return StatusSuccess
     }
 

@@ -320,7 +320,7 @@ public impl FontCache
     // of their own, so loading the same one through two caches parses it once.
     mtd createFont(fullname: string, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font fail
     {
-        Debug.assert(@countof(fullname) != 0)
+        Debug.assert(fullname.count != 0)
         let typeFace = try TypeFace.load(fullname)
         return .createFont(typeFace, size, mode, forceBold, forceItalic)
     }

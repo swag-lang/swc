@@ -1,12 +1,12 @@
 #global private
 
-const Cfg = #run @compiler.getBuildCfg()![]
+const Cfg = #run Swag.compiler().getBuildCfg()![]
 
 #test
 {
     func passAssert()->s32
     {
-        @assert(true)
+        Swag.assert(true)
         return 42
     }
 
@@ -18,7 +18,7 @@ const Cfg = #run @compiler.getBuildCfg()![]
 {
     func failAssert()->s32
     {
-        @assert(false)     // swc-expected-error {{sema_err_assert_failed}}
+        Swag.assert(false)     // swc-expected-error {{sema_err_assert_failed}}
         return 7
     }
 

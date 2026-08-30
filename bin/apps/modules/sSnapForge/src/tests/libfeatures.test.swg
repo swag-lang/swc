@@ -37,22 +37,22 @@ using Swag, Core
     let trash = Library.getTrashFolder()
 
     let u1 = Library.uniqueName(trash, src)
-    @assert(!File.exists(u1))
+    Swag.assert(!File.exists(u1))
 
     let moved = Library.moveFile(trash, src)
-    @assert(!moved.isEmpty())
-    @assert(!File.exists(src))
-    @assert(File.exists(moved))
+    Swag.assert(!moved.isEmpty())
+    Swag.assert(!File.exists(src))
+    Swag.assert(File.exists(moved))
 
     let u2 = Library.uniqueName(trash, moved)
-    @assert(u2 != moved)
-    @assert(!File.exists(u2))
+    Swag.assert(u2 != moved)
+    Swag.assert(!File.exists(u2))
 
     // Restore brings the capture back into the library folder.
     let restored = Library.restoreFile(moved)
-    @assert(!restored.isEmpty())
-    @assert(!File.exists(moved))
-    @assert(File.exists(restored))
+    Swag.assert(!restored.isEmpty())
+    Swag.assert(!File.exists(moved))
+    Swag.assert(File.exists(restored))
 
     discard catch File.delete(restored)
 }
@@ -79,9 +79,9 @@ using Swag, Core
 
     let loaded = expect Capture.load(path)!
     defer Memory.delete(loaded)
-    @assert(loaded.title == "Renamed")
-    @assert(loaded.width == 8)
-    @assert(loaded.backImg.isValid())
+    Swag.assert(loaded.title == "Renamed")
+    Swag.assert(loaded.width == 8)
+    Swag.assert(loaded.backImg.isValid())
 }
 
 // Copying a stored capture from the library places its full-resolution image on the
@@ -105,9 +105,9 @@ using Swag, Core
     f.main.copyLibraryImage(path)
 
     let img = Clipboard.getImage()
-    @assert(img.isValid())
-    @assert(img.width == 20)
-    @assert(img.height == 14)
+    Swag.assert(img.isValid())
+    Swag.assert(img.width == 20)
+    Swag.assert(img.height == 14)
 }
 
 // The library breadcrumb mirrors the real on-disk folder: it ends at the library folder
@@ -123,24 +123,24 @@ using Swag, Core
     lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd) lib, {0, 0, 600, 32})
 
     // Default (empty) current folder falls back to the library folder.
-    @assert(lib.currentFolder() == Library.getFolder())
+    Swag.assert(lib.currentFolder() == Library.getFolder())
     lib.updateBreadcrumb()
-    @assert(lib.breadcrumb.items.count > 0)
+    Swag.assert(lib.breadcrumb.items.count > 0)
     let lastNormal = lib.breadcrumb.items.back()
-    @assert(lastNormal.name == (Path.fileName(Library.getFolder()) orelse ""))
-    @assert(lastNormal.tag == Library.getFolder())
+    Swag.assert(lastNormal.name == (Path.fileName(Library.getFolder()) orelse ""))
+    Swag.assert(lastNormal.tag == Library.getFolder())
 
     // Point the library at the recycle bin folder.
     lib.curFolder = Library.getTrashFolder()
-    @assert(lib.currentFolder() == Library.getTrashFolder())
+    Swag.assert(lib.currentFolder() == Library.getTrashFolder())
     lib.updateBreadcrumb()
     let lastTrash = lib.breadcrumb.items.back()
-    @assert(lastTrash.tag == Library.getTrashFolder())
+    Swag.assert(lastTrash.tag == Library.getTrashFolder())
 
     // The recycle-bin leaf sits directly under the sSnapForge folder.
-    @assert(lib.breadcrumb.items.count >= 2)
+    Swag.assert(lib.breadcrumb.items.count >= 2)
     let parentOfTrash = lib.breadcrumb.items[lib.breadcrumb.items.count - 2]
-    @assert(parentOfTrash.tag == Library.getFolder())
+    Swag.assert(parentOfTrash.tag == Library.getFolder())
 }
 
 // The breadcrumb drop-down lists a level's real sub-folders and keeps their path ids in
@@ -164,7 +164,7 @@ using Swag, Core
     lib.fillBreadcrumbMenu(lib.breadcrumb, idx, menu)
 
     // Its recycle bin sub-folder is listed, with its path preserved in owned storage.
-    @assert(!lib.menuPaths.isEmpty())
+    Swag.assert(!lib.menuPaths.isEmpty())
     var foundTrash = false
     for p in lib.menuPaths
     {
@@ -172,7 +172,7 @@ using Swag, Core
             foundTrash = true
     }
 
-    @assert(foundTrash)
+    Swag.assert(foundTrash)
 
     menu.destroy()
 }
@@ -205,8 +205,8 @@ using Swag, Core
     view.loadOne(it)
 
     let itCapture = it.capture!
-    @assert(!itCapture.preview.isValid())
-    @assert(itCapture.haar.size == 0)
+    Swag.assert(!itCapture.preview.isValid())
+    Swag.assert(itCapture.haar.size == 0)
 }
 
 // Batch export uses the full capture, not the lightweight library preview, and writes a
@@ -239,8 +239,8 @@ using Swag, Core
     }
 
     expect lib.exportCapture(source, folder)
-    @assert(File.exists(exported))
+    Swag.assert(File.exists(exported))
     let image = expect Image.load(exported)
-    @assert(image.width == 24)
-    @assert(image.height == 16)
+    Swag.assert(image.width == 24)
+    Swag.assert(image.height == 16)
 }

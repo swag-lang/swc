@@ -119,7 +119,7 @@ private func runSourceSuite(context: *Context, options: *Options, relative: stri
     arguments.add(["--module-namespace", moduleNamespace])
     arguments.add(["--out-dir", paths.outDir.toString(), "--work-dir", paths.workDir.toString()])
     arguments.add(["--build-cfg", buildCfg])
-    if @countof(stage) != 0 do
+    if stage.count != 0 do
         arguments.add([stage])
 
     options.appendExtra(&arguments)

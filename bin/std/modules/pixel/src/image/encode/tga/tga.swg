@@ -21,10 +21,10 @@ func writeTgaPixel(result: *ConcatBuffer, src: const [*] u8, pixelFormat: PixelF
     switch pixelFormat
     {
     case .BGR8:
-        result.addBytes(@mkslice(src, 3))
+        result.addBytes(Swag.makeSlice(src, 3))
 
     case .BGRA8:
-        result.addBytes(@mkslice(src, 4))
+        result.addBytes(Swag.makeSlice(src, 4))
 
     case .RGB8:
         result.addNative(src[2])
@@ -110,15 +110,15 @@ func writeTgaRle(result: *ConcatBuffer, image: Image)
         switch image.pixelFormat
         {
         case .BGR8, .BGRA8:
-            result.addBytes(@mkslice(rawSource, rawCount * bytesPerPixel))
+            result.addBytes(Swag.makeSlice(rawSource, rawCount * bytesPerPixel))
 
         case .RGB8:
-            PackedPixel.swapRedBlue24Row(rawSource, @dataof(converted), rawCount)
-            result.addBytes(@mkslice(@dataof(converted), rawCount * bytesPerPixel))
+            PackedPixel.swapRedBlue24Row(rawSource, converted.buffer, rawCount)
+            result.addBytes(Swag.makeSlice(converted.buffer, rawCount * bytesPerPixel))
 
         case .RGBA8:
-            PackedPixel.swapRedBlue32Row(rawSource, @dataof(converted), rawCount)
-            result.addBytes(@mkslice(@dataof(converted), rawCount * bytesPerPixel))
+            PackedPixel.swapRedBlue32Row(rawSource, converted.buffer, rawCount)
+            result.addBytes(Swag.makeSlice(converted.buffer, rawCount * bytesPerPixel))
         }
     }
 }
@@ -130,10 +130,10 @@ internal impl IImageEncoder for Encoder
     mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {
         var userOptions: EncodeOptions
-        if @dataof(options) != null
+        if options.buffer != null
         {
-            Debug.assert(@kindof(options) == EncodeOptions)
-            userOptions = @dataof(options)![as EncodeOptions]
+            Debug.assert(Swag.kindOf(options) == EncodeOptions)
+            userOptions = options.buffer![as EncodeOptions]
         }
 
         if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do

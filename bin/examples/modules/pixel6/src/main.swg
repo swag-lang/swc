@@ -145,9 +145,9 @@ func renderGdiPlusOutlineImage(text: string, scale, density: f32)->Image
     var measurePath: #null *GpPath
     var bounds:      GpRectF
     gdipCheck(GdipCreatePath(GdipFillModeAlternate, &measurePath))
-    @assert(format != null)
-    @assert(family != null)
-    @assert(measurePath != null)
+    Swag.assert(format != null)
+    Swag.assert(family != null)
+    Swag.assert(measurePath != null)
     addGdiPathText(measurePath, text16.buffer!, count16, family, format, emSize, 0, 0)
     gdipCheck(GdipGetPathWorldBounds(measurePath, &bounds, null, null))
     gdipCheck(GdipDeletePath(measurePath))
@@ -162,9 +162,9 @@ func renderGdiPlusOutlineImage(text: string, scale, density: f32)->Image
     var bitmap:   #null *GpBitmap
     var graphics: #null *GpGraphics
     gdipCheck(GdipCreateBitmapFromScan0(localW, localH, localW * 4, GdipPixelFormat32bppPARGB, image.pixels.buffer, &bitmap))
-    @assert(bitmap != null)
+    Swag.assert(bitmap != null)
     gdipCheck(GdipGetImageGraphicsContext(cast(*GpImage) bitmap, &graphics))
-    @assert(graphics != null)
+    Swag.assert(graphics != null)
     gdipCheck(GdipSetSmoothingMode(graphics, GdipSmoothingModeHighQuality))
     gdipCheck(GdipSetPixelOffsetMode(graphics, GdipPixelOffsetModeHighQuality))
     gdipCheck(GdipSetTextRenderingHint(graphics, GdipTextRenderingHintAAGridFit))
@@ -172,17 +172,17 @@ func renderGdiPlusOutlineImage(text: string, scale, density: f32)->Image
 
     var path: #null *GpPath
     gdipCheck(GdipCreatePath(GdipFillModeAlternate, &path))
-    @assert(path != null)
+    Swag.assert(path != null)
     addGdiPathText(path, text16.buffer!, count16, family, format, emSize, margin + border - bounds.x, margin + border - bounds.y)
 
     var pen:   #null *GpPen
     var brush: #null *GpSolidFill
     gdipCheck(GdipCreatePen1(cast(u32) Argb.Crimson, border * 2, GdipUnitPixel, &pen))
-    @assert(pen != null)
+    Swag.assert(pen != null)
     gdipCheck(GdipSetPenLineJoin(pen, GdipLineJoinRound))
     gdipCheck(GdipCreateSolidFill(cast(u32) Argb.White, &brush))
     gdipCheck(GdipDrawPath(graphics, pen, path))
-    @assert(brush != null)
+    Swag.assert(brush != null)
     gdipCheck(GdipFillPath(graphics, cast(*GpBrush) brush, path))
 
     gdipCheck(GdipDeletePen(pen))

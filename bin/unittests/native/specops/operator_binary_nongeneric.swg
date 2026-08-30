@@ -36,10 +36,10 @@ impl RuntimeBinaryBox
 
     #assert(#typeof(sum) == RuntimeBinaryBox)
 
-    @assert(sum.a == 11'u64)
-    @assert(sum.b == 22'u64)
-    @assert(sum.c == 33'u64)
-    @assert(sum.d == 44'u64)
+    Swag.assert(sum.a == 11'u64)
+    Swag.assert(sum.b == 22'u64)
+    Swag.assert(sum.c == 33'u64)
+    Swag.assert(sum.d == 44'u64)
 }
 
 // Test: struct << scalar
@@ -48,10 +48,10 @@ impl RuntimeBinaryBox
     var value   = RuntimeBinaryBox{a: 2, b: 3, c: 4, d: 5}
     let shifted = value << 2'u64
 
-    @assert(shifted.a == 8'u64)
-    @assert(shifted.b == 12'u64)
-    @assert(shifted.c == 16'u64)
-    @assert(shifted.d == 20'u64)
+    Swag.assert(shifted.a == 8'u64)
+    Swag.assert(shifted.b == 12'u64)
+    Swag.assert(shifted.c == 16'u64)
+    Swag.assert(shifted.d == 20'u64)
 }
 
 // Test: struct + struct with zeros
@@ -61,10 +61,10 @@ impl RuntimeBinaryBox
     var rhs = RuntimeBinaryBox{a: 100, b: 200, c: 300, d: 400}
     let sum = lhs + rhs
 
-    @assert(sum.a == 100'u64)
-    @assert(sum.b == 200'u64)
-    @assert(sum.c == 300'u64)
-    @assert(sum.d == 400'u64)
+    Swag.assert(sum.a == 100'u64)
+    Swag.assert(sum.b == 200'u64)
+    Swag.assert(sum.c == 300'u64)
+    Swag.assert(sum.d == 400'u64)
 }
 
 // Test: struct << 0 (identity)
@@ -73,10 +73,10 @@ impl RuntimeBinaryBox
     var value   = RuntimeBinaryBox{a: 7, b: 13, c: 42, d: 99}
     let shifted = value << 0'u64
 
-    @assert(shifted.a == 7'u64)
-    @assert(shifted.b == 13'u64)
-    @assert(shifted.c == 42'u64)
-    @assert(shifted.d == 99'u64)
+    Swag.assert(shifted.a == 7'u64)
+    Swag.assert(shifted.b == 13'u64)
+    Swag.assert(shifted.c == 42'u64)
+    Swag.assert(shifted.d == 99'u64)
 }
 
 // Test: chaining struct + struct + struct
@@ -87,8 +87,8 @@ impl RuntimeBinaryBox
     var c   = RuntimeBinaryBox{a: 3, b: 3, c: 3, d: 3}
     let sum = a + b + c
 
-    @assert(sum.a == 6'u64)
-    @assert(sum.b == 6'u64)
-    @assert(sum.c == 6'u64)
-    @assert(sum.d == 6'u64)
+    Swag.assert(sum.a == 6'u64)
+    Swag.assert(sum.b == 6'u64)
+    Swag.assert(sum.c == 6'u64)
+    Swag.assert(sum.d == 6'u64)
 }

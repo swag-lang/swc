@@ -246,7 +246,7 @@ func hexText(value: u64, digits: u64)->String
         text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
     }
 
-    return String.from(@mkstring(text.buffer!, text.count))
+    return String.from(Swag.makeString(text.buffer!, text.count))
 }
 
 // Returns a value in the two readings a size or an address is always wanted in at once.
@@ -316,5 +316,5 @@ func guidText(image: *BinaryImage, offset: u64)->String
             text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
     }
 
-    return String.from(@mkstring(text.buffer!, text.count))
+    return String.from(Swag.makeString(text.buffer!, text.count))
 }

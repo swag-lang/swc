@@ -334,11 +334,11 @@ const SwitchPointerValues = [11, 22, 33]
     }
 
     var a: any = "hello"
-    @assert(switchAnyString(a) == 1)
+    Swag.assert(switchAnyString(a) == 1)
     a = 42
-    @assert(switchAnyString(a) == 2)
+    Swag.assert(switchAnyString(a) == 2)
     a = true
-    @assert(switchAnyString(a) == 0)
+    Swag.assert(switchAnyString(a) == 0)
 }
 
 #test
@@ -359,13 +359,13 @@ const SwitchPointerValues = [11, 22, 33]
     }
 
     var a: any = true
-    @assert(switchAnyMultiType(a) == 10)
+    Swag.assert(switchAnyMultiType(a) == 10)
     a = 3.14
-    @assert(switchAnyMultiType(a) == 20)
+    Swag.assert(switchAnyMultiType(a) == 20)
     a = 99
-    @assert(switchAnyMultiType(a) == 30)
+    Swag.assert(switchAnyMultiType(a) == 30)
     a = "fallback"
-    @assert(switchAnyMultiType(a) == 0)
+    Swag.assert(switchAnyMultiType(a) == 0)
 }
 
 #test
@@ -384,7 +384,7 @@ const SwitchPointerValues = [11, 22, 33]
     }
 
     var a: any = SwitchAnyDerived{base: {value: 7}, extra: 11}
-    @assert(switchAnyUsingBase(a) == 1)
+    Swag.assert(switchAnyUsingBase(a) == 1)
 }
 
 #test
@@ -401,7 +401,7 @@ const SwitchPointerValues = [11, 22, 33]
     }
 
     var a: any = SwitchAnyDerived{base: {value: 7}, extra: 11}
-    @assert(switchAnyUsingBaseBinding(a) == 7)
+    Swag.assert(switchAnyUsingBaseBinding(a) == 7)
 }
 
 #test
@@ -418,7 +418,7 @@ const SwitchPointerValues = [11, 22, 33]
     }
 
     var a: any = "value"
-    @assert(switchAnyStringBinding(a))
+    Swag.assert(switchAnyStringBinding(a))
 }
 
 #test
@@ -457,7 +457,7 @@ const SwitchPointerValues = [11, 22, 33]
         unreachable
     }
 
-    @assert(nameOf(SwitchCompleteKind.First) == "first")
-    @assert(nameOf(SwitchCompleteKind.Second) == "second")
-    @assert(nameOf(SwitchCompleteKind.Third) == "third")
+    Swag.assert(nameOf(SwitchCompleteKind.First) == "first")
+    Swag.assert(nameOf(SwitchCompleteKind.Second) == "second")
+    Swag.assert(nameOf(SwitchCompleteKind.Third) == "third")
 }

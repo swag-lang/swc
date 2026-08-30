@@ -108,16 +108,16 @@ func buildSchedule(orders: const [..] BakeOrder, trayCapacity: s32, shiftStartMi
 
     let weekdaySchedule = buildSchedule(weekdayPrep, 2, 240, 420)
 
-    @assert(weekdaySchedule.batchCount == 7)
-    @assert(weekdaySchedule.steamBatchCount == 5)
-    @assert(weekdaySchedule.traysProduced == 14)
-    @assert(weekdaySchedule.setupCount == 3)
-    @assert(weekdaySchedule.setupMinutes == 36)
-    @assert(weekdaySchedule.bakeMinutes == 126)
-    @assert(weekdaySchedule.ovenBusyMinutes == 162)
-    @assert(weekdaySchedule.lastBakeMinute == 402)
-    @assert(weekdaySchedule.finalReadyMinute == 432)
-    @assert(weekdaySchedule.opensOnTime == false)
+    Swag.assert(weekdaySchedule.batchCount == 7)
+    Swag.assert(weekdaySchedule.steamBatchCount == 5)
+    Swag.assert(weekdaySchedule.traysProduced == 14)
+    Swag.assert(weekdaySchedule.setupCount == 3)
+    Swag.assert(weekdaySchedule.setupMinutes == 36)
+    Swag.assert(weekdaySchedule.bakeMinutes == 126)
+    Swag.assert(weekdaySchedule.ovenBusyMinutes == 162)
+    Swag.assert(weekdaySchedule.lastBakeMinute == 402)
+    Swag.assert(weekdaySchedule.finalReadyMinute == 432)
+    Swag.assert(weekdaySchedule.opensOnTime == false)
 
     const marketPrep: [3] BakeOrder =
         [
@@ -128,14 +128,14 @@ func buildSchedule(orders: const [..] BakeOrder, trayCapacity: s32, shiftStartMi
 
     let marketSchedule = buildSchedule(marketPrep, 3, 180, 390)
 
-    @assert(marketSchedule.batchCount == 5)
-    @assert(marketSchedule.steamBatchCount == 2)
-    @assert(marketSchedule.traysProduced == 14)
-    @assert(marketSchedule.setupCount == 3)
-    @assert(marketSchedule.setupMinutes == 36)
-    @assert(marketSchedule.bakeMinutes == 100)
-    @assert(marketSchedule.ovenBusyMinutes == 136)
-    @assert(marketSchedule.lastBakeMinute == 316)
-    @assert(marketSchedule.finalReadyMinute == 351)
-    @assert(marketSchedule.opensOnTime)
+    Swag.assert(marketSchedule.batchCount == 5)
+    Swag.assert(marketSchedule.steamBatchCount == 2)
+    Swag.assert(marketSchedule.traysProduced == 14)
+    Swag.assert(marketSchedule.setupCount == 3)
+    Swag.assert(marketSchedule.setupMinutes == 36)
+    Swag.assert(marketSchedule.bakeMinutes == 100)
+    Swag.assert(marketSchedule.ovenBusyMinutes == 136)
+    Swag.assert(marketSchedule.lastBakeMinute == 316)
+    Swag.assert(marketSchedule.finalReadyMinute == 351)
+    Swag.assert(marketSchedule.opensOnTime)
 }

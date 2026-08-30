@@ -32,29 +32,29 @@ func failDeep() fail
 #test
 {
     catch failWithMessage() as err
-    @assert(err != null)
-    @assert(Errors.message(err) == "the message text")
+    Swag.assert(err != null)
+    Swag.assert(Errors.message(err) == "the message text")
 }
 
 #test
 {
     catch failWithoutMessage() as err
-    @assert(Errors.message(err) == "BadParameterError")
+    Swag.assert(Errors.message(err) == "BadParameterError")
 }
 
 #test
 {
     catch failWithoutBase() as err
-    @assert(Errors.message(err) == "InvalidVersion")
+    Swag.assert(Errors.message(err) == "InvalidVersion")
 }
 
 #test
 {
     catch failDeep() as err
-    @assert(Errors.message(err) == "the deep text")
+    Swag.assert(Errors.message(err) == "the deep text")
 }
 
 #test
 {
-    @assert(Errors.message(null) == "")
+    Swag.assert(Errors.message(null) == "")
 }

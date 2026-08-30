@@ -23,8 +23,8 @@ func computeWithMixin(value: s32)->s32
 
     mixinFromCallerScope()
 
-    @assert(total == 42)
-    @assert(mixedValue == 84)
+    Swag.assert(total == 42)
+    Swag.assert(mixedValue == 84)
     return total
 }
 
@@ -47,11 +47,11 @@ func computeInjectedMixinTotal()->s32
 // Mixin accesses caller scope variables
 #test
 {
-    @assert(computeWithMixin(41) == 42)
+    Swag.assert(computeWithMixin(41) == 42)
 }
 
 // Mixin-injected code can reference mixin parameters
 #test
 {
-    @assert(computeInjectedMixinTotal() == 12)
+    Swag.assert(computeInjectedMixinTotal() == 12)
 }

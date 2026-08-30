@@ -1,7 +1,7 @@
 #global private
 
 // 'Swag.Late' global: accepted without an initializer (unlike a bare non-null global),
-// exposed as a non-null type, guarded at every read, and inspectable with '@isset'.
+// exposed as a non-null type, guarded at every read, and inspectable with 'Swag.isSet'.
 
 struct LateGlobalSemaItem
 {
@@ -26,10 +26,10 @@ func lateSemaRead()->s32
     return lateSemaTakesNonNull(g_lateSemaItem)
 }
 
-// '@isset' inspects the storage without reading the value.
+// 'Swag.isSet' inspects the storage without reading the value.
 func lateSemaIsSet()->bool
 {
-    return @isset(g_lateSemaItem) and @isset(g_lateSemaName)
+    return Swag.isSet(g_lateSemaItem) and Swag.isSet(g_lateSemaName)
 }
 
 // Assignment sets it; the target is not a guarded read.

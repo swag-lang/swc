@@ -35,7 +35,7 @@ private func htmlNamedEntity(name: string)->HtmlEntity
 private func htmlFindNamedRef(table: const [..] HtmlNamedRef, name: string)->u64
 {
     var low  = 0'u64
-    var high = @countof(table)
+    var high = table.count
     while low < high
     {
         let middle = low + (high - low) / 2
@@ -59,13 +59,13 @@ private func htmlFindNamedRef(table: const [..] HtmlNamedRef, name: string)->u64
 private func htmlLegacyEntity(text: string, inAttribute: bool)->HtmlEntity
 {
     var result: retval
-    var length = Math.min(@countof(text), HtmlMaxRefName)
+    var length = Math.min(text.count, HtmlMaxRefName)
     while length >= 2
     {
         let found = htmlFindNamedRef(HtmlLegacyRefs, text[0 until length])
         if found != Swag.U64.Max
         {
-            if inAttribute and length < @countof(text)
+            if inAttribute and length < text.count
             {
                 let next = text[length]
                 if next == '=' or Latin1.isLetterOrDigit(next) do
@@ -130,12 +130,12 @@ private func htmlNumericReplacement(value: u64)->rune
 func htmlDecodeEntity(source: string, start: u64, inAttribute = false)->HtmlEntity
 {
     var result: retval
-    if start >= @countof(source) or source[start] != '&' do
+    if start >= source.count or source[start] != '&' do
         return result
 
     // A reference never runs past the longest name the standard lists, plus its `&` and its `;`,
     // so a stray `&` in prose costs a bounded scan instead of a search to the end of the document.
-    let limit = Math.min(start + HtmlMaxRefName + 2, @countof(source))
+    let limit = Math.min(start + HtmlMaxRefName + 2, source.count)
     var close = start + 1
     while close < limit and source[close] != ';' do
         close += 1
@@ -145,25 +145,25 @@ func htmlDecodeEntity(source: string, start: u64, inAttribute = false)->HtmlEnti
     let name = source[start + 1 until close]
     if name[0] == '#'
     {
-        if @countof(name) < 2 do
+        if name.count < 2 do
             return result
         let hexadecimal = name[1] == 'x' or name[1] == 'X'
         let digits      = hexadecimal ? name[2 to] : name[1 to]
-        if !@countof(digits) do
+        if !digits.count do
             return result
 
         var number: u64
         if hexadecimal
         {
             let parsed = catch StrConv.parseX64(digits) as parseError
-            if parseError != null or parsed.ovf or parsed.eat != @countof(digits) do
+            if parseError != null or parsed.ovf or parsed.eat != digits.count do
                 return result
             number = parsed.value
         }
         else
         {
             let parsed = catch StrConv.parseU64(digits) as parseError
-            if parseError != null or parsed.ovf or parsed.eat != @countof(digits) do
+            if parseError != null or parsed.ovf or parsed.eat != digits.count do
                 return result
             number = parsed.value
         }
@@ -188,7 +188,7 @@ func htmlDecodeEntity(source: string, start: u64, inAttribute = false)->HtmlEnti
 private func htmlDecodeLegacyEntity(source: string, start: u64, inAttribute: bool)->HtmlEntity
 {
     var result: retval
-    let tail   = source[start + 1 until Math.min(start + 1 + HtmlMaxRefName, @countof(source))]
+    let tail   = source[start + 1 until Math.min(start + 1 + HtmlMaxRefName, source.count)]
     let legacy = htmlLegacyEntity(tail, inAttribute)
     if !legacy.eat do
         return result
@@ -214,7 +214,7 @@ func htmlDecodeInto(output: *String, source: string, inAttribute = false)
 {
     var index  = 0'u64
     var copied = 0'u64
-    while index < @countof(source)
+    while index < source.count
     {
         let next = Utf8.indexOf(source, '&'rune, index)
         if next == Swag.U64.Max do

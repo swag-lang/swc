@@ -184,7 +184,7 @@ func day10B()
             {
                 let resultX = cast(s64) vaporized.pos.x
                 let resultY = cast(s64) vaporized.pos.y
-                @assert((resultX * 100) + resultY == 502)
+                Swag.assert((resultX * 100) + resultY == 502)
                 return
             }
         }

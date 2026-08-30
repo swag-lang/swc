@@ -21,6 +21,6 @@ func sliceToBool()->bool
 
 #test
 {
-    @assert(stringToBool())
-    @assert(sliceToBool())
+    Swag.assert(stringToBool())
+    Swag.assert(sliceToBool())
 }

@@ -28,7 +28,7 @@ func hasVisibleChar(sheet: const [..] string, column: u32)->bool
     for line in sheet
     {
         let bytes = cast(const [..] u8) line
-        @assert(column < @countof(bytes))
+        Swag.assert(column < bytes.count)
 
         if bytes[column] != ' ' do
             return true
@@ -61,9 +61,9 @@ func parseAlignedNumber(line: string, firstColumn, lastColumn: u32, value: *u64)
 
 func evaluateProblem(sheet: const [..] string, firstColumn, lastColumn: u32)->ProblemValue
 {
-    @assert(@countof(sheet) >= 2)
+    Swag.assert(sheet.count >= 2)
 
-    let operatorLine = cast(const [..] u8) sheet[@countof(sheet) - 1]
+    let operatorLine = cast(const [..] u8) sheet[sheet.count - 1]
 
     var op: u8
     for column in firstColumn to lastColumn
@@ -75,12 +75,12 @@ func evaluateProblem(sheet: const [..] string, firstColumn, lastColumn: u32)->Pr
         }
     }
 
-    @assert(op == '+' or op == '*')
+    Swag.assert(op == '+' or op == '*')
 
     var value:       u64
     var numberCount: u32
 
-    for row in 0 to @countof(sheet) - 1
+    for row in 0 to sheet.count - 1
     {
         var parsedValue: u64
         if parseAlignedNumber(sheet[row], firstColumn, lastColumn, &parsedValue)
@@ -101,7 +101,7 @@ func evaluateProblem(sheet: const [..] string, firstColumn, lastColumn: u32)->Pr
         }
     }
 
-    @assert(numberCount > 0)
+    Swag.assert(numberCount > 0)
 
     var result: ProblemValue
     result.value      = value
@@ -111,14 +111,14 @@ func evaluateProblem(sheet: const [..] string, firstColumn, lastColumn: u32)->Pr
 
 func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
 {
-    @assert(@countof(sheet) >= 2)
+    Swag.assert(sheet.count >= 2)
 
     let firstLine = cast(const [..] u8) sheet[0]
-    let width     = cast(u32) @countof(firstLine)
+    let width     = cast(u32) firstLine.count
 
     for line in sheet
     {
-        @assert(@countof(cast(const [..] u8) line) == width)
+        Swag.assert((cast(const [..] u8) line).count == width)
     }
 
     var result: WorksheetRollup
@@ -168,11 +168,11 @@ func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
 
     let sampleRollup = rollupWorksheet(sampleSheet)
 
-    @assert(sampleRollup.problemCount == 4'u32)
-    @assert(sampleRollup.additiveProblemCount == 2'u32)
-    @assert(sampleRollup.multiplicativeCount == 2'u32)
-    @assert(sampleRollup.grandTotal == 4277556'u64)
-    @assert(sampleRollup.largestProblemValue == 4243455'u64)
+    Swag.assert(sampleRollup.problemCount == 4'u32)
+    Swag.assert(sampleRollup.additiveProblemCount == 2'u32)
+    Swag.assert(sampleRollup.multiplicativeCount == 2'u32)
+    Swag.assert(sampleRollup.grandTotal == 4277556'u64)
+    Swag.assert(sampleRollup.largestProblemValue == 4243455'u64)
 
     const eveningSheet: [5] string =
         [
@@ -185,9 +185,9 @@ func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
 
     let eveningRollup = rollupWorksheet(eveningSheet)
 
-    @assert(eveningRollup.problemCount == 3'u32)
-    @assert(eveningRollup.additiveProblemCount == 1'u32)
-    @assert(eveningRollup.multiplicativeCount == 2'u32)
-    @assert(eveningRollup.grandTotal == 110640'u64)
-    @assert(eveningRollup.largestProblemValue == 77000'u64)
+    Swag.assert(eveningRollup.problemCount == 3'u32)
+    Swag.assert(eveningRollup.additiveProblemCount == 1'u32)
+    Swag.assert(eveningRollup.multiplicativeCount == 2'u32)
+    Swag.assert(eveningRollup.grandTotal == 110640'u64)
+    Swag.assert(eveningRollup.largestProblemValue == 77000'u64)
 }

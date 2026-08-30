@@ -89,7 +89,7 @@ private const StandardEncodingRunes: [56] { code: u8, value: u16 } = [
 // belongs to the font's own string INDEX.
 func standardString(sid: u32)->string
 {
-    if sid < @countof(StandardStrings) do
+    if sid < StandardStrings.count do
         return StandardStrings[sid]
     return ""
 }
@@ -121,9 +121,9 @@ func standardEncodingRune(code: u8)->rune
 // selects it, which is the path a font with no character map is addressed by.
 func glyphNameRune(name: string)->rune
 {
-    if @countof(name) == 7 and name[0 to 2] == "uni" do
+    if name.count == 7 and name[0 to 2] == "uni" do
         return parseNameHex(name[3 until])
-    if @countof(name) >= 5 and @countof(name) <= 7 and name[0] == 'u' do
+    if name.count >= 5 and name.count <= 7 and name[0] == 'u' do
         return parseNameHex(name[1 until])
     return 0
 }

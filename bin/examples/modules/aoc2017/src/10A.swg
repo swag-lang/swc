@@ -61,5 +61,5 @@ func day10A()
         skip += 1
     }
 
-    @assert(arr[0] * arr[1] == 19591)
+    Swag.assert(arr[0] * arr[1] == 19591)
 }

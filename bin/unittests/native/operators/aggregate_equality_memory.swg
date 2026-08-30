@@ -44,11 +44,11 @@ var g_arr: [3] [3] s64
     g_p2[2] = P2{0, 10000}     // identical to [1]
     g_p2[3] = P2{10000, 0}     // different x, same y
 
-    @assert(neP2(g_p2[0], g_p2[1]))
-    @assert(!eqP2(g_p2[0], g_p2[1]))
-    @assert(eqP2(g_p2[1], g_p2[2]))
-    @assert(neP2(g_p2[0], g_p2[3]))
-    @assert(eqP2(g_p2[1], g_p2[1]))
+    Swag.assert(neP2(g_p2[0], g_p2[1]))
+    Swag.assert(!eqP2(g_p2[0], g_p2[1]))
+    Swag.assert(eqP2(g_p2[1], g_p2[2]))
+    Swag.assert(neP2(g_p2[0], g_p2[3]))
+    Swag.assert(eqP2(g_p2[1], g_p2[1]))
 }
 
 // 12-byte struct differing only in the THIRD field (exercises B64 + B32 chunk).
@@ -58,8 +58,8 @@ var g_arr: [3] [3] s64
     g_p3[1] = P3{1, 2, 9}     // differ in c only
     g_p3[2] = P3{1, 2, 3}     // identical to [0]
 
-    @assert(!eqP3(g_p3[0], g_p3[1]))
-    @assert(eqP3(g_p3[0], g_p3[2]))
+    Swag.assert(!eqP3(g_p3[0], g_p3[1]))
+    Swag.assert(eqP3(g_p3[0], g_p3[2]))
 }
 
 // 9-byte struct differing only in the LAST byte (exercises B64 + B8 tail chunk).
@@ -69,8 +69,8 @@ var g_arr: [3] [3] s64
     g_pb[1] = PB{[1, 2, 3, 4, 5, 6, 7, 8, 9]}     // differ in last byte
     g_pb[2] = PB{[1, 2, 3, 4, 5, 6, 7, 8, 9]}     // identical to [1]
 
-    @assert(!eqPB(g_pb[0], g_pb[1]))
-    @assert(eqPB(g_pb[1], g_pb[2]))
+    Swag.assert(!eqPB(g_pb[0], g_pb[1]))
+    Swag.assert(eqPB(g_pb[1], g_pb[2]))
 }
 
 // Nested struct (24 bytes) differing deep inside the nested member / tail.
@@ -81,9 +81,9 @@ var g_arr: [3] [3] s64
     g_big[2] = Big{P2{5, 7}, 200}     // differ only in k
     g_big[3] = Big{P2{5, 7}, 100}     // identical to [0]
 
-    @assert(!eqBig(g_big[0], g_big[1]))
-    @assert(!eqBig(g_big[0], g_big[2]))
-    @assert(eqBig(g_big[0], g_big[3]))
+    Swag.assert(!eqBig(g_big[0], g_big[1]))
+    Swag.assert(!eqBig(g_big[0], g_big[2]))
+    Swag.assert(eqBig(g_big[0], g_big[3]))
 }
 
 // Static array equality is routed through the same aggregate compare path.
@@ -93,6 +93,6 @@ var g_arr: [3] [3] s64
     g_arr[1] = [1, 2, 4]     // differ in last element
     g_arr[2] = [1, 2, 3]
 
-    @assert(!eqArr3(g_arr[0], g_arr[1]))
-    @assert(eqArr3(g_arr[0], g_arr[2]))
+    Swag.assert(!eqArr3(g_arr[0], g_arr[1]))
+    Swag.assert(eqArr3(g_arr[0], g_arr[2]))
 }

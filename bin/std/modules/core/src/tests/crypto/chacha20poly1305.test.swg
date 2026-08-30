@@ -23,7 +23,7 @@ func rangeBytes(count: u64, first: u8)->Array'u8
     let expected: [16] u8 = [
         0xA8, 0x06, 0x1D, 0xC1, 0x30, 0x51, 0x36, 0xC6,
         0xC2, 0x2B, 0x8B, 0xAF, 0x0C, 0x01, 0x27, 0xA9]
-    @assert(Crypto.constantTimeEqual(tag, expected))
+    Swag.assert(Crypto.constantTimeEqual(tag, expected))
 }
 
 #test
@@ -34,7 +34,7 @@ func rangeBytes(count: u64, first: u8)->Array'u8
 
     let empty    = expect Crypto.Poly1305.compute(key.toSlice(), "")
     var emptyMac = expect Crypto.Poly1305.create(key.toSlice())
-    @assert(Crypto.constantTimeEqual(empty, emptyMac.finalize()))
+    Swag.assert(Crypto.constantTimeEqual(empty, emptyMac.finalize()))
 
     let message = rangeBytes(97, 1)
     let oneShot = expect Crypto.Poly1305.compute(key.toSlice(), message.toSlice())
@@ -48,8 +48,8 @@ func rangeBytes(count: u64, first: u8)->Array'u8
         offset += chunk
     }
 
-    @assert(Crypto.constantTimeEqual(oneShot, streamed.finalize()))
-    @assert(!Crypto.constantTimeEqual(oneShot, empty))
+    Swag.assert(Crypto.constantTimeEqual(oneShot, streamed.finalize()))
+    Swag.assert(!Crypto.constantTimeEqual(oneShot, empty))
 }
 
 #test
@@ -61,24 +61,24 @@ func rangeBytes(count: u64, first: u8)->Array'u8
     let nonce:          [12] u8 = [0x07, 0x00, 0x00, 0x00, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47]
 
     var ciphertext: Array'u8
-    ciphertext.resize(@countof(plaintext))
+    ciphertext.resize(plaintext.count)
     var tag: [Crypto.ChaCha20Poly1305TagSize] u8
     expect Crypto.chacha20Poly1305Seal(key.toSlice(), nonce, plaintext, associatedData, ciphertext.toSlice(), tag)
 
     let expectedTag: [16] u8 = [
         0x1A, 0xE1, 0x0B, 0x59, 0x4F, 0x09, 0xE2, 0x6A,
         0x7E, 0x90, 0x2E, 0xCB, 0xD0, 0x60, 0x06, 0x91]
-    @assert(Crypto.constantTimeEqual(tag, expectedTag))
+    Swag.assert(Crypto.constantTimeEqual(tag, expectedTag))
 
     let expectedHead: [16] u8 = [
         0xD3, 0x1A, 0x8D, 0x34, 0x64, 0x8E, 0x60, 0xDB,
         0x7B, 0x86, 0xAF, 0xBC, 0x53, 0xEF, 0x7E, 0xC2]
-    @assert(Crypto.constantTimeEqual(ciphertext.toSlice()[0 until 16], expectedHead))
+    Swag.assert(Crypto.constantTimeEqual(ciphertext.toSlice()[0 until 16], expectedHead))
 
     var opened: Array'u8
-    opened.resize(@countof(plaintext))
-    @assert(expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce, ciphertext.toSlice(), tag, associatedData, opened.toSlice()))
-    @assert(Crypto.constantTimeEqual(opened.toSlice(), plaintext))
+    opened.resize(plaintext.count)
+    Swag.assert(expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce, ciphertext.toSlice(), tag, associatedData, opened.toSlice()))
+    Swag.assert(Crypto.constantTimeEqual(opened.toSlice(), plaintext))
 }
 
 #test
@@ -94,36 +94,36 @@ func rangeBytes(count: u64, first: u8)->Array'u8
     ciphertext.resize(plaintext.count)
     var tag: [Crypto.ChaCha20Poly1305TagSize] u8
     expect Crypto.chacha20Poly1305Seal(key.toSlice(), nonce.toSlice(), plaintext.toSlice(), associatedData.toSlice(), ciphertext.toSlice(), tag)
-    @assert(!Crypto.constantTimeEqual(ciphertext.toSlice(), plaintext.toSlice()))
+    Swag.assert(!Crypto.constantTimeEqual(ciphertext.toSlice(), plaintext.toSlice()))
 
     var opened: Array'u8
     opened.resize(plaintext.count)
-    @assert(expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), ciphertext.toSlice(), tag, associatedData.toSlice(), opened.toSlice()))
-    @assert(Crypto.constantTimeEqual(opened.toSlice(), plaintext.toSlice()))
+    Swag.assert(expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), ciphertext.toSlice(), tag, associatedData.toSlice(), opened.toSlice()))
+    Swag.assert(Crypto.constantTimeEqual(opened.toSlice(), plaintext.toSlice()))
 
     ciphertext[0] ^= 1
-    @assert(!(expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), ciphertext.toSlice(), tag, associatedData.toSlice(), opened.toSlice())))
+    Swag.assert(!(expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), ciphertext.toSlice(), tag, associatedData.toSlice(), opened.toSlice())))
     ciphertext[0] ^= 1
 
     tag[0] ^= 1
-    @assert(!(expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), ciphertext.toSlice(), tag, associatedData.toSlice(), opened.toSlice())))
+    Swag.assert(!(expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), ciphertext.toSlice(), tag, associatedData.toSlice(), opened.toSlice())))
     tag[0] ^= 1
 
     let otherAssociated = rangeBytes(9, 0x34)
-    @assert(!(expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), ciphertext.toSlice(), tag, otherAssociated.toSlice(), opened.toSlice())))
+    Swag.assert(!(expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), ciphertext.toSlice(), tag, otherAssociated.toSlice(), opened.toSlice())))
 
     let otherNonce = rangeBytes(12, 0x23)
-    @assert(!(expect Crypto.chacha20Poly1305Open(key.toSlice(), otherNonce.toSlice(), ciphertext.toSlice(), tag, associatedData.toSlice(), opened.toSlice())))
+    Swag.assert(!(expect Crypto.chacha20Poly1305Open(key.toSlice(), otherNonce.toSlice(), ciphertext.toSlice(), tag, associatedData.toSlice(), opened.toSlice())))
 
     let otherKey = rangeBytes(32, 0x12)
-    @assert(!(expect Crypto.chacha20Poly1305Open(otherKey.toSlice(), nonce.toSlice(), ciphertext.toSlice(), tag, associatedData.toSlice(), opened.toSlice())))
+    Swag.assert(!(expect Crypto.chacha20Poly1305Open(otherKey.toSlice(), nonce.toSlice(), ciphertext.toSlice(), tag, associatedData.toSlice(), opened.toSlice())))
 
     // An empty payload is still authenticated, which is what a metadata-only
     // record relies on.
     var emptyPayload: Array'u8
     var emptyTag:     [Crypto.ChaCha20Poly1305TagSize] u8
     expect Crypto.chacha20Poly1305Seal(key.toSlice(), nonce.toSlice(), "", associatedData.toSlice(), emptyPayload.toSlice(), emptyTag)
-    @assert(expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), "", emptyTag, associatedData.toSlice(), emptyPayload.toSlice()))
+    Swag.assert(expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), "", emptyTag, associatedData.toSlice(), emptyPayload.toSlice()))
     emptyTag[15] ^= 0x80
-    @assert(!(expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), "", emptyTag, associatedData.toSlice(), emptyPayload.toSlice())))
+    Swag.assert(!(expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), "", emptyTag, associatedData.toSlice(), emptyPayload.toSlice())))
 }

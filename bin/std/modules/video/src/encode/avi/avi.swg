@@ -44,14 +44,14 @@ private struct IndexEntry
 private func(T) writeValue(sink: *Sink, value: T) fail
 {
     var stored = value
-    sink.write(@mkslice(cast(const [*] u8) &stored, #sizeof(T)))
+    sink.write(Swag.makeSlice(cast(const [*] u8) &stored, #sizeof(T)))
 }
 
 // Rewrites one value of a header the sink already accepted.
 private func(T) patchValue(sink: *Sink, offset: u64, value: T) fail
 {
     var stored = value
-    sink.patch(offset, @mkslice(cast(const [*] u8) &stored, #sizeof(T)))
+    sink.patch(offset, Swag.makeSlice(cast(const [*] u8) &stored, #sizeof(T)))
 }
 
 // Writes AVI files one frame at a time, compressing each of them as a JPEG image.
@@ -88,10 +88,10 @@ impl IEncoder for Encoder
             fail UnsupportedFormatError{"AVI frame dimensions exceed what the container can describe"}
 
         .info = info
-        if @dataof(options) != null
+        if options.buffer != null
         {
-            Debug.assert(@kindof(options) == EncodeOptions)
-            .options = @dataof(options)![as EncodeOptions]
+            Debug.assert(Swag.kindOf(options) == EncodeOptions)
+            .options = options.buffer![as EncodeOptions]
         }
 
         writeValue(sink, RiffId)
@@ -136,7 +136,7 @@ impl IEncoder for Encoder
         encoded.makeLinear()
 
         let payload = encoded.toSlice()!
-        let size    = @countof(payload)
+        let size    = payload.count
         .reserve(sink, size)
 
         .index.add({cast(u32) (sink.position() - .frameList), cast(u32) size})

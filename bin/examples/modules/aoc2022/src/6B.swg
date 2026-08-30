@@ -26,7 +26,7 @@ func day6B()
     var len = 0
 
     const LEN = 14
-    for i in @countof(str)
+    for i in str.count
     {
         arr[str[i]] += 1
         len         += cast(s32) (arr[str[i]] == 1)
@@ -40,7 +40,7 @@ func day6B()
         if len == LEN
         {
             // Console.print("total: ", i+1)
-            @assert(i + 1 == 2308)
+            Swag.assert(i + 1 == 2308)
             break
         }
     }

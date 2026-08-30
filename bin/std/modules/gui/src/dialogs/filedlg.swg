@@ -165,7 +165,7 @@ impl FileDlg
             .updateFlags(add: .Resizable)
             .minSize = {540, 420}
 
-            if @countof(opt.title) do
+            if opt.title.count do
                 .setTitle(opt.title)
             else
             {
@@ -180,7 +180,7 @@ impl FileDlg
         }
 
         var confirmText = opt.confirmButtonText
-        if !@countof(confirmText)
+        if !confirmText.count
         {
             switch #complete opt.mode
             {

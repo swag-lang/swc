@@ -111,17 +111,17 @@ func(N: s32) maxThrusterSignal(prg: [N] s32)->s32
 #test
 {
     let program: [11] s32 = [3, 0, 3, 1, 1, 0, 1, 0, 4, 0, 99]
-    @assert(runIntcodeProgram(program, [17, 25]) == 42)
+    Swag.assert(runIntcodeProgram(program, [17, 25]) == 42)
 }
 
 #test
 {
     let program: [17] s32 = [3, 15, 3, 16, 1002, 16, 10, 16, 1, 16, 15, 15, 4, 15, 99, 0, 0]
-    @assert(maxThrusterSignal(program) == 43210)
+    Swag.assert(maxThrusterSignal(program) == 43210)
 }
 
 #test
 {
     let program: [25] s32 = [3, 23, 3, 24, 1002, 24, 10, 24, 1002, 23, -1, 23, 101, 5, 23, 23, 1, 24, 23, 23, 4, 23, 99, 0, 0]
-    @assert(maxThrusterSignal(program) == 54321)
+    Swag.assert(maxThrusterSignal(program) == 54321)
 }

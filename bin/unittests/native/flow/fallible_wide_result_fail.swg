@@ -42,22 +42,22 @@ func makeBig(ok: bool)->Big fail
 #test
 {
     var v = catch makeSmall(false) as err
-    @assert(err != null)
-    @assert(v.a == 0)
+    Swag.assert(err != null)
+    Swag.assert(v.a == 0)
 }
 
 #test
 {
     var v = catch makeBig(false) as err
-    @assert(err != null)
-    @assert(v.data[0] == 0)
-    @assert(v.data[63] == 0)
+    Swag.assert(err != null)
+    Swag.assert(v.data[0] == 0)
+    Swag.assert(v.data[63] == 0)
 }
 
 #test
 {
     var v = catch makeBig(true) as err
-    @assert(err == null)
-    @assert(v.data[0] == 1)
-    @assert(v.data[63] == 2)
+    Swag.assert(err == null)
+    Swag.assert(v.data[0] == 1)
+    Swag.assert(v.data[63] == 2)
 }

@@ -248,8 +248,8 @@ impl Slice
                 if mb.codedBlocks[cast(u64) (qy * 2 * 4 + qx * 2)] != 0
                 {
                     var block: [64] s16 = undefined
-                    .dequant8x8(mb, quad, list, @dataof(block))
-                    addIdct8x8(dst, stride, @dataof(block))
+                    .dequant8x8(mb, quad, list, block.buffer)
+                    addIdct8x8(dst, stride, block.buffer)
                 }
             }
 
@@ -347,8 +347,8 @@ impl Slice
         }
 
         var block: [16] s16 = undefined
-        .dequant4x4(mb, raster, 0, false, @dataof(block))
-        addIdct4x4(destination, stride, @dataof(block))
+        .dequant4x4(mb, raster, 0, false, block.buffer)
+        addIdct4x4(destination, stride, block.buffer)
     }
 
     // Adds the luma residual of a macroblock whose prediction is already in place.
@@ -365,7 +365,7 @@ impl Slice
             var dcBlock: [16] s16
             for scan in 16'u64 do
                 dcBlock[cast(u64) Zigzag4[scan]] = mb.residual!.lumaDc[scan]
-            hadamard4x4(@dataof(dcBlock))
+            hadamard4x4(dcBlock.buffer)
 
             for raster in 16's32
             {
@@ -373,8 +373,8 @@ impl Slice
                 let by              = raster >> 2
                 let dc              = (cast(s32) dcBlock[cast(u64) (by * 4 + bx)] * cast(s32) pps.dequant4[0, cast(u64) mb.qp, 0] + 32) >> 6
                 var block: [16] s16 = undefined
-                .dequant4x4(mb, raster, dc, true, @dataof(block))
-                addIdct4x4(frame.pixLuma(mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4), stride, @dataof(block))
+                .dequant4x4(mb, raster, dc, true, block.buffer)
+                addIdct4x4(frame.pixLuma(mb.mbX * 16 + bx * 4, mb.mbY * 16 + by * 4), stride, block.buffer)
             }
 
             return
@@ -387,8 +387,8 @@ impl Slice
                 if (mb.cbpLuma & (1'u32 << cast(u32) quad)) == 0 do
                     continue
                 var block: [64] s16 = undefined
-                .dequant8x8(mb, quad, mb.class == MbClassInter ? 1'u64 : 0'u64, @dataof(block))
-                addIdct8x8(frame.pixLuma(mb.mbX * 16 + (quad & 1) * 8, mb.mbY * 16 + (quad >> 1) * 8), stride, @dataof(block))
+                .dequant8x8(mb, quad, mb.class == MbClassInter ? 1'u64 : 0'u64, block.buffer)
+                addIdct8x8(frame.pixLuma(mb.mbX * 16 + (quad & 1) * 8, mb.mbY * 16 + (quad >> 1) * 8), stride, block.buffer)
             }
 
             return
@@ -421,7 +421,7 @@ impl Slice
         var dc: [4] s16
         for index in 4'u64 do
             dc[index] = mb.residual!.chromaDc[cast(u64) plane * 4 + index]
-        hadamard2x2(@dataof(dc))
+        hadamard2x2(dc.buffer)
 
         for block in 4's32
         {
@@ -447,7 +447,7 @@ impl Slice
             }
 
             if hasAny do
-                addIdct4x4(frame.pixChroma(plane, mb.mbX * 8 + bx * 4, mb.mbY * 8 + by * 4), stride, @dataof(coeffs))
+                addIdct4x4(frame.pixChroma(plane, mb.mbX * 8 + bx * 4, mb.mbY * 8 + by * 4), stride, coeffs.buffer)
         }
     }
 
@@ -502,9 +502,9 @@ impl Slice
             let lumaDst = frame.pixLuma(lumaX, lumaY)
             if ref0 and ref1
             {
-                .mcLumaList(mb, job, 0, ref0!, @dataof(tempA), 16)
-                .mcLumaList(mb, job, 1, ref1!, @dataof(tempB), 16)
-                .combineBi(mb, job, @dataof(tempA), @dataof(tempB), lumaDst, frame.strideLuma, job.width, job.height, luma: true, plane: 0)
+                .mcLumaList(mb, job, 0, ref0!, tempA.buffer, 16)
+                .mcLumaList(mb, job, 1, ref1!, tempB.buffer, 16)
+                .combineBi(mb, job, tempA.buffer, tempB.buffer, lumaDst, frame.strideLuma, job.width, job.height, luma: true, plane: 0)
             }
             else
             {
@@ -512,9 +512,9 @@ impl Slice
                 let reference = ref0 ? ref0! : ref1!
                 if .useWeights
                 {
-                    .mcLumaList(mb, job, list, reference, @dataof(tempA), 16)
+                    .mcLumaList(mb, job, list, reference, tempA.buffer, 16)
                     let entry = &.refs[list, cast(u64) job.refIdx[list]]
-                    weightUni(lumaDst, frame.strideLuma, @dataof(tempA), 16, job.width, job.height, cast(s32) .lumaLog2Denom, entry.lumaWeight, entry.lumaOffset)
+                    weightUni(lumaDst, frame.strideLuma, tempA.buffer, 16, job.width, job.height, cast(s32) .lumaLog2Denom, entry.lumaWeight, entry.lumaOffset)
                 }
                 else
                 {
@@ -530,9 +530,9 @@ impl Slice
                 let chromaDst = frame.pixChroma(plane, chromaX, chromaY)
                 if ref0 and ref1
                 {
-                    .mcChromaList(mb, job, 0, ref0!, plane, @dataof(tempA), 16)
-                    .mcChromaList(mb, job, 1, ref1!, plane, @dataof(tempB), 16)
-                    .combineBi(mb, job, @dataof(tempA), @dataof(tempB), chromaDst, frame.strideChroma, job.width / 2, job.height / 2, luma: false, plane: plane)
+                    .mcChromaList(mb, job, 0, ref0!, plane, tempA.buffer, 16)
+                    .mcChromaList(mb, job, 1, ref1!, plane, tempB.buffer, 16)
+                    .combineBi(mb, job, tempA.buffer, tempB.buffer, chromaDst, frame.strideChroma, job.width / 2, job.height / 2, luma: false, plane: plane)
                 }
                 else
                 {
@@ -540,11 +540,11 @@ impl Slice
                     let reference = ref0 ? ref0! : ref1!
                     if .useWeights
                     {
-                        .mcChromaList(mb, job, list, reference, plane, @dataof(tempA), 16)
+                        .mcChromaList(mb, job, list, reference, plane, tempA.buffer, 16)
                         let entry  = &.refs[list, cast(u64) job.refIdx[list]]
                         let weight = plane == 0 ? entry.cbWeight : entry.crWeight
                         let offset = plane == 0 ? entry.cbOffset : entry.crOffset
-                        weightUni(chromaDst, frame.strideChroma, @dataof(tempA), 16, job.width / 2, job.height / 2, cast(s32) .chromaLog2Denom, weight, offset)
+                        weightUni(chromaDst, frame.strideChroma, tempA.buffer, 16, job.width / 2, job.height / 2, cast(s32) .chromaLog2Denom, weight, offset)
                     }
                     else
                     {

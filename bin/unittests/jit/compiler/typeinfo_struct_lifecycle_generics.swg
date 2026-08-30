@@ -195,11 +195,11 @@ func genericDirectAndFieldCopyWorks()->bool
     resetEvents()
     var value = GenericDirectAndField'GenericProbe{child: GenericProbe{value: 5}, stamp: 7}
     runCopy(type, &value)
-    @assert(EventCount == 2)
-    @assert(Events[0] == 205)
-    @assert(Events[1] == 2)
-    @assert(value.child.value == 6)
-    @assert(value.stamp == 107)
+    Swag.assert(EventCount == 2)
+    Swag.assert(Events[0] == 205)
+    Swag.assert(Events[1] == 2)
+    Swag.assert(value.child.value == 6)
+    Swag.assert(value.stamp == 107)
     return true
 }
 
@@ -209,11 +209,11 @@ func genericDirectAndFieldMoveWorks()->bool
     resetEvents()
     var value = GenericDirectAndField'GenericProbe{child: GenericProbe{value: 6}, stamp: 107}
     runMove(type, &value)
-    @assert(EventCount == 2)
-    @assert(Events[0] == 306)
-    @assert(Events[1] == 3)
-    @assert(value.child.value == 16)
-    @assert(value.stamp == 1107)
+    Swag.assert(EventCount == 2)
+    Swag.assert(Events[0] == 306)
+    Swag.assert(Events[1] == 3)
+    Swag.assert(value.child.value == 16)
+    Swag.assert(value.stamp == 1107)
     return true
 }
 
@@ -263,7 +263,7 @@ func nestedGenericInitWorks()->bool
 func genericConstArrayInitWorks()->bool
 {
     let type = #typeof(GenericArrayLifecycle'(GenericInitProbe, 3))
-    @assert(hasLifecycleShape(type, false, false, false))
+    Swag.assert(hasLifecycleShape(type, false, false, false))
 
     var value: GenericArrayLifecycle'(GenericInitProbe, 3)
     value.values[0].value = 4
@@ -275,13 +275,13 @@ func genericConstArrayInitWorks()->bool
 
     resetEvents()
     runInit(type, &value)
-    @assert(EventCount == 0)
-    @assert(value.values[0].value == 21)
-    @assert(value.values[0].ready)
-    @assert(value.values[1].value == 21)
-    @assert(value.values[1].ready)
-    @assert(value.values[2].value == 21)
-    @assert(value.values[2].ready)
+    Swag.assert(EventCount == 0)
+    Swag.assert(value.values[0].value == 21)
+    Swag.assert(value.values[0].ready)
+    Swag.assert(value.values[1].value == 21)
+    Swag.assert(value.values[1].ready)
+    Swag.assert(value.values[2].value == 21)
+    Swag.assert(value.values[2].ready)
     return true
 }
 
@@ -360,15 +360,15 @@ func genericCascadeInitRestoresArraysAndNestedFields()->bool
 
 #test
 {
-    @assert(genericPodInstancesStayPod())
-    @assert(genericDirectAndFieldShapeWorks())
-    @assert(genericDirectAndFieldInitWorks())
-    @assert(genericDirectAndFieldDropWorks())
-    @assert(genericDirectAndFieldCopyWorks())
-    @assert(genericDirectAndFieldMoveWorks())
-    @assert(nestedGenericCompositionWorks())
-    @assert(nestedGenericInitWorks())
-    @assert(genericConstArrayInitWorks())
-    @assert(genericConstArrayLifecycleWorks())
-    @assert(genericCascadeInitRestoresArraysAndNestedFields())
+    Swag.assert(genericPodInstancesStayPod())
+    Swag.assert(genericDirectAndFieldShapeWorks())
+    Swag.assert(genericDirectAndFieldInitWorks())
+    Swag.assert(genericDirectAndFieldDropWorks())
+    Swag.assert(genericDirectAndFieldCopyWorks())
+    Swag.assert(genericDirectAndFieldMoveWorks())
+    Swag.assert(nestedGenericCompositionWorks())
+    Swag.assert(nestedGenericInitWorks())
+    Swag.assert(genericConstArrayInitWorks())
+    Swag.assert(genericConstArrayLifecycleWorks())
+    Swag.assert(genericCascadeInitRestoresArraysAndNestedFields())
 }

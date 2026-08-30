@@ -8,9 +8,9 @@
     var x = 10
     {
         var x = 20
-        @assert(x == 20)
+        Swag.assert(x == 20)
     }
-    @assert(x == 10)
+    Swag.assert(x == 10)
 }
 
 // Shadowing in if block.
@@ -20,9 +20,9 @@
     if true
     {
         var value = 2
-        @assert(value == 2)
+        Swag.assert(value == 2)
     }
-    @assert(value == 1)
+    Swag.assert(value == 1)
 }
 
 // Shadowing in for loop.
@@ -32,9 +32,9 @@
     for i in 3
     {
         var sum = i * 10
-        @assert(sum == i * 10)
+        Swag.assert(sum == i * 10)
     }
-    @assert(sum == 0)
+    Swag.assert(sum == 0)
 }
 
 // Multiple levels of shadowing.
@@ -45,11 +45,11 @@
         var x = 2
         {
             var x = 3
-            @assert(x == 3)
+            Swag.assert(x == 3)
         }
-        @assert(x == 2)
+        Swag.assert(x == 2)
     }
-    @assert(x == 1)
+    Swag.assert(x == 1)
 }
 
 // Shadow with different types.
@@ -58,9 +58,9 @@
     var v: s32 = 42
     {
         var v: f64 = 3.14
-        @assert(v == 3.14)
+        Swag.assert(v == 3.14)
     }
-    @assert(v == 42)
+    Swag.assert(v == 42)
 }
 
 // Shadow in while loop.
@@ -71,8 +71,8 @@
     while i < 3
     {
         var count = i
-        @assert(count == i)
+        Swag.assert(count == i)
         i += 1
     }
-    @assert(count == 100)
+    Swag.assert(count == 100)
 }

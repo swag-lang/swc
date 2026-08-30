@@ -16,11 +16,11 @@ using Swag, Core
     let c2 = Wnd.create'Wnd(stack, null, {0, 0, 200, 40})
     stack.computeLayout()
 
-    @assert(c0.position.y == 0)
-    @assert(c1.position.y == 45)
-    @assert(c2.position.y == 90)
-    @assert(c0.position.width == 200)
-    @assert(c0.position.height == 40)
+    Swag.assert(c0.position.y == 0)
+    Swag.assert(c1.position.y == 45)
+    Swag.assert(c2.position.y == 90)
+    Swag.assert(c0.position.width == 200)
+    Swag.assert(c0.position.height == 40)
 }
 
 // StackLayoutCtrl Left stacks children horizontally with spacing.
@@ -36,11 +36,11 @@ using Swag, Core
     let c2 = Wnd.create'Wnd(stack, null, {0, 0, 30, 100})
     stack.computeLayout()
 
-    @assert(c0.position.x == 0)
-    @assert(c1.position.x == 35)
-    @assert(c2.position.x == 70)
-    @assert(c0.position.height == 100)
-    @assert(c0.position.width == 30)
+    Swag.assert(c0.position.x == 0)
+    Swag.assert(c1.position.x == 35)
+    Swag.assert(c2.position.x == 70)
+    Swag.assert(c0.position.height == 100)
+    Swag.assert(c0.position.width == 30)
 }
 
 // StackLayoutCtrl HorzCenter centers children horizontally as a group.
@@ -57,9 +57,9 @@ using Swag, Core
     stack.computeLayout()
 
     // total = 3*40 + 2*5 = 130; start x = 200/2 - 130/2 = 35.
-    @assert(c0.position.x == 35)
-    @assert(c1.position.x == 80)
-    @assert(c2.position.x == 125)
+    Swag.assert(c0.position.x == 35)
+    Swag.assert(c1.position.x == 80)
+    Swag.assert(c2.position.x == 125)
 }
 
 // StackLayoutCtrl HorizontalEnd keeps source order and aligns the group to the trailing edge.
@@ -75,9 +75,9 @@ using Swag, Core
     let c2 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
     stack.computeLayout()
 
-    @assert(c0.position.x == 70)
-    @assert(c1.position.x == 115)
-    @assert(c2.position.x == 160)
+    Swag.assert(c0.position.x == 70)
+    Swag.assert(c1.position.x == 115)
+    Swag.assert(c2.position.x == 160)
 }
 
 // StackLayoutCtrl VertCenter centers children vertically as a group.
@@ -94,15 +94,15 @@ using Swag, Core
     stack.computeLayout()
 
     // total = 3*30 + 2*5 = 100; start y = 200/2 - 100/2 = 50.
-    @assert(c0.position.y == 50)
-    @assert(c1.position.y == 85)
-    @assert(c2.position.y == 120)
+    Swag.assert(c0.position.y == 50)
+    Swag.assert(c1.position.y == 85)
+    Swag.assert(c2.position.y == 120)
 
     // Vertically, and only vertically: the other axis keeps the stack's own edge, so children
     // of different widths read on one left edge instead of on as many as they have widths.
-    @assert(c0.position.x == 0)
-    @assert(c1.position.x == 0)
-    @assert(c2.position.x == 0)
+    Swag.assert(c0.position.x == 0)
+    Swag.assert(c1.position.x == 0)
+    Swag.assert(c2.position.x == 0)
 }
 
 // StackLayoutCtrl distributes remaining space only to expandable children.
@@ -119,10 +119,10 @@ using Swag, Core
     grow.layoutSpec.weightY = 1
     stack.computeLayout()
 
-    @assert(fixed.position == Math.Rectangle{0, 0, 200, 40})
-    @assert(grow.position == Math.Rectangle{0, 40, 200, 160})
-    @assert(grow.managedByLayout)
-    @assert(grow.layoutDebug.arrangedRect == grow.position)
+    Swag.assert(fixed.position == Math.Rectangle{0, 0, 200, 40})
+    Swag.assert(grow.position == Math.Rectangle{0, 40, 200, 160})
+    Swag.assert(grow.managedByLayout)
+    Swag.assert(grow.layoutDebug.arrangedRect == grow.position)
 }
 
 // StackLayoutCtrl honors minSize when available space is too small.
@@ -137,8 +137,8 @@ using Swag, Core
     child.minSize.y = 60
     stack.computeLayout()
 
-    @assert(child.position.height == 60)
-    @assert(child.layoutDebug.measuredMin.y == 60)
+    Swag.assert(child.position.height == 60)
+    Swag.assert(child.layoutDebug.measuredMin.y == 60)
 }
 
 // StackLayoutCtrl propagates layout to arranged children.
@@ -154,13 +154,13 @@ using Swag, Core
     fill.dockStyle = .Center
     stack.computeLayout()
 
-    @assert(fill.position == Math.Rectangle{0, 0, 120, 35})
+    Swag.assert(fill.position == Math.Rectangle{0, 0, 120, 35})
 
     line.setPosition({0, 0, 120, 50})
     stack.applyLayout()
 
-    @assert(line.position == Math.Rectangle{0, 0, 120, 50})
-    @assert(fill.position == Math.Rectangle{0, 0, 120, 50})
+    Swag.assert(line.position == Math.Rectangle{0, 0, 120, 50})
+    Swag.assert(fill.position == Math.Rectangle{0, 0, 120, 50})
 }
 
 // WrapLayoutCtrl flows fixed-size items left to right, wrapping to new rows.
@@ -178,11 +178,11 @@ using Swag, Core
     let c2 = Wnd.create'Wnd(wrap, null, {0, 0, 0, 0})
     wrap.computeLayout()
 
-    @assert(c0.position == Math.Rectangle{0, 0, 64, 64})
-    @assert(c1.position == Math.Rectangle{69, 0, 64, 64})
+    Swag.assert(c0.position == Math.Rectangle{0, 0, 64, 64})
+    Swag.assert(c1.position == Math.Rectangle{69, 0, 64, 64})
 
     // The third item no longer fits on the first row and wraps.
-    @assert(c2.position == Math.Rectangle{0, 69, 64, 64})
+    Swag.assert(c2.position == Math.Rectangle{0, 69, 64, 64})
 }
 
 // GridLayoutCtrl supports content and fractional tracks.
@@ -205,10 +205,10 @@ using Swag, Core
     grid.setCell(c2, 2, 0)
     grid.computeLayout()
 
-    @assert(c0.position.width == 60)
-    @assert(c1.position.x == 60)
-    @assert(Math.abs(c1.position.width - 80) <= 1)
-    @assert(Math.abs(c2.position.width - 160) <= 1)
+    Swag.assert(c0.position.width == 60)
+    Swag.assert(c1.position.x == 60)
+    Swag.assert(Math.abs(c1.position.width - 80) <= 1)
+    Swag.assert(Math.abs(c2.position.width - 160) <= 1)
 }
 
 // GridLayoutCtrl places children in fixed columns/rows with spacing.
@@ -234,10 +234,10 @@ using Swag, Core
     grid.setCell(c11, 1, 1)
     grid.computeLayout()
 
-    @assert(c00.position == Math.Rectangle{0, 0, 100, 30})
-    @assert(c10.position == Math.Rectangle{105, 0, 100, 30})
-    @assert(c01.position == Math.Rectangle{0, 35, 100, 30})
-    @assert(c11.position == Math.Rectangle{105, 35, 100, 30})
+    Swag.assert(c00.position == Math.Rectangle{0, 0, 100, 30})
+    Swag.assert(c10.position == Math.Rectangle{105, 0, 100, 30})
+    Swag.assert(c01.position == Math.Rectangle{0, 35, 100, 30})
+    Swag.assert(c11.position == Math.Rectangle{105, 35, 100, 30})
 }
 
 // GridLayoutCtrl supports cells spanning multiple columns.
@@ -255,7 +255,7 @@ using Swag, Core
     grid.computeLayout()
 
     // Spanning two 100-wide columns plus the 5px gap between them.
-    @assert(wide.position == Math.Rectangle{0, 0, 205, 30})
+    Swag.assert(wide.position == Math.Rectangle{0, 0, 205, 30})
 }
 
 // Fractional tracks redistribute space left unused by a capped track.
@@ -274,8 +274,8 @@ using Swag, Core
     grid.setCell(right, 1, 0)
     grid.computeLayout()
 
-    @assert(Math.abs(left.position.width - 50) < 0.01)
-    @assert(Math.abs(right.position.width - 250) < 0.01)
+    Swag.assert(Math.abs(left.position.width - 50) < 0.01)
+    Swag.assert(Math.abs(right.position.width - 250) < 0.01)
 }
 
 // Reassigning a grid child clears its previous cells.
@@ -288,11 +288,11 @@ using Swag, Core
     let child = Wnd.create'Wnd(grid)
     grid.setCell(child, 0, 0)
     grid.computeLayout()
-    @assert(child.position.x == 0)
+    Swag.assert(child.position.x == 0)
 
     grid.setCell(child, 1, 0)
     grid.computeLayout()
-    @assert(child.position.x == 105)
+    Swag.assert(child.position.x == 105)
 }
 
 // A wrapping row advances by its tallest item rather than by the next item.
@@ -308,8 +308,8 @@ using Swag, Core
     let nextRow = Wnd.create'Wnd(wrap, {0, 0, 60, 10})
     wrap.computeLayout()
 
-    @assert(nextRow.position.y == 65)
-    @assert(wrap.contentHeight == 75)
+    Swag.assert(nextRow.position.y == 65)
+    Swag.assert(wrap.contentHeight == 75)
 }
 
 // FormLayoutCtrl arranges typed fields from row descriptions without fixed coordinates.
@@ -331,14 +331,14 @@ using Swag, Core
     discard form.addField("PASSWORD", password)
     form.computeLayout()
 
-    @assert(form.rows.count == 2)
-    @assert(form.rows[0].field == path)
-    @assert(form.rows[0].action == browse)
-    @assert(form.rows[0].help != null)
-    @assert(path.position.width > browse.position.width)
-    @assert(browse.position.x > path.position.x)
-    @assert(password.position.y > path.position.y)
-    @assert(form.contentHeight > password.position.y)
+    Swag.assert(form.rows.count == 2)
+    Swag.assert(form.rows[0].field == path)
+    Swag.assert(form.rows[0].action == browse)
+    Swag.assert(form.rows[0].help != null)
+    Swag.assert(path.position.width > browse.position.width)
+    Swag.assert(browse.position.x > path.position.x)
+    Swag.assert(password.position.y > path.position.y)
+    Swag.assert(form.contentHeight > password.position.y)
 }
 
 // FormLayoutCtrl can share one label column across compact dialog fields.
@@ -358,10 +358,10 @@ using Swag, Core
     discard form.addField("Type", kind)
     form.computeLayout()
 
-    @assert(name.position.x == 100)
-    @assert(kind.position.x == name.position.x)
-    @assert(kind.position.y > name.position.y)
-    @assert(name.position.width == kind.position.width)
+    Swag.assert(name.position.x == 100)
+    Swag.assert(kind.position.x == name.position.x)
+    Swag.assert(kind.position.y > name.position.y)
+    Swag.assert(name.position.width == kind.position.width)
 }
 
 // FormLayoutCtrl builders create each field control and return it already typed.
@@ -382,17 +382,17 @@ using Swag, Core
     let secret = form.addPasswordField("PASSWORD", placeholder: "Required password")
     form.computeLayout()
 
-    @assert(form.rows.count == 3)
-    @assert(name.text() == "Ada")
-    @assert(unit.selectedIndex == 1)
-    @assert(form.rows[0].action == pick)
-    @assert(form.rows[1].action == unit)
-    @assert(form.rows[1].help != null)
-    @assert(form.rows[2].action == null)
+    Swag.assert(form.rows.count == 3)
+    Swag.assert(name.text() == "Ada")
+    Swag.assert(unit.selectedIndex == 1)
+    Swag.assert(form.rows[0].action == pick)
+    Swag.assert(form.rows[1].action == unit)
+    Swag.assert(form.rows[1].help != null)
+    Swag.assert(form.rows[2].action == null)
 
     // Each builder registers exactly one row, so the fields keep their declaration order.
-    @assert(size.position.y > name.position.y)
-    @assert(secret.position.y > size.position.y)
-    @assert(pick.position.x > name.position.x)
-    @assert(form.contentHeight > 0)
+    Swag.assert(size.position.y > name.position.y)
+    Swag.assert(secret.position.y > size.position.y)
+    Swag.assert(pick.position.x > name.position.x)
+    Swag.assert(form.contentHeight > 0)
 }

@@ -15,14 +15,14 @@ using Swag, Core, Pixel
     options.message = "Enter the new name."
     let dlg = EditDlg.createSingleLine(&host.surface, options)
 
-    @assert(dlg.surface!.flags.has(.SmallCaption))
-    @assert(dlg.label.preferredSize.y < 40)
-    @assert(Math.abs(dlg.label.margin.w - dlg.themeMetrics().dialog_BtnPadding) < 0.5)
+    Swag.assert(dlg.surface!.flags.has(.SmallCaption))
+    Swag.assert(dlg.label.preferredSize.y < 40)
+    Swag.assert(Math.abs(dlg.label.margin.w - dlg.themeMetrics().dialog_BtnPadding) < 0.5)
     let metrics       = dlg.themeMetrics()
     let contentHeight = dlg.edit!.position.height + dlg.label.position.height + dlg.label.margin.w
     var expected      = contentHeight + 2 * metrics.dialog_Padding + dlg.buttonBar.position.height + 2 * metrics.wnd_BorderSize
     expected += metrics.wnd_SmallCaptionCY + 2 * dlg.surface!.shadowMargin()
-    @assert(Math.abs(dlg.surface!.position.height - Math.ceil(expected) * dlg.surface!.dpiScale) < 1.5)
+    Swag.assert(Math.abs(dlg.surface!.position.height - Math.ceil(expected) * dlg.surface!.dpiScale) < 1.5)
 }
 
 // A prompt is as tall as its explanation, not as tall as the shell it opened in.
@@ -40,8 +40,8 @@ using Swag, Core, Pixel
     options.message = "Enter the new name. It has to be unique inside this folder, and it keeps the extension the file already carries, so a name typed without one is completed."
     let long = EditDlg.createSingleLine(&host.surface, options)
 
-    @assert(long.surface!.position.height > short.surface!.position.height)
-    @assert(long.label.itf.measureContent({long.label.position.width, 0}).y <= long.label.position.height + 0.5)
+    Swag.assert(long.surface!.position.height > short.surface!.position.height)
+    Swag.assert(long.label.itf.measureContent({long.label.position.width, 0}).y <= long.label.position.height + 0.5)
 
     short.surface!.destroy()
     long.surface!.destroy()
@@ -60,15 +60,15 @@ using Swag, Core, Pixel
     options.editorHeight = 150
     let dlg = EditDlg.createMultiLine(&host.surface, options)
 
-    @assert(dlg.label.name.raw == strings().dlg_MultiLineHint)
-    @assert(dlg.label.position.bottom() <= dlg.richEdit!.position.y + 0.5)
+    Swag.assert(dlg.label.name.raw == strings().dlg_MultiLineHint)
+    Swag.assert(dlg.label.position.bottom() <= dlg.richEdit!.position.y + 0.5)
     let metrics       = dlg.themeMetrics()
     let contentHeight = dlg.richEdit!.position.height + dlg.label.position.height + dlg.label.margin.w
     let visibleHeight = contentHeight + 2 * metrics.dialog_Padding + dlg.buttonBar.position.height + 2 * metrics.wnd_BorderSize + metrics.wnd_SmallCaptionCY
     let outerHeight   = visibleHeight + 2 * dlg.surface!.shadowMargin()
-    @assert(Math.abs(dlg.richEdit!.position.height - cast(f32) options.editorHeight) < 0.5)
-    @assert(Math.abs(dlg.surface!.position.height - Math.ceil(outerHeight) * dlg.surface!.dpiScale) < 1.5)
-    @assert(Math.abs(dlg.surface!.minSize.y - dlg.surface!.position.height / dlg.surface!.dpiScale) < 0.5)
+    Swag.assert(Math.abs(dlg.richEdit!.position.height - cast(f32) options.editorHeight) < 0.5)
+    Swag.assert(Math.abs(dlg.surface!.position.height - Math.ceil(outerHeight) * dlg.surface!.dpiScale) < 1.5)
+    Swag.assert(Math.abs(dlg.surface!.minSize.y - dlg.surface!.position.height / dlg.surface!.dpiScale) < 0.5)
 }
 
 // The default about box measures its identity block instead of retaining the old 300-unit shell.
@@ -92,11 +92,11 @@ using Swag, Core, Pixel
     contentHeight += metrics.dialog_BtnPadding * 2
     var expected = contentHeight + 2 * metrics.dialog_Padding + dlg.buttonBar.position.height + 2 * metrics.wnd_BorderSize
     expected += metrics.wnd_SmallCaptionCY + 2 * dlg.surface!.shadowMargin()
-    @assert(Math.abs(dlg.surface!.position.height - Math.ceil(expected) * dlg.surface!.dpiScale) < 0.5)
-    @assert(dlg.identityView.backgroundStyle == .View)
-    @assert(dlg.identityView.position.width > 0)
-    @assert(dlg.identityAccent.form == .Accent and dlg.identityAccent.dockStyle == .Top)
-    @assert(dlg.identityView.isAncestorOf(dlg.labelMessageTitle))
+    Swag.assert(Math.abs(dlg.surface!.position.height - Math.ceil(expected) * dlg.surface!.dpiScale) < 0.5)
+    Swag.assert(dlg.identityView.backgroundStyle == .View)
+    Swag.assert(dlg.identityView.position.width > 0)
+    Swag.assert(dlg.identityAccent.form == .Accent and dlg.identityAccent.dockStyle == .Top)
+    Swag.assert(dlg.identityView.isAncestorOf(dlg.labelMessageTitle))
 }
 
 // The application form supplies the common version, build, source, copyright, and icon shape.
@@ -115,11 +115,11 @@ using Swag, Core, Pixel
         sourceUrl: "https://example.com/source",
         copyrightHolder: "Test Holder"})
 
-    @assert(dlg.surface!.wnd.name.raw == "sTestBench")
-    @assert(dlg.labelMessageTitle.text() == "sTestBench 1.2.3")
-    @assert(Utf8.contains(dlg.labelMessage.text(), "Test Holder"))
-    @assert(dlg.labelIcon.icon.isValid())
-    @assert(dlg.identityView.isAncestorOf(dlg.labelIcon))
+    Swag.assert(dlg.surface!.wnd.name.raw == "sTestBench")
+    Swag.assert(dlg.labelMessageTitle.text() == "sTestBench 1.2.3")
+    Swag.assert(Utf8.contains(dlg.labelMessage.text(), "Test Holder"))
+    Swag.assert(dlg.labelIcon.icon.isValid())
+    Swag.assert(dlg.identityView.isAncestorOf(dlg.labelIcon))
 }
 
 // Pins the application identity hierarchy: one accent, one raised product block, and quieter
@@ -162,7 +162,7 @@ using Swag, Core, Pixel
     small.addButton("No", Dialog.BtnNo)
     small.addButton("Cancel", Dialog.BtnCancel, true)
     small.adaptSizeToMessage()
-    @assert(Math.abs(small.surface!.size().x - (MessageDlg.MinMessageWidth + 2 * small.surface!.shadowMargin())) < 1)
+    Swag.assert(Math.abs(small.surface!.size().x - (MessageDlg.MinMessageWidth + 2 * small.surface!.shadowMargin())) < 1)
 
     // Long actions: the bar decides, and no invisible button is reserved beside them.
     let wide = MessageDlg.create(&host.surface, "Save changes?")
@@ -176,8 +176,8 @@ using Swag, Core, Pixel
     for btn in wide.buttons do
         expected += btn.position.width
     expected += cast(f32) (wide.buttons.count - 1) * metrics.dialog_BtnPadding
-    @assert(expected > MessageDlg.MinMessageWidth)
-    @assert(Math.abs(wide.surface!.size().x - (expected + 2 * wide.surface!.shadowMargin())) < 1)
+    Swag.assert(expected > MessageDlg.MinMessageWidth)
+    Swag.assert(Math.abs(wide.surface!.size().x - (expected + 2 * wide.surface!.shadowMargin())) < 1)
 
     small.surface!.destroy()
     wide.surface!.destroy()
@@ -216,7 +216,7 @@ using Swag, Core, Pixel
         dlg.adaptSizeToMessage()
 
         let needed = dlg.label.itf.measureContent({dlg.label.position.width, 0}).y
-        @assert(needed <= dlg.label.position.height + 0.5)
+        Swag.assert(needed <= dlg.label.position.height + 0.5)
 
         dlg.surface!.destroy()
         host.pump()

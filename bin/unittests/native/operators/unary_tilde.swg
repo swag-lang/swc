@@ -43,10 +43,10 @@ func unaryTildeRune(a: rune)->rune
     #assert(#typeof(v0) == u32)
     #assert(#typeof(v2) == u64)
 
-    @assert(v0 == 42'u32)
-    @assert(v1 == 42'u32)
-    @assert(v2 == 42'u64)
-    @assert(v3 == 42'u32)
+    Swag.assert(v0 == 42'u32)
+    Swag.assert(v1 == 42'u32)
+    Swag.assert(v2 == 42'u64)
+    Swag.assert(v3 == 42'u32)
 }
 
 #test
@@ -57,8 +57,8 @@ func unaryTildeRune(a: rune)->rune
     #assert(#typeof(runtimeValue) == UnaryTildeStrictU32)
     #assert(#typeof(constantValue) == UnaryTildeStrictU32)
 
-    @assert(runtimeValue == cast(UnaryTildeStrictU32) 42'u32)
-    @assert(constantValue == cast(UnaryTildeStrictU32) 42'u32)
+    Swag.assert(runtimeValue == cast(UnaryTildeStrictU32) 42'u32)
+    Swag.assert(constantValue == cast(UnaryTildeStrictU32) 42'u32)
 }
 
 #test
@@ -69,6 +69,6 @@ func unaryTildeRune(a: rune)->rune
     #assert(#typeof(runtimeValue) == rune)
     #assert(#typeof(constantValue) == rune)
 
-    @assert(runtimeValue == cast(rune) 42'u32)
-    @assert(constantValue == cast(rune) 42'u32)
+    Swag.assert(runtimeValue == cast(rune) 42'u32)
+    Swag.assert(constantValue == cast(rune) 42'u32)
 }

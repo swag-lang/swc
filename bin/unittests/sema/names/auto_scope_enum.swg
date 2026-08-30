@@ -32,7 +32,7 @@ func semaTest003()
 {
     let x: A = .B
     let y    = x | .R
-    @assert(y == 5)
+    Swag.assert(y == 5)
 }
 
 enum AA { R = 1, G = 2, B = 4 }

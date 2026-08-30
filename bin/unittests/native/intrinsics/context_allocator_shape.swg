@@ -1,21 +1,21 @@
-﻿#global private
+#global private
 using Swag
 
 func contextPointerIsPresent()->bool
 {
-    return @getcontext () != null
+    return Swag.getContext() != null
 }
 
 func contextAllocatorFieldHasRuntimeShape()->bool
 {
-    let context    = @getcontext()
+    let context    = Swag.getContext()
     let runtimeItf = cast(const *Swag.Interface) &context.allocator
     return runtimeItf != null and runtimeItf.obj != null and runtimeItf.itable != null
 }
 
 func copiedContextAllocatorHasRuntimeShape()->bool
 {
-    let allocator  = @getcontext().allocator
+    let allocator  = Swag.getContext().allocator
     let runtimeItf = cast(const *Swag.Interface) &allocator
     return runtimeItf != null and runtimeItf.obj != null and runtimeItf.itable != null
 }
@@ -39,13 +39,13 @@ struct ContextTempAllocatorHolder
 
 func contextTempAllocatorObject()->*void
 {
-    return cast(*void) &@getcontext().tempAllocator
+    return cast(*void) &Swag.getContext().tempAllocator
 }
 
 func makeContextTempAllocatorHolder()->ContextTempAllocatorHolder
 {
     var result: ContextTempAllocatorHolder
-    result.allocator = @getcontext().tempAllocator
+    result.allocator = Swag.getContext().tempAllocator
     return result
 }
 
@@ -60,7 +60,7 @@ func directContextAllocatorRoundtrip()->bool
     var req: AllocatorRequest
     req.size = 16
 
-    let directItf = @getcontext().allocator!
+    let directItf = Swag.getContext().allocator!
     directItf.alloc(&req)
     if !req.address do
         return false
@@ -74,7 +74,7 @@ func copiedContextAllocatorRoundtrip()->bool
     var req: AllocatorRequest
     req.size = 16
 
-    let allocator = @getcontext().allocator!
+    let allocator = Swag.getContext().allocator!
     allocator.alloc(&req)
     if !req.address do
         return false
@@ -88,7 +88,7 @@ func coalescedContextAllocatorRoundtrip()->bool
     var req: AllocatorRequest
     req.size = 16
 
-    let allocator  = (cast(#null IAllocator) null orelse @getcontext().allocator)!
+    let allocator  = (cast(#null IAllocator) null orelse Swag.getContext().allocator)!
     let runtimeItf = cast(const *Swag.Interface) &allocator
     if runtimeItf == null or runtimeItf.obj == null or runtimeItf.itable == null do
         return false
@@ -103,11 +103,11 @@ func coalescedContextAllocatorRoundtrip()->bool
 
 #test
 {
-    @assert(contextPointerIsPresent())
-    @assert(contextAllocatorFieldHasRuntimeShape())
-    @assert(copiedContextAllocatorHasRuntimeShape())
-    @assert(returnedContextTempAllocatorPreservesObject())
-    @assert(directContextAllocatorRoundtrip())
-    @assert(copiedContextAllocatorRoundtrip())
-    @assert(coalescedContextAllocatorRoundtrip())
+    Swag.assert(contextPointerIsPresent())
+    Swag.assert(contextAllocatorFieldHasRuntimeShape())
+    Swag.assert(copiedContextAllocatorHasRuntimeShape())
+    Swag.assert(returnedContextTempAllocatorPreservesObject())
+    Swag.assert(directContextAllocatorRoundtrip())
+    Swag.assert(copiedContextAllocatorRoundtrip())
+    Swag.assert(coalescedContextAllocatorRoundtrip())
 }

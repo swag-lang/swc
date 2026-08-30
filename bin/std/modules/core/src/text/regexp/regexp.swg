@@ -18,8 +18,8 @@ public struct Span
 // var expr = try Parser.RegExp.create(#raw "(\d+)-(\w+)")
 // if expr.match("42-answer")
 // {
-//     @assert(expr.getCapture(1) == "42")
-//     @assert(expr.getCapture(2) == "answer")
+//     Swag.assert(expr.getCapture(1) == "42")
+//     Swag.assert(expr.getCapture(2) == "answer")
 // }
 // ```
 //
@@ -213,8 +213,8 @@ public impl RegExp
         let subject = str orelse ""
         for &span in .findAll(str)
         {
-            let data = @dataof(subject) + span.start
-            result.add(@mkstring(data, span.end - span.start))
+            let data = subject.buffer + span.start
+            result.add(Swag.makeString(data, span.end - span.start))
         }
 
         return result
@@ -236,7 +236,7 @@ public impl RegExp
         var result: retval
 
         let subject = str orelse ""
-        if start > @countof(subject) do
+        if start > subject.count do
             return result
         if !.search(subject, start, false, false) do
             return result
@@ -256,7 +256,7 @@ public impl RegExp
         let subject = str orelse ""
         var at      = .findAllFast(subject, &result)
 
-        while at <= @countof(subject)
+        while at <= subject.count
         {
             let step = .nextMatch(subject, at)
             if !step.found do
@@ -281,7 +281,7 @@ public impl RegExp
         let span = .captureSpan(rank)
         if !span.found do
             return ""
-        return @mkstring(@dataof(.subject) + span.span.start, span.span.end - span.span.start)
+        return Swag.makeString((.subject).buffer + span.span.start, span.span.end - span.span.start)
     }
 
     // Returns what the capture group of that name matched, or an empty string when there is
@@ -368,19 +368,19 @@ public impl RegExp
 
         // The replacement is expanded as each occurrence is found, because the group
         // references in it read the capture groups of that occurrence.
-        while at <= @countof(subject)
+        while at <= subject.count
         {
             let step = .nextMatch(subject, at)
             if !step.found do
                 break
 
-            result.append(@mkstring(@dataof(subject) + copied, step.span.start - copied))
+            result.append(Swag.makeString(subject.buffer + copied, step.span.start - copied))
             .appendReplacement(&result, replacement)
             copied = step.span.end
             at     = step.next
         }
 
-        result.append(@mkstring(@dataof(subject) + copied, @countof(subject) - copied))
+        result.append(Swag.makeString(subject.buffer + copied, subject.count - copied))
         return result
     }
 
@@ -400,11 +400,11 @@ public impl RegExp
             // An empty separator would only cut the subject into its scalar values.
             if span.end == span.start do
                 continue
-            result.add(@mkstring(@dataof(subject) + at, span.start - at))
+            result.add(Swag.makeString(subject.buffer + at, span.start - at))
             at = span.end
         }
 
-        result.add(@mkstring(@dataof(subject) + at, @countof(subject) - at))
+        result.add(Swag.makeString(subject.buffer + at, subject.count - at))
         return result
     }
 }
@@ -455,8 +455,8 @@ private impl RegExp
         if !.compiled do
             return false
 
-        let hay   = @mkslice(@dataof(subject), @countof(subject))
-        let limit = @countof(subject)
+        let hay   = Swag.makeSlice(subject.buffer, subject.count)
+        let limit = subject.count
 
         // Only the backtracker can run a backreference; every other pattern goes to an engine
         // that no subject can make explode.
@@ -745,8 +745,8 @@ private impl RegExp
         .matched = false
         .subject = subject
 
-        let hay   = @mkslice(@dataof(subject), @countof(subject))
-        let limit = @countof(subject)
+        let hay   = Swag.makeSlice(subject.buffer, subject.count)
+        let limit = subject.count
 
         // Occurrences are collected in batches: appending one at a time would put a container
         // call between every two matches, which on a subject with two million of them is a
@@ -850,7 +850,7 @@ private impl RegExp
             held              += 1
             if held == BatchSize
             {
-                out.add(@mkslice(cast(const [*] Span) &batch[0], held))
+                out.add(Swag.makeSlice(cast(const [*] Span) &batch[0], held))
                 held = 0
             }
 
@@ -872,7 +872,7 @@ private impl RegExp
         }
 
         if held != 0 do
-            out.add(@mkslice(cast(const [*] Span) &batch[0], held))
+            out.add(Swag.makeSlice(cast(const [*] Span) &batch[0], held))
         return quit ? at : limit + 1
     }
 
@@ -943,7 +943,7 @@ private impl RegExp
         }
 
         result.next = result.span.end + 1
-        while result.next < @countof(subject) and (subject[result.next] & 0xC0) == 0x80 do
+        while result.next < subject.count and (subject[result.next] & 0xC0) == 0x80 do
             result.next += 1
         return result
     }
@@ -960,17 +960,17 @@ private impl RegExp
     mtd matchedText()->string
     {
         let span = .matchedSpan()
-        return @mkstring(@dataof(.subject) + span.start, span.end - span.start)
+        return Swag.makeString((.subject).buffer + span.start, span.end - span.start)
     }
 
     // Appends one replacement, expanding the group references it names.
     mtd appendReplacement(dest: *String, replacement: string)
     {
         var i = 0'u64
-        while i < @countof(replacement)
+        while i < replacement.count
         {
             let c = replacement[i]
-            if c != '$' or i + 1 >= @countof(replacement)
+            if c != '$' or i + 1 >= replacement.count
             {
                 dest.append(c)
                 i += 1
@@ -996,13 +996,13 @@ private impl RegExp
             {
                 var name: String
                 var j = i + 2
-                while j < @countof(replacement) and replacement[j] != '}'
+                while j < replacement.count and replacement[j] != '}'
                 {
                     name.append(replacement[j])
                     j += 1
                 }
 
-                if j < @countof(replacement)
+                if j < replacement.count
                 {
                     dest.append(.getCapture(name.toString()))
                     i = j + 1

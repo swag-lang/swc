@@ -2,7 +2,7 @@
 
 func semaTest001()
 {
-    let c   = @compiler
+    let c   = Swag.compiler()
     let msg = c.getMessage()
     let cfg = c.getBuildCfg()
     c.compileString("")

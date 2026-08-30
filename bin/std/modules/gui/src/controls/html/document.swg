@@ -488,7 +488,7 @@ impl HtmlDocument
     {
         var result: retval
         result.start = cast(u32) .textPool.length
-        result.count = cast(u32) @countof(text)
+        result.count = cast(u32) text.count
         .textPool    += text
         return result
     }
@@ -719,12 +719,12 @@ impl HtmlDocument
             // text of its own.
             let text  = .text(value)
             var start = 0'u64
-            while start < @countof(text)
+            while start < text.count
             {
-                while start < @countof(text) and Latin1.isSpace(text[start]) do
+                while start < text.count and Latin1.isSpace(text[start]) do
                     start += 1
                 var end = start
-                while end < @countof(text) and !Latin1.isSpace(text[end]) do
+                while end < text.count and !Latin1.isSpace(text[end]) do
                     end += 1
                 if end == start do
                     break

@@ -103,7 +103,7 @@ impl IconSet
     {
         for key, value in .lists
         {
-            if @isset(.renderer) do
+            if Swag.isSet(.renderer) do
                 value.release(.renderer)
             Memory.delete(value)
         }

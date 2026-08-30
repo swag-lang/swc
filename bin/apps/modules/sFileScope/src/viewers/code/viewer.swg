@@ -171,8 +171,8 @@ internal impl CodeViewer
             .hasText       = !chunk.isEmpty()
             .virtualHeight = previousHeight
             .updateEstimatedHeight()
-            if @countof(text) do
-                highlightRichEditMatch(.editor, chunk.toString(), requested - actual, @countof(text))
+            if text.count do
+                highlightRichEditMatch(.editor, chunk.toString(), requested - actual, text.count)
             .scheduleMore()
             return true
         }

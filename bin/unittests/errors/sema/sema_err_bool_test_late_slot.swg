@@ -1,7 +1,7 @@
 #global private
 
 // A 'Swag.Late' slot starts as null storage and receives its value later, but its type stays
-// non-null. A condition on it therefore does not ask whether it was set: '@isset' does.
+// non-null. A condition on it therefore does not ask whether it was set: 'Swag.isSet' does.
 
 struct BoolTestLateLabel
 {
@@ -34,7 +34,7 @@ func boolTestLateGlobal()->s32
 // The spelling that asks the question.
 func boolTestLateIsSet(item: *BoolTestLateItem)->s32
 {
-    if @isset(item.label) do
+    if Swag.isSet(item.label) do
         return item.label.width
     return 0
 }

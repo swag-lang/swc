@@ -98,7 +98,7 @@ impl Backtracker
         let byteSets  = program.byteSets.buffer
         let slots     = .slots.buffer
         let slotCount = .slots.count
-        let data      = @dataof(hay)
+        let data      = hay.buffer
 
         var pc  = startPc
         var pos = startPos
@@ -180,7 +180,7 @@ impl Backtracker
                 }
                 else
                 {
-                    let referenced = @mkslice(data + slots![opening], slots![closing] - slots![opening])
+                    let referenced = Swag.makeSlice(data + slots![opening], slots![closing] - slots![opening])
                     let eaten      = .matchReference(hay, referenced, pos)
                     if eaten == NoSlot do
                         failed = true
@@ -239,7 +239,7 @@ impl Backtracker
     // it does not appear there.
     mtd matchReference(hay: const [..] u8, referenced: const [..] u8, pos: u64)->u64
     {
-        let wanted = @countof(referenced)
+        let wanted = referenced.count
         if wanted == 0 do
             return 0
 
@@ -265,8 +265,8 @@ impl Backtracker
             if here >= .limit do
                 return NoSlot
 
-            let left  = Utf8.decodeRune(@mkslice(@dataof(hay) + here, .limit - here))
-            let right = Utf8.decodeRune(@mkslice(@dataof(referenced) + there, wanted - there))
+            let left  = Utf8.decodeRune(Swag.makeSlice(hay.buffer + here, .limit - here))
+            let right = Utf8.decodeRune(Swag.makeSlice(referenced.buffer + there, wanted - there))
             if Unicode.toUpper(left.c) != Unicode.toUpper(right.c) do
                 return NoSlot
 

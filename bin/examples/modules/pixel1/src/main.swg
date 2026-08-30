@@ -67,12 +67,12 @@ func drawFigures(painter: *Pixel.Painter, ox: f32, aa: bool)
 // Draw a closed polygon outline from a list of points.
 func drawClosedOutline(painter: *Pixel.Painter, points: [..] Math.Vector2, pen: Pen)
 {
-    if @countof(points) < 2 do
+    if points.count < 2 do
         return
 
     var path: LinePath
     path.start(points[0].x, points[0].y)
-    for pt in points where @index do
+    for pt in points where Swag.index do
         path.lineTo(pt.x, pt.y)
     path.close()
     painter.drawPath(&path, pen)

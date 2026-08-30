@@ -41,10 +41,10 @@ public impl Image
 
                 if image.bytesPerPixel == 4
                 {
-                    let shuffle0  = Math.Simd.load(@dataof(GrayChannel0_32))
-                    let shuffle1  = Math.Simd.load(@dataof(GrayChannel1_32))
-                    let shuffle2  = Math.Simd.load(@dataof(GrayChannel2_32))
-                    let output    = Math.Simd.load(@dataof(GrayOutput32))
+                    let shuffle0  = Math.Simd.load(GrayChannel0_32.buffer)
+                    let shuffle1  = Math.Simd.load(GrayChannel1_32.buffer)
+                    let shuffle2  = Math.Simd.load(GrayChannel2_32.buffer)
+                    let output    = Math.Simd.load(GrayOutput32.buffer)
                     let alphaMask = cast(Math.Simd.U8x16) [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255]
                     while image.width - x >= 4
                     {
@@ -63,10 +63,10 @@ public impl Image
                 }
                 else
                 {
-                    let shuffle0 = Math.Simd.load(@dataof(GrayChannel0_24))
-                    let shuffle1 = Math.Simd.load(@dataof(GrayChannel1_24))
-                    let shuffle2 = Math.Simd.load(@dataof(GrayChannel2_24))
-                    let output   = Math.Simd.load(@dataof(GrayOutput24))
+                    let shuffle0 = Math.Simd.load(GrayChannel0_24.buffer)
+                    let shuffle1 = Math.Simd.load(GrayChannel1_24.buffer)
+                    let shuffle2 = Math.Simd.load(GrayChannel2_24.buffer)
+                    let output   = Math.Simd.load(GrayOutput24.buffer)
                     while image.width - x >= 6
                     {
                         let block    = rowPixels + cast(u64) x * 3

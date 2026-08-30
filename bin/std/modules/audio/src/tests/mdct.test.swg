@@ -5,8 +5,8 @@ using Core
 // The defining sum of the inverse transform, evaluated term by term.
 private func mdctDirect(spectrum: const [..] f32, output: [*] f64)
 {
-    let n    = @countof(spectrum) * 2
-    let half = @countof(spectrum)
+    let n    = spectrum.count * 2
+    let half = spectrum.count
     for index in n
     {
         var sum = 0.0'f64
@@ -48,8 +48,8 @@ private func mdctAssertMatchesDefinition(n: u32)
     }
 
     if worst > scale * 1e-4 do
-        @print("mdct ", n, ": worst ", worst, " against a scale of ", scale, "\n")
-    @assert(worst <= scale * 1e-4)
+        Swag.print("mdct ", n, ": worst ", worst, " against a scale of ", scale, "\n")
+    Swag.assert(worst <= scale * 1e-4)
 }
 
 #test

@@ -14,7 +14,7 @@ var g_Functions: Array'OneFunc
 
 #message(CompilerMsgMask.SemFunctions)
 {
-    let itf = @compiler
+    let itf = Swag.compiler()
     let msg = itf.getMessage()
     if msg == null or msg.type == null or msg.name == null do
         return
@@ -31,7 +31,7 @@ var g_Functions: Array'OneFunc
 
 #message(CompilerMsgMask.PassAfterSemantic)
 {
-    let itf = @compiler
+    let itf = Swag.compiler()
     var builderInit: StringBuilder
 
     builderInit.appendString("// Resolves post-OpenGL-1.1 entry points for the current context.\n")
@@ -96,9 +96,9 @@ var g_Functions: Array'OneFunc
         builderInit.appendString(e.name)
         builderInit.appendString(" = cast(#null ")
         builderInit.appendString(etype.fullname)
-        builderInit.appendString(") getExtensionAddress(@dataof(\"")
+        builderInit.appendString(") getExtensionAddress((\"")
         builderInit.appendString(e.name)
-        builderInit.appendString("\"))\n")
+        builderInit.appendString("\").buffer)\n")
     }
 
     builderInit.appendString("}\n")

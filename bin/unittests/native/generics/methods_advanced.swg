@@ -81,8 +81,8 @@ impl LocalWrap
 
     #assert(#typeof(pair.first) == s32)
     #assert(#typeof(pair.second) == string)
-    @assert(pair.first == 10)
-    @assert(pair.second == "ten")
+    Swag.assert(pair.first == 10)
+    Swag.assert(pair.second == "ten")
 }
 
 #test
@@ -93,9 +93,9 @@ impl LocalWrap
     #assert(#typeof(triple.first) == u16)
     #assert(#typeof(triple.second) == u8)
     #assert(#typeof(triple.third) == bool)
-    @assert(triple.first == 1'u16)
-    @assert(triple.second == 9'u8)
-    @assert(triple.third == true)
+    Swag.assert(triple.first == 1'u16)
+    Swag.assert(triple.second == 9'u8)
+    Swag.assert(triple.third == true)
 }
 
 #test
@@ -105,9 +105,9 @@ impl LocalWrap
 
     #assert(#typeof(picked.first) == s32)
     #assert(#typeof(picked.second) == s32)
-    @assert(picked.first == 22)
-    @assert(picked.second == 44)
-    @assert(picked.total == 4)
+    Swag.assert(picked.first == 22)
+    Swag.assert(picked.second == 44)
+    Swag.assert(picked.total == 4)
 }
 
 #test
@@ -118,10 +118,10 @@ impl LocalWrap
     #assert(#typeof(mixed.first) == s32)
     #assert(#typeof(mixed.second) == u16)
     #assert(#typeof(mixed.third) == string)
-    @assert(mixed.first == 100)
-    @assert(mixed.second == 7'u16)
-    @assert(mixed.third == "done")
-    @assert(mixed.total == 2)
+    Swag.assert(mixed.first == 100)
+    Swag.assert(mixed.second == 7'u16)
+    Swag.assert(mixed.third == "done")
+    Swag.assert(mixed.total == 2)
 }
 
 #test
@@ -130,5 +130,5 @@ impl LocalWrap
     let clone = wrapped.cloneThroughHelper()
 
     #assert(#typeof(clone) == LocalWrap's32)
-    @assert(clone.value == 7)
+    Swag.assert(clone.value == 7)
 }

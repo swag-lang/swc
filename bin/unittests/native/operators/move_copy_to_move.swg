@@ -41,11 +41,11 @@ func sinkIf(cond: bool, v: #move Tracked)
     g_copies, g_moves, g_drops = 0
     var a = Tracked{1}
     sink(a)
-    @assert(g_slot.x == 1)
-    @assert(a.x == 1)
-    @assert(g_copies == 1)
-    @assert(g_moves == 1)
-    @assert(g_drops == 0)     // temp consumed: drop is a no-op
+    Swag.assert(g_slot.x == 1)
+    Swag.assert(a.x == 1)
+    Swag.assert(g_copies == 1)
+    Swag.assert(g_moves == 1)
+    Swag.assert(g_drops == 0)     // temp consumed: drop is a no-op
 }
 
 // Move call style: unchanged, zero cost.
@@ -54,9 +54,9 @@ func sinkIf(cond: bool, v: #move Tracked)
     g_copies, g_moves, g_drops = 0
     var b = Tracked{2}
     sink(#move b)
-    @assert(g_slot.x == 2)
-    @assert(g_copies == 0)
-    @assert(g_moves == 1)
+    Swag.assert(g_slot.x == 2)
+    Swag.assert(g_copies == 0)
+    Swag.assert(g_moves == 1)
 }
 
 // Callee does not consume: the live temporary is dropped by the caller.
@@ -65,10 +65,10 @@ func sinkIf(cond: bool, v: #move Tracked)
     g_copies, g_moves, g_drops = 0
     var c = Tracked{3}
     sinkIf(false, c)
-    @assert(g_copies == 1)
-    @assert(g_moves == 0)
-    @assert(g_drops == 1)
-    @assert(c.x == 3)
+    Swag.assert(g_copies == 1)
+    Swag.assert(g_moves == 0)
+    Swag.assert(g_drops == 1)
+    Swag.assert(c.x == 3)
 }
 
 // Loop: each iteration has its own temporary lifetime.
@@ -80,9 +80,9 @@ func sinkIf(cond: bool, v: #move Tracked)
     {
         sinkIf((i & 1) == 0, d)
     }
-    @assert(g_copies == 4)
-    @assert(g_moves == 2)
-    @assert(g_drops == 2)
+    Swag.assert(g_copies == 4)
+    Swag.assert(g_moves == 2)
+    Swag.assert(g_drops == 2)
 }
 
 // Through a function value: one signature, both call styles.
@@ -92,14 +92,14 @@ func sinkIf(cond: bool, v: #move Tracked)
     let f: func(v: #move Tracked) = &sink
     var e = Tracked{5}
     f(e)
-    @assert(g_slot.x == 5)
-    @assert(g_copies == 1)
-    @assert(g_moves == 1)
+    Swag.assert(g_slot.x == 5)
+    Swag.assert(g_copies == 1)
+    Swag.assert(g_moves == 1)
 
     var h = Tracked{6}
     f(#move h)
-    @assert(g_slot.x == 6)
-    @assert(g_moves == 2)
+    Swag.assert(g_slot.x == 6)
+    Swag.assert(g_moves == 2)
 }
 
 // The '#fwd' copy variant (exact match) wins over copy-to-move on the move variant.
@@ -113,9 +113,9 @@ func storeFwd(v: #fwd Tracked)
     g_copies, g_moves, g_drops = 0
     var a = Tracked{7}
     storeFwd(a)
-    @assert(g_slot.x == 7)
-    @assert(g_copies == 1)
-    @assert(g_moves == 0)     // no temporary: the dedicated copy variant was selected
+    Swag.assert(g_slot.x == 7)
+    Swag.assert(g_copies == 1)
+    Swag.assert(g_moves == 0)     // no temporary: the dedicated copy variant was selected
 }
 
 // Non-copyable types keep working through an explicit '#move'.
@@ -142,7 +142,7 @@ func sinkMoveOnly(v: #move MoveOnly)
 {
     var m = MoveOnly{8}
     sinkMoveOnly(#move m)
-    @assert(g_moveOnly.x == 8)
+    Swag.assert(g_moveOnly.x == 8)
 }
 
 // Copy-to-move also works for scalar types: a plain scalar variable binds a
@@ -159,12 +159,12 @@ func sinkScalar(v: #move s32)
     g_scalar = 0
     var n = 42
     sinkScalar(n)
-    @assert(g_scalar == 42)
-    @assert(n == 42)     // source untouched
+    Swag.assert(g_scalar == 42)
+    Swag.assert(n == 42)     // source untouched
 
     var p = 43
     sinkScalar(#move p)
-    @assert(g_scalar == 43)
+    Swag.assert(g_scalar == 43)
 }
 
 // An untyped literal also binds a '#move' scalar parameter: it is materialized into
@@ -173,9 +173,9 @@ func sinkScalar(v: #move s32)
 {
     g_scalar = 0
     sinkScalar(7)
-    @assert(g_scalar == 7)
+    Swag.assert(g_scalar == 7)
     sinkScalar(40 + 5)
-    @assert(g_scalar == 45)
+    Swag.assert(g_scalar == 45)
 }
 
 // An explicit '#move' argument to a BY-VALUE parameter moves the source into a
@@ -191,11 +191,11 @@ func plainSink(v: Tracked)
     g_copies, g_moves, g_drops = 0
     var a = Tracked{9}
     plainSink(#move a)
-    @assert(g_slot.x == 9)
-    @assert(g_moves == 1)      // move into the temporary
-    @assert(g_copies == 1)     // the callee copies the borrowed temporary
-    @assert(g_drops == 1)      // the caller drops the temporary
-    @assert(a.x == 0)          // source consumed (reset to defaults)
+    Swag.assert(g_slot.x == 9)
+    Swag.assert(g_moves == 1)      // move into the temporary
+    Swag.assert(g_copies == 1)     // the callee copies the borrowed temporary
+    Swag.assert(g_drops == 1)      // the caller drops the temporary
+    Swag.assert(a.x == 0)          // source consumed (reset to defaults)
 }
 
 // On a by-value scalar parameter, '#move' is accepted and equivalent to a plain pass.
@@ -209,7 +209,7 @@ func plainScalarSink(v: s32)
     g_scalar = 0
     var n = 51
     plainScalarSink(#move n)
-    @assert(g_scalar == 51)
+    Swag.assert(g_scalar == 51)
 }
 
 enum Color { Red, Green, Blue }
@@ -225,7 +225,7 @@ func sinkColor(v: #move Color)
 {
     var c = Color.Blue
     sinkColor(c)
-    @assert(g_color == .Blue)
+    Swag.assert(g_color == .Blue)
     sinkColor(#move c)
-    @assert(g_color == .Blue)
+    Swag.assert(g_color == .Blue)
 }

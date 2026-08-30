@@ -35,6 +35,6 @@ func(T) localAliasUnionValue(value: T)->T
 
     #assert(#typeof(wrapped.item.value) == s32)
     #assert(#typeof(local) == u16)
-    @assert(wrapped.item.value == 42)
-    @assert(local == 12'u16)
+    Swag.assert(wrapped.item.value == 42)
+    Swag.assert(local == 12'u16)
 }

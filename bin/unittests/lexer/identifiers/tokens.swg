@@ -28,7 +28,7 @@ true false null
 s8 s16 s32 s64 u8 u16 u32 u64 bool string cstring typeinfo
 
 // --- Selected intrinsics ---
-@print @assert @panic @countof @dataof @mkslice @mkstring @args @compiler
+Swag.print Swag.assert Swag.panic .count .buffer Swag.makeSlice Swag.makeString Swag.args() Swag.compiler()
 
 // --- Identifier start/end edge cases ---
 _underscoreStart

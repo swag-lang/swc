@@ -149,7 +149,7 @@ namespace Platform.Win32
             if .window and .hDC do
                 .window.releaseWin32DeviceContext(.hDC)
 
-            @init(me, 1)
+            Swag.init(me, 1)
         }
     }
 }

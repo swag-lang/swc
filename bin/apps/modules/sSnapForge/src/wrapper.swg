@@ -22,7 +22,7 @@ const FormRegistry: [?] FormDesc = [
 
 func formDescIndex(type: typeinfo)->u64
 {
-    for i in @countof(FormRegistry)
+    for i in FormRegistry.count
     {
         if FormRegistry[i].type == type do
             return i
@@ -33,7 +33,7 @@ func formDescIndex(type: typeinfo)->u64
 
 func formDescIndexOfMode(mode: EditMode)->u64
 {
-    for i in @countof(FormRegistry)
+    for i in FormRegistry.count
     {
         if FormRegistry[i].mode == mode do
             return i
@@ -116,7 +116,7 @@ impl MainWnd
 
     mtd updateModel(f: IForm)
     {
-        let form = cast(*BaseForm) @dataof(f)
+        let form = cast(*BaseForm) f.buffer
 
         if form.subKind == .Highlight do
             .mdlHighlight = f
@@ -125,8 +125,8 @@ impl MainWnd
 
         .copyFormToModel(f)
 
-        let desc = FormRegistry[formDescIndex(@kindof(f))]
-        let mdl  = .modelFor(@kindof(f))
+        let desc = FormRegistry[formDescIndex(Swag.kindOf(f))]
+        let mdl  = .modelFor(Swag.kindOf(f))
         .mdlFavorite = mdl
         if desc.canHighlight do
             .mdlHighlight = mdl
@@ -138,11 +138,11 @@ impl MainWnd
     {
         if .editMode == .Favorites
         {
-            .mdlFavorite = .modelFor(@kindof(f))
+            .mdlFavorite = .modelFor(Swag.kindOf(f))
             return
         }
 
-        let form = cast(*BaseForm) @dataof(f)
+        let form = cast(*BaseForm) f.buffer
         if form.subKind == .Highlight
         {
             .editMode = .Highlight
@@ -159,7 +159,7 @@ impl MainWnd
 
     func formToEditMode(f: IForm)->EditMode
     {
-        return FormRegistry[formDescIndex(@kindof(f))].mode
+        return FormRegistry[formDescIndex(Swag.kindOf(f))].mode
     }
 
     mtd editModeToModel(mode: EditMode)->IForm
@@ -178,9 +178,9 @@ impl MainWnd
     {
         // Clone the model of the given mode, whatever its concrete type
         let mdlItf  = .editModeToModel(mode)
-        let mdlType = @kindof(mdlItf)
+        let mdlType = Swag.kindOf(mdlItf)
         let mdl     = cast(*BaseForm) Memory.new(mdlType)!
-        mdlItf.copy(mdl, cast(*BaseForm) @dataof(mdlItf))
+        mdlItf.copy(mdl, cast(*BaseForm) mdlItf.buffer)
 
         // A new form starts without the model content, just its style
         if clear
@@ -206,13 +206,13 @@ impl MainWnd
         }
 
         // Every registered form type implements IForm, so the table resolves.
-        return @mkinterface(mdl, mdlType, IForm)!
+        return Swag.makeInterface(mdl, mdlType, IForm)!
     }
 
     func newFormFromForm(it: IForm)->*BaseForm
     {
-        let mdlValue = cast(*BaseForm) Memory.new(@kindof(it))!
-        it.copy(mdlValue, cast(*BaseForm) @dataof(it))
+        let mdlValue = cast(*BaseForm) Memory.new(Swag.kindOf(it))!
+        it.copy(mdlValue, cast(*BaseForm) it.buffer)
         return mdlValue
     }
 }

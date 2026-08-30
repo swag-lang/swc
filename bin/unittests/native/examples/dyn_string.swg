@@ -110,23 +110,23 @@ impl DynString
         .count    = 0
         .capacity = 0
 
-        let len = cast(u64) @countof(text)
+        let len = cast(u64) text.count
         if len == 0 do
             return
-        storeBytes(me, cast(const [*] u8) @dataof(text), len)
+        storeBytes(me, cast(const [*] u8) text.buffer, len)
     }
 
     // Read a byte: `let c = s[i]`
     mtd opIndex(index: u64)->u8
     {
-        @assert(index < .count)
+        Swag.assert(index < .count)
         return .data![index]
     }
 
     // Write a byte: `s[i] = c`
     mtd opIndexSet(index: u64, value: u8)
     {
-        @assert(index < .count)
+        Swag.assert(index < .count)
         let data = .data!
         data[index] = value
     }
@@ -135,9 +135,9 @@ impl DynString
     mtd(op: Swag.Operator) opAssign(text: string)
         where op == .AddAssign
     {
-        let len = cast(u64) @countof(text)
+        let len = cast(u64) text.count
         if len > 0 do
-            appendBytes(me, cast(const [*] u8) @dataof(text), len)
+            appendBytes(me, cast(const [*] u8) text.buffer, len)
     }
 
     // Append: `s += other`
@@ -175,20 +175,20 @@ impl DynString
     var s: DynString
     s = "hello"
 
-    @assert(s.count == 5)
-    @assert(s.capacity >= 5)
-    @assert(s[0] == 'h'u8)
-    @assert(s[4] == 'o'u8)
+    Swag.assert(s.count == 5)
+    Swag.assert(s.capacity >= 5)
+    Swag.assert(s[0] == 'h'u8)
+    Swag.assert(s[4] == 'o'u8)
 }
 
 #test
 {
     var s: DynString = "hello"
 
-    @assert(s.count == 5)
-    @assert(s.capacity >= 5)
-    @assert(s[0] == 'h'u8)
-    @assert(s[4] == 'o'u8)
+    Swag.assert(s.count == 5)
+    Swag.assert(s.capacity >= 5)
+    Swag.assert(s[0] == 'h'u8)
+    Swag.assert(s[4] == 'o'u8)
 }
 
 // ---------------------------------------------------------------------------
@@ -203,13 +203,13 @@ impl DynString
     var dst: DynString
     dst = src     // copy-assign: triggers opPostCopy on dst
 
-    @assert(src.count == 5)
-    @assert(dst.count == 5)
-    @assert(src.data != dst.data)     // distinct heap buffers
+    Swag.assert(src.count == 5)
+    Swag.assert(dst.count == 5)
+    Swag.assert(src.data != dst.data)     // distinct heap buffers
 
     dst[0] = 'A'u8
-    @assert(dst[0] == 'A'u8)
-    @assert(src[0] == 'a'u8)     // original untouched
+    Swag.assert(dst[0] == 'A'u8)
+    Swag.assert(src[0] == 'a'u8)     // original untouched
 }
 
 // ---------------------------------------------------------------------------
@@ -223,15 +223,15 @@ impl DynString
     var dst: DynString
     dst = #move src
 
-    @assert(dst.count == 8)
-    @assert(dst[0] == 't'u8)
-    @assert(dst[7] == 'r'u8)
+    Swag.assert(dst.count == 8)
+    Swag.assert(dst[0] == 't'u8)
+    Swag.assert(dst[7] == 'r'u8)
 
     // src was moved-from; it won't be opDrop'd at scope exit, so dst owns the
     // sole buffer. Rebind src to prove it is still a usable DynString.
     src = "reused"
-    @assert(src.count == 6)
-    @assert(src[0] == 'r'u8)
+    Swag.assert(src.count == 6)
+    Swag.assert(src[0] == 'r'u8)
 }
 
 // ---------------------------------------------------------------------------
@@ -250,10 +250,10 @@ impl DynString
         s[i] = c - ('a'u8 - 'A'u8)
     }
 
-    @assert(s.count == 6)
-    @assert(s[0] == 'A'u8)
-    @assert(s[1] == 'B'u8)
-    @assert(s[5] == 'F'u8)
+    Swag.assert(s.count == 6)
+    Swag.assert(s[0] == 'A'u8)
+    Swag.assert(s[1] == 'B'u8)
+    Swag.assert(s[5] == 'F'u8)
 }
 
 // ---------------------------------------------------------------------------
@@ -269,28 +269,28 @@ impl DynString
 
     s += "-"
     s += "bar"
-    @assert(s.count == 7)
-    @assert(s[0] == 'f'u8)
-    @assert(s[3] == '-'u8)
-    @assert(s[6] == 'r'u8)
+    Swag.assert(s.count == 7)
+    Swag.assert(s[0] == 'f'u8)
+    Swag.assert(s[3] == '-'u8)
+    Swag.assert(s[6] == 'r'u8)
 
     // Append another DynString by const reference.
     var tail: DynString
     tail = "-baz"
     s    += tail
-    @assert(s.count == 11)
-    @assert(s[7] == '-'u8)
-    @assert(s[10] == 'z'u8)
+    Swag.assert(s.count == 11)
+    Swag.assert(s[7] == '-'u8)
+    Swag.assert(s[10] == 'z'u8)
 
     // Force at least one grow past the initial capacity.
     var wide: DynString
     wide = "x"
     for 40 do
         wide += "y"
-    @assert(wide.count == 41)
-    @assert(wide.capacity > startCap)
-    @assert(wide[0] == 'x'u8)
-    @assert(wide[40] == 'y'u8)
+    Swag.assert(wide.count == 41)
+    Swag.assert(wide.capacity > startCap)
+    Swag.assert(wide[0] == 'x'u8)
+    Swag.assert(wide[40] == 'y'u8)
 }
 
 // ---------------------------------------------------------------------------
@@ -305,16 +305,16 @@ impl DynString
     b += "ma"
     b += "tch"
 
-    @assert(a == b)     // same content, different allocations
-    @assert(a.data != b.data)
+    Swag.assert(a == b)     // same content, different allocations
+    Swag.assert(a.data != b.data)
 
     var c: DynString
     c = "MATCH"
-    @assert(!(a == c))
+    Swag.assert(!(a == c))
 
     var d: DynString
     d = "matchx"
-    @assert(!(a == d))
+    Swag.assert(!(a == d))
 }
 
 // ---------------------------------------------------------------------------
@@ -326,16 +326,16 @@ impl DynString
 {
     var empty: DynString
     empty = ""
-    @assert(empty.count == 0)
-    @assert(empty.data == null)
+    Swag.assert(empty.count == 0)
+    Swag.assert(empty.data == null)
 
     var copy: DynString
     copy = empty     // opPostCopy on empty payload
-    @assert(copy.count == 0)
-    @assert(copy.data == null)
+    Swag.assert(copy.count == 0)
+    Swag.assert(copy.data == null)
 
     copy += "kick"
-    @assert(copy.count == 4)
-    @assert(empty.count == 0)
-    @assert(copy[0] == 'k'u8)
+    Swag.assert(copy.count == 4)
+    Swag.assert(empty.count == 0)
+    Swag.assert(copy[0] == 'k'u8)
 }

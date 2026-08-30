@@ -30,8 +30,8 @@ by different `where` clauses.
         return 2
     }
 
-    @assert(classify(1's32) == 1)
-    @assert(classify(1.5'f32) == 2)
+    Swag.assert(classify(1's32) == 1)
+    Swag.assert(classify(1.5'f32) == 2)
 }
 
 /**
@@ -53,8 +53,8 @@ when the constraint is clearer as ordinary control flow.
         return right
     }
 
-    @assert(sameTypePair(10's32, 20's32) == 20)
-    @assert(sameTypePair'(f64)(1.0'f64, 2.0'f64) == 2.0'f64)
+    Swag.assert(sameTypePair(10's32, 20's32) == 20)
+    Swag.assert(sameTypePair'(f64)(1.0'f64, 2.0'f64) == 2.0'f64)
 }
 
 /**
@@ -119,7 +119,7 @@ impl RefWindow
 {
     let floatWindow: RefWindow'(f32, 3) = {values: [10.0'f32, 20.0, 30.0]}
 
-    @assert(floatWindow.at'1() == 20.0'f32)
-    @assert(floatWindow.sameSample(99.0'f32) == 99.0'f32)
+    Swag.assert(floatWindow.at'1() == 20.0'f32)
+    Swag.assert(floatWindow.sameSample(99.0'f32) == 99.0'f32)
     #assert(#typeof(floatWindow.sameSample(1.5'f32)) == f32)
 }

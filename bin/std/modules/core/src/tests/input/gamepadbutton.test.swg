@@ -5,14 +5,14 @@ using Swag
 
 func assertGamepadButton(button: Input.GamepadButton, index: u32)
 {
-    @assert(cast(u32) button == index)
+    Swag.assert(cast(u32) button == index)
 }
 
 #test
 {
     using Input.GamepadButton
 
-    @assert(@countof(Input.GamepadButton) == 25)
+    Swag.assert(Input.GamepadButton.count == 25)
 
     assertGamepadButton(A, 0)
     assertGamepadButton(B, 1)

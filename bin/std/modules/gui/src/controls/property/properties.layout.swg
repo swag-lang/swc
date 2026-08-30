@@ -116,7 +116,7 @@ internal impl Properties
 
     mtd positionListActionButton(item: *PropertiesItem, btn: #null *IconButton)
     {
-        if .isGridLike() or !btn or !@isset(item.label) do
+        if .isGridLike() or !btn or !Swag.isSet(item.label) do
             return
 
         btn.position.x = Math.round(.listActionRight() - btn.position.width)
@@ -210,7 +210,7 @@ internal impl Properties
 
     mtd syncColumnLabel(item: *PropertiesItem)
     {
-        if !@isset(item.label) do
+        if !Swag.isSet(item.label) do
             return
 
         // Note rows own their layout (a full-width info bar with custom paddings), so leave them be.

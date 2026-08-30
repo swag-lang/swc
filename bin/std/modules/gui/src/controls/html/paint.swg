@@ -514,7 +514,7 @@ impl HtmlPainter
 
         let source = item.text.toString()
         var end    = 0'u64
-        while end < @countof(source)
+        while end < source.count
         {
             let {?, eat} = Utf8.decodeRune(source[end to])
             let next     = end + eat
@@ -540,7 +540,7 @@ impl HtmlPainter
         result.width = item.width
 
         let sourceLength = item.sourceEnd - item.sourceStart
-        if sourceLength == @countof(item.text) and sourceLength
+        if sourceLength == item.text.count and sourceLength
         {
             let start = Math.max(rangeStart, item.sourceStart) - item.sourceStart
             let end   = Math.min(rangeEnd, item.sourceEnd) - item.sourceStart
@@ -1321,13 +1321,13 @@ impl HtmlPainter
     private mtd offsetAtRun(item: const *HtmlInlineItem, localX: f32)->u64
     {
         let sourceLength = item.sourceEnd - item.sourceStart
-        if sourceLength != @countof(item.text) or !sourceLength do
+        if sourceLength != item.text.count or !sourceLength do
             return localX < item.width * 0.5 ? item.sourceStart : item.sourceEnd
 
         let source   = item.text.toString()
         var end      = 0'u64
         var previous = 0.0'f32
-        while end < @countof(source)
+        while end < source.count
         {
             let {?, eat} = Utf8.decodeRune(source[end to])
             let next     = end + eat
@@ -1380,7 +1380,7 @@ impl HtmlPainter
             }
 
             let sourceLength = item.sourceEnd - item.sourceStart
-            if sourceLength == @countof(item.text) and sourceLength
+            if sourceLength == item.text.count and sourceLength
             {
                 let start = Math.max(range.start, item.sourceStart) - item.sourceStart
                 let end   = Math.min(range.end, item.sourceEnd) - item.sourceStart

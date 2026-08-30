@@ -82,7 +82,7 @@ func returnNonNullCannotCast()->*NonNullCannotCastItem
 {
     var item = NonNullCannotCastItem{value: 1}
     var value: *NonNullCannotCastItem = &item
-    @init(&value)(null)     // swc-expected-error {{sema_err_cannot_cast}}
+    Swag.init(&value)(null)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test

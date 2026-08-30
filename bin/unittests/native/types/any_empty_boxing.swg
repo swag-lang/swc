@@ -5,6 +5,6 @@ struct AnyEmptyBoxingNative {}
 #test
 {
     const boxed: any = AnyEmptyBoxingNative{}
-    @assert(@kindof(boxed) == AnyEmptyBoxingNative)
-    @assert(cast(const *AnyEmptyBoxingNative) boxed != null)
+    Swag.assert(Swag.kindOf(boxed) == AnyEmptyBoxingNative)
+    Swag.assert(cast(const *AnyEmptyBoxingNative) boxed != null)
 }

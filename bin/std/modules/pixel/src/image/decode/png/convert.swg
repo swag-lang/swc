@@ -131,7 +131,7 @@ impl Decoder
                 dst[0] = cast() ((color >> 16) & 0xFF)
                 dst[1] = cast() ((color >> 8) & 0xFF)
                 dst[2] = cast() (color & 0xFF)
-                dst[3] = index < @countof(.safeTRNSData()) ? .safeTRNSData()[index] : 255
+                dst[3] = index < (.safeTRNSData()).count ? .safeTRNSData()[index] : 255
                 src    += 1
                 dst    += 4
             }
@@ -144,7 +144,7 @@ impl Decoder
         for i in 256
         {
             let color      = .palette[i]
-            let alphaValue = i < @countof(alpha) ? cast(u32) alpha[i] : 255'u32
+            let alphaValue = i < alpha.count ? cast(u32) alpha[i] : 255'u32
             packedPalette[i] = ((color >> 16) & 0xFF) | (color & 0xFF00) | ((color & 0xFF) << 16) | (alphaValue << 24)
         }
 
@@ -308,7 +308,7 @@ impl Decoder
         case 0:
             var transparent: u16
             if .seenTRSN do
-                transparent = read16(@dataof(.safeTRNSData()))
+                transparent = read16((.safeTRNSData()).buffer)
 
             for result.width * result.height
             {
@@ -327,7 +327,7 @@ impl Decoder
             var transparentR, transparentG, transparentB: u16
             if .seenTRSN
             {
-                let key = cast(const [*] u8) @dataof(.safeTRNSData())
+                let key = cast(const [*] u8) (.safeTRNSData()).buffer
                 transparentR = read16(key)
                 transparentG = read16(key + 2)
                 transparentB = read16(key + 4)
@@ -416,7 +416,7 @@ impl Decoder
         // Color without alpha but transparency
         elif .inChannels == 3 and .seenTRSN
         {
-            let key  = cast(const [*] u8) @dataof(.safeTRNSData())
+            let key  = cast(const [*] u8) (.safeTRNSData()).buffer
             let key0 = key[1]
             let key1 = key[3]
             let key2 = key[5]

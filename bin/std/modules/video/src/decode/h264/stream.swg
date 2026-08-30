@@ -118,7 +118,7 @@ impl AvcStream
     // Configures every decoder context and builds the display-order tables.
     mtd open(config: const [..] u8, frames: Array'SampleEntry) fail
     {
-        if !@countof(config) do
+        if !config.count do
             fail InvalidFormatError{"H.264 track has no decoder configuration"}
         for &decoder in .decoders do
             decoder.configure(config)
@@ -218,15 +218,15 @@ impl AvcStream
     // handed to it; only an overlap with in-flight work requires a restart from the preceding sync.
     mtd appendFrames(frames: const [..] SampleEntry) fail
     {
-        if !@countof(frames) do
+        if !frames.count do
             return
-        if @countof(frames) > Swag.U32.Max - .frames.count do
+        if frames.count > Swag.U32.Max - .frames.count do
             fail OverflowError{"H.264 video sample table is too large"}
 
         let first = .frames.count
         var order: Array'u32
-        order.reserve(@countof(frames))
-        for index in @countof(frames)
+        order.reserve(frames.count)
+        for index in frames.count
         {
             var position = order.count
             while position > 0 and frames[cast(u64) order[position - 1]].presentationTime > frames[index].presentationTime
@@ -252,7 +252,7 @@ impl AvcStream
         let restart = insertionRank < stableRank
 
         var merged: Array'u32
-        merged.reserve(first + @countof(frames))
+        merged.reserve(first + frames.count)
         if mutableRank do
             merged.add(.sampleAtRank.toSlice()[0 until mutableRank])
 
@@ -284,7 +284,7 @@ impl AvcStream
 
         .frames.add(frames)
         .syncFlags.resize(.frames.count)
-        for localSample in @countof(frames)
+        for localSample in frames.count
         {
             let sample = first + localSample
             if .frames[sample].isSync do
@@ -295,7 +295,7 @@ impl AvcStream
         // that up as soon as the container marks one it does mark.
         if .assumedSync
         {
-            for localSample in @countof(frames) where frames[localSample].isSync
+            for localSample in frames.count where frames[localSample].isSync
             {
                 .syncFlags[0] = cast(u8) (.frames[0].isSync ? 1 : 0)
                 .assumedSync  = false

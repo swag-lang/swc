@@ -7,8 +7,8 @@
         return values[0] + values[1]
     }
 
-    @assert(cb() == 3.5)
-    @assert(cb([5.0, 1.5]) == 6.5)
+    Swag.assert(cb() == 3.5)
+    Swag.assert(cb([5.0, 1.5]) == 6.5)
 }
 
 #test
@@ -18,6 +18,6 @@
         return payload.values[0] + payload.values[2] + payload.bias
     }
 
-    @assert(cb() == 15)
-    @assert(cb({values: [10, 20, 30], bias: 4}) == 44)
+    Swag.assert(cb() == 15)
+    Swag.assert(cb({values: [10, 20, 30], bias: 4}) == 44)
 }

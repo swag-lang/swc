@@ -40,7 +40,7 @@ incorrectly rather than imperfectly. OpenType files carrying CFF outlines
 
 #run
 {
-    let itf = @compiler
+    let itf = Swag.compiler()
     let cfg = itf.getBuildCfg()!
     cfg.moduleVersion   = #swcversion
     cfg.moduleRevision  = #swcrevision

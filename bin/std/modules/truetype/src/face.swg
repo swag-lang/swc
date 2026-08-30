@@ -59,7 +59,7 @@ private func detectProgramSource(bytes: const [..] u8)->{ source: OutlineSource,
 {
     var result: retval
     result.sfnt = true
-    if @countof(bytes) < 4 do
+    if bytes.count < 4 do
         return result
 
     // A bare CFF opens with its format version, followed by a header size of at least four
@@ -82,15 +82,15 @@ private func detectProgramSource(bytes: const [..] u8)->{ source: OutlineSource,
 
 private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyName: string, allocator: #null IAllocator)->#null *Face fail
 {
-    if @countof(bytes) == 0 do
+    if bytes.count == 0 do
         fault(0x06)
-    let allocationAllocator = (allocator orelse @getcontext().allocator)!
+    let allocationAllocator = (allocator orelse Swag.getContext().allocator)!
     let faceData            = Memory.new'FaceImpl(allocationAllocator)
     faceData.allocationAllocator = allocationAllocator
     defer #fail Memory.delete(faceData, allocationAllocator)
-    faceData.fontData.resize(@countof(bytes))
+    faceData.fontData.resize(bytes.count)
     let fontData = faceData.fontData.buffer!
-    Memory.copy(fontData, @dataof(bytes), @countof(bytes))
+    Memory.copy(fontData, bytes.buffer, bytes.count)
 
     let detected = detectProgramSource(bytes)
     if detected.sfnt
@@ -197,7 +197,7 @@ public impl Face
     // Ownership and cleanup match [[TrueType.Face.load]].
     func loadSubset(bytes: const [..] u8, familyName: string, allocator: #null IAllocator = null)->#null *Face fail
     {
-        if !@countof(familyName) do
+        if !familyName.count do
             fault(0x06)
         return loadFaceBytes(bytes, 0, familyName, allocator)
     }
@@ -215,7 +215,7 @@ public impl Face
     // let count = try TrueType.Face.countFaces(bytes.toSlice())
     // for count
     // {
-    //     let face = (try TrueType.Face.loadAt(bytes.toSlice(), @index))!
+    //     let face = (try TrueType.Face.loadAt(bytes.toSlice(), Swag.index))!
     //     defer face.destroy()
     // }
     // ```
@@ -249,7 +249,7 @@ public impl Face
     // let count = try TrueType.Face.countFaces(bytes.toSlice())
     // for count
     // {
-    //     if (try TrueType.Face.familyNameAt(bytes.toSlice(), @index)) == "MS PGothic" do
+    //     if (try TrueType.Face.familyNameAt(bytes.toSlice(), Swag.index)) == "MS PGothic" do
     //         break
     // }
     // ```
@@ -503,7 +503,7 @@ public impl Face
 
         let points = o.points!
         for cast(u32) o.pointCount do
-            points[@index].y = hintMapY(points[@index].y, xh, xhS, ch, chS)
+            points[Swag.index].y = hintMapY(points[Swag.index].y, xh, xhS, ch, chS)
     }
 
     // Renders the current outline as a single-channel signed-distance field.

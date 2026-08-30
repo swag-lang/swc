@@ -25,21 +25,21 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
     let check = CheckButton.create(&host.root, "Enable", {20, 20, 120, 30}, CheckButtonHeadless_Command)
     check.sigChanged += &checkButtonHeadlessChanged
 
-    @assert(!check.isChecked())
-    @assert(check.state == .Unchecked)
+    Swag.assert(!check.isChecked())
+    Swag.assert(check.state == .Unchecked)
 
     host.click({40, 35})
-    @assert(check.isChecked())
-    @assert(check.state == .Checked)
-    @assert(CheckButtonHeadlessChangedCount == 1)
-    @assert(host.commandCount == 1)
-    @assert(host.lastCommand == CheckButtonHeadless_Command)
+    Swag.assert(check.isChecked())
+    Swag.assert(check.state == .Checked)
+    Swag.assert(CheckButtonHeadlessChangedCount == 1)
+    Swag.assert(host.commandCount == 1)
+    Swag.assert(host.lastCommand == CheckButtonHeadless_Command)
 
     host.click({40, 35})
-    @assert(!check.isChecked())
-    @assert(check.state == .Unchecked)
-    @assert(CheckButtonHeadlessChangedCount == 2)
-    @assert(host.commandCount == 2)
+    Swag.assert(!check.isChecked())
+    Swag.assert(check.state == .Unchecked)
+    Swag.assert(CheckButtonHeadlessChangedCount == 2)
+    Swag.assert(host.commandCount == 2)
 }
 
 // The TriState flag adds the Indeterminate state to the standard toggle cycle.
@@ -55,20 +55,20 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
     check.updateFlags(.TriState)
 
     host.click({40, 35})
-    @assert(check.state == .Checked)
-    @assert(check.isChecked())
+    Swag.assert(check.state == .Checked)
+    Swag.assert(check.isChecked())
 
     host.click({40, 35})
-    @assert(check.state == .Indeterminate)
-    @assert(check.isIndeterminate())
+    Swag.assert(check.state == .Indeterminate)
+    Swag.assert(check.isIndeterminate())
 
     host.click({40, 35})
-    @assert(check.state == .Unchecked)
+    Swag.assert(check.state == .Unchecked)
 
     // Programmatic changes are silent and repaint without simulating input.
     check.setState(.Indeterminate)
-    @assert(check.isIndeterminate())
-    @assert(CheckButtonHeadlessChangedCount == 0)
+    Swag.assert(check.isIndeterminate())
+    Swag.assert(CheckButtonHeadlessChangedCount == 0)
 }
 
 // Space and Enter toggle the focused check button.
@@ -84,12 +84,12 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
     host.focus(check)
 
     host.keyPress(Input.Key.Space)
-    @assert(check.isChecked())
-    @assert(CheckButtonHeadlessChangedCount == 1)
+    Swag.assert(check.isChecked())
+    Swag.assert(CheckButtonHeadlessChangedCount == 1)
 
     host.keyPress(Input.Key.Return)
-    @assert(!check.isChecked())
-    @assert(CheckButtonHeadlessChangedCount == 2)
+    Swag.assert(!check.isChecked())
+    Swag.assert(CheckButtonHeadlessChangedCount == 2)
 }
 
 // A disabled checkbutton ignores clicks.
@@ -106,7 +106,7 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
     check.disable()
 
     host.click({40, 35})
-    @assert(!check.isChecked())
-    @assert(CheckButtonHeadlessChangedCount == 0)
-    @assert(host.commandCount == 0)
+    Swag.assert(!check.isChecked())
+    Swag.assert(CheckButtonHeadlessChangedCount == 0)
+    Swag.assert(host.commandCount == 0)
 }

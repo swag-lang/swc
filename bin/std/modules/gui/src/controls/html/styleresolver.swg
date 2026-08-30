@@ -329,10 +329,10 @@ impl HtmlStyleResolver
         if node.tag == .Img
         {
             let width = .document.attribute(element, "width")
-            if @countof(width) do
+            if width.count do
                 style.applyDeclaration(.Width, width, context)
             let height = .document.attribute(element, "height")
-            if @countof(height) do
+            if height.count do
                 style.applyDeclaration(.Height, height, context)
         }
 
@@ -507,7 +507,7 @@ impl HtmlStyleResolver
 
         var inlineBlock: HtmlDeclarationBlock
         let inlineText = .document.attribute(element, "style")
-        if @countof(inlineText) do
+        if inlineText.count do
             inlineBlock = HtmlStyleSheet.parseDeclarations(inlineText)
 
         .sheet.candidates(.document, element, &.candidates)

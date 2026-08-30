@@ -13,17 +13,17 @@ func Sum3Default(a: s32, b: s32 = 5, c: s32 = 6)->s32
 #test
 {
     var R = Sum3(a: 1, c: 3, b: 2)
-    @assert(R == 6)
+    Swag.assert(R == 6)
 }
 
 #test
 {
     var R = Sum3(1, c: 3, b: 2)
-    @assert(R == 6)
+    Swag.assert(R == 6)
 }
 
 #test
 {
     var R = Sum3Default(c: 3, a: 1)
-    @assert(R == 9)
+    Swag.assert(R == 9)
 }

@@ -18,7 +18,7 @@ using Core, Core.Errors
 private func matchVlc(bits: *BitReader, lengths, values: const [..] u8)->u64
 {
     let peek  = bits.peek16()
-    let count = @countof(lengths)
+    let count = lengths.count
     for index in count
     {
         let length = cast(u32) lengths[index]
@@ -49,7 +49,7 @@ func residualCavlc(bits: *BitReader, nC: s32, maxCoeffs: u32, coeffs: [*] s16)->
     if nC == -1
     {
         let index = matchVlc(bits, ChromaDcCoeffTokenLen, ChromaDcCoeffTokenBits)
-        if index == @countof(ChromaDcCoeffTokenLen) do
+        if index == ChromaDcCoeffTokenLen.count do
             fail InvalidFormatError{"H.264 chroma DC coefficient token does not decode"}
         totalCoeff   = cast(u32) (index / 4)
         trailingOnes = cast(u32) (index % 4)

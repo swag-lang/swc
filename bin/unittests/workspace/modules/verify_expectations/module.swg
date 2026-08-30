@@ -2,7 +2,7 @@
 #import("core", location: "swag@std")
 #run
 {
-    let cfg = @compiler.getBuildCfg()!
+    let cfg = Swag.compiler().getBuildCfg()!
     cfg.moduleNamespace = "VerifyExpectations"
     cfg.backendKind     = .Export
 }

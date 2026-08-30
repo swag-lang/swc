@@ -115,8 +115,8 @@ private func defaultThemeImages()->*DefaultThemeImages
     {
         // The include payloads own their bytes for the process lifetime. Borrow them as strings
         // so the parsers and the resource bundle share one static copy.
-        cache.widgets = expect Svg.Drawing.parse(@mkstring(@dataof(DefaultImage), @countof(DefaultImage)))
-        expect cache.icons.setup(@mkstring(@dataof(DefaultIcons), @countof(DefaultIcons)))
+        cache.widgets = expect Svg.Drawing.parse(Swag.makeString(DefaultImage.buffer, DefaultImage.count))
+        expect cache.icons.setup(Swag.makeString(DefaultIcons.buffer, DefaultIcons.count))
         cache.decoded = true
     }
 
@@ -317,7 +317,7 @@ impl Theme
     {
         var defaults: ThemeMetrics
         .metrics.surfaceWnd_CornerRadius = defaults.surfaceWnd_CornerRadius
-        @init(&.rects, 1)
+        Swag.init(&.rects, 1)
     }
 
     // Gives interactive cells the same slight corner as an edit box.
@@ -404,7 +404,7 @@ impl Theme
     {
         with me.res
         {
-            if @isset(.defaultTypeFaceR) do
+            if Swag.isSet(.defaultTypeFaceR) do
                 return
 
             .defaultTypeFaceR  = expect themeTypeFace(resources, ResFontRegularName, DefaultFontRegular)!

@@ -36,7 +36,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 {
     var result: u32
 
-    while index[] < @countof(bytes) and bytes[index[]] >= '0' and bytes[index[]] <= '9'
+    while index[] < bytes.count and bytes[index[]] >= '0' and bytes[index[]] <= '9'
     {
         result  = result * 10'u32 + cast(u32) (bytes[index[]] - '0')
         index[] += 1
@@ -101,7 +101,7 @@ func registerCluster(size: u32, largest: *u32, second: *u32, third: *u32)
 
 func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
 {
-    @assert(@countof(pointLines) <= 24)
+    Swag.assert(pointLines.count <= 24)
 
     var points:       [24] Point3
     var edges:        [320] Edge
@@ -116,12 +116,12 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
         parents[index] = cast(u32) index
     }
 
-    for lhs in @countof(pointLines)
+    for lhs in pointLines.count
     {
-        if cast(u32) lhs + 1 >= @countof(pointLines) do
+        if cast(u32) lhs + 1 >= pointLines.count do
             continue
 
-        for rhs in cast(u32) lhs + 1 to @countof(pointLines) - 1
+        for rhs in cast(u32) lhs + 1 to pointLines.count - 1
         {
             edges[edgeCount].a     = cast(u32) lhs
             edges[edgeCount].b     = cast(u32) rhs
@@ -160,24 +160,24 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
     for edgeIndex in requestedLinks
     {
         let edge  = edges[edgeIndex]
-        let rootA = findRoot(parents[0 to @countof(pointLines)], edge.a)
-        let rootB = findRoot(parents[0 to @countof(pointLines)], edge.b)
+        let rootA = findRoot(parents[0 to pointLines.count], edge.a)
+        let rootB = findRoot(parents[0 to pointLines.count], edge.b)
 
         if rootA != rootB do
             parents[rootB] = rootA
     }
 
-    for pointIndex in @countof(pointLines)
+    for pointIndex in pointLines.count
     {
-        let root = findRoot(parents[0 to @countof(pointLines)], cast(u32) pointIndex)
+        let root = findRoot(parents[0 to pointLines.count], cast(u32) pointIndex)
         sizes[root] += 1
     }
 
     var result: CablePlan
-    result.pointCount     = cast(u32) @countof(pointLines)
+    result.pointCount     = cast(u32) pointLines.count
     result.attemptedLinks = requestedLinks
 
-    for clusterIndex in @countof(pointLines)
+    for clusterIndex in pointLines.count
     {
         clusterSizes[clusterIndex] = sizes[clusterIndex]
         if clusterSizes[clusterIndex] > 0
@@ -218,12 +218,12 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
 
     let samplePlan = planCables(samplePoints, 10)
 
-    @assert(samplePlan.pointCount == 20'u32)
-    @assert(samplePlan.attemptedLinks == 10'u32)
-    @assert(samplePlan.largestCluster == 5'u32)
-    @assert(samplePlan.secondCluster == 4'u32)
-    @assert(samplePlan.thirdCluster == 2'u32)
-    @assert(samplePlan.topThreeProduct == 40'u64)
+    Swag.assert(samplePlan.pointCount == 20'u32)
+    Swag.assert(samplePlan.attemptedLinks == 10'u32)
+    Swag.assert(samplePlan.largestCluster == 5'u32)
+    Swag.assert(samplePlan.secondCluster == 4'u32)
+    Swag.assert(samplePlan.thirdCluster == 2'u32)
+    Swag.assert(samplePlan.topThreeProduct == 40'u64)
 
     const corridorPoints: [7] string =
         [
@@ -238,10 +238,10 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
 
     let corridorPlan = planCables(corridorPoints, 5)
 
-    @assert(corridorPlan.pointCount == 7'u32)
-    @assert(corridorPlan.attemptedLinks == 5'u32)
-    @assert(corridorPlan.largestCluster == 3'u32)
-    @assert(corridorPlan.secondCluster == 2'u32)
-    @assert(corridorPlan.thirdCluster == 2'u32)
-    @assert(corridorPlan.topThreeProduct == 12'u64)
+    Swag.assert(corridorPlan.pointCount == 7'u32)
+    Swag.assert(corridorPlan.attemptedLinks == 5'u32)
+    Swag.assert(corridorPlan.largestCluster == 3'u32)
+    Swag.assert(corridorPlan.secondCluster == 2'u32)
+    Swag.assert(corridorPlan.thirdCluster == 2'u32)
+    Swag.assert(corridorPlan.topThreeProduct == 12'u64)
 }

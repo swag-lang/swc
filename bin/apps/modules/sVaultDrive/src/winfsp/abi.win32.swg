@@ -215,15 +215,15 @@ namespace WinFsp
     func loadLibrary(path: string)->NativeModule
     {
         let path16 = Utf16.toZeroTerminated(path)
-        return LoadLibraryW(@dataof(path16))
+        return LoadLibraryW(path16.buffer)
     }
 
     func environmentValue(name: string)->String
     {
         var buffer: [32768] u8
-        let count = GetEnvironmentVariableA(@dataof(name), @dataof(buffer), cast(u32) @countof(buffer))
-        if !count or count >= @countof(buffer) do
+        let count = GetEnvironmentVariableA(name.buffer, buffer.buffer, cast(u32) buffer.count)
+        if !count or count >= buffer.count do
             return ""
-        return @mkstring(@dataof(buffer), count)
+        return Swag.makeString(buffer.buffer, count)
     }
 }

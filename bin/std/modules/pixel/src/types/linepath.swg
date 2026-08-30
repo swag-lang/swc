@@ -72,7 +72,7 @@ public struct LinePath
 // value no contour has carried before — a path cleared and rebuilt identically included.
 private var g_ContourRevision: u64
 
-private func nextContourRevision()->u64 => @atomadd(&g_ContourRevision, 1) + 1
+private func nextContourRevision()->u64 => Swag.atomadd(&g_ContourRevision, 1) + 1
 
 public impl LinePath
 {
@@ -101,8 +101,8 @@ public impl LinePath
     // Releases all path geometry and restores an empty value.
     mtd clear()
     {
-        @drop(me, 1)
-        @init(me, 1)
+        Swag.drop(me, 1)
+        Swag.init(me, 1)
     }
 
     // Clears the path and starts a new open contour at `(startX, startY)`.

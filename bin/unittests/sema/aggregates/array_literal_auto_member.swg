@@ -19,6 +19,6 @@ func semaTest001()
     // The same inference must work for a runtime-built array value.
     let pieces = [PieceKind.Queen, .King, .Pawn]
     #assert(#typeof(pieces[0]) == PieceKind)
-    @assert(pieces[1] == PieceKind.King)
-    @assert(pieces[2] == PieceKind.Pawn)
+    Swag.assert(pieces[1] == PieceKind.King)
+    Swag.assert(pieces[2] == PieceKind.Pawn)
 }

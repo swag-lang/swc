@@ -3,24 +3,24 @@
 #test
 {
     #[Swag.NoInline]
-    func rolU8(v, n: u8)->u8 => @rol(v, n)
+    func rolU8(v, n: u8)->u8 => Swag.rol(v, n)
     #[Swag.NoInline]
-    func rorU8(v, n: u8)->u8 => @ror(v, n)
+    func rorU8(v, n: u8)->u8 => Swag.ror(v, n)
 
     #[Swag.NoInline]
-    func rolU16(v: u16, n: u8)->u16 => @rol(v, n)
+    func rolU16(v: u16, n: u8)->u16 => Swag.rol(v, n)
     #[Swag.NoInline]
-    func rorU16(v: u16, n: u8)->u16 => @ror(v, n)
+    func rorU16(v: u16, n: u8)->u16 => Swag.ror(v, n)
 
     #[Swag.NoInline]
-    func rolU32(v: u32, n: u8)->u32 => @rol(v, n)
+    func rolU32(v: u32, n: u8)->u32 => Swag.rol(v, n)
     #[Swag.NoInline]
-    func rorU32(v: u32, n: u8)->u32 => @ror(v, n)
+    func rorU32(v: u32, n: u8)->u32 => Swag.ror(v, n)
 
     #[Swag.NoInline]
-    func rolU64(v: u64, n: u8)->u64 => @rol(v, n)
+    func rolU64(v: u64, n: u8)->u64 => Swag.rol(v, n)
     #[Swag.NoInline]
-    func rorU64(v: u64, n: u8)->u64 => @ror(v, n)
+    func rorU64(v: u64, n: u8)->u64 => Swag.ror(v, n)
 
     const A0 = #run rolU8(1'u8, 2)
     const A1 = #run rorU8(1'u8, 2)

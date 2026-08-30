@@ -16,24 +16,24 @@ func assertIdct4x4Case(seed: u64)
         block[index] = cast(s16) (cast(s64) ((index * (seed * 37 + 11) + seed * 101 + 3) & 2047) - 1024)
     if seed % 5 == 0 do
         block[0] = cast(s16) (cast(s64) (seed * 977 & 8191) - 4096)
-    for index in @countof(expected)
+    for index in expected.count
     {
         let value = cast(u8) ((index * (seed * 13 + 7) + seed * 29) & 255)
         expected[index] = value
         actual[index]   = value
     }
 
-    H264.addIdct4x4Scalar(@dataof(expected) + 4, Stride, @dataof(block))
-    H264.addIdct4x4(@dataof(actual) + 4, Stride, @dataof(block))
-    @assert(Memory.compare(@dataof(expected), @dataof(actual), @countof(actual)) == 0)
+    H264.addIdct4x4Scalar(expected.buffer + 4, Stride, block.buffer)
+    H264.addIdct4x4(actual.buffer + 4, Stride, block.buffer)
+    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
 
     // The flat DC add on the same samples, over the whole range of the rounded value.
     var dc = cast(s32) (cast(s64) ((seed * 8191 + 17) & 0x3FFF) - 0x2000)
     if seed % 7 == 0 do
         dc *= 4096
-    H264.addDc4x4Scalar(@dataof(expected) + 4, Stride, dc)
-    H264.addDc4x4(@dataof(actual) + 4, Stride, dc)
-    @assert(Memory.compare(@dataof(expected), @dataof(actual), @countof(actual)) == 0)
+    H264.addDc4x4Scalar(expected.buffer + 4, Stride, dc)
+    H264.addDc4x4(actual.buffer + 4, Stride, dc)
+    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
 }
 
 // The packed inverse 8x8 transform against its scalar form, same conventions.
@@ -50,16 +50,16 @@ func assertIdct8x8Case(seed: u64)
         block[index] = cast(s16) (cast(s64) ((index * (seed * 53 + 7) + seed * 131 + 5) & 255) - 128)
     if seed % 3 == 0 do
         block[0] = cast(s16) (cast(s64) (seed * 977 & 4095) - 2048)
-    for index in @countof(expected)
+    for index in expected.count
     {
         let value = cast(u8) ((index * (seed * 19 + 3) + seed * 41) & 255)
         expected[index] = value
         actual[index]   = value
     }
 
-    H264.addIdct8x8Scalar(@dataof(expected) + 4, Stride, @dataof(block))
-    H264.addIdct8x8(@dataof(actual) + 4, Stride, @dataof(block))
-    @assert(Memory.compare(@dataof(expected), @dataof(actual), @countof(actual)) == 0)
+    H264.addIdct8x8Scalar(expected.buffer + 4, Stride, block.buffer)
+    H264.addIdct8x8(actual.buffer + 4, Stride, block.buffer)
+    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
 }
 
 // The packed Hadamard transform must match the scalar 32-bit reference over the full input
@@ -75,9 +75,9 @@ func assertHadamard4x4Case(seed: u64)
         actual[index]   = value
     }
 
-    H264.hadamard4x4Scalar(@dataof(expected))
-    H264.hadamard4x4(@dataof(actual))
-    @assert(Memory.compare(@dataof(expected), @dataof(actual), #sizeof(actual)) == 0)
+    H264.hadamard4x4Scalar(expected.buffer)
+    H264.hadamard4x4(actual.buffer)
+    Swag.assert(Memory.compare(expected.buffer, actual.buffer, #sizeof(actual)) == 0)
 }
 
 #test
@@ -91,7 +91,7 @@ func assertHadamard4x4Case(seed: u64)
 
     var expected: [16] s16 = [Swag.S16.Min, Swag.S16.Max, Swag.S16.Min, Swag.S16.Max, Swag.S16.Max, Swag.S16.Min, Swag.S16.Max, Swag.S16.Min, Swag.S16.Min, Swag.S16.Min, Swag.S16.Max, Swag.S16.Max, Swag.S16.Max, Swag.S16.Max, Swag.S16.Min, Swag.S16.Min]
     var actual             = expected
-    H264.hadamard4x4Scalar(@dataof(expected))
-    H264.hadamard4x4(@dataof(actual))
-    @assert(Memory.compare(@dataof(expected), @dataof(actual), #sizeof(actual)) == 0)
+    H264.hadamard4x4Scalar(expected.buffer)
+    H264.hadamard4x4(actual.buffer)
+    Swag.assert(Memory.compare(expected.buffer, actual.buffer, #sizeof(actual)) == 0)
 }

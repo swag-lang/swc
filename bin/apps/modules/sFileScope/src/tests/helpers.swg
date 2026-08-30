@@ -25,7 +25,7 @@ func openTestViewer(create: FileScope.PluginCreate, contentParent: *Wnd, fileNam
 // Completes a viewer worker deterministically, then lets the headless GUI publish its result.
 func(T) completeViewerBackgroundLoad(host: *Testing.HeadlessHost, load: *ViewerBackgroundLoad'T, timer: #null *Timer)
 {
-    @assert(load.started and timer != null)
+    Swag.assert(load.started and timer != null)
     Jobs.wait(&load.job)
     host.fireTimer(timer)
 }
@@ -43,5 +43,5 @@ func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *Vi
         steps += 1
     }
 
-    @assert(window.pendingFile.isEmpty())
+    Swag.assert(window.pendingFile.isEmpty())
 }

@@ -69,7 +69,7 @@ func semaTest007()
 func semaTest008()
 {
     var str1:  string         = "abc"
-    let data1                 = @dataof(str1)
+    let data1                 = str1.buffer
     let data2: const [*] void = data1
 }
 

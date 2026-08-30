@@ -13,9 +13,9 @@ const Eol = #raw """
     #assert(#typeof(a) == string)
     #assert(#typeof(b) == string)
 
-    @assert(a == "hello")
-    @assert(b == "C:\\Path\\To\\File")
-    @assert(c == "no \\n escape here")
+    Swag.assert(a == "hello")
+    Swag.assert(b == "C:\\Path\\To\\File")
+    Swag.assert(c == "no \\n escape here")
 }
 
 // Raw strings preserve backslashes literally
@@ -23,7 +23,7 @@ const Eol = #raw """
 {
     let raw = #raw "A\B"
     let normal = "A\\B"
-    @assert(raw == normal)
+    Swag.assert(raw == normal)
 }
 
 // Raw strings with embedded quotes. A raw literal cannot end with a quote, because the
@@ -31,14 +31,14 @@ const Eol = #raw """
 #test
 {
     let a = #raw """say "hello" twice"""
-    @assert(a == "say \"hello\" twice")
+    Swag.assert(a == "say \"hello\" twice")
 }
 
 // Multiline strings
 #test
 {
     let a = """hello"""
-    @assert(a == "hello")
+    Swag.assert(a == "hello")
 }
 
 #test
@@ -46,8 +46,8 @@ const Eol = #raw """
     let a = """line1
 line2
 line3"""
-    @assert(a[0] == cast(u8) 'l'rune)
-    @assert(@countof(a) > 10)
+    Swag.assert(a[0] == cast(u8) 'l'rune)
+    Swag.assert(a.count > 10)
 }
 
 // Multiline strings support escape sequences
@@ -55,14 +55,14 @@ line3"""
 {
     let a = """tab\there"""
     let b = "tab\there"
-    @assert(a == b)
+    Swag.assert(a == b)
 }
 
 // Multiline strings with embedded double quotes
 #test
 {
     let a = """This is "quoted" text"""
-    @assert(a == "This is \"quoted\" text")
+    Swag.assert(a == "This is \"quoted\" text")
 }
 
 #test
@@ -71,7 +71,7 @@ line3"""
                a
                string
                """
-    @assert(a == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
+    Swag.assert(a == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
 }
 
 #test
@@ -80,7 +80,7 @@ line3"""
               a
               string
               """
-    @assert(a == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
+    Swag.assert(a == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
 }
 
 #test
@@ -90,7 +90,7 @@ line3"""
            third
                  fourth
                """
-    @assert(a == "first" ++ Eol ++ "second" ++ Eol ++ "third" ++ Eol ++ "  fourth" ++ Eol)
+    Swag.assert(a == "first" ++ Eol ++ "second" ++ Eol ++ "third" ++ Eol ++ "  fourth" ++ Eol)
 }
 
 #test
@@ -100,21 +100,21 @@ line3"""
             a
             string
             """
-    @assert(a == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
+    Swag.assert(a == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
 }
 
 // Multiline empty
 #test
 {
     let a = """"""
-    @assert(@countof(a) == 0)
+    Swag.assert(a.count == 0)
 }
 
 // Raw vs normal string comparison
 #test
 {
-    @assert(#raw "hello world" == "hello world")
-    @assert(#raw "\n" != "\n")
-    @assert(#raw "\t" != "\t")
-    @assert(#raw "A\\B" == "A\\\\B")
+    Swag.assert(#raw "hello world" == "hello world")
+    Swag.assert(#raw "\n" != "\n")
+    Swag.assert(#raw "\t" != "\t")
+    Swag.assert(#raw "A\\B" == "A\\\\B")
 }

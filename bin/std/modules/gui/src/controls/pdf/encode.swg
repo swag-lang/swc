@@ -46,13 +46,13 @@ private impl Writer
     {
         .beginObject(number)
         .append("<< ")
-        if @countof(dictionary)
+        if dictionary.count
         {
             .append(dictionary)
             .append(" ")
         }
 
-        .append(Format.toString("/Length % >>\nstream\n", @countof(data)).toString())
+        .append(Format.toString("/Length % >>\nstream\n", data.count).toString())
         .bytes.add(data)
         .append("\nendstream\n")
         .endObject()
@@ -384,7 +384,7 @@ private func infoDictionary(metadata: const *Metadata)->String fail
         {"Keywords", metadata.keywords.toString()},
         {"Creator",  metadata.creator.toString()},
         {"Producer", metadata.producer.toString()}]
-    for field in fields where @countof(field.value)
+    for field in fields where field.value.count
     {
         result.appendFormat(" /% ", field.name)
         try appendPdfString(&result, field.value)

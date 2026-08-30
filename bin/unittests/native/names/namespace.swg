@@ -15,7 +15,7 @@ namespace compiler163
 
     #test
     {
-        @assert(main())
+        Swag.assert(main())
     }
 }
 
@@ -36,7 +36,7 @@ namespace compiler1650
         let y = #typeof(bool)
         if (x == y)
         {
-            @assert(false)
+            Swag.assert(false)
         }
     }
 }

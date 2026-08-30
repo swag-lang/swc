@@ -100,7 +100,7 @@ namespace
         return Result::Continue;
     }
 
-    // '@vecsplat' of a constant scalar is the one packed operation with a compile-time
+    // 'Swag.vecsplat' of a constant scalar is the one packed operation with a compile-time
     // answer: the lane bytes simply repeat. Folding it is what lets a vector constant be
     // declared, and the result is the same byte payload an aggregate literal produces.
     Result foldVectorSplat(Sema& sema, AstNodeRef callRef, std::span<AstNodeRef> args)
@@ -459,7 +459,7 @@ Result ConstantIntrinsic::tryConstantFoldCallBeforeParameterCasts(Sema& sema, co
 
 Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args)
 {
-    const Token& tok = sema.token(selectedFn.codeRef());
+    const TokenId intrinsicId = selectedFn.intrinsicId();
 
     // The packed overloads never fold: their constants are raw byte payloads,
     // and the lowering runs them like any other code.
@@ -474,7 +474,7 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
         }
     }
 
-    switch (tok.id)
+    switch (intrinsicId)
     {
         case TokenId::IntrinsicVecSplat:
             SWC_ASSERT(args.size() == 1);
@@ -497,7 +497,7 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
 
             const ConstantValue& aCst  = sema.cstMgr().get(aCstRef);
             const ConstantValue& bCst  = sema.cstMgr().get(bCstRef);
-            const bool           takeA = tok.id == TokenId::IntrinsicMin ? aCst.le(bCst) : aCst.ge(bCst);
+            const bool           takeA = intrinsicId == TokenId::IntrinsicMin ? aCst.le(bCst) : aCst.ge(bCst);
             sema.setConstant(sema.curNodeRef(), takeA ? aCstRef : bCstRef);
             return Result::Continue;
         }
@@ -580,7 +580,7 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
                 return Result::Continue;
 
             Math::FoldIntrinsicUnaryFloatOp foldOp;
-            const bool                      mapped = mapTokenToUnaryIntrinsicFoldOp(foldOp, tok.id);
+            const bool                      mapped = mapTokenToUnaryIntrinsicFoldOp(foldOp, intrinsicId);
             SWC_ASSERT(mapped);
 
             double                 foldedValue = 0.0;
@@ -655,11 +655,11 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
                 val &= (1ULL << bits) - 1;
 
             uint64_t result = 0;
-            if (tok.id == TokenId::IntrinsicBitCountNz)
+            if (intrinsicId == TokenId::IntrinsicBitCountNz)
             {
                 result = static_cast<uint64_t>(std::popcount(val));
             }
-            else if (tok.id == TokenId::IntrinsicBitCountTz)
+            else if (intrinsicId == TokenId::IntrinsicBitCountTz)
             {
                 if (val == 0)
                     result = bits;
@@ -749,7 +749,7 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
             {
                 result = val;
             }
-            else if (tok.id == TokenId::IntrinsicRol)
+            else if (intrinsicId == TokenId::IntrinsicRol)
             {
                 result = (val << count) | (val >> (valBits - count));
             }

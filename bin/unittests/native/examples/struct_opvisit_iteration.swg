@@ -62,7 +62,7 @@ impl ShelfBins
                 case 3: visitItem = me.evening
                 }
 
-                #inject(stmt, item = visitItem, index = @index)
+                #inject(stmt, item = visitItem, index = Swag.index)
             }
         }
     }
@@ -83,7 +83,7 @@ impl ShelfBins
             default: visitItem = me.evening
             }
 
-            #inject(stmt, item = visitItem, index = @index)
+            #inject(stmt, item = visitItem, index = Swag.index)
         }
     }
 }
@@ -109,8 +109,8 @@ func reverseCode(bins: ShelfBins)->s32
 {
     var bins = ShelfBins{morning: 2, lunch: 4, afternoon: 6, evening: 8}
 
-    @assert(countUnits(bins) == 20)
-    @assert(reverseCode(bins) == 8642)
+    Swag.assert(countUnits(bins) == 20)
+    Swag.assert(reverseCode(bins) == 8642)
 
     for &writeUnits, slot in bins
     {
@@ -118,10 +118,10 @@ func reverseCode(bins: ShelfBins)->s32
             writeUnits[] += 3 + cast(s32) slot
     }
 
-    @assert(bins.morning == 5)
-    @assert(bins.lunch == 4)
-    @assert(bins.afternoon == 11)
-    @assert(bins.evening == 14)
-    @assert(countUnits(bins) == 34)
-    @assert(reverseCode(bins) == 15145)
+    Swag.assert(bins.morning == 5)
+    Swag.assert(bins.lunch == 4)
+    Swag.assert(bins.afternoon == 11)
+    Swag.assert(bins.evening == 14)
+    Swag.assert(countUnits(bins) == 34)
+    Swag.assert(reverseCode(bins) == 15145)
 }

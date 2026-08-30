@@ -37,9 +37,9 @@ impl IntUnaryVec3
     var value: IntUnaryVec3'u64 = {x: 1, y: 2, z: 3}
     let pos = +value
 
-    @assert(pos.x == 1)
-    @assert(pos.y == 2)
-    @assert(pos.z == 3)
+    Swag.assert(pos.x == 1)
+    Swag.assert(pos.y == 2)
+    Swag.assert(pos.z == 3)
 }
 
 // Test: unary - and ~ on IntUnaryVec3's64
@@ -49,12 +49,12 @@ impl IntUnaryVec3
     let neg = -value
     let inv = ~value
 
-    @assert(neg.x == -1)
-    @assert(neg.y == 2)
-    @assert(neg.z == -3)
-    @assert(inv.x == -2)
-    @assert(inv.y == 1)
-    @assert(inv.z == -4)
+    Swag.assert(neg.x == -1)
+    Swag.assert(neg.y == 2)
+    Swag.assert(neg.z == -3)
+    Swag.assert(inv.x == -2)
+    Swag.assert(inv.y == 1)
+    Swag.assert(inv.z == -4)
 }
 
 // Test: IntUnaryVec3's32 with all zeros
@@ -64,12 +64,12 @@ impl IntUnaryVec3
     let neg = -value
     let inv = ~value
 
-    @assert(neg.x == 0)
-    @assert(neg.y == 0)
-    @assert(neg.z == 0)
-    @assert(inv.x == -1)
-    @assert(inv.y == -1)
-    @assert(inv.z == -1)
+    Swag.assert(neg.x == 0)
+    Swag.assert(neg.y == 0)
+    Swag.assert(neg.z == 0)
+    Swag.assert(inv.x == -1)
+    Swag.assert(inv.y == -1)
+    Swag.assert(inv.z == -1)
 }
 
 // Test: IntUnaryVec3'u32 with unary +
@@ -79,9 +79,9 @@ impl IntUnaryVec3
     let pos = +value
 
     #assert(#typeof(pos) == IntUnaryVec3'u32)
-    @assert(pos.x == 100)
-    @assert(pos.y == 200)
-    @assert(pos.z == 300)
+    Swag.assert(pos.x == 100)
+    Swag.assert(pos.y == 200)
+    Swag.assert(pos.z == 300)
 }
 
 // Test: IntUnaryVec3'u32 bitwise NOT
@@ -90,9 +90,9 @@ impl IntUnaryVec3
     var value: IntUnaryVec3'u32 = {x: 0, y: 0xFFFF_FFFF, z: 0x0000_00FF}
     let inv = ~value
 
-    @assert(inv.x == 0xFFFF_FFFF)
-    @assert(inv.y == 0)
-    @assert(inv.z == 0xFFFF_FF00)
+    Swag.assert(inv.x == 0xFFFF_FFFF)
+    Swag.assert(inv.y == 0)
+    Swag.assert(inv.z == 0xFFFF_FF00)
 }
 
 // Test: IntUnaryVec3's16
@@ -102,9 +102,9 @@ impl IntUnaryVec3
     let neg = -value
 
     #assert(#typeof(neg) == IntUnaryVec3's16)
-    @assert(neg.x == -10)
-    @assert(neg.y == 20)
-    @assert(neg.z == -30)
+    Swag.assert(neg.x == -10)
+    Swag.assert(neg.y == 20)
+    Swag.assert(neg.z == -30)
 }
 
 // Test: IntUnaryVec3'u8 bitwise NOT
@@ -114,9 +114,9 @@ impl IntUnaryVec3
     let inv = ~value
 
     #assert(#typeof(inv) == IntUnaryVec3'u8)
-    @assert(inv.x == 0xF0)
-    @assert(inv.y == 0x0F)
-    @assert(inv.z == 0x55)
+    Swag.assert(inv.x == 0xF0)
+    Swag.assert(inv.y == 0x0F)
+    Swag.assert(inv.z == 0x55)
 }
 
 // Test: double negation on IntUnaryVec3's32
@@ -125,9 +125,9 @@ impl IntUnaryVec3
     var value: IntUnaryVec3's32 = {x: 1, y: -2, z: 3}
     let double_neg              = -(-value)
 
-    @assert(double_neg.x == 1)
-    @assert(double_neg.y == -2)
-    @assert(double_neg.z == 3)
+    Swag.assert(double_neg.x == 1)
+    Swag.assert(double_neg.y == -2)
+    Swag.assert(double_neg.z == 3)
 }
 
 // Test: double bitwise NOT on IntUnaryVec3'u64 (identity)
@@ -136,9 +136,9 @@ impl IntUnaryVec3
     var value: IntUnaryVec3'u64 = {x: 0xCAFE, y: 0xBABE, z: 0xDEAD}
     let double_inv              = ~(~value)
 
-    @assert(double_inv.x == 0xCAFE'u64)
-    @assert(double_inv.y == 0xBABE'u64)
-    @assert(double_inv.z == 0xDEAD'u64)
+    Swag.assert(double_inv.x == 0xCAFE'u64)
+    Swag.assert(double_inv.y == 0xBABE'u64)
+    Swag.assert(double_inv.z == 0xDEAD'u64)
 }
 
 // Test: IntUnaryVec3's64 unary - with mixed positive/negative/zero
@@ -147,7 +147,7 @@ impl IntUnaryVec3
     var value: IntUnaryVec3's64 = {x: 1000, y: 0, z: -1000}
     let neg = -value
 
-    @assert(neg.x == -1000)
-    @assert(neg.y == 0)
-    @assert(neg.z == 1000)
+    Swag.assert(neg.x == -1000)
+    Swag.assert(neg.y == 0)
+    Swag.assert(neg.z == 1000)
 }

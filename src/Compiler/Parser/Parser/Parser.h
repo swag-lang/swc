@@ -32,6 +32,7 @@ enum class ParserContextFlagsE : uint32_t
     InVarDeclType     = 1 << 4,
     InAttribute       = 1 << 5,
     InClosureCapture  = 1 << 6,
+    InNamespace       = 1 << 7,
 };
 using ParserContextFlags = EnumFlags<ParserContextFlagsE>;
 
@@ -131,6 +132,9 @@ private:
 
     AstNodeRef       parseInitializerList(AstNodeRef nodeWhat);
     AstNodeRef       parseFunctionArguments(AstNodeRef nodeExpr);
+    TokenId          swagIntrinsicId(AstNodeRef nodeExpr) const;
+    AstNodeRef       lowerSwagIntrinsicCall(AstNodeRef nodeExpr, SpanRef spanArgsRef, TokenRef tokCallRef);
+    AstNodeRef       lowerSwagIntrinsicValue(AstNodeRef nodeExpr);
     AstNodeRef       parseArraySlicingIndex(AstNodeRef nodeRef);
     AstModifierFlags parseModifiers();
     AstNodeRef       parseBinaryExpr(int minPrecedence);
@@ -225,7 +229,7 @@ private:
     AstNodeRef parseIntrinsicCall(uint32_t numParams);
     AstNodeRef parseIntrinsicCallConstantExpr();
     AstNodeRef parseIntrinsicCallExpr(uint32_t numParams);
-    // '@drop', '@postcopy' and '@postmove' share one syntax: a target and an optional count.
+    // 'Swag.drop', 'Swag.postCopy' and 'Swag.postMove' share one syntax: a target and an optional count.
     template<AstNodeId NODE_ID>
     AstNodeRef parseLifecycleIntrinsic();
     AstNodeRef parseIntrinsicInit();

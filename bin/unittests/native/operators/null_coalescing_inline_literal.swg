@@ -8,5 +8,5 @@ func inlineZeroLiteralOrelseReturn(value: u8)->u8
 
 #test
 {
-    @assert(inlineZeroLiteralOrelseReturn(9'u8) == 9'u8)
+    Swag.assert(inlineZeroLiteralOrelseReturn(9'u8) == 9'u8)
 }

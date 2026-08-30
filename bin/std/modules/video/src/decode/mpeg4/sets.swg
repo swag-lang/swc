@@ -35,7 +35,7 @@ struct BitReader
 
 impl BitReader
 {
-    func create(payload: const [..] u8)->BitReader => {@dataof(payload), @countof(payload) * 8, 0}
+    func create(payload: const [..] u8)->BitReader => {payload.buffer, payload.count * 8, 0}
 
     // Reads `count` bits. Past the end every bit reads as zero, and `overran` says so.
     mtd read(count: u32)->u32
@@ -73,7 +73,7 @@ impl BitReader
         for 24'u32
         {
             let slot = cast(u64) (node * 2) + cast(u64) .read(1)
-            if slot >= @countof(tree) do
+            if slot >= tree.count do
                 return -1
 
             let next = tree[slot]
@@ -338,12 +338,12 @@ func readPlaneHeader(layer: const *Layer, reader: *BitReader, header: *PlaneHead
 func nextStartCode(bytes: const [..] u8, at: u64)->u64
 {
     var index = at
-    while index + 3 < @countof(bytes)
+    while index + 3 < bytes.count
     {
         if bytes[index] == 0 and bytes[index + 1] == 0 and bytes[index + 2] == 1 do
             return index
         index += 1
     }
 
-    return @countof(bytes)
+    return bytes.count
 }

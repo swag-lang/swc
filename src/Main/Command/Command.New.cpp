@@ -16,13 +16,13 @@ namespace
 {
     constexpr std::string_view HELLO_SOURCE = R"(#main
 {
-    @print("Hello, world!\n")
+    Swag.print("Hello, world!\n")
 }
 )";
 
     constexpr std::string_view MODULE_SOURCE = R"(#run
 {
-    let itf = @compiler
+    let itf = Swag.compiler()
     let cfg = itf.getBuildCfg()!
     cfg.backendKind = .Executable
 }

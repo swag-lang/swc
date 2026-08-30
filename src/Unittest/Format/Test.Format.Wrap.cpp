@@ -1043,7 +1043,7 @@ SWC_TEST_BEGIN(FormatWrap_WrappedCaseValuesAlignUnderTheFirstValue)
         "    {\n"
         "    case 2,\n"
         "      4,\n"
-        "            6: @assert(true)\n"
+        "            6: Swag.assert(true)\n"
         "    }\n"
         "}\n";
 
@@ -1054,7 +1054,7 @@ SWC_TEST_BEGIN(FormatWrap_WrappedCaseValuesAlignUnderTheFirstValue)
         "    {\n"
         "    case 2,\n"
         "         4,\n"
-        "         6: @assert(true)\n"
+        "         6: Swag.assert(true)\n"
         "    }\n"
         "}\n";
 

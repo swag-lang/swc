@@ -18,7 +18,7 @@ impl BufferBox
     {
         var ptr = .buffer
         let len = .count
-        return @mkslice(ptr, len)
+        return Swag.makeSlice(ptr, len)
     }
 }
 
@@ -32,8 +32,8 @@ impl BufferBox
     let ptr = box.firstPtr()
     let sl  = box.toLocalSlice()
 
-    @assert(ptr[0] == 11)
-    @assert(@countof(sl) == 3)
-    @assert(sl[0] == 11)
-    @assert(sl[2] == 33)
+    Swag.assert(ptr[0] == 11)
+    Swag.assert(sl.count == 3)
+    Swag.assert(sl[0] == 11)
+    Swag.assert(sl[2] == 33)
 }

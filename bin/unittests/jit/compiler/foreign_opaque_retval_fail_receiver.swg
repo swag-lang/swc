@@ -63,7 +63,7 @@ func captureValueInExpectBlock(line: string)->string
 {
     expect
     {
-        @assert(captureValue("2x3x4") == "2x3x4")
-        @assert(captureValueInExpectBlock("2x3x4") == "2x3x4")
+        Swag.assert(captureValue("2x3x4") == "2x3x4")
+        Swag.assert(captureValueInExpectBlock("2x3x4") == "2x3x4")
     }
 }

@@ -45,7 +45,7 @@ func resetArrayDropTrace()
 
 func assertIntArray(values: Array's32, expected: const [..] s32)->bool
 {
-    if values.count != @countof(expected) do
+    if values.count != expected.count do
         return false
 
     for i in values.count
@@ -59,7 +59,7 @@ func assertIntArray(values: Array's32, expected: const [..] s32)->bool
 
 func assertStringArray(values: Array'String, expected: const [..] string)->bool
 {
-    if values.count != @countof(expected) do
+    if values.count != expected.count do
         return false
 
     for i in values.count
@@ -73,10 +73,10 @@ func assertStringArray(values: Array'String, expected: const [..] string)->bool
 
 func assertStringSlice(values: const [..] String, expected: const [..] string)->bool
 {
-    if @countof(values) != @countof(expected) do
+    if values.count != expected.count do
         return false
 
-    for i in @countof(values)
+    for i in values.count
     {
         if values[i] != expected[i] do
             return false
@@ -87,7 +87,7 @@ func assertStringSlice(values: const [..] String, expected: const [..] string)->
 
 func assertStaticStringArray(values: StaticArray'(String, 4'u64), expected: const [..] string)->bool
 {
-    if values.count != @countof(expected) do
+    if values.count != expected.count do
         return false
 
     for i in values.count
@@ -128,10 +128,10 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 #test
 {
     var values: Array's32
-    @assert(values.isEmpty())
+    Swag.assert(values.isEmpty())
 
     values.reserve(2)
-    @assert(values.capacity >= 2)
+    Swag.assert(values.capacity >= 2)
 
     values.add(10)
     values.add(20)
@@ -142,26 +142,26 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     extra[0] = 40
 
     let tail = values.emplaceInitAddress(2)
-    @assert(tail[0] == 0)
-    @assert(tail[1] == 0)
+    Swag.assert(tail[0] == 0)
+    Swag.assert(tail[1] == 0)
     tail[0] = 50
     tail[1] = 60
 
     let expectedFilled: [6] s32 = [10, 20, 30, 40, 50, 60]
-    @assert(assertIntArray(values, expectedFilled))
-    @assert(values.contains(20))
-    @assert(!values.contains(99))
-    @assert(values.front() == 10)
-    @assert(values.back() == 60)
+    Swag.assert(assertIntArray(values, expectedFilled))
+    Swag.assert(values.contains(20))
+    Swag.assert(!values.contains(99))
+    Swag.assert(values.front() == 10)
+    Swag.assert(values.back() == 60)
 
-    @assert(values.popBack() == 60)
+    Swag.assert(values.popBack() == 60)
     values.removeBack()
     let expectedAfterPop: [4] s32 = [10, 20, 30, 40]
-    @assert(assertIntArray(values, expectedAfterPop))
+    Swag.assert(assertIntArray(values, expectedAfterPop))
 
     values.clear()
-    @assert(values.isEmpty())
-    @assert(values.count == 0)
+    Swag.assert(values.isEmpty())
+    Swag.assert(values.count == 0)
 }
 
 // The collection protocol follows the language rule for scalar bindings: copy the value.
@@ -178,7 +178,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
         sum           += value
     }
 
-    @assert(sum == 60)
+    Swag.assert(sum == 60)
 }
 
 #test
@@ -188,9 +188,9 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     values.add(seed)
 
     let asSlice = cast([..] s32) values
-    @assert(@countof(asSlice) == 4)
-    @assert(asSlice[0] == 4)
-    @assert(asSlice[3] == 2)
+    Swag.assert(asSlice.count == 4)
+    Swag.assert(asSlice[0] == 4)
+    Swag.assert(asSlice[3] == 2)
 
     let first = values.ptr1(0)
     first[] = 9
@@ -199,7 +199,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     bottomRight[] = 7
 
     let expectedGrid: [4] s32 = [9, 1, 3, 7]
-    @assert(assertIntArray(values, expectedGrid))
+    Swag.assert(assertIntArray(values, expectedGrid))
 
     var weightedSum: s32 = 0
     for value, ordinal in values
@@ -207,7 +207,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
         weightedSum += value * cast(s32) (ordinal + 1)
     }
 
-    @assert(weightedSum == 48)
+    Swag.assert(weightedSum == 48)
 
     for &value, ordinal in values
     {
@@ -215,20 +215,20 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     }
 
     let expectedVisited: [4] s32 = [9, 0, 1, 4]
-    @assert(assertIntArray(values, expectedVisited))
+    Swag.assert(assertIntArray(values, expectedVisited))
 
     let middle = values[1 to 2]
-    @assert(@countof(middle) == 2)
-    @assert(middle[0] == 0)
-    @assert(middle[1] == 1)
+    Swag.assert(middle.count == 2)
+    Swag.assert(middle[0] == 0)
+    Swag.assert(middle[1] == 1)
 
     values.sort()
     let expectedSorted: [4] s32 = [0, 1, 4, 9]
-    @assert(assertIntArray(values, expectedSorted))
+    Swag.assert(assertIntArray(values, expectedSorted))
 
     values.sortReverse()
     let expectedReverse: [4] s32 = [9, 4, 1, 0]
-    @assert(assertIntArray(values, expectedReverse))
+    Swag.assert(assertIntArray(values, expectedReverse))
 }
 
 #test
@@ -243,27 +243,27 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     values.insertAt(values.count, 9)
 
     let expectedInserted: [7] s32 = [0, 1, 7, 8, 2, 3, 9]
-    @assert(assertIntArray(values, expectedInserted))
+    Swag.assert(assertIntArray(values, expectedInserted))
 
     values.removeAtOrdered(2, 2)
     let expectedOrderedRemove: [5] s32 = [0, 1, 2, 3, 9]
-    @assert(assertIntArray(values, expectedOrderedRemove))
+    Swag.assert(assertIntArray(values, expectedOrderedRemove))
 
     values.removeAt(1)
     let expectedUnorderedRemove: [4] s32 = [0, 9, 2, 3]
-    @assert(assertIntArray(values, expectedUnorderedRemove))
+    Swag.assert(assertIntArray(values, expectedUnorderedRemove))
 
     values.removeOrdered(2)
     let expectedRemoveOrderedValue: [3] s32 = [0, 9, 3]
-    @assert(assertIntArray(values, expectedRemoveOrderedValue))
+    Swag.assert(assertIntArray(values, expectedRemoveOrderedValue))
 
     values.remove(9)
     let expectedRemoveValue: [2] s32 = [0, 3]
-    @assert(assertIntArray(values, expectedRemoveValue))
+    Swag.assert(assertIntArray(values, expectedRemoveValue))
 
     values.swap(0, 1)
     let expectedSwap: [2] s32 = [3, 0]
-    @assert(assertIntArray(values, expectedSwap))
+    Swag.assert(assertIntArray(values, expectedSwap))
 }
 
 #test
@@ -275,32 +275,32 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     values.remove(2, 2)
 
     let expected: [4] s32 = [0, 1, 4, 5]
-    @assert(assertIntArray(values, expected))
+    Swag.assert(assertIntArray(values, expected))
 }
 
 #test
 {
     var values: Array's32
-    @assert(@countof(values) == 0)
-    @assert(@dataof(values) == null)
+    Swag.assert(values.count == 0)
+    Swag.assert(values.buffer == null)
 
     let seed: [4] s32 = [5, 1, 9, 3]
     values.add(seed)
 
-    @assert(@countof(values) == 4)
-    let raw = cast(const [*] s32) @dataof(values)!
-    @assert(raw[0] == 5)
-    @assert(raw[3] == 3)
+    Swag.assert(values.count == 4)
+    let raw = cast(const [*] s32) values.buffer!
+    Swag.assert(raw[0] == 5)
+    Swag.assert(raw[3] == 3)
 
     values[1] = 7
     values[1] += 2
     values[2] -= 4
     let expectedAssigned: [4] s32 = [5, 9, 5, 3]
-    @assert(assertIntArray(values, expectedAssigned))
+    Swag.assert(assertIntArray(values, expectedAssigned))
 
     var none: #null [..] s32 = null
     values.add(none)
-    @assert(assertIntArray(values, expectedAssigned))
+    Swag.assert(assertIntArray(values, expectedAssigned))
 
     var movedFront: s32 = 4
     var movedBack:  s32 = 8
@@ -308,12 +308,12 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     values.add(#move movedBack)
 
     let expectedMoved: [6] s32 = [4, 5, 9, 5, 3, 8]
-    @assert(assertIntArray(values, expectedMoved))
+    Swag.assert(assertIntArray(values, expectedMoved))
 
     values.sort(func||(a, b) { return b <=> a })
 
     let expectedSortedByCallback: [6] s32 = [9, 8, 5, 5, 4, 3]
-    @assert(assertIntArray(values, expectedSortedByCallback))
+    Swag.assert(assertIntArray(values, expectedSortedByCallback))
 }
 
 #test
@@ -322,7 +322,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 
     var values: Array's32
     values = seed
-    @assert(assertIntArray(values, seed))
+    Swag.assert(assertIntArray(values, seed))
 
     var copy: Array's32 = values
     let frontPtr        = copy.frontPtr()
@@ -332,20 +332,20 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 
     let expectedOriginal: [3] s32 = [1, 2, 3]
     let expectedCopy:     [3] s32 = [9, 2, 7]
-    @assert(assertIntArray(values, expectedOriginal))
-    @assert(assertIntArray(copy, expectedCopy))
+    Swag.assert(assertIntArray(values, expectedOriginal))
+    Swag.assert(assertIntArray(copy, expectedCopy))
 
     copy.fill(4)
     let expectedFilled: [3] s32 = [4, 4, 4]
-    @assert(assertIntArray(copy, expectedFilled))
+    Swag.assert(assertIntArray(copy, expectedFilled))
 
     copy.resize(1)
     let expectedShrunk: [1] s32 = [4]
-    @assert(assertIntArray(copy, expectedShrunk))
+    Swag.assert(assertIntArray(copy, expectedShrunk))
 
     copy.growResize(4)
     let expectedRegrown: [4] s32 = [4, 0, 0, 0]
-    @assert(assertIntArray(copy, expectedRegrown))
+    Swag.assert(assertIntArray(copy, expectedRegrown))
 }
 
 #test
@@ -358,10 +358,10 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     for &value in values do
         value.value += 10
 
-    @assert(values[0].value == 11)
-    @assert(values[1].value == 12)
-    @assert(values[2].value == 13)
-    @assert(visitStructArrayReverse(&values) == 28)
+    Swag.assert(values[0].value == 11)
+    Swag.assert(values[1].value == 12)
+    Swag.assert(values[2].value == 13)
+    Swag.assert(visitStructArrayReverse(&values) == 28)
 }
 
 #test
@@ -374,18 +374,18 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     values.emplaceAt(1, inserted)
 
     let expectedEmplaced: [5] s32 = [1, 2, 3, 4, 5]
-    @assert(assertIntArray(values, expectedEmplaced))
+    Swag.assert(assertIntArray(values, expectedEmplaced))
 
     values.growResize(7)
-    @assert(values[5] == 0)
-    @assert(values[6] == 0)
+    Swag.assert(values[5] == 0)
+    Swag.assert(values[6] == 0)
 
     values.reserve(14)
     let snapshot = values.toSlice()
     values.add(snapshot)
 
     let expectedSelfAppend: [14] s32 = [1, 2, 3, 4, 5, 0, 0, 1, 2, 3, 4, 5, 0, 0]
-    @assert(assertIntArray(values, expectedSelfAppend))
+    Swag.assert(assertIntArray(values, expectedSelfAppend))
 }
 
 #test
@@ -401,7 +401,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
             reverseIndex = index
     }
 
-    @assert(reverseIndex == 2)
+    Swag.assert(reverseIndex == 2)
 }
 
 #test
@@ -417,7 +417,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 
     let expected: [3] string =
         ["22222222222222222222222222222222", "33333333333333333333333333333333", "44444444444444444444444444444444"]
-    @assert(assertStringArray(values, expected))
+    Swag.assert(assertStringArray(values, expected))
 }
 
 #test
@@ -427,7 +427,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 
     let expected: [1] string =
         ["11111111111111111111111111111111"]
-    @assert(assertStaticStringArray(values, expected))
+    Swag.assert(assertStaticStringArray(values, expected))
 }
 
 #test
@@ -443,7 +443,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 
     let expected: [3] string =
         ["22222222222222222222222222222222", "33333333333333333333333333333333", "44444444444444444444444444444444"]
-    @assert(assertStaticStringArray(values, expected))
+    Swag.assert(assertStaticStringArray(values, expected))
 }
 
 #test
@@ -461,7 +461,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     let expected: [6] string =
         ["22222222222222222222222222222222", "33333333333333333333333333333333", "11111111111111111111111111111111",
          "22222222222222222222222222222222", "33333333333333333333333333333333", "44444444444444444444444444444444"]
-    @assert(assertStringSlice(values.toSlice(), expected))
+    Swag.assert(assertStringSlice(values.toSlice(), expected))
 }
 
 #test
@@ -478,7 +478,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     let expected: [6] string =
         ["11111111111111111111111111111111", "22222222222222222222222222222222", "33333333333333333333333333333333",
          "44444444444444444444444444444444", "22222222222222222222222222222222", "33333333333333333333333333333333"]
-    @assert(assertStringSlice(values.toSlice(), expected))
+    Swag.assert(assertStringSlice(values.toSlice(), expected))
 }
 
 #test
@@ -495,17 +495,17 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     let expected: [6] string =
         ["22222222222222222222222222222222", "33333333333333333333333333333333", "11111111111111111111111111111111",
          "22222222222222222222222222222222", "33333333333333333333333333333333", "44444444444444444444444444444444"]
-    @assert(assertStringSlice(values.toSlice(), expected))
+    Swag.assert(assertStringSlice(values.toSlice(), expected))
 }
 
 #test
 {
     var values = Array'u8.createBuffer(6)
-    @assert(values.count == 6)
-    @assert(values.capacity >= 6)
+    Swag.assert(values.count == 6)
+    Swag.assert(values.capacity >= 6)
 
     for i in values.count do
-        @assert(values[i] == 0)
+        Swag.assert(values[i] == 0)
 
     values.fill(7)
     let frontPtr = values.frontPtr()
@@ -513,17 +513,17 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     frontPtr[] = 1
     backPtr[]  = 9
 
-    @assert(values.front() == 1)
-    @assert(values.back() == 9)
+    Swag.assert(values.front() == 1)
+    Swag.assert(values.back() == 9)
 
     values.reserve(0)
-    @assert(values.isEmpty())
-    @assert(values.count == 0)
-    @assert(values.capacity == 0)
+    Swag.assert(values.isEmpty())
+    Swag.assert(values.count == 0)
+    Swag.assert(values.capacity == 0)
 
     values.add(5)
-    @assert(values.count == 1)
-    @assert(values[0] == 5)
+    Swag.assert(values.count == 1)
+    Swag.assert(values[0] == 5)
 }
 
 #test
@@ -541,12 +541,12 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 
         values.remove(1, 3)
 
-        @assert(values.count == 2)
-        @assert(values[0].value == 1)
-        @assert(values[1].value == 5)
+        Swag.assert(values.count == 2)
+        Swag.assert(values[0].value == 1)
+        Swag.assert(values[1].value == 5)
     }
 
-    @assert(ArrayDropCount == 5)
+    Swag.assert(ArrayDropCount == 5)
 }
 
 #test
@@ -563,15 +563,15 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
         seed[4].value = 5
         values.remove(1, 3)
 
-        @assert(values.count == 2)
-        @assert(values[0].value == 1)
-        @assert(values[1].value == 5)
+        Swag.assert(values.count == 2)
+        Swag.assert(values[0].value == 1)
+        Swag.assert(values[1].value == 5)
 
         values.clear()
         values.free()
     }
 
-    @assert(ArrayDropCount == 5)
+    Swag.assert(ArrayDropCount == 5)
 }
 
 // Copying an array reallocates its buffer from null while its capacity still
@@ -588,7 +588,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     scratch.setCapacity(64 * 1024, backing)
     defer scratch.release()
 
-    let context                = @getcontext()
+    let context                = Swag.getContext()
     let originalAllocator      = context.allocator
     let scratchItf: IAllocator = &scratch
     context.allocator = scratchItf
@@ -601,7 +601,7 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 
     var copy = source
     defer copy.free()
-    @assert(copy.count == 21)
+    Swag.assert(copy.count == 21)
     for i in 21 do
-        @assert(copy[i] == cast(u16) (i + 1))
+        Swag.assert(copy[i] == cast(u16) (i + 1))
 }

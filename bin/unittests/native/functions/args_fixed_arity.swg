@@ -60,9 +60,9 @@ func callKindof(a: FixedPair, b: [3] s32, c: string, d: *void, e: FixedKind)->bo
 
 #test
 {
-    @assert(callOne(1) == 41)
-    @assert(callManyInts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12) == 78)
-    @assert(callManyInts(10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120) == 780)
+    Swag.assert(callOne(1) == 41)
+    Swag.assert(callManyInts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12) == 78)
+    Swag.assert(callManyInts(10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120) == 780)
 }
 
 #test
@@ -76,10 +76,10 @@ func callKindof(a: FixedPair, b: [3] s32, c: string, d: *void, e: FixedKind)->bo
     #assert(#typeof(small) == s64)
     #assert(#typeof(rune0) == s32)
 
-    @assert(mixed == 55's64)
-    @assert(small == 16's64)
-    @assert(rune0 == 205)
-    @assert(rune1 == 202)
+    Swag.assert(mixed == 55's64)
+    Swag.assert(small == 16's64)
+    Swag.assert(rune0 == 205)
+    Swag.assert(rune1 == 202)
 }
 
 #test
@@ -90,9 +90,9 @@ func callKindof(a: FixedPair, b: [3] s32, c: string, d: *void, e: FixedKind)->bo
     let ptr1 = callPointerEnum(cast(*void) 0x45'u64, FixedKind.B, 7)
 
     #assert(#typeof(ptr0) == u64)
-    @assert(sum0 == 168)
-    @assert(sum1 == 143)
-    @assert(ptr0 == 8'u64)
-    @assert(ptr1 == 17'u64)
-    @assert(callKindof({a: 1, b: 2}, [3, 4, 5], "ok", cast(*void) 0x10'u64, FixedKind.B))
+    Swag.assert(sum0 == 168)
+    Swag.assert(sum1 == 143)
+    Swag.assert(ptr0 == 8'u64)
+    Swag.assert(ptr1 == 17'u64)
+    Swag.assert(callKindof({a: 1, b: 2}, [3, 4, 5], "ok", cast(*void) 0x10'u64, FixedKind.B))
 }

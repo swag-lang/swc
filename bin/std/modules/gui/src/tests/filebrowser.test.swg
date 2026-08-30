@@ -20,42 +20,42 @@ using Swag, Core, File
     opt.filters.add({"Text", ".txt"})
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
-    @assert(@isset(fb.editFile))
-    @assert(@isset(fb.comboType))
-    @assert(@isset(fb.listCtrl))
-    @assert(@isset(fb.backButton))
-    @assert(@isset(fb.forwardButton))
-    @assert(@isset(fb.upButton))
-    @assert(@isset(fb.refreshButton))
-    @assert(@isset(fb.historyButton))
-    @assert(@isset(fb.newFolderButton))
-    @assert(@isset(fb.statusLabel))
-    @assert(fb.comboType.items.count == 1)
-    @assert(fb.options.shortcuts.count == 3)
-    @assert(!fb.canGoBack())
-    @assert(!fb.canGoForward())
+    Swag.assert(Swag.isSet(fb.editFile))
+    Swag.assert(Swag.isSet(fb.comboType))
+    Swag.assert(Swag.isSet(fb.listCtrl))
+    Swag.assert(Swag.isSet(fb.backButton))
+    Swag.assert(Swag.isSet(fb.forwardButton))
+    Swag.assert(Swag.isSet(fb.upButton))
+    Swag.assert(Swag.isSet(fb.refreshButton))
+    Swag.assert(Swag.isSet(fb.historyButton))
+    Swag.assert(Swag.isSet(fb.newFolderButton))
+    Swag.assert(Swag.isSet(fb.statusLabel))
+    Swag.assert(fb.comboType.items.count == 1)
+    Swag.assert(fb.options.shortcuts.count == 3)
+    Swag.assert(!fb.canGoBack())
+    Swag.assert(!fb.canGoForward())
 
     // The file list is multi-column with fixed default widths.
-    @assert(fb.listCtrl.header.items.count == 3)
-    @assert(Math.abs(fb.listCtrl.header.itemWidthAt(0) - 220) < 0.5)
-    @assert(Math.abs(fb.listCtrl.header.itemWidthAt(1) - 130) < 0.5)
-    @assert(Math.abs(fb.listCtrl.header.itemWidthAt(2) - 90) < 0.5)
+    Swag.assert(fb.listCtrl.header.items.count == 3)
+    Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(0) - 220) < 0.5)
+    Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(1) - 130) < 0.5)
+    Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(2) - 90) < 0.5)
 
     // selectedPath combines the folder + typed name and appends the active
     // filter extension when missing.
     fb.setFileName("notes")
-    @assert(fb.fileName() == "notes")
+    Swag.assert(fb.fileName() == "notes")
     let name     = fb.selectedPath()
     let fileName = Path.fileName(name.toString())!
-    @assert(fileName == "notes.txt")
+    Swag.assert(fileName == "notes.txt")
 
     // A name that already carries the extension is kept as-is.
     fb.setFileName("report.txt")
     let name2     = fb.selectedPath()
     let fileName2 = Path.fileName(name2.toString())!
-    @assert(fileName2 == "report.txt")
-    @assert(!fb.setCurrentFolder("this-folder-does-not-exist"))
-    @assert(!fb.createFolder("bad/name"))
+    Swag.assert(fileName2 == "report.txt")
+    Swag.assert(!fb.setCurrentFolder("this-folder-does-not-exist"))
+    Swag.assert(!fb.createFolder("bad/name"))
 }
 
 // SelectFolder mode offers a single "Folders" type entry.
@@ -70,15 +70,15 @@ using Swag, Core, File
     opt.shortcuts.add({Env.SpecialDirectory.Desktop, "Workspace"})
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
-    @assert(fb.comboType.items.count == 1)
-    @assert(fb.options.shortcuts.count == 1)
-    @assert(@isset(fb.editFile))
+    Swag.assert(fb.comboType.items.count == 1)
+    Swag.assert(fb.options.shortcuts.count == 1)
+    Swag.assert(Swag.isSet(fb.editFile))
 
     // selectedPath must not index the (empty) filter list in SelectFolder mode.
     fb.setFileName("myfolder")
     let name     = fb.selectedPath()
     let fileName = Path.fileName(name.toString())!
-    @assert(fileName == "myfolder")
+    Swag.assert(fileName == "myfolder")
 }
 
 // File-browser history drops its forward branch after a new navigation.
@@ -88,17 +88,17 @@ using Swag, Core, File
     history.push("C:/one")
     history.push("C:/two")
     history.push("C:/three")
-    @assert(history.canGoBack())
-    @assert(!history.canGoForward())
-    @assert(history.goBack() == "C:/two")
-    @assert(history.goBack() == "C:/one")
-    @assert(history.canGoForward())
-    @assert(history.goForward() == "C:/two")
+    Swag.assert(history.canGoBack())
+    Swag.assert(!history.canGoForward())
+    Swag.assert(history.goBack() == "C:/two")
+    Swag.assert(history.goBack() == "C:/one")
+    Swag.assert(history.canGoForward())
+    Swag.assert(history.goForward() == "C:/two")
 
     history.push("C:/other")
-    @assert(history.entries.count == 3)
-    @assert(history.entries[2] == "C:/other")
-    @assert(!history.canGoForward())
+    Swag.assert(history.entries.count == 3)
+    Swag.assert(history.entries[2] == "C:/other")
+    Swag.assert(!history.canGoForward())
 }
 
 // The reusable dialog state receives the column widths on destruction, and the
@@ -120,25 +120,25 @@ using Swag, Core, File
     opt.filters.add({"Text", ".txt"})
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
-    @assert(Math.abs(fb.listCtrl.header.itemWidthAt(0) - 333) < 0.5)
-    @assert(Math.abs(fb.listCtrl.header.itemWidthAt(1) - 155) < 0.5)
-    @assert(Math.abs(fb.listCtrl.header.itemWidthAt(2) - 77) < 0.5)
+    Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(0) - 333) < 0.5)
+    Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(1) - 155) < 0.5)
+    Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(2) - 77) < 0.5)
 
     // Recording the same existing folder twice keeps one entry at the front.
     let temp = Env.getSpecialDirectory(.Temp)
     fb.recordRecentFolder(temp.toString())
     fb.recordRecentFolder(temp.toString())
-    @assert(state.recentFolders.count == 1)
+    Swag.assert(state.recentFolders.count == 1)
 
     // A folder that does not exist is never recorded.
     fb.recordRecentFolder("Z:/this-folder-does-not-exist")
-    @assert(state.recentFolders.count == 1)
+    Swag.assert(state.recentFolders.count == 1)
 
     // The name editor targets a folder only when its content names an existing one.
     fb.setFileName(temp.toString())
-    @assert(!fb.typedFolderTarget().isEmpty())
+    Swag.assert(!fb.typedFolderTarget().isEmpty())
     fb.setFileName("no-such-subfolder-anywhere")
-    @assert(fb.typedFolderTarget().isEmpty())
+    Swag.assert(fb.typedFolderTarget().isEmpty())
 }
 
 // Dialogs create the composite before assigning its Center dock. The fields
@@ -158,15 +158,15 @@ using Swag, Core, File
     host.root.applyLayout()
     fb.applyLayout()
 
-    @assert(fb.editFile.position.width > 300)
-    @assert(fb.comboType.position.width > 300)
+    Swag.assert(fb.editFile.position.width > 300)
+    Swag.assert(fb.comboType.position.width > 300)
 
     // The two bottom-docked strips stack: the name/type form sits at the bottom
     // edge, and the status line sits directly above it, above the file list.
     let form      = fb.editFile.parent!
     let statusBar = fb.statusLabel.parent!
-    @assert(form.position.bottom() <= fb.position.height)
-    @assert(form.position.bottom() >= fb.position.height - 1)
-    @assert(statusBar.position.bottom() <= form.position.y)
-    @assert(statusBar.position.y >= fb.listCtrl.position.bottom())
+    Swag.assert(form.position.bottom() <= fb.position.height)
+    Swag.assert(form.position.bottom() >= fb.position.height - 1)
+    Swag.assert(statusBar.position.bottom() <= form.position.y)
+    Swag.assert(statusBar.position.y >= fb.listCtrl.position.bottom())
 }

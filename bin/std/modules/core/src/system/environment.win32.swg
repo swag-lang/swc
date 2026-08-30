@@ -34,7 +34,7 @@ public func realSpecialDirectory(what: SpecialDirectory)->String
         if err != null or len >= MAX_PATH do
             return ""
 
-        var result: retval = cast(string) @mkslice(&a[0], cast(u64) len)
+        var result: retval = cast(string) Swag.makeSlice(&a[0], cast(u64) len)
         Path.normalize(&result)
         return result
     }
@@ -62,7 +62,7 @@ public func realSpecialDirectory(what: SpecialDirectory)->String
     catch Win32.SHGetSpecialFolderPathA(null, &a[0], v, FALSE) as err
     if err == null
     {
-        result = cast(string) @mkslice(&a[0], @countof(cast(cstring) &a[0]))
+        result = cast(string) Swag.makeSlice(&a[0], (cast(cstring) &a[0]).count)
         Path.normalize(&result)
     }
 
@@ -137,7 +137,7 @@ public func showInFileExplorer(path: string)->bool
 
     let explorer = Utf16.toZeroTerminated("explorer.exe")
     let params   = Utf16.toZeroTerminated(x)
-    discard catch ShellExecuteW(null, null, @dataof(explorer), @dataof(params), null, SW_SHOW) as err
+    discard catch ShellExecuteW(null, null, explorer.buffer, params.buffer, null, SW_SHOW) as err
     return err == null
 }
 
@@ -160,7 +160,7 @@ public func openFileWith(path: string)->bool
 
     let host   = Utf16.toZeroTerminated("rundll32.exe")
     let params = Utf16.toZeroTerminated(x)
-    discard catch ShellExecuteW(null, null, @dataof(host), @dataof(params), null, SW_SHOW) as err
+    discard catch ShellExecuteW(null, null, host.buffer, params.buffer, null, SW_SHOW) as err
     return err == null
 }
 
@@ -176,14 +176,14 @@ public func openFile(path: string)->bool
     normalized.replace("/", "\\")
 
     let file = Utf16.toZeroTerminated(normalized.toString())
-    discard catch ShellExecuteW(null, null, @dataof(file), null, null, SW_SHOW) as err
+    discard catch ShellExecuteW(null, null, file.buffer, null, null, SW_SHOW) as err
     return err == null
 }
 
 // Opens `url` with the system's default handler.
 public func openUrl(url: string)
 {
-    discard catch ShellExecuteA(null, null, @dataof(url), null, null, SW_SHOW)
+    discard catch ShellExecuteA(null, null, url.buffer, null, null, SW_SHOW)
 }
 
 // Returns one virtual-desktop metric in physical pixels.
@@ -211,7 +211,7 @@ public func userLocaleName()->String
         return ""
 
     // The returned length includes the terminating zero.
-    return Utf8.fromUtf16(@mkslice(&name16[0], cast(u64) (len - 1)))
+    return Utf8.fromUtf16(Swag.makeSlice(&name16[0], cast(u64) (len - 1)))
 }
 
 var g_SysInfo: SYSTEM_INFO
@@ -234,27 +234,27 @@ public func registerApplication(appName, appFriendly: string)
     let commandKey = Format.toString("Software\\Classes\\Applications\\%", appName)
     if RegCreateKeyExA(HKEY_CURRENT_USER, commandKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) == ERROR_SUCCESS
     {
-        RegSetValueExA(hKey, null, 0, REG_SZ, @dataof(appFriendly), cast(u32) (@countof(appFriendly) + 1))
-        RegSetValueExA(hKey, @dataof("FriendlyAppName"), 0, REG_SZ, @dataof(appFriendly), cast(u32) (@countof(appFriendly) + 1))
+        RegSetValueExA(hKey, null, 0, REG_SZ, appFriendly.buffer, cast(u32) (appFriendly.count + 1))
+        RegSetValueExA(hKey, ("FriendlyAppName").buffer, 0, REG_SZ, appFriendly.buffer, cast(u32) (appFriendly.count + 1))
         RegCloseKey(hKey)
     }
 
     // Register the application properly
     let regAppKey = Format.toString("Software\\RegisteredApplications")
-    if RegCreateKeyExA(HKEY_CURRENT_USER, @dataof(regAppKey), 0, null, 0, KEY_SET_VALUE, null, &hKey, null) == ERROR_SUCCESS
+    if RegCreateKeyExA(HKEY_CURRENT_USER, regAppKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) == ERROR_SUCCESS
     {
         let capabilitiesPath = Format.toString("Software\\Classes\\Applications\\%\\Capabilities", appName)
-        RegSetValueExA(hKey, @dataof(appFriendly), 0, REG_SZ, capabilitiesPath.buffer, cast(u32) (capabilitiesPath.length + 1))
+        RegSetValueExA(hKey, appFriendly.buffer, 0, REG_SZ, capabilitiesPath.buffer, cast(u32) (capabilitiesPath.length + 1))
         RegCloseKey(hKey)
     }
 
     // Create capabilities key
     let capKey = Format.toString("Software\\Classes\\Applications\\%\\Capabilities", appName)
-    if RegCreateKeyExA(HKEY_CURRENT_USER, @dataof(capKey), 0, null, 0, KEY_SET_VALUE, null, &hKey, null) == ERROR_SUCCESS
+    if RegCreateKeyExA(HKEY_CURRENT_USER, capKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) == ERROR_SUCCESS
     {
-        RegSetValueExA(hKey, @dataof("ApplicationName"), 0, REG_SZ, @dataof(appFriendly), cast(u32) (@countof(appFriendly) + 1))
+        RegSetValueExA(hKey, ("ApplicationName").buffer, 0, REG_SZ, appFriendly.buffer, cast(u32) (appFriendly.count + 1))
 
-        // RegSetValueExA(hKey, @dataof("ApplicationDescription"), 0, REG_SZ, @dataof(appDescription), cast(u32) (@countof(appDescription) + 1))
+        // RegSetValueExA(hKey, ("ApplicationDescription").buffer, 0, REG_SZ, appDescription.buffer, cast(u32) (appDescription.count + 1))
         RegCloseKey(hKey)
     }
 }
@@ -296,7 +296,7 @@ public func associateFileExtension(extension, appName, appPath: string)->bool
         return false
     }
 
-    if RegSetValueExA(hKey, @dataof(extension), 0, REG_SZ, null, 0) != ERROR_SUCCESS
+    if RegSetValueExA(hKey, extension.buffer, 0, REG_SZ, null, 0) != ERROR_SUCCESS
     {
         RegCloseKey(hKey)
         return false
@@ -374,18 +374,18 @@ private func writeUserClassString(keyPath: string, valueName: string, value: str
     let nativeKey = Utf16.toZeroTerminated(keyPath)
 
     var hKey: HKEY
-    if RegCreateKeyExW(HKEY_CURRENT_USER, @dataof(nativeKey), 0, null, 0, KEY_SET_VALUE, null, &hKey, null) != ERROR_SUCCESS do
+    if RegCreateKeyExW(HKEY_CURRENT_USER, nativeKey.buffer, 0, null, 0, KEY_SET_VALUE, null, &hKey, null) != ERROR_SUCCESS do
         return false
     defer RegCloseKey(hKey)
 
     let nativeValue = Utf16.toZeroTerminated(value)
-    let bytes       = cast(u32) (@countof(nativeValue) * #sizeof(u16))
+    let bytes       = cast(u32) (nativeValue.count * #sizeof(u16))
 
-    if @countof(valueName) == 0 do
-        return RegSetValueExW(hKey, null, 0, REG_SZ, cast(#null const *u8) @dataof(nativeValue), bytes) == ERROR_SUCCESS
+    if valueName.count == 0 do
+        return RegSetValueExW(hKey, null, 0, REG_SZ, cast(#null const *u8) nativeValue.buffer, bytes) == ERROR_SUCCESS
 
     let nativeName = Utf16.toZeroTerminated(valueName)
-    return RegSetValueExW(hKey, @dataof(nativeName), 0, REG_SZ, cast(#null const *u8) @dataof(nativeValue), bytes) == ERROR_SUCCESS
+    return RegSetValueExW(hKey, nativeName.buffer, 0, REG_SZ, cast(#null const *u8) nativeValue.buffer, bytes) == ERROR_SUCCESS
 }
 
 var g_StoreArgs: String
@@ -396,12 +396,12 @@ func getNativeArgs()->string
     // launcher asked this program to see. The operating-system one only describes
     // a plain native start, and appending one to the other glues two command
     // lines into one unparseable text.
-    let handed = @pinfos.args
-    if handed != null and @countof(handed) do
+    let handed = Swag.processInfos().args
+    if handed != null and handed.count do
         return handed!
 
     let ptr = GetCommandLineW()
-    g_StoreArgs = Utf8.fromUtf16(@mkslice(ptr, Utf16.lengthZeroTerminated(ptr)))
+    g_StoreArgs = Utf8.fromUtf16(Swag.makeSlice(ptr, Utf16.lengthZeroTerminated(ptr)))
     return g_StoreArgs
 }
 
@@ -516,7 +516,7 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
     wc.style         = CS_OWNDC
     wc.lpfnWndProc   = cast() &envWindowProc
     wc.hInstance     = GetModuleHandleA(null)
-    wc.lpszClassName = @dataof(options.identifier)
+    wc.lpszClassName = options.identifier.buffer
     try RegisterClassA(wc)
 
     var style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
@@ -527,7 +527,7 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
     if options.flags.has(.Maximizable) do
         style |= WS_MAXIMIZEBOX
 
-    let hWnd = CreateWindowExA(0, @dataof(options.identifier), @dataof(options.title), style, CW_USEDEFAULT, CW_USEDEFAULT, options.width, options.height, null, null, wc.hInstance, result)
+    let hWnd = CreateWindowExA(0, options.identifier.buffer, options.title.buffer, style, CW_USEDEFAULT, CW_USEDEFAULT, options.width, options.height, null, null, wc.hInstance, result)
     if !hWnd do
         failWinError(GetLastError())
 

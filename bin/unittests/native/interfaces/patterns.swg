@@ -61,21 +61,21 @@ func dispatch(base: *Base)->s32
     actions[0] = cast(IAction) undo
     actions[1] = cast(IAction) redo
 
-    @assert(actions[0].accept(1))
-    @assert(!actions[0].accept(2))
-    @assert(actions[0].execute(2) == 42)
-    @assert(actions[1].accept(2))
-    @assert(!actions[1].accept(1))
-    @assert(actions[1].execute(3) == 83)
+    Swag.assert(actions[0].accept(1))
+    Swag.assert(!actions[0].accept(2))
+    Swag.assert(actions[0].execute(2) == 42)
+    Swag.assert(actions[1].accept(2))
+    Swag.assert(!actions[1].accept(1))
+    Swag.assert(actions[1].execute(3) == 83)
 }
 
 #test
 {
     var base: Base
     base.itf = cast(IDispatch) base
-    @assert(dispatch(&base) == 10)
+    Swag.assert(dispatch(&base) == 10)
 
     var child: Child
     child.itf = cast(IDispatch) child
-    @assert(dispatch(&child.base) == 20)
+    Swag.assert(dispatch(&child.base) == 20)
 }

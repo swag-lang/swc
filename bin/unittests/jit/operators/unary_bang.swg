@@ -50,27 +50,27 @@
     var buf: [512] u8
     var p:   #null const [*] u8 = &buf[0]
     p = p! + (256 - (cast(u64) p! & 0xFF))     // force the address low byte to 0
-    @assert((cast(u64) p! & 0xFF) == 0)
+    Swag.assert((cast(u64) p! & 0xFF) == 0)
 
-    // through @dataof (the original @print swallowed-strings repro)
-    let s: #null string = @mkstring(p!, 1)
-    if !@dataof(s) do
-        @assert(false)
+    // through .buffer (the original Swag.print swallowed-strings repro)
+    let s: #null string = Swag.makeString(p!, 1)
+    if !s.buffer do
+        Swag.assert(false)
 
     // raw pointer under unary bang
     if !p do
-        @assert(false)
+        Swag.assert(false)
 
     // raw pointer as a logical operand
     var ok = false
     if p and true do
         ok = true
-    @assert(ok)
+    Swag.assert(ok)
 
     // integer with a zero low byte (256) under unary bang, from a runtime source
     let x = cast(s64) ((cast(u64) p & 0xFF) + 256)
     if !x do
-        @assert(false)
+        Swag.assert(false)
     if !(-x) do
-        @assert(false)
+        Swag.assert(false)
 }

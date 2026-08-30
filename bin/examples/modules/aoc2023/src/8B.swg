@@ -92,13 +92,13 @@ func day8B()
 
     // For each starting node, cound the length of the path to the first ending node
     // Count is stored in 'onEnd'
-    for i in @countof(curNode)
+    for i in curNode.count
     {
         var instIndex: u64
         for
         {
             let inst = instructions[instIndex]
-            instIndex = (instIndex + 1) % @countof(instructions)
+            instIndex = (instIndex + 1) % instructions.count
 
             let c = curNode[i]
             if inst == 'L' do
@@ -116,5 +116,5 @@ func day8B()
         total = Math.lcm(cast(s64) total, cast(s64) onEnd[i])
 
     // Console.print("total: ", total)
-    @assert(total == 16187743689077)
+    Swag.assert(total == 16187743689077)
 }

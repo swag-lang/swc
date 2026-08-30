@@ -13,14 +13,14 @@ func midiTestFixture()->String
     let fileName = midiTestFixture()
 
     let document = expect loadMidiDocument(fileName.toString())
-    @assert(document.format == 0 and document.division == 480)
-    @assert(document.tracks.count == 1 and document.tracks[0].name == "Piano Roll")
-    @assert(document.notes.count == 7 and document.tracks[0].noteCount == 7)
-    @assert(document.minKey == 60 and document.maxKey == 72)
-    @assert(document.tempos.count == 1 and midiBpm(&document) == 120)
-    @assert(document.timeSignatures.count == 1 and midiMeterText(&document) == "4/4")
-    @assert(document.keySignatures.count == 1 and midiKeyText(&document) == "C major")
-    @assert(Math.abs(document.durationSeconds - 2.25) < 0.001)
+    Swag.assert(document.format == 0 and document.division == 480)
+    Swag.assert(document.tracks.count == 1 and document.tracks[0].name == "Piano Roll")
+    Swag.assert(document.notes.count == 7 and document.tracks[0].noteCount == 7)
+    Swag.assert(document.minKey == 60 and document.maxKey == 72)
+    Swag.assert(document.tempos.count == 1 and midiBpm(&document) == 120)
+    Swag.assert(document.timeSignatures.count == 1 and midiMeterText(&document) == "4/4")
+    Swag.assert(document.keySignatures.count == 1 and midiKeyText(&document) == "C major")
+    Swag.assert(Math.abs(document.durationSeconds - 2.25) < 0.001)
 }
 
 #test
@@ -41,20 +41,20 @@ func midiTestFixture()->String
 
     let fileName = midiTestFixture()
     var result   = openTestViewer(&createMidiViewer, &host.root, fileName.toString(), commandParent: commandBar)
-    @assert(result.view != null and result.commands != null)
+    Swag.assert(result.view != null and result.commands != null)
 
     let viewer = cast(*MidiViewer) result.view!
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
-    @assert(Utf8.contains(viewer.details.toSlice(), "7 notes"))
+    Swag.assert(Utf8.contains(viewer.details.toSlice(), "7 notes"))
     viewer.dockStyle          = .Center
     viewer.commands.dockStyle = .Right
-    @assert(viewer.trackCombo.items.count == 2)
+    Swag.assert(viewer.trackCombo.items.count == 2)
     viewer.trackCombo.setSelectedIndex(1)
-    @assert(viewer.roll.selectedTrack == 0 and viewer.roll.selectedNoteCount() == 7)
+    Swag.assert(viewer.roll.selectedTrack == 0 and viewer.roll.selectedNoteCount() == 7)
     viewer.trackCombo.setSelectedIndex(0)
     let fitZoom = viewer.roll.zoom
     viewer.roll.zoomIn()
-    @assert(!viewer.roll.fit and viewer.roll.zoom > fitZoom)
+    Swag.assert(!viewer.roll.fit and viewer.roll.zoom > fitZoom)
     viewer.roll.zoomToFit()
 
     host.root.applyLayout()
@@ -68,9 +68,9 @@ func midiTestFixture()->String
     host.root.applyLayout()
     var french = host.render(&host.root)
     discard french
-    @assert(viewer.trackCombo.selectedItem()!.name.raw == "Toutes les pistes")
-    @assert(viewer.zoomOutButton.toolTip == "Réduire le zoom")
-    @assert(viewer.fitButton.toolTip == "Ajuster la partition complète")
+    Swag.assert(viewer.trackCombo.selectedItem()!.name.raw == "Toutes les pistes")
+    Swag.assert(viewer.zoomOutButton.toolTip == "Réduire le zoom")
+    Swag.assert(viewer.fitButton.toolTip == "Ajuster la partition complète")
     Testing.assertContentFits(viewer.commands)
 }
 
@@ -84,8 +84,8 @@ func midiTestFixture()->String
     host.setup(640, 360)
     defer host.shutdown()
     var result = openTestViewer(&createMidiViewer, &host.root, fileName, commandParent: &host.root)
-    @assert(result.view != null and result.commands != null)
+    Swag.assert(result.view != null and result.commands != null)
     let viewer = cast(*MidiViewer) result.view!
     completeViewerBackgroundLoad(&host, &viewer.load, viewer.loadTimer)
-    @assert(!viewer.failureReason.isEmpty())
+    Swag.assert(!viewer.failureReason.isEmpty())
 }

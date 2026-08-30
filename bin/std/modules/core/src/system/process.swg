@@ -179,7 +179,7 @@ func startProcess(fileName: string, arguments: #null string = null)->Process fai
 // let process = try Env.runProcess("swc.exe", "--help")
 // if process.exitCode() != 0 do
 //     fail Errors.BadParameterError{"the compiler refused to answer"}
-// @print(process.standardOutput())
+// Swag.print(process.standardOutput())
 // ```
 func runProcess(fileName: string, arguments: #null string = null)->Process fail
 {

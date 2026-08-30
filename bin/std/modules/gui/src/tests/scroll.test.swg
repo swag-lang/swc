@@ -37,21 +37,21 @@ func scrollHeadlessSize(s: *ScrollWnd, o, n: Math.Point)
     scroll.sigScrollSizeChanged     += &scrollHeadlessSize
 
     scroll.setScrollSize(1000, 1000)
-    @assert(ScrollHeadlessSizeCount == 1)
-    @assert(scroll.scrollPosition() == Math.Point{0, 0})
+    Swag.assert(ScrollHeadlessSizeCount == 1)
+    Swag.assert(scroll.scrollPosition() == Math.Point{0, 0})
 
     let vc = scroll.view.clientRect()
 
     // Negative clamps to zero (no change → no signal).
     scroll.setScrollPos(-100, -100)
-    @assert(scroll.scrollPosition() == Math.Point{0, 0})
+    Swag.assert(scroll.scrollPosition() == Math.Point{0, 0})
 
     // Beyond the end clamps to scrollSize - visible size.
     scroll.setScrollPos(99999, 99999)
     let sp = scroll.scrollPosition()
-    @assert(sp.x == 1000 - vc.width)
-    @assert(sp.y == 1000 - vc.height)
-    @assert(ScrollHeadlessPosCount >= 1)
+    Swag.assert(sp.x == 1000 - vc.width)
+    Swag.assert(sp.y == 1000 - vc.height)
+    Swag.assert(ScrollHeadlessPosCount >= 1)
 }
 
 // Content smaller than the view cannot be scrolled.
@@ -65,5 +65,5 @@ func scrollHeadlessSize(s: *ScrollWnd, o, n: Math.Point)
     scroll.setScrollSize(50, 50)
 
     scroll.setScrollPos(100, 100)
-    @assert(scroll.scrollPosition() == Math.Point{0, 0})
+    Swag.assert(scroll.scrollPosition() == Math.Point{0, 0})
 }

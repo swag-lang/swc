@@ -21,5 +21,5 @@ impl InlineMethodClosureReceiver
 {
     var receiver = InlineMethodClosureReceiver{base: 7}
     let cb       = receiver.makeInlineMethodClosure(3)
-    @assert(cb(&receiver, 5) == 15)
+    Swag.assert(cb(&receiver, 5) == 15)
 }

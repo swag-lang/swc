@@ -27,8 +27,8 @@ func assertRbspUnescape(data: const [..] u8)
     let expected = referenceUnescapeRbsp(data)
     var actual: Array'u8
     unescapeRbsp(&actual, data)
-    @assert(actual.count == expected.count)
-    @assert(!actual.count or Memory.compare(actual.buffer!, expected.buffer!, actual.count) == 0)
+    Swag.assert(actual.count == expected.count)
+    Swag.assert(!actual.count or Memory.compare(actual.buffer!, expected.buffer!, actual.count) == 0)
 }
 
 // Exercise every vector alignment and tail, with the escape triplet at every possible byte.

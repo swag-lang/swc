@@ -40,7 +40,7 @@ private struct BitReader
 
 private impl BitReader
 {
-    func create(payload: const [..] u8)->BitReader => {@dataof(payload), @countof(payload), 0, false}
+    func create(payload: const [..] u8)->BitReader => {payload.buffer, payload.count, 0, false}
 
     mtd const bitsLeft()->u64 => .bitPos >= .size * 8 ? 0 : .size * 8 - .bitPos
 
@@ -101,7 +101,7 @@ private impl BitReader
             let masked    = cast(u32) .data![.bitPos >> 3] & (0xFF'u32 >> bitOffset)
             if masked
             {
-                let highest = 31 - cast(u32) @bitcountlz(masked)
+                let highest = 31 - cast(u32) Swag.bitCountLz(masked)
                 let found   = 7 - highest
                 zeros   += found - bitOffset
                 .bitPos += cast(u64) (found - bitOffset) + 1
@@ -173,7 +173,7 @@ private impl Codec
     // Reads the "fLaC" marker and the stream information block a container carries.
     mtd readStreamInfo(config: const [..] u8) fail
     {
-        if @countof(config) < 4 do
+        if config.count < 4 do
             fail InvalidFormatError{"FLAC stream information is truncated"}
 
         // A container may hand over the whole metadata prologue, or the stream information
@@ -182,7 +182,7 @@ private impl Codec
         if config[0] == 'f' and config[1] == 'L' and config[2] == 'a' and config[3] == 'C' do
             offset = 4
 
-        if @countof(config) < offset + 4 do
+        if config.count < offset + 4 do
             fail InvalidFormatError{"FLAC stream information is truncated"}
 
         // A metadata block header may precede the payload: skip its type and length. Its type
@@ -192,7 +192,7 @@ private impl Codec
         if (config[offset] & 0x7F) == 0 and headerLength == StreamInfoSize do
             offset += 4
 
-        if @countof(config) < offset + StreamInfoSize do
+        if config.count < offset + StreamInfoSize do
             fail InvalidFormatError{"FLAC stream information block is truncated"}
 
         var reader = BitReader.create(config[offset until offset + StreamInfoSize])
@@ -597,7 +597,7 @@ impl IPacketCodec for Codec
 // the frame header rather than decoding the frame.
 internal func packetFrameCount(packet: const [..] u8)->u32 fail
 {
-    if @countof(packet) < 5 do
+    if packet.count < 5 do
         fail InvalidFormatError{"FLAC frame is truncated"}
     if packet[0] != 0xFF or (packet[1] & 0xFC) != 0xF8 do
         fail InvalidFormatError{"FLAC frame has no sync code"}

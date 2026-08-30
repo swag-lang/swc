@@ -56,7 +56,7 @@ func day7A()
 
             if result > target do
                 return false
-            if @countof(operands) == 1 do
+            if operands.count == 1 do
                 return target == result
 
             return checkMath(target, result, operands[1 to], '+') or checkMath(target, result, operands[1 to], '*')
@@ -66,5 +66,5 @@ func day7A()
             total += res
     }
 
-    @assert(total == 2437272016585)
+    Swag.assert(total == 2437272016585)
 }

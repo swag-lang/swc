@@ -33,5 +33,5 @@ func failConstExprCallResult()
 
 #test
 {
-    @assert(useConstCallResult() == 93)
+    Swag.assert(useConstCallResult() == 93)
 }

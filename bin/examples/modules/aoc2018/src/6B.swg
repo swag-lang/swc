@@ -64,5 +64,5 @@ func day6B()
         total += cast(s32) (v < 10000)
 
     // Console.print("total: ", total)
-    @assert(total == 43852)
+    Swag.assert(total == 43852)
 }

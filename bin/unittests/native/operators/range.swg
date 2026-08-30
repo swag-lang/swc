@@ -4,7 +4,7 @@
 {
     var countSingle = 0
     for 4 to 4 { countSingle += 1 }
-    @assert(countSingle == 1)
+    Swag.assert(countSingle == 1)
 }
 
 #test
@@ -20,5 +20,5 @@
         hit = 2
         break
     }
-    @assert(hit == 0)
+    Swag.assert(hit == 0)
 }

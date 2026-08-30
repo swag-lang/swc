@@ -18,7 +18,7 @@ const B = #curlocation
 #test
 {
     var c: Swag.SourceCodeLocation = #curlocation
-    @assert(c.fileName != null)
+    Swag.assert(c.fileName != null)
 }
 
 #test
@@ -42,11 +42,11 @@ const InlineCallerDecl = #location(inlineCallerLoc)
 #test
 {
     let loc = inlineCallerLoc()
-    @assert(loc.fileName == A.fileName)
-    @assert(loc.funcName != null)
-    @assert(loc.funcName == InlineCallerDecl.funcName)
-    @assert(loc.lineStart == 37)
-    @assert(loc.colStart == 12)
+    Swag.assert(loc.fileName == A.fileName)
+    Swag.assert(loc.funcName != null)
+    Swag.assert(loc.funcName == InlineCallerDecl.funcName)
+    Swag.assert(loc.lineStart == 37)
+    Swag.assert(loc.colStart == 12)
 }
 
 #test { const bad = #callerlocation }     // swc-expected-error {{sema_err_caller_location_default_only}}

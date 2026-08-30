@@ -3,7 +3,7 @@
 #test
 {
     var a: Swag.SourceCodeLocation
-    @assert(a.fileName == null)
+    Swag.assert(a.fileName == null)
 }
 
 const A = #curlocation
@@ -19,7 +19,7 @@ const B = #curlocation
 #test
 {
     var c: Swag.SourceCodeLocation = #curlocation
-    @assert(c.fileName != null)
+    Swag.assert(c.fileName != null)
 }
 
 #test
@@ -27,7 +27,7 @@ const B = #curlocation
     const L = #curlocation
     #assert(L.fileName == A.fileName)
     #assert(L.lineStart > B.lineStart)
-    @assert(L.fileName == A.fileName)
+    Swag.assert(L.fileName == A.fileName)
 }
 
 func nativeCaptureLoc(loc = #callerlocation)->Swag.SourceCodeLocation => loc
@@ -40,8 +40,8 @@ func nativeCallerLoc()->Swag.SourceCodeLocation
 #test
 {
     let loc = nativeCallerLoc()
-    @assert(loc.fileName != null)
-    @assert(loc.funcName != null)
-    @assert(loc.lineStart == 37)
-    @assert(loc.colStart == 12)
+    Swag.assert(loc.fileName != null)
+    Swag.assert(loc.funcName != null)
+    Swag.assert(loc.lineStart == 37)
+    Swag.assert(loc.colStart == 12)
 }

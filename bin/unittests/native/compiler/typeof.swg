@@ -33,7 +33,7 @@ const TYPEOF_SLICE = cast(const *Swag.TypeInfoSlice) #typeof(#type [..] TypeOfPa
 
 const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc) #typeof(#type func(s32)->bool)
 #assert(#typeof(#type func(s32)->bool) == #type func(s32)->bool)
-#assert(@countof(TYPEOF_FUNC.parameters) == 1)
+#assert(TYPEOF_FUNC.parameters.count == 1)
 #assert(TYPEOF_FUNC.parameters[0].pointedType == s32)
 #assert(TYPEOF_FUNC.returnType == bool)
 
@@ -46,8 +46,8 @@ const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc) #typeof(#type func(s32)->bool
     #assert(#typeof(local) == u32)
     #assert(#typeof(ptr) == #null *u8)
 
-    @assert(local == 2'u16)
-    @assert(ptr == null)
+    Swag.assert(local == 2'u16)
+    Swag.assert(ptr == null)
 }
 
 // #typeof on compound types inspected at runtime
@@ -58,9 +58,9 @@ const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc) #typeof(#type func(s32)->bool
     let arrayInfo = cast(const *Swag.TypeInfoArray) types[0]
     let sliceInfo = cast(const *Swag.TypeInfoSlice) types[1]
 
-    @assert(types[0] == #type [2, 3] TypeOfPair)
-    @assert(types[1] == #type [..] TypeOfPair)
-    @assert(arrayInfo.totalCount == 6)
-    @assert(arrayInfo.finalType == TypeOfPair)
-    @assert(sliceInfo.pointedType == TypeOfPair)
+    Swag.assert(types[0] == #type [2, 3] TypeOfPair)
+    Swag.assert(types[1] == #type [..] TypeOfPair)
+    Swag.assert(arrayInfo.totalCount == 6)
+    Swag.assert(arrayInfo.finalType == TypeOfPair)
+    Swag.assert(sliceInfo.pointedType == TypeOfPair)
 }

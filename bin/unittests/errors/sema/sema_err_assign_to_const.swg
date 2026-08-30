@@ -116,13 +116,13 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
 
 #test
 {
-    var text: const cstring = cast(const cstring) @dataof("abc")
+    var text: const cstring = cast(const cstring) ("abc").buffer
     text[0] = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
-    var text: const cstring = cast(const cstring) @dataof("abc")
+    var text: const cstring = cast(const cstring) ("abc").buffer
     text[0] = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
@@ -143,7 +143,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
 
 #test
 {
-    var text: const cstring = cast(const cstring) @dataof("abc")
+    var text: const cstring = cast(const cstring) ("abc").buffer
     for &value in text
     {
         value[] = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
@@ -159,7 +159,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
 
 #test
 {
-    let bytes = cast(const [..] u8) (cast(const cstring) @dataof("abc"))
+    let bytes = cast(const [..] u8) (cast(const cstring) ("abc").buffer)
     bytes[0] = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
@@ -225,7 +225,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
 {
     var data:   [1] ConstAssignArrayBox        = [{bytes: [1'u8, 2'u8]}]
     let values: const [..] ConstAssignArrayBox = cast(const [..] ConstAssignArrayBox) data
-    let ptr = @dataof(values[0].bytes)
+    let ptr = (values[0].bytes).buffer
     ptr[0] = 9'u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
@@ -233,7 +233,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
 {
     var data:   [1] ConstAssignArrayBox       = [{bytes: [1'u8, 2'u8]}]
     let values: const [*] ConstAssignArrayBox = cast(const [*] ConstAssignArrayBox) &data[0]
-    let ptr = @dataof(values[0].bytes)
+    let ptr = (values[0].bytes).buffer
     ptr[0] = 9'u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 

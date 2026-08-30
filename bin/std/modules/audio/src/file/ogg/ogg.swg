@@ -53,7 +53,7 @@ func readU32(bytes: const [..] u8, offset: u64)->u32
 // segment table to be inside `bytes`.
 func readPageHeader(bytes: const [..] u8, offset: u64)->PageHeader fail
 {
-    if offset > @countof(bytes) or @countof(bytes) - offset < PageHeaderSize do
+    if offset > bytes.count or bytes.count - offset < PageHeaderSize do
         fail InvalidFormatError{"Ogg page header is truncated"}
     if bytes[offset] != 'O' or bytes[offset + 1] != 'g' or bytes[offset + 2] != 'g' or bytes[offset + 3] != 'S' do
         fail InvalidFormatError{"Ogg page has no capture pattern"}
@@ -67,7 +67,7 @@ func readPageHeader(bytes: const [..] u8, offset: u64)->PageHeader fail
     result.sequence    = readU32(bytes, offset + 18)
     result.segments    = cast(u32) bytes[offset + 26]
     result.headerBytes = PageHeaderSize + result.segments
-    if @countof(bytes) - offset < result.headerBytes do
+    if bytes.count - offset < result.headerBytes do
         fail InvalidFormatError{"Ogg page segment table is truncated"}
     for index in result.segments
     {
@@ -158,7 +158,7 @@ private struct StreamInfo
 private func identify(body: const [..] u8)->StreamInfo fail
 {
     var result: retval
-    if @countof(body) >= 30 and body[0] == 1 and body[1] == 'v' and body[2] == 'o' and body[3] == 'r' and body[4] == 'b' and body[5] == 'i' and body[6] == 's'
+    if body.count >= 30 and body[0] == 1 and body[1] == 'v' and body[2] == 'o' and body[3] == 'r' and body[4] == 'b' and body[5] == 'i' and body[6] == 's'
     {
         if readU32(body, 7) != 0 do
             fail UnsupportedFormatError{"Vorbis stream uses an unknown version"}
@@ -174,7 +174,7 @@ private func identify(body: const [..] u8)->StreamInfo fail
         return result
     }
 
-    if @countof(body) >= 19 and body[0] == 'O' and body[1] == 'p' and body[2] == 'u' and body[3] == 's' and body[4] == 'H' and body[5] == 'e' and body[6] == 'a' and body[7] == 'd'
+    if body.count >= 19 and body[0] == 'O' and body[1] == 'p' and body[2] == 'u' and body[3] == 's' and body[4] == 'H' and body[5] == 'e' and body[6] == 'a' and body[7] == 'd'
     {
         if (body[8] >> 4) != 0 do
             fail UnsupportedFormatError{"Opus stream uses an unknown version"}

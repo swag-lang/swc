@@ -92,18 +92,18 @@ impl LocalWrap
     #assert(#typeof(mixed.first) == s32)
     #assert(#typeof(mixed.second) == u16)
     #assert(#typeof(mixed.third) == string)
-    @assert(pair.first == 10)
-    @assert(pair.second == "ten")
-    @assert(triple.first == 10)
-    @assert(triple.second == 9'u8)
-    @assert(triple.third == true)
-    @assert(picked.first == 20)
-    @assert(picked.second == 40)
-    @assert(picked.total == 4)
-    @assert(mixed.first == 10)
-    @assert(mixed.second == 7'u16)
-    @assert(mixed.third == "done")
-    @assert(mixed.total == 2)
+    Swag.assert(pair.first == 10)
+    Swag.assert(pair.second == "ten")
+    Swag.assert(triple.first == 10)
+    Swag.assert(triple.second == 9'u8)
+    Swag.assert(triple.third == true)
+    Swag.assert(picked.first == 20)
+    Swag.assert(picked.second == 40)
+    Swag.assert(picked.total == 4)
+    Swag.assert(mixed.first == 10)
+    Swag.assert(mixed.second == 7'u16)
+    Swag.assert(mixed.third == "done")
+    Swag.assert(mixed.total == 2)
 }
 
 #test
@@ -112,5 +112,5 @@ impl LocalWrap
     let clone = wrapped.cloneThroughHelper()
 
     #assert(#typeof(clone) == LocalWrap's32)
-    @assert(clone.value == 7)
+    Swag.assert(clone.value == 7)
 }

@@ -23,7 +23,7 @@ private func timerEntry(param: #null *void)
 
     // The callback runs on an operating-system worker thread, whose context is a default one
     // the runtime creates on first access: install the context of the thread that armed the timer.
-    @setcontext(timer.context)
+    Swag.setContext(timer.context)
     let callback = timer.callback!
     callback(timer)
 }
@@ -54,7 +54,7 @@ impl Timer
             fail Errors.OverflowError{"timer delay must be between 1 and 4294967294 milliseconds"}
 
         .callback = callback
-        .context  = @getcontext()[]
+        .context  = Swag.getContext()[]
         .handle   = createTimerNative(me, cast(u32) delayMs, periodic)
     }
 

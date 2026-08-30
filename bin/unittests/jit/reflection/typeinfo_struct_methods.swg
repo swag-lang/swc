@@ -114,7 +114,7 @@ func hasExpectedMethodReflection(type: typeinfo, expectedCount: s32, expectedNam
     RuntimeMethodReflectionCalls += 1
 
     let info = cast(const *Swag.TypeInfoStruct) type
-    if @countof(info.methods) != expectedCount do
+    if info.methods.count != expectedCount do
         return false
 
     if expectedCount == 0 do
@@ -142,7 +142,7 @@ func hasMethodNamed(type: typeinfo, expectedName: string)->bool
 func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
 {
     let info = cast(const *Swag.TypeInfoStruct) type
-    if @countof(info.methods) != 1 do
+    if info.methods.count != 1 do
         return false
 
     let methodInfo = info.methods![0]
@@ -153,7 +153,7 @@ func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
     if methodInfo.name != "ping" or
        methodType.kind != .Func or
        params == null or
-       @countof(params) != 1 or
+       params.count != 1 or
        params[0].pointedType != #type const *SimpleMethodProbe or
        methodType.returnType != s32 or
        methodInfo.value == null do
@@ -169,7 +169,7 @@ func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
 func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
 {
     let info = cast(const *Swag.TypeInfoStruct) type
-    if @countof(info.methods) != 1 do
+    if info.methods.count != 1 do
         return false
 
     let methodInfo = info.methods![0]
@@ -180,7 +180,7 @@ func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
     if methodInfo.name != "copyFrom" or
        methodType.kind != .Func or
        params == null or
-       @countof(params) != 2 or
+       params.count != 2 or
        params[0].pointedType != #type *GenericMethodProbe's32 or
        params[1].pointedType != #type const [..] s32 or
        methodType.returnType != s32 or
@@ -198,7 +198,7 @@ func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
 func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
 {
     let info = cast(const *Swag.TypeInfoStruct) type
-    if @countof(info.methods) != 4 do
+    if info.methods.count != 4 do
         return false
 
     let methods    = info.methods!
@@ -218,7 +218,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
     if scaleInfo.name != "scaleValue" or
        scaleType.kind != .Func or
        scaleParams == null or
-       @countof(scaleParams) != 2 or
+       scaleParams.count != 2 or
        scaleParams[0].pointedType != s32 or
        scaleParams[1].pointedType != s32 or
        scaleType.returnType != s32 or
@@ -229,7 +229,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
     if addInfo.name != "add" or
        addType.kind != .Func or
        addParams == null or
-       @countof(addParams) != 2 or
+       addParams.count != 2 or
        addParams[0].pointedType != #type *ExportedMethodProbe or
        addParams[1].pointedType != s32 or
        addType.returnType != s32 or
@@ -240,7 +240,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
     if scaledInfo.name != "scaled" or
        scaledType.kind != .Func or
        scaledParams == null or
-       @countof(scaledParams) != 2 or
+       scaledParams.count != 2 or
        scaledParams[0].pointedType != #type const *ExportedMethodProbe or
        scaledParams[1].pointedType != s32 or
        scaledType.returnType != s32 or
@@ -251,7 +251,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
     if scoreInfo.name != "score" or
        scoreType.kind != .Func or
        scoreParams == null or
-       @countof(scoreParams) != 2 or
+       scoreParams.count != 2 or
        scoreParams[0].pointedType != #type *ExportedMethodProbe or
        scoreParams[1].pointedType != s32 or
        scoreType.returnType != s32 or
@@ -302,5 +302,5 @@ func runtimeMethodReflectionWorks()->bool
 
 #test
 {
-    @assert(runtimeMethodReflectionWorks())
+    Swag.assert(runtimeMethodReflectionWorks())
 }

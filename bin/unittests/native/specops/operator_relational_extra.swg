@@ -25,8 +25,8 @@ impl RuntimeEqualOnlyBox
     var lhs = RuntimeEqualOnlyBox{a: 1, b: 2}
     var rhs = RuntimeEqualOnlyBox{a: 1, b: 2}
 
-    @assert(lhs == rhs)
-    @assert(!(lhs != rhs))
+    Swag.assert(lhs == rhs)
+    Swag.assert(!(lhs != rhs))
 }
 
 // Test: different first field
@@ -35,8 +35,8 @@ impl RuntimeEqualOnlyBox
     var lhs = RuntimeEqualOnlyBox{a: 1, b: 2}
     var rhs = RuntimeEqualOnlyBox{a: 9, b: 2}
 
-    @assert(lhs != rhs)
-    @assert(!(lhs == rhs))
+    Swag.assert(lhs != rhs)
+    Swag.assert(!(lhs == rhs))
 }
 
 // Test: different second field
@@ -45,7 +45,7 @@ impl RuntimeEqualOnlyBox
     var lhs = RuntimeEqualOnlyBox{a: 1, b: 2}
     var rhs = RuntimeEqualOnlyBox{a: 1, b: 9}
 
-    @assert(lhs != rhs)
+    Swag.assert(lhs != rhs)
 }
 
 // Test: reflexivity (x == x)
@@ -53,8 +53,8 @@ impl RuntimeEqualOnlyBox
 {
     var x = RuntimeEqualOnlyBox{a: 42, b: 77}
 
-    @assert(x == x)
-    @assert(!(x != x))
+    Swag.assert(x == x)
+    Swag.assert(!(x != x))
 }
 
 // ============================================================================
@@ -88,8 +88,8 @@ impl RuntimeFloatCmpBox
 {
     var box = RuntimeFloatCmpBox{value: 3.14}
 
-    @assert(box == 3.14'f32)
-    @assert(box != 2.71'f32)
+    Swag.assert(box == 3.14'f32)
+    Swag.assert(box != 2.71'f32)
 }
 
 // Test: opCompare with f32 - less than
@@ -97,9 +97,9 @@ impl RuntimeFloatCmpBox
 {
     var box = RuntimeFloatCmpBox{value: 1.0}
 
-    @assert(box < 2.0'f32)
-    @assert(box <= 1.0'f32)
-    @assert(box <= 2.0'f32)
+    Swag.assert(box < 2.0'f32)
+    Swag.assert(box <= 1.0'f32)
+    Swag.assert(box <= 2.0'f32)
 }
 
 // Test: opCompare with f32 - greater than
@@ -107,9 +107,9 @@ impl RuntimeFloatCmpBox
 {
     var box = RuntimeFloatCmpBox{value: 5.0}
 
-    @assert(box > 3.0'f32)
-    @assert(box >= 5.0'f32)
-    @assert(box >= 3.0'f32)
+    Swag.assert(box > 3.0'f32)
+    Swag.assert(box >= 5.0'f32)
+    Swag.assert(box >= 3.0'f32)
 }
 
 // Test: opCompare spaceship with f32
@@ -117,9 +117,9 @@ impl RuntimeFloatCmpBox
 {
     var box = RuntimeFloatCmpBox{value: 2.0}
 
-    @assert((box <=> 2.0'f32) == 0)
-    @assert((box <=> 3.0'f32) == -1)
-    @assert((box <=> 1.0'f32) == 1)
+    Swag.assert((box <=> 2.0'f32) == 0)
+    Swag.assert((box <=> 3.0'f32) == -1)
+    Swag.assert((box <=> 1.0'f32) == 1)
 }
 
 // ============================================================================
@@ -159,8 +159,8 @@ impl RuntimeTripleEqBox
     var b = RuntimeTripleEqBox{value: 10}
     var c = RuntimeTripleEqBox{value: 20}
 
-    @assert(a == b)
-    @assert(a != c)
+    Swag.assert(a == b)
+    Swag.assert(a != c)
 }
 
 // Test: struct-s32 equality
@@ -168,8 +168,8 @@ impl RuntimeTripleEqBox
 {
     var box = RuntimeTripleEqBox{value: 42}
 
-    @assert(box == 42's32)
-    @assert(box != 0's32)
+    Swag.assert(box == 42's32)
+    Swag.assert(box != 0's32)
 }
 
 // Test: struct-u64 equality
@@ -177,8 +177,8 @@ impl RuntimeTripleEqBox
 {
     var box = RuntimeTripleEqBox{value: 100}
 
-    @assert(box == 100'u64)
-    @assert(box != 200'u64)
+    Swag.assert(box == 100'u64)
+    Swag.assert(box != 200'u64)
 }
 
 // ============================================================================
@@ -224,11 +224,11 @@ impl RuntimeTripleCmpBox
     var a = RuntimeTripleCmpBox{value: 5}
     var b = RuntimeTripleCmpBox{value: 10}
 
-    @assert(a < b)
-    @assert(b > a)
-    @assert((a <=> b) == -1)
-    @assert((b <=> a) == 1)
-    @assert((a <=> a) == 0)
+    Swag.assert(a < b)
+    Swag.assert(b > a)
+    Swag.assert((a <=> b) == -1)
+    Swag.assert((b <=> a) == 1)
+    Swag.assert((a <=> a) == 0)
 }
 
 // Test: struct-s32 comparison
@@ -236,10 +236,10 @@ impl RuntimeTripleCmpBox
 {
     var box = RuntimeTripleCmpBox{value: 7}
 
-    @assert(box < 10's32)
-    @assert(box > 3's32)
-    @assert(box >= 7's32)
-    @assert(box <= 7's32)
+    Swag.assert(box < 10's32)
+    Swag.assert(box > 3's32)
+    Swag.assert(box >= 7's32)
+    Swag.assert(box <= 7's32)
 }
 
 // Test: struct-u64 comparison
@@ -247,7 +247,7 @@ impl RuntimeTripleCmpBox
 {
     var box = RuntimeTripleCmpBox{value: 50}
 
-    @assert(box < 100'u64)
-    @assert(box > 10'u64)
-    @assert((box <=> 50'u64) == 0)
+    Swag.assert(box < 100'u64)
+    Swag.assert(box > 10'u64)
+    Swag.assert((box <=> 50'u64) == 0)
 }

@@ -16,5 +16,5 @@ func hasAnyAbove(arr: [*] u8, count: u32, limit: u8)->bool
     data[0] = 1; data[1] = 5; data[2] = 3
 
     // Should be true (data[1]=5 > 4), but inline return never fires
-    @assert(hasAnyAbove(&data[0], 3, 4))
+    Swag.assert(hasAnyAbove(&data[0], 3, 4))
 }

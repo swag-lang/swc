@@ -57,7 +57,7 @@ namespace GenericReallocDefaultArgsCodegen
             req.size      = size
             req.address   = buffer
 
-            let talloc = (allocator orelse @getcontext().allocator)!
+            let talloc = (allocator orelse Swag.getContext().allocator)!
             talloc.free(&req)
         }
 
@@ -76,7 +76,7 @@ namespace GenericReallocDefaultArgsCodegen
             req.oldSize   = oldSize
             req.alignment = alignment
 
-            let talloc = (allocator orelse @getcontext().allocator)!
+            let talloc = (allocator orelse Swag.getContext().allocator)!
             talloc.realloc(&req)
             return req.address
         }
@@ -101,7 +101,7 @@ namespace GenericReallocDefaultArgsCodegen
         mtd realloc(newCapacity: u64)
         {
             if .allocator == null do
-                .allocator = @getcontext().allocator
+                .allocator = Swag.getContext().allocator
 
             if newCapacity == 0
             {
@@ -128,7 +128,7 @@ namespace GenericReallocDefaultArgsCodegen
                 return
 
             if .allocator == null do
-                .allocator = @getcontext().allocator
+                .allocator = Swag.getContext().allocator
 
             .buffer   = cast(#null [*] T) LocalMemory.realloc(buffer: .buffer, newSize: newCapacity * #sizeof(T), oldSize: .capacity * #sizeof(T), allocator: .allocator)
             .capacity = newCapacity
@@ -155,7 +155,7 @@ namespace GenericReallocDefaultArgsCodegen
         #[Inline]
         mtd toSlice()->[..] T
         {
-            return @mkslice(.buffer, .count)
+            return Swag.makeSlice(.buffer, .count)
         }
 
         #[Swag.NoInline]
@@ -212,7 +212,7 @@ namespace GenericReallocDefaultArgsCodegen
 
         let count = cast(u64) N
         let ok    = values.count == count and
-                    @countof(values.toSlice()) == count and
+                    (values.toSlice()).count == count and
                     values.capacity == expectedCapacity(2, count) and
                     values.stableCode() == expectedStableCode(count, expectedCapacity(2, count)) and
                     trackerMatches(count > 2 ? 2 : 1)
@@ -231,7 +231,7 @@ namespace GenericReallocDefaultArgsCodegen
 
         let count = cast(u64) N
         let ok    = values.count == count and
-                    @countof(values.toSlice()) == count and
+                    (values.toSlice()).count == count and
                     values.capacity == expectedCapacity(3, count) and
                     values.stableCode() == expectedStableCode(count, expectedCapacity(3, count)) and
                     trackerMatches(count > 3 ? 2 : 1)
@@ -277,16 +277,16 @@ const ReallocRunSuiteOk        = #run GenericReallocDefaultArgsCodegen.runSuite(
 
 #test
 {
-    @assert(ReallocPositionalS32Ok)
-    @assert(ReallocNamedS32Ok)
-    @assert(ReallocPositionalBoolOk)
-    @assert(ReallocNamedBoolOk)
-    @assert(ReallocPositionalPairOk)
-    @assert(ReallocNamedPairOk)
-    @assert(ReallocPositionalArrayOk)
-    @assert(ReallocNamedArrayOk)
-    @assert(ReallocNestedS32Ok)
-    @assert(ReallocNestedPairOk)
-    @assert(ReallocRunSuiteOk)
-    @assert(GenericReallocDefaultArgsCodegen.runSuite())
+    Swag.assert(ReallocPositionalS32Ok)
+    Swag.assert(ReallocNamedS32Ok)
+    Swag.assert(ReallocPositionalBoolOk)
+    Swag.assert(ReallocNamedBoolOk)
+    Swag.assert(ReallocPositionalPairOk)
+    Swag.assert(ReallocNamedPairOk)
+    Swag.assert(ReallocPositionalArrayOk)
+    Swag.assert(ReallocNamedArrayOk)
+    Swag.assert(ReallocNestedS32Ok)
+    Swag.assert(ReallocNestedPairOk)
+    Swag.assert(ReallocRunSuiteOk)
+    Swag.assert(GenericReallocDefaultArgsCodegen.runSuite())
 }

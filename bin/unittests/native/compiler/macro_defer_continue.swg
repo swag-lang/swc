@@ -21,7 +21,7 @@ func runMacroDeferContinue()->s64
     {
         macroWithDefer()
         {
-            if @index != 3 do
+            if Swag.index != 3 do
                 continue
         }
 
@@ -33,5 +33,5 @@ func runMacroDeferContinue()->s64
 
 #test
 {
-    @assert(runMacroDeferContinue() == 99991)
+    Swag.assert(runMacroDeferContinue() == 99991)
 }

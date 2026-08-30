@@ -31,20 +31,20 @@ var ModuleLifecycleInitialized = false
 
 #test
 {
-    @assert(ModuleLifecycleInitialized)
+    Swag.assert(ModuleLifecycleInitialized)
 }
 
 /**
 # Executable Entry
 
 An executable has one '#main'. Command-line arguments are available through
-'@args'.
+'Swag.args()'.
 
 ```swag
 #main
 {
-    for argument, index in @args
-        @print(index, ": ", argument, "\n")
+    for argument, index in Swag.args()
+        Swag.print(index, ": ", argument, "\n")
 }
 ```
 
@@ -65,7 +65,7 @@ corresponding initialization sequence.
 ```
 
 > WARNING:
-> Do not confuse '#init' and '#drop' module hooks with the '@init' and '@drop'
+> Do not confuse '#init' and '#drop' module hooks with the 'Swag.init' and 'Swag.drop'
 > intrinsics. The hooks manage a module's lifetime; the intrinsics operate on
 > values and memory regions.
 */

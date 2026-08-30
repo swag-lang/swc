@@ -65,9 +65,9 @@ using Swag, Core, Pixel
 
     let button = AppearanceButton.create(&host.surface)
     host.surfaceWnd.sendResizeEvent()
-    @assert(button.parent == &host.surfaceWnd)
-    @assert(host.surfaceWnd.captionButtons.count == 1)
-    @assert(button.position.right() < host.surfaceWnd.clientRect().right())
+    Swag.assert(button.parent == &host.surfaceWnd)
+    Swag.assert(host.surfaceWnd.captionButtons.count == 1)
+    Swag.assert(button.position.right() < host.surfaceWnd.clientRect().right())
 
     var themeChanges, languageChanges, aboutRequests: u32
     button.sigThemeChanged += func|count = &themeChanges|(appearance)
@@ -77,7 +77,7 @@ using Swag, Core, Pixel
     }
     button.sigLanguageChanged += func|count = &languageChanges|(appearance)
     {
-        @assert(appearance.language == "fr")
+        Swag.assert(appearance.language == "fr")
         count[] += 1
     }
     button.sigAboutRequested += func|count = &aboutRequests|(appearance)
@@ -86,21 +86,21 @@ using Swag, Core, Pixel
         count[] += 1
     }
 
-    @assert(button.appearanceTheme == .SwagDark)
+    Swag.assert(button.appearanceTheme == .SwagDark)
     button.setAppearanceTheme(.Dark, notify: true)
-    @assert(button.appearanceTheme == .Dark and host.theme.colors.bk == ThemeColors.darkPalette().ground)
+    Swag.assert(button.appearanceTheme == .Dark and host.theme.colors.bk == ThemeColors.darkPalette().ground)
     button.setAppearanceTheme(.Light, notify: true)
-    @assert(button.appearanceTheme == .Light and host.theme.colors.bk == ThemeColors.lightPalette().ground)
+    Swag.assert(button.appearanceTheme == .Light and host.theme.colors.bk == ThemeColors.lightPalette().ground)
     button.applyAppearanceSelection("Gui.Appearance.Theme.SwagDark")
-    @assert(button.appearanceTheme == .SwagDark and host.theme.colors.bk == ThemeColors.swagDarkPalette().ground)
+    Swag.assert(button.appearanceTheme == .SwagDark and host.theme.colors.bk == ThemeColors.swagDarkPalette().ground)
     expect button.setAppearanceLanguage("fr", notify: true)
-    @assert(themeChanges == 3 and languageChanges == 1)
-    @assert(host.app.language() == "fr")
+    Swag.assert(themeChanges == 3 and languageChanges == 1)
+    Swag.assert(host.app.language() == "fr")
 
     button.applyAppearanceSelection("Gui.Appearance.About")
-    @assert(aboutRequests == 1)
+    Swag.assert(aboutRequests == 1)
 
     button.destroy()
     host.pump()
-    @assert(host.surfaceWnd.captionButtons.isEmpty())
+    Swag.assert(host.surfaceWnd.captionButtons.isEmpty())
 }

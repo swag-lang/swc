@@ -157,8 +157,8 @@ internal impl IImageDecoder for Decoder
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
-        var dataof  = @dataof(buffer)
-        let countof = @countof(buffer)
+        var dataof  = buffer.buffer
+        let countof = buffer.count
         let last    = dataof + countof
 
         if countof < 4 do
@@ -281,7 +281,7 @@ internal impl IImageDecoder for Decoder
             dataof += cast(u64) paletteCount * paletteEntrySize
         }
 
-        let pixelData = hasFileHeader and bfOffBits ? @dataof(buffer) + bfOffBits : dataof
+        let pixelData = hasFileHeader and bfOffBits ? buffer.buffer + bfOffBits : dataof
         if pixelData < dataof do
             fail InvalidFormatError{"invalid source buffer"}
 

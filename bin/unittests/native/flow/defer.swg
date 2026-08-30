@@ -397,7 +397,7 @@ func deferStackAddressAfterSkippedBranch()->*u8
     {
         if deferSkippedAddressBranch() do
             consumePointerForDefer(value)
-        @assert(value == cast(*u8) 0x1234'u64)
+        Swag.assert(value == cast(*u8) 0x1234'u64)
     }
 
     return value
@@ -519,126 +519,126 @@ func deferBreakToScope()->s64
 
 #test
 {
-    @assert(deferScopeOrder() == 42315)
+    Swag.assert(deferScopeOrder() == 42315)
 }
 
 #test
 {
     let v = deferFunctionReturnTrace()
-    @assert(v.value == 42)
-    @assert(v.trace == 19)
+    Swag.assert(v.value == 42)
+    Swag.assert(v.trace == 19)
 }
 
 #test
 {
-    @assert(deferIfBranch(true) == 215)
-    @assert(deferIfBranch(false) == 435)
+    Swag.assert(deferIfBranch(true) == 215)
+    Swag.assert(deferIfBranch(false) == 435)
 }
 
 #test
 {
-    @assert(deferIfSingleStmtExecutesImmediately(true) == 12)
-    @assert(deferIfSingleStmtExecutesImmediately(false) == 2)
+    Swag.assert(deferIfSingleStmtExecutesImmediately(true) == 12)
+    Swag.assert(deferIfSingleStmtExecutesImmediately(false) == 2)
 }
 
 #test
 {
-    @assert(deferNoErrAfterCaughtFailureTrace() == 3165)
+    Swag.assert(deferNoErrAfterCaughtFailureTrace() == 3165)
 }
 
 #test
 {
-    @assert(deferWhileControl() == 9123)
+    Swag.assert(deferWhileControl() == 9123)
 }
 
 #test
 {
     let v = deferWhileReturnTrace()
-    @assert(v.value == 42)
-    @assert(v.trace == 172)
+    Swag.assert(v.value == 42)
+    Swag.assert(v.trace == 172)
 }
 
 #test
 {
     let v = deferBlockBodyTrace()
-    @assert(v.value == 666)
-    @assert(v.trace == 6)
+    Swag.assert(v.value == 666)
+    Swag.assert(v.trace == 6)
 }
 
 #test
 {
-    @assert(deferNestedLoopControl() == 10)
+    Swag.assert(deferNestedLoopControl() == 10)
 }
 
 #test
 {
-    @assert(deferForCStyle() == 8123)
+    Swag.assert(deferForCStyle() == 8123)
 }
 
 #test
 {
-    @assert(deferForRange() == 6123)
+    Swag.assert(deferForRange() == 6123)
 }
 
 #test
 {
-    @assert(deferForeach() == 7123)
+    Swag.assert(deferForeach() == 7123)
 }
 
 #test
 {
-    @assert(deferSwitch(1) == 8192)
-    @assert(deferSwitch(2) == 92)
-    @assert(deferSwitch(3) == 43)
-    @assert(deferSwitch(9) == 65)
+    Swag.assert(deferSwitch(1) == 8192)
+    Swag.assert(deferSwitch(2) == 92)
+    Swag.assert(deferSwitch(3) == 43)
+    Swag.assert(deferSwitch(9) == 65)
 }
 
 #test
 {
     let v = deferBreakToScopeAndDrop()
-    @assert(v.count == 2)
-    @assert(v.drops == 2)
+    Swag.assert(v.count == 2)
+    Swag.assert(v.drops == 2)
 }
 
 #test
 {
     let v = deferParameterDropInfo()
-    @assert(v.count == 0)
-    @assert(v.drops == 1)
+    Swag.assert(v.count == 0)
+    Swag.assert(v.drops == 1)
 }
 
 #test
 {
     let v = deferEmbeddedParameterDropInfo()
-    @assert(v.count == 0)
-    @assert(v.drops == 1)
+    Swag.assert(v.count == 0)
+    Swag.assert(v.drops == 1)
 }
 
 #test
 {
     let v = deferReturnDropInfo()
-    @assert(v.count == 42)
-    @assert(v.drops == 1)
+    Swag.assert(v.count == 42)
+    Swag.assert(v.drops == 1)
 }
 
 #test
 {
-    @assert(deferBreakToScope() == 213)
+    Swag.assert(deferBreakToScope() == 213)
 }
 
 #test
 {
     let v = catch deferConditionalReturnTrace()
-    @assert(v.value == 7)
-    @assert(v.trace == 32)
+    Swag.assert(v.value == 7)
+    Swag.assert(v.trace == 32)
 }
 
 #test
 {
-    @assert(deferConditionalFailTrace() == 31)
+    Swag.assert(deferConditionalFailTrace() == 31)
     // 'catch' now dismisses the error (like 'catch ... else'), so the '#nofail' defer runs on both.
-    @assert(deferConditionalCatchTrace() == 1242)
-    @assert(deferConditionalCatchElseTrace() == 1242)
+    Swag.assert(deferConditionalCatchTrace() == 1242)
+    Swag.assert(deferConditionalCatchElseTrace() == 1242)
 }
 
 #test
@@ -648,7 +648,7 @@ func deferBreakToScope()->s64
         defer a = 2
         a = 3
     }
-    @assert(a == 2)
+    Swag.assert(a == 2)
 }
 
 #[Swag.Mixin]
@@ -664,14 +664,14 @@ var G = 0
 {
     {
         scopeLock()
-        @assert(a == 4)
+        Swag.assert(a == 4)
         defer a += 1
     }
 
-    @assert(G == 5)
+    Swag.assert(G == 5)
 }
 
 #test
 {
-    @assert(deferStackAddressAfterSkippedBranch() == cast(*u8) 0x1234'u64)
+    Swag.assert(deferStackAddressAfterSkippedBranch() == cast(*u8) 0x1234'u64)
 }

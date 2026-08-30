@@ -2,7 +2,7 @@
 
 #test
 {
-    const Cfg = #run @compiler.getBuildCfg()![]
+    const Cfg = #run Swag.compiler().getBuildCfg()![]
     #assert(#typeof(Cfg.backend.optimLevel) == Swag.BuildCfgBackendOptimLevel)
     #assert(Cfg.backend.debugInfo == false)
     #assert(Cfg.backend.enableExceptions == true)
@@ -19,6 +19,6 @@
 
 #test
 {
-    const Cfg = #run @compiler.getBuildCfg()![]
+    const Cfg = #run Swag.compiler().getBuildCfg()![]
     var bad: s32 = Cfg.backend.enableExceptions     // swc-expected-error {{sema_err_cannot_cast}}
 }

@@ -42,5 +42,5 @@ func day6B()
     }
 
     // Console.print(pwd)
-    @assert(pwd == "bhkzekao")
+    Swag.assert(pwd == "bhkzekao")
 }

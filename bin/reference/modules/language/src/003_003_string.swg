@@ -82,10 +82,10 @@ Swag allows compile-time concatenation of strings and other values using the
 
     const b = 666
     let c = "the devil's number is not " ++ (b + 1) ++ "!"
-    @assert(c == "the devil's number is not 667!")
+    Swag.assert(c == "the devil's number is not 667!")
 
     let d = "there are " ++ 4 ++ " apples in " ++ (2 * 2) ++ " baskets"
-    @assert(d == "there are 4 apples in 4 baskets")
+    Swag.assert(d == "there are 4 apples in 4 baskets")
 }
 
 /**
@@ -97,11 +97,11 @@ whether a string has been assigned a value.
 #test
 {
     var a: #null string
-    @assert(a == null)
+    Swag.assert(a == null)
     a = "not null"
-    @assert(a != null)
+    Swag.assert(a != null)
     a = null
-    @assert(a == null)
+    Swag.assert(a == null)
 }
 
 /**
@@ -126,7 +126,7 @@ not just ASCII.
     // The same literal, with the blank the lexer ignores.
     let spaced = 5 's32
     #assert(#typeof(spaced) == s32)
-    @assert(spaced == value)
+    Swag.assert(spaced == value)
 }
 
 /**
@@ -169,29 +169,29 @@ let space  = ' 'u32     // the literal is a space, the suffix still follows the 
 #test
 {
     let a = '0'u8
-    @assert(a == 48)
-    @assert(#typeof(a) == u8)
+    Swag.assert(a == 48)
+    Swag.assert(#typeof(a) == u8)
 
     let b = '1'u16
-    @assert(b == 49)
-    @assert(#typeof(b) == u16)
+    Swag.assert(b == 49)
+    Swag.assert(#typeof(b) == u16)
 
     let c = '2'u32
-    @assert(c == 50)
-    @assert(#typeof(c) == u32)
+    Swag.assert(c == 50)
+    Swag.assert(#typeof(c) == u32)
 
     let d = '3'u64
-    @assert(d == 51)
-    @assert(#typeof(d) == u64)
+    Swag.assert(d == 51)
+    Swag.assert(#typeof(d) == u64)
 
     let e = '4'rune
-    @assert(e == 52)
-    @assert(#typeof(e) == rune)
+    Swag.assert(e == 52)
+    Swag.assert(#typeof(e) == rune)
 
     // The literal itself can be a space: the closing quote still ends it.
     let f = ' 'u32
-    @assert(f == 32)
-    @assert(#typeof(f) == u32)
+    Swag.assert(f == 32)
+    Swag.assert(#typeof(f) == u32)
 }
 
 /**

@@ -4,44 +4,44 @@ public const CTX_BASE_DROP_FLAG    = 0x0004'u64
 
 #init
 {
-    @assert(@getcontext().allocator != null)
-    @getcontext().user1 |= CTX_BASE_INIT_FLAG
-    @getcontext().user3 += 1
+    Swag.assert(Swag.getContext().allocator != null)
+    Swag.getContext().user1 |= CTX_BASE_INIT_FLAG
+    Swag.getContext().user3 += 1
 }
 
 #premain
 {
-    @assert((@getcontext().user1 & CTX_BASE_INIT_FLAG) != 0)
-    @getcontext().user1 |= CTX_BASE_PREMAIN_FLAG
-    @getcontext().user3 += 0x100
+    Swag.assert((Swag.getContext().user1 & CTX_BASE_INIT_FLAG) != 0)
+    Swag.getContext().user1 |= CTX_BASE_PREMAIN_FLAG
+    Swag.getContext().user3 += 0x100
 }
 
 #drop
 {
-    @assert(@getcontext().user0 == 43)
-    @getcontext().user1 |= CTX_BASE_DROP_FLAG
+    Swag.assert(Swag.getContext().user0 == 43)
+    Swag.getContext().user1 |= CTX_BASE_DROP_FLAG
 }
 
 public func ctxBaseReadContext()->u64
 {
-    @assert(@getcontext().allocator != null)
-    return @getcontext().user0
+    Swag.assert(Swag.getContext().allocator != null)
+    return Swag.getContext().user0
 }
 
 public func ctxBaseContextMarker()->u64
 {
-    @assert(@getcontext().allocator != null)
-    return @getcontext().user2
+    Swag.assert(Swag.getContext().allocator != null)
+    return Swag.getContext().user2
 }
 
 public func ctxBaseInitCount()->u64
 {
-    @assert(@getcontext().allocator != null)
-    return @getcontext().user3 & 0xFF
+    Swag.assert(Swag.getContext().allocator != null)
+    return Swag.getContext().user3 & 0xFF
 }
 
 public func ctxBasePreMainCount()->u64
 {
-    @assert(@getcontext().allocator != null)
-    return (@getcontext().user3 >> 8) & 0xFF
+    Swag.assert(Swag.getContext().allocator != null)
+    return (Swag.getContext().user3 >> 8) & 0xFF
 }

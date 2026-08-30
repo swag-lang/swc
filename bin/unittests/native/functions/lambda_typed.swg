@@ -138,16 +138,16 @@ func squareValue(value: s32)->s32 => value * value
     let viaArray0Invoke = invokeAggregate(callbacks[0], {base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
     let res1            = invokeAggregate(callbacks[1], {base: 1, step: 2, marks: [8'u16, 9'u16, 10'u16]}, [5, 6, 7, 8], 4)
 
-    @assert(res0.total == 63)
-    @assert(res0.mirrored[0] == 40)
-    @assert(res0.mirrored[3] == 10)
-    @assert(res0.pair.a == 13)
-    @assert(res0.pair.b == 5)
+    Swag.assert(res0.total == 63)
+    Swag.assert(res0.mirrored[0] == 40)
+    Swag.assert(res0.mirrored[3] == 10)
+    Swag.assert(res0.pair.a == 13)
+    Swag.assert(res0.pair.b == 5)
 
-    @assert(res1.total == 18)
-    @assert(res1.mirrored[0] == 8)
-    @assert(res1.pair.a == 11)
-    @assert(res1.pair.b == 10)
+    Swag.assert(res1.total == 18)
+    Swag.assert(res1.mirrored[0] == 8)
+    Swag.assert(res1.pair.a == 11)
+    Swag.assert(res1.pair.b == 10)
 }
 
 #test
@@ -160,10 +160,10 @@ func squareValue(value: s32)->s32 => value * value
     }
 
     let result = explicit({a: 2, b: 5}, [10, 20, 30, 40])
-    @assert(result[0] == 12)
-    @assert(result[1] == 25)
-    @assert(result[2] == 28)
-    @assert(result[3] == 35)
+    Swag.assert(result[0] == 12)
+    Swag.assert(result[1] == 25)
+    Swag.assert(result[2] == 28)
+    Swag.assert(result[3] == 35)
 }
 
 #test
@@ -188,7 +188,7 @@ func squareValue(value: s32)->s32 => value * value
         [8'u16, 9'u16],
         {base: 10, step: 1, marks: [1'u16, 2'u16, 3'u16]},
         {base: 20, step: 2, marks: [4'u16, 5'u16, 6'u16]})
-    @assert(result == 60'u64)
+    Swag.assert(result == 60'u64)
 }
 
 #test
@@ -205,29 +205,29 @@ func squareValue(value: s32)->s32 => value * value
     }
 
     let result = cb(true, 4, 7, "AZ")
-    @assert(result == 102)
+    Swag.assert(result == 102)
 }
 
 #test
 {
     var cb: #null LambdaUnary
-    @assert(cb == null)
+    Swag.assert(cb == null)
 
     cb = &plusTen
-    @assert(cb(5) == 15)
+    Swag.assert(cb(5) == 15)
 
     cb = func(value) => value - 3
-    @assert(cb(9) == 6)
-    @assert(cb != null)
+    Swag.assert(cb(9) == 6)
+    Swag.assert(cb != null)
 }
 
 #test
 {
-    @assert(invokeUnary(func(value) => value * value, 4) == 16)
-    @assert(invokeUnary(value: 5, cb: func(value) { return value + value }) == 10)
-    @assert(invokeUnary(func(value: s32)->s32 { return value - 1 }, 8) == 7)
-    @assert(invokeBinary(func(left, right) => left <= right, 4, 4))
-    @assert(!invokeBinary(func(left: s32, right: s32)->bool { return left > right }, 4, 9))
+    Swag.assert(invokeUnary(func(value) => value * value, 4) == 16)
+    Swag.assert(invokeUnary(value: 5, cb: func(value) { return value + value }) == 10)
+    Swag.assert(invokeUnary(func(value: s32)->s32 { return value - 1 }, 8) == 7)
+    Swag.assert(invokeBinary(func(left, right) => left <= right, 4, 4))
+    Swag.assert(!invokeBinary(func(left: s32, right: s32)->bool { return left > right }, 4, 9))
 }
 
 #test
@@ -235,31 +235,31 @@ func squareValue(value: s32)->s32 => value * value
     var predicate: LambdaBinaryPredicate = undefined
 
     predicate = func(left, right) => left == right
-    @assert(predicate(10, 10))
-    @assert(!predicate(10, 11))
+    Swag.assert(predicate(10, 10))
+    Swag.assert(!predicate(10, 11))
 
     predicate = func(left, right)
     {
         return left != right
     }
 
-    @assert(predicate(20, 120))
-    @assert(!predicate(20, 20))
+    Swag.assert(predicate(20, 120))
+    Swag.assert(!predicate(20, 20))
 }
 
 #test
 {
     let relayed = relayUnary(func(value) => value * 3)
 
-    @assert(relayed(6) == 18)
+    Swag.assert(relayed(6) == 18)
 }
 
 #test
 {
     let local = func(flag = true) => flag
 
-    @assert(local())
-    @assert(!local(false))
+    Swag.assert(local())
+    Swag.assert(!local(false))
 }
 
 #test
@@ -270,19 +270,19 @@ func squareValue(value: s32)->s32 => value * value
         return flag
     }
 
-    @assert(bound())
-    @assert(!bound(false))
-    @assert(bound(true))
-    @assert(!bound(flag: false))
+    Swag.assert(bound())
+    Swag.assert(!bound(false))
+    Swag.assert(bound(true))
+    Swag.assert(!bound(flag: false))
 }
 
 #test
 {
     let defaulted: LambdaDefaultCategoryFn = func(category) => category
 
-    @assert(defaulted() == LambdaDefaultCategory.Effects)
-    @assert(defaulted(LambdaDefaultCategory.Default) == LambdaDefaultCategory.Default)
-    @assert(defaulted(category: LambdaDefaultCategory.Default) == LambdaDefaultCategory.Default)
+    Swag.assert(defaulted() == LambdaDefaultCategory.Effects)
+    Swag.assert(defaulted(LambdaDefaultCategory.Default) == LambdaDefaultCategory.Default)
+    Swag.assert(defaulted(category: LambdaDefaultCategory.Default) == LambdaDefaultCategory.Default)
 }
 
 #test
@@ -290,23 +290,23 @@ func squareValue(value: s32)->s32 => value * value
     let increment: LambdaDefaultUnary = func(value) => value + 1
     let invert:    LambdaDefaultBool  = func(flag) => !flag
 
-    @assert(increment() == 12)
-    @assert(increment(8) == 9)
-    @assert(increment(value: 3) == 4)
-    @assert(invokeDefaulted(increment) == 1253)
+    Swag.assert(increment() == 12)
+    Swag.assert(increment(8) == 9)
+    Swag.assert(increment(value: 3) == 4)
+    Swag.assert(invokeDefaulted(increment) == 1253)
 
-    @assert(!invert())
-    @assert(invert(false))
-    @assert(!invert(flag: true))
+    Swag.assert(!invert())
+    Swag.assert(invert(false))
+    Swag.assert(!invert(flag: true))
 }
 
 #test
 {
     let cb: LambdaDefaultUnary = func(value) => value * 2
-    @assert(cb() == 22)
-    @assert(cb(6) == 12)
-    @assert(cb(value: 3) == 6)
-    @assert(invokeDefaulted(cb) == 2284)
+    Swag.assert(cb() == 22)
+    Swag.assert(cb(6) == 12)
+    Swag.assert(cb(value: 3) == 6)
+    Swag.assert(invokeDefaulted(cb) == 2284)
 }
 
 #test
@@ -328,16 +328,16 @@ func squareValue(value: s32)->s32 => value * value
     holder.predicate = func(left, right) => left >= right
     holder.defaulted = func(value) => value - 1
 
-    @assert(holder.unary(4) == 20)
-    @assert(holder.predicate(9, 9))
-    @assert(!holder.predicate(2, 7))
-    @assert(holder.defaulted() == 10)
-    @assert(holder.defaulted(8) == 7)
-    @assert(holder.defaulted(value: 6) == 5)
-    @assert(explicit.unary(7) == 5)
-    @assert(explicit.predicate(3, 8))
-    @assert(!explicit.predicate(8, 3))
-    @assert(explicit.defaulted() == 12)
+    Swag.assert(holder.unary(4) == 20)
+    Swag.assert(holder.predicate(9, 9))
+    Swag.assert(!holder.predicate(2, 7))
+    Swag.assert(holder.defaulted() == 10)
+    Swag.assert(holder.defaulted(8) == 7)
+    Swag.assert(holder.defaulted(value: 6) == 5)
+    Swag.assert(explicit.unary(7) == 5)
+    Swag.assert(explicit.predicate(3, 8))
+    Swag.assert(!explicit.predicate(8, 3))
+    Swag.assert(explicit.defaulted() == 12)
 }
 
 #test
@@ -353,15 +353,15 @@ func squareValue(value: s32)->s32 => value * value
     }
     callbacks[2] = &squareValue
 
-    @assert(callbacks[0](4) == 5)
-    @assert(callbacks[1](4) == 16)
-    @assert(callbacks[2](5) == 25)
+    Swag.assert(callbacks[0](4) == 5)
+    Swag.assert(callbacks[1](4) == 16)
+    Swag.assert(callbacks[2](5) == 25)
 }
 
 #test
 {
     let direct = invokeDefaulted(func(value) => value + 2)
-    @assert(direct == 1364)
+    Swag.assert(direct == 1364)
 }
 
 #test
@@ -369,9 +369,9 @@ func squareValue(value: s32)->s32 => value * value
     let doubled   = makeDouble()
     let defaulted = makeDefaulted()
 
-    @assert(doubled(7) == 14)
-    @assert(defaulted() == 33)
-    @assert(defaulted(5) == 15)
+    Swag.assert(doubled(7) == 14)
+    Swag.assert(defaulted() == 33)
+    Swag.assert(defaulted(5) == 15)
 }
 
 #test
@@ -379,12 +379,12 @@ func squareValue(value: s32)->s32 => value * value
     let holder = makeRuntimeHolder()
     let nested = makeArrayHolder()
 
-    @assert(holder.unary(3) == 7)
-    @assert(holder.predicate(2, 5))
-    @assert(!holder.predicate(8, 1))
-    @assert(holder.defaulted() == 13)
-    @assert(holder.defaulted(6) == 8)
+    Swag.assert(holder.unary(3) == 7)
+    Swag.assert(holder.predicate(2, 5))
+    Swag.assert(!holder.predicate(8, 1))
+    Swag.assert(holder.defaulted() == 13)
+    Swag.assert(holder.defaulted(6) == 8)
 
-    @assert(nested.callbacks[0](5) == 6)
-    @assert(nested.callbacks[1](5) == 10)
+    Swag.assert(nested.callbacks[0](5) == 6)
+    Swag.assert(nested.callbacks[1](5) == 10)
 }

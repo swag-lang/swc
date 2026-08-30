@@ -108,9 +108,9 @@ func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code(single: s32, doubled: s3
 #[Swag.Macro]
 func(T) genericAliasFold(values: [..] T, delta: T, sumPtr: *T, stmt: #code(value, out))
 {
-    for @countof(values)
+    for values.count
     {
-        #inject(stmt, value = values[@index] + delta, out = sumPtr)
+        #inject(stmt, value = values[Swag.index] + delta, out = sumPtr)
     }
 }
 
@@ -125,9 +125,9 @@ impl MemberMacroWalker
     mtd visit(scale: s32 = 1, stmt: #code(item: s32))
     {
         let values = .values
-        for @countof(values)
+        for values.count
         {
-            #inject(stmt, item = values[@index] * scale)
+            #inject(stmt, item = values[Swag.index] * scale)
         }
     }
 
@@ -135,9 +135,9 @@ impl MemberMacroWalker
     mtd visitWithData(userData: *s32, scale: s32 = 1, stmt: #code(item: s32, out: *s32))
     {
         let values = .values
-        for @countof(values)
+        for values.count
         {
-            #inject(stmt, item = values[@index] * scale, out = userData)
+            #inject(stmt, item = values[Swag.index] * scale, out = userData)
         }
     }
 }
@@ -147,9 +147,9 @@ namespace QualifiedMacroScope
     #[Swag.Macro]
     public func(T) fold(values: [..] T, delta: T, sumPtr: *T, stmt: #code(item, out))
     {
-        for @countof(values)
+        for values.count
         {
-            #inject(stmt, item = values[@index] + delta, out = sumPtr)
+            #inject(stmt, item = values[Swag.index] + delta, out = sumPtr)
         }
     }
 }
@@ -163,7 +163,7 @@ namespace QualifiedMacroScope
         a += 1
     }
 
-    @assert(a == 3)
+    Swag.assert(a == 3)
 }
 
 // Injection hygiene: the macro-local 'a' never shadows the caller's 'a'
@@ -175,7 +175,7 @@ namespace QualifiedMacroScope
         a += 2
     }
 
-    @assert(a == 3)
+    Swag.assert(a == 3)
 }
 
 // Injection hygiene with an inline '#code' argument: injected code resolves
@@ -189,7 +189,7 @@ namespace QualifiedMacroScope
         a += 2
     }
 
-    @assert(a == 3)
+    Swag.assert(a == 3)
 }
 
 // Block parameter exposes the loop index to the injected code
@@ -201,7 +201,7 @@ namespace QualifiedMacroScope
         sum += index
     }
 
-    @assert(sum == 6)
+    Swag.assert(sum == 6)
 }
 
 // Block parameter bound from a struct config field
@@ -216,7 +216,7 @@ namespace QualifiedMacroScope
         total += amount
     }
 
-    @assert(total == 7)
+    Swag.assert(total == 7)
 }
 
 // Block parameter typed through a macro-local alias; the binding initializer
@@ -229,7 +229,7 @@ namespace QualifiedMacroScope
         result = typed + 1
     }
 
-    @assert(result == 42)
+    Swag.assert(result == 42)
 }
 
 // Block parameter bound from inside a nested block of the macro
@@ -241,7 +241,7 @@ namespace QualifiedMacroScope
         result = value
     }
 
-    @assert(result == 42)
+    Swag.assert(result == 42)
 }
 
 // --- Block parameter tests ---
@@ -255,7 +255,7 @@ namespace QualifiedMacroScope
         result = tripled
     }
 
-    @assert(result == 42)
+    Swag.assert(result == 42)
 }
 
 // Paired block parameter bindings in macro
@@ -267,7 +267,7 @@ namespace QualifiedMacroScope
         result = sum + product
     }
 
-    @assert(result == 10 + 21)
+    Swag.assert(result == 10 + 21)
 }
 
 // Block parameter bound to a macro-local variable
@@ -279,7 +279,7 @@ namespace QualifiedMacroScope
         result = val
     }
 
-    @assert(result == 105)
+    Swag.assert(result == 105)
 }
 
 // Block parameter in loop macro with repeat count
@@ -291,7 +291,7 @@ namespace QualifiedMacroScope
         sum += idx
     }
 
-    @assert(sum == 6)
+    Swag.assert(sum == 6)
 }
 
 // Nested block with dual block parameter bindings
@@ -303,7 +303,7 @@ namespace QualifiedMacroScope
         result = inc + doubled
     }
 
-    @assert(result == 21 + 40)
+    Swag.assert(result == 21 + 40)
 }
 
 // Block parameters from struct config fields
@@ -318,7 +318,7 @@ namespace QualifiedMacroScope
         result = single + doubled
     }
 
-    @assert(result == 5 + 10)
+    Swag.assert(result == 5 + 10)
 }
 
 // Generic macro calls keep the trailing code block argument
@@ -331,7 +331,7 @@ namespace QualifiedMacroScope
         out[] += value
     }
 
-    @assert(sum == 36)
+    Swag.assert(sum == 36)
 }
 
 // Member macro calls keep the trailing code block after named arguments.
@@ -348,7 +348,7 @@ namespace QualifiedMacroScope
         sum += item
     }
 
-    @assert(sum == 12)
+    Swag.assert(sum == 12)
 }
 
 // Member macro calls keep the trailing code block after positional and named arguments.
@@ -365,7 +365,7 @@ namespace QualifiedMacroScope
         out[] += item
     }
 
-    @assert(sum == 12)
+    Swag.assert(sum == 12)
 }
 
 // Qualified generic macro calls still consume the implicit trailing code block.
@@ -378,10 +378,10 @@ namespace QualifiedMacroScope
         out[] += item
     }
 
-    @assert(sum == 36)
+    Swag.assert(sum == 36)
 }
 
-// #[Swag.Macro] variadic [..] T parameter with for @countof + values[@index]:
+// #[Swag.Macro] variadic [..] T parameter with for .count + values[Swag.index]:
 // the macro body must resolve its own 'values' parameter even when the caller
 // has a same-named local. Regression coverage for two clone bugs:
 //   1. copyImplicitCastPayload lost the type on constant-cast clones (hit by let/const arrays).
@@ -390,9 +390,9 @@ namespace QualifiedMacroScope
 #[Swag.Macro]
 func(T) variadicSameName(values: [..] T, sumPtr: *T)
 {
-    for @countof(values)
+    for values.count
     {
-        let item = values[@index]
+        let item = values[Swag.index]
         sumPtr[] += item
     }
 }
@@ -403,7 +403,7 @@ func(T) variadicSameName(values: [..] T, sumPtr: *T)
     let values: [3] s32 = [1, 2, 3]
     var sum:    s32     = 0
     variadicSameName(values, &sum)
-    @assert(sum == 6)
+    Swag.assert(sum == 6)
 }
 
 // Caller variable same name, inferred type (the exact shape from the bug report).
@@ -412,7 +412,7 @@ func(T) variadicSameName(values: [..] T, sumPtr: *T)
     var sum: s32 = 0
     let values   = [1's32, 2, 3]
     variadicSameName(values, &sum)
-    @assert(sum == 6)
+    Swag.assert(sum == 6)
 }
 
 // Caller variable with a different name — verifies the fix doesn't regress non-collision cases.
@@ -421,7 +421,7 @@ func(T) variadicSameName(values: [..] T, sumPtr: *T)
     let arr: [3] s32 = [1, 2, 3]
     var sum: s32     = 0
     variadicSameName(arr, &sum)
-    @assert(sum == 6)
+    Swag.assert(sum == 6)
 }
 
 // Different values, same-name (additional const-array regression check).
@@ -430,7 +430,7 @@ func(T) variadicSameName(values: [..] T, sumPtr: *T)
     let values: [3] s32 = [10, 20, 30]
     var sum:    s32     = 0
     variadicSameName(values, &sum)
-    @assert(sum == 60)
+    Swag.assert(sum == 60)
 }
 
 // Different generic T (s64) — verifies generic type resolution is unaffected.
@@ -439,7 +439,7 @@ func(T) variadicSameName(values: [..] T, sumPtr: *T)
     let values: [3] s64 = [10, 20, 30]
     var sum:    s64     = 0
     variadicSameName(values, &sum)
-    @assert(sum == 60)
+    Swag.assert(sum == 60)
 }
 
 // Single-element array — verifies count = 1 works correctly.
@@ -448,5 +448,5 @@ func(T) variadicSameName(values: [..] T, sumPtr: *T)
     let values: [1] s32 = [42]
     var sum:    s32     = 0
     variadicSameName(values, &sum)
-    @assert(sum == 42)
+    Swag.assert(sum == 42)
 }

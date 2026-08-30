@@ -75,20 +75,20 @@ impl String
     #[Implicit, Inline]
     mtd const opCast()->string
     {
-        return @mkstring(.buffer, .length)
+        return Swag.makeString(.buffer, .length)
     }
 
     #[Implicit, Inline]
     mtd const opCast()->const [..] u8
     {
-        return @mkslice(.buffer, .length)
+        return Swag.makeSlice(.buffer, .length)
     }
 
     // Assigns a value.
     #[Implicit]
     mtd opSet(value: #null string)
     {
-        if @dataof(value) == null
+        if value.buffer == null
         {
             .length = 0
             if .buffer do
@@ -98,7 +98,7 @@ impl String
 
         if .buffer
         {
-            let dataof = @dataof(value)
+            let dataof = value.buffer
             if dataof >= .buffer and dataof < .buffer + .length
             {
                 let copy = String.from(value)
@@ -107,11 +107,11 @@ impl String
             }
         }
 
-        let newCapacity = @countof(value) + 1
+        let newCapacity = value.count + 1
         .length = newCapacity - 1
         .grow(newCapacity)
         let buffer = .buffer!
-        Memory.copy(buffer, @dataof(value), .length)
+        Memory.copy(buffer, value.buffer, .length)
         buffer[.length] = 0
     }
 
@@ -119,17 +119,17 @@ impl String
     mtd const opSlice(lower, upper: u64)->string
     {
         Debug.assert(lower <= upper and lower < .length and upper < .length)
-        return @mkstring(.buffer + lower, (upper + 1) - lower)
+        return Swag.makeString(.buffer + lower, (upper + 1) - lower)
     }
 
     // Returns whether two values are equal.
     mtd const opEquals(other: #null string)->bool
     {
-        if .buffer == @dataof(other) do
+        if .buffer == other.buffer do
             return true
-        if .length != @countof(other) do
+        if .length != other.count do
             return false
-        return Memory.compare(.buffer, @dataof(other), .length) == 0
+        return Memory.compare(.buffer, other.buffer, .length) == 0
     }
 
     // Compares this value with another value.
@@ -342,7 +342,7 @@ impl String
             return
         if .buffer
         {
-            let dataof = @dataof(by)
+            let dataof = by.buffer
             if dataof >= .buffer and dataof < .buffer + .length
             {
                 let copy = String.from(by)
@@ -351,14 +351,14 @@ impl String
             }
         }
 
-        let byLength = @countof(by)
+        let byLength = by.count
 
         var idx = Utf8.indexOf(.toString(), what, 0)
         while idx != Swag.U64.Max
         {
             .reserve(.length + byLength + 1)
             Memory.copyOverlapping(.buffer + idx + byLength, .buffer + idx + 1, .length - idx)
-            Memory.copy(.buffer + idx, @dataof(by), byLength)
+            Memory.copy(.buffer + idx, by.buffer, byLength)
             .length -= 1
             .length += byLength
             idx     += byLength
@@ -374,12 +374,12 @@ impl String
     // Replace all occurences of 'what' with 'by'
     mtd replace(what: string, by: #null string, comparisonType = Utf8.ComparisonType.Latin1)
     {
-        let whatLength = @countof(what)
+        let whatLength = what.count
         if !whatLength or whatLength > .length do
             return
         if .buffer
         {
-            let whatDataof = @dataof(what)
+            let whatDataof = what.buffer
             if whatDataof >= .buffer and whatDataof < .buffer + .length
             {
                 let copy = String.from(what)
@@ -387,7 +387,7 @@ impl String
                 return
             }
 
-            let byDataof = @dataof(by)
+            let byDataof = by.buffer
             if byDataof >= .buffer and byDataof < .buffer + .length
             {
                 let copy = String.from(by)
@@ -396,14 +396,14 @@ impl String
             }
         }
 
-        let byLength = @countof(by)
+        let byLength = by.count
 
         var idx = Utf8.indexOf(.toString(), what, 0, comparisonType)
         while idx != Swag.U64.Max
         {
             .reserve(.length + byLength + 1)
             Memory.copyOverlapping(.buffer + idx + byLength, .buffer + idx + whatLength, .length - (idx + whatLength) + 1)
-            Memory.copy(.buffer + idx, @dataof(by), byLength)
+            Memory.copy(.buffer + idx, by.buffer, byLength)
             .length -= whatLength
             .length += byLength
             idx     += byLength
@@ -477,12 +477,12 @@ impl String
         }
 
         Debug.safetyBoundCheck(byteIndex < .length, "index out of range")
-        let countof = @countof(value)
+        let countof = value.count
         if !countof do
             return
         if .buffer
         {
-            let dataof = @dataof(value)
+            let dataof = value.buffer
             if dataof >= .buffer and dataof < .buffer + .length
             {
                 let copy = String.from(value)
@@ -493,7 +493,7 @@ impl String
 
         .grow(.length + countof + 1)
         Memory.copyOverlapping(.buffer + byteIndex + countof, .buffer + byteIndex, .length - byteIndex + 1)
-        Memory.copy(.buffer + byteIndex, @dataof(value), countof)
+        Memory.copy(.buffer + byteIndex, value.buffer, countof)
         .length += countof
     }
 
@@ -531,12 +531,12 @@ impl String
     // Append a string to the String
     mtd append(value: #null string)
     {
-        let concatLength = @countof(value)
+        let concatLength = value.count
         if concatLength == 0 do
             return
         if .buffer
         {
-            let dataof = @dataof(value)
+            let dataof = value.buffer
             if dataof >= .buffer and dataof < .buffer + .length
             {
                 let copy = String.from(value)
@@ -548,7 +548,7 @@ impl String
         let newLength = .length + concatLength + 1
         .grow(newLength)
         let buffer = .buffer!
-        Memory.copy(buffer + .length, @dataof(value), concatLength)
+        Memory.copy(buffer + .length, value.buffer, concatLength)
         .length         = newLength - 1
         buffer[.length] = 0
     }
@@ -558,7 +558,7 @@ impl String
     {
         var result: String
         for values do
-            result += values[@index]
+            result += values[Swag.index]
         return result
     }
 
@@ -569,9 +569,9 @@ impl String
         var result: String
         for values
         {
-            if @countof(separator) and @index do
+            if separator.count and Swag.index do
                 result += separator
-            result += values[@index]
+            result += values[Swag.index]
         }
 
         return result
@@ -592,7 +592,7 @@ impl String
     {
         .length = Math.min(.length, newCapacity)
         if .allocator == null do
-            .allocator = @getcontext().allocator
+            .allocator = Swag.getContext().allocator
 
         // Small size, just be sure with have a valid buffer address
         if newCapacity <= StringSmallSize
@@ -640,12 +640,12 @@ impl String
             return
 
         let buffer     = .buffer!
-        let asciiBytes = Latin1.firstNonSpace(@mkslice(cast(const [*] u8) buffer, .length), includeLatin1: false)
+        let asciiBytes = Latin1.firstNonSpace(Swag.makeSlice(cast(const [*] u8) buffer, .length), includeLatin1: false)
         var ptr        = buffer + asciiBytes
         .length -= asciiBytes
         for
         {
-            let sl       = @mkslice(ptr, .length)
+            let sl       = Swag.makeSlice(ptr, .length)
             let {c, eat} = Utf8.decodeRune(sl)
             if !Unicode.isSpace(c) do
                 break
@@ -664,10 +664,10 @@ impl String
             return
 
         let buffer = .buffer!
-        .length = Latin1.lastNonSpace(@mkslice(cast(const [*] u8) buffer, .length), includeLatin1: false)
+        .length = Latin1.lastNonSpace(Swag.makeSlice(cast(const [*] u8) buffer, .length), includeLatin1: false)
         for
         {
-            let sl       = @mkslice(buffer, .length)
+            let sl       = Swag.makeSlice(buffer, .length)
             let {c, eat} = Utf8.decodeLastRune(sl)
             if !Unicode.isSpace(c) do
                 break
@@ -687,7 +687,7 @@ impl String
     // Convert string to a 32 bits character array
     mtd const toRuneArray()->Array'rune
     {
-        return Unicode.fromUtf8(@mkslice(.buffer, .length))
+        return Unicode.fromUtf8(Swag.makeSlice(.buffer, .length))
     }
 
     // Convert a literal string to a String
@@ -701,27 +701,27 @@ impl String
     #[Inline]
     mtd const toString()->string
     {
-        return @mkstring(.buffer, .length)
+        return Swag.makeString(.buffer, .length)
     }
 
     // Returns a slice type
     #[Inline]
     mtd toSlice()->[..] u8
     {
-        return @mkslice(.buffer, .length)
+        return Swag.makeSlice(.buffer, .length)
     }
 
     // Returns a slice type
     #[Inline]
     mtd const toSlice()->const [..] u8
     {
-        return @mkslice(.buffer, .length)
+        return Swag.makeSlice(.buffer, .length)
     }
 
     // Convert the string inplace to upper case.
     mtd makeUpper(set = CharacterSet.Latin1)
     {
-        let sl = @mkslice(.buffer, .length)
+        let sl = Swag.makeSlice(.buffer, .length)
         switch set
         {
         case .Latin1:
@@ -731,14 +731,14 @@ impl String
             var uni32 = Core.Unicode.fromUtf8(.toString())
             Core.Unicode.makeUpper(uni32.toSlice())
             .reserve(uni32.count * 4)
-            .length = Utf8.fromUnicode(@mkslice(.buffer, .capacity), uni32.toSlice())
+            .length = Utf8.fromUnicode(Swag.makeSlice(.buffer, .capacity), uni32.toSlice())
         }
     }
 
     // Convert the string inplace to lower case.
     mtd makeLower(set = CharacterSet.Latin1)
     {
-        let sl = @mkslice(.buffer, .length)
+        let sl = Swag.makeSlice(.buffer, .length)
         switch set
         {
         case .Latin1:
@@ -748,7 +748,7 @@ impl String
             var uni32 = Core.Unicode.fromUtf8(.toString())
             Core.Unicode.makeLower(uni32.toSlice())
             .reserve(uni32.count * 4)
-            .length = Utf8.fromUnicode(@mkslice(.buffer, .capacity), uni32.toSlice())
+            .length = Utf8.fromUnicode(Swag.makeSlice(.buffer, .capacity), uni32.toSlice())
         }
     }
 
@@ -809,6 +809,6 @@ impl Hash.IHash32 for String
     {
         // Same function as the one used for 'string', so a 'String' and the text it
         // holds always hash alike
-        return Hash.hashBytes32(@mkslice(.buffer, .length))
+        return Hash.hashBytes32(Swag.makeSlice(.buffer, .length))
     }
 }

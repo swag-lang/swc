@@ -10,12 +10,12 @@ const Input = """2-4,6-8
 func num(b: const [..] u8, p: *u64)->u32
 {
     var n: u32
-    while p[] < @countof(b) and b[p[]] >= '0'u8 and b[p[]] <= '9'u8
+    while p[] < b.count and b[p[]] >= '0'u8 and b[p[]] <= '9'u8
     {
         n   = n * 10 + (b[p[]] - '0'u8)
         p[] += 1
     }
-    if p[] < @countof(b) do p[] += 1
+    if p[] < b.count do p[] += 1
     return n
 }
 
@@ -23,7 +23,7 @@ func solve(b: const [..] u8)->[2] u32
 {
     var r: [2] u32
     var i: u64
-    while i < @countof(b)
+    while i < b.count
     {
         if b[i] < '0'u8 or b[i] > '9'u8
         {
@@ -44,5 +44,5 @@ const CT = #run solve(Input)
 #test
 {
     let r = solve(Input)
-    @assert(r[0] == 2 and r[1] == 4)
+    Swag.assert(r[0] == 2 and r[1] == 4)
 }

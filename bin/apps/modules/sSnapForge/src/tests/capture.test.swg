@@ -27,47 +27,47 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     testAddMonitor(f.main, 3)
 
     var evt = Gui.Testing.commandState(ActionCapture.DoIt)
-    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.DoIt, &evt))
-    @assert(!evt.name.isEmpty())
+    Swag.assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.DoIt, &evt))
+    Swag.assert(!evt.name.isEmpty())
 
     evt = Gui.Testing.commandState(ActionCapture.Area)
-    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Area, &evt))
-    @assert(!evt.name.isEmpty())
+    Swag.assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Area, &evt))
+    Swag.assert(!evt.name.isEmpty())
 
     evt = Gui.Testing.commandState(ActionCapture.LastArea)
-    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.LastArea, &evt))
-    @assert(!evt.name.isEmpty())
+    Swag.assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.LastArea, &evt))
+    Swag.assert(!evt.name.isEmpty())
 
     evt = Gui.Testing.commandState(ActionCapture.FullScreen)
-    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.FullScreen, &evt))
-    @assert(!evt.name.isEmpty())
+    Swag.assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.FullScreen, &evt))
+    Swag.assert(!evt.name.isEmpty())
 
     evt = Gui.Testing.commandState(ActionCapture.ActiveWnd)
-    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.ActiveWnd, &evt))
-    @assert(!evt.name.isEmpty())
+    Swag.assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.ActiveWnd, &evt))
+    Swag.assert(!evt.name.isEmpty())
 
     // One command per connected monitor, minted on demand: the sixth is reachable
     // exactly like the first, and each carries a distinct id and an enabled state.
-    for idx in @countof(f.main.monitors)
+    for idx in f.main.monitors.count
     {
         let id = ActionCapture.screenId(idx)
 
         // A minted id must still carry the owning scope: `acceptOwnCmdIds` routes a
         // command to its action by that prefix alone.
-        @assert(Utf8.startsWith(id, "ActionCapture."))
-        @assert(ActionCapture.screenIndex(id) == idx)
+        Swag.assert(Utf8.startsWith(id, "ActionCapture."))
+        Swag.assert(ActionCapture.screenIndex(id) == idx)
         evt = Gui.Testing.commandState(id)
-        @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, id, &evt))
-        @assert(!evt.name.isEmpty())
-        @assert(!evt.disabled)
+        Swag.assert(Gui.Testing.actionUpdate'ActionCapture(f.main, id, &evt))
+        Swag.assert(!evt.name.isEmpty())
+        Swag.assert(!evt.disabled)
     }
 
     // A command whose monitor is gone stays answerable and reports itself disabled.
     let goneId = ActionCapture.screenId(f.main.monitors.count)
     evt = Gui.Testing.commandState(goneId)
-    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, goneId, &evt))
-    @assert(!evt.name.isEmpty())
-    @assert(evt.disabled)
+    Swag.assert(Gui.Testing.actionUpdate'ActionCapture(f.main, goneId, &evt))
+    Swag.assert(!evt.name.isEmpty())
+    Swag.assert(evt.disabled)
 }
 
 // Full-screen OS capture is tested without creating a sSnapForge library file:
@@ -90,7 +90,7 @@ func testAddMonitor(main: *MainWnd, idx: u32)
 
     f.main.sendCommandEvent(ActionCapture.FullScreen)
 
-    @assert(Clipboard.hasImage())
+    Swag.assert(Clipboard.hasImage())
 }
 
 // Last-area capture reuses cached grab bounds, so it exercises the OS capture
@@ -114,12 +114,12 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     g_EndGrabX   = 16
     g_EndGrabY   = 12
 
-    @assert(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.LastArea))
+    Swag.assert(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.LastArea))
 
     let img = Clipboard.getImage()
-    @assert(img.isValid())
-    @assert(img.width == 16)
-    @assert(img.height == 12)
+    Swag.assert(img.isValid())
+    Swag.assert(img.width == 16)
+    Swag.assert(img.height == 12)
 }
 
 // Monitor capture is non-interactive: a small fake monitor keeps the real screen
@@ -150,10 +150,10 @@ func testAddMonitor(main: *MainWnd, idx: u32)
         testAddMonitorAt(f.main, {0, 0, 8, 8})
     testAddMonitorAt(f.main, {0, 0, 320, 240})
 
-    @assert(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.screenId(4)))
+    Swag.assert(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.screenId(4)))
 
     let img = Clipboard.getImage()
-    @assert(img.isValid())
-    @assert(img.width == 320)
-    @assert(img.height == 240)
+    Swag.assert(img.isValid())
+    Swag.assert(img.width == 320)
+    Swag.assert(img.height == 240)
 }

@@ -16,7 +16,7 @@ struct RichEditLexerSwag
             Keyword          // Selects keyword.
             Control          // Selects control.
             Intrinsic        // Selects intrinsic.
-            Builtin          // Compiler builtin functions such as `@sqrt` and `@memcpy`.
+            Builtin          // Compiler builtin functions such as `Swag.sqrt` and `Swag.memcpy`.
             Function         // Selects function.
             Preprocessor     // Selects preprocessor.
             CharEscape       // Selects char escape.
@@ -187,7 +187,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#runes", State.Intrinsic)
         .mapWords.add("#safety", State.Intrinsic)
         .mapWords.add("#sanity", State.Intrinsic)
-        .mapWords.add("@isset", State.Intrinsic)
+        .mapWords.add("Swag.isSet", State.Intrinsic)
         .mapWords.add("#include", State.Intrinsic)
 
         .mapWords.add("#uniq0", State.Intrinsic)
@@ -201,41 +201,39 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#uniq8", State.Intrinsic)
         .mapWords.add("#uniq9", State.Intrinsic)
 
-        .mapWords.add("@rtflags", State.Intrinsic)
-        .mapWords.add("@args", State.Intrinsic)
-        .mapWords.add("@pinfos", State.Intrinsic)
-        .mapWords.add("@jit", State.Intrinsic)
-        .mapWords.add("@compiler", State.Intrinsic)
-        .mapWords.add("@modules", State.Intrinsic)
-        .mapWords.add("@gvtd", State.Intrinsic)
-        .mapWords.add("@index", State.Intrinsic)
+        .mapWords.add("Swag.runtimeFlags", State.Intrinsic)
+        .mapWords.add("Swag.args", State.Intrinsic)
+        .mapWords.add("Swag.processInfos", State.Intrinsic)
+        .mapWords.add("Swag.jit", State.Intrinsic)
+        .mapWords.add("Swag.compiler", State.Intrinsic)
+        .mapWords.add("Swag.modules", State.Intrinsic)
+        .mapWords.add("Swag.gvtd", State.Intrinsic)
+        .mapWords.add("Swag.index", State.Intrinsic)
 
-        .mapWords.add("@kindof", State.Intrinsic)
-        .mapWords.add("@countof", State.Intrinsic)
-        .mapWords.add("@dataof", State.Intrinsic)
-        .mapWords.add("@mkslice", State.Intrinsic)
-        .mapWords.add("@mkstring", State.Intrinsic)
-        .mapWords.add("@mkany", State.Intrinsic)
-        .mapWords.add("@mkinterface", State.Intrinsic)
-        .mapWords.add("@stringcmp", State.Intrinsic)
-        .mapWords.add("@typecmp", State.Intrinsic)
-        .mapWords.add("@is", State.Intrinsic)
-        .mapWords.add("@as", State.Intrinsic)
-        .mapWords.add("@getcontext", State.Intrinsic)
-        .mapWords.add("@tableof", State.Intrinsic)
+        .mapWords.add("Swag.kindOf", State.Intrinsic)
+        .mapWords.add("Swag.makeSlice", State.Intrinsic)
+        .mapWords.add("Swag.makeString", State.Intrinsic)
+        .mapWords.add("Swag.makeAny", State.Intrinsic)
+        .mapWords.add("Swag.makeInterface", State.Intrinsic)
+        .mapWords.add("Swag.stringCmp", State.Intrinsic)
+        .mapWords.add("Swag.typeCmp", State.Intrinsic)
+        .mapWords.add("Swag.typeIs", State.Intrinsic)
+        .mapWords.add("Swag.typeAs", State.Intrinsic)
+        .mapWords.add("Swag.getContext", State.Intrinsic)
+        .mapWords.add("Swag.tableOf", State.Intrinsic)
 
-        .mapWords.add("@assert", State.Intrinsic)
-        .mapWords.add("@breakpoint", State.Intrinsic)
-        .mapWords.add("@init", State.Intrinsic)
-        .mapWords.add("@drop", State.Intrinsic)
-        .mapWords.add("@postcopy", State.Intrinsic)
-        .mapWords.add("@postmove", State.Intrinsic)
-        .mapWords.add("@compilererror", State.Intrinsic)
-        .mapWords.add("@compilerwarning", State.Intrinsic)
-        .mapWords.add("@panic", State.Intrinsic)
-        .mapWords.add("@safetypanic", State.Intrinsic)
-        .mapWords.add("@print", State.Intrinsic)
-        .mapWords.add("@setcontext", State.Intrinsic)
+        .mapWords.add("Swag.assert", State.Intrinsic)
+        .mapWords.add("Swag.breakpoint", State.Intrinsic)
+        .mapWords.add("Swag.init", State.Intrinsic)
+        .mapWords.add("Swag.drop", State.Intrinsic)
+        .mapWords.add("Swag.postCopy", State.Intrinsic)
+        .mapWords.add("Swag.postMove", State.Intrinsic)
+        .mapWords.add("Swag.compilerError", State.Intrinsic)
+        .mapWords.add("Swag.compilerWarning", State.Intrinsic)
+        .mapWords.add("Swag.panic", State.Intrinsic)
+        .mapWords.add("Swag.safetyPanic", State.Intrinsic)
+        .mapWords.add("Swag.print", State.Intrinsic)
+        .mapWords.add("Swag.setContext", State.Intrinsic)
 
         .mapWords.add("opSlice", State.FunctionSpecOp)
         .mapWords.add("opBinary", State.FunctionSpecOp)
@@ -281,47 +279,47 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("cstring", State.Type)
         .mapWords.add("typeinfo", State.Type)
 
-        .mapWords.add("@abs", State.Builtin)
-        .mapWords.add("@acos", State.Builtin)
-        .mapWords.add("@asin", State.Builtin)
-        .mapWords.add("@atan", State.Builtin)
-        .mapWords.add("@atan2", State.Builtin)
-        .mapWords.add("@atomadd", State.Builtin)
-        .mapWords.add("@atomand", State.Builtin)
-        .mapWords.add("@atomcmpxchg", State.Builtin)
-        .mapWords.add("@atomor", State.Builtin)
-        .mapWords.add("@atomxchg", State.Builtin)
-        .mapWords.add("@atomxor", State.Builtin)
-        .mapWords.add("@bitcountnz", State.Builtin)
-        .mapWords.add("@bitcountlz", State.Builtin)
-        .mapWords.add("@bitcounttz", State.Builtin)
-        .mapWords.add("@byteswap", State.Builtin)
-        .mapWords.add("@ceil", State.Builtin)
-        .mapWords.add("@cos", State.Builtin)
-        .mapWords.add("@cosh", State.Builtin)
-        .mapWords.add("@exp", State.Builtin)
-        .mapWords.add("@exp2", State.Builtin)
-        .mapWords.add("@floor", State.Builtin)
-        .mapWords.add("@log", State.Builtin)
-        .mapWords.add("@log10", State.Builtin)
-        .mapWords.add("@log2", State.Builtin)
-        .mapWords.add("@max", State.Builtin)
-        .mapWords.add("@memcmp", State.Builtin)
-        .mapWords.add("@memcpy", State.Builtin)
-        .mapWords.add("@memmove", State.Builtin)
-        .mapWords.add("@memset", State.Builtin)
-        .mapWords.add("@min", State.Builtin)
-        .mapWords.add("@muladd", State.Builtin)
-        .mapWords.add("@pow", State.Builtin)
-        .mapWords.add("@rol", State.Builtin)
-        .mapWords.add("@ror", State.Builtin)
-        .mapWords.add("@round", State.Builtin)
-        .mapWords.add("@sin", State.Builtin)
-        .mapWords.add("@sinh", State.Builtin)
-        .mapWords.add("@sqrt", State.Builtin)
-        .mapWords.add("@tan", State.Builtin)
-        .mapWords.add("@tanh", State.Builtin)
-        .mapWords.add("@trunc", State.Builtin)
+        .mapWords.add("Swag.abs", State.Builtin)
+        .mapWords.add("Swag.acos", State.Builtin)
+        .mapWords.add("Swag.asin", State.Builtin)
+        .mapWords.add("Swag.atan", State.Builtin)
+        .mapWords.add("Swag.atan2", State.Builtin)
+        .mapWords.add("Swag.atomadd", State.Builtin)
+        .mapWords.add("Swag.atomand", State.Builtin)
+        .mapWords.add("Swag.atomcmpxchg", State.Builtin)
+        .mapWords.add("Swag.atomor", State.Builtin)
+        .mapWords.add("Swag.atomxchg", State.Builtin)
+        .mapWords.add("Swag.atomxor", State.Builtin)
+        .mapWords.add("Swag.bitCountNz", State.Builtin)
+        .mapWords.add("Swag.bitCountLz", State.Builtin)
+        .mapWords.add("Swag.bitCountTz", State.Builtin)
+        .mapWords.add("Swag.byteSwap", State.Builtin)
+        .mapWords.add("Swag.ceil", State.Builtin)
+        .mapWords.add("Swag.cos", State.Builtin)
+        .mapWords.add("Swag.cosh", State.Builtin)
+        .mapWords.add("Swag.exp", State.Builtin)
+        .mapWords.add("Swag.exp2", State.Builtin)
+        .mapWords.add("Swag.floor", State.Builtin)
+        .mapWords.add("Swag.log", State.Builtin)
+        .mapWords.add("Swag.log10", State.Builtin)
+        .mapWords.add("Swag.log2", State.Builtin)
+        .mapWords.add("Swag.max", State.Builtin)
+        .mapWords.add("Swag.memcmp", State.Builtin)
+        .mapWords.add("Swag.memcpy", State.Builtin)
+        .mapWords.add("Swag.memmove", State.Builtin)
+        .mapWords.add("Swag.memset", State.Builtin)
+        .mapWords.add("Swag.min", State.Builtin)
+        .mapWords.add("Swag.muladd", State.Builtin)
+        .mapWords.add("Swag.pow", State.Builtin)
+        .mapWords.add("Swag.rol", State.Builtin)
+        .mapWords.add("Swag.ror", State.Builtin)
+        .mapWords.add("Swag.round", State.Builtin)
+        .mapWords.add("Swag.sin", State.Builtin)
+        .mapWords.add("Swag.sinh", State.Builtin)
+        .mapWords.add("Swag.sqrt", State.Builtin)
+        .mapWords.add("Swag.tan", State.Builtin)
+        .mapWords.add("Swag.tanh", State.Builtin)
+        .mapWords.add("Swag.trunc", State.Builtin)
 
         .mapWords.add("#run", State.CompilerFunction)
         .mapWords.add("#test", State.CompilerFunction)
@@ -659,11 +657,11 @@ impl IRichEditLexer for RichEditLexerSwag
                     continue
                 }
 
-                if Unicode.isLetter(c) or c == '_' or c == '@' or c == '#'
+                if Unicode.isLetter(c) or c == '_' or c == '#'
                 {
                     var word: String
                     let saveSeek = seek
-                    while Unicode.isLetterOrDigit(c) or c == '_' or c == '@' or c == '#'
+                    while Unicode.isLetterOrDigit(c) or c == '_' or c == '#' or (word == "Swag" and c == '.')
                     {
                         word += c
                         seek += 1
@@ -680,8 +678,6 @@ impl IRichEditLexer for RichEditLexerSwag
                         let res = .mapWords.tryFind(word.toString())
                         if res do
                             currentState = res.value
-                        elif word == "@" do
-                            currentState = State.Keyword
                         elif Latin1.isUpper(word[0]) do
                             currentState = State.UserType
                         elif c == '(' and (Latin1.isLetter(word[0]) or word[0] == '_') do

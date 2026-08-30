@@ -13,7 +13,7 @@ struct WarehouseReport
 
 func lineWidth(line: string)->u32
 {
-    return cast(u32) @countof(cast(const [..] u8) line)
+    return cast(u32) (cast(const [..] u8) line).count
 }
 
 func cellIndex(x, y, width: u32)->u32
@@ -46,18 +46,18 @@ func moveDelta(outDx: *s32, outDy: *s32, instruction: u8)
         break
 
     default:
-        @assert(false)
+        Swag.assert(false)
         break
     }
 }
 
 func simulateWarehouse(layout: const [..] string, instructions: string)->WarehouseReport
 {
-    let height     = cast(u32) @countof(layout)
+    let height     = cast(u32) layout.count
     let width      = lineWidth(layout[0])
     let totalCells = width * height
 
-    @assert(totalCells <= MaxWarehouseCells)
+    Swag.assert(totalCells <= MaxWarehouseCells)
 
     var cells:  [MaxWarehouseCells] u8
     var robotX: s32
@@ -65,12 +65,12 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
 
     for ?, rowIndex in layout
     {
-        @assert(lineWidth(layout[rowIndex]) == width)
+        Swag.assert(lineWidth(layout[rowIndex]) == width)
 
         let row = cast(const [..] u8) layout[rowIndex]
         for width
         {
-            let x     = cast(u32) @index
+            let x     = cast(u32) Swag.index
             let src   = row[x]
             let index = cellIndex(x, cast(u32) rowIndex, width)
 
@@ -111,7 +111,7 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
             continue
         }
 
-        @assert(nextCell == 'O'u8)
+        Swag.assert(nextCell == 'O'u8)
 
         var scanX     = nextX
         var scanY     = nextY
@@ -147,10 +147,10 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
 
     for totalCells
     {
-        if cells[@index] == 'O'u8
+        if cells[Swag.index] == 'O'u8
         {
-            let x = cast(u64) (@index % width)
-            let y = cast(u64) (@index / width)
+            let x = cast(u64) (Swag.index % width)
+            let y = cast(u64) (Swag.index / width)
             result.gpsSum += y * 100'u64 + x
         }
     }
@@ -174,13 +174,13 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
 
     let sampleReport = simulateWarehouse(sampleLayout, "<^^>>>vv<v>>v<<")
 
-    @assert(sampleReport.successfulPushes == 6'u32)
-    @assert(sampleReport.gpsSum == 2028'u64)
+    Swag.assert(sampleReport.successfulPushes == 6'u32)
+    Swag.assert(sampleReport.gpsSum == 2028'u64)
 
     let secondReport = simulateWarehouse(sampleLayout, ">v>v<<^>>vv<^")
 
-    @assert(secondReport.successfulPushes == 4'u32)
-    @assert(secondReport.gpsSum == 1825'u64)
+    Swag.assert(secondReport.successfulPushes == 4'u32)
+    Swag.assert(secondReport.gpsSum == 1825'u64)
 
     const compactLayout: [6] string =
         [
@@ -194,6 +194,6 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
 
     let compactReport = simulateWarehouse(compactLayout, ">>>v<<")
 
-    @assert(compactReport.successfulPushes == 2'u32)
-    @assert(compactReport.gpsSum == 512'u64)
+    Swag.assert(compactReport.successfulPushes == 2'u32)
+    Swag.assert(compactReport.gpsSum == 512'u64)
 }

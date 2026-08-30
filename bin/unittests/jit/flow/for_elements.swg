@@ -227,7 +227,7 @@ enum ForeachIndexedSlot: u8
 
         for v, i in values
         {
-            let p = cast(*s32) @dataof(v)
+            let p = cast(*s32) v.buffer
             acc += p[] + cast(s32) i
         }
 
@@ -307,23 +307,23 @@ enum ForeachIndexedSlot: u8
 
         for v, i in values
         {
-            if @kindof(v) == s32
+            if Swag.kindOf(v) == s32
             {
-                let p = cast(*s32) @dataof(v)
+                let p = cast(*s32) v.buffer
                 acc += p[] * cast(s32) (i + 1)
                 continue
             }
 
-            if @kindof(v) == bool
+            if Swag.kindOf(v) == bool
             {
-                let p = cast(*bool) @dataof(v)
+                let p = cast(*bool) v.buffer
                 acc += cast(s32) p[] * 10
                 continue
             }
 
-            if @kindof(v) == rune
+            if Swag.kindOf(v) == rune
             {
-                let p = cast(*rune) @dataof(v)
+                let p = cast(*rune) v.buffer
                 acc += cast(s32) p[]
             }
         }
@@ -398,7 +398,7 @@ enum ForeachIndexedSlot: u8
         {
             #assert(#typeof(value) == s32)
             #assert(#typeof(slot) == ForeachIndexedSlot)
-            @assert(value == values[slot])
+            Swag.assert(value == values[slot])
             byValue += value
         }
 

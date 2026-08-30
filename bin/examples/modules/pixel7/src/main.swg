@@ -133,7 +133,7 @@ func paletteVariant(source: Image, withAlpha: bool)->Image
 func nonNullBytes(bytes: #null [..] u8)->const [..] u8
 {
     Debug.assert(bytes != null)
-    return @mkslice(cast([*] u8) @dataof(bytes)!, @countof(bytes))
+    return Swag.makeSlice(cast([*] u8) bytes.buffer!, bytes.count)
 }
 
 func setCard(card: *DecoderCard, title, encoding: string, image: Image, encodedSize: u64)
@@ -150,7 +150,7 @@ func encodeCard(card: *DecoderCard, fileName, title, encoding: string, source: I
 
     let bytes   = nonNullBytes(encoded.toSlice())
     let decoded = Image.decode(fileName, bytes)
-    setCard(card, title, encoding, decoded, @countof(bytes))
+    setCard(card, title, encoding, decoded, bytes.count)
 }
 
 func buildPages() fail

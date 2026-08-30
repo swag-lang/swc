@@ -18,12 +18,12 @@ impl ReturnVisits
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32))
         where !ptr
     {
-        if !@countof(.values) do
+        if !(.values).count do
             return
 
-        var remain = @countof(.values)
+        var remain = (.values).count
         #scope(Up)
-        for idx in @countof(.values)
+        for idx in (.values).count
         {
             #scope(Down)
             {
@@ -80,7 +80,7 @@ func indexOfValue(target: s32)->s32
     for value in values
     {
         if value == target do
-            return cast(s32) @index
+            return cast(s32) Swag.index
     }
     return -1
 }
@@ -112,17 +112,17 @@ func findValueAuto(target: s32)->bool
 {
     let data = [2, 3, 4, 5, 6]
 
-    @assert(findFirstEven(data) == 2)
-    @assert(findFirstEven([1, 3, 5]) == -1)
-    @assert(sumAll(data) == 20)
+    Swag.assert(findFirstEven(data) == 2)
+    Swag.assert(findFirstEven([1, 3, 5]) == -1)
+    Swag.assert(sumAll(data) == 20)
 
-    @assert(findValue(6))
-    @assert(findValue(4))
-    @assert(!findValue(99))
-    @assert(indexOfValue(5) == 1)
-    @assert(indexOfValue(99) == -1)
+    Swag.assert(findValue(6))
+    Swag.assert(findValue(4))
+    Swag.assert(!findValue(99))
+    Swag.assert(indexOfValue(5) == 1)
+    Swag.assert(indexOfValue(99) == -1)
 
-    @assert(findFirstEvenAuto(data) == 2)
-    @assert(findValueAuto(6))
-    @assert(!findValueAuto(99))
+    Swag.assert(findFirstEvenAuto(data) == 2)
+    Swag.assert(findValueAuto(6))
+    Swag.assert(!findValueAuto(99))
 }

@@ -58,7 +58,7 @@ is the layout it does not read yet.
   through the frame; post-RA loop hoisting treated a store through a program pointer as able to
   alias the frame, which it cannot when no address into the frame exists; the frame register is
   no longer set up in a function that names none and whose stack shape the unwind codes already
-  describe; and `@bitcountlz`/`@bitcounttz` no longer branch. See
+  describe; and `Swag.bitCountLz`/`Swag.bitCountTz` no longer branch. See
   [F-193](optimization.md#f-193--a-simd-routine-keeps-its-strides-and-counts-in-the-frame)
   for what the same dumps say is left.
 - Do not repeat this measurement of the call cost: marking `CabacReader.decision` `#[Swag.Inline]`

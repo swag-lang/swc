@@ -38,14 +38,22 @@ namespace
 
     SymbolFunction& registerFunctionSymbol(Sema& sema, const AstFunctionDecl& node)
     {
+        IdentifierRef forcedIdentRef = IdentifierRef::invalid();
+        if (node.intrinsicId != TokenId::Invalid)
+        {
+            Utf8 intrinsicName = "Swag.";
+            intrinsicName += Token::intrinsicName(node.intrinsicId);
+            forcedIdentRef = sema.idMgr().addIdentifierOwned(intrinsicName);
+        }
+
         if (!sema.curScope().isLocal())
-            return SemaHelpers::registerSymbol<SymbolFunction>(sema, node, node.tokNameRef);
+            return SemaHelpers::registerSymbol<SymbolFunction>(sema, node, node.tokNameRef, forcedIdentRef);
 
         const auto savedFrame = sema.frame();
         auto&      frame      = sema.frame();
         frame.setLookupScope(nullptr);
         frame.setLookupScopeOverrideNodes(nullptr);
-        auto& sym    = SemaHelpers::registerSymbol<SymbolFunction>(sema, node, node.tokNameRef);
+        auto& sym    = SemaHelpers::registerSymbol<SymbolFunction>(sema, node, node.tokNameRef, forcedIdentRef);
         sema.frame() = savedFrame;
         return sym;
     }

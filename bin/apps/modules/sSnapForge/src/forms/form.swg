@@ -110,8 +110,8 @@ impl BaseForm
         if quickMode do
             return QuickPaintOverdraw
 
-        let base   = cast(*BaseForm) @dataof(itf)
-        let type   = @kindof(itf)
+        let base   = cast(*BaseForm) itf.buffer
+        let type   = Swag.kindOf(itf)
         var extent = base.borderSize * 1.5
         if type == FormLine or type == FormArrow
         {
@@ -229,7 +229,7 @@ impl BaseForm
     {
         // The form paints into an un-rotated buffer (rotation is applied around the
         // center at draw time), so un-rotate the test point to match.
-        let base = cast(*BaseForm) @dataof(itf)
+        let base = cast(*BaseForm) itf.buffer
         var pos  = Math.Vector2{pt.x, pt.y}
         if base.subKind != .Highlight and base.subKind != .PixSel and !Math.isZeroEpsilon(base.rotate)
         {

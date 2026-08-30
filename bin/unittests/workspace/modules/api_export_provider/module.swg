@@ -1,7 +1,7 @@
 
 #run
 {
-    let cfg = @compiler.getBuildCfg()!
+    let cfg = Swag.compiler().getBuildCfg()!
     cfg.moduleNamespace = "ExportApi"
     cfg.backendKind     = .Export
 }

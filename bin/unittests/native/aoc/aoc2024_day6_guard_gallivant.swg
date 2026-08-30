@@ -70,7 +70,7 @@ func cellIndex(x, y, width: u32)->u32
 func allocBytes(size: u32)->[*] u8
 {
     let ptr = cast(#null [*] u8) testAlloc(cast(u64) size)
-    @assert(ptr != null)
+    Swag.assert(ptr != null)
     return ptr!
 }
 
@@ -78,7 +78,7 @@ func zeroBytes(ptr: [*] u8, count: u32)
 {
     for count
     {
-        ptr[cast(u32) @index] = 0'u8
+        ptr[cast(u32) Swag.index] = 0'u8
     }
 }
 
@@ -99,7 +99,7 @@ func initIndexBuffer(initialCapacity: u32)->IndexBuffer
     var result: IndexBuffer
     result.capacity = initialCapacity
     result.data     = cast(#null [*] u32) testAlloc(cast(u64) initialCapacity * cast(u64) #sizeof(u32))
-    @assert(result.data != null)
+    Swag.assert(result.data != null)
     return result
 }
 
@@ -111,7 +111,7 @@ func appendIndex(buffer: IndexBuffer, value: u32)->IndexBuffer
     {
         let newCapacity = result.capacity * 2'u32
         result.data = cast(#null [*] u32) testRealloc(result.data, cast(u64) newCapacity * cast(u64) #sizeof(u32))
-        @assert(result.data != null)
+        Swag.assert(result.data != null)
         result.capacity  = newCapacity
         result.growCount += 1'u32
     }
@@ -171,21 +171,21 @@ func parseGrid(outGrid: *GridMap, text: string)
     let bytes = cast(const [..] u8) text
 
     var width: u32
-    while width < @countof(bytes) and !isLineBreak(bytes[width])
+    while width < bytes.count and !isLineBreak(bytes[width])
     {
         width += 1
     }
 
     var height:    u32
     var lineWidth: u32
-    for @countof(bytes)
+    for bytes.count
     {
-        let ch = bytes[@index]
+        let ch = bytes[Swag.index]
         if isLineBreak(ch)
         {
             if lineWidth != 0
             {
-                @assert(lineWidth == width)
+                Swag.assert(lineWidth == width)
                 height    += 1'u32
                 lineWidth = 0
             }
@@ -198,7 +198,7 @@ func parseGrid(outGrid: *GridMap, text: string)
 
     if lineWidth != 0
     {
-        @assert(lineWidth == width)
+        Swag.assert(lineWidth == width)
         height += 1'u32
     }
 
@@ -209,9 +209,9 @@ func parseGrid(outGrid: *GridMap, text: string)
 
     var x: u32
     var y: u32
-    for @countof(bytes)
+    for bytes.count
     {
-        let ch = bytes[@index]
+        let ch = bytes[Swag.index]
         if isLineBreak(ch) do
             continue
 
@@ -263,7 +263,7 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
     while true
     {
         let stateIndex = cellIndex(cast(u32) x, cast(u32) y, grid.width) * 4'u32 + cast(u32) dir
-        @assert(seenStates[stateIndex] == 0'u8)
+        Swag.assert(seenStates[stateIndex] == 0'u8)
         seenStates[stateIndex] = 1'u8
 
         var dx, dy: s32
@@ -345,7 +345,7 @@ func countLoopObstacles(grid: GridMap, trace: IndexBuffer)->u32
 
     for trace.count
     {
-        let obstacleIndex = data[cast(u32) @index]
+        let obstacleIndex = data[cast(u32) Swag.index]
         if obstacleIndex == startIndex do
             continue
 
@@ -379,18 +379,18 @@ func auditPatrol(text: string)->PatrolReport
 {
     let sample = auditPatrol(SampleInput)
 
-    @assert(sample.visitedCount == 41'u32)
-    @assert(sample.loopObstacleCount == 6'u32)
-    @assert(sample.traceCapacity == 64'u32)
-    @assert(sample.reallocCount == 5'u32)
+    Swag.assert(sample.visitedCount == 41'u32)
+    Swag.assert(sample.loopObstacleCount == 6'u32)
+    Swag.assert(sample.traceCapacity == 64'u32)
+    Swag.assert(sample.reallocCount == 5'u32)
 }
 
 #test
 {
     let coverage = auditPatrol(CoverageInput)
 
-    @assert(coverage.visitedCount == 3'u32)
-    @assert(coverage.loopObstacleCount == 0'u32)
-    @assert(coverage.traceCapacity == 4'u32)
-    @assert(coverage.reallocCount == 1'u32)
+    Swag.assert(coverage.visitedCount == 3'u32)
+    Swag.assert(coverage.loopObstacleCount == 0'u32)
+    Swag.assert(coverage.traceCapacity == 4'u32)
+    Swag.assert(coverage.reallocCount == 1'u32)
 }

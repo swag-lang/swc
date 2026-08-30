@@ -186,11 +186,11 @@ func day6B()
             continue
 
         var arr1 = arr0
-        arr1[@index] = '#'
+        arr1[Swag.index] = '#'
 
         if test(&arr1, sx, sy, false) do
             total += 1
     }
 
-    @assert(total == 1836)
+    Swag.assert(total == 1836)
 }

@@ -78,7 +78,7 @@ func day3A0()
             total += 1
 
     // Console.print("total: ", total)
-    @assert(total == 100261)
+    Swag.assert(total == 100261)
 }
 
 /////////////////////////////////////////////////////////////////
@@ -106,5 +106,5 @@ func day3A1()
             total += 1
 
     // Console.print("total: ", total)
-    @assert(total == 100261)
+    Swag.assert(total == 100261)
 }

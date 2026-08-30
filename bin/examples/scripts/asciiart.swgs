@@ -77,8 +77,8 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             for y in g_Img.height
             {
                 let col = g_Img.pixelColor(x, y)
-                let idx = Math.map(cast(f32) col.r, 0, 255, 0, cast(f32) @countof(GrayRamp))
-                let v   = @mkstring(@dataof(GrayRamp) + cast(s32) idx, 1)
+                let idx = Math.map(cast(f32) col.r, 0, 255, 0, cast(f32) GrayRamp.count)
+                let v   = Swag.makeString(GrayRamp.buffer + cast(s32) idx, 1)
                 painter.drawString(x * size, y * size, v, g_Font, Argb.White)
             }
         }

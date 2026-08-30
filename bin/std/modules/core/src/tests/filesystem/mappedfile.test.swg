@@ -3,11 +3,11 @@
 
 func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
 {
-    if @countof(actual) != @countof(expected) do
+    if actual.count != expected.count do
         return false
     for actual
     {
-        if actual[@index] != expected[@index] do
+        if actual[Swag.index] != expected[Swag.index] do
             return false
     }
 
@@ -21,11 +21,11 @@ func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
 
     var source: [96 * 1024] u8
     for &value in source do
-        value[] = cast(u8) (@index % 251)
+        value[] = cast(u8) (Swag.index % 251)
     discard expect File.writeAllBytes(fileName, source)
 
     var mapped = expect File.MappedFile.open(fileName, .ReadWrite)
-    @assert(expect mapped.size() == @countof(source))
+    Swag.assert(expect mapped.size() == source.count)
 
     // The offset deliberately crosses the host allocation-granularity boundary so the public
     // slice starts after the internally aligned native view.
@@ -36,13 +36,13 @@ func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
 
     // A region owns the handles required by flush and remains usable after its source closes.
     mapped.close()
-    @assert(region.bytes()[0] == 0xA1)
+    Swag.assert(region.bytes()[0] == 0xA1)
     expect region.flush()
     region.close()
 
     let persisted = expect File.readAllBytes(fileName)
-    @assert(persisted[64 * 1024 - 7] == 0xA1)
-    @assert(persisted[64 * 1024 - 7 + 31] == 0xB2)
+    Swag.assert(persisted[64 * 1024 - 7] == 0xA1)
+    Swag.assert(persisted[64 * 1024 - 7 + 31] == 0xB2)
 }
 
 #test
@@ -57,12 +57,12 @@ func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
     var region = expect mapped.mapAll()
     region.writableBytes()[3] = 99
     expect region.flush()
-    @assert(region.bytes()[3] == 99)
+    Swag.assert(region.bytes()[3] == 99)
     region.close()
     mapped.close()
 
     let persisted = expect File.readAllBytes(fileName)
-    @assert(mappedBytesEqual(persisted.toSlice(), original))
+    Swag.assert(mappedBytesEqual(persisted.toSlice(), original))
 }
 
 #test
@@ -74,21 +74,21 @@ func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
 
     var mapped = expect File.MappedFile.open(fileName, .ReadWrite)
     var empty  = expect mapped.map(0, 0)
-    @assert(empty.isOpen())
-    @assert(@countof(empty.bytes()) == 0)
+    Swag.assert(empty.isOpen())
+    Swag.assert((empty.bytes()).count == 0)
     empty.close()
-    @assert(!empty.isOpen())
+    Swag.assert(!empty.isOpen())
 
     expect mapped.resize(8192)
-    @assert(expect mapped.size() == 8192)
+    Swag.assert(expect mapped.size() == 8192)
     discard catch mapped.map(8190, 4) as rangeError
-    @assert(rangeError != null)
+    Swag.assert(rangeError != null)
 
     var region = expect mapped.map(4096, 4096)
     region.writableBytes()[0] = 42
     region.close()
     expect mapped.resize(16 * 1024)
-    @assert(expect mapped.size() == 16 * 1024)
+    Swag.assert(expect mapped.size() == 16 * 1024)
 }
 
 // Releasing the pages behind a walk is an accounting hint: the bytes read back unchanged, and
@@ -100,18 +100,18 @@ func mappedBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
 
     var source: [96 * 1024] u8
     for &value in source do
-        value[] = cast(u8) (@index % 239)
+        value[] = cast(u8) (Swag.index % 239)
     discard expect File.writeAllBytes(fileName, source)
 
     var mapped = expect File.MappedFile.open(fileName)
     var region = expect mapped.mapAll()
     let bytes  = region.bytes()
-    @assert(mappedBytesEqual(bytes, source))
+    Swag.assert(mappedBytesEqual(bytes, source))
 
     File.MappedRegion.releasePages(bytes[0 until 0])
     File.MappedRegion.releasePages(bytes[1000 until 5000])
     File.MappedRegion.releasePages(bytes)
-    @assert(mappedBytesEqual(bytes, source))
+    Swag.assert(mappedBytesEqual(bytes, source))
 
     region.close()
     mapped.close()

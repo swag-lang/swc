@@ -101,10 +101,10 @@ struct GeneratedEmpty {}
     let b = GeneratedPair{x: 1, y: 2}
     let c = GeneratedPair{x: 1, y: 3}
 
-    @assert(a == b)
-    @assert(a != c)
-    @assert((a <=> c) < 0)
-    @assert(c > a)
+    Swag.assert(a == b)
+    Swag.assert(a != c)
+    Swag.assert((a <=> c) < 0)
+    Swag.assert(c > a)
 }
 
 #test
@@ -113,8 +113,8 @@ struct GeneratedEmpty {}
     let b = GeneratedOuter{pair: GeneratedPair{x: 1, y: 2}, tag: 10}
     let c = GeneratedOuter{pair: GeneratedPair{x: 1, y: 2}, tag: 11}
 
-    @assert(a == b)
-    @assert(a < c)
+    Swag.assert(a == b)
+    Swag.assert(a < c)
 }
 
 #test
@@ -123,9 +123,9 @@ struct GeneratedEmpty {}
     let b = GeneratedGenericBox's32{value: 3}
     let c = GeneratedGenericBox's32{value: 4}
 
-    @assert(a == b)
-    @assert(a != c)
-    @assert(a < c)
+    Swag.assert(a == b)
+    Swag.assert(a != c)
+    Swag.assert(a < c)
 }
 
 #test
@@ -134,8 +134,8 @@ struct GeneratedEmpty {}
     let b = GeneratedGenericBox'GeneratedPair{value: GeneratedPair{x: 1, y: 2}}
     let c = GeneratedGenericBox'GeneratedPair{value: GeneratedPair{x: 2, y: 1}}
 
-    @assert(a == b)
-    @assert(a < c)
+    Swag.assert(a == b)
+    Swag.assert(a < c)
 }
 
 #test
@@ -144,8 +144,8 @@ struct GeneratedEmpty {}
     let b = GeneratedGenericPair's32{left: 1, right: 2}
     let c = GeneratedGenericPair's32{left: 1, right: 3}
 
-    @assert(a == b)
-    @assert(a < c)
+    Swag.assert(a == b)
+    Swag.assert(a < c)
 }
 
 #test
@@ -154,8 +154,8 @@ struct GeneratedEmpty {}
     let b = GeneratedEqualsIgnoresUserCompare{value: 7}
     let c = GeneratedEqualsIgnoresUserCompare{value: 9}
 
-    @assert(a == b)
-    @assert(a != c)
+    Swag.assert(a == b)
+    Swag.assert(a != c)
 }
 
 #test
@@ -163,8 +163,8 @@ struct GeneratedEmpty {}
     let a = GeneratedCompareOnly{value: 1}
     let b = GeneratedCompareOnly{value: 2}
 
-    @assert(a < b)
-    @assert((b <=> a) > 0)
+    Swag.assert(a < b)
+    Swag.assert((b <=> a) > 0)
 }
 
 #test
@@ -173,8 +173,8 @@ struct GeneratedEmpty {}
     let b = GeneratedEqualityOnlyField{field: EqualityOnlyField{value: 4}}
     let c = GeneratedEqualityOnlyField{field: EqualityOnlyField{value: 5}}
 
-    @assert(a == b)
-    @assert(a != c)
+    Swag.assert(a == b)
+    Swag.assert(a != c)
 }
 
 #test
@@ -183,9 +183,9 @@ struct GeneratedEmpty {}
     let b = GeneratedIgnoredField{key: 1, cache: NonComparableField{value: 20}}
     let c = GeneratedIgnoredField{key: 2, cache: NonComparableField{value: 10}}
 
-    @assert(a == b)
-    @assert((a <=> b) == 0)
-    @assert(a < c)
+    Swag.assert(a == b)
+    Swag.assert((a <=> b) == 0)
+    Swag.assert(a < c)
 }
 
 #test
@@ -194,9 +194,9 @@ struct GeneratedEmpty {}
     let b = GeneratedGenericIgnoredField's32{key: 1, cache: NonComparableField{value: 20}}
     let c = GeneratedGenericIgnoredField's32{key: 2, cache: NonComparableField{value: 10}}
 
-    @assert(a == b)
-    @assert((a <=> b) == 0)
-    @assert(a < c)
+    Swag.assert(a == b)
+    Swag.assert((a <=> b) == 0)
+    Swag.assert(a < c)
 }
 
 #test
@@ -204,8 +204,8 @@ struct GeneratedEmpty {}
     let a = GeneratedOnlyIgnoredFields{cache: NonComparableField{value: 10}}
     let b = GeneratedOnlyIgnoredFields{cache: NonComparableField{value: 20}}
 
-    @assert(a == b)
-    @assert((a <=> b) == 0)
+    Swag.assert(a == b)
+    Swag.assert((a <=> b) == 0)
 }
 
 #test
@@ -213,6 +213,6 @@ struct GeneratedEmpty {}
     let a = GeneratedEmpty{}
     let b = GeneratedEmpty{}
 
-    @assert(a == b)
-    @assert((a <=> b) == 0)
+    Swag.assert(a == b)
+    Swag.assert((a <=> b) == 0)
 }

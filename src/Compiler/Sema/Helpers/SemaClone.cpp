@@ -881,7 +881,7 @@ namespace
         // the recursion above copied the callee's whole overload set / first overload. Override
         // the cloned callee with the function the call actually resolved to, so the preserved
         // body doesn't re-run (and mis-pick) overload selection in a foreign scope. Overloaded
-        // intrinsics (@min, @vecwidenlo, ...) resolve through the same declaration matching, so
+        // intrinsics (Swag.min, Swag.vecwidenlo, ...) resolve through the same declaration matching, so
         // their calls need the same override.
         const AstNode& sourceNode   = sema.node(sourceRef);
         const AstNode& clonedNode   = sema.node(clonedRef);
@@ -1134,14 +1134,15 @@ namespace
         auto [nodeRef, nodePtr]      = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
         nodePtr->flags()             = node.flags();
         nodePtr->setCodeRef(node.codeRef());
-        // An intrinsic name (@min, @vecsplat, ...) resolves by name in every scope and picks its
+        // An intrinsic name (Swag.min, Swag.vecsplat, ...) resolves by name in every scope and picks its
         // overload from the call's argument types, and its identifier only ever stores the first
         // overload of the set. Carrying that symbol pins a cloned call on the wrong overload when
         // the source call was folded to a constant and so kept no selected function of its own
-        // to override the pin with (an auto-inlined `v + @vecsplat(1'u32)` came back as sixteen
+        // to override the pin with (an auto-inlined `v + Swag.vecsplat(1'u32)` came back as sixteen
         // bytes). Leave the name to re-resolve; the call pins its selected function afterwards
         // whenever the source kept one.
-        const bool intrinsicName               = nodeTokInRange && Token::isIntrinsic(sema.token(node.codeRef()).id);
+        const auto* intrinsicFunction          = storedView && storedView->sym ? storedView->sym->safeCast<SymbolFunction>() : nullptr;
+        const bool intrinsicName               = intrinsicFunction && intrinsicFunction->intrinsicId() != TokenId::Invalid;
         const bool sourceSymbolOwnedByFunction = storedView &&
                                                  storedView->sym &&
                                                  storedView->sym->ownerSymMap() &&
@@ -1882,6 +1883,7 @@ AstNodeRef AstCompilerCall::semaClone(Sema& sema, const CloneContext& cloneConte
 AstNodeRef AstIntrinsicCall::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::IntrinsicCall>(tokRef());
+    newPtr->intrinsicId     = intrinsicId;
     newPtr->spanChildrenRef = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
@@ -1948,7 +1950,9 @@ AstNodeRef AstAliasDecl::semaClone(Sema& sema, const CloneContext& cloneContext)
 AstNodeRef AstIntrinsicValue::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     SWC_UNUSED(cloneContext);
-    return sema.ast().makeNode<AstNodeId::IntrinsicValue>(tokRef()).first;
+    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::IntrinsicValue>(tokRef());
+    newPtr->intrinsicId   = intrinsicId;
+    return newRef;
 }
 
 AstNodeRef AstParenExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -2151,10 +2155,11 @@ AstNodeRef AstIntrinsicCallExpr::semaClone(Sema& sema, const CloneContext& clone
 {
     const auto& inlineContext = cloneContextAsInline(cloneContext);
     auto [newRef, newPtr]     = sema.ast().makeNode<AstNodeId::IntrinsicCallExpr>(tokRef());
+    newPtr->intrinsicId       = intrinsicId;
     newPtr->flags()           = flags();
     newPtr->nodeExprRef       = SemaClone::cloneAst(sema, nodeExprRef, inlineContext);
     newPtr->spanChildrenRef   = cloneSpan(sema, spanChildrenRef, inlineContext);
-    // Type-overloaded intrinsics (@min/@max/...) pick a per-type overload by argument types. When
+    // Type-overloaded intrinsics (Swag.min/Swag.max/...) pick a per-type overload by argument types. When
     // the body is inlined, typed parameters become the (possibly untyped-literal) call arguments,
     // so re-selection in the destination can land on a different overload. Pin the overload the
     // intrinsic actually resolved to, mirroring the regular-call path.
@@ -2205,6 +2210,7 @@ AstNodeRef AstMemberAccessExpr::semaClone(Sema& sema, const CloneContext& cloneC
     newPtr->flags()      = flags();
     newPtr->nodeLeftRef  = SemaClone::cloneAst(sema, nodeLeftRef, cloneContextAsInline(cloneContext));
     newPtr->nodeRightRef = cloneNodeRefWithoutBindings(sema, nodeRightRef, cloneContextAsInline(cloneContext));
+    newPtr->projectionId = projectionId;
     return newRef;
 }
 

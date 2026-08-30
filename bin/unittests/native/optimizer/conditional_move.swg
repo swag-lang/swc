@@ -50,28 +50,28 @@ func absDiffSum(a, b: [*] s32, n: u64)->s64
 
 #test
 {
-    @assert(selectMin(3, 5) == 3)
-    @assert(selectMin(5, 3) == 3)
-    @assert(selectMin(-7, 7) == -7)
-    @assert(selectMaxU64(3, 5) == 5)
-    @assert(selectMaxU64(0xFFFF_FFFF_FFFF_FFFF, 5) == 0xFFFF_FFFF_FFFF_FFFF)
-    @assert(selectConstant(true) == 7)
-    @assert(selectConstant(false) == 9)
-    @assert(clampByte(-5) == 0)
-    @assert(clampByte(300) == 255)
-    @assert(clampByte(77) == 77)
+    Swag.assert(selectMin(3, 5) == 3)
+    Swag.assert(selectMin(5, 3) == 3)
+    Swag.assert(selectMin(-7, 7) == -7)
+    Swag.assert(selectMaxU64(3, 5) == 5)
+    Swag.assert(selectMaxU64(0xFFFF_FFFF_FFFF_FFFF, 5) == 0xFFFF_FFFF_FFFF_FFFF)
+    Swag.assert(selectConstant(true) == 7)
+    Swag.assert(selectConstant(false) == 9)
+    Swag.assert(clampByte(-5) == 0)
+    Swag.assert(clampByte(300) == 255)
+    Swag.assert(clampByte(77) == 77)
     var cells: [2] s32 = [42, 43]
-    @assert(selectGuardedLoad(&cells[0], 1, 2) == 43)
-    @assert(selectGuardedLoad(&cells[0], 0x7FFF_FFFF_FFFF, 2) == -1)
-    @assert(selectWithArithmetic(1, 2) == 2)
-    @assert(selectWithArithmetic(5, 2) == 4)
+    Swag.assert(selectGuardedLoad(&cells[0], 1, 2) == 43)
+    Swag.assert(selectGuardedLoad(&cells[0], 0x7FFF_FFFF_FFFF, 2) == -1)
+    Swag.assert(selectWithArithmetic(1, 2) == 2)
+    Swag.assert(selectWithArithmetic(5, 2) == 4)
 
     var src: [4] s32 = [-5, 10, 300, 255]
     var dst: [4] u8
     clampLoop(&dst[0], &src[0], 4)
-    @assert(dst[0] == 0 and dst[1] == 10 and dst[2] == 255 and dst[3] == 255)
+    Swag.assert(dst[0] == 0 and dst[1] == 10 and dst[2] == 255 and dst[3] == 255)
 
     var a: [4] s32 = [1, 9, -3, 4]
     var b: [4] s32 = [4, 2, 3, 4]
-    @assert(absDiffSum(&a[0], &b[0], 4) == 3 + 7 + 6 + 0)
+    Swag.assert(absDiffSum(&a[0], &b[0], 4) == 3 + 7 + 6 + 0)
 }

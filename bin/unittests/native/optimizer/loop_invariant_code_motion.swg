@@ -91,24 +91,24 @@ func reduceFields(n: s32, p: *FieldParams)->s64
         GTab[i] = i * 3
 
     // n*base + n*(n-1)/2 with base = 5*1000+7 = 5007
-    @assert(sumInvariantArith(100, 5) == 100 * 5007 + (100 * 99) / 2)
-    @assert(sumInvariantArith(1, 5) == 5007)
+    Swag.assert(sumInvariantArith(100, 5) == 100 * 5007 + (100 * 99) / 2)
+    Swag.assert(sumInvariantArith(1, 5) == 5007)
 
     // n * GTab[idx]; GTab[10] = 30
-    @assert(sumGlobalLoad(50, 10) == 50 * 30)
+    Swag.assert(sumGlobalLoad(50, 10) == 50 * 30)
 
     // sum over y<h, x<w of (y*10 + x)
     var expectNested = 0
     for y in 0 until 8 do
         for x in 0 until 5 do
             expectNested += y * 10 + x
-    @assert(nestedInvariant(8, 5) == expectNested)
+    Swag.assert(nestedInvariant(8, 5) == expectNested)
 
     // 1+2+...+n
-    @assert(aliasStoreLoad(10) == (10 * 11) / 2)
+    Swag.assert(aliasStoreLoad(10) == (10 * 11) / 2)
 
     // GTab[7]=21, executed on even i (0,2,4): 3 times for n=6
-    @assert(guardedLoad(6, 7) == 3 * 21)
+    Swag.assert(guardedLoad(6, 7) == 3 * 21)
 
     // sum_{i<n} (i*a + b - c) = a*n*(n-1)/2 + (b-c)*n, with a=4,b=100,c=10,n=20
     var fp: FieldParams
@@ -116,5 +116,5 @@ func reduceFields(n: s32, p: *FieldParams)->s64
     var expectReduce: s64 = 0
     for i in 0 until 20 do
         expectReduce += cast(s64) i * 4 + 100 - 10
-    @assert(reduceFields(20, &fp) == expectReduce)
+    Swag.assert(reduceFields(20, &fp) == expectReduce)
 }

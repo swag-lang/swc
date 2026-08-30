@@ -103,7 +103,7 @@ func dateToTicks(year, month, day: u16)->Ticks
     Debug.assert(1 <= month and month <= 12)
     Debug.assert(1 <= day and day <= daysInMonth(year, month))
 
-    let days = isLeapYear(year) ? @dataof(DaysToMonth366) : @dataof(DaysToMonth365)
+    let days = isLeapYear(year) ? DaysToMonth366.buffer : DaysToMonth365.buffer
     let y    = cast(u64) (year - 1)
     let n    = y * 365 + #wrap y / 4 + #wrap y / 400 + #wrap days[month - 1] + #wrap day - 1 - #wrap y / 100
     return n * TicksPerDay
@@ -151,7 +151,7 @@ func ticksToDate(ticks: Ticks)->{ year: u16, month: u16, day: u16 }
     // Leap year calculation looks different from IsLeapYear since y1, y4,
     // and y100 are relative to year 1, not year 0
     let leapYear = y1 == 3 and (y4 != 24 or y100 == 3)
-    let days     = leapYear ? @dataof(DaysToMonth366) : @dataof(DaysToMonth365)
+    let days     = leapYear ? DaysToMonth366.buffer : DaysToMonth365.buffer
 
     // All months have less than 32 days, so n >> 5 is a good conservative
     // estimate for the month

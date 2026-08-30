@@ -33,7 +33,7 @@ func priceDigit(secret: u32)->s32
 
 func encodeChange(change: s32)->u32
 {
-    @assert(change >= -9 and change <= 9)
+    Swag.assert(change >= -9 and change <= 9)
     return cast(u32) (change + 9)
 }
 
@@ -52,8 +52,8 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
 
     for SequenceCount
     {
-        SequenceTotals[@index]    = 0
-        SequenceSeenStamp[@index] = 0
+        SequenceTotals[Swag.index]    = 0
+        SequenceSeenStamp[Swag.index] = 0
     }
 
     for initialSecret, buyerIndex in initialSecrets
@@ -65,7 +65,7 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
 
         for ForecastRounds
         {
-            let roundIndex = cast(u32) @index
+            let roundIndex = cast(u32) Swag.index
             secret = nextSecret(secret)
             let currentPrice = priceDigit(secret)
             changes[roundIndex] = currentPrice - lastPrice
@@ -101,14 +101,14 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
 {
     var secret = 123'u32
     secret = nextSecret(secret)
-    @assert(secret == 15_887_950'u32)
+    Swag.assert(secret == 15_887_950'u32)
 
     for 9
     {
         secret = nextSecret(secret)
     }
 
-    @assert(secret == 5_908_254'u32)
+    Swag.assert(secret == 5_908_254'u32)
 
     const samplePart1: [4] u32 = [1, 10, 100, 2024]
     const samplePart2: [4] u32 = [1, 2, 3, 2024]
@@ -116,6 +116,6 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
     let forecastPart1 = analyzeForecast(samplePart1)
     let forecastPart2 = analyzeForecast(samplePart2)
 
-    @assert(forecastPart1.sumAfterForecast == 37_327_623'u64)
-    @assert(forecastPart2.bestBananaTotal == 23)
+    Swag.assert(forecastPart1.sumAfterForecast == 37_327_623'u64)
+    Swag.assert(forecastPart2.bestBananaTotal == 23)
 }

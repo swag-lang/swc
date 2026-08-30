@@ -4,10 +4,10 @@ using Core
 
 private func mathIsSingleLetter(text: string)->bool
 {
-    if @countof(text) == 0 do
+    if text.count == 0 do
         return false
     let {c, eat} = Utf8.decodeRune(cast(const [..] u8) text)
-    return eat == @countof(text) and Unicode.isLetter(c)
+    return eat == text.count and Unicode.isLetter(c)
 }
 
 private func mathResolveFont(baseFont: *Font, variant: MathFontVariant, text: string)->*Font

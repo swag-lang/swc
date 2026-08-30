@@ -39,7 +39,7 @@ func intersect(ox, oy, oz, dx, dy, dz, tmin: f64)
         if disc < 0.0'f64 do
             continue
 
-        let sq = @sqrt(disc)
+        let sq = Swag.sqrt(disc)
         var t  = (-b - sq) * 0.5'f64
         if t < tmin do
             t = (-b + sq) * 0.5'f64
@@ -79,7 +79,7 @@ func trace(ox, oy, oz, dx, dy, dz: f64, depth: s32)
     var lx = LX - px
     var ly = LY - py
     var lz = LZ - pz
-    let ll = 1.0'f64 / @sqrt(lx * lx + ly * ly + lz * lz)
+    let ll = 1.0'f64 / Swag.sqrt(lx * lx + ly * ly + lz * lz)
     lx *= ll
     ly *= ll
     lz *= ll
@@ -130,7 +130,7 @@ func trace(ox, oy, oz, dx, dy, dz: f64, depth: s32)
             let dx = ((cast(f64) px + 0.5'f64) / cast(f64) W * 2.0'f64 - 1.0'f64) * aspect
             let dy = 1.0'f64 - (cast(f64) py + 0.5'f64) / cast(f64) H * 2.0'f64
             let dz = 1.0'f64
-            let il = 1.0'f64 / @sqrt(dx * dx + dy * dy + dz * dz)
+            let il = 1.0'f64 / Swag.sqrt(dx * dx + dy * dy + dz * dz)
             trace(0.0'f64, 0.0'f64, 0.0'f64, dx * il, dy * il, dz * il, 0)
 
             var ir = cast(s64)(g_OutR * 255.0'f64)

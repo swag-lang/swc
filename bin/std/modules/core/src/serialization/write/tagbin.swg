@@ -316,16 +316,16 @@ impl TagBin
             var compressBuffer: Array'u8
             catch .compressor.compress(&compressBuffer, bodyBytes) as err
 
-            if err != null or compressBuffer.count >= @countof(bodyBytes)
+            if err != null or compressBuffer.count >= bodyBytes.count
             {
                 // Equal sizes tell the reader the body is stored uncompressed.
-                header.addNative(cast(u64) @countof(bodyBytes))
-                header.addNative(cast(u64) @countof(bodyBytes))
+                header.addNative(cast(u64) bodyBytes.count)
+                header.addNative(cast(u64) bodyBytes.count)
                 header.addBytes(bodyBytes)
             }
             else
             {
-                header.addNative(cast(u64) @countof(bodyBytes))
+                header.addNative(cast(u64) bodyBytes.count)
                 header.addNative(compressBuffer.count)
                 header.addBytes(compressBuffer.toSlice())
             }
@@ -572,7 +572,7 @@ impl TagBin
                 if !data do
                     return true
                 let bufArr = cast(const *Array'u8) data
-                output.addBytes(@mkslice(bufArr.buffer, countElem * sizeof))
+                output.addBytes(Swag.makeSlice(bufArr.buffer, countElem * sizeof))
                 return true
             }
             else
@@ -591,7 +591,7 @@ impl TagBin
                 .writeVarint(countElem * sizeof)
                 if !data do
                     return true
-                output.addBytes(@mkslice(cast(const [*] u8) data, countElem * sizeof))
+                output.addBytes(Swag.makeSlice(cast(const [*] u8) data, countElem * sizeof))
                 return true
             }
             else
@@ -616,7 +616,7 @@ impl TagBin
         let output = .output!
         #static if Reflection.isString(NT)
         {
-            .writeVarint(@countof(value))
+            .writeVarint(value.count)
             output.addBytes(value)
         }
         else

@@ -12,7 +12,7 @@ private var g_PngFormat: UINT
 // Registers a named native clipboard format.
 func registerFormat(name: string)->ValueFormat fail
 {
-    return try RegisterClipboardFormatA(@dataof(name))
+    return try RegisterClipboardFormatA(name.buffer)
 }
 
 // Reports whether the clipboard contains `fmt`.
@@ -63,7 +63,7 @@ func addTypedData(fmt: ValueFormat, type: #null typeinfo, data: const [..] u8)
     if !OpenClipboard(GetDesktopWindow()) do
         return
     defer discard CloseClipboard()
-    let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, @countof(data) + #sizeof(u32) + #sizeof(u64))
+    let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, data.count + #sizeof(u32) + #sizeof(u64))
     let pz    = cast([*] u8) GlobalLock(hglob)!
     defer discard GlobalUnlock(pz)
 
@@ -74,11 +74,11 @@ func addTypedData(fmt: ValueFormat, type: #null typeinfo, data: const [..] u8)
 
     // Store data size
     var pzu = cast([*] u64) pzi
-    pzu[] = @countof(data)
+    pzu[] = data.count
     pzu   += 1
 
     // Store data
-    Memory.copy(pzu, @dataof(data), @countof(data))
+    Memory.copy(pzu, data.buffer, data.count)
     discard SetClipboardData(cast(UINT) fmt, hglob)
 }
 
@@ -113,7 +113,7 @@ func getTypedData(fmt: ValueFormat, type: #null typeinfo)->Array'u8
             let count = pzu[]
             pzu += 1
 
-            result.add(@mkslice(cast([*] u8) pzu, count))
+            result.add(Swag.makeSlice(cast([*] u8) pzu, count))
             return result
         }
     }
@@ -230,7 +230,7 @@ func getImage()->Image
             let size = GlobalSize(hglob)
             let pz   = cast([*] u8) GlobalLock(hglob)!
             defer discard GlobalUnlock(pz)
-            return catch Image.decode("clipboard.png", @mkslice(pz, size), {})
+            return catch Image.decode("clipboard.png", Swag.makeSlice(pz, size), {})
         }
     }
 
@@ -243,7 +243,7 @@ func getImage()->Image
             let size = GlobalSize(hglob)
             let pz   = cast([*] u8) GlobalLock(hglob)!
             defer discard GlobalUnlock(pz)
-            return catch Image.decode("clipboard.bmp", @mkslice(pz, size), {})
+            return catch Image.decode("clipboard.bmp", Swag.makeSlice(pz, size), {})
         }
     }
 
@@ -284,17 +284,17 @@ func addString(str: string)
 
     // Ansi/utf8
     {
-        let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, @countof(str) + 1)
+        let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, str.count + 1)
         let pz    = cast([*] u8) GlobalLock(hglob)!
-        Memory.copy(pz, @dataof(str), @countof(str))
-        pz[@countof(str)] = 0
+        Memory.copy(pz, str.buffer, str.count)
+        pz[str.count] = 0
         discard GlobalUnlock(pz)
         discard SetClipboardData(CF_TEXT, hglob)
     }
 
     // Utf16
     {
-        let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, @countof(str) * 2 + 2)
+        let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, str.count * 2 + 2)
         let pz    = cast([*] u16) GlobalLock(hglob)!
         let u     = Utf16.fromUtf8(str)
         Memory.copy(pz, u.buffer, u.count * 2)
@@ -327,7 +327,7 @@ func getString()->String
         if hglob
         {
             let pz = cast([*] u16) GlobalLock(hglob)!
-            result = Utf8.fromUtf16(@mkslice(pz, Utf16.lengthZeroTerminated(pz)))
+            result = Utf8.fromUtf16(Swag.makeSlice(pz, Utf16.lengthZeroTerminated(pz)))
             discard GlobalUnlock(pz)
             return result
         }
@@ -340,7 +340,7 @@ func getString()->String
         if hglob
         {
             let pz = cast([*] u8) GlobalLock(hglob)!
-            result = @mkstring(pz, @countof(cast(cstring) pz))
+            result = Swag.makeString(pz, (cast(cstring) pz).count)
             discard GlobalUnlock(pz)
             return result
         }
@@ -366,5 +366,5 @@ func clear()
 
 #init
 {
-    g_PngFormat = catch RegisterClipboardFormatA(@dataof("PNG"))
+    g_PngFormat = catch RegisterClipboardFormatA(("PNG").buffer)
 }

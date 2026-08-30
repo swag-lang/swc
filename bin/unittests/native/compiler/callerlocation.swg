@@ -15,10 +15,10 @@ func basicCaller()->SourceCodeLocation
 #test
 {
     let loc = basicCaller()
-    @assert(loc.funcName == "basicCaller")
-    @assert(loc.lineStart == 12)
-    @assert(loc.colStart == 12)
-    @assert(loc.fileName != null)
+    Swag.assert(loc.funcName == "basicCaller")
+    Swag.assert(loc.lineStart == 12)
+    Swag.assert(loc.colStart == 12)
+    Swag.assert(loc.fileName != null)
 }
 
 // =========================================================================
@@ -40,7 +40,7 @@ func chainC()->SourceCodeLocation
 #test
 {
     let loc = chainC()
-    @assert(loc.funcName == "chainB")
+    Swag.assert(loc.funcName == "chainB")
 }
 
 // =========================================================================
@@ -57,7 +57,7 @@ func multiParamCaller()->SourceCodeLocation
 #test
 {
     let loc = multiParamCaller()
-    @assert(loc.funcName == "multiParamCaller")
+    Swag.assert(loc.funcName == "multiParamCaller")
 }
 
 // =========================================================================
@@ -74,7 +74,7 @@ func locFirstCaller()->SourceCodeLocation
 #test
 {
     let loc = locFirstCaller()
-    @assert(loc.funcName == "locFirstCaller")
+    Swag.assert(loc.funcName == "locFirstCaller")
 }
 
 // =========================================================================
@@ -87,8 +87,8 @@ func locFirstCaller()->SourceCodeLocation
     custom.lineStart = 999
     custom.funcName  = "custom"
     let loc = captureLoc(custom)
-    @assert(loc.lineStart == 999)
-    @assert(loc.funcName == "custom")
+    Swag.assert(loc.lineStart == 999)
+    Swag.assert(loc.funcName == "custom")
 }
 
 // =========================================================================
@@ -114,7 +114,7 @@ func methodCaller()->SourceCodeLocation
 #test
 {
     let loc = methodCaller()
-    @assert(loc.funcName == "methodCaller")
+    Swag.assert(loc.funcName == "methodCaller")
 }
 
 // =========================================================================
@@ -133,7 +133,7 @@ func inlineMiddle()->SourceCodeLocation
 #test
 {
     let loc = inlineMiddle()
-    @assert(loc.funcName == "inlineMiddle")
+    Swag.assert(loc.funcName == "inlineMiddle")
 }
 
 // =========================================================================
@@ -157,7 +157,7 @@ func doubleInlineCaller()->SourceCodeLocation
 #test
 {
     let loc = doubleInlineCaller()
-    @assert(loc.funcName == "doubleInlineOuter")
+    Swag.assert(loc.funcName == "doubleInlineOuter")
 }
 
 // =========================================================================
@@ -179,8 +179,8 @@ func sequenceCaller()->LocPair
 #test
 {
     let pair = sequenceCaller()
-    @assert(pair.a.funcName == pair.b.funcName)
-    @assert(pair.a.lineStart < pair.b.lineStart)
+    Swag.assert(pair.a.funcName == pair.b.funcName)
+    Swag.assert(pair.a.lineStart < pair.b.lineStart)
 }
 
 // =========================================================================
@@ -201,8 +201,8 @@ func fileCaller()->LocPair
 #test
 {
     let pair = fileCaller()
-    @assert(pair.a.fileName != null)
-    @assert(pair.a.fileName == pair.b.fileName)
+    Swag.assert(pair.a.fileName != null)
+    Swag.assert(pair.a.fileName == pair.b.fileName)
 }
 
 // =========================================================================
@@ -212,8 +212,8 @@ func fileCaller()->LocPair
 #test
 {
     let loc = captureLoc()
-    @assert(loc.colEnd >= loc.colStart)
-    @assert(loc.lineStart == loc.lineEnd)
+    Swag.assert(loc.colEnd >= loc.colStart)
+    Swag.assert(loc.lineStart == loc.lineEnd)
 }
 
 // =========================================================================
@@ -230,7 +230,7 @@ func namedArgCaller()->SourceCodeLocation
 #test
 {
     let loc = namedArgCaller()
-    @assert(loc.funcName == "namedArgCaller")
+    Swag.assert(loc.funcName == "namedArgCaller")
 }
 
 // =========================================================================
@@ -244,7 +244,7 @@ func runCaller()
     #run
     {
         let loc = runTarget()
-        @assert(loc.funcName == "runCaller")
+        Swag.assert(loc.funcName == "runCaller")
     }
 }
 
@@ -276,7 +276,7 @@ func twoLocCaller()->SourceCodeLocation
 #test
 {
     let loc = twoLocCaller()
-    @assert(loc.funcName == "twoLocCaller")
+    Swag.assert(loc.funcName == "twoLocCaller")
 }
 
 // =========================================================================
@@ -299,14 +299,14 @@ func recursiveCaller()->SourceCodeLocation
 {
     let loc = recursiveCaller()
     // depth > 0, so it recurses - the final loc is from recursiveCapture calling itself
-    @assert(loc.funcName == "recursiveCapture")
+    Swag.assert(loc.funcName == "recursiveCapture")
 }
 
 #test
 {
     // depth == 0, so it returns immediately with the caller's location
     let loc = recursiveCapture(0)
-    @assert(loc.fileName != null)
+    Swag.assert(loc.fileName != null)
 }
 
 // =========================================================================
@@ -334,10 +334,10 @@ func functionTypeCaller()->SourceCodeLocation
 #test
 {
     let lambdaLoc = lambdaCaller()
-    @assert(lambdaLoc.funcName == "lambdaCaller")
+    Swag.assert(lambdaLoc.funcName == "lambdaCaller")
 
     let typeLoc = functionTypeCaller()
-    @assert(typeLoc.funcName == "functionTypeCaller")
+    Swag.assert(typeLoc.funcName == "functionTypeCaller")
 }
 
 // =========================================================================
@@ -364,8 +364,8 @@ func directGlobalFunctionTypeCaller()->SourceCodeLocation
 #test
 {
     let aliasLoc = globalAliasFunctionTypeCaller()
-    @assert(aliasLoc.funcName == "globalAliasFunctionTypeCaller")
+    Swag.assert(aliasLoc.funcName == "globalAliasFunctionTypeCaller")
 
     let directLoc = directGlobalFunctionTypeCaller()
-    @assert(directLoc.funcName == "directGlobalFunctionTypeCaller")
+    Swag.assert(directLoc.funcName == "directGlobalFunctionTypeCaller")
 }

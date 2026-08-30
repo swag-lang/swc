@@ -144,7 +144,7 @@ impl Decoder
     // sequence and picture parameter sets.
     mtd configure(record: const [..] u8) fail
     {
-        if @countof(record) < 7 do
+        if record.count < 7 do
             fail InvalidFormatError{"H.264 decoder configuration is truncated"}
         if record[0] != 1 do
             fail UnsupportedFormatError{"H.264 decoder configuration has an unknown version"}
@@ -155,7 +155,7 @@ impl Decoder
         offset += 1
         for spsCount do
             offset = .configureSet(record, offset)
-        if offset >= @countof(record) do
+        if offset >= record.count do
             fail InvalidFormatError{"H.264 decoder configuration is truncated"}
         let ppsCount = cast(u64) record[offset]
         offset += 1
@@ -166,11 +166,11 @@ impl Decoder
     // Reads one length-prefixed parameter set of the configuration record.
     private mtd configureSet(record: const [..] u8, offset: u64)->u64 fail
     {
-        if offset + 2 > @countof(record) do
+        if offset + 2 > record.count do
             fail InvalidFormatError{"H.264 decoder configuration is truncated"}
         let size  = (cast(u64) record[offset] << 8) | cast(u64) record[offset + 1]
         let start = offset + 2
-        if size < 1 or start + size > @countof(record) do
+        if size < 1 or start + size > record.count do
             fail InvalidFormatError{"H.264 decoder configuration is truncated"}
 
         .handleNal(record[start until start + size])
@@ -280,9 +280,9 @@ impl Decoder
         .preparedData        = false
 
         var offset = 0'u64
-        while offset < @countof(sample)
+        while offset < sample.count
         {
-            if offset + .nalLengthSize > @countof(sample) do
+            if offset + .nalLengthSize > sample.count do
                 fail InvalidFormatError{"H.264 sample ends inside a NAL length prefix"}
             var size = 0'u64
             for .nalLengthSize
@@ -291,7 +291,7 @@ impl Decoder
                 offset += 1
             }
 
-            if size < 1 or size > @countof(sample) - offset do
+            if size < 1 or size > sample.count - offset do
                 fail InvalidFormatError{"H.264 sample ends inside a NAL unit"}
             .handleNal(sample[offset until offset + size], true)
             offset += size
@@ -354,9 +354,9 @@ impl Decoder
         .preparedData        = false
         defer .waitReconstructionJobs()
         var offset = 0'u64
-        while offset < @countof(sample)
+        while offset < sample.count
         {
-            if offset + .nalLengthSize > @countof(sample) do
+            if offset + .nalLengthSize > sample.count do
                 fail InvalidFormatError{"H.264 sample ends inside a NAL length prefix"}
             var size = 0'u64
             for .nalLengthSize
@@ -365,7 +365,7 @@ impl Decoder
                 offset += 1
             }
 
-            if size < 1 or size > @countof(sample) - offset do
+            if size < 1 or size > sample.count - offset do
                 fail InvalidFormatError{"H.264 sample ends inside a NAL unit"}
             .handleNal(sample[offset until offset + size])
             offset += size
@@ -488,9 +488,9 @@ impl Decoder
     {
         var count  = 0'u32
         var offset = 0'u64
-        while offset < @countof(sample)
+        while offset < sample.count
         {
-            if offset + .nalLengthSize > @countof(sample) do
+            if offset + .nalLengthSize > sample.count do
                 return false
             var size = 0'u64
             for .nalLengthSize
@@ -499,7 +499,7 @@ impl Decoder
                 offset += 1
             }
 
-            if size < 1 or size > @countof(sample) - offset do
+            if size < 1 or size > sample.count - offset do
                 return false
             let nalType = sample[offset] & 0x1F
             if nalType == 1 or nalType == 5
@@ -535,9 +535,9 @@ impl Decoder
 
         var hasPicture = false
         var offset     = 0'u64
-        while offset < @countof(sample)
+        while offset < sample.count
         {
-            if offset + .nalLengthSize > @countof(sample) do
+            if offset + .nalLengthSize > sample.count do
                 return false
             var size = 0'u64
             for .nalLengthSize
@@ -546,7 +546,7 @@ impl Decoder
                 offset += 1
             }
 
-            if size < 1 or size > @countof(sample) - offset do
+            if size < 1 or size > sample.count - offset do
                 return false
             let header  = sample[offset]
             let nalType = header & 0x1F
@@ -575,15 +575,15 @@ impl Decoder
         switch nalType
         {
         case 1, 5:
-            unescapeRbsp(&.rbsp, nal[1 until @countof(nal)])
+            unescapeRbsp(&.rbsp, nal[1 until nal.count])
             .decodeSliceNal(refIdc, nalType == 5, !prepareOnly)
 
         case 7:
-            unescapeRbsp(&.rbsp, nal[1 until @countof(nal)])
+            unescapeRbsp(&.rbsp, nal[1 until nal.count])
             .parseSpsNal()
 
         case 8:
-            unescapeRbsp(&.rbsp, nal[1 until @countof(nal)])
+            unescapeRbsp(&.rbsp, nal[1 until nal.count])
             .parsePpsNal()
 
         case 2, 3, 4:

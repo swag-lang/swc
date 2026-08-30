@@ -91,6 +91,6 @@ internal impl MappedRegion
     // working set; the call reports an error for that case, which is the outcome wanted here.
     func releasePagesNative(bytes: const [..] u8)
     {
-        discard VirtualUnlock(cast #unconst (LPVOID) @dataof(bytes), @countof(bytes))
+        discard VirtualUnlock(cast #unconst (LPVOID) bytes.buffer, bytes.count)
     }
 }

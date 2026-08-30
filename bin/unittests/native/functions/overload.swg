@@ -11,8 +11,8 @@ func A(a: s32) { gOverloadA1Last = a }
     gOverloadA1Last  = 0
     A()
     A(10)
-    @assert(gOverloadA0Calls == 1)
-    @assert(gOverloadA1Last == 10)
+    Swag.assert(gOverloadA0Calls == 1)
+    Swag.assert(gOverloadA1Last == 10)
 }
 
 struct S {}
@@ -30,8 +30,8 @@ impl S
     gOverloadFoo1Last  = 0
     s.foo()
     s.foo(10)
-    @assert(gOverloadFoo0Calls == 1)
-    @assert(gOverloadFoo1Last == 10)
+    Swag.assert(gOverloadFoo0Calls == 1)
+    Swag.assert(gOverloadFoo1Last == 10)
 }
 
 struct ReceiverConstMethodOverload
@@ -56,14 +56,14 @@ impl ReceiverConstMethodOverload
 #test
 {
     var value = ReceiverConstMethodOverload{}
-    @assert(value.select() == 1)
-    @assert(value.mutableCalls == 1)
+    Swag.assert(value.select() == 1)
+    Swag.assert(value.mutableCalls == 1)
 }
 
 #test
 {
     let value = ReceiverConstMethodOverload{}
-    @assert(value.select() == 2)
+    Swag.assert(value.select() == 2)
 }
 
 #test
@@ -73,8 +73,8 @@ impl ReceiverConstMethodOverload
     gOverloadFoo1Last  = 0
     S.foo(&s)
     S.foo(&s, 10)
-    @assert(gOverloadFoo0Calls == 1)
-    @assert(gOverloadFoo1Last == 10)
+    Swag.assert(gOverloadFoo0Calls == 1)
+    Swag.assert(gOverloadFoo1Last == 10)
 }
 
 func preferFloatLiteral(x, y: f32)->f32 => x + y
@@ -88,6 +88,6 @@ func(T) preferFloatLiteral(x, y: T)->T  => y
 
     #assert(#typeof(f32Value) == f32)
     #assert(#typeof(f64Value) == f64)
-    @assert(f32Value > 1.0'f32)
-    @assert(f64Value > 1.0'f64)
+    Swag.assert(f32Value > 1.0'f32)
+    Swag.assert(f64Value > 1.0'f64)
 }

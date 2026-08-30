@@ -163,7 +163,7 @@ impl Surface
         .dpiScale = scale
 
         // A move to a denser monitor must resharpen the shared theme atlas.
-        if @isset(.app.theme) and .app.theme.initialized and @isset(.app.renderer) do
+        if Swag.isSet(.app.theme) and .app.theme.initialized and Swag.isSet(.app.renderer) do
             .app.theme.ensureAtlasScale(.app.renderer, scale)
     }
 
@@ -809,9 +809,9 @@ impl Surface
     // Replaces and destroys the current user view, then attaches `view` to this surface.
     mtd setView(view: *Wnd)
     {
-        if @isset(.wnd.view) and .wnd.view == view do
+        if Swag.isSet(.wnd.view) and .wnd.view == view do
             return
-        if @isset(.wnd.view) do
+        if Swag.isSet(.wnd.view) do
             .wnd.view.destroy()
         view.setParent(.wnd)
         .wnd.view = view
@@ -821,7 +821,7 @@ impl Surface
     private mtd serializeState(ser: *Serializer) fail
     {
         // Save position and surface state
-        if @isset(.wnd.view) and .wnd.view.id != null
+        if Swag.isSet(.wnd.view) and .wnd.view.id != null
         {
             // What is persisted is the window the user sized, with the transparent margin taken
             // back out of it. The margin is chrome the theme owns: left in the stored rectangle,

@@ -26,7 +26,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
     if valueType
     {
         let safeValueType = valueType
-        while @countof(one) and one[0] != '#'
+        while one.count and one[0] != '#'
         {
             let addrVal = Reflection.appendDynamicArrayElement(addr, safeValueType)
             one = (parseValue(addrVal!, safeValueType, one) orelse "")
@@ -42,7 +42,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
         let arrayType = cast(const *TypeInfoArray) type
         var addrVal   = cast([*] u8) addr
         var cpt       = 0
-        while @countof(one) and one[0] != '#'
+        while one.count and one[0] != '#'
         {
             if cpt == arrayType.totalCount do
                 fail InvalidFormatError{"too many static array values"}
@@ -98,12 +98,12 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
                 }
             }
 
-            one = Tokenize.eatCount(one, @countof(id))
+            one = Tokenize.eatCount(one, id.count)
             if !enumFlags do
                 break
 
             one = Tokenize.eatSpaces(one)
-            if !@countof(one) do
+            if !one.count do
                 break
             if one[0] == '#' do
                 break
@@ -113,13 +113,13 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
             one = Tokenize.eatCount(one, 1)
         }
 
-        let eat = cast(u32) cast(s64) (@dataof(one) - @dataof(buf))
+        let eat = cast(u32) cast(s64) (one.buffer - buf.buffer)
         one = Tokenize.eatCount(buf, cast(u64) eat)
         return one
     }
 
     // Decode interface
-    if let itf = @mkinterface(addr, type, IPokeValue) do
+    if let itf = Swag.makeInterface(addr, type, IPokeValue) do
         return itf.poke(one)
 
     // Struct: a brace-enclosed list of field values in declaration order. 'Core.String' is
@@ -128,25 +128,25 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
     if Reflection.isStruct(type) and type != String
     {
         let structType = cast(const *TypeInfoStruct) type
-        if !@countof(one) or one[0] != '{' do
+        if !one.count or one[0] != '{' do
             fail InvalidFormatError{Errors.mkString(Format.toString("missing [[{]] for struct [[%]]", type.name))}
         one = Tokenize.eatCount(one, 1)
         one = Tokenize.eatSpaces(one)
 
         for field in structType.fields
         {
-            if !@countof(one) or one[0] == '}' do
+            if !one.count or one[0] == '}' do
                 break
             one = (parseValue(cast([*] u8) addr + field.offset, field.pointedType!, one) orelse "")
             one = Tokenize.eatSpaces(one)
-            if @countof(one) and one[0] == ','
+            if one.count and one[0] == ','
             {
                 one = Tokenize.eatCount(one, 1)
                 one = Tokenize.eatSpaces(one)
             }
         }
 
-        if !@countof(one) or one[0] != '}' do
+        if !one.count or one[0] != '}' do
             fail InvalidFormatError{Errors.mkString(Format.toString("missing [[}]] for struct [[%]]", type.name))}
         one = Tokenize.eatCount(one, 1)
         return one

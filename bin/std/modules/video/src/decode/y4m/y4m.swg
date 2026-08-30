@@ -72,10 +72,10 @@ private func parseHeader(line: string)->Header fail
     var hasWidth, hasHeight, hasRate, hasInterlace: bool
     for token in tokens[1 until tokens.count]
     {
-        if @countof(token) < 2 do
+        if token.count < 2 do
             continue
 
-        let value = token[1 until @countof(token)]
+        let value = token[1 until token.count]
         switch token[0]
         {
         case 'W':
@@ -320,7 +320,7 @@ private impl Decoder
     {
         var marker: [ShortMarkerSize] u8 = undefined
         source.readExact(marker)
-        if @memcmp(&marker[0], @dataof(FrameMarker), @countof(FrameMarker)) != 0 do
+        if Swag.memcmp(&marker[0], FrameMarker.buffer, FrameMarker.count) != 0 do
             fail InvalidFormatError{"YUV4MPEG2 frame marker is missing"}
         if marker[ShortMarkerSize - 1] == '\n' do
             return ShortMarkerSize

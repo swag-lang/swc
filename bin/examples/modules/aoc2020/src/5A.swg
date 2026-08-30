@@ -81,7 +81,7 @@ func day5A0()
     }
 
     // Console.print("total: ", total)
-    @assert(total == 838)
+    Swag.assert(total == 838)
 }
 
 /////////////////////////////////////////////////////////////////
@@ -101,5 +101,5 @@ func day5A1()
     }
 
     seats.sort()
-    @assert(seats.back() == 838)
+    Swag.assert(seats.back() == 838)
 }

@@ -14,7 +14,7 @@ func canDiscard()->s32
 func semaTest001()
 {
     let v = mustUse()
-    @assert(v == 1)
+    Swag.assert(v == 1)
 }
 
 func semaTest002()

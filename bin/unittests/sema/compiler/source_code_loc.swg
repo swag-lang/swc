@@ -18,7 +18,7 @@ const B = #curlocation
 func semaTest002()
 {
     var c: Swag.SourceCodeLocation = #curlocation
-    @assert(c.fileName != null)
+    Swag.assert(c.fileName != null)
 }
 
 func semaTest003()
@@ -50,9 +50,9 @@ const InlineCallerDecl = #location(inlineCallerLoc)
 func semaTest004()
 {
     let loc = inlineCallerLoc()
-    @assert(loc.fileName == A.fileName)
-    @assert(loc.funcName != null)
-    @assert(loc.funcName == InlineCallerDecl.funcName)
-    @assert(loc.lineStart == 37)
-    @assert(loc.colStart == 12)
+    Swag.assert(loc.fileName == A.fileName)
+    Swag.assert(loc.funcName != null)
+    Swag.assert(loc.funcName == InlineCallerDecl.funcName)
+    Swag.assert(loc.lineStart == 37)
+    Swag.assert(loc.colStart == 12)
 }

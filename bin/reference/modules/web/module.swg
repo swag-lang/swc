@@ -1,6 +1,6 @@
 #run
 {
-    let itf = @compiler
+    let itf = Swag.compiler()
     let cfg = itf.getBuildCfg()!
     cfg.moduleVersion  = 1
     cfg.moduleRevision = 0

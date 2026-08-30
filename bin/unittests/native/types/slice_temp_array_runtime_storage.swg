@@ -17,7 +17,7 @@ struct SliceTempArrayRuntimeStorageHolder
         }
 
     let tail = holder.cb(true)[2 to]
-    @assert(@countof(tail) == 2)
-    @assert(tail[0] == 13'u16)
-    @assert(tail[1] == 14'u16)
+    Swag.assert(tail.count == 2)
+    Swag.assert(tail[0] == 13'u16)
+    Swag.assert(tail[1] == 14'u16)
 }

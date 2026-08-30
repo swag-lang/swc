@@ -122,7 +122,7 @@ impl Button
             format.fontStyle = .Bold
 
         var result = 0'f32
-        if @countof(.name) != 0
+        if (.name).count != 0
         {
             // Measured at the density the glyphs are really drawn at: laid out at a scale of
             // one and drawn at another, the run comes out wider than the width a caller sized
@@ -157,7 +157,7 @@ impl Button
         let inset = .themeMetrics().focusRing_Inset
 
         var result: retval = box
-        if @countof(.name) != 0 do
+        if (.name).count != 0 do
             result.combine(.name.boundRect)
 
         // The same distance the ring keeps inside a control that has a shape, kept here outside

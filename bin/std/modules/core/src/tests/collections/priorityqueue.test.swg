@@ -29,12 +29,12 @@ impl PriorityItem
     queue.push(3)
     queue.push(1)
 
-    @assert(queue.peek() == 1)
-    @assert(queue.pop() == 1)
-    @assert(queue.pop() == 1)
-    @assert(queue.pop() == 3)
-    @assert(queue.pop() == 5)
-    @assert(queue.isEmpty())
+    Swag.assert(queue.peek() == 1)
+    Swag.assert(queue.pop() == 1)
+    Swag.assert(queue.pop() == 1)
+    Swag.assert(queue.pop() == 3)
+    Swag.assert(queue.pop() == 5)
+    Swag.assert(queue.isEmpty())
 }
 
 #test
@@ -46,10 +46,10 @@ impl PriorityItem
     queue.push(9)
     queue.push(4)
 
-    @assert(queue.capacity() >= 8)
-    @assert(queue.pop() == 9)
-    @assert(queue.pop() == 4)
-    @assert(queue.pop() == 2)
+    Swag.assert(queue.capacity() >= 8)
+    Swag.assert(queue.pop() == 9)
+    Swag.assert(queue.pop() == 4)
+    Swag.assert(queue.pop() == 2)
 }
 
 #test
@@ -66,10 +66,10 @@ impl PriorityItem
         queue.push(#move second)
 
         let poppedFirst = queue.pop()
-        @assert(poppedFirst.id == 1)
+        Swag.assert(poppedFirst.id == 1)
         let poppedSecond = queue.pop()
-        @assert(poppedSecond.id == 2)
+        Swag.assert(poppedSecond.id == 2)
     }
 
-    @assert(g_PriorityItemDrops == 3)
+    Swag.assert(g_PriorityItemDrops == 3)
 }

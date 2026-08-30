@@ -107,13 +107,13 @@ impl Struct
         return &me.x
     }
 
-    // Called when @countof is used (typically in a 'for' block) to return the count of elements
+    // Called when .count is used (typically in a 'for' block) to return the count of elements
     func opCount(me)->u64
     {
         return 0
     }
 
-    // Called when @dataof is used; returns a pointer to the underlying data of type WhateverType
+    // Called when .buffer is used; returns a pointer to the underlying data of type WhateverType
     func opData(me)->#null *WhateverType
     {
         return null

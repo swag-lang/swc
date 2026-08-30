@@ -96,7 +96,7 @@ impl Document
     // Assembles one shape element from its already formatted commands.
     private mtd addShape(data: string, color: Color, rule: FillRule)
     {
-        if @countof(data) == 0 do
+        if data.count == 0 do
             return
 
         .body.appendFormat("<path fill=\"%\"", hex(color))

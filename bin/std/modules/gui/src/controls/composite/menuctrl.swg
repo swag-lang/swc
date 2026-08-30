@@ -147,7 +147,7 @@ public impl IWnd for MenuCtrl
             var backPos = labelPos
             backPos.x     -= metrics.menuBar_SpaceBetween * 0.5
             backPos.width += metrics.menuBar_SpaceBetween
-            if selected and @isset(it.popup) and .subVisible == it.popup
+            if selected and Swag.isSet(it.popup) and .subVisible == it.popup
             {
                 // Fill past the bar, outline only to it — the same split the popup makes in
                 // [[Gui.MenuCtrl.paintPopupBarAnchor]], and for the same reason.
@@ -159,7 +159,7 @@ public impl IWnd for MenuCtrl
                 anchorBorder.setBottom(backPos.bottom() + metrics.wnd_BorderSize)
                 theme.drawSubRect(painter, anchorBorder, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
             }
-            elif selected and @isset(it.popup)
+            elif selected and Swag.isSet(it.popup)
             {
                 theme.drawSubRect(painter, backPos, &rects.menuBar_PopupSelectedBk, colors.menuPopup_Bk)
                 theme.drawSubRect(painter, backPos, &rects.menuBar_PopupSelectedBorder, colors.menuPopup_Border, interpol: .Pixel)
@@ -280,7 +280,7 @@ public impl IWnd for MenuCtrl
             // its own. Reserving another column after the marker left a conspicuous hole before
             // the wording. A row that genuinely has both a marker and a glyph still keeps both.
             var submenuMarkerX: f32
-            if @isset(it.popup)
+            if Swag.isSet(it.popup)
             {
                 if it.submenuOpensLeft
                 {
@@ -353,7 +353,7 @@ public impl IWnd for MenuCtrl
             }
 
             // Submenu marker
-            if @isset(it.popup)
+            if Swag.isSet(it.popup)
             {
                 let glyph = it.submenuOpensLeft ? ThemeIcons.ChevronLeft : ThemeIcons.ChevronRight
                 let icon  = theme.icon(glyph, metrics.chevron_Size)
@@ -464,7 +464,7 @@ public impl IWnd for MenuCtrl
             if .hotIdx != Swag.U32.Max
             {
                 let hotItem = .items[.hotIdx]!
-                if @isset(hotItem.popup)
+                if Swag.isSet(hotItem.popup)
                 {
                     .hideSubVisible()
                     .removeTimer()
@@ -508,7 +508,7 @@ impl MenuCtrl
     private mtd resolveSubmenuDirections()
     {
         let surfaceRect = .surfaceRect()
-        for i in .items where @isset(i!.popup) and !i!.hidden
+        for i in .items where Swag.isSet(i!.popup) and !i!.hidden
         {
             let item = i!
             item.popup.updateState()
@@ -847,7 +847,7 @@ impl MenuCtrl
 
     mtd showHotPopup()
     {
-        if .hotIdx == Swag.U32.Max or !@isset(.items[.hotIdx]!.popup)
+        if .hotIdx == Swag.U32.Max or !Swag.isSet(.items[.hotIdx]!.popup)
         {
             .selectedIdx = Swag.U32.Max
             return
@@ -1001,7 +1001,7 @@ impl MenuCtrl
             // A submenu row paints a chevron after the text column. Reserve that band while
             // measuring too, otherwise the row is exactly wide enough only until the chevron is
             // subtracted at paint time and its last word is clipped.
-            if @isset(it.popup) do
+            if Swag.isSet(it.popup) do
                 w += metrics.chevron_Size + metrics.menuPopup_IconTextMargin
 
             .position.width  = Math.max(.position.width, w)

@@ -11,7 +11,7 @@ impl RegressionAstString
     #[Implicit]
     mtd const opCast()->string
     {
-        return @mkstring(.buffer, .length)
+        return Swag.makeString(.buffer, .length)
     }
 }
 
@@ -25,8 +25,8 @@ impl RegressionAstBuilder
 {
     mtd append(value: string)
     {
-        @memcpy(&.buffer[.length], @dataof(value), cast(u64) @countof(value))
-        .length += cast(u64) @countof(value)
+        Swag.memcpy(&.buffer[.length], value.buffer, cast(u64) value.count)
+        .length += cast(u64) value.count
     }
 
     mtd const toString()->RegressionAstString
@@ -62,9 +62,9 @@ impl RegressionArray
             scan += 1
 
             #static if ptr do
-                #inject(stmt, item = scan, index = @index)
+                #inject(stmt, item = scan, index = Swag.index)
             else do
-                #inject(stmt, item = scan[0], index = @index)
+                #inject(stmt, item = scan[0], index = Swag.index)
         }
     }
 }
@@ -117,5 +117,5 @@ func addOne(value: *s32)
     callbackTotal = 0
     signal.call(&value)
 
-    @assert(callbackTotal == 11)
+    Swag.assert(callbackTotal == 11)
 }

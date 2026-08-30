@@ -855,7 +855,7 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
 CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
 {
     // A node wrapped in a transparent substitute (an implicit cast the main walk never visits,
-    // e.g. the bool cast of `if !@dataof(s)`) stores its payload on the substitute's slot while
+    // e.g. the bool cast of `if !s.buffer`) stores its payload on the substitute's slot while
     // its register still holds the original value. When the caller derived the payload type from
     // the substitute-resolved view, retype the payload with the node's own stored type: consumers
     // rely on `payload.typeRef` to pick the real operand width, and keeping the context type would

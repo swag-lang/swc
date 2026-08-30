@@ -6,9 +6,9 @@ using Swag
 #test
 {
     let identity = Math.Matrix3x3.createIdentity()
-    @assert(identity.m[0, 0] == 1)
-    @assert(identity.m[1, 1] == 1)
-    @assert(identity.m[2, 2] == 1)
+    Swag.assert(identity.m[0, 0] == 1)
+    Swag.assert(identity.m[1, 1] == 1)
+    Swag.assert(identity.m[2, 2] == 1)
 
     var matrix: Math.Matrix3x3 = undefined
     for y in 3
@@ -19,24 +19,24 @@ using Swag
 
     matrix.setIdentity()
 
-    @assert(matrix.m[0, 0] == 1)
-    @assert(matrix.m[0, 1] == 0)
-    @assert(matrix.m[0, 2] == 0)
-    @assert(matrix.m[1, 0] == 0)
-    @assert(matrix.m[1, 1] == 1)
-    @assert(matrix.m[1, 2] == 0)
-    @assert(matrix.m[2, 0] == 0)
-    @assert(matrix.m[2, 1] == 0)
-    @assert(matrix.m[2, 2] == 1)
+    Swag.assert(matrix.m[0, 0] == 1)
+    Swag.assert(matrix.m[0, 1] == 0)
+    Swag.assert(matrix.m[0, 2] == 0)
+    Swag.assert(matrix.m[1, 0] == 0)
+    Swag.assert(matrix.m[1, 1] == 1)
+    Swag.assert(matrix.m[1, 2] == 0)
+    Swag.assert(matrix.m[2, 0] == 0)
+    Swag.assert(matrix.m[2, 1] == 0)
+    Swag.assert(matrix.m[2, 2] == 1)
 }
 
 #test
 {
     let identity = Math.Matrix4x4.createIdentity()
-    @assert(identity.m[0, 0] == 1)
-    @assert(identity.m[1, 1] == 1)
-    @assert(identity.m[2, 2] == 1)
-    @assert(identity.m[3, 3] == 1)
+    Swag.assert(identity.m[0, 0] == 1)
+    Swag.assert(identity.m[1, 1] == 1)
+    Swag.assert(identity.m[2, 2] == 1)
+    Swag.assert(identity.m[3, 3] == 1)
 
     var matrix: Math.Matrix4x4 = undefined
     for y in 4
@@ -47,20 +47,20 @@ using Swag
 
     matrix.setIdentity()
 
-    @assert(matrix.m[0, 0] == 1)
-    @assert(matrix.m[0, 1] == 0)
-    @assert(matrix.m[0, 2] == 0)
-    @assert(matrix.m[0, 3] == 0)
-    @assert(matrix.m[1, 0] == 0)
-    @assert(matrix.m[1, 1] == 1)
-    @assert(matrix.m[1, 2] == 0)
-    @assert(matrix.m[1, 3] == 0)
-    @assert(matrix.m[2, 0] == 0)
-    @assert(matrix.m[2, 1] == 0)
-    @assert(matrix.m[2, 2] == 1)
-    @assert(matrix.m[2, 3] == 0)
-    @assert(matrix.m[3, 0] == 0)
-    @assert(matrix.m[3, 1] == 0)
-    @assert(matrix.m[3, 2] == 0)
-    @assert(matrix.m[3, 3] == 1)
+    Swag.assert(matrix.m[0, 0] == 1)
+    Swag.assert(matrix.m[0, 1] == 0)
+    Swag.assert(matrix.m[0, 2] == 0)
+    Swag.assert(matrix.m[0, 3] == 0)
+    Swag.assert(matrix.m[1, 0] == 0)
+    Swag.assert(matrix.m[1, 1] == 1)
+    Swag.assert(matrix.m[1, 2] == 0)
+    Swag.assert(matrix.m[1, 3] == 0)
+    Swag.assert(matrix.m[2, 0] == 0)
+    Swag.assert(matrix.m[2, 1] == 0)
+    Swag.assert(matrix.m[2, 2] == 1)
+    Swag.assert(matrix.m[2, 3] == 0)
+    Swag.assert(matrix.m[3, 0] == 0)
+    Swag.assert(matrix.m[3, 1] == 0)
+    Swag.assert(matrix.m[3, 2] == 0)
+    Swag.assert(matrix.m[3, 3] == 1)
 }

@@ -5,7 +5,7 @@ internal impl Properties
         let typeNative = cast(const *Swag.TypeInfoNative) item.typeValue.pointedType!
         let data       = item.data
 
-        if @isset(item.sliderBox)
+        if Swag.isSet(item.sliderBox)
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -31,7 +31,7 @@ internal impl Properties
 
             .setEditMixed(item, item.sliderBox.edit)
         }
-        elif @isset(item.editBox)
+        elif Swag.isSet(item.editBox)
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -64,7 +64,7 @@ internal impl Properties
         let typeNative = cast(const *Swag.TypeInfoNative) item.typeValue.pointedType!
         let data       = item.data
 
-        if @isset(item.sliderBox)
+        if Swag.isSet(item.sliderBox)
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -87,7 +87,7 @@ internal impl Properties
             case .F64: setEd'f64()
             }
         }
-        elif @isset(item.editBox)
+        elif Swag.isSet(item.editBox)
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -211,7 +211,7 @@ internal impl Properties
 
         if .kind == .Panel
         {
-            if @isset(item.label) do
+            if Swag.isSet(item.label) do
                 item.label.hide()
             .constructNativePanel(item, value, typeNative)
         }
@@ -341,7 +341,7 @@ internal impl Properties
 
         .refreshNative(item)
 
-        if @isset(item.sliderBox)
+        if Swag.isSet(item.sliderBox)
         {
             item.sliderBox.sigChanged += func|prop = me, item|(ed) { prop.validateNative(item) }
 
@@ -349,7 +349,7 @@ internal impl Properties
             item.sliderBox.slider.sigStartChange += func|prop = me, item|(s) { prop.beginItemDrag(item) }
             item.sliderBox.slider.sigEndChange   += func|prop = me|(s) { prop.endItemDrag() }
         }
-        elif @isset(item.editBox)
+        elif Swag.isSet(item.editBox)
         {
             item.editBox.sigFocusLost += func|prop = me, item|(ed)
             {

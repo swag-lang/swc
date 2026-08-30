@@ -13,10 +13,10 @@ using Core, Gui
     defer host.shutdown()
 
     var result = openTestViewer(&createHtmlViewer, &host.root, fileName.toString(), commandParent: &host.root)
-    @assert(result.view != null)
-    @assert(result.commands == null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null)
-    @assert(result.isLoading!(result.view!))
-    @assert(Utf8.contains(result.details.toString(), "HTML"))
+    Swag.assert(result.view != null)
+    Swag.assert(result.commands == null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null and result.isLoading != null)
+    Swag.assert(result.isLoading!(result.view!))
+    Swag.assert(Utf8.contains(result.details.toString(), "HTML"))
 
     var attempts: u32
     while result.isLoading!(result.view!) and attempts < 100
@@ -26,7 +26,7 @@ using Core, Gui
         attempts += 1
     }
 
-    @assert(!result.isLoading!(result.view!))
+    Swag.assert(!result.isLoading!(result.view!))
 }
 
 // File-open failures cross the viewer boundary instead of becoming viewer-specific content.
@@ -38,6 +38,6 @@ using Core, Gui
 
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_sfilescope_html_%.html", Guid64.random()).toString())
     var result   = openTestViewer(&createHtmlViewer, &host.root, fileName.toString(), commandParent: &host.root)
-    @assert(result.view == null and result.commands == null)
-    @assert(!result.failureReason.isEmpty())
+    Swag.assert(result.view == null and result.commands == null)
+    Swag.assert(!result.failureReason.isEmpty())
 }

@@ -45,7 +45,7 @@ struct IcoDib
 func buildIco(width, height: s32, bitCount: u16, clrUsed: u32, dibBody: const [..] u8)->Array'u8
 {
     var cb: ConcatBuffer
-    let bodyLen = cast(u32) @countof(dibBody)
+    let bodyLen = cast(u32) dibBody.count
 
     var dir: IcoDir
     dir.type  = 1
@@ -84,9 +84,9 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 // The registries recognise .ico (and .cur for loading).
 #test
 {
-    @assert(Image.canLoad("in.ico"))
-    @assert(Image.canLoad("in.cur"))
-    @assert(Image.canSave("out.ico"))
+    Swag.assert(Image.canLoad("in.ico"))
+    Swag.assert(Image.canLoad("in.cur"))
+    Swag.assert(Image.canSave("out.ico"))
 }
 
 // Decode a 2x2 32-bit BGRA icon. XOR data is bottom-up, matching the buffer.
@@ -120,16 +120,16 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildIco(2, 2, 32, 0, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
-    @assert(img.width == 2)
-    @assert(img.height == 2)
-    @assert(img.pixelFormat == .BGRA8)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[3] == 40'u8)
-    @assert(img.pixels.buffer[4] == 50'u8)
-    @assert(img.pixels.buffer[7] == 80'u8)
+    Swag.assert(img.width == 2)
+    Swag.assert(img.height == 2)
+    Swag.assert(img.pixelFormat == .BGRA8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 10'u8)
+    Swag.assert(img.pixels.buffer[1] == 20'u8)
+    Swag.assert(img.pixels.buffer[2] == 30'u8)
+    Swag.assert(img.pixels.buffer[3] == 40'u8)
+    Swag.assert(img.pixels.buffer[4] == 50'u8)
+    Swag.assert(img.pixels.buffer[7] == 80'u8)
 }
 
 // Legacy 32-bit icons leave alpha at zero and use the AND mask instead.
@@ -154,9 +154,9 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildIco(2, 1, 32, 0, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[3] == 255'u8)
-    @assert(img.pixels.buffer[7] == 0'u8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[3] == 255'u8)
+    Swag.assert(img.pixels.buffer[7] == 0'u8)
 }
 
 // A non-zero 32-bit alpha channel takes precedence over the legacy AND mask.
@@ -181,9 +181,9 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildIco(2, 1, 32, 0, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[3] == 128'u8)
-    @assert(img.pixels.buffer[7] == 0'u8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[3] == 128'u8)
+    Swag.assert(img.pixels.buffer[7] == 0'u8)
 }
 
 // Decode a 2x2 24-bit icon, applying the AND mask as alpha.
@@ -217,16 +217,16 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildIco(2, 2, 24, 0, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
-    @assert(img.pixelFormat == .BGRA8)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[3] == 255'u8)     // opaque
-    @assert(img.pixels.buffer[4] == 40'u8)
-    @assert(img.pixels.buffer[5] == 50'u8)
-    @assert(img.pixels.buffer[6] == 60'u8)
-    @assert(img.pixels.buffer[7] == 0'u8)     // transparent via AND mask
+    Swag.assert(img.pixelFormat == .BGRA8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 10'u8)
+    Swag.assert(img.pixels.buffer[1] == 20'u8)
+    Swag.assert(img.pixels.buffer[2] == 30'u8)
+    Swag.assert(img.pixels.buffer[3] == 255'u8)     // opaque
+    Swag.assert(img.pixels.buffer[4] == 40'u8)
+    Swag.assert(img.pixels.buffer[5] == 50'u8)
+    Swag.assert(img.pixels.buffer[6] == 60'u8)
+    Swag.assert(img.pixels.buffer[7] == 0'u8)     // transparent via AND mask
 }
 
 // Decode a 2x2 8-bit indexed icon through its palette.
@@ -269,14 +269,14 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildIco(2, 2, 8, 4, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
-    @assert(img.pixelFormat == .BGRA8)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[3] == 255'u8)
-    @assert(img.pixels.buffer[4] == 40'u8)
-    @assert(img.pixels.buffer[6] == 60'u8)
+    Swag.assert(img.pixelFormat == .BGRA8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 10'u8)
+    Swag.assert(img.pixels.buffer[1] == 20'u8)
+    Swag.assert(img.pixels.buffer[2] == 30'u8)
+    Swag.assert(img.pixels.buffer[3] == 255'u8)
+    Swag.assert(img.pixels.buffer[4] == 40'u8)
+    Swag.assert(img.pixels.buffer[6] == 60'u8)
 }
 
 // Decode a 2x1 1-bit indexed icon.
@@ -305,12 +305,12 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildIco(2, 1, 1, 2, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 7'u8)
-    @assert(img.pixels.buffer[1] == 8'u8)
-    @assert(img.pixels.buffer[2] == 9'u8)
-    @assert(img.pixels.buffer[3] == 255'u8)
-    @assert(img.pixels.buffer[4] == 0'u8)     // idx 0 color
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 7'u8)
+    Swag.assert(img.pixels.buffer[1] == 8'u8)
+    Swag.assert(img.pixels.buffer[2] == 9'u8)
+    Swag.assert(img.pixels.buffer[3] == 255'u8)
+    Swag.assert(img.pixels.buffer[4] == 0'u8)     // idx 0 color
 }
 
 // With multiple entries, the decoder picks the largest image.
@@ -380,11 +380,11 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
         cb.addNative(0'u8)     // AND
 
     let img = expect decodeIco(nnBytes(cb.toSlice()))
-    @assert(img.width == 2)
-    @assert(img.height == 2)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 200'u8)
-    @assert(img.pixels.buffer[3] == 203'u8)
+    Swag.assert(img.width == 2)
+    Swag.assert(img.height == 2)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 200'u8)
+    Swag.assert(img.pixels.buffer[3] == 203'u8)
 }
 
 // A PNG-compressed icon entry is delegated to the PNG decoder.
@@ -401,7 +401,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let png = expect src.encode("memory.png")
     png.makeLinear()
     let pngBytes = nnBytes(png.toSlice())
-    let pngLen   = cast(u32) @countof(pngBytes)
+    let pngLen   = cast(u32) pngBytes.count
 
     var cb:  ConcatBuffer
     var dir: IcoDir
@@ -420,8 +420,8 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     cb.addBytes(pngBytes)
 
     let img = expect decodeIco(nnBytes(cb.toSlice()))
-    @assert(img.width == 3)
-    @assert(img.height == 2)
+    Swag.assert(img.width == 3)
+    Swag.assert(img.height == 2)
 }
 
 // Decode metadata only: dimensions populated, no pixels allocated.
@@ -436,10 +436,10 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var opt: DecodeOptions
     opt.decodePixels = false
     let img = expect decodeIco(nnBytes(buf.toSlice()), opt)
-    @assert(img.width == 2)
-    @assert(img.height == 2)
-    @assert(img.pixelFormat == .BGRA8)
-    @assert(!img.isValid())
+    Swag.assert(img.width == 2)
+    Swag.assert(img.height == 2)
+    Swag.assert(img.pixelFormat == .BGRA8)
+    Swag.assert(!img.isValid())
 }
 
 // Error: directory type is neither icon (1) nor cursor (2).
@@ -452,7 +452,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     cb.addStruct(dir)
 
     var img = catch decodeIco(nnBytes(cb.toSlice())) as err9
-    @assert(err9 != null)
+    Swag.assert(err9 != null)
 }
 
 // Error: empty directory.
@@ -465,7 +465,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     cb.addStruct(dir)
 
     var img = catch decodeIco(nnBytes(cb.toSlice())) as err10
-    @assert(err10 != null)
+    Swag.assert(err10 != null)
 }
 
 // Encode a 2x2 BGRA8 image and round-trip it unchanged.
@@ -482,15 +482,15 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let cb  = expect src.encode("memory.ico")
     let img = expect decodeIco(nnBytes(cb.toSlice()))
-    @assert(img.width == 2)
-    @assert(img.height == 2)
-    @assert(img.pixelFormat == .BGRA8)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[3] == 128'u8)
-    @assert(img.pixels.buffer[12] == 200'u8)
+    Swag.assert(img.width == 2)
+    Swag.assert(img.height == 2)
+    Swag.assert(img.pixelFormat == .BGRA8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 10'u8)
+    Swag.assert(img.pixels.buffer[1] == 20'u8)
+    Swag.assert(img.pixels.buffer[2] == 30'u8)
+    Swag.assert(img.pixels.buffer[3] == 128'u8)
+    Swag.assert(img.pixels.buffer[12] == 200'u8)
 }
 
 // Encode a BGR8 image: alpha is filled opaque.
@@ -504,12 +504,12 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let cb  = expect src.encode("memory.ico")
     let img = expect decodeIco(nnBytes(cb.toSlice()))
-    @assert(img.pixelFormat == .BGRA8)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[3] == 255'u8)
+    Swag.assert(img.pixelFormat == .BGRA8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 10'u8)
+    Swag.assert(img.pixels.buffer[1] == 20'u8)
+    Swag.assert(img.pixels.buffer[2] == 30'u8)
+    Swag.assert(img.pixels.buffer[3] == 255'u8)
 }
 
 // Encode an RGBA8 image: channels are swapped to BGRA on disk.
@@ -524,12 +524,12 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let cb  = expect src.encode("memory.ico")
     let img = expect decodeIco(nnBytes(cb.toSlice()))
-    @assert(img.pixelFormat == .BGRA8)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 10'u8)     // B
-    @assert(img.pixels.buffer[1] == 20'u8)     // G
-    @assert(img.pixels.buffer[2] == 30'u8)     // R
-    @assert(img.pixels.buffer[3] == 99'u8)     // A
+    Swag.assert(img.pixelFormat == .BGRA8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 10'u8)     // B
+    Swag.assert(img.pixels.buffer[1] == 20'u8)     // G
+    Swag.assert(img.pixels.buffer[2] == 30'u8)     // R
+    Swag.assert(img.pixels.buffer[3] == 99'u8)     // A
 }
 
 // Error: dimensions above 256 cannot be encoded.
@@ -539,7 +539,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     src.clear()
 
     discard catch src.encode("memory.ico") as err17
-    @assert(err17 != null)
+    Swag.assert(err17 != null)
 }
 
 // Full registry round-trip through Image.save / Image.load on a temp file.
@@ -557,13 +557,13 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     expect src.save(path.toString())
     let img = expect Image.load(path.toString())
-    @assert(img.width == 4)
-    @assert(img.height == 4)
-    @assert(img.pixelFormat == .BGRA8)
-    @assert(img.pixels.buffer != null)
-    @assert(img.pixels.buffer[0] == 77'u8)
-    @assert(img.pixels.buffer[1] == 88'u8)
-    @assert(img.pixels.buffer[2] == 99'u8)
+    Swag.assert(img.width == 4)
+    Swag.assert(img.height == 4)
+    Swag.assert(img.pixelFormat == .BGRA8)
+    Swag.assert(img.pixels.buffer != null)
+    Swag.assert(img.pixels.buffer[0] == 77'u8)
+    Swag.assert(img.pixels.buffer[1] == 88'u8)
+    Swag.assert(img.pixels.buffer[2] == 99'u8)
 }
 
 // An icon can carry several sizes; the decoder picks the largest of them back.
@@ -582,9 +582,9 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let cb = expect Ico.encodeAll(entries)
 
     let img = expect decodeIco(nnBytes(cb.toSlice()))
-    @assert(img.width == 8)
-    @assert(img.height == 8)
-    @assert(img.pixels.buffer![0] == 22'u8)
+    Swag.assert(img.width == 8)
+    Swag.assert(img.height == 8)
+    Swag.assert(img.pixels.buffer![0] == 22'u8)
 }
 
 // Every entry keeps its own offset, so a later one is still readable on its own.
@@ -600,7 +600,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let cb = expect Ico.encodeAll(entries)
 
     let bytes = nnBytes(cb.toSlice())
-    @assert(bytes[4] == 2'u8)     // ICONDIR.count
+    Swag.assert(bytes[4] == 2'u8)     // ICONDIR.count
 }
 
 // An icon needs at least one image.
@@ -610,7 +610,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     empty.reserve(1)
 
     discard catch Ico.encodeAll(empty.toSlice()) as errNone
-    @assert(errNone != null)
+    Swag.assert(errNone != null)
 }
 
 // The whole set reaches a file through the namespace entry point.
@@ -627,6 +627,6 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let entries: [2] Image = [small, large]
     expect Ico.save(path.toString(), entries)
     let img = expect Image.load(path.toString())
-    @assert(img.width == 16)
-    @assert(img.pixels.buffer![2] == 77'u8)
+    Swag.assert(img.width == 16)
+    Swag.assert(img.pixels.buffer![2] == 77'u8)
 }

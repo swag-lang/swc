@@ -94,7 +94,7 @@ impl IWnd for ColorPicker
                 if .texture.isValid()
                 {
                     .app().renderer.removeTexture(&.texture)
-                    @init(&.texture, 1)
+                    Swag.init(&.texture, 1)
                 }
             }
 

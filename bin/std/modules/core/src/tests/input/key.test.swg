@@ -5,27 +5,27 @@ using Swag
 
 func assertKey(key: Input.Key, index: u32)
 {
-    @assert(cast(u32) key == index)
+    Swag.assert(cast(u32) key == index)
 }
 
 #test
 {
     var virtualKey: Input.VirtualKey = 42
-    @assert(virtualKey == 42)
+    Swag.assert(virtualKey == 42)
 
-    @assert(cast(u32) Input.KeyModifiers.None == 0)
-    @assert(cast(u32) Input.KeyModifiers.Shift == 1)
-    @assert(cast(u32) Input.KeyModifiers.Control == 2)
-    @assert(cast(u32) Input.KeyModifiers.Alt == 4)
-    @assert(Input.KeyModifiers.CtrlShift == (Input.KeyModifiers.Control | Input.KeyModifiers.Shift))
-    @assert(Input.KeyModifiers.CtrlAlt == (Input.KeyModifiers.Control | Input.KeyModifiers.Alt))
+    Swag.assert(cast(u32) Input.KeyModifiers.None == 0)
+    Swag.assert(cast(u32) Input.KeyModifiers.Shift == 1)
+    Swag.assert(cast(u32) Input.KeyModifiers.Control == 2)
+    Swag.assert(cast(u32) Input.KeyModifiers.Alt == 4)
+    Swag.assert(Input.KeyModifiers.CtrlShift == (Input.KeyModifiers.Control | Input.KeyModifiers.Shift))
+    Swag.assert(Input.KeyModifiers.CtrlAlt == (Input.KeyModifiers.Control | Input.KeyModifiers.Alt))
 }
 
 #test
 {
     using Input.Key
 
-    @assert(@countof(Input.Key) == 186)
+    Swag.assert(Input.Key.count == 186)
 
     assertKey(None, 0)
     assertKey(A, 1)
@@ -217,25 +217,25 @@ func assertKey(key: Input.Key, index: u32)
 
 #test
 {
-    @assert(Input.formatKeyShortcut(.None, .A) == "A")
-    @assert(Input.formatKeyShortcut(.Alt, .A) == "Alt+A")
-    @assert(Input.formatKeyShortcut(.Control, .A) == "Ctrl+A")
-    @assert(Input.formatKeyShortcut(.Shift, .A) == "Shift+A")
-    @assert(Input.formatKeyShortcut(.CtrlShift, .A) == "Ctrl+Shift+A")
-    @assert(Input.formatKeyShortcut(.CtrlAlt, .A) == "Alt+Ctrl+A")
-    @assert(Input.formatKeyShortcut(.Alt | .Shift, .A) == "Alt+Shift+A")
+    Swag.assert(Input.formatKeyShortcut(.None, .A) == "A")
+    Swag.assert(Input.formatKeyShortcut(.Alt, .A) == "Alt+A")
+    Swag.assert(Input.formatKeyShortcut(.Control, .A) == "Ctrl+A")
+    Swag.assert(Input.formatKeyShortcut(.Shift, .A) == "Shift+A")
+    Swag.assert(Input.formatKeyShortcut(.CtrlShift, .A) == "Ctrl+Shift+A")
+    Swag.assert(Input.formatKeyShortcut(.CtrlAlt, .A) == "Alt+Ctrl+A")
+    Swag.assert(Input.formatKeyShortcut(.Alt | .Shift, .A) == "Alt+Shift+A")
 
-    @assert(Input.formatKeyShortcut(.None, .NumPad0) == "0")
-    @assert(Input.formatKeyShortcut(.None, .NumPad1) == "1")
-    @assert(Input.formatKeyShortcut(.None, .NumPad2) == "2")
-    @assert(Input.formatKeyShortcut(.None, .NumPad3) == "3")
-    @assert(Input.formatKeyShortcut(.None, .NumPad4) == "4")
-    @assert(Input.formatKeyShortcut(.None, .NumPad5) == "5")
-    @assert(Input.formatKeyShortcut(.None, .NumPad6) == "6")
-    @assert(Input.formatKeyShortcut(.None, .NumPad7) == "7")
-    @assert(Input.formatKeyShortcut(.None, .NumPad8) == "8")
-    @assert(Input.formatKeyShortcut(.None, .NumPad9) == "9")
-    @assert(Input.formatKeyShortcut(.None, .Add) == "+")
-    @assert(Input.formatKeyShortcut(.None, .Subtract) == "-")
-    @assert(Input.formatKeyShortcut(.None, .F10) == "F10")
+    Swag.assert(Input.formatKeyShortcut(.None, .NumPad0) == "0")
+    Swag.assert(Input.formatKeyShortcut(.None, .NumPad1) == "1")
+    Swag.assert(Input.formatKeyShortcut(.None, .NumPad2) == "2")
+    Swag.assert(Input.formatKeyShortcut(.None, .NumPad3) == "3")
+    Swag.assert(Input.formatKeyShortcut(.None, .NumPad4) == "4")
+    Swag.assert(Input.formatKeyShortcut(.None, .NumPad5) == "5")
+    Swag.assert(Input.formatKeyShortcut(.None, .NumPad6) == "6")
+    Swag.assert(Input.formatKeyShortcut(.None, .NumPad7) == "7")
+    Swag.assert(Input.formatKeyShortcut(.None, .NumPad8) == "8")
+    Swag.assert(Input.formatKeyShortcut(.None, .NumPad9) == "9")
+    Swag.assert(Input.formatKeyShortcut(.None, .Add) == "+")
+    Swag.assert(Input.formatKeyShortcut(.None, .Subtract) == "-")
+    Swag.assert(Input.formatKeyShortcut(.None, .F10) == "F10")
 }

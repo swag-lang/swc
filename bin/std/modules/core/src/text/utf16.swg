@@ -22,7 +22,7 @@ func decodeRune(buffer: const [..] u16)->{ c: rune, eat: u32 }
 {
     var result: retval
 
-    if !@countof(buffer)
+    if !buffer.count
     {
         result.c = RuneError
         return result
@@ -36,7 +36,7 @@ func decodeRune(buffer: const [..] u16)->{ c: rune, eat: u32 }
         result.eat = 1
         return result
 
-    case Surr1 <= r and r < Surr2 and @countof(buffer) >= 2 and Surr2 <= buffer[1] and buffer[1] < Surr3:
+    case Surr1 <= r and r < Surr2 and buffer.count >= 2 and Surr2 <= buffer[1] and buffer[1] < Surr3:
         result.c   = ((r - Surr1) << 10 | (buffer[1] - Surr2)) + SurrSelf
         result.eat = 2
         return result
@@ -53,7 +53,7 @@ func decodeRune(buffer: const [..] u16)->{ c: rune, eat: u32 }
 // 'dest' must be at least 2 u16 long
 func encodeRune(dest: [..] u16, src: rune)->u32
 {
-    Debug.assert(@countof(dest) >= 2, "destination buffer is too small")
+    Debug.assert(dest.count >= 2, "destination buffer is too small")
     switch
     {
     case 0 <= src and src < Surr1, Surr3 <= src and src < SurrSelf:
@@ -77,10 +77,10 @@ func encodeRune(dest: [..] u16, src: rune)->u32
 func fromUtf8(dest: [..] u16, src: const [..] u8)->u64
 {
     var count      = 0'u64
-    var srcPtr     = @dataof(src)
-    var destPtr    = @dataof(dest)
-    var srcLength  = @countof(src)
-    var destLength = @countof(dest)
+    var srcPtr     = src.buffer
+    var destPtr    = dest.buffer
+    var srcLength  = src.count
+    var destLength = dest.count
 
     const VectorSize = #sizeof(Math.Simd.U8x16)
     while srcLength
@@ -98,10 +98,10 @@ func fromUtf8(dest: [..] u16, src: const [..] u8)->u64
             }
         }
 
-        let {c, eat} = Utf8.decodeRune(@mkslice(srcPtr, srcLength))
+        let {c, eat} = Utf8.decodeRune(Swag.makeSlice(srcPtr, srcLength))
 
         Debug.assert(destLength >= 2, "destination buffer is too small")
-        let eatDest = encodeRune(@mkslice(destPtr, destLength), c)
+        let eatDest = encodeRune(Swag.makeSlice(destPtr, destLength), c)
         destPtr, count += eatDest
         destLength     -= eatDest
 
@@ -116,8 +116,8 @@ func fromUtf8(dest: [..] u16, src: const [..] u8)->u64
 func fromUtf8(src: const [..] u8)->Array'u16
 {
     var result: retval
-    result.reserve(2 * @countof(src))
-    result.count = fromUtf8(@mkslice(result.buffer, result.capacity), src)
+    result.reserve(2 * src.count)
+    result.count = fromUtf8(Swag.makeSlice(result.buffer, result.capacity), src)
     return result
 }
 
@@ -126,26 +126,26 @@ func fromUtf8(src: const [..] u8)->Array'u16
 // 'dest' must be at least 2 bytes long
 func fromUnicode(dest: [..] u16, src: const [..] rune)->u64
 {
-    var dataof = @dataof(dest)
-    var remain = @countof(dest)
+    var dataof = dest.buffer
+    var remain = dest.count
 
     for ch in src
     {
         Debug.assert(remain >= 2, "destination buffer is too small")
-        let cpt = encodeRune(@mkslice(dataof, remain), ch)
+        let cpt = encodeRune(Swag.makeSlice(dataof, remain), ch)
         dataof += cpt
         remain -= cpt
     }
 
-    return cast(u64) (dataof - @dataof(dest))
+    return cast(u64) (dataof - dest.buffer)
 }
 
 // Convert a character array (32 bits unicode) to an utf16 sequence
 func fromUnicode(src: const [..] rune)->Array'u16
 {
     var result: retval
-    result.reserve(2 * @countof(src))
-    result.count = fromUnicode(@mkslice(result.buffer, result.capacity), src)
+    result.reserve(2 * src.count)
+    result.count = fromUnicode(Swag.makeSlice(result.buffer, result.capacity), src)
     return result
 }
 
@@ -153,23 +153,23 @@ func fromUnicode(src: const [..] rune)->Array'u16
 func toZeroTerminated(src: string)->Array'u16
 {
     var result: retval
-    result.reserve(2 * @countof(src) + 1)
+    result.reserve(2 * src.count + 1)
     let buffer = result.buffer!
-    result.count             = Utf16.fromUtf8(@mkslice(buffer, result.capacity), src) + 1
+    result.count             = Utf16.fromUtf8(Swag.makeSlice(buffer, result.capacity), src) + 1
     result[result.count - 1] = 0
     return result
 }
 
 // Returns the number of UTF-16 units before the first zero, bounded by the slice.
 //
-// The result is `@countof(buf)` when the slice contains no terminator. The function never
+// The result is `buf.count` when the slice contains no terminator. The function never
 // reads outside `buf`; prefer it whenever the storage extent is known.
 func lengthUntilZero(buf: const [..] u16)->u64
 {
     const VectorCount = #sizeof(Math.Simd.U16x8) / #sizeof(u16)
     let zero   = Math.Simd.splat(0'u16)
-    let data   = @dataof(buf)
-    let count  = @countof(buf)
+    let data   = buf.buffer
+    let count  = buf.count
     var offset = 0'u64
 
     while offset + VectorCount <= count

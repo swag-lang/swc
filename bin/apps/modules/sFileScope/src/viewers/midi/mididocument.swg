@@ -68,14 +68,14 @@ private struct MidiVlq
 
 private func midiHas(bytes: const [..] u8, offset, count: u64)->bool
 {
-    return offset <= @countof(bytes) and count <= @countof(bytes) - offset
+    return offset <= bytes.count and count <= bytes.count - offset
 }
 
 private func midiMatches(bytes: const [..] u8, offset: u64, value: string)->bool
 {
-    if !midiHas(bytes, offset, @countof(value)) do
+    if !midiHas(bytes, offset, value.count) do
         return false
-    for index in @countof(value) where bytes[offset + index] != value[index] do
+    for index in value.count where bytes[offset + index] != value[index] do
         return false
     return true
 }
@@ -124,10 +124,10 @@ private func midiText(bytes: const [..] u8, at, length: u64)->String
     }
 
     if Utf8.isValid(text.toSlice()) do
-        return String.from(@mkstring(text.buffer!, text.count))
+        return String.from(Swag.makeString(text.buffer!, text.count))
     for &value in text where value[] >= 128 do
         value[] = '.'u8
-    return String.from(@mkstring(text.buffer!, text.count))
+    return String.from(Swag.makeString(text.buffer!, text.count))
 }
 
 private func closeMidiNote(document: *MidiDocument, active: *u64, tick: u64)

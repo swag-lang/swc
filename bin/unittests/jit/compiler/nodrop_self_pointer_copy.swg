@@ -34,7 +34,7 @@ impl SelfPointerValue
     mtd opDrop()
     {
         if .buffer do
-            @assert(.buffer == cast([*] u8) &.storage[0])
+            Swag.assert(.buffer == cast([*] u8) &.storage[0])
     }
 }
 
@@ -93,11 +93,11 @@ impl InlineBufferText
     #[Implicit]
     mtd opSet(value: string)
     {
-        let newCapacity = @countof(value) + 1
+        let newCapacity = value.count + 1
         .length = newCapacity - 1
         .grow(newCapacity)
         let buf = .buffer!
-        @memcpy(buf, @dataof(value), .length)
+        Swag.memcpy(buf, value.buffer, .length)
         buf[.length] = 0
     }
 
@@ -113,7 +113,7 @@ impl InlineBufferText
     {
         .length = minU64(.length, newCapacity)
         if .allocator == null do
-            .allocator = @getcontext().allocator
+            .allocator = Swag.getContext().allocator
 
         if newCapacity <= 16
         {
@@ -122,12 +122,12 @@ impl InlineBufferText
             return
         }
 
-        @assert(false)
+        Swag.assert(false)
     }
 
     mtd const asString()->string
     {
-        return @mkstring(.buffer!, .length)
+        return Swag.makeString(.buffer!, .length)
     }
 
     mtd opPostCopy()
@@ -142,10 +142,10 @@ impl InlineBufferText
         LastInlineBufferTextDropAddr = dropAddr
         if ExpectedInlineBufferTextDropAddr
         {
-            @assert(dropAddr == ExpectedInlineBufferTextDropAddr)
+            Swag.assert(dropAddr == ExpectedInlineBufferTextDropAddr)
             LastInlineBufferTextDropBuffer = .buffer
             if ExpectedInlineBufferTextDropBuffer do
-                @assert(.buffer == ExpectedInlineBufferTextDropBuffer)
+                Swag.assert(.buffer == ExpectedInlineBufferTextDropBuffer)
         }
     }
 }
@@ -183,7 +183,7 @@ impl HashLikeTable
     {
         let slots = .entries!
         for i in .capacity where slots[i].hash >= 1 do
-            @drop(&slots[i].value)
+            Swag.drop(&slots[i].value)
         testFree(slots)
         .entries  = null
         .capacity = 0
@@ -199,7 +199,7 @@ func makeInlineBufferText(value: string)->InlineBufferText
 
 func dropInlineBufferText(ptr: *InlineBufferText)
 {
-    @drop(ptr)
+    Swag.drop(ptr)
 }
 
 #test
@@ -210,15 +210,15 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
     slot.assign(src)
 
-    @assert(slot.value.first() == 7)
-    @assert(slot.value.buffer == cast([*] u8) &slot.value.storage[0])
+    Swag.assert(slot.value.first() == 7)
+    Swag.assert(slot.value.buffer == cast([*] u8) &slot.value.storage[0])
 }
 
 #test
 {
     let entries = cast([*] CopySlot'SelfPointerValue) testAlloc(#sizeof(CopySlot'SelfPointerValue))!
     defer testFree(entries)
-    @memset(entries, 0, #sizeof(CopySlot'SelfPointerValue))
+    Swag.memset(entries, 0, #sizeof(CopySlot'SelfPointerValue))
 
     var table: EntryArray'SelfPointerValue
     table.entries = entries
@@ -228,31 +228,31 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
     table.addAt(0, src)
 
-    @assert(table.entries[0].value.first() == 9)
-    @assert(table.entries[0].value.buffer == cast([*] u8) &table.entries[0].value.storage[0])
-    @drop(&table.entries[0].value)
+    Swag.assert(table.entries[0].value.first() == 9)
+    Swag.assert(table.entries[0].value.buffer == cast([*] u8) &table.entries[0].value.storage[0])
+    Swag.drop(&table.entries[0].value)
 }
 
 #test
 {
     let entries = cast([*] CopySlot'InlineBufferText) testAlloc(#sizeof(CopySlot'InlineBufferText))!
     defer testFree(entries)
-    @memset(entries, 0, #sizeof(CopySlot'InlineBufferText))
+    Swag.memset(entries, 0, #sizeof(CopySlot'InlineBufferText))
 
     var table: EntryArray'InlineBufferText
     table.entries = entries
 
     table.addAt(0, makeInlineBufferText("swag"))
 
-    @assert(table.entries[0].value.asString() == "swag")
-    @assert(table.entries[0].value.buffer == cast([*] u8) &table.entries[0].value.padding[0])
-    @drop(&table.entries[0].value)
+    Swag.assert(table.entries[0].value.asString() == "swag")
+    Swag.assert(table.entries[0].value.buffer == cast([*] u8) &table.entries[0].value.padding[0])
+    Swag.drop(&table.entries[0].value)
 }
 
 #test
 {
     let entries = cast([*] HashLikeEntry'(string, InlineBufferText)) (testAlloc(#sizeof(HashLikeEntry'(string, InlineBufferText))))!
-    @memset(entries, 0, #sizeof(HashLikeEntry'(string, InlineBufferText)))
+    Swag.memset(entries, 0, #sizeof(HashLikeEntry'(string, InlineBufferText)))
 
     var table: HashLikeTable'(string, InlineBufferText)
     table.entries  = entries
@@ -261,12 +261,12 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     table.add("alpha", makeInlineBufferText("one"))
     let expectedDropAddr   = cast([*] void) &table.entries[0].value
     let expectedDropBuffer = cast([*] u8) &table.entries[0].value.padding[0]
-    @assert(table.valueAddr(0) == expectedDropAddr)
+    Swag.assert(table.valueAddr(0) == expectedDropAddr)
 
-    @assert(table.entries[0].hash == 2)
-    @assert(table.entries[0].key == "alpha")
-    @assert(table.entries[0].value.asString() == "one")
-    @assert(table.entries[0].value.buffer == expectedDropBuffer)
+    Swag.assert(table.entries[0].hash == 2)
+    Swag.assert(table.entries[0].key == "alpha")
+    Swag.assert(table.entries[0].value.asString() == "one")
+    Swag.assert(table.entries[0].value.buffer == expectedDropBuffer)
     LastInlineBufferTextDropAddr   = null
     LastInlineBufferTextDropBuffer = null
     testFree(entries)
@@ -275,7 +275,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 #test
 {
     let entries = cast([*] HashLikeEntry'(s32, InlineBufferText)) (testAlloc(#sizeof(HashLikeEntry'(s32, InlineBufferText))))!
-    @memset(entries, 0, #sizeof(HashLikeEntry'(s32, InlineBufferText)))
+    Swag.memset(entries, 0, #sizeof(HashLikeEntry'(s32, InlineBufferText)))
 
     var table: HashLikeTable'(s32, InlineBufferText)
     table.entries  = entries
@@ -289,14 +289,14 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     ExpectedInlineBufferTextDropAddr   = expectedDropAddr
     ExpectedInlineBufferTextDropBuffer = expectedDropBuffer
     table.free()
-    @assert(LastInlineBufferTextDropAddr == expectedDropAddr)
-    @assert(LastInlineBufferTextDropBuffer == expectedDropBuffer)
+    Swag.assert(LastInlineBufferTextDropAddr == expectedDropAddr)
+    Swag.assert(LastInlineBufferTextDropBuffer == expectedDropBuffer)
 }
 
 #test
 {
     let entries = cast([*] HashLikeEntry'(string, InlineBufferText)) (testAlloc(#sizeof(HashLikeEntry'(string, InlineBufferText))))!
-    @memset(entries, 0, #sizeof(HashLikeEntry'(string, InlineBufferText)))
+    Swag.memset(entries, 0, #sizeof(HashLikeEntry'(string, InlineBufferText)))
 
     var table: HashLikeTable'(string, InlineBufferText)
     table.entries  = entries
@@ -310,6 +310,6 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     ExpectedInlineBufferTextDropAddr   = table.valueAddr(0)
     ExpectedInlineBufferTextDropBuffer = expectedDropBuffer
     table.free()
-    @assert(LastInlineBufferTextDropAddr == ExpectedInlineBufferTextDropAddr)
-    @assert(LastInlineBufferTextDropBuffer == expectedDropBuffer)
+    Swag.assert(LastInlineBufferTextDropAddr == ExpectedInlineBufferTextDropAddr)
+    Swag.assert(LastInlineBufferTextDropBuffer == expectedDropBuffer)
 }

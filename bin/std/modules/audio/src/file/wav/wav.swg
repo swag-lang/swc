@@ -162,13 +162,13 @@ private func encodingOf(tag, bitsPerSample: u32)->SoundFileEncoding fail
 // Returns the classic format tag an extensible subformat stands for.
 private func subformatTag(subformat: const [..] u8)->u32 fail
 {
-    if Memory.bytesEqual(cast(const *SubformatUuid) @dataof(subformat), SubformatPcm) do
+    if Memory.bytesEqual(cast(const *SubformatUuid) subformat.buffer, SubformatPcm) do
         return WAVE_FORMAT_PCM
-    if Memory.bytesEqual(cast(const *SubformatUuid) @dataof(subformat), SubformatIeeeFloat) do
+    if Memory.bytesEqual(cast(const *SubformatUuid) subformat.buffer, SubformatIeeeFloat) do
         return WAVE_FORMAT_IEEE_FLOAT
-    if Memory.bytesEqual(cast(const *SubformatUuid) @dataof(subformat), SubformatAdpcm) do
+    if Memory.bytesEqual(cast(const *SubformatUuid) subformat.buffer, SubformatAdpcm) do
         return WAVE_FORMAT_ADPCM
-    if Memory.bytesEqual(cast(const *SubformatUuid) @dataof(subformat), SubformatImaAdpcm) do
+    if Memory.bytesEqual(cast(const *SubformatUuid) subformat.buffer, SubformatImaAdpcm) do
         return WAVE_FORMAT_IMA_ADPCM
     fail UnsupportedFormatError{"unsupported wav format"}
 }
@@ -176,7 +176,7 @@ private func subformatTag(subformat: const [..] u8)->u32 fail
 // Reads what a `fmt ` chunk declares.
 private func parseFormat(bytes: const [..] u8)->Format fail
 {
-    let size = @countof(bytes)
+    let size = bytes.count
     if size < FormatBaseSize do
         fail InvalidFormatError{"invalid wav"}
 

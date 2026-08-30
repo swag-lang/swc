@@ -7,7 +7,7 @@ func inlineJitNullCoalescingSliceFallback()->bool
     let fallbackValues: [2] u32        = [7, 9]
     let fallback:       [..] u32       = fallbackValues
     let resolved                       = value orelse fallback
-    return @countof(resolved) == 2 and resolved[0] == 7 and resolved[1] == 9
+    return resolved.count == 2 and resolved[0] == 7 and resolved[1] == 9
 }
 
 #[Swag.Inline]
@@ -27,7 +27,7 @@ func inlineJitNonNullCoalescingSliceWins()->bool
     let primary:        [..] u32 = primaryValues
     let fallback:       [..] u32 = fallbackValues
     let resolved                 = primary orelse fallback
-    return @countof(resolved) == 2 and resolved[0] == 1 and resolved[1] == 2
+    return resolved.count == 2 and resolved[0] == 1 and resolved[1] == 2
 }
 
 #test
@@ -42,10 +42,10 @@ func inlineJitNonNullCoalescingSliceWins()->bool
 #test
 {
     var empty = ""
-    @assert((empty orelse "fallback") == "")
+    Swag.assert((empty orelse "fallback") == "")
 
     var missing: #null string = null
-    @assert((missing orelse "fallback") == "fallback")
+    Swag.assert((missing orelse "fallback") == "fallback")
 
     // The result drops '#null': it is guaranteed present.
     #assert(#typeof(missing orelse "fallback") == string)

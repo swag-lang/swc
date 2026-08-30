@@ -100,7 +100,7 @@ func day7A0()
         total += cast(s32) contains(&id, v)
 
     // Console.print("total: ", total)
-    @assert(total == 296)
+    Swag.assert(total == 296)
 }
 
 /////////////////////////////////////////////////////////////////
@@ -143,5 +143,5 @@ func day7A1()
         total += cast(s32) contains(&id, v)
 
     // Console.print("total: ", total)
-    @assert(total == 296)
+    Swag.assert(total == 296)
 }

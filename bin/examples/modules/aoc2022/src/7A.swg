@@ -84,7 +84,7 @@ func day7A()
     var folder:  String
     var folders: HashTable'(String, s32)
 
-    for i in @countof(lines)
+    for i in lines.count
     {
         let l = &lines[i]
         if l[0] == '$' do
@@ -123,5 +123,5 @@ func day7A()
             total += val
 
     // Console.print("total: ", total)
-    @assert(total == 1443806)
+    Swag.assert(total == 1443806)
 }

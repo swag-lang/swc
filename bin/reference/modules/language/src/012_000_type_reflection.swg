@@ -7,7 +7,7 @@ In Swag, types are treated as first-class values that can be inspected and
 manipulated at both compile time and runtime. This enables powerful
 metaprogramming patterns for flexible, reusable code.
 
-The primary intrinsics for interacting with types are '#typeof' and '@kindof',
+The primary intrinsics for interacting with types are '#typeof' and 'Swag.kindOf',
 which let you introspect and work with types dynamically.
 */
 
@@ -22,20 +22,20 @@ itself. This is useful for compile-time inspection and validation.
 {
     // Basic types via '#typeof' and direct type usage
     let ptr1 = #typeof(s8)
-    @assert(ptr1.name == "s8")
-    @assert(ptr1 == s8)
+    Swag.assert(ptr1.name == "s8")
+    Swag.assert(ptr1 == s8)
 
     let ptr2 = #typeof(s16)
-    @assert(ptr2.name == "s16")
-    @assert(ptr2 == s16)
+    Swag.assert(ptr2.name == "s16")
+    Swag.assert(ptr2 == s16)
 
     let ptr3 = s32
-    @assert(ptr3.name == "s32")
-    @assert(ptr3 == #typeof(s32))
+    Swag.assert(ptr3.name == "s32")
+    Swag.assert(ptr3 == #typeof(s32))
 
     let ptr4 = s64
-    @assert(ptr4.name == "s64")
-    @assert(ptr4 == s64)
+    Swag.assert(ptr4.name == "s64")
+    Swag.assert(ptr4 == s64)
 }
 
 /**
@@ -53,17 +53,17 @@ itself. This is useful for compile-time inspection and validation.
 {
     // Native type -> native typeinfo
     let ptr = bool
-    @assert(#nameof(#typeof(ptr)) == "const *TypeInfoNative")
+    Swag.assert(#nameof(#typeof(ptr)) == "const *TypeInfoNative")
 
     // Use '#type' to disambiguate when the expression could be parsed as a value
     let ptr1 = #type [2] s32
-    @assert(#nameof(#typeof(ptr1)) == "const *TypeInfoArray")
-    @assert(ptr1.name == "[2] s32")
+    Swag.assert(#nameof(#typeof(ptr1)) == "const *TypeInfoArray")
+    Swag.assert(ptr1.name == "[2] s32")
 
     // Array literal -> array typeinfo
     let ptr2 = #typeof([1, 2, 3])
-    @assert(#nameof(#typeof(ptr2)) == "const *TypeInfoArray")
-    @assert(ptr2.name == "const [3] s32")
+    Swag.assert(#nameof(#typeof(ptr2)) == "const *TypeInfoArray")
+    Swag.assert(ptr2.name == "const [3] s32")
 }
 
 /**
@@ -76,7 +76,7 @@ array, struct, etc. This is essential when handling types generically.
 {
     // 'f64' is a native type
     let typeOf = f64
-    @assert(typeOf.kind == Swag.TypeInfoKind.Native)
+    Swag.assert(typeOf.kind == Swag.TypeInfoKind.Native)
 
     // Compile-time checks of kind
     using Swag
@@ -88,7 +88,7 @@ array, struct, etc. This is essential when handling types generically.
 /**
 # The '#decltype' Query
 
-'#decltype' performs the reverse of '#typeof'/'@kindof': it converts a
+'#decltype' performs the reverse of '#typeof'/'Swag.kindOf': it converts a
 'typeinfo' back into a compiler type. Use it to materialize a type determined
 by compile-time information.
 */

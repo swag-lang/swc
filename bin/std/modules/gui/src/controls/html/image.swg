@@ -65,7 +65,7 @@ impl HtmlImageCache
     // it is asked to display, which is what makes viewing an untrusted file safe.
     mtd fetch(source: string)->#null *HtmlImageEntry
     {
-        if !@countof(source) do
+        if !source.count do
             return null
 
         let found = .index.tryFind(String.from(source))

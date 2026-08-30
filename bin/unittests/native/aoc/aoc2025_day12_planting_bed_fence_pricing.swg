@@ -12,7 +12,7 @@ struct FencePricingReport
 
 func lineWidth(line: string)->u32
 {
-    return cast(u32) @countof(cast(const [..] u8) line)
+    return cast(u32) (cast(const [..] u8) line).count
 }
 
 func cellIndex(x, y, width: u32)->u32
@@ -28,13 +28,13 @@ func cropAt(layout: const [..] string, x, y: u32)->u8
 
 func analyzeFencePricing(layout: const [..] string)->FencePricingReport
 {
-    let height     = cast(u32) @countof(layout)
+    let height     = cast(u32) layout.count
     let width      = lineWidth(layout[0])
     let totalCells = width * height
 
-    @assert(height > 0)
-    @assert(width > 0)
-    @assert(totalCells <= 400)
+    Swag.assert(height > 0)
+    Swag.assert(width > 0)
+    Swag.assert(totalCells <= 400)
 
     var visited:     [400] bool
     var inRegion:    [400] bool
@@ -44,12 +44,12 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
 
     for ?, rowIndex in layout
     {
-        @assert(lineWidth(layout[rowIndex]) == width)
+        Swag.assert(lineWidth(layout[rowIndex]) == width)
     }
 
     for totalCells
     {
-        let startIndex = cast(u32) @index
+        let startIndex = cast(u32) Swag.index
         if visited[startIndex] do
             continue
 
@@ -129,7 +129,7 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
 
         for regionCount
         {
-            let current = regionCells[@index]
+            let current = regionCells[Swag.index]
             let x       = current % width
             let y       = current / width
 
@@ -170,7 +170,7 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
 
         for regionCount
         {
-            inRegion[regionCells[@index]] = false
+            inRegion[regionCells[Swag.index]] = false
         }
     }
 
@@ -189,9 +189,9 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
 
     let sampleReport = analyzeFencePricing(sampleBeds)
 
-    @assert(sampleReport.regionCount == 5'u32)
-    @assert(sampleReport.totalPerimeterPrice == 140'u64)
-    @assert(sampleReport.totalDiscountedPrice == 80'u64)
+    Swag.assert(sampleReport.regionCount == 5'u32)
+    Swag.assert(sampleReport.totalPerimeterPrice == 140'u64)
+    Swag.assert(sampleReport.totalDiscountedPrice == 80'u64)
 
     const courtyardBeds: [4] string =
         [
@@ -203,7 +203,7 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
 
     let courtyardReport = analyzeFencePricing(courtyardBeds)
 
-    @assert(courtyardReport.regionCount == 2'u32)
-    @assert(courtyardReport.totalPerimeterPrice == 320'u64)
-    @assert(courtyardReport.totalDiscountedPrice == 112'u64)
+    Swag.assert(courtyardReport.regionCount == 2'u32)
+    Swag.assert(courtyardReport.totalPerimeterPrice == 320'u64)
+    Swag.assert(courtyardReport.totalDiscountedPrice == 112'u64)
 }

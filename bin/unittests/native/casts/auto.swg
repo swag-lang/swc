@@ -17,14 +17,14 @@ func takes_f64(v: f64) { gAutoF64 = v }
 {
     var ptr: *u64 = &gAutoX64
     toto(cast() ptr)
-    @assert(gAutoPtr == cast(*u32) ptr)
+    Swag.assert(gAutoPtr == cast(*u32) ptr)
 }
 
 #test
 {
     var f: f32 = 12.75
     takes_s32(cast() f)
-    @assert(gAutoS32 == 12)
+    Swag.assert(gAutoS32 == 12)
 }
 
 #test
@@ -32,14 +32,14 @@ func takes_f64(v: f64) { gAutoF64 = v }
     const B: bool = true
     const S: s32  = cast() B
     #assert(S == 1)
-    @assert(S == 1)
+    Swag.assert(S == 1)
 }
 
 #test
 {
     func ret_u64()->u64 { return 42 }
     var y: s32 = cast() ret_u64()
-    @assert(y == 42)
+    Swag.assert(y == 42)
 }
 
 #test
@@ -47,7 +47,7 @@ func takes_f64(v: f64) { gAutoF64 = v }
     #[Swag.Inline]
     func ret_u64()->u64 { return 42 }
     var y: s32 = cast() ret_u64()
-    @assert(y == 42)
+    Swag.assert(y == 42)
 }
 
 #test
@@ -55,8 +55,8 @@ func takes_f64(v: f64) { gAutoF64 = v }
     var v: u16 = 7
     takes_u64(cast() v)
     takes_f64(cast() v)
-    @assert(gAutoU64 == 7)
-    @assert(gAutoF64 == 7.0)
+    Swag.assert(gAutoU64 == 7)
+    Swag.assert(gAutoF64 == 7.0)
 }
 
 #test
@@ -70,7 +70,7 @@ func takes_f64(v: f64) { gAutoF64 = v }
     var r: *A = &x
     var p: *A = r
     #assert(#typeof(p) == *A)
-    @assert(#typeof(p) == *A)
+    Swag.assert(#typeof(p) == *A)
 }
 
 #test
@@ -83,7 +83,7 @@ func takes_f64(v: f64) { gAutoF64 = v }
     var x: A
     var r: const *A = &x
     var p: const *A = r
-    @assert(#typeof(p) == const *A)
+    Swag.assert(#typeof(p) == const *A)
 }
 
 #test
@@ -95,7 +95,7 @@ func takes_f64(v: f64) { gAutoF64 = v }
 
     var x: A
     var r: const *A = &x
-    @assert(#typeof(r) == const *A)
+    Swag.assert(#typeof(r) == const *A)
 }
 
 #[Swag.Inline]
@@ -105,11 +105,11 @@ func a_takes_s32(v: s32) { gAutoS32 = v }
 #test
 {
     var y: s32 = cast() ret_u64_short()
-    @assert(y == 42)
+    Swag.assert(y == 42)
 }
 
 #test
 {
     a_takes_s32(cast() ret_u64_short())
-    @assert(gAutoS32 == 42)
+    Swag.assert(gAutoS32 == 42)
 }

@@ -278,7 +278,7 @@ namespace Swag
     {
         BoundCheck  = 0x0001     // Check out of bound access
         Overflow    = 0x0002     // Check type conversion lost of bits or precision
-        Math        = 0x0004     // Check various math operations (like a negative '@sqrt')
+        Math        = 0x0004     // Check various math operations (like a negative 'Swag.sqrt')
         DynCast     = 0x0008     // Check if a cast from a 'any' variable does not match the real underlying type
         Switch      = 0x0010     // Check if an unexpected case value is encountered
         Bool        = 0x0020     // Check if a 'bool' does not have a valid value ('true' or 'false')
@@ -429,7 +429,7 @@ namespace Swag
         public
         {
             modules: #null const [..] Module     // The list of all modules
-            args:    #null string                // The application arguments, as returned by [[@args]]
+            args:    #null string                // The application arguments, as returned by [[Swag.args()]]
         }
     }
 
@@ -563,7 +563,7 @@ namespace Swag
         pushCurError:   #null any     // Current handled error at the push.
     }
 
-    // Thread context as returned by [@getcontext].
+    // Thread context as returned by [Swag.getContext].
     struct Context
     {
         public
@@ -1044,7 +1044,7 @@ namespace Swag
     // ```swag
     // #run
     // {
-    //     let cfg = @compiler.getBuildCfg()!
+    //     let cfg = Swag.compiler().getBuildCfg()!
     //     cfg.warnings.asErrors = "all"
     //     cfg.warnings.disabled = "sema_warn_unreachable_code"
     // }
@@ -1143,7 +1143,7 @@ namespace Swag
     // A message received in a '#message' function.
     //
     // In a '#message' function, you can retreive the associated message by calling 'getMessage' of the
-    // interface returned by [[@compiler]]
+    // interface returned by [[Swag.compiler()]]
     struct CompilerMessage
     {
         public
@@ -1157,7 +1157,7 @@ namespace Swag
 
     // This is the interface to communicate with the compiler.
     //
-    // The intrinsic '@compiler' will return that interface at compile-time, and 'null' at runtime.
+    // The intrinsic 'Swag.compiler()' will return that interface at compile-time, and 'null' at runtime.
     interface ICompiler
     {
         mtd getMessage()->#null const *CompilerMessage     // Returns the compiler message in a '#message' function
@@ -1189,198 +1189,198 @@ namespace Swag
 }
 
 // Panic if the expression is false. Typically used in tests.
-func @assert(value: bool)
+func assert(value: bool)
 
 // Stop a bytecode execution, and launch the bytecode debugger.
-func @breakpoint()
+func breakpoint()
 
 // Get the current thread context.
-func @getcontext()->*Swag.Context
+func getContext()->*Swag.Context
 
 // Replace the current thread context.
-func @setcontext(context: const *Swag.Context)
+func setContext(context: const *Swag.Context)
 
 // Get information about the current process.
-func @pinfos()->*Swag.ProcessInfos
+func processInfos()->*Swag.ProcessInfos
 
 // Returns the list of all loaded modules.
-func @modules()->#null const [..] Swag.Module
+func modules()->#null const [..] Swag.Module
 
 // Returns the list of all global variables.
-func @gvtd()->#null const [..] Swag.Gvtd
+func gvtd()->#null const [..] Swag.Gvtd
 
 // Returns an [[ICompiler]] interface to communicate with the compiler.
-func @compiler()->Swag.ICompiler
+func compiler()->Swag.ICompiler
 
 // Set all bytes of a given memory block to 'value'
-func @memset(dst: #null [*] void, value: u8, size: u64)
+func memset(dst: #null [*] void, value: u8, size: u64)
 
 // Copy one memory block to another address.
-func @memcpy(dst: #null [*] void, src: #null const [*] void, size: u64)
+func memcpy(dst: #null [*] void, src: #null const [*] void, size: u64)
 
 // Move one memory block to another address.
-func @memmove(dst: #null [*] void, src: #null const [*] void, size: u64)
+func memmove(dst: #null [*] void, src: #null const [*] void, size: u64)
 
 // Compare two memory blocks, and returns -1, 0 if equal, or 1.
-func @memcmp(dst, src: #null const [*] void, size: u64)->s32
+func memcmp(dst, src: #null const [*] void, size: u64)->s32
 
 // Atomic operations
 #[Swag.Discardable]
 {
     // Atomic 'add'
-    func @atomadd(addr: *s8, value: s8)->s8
-    func @atomadd(addr: *s16, value: s16)->s16
-    func @atomadd(addr: *s32, value: s32)->s32
-    func @atomadd(addr: *s64, value: s64)->s64
-    func @atomadd(addr: *u8, value: u8)->u8
-    func @atomadd(addr: *u16, value: u16)->u16
-    func @atomadd(addr: *u32, value: u32)->u32
-    func @atomadd(addr: *u64, value: u64)->u64
+    func atomadd(addr: *s8, value: s8)->s8
+    func atomadd(addr: *s16, value: s16)->s16
+    func atomadd(addr: *s32, value: s32)->s32
+    func atomadd(addr: *s64, value: s64)->s64
+    func atomadd(addr: *u8, value: u8)->u8
+    func atomadd(addr: *u16, value: u16)->u16
+    func atomadd(addr: *u32, value: u32)->u32
+    func atomadd(addr: *u64, value: u64)->u64
 
     // Atomic 'and'
-    func @atomand(addr: *s8, value: s8)->s8
-    func @atomand(addr: *s16, value: s16)->s16
-    func @atomand(addr: *s32, value: s32)->s32
-    func @atomand(addr: *s64, value: s64)->s64
-    func @atomand(addr: *u8, value: u8)->u8
-    func @atomand(addr: *u16, value: u16)->u16
-    func @atomand(addr: *u32, value: u32)->u32
-    func @atomand(addr: *u64, value: u64)->u64
+    func atomand(addr: *s8, value: s8)->s8
+    func atomand(addr: *s16, value: s16)->s16
+    func atomand(addr: *s32, value: s32)->s32
+    func atomand(addr: *s64, value: s64)->s64
+    func atomand(addr: *u8, value: u8)->u8
+    func atomand(addr: *u16, value: u16)->u16
+    func atomand(addr: *u32, value: u32)->u32
+    func atomand(addr: *u64, value: u64)->u64
 
     // Atomic 'or'
-    func @atomor(addr: *s8, value: s8)->s8
-    func @atomor(addr: *s16, value: s16)->s16
-    func @atomor(addr: *s32, value: s32)->s32
-    func @atomor(addr: *s64, value: s64)->s64
-    func @atomor(addr: *u8, value: u8)->u8
-    func @atomor(addr: *u16, value: u16)->u16
-    func @atomor(addr: *u32, value: u32)->u32
-    func @atomor(addr: *u64, value: u64)->u64
+    func atomor(addr: *s8, value: s8)->s8
+    func atomor(addr: *s16, value: s16)->s16
+    func atomor(addr: *s32, value: s32)->s32
+    func atomor(addr: *s64, value: s64)->s64
+    func atomor(addr: *u8, value: u8)->u8
+    func atomor(addr: *u16, value: u16)->u16
+    func atomor(addr: *u32, value: u32)->u32
+    func atomor(addr: *u64, value: u64)->u64
 
     // Atomic 'xor'
-    func @atomxor(addr: *s8, value: s8)->s8
-    func @atomxor(addr: *s16, value: s16)->s16
-    func @atomxor(addr: *s32, value: s32)->s32
-    func @atomxor(addr: *s64, value: s64)->s64
-    func @atomxor(addr: *u8, value: u8)->u8
-    func @atomxor(addr: *u16, value: u16)->u16
-    func @atomxor(addr: *u32, value: u32)->u32
-    func @atomxor(addr: *u64, value: u64)->u64
+    func atomxor(addr: *s8, value: s8)->s8
+    func atomxor(addr: *s16, value: s16)->s16
+    func atomxor(addr: *s32, value: s32)->s32
+    func atomxor(addr: *s64, value: s64)->s64
+    func atomxor(addr: *u8, value: u8)->u8
+    func atomxor(addr: *u16, value: u16)->u16
+    func atomxor(addr: *u32, value: u32)->u32
+    func atomxor(addr: *u64, value: u64)->u64
 
     // Atomic 'exchange'
-    func @atomxchg(addr: *s8, exchangeWith: s8)->s8
-    func @atomxchg(addr: *s16, exchangeWith: s16)->s16
-    func @atomxchg(addr: *s32, exchangeWith: s32)->s32
-    func @atomxchg(addr: *s64, exchangeWith: s64)->s64
-    func @atomxchg(addr: *u8, exchangeWith: u8)->u8
-    func @atomxchg(addr: *u16, exchangeWith: u16)->u16
-    func @atomxchg(addr: *u32, exchangeWith: u32)->u32
-    func @atomxchg(addr: *u64, exchangeWith: u64)->u64
+    func atomxchg(addr: *s8, exchangeWith: s8)->s8
+    func atomxchg(addr: *s16, exchangeWith: s16)->s16
+    func atomxchg(addr: *s32, exchangeWith: s32)->s32
+    func atomxchg(addr: *s64, exchangeWith: s64)->s64
+    func atomxchg(addr: *u8, exchangeWith: u8)->u8
+    func atomxchg(addr: *u16, exchangeWith: u16)->u16
+    func atomxchg(addr: *u32, exchangeWith: u32)->u32
+    func atomxchg(addr: *u64, exchangeWith: u64)->u64
 
     // Atomic 'compare and exchange'
-    func @atomcmpxchg(addr: *s8, compareTo, exchangeWith: s8)->s8
-    func @atomcmpxchg(addr: *s16, compareTo, exchangeWith: s16)->s16
-    func @atomcmpxchg(addr: *s32, compareTo, exchangeWith: s32)->s32
-    func @atomcmpxchg(addr: *s64, compareTo, exchangeWith: s64)->s64
-    func @atomcmpxchg(addr: *u8, compareTo, exchangeWith: u8)->u8
-    func @atomcmpxchg(addr: *u16, compareTo, exchangeWith: u16)->u16
-    func @atomcmpxchg(addr: *u32, compareTo, exchangeWith: u32)->u32
-    func @atomcmpxchg(addr: *u64, compareTo, exchangeWith: u64)->u64
+    func atomcmpxchg(addr: *s8, compareTo, exchangeWith: s8)->s8
+    func atomcmpxchg(addr: *s16, compareTo, exchangeWith: s16)->s16
+    func atomcmpxchg(addr: *s32, compareTo, exchangeWith: s32)->s32
+    func atomcmpxchg(addr: *s64, compareTo, exchangeWith: s64)->s64
+    func atomcmpxchg(addr: *u8, compareTo, exchangeWith: u8)->u8
+    func atomcmpxchg(addr: *u16, compareTo, exchangeWith: u16)->u16
+    func atomcmpxchg(addr: *u32, compareTo, exchangeWith: u32)->u32
+    func atomcmpxchg(addr: *u64, compareTo, exchangeWith: u64)->u64
 }
 
 // Constant intrinsics
 #[Swag.ConstExpr]
 {
     // Square root.
-    func @sqrt(value: f32)->f32
-    func @sqrt(value: f64)->f64
+    func sqrt(value: f32)->f32
+    func sqrt(value: f64)->f64
 
     // Minimum of two values.
-    func @min(value1, value2: s8)->s8
-    func @min(value1, value2: s16)->s16
-    func @min(value1, value2: s32)->s32
-    func @min(value1, value2: s64)->s64
-    func @min(value1, value2: u8)->u8
-    func @min(value1, value2: u16)->u16
-    func @min(value1, value2: u32)->u32
-    func @min(value1, value2: u64)->u64
-    func @min(value1, value2: f32)->f32
-    func @min(value1, value2: f64)->f64
+    func min(value1, value2: s8)->s8
+    func min(value1, value2: s16)->s16
+    func min(value1, value2: s32)->s32
+    func min(value1, value2: s64)->s64
+    func min(value1, value2: u8)->u8
+    func min(value1, value2: u16)->u16
+    func min(value1, value2: u32)->u32
+    func min(value1, value2: u64)->u64
+    func min(value1, value2: f32)->f32
+    func min(value1, value2: f64)->f64
 
     // Maximum of two values.
-    func @max(value1, value2: s8)->s8
-    func @max(value1, value2: s16)->s16
-    func @max(value1, value2: s32)->s32
-    func @max(value1, value2: s64)->s64
-    func @max(value1, value2: u8)->u8
-    func @max(value1, value2: u16)->u16
-    func @max(value1, value2: u32)->u32
-    func @max(value1, value2: u64)->u64
-    func @max(value1, value2: f32)->f32
-    func @max(value1, value2: f64)->f64
+    func max(value1, value2: s8)->s8
+    func max(value1, value2: s16)->s16
+    func max(value1, value2: s32)->s32
+    func max(value1, value2: s64)->s64
+    func max(value1, value2: u8)->u8
+    func max(value1, value2: u16)->u16
+    func max(value1, value2: u32)->u32
+    func max(value1, value2: u64)->u64
+    func max(value1, value2: f32)->f32
+    func max(value1, value2: f64)->f64
 
     // Absolute value.
-    func @abs(value: s8)->s8
-    func @abs(value: s16)->s16
-    func @abs(value: s32)->s32
-    func @abs(value: s64)->s64
-    func @abs(value: f32)->f32
-    func @abs(value: f64)->f64
+    func abs(value: s8)->s8
+    func abs(value: s16)->s16
+    func abs(value: s32)->s32
+    func abs(value: s64)->s64
+    func abs(value: f32)->f32
+    func abs(value: f64)->f64
 
     // Rotate bits left
-    func @rol(value: u8, num: u8)->u8
-    func @rol(value: u16, num: u8)->u16
-    func @rol(value: u32, num: u8)->u32
-    func @rol(value: u64, num: u8)->u64
+    func rol(value: u8, num: u8)->u8
+    func rol(value: u16, num: u8)->u16
+    func rol(value: u32, num: u8)->u32
+    func rol(value: u64, num: u8)->u64
 
     // Rotate bits right
-    func @ror(value: u8, num: u8)->u8
-    func @ror(value: u16, num: u8)->u16
-    func @ror(value: u32, num: u8)->u32
-    func @ror(value: u64, num: u8)->u64
+    func ror(value: u8, num: u8)->u8
+    func ror(value: u16, num: u8)->u16
+    func ror(value: u32, num: u8)->u32
+    func ror(value: u64, num: u8)->u64
 
     // Reverses the order of bytes in an integer.
-    func @byteswap(value: u16)->u16
-    func @byteswap(value: u32)->u32
-    func @byteswap(value: u64)->u64
+    func byteSwap(value: u16)->u16
+    func byteSwap(value: u32)->u32
+    func byteSwap(value: u64)->u64
 
     // Count the number of bits set to 1
-    func @bitcountnz(value: u8)->u8
-    func @bitcountnz(value: u16)->u16
-    func @bitcountnz(value: u32)->u32
-    func @bitcountnz(value: u64)->u64
+    func bitCountNz(value: u8)->u8
+    func bitCountNz(value: u16)->u16
+    func bitCountNz(value: u32)->u32
+    func bitCountNz(value: u64)->u64
 
     // Number of zero bits below the lowest set bit. The operand width if all zero.
-    func @bitcounttz(value: u8)->u8
-    func @bitcounttz(value: u16)->u16
-    func @bitcounttz(value: u32)->u32
-    func @bitcounttz(value: u64)->u64
+    func bitCountTz(value: u8)->u8
+    func bitCountTz(value: u16)->u16
+    func bitCountTz(value: u32)->u32
+    func bitCountTz(value: u64)->u64
 
     // Number of zero bits above the highest set bit. The operand width if all zero.
-    func @bitcountlz(value: u8)->u8
-    func @bitcountlz(value: u16)->u16
-    func @bitcountlz(value: u32)->u32
-    func @bitcountlz(value: u64)->u64
+    func bitCountLz(value: u8)->u8
+    func bitCountLz(value: u16)->u16
+    func bitCountLz(value: u32)->u32
+    func bitCountLz(value: u64)->u64
 
     // Returns '(val1 * val2) + val3'
-    func @muladd(val1, val2, val3: f32)->f32
-    func @muladd(val1, val2, val3: f64)->f64
+    func muladd(val1, val2, val3: f32)->f32
+    func muladd(val1, val2, val3: f64)->f64
 
     // Round toward minus infinity.
-    func @floor(value: f32)->f32
-    func @floor(value: f64)->f64
+    func floor(value: f32)->f32
+    func floor(value: f64)->f64
 
     // Round toward plus infinity.
-    func @ceil(value: f32)->f32
-    func @ceil(value: f64)->f64
+    func ceil(value: f32)->f32
+    func ceil(value: f64)->f64
 
     // Round toward zero.
-    func @trunc(value: f32)->f32
-    func @trunc(value: f64)->f64
+    func trunc(value: f32)->f32
+    func trunc(value: f64)->f64
 
     // Round to nearest, away from zero at .5.
-    func @round(value: f32)->f32
-    func @round(value: f64)->f64
+    func round(value: f32)->f32
+    func round(value: f64)->f64
 }
 
 // Packed vector intrinsics. Every operation maps to one hardware form of the
@@ -1388,355 +1388,355 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
 // of them execute under compile-time evaluation like any other code.
 {
     // Element-wise minimum and maximum.
-    func @min(value1, value2: #simd [16] u8)->#simd [16] u8
-    func @min(value1, value2: #simd [16] s8)->#simd [16] s8
-    func @min(value1, value2: #simd [8] u16)->#simd [8] u16
-    func @min(value1, value2: #simd [8] s16)->#simd [8] s16
-    func @min(value1, value2: #simd [4] u32)->#simd [4] u32
-    func @min(value1, value2: #simd [4] s32)->#simd [4] s32
-    func @min(value1, value2: #simd [2] u64)->#simd [2] u64
-    func @min(value1, value2: #simd [2] s64)->#simd [2] s64
-    func @min(value1, value2: #simd [4] f32)->#simd [4] f32
-    func @min(value1, value2: #simd [2] f64)->#simd [2] f64
-    func @max(value1, value2: #simd [16] u8)->#simd [16] u8
-    func @max(value1, value2: #simd [16] s8)->#simd [16] s8
-    func @max(value1, value2: #simd [8] u16)->#simd [8] u16
-    func @max(value1, value2: #simd [8] s16)->#simd [8] s16
-    func @max(value1, value2: #simd [4] u32)->#simd [4] u32
-    func @max(value1, value2: #simd [4] s32)->#simd [4] s32
-    func @max(value1, value2: #simd [2] u64)->#simd [2] u64
-    func @max(value1, value2: #simd [2] s64)->#simd [2] s64
-    func @max(value1, value2: #simd [4] f32)->#simd [4] f32
-    func @max(value1, value2: #simd [2] f64)->#simd [2] f64
+    func min(value1, value2: #simd [16] u8)->#simd [16] u8
+    func min(value1, value2: #simd [16] s8)->#simd [16] s8
+    func min(value1, value2: #simd [8] u16)->#simd [8] u16
+    func min(value1, value2: #simd [8] s16)->#simd [8] s16
+    func min(value1, value2: #simd [4] u32)->#simd [4] u32
+    func min(value1, value2: #simd [4] s32)->#simd [4] s32
+    func min(value1, value2: #simd [2] u64)->#simd [2] u64
+    func min(value1, value2: #simd [2] s64)->#simd [2] s64
+    func min(value1, value2: #simd [4] f32)->#simd [4] f32
+    func min(value1, value2: #simd [2] f64)->#simd [2] f64
+    func max(value1, value2: #simd [16] u8)->#simd [16] u8
+    func max(value1, value2: #simd [16] s8)->#simd [16] s8
+    func max(value1, value2: #simd [8] u16)->#simd [8] u16
+    func max(value1, value2: #simd [8] s16)->#simd [8] s16
+    func max(value1, value2: #simd [4] u32)->#simd [4] u32
+    func max(value1, value2: #simd [4] s32)->#simd [4] s32
+    func max(value1, value2: #simd [2] u64)->#simd [2] u64
+    func max(value1, value2: #simd [2] s64)->#simd [2] s64
+    func max(value1, value2: #simd [4] f32)->#simd [4] f32
+    func max(value1, value2: #simd [2] f64)->#simd [2] f64
 
     // Element-wise absolute value and square root. A float lane clears its sign
     // bit, so a NaN stays that NaN and a negative zero becomes a positive one.
-    func @abs(value: #simd [16] s8)->#simd [16] s8
-    func @abs(value: #simd [8] s16)->#simd [8] s16
-    func @abs(value: #simd [4] s32)->#simd [4] s32
-    func @abs(value: #simd [2] s64)->#simd [2] s64
-    func @abs(value: #simd [4] f32)->#simd [4] f32
-    func @abs(value: #simd [2] f64)->#simd [2] f64
-    func @sqrt(value: #simd [4] f32)->#simd [4] f32
-    func @sqrt(value: #simd [2] f64)->#simd [2] f64
+    func abs(value: #simd [16] s8)->#simd [16] s8
+    func abs(value: #simd [8] s16)->#simd [8] s16
+    func abs(value: #simd [4] s32)->#simd [4] s32
+    func abs(value: #simd [2] s64)->#simd [2] s64
+    func abs(value: #simd [4] f32)->#simd [4] f32
+    func abs(value: #simd [2] f64)->#simd [2] f64
+    func sqrt(value: #simd [4] f32)->#simd [4] f32
+    func sqrt(value: #simd [2] f64)->#simd [2] f64
 
     // Element-wise bit rotation. Every lane rotates by 'num' taken modulo the
     // lane width, exactly like the scalar forms.
-    func @rol(value: #simd [16] u8, num: u8)->#simd [16] u8
-    func @rol(value: #simd [8] u16, num: u8)->#simd [8] u16
-    func @rol(value: #simd [4] u32, num: u8)->#simd [4] u32
-    func @rol(value: #simd [2] u64, num: u8)->#simd [2] u64
-    func @ror(value: #simd [16] u8, num: u8)->#simd [16] u8
-    func @ror(value: #simd [8] u16, num: u8)->#simd [8] u16
-    func @ror(value: #simd [4] u32, num: u8)->#simd [4] u32
-    func @ror(value: #simd [2] u64, num: u8)->#simd [2] u64
+    func rol(value: #simd [16] u8, num: u8)->#simd [16] u8
+    func rol(value: #simd [8] u16, num: u8)->#simd [8] u16
+    func rol(value: #simd [4] u32, num: u8)->#simd [4] u32
+    func rol(value: #simd [2] u64, num: u8)->#simd [2] u64
+    func ror(value: #simd [16] u8, num: u8)->#simd [16] u8
+    func ror(value: #simd [8] u16, num: u8)->#simd [8] u16
+    func ror(value: #simd [4] u32, num: u8)->#simd [4] u32
+    func ror(value: #simd [2] u64, num: u8)->#simd [2] u64
 
     // Element-wise bit counts, each lane answering what the scalar form answers
     // for one value of that width.
-    func @bitcountnz(value: #simd [16] u8)->#simd [16] u8
-    func @bitcountnz(value: #simd [8] u16)->#simd [8] u16
-    func @bitcountnz(value: #simd [4] u32)->#simd [4] u32
-    func @bitcountnz(value: #simd [2] u64)->#simd [2] u64
-    func @bitcounttz(value: #simd [16] u8)->#simd [16] u8
-    func @bitcounttz(value: #simd [8] u16)->#simd [8] u16
-    func @bitcounttz(value: #simd [4] u32)->#simd [4] u32
-    func @bitcounttz(value: #simd [2] u64)->#simd [2] u64
-    func @bitcountlz(value: #simd [16] u8)->#simd [16] u8
-    func @bitcountlz(value: #simd [8] u16)->#simd [8] u16
-    func @bitcountlz(value: #simd [4] u32)->#simd [4] u32
-    func @bitcountlz(value: #simd [2] u64)->#simd [2] u64
+    func bitCountNz(value: #simd [16] u8)->#simd [16] u8
+    func bitCountNz(value: #simd [8] u16)->#simd [8] u16
+    func bitCountNz(value: #simd [4] u32)->#simd [4] u32
+    func bitCountNz(value: #simd [2] u64)->#simd [2] u64
+    func bitCountTz(value: #simd [16] u8)->#simd [16] u8
+    func bitCountTz(value: #simd [8] u16)->#simd [8] u16
+    func bitCountTz(value: #simd [4] u32)->#simd [4] u32
+    func bitCountTz(value: #simd [2] u64)->#simd [2] u64
+    func bitCountLz(value: #simd [16] u8)->#simd [16] u8
+    func bitCountLz(value: #simd [8] u16)->#simd [8] u16
+    func bitCountLz(value: #simd [4] u32)->#simd [4] u32
+    func bitCountLz(value: #simd [2] u64)->#simd [2] u64
 
     // Element-wise byte reversal inside every lane.
-    func @byteswap(value: #simd [8] u16)->#simd [8] u16
-    func @byteswap(value: #simd [4] u32)->#simd [4] u32
-    func @byteswap(value: #simd [2] u64)->#simd [2] u64
+    func byteSwap(value: #simd [8] u16)->#simd [8] u16
+    func byteSwap(value: #simd [4] u32)->#simd [4] u32
+    func byteSwap(value: #simd [2] u64)->#simd [2] u64
 
     // Element-wise '(val1 * val2) + val3'.
-    func @muladd(val1, val2, val3: #simd [4] f32)->#simd [4] f32
-    func @muladd(val1, val2, val3: #simd [2] f64)->#simd [2] f64
+    func muladd(val1, val2, val3: #simd [4] f32)->#simd [4] f32
+    func muladd(val1, val2, val3: #simd [2] f64)->#simd [2] f64
 
     // Element-wise float rounding. There is no packed round-away-from-zero.
-    func @floor(value: #simd [4] f32)->#simd [4] f32
-    func @floor(value: #simd [2] f64)->#simd [2] f64
-    func @ceil(value: #simd [4] f32)->#simd [4] f32
-    func @ceil(value: #simd [2] f64)->#simd [2] f64
-    func @trunc(value: #simd [4] f32)->#simd [4] f32
-    func @trunc(value: #simd [2] f64)->#simd [2] f64
+    func floor(value: #simd [4] f32)->#simd [4] f32
+    func floor(value: #simd [2] f64)->#simd [2] f64
+    func ceil(value: #simd [4] f32)->#simd [4] f32
+    func ceil(value: #simd [2] f64)->#simd [2] f64
+    func trunc(value: #simd [4] f32)->#simd [4] f32
+    func trunc(value: #simd [2] f64)->#simd [2] f64
 
     // Broadcast: every lane of the result takes the value of the scalar. The
     // lane type names the vector, so a 'u8' fills sixteen lanes and an 'f64'
     // fills two.
-    func @vecsplat(value: u8)->#simd [16] u8
-    func @vecsplat(value: s8)->#simd [16] s8
-    func @vecsplat(value: u16)->#simd [8] u16
-    func @vecsplat(value: s16)->#simd [8] s16
-    func @vecsplat(value: u32)->#simd [4] u32
-    func @vecsplat(value: s32)->#simd [4] s32
-    func @vecsplat(value: u64)->#simd [2] u64
-    func @vecsplat(value: s64)->#simd [2] s64
-    func @vecsplat(value: f32)->#simd [4] f32
-    func @vecsplat(value: f64)->#simd [2] f64
+    func vecsplat(value: u8)->#simd [16] u8
+    func vecsplat(value: s8)->#simd [16] s8
+    func vecsplat(value: u16)->#simd [8] u16
+    func vecsplat(value: s16)->#simd [8] s16
+    func vecsplat(value: u32)->#simd [4] u32
+    func vecsplat(value: s32)->#simd [4] s32
+    func vecsplat(value: u64)->#simd [2] u64
+    func vecsplat(value: s64)->#simd [2] s64
+    func vecsplat(value: f32)->#simd [4] f32
+    func vecsplat(value: f64)->#simd [2] f64
 
     // Saturating addition and subtraction: results clamp to the lane range
     // instead of wrapping.
-    func @vecsatadd(value1, value2: #simd [16] u8)->#simd [16] u8
-    func @vecsatadd(value1, value2: #simd [16] s8)->#simd [16] s8
-    func @vecsatadd(value1, value2: #simd [8] u16)->#simd [8] u16
-    func @vecsatadd(value1, value2: #simd [8] s16)->#simd [8] s16
-    func @vecsatsub(value1, value2: #simd [16] u8)->#simd [16] u8
-    func @vecsatsub(value1, value2: #simd [16] s8)->#simd [16] s8
-    func @vecsatsub(value1, value2: #simd [8] u16)->#simd [8] u16
-    func @vecsatsub(value1, value2: #simd [8] s16)->#simd [8] s16
+    func vecsatadd(value1, value2: #simd [16] u8)->#simd [16] u8
+    func vecsatadd(value1, value2: #simd [16] s8)->#simd [16] s8
+    func vecsatadd(value1, value2: #simd [8] u16)->#simd [8] u16
+    func vecsatadd(value1, value2: #simd [8] s16)->#simd [8] s16
+    func vecsatsub(value1, value2: #simd [16] u8)->#simd [16] u8
+    func vecsatsub(value1, value2: #simd [16] s8)->#simd [16] s8
+    func vecsatsub(value1, value2: #simd [8] u16)->#simd [8] u16
+    func vecsatsub(value1, value2: #simd [8] s16)->#simd [8] s16
 
     // Saturating narrowing packs: the lanes of 'low' land in the low half of
     // the result and the lanes of 'high' in the high half, each clamped to
     // the destination range.
-    func @vecpackus(low, high: #simd [8] s16)->#simd [16] u8
-    func @vecpackus(low, high: #simd [4] s32)->#simd [8] u16
-    func @vecpackss(low, high: #simd [8] s16)->#simd [16] s8
-    func @vecpackss(low, high: #simd [4] s32)->#simd [8] s16
-    func @vecinterleavelo(value1, value2: #simd [16] u8)->#simd [16] u8
-    func @vecinterleavelo(value1, value2: #simd [8] u16)->#simd [8] u16
-    func @vecinterleavelo(value1, value2: #simd [4] u32)->#simd [4] u32
-    func @vecinterleavelo(value1, value2: #simd [2] u64)->#simd [2] u64
-    func @vecinterleavehi(value1, value2: #simd [16] u8)->#simd [16] u8
-    func @vecinterleavehi(value1, value2: #simd [8] u16)->#simd [8] u16
-    func @vecinterleavehi(value1, value2: #simd [4] u32)->#simd [4] u32
-    func @vecinterleavehi(value1, value2: #simd [2] u64)->#simd [2] u64
+    func vecpackus(low, high: #simd [8] s16)->#simd [16] u8
+    func vecpackus(low, high: #simd [4] s32)->#simd [8] u16
+    func vecpackss(low, high: #simd [8] s16)->#simd [16] s8
+    func vecpackss(low, high: #simd [4] s32)->#simd [8] s16
+    func vecinterleavelo(value1, value2: #simd [16] u8)->#simd [16] u8
+    func vecinterleavelo(value1, value2: #simd [8] u16)->#simd [8] u16
+    func vecinterleavelo(value1, value2: #simd [4] u32)->#simd [4] u32
+    func vecinterleavelo(value1, value2: #simd [2] u64)->#simd [2] u64
+    func vecinterleavehi(value1, value2: #simd [16] u8)->#simd [16] u8
+    func vecinterleavehi(value1, value2: #simd [8] u16)->#simd [8] u16
+    func vecinterleavehi(value1, value2: #simd [4] u32)->#simd [4] u32
+    func vecinterleavehi(value1, value2: #simd [2] u64)->#simd [2] u64
 
     // Widening: the low or high half of the lanes extends to double width,
     // zero-extended for unsigned lanes and sign-extended for signed ones.
-    func @vecwidenlo(value: #simd [16] u8)->#simd [8] u16
-    func @vecwidenlo(value: #simd [16] s8)->#simd [8] s16
-    func @vecwidenlo(value: #simd [8] u16)->#simd [4] u32
-    func @vecwidenlo(value: #simd [8] s16)->#simd [4] s32
-    func @vecwidenlo(value: #simd [4] u32)->#simd [2] u64
-    func @vecwidenlo(value: #simd [4] s32)->#simd [2] s64
-    func @vecwidenhi(value: #simd [16] u8)->#simd [8] u16
-    func @vecwidenhi(value: #simd [16] s8)->#simd [8] s16
-    func @vecwidenhi(value: #simd [8] u16)->#simd [4] u32
-    func @vecwidenhi(value: #simd [8] s16)->#simd [4] s32
-    func @vecwidenhi(value: #simd [4] u32)->#simd [2] u64
-    func @vecwidenhi(value: #simd [4] s32)->#simd [2] s64
+    func vecwidenlo(value: #simd [16] u8)->#simd [8] u16
+    func vecwidenlo(value: #simd [16] s8)->#simd [8] s16
+    func vecwidenlo(value: #simd [8] u16)->#simd [4] u32
+    func vecwidenlo(value: #simd [8] s16)->#simd [4] s32
+    func vecwidenlo(value: #simd [4] u32)->#simd [2] u64
+    func vecwidenlo(value: #simd [4] s32)->#simd [2] s64
+    func vecwidenhi(value: #simd [16] u8)->#simd [8] u16
+    func vecwidenhi(value: #simd [16] s8)->#simd [8] s16
+    func vecwidenhi(value: #simd [8] u16)->#simd [4] u32
+    func vecwidenhi(value: #simd [8] s16)->#simd [4] s32
+    func vecwidenhi(value: #simd [4] u32)->#simd [2] u64
+    func vecwidenhi(value: #simd [4] s32)->#simd [2] s64
 
     // Rounding average: '(a + b + 1) >> 1' per lane, without overflow.
-    func @vecavgr(value1, value2: #simd [16] u8)->#simd [16] u8
-    func @vecavgr(value1, value2: #simd [8] u16)->#simd [8] u16
+    func vecavgr(value1, value2: #simd [16] u8)->#simd [16] u8
+    func vecavgr(value1, value2: #simd [8] u16)->#simd [8] u16
 
     // Pairwise multiply-add: lanes multiply pairwise and adjacent products
     // add into double-width lanes. The unsigned/signed byte form saturates
     // its 16-bit sums.
-    func @vecmadd(value1, value2: #simd [8] s16)->#simd [4] s32
-    func @vecmaddubs(value1: #simd [16] u8, value2: #simd [16] s8)->#simd [8] s16
+    func vecmadd(value1, value2: #simd [8] s16)->#simd [4] s32
+    func vecmaddubs(value1: #simd [16] u8, value2: #simd [16] s8)->#simd [8] s16
 
     // The half of a lane product that '*' drops: lane 'i' answers the bits
     // above the lane width of the full product of both lane 'i' values, read
     // as the lane type is signed or not. The two together are the whole
-    // product, low lanes in '@vecinterleavelo' and high lanes in
-    // '@vecinterleavehi'.
-    func @vecmulhi(value1, value2: #simd [16] u8)->#simd [16] u8
-    func @vecmulhi(value1, value2: #simd [16] s8)->#simd [16] s8
-    func @vecmulhi(value1, value2: #simd [8] u16)->#simd [8] u16
-    func @vecmulhi(value1, value2: #simd [8] s16)->#simd [8] s16
-    func @vecmulhi(value1, value2: #simd [4] u32)->#simd [4] u32
-    func @vecmulhi(value1, value2: #simd [4] s32)->#simd [4] s32
-    func @vecmulhi(value1, value2: #simd [2] u64)->#simd [2] u64
-    func @vecmulhi(value1, value2: #simd [2] s64)->#simd [2] s64
+    // product, low lanes in 'Swag.vecinterleavelo' and high lanes in
+    // 'Swag.vecinterleavehi'.
+    func vecmulhi(value1, value2: #simd [16] u8)->#simd [16] u8
+    func vecmulhi(value1, value2: #simd [16] s8)->#simd [16] s8
+    func vecmulhi(value1, value2: #simd [8] u16)->#simd [8] u16
+    func vecmulhi(value1, value2: #simd [8] s16)->#simd [8] s16
+    func vecmulhi(value1, value2: #simd [4] u32)->#simd [4] u32
+    func vecmulhi(value1, value2: #simd [4] s32)->#simd [4] s32
+    func vecmulhi(value1, value2: #simd [2] u64)->#simd [2] u64
+    func vecmulhi(value1, value2: #simd [2] s64)->#simd [2] s64
 
     // Sum of absolute byte differences: each half of the operands reduces
     // into the low word of the matching 64-bit lane.
-    func @vecsad(value1, value2: #simd [16] u8)->#simd [2] u64
-    func @vecsad(value1, value2: #simd [16] s8)->#simd [2] u64
+    func vecsad(value1, value2: #simd [16] u8)->#simd [2] u64
+    func vecsad(value1, value2: #simd [16] s8)->#simd [2] u64
 
     // Horizontal reductions: every lane combines into one scalar of the lane
     // type. Adjacent lanes combine first and their results after, so the
     // order is a balanced tree over the lane index. Integer sums wrap, and
-    // the float minimum and maximum follow the element-wise '@min' and
-    // '@max', which answer their second operand when either side is a NaN.
-    func @vecreduceadd(value: #simd [16] u8)->u8
-    func @vecreduceadd(value: #simd [16] s8)->s8
-    func @vecreduceadd(value: #simd [8] u16)->u16
-    func @vecreduceadd(value: #simd [8] s16)->s16
-    func @vecreduceadd(value: #simd [4] u32)->u32
-    func @vecreduceadd(value: #simd [4] s32)->s32
-    func @vecreduceadd(value: #simd [2] u64)->u64
-    func @vecreduceadd(value: #simd [2] s64)->s64
-    func @vecreduceadd(value: #simd [4] f32)->f32
-    func @vecreduceadd(value: #simd [2] f64)->f64
-    func @vecreducemin(value: #simd [16] u8)->u8
-    func @vecreducemin(value: #simd [16] s8)->s8
-    func @vecreducemin(value: #simd [8] u16)->u16
-    func @vecreducemin(value: #simd [8] s16)->s16
-    func @vecreducemin(value: #simd [4] u32)->u32
-    func @vecreducemin(value: #simd [4] s32)->s32
-    func @vecreducemin(value: #simd [2] u64)->u64
-    func @vecreducemin(value: #simd [2] s64)->s64
-    func @vecreducemin(value: #simd [4] f32)->f32
-    func @vecreducemin(value: #simd [2] f64)->f64
-    func @vecreducemax(value: #simd [16] u8)->u8
-    func @vecreducemax(value: #simd [16] s8)->s8
-    func @vecreducemax(value: #simd [8] u16)->u16
-    func @vecreducemax(value: #simd [8] s16)->s16
-    func @vecreducemax(value: #simd [4] u32)->u32
-    func @vecreducemax(value: #simd [4] s32)->s32
-    func @vecreducemax(value: #simd [2] u64)->u64
-    func @vecreducemax(value: #simd [2] s64)->s64
-    func @vecreducemax(value: #simd [4] f32)->f32
-    func @vecreducemax(value: #simd [2] f64)->f64
-    func @vecreduceand(value: #simd [16] u8)->u8
-    func @vecreduceand(value: #simd [16] s8)->s8
-    func @vecreduceand(value: #simd [8] u16)->u16
-    func @vecreduceand(value: #simd [8] s16)->s16
-    func @vecreduceand(value: #simd [4] u32)->u32
-    func @vecreduceand(value: #simd [4] s32)->s32
-    func @vecreduceand(value: #simd [2] u64)->u64
-    func @vecreduceand(value: #simd [2] s64)->s64
-    func @vecreduceor(value: #simd [16] u8)->u8
-    func @vecreduceor(value: #simd [16] s8)->s8
-    func @vecreduceor(value: #simd [8] u16)->u16
-    func @vecreduceor(value: #simd [8] s16)->s16
-    func @vecreduceor(value: #simd [4] u32)->u32
-    func @vecreduceor(value: #simd [4] s32)->s32
-    func @vecreduceor(value: #simd [2] u64)->u64
-    func @vecreduceor(value: #simd [2] s64)->s64
-    func @vecreducexor(value: #simd [16] u8)->u8
-    func @vecreducexor(value: #simd [16] s8)->s8
-    func @vecreducexor(value: #simd [8] u16)->u16
-    func @vecreducexor(value: #simd [8] s16)->s16
-    func @vecreducexor(value: #simd [4] u32)->u32
-    func @vecreducexor(value: #simd [4] s32)->s32
-    func @vecreducexor(value: #simd [2] u64)->u64
-    func @vecreducexor(value: #simd [2] s64)->s64
+    // the float minimum and maximum follow the element-wise 'Swag.min' and
+    // 'Swag.max', which answer their second operand when either side is a NaN.
+    func vecreduceadd(value: #simd [16] u8)->u8
+    func vecreduceadd(value: #simd [16] s8)->s8
+    func vecreduceadd(value: #simd [8] u16)->u16
+    func vecreduceadd(value: #simd [8] s16)->s16
+    func vecreduceadd(value: #simd [4] u32)->u32
+    func vecreduceadd(value: #simd [4] s32)->s32
+    func vecreduceadd(value: #simd [2] u64)->u64
+    func vecreduceadd(value: #simd [2] s64)->s64
+    func vecreduceadd(value: #simd [4] f32)->f32
+    func vecreduceadd(value: #simd [2] f64)->f64
+    func vecreducemin(value: #simd [16] u8)->u8
+    func vecreducemin(value: #simd [16] s8)->s8
+    func vecreducemin(value: #simd [8] u16)->u16
+    func vecreducemin(value: #simd [8] s16)->s16
+    func vecreducemin(value: #simd [4] u32)->u32
+    func vecreducemin(value: #simd [4] s32)->s32
+    func vecreducemin(value: #simd [2] u64)->u64
+    func vecreducemin(value: #simd [2] s64)->s64
+    func vecreducemin(value: #simd [4] f32)->f32
+    func vecreducemin(value: #simd [2] f64)->f64
+    func vecreducemax(value: #simd [16] u8)->u8
+    func vecreducemax(value: #simd [16] s8)->s8
+    func vecreducemax(value: #simd [8] u16)->u16
+    func vecreducemax(value: #simd [8] s16)->s16
+    func vecreducemax(value: #simd [4] u32)->u32
+    func vecreducemax(value: #simd [4] s32)->s32
+    func vecreducemax(value: #simd [2] u64)->u64
+    func vecreducemax(value: #simd [2] s64)->s64
+    func vecreducemax(value: #simd [4] f32)->f32
+    func vecreducemax(value: #simd [2] f64)->f64
+    func vecreduceand(value: #simd [16] u8)->u8
+    func vecreduceand(value: #simd [16] s8)->s8
+    func vecreduceand(value: #simd [8] u16)->u16
+    func vecreduceand(value: #simd [8] s16)->s16
+    func vecreduceand(value: #simd [4] u32)->u32
+    func vecreduceand(value: #simd [4] s32)->s32
+    func vecreduceand(value: #simd [2] u64)->u64
+    func vecreduceand(value: #simd [2] s64)->s64
+    func vecreduceor(value: #simd [16] u8)->u8
+    func vecreduceor(value: #simd [16] s8)->s8
+    func vecreduceor(value: #simd [8] u16)->u16
+    func vecreduceor(value: #simd [8] s16)->s16
+    func vecreduceor(value: #simd [4] u32)->u32
+    func vecreduceor(value: #simd [4] s32)->s32
+    func vecreduceor(value: #simd [2] u64)->u64
+    func vecreduceor(value: #simd [2] s64)->s64
+    func vecreducexor(value: #simd [16] u8)->u8
+    func vecreducexor(value: #simd [16] s8)->s8
+    func vecreducexor(value: #simd [8] u16)->u16
+    func vecreducexor(value: #simd [8] s16)->s16
+    func vecreducexor(value: #simd [4] u32)->u32
+    func vecreducexor(value: #simd [4] s32)->s32
+    func vecreducexor(value: #simd [2] u64)->u64
+    func vecreducexor(value: #simd [2] s64)->s64
 
     // Converts float lanes to signed 32-bit integers by truncating toward
     // zero. NaN and values outside the destination range become 's32.Min'.
-    func @vectruncs32(value: #simd [4] f32)->#simd [4] s32
+    func vectruncs32(value: #simd [4] f32)->#simd [4] s32
 
     // Indexed memory load: result lane i reads base[indices[i]]. Every index
     // must be at most 's32.Max' and designate a readable element.
-    func @vecgather(base: const [*] s32, indices: #simd [4] u32)->#simd [4] s32
+    func vecgather(base: const [*] s32, indices: #simd [4] u32)->#simd [4] s32
 
     // Dynamic byte permute: every result byte picks the source byte named by
     // the low four bits of the matching table byte, or zero when the table
     // byte's high bit is set.
-    func @vecperm(value: #simd [16] u8, table: #simd [16] u8)->#simd [16] u8
+    func vecperm(value: #simd [16] u8, table: #simd [16] u8)->#simd [16] u8
 
     // Lane permutation. Result lane 'i' takes the lane the matching pattern
     // lane names, the index reduced modulo the lane count so no pattern is out
     // of range. A pattern known at compile time selects an immediate form where
     // the target has one, and one built at run time goes through the dynamic
     // byte permute.
-    func @vecshuffle(value: #simd [16] u8, pattern: #simd [16] u8)->#simd [16] u8
-    func @vecshuffle(value: #simd [16] s8, pattern: #simd [16] u8)->#simd [16] s8
-    func @vecshuffle(value: #simd [8] u16, pattern: #simd [8] u16)->#simd [8] u16
-    func @vecshuffle(value: #simd [8] s16, pattern: #simd [8] u16)->#simd [8] s16
-    func @vecshuffle(value: #simd [4] u32, pattern: #simd [4] u32)->#simd [4] u32
-    func @vecshuffle(value: #simd [4] s32, pattern: #simd [4] u32)->#simd [4] s32
-    func @vecshuffle(value: #simd [2] u64, pattern: #simd [2] u64)->#simd [2] u64
-    func @vecshuffle(value: #simd [2] s64, pattern: #simd [2] u64)->#simd [2] s64
-    func @vecshuffle(value: #simd [4] f32, pattern: #simd [4] u32)->#simd [4] f32
-    func @vecshuffle(value: #simd [2] f64, pattern: #simd [2] u64)->#simd [2] f64
+    func vecshuffle(value: #simd [16] u8, pattern: #simd [16] u8)->#simd [16] u8
+    func vecshuffle(value: #simd [16] s8, pattern: #simd [16] u8)->#simd [16] s8
+    func vecshuffle(value: #simd [8] u16, pattern: #simd [8] u16)->#simd [8] u16
+    func vecshuffle(value: #simd [8] s16, pattern: #simd [8] u16)->#simd [8] s16
+    func vecshuffle(value: #simd [4] u32, pattern: #simd [4] u32)->#simd [4] u32
+    func vecshuffle(value: #simd [4] s32, pattern: #simd [4] u32)->#simd [4] s32
+    func vecshuffle(value: #simd [2] u64, pattern: #simd [2] u64)->#simd [2] u64
+    func vecshuffle(value: #simd [2] s64, pattern: #simd [2] u64)->#simd [2] s64
+    func vecshuffle(value: #simd [4] f32, pattern: #simd [4] u32)->#simd [4] f32
+    func vecshuffle(value: #simd [2] f64, pattern: #simd [2] u64)->#simd [2] f64
 
     // The same over two vectors: an index below the lane count reads 'value1',
     // and one above it reads 'value2' at the index minus the lane count.
-    func @vecshuffle2(value1, value2: #simd [16] u8, pattern: #simd [16] u8)->#simd [16] u8
-    func @vecshuffle2(value1, value2: #simd [16] s8, pattern: #simd [16] u8)->#simd [16] s8
-    func @vecshuffle2(value1, value2: #simd [8] u16, pattern: #simd [8] u16)->#simd [8] u16
-    func @vecshuffle2(value1, value2: #simd [8] s16, pattern: #simd [8] u16)->#simd [8] s16
-    func @vecshuffle2(value1, value2: #simd [4] u32, pattern: #simd [4] u32)->#simd [4] u32
-    func @vecshuffle2(value1, value2: #simd [4] s32, pattern: #simd [4] u32)->#simd [4] s32
-    func @vecshuffle2(value1, value2: #simd [2] u64, pattern: #simd [2] u64)->#simd [2] u64
-    func @vecshuffle2(value1, value2: #simd [2] s64, pattern: #simd [2] u64)->#simd [2] s64
-    func @vecshuffle2(value1, value2: #simd [4] f32, pattern: #simd [4] u32)->#simd [4] f32
-    func @vecshuffle2(value1, value2: #simd [2] f64, pattern: #simd [2] u64)->#simd [2] f64
+    func vecshuffle2(value1, value2: #simd [16] u8, pattern: #simd [16] u8)->#simd [16] u8
+    func vecshuffle2(value1, value2: #simd [16] s8, pattern: #simd [16] u8)->#simd [16] s8
+    func vecshuffle2(value1, value2: #simd [8] u16, pattern: #simd [8] u16)->#simd [8] u16
+    func vecshuffle2(value1, value2: #simd [8] s16, pattern: #simd [8] u16)->#simd [8] s16
+    func vecshuffle2(value1, value2: #simd [4] u32, pattern: #simd [4] u32)->#simd [4] u32
+    func vecshuffle2(value1, value2: #simd [4] s32, pattern: #simd [4] u32)->#simd [4] s32
+    func vecshuffle2(value1, value2: #simd [2] u64, pattern: #simd [2] u64)->#simd [2] u64
+    func vecshuffle2(value1, value2: #simd [2] s64, pattern: #simd [2] u64)->#simd [2] s64
+    func vecshuffle2(value1, value2: #simd [4] f32, pattern: #simd [4] u32)->#simd [4] f32
+    func vecshuffle2(value1, value2: #simd [2] f64, pattern: #simd [2] u64)->#simd [2] f64
 
     // Sixteen bytes of the concatenation of 'low' and 'high', starting at byte
     // 'count' of it. A byte past the thirty-two is zero.
-    func @vecalign(low, high: #simd [16] u8, count: u8)->#simd [16] u8
-    func @vecalign(low, high: #simd [16] s8, count: u8)->#simd [16] s8
-    func @vecalign(low, high: #simd [8] u16, count: u8)->#simd [8] u16
-    func @vecalign(low, high: #simd [8] s16, count: u8)->#simd [8] s16
-    func @vecalign(low, high: #simd [4] u32, count: u8)->#simd [4] u32
-    func @vecalign(low, high: #simd [4] s32, count: u8)->#simd [4] s32
-    func @vecalign(low, high: #simd [2] u64, count: u8)->#simd [2] u64
-    func @vecalign(low, high: #simd [2] s64, count: u8)->#simd [2] s64
-    func @vecalign(low, high: #simd [4] f32, count: u8)->#simd [4] f32
-    func @vecalign(low, high: #simd [2] f64, count: u8)->#simd [2] f64
+    func vecalign(low, high: #simd [16] u8, count: u8)->#simd [16] u8
+    func vecalign(low, high: #simd [16] s8, count: u8)->#simd [16] s8
+    func vecalign(low, high: #simd [8] u16, count: u8)->#simd [8] u16
+    func vecalign(low, high: #simd [8] s16, count: u8)->#simd [8] s16
+    func vecalign(low, high: #simd [4] u32, count: u8)->#simd [4] u32
+    func vecalign(low, high: #simd [4] s32, count: u8)->#simd [4] s32
+    func vecalign(low, high: #simd [2] u64, count: u8)->#simd [2] u64
+    func vecalign(low, high: #simd [2] s64, count: u8)->#simd [2] s64
+    func vecalign(low, high: #simd [4] f32, count: u8)->#simd [4] f32
+    func vecalign(low, high: #simd [2] f64, count: u8)->#simd [2] f64
 
     // Per-lane select: lanes of 'ifTrue' where the mask lane is all-ones,
     // lanes of 'ifFalse' where it is all-zeros.
-    func @vecselect(mask, ifTrue, ifFalse: #simd [16] u8)->#simd [16] u8
-    func @vecselect(mask: #simd [8] u16, ifTrue, ifFalse: #simd [8] s16)->#simd [8] s16
-    func @vecselect(mask, ifTrue, ifFalse: #simd [8] u16)->#simd [8] u16
-    func @vecselect(mask: #simd [4] u32, ifTrue, ifFalse: #simd [4] s32)->#simd [4] s32
-    func @vecselect(mask, ifTrue, ifFalse: #simd [4] u32)->#simd [4] u32
-    func @vecselect(mask: #simd [4] u32, ifTrue, ifFalse: #simd [4] f32)->#simd [4] f32
-    func @vecselect(mask: #simd [2] u64, ifTrue, ifFalse: #simd [2] f64)->#simd [2] f64
-    func @vecselect(mask, ifTrue, ifFalse: #simd [2] u64)->#simd [2] u64
-    func @vecselect(mask: #simd [2] u64, ifTrue, ifFalse: #simd [2] s64)->#simd [2] s64
-    func @vecselect(mask: #simd [16] u8, ifTrue, ifFalse: #simd [16] s8)->#simd [16] s8
+    func vecselect(mask, ifTrue, ifFalse: #simd [16] u8)->#simd [16] u8
+    func vecselect(mask: #simd [8] u16, ifTrue, ifFalse: #simd [8] s16)->#simd [8] s16
+    func vecselect(mask, ifTrue, ifFalse: #simd [8] u16)->#simd [8] u16
+    func vecselect(mask: #simd [4] u32, ifTrue, ifFalse: #simd [4] s32)->#simd [4] s32
+    func vecselect(mask, ifTrue, ifFalse: #simd [4] u32)->#simd [4] u32
+    func vecselect(mask: #simd [4] u32, ifTrue, ifFalse: #simd [4] f32)->#simd [4] f32
+    func vecselect(mask: #simd [2] u64, ifTrue, ifFalse: #simd [2] f64)->#simd [2] f64
+    func vecselect(mask, ifTrue, ifFalse: #simd [2] u64)->#simd [2] u64
+    func vecselect(mask: #simd [2] u64, ifTrue, ifFalse: #simd [2] s64)->#simd [2] s64
+    func vecselect(mask: #simd [16] u8, ifTrue, ifFalse: #simd [16] s8)->#simd [16] s8
 
     // Lane sign bits gathered into the low bits of an integer: one bit per
     // lane, lane zero in bit zero.
-    func @vecmask(value: #simd [16] u8)->u32
-    func @vecmask(value: #simd [8] u16)->u32
-    func @vecmask(value: #simd [4] u32)->u32
-    func @vecmask(value: #simd [2] u64)->u32
+    func vecmask(value: #simd [16] u8)->u32
+    func vecmask(value: #simd [8] u16)->u32
+    func vecmask(value: #simd [4] u32)->u32
+    func vecmask(value: #simd [2] u64)->u32
 
     // True when any (respectively every) mask lane is all-ones.
-    func @vecany(value: #simd [16] u8)->bool
-    func @vecany(value: #simd [8] u16)->bool
-    func @vecany(value: #simd [4] u32)->bool
-    func @vecany(value: #simd [2] u64)->bool
-    func @vecall(value: #simd [16] u8)->bool
-    func @vecall(value: #simd [8] u16)->bool
-    func @vecall(value: #simd [4] u32)->bool
-    func @vecall(value: #simd [2] u64)->bool
+    func vecany(value: #simd [16] u8)->bool
+    func vecany(value: #simd [8] u16)->bool
+    func vecany(value: #simd [4] u32)->bool
+    func vecany(value: #simd [2] u64)->bool
+    func vecall(value: #simd [16] u8)->bool
+    func vecall(value: #simd [8] u16)->bool
+    func vecall(value: #simd [4] u32)->bool
+    func vecall(value: #simd [2] u64)->bool
 }
 
 #[Swag.ConstExpr]
 {
     // Trigonometric functions.
-    func @sin(value: f32)->f32
-    func @sin(value: f64)->f64
-    func @cos(value: f32)->f32
-    func @cos(value: f64)->f64
-    func @tan(value: f32)->f32
-    func @tan(value: f64)->f64
+    func sin(value: f32)->f32
+    func sin(value: f64)->f64
+    func cos(value: f32)->f32
+    func cos(value: f64)->f64
+    func tan(value: f32)->f32
+    func tan(value: f64)->f64
 
     // Hyperbolic trigonometric functions.
-    func @sinh(value: f32)->f32
-    func @sinh(value: f64)->f64
-    func @cosh(value: f32)->f32
-    func @cosh(value: f64)->f64
-    func @tanh(value: f32)->f32
-    func @tanh(value: f64)->f64
+    func sinh(value: f32)->f32
+    func sinh(value: f64)->f64
+    func cosh(value: f32)->f32
+    func cosh(value: f64)->f64
+    func tanh(value: f32)->f32
+    func tanh(value: f64)->f64
 
     // Inverse trigonometric functions.
-    func @asin(value: f32)->f32
-    func @asin(value: f64)->f64
-    func @acos(value: f32)->f32
-    func @acos(value: f64)->f64
-    func @atan(value: f32)->f32
-    func @atan(value: f64)->f64
+    func asin(value: f32)->f32
+    func asin(value: f64)->f64
+    func acos(value: f32)->f32
+    func acos(value: f64)->f64
+    func atan(value: f32)->f32
+    func atan(value: f64)->f64
 
     // Logarithms.
-    func @log(value: f32)->f32
-    func @log(value: f64)->f64
-    func @log2(value: f32)->f32
-    func @log2(value: f64)->f64
-    func @log10(value: f32)->f32
-    func @log10(value: f64)->f64
+    func log(value: f32)->f32
+    func log(value: f64)->f64
+    func log2(value: f32)->f32
+    func log2(value: f64)->f64
+    func log10(value: f32)->f32
+    func log10(value: f64)->f64
 
     // Exponentials and power.
-    func @exp(value: f32)->f32
-    func @exp(value: f64)->f64
-    func @exp2(value: f32)->f32
-    func @exp2(value: f64)->f64
-    func @pow(value1, value2: f32)->f32
-    func @pow(value1, value2: f64)->f64
+    func exp(value: f32)->f32
+    func exp(value: f64)->f64
+    func exp2(value: f32)->f32
+    func exp2(value: f64)->f64
+    func pow(value1, value2: f32)->f32
+    func pow(value1, value2: f64)->f64
 
     // Arctangent of y/x with quadrant selection.
-    func @atan2(value1, value2: f32)->f32
-    func @atan2(value1, value2: f64)->f64
+    func atan2(value1, value2: f32)->f32
+    func atan2(value1, value2: f64)->f64
 }

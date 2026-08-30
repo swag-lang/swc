@@ -198,7 +198,7 @@ impl Decoder
 
             if objType
             {
-                itf.itable = @tableof(cast(#null const *Swag.TypeInfoStruct) objType, cast(#null const *Swag.TypeInfoStruct) itfType)
+                itf.itable = Swag.tableOf(cast(#null const *Swag.TypeInfoStruct) objType, cast(#null const *Swag.TypeInfoStruct) itfType)
 
                 typeVal.pointedType = objType
                 itf.obj             = Memory.new(objType)
@@ -245,7 +245,7 @@ impl Decoder
 
             // A structure with an implementation of ISerialize
             let idecoder = cast(IDecoder) me[]
-            let itf      = @mkinterface(data, type, ISerialize)
+            let itf      = Swag.makeInterface(data, type, ISerialize)
             if itf != null
             {
                 if itf.read(idecoder) do

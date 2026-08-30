@@ -13,9 +13,9 @@ your use case or domain requirements.
     const b: u32 = 0xFFFF         // Hexadecimal, prefixed with '0x' (represents 65535)
     const c: u32 = 0b00001111     // Binary, prefixed with '0b' (represents 15)
 
-    @assert(a == 123456)
-    @assert(b == 65535)
-    @assert(c == 15)
+    Swag.assert(a == 123456)
+    Swag.assert(b == 65535)
+    Swag.assert(c == 15)
 }
 
 /**
@@ -30,9 +30,9 @@ readability. Separators do not affect the numeric value.
     const b: u32 = 0xF_F_F_F       // Hexadecimal with separators
     const c: u32 = 0b0000_1111     // Binary with separators
 
-    @assert(a == 123456)
-    @assert(b == 65535)
-    @assert(c == 15)
+    Swag.assert(a == 123456)
+    Swag.assert(b == 65535)
+    Swag.assert(c == 15)
 }
 
 /**
@@ -80,20 +80,20 @@ easy to read for developers coming from C or C++ backgrounds.
 #test
 {
     let a = 1.5
-    @assert(a == 1.5)
+    Swag.assert(a == 1.5)
     #assert(#typeof(a) == f32)     // Default float type is 'f32'
 
     let b = 0.11
-    @assert(b == 0.11)
+    Swag.assert(b == 0.11)
 
     let c = 15e2
-    @assert(c == 15e2)     // Equivalent to 1500
+    Swag.assert(c == 15e2)     // Equivalent to 1500
 
     let d = 15e+2
-    @assert(d == 15e2)
+    Swag.assert(d == 15e2)
 
     let e = -1e-1
-    @assert(e == -0.1)
+    Swag.assert(e == -0.1)
 }
 
 /**
@@ -105,7 +105,7 @@ where floating-point literals default to 'double' ('f64').
 #test
 {
     let a = 1.5
-    @assert(a == 1.5)
+    Swag.assert(a == 1.5)
     #assert(#typeof(a) == f32)
     #assert(#typeof(a) != f64)
 }
@@ -119,12 +119,12 @@ is useful when a specific type is required, such as 'f64' or 'u8'.
 #test
 {
     let a = 1.5'f64     // Explicitly declare 'a' as 'f64'
-    @assert(a == 1.5)
-    @assert(a == 1.5'f64)
+    Swag.assert(a == 1.5)
+    Swag.assert(a == 1.5'f64)
     #assert(#typeof(a) == f64)
 
     let b = 10'u8     // Declare 'b' as 'u8'
-    @assert(b == 10)
+    Swag.assert(b == 10)
     #assert(#typeof(b) == u8)
 
     let c = 1'u32     // Explicitly typed as 'u32'

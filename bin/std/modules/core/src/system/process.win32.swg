@@ -50,13 +50,13 @@ func currentEnvironment()->ProcessEnvironment
         while entries[offset] != 0 do
             offset += 1
 
-        let entry = Utf8.fromUtf16(@mkslice(entries + start, offset - start))
+        let entry = Utf8.fromUtf16(Swag.makeSlice(entries + start, offset - start))
         offset += 1
 
         let text      = entry.toString()
         let separator = Utf8.indexOf(entry.toSlice(), "=")
         if separator != Swag.U64.Max and separator != 0 do
-            result.set(text[0 until separator], text[separator + 1 until @countof(text)])
+            result.set(text[0 until separator], text[separator + 1 until text.count])
     }
 
     return result
@@ -71,17 +71,17 @@ func variable(name: string)->String
 {
     let name16 = Utf16.toZeroTerminated(name)
 
-    let needed = GetEnvironmentVariableW(@dataof(name16), null, 0)
+    let needed = GetEnvironmentVariableW(name16.buffer, null, 0)
     if !needed do
         return ""
 
     var buffer: Array'u16
     buffer.resize(needed)
 
-    let written = GetEnvironmentVariableW(@dataof(name16), @dataof(buffer.toSlice()), needed)
+    let written = GetEnvironmentVariableW(name16.buffer, (buffer.toSlice()).buffer, needed)
     if !written or written >= needed do
         return ""
-    return Utf8.fromUtf16(@mkslice(@dataof(buffer.toSlice()), cast(u64) written))
+    return Utf8.fromUtf16(Swag.makeSlice((buffer.toSlice()).buffer, cast(u64) written))
 }
 
 // Returns `value` spelled so the system parses it back as exactly one argument.
@@ -106,7 +106,7 @@ func joinArguments(arguments: const [..] string)->String
     var result: retval
     for argument in arguments
     {
-        if @index != 0 do
+        if Swag.index != 0 do
             result.append(" ")
         appendQuoted(&result, argument)
     }
@@ -116,8 +116,8 @@ func joinArguments(arguments: const [..] string)->String
 
 private func appendQuoted(commandLine: *String, argument: string)
 {
-    var mustQuote = @countof(argument) == 0
-    for i in @countof(argument)
+    var mustQuote = argument.count == 0
+    for i in argument.count
     {
         let c = argument[i]
         if c == ' ' or c == '\t' or c == '"' do
@@ -133,7 +133,7 @@ private func appendQuoted(commandLine: *String, argument: string)
     commandLine.append("\"")
 
     var slashes = 0'u64
-    for i in @countof(argument)
+    for i in argument.count
     {
         let c = argument[i]
         if c == '\\'
@@ -196,7 +196,7 @@ private func openNullDevice()->HANDLE fail
     attributes.bInheritHandle = TRUE
 
     let name = Utf16.toZeroTerminated("NUL")
-    return try CreateFileW(@dataof(name), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, &attributes, OPEN_EXISTING, 0, null)
+    return try CreateFileW(name.buffer, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, &attributes, OPEN_EXISTING, 0, null)
 }
 
 // Creates one redirection pipe and hands each end to its side.
@@ -327,7 +327,7 @@ func startProcess(info: StartInfo)->Process fail
     {
         directory    = nativePath(info.workingDirectory)
         directory16  = Utf16.toZeroTerminated(directory.toString())
-        directoryPtr = @dataof(directory16)
+        directoryPtr = directory16.buffer
     }
 
     var environmentBlock: Array'u16
@@ -336,7 +336,7 @@ func startProcess(info: StartInfo)->Process fail
     if info.environment
     {
         environmentBlock = buildEnvironmentBlock(info.environment)
-        environmentPtr   = cast(LPVOID) @dataof(environmentBlock.toSlice())
+        environmentPtr   = cast(LPVOID) (environmentBlock.toSlice()).buffer
         creationFlags    |= CREATE_UNICODE_ENVIRONMENT
     }
 
@@ -360,7 +360,7 @@ func startProcess(info: StartInfo)->Process fail
 
     let commandLine16 = Utf16.toZeroTerminated(commandLine.toString())
     var information: PROCESS_INFORMATION
-    try CreateProcessW(null, @dataof(commandLine16), null, null, anyRedirection ? TRUE : FALSE, creationFlags, environmentPtr, directoryPtr, &startup, &information)
+    try CreateProcessW(null, commandLine16.buffer, null, null, anyRedirection ? TRUE : FALSE, creationFlags, environmentPtr, directoryPtr, &startup, &information)
 
     result.adoptStarted(information.hProcess, information.dwProcessId)
 
@@ -508,7 +508,7 @@ impl Process
                 return
             }
 
-            text.append(cast(string) @mkslice(&buffer[0], cast(u64) read))
+            text.append(cast(string) Swag.makeSlice(&buffer[0], cast(u64) read))
         }
     }
 
@@ -594,10 +594,10 @@ impl Process
             fail BadParameterError{"standard input is not redirected to a pipe"}
 
         var offset = 0'u64
-        while offset < @countof(data)
+        while offset < data.count
         {
             var written: DWORD
-            try WriteFile(handle, @dataof(data) + offset, cast(u32) Math.min(@countof(data) - offset, cast(u64) Swag.U32.Max), &written, null)
+            try WriteFile(handle, data.buffer + offset, cast(u32) Math.min(data.count - offset, cast(u64) Swag.U32.Max), &written, null)
             if !written do
                 failWinError(ERROR_NO_DATA)
             offset += written
@@ -620,12 +620,12 @@ impl Process
     func currentExecutablePath()->String fail
     {
         var buffer: [32768] u16
-        let count = GetModuleFileNameW(null, @dataof(buffer), cast(u32) @countof(buffer))
+        let count = GetModuleFileNameW(null, buffer.buffer, cast(u32) buffer.count)
         if !count do
             failWinError(GetLastError())
-        if count >= @countof(buffer) do
+        if count >= buffer.count do
             failWinError(ERROR_INSUFFICIENT_BUFFER)
-        return Utf8.fromUtf16(@mkslice(@dataof(buffer), count))
+        return Utf8.fromUtf16(Swag.makeSlice(buffer.buffer, count))
     }
 
     // Returns the current operating-system thread identifier.

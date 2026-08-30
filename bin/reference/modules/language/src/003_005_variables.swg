@@ -12,14 +12,14 @@ the variable’s type.
 #test
 {
     let a: u32 = 1     // Immutable variable
-    @assert(a == 1)
+    Swag.assert(a == 1)
 
     let b: string = "string"
-    @assert(b == "string")
+    Swag.assert(b == "string")
 
     var c: s32 = 42     // Mutable variable
     c += 1
-    @assert(c == 43)
+    Swag.assert(c == 43)
 }
 
 /**
@@ -30,8 +30,8 @@ Swag allows declaring multiple variables of the same type on a single line.
 #test
 {
     let a, b: u32 = 123
-    @assert(a == 123)
-    @assert(b == 123)
+    Swag.assert(a == 123)
+    Swag.assert(b == 123)
 }
 
 /**
@@ -40,8 +40,8 @@ Multiple variables of different types can also be declared on one line.
 #test
 {
     let a: u32 = 12, b: f32 = 1.5
-    @assert(a == 12)
-    @assert(b == 1.5)
+    Swag.assert(a == 12)
+    Swag.assert(b == 1.5)
 }
 
 /**
@@ -54,13 +54,13 @@ section deliberately bypasses that default initialization.
 #test
 {
     var a: bool
-    @assert(a == false)
+    Swag.assert(a == false)
 
     var b: #null string
-    @assert(b == null)
+    Swag.assert(b == null)
 
     var c: f64
-    @assert(c == 0)
+    Swag.assert(c == 0)
 }
 
 /**
@@ -86,15 +86,15 @@ annotations.
 #test
 {
     let a = 1.5
-    @assert(a == 1.5)
+    Swag.assert(a == 1.5)
     #assert(#typeof(a) == f32)
 
     let b = "string"
-    @assert(b == "string")
+    Swag.assert(b == "string")
     #assert(#typeof(b) == string)
 
     let c = 1.5'f64
-    @assert(c == 1.5)
+    Swag.assert(c == 1.5)
     #assert(#typeof(c) == f64)
 }
 
@@ -104,14 +104,14 @@ Type inference also applies when declaring multiple variables simultaneously.
 #test
 {
     let a, b = true
-    @assert(a == true)
-    @assert(b == true)
+    Swag.assert(a == true)
+    Swag.assert(b == true)
     #assert(#typeof(a) == #typeof(true))
     #assert(#typeof(b) == #typeof(a))
 
     let c = 1.5, d = "string"
-    @assert(c == 1.5)
-    @assert(d == "string")
+    Swag.assert(c == 1.5)
+    Swag.assert(d == "string")
     #assert(#typeof(c) == f32)
     #assert(#typeof(d) == string)
 }
@@ -158,9 +158,9 @@ retaining its value between function calls.
         return G1
     }
 
-    @assert(toto() == 1)
-    @assert(toto() == 2)
-    @assert(toto() == 3)
+    Swag.assert(toto() == 1)
+    Swag.assert(toto() == 2)
+    Swag.assert(toto() == 3)
 }
 
 /**

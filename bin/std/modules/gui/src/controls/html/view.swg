@@ -44,23 +44,23 @@ private func htmlDeclaredEncoding(probe: string)->{ encoding: Text.Encoding, mat
         if found == Swag.U64.Max do
             return result
 
-        var index = found + @countof("charset")
-        while index < @countof(probe) and Latin1.isSpace(probe[index]) do
+        var index = found + ("charset").count
+        while index < probe.count and Latin1.isSpace(probe[index]) do
             index += 1
-        if index >= @countof(probe) or probe[index] != '='
+        if index >= probe.count or probe[index] != '='
         {
             scan = index
             continue
         }
 
         index += 1
-        while index < @countof(probe) and Latin1.isSpace(probe[index]) do
+        while index < probe.count and Latin1.isSpace(probe[index]) do
             index += 1
-        if index < @countof(probe) and (probe[index] == '"' or probe[index] == '\'') do
+        if index < probe.count and (probe[index] == '"' or probe[index] == '\'') do
             index += 1
 
         let labelStart = index
-        while index < @countof(probe) and (Latin1.isLetterOrDigit(probe[index]) or probe[index] == '-') do
+        while index < probe.count and (Latin1.isLetterOrDigit(probe[index]) or probe[index] == '-') do
             index += 1
 
         let label = String.from(probe[labelStart until index]).toLower()
@@ -336,7 +336,7 @@ internal impl HtmlView
     // reaching the network, whatever it links to.
     private mtd appendExternalStyleSheet(href: string)
     {
-        if !@countof(href) or .images.basePath.isEmpty() do
+        if !href.count or .images.basePath.isEmpty() do
             return
         if Utf8.contains(href, "://") or Utf8.startsWith(href, "//") or Utf8.startsWith(href, "data:") do
             return
@@ -446,7 +446,7 @@ internal impl HtmlView
         let codeEnd       = codeStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(probe.toString(), '>'rune, codeStart)
         let sourceListing = bodyEnd != Swag.U64.Max and preEnd != Swag.U64.Max and codeEnd != Swag.U64.Max and Utf8.indexOf(probe.toString(), "<a href=#", codeEnd + 1, .Latin1NoCase) != Swag.U64.Max
 
-        .virtualPrefix = headClose == Swag.U64.Max ? "<html><head></head>" : String.from(probe.toString()[0 until headClose + @countof("</head>")])
+        .virtualPrefix = headClose == Swag.U64.Max ? "<html><head></head>" : String.from(probe.toString()[0 until headClose + ("</head>").count])
         if bodyEnd != Swag.U64.Max do
             .virtualPrefix += probe.toString()[bodyStart to bodyEnd]
         else do
@@ -649,7 +649,7 @@ internal impl HtmlView
 
     private mtd finishSource(notice: string)
     {
-        if @countof(notice) do
+        if notice.count do
             .parser.feed(notice)
         .parser.finish()
         .sourceDone = true
@@ -737,12 +737,12 @@ internal impl HtmlView
         if node.kind != .Text or offset < node.sourceOffset do
             return false
         let start = offset - node.sourceOffset
-        if start + @countof(text) > node.text.count do
+        if start + text.count > node.text.count do
             return false
 
         .searchNode  = nodeIndex
         .searchStart = start
-        .searchEnd   = start + @countof(text)
+        .searchEnd   = start + text.count
         discard .scrollToNode(nodeIndex)
         .canvas.invalidate()
         return true
@@ -751,7 +751,7 @@ internal impl HtmlView
     // Returns the element carrying an identifier, or `HtmlNoNode` when the document has none.
     public mtd const elementById(id: string)->u32
     {
-        if !@countof(id) do
+        if !id.count do
             return HtmlNoNode
         for index in .document.nodes.count where .document.id(cast(u32) index) == id do
             return cast(u32) index
@@ -769,7 +769,7 @@ internal impl HtmlView
             return false
 
         let fragment = url[1 to]
-        if !@countof(fragment)
+        if !fragment.count
         {
             let position = .scroll.scrollPosition()
             .scroll.setScrollPos(position.x, 0)
@@ -842,7 +842,7 @@ internal impl HtmlView
     // destinations this offline renderer does not own.
     private mtd navigateToLocalDocument(url: string)->bool
     {
-        if .images.basePath.isEmpty() or !@countof(url) do
+        if .images.basePath.isEmpty() or !url.count do
             return false
         if Utf8.contains(url, "://") or Utf8.startsWith(url, "//") or Utf8.startsWith(url, "data:") do
             return false
@@ -850,7 +850,7 @@ internal impl HtmlView
         let hash     = Utf8.indexOf(url, '#'rune)
         let path     = hash == Swag.U64.Max ? url : url[0 until hash]
         let fragment = hash == Swag.U64.Max ? "" : url[hash + 1 to]
-        if !@countof(path) do
+        if !path.count do
             return false
 
         let colon = Utf8.indexOf(path, ':'rune)
@@ -883,7 +883,7 @@ internal impl HtmlView
     // Scrolls to the next node whose text contains `text`, wrapping once at the end.
     public mtd findText(text: string)->bool
     {
-        if !@countof(text) do
+        if !text.count do
             return false
 
         let count = .document.nodes.count
@@ -907,7 +907,7 @@ internal impl HtmlView
             {
                 .searchNode  = index
                 .searchStart = match
-                .searchEnd   = match + @countof(text)
+                .searchEnd   = match + text.count
                 .canvas.invalidate()
                 return true
             }
@@ -918,7 +918,7 @@ internal impl HtmlView
 
     mtd searchMatchCount(text: string)->u64
     {
-        if !@countof(text) do
+        if !text.count do
             return 0
 
         var result: u64
@@ -932,7 +932,7 @@ internal impl HtmlView
                 if match == Swag.U64.Max do
                     break
                 result += 1
-                from   = match + @countof(text)
+                from   = match + text.count
             }
         }
 
@@ -941,7 +941,7 @@ internal impl HtmlView
 
     mtd findTextOccurrence(text: string, occurrence: u64)->bool
     {
-        if !@countof(text) do
+        if !text.count do
             return false
 
         .clearSearchHighlight()
@@ -961,7 +961,7 @@ internal impl HtmlView
                 if remaining
                 {
                     remaining -= 1
-                    from      = match + @countof(text)
+                    from      = match + text.count
                     continue
                 }
 
@@ -969,7 +969,7 @@ internal impl HtmlView
                     return false
                 .searchNode  = cast(u32) index
                 .searchStart = match
-                .searchEnd   = match + @countof(text)
+                .searchEnd   = match + text.count
                 .canvas.invalidate()
                 return true
             }
@@ -1091,7 +1091,7 @@ internal impl HtmlView
         if node == HtmlNoNode or cast(u64) node >= .document.nodes.count do
             return
         let source = .document.textOf(node)
-        if !@countof(source) do
+        if !source.count do
             return
 
         // One pass records where each rune starts and whether it belongs to a word; the word is
@@ -1099,7 +1099,7 @@ internal impl HtmlView
         var starts: Array'u64
         var words:  Array'bool
         var scan = 0'u64
-        while scan < @countof(source)
+        while scan < source.count
         {
             let {value, eat} = Utf8.decodeRune(source[scan to])
             starts.add(scan)
@@ -1108,7 +1108,7 @@ internal impl HtmlView
         }
 
         starts.add(scan)
-        let position  = Math.min(offset, @countof(source) - 1)
+        let position  = Math.min(offset, source.count - 1)
         var runeIndex = 0'u64
         for i in words.count where starts[i] <= position do
             runeIndex = i
@@ -1206,7 +1206,7 @@ internal impl HtmlView
         .pendingSearch = text
         if .sourceDone or offset < .bytesRead
         {
-            if @countof(text) and .highlightSourceMatch(offset, text)
+            if text.count and .highlightSourceMatch(offset, text)
             {
                 .pendingSearch.clear()
                 return true
@@ -1258,7 +1258,7 @@ internal impl HtmlView
     // Measures an embedded document at `width` without exposing a nested scrolling surface.
     mtd embeddedHeight(width: f32)->f32
     {
-        @assert(.embedded)
+        Swag.assert(.embedded)
         var height = Math.max(.layout.documentHeight, 1)
         for 2
         {
@@ -1419,11 +1419,11 @@ internal impl HtmlView
     public func createText(contentParent: *Wnd, source: string, documentStyle: HtmlStyle = {})->*HtmlView
     {
         let result = HtmlView.createBase(contentParent, documentStyle)
-        result.document.reserveForSource(@countof(source))
+        result.document.reserveForSource(source.count)
         result.parser.feed(source)
         result.parser.finish()
         result.sourceDone = true
-        result.bytesRead  = @countof(source)
+        result.bytesRead  = source.count
         result.rebuild()
         return result
     }
@@ -1438,11 +1438,11 @@ internal impl HtmlView
         // Embedded content is a fragment: it is placed inside a document that already has a body,
         // and a second one would put a page's margins inside somebody else's box.
         result.parser.start(&result.document, .Fragment)
-        result.document.reserveForSource(@countof(source))
+        result.document.reserveForSource(source.count)
         result.parser.feed(source)
         result.parser.finish()
         result.sourceDone = true
-        result.bytesRead  = @countof(source)
+        result.bytesRead  = source.count
         result.rebuild()
         return result
     }
@@ -1466,7 +1466,7 @@ internal impl IWnd for HtmlView
     mtd impl onThemeEvent(evt: *ThemeEvent)
     {
         discard evt
-        if @isset(.scroll) do
+        if Swag.isSet(.scroll) do
             .rebuild()
     }
 
@@ -1579,7 +1579,7 @@ internal impl IWnd for HtmlCanvas
                     .invalidate()
             }
 
-            if @countof(owner.linkAt(node)) do
+            if (owner.linkAt(node)).count do
                 .app().setFrameCursor(Cursor.from(.Hand))
             elif node != HtmlNoNode and owner.document.constNode(node).kind == .Text do
                 .app().setFrameCursor(Cursor.from(.IBeam))
@@ -1616,7 +1616,7 @@ internal impl IWnd for HtmlCanvas
             }
 
             let url = owner.linkAt(painter.nodeAt(point))
-            if @countof(url)
+            if url.count
             {
                 // A reference into the document itself is followed here; anything else is a
                 // destination only the host knows how to open.

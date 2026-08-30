@@ -42,5 +42,5 @@ func day5B()
             break
     }
 
-    @assert(pwd == "863DDE27")
+    Swag.assert(pwd == "863DDE27")
 }

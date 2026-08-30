@@ -78,7 +78,7 @@ private func parseScalingList(bits: *BitReader, list: [..] u8)->bool
     var lastScale  = 8's32
     var nextScale  = 8's32
     var useDefault = false
-    for index in @countof(list)
+    for index in list.count
     {
         if nextScale != 0
         {
@@ -98,7 +98,7 @@ private func parseScalingList(bits: *BitReader, list: [..] u8)->bool
 // Fills `list` with `values`.
 private func setList(list: [..] u8, values: const [..] u8)
 {
-    for index in @countof(list) do
+    for index in list.count do
         list[index] = values[index]
 }
 

@@ -91,7 +91,7 @@ impl Decoder
     mtd readStartCodes(bytes: const [..] u8, header: #null *PlaneHeader, from = 0'u64)->s64 fail
     {
         var at = nextStartCode(bytes, from)
-        while at + 4 <= @countof(bytes)
+        while at + 4 <= bytes.count
         {
             let code = cast(u32) bytes[at + 3]
             let body = at + 4
@@ -101,14 +101,14 @@ impl Decoder
                     return cast(s64) (body * 8)
                 if !.layer.configured do
                     fail InvalidFormatError{"MPEG-4 plane arrived before its layer"}
-                var reader = BitReader.create(bytes[body until @countof(bytes)])
+                var reader = BitReader.create(bytes[body until bytes.count])
                 try readPlaneHeader(&.layer, &reader, header)
                 return cast(s64) (body * 8 + reader.bitPos)
             }
 
             if code >= 0x20 and code <= 0x2F
             {
-                var reader = BitReader.create(bytes[body until @countof(bytes)])
+                var reader = BitReader.create(bytes[body until bytes.count])
                 try .layer.readVideoObjectLayer(&reader)
             }
 

@@ -7,24 +7,24 @@ var gConsumerBorrowInt: s32 = 3
 func verifyImportedBorrowSummaries()
 {
     let p = depBorrowPassthrough(&gConsumerBorrowInt)
-    @assert(p == &gConsumerBorrowInt)
+    Swag.assert(p == &gConsumerBorrowInt)
 
     let q = depBorrowWrap(&gConsumerBorrowInt)
-    @assert(q == &gConsumerBorrowInt)
+    Swag.assert(q == &gConsumerBorrowInt)
 
     depBorrowStash(&gConsumerBorrowInt)
-    @assert(depBorrowStashed() == &gConsumerBorrowInt)
+    Swag.assert(depBorrowStashed() == &gConsumerBorrowInt)
 
     var local: s32 = 5
-    @assert(depBorrowRead(&local) == 5)
+    Swag.assert(depBorrowRead(&local) == 5)
 
     let pair = depBorrowMakePair(&gConsumerBorrowInt, &gConsumerBorrowInt)
-    @assert(pair.first == &gConsumerBorrowInt)
-    @assert(pair.second == &gConsumerBorrowInt)
+    Swag.assert(pair.first == &gConsumerBorrowInt)
+    Swag.assert(pair.second == &gConsumerBorrowInt)
 
     // Imported pair summary: caller-owned data into a global container is fine.
     gConsumerContainer.add(&gConsumerBorrowInt)
-    @assert(gConsumerContainer.slot == &gConsumerBorrowInt)
+    Swag.assert(gConsumerContainer.slot == &gConsumerBorrowInt)
 }
 
 var gConsumerContainer: DepBorrowContainer

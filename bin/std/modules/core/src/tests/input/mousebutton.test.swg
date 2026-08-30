@@ -5,14 +5,14 @@ using Swag
 
 func assertMouseButton(button: Input.MouseButton, index: u32)
 {
-    @assert(cast(u32) button == index)
+    Swag.assert(cast(u32) button == index)
 }
 
 #test
 {
     using Input.MouseButton
 
-    @assert(@countof(Input.MouseButton) == 5)
+    Swag.assert(Input.MouseButton.count == 5)
 
     assertMouseButton(Left, 0)
     assertMouseButton(Middle, 1)

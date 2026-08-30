@@ -15,7 +15,7 @@ private func updatePadded(mac: *Poly1305, data: const [..] u8)
 {
     mac.update(data)
 
-    let remainder = @countof(data) % Poly1305BlockSize
+    let remainder = data.count % Poly1305BlockSize
     if remainder
     {
         var padding: [Poly1305BlockSize] u8
@@ -41,8 +41,8 @@ private func authenticate(key, nonce, associatedData, ciphertext: const [..] u8)
     var lengths: [16] u8
     for i in 8
     {
-        lengths[i]     = cast(u8) ((@countof(associatedData) >> cast(u32) (i * 8)) & 0xFF)
-        lengths[8 + i] = cast(u8) ((@countof(ciphertext) >> cast(u32) (i * 8)) & 0xFF)
+        lengths[i]     = cast(u8) ((associatedData.count >> cast(u32) (i * 8)) & 0xFF)
+        lengths[8 + i] = cast(u8) ((ciphertext.count >> cast(u32) (i * 8)) & 0xFF)
     }
 
     mac.update(lengths)
@@ -72,9 +72,9 @@ private func authenticate(key, nonce, associatedData, ciphertext: const [..] u8)
 // ```
 public func chacha20Poly1305Seal(key, nonce, plaintext, associatedData: const [..] u8, ciphertext: [..] u8, tag: [..] u8) fail
 {
-    if @countof(tag) != ChaCha20Poly1305TagSize do
+    if tag.count != ChaCha20Poly1305TagSize do
         fail Errors.BadParameterError{"ChaCha20-Poly1305 needs a 16-byte tag"}
-    if @countof(ciphertext) != @countof(plaintext) do
+    if ciphertext.count != plaintext.count do
         fail Errors.BadParameterError{"ChaCha20-Poly1305 needs matching plaintext and ciphertext lengths"}
 
     // Block zero produced the one-time authentication key, so the payload starts
@@ -82,7 +82,7 @@ public func chacha20Poly1305Seal(key, nonce, plaintext, associatedData: const [.
     try chacha20Xor(key, nonce, plaintext, ciphertext, 1)
 
     var computed = try authenticate(key, nonce, associatedData, ciphertext)
-    @memcpy(@dataof(tag), &computed[0], ChaCha20Poly1305TagSize)
+    Swag.memcpy(tag.buffer, &computed[0], ChaCha20Poly1305TagSize)
     secureClear(computed)
 }
 
@@ -94,7 +94,7 @@ public func chacha20Poly1305Seal(key, nonce, plaintext, associatedData: const [.
 // was sealed; it does not say which.
 public func chacha20Poly1305Open(key, nonce, ciphertext, tag, associatedData: const [..] u8, plaintext: [..] u8)->bool fail
 {
-    if @countof(tag) != ChaCha20Poly1305TagSize or @countof(ciphertext) != @countof(plaintext) do
+    if tag.count != ChaCha20Poly1305TagSize or ciphertext.count != plaintext.count do
         return false
 
     var computed = try authenticate(key, nonce, associatedData, ciphertext)

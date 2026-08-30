@@ -43,7 +43,7 @@ func day1B()
             if done.contains(total)
             {
                 // Console.print("total: ", total)
-                @assert(total == 227)
+                Swag.assert(total == 227)
                 return
             }
 

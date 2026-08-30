@@ -14,7 +14,7 @@ impl ScratchAllocator
     // Adapt the value depending on the requested alignment
     func align(value: u64, alignment: u32)->u64
     {
-        @assert(!alignment or !(alignment & (alignment - 1)))
+        Swag.assert(!alignment or !(alignment & (alignment - 1)))
         let toAlign = alignment != 0 ? alignment : #sizeof(*void)
         let mask    = cast(u64) (toAlign - 1)
         var result  = value & ~mask
@@ -52,7 +52,7 @@ impl ScratchAllocator
         if .block do
             .freeMem(.block, .capacity)
 
-        @init(me, 1)
+        Swag.init(me, 1)
     }
 
     // Release all memory
@@ -89,7 +89,7 @@ impl IAllocator for ScratchAllocator
 {
     mtd impl free(request: *AllocatorRequest)
     {
-        @assert(.block != null)
+        Swag.assert(.block != null)
         if !request.address do
             return
         let reqAddr = request.address
@@ -140,7 +140,7 @@ impl IAllocator for ScratchAllocator
         {
             request.address = cast(*void) userAddress
             .used           = usedAlign + request.size
-            .maxUsed        = @max(.maxUsed, .used)
+            .maxUsed        = Swag.max(.maxUsed, .used)
             return
         }
 
@@ -163,12 +163,12 @@ impl IAllocator for ScratchAllocator
         .firstLeak         = ptr
         request.address    = ptr + 1     // user block is after the header
         .totalLeak         += request.size
-        .maxLeak           = @max(.maxLeak, .totalLeak)
+        .maxLeak           = Swag.max(.maxLeak, .totalLeak)
     }
 
     mtd impl alloc(request: *AllocatorRequest)
     {
-        @assert(.block != null)
+        Swag.assert(.block != null)
         if request.size == 0
         {
             request.address = null
@@ -181,7 +181,7 @@ impl IAllocator for ScratchAllocator
 
     mtd impl realloc(request: *AllocatorRequest)
     {
-        @assert(.block != null)
+        Swag.assert(.block != null)
         if request.size == 0
         {
             .free(request)
@@ -207,7 +207,7 @@ impl IAllocator for ScratchAllocator
         // before reallocating it, precisely so the old contents are not carried over.
         if oldAddress
         {
-            @memcpy(newAddress, oldAddress, @min(oldSize, request.size))
+            Swag.memcpy(newAddress, oldAddress, Swag.min(oldSize, request.size))
 
             var freeRequest: AllocatorRequest
             freeRequest.address = oldAddress
@@ -220,7 +220,7 @@ impl IAllocator for ScratchAllocator
 
     mtd impl freeAll(request: *AllocatorRequest)
     {
-        @assert(.block != null)
+        Swag.assert(.block != null)
         .releaseAll()
         request.address = null
     }

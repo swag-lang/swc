@@ -123,7 +123,7 @@ impl WidgetWall
     // the middle of inspecting.
     mtd build()
     {
-        if .built or !@isset(.view) or .view.clientRect().width < 240 do
+        if .built or !Swag.isSet(.view) or .view.clientRect().width < 240 do
             return
         .built = true
 

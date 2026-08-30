@@ -163,8 +163,8 @@ internal impl Voice
             return
 
         let handle = cast(*NoSoundVoice) .handle
-        let count  = @countof(buses)
-        if count > @countof(handle.buses) do
+        let count  = buses.count
+        if count > handle.buses.count do
             fail SystemError{"too many buses", errorID: count}
 
         handle.busCount = cast(u32) count

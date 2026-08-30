@@ -31,7 +31,7 @@ const CH2: Holder = {t: OtherStruct, tag: 2}
 
 // Const array literal of typeinfo
 const CA1: [?] typeinfo = [MyStruct, OtherStruct]
-#assert(@countof(CA1) == 2)
+#assert(CA1.count == 2)
 #assert(CA1[0] == MyStruct)
 #assert(CA1[1] == OtherStruct)
 

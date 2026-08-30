@@ -26,7 +26,7 @@ impl FieldVisits
             default: visitItem = me.z
             }
 
-            #inject(stmt, item = visitItem, index = @index)
+            #inject(stmt, item = visitItem, index = Swag.index)
         }
     }
 }
@@ -45,14 +45,14 @@ impl BufferVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(*s32) &(me.values[idx]), index = @index)
+                #inject(stmt, item = cast(*s32) &(me.values[idx]), index = Swag.index)
             }
         }
         else
         {
             for idx in 3
             {
-                #inject(stmt, item = me.values[idx], index = @index)
+                #inject(stmt, item = me.values[idx], index = Swag.index)
             }
         }
     }
@@ -71,7 +71,7 @@ impl ReverseVisits
     {
         for idx in 3
         {
-            #inject(stmt, item = me.values[idx], index = @index)
+            #inject(stmt, item = me.values[idx], index = Swag.index)
         }
     }
 
@@ -118,7 +118,7 @@ impl HiddenAliasVisits
     {
         for idx in 3
         {
-            #inject(stmt, item = me.values[idx], tens = me.values[idx] * 10, index = @index)
+            #inject(stmt, item = me.values[idx], tens = me.values[idx] * 10, index = Swag.index)
         }
     }
 }
@@ -146,7 +146,7 @@ impl FieldPointerVisits
                 case 2: visitItem = me.third
                 }
 
-                #inject(stmt, item = visitItem, index = @index)
+                #inject(stmt, item = visitItem, index = Swag.index)
             }
         }
     }
@@ -161,14 +161,14 @@ impl ConstPointerVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = @index)
+                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = Swag.index)
             }
         }
         else
         {
             for idx in 3
             {
-                #inject(stmt, item = me.values[idx], index = @index)
+                #inject(stmt, item = me.values[idx], index = Swag.index)
             }
         }
     }
@@ -180,12 +180,12 @@ impl ReturnVisits
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32))
         where !ptr
     {
-        if !@countof(.values) do
+        if !(.values).count do
             return
 
-        var remain = @countof(.values)
+        var remain = (.values).count
         #scope(Up)
-        for idx in @countof(.values)
+        for idx in (.values).count
         {
             #scope(Down)
             {
@@ -259,12 +259,12 @@ impl GenericScopedVisits
         #scope(Outer)
         for 3
         {
-            if @index < GenericScopedVisits.FIRST do
+            if Swag.index < GenericScopedVisits.FIRST do
                 continue
 
             #scope(Inner)
             {
-                #inject(stmt, item = me.values[@index], index = @index, break = break to Outer, continue = break to Inner)
+                #inject(stmt, item = me.values[Swag.index], index = Swag.index, break = break to Outer, continue = break to Inner)
             }
         }
     }
@@ -279,13 +279,13 @@ impl GenericScopedVisits
     for value, index in values
     {
         #assert(#typeof(value) == s32)
-        #assert(#typeof(index) == #typeof(@index))
+        #assert(#typeof(index) == #typeof(Swag.index))
         sumValues  += value
         sumIndexes += index
     }
 
-    @assert(sumValues == 60)
-    @assert(sumIndexes == 3)
+    Swag.assert(sumValues == 60)
+    Swag.assert(sumIndexes == 3)
 }
 
 #test
@@ -302,7 +302,7 @@ impl GenericScopedVisits
         break
     }
 
-    @assert(acc == 11)
+    Swag.assert(acc == 11)
 }
 
 #test
@@ -312,9 +312,9 @@ impl GenericScopedVisits
     for &value, ordinal in values do
         value[] += cast(s32) (ordinal + 1)
 
-    @assert(values.values[0] == 4)
-    @assert(values.values[1] == 8)
-    @assert(values.values[2] == 12)
+    Swag.assert(values.values[0] == 4)
+    Swag.assert(values.values[1] == 8)
+    Swag.assert(values.values[2] == 12)
 }
 
 #test
@@ -329,8 +329,8 @@ impl GenericScopedVisits
         order += index
     }
 
-    @assert(code == 321)
-    @assert(order == 3)
+    Swag.assert(code == 321)
+    Swag.assert(order == 3)
 }
 
 #test
@@ -341,11 +341,11 @@ impl GenericScopedVisits
     for value, index in (values).reversed()
     {
         #assert(#typeof(value) == s32)
-        #assert(#typeof(index) == #typeof(@index))
+        #assert(#typeof(index) == #typeof(Swag.index))
         code = code * 10 + value + cast(s32) index - cast(s32) index
     }
 
-    @assert(code == 321)
+    Swag.assert(code == 321)
 }
 
 #test
@@ -357,12 +357,12 @@ impl GenericScopedVisits
     for value in values
     {
         count += 1
-        sum   += cast(s32) @index
+        sum   += cast(s32) Swag.index
         discard value
     }
 
-    @assert(count == 3)
-    @assert(sum == 3)
+    Swag.assert(count == 3)
+    Swag.assert(sum == 3)
 }
 
 #test
@@ -375,11 +375,11 @@ impl GenericScopedVisits
     {
         #assert(#typeof(value) == s32)
         code  = code * 10 + value
-        order += @index
+        order += Swag.index
     }
 
-    @assert(code == 456)
-    @assert(order == 3)
+    Swag.assert(code == 456)
+    Swag.assert(order == 3)
 }
 
 #test
@@ -391,10 +391,10 @@ impl GenericScopedVisits
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(scaled) == s32)
-        sum += value + scaled + cast(s32) @index
+        sum += value + scaled + cast(s32) Swag.index
     }
 
-    @assert(sum == 168)
+    Swag.assert(sum == 168)
 }
 
 #test
@@ -405,7 +405,7 @@ impl GenericScopedVisits
     for value, scaled, index in values do
         sum += value + scaled + cast(s32) index
 
-    @assert(sum == 168)
+    Swag.assert(sum == 168)
 }
 
 #test
@@ -420,10 +420,10 @@ impl GenericScopedVisits
         mutatedSum += value[]
     }
 
-    @assert(values.first == 2)
-    @assert(values.second == 4)
-    @assert(values.third == 6)
-    @assert(mutatedSum == 12)
+    Swag.assert(values.first == 2)
+    Swag.assert(values.second == 4)
+    Swag.assert(values.third == 6)
+    Swag.assert(mutatedSum == 12)
 }
 
 #test
@@ -437,11 +437,11 @@ impl GenericScopedVisits
         #assert(#typeof(left) == s32)
         #assert(#typeof(right) == s32)
         signature = signature * 100 + left * 10 + right
-        order     += @index
+        order     += Swag.index
     }
 
-    @assert(signature == 244668)
-    @assert(order == 3)
+    Swag.assert(signature == 244668)
+    Swag.assert(order == 3)
 }
 
 #test
@@ -455,12 +455,12 @@ impl GenericScopedVisits
         sum += value[] + cast(s32) ordinal
     }
 
-    @assert(sum == 27)
+    Swag.assert(sum == 27)
 }
 
 #test
 {
-    @assert(nativeForeachVisitReturn())
+    Swag.assert(nativeForeachVisitReturn())
 }
 
 #test
@@ -474,8 +474,8 @@ impl GenericScopedVisits
         sum += value[] + cast(s32) ordinal
     }
 
-    @assert(sum == 27)
-    @assert(g_CallSourceCalls == 1)
+    Swag.assert(sum == 27)
+    Swag.assert(g_CallSourceCalls == 1)
 }
 
 #test
@@ -486,8 +486,8 @@ impl GenericScopedVisits
     for value in callSource() do
         sum += value
 
-    @assert(sum == 24)
-    @assert(g_CallSourceCalls == 1)
+    Swag.assert(sum == 24)
+    Swag.assert(g_CallSourceCalls == 1)
 }
 
 #test
@@ -499,11 +499,11 @@ impl GenericScopedVisits
     for value, ordinal in values
     {
         #assert(#typeof(value) == s32)
-        #assert(#typeof(ordinal) == #typeof(@index))
+        #assert(#typeof(ordinal) == #typeof(Swag.index))
         sum     += value
         indexes += ordinal
     }
 
-    @assert(sum == 50)
-    @assert(indexes == 3)
+    Swag.assert(sum == 50)
+    Swag.assert(indexes == 3)
 }

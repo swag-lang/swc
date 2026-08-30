@@ -63,6 +63,11 @@ using Swag, Core, Pixel
         host.shutdown()
     }
 
+    host.surface.flags         = SurfaceFlags.StandardWindow
+    host.surfaceWnd.padding.y  = host.theme.metrics.wnd_BigCaptionCY
+    host.root.setParent(&host.surfaceWnd)
+    host.surfaceWnd.sendResizeEvent()
+
     let button = AppearanceButton.create(&host.surface)
     host.surfaceWnd.sendResizeEvent()
     Swag.assert(button.parent == &host.surfaceWnd)
@@ -99,6 +104,25 @@ using Swag, Core, Pixel
 
     button.applyAppearanceSelection("Gui.Appearance.About")
     Swag.assert(aboutRequests == 1)
+
+    let popup = MenuCtrl.createPopup(button)
+    popup.addItem("Theme", "Gui.Appearance.Test")
+    var popupChecked: bool
+    host.app.sigFrame += func|button, popup, checked = &popupChecked|(app)
+    {
+        discard app
+        if checked[] do
+            return
+
+        let anchor  = button.surfaceRect()
+        let bodyTop = popup.surfaceRect().y + popup.popupBarItemSurfaceRect.height + popup.themeMetrics().menuPopup_ShadowSize
+        Swag.assert(Math.abs(bodyTop - anchor.bottom()) < 0.5)
+        popup.setEndModal(null)
+        checked[] = true
+    }
+
+    discard popup.doModal(button, autoDestroy: true)
+    Swag.assert(popupChecked)
 
     button.destroy()
     host.pump()

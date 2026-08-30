@@ -1340,6 +1340,17 @@ public impl MenuCtrl
         let verticalMargin = button ? -.themeMetrics().menuPopup_ShadowSize : margin
         .fitPosInParent(margin, verticalMargin, simX: !anchored, simY: true)
 
+        // A caption button is above the client view that owns its popup. Its correct local y is
+        // therefore negative by one caption height; the generic near-edge clamp must not turn
+        // that coordinate back into the top of the client view. Moving the popup back up cannot
+        // create a lower-edge overflow, and its shadow still starts at the caption button itself.
+        if button and pt.y < .position.y
+        {
+            var fitted = .position
+            fitted.y = pt.y
+            .setPosition(fitted)
+        }
+
         // Fitting a centred popup near the right edge moves the body, not its attachment point.
         // Recompute the notch from the original anchor so it remains directly under the button.
         if anchored and !button do

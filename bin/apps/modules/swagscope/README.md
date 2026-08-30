@@ -9,11 +9,12 @@ that appears only when it is needed.
 
 ## Integrated viewer registry
 
-`src/viewerindex.swg` is the only registry. It binds each stable key, display name, glyph, smoke
-fixture, and set of lowercase extensions or exact file names directly to a `ViewerCreate` function
-compiled into Swag Scope. Image, video, and sound selectors are derived from their modules' decoder
+`src/viewerpluginregistry.swg` is the only registry, and it holds no format knowledge: an ordered
+list of descriptors, each returned by the viewer that implements it. A descriptor binds a stable
+key, a display name, a glyph, a smoke fixture, and a set of lowercase extensions or exact file names
+to one creation callback. Image, video, and sound selectors are derived from their modules' decoder
 registries, so their application coverage cannot drift behind the formats the modules expose.
-There is no runtime index, dynamic library, exported entry point, or versioned ABI.
+There is no runtime index, dynamic library, exported entry point, or versioned ABI yet.
 
 Several viewers may claim the same extension. The selector lists format-specific viewers first,
 `Basic text` next when the file is readable UTF-8, then the `Binary` and `Hexadecimal` fallbacks,
@@ -131,33 +132,49 @@ offers two more, because the history is the one list the reader owns: drop that 
 clear it entirely. Nothing here writes to the file, and external applications run in their own
 processes.
 
+## The viewer plugin API
+
+`src/api/` is the whole surface a viewer is written against, published under the `Viewer`
+namespace: `Viewer.Plugin` describes a viewer, `Viewer.Host` is what its creation callback
+receives, and `Viewer.SearchApi`, `Viewer.LifecycleApi`, `Viewer.BackgroundLoad`, and the search
+and clock helpers beside them are the support the host offers. Nothing else is available to a
+viewer. No plugin receives `ViewerWindow`, its bars, its session structure, or application-private
+callbacks, and the application never names a format.
+
+Every viewer is written this way, the plain text one included. That is the point of the
+arrangement: a viewer compiled into the executable and a viewer that will one day arrive as a
+separate binary have the same shape, so the API is kept honest by the fourteen viewers already
+using it rather than by intention. Runtime discovery of external binaries is future work — it
+needs a native entry point, a trust and discovery policy, and an ABI adapter that checks
+`Viewer.ApiVersion` — and the source API deliberately does not pretend that loading arbitrary
+libraries is already safe or supported.
+
 ## Adding a viewer
 
-Every viewer, including Basic text, is a plugin described by `FileViewer.Plugin`. The shared
-`scopeviewer` module owns this versioned source-level contract; the application owns only a
-generic registry and a `FileViewer.Host` implementation. No plugin receives `ViewerWindow`, its
-bars, its session structure, or application-private callbacks.
+Put the implementation under `src/viewers/<format>/` and give the folder three things: one
+`func <format>ViewerPlugin()->Viewer.Plugin` describing the viewer, one
+`func create<Format>Viewer(host: Viewer.Host)` building it, and a `localization.swg` owning its
+own strings. Then add one `register` line to `createViewerPluginRegistry`, in the position the
+viewer should be offered from. That is the only file outside the folder that changes.
 
-Add implementation files under `src/viewers/<format>/` and expose one internal
-`func create<Format>Viewer(host: FileViewer.Host)`. Register its descriptor in
-`createViewerPluginRegistry` with a stable lowercase key, display-name resolver, icon provider,
-immutable smoke fixture, selectors, and optional content probe. A plugin calls `attachView` for its
-document and can create at most one action, information, and lower command group through the host.
-It declares optional search and progressive-lifecycle behavior through `setSearch` and
-`setLifecycle`; retained asynchronous notifications come only from `host.services()`.
+The descriptor carries a stable lowercase key, a static or resolved display name, the vector
+document and cell its glyph lives in, an immutable smoke fixture, its selectors, an optional
+content probe, and an optional `attach` that prepares the viewer for the application it joined.
+A plugin publishes its embedded translations from `attach`, so its name reads in the reader's
+language before any file is opened.
+
+The creation callback calls `attachView` for its document and can create at most one action,
+information, and lower command group through the host, plus one optional side panel. It declares
+optional search and progressive-lifecycle behavior through `setSearch` and `setLifecycle`;
+retained asynchronous notifications come only from `host.services()`. Reject malformed content
+with the exact decoder reason before attaching a view; the application presents every plugin
+failure on the same error surface and owns cleanup of all contributed windows.
 
 The fixture lives in `src/tests/datas`, is unique to that descriptor, and is a valid file the
 plugin can open. The key is never translated or reused because remembered viewer choices persist
-it. A built-in glyph remains a 24-unit cell in `datas/icons.svg` with a matching `ViewerIcons` case
-in grid order. Reject malformed content with the exact decoder reason before attaching a view; the
-application presents every plugin failure on the same error surface and owns cleanup of all
-contributed windows.
+it. A built-in glyph remains a 24-unit cell in `datas/icons.svg` with a matching `ViewerIcons`
+case in grid order; a separately built plugin would name a cell of the document it embeds itself.
 
-The registry accepts descriptors it did not compile into its built-in catalog, and its selection
-pipeline contains no viewer-kind branches. Runtime discovery of external binaries is intentionally
-future work: it needs a native entry point, trust and discovery policy, and ABI adapter that checks
-`FileViewer.ViewerApiVersion`. The current shared module establishes the clean plugin boundary
-without claiming that arbitrary DLL loading is already safe or supported.
 
 Keep tests at `src/tests/viewer.<format>.test.swg`, fixtures in `src/tests/datas`, and image goldens
 in `src/tests/goldens`. Run a focused test with:

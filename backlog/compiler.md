@@ -492,3 +492,33 @@ are [safety.md](safety.md); the `doc` and `format` commands have their own files
   module whose compile-time path crosses two shared-library dependencies. Trace how the doc command
   registers dependency runtime artifacts, then make it build or publish every required artifact
   before JIT relocation instead of relying on a binary left by an earlier command.
+
+### B-163 — A namespace-qualified generic type cannot take a generic parameter
+
+- Area: compiler
+- Found while: moving Swag Scope's viewer contract into an app-published `Viewer` namespace, which
+  put a generic support type behind a namespace for the first time.
+- Observation: `Ns.Box'T` is rejected wherever `T` is the enclosing generic parameter, while the
+  same type with a concrete or aliased argument (`Ns.Box'u32`, `Ns.Box'MyAlias`) resolves, and the
+  unqualified `Box'T` resolves. The qualified spelling reaches instantiation and then waits on `T`
+  forever, so the cycle checker reports it as an unknown symbol at the argument, not at the use.
+- Evidence: with `namespace Ns { struct(T) Box { value: T } }` in one file, each of
+  `struct(T) Holder { boxed: Ns.Box'T }`, `func(T) f(box: *Ns.Box'T)->T => box.value` called as
+  `f'u32(&box)`, and `func(T) g()->Ns.Box'T` fails with `unknown symbol 'T'` pointing at the
+  argument. Replacing `Ns.Box'T` with `Ns.Box'u32` in the same file compiles and runs. Reproduced
+  on 0.1.288.
+- Second defect behind it: deduction never reaches instantiation for the same spelling. Calling
+  `f(&box)` without an explicit argument reports `cannot deduce generic parameter 'T'` instead,
+  because `tryGetStructPatternGenericArgs` in
+  `src/Compiler/Sema/Generic/SemaGeneric.Deduce.cpp` reads the pattern's `nodeIdentRef` as a
+  quoted expression and returns empty for the `AstMemberAccessExpr` a qualifier produces. Walking
+  down to that member access's right side makes deduction succeed and uncovers the resolution
+  failure above; the two are one feature and are worth fixing together.
+- Next step: find where the quoted suffix of a qualified type is resolved. `lookupScopedMember` in
+  `src/Compiler/Sema/Helpers/SemaHelpers.Symbol.cpp` binds the matched `Ns.Box` symbols onto the
+  quoted callee and substitutes the member access with the quoted expression; establish which scope
+  the suffix identifier is then matched in, and why a file-scope alias resolves there but a
+  function- or struct-local generic parameter does not.
+- Complete when: a `sema` suite test declares a generic struct in a namespace and uses
+  `Ns.Box'T` as a struct field, a function parameter, and a return type, with both explicit
+  instantiation and deduction from the argument.

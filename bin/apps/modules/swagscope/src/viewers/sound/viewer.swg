@@ -2,6 +2,26 @@
 
 using Core, Pixel, Gui, Audio, Threading
 
+// Describes the waveform player to the host.
+//
+// It offers itself for every extension the audio module can decode, so a codec added there reaches
+// the player without a list to update here.
+func soundViewerPlugin()->Viewer.Plugin
+{
+    var result: retval
+    result.key          = "sound"
+    result.staticName   = "Sound"
+    result.attach       = &registerSoundStrings
+    result.iconAtlas    = viewerIcons()
+    result.iconIndex    = cast(s32) ViewerIcons.Sound
+    result.create       = &createSoundViewer
+    result.smokeFixture = "pacman_beginning.wav"
+
+    let extensions = SoundFile.decodableExtensions()
+    result.addSelectors(extensions.toSlice())
+    return result
+}
+
 private const SoundSeekSeconds = 10.0
 
 // Slices the payload is reduced to. It is read back one column of pixels at a time, so it only
@@ -420,9 +440,9 @@ internal struct SoundViewer
     retired:         bool
 
     details:              String
-    reportDetails:        #null ViewerReportDetails
-    reportFailure:        #null ViewerReportFailure
-    reportLoadingChanged: #null ViewerReportLoadingChanged
+    reportDetails:        #null Viewer.ReportDetails
+    reportFailure:        #null Viewer.ReportFailure
+    reportLoadingChanged: #null Viewer.ReportLoadingChanged
 }
 
 internal impl SoundViewer
@@ -607,7 +627,7 @@ internal impl SoundViewer
         .playButton.toolTip = .playing ? soundStrings().ui_TipPause : soundStrings().ui_TipPlay
         .stopButton.enable(.voice != null)
         .timeline.setValueWithoutGesture(.elapsed)
-        .timeLabel.setText(mediaTimeRangeText(.elapsed, .duration))
+        .timeLabel.setText(Viewer.timeRangeText(.elapsed, .duration))
         .waveform.progress = .duration > 0 ? .elapsed / .duration : 0
         .waveform.invalidate()
     }
@@ -757,9 +777,8 @@ internal impl IWnd for SoundViewer
 
 internal impl SoundViewer
 {
-    func create(host: FileViewer.Host)->*SoundViewer fail
+    func create(host: Viewer.Host)->*SoundViewer fail
     {
-        registerSoundStrings(host.application())
         let services = host.services()
         let result   = Wnd.create'SoundViewer(host.contentParent(), "scope.sound")
         result.backgroundStyle      = .View
@@ -907,9 +926,9 @@ private func runSoundViewerOpen(thread: Thread)
 }
 
 // Creates the integrated sound playback and waveform view.
-private func loadSoundViewer(host: FileViewer.Host)->#null *SoundViewer fail => try SoundViewer.create(host)
+private func loadSoundViewer(host: Viewer.Host)->#null *SoundViewer fail => try SoundViewer.create(host)
 
-func createSoundViewer(host: FileViewer.Host)
+func createSoundViewer(host: Viewer.Host)
 {
     let view = catch loadSoundViewer(host) as decodeError
     if decodeError != null

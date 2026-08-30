@@ -44,7 +44,7 @@ impl HexSearchPattern
     }
 
     // Appends every occurrence, including overlaps, inside one streamed source window.
-    mtd collectMatches(source: string, baseOffset: u64, result: *Array'ViewerSearchMatch)
+    mtd collectMatches(source: string, baseOffset: u64, result: *Array'Viewer.SearchMatch)
     {
         if !.values.count or source.count < .values.count do
             return

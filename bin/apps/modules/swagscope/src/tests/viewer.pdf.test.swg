@@ -28,7 +28,7 @@ private func createPdfFixture()->String
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    var result = openTestViewer(&createPdfViewer, &host.root, fileName.toString(), commandParent: &host.root)
+    var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
 
     let view = cast(*PdfViewer) result.view!
@@ -83,7 +83,7 @@ private func createPdfFixture()->String
     commandBar.backgroundStyle = .Window
     commandBar.padding         = {16, 8, 16, 8}
 
-    var result = openTestViewer(&createPdfViewer, &host.root, fileName.toString(), commandParent: commandBar)
+    var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName.toString(), commandParent: commandBar)
     Swag.assert(result.view != null and result.commands != null)
 
     let view = cast(*PdfViewer) result.view!
@@ -107,7 +107,7 @@ private func createPdfFixture()->String
     var host: HeadlessHost
     host.setup(640, 420)
     defer host.shutdown()
-    var result = openTestViewer(&createPdfViewer, &host.root, fileName, commandParent: &host.root)
+    var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
     let view = cast(*PdfViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -125,7 +125,7 @@ private func createPdfFixture()->String
     host.setup(640, 450)
     defer host.shutdown()
 
-    var result = openTestViewer(&createPdfViewer, &host.root, fileName.toString(), commandParent: &host.root)
+    var result = openTestViewer(pdfViewerPlugin(), &host.root, fileName.toString(), commandParent: &host.root)
     Swag.assert(result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
 
     let view = cast(*PdfViewer) result.view!
@@ -133,7 +133,7 @@ private func createPdfFixture()->String
     view.resize(640, 420)
     view.applyLayout()
 
-    var matches: Array'ViewerSearchMatch
+    var matches: Array'Viewer.SearchMatch
     result.collectMatches!(result.view!, "second", {}, &matches)
     Swag.assert(matches.count == 1 and result.revealMatch!(result.view!, matches[0], "second"))
     Swag.assert(view.pdfView.pageIndex == 1)

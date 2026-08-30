@@ -49,7 +49,7 @@ struct CodeLanguageSample
     host.setup(640, 420)
     defer host.shutdown()
 
-    var result = openTestViewer(&createCodeViewer, &host.root, fileName, commandParent: &host.root)
+    var result = openTestViewer(codeViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view == null and result.commands == null)
     Swag.assert(Utf8.contains(result.failureReason.toSlice(), "zero byte"))
 }

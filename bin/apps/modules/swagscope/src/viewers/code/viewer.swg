@@ -2,6 +2,30 @@
 
 using Core, Pixel, Gui
 
+private func codePluginProbe(fileName: string, hasNamedMatch: bool)->bool
+{
+    return !hasNamedMatch and codeShebang(fileName).found
+}
+
+// Describes the source-code viewer to the host.
+//
+// A file with no known extension is still offered the viewer when it opens with an interpreter
+// line, which is how a script without a suffix names the language it is written in.
+func codeViewerPlugin()->Viewer.Plugin
+{
+    var result: retval
+    result.key          = "code"
+    result.staticName   = "Code"
+    result.attach       = &registerCodeStrings
+    result.iconAtlas    = viewerIcons()
+    result.iconIndex    = cast(s32) ViewerIcons.Code
+    result.create       = &createCodeViewer
+    result.probe        = &codePluginProbe
+    result.smokeFixture = "sample.cpp"
+    result.addSelectors(".swg;.swgs;.c;.h;.cc;.cpp;.cxx;.hh;.hpp;.hxx;.inl;.ipp;.cs;.java;.js;.jsx;.mjs;.cjs;.ts;.tsx;.mts;.cts;.go;.rs;.py;.pyw;.pyi;.rb;.rake;.gemspec;.sh;.bash;.zsh;.fish;.ps1;.psm1;.psd1;.php;.phtml;.lua;.sql;.json;.jsonc;.json5;.xml;.xsd;.xsl;.xslt;.csproj;.vcxproj;.props;.targets;.css;.scss;.sass;.less;.yaml;.yml;.toml;.ini;.cfg;.conf;.properties;.kt;.kts;.swift;.dart;.r;.pl;.pm;.vb;.glsl;.vert;.frag;.geom;.comp;.hlsl;.fx;.cmake;.bat;.cmd;.htm;.html;.shtml;.xht;.xhtml;.asm;.s;.incasm;.zig;.nim;.nims;.nimble;.hs;.lhs;.scala;.sc;.groovy;.gvy;.gy;.gsh;.ex;.exs;.erl;.hrl;.clj;.cljs;.cljc;.edn;.jl;.f;.for;.f77;.f90;.f95;.f03;.f08;.pas;.pp;.lpr;.d;.di;.m;.mm;.tcl;.tk;.awk;.vim;.tex;.sty;.cls;.bib;.proto;.graphql;.gql;.gradle;.mk;.mak;.make;makefile;gnumakefile;bsdmakefile;.dockerfile;dockerfile;containerfile;cmakelists.txt;justfile;rakefile;gemfile;vagrantfile;podfile;brewfile;jenkinsfile;meson.build;.gitignore;.gitattributes;.gitmodules;.editorconfig;.clang-format;.clang-tidy;.prettierrc;.eslintrc;.npmrc;.yarnrc;.env;.nix")
+    return result
+}
+
 private const CodeStreamChunkSize    = 16 * 1024'u64
 private const CodeStreamLookAhead    = 2.0
 private const CodeResidentWindowSize = 256 * 1024'u64
@@ -30,7 +54,7 @@ internal struct CodeViewer
     pendingSeek:       bool
     pendingSeekOffset: u64
     repositioning:     bool
-    reportFailure:     #null ViewerReportFailure
+    reportFailure:     #null Viewer.ReportFailure
     failureReason:     String
 }
 
@@ -172,7 +196,7 @@ internal impl CodeViewer
             .virtualHeight = previousHeight
             .updateEstimatedHeight()
             if text.count do
-                highlightRichEditMatch(.editor, chunk.toString(), requested - actual, text.count)
+                Viewer.highlightRichEditMatch(.editor, chunk.toString(), requested - actual, text.count)
             .scheduleMore()
             return true
         }
@@ -180,7 +204,7 @@ internal impl CodeViewer
         return false
     }
 
-    func create(contentParent: *Wnd, fileName: string, reportFailure: #null ViewerReportFailure = null)->*CodeViewer
+    func create(contentParent: *Wnd, fileName: string, reportFailure: #null Viewer.ReportFailure = null)->*CodeViewer
     {
         let result = Wnd.create'CodeViewer(contentParent, "scope.code")
         result.backgroundStyle = .View
@@ -320,9 +344,8 @@ internal impl IWnd for CodeViewer
 }
 
 // Creates the integrated syntax-colored source view.
-func createCodeViewer(host: FileViewer.Host)
+func createCodeViewer(host: Viewer.Host)
 {
-    registerCodeStrings(host.application())
     let view = CodeViewer.create(host.contentParent(), host.fileName(), host.services().reportFailure)
     if !view.failureReason.isEmpty()
     {
@@ -338,8 +361,8 @@ func createCodeViewer(host: FileViewer.Host)
         matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
-        return richEditSearchBounds((cast(*CodeViewer) wnd).editor, bounds)
+        return Viewer.richEditMatchBounds((cast(*CodeViewer) wnd).editor, bounds)
     },
-        clear: func(wnd) { clearRichEditSearch((cast(*CodeViewer) wnd).editor) }})
+        clear: func(wnd) { Viewer.clearRichEditMatch((cast(*CodeViewer) wnd).editor) }})
     host.setLifecycle({isLoading: func(wnd)->bool { return (cast(*CodeViewer) wnd).loadTimer != null }})
 }

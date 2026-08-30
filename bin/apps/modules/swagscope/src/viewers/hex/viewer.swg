@@ -2,6 +2,23 @@
 
 using Core, Pixel, Gui
 
+// Describes the raw byte viewer to the host.
+//
+// It answers for every file, so a format nothing else reads is still openable.
+func hexViewerPlugin()->Viewer.Plugin
+{
+    var result: retval
+    result.key          = "hex"
+    result.staticName   = "Hexadecimal"
+    result.attach       = &registerHexStrings
+    result.iconAtlas    = viewerIcons()
+    result.iconIndex    = cast(s32) ViewerIcons.Hex
+    result.create       = &createHexViewer
+    result.smokeFixture = "viewer.hex"
+    result.addSelectors("*")
+    return result
+}
+
 private const HexCommandWidth = 516.0
 private const HexComboWidth   = 150.0
 private const HexEndianWidth  = 150.0
@@ -78,11 +95,11 @@ internal struct HexViewer
     analysisTimer:        #null *Timer
     fileName:             String
     details:              String
-    load:                 ViewerBackgroundLoad'HexDocument
+    load:                 Viewer.BackgroundLoad'HexDocument
     loadTimer:            #null *Timer
-    reportFailure:        #null ViewerReportFailure
-    reportDetails:        #null ViewerReportDetails
-    reportLoadingChanged: #null ViewerReportLoadingChanged
+    reportFailure:        #null Viewer.ReportFailure
+    reportDetails:        #null Viewer.ReportDetails
+    reportLoadingChanged: #null Viewer.ReportLoadingChanged
     failureReason:        String
 }
 
@@ -203,7 +220,7 @@ internal impl HexViewer
         .analysisView.begin(range, selection, .grid.offsetDigits)
         .applyLayout()
         .analysis.start(.fileName.toString(), range)
-        .analysisTimer = .addTimer(ViewerBackgroundPollInterval)
+        .analysisTimer = .addTimer(Viewer.BackgroundPollInterval)
     }
 
     mtd closeAnalysis()
@@ -388,14 +405,14 @@ internal impl HexViewer
         label.toolTip = #move details
     }
 
-    mtd describeSearch(result: *ViewerSearchPresentation)
+    mtd describeSearch(result: *Viewer.SearchPresentation)
     {
         result.placeholder    = hexStrings().ui_SearchPlaceholder
         result.toolTip        = hexStrings().ui_SearchHelp
         result.useTextOptions = false
     }
 
-    mtd prepareSearch(query: string, result: *ViewerSearchPlan)->EditBoxCheckResult
+    mtd prepareSearch(query: string, result: *Viewer.SearchPlan)->EditBoxCheckResult
     {
         var parsed = parseHexSearch(query, .grid.grouping, .grid.bigEndian)
         switch parsed.state
@@ -414,7 +431,7 @@ internal impl HexViewer
         }
     }
 
-    mtd collectSearchMatches(source: string, baseOffset: u64, result: *Array'ViewerSearchMatch)
+    mtd collectSearchMatches(source: string, baseOffset: u64, result: *Array'Viewer.SearchMatch)
     {
         .searchPattern.collectMatches(source, baseOffset, result)
     }
@@ -431,7 +448,7 @@ internal impl HexViewer
 
 internal impl HexViewer
 {
-    func create(host: FileViewer.Host)->*HexViewer
+    func create(host: Viewer.Host)->*HexViewer
     {
         let services = host.services()
         let result   = Wnd.create'HexViewer(host.contentParent(), "scope.hex")
@@ -566,15 +583,14 @@ internal impl HexViewer
         result.refreshInspector()
         result.setInitialFocus(result.grid)
         result.load.start(host.fileName(), &loadHexDocument)
-        result.loadTimer = result.addTimer(ViewerBackgroundPollInterval)
+        result.loadTimer = result.addTimer(Viewer.BackgroundPollInterval)
         return result
     }
 }
 
 // Creates the integrated hexadecimal view.
-func createHexViewer(host: FileViewer.Host)
+func createHexViewer(host: Viewer.Host)
 {
-    registerHexStrings(host.application())
     let view = HexViewer.create(host)
 
     host.attachView(view)

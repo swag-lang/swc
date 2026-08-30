@@ -277,7 +277,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     host.setup(860, 520)
     defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 36, 36})
-    var viewerSession = openTestViewer(&createBinaryViewer, &host.root, fileName.toString(), actionParent: commands)
+    var viewerSession = openTestViewer(binaryViewerPlugin(), &host.root, fileName.toString(), actionParent: commands)
     let view          = cast(*BinaryViewer) viewerSession.view!
     finishBinaryViewer(&host, view)
     view.resize(860, 520)
@@ -762,7 +762,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     var host: Testing.HeadlessHost
     host.setup(640, 420)
     defer host.shutdown()
-    var result = openTestViewer(&createBinaryViewer, &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, actionParent: &host.root)
+    var result = openTestViewer(binaryViewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, actionParent: &host.root)
     Swag.assert(result.view != null and result.actions == null and result.commands == null and result.collectMatches != null and result.isLoading != null)
     let view = cast(*BinaryViewer) result.view!
     finishBinaryViewer(&host, view)
@@ -771,7 +771,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
 func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*BinaryViewer
 {
-    var viewerSession = openTestViewer(&createBinaryViewer, &host.root, fileName)
+    var viewerSession = openTestViewer(binaryViewerPlugin(), &host.root, fileName)
     let view          = cast(*BinaryViewer) viewerSession.view!
     finishBinaryViewer(host, view)
     view.dockStyle = .Center
@@ -871,7 +871,7 @@ func binaryCellText(line: *ListLine, column: BinaryColumn)->String
     defer host.shutdown()
 
     let view = createTestViewer(&host, fileName.toString(), 1100, 600)
-    var matches: Array'ViewerSearchMatch
+    var matches: Array'Viewer.SearchMatch
     view.collectMatches("file offset of the PE signature", {}, &matches)
     Swag.assert(matches.count == 1)
     Swag.assert(matches[0].minor == cast(u64) BinaryColumn.Detail)

@@ -325,7 +325,7 @@ struct HexGridView
 
     // Accepted results in file order. Painting binary-searches this list for each visible row, so
     // marking a large result set never makes a scroll proportional to matches outside the screen.
-    searchHits: #null *Array'ViewerSearchMatch
+    searchHits: #null *Array'Viewer.SearchMatch
 
     bytesPerRow  = 16'u64
     offsetDigits = 8'u64
@@ -756,7 +756,7 @@ impl HexGridView
         .invalidate()
     }
 
-    mtd setSearchMatches(matches: #null *Array'ViewerSearchMatch)
+    mtd setSearchMatches(matches: #null *Array'Viewer.SearchMatch)
     {
         .searchHits = matches
         .invalidate()

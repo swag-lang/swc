@@ -42,7 +42,7 @@ using Core, Pixel, Gui
     host.setup(760, 480)
     defer host.shutdown()
 
-    var result = openTestViewer(&createTableViewer, &host.root, fileName, commandParent: &host.root)
+    var result = openTestViewer(tableViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands == null and result.collectMatches != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
     let view = cast(*TableViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -50,7 +50,7 @@ using Core, Pixel, Gui
     var line: ListLine
     view.fillLine(&line, 1)
     Swag.assert(line.itemAt(0).name.raw == "Reykjavik" and line.itemAt(2).name.raw == "rain")
-    var matches: Array'ViewerSearchMatch
+    var matches: Array'Viewer.SearchMatch
     result.collectMatches!(result.view!, "humid", {}, &matches)
     Swag.assert(matches.count == 1 and result.revealMatch!(result.view!, matches[0], "humid"))
     Swag.assert(view.searchRow == 2 and view.searchColumn == 2 and view.searchOffset == 0 and view.searchLength == 5)
@@ -109,7 +109,7 @@ using Core, Pixel, Gui
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    var result = openTestViewer(&createTableViewer, &host.root, fileName, commandParent: &host.root)
+    var result = openTestViewer(tableViewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null)
     let view = cast(*TableViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)

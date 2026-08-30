@@ -3,10 +3,21 @@
 
 using Core, Gui
 
-// Creates one plugin through the same host API used by the application window.
-func openTestViewer(create: FileViewer.PluginCreate, contentParent: *Wnd, fileName: string, commandParent: #null *Wnd = null, actionParent: #null *Wnd = null, infoParent: #null *Wnd = null, icon: Icon = {}, services: FileViewer.HostServices = {})->ViewerSession
+// Wraps one synthetic creation callback in the descriptor shape the host works with.
+func testViewerPlugin(create: Viewer.PluginCreate)->Viewer.Plugin
 {
     var result: retval
+    result.key    = "test"
+    result.create = create
+    return result
+}
+
+// Creates one plugin through the same host API used by the application window.
+func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string, commandParent: #null *Wnd = null, actionParent: #null *Wnd = null, infoParent: #null *Wnd = null, icon: Icon = {}, services: Viewer.HostServices = {})->ViewerSession
+{
+    var result: retval
+    if plugin.attach do
+        plugin.attach!(contentParent.app())
     var pluginHost = ViewerPluginHost{
         session: &result,
         documentParent: contentParent,
@@ -17,13 +28,13 @@ func openTestViewer(create: FileViewer.PluginCreate, contentParent: *Wnd, fileNa
         sourceFileName: fileName,
         pluginIcon: icon,
         hostServices: services}
-    let host: FileViewer.Host = &pluginHost
-    create(host)
+    let host: Viewer.Host = &pluginHost
+    plugin.create(host)
     return result
 }
 
 // Completes a viewer worker deterministically, then lets the headless GUI publish its result.
-func(T) completeViewerBackgroundLoad(host: *Testing.HeadlessHost, load: *ViewerBackgroundLoad'T, timer: #null *Timer)
+func completeViewerBackgroundLoad(host: *Testing.HeadlessHost, load: *Viewer.BackgroundOperation, timer: #null *Timer)
 {
     Swag.assert(load.started and timer != null)
     Jobs.wait(&load.job)

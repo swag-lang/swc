@@ -114,11 +114,11 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     Swag.assert(!isEngineCreated())
     Swag.assert(soundDurationText(0.25) == "250 ms")
     Swag.assert(soundDurationText(2.5) == "2.50 s")
-    Swag.assert(mediaTimeText(5.9) == "0:05")
-    Swag.assert(mediaTimeText(65.9) == "1:05")
-    Swag.assert(mediaTimeText(3_665.0) == "1:01:05")
-    Swag.assert(mediaTimeRangeText(5, 65) == "0:05 / 1:05")
-    Swag.assert(mediaTimeRangeText(0, 0.5) == "0:00 / 0:01")
+    Swag.assert(Viewer.timeText(5.9) == "0:05")
+    Swag.assert(Viewer.timeText(65.9) == "1:05")
+    Swag.assert(Viewer.timeText(3_665.0) == "1:01:05")
+    Swag.assert(Viewer.timeRangeText(5, 65) == "0:05 / 1:05")
+    Swag.assert(Viewer.timeRangeText(0, 0.5) == "0:00 / 0:01")
 }
 
 // A WAV decoder refusal crosses the progressive viewer boundary without blocking its creator.
@@ -133,7 +133,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     defer host.shutdown()
 
     var failed: bool
-    var result = openTestViewer(&createSoundViewer, &host.root, fileName, commandParent: &host.root, services: {reportFailure: &markSoundOpenFailure})
+    var result = openTestViewer(soundViewerPlugin(), &host.root, fileName, commandParent: &host.root, services: {reportFailure: &markSoundOpenFailure})
     Swag.assert(result.view != null and result.commands != null)
     Swag.assert(result.isLoading != null and result.needsLoadingOverlay != null)
     let view = cast(*SoundViewer) result.view!
@@ -157,7 +157,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     host.setup(640, 360)
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
-    var result   = openTestViewer(&createSoundViewer, &host.root, fileName, commandParent: commands)
+    var result   = openTestViewer(soundViewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.assert(result.view != null)
     Swag.assert(result.commands != null and result.isLoading != null and result.needsLoadingOverlay != null)
     let view = cast(*SoundViewer) result.view!
@@ -178,7 +178,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     // waveform of every file but the first went missing when a failure inside the engine was
     // swallowed on its way out of the module.
     let replacementCommands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
-    var replacementResult   = openTestViewer(&createSoundViewer, &host.root, fileName, commandParent: replacementCommands)
+    var replacementResult   = openTestViewer(soundViewerPlugin(), &host.root, fileName, commandParent: replacementCommands)
     Swag.assert(replacementResult.view != null)
     let replacement = cast(*SoundViewer) replacementResult.view!
     waitForSoundOpen(&host, replacement)
@@ -228,7 +228,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     commandBar.dockStyle       = .Bottom
     commandBar.backgroundStyle = .Window
     commandBar.padding         = {16, 8, 16, 8}
-    var result = openTestViewer(&createSoundViewer, &host.root, fileName, commandParent: commandBar)
+    var result = openTestViewer(soundViewerPlugin(), &host.root, fileName, commandParent: commandBar)
     Swag.assert(result.view != null)
     let view = cast(*SoundViewer) result.view!
     waitForSoundOpen(&host, view)
@@ -318,7 +318,7 @@ func markSoundOpenFailure(wnd: *Wnd, reason: string)
     host.setup(640, 320)
     defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
-    var result   = openTestViewer(&createSoundViewer, &host.root, pacmanWav.toString(), commandParent: commands)
+    var result   = openTestViewer(soundViewerPlugin(), &host.root, pacmanWav.toString(), commandParent: commands)
     Swag.assert(result.view != null)
     let view = cast(*SoundViewer) result.view!
     waitForSoundOpen(&host, view)

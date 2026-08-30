@@ -2,6 +2,21 @@
 
 using Core, Core.Errors, Pixel, Gui, Video
 
+// Describes the subtitle viewer to the host.
+func subtitleViewerPlugin()->Viewer.Plugin
+{
+    var result: retval
+    result.key          = "subtitle"
+    result.staticName   = "Subtitles"
+    result.attach       = &registerSubtitleStrings
+    result.iconAtlas    = viewerIcons()
+    result.iconIndex    = cast(s32) ViewerIcons.Subtitle
+    result.create       = &createSubtitleViewer
+    result.smokeFixture = "viewer.srt"
+    result.addSelectors(".srt;.vtt;.ass;.ssa;.lrc;.sub")
+    return result
+}
+
 internal struct SubtitleViewerCue
 {
     textOffset: u64
@@ -75,27 +90,26 @@ private impl SubtitleViewer
         }
     }
 
-    mtd collectMatches(text: string, options: ViewerSearchOptions, result: *Array'ViewerSearchMatch)
+    mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
         for index in .track!.cueCount()
         {
             let content = videoSubtitleText(.track!.cueTextData(index), .track!.cueTextLength(index))
-            collectViewerTextMatches(content, text, options, index, 0, 0, result)
+            Viewer.collectTextMatches(content, text, options, index, 0, 0, result)
         }
     }
 
-    mtd revealMatch(match: ViewerSearchMatch)->bool
+    mtd revealMatch(match: Viewer.SearchMatch)->bool
     {
         if match.major >= .cueText.count do
             return false
         let cue = .cueText[match.major]
-        highlightRichEditMatch(.editor, .transcript.toString(), cue.textOffset + match.offset, match.length)
+        Viewer.highlightRichEditMatch(.editor, .transcript.toString(), cue.textOffset + match.offset, match.length)
         return true
     }
 
     func create(parent: *Wnd, fileName: string)->*SubtitleViewer fail
     {
-        registerSubtitleStrings(parent.app())
         let result = Wnd.create'SubtitleViewer(parent, "scope.subtitle")
         result.backgroundStyle = .View
         result.track           = try Subtitle.Track.loadOwned(fileName)
@@ -117,7 +131,7 @@ private impl SubtitleViewer
 private func loadSubtitleViewer(parent: *Wnd, fileName: string)->#null *SubtitleViewer fail => try SubtitleViewer.create(parent, fileName)
 
 // Creates the integrated timed-subtitle document view.
-func createSubtitleViewer(host: FileViewer.Host)
+func createSubtitleViewer(host: Viewer.Host)
 {
     let view = catch loadSubtitleViewer(host.contentParent(), host.fileName()) as createError
     if createError != null
@@ -130,7 +144,7 @@ func createSubtitleViewer(host: FileViewer.Host)
     let cueCount = track.cueCount()
     let duration = track.durationInSeconds()
     host.attachView(view!)
-    host.setDetails(Format.toString(subtitleStrings().ui_Details, subtitleFormatText(track.sourceFormat()), subtitleCueCountText(cueCount).toString(), mediaDurationText(duration)).toString())
+    host.setDetails(Format.toString(subtitleStrings().ui_Details, subtitleFormatText(track.sourceFormat()), subtitleCueCountText(cueCount).toString(), Viewer.durationText(duration)).toString())
     host.setSearch({
         collectMatches: func(wnd, text, options, matches) { (cast(*SubtitleViewer) wnd).collectMatches(text, options, matches) },
         revealMatch: func(wnd, match, text)->bool
@@ -141,7 +155,7 @@ func createSubtitleViewer(host: FileViewer.Host)
         matchBounds: func(wnd, match, bounds)->bool
     {
         discard match
-        return richEditSearchBounds((cast(*SubtitleViewer) wnd).editor, bounds)
+        return Viewer.richEditMatchBounds((cast(*SubtitleViewer) wnd).editor, bounds)
     },
-        clear: func(wnd) { clearRichEditSearch((cast(*SubtitleViewer) wnd).editor) }})
+        clear: func(wnd) { Viewer.clearRichEditMatch((cast(*SubtitleViewer) wnd).editor) }})
 }

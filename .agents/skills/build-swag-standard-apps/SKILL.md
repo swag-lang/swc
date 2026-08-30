@@ -37,8 +37,8 @@ information.
   name only for resources, titles, labels, prose, and other user-visible text.
 - Prefer role-based private identities over either spelling: `capture.file.open`, `settings.scc`,
   and `Swag/Capture` survive a display-name change better than an identifier copied from a title.
-  Shared contracts use their own vocabulary, such as `fileviewer` and `FileViewer`, rather than
-  the current host application's name.
+  An API an application publishes to its own extensions uses the vocabulary of what it describes,
+  such as `Viewer` for Swag Scope's viewer contract, rather than the host application's name.
 - Treat published file extensions, format markers, cryptographic domain separators, and ABI names
   as migration decisions. Preserve them with an explicit compatibility contract when compatibility
   is required. When a caller explicitly requests a clean break, migrate the owned data, reset the

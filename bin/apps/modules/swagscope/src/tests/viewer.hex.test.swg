@@ -61,7 +61,7 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
 {
     registerHexStrings(&host.app)
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 640, 36})
-    var viewerSession = openTestViewer(&createHexViewer, &host.root, fileName, commandParent: commands, infoParent: commands)
+    var viewerSession = openTestViewer(hexViewerPlugin(), &host.root, fileName, commandParent: commands, infoParent: commands)
     let view          = cast(*HexViewer) viewerSession.view!
     completeViewerBackgroundLoad(host, &view.load, view.loadTimer)
     view.dockStyle = .Center
@@ -118,7 +118,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     host.setup(640, 420)
     defer host.shutdown()
 
-    var result = openTestViewer(&createHexViewer, &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, infoParent: &host.root)
+    var result = openTestViewer(hexViewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
     let view = cast(*HexViewer) result.view!
     completeViewerBackgroundLoad(&host, &view.load, view.loadTimer)
@@ -948,7 +948,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *HexViewer)
     view.grid.setBytesPerRow(16, false)
     view.grid.moveCaret(0x80, false)
     view.grid.moveCaret(0x89, true)
-    var searchHits: Array'ViewerSearchMatch
+    var searchHits: Array'Viewer.SearchMatch
     searchHits.add({offset: 0x15, length: 4})
     searchHits.add({offset: 0x78, length: 6})
     view.grid.setSearchMatches(&searchHits)

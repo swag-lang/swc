@@ -32,6 +32,9 @@ private var g_ViewerIcons:       IconAtlas
 private var g_ViewerIconsParsed: bool
 
 // Returns the parsed application icon document, parsing it on first use.
+//
+// Every built-in viewer names its glyph in this one document, the way a separately built plugin
+// would name a cell of the document it embeds itself.
 func viewerIcons()->*IconAtlas
 {
     if !g_ViewerIconsParsed
@@ -43,18 +46,12 @@ func viewerIcons()->*IconAtlas
     return &g_ViewerIcons
 }
 
-// Gives every viewer toolbar the same type and dimensions.
-struct ViewerCommandBar
+// One vector document a plugin named, and the frame textures the window uploaded it into.
+//
+// The document itself belongs to whoever embedded it. Only the textures belong here, and they are
+// released with the window that created the renderer holding them.
+struct ViewerPluginIcons
 {
-    using wnd: Wnd
-}
-
-impl ViewerCommandBar
-{
-    func create(parent: *Wnd, width: f32)->*ViewerCommandBar
-    {
-        let result = Wnd.create'ViewerCommandBar(parent, {0, 0, width, 36})
-        result.backgroundStyle = .Transparent
-        return result
-    }
+    atlas: #null *IconAtlas
+    icons: IconSet
 }

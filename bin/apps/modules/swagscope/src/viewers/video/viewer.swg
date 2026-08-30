@@ -2,6 +2,27 @@
 
 using Core, Pixel, Gui, Video, Audio
 
+// Describes the movie player to the host.
+//
+// It offers itself for every container the video module can read, so a demuxer added there reaches
+// the player without a list to update here.
+func videoViewerPlugin()->Viewer.Plugin
+{
+    var result: retval
+    result.key          = "video"
+    result.staticName   = "Video"
+    result.attach       = &registerVideoStrings
+    result.iconAtlas    = viewerIcons()
+    result.iconIndex    = cast(s32) ViewerIcons.Video
+    result.create       = &createVideoViewer
+    result.smokeFixture = "glint-aac-mjpeg.mp4"
+
+    let formats = Reader.decodableFormats()
+    for format in formats do
+        result.addSelectors(format.extensions)
+    return result
+}
+
 private const VideoSeekSeconds                        = 10.0
 private const VideoSeekOverlaySize                    = Math.Point{112, 64}
 private const VideoSeekOverlayOffsetY                 = 56.0
@@ -577,9 +598,9 @@ internal struct VideoViewer
     audioReady:           bool
     timelineReady:        bool
     timelineChanging:     bool
-    reportDetails:        #null ViewerReportDetails
-    reportFailure:        #null ViewerReportFailure
-    reportLoadingChanged: #null ViewerReportLoadingChanged
+    reportDetails:        #null Viewer.ReportDetails
+    reportFailure:        #null Viewer.ReportFailure
+    reportLoadingChanged: #null Viewer.ReportLoadingChanged
     retireRequested:      bool
     retired:              bool
 
@@ -819,8 +840,8 @@ internal impl VideoViewer
             }
         }
 
-        .currentTimeLabel.setText(mediaTimeText(seconds))
-        .totalTimeLabel.setText(mediaDurationText(duration))
+        .currentTimeLabel.setText(Viewer.timeText(seconds))
+        .totalTimeLabel.setText(Viewer.durationText(duration))
     }
 
     mtd seekSeconds(seconds: f64)
@@ -1662,7 +1683,7 @@ private impl VideoViewer
     mtd refreshDetails()
     {
         let duration = .video.durationInSeconds()
-        .details = Format.toString(videoStrings().ui_Details, .video.width(), .video.height(), videoFrameCountText(.video.frameCount()), .video.frameRate().framesPerSecond(), mediaDurationText(duration))
+        .details = Format.toString(videoStrings().ui_Details, .video.width(), .video.height(), videoFrameCountText(.video.frameCount()), .video.frameRate().framesPerSecond(), Viewer.durationText(duration))
         if .audio do
             .details = Format.toString("% · %", .details.toString(), videoAudioDetailsText(.audio!).toString())
         if .reportDetails do
@@ -1770,9 +1791,8 @@ private impl VideoViewer
         .subtitleLastSeconds = -1
     }
 
-    func create(host: FileViewer.Host)->*VideoViewer fail
+    func create(host: Viewer.Host)->*VideoViewer fail
     {
-        registerVideoStrings(host.application())
         let services = host.services()
         let result   = Wnd.create'VideoViewer(host.contentParent(), "scope.video")
         defer #fail
@@ -1997,9 +2017,9 @@ private func runVideoViewerDecode(thread: Threading.Thread)
 }
 
 // Creates the integrated video playback view.
-private func loadVideoViewer(host: FileViewer.Host)->#null *VideoViewer fail => try VideoViewer.create(host)
+private func loadVideoViewer(host: Viewer.Host)->#null *VideoViewer fail => try VideoViewer.create(host)
 
-func createVideoViewer(host: FileViewer.Host)
+func createVideoViewer(host: Viewer.Host)
 {
     let view = catch loadVideoViewer(host) as decodeError
     if decodeError != null

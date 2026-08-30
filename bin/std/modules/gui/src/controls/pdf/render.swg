@@ -467,9 +467,14 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
             }
         }
 
+        // Almost every mark of a page is stated in page coordinates and shares one transform with
+        // the marks around it, and stating it again is a command the renderer has to walk past.
+        // The painter is asked what it currently holds rather than trusting a copy, because a
+        // text run states a transform of its own and restores this one.
         var placed = item.transform
         placed.multiply(pageToSurface)
-        painter.setTransform(placed)
+        if placed != painter.transform() do
+            painter.setTransform(placed)
 
         // The clip is stated in page coordinates, so it maps through the page transform
         // rather than through the item's own.

@@ -290,6 +290,7 @@ struct Painter
         sharedLinePath:     LinePath                                // Reusable single-path workspace.
         sharedLinePathList: LinePathList                            // Reusable multi-path workspace.
         sharedIsland:       Array'(*LinePath)                       // Contours of the region being filled.
+        sharedDirections:   HashTable'(u64, Vector2)                // Outward direction of each contour point of that region.
         sharedRoundTmp:     Array'{ factor: f32, pos: Vector2 }     // Reusable stroke-rounding workspace.
         tess:               Poly2Tri.Tessellate                     // Reusable polygon tessellator.
 

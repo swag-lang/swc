@@ -12,39 +12,6 @@ public enum PathFillRule
     EvenOdd     // Inside wherever the winding count is odd.
 }
 
-// Records, for every vertex of a freshly tessellated region, the outward direction of the contour
-// point it came from, so the solid can be inset when it is pushed rather than when it is built.
-//
-// The tessellator answers with plain positions, and a constrained triangulation of contours that
-// were already normalized introduces no point of its own, so each vertex is one of the contour
-// points and is found by its exact coordinates. A vertex that is not — a tessellator that decided
-// otherwise — keeps a zero direction and stays where it is.
-private func buildTriangleOffsets(p: *LinePath, island: const [..] *LinePath)
-{
-    p.triangleOffsets.clear()
-    p.triangleOffsets.resize(p.triangles.vertices.count)
-
-    var directions: HashTable'(u64, Vector2)
-    for contour in island
-    {
-        let points = contour.polygon.points
-        for i in points.count
-        {
-            let key = contourPointKey(points[i])
-            if directions.contains(key) do
-                continue
-            directions.add(key, contour.polygon.offsetPointAt(i, 1) - points[i])
-        }
-    }
-
-    for i in p.triangles.vertices.count
-    {
-        let found = directions.tryFind(contourPointKey(p.triangles.vertices[i]))
-        if found do
-            p.triangleOffsets[i] = found!.value
-    }
-}
-
 // Identifies one contour point by its exact coordinates. The tessellator copies the points it is
 // given, so the two bit patterns are the same value and not merely a close one.
 private func contourPointKey(point: Vector2)->u64
@@ -54,6 +21,42 @@ private func contourPointKey(point: Vector2)->u64
 
 public impl Painter
 {
+    // Records, for every vertex of a freshly tessellated region, the outward direction of the
+    // contour point it came from, so the solid can be inset when it is pushed rather than when it
+    // is built.
+    //
+    // The tessellator answers with plain positions, and a constrained triangulation of contours
+    // that were already normalized introduces no point of its own, so each vertex is one of the
+    // contour points and is found by its exact coordinates. A vertex that is not — a tessellator
+    // that decided otherwise — keeps a zero direction and stays where it is. The lookup reuses the
+    // painter's own table: a page of vector glyphs tessellates thousands of regions, and a fresh
+    // table for each of them is a page's worth of allocation for nothing.
+    private mtd buildTriangleOffsets(p: *LinePath, island: const [..] *LinePath)
+    {
+        p.triangleOffsets.clear()
+        p.triangleOffsets.resize(p.triangles.vertices.count)
+
+        .sharedDirections.clear()
+        for contour in island
+        {
+            let points = contour.polygon.points
+            for i in points.count
+            {
+                let key = contourPointKey(points[i])
+                if .sharedDirections.contains(key) do
+                    continue
+                .sharedDirections.add(key, contour.polygon.offsetPointAt(i, 1) - points[i])
+            }
+        }
+
+        for i in p.triangles.vertices.count
+        {
+            let found = .sharedDirections.tryFind(contourPointKey(p.triangles.vertices[i]))
+            if found do
+                p.triangleOffsets[i] = found!.value
+        }
+    }
+
     // Emit a connected, mitered antialiasing fringe ring around a closed polygon
     // contour. Adjacent edges share their mitered inner/outer vertices, so corners
     // stay seamless (no per-edge wedges).
@@ -96,7 +99,7 @@ public impl Painter
             tess.triangulate()
             p.triangles = tess.takeResult()
             tess.clear()
-            buildTriangleOffsets(p, island)
+            .buildTriangleOffsets(p, island)
         }
 
         // The solid stops half a band short of the contour and the band, centered on the

@@ -289,6 +289,7 @@ struct Painter
         triangulateIdx:     Array's32                               // Reusable tessellation index workspace.
         sharedLinePath:     LinePath                                // Reusable single-path workspace.
         sharedLinePathList: LinePathList                            // Reusable multi-path workspace.
+        sharedIsland:       Array'(*LinePath)                       // Contours of the region being filled.
         sharedRoundTmp:     Array'{ factor: f32, pos: Vector2 }     // Reusable stroke-rounding workspace.
         tess:               Poly2Tri.Tessellate                     // Reusable polygon tessellator.
 
@@ -849,7 +850,7 @@ impl Painter
             alpha = true
         if !pen.brush.isOpaque() do
             alpha = true
-        if .curRT and .curRT.paintAlpha and .curState.paintParams & .Antialiased do
+        if .curPaintAlpha and .curState.paintParams & .Antialiased do
             alpha = true
         if alpha and .curState.blendingMode == .Alpha
         {

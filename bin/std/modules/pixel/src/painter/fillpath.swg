@@ -12,6 +12,46 @@ public enum PathFillRule
     EvenOdd     // Inside wherever the winding count is odd.
 }
 
+// Records, for every vertex of a freshly tessellated region, the outward direction of the contour
+// point it came from, so the solid can be inset when it is pushed rather than when it is built.
+//
+// The tessellator answers with plain positions, and a constrained triangulation of contours that
+// were already normalized introduces no point of its own, so each vertex is one of the contour
+// points and is found by its exact coordinates. A vertex that is not — a tessellator that decided
+// otherwise — keeps a zero direction and stays where it is.
+private func buildTriangleOffsets(p: *LinePath, island: const [..] *LinePath)
+{
+    p.triangleOffsets.clear()
+    p.triangleOffsets.resize(p.triangles.vertices.count)
+
+    var directions: HashTable'(u64, Vector2)
+    for contour in island
+    {
+        let points = contour.polygon.points
+        for i in points.count
+        {
+            let key = contourPointKey(points[i])
+            if directions.contains(key) do
+                continue
+            directions.add(key, contour.polygon.offsetPointAt(i, 1) - points[i])
+        }
+    }
+
+    for i in p.triangles.vertices.count
+    {
+        let found = directions.tryFind(contourPointKey(p.triangles.vertices[i]))
+        if found do
+            p.triangleOffsets[i] = found!.value
+    }
+}
+
+// Identifies one contour point by its exact coordinates. The tessellator copies the points it is
+// given, so the two bit patterns are the same value and not merely a close one.
+private func contourPointKey(point: Vector2)->u64
+{
+    return cast(u64) cast #bit(u32) point.x << 32 | cast(u64) cast #bit(u32) point.y
+}
+
 public impl Painter
 {
     // Emit a connected, mitered antialiasing fringe ring around a closed polygon
@@ -44,7 +84,7 @@ public impl Painter
         }
     }
 
-    private mtd fillPathTriangulated(t: #null *Poly2Tri.Tessellate, p: *LinePath, bvMin, bvMax: Vector2, brush: Brush)
+    private mtd fillPathTriangulated(t: #null *Poly2Tri.Tessellate, p: *LinePath, bvMin, bvMax: Vector2, brush: Brush, island: const [..] *LinePath)
     {
         .setTexture0(bvMin, bvMax, brush)
         .resetTextureFont()
@@ -56,34 +96,39 @@ public impl Painter
             tess.triangulate()
             p.triangles = tess.takeResult()
             tess.clear()
+            buildTriangleOffsets(p, island)
         }
 
-        // Paint the solid interior on the true contour: the triangulation is cached, so it
-        // cannot be inset the way a convex fill insets its own. The band that follows is what
-        // places the edge, and a translucent colour pays a faint rim for it.
+        // The solid stops half a band short of the contour and the band, centered on the
+        // contour, carries the coverage from there out. A solid left on the true contour is a
+        // hard edge the band can only add to, so an edge would be placed by whichever side of it
+        // a pixel centre happened to fall on: that is what made a page of small vector glyphs
+        // read as bold and ragged at once.
+        let aa     = .aaHalfPathSpace()
+        let inset  = .curState.paintParams & .Antialiased ? aa : 0
+        let offset = p.triangleOffsets.count == p.triangles.vertices.count
         for i in p.triangles.triangleCount()
         {
             let vertexIndex = i * 3
-            discard .pushTriangle(p.triangles.vertices[vertexIndex], p.triangles.vertices[vertexIndex + 1], p.triangles.vertices[vertexIndex + 2], brush.color)
+            if !inset or !offset
+            {
+                discard .pushTriangle(p.triangles.vertices[vertexIndex], p.triangles.vertices[vertexIndex + 1], p.triangles.vertices[vertexIndex + 2], brush.color)
+                continue
+            }
+
+            let v0 = p.triangles.vertices[vertexIndex] - p.triangleOffsets[vertexIndex] * inset
+            let v1 = p.triangles.vertices[vertexIndex + 1] - p.triangleOffsets[vertexIndex + 1] * inset
+            let v2 = p.triangles.vertices[vertexIndex + 2] - p.triangleOffsets[vertexIndex + 2] * inset
+            discard .pushTriangle(v0, v1, v2, brush.color)
         }
 
-        // The band is centered on the contour, so the shape keeps the size it states. A solid
-        // that cannot be inset plus a band pushed fully outside grows every contour by half a
-        // pixel on each side, which at reading sizes is what turns a page of vector glyphs into
-        // bold smudges; the inner half of a centered band merely repaints the solid, which an
-        // opaque colour does not notice.
-        //
-        // A paint-alpha target is the exception. Its alpha channel is rebuilt by replaying the
-        // draws under a maximum, where the solid's own hard edge writes full coverage and
-        // survives; only a band that starts on that edge and ramps outward leaves one clean ramp
-        // for the maximum to keep.
+        // Every contour of the region gets a band, not only the last one the tessellator was
+        // given: a glyph is an outer contour and its counters, and a band on one of them leaves
+        // every other edge as a hard step.
         if .curState.paintParams & .Antialiased
         {
-            let aa = .aaHalfPathSpace()
-            if .curPaintAlpha do
-                .fillContourAA(&p.polygon, brush.color, 0, 2 * aa)
-            else do
-                .fillContourAA(&p.polygon, brush.color, -aa, aa)
+            for contour in island do
+                .fillContourAA(&contour.polygon, brush.color, -aa, aa)
         }
     }
 
@@ -258,26 +303,30 @@ public impl Painter
 
         serial = 0
         flush  = null
+        .sharedIsland.clear()
 
         for p in pathList.paths
         {
             if (p.polygon.isClockwise or serial != p.serial) and flush
             {
                 serial = p.serial
-                .fillPathTriangulated(dirty ? &.tess : null, flush, pathList.minBounds, pathList.maxBounds, brush)
+                .fillPathTriangulated(dirty ? &.tess : null, flush, pathList.minBounds, pathList.maxBounds, brush, .sharedIsland.toSlice())
+                .sharedIsland.clear()
                 flush = null
             }
 
             if p.polygon.points.count >= 3
             {
                 flush = p
+                .sharedIsland.add(p)
                 if dirty do
                     .tess.addPolyLine(p.polygon)
             }
         }
 
         if flush do
-            .fillPathTriangulated(dirty ? &.tess : null, flush, pathList.minBounds, pathList.maxBounds, brush)
+            .fillPathTriangulated(dirty ? &.tess : null, flush, pathList.minBounds, pathList.maxBounds, brush, .sharedIsland.toSlice())
+        .sharedIsland.clear()
     }
 
     // Fill the polygon with the given color

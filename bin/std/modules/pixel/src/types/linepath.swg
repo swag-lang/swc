@@ -62,6 +62,12 @@ public struct LinePath
         endPosBuffer:     Vector2             // Reusable endpoint workspace for flattening.
         polygon:          Polygon             // Cached flattened contour.
         triangles:        Poly2Tri.Result     // Cached fill tessellation.
+
+        // Outward direction of every tessellation vertex that came from a contour, and zero for
+        // one the tessellator introduced. A fill insets its solid along these so its edge can be
+        // placed by the antialiasing band rather than by the triangulation, and they are cached
+        // beside the triangulation because they describe exactly its vertices.
+        triangleOffsets: Array'Vector2
     }
 }
 
@@ -86,12 +92,14 @@ public impl LinePath
     mtd opPostCopy()
     {
         .triangles.clear()
+        .triangleOffsets.clear()
     }
 
     // Releases all cached polygon and tessellation data.
     internal mtd clearCache()
     {
         .triangles.clear()
+        .triangleOffsets.clear()
         .polygon.clear()
         .isFlatten = false
         .isDirty   = true
@@ -472,6 +480,7 @@ public impl LinePath
         .minBounds = .polygon.minBounds
         .maxBounds = .polygon.maxBounds
         .triangles.clear()
+        .triangleOffsets.clear()
         .revision = nextContourRevision()
     }
 

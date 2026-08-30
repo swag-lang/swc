@@ -93,16 +93,16 @@ Builds, runs, tests, or smokes one or every module in the applications workspace
   swc tools/apps.swgs [dm] [build|run|test|smoke] [<application>] [options...]
 
   dm                 use the DevMode compiler
-  <application>      a module under bin/apps/modules, for instance sVaultDrive or sSnapForge
+  <application>      a module under bin/apps/modules, for instance swagvault or swagcapture
   -bc <config>       release or devmode (default devmode)
   --test-file <text> run only #test functions from matching source paths; repeatable
   --frames <count>   bound a smoke to that many frames
   --run-arg <value>  an argument for the launched application
   --async             start the application and return immediately (run only)
 
-  swc tools/apps.swgs run sVaultDrive          launch one application
-  swc tools/apps.swgs run sVaultDrive --async  launch without waiting
-  swc tools/apps.swgs dm test sSnapForge       run its tests with the DevMode compiler
+  swc tools/apps.swgs run swagvault          launch one application
+  swc tools/apps.swgs run swagvault --async  launch without waiting
+  swc tools/apps.swgs dm test swagcapture    run its tests with the DevMode compiler
 
 Every command uses the shared bin/apps workspace and places each application's runtime files
 beside its executable. 'run' needs an application name and launches the packaged executable
@@ -183,14 +183,14 @@ Cuts the mark, the icons and the favicons first, then documents the bin/std and
 bin/reference workspaces.
 """)
 
-    case "vaultdrive":
+    case "vault":
         Console.print("""
-Runs the privileged sVaultDrive/WinFsp end-to-end sandbox.
+Runs the privileged Swag Vault/WinFsp end-to-end sandbox.
 
-  swc tools/vaultdrive.swgs [dm]
+  swc tools/vault.swgs [dm]
 
-Builds sVaultDrive with the SVaultDrive.Integration tag, runs it, prints its report, then
-rebuilds a normal sVaultDrive. It mounts a real volume, so it stays out of tests.swgs.
+Builds Swag Vault with the vault.integration tag, runs it, prints its report, then
+rebuilds a normal Swag Vault. It mounts a real volume, so it stays out of tests.swgs.
 """)
 
     case "vsix":

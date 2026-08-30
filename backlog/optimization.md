@@ -161,7 +161,7 @@ the shared backlog conventions.
   `pre-mem-to-reg`/`post-mem-to-reg` differ by 212 promoted instructions, so it promotes what it
   should and the allocator puts the values back.
 - Evidence: measured 2026-08-15 on an otherwise idle machine, release config, on the 12.8 MB
-  deflate payload of `8_9_2025_15_43_58.scapture` (17.0 MB out, 14.76 M symbols, 1.21 bytes per
+  deflate payload of `8_9_2025_15_43_58.scc` (17.0 MB out, 14.76 M symbols, 1.21 bytes per
   symbol — a stored photograph, so the loop runs about once per output byte). Best of several
   alternating runs: clang-cl `/O2` 88.8 ms (191 MB/s), a bare Swag prototype of the same loop
   121.7 ms (139 MB/s), the shipped `Compress.Inflate` 141.9 ms (119 MB/s). Swag block loop 619

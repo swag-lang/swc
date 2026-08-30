@@ -146,9 +146,9 @@ single-file scripts run through the JIT, others as workspace modules compiled to
 
 * [bin/examples/scripts](bin/examples/scripts) — single-file `.swgs` programs run through the JIT: Flappy Bird, chess, Pac-Man, Space Invaders, a Mandelbrot viewer, Game of Life, a calculator, and more
 * [bin/examples/modules](bin/examples/modules) — workspace modules: GUI, OpenGL, and 2D rendering demos, plus ten years of [Advent of Code](https://adventofcode.com/) solutions
-* [bin/apps/modules/sSnapForge](bin/apps/modules/sSnapForge) — screen capture, annotation, and image library with the standard Swag application identity
-* [bin/apps/modules/sVaultDrive](bin/apps/modules/sVaultDrive) — portable encrypted virtual drives backed by WinFsp and implemented entirely in Swag
-* [bin/apps/modules/sFileScope](bin/apps/modules/sFileScope) — universal read-only file inspection through integrated format viewers
+* [bin/apps/modules/swagcapture](bin/apps/modules/swagcapture) — screen capture, annotation, and image library with the standard Swag application identity
+* [bin/apps/modules/swagvault](bin/apps/modules/swagvault) — portable encrypted virtual drives backed by WinFsp and implemented entirely in Swag
+* [bin/apps/modules/swagscope](bin/apps/modules/swagscope) — universal read-only file inspection through integrated format viewers
 * [bin/std/modules](bin/std/modules) — the standard workspace: `core`, `pixel`, `gui`, `ogl`, `audio`, `truetype`, and the native Windows bindings
 
 # Getting started

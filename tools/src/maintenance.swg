@@ -172,28 +172,28 @@ public func runSetup(context: *Context, _options: *Options)->s32 fail
     return 0
 }
 
-// Runs the privileged sVaultDrive/WinFsp end-to-end sandbox, then restores a normal build.
+// Runs the privileged Swag Vault/WinFsp end-to-end sandbox, then restores a normal build.
 //
 // The integration build mounts a real volume, so it is kept out of the default test set and run
-// on demand. The final rebuild is what puts a plain sVaultDrive back in the output directory.
-public func runVaultDrive(context: *Context, options: *Options)->s32 fail
+// on demand. The final rebuild is what puts a plain Swag Vault back in the output directory.
+public func runVaultIntegration(context: *Context, options: *Options)->s32 fail
 {
     var integration = options[]
     integration.command  = String.from("build")
-    integration.module   = String.from("sVaultDrive")
+    integration.module   = String.from("swagvault")
     integration.buildCfg = String.from("release")
-    integration.extra.add(["--tag", "SVaultDrive.Integration", "--rebuild"])
+    integration.extra.add(["--tag", "vault.integration", "--rebuild"])
 
     let tagged = try runApps(context, &integration)
     if tagged != 0 do
         return tagged
 
-    let appDir = Path.combine(context.workspacePath("apps").toString(), ".output", "sVaultDrive", "executable", "release", context.targetArch.toString())
-    let report = Path.combine(appDir.toString(), "sVaultDrive-integration-result.txt")
+    let appDir = Path.combine(context.workspacePath("apps").toString(), ".output", "swagvault", "executable", "release", context.targetArch.toString())
+    let report = Path.combine(appDir.toString(), "integration-result.txt")
     if File.exists(report) do
         discard catch File.delete(report.toString())
 
-    let executable = Path.combine(appDir.toString(), "sVaultDrive.exe")
+    let executable = Path.combine(appDir.toString(), "swagvault.exe")
 
     var info    = Env.StartInfo{fileName: executable.toString(), workingDirectory: appDir.toString(), environment: &context.childEnv}
     var process = try Env.startProcess(info)
@@ -210,7 +210,7 @@ public func runVaultDrive(context: *Context, options: *Options)->s32 fail
 
     var restore = options[]
     restore.command  = String.from("build")
-    restore.module   = String.from("sVaultDrive")
+    restore.module   = String.from("swagvault")
     restore.buildCfg = String.from("release")
     restore.extra.add(["--rebuild"])
 

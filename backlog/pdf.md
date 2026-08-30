@@ -120,7 +120,7 @@ writer moves below both consumers or `pixel` grows its own, and that choice belo
   recorded against the item that needed it with enough detail to name the feature, `Page` exposes
   those limitations to the caller, and a document-level failure is reserved for input that cannot
   be parsed at all.
-- Note: the messages reach a user through sFileScope's failure reporting, so they are user-facing
+- Note: the messages reach a user through Swag Scope's failure reporting, so they are user-facing
   English and must read as such.
 - Related: T-442, T-443, T-444, T-445
 

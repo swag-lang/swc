@@ -245,7 +245,7 @@ Transfer unconsumed pan motion to the next scrollable ancestor at a boundary.
 
 ### T-229 — Pen pressure is not modeled end to end
 
-Carry pressure and pen identity from native input through drawing tools. `sSnapForge` is the proving
+Carry pressure and pen identity from native input through drawing tools. `Swag Capture` is the proving
 application, and the headless host must inject pen events so the behavior is testable without
 hardware.
 
@@ -357,9 +357,9 @@ test; backend integration tests then prove native focus, DPI, clipboard and inpu
 T-045 is complete when a non-trivial GUI sample opens, lays out, paints, resizes, and closes on the
 second platform. The higher integrations retain their own completion identifiers.
 
-This only removes the interface blocker for the applications. sSnapForge still needs its separate
-capture backend in [T-084](snapforge.md#t-084--cross-platform-capture-backend); sVaultDrive still
-needs the FUSE backend in [T-100](vaultdrive.md#t-100--no-linux-fuse-backend), plus the
+This only removes the interface blocker for the applications. Swag Capture still needs its separate
+capture backend in [T-084](capture.md#t-084--cross-platform-capture-backend); Swag Vault still
+needs the FUSE backend in [T-100](vault.md#t-100--no-linux-fuse-backend), plus the
 Core and Pixel platform work under T-028. Keeping those dependencies explicit prevents a GUI port
 from being mistaken for two ported products.
 
@@ -403,8 +403,8 @@ missing-monitor rectangles and ignores panes the application no longer registers
 
 Add `DocumentHost` over a tab stack: active document, dirty marker, close veto/save flow,
 close-others, reorder, and command routing to the active view. Lazily create or virtualize heavy
-pages, and test close veto and focus independently of docking. sSnapForge's open captures are the
-first consumer; sVaultDrive does not need this merely as a demonstration.
+pages, and test close veto and focus independently of docking. Swag Capture's open captures are the
+first consumer; Swag Vault does not need this merely as a demonstration.
 
 - Related: T-046
 
@@ -469,14 +469,14 @@ their former order until re-triaged, so position in this imported block carries 
 
 An entry noticed while working on an application belongs here when `std/gui` is where it will be
 fixed; an entry that will be fixed inside the application goes to that application's own file, such
-as [snapforge.md](snapforge.md).
+as [capture.md](capture.md).
 
 ## Declarative UI and headless automation
 
 ### F-006 — Data-driven UI resource for `std/gui`
 
 - Area: bin/std
-- Found while: simplifying the sVaultDrive vault cards after `FormCtrl` was judged too heavy
+- Found while: simplifying the Swag Vault vault cards after `FormCtrl` was judged too heavy
 - Observation: a UI described by a data string is only worth it when the caller never needs the
   controls back. The removed `FormCtrl` proved the opposite case: every consumer built an
   `Array'FormFieldDefinition`, then immediately recovered typed pointers by string identifier
@@ -486,7 +486,7 @@ as [snapforge.md](snapforge.md).
   time into typed members.
 - Evidence: commits 3b382e68a and 8009467a0 removed `FormCtrl`, `FormFieldDefinition`,
   `FormFieldKind`, `FormChoice`, and `FormField` (177 lines) and replaced three consumers with
-  `FormLayoutCtrl` builders that return the concrete control. sVaultDrive's two cards lost their two
+  `FormLayoutCtrl` builders that return the concrete control. Swag Vault's two cards lost their two
   field-description functions and every `findField` lookup. `Core.File.TweakFile` already parses a
   text format onto struct fields through reflection, and `ThemeStyle.addStyleSheetColors` shows the
   existing string-resource precedent in `std/gui`.
@@ -500,14 +500,14 @@ as [snapforge.md](snapforge.md).
 ### F-020 — Arming the headless modal driver for an absent button fails silently
 
 - Area: std/gui
-- Found while: the two `sSnapForge` dialog tests that did not pass — both armed a button their
+- Found while: the two `Swag Capture` dialog tests that did not pass — both armed a button their
   dialog does not offer (`BtnYes` for `AboutDlg`, `BtnOk` for File Details), while each of those
   boxes carries exactly one `Close` button under `BtnCancel`. Fixed in the tests.
 - Observation: `clickModalButtonWhenShown(id)` accepts any `WndId`. When no modal surface ever
   exposes that id, the driver spins to `autoMaxFrames`, cancels the dialog, and leaves
   `autoHandled` false — so the test fails on an assertion far from the mistake, and the failure
   reads exactly like "the dialog never opened" even though it opened and was answered.
-- Evidence: `swc tools/apps.swgs dm test sSnapForge` before the fix reported 2 of 126 not passing on
+- Evidence: `swc tools/apps.swgs dm test swagcapture` before the fix reported 2 of 126 not passing on
   `@assert(autoHandled)`; the dialogs did open. `runAutoStage` returns false for both a missing
   modal surface and a missing button ([headless.swg:191](../bin/std/modules/gui/src/testing/headless.swg#L191)),
   and only the frame ceiling distinguishes them, after the fact.
@@ -581,16 +581,16 @@ as [snapforge.md](snapforge.md).
 ### F-038 — A check box does not line up with the fields of the form it stands in
 
 - Area: std/gui
-- Found while: adding the read-only option to the sVaultDrive open-vault card, which put the first
+- Found while: adding the read-only option to the Swag Vault open-vault card, which put the first
   check box of that surface directly under a column of edit boxes.
 - Observation: `ThemeMetrics.btnCheck_Size` is 24 and is what `CheckButton` and `RadioButton`
   place their marker with, but the atlas tiles behind it carry their shape inset inside their cell
   (`check_bk` is a 22-unit square at 5,5 of a 32-unit tile), so the *ink* of the box starts about
   3.75 logical pixels inside the rectangle the widget was given. A box placed at the left edge of a
   form column therefore reads as indented against every field above it.
-- Evidence: measured on the rendered surface, `bin/apps/modules/sVaultDrive` in the former light Swag palette: the
+- Evidence: measured on the rendered surface, `bin/apps/modules/swagvault` in the former light Swag palette: the
   edit borders of the middle card start at x=572 and the check box ink starts at x=575. The same
-  inset exists vertically on other atlas glyphs: in `vaultdrive.surface.png` the folder icon of the
+  inset exists vertically on other atlas glyphs: in `vault.surface.png` the folder icon of the
   container-file field is drawn in a 17-unit cell whose middle lands on the middle of the box, and
   its ink still comes out about a pixel above that middle.
 - Next step: decide who owns the difference. Either the tiles fill their cell and `btnCheck_Size`
@@ -614,7 +614,7 @@ as [snapforge.md](snapforge.md).
   ([wnd.swg:301](../bin/std/modules/gui/src/wnd/wnd.swg#L301),
   [wnd.swg:914](../bin/std/modules/gui/src/wnd/wnd.swg#L914),
   [wnd.swg:980](../bin/std/modules/gui/src/wnd/wnd.swg#L980)). Measured directly: with
-  `FormLayoutCtrl` arranging only from `onResizeEvent`, sVaultDrive's French "Parcourir" button stayed at
+  `FormLayoutCtrl` arranging only from `onResizeEvent`, Swag Vault's French "Parcourir" button stayed at
   its English 104 while its own measure asked for 115, and `Testing.assertContentFits` caught it.
   `VaultCard.endForm` now calls `form.computeLayout()` by hand for exactly this reason, and every
   other container that arranges children carries the same latent hole — `invalidateLayout` reads
@@ -632,7 +632,7 @@ as [snapforge.md](snapforge.md).
 ### F-083 — Text outside a framed field is still centered on its line box, so its height follows the face
 
 - Area: std/gui
-- Found while: fixing the vertical alignment of the sVaultDrive container-file field, which is set in
+- Found while: fixing the vertical alignment of the Swag Vault container-file field, which is set in
   the fixed-width theme family and read as riding high inside its own box.
 - Observation: a single line was centered by putting its *line box* on the middle of the rectangle,
   which hands the placement to the internal leading of the face. Measured on the shipped theme:
@@ -644,7 +644,7 @@ as [snapforge.md](snapforge.md).
   through `StringVertAlignment.OpticalCenter`; every other widget still centers on the line box.
 - Evidence: `Pixel.Font.opticalLineTop` and the `OpticalCenter` case in
   [drawstring.swg](../bin/std/modules/pixel/src/painter/drawstring.swg). Before the fix, in
-  `bin/apps/modules/sVaultDrive/src/tests/goldens/vaultdrive.surface.png`: the "256" digits of the capacity
+  `bin/apps/modules/swagvault/src/tests/goldens/vault.surface.png`: the "256" digits of the capacity
   field spanned rows 352..360 in a box spanning 342..373, one pixel above its middle, while the
   password placeholder below it sat exactly on the middle of its own box.
 - Next step: decide whether the rest of the toolkit follows. A label, a menu entry and a list row
@@ -724,7 +724,7 @@ as [snapforge.md](snapforge.md).
 ### F-172 — A denser monitor frees the frames every stored icon points at
 
 - Area: bin/std
-- Found while: giving sFileScope's viewer selector one glyph per viewer (2026-08-21), which stores
+- Found while: giving Swag Scope's viewer selector one glyph per viewer (2026-08-21), which stores
   an `Icon` per combo entry the way every toolbar already stores one per button.
 - Observation: `Gui.Icon` borrows `imageList`, and `Gui.IconSet.list` drops every list it owns
   (`free`, which `Memory.delete`s each `ImageList`) as soon as it is asked for a scale sharper
@@ -745,7 +745,7 @@ as [snapforge.md](snapforge.md).
 ### F-174 — A splitter's first pane silently ignores the size it is added with
 
 - Area: bin/std
-- Found while: the sFileScope history panel opened one row tall (2026-08-21), although it declares
+- Found while: the Swag Scope history panel opened one row tall (2026-08-21), although it declares
   `addPane(recentPane, ViewerRecentHeight)` with 188.
 - Observation: `SplitterCtrl.addPane` takes `paneSize` and uses it only from the second pane on.
   For the first one it writes `item.size = paddedClientRect().height` instead — which is the right
@@ -753,8 +753,8 @@ as [snapforge.md](snapforge.md).
   laid out once. The next `addPane` then transfers out of a pane holding nothing, the first layout
   clamps it to `minimumSize`, and `preserveSize` freezes it there for the rest of the session. The
   argument is never read, so nothing reports that the declared height was dropped.
-- Evidence: sFileScope built its panel that way and got 88 (its `minimumSize`) where it asked for
-  188, both in the running application and in `sfilescope.panel`'s golden. The application now
+- Evidence: Swag Scope built its panel that way and got 88 (its `minimumSize`) where it asked for
+  188, both in the running application and in `panel`'s golden. The application now
   re-applies the height in `setFilePanelVisible` after an explicit `applyLayout`, which is the
   workaround this entry exists to remove.
 - Next step: either honor `paneSize` for the first pane when the splitter has no size yet and let
@@ -789,7 +789,7 @@ as [snapforge.md](snapforge.md).
 ### F-191 — One dirty rectangle for the whole surface makes two small changes cost the window
 
 - Area: bin/std
-- Found while: chasing the small, regular stalls the sFileScope video viewer showed on the
+- Found while: chasing the small, regular stalls the Swag Scope video viewer showed on the
   3840x2160 25 fps recording (2026-08-24), and measured again on a 3840x2076 Main10 film
   (2026-08-25).
 - Observation: `Surface.paintWnd` takes the union of everything invalidated since the last present
@@ -799,7 +799,7 @@ as [snapforge.md](snapforge.md).
   content area and the timeline sits in the command bar, so any tick that touches both unions to
   the whole client rectangle, and there is one such tick per presented picture at best.
 - Evidence: measured per pass with a synchronizing probe between them (2026-08-25,
-  release, sFileScope on a 1650x915 logical window at 150%, so a 1.5 megapixel clip and a
+  release, Swag Scope on a 1650x915 logical window at 150%, so a 1.5 megapixel clip and a
   3.4 megapixel one in device pixels; Intel Arc integrated adapter). Recording the hierarchy costs
   0.5 ms of processor time and the three chrome passes 0.7; **executing the frame costs the adapter
   13 to 21 ms**, of which the render-target pass is two thirds and the copy of that target to the

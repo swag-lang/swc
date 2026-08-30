@@ -146,7 +146,7 @@ Repeat it to select a union:
 ```text
 swc tools/std.swgs dm test gui --test-file htmlview.test.swg
 swc tools/std.swgs dm test gui --test-file htmlview.test.swg --test-file markdownview.test.swg
-swc tools/apps.swgs dm test sFileScope --test-file viewer.video.test.swg
+swc tools/apps.swgs dm test swagscope --test-file viewer.video.test.swg
 ```
 
 Use `--file-filter` only for standalone compiler-suite inputs or a self-contained reference page.
@@ -155,12 +155,12 @@ files outside the test file.
 
 Prefer a named application test file over all GUI tests:
 
-- HTML parser/layout/rendering: `gui`'s `htmlview.test.swg`, then sFileScope's
+- HTML parser/layout/rendering: `gui`'s `htmlview.test.swg`, then Swag Scope's
   `viewer.html.test.swg` as the concrete file-viewer consumer; do not run the rest of GUI.
 - Markdown parser/layout/rendering: `gui`'s `markdownview.test.swg`, then
   `viewer.markdown.test.swg` as the concrete viewer consumer.
 - Video codecs/streaming: the matching `video` file (`avi.test.swg`, `y4m.test.swg`, or
-  `streaming.test.swg`), then sFileScope's `viewer.video.test.swg` as the concrete player.
+  `streaming.test.swg`), then Swag Scope's `viewer.video.test.swg` as the concrete player.
 - Dialog composition: `dialogs.charter.test.swg`, `dialogs.layout.test.swg`, and the exact dialog
   test such as `messagedlg.test.swg`; use `gui9` only for the required visual inspection.
 

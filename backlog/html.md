@@ -20,7 +20,7 @@ About 15 000 lines across fifteen files, and the shape is a real engine, not a t
 translator. The parser is resumable and streams: a document fed in 48 KB chunks produces exactly
 the tree the whole file would, partial renderings appear at growing intervals, a 48 MB cap ends
 the load with a visible notice, and every node keeps its source byte offset — which is what lets
-sFileScope reveal a raw-file search hit on the exact line that draws it. It carries the elements a
+Swag Scope reveal a raw-file search hit on the exact line that draws it. It carries the elements a
 document leaves implied — `html`, `head` and `body`, opened where the content says they belong —
 and resolves the standard's complete list of 2 231 named character references, the legacy
 spellings without a semicolon included. The tree builder carries the recoveries browsers
@@ -267,7 +267,7 @@ mean, and CSS surface that is read and silently dropped.
   tracking that could trigger it already exists for links. `<meta name="description">` is
   likewise unreachable.
 - Complete when: the view exposes the document title and description to its host, hovering an
-  element with a `title` shows it as a themed tooltip after the toolkit's delay, and sFileScope
+  element with a `title` shows it as a themed tooltip after the toolkit's delay, and Swag Scope
   captions its HTML tab with the title.
 
 ### T-488 — A search cannot cross a text-node boundary
